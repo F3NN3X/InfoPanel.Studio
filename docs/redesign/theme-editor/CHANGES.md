@@ -38,7 +38,7 @@ rule.
 - **Not yet in the UI** (later PRs): Reset to ‹theme›, the Update bar naming the other places, "used by", "‹name›
   (deleted)", "Custom look · not saved".
 
-## PR · The new Theme view
+## PR #230 · The new Theme view
 
 The Theme rail view is rebuilt around the live look of a level (handoff SPEC §4.1 to §4.3, §4.5, §4.6).
 
@@ -91,6 +91,39 @@ The Theme rail view is rebuilt around the live look of a level (handoff SPEC §4
   `glossary.md` (Skin: picked on the theme card), `library.md` (Theme › Start from, Typography), `widget-settings.md`,
   `performance.md` and `problems.md` (chip words), `island-alerts.md` (Theme › Typography is Theme › Text).
 
+## PR · Preview, toast row and saved palettes
+
+- **Preview** (SPEC §4.4): "Preview", the screen's pages as a segmented control (it previews another page; the level
+  stays), the differences pill **N widgets differ · hide tags** / **Show what differs**, the toast row, then the page at
+  its real aspect ratio with the live look. A widget that differs from the level has a blue tag "✎ ‹section›" (and
+  "+N" for more sections). Click a widget: a 2px outline and the bar "‹Widget› · widget on ‹page›", "Uses its own
+  ‹sections›: ‹values›. Everything else follows ‹level›." (or "Follows ‹level› everywhere."), **Use theme's value**
+  (only when it differs) and **Open in Edit ↗** (Edit with the widget selected). Nothing selected: "Click a widget to
+  see what it changes." and **Make all follow** (the widgets that differ on the page shown). Gone: "Live preview ·
+  ‹screen› / ‹page›" and the **Exceptions** list with its Make it follow rows; a screen's or page's own sections are
+  the fine-tune chips.
+- **Owner rule:** what a theme wrote into a widget (a variant's color swaps and card opacity) is the theme's. A widget
+  whose own values of a section are only those writes isn't tagged, counted, or made to follow; "N widgets override
+  this" under a fine-tune section counts the same way.
+- **Toast row** under the preview header, replacing the studio toast for Theme: a green dot, the bold title, the
+  sub-line, **Reset to ‹name›** (a theme applied with fine-tune kept), **Undo** (the studio's undo) and ✕. It stays
+  until ✕, the next toast or the next change. Copy: "Applied ‹name›." · "Palette, skin and corners changed. Background
+  kept." (… "N fine-tune changes kept."); "Palette changed to ‹name›." · "Skin, corners, background and fine-tune
+  kept."; "Skin changed to ‹name›." · "Colors, corners, background and fine-tune kept." (a page: "Fine-tune kept.
+  Palette, corners and background come from ‹screen›."); "Reset to ‹name›." · "Everything on ‹level› now matches the
+  theme, including its background." (a page: "Everything on ‹page› now matches the theme. Palette, corners and
+  background come from ‹screen›."); "Saved "‹name›"." · "It's in Switch theme under saved themes." (a palette: "It's
+  at the top of the picker under Yours.").
+- **Saved palettes:** **Palette** lists the six built-ins (Zinc "Built-in default"), then the user's palettes tagged
+  **Yours**, newest first, each with **⋯**: "Used by ‹saved themes, All screens, screens›" or "Not in use", Rename ·
+  Duplicate · Delete. Footer: "6 built-in · N yours" and **+ Save current colors as a palette**. The card's Palette row
+  names a built-in or saved palette with the level's colors, else "Custom".
+- **Library:** Duplicate on a built-in palette makes a saved palette "‹name› copy" (it made a saved theme with an empty
+  widget style). Saved palettes aren't listed in the Library.
+- **Data:** `config.palettes` (`id`, `name`, the 19 `tokens`); a theme keeps a copy of its tokens, never a palette id.
+- **Help:** `themes.md` (the preview, the tags and the selection bar, Make all follow, the toast row, saved palettes;
+  Exceptions is gone), `presets.md` (saved palettes; duplicating a palette), `library.md` (duplicating a palette).
+
 ## Decisions made while grounding the spec
 
 - A page can't hold a palette, corners or background. At page level these parts are read-only and say "Palette, corners
@@ -105,3 +138,5 @@ The Theme rail view is rebuilt around the live look of a level (handoff SPEC §4
 - Include background is remembered for the session in Switch theme only; the command palette has its two commands.
 - A section with values equal to what the applied theme wrote reads "From theme"; the palette's tokens count as a
   theme part, so editing one shows the Update bar, not "Changed here" on Colors.
+- The preview's Make all follow acts on the widgets that differ on the page shown, the ones the pill counts; a
+  screen's or page's own sections are reset from their fine-tune chips.

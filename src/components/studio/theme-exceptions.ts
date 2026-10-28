@@ -6,7 +6,7 @@ import { resetInheritance } from "./inheritance-actions";
  * Theme's Exceptions (SPEC §7.3): what below the current scope doesn't follow it, per card. All screens lists the
  * screens, pages and widgets that set their own; a screen its pages and widgets; a page its widgets (never the page's
  * own sections). Make it follow resets exactly that one; Make all follow every listed one. Also the preview's
- * levels (the page rendered at the scope) and its edit badges. Pure.
+ * levels (the page rendered at the scope); its tags are `theme-differences.ts`. Pure.
  */
 
 export interface ThemeException {
@@ -89,10 +89,6 @@ export const makeAllFollow = (config: DashboardConfig, at: ThemeAt): DashboardCo
 /** "N widgets override this" under a card. */
 export const widgetOverrides = (exceptions: readonly ThemeException[], card: ThemeCard): number =>
   exceptions.filter((ex) => ex.kind === "widget" && ex.card.id === card.id).length;
-
-/** The page's widgets that get the preview's edit badge (they don't follow the scope). */
-export const exceptionZones = (exceptions: readonly ThemeException[], pageId: string): Set<string> =>
-  new Set(exceptions.flatMap((ex) => (ex.kind === "widget" && ex.page?.id === pageId && ex.zone ? [ex.zone.id] : [])));
 
 const pageLevel = (page: ProfilePage): ProfilePage => {
   const { widgetTheme: _theme, ...rest } = page;

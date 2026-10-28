@@ -354,12 +354,21 @@ export interface DashboardConfig {
   style?: ModuleSettings;
   /** Whole looks the user saved (saved Themes; see appearance-presets.ts). */
   appearancePresets?: AppearancePreset[];
+  /** Palettes the user saved (Theme › Palette › Yours; see palettes.ts). */
+  palettes?: SavedPalette[];
   /** What the theme last applied to All screens wrote (`lib/applied-theme.ts`); unset = none. */
   appliedTheme?: AppliedTheme;
   /** Font, clock format, locale, motion and kiosk cursor (see general.ts). */
   general?: GeneralSettings;
   /** Alert rules (see alerts.ts); absent = none. */
   alerts?: AlertsConfig;
+}
+
+/** A palette the user saved: its name and the 19 color tokens. */
+export interface SavedPalette {
+  id: string;
+  name: string;
+  tokens: ThemeTokens;
 }
 
 /** A named set of style values (the keys in `PROFILE_STYLE_KEYS`). */
@@ -707,10 +716,22 @@ export function mergeConfig(input: StoredConfig, log?: string[]): DashboardConfi
     background: normalizeBackground(parsed.background),
     style: v7.style,
     appearancePresets: normalizeAppearancePresets(parsed.appearancePresets),
+    palettes: normalizePalettes(parsed.palettes),
     appliedTheme: normalizeAppliedTheme(parsed.appliedTheme),
     general: normalizeGeneral(v7.general),
     alerts: normalizeAlerts(parsed.alerts),
   });
+}
+
+/** Saved palettes, guarded: an id and a name required, the tokens over the defaults; none kept = undefined. */
+function normalizePalettes(v: unknown): SavedPalette[] | undefined {
+  const kept = (Array.isArray(v) ? (v as Partial<SavedPalette>[]) : []).flatMap((p) => {
+    // Tokens found means `p` is an object.
+    const tokens = normalizeThemePatch(p?.tokens);
+    const name = tokens && typeof p.name === "string" && p.name.trim();
+    return name && p.id && typeof p.id === "string" ? [{ id: p.id, name, tokens: { ...DEFAULT_THEME, ...tokens } }] : [];
+  });
+  return kept[0] ? kept : undefined;
 }
 
 /** Load the saved config, merged over defaults (tolerates missing fields). */

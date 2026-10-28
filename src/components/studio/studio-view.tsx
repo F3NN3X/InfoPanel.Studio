@@ -1312,6 +1312,8 @@ function StudioViewBody({
       navRequest={ui.navRequest}
       jumpTo={ui.inspectorJump}
       presets={appearancePresets}
+      onUndo={history.undo}
+      onOpenZone={openZone}
     />
     </Suspense>
   );

@@ -1,13 +1,13 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Lock } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
-import { useToast } from "@/components/ui/toast";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { useSensorCatalog } from "@/lib/catalog";
 import { FONT_CATALOG } from "@/lib/fonts";
 import { GENERAL_DEFAULTS, resolveFont, type GeneralFont } from "@/lib/general";
 import { resolveInheritance, valueText } from "@/lib/inheritance";
-import type { DashboardConfig } from "@/lib/layout";
+import { uid, type DashboardConfig } from "@/lib/layout";
+import { deletePalette, duplicatePalette, paletteName, paletteUsers, renamePalette, savePalette } from "@/lib/palettes";
 import type { TemplatePresetGroup } from "@/lib/screen-templates/template-presets";
 import { templateThemeRows } from "@/lib/screen-templates/template-rows";
 import { hexToHsl, hslToHex, resolveTheme } from "@/lib/theme";
@@ -43,17 +43,20 @@ import {
 } from "./theme-cards";
 import { scopeAppearance, scopeId, scopeLookValues, validScope, withLockAll, type ThemeScope } from "./theme-editor-model";
 import { THEME_EDITOR_SETTINGS } from "./theme-editor-settings";
-import { exceptionsOf, makeAllFollow, makeFollow, widgetOverrides } from "./theme-exceptions";
+import { differencesOf, followAll } from "./theme-differences";
+import { exceptionsOf, widgetOverrides } from "./theme-exceptions";
 import { FineTuneHeader, FineTuneRow, RowsLabel } from "./theme-fine-tune";
 import { changedHere, fineTuneChip, fineTuneHeading, fineTuneSummary, resetFineTune } from "./theme-fine-tune-model";
 import { ThemeLookCard } from "./theme-look-card";
-import { BackgroundPicker, PalettePicker, SkinPicker } from "./theme-part-pickers";
+import { appliedToast, paletteToast, paletteUsedBy, resetToast, savedToast, skinToast } from "./theme-messages";
+import { PalettePicker } from "./theme-palette-picker";
+import { BackgroundPicker, SkinPicker } from "./theme-part-pickers";
 import { SwitchThemePicker } from "./theme-pickers";
-import { ThemeExceptions, ThemePreview } from "./theme-preview";
+import { ThemePreview } from "./theme-preview";
 import { ALL_TOKENS, type TokenRow } from "./theme-rows";
 import { ThemeScopeBar } from "./theme-scope-bar";
+import { ThemeToastRow, useThemeToast } from "./theme-toast";
 import {
-  appliedToast,
   backgroundLabel,
   cardKind,
   cardName,
@@ -61,7 +64,6 @@ import {
   levelHelp,
   otherUses,
   pageParts,
-  paletteName,
   resetText,
   skinLabel,
   themeCounts,
@@ -88,6 +90,10 @@ interface ThemeEditorProps {
   /** The palette's "Go to setting": open the section and focus the row whenever `seq` changes. */
   jumpTo?: { id: string; key?: string; seq: number };
   presets: AppearancePresetsApi;
+  /** The studio's undo (the toast row's Undo). */
+  onUndo: () => void;
+  /** Edit with a widget selected (the preview's Open in Edit). */
+  onOpenZone: (profileId: string, pageId: string, zoneId: string) => void;
 }
 
 const FONTS = FONT_CATALOG.map((f) => ({ value: f.id, label: f.label }));
@@ -121,9 +127,9 @@ const DataRow = ({ children }: { children: ReactNode }) => <div className="py-[3
  * Theme (handoff SPEC §4): the live look of a level. The header holds the title, "Live look of" and the level
  * control (All screens · ‹screen› · ‹page›), the level help and Lock all at Screen level; the 360 px column the theme
  * card and the fine-tune list, or a picker drilled into (Switch theme, Palette, Skin, Background); the right area the
- * live preview of the page at the level and its Exceptions.
+ * preview of the screen's pages with what differs from the level, and the toast row.
  */
-export function ThemeEditor({ config, scope: requested, profileId, pageId, onPick, setConfig, navigateTo, navRequest, jumpTo, presets }: ThemeEditorProps) {
+export function ThemeEditor({ config, scope: requested, profileId, pageId, onPick, setConfig, navigateTo, navRequest, jumpTo, presets, onUndo, onOpenZone }: ThemeEditorProps) {
   const profile = config.profiles.find((p) => p.id === profileId) ?? config.profiles[0];
   const page = profile.pages.find((pg) => pg.id === pageId) ?? profile.pages[0];
   const scope = validScope(profile, requested);
@@ -145,7 +151,11 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
     columnRef.current?.scrollTo({ top: 0 });
   }, [drill]);
   useEffect(() => () => clearTimeout(timer.current), []);
-  const toast = useToast();
+  const { toast, show, dismiss } = useThemeToast(config);
+  // The page the preview draws: the level's, until another page of the screen is picked there.
+  const [previewId, setPreviewId] = useState<string>();
+  useEffect(() => setPreviewId(undefined), [page.id]);
+  const previewPage = profile.pages.find((pg) => pg.id === previewId) ?? page;
   // The template looks come in their own chunk (they pull in the whole template catalog).
   const [templates, setTemplates] = useState<readonly TemplatePresetGroup[]>();
   useEffect(() => {
@@ -223,7 +233,8 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   };
   const effective = shownValues(values, THEME_EDITOR_SETTINGS);
   const sections = visibleSections(allSections({ kind: "theme", scope: scope.kind }), (def) => isVisible(def, effective));
-  const exceptions = exceptionsOf(config, at);
+  // What below the level doesn't follow it; values a theme wrote into widgets are the theme's (owner rule).
+  const exceptions = differencesOf(config, exceptionsOf(config, at));
   const theme = resolveTheme(config, at.level === "all" ? undefined : profile);
   const background = at.level === "all" ? config.background : (profile.background ?? config.background);
   const font = at.level === "all" ? (config.general?.font ?? GENERAL_DEFAULTS.font) : resolveFont({ font: config.general?.font ?? GENERAL_DEFAULTS.font }, profile);
@@ -238,21 +249,25 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   const kind = cardKind(state);
   const name = cardName(state);
   const updateText = updateBarText(state, others);
-  const palette = paletteName(theme.tokens);
+  const palette = paletteName(theme.tokens, config.palettes);
   const saved = state.theme && kind === "saved" ? state.theme : undefined;
 
   const applyPreset = (p: AppearancePreset, includeBackground: boolean) => {
     const kept = state.own.length;
     presets.apply(p, at, at.level !== "page" && includeBackground);
     setDrill("main");
-    toast(appliedToast(p.name, at.level, at.level !== "page" && includeBackground, kept, profile.name), {
-      ms: 4000,
-      ...(kept > 0 ? { action: { label: `Reset to ${p.name}`, onClick: () => presets.reset(p, at) } } : {}),
+    show({
+      ...appliedToast(p.name, at.level, at.level !== "page" && includeBackground, kept, profile.name),
+      ...(kept > 0 ? { reset: { label: `Reset to ${p.name}`, run: () => resetTo(p, p.name) } } : {}),
     });
+  };
+  const resetTo = (p: AppearancePreset, themeName: string) => {
+    presets.reset(p, at);
+    show(resetToast(themeName, at.level, levelName, profile.name));
   };
   const saveTheme = (themeName: string) => {
     presets.save(at, themeName, true);
-    toast(`Saved "${themeName}". It's in Switch theme under saved themes.`);
+    show(savedToast(themeName, "theme"));
   };
 
   const sectionRows = (s: InspectorSection, only?: (k: string) => boolean) => {
@@ -406,12 +421,21 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
         return (
           <PalettePicker
             current={theme.tokens}
+            saved={config.palettes ?? []}
+            usedBy={(tokens) => paletteUsedBy(paletteUsers(config, tokens))}
             onBack={toMain}
-            onPick={(p) => {
+            onPick={(paletteLabel, tokens) => {
               if (!twoLevel) return;
-              setConfig((c) => withTokens(c, twoLevel, p.tokens));
+              setConfig((c) => withTokens(c, twoLevel, tokens));
               toMain();
-              toast(`Palette changed to ${p.label}. Skin, corners, background and fine-tune kept.`);
+              show(paletteToast(paletteLabel));
+            }}
+            onRename={(id, n) => setConfig((c) => renamePalette(c, id, n))}
+            onDuplicate={(id) => setConfig((c) => duplicatePalette(c, id, uid("palette")))}
+            onDelete={(id) => setConfig((c) => deletePalette(c, id))}
+            onSaveCurrent={(n) => {
+              setConfig((c) => savePalette(c, uid("palette"), n, theme.tokens));
+              show(savedToast(n, "palette"));
             }}
           />
         );
@@ -423,7 +447,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
             onPick={(skin) => {
               setConfig((c) => withLookAt(c, at, { skin, surface: "auto" }));
               toMain();
-              toast(`Skin changed to ${skinLabel(skin)}. Colors, corners, background and fine-tune kept.`);
+              show(skinToast(skinLabel(skin), at.level, profile.name));
             }}
           />
         );
@@ -453,10 +477,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
                 state.theme
                   ? {
                       text: resetText(name, state.own.length, at.level, levelName),
-                      onReset: () => {
-                        presets.reset(state.theme!, at);
-                        toast(`Reset to ${name}. Everything on ${levelName} now matches the theme, including its background.`);
-                      },
+                      onReset: () => resetTo(state.theme!, name),
                     }
                   : undefined
               }
@@ -519,13 +540,18 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
         >
           <InspectorChromeProvider value={{ mode: "docked" }}>{column()}</InspectorChromeProvider>
         </aside>
-        <main className="flex min-w-0 flex-1 flex-col items-start gap-5 overflow-y-auto bg-[#0b0b0d] p-6 max-sm:shrink-0 max-sm:overflow-visible max-sm:p-4">
-          <ThemePreview config={config} at={at} profile={profile} page={page} exceptions={exceptions} />
-          <ThemeExceptions
-            scopeName={levelName}
-            exceptions={exceptions}
-            onFollow={(ex) => setConfig((c) => makeFollow(c, ex))}
-            onFollowAll={() => setConfig((c) => makeAllFollow(c, at))}
+        <main className="flex min-w-0 flex-1 flex-col items-start overflow-y-auto bg-[#0b0b0d] px-6 py-5 max-sm:shrink-0 max-sm:overflow-visible max-sm:p-4">
+          <ThemePreview
+            config={config}
+            at={at}
+            profile={profile}
+            page={previewPage}
+            onPage={setPreviewId}
+            levelName={levelName}
+            differences={exceptions}
+            toast={toast && <ThemeToastRow toast={toast} onUndo={onUndo} onDismiss={dismiss} />}
+            onFollow={(list) => setConfig((c) => followAll(c, list))}
+            onOpenInEdit={(pageId, zoneId) => onOpenZone(profile.id, pageId, zoneId)}
           />
         </main>
       </div>
