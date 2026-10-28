@@ -58,7 +58,7 @@ export function GaugeDetail({ entry, sheet, copies, scope, actions }: GaugeDetai
           className="flex h-[34px] w-full items-center justify-center gap-2 rounded-[8px] bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90"
         >
           <Pencil className="h-4 w-4" strokeWidth={1.75} />
-          {entry.source.kind === "preset" ? "Customise a copy" : "Edit"}
+          {entry.source.kind === "preset" ? "Customize a copy" : "Edit"}
         </button>
         <div className="grid grid-cols-2 gap-2 [&>*:last-child:nth-child(odd)]:col-span-2">
           {secondary.map((a) => (

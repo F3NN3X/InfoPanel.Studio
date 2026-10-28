@@ -11,7 +11,7 @@ export const meta: WidgetMeta = {
   minSize: [1, 1],
   blurb: "Friends by status, in-game first",
   tags: "steam online",
-  description: "Your Steam friends as a list or a table, colour-coded by status: in-game, online, away, busy.",
+  description: "Your Steam friends as a list or a table, color-coded by status: in-game, online, away, busy.",
   views: [
     { id: "list", name: "List" },
     { id: "table", name: "Table", blurb: "Friends in columns: status, game, last seen", tags: "columns grid" },

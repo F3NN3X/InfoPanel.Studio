@@ -1,7 +1,7 @@
 import { THEME_SETTINGS } from "@/modules/standard-settings";
 import { ALIGN_CODES } from "@/modules/setting-readers";
 import { migrateStyleV7 } from "./settings-migrate";
-import { THEMED_KEYS, themedOf } from "./theme-model";
+import { DEFAULT_SKIN, THEMED_KEYS, themedOf } from "./theme-model";
 import { settingKeys, type ModuleSetting, type ModuleSettings } from "@/modules/types";
 import { color, normalizeBackground, type PageBackground } from "./appearance";
 import { DEFAULT_THEME, THEME_PRESETS, type ThemePresetName, type ThemeTokens } from "./theme";
@@ -87,7 +87,8 @@ export function isValidStyleValue(key: string, value: unknown): boolean {
   if (!def || !THEMED_KEYS.has(key)) return false;
   switch (def.type) {
     case "select":
-      return typeof value === "string" && (def.options ?? []).some((o) => o.value === value);
+      // The Default skin's other spelling (`default`) is valid too: it reads as `auto`.
+      return typeof value === "string" && (def.options ?? []).some((o) => o.value === (key === "skin" && value === "default" ? DEFAULT_SKIN : value));
     case "number":
       return (
         typeof value === "number" &&

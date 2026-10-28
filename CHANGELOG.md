@@ -22,6 +22,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **Island looks moved into the island settings.** The six looks are buttons at the top of **Look** in Alerts & Island › Island and apply to the screen you are editing in one undo step. **Glass** is now **Frosted pill**, **Paper** is **Light pill** and **Theme card** is **Match theme**.
 - **Widget Styles renamed.** *Default* is **Follow theme**, *Dark* **Matte dark**, *Light* **Matte light**, *Vivid* **Frosted** and *Mono* **Monochrome**. The surface material *Theme* is now **Match theme**.
 - **A screen's Theme row in the page settings names its theme like the theme card:** the theme, **Changed from ‹name›**, **‹name› (deleted)** or **Custom look**.
+- **The default skin is called Default everywhere.** The widget Skin setting listed *Auto* and *Default* as two choices; it now has one, **Default**, and every skin picker sets the same value. Skins are spelled the same everywhere: **TUI**, **HUD**. Nothing changes on screens you already have.
+- **Words.** The New screen and New InfoPanel profile color chips are called **Variant**, and a variant is always named with its template (*Terminal · Amber*). An InfoPanel profile's *Palette* is **Profile colors**. The setting dots say **Changed here**, and a section's link to take it over says **Change here**. The command palette's *Theme › Typography* is **Theme › Text**, and the island's Color option *Theme* is **Match theme**.
+- **US spelling across the studio:** color and customize in labels, hints and messages, in the gauge and InfoPanel editors too.
+- **Help for the new Theme view.** Themes, Layouts and presets, Library, Widget settings, Quick start, the Glossary and the island help describe the theme card, Switch theme, the pickers, fine-tune, the preview and where Styles and island looks now live.
 
 ### Added
 
@@ -148,7 +152,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Added
 
-- **Every template look is a theme.** **Theme › Start from › From templates** lists the look of each screen template, and of each of its palettes (Graphite · Amber, Neon · Toxic, Frost Bar · Ice and so on), grouped by template. Press one to apply it to any screen, or the copy button to keep it in Library › Themes and edit it like your own. A new screen made from a template looks exactly as before.
+- **Every template look is a theme.** **Theme › Start from › From templates** lists the look of each screen template, and of each of its palettes (Graphite · Amber, Neon · Toxic, Frost Bar · Smoke and so on), grouped by template. Press one to apply it to any screen, or the copy button to keep it in Library › Themes and edit it like your own. A new screen made from a template looks exactly as before.
 
 ## [1.3.0-beta.30] - 2026-10-26
 

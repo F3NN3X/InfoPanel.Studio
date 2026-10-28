@@ -283,7 +283,7 @@ export function badgeOf(item: DisplayItem): Badge | null {
       return badge("approximated", "Exported as two Texts, a dark copy behind the text.", ["a blurred shadow (InfoPanel draws none; the copy is sharp)"]);
     case "sparkline": {
       if (s.style === "bars") return badge("native", "Exported as InfoPanel’s Graph in histogram mode.");
-      const lost = [...(s.dot ? ["the end dot"] : []), ...(s.gradient && s.style === "area" ? ["the gradient fill (InfoPanel fills one colour)"] : [])];
+      const lost = [...(s.dot ? ["the end dot"] : []), ...(s.gradient && s.style === "area" ? ["the gradient fill (InfoPanel fills one color)"] : [])];
       return lost.length ? badge("approximated", "Exported as InfoPanel’s Graph, without some of its look.", lost) : badge("native", "Exported as InfoPanel’s Graph.");
     }
   }

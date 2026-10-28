@@ -9,7 +9,7 @@ verified: 1.3.0-beta.36
 The five building blocks, from the whole dashboard down to a single readout.
 
 :::flow
-Dashboard — Theme, Styles, saved Themes
+Dashboard — Theme, Styles, saved themes
 Screen — One per display size and grid
 Cells — The boxes of the grid
 Widget or panel — What sits on the cells
@@ -17,7 +17,7 @@ Widget or panel — What sits on the cells
 
 ## Dashboard
 
-Everything you build: the theme for all screens, the page background, fonts and your saved Themes, Styles and Panels. There is one dashboard per install, and it exports as one file.
+Everything you build: the theme for all screens, the page background, fonts and your saved themes, palettes, Styles and Panels. There is one dashboard per install, and it exports as one file.
 
 ## Screen
 
@@ -37,4 +37,4 @@ A widget you compose from small **panel widgets** (stat, gauge, bar, clock, imag
 
 ## How looks are decided
 
-Looks flow downward. A widget follows its page, which follows its screen, which follows All screens, unless you customise a section on the widget itself. Content (which sensor, what to show) always belongs to the widget. See [Themes](themes).
+Looks flow downward. A widget follows its page, which follows its screen, which follows All screens, unless you customize a section on the widget itself. Content (which sensor, what to show) always belongs to the widget. See [Themes](themes).

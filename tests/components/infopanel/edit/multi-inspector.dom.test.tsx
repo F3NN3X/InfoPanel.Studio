@@ -44,7 +44,7 @@ describe("the inspector for several items", () => {
     expect(color.value).toBe("#FFFFFFFF");
     fireEvent.change(color, { target: { value: "red" } });
     fireEvent.blur(color);
-    expect(screen.getByText(/InfoPanel needs Color as a colour/)).toBeTruthy();
+    expect(screen.getByText(/InfoPanel needs Color as a color/)).toBeTruthy();
     expect(editor.setFields).toHaveBeenCalledTimes(1);
   });
 });

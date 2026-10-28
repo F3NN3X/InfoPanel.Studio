@@ -3,7 +3,7 @@ id: quickstart
 title: Quick start
 icon: rocket_launch
 related: [concepts, studio, kiosk]
-verified: 1.3.0-beta.35
+verified: 1.3.0-beta.36
 ---
 
 From a fresh install to a live dashboard on your InfoPanel display.
@@ -30,7 +30,7 @@ A fresh install has one blank screen, **Main display**, at 1920 × 1080. To make
 
 1. Pick **Blank grid** or a template. Search covers template names, the widgets they use and the sensors they read, and the chips narrow the list by shape. Templates sit in sections by shape, with your recently used ones first.
 2. Check the size. A template comes at the size it is made for, marked with a ★ in the size list. Choose another preset or type a width and height.
-3. Pick a palette, check the sensors it found on this PC, and name the screen.
+3. Pick a **Variant**, check the sensors it found on this PC, and name the screen.
 4. Press **Create screen**.
 
 You can change the size later under **Size & fit**. The grid is created for you.
@@ -50,7 +50,7 @@ Not sure where to start? Open the **Layouts** tab, add a layout starter such as 
 
 ## 4. Choose a look
 
-Open **Theme** on the rail and pick a look under **1 · Start from**: a palette, a skin, a saved Theme or the look of a screen template. The scope bar decides where it applies: **All screens**, or just this screen.
+Open **Theme** on the rail and press **Switch theme** to pick a saved theme or the look of a screen template, or change one part on the theme card: the **Palette**, **Skin**, **Corners** or **Background**. The level at the top decides where it applies: **All screens**, a screen or a page. See [Themes](themes).
 
 ## 5. Put it on the display
 

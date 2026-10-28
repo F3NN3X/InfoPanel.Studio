@@ -7,6 +7,7 @@ import { levelApplied } from "./theme-state";
 import type { DashboardConfig, MonitorProfile, Placement, ProfilePage } from "./layout";
 import { swapColors } from "./screen-templates/looks";
 import { SECTION_IDS, SECTION_KEYS, themedOf, withSectionFlag, withThemeValues, type WidgetTheme } from "./theme-model";
+import { sameSkin } from "./theme-skins";
 
 export { levelApplied, themeState, type ThemePart, type ThemeState } from "./theme-state";
 
@@ -46,12 +47,16 @@ const omit = (values: ModuleSettings | undefined, keys: readonly string[]): Modu
   Object.fromEntries(Object.entries(values ?? {}).filter(([key]) => !keys.includes(key)));
 
 
+/** Whether a level's value is still the one the last theme wrote (the Default skin's two spellings are one). */
+const theirs = (key: string, value: unknown, written: unknown): boolean =>
+  key === "skin" && value !== undefined && written !== undefined ? sameSkin(value, written) : value === written;
+
 /** A level's values with a theme's merged in: what still equals the last theme's (`written`) becomes `next`'s, the rest stays. */
 function merged(values: ModuleSettings, written: ModuleSettings, next: ModuleSettings, force: ReadonlySet<string>): ModuleSettings {
   const keys = new Set([...Object.keys(values), ...Object.keys(written), ...Object.keys(next)]);
   return Object.fromEntries(
     [...keys].flatMap((key) => {
-      const own = values[key] !== written[key] && !force.has(key);
+      const own = !theirs(key, values[key], written[key]) && !force.has(key);
       const value = own ? values[key] : next[key];
       return value === undefined ? [] : [[key, value]];
     })

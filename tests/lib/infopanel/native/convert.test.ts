@@ -137,13 +137,13 @@ describe("convert", () => {
       },
     });
     expect(widgetOf("Bar", { Width: 20, Height: 150, Gradient: true }).lost).toContain("gradient direction (InfoPanel runs a vertical bar's gradient across it)");
-    expect(widgetOf("Bar", { Width: 200, Height: 10, Color: "#80FF0000" }).lost).toContain("colour transparency");
+    expect(widgetOf("Bar", { Width: 200, Height: 10, Color: "#80FF0000" }).lost).toContain("color transparency");
     // A fully transparent track or frame draws nothing, so it is left out rather than lost; the frame still insets.
     const clear = widgetOf("Bar", { Width: 20, Height: 150, Background: true, BackgroundColor: "#00FFFFFF", Frame: true, FrameColor: "#00FFFFFF", Gradient: false });
-    expect(clear.lost).not.toContain("colour transparency");
+    expect(clear.lost).not.toContain("color transparency");
     expect(clear.custom).toMatchObject({ gauge: { track: null, thickness: 18 } });
     expect((clear.custom as { gauge: object }).gauge).not.toHaveProperty("background.border");
-    expect(widgetOf("Bar", { Width: 20, Height: 150, Background: true, BackgroundColor: "#80FFFFFF" }).lost).toContain("colour transparency");
+    expect(widgetOf("Bar", { Width: 20, Height: 150, Background: true, BackgroundColor: "#80FFFFFF" }).lost).toContain("color transparency");
     const donut = widgetOf("Donut", { Width: 120, Span: 270, Thickness: 12, Color: "#FFFF0000", Rotation: 45 });
     expect(donut).toMatchObject({
       box: { w: 120, h: 120 }, transform: { rotate: 45 }, needs: ["custom gauge widget", "rotated panel items"],
@@ -192,7 +192,7 @@ describe("convert", () => {
     expect(widgetOf("Shape", { ...plain, Type: "Ellipse", Width: 50, Height: 50, ShowFill: false, ShowFrame: true })).toMatchObject({
       needs: ["shape frame"], custom: { kind: "shape", fill: null, stroke: { width: 5 } },
     });
-    expect(widgetOf("Shape", { ...plain, CornerRadius: 8, FillColor: "#80112233" }).needs).toEqual(["shape corner radius", "colour transparency"]);
+    expect(widgetOf("Shape", { ...plain, CornerRadius: 8, FillColor: "#80112233" }).needs).toEqual(["shape corner radius", "color transparency"]);
     expect(widgetOf("Shape", { ...plain, ShowGradient: true, GradientType: "Sweep", GradientAngle: 30, GradientAnimationSpeed: 0, GradientColor: "#FF00FF00", GradientColor2: "#FF0000FF" })).toMatchObject({
       needs: ["gradient shapes"],
       custom: { gradient: { color2: "#FF00FF00", color3: "#FF0000FF", angle: 30, speed: 0, type: "Sweep" } },
@@ -219,7 +219,7 @@ describe("convert", () => {
     expect(widgetOf("Image", { FilePath: "logo.png", RelativePath: true, Width: 200, Height: 100, Layer: true, LayerColor: "#80FF0000" })).toMatchObject({
       lost: [],
       custom: { kind: "image", layer: "#80FF0000" },
-      needs: ["image stretched to its box, nothing while there is no image", "image colour layer"],
+      needs: ["image stretched to its box, nothing while there is no image", "image color layer"],
     });
     // A URL image from a sensor converts before it has a URL; its widget reads the sensor's.
     expect(widgetOf("HttpImage", { Width: 100, Height: 100, Scale: 66, SensorType: "Plugin", PluginSensorId: "/x" })).toMatchObject({

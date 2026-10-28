@@ -4,6 +4,7 @@ import { isBuiltinPreset, type AppearancePreset } from "./appearance-presets";
 import { sameBackground, sameValues, type AppliedTheme } from "./applied-theme";
 import type { DashboardConfig } from "./layout";
 import { SECTION_IDS, SECTION_KEYS, type SectionId } from "./theme-model";
+import { sameSkin } from "./theme-skins";
 
 /**
  * Which theme a level last applied and what changed since, read from the snapshot the level stores (the theme card,
@@ -45,8 +46,10 @@ export function themeState(config: DashboardConfig, target: ThemeTarget, templat
     const pg = p?.pages.find((x) => x.id === target.pageId);
     const custom = (sec: SectionId) => pg?.widgetTheme?.follow?.[sec] === false && p?.widgetTheme?.locks?.[sec] !== true;
     const own = SECTION_IDS.filter((sec) => sec !== "skin" && custom(sec) && differs(pg?.widgetTheme?.values, sec));
+    // A page that follows its screen's skin holds none: changed from any skin the theme wrote.
     const skin = custom("skin") ? pg?.widgetTheme?.values?.skin : undefined;
-    return { applied, theme, deleted, changed: applied && skin !== written.skin ? ["skin"] : [], own };
+    const skinChanged = skin === undefined ? written.skin !== undefined : !sameSkin(skin, written.skin);
+    return { applied, theme, deleted, changed: applied && skinChanged ? ["skin"] : [], own };
   }
   const p = target.kind === "profile" ? config.profiles.find((x) => x.id === target.profileId) : undefined;
   const values = target.kind === "all" ? config.style : p?.widgetTheme?.values;
@@ -57,7 +60,7 @@ export function themeState(config: DashboardConfig, target: ThemeTarget, templat
   if (!applied) return { applied, theme, deleted, changed: [], own };
   const changed: ThemePart[] = [];
   if (!sameValues(tokens, applied.tokens)) changed.push("palette");
-  if (values?.skin !== written.skin) changed.push("skin");
+  if (!sameSkin(values?.skin, written.skin)) changed.push("skin");
   if (radius !== applied.radius) changed.push("corners");
   if (applied.background && !sameBackground(background, applied.background)) changed.push("background");
   return { applied, theme, deleted, changed, own };

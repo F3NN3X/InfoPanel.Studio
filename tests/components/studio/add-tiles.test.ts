@@ -126,7 +126,7 @@ describe("The details card", () => {
   it("names the kind and adds the kind's sentence (§9.5)", () => {
     const weather = widgets.find((t) => t.key === "Weather")!;
     expect(cardCategory(weather)).toBe("Info · Studio widget");
-    expect(cardDescription(weather)).toMatch(/\. Always sits on the grid; uses your theme, colours and fonts\.$/);
+    expect(cardDescription(weather)).toMatch(/\. Always sits on the grid; uses your theme, colors and fonts\.$/);
     expect(cardCategory(tile(partKey("Bar")))).toBe("InfoPanel item · Data");
     expect(cardDescription(tile(partKey("Bar")))).toBe("A reading as a filled bar. Snaps to cells; hold Alt to place it freely, even on top of widgets.");
     expect(cardCategory(tile(partKey("element:glow")))).toBe("Element");

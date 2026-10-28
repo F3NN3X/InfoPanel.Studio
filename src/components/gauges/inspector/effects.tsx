@@ -16,7 +16,7 @@ export function ShadowInspector({ g, set }: InspectorProps) {
       <NumRow label="Blur" value={s.blur} min={0} max={64} unit="px" onChange={(blur) => patch({ blur }, "blur")} />
       <NumRow label="Offset x" value={s.dx} min={-64} max={64} unit="px" onChange={(dx) => patch({ dx }, "dx")} />
       <NumRow label="Offset y" value={s.dy} min={-64} max={64} unit="px" onChange={(dy) => patch({ dy }, "dy")} />
-      <PaintRow label="Colour" value={s.color} onChange={(color) => patch({ color }, "color")} />
+      <PaintRow label="Color" value={s.color} onChange={(color) => patch({ color }, "color")} />
       <NumRow label="Opacity" value={s.opacity} min={0} max={1} step={0.05} onChange={(opacity) => patch({ opacity }, "opacity")} />
     </div>
   );

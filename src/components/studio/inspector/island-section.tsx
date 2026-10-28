@@ -43,13 +43,13 @@ const SIZE_OPTIONS: Options = [
 ];
 const TINT_OPTIONS: Options = [
   { value: "black", label: "Black" },
-  { value: "theme", label: "Theme", title: "The theme's card colour" },
+  { value: "theme", label: "Match theme", title: "The theme's card color" },
   { value: "custom", label: "Custom" },
 ];
 const BORDER_OPTIONS: Options = [
   { value: "none", label: "None" },
   { value: "subtle", label: "Subtle" },
-  { value: "accent", label: "Accent", title: "The theme's accent colour" },
+  { value: "accent", label: "Accent", title: "The theme's accent color" },
 ];
 const WEIGHT_OPTIONS: Options = [
   { value: "regular", label: "Regular" },

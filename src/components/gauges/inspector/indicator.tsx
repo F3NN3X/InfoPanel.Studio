@@ -12,7 +12,7 @@ const NEEDLE_STYLES: { value: NeedleStyle; label: string }[] = [
 export function TrackInspector({ g, set }: InspectorProps) {
   return (
     <div className="space-y-1">
-      <PaintRow label="Colour" value={g.track ?? DEFAULT_GAUGE.track!} onChange={(track) => set({ ...g, track }, "track")} />
+      <PaintRow label="Color" value={g.track ?? DEFAULT_GAUGE.track!} onChange={(track) => set({ ...g, track }, "track")} />
       <NumRow label="Opacity" value={g.trackOpacity ?? 1} min={0} max={1} step={0.05} onChange={(trackOpacity) => set({ ...g, trackOpacity }, "track-opacity")} />
     </div>
   );
@@ -25,7 +25,7 @@ export function NeedleInspector({ g, set }: InspectorProps) {
   return (
     <div className="space-y-1">
       {g.shape === "arc" && <ChoiceRow label="Style" value={n.style ?? "taper"} options={NEEDLE_STYLES} onChange={(style) => patch({ style })} />}
-      <PaintRow label="Colour" value={n.color} onChange={(color) => patch({ color }, "color")} />
+      <PaintRow label="Color" value={n.color} onChange={(color) => patch({ color }, "color")} />
       <NumRow label="Length" value={n.length} min={0.1} max={1.2} step={0.05} onChange={(length) => patch({ length }, "length")} />
       <NumRow label="Width" value={n.width} min={1} max={64} unit="px" onChange={(width) => patch({ width }, "width")} />
     </div>

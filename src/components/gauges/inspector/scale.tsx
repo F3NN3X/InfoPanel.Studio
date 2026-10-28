@@ -13,13 +13,13 @@ export function TicksInspector({ g, set }: InspectorProps) {
       <NumRow label="Count" value={t.count} min={3} max={21} onChange={(count) => patch({ count }, "count")} />
       <NumRow label="Length" value={t.length} min={1} max={60} unit="px" onChange={(length) => patch({ length }, "length")} />
       <NumRow label="Width" value={t.width} min={0.5} max={16} step={0.5} unit="px" onChange={(width) => patch({ width }, "width")} />
-      <PaintRow label="Colour" value={t.color} onChange={(color) => patch({ color }, "color")} />
+      <PaintRow label="Color" value={t.color} onChange={(color) => patch({ color }, "color")} />
       <ToggleRow label="Minor ticks" value={!!minor} onChange={(on) => set({ ...g, ticks: on ? { ...t, minor: MINOR } : major })} />
       {minor && (
         <>
           <NumRow label="Between majors" value={minor.count} min={1} max={20} onChange={(count) => patch({ minor: { ...minor, count } }, "minor-count")} />
           <NumRow label="Minor length" value={minor.length} min={1} max={60} unit="px" onChange={(length) => patch({ minor: { ...minor, length } }, "minor-length")} />
-          <PaintRow label="Minor colour" value={minor.color} onChange={(color) => patch({ minor: { ...minor, color } }, "minor-color")} />
+          <PaintRow label="Minor color" value={minor.color} onChange={(color) => patch({ minor: { ...minor, color } }, "minor-color")} />
         </>
       )}
     </div>
@@ -33,7 +33,7 @@ export function LabelsInspector({ g, set }: InspectorProps) {
   return (
     <div className="space-y-1">
       <NumRow label="Size" value={l.size} min={4} max={60} unit="px" onChange={(size) => patch({ size }, "size")} />
-      <PaintRow label="Colour" value={l.color} onChange={(color) => patch({ color }, "color")} />
+      <PaintRow label="Color" value={l.color} onChange={(color) => patch({ color }, "color")} />
       <TextRow label="Font" value={l.font} placeholder="Default font" onChange={(font) => patch({ font: font.replace(/[^\w\s,'.-]/g, "").slice(0, 80) }, "font")} />
     </div>
   );

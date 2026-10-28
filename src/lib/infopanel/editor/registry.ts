@@ -77,7 +77,7 @@ export function checkValue(spec: FieldSpec<unknown>, input: unknown): Checked {
       break;
     case "color": {
       const s = String(input).trim();
-      if (!/^#?([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(s)) return { ok: false, reason: "a colour like #AARRGGBB" };
+      if (!/^#?([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(s)) return { ok: false, reason: "a color like #AARRGGBB" };
       v = s.startsWith("#") ? s.toUpperCase() : "#" + s.toUpperCase();
       break;
     }

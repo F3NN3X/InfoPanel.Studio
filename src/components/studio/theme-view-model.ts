@@ -175,10 +175,3 @@ export function commandThemeAt(scope: ThemeScope | undefined, profileId: string)
   if (!scope || scope.kind === "base") return { level: "all" };
   return scope.kind === "profile" ? { level: "screen", profileId } : { level: "page", profileId, pageId: scope.pageId };
 }
-
-/** A skin's name as the UI writes it: Default (also for unset and the old Auto), TUI, HUD, else capitalized. */
-export function skinLabel(skin: unknown): string {
-  const name = typeof skin === "string" && skin && skin !== "auto" ? skin : "default";
-  if (name === "tui" || name === "hud") return name.toUpperCase();
-  return name.charAt(0).toUpperCase() + name.slice(1);
-}

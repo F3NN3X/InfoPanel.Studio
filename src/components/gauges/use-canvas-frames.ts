@@ -37,14 +37,14 @@ export function useCanvasFrames(bridge: StudioBridge, entry: GaugeEntry, source:
     },
     recolour: (r) =>
       commit(
-        "Recolouring",
+        "Recoloring",
         async (d) => {
           const item = itemAt(d.items, source.path);
           const files = (isGauge(item) ? frameNames(item) : []).map((n) => (n ? d.assets.get(n) : undefined));
           if (files.length === 0 || files.some((f) => !f || f.bytes.length === 0)) throw new Error("some frames are not files of this screen");
           return setFrameFiles(d, source.path, await recolourFrames(files as AssetFile[], r));
         },
-        "Recoloured every frame",
+        "Recolored every frame",
       ),
     setSpeed: (fps) => bridge.setConfig((c) => withGaugeSpeed(c, source, fps), `gauge:${key}:fps`),
     convert: async () => {

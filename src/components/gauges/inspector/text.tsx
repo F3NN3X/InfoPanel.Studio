@@ -34,7 +34,7 @@ export function TextInspector({ g, set }: InspectorProps) {
         <div className="space-y-1">
           <TextRow label="Format" value={t.format} placeholder="{value}{unit}" onChange={(format) => patch({ format: format.slice(0, 40) }, "format")} />
           <NumRow label="Size" value={t.size} min={4} max={200} unit="px" onChange={(size) => patch({ size }, "size")} />
-          <PaintRow label="Colour" value={t.color} onChange={(color) => patch({ color }, "color")} />
+          <PaintRow label="Color" value={t.color} onChange={(color) => patch({ color }, "color")} />
           <NumRow label="Weight" value={t.weight} min={100} max={900} step={100} onChange={(weight) => patch({ weight }, "weight")} />
           <HeightRow label="Position" value={t.y} onChange={(y) => patch({ y }, "y")} />
           <TextRow label="Font" value={t.font} placeholder="Default font" onChange={(f) => patch({ font: font(f) }, "font")} />
@@ -52,7 +52,7 @@ export function TitleInspector({ g, set }: InspectorProps) {
     <div className="space-y-1">
       <TextRow label="Text" value={t.text} onChange={(text) => patch({ text: text.slice(0, 60) }, "text")} />
       <NumRow label="Size" value={t.size} min={4} max={200} unit="px" onChange={(size) => patch({ size }, "size")} />
-      <PaintRow label="Colour" value={t.color} onChange={(color) => patch({ color }, "color")} />
+      <PaintRow label="Color" value={t.color} onChange={(color) => patch({ color }, "color")} />
       <HeightRow label="Position" value={t.y} onChange={(y) => patch({ y }, "y")} />
     </div>
   );

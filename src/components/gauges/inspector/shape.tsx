@@ -109,7 +109,7 @@ function GridRows({ g, set }: InspectorProps) {
       <ToggleRow label="Cell border" value={!!grid.border} onChange={(on) => set({ ...g, grid: on ? { ...grid, border: CELL_BORDER } : plain })} />
       {grid.border && (
         <>
-          <PaintRow label="Border colour" value={grid.border.color} onChange={(color) => patch({ border: { ...grid.border!, color } }, "border")} />
+          <PaintRow label="Border color" value={grid.border.color} onChange={(color) => patch({ border: { ...grid.border!, color } }, "border")} />
           <NumRow label="Border width" value={grid.border.width} min={0.5} max={16} step={0.5} unit="px" onChange={(width) => patch({ border: { ...grid.border!, width } }, "border-width")} />
         </>
       )}

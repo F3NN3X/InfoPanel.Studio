@@ -96,7 +96,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
   }, [initial, all, lib.loading, lib.items]);
 
   const sections: GaugeSection[] = [
-    { id: "presets", title: "Presets", note: "Customising one makes your own copy", entries: presets, empty: "No presets." },
+    { id: "presets", title: "Presets", note: "Customizing one makes your own copy", entries: presets, empty: "No presets." },
     { id: "profile", title: `In ${profileName}`, entries: inProfile, empty: "No gauges on this page yet. Add one with Add to canvas." },
     { id: "library", title: "My library", entries: library.entries, empty: "Nothing saved yet. Save a gauge from the editor." },
   ];

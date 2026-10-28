@@ -74,7 +74,7 @@ export function useLibraryFrames(open: FramesOpen, editorId: number): LibraryFra
       });
     },
     recolour: (r) =>
-      run("Recolouring", async () => {
+      run("Recoloring", async () => {
         const frames = latest.current.state.frames;
         const files = await Promise.all(frames.map(fetchFrameFile));
         const done = await recolourFrames(files, r);

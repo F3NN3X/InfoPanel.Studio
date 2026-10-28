@@ -19,7 +19,7 @@ function lead(states: Inheritance[]): Inheritance {
   return states.find((s) => s.state === "locked") ?? states.find((s) => s.state === "custom") ?? states[0];
 }
 
-/** The action line under a section's rows: Reset to inherited / Customise here, and Edit ‹level› ↗ where there is a home. */
+/** The action line under a section's rows: Reset to inherited / Change here, and Edit ‹level› ↗ where there is a home. */
 function ActionLine({ state, level, onReset, onCustomise, onJump }: { state: Inheritance["state"]; level: string; onReset: () => void; onCustomise: () => void; onJump?: () => void }) {
   return (
     <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11.5px] leading-snug">
@@ -30,7 +30,7 @@ function ActionLine({ state, level, onReset, onCustomise, onJump }: { state: Inh
       )}
       {state === "inherited" && (
         <button type="button" onClick={onCustomise} className={LINK}>
-          Customise here
+          Change here
         </button>
       )}
       {onJump &&

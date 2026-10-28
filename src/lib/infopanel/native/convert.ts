@@ -282,7 +282,7 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       if (item.AutoValue) lost.push("automatic range");
       // A fully transparent track or frame is simply left out; any other translucency is lost.
       if ([item.Color, ...(item.Gradient ? [item.GradientColor] : [])].some(translucent) || [...(item.Background ? [item.BackgroundColor] : []), ...(item.Frame ? [item.FrameColor] : [])].some((c) => translucent(c) && !clear(c))) {
-        lost.push("colour transparency");
+        lost.push("color transparency");
       }
       if (vertical && item.Gradient) lost.push("gradient direction (InfoPanel runs a vertical bar's gradient across it)");
       if (!sensor) lost.push("no sensor yet: remap it");
@@ -341,7 +341,7 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
           },
           needs: [
             "image stretched to its box, nothing while there is no image",
-            ...(item.Layer ? ["image colour layer"] : []),
+            ...(item.Layer ? ["image color layer"] : []),
             ...(item.kind === "SensorImage" ? ["image shown by value thresholds"] : []),
           ],
         },
@@ -359,7 +359,7 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
         ...(plain ? [] : [`${item.Type === "Ellipse" ? "oval" : item.Type.toLowerCase()} shape`]),
         ...(stroke ? ["shape frame"] : []),
         ...(plain === "rect" && item.CornerRadius > 0 ? ["shape corner radius"] : []),
-        ...([fill, stroke?.color].some((c) => c && (cssColor(c) === null || translucent(c))) ? ["colour transparency"] : []),
+        ...([fill, stroke?.color].some((c) => c && (cssColor(c) === null || translucent(c))) ? ["color transparency"] : []),
         ...(item.ShowGradient ? [item.GradientAnimationSpeed !== 0 ? "animated gradient shapes" : "gradient shapes"] : []),
       ];
       if (needs.length === 0) return ok(widget, box, []);

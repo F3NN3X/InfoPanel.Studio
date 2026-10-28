@@ -60,7 +60,7 @@ export const recolourFilter = (r: Recolour) => `hue-rotate(${r.hue}deg) saturate
  */
 export async function recolourFrames(frames: readonly AssetFile[], r: Recolour): Promise<AssetFile[]> {
   const animated = frames.find((f) => f.animated || f.type === "video" || f.type === "svg" || f.type === "other");
-  if (animated) throw new Error(`${animated.name} is ${animated.animated ? "animated" : `a ${animated.type} file`}; only still images recolour`);
+  if (animated) throw new Error(`${animated.name} is ${animated.animated ? "animated" : `a ${animated.type} file`}; only still images recolor`);
   const done = new Map<string, AssetFile>();
   const out: AssetFile[] = [];
   for (const f of frames) {

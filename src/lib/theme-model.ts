@@ -195,6 +195,13 @@ export const THEME_DEFAULTS: Readonly<ModuleSettings> = {
   meterBallistics: "peak",
 };
 
+/**
+ * The Default skin as every picker writes it: `auto`, the stored default, so untouched dashboards stay as they are.
+ * `default` (the skin's own name, which screen templates and older pickers wrote) reads as the same skin
+ * (`lib/theme-skins.ts`).
+ */
+export const DEFAULT_SKIN = "auto";
+
 /** The theme key a row reads: its palette role (`accent`: the Colors accent), else its own key. */
 export function themeKeyOf(def: Pick<ModuleSetting, "key" | "role">, key = def.key): string {
   return def.role && key === def.key && (def.role === "accent" || PALETTE_ROLES.includes(def.role)) ? def.role : key;

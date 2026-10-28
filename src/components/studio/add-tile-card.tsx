@@ -43,7 +43,7 @@ export function cardCategory(tile: AddTile): string {
 /** The description with its kind's sentence. */
 export function cardDescription(tile: AddTile): string {
   return tile.kind === "widget"
-    ? `${tile.description}. Always sits on the grid; uses your theme, colours and fonts.`
+    ? `${tile.description}. Always sits on the grid; uses your theme, colors and fonts.`
     : `${tile.description}. Snaps to cells; hold Alt to place it freely, even on top of widgets.`;
 }
 

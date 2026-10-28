@@ -15,9 +15,9 @@ Every widget and panel has the same four tabs, filed by the question they answer
 | **Data** | Where do values come from? | Bound data, device and sources, Units & format |
 | **Behaviour** | How does it react? | Thresholds, the widget's own behaviour, Motion, Send to island |
 
-Widget-specific sections come first in each tab, shared ones after. With nothing selected, the inspector shows the **Page** you are on: its name and icon, the sections it customises, **Show on kiosks now**, and links to the screen's layout, Theme and behaviour. Theme lists the same sections in one ordered column.
+Widget-specific sections come first in each tab, shared ones after. With nothing selected, the inspector shows the **Page** you are on: its name and icon, the sections it customizes, **Show on kiosks now**, and links to the screen's layout, Theme and behaviour. Theme lists the same sections in one ordered column.
 
-Every Style section has a chip that says where its value comes from: **From All screens**, **From Screen**, **Custom here** or **Locked by Screen**. Editing a row customises the section. Click the chip, or the links under the rows, to **Reset to inherited**, **Customise here** or open the level it comes from. With a section focused, Backspace resets it.
+Every Style section has a chip that says where its value comes from: **From All screens**, **From ‹screen›**, **From theme**, **Changed here**, **Built-in** or **Locked** (see [Themes](themes#fine-tune)). Editing a row changes the section here. Click the chip, or the links under the rows, to **Reset to inherited**, **Change here** or open the level it comes from. With a section focused, Backspace resets it.
 
 ## Finding a setting
 
@@ -37,13 +37,13 @@ A dot beside a row shows where its value comes from. No dot means the default. O
 | Thresholds | A green, amber and red bar with **Warning** and **Critical** sliders. Critical can't go below Warning. **Off** turns thresholds off. The quantity is Load, Temperature, Fullness, Audio level or Value. |
 | Device | **Auto** first, with its rule and current pick (for example "busiest adapter"), then every detected device. Audio widgets let you tick several devices, and **Show** (All devices, Outputs or Inputs) narrows the list. Each device is tagged Input or Output. |
 | Units & format | Temperature °C / °F, speed units, decimals, clock format. Set once in the theme. |
-| Widget colors | Each color has a role (Series 1 to 6, OK, Warning, Critical, Accent) that follows the theme palette until customized. |
+| Widget colors | Each color has a role (Series 1 to 6, OK, Warning, Critical, Accent) that follows the theme's Series colors and Status colors until changed. |
 
 ## Copying a look
 
 The **Style** tab starts with a toolbar:
 
-- **Start from a Style** opens the built-in Styles (Default, Dark, Light, Vivid, Mono) and the ones you saved. Applying one writes its sections to this widget.
+- **Start from a Style** opens the built-in Styles (Follow theme, Matte dark, Matte light, Frosted, Monochrome) and the ones you saved. Follow theme clears the widget's own look. Applying one writes its sections to this widget.
 - **Save as Style** keeps this widget's own look in the Library.
 - **Make this the theme for…** moves the widget's custom sections to **All screens**, **This screen** or **This page**, after a confirm that lists them. The widget then follows the theme again.
 

@@ -145,9 +145,9 @@ function Gallery() {
 
         <Section title="InheritChip: every state">
           <div className="flex flex-wrap items-center gap-2">
-            <InheritChip state="inherited" from="all" parentText="#3D8BFF" onCustomise={() => toast("Customise here")} onJump={() => toast("Edit All screens")} />
-            <InheritChip state="inherited" from="screen" fromName="Desk bar" parentText="#3D8BFF" onCustomise={() => toast("Customise here")} onJump={() => toast("Edit Screen")} />
-            <InheritChip state="inherited" from="page" fromName="Gaming" parentText="#FF6A3D" onCustomise={() => toast("Customise here")} onJump={() => toast("Edit Page")} />
+            <InheritChip state="inherited" from="all" parentText="#3D8BFF" onCustomise={() => toast("Change here")} onJump={() => toast("Edit All screens")} />
+            <InheritChip state="inherited" from="screen" fromName="Desk bar" parentText="#3D8BFF" onCustomise={() => toast("Change here")} onJump={() => toast("Edit Screen")} />
+            <InheritChip state="inherited" from="page" fromName="Gaming" parentText="#FF6A3D" onCustomise={() => toast("Change here")} onJump={() => toast("Edit Page")} />
             <InheritChip state="custom" from="page" fromName="Gaming" parentText="#3D8BFF" onReset={() => toast("Reset")} onJump={() => toast("Edit Page")} onMakeTheme={(t) => toast(`Make theme: ${t}`)} />
             <InheritChip state="locked" from="screen" fromName="Desk bar" parentText="Geist" onJump={() => toast("Edit lock in Theme")} />
             <InheritChip state="base" parentText="auto" onReset={() => toast("Reset to built-in")} />

@@ -13,6 +13,7 @@ import { templateThemeRows } from "@/lib/screen-templates/template-rows";
 import { hexToHsl, hslToHex, resolveTheme } from "@/lib/theme";
 import { themeState, themeUses } from "@/lib/theme-apply";
 import { allLocked, themedOf } from "@/lib/theme-model";
+import { skinLabel, skinOf } from "@/lib/theme-skins";
 import type { ModuleSettings } from "@/modules/types";
 import { ColorPill } from "./inspector/color-pill";
 import { MoreRows, moreKey } from "./inspector/more-rows";
@@ -65,7 +66,6 @@ import {
   otherUses,
   pageParts,
   resetText,
-  skinLabel,
   themeCounts,
   themeLinkOf,
   updateBarText,
@@ -442,7 +442,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
       case "skin":
         return (
           <SkinPicker
-            current={String(effective.skin ?? "default")}
+            current={skinOf(effective.skin)}
             onBack={toMain}
             onPick={(skin) => {
               setConfig((c) => withLookAt(c, at, { skin, surface: "auto" }));

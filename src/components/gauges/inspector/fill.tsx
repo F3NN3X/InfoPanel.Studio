@@ -29,7 +29,7 @@ export function FillInspector({ g, set }: InspectorProps) {
       {solid && (
         <>
           <ToggleRow label="Follow dashboard theme" value={follows(fill.color)} onChange={(on) => patch({ color: on ? followOf(fill.color) : customOf(fill.color) })} />
-          <PaintRow label={fill.mode === "thresholds" ? "OK colour" : "Colour"} value={fill.color} onChange={(color) => patch({ color }, "color")} />
+          <PaintRow label={fill.mode === "thresholds" ? "OK color" : "Color"} value={fill.color} onChange={(color) => patch({ color }, "color")} />
         </>
       )}
       {fill.mode === "thresholds" && (

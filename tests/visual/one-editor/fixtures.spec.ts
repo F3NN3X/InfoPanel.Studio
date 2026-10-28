@@ -553,7 +553,7 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
     [CHECKS.hover[3].text]: async (page) => {
       const card = page.getByTestId("add-preview");
       await expect(card).toContainText("WeatherInfo · Studio widget");
-      await expect(card).toContainText("Always sits on the grid; uses your theme, colours and fonts.");
+      await expect(card).toContainText("Always sits on the grid; uses your theme, colors and fonts.");
       await expect(card).toContainText("Adapts down to 1×1");
       await expect(card).toContainText("On InfoPanel: becomes a picture");
       await shoot(page, "hover-card");

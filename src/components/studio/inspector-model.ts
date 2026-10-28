@@ -363,7 +363,7 @@ function multiSections(context: Extract<InspectorContext, { kind: "multi" }>): I
 /** The theme editor's sections: every themed key in its shared section, the palette as Status & series colors. */
 const themeSections = (context: InspectorContext): InspectorSection[] =>
   sectionsOfCategories(categorize(THEME_EDITOR_SETTINGS), context).map((s) =>
-    s.id === "palette" ? { ...s, title: STATUS_COLORS_TITLE, hint: "The theme palette: series and status colors widgets follow" } : s
+    s.id === "palette" ? { ...s, title: STATUS_COLORS_TITLE, hint: "Series colors and status colors widgets follow" } : s
   );
 
 /** Every section of a context across all its tabs, in display order. */

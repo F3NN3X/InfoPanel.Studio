@@ -21,7 +21,7 @@ The words this app uses, in one place.
 | Native | Drawn as a dashboard widget that follows the theme |
 | Panel | A widget composed of panel widgets in a Stack, Grid or Overlay |
 | Screen | A design for one display size, with its own grid (called a profile in files and in InfoPanel) |
-| Skin | A built-in widget rendering family, picked in Theme › Start from |
-| Theme | The whole inherited look at any level; a saved Theme is a bundle |
+| Skin | How widgets are drawn; pick one on the theme card, or per widget in Edit |
+| Theme | The whole look of a level: palette, skin, corners and background; a saved theme is one you saved |
 | Live | Control of the kiosks right now; never saved |
 | Small sizes | What a widget does when it is small: auto, full, card or dense |

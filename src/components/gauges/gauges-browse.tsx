@@ -75,7 +75,7 @@ function Thumb({ entry, selected, p, scope, renaming, onSelect, onOpen, onDragSt
       aria-pressed={selected}
       draggable={draggableGauge(entry) && !renaming}
       onDragStart={(e) => onDragStart(entry, e.dataTransfer)}
-      title={`${entry.name}: double-click to ${entry.source.kind === "preset" ? "customise" : "edit"}`}
+      title={`${entry.name}: double-click to ${entry.source.kind === "preset" ? "customize" : "edit"}`}
       onClick={() => onSelect(entry)}
       onDoubleClick={() => onOpen(entry)}
       onContextMenu={(e) => {

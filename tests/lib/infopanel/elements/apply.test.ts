@@ -107,7 +107,7 @@ describe("Sparkline", () => {
   it("is InfoPanel's Graph, and lists what the export loses", () => {
     const s = newElement("sparkline", profile, palette);
     expect(s).toMatchObject({ kind: "Graph", Type: "LINE", Fill: true });
-    expect(badgeOf(s)!.lost).toEqual(["the end dot", "the gradient fill (InfoPanel fills one colour)"]);
+    expect(badgeOf(s)!.lost).toEqual(["the end dot", "the gradient fill (InfoPanel fills one color)"]);
     expect(approximations([s])).toEqual([{ path: "0", name: "Sparkline", lost: badgeOf(s)!.lost }]);
     expect(badgeOf(withSpec(s, { dot: false, gradient: false } as never))!.kind).toBe("native");
   });

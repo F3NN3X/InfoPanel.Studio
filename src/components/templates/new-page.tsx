@@ -174,6 +174,8 @@ function KindPage({ kind, onKind, screen, initial, carry, onCreateScreen, onCrea
   const saved = selection.type === "library" ? profiles.find((p) => LIBRARY_ID + p.id === selection.id) : undefined;
   const paletteOf = (e: WizardEntry) => palettes[e.id] ?? e.palettes[0]?.id ?? "";
   const palette = template ? paletteOf(template) : "";
+  // A variant is named with its template ("Terminal · Amber"), never alone.
+  const variantName = template?.palettes.find((v) => v.id === palette)?.name;
 
   const followed = selection.type === "template" && template ? (selection.drawn ?? sizeFollowing(template, start)) : (entry?.size ?? start);
   const sized = useSizeChoice(followed);
@@ -411,11 +413,10 @@ function KindPage({ kind, onKind, screen, initial, carry, onCreateScreen, onCrea
       }}
       summary={
         <>
-          <span className="truncate text-[12px] font-medium text-ui-1">{entry ? entry.name : KIND_TITLES[kind].replace("New", "Blank")}</span>
+          <span className="truncate text-[12px] font-medium text-ui-1">{entry ? [entry.name, variantName].filter(Boolean).join(" · ") : KIND_TITLES[kind].replace("New", "Blank")}</span>
           <span className="shrink-0 font-ui-mono text-[11px] text-ui-3">
             {shown.width} × {shown.height}
           </span>
-          {template && <span className="truncate text-[11px] text-ui-4">{template.palettes.find((v) => v.id === palette)?.name}</span>}
         </>
       }
       gallery={
