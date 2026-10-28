@@ -12,8 +12,7 @@ Set the look once and every widget follows. Change it only where a widget should
 
 :::flow
 Built-in — Built into each widget
-All screens — The base theme
-Screen — What one screen changes
+Screen — The screen's own theme
 Page — What a page changes
 Widget — Only sections you change
 :::
@@ -22,7 +21,7 @@ Each layer overrides the one before it. Content settings (sensors, what to show)
 
 ## The Theme view
 
-**Theme** on the rail is the one place for the look, and you always edit what is live: a change shows on the screen at once. The header reads **Live look of** and the level: **All screens** (with the screen count), a screen (with its size) or a page. The screen and page each have a menu to pick another one. A line under it says what the level is: "The base theme for every screen", "What ‹screen› changes from All screens", or for a page "What ‹page› changes from ‹screen›. Palette, corners and background come from ‹screen›." At a screen, **Lock all** and **Unlock all** sit beside it.
+**Theme** on the rail is the one place for the look, and you always edit what is live: a change shows on the screen at once. The header reads **Live look of** and the level: a screen (with its size) or a page. The screen and page each have a menu to pick another one. Each screen owns its look; nothing above it is shared. A line under it says what the level is: "The look of ‹screen›", or for a page "What ‹page› changes from ‹screen›. Palette, corners and background come from ‹screen›." At a screen, **Lock all** and **Unlock all** sit beside it.
 
 ## The theme card
 
@@ -56,7 +55,7 @@ Under the card, **Fine-tune** lists the sections that sit on top of the theme: *
 |---|---|
 | **Changed here** | This level holds the value |
 | **From theme** | The value the applied theme wrote |
-| **From All screens**, **From ‹screen›** | Inherited from that level |
+| **From ‹screen›** | Inherited from the screen |
 | **Built-in** | Nothing set; the app's default |
 | **Locked** | The screen forces this section on its pages and widgets |
 
@@ -72,7 +71,7 @@ After a change, a row under the preview header says what happened, for example "
 
 ## From the command palette
 
-Each saved theme has two commands: **Apply theme: ‹name›**, which brings its background, and **Apply theme, keep background: ‹name›**. They apply at the level Theme is set to, or All screens before you have opened Theme.
+Each saved theme has two commands: **Apply theme: ‹name›**, which brings its background, and **Apply theme, keep background: ‹name›**. They apply at the level Theme is set to, or the screen in Design before you have opened Theme.
 
 ## Follow theme, section by section
 

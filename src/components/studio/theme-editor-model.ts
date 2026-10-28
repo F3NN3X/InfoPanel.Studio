@@ -1,6 +1,6 @@
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import { pageOf } from "@/lib/pages";
-import { resolveStyle, type Appearance, type StyleSource } from "@/lib/style-resolve";
+import { appLayer, resolveStyle, type Appearance, type StyleSource } from "@/lib/style-resolve";
 import {
   pageCustom,
   sectionOfKey,
@@ -21,11 +21,11 @@ import type { LookValues, ThemeScopeKind } from "./inspector-model";
  * Theme's cards (`theme-cards.ts`) and Exceptions (`theme-exceptions.ts`)
  * build on these.
  *
- * Scopes (owner decision Q1): All screens (the base layer, no locks) ·
- * a screen (values + locks) · each page (values + follow per section).
+ * Scopes: a screen (values + locks; each screen owns its look since config
+ * v16) · each page (values + follow per section).
  */
 
-export type ThemeScope = { kind: "base" } | { kind: "profile" } | { kind: "page"; pageId: string };
+export type ThemeScope = { kind: "profile" } | { kind: "page"; pageId: string };
 
 /**
  * The scope to show and edit: a page scope whose page is not in this
@@ -42,8 +42,8 @@ export const scopeId = (scope: ThemeScope): string => (scope.kind === "page" ? `
 export function scopeAppearance(config: DashboardConfig, profile: MonitorProfile, scope: ThemeScope): Appearance {
   const page = scope.kind === "page" ? pageOf(profile, scope.pageId) : undefined;
   return {
-    base: config.style,
-    ...(scope.kind !== "base" ? { profile: profile.widgetTheme } : {}),
+    base: appLayer(config.general),
+    profile: profile.widgetTheme,
     ...(page ? { page: page.widgetTheme } : {}),
     profileName: profile.name,
     pageName: page?.name,
@@ -59,9 +59,8 @@ const sourcesOf = (keys: Iterable<string>, source: StyleSource): Record<string, 
  * (and the profile does not lock it); the rest shows the profile's.
  */
 export function scopeLookValues(levels: ThemeLevels, scope: ThemeScopeKind): LookValues {
-  if (scope === "base") return { own: levels.base };
   if (scope === "profile")
-    return { own: levels.profile?.values, inherited: levels.base, inheritedFrom: sourcesOf(Object.keys(levels.base ?? {}), "dashboard") };
+    return { own: levels.profile?.values, inherited: levels.base, inheritedFrom: sourcesOf(Object.keys(levels.base ?? {}), "app") };
   const { settings, source } = resolveStyle({ levels: { base: levels.base, profile: levels.profile } });
   return {
     own: levels.page?.values,
@@ -85,10 +84,6 @@ export function withScopeTheme(
   scope: ThemeScope,
   fn: (theme: WidgetTheme | undefined) => WidgetTheme | undefined
 ): DashboardConfig {
-  if (scope.kind === "base") {
-    const values = fn(config.style ? { values: config.style } : undefined)?.values;
-    return { ...config, style: values && orNone(values) };
-  }
   const own = <T extends { widgetTheme?: WidgetTheme }>(holder: T): T => {
     const { widgetTheme, ...rest } = holder;
     const next = fn(widgetTheme);

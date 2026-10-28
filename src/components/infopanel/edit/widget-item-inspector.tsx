@@ -29,7 +29,7 @@ export interface WidgetHost {
   /** The screen's page as Edit shows it (its grid limits, data usage and theme). */
   profile: ProfileView;
   appearance: Appearance;
-  /** The screen's own theme colours, when it has them (the dashboard's apply everywhere else). */
+  /** The screen's own theme colours, when it has them (the built-in ones apply everywhere else). */
   scope?: CSSProperties;
   setConfig: HistorySetter;
   navigateTo: (target: NavTarget) => void;

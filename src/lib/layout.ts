@@ -1,7 +1,7 @@
 import { DEFAULT_THEME, normalizeThemePatch, type ThemeTokens } from "./theme";
 import { normalizeBackground, type PageBackground } from "./appearance";
 import { normalizeAppearancePresets, type AppearancePreset } from "./appearance-presets";
-import { guessAppliedThemes, normalizeAppliedTheme, type AppliedTheme } from "./applied-theme";
+import { normalizeAppliedTheme, type AppliedTheme } from "./applied-theme";
 import type { ModuleSettings } from "@/modules/types";
 import type { SectionFlags, WidgetTheme } from "./theme-model";
 import {
@@ -26,7 +26,8 @@ import { migrateLegacyZones } from "./legacy-zones";
 import { migrateProfileV15 } from "./page-model/migrate";
 import { storageCopy } from "./canvas-store";
 import { normalizeIsland, type IslandConfig } from "./island/config";
-import { normalizePerformance, type PerformanceOverride } from "./performance";
+import { normalizePerformance, type ScreenPerformance } from "./performance";
+import { clockOfStyle, dashboardLook, migrateScreensV16, type LegacyDashboardFields } from "./screen-look-migrate";
 import {
   normalizePanelPlacement,
   normalizePanelPresets,
@@ -238,21 +239,15 @@ export interface MonitorProfile {
   rotate?: PageRotate;
   /**
    * The profile's widget theme (`theme-model.ts`): values for the themed
-   * keys over the dashboard's style, and the sections it locks (widgets
+   * keys over the built-in look, and the sections it locks (widgets
    * then always follow them). Replaces the v5 `style` / `styleEnforce`.
    */
   widgetTheme?: WidgetTheme;
-  /**
-   * This profile's page background, replacing the dashboard's
-   * (`{ type: "none" }`: none for this profile; unset: the dashboard's).
-   */
+  /** This profile's page background (`{ type: "none" }` or unset: none). */
   background?: PageBackground;
-  /**
-   * This profile's theme colours over the dashboard's (`resolveTheme`);
-   * unset = the dashboard's theme.
-   */
+  /** This profile's theme colours over the built-in ones (`resolveTheme`); unset = the built-in theme. */
   theme?: Partial<ThemeTokens>;
-  /** This profile's corner radius in rem; unset = the dashboard's. */
+  /** This profile's corner radius in rem; unset = the built-in 0.5. */
   radius?: number;
   /** Space between zones in px (unset = `DEFAULT_GRID_GAP`, see profile-grid.ts). */
   gap?: number;
@@ -260,9 +255,9 @@ export interface MonitorProfile {
   padding?: number;
   /** The Dynamic Island over the page (`src/lib/island`); unset = none. */
   island?: IslandConfig;
-  /** Max FPS and motion for this profile, over the Dashboard settings (all screens); unset = the dashboard's. */
-  performance?: PerformanceOverride;
-  /** This profile's page font over the dashboard's `general.font` (`resolveFont`); unset = the dashboard's. */
+  /** This profile's Max FPS, motion and rendering switches (`resolveGeneral`); unset = the defaults. */
+  performance?: ScreenPerformance;
+  /** This profile's page font (`resolveFont`); unset = the built-in one. */
   font?: GeneralFont;
   /** Set on the profiles earlier versions shipped (Sample, ARCv2); kept, no longer read. */
   sampleVersion?: number;
@@ -321,8 +316,15 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  *     about 100 px cells. A canvas's items and
  *     widgets can hold their cells (`$.cell`, `$.widget.cell`) and its text items a letter spacing (`$.letterSpacing`).
  *     A v14 build would drop the item placements and groups on its next save, so the server refuses its save.
+ * v16: screens own their look (`screen-look-migrate.ts` `migrateScreensV16`): the dashboard level ("All screens") goes.
+ *     Each screen gets a copy of what it inherited (the colors, corners, background, page font, widget style, the
+ *     dashboard's theme snapshot when it had no look of its own, and the Max FPS, motion and rendering switches), and
+ *     `theme`, `radius`, `background`, `style`, `appliedTheme`, `general.font` and the performance keys leave the config;
+ *     the style's 12 / 24 h clock becomes `general.clock`. A v15 build would show every screen in the built-in look, so
+ *     the server refuses its save; before the first v16 save it keeps the v15 file as `config.backup-before-v16.json`
+ *     (`config_guard.rs`).
  */
-export const CONFIG_VERSION = 15;
+export const CONFIG_VERSION = 16;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -336,29 +338,17 @@ export interface DashboardConfig {
    */
   sourcePrefs?: Record<string, SourcePref>;
   profiles: MonitorProfile[];
-  theme: ThemeTokens;
-  /** Corner radius in rem (shadcn --radius). */
-  radius: number;
   /** Base URL of InfoPanel's Data API (default http://127.0.0.1:3921). */
   dataApiUrl?: string;
   /** Saved widget styles, applied from the studio inspector. */
   stylePresets?: StylePreset[];
   /** Panels the user saved for reuse (Add / widget picker). */
   panelPresets?: UserPanelPreset[];
-  /** Page background behind every profile's grid (see appearance.ts). */
-  background?: PageBackground;
-  /**
-   * The all-profiles style: the themed keys every profile's widget theme
-   * sits on (the base layer, no locks; see `theme-model.ts`).
-   */
-  style?: ModuleSettings;
   /** Whole looks the user saved (saved Themes; see appearance-presets.ts). */
   appearancePresets?: AppearancePreset[];
   /** Palettes the user saved (Theme › Palette › Yours; see palettes.ts). */
   palettes?: SavedPalette[];
-  /** What the theme last applied to All screens wrote (`lib/applied-theme.ts`); unset = none. */
-  appliedTheme?: AppliedTheme;
-  /** Font, clock format, locale, motion and kiosk cursor (see general.ts). */
+  /** The app-wide settings: the clocks, the date locale and the kiosk (see general.ts). */
   general?: GeneralSettings;
   /** Alert rules (see alerts.ts); absent = none. */
   alerts?: AlertsConfig;
@@ -418,8 +408,6 @@ export function defaultConfig(): DashboardConfig {
     version: CONFIG_VERSION,
     activeProfile: "auto",
     profiles: [firstProfile()],
-    theme: { ...DEFAULT_THEME },
-    radius: 0.5,
   };
 }
 
@@ -621,7 +609,7 @@ const LEGACY_FORECAST_KEYS = [
 ];
 
 /** A config as stored: any version, its profiles v3 or legacy. */
-export type StoredConfig = Omit<Partial<DashboardConfig>, "version" | "profiles"> & {
+export type StoredConfig = Omit<Partial<DashboardConfig>, "version" | "profiles"> & LegacyDashboardFields & {
   version?: number;
   profiles?: StoredProfile[];
   /** v5: force the global style on every widget (→ every profile's sections locked). */
@@ -668,7 +656,8 @@ function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: 
  * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it), v9→v10
  * drops the widget `preset` key, v11→v12 turns the audio widgets' single `device` into a pick, v12→v13 only stamps the version,
  * v13→v14 marks Free pages and the screens made for InfoPanel, v14→v15 makes every page one kind
- * (`migrateProfileV15`, a line in `log` per change it makes); a pin to a missing profile falls back to Auto.
+ * (`migrateProfileV15`, a line in `log` per change it makes), v15→v16 gives each screen the look it inherited
+ * (`migrateScreensV16`); a pin to a missing profile falls back to Auto.
  */
 export function mergeConfig(input: StoredConfig, log?: string[]): DashboardConfig {
   const parsed = migrateAssetUrls(input);
@@ -700,27 +689,26 @@ export function mergeConfig(input: StoredConfig, log?: string[]): DashboardConfi
   let activeProfile = parsed.activeProfile ?? defaults.activeProfile;
   if (activeProfile !== "auto" && !byId.has(activeProfile))
     activeProfile = "auto";
-  // A dashboard saved before levels kept their theme snapshot gets one where a level shows exactly a saved theme.
-  return guessAppliedThemes({
+  const legacy = (parsed.version ?? 0) < 16;
+  // v16: the all-profiles style's 12 / 24 h becomes the app's.
+  const clock = legacy ? clockOfStyle(v7.style) : undefined;
+  const config: DashboardConfig = {
     version: CONFIG_VERSION,
     activeProfile,
     sourcePrefs: parsed.sourcePrefs,
     profiles,
-    theme: { ...DEFAULT_THEME, ...parsed.theme },
-    radius: parsed.radius ?? defaults.radius,
     dataApiUrl: normalizeApiBase(parsed.dataApiUrl) ?? undefined,
     stylePresets: Array.isArray(parsed.stylePresets)
       ? parsed.stylePresets.map((p) => (isSettings(p?.settings) ? { ...p, settings: migrateStyleV7(p.settings) } : p))
       : undefined,
     panelPresets: normalizePanelPresets(parsed.panelPresets),
-    background: normalizeBackground(parsed.background),
-    style: v7.style,
     appearancePresets: normalizeAppearancePresets(parsed.appearancePresets),
     palettes: normalizePalettes(parsed.palettes),
-    appliedTheme: normalizeAppliedTheme(parsed.appliedTheme),
-    general: normalizeGeneral(v7.general),
+    general: normalizeGeneral(clock ? { ...v7.general, clock } : v7.general),
     alerts: normalizeAlerts(parsed.alerts),
-  });
+  };
+  // v16: each screen gets the look it inherited from the dashboard, whose fields go.
+  return legacy ? migrateScreensV16(config, dashboardLook({ ...parsed, general: v7.general }, v7.style)) : config;
 }
 
 /** Saved palettes, guarded: an id and a name required, the tokens over the defaults; none kept = undefined. */

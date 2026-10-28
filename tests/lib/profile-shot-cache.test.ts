@@ -15,10 +15,10 @@ describe("profileRev", () => {
     expect(profileRev({ ...profile, cols: profile.cols + 1 }, config)).not.toBe(profileRev(profile, config));
   });
 
-  it("changes with the dashboard fields the page inherits", () => {
+  it("changes with the app's clock the page inherits, not with other app settings", () => {
     const rev = profileRev(profile, config);
-    expect(profileRev(profile, { ...config, theme: { ...config.theme, background: "1 2% 3%" } })).not.toBe(rev);
-    expect(profileRev(profile, { ...config, background: { type: "color", color: "#123456" } })).not.toBe(rev);
+    expect(profileRev(profile, { ...config, general: { clock: "12" } })).not.toBe(rev);
+    expect(profileRev(profile, { ...config, general: { locale: "de-DE" } })).toBe(rev);
   });
 });
 

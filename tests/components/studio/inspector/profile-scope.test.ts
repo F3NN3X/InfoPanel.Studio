@@ -1,19 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { withBackground, type PageBackground } from "@/lib/appearance";
 import { defaultConfig, mergeConfig, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
-import { DEFAULT_THEME } from "@/lib/theme";
 import { setProfileStyle } from "@/components/studio/studio-actions";
 import { clampSeconds, dropRow, rotatePreset } from "@/components/studio/inspector/behaviour-model";
-import { scopeOf, withPerformance, withScope } from "@/components/studio/inspector/profile-scope";
+import { withBuiltin, withPerformance } from "@/components/studio/inspector/profile-scope";
 
-const base = (): DashboardConfig => ({
-  ...defaultConfig(),
-  theme: { ...DEFAULT_THEME, primary: "10 20% 30%" },
-  radius: 0.75,
-  style: { skin: "glass" },
-  background: { type: "color", color: "#123456" },
-  general: { maxFps: 30, motion: "reduce" },
-});
+/** One screen with a look and performance of its own, and a second one. */
+const base = (): DashboardConfig => {
+  const c = defaultConfig();
+  const own: MonitorProfile = {
+    ...c.profiles[0],
+    theme: { primary: "10 20% 30%" },
+    radius: 0.75,
+    widgetTheme: { values: { skin: "glass" }, locks: { colors: true } },
+    background: { type: "color", color: "#123456" },
+    performance: { maxFps: 30, motion: "reduce", ringGlide: true },
+    font: "inter",
+  };
+  return { ...c, profiles: [own, { ...own, id: "other" }] };
+};
 
 const profileOf = (c: DashboardConfig): MonitorProfile => c.profiles[0];
 const pid = (c: DashboardConfig) => profileOf(c).id;
@@ -25,140 +29,59 @@ const stored = (extra: Record<string, unknown>): MonitorProfile =>
     profiles: [{ id: "p", name: "P", width: 1920, height: 1080, cols: 12, rows: 6, fit: "fill", placements: [], ...extra }],
   } as never).profiles[0];
 
-describe("Theme switch", () => {
-  it("copies the shared theme and corners to the profile, and drops both going back", () => {
+describe("withBuiltin (Reset at a screen)", () => {
+  it("drops the theme and corners together, leaving the other screen", () => {
     const c = base();
-    const own = withScope(c, pid(c), "theme", "profile");
-    expect(profileOf(own).theme).toEqual(c.theme);
-    expect(profileOf(own).radius).toBe(0.75);
-    expect(scopeOf(profileOf(own), "theme")).toBe("profile");
-
-    const back = withScope(own, pid(own), "theme", "all");
-    expect("theme" in profileOf(back)).toBe(false);
-    expect("radius" in profileOf(back)).toBe(false);
-    expect(scopeOf(profileOf(back), "theme")).toBe("all");
+    const out = withBuiltin(c, pid(c), "theme");
+    expect("theme" in profileOf(out)).toBe(false);
+    expect("radius" in profileOf(out)).toBe(false);
+    expect(out.profiles[1]).toBe(c.profiles[1]);
   });
 
-  it("changes only the profile it names", () => {
+  it("drops the background, the page font and the whole performance", () => {
     const c = base();
-    const two = { ...c, profiles: [...c.profiles, { ...profileOf(c), id: "other" }] };
-    const out = withScope(two, pid(two), "theme", "profile");
-    expect(out.profiles[1].theme).toBeUndefined();
+    expect("background" in profileOf(withBuiltin(c, pid(c), "background"))).toBe(false);
+    expect("font" in profileOf(withBuiltin(c, pid(c), "font"))).toBe(false);
+    expect("performance" in profileOf(withBuiltin(c, pid(c), "performance"))).toBe(false);
+    // The widget style is the sections' own reset; the locks stay.
+    expect(profileOf(withBuiltin(c, pid(c), "theme")).widgetTheme).toEqual(profileOf(c).widgetTheme);
   });
 });
 
-describe("Widget style switch", () => {
-  it("starts This profile with no values of its own over the shared style, and drops them going back", () => {
-    const c = base();
-    const own = withScope(c, pid(c), "style", "profile");
-    expect(profileOf(own).widgetTheme?.values).toEqual({});
-    expect(scopeOf(profileOf(own), "style")).toBe("profile");
-
-    const locked = { ...own, profiles: [{ ...profileOf(own), widgetTheme: { ...profileOf(own).widgetTheme, locks: { colors: true } } }] };
-    const back = withScope(locked, pid(locked), "style", "all");
-    expect(profileOf(back).widgetTheme?.values).toBeUndefined();
-    // The locks are not part of the switch.
-    expect(profileOf(back).widgetTheme?.locks).toEqual({ colors: true });
-    expect(scopeOf(profileOf(back), "style")).toBe("all");
-  });
-});
-
-describe("emptying a This profile style", () => {
-  it("keeps the scope: the values stay {} until the switch goes back to All profiles", () => {
-    const c = base();
-    const own = { ...profileOf(withScope(c, pid(c), "style", "profile")), widgetTheme: { values: { skin: "glass" } } };
+describe("emptying a screen's style", () => {
+  it("keeps its values {} until the screen has none", () => {
+    const own = { ...profileOf(base()), widgetTheme: { values: { skin: "glass" } } };
     const emptied = setProfileStyle(own, () => ({}));
     expect(emptied.widgetTheme?.values).toEqual({});
-    expect(scopeOf(emptied, "style")).toBe("profile");
     // A profile without its own style still stores none.
-    expect(setProfileStyle(profileOf(c), () => ({})).widgetTheme).toBeUndefined();
+    expect(setProfileStyle(defaultConfig().profiles[0], () => ({})).widgetTheme).toBeUndefined();
   });
 });
 
-describe("Background switch", () => {
-  it("copies the shared background to the profile, and drops the key going back", () => {
-    const c = base();
-    const own = withScope(c, pid(c), "background", "profile");
-    expect(profileOf(own).background).toEqual(c.background);
-    const back = withScope(own, pid(own), "background", "all");
-    expect("background" in profileOf(back)).toBe(false);
-  });
-
-  it("starts from None when the dashboard has no background", () => {
-    const c = { ...base(), background: undefined };
-    expect(profileOf(withScope(c, pid(c), "background", "profile")).background).toEqual({ type: "none" });
-  });
-
-  it("keeps None as { type: 'none' } on the profile, and as the dashboard's type under All profiles", () => {
-    const none: PageBackground = { type: "none" };
-    const c = base();
-    const own = withBackground(withScope(c, pid(c), "background", "profile"), { kind: "profile", profileId: pid(c) }, none);
-    expect(profileOf(own).background).toEqual(none);
-    expect(scopeOf(profileOf(own), "background")).toBe("profile");
-
-    const shared = withBackground(c, { kind: "all" }, none);
-    expect(shared.background).toEqual(none);
-    expect(scopeOf(profileOf(shared), "background")).toBe("all");
-  });
-});
-
-describe("Performance switch", () => {
-  it("copies the shared frame rate and animations to the profile, and drops them going back", () => {
-    const c = base();
-    const own = withScope(c, pid(c), "performance", "profile");
-    expect(profileOf(own).performance).toEqual({ maxFps: 30, motion: "reduce" });
-    const back = withScope(own, pid(own), "performance", "all");
-    expect("performance" in profileOf(back)).toBe(false);
-  });
-
-  it("copies the defaults when the dashboard sets none", () => {
-    const c = { ...base(), general: undefined };
-    expect(profileOf(withScope(c, pid(c), "performance", "profile")).performance).toEqual({ maxFps: 60, motion: "system" });
-  });
-
-  it("sets one key of the override, and keeps nothing empty", () => {
+describe("withPerformance", () => {
+  it("sets keys of the screen's performance, and keeps nothing empty", () => {
     expect(withPerformance({ maxFps: 15, motion: "full" }, { maxFps: 5 })).toEqual({ maxFps: 5, motion: "full" });
     expect(withPerformance(undefined, { motion: "system" })).toEqual({ motion: "system" });
     expect(withPerformance({ maxFps: 15 }, { maxFps: undefined })).toBeUndefined();
+    expect(withPerformance({ maxFps: 15 }, { blurLimit: false, liveGlow: true })).toEqual({ maxFps: 15, blurLimit: false, liveGlow: true });
   });
 });
 
-describe("a config saved before the switches", () => {
-  it("reads Inherit as All profiles for every section", () => {
-    const p = stored({});
-    expect(["theme", "style", "background", "performance"].map((s) => scopeOf(p, s as never))).toEqual(["all", "all", "all", "all"]);
-  });
-
-  it("reads Custom as This profile", () => {
+describe("a profile saved by an older build", () => {
+  it("keeps its own theme, style, background and a stored None", () => {
     const p = stored({
       theme: { primary: "1 2% 3%" },
       widgetTheme: { values: { skin: "glass" } },
-      background: { type: "color", color: "#000000" },
+      background: { type: "none" },
     });
-    expect(["theme", "style", "background"].map((s) => scopeOf(p, s as never))).toEqual(["profile", "profile", "profile"]);
-  });
-
-  it("reads a stored None as This profile with the background type none", () => {
-    const p = stored({ background: { type: "none" } });
+    expect(p.theme).toMatchObject({ primary: "1 2% 3%" });
+    expect(p.widgetTheme?.values).toEqual({ skin: "glass" });
     expect(p.background).toEqual({ type: "none" });
-    expect(scopeOf(p, "background")).toBe("profile");
   });
 
-  it("reads a profile with only a radius as a This profile Theme, and All profiles drops it", () => {
-    const p = stored({ radius: 0.2 });
-    expect(p.theme).toBeUndefined();
-    expect(scopeOf(p, "theme")).toBe("profile");
-    const config = { ...base(), profiles: [p] };
-    expect("radius" in withScope(config, "p", "theme", "all").profiles[0]).toBe(false);
-  });
-
-  it("reads performance absent as All profiles and a partial override as This profile", () => {
-    expect(scopeOf(stored({}), "performance")).toBe("all");
-    const partial = stored({ performance: { motion: "reduce" } });
-    expect(partial.performance).toEqual({ motion: "reduce" });
-    expect(scopeOf(partial, "performance")).toBe("profile");
-    // Max FPS = Dashboard (the key removed) and nothing else is still no override.
-    expect(scopeOf(stored({ performance: {} }), "performance")).toBe("all");
+  it("keeps a partial performance as it was", () => {
+    expect(stored({ performance: { motion: "reduce" } }).performance).toEqual({ motion: "reduce" });
+    expect(stored({ performance: {} }).performance).toBeUndefined();
   });
 });
 

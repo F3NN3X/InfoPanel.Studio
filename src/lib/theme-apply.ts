@@ -12,7 +12,7 @@ import { sameSkin } from "./theme-skins";
 export { levelApplied, themeState, type ThemePart, type ThemeState } from "./theme-state";
 
 /**
- * Applying a theme at a level, the theme editor's one rule (handoff SPEC §5): every pick adds to the current look,
+ * Applying a theme at a level (a screen or a page), the theme editor's one rule (handoff SPEC §5): every pick adds to the current look,
  * and only Reset replaces it. Pure config → config; the studio sets each result in one call (one undo step).
  *
  * A pick writes the theme's palette, skin and corners (a page: its skin and style values only; its palette, corners
@@ -146,27 +146,10 @@ function nextBackground(current: PageBackground | undefined, preset: AppearanceP
 }
 
 
-function atAll(config: DashboardConfig, preset: AppearancePreset, mode: Mode, keep: boolean): DashboardConfig {
-  const last = config.appliedTheme;
-  const next = themeValues(preset);
-  const tokens = presetTokens(preset);
-  const keepTokens = mode === "refresh" && !sameValues(config.theme, last?.tokens);
-  const keepRadius = mode === "refresh" && config.radius !== last?.radius;
-  const bg = nextBackground(config.background, preset, last, mode, keep);
-  return {
-    ...config,
-    theme: keepTokens ? config.theme : { ...tokens },
-    radius: keepRadius ? config.radius : preset.radius,
-    style: orNone(merged(config.style ?? {}, writtenAt(last, config.style ?? {}), next, mode === "pick" ? PART_KEYS : NONE)),
-    background: bg.value,
-    appliedTheme: snapshot(preset, { tokens: { ...tokens }, radius: preset.radius, ...(bg.written && preset.background ? { background: { ...preset.background } } : {}), values: next }),
-  };
-}
-
 function atScreen(config: DashboardConfig, profileId: string, preset: AppearancePreset, mode: Mode, keep: boolean): DashboardConfig {
   return withProfile(config, profileId, (p) => {
     const last = p.appliedTheme;
-    const next = themeValues(preset, config.style);
+    const next = themeValues(preset);
     const tokens = presetTokens(preset);
     const keepTokens = mode === "refresh" && !sameValues(p.theme, last?.tokens);
     const keepRadius = mode === "refresh" && p.radius !== last?.radius;
@@ -235,7 +218,6 @@ function atPage(config: DashboardConfig, profileId: string, pageId: string, pres
 }
 
 function applyAt(config: DashboardConfig, preset: AppearancePreset, target: ThemeTarget, mode: Mode, keep: boolean): DashboardConfig {
-  if (target.kind === "all") return atAll(config, preset, mode, keep);
   if (target.kind === "profile") return atScreen(config, target.profileId, preset, mode, keep);
   return atPage(config, target.profileId, target.pageId, preset, mode);
 }
@@ -253,10 +235,6 @@ const writesOnly = (applied: AppliedTheme | undefined): { appliedTheme?: Applied
  * below keep their own.
  */
 export function resetToTheme(config: DashboardConfig, preset: AppearancePreset, target: ThemeTarget): DashboardConfig {
-  if (target.kind === "all") {
-    const { appliedTheme: _old, ...rest } = config;
-    return applyTheme({ ...rest, style: undefined, background: undefined }, preset, target);
-  }
   // The snapshot keeps only what the last theme wrote into the widgets, so the pick takes that back.
   if (target.kind === "profile") {
     const cleared = withProfile(config, target.profileId, (p) => {
@@ -286,13 +264,13 @@ export function resetToTheme(config: DashboardConfig, preset: AppearancePreset, 
 
 export interface ThemeUse {
   target: ThemeTarget;
-  /** "All screens", the screen's name, or the page's. */
+  /** The screen's name, or the page's. */
   name: string;
 }
 
 /** Every level that last applied a theme ("used by", and what Update refreshes). */
 export function themeUses(config: DashboardConfig, id: string): ThemeUse[] {
-  const uses: ThemeUse[] = config.appliedTheme?.id === id ? [{ target: { kind: "all" }, name: "All screens" }] : [];
+  const uses: ThemeUse[] = [];
   for (const p of config.profiles) {
     if (p.appliedTheme?.id === id) uses.push({ target: { kind: "profile", profileId: p.id }, name: p.name });
     for (const pg of p.pages) if (pg.appliedTheme?.id === id) uses.push({ target: { kind: "page", profileId: p.id, pageId: pg.id }, name: pg.name });
@@ -322,18 +300,15 @@ export function saveAsTheme(config: DashboardConfig, target: ThemeTarget, id: st
   const zones = levelApplied(saved, target)?.zones;
   const locks = target.kind === "page" ? saved.profiles.find((p) => p.id === target.profileId)?.widgetTheme?.locks : undefined;
   const values =
-    target.kind === "all"
+    target.kind === "profile"
       ? themeValues(preset)
-      : target.kind === "profile"
-        ? themeValues(preset, saved.style)
-        : pick(themedOf(preset.style), SECTION_IDS.filter((sec) => locks?.[sec] !== true).flatMap((sec) => SECTION_KEYS[sec]));
+      : pick(themedOf(preset.style), SECTION_IDS.filter((sec) => locks?.[sec] !== true).flatMap((sec) => SECTION_KEYS[sec]));
   const parts = target.kind === "page" ? {} : { tokens: { ...presetTokens(preset) }, radius: preset.radius, ...(preset.background ? { background: { ...preset.background } } : {}) };
   return withApplied(saved, target, snapshot(preset, { ...parts, values, ...(zones ? { zones } : {}) }));
 }
 
 function withApplied(config: DashboardConfig, target: ThemeTarget, applied: AppliedTheme | undefined): DashboardConfig {
   const set = <T extends { appliedTheme?: AppliedTheme }>(holder: T): T => (applied ? { ...holder, appliedTheme: applied } : without(holder, "appliedTheme"));
-  if (target.kind === "all") return set(config);
   return withProfile(config, target.profileId, (p) =>
     target.kind === "profile" ? set(p) : { ...p, pages: p.pages.map((pg) => (pg.id === target.pageId ? set(pg) : pg)) }
   );

@@ -52,7 +52,7 @@ interface ZoneInspectorProps {
   config: DashboardConfig;
   /** The active profile (its grid limits the placement row; its zones the data usage). */
   profile: ProfileView;
-  /** The theme (all-profiles style, profile and page theme) the widget follows. */
+  /** The theme (the app's clock, profile and page theme) the widget follows. */
   appearance: Appearance;
   /** The Styles saved in the Library (Start from a Style). */
   stylePresets: StylePreset[];

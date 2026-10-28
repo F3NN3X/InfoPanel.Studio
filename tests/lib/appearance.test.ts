@@ -14,33 +14,20 @@ import {
 import { mergeConfig, type DashboardConfig } from "@/lib/layout";
 
 describe("resolveBackground", () => {
-  const dash: PageBackground = { type: "color", color: "#112233" };
   const own: PageBackground = { type: "gradient", gradient: { from: "#000", to: "#fff", angle: 90 } };
 
-  it("uses the profile's own background over the dashboard's", () => {
-    expect(resolveBackground({ background: dash }, { background: own })).toBe(own);
+  it("uses the screen's own background", () => {
+    expect(resolveBackground({ background: own })).toBe(own);
   });
 
-  it("inherits the dashboard's when the profile sets none", () => {
-    expect(resolveBackground({ background: dash }, {})).toBe(dash);
-  });
-
-  it("treats an explicit none on the profile as no background", () => {
-    expect(resolveBackground({ background: dash }, { background: { type: "none" } })).toBeUndefined();
-  });
-
-  it("is undefined when nothing is set or the dashboard is none", () => {
-    expect(resolveBackground({}, {})).toBeUndefined();
-    expect(resolveBackground({ background: { type: "none", color: "#fff" } }, {})).toBeUndefined();
-  });
-
-  it("lets a profile show one while the dashboard is none", () => {
-    expect(resolveBackground({ background: { type: "none" } }, { background: dash })).toBe(dash);
+  it("is undefined when the screen sets none, or none on purpose", () => {
+    expect(resolveBackground({})).toBeUndefined();
+    expect(resolveBackground({ background: { type: "none", color: "#fff" } })).toBeUndefined();
   });
 
   it("shows only the fill (or nothing) for an image or video with no file yet", () => {
-    expect(resolveBackground({ background: { type: "image" } }, {})).toBeUndefined();
-    expect(resolveBackground({ background: { type: "video", color: "#123" } }, {})).toEqual({
+    expect(resolveBackground({ background: { type: "image" } })).toBeUndefined();
+    expect(resolveBackground({ background: { type: "video", color: "#123" } })).toEqual({
       type: "color",
       color: "#123",
     });
@@ -165,22 +152,16 @@ describe("withBackground", () => {
     });
   const bg: PageBackground = { type: "color", color: "#abcdef" };
 
-  it("sets the dashboard background for all profiles", () => {
-    const next = withBackground(config(), { kind: "all" }, bg);
-    expect(next.background).toBe(bg);
-    expect(next.profiles.every((p) => resolveBackground(next, p) === bg)).toBe(true);
-  });
-
   it("sets and clears one profile's background, leaving the others", () => {
     const set = withBackground(config(), { kind: "profile", profileId: "a" }, { type: "none" });
     expect(set.profiles.find((p) => p.id === "a")?.background).toEqual({ type: "none" });
+    expect(resolveBackground(withBackground(config(), { kind: "profile", profileId: "a" }, bg).profiles[0])).toBe(bg);
     expect(set.profiles.find((p) => p.id === "b")?.background).toBeUndefined();
     const cleared = withBackground(set, { kind: "profile", profileId: "a" }, undefined);
     expect(cleared.profiles.find((p) => p.id === "a")?.background).toBeUndefined();
   });
 
   it("keys undo steps per scope", () => {
-    expect(backgroundKey({ kind: "all" })).toBe("background:all");
     expect(backgroundKey({ kind: "profile", profileId: "a" })).toBe("background:a");
   });
 });

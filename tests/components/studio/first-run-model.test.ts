@@ -57,7 +57,8 @@ describe("applyFirstRun", () => {
     expect(screen).toMatchObject({ id: base.profiles[0].id, name: base.profiles[0].name, width: 1920, height: 550, cols: 12, rows: 4, fit: "fill" });
     expect(screen.pages[0]).toMatchObject({ id: base.profiles[0].pages[0].id, name: "Main" });
     expect(allPlacements(screen)).toEqual([]);
-    expect(config.theme).toEqual(base.theme);
+    // A new screen starts from the built-in look (config v16).
+    expect(screen.theme).toBeUndefined();
   });
 
   it("makes a tall screen's grid from its size", () => {

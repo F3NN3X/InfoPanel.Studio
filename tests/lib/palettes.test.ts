@@ -32,20 +32,20 @@ describe("saved palettes", () => {
 });
 
 describe("who uses a palette", () => {
-  it("names the saved themes, then All screens and the screens with a palette of their own that equals it", () => {
+  it("names the saved themes, then the screens that show it (a screen without a palette shows the built-in one)", () => {
     const base = defaultConfig();
     const theme = (name: string, tokens: typeof blue) => ({ id: name, name, description: "", theme: tokens, radius: 0.5, style: {} }) as AppearancePreset;
     const c: DashboardConfig = {
       ...base,
-      theme: blue,
       appearancePresets: [theme("Desk look", blue), theme("Plain", DEFAULT_THEME)],
       profiles: [
-        { ...base.profiles[0], id: "s1", name: "Desk", theme: { primary: blue.primary } },
+        { ...base.profiles[0], id: "s1", name: "Desk", theme: { ...blue } },
         { ...base.profiles[0], id: "s2", name: "Follows" },
         { ...base.profiles[0], id: "s3", name: "Other", theme: { primary: "1 2% 3%" } },
       ],
     };
-    expect(paletteUsers(c, blue)).toEqual(["Desk look", "All screens", "Desk"]);
+    expect(paletteUsers(c, blue)).toEqual(["Desk look", "Desk"]);
+    expect(paletteUsers(c, DEFAULT_THEME)).toEqual(["Plain", "Follows"]);
     expect(paletteUsers(c, THEME_PRESETS[2].tokens)).toEqual([]);
   });
 

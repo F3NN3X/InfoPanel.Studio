@@ -12,6 +12,13 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Changed
 
+- **Each screen owns its look; All screens is gone.** The theme, corners, background, page font, fine-tune and
+  performance (frame-rate cap, animations and the rendering switches) are set per screen, in Theme and in
+  **Screens › Performance**. Settings › Dashboard keeps what is app-wide: the clock, seconds, date locale, cursor,
+  page dots and kiosk refresh. Your screens look as before: the studio copies the old shared look onto each screen
+  the first time it opens. That save moves the config to version 16; the server first keeps the old file as
+  `config.backup-before-v16.json` beside `config.json`. An older beta can't save over a version 16 config, so to go
+  back, restore that backup.
 - **A theme brings its background unless you tick Keep my background.** *Include background* in Switch theme is now **Keep my background**, off by default. The command palette's commands are **Apply theme: ‹name›** and **Apply theme, keep background: ‹name›**.
 - **The toast after a theme pick counts the widgets that keep their own look** where the theme sets one, with **Make them follow** (one undo step).
 

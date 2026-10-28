@@ -50,7 +50,7 @@ export function useStudioUi(
    */
   const [themeProfileId, setThemeProfileId] = useState<string>();
   const [themePageId, setThemePageId] = useState<string>();
-  /** Whether Theme has been opened: until then the command palette applies themes to All screens. */
+  /** Whether Theme has been opened: until then the command palette applies themes to the screen in Design. */
   const [themeOpened, setThemeOpened] = useState(false);
   /** Open Theme at a scope, of a screen and page (unset = the ones in Design; a page scope names its page). */
   const openTheme = (scope: ThemeScope, profileId?: string, pageId?: string) => {

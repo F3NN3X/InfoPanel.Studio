@@ -34,7 +34,6 @@ import {
   trackSize,
   zoneBox,
 } from "@/lib/profile-grid";
-import { useGeneral } from "@/hooks/use-general";
 import { PageIslandProvider } from "@/hooks/use-page-island";
 import { cn } from "@/lib/utils";
 import { PlacementFrame } from "./placement-frame";
@@ -550,7 +549,7 @@ export function StudioCanvas({
     return zoneBox(r, { width: colW, height: rowHd }, gap);
   };
 
-  const font = fontStack(resolveFont(useGeneral(), profile));
+  const font = fontStack(resolveFont(profile));
 
   const dragged = zoneDrag
     ? profile.placements.find((x) => x.id === zoneDrag.id)

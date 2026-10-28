@@ -49,7 +49,7 @@ function setup(): DashboardConfig {
 }
 
 const SCREEN: ThemeAt = { level: "screen", profileId: "desk" };
-const diffsOf = (c: DashboardConfig) => differencesOf(c, exceptionsOf(c, SCREEN));
+const diffsOf = (c: DashboardConfig) => differencesOf(exceptionsOf(c, SCREEN));
 
 describe("the owner rule", () => {
   it("leaves out a widget whose only own values are a theme's writes; one with a value of its own still differs", () => {
@@ -84,11 +84,11 @@ describe("the preview", () => {
     const c = setup();
     const diffs = pageDifferences(diffsOf(c), "main");
     const placements = c.profiles[0].pages[0].placements;
-    const summary = differenceSummary(c, placements[1], diffs.get("blurred"), "Desk");
+    const summary = differenceSummary(placements[1], diffs.get("blurred"), "Desk");
     expect(summary).toMatch(/^Uses its own Surface & border: blur .*8.*\. Everything else follows Desk\.$/);
     expect(summary).not.toContain("60");
-    expect(differenceSummary(c, placements[2], diffs.get("red"), "Desk")).toBe("Uses its own Colors: accent color #FF0000. Everything else follows Desk.");
-    expect(differenceSummary(c, placements[3], undefined, "Desk")).toBe("Follows Desk everywhere.");
+    expect(differenceSummary(placements[2], diffs.get("red"), "Desk")).toBe("Uses its own Colors: accent color #FF0000. Everything else follows Desk.");
+    expect(differenceSummary(placements[3], undefined, "Desk")).toBe("Follows Desk everywhere.");
   });
 
   it("Use theme's value and Make all follow make exactly the differences follow, keeping the writes", () => {

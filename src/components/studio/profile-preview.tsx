@@ -1,4 +1,4 @@
-import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
+import type { MonitorProfile } from "@/lib/layout";
 import { resolveTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { fitPage } from "./profile-preview-model";
@@ -6,8 +6,6 @@ import { useShot } from "./profile-shot-store";
 
 interface ProfilePreviewProps {
   profile: MonitorProfile;
-  /** The dashboard: what the profile inherits (the theme behind the shot). */
-  dashboard: DashboardConfig;
   /** The box in px. */
   width: number;
   height: number;
@@ -19,7 +17,7 @@ interface ProfilePreviewProps {
  * A profile's screenshot (see `ProfileShots`) in a letterboxed box on the profile's theme background.
  * Without a shot yet the box is just that background.
  */
-export function ProfilePreview({ profile, dashboard, width, height, active }: ProfilePreviewProps) {
+export function ProfilePreview({ profile, width, height, active }: ProfilePreviewProps) {
   const shot = useShot(profile.id);
   const page = fitPage(profile, width - 2, height - 2);
   return (
@@ -29,7 +27,7 @@ export function ProfilePreview({ profile, dashboard, width, height, active }: Pr
         "pointer-events-none flex shrink-0 items-center justify-center overflow-hidden rounded-[6px] border",
         active ? "border-ui-accent" : "border-ui-default"
       )}
-      style={{ width, height, background: `hsl(${resolveTheme(dashboard, profile).tokens.background})` }}
+      style={{ width, height, background: `hsl(${resolveTheme(profile).tokens.background})` }}
     >
       {shot && (
         <img src={shot.dataUrl} alt="" decoding="async" draggable={false} style={{ width: page.width, height: page.height }} />

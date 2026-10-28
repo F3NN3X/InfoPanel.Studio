@@ -73,15 +73,14 @@ function Pick<T extends { id: string; name: string }>({
 }
 
 /**
- * Theme's level control (handoff SPEC §4.2): All screens · ‹screen› · ‹page›, each with its mono sub-label (the
- * screen count, the screen's size, "page"). The screen and page segments have a menu for another screen or page;
+ * Theme's level control (handoff SPEC §4.2): ‹screen› · ‹page›, each with its mono sub-label (the screen's size,
+ * "page"); each screen owns its look. The screen and page segments have a menu for another screen or page;
  * picking one keeps the level.
  */
 export function ThemeScopeBar({ config, at, profile, page, onPick }: ThemeScopeBarProps) {
   const screens = config.profiles.length;
   return (
     <div role="group" aria-label="Theme level" className="flex min-w-0 items-center gap-0.5 rounded-lg border border-ui-default bg-ui-tile p-0.5 max-sm:w-full max-sm:overflow-x-auto max-sm:[scrollbar-width:none]">
-      <Segment label="All screens" sub={String(screens)} active={at.level === "all"} onClick={() => onPick("all", profile.id, page.id)} />
       <Segment label={profile.name} sub={`${profile.width}×${profile.height}`} active={at.level === "screen"} onClick={() => onPick("screen", profile.id, page.id)} />
       {screens > 1 && (
         <Pick
@@ -89,7 +88,7 @@ export function ThemeScopeBar({ config, at, profile, page, onPick }: ThemeScopeB
           items={config.profiles}
           current={profile.id}
           meta={(p) => `${p.width}×${p.height}`}
-          onPick={(p) => onPick(at.level === "all" ? "screen" : at.level, p.id, p.id === profile.id ? page.id : p.pages[0].id)}
+          onPick={(p) => onPick(at.level, p.id, p.id === profile.id ? page.id : p.pages[0].id)}
         />
       )}
       <Segment label={page.name} sub="page" active={at.level === "page"} onClick={() => onPick("page", profile.id, page.id)} />

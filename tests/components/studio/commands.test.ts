@@ -76,7 +76,7 @@ describe("buildCommands", () => {
       ["Apply theme: Desk", "Gaming", { type: "apply-appearance", id: "t1", keepBackground: false }],
       ["Apply theme, keep background: Desk", "Gaming", { type: "apply-appearance", id: "t1", keepBackground: true }],
     ]);
-    expect(buildCommands({ ...base, appearancePresets: [{ id: "t1", name: "Desk" }] }).find((c) => c.id === "appearance:t1")?.hint).toBe("All screens");
+    expect(buildCommands({ ...base, appearancePresets: [{ id: "t1", name: "Desk" }] }).find((c) => c.id === "appearance:t1")?.hint).toBe("This screen");
   });
 
   it("lists undo / redo only when there is something to undo / redo", () => {

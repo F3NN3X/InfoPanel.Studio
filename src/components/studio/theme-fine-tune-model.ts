@@ -26,7 +26,7 @@ const themeWrote = (card: ThemeCard, state: ThemeState): boolean => {
 
 /**
  * A section's chip: Changed here where the level holds values of its own (`themeState().own`, or the page font),
- * From theme where it shows what the applied theme wrote, else where it inherits from (All screens: Built-in).
+ * From theme where it shows what the applied theme wrote, else where it inherits from (a screen: Built-in).
  * A page under its screen's lock is Locked.
  */
 export function fineTuneChip(config: DashboardConfig, at: ThemeAt, card: ThemeCard, state: ThemeState): FineTuneChip {
@@ -38,19 +38,18 @@ export function fineTuneChip(config: DashboardConfig, at: ThemeAt, card: ThemeCa
     if (!cardSet(config, at, card)) return { state: "inherited", from: inherit.from, fromName: inherit.fromName };
     return own || !theme ? { state: "custom", from: inherit.from, fromName: inherit.fromName } : { state: "theme" };
   }
-  const profile = at.level === "screen" ? config.profiles.find((p) => p.id === at.profileId) : undefined;
-  const font = card.data === "font" && dataSet(config, "font", profile);
-  if (own || font) return { state: at.level === "all" ? "base" : "custom", from: inherit.from, fromName: inherit.fromName };
-  if (theme) return { state: "theme" };
-  return at.level === "all" ? { state: "builtin" } : { state: "inherited", from: "all", fromName: inherit.fromName };
+  const profile = config.profiles.find((p) => p.id === at.profileId);
+  const font = card.data === "font" && profile !== undefined && dataSet("font", profile);
+  if (own || font) return { state: "base" };
+  return theme ? { state: "theme" } : { state: "builtin" };
 }
 
 /** Whether a chip says Changed here. */
 export const changedHere = (chip: FineTuneChip): boolean => chip.state === "custom" || chip.state === "base";
 
 /**
- * Reset to inherited: the card back to what the level inherits (see `resetCard`). At All screens or a screen with a
- * theme applied, its values go back to the theme's, so the section reads From theme again.
+ * Reset to inherited: the card back to what the level inherits (see `resetCard`). At a screen with a theme applied,
+ * its values go back to the theme's, so the section reads From theme again.
  */
 export function resetFineTune(config: DashboardConfig, at: ThemeAt, card: ThemeCard, state: ThemeState): DashboardConfig {
   const reset = resetCard(config, at, card);

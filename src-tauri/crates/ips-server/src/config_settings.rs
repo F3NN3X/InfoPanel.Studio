@@ -2,9 +2,11 @@
 // the dashboard-wide settings it changes and the saved config keeps everything else:
 //
 //   { general?: { <key>: value | null }, style?: { clock: "12" | "24" | null }, activeProfile?: "auto" | <screen id> | null,
-//     profiles?: { <id>: { performance: { maxFps?, motion? } | null } } }
+//     profiles?: { <id>: { performance: { maxFps?, motion?, ringGlide?, blurLimit?, innerBlur?, liveGlow? } | null } } }
 //
-// null puts a key back to its default. Every value is checked the way the studio reads it; a patch with anything else
+// Since config v16 the 12 / 24 h clock is `general.clock` and a screen's performance holds the rendering switches;
+// `style.clock` and the dashboard performance keys in `general` stay accepted for a Settings window built before (and
+// the frozen parity cases). null puts a key back to its default. Every value is checked the way the studio reads it; a patch with anything else
 // is refused whole. Keys move as JavaScript moves them (a replaced `general` goes to the end of the config), so the
 // saved file matches Node's byte for byte.
 
@@ -43,10 +45,11 @@ fn is_clock(v: &Value) -> bool {
     matches!(v.as_str(), Some("12" | "24"))
 }
 
-/// The `general` keys Settings › Dashboard edits. The page font is Theme's.
+/// The `general` keys Settings › Dashboard edits (the performance ones: a pre-v16 Settings window's). The page font is Theme's.
 fn general_check(key: &str) -> Option<Check> {
     Some(match key {
         "showSeconds" | "hideCursor" | "kioskPageNav" | "ringGlide" | "blurLimit" | "innerBlur" | "liveGlow" => is_bool,
+        "clock" => is_clock,
         "locale" => is_locale,
         "motion" => is_motion,
         "maxFps" => is_fps,
@@ -63,6 +66,7 @@ fn performance_check(key: &str) -> Option<Check> {
     Some(match key {
         "maxFps" => is_fps,
         "motion" => is_motion,
+        "ringGlide" | "blurLimit" | "innerBlur" | "liveGlow" => is_bool,
         _ => return None,
     })
 }
@@ -194,4 +198,39 @@ pub fn reapply_settings(config: Value, log: &[SettingsEntry], since_rev: f64) ->
     log.iter()
         .filter(|entry| entry.rev as f64 > since_rev)
         .fold(config, |acc, entry| apply_settings_patch(&acc, &entry.patch).unwrap_or(acc))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn stored() -> Value {
+        json!({ "version": 16, "general": { "locale": "de-DE" }, "profiles": [{ "id": "desk", "pages": [] }] })
+    }
+
+    // v16: the app's 12 / 24 h is `general.clock`; a screen's performance holds the rendering switches.
+    #[test]
+    fn sets_the_app_clock_and_a_screens_full_performance() {
+        let out = apply_settings_patch(&stored(), &json!({ "general": { "clock": "12" } })).unwrap();
+        assert_eq!(out["general"], json!({ "locale": "de-DE", "clock": "12" }));
+        let perf = json!({ "maxFps": 30, "motion": "reduce", "ringGlide": true, "blurLimit": false, "innerBlur": true, "liveGlow": false });
+        let out = apply_settings_patch(&stored(), &json!({ "profiles": { "desk": { "performance": perf } } })).unwrap();
+        assert_eq!(out["profiles"][0]["performance"], perf);
+    }
+
+    #[test]
+    fn refuses_a_bad_clock_or_switch() {
+        for bad in [json!({ "general": { "clock": "auto" } }), json!({ "profiles": { "desk": { "performance": { "ringGlide": "yes" } } } })] {
+            assert_eq!(apply_settings_patch(&stored(), &bad).unwrap_err().status, 400);
+        }
+    }
+
+    // A Settings window built before v16 still writes `style.clock` and the dashboard performance keys.
+    #[test]
+    fn still_accepts_a_pre_v16_settings_patch() {
+        let out = apply_settings_patch(&stored(), &json!({ "style": { "clock": "24" }, "general": { "maxFps": 15, "liveGlow": true } })).unwrap();
+        assert_eq!(out["style"], json!({ "clock": "24" }));
+        assert_eq!(out["general"], json!({ "locale": "de-DE", "maxFps": 15, "liveGlow": true }));
+    }
 }

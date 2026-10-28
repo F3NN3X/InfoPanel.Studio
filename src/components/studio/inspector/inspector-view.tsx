@@ -62,7 +62,7 @@ export interface SectionParts {
   more?: ReactNode;
   /** Header controls before Reset (the style tools). */
   actions?: ReactNode;
-  /** After the section's title (the profile inspector's All profiles / This profile dot). */
+  /** After the section's title (a section's own marker). */
   pill?: ReactNode;
   /** Changed fields the custom UI holds (added to the rows'). */
   changed?: number;

@@ -44,11 +44,9 @@ const profile = (id: string, extra: Partial<MonitorProfile> = {}): MonitorProfil
 });
 
 const config = (extra: Partial<DashboardConfig> = {}): DashboardConfig => ({
-  version: 15,
+  version: 16,
   activeProfile: "auto",
   profiles: [profile("p1"), profile("p2")],
-  theme: DEFAULT_THEME,
-  radius: 0.5,
   ...extra,
 });
 
@@ -65,65 +63,47 @@ const theme = (id: string, extra: Partial<AppearancePreset> = {}): AppearancePre
 const desk = theme("desk", { theme: OCEAN, radius: 1, style: { skin: "tui", accent: "#38bdf8", surface: "glass" }, background: { type: "color", color: "#101820" } });
 const night = theme("night", { radius: 0.25, style: { skin: "hud", accent: "#f472b6", blur: "16" } });
 
-const ALL = { kind: "all" } as const;
 const P1 = { kind: "profile", profileId: "p1" } as const;
+const P2 = { kind: "profile", profileId: "p2" } as const;
 const PAGE = { kind: "page", profileId: "p1", pageId: "main" } as const;
 
 const p1 = (c: DashboardConfig) => c.profiles[0];
 const page = (c: DashboardConfig) => c.profiles[0].pages[0];
-/** The user's own edit at All screens. */
-const editAll = (c: DashboardConfig, values: Record<string, string | number>): DashboardConfig => ({ ...c, style: { ...c.style, ...values } });
+/** A screen changed (its own fields, as the studio's edits write them). */
+const withP = (c: DashboardConfig, id: string, fn: (p: MonitorProfile) => MonitorProfile): DashboardConfig => ({ ...c, profiles: c.profiles.map((p) => (p.id === id ? fn(p) : p)) });
+/** The user's own style edit at a screen. */
+const editScreen = (c: DashboardConfig, values: Record<string, string | number>, id = "p1"): DashboardConfig =>
+  withP(c, id, (p) => ({ ...p, widgetTheme: { ...p.widgetTheme, values: { ...p.widgetTheme?.values, ...values } } }));
 
-describe("a pick adds to the look (All screens)", () => {
+describe("a pick adds to the look (a screen)", () => {
   it("writes the palette, skin, corners and background, and stores what it wrote", () => {
-    const out = applyTheme(config(), desk, ALL);
-    expect(out.theme).toEqual(OCEAN);
-    expect(out.radius).toBe(1);
-    expect(out.style).toEqual({ skin: "tui", accent: "#38bdf8", surface: "glass" });
-    expect(out.appliedTheme).toEqual({ id: "desk", name: "desk", tokens: OCEAN, radius: 1, background: desk.background, values: desk.style });
+    const out = applyTheme(config(), desk, P1);
+    expect(p1(out)).toMatchObject({ theme: OCEAN, radius: 1, background: desk.background });
+    expect(p1(out).widgetTheme?.values).toEqual({ skin: "tui", accent: "#38bdf8", surface: "glass" });
+    expect(p1(out).appliedTheme).toEqual({ id: "desk", name: "desk", tokens: OCEAN, radius: 1, background: desk.background, values: desk.style });
+    expect(out.profiles[1]).toEqual(config().profiles[1]);
   });
 
   it("replaces what the last theme wrote and keeps what the user changed since", () => {
-    const edited = editAll(applyTheme(config(), desk, ALL), { surface: "matte-dark", glow: "soft" });
-    const out = applyTheme(edited, night, ALL);
+    const edited = editScreen(applyTheme(config(), desk, P1), { surface: "matte-dark", glow: "soft" });
+    const out = applyTheme(edited, night, P1);
     // accent was the theme's → night's; surface and glow are the user's → kept; desk had no blur → night's.
-    expect(out.style).toEqual({ skin: "hud", accent: "#f472b6", surface: "matte-dark", glow: "soft", blur: "16" });
-    expect(themeState(out, ALL).own).toEqual(["surface", "border"]);
+    expect(p1(out).widgetTheme?.values).toEqual({ skin: "hud", accent: "#f472b6", surface: "matte-dark", glow: "soft", blur: "16" });
+    expect(themeState(out, P1).own).toEqual(["surface", "border"]);
   });
 
   it("always writes the skin, even one the user changed since", () => {
-    const out = applyTheme(editAll(applyTheme(config(), desk, ALL), { skin: "ink" }), night, ALL);
-    expect(out.style?.skin).toBe("hud");
+    const out = applyTheme(editScreen(applyTheme(config(), desk, P1), { skin: "ink" }), night, P1);
+    expect(p1(out).widgetTheme?.values?.skin).toBe("hud");
   });
 
-  it("replaces the look of a level that has no snapshot (a dashboard saved before), then keeps what changes since", () => {
-    const out = applyTheme(config({ style: { accent: "#ff0000", surfaceOpacity: 0 } }), night, ALL);
-    expect(out.style).toEqual(night.style);
-    expect(out.appliedTheme).toEqual({ id: "night", name: "night", tokens: DEFAULT_THEME, radius: 0.25, values: night.style });
-    expect(themeState(out, ALL).own).toEqual([]);
-    const next = applyTheme(editAll(out, { surfaceOpacity: 40 }), desk, ALL);
-    expect(next.style).toEqual({ ...desk.style, surfaceOpacity: 40 });
-  });
-
-  it("brings the theme's background unless the level keeps its own; a theme without one leaves it", () => {
-    const c = config({ background: { type: "color", color: "#000000" } });
-    const on = applyTheme(c, desk, ALL);
-    expect(on.background).toEqual(desk.background);
-    expect(on.appliedTheme?.background).toEqual(desk.background);
-    const kept = applyTheme(c, desk, ALL, { keepBackground: true });
-    expect(kept.background).toEqual(c.background);
-    expect(kept.appliedTheme?.background).toBeUndefined();
-    expect(applyTheme(c, night, ALL).background).toEqual(c.background);
-  });
-});
-
-describe("a pick at a screen", () => {
-  it("writes the screen's own parts and defaults over All screens' keys the theme leaves unset", () => {
-    const out = applyTheme(config({ style: { numGlow: "strong" } }), night, P1);
-    expect(p1(out)).toMatchObject({ theme: DEFAULT_THEME, radius: 0.25 });
-    expect(p1(out).widgetTheme?.values).toEqual({ numGlow: "auto", skin: "hud", accent: "#f472b6", blur: "16" });
-    expect(out.style).toEqual({ numGlow: "strong" });
-    expect(out.profiles[1].appliedTheme).toBeUndefined();
+  it("replaces the look of a screen that has no snapshot, then keeps what changes since", () => {
+    const out = applyTheme(editScreen(config(), { accent: "#ff0000", surfaceOpacity: 0 }), night, P1);
+    expect(p1(out).widgetTheme?.values).toEqual(night.style);
+    expect(p1(out).appliedTheme).toEqual({ id: "night", name: "night", tokens: DEFAULT_THEME, radius: 0.25, values: night.style });
+    expect(themeState(out, P1).own).toEqual([]);
+    const next = applyTheme(editScreen(out, { surfaceOpacity: 40 }), desk, P1);
+    expect(p1(next).widgetTheme?.values).toEqual({ ...desk.style, surfaceOpacity: 40 });
   });
 
   it("replaces the look of a screen that has no snapshot: its own values, palette, corners and background", () => {
@@ -132,7 +112,17 @@ describe("a pick at a screen", () => {
     expect(p1(out)).toMatchObject({ theme: OCEAN, radius: 1, background: desk.background });
     expect(p1(out).widgetTheme?.values).toEqual(p1(out).appliedTheme?.values);
     expect(p1(out).widgetTheme?.values).not.toHaveProperty("surfaceOpacity");
-    expect(applyTheme(config({ profiles: [dark, profile("p2")] }), desk, P1, { keepBackground: true }).profiles[0].background).toEqual(dark.background);
+  });
+
+  it("brings the theme's background unless the screen keeps its own; a theme without one leaves it", () => {
+    const c = config({ profiles: [profile("p1", { background: { type: "color", color: "#000000" } }), profile("p2")] });
+    const on = applyTheme(c, desk, P1);
+    expect(p1(on).background).toEqual(desk.background);
+    expect(p1(on).appliedTheme?.background).toEqual(desk.background);
+    const kept = applyTheme(c, desk, P1, { keepBackground: true });
+    expect(p1(kept).background).toEqual(p1(c).background);
+    expect(p1(kept).appliedTheme?.background).toBeUndefined();
+    expect(p1(applyTheme(c, night, P1)).background).toEqual(p1(c).background);
   });
 });
 
@@ -144,7 +134,6 @@ describe("a pick at a page: its skin and style only", () => {
     expect(page(out).appliedTheme).toEqual({ id: "desk", name: "desk", values: { skin: "tui", accent: "#38bdf8" } });
     expect(p1(out).theme).toBeUndefined();
     expect(p1(out).background).toBeUndefined();
-    expect(out.theme).toEqual(DEFAULT_THEME);
   });
 
   it("follows the screen again in a section the next theme leaves empty, and keeps a section the page changed", () => {
@@ -220,12 +209,13 @@ describe("a template variant's writes into the widgets", () => {
 
 describe("Reset to a theme", () => {
   it("sets the parts exactly, background included or cleared, and clears the level's fine-tune", () => {
-    const c = editAll(applyTheme(config({ background: { type: "color", color: "#000000" } }), desk, ALL), { glow: "soft" });
-    const out = resetToTheme(c, night, ALL);
-    expect(out.style).toEqual(night.style);
-    expect(out.background).toBeUndefined();
-    expect(themeState(out, ALL)).toMatchObject({ changed: [], own: [] });
-    expect(resetToTheme(c, desk, ALL).background).toEqual(desk.background);
+    const start = config({ profiles: [profile("p1", { background: { type: "color", color: "#000000" } }), profile("p2")] });
+    const c = editScreen(applyTheme(start, desk, P1), { glow: "soft" });
+    const out = resetToTheme(c, night, P1);
+    expect(p1(out).widgetTheme?.values).toEqual(night.style);
+    expect(p1(out).background).toBeUndefined();
+    expect(themeState(out, P1)).toMatchObject({ changed: [], own: [] });
+    expect(p1(resetToTheme(c, desk, P1)).background).toEqual(desk.background);
   });
 
   it("drops a screen's own background when the theme has none; pages keep their own", () => {
@@ -253,57 +243,57 @@ describe("saved themes in use", () => {
   });
 
   it("Update rewrites the theme and every level using it, keeping what a level changed since", () => {
-    const usedTwice = applyTheme(applyTheme(withDesk(config()), desk, ALL), desk, P1);
-    // The screen changes its own accent and corners; All screens changes its palette and saves it into desk.
-    const screenEdit = { ...usedTwice, profiles: [{ ...p1(usedTwice), radius: 0.75, widgetTheme: { values: { ...p1(usedTwice).widgetTheme?.values, accent: "#00ff00" } } }, usedTwice.profiles[1]] };
-    const allEdit = { ...screenEdit, theme: { ...OCEAN, primary: "1 2% 3%" }, style: { ...screenEdit.style, surface: "matte-dark" } };
-    const out = updateThemeEverywhere(allEdit, "desk", ALL);
+    const usedTwice = applyTheme(applyTheme(withDesk(config()), desk, P2), desk, P1);
+    // P1 changes its own accent and corners; P2 changes its palette and saves it into desk.
+    const screenEdit = editScreen(withP(usedTwice, "p1", (p) => ({ ...p, radius: 0.75 })), { accent: "#00ff00" });
+    const p2Edit = editScreen(withP(screenEdit, "p2", (p) => ({ ...p, theme: { ...OCEAN, primary: "1 2% 3%" } })), { surface: "matte-dark" }, "p2");
+    const out = updateThemeEverywhere(p2Edit, "desk", P2);
     expect(out.appearancePresets?.[0]).toMatchObject({ theme: { primary: "1 2% 3%" }, style: { surface: "matte-dark" } });
-    expect(themeState(out, ALL).changed).toEqual([]);
+    expect(themeState(out, P2).changed).toEqual([]);
     expect(p1(out).theme).toMatchObject({ primary: "1 2% 3%" });
     expect(p1(out).radius).toBe(0.75);
     expect(p1(out).widgetTheme?.values).toMatchObject({ surface: "matte-dark", accent: "#00ff00" });
   });
 
   it("tells the parts changed since, and a deleted theme", () => {
-    const c = applyTheme(withDesk(config()), desk, ALL);
-    expect(themeState(c, ALL)).toMatchObject({ theme: desk, deleted: false, changed: [] });
-    expect(themeState({ ...c, radius: 0.3, style: { ...c.style, skin: "ink" } }, ALL).changed).toEqual(["skin", "corners"]);
-    expect(themeState({ ...c, appearancePresets: undefined }, ALL)).toMatchObject({ theme: undefined, deleted: true });
-    const tpl = applyTheme(c, templatePreset(METERS), ALL);
-    expect(themeState(tpl, ALL).deleted).toBe(false);
+    const c = applyTheme(withDesk(config()), desk, P1);
+    expect(themeState(c, P1)).toMatchObject({ theme: desk, deleted: false, changed: [] });
+    expect(themeState(editScreen(withP(c, "p1", (p) => ({ ...p, radius: 0.3 })), { skin: "ink" }), P1).changed).toEqual(["skin", "corners"]);
+    expect(themeState({ ...c, appearancePresets: undefined }, P1)).toMatchObject({ theme: undefined, deleted: true });
+    const tpl = applyTheme(c, templatePreset(METERS), P1);
+    expect(themeState(tpl, P1).deleted).toBe(false);
   });
 
   it("treats the Default skin's two spellings as one, and keeps each as stored", () => {
     const plain = theme("plain", { style: { skin: "default", accent: "#38bdf8" } });
-    const c = applyTheme({ ...config(), appearancePresets: [plain] }, plain, ALL);
+    const c = applyTheme({ ...config(), appearancePresets: [plain] }, plain, P1);
     // The Skin picker writes `auto` for Default: the theme's skin, not a change.
-    const picked = { ...c, style: { ...c.style, skin: "auto" } };
-    expect(themeState(picked, ALL).changed).toEqual([]);
-    expect(themeState({ ...c, style: { ...c.style, skin: "tui" } }, ALL).changed).toEqual(["skin"]);
+    const picked = editScreen(c, { skin: "auto" });
+    expect(themeState(picked, P1).changed).toEqual([]);
+    expect(themeState(editScreen(c, { skin: "tui" }), P1).changed).toEqual(["skin"]);
     // Update rewrites it as the theme's, not as a value the level changed.
-    expect(updateThemeEverywhere(picked, "plain", ALL).style?.skin).toBe("auto");
+    expect(p1(updateThemeEverywhere(picked, "plain", P1)).widgetTheme?.values?.skin).toBe("auto");
     // Loading keeps either spelling, so nothing repaints.
     expect(normalizeAppliedTheme({ id: "x", name: "X", values: { skin: "default" } })?.values).toEqual({ skin: "default" });
-    expect(mergeConfig(JSON.parse(JSON.stringify(config({ style: { skin: "auto" } }))) as StoredConfig).style).toEqual({ skin: "auto" });
+    expect(p1(mergeConfig(JSON.parse(JSON.stringify(editScreen(config(), { skin: "auto" }))) as StoredConfig)).widgetTheme?.values).toEqual({ skin: "auto" });
   });
 
   it("Save as new names the new theme at that level, with nothing changed", () => {
-    const edited = editAll(applyTheme(withDesk(config()), desk, ALL), { glow: "soft" });
-    const out = saveAsTheme(edited, ALL, "mine", "Mine", false);
-    expect(out.appliedTheme?.id).toBe("mine");
-    expect(themeState(out, ALL)).toMatchObject({ changed: [], own: [] });
-    expect(out.style).toEqual(edited.style);
+    const edited = editScreen(applyTheme(withDesk(config()), desk, P1), { glow: "soft" });
+    const out = saveAsTheme(edited, P1, "mine", "Mine", false);
+    expect(p1(out).appliedTheme?.id).toBe("mine");
+    expect(themeState(out, P1)).toMatchObject({ changed: [], own: [] });
+    expect(p1(out).widgetTheme?.values).toEqual(p1(edited).widgetTheme?.values);
   });
 });
 
 describe("dashboards saved before the snapshot", () => {
-  it("names a saved theme a level shows exactly, and nothing on a near miss; the look doesn't change", () => {
-    const exact = config({ theme: OCEAN, radius: 1, style: { ...desk.style }, appearancePresets: [desk] });
-    expect(guessAppliedThemes(exact).appliedTheme).toMatchObject({ id: "desk", values: desk.style });
-    expect(guessAppliedThemes({ ...exact, radius: 0.75 }).appliedTheme).toBeUndefined();
-    const { appliedTheme: _a, ...rest } = guessAppliedThemes(exact);
-    expect(rest).toEqual(exact);
+  it("names a saved theme a screen shows exactly, and nothing on a near miss; the look doesn't change", () => {
+    const exact = config({ profiles: [profile("p1", { theme: OCEAN, radius: 1, widgetTheme: { values: { ...desk.style } } }), profile("p2")], appearancePresets: [desk] });
+    expect(p1(guessAppliedThemes(exact)).appliedTheme).toMatchObject({ id: "desk", values: desk.style });
+    expect(p1(guessAppliedThemes(withP(exact, "p1", (p) => ({ ...p, radius: 0.75 })))).appliedTheme).toBeUndefined();
+    const { appliedTheme: _a, ...rest } = p1(guessAppliedThemes(exact));
+    expect(rest).toEqual(p1(exact));
   });
 
   it("loads a stored snapshot guarded, and guesses on load", () => {
@@ -314,8 +304,9 @@ describe("dashboards saved before the snapshot", () => {
       zones: { z: { was: {}, now: { surfaceOpacity: 72 } } },
     });
     expect(normalizeAppliedTheme({ name: "X", values: {} })).toBeUndefined();
-    const loaded = mergeConfig({ ...config({ theme: OCEAN, radius: 1, style: { ...desk.style }, appearancePresets: [desk] }) } as unknown as StoredConfig);
-    expect(loaded.appliedTheme?.id).toBe("desk");
+    // A v15 dashboard showing desk: its snapshot moves to the screens that had no look of their own.
+    const loaded = mergeConfig({ ...config({ appearancePresets: [desk] }), version: 15, theme: OCEAN, radius: 1, style: { ...desk.style } } as unknown as StoredConfig);
+    expect(loaded.profiles.map((p) => p.appliedTheme?.id)).toEqual(["desk", "desk"]);
     const round = mergeConfig(JSON.parse(JSON.stringify(applyTheme(config(), night, PAGE))) as StoredConfig);
     expect(round.profiles[0].pages[0].appliedTheme).toEqual({ id: "night", name: "night", values: night.style });
   });

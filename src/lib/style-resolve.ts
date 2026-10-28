@@ -1,4 +1,5 @@
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
+import type { GeneralSettings } from "./general";
 import {
   following,
   pageCustom,
@@ -15,9 +16,12 @@ import {
  * Where a widget's look comes from, on the theme model (`theme-model.ts`).
  * Only the themed keys are layered, lowest first:
  *
- *   module default → all-profiles style → profile theme → page theme
- *   (only for a section the page made its own and the profile does not
- *   lock) → the widget's own
+ *   module default → the app's clock (`general.clock`) → profile theme →
+ *   page theme (only for a section the page made its own and the profile
+ *   does not lock) → the widget's own
+ *
+ * A clock a level sets, "auto" (the locale's) included, beats the app's,
+ * as the dashboard's clock was beaten before v16.
  *
  * A widget section that follows the theme (the default, and always while
  * the profile locks it) skips the widget's own values for its keys — they
@@ -27,8 +31,12 @@ import {
  * palette role reads the role's theme colour (SPEC §3.2 `themeKey`).
  */
 
-/** The layer a resolved look value comes from ("dashboard": the all-profiles style). */
-export type StyleSource = "default" | "dashboard" | "profile" | "page" | "own";
+/** The layer a resolved look value comes from ("app": the app settings' clock). */
+export type StyleSource = "default" | "app" | "profile" | "page" | "own";
+
+/** The app settings' layer under every screen: its 12 / 24 h clock, else none. */
+export const appLayer = (general: GeneralSettings | undefined): ModuleSettings | undefined =>
+  general?.clock ? { clock: general.clock } : undefined;
 
 /** The theme a placement renders under, with the names its Follow bars show. */
 export interface Appearance extends ThemeLevels {
@@ -69,13 +77,13 @@ interface ProfileLike {
 
 /** The theme a profile (one page of it) renders under. */
 export function appearanceOf(
-  config: { style?: ModuleSettings; profiles?: { id: string; pages: { id: string; name: string }[] }[] },
+  config: { general?: GeneralSettings; profiles?: { id: string; pages: { id: string; name: string }[] }[] },
   profile: ProfileLike | undefined
 ): Appearance {
   const pages = config.profiles?.find((p) => p.id === profile?.id)?.pages;
   const page = pages?.find((pg) => pg.id === profile?.pageId) ?? pages?.[0];
   return {
-    base: config.style,
+    base: appLayer(config.general),
     profile: profile?.widgetTheme,
     page: profile?.pageTheme,
     profileName: profile?.name,
@@ -101,7 +109,7 @@ export function resolveStyle(input: StyleInput): ResolvedStyle {
       ["own", ownApplies ? ownValue : undefined],
       ["page", pageOwn ? levels.page?.values?.[key] : undefined],
       ["profile", levels.profile?.values?.[key]],
-      ["dashboard", levels.base?.[key]],
+      ["app", levels.base?.[key]],
       ["default", input.moduleDefaults?.[key]],
     ];
     return layers.find(([, value]) => value !== undefined);
@@ -145,7 +153,7 @@ export function resolveStyle(input: StyleInput): ResolvedStyle {
  * it (the island reads zones from every page); a zone of no page: its own.
  */
 export function zoneResolver(
-  config: { style?: ModuleSettings },
+  config: { general?: GeneralSettings },
   profile: {
     widgetTheme?: WidgetTheme;
     pages: { widgetTheme?: WidgetTheme; placements: { id: string }[] }[];
@@ -157,7 +165,7 @@ export function zoneResolver(
   return (p) => {
     const page = pageOf.get(p.id);
     if (!page) return p.settings;
-    return resolveWith({ base: config.style, profile: profile.widgetTheme, page: page.widgetTheme }, p.settings, p.follow, undefined, defsOf?.(p));
+    return resolveWith({ base: appLayer(config.general), profile: profile.widgetTheme, page: page.widgetTheme }, p.settings, p.follow, undefined, defsOf?.(p));
   };
 }
 

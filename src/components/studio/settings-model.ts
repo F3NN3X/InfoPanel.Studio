@@ -53,14 +53,14 @@ export function matchesQuery(texts: string[], query: string): boolean {
  * Where a setting's shown value comes from:
  * - `default` — nothing set (or this widget's value equals the default;
  *   a panel's legacy look counts as its default)
- * - `dashboard` — inherited from the dashboard style (all profiles)
+ * - `app` — inherited from the app settings (their 12 / 24 h clock)
  * - `profile` — inherited from the profile's style
  * - `here` — set on this widget
  * - `overriding` — set on this widget over an inherited value
  * - `ignored` — set on this widget but not used: its section follows the
  *   theme (or the profile locks it)
  */
-export type SettingState = "default" | "dashboard" | "profile" | "here" | "overriding" | "ignored";
+export type SettingState = "default" | "app" | "profile" | "here" | "overriding" | "ignored";
 
 /** The states whose value is stored on the widget itself (it can be reset there). */
 export const SET_HERE: ReadonlySet<SettingState> = new Set(["here", "overriding", "ignored"]);
@@ -83,14 +83,14 @@ export function settingState(
   const hasInherited = inherited?.[key] !== undefined && from !== "default";
   if (ignoreOwn && hasOwn && (hasInherited || own?.[key] !== fallback)) return "ignored";
   if (hasOwn && hasInherited) return "overriding";
-  if (hasInherited) return from === "dashboard" ? "dashboard" : "profile";
+  if (hasInherited) return from === "app" ? "app" : "profile";
   if (hasOwn && own?.[key] !== fallback) return "here";
   return "default";
 }
 
 const STATE_RANK: Record<SettingState, number> = {
   default: 0,
-  dashboard: 1,
+  app: 1,
   profile: 2,
   here: 3,
   overriding: 4,

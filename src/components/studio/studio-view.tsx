@@ -35,7 +35,6 @@ import { DesignLeftPanel } from "./design-left-panel";
 import { AddToast } from "./add-toast";
 import { useAddListDensity, useAddPreviewOnHover } from "./add-prefs";
 import { useAddPanel } from "./use-add-panel";
-import { useGeneral } from "@/hooks/use-general";
 import { fontStack, resolveFont } from "@/lib/general";
 import { importedFromInfoPanel, madeForInfoPanel, screenKind } from "@/lib/screens/list";
 import { MadeForControl } from "./made-for-control";
@@ -542,10 +541,9 @@ function StudioViewBody({
   /** The one selected zone, when it is blank: the Add panel's click fills it. */
   const blankZoneId = selected && sel.selection.length === 1 && selected.module === BLANK_MODULE ? selected.id : undefined;
 
-  /** The profile's own theme, scoped to the canvas (the chrome keeps the dashboard's). */
-  const ownTheme = profile.theme !== undefined || profile.radius !== undefined;
-  const canvasTheme = ownTheme ? resolveTheme(config, profile) : null;
-  const themeScope = canvasTheme ? (themeVars(canvasTheme.tokens, canvasTheme.radius) as CSSProperties) : undefined;
+  /** The screen's theme, scoped to the canvas (the chrome has its own ui-* tokens). */
+  const canvasTheme = resolveTheme(profile);
+  const themeScope = themeVars(canvasTheme.tokens, canvasTheme.radius) as CSSProperties;
 
   /** Add's statuses on a screen made for InfoPanel (the module loads with the first such screen). */
   const [addStatus, setAddStatus] = useState<AddStatusModule | null>(null);
@@ -560,7 +558,7 @@ function StudioViewBody({
   const addPanel = useAddPanel({ config, addFromPanel: edit.addFromPanel, targetZoneId: blankZoneId, undo: history.undo, kitFor });
   const [addDensity] = useAddListDensity();
   const [addPreviewOnHover] = useAddPreviewOnHover();
-  const pageFont = fontStack(resolveFont(useGeneral(), profile));
+  const pageFont = fontStack(resolveFont(profile));
   const addTarget = blankZoneId && selected ? { id: blankZoneId, cols: selected.colSpan, rows: selected.rowSpan } : undefined;
 
   /** The screen is made for InfoPanel (SPEC §5.1): the Export check, the badges and the On InfoPanel lines show. */
@@ -901,10 +899,10 @@ function StudioViewBody({
     <StudioCanvas
       profile={profile}
       page={storedPage}
-      background={resolveBackground(config, profile)}
+      background={resolveBackground(profile)}
       appearance={appearance}
       themeScope={themeScope}
-      radius={resolveTheme(config, profile).radius}
+      radius={resolveTheme(profile).radius}
       zoom={ui.zoom}
       pan={ui.pan}
       showGrid={ui.showGrid}
@@ -1212,7 +1210,7 @@ function StudioViewBody({
           // Edit: the canvas editor when one is open, where a component dragged out of the Library lands.
           ui.setMode("design");
         }}
-        theme={resolveTheme(config, profile).tokens}
+        theme={resolveTheme(profile).tokens}
         profileName={storedProfile.name}
         onImport={(source, dest) => io.openImport(dest, source, true)}
         onOpenGauge={(itemId) => openGauge({ kind: "library", itemId })}
@@ -1276,7 +1274,7 @@ function StudioViewBody({
       <GaugesPage
         bridge={libraryBridge}
         profileName={storedProfile.name}
-        theme={resolveTheme(config, profile).tokens}
+        theme={resolveTheme(profile).tokens}
         initial={gaugeToOpen}
         onOpened={() => setGaugeToOpen(null)}
         onShowCanvas={() => ui.setMode("design")}

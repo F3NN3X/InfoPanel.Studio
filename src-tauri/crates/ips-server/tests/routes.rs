@@ -214,6 +214,26 @@ async fn stores_the_config_verbatim_behind_its_guards() {
 }
 
 #[tokio::test]
+async fn keeps_the_older_config_before_a_save_raises_its_version() {
+    let s = start().await;
+    let backup = s.data().join("config.backup-before-v16.json");
+    let v15 = r#"{"version":15,"theme":{"primary":"1 2% 3%"},"profiles":[]}"#;
+    assert_eq!(post_config(s.port, v15, &[]).await.status, 200);
+    assert!(!backup.exists());
+    // The first v16 save copies the v15 file first, byte for byte.
+    assert_eq!(post_config(s.port, r#"{"version":16,"profiles":[]}"#, &[]).await.status, 200);
+    assert_eq!(std::fs::read_to_string(&backup).unwrap(), v15);
+    // Another v16 save, or a refused older one, leaves it as it was; a later raise never overwrites it.
+    assert_eq!(post_config(s.port, r#"{"version":16,"profiles":[1]}"#, &[]).await.status, 200);
+    assert_eq!(post_config(s.port, v15, &[]).await.status, 409);
+    std::fs::write(s.data().join("config.json"), v15).unwrap();
+    assert_eq!(post_config(s.port, r#"{"version":16,"n":2}"#, &[]).await.status, 200);
+    assert_eq!(std::fs::read_to_string(&backup).unwrap(), v15);
+    assert_eq!(std::fs::read_to_string(s.data().join("config.json")).unwrap(), r#"{"version":16,"n":2}"#);
+    s.stop().await;
+}
+
+#[tokio::test]
 async fn settings_patch_sets_the_startup_screen() {
     let s = start().await;
     post_config(s.port, r#"{"version":11,"activeProfile":"auto","profiles":[{"id":"desk","pages":[]}]}"#, &[]).await;

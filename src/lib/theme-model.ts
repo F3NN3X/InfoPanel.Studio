@@ -7,7 +7,7 @@ import type { ModuleSetting, ModuleSettingValue, ModuleSettings, ThresholdQuanti
  *
  * Levels, lowest first (owner decision Q1):
  *
- *   THEME_DEFAULTS → all-profiles style (`DashboardConfig.style`, no locks)
+ *   THEME_DEFAULTS → the app's clock (`general.clock`, `appLayer`)
  *     → profile theme (`MonitorProfile.widgetTheme`: values + locks)
  *     → page theme (`ProfilePage.widgetTheme`: values + follow per section)
  *     → the widget (`Placement.follow` per section, its own settings)
@@ -64,7 +64,7 @@ export interface WidgetTheme {
 
 /** The theme levels a widget renders under (see the module comment). */
 export interface ThemeLevels {
-  /** The all-profiles style: the base layer. */
+  /** The app settings' layer (its clock, `appLayer`): the base. */
   base?: ModuleSettings;
   profile?: WidgetTheme;
   page?: WidgetTheme;

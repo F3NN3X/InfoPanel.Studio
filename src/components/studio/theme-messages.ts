@@ -23,7 +23,7 @@ export interface AppliedOutcome {
   widgets: number;
 }
 
-const REPLACED: Record<ThemeLevel, string> = { all: "Replaced the look of All screens", screen: "Replaced this screen's look", page: "Replaced this page's look" };
+const REPLACED: Record<ThemeLevel, string> = { screen: "Replaced this screen's look", page: "Replaced this page's look" };
 
 /** The toast after a theme is applied (SPEC §5.4). */
 export function appliedToast(name: string, level: ThemeLevel, outcome: AppliedOutcome, screen: string): ToastText {
@@ -60,7 +60,7 @@ export const savedToast = (name: string, kind: "theme" | "palette"): ToastText =
   sub: kind === "palette" ? "It's at the top of the picker under Yours." : "It's in Switch theme under saved themes.",
 });
 
-/** A saved palette's "used by" line: "Used by Desk look and All screens", or "Not in use". */
+/** A saved palette's "used by" line: "Used by Desk look and MyDefault", or "Not in use". */
 export const paletteUsedBy = (names: readonly string[]): string => (names.length === 0 ? "Not in use" : `Used by ${listText(names)}`);
 
 /** The Palette picker's footer count: "6 built-in · 2 yours". */

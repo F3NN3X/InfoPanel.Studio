@@ -1,5 +1,7 @@
 // Downgrade guard for POST /api/config (server/config-guard.mjs): an older build that loads a newer config can drop
 // what it does not know and push that copy back, so a save whose `version` is below the stored config's is refused.
+// A save that raises the version (a migration the studio ran on load) first keeps the stored file as a backup, since
+// the older build can no longer save over the new one.
 
 use serde_json::Value;
 
@@ -17,6 +19,14 @@ pub fn version_refusal(stored_text: &str, incoming: &Value) -> Option<Refusal> {
         return None;
     }
     Some(Refusal::new(409, "a newer dashboard version saved this config; reload"))
+}
+
+/// The backup file the stored config is copied to before `incoming` raises its version: `config.backup-before-v<N>.json`
+/// for a whole-number incoming version above the stored one; `None` otherwise (an unreadable stored config included).
+pub fn version_backup_name(stored_text: &str, incoming: &Value) -> Option<String> {
+    let stored = json::parse(stored_text)?;
+    let next = version_of(incoming);
+    (next > version_of(&stored) && next.fract() == 0.0 && next < 1e9).then(|| format!("config.backup-before-v{}.json", next as i64))
 }
 
 #[cfg(test)]
@@ -38,5 +48,25 @@ mod tests {
         assert!(version_refusal(r#"{"version":15}"#, &serde_json::json!({ "version": 13 })).is_some());
         assert!(version_refusal(r#"{"version":14}"#, &serde_json::json!({ "version": 15 })).is_none());
         assert!(version_refusal(r#"{"version":15}"#, &serde_json::json!({ "version": 15 })).is_none());
+    }
+
+    // v16 (screens own their look): a v15 build would show every screen in the built-in look on its next save.
+    #[test]
+    fn refuses_a_v15_save_over_a_v16_config() {
+        assert!(version_refusal(r#"{"version":16}"#, &serde_json::json!({ "version": 15 })).is_some());
+        assert!(version_refusal(r#"{"version":15}"#, &serde_json::json!({ "version": 16 })).is_none());
+        assert!(version_refusal(r#"{"version":16}"#, &serde_json::json!({ "version": 16 })).is_none());
+    }
+
+    #[test]
+    fn names_a_backup_only_when_a_save_raises_the_version() {
+        let v16 = serde_json::json!({ "version": 16 });
+        assert_eq!(version_backup_name(r#"{"version":15}"#, &v16).as_deref(), Some("config.backup-before-v16.json"));
+        assert_eq!(version_backup_name(r#"{"profiles":[]}"#, &v16).as_deref(), Some("config.backup-before-v16.json"));
+        assert_eq!(version_backup_name(r#"{"version":16}"#, &v16), None);
+        assert_eq!(version_backup_name(r#"{"version":17}"#, &v16), None);
+        assert_eq!(version_backup_name("not json", &v16), None);
+        assert_eq!(version_backup_name(r#"{"version":15}"#, &serde_json::json!({ "version": 15.5 })), None);
+        assert_eq!(version_backup_name(r#"{"version":15}"#, &serde_json::json!({ "profiles": [] })), None);
     }
 }

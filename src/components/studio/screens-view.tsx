@@ -185,7 +185,7 @@ export function ScreensView({
                   }
                   meta={screenMeta(p)}
                   aspect={aspectOf(p.width, p.height)}
-                  thumb={<ScreenThumb profile={p} dashboard={config} />}
+                  thumb={<ScreenThumb profile={p} />}
                   selected={p.id === stored.id}
                   onClick={() => onSelectProfile(p.id)}
                   label={`Select ${p.name}`}

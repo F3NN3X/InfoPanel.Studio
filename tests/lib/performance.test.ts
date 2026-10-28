@@ -53,6 +53,16 @@ describe("profile performance", () => {
     expect(normalizePerformance({ maxFps: 30, motion: "reduce", extra: 1 })).toEqual({ maxFps: 30, motion: "reduce" });
     expect(normalizePerformance({ maxFps: 24, motion: "lots" })).toBeUndefined();
     expect(normalizePerformance(undefined)).toBeUndefined();
+    for (const fps of [5, 15, 30, 60, 0]) expect(normalizePerformance({ maxFps: fps })).toEqual({ maxFps: fps });
+    for (const bad of [24, -1, "30", null, 1000]) expect(normalizePerformance({ maxFps: bad })).toBeUndefined();
+  });
+
+  it("keeps the rendering switches as booleans only (each screen's since config v16)", () => {
+    for (const key of ["ringGlide", "blurLimit", "innerBlur", "liveGlow"] as const) {
+      expect(normalizePerformance({ [key]: true })).toEqual({ [key]: true });
+      expect(normalizePerformance({ [key]: false })).toEqual({ [key]: false });
+      for (const bad of ["yes", 1, null]) expect(normalizePerformance({ [key]: bad })).toBeUndefined();
+    }
   });
 
   it("survives loading a config", () => {

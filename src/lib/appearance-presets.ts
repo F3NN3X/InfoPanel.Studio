@@ -61,12 +61,12 @@ export function presetTokens(preset: Pick<AppearancePreset, "theme">): ThemeToke
   return THEME_PRESETS.find((p) => p.name === preset.theme)?.tokens ?? DEFAULT_THEME;
 }
 
-/** The value of every look key when nothing sets it (what a screen writes over All screens' keys a theme leaves unset). */
+/** The value of every look key when nothing sets it (what a theme writes over a shadowed key it leaves unset). */
 export const LOOK_DEFAULTS: ModuleSettings = Object.fromEntries(THEME_SETTINGS.flatMap((s) => settingKeys(s).map((key) => [key, s.default])));
 
 /**
- * The style values a theme writes at a level: its own, and at a screen (`shadow`: All screens' style) the defaults of
- * the keys All screens sets that it doesn't, so the screen shows the theme rather than a blend.
+ * The style values a theme writes at a level: its own, and over `shadow` (a style it sits on: a v15 dashboard's, which
+ * the v16 migration's snapshot guess reads) the defaults of the keys that style sets and the theme doesn't.
  */
 export function themeValues(preset: Pick<AppearancePreset, "style">, shadow?: ModuleSettings): ModuleSettings {
   const style = themedOf(preset.style);

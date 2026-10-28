@@ -42,7 +42,6 @@ function setup(): DashboardConfig {
   return { ...c, profiles: [desk] };
 }
 
-const ALL: ThemeAt = { level: "all" };
 const SCREEN: ThemeAt = { level: "screen", profileId: "desk" };
 const GAMING: ThemeAt = { level: "page", profileId: "desk", pageId: "gaming" };
 const desk = (c: DashboardConfig) => c.profiles[0];
@@ -64,20 +63,15 @@ describe("the fine-tune sections", () => {
 });
 
 describe("a card's chip", () => {
-  it("All screens: built-in until set, then Set here", () => {
-    expect(cardInherit(setup(), ALL, themeCard("colors")).state).toBe("builtin");
-    // The palette is a theme part: a token leaves Colors built-in, a widget color sets it.
-    expect(cardInherit(withToken(setup(), ALL, "primary", "1 2% 3%"), ALL, themeCard("colors")).state).toBe("builtin");
-    expect(cardInherit(withScopeValues(setup(), "", { kind: "base" }, () => ({ accent: "#00ff00" })), ALL, themeCard("colors")).state).toBe("base");
-    expect(cardInherit(withScopeValues(setup(), "", { kind: "base" }, () => ({ smoothing: "smooth" })), ALL, themeCard("motion")).state).toBe("base");
-  });
-
-  it("a screen: inherited from All screens until it owns a value of the card, then Custom here", () => {
-    expect(cardInherit(setup(), SCREEN, themeCard("colors"))).toMatchObject({ state: "inherited", from: "all" });
+  it("a screen (the top level): built-in until it owns a value of the card, then Set here", () => {
+    expect(cardInherit(setup(), SCREEN, themeCard("colors"))).toEqual({ state: "builtin", keptOverride: false });
     // A token is the palette, a theme part: only a widget color makes the screen's Colors its own.
-    expect(cardInherit(withToken(setup(), SCREEN, "primary", "1 2% 3%"), SCREEN, themeCard("colors")).state).toBe("inherited");
+    expect(cardInherit(withToken(setup(), SCREEN, "primary", "1 2% 3%"), SCREEN, themeCard("colors")).state).toBe("builtin");
     const widget = withScopeValues(setup(), "desk", { kind: "profile" }, () => ({ s1: "#00ff00" }));
-    expect(cardInherit(widget, SCREEN, themeCard("colors")).state).toBe("custom");
+    expect(cardInherit(widget, SCREEN, themeCard("colors")).state).toBe("base");
+    expect(cardInherit(withScopeValues(setup(), "desk", { kind: "profile" }, () => ({ smoothing: "smooth" })), SCREEN, themeCard("motion")).state).toBe("base");
+    // A screen has nothing above it to take a value from.
+    expect(customiseCard(setup(), SCREEN, themeCard("colors"))).toEqual(setup());
   });
 
   it("a page under a lock: Locked by Screen, keeping its own values", () => {
@@ -100,23 +94,19 @@ describe("locks", () => {
   });
 });
 
-describe("the two-level stores", () => {
-  it("the page font: All screens writes general.font (System as none), a screen its own profile.font", () => {
-    const all = withPageFont(setup(), ALL, "mono");
-    expect(all.general?.font).toBe("mono");
-    expect(desk(all).font).toBeUndefined();
-    expect(withPageFont(all, ALL, "system").general?.font).toBeUndefined();
-    const screen = withPageFont(all, SCREEN, "serif");
-    expect(screen.general?.font).toBe("mono");
+describe("the screen's stores", () => {
+  it("the page font: a screen writes its own profile.font", () => {
+    const screen = withPageFont(setup(), SCREEN, "serif");
+    expect(screen.general).toBeUndefined();
     expect(desk(screen).font).toBe("serif");
-    expect(resolveFont({ font: "mono" }, desk(screen))).toBe("serif");
-    expect(cardInherit(screen, SCREEN, themeCard("type")).state).toBe("custom");
-    // Reset to inherited drops the screen's font: it shows All screens' again.
+    expect(resolveFont(desk(screen))).toBe("serif");
+    expect(cardInherit(screen, SCREEN, themeCard("type")).state).toBe("base");
+    // Reset drops the screen's font: it shows the built-in one again.
     expect(desk(resetCard(screen, SCREEN, themeCard("type")))).not.toHaveProperty("font");
   });
 
   it("Colors and Shape & spacing leave a screen's palette and corners alone (theme parts)", () => {
-    let c = withToken({ ...setup(), radius: 0.75 }, SCREEN, "primary", "1 2% 3%");
+    let c = withToken(setup(), SCREEN, "primary", "1 2% 3%");
     c = { ...c, profiles: [{ ...desk(c), radius: 1 }] };
     const changed = customiseCard(customiseCard(c, SCREEN, themeCard("colors")), SCREEN, themeCard("spacing"));
     expect(desk(changed).theme).toEqual(desk(c).theme);
@@ -127,8 +117,7 @@ describe("the two-level stores", () => {
   });
 
   it("a token edit on a screen starts from what it shows", () => {
-    const c = withToken(withToken(setup(), ALL, "accent", "9 9% 9%"), SCREEN, "primary", "1 2% 3%");
+    const c = withToken(withToken(setup(), SCREEN, "accent", "9 9% 9%"), SCREEN, "primary", "1 2% 3%");
     expect(desk(c).theme).toEqual({ ...DEFAULT_THEME, accent: "9 9% 9%", primary: "1 2% 3%" });
-    expect(c.theme.primary).toBe(DEFAULT_THEME.primary);
   });
 });

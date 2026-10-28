@@ -99,21 +99,21 @@ test("a Settings change made in another browser reaches the studio's working cop
   const patched = await fetch(`${scratch.base}/api/config/settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", "X-Dashboard-Config": "1" },
-    body: JSON.stringify({ general: { maxFps: 15 } }),
+    body: JSON.stringify({ general: { clock: "12" } }),
   });
   expect(patched.status).toBe(200);
   // Save writes the working copy to this browser's local copy too: the patch is in it.
-  const localMaxFps = () =>
-    page.evaluate(() => (JSON.parse(localStorage.getItem("infopanel-dashboard:config:v1") ?? "{}") as { general?: { maxFps?: number } }).general?.maxFps);
+  const localClock = () =>
+    page.evaluate(() => (JSON.parse(localStorage.getItem("infopanel-dashboard:config:v1") ?? "{}") as { general?: { clock?: string } }).general?.clock);
   await expect
     .poll(
       async () => {
         await page.keyboard.press("Control+s");
-        return localMaxFps();
+        return localClock();
       },
       { timeout: 5000 }
     )
-    .toBe(15);
+    .toBe("12");
 });
 
 test("the preview setting saved from the app reaches a studio in a fresh browser", async ({ page, scratch }) => {

@@ -26,15 +26,12 @@ function fnv1a(text: string): string {
 
 const profileHashes = new WeakMap<MonitorProfile, string>();
 
-/** What a screenshot depends on: the profile and the dashboard fields it inherits. A new `rev` makes the shot stale. */
-export function profileRev(
-  profile: MonitorProfile,
-  dashboard: Pick<DashboardConfig, "background" | "theme" | "radius" | "style">
-): string {
+/** What a screenshot depends on: the profile and the app's clock it inherits. A new `rev` makes the shot stale. */
+export function profileRev(profile: MonitorProfile, dashboard: Pick<DashboardConfig, "general">): string {
   // The profile's own hash is kept per object (an edit makes a new one), so a drag frame hashes only the edited profile.
   let own = profileHashes.get(profile);
   if (own === undefined) profileHashes.set(profile, (own = fnv1a(JSON.stringify(profile))));
-  return fnv1a(own + JSON.stringify([dashboard.background, dashboard.theme, dashboard.radius, dashboard.style]));
+  return fnv1a(own + JSON.stringify([dashboard.general?.clock]));
 }
 
 /** The cache for the profiles that still exist, the oldest entries dropped until it fits `maxChars`. */

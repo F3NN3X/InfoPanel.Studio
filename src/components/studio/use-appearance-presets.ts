@@ -31,7 +31,7 @@ export interface AppearancePresetsApi {
 
 /** A Theme scope as the preset writers take it. */
 export const themeTarget = (at: ThemeAt): ThemeTarget =>
-  at.level === "all" ? { kind: "all" } : at.level === "screen" ? { kind: "profile", profileId: at.profileId } : { kind: "page", profileId: at.profileId, pageId: at.pageId };
+  at.level === "screen" ? { kind: "profile", profileId: at.profileId } : { kind: "page", profileId: at.profileId, pageId: at.pageId };
 
 /** The apply rule's own chunk, loaded on the first apply (it pulls in the template variants' colour swaps). */
 const themeApply = () => import("@/lib/theme-apply");

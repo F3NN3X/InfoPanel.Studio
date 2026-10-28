@@ -73,12 +73,12 @@ export function useStudioCommands({
   const toast = useToast();
   const pages = (config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]).pages;
   const currentPage = profile.pageId ?? pages[0].id;
-  // "Apply theme": at the level Theme is set to, on its screen and page (All screens until Theme is opened).
+  // "Apply theme": at the level Theme is set to, on its screen and page (the current screen until Theme is opened).
   const themeProfile = config.profiles.find((p) => p.id === ui.themeProfileId) ?? config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
   const themeScope = validScope(themeProfile, ui.themeScope);
   const themeAt = commandThemeAt(ui.themeOpened ? themeScope : undefined, themeProfile.id);
   const themeLevel =
-    themeAt.level === "all" ? "All screens" : themeAt.level === "screen" ? themeProfile.name : (themeProfile.pages.find((pg) => pg.id === themeAt.pageId)?.name ?? themeProfile.name);
+    themeAt.level === "screen" ? themeProfile.name : (themeProfile.pages.find((pg) => pg.id === themeAt.pageId)?.name ?? themeProfile.name);
 
   /** Select a zone (Layers drawer, palette) and bring it into view on the canvas. */
   const focusZone = (id: string) => {
@@ -275,8 +275,8 @@ export function useStudioCommands({
         return edit.followGlobalSelection();
       case "use-global": {
         const style = ownStyle(selected, appearance);
-        setScopeStyle(action.target, () => style);
-        return toast(action.target === "all" ? "Style is now the theme for all screens" : "Style is now the theme for this screen");
+        setScopeStyle(() => style);
+        return toast("Style is now the theme for this screen");
       }
       case "resize-step": {
         const rect = edit.resizeSelected({

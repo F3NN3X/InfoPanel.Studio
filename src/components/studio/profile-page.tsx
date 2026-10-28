@@ -7,7 +7,6 @@ import { profileWithPage } from "@/lib/pages";
 import { profileGap, profilePadding } from "@/lib/profile-grid";
 import { appearanceOf } from "@/lib/style-resolve";
 import { resolveTheme, themeVars } from "@/lib/theme";
-import { useGeneral } from "@/hooks/use-general";
 import { cn } from "@/lib/utils";
 import { LivePlacement } from "./placement-content";
 import { PlacementFrame } from "./placement-frame";
@@ -28,10 +27,10 @@ interface ProfilePageProps {
  */
 export function ProfilePage({ profile, dashboard, pageId, badge }: ProfilePageProps) {
   const view = useMemo(() => profileWithPage(profile, pageId), [profile, pageId]);
-  const theme = resolveTheme(dashboard, profile);
-  const bg = resolveBackground(dashboard, profile);
+  const theme = resolveTheme(profile);
+  const bg = resolveBackground(profile);
   const background = bg && (bg.type === "video" ? posterBackground(bg) : bg);
-  const font = fontStack(resolveFont(useGeneral(), profile));
+  const font = fontStack(resolveFont(profile));
   const fill = view.fit === "fill" && view.height > 0;
   const padding = profilePadding(view, true);
   const appearance = useMemo(() => appearanceOf(dashboard, view), [dashboard, view]);

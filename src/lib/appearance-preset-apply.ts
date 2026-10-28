@@ -1,6 +1,6 @@
 import type { ModuleSettings } from "@/modules/types";
 import type { BackgroundScope, PageBackground } from "./appearance";
-import { LOOK_DEFAULTS, presetTokens, withoutZoneLook, type AppearancePreset } from "./appearance-presets";
+import { presetTokens, withoutZoneLook, type AppearancePreset } from "./appearance-presets";
 import type { DashboardConfig } from "./layout";
 import { resolveTheme } from "./theme";
 import { pageCustom, SECTION_IDS, SECTION_KEYS, themedOf, withThemeValues, type ThemeLevels } from "./theme-model";
@@ -11,13 +11,9 @@ import { pageCustom, SECTION_IDS, SECTION_KEYS, themedOf, withThemeValues, type 
  * undo step, no coalescing key).
  *
  * Scopes (Theme's scope bar):
- * - All screens: theme tokens + radius, `config.style` (replaced
- *   wholesale) and, see below, `config.background`.
  * - A screen: the profile's own theme colours + radius
- *   (`MonitorProfile.theme` / `radius`, over the dashboard's), its widget
- *   theme's values and `background`; other profiles keep theirs. Look keys
- *   the dashboard style sets but the preset doesn't are written as their
- *   defaults, so the profile shows the preset's look, not a blend.
+ *   (`MonitorProfile.theme` / `radius`), its widget theme's values and
+ *   `background`; other profiles keep theirs.
  *
  * - A page: only the widget-style sections the preset sets (a page has no
  *   colour tokens, radius or background, SPEC §4.2): the page's values for
@@ -31,7 +27,7 @@ import { pageCustom, SECTION_IDS, SECTION_KEYS, themedOf, withThemeValues, type 
 
 export type PresetScope = BackgroundScope;
 
-/** Where Theme applies or saves a Theme: All screens, a screen, or one of its pages. */
+/** Where Theme applies or saves a Theme: a screen, or one of its pages. */
 export type ThemeTarget = PresetScope | { kind: "page"; profileId: string; pageId: string };
 
 export interface ApplyOptions {
@@ -39,29 +35,20 @@ export interface ApplyOptions {
   includeBackground?: boolean;
 }
 
-/** Whether a background shows nothing (unset, or media without a file or fill). */
-function isEmptyBackground(bg: PageBackground | undefined, scope: PresetScope): boolean {
-  if (!bg) return true;
-  // A profile's "none" turns the dashboard's off on purpose; the dashboard's is just empty.
-  if (bg.type === "none") return scope.kind === "all";
+/** Whether a background shows nothing (unset, "none", or media without a file or fill). */
+function isEmptyBackground(bg: PageBackground | undefined): boolean {
+  if (!bg || bg.type === "none") return true;
   return (bg.type === "image" || bg.type === "video") && !bg.src && !bg.color;
 }
 
 function nextBackground(
   current: PageBackground | undefined,
   preset: AppearancePreset,
-  scope: PresetScope,
   options: ApplyOptions
 ): PageBackground | undefined {
   if (!preset.background) return current;
-  const write = options.includeBackground ?? isEmptyBackground(current, scope);
+  const write = options.includeBackground ?? isEmptyBackground(current);
   return write ? { ...preset.background } : current;
-}
-
-/** A profile's style for a preset: the dashboard's keys it leaves unset reset to their defaults. */
-function profileStyle(config: DashboardConfig, style: ModuleSettings): ModuleSettings {
-  const shadowed = Object.keys(config.style ?? {}).filter((key) => !(key in style) && key in LOOK_DEFAULTS);
-  return { ...Object.fromEntries(shadowed.map((key) => [key, LOOK_DEFAULTS[key]])), ...style };
 }
 
 const orNone = (style: ModuleSettings): ModuleSettings | undefined =>
@@ -75,15 +62,6 @@ export function applyAppearancePreset(
   options: ApplyOptions = {}
 ): DashboardConfig {
   const style = themedOf(preset.style);
-  if (scope.kind === "all") {
-    return {
-      ...config,
-      theme: { ...presetTokens(preset) },
-      radius: preset.radius,
-      style: orNone(style),
-      background: nextBackground(config.background, preset, scope, options),
-    };
-  }
   return {
     ...config,
     profiles: config.profiles.map((p) =>
@@ -95,9 +73,9 @@ export function applyAppearancePreset(
             // A profile that had its own style keeps it, even when the preset leaves it empty.
             widgetTheme: withThemeValues(
               p.widgetTheme,
-              orNone(profileStyle(config, style)) ?? (p.widgetTheme?.values !== undefined ? {} : undefined)
+              orNone(style) ?? (p.widgetTheme?.values !== undefined ? {} : undefined)
             ),
-            background: nextBackground(p.background, preset, scope, options),
+            background: nextBackground(p.background, preset, options),
           }
         : p
     ),
@@ -106,17 +84,17 @@ export function applyAppearancePreset(
 
 /* ---------------- the user's presets ---------------- */
 
-/** The current look of a scope as a preset (the profile's own theme and theme values over the dashboard's). */
+/** The current look of a screen as a preset (its theme, theme values and background). */
 export function presetFromCurrent(
   config: DashboardConfig,
   scope: PresetScope,
   id: string,
   name: string
 ): AppearancePreset {
-  const profile = scope.kind === "profile" ? config.profiles.find((p) => p.id === scope.profileId) : undefined;
-  const style = themedOf({ ...config.style, ...profile?.widgetTheme?.values });
-  const background = profile?.background ?? config.background;
-  const theme = resolveTheme(config, profile);
+  const profile = config.profiles.find((p) => p.id === scope.profileId);
+  const style = themedOf(profile?.widgetTheme?.values);
+  const background = profile?.background;
+  const theme = resolveTheme(profile);
   return {
     id,
     name,
@@ -124,7 +102,7 @@ export function presetFromCurrent(
     theme: { ...theme.tokens },
     radius: theme.radius,
     style,
-    ...(background && !isEmptyBackground(background, { kind: "all" }) ? { background: { ...background } } : {}),
+    ...(background && !isEmptyBackground(background) ? { background: { ...background } } : {}),
   };
 }
 
@@ -140,7 +118,7 @@ export function themeFromScope(
   name: string,
   includeBackground = true
 ): AppearancePreset {
-  const screen: PresetScope = target.kind === "all" ? target : { kind: "profile", profileId: target.profileId };
+  const screen: PresetScope = { kind: "profile", profileId: target.profileId };
   const preset = presetFromCurrent(config, screen, id, name);
   const page =
     target.kind === "page" ? config.profiles.find((p) => p.id === target.profileId)?.pages.find((pg) => pg.id === target.pageId) : undefined;

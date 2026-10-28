@@ -259,22 +259,22 @@ describe("v7: idempotence", () => {
 });
 
 describe("v7: where outside data enters", () => {
-  it("general.hour12 → the all-profiles style's clock, then gone from general", () => {
+  it("general.hour12 → the all-profiles style's clock (since v16 the app's `general.clock`), then gone from general", () => {
     const c = mergeConfig(v6([], { general: { hour12: true } }));
-    expect(c.style?.clock).toBe("12");
+    expect(c.general?.clock).toBe("12");
     expect((c.general as Record<string, unknown> | undefined)?.hour12).toBeUndefined();
-    expect(mergeConfig(v6([], { general: { hour12: false } })).style?.clock).toBe("24");
-    expect(mergeConfig(v6([], { general: {} })).style?.clock).toBeUndefined();
+    expect(mergeConfig(v6([], { general: { hour12: false } })).general?.clock).toBe("24");
+    expect(mergeConfig(v6([], { general: {} })).general?.clock).toBeUndefined();
   });
 
   it("a clock the style already has wins", () => {
-    expect(mergeConfig(v6([], { general: { hour12: true }, style: { clock: "24" } })).style?.clock).toBe("24");
+    expect(mergeConfig(v6([], { general: { hour12: true }, style: { clock: "24" } })).general?.clock).toBe("24");
   });
 
   it("the dashboard style, saved style presets and appearance presets rename alignX / alignY", () => {
     const c = mergeConfig(v6([], { style: { alignX: "start", alignY: "start" }, stylePresets: [{ id: "s", name: "S", settings: { alignX: "end", alignY: "end" } }] }));
-    expect(c.style).toMatchObject({ align: "tl" });
-    expect(c.style?.alignX).toBeUndefined();
+    expect(c.profiles[0].widgetTheme?.values).toMatchObject({ align: "tl" });
+    expect(c.profiles[0].widgetTheme?.values?.alignX).toBeUndefined();
     expect(c.stylePresets?.[0].settings).toEqual({ align: "br" });
     const [preset] = normalizeAppearancePresets([{ id: "a", name: "A", theme: "zinc", radius: 0.5, style: { alignX: "between", alignY: "end" } }])!;
     expect(preset.style).toEqual({ align: "bc", alignSpread: true });

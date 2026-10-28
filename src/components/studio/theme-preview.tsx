@@ -173,7 +173,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
             <p className="truncate text-[14px] font-semibold text-ui-1">
               {zoneName(zone)} <span className="font-normal text-[#71717a]">· widget on {page.name}</span>
             </p>
-            <p className="text-[13px] text-[#a1a1aa]">{differenceSummary(config, zone, diff, levelName)}</p>
+            <p className="text-[13px] text-[#a1a1aa]">{differenceSummary(zone, diff, levelName)}</p>
           </div>
           {diff && (
             <button type="button" className={BUTTON} onClick={() => onFollow(diff.exceptions)}>

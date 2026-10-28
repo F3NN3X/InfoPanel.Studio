@@ -7,7 +7,7 @@ import { resolveGeneral } from "@/lib/general";
 import { valueText } from "@/lib/inheritance";
 import type { DashboardConfig, MonitorProfile, PageRotate, ProfileView } from "@/lib/layout";
 import { isFreePage } from "@/lib/free-pages";
-import type { PerformanceOverride } from "@/lib/performance";
+import type { ScreenPerformance } from "@/lib/performance";
 import { cn } from "@/lib/utils";
 import { FPS_OPTIONS, MOTION_OPTIONS, ROTATE_DEFAULT_SECONDS, ROTATE_MAX_SECONDS, ROTATE_MIN_SECONDS, clampSeconds } from "./inspector/behaviour-model";
 import { InheritChip } from "./inherit-chip";
@@ -16,7 +16,7 @@ import { ShownOn } from "./screens/shown-on";
 import { GridSection, SizeFitSection } from "./screen-layout";
 import { ScreenPages } from "./screen-pages";
 import { screenMeta } from "./screens-model";
-import { FIELD, InlineRow, SegmentedRow } from "./setting-rows";
+import { FIELD, InlineRow, SegmentedRow, ToggleRow } from "./setting-rows";
 import type { NavTarget } from "./studio-nav";
 import { ownCount } from "./theme-cards";
 import { inheritanceApi } from "./use-inheritance";
@@ -32,8 +32,8 @@ interface ScreenDetailProps {
   setConfig: HistorySetter;
   /** Write the screen's `rotate` option. */
   onRotate: (patch: Partial<PageRotate>) => void;
-  /** Write the screen's own frame rate or animations (customising it first). */
-  onPerformance: (patch: PerformanceOverride) => void;
+  /** Write the screen's performance (undefined clears a key back to the default). */
+  onPerformance: (patch: ScreenPerformance) => void;
   onMovePage: (id: string, toIndex: number) => void;
   onAddPage: () => void;
   onOpenPage: (pageId: string) => void;
@@ -116,10 +116,9 @@ export function ScreenDetail({
   onOpenScreen,
 }: ScreenDetailProps) {
   const rotate = stored.rotate;
-  const general = resolveGeneral(config);
+  // The screen's performance with the defaults filled.
+  const perf = resolveGeneral(config, stored);
   const inherit = inheritanceApi("performance", { level: "screen", profileId: stored.id }, { config, setConfig, navigateTo });
-  const fps = stored.performance?.maxFps ?? general.maxFps;
-  const motion = stored.performance?.motion ?? general.motion;
   const look = ownCount(config, { level: "screen", profileId: stored.id });
   return (
     <aside aria-label="Screen details" className="flex w-[340px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel max-[899px]:w-full max-[899px]:overflow-visible max-[899px]:border-l-0 max-[899px]:border-t">
@@ -203,16 +202,40 @@ export function ScreenDetail({
             label="Frame-rate cap"
             hint="The most frames a second animations redraw. Lower uses less CPU and GPU; the kiosk URL's &fps= overrides it. Below 60 fps transitions are off and graphs step at the data rate."
             options={FPS_OPTIONS}
-            value={String(fps)}
-            onChange={(v) => onPerformance({ maxFps: Number(v) })}
+            value={String(perf.maxFps)}
+            onChange={(v) => onPerformance({ maxFps: v === "60" ? undefined : Number(v) })}
           />
         </div>
         <SegmentedRow
           label="Animations"
           hint="Reduced disables animations: a background video shows its poster, meters and waveforms are calm. Follow system uses the operating system's setting."
           options={MOTION_OPTIONS}
-          value={motion}
-          onChange={(v) => onPerformance({ motion: v as NonNullable<PerformanceOverride["motion"]> })}
+          value={perf.motion}
+          onChange={(v) => onPerformance({ motion: v === "system" ? undefined : (v as NonNullable<ScreenPerformance["motion"]>) })}
+        />
+        <ToggleRow
+          label="Ring glides"
+          hint="Rings ease to each new reading. Off: they step, which lets the page rest between readings."
+          value={perf.ringGlide}
+          onChange={(on) => onPerformance({ ringGlide: on ? true : undefined })}
+        />
+        <ToggleRow
+          label="Limit blur"
+          hint="Caps widget blur at 12 px. Large blurs cost far more to draw; on a solid background blur is skipped anyway."
+          value={perf.blurLimit}
+          onChange={(on) => onPerformance({ blurLimit: on ? undefined : false })}
+        />
+        <ToggleRow
+          label="Blur inside widgets"
+          hint="Small badges and cards inside a widget blur what's behind them. Off: they keep their tint."
+          value={perf.innerBlur}
+          onChange={(on) => onPerformance({ innerBlur: on ? true : undefined })}
+        />
+        <ToggleRow
+          label="Live graph glow"
+          hint="A graph's glow is a filter redrawn with the line. Off: a static glow drawn under the line."
+          value={perf.liveGlow}
+          onChange={(on) => onPerformance({ liveGlow: on ? true : undefined })}
         />
       </Group>
 

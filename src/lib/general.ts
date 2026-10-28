@@ -1,48 +1,40 @@
 /**
- * The Dashboard settings — dashboard-wide preferences that aren't a look: the
- * page font, how clocks read (seconds, date locale), motion and the kiosk
- * cursor. Stored on `DashboardConfig.general` with only the changed keys;
- * `resolveGeneral` fills the defaults. The 12 / 24 h choice is the themed
- * `clock` of the all-profiles style since config v7 (owner decision Q4).
+ * The app-wide settings — preferences that aren't a look: how clocks read (12 / 24 h, seconds, date locale) and the
+ * kiosk. Stored on `DashboardConfig.general` with only the changed keys; `resolveGeneral` fills the defaults and adds
+ * the shown screen's page font and performance (each screen's own since config v16). A screen's Units & format clock
+ * still overrides the app's 12 / 24 h (`style-resolve.ts`).
  */
 
 import { ensureFont, FONT_CATALOG, FONT_IDS, fontById, type FontId } from "@/lib/fonts";
-import { isMaxFps } from "@/lib/performance";
+import type { ScreenPerformance } from "@/lib/performance";
 import { hour12Of } from "@/modules/setting-readers";
-import type { ModuleSettings } from "@/modules/types";
 
 export type GeneralFont = FontId;
 export type MotionChoice = "system" | "reduce" | "full";
 export type KioskRefresh = "daily" | "off";
 
+/** The app's 12 / 24 h clock (unset: the locale's). */
+export type ClockChoice = "12" | "24";
+
 export interface GeneralSettings {
-  /** The page font every widget's "Theme" (auto) font inherits ("system" = the browser's). */
-  font?: GeneralFont;
+  /** The clocks' 12 / 24 h (unset: the locale's); a screen's own Units & format clock overrides it. */
+  clock?: ClockChoice;
   /** Clocks show seconds (default on). */
   showSeconds?: boolean;
   /** BCP 47 locale for dates and times; "" / unset = the system's. */
   locale?: string;
-  /** Animations: follow the OS setting, or always reduce / always run. */
-  motion?: MotionChoice;
-  /** Most frames a second animations redraw: 5, 15, 30, 60 (default) or 0 for every display frame. */
-  maxFps?: number;
   /** Hide the mouse cursor on kiosk pages. */
   hideCursor?: boolean;
   /** Kiosk page dots and swipe between a profile's pages (default off). */
   kioskPageNav?: boolean;
   /** Kiosk pages reload once a day around 04:00 to give back memory (default daily). */
   kioskRefresh?: KioskRefresh;
-  /** Rings ease to each new reading (default off: they step). */
-  ringGlide?: boolean;
-  /** Cap a widget's blur at 12 px (default on). */
-  blurLimit?: boolean;
-  /** Badges and cards inside a widget blur what is behind them (default off). */
-  innerBlur?: boolean;
-  /** A graph's glow is a filter redrawn with the line (default off: a static glow under it). */
-  liveGlow?: boolean;
 }
 
-/** GeneralSettings with every default filled, and the clocks' 12-hour switch (undefined: the locale's choice). */
+/**
+ * GeneralSettings with every default filled, the clocks' 12-hour switch (undefined: the locale's choice), and the
+ * shown screen's page font and performance (`MonitorProfile.font` / `performance`).
+ */
 export interface ResolvedGeneral {
   font: GeneralFont;
   hour12: boolean | undefined;
@@ -81,8 +73,6 @@ export const FONT_STACKS: Record<Exclude<GeneralFont, "system">, string> = Objec
 ) as Record<Exclude<GeneralFont, "system">, string>;
 
 const FONTS: readonly GeneralFont[] = FONT_IDS;
-const MOTIONS: readonly MotionChoice[] = ["system", "reduce", "full"];
-const RENDERING_KEYS = ["ringGlide", "blurLimit", "innerBlur", "liveGlow"] as const;
 const KIOSK_REFRESHES: readonly KioskRefresh[] = ["daily", "off"];
 
 /**
@@ -107,16 +97,16 @@ export function isSupportedLocale(locale: string): boolean {
 /** A stored font choice, or undefined when it is not one the catalog knows. */
 export const normalizeFont = (v: unknown): GeneralFont | undefined => (FONTS.includes(v as GeneralFont) ? (v as GeneralFont) : undefined);
 
-/**
- * The page font a screen shows (SPEC §11.1): its own when set, else the
- * dashboard's (`general.font`, the All screens value), like `resolveTheme`.
- */
-export const resolveFont = (general: Pick<ResolvedGeneral, "font">, profile?: { font?: GeneralFont }): GeneralFont =>
-  profile?.font ?? general.font;
+/** The page font a screen shows (SPEC §11.1): its own, else the built-in one ("system"), like `resolveTheme`. */
+export const resolveFont = (profile?: { font?: GeneralFont }): GeneralFont => profile?.font ?? GENERAL_DEFAULTS.font;
 
-/** The settings with defaults filled; the 12-hour switch from the all-profiles style's `clock` (auto | 24 | 12). */
-export function resolveGeneral(config: { general?: GeneralSettings; style?: ModuleSettings }): ResolvedGeneral {
-  return { ...GENERAL_DEFAULTS, ...config.general, hour12: hour12Of(config.style?.clock) };
+/** The app settings with defaults filled, under a screen's page font and performance (none: the built-in ones). */
+export function resolveGeneral(
+  config: { general?: GeneralSettings },
+  profile?: { font?: GeneralFont; performance?: ScreenPerformance }
+): ResolvedGeneral {
+  const { clock, ...general } = config.general ?? {};
+  return { ...GENERAL_DEFAULTS, ...general, ...profile?.performance, font: resolveFont(profile), hour12: hour12Of(clock) };
 }
 
 /** Whether the locale writes times with a 12-hour clock ("" = the system's). */
@@ -136,16 +126,12 @@ export function normalizeGeneral(input: unknown): GeneralSettings | undefined {
   if (typeof input !== "object" || input === null || Array.isArray(input)) return undefined;
   const v = input as Record<string, unknown>;
   const out: GeneralSettings = {};
-  const font = normalizeFont(v.font);
-  if (font) out.font = font;
+  if (v.clock === "12" || v.clock === "24") out.clock = v.clock;
   if (typeof v.showSeconds === "boolean") out.showSeconds = v.showSeconds;
   if (typeof v.locale === "string" && isSupportedLocale(v.locale.trim())) out.locale = v.locale.trim();
-  if (MOTIONS.includes(v.motion as MotionChoice)) out.motion = v.motion as MotionChoice;
-  if (isMaxFps(v.maxFps)) out.maxFps = v.maxFps;
   if (typeof v.hideCursor === "boolean") out.hideCursor = v.hideCursor;
   if (typeof v.kioskPageNav === "boolean") out.kioskPageNav = v.kioskPageNav;
   if (KIOSK_REFRESHES.includes(v.kioskRefresh as KioskRefresh)) out.kioskRefresh = v.kioskRefresh as KioskRefresh;
-  for (const key of RENDERING_KEYS) if (typeof v[key] === "boolean") out[key] = v[key];
   return Object.keys(out).length > 0 ? out : undefined;
 }
 

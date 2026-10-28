@@ -110,8 +110,8 @@ describe("settingState", () => {
   });
 
   it("tells the dashboard style from the profile style", () => {
-    const from = { glow: "dashboard", radius: "profile" } as const;
-    expect(settingState("glow", {}, { glow: "soft" }, "none", from)).toBe("dashboard");
+    const from = { glow: "app", radius: "profile" } as const;
+    expect(settingState("glow", {}, { glow: "soft" }, "none", from)).toBe("app");
     expect(settingState("radius", {}, { radius: "8" }, "auto", from)).toBe("profile");
     expect(settingState("glow", { glow: "strong" }, { glow: "soft" }, "none", from)).toBe("overriding");
   });
@@ -131,7 +131,7 @@ describe("settingState", () => {
   it("is not ignored when there is nothing to ignore", () => {
     expect(settingState("glow", undefined, undefined, "none", undefined, true)).toBe("default");
     expect(settingState("glow", { glow: "none" }, undefined, "none", undefined, true)).toBe("default");
-    expect(settingState("glow", {}, { glow: "soft" }, "none", { glow: "dashboard" }, true)).toBe("dashboard");
+    expect(settingState("glow", {}, { glow: "soft" }, "none", { glow: "app" }, true)).toBe("app");
   });
 
   it("ignores an own default that hides an inherited value", () => {
@@ -140,9 +140,9 @@ describe("settingState", () => {
 
   it("ranks the dashboard state under the profile one", () => {
     const def = STANDARD_SETTINGS.find((s) => s.type === "align")!;
-    const from = { align: "dashboard", alignSpread: "profile" } as const;
+    const from = { align: "app", alignSpread: "profile" } as const;
     expect(settingStateOf(def, {}, { align: "tl", alignSpread: true }, from)).toBe("profile");
-    expect(settingStateOf(def, {}, { align: "tl" }, from)).toBe("dashboard");
+    expect(settingStateOf(def, {}, { align: "tl" }, from)).toBe("app");
   });
 });
 

@@ -5,7 +5,7 @@ import type { DashboardConfig } from "./layout";
 import { normalizeThemePatch, type ThemeTokens } from "./theme";
 
 /**
- * What applying a theme wrote at a level (All screens, a screen or a page), stored there as its snapshot
+ * What applying a theme wrote at a level (a screen or a page), stored there as its snapshot
  * (`lib/theme-apply.ts`). A value that still equals the snapshot is the theme's: the next theme replaces it, Reset
  * clears it, and Update rewrites it. A value that differs is the level's own and is kept. Nothing marks values
  * one by one.
@@ -15,7 +15,7 @@ export interface AppliedTheme {
   id: string;
   /** Its name when applied: the card still names a theme deleted since. */
   name: string;
-  /** The color tokens and corner radius it wrote (All screens and a screen; a page has none). */
+  /** The color tokens and corner radius it wrote (a screen; a page has none). */
   tokens?: Partial<ThemeTokens>;
   radius?: number;
   /** The background, only when it was included. */
@@ -81,27 +81,38 @@ export const sameBackground = (a: PageBackground | undefined, b: PageBackground 
 /** A theme's snapshot with what it wrote. */
 export const snapshot = (preset: Pick<AppearancePreset, "id" | "name">, rest: Omit<AppliedTheme, "id" | "name">): AppliedTheme => ({ id: preset.id, name: preset.name, ...rest });
 
+/** The look a screen shows, as a theme's snapshot compares it. */
+export interface LevelLook {
+  values: ModuleSettings | undefined;
+  tokens: Partial<ThemeTokens> | undefined;
+  radius: number | undefined;
+  background: PageBackground | undefined;
+}
+
 /**
- * The snapshot of a level that shows exactly a saved theme (its tokens, corners and the style values it would write),
- * for a dashboard saved before levels kept one. Anything less than an exact match keeps none: the level is a custom
- * look. Nothing the level shows changes. Pages keep none.
+ * The snapshot of a look that is exactly a saved theme (its tokens, corners and the style values it would write over
+ * `shadow`, the style it sat on), else none: the look is a custom one.
  */
-export function guessAppliedThemes(config: DashboardConfig): DashboardConfig {
+export function guessApplied(saved: readonly AppearancePreset[], look: LevelLook, shadow?: ModuleSettings): AppliedTheme | undefined {
+  const p = saved.find((s) => sameValues(look.tokens, presetTokens(s)) && look.radius === s.radius && sameValues(look.values ?? {}, themeValues(s, shadow)));
+  if (!p) return undefined;
+  const bg = p.background !== undefined && sameBackground(look.background, p.background);
+  return snapshot(p, { tokens: { ...presetTokens(p) }, radius: p.radius, ...(bg ? { background: { ...p.background! } } : {}), values: themeValues(p, shadow) });
+}
+
+/**
+ * The snapshot of each screen that shows exactly a saved theme, for a config saved before screens kept one (the
+ * v16 migration runs it before it copies the dashboard's look down, `shadow` that style). Anything less than an
+ * exact match keeps none. Nothing a screen shows changes. Pages keep none.
+ */
+export function guessAppliedThemes(config: DashboardConfig, shadow?: ModuleSettings): DashboardConfig {
   const saved = config.appearancePresets ?? [];
   if (saved.length === 0) return config;
-  const at = (values: ModuleSettings | undefined, tokens: Partial<ThemeTokens> | undefined, radius: number | undefined, background: PageBackground | undefined, shadow?: ModuleSettings) => {
-    const p = saved.find((s) => sameValues(tokens, presetTokens(s)) && radius === s.radius && sameValues(values ?? {}, themeValues(s, shadow)));
-    if (!p) return undefined;
-    const bg = p.background !== undefined && sameBackground(background, p.background);
-    return snapshot(p, { tokens: { ...presetTokens(p) }, radius: p.radius, ...(bg ? { background: { ...p.background! } } : {}), values: themeValues(p, shadow) });
-  };
-  const all = config.appliedTheme ?? at(config.style, config.theme, config.radius, config.background);
   return {
     ...config,
-    ...(all ? { appliedTheme: all } : {}),
     profiles: config.profiles.map((p) => {
       if (p.appliedTheme || !p.theme) return p;
-      const guess = at(p.widgetTheme?.values, p.theme, p.radius, p.background, config.style);
+      const guess = guessApplied(saved, { values: p.widgetTheme?.values, tokens: p.theme, radius: p.radius, background: p.background }, shadow);
       return guess ? { ...p, appliedTheme: guess } : p;
     }),
   };

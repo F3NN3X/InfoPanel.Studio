@@ -15,10 +15,10 @@ Two settings decide how hard the display's GPU works: **Max FPS** and **Motion**
 | Max FPS (**Frame-rate cap**) | 5, 15, 30, 60 or No limit | 60 |
 | Motion (**Animations**) | Follow system, Reduced or Full | Follow system, which follows the Windows animation setting |
 
-For every screen, open **Settings › Dashboard › Performance**. A change there is saved and reaches the kiosks at once. A screen can have its own: in **Screens**, the **Performance** group shows a chip, and Settings lists each screen that has its own, with **Reset** and a link to it. Below 60 fps the studio turns transitions off and graphs step at the data rate, so **Smooth** in Theme's Motion section does nothing on a screen capped lower or with reduced animations; Theme says which screens.
+Each screen has its own: open **Screens**, pick the screen and use its **Performance** group. A change there is saved and reaches the kiosks at once. The same group has the rendering switches **Ring glides**, **Limit blur**, **Blur inside widgets** and **Live graph glow**. Below 60 fps the studio turns transitions off and graphs step at the data rate, so **Smooth** in Theme's Motion section does nothing on a screen capped lower or with reduced animations; Theme says which screens.
 
-- **From All screens** means the screen uses the Settings values. Change a value there and the screen takes its own, starting from the shared ones.
-- **Changed here** means the screen's own. **Reset to inherited** in the chip's menu drops them.
+- **Built-in** means the screen uses the defaults above.
+- **Changed here** means the screen set one. **Reset** in the chip's menu puts the defaults back.
 
 ## What Max FPS changes
 
@@ -66,7 +66,7 @@ A kiosk URL overrides both settings for the display that opens it:
 | `&animations=0` | Motion: Reduce |
 | `&motion=reduce`, `&motion=full` or `&motion=system` | Motion for this display only |
 
-The URL wins over the screen, and the screen wins over **Settings › Dashboard** (All screens).
+The URL wins over the screen's own settings.
 
 ## After an update
 

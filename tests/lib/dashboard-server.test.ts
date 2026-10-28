@@ -48,17 +48,17 @@ describe("pushConfig", () => {
 describe("patchSettings", () => {
   it("sends the patch as a PATCH with the config header the server requires", async () => {
     respond(200, { ok: true });
-    await patchSettings({ general: { maxFps: 30 } });
+    await patchSettings({ general: { hideCursor: true } });
     const [url, init] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe("/api/config/settings");
     expect(init?.method).toBe("PATCH");
     expect(init?.headers).toEqual({ "Content-Type": "application/json", "X-Dashboard-Config": "1" });
-    expect(JSON.parse(String(init?.body))).toEqual({ general: { maxFps: 30 } });
+    expect(JSON.parse(String(init?.body))).toEqual({ general: { hideCursor: true } });
   });
 
   it("throws a refusal as ConfigRejectedError", async () => {
     respond(400);
-    await expect(patchSettings({ general: { maxFps: 30 } })).rejects.toBeInstanceOf(ConfigRejectedError);
+    await expect(patchSettings({ general: { hideCursor: true } })).rejects.toBeInstanceOf(ConfigRejectedError);
   });
 });
 
@@ -103,6 +103,6 @@ describe("the Settings revision sent with a push", () => {
 
   it("is what a Settings patch resolves to", async () => {
     respond(200, { ok: true, settingsRev: 120 });
-    expect(await patchSettings({ general: { maxFps: 30 } })).toBe(120);
+    expect(await patchSettings({ general: { hideCursor: true } })).toBe(120);
   });
 });

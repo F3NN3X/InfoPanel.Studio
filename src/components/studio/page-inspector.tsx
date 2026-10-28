@@ -50,15 +50,12 @@ function rotationText(profile: MonitorProfile, page: ProfilePage): string {
 }
 
 /**
- * The screen's theme by name, from the snapshot of the theme it last applied, and a swatch. A screen that holds no look
- * of its own shows All screens'; one with a look of its own but no snapshot is a custom look.
+ * The screen's theme by name, from the snapshot of the theme it last applied, and a swatch. A screen with a look but
+ * no snapshot is a custom look.
  */
 function themeOf(inherit: InheritanceContext, profile: MonitorProfile): { name: string; swatch: string } {
-  const { config } = inherit;
-  const own = themeState(config, { kind: "profile", profileId: profile.id });
-  const holdsLook = profile.theme !== undefined || profile.radius !== undefined || profile.background !== undefined || profile.widgetTheme?.values !== undefined;
-  const state = own.applied || holdsLook ? own : themeState(config, { kind: "all" });
-  return { name: themeLabel(state), swatch: `hsl(${resolveTheme(config, profile).tokens.background})` };
+  const state = themeState(inherit.config, { kind: "profile", profileId: profile.id });
+  return { name: themeLabel(state), swatch: `hsl(${resolveTheme(profile).tokens.background})` };
 }
 
 /** The page's Name: committed on Enter or blur, so a rename is one undo step. */

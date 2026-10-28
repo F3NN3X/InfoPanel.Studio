@@ -1,7 +1,7 @@
 import type { DashboardConfig, MonitorProfile, PageRotate, ProfilePage } from "@/lib/layout";
 import { resolveGeneral } from "@/lib/general";
-import { resolvePerformance, type PerformanceOverride } from "@/lib/performance";
-import { withPerformance, withScope } from "./inspector/profile-scope";
+import { resolvePerformance, type ScreenPerformance } from "@/lib/performance";
+import { withPerformance } from "./inspector/profile-scope";
 
 /**
  * The Screens view's pure rules (SPEC §8): the launch rule, a card's tag and meta line, a screen's own
@@ -35,46 +35,12 @@ export function screenMeta(p: Pick<MonitorProfile, "width" | "height" | "pages" 
   return `${p.width}×${p.height} · ${pages} · grid ${p.cols} × ${p.rows}`;
 }
 
-/** The screen with its own frame rate or animations: it takes All screens' values first (customising), then `patch`. */
-export function withScreenPerformance(config: DashboardConfig, profileId: string, patch: PerformanceOverride): DashboardConfig {
-  const own = withScope(config, profileId, "performance", "profile");
+/** The screen with `patch` in its performance (undefined clears a key back to the default). */
+export function withScreenPerformance(config: DashboardConfig, profileId: string, patch: ScreenPerformance): DashboardConfig {
   return {
-    ...own,
-    profiles: own.profiles.map((p) => (p.id === profileId ? { ...p, performance: withPerformance(p.performance, patch) } : p)),
+    ...config,
+    profiles: config.profiles.map((p) => (p.id === profileId ? { ...p, performance: withPerformance(p.performance, patch) } : p)),
   };
-}
-
-const MOTION_TEXT = { system: "system motion", reduce: "reduced motion", full: "full motion" } as const;
-
-/** A screen's own performance as text: "30 fps", "reduced motion", "30 fps · reduced motion". */
-export function ownPerformanceText(performance: PerformanceOverride | undefined): string | undefined {
-  const parts = [
-    performance?.maxFps === undefined ? undefined : performance.maxFps === 0 ? "unlimited fps" : `${performance.maxFps} fps`,
-    performance?.motion === undefined ? undefined : MOTION_TEXT[performance.motion],
-  ].filter((part): part is string => part !== undefined);
-  return parts.length > 0 ? parts.join(" · ") : undefined;
-}
-
-/** A screen with its own value of one of All screens' performance defaults (Settings › Dashboard lists them, PLAN decision 25). */
-export interface PerformanceOverrideOf {
-  id: string;
-  name: string;
-  /** The value as text: "30 fps", "reduced motion". */
-  text: string;
-}
-
-/** The screens that override `key`, each with its own value. */
-export function screensOverriding(profiles: readonly MonitorProfile[], key: keyof PerformanceOverride): PerformanceOverrideOf[] {
-  return profiles.flatMap((p) => {
-    const text = ownPerformanceText(p.performance && { [key]: p.performance[key] });
-    return text ? [{ id: p.id, name: p.name, text }] : [];
-  });
-}
-
-/** A screen's own performance without `key` (the Reset): null when nothing of its own is left, which puts the screen back to All screens'. */
-export function performanceWithout(performance: PerformanceOverride | undefined, key: keyof PerformanceOverride): PerformanceOverride | null {
-  const { [key]: _removed, ...rest } = performance ?? {};
-  return Object.keys(rest).length > 0 ? rest : null;
 }
 
 /** A screen where Smooth graphs do not run, and why. */
@@ -90,9 +56,8 @@ export interface SmoothOffScreen {
  * transitions then, so graphs step at the data rate). "Follow system" is the OS's call, so it does not count.
  */
 export function smoothOffScreens(config: DashboardConfig): SmoothOffScreen[] {
-  const general = resolveGeneral(config);
   return config.profiles.flatMap((p) => {
-    const { maxFps, reduceMotion } = resolvePerformance({ profile: p.performance, general, system: false });
+    const { maxFps, reduceMotion } = resolvePerformance({ general: resolveGeneral(config, p), system: false });
     const reasons = [maxFps > 0 && maxFps < 60 ? `${maxFps} fps cap` : undefined, reduceMotion ? "animations reduced" : undefined].filter(
       (reason): reason is string => reason !== undefined
     );

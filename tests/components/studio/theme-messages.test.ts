@@ -6,7 +6,7 @@ describe("the toast row", () => {
 
   it("says what changed, the background, and the fine-tune kept; a page names where its parts come from", () => {
     expect(appliedToast("Desk", "screen", outcome({}), "MyDefault")).toEqual({ title: "Applied Desk.", sub: "Palette, skin and corners changed. Background kept." });
-    expect(appliedToast("Desk", "all", outcome({ background: true, kept: 2 }), "MyDefault")).toEqual({
+    expect(appliedToast("Desk", "screen", outcome({ background: true, kept: 2 }), "MyDefault")).toEqual({
       title: "Applied Desk.",
       sub: "Palette, skin, corners and background changed. 2 fine-tune changes kept.",
     });
@@ -20,7 +20,7 @@ describe("the toast row", () => {
     expect(appliedToast("Paper", "screen", outcome({ replaced: true, background: true, widgets: 3 }), "MyDefault").sub).toBe(
       "Replaced this screen's look, background included. 3 widgets keep their own look."
     );
-    expect(appliedToast("Paper", "all", outcome({ replaced: true }), "MyDefault").sub).toBe("Replaced the look of All screens. Background kept.");
+    expect(appliedToast("Paper", "screen", outcome({ replaced: true }), "MyDefault").sub).toBe("Replaced this screen's look. Background kept.");
     expect(appliedToast("Paper", "page", outcome({ replaced: true, widgets: 1 }), "MyDefault").sub).toBe(
       "Replaced this page's look. Palette, corners and background come from MyDefault. 1 widget keeps its own look."
     );
