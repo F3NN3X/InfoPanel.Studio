@@ -1,7 +1,7 @@
 /**
  * A profile template's live thumbnail, drawn by the kiosk's own canvas renderer from the template made for the
  * chosen size, palette variant and a made-up machine's sensors (templates/mock.ts), so what the card shows is what
- * Create makes; and a template's palettes as the "Colours" chips (`paletteChips`). Loaded with the New InfoPanel
+ * Create makes; and a template's palettes as the "Variant" chips (`paletteChips`). Loaded with the New InfoPanel
  * profile page, never in the studio's first bundle.
  */
 import { useMemo } from "react";
@@ -21,7 +21,7 @@ export function TemplateThumb({ template, variant, width, height }: { template: 
   return <CanvasZone canvas={canvas} sensors={MOCK} />;
 }
 
-/** A template's palettes as the "Colours" chips, each with its two accents and text colour. */
+/** A template's palettes as the "Variant" chips, each with its two accents and text color. */
 export const paletteChips = (t: Template): VariantChip[] =>
   t.variants.map((v) => {
     const p = { ...t.palette, ...v.palette };

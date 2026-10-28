@@ -1,7 +1,7 @@
 # Theme editor rework: change log for the help pass
 
 What each PR of the Theme editor rework changes for users, kept as it lands so the help (`src/help/articles/`) can be
-updated in one pass at the end. Each entry says what changed, what the UI says now, and which help articles it touches.
+updated in one pass at the end. The help pass is done (PR · Words, renames and help, below). Each entry says what changed, what the UI says now, and which help articles it touches.
 The design is the handoff spec (`SPEC.md`, option 5a); decisions made while grounding it are at the end.
 
 ## PR #228 · A skin applied to a page from the Library shows
@@ -124,7 +124,7 @@ The Theme rail view is rebuilt around the live look of a level (handoff SPEC §4
 - **Help:** `themes.md` (the preview, the tags and the selection bar, Make all follow, the toast row, saved palettes;
   Exceptions is gone), `presets.md` (saved palettes; duplicating a palette), `library.md` (duplicating a palette).
 
-## PR · One Library, island looks, Styles, one matching rule
+## PR #232 · One Library, island looks, Styles, one matching rule
 
 - **One Library (SPEC §7):** the Library no longer lists Themes, palettes, template looks, skins or Island looks. The
   sidebar ends with a row "Themes, palettes and skins are in Theme →" (`navigateTo({ view: "theme" })`). Search, Recent,
@@ -146,6 +146,40 @@ The Theme rail view is rebuilt around the live look of a level (handoff SPEC §4
 - **Tests:** the activePresetId cases, the skin, template-look and palette Library cases, `themeUsedBy`, and the
   Themes/Skins/Island collections' counts were removed with what they tested; the island look cases moved to
   `tests/lib/island/looks.test.ts`.
+
+## PR · Words, renames and help
+
+- **The Default skin (SPEC §8 item 7):** reads "Default" everywhere: the Skin picker, the widget Skin select (which
+  showed "Auto" and "Default" side by side and now shows one "Default"), the theme card, toasts and the help's skin
+  table. Every picker writes `auto` (`DEFAULT_SKIN`, `lib/theme-model.ts`), the stored default, so untouched dashboards
+  keep their value. `default` (written by screen templates and by the Skin picker before) stays valid on load and reads
+  as the same skin: `skinOf` / `sameSkin` (`lib/theme-skins.ts`, kept out of the kiosk bundle) treat unset, `auto` and `default` as one in the snapshot comparisons
+  (`themeState`'s changed parts, `theme-apply`'s merge). Nothing stored is rewritten. A panel still draws `default` with
+  the skin's own context and `auto` without, as before.
+- **Skin names (§8 item 8):** one spelling: the Skin select's labels (Default, TUI, HUD, else capitalized), which
+  `skinLabel` (moved to `lib/theme-skins.ts`) reads for the Skin picker, the theme card, the preview's selection bar
+  and the help's skin table.
+- **Renames (§3.1):** the New screen and New InfoPanel profile "Colours" chips are **Variant**, and the summary names a
+  variant with its template ("Terminal · Amber"). InfoPanel's **Palette** is **Profile colors** (the profile settings row,
+  section and swatch labels, the component dialog). Theme's palette hint says **Series colors**. Source dots say
+  **Changed here** (were Set here). The widget section action and the "Follows theme" line say **Change here** (were
+  Customise here / Customise). The command palette's **Theme › Typography** is **Theme › Text**. The island Color
+  option **Theme** is **Match theme** (value `theme` kept).
+- **US spelling:** colour, colours, coloured, recolour, customise in UI strings across the studio, the gauge editor and
+  the InfoPanel editor are color, colors, colored, recolor, customize (labels, hints, toasts, export loss notes, widget
+  descriptions). Identifiers and stored ids are unchanged.
+- **Help:** `themes.md` rewritten for the Theme view (levels, the theme card and its four parts, the Update bar, Switch
+  theme with Include background, the Palette / Skin / Background pickers and saved palettes, fine-tune and its chips,
+  the preview with its tags and selection bar, the toast row, the command palette's two commands). `presets.md` (skins
+  on the theme card, themes on any level, saved themes and palettes), `glossary.md` (Skin, Theme), `quickstart.md`
+  (Variant; Switch theme), `library.md` (no themes, skins or island looks; Styles), `widget-settings.md` (chips, Change
+  here, Style names), `island-alerts.md` (island looks, Match theme, Theme › Text), `performance.md` and `problems.md`
+  (Changed here), `profiles.md` and `infopanel-editor.md` (Variant, Profile colors), `concepts.md` and `studio.md`
+  (saved themes). US spelling in every article. CHANGELOG's "Frost Bar · Ice" is "Frost Bar · Smoke".
+- **Tests changed for the copy:** `look-settings` (the Skin select's options), `new-page.dom` (the Variant radiogroup),
+  `multi-inspector.dom`, `add-tiles`, `elements/apply`, `native/convert` (color spelling), `elements.dom` (Profile color
+  label), `theme-view-model` (`skinLabel` moved, `default` case). Added: the Default skin's two spellings in
+  `theme-apply.test.ts`.
 
 ## Decisions made while grounding the spec
 

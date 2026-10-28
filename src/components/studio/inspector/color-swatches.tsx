@@ -98,7 +98,7 @@ export function ColorSwatches({
         />
       ))}
       <label
-        title="Custom colour"
+        title="Custom color"
         className={cn(
           "relative flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-full border border-ui-strong text-ui-3 hover:text-ui-1",
           custom && SELECTED_RING
@@ -108,7 +108,7 @@ export function ColorSwatches({
         {!custom && <Pipette className="h-3 w-3" />}
         <input
           type="color"
-          aria-label={`${label}: custom colour`}
+          aria-label={`${label}: custom color`}
           value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#000000"}
           onChange={(e) => onChange(e.currentTarget.value)}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"

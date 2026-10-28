@@ -35,7 +35,7 @@ export function PaintRow({ label, value, onChange, fixedOnly }: { label: string;
               {THEME[c].label}
             </option>
           ))}
-          <option value="custom">Custom colour</option>
+          <option value="custom">Custom color</option>
         </select>
       )}
       {!theme && <ColorInput label={label} value={value} onChange={onChange} />}
@@ -47,7 +47,7 @@ export function ColorInput({ label, value, onChange }: { label: string; value: s
   return (
     <input
       type="color"
-      aria-label={`${label}: colour`}
+      aria-label={`${label}: color`}
       value={value.toLowerCase()}
       onChange={(e) => onChange(e.currentTarget.value.toUpperCase())}
       className="h-7 w-9 shrink-0 cursor-pointer rounded-md border border-ui-strong bg-ui-hover p-0.5"

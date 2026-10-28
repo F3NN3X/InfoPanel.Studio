@@ -62,7 +62,7 @@ export function ipGroups(kind: ItemKind, placeRow = false): IpGroup[] {
   const groups = [...new Set(rest.map((d) => d.group))].map(
     (g): IpGroup => ({ id: `ip-${g.toLowerCase()}`, title: TITLES[g] ?? g, defs: rest.filter((d) => d.group === g).map(toSetting), advanced: ADVANCED.has(g) }),
   );
-  if (colours.length) groups.push({ id: "ip-colours", title: "Colours", defs: colours.map(toSetting), advanced: false });
+  if (colours.length) groups.push({ id: "ip-colours", title: "Colors", defs: colours.map(toSetting), advanced: false });
   // The kind's own groups first after Item, the raw binding last.
   return groups.sort((a, b) => Number(a.advanced) - Number(b.advanced));
 }

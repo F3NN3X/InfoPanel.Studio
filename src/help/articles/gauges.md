@@ -14,7 +14,7 @@ Open **Gauges** on the rail (your own gauges are also in Library › Gauges, and
 
 The list is in three sections: **Presets**, **In** the current screen, and **My library**. Select a gauge to see its detail pane:
 
-- **Customise a copy** on a preset, or **Edit** on your own gauge.
+- **Customize a copy** on a preset, or **Edit** on your own gauge.
 - **Add to canvas**.
 - **Duplicate**.
 - **Export** as `.gauge.json` (or `.gauge-frames.zip` for an image sequence); **Export & back up** has a gauge row too.
@@ -31,7 +31,7 @@ Vector gauges are built from these parts:
 | Fill | Solid, Gradient, Zones or Thresholds; "Follow the theme" colors |
 | Parts | Track, Needle, Marker, Ticks, Labels, Value text, Title, Background, Face, Rings, Pattern, Icon row, Centre icon, Glow, Shadow, and Wave, Shine and Bubbles for liquid |
 
-**Face** (arc only) is a disc inside the ring with a repeating pattern: Hex, Dots, Grid or Carbon, with its own colour, opacity and cell size, and an optional disc colour. It is drawn once under the arc, so the arc moving over it costs nothing extra. It is baked into the frames when you export for InfoPanel.
+**Face** (arc only) is a disc inside the ring with a repeating pattern: Hex, Dots, Grid or Carbon, with its own color, opacity and cell size, and an optional disc color. It is drawn once under the arc, so the arc moving over it costs nothing extra. It is baked into the frames when you export for InfoPanel.
 
 ## SVG templates
 
@@ -39,7 +39,7 @@ Use your own SVG, driven by the CSS variables `--value` (0 to 1) and `--percent`
 
 ## Image sequences
 
-Preview at any value with a slider or play. Set **Frames per second**, **Recolour** by hue, saturation and brightness, or press **Convert to vector**. Frame tools: Reverse, Resample…, Duplicate, Replace… and Remove.
+Preview at any value with a slider or play. Set **Frames per second**, **Recolor** by hue, saturation and brightness, or press **Convert to vector**. Frame tools: Reverse, Resample…, Duplicate, Replace… and Remove.
 
 ## Baking for InfoPanel
 

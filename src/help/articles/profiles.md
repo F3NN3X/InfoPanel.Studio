@@ -16,7 +16,7 @@ Open **Screens** from the rail, from **Manage screens…** or **Screen settings�
 - Click a card to select it; its details open on the right. Clicking a card doesn't change which screen your displays show. **Open** on a card (or in the panel) opens the screen in Edit, whether it is a grid or one InfoPanel profile.
 - **Search** finds a screen by name, kind or size (`1920x480` works). **All**, **Studio** and **InfoPanel** narrow the list; a Mixed screen shows under both, and the profiles saved in your Library show under InfoPanel. **Sort** by last edited (the default), name, size or your own order. Last edited starts counting from the first edit you make in this version, so older screens come last until you change them.
 - Badges: **Default** marks the screen the app opens on and **Default · best fit** the one the window picks when no screen is chosen (see [Which screen opens](profiles#which-screen-opens)). **Live on 2 kiosks** means kiosks show that screen right now. Default is what you chose; live is what is on the displays at this moment.
-- **New** opens the **New screen** page in place of the cards: the screen templates beside a panel with the preview, size, colours and name (see [Screen templates](profiles#screen-templates)), and above them **Blank grid**, **The sample layout**, **An InfoPanel profile** and **Import a file**.
+- **New** opens the **New screen** page in place of the cards: the screen templates beside a panel with the preview, size, variant and name (see [Screen templates](profiles#screen-templates)), and above them **Blank grid**, **The sample layout**, **An InfoPanel profile** and **Import a file**.
 - **Import .infopanel** brings in an InfoPanel profile file as a new screen and opens it.
 - **Import…** opens the Import door (see [Importing and exporting](import)); a `.json` file saved with **Export screen** becomes a new screen with a name of its own if one is already taken.
 - **Saved in your Library** lists InfoPanel profiles saved in My library that no screen uses yet. **Place** makes one a new screen and opens it. A saved card can also be duplicated, renamed or removed, from its footer or its **⋯** menu. Removing asks first and can't be undone with Ctrl+Z, but a file that any screen still uses is kept.
@@ -36,12 +36,12 @@ A fresh install has one blank screen, **Main display**, at 1920 × 1080 with a 1
 
 ## Screen templates
 
-**New** opens **New screen**, one page. The templates fill the left, and the panel on the right shows the one you picked: a preview at its size, then **Size**, **Colours**, **Sensors** and **Name**. Press **Create screen**, or Enter, whenever it looks right. **Cancel** or Esc goes back to Screens without making anything.
+**New** opens **New screen**, one page. The templates fill the left, and the panel on the right shows the one you picked: a preview at its size, then **Size**, **Variant**, **Sensors** and **Name**. Press **Create screen**, or Enter, whenever it looks right. **Cancel** or Esc goes back to Screens without making anything.
 
 - **Screen** and **InfoPanel profile** at the top switch what the page makes. A screen is a grid of widgets with live data; an InfoPanel profile is a free canvas you can export to the InfoPanel app (see [InfoPanel profiles in Edit](infopanel-editor#a-new-profile)). Switching starts the size, name and search over and keeps your template when the other kind has one of the same name.
 - The row above the templates is always in view: **Blank grid** (an empty grid at 1024 × 600, picked like a card), **The sample layout**, **An InfoPanel profile** (the same as the switch) and **Import a file**.
 - **Search** finds a template by its name, its description, the widgets it uses or the sensors it reads, so `fps` finds the ones that show your frame rate. Enter in the search picks the first one it found. When nothing matches, **Start blank** or **Clear search**.
-- Click a card to pick it, double-click to make it at once at the size it shows, or use the arrow keys to move from card to card. The dots under a card are its colours: click one to pick the template in those colours.
+- Click a card to pick it, double-click to make it at once at the size it shows, or use the arrow keys to move from card to card. The dots under a card are its variants: click one to pick the template in that variant.
 - A card's sensor count says how many readings it uses. Amber `7/8` means one of them isn't on this PC; `?` means the Data API can't be reached, so nothing can be checked yet.
 - **Recently used** at the top lists the last three templates you made a screen from, in this browser.
 - When the window is narrow the page has two steps instead: **Pick**, then **Adjust size and look**. **Create screen** works from either.
@@ -63,7 +63,7 @@ With them are 17 templates that copy the look of the InfoPanel profile templates
 - A template comes at the size its card shows: **Status bar** at 1280 × 160, **Tower** at 480 × 1920, General at 1024 × 600. **Blank grid** starts at 1024 × 600, or at the size of the screen you are editing when that is one of the presets. The size you'd get is marked with a star in **Size**, and the line above it says **Follows** and the template's name.
 - **Size** lists the panel sizes by shape, with the panel each one is in its tooltip. Type any width and height under **Custom**: whole pixels from 1 to 8192. Once you pick or type a size yourself it says **Set by you**, and picking another template keeps your size. **Use** and the template's size goes back to it.
 - A template can be made at any size. At a shape it isn't made for, a note says how its widgets are squeezed, with **Use its own size** to go back, and the cards that don't fit your size are tagged, for example **Tall only**.
-- The template brings its look as the screen's own: colours, background, widget skin and effects. Change them in **Theme** with the screen as the scope.
+- The template brings its look as the screen's own: colors, background, widget skin and effects. Change them in **Theme** with the screen as the level.
 - Every template has a size it is made for, and its text and readings are sized for that size. At a smaller or larger size they shrink or grow with it (down to 60 % and up to 160 % of their size), so a template no longer overflows on a small panel or looks tiny on a big one.
 - The grid is split to suit the size. A strip twice as long for its height gets twice the columns, so widgets keep their shape and the ones you add later get sensible boxes.
 - Widgets that read one sensor, such as Minimal's three readings, find this PC's sensor for it. A reading that isn't found is named in the message after **Create**; pick its sensor in the inspector.
@@ -84,7 +84,7 @@ Select a screen's card in **Screens**. The panel on the right holds the settings
 | **Performance** | The frame-rate cap and **Animations** for this screen. The chip says whether they come from **Settings › Dashboard** (all screens) or are this screen's own. |
 | **Pages · order & rotation** | **Add page**, drag a page's handle to reorder it (the page tabs follow), switch it in or out of the rotation, or **Open** it in Edit. |
 
-The theme, skin and background are in **Theme**: pick the screen in its scope bar and edit a section to give this screen its own. See [Themes](themes#where-to-edit).
+The theme, skin and background are in **Theme**: pick the screen at the top and change a part or a fine-tune section to give this screen its own. See [Themes](themes#the-theme-view).
 
 ## Pages
 

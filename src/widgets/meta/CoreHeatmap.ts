@@ -11,5 +11,5 @@ export const meta: WidgetMeta = {
   minSize: [1, 1],
   blurb: "Per-core load as a heatmap",
   tags: "cpu cores honeycomb waterfall",
-  description: "Per-core CPU heatmap in four shapes: grid, honeycomb, radial and a scrolling waterfall, with selectable colour ramps.",
+  description: "Per-core CPU heatmap in four shapes: grid, honeycomb, radial and a scrolling waterfall, with selectable color ramps.",
 };

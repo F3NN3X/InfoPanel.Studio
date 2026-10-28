@@ -11,5 +11,5 @@ export const meta: WidgetMeta = {
   minSize: [1, 1],
   blurb: "Multi-channel dB meters",
   tags: "level studio sound",
-  description: "Studio-style multi-channel level meters: dB scale, stereo LED ladders with dimmed zone colours, peak-hold markers, per-channel volume and live L/R dB readouts.",
+  description: "Studio-style multi-channel level meters: dB scale, stereo LED ladders with dimmed zone colors, peak-hold markers, per-channel volume and live L/R dB readouts.",
 };

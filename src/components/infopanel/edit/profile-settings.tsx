@@ -25,7 +25,7 @@ const INPUT = "h-7 w-full min-w-0 rounded-[6px] border bg-ui-raised px-2 font-ui
 const LABEL: Partial<Record<Field, string>> = {
   BackgroundColor: "Background",
   FontSize: "Font size",
-  Color: "Text colour",
+  Color: "Text color",
   FontScale: "Font scale",
   ShowFps: "Show FPS",
   OpenGL: "OpenGL",
@@ -38,7 +38,7 @@ const LABEL: Partial<Record<Field, string>> = {
 };
 
 const SECTIONS: { title: string; fields: Field[]; note?: string }[] = [
-  { title: "Text and colour", fields: ["Font", "FontSize", "Color", "FontScale"], note: "New text items take the font, size and colour." },
+  { title: "Text and color", fields: ["Font", "FontSize", "Color", "FontScale"], note: "New text items take the font, size and color." },
   { title: "Display", fields: ["ShowFps", "OpenGL"] },
   {
     title: "Web view",
@@ -112,7 +112,7 @@ function PaletteRow({ slot, value, onSet }: { slot: Slot; value: string; onSet: 
   const commit = () => {
     if (draft === null) return;
     const c = argbOf(draft);
-    setError(c ? null : "A colour is #RRGGBB or #AARRGGBB. The value isn’t stored.");
+    setError(c ? null : "A color is #RRGGBB or #AARRGGBB. The value isn’t stored.");
     if (c) onSet(c);
     setDraft(null);
   };
@@ -121,7 +121,7 @@ function PaletteRow({ slot, value, onSet }: { slot: Slot; value: string; onSet: 
       <div className="flex items-center gap-2">
         <span className="w-[72px] shrink-0 text-[12px] text-ui-2">{SLOT_LABEL[slot]}</span>
         <input
-          aria-label={`Palette ${SLOT_LABEL[slot]}`}
+          aria-label={`Profile color ${SLOT_LABEL[slot]}`}
           value={draft ?? value}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
@@ -134,7 +134,7 @@ function PaletteRow({ slot, value, onSet }: { slot: Slot; value: string; onSet: 
         <label className="relative h-[22px] w-[22px] shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong" style={{ backgroundColor: toCss(value) }}>
           <input
             type="color"
-            aria-label={`Palette ${SLOT_LABEL[slot]} swatch`}
+            aria-label={`Profile color ${SLOT_LABEL[slot]} swatch`}
             value={toCss(value) || "#000000"}
             onChange={(e) => onSet(fromCss(e.currentTarget.value, value))}
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
@@ -219,7 +219,7 @@ export function ProfileSettings({ editor, page, onRemap, remapCount = 0, drawing
         </PageRow>
         {page && <ColsRows cols={page.cols} rows={page.rows} onGrid={page.onGrid} />}
         <ColourField inline field="BackgroundColor" value={String(profile.BackgroundColor)} onSet={(v) => commit("BackgroundColor", v)} onCommit={(raw) => commit("BackgroundColor", raw)} />
-        <PageRow label="Palette">
+        <PageRow label="Profile colors">
           {SLOTS.map((slot) => (
             <span key={slot} title={SLOT_LABEL[slot]} className="h-3 w-3 rounded-[3px] border border-white/15" style={{ background: toCss(editor.palette[slot]) }} />
           ))}
@@ -251,15 +251,15 @@ export function ProfileSettings({ editor, page, onRemap, remapCount = 0, drawing
           {s.note && <p className="mt-2 text-[11.5px] leading-snug text-ui-4">{s.note}</p>}
         </section>
       ))}
-      <section aria-label="Palette" className="border-b border-ui-subtle px-4 py-3">
-        <div className="mb-2 text-[12px] font-semibold text-ui-1">Palette</div>
+      <section aria-label="Profile colors" className="border-b border-ui-subtle px-4 py-3">
+        <div className="mb-2 text-[12px] font-semibold text-ui-1">Profile colors</div>
         <div className="flex flex-col gap-1.5">
           {SLOTS.map((slot) => (
             <PaletteRow key={slot} slot={slot} value={editor.palette[slot]} onSet={(v) => editor.setPalette(slot, v, `canvas-palette:${editor.zone.id}:${slot}`)} />
           ))}
         </div>
         <p className="mt-2 text-[11.5px] leading-snug text-ui-4">
-          Studio only, never exported. New items and elements take these colours; changing one recolours everything that uses it, and baked elements bake again on export.
+          Studio only, never exported. New items and elements take these colors; changing one recolors everything that uses it, and baked elements bake again on export.
         </p>
       </section>
       <p className="px-4 py-3 text-[11.5px] leading-snug text-ui-4">Select an item on the canvas or in Layers to edit it.</p>

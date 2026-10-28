@@ -19,7 +19,7 @@ export function EditorStage({ gauge, playback, scope, themeName }: EditorStagePr
         <GaugeView gauge={gauge} p={playback.p} size={360} scope={scope} />
       </div>
       <PlayControls playback={playback} className="mt-4 w-full max-w-[460px]" />
-      <p className="mt-3 text-[11.5px] text-ui-4">Theme colours follow “{themeName ?? "this dashboard’s theme"}”</p>
+      <p className="mt-3 text-[11.5px] text-ui-4">Theme colors follow “{themeName ?? "this dashboard’s theme"}”</p>
     </section>
   );
 }

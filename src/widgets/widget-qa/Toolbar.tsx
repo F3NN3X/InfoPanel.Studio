@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { STYLE_SETTINGS } from "@/modules/standard-settings";
 import { THEME_PRESETS } from "@/lib/theme";
-import { SURFACE_NAMES } from "@/widgets/core/theme";
+import { SKIN_NAMES, SURFACE_NAMES } from "@/widgets/core/theme";
 import { DEFAULT_STATE, type QaState } from "./params";
 
 const optionsOf = (key: string) => (STYLE_SETTINGS.find((s) => s.key === key)?.options ?? []).filter((o) => o.value !== "auto").map((o) => o.value);
-const SKINS = optionsOf("skin");
+const SKINS = SKIN_NAMES;
 // The dense view as the QA page names it (`variant`, read by `compactOf` since the standard row became Small zones).
 const VARIANTS = ["default", "studio"];
 const GRAPHS = optionsOf("graph");

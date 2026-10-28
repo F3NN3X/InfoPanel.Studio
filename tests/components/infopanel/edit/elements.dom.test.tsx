@@ -73,7 +73,7 @@ describe("studio elements", () => {
         <HostedEditor zone={zone} setConfig={setConfig} history={history} profileId="p1" />
       </ToastProvider>,
     );
-    const field = screen.getByLabelText("Palette Card");
+    const field = screen.getByLabelText("Profile color Card");
     fireEvent.change(field, { target: { value: "#FF123456" } });
     fireEvent.blur(field);
     const [update] = setConfig.mock.calls[0];

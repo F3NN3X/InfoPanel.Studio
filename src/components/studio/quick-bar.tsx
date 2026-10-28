@@ -63,7 +63,7 @@ function QuickControl({
       return (
         <button
           type="button"
-          aria-label={`${def.label} colour`}
+          aria-label={`${def.label} color`}
           aria-expanded={colorOpen}
           onClick={onColor}
           className={cn("h-[22px] w-[22px] shrink-0 rounded-full", colorOpen && "shadow-[0_0_0_2px_#17171b,0_0_0_4px_#ededf0]")}

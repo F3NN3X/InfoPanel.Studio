@@ -1,4 +1,4 @@
-/** The "Colours" field: one chip per palette of the chosen template, with its three colours as overlapping dots. */
+/** The "Variant" field: one chip per variant of the chosen template, with its three colours as overlapping dots. */
 import { cn } from "@/lib/utils";
 
 export interface VariantChip {
@@ -18,8 +18,8 @@ interface VariantChipsProps {
 export function VariantChips({ variants, value, onChange, className = "mt-3" }: VariantChipsProps) {
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <span className="text-[12px] text-ui-2">Colours</span>
-      <div role="radiogroup" aria-label="Colours" className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[12px] text-ui-2">Variant</span>
+      <div role="radiogroup" aria-label="Variant" className="flex flex-wrap items-center gap-1.5">
         {variants.map((v) => (
           <button
             key={v.id}

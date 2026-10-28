@@ -74,7 +74,7 @@ export function InkField({ label, ink, palette, onChange }: { label: string; ink
     <Row label={label}>
       <div className="flex items-center gap-1.5">
         <select
-          aria-label={`${label} colour`}
+          aria-label={`${label} color`}
           value={ink.slot ?? ""}
           onChange={(e) => onChange(isSlot(e.target.value) ? slotInk(palette, e.target.value) : { color: ink.color })}
           className={cn(INPUT, "w-[112px] font-ui")}
@@ -170,17 +170,17 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
   const byValue = (list: Threshold[] | undefined, field: string) => (
     <>
       <SwitchRow
-        label="Colours by value"
+        label="Colors by value"
         on={!!list?.length}
         onChange={(on) => set({ [field]: on ? [{ at: 70, ink: slotInk(palette, "warn") }, { at: 90, ink: slotInk(palette, "crit") }] : [] })}
       />
       {list?.map((t, i) => (
         <div key={i} className="space-y-1">
           <NumberField label={`From (%) ${i + 1}`} value={t.at} onCommit={(at) => set({ [field]: list.map((x, k) => (k === i ? { ...x, at } : x)) }, `${field}-${i}-at`)} />
-          <InkField label={`Colour ${i + 1}`} ink={t.ink} palette={palette} onChange={(next) => set({ [field]: list.map((x, k) => (k === i ? { ...x, ink: next } : x)) }, `${field}-${i}-ink`)} />
+          <InkField label={`Color ${i + 1}`} ink={t.ink} palette={palette} onChange={(next) => set({ [field]: list.map((x, k) => (k === i ? { ...x, ink: next } : x)) }, `${field}-${i}-ink`)} />
         </div>
       ))}
-      {!!list?.length && <p className="text-[11.5px] leading-snug text-ui-4">The first fill colour holds below the first threshold. Each frame takes the colour of its value.</p>}
+      {!!list?.length && <p className="text-[11.5px] leading-snug text-ui-4">The first fill color holds below the first threshold. Each frame takes the color of its value.</p>}
     </>
   );
   /** The value's glow (Text/Value GlowEnabled, GlowRadius, GlowColor): a switch, then its radius and colour. */
@@ -190,7 +190,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
       {glow && (
         <>
           <NumberField label="Glow radius" value={glow.radius} onCommit={(radius) => set({ valueGlow: { ...glow, radius } }, "valueGlow-radius")} />
-          <InkField label="Glow colour" ink={glow.color} palette={palette} onChange={(color) => set({ valueGlow: { ...glow, color } }, "valueGlow-color")} />
+          <InkField label="Glow color" ink={glow.color} palette={palette} onChange={(color) => set({ valueGlow: { ...glow, color } }, "valueGlow-color")} />
         </>
       )}
     </>
@@ -217,11 +217,11 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
             <Row label="Pattern">
               <Segmented label="Face pattern" value={face.pattern} options={FACE_PATTERNS.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))} onChange={(pattern) => patch({ pattern }, "pattern")} />
             </Row>
-            <InkField label="Pattern colour" ink={argb(face.color)} palette={palette} onChange={(v) => patch({ color: rgbOf(v.color) }, "color")} />
+            <InkField label="Pattern color" ink={argb(face.color)} palette={palette} onChange={(v) => patch({ color: rgbOf(v.color) }, "color")} />
             <NumberField label="Pattern opacity" value={face.opacity} onCommit={(opacity) => patch({ opacity }, "opacity")} />
             <NumberField label="Cell size" value={face.size} onCommit={(size) => patch({ size }, "size")} />
             <SwitchRow label="Disc fill" on={face.fill !== null} onChange={(on) => patch({ fill: on ? DEFAULT_FACE.fill : null }, "fillon")} />
-            {face.fill !== null && <InkField label="Disc colour" ink={argb(face.fill)} palette={palette} onChange={(v) => patch({ fill: rgbOf(v.color) }, "fill")} />}
+            {face.fill !== null && <InkField label="Disc color" ink={argb(face.fill)} palette={palette} onChange={(v) => patch({ fill: rgbOf(v.color) }, "fill")} />}
           </>
         )}
       </>
@@ -237,7 +237,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
       <SwitchRow label="Icon" on={s.icon !== null} onChange={(on) => set({ icon: on ? "cpu" : null })} />
       {s.icon !== null && (
         <>
-          {ink("Icon colour", "iconInk", s.iconInk)}
+          {ink("Icon color", "iconInk", s.iconInk)}
           <IconPicker value={s.icon} onPick={(icon) => set({ icon })} />
         </>
       )}
@@ -276,7 +276,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {num("Gap", "gap", spec.gap)}
           {num("Label size", "size", spec.size)}
           {ink("Label", "label", spec.label)}
-          {ink("Graph colour", "color", spec.color)}
+          {ink("Graph color", "color", spec.color)}
           <SwitchRow label="Fill" on={spec.area} onChange={(area) => set({ area })} />
           {partsHint}
         </>
@@ -373,7 +373,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
         <>
           {num("Offset X", "dx", spec.dx)}
           {num("Offset Y", "dy", spec.dy)}
-          {ink("Shadow colour", "color", spec.color)}
+          {ink("Shadow color", "color", spec.color)}
           <p className="text-[11.5px] leading-snug text-ui-4">
             {check.on && (
               <span className="mr-1 inline-flex align-[-2px]">
@@ -424,14 +424,14 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           <InksField label="Fill" inks={spec.fill} max={2} palette={palette} onChange={(fill) => set({ fill })} />
           {spec.fill.length > 1 && num("Gradient angle (°)", "angle", spec.angle)}
           <SwitchRow label="Stroke" on={spec.stroke !== null} onChange={(on) => set({ stroke: on ? slotInk(palette, "track") : null })} />
-          {spec.stroke && ink("Stroke colour", "stroke", spec.stroke)}
+          {spec.stroke && ink("Stroke color", "stroke", spec.stroke)}
           <SwitchRow label="Drop shadow" on={spec.shadow !== null} onChange={(on) => set({ shadow: on ? { blur: 12, dx: 0, dy: 4, color: { color: "#80000000" } } : null })} />
           {spec.shadow && (
             <>
               <NumberField label="Shadow blur" value={spec.shadow.blur} onCommit={(blur) => set({ shadow: { ...spec.shadow, blur } }, "shadow-blur")} />
               <NumberField label="Shadow X" value={spec.shadow.dx} onCommit={(dx) => set({ shadow: { ...spec.shadow, dx } }, "shadow-dx")} />
               <NumberField label="Shadow Y" value={spec.shadow.dy} onCommit={(dy) => set({ shadow: { ...spec.shadow, dy } }, "shadow-dy")} />
-              <InkField label="Shadow colour" ink={spec.shadow.color} palette={palette} onChange={(color) => set({ shadow: { ...spec.shadow, color } }, "shadow-color")} />
+              <InkField label="Shadow color" ink={spec.shadow.color} palette={palette} onChange={(color) => set({ shadow: { ...spec.shadow, color } }, "shadow-color")} />
             </>
           )}
           <SwitchRow
@@ -451,7 +451,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {spec.glow && (
             <>
               <NumberField label="Glow blur" value={spec.glow.blur} onCommit={(blur) => set({ glow: { ...spec.glow, blur } }, "glow-blur")} />
-              <InkField label="Glow colour" ink={spec.glow.color} palette={palette} onChange={(color) => set({ glow: { ...spec.glow, color } }, "glow-color")} />
+              <InkField label="Glow color" ink={spec.glow.color} palette={palette} onChange={(color) => set({ glow: { ...spec.glow, color } }, "glow-color")} />
             </>
           )}
         </>
@@ -460,7 +460,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
     case "glow":
       body = (
         <>
-          {ink("Colour", "color", spec.color)}
+          {ink("Color", "color", spec.color)}
           <NumberField label="Strength (%)" value={spec.alpha * 100} onCommit={(n) => set({ alpha: n / 100 })} />
           {num("Radius", "radius", spec.radius)}
         </>
@@ -481,14 +481,14 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
               onChange={(v) => set({ thickness: Number(v) })}
             />
           </Row>
-          <InksField label="Colour" inks={spec.fill} max={2} palette={palette} onChange={(fill) => set({ fill })} />
+          <InksField label="Color" inks={spec.fill} max={2} palette={palette} onChange={(fill) => set({ fill })} />
         </>
       );
       break;
     case "icon":
       body = (
         <>
-          {ink("Colour", "color", spec.color)}
+          {ink("Color", "color", spec.color)}
           <p className="text-[11.5px] text-ui-4">Its size is the item’s W and H.</p>
           <IconFileButtons
             label="Icon"
@@ -498,7 +498,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
             onReset={() => set({ source: undefined }, "source")}
           />
           {iconFileOf(spec.source) ? (
-            <p className="text-[11.5px] leading-snug text-ui-4">Using {iconFileOf(spec.source)}. A file is drawn as it is: the colour doesn’t tint it.</p>
+            <p className="text-[11.5px] leading-snug text-ui-4">Using {iconFileOf(spec.source)}. A file is drawn as it is: the color doesn’t tint it.</p>
           ) : (
             <IconPicker value={lucideNameOf(spec)} onPick={(name) => set({ name, source: undefined }, "name")} />
           )}
@@ -551,7 +551,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
             />
           </Row>
           {spec.style !== "line" && <NumberField label="Fill (%)" value={spec.fillAlpha * 100} onCommit={(n) => set({ fillAlpha: n / 100 })} />}
-          {ink("Colour", "color", spec.color)}
+          {ink("Color", "color", spec.color)}
           <SwitchRow label="End dot" studioOnly on={spec.dot} onChange={(dot) => set({ dot })} />
           {spec.style === "area" && <SwitchRow label="Gradient fill" studioOnly on={spec.gradient} onChange={(gradient) => set({ gradient })} />}
           <p className="text-[11.5px] leading-snug text-ui-4">InfoPanel draws its own Graph: the end dot and a gradient fill show only in the studio.</p>

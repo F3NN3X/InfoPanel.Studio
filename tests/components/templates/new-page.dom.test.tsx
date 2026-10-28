@@ -161,7 +161,7 @@ describe("a profile", () => {
     const calls = await open("ip");
     fireEvent.click(screen.getByRole("button", { name: "Neon · Toxic" }));
     expect(card("Neon").getAttribute("aria-checked")).toBe("true");
-    expect(within(screen.getByRole("radiogroup", { name: "Colours" })).getByRole("radio", { name: /Toxic/ }).getAttribute("aria-checked")).toBe("true");
+    expect(within(screen.getByRole("radiogroup", { name: "Variant" })).getByRole("radio", { name: /Toxic/ }).getAttribute("aria-checked")).toBe("true");
     fireEvent.click(createButton("ip"));
     const [made] = calls.profile.mock.calls[0];
     expect(made).toMatchObject({ name: "Neon", toLibrary: false });

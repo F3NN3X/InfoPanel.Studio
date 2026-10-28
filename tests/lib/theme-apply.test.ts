@@ -247,6 +247,20 @@ describe("saved themes in use", () => {
     expect(themeState(tpl, ALL).deleted).toBe(false);
   });
 
+  it("treats the Default skin's two spellings as one, and keeps each as stored", () => {
+    const plain = theme("plain", { style: { skin: "default", accent: "#38bdf8" } });
+    const c = applyTheme({ ...config(), appearancePresets: [plain] }, plain, ALL);
+    // The Skin picker writes `auto` for Default: the theme's skin, not a change.
+    const picked = { ...c, style: { ...c.style, skin: "auto" } };
+    expect(themeState(picked, ALL).changed).toEqual([]);
+    expect(themeState({ ...c, style: { ...c.style, skin: "tui" } }, ALL).changed).toEqual(["skin"]);
+    // Update rewrites it as the theme's, not as a value the level changed.
+    expect(updateThemeEverywhere(picked, "plain", ALL).style?.skin).toBe("auto");
+    // Loading keeps either spelling, so nothing repaints.
+    expect(normalizeAppliedTheme({ id: "x", name: "X", values: { skin: "default" } })?.values).toEqual({ skin: "default" });
+    expect(mergeConfig(JSON.parse(JSON.stringify(config({ style: { skin: "auto" } }))) as StoredConfig).style).toEqual({ skin: "auto" });
+  });
+
   it("Save as new names the new theme at that level, with nothing changed", () => {
     const edited = editAll(applyTheme(withDesk(config()), desk, ALL), { glow: "soft" });
     const out = saveAsTheme(edited, ALL, "mine", "Mine", false);

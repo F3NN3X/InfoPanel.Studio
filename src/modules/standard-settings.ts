@@ -54,6 +54,9 @@ const autoOptions = (values: readonly string[]) => [
   ...values.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })),
 ];
 
+/** The skins whose names aren't just capitalized (`skinLabel`, `lib/theme-skins.ts`, reads them from the Skin row). */
+const SKIN_LABELS: Readonly<Record<string, string>> = { auto: "Default", tui: "TUI", hud: "HUD" };
+
 /** The app's four materials: every surfaced widget kind (templates, panels, plain cards) draws them. */
 const APP_SURFACE_OPTIONS = [
   { value: "glass", label: "Glass" },
@@ -65,13 +68,14 @@ const APP_SURFACE_OPTIONS = [
 /** Size, alignment, spacing, colors and type — every widget gets these. */
 export const STYLE_SETTINGS: ModuleSetting[] = [
   {
-    // "auto" is the default skin; a template widget's shell reads these (see `widgets/module.tsx`).
+    // "auto" is the Default skin (`DEFAULT_SKIN`); a stored "default" is valid and reads as it (the select shows Default).
+    // A template widget's shell reads these (see `widgets/module.tsx`).
     // Picking a skin sets the surface to Auto, so the skin shows with its own card.
     key: "skin",
     label: "Skin",
     type: "select",
     default: "auto",
-    options: autoOptions(SKIN_PACKS.map((p) => p.name)).map((o) => ({ ...o, applies: { surface: "auto" } })),
+    options: autoOptions(SKIN_PACKS.filter((p) => p.name !== "default").map((p) => p.name)).map((o) => ({ ...o, label: SKIN_LABELS[o.value] ?? o.label, applies: { surface: "auto" } })),
     keywords: ["theme", "style", "look", ...SKIN_PACKS.map((p) => p.name)],
     section: "skin",
   },

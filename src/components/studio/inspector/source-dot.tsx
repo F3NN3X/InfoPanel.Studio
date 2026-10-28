@@ -16,15 +16,15 @@ export const DOT_MEANING: Record<SettingState, string> = {
   default: "Default",
   dashboard: "From All screens",
   profile: "From the screen's theme",
-  here: "Set here",
-  overriding: "Set here, overriding a global value",
-  ignored: "Set here but not used (its section follows the theme)",
+  here: "Changed here",
+  overriding: "Changed here, overriding a global value",
+  ignored: "Changed here but not used (its section follows the theme)",
 };
 
 /** The legend order (a zone's own values that don't apply show no dot: their section follows the theme). */
 export const DOT_LEGEND: readonly SettingState[] = ["default", "dashboard", "profile", "here", "overriding"];
 
-/** The 7 px source dot before a field's label; a "set here" dot is a reset button. */
+/** The 7 px source dot before a field's label; a "changed here" dot is a reset button. */
 export function SourceDot({ state, onReset }: { state: SettingState; onReset?: () => void }) {
   const dot = cn("block h-[7px] w-[7px] shrink-0 rounded-full", DOT[state]);
   if (!SET_HERE.has(state) || !onReset) {

@@ -24,9 +24,9 @@ Each InfoPanel profile lives on a page of a screen. Edit changes that page, so e
 
 ## A new profile
 
-**New InfoPanel profile…** opens the same page as **New screen** on Screens, set to **InfoPanel profile**: the templates on the left, and on the right a preview of the one you picked with its **Size**, **Colours**, **Sensors** and **Name**. Press **Create profile**, or Enter, whenever it looks right; **Cancel** or Esc leaves without making anything. It comes in as a new screen and opens here. **Screen** at the top of the page, or **A screen instead**, switches it to making a screen. You'll also find the page in Edit's **Add** list under Layouts, in the Import window, in the Library and in the command palette.
+**New InfoPanel profile…** opens the same page as **New screen** on Screens, set to **InfoPanel profile**: the templates on the left, and on the right a preview of the one you picked with its **Size**, **Variant**, **Sensors** and **Name**. Press **Create profile**, or Enter, whenever it looks right; **Cancel** or Esc leaves without making anything. It comes in as a new screen and opens here. **Screen** at the top of the page, or **A screen instead**, switches it to making a screen. You'll also find the page in Edit's **Add** list under Layouts, in the Import window, in the Library and in the command palette.
 
-The search, the shape chips, the colour dots on the cards, **Recently used** and the sizes work as they do for screens (see [Screen templates](profiles#screen-templates)). The new profile's name is the template's until you type one.
+The search, the shape chips, the color dots on the cards, **Recently used** and the sizes work as they do for screens (see [Screen templates](profiles#screen-templates)). The new profile's name is the template's until you type one.
 
 **Blank canvas**, in the row above the templates, is an empty profile at 800 × 480 with a near black background and white Segoe UI text. A template comes at the size its card shows, Meters at 1600 × 300 and Deck at 1920 × 1080, until you set a size yourself; after that, picking another template keeps your size.
 
@@ -36,12 +36,12 @@ When you pick a template, **Sensors** says how many of the sensors it reads were
 
 ## Templates
 
-A template is a finished profile made from the editor's own items and elements, bound to your PC's sensors. Each card in the gallery shows it with made-up values, at the size written on it. Pick one, then a set of **Colours**, and **Create profile**.
+A template is a finished profile made from the editor's own items and elements, bound to your PC's sensors. Each card in the gallery shows it with made-up values, at the size written on it. Pick one, then a **Variant**, and **Create profile**.
 
 | Template | Look |
 |---|---|
 | Graphite | Flat grey cards with one accent and rings |
-| Glass | See-through cards with a soft sheen over coloured glows |
+| Glass | See-through cards with a soft sheen over colored glows |
 | Neon | Dark panels with glowing outlines, LED rings and bars |
 | Paper | A light theme: white cards with soft shadows |
 | Mono | Black, with very large thin numbers and fine lines |
@@ -53,10 +53,10 @@ A template is a finished profile made from the editor's own items and elements, 
 | Orbit | A pill with a load ring at each end, the temperatures and power beside them, and FPS in the middle |
 | Tower | A tall card with FPS, CPU and GPU as lists of readings, each with a small graph |
 | Ticker | One long pill of text: CPU, GPU, FPS and the time |
-| Readout | Three instrument panels (GPU, CPU, System), each with one very large number and two meters that change colour as they fill. Colours: Mono, Glow (Mono with glowing numbers), Tint |
-| Console | A strip of six readouts, CPU and GPU rings on a hex face, RAM and VRAM bars, and a tile for each drive. Colours: Ice, Ice glow (Ice with glowing numbers), Amber, Steel |
-| Frost Bar | Frosted glass cards that blur the wash behind them: load rings, memory, clock, uptime, network and three temperature rings. Colours: Aurora, Smoke |
-| Quota | A large clock and a list of CPU, RAM, GPU and Disk load, one thin bar each. Colours: Slate, Sand |
+| Readout | Three instrument panels (GPU, CPU, System), each with one very large number and two meters that change color as they fill. Variants: Mono, Glow (Mono with glowing numbers), Tint |
+| Console | A strip of six readouts, CPU and GPU rings on a hex face, RAM and VRAM bars, and a tile for each drive. Variants: Ice, Ice glow (Ice with glowing numbers), Amber, Steel |
+| Frost Bar | Frosted glass cards that blur the wash behind them: load rings, memory, clock, uptime, network and three temperature rings. Variants: Aurora, Smoke |
+| Quota | A large clock and a list of CPU, RAM, GPU and Disk load, one thin bar each. Variants: Slate, Sand |
 
 Deck, Meters, Orbit, Tower and Ticker come in Dark, White and Smoke, and in Float, which has no cards and puts a dark shadow behind every line of text (Deck also has Tint). They are made for their own sizes, which the Size row offers and picks for you: Deck 1920 × 1080 (it also lays out for 1920 × 480 and for upright screens), Meters 1600 × 300, Orbit 1080 × 240, Ticker 1280 × 160 and Tower 480 × 1920. At other sizes they stack their parts and still fit.
 
@@ -70,7 +70,7 @@ The Clock template's ring reads InfoPanel's clock plugin (Clock · Second, 0 to 
 
 Some templates read sensors your PC may not have. Console shows FPS from RTSS (through InfoPanel's RTSS plugin), memory speed from HWiNFO, and UPS power from a UPS plugin; without them those readouts stay empty and Remap lists them. Readout and Console show a GPU hot spot, which NVIDIA cards often don't report, and Readout shows the CPU's two CCD temperatures, which only some Ryzen chips have. Console's drive tiles come from the drives in your Data API, one tile each, with placeholders if there are none. Console is drawn for 1920 × 720 and Quota for 1920 × 540; both are in the Size list. Frost Bar and Readout are drawn for 1920 × 480.
 
-A template's colours come from the profile's palette (see The palette, below), so you can change them all in one place later. Everything in it can be moved, changed or deleted like anything you add yourself, and it exports like any profile: cards, rings and glows that InfoPanel can't draw are baked when you export.
+A template's colors come from the profile's colors (see Profile colors, below), so you can change them all in one place later. Everything in it can be moved, changed or deleted like anything you add yourself, and it exports like any profile: cards, rings and glows that InfoPanel can't draw are baked when you export.
 
 ## The page
 
@@ -82,7 +82,7 @@ A template's colours come from the profile's palette (see The palette, below), s
 
 Click a kind in **Add** to put it in the middle of the canvas, or drag it onto the canvas to put it where you drop it. A dropped item snaps like a moved one.
 
-New items are made to suit the profile. Text, Value, Clock, Calendar and Table take the profile's font, size and colour. Bar, Graph and Donut sit on the palette's track with an Accent 1 fill and no frame. A Gauge is a ring in Accent 1. A Shape is a rounded card in the palette's Card colour. These are all InfoPanel's own settings, so the exported file looks the same in InfoPanel.
+New items are made to suit the profile. Text, Value, Clock, Calendar and Table take the profile's font, size and color. Bar, Graph and Donut sit on the profile colors' Track with an Accent 1 fill and no frame. A Gauge is a ring in Accent 1. A Shape is a rounded card in the palette's Card color. These are all InfoPanel's own settings, so the exported file looks the same in InfoPanel.
 
 The item goes where InfoPanel puts it: into the selected group, or the group of the selected item, unless that group is locked; otherwise on top of everything. It's then selected.
 
@@ -101,12 +101,12 @@ The **Elements** group in **Add** has looks InfoPanel has no item for. Each one 
 
 | Element | What it is | In the .infopanel file |
 |---|---|---|
-| Ring | A value arc: start and sweep, thickness, track, one colour or a 2 or 3 stop gradient, round or flat ends, an end dot, ticks, LED segments, a glow, a textured face inside the ring | A Gauge with 101 image frames, bound to its sensor with Min and Max; the face is baked into them || A Gauge with 101 image frames, bound to its sensor with Min and Max |
+| Ring | A value arc: start and sweep, thickness, track, one color or a 2 or 3 stop gradient, round or flat ends, an end dot, ticks, LED segments, a glow, a textured face inside the ring | A Gauge with 101 image frames, bound to its sensor with Min and Max; the face is baked into them || A Gauge with 101 image frames, bound to its sensor with Min and Max |
 | LED bar | A bar of segments, across or down, with a gradient and a glow, a textured face inside the ring | A Gauge with 101 image frames, bound to its sensor with Min and Max; the face is baked into them || A Gauge with image frames |
-| Card | A rounded card: a fill or a 2 colour gradient at an angle, a 1 px stroke, a drop shadow, an outer glow, a background blur | A Shape while it has only a fill, a stroke and corners; one image otherwise, and with a blur one image with the blurred background baked in || A Shape while it has only a fill, a stroke and corners; one image otherwise |
+| Card | A rounded card: a fill or a 2 color gradient at an angle, a 1 px stroke, a drop shadow, an outer glow, a background blur | A Shape while it has only a fill, a stroke and corners; one image otherwise, and with a blur one image with the blurred background baked in || A Shape while it has only a fill, a stroke and corners; one image otherwise |
 | Glow | A soft round light, for behind content | One image, see-through where the light fades |
-| Divider | A 1 or 2 px line, one colour or a gradient | A Shape when it's one colour; one image otherwise |
-| Icon | An icon from a searchable list, in a colour, as big as its box; or your own image or SVG from My library | One image of the icon, or an Image of your file |
+| Divider | A 1 or 2 px line, one color or a gradient | A Shape when it's one color; one image otherwise |
+| Icon | An icon from a searchable list, in a color, as big as its box; or your own image or SVG from My library | One image of the icon, or an Image of your file |
 | Cores | One bar per CPU core or thread, side by side or stacked | A Group of Bar items, each bound to its core |
 | Sparkline | A line, area or bar (histogram) graph, with a fill opacity, an end dot and a gradient fill | InfoPanel's Graph, in line or histogram mode; without the dot and the gradient |
 | Row | A label, its value on the right, an optional icon and a thin bar under it, laid out for you | A Group of a Text and a Value, plus a Bar and an icon image if you turn them on |
@@ -121,15 +121,15 @@ Ring, LED bar and Sparkline ask for a sensor when you add them. Cores finds the 
 
 Row, Rows, Graph stack, Dual graph and Double ring start with no sensors. Select a part in **Layers** to choose its sensor or change its text; the element places the parts, so moving or resizing the element moves them all. A Row's thin bar follows the sensor of its value. Drives finds your drives in the Data API (LibreHardwareMonitor's drive sensors) and binds each tile. With none found it shows three placeholder tiles, and **Find the drives again** binds them once the Data API reports them.
 
-**Your own icons.** An Icon element's **Your image…** button picks a file from My library, or uploads one there. Drives has a row for each drive with **Your image…** and **Icon set**; **Reset** goes back to the hard drive. The file joins the profile's files, so it exports with the profile and My library won't remove it while a profile uses it. A file is drawn as it is: the icon colour doesn't tint an SVG, so pick an image that already suits the card. A wide or tall image is fitted inside the icon box, keeping its shape and centred; the exported Image is that fitted size. A drive keeps its icon when you use **Find the drives again** or the drives come back in another order. HWiNFO drives are matched by name when they have no stable id. We don't ship brand or game emblems: add your own files.
+**Your own icons.** An Icon element's **Your image…** button picks a file from My library, or uploads one there. Drives has a row for each drive with **Your image…** and **Icon set**; **Reset** goes back to the hard drive. The file joins the profile's files, so it exports with the profile and My library won't remove it while a profile uses it. A file is drawn as it is: the icon color doesn't tint an SVG, so pick an image that already suits the card. A wide or tall image is fitted inside the icon box, keeping its shape and centred; the exported Image is that fitted size. A drive keeps its icon when you use **Find the drives again** or the drives come back in another order. HWiNFO drives are matched by name when they have no stable id. We don't ship brand or game emblems: add your own files.
 
-**Glow** is on every Text and Value, in its Glow section: a switch, a radius from 2 to 20 and a colour. InfoPanel draws it itself, so it exports as it looks. Row, Rows and Double ring have a **Value glow** switch that sets it on their values. The dashboard's **Number glow** (Style, Typography) is the same idea for the dashboard's own widgets.
+**Glow** is on every Text and Value, in its Glow section: a switch, a radius from 2 to 20 and a color. InfoPanel draws it itself, so it exports as it looks. Row, Rows and Double ring have a **Value glow** switch that sets it on their values. The dashboard's **Number glow** (Style, Typography) is the same idea for the dashboard's own widgets.
 
-**Face** is on Ring and Double ring (on its inner ring): a dark disc inside the ring with a repeating pattern on it, Hex, Dots, Grid or Carbon, with its own colour, opacity and cell size. InfoPanel can't draw a pattern, so the face is baked into the ring's frames when you export. The same Face is a part in the Gauges editor, so a Custom gauge on the dashboard can have one.
+**Face** is on Ring and Double ring (on its inner ring): a dark disc inside the ring with a repeating pattern on it, Hex, Dots, Grid or Carbon, with its own color, opacity and cell size. InfoPanel can't draw a pattern, so the face is baked into the ring's frames when you export. The same Face is a part in the Gauges editor, so a Custom gauge on the dashboard can have one.
 
-**Background blur** is on Card. It blurs whatever is drawn behind the card, so give the card a see-through fill. InfoPanel can't blur what is behind an item, so the export bakes the blurred background into the card's image, and the card is badged Approximated. The bake covers the profile's background colour and the images, shapes and cards under the card. Text, values and gauges behind it aren't in the baked picture, so they show sharp in InfoPanel.
+**Background blur** is on Card. It blurs whatever is drawn behind the card, so give the card a see-through fill. InfoPanel can't blur what is behind an item, so the export bakes the blurred background into the card's image, and the card is badged Approximated. The bake covers the profile's background color and the images, shapes and cards under the card. Text, values and gauges behind it aren't in the baked picture, so they show sharp in InfoPanel.
 
-**Colours by value** is in the Ring and LED bar settings, and in the Double ring for the inner ring. Each colour takes over from its percent of the range, so a frame has the colour of its value. That gives a ring that turns amber and then red as it fills. The end dot is left off while it's on, so it can't disagree with the ring.
+**Colors by value** is in the Ring and LED bar settings, and in the Double ring for the inner ring. Each color takes over from its percent of the range, so a frame has the color of its value. That gives a ring that turns amber and then red as it fills. The end dot is left off while it's on, so it can't disagree with the ring.
 
 For a rounded progress bar, a Bar's Sensor section has **Rounded gradient look**: it sets the corner radius to half the height and fills with a gradient from accent 1 to accent 2. The Bar stays a native Bar.
 
@@ -177,11 +177,11 @@ Every part on the canvas has a small round mark in its top-right corner with its
 
 A screen made for Studio panels shows none of this, whatever its pages are.
 
-## The palette
+## Profile colors
 
-With nothing selected, the profile settings end with the **Palette**: Accent 1, Accent 2, Accent 3, Text, Sub-text, Track, Card, Warning and Critical. New items and elements take their colours from it. In an element's settings each colour is either a palette colour or **Fixed**, with its own swatch.
+With nothing selected, the profile settings end with the **Profile colors**: Accent 1, Accent 2, Accent 3, Text, Sub-text, Track, Card, Warning and Critical. New items and elements take their colors from it. In an element's settings each color is either one of the profile colors or **Fixed**, with its own swatch.
 
-Change a palette colour and everything that uses it changes too, in one undo step. Baked elements are baked again at the next export. The palette stays in the studio: the .infopanel file holds the plain colours.
+Change a profile color and everything that uses it changes too, in one undo step. Baked elements are baked again at the next export. Profile colors stay in the studio: the .infopanel file holds the plain colors.
 
 ## Moving and snapping
 
@@ -241,7 +241,7 @@ Click with `Shift` or `Ctrl` to select more than one item, on the canvas or in *
 
 - **Align**: left, centre, right, top, middle or bottom of the box around them.
 - **Distribute**: equal gaps across or down, for three items or more. The first and last stay where they are.
-- **Shared fields**: what every selected item has, such as X, Y, font and colours. A field they differ in says "Mixed" until you set it.
+- **Shared fields**: what every selected item has, such as X, Y, font and colors. A field they differ in says "Mixed" until you set it.
 
 Locked items stay where they are. Each of these is one step to undo.
 
@@ -265,7 +265,7 @@ If your InfoPanel build doesn't report sensor ids, a choice binds the preview on
 
 Click an empty part of the canvas and the inspector shows the page as **Page · {name}**. **GRID** has **Snap items to grid** and the `Alt` hint, as on any page (see [Page settings](studio#page-settings)). Turning it on or off never moves an item.
 
-Then **Name**, **Size**, **Columns × rows**, **Background**, **Palette** and **Fonts** (the fonts the items use), and **Remap sensors**, which opens [Sensor remap](remap) with a count of the sensors that need a look. Columns × rows changes the grid that widgets and snapped items use; items at their imported pixels stay where they are. Under them are the font, font size, text colour, font scale, **Show FPS**, **OpenGL**, and the web view: **Show a web page**, its URL, **Interactive**, **Disable cache**, **Refresh every (s)** and **Max FPS**. A value InfoPanel would refuse shows a message and isn't stored. Changing the size keeps every item where it is and resizes the screen too.
+Then **Name**, **Size**, **Columns × rows**, **Background**, **Profile colors** and **Fonts** (the fonts the items use), and **Remap sensors**, which opens [Sensor remap](remap) with a count of the sensors that need a look. Columns × rows changes the grid that widgets and snapped items use; items at their imported pixels stay where they are. Under them are the font, font size, text color, font scale, **Show FPS**, **OpenGL**, and the web view: **Show a web page**, its URL, **Interactive**, **Disable cache**, **Refresh every (s)** and **Max FPS**. A value InfoPanel would refuse shows a message and isn't stored. Changing the size keeps every item where it is and resizes the screen too.
 
 ## Saving to the Library
 
@@ -275,9 +275,9 @@ New profiles can start from a Library profile, and **Edit profile** in the Libra
 
 ## Components
 
-Select items, a group or an element and choose **Save as component** (`Ctrl+Shift+S`, or the Layers menu). Name it, and it goes to the Library's **Components**. A part of an element such as a Row is saved with the whole element. The component keeps the files its items use, the palette slots they follow, and for each sensor the role it fills (CPU load, GPU temperature and so on) when it matches one.
+Select items, a group or an element and choose **Save as component** (`Ctrl+Shift+S`, or the Layers menu). Name it, and it goes to the Library's **Components**. A part of an element such as a Row is saved with the whole element. The component keeps the files its items use, the profile colors they follow, and for each sensor the role it fills (CPU load, GPU temperature and so on) when it matches one.
 
-Drag a component from the Library onto the canvas. Its items land where you drop them, in front, as one undo step. A file already in the profile is reused, and a different file with the same name gets a new one. Colours that follow a palette slot take this profile's colour for that slot; fixed colours stay as they were.
+Drag a component from the Library onto the canvas. Its items land where you drop them, in front, as one undo step. A file already in the profile is reused, and a different file with the same name gets a new one. Colors that follow a profile color take this profile's color for it; fixed colors stay as they were.
 
 Sensors the profile can't find are matched by role on this PC. Any that still don't match open Remap. A component placed on a screen's page becomes a group of its own, with its own copy of the items.
 
@@ -304,7 +304,7 @@ Conversion is experimental and stays as it is: the dashboard's own screens are w
 
 For each widget you choose what it becomes:
 
-- **Recreate** rebuilds it. A widget keeps its look: it becomes a picture of itself with its values taken out, and each value goes on top as an InfoPanel item at the same place, in the same font, size and colour, bound to the same sensor. Bars become Bars, rings and level meters become Gauges, sparklines become Graphs (they start empty, as InfoPanel keeps its own history), and the time and date become a Clock and a Calendar. Anything else that moves (a weather animation, a tile's colour) stays as it was when you converted. A panel's widgets become Values, Bars, Gauges, Graphs, Tables, Text, Images, Clocks and Shapes at the places they were drawn. A widget whose values the conversion can't read yet is built from the readings it shows instead: hardware by role, plugins by their entries, on a plain card. The page's background is one picture under everything, and an imported InfoPanel profile on the page keeps its items, scaled to its cells.
+- **Recreate** rebuilds it. A widget keeps its look: it becomes a picture of itself with its values taken out, and each value goes on top as an InfoPanel item at the same place, in the same font, size and color, bound to the same sensor. Bars become Bars, rings and level meters become Gauges, sparklines become Graphs (they start empty, as InfoPanel keeps its own history), and the time and date become a Clock and a Calendar. Anything else that moves (a weather animation, a tile's color) stays as it was when you converted. A panel's widgets become Values, Bars, Gauges, Graphs, Tables, Text, Images, Clocks and Shapes at the places they were drawn. A widget whose values the conversion can't read yet is built from the readings it shows instead: hardware by role, plugins by their entries, on a plain card. The page's background is one picture under everything, and an imported InfoPanel profile on the page keeps its items, scaled to its cells.
 - **Static snapshot** is a picture of the widget as it is now. It never updates.
 - **Leave out** drops it.
 
@@ -318,7 +318,7 @@ A widget lands as InfoPanel items in free cells of the page, and is saved to the
 
 - **Letter spacing.** InfoPanel's text has no setting for the space between letters, so the editor doesn't offer one.
 - **Font weight** comes from the font and its style, in **Font** and **Font style**. Pick a light or bold face there.
-- **Value colours** for warning and critical are InfoPanel's own thresholds on a Value item.
+- **Value colors** for warning and critical are InfoPanel's own thresholds on a Value item.
 - **Text gradients** aren't available; put a Glow or a Card behind the text instead.
 - **A blurred text shadow** isn't available. Shadow text adds a sharp, dark copy behind the text (Approximated). A glow on text is InfoPanel's own Glow setting on the Text or Value.
-- **A gradient fill under a graph** isn't drawn. InfoPanel fills a Graph with one colour, so the editor does the same and says so in the badge.
+- **A gradient fill under a graph** isn't drawn. InfoPanel fills a Graph with one color, so the editor does the same and says so in the badge.

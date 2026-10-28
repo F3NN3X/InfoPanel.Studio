@@ -3,7 +3,7 @@ id: presets
 title: Layouts and presets
 icon: auto_awesome_mosaic
 related: [panels, themes, profiles]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.36
 ---
 
 Starting points you can drop in and adjust: whole pages, single panels, and looks.
@@ -14,7 +14,8 @@ Starting points you can drop in and adjust: whole pages, single panels, and look
 | Panel presets | One panel already bound to sensors (samples) | **Add › Panels** |
 | Panels | Panels you saved | **Add › Panels** (under My panels), **Library › Panels** |
 | Styles | One widget's look | Style tab, **Start from a Style**, **Library › Styles** |
-| Skins, saved Themes and template looks | A whole look for all screens, one screen or a page | **Theme › Start from**, **Apply a theme here…** |
+| Saved themes and template themes | A whole look for All screens, a screen or a page | **Theme › Switch theme** |
+| Skins and palettes | One part of a theme | The **Skin** and **Palette** rows of the theme card in **Theme** |
 
 ## Layout starters
 
@@ -30,12 +31,12 @@ Panel presets were built against one PC's sensors. Expect to re-pick some sensor
 
 ## Skins
 
-The skins sit in **Theme › 1 · Start from**, beside the palettes and your saved Themes. Below them, **From templates** holds the look of every screen template:
+A skin is how every widget is drawn. Pick one on the **Skin** row of the theme card in Theme, for All screens, a screen or a page, or per widget in its Style tab. Picking one is a single undo step and keeps the colors, corners, background and fine-tune.
 
 :::generated presets.appearance
 
-Picking one is a single undo step, at the level the scope bar shows (All screens or a screen).
+## Saved themes and palettes
 
-## Saved Themes
+**Save as theme** on a custom look's card, or **+ Save current look as a theme** in **Switch theme**, keeps the level's palette, skin, corners, background and fine-tune. **Switch theme** applies a saved theme or a template's look to All screens, a screen or a page; turn on **Include background** to replace the background too. On a page a theme brings its skin and fine-tune only. Rename, duplicate or delete a saved theme from its **⋯** there.
 
-**Save as Theme** in Theme keeps the colors, widget style and, if you leave **Include background** on, the background of the level you are editing. **Apply a theme here…** lists your saved Themes (rename or delete one from its ⋯) and the built-in palettes, and applies one at the current level; turn on **Include background** to replace the page background too. On a page, a Theme brings its widget style only.
+**+ Save current colors as a palette** in the Palette picker keeps the 19 color tokens as a palette of your own. See [Themes](themes).

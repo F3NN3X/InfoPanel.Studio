@@ -7,6 +7,7 @@ import { defaultConfig } from "@/lib/layout";
 import { WIDGET_KINDS } from "@/lib/panel-model";
 import { layoutStarters } from "@/lib/panel-starters";
 import { panelPresets } from "@/lib/panelPresets";
+import { skinLabel } from "@/lib/theme-skins";
 import { SKIN_PACKS } from "@/widgets/core/theme";
 import type { Block } from "./types";
 
@@ -35,8 +36,8 @@ export const GENERATORS: Record<string, () => Block[]> = {
   "presets.panels": () => [
     table(["Preset", "Size", "Builds"], panelPresets.map((p) => [`**${p.title}**`, size(p.colSpan, p.rowSpan), p.description ?? ""])),
   ],
-  /** The appearance presets the studio ships: the skins of Theme › Start from. */
-  "presets.appearance": () => [table(["Skin", "Look"], SKIN_PACKS.map((p) => [`**${p.name}**`, p.description]))],
+  /** The skins the studio ships, as the Skin picker names them. */
+  "presets.appearance": () => [table(["Skin", "Look"], SKIN_PACKS.map((p) => [`**${skinLabel(p.name)}**`, p.description]))],
   /** The profiles a fresh install starts with. */
   "profiles.table": () => [
     table(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { categorize, categoryTab } from "@/components/studio/inspector-categories";
 import { settingStateOf } from "@/components/studio/settings-model";
+import { isValidStyleValue } from "@/lib/appearance-presets";
 import { resolveStyle } from "@/lib/style-resolve";
 import { SKIN_PACKS } from "@/widgets/core/theme";
 import { CARD_SETTINGS, PANEL_SETTINGS, PROFILE_STYLE_KEYS, STANDARD_SETTINGS, STYLE_SETTINGS } from "@/modules/standard-settings";
@@ -18,9 +19,11 @@ describe("look settings", () => {
     }
   });
 
-  it("offer auto plus every skin pack", () => {
-    expect(values(STYLE_SETTINGS, "skin")).toEqual(["auto", ...SKIN_PACKS.map((p) => p.name)]);
-    expect(find(STYLE_SETTINGS, "skin").options![1].label).toBe("Default");
+  it("offer every skin pack once, the Default skin as auto (SPEC §8 item 7)", () => {
+    expect(values(STYLE_SETTINGS, "skin")).toEqual(["auto", ...SKIN_PACKS.filter((p) => p.name !== "default").map((p) => p.name)]);
+    expect(find(STYLE_SETTINGS, "skin").options!.map((o) => o.label).slice(0, 2)).toEqual(["Default", "TUI"]);
+    // A stored "default" (screen templates, older pickers) stays valid: it reads as the Default skin.
+    expect([isValidStyleValue("skin", "default"), isValidStyleValue("skin", "auto"), isValidStyleValue("skin", "nope")]).toEqual([true, true, false]);
   });
 
   it("offer the graph and meter choices; Small zones and Density are the template widgets' own (no look keys)", () => {

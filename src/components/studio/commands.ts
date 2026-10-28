@@ -172,7 +172,7 @@ function generalCommands(s: CommandState): Command[] {
     general("alert-new", "New alert rule", { type: "alert-new" }),
     general("theme", "Theme", { type: "open-theme" }, "colors, skins, saved themes, locks"),
     general("background", "Theme › Background", { type: "open-theme", section: "background" }),
-    general("font", "Theme › Typography", { type: "open-theme", section: "type" }, "page font, type"),
+    general("font", "Theme › Text", { type: "open-theme", section: "type" }, "page font, type, typography"),
     general(
       "settings",
       "Settings › Dashboard",

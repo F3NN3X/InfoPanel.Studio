@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { DEFAULT_THEME, THEME_PRESETS } from "@/lib/theme";
 import type { ThemeState, ThemeUse } from "@/lib/theme-apply";
+import { skinLabel } from "@/lib/theme-skins";
 import {
   backgroundLabel,
   cardName,
@@ -12,7 +13,6 @@ import {
   remText,
   resetText,
   rowTag,
-  skinLabel,
   themeLabel,
   themeLinkOf,
   updateBarText,
@@ -97,7 +97,7 @@ describe("the parts", () => {
   });
 
   it("name skins and palettes as the UI writes them", () => {
-    expect([skinLabel(undefined), skinLabel("auto"), skinLabel("tui"), skinLabel("nixie")]).toEqual(["Default", "Default", "TUI", "Nixie"]);
+    expect([skinLabel(undefined), skinLabel("auto"), skinLabel("default"), skinLabel("tui"), skinLabel("nixie")]).toEqual(["Default", "Default", "Default", "TUI", "Nixie"]);
     expect(paletteName(THEME_PRESETS[3].tokens)).toBe(THEME_PRESETS[3].label);
     expect(paletteName({ ...DEFAULT_THEME, primary: "1 2% 3%" })).toBe("Custom");
   });

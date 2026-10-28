@@ -115,7 +115,7 @@ export function SettingField({
     <fieldset
       data-setting-key={def.key}
       disabled={readOnly}
-      title={readOnly ? "Set by the theme: customise the section (or edit its lock) to change it" : undefined}
+      title={readOnly ? "Set by the theme: customize the section (or edit its lock) to change it" : undefined}
       className={cn("m-0 min-w-0 border-0 py-[3px] pl-4 pr-2.5", readOnly && "opacity-50")}
     >
       <SettingRow
