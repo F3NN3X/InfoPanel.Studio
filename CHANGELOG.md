@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.37] - 2026-10-28
+
 ### Changed
 
 - **Applying a theme adds to your look.** A saved theme or a template's look now sets the palette, skin and corners, and replaces only the style values the last theme set. Values you changed since are kept. Before, it replaced the level's whole widget style. On a page it sets the skin and style values; the palette, corners and background stay the screen's.
