@@ -301,7 +301,8 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       });
     },
     // Dropped with Alt over the CPU gauge: stored in px (data-free), moved by exactly the drag; then Alt released
-    // mid-drag snaps it to a cell's box.
+    // mid-drag snaps it again, but (user decision 2026-10-28) a part already placed freely keeps its size and stays in
+    // px, its corner on a cell's.
     [CHECKS.alt[2].text]: async (page) => {
       const title = page.locator('[data-part-id="title"]');
       await title.dblclick();
@@ -316,7 +317,9 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
         await page.keyboard.up("Alt");
         await expect(page.getByTestId("alt-hint")).toHaveCount(0);
       });
-      await expect(title).not.toHaveAttribute("data-free");
+      await expect(title).toHaveAttribute("data-free", "");
+      const snapped = (await title.boundingBox())!;
+      expect([Math.round(snapped.width), Math.round(snapped.height)]).toEqual([Math.round(after.width), Math.round(after.height)]);
     },
     // A widget dragged with Alt: the hint says it stays on the grid, and it lands on free cells (Weather onto Coding
     // agents is refused).
