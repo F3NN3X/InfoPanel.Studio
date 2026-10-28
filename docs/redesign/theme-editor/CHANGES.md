@@ -181,6 +181,33 @@ The Theme rail view is rebuilt around the live look of a level (handoff SPEC §4
   label), `theme-view-model` (`skinLabel` moved, `default` case). Added: the Default skin's two spellings in
   `theme-apply.test.ts`.
 
+## PR · Theme switching applies the theme
+
+- **The bug:** on a screen saved before snapshots ("MyDefault" in the owner's config), Switch theme › Paper · Ink
+  left it dark: with no snapshot `merged()` compared the level's values with `{}`, so every one counted as the level's
+  own and stayed (surfaceOpacity 0 among them); the background came only with Include background, off by default.
+- **A level with no snapshot has nothing of its own** (`theme-apply.ts`, `writtenAt`): the first pick takes everything
+  the level holds as the last theme's, so it replaces the palette, skin, corners and every fine-tune value, as Reset does,
+  except that a theme without a background leaves the level's. Same per unlocked section on a page (`mergedPage`). Later
+  picks keep only what changed since the last one. `resetToTheme` is unchanged.
+- **Keep my background** replaces Include background: `ApplyThemeOptions.keepBackground`, off by default, so a theme
+  with a background brings it. Session-remembered in Switch theme as before; the command palette's two commands are
+  "Apply theme: ‹name›" (brings it) and "Apply theme, keep background: ‹name›" (action `keepBackground`).
+- **Toast (§5.4):** a first pick says "Replaced this screen's look, background included." (or ". Background kept.";
+  "the look of All screens", "this page's look"). After any pick, the widgets that still differ in the sections the theme
+  sets (`widgetsKeeping` in `theme-differences.ts`: `differencesOf` over `exceptionsOf`, widgets only, not ignored)
+  add "N widgets keep their own look." and **Make them follow** (`followAll`, one `setConfig`). The count is taken
+  before the pick lands; the action recomputes from the config it runs on.
+- **Help:** `themes.md` (first pick, Keep my background, Make them follow, the two commands), `presets.md`.
+- **Tests changed because the rule changed:** `theme-apply.test.ts` "keeps every value of a level that has no snapshot"
+  is now "replaces the look of a level that has no snapshot… then keeps what changes since"; "writes the background only
+  when included" is now "brings the theme's background unless the level keeps its own"; the first case's snapshot now
+  holds desk's background; the page case drops `includeBackground`. `appearance-presets.test.ts`'s background case uses
+  `keepBackground`. `commands.test.ts` (labels, `keepBackground`), `theme-messages.test.ts` (the outcome argument).
+  Added: a screen and a page with no snapshot, `widgetsKeeping` / `widgetCount`, the replaced and widgets toast copy, and
+  `tests/e2e/theme-switch.spec.ts` (a black screen with see-through cards → Paper · Ink → Paper's background and white
+  cards → Undo), on the `styles-themes` (now with `e2e`) and `studio` features.
+
 ## Decisions made while grounding the spec
 
 - A page can't hold a palette, corners or background. At page level these parts are read-only and say "Palette, corners

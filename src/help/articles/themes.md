@@ -40,7 +40,7 @@ Once you change a part after applying a saved theme, a bar says "Changed here. U
 
 **Switch theme** opens every theme you can apply, filtered by **All**, **Saved**, **Templates** or **Light**. Your saved themes come first; each **⋯** says which levels use it (or "Not in use") and has **Rename**, **Duplicate** and **Delete**. Then one row for each screen template with a chip for each variant. Meters, Orbit and Ticker look the same, so they are one row, tagged "also Orbit, Ticker".
 
-Picking a theme adds to the look: it writes the palette, skin and corners, and keeps the fine-tune changes you made at this level. A variant also brings the card opacity and color swaps a new screen from it has. The background changes only with **Include background** ticked at the bottom. It is off by default and stays as you set it until the studio closes. On a page a theme brings its skin and fine-tune values only. **+ Save current look as a theme** at the bottom saves the level's look.
+Picking a theme writes the palette, skin, corners and the theme's background. The first theme picked on a level that has none yet replaces its look, fine-tune included. After that, picking a theme adds to the look: it keeps the fine-tune changes you made at this level since. A variant also brings the card opacity and color swaps a new screen from it has. Tick **Keep my background** at the bottom to keep the level's background. It is off by default and stays as you set it until the studio closes. On a page a theme brings its skin and fine-tune values only. Widgets with their own colors or card look keep them; the toast counts them and **Make them follow** puts them back on the theme. **+ Save current look as a theme** at the bottom saves the level's look.
 
 ## Palette, Skin and Background
 
@@ -72,7 +72,7 @@ After a change, a row under the preview header says what happened, for example "
 
 ## From the command palette
 
-Each saved theme has two commands: **Apply theme: ‹name›** and **Apply theme with background: ‹name›**. They apply at the level Theme is set to, or All screens before you have opened Theme.
+Each saved theme has two commands: **Apply theme: ‹name›**, which brings its background, and **Apply theme, keep background: ‹name›**. They apply at the level Theme is set to, or All screens before you have opened Theme.
 
 ## Follow theme, section by section
 

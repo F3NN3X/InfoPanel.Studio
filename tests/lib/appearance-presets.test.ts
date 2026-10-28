@@ -210,11 +210,11 @@ describe("Theme's scopes (Apply a theme here…, Save as Theme)", () => {
     expect(out.background).toBeUndefined();
   });
 
-  it("never writes the background with Include background off, and always with it on", () => {
+  it("never writes the background with Keep my background on, and always with it off", () => {
     const c = config({ background: { type: "color", color: "#101010" } });
-    expect(applyTheme(c, glass, ALL, { includeBackground: false }).background).toEqual(c.background);
-    expect(applyTheme(c, glass, ALL, { includeBackground: true }).background).toEqual(glass.background);
-    expect(applyTheme(config(), glass, P1, { includeBackground: false }).profiles[0].background).toBeUndefined();
+    expect(applyTheme(c, glass, ALL, { keepBackground: true }).background).toEqual(c.background);
+    expect(applyTheme(c, glass, ALL, { keepBackground: false }).background).toEqual(glass.background);
+    expect(applyTheme(config(), glass, P1, { keepBackground: true }).profiles[0].background).toBeUndefined();
   });
 
   it("saves a page's resolved look: its customised sections over its screen's, the screen's tokens", () => {

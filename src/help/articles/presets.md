@@ -37,6 +37,6 @@ A skin is how every widget is drawn. Pick one on the **Skin** row of the theme c
 
 ## Saved themes and palettes
 
-**Save as theme** on a custom look's card, or **+ Save current look as a theme** in **Switch theme**, keeps the level's palette, skin, corners, background and fine-tune. **Switch theme** applies a saved theme or a template's look to All screens, a screen or a page; turn on **Include background** to replace the background too. On a page a theme brings its skin and fine-tune only. Rename, duplicate or delete a saved theme from its **⋯** there.
+**Save as theme** on a custom look's card, or **+ Save current look as a theme** in **Switch theme**, keeps the level's palette, skin, corners, background and fine-tune. **Switch theme** applies a saved theme or a template's look to All screens, a screen or a page; it brings its background unless you tick **Keep my background**. On a page a theme brings its skin and fine-tune only. Rename, duplicate or delete a saved theme from its **⋯** there.
 
 **+ Save current colors as a palette** in the Palette picker keeps the 19 color tokens as a palette of your own. See [Themes](themes).

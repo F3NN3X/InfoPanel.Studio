@@ -6,6 +6,15 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Fixed
+
+- **Switching theme on a screen saved before 1.3.0-beta.37 now applies the theme.** Such a screen had no record of the last theme, so every value it held counted as yours and stayed: Paper · Ink left a black screen with see-through cards. The first theme picked on a screen, page or All screens with no record now replaces its look, as Reset does (a theme without a background leaves yours). Later picks keep what you changed since, as before.
+
+### Changed
+
+- **A theme brings its background unless you tick Keep my background.** *Include background* in Switch theme is now **Keep my background**, off by default. The command palette's commands are **Apply theme: ‹name›** and **Apply theme, keep background: ‹name›**.
+- **The toast after a theme pick counts the widgets that keep their own look** where the theme sets one, with **Make them follow** (one undo step).
+
 ## [1.3.0-beta.37] - 2026-10-28
 
 ### Changed

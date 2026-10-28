@@ -70,11 +70,11 @@ describe("buildCommands", () => {
     });
   });
 
-  it("offers each saved theme twice, without and with its background, at the level Theme is set to", () => {
+  it("offers each saved theme twice, with its background and keeping the level's, at the level Theme is set to", () => {
     const themes = buildCommands({ ...base, appearancePresets: [{ id: "t1", name: "Desk" }], themeLevel: "Gaming" }).filter((c) => c.group === "Themes");
     expect(themes.map((c) => [c.label, c.hint, c.action])).toEqual([
-      ["Apply theme: Desk", "Gaming", { type: "apply-appearance", id: "t1", background: false }],
-      ["Apply theme with background: Desk", "Gaming", { type: "apply-appearance", id: "t1", background: true }],
+      ["Apply theme: Desk", "Gaming", { type: "apply-appearance", id: "t1", keepBackground: false }],
+      ["Apply theme, keep background: Desk", "Gaming", { type: "apply-appearance", id: "t1", keepBackground: true }],
     ]);
     expect(buildCommands({ ...base, appearancePresets: [{ id: "t1", name: "Desk" }] }).find((c) => c.id === "appearance:t1")?.hint).toBe("All screens");
   });

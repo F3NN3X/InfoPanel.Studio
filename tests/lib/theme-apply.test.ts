@@ -75,12 +75,12 @@ const page = (c: DashboardConfig) => c.profiles[0].pages[0];
 const editAll = (c: DashboardConfig, values: Record<string, string | number>): DashboardConfig => ({ ...c, style: { ...c.style, ...values } });
 
 describe("a pick adds to the look (All screens)", () => {
-  it("writes the palette, skin and corners, and stores what it wrote", () => {
+  it("writes the palette, skin, corners and background, and stores what it wrote", () => {
     const out = applyTheme(config(), desk, ALL);
     expect(out.theme).toEqual(OCEAN);
     expect(out.radius).toBe(1);
     expect(out.style).toEqual({ skin: "tui", accent: "#38bdf8", surface: "glass" });
-    expect(out.appliedTheme).toEqual({ id: "desk", name: "desk", tokens: OCEAN, radius: 1, values: desk.style });
+    expect(out.appliedTheme).toEqual({ id: "desk", name: "desk", tokens: OCEAN, radius: 1, background: desk.background, values: desk.style });
   });
 
   it("replaces what the last theme wrote and keeps what the user changed since", () => {
@@ -96,18 +96,24 @@ describe("a pick adds to the look (All screens)", () => {
     expect(out.style?.skin).toBe("hud");
   });
 
-  it("keeps every value of a level that has no snapshot (a dashboard saved before)", () => {
-    const out = applyTheme(config({ style: { accent: "#ff0000" } }), night, ALL);
-    expect(out.style).toEqual({ accent: "#ff0000", skin: "hud", blur: "16" });
+  it("replaces the look of a level that has no snapshot (a dashboard saved before), then keeps what changes since", () => {
+    const out = applyTheme(config({ style: { accent: "#ff0000", surfaceOpacity: 0 } }), night, ALL);
+    expect(out.style).toEqual(night.style);
+    expect(out.appliedTheme).toEqual({ id: "night", name: "night", tokens: DEFAULT_THEME, radius: 0.25, values: night.style });
+    expect(themeState(out, ALL).own).toEqual([]);
+    const next = applyTheme(editAll(out, { surfaceOpacity: 40 }), desk, ALL);
+    expect(next.style).toEqual({ ...desk.style, surfaceOpacity: 40 });
   });
 
-  it("writes the background only when included", () => {
+  it("brings the theme's background unless the level keeps its own; a theme without one leaves it", () => {
     const c = config({ background: { type: "color", color: "#000000" } });
-    expect(applyTheme(c, desk, ALL).background).toEqual(c.background);
-    expect(applyTheme(c, desk, ALL).appliedTheme?.background).toBeUndefined();
-    const on = applyTheme(c, desk, ALL, { includeBackground: true });
+    const on = applyTheme(c, desk, ALL);
     expect(on.background).toEqual(desk.background);
     expect(on.appliedTheme?.background).toEqual(desk.background);
+    const kept = applyTheme(c, desk, ALL, { keepBackground: true });
+    expect(kept.background).toEqual(c.background);
+    expect(kept.appliedTheme?.background).toBeUndefined();
+    expect(applyTheme(c, night, ALL).background).toEqual(c.background);
   });
 });
 
@@ -119,12 +125,21 @@ describe("a pick at a screen", () => {
     expect(out.style).toEqual({ numGlow: "strong" });
     expect(out.profiles[1].appliedTheme).toBeUndefined();
   });
+
+  it("replaces the look of a screen that has no snapshot: its own values, palette, corners and background", () => {
+    const dark = profile("p1", { theme: OCEAN, radius: 0, background: { type: "color", color: "#000000" }, widgetTheme: { values: { surfaceOpacity: 0, accent: "#ff0000" } } });
+    const out = applyTheme(config({ profiles: [dark, profile("p2")] }), desk, P1);
+    expect(p1(out)).toMatchObject({ theme: OCEAN, radius: 1, background: desk.background });
+    expect(p1(out).widgetTheme?.values).toEqual(p1(out).appliedTheme?.values);
+    expect(p1(out).widgetTheme?.values).not.toHaveProperty("surfaceOpacity");
+    expect(applyTheme(config({ profiles: [dark, profile("p2")] }), desk, P1, { keepBackground: true }).profiles[0].background).toEqual(dark.background);
+  });
 });
 
 describe("a pick at a page: its skin and style only", () => {
   it("customises the sections the theme sets, leaves its locked ones and its parts alone", () => {
     const c = config({ profiles: [profile("p1", { widgetTheme: { locks: { surface: true } } }), profile("p2")] });
-    const out = applyTheme(c, desk, PAGE, { includeBackground: true });
+    const out = applyTheme(c, desk, PAGE);
     expect(page(out).widgetTheme).toEqual({ values: { skin: "tui", accent: "#38bdf8" }, follow: { skin: false, colors: false } });
     expect(page(out).appliedTheme).toEqual({ id: "desk", name: "desk", values: { skin: "tui", accent: "#38bdf8" } });
     expect(p1(out).theme).toBeUndefined();
@@ -139,6 +154,18 @@ describe("a pick at a page: its skin and style only", () => {
     expect(page(out).widgetTheme).toEqual({ values: { skin: "ink", accent: "#00ff00" }, follow: { skin: false, colors: false } });
     const clean = applyTheme(once, theme("plain", { style: { skin: "ink" } }), PAGE);
     expect(page(clean).widgetTheme).toEqual({ values: { skin: "ink" }, follow: { skin: false } });
+  });
+
+  it("replaces the unlocked sections of a page that has no snapshot, and leaves a locked one", () => {
+    const c = config({
+      profiles: [
+        profile("p1", { widgetTheme: { locks: { border: true } }, pages: [{ ...mainPage(), widgetTheme: { values: { accent: "#ff0000", surfaceOpacity: 0, glow: "soft" }, follow: { colors: false, surface: false, border: false } } }] }),
+        profile("p2"),
+      ],
+    });
+    const out = applyTheme(c, desk, PAGE);
+    expect(page(out).widgetTheme).toEqual({ values: { glow: "soft", skin: "tui", accent: "#38bdf8", surface: "glass" }, follow: { border: false, colors: false, surface: false, skin: false } });
+    expect(page(out).appliedTheme?.values).toEqual({ skin: "tui", accent: "#38bdf8", surface: "glass" });
   });
 });
 
