@@ -10,11 +10,12 @@ import type { AppearancePreset } from "@/lib/appearance-presets";
 import { uid, type DashboardConfig, type StylePreset } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
 import { BUILTIN_LOOK, BUILTIN_THEME, CONFIG_STYLE, CONFIG_THEME, isBuiltinItem, type SkinData } from "@/lib/my-library/config-items";
+import { sectionsWithValues } from "@/lib/theme-model";
 import { deleteStylePreset, duplicateStylePreset, renameStylePreset, updateStylePreset } from "@/lib/style-presets";
 import type { ThemePreset } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
 import { scopeOfAt, withTokens, type ThemeAt } from "@/components/studio/theme-cards";
-import { withScopeValues } from "@/components/studio/theme-editor-model";
+import { withPageFollow, withScopeValues } from "@/components/studio/theme-editor-model";
 import { applyStyle, type StudioBridge } from "./library-actions";
 import type { DetailAction } from "./library-detail";
 
@@ -74,9 +75,19 @@ export function presetPrimary(item: LibraryItem, ctx: PresetContext): DetailActi
   };
 }
 
-/** The skin's widget style at a Theme level (the Theme page's Start from › Skins writes the same). */
-const withSkin = (c: DashboardConfig, profileId: string, at: ThemeAt, data: SkinData): DashboardConfig =>
-  withScopeValues(c, profileId, scopeOfAt(at), (st) => ({ ...st, ...data.settings }));
+/**
+ * The skin's widget style at a Theme level (the Theme page's Start from › Skins writes the same). A page uses its own
+ * values only in the sections it customises, so it customises the ones the skin writes, as applying a Theme to a page
+ * does; a section its screen locks stays the screen's.
+ */
+function withSkin(c: DashboardConfig, profileId: string, at: ThemeAt, data: SkinData): DashboardConfig {
+  const written = withScopeValues(c, profileId, scopeOfAt(at), (st) => ({ ...st, ...data.settings }));
+  if (at.level !== "page") return written;
+  const locks = written.profiles.find((p) => p.id === profileId)?.widgetTheme?.locks;
+  return sectionsWithValues(data.settings)
+    .filter((sec) => locks?.[sec] !== true)
+    .reduce((cfg, sec) => withPageFollow(cfg, profileId, at.pageId, sec, false), written);
+}
 
 /** A Theme's or a skin's "Apply to…" scopes: All screens, this screen, this page (a palette has no page level). */
 export function presetScopes(item: LibraryItem, ctx: PresetContext): ScopeChoice[] {
