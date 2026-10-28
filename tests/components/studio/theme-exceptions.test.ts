@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig, type DashboardConfig, type MonitorProfile, type Placement } from "@/lib/layout";
-import { themeCard, withCardLock, withToken, type ThemeAt } from "@/components/studio/theme-cards";
-import { withPageFollow } from "@/components/studio/theme-editor-model";
+import { themeCard, withCardLock, type ThemeAt } from "@/components/studio/theme-cards";
+import { withPageFollow, withScopeValues } from "@/components/studio/theme-editor-model";
 import { exceptionsOf, makeAllFollow, makeFollow, previewProfile, widgetOverrides } from "@/components/studio/theme-exceptions";
 
 const zone = (id: string, extra: Partial<Placement> = {}): Placement => ({
@@ -16,8 +16,8 @@ const zone = (id: string, extra: Partial<Placement> = {}): Placement => ({
 });
 
 /**
- * Screen "Desk" with its own color tokens; page Main (a CPU custom for Colors, a second custom for Motion) and
- * page Gaming (custom Border & glow, with a CPU custom for Typography).
+ * Screen "Desk" with its own widget colors; page Main (a CPU custom for Colors, a second custom for Motion) and
+ * page Gaming (custom Surface & border, with a CPU custom for Text).
  */
 function setup(): DashboardConfig {
   const c = defaultConfig();
@@ -42,7 +42,7 @@ function setup(): DashboardConfig {
       },
     ],
   };
-  return withToken({ ...c, profiles: [desk] }, { level: "screen", profileId: "desk" }, "primary", "1 2% 3%");
+  return withScopeValues({ ...c, profiles: [desk] }, "desk", { kind: "profile" }, () => ({ s1: "#00ff00" }));
 }
 
 const ALL: ThemeAt = { level: "all" };
@@ -58,10 +58,10 @@ describe("what each scope lists", () => {
       "screen:desk:colors",
       "widget:main:cpu:colors",
       "widget:main:gpu:motion",
-      "page:gaming:border",
+      "page:gaming:surface",
       "widget:gaming:cpu2:type",
     ]);
-    expect(keys(c, SCREEN)).toEqual(["widget:main:cpu:colors", "widget:main:gpu:motion", "page:gaming:border", "widget:gaming:cpu2:type"]);
+    expect(keys(c, SCREEN)).toEqual(["widget:main:cpu:colors", "widget:main:gpu:motion", "page:gaming:surface", "widget:gaming:cpu2:type"]);
     expect(keys(c, GAMING)).toEqual(["widget:gaming:cpu2:type"]);
   });
 
@@ -71,7 +71,7 @@ describe("what each scope lists", () => {
     expect(list.find((ex) => ex.key === "widget:main:cpu:colors")?.ignored).toBe(true);
     expect(list.find((ex) => ex.key === "widget:main:gpu:motion")?.ignored).toBe(false);
     expect(widgetOverrides(list, themeCard("colors"))).toBe(1);
-    expect(widgetOverrides(list, themeCard("border"))).toBe(0);
+    expect(widgetOverrides(list, themeCard("surface"))).toBe(0);
   });
 });
 
@@ -82,7 +82,7 @@ describe("Make it follow", () => {
     const out = makeFollow(c, ex);
     expect(desk(out).pages[0].placements[0]).toEqual({ ...desk(c).pages[0].placements[0], follow: undefined });
     expect(desk(out).pages[0].placements[0].settings).toEqual({ accent: "#ff0000" });
-    expect(keys(out, SCREEN)).toEqual(["widget:main:gpu:motion", "page:gaming:border", "widget:gaming:cpu2:type"]);
+    expect(keys(out, SCREEN)).toEqual(["widget:main:gpu:motion", "page:gaming:surface", "widget:gaming:cpu2:type"]);
   });
 
   it("a page follows its screen again; a screen drops its own values for the card", () => {
@@ -90,7 +90,7 @@ describe("Make it follow", () => {
     const page = makeFollow(c, exceptionsOf(c, SCREEN).find((e) => e.kind === "page")!);
     expect(desk(page).pages[1].widgetTheme).toEqual({ values: { glow: "soft" } });
     const screen = makeFollow(c, exceptionsOf(c, ALL).find((e) => e.kind === "screen")!);
-    expect(desk(screen)).not.toHaveProperty("theme");
+    expect(desk(screen).widgetTheme?.values).toBeUndefined();
   });
 });
 
@@ -106,10 +106,10 @@ describe("Make all follow respects the scope", () => {
   it("a screen clears its pages and widgets but keeps its own look; All screens clears the screen too", () => {
     const screen = makeAllFollow(setup(), SCREEN);
     expect(exceptionsOf(screen, SCREEN)).toEqual([]);
-    expect(desk(screen).theme).toBeDefined();
+    expect(desk(screen).widgetTheme?.values).toEqual({ s1: "#00ff00" });
     const all = makeAllFollow(setup(), ALL);
     expect(exceptionsOf(all, ALL)).toEqual([]);
-    expect(desk(all)).not.toHaveProperty("theme");
+    expect(desk(all).widgetTheme?.values).toBeUndefined();
   });
 });
 

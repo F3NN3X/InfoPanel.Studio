@@ -7,7 +7,7 @@ import type { LibraryItem } from "@/lib/library";
 import type { SkinData } from "@/lib/my-library/config-items";
 import type { Template } from "@/lib/infopanel/templates/kit";
 import type { ScreenTemplate } from "@/lib/screen-templates/kit";
-import { SkinSwatch } from "@/components/studio/theme-start-from";
+import { SkinSwatch } from "@/components/studio/theme-swatches";
 import { TemplateThumb } from "@/components/infopanel/template-gallery";
 import { ScreenTemplateThumb } from "@/components/templates/screen-template-gallery";
 

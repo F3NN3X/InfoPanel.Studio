@@ -50,16 +50,14 @@ export function useStudioUi(
    */
   const [themeProfileId, setThemeProfileId] = useState<string>();
   const [themePageId, setThemePageId] = useState<string>();
-  /** The saved Theme Theme is editing in place (the Library's "Edit in Theme"); it ends when Theme is left. */
-  const [themeEditing, setThemeEditing] = useState<string>();
-  useEffect(() => {
-    if (mode !== "theme") setThemeEditing(undefined);
-  }, [mode]);
+  /** Whether Theme has been opened: until then the command palette applies themes to All screens. */
+  const [themeOpened, setThemeOpened] = useState(false);
   /** Open Theme at a scope, of a screen and page (unset = the ones in Design; a page scope names its page). */
   const openTheme = (scope: ThemeScope, profileId?: string, pageId?: string) => {
     setThemeScope(scope);
     setThemeProfileId(profileId);
     setThemePageId(scope.kind === "page" ? scope.pageId : pageId);
+    setThemeOpened(true);
     setMode("theme");
   };
   /** The rail's Theme: the scope kind it was left at, on the screen and page selected in Design. */
@@ -256,8 +254,7 @@ export function useStudioUi(
     showAlerts,
     showScreens,
     themeScope,
-    themeEditing,
-    setThemeEditing,
+    themeOpened,
     themeProfileId,
     themePageId,
     openTheme,

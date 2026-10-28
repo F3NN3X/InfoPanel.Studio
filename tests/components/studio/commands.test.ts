@@ -70,6 +70,15 @@ describe("buildCommands", () => {
     });
   });
 
+  it("offers each saved theme twice, without and with its background, at the level Theme is set to", () => {
+    const themes = buildCommands({ ...base, appearancePresets: [{ id: "t1", name: "Desk" }], themeLevel: "Gaming" }).filter((c) => c.group === "Themes");
+    expect(themes.map((c) => [c.label, c.hint, c.action])).toEqual([
+      ["Apply theme: Desk", "Gaming", { type: "apply-appearance", id: "t1", background: false }],
+      ["Apply theme with background: Desk", "Gaming", { type: "apply-appearance", id: "t1", background: true }],
+    ]);
+    expect(buildCommands({ ...base, appearancePresets: [{ id: "t1", name: "Desk" }] }).find((c) => c.id === "appearance:t1")?.hint).toBe("All screens");
+  });
+
   it("lists undo / redo only when there is something to undo / redo", () => {
     expect(ids(base)).not.toContain("undo");
     expect(ids(base)).not.toContain("redo");

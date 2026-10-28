@@ -211,7 +211,7 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
               onClick={() => inherit.navigateTo({ view: "theme", themeScope: pageScope, profileId: profile.id, section: "customise" })}
               className="rounded-sm text-ui-accent-text hover:underline"
             >
-              Customise a section…
+              Change a section…
             </button>
           </p>
         </Block>

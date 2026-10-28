@@ -24,6 +24,8 @@ import type { StudioMutations } from "./use-studio-mutations";
 import type { StudioSelection } from "./use-studio-selection";
 import { useStudioShortcuts, type ShortcutAction } from "./use-studio-shortcuts";
 import type { StudioUi } from "./use-studio-ui";
+import { validScope } from "./theme-editor-model";
+import { commandThemeAt } from "./theme-view-model";
 
 interface CommandDeps {
   config: DashboardConfig;
@@ -71,6 +73,12 @@ export function useStudioCommands({
   const toast = useToast();
   const pages = (config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]).pages;
   const currentPage = profile.pageId ?? pages[0].id;
+  // "Apply theme": at the level Theme is set to, on its screen and page (All screens until Theme is opened).
+  const themeProfile = config.profiles.find((p) => p.id === ui.themeProfileId) ?? config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
+  const themeScope = validScope(themeProfile, ui.themeScope);
+  const themeAt = commandThemeAt(ui.themeOpened ? themeScope : undefined, themeProfile.id);
+  const themeLevel =
+    themeAt.level === "all" ? "All screens" : themeAt.level === "screen" ? themeProfile.name : (themeProfile.pages.find((pg) => pg.id === themeAt.pageId)?.name ?? themeProfile.name);
 
   /** Select a zone (Layers drawer, palette) and bring it into view on the canvas. */
   const focusZone = (id: string) => {
@@ -200,7 +208,8 @@ export function useStudioCommands({
         return setConfig((c) => toggleEnforce(c, profile));
       case "goto-theme-setting":
         // The editor mounts at its current scope first; then it opens the section and focuses the row.
-        ui.setMode("theme");
+        // Through openTheme, so the palette's Apply theme then uses the level Theme shows.
+        ui.openTheme(ui.themeScope);
         ui.setInspectorQuery("");
         return void requestAnimationFrame(() => ui.jumpTheme(action.section, action.key));
       case "open-theme":
@@ -232,7 +241,7 @@ export function useStudioCommands({
         return edit.moveSelectionToPage(action.id);
       case "apply-appearance": {
         const preset = appearancePresets.presets.find((p) => p.id === action.id);
-        return preset && appearancePresets.apply(preset, { level: "all" });
+        return preset && appearancePresets.apply(preset, themeAt, action.background);
       }
     }
     if (!selected) return;
@@ -331,6 +340,7 @@ export function useStudioCommands({
         showGrid: ui.showGrid,
         enforced: allLocked(appearance.profile),
         appearancePresets: appearancePresets.presets,
+        themeLevel,
         exportCheck: madeForInfoPanel(config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]),
       })
     : [];
