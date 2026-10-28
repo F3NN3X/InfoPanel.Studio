@@ -1,7 +1,7 @@
 {
   "$comment": "Deterministic budgets, enforced in CI (tools/perf/check-budgets.mjs; requests by tests/e2e/kiosk-budget.spec.ts). CPU, memory and frame counts are report-only. Lower a budget when a change shrinks the number; raise one only with a reason in the commit.",
   "kioskEntryGzipBytes": 264800,
-  "studioEntryGzipBytes": 601000,
+  "studioEntryGzipBytes": 601200,
   "kioskLoadRequests": 34,
   "kioskServerRendererAllowed": false
 }

@@ -70,6 +70,7 @@ function widgetZone(ctx: Ctx, item: StoredItem, w: WidgetItem, cells: CellBox, g
     ...(w.panel ? { panel: w.panel as unknown as Placement["panel"] } : {}),
     ...(flagged(item.IsLocked) ? { locked: true } : {}),
     ...(groupId ? { groupId } : {}),
+    ...(typeof w.name === "string" && w.name ? { name: w.name } : {}),
   };
 }
 
