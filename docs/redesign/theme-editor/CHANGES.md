@@ -91,7 +91,7 @@ The Theme rail view is rebuilt around the live look of a level (handoff SPEC §4
   `glossary.md` (Skin: picked on the theme card), `library.md` (Theme › Start from, Typography), `widget-settings.md`,
   `performance.md` and `problems.md` (chip words), `island-alerts.md` (Theme › Typography is Theme › Text).
 
-## PR · Preview, toast row and saved palettes
+## PR #231 · Preview, toast row and saved palettes
 
 - **Preview** (SPEC §4.4): "Preview", the screen's pages as a segmented control (it previews another page; the level
   stays), the differences pill **N widgets differ · hide tags** / **Show what differs**, the toast row, then the page at
@@ -123,6 +123,29 @@ The Theme rail view is rebuilt around the live look of a level (handoff SPEC §4
 - **Data:** `config.palettes` (`id`, `name`, the 19 `tokens`); a theme keeps a copy of its tokens, never a palette id.
 - **Help:** `themes.md` (the preview, the tags and the selection bar, Make all follow, the toast row, saved palettes;
   Exceptions is gone), `presets.md` (saved palettes; duplicating a palette), `library.md` (duplicating a palette).
+
+## PR · One Library, island looks, Styles, one matching rule
+
+- **One Library (SPEC §7):** the Library no longer lists Themes, palettes, template looks, skins or Island looks. The
+  sidebar ends with a row "Themes, palettes and skins are in Theme →" (`navigateTo({ view: "theme" })`). Search, Recent,
+  Not used and the counts are built from the remaining items, so none of them can show a theme. "Edit in Theme" is gone
+  (`studio-view` `editInTheme`, `onEditInTheme`).
+- **Styles stay in the Library.** Rename, Duplicate, Delete and Update from selection of a saved Style exist nowhere
+  else (the Style tab only starts from and saves Styles), so the Styles collection stays, trimmed to Styles
+  (`preset-actions.ts`, `preset-detail.tsx`, `preset-summary.ts` keep `styleRows` only).
+- **Island looks** are a picker at the top of the island settings' Look section (six buttons, the one matching the
+  island pressed). It applies through `withIslandLook` (moved to `src/lib/island/looks.ts`) to the screen being edited,
+  with no coalescing key, so it is one undo step. Renames: Glass → Frosted pill, Paper → Light pill, Theme card → Match
+  theme (ids kept).
+- **Built-in Styles renamed** (ids kept): Default → Follow theme, Dark → Matte dark, Light → Matte light, Vivid →
+  Frosted, Mono → Monochrome. Surface material "Theme" → **Match theme** (label only, stored value `theme`).
+- **One matching rule:** `themeLabel(themeState(...))` in `theme-view-model.ts` names a level's theme from its stored
+  snapshot: the theme, "Changed from ‹name›", "‹name› (deleted)" or "Custom look". The page inspector's Theme row uses it
+  at the screen's level (All screens' when the screen has no theme of its own). `presetMatches`, `activePresetId` and
+  `sameTokens` (appearance-actions) are gone; the Library's "Used by" for a Theme went with the Theme detail.
+- **Tests:** the activePresetId cases, the skin, template-look and palette Library cases, `themeUsedBy`, and the
+  Themes/Skins/Island collections' counts were removed with what they tested; the island look cases moved to
+  `tests/lib/island/looks.test.ts`.
 
 ## Decisions made while grounding the spec
 

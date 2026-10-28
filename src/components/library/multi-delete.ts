@@ -2,12 +2,11 @@
  * Selecting several Library cards and deleting them at once. The click rules follow the item lists elsewhere in the
  * studio (Ctrl / ⌘ toggles one, Shift takes a range); the plan says which of the picked items can go and why the rest
  * stay: a built-in never goes, and an image, video or SVG a screen uses never goes (the remove itself checks each file
- * again). A saved Theme, Style or panel is deleted from the config, all in one edit.
+ * again). A saved Style or panel is deleted from the config, all in one edit.
  */
-import { deleteAppearancePreset } from "@/lib/appearance-preset-apply";
 import type { DashboardConfig } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
-import { CONFIG_PANEL, CONFIG_STYLE, CONFIG_THEME, isBuiltinItem } from "@/lib/my-library/config-items";
+import { CONFIG_PANEL, CONFIG_STYLE, isBuiltinItem } from "@/lib/my-library/config-items";
 import { hashOf } from "@/lib/my-library/model";
 import { deleteStylePreset } from "@/lib/style-presets";
 import { deletePanelPreset } from "@/components/studio/panel-preset-actions";
@@ -55,14 +54,13 @@ export function planDelete(items: readonly LibraryItem[], used: ReadonlySet<stri
   return plan;
 }
 
-/** Whether the item is a saved Theme, Style or panel: kept in the config rather than on the server. */
-export const isSavedInConfig = (item: Pick<LibraryItem, "id">): boolean => [CONFIG_PANEL, CONFIG_STYLE, CONFIG_THEME].some((p) => item.id.startsWith(p));
+/** Whether the item is a saved Style or panel: kept in the config rather than on the server. */
+export const isSavedInConfig = (item: Pick<LibraryItem, "id">): boolean => [CONFIG_PANEL, CONFIG_STYLE].some((p) => item.id.startsWith(p));
 
-/** The config without the saved Themes, Styles and panels among `items` (anything else is left alone). */
+/** The config without the saved Styles and panels among `items` (anything else is left alone). */
 export function deleteConfigItems(config: DashboardConfig, items: readonly LibraryItem[]): DashboardConfig {
   return items.reduce((c, item) => {
     const id = (item.data as { id: string }).id;
-    if (item.id.startsWith(CONFIG_THEME)) return deleteAppearancePreset(c, id);
     if (item.id.startsWith(CONFIG_STYLE)) return deleteStylePreset(c, id);
     if (item.id.startsWith(CONFIG_PANEL)) return deletePanelPreset(c, id);
     return c;

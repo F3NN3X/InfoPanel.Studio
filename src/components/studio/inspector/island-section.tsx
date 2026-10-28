@@ -17,6 +17,7 @@ import {
   type IslandNotices,
   type IslandStat,
 } from "@/lib/island/config";
+import { ISLAND_LOOKS, type IslandLookFields } from "@/lib/island/looks";
 import { cn } from "@/lib/utils";
 import { FIELD, SegmentedRow, SelectRow, SliderRow, ColorRow, TextRow, ToggleRow } from "../setting-rows";
 import { SensorField } from "../widget-editor/sensor-field";
@@ -85,11 +86,16 @@ const NOTICE_ROWS: { key: keyof IslandNotices; label: string; hint: string }[] =
   },
 ];
 
+/** Whether the island is drawn as the look says. */
+const isLook = (island: IslandConfig, look: IslandLookFields): boolean => (Object.keys(look) as (keyof IslandLookFields)[]).every((key) => island[key] === look[key]);
+
 interface IslandSectionProps {
   island: IslandConfig | undefined;
   /** The bus of the island preview above the rows: "Preview an alert" plays there. */
   previewBus: IslandBus;
   onChange: (patch: Partial<IslandConfig>) => void;
+  /** A look picked from the top of Look: applied to the screen in one undo step. */
+  onLook: (look: IslandLookFields) => void;
   /** The sensor picker's "Open data explorer". */
   onOpenExplorer: () => void;
   /** Font and Clock format are other views' settings, shown as LinkRows (SPEC §10.3). */
@@ -198,7 +204,7 @@ function withoutEmpty(s: IslandStat): IslandStat {
  * the Island display style, widgets by their "Send to island" setting. Two columns: the island's own
  * rows, then the dashboard notices and the widgets that send to it.
  */
-export function IslandSection({ island, previewBus, onChange, onOpenExplorer, links, lead, aside }: IslandSectionProps) {
+export function IslandSection({ island, previewBus, onChange, onLook, onOpenExplorer, links, lead, aside }: IslandSectionProps) {
   const v = island ?? { ...ISLAND_DEFAULTS, enabled: false };
   // Plays in the preview only (the kiosk never hears it); each press shows the next severity.
   const preview = () => {
@@ -279,6 +285,23 @@ export function IslandSection({ island, previewBus, onChange, onOpenExplorer, li
       title: "Look",
       body: (
         <>
+          <div role="group" aria-label="Start from a look" className="grid grid-cols-2 gap-1.5">
+            {ISLAND_LOOKS.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                title={l.description}
+                aria-pressed={isLook(v, l.look)}
+                onClick={() => onLook(l.look)}
+                className={cn(
+                  "h-[28px] truncate rounded-[6px] border border-ui-default px-2 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1",
+                  isLook(v, l.look) && "bg-ui-active text-ui-1",
+                )}
+              >
+                {l.name}
+              </button>
+            ))}
+          </div>
           <SegmentedRow label="Color" options={TINT_OPTIONS} value={v.tint} onChange={(tint) => onChange({ tint: tint as IslandConfig["tint"] })} />
           {v.tint === "custom" && (
             <>

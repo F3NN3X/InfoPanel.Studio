@@ -1,31 +1,22 @@
 /**
- * The Library's detail pane for a Theme, a skin or a Style: a preview, the name (renamed in place for the saved
- * ones), the actions (a Theme's or a skin's "Apply to…" scopes, then the rest) and a readable summary: a Theme's
- * colours, corners, background, widget style and the screens that use it; a skin's or a Style's keys.
+ * The Library's detail pane for a Style: a preview, the name (renamed in place for the saved ones), the actions and
+ * a readable summary of its keys.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
-import type { DashboardConfig } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
-import { BUILTIN_LOOK } from "@/lib/my-library/config-items";
 import { KIND_LABEL, metaLine } from "@/lib/my-library/model";
-import type { ThemePreset } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
-import { ADVANCED_TOKENS, VISIBLE_TOKENS } from "@/components/studio/theme-rows";
 import { AssetThumb } from "./asset-thumb";
 import type { DetailAction } from "./library-detail";
-import { isUserPreset, type ScopeChoice } from "./preset-actions";
-import { styleRows, themeUsedBy } from "./preset-summary";
+import { isUserPreset } from "./preset-actions";
+import { styleRows } from "./preset-summary";
 
 export interface PresetDetailProps {
   item: LibraryItem;
   /** Shown in a bottom sheet (a narrow viewport): fills it instead of a 320 px side column. */
   sheet?: boolean;
-  config: DashboardConfig;
   primary: DetailAction | null;
-  /** A Theme's or a skin's "Apply to…" choices. */
-  scopes: ScopeChoice[];
   secondary: DetailAction[];
   /** Focus and select the name field (Rename). */
   focusName?: boolean;
@@ -57,24 +48,9 @@ function Rows({ rows }: { rows: { label: string; value: string }[] }) {
   );
 }
 
-/** A Theme's colour tokens as swatches (the name and value on hover). */
-function Swatches({ preset }: { preset: Pick<AppearancePreset, "theme"> }) {
-  const tokens = presetTokens(preset);
-  return (
-    <div className="grid grid-cols-6 gap-1.5">
-      {[...VISIBLE_TOKENS, ...ADVANCED_TOKENS].map(([key, label]) => (
-        <span key={key} title={`${label} · ${tokens[key]}`} className="aspect-square rounded-[5px] border border-ui-strong" style={{ background: `hsl(${tokens[key]})` }} />
-      ))}
-    </div>
-  );
-}
-
-const BACKGROUND_LABEL: Record<string, string> = { none: "None", color: "Color", gradient: "Gradient", image: "Image", video: "Video" };
-
 export function PresetDetail(p: PresetDetailProps) {
   const { item } = p;
   const user = isUserPreset(item);
-  const theme = item.kind === "theme";
   const [name, setName] = useState(item.name);
   const nameRef = useRef<HTMLInputElement>(null);
   const { focusName, onFocusedName } = p;
@@ -85,12 +61,7 @@ export function PresetDetail(p: PresetDetailProps) {
     onFocusedName?.();
   }, [focusName, onFocusedName]);
 
-  // A template look is a whole Theme like a saved one; a palette is colors only.
-  const saved = theme && (user || item.id.startsWith(BUILTIN_LOOK)) ? (item.data as AppearancePreset) : undefined;
-  const palette = theme && !saved ? (item.data as ThemePreset) : undefined;
-  const settings: ModuleSettings = theme ? (saved?.style ?? {}) : (item.data as { settings: ModuleSettings }).settings;
-  const rows = styleRows(settings);
-  const usedBy = saved ? themeUsedBy(p.config, saved) : [];
+  const rows = styleRows((item.data as { settings: ModuleSettings }).settings);
   const button = (a: DetailAction, primary?: boolean) => (
     <button
       key={a.label}
@@ -122,56 +93,11 @@ export function PresetDetail(p: PresetDetailProps) {
       </div>
       <div className="flex flex-col gap-2">
         {p.primary && button(p.primary, true)}
-        {p.scopes.length > 0 && (
-          <div>
-            <div className="mb-1 text-[11px] text-ui-4">Apply to…</div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {p.scopes.map((s) => (
-                <button
-                  key={s.label}
-                  type="button"
-                  onClick={s.run}
-                  disabled={s.disabled}
-                  title={s.title}
-                  className="h-[34px] rounded-[8px] border border-ui-default px-1 text-[12px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
         {p.secondary.length > 0 && <div className="grid grid-cols-2 gap-2 [&>*:last-child:nth-child(odd)]:col-span-2">{p.secondary.map((a) => button(a))}</div>}
       </div>
-      {theme && (
-        <Section title="Colors">
-          <Swatches preset={saved ?? { theme: palette!.tokens }} />
-        </Section>
-      )}
-      {saved && (
-        <Section title="Look">
-          <Rows
-            rows={[
-              { label: "Corners", value: `${saved.radius} rem` },
-              { label: "Background", value: saved.background ? (BACKGROUND_LABEL[saved.background.type] ?? saved.background.type) : "Not included" },
-            ]}
-          />
-        </Section>
-      )}
-      {(!theme || saved) && (
-        <Section title={theme || item.kind === "skin" ? "Widget style" : "Settings"}>
-          {rows.length > 0 ? (
-            <Rows rows={rows} />
-          ) : (
-            <span className="text-[12px] text-ui-4">{theme ? "The widgets follow their skin." : "No settings: it clears the widget’s own look."}</span>
-          )}
-        </Section>
-      )}
-      {usedBy.length > 0 && (
-        <Section title="Used by">
-          <div className="text-[12px] text-ui-2">{usedBy.join(", ")}</div>
-        </Section>
-      )}
+      <Section title="Settings">
+        {rows.length > 0 ? <Rows rows={rows} /> : <span className="text-[12px] text-ui-4">No settings: it clears the widget’s own look.</span>}
+      </Section>
       <Section title="Kept in">
         <span className="text-[12px] text-ui-2">{user ? "this dashboard’s config" : "the Studio (built in)"}</span>
       </Section>

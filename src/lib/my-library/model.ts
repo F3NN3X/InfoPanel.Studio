@@ -57,8 +57,6 @@ export interface MediaMeta {
   items?: number;
   /** Built-ins: a line saying what it is. */
   blurb?: string;
-  /** Themes: the page, surface and accent colours of the card's thumbnail (CSS colours). */
-  swatch?: string[];
 }
 
 export const metaOf = (item: Pick<LibraryItem, "meta">): MediaMeta => (item.meta ?? {}) as MediaMeta;
@@ -122,8 +120,6 @@ export type CollectionId =
   | "large"
   | "duplicates"
   | "suggested"
-  | "themes"
-  | "skins"
   | "media"
   | "images"
   | "videos"
@@ -138,7 +134,6 @@ export type CollectionId =
   | "components"
   | "templates"
   | "ptemplates"
-  | "islands"
   | "builtinfonts";
 
 export interface Collection {
@@ -158,8 +153,6 @@ export const COLLECTIONS: Collection[] = [
   { id: "large", label: "Large files", section: "Smart" },
   { id: "duplicates", label: "Duplicates", section: "Smart" },
   { id: "suggested", label: "Suggested for theme", section: "Smart" },
-  { id: "themes", label: "Themes", section: "Library", hint: "A Theme is a whole look. Apply one in Theme at any scope." },
-  { id: "skins", label: "Skins", section: "Library", hint: "A skin is how every widget is drawn: its card, fonts and graphs. Apply one at any scope." },
   { id: "styles", label: "Styles", section: "Library", hint: "A Style is one widget’s look. Apply from a widget’s Style tab." },
   { id: "panels", label: "Panels", section: "Library", hint: "Reusable widget groups. Drag onto the canvas from Design › Add." },
   { id: "gauges", label: "Gauges", section: "Library", hint: "Open a gauge to edit it in Gauges." },
@@ -175,7 +168,6 @@ export const COLLECTIONS: Collection[] = [
   { id: "canvases", label: "InfoPanel profiles", section: "Library", hint: "Profiles for the InfoPanel app. Edit opens one in Edit; a new profile can start from one." },
   { id: "templates", label: "Screen templates", section: "Library", hint: "Ready-made screens. New screen from this opens the New screen page on it; Duplicate adds one to Screens at once." },
   { id: "ptemplates", label: "InfoPanel templates", section: "Library", hint: "Ready-made InfoPanel profiles. New InfoPanel profile from this opens the New page on one." },
-  { id: "islands", label: "Island looks", section: "Library", hint: "How the Dynamic Island is drawn: shape, color, border and weight. Applying one keeps the rest of a screen’s island." },
 ];
 
 /** The hint line of a collection (a sub-kind of Media shows Media's); none for the smart ones. */
@@ -203,11 +195,8 @@ export interface LibraryIndex {
 }
 
 const KIND_OF: Partial<Record<CollectionId, LibraryKind>> = {
-  themes: "theme",
-  skins: "skin",
   templates: "template",
   ptemplates: "ptemplate",
-  islands: "island",
   images: "image",
   videos: "video",
   svg: "svg",
@@ -426,16 +415,10 @@ export function metaLine(item: LibraryItem): string {
       return m.cols && m.rows ? `${m.cols} × ${m.rows} cells` : "Panel";
     case "style":
       return "Style";
-    case "theme":
-      return "Theme";
-    case "skin":
-      return "Skin";
     case "template":
       return [px, "Screen template"].filter(Boolean).join(" · ");
     case "ptemplate":
       return [px, "InfoPanel template"].filter(Boolean).join(" · ");
-    case "island":
-      return "Island look";
     case "canvas":
       if (isComponent(item)) return [px, m.items !== undefined ? `${m.items} items` : null].filter(Boolean).join(" · ") || "Component";
       return [px, m.items !== undefined ? `${m.items} items` : null].filter(Boolean).join(" · ") || "Canvas";
@@ -449,7 +432,7 @@ export const isConfigItem = (item: Pick<LibraryItem, "id">): boolean => CONFIG_P
 
 /** Whether a card can be dragged onto the canvas: the built-ins that are applied or started from, not placed, can't. */
 export const isDraggable = (item: Pick<LibraryItem, "id" | "kind">): boolean =>
-  !["skin", "template", "ptemplate", "island"].includes(item.kind) && !(item.kind === "font" && isBuiltinItem(item));
+  !["template", "ptemplate"].includes(item.kind) && !(item.kind === "font" && isBuiltinItem(item));
 
 /** A card's tag: Built-in (muted) for what ships with the app, else what the item is (accent). */
 export function cardTag(item: Pick<LibraryItem, "id" | "kind" | "meta">): { text: string; builtin: boolean } {

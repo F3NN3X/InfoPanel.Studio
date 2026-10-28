@@ -63,6 +63,15 @@ export function cardName(state: ThemeState): string {
   return state.theme?.name ?? state.applied.name;
 }
 
+/**
+ * The one rule that names a level's theme, for the theme card and the page inspector's Theme row: the theme its
+ * stored snapshot names, "Changed from ‹name›" once its parts changed since, "‹name› (deleted)", or "Custom look".
+ */
+export function themeLabel(state: ThemeState): string {
+  const name = cardName(state);
+  return state.applied && !state.deleted && state.changed.length > 0 ? `Changed from ${name}` : name;
+}
+
 /** The theme card's kind line (SPEC §4.3.1, owner decision 3). */
 export function kindLine(state: ThemeState, others: readonly ThemeUse[], levelName: string): string {
   switch (cardKind(state)) {
