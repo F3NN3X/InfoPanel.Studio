@@ -12,6 +12,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Fixed
 
+- **A skin applied to a page from the Library shows.** Library › Skins › Apply to… › This page stored the skin on the page but left the page following its screen, so nothing changed. The page now uses its own skin, as when you customize the section in Theme. A section its screen locks stays the screen's.
 - **An item placed freely keeps its shape.** An InfoPanel item or element you sized or moved with `Alt` on a screen's page no longer jumps to whole cells, and changes shape, the next time you drag it without `Alt`. Its corner snaps to a cell and a resize snaps only the edge you drag, so you can fine-tune it. **Snap to grid** in its inspector still puts it on the cells.
 - **The studio window no longer stays black after WebView2 crashes.** When WebView2's browser process exits, the studio window is rebuilt and shown again (at most once a minute), instead of staying black until the app restarts. Hiding it to the tray and opening it again didn't help before.
 

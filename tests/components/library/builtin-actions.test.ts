@@ -4,6 +4,7 @@ import { defaultConfig, type DashboardConfig } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
 import { builtinItems, configItems } from "@/lib/my-library/config-items";
 import { duplicatePanel } from "@/components/library/library-actions";
+import { resolveStyle } from "@/lib/style-resolve";
 import { presetScopes, presetSecondary, type PresetContext } from "@/components/library/preset-actions";
 
 /** A bridge over a plain config: each setConfig is applied in place, as the studio's history would. */
@@ -46,6 +47,20 @@ describe("a skin in the Library", () => {
     expect(page.disabled).toBeFalsy();
     page.run();
     expect(now().profiles[0].pages[0].widgetTheme?.values).toMatchObject({ skin: "tui" });
+  });
+
+  it("shows on a page it is applied to: the page customises the sections it writes, not ones its screen locks", () => {
+    const start = defaultConfig();
+    const locked: DashboardConfig = {
+      ...start,
+      profiles: start.profiles.map((p, i) => (i === 0 ? { ...p, widgetTheme: { locks: { surface: true } } } : p)),
+    };
+    const { ctx, now } = ctxOver(locked);
+    presetScopes(skin, ctx)[2].run();
+    const profile = now().profiles[0];
+    const page = profile.pages[0];
+    expect(page.widgetTheme?.follow).toEqual({ skin: false });
+    expect(resolveStyle({ levels: { base: now().style, profile: profile.widgetTheme, page: page.widgetTheme } }).settings.skin).toBe("tui");
   });
 
   it("duplicates into a saved Theme with the current colors and that skin; it can't be renamed or deleted", () => {
