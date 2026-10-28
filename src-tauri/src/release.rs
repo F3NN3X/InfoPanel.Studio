@@ -28,6 +28,11 @@ pub fn shown() {
     *lock(&HIDDEN_SINCE) = None;
 }
 
+/// The next main window replaces one destroyed on purpose (released, or rebuilt after a crash).
+pub fn mark_rebuilding(on: bool) {
+    REBUILDING.store(on, Ordering::SeqCst);
+}
+
 /// Whether the main window being created replaces a released one; clears the mark.
 pub fn take_rebuilding() -> bool {
     REBUILDING.swap(false, Ordering::SeqCst)
@@ -82,9 +87,9 @@ fn tick(app: &AppHandle) {
     }
     // The window-state plugin keeps the geometry in memory as the window moves and resizes (and
     // writes it at exit), so destroying the window loses none of it.
-    REBUILDING.store(true, Ordering::SeqCst);
+    mark_rebuilding(true);
     if let Err(e) = window.destroy() {
-        REBUILDING.store(false, Ordering::SeqCst);
+        mark_rebuilding(false);
         log::warn!("could not release the studio: {e}");
         return;
     }

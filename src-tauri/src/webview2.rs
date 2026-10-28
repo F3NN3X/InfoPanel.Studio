@@ -1,5 +1,6 @@
 // WebView2 calls Tauri has no API for: suspending the studio's webview while its window is hidden
-// or minimized, a low memory target while it is unfocused, reloading after a renderer crash, the
+// or minimized, a low memory target while it is unfocused, reloading after a renderer crash (and
+// rebuilding the window when the browser process exits), the
 // runtime-updated notice, and the WebView2 task manager. A hidden window keeps rendering (animations and
 // transitions run at full rate in a host nobody sees), and `visibilitychange` does not fire on
 // minimize, so the shell tells WebView2 itself. Windows only; elsewhere these do nothing.
@@ -33,6 +34,30 @@ pub fn forget() {
     SUSPENDED.store(false, Ordering::SeqCst);
     #[cfg(windows)]
     MEMORY_LOWERED.store(false, Ordering::SeqCst);
+}
+
+/// What a failed WebView2 process calls for.
+#[cfg_attr(not(windows), allow(dead_code))]
+#[derive(Debug, PartialEq, Eq)]
+pub enum Recovery {
+    /// The renderer crashed or hung: reload the page.
+    Reload,
+    /// The browser process exited: the webview is dead (it draws black and refuses every call), so
+    /// the window is rebuilt.
+    Rebuild,
+    /// Only logged: another kind, or a recovery less than a minute ago (a page that keeps crashing
+    /// doesn't loop).
+    Log,
+}
+
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn recovery(renderer: bool, browser_exited: bool, since_last: Option<std::time::Duration>) -> Recovery {
+    let allowed = since_last.is_none_or(|d| d >= std::time::Duration::from_secs(60));
+    match (allowed, renderer, browser_exited) {
+        (true, true, _) => Recovery::Reload,
+        (true, _, true) => Recovery::Rebuild,
+        _ => Recovery::Log,
+    }
 }
 
 /// A window nobody can see: minimized or hidden. A visible, unminimized window (the studio, or
@@ -96,14 +121,15 @@ pub use windows_impl::{open_task_manager, set_unfocused, watch};
 
 #[cfg(windows)]
 mod windows_impl {
-    use super::{flip, stale, wants_suspend, MEMORY_LOWERED, RESUMES, RUNTIME_UPDATED_EVENT, SUSPENDED};
+    use super::{flip, stale, wants_suspend, Recovery, MEMORY_LOWERED, RESUMES, RUNTIME_UPDATED_EVENT, SUSPENDED};
     use std::sync::atomic::{AtomicBool, Ordering};
-    use tauri::{Emitter, WebviewWindow};
+    use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
     use webview2_com::Microsoft::Web::WebView2::Win32::{
         ICoreWebView2, ICoreWebView2Controller, ICoreWebView2_19, ICoreWebView2_2, ICoreWebView2_3,
         ICoreWebView2_6, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL,
         COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
-        COREWEBVIEW2_PROCESS_FAILED_KIND, COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED,
+        COREWEBVIEW2_PROCESS_FAILED_KIND, COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED,
+        COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED,
         COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE,
     };
     use webview2_com::{
@@ -227,37 +253,46 @@ mod windows_impl {
         }
     }
 
-    /// The last reload after a failure, so a page that keeps crashing doesn't reload in a loop.
-    static LAST_FAILURE_RELOAD: std::sync::Mutex<Option<std::time::Instant>> = std::sync::Mutex::new(None);
+    /// The last recovery after a failure, so a page that keeps crashing doesn't reload or rebuild in a loop.
+    static LAST_RECOVERY: std::sync::Mutex<Option<std::time::Instant>> = std::sync::Mutex::new(None);
 
-    /// Reloads a page whose renderer crashed or hung (at most once a minute); other process failures are only logged.
-    fn reload_after_failure(webview: &ICoreWebView2, kind: COREWEBVIEW2_PROCESS_FAILED_KIND) {
+    /// Reloads a page whose renderer crashed or hung, and rebuilds the window when the browser
+    /// process exited (at most once a minute); other process failures are only logged.
+    fn recover(webview: &ICoreWebView2, kind: COREWEBVIEW2_PROCESS_FAILED_KIND, app: &AppHandle) {
         let renderer = kind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED
             || kind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE;
-        let allowed = renderer && {
-            let mut last = crate::state::lock(&LAST_FAILURE_RELOAD);
-            let ok = last.is_none_or(|t| t.elapsed() >= std::time::Duration::from_secs(60));
-            if ok {
+        let browser_exited = kind == COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED;
+        let action = {
+            let mut last = crate::state::lock(&LAST_RECOVERY);
+            let action = super::recovery(renderer, browser_exited, last.map(|t| t.elapsed()));
+            if action != Recovery::Log {
                 *last = Some(std::time::Instant::now());
             }
-            ok
+            action
         };
-        if allowed {
-            log::warn!("webview renderer failed (kind {}); reloading", kind.0);
-            if let Err(e) = unsafe { webview.Reload() } {
-                log::warn!("could not reload the webview: {e}");
+        match action {
+            Recovery::Reload => {
+                log::warn!("webview renderer failed (kind {}); reloading", kind.0);
+                if let Err(e) = unsafe { webview.Reload() } {
+                    log::warn!("could not reload the webview: {e}");
+                }
             }
-        } else {
-            log::warn!("webview process failed (kind {})", kind.0);
+            Recovery::Rebuild => {
+                log::warn!("webview browser process exited (kind {}); rebuilding the studio window", kind.0);
+                // Off this callback: destroying the window from inside its own webview's event is not safe.
+                let app = app.clone();
+                std::thread::spawn(move || crate::windows::rebuild_main(&app));
+            }
+            Recovery::Log => log::warn!("webview process failed (kind {})", kind.0),
         }
     }
 
-    fn watch_failures(webview: &ICoreWebView2) -> windows_core::Result<()> {
-        let handler = ProcessFailedEventHandler::create(Box::new(|sender, args| {
+    fn watch_failures(webview: &ICoreWebView2, app: AppHandle) -> windows_core::Result<()> {
+        let handler = ProcessFailedEventHandler::create(Box::new(move |sender, args| {
             if let (Some(sender), Some(args)) = (sender, args) {
                 let mut kind = COREWEBVIEW2_PROCESS_FAILED_KIND::default();
                 unsafe { args.ProcessFailedKind(&mut kind)? };
-                reload_after_failure(&sender, kind);
+                recover(&sender, kind, &app);
             }
             Ok(())
         }));
@@ -290,7 +325,7 @@ mod windows_impl {
             let Ok(core) = (unsafe { webview.controller().CoreWebView2() }) else {
                 return;
             };
-            if let Err(e) = watch_failures(&core) {
+            if let Err(e) = watch_failures(&core, target.app_handle().clone()) {
                 log::warn!("could not watch the webview for crashes: {e}");
             }
             if !RUNTIME_WATCHED.swap(true, Ordering::SeqCst) {
@@ -341,6 +376,17 @@ mod tests {
         assert!(!stale(asked));
         SHOWS.fetch_add(1, Ordering::SeqCst);
         assert!(stale(asked));
+    }
+
+    #[test]
+    fn a_failed_process_reloads_or_rebuilds_at_most_once_a_minute() {
+        let sec = std::time::Duration::from_secs(1);
+        assert_eq!(recovery(true, false, None), Recovery::Reload);
+        assert_eq!(recovery(false, true, None), Recovery::Rebuild);
+        assert_eq!(recovery(false, false, None), Recovery::Log);
+        assert_eq!(recovery(false, true, Some(59 * sec)), Recovery::Log);
+        assert_eq!(recovery(true, false, Some(59 * sec)), Recovery::Log);
+        assert_eq!(recovery(false, true, Some(60 * sec)), Recovery::Rebuild);
     }
 
     #[test]

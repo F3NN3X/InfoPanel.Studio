@@ -10,6 +10,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 - **Save to Library on a screen's page.** Select widgets, items, elements or groups, in any mix, and choose **Save to Library** in the layer menu or a group's inspector, or press `Ctrl+Shift+S`. It goes to the Library's Components with the same name dialog as on an InfoPanel profile. Parts keep their places relative to each other, widgets their settings, look and any name you gave them, groups their names and what they hold, and hidden parts stay hidden; only the files they use go with them. Dragged back onto a screen's page, it lands as a group with its widgets on the nearest free cells, or isn't added when a widget has no room. In an InfoPanel profile its widgets stay Studio widgets. It replaces the greyed-out *Coming soon* row.
 
+### Fixed
+
+- **The studio window no longer stays black after WebView2 crashes.** When WebView2's browser process exits, the studio window is rebuilt and shown again (at most once a minute), instead of staying black until the app restarts. Hiding it to the tray and opening it again didn't help before.
+
 ## [1.3.0-beta.36] - 2026-10-27
 
 ### Changed
