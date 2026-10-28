@@ -2,7 +2,7 @@
  * What the Library does with a Theme, a skin or a Style, each a config edit through the studio's history (one undo
  * step): apply a Theme or a skin at a scope, edit a Theme in Theme, apply a Style to the selection or overwrite it
  * from the selection, rename, duplicate and delete. The built-ins (palettes, template looks, skins, Styles) can be
- * applied and duplicated, nothing more; a skin's copy is a saved Theme with that skin.
+ * applied and duplicated, nothing more; a skin's copy is a saved Theme with that skin, a palette's a saved palette.
  */
 import { Copy, Paintbrush, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { deleteAppearancePreset, duplicateAppearancePreset, renameAppearancePreset, type ThemeTarget } from "@/lib/appearance-preset-apply";
@@ -127,6 +127,14 @@ export function presetSecondary(item: LibraryItem, ctx: PresetContext): DetailAc
     label: "Duplicate",
     icon: Copy,
     run: () => {
+      // A built-in palette's copy is a saved palette (Theme › Palette › Yours), not a Theme.
+      if (isPalette(item)) {
+        const palette = item.data as ThemePreset;
+        const copy = { id: uid("palette"), name: `${palette.label} copy`, tokens: { ...palette.tokens } };
+        bridge.setConfig((c) => ({ ...c, palettes: [copy, ...(c.palettes ?? [])] }));
+        bridge.toast(`Saved "${palette.label} copy" under Theme › Palette › Yours`);
+        return;
+      }
       const id = uid(theme ? "look" : "style");
       if (isSkin(item)) {
         const skin = item.data as SkinData;
@@ -136,14 +144,8 @@ export function presetSecondary(item: LibraryItem, ctx: PresetContext): DetailAc
         const look = withoutZoneLook(item.data as AppearancePreset);
         bridge.setConfig((c) => ({ ...c, appearancePresets: [...(c.appearancePresets ?? []), { ...structuredClone(look), id, name: `${look.name} copy` }] }));
       } else if (builtin(item)) {
-        if (theme) {
-          const palette = item.data as ThemePreset;
-          const copy: AppearancePreset = { id, name: `${palette.label} copy`, description: "Saved theme", theme: { ...palette.tokens }, radius: bridge.config.radius, style: {} };
-          bridge.setConfig((c) => ({ ...c, appearancePresets: [...(c.appearancePresets ?? []), copy] }));
-        } else {
-          const style = item.data as StylePreset;
-          bridge.setConfig((c) => ({ ...c, stylePresets: [...(c.stylePresets ?? []), { id, name: `${style.name} copy`, settings: { ...style.settings } }] }));
-        }
+        const style = item.data as StylePreset;
+        bridge.setConfig((c) => ({ ...c, stylePresets: [...(c.stylePresets ?? []), { id, name: `${style.name} copy`, settings: { ...style.settings } }] }));
       } else bridge.setConfig((c) => (theme ? duplicateAppearancePreset(c, dataId(item), id) : duplicateStylePreset(c, dataId(item), id)));
       ctx.select((theme ? CONFIG_THEME : CONFIG_STYLE) + id);
     },

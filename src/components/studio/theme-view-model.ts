@@ -3,8 +3,6 @@ import { isBuiltinPreset, type AppearancePreset } from "@/lib/appearance-presets
 import type { ThemeState, ThemeUse } from "@/lib/theme-apply";
 import { isSectionId } from "@/lib/theme-model";
 import { isLightTheme, type TemplateThemeRow } from "@/lib/screen-templates/template-rows";
-import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
-import { sameTokens } from "./appearance-actions";
 import { cardOfSection, THEME_CARDS, type ThemeAt, type ThemeCardId } from "./theme-cards";
 import type { ThemeScope } from "./theme-editor-model";
 
@@ -92,18 +90,6 @@ export function resetText(name: string, own: number, level: ThemeLevel, levelNam
   return `Back to exactly ${name}: clears ${clears} on ${levelName}. ${level === "page" ? "Widgets" : "Pages"} keep their own.`;
 }
 
-/** The toast after a theme is applied (SPEC §5.4); `kept` counts the fine-tune sections the level keeps. */
-export function appliedToast(name: string, level: ThemeLevel, includeBackground: boolean, kept: number, screen: string): string {
-  const parts =
-    level === "page"
-      ? `Skin changed. ${pageParts(screen)}`
-      : includeBackground
-        ? "Palette, skin, corners and background changed."
-        : "Palette, skin and corners changed. Background kept.";
-  const keptText = kept > 0 ? ` ${kept} fine-tune ${kept === 1 ? "change" : "changes"} kept.` : "";
-  return `Applied ${name}. ${parts}${keptText}`;
-}
-
 /** Switch theme's counts: "2 saved · 55 from templates". */
 export const themeCounts = (saved: number, rows: readonly TemplateThemeRow[]): string =>
   `${saved} saved · ${rows.reduce((n, r) => n + r.presets.length, 0)} from templates`;
@@ -187,6 +173,3 @@ export function skinLabel(skin: unknown): string {
   if (name === "tui" || name === "hud") return name.toUpperCase();
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
-
-/** A palette's name: the built-in it equals, else Custom. */
-export const paletteName = (tokens: ThemeTokens): string => THEME_PRESETS.find((p) => sameTokens(p.tokens, tokens))?.label ?? "Custom";

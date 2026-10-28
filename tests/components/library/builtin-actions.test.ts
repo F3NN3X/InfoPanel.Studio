@@ -92,6 +92,16 @@ describe("a template look in the Library", () => {
   });
 });
 
+describe("a built-in palette in the Library", () => {
+  it("duplicates into a saved palette, not a saved Theme", () => {
+    const { ctx, now } = ctxOver(defaultConfig());
+    const ocean = configItems(defaultConfig()).find((i) => i.id === "builtin-theme:ocean")!;
+    run(presetSecondary(ocean, ctx), "Duplicate");
+    expect(now().palettes).toMatchObject([{ name: `${ocean.name} copy`, tokens: (ocean.data as { tokens: object }).tokens }]);
+    expect(now().appearancePresets).toBeUndefined();
+  });
+});
+
 describe("duplicatePanel", () => {
   const builtin = items.find((i) => i.id === "builtin-panel:system")!;
 

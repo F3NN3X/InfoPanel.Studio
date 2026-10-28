@@ -3,7 +3,6 @@ import type { AppearancePreset } from "@/lib/appearance-presets";
 import { DEFAULT_THEME, THEME_PRESETS } from "@/lib/theme";
 import type { ThemeState, ThemeUse } from "@/lib/theme-apply";
 import {
-  appliedToast,
   backgroundLabel,
   cardName,
   commandThemeAt,
@@ -12,13 +11,13 @@ import {
   otherUses,
   remText,
   resetText,
-  paletteName,
   rowTag,
   skinLabel,
   themeLinkOf,
   updateBarText,
   usedByText,
 } from "@/components/studio/theme-view-model";
+import { paletteName } from "@/lib/palettes";
 
 const use = (name: string, kind: "all" | "profile" | "page"): ThemeUse => ({
   name,
@@ -58,16 +57,6 @@ describe("the theme card", () => {
   it("Reset's sub-text drops the fine-tune clause when there is none", () => {
     expect(resetText("Desk", 2, "screen", "MyDefault")).toBe("Back to exactly Desk: clears 2 fine-tune changes and part changes on MyDefault. Pages keep their own.");
     expect(resetText("Desk", 0, "screen", "MyDefault")).toBe("Back to exactly Desk: clears part changes on MyDefault. Pages keep their own.");
-  });
-});
-
-describe("the apply toast", () => {
-  it("says what changed, the background, and the fine-tune kept; a page names where its parts come from", () => {
-    expect(appliedToast("Desk", "screen", false, 0, "MyDefault")).toBe("Applied Desk. Palette, skin and corners changed. Background kept.");
-    expect(appliedToast("Desk", "all", true, 2, "MyDefault")).toBe("Applied Desk. Palette, skin, corners and background changed. 2 fine-tune changes kept.");
-    expect(appliedToast("Desk", "page", false, 1, "MyDefault")).toBe(
-      "Applied Desk. Skin changed. Palette, corners and background come from MyDefault. 1 fine-tune change kept."
-    );
   });
 });
 

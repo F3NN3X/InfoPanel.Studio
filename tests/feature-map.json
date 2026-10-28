@@ -386,6 +386,7 @@
         "src/lib/theme*.ts",
         "src/lib/appearance*.ts",
         "src/lib/applied-theme.ts",
+        "src/lib/palettes.ts",
         "src/lib/style-*.ts",
         "src/lib/builtin-styles.ts",
         "src/lib/inheritance.ts",
@@ -398,6 +399,7 @@
       "tests": [
         "tests/lib/theme*.test.ts",
         "tests/lib/appearance*.test.ts",
+        "tests/lib/palettes.test.ts",
         "tests/lib/style-*.test.ts",
         "tests/lib/inheritance.test.ts",
         "tests/lib/effects/**",

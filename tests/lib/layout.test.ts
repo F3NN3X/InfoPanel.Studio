@@ -11,6 +11,7 @@ import {
 } from "@/lib/layout";
 import { arcv2Profile } from "@tests/lib/__fixtures__/arcv2-profile";
 import { ISLAND_DEFAULTS } from "@/lib/island/config";
+import { DEFAULT_THEME } from "@/lib/theme";
 
 const legacyPanel: PanelDef = {
   id: "p",
@@ -172,6 +173,27 @@ describe("mergeConfig", () => {
     expect(mergeConfig({ appearancePresets: "x" } as never).appearancePresets).toBeUndefined();
     expect(mergeConfig({ appearancePresets: [] }).appearancePresets).toBeUndefined();
     expect(mergeConfig(JSON.parse(JSON.stringify(c))).appearancePresets).toEqual(c.appearancePresets);
+  });
+
+  it("keeps the user's saved palettes, guarding each, and round-trips them", () => {
+    const tokens = { ...DEFAULT_THEME, primary: "200 80% 50%" };
+    const c = mergeConfig({
+      palettes: [
+        { id: "a", name: " Desk ", tokens },
+        { id: "b", name: "Partial", tokens: { primary: "1 2% 3%", bogus: "x", ring: 4 } },
+        { id: "", name: "No id", tokens },
+        { id: "c", name: " ", tokens },
+        { id: "d", name: "No tokens", tokens: {} },
+        "x",
+      ],
+    } as never);
+    expect(c.palettes).toEqual([
+      { id: "a", name: "Desk", tokens },
+      { id: "b", name: "Partial", tokens: { ...DEFAULT_THEME, primary: "1 2% 3%" } },
+    ]);
+    expect(mergeConfig(JSON.parse(JSON.stringify(c))).palettes).toEqual(c.palettes);
+    expect(mergeConfig({ palettes: "x" } as never).palettes).toBeUndefined();
+    expect(mergeConfig({ palettes: [] }).palettes).toBeUndefined();
   });
 
   it("passes the dashboard and profile backgrounds through, normalized", () => {

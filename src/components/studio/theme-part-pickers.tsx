@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
 import { BACKGROUND_DEFAULTS, withBackgroundType, type BackgroundType, type PageBackground } from "@/lib/appearance";
-import { THEME_PRESETS, type ThemePreset, type ThemeTokens } from "@/lib/theme";
+import type { ThemeTokens } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { SKIN_PACKS } from "@/widgets/core/theme";
 import { BackgroundEditor } from "./background-editor";
 import { PickerShell } from "./theme-pickers";
-import { BackgroundSwatch, PaletteSwatch, SkinSwatch } from "./theme-swatches";
+import { BackgroundSwatch, SkinSwatch } from "./theme-swatches";
 import { skinLabel } from "./theme-view-model";
 
 /** A 2-column tile: its 72 px preview, name and tag; ringed when it is the current one. */
-function Tile({ name, tag, title, selected, disabled, onPick, children }: { name: string; tag?: string; title?: string; selected: boolean; disabled?: boolean; onPick: () => void; children: ReactNode }) {
+export function Tile({ name, tag, title, selected, disabled, onPick, children }: { name: string; tag?: string; title?: string; selected: boolean; disabled?: boolean; onPick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
@@ -26,31 +26,7 @@ function Tile({ name, tag, title, selected, disabled, onPick, children }: { name
   );
 }
 
-const GRID = "grid grid-cols-2 gap-3 px-4 pb-4 pt-1";
-
-/**
- * The Palette picker (SPEC §4.3.3): the six built-ins as tiles. Saved palettes of the user's own are added after them
- * (a later change); the footer counts both.
- */
-export function PalettePicker({ current, onPick, onBack }: { current: ThemeTokens; onPick: (palette: ThemePreset) => void; onBack: () => void }) {
-  const same = (p: ThemePreset) => JSON.stringify(p.tokens) === JSON.stringify(current);
-  return (
-    <PickerShell
-      title="Palette"
-      help="The 19 color tokens. Changing the palette keeps the skin, corners, background and fine-tune."
-      onBack={onBack}
-      footer={<span className="text-[12px] text-[#71717a]">{THEME_PRESETS.length} built-in</span>}
-    >
-      <div className={GRID}>
-        {THEME_PRESETS.map((p) => (
-          <Tile key={p.name} name={p.label} tag={p.name === "zinc" ? "Built-in default" : "Built-in"} selected={same(p)} onPick={() => onPick(p)}>
-            <PaletteSwatch tokens={p.tokens} />
-          </Tile>
-        ))}
-      </div>
-    </PickerShell>
-  );
-}
+export const GRID = "grid grid-cols-2 gap-3 px-4 pb-4 pt-1";
 
 /** The Skin picker (SPEC §4.3.3): all 14 skins in picker order, drawn live. */
 export function SkinPicker({ current, onPick, onBack }: { current: string; onPick: (skin: string) => void; onBack: () => void }) {
