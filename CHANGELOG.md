@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.1-beta.2] - 2026-10-29
+
 ### Added
 
 - **A troubleshooting report for bug reports.** **Data** › **Report** copies or saves a report of the app, Windows, WebView2 and InfoPanel versions, whether the Data API answers, which sensor each widget reading uses and its value, the screens and widget kinds counted, and every hardware reading with its value. It leaves out anything about you: names, IP addresses, folders, plugin entries (now playing, calendar and the like), text values and network adapter readings.
