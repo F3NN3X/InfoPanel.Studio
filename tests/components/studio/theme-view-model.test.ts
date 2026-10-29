@@ -10,6 +10,7 @@ import {
   filteredThemes,
   kindLine,
   otherUses,
+  previewFit,
   remText,
   resetText,
   rowTag,
@@ -124,5 +125,19 @@ describe("the command palette's level", () => {
     expect(commandThemeAt(undefined, "desk")).toEqual({ level: "screen", profileId: "desk" });
     expect(commandThemeAt({ kind: "profile" }, "desk")).toEqual({ level: "screen", profileId: "desk" });
     expect(commandThemeAt({ kind: "page", pageId: "gaming" }, "desk")).toEqual({ level: "page", profileId: "desk", pageId: "gaming" });
+  });
+});
+
+describe("previewFit", () => {
+  it("draws a screen that fits at its real size, never larger", () => {
+    expect(previewFit(1200, 700, { width: 480, height: 480 })).toBe(1);
+  });
+  it("shrinks to the narrower of the width and the height", () => {
+    expect(previewFit(960, 2000, { width: 1920, height: 480 })).toBe(0.5);
+    expect(previewFit(2000, 480, { width: 480, height: 1920 })).toBe(0.25);
+  });
+  it("is 0 before the frame or the screen has a size", () => {
+    expect(previewFit(0, 700, { width: 480, height: 480 })).toBe(0);
+    expect(previewFit(900, 700, { width: 0, height: 480 })).toBe(0);
   });
 });
