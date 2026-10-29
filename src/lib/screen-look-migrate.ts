@@ -19,7 +19,11 @@ import { themedOf, withThemeValues } from "./theme-model";
  * - widget style: the dashboard's themed values (its 12 / 24 h clock aside, now `general.clock`) under the screen's
  *   own; locks and pages are untouched (a page that follows shows its screen, which now holds the merged values);
  * - performance: the dashboard's Max FPS, motion and rendering switches under the screen's own;
- * - snapshot: the screen's own, else the dashboard's when the screen had no look of its own.
+ * - snapshot: the screen's own, else the dashboard's when the screen had no look of its own; either way it keeps what
+ *   the dashboard's snapshot wrote into this screen's widgets (`zones`), so Reset can still take those writes back. A
+ *   screen with a look of its own and no snapshot gets only those writes (a snapshot reduced to them, as Reset leaves).
+ *
+ * Each screen gets its own copy of the dashboard's values: nothing is shared between screens.
  */
 
 /** The dashboard's look as a v15 config held it, read once from the stored config (the migrated parts passed in). */
@@ -69,8 +73,29 @@ const orNone = <T extends object>(v: T): T | undefined => (Object.keys(v).length
 const ownsLook = (p: MonitorProfile): boolean =>
   p.theme !== undefined || p.radius !== undefined || p.background !== undefined || Object.keys(p.widgetTheme?.values ?? {}).length > 0;
 
+/** The dashboard snapshot's writes into this screen's widgets, by zone id; undefined when there are none. */
+function zonesOn(p: MonitorProfile, applied: AppliedTheme | undefined): AppliedTheme["zones"] {
+  if (!applied?.zones) return undefined;
+  const ids = new Set(p.pages.flatMap((pg) => pg.placements.map((z) => z.id)));
+  return orNone(Object.fromEntries(Object.entries(applied.zones).filter(([id]) => ids.has(id))));
+}
+
+/** The screen's snapshot after v16 (see the module comment). */
+function snapshotOf(p: MonitorProfile, dashboard: AppliedTheme | undefined): AppliedTheme | undefined {
+  const zones = zonesOn(p, dashboard);
+  const withZones = (t: AppliedTheme): AppliedTheme => (zones ? { ...t, zones: { ...zones, ...t.zones } } : t);
+  if (p.appliedTheme) return withZones(p.appliedTheme);
+  if (!dashboard) return undefined;
+  if (!ownsLook(p)) {
+    const { zones: _all, ...rest } = dashboard;
+    return withZones(rest);
+  }
+  return zones ? { id: dashboard.id, name: dashboard.name, values: {}, zones } : undefined;
+}
+
 /** One screen with the dashboard's look copied down (see the module comment). */
-export function screenWithLook(p: MonitorProfile, look: DashboardLook): MonitorProfile {
+export function screenWithLook(p: MonitorProfile, shared: DashboardLook): MonitorProfile {
+  const look = structuredClone(shared);
   const { clock: _app, ...base } = themedOf(look.style);
   // A screen's empty values stay (its own style, empty), as v15 stored them.
   const values = p.widgetTheme?.values ? { ...base, ...p.widgetTheme.values } : orNone(base);
@@ -83,7 +108,7 @@ export function screenWithLook(p: MonitorProfile, look: DashboardLook): MonitorP
     font: p.font ?? look.font,
     widgetTheme: withThemeValues(p.widgetTheme, values),
     performance: orNone({ ...look.performance, ...p.performance }),
-    appliedTheme: p.appliedTheme ?? (ownsLook(p) ? undefined : look.appliedTheme),
+    appliedTheme: snapshotOf(p, look.appliedTheme),
   };
 }
 

@@ -153,6 +153,54 @@ describe("v16: the theme snapshot", () => {
   });
 });
 
+describe("v16: the snapshot's writes into widgets, and nothing shared (#242)", () => {
+  const applied = { id: "desk", name: "Desk", tokens: OCEAN, radius: 1, values: { accent: "#38bdf8" }, zones: { "plain-a": { was: {}, now: { surfaceOpacity: 60 } }, "own-a": { was: { accent: "#fff" }, now: { accent: "#38bdf8" } }, "snap-a": { was: {}, now: { blur: "8" } } } };
+  const out = load(
+    v15({ ...DASHBOARD, appliedTheme: applied }, [screen("plain"), screen("own", { radius: 1 }), screen("snap", { widgetTheme: { values: { skin: "ink" } }, appliedTheme: { id: "mine", name: "Mine", values: { skin: "ink" } } })])
+  );
+
+  it("each screen keeps the writes into its own widgets, so Reset can take them back", () => {
+    expect(byId(out, "plain").appliedTheme?.zones).toEqual({ "plain-a": applied.zones["plain-a"] });
+    expect(byId(out, "own").appliedTheme).toEqual({ id: "desk", name: "Desk", values: {}, zones: { "own-a": applied.zones["own-a"] } });
+    expect(byId(out, "snap").appliedTheme).toMatchObject({ id: "mine", zones: { "snap-a": applied.zones["snap-a"] } });
+  });
+
+  it("a screen with a look of its own and nothing written into its widgets still has no snapshot", () => {
+    expect(byId(load(v15({ ...DASHBOARD, appliedTheme: { ...applied, zones: undefined } }, [screen("own", { radius: 1 })])), "own").appliedTheme).toBeUndefined();
+  });
+
+  it("no two screens share a value object", () => {
+    const two = load(v15({ ...DASHBOARD, appliedTheme: { ...applied, zones: undefined } }, [screen("a"), screen("b")]));
+    const [a, b] = [byId(two, "a"), byId(two, "b")];
+    expect(a.widgetTheme?.values).not.toBe(b.widgetTheme?.values);
+    expect(a.appliedTheme?.values).toEqual(b.appliedTheme?.values);
+    expect(a.appliedTheme?.values).not.toBe(b.appliedTheme?.values);
+    expect(a.appliedTheme?.tokens).not.toBe(b.appliedTheme?.tokens);
+    expect(a.theme).not.toBe(b.theme);
+    expect(a.background).not.toBe(b.background);
+  });
+});
+
+describe("v16: a screen that inherited everything resolves to these values (written out, not resolved twice)", () => {
+  // The equivalence cases below resolve both sides with today's resolver, so they can't see a change in what it
+  // does; these values are what a v15 build showed for DASHBOARD.
+  const look = lookV16(load(v15(DASHBOARD, [screen("inherits")]))).inherits;
+
+  it("its palette, corners, background, font, clock and performance", () => {
+    expect(look.tokens).toEqual({ ...OCEAN, primary: "1 2% 3%" });
+    expect(look.radius).toBe(0.6);
+    expect(look.background).toMatchObject({ type: "color", color: "#08090c" });
+    expect(look.font).toBe("ibm-plex-sans");
+    expect(look.hour12).toBe(false);
+    expect(look.performance).toMatchObject({ maxFps: 30, motion: "full", ringGlide: true, blurLimit: false });
+  });
+
+  it("a widget that follows takes the dashboard's style; one with its own colors and text keeps them", () => {
+    expect(look.widgets["inherits-a"]).toMatchObject({ surface: "glass", stroke: 160, padding: "8", glow: "none", blur: "16", smoothing: "smooth" });
+    expect(look.widgets["inherits-b"]).toMatchObject({ accent: "#ff6a3d", font: "mono", surface: "glass", stroke: 160 });
+  });
+});
+
 describe("v16: a config with no looks at all", () => {
   it("gives each screen the built-in look, explicitly", () => {
     const out = load(v15({}, [screen("s1")]));
