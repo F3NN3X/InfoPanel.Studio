@@ -4,6 +4,7 @@ import type { SensorMap } from "@/modules/types";
 import { widgetIcon } from "@/lib/widget-icons";
 import { cn } from "@/lib/utils";
 import { scopedCss } from "@/components/widget-style";
+import { PANEL_ACCENT } from "./panel-skin";
 import { WidgetView } from "./WidgetView";
 
 interface PanelTitleProps {
@@ -24,9 +25,9 @@ export function PanelTitle({ title, icon, className }: PanelTitleProps) {
       )}
     >
       {Icon ? (
-        <Icon className="h-3 w-3" style={{ color: "hsl(var(--accent))" }} />
+        <Icon className="h-3 w-3" style={{ color: PANEL_ACCENT }} />
       ) : (
-        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "hsl(var(--accent))" }} />
+        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: PANEL_ACCENT }} />
       )}
       {title}
     </div>

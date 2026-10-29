@@ -3,8 +3,8 @@ import type { ModernChrome } from "@/components/modern-chrome";
 import { ws } from "@/components/widget-style";
 import type { ModuleSettings } from "@/modules/types";
 import { ensureSkinFonts } from "@/widgets/core/fonts";
-import { skinContext } from "@/widgets/core/look";
-import { SkinCtx, numFont } from "@/widgets/core/theme";
+import { resolveAccent, skinContext } from "@/widgets/core/look";
+import { SKINS, SkinCtx, numFont } from "@/widgets/core/theme";
 import type { SkinContext } from "@/widgets/core/types";
 
 /** The panel's resolved skin (null = `auto`: the widgets render as they always did). */
@@ -16,6 +16,16 @@ export const panelSkinOf = (cfg: ModuleSettings): string | undefined => {
   const skin = String(cfg.skin ?? "auto");
   return skin === "auto" ? undefined : skin;
 };
+
+/**
+ * The colour a panel's widgets draw in when they have none of their own: `--wp-accent`, which the panel sets to its
+ * resolved accent (`panelAccent`); outside a panel (an InfoPanel element) the theme's primary. Never the theme's
+ * `--accent`: that token is a dark hover surface, not a colour to draw with.
+ */
+export const PANEL_ACCENT = "var(--wp-accent, hsl(var(--primary)))";
+
+/** A panel's accent, resolved as a core widget's is: the look's accent, else the skin's, else the default. */
+export const panelAccent = (accent: string | undefined, skin: string | undefined): string => resolveAccent(accent || undefined, (skin && SKINS[skin]) || {});
 
 /**
  * The core text and track variables the skin primitives read, mapped onto the

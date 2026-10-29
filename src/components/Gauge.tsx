@@ -13,8 +13,8 @@ interface GaugeProps {
 }
 
 /**
- * Circular progress ring. The ring stroke uses `currentColor`, so wrapping
- * it (or the frame) in a themed/accented scope recolors it automatically.
+ * Circular progress ring. The ring draws in `--wp-accent` (a panel sets it to its accent, a widget color to its own),
+ * else the theme's primary.
  */
 export function Gauge({
   label,
@@ -53,7 +53,8 @@ export function Gauge({
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={c * (1 - p / 100)}
-            className="stroke-accent text-accent transition-[stroke-dashoffset] duration-300"
+            stroke="var(--wp-accent, hsl(var(--primary)))"
+            className="transition-[stroke-dashoffset] duration-300"
             data-wp-ring=""
           />
         </svg>
