@@ -25,7 +25,7 @@ Each layer overrides the one before it. Content settings (sensors, what to show)
 
 ## The theme card
 
-A theme is four parts: the **Palette** (the 19 color tokens), the **Skin**, the **Corners** and the **Background**. The card shows them under **Made of**, with the theme's name and a line saying what it is:
+A theme is four parts: the **Palette** (the 19 color tokens and the accent), the **Skin**, the **Corners** and the **Background**. The card shows them under **Made of**, with the theme's name and a line saying what it is:
 
 - **Saved theme · also on ‹places›**, or **Saved theme · only here**: one of your saved themes.
 - **From a screen template**: a template's look, named "Template · Variant", for example "Terminal · Amber".
@@ -33,7 +33,7 @@ A theme is four parts: the **Palette** (the 19 color tokens), the **Skin**, the 
 
 Click a part to change it: **Palette** and **Skin** open their pickers, **Corners** is a slider (0 to 24 px), and **Background** opens the Background picker. On a page the palette, corners and background are the screen's and can't be changed there. The card's **⋯** has **Reset to ‹name›**, **Rename**, **Duplicate** and **Delete**. Reset puts every part back to the theme, background included, and clears this level's fine-tune changes in one undo step; pages keep their own.
 
-Once you change a part after applying a saved theme, a bar says "Changed here. Updating ‹name› also changes ‹places›." **Update ‹name›** saves the theme and refreshes every level that uses it (each keeps what it changed since); **Save as new** saves a new theme. For a template's look the bar offers **Save as theme**, which saves "‹Template · Variant› copy".
+Once you change a part after applying a saved theme, a bar in the preview's header, beside the zoom, says "Changed here. Updating ‹name› also changes ‹places›." **Update ‹name›** saves the theme and refreshes every level that uses it (each keeps what it changed since); **Save as new** saves a new theme. For a template's look the bar offers **Save as theme**, which saves "‹Template · Variant› copy".
 
 To give other screens the same theme, open **Switch theme** at a screen and choose **Apply to other screens…**: tick the screens (or **Select all**) and press **Apply**. Each screen follows the usual rules, **Keep my background** included, and one Undo takes it all back. The command palette's **Apply theme to all screens: ‹name›** does the same for every screen.
 
@@ -45,7 +45,7 @@ Picking a theme writes the palette, skin, corners and the theme's background. Th
 
 ## Palette, Skin and Background
 
-- **Palette** lists the six built-in palettes (Zinc is the built-in default), then the palettes you saved, tagged **Yours**. Each of yours has a **⋯** with what uses it, **Rename**, **Duplicate** and **Delete**. **+ Save current colors as a palette** saves the level's 19 tokens. Changing the palette keeps the skin, corners, background and fine-tune.
+- **Palette** lists the six built-in palettes (Zinc is the built-in default), then the palettes you saved, tagged **Yours**. Each of yours has a **⋯** with what uses it, **Rename**, **Duplicate** and **Delete**. **+ Save current colors as a palette** saves the level's 19 tokens and its accent. A palette brings its accent: a theme's palette the theme's accent, one of yours the accent it was saved with, Ocean and Forest their own color; Zinc and the other greys keep the screen's. The glow, number glow and border colors that were the old accent change with it. Changing the palette keeps the skin, corners, background and the rest of the fine-tune.
 - **Skin** lists all 14 skins, drawn live. **Default** is the studio's own. Changing the skin keeps the colors, corners, background and fine-tune.
 - **Background** offers **This theme's**, **Solid**, **Gradient** and **Image**, then the background editor for the kind you picked (see [Backgrounds](background)).
 

@@ -3,7 +3,7 @@ import type { GeneralFont } from "@/lib/general";
 import type { InheritLevel, InheritState } from "@/lib/inheritance";
 import type { DashboardConfig, MonitorProfile, ProfilePage } from "@/lib/layout";
 import { resolveTheme, type ThemeTokens } from "@/lib/theme";
-import { SECTION_KEYS, sectionsWithValues, type SectionId } from "@/lib/theme-model";
+import { SECTION_KEYS, sectionsWithValues, withThemeValues, type SectionId } from "@/lib/theme-model";
 import type { ModuleSettings } from "@/modules/types";
 import { resetInheritance } from "./inheritance-actions";
 import { withLock, withPageFollow, withScopeValues, type ThemeScope } from "./theme-editor-model";
@@ -187,9 +187,22 @@ export function withToken(config: DashboardConfig, at: TwoLevelAt, key: keyof Th
   return withProfile(config, at.profileId, (p) => ({ ...p, theme: { ...resolveTheme(p).tokens, [key]: value } }));
 }
 
-/** Every color token at once (a palette from the Palette picker). */
-export function withTokens(config: DashboardConfig, at: TwoLevelAt, tokens: ThemeTokens): DashboardConfig {
-  return withProfile(config, at.profileId, (p) => ({ ...p, theme: { ...tokens } }));
+/** The colors drawn in the accent unless set apart: a palette's accent takes them along where they were the old one. */
+const ACCENT_FOLLOWERS = ["glowColor", "numGlowColor", "borderColor"] as const;
+
+/**
+ * A palette from the Palette picker: every color token, and its accent (when it has one) as the screen's, with the
+ * glow, number glow and border colors that were the old accent.
+ */
+export function withTokens(config: DashboardConfig, at: TwoLevelAt, tokens: ThemeTokens, accent?: string): DashboardConfig {
+  return withProfile(config, at.profileId, (p) => {
+    const values = p.widgetTheme?.values ?? {};
+    const old = values.accent;
+    if (accent === undefined || accent === old) return { ...p, theme: { ...tokens } };
+    const was = (v: unknown) => typeof v === "string" && typeof old === "string" && old !== "" && v.toLowerCase() === old.toLowerCase();
+    const followers = Object.fromEntries(ACCENT_FOLLOWERS.filter((k) => was(values[k])).map((k) => [k, accent]));
+    return { ...p, theme: { ...tokens }, widgetTheme: withThemeValues(p.widgetTheme, { ...values, accent, ...followers }) };
+  });
 }
 
 /** The corner radius (rem) of a screen. */

@@ -28,11 +28,6 @@ interface ThemeLookCardProps {
   onRename?: (name: string) => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
-  /** The Update bar: its text, and Update ‹name› for a saved theme. */
-  update?: { text: string; onUpdate?: () => void };
-  /** Save the look as a new theme (Save as theme, Save as new), named as typed; `saveName` is the name it offers. */
-  onSave: (name: string) => void;
-  saveName: string;
   tokens: ThemeTokens;
   paletteName: string;
   skinName: string;
@@ -69,28 +64,73 @@ function PartRow({ label, onOpen, children }: { label: string; onOpen?: () => vo
   );
 }
 
+export interface ThemeUpdateBarProps {
+  name: string;
+  kind: CardKind;
+  /** The Update bar: its text, and Update ‹name› for a saved theme. */
+  update?: { text: string; onUpdate?: () => void };
+  /** Save the look as a new theme (Save as theme, Save as new), named as typed; `saveName` is the name it offers. */
+  onSave: (name: string) => void;
+  saveName: string;
+}
+
+/**
+ * The Update bar, in the preview's header beside the zoom: once a part of a theme changed, what Update changes, with
+ * Update ‹name› (a saved theme) and Save as new; a custom or deleted look offers Save as theme. Nothing otherwise.
+ */
+export function ThemeUpdateBar(p: ThemeUpdateBarProps) {
+  const [saving, setSaving] = useState(false);
+  const saved = p.kind === "saved";
+  if (!(saving || p.update !== undefined || p.kind === "custom" || p.kind === "deleted")) return null;
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 items-center gap-3 rounded-lg px-2.5 py-1 text-[12px]",
+        p.update ? "border border-[#1e3a8a] bg-[#0b1530] text-[#bfdbfe]" : ""
+      )}
+    >
+      {p.update && (
+        <p className="min-w-0 truncate leading-snug" title={p.update.text}>
+          {p.update.text}
+        </p>
+      )}
+      {saving ? (
+        <ThemeNameInput
+          initial={p.saveName}
+          label="Theme name"
+          onDone={(name) => {
+            setSaving(false);
+            if (name) p.onSave(name);
+          }}
+        />
+      ) : (
+        <div className="flex shrink-0 items-center gap-3">
+          {p.update?.onUpdate && (
+            <button type="button" onClick={p.update.onUpdate} className={cn(PRIMARY, "max-w-[200px] truncate")}>
+              Update {p.name}
+            </button>
+          )}
+          <button type="button" onClick={() => setSaving(true)} className={saved ? LINK : PRIMARY}>
+            {saved ? "Save as new" : "Save as theme"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * The theme card (handoff SPEC §4.3.1): the thumbnail, name, kind line and ⋯ (Reset to ‹name›, Rename, Duplicate,
- * Delete), the Update bar, the four parts it's MADE OF and Switch theme.
+ * Delete), the four parts it's MADE OF and Switch theme. The Update bar is the preview's (`ThemeUpdateBar`).
  */
 export function ThemeLookCard(p: ThemeLookCardProps) {
   const [renaming, setRenaming] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const saved = p.kind === "saved";
-  // A custom or deleted look can only be saved; a theme once a part changed (the Update bar).
-  const offerSave = p.update !== undefined || p.kind === "custom" || p.kind === "deleted";
-  const save = (
-    <button type="button" onClick={() => setSaving(true)} className={saved ? LINK : PRIMARY}>
-      {saved ? "Save as new" : "Save as theme"}
-    </button>
-  );
   const nameField = (initial: string, label: string, done: (name: string) => void) => (
     <ThemeNameInput
       initial={initial}
       label={label}
       onDone={(name) => {
         setRenaming(false);
-        setSaving(false);
         if (name) done(name);
       }}
     />
@@ -135,23 +175,6 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
           </Menu.Portal>
         </Menu.Root>
       </div>
-      {(offerSave || saving) && (
-        <div className={cn("flex flex-col gap-2 rounded-lg px-3 py-2.5 text-[12px]", p.update ? "border border-[#1e3a8a] bg-[#0b1530] text-[#bfdbfe]" : "")}>
-          {p.update && <p className="leading-snug">{p.update.text}</p>}
-          {saving ? (
-            <div className="flex">{nameField(p.saveName, "Theme name", p.onSave)}</div>
-          ) : (
-            <div className="flex items-center gap-3">
-              {p.update?.onUpdate && (
-                <button type="button" onClick={p.update.onUpdate} className={cn(PRIMARY, "max-w-[200px] truncate")}>
-                  Update {p.name}
-                </button>
-              )}
-              {save}
-            </div>
-          )}
-        </div>
-      )}
       <div className="overflow-hidden rounded-[9px] border border-ui-strong">
         <h3 className="border-b border-[#1a1a1d] px-3 py-1.5 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-[#71717a]">Made of</h3>
         <PartRow label="Palette" onOpen={p.partsNote ? undefined : p.onPalette}>

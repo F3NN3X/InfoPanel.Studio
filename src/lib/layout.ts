@@ -345,6 +345,8 @@ export interface SavedPalette {
   id: string;
   name: string;
   tokens: ThemeTokens;
+  /** The widgets' accent saved with it (`palettes.ts`). */
+  accent?: string;
 }
 
 /** A named set of style values (the keys in `PROFILE_STYLE_KEYS`). */
@@ -642,7 +644,8 @@ export function normalizePalettes(v: unknown): SavedPalette[] | undefined {
     // Tokens found means `p` is an object.
     const tokens = normalizeThemePatch(p?.tokens);
     const name = tokens && typeof p.name === "string" && p.name.trim();
-    return name && p.id && typeof p.id === "string" ? [{ id: p.id, name, tokens: { ...DEFAULT_THEME, ...tokens } }] : [];
+    const accent = typeof p.accent === "string" && p.accent.trim() !== "" && p.accent.length <= 64 ? { accent: p.accent } : {};
+    return name && p.id && typeof p.id === "string" ? [{ id: p.id, name, tokens: { ...DEFAULT_THEME, ...tokens }, ...accent }] : [];
   });
   return kept[0] ? kept : undefined;
 }

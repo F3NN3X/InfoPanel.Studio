@@ -7,11 +7,11 @@ import { SKINS } from "@/widgets/core/theme";
 const HISTORY = [38, 44, 41, 52, 48, 61, 57, 66, 59, 63];
 
 /** A palette at thumbnail size: its page, a card on it and the primary colour. */
-export function PaletteSwatch({ tokens }: { tokens: ThemeTokens }) {
+export function PaletteSwatch({ tokens, accent }: { tokens: ThemeTokens; accent?: string }) {
   const c = (key: keyof ThemeTokens) => `hsl(${tokens[key]})`;
   return (
     <div className="flex h-full items-end gap-[3px] p-[5px]" style={{ background: c("background") }}>
-      <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: c("primary") }} />
+      <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: accent ?? c("primary") }} />
       <span className="h-2.5 w-2.5 rounded-[3px] border" style={{ background: c("card"), borderColor: c("border") }} />
     </div>
   );

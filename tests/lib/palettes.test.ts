@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { defaultConfig, type DashboardConfig } from "@/lib/layout";
-import { deletePalette, duplicatePalette, paletteName, paletteUsers, renamePalette, savePalette, themePalettes } from "@/lib/palettes";
+import { builtinAccent, deletePalette, duplicatePalette, paletteName, paletteUsers, renamePalette, savePalette, themePalettes } from "@/lib/palettes";
+import { normalizePalettes } from "@/lib/layout";
 import { sameValues } from "@/lib/applied-theme";
 import { presetTokens } from "@/lib/appearance-presets";
 import { TEMPLATE_PRESETS } from "@/lib/screen-templates/template-presets";
@@ -66,6 +67,29 @@ describe("who uses a palette", () => {
   });
 });
 
+describe("a palette's accent", () => {
+  const cyan = { id: "t", name: "Neon", tokens: DEFAULT_THEME, accent: "#22d3ee" };
+
+  it("a built-in has its primary as accent only when that is a color", () => {
+    expect(builtinAccent(DEFAULT_THEME)).toBeUndefined();
+    expect(builtinAccent(blue)).toMatch(/^#[0-9a-f]{6}$/);
+    expect(builtinAccent({ ...blue, primary: "200 80% 95%" })).toBeUndefined();
+  });
+
+  it("a level is named by the palette whose tokens and accent it shows; with no accent, by its tokens", () => {
+    expect(paletteName(DEFAULT_THEME, [], [cyan], "#22D3EE")).toBe("Neon");
+    expect(paletteName(DEFAULT_THEME, [], [cyan], "#ff0000")).toBe("Zinc");
+    expect(paletteName(DEFAULT_THEME, [], [cyan])).toBe("Zinc");
+  });
+
+  it("save, duplicate and a reload keep it", () => {
+    const c = duplicatePalette(savePalette(defaultConfig(), "a", "Desk", blue, "#ffb000"), "a", "b");
+    expect(c.palettes?.map((p) => p.accent)).toEqual(["#ffb000", "#ffb000"]);
+    expect(normalizePalettes(JSON.parse(JSON.stringify(c.palettes)))?.[0].accent).toBe("#ffb000");
+    expect(savePalette(defaultConfig(), "a", "Desk", blue, "").palettes?.[0]).not.toHaveProperty("accent");
+  });
+});
+
 describe("themePalettes", () => {
   const preset = (id: string, theme: AppearancePreset["theme"]): AppearancePreset => ({ id, name: id, description: "", theme, radius: 0.5, style: {} });
 
@@ -78,5 +102,11 @@ describe("themePalettes", () => {
     const offered = [...THEME_PRESETS.map((p) => p.tokens), ...themePalettes(TEMPLATE_PRESETS).map((p) => p.tokens)];
     for (const t of TEMPLATE_PRESETS) expect(offered.some((tokens) => sameValues(tokens, presetTokens(t))), t.name).toBe(true);
     expect(themePalettes(TEMPLATE_PRESETS).length).toBeGreaterThan(0);
+  });
+
+  it("themes on the same tokens with different accents are different palettes, each with its accent", () => {
+    const accented = (id: string, accent: string) => ({ ...preset(id, blue), style: { accent } });
+    const list = themePalettes([accented("amber", "#ff8a3d"), accented("teal", "#2dd4bf"), accented("again", "#FF8A3D")]);
+    expect(list.map((p) => [p.id, p.accent])).toEqual([["amber", "#ff8a3d"], ["teal", "#2dd4bf"]]);
   });
 });
