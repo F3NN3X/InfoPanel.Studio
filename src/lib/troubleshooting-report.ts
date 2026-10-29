@@ -51,11 +51,16 @@ const adapterPrefixes = (keys: string[]): string[] =>
     return id === undefined ? [] : [`libre.${id}_`];
   });
 
-/** The readings the report may list: hardware sources only, without network adapters. */
+/** HWiNFO's network readings (`Current DL rate`, `Total UP`): their keys carry the adapter's connection name. */
+const HWINFO_NETWORK = /^(Current (DL|UP) rate|Total (DL|UP))$/i;
+
+/** The readings the report may list: hardware sources only, without network adapters (LibreHardwareMonitor's or HWiNFO's). */
 export function listedKeys(sensors: SensorMap): string[] {
   const keys = Object.keys(sensors).sort();
   const adapters = adapterPrefixes(keys);
-  return keys.filter((k) => HARDWARE.test(k) && !adapters.some((a) => k.startsWith(a)));
+  return keys.filter(
+    (k) => HARDWARE.test(k) && !adapters.some((a) => k.startsWith(a)) && !(k.startsWith("hwinfo.") && HWINFO_NETWORK.test(sensors[k].name?.trim() ?? "")),
+  );
 }
 
 /**
@@ -64,11 +69,14 @@ export function listedKeys(sensors: SensorMap): string[] {
  */
 function shownKeys(sensors: SensorMap, keys: string[]): Map<string, string> {
   const devices = new Map<string, number>();
+  let unnamed = 0;
   return new Map(
     keys.map((k) => {
       const name = sensors[k].name?.trim();
       const base = name ? `hwinfo.${slugOf(name)}` : "";
-      if (!k.startsWith("hwinfo.") || !base || !k.startsWith(base) || k === base) return [k, k];
+      if (!k.startsWith("hwinfo.") || k === base) return [k, k];
+      // fail closed: a key the reading's slug doesn't start (no name, a renamed reading) may still carry its device
+      if (!base || !k.startsWith(base)) return [k, `hwinfo.(reading ${++unnamed})`];
       const device = k.slice(base.length);
       if (!devices.has(device)) devices.set(device, devices.size + 1);
       return [k, `${base} (device ${devices.get(device)})`];

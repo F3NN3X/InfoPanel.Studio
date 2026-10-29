@@ -111,14 +111,17 @@ describe("troubleshootingReport with HWiNFO", () => {
     "hwinfo.drive_temperature": s(29, "°C", "Drive Temperature"),
     "hwinfo.drive_temperature_s_m_a_r_t___kingston_sfyrd2000g__50026b768718d84b___c": s(50, "°C", "Drive Temperature"),
     "hwinfo.current_dl_rate_network__mediatek_mt7925___alices_wifi": s(10, "KB/s", "Current DL rate"),
+    // a renamed reading: its key keeps HWiNFO's slug, so the device can't be cut off
+    "hwinfo.gpu_temperature_dgpu___0___alices_card_serial_1234": s(40, "°C", "My GPU temp"),
   };
   const text = troubleshootingReport(input({ sensors: hwinfo, sources: null }));
 
   it("lists HWiNFO readings by the reading and a device number, never the device's serial or connection", () => {
     expect(text).toContain("hwinfo.drive_temperature | Drive Temperature | 29 °C");
-    expect(text).toContain("hwinfo.drive_temperature (device 2) | Drive Temperature | 50 °C");
-    expect(text).toContain("hwinfo.current_dl_rate (device 1) | Current DL rate | 10 KB/s");
-    for (const secret of ["50026b", "alices", "kingston"]) expect(text, secret).not.toContain(secret);
+    expect(text).toContain("hwinfo.drive_temperature (device 1) | Drive Temperature | 50 °C");
+    expect(text).toContain("hwinfo.(reading 1) | My GPU temp | 40 °C");
+    expect(text).not.toContain("current_dl_rate");
+    for (const secret of ["50026b", "alices", "kingston", "serial_1234"]) expect(text, secret).not.toContain(secret);
   });
 
   it("says what the widgets read from HWiNFO", () => {
