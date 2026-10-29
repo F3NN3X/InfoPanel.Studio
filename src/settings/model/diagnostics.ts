@@ -67,13 +67,26 @@ export function sampleSummary(d: Diagnostics): string {
   return `${d.samples} samples${time ? `, latest ${time}` : ""}${covers >= 1 ? ` · covers ${Math.round(covers)} min` : ""}.`;
 }
 
-/** The text "Copy diagnostics summary" puts on the clipboard (the format the old page wrote). */
+const LOOPBACK_HOST = /^(localhost|127\.\d+\.\d+\.\d+|::1|\[::1\])$/i;
+
+/**
+ * Text with what says who or where the user is taken out, for a summary pasted into a public issue: a Windows profile
+ * folder (`C:\Users\alice\…` → `%USERPROFILE%\…`) and IP addresses other than loopback (`<address>`).
+ */
+export function withoutPersonal(text: string): string {
+  return text.replace(/[a-z]:[\\/]+users[\\/]+[^\\/"'\r\n]+/gi, "%USERPROFILE%").replace(/\b(?!127\.)\d{1,3}(?:\.\d{1,3}){3}\b/g, "<address>");
+}
+
+/**
+ * The text "Copy diagnostics summary" puts on the clipboard. It carries no logs folder (it holds the Windows user name)
+ * and no host address, only whether the server listens on this PC or the network.
+ */
 export function diagnosticsSummary(d: Diagnostics): string {
   const st = d.status;
+  const where = LOOPBACK_HOST.test(st.host) ? "this PC" : "the network";
   const lines = [
     `InfoPanel Studio ${st.appVersion}, debug ${d.debug ? "on" : "off"}`,
-    `Server: ${st.state} on ${st.host}:${st.port}${st.owned ? "" : " (not started by the app)"}${st.message ? ` - ${st.message}` : ""}`,
-    `Logs: ${d.logsDir}`,
+    `Server: ${st.state} on ${where}, port ${st.port}${st.owned ? "" : " (not started by the app)"}${st.message ? ` - ${withoutPersonal(st.message)}` : ""}`,
     `Samples: ${d.samples}`,
   ];
   for (const s of d.series) {
