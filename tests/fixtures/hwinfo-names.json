@@ -1,0 +1,499 @@
+{
+ "header": "Made by tools/hwinfo-names.mjs. github: header columns of public HWiNFO CSV logs, found with `gh api search/code`, kept for names in at least 2 distinct repositories, counted in repositories. live: the local hwinfo.* readings of a PC's InfoPanel Data API, counted in readings. Names, units and counts only. Refreshed by hand.",
+ "github": {
+  "date": "2026-10-29",
+  "minRepositories": 2,
+  "names": {
+   "+12V": {
+    "V": 2
+   },
+   "+5V": {
+    "V": 2
+   },
+   "3VSB": {
+    "V": 2
+   },
+   "Average Effective Clock": {
+    "MHz": 2
+   },
+   "Battery Voltage": {
+    "V": 2
+   },
+   "Bus Clock": {
+    "MHz": 2
+   },
+   "CPU": {
+    "RPM": 2,
+    "°C": 1,
+    "°F": 1
+   },
+   "CPU Package Power": {
+    "W": 2
+   },
+   "Charge Level": {
+    "%": 2
+   },
+   "Charge Rate": {
+    "W": 2
+   },
+   "Command Rate": {
+    "T": 3
+   },
+   "Core 0 Ratio": {
+    "x": 2
+   },
+   "Core 0 T0 Effective Clock": {
+    "MHz": 2
+   },
+   "Core 0 T0 Usage": {
+    "%": 2
+   },
+   "Core 0 T0 Utility": {
+    "%": 2
+   },
+   "Core 0 T1 Effective Clock": {
+    "MHz": 2
+   },
+   "Core 0 T1 Usage": {
+    "%": 2
+   },
+   "Core 0 T1 Utility": {
+    "%": 2
+   },
+   "Core 0 VID": {
+    "V": 3
+   },
+   "Core 1 Ratio": {
+    "x": 2
+   },
+   "Core 1 T0 Effective Clock": {
+    "MHz": 2
+   },
+   "Core 1 T0 Usage": {
+    "%": 2
+   },
+   "Core 1 T0 Utility": {
+    "%": 2
+   },
+   "Core 1 T1 Effective Clock": {
+    "MHz": 2
+   },
+   "Core 1 T1 Usage": {
+    "%": 2
+   },
+   "Core 1 T1 Utility": {
+    "%": 2
+   },
+   "Core 1 VID": {
+    "V": 3
+   },
+   "Core 2 Ratio": {
+    "x": 2
+   },
+   "Core 2 T0 Effective Clock": {
+    "MHz": 2
+   },
+   "Core 2 T0 Usage": {
+    "%": 2
+   },
+   "Core 2 T0 Utility": {
+    "%": 2
+   },
+   "Core 2 T1 Effective Clock": {
+    "MHz": 2
+   },
+   "Core 2 T1 Usage": {
+    "%": 2
+   },
+   "Core 2 T1 Utility": {
+    "%": 2
+   },
+   "Core 2 VID": {
+    "V": 3
+   },
+   "Core 3 Ratio": {
+    "x": 2
+   },
+   "Core 3 T0 Effective Clock": {
+    "MHz": 2
+   },
+   "Core 3 T0 Usage": {
+    "%": 2
+   },
+   "Core 3 T0 Utility": {
+    "%": 2
+   },
+   "Core 3 T1 Effective Clock": {
+    "MHz": 2
+   },
+   "Core 3 T1 Usage": {
+    "%": 2
+   },
+   "Core 3 T1 Utility": {
+    "%": 2
+   },
+   "Core 3 VID": {
+    "V": 3
+   },
+   "Core 4 VID": {
+    "V": 2
+   },
+   "Core 5 VID": {
+    "V": 2
+   },
+   "Core C0 Residency (avg)": {
+    "%": 2
+   },
+   "Core C7 Residency (avg)": {
+    "%": 2
+   },
+   "Core Clocks (avg)": {
+    "MHz": 2
+   },
+   "Core Critical Temperature (avg)": {
+    "Yes/No": 2
+   },
+   "Core Effective Clocks (avg)": {
+    "MHz": 2
+   },
+   "Core Power Limit Exceeded (avg)": {
+    "Yes/No": 2
+   },
+   "Core Ratios (avg)": {
+    "x": 2
+   },
+   "Core Thermal Throttling (avg)": {
+    "Yes/No": 2
+   },
+   "Core Usage (avg)": {
+    "%": 2
+   },
+   "Core Utility (avg)": {
+    "%": 2
+   },
+   "Core VIDs (avg)": {
+    "V": 3
+   },
+   "Current DL rate": {
+    "KB/s": 2
+   },
+   "Current UP rate": {
+    "KB/s": 2
+   },
+   "Current cTDP Level": {
+    "": 2
+   },
+   "Drive Available Spare": {
+    "%": 3
+   },
+   "Drive Failure": {
+    "Yes/No": 2
+   },
+   "Drive Remaining Life": {
+    "%": 2
+   },
+   "Drive Warning": {
+    "Yes/No": 2
+   },
+   "Frame Time": {
+    "ms": 2
+   },
+   "Framerate (Displayed)": {
+    "FPS": 2
+   },
+   "Framerate (Presented)": {
+    "FPS": 2
+   },
+   "GPU Busy": {
+    "ms": 2
+   },
+   "GPU Clock": {
+    "MHz": 2
+   },
+   "GPU D3D Memory Dynamic": {
+    "MB": 2
+   },
+   "GPU D3D Usage": {
+    "%": 2
+   },
+   "GPU D3D Utilizations (avg)": {
+    "%": 2
+   },
+   "GPU Memory Available": {
+    "MB": 2
+   },
+   "GPU Video Decode 0 Usage": {
+    "%": 2
+   },
+   "GPU Video Decode 1 Usage": {
+    "%": 2
+   },
+   "GPU Video Processing 0 Usage": {
+    "%": 2
+   },
+   "GT Cores Power": {
+    "W": 2
+   },
+   "GT Limit Reasons (avg)": {
+    "Yes/No": 3
+   },
+   "GT: DDR RAPL": {
+    "Yes/No": 3
+   },
+   "GT: Domain-Level PBM PLGT": {
+    "Yes/No": 3
+   },
+   "GT: Fuses limit": {
+    "Yes/No": 2
+   },
+   "GT: Inefficient Operation": {
+    "Yes/No": 3
+   },
+   "GT: Max VR Voltage, ICCmax, PL4": {
+    "Yes/No": 2
+   },
+   "GT: PROCHOT": {
+    "Yes/No": 3
+   },
+   "GT: Package-Level RAPL/PBM PL1": {
+    "Yes/No": 3
+   },
+   "GT: Residency State Regulation": {
+    "Yes/No": 3
+   },
+   "GT: Running Average Thermal Limit": {
+    "Yes/No": 2
+   },
+   "GT: Thermal Event": {
+    "Yes/No": 2
+   },
+   "GT: VR TDC": {
+    "Yes/No": 3
+   },
+   "GT: VR Thermal Alert": {
+    "Yes/No": 2
+   },
+   "Gear Mode": {
+    "": 2
+   },
+   "IA Cores Power": {
+    "W": 2
+   },
+   "IA Limit Reasons (avg)": {
+    "Yes/No": 3
+   },
+   "IA: Max Turbo Limit": {
+    "Yes/No": 3
+   },
+   "IA: PROCHOT": {
+    "Yes/No": 3
+   },
+   "IA: Package-Level RAPL/PBM PL1": {
+    "Yes/No": 3
+   },
+   "IA: Residency State Regulation": {
+    "Yes/No": 3
+   },
+   "IA: Running Average Thermal Limit": {
+    "Yes/No": 2
+   },
+   "IA: Thermal Event": {
+    "Yes/No": 2
+   },
+   "IA: Thermal Velocity Boost": {
+    "Yes/No": 2
+   },
+   "IA: Turbo Attenuation (MCT)": {
+    "Yes/No": 2
+   },
+   "IA: VR TDC": {
+    "Yes/No": 3
+   },
+   "IA: VR Thermal Alert": {
+    "Yes/No": 2
+   },
+   "Max CPU/Thread Usage": {
+    "%": 2
+   },
+   "Memory Clock": {
+    "MHz": 2
+   },
+   "Memory Clock Ratio": {
+    "x": 2
+   },
+   "On-Demand Clock Modulation": {
+    "%": 2
+   },
+   "PL1 Power Limit (Dynamic)": {
+    "W": 2
+   },
+   "PL1 Power Limit (Static)": {
+    "W": 2
+   },
+   "PL2 Power Limit (Dynamic)": {
+    "W": 2
+   },
+   "PL2 Power Limit (Static)": {
+    "W": 2
+   },
+   "PL3": {
+    "Yes/No": 2
+   },
+   "Package C2 Residency": {
+    "%": 2
+   },
+   "Package/Ring Critical Temperature": {
+    "Yes/No": 2
+   },
+   "Package/Ring Power Limit Exceeded": {
+    "Yes/No": 2
+   },
+   "Package/Ring Thermal Throttling": {
+    "Yes/No": 2
+   },
+   "Physical Memory Available": {
+    "MB": 2
+   },
+   "Physical Memory Load": {
+    "%": 2
+   },
+   "Physical Memory Used": {
+    "MB": 2
+   },
+   "RING: DDR RAPL": {
+    "Yes/No": 3
+   },
+   "RING: Max VR Voltage, ICCmax, PL4": {
+    "Yes/No": 2
+   },
+   "RING: PROCHOT": {
+    "Yes/No": 3
+   },
+   "RING: Package-Level RAPL/PBM PL1": {
+    "Yes/No": 3
+   },
+   "RING: Residency State Regulation": {
+    "Yes/No": 3
+   },
+   "RING: Running Average Thermal Limit": {
+    "Yes/No": 2
+   },
+   "RING: Thermal Event": {
+    "Yes/No": 2
+   },
+   "RING: VR TDC": {
+    "Yes/No": 3
+   },
+   "RING: VR Thermal Alert": {
+    "Yes/No": 2
+   },
+   "Read Activity": {
+    "%": 2
+   },
+   "Read Rate": {
+    "MB/s": 2
+   },
+   "Read Total": {
+    "MB": 2
+   },
+   "Remaining Capacity": {
+    "Wh": 2
+   },
+   "Rest-of-Chip Power": {
+    "W": 2
+   },
+   "Ring Limit Reasons (avg)": {
+    "Yes/No": 3
+   },
+   "Ring/LLC Clock": {
+    "MHz": 2
+   },
+   "SA VID": {
+    "V": 2
+   },
+   "System Agent Power": {
+    "W": 2
+   },
+   "Tcas": {
+    "T": 3
+   },
+   "Total Activity": {
+    "%": 2
+   },
+   "Total CPU Usage": {
+    "%": 2
+   },
+   "Total CPU Utility": {
+    "%": 2
+   },
+   "Total DL": {
+    "MB": 2
+   },
+   "Total Host Reads": {
+    "GB": 2
+   },
+   "Total Host Writes": {
+    "GB": 2
+   },
+   "Total System Power": {
+    "W": 2
+   },
+   "Total UP": {
+    "MB": 2
+   },
+   "Tras": {
+    "T": 3
+   },
+   "Trc": {
+    "T": 3
+   },
+   "Trcd": {
+    "T": 3
+   },
+   "Trfc": {
+    "T": 3
+   },
+   "Trp": {
+    "T": 3
+   },
+   "Uncore Ratio": {
+    "x": 2
+   },
+   "Uncore VID": {
+    "V": 2
+   },
+   "VBAT": {
+    "V": 2
+   },
+   "VR VCC Current (SVID IOUT)": {
+    "A": 2
+   },
+   "Vcore": {
+    "V": 2
+   },
+   "Virtual Memory Load": {
+    "%": 2
+   },
+   "Wear Level": {
+    "%": 2
+   },
+   "Write Activity": {
+    "%": 2
+   },
+   "Write Rate": {
+    "MB/s": 2
+   },
+   "Write Total": {
+    "MB": 2
+   },
+   "iGPU VID": {
+    "V": 2
+   }
+  },
+  "repositories": 3
+ },
+ "live": {
+  "date": "2026-10-29",
+  "names": {}
+ }
+}
