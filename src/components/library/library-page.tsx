@@ -76,6 +76,7 @@ import { DeleteSelectedDialog, RemoveItemDialog, RemoveManyDialog } from "./remo
 import { FILE_KINDS, type RemoveBlock } from "./remove-item";
 import { useMyLibrary } from "./use-my-library";
 import { isComponent } from "@/lib/my-library/component-meta";
+import { isOlderItem } from "@/lib/my-library/item-format";
 import { CONFIG_PANEL, isBuiltinItem } from "@/lib/my-library/config-items";
 import type { ScreenTemplate } from "@/lib/screen-templates/kit";
 import { uid } from "@/lib/layout";
@@ -471,11 +472,21 @@ export default function LibraryPage(p: LibraryPageProps) {
         onRemove={() => askRemove(item)}
         onMerge={(group) => void lib.merge(group).then(() => toast(`Merged into ${group[0].name}`))}
         onVideo={(patch) => void lib.update(item, { meta: { ...item.meta, ...patch } })}
+        onUpdateFormat={isOlderItem(item) ? () => updateFormat([item]) : undefined}
         copyLabel={p.copyLabel}
         onJump={p.onJump}
       />
     );
   };
+
+  const older = lib.items.filter(isOlderItem);
+  /** Rewrite older items in today's format, each backed up first. */
+  const updateFormat = (items: readonly LibraryItem[]) =>
+    void lib.updateFormat(items).then(({ updated, failed }) => {
+      const done = updated === 1 && items.length === 1 ? `Updated ${items[0].name}` : `Updated ${updated} item${updated === 1 ? "" : "s"}`;
+      if (failed.length === 0) toast(`${done}: ${updated === 1 ? "a backup copy is" : "backup copies are"} in the Library`);
+      else toast(`${updated > 0 ? `${done}. ` : ""}Not updated, as ${failed.length === 1 ? "it" : "they"} couldn’t be read: ${failed.join(", ")}`);
+    });
 
   const title = searching ? `Results for “${query.trim()}”` : (COLLECTIONS.find((x) => x.id === collection)?.label ?? "All items");
   // First run: the grid's wide upload tile fills the page; the view choice is kept for when items exist.
@@ -609,6 +620,17 @@ export default function LibraryPage(p: LibraryPageProps) {
                   {lib.error && (
                     <div role="alert" className="m-4 rounded-lg border border-ui-danger/40 bg-ui-danger/10 px-3 py-2 text-[12.5px] text-ui-2">
                       {lib.error}
+                    </div>
+                  )}
+                  {older.length > 0 && (
+                    <div role="status" className="mx-4 mt-4 flex items-center gap-3 rounded-lg border border-ui-warning/40 bg-ui-warning/10 px-3 py-2 text-[12.5px] text-ui-2">
+                      <span className="min-w-0 flex-1">
+                        {older.length === 1 ? "1 item was" : `${older.length} items were`} saved by an older version. {older.length === 1 ? "It works" : "They work"} as{" "}
+                        {older.length === 1 ? "it is" : "they are"}; Update saves {older.length === 1 ? "it" : "them"} in today&rsquo;s format and keeps a copy of {older.length === 1 ? "it" : "each"} as it was.
+                      </span>
+                      <button type="button" onClick={() => updateFormat(older)} className="h-[28px] shrink-0 rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
+                        {older.length === 1 ? "Update" : "Update all"}
+                      </button>
                     </div>
                   )}
                   {view === "shelves" && !searching && !empty ? (

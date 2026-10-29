@@ -1,11 +1,11 @@
 /**
  * The Library's detail pane (spec §3): a large preview, the name (renamed in place), the primary
- * action by kind, the secondary actions, the duplicate notice with Merge, the theme suggestion,
+ * action by kind, the secondary actions, the duplicate notice with Merge, the older-version notice with Update, the theme suggestion,
  * a video's playback and an SVG template's variables, the facts, the auto tags and the copies
  * placed (each jumps to its place).
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, Copy, Sparkles, Trash2, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Copy, RefreshCw, Sparkles, Trash2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBytes } from "@/lib/assets";
 import type { LibraryCopy, LibraryItem } from "@/lib/library";
@@ -38,6 +38,8 @@ export interface DetailProps {
   onRemove: () => void;
   onMerge: (group: LibraryItem[]) => void;
   onVideo: (patch: { loop?: boolean; muted?: boolean; poster?: number }) => void;
+  /** Saved by an older version: Update rewrites it in today's format (`item-format.ts`). */
+  onUpdateFormat?: () => void;
   /** Where a copy went, as the studio names it ("ARCv2 › Page 1 › Background"), and jump there. */
   copyLabel: (copy: LibraryCopy) => string;
   onJump: (copy: LibraryCopy) => void;
@@ -136,6 +138,17 @@ export function LibraryDetail(p: DetailProps) {
           {hash && group.every((g) => hashOf(g) === hash) ? "bytes" : "picture"}. Merging keeps {group[0].name} and moves every copy count to it.
           <button type="button" onClick={() => p.onMerge(group)} className="mt-2 block h-[28px] rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
             Merge
+          </button>
+        </div>
+      )}
+      {p.onUpdateFormat && (
+        <div className="rounded-[10px] border border-ui-warning/40 bg-ui-warning/10 p-3 text-[12px] leading-snug text-ui-2">
+          <div className="mb-2 flex items-center gap-2 font-medium text-ui-warning">
+            <RefreshCw className="h-3.5 w-3.5" /> Older version
+          </div>
+          Saved by an older version of InfoPanel Studio. It still works as it is; Update saves it in today&rsquo;s format and keeps a copy of it as it was first.
+          <button type="button" onClick={p.onUpdateFormat} className="mt-2 block h-[28px] rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
+            Update
           </button>
         </div>
       )}

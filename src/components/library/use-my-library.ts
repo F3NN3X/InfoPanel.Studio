@@ -9,6 +9,7 @@ import type { Asset } from "@/lib/assets";
 import type { DashboardConfig } from "@/lib/layout";
 import { createLibraryItem, deleteLibraryItem, getLibraryItem, listLibrary, updateLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
 import { builtinItems, configItems, type BuiltinSources } from "@/lib/my-library/config-items";
+import { updateItemFormat } from "@/lib/my-library/item-format";
 import { isConfigItem } from "@/lib/my-library/model";
 import { addFileToLibrary } from "./add-file";
 import { uploadName } from "./adopt-uploads";
@@ -47,6 +48,8 @@ export interface MyLibrary {
   update(item: LibraryItem, patch: Partial<Pick<LibraryItem, "name" | "meta" | "files" | "data">>): Promise<void>;
   /** Merge a duplicate group into its first item: the copies move over, the rest go. */
   merge(group: readonly LibraryItem[]): Promise<void>;
+  /** Rewrite items saved by an older version in today's format, one by one, each backed up first; what came of it. */
+  updateFormat(items: readonly LibraryItem[]): Promise<{ updated: number; failed: string[] }>;
 }
 
 const WORKERS = 2;
@@ -198,6 +201,22 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
       upsert(await updateLibraryItem(keep.id, { copies }));
       await Promise.all(rest.map((i) => deleteLibraryItem(i.id)));
       setServer((list) => list.filter((i) => !rest.some((r) => r.id === i.id)));
+    },
+    updateFormat: async (items) => {
+      const store = { get: getLibraryItem, create: createLibraryItem, update: updateLibraryItem };
+      let updated = 0;
+      const failed: string[] = [];
+      for (const item of items) {
+        try {
+          const r = await updateItemFormat(item, store);
+          upsert(r.backup);
+          upsert(r.item);
+          updated++;
+        } catch {
+          failed.push(item.name);
+        }
+      }
+      return { updated, failed };
     },
   };
 }
