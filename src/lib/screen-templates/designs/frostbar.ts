@@ -30,7 +30,7 @@ export const FROSTBAR: ScreenTemplate = {
   look: {
     theme: theme(COLOURS),
     radius: 1,
-    style: { skin: "default", surface: "glass", accent: "#5b9bff", blur: "24", font: "sans" },
+    style: { skin: "auto", surface: "glass", accent: "#5b9bff", blur: "24", font: "sans" },
     background: { type: "gradient", gradient: { from: "#4a2f6b", to: "#0a1a4a", angle: 150 } },
     gap: 14,
     padding: 18,

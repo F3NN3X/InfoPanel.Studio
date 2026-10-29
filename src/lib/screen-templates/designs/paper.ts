@@ -28,7 +28,7 @@ export const PAPER: ScreenTemplate = {
   look: {
     theme: theme(COLOURS),
     radius: 0.75,
-    style: { skin: "default", surface: "theme", accent: "#2563eb", font: "inter", numGlow: "off" },
+    style: { skin: "auto", surface: "theme", accent: "#2563eb", font: "inter", numGlow: "off" },
     background: { type: "color", color: "#d8d2c4" },
     gap: 12,
     padding: 12,

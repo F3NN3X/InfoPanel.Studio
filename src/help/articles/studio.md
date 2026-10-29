@@ -41,7 +41,7 @@ Shows the selected screen at its real size, scaled to fit the window. Grid lines
 
 The bar under the canvas toggles the left panel, the grid and rulers, zooms in and out, and has **Fit** and the resolution button. On a screen made for InfoPanel too it also has **Studio | InfoPanel**: **InfoPanel** draws the page as the export makes it, the way InfoPanel shows it: a widget set to Recreate is a picture with its live values on top, a Snapshot is a picture, a widget InfoPanel has its own item for (the clock, for one) is that item, and a widget left out isn't there (it keeps its cells). The Export check marks stay on. **Studio** goes back. It changes only what you see.
 
-An empty page shows **Drop widgets or InfoPanel items here**, with **Add** and **Import .infopanel**, and **Use sample layout** as a link under them. A widget this version doesn't have, saved by a newer or older one, shows as a grey box that says **Widget not available in this version**; it's kept as it is when you save. A page whose InfoPanel content didn't load says *This page's content isn't loaded yet.* and can't be moved until it does.
+An empty page shows **Drop widgets or InfoPanel items here**, with **Add** and **Import .infopanel**, and **Use sample layout** as a link under them. A widget this version doesn't have, saved by a newer or older one, shows as a gray box that says **Widget not available in this version**; it's kept as it is when you save. A page whose InfoPanel content didn't load says *This page's content isn't loaded yet.* and can't be moved until it does.
 
 To move around, hold `Space` and drag, or drag with the middle mouse button, to pan the canvas at any zoom. **Fit** puts it back. `Ctrl` + mouse wheel zooms.
 
@@ -163,7 +163,7 @@ The settings for whatever is selected. Where it sits depends on the width of the
 | 600 to 959 px | A floating card. Open it with **All settings**, by double-clicking a widget, or with `Ctrl+\`. |
 | Under 600 px | A bottom sheet that you can pull to peek, half or full height. |
 
-A selected widget's inspector starts with **Studio widget** under its name and **PLACE ON GRID**: its column, row, width and height in cells. Type a value and press Enter; a box turns red when the widget can't go there because another widget is in the way. The tabs **Show**, **Style**, **Data** and **Behaviour** follow, then **LAYER** and, on a screen made for InfoPanel, **On InfoPanel**.
+A selected widget's inspector starts with **Studio widget** under its name and **PLACE ON GRID**: its column, row, width and height in cells. Type a value and press Enter; a box turns red when the widget can't go there because another widget is in the way. The tabs **Show**, **Style**, **Data** and **Behavior** follow, then **LAYER** and, on a screen made for InfoPanel, **On InfoPanel**.
 
 ## Saving
 

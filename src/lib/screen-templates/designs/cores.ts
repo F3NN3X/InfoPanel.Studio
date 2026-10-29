@@ -27,7 +27,7 @@ export const CORES: ScreenTemplate = {
   look: {
     theme: theme(COLOURS),
     radius: 0.625,
-    style: { skin: "default", surface: "theme", accent: "#34d399", font: "sans" },
+    style: { skin: "auto", surface: "theme", accent: "#34d399", font: "sans" },
     background: { type: "color", color: "#0c0d10" },
     gap: 8,
     padding: 8,

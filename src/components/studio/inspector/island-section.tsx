@@ -17,7 +17,7 @@ import {
   type IslandNotices,
   type IslandStat,
 } from "@/lib/island/config";
-import { ISLAND_LOOKS, type IslandLookFields } from "@/lib/island/looks";
+import { ISLAND_LOOKS, showsLook, type IslandLookFields } from "@/lib/island/looks";
 import { cn } from "@/lib/utils";
 import { FIELD, SegmentedRow, SelectRow, SliderRow, ColorRow, TextRow, ToggleRow } from "../setting-rows";
 import { SensorField } from "../widget-editor/sensor-field";
@@ -86,8 +86,6 @@ const NOTICE_ROWS: { key: keyof IslandNotices; label: string; hint: string }[] =
   },
 ];
 
-/** Whether the island is drawn as the look says. */
-const isLook = (island: IslandConfig, look: IslandLookFields): boolean => (Object.keys(look) as (keyof IslandLookFields)[]).every((key) => island[key] === look[key]);
 
 interface IslandSectionProps {
   island: IslandConfig | undefined;
@@ -291,11 +289,11 @@ export function IslandSection({ island, previewBus, onChange, onLook, onOpenExpl
                 key={l.id}
                 type="button"
                 title={l.description}
-                aria-pressed={isLook(v, l.look)}
+                aria-pressed={showsLook(v, l.look)}
                 onClick={() => onLook(l.look)}
                 className={cn(
                   "h-[28px] truncate rounded-[6px] border border-ui-default px-2 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1",
-                  isLook(v, l.look) && "bg-ui-active text-ui-1",
+                  showsLook(v, l.look) && "bg-ui-active text-ui-1",
                 )}
               >
                 {l.name}
@@ -405,7 +403,7 @@ export function IslandSection({ island, previewBus, onChange, onLook, onOpenExpl
   const enable = (
     <ToggleRow
       label="Show Dynamic Island"
-      hint="A pill at the top centre of the screen with the time, alerts and live activities"
+      hint="A pill at the top center of the screen with the time, alerts and live activities"
       value={v.enabled}
       onChange={(enabled) => onChange({ enabled })}
     />

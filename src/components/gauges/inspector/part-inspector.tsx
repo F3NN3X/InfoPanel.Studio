@@ -37,7 +37,7 @@ const BODY: Record<PartId, (p: InspectorProps) => ReactNode> = {
 
 const BLURB: Partial<Record<PartId, string>> = {
   track: "The unfilled range behind the fill.",
-  needle: "A needle from the centre to the value.",
+  needle: "A needle from the center to the value.",
   marker: "A mark across the bar at the value.",
   ticks: "Marks along the range.",
   scale: "The range the gauge reads.",

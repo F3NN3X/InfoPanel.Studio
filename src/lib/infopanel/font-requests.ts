@@ -16,7 +16,7 @@ import { listEntries, readEntry } from "./zip.ts";
 const TEXT_KINDS = new Set(["Text", "Clock", "Calendar", "Sensor", "TableSensor"]);
 
 /** The Library's licence words (spec §3). */
-export const LICENCE_LABEL: Record<Verdict, string> = { share: "May share", check: "Check licence", keep: "Do not share" };
+export const LICENCE_LABEL: Record<Verdict, string> = { share: "May share", check: "Check license", keep: "Do not share" };
 
 /** One font request of a zone: how its stored entry is set and the text items that ask for it. */
 export interface RequestEntry {

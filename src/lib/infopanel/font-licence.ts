@@ -31,13 +31,13 @@ export function reviewFont(f: LicenceInfo): Review {
   const text = f.license ?? "";
   if (OPEN.test(text) || (f.licenseUrl && OPEN_URL.test(f.licenseUrl))) {
     return f.embedding === "restricted"
-      ? { verdict: "check", reason: "an open licence, but the file's embedding bits say restricted" }
-      : { verdict: "share", reason: "an open licence: it may travel with the canvas" };
+      ? { verdict: "check", reason: "an open license, but the file's embedding bits say restricted" }
+      : { verdict: "share", reason: "an open license: it may travel with the canvas" };
   }
-  if (PROPRIETARY.test(text)) return { verdict: "keep", reason: "its licence does not allow passing it on" };
+  if (PROPRIETARY.test(text)) return { verdict: "keep", reason: "its license does not allow passing it on" };
   if (f.embedding === "restricted") return { verdict: "keep", reason: "its embedding bits say restricted" };
-  if (!text) return { verdict: "check", reason: "no licence in the file or from its source" };
-  return { verdict: "check", reason: "a licence this lab does not recognise" };
+  if (!text) return { verdict: "check", reason: "no license in the file or from its source" };
+  return { verdict: "check", reason: "a license this lab does not recognize" };
 }
 
 export const VERDICT_LABEL: Record<Verdict, string> = { share: "may share", check: "check", keep: "do not share" };

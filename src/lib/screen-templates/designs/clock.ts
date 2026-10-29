@@ -26,14 +26,14 @@ const COLOURS: Colours = { bg: "#07090f", fg: "#f4f6fb", card: "#0e121b", sub: "
 export const CLOCK: ScreenTemplate = {
   id: "clock",
   name: "Clock",
-  blurb: "A big centred clock in rings, readings either side",
+  blurb: "A big centered clock in rings, readings either side",
   port: true,
   fits: ["wide", "standard"],
   size: { width: 1024, height: 600 },
   look: {
     theme: theme(COLOURS),
     radius: 0.5,
-    style: { skin: "default", surface: "flat", accent: "#7dd3fc", font: "sans", numGlow: "off" },
+    style: { skin: "auto", surface: "flat", accent: "#7dd3fc", font: "sans", numGlow: "off" },
     background: { type: "color", color: "#07090f" },
     gap: 10,
     padding: 14,

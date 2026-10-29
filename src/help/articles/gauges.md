@@ -29,7 +29,7 @@ Vector gauges are built from these parts:
 |---|---|
 | Shape | Arc, Bar, Liquid (Round, Rect, Diamond, Hex), Grid, SVG |
 | Fill | Solid, Gradient, Zones or Thresholds; "Follow the theme" colors |
-| Parts | Track, Needle, Marker, Ticks, Labels, Value text, Title, Background, Face, Rings, Pattern, Icon row, Centre icon, Glow, Shadow, and Wave, Shine and Bubbles for liquid |
+| Parts | Track, Needle, Marker, Ticks, Labels, Value text, Title, Background, Face, Rings, Pattern, Icon row, Center icon, Glow, Shadow, and Wave, Shine and Bubbles for liquid |
 
 **Face** (arc only) is a disc inside the ring with a repeating pattern: Hex, Dots, Grid or Carbon, with its own color, opacity and cell size, and an optional disc color. It is drawn once under the arc, so the arc moving over it costs nothing extra. It is baked into the frames when you export for InfoPanel.
 

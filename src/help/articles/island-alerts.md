@@ -22,7 +22,7 @@ Open **Alerts & Island** on the rail, choose the **Island** tab and turn on **Sh
 | Alerts | Collapse alerts after, Group notices |
 | Dashboard notices | Page name, Layout updated, Plugin back, On air (OBS), Calendar countdown, Coding agents |
 
-Press **Preview an alert** to see how an alert looks. **Widgets sent to the island** lists the widgets that raise their own alerts, each with **Open widget ↗**. Turn it on per widget under **Behaviour › Send to island**.
+Press **Preview an alert** to see how an alert looks. **Widgets sent to the island** lists the widgets that raise their own alerts, each with **Open widget ↗**. Turn it on per widget under **Behavior › Send to island**.
 
 ## Alerts
 

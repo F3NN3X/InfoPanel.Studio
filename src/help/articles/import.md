@@ -84,4 +84,4 @@ The InfoPanel export dialog is titled "Export" followed by the canvas name.
 | **Stored form** | A `.canvas.zip` that reopens with your modes, remaps, fonts and assets intact |
 | **.infopanel for InfoPanel** | A profile InfoPanel can open, with assets included |
 
-For the InfoPanel form you can turn on **Bake stale gauges and elements first** and **Leave unused assets out**. The dialog also reviews font licences before you share.
+For the InfoPanel form you can turn on **Bake stale gauges and elements first** and **Leave unused assets out**. The dialog also reviews font licenses before you share.

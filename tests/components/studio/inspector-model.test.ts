@@ -82,13 +82,13 @@ describe("every setting is in exactly one section of exactly one tab", () => {
 });
 
 describe("inspectorTabs", () => {
-  it("has Show, Style, Data and Behaviour for widgets and panels", () => {
+  it("has Show, Style, Data and Behavior for widgets and panels", () => {
     for (const context of [spotify, panel]) {
       expect(inspectorTabs(context)).toEqual([
         { id: "show", label: "Show" },
         { id: "style", label: "Style" },
         { id: "data", label: "Data" },
-        { id: "behaviour", label: "Behaviour" },
+        { id: "behaviour", label: "Behavior" },
       ]);
     }
   });

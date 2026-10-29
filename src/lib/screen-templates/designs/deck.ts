@@ -75,7 +75,7 @@ export const DECK: ScreenTemplate = {
   look: {
     theme: theme(COLOURS),
     radius: 0,
-    style: { skin: "default", surface: "theme", accent: BLUE, font: "sans" },
+    style: { skin: "auto", surface: "theme", accent: BLUE, font: "sans" },
     background: { type: "gradient", gradient: { from: "#2c4a8a", to: "#5a3a8f", angle: 135 } },
     gap: 0,
     padding: 16,

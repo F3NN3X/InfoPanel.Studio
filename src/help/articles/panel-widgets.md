@@ -16,7 +16,7 @@ A sparkline keeps between 5 and 200 samples of the value.
 
 ## Scrolling text
 
-A text widget can scroll like InfoPanel's marquee. Under Behaviour › Scrolling, turn on **Scroll when too long** and set the **Speed** (px per second) and the **Spacing** between repeats. The text scrolls only while it is wider than the widget, so give the widget a **Fixed** or **Fill** width. With Motion on Reduce it stays still and shows the start of the text.
+A text widget can scroll like InfoPanel's marquee. Under Behavior › Scrolling, turn on **Scroll when too long** and set the **Speed** (px per second) and the **Spacing** between repeats. The text scrolls only while it is wider than the widget, so give the widget a **Fixed** or **Fill** width. With Motion on Reduce it stays still and shows the start of the text.
 
 ## Time and date format
 

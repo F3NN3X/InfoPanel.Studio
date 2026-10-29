@@ -11,7 +11,7 @@ export const meta: WidgetMeta = {
   minSize: [3, 1],
   blurb: "Top bar with slots for any readout",
   tags: "status bar top strip notch island taskbar",
-  description: "A one-row bar with a left, a centre and a right slot, each holding any of the date, time, weather, load, temperature, network, volume, battery and more. Leaves room for the Dynamic Island.",
+  description: "A one-row bar with a left, a center and a right slot, each holding any of the date, time, weather, load, temperature, network, volume, battery and more. Leaves room for the Dynamic Island.",
   views: [
     { id: "edge", name: "Edge", blurb: "Flush bar with rounded bottom corners" },
     { id: "pill", name: "Pill", blurb: "A floating capsule", tags: "capsule rounded" },

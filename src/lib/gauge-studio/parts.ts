@@ -48,7 +48,7 @@ export const PARTS: readonly PartDef[] = [
   { id: "rings", label: "Rings", group: "Decor", shapes: ["arc"] },
   { id: "pattern", label: "Pattern", group: "Decor", shapes: ["bar"] },
   { id: "icons", label: "Icon row", group: "Decor", shapes: ["bar"] },
-  { id: "icon", label: "Centre icon", group: "Decor", shapes: ["arc", "liquid", "grid"] },
+  { id: "icon", label: "Center icon", group: "Decor", shapes: ["arc", "liquid", "grid"] },
   { id: "glow", label: "Glow", group: "Effects", shapes: DRAWN },
   { id: "shadow", label: "Shadow", group: "Effects", shapes: DRAWN },
   { id: "wave", label: "Wave", group: "Liquid", shapes: ["liquid"] },

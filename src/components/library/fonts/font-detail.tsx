@@ -13,9 +13,9 @@ import { useLibraryFont } from "../asset-thumb";
 import { VERDICT_TONE } from "./requested-table";
 
 const LICENCE_LINE: Record<Verdict, string> = {
-  share: "Open licence. It can be embedded in exports and shared.",
-  check: "No recognised licence in the file. Check it before sharing a canvas that carries this font.",
-  keep: "Its licence or embedding bits do not allow passing it on. Exports leave it out unless you keep it.",
+  share: "Open license. It can be embedded in exports and shared.",
+  check: "No recognized license in the file. Check it before sharing a canvas that carries this font.",
+  keep: "Its license or embedding bits do not allow passing it on. Exports leave it out unless you keep it.",
 };
 
 export function Fact({ label, children, tone }: { label: string; children: ReactNode; tone?: string }) {
@@ -52,7 +52,7 @@ export function FontDetail({ item }: { item: LibraryItem }) {
         <Fact label="Faces">{m.faces ?? "—"}</Fact>
         <Fact label="Size">{m.size !== undefined ? formatBytes(m.size) : "—"}</Fact>
         <Fact label="Embedding">{m.embedding ?? "—"}</Fact>
-        <Fact label="Licence" tone={m.licence ? VERDICT_TONE[m.licence] : undefined}>
+        <Fact label="License" tone={m.licence ? VERDICT_TONE[m.licence] : undefined}>
           {m.licence ? LICENCE_LABEL[m.licence] : "—"}
         </Fact>
       </div>

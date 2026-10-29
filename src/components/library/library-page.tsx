@@ -293,15 +293,15 @@ export default function LibraryPage(p: LibraryPageProps) {
     });
     if (item.kind === "image" && !["svg", "gif"].includes(String((item.meta as { type?: string }).type)))
       out.push({
-        label: "Optimise",
+        label: "Optimize",
         icon: ImageDown,
         run: () =>
           void optimiseItem(item).then(
             (r) => {
               if (!r) return toast("Already as small as it gets: kept as is");
-              void lib.update(item, { files: [r.id], meta: { ...item.meta, ...r.meta } }).then(() => toast(`Optimised: saved ${formatBytes(r.saved)}`));
+              void lib.update(item, { files: [r.id], meta: { ...item.meta, ...r.meta } }).then(() => toast(`Optimized: saved ${formatBytes(r.saved)}`));
             },
-            (e: Error) => toast(`Not optimised: ${e.message}`),
+            (e: Error) => toast(`Not optimized: ${e.message}`),
           ),
       });
     if (item.kind === "gauge")
@@ -577,7 +577,7 @@ export default function LibraryPage(p: LibraryPageProps) {
           type="button"
           aria-pressed={showFiles}
           onClick={() => setShowFiles((on) => !on)}
-          title="The files its canvases use: replace and optimise them"
+          title="The files its canvases use: replace and optimize them"
           className={cn("flex h-[34px] max-w-[220px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover", showFiles && "bg-ui-active")}
         >
           <FolderInput className="h-4 w-4 shrink-0" />
