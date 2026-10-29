@@ -51,7 +51,7 @@ export const TAB_LABELS: Record<TabId, string> = {
   show: "Show",
   style: "Style",
   data: "Data",
-  behaviour: "Behaviour",
+  behaviour: "Behavior",
 };
 
 const ZONE_TABS: readonly TabId[] = ["show", "style", "data", "behaviour"];

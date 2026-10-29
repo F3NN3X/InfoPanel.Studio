@@ -2,7 +2,7 @@
 
 exports[`Achievements > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -101,7 +101,7 @@ exports[`Achievements > files its rows by the rules 1`] = `
 
 exports[`Bluetooth > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -200,7 +200,7 @@ exports[`Bluetooth > files its rows by the rules 1`] = `
 
 exports[`Calendar > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -289,7 +289,7 @@ exports[`Calendar > files its rows by the rules 1`] = `
 
 exports[`Clock > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -393,7 +393,7 @@ exports[`Clock > files its rows by the rules 1`] = `
 
 exports[`CodingAgents > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -507,7 +507,7 @@ exports[`CodingAgents > files its rows by the rules 1`] = `
 
 exports[`CoreHeatmap > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Thresholds": [
         "hotOutline",
@@ -619,7 +619,7 @@ exports[`CoreHeatmap > files its rows by the rules 1`] = `
 
 exports[`CustomGauge > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -712,7 +712,7 @@ exports[`CustomGauge > files its rows by the rules 1`] = `
 
 exports[`Departures > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -806,7 +806,7 @@ exports[`Departures > files its rows by the rules 1`] = `
 
 exports[`DiskIO > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -907,7 +907,7 @@ exports[`DiskIO > files its rows by the rules 1`] = `
 
 exports[`DriveSpace > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Thresholds": [
         "warn.full",
@@ -1023,7 +1023,7 @@ exports[`DriveSpace > files its rows by the rules 1`] = `
 
 exports[`Fans > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Dynamics": [
         "spin",
@@ -1122,7 +1122,7 @@ exports[`Fans > files its rows by the rules 1`] = `
 
 exports[`Forecast > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -1226,7 +1226,7 @@ exports[`Forecast > files its rows by the rules 1`] = `
 
 exports[`FpsMonitor > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -1336,7 +1336,7 @@ exports[`FpsMonitor > files its rows by the rules 1`] = `
 
 exports[`FramePacing > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "History": [
         "window",
@@ -1435,7 +1435,7 @@ exports[`FramePacing > files its rows by the rules 1`] = `
 
 exports[`GameSpotlight > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Dynamics": [
         "motion",
@@ -1543,7 +1543,7 @@ exports[`GameSpotlight > files its rows by the rules 1`] = `
 
 exports[`GpuMonitor > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Thresholds": [
         "warn.temp",
@@ -1642,7 +1642,7 @@ exports[`GpuMonitor > files its rows by the rules 1`] = `
 
 exports[`GpuRings > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -1744,7 +1744,7 @@ exports[`GpuRings > files its rows by the rules 1`] = `
 
 exports[`KpiTiles > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "History": [
         "lookback",
@@ -1838,7 +1838,7 @@ exports[`KpiTiles > files its rows by the rules 1`] = `
 
 exports[`MemoryUsage > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Thresholds": [
         "warn.load",
@@ -1932,7 +1932,7 @@ exports[`MemoryUsage > files its rows by the rules 1`] = `
 
 exports[`MenuBar > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Interaction": [
         "dropdown",
@@ -2038,7 +2038,7 @@ exports[`MenuBar > files its rows by the rules 1`] = `
 
 exports[`MeterBridge > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Thresholds": [
         "warn.db",
@@ -2168,7 +2168,7 @@ exports[`MeterBridge > files its rows by the rules 1`] = `
 
 exports[`NetworkAdapters > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -2274,7 +2274,7 @@ exports[`NetworkAdapters > files its rows by the rules 1`] = `
 
 exports[`NetworkThroughput > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -2388,7 +2388,7 @@ exports[`NetworkThroughput > files its rows by the rules 1`] = `
 
 exports[`Notifications > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "History": [
         "maxLines",
@@ -2494,7 +2494,7 @@ exports[`Notifications > files its rows by the rules 1`] = `
 
 exports[`OsdStrip > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -2588,7 +2588,7 @@ exports[`OsdStrip > files its rows by the rules 1`] = `
 
 exports[`PlaytimeShare > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -2683,7 +2683,7 @@ exports[`PlaytimeShare > files its rows by the rules 1`] = `
 
 exports[`PowerDraw > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -2777,7 +2777,7 @@ exports[`PowerDraw > files its rows by the rules 1`] = `
 
 exports[`ProcessList > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Sorting": [
         "sort",
@@ -2876,7 +2876,7 @@ exports[`ProcessList > files its rows by the rules 1`] = `
 
 exports[`SensorValue > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Thresholds": [
         "warn.value",
@@ -2995,7 +2995,7 @@ exports[`SensorValue > files its rows by the rules 1`] = `
 
 exports[`ServiceHealth > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -3089,7 +3089,7 @@ exports[`ServiceHealth > files its rows by the rules 1`] = `
 
 exports[`StatusTracker > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Thresholds": [
         "warn.load",
@@ -3214,7 +3214,7 @@ exports[`StatusTracker > files its rows by the rules 1`] = `
 
 exports[`SteamFriends > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Sorting": [
         "sort",
@@ -3326,7 +3326,7 @@ exports[`SteamFriends > files its rows by the rules 1`] = `
 
 exports[`SteamGame > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -3416,7 +3416,7 @@ exports[`SteamGame > files its rows by the rules 1`] = `
 
 exports[`SteamLibrary > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -3510,7 +3510,7 @@ exports[`SteamLibrary > files its rows by the rules 1`] = `
 
 exports[`SteamNews > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -3609,7 +3609,7 @@ exports[`SteamNews > files its rows by the rules 1`] = `
 
 exports[`StorageHealth > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -3703,7 +3703,7 @@ exports[`StorageHealth > files its rows by the rules 1`] = `
 
 exports[`StreamDeck > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -3802,7 +3802,7 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
 
 exports[`SystemStatus > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Thresholds": [
         "warn.load",
@@ -3896,7 +3896,7 @@ exports[`SystemStatus > files its rows by the rules 1`] = `
 
 exports[`TextFile > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -3990,7 +3990,7 @@ exports[`TextFile > files its rows by the rules 1`] = `
 
 exports[`Thermals > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Thresholds": [
         "sensorLimits",
@@ -4108,7 +4108,7 @@ exports[`Thermals > files its rows by the rules 1`] = `
 
 exports[`Timer > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -4213,7 +4213,7 @@ exports[`Timer > files its rows by the rules 1`] = `
 
 exports[`Visualizer > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Visualizer dynamics": [
         "sensitivity",
@@ -4336,7 +4336,7 @@ exports[`Visualizer > files its rows by the rules 1`] = `
 
 exports[`Vitals > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -4425,7 +4425,7 @@ exports[`Vitals > files its rows by the rules 1`] = `
 
 exports[`VolumeMixer > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",
@@ -4533,7 +4533,7 @@ exports[`VolumeMixer > files its rows by the rules 1`] = `
 
 exports[`WaveLink > files its rows by the rules 1`] = `
 {
-  "Behaviour": [
+  "Behavior": [
     {
       "Motion": [
         "smoothing",

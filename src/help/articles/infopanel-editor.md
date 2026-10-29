@@ -40,7 +40,7 @@ A template is a finished profile made from the editor's own items and elements, 
 
 | Template | Look |
 |---|---|
-| Graphite | Flat grey cards with one accent and rings |
+| Graphite | Flat gray cards with one accent and rings |
 | Glass | See-through cards with a soft sheen over colored glows |
 | Neon | Dark panels with glowing outlines, LED rings and bars |
 | Paper | A light theme: white cards with soft shadows |
@@ -121,7 +121,7 @@ Ring, LED bar and Sparkline ask for a sensor when you add them. Cores finds the 
 
 Row, Rows, Graph stack, Dual graph and Double ring start with no sensors. Select a part in **Layers** to choose its sensor or change its text; the element places the parts, so moving or resizing the element moves them all. A Row's thin bar follows the sensor of its value. Drives finds your drives in the Data API (LibreHardwareMonitor's drive sensors) and binds each tile. With none found it shows three placeholder tiles, and **Find the drives again** binds them once the Data API reports them.
 
-**Your own icons.** An Icon element's **Your image…** button picks a file from My library, or uploads one there. Drives has a row for each drive with **Your image…** and **Icon set**; **Reset** goes back to the hard drive. The file joins the profile's files, so it exports with the profile and My library won't remove it while a profile uses it. A file is drawn as it is: the icon color doesn't tint an SVG, so pick an image that already suits the card. A wide or tall image is fitted inside the icon box, keeping its shape and centred; the exported Image is that fitted size. A drive keeps its icon when you use **Find the drives again** or the drives come back in another order. HWiNFO drives are matched by name when they have no stable id. We don't ship brand or game emblems: add your own files.
+**Your own icons.** An Icon element's **Your image…** button picks a file from My library, or uploads one there. Drives has a row for each drive with **Your image…** and **Icon set**; **Reset** goes back to the hard drive. The file joins the profile's files, so it exports with the profile and My library won't remove it while a profile uses it. A file is drawn as it is: the icon color doesn't tint an SVG, so pick an image that already suits the card. A wide or tall image is fitted inside the icon box, keeping its shape and centered; the exported Image is that fitted size. A drive keeps its icon when you use **Find the drives again** or the drives come back in another order. HWiNFO drives are matched by name when they have no stable id. We don't ship brand or game emblems: add your own files.
 
 **Glow** is on every Text and Value, in its Glow section: a switch, a radius from 2 to 20 and a color. InfoPanel draws it itself, so it exports as it looks. Row, Rows and Double ring have a **Value glow** switch that sets it on their values. The dashboard's **Number glow** (Style, Typography) is the same idea for the dashboard's own widgets.
 
@@ -239,7 +239,7 @@ A group holds items and moves as one. Its children keep their own X and Y, measu
 
 Click with `Shift` or `Ctrl` to select more than one item, on the canvas or in **Layers**. Drag, nudge, **Duplicate** and **Delete** act on all of them. The inspector then has:
 
-- **Align**: left, centre, right, top, middle or bottom of the box around them.
+- **Align**: left, center, right, top, middle or bottom of the box around them.
 - **Distribute**: equal gaps across or down, for three items or more. The first and last stay where they are.
 - **Shared fields**: what every selected item has, such as X, Y, font and colors. A field they differ in says "Mixed" until you set it.
 

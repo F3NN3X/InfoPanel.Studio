@@ -46,7 +46,7 @@ export const TERMINAL: ScreenTemplate = {
   look: {
     theme: theme(COLOURS),
     radius: 0,
-    style: { skin: "default", surface: "flat", accent: "#39ff88", font: "jetbrains-mono", numGlow: "off", labelCase: "none" },
+    style: { skin: "auto", surface: "flat", accent: "#39ff88", font: "jetbrains-mono", numGlow: "off", labelCase: "none" },
     background: { type: "color", color: "#010402" },
     gap: 0,
     padding: 8,

@@ -28,7 +28,7 @@ export const TOWER: ScreenTemplate = {
   look: {
     theme: theme(COLOURS),
     radius: 0.5,
-    style: { skin: "default", surface: "theme", accent: "#0a84ff", font: "sans" },
+    style: { skin: "auto", surface: "theme", accent: "#0a84ff", font: "sans" },
     background: { type: "color", color: "#2a3a66" },
     gap: 6,
     padding: 8,

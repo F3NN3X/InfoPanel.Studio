@@ -25,7 +25,7 @@ export const GLASS: ScreenTemplate = {
   look: {
     theme: theme(COLOURS),
     radius: 1,
-    style: { skin: "default", surface: "glass", accent: "#60a5fa", blur: "24", numGlow: "soft" },
+    style: { skin: "auto", surface: "glass", accent: "#60a5fa", blur: "24", numGlow: "soft" },
     background: { type: "gradient", gradient: { from: "#16254f", to: "#1d1245", angle: 140 } },
     gap: 10,
     padding: 10,

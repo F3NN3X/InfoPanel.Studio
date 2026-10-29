@@ -253,7 +253,7 @@ const STATUSBAR_SETTINGS: ModuleSetting[] = [
   // The presets set the slots when added; switching View in the inspector changes the frame only, so it is a plain select
   { ...viewSetting(M.StatusBar, { group: "Layout" }), type: "select", options: (M.StatusBar.views ?? []).map((v) => ({ value: v.id, label: v.name })) },
   enumSetting("left", "Left", "logo", BAR_ITEMS, { multiple: true, group: "Slots", hint: "Items show in the order picked; one with no data is left out" }),
-  enumSetting("center", "Centre", "date,time", BAR_ITEMS, { multiple: true, group: "Slots" }),
+  enumSetting("center", "Center", "date,time", BAR_ITEMS, { multiple: true, group: "Slots" }),
   enumSetting("right", "Right", "weather,network,volume,battery", BAR_ITEMS, { multiple: true, group: "Slots" }),
   enumSetting("display", "Show", "both", [{ value: "both", label: "Icon and value" }, { value: "value", label: "Value" }, { value: "icon", label: "Icon" }], { group: "Display", perWidget: true, hint: "Network, volume and battery show their icon only, unless set to Value" }),
   boolSetting("separators", "Dividers", true, { group: "Display", perWidget: true }),
@@ -265,7 +265,7 @@ const STATUSBAR_SETTINGS: ModuleSetting[] = [
   { key: "iconSet", label: "Weather icon set", type: "select", default: "app", options: [{ value: "app", label: "App icons" }, { value: "meteocons", label: "Meteocons" }], group: "Icons", perWidget: true, visibleIf: usesWeather },
   { key: "iconStyle", label: "Icon style", type: "select", default: "line", options: [{ value: "fill", label: "Fill" }, { value: "flat", label: "Flat" }, { value: "line", label: "Line" }, { value: "monochrome", label: "Monochrome" }], group: "Icons", perWidget: true, visibleIf: (v) => usesWeather(v) && v.iconSet === "meteocons" },
   { key: "iconAnimated", label: "Animated icons", type: "boolean", default: false, group: "Icons", perWidget: true, hint: "Animated icons use more CPU and memory on the kiosk, and run outside the Max FPS cap.", visibleIf: (v) => usesWeather(v) && v.iconSet === "meteocons" },
-  enumSetting("islandGap", "Gap for the island", "auto", [{ value: "auto", label: "Auto" }, { value: "off", label: "Off" }, { value: "custom", label: "Custom" }], { group: "Island", perWidget: true, hint: "Auto leaves room for the Dynamic Island at the page centre while it is on; the centre items split around it" }),
+  enumSetting("islandGap", "Gap for the island", "auto", [{ value: "auto", label: "Auto" }, { value: "off", label: "Off" }, { value: "custom", label: "Custom" }], { group: "Island", perWidget: true, hint: "Auto leaves room for the Dynamic Island at the page center while it is on; the center items split around it" }),
   numberSetting("islandGapPx", "Gap width (px)", 160, { min: 80, max: 400, step: 10, group: "Island", perWidget: true, visibleIf: (v) => v.islandGap === "custom" }),
   formatSetting("clock"),
   formatSetting("tempUnit"),

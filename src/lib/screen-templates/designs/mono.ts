@@ -44,7 +44,7 @@ export const MONO: ScreenTemplate = {
   look: {
     theme: theme(COLOURS),
     radius: 0,
-    style: { skin: "default", surface: "flat", accent: "#ffffff", font: "inter", labelCase: "none", numGlow: "off" },
+    style: { skin: "auto", surface: "flat", accent: "#ffffff", font: "inter", labelCase: "none", numGlow: "off" },
     background: { type: "color", color: "#000000" },
     gap: 22,
     padding: 18,

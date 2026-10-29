@@ -26,7 +26,7 @@ export const ELEMENTS: readonly ElementEntry[] = [
   { type: "rows", label: "Rows", sensor: false, hint: "A list of rows, evenly spaced; a Group of row Groups" },
   { type: "stack", label: "Graph stack", sensor: false, hint: "2 to 4 labelled graphs in rows; Text and Graph items" },
   { type: "dual", label: "Dual graph", sensor: false, hint: "Two series overlaid on transparent Graphs" },
-  { type: "doublering", label: "Double ring", sensor: false, hint: "An outer and an inner ring, each on its own sensor, and a centre value; baked to gauge frames" },
+  { type: "doublering", label: "Double ring", sensor: false, hint: "An outer and an inner ring, each on its own sensor, and a center value; baked to gauge frames" },
   { type: "drives", label: "Drives", sensor: false, hint: "One tile per drive: name, used bar, temperature and free space" },
   { type: "shadowtext", label: "Shadow text", sensor: false, hint: "A Text or Value with a dark offset shadow; two Texts, approximated" },
 ];

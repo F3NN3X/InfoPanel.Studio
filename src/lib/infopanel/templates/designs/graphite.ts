@@ -8,7 +8,7 @@ const ringOf = (k: Kit) => ({ fill: [ink(k, "accent1")], dot: false, rounded: tr
 export const GRAPHITE: Template = {
   id: "graphite",
   name: "Graphite",
-  blurb: "Flat grey cards with one accent",
+  blurb: "Flat gray cards with one accent",
   fits: ["strip", "wide", "standard", "tall"],
   background: "#FF121316",
   color: "#FFECEDEF",

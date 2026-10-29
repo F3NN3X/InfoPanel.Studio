@@ -22,14 +22,14 @@ Each file shows a preview, its real type and pixel size, byte size and how many 
 
 The finding chips are Unused, Identical, Larger than drawn, Over 1 MB, Missing and Tiled. **Clean up** acts on the findings; the number on the button counts them.
 
-## Optimise images
+## Optimize images
 
-**Optimise images…** re-encodes still images (same type or WebP) with a quality and a size cap (None, Drawn size or 50 %). The studio replaces a file only when it gets at least 5 % smaller. One undo step.
+**Optimize images…** re-encodes still images (same type or WebP) with a quality and a size cap (None, Drawn size or 50 %). The studio replaces a file only when it gets at least 5 % smaller. One undo step.
 
 ## Fonts
 
-In **Library › Fonts**, see each font the profile asks for, the face that will be drawn and where it came from. **Add fonts** takes `.ttf`, `.otf`, `.ttc`, `.woff`, `.woff2` or `.zip`. **Get a font** searches Fontsource and Font Squirrel. Each font shows whether it may be shared: **May share**, **Check licence** or **Do not share**.
+In **Library › Fonts**, see each font the profile asks for, the face that will be drawn and where it came from. **Add fonts** takes `.ttf`, `.otf`, `.ttc`, `.woff`, `.woff2` or `.zip`. **Get a font** searches Fontsource and Font Squirrel. Each font shows whether it may be shared: **May share**, **Check license** or **Do not share**.
 
 :::warn
-Before sharing an exported profile, check the fonts marked **Check licence** or **Do not share**.
+Before sharing an exported profile, check the fonts marked **Check license** or **Do not share**.
 :::

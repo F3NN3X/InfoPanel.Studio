@@ -55,7 +55,7 @@ export function OptimiseDrawer({ doc, onClose, onApply }: { doc: Doc; onClose: (
   const saved = kept.reduce((n, f) => n + f.bytes.length - results.get(f.name)!.after.bytes.length, 0);
   const apply = () => {
     const next = kept.reduce((d, f) => replace(d, f.name, results.get(f.name)!.after), doc);
-    onApply({ doc: next, message: `${kept.length} optimised, ${formatBytes(saved)} saved` });
+    onApply({ doc: next, message: `${kept.length} optimized, ${formatBytes(saved)} saved` });
     onClose();
   };
 
@@ -69,7 +69,7 @@ export function OptimiseDrawer({ doc, onClose, onApply }: { doc: Doc; onClose: (
 
   return (
     <Drawer
-      title="Optimise images"
+      title="Optimize images"
       onClose={onClose}
       footer={
         <>

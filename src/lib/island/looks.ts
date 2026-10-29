@@ -26,6 +26,17 @@ export const ISLAND_LOOKS: readonly IslandLookPreset[] = [
   { id: "paper", name: "Light pill", description: "A light pill with dark text", look: { ...BASE, tint: "custom", bgColor: "#f4f4f1", fgColor: "#1b1b1f", border: "subtle", weight: "medium" } },
 ];
 
+/** Fields a look sets that the island draws only with a custom tint (`island-look.ts`). */
+const CUSTOM_ONLY: ReadonlySet<keyof IslandLookFields> = new Set(["bgColor", "fgColor"]);
+
+/**
+ * Whether an island is drawn as `look` draws it: every field the look sets, its colors only where the tint is custom
+ * (a black or theme tint never draws them, so a changed hidden color is still the same look).
+ */
+export function showsLook(island: Partial<IslandLookFields>, look: IslandLookFields): boolean {
+  return (Object.keys(look) as (keyof IslandLookFields)[]).every((key) => (CUSTOM_ONLY.has(key) && look.tint !== "custom") || island[key] === look[key]);
+}
+
 /**
  * An Island look on one screen or on all of them: its shape, colours, border, shadow and weight, and the island
  * switched on (a look you apply is one you want to see). Everything else of the island is kept, as the Look rows

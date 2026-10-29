@@ -30,7 +30,7 @@ export const QUOTA: ScreenTemplate = {
   look: {
     theme: theme(COLOURS),
     radius: 0.5,
-    style: { skin: "default", surface: "theme", accent: "#9aa7ff", font: "sans", numGlow: "off" },
+    style: { skin: "auto", surface: "theme", accent: "#9aa7ff", font: "sans", numGlow: "off" },
     background: { type: "color", color: "#090b0e" },
     gap: 10,
     padding: 10,

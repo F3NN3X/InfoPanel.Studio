@@ -43,7 +43,7 @@ function column(k: Kit, b: Box, entries: readonly (readonly [string, Role])[], a
 export const CLOCK: Template = {
   id: "clock",
   name: "Clock",
-  blurb: "A big centred clock in a ring of sixty segments",
+  blurb: "A big centered clock in a ring of sixty segments",
   fits: ["wide", "standard"],
   background: "#FF07090F",
   color: "#FFF4F6FB",

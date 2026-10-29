@@ -18,14 +18,14 @@ const COLOURS: Colours = { bg: "#121316", fg: "#eceef0", card: "#1c1e22", sub: "
 export const GRAPHITE: ScreenTemplate = {
   id: "graphite",
   name: "Graphite",
-  blurb: "Flat grey cards with one accent",
+  blurb: "Flat gray cards with one accent",
   port: true,
   fits: ["strip", "wide", "standard", "tall"],
   size: { width: 800, height: 480 },
   look: {
     theme: theme(COLOURS),
     radius: 0.625,
-    style: { skin: "default", surface: "theme", scale: 130, accent: "#ff8a3d", font: "sans", numGlow: "off", meter: "bar" },
+    style: { skin: "auto", surface: "theme", scale: 130, accent: "#ff8a3d", font: "sans", numGlow: "off", meter: "bar" },
     background: { type: "color", color: "#0d0e10" },
     gap: 10,
     padding: 10,

@@ -41,7 +41,7 @@ Without a calendar or OBS set up, the studio shows a short hint in the widget. O
 
 ## The status bar
 
-The **Status Bar** is a one-row bar with a left, a centre and a right slot. Each slot holds any items you pick: date, time, weather, loads, temperatures, network, volume, battery and more. **View** sets its frame: Edge, Pill or Islands.
+The **Status Bar** is a one-row bar with a left, a center and a right slot. Each slot holds any items you pick: date, time, weather, loads, temperatures, network, volume, battery and more. **View** sets its frame: Edge, Pill or Islands.
 
 Three more views are ready-made, and each one is also listed in **Add** as its own entry:
 
@@ -59,7 +59,7 @@ The Weather widget can tint its surface from the current conditions. Find it in 
 
 Four widgets look back or give a verdict, which InfoPanel's own items can't do.
 
-- **Bottleneck Lens** names what holds a game back: CPU-bound, GPU-bound, VRAM full, thermal throttling, power limited or balanced. The reason sits under it, for example "GPU 98 % · CPU busiest core 61 %". A new verdict has to last 5 seconds before it replaces the old one; change that under **Behaviour › Verdict**. With no game running it says Idle.
+- **Bottleneck Lens** names what holds a game back: CPU-bound, GPU-bound, VRAM full, thermal throttling, power limited or balanced. The reason sits under it, for example "GPU 98 % · CPU busiest core 61 %". A new verdict has to last 5 seconds before it replaces the old one; change that under **Behavior › Verdict**. With no game running it says Idle.
 - **Frame Histogram** counts frame times over the last minute and marks the 1% and 0.1% lows. The dashed guides are 60 and 120 fps. Bars to the right of a guide are frames that missed it.
 - **Session Stats** shows min, average, max and the time above a level for up to six sensors. In the studio, **Reset** in the widget's header starts the counts again.
 - **Threshold Timeline** draws one lane per sensor, green, amber or red by its thresholds, over the last few minutes.

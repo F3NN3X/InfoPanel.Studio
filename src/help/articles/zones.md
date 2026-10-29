@@ -37,7 +37,7 @@ With several widgets selected, the inspector shows the Style settings they share
 
 | Kind | Holds | Inspector shows |
 |---|---|---|
-| Widget | One widget | Show, Style, Data and Behaviour tabs |
+| Widget | One widget | Show, Style, Data and Behavior tabs |
 | Panel | Panel widgets in a Stack, Grid or Overlay | The same four tabs, with Panel, Layout and Widgets sections |
 | Canvas | An imported InfoPanel profile | Item tree, canvas tools, item inspector |
 | Blank space | Nothing yet | **Widget type** and the widget frame |

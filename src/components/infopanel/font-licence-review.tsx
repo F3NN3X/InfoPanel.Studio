@@ -22,7 +22,7 @@ export function FontLicenceReview({ rows, choices, targets, onChoose }: FontLice
   const included = rows.filter((r) => r.verdict === "keep" && (choices.get(r.hash) ?? "include") === "include");
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[12.5px] font-semibold text-ui-1">Font licences</span>
+      <span className="text-[12.5px] font-semibold text-ui-1">Font licenses</span>
       <span className="-mt-1 text-[11.5px] text-ui-4">Review the supplied fonts before sharing this file.</span>
       <div className="flex flex-col rounded-[10px] border border-ui-default">
         {rows.length === 0 && <span className="px-3.5 py-2.5 text-[12px] text-ui-4">No supplied fonts: the canvas draws InfoPanel’s faces.</span>}

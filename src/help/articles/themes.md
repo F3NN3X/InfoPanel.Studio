@@ -45,7 +45,7 @@ Picking a theme writes the palette, skin, corners and the theme's background. Th
 
 ## Palette, Skin and Background
 
-- **Palette** lists the six built-in palettes (Zinc is the built-in default), then the palettes you saved, tagged **Yours**. Each of yours has a **⋯** with what uses it, **Rename**, **Duplicate** and **Delete**. **+ Save current colors as a palette** saves the level's 19 tokens and its accent. A palette brings its accent: a theme's palette the theme's accent, one of yours the accent it was saved with, Ocean and Forest their own color; Zinc and the other greys keep the screen's. The glow, number glow and border colors that were the old accent change with it. Changing the palette keeps the skin, corners, background and the rest of the fine-tune.
+- **Palette** lists the six built-in palettes (Zinc is the built-in default), then the palettes you saved, tagged **Yours**. Each of yours has a **⋯** with what uses it, **Rename**, **Duplicate** and **Delete**. **+ Save current colors as a palette** saves the level's 19 tokens and its accent. A palette brings its accent: a theme's palette the theme's accent, one of yours the accent it was saved with, Ocean and Forest their own color; Zinc and the other grays keep the screen's. The glow, number glow and border colors that were the old accent change with it. Changing the palette keeps the skin, corners, background and the rest of the fine-tune.
 - **Skin** lists all 14 skins, drawn live. **Default** is the studio's own. Changing the skin keeps the colors, corners, background and fine-tune.
 - **Background** offers **This theme's**, **Solid**, **Gradient** and **Image**, then the background editor for the kind you picked (see [Backgrounds](background)).
 

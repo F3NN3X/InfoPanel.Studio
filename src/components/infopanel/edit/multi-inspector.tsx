@@ -29,7 +29,7 @@ const SHARED = ["X", "Y", "Font", "FontSize", "Color", "BackgroundColor", "FillC
 
 const ALIGN: { edge: AlignEdge; label: string; icon: LucideIcon }[] = [
   { edge: "left", label: "Align left", icon: AlignStartVertical },
-  { edge: "centre", label: "Align centres", icon: AlignCenterVertical },
+  { edge: "centre", label: "Align centers", icon: AlignCenterVertical },
   { edge: "right", label: "Align right", icon: AlignEndVertical },
   { edge: "top", label: "Align top", icon: AlignStartHorizontal },
   { edge: "middle", label: "Align middles", icon: AlignCenterHorizontal },

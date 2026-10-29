@@ -274,7 +274,7 @@ export function badgeOf(item: DisplayItem): Badge | null {
     case "dual":
       return badge("native", "Exported as a Group of two transparent Graphs.");
     case "doublering":
-      return badge("baked", "Exported as a Group of two Gauges with image frames, and the centre Value.");
+      return badge("baked", "Exported as a Group of two Gauges with image frames, and the center Value.");
     case "drives": {
       const n = item.kind === "Group" ? item.DisplayItems.length : 0;
       return badge("native", `Exported as a Group of ${n} drive tiles: a Shape, Text, Bar and Values each, with the icon as a baked image, or an Image of your file for a drive that has one.`);

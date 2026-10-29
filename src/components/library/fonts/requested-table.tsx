@@ -68,7 +68,7 @@ export function RequestedTable({ zone, answers, fonts, declared, onSelectItems, 
         <span role="columnheader">Drawn with</span>
         <span role="columnheader">How</span>
         <span role="columnheader">Items</span>
-        <span role="columnheader">Licence</span>
+        <span role="columnheader">License</span>
         <span role="columnheader" />
       </div>
       {zone.entries.length === 0 && <div className="px-3.5 py-3 text-[12px] text-ui-4">This canvas has no text.</div>}

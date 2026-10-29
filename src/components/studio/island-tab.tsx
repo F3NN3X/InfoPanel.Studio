@@ -152,7 +152,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
                     <button
                       type="button"
                       onClick={() => onOpenZone(profile.id, w.pageId, w.zoneId)}
-                      title="Show it on the canvas and open its Behaviour tab"
+                      title="Show it on the canvas and open its Behavior tab"
                       className="shrink-0 rounded-sm text-[11.5px] text-ui-accent-text hover:underline"
                     >
                       Open widget ↗
@@ -164,7 +164,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
             {unplaced.length > 0 && (
               <p className="text-pretty text-[11px] leading-snug text-ui-5">Add one of these to send more: {unplaced.join(", ")}.</p>
             )}
-            <span className="text-[11px] text-ui-5">Turn this on per widget: Behaviour › Send to island.</span>
+            <span className="text-[11px] text-ui-5">Turn this on per widget: Behavior › Send to island.</span>
           </div>
           <LinkRow
             label="Alert rules"

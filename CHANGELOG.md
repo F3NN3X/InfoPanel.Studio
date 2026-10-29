@@ -11,7 +11,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **A screen file keeps its theme, groups and InfoPanel page data.** Importing a screen dropped the theme it had applied (so Update and Reset didn't reach it), its pages' groups and snap setting, and an InfoPanel page's profile settings. They come in now, and so does a duplicated screen's link from the theme to the widgets it recolored.
 - **The theme toast counts the right widgets.** "N widgets keep their own look" was counted before the theme landed, so a widget whose color the variant recolored was still counted; it is counted on the new look now.
 - **Reset after the 1.3.0 screen update takes back a theme's widget colors.** A screen with a look of its own lost the record of what the old All screens theme wrote into its widgets (a variant's colors and card opacity), so **Reset to ‹theme›** couldn't put them back. A config updated from now on keeps it.
+- **The island look buttons show the look the island has.** A look's button lit only when every field matched, the background and text colors included, which a black or theme pill never draws; it now compares only what is drawn.
 - **An old screen file says when its look stays behind.** A screen saved before 1.3.0 that took its whole look from All screens imports with the built-in look, since the file never held it; the import now says so and points to Theme.
+
+### Changed
+
+- **US spelling in the last places that had UK spelling:** the widget inspector's **Behavior** tab, **Optimize** and **Optimize images** in the Library, **License** in Fonts, **Align centers**, the gauge part **Center icon**, and Help.
 
 ## [1.3.0] - 2026-10-29
 
