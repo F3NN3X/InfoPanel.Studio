@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { defaultConfig, type DashboardConfig, type MonitorProfile, type Placement } from "@/lib/layout";
 import type { ThemeAt } from "@/components/studio/theme-cards";
-import { differenceSummary, differencesOf, differencesPill, followAll, pageDifferences, widgetCount, widgetsKeeping } from "@/components/studio/theme-differences";
+import { differenceSummary, differencesOf, differencesPill, followAll, pageDifferences, widgetCount, widgetsKeeping, widgetsKeepingAfter } from "@/components/studio/theme-differences";
+import { applyTheme } from "@/lib/theme-apply";
 import { exceptionsOf } from "@/components/studio/theme-exceptions";
 
 const zone = (id: string, extra: Partial<Placement> = {}): Placement => ({
@@ -118,5 +119,12 @@ describe("after a theme pick", () => {
     expect(widgetCount(both)).toBe(2);
     expect(widgetsKeeping(followAll(c, both), SCREEN, preset({ accent: "#2563eb", surface: "theme" }))).toEqual([]);
     expect(widgetsKeeping(c, SCREEN, preset({ font: "inter" }))).toEqual([]);
+  });
+
+  it("counts on the look the pick makes: a widget whose color a variant swaps no longer keeps its own (#241)", () => {
+    const c = setup();
+    const variant: AppearancePreset = { ...preset({ accent: "#ff8800" }), zoneLook: { swap: { "#ff0000": "#ff8800" } } };
+    expect(widgetCount(widgetsKeeping(c, SCREEN, variant))).toBe(1);
+    expect(widgetsKeepingAfter(applyTheme(c, variant, { kind: "profile", profileId: "desk" }), SCREEN, variant)).toBe(0);
   });
 });
