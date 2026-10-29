@@ -21,7 +21,6 @@ export interface NetworkThroughputProps extends ShellProps {
 }
 
 // A rate readout; called as a function so nothing is defined during render.
-const UP = "#a78bfa";
 const rate = (dir: "down" | "up", v: number, unit: RateUnit | undefined, big: string, color: string, custom: boolean, label?: string, ip?: Record<string, string | number>) => (
   <div className="flex min-w-0 flex-col" style={{ color }}>
     <div className="flex items-center gap-1.5">
@@ -54,7 +53,7 @@ export default function NetworkThroughput(p: NetworkThroughputProps) {
       </Widget>
     );
   const dlColor = p.downloadColor || "var(--accent)";
-  const ulColor = p.uploadColor || UP;
+  const ulColor = p.uploadColor || hue(70);
   const showTotals = p.showTotals !== false;
   const showChart = p.sparkline === true;
   const name = p.title ?? pretty(id).replace(/ {2,}/g, " ");

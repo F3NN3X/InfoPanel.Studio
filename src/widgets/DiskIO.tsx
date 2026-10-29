@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, get, num, fmt, fmtRate, detect, diskShort, Spark, useHistory, slideX, stackX, type ShellProps } from "./kit";
+import { useFitRows, Widget, shell, hue, get, num, fmt, fmtRate, detect, diskShort, Spark, useHistory, slideX, stackX, type ShellProps } from "./kit";
 import { meta } from "./meta/DiskIO";
 
 export { meta };
@@ -24,7 +24,7 @@ export default function DiskIO(p: DiskIOProps) {
   const total = disks.reduce((a, x) => a + (x.r || 0) + (x.w || 0), 0);
   const hist = useHistory(total);
   const rc = p.readColor || "var(--accent)",
-    wc = p.writeColor || "#a78bfa";
+    wc = p.writeColor || hue(70);
   const showHistory = p.showHistory !== false;
   const max = Math.max(1, ...disks.flatMap((x) => [x.r, x.w]));
   return (

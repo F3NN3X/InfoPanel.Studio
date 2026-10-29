@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { StatGrid, Widget, shell, get, num, fmt, fmtGB, fmtRate, detect, diskShort, firstDisk, Metric, Ring, Spark, Stat, Bar, Num, useHistory, useSkin, tone, Empty, LegendRow, type ShellProps } from "./kit";
+import { StatGrid, Widget, hue, shell, get, num, fmt, fmtGB, fmtRate, detect, diskShort, firstDisk, Metric, Ring, Spark, Stat, Bar, Num, useHistory, useSkin, tone, Empty, LegendRow, type ShellProps } from "./kit";
 import { meta } from "./meta/StorageHealth";
 
 export { meta };
@@ -15,7 +15,7 @@ function RateGraph({ rH, wH, rd, wr }: { rH: number[]; wH: number[]; rd: number;
   const legend = (
     <>
       <LegendRow color="var(--accent)" label="read" value={fmtRate(rd)} className="text-[10px]" />
-      <LegendRow color="#a78bfa" label="write" value={fmtRate(wr)} className="text-[10px]" />
+      <LegendRow color={hue(70)} label="write" value={fmtRate(wr)} className="text-[10px]" />
     </>
   );
   if (useSkin().graph === "braille")
@@ -23,7 +23,7 @@ function RateGraph({ rH, wH, rd, wr }: { rH: number[]; wH: number[]; rd: number;
       <div className="flex min-h-0 flex-1 flex-col gap-1">
         <div className="grid grid-cols-2 gap-3">{legend}</div>
         <Spark values={rH} min={0} className="min-h-0 flex-1" />
-        <Spark values={wH} min={0} color="#a78bfa" className="min-h-0 flex-1" />
+        <Spark values={wH} min={0} color={hue(70)} className="min-h-0 flex-1" />
       </div>
     );
   return (
@@ -31,7 +31,7 @@ function RateGraph({ rH, wH, rd, wr }: { rH: number[]; wH: number[]; rd: number;
       <div className="grid grid-cols-2 gap-3">{legend}</div>
       <div className="relative min-h-0 flex-1">
         <Spark values={rH} min={0} className="absolute inset-0 h-full" />
-        <Spark values={wH} min={0} fill={false} color="#a78bfa" className="absolute inset-0 h-full" />
+        <Spark values={wH} min={0} fill={false} color={hue(70)} className="absolute inset-0 h-full" />
       </div>
     </div>
   );
