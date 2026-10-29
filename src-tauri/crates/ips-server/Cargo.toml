@@ -1,6 +1,6 @@
 [package]
 name = "ips-server"
-version = "1.3.0-beta.39"
+version = "1.3.0-beta.40"
 description = "InfoPanel Studio's dashboard server"
 edition = "2021"
 publish = false

@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.40] - 2026-10-29
+
 ### Added
 
 - **The Library says when an item was saved by an older version.** InfoPanel profiles, components and gauges saved before this version carry an *Older version* badge, and the Library shows how many there are with **Update all**; each one's details have **Update**. Update saves the item in today's format and first keeps a copy of it as it was, named *(before update)*. An older item still works as it is, so updating is up to you.
