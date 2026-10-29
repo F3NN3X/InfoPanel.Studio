@@ -173,3 +173,12 @@ export function themeLinkOf(id: string | undefined): ThemeLink | undefined {
 export function commandThemeAt(scope: ThemeScope | undefined, profileId: string): ThemeAt {
   return scope?.kind === "page" ? { level: "page", profileId, pageId: scope.pageId } : { level: "screen", profileId };
 }
+
+/**
+ * The zoom that shows the whole screen in `width` × `maxHeight`, never above its real size: a small screen is drawn at
+ * 100%, not blown up to the column's width.
+ */
+export function previewFit(width: number, maxHeight: number, screen: { width: number; height: number }): number {
+  if (!(screen.width > 0 && screen.height > 0 && width > 0)) return 0;
+  return Math.min(1, Math.floor(Math.min(width / screen.width, maxHeight / screen.height) * 100) / 100);
+}

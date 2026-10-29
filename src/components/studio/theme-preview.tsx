@@ -1,16 +1,25 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Minus, Plus } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
 import { useElementSize } from "@/hooks/use-element-size";
 import type { DashboardConfig, MonitorProfile, ProfilePage as Page } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { zoneName } from "./inspector/zone-meta";
 import { ProfilePage } from "./profile-page";
+import { stepZoom } from "./studio-layout";
 import type { ThemeAt } from "./theme-cards";
 import { differenceSummary, differencesPill, pageDifferences, type WidgetDifference } from "./theme-differences";
 import { previewProfile, type ThemeException } from "./theme-exceptions";
+import { previewFit } from "./theme-view-model";
 
 const BUTTON =
   "h-7 shrink-0 rounded-[7px] border border-ui-strong px-[11px] text-[13px] text-ui-1 transition-colors hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const ZOOM_BUTTON = "h-7 w-7 rounded-md text-[#c9c9cf] hover:bg-[#24242a]";
+const ZOOM_TEXT = "h-[26px] rounded-md px-[9px] text-[11.5px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 const LINK = "shrink-0 rounded-sm text-[13px] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+
+/** The share of the window's height the preview may take before it scrolls. */
+const MAX_HEIGHT = 0.7;
 
 /** A widget's box on the scaled canvas, in px from its top left. */
 interface Box {
@@ -41,13 +50,18 @@ interface ThemePreviewProps {
 
 /**
  * The preview (handoff SPEC §4.4): "Preview", the screen's pages to look at (the level stays), the differences pill,
- * the toast row, then the page drawn with the live look at its real aspect ratio, each widget that differs tagged
+ * the zoom (Fit by default: the whole screen, at most its real size), the toast row, then the page drawn with the live
+ * look at its real aspect ratio, each widget that differs tagged
  * "✎ ‹section›". A widget clicked is selected, and the bar under the canvas says what it uses of its own, with Use
  * theme's value and Open in Edit; with none selected, Make all follow.
  */
 export function ThemePreview({ config, at, profile, page, onPage, levelName, differences, toast, onFollow, onOpenInEdit }: ThemePreviewProps) {
   const { ref, w } = useElementSize();
-  const scale = profile.width > 0 ? w / profile.width : 0;
+  // Fit, or a zoom picked with − / + / 100% (the frame then scrolls).
+  const [zoom, setZoom] = useState<number | "fit">("fit");
+  const maxHeight = Math.round(window.innerHeight * MAX_HEIGHT);
+  const fit = previewFit(w, maxHeight, profile);
+  const scale = w > 0 ? (zoom === "fit" ? fit : zoom) : 0;
   const [selected, setSelected] = useState<string>();
   const [tags, setTags] = useState(true);
   const [boxes, setBoxes] = useState<Box[]>([]);
@@ -118,16 +132,42 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
           <span className="h-[7px] w-[7px] rounded-full bg-[#3b82f6]" aria-hidden />
           {foreign ? "Differences show on the page you edit" : differencesPill(diffs.size, tags)}
         </button>
+        <div role="group" aria-label="Preview zoom" className="flex items-center gap-0.5">
+          <IconButton label="Zoom out" className={ZOOM_BUTTON} onClick={() => setZoom(stepZoom(scale, -1))}>
+            <Minus className="h-4 w-4" />
+          </IconButton>
+          <span className="min-w-11 text-center font-ui-mono text-[11.5px] text-ui-1">{Math.round(scale * 100)}%</span>
+          <IconButton label="Zoom in" className={ZOOM_BUTTON} onClick={() => setZoom(stepZoom(scale, 1))}>
+            <Plus className="h-4 w-4" />
+          </IconButton>
+          <button
+            type="button"
+            aria-pressed={zoom === "fit"}
+            title="Fit the whole screen, at most its real size"
+            onClick={() => setZoom("fit")}
+            className={cn(ZOOM_TEXT, zoom === "fit" ? "bg-ui-active text-ui-1" : "text-[#8f8f99] hover:bg-[#24242a]")}
+          >
+            Fit
+          </button>
+          <button
+            type="button"
+            aria-pressed={zoom === 1}
+            title="The screen at its real size"
+            onClick={() => setZoom(1)}
+            className={cn(ZOOM_TEXT, zoom === 1 ? "bg-ui-active text-ui-1" : "text-[#8f8f99] hover:bg-[#24242a]")}
+          >
+            100%
+          </button>
+        </div>
       </div>
       {toast}
-      <div
-        ref={ref}
-        className="relative w-full overflow-hidden rounded-[10px] border border-ui-strong bg-[#070709]"
-        style={{ height: profile.height * scale }}
-        onClick={() => setSelected(undefined)}
-      >
+      <div ref={ref} className="w-full overflow-auto p-px" style={{ maxHeight }} onClick={() => setSelected(undefined)}>
         {scale > 0 && (
-          <div ref={drawn} className="absolute inset-0">
+          <div
+            ref={drawn}
+            className="relative mx-auto overflow-hidden rounded-[10px] bg-[#070709] ring-1 ring-ui-strong"
+            style={{ width: profile.width * scale, height: profile.height * scale }}
+          >
             <div className="pointer-events-none absolute left-0 top-0 origin-top-left" style={{ scale: String(scale) }} inert>
               <ProfilePage
                 profile={previewProfile(profile, at)}
