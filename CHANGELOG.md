@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.41] - 2026-10-29
+
 ### Fixed
 
 - **Picking a palette after a theme changes the colors you see.** A theme's color (cyan for Gaming, amber for Terminal · Amber) is its accent, which a palette never touched, so a palette pick after a theme seemed to do nothing. A palette now brings its accent: a theme's palette the theme's accent, one you saved the accent it was saved with, Ocean and Forest their own color, while Zinc and the other greys keep the screen's. The glow, number glow and border colors that matched the old accent follow. The theme palettes that differ only in accent (Graphite · Amber, · Teal, · Violet) are now listed apart.
