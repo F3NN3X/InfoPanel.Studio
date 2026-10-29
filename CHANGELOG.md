@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **The Library says when an item was saved by an older version.** InfoPanel profiles, components and gauges saved before this version carry an *Older version* badge, and the Library shows how many there are with **Update all**; each one's details have **Update**. Update saves the item in today's format and first keeps a copy of it as it was, named *(before update)*. An older item still works as it is, so updating is up to you.
+
 ### Changed
 
 - **Screens and configs from an older version import, one way.** A screen or config file saved by an older InfoPanel Studio is updated on the way in, and the import says so (*updated from an older version*). A file from a newer version is refused with a note to update InfoPanel Studio. The update steps for older configs now load only when one is opened, so the kiosk and the studio start with less to download.

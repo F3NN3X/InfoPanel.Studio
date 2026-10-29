@@ -33,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { LibraryItem } from "@/lib/library";
 import { setActiveLibraryDrag, setLibraryDrag } from "@/lib/my-library/drag";
+import { isOlderItem } from "@/lib/my-library/item-format";
 import { COLLECTIONS, SORTS, cardTag, cleanupCounts, flagOf, isDraggable, type CollectionId, type LibraryIndex, type SortId } from "@/lib/my-library/model";
 import { AssetThumb } from "./asset-thumb";
 import type { ClickMod } from "./multi-delete";
@@ -195,6 +196,11 @@ export function LibraryCard({ item, index, selected, checked, selectMode, onSele
             )}
           >
             {flag}
+          </span>
+        )}
+        {isOlderItem(item) && (
+          <span title="Saved by an older version: open it to update" className="absolute bottom-1.5 left-1.5 rounded-[4px] bg-[#2a1d0a] px-1.5 py-px text-[10.5px] font-medium text-ui-warning">
+            Older version
           </span>
         )}
       </div>

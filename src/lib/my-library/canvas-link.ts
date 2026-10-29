@@ -12,6 +12,7 @@ import { CANVAS_ID, type DashboardConfig } from "../layout.ts";
 import { getLibraryItem, type LibraryItem, type NewLibraryItem } from "../library.ts";
 import { findCanvasUse } from "./canvas-use.ts";
 import { isProfileItem, type ComponentRoles } from "./component-meta.ts";
+import { stampFormat } from "./item-format.ts";
 
 const ASSET_PREFIX = "/api/assets/";
 
@@ -20,16 +21,16 @@ export function countItems(items: StoredCanvas["items"]): number {
   return items.reduce((n, i) => n + 1 + ("DisplayItems" in i && Array.isArray(i.DisplayItems) ? countItems(i.DisplayItems) : 0), 0);
 }
 
-/** What the Library page filters and sorts a profile by, and how a placed copy is told from it. */
+/** What the Library page filters and sorts a profile by, how a placed copy is told from it, and its format. */
 export function canvasMeta(stored: StoredCanvas): Record<string, unknown> {
-  return {
+  return stampFormat({
     width: Number(stored.profile.Width) || 0,
     height: Number(stored.profile.Height) || 0,
     items: countItems(stored.items),
     source: stored.source.origin,
     sourceName: stored.source.name,
     importedAt: stored.source.importedAt,
-  };
+  });
 }
 
 /** The asset store ids a canvas holds: its files and kept screenshot, keeping `previous` ids whose bytes it still uses. */

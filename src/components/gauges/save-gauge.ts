@@ -1,5 +1,6 @@
 /** Saving a gauge to My library (spec §6): update the item it came from, or create a new one. */
 import { createLibraryItem, getLibraryItem, listLibrary, updateLibraryItem, type LibraryItem } from "@/lib/library";
+import { stampFormat } from "@/lib/my-library/item-format";
 import { isLinkCopy, linkedItem, type GaugeLink } from "@/lib/gauge-studio/gauge-link";
 import { frameFiles, gaugeDataFor } from "@/lib/gauge-studio/gauge-data";
 import { gaugeDataOf, type GaugeEntry, type GaugeLibraryData, type LibraryFrame } from "@/lib/gauge-studio/model";
@@ -32,9 +33,10 @@ export async function saveGauge(p: SaveGauge): Promise<SavedGauge> {
   const old = p.asNew && p.link ? linkedItem(await listLibrary(), p.link) : undefined;
   const itemId = p.asNew ? undefined : (p.itemId ?? (p.link ? linkedItem(await listLibrary(), p.link)?.id : undefined));
   if (itemId) {
-    const prev = gaugeDataOf((await getLibraryItem(itemId)).data) ?? undefined;
+    const saved = await getLibraryItem(itemId);
+    const prev = gaugeDataOf(saved.data) ?? undefined;
     const data = gaugeDataFor({ gauge: p.gauge, frames: p.frames, animationSpeed: p.animationSpeed, prev });
-    const item = await updateLibraryItem<GaugeLibraryData>(itemId, { name: p.name, data, ...(data.frames ? { files: frameFiles(data.frames) } : {}) });
+    const item = await updateLibraryItem<GaugeLibraryData>(itemId, { name: p.name, data, meta: stampFormat(saved.meta), ...(data.frames ? { files: frameFiles(data.frames) } : {}) });
     return { ...item, updated: true };
   }
   // Save as new keeps what the item it forks from has beyond the editor's pieces (source, frame rate, frames).
@@ -51,7 +53,7 @@ export async function saveGauge(p: SaveGauge): Promise<SavedGauge> {
     ...(from && inProfile ? { source: from.where } : {}),
     prev,
   });
-  const item = await createLibraryItem<GaugeLibraryData>({ kind: "gauge", name: p.name, data, ...(data.frames ? { files: frameFiles(data.frames) } : {}) });
+  const item = await createLibraryItem<GaugeLibraryData>({ kind: "gauge", name: p.name, data, meta: stampFormat(), ...(data.frames ? { files: frameFiles(data.frames) } : {}) });
   if (p.link) {
     const link = p.link;
     // The old link goes only once the new one is recorded: a failed record keeps the gauge linked to its old item
