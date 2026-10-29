@@ -34,6 +34,10 @@ The Edit v3 fixtures (`?fixture=one-editor/<name>`, `src/dev/fixtures`) open the
 `vite build --mode fixtures`, never in a release build. `tests/visual/one-editor/` opens each in Edit (`npm run test:one-editor`, the
 `one-editor` check); each reference checklist line is a skipped test naming the phase that enables it, and that phase turns it on.
 
+The HWiNFO names fixture (`tests/fixtures/hwinfo-names.json`) holds the reading names and units seen in public HWiNFO CSV logs and a live Data API;
+`tests/lib/hwinfo-names.test.ts` checks the alias rules against it. Refresh by hand with `node tools/hwinfo-names.mjs --github --live`
+(needs `gh` and takes minutes; `--live` needs InfoPanel running with HWiNFO readings), and CI only runs the test.
+
 ## The InfoPanel export check
 
 `import-check` (`node lab/infopanel/scripts/import-check.mts`) hands our `.infopanel` exports to InfoPanel's own

@@ -132,6 +132,9 @@ const CORE_CLOCK = /^(?:[PE]-)?Core (\d+) Clock\b/i;
 const CORE_POWER = /^(?:[PE]-)?Core (\d+) Power$/i;
 const CORE_VID = /^(?:[PE]-)?Core (\d+) VID$/i;
 
+/** Every alias rule, for the check against the names HWiNFO is known to use (`tests/lib/hwinfo-names.test.ts`). */
+export const ALIAS_RULES: readonly Readonly<Alias>[] = [...CPU, ...GPU, ...MEMORY, ...DRIVE, ...BOARD, ...ADAPTER];
+
 const matches = (a: Alias, r: Local) => a.name.test(r.name) && (!a.unit || a.unit.test(r.unit));
 
 /**
