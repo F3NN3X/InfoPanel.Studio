@@ -1,4 +1,5 @@
 import type { SensorValue } from "@/hooks/useSensors";
+import { preferredGpu } from "@/lib/gpu-pick";
 import type { SensorMap } from "@/modules/types";
 
 /**
@@ -70,11 +71,15 @@ export interface SystemReadings {
   cpu: DeviceReading & {
     /** Load per thread, percent, in thread order (0 is a real reading). */
     cores: number[];
+    /** The key each of `cores` reads (an InfoPanel export binds per-core values to it). */
+    coreKeys: string[];
   };
   gpu: DeviceReading & {
     vram: MemoryReading;
-    /** Memory junction ("hotspot") °C. */
+    /** The die's hottest point, °C (LibreHardwareMonitor's "GPU Hot Spot"; RTX 50 cards don't report it). */
     hotspot?: number;
+    /** Memory junction °C. */
+    memJunction?: number;
     /** Average fan speed, RPM. */
     fanRpm?: number;
     /** Average fan duty, percent. */
@@ -89,6 +94,13 @@ export interface SystemReadings {
     page?: MemoryReading;
   };
   disks: DiskReading[];
+  /** The motherboard's readings, where the board reports them. */
+  board: {
+    /** VRM temperature, °C. */
+    vrm?: number;
+    /** The CPU cooler's fan, RPM. */
+    cpuFan?: number;
+  };
 }
 
 /** The key prefixes the readings come from (for the placement subscription). */
@@ -120,7 +132,8 @@ const RULES = {
   gpuTemp: { suffix: /_gpu_core$/, unit: /°C/ },
   gpuPower: { suffix: /_gpu_package$/, unit: /^W$/ },
   gpuClock: { suffix: /_gpu_core_clock$/ },
-  gpuHotspot: { suffix: /_gpu_memory_junction$/, unit: /°C/ },
+  gpuHotspot: { suffix: /_gpu_hot_spot$/, unit: /°C/ },
+  gpuMemJunction: { suffix: /_gpu_memory_junction$/, unit: /°C/ },
   gpuMemClock: { suffix: /_gpu_memory_clock$/ },
   gpuPowerLimit: { suffix: /_gpu_power$/, unit: /%/ },
   vramLoad: { suffix: /_gpu_memory$/, unit: /%/ },
@@ -131,6 +144,15 @@ const RULES = {
   pageUsed: { suffix: /^libre\.virtual_memory_memory_used$/ },
   pageFree: { suffix: /^libre\.virtual_memory_memory_available$/ },
   pageLoad: { suffix: /^libre\.virtual_memory_memory$/, unit: /%/ },
+  // ASUS boards' embedded controller ("VRM", "CPU Optional"), Super I/O chips as the board names them ("VRM MOS", "CPU Fan")
+  vrmTemp: [
+    { suffix: /_vrm(_mos)?$/, unit: /°C/, not: /_gpu_/ },
+    { suffix: /_(vrm|vr_vcc|vr_mos|mos)(_|$)/, unit: /°C/, not: /_gpu_/ },
+  ],
+  cpuFan: [
+    { suffix: /_cpu_optional(_fan)?$/, unit: /RPM/ },
+    { suffix: /_cpu(_opt|_optional|_fan)*(_\d+)?$/, unit: /RPM/, not: /_gpu_/ },
+  ],
 } satisfies Record<string, Rule | Rule[]>;
 
 export type RuleName = keyof typeof RULES;
@@ -146,11 +168,16 @@ function findAll(sensors: SensorMap): Partial<Record<RuleName, [string, SensorVa
     .filter((k) => k.startsWith("libre."))
     .sort();
   const found: Partial<Record<RuleName, [string, SensorValue]>> = {};
+  // With several GPUs the GPU and VRAM readings are the preferred card's (`gpu-pick.ts`)
+  const gpus = keys.flatMap((k) => /^libre\.(.+)_gpu_core_load$/.exec(k)?.[1] ?? []);
+  const gpu = preferredGpu(gpus, (id) => num(sensors[`libre.${id}_gpu_memory_total`]) ?? NaN);
+  const gpuKeys = gpu ? keys.filter((k) => k.startsWith(`libre.${gpu}_`)) : [];
   for (const name of Object.keys(RULES) as RuleName[]) {
     const rules: Rule[] = ([] as Rule[]).concat(RULES[name]);
+    const pool = /^(gpu|vram)/.test(name) && gpuKeys.length ? gpuKeys : keys;
     // Rules are in preference order: an earlier rule beats an earlier key.
     for (const rule of rules) {
-      const key = keys.find((k) => matches(rule, k, sensors[k]));
+      const key = pool.find((k) => matches(rule, k, sensors[k]));
       if (key) {
         found[name] = [key, sensors[key]];
         break;
@@ -182,15 +209,15 @@ const average = (values: number[]): number | undefined =>
  * Per-thread loads (%), in thread order: `…_cpu_core__N`, or Intel's `…_cpu_core__N_thread__M` and, where the
  * core's temperature took the bare key, `…_cpu_core__N_load`.
  */
-function readCores(sensors: SensorMap, keys: string[]): number[] {
+function readCores(sensors: SensorMap, keys: string[]): { key: string; load: number }[] {
   return keys
-    .flatMap((k) => {
-      const m = /_cpu_core__(\d+)(?:_thread__(\d+)|_load)?$/.exec(k);
-      const v = num(sensors[k]);
-      return m && v !== undefined && /%/.test(sensors[k].unit ?? "") ? [[Number(m[1]), Number(m[2] ?? 0), v]] : [];
+    .flatMap((key) => {
+      const m = /_cpu_core__(\d+)(?:_thread__(\d+)|_load)?$/.exec(key);
+      const load = num(sensors[key]);
+      return m && load !== undefined && /%/.test(sensors[key].unit ?? "") ? [{ core: Number(m[1]), thread: Number(m[2] ?? 0), key, load }] : [];
     })
-    .sort((a, b) => a[0] - b[0] || a[1] - b[1])
-    .map(([, , v]) => v);
+    .sort((a, b) => a.core - b.core || a.thread - b.thread)
+    .map(({ key, load }) => ({ key, load }));
 }
 
 /** The average of a CPU's live per-core clocks (`…_cpu_core__N_clock`, or bare `…_cpu_core__N` in MHz). */
@@ -299,9 +326,12 @@ export function readSystem(sensors: SensorMap): SystemReadings {
   const cpuBase = f.cpuLoad?.[0].replace(/_cpu_total$/, "") ?? "";
   const gpuBase = f.gpuLoad?.[0].replace(/_gpu_core_load$/, "") ?? "";
 
+  const threads = readCores(sensors, keys);
+
   return {
     cpu: {
-      cores: readCores(sensors, keys),
+      cores: threads.map((t) => t.load),
+      coreKeys: threads.map((t) => t.key),
       name: hardwareName(at("cpuLoad"), /\s*CPU Total$/i),
       load: num(sensors["system.cpu.load"]) ?? num(at("cpuLoad")),
       temp: live(at("cpuTemp")),
@@ -316,6 +346,7 @@ export function readSystem(sensors: SensorMap): SystemReadings {
       clock: live(at("gpuClock")),
       vram: { load: vramLoad, used: vramUsed, total: vramTotal },
       hotspot: live(at("gpuHotspot")),
+      memJunction: live(at("gpuMemJunction")),
       fanRpm: readFans(sensors, keys, gpuBase, false),
       fanPct: readFans(sensors, keys, gpuBase, true),
       memClock: live(at("gpuMemClock")),
@@ -331,6 +362,7 @@ export function readSystem(sensors: SensorMap): SystemReadings {
           : { load: pageLoad, used: pageUsed, total: pageTotal },
     },
     disks: readDisks(sensors, keys),
+    board: { vrm: live(at("vrmTemp")), cpuFan: num(at("cpuFan")) },
   };
 }
 

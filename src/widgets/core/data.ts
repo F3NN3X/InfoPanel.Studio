@@ -1,5 +1,6 @@
 // Data contract helpers: read, parse and format InfoPanel Data API values.
 // The live stream comes from the app's own store (src/lib/sensor-store.ts), not from here.
+import { preferredGpu } from "@/lib/gpu-pick";
 import type { Data } from "./types";
 
 /* ───────── data helpers ───────── */
@@ -112,7 +113,8 @@ export const diskShort = (id: string, volumes?: string): string => {
 // Hardware ids present in the snapshot (LibreHardwareMonitor sensor slugs), shared by every hardware widget
 export const hw = (data: Data | undefined): { cpu?: string; gpu?: string; disks: string[]; adapters: string[] } => ({
   cpu: detect(data, /^libre\.(.+)_cpu_total$/)[0],
-  gpu: detect(data, /^libre\.(.+)_gpu_core_load$/)[0],
+  // with several, the card with the most memory before integrated graphics (`gpu-pick.ts`)
+  gpu: preferredGpu(detect(data, /^libre\.(.+)_gpu_core_load$/), (id) => num(get(data, `libre.${id}_gpu_memory_total`))),
   // drives by their hours, else (HWiNFO's, without them) by their activity
   disks: [...new Set([...detect(data, /^libre\.(.+)_power_on_hours$/), ...detect(data, /^libre\.(.+)_total_activity$/)])],
   adapters: detect(data, /^libre\.(.+)_download_speed$/),

@@ -160,8 +160,10 @@ describe("readSystem", () => {
     expect(r.cpu.cores).toEqual([74, 0, 60]);
   });
 
-  it("reads the GPU's hotspot, memory clock and power limit", () => {
-    expect(r.gpu.hotspot).toBe(64);
+  it("reads the GPU's memory junction apart from its hot spot, memory clock and power limit", () => {
+    // the fixture card has a memory junction sensor only, which is not its hot spot
+    expect(r.gpu.memJunction).toBe(64);
+    expect(r.gpu.hotspot).toBeUndefined();
     expect(r.gpu.memClock).toBe(14001);
     // The % sensor, not the Watts one.
     expect(r.gpu.powerLimit).toBe(29.7);
@@ -236,7 +238,7 @@ describe("readSystem", () => {
 
   it("returns empty readings without hardware data", () => {
     expect(readSystem({})).toEqual({
-      cpu: { cores: [], name: undefined, load: undefined, temp: undefined, power: undefined, clock: undefined },
+      cpu: { cores: [], coreKeys: [], name: undefined, load: undefined, temp: undefined, power: undefined, clock: undefined },
       gpu: {
         name: undefined,
         load: undefined,
@@ -245,6 +247,7 @@ describe("readSystem", () => {
         clock: undefined,
         vram: { load: undefined, used: undefined, total: undefined },
         hotspot: undefined,
+        memJunction: undefined,
         fanRpm: undefined,
         fanPct: undefined,
         memClock: undefined,
@@ -252,6 +255,7 @@ describe("readSystem", () => {
       },
       ram: { load: undefined, used: undefined, total: undefined, page: undefined },
       disks: [],
+      board: { vrm: undefined, cpuFan: undefined },
     });
   });
 });

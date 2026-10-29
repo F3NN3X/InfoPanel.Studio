@@ -1,3 +1,4 @@
+import { readSystemFlat } from "@/lib/system-metrics";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, get, num, fmt, fitRows, Icon, Bar, hw, Num, type ShellProps } from "./kit";
 import { meta } from "./meta/Fans";
@@ -22,7 +23,7 @@ export default function Fans(p: FansProps) {
   const gpu = hw(d).gpu;
   const fans: Fan[] = [1, 2, 3]
     .map((i) => ({ id: `g${i}`, label: `GPU ${i}`, rpm: num(get(d, `libre.${gpu}_gpu_fan_${i}`)), duty: num(get(d, `libre.${gpu}_gpu_fan_${i}_control`)) }))
-    .concat([{ id: "cpu", label: "CPU", rpm: num(get(d, "libre.embedded_controller_cpu_optional_fan")), duty: NaN }])
+    .concat([{ id: "cpu", label: "CPU", rpm: readSystemFlat(d ?? {}).board.cpuFan ?? NaN, duty: NaN }])
     .filter((f) => Number.isFinite(f.rpm));
   const max = p.maxRpm ?? 3000;
   const avg = fans.filter((f) => f.rpm > 0).reduce((a, f, _, arr) => a + f.rpm / arr.length, 0);

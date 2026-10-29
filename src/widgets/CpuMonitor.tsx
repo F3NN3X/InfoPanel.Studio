@@ -1,4 +1,4 @@
-import { readCpuFlat } from "@/lib/system-metrics";
+import { readCpuFlat, readSystemFlat } from "@/lib/system-metrics";
 import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
 import { fitRows, StatGrid, Widget, shell, get, num, fmt, pretty, Metric, Ring, Spark, Stat, useHistory, tone, Empty, heat, hw, Num, scaleY, type ShellProps } from "./kit";
@@ -40,8 +40,10 @@ export default function CpuMonitor(p: CpuMonitorProps) {
   const temp = cpu?.temp ?? NaN,
     power = cpu?.power ?? NaN,
     clock = cpu?.clock ?? NaN;
-  const vrm = num(get(d, "libre.embedded_controller_vrm")),
-    fan = num(get(d, "libre.embedded_controller_cpu_optional_fan"));
+  // the board's, where it reports them (an ASUS embedded controller, a Super I/O chip, HWiNFO)
+  const board = readSystemFlat(d ?? {}).board;
+  const vrm = board.vrm ?? NaN,
+    fan = board.cpuFan ?? NaN;
   const either = (a: number, b: number) => (Number.isFinite(a) ? a : b);
   const cores: Core[] = (cpu?.cores ?? []).slice(0, 64).map((load, n) => {
     const i = n + 1;

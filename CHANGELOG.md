@@ -12,6 +12,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Fixed
 
+- **GPU Monitor, System Overview and Menu Bar label the GPU's hot spot right.** Their **Hotspot** stat showed the memory junction temperature; it now shows the card's hot spot where the card reports one, and **Memory** with the junction temperature where it doesn't.
+- **With integrated graphics beside a card, the widgets read the card.** The GPU widgets, the built-in panels and InfoPanel templates took the first GPU in name order, which could be the CPU's Radeon or UHD graphics; they now take the card with the most memory and never integrated graphics while a card is there.
+- **VRM temperature and CPU fan read any board.** CPU Monitor, Fans, Thermals and the InfoPanel Fans module looked for one ASUS board's sensor names; they now find the VRM and CPU fan on other boards' sensor chips and from HWiNFO.
+- **More HWiNFO readings reach the widgets:** the GPU's memory total (worked out from its use), its total power, per-core voltage, drives' host reads and writes, and virtual memory.
+- **Core Heatmap's InfoPanel export binds each core to your CPU's own sensors**, not AMD's key shape on an Intel PC or with HWiNFO.
+- **The troubleshooting report hides HWiNFO readings you renamed.** A renamed reading's name and key could say something about you; the report lists it as a numbered reading without its name.
 - **Hardware widgets work with HWiNFO alone.** On a PC that runs HWiNFO and not LibreHardwareMonitor, the CPU, GPU, memory, drive and network widgets (and the built-in panels) were empty; they now read HWiNFO's sensors: CPU load, temperature, power, clocks and threads, GPU load, temperature, power, clocks, fans and memory, RAM, drive activity, temperature and life, and each adapter's traffic. Where LibreHardwareMonitor has a reading, its own is used.
 - **CPU Monitor shows 12th- and 13th-gen Intel CPUs, and Network Traffic an adapter named Wi-Fi.** The widgets only drew CPUs whose name starts with AMD or Intel and adapters named Ethernet, WiFi and a few others, so a "12th Gen Intel Core" CPU and Windows' default "Wi-Fi" adapter showed nothing.
 - **Core Heatmap and CPU Monitor read per-core clocks, power and voltage on Intel too**, not only AMD's sensors.

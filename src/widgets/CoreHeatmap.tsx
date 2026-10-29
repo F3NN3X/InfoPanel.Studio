@@ -34,6 +34,8 @@ export interface CoreHeatmapProps extends ShellProps {
 
 interface Core {
   i: number;
+  /** The thread's load key (AMD's, Intel's or HWiNFO's shape), which an InfoPanel export binds its cell to. */
+  key: string;
   load: number;
   mhz: number;
   w: number;
@@ -52,10 +54,12 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
   const ip = metric === "load" && Object.keys(tag("x")).length > 0;
   // loads by role (AMD's, Intel's and HWiNFO's thread keys); per-core clock, power and voltage in AMD's keys, else Intel's
   const either = (a: number, b: number) => (Number.isFinite(a) ? a : b);
-  const cores: Core[] = (id ? readCpuFlat(d ?? {}, id).cores : []).slice(0, 64).map((load, n) => {
+  const cpu = id ? readCpuFlat(d ?? {}, id) : undefined;
+  const cores: Core[] = (cpu?.cores ?? []).slice(0, 64).map((load, n) => {
     const i = n + 1;
     return {
       i,
+      key: cpu!.coreKeys[n],
       load,
       mhz: either(k(`core__${i}__effective`), k(`cpu_core__${i}_clock`)),
       w: either(k(`core__${i}__smu`), k(`cpu_core__${i}_power`)),
@@ -201,7 +205,7 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
                   style={{ background: `color-mix(in srgb, ${heat(v, ramp)} ${Math.round(18 + v * 0.82)}%, var(--w-track))`, color: text(v), outline: v > hotLine ? "2px solid #F2665E" : "none", outlineOffset: -2 }}
                 >
                   {/* the load is tagged for the InfoPanel conversion; the other metrics are scaled, so they stay in its picture */}
-                  {(p.showValues ?? size !== "xs") && (ip ? <span {...tag(`libre.${id}_cpu_core__${c.i}`)}>{label(c)}</span> : label(c))}
+                  {(p.showValues ?? size !== "xs") && (ip ? <span {...tag(c.key)}>{label(c)}</span> : label(c))}
                 </div>
               );
             })}

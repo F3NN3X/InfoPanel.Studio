@@ -226,7 +226,8 @@ export default function SystemOverview(p: SystemOverviewProps) {
       name: on("names") ? (get(d, "plugins.InfoPanel.RTSS.rtss.gpu-name") || r.gpu.name || pretty(gpu ?? "")).replace(/^NVIDIA /, "") : "",
       stats: [
         ...(on("temps") ? temp("Temp", r.gpu.temp, true, rk.gpuTemp) : []),
-        ...(on("hotspot") ? temp("Hotspot", r.gpu.hotspot, false, rk.gpuHotspot) : []),
+        // the die's hot spot; a card without one (RTX 50) shows its memory junction, named as such
+        ...(on("hotspot") ? (r.gpu.hotspot !== undefined ? temp("Hotspot", r.gpu.hotspot, false, rk.gpuHotspot) : temp("Memory", r.gpu.memJunction, false, rk.gpuMemJunction)) : []),
         ...stat(on("power"), r.gpu.power, (v) => ({ l: "Power", v: `${fmt(v, 0)} W`, bare: true, k: rk.gpuPower })),
         ...stat(on("powerLimit"), r.gpu.powerLimit, (v) => ({ l: "Limit", v: `${fmt(v, 0)}%`, k: rk.gpuPowerLimit })),
         ...stat(on("clock"), r.gpu.clock, (v) => ({ l: "Clock", v: `${fmt(v, 0)} MHz`, bare: true, k: rk.gpuClock })),

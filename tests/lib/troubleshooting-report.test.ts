@@ -119,7 +119,8 @@ describe("troubleshootingReport with HWiNFO", () => {
   it("lists HWiNFO readings by the reading and a device number, never the device's serial or connection", () => {
     expect(text).toContain("hwinfo.drive_temperature | Drive Temperature | 29 °C");
     expect(text).toContain("hwinfo.drive_temperature (device 1) | Drive Temperature | 50 °C");
-    expect(text).toContain("hwinfo.(reading 1) | My GPU temp | 40 °C");
+    expect(text).toContain("hwinfo.(reading 1) | (renamed) | 40 °C");
+    expect(text).not.toContain("My GPU temp");
     expect(text).not.toContain("current_dl_rate");
     for (const secret of ["50026b", "alices", "kingston", "serial_1234"]) expect(text, secret).not.toContain(secret);
   });
