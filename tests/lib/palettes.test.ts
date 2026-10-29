@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { defaultConfig, type DashboardConfig } from "@/lib/layout";
-import { deletePalette, duplicatePalette, paletteName, paletteUsers, renamePalette, savePalette } from "@/lib/palettes";
+import { deletePalette, duplicatePalette, paletteName, paletteUsers, renamePalette, savePalette, themePalettes } from "@/lib/palettes";
+import { sameValues } from "@/lib/applied-theme";
+import { presetTokens } from "@/lib/appearance-presets";
+import { TEMPLATE_PRESETS } from "@/lib/screen-templates/template-presets";
 import { DEFAULT_THEME, THEME_PRESETS } from "@/lib/theme";
 
 const blue = { ...DEFAULT_THEME, primary: "200 80% 50%" };
@@ -54,5 +57,26 @@ describe("who uses a palette", () => {
     expect(paletteName(DEFAULT_THEME, saved)).toBe("Zinc");
     expect(paletteName(blue, saved)).toBe("Desk");
     expect(paletteName({ ...blue, ring: "0 0% 0%" }, saved)).toBe("Custom");
+  });
+
+  it("names tokens a theme carries by that theme, after the user's own palettes", () => {
+    const themes = [{ id: "t", name: "Terminal · Amber", tokens: blue }];
+    expect(paletteName(blue, [], themes)).toBe("Terminal · Amber");
+    expect(paletteName(blue, [{ id: "a", name: "Desk", tokens: blue }], themes)).toBe("Desk");
+  });
+});
+
+describe("themePalettes", () => {
+  const preset = (id: string, theme: AppearancePreset["theme"]): AppearancePreset => ({ id, name: id, description: "", theme, radius: 0.5, style: {} });
+
+  it("lists each palette once under its first theme, leaving out the built-in palettes", () => {
+    const list = themePalettes([preset("a", blue), preset("b", { ...blue }), preset("c", "slate"), preset("d", DEFAULT_THEME)]);
+    expect(list.map((p) => p.id)).toEqual(["a"]);
+  });
+
+  it("offers every palette a template theme carries", () => {
+    const offered = [...THEME_PRESETS.map((p) => p.tokens), ...themePalettes(TEMPLATE_PRESETS).map((p) => p.tokens)];
+    for (const t of TEMPLATE_PRESETS) expect(offered.some((tokens) => sameValues(tokens, presetTokens(t))), t.name).toBe(true);
+    expect(themePalettes(TEMPLATE_PRESETS).length).toBeGreaterThan(0);
   });
 });
