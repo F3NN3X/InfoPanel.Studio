@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.39] - 2026-10-29
+
 ### Added
 
 - **The studio asks before it updates your screens to a new version.** When a new version stores screens in a newer format, the app opens the studio at launch and shows *Your screens need an update*. **Update now** saves them in the new format; the old `config.json` is kept first as `config.backup-before-v<N>.json` beside it, and the message says where. Nothing is saved before you click it.
