@@ -2,16 +2,22 @@
 // as InfoPanel's own top-level WebView2 shows them. WebView2 can't edit a network response's headers (its
 // WebResourceRequested can only replace the whole response, fetched again without the frame's cookies), so this uses
 // the DevTools protocol's Fetch domain on the window's own webview: every document response pauses there, and one for
-// a sub-frame from another site is served again with those two headers taken off (`Fetch.fulfillRequest` with the
-// body read by `Fetch.getResponseBody`; `Fetch.continueResponse` with new headers leaves Chromium's frame check on
-// the old ones). The browser still makes the request itself, so cookies, logins and redirects work as in any frame.
-// Every other response, the window's own page and anything from the app's server or local pages go on untouched.
-// A browser on another device can't do this; the widget asks the server instead (ips-server's frame_check.rs).
+// a frame the window's own page embeds directly (a Web Page widget's), from another site, is served again with those
+// two headers taken off (`Fetch.fulfillRequest` with the body read by `Fetch.getResponseBody`;
+// `Fetch.continueResponse` with new headers leaves Chromium's frame check on the old ones). The browser still makes
+// the request itself, so cookies, logins and redirects work as in any frame, and a navigation inside such a frame is
+// unframed too. Frames are known by their parents (`Page.getFrameTree`, then `Page.frameAttached` and
+// `Page.frameDetached`); a frame whose parent is not the window's main frame, or not known, is left alone, as are the
+// window's own page and anything from the app's server or local pages. A browser on another device can't do this; the
+// widget asks the server instead (ips-server's frame_check.rs).
 //
 // The trade-off: a site's own defence against being framed (clickjacking) is switched off for the pages a user puts
-// in a Web Page widget, inside this app's window only. Nothing else in the site's CSP changes, the window's
-// navigation guard still keeps a framed page from taking over the window, and no other browser or app is affected.
-// Windows only; elsewhere `install` does nothing.
+// in a Web Page widget, inside this app's window only. A frame inside that page (an ad, or a page framing another
+// site to trick a click) keeps the framed site's defence: only the widget's own frame, which the user chose, loses it.
+// Nothing else in the site's CSP changes, the window's navigation guard still keeps a framed page from taking over
+// the window, and no other browser or app is affected. Windows only; elsewhere `install` does nothing.
+
+use std::collections::HashMap;
 
 use serde_json::{json, Value};
 use tauri::Url;
@@ -22,15 +28,57 @@ fn patterns() -> Value {
     json!({ "patterns": [{ "urlPattern": "*", "resourceType": "Document", "requestStage": "Response" }] })
 }
 
-/// Whether a paused document response (`Fetch.requestPaused`'s params) is one to unframe: a sub-frame's (not
-/// `main_frame`, which until it is known means none is) from a site that is not the app's server or its local pages.
+/// The window's frames as the DevTools protocol reports them: its main frame and each frame's parent.
 #[cfg_attr(not(windows), allow(dead_code))]
-pub fn wants_unframe(params: &Value, main_frame: Option<&str>, server_origin: &str) -> bool {
-    let (Some(main), Some(frame)) = (main_frame, params.get("frameId").and_then(Value::as_str)) else { return false };
+#[derive(Debug, Default)]
+pub struct Frames {
+    main: Option<String>,
+    parents: HashMap<String, String>,
+}
+
+#[cfg_attr(not(windows), allow(dead_code))]
+impl Frames {
+    /// Takes a `Page.getFrameTree` result: the main frame and every frame under it.
+    pub fn read_tree(&mut self, tree: &Value) {
+        fn walk(frames: &mut Frames, node: &Value, parent: Option<&str>) {
+            let Some(id) = node.pointer("/frame/id").and_then(Value::as_str) else { return };
+            match parent {
+                Some(parent) => frames.attached(id, parent),
+                None => frames.main = Some(id.to_string()),
+            }
+            for child in node.get("childFrames").and_then(Value::as_array).into_iter().flatten() {
+                walk(frames, child, Some(id));
+            }
+        }
+        if let Some(root) = tree.get("frameTree") {
+            walk(self, root, None);
+        }
+    }
+
+    pub fn attached(&mut self, frame: &str, parent: &str) {
+        self.parents.insert(frame.to_string(), parent.to_string());
+    }
+
+    pub fn detached(&mut self, frame: &str) {
+        self.parents.remove(frame);
+    }
+
+    /// Whether `frame` is one the window's own page embeds directly (a Web Page widget's); false while either the
+    /// main frame or the frame's parent is unknown.
+    pub fn is_widget_frame(&self, frame: &str) -> bool {
+        self.main.as_deref().is_some_and(|main| self.parents.get(frame).is_some_and(|parent| parent == main))
+    }
+}
+
+/// Whether a paused document response (`Fetch.requestPaused`'s params) is one to unframe: a widget frame's (see
+/// `Frames::is_widget_frame`) from a site that is not the app's server or its local pages.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn wants_unframe(params: &Value, frames: &Frames, server_origin: &str) -> bool {
+    let Some(frame) = params.get("frameId").and_then(Value::as_str) else { return false };
     let Some(url) = params.pointer("/request/url").and_then(Value::as_str).and_then(|u| Url::parse(u).ok()) else {
         return false;
     };
-    frame != main
+    frames.is_widget_frame(frame)
         && matches!(url.scheme(), "http" | "https")
         && url.origin().ascii_serialization() != server_origin
         && !crate::nav::is_local_page(&url)
@@ -88,7 +136,7 @@ pub fn install(_window: &tauri::WebviewWindow, _origin: std::sync::Arc<std::sync
 
 #[cfg(windows)]
 mod windows_impl {
-    use super::{patterns, unframed_headers, wants_unframe};
+    use super::{patterns, unframed_headers, wants_unframe, Frames};
     use base64::Engine;
     use serde_json::{json, Value};
     use std::cell::RefCell;
@@ -125,12 +173,12 @@ mod windows_impl {
         });
     }
 
-    fn on_paused(core: &ICoreWebView2, params: &Value, main_frame: Option<&str>, server_origin: &str) {
+    fn on_paused(core: &ICoreWebView2, params: &Value, frames: &Frames, server_origin: &str) {
         let Some(id) = params.get("requestId").and_then(Value::as_str).map(str::to_string) else { return };
         let status = params.get("responseStatusCode").and_then(Value::as_u64);
         let headers = params.get("responseHeaders").and_then(Value::as_array);
         let unframed = match (status, headers) {
-            (Some(_), Some(headers)) if wants_unframe(params, main_frame, server_origin) => unframed_headers(headers),
+            (Some(_), Some(headers)) if wants_unframe(params, frames, server_origin) => unframed_headers(headers),
             _ => None,
         };
         let (Some(status), Some(headers)) = (status, unframed) else { return go_on(core, &id) };
@@ -163,33 +211,58 @@ mod windows_impl {
         });
     }
 
-    /// Unframes the sub-frame documents of `window`'s webview; `origin` is the app's server origin.
+    /// Calls `handle` with the params of every `event` the webview reports.
+    fn on_event(core: &ICoreWebView2, event: &str, mut handle: impl FnMut(&Value) + 'static) -> windows_core::Result<()> {
+        let receiver = unsafe { core.GetDevToolsProtocolEventReceiver(&HSTRING::from(event))? };
+        let handler = DevToolsProtocolEventReceivedEventHandler::create(Box::new(move |_, args| {
+            let Some(args) = args else { return Ok(()) };
+            let mut json = PWSTR::null();
+            unsafe { args.ParameterObjectAsJson(&mut json)? };
+            if let Ok(params) = serde_json::from_str::<Value>(&take_pwstr(json)) {
+                handle(&params);
+            }
+            Ok(())
+        }));
+        let mut token = 0i64;
+        unsafe { receiver.add_DevToolsProtocolEventReceived(&handler, &mut token) }
+    }
+
+    /// Unframes the widget frames' documents in `window`'s webview; `origin` is the app's server origin.
     pub fn install(window: &WebviewWindow, origin: Arc<RwLock<String>>) {
         let sent = window.with_webview(move |webview| {
             let Ok(core) = (unsafe { webview.controller().CoreWebView2() }) else { return };
-            let receiver = match unsafe { core.GetDevToolsProtocolEventReceiver(&HSTRING::from("Fetch.requestPaused")) } {
-                Ok(receiver) => receiver,
-                Err(e) => return log::warn!("could not watch the webview's documents: {e}"),
-            };
-            // The window's own frame: its id stays as the page navigates.
-            let main_frame: Rc<RefCell<Option<String>>> = Rc::default();
-            let main = Rc::clone(&main_frame);
+            // Everything here runs on the webview's thread, the events and the method results alike.
+            let frames: Rc<RefCell<Frames>> = Rc::default();
+            let (attached, detached, paused) = (Rc::clone(&frames), Rc::clone(&frames), Rc::clone(&frames));
             let target = core.clone();
-            let handler = DevToolsProtocolEventReceivedEventHandler::create(Box::new(move |_, args| {
-                let Some(args) = args else { return Ok(()) };
-                let mut json = PWSTR::null();
-                unsafe { args.ParameterObjectAsJson(&mut json)? };
-                let Ok(params) = serde_json::from_str::<Value>(&take_pwstr(json)) else { return Ok(()) };
-                let server_origin = origin.read().map(|o| o.clone()).unwrap_or_default();
-                on_paused(&target, &params, main.borrow().as_deref(), &server_origin);
-                Ok(())
-            }));
-            let mut token = 0i64;
-            if let Err(e) = unsafe { receiver.add_DevToolsProtocolEventReceived(&handler, &mut token) } {
+            let watched = on_event(&core, "Page.frameAttached", move |p| {
+                if let (Some(frame), Some(parent)) = (p.get("frameId").and_then(Value::as_str), p.get("parentFrameId").and_then(Value::as_str)) {
+                    attached.borrow_mut().attached(frame, parent);
+                }
+            })
+            .and_then(|()| {
+                on_event(&core, "Page.frameDetached", move |p| {
+                    if let Some(frame) = p.get("frameId").and_then(Value::as_str) {
+                        detached.borrow_mut().detached(frame);
+                    }
+                })
+            })
+            .and_then(|()| {
+                on_event(&core, "Fetch.requestPaused", move |p| {
+                    let server_origin = origin.read().map(|o| o.clone()).unwrap_or_default();
+                    on_paused(&target, p, &paused.borrow(), &server_origin);
+                })
+            });
+            if let Err(e) = watched {
                 return log::warn!("could not watch the webview's documents: {e}");
             }
+            cdp(&core, "Page.enable", json!({}), |_, result| {
+                if let Err(e) = result {
+                    log::warn!("could not watch the webview's frames: {e}");
+                }
+            });
             cdp(&core, "Page.getFrameTree", json!({}), move |_, result| match result {
-                Ok(tree) => *main_frame.borrow_mut() = tree.pointer("/frameTree/frame/id").and_then(Value::as_str).map(str::to_string),
+                Ok(tree) => frames.borrow_mut().read_tree(&tree),
                 Err(e) => log::warn!("could not read the webview's frames: {e}"),
             });
             cdp(&core, "Fetch.enable", patterns(), |_, result| {
@@ -214,17 +287,53 @@ mod tests {
         json!({ "requestId": "1", "frameId": frame, "request": { "url": url }, "responseStatusCode": 200 })
     }
 
+    /// The window's page MAIN with a widget frame W, which holds a frame G.
+    fn frames() -> Frames {
+        let mut frames = Frames::default();
+        frames.read_tree(&json!({ "frameTree": { "frame": { "id": "MAIN" }, "childFrames": [{ "frame": { "id": "W" } }] } }));
+        frames.attached("G", "W");
+        frames
+    }
+
     #[test]
-    fn unframes_sub_frames_from_other_sites_only() {
-        assert!(wants_unframe(&paused("https://www.vg.no/", "F2"), Some("F1"), SERVER));
-        assert!(wants_unframe(&paused("http://localhost:3000/d", "F2"), Some("F1"), SERVER));
-        // The window's own page, before its frame is known, the app's server and its local pages.
-        assert!(!wants_unframe(&paused("https://www.vg.no/", "F1"), Some("F1"), SERVER));
-        assert!(!wants_unframe(&paused("https://www.vg.no/", "F2"), None, SERVER));
-        assert!(!wants_unframe(&paused("http://127.0.0.1:3922/?kiosk=1", "F2"), Some("F1"), SERVER));
-        assert!(!wants_unframe(&paused("http://tauri.localhost/start.html", "F2"), Some("F1"), SERVER));
-        assert!(!wants_unframe(&paused("data:text/html,x", "F2"), Some("F1"), SERVER));
-        assert!(!wants_unframe(&json!({ "requestId": "1", "request": { "url": "https://a.test/" } }), Some("F1"), SERVER));
+    fn unframes_a_widget_frame_from_another_site_and_its_navigations() {
+        let frames = frames();
+        assert!(wants_unframe(&paused("https://www.vg.no/", "W"), &frames, SERVER));
+        assert!(wants_unframe(&paused("https://www.vg.no/sport", "W"), &frames, SERVER));
+        assert!(wants_unframe(&paused("http://localhost:3000/d", "W"), &frames, SERVER));
+        // A widget added after the tree was read.
+        let mut later = frames;
+        later.attached("W2", "MAIN");
+        assert!(wants_unframe(&paused("https://www.vg.no/", "W2"), &later, SERVER));
+    }
+
+    #[test]
+    fn leaves_a_frame_inside_a_framed_page_alone() {
+        assert!(!wants_unframe(&paused("https://bank.test/", "G"), &frames(), SERVER));
+    }
+
+    #[test]
+    fn leaves_a_frame_whose_parent_is_unknown_alone() {
+        let frames = frames();
+        assert!(!wants_unframe(&paused("https://www.vg.no/", "NEW"), &frames, SERVER));
+        // Before the main frame is known, nothing is a widget frame.
+        let mut early = Frames::default();
+        early.attached("W", "MAIN");
+        assert!(!wants_unframe(&paused("https://www.vg.no/", "W"), &early, SERVER));
+        // A detached frame is forgotten.
+        let mut gone = frames;
+        gone.detached("W");
+        assert!(!wants_unframe(&paused("https://www.vg.no/", "W"), &gone, SERVER));
+    }
+
+    #[test]
+    fn leaves_the_windows_page_and_the_apps_own_pages_alone() {
+        let frames = frames();
+        assert!(!wants_unframe(&paused("https://www.vg.no/", "MAIN"), &frames, SERVER));
+        assert!(!wants_unframe(&paused("http://127.0.0.1:3922/?kiosk=1", "W"), &frames, SERVER));
+        assert!(!wants_unframe(&paused("http://tauri.localhost/start.html", "W"), &frames, SERVER));
+        assert!(!wants_unframe(&paused("data:text/html,x", "W"), &frames, SERVER));
+        assert!(!wants_unframe(&json!({ "requestId": "1", "request": { "url": "https://a.test/" } }), &frames, SERVER));
     }
 
     fn entries(pairs: &[(&str, &str)]) -> Vec<Value> {
