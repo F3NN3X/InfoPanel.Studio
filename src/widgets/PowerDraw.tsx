@@ -1,3 +1,4 @@
+import { readSystemFlat } from "@/lib/system-metrics";
 import type { ModuleSettings } from "@/modules/types";
 import { StatGrid, Widget, shell, get, num, fmt, Spark, useHistory, hue, hw, Num, stackX, type ShellProps } from "./kit";
 import { meta } from "./meta/PowerDraw";
@@ -12,9 +13,8 @@ export interface PowerDrawProps extends ShellProps {
 
 export default function PowerDraw(p: PowerDrawProps) {
   const d = p.data;
-  const cpu = hw(d).cpu,
-    gpu = hw(d).gpu;
-  const cw = num(get(d, `libre.${cpu}_package`)) || 0,
+  const gpu = hw(d).gpu;
+  const cw = readSystemFlat(d ?? {}).cpu.power ?? 0,
     gw = num(get(d, `libre.${gpu}_gpu_package`)) || 0;
   const board = num(get(d, `libre.${gpu}_gpu_board_power`));
   const total = cw + gw,

@@ -19,7 +19,7 @@ import type * as Calendar from "../Calendar";
 import type * as Timer from "../Timer";
 import type * as Countdown from "../Countdown";
 import type * as StatusBar from "../StatusBar";
-import { ITEMS, ITEM_LABELS } from "../StatusBar/items";
+import { ITEMS, ITEM_LABELS } from "../StatusBar/item-keys";
 import { isDate, isTime } from "@/lib/countdown";
 import type * as CodingAgents from "../CodingAgents";
 import type * as Weather from "../Weather";

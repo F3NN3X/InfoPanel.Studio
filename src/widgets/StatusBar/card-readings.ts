@@ -1,17 +1,17 @@
 // What the Status Bar's drawn items (rings, double rings, FPS, text lines) read from the data. Hardware is found by role
 // (the CPU and GPU the Data API lists), so they work on any machine; one with no data is null and the bar leaves it out.
+import { readSystemFlat } from "@/lib/system-metrics";
 import { inUnit } from "@/modules/setting-readers";
 import { fmt, get, hw, num, type Data } from "../kit";
 import type { Card, CardRow } from "./card-model";
+import type { CardKey } from "./item-keys";
 
-export const CARD_ITEMS = ["cpuRing", "gpuRing", "cpuDual", "gpuDual", "fps", "frameTime", "cpuLine", "gpuLine", "fpsLine"] as const;
-export type CardKey = (typeof CARD_ITEMS)[number];
+export { CARD_ITEMS, type CardKey } from "./item-keys";
 
 const RTSS = "plugins.InfoPanel.RTSS.rtss.";
 const PRESENTMON = "plugins.fps-plugin.fps.";
 
 const L = (d: Data, k: string) => num(get(d, `libre.${k}`));
-const known = (v: number) => (Number.isFinite(v) ? v : undefined);
 const cap = (v: number, max: number) => Math.min(100, Math.max(0, (v / max) * 100));
 const watts = (v: number) => (Number.isFinite(v) ? `${fmt(v, 0)} W` : undefined);
 
@@ -38,9 +38,11 @@ function cpuSide(d: Data): Side | null {
   if (!cpu) return null;
   const load = L(d, `${cpu}_cpu_total`);
   if (!Number.isFinite(load)) return null;
-  const temp = known(L(d, `${cpu}_core__tctl_tdie`)) ?? L(d, `${cpu}_cpu_core_max`);
-  const power = L(d, `${cpu}_package`);
-  const clock = L(d, `${cpu}_cores__average`);
+  // by role, so Intel's key shapes read as well as AMD's
+  const r = readSystemFlat(d).cpu;
+  const temp = r.temp ?? NaN;
+  const power = r.power ?? NaN;
+  const clock = r.clock ?? NaN;
   const ram = L(d, "total_memory_memory");
   return {
     load,
