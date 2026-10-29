@@ -1067,66 +1067,43 @@ unused.
 
 ## Skins and saved themes
 
-Theme holds ten cards (Colors, Typography, Shape & spacing, Surface & effects,
-Border & glow, Background, Units & format, Thresholds, Motion and Advanced) under
-**1 · Start from**, at the scope the scope bar names (All screens, a screen or a
-page).
+**Theme** on the rail edits the live look of one screen, or of one of its pages. Each screen owns its look; there is
+no All screens level any more. A theme is four parts, shown under **Made of** on the theme card:
 
-**Start from** lists the **Saved themes**, the six **Palettes** (Zinc, Neutral,
-Slate, Ocean, Forest, Paper) and the fourteen **Skins**. Click a skin to apply
-it to the scope and set the surface to Auto; that is one undo step. The nine
-built-in looks of earlier versions (Dark, Light, Glass, Frosted, Matte, Neon,
-Minimal, Ocean, Forest) are gone: their parts live in the skins, the palettes,
-**Opacity** and **Blur** (Surface & effects) and the page background.
+- **Palette**: the 19 color tokens and the widgets' accent. A theme's palette brings its theme's accent, one you
+  saved the accent it was saved with, Ocean and Forest their own color; Zinc and the other greys keep the screen's.
+  The glow, number glow and border colors that were the old accent change with it.
+- **Skin**: one of the fourteen skins, drawn live (**Default** is the studio's own).
+- **Corners**: 0 to 24 px.
+- **Background**: the theme's, solid, gradient or image (see [Page background](#page-background)).
 
-**Surface & effects** has, in order, **Surface** (Auto and the sixteen surfaces,
-see [Colors and type](#colors-and-type)), **Opacity** (0-100 %), **Blur** (Off,
-4, 8, 16, 24, 40; it needs an opacity under 100 % and frosts a page image or
-video behind the cards) and the **Skin** rows. **Colors** has the editable color
-tokens (six shown, seven more under More), then the widget colors. All of them write the scope's
-style, so a widget can still set its own. The corner radius is **Corners** in
-**Shape & spacing** (see [Grid spacing](#grid-spacing-gap-and-padding)).
+On a page the palette, corners and background are the screen's; a page changes its skin and fine-tune only.
 
-**Apply a theme here...** in the top bar applies a **Saved theme** or a palette to the
-scope. What a saved theme changes depends on the scope:
+**Switch theme** lists your saved themes, then one row per screen template with a chip for each variant (filters All,
+Saved, Templates, Light). Picking one writes the palette, skin, corners and the theme's background, unless **Keep my
+background** is ticked. The first theme picked on a level with none replaces its look, fine-tune included; after
+that a pick adds to the look and keeps the fine-tune changes made at that level since (the toast counts them, with
+**Reset to ‹name›**). A variant also writes its card opacity and color swaps into the widgets, and the next theme or
+Reset takes them back. Widgets with their own colors or card look keep them: the toast counts them, and **Make them
+follow** puts them back on the theme. **Apply to other screens…** gives ticked screens the same theme in one undo
+step.
 
-- **All screens** - the dashboard's theme colours, corner radius and style
-  (replaced as a whole, so nothing of the previous look is left over).
-  Screens with their own theme colours or style keep them (see the list
-  below).
-- **A screen** - this screen's own theme colours, corner radius and
-  style; the other screens keep theirs. Options the dashboard style sets but
-  the theme leaves alone are set back to their defaults in the screen, so the
-  screen shows the saved theme rather than a mix. **Reset to inherited** on
-  *Colors* hands the colours back to the dashboard.
+The card's **⋯** has **Reset to ‹name›** (every part back to the theme and this level's fine-tune cleared),
+**Rename**, **Duplicate** and **Delete**. Once a part changes after a saved theme, a bar in the preview's header,
+beside the zoom, offers **Update ‹name›** (it names the other places that change) and **Save as new**; a template's
+look offers **Save as theme**. Saved themes are stored in the config (`appearancePresets`) and listed in Switch
+theme. The command palette has **Apply theme: ‹name›**, **Apply theme, keep background: ‹name›** and **Apply theme to
+all screens: ‹name›**.
 
-A saved theme's background goes to the same scope, but only where none is set
-yet - tick **Include background** to replace an existing one (it is disabled on
-a page: *Set per screen*). A theme without a background never removes yours.
-Widget content (sensors, layout, titles, ...) is never touched, and applying a
-theme is one undo step: **Ctrl+Z** puts the whole previous look back.
-
-Widgets with their own look still win over a skin or a saved theme. The
-**Exceptions** list under the preview names them - for example *Colors
-customised* on a widget, or *set for this screen* on a screen - each with
-**Follow**, and **Follow all** at the top: those widgets switch to [follow the
-theme](#follow-or-customise) (their own values stay saved) and, for All
-screens, the screens' own styles, theme colours and corner radius are
-cleared. That is one undo step too.
-
-**Save as Theme** in the top bar asks for a **Theme name** and saves the colors,
-corner radius, widget style (for a screen: its own over the dashboard's) and,
-with **Include background**, the background. **Update ‹name›** writes the
-scope's look back into the saved theme it matches. A saved theme's **...** menu
-has **Rename...** and **Delete**; they live in Library › Themes and are stored in
-the config (`appearancePresets`), shared by all screens. The command palette
-has **Apply theme: <name>** for every one (applied to All screens).
+Under the card, **Fine-tune** holds the sections on top of the theme (Colors, Text, Shape & spacing, Surface & border,
+Units & format, Thresholds, Motion, Custom CSS), each with a chip saying where its values come from (**Changed
+here**, **From theme**, **From ‹screen›**, **Built-in**, **Locked**). The preview draws the page with the live look,
+tags each widget that differs from the level, and has **Use theme's value**, **Open in Edit ↗** and **Make all
+follow**.
 
 Saved themes are not the same as a widget's Styles (see [Styles, Copy, Paste and
-Make this the theme](#styles-copy-paste-and-make-this-the-theme)): a saved theme
-sets the whole dashboard's (or screen's) look; a Style restyles the one widget
-you apply it to. The palettes are a third, smaller step: they change the colours
-only.
+Make this the theme](#styles-copy-paste-and-make-this-the-theme)): a saved theme sets a screen's (or page's) look; a
+Style restyles the one widget you apply it to.
 
 ## Widget theme
 

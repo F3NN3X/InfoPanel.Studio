@@ -877,26 +877,25 @@ least one widget is visible.
   id prefix stays reserved, `isBuiltinPreset`). Not to be confused with
   `StylePreset`, which restyles one widget.
 
-### Appearance presets (`src/lib/appearance-preset-apply.ts`)
+### Applying themes (`src/lib/theme-apply.ts`)
 
-`applyAppearancePreset(config, preset, scope, { includeBackground })` is
-pure config → config, and the studio sets its result in one `setConfig`
-call without a coalescing key, so one undo step reverts a whole preset:
+`applyTheme(config, preset, target, { keepBackground })` is pure config → config, and the studio sets its result in
+one `setConfig` call, so one undo step reverts a whole pick. At a screen it writes the theme's tokens, radius, skin and
+(unless kept) background, merges the theme's style values over the level's, replacing only those that still equal
+what the last theme wrote (the level's snapshot, `appliedTheme`), and stores the new snapshot. A level with no
+snapshot has nothing of its own, so its first pick replaces its look. A template variant's `zoneLook` writes colour
+swaps and card opacity into the widgets' own settings; the snapshot keeps them (`zones`) so the next pick or Reset takes
+them back. At a page it writes the skin and style values only. `applyThemeToScreens`, `resetToTheme`,
+`updateThemeEverywhere` (Update ‹name›) and `saveAsTheme` build on it; `themeState` (`src/lib/theme-state.ts`) says
+which theme a level shows and what it changed since.
 
-- scope `{ kind: "profile" }` writes the profile's `theme` (the preset's
-  full tokens), `radius` and `style`; the other profiles are untouched;
-- the preset's `background` goes to the same scope when `includeBackground`
-  is true or, when it is unset, only if the scope has none yet (unset, an
-  empty media background or `"none"`). A preset without a background never clears one;
-- placements (and with them all content keys) are never touched.
-
-`countOverrides(config, scope)` counts the widgets whose own look keys show
-over the theme (a section not following, not locked).
-`clearOverrides` sets those widgets' sections to follow (their values
-stay). `presetFromCurrent` captures the resolved theme of the scope. `saveAppearancePreset`, `renameAppearancePreset` and
-`deleteAppearancePreset` manage the user's list. The studio wires them through `useAppearancePresets`
-(`src/components/studio/use-appearance-presets.ts`); the palette's
-**Apply theme: …** commands apply to the level Theme is set to, else the screen in Design.
+A palette pick (`withTokens`, `src/components/studio/theme-cards.ts`) writes the tokens and the palette's accent, and
+records the accent in the snapshot, since a palette is a theme part. The preview's differences and the toast's
+"N widgets keep their own look" come from `src/components/studio/theme-differences.ts` (`differencesOf`,
+`widgetsKeeping`, `widgetsKeepingAfter`, `followAll`). `src/lib/appearance-preset-apply.ts` keeps the saved-theme
+list (`presetFromCurrent`, `saveThemeAt`, `updateAppearancePreset`, rename, duplicate, delete), wired through
+`useAppearancePresets` (`src/components/studio/use-appearance-presets.ts`). The palette's **Apply theme: …** commands
+apply to the level Theme is set to, else the screen in Edit.
 
 `isValidStyleValue` / `invalidStyleKeys` check look values against the
 options of `PROFILE_STYLE_SETTINGS` (select options, number bounds, CSS
