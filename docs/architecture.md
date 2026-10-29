@@ -839,6 +839,12 @@ least one widget is visible.
   that had no look of its own). `style.clock` becomes `general.clock`. The resolved look of every screen is
   unchanged. The server copies the older `config.json` to `config.backup-before-v16.json` before the first save
   that raises the version (`version_backup_name`, `config_guard.rs`), and an older build refuses to save over v16.
+- **Updating a saved config after an app update** (`src/lib/config-update.ts`): loading migrates in memory only, so a
+  `config.json` an older version saved keeps its version until a save. When it holds screens and is below
+  `CONFIG_VERSION` (`config_guard::needs_update`, against ips-server's `CONFIG_VERSION`, kept equal to the TS one by a
+  test), the desktop app opens the studio at launch, hidden launches included. The studio pushes nothing and shows
+  *Your screens need an update* (`config-update-dialog.tsx`); **Update now** saves the migrated config, the server
+  keeps the old file first and answers with the backup's path (`backup` in the POST reply), which the dialog shows.
 - `PageBackground` (`src/lib/appearance.ts`) - `type` (`none`, `color`,
   `gradient`, `image`, `video`), `color` (the color, or the fill behind an
   image), `gradient` `{ from, to, angle }`, `src`, `fit` (`cover`,

@@ -268,6 +268,13 @@ pub fn run() {
             if !config.exists() {
                 st.setup.store(true, std::sync::atomic::Ordering::SeqCst);
             }
+            // A config an older version saved opens the studio, even on a hidden launch: it asks to update the screens
+            // (keeping a backup first), which only the studio can do.
+            let outdated = std::fs::read_to_string(&config).is_ok_and(|text| ips_server::config_guard::needs_update(&text));
+            if outdated {
+                log::info!("the saved config is older than this version; opening the studio to update it");
+            }
+            let open_window = open_window || outdated;
             app.manage(st);
             commands::sync_autostart(&handle, start_at_login);
             tray::create(&handle)?;

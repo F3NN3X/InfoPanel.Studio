@@ -178,17 +178,22 @@ pub async fn handle_config(app: &App, mut req: Req) -> std::io::Result<Response<
         return Ok(http::text(422, format!("canvas files missing from the store: {}", first.join(", "))));
     }
     // A save that raises the version keeps the file it replaces, once: an older build can't save over it any more.
-    if let Some(name) = backup {
-        let path = config.file.with_file_name(name);
+    let backup = backup.map(|name| config.file.with_file_name(name));
+    if let Some(path) = &backup {
         // Copied beside it, then renamed: a copy cut short never stands in for the backup.
         if !path.exists() {
             let partial = path.with_extension("json.tmp");
             std::fs::copy(&config.file, &partial)?;
-            std::fs::rename(&partial, &path)?;
+            std::fs::rename(&partial, path)?;
         }
     }
     config.save(&mut state, &body)?;
-    Ok(http::json(200, &serde_json::json!({ "ok": true, "version": state.version })))
+    // The studio's update message says where the backup is.
+    let mut answer = serde_json::json!({ "ok": true, "version": state.version });
+    if let Some(path) = backup {
+        answer["backup"] = Value::String(path.display().to_string());
+    }
+    Ok(http::json(200, &answer))
 }
 
 /// GET `?since=<rev>` → the Settings patches after that revision; PATCH → a patch merged into the saved config.

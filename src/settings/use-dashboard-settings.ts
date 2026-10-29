@@ -92,7 +92,7 @@ export function useDashboardSettings() {
   const reset = useCallback(() => {
     setConfig(defaultConfig());
     settle(
-      () => pushConfig(defaultConfig(), true),
+      () => pushConfig(defaultConfig(), true).then(() => {}),
       () => postStudioMessage({ type: "replaced" })
     );
   }, [settle]);

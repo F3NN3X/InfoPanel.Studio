@@ -71,6 +71,9 @@ use crate::studio_prefs::StudioPrefs;
 
 /// The health route's app id: older than the InfoPanel Studio name, and what the desktop app matches on.
 pub const APP_ID: &str = "infopanel-dashboard";
+/// The config version this build's studio writes (`CONFIG_VERSION` in src/lib/layout.ts, kept equal by
+/// tests/lib/layout.test.ts): a saved config below it is updated, after a backup, the next time the studio opens.
+pub const CONFIG_VERSION: u32 = 16;
 const MAX_STUDIO_PREFS_BYTES: usize = 4 * 1024;
 
 /// Whether `path` is a route family's root or anything under it.
