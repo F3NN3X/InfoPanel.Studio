@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { surfaceBox } from "@/components/widget-style";
+import { checkFraming, type FrameCheck } from "@/lib/dashboard-server";
+import { isTauri } from "@/lib/desktop";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, Icon, type ShellProps } from "./kit";
@@ -44,9 +47,38 @@ const hostOf = (src: string): string => {
   }
 };
 
+/** One server check per URL a page shows, however many zones or remounts ask. */
+const checks = new Map<string, Promise<FrameCheck>>();
+
+/**
+ * Whether `src` refuses to be framed here. A browser can't be talked out of X-Frame-Options or `frame-ancestors`,
+ * so it asks the server; the desktop app takes those headers off (src-tauri/src/unframe.rs) and never asks. The frame
+ * shows meanwhile, and stays when the answer is allowed or unknown.
+ */
+function useFrameRefused(src: string): boolean {
+  const [refused, setRefused] = useState<string | null>(null);
+  useEffect(() => {
+    if (!src || isTauri()) return;
+    let live = true;
+    let check = checks.get(src);
+    if (!check) {
+      check = checkFraming(src);
+      checks.set(src, check);
+    }
+    void check.then((frame) => {
+      if (live && frame === "refused") setRefused(src);
+    });
+    return () => {
+      live = false;
+    };
+  }, [src]);
+  return refused === src;
+}
+
 export default function WebPage(p: WebPageProps) {
   const url = (p.url ?? "").trim();
   const src = toEmbeddable(url);
+  const refused = useFrameRefused(src);
   const chrome = p.look ? chromeOf(p.look) : undefined;
   return (
     <Widget
@@ -61,7 +93,13 @@ export default function WebPage(p: WebPageProps) {
       studio={{ label: "Web Page", value: src ? hostOf(src) : "No URL", sub: src, kind: "text", live: !!src }}
     >
       {() =>
-        src ? (
+        src && refused ? (
+          <div className="flex h-full flex-col items-center justify-center gap-1 px-3 text-center text-[color:var(--w-muted)]">
+            <Icon name="language" className="text-xl" />
+            <span className="text-xs">{hostOf(src)} doesn't allow being shown inside another page.</span>
+            <span className="text-xs">It shows in the InfoPanel Studio desktop app.</span>
+          </div>
+        ) : src ? (
           <div className="absolute inset-0">
             {/* key={src}: remount (and reload) the frame whenever the URL changes. */}
             <iframe

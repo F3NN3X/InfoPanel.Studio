@@ -20,6 +20,7 @@ mod settings;
 mod state;
 mod studio_target;
 mod tray;
+mod unframe;
 mod updater;
 mod webview2;
 mod windows;

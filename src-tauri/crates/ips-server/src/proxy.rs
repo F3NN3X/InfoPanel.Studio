@@ -94,6 +94,11 @@ fn is_loopback_http(url: &Url) -> bool {
 
 /// An https GET that connects only to the addresses `client` allows.
 pub async fn guarded_proxy_fetch(client: &GuardedClient, url: &Url) -> Result<Upstream, String> {
+    guarded_fetch(client, url, &PROXY_HEADERS).await
+}
+
+/// `guarded_proxy_fetch` sending `headers`.
+async fn guarded_fetch(client: &GuardedClient, url: &Url, headers: &[(&str, &str)]) -> Result<Upstream, String> {
     // The client skips the lookup for an IP literal, so it is checked here.
     let literal = match url.host() {
         Some(Host::Ipv4(ip)) => Some(IpAddr::V4(ip)),
@@ -103,12 +108,17 @@ pub async fn guarded_proxy_fetch(client: &GuardedClient, url: &Url) -> Result<Up
     if literal.is_some_and(|ip| client.blocks(ip)) {
         return Err(NOT_ALLOWED.into());
     }
-    client.send(url, &PROXY_HEADERS).await.map(Upstream::of)
+    client.send(url, headers).await.map(Upstream::of)
 }
 
 /// Loopback http through `plain` as it is (the client's own headers, and fetch's bad ports refused), anything else
 /// through `guarded_proxy_fetch`.
 pub fn fetch_with(guarded: GuardedClient, plain: reqwest::Client) -> Fetch {
+    fetch_sending(guarded, plain, &PROXY_HEADERS)
+}
+
+/// `fetch_with`, its https requests sending `headers` (frame_check.rs asks for a page, not an image).
+pub fn fetch_sending(guarded: GuardedClient, plain: reqwest::Client, headers: &'static [(&'static str, &'static str)]) -> Fetch {
     Arc::new(move |url: Url| -> Fetching {
         let (guarded, plain) = (guarded.clone(), plain.clone());
         Box::pin(async move {
@@ -118,7 +128,7 @@ pub fn fetch_with(guarded: GuardedClient, plain: reqwest::Client) -> Fetch {
                 }
                 return plain.get(url).send().await.map(Upstream::of).map_err(describe);
             }
-            guarded_proxy_fetch(&guarded, &url).await
+            guarded_fetch(&guarded, &url, headers).await
         })
     })
 }
@@ -137,6 +147,11 @@ fn default_fetch() -> Result<Fetch, String> {
 /// The final upstream answer for `target`, following redirects by hand and checking each hop, or `None` when a hop is
 /// refused or there are too many. A network error is `Err`.
 pub async fn fetch_proxied(target: Url, fetch: &Fetch) -> Result<Option<Upstream>, String> {
+    Ok(fetch_final(target, fetch).await?.map(|(_, upstream)| upstream))
+}
+
+/// `fetch_proxied`, with the URL the answer came from.
+pub async fn fetch_final(target: Url, fetch: &Fetch) -> Result<Option<(Url, Upstream)>, String> {
     let mut url = target.clone();
     let mut previous = target;
     for hop in 0..=MAX_REDIRECTS {
@@ -149,7 +164,7 @@ pub async fn fetch_proxied(target: Url, fetch: &Fetch) -> Result<Option<Upstream
         }
         let upstream = fetch(url.clone()).await?;
         previous = url;
-        let Some(location) = upstream.location() else { return Ok(Some(upstream)) };
+        let Some(location) = upstream.location() else { return Ok(Some((previous, upstream))) };
         drop(upstream);
         url = match previous.join(&location) {
             Ok(next) => next,

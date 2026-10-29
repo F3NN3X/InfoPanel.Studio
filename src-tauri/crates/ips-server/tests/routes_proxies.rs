@@ -1,4 +1,4 @@
-// The proxy routes over a real socket (/api/image-proxy, /api/font-proxy): a server on a free port with a temp data
+// The proxy routes over a real socket (/api/image-proxy, /api/font-proxy, /api/frame-check): a server on a free port with a temp data
 // folder, raw HTTP/1.1 requests, and an upstream on loopback, so the exact status, headers and bytes are what a client
 // sees. Nothing here reaches the internet: an https target is refused before it connects, and the font catalogue is
 // served from a fresh copy.
@@ -139,6 +139,10 @@ fn upstream_answer(path: &str) -> Vec<u8> {
         "/to-private" => head("302 Found\r\nLocation: https://10.0.0.1/x\r\nContent-Length: 0"),
         "/huge" => head("200 OK\r\nContent-Type: image/png\r\nContent-Length: 26214401"),
         "/cut" => [head("200 OK\r\nContent-Type: image/png\r\nContent-Length: 100"), PNG.to_vec()].concat(),
+        "/page-deny" => head("200 OK\r\nContent-Type: text/html\r\nX-Frame-Options: DENY\r\nContent-Length: 0"),
+        "/page-sameorigin" => head("200 OK\r\nContent-Type: text/html\r\nX-Frame-Options: SAMEORIGIN\r\nContent-Length: 0"),
+        "/page-loopback" => head("200 OK\r\nContent-Type: text/html\r\nX-Frame-Options: DENY\r\nContent-Security-Policy: frame-ancestors http://127.0.0.1:*\r\nContent-Length: 0"),
+        "/page-hop" => head("302 Found\r\nLocation: /page-deny\r\nContent-Length: 0"),
         _ => head("404 Not Found\r\nContent-Length: 0"),
     }
 }
@@ -233,6 +237,38 @@ async fn refuses_bad_image_targets_and_other_methods() {
     for method in ["POST", "DELETE", "OPTIONS"] {
         assert_eq!(send(s.port, method, "/api/image-proxy?url=x", &[], "").await.status, 405, "{method}");
     }
+    s.stop().await;
+}
+
+async fn frame_check(port: u16, url: &str) -> Reply {
+    get(port, &format!("/api/frame-check?url={}", encode(url))).await
+}
+
+#[tokio::test]
+async fn the_frame_check_reads_the_pages_headers_for_this_dashboards_origin() {
+    let s = start().await;
+    let origin = format!("http://127.0.0.1:{}", upstream().await);
+    for (path, frame) in [
+        ("/page-deny", "refused"),
+        // The upstream's own origin is another port: SAMEORIGIN refuses this dashboard.
+        ("/page-sameorigin", "refused"),
+        // frame-ancestors names this dashboard's origin, and wins over the DENY beside it.
+        ("/page-loopback", "allowed"),
+        ("/html", "allowed"),
+        ("/page-hop", "refused"),
+        ("/missing", "unknown"),
+        ("/escape", "unknown"),
+    ] {
+        let reply = frame_check(s.port, &format!("{origin}{path}")).await;
+        assert_eq!((reply.status, reply.text()), (200, format!("{{\"frame\":\"{frame}\"}}")), "{path}");
+        assert_eq!(reply.header("cache-control"), Some("no-store"));
+    }
+    // This machine over https is refused before it connects: nothing to say.
+    assert_eq!(frame_check(s.port, "https://localhost:1/").await.text(), "{\"frame\":\"unknown\"}");
+    for url in ["not a url", "http://example.com/", "file:///etc/passwd"] {
+        assert_eq!(frame_check(s.port, url).await.status, 400, "{url}");
+    }
+    assert_eq!(send(s.port, "POST", "/api/frame-check?url=x", &[], "").await.status, 405);
     s.stop().await;
 }
 

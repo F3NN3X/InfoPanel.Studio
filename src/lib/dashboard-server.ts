@@ -13,6 +13,22 @@ export const CONFIG_EVENTS_URL = "/events/config";
 /** The Settings window's instant writes (ips-server's config_settings.rs). */
 export const CONFIG_SETTINGS_URL = "/api/config/settings";
 export const IMAGE_PROXY_URL = "/api/image-proxy";
+/** Whether a page lets this dashboard frame it (ips-server's frame_check.rs). */
+export const FRAME_CHECK_URL = "/api/frame-check";
+
+export type FrameCheck = "allowed" | "refused" | "unknown";
+
+/** What the server says of framing `url` here; "unknown" when it can't tell or can't be asked. */
+export async function checkFraming(url: string): Promise<FrameCheck> {
+  try {
+    const res = await fetch(`${FRAME_CHECK_URL}?url=${encodeURIComponent(url)}`, { cache: "no-store" });
+    if (!res.ok) return "unknown";
+    const { frame } = (await res.json()) as { frame?: unknown };
+    return frame === "allowed" || frame === "refused" ? frame : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
 
 /** The port the server listens on until the app settings say otherwise (the server and src-tauri/src/settings.rs use the same), and the kiosk page on it. */
 export const DEFAULT_SERVER_PORT = 3922;

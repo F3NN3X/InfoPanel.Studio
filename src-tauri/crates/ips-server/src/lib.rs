@@ -22,6 +22,8 @@ pub mod debug;
 pub mod env;
 pub mod extras;
 pub mod font_proxy;
+pub mod frame_check;
+pub mod frame_policy;
 pub mod guarded_net;
 pub mod http;
 pub mod ical;
@@ -376,6 +378,7 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),
         "/api/image-proxy" => proxy::handle(req).await,
         "/api/font-proxy" => font_proxy::handle(app, req).await,
+        "/api/frame-check" => frame_check::handle(req).await,
         p if p == "/api/control" || p.starts_with("/api/control/") => Ok(control_store::handle(app, req).await),
         p if is_family(p, "/api/assets") => assets::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/library") => library::handle(app, req).await.map_err(io),
