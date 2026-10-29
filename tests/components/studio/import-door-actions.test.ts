@@ -120,7 +120,8 @@ describe("runImport", () => {
 
   it("says when a file from an older version was updated on the way in", async () => {
     const { ctx } = context(configOf("Mine"));
-    const older = JSON.stringify({ type: "infopanel-studio-profile", version: 1, configVersion: 13, profile: newProfile("Old", 800, 480) });
+    // A screen with a look of its own: one without gets the shared-look note too (profile-file.test.ts).
+    const older = JSON.stringify({ type: "infopanel-studio-profile", version: 1, configVersion: 13, profile: { ...newProfile("Old", 800, 480), theme: { primary: "200 80% 50%" } } });
     const screen = await runImport([await door("old.json", older)], replace, ctx);
     expect(screen.done[0]).toMatch(/Added screen Old · updated from an older version \(format 13\)$/);
     const config = await runImport([await door("backup.json", text({ ...configOf("Theirs"), version: 12 }))], replace, context(configOf("Mine")).ctx);
