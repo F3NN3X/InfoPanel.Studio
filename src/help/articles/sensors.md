@@ -56,6 +56,8 @@ When HWiNFO is running, its sensors are grouped by device in every list: "CPU [#
 
 **Data** on the rail shows every source as a tree, with a table of its data points (**Sensor**, **Now**, **Display name**, **Used in**) and an inspector for the point you select. From there you can bind a point to a widget. A display name applies to every screen.
 
+**Report** at the top makes a troubleshooting report to attach to a bug report: **Copy troubleshooting report** or **Save troubleshooting report…**. It says which app, InfoPanel and Windows versions you have, whether the Data API answers, which sensor each widget reading uses, how many screens and widgets of each kind you have, and lists the hardware readings with their values. It leaves out names, IP addresses, folders, plugin entries (now playing, calendar and the like), text values and network adapter readings.
+
 ## Changing the Data API address
 
 In the studio, open **Data**, and in its **Connection** card set the **Data API URL**. Press **Test connection** to check it. Only change it if InfoPanel runs on another PC or port.

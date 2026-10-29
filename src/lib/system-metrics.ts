@@ -133,7 +133,7 @@ const RULES = {
   pageLoad: { suffix: /^libre\.virtual_memory_memory$/, unit: /%/ },
 } satisfies Record<string, Rule | Rule[]>;
 
-type RuleName = keyof typeof RULES;
+export type RuleName = keyof typeof RULES;
 
 const matches = (rule: Rule, key: string, s: SensorValue): boolean =>
   rule.suffix.test(key) &&
@@ -413,9 +413,14 @@ export function readCpuFlat(data: Record<string, string | { value: string }>, id
   return readSystem(flatSensors(Object.fromEntries(Object.entries(data).filter(([k]) => k.startsWith(own))))).cpu;
 }
 
+/** The key each rule resolves to among `sensors` (`cpuTemp` → `libre.…_core__tctl_tdie`); a rule with none is absent. */
+export function systemKeys(sensors: SensorMap): Partial<Record<RuleName, string>> {
+  return Object.fromEntries(Object.entries(findAll(sensors)).map(([name, hit]) => [name, hit?.[0]]));
+}
+
 /** The key each reading of `readSystemFlat` comes from (`cpuTemp` → `libre.…_core__tctl_tdie`), for the InfoPanel conversion's tags. */
 export function systemKeysFlat(data: Record<string, string | { value: string }>): Partial<Record<RuleName, string>> {
-  return Object.fromEntries(Object.entries(findAll(flatSensors(data))).map(([name, hit]) => [name, hit?.[0]]));
+  return systemKeys(flatSensors(data));
 }
 
 /** The network adapters from the templates' flat data (data order). */
