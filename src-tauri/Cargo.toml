@@ -59,6 +59,8 @@ windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Securit
 # The same versions Tauri's wry uses: the WebView2 controller `with_webview` hands out is theirs.
 webview2-com = "0.39"
 windows-core = "0.62"
+# The body of a framed page handed back to WebView2 (src/unframe.rs).
+base64 = { workspace = true }
 
 [profile.release]
 codegen-units = 1

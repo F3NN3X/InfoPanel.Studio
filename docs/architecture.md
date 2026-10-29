@@ -98,6 +98,12 @@ images, which it loads directly. The proxy relays only images (`src-tauri/crates
 png, jpeg, gif, webp or avif (served with the sniffed type); anything else is 406.
 Responses carry `X-Content-Type-Options: nosniff`.
 
+The Web Page widget's frame meets sites that refuse to be framed (`X-Frame-Options`, CSP `frame-ancestors`). In the
+desktop app the studio window takes those two headers off sub-frame documents from other sites
+(`src-tauri/src/unframe.rs`, through the DevTools Fetch domain); a browser can't, so there the widget asks
+`/api/frame-check?url=` (`frame_check.rs`, fetching as the image proxy does, judged by `frame_policy.rs` for the
+request's own origin) and shows a message in place of a frame that is `refused`; `allowed` and `unknown` keep the frame.
+
 ## 2. Per-zone rendering
 
 A zone only re-renders when one of the keys it reads changes.

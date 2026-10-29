@@ -165,6 +165,8 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let window = with_webview_data_dir(builder).build()?;
     let _ = window.set_zoom(zoom_factor(app));
     crate::webview2::watch(&window);
+    // Web Page widgets show sites that refuse to be framed, as InfoPanel's own web view shows them.
+    crate::unframe::install(&window, Arc::clone(&st.origin));
     let handle = app.clone();
     window.on_window_event(move |event| {
         if let tauri::WindowEvent::Focused(focused) = event {
