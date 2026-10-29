@@ -1,3 +1,4 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { withPastedStyle } from "@/components/studio/studio-actions";
@@ -6,7 +7,7 @@ import { thresholdsOf } from "@/modules/setting-readers";
 import { effectiveSettings, type ModuleSettings } from "@/modules/types";
 import { fixtureSensors } from "@/widgets/__fixtures__";
 import { normalizeAppearancePresets } from "@/lib/appearance-presets";
-import { CONFIG_VERSION, mergeConfig, type Placement, type StoredConfig } from "@/lib/layout";
+import { CONFIG_VERSION, type Placement, type StoredConfig } from "@/lib/layout";
 import { migratePlacementV7, migrateProfileV7, migrateSettingsV7, migrateStyleV7 } from "@/lib/settings-migrate";
 import { resolveWith } from "@/lib/style-resolve";
 
@@ -29,9 +30,9 @@ const v6 = (zones: Record<string, unknown>[], extra: Record<string, unknown> = {
     ...extra,
   }) as unknown as StoredConfig;
 
-const zonesOf = (c: ReturnType<typeof mergeConfig>) => c.profiles[0].pages[0].placements;
+const zonesOf = (c: ReturnType<typeof upgradeConfig>) => c.profiles[0].pages[0].placements;
 const one = (module: string, settings: ModuleSettings, extra: Record<string, unknown> = {}) =>
-  zonesOf(mergeConfig(v6([zone("a", module, { settings, ...extra })])))[0];
+  zonesOf(upgradeConfig(v6([zone("a", module, { settings, ...extra })])))[0];
 const settingsOf = (module: string, settings: ModuleSettings) => migrateSettingsV7(module, settings, true);
 
 describe("v7 §6.1: the standard block", () => {
@@ -130,7 +131,7 @@ describe("v7 §6.2: thresholds", () => {
   });
 
   it("a v5 widget with only threshold levels gets no custom palette (the roles share the names)", () => {
-    const z = zonesOf(mergeConfig({ ...v6([zone("a", "CpuMonitor", { settings: { warn: 70, crit: 85 } })]), version: 5 } as StoredConfig))[0];
+    const z = zonesOf(upgradeConfig({ ...v6([zone("a", "CpuMonitor", { settings: { warn: 70, crit: 85 } })]), version: 5 } as StoredConfig))[0];
     expect(z.follow).toEqual({ thresholds: false });
   });
 
@@ -244,14 +245,14 @@ describe("v7: idempotence", () => {
   ]);
 
   it("a migrated config migrates to itself", () => {
-    const once = mergeConfig(legacy);
+    const once = upgradeConfig(legacy);
     expect(once.version).toBe(CONFIG_VERSION);
     expect(CONFIG_VERSION).toBeGreaterThanOrEqual(7);
-    expect(mergeConfig(JSON.parse(JSON.stringify(once)))).toEqual(once);
+    expect(upgradeConfig(JSON.parse(JSON.stringify(once)))).toEqual(once);
   });
 
   it("the profile and placement steps are no-ops on v7 data", () => {
-    const once = mergeConfig(legacy);
+    const once = upgradeConfig(legacy);
     const p = once.profiles[0];
     expect(migrateProfileV7(p, { legacy: false })).toBe(p);
     for (const z of p.pages[0].placements) expect(migratePlacementV7(z, { legacy: false })).toBe(z);
@@ -260,19 +261,19 @@ describe("v7: idempotence", () => {
 
 describe("v7: where outside data enters", () => {
   it("general.hour12 → the all-profiles style's clock (since v16 the app's `general.clock`), then gone from general", () => {
-    const c = mergeConfig(v6([], { general: { hour12: true } }));
+    const c = upgradeConfig(v6([], { general: { hour12: true } }));
     expect(c.general?.clock).toBe("12");
     expect((c.general as Record<string, unknown> | undefined)?.hour12).toBeUndefined();
-    expect(mergeConfig(v6([], { general: { hour12: false } })).general?.clock).toBe("24");
-    expect(mergeConfig(v6([], { general: {} })).general?.clock).toBeUndefined();
+    expect(upgradeConfig(v6([], { general: { hour12: false } })).general?.clock).toBe("24");
+    expect(upgradeConfig(v6([], { general: {} })).general?.clock).toBeUndefined();
   });
 
   it("a clock the style already has wins", () => {
-    expect(mergeConfig(v6([], { general: { hour12: true }, style: { clock: "24" } })).general?.clock).toBe("24");
+    expect(upgradeConfig(v6([], { general: { hour12: true }, style: { clock: "24" } })).general?.clock).toBe("24");
   });
 
   it("the dashboard style, saved style presets and appearance presets rename alignX / alignY", () => {
-    const c = mergeConfig(v6([], { style: { alignX: "start", alignY: "start" }, stylePresets: [{ id: "s", name: "S", settings: { alignX: "end", alignY: "end" } }] }));
+    const c = upgradeConfig(v6([], { style: { alignX: "start", alignY: "start" }, stylePresets: [{ id: "s", name: "S", settings: { alignX: "end", alignY: "end" } }] }));
     expect(c.profiles[0].widgetTheme?.values).toMatchObject({ align: "tl" });
     expect(c.profiles[0].widgetTheme?.values?.alignX).toBeUndefined();
     expect(c.stylePresets?.[0].settings).toEqual({ align: "br" });

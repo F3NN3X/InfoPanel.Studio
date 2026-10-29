@@ -41,7 +41,7 @@ describe("a cancelled Save As", () => {
 });
 
 describe("reading a config file", () => {
-  it("loads the text through mergeConfig", async () => {
+  it("loads the text through readImportedConfig", async () => {
     const { config, missing } = await readConfigText(JSON.stringify(defaultConfig()));
     expect(config.profiles.length).toBeGreaterThan(0);
     expect(missing).toEqual([]);
@@ -63,7 +63,7 @@ describe("reading a config file", () => {
     expect(config.profiles.length).toBeGreaterThan(0);
   });
 
-  it("refuses a config from a newer build, which mergeConfig would downgrade", async () => {
+  it("refuses a config from a newer build, which the upgrade would downgrade", async () => {
     const newer = { ...defaultConfig(), version: CONFIG_VERSION + 1 };
     await expect(readConfigText(JSON.stringify(newer))).rejects.toThrow("newer version");
   });

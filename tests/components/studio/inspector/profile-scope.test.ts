@@ -1,5 +1,6 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { defaultConfig, mergeConfig, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
+import { defaultConfig, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
 import { setProfileStyle } from "@/components/studio/studio-actions";
 import { clampSeconds, dropRow, rotatePreset } from "@/components/studio/inspector/behaviour-model";
 import { withBuiltin, withPerformance } from "@/components/studio/inspector/profile-scope";
@@ -24,7 +25,7 @@ const pid = (c: DashboardConfig) => profileOf(c).id;
 
 /** A config as an older build saved it: the profile with these keys over a minimal one. */
 const stored = (extra: Record<string, unknown>): MonitorProfile =>
-  mergeConfig({
+  upgradeConfig({
     version: 9,
     profiles: [{ id: "p", name: "P", width: 1920, height: 1080, cols: 12, rows: 6, fit: "fill", placements: [], ...extra }],
   } as never).profiles[0];

@@ -1,6 +1,7 @@
 // An imported profile's canvas through the page model (Edit v3 SPEC §3.4, §3.6, §3.7, acceptance 2 and 11): read and
 // written back, with Snap items toggled or the grid changed, it is the same canvas and exports the same bytes; each
 // op lands in the items it names and nothing else.
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import { importAsProfile } from "@/components/studio/import-actions";
 import { assetFile, type Doc } from "@/lib/infopanel/assets/assets.ts";
@@ -17,7 +18,7 @@ import { TEMPLATES } from "@/lib/infopanel/templates/catalog.ts";
 import { instantiate } from "@/lib/infopanel/templates/instantiate.ts";
 import { MOCK_SENSORS } from "@/lib/infopanel/templates/mock.ts";
 import { fitFreePages } from "@/lib/free-pages";
-import { CANVAS_ID, mergeConfig, newProfile, type DashboardConfig, type MonitorProfile, type StoredConfig } from "@/lib/layout";
+import { CANVAS_ID, newProfile, type DashboardConfig, type MonitorProfile, type StoredConfig } from "@/lib/layout";
 import { applyPage, cellRect, findNode, readPage, writePage, type PartNode } from "@/lib/page-model";
 import { applyCanvas, readCanvas } from "@/lib/page-model/canvas-adapter";
 
@@ -50,7 +51,7 @@ async function imported(id: string): Promise<{ file: Uint8Array; config: Dashboa
   const source = await openZip("Desk.infopanel", file);
   const canvas = buildCanvas({ source, name: "Desk", mode: "infopanel", resolved: new Map(), overrides: new Map(), dataApi: null, uploaded: new Map(), now });
   const placed = importAsProfile({ profiles: [newProfile("Main", 1920, 1080)] } as unknown as DashboardConfig, canvas, "Desk", { width: 800, height: 480 }, false);
-  const config = mergeConfig(JSON.parse(JSON.stringify(placed.config)) as StoredConfig);
+  const config = upgradeConfig(JSON.parse(JSON.stringify(placed.config)) as StoredConfig);
   return { file, config, byHash: new Map([...source.assets.values()].map((f) => [f.hash, f.bytes])) };
 }
 

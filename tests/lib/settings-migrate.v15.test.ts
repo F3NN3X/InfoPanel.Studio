@@ -1,7 +1,8 @@
 // v15 (Edit v3 SPEC §3.8, decisions Q1, Q2, Q8; acceptance 1, 6, 11): every page one kind, nothing a user has lost or
-// moved. Each case loads a v14 config through `mergeConfig`, as the app does, and checks the parts one by one.
+// moved. Each case loads a v14 config through `upgradeConfig`, as the app does, and checks the parts one by one.
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { BLANK_MODULE, CANVAS_ID, CONFIG_VERSION, ITEM_ID, PANEL_ID, mergeConfig, type DashboardConfig, type MonitorProfile, type Placement, type ProfilePage, type StoredConfig } from "@/lib/layout";
+import { BLANK_MODULE, CANVAS_ID, CONFIG_VERSION, ITEM_ID, PANEL_ID, type DashboardConfig, type MonitorProfile, type Placement, type ProfilePage, type StoredConfig } from "@/lib/layout";
 import { cellBox } from "@/lib/free-pages";
 import { toFree } from "@/lib/page-layout";
 import { migrateProfileV15 } from "@/lib/page-model/migrate";
@@ -42,7 +43,7 @@ const probe = { ...FILL, id: "probe", name: "probe", pages: [] } as MonitorProfi
 
 /** A v14 config holding `profiles`. */
 const v14 = (profiles: unknown[]): StoredConfig => JSON.parse(JSON.stringify({ version: 14, activeProfile: "auto", profiles })) as StoredConfig;
-const load = (c: StoredConfig, log?: string[]): DashboardConfig => mergeConfig(c, log);
+const load = (c: StoredConfig, log?: string[]): DashboardConfig => upgradeConfig(c, log);
 const itemsOn = (page: ProfilePage) => page.placements.filter((p) => p.module === ITEM_ID);
 const named = (page: ProfilePage, name: string) => page.placements.find((p) => p.item?.Name === name)!;
 const groupNamed = (page: ProfilePage, name: string) => page.groups!.find((g) => g.name === name)!;
@@ -351,7 +352,7 @@ describe("v15: what a v15 config holds is kept, and checked", () => {
   it("drops a stale layout flag and an unknown Made for, and nothing on the page", () => {
     const stored = page({ layout: "free" }) as unknown as { profiles: Record<string, unknown>[] };
     stored.profiles[0].madeFor = "everyone";
-    const p = mergeConfig(stored as unknown as StoredConfig).profiles[0];
+    const p = upgradeConfig(stored as unknown as StoredConfig).profiles[0];
     expect(p.pages[0]).not.toHaveProperty("layout");
     expect(p.madeFor).toBeUndefined();
     expect(p.pages[0].placements.map((z) => z.id)).toEqual(["clk"]);
@@ -367,7 +368,7 @@ describe("v15: what a v15 config holds is kept, and checked", () => {
         zone("bad", ITEM_ID, [1, 1, 1, 1], { item: "nope" as unknown as StoredItem, px: { x: Number.NaN, y: 0, w: 1, h: 1 } }),
       ],
     });
-    const pg = mergeConfig(saved).profiles[0].pages[0];
+    const pg = upgradeConfig(saved).profiles[0].pages[0];
     expect(pg.snapItems).toBe(false);
     expect(pg.groups!.map((g) => [g.id, g.name, g.parentId, g.hidden, g.locked])).toEqual([
       ["a", "A", undefined, undefined, undefined],
@@ -383,7 +384,7 @@ describe("v15: what a v15 config holds is kept, and checked", () => {
   });
 
   it("migrateProfileV15 on a v15 profile returns it unchanged", () => {
-    const p = mergeConfig(page({})).profiles[0];
+    const p = upgradeConfig(page({})).profiles[0];
     expect(migrateProfileV15(p, { legacy: false })).toBe(p);
     expect(migrateProfileV15({ ...p, pages: [] }, { legacy: true })).toEqual({ ...p, pages: [] });
   });

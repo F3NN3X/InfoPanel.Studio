@@ -1,6 +1,7 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import { applyFirstRun, isPristine, needsHardware, topPicks, validSize, type FirstRunChoices } from "@/components/studio/first-run-model";
-import { defaultConfig, mergeConfig, type DashboardConfig } from "@/lib/layout";
+import { defaultConfig, type DashboardConfig } from "@/lib/layout";
 import { allPlacements } from "@/lib/pages";
 import { SCREEN_TEMPLATES } from "@/lib/screen-templates/catalog";
 import { instantiate } from "@/lib/screen-templates/instantiate";
@@ -107,7 +108,7 @@ describe("applyFirstRun", () => {
     const gaming = SCREEN_TEMPLATES.find((t) => t.id === "gaming")!;
     const template = instantiate(gaming, { name: gaming.name, width: 1024, height: 600 }).profile;
     const { config } = applyFirstRun(defaultConfig(), choices({ start: "template", width: 1024, height: 600, template }));
-    const loaded: DashboardConfig = mergeConfig(JSON.parse(JSON.stringify(config)));
+    const loaded: DashboardConfig = upgradeConfig(JSON.parse(JSON.stringify(config)));
     expect(loaded.profiles[0].pages[0].name).toBe("Main");
     expect(loaded.profiles[0].pages[0].placements).toEqual(config.profiles[0].pages[0].placements);
   });

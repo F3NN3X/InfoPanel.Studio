@@ -1,8 +1,9 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import { modules } from "@/modules";
 import { alignOf, compactOf, sizeTierOf } from "@/modules/setting-readers";
 import { effectiveSettings, type DashboardModule, type ModuleSettings } from "@/modules/types";
-import { mergeConfig, type StoredConfig } from "@/lib/layout";
+import { type StoredConfig } from "@/lib/layout";
 import { profileWithPage } from "@/lib/pages";
 import { appearanceOf, resolveWith } from "@/lib/style-resolve";
 
@@ -90,7 +91,7 @@ describe("v6 + v7 render parity", () => {
           },
         ],
       } as unknown as StoredConfig;
-      const config = mergeConfig(stored);
+      const config = upgradeConfig(stored);
       const view = profileWithPage(config.profiles[0]);
       const appearance = appearanceOf(config, view);
       const enforce = force.profile ?? force.dashboard ?? false;

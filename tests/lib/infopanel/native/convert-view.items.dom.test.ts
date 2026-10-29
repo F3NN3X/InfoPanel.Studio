@@ -3,8 +3,9 @@
 // migrated beta.35 Free page and a migrated free area export every item they hold, as the items they are, at their
 // box, in layer order, with the page's files; hidden parts and hidden groups stay out, as on the kiosk. Page groups
 // export as InfoPanel Group items named after them (DECISIONS "After phase 3"), so an import shows the same tree.
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CANVAS_ID, ITEM_ID, mergeConfig, type MonitorProfile, type Placement, type ProfilePage, type StoredConfig } from "@/lib/layout";
+import { CANVAS_ID, ITEM_ID, type MonitorProfile, type Placement, type ProfilePage, type StoredConfig } from "@/lib/layout";
 import { cellBox } from "@/lib/free-pages";
 import { toFree } from "@/lib/page-layout";
 import { profileWithPage } from "@/lib/pages";
@@ -42,7 +43,7 @@ const probe = { ...FILL, id: "probe", name: "probe", pages: [] } as MonitorProfi
 const AREA = zone("area", CANVAS_ID, [3, 2, 2, 2]);
 const box = cellBox(probe, AREA);
 
-const load = (profiles: unknown[]): MonitorProfile => mergeConfig(JSON.parse(JSON.stringify({ version: 14, activeProfile: "auto", profiles })) as StoredConfig).profiles[0];
+const load = (profiles: unknown[]): MonitorProfile => upgradeConfig(JSON.parse(JSON.stringify({ version: 14, activeProfile: "auto", profiles })) as StoredConfig).profiles[0];
 
 /** What a whole screen's conversion writes for its first page (no zone is drawn here, so widgets are only reported). */
 async function exportOf(profile: MonitorProfile, page: ProfilePage = profile.pages[0]) {

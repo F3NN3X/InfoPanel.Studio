@@ -1,5 +1,6 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { CANVAS_ID, defaultConfig, mergeConfig, type StoredConfig } from "@/lib/layout";
+import { CANVAS_ID, defaultConfig, type StoredConfig } from "@/lib/layout";
 import { migrateProfileV14 } from "@/lib/settings-migrate";
 import { isFreePage } from "@/lib/free-pages";
 import { importAsProfile } from "@/components/studio/import-actions";
@@ -70,7 +71,7 @@ describe("v14's rule (migrateProfileV14)", () => {
 });
 
 describe("a v13 config loaded now (v14, then v15)", () => {
-  const out = mergeConfig(v13());
+  const out = upgradeConfig(v13());
   const byId = (id: string) => out.profiles.find((p) => p.id === id)!;
 
   it("an InfoPanel profile is made for InfoPanel, its page still one canvas and no flag stored", () => {
@@ -91,19 +92,19 @@ describe("a v13 config loaded now (v14, then v15)", () => {
   });
 
   it("saved and loaded again it is identical", () => {
-    const again = mergeConfig(JSON.parse(JSON.stringify(out)) as StoredConfig);
+    const again = upgradeConfig(JSON.parse(JSON.stringify(out)) as StoredConfig);
     expect(again).toEqual(out);
   });
 
   it("an old dashboard (v2, legacy placements) opens", () => {
-    const old = mergeConfig({ version: 2, profiles: [{ id: "o", name: "Old", width: 800, height: 480, cols: 2, rows: 1, fit: "fill", placements: [zone("c", CANVAS_ID, [1, 1, 2, 1], { canvas })] }] } as unknown as StoredConfig);
+    const old = upgradeConfig({ version: 2, profiles: [{ id: "o", name: "Old", width: 800, height: 480, cols: 2, rows: 1, fit: "fill", placements: [zone("c", CANVAS_ID, [1, 1, 2, 1], { canvas })] }] } as unknown as StoredConfig);
     expect(old.version).toBe(16);
     expect(isFreePage(old.profiles[0], old.profiles[0].pages[0])).toBe(true);
     expect(old.profiles[0].madeFor).toBe("infopanel");
   });
 
   it("the default config stays made for nothing", () => {
-    expect(mergeConfig({}).profiles[0].madeFor).toBeUndefined();
+    expect(upgradeConfig({}).profiles[0].madeFor).toBeUndefined();
   });
 });
 
@@ -113,18 +114,18 @@ describe("where screens come in", () => {
     const p = r.config.profiles.find((x) => x.id === r.profileId)!;
     expect(p.madeFor).toBe("infopanel");
     expect(isFreePage(p, p.pages[0])).toBe(true);
-    expect(mergeConfig(JSON.parse(JSON.stringify(r.config)) as StoredConfig).profiles.find((x) => x.id === r.profileId)).toEqual(p);
+    expect(upgradeConfig(JSON.parse(JSON.stringify(r.config)) as StoredConfig).profiles.find((x) => x.id === r.profileId)).toEqual(p);
   });
 
-  it("a screen file keeps the page and Made for", () => {
-    const p = mergeConfig(v13()).profiles[1];
-    const read = parseProfileFile(profileFileText(p));
+  it("a screen file keeps the page and Made for", async () => {
+    const p = upgradeConfig(v13()).profiles[1];
+    const read = await parseProfileFile(profileFileText(p));
     expect("profile" in read && read.profile).toEqual(p);
   });
 
-  it("a v13 screen file is migrated on import", () => {
+  it("a v13 screen file is migrated on import", async () => {
     const raw = (v13().profiles ?? [])[1];
-    const read = parseProfileFile(JSON.stringify({ type: "infopanel-studio-profile", version: 1, configVersion: 13, profile: raw }));
+    const read = await parseProfileFile(JSON.stringify({ type: "infopanel-studio-profile", version: 1, configVersion: 13, profile: raw }));
     if (!("profile" in read)) throw new Error("not read");
     expect(isFreePage(read.profile, read.profile.pages[0])).toBe(true);
     expect(read.profile.madeFor).toBe("infopanel");

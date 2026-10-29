@@ -1,6 +1,7 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import { normalizePerformance, performanceFromSearch, resolvePerformance } from "@/lib/performance";
-import { mergeConfig } from "@/lib/layout";
+
 
 const general = { maxFps: 60, motion: "system" as const };
 
@@ -66,7 +67,7 @@ describe("profile performance", () => {
   });
 
   it("survives loading a config", () => {
-    const cfg = mergeConfig({
+    const cfg = upgradeConfig({
       profiles: [{ id: "p", name: "P", width: 800, height: 480, cols: 4, rows: 2, fit: "fill", pages: [], performance: { maxFps: 15, motion: "full" } }],
     });
     expect(cfg.profiles[0].performance).toEqual({ maxFps: 15, motion: "full" });

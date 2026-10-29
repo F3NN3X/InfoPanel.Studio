@@ -1,3 +1,4 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import { FAN_MAX_RPM, oneEditorFixture } from "@/dev/fixtures/one-editor";
 import { fraction } from "@/lib/infopanel/gauges/vector";
@@ -6,7 +7,7 @@ import { FIXTURE_NAMES } from "@/dev/fixtures/types";
 import { openCanvas } from "@/lib/infopanel/canvas";
 import { itemAt } from "@/lib/infopanel/editor/ops";
 import { widgetBox, widgetOf } from "@/lib/infopanel/native/widget-item";
-import { CANVAS_ID, mergeConfig } from "@/lib/layout";
+import { CANVAS_ID } from "@/lib/layout";
 import { isFreePage } from "@/lib/free-pages";
 import { exportCheck } from "@/lib/infopanel/export-check";
 
@@ -28,7 +29,7 @@ describe("the one-editor fixtures", () => {
     // A selected id is a part on the page or one of its groups (layersG opens with Overlay selected).
     for (const id of fixture.selection) expect(page.placements.some((p) => p.id === id) || (page.groups ?? []).some((g) => g.id === id), id).toBe(true);
     // A saved config merged back keeps every placement and canvas.
-    const merged = mergeConfig(JSON.parse(JSON.stringify(fixture.config)));
+    const merged = upgradeConfig(JSON.parse(JSON.stringify(fixture.config)));
     expect(merged.profiles[0].pages[0].placements.map((p) => p.id)).toEqual(page.placements.map((p) => p.id));
   });
 

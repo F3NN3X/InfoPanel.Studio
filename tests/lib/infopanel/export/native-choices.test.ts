@@ -1,6 +1,7 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import { choiceFor, IP_EXPORT_KEY, notices, ON_INFOPANEL_KEY, readChoices, rowsOf, startChoices, writeChoices } from "../../../../src/lib/infopanel/export/native-choices.ts";
-import { CONFIG_VERSION, mergeConfig, type DashboardConfig, type Placement } from "../../../../src/lib/layout.ts";
+import { CONFIG_VERSION, type DashboardConfig, type Placement } from "../../../../src/lib/layout.ts";
 
 const title = (id: string) => id;
 const zone = (module: string, rest: Partial<Placement> = {}): Placement => ({ id: "z1", module, colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 2, visible: true, ...rest });
@@ -34,7 +35,7 @@ describe("choices storage", () => {
       profiles: [{ id: "p", name: "P", width: 1920, height: 1080, cols: 12, rows: 6, fit: "fill", pages: [{ id: "pg", name: "Main", placements: [placement] }] }],
     });
     for (const version of [CONFIG_VERSION, 12, 9]) {
-      const loaded: DashboardConfig = mergeConfig(JSON.parse(JSON.stringify(stored(version))));
+      const loaded: DashboardConfig = upgradeConfig(JSON.parse(JSON.stringify(stored(version))));
       const kept = loaded.profiles[0].pages[0].placements.find((p) => p.id === "z1");
       expect(readChoices(kept?.settings), `v${version}`).toEqual({ zone: "snapshot" });
     }

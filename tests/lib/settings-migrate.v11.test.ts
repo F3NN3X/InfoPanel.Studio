@@ -1,5 +1,6 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { CONFIG_VERSION, mergeConfig, type StoredConfig } from "@/lib/layout";
+import { CONFIG_VERSION, type StoredConfig } from "@/lib/layout";
 
 const profile = { id: "p", name: "Desk", width: 1920, height: 1080, cols: 12, rows: 6, fit: "scroll", pages: [{ id: "main", name: "Main", placements: [] }] };
 
@@ -23,7 +24,7 @@ describe("v11: sensor alerts hold a list of conditions", () => {
       rule("gone", { kind: "sensor", key: "fps", op: "missing", value: 0, forSeconds: 30 }),
       rule("chat", { kind: "notification", apps: ["Discord"] }),
     ]);
-    const migrated = mergeConfig(legacy);
+    const migrated = upgradeConfig(legacy);
     expect(migrated.version).toBe(CONFIG_VERSION);
     expect(migrated.alerts?.rules.map((r) => r.source)).toEqual([
       { kind: "sensor", conditions: [{ key: "gpu.temp", op: ">", value: 80, clearBelow: 75 }], forSeconds: 10 },
@@ -33,13 +34,13 @@ describe("v11: sensor alerts hold a list of conditions", () => {
   });
 
   it("is idempotent and round-trips through JSON", () => {
-    const once = mergeConfig(stored(10, [rule("hot", { kind: "sensor", key: "gpu.temp", op: ">", value: 80, forSeconds: 0 })]));
-    const again = mergeConfig(JSON.parse(JSON.stringify(once)) as StoredConfig);
+    const once = upgradeConfig(stored(10, [rule("hot", { kind: "sensor", key: "gpu.temp", op: ">", value: 80, forSeconds: 0 })]));
+    const again = upgradeConfig(JSON.parse(JSON.stringify(once)) as StoredConfig);
     expect(again).toEqual(once);
   });
 
   it("keeps a rule whose sensor is not picked yet and a rule with several conditions", () => {
-    const migrated = mergeConfig(
+    const migrated = upgradeConfig(
       stored(10, [
         rule("blank", { kind: "sensor", key: "", op: ">", value: 80, forSeconds: 0 }),
         rule("two", { kind: "sensor", conditions: [{ key: "a", op: ">", value: 1 }, { key: "b", op: "<", value: 2 }], forSeconds: 5 }),

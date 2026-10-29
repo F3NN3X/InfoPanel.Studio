@@ -1,3 +1,4 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import { zoneFits } from "@/components/studio/zone-geometry";
 import { invalidStyleKeys } from "@/lib/appearance-presets";
@@ -7,7 +8,7 @@ import type { DataApiValue } from "@/lib/infopanel/sensors";
 import { resolveRole, type Role } from "@/lib/infopanel/templates/roles";
 import snapshot from "@/widgets/__fixtures__/snapshot.json";
 import extra from "@/widgets/__fixtures__/extra.json";
-import { CONFIG_VERSION, defaultConfig, mergeConfig } from "@/lib/layout";
+import { CONFIG_VERSION, defaultConfig } from "@/lib/layout";
 import { SCREEN_TEMPLATES } from "@/lib/screen-templates/catalog";
 import { instantiate, splitOf, zoneZoom } from "@/lib/screen-templates/instantiate";
 import { modules } from "@/modules";
@@ -70,7 +71,7 @@ describe("native screen templates", () => {
         }
       }
       // Saved and loaded again, nothing is clamped or dropped.
-      const loaded = mergeConfig({ ...defaultConfig(), version: CONFIG_VERSION, profiles: [profile] }).profiles[0];
+      const loaded = upgradeConfig({ ...defaultConfig(), version: CONFIG_VERSION, profiles: [profile] }).profiles[0];
       expect(loaded.pages).toEqual(profile.pages);
       expect({ cols: loaded.cols, rows: loaded.rows, background: loaded.background, theme: loaded.theme }).toEqual({
         cols: profile.cols,

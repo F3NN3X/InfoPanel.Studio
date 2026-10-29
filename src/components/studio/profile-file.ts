@@ -1,5 +1,5 @@
 import { unresolvedCanvases } from "@/lib/canvas-store";
-import { CONFIG_VERSION, mergeConfig, type DashboardConfig, type MonitorProfile, type Placement, type StoredProfile } from "@/lib/layout";
+import { CONFIG_VERSION, readImportedConfig, type DashboardConfig, type MonitorProfile, type Placement, type StoredProfile } from "@/lib/layout";
 import { PROFILE_FILE_TYPE } from "@/lib/import-sniff";
 import { saveFilePayload, type FilePayload, type ReportError } from "./config-file";
 import { uniqueProfileName, withFreshIds } from "./profile-actions";
@@ -54,7 +54,7 @@ const hasOnlyCanvasRef = (p: unknown): boolean => isRecord(p) && p.canvas === un
  * the reason. Only the app's known profile and page fields are kept. Canvas zones holding only a ref
  * are dropped (`skippedCanvases` counts them). Ids are the file's own: see `importedProfile`.
  */
-export function parseProfileFile(text: string): { profile: MonitorProfile; skippedCanvases: number } | { error: string } {
+export async function parseProfileFile(text: string): Promise<{ profile: MonitorProfile; skippedCanvases: number } | { error: string }> {
   if (text.length > MAX_PROFILE_FILE_BYTES) return { error: TOO_BIG };
   let json: unknown;
   try {
@@ -97,7 +97,8 @@ export function parseProfileFile(text: string): { profile: MonitorProfile; skipp
   }
   if (picked.placements !== undefined) picked.placements = keepable(picked.placements);
   try {
-    const [profile] = mergeConfig({ version, profiles: [picked as unknown as StoredProfile] }).profiles;
+    // A file goes through the upgrade, whatever version it says (readImportedConfig).
+    const [profile] = (await readImportedConfig({ version, profiles: [picked as unknown as StoredProfile] })).profiles;
     return { profile, skippedCanvases };
   } catch {
     return { error: "Not a profile file: it could not be read" };

@@ -1,5 +1,6 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { CONFIG_VERSION, mergeConfig, type Placement, type StoredConfig } from "@/lib/layout";
+import { CONFIG_VERSION, type Placement, type StoredConfig } from "@/lib/layout";
 import { migratePlacementV12 } from "@/lib/settings-migrate";
 
 const zone = (id: string, module: string, settings?: Record<string, unknown>) => ({ id, module, colStart: 1, rowStart: 1, colSpan: 3, rowSpan: 2, visible: true, ...(settings ? { settings } : {}) });
@@ -7,11 +8,11 @@ const zone = (id: string, module: string, settings?: Record<string, unknown>) =>
 const stored = (version: number, placements: Record<string, unknown>[]): StoredConfig =>
   ({ version, activeProfile: "auto", profiles: [{ id: "p", name: "Desk", width: 1920, height: 1080, cols: 12, rows: 6, fit: "scroll", pages: [{ id: "main", name: "Main", placements }] }] }) as unknown as StoredConfig;
 
-const zonesOf = (c: ReturnType<typeof mergeConfig>): Placement[] => c.profiles[0].pages[0].placements;
+const zonesOf = (c: ReturnType<typeof upgradeConfig>): Placement[] => c.profiles[0].pages[0].placements;
 
 describe("v12: the audio widgets pick several devices", () => {
   it("turns a single device into a one-device pick and keeps the other settings", () => {
-    const migrated = mergeConfig(
+    const migrated = upgradeConfig(
       stored(11, [
         zone("mix", "VolumeMixer", { device: "default-audio", levelColor: "#00ff00" }),
         zone("viz", "Visualizer", { device: "audio-meter-0-0-0-00000000-e2087318-05b8-4830-84b9-1e6e8852d2f9", mode: "wave" }),
@@ -26,7 +27,7 @@ describe("v12: the audio widgets pick several devices", () => {
   });
 
   it("drops Auto without a pick, and leaves the Audio Meter's own device and other widgets alone", () => {
-    const migrated = mergeConfig(
+    const migrated = upgradeConfig(
       stored(11, [
         zone("auto", "Visualizer", { device: "auto" }),
         zone("blank", "VolumeMixer", { device: "" }),
@@ -47,8 +48,8 @@ describe("v12: the audio widgets pick several devices", () => {
   });
 
   it("is idempotent and round-trips through JSON", () => {
-    const once = mergeConfig(stored(11, [zone("mix", "VolumeMixer", { device: "default-audio" })]));
-    const again = mergeConfig(JSON.parse(JSON.stringify(once)) as StoredConfig);
+    const once = upgradeConfig(stored(11, [zone("mix", "VolumeMixer", { device: "default-audio" })]));
+    const again = upgradeConfig(JSON.parse(JSON.stringify(once)) as StoredConfig);
     expect(again).toEqual(once);
   });
 });

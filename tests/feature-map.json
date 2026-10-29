@@ -76,7 +76,7 @@
       "summary": "Config load, save, migrations (every version), settings patches, undo history.",
       "paths": [
         "src/lib/settings-migrate*.ts",
-        "src/lib/screen-look-migrate.ts","src/lib/config-update*.ts",
+        "src/lib/screen-look-migrate.ts","src/lib/config-update*.ts","src/lib/config-upgrade.ts",
         "src/lib/legacy-zones*.ts",
         "src/lib/settings-patch.ts",
         "src/lib/general.ts",
@@ -87,7 +87,7 @@
         "tests/lib/legacy-zones*.test.*",
         "tests/lib/__snapshots__/legacy-zones*",
         "tests/lib/__fixtures__/**",
-        "tests/lib/settings-patch.test.ts","tests/lib/config-update.test.ts",
+        "tests/lib/settings-patch.test.ts","tests/lib/config-update.test.ts","tests/lib/config-upgrade.test.ts",
         "tests/lib/general.test.ts",
         "tests/hooks/**",
         "tests/e2e/config-live-update.spec.ts",

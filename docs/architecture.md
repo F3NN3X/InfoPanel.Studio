@@ -839,6 +839,11 @@ least one widget is visible.
   that had no look of its own). `style.clock` becomes `general.clock`. The resolved look of every screen is
   unchanged. The server copies the older `config.json` to `config.backup-before-v16.json` before the first save
   that raises the version (`version_backup_name`, `config_guard.rs`), and an older build refuses to save over v16.
+- **Reading a config** (`layout.ts`): `mergeConfig` takes a config at this build's version (the server's and the
+  browser's own copies); `readConfig` sends an older one through `upgradeConfig` (`config-upgrade.ts`, every step
+  from v1, in a chunk of its own that only an older config loads); `readImportedConfig` sends every file and pasted
+  screen through it, since its ungated repairs also fix a file an older build labelled current. A browser's local
+  copy older than this build is dropped (the server's copy replaces it).
 - **Updating a saved config after an app update** (`src/lib/config-update.ts`): loading migrates in memory only, so a
   `config.json` an older version saved keeps its version until a save. When it holds screens and is below
   `CONFIG_VERSION` (`config_guard::needs_update`, against ips-server's `CONFIG_VERSION`, kept equal to the TS one by a

@@ -1,7 +1,8 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { guessAppliedThemes, normalizeAppliedTheme } from "@/lib/applied-theme";
-import { mergeConfig, type DashboardConfig, type MonitorProfile, type Placement, type StoredConfig } from "@/lib/layout";
+import { type DashboardConfig, type MonitorProfile, type Placement, type StoredConfig } from "@/lib/layout";
 import { mainPage } from "@/lib/pages";
 import { METERS } from "@/lib/screen-templates/designs/meters";
 import { TERMINAL } from "@/lib/screen-templates/designs/terminal";
@@ -276,7 +277,7 @@ describe("saved themes in use", () => {
     expect(p1(updateThemeEverywhere(picked, "plain", P1)).widgetTheme?.values?.skin).toBe("auto");
     // Loading keeps either spelling, so nothing repaints.
     expect(normalizeAppliedTheme({ id: "x", name: "X", values: { skin: "default" } })?.values).toEqual({ skin: "default" });
-    expect(p1(mergeConfig(JSON.parse(JSON.stringify(editScreen(config(), { skin: "auto" }))) as StoredConfig)).widgetTheme?.values).toEqual({ skin: "auto" });
+    expect(p1(upgradeConfig(JSON.parse(JSON.stringify(editScreen(config(), { skin: "auto" }))) as StoredConfig)).widgetTheme?.values).toEqual({ skin: "auto" });
   });
 
   it("Save as new names the new theme at that level, with nothing changed", () => {
@@ -306,9 +307,9 @@ describe("dashboards saved before the snapshot", () => {
     });
     expect(normalizeAppliedTheme({ name: "X", values: {} })).toBeUndefined();
     // A v15 dashboard showing desk: its snapshot moves to the screens that had no look of their own.
-    const loaded = mergeConfig({ ...config({ appearancePresets: [desk] }), version: 15, theme: OCEAN, radius: 1, style: { ...desk.style } } as unknown as StoredConfig);
+    const loaded = upgradeConfig({ ...config({ appearancePresets: [desk] }), version: 15, theme: OCEAN, radius: 1, style: { ...desk.style } } as unknown as StoredConfig);
     expect(loaded.profiles.map((p) => p.appliedTheme?.id)).toEqual(["desk", "desk"]);
-    const round = mergeConfig(JSON.parse(JSON.stringify(applyTheme(config(), night, PAGE))) as StoredConfig);
+    const round = upgradeConfig(JSON.parse(JSON.stringify(applyTheme(config(), night, PAGE))) as StoredConfig);
     expect(round.profiles[0].pages[0].appliedTheme).toEqual({ id: "night", name: "night", values: night.style });
   });
 

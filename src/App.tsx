@@ -51,7 +51,7 @@ import {
 import {
   hasStoredConfig,
   loadConfig,
-  mergeConfig,
+  readConfig,
   resolveProfile,
   saveConfig,
   SCROLL_ROW_H,
@@ -282,11 +282,12 @@ export default function App({ fixture }: AppProps = {}) {
     if (kiosk || fixture) return;
     let alive = true;
     fetchConfig()
-      .then((server) => {
+      .then(async (server) => {
         if (!alive) return;
         if (server) {
           const log: string[] = [];
-          const merged = withPinnedProfile(mergeConfig(server, log));
+          const merged = withPinnedProfile(await readConfig(server, log));
+          if (!alive) return;
           logMigration(log);
           // A config an older version saved is updated on disk once the user says so (the studio's message).
           const from = updateFrom(server);
@@ -406,7 +407,10 @@ export default function App({ fixture }: AppProps = {}) {
       if (message.type === "settings") applyPatch(message.patch, message.rev);
       if (message.type === "replaced") {
         void fetchConfig()
-          .then((server) => alive && server && adopt(withPinnedProfile(mergeConfig(server))))
+          .then(async (server) => {
+            const merged = server && (await readConfig(server));
+            if (alive && merged) adopt(withPinnedProfile(merged));
+          })
           .catch(() => {});
       }
     });
@@ -433,7 +437,8 @@ export default function App({ fixture }: AppProps = {}) {
           const text = JSON.stringify(parsed);
           if (last !== null && text !== last) setLayoutVersion((v) => v + 1);
           last = text;
-          const merged = withPinnedProfile(mergeConfig(parsed));
+          const merged = withPinnedProfile(await readConfig(parsed));
+          if (!alive) return;
           // Before the render that mounts its widgets: their effects run before ours.
           setApiBase(merged.dataApiUrl);
           saveConfig(merged); // also seed the local copy (offline fallback)
@@ -823,7 +828,7 @@ export default function App({ fixture }: AppProps = {}) {
   );
 }
 
-/** The migration log (`mergeConfig`'s v15 step): each conversion, in the console and the desktop app's log. */
+/** The migration log (the upgrade's v15 step, `config-upgrade.ts`): each conversion, in the console and the desktop app's log. */
 function logMigration(lines: readonly string[]) {
   if (lines.length === 0) return;
   const text = `Screens updated for this version:\n${lines.join("\n")}`;

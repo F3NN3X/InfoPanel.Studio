@@ -1,3 +1,4 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { levelText } from "@/components/studio/thresholds-control";
@@ -8,7 +9,7 @@ import type { NowPlayingProps } from "@/widgets/NowPlaying";
 import { tuningLookOf, vizStyleOf } from "@/widgets/NowPlaying/settings";
 import { fixtureSensors } from "@/widgets/__fixtures__";
 import parity from "@tests/lib/__fixtures__/v8-parity.json";
-import { CONFIG_VERSION, mergeConfig, type Placement, type StoredConfig } from "@/lib/layout";
+import { CONFIG_VERSION, type Placement, type StoredConfig } from "@/lib/layout";
 import { profileWithPage } from "@/lib/pages";
 import { migratePlacementV8, migrateProfileV8, migrateSettingsV8 } from "@/lib/settings-migrate";
 import { PARITY_CASES } from "@/lib/settings-migrate.v8.cases";
@@ -29,12 +30,12 @@ const stored = (version: number, placements: Record<string, unknown>[], profile:
     profiles: [{ id: "p", name: "Desk", width: 1920, height: 1080, cols: 12, rows: 6, fit: "scroll", pages: [{ id: "main", name: "Main", placements }], ...profile }],
   }) as unknown as StoredConfig;
 
-const zonesOf = (c: ReturnType<typeof mergeConfig>): Placement[] => c.profiles[0].pages[0].placements;
-const one = (module: string, settings: ModuleSettings, extra: Record<string, unknown> = {}) => zonesOf(mergeConfig(stored(7, [zone("a", module, { settings, ...extra })])))[0];
+const zonesOf = (c: ReturnType<typeof upgradeConfig>): Placement[] => c.profiles[0].pages[0].placements;
+const one = (module: string, settings: ModuleSettings, extra: Record<string, unknown> = {}) => zonesOf(upgradeConfig(stored(7, [zone("a", module, { settings, ...extra })])))[0];
 const v8 = (module: string, settings: ModuleSettings) => migrateSettingsV8(module, settings, true).settings;
 
 /** Each zone of a loaded config rendered as the kiosk does (its settings resolved under the profile's theme). */
-function renders(config: ReturnType<typeof mergeConfig>): Record<string, { markup: string; props?: unknown }> {
+function renders(config: ReturnType<typeof upgradeConfig>): Record<string, { markup: string; props?: unknown }> {
   const view = profileWithPage(config.profiles[0]);
   const appearance = appearanceOf(config, view);
   const out: Record<string, { markup: string; props?: unknown }> = {};
@@ -49,7 +50,7 @@ function renders(config: ReturnType<typeof mergeConfig>): Record<string, { marku
 const propsOf = (p: unknown) => JSON.parse(JSON.stringify(p, (k, v) => (k === "data" || k === "names" || k === "look" || typeof v === "function" ? undefined : v)));
 
 describe("v8 render parity", () => {
-  const config = mergeConfig(stored(7, PARITY_CASES.map((c) => zone(c.id, c.module, { ...(c.settings ? { settings: c.settings } : {}), ...(c.follow ? { follow: c.follow } : {}) }))));
+  const config = upgradeConfig(stored(7, PARITY_CASES.map((c) => zone(c.id, c.module, { ...(c.settings ? { settings: c.settings } : {}), ...(c.follow ? { follow: c.follow } : {}) }))));
   const after = renders(config);
   it("renders every case as it did under v7", () => {
     for (const { id } of PARITY_CASES) expect(after[id], id).toEqual(parity.renders[id as keyof typeof parity.renders]);
@@ -174,7 +175,7 @@ describe("v8 FpsMonitor: the Trend view reads as its preset", () => {
 describe("v8: the chain from v3", () => {
   it("a v3 media zone reaches v8 through the legacy zones, v6 and v7", () => {
     const [z] = zonesOf(
-      mergeConfig({
+      upgradeConfig({
         version: 3,
         profiles: [{ id: "p", name: "Desk", width: 1920, height: 1080, cols: 12, rows: 6, pages: [{ id: "main", name: "Main", placements: [zone("a", "mediamodern", { settings: { waveform: true, waveformMode: "static", waveformVariant: "line", liveSource: "x", vizRamp: "#00ff00" } })] }] }],
       } as unknown as StoredConfig)
@@ -186,7 +187,7 @@ describe("v8: the chain from v3", () => {
   });
 
   it("a v4 hardware list reaches v8 in auto mode", () => {
-    const [z] = zonesOf(mergeConfig(stored(4, [zone("a", "SensorGroup", { settings: { auto: true, groupDecimals: "1" } })])));
+    const [z] = zonesOf(upgradeConfig(stored(4, [zone("a", "SensorGroup", { settings: { auto: true, groupDecimals: "1" } })])));
     expect(z.settings).toEqual({ mode: "auto", decimals: "1" });
   });
 });
@@ -199,21 +200,21 @@ describe("v8: idempotence", () => {
   ]);
 
   it("a migrated config migrates to itself, at the current version", () => {
-    const once = mergeConfig(legacy);
+    const once = upgradeConfig(legacy);
     expect(once.version).toBe(CONFIG_VERSION);
     expect(CONFIG_VERSION).toBeGreaterThanOrEqual(8);
-    expect(mergeConfig(JSON.parse(JSON.stringify(once)))).toEqual(once);
+    expect(upgradeConfig(JSON.parse(JSON.stringify(once)))).toEqual(once);
   });
 
   it("the profile and placement steps are no-ops on v8 data", () => {
-    const p = mergeConfig(legacy).profiles[0];
+    const p = upgradeConfig(legacy).profiles[0];
     expect(migrateProfileV8(p, { legacy: false })).toBe(p);
     for (const z of p.pages[0].placements) expect(migratePlacementV8(z, { legacy: false })).toBe(z);
   });
 });
 
 describe("§9 item 8: tempUnit f in the profile", () => {
-  const config = mergeConfig(
+  const config = upgradeConfig(
     stored(
       8,
       [
@@ -226,7 +227,7 @@ describe("§9 item 8: tempUnit f in the profile", () => {
     )
   );
   const out = renders(config);
-  const celsius = renders(mergeConfig(stored(8, zonesOf(config).map(({ id, module, settings }) => zone(id, module, settings ? { settings } : {})))));
+  const celsius = renders(upgradeConfig(stored(8, zonesOf(config).map(({ id, module, settings }) => zone(id, module, settings ? { settings } : {})))));
 
   it.each(["wx", "so", "sg", "sg-auto"])("%s reads °F", (id) => {
     expect(out[id].markup).not.toEqual(celsius[id].markup);

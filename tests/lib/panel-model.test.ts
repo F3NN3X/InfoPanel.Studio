@@ -1,5 +1,6 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { PANEL_ID, mergeConfig, type Placement } from "@/lib/layout";
+import { PANEL_ID, type Placement } from "@/lib/layout";
 import { arcv2Profile } from "@tests/lib/__fixtures__/arcv2-profile";
 import { sampleProfile } from "@tests/lib/__fixtures__/sample-profile";
 import { STARTERS } from "@/lib/infopanel/gauges/presets";
@@ -195,7 +196,7 @@ describe("shipped panels", () => {
     ["arcv2", arcv2Profile],
   ])("%s: every panel loads normalized, its look a render-time layer", (_, make) => {
     const raw = make();
-    const loaded = mergeConfig({ profiles: [raw] }).profiles.find((p) => p.id === raw.id)!;
+    const loaded = upgradeConfig({ profiles: [raw] }).profiles.find((p) => p.id === raw.id)!;
     const before = panels(allPlacements(raw));
     const after = panels(allPlacements(loaded));
     expect(after).toHaveLength(before.length);
@@ -239,11 +240,11 @@ describe("normalizePanelPresets", () => {
   });
 });
 
-describe("mergeConfig panelPresets", () => {
+describe("upgradeConfig panelPresets", () => {
   it("is absent when missing, invalid entries are dropped, valid ones kept", () => {
-    expect(mergeConfig({}).panelPresets).toBeUndefined();
-    expect(mergeConfig({ panelPresets: "nope" } as never).panelPresets).toBeUndefined();
-    const presets = mergeConfig({
+    expect(upgradeConfig({}).panelPresets).toBeUndefined();
+    expect(upgradeConfig({ panelPresets: "nope" } as never).panelPresets).toBeUndefined();
+    const presets = upgradeConfig({
       panelPresets: [
         { id: "u1", name: "Mine", panel: panel() },
         { id: "bad" },
@@ -450,12 +451,12 @@ describe("normalizeWidget (thresholds, follow flags, config v9)", () => {
       profiles: [{ ...sampleProfile(), pages: [{ id: "pg", name: "Main", placements: [placement(panel({ widgets: [gauge()] }))] }] }],
       panelPresets: [{ id: "u1", name: "Mine", panel: panel({ widgets: [gauge()] }) }],
     };
-    const loaded = mergeConfig(stored as never);
+    const loaded = upgradeConfig(stored as never);
     const zoneWidget = loaded.profiles[0].pages[0].placements[0].panel!.widgets[0];
     expect(zoneWidget).toMatchObject({ width: 160 });
     expect(zoneWidget).not.toHaveProperty("fontSize");
     expect(loaded.panelPresets![0].panel.widgets[0]).toMatchObject({ width: 160 });
-    expect(mergeConfig(JSON.parse(JSON.stringify(loaded)))).toEqual(loaded);
+    expect(upgradeConfig(JSON.parse(JSON.stringify(loaded)))).toEqual(loaded);
     const r = parsePanelJson(JSON.stringify(panel({ widgets: [gauge()] })), () => "n");
     expect(r.ok && r.panel.widgets[0].width).toBe(160);
   });
