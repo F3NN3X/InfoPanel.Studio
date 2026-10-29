@@ -31,6 +31,7 @@ If the message says another InfoPanel Studio server is already running on that p
 - InfoPanel must be running with its Data API enabled.
 - The sensor may have a new name after a driver or hardware change. Re-pick it in the widget's **Data** tab.
 - Plugin widgets (Spotify, Weather, Steam and others) need that plugin enabled in InfoPanel.
+- If **Data** shows the reading but a widget doesn't, attach a troubleshooting report to an issue: **Data** › **Report** › **Copy troubleshooting report**.
 
 ## Edits don't show on the display
 
@@ -55,4 +56,4 @@ See [Frame rate and motion](performance) for what each setting changes.
 
 ## Still stuck?
 
-Turn on **Debug mode**, reproduce the problem, then use **Copy diagnostics summary** and attach it to an issue. See [Diagnostics and logs](diagnostics).
+Turn on **Debug mode**, reproduce the problem, then use **Copy diagnostics summary** and attach it to an issue, with the troubleshooting report from **Data** › **Report**. See [Diagnostics and logs](diagnostics).

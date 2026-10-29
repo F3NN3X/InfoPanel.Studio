@@ -230,6 +230,7 @@ export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpe
         pointCount={model.points.length}
         sourceCount={model.sources.length}
         apiBase={apiBase}
+        config={config}
       />
       {loading ? (
         <div className="grid flex-1 place-items-center text-[12.5px] text-ui-4">Loading data points…</div>
