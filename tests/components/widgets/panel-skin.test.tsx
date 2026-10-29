@@ -9,7 +9,8 @@ import { allPlacements } from "@/lib/pages";
 import { panelPresets } from "@/lib/panelPresets";
 import type { PanelDef } from "@/lib/panel-model";
 import type { ModuleSettings } from "@/modules/types";
-import { SKIN_NAMES } from "@/widgets/core/theme";
+import { SKIN_NAMES, SKINS } from "@/widgets/core/theme";
+import { DEFAULT_ACCENT } from "@/widgets/core/look";
 import { PanelView } from "@/components/widgets/PanelView";
 
 const sensors = fixtureSensors();
@@ -73,5 +74,17 @@ describe("panel widgets with a skin set", () => {
   it("maps the core text and track variables onto the panel", () => {
     expect(draw("stat", { skin: "default" })).toContain("--w-track");
     expect(draw("stat", {})).not.toContain("--w-track");
+  });
+});
+
+describe("panel colors", () => {
+  const all = kinds("bar", "gauge", "sparkline", "stat", "value", "shape");
+  it("never draws with the theme's --accent, a dark hover surface rather than a color", () => {
+    for (const skin of [undefined, ...SKIN_NAMES]) expect(html(all, skin ? { skin } : {})).not.toContain("hsl(var(--accent))");
+  });
+  it("gives its widgets the accent a core widget would take: the look's, else the skin's, else the default", () => {
+    expect(html(all, { accent: "#ff0000" })).toContain("--wp-accent:#ff0000");
+    expect(html(all, { skin: "synth" })).toContain(`--wp-accent:${SKINS.synth.accent}`);
+    expect(html(all, {})).toContain(`--wp-accent:${DEFAULT_ACCENT}`);
   });
 });

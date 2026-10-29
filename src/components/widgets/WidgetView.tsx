@@ -11,7 +11,6 @@ import { Marquee } from "@/components/ui/marquee";
 import { customClockText } from "@/lib/clock-format";
 import { formatClock } from "@/lib/general";
 import { MARQUEE_SPACING, MARQUEE_SPEED } from "@/lib/marquee";
-import { hexToHsl } from "@/lib/theme";
 import { useGeneral } from "@/hooks/use-general";
 import type { SensorValue } from "@/hooks/useSensors";
 import type { Widget } from "@/lib/layout";
@@ -20,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { labelStyle } from "@/components/widget-style";
 import { widgetPercent, widgetValue } from "./format";
 import { useNow } from "./hooks";
-import { panelNum, usePanelSkin } from "./panel-skin";
+import { PANEL_ACCENT, panelNum, usePanelSkin } from "./panel-skin";
 
 /**
  * Resolve an image widget's source URL: a static URL wins when it looks
@@ -172,17 +171,14 @@ function Bar({ widget, sensor, text, unit }: Ctx) {
       </div>
       {sk ? (
         // The core meter in the skin's style; `pct` already carries `inverted`. Its fill reads `--accent` as a color.
-        <div className="wp-bar-track" style={{ "--accent": widget.color ?? "hsl(var(--primary))" } as CSSProperties}>
+        <div className="wp-bar-track" style={{ "--accent": widget.color ?? PANEL_ACCENT } as CSSProperties}>
           <SkinBar value={pct} className="h-2" />
         </div>
       ) : (
         <div className="wp-bar-track h-2 w-full overflow-hidden rounded-full bg-secondary">
           <div
-            className="wp-bar-fill h-full rounded-full bg-primary transition-[width] duration-300"
-            style={{
-              width: `${pct}%`,
-              ...(widget.color ? { backgroundColor: widget.color } : {}),
-            }}
+            className="wp-bar-fill h-full rounded-full transition-[width] duration-300"
+            style={{ width: `${pct}%`, backgroundColor: widget.color ?? PANEL_ACCENT }}
           />
         </div>
       )}
@@ -198,7 +194,7 @@ function GaugeWidget({ widget, sensor, text, unit }: Ctx) {
     const size = widget.size ?? 80;
     return (
       <div className="wp-gauge flex shrink-0 flex-col items-center gap-1.5" style={{ width: size }}>
-        <Ring value={pct} thickness={8} color={widget.color ?? "hsl(var(--accent))"} className="w-full">
+        <Ring value={pct} thickness={8} color={widget.color ?? PANEL_ACCENT} className="w-full">
           <span
             className="tabular-nums text-foreground"
             style={{ fontSize: widget.size ? Math.round(widget.size * 0.28) : 14, ...panelNum(sk, 600) }}
@@ -212,7 +208,7 @@ function GaugeWidget({ widget, sensor, text, unit }: Ctx) {
     );
   }
   const scope = widget.color
-    ? ({ "--accent": hexToHsl(widget.color) } as CSSProperties)
+    ? ({ "--wp-accent": widget.color } as CSSProperties)
     : undefined;
   return (
     <div style={scope} className="wp-gauge shrink-0">
@@ -283,7 +279,7 @@ function Sparkline({ widget, sensor }: { widget: Widget; sensor?: SensorValue })
       </div>
       {sk ? (
         // The core graph in the skin's style (history length = the widget's `history`).
-        <Spark values={history} className="wp-spark h-12" color={widget.color ?? "hsl(var(--accent))"} />
+        <Spark values={history} className="wp-spark h-12" color={widget.color ?? PANEL_ACCENT} />
       ) : (
       <svg
         viewBox={`0 0 ${W} ${H}`}
@@ -294,13 +290,13 @@ function Sparkline({ widget, sensor }: { widget: Widget; sensor?: SensorValue })
           <>
             <polyline
               points={`0,${H} ${points} ${W},${H}`}
-              fill={widget.color ? `${widget.color}22` : undefined}
+              fill={`color-mix(in srgb, ${widget.color ?? PANEL_ACCENT} 13%, transparent)`}
               stroke="none"
             />
             <polyline
               points={points}
               fill="none"
-              stroke={widget.color ?? "hsl(var(--accent))"}
+              stroke={widget.color ?? PANEL_ACCENT}
               strokeWidth={1.5}
               vectorEffect="non-scaling-stroke"
             />
@@ -552,10 +548,10 @@ function Clock({ widget }: { widget: Widget }) {
  */
 function Shape({ widget }: { widget: Widget }) {
   const t = widget.thickness ?? 4;
-  const color = widget.color ?? "hsl(var(--accent))";
+  const color = widget.color ?? PANEL_ACCENT;
   const radius = Math.min(t, widget.shape === "rect" ? 8 : t);
-  // Soft glow for bars (hex colors; non-hex values are ignored by CSS).
-  const glow = `0 0 ${Math.max(6, t * 1.5)}px ${color}66`;
+  // Soft glow for bars, in any color format.
+  const glow = `0 0 ${Math.max(6, t * 1.5)}px color-mix(in srgb, ${color} 40%, transparent)`;
   switch (widget.shape ?? "vbar") {
     case "hbar":
       return (

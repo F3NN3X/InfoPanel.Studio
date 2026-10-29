@@ -15,7 +15,7 @@ import {
 } from "./panel-layout";
 import { resolvedPanel, tonedPanel } from "./panel-items";
 import { PanelOverlay } from "./panel-overlay";
-import { PANEL_SKIN_VARS, PanelSkin, panelSkinOf } from "./panel-skin";
+import { PANEL_SKIN_VARS, PanelSkin, panelAccent, panelSkinOf } from "./panel-skin";
 import type { PanelSelection } from "./panel-parts";
 import { PanelStack } from "./panel-stack";
 
@@ -101,7 +101,7 @@ export function PanelView({ panel: own, settings, sensors, studio, selection, en
             data-panel-layout={layout}
             data-panel-id={panel.id}
             // The theme tokens are re-scoped on the ModernChrome root (`tokenScope`).
-            style={{ ...panelVars(panel), ...(skin ? PANEL_SKIN_VARS : null), ...look }}
+            style={{ "--wp-accent": panelAccent(chrome.accent, skin), ...panelVars(panel), ...(skin ? PANEL_SKIN_VARS : null), ...look } as CSSProperties}
           >
             {overlay ? (
               <PanelOverlay

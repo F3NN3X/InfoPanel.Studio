@@ -511,7 +511,9 @@ export function Spark(p: SparkProps & { ipKey?: string }) {
   );
 }
 
-function SparkBase({ values = [], min, max, className = "h-10", fill = true, color = "var(--accent)", width = 1.75, graph, curve = true }: SparkProps) {
+function SparkBase({ values = [], min, max, className = "h-10", fill = true, color: own, width = 1.75, graph, curve = true }: SparkProps) {
+  // An unset color setting arrives as "": the accent, as when none is passed.
+  const color = own || "var(--accent)";
   const id = `sp${useId().replace(/:/g, "")}`;
   const sk = useSkin();
   const reduced = useReducedMotion();
