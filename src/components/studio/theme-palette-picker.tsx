@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { sameValues } from "@/lib/applied-theme";
 import type { SavedPalette } from "@/lib/layout";
+import type { ThemePalette } from "@/lib/palettes";
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { ThemeNameInput } from "./theme-name-input";
@@ -16,6 +17,8 @@ interface PalettePickerProps {
   current: ThemeTokens;
   /** The user's palettes (`config.palettes`). */
   saved: readonly SavedPalette[];
+  /** The palettes the built-in themes carry (`themePalettes`); none until the templates load. */
+  themes: readonly ThemePalette[];
   /** A saved palette's "used by" line. */
   usedBy: (tokens: ThemeTokens) => string;
   onPick: (name: string, tokens: ThemeTokens) => void;
@@ -29,8 +32,8 @@ interface PalettePickerProps {
 
 /**
  * The Palette picker (handoff SPEC §4.3.3): the six built-ins as tiles (Zinc the built-in default), then the user's
- * palettes tagged Yours, each with ⋯ (who uses it, Rename, Duplicate, Delete) opening a panel under its row; the
- * footer counts both and saves the current colors as a palette.
+ * palettes tagged Yours, each with ⋯ (who uses it, Rename, Duplicate, Delete) opening a panel under its row, then the
+ * palettes the built-in themes carry, tagged Theme; the footer counts them and saves the current colors as a palette.
  */
 export function PalettePicker(p: PalettePickerProps) {
   const [menuFor, setMenuFor] = useState<string>();
@@ -101,6 +104,11 @@ export function PalettePicker(p: PalettePickerProps) {
         </button>
       </div>
     )),
+    ...p.themes.map((t) => (
+      <Tile key={t.id} name={t.name} tag="Theme" selected={same(t.tokens)} onPick={() => p.onPick(t.name, t.tokens)}>
+        <PaletteSwatch tokens={t.tokens} />
+      </Tile>
+    )),
   ];
 
   return (
@@ -110,7 +118,7 @@ export function PalettePicker(p: PalettePickerProps) {
       onBack={p.onBack}
       footer={
         <div className="flex items-center gap-3 text-[12px]">
-          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[#71717a]">{paletteCounts(THEME_PRESETS.length, p.saved.length)}</span>
+          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[#71717a]">{paletteCounts(THEME_PRESETS.length + p.themes.length, p.saved.length)}</span>
           {saving ? (
             <ThemeNameInput
               initial=""

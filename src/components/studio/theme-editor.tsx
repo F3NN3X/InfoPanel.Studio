@@ -7,7 +7,7 @@ import { FONT_CATALOG } from "@/lib/fonts";
 import { resolveFont, type GeneralFont } from "@/lib/general";
 import { resolveInheritance, valueText } from "@/lib/inheritance";
 import { uid, type DashboardConfig } from "@/lib/layout";
-import { deletePalette, duplicatePalette, paletteName, paletteUsers, renamePalette, savePalette } from "@/lib/palettes";
+import { deletePalette, duplicatePalette, paletteName, paletteUsers, renamePalette, savePalette, themePalettes } from "@/lib/palettes";
 import type { TemplatePresetGroup } from "@/lib/screen-templates/template-presets";
 import { templateThemeRows } from "@/lib/screen-templates/template-rows";
 import { hexToHsl, hslToHex, resolveTheme } from "@/lib/theme";
@@ -163,6 +163,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   }, []);
   const rows = useMemo(() => (templates ? templateThemeRows(templates) : undefined), [templates]);
   const templatePresets = useMemo(() => templates?.flatMap((g) => g.presets) ?? [], [templates]);
+  const templatePalettes = useMemo(() => themePalettes(templatePresets), [templatePresets]);
 
   const openSection = (id: string) => {
     setDrill("main");
@@ -249,7 +250,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   const kind = cardKind(state);
   const name = cardName(state);
   const updateText = updateBarText(state, others);
-  const palette = paletteName(theme.tokens, config.palettes);
+  const palette = paletteName(theme.tokens, config.palettes, templatePalettes);
   const saved = state.theme && kind === "saved" ? state.theme : undefined;
 
   const applyPreset = (p: AppearancePreset, keepBackground: boolean) => {
@@ -436,6 +437,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
           <PalettePicker
             current={theme.tokens}
             saved={config.palettes ?? []}
+            themes={templatePalettes}
             usedBy={(tokens) => paletteUsedBy(paletteUsers(config, tokens))}
             onBack={toMain}
             onPick={(paletteLabel, tokens) => {

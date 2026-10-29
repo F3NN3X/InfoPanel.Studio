@@ -1,4 +1,4 @@
-import { presetTokens } from "./appearance-presets";
+import { presetTokens, type AppearancePreset } from "./appearance-presets";
 import { sameValues } from "./applied-theme";
 import type { DashboardConfig, SavedPalette } from "./layout";
 import { resolveTheme, THEME_PRESETS, type ThemeTokens } from "./theme";
@@ -45,7 +45,26 @@ export function paletteUsers(config: DashboardConfig, tokens: ThemeTokens): stri
   return [...themes, ...screens];
 }
 
-/** The name tokens go by: the built-in they equal, else the user's palette, else Custom. */
-export function paletteName(tokens: ThemeTokens, saved: readonly SavedPalette[] = []): string {
-  return THEME_PRESETS.find((p) => sameValues(p.tokens, tokens))?.label ?? saved.find((p) => sameValues(p.tokens, tokens))?.name ?? "Custom";
+/** A palette a built-in theme carries (its first theme's id and name). */
+export interface ThemePalette {
+  id: string;
+  name: string;
+  tokens: ThemeTokens;
+}
+
+/** The palettes the built-in themes carry, each once, in theme order; one equal to a built-in palette is left out. */
+export function themePalettes(themes: readonly AppearancePreset[]): ThemePalette[] {
+  const out: ThemePalette[] = [];
+  for (const t of themes) {
+    const tokens = presetTokens(t);
+    if (THEME_PRESETS.some((p) => sameValues(p.tokens, tokens)) || out.some((p) => sameValues(p.tokens, tokens))) continue;
+    out.push({ id: t.id, name: t.name, tokens });
+  }
+  return out;
+}
+
+/** The name tokens go by: the built-in they equal, else the user's palette, else a theme's, else Custom. */
+export function paletteName(tokens: ThemeTokens, saved: readonly SavedPalette[] = [], themes: readonly ThemePalette[] = []): string {
+  const same = (p: { tokens: ThemeTokens }) => sameValues(p.tokens, tokens);
+  return THEME_PRESETS.find(same)?.label ?? saved.find(same)?.name ?? themes.find(same)?.name ?? "Custom";
 }
