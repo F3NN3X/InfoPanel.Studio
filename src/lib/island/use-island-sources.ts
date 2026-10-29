@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useSensors, useSensorsConnected } from "@/hooks/useSensors";
+import { withHwinfoAliases } from "@/lib/hwinfo-aliases";
 import { toFlat } from "@/widgets/data-adapter";
 import type { Data } from "@/widgets/core/types";
 import type { BusClock, IslandBus } from "./bus";
@@ -35,7 +36,7 @@ export function useIslandSources(bus: IslandBus, feeds: readonly IslandFeed[], e
   const dataFeeds = useRef(data);
   dataFeeds.current = data;
   const ids = data.map((f) => f.module.id).join();
-  useEffect(() => runDataFeeds(bus, dataFeeds.current, toFlat(sensors), prev.current), [bus, sensors, ids]);
+  useEffect(() => runDataFeeds(bus, dataFeeds.current, toFlat(withHwinfoAliases(sensors)), prev.current), [bus, sensors, ids]);
 
   useEffect(() => {
     const seen = prev.current;

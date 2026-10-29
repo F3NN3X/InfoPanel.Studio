@@ -104,6 +104,29 @@ describe("troubleshootingReport", () => {
   });
 });
 
+describe("troubleshootingReport with HWiNFO", () => {
+  const hwinfo: SensorMap = {
+    "hwinfo.total_cpu_usage": s(18, "%", "Total CPU Usage"),
+    "hwinfo.cpu_package_power": s(120, "W", "CPU Package Power"),
+    "hwinfo.drive_temperature": s(29, "°C", "Drive Temperature"),
+    "hwinfo.drive_temperature_s_m_a_r_t___kingston_sfyrd2000g__50026b768718d84b___c": s(50, "°C", "Drive Temperature"),
+    "hwinfo.current_dl_rate_network__mediatek_mt7925___alices_wifi": s(10, "KB/s", "Current DL rate"),
+  };
+  const text = troubleshootingReport(input({ sensors: hwinfo, sources: null }));
+
+  it("lists HWiNFO readings by the reading and a device number, never the device's serial or connection", () => {
+    expect(text).toContain("hwinfo.drive_temperature | Drive Temperature | 29 °C");
+    expect(text).toContain("hwinfo.drive_temperature (device 2) | Drive Temperature | 50 °C");
+    expect(text).toContain("hwinfo.current_dl_rate (device 1) | Current DL rate | 10 KB/s");
+    for (const secret of ["50026b", "alices", "kingston"]) expect(text, secret).not.toContain(secret);
+  });
+
+  it("says what the widgets read from HWiNFO", () => {
+    expect(text).toContain("CPU: CPU · load 18 %");
+    expect(text).toContain("- cpuPower: libre.cpu_cpu_package_power = 120 W (from HWiNFO)");
+  });
+});
+
 describe("addressText", () => {
   it("names this PC for loopback and leaves another PC's address out", () => {
     expect(addressText("http://127.0.0.1:3921")).toBe("this PC, port 3921");

@@ -1,4 +1,5 @@
 import { PANEL_ID, uid, type PanelDef, type Placement, type Widget, type WidgetKind } from "./layout";
+import { liveSensors, retargetPanel } from "./sample-keys";
 import { YR_FORECAST_KEY } from "./sensors";
 
 /*
@@ -22,7 +23,7 @@ const SAMPLE_ACCENT = "#f5c518";
 const RTSS = (n: string) => `plugins.InfoPanel.RTSS.rtss.${n}`;
 const STEAM = (n: string) => `plugins.InfoPanel.SteamAPI.${n}`;
 const NVIDIA = (n: string) => `libre.nvidia_geforce_rtx_5090_${n}`;
-const WEATHER = (n: string) => `plugins.yr-weather-plugin.brevik-norway.${n}`;
+const WEATHER = (n: string) => `plugins.yr-weather-plugin.place.${n}`;
 
 /** Shorthand for building sample widgets with fresh ids. */
 function sw(fields: Partial<Widget> & { kind: WidgetKind }): Widget {
@@ -228,7 +229,7 @@ export function sampleLayout(): LayoutTemplate {
     ],
   });
 
-  return {
+  const template: LayoutTemplate = {
     name: "Sample 1920×550",
     cols: 12,
     rows: 6,
@@ -268,4 +269,7 @@ export function sampleLayout(): LayoutTemplate {
       }),
     ],
   };
+  // its panels' keys on this PC's hardware (`sample-keys.ts`)
+  const live = liveSensors();
+  return { ...template, placements: template.placements.map((p) => (p.panel ? { ...p, panel: retargetPanel(p.panel, live) } : p)) };
 }

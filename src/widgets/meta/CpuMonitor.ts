@@ -6,7 +6,7 @@ export const meta: WidgetMeta = {
   name: "CPU Monitor",
   category: "Hardware",
   icon: "memory",
-  prefixes: ["libre.amd_", "libre.intel_", "libre.embedded_controller"],
+  prefixes: [],
   defaultSize: [3, 2],
   minSize: [1, 1],
   blurb: "Load, clocks, temperature and power",

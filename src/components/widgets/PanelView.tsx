@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { withHwinfoAliases } from "@/lib/hwinfo-aliases";
 import type { PanelDef } from "@/lib/layout";
 import type { SectionFlags } from "@/lib/theme-model";
 import type { ModuleSettings, SensorMap } from "@/modules/types";
@@ -64,7 +65,9 @@ const joinCss = (...parts: (string | undefined)[]) => parts.filter((p) => p?.tri
  * `.wp-panel-title`, `.wp-panel-bg`, `.wp-panel-scrim`, `.wp-band[data-band]`
  * and `.wp-widget.wp-widget--{kind}[data-widget-id][data-widget-kind]`.
  */
-export function PanelView({ panel: own, settings, sensors, studio, selection, enforced, locks }: PanelViewProps) {
+export function PanelView({ panel: own, settings, sensors: raw, studio, selection, enforced, locks }: PanelViewProps) {
+  // HWiNFO readings also under the LibreHardwareMonitor keys (`hwinfo-aliases.ts`), as the widgets read them
+  const sensors = withHwinfoAliases(raw);
   const cfg = settings ?? {};
   const title = String(cfg.label ?? (own.titleVisible ? own.title : ""));
   const surface = panelSurfaceOf(cfg.surface ?? own.background);

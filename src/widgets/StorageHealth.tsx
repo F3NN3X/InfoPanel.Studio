@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { StatGrid, Widget, hue, shell, get, num, fmt, fmtGB, fmtRate, detect, diskShort, firstDisk, Metric, Ring, Spark, Stat, Bar, Num, useHistory, useSkin, tone, Empty, LegendRow, type ShellProps } from "./kit";
+import { StatGrid, Widget, hue, shell, get, num, fmt, fmtGB, fmtRate, diskShort, firstDisk, Metric, Ring, Spark, Stat, Bar, Num, useHistory, useSkin, tone, Empty, LegendRow, hw, type ShellProps } from "./kit";
 import { meta } from "./meta/StorageHealth";
 
 export { meta };
@@ -39,7 +39,7 @@ function RateGraph({ rH, wH, rd, wr }: { rH: number[]; wH: number[]; rd: number;
 
 export default function StorageHealth(p: StorageHealthProps) {
   const d = p.data;
-  const disks = detect(d, /^libre\.(.+)_power_on_hours$/);
+  const disks = hw(d).disks;
   const id = p.disk ?? firstDisk(disks);
   const k = (s: string) => num(get(d, `libre.${id}_${s}`));
   const pick = (...ks: string[]) => ks.map(k).find(Number.isFinite);

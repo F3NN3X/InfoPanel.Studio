@@ -22,7 +22,7 @@ describe("readings", () => {
   });
 
   it("splits value and unit and prettifies the label", () => {
-    expect(readings(data).find((r) => r.key === "hwinfo.cpu_power")).toMatchObject({ label: "Cpu Power", value: 78.4, unit: "W", text: "78.4 W" });
+    expect(readings(data).find((r) => r.key === "hwinfo.cpu_power")).toMatchObject({ label: "CPU Power", value: 78.4, unit: "W", text: "78.4 W" });
   });
 
   it.each([
@@ -49,6 +49,6 @@ describe("sensor names", () => {
     const data = { "libre.gpu_core": "54 °C", "libre.cpu_fan": "1180 RPM" };
     const list = readings(data, { "libre.gpu_core": "GPU Core" });
     expect(list.find((r) => r.key === "libre.gpu_core")?.label).toBe("GPU Core");
-    expect(list.find((r) => r.key === "libre.cpu_fan")?.label).toBe("Cpu Fan");
+    expect(list.find((r) => r.key === "libre.cpu_fan")?.label).toBe("CPU Fan");
   });
 });

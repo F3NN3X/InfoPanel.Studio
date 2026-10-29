@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { readCpuFlat } from "@/lib/system-metrics";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, get, num, fmt, heat, rampColor, accentOf, hw, Num, useIpTag, type ShellProps } from "./kit";
 import { meta } from "./meta/CoreHeatmap";
@@ -49,12 +50,18 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
     shape = p.shape ?? "grid";
   // Tagged only on the studio canvas, so the kiosk draws the label as it did.
   const ip = metric === "load" && Object.keys(tag("x")).length > 0;
-  const cores: Core[] = [];
-  for (let i = 1; i <= 64; i++) {
-    const l = k(`cpu_core__${i}`);
-    if (!Number.isFinite(l)) break;
-    cores.push({ i, load: l, mhz: k(`core__${i}__effective`), w: k(`core__${i}__smu`), vid: k(`core__${i}_vid`) });
-  }
+  // loads by role (AMD's, Intel's and HWiNFO's thread keys); per-core clock, power and voltage in AMD's keys, else Intel's
+  const either = (a: number, b: number) => (Number.isFinite(a) ? a : b);
+  const cores: Core[] = (id ? readCpuFlat(d ?? {}, id).cores : []).slice(0, 64).map((load, n) => {
+    const i = n + 1;
+    return {
+      i,
+      load,
+      mhz: either(k(`core__${i}__effective`), k(`cpu_core__${i}_clock`)),
+      w: either(k(`core__${i}__smu`), k(`cpu_core__${i}_power`)),
+      vid: either(k(`core__${i}_vid`), k(`cpu_core__${i}_voltage`)),
+    };
+  });
   const raw = (c: Core) => ({ load: c.load, clock: c.mhz, power: c.w, vid: c.vid })[metric];
   const maxV = metric === "load" ? 100 : Math.max(1e-6, ...cores.map(raw));
   const norm = (c: Core) => (raw(c) / maxV) * 100;

@@ -24,6 +24,7 @@ import { defaultPalette } from "../elements/palette.ts";
 import { choiceFor, readChoices, rowsOf, type ExportRow } from "../export/native-choices.ts";
 import { defaultItem, type DisplayItem } from "../schema.ts";
 import type { DataApiValue } from "../sensors.ts";
+import { withHwinfoAliases } from "../../hwinfo-aliases.ts";
 import { cssToArgb, decompose, hideTagged } from "./decompose.ts";
 import { make, type ConvertContext, type Look, type Note, type Rect } from "./items.ts";
 import { CONVERTERS, type Converter } from "./modules/index.ts";
@@ -218,7 +219,7 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
   let grid = { width: 0, height: 0 };
   let only: Rect | undefined;
 
-  const ctxFor = (notes: Note[]): ConvertContext => ({ look: req.look, palette, sensors: req.sensors, notes });
+  const ctxFor = (notes: Note[]): ConvertContext => ({ look: req.look, palette, sensors: withHwinfoAliases(req.sensors), notes });
   const image = async (bytes: Uint8Array, name: string, box: Rect): Promise<DisplayItem> => {
     const file = await assetFile(`${stem(name, ++n)}.png`, bytes, "added");
     assets.push(file);
