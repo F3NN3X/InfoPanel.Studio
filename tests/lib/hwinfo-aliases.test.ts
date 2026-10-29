@@ -115,6 +115,7 @@ describe("isHwinfoDefaultName", () => {
   it("knows HWiNFO's own names and not a user's", () => {
     for (const name of ["GPU Temperature", "P-core 3 T1 Usage", "E-core 8 Clock", "Drive Temperature 2", "CPU_OPT Fan", "Total Host Writes"])
       expect(isHwinfoDefaultName(name), name).toBe(true);
-    for (const name of ["My GPU temp", "Alice's rig", "Office fan"]) expect(isHwinfoDefaultName(name), name).toBe(false);
+    for (const name of ["My GPU temp", "Alice's rig", "Office fan", "Alice's MOS rig", "Alice CPU", "Core 0 Clock Alice"])
+      expect(isHwinfoDefaultName(name), name).toBe(false);
   });
 });

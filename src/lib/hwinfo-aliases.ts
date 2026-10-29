@@ -144,13 +144,16 @@ const DEFAULT_NAMES = [
   /^Framerate( \(Presented\)| Presented \(avg\)| 1% Low| 0\.1% Low)?$/i,
   /^Frame Time$/i,
   /^Drive Temperature( \d+)?$/i,
-  /^(?:[PE]-)?Core \d+( T\d+)?( Usage| Clock.*| Effective Clock| Power| VID)?$/i,
+  /^(?:[PE]-)?Core \d+( T\d+)?( Usage| Clock( \(perf #\d+\/\d+\))?| Effective Clock| Power| VID)?$/i,
+  // the board's, exactly: its alias patterns match any name with "MOS" or ending in "CPU" in it
+  /^(VRM|VRM MOS|VR VCC|VR MOS|MOS|CPU|CPU Fan|CPU_OPT|CPU_OPT Fan|CPU Optional)$/i,
 ];
 
 /** Whether `name` is one of HWiNFO's default reading names (a renamed one could say anything about its user). */
 export const isHwinfoDefaultName = (name: string): boolean =>
-  [CPU, GPU, MEMORY, DRIVE, ADAPTER, BOARD].some((list) => list.some((a) => a.name.test(name))) ||
-  [THREAD, CORE_CLOCK, CORE_POWER, CORE_VID, /^GPU Fan ?\d+$/i, ...DEFAULT_NAMES].some((re) => re.test(name));
+  // only the anchored, exact alias patterns: a looser one would pass a renamed reading
+  [CPU, GPU, MEMORY, DRIVE, ADAPTER].some((list) => list.some((a) => a.name.test(name))) ||
+  [THREAD, CORE_POWER, CORE_VID, /^GPU Fan ?\d+$/i, ...DEFAULT_NAMES].some((re) => re.test(name));
 
 /** A drive's or an adapter's device suffix as an id: the model (no serial) or the connection, `_2` for a repeat. */
 function deviceId(device: string, kind: "drive" | "adapter"): string {
