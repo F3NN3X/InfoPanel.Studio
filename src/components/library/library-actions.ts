@@ -9,7 +9,7 @@ import type { DashboardConfig, Placement, ProfileView, StylePreset } from "@/lib
 import type { LibraryCopy, LibraryItem } from "@/lib/library";
 import { getLibraryItem } from "@/lib/library";
 import type { PanelDef, UserPanelPreset } from "@/lib/panel-model";
-import { userPanelPreset, type PanelPreset } from "@/lib/panelPresets";
+import { makePreset, userPanelPreset, type PanelPreset } from "@/lib/panelPresets";
 import { CUSTOM_GAUGE_ID, type LibraryFrame } from "@/lib/gauge-studio/model";
 import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
 import { BUILTIN_PANEL, CONFIG_PANEL } from "@/lib/my-library/config-items";
@@ -196,7 +196,7 @@ export function duplicatePanel(config: DashboardConfig, item: LibraryItem, id: s
   const copy: UserPanelPreset | null = item.id.startsWith(BUILTIN_PANEL)
     ? (() => {
         const p = item.data as PanelPreset;
-        return { id, name: `${item.name} copy`, colSpan: p.colSpan, rowSpan: p.rowSpan, panel: p.make(), ...(p.settings ? { settings: { ...p.settings } } : {}) };
+        return { id, name: `${item.name} copy`, colSpan: p.colSpan, rowSpan: p.rowSpan, panel: makePreset(p), ...(p.settings ? { settings: { ...p.settings } } : {}) };
       })()
     : isSavedPanel(item)
       ? { ...structuredClone(item.data as UserPanelPreset), id, name: `${item.name} copy` }

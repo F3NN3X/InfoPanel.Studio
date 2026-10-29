@@ -14,7 +14,7 @@ import { ownApplies, sectionsWithValues, THEMED_KEYS, withThemeValues, type Them
 import { modules } from "@/modules";
 import { CARD_SETTINGS, PANEL_SETTINGS, replaceStyle, styleOf } from "@/modules/standard-settings";
 import { settingKeys } from "@/modules/types";
-import type { PanelPreset } from "@/lib/panelPresets";
+import { makePreset, type PanelPreset } from "@/lib/panelPresets";
 import type { ModuleSettings } from "@/modules/types";
 import { ALL_MODULES } from "./studio-modules";
 import { dropKeys } from "./settings-model";
@@ -96,7 +96,7 @@ export function withPreset(p: Placement, preset: PanelPreset): Placement {
   return normalizePanelPlacement({
     ...zone,
     module: PANEL_ID,
-    panel: preset.make(),
+    panel: makePreset(preset),
     settings: settings ? { ...settings } : undefined,
     ...(follow ? { follow } : {}),
   });

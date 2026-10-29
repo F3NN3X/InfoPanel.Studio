@@ -86,7 +86,7 @@ export const pretty = (slug: string): string =>
   String(slug)
     .split("_")
     .filter(Boolean)
-    .map((w) => (/^(amd|nvidia|rtx|gtx|wdc|ssd|nvme)$/i.test(w) || /\d/.test(w) ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1)))
+    .map((w) => (/^(amd|nvidia|rtx|gtx|wdc|ssd|nvme|cpu|gpu)$/i.test(w) || /\d/.test(w) ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1)))
     .join(" ");
 
 // Identical drives (three of one NVMe model) are told apart by the Data API with "#2", "#3" after the
@@ -113,6 +113,7 @@ export const diskShort = (id: string, volumes?: string): string => {
 export const hw = (data: Data | undefined): { cpu?: string; gpu?: string; disks: string[]; adapters: string[] } => ({
   cpu: detect(data, /^libre\.(.+)_cpu_total$/)[0],
   gpu: detect(data, /^libre\.(.+)_gpu_core_load$/)[0],
-  disks: detect(data, /^libre\.(.+)_power_on_hours$/),
+  // drives by their hours, else (HWiNFO's, without them) by their activity
+  disks: [...new Set([...detect(data, /^libre\.(.+)_power_on_hours$/), ...detect(data, /^libre\.(.+)_total_activity$/)])],
   adapters: detect(data, /^libre\.(.+)_download_speed$/),
 });

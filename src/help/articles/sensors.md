@@ -50,7 +50,7 @@ Sensor fields open a picker with live values. Type to search the 650+ data point
 
 ## HWiNFO sensors
 
-When HWiNFO is running, its sensors are grouped by device in every list: "CPU [#0]: ...", "S.M.A.R.T.: ...", "GPU [#0]: ...". The grouping needs an InfoPanel build whose Data API lists HWiNFO's devices; with an older build the HWiNFO sensors still appear, in one flat list. Sensor templates and the Drives element look in HWiNFO for readings LibreHardwareMonitor does not have, such as the GPU hot spot and the memory clock.
+When HWiNFO is running, its sensors are grouped by device in every list: "CPU [#0]: ...", "S.M.A.R.T.: ...", "GPU [#0]: ...". The grouping needs an InfoPanel build whose Data API lists HWiNFO's devices; with an older build the HWiNFO sensors still appear, in one flat list. Sensor templates and the Drives element look in HWiNFO for readings LibreHardwareMonitor does not have, such as the GPU hot spot and the memory clock. The hardware widgets (CPU, GPU, memory, drives, network) read HWiNFO's sensors when LibreHardwareMonitor isn't running, so either one fills them.
 
 ## The Data view
 

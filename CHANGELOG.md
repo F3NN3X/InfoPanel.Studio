@@ -12,6 +12,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Fixed
 
+- **Hardware widgets work with HWiNFO alone.** On a PC that runs HWiNFO and not LibreHardwareMonitor, the CPU, GPU, memory, drive and network widgets (and the built-in panels) were empty; they now read HWiNFO's sensors: CPU load, temperature, power, clocks and threads, GPU load, temperature, power, clocks, fans and memory, RAM, drive activity, temperature and life, and each adapter's traffic. Where LibreHardwareMonitor has a reading, its own is used.
+- **CPU Monitor shows 12th- and 13th-gen Intel CPUs, and Network Traffic an adapter named Wi-Fi.** The widgets only drew CPUs whose name starts with AMD or Intel and adapters named Ethernet, WiFi and a few others, so a "12th Gen Intel Core" CPU and Windows' default "Wi-Fi" adapter showed nothing.
+- **Core Heatmap and CPU Monitor read per-core clocks, power and voltage on Intel too**, not only AMD's sensors.
+- **KPI Tiles' download reads your busiest adapter**, not only one named Ethernet.
+- **The built-in panels and the sample layout bind to your hardware.** They were bound to the sensors of the PC they were made on (a Ryzen 9 9950X3D, an RTX 5090, an Ethernet adapter and one weather place); adding one now picks the same readings of your CPU, GPU, busiest adapter and your weather place.
+- **The troubleshooting report leaves out drive serial numbers.** HWiNFO puts a drive's serial and an adapter's name in its keys; the report lists those readings by the reading's key and a device number.
 - **Copy diagnostics summary leaves out your user name and addresses.** It no longer includes the logs folder (which holds your Windows user name) or the server's IP address, only whether the server listens on this PC or the network; a server message has user folders and IP addresses taken out.
 - **Intel CPUs show their package power, clock and temperature.** The widgets looked for AMD's sensor names, so on an Intel PC the power draw, the clock and, in Vitals, Thermals, Glance and the Status Bar, the CPU temperature stayed empty though the Data tab had them. Every widget now finds them by role: Intel's **CPU Package** temperature and power, and the average of its per-core clocks (Intel has no average sensor). CPU Monitor's per-core bars read Intel's thread and E-core loads, and its **Tctl/Tdie** stat reads **Package** on Intel.
 

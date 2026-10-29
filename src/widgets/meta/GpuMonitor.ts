@@ -6,7 +6,7 @@ export const meta: WidgetMeta = {
   name: "GPU Monitor",
   category: "Hardware",
   icon: "developer_board",
-  prefixes: ["libre.nvidia_", "libre.amd_radeon", "libre.intel_arc"],
+  prefixes: [],
   defaultSize: [3, 2],
   minSize: [1, 1],
   blurb: "Load, temps, power, VRAM and clocks",

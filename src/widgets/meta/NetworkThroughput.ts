@@ -6,7 +6,7 @@ export const meta: WidgetMeta = {
   name: "Network Traffic",
   category: "Network",
   icon: "swap_vert",
-  prefixes: ["libre.ethernet", "libre.wifi", "libre.tailscale", "libre.bluetooth_network", "libre.vethernet"],
+  prefixes: [],
   defaultSize: [3, 1],
   minSize: [1, 1],
   blurb: "Live download and upload",

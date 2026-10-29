@@ -3,6 +3,7 @@
 import { useEffect, useMemo, type ComponentType } from "react";
 import { compactOf } from "@/modules/setting-readers";
 import { STANDARD_SETTINGS } from "@/modules/standard-settings";
+import { withHwinfoAliases } from "@/lib/hwinfo-aliases";
 import { islandSettings, type IslandSourceDef } from "@/lib/island/sources";
 import { effectiveSettings, type DashboardModule, type ModuleSetting, type ModuleSettings, type SensorMap } from "@/modules/types";
 import { ensureSkinFonts } from "./core/fonts";
@@ -117,8 +118,10 @@ export function templateModule<P extends object>({ meta, Component, settings, to
       ),
   };
   function TemplateZone({ sensors, saved }: { sensors: SensorMap; saved?: ModuleSettings }) {
-    const data = useMemo(() => toFlat(sensors), [sensors]);
-    const names = useMemo(() => toNames(sensors), [sensors]);
+    // HWiNFO readings also under the LibreHardwareMonitor keys the widgets read (`hwinfo-aliases.ts`)
+    const aliased = useMemo(() => withHwinfoAliases(sensors), [sensors]);
+    const data = useMemo(() => toFlat(aliased), [aliased]);
+    const names = useMemo(() => toNames(aliased), [aliased]);
     const look = useZoneLook(all, saved, surfaceDefault);
     return <Component data={data} names={names} {...shellProps(look)} {...toProps(look, saved)} look={look} />;
   }

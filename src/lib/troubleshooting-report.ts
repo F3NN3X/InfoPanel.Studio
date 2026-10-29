@@ -3,10 +3,13 @@
  * text to paste into an issue. It holds versions, the Data API's state, the hardware readings and counts, and nothing
  * about the person: no addresses but loopback, no paths, user or PC names, no screen or widget names, no plugin
  * entries (they carry now playing, calendars, processes, notifications), no text values, and no network adapter
- * readings (their keys and names are the adapters' names, which people rename). Pure: the caller gathers the input.
+ * readings (their keys and names are the adapters' names, which people rename). HWiNFO keys name their device after the
+ * reading (a drive's serial number, an adapter's connection), so the report shows them as the reading's key and a device
+ * number. Pure: the caller gathers the input.
  */
 import type { ApiSources } from "@/lib/catalog";
 import type { DashboardConfig } from "@/lib/layout";
+import { aliasSource, slugOf, withHwinfoAliases } from "@/lib/hwinfo-aliases";
 import { CANVAS_ID } from "@/lib/layout";
 import { readSystem, systemKeys, type RuleName } from "@/lib/system-metrics";
 import type { SensorMap } from "@/modules/types";
@@ -48,11 +51,37 @@ const adapterPrefixes = (keys: string[]): string[] =>
     return id === undefined ? [] : [`libre.${id}_`];
   });
 
-/** The readings the report may list: hardware sources only, without network adapters. */
+/** HWiNFO's network readings (`Current DL rate`, `Total UP`): their keys carry the adapter's connection name. */
+const HWINFO_NETWORK = /^(Current (DL|UP) rate|Total (DL|UP))$/i;
+
+/** The readings the report may list: hardware sources only, without network adapters (LibreHardwareMonitor's or HWiNFO's). */
 export function listedKeys(sensors: SensorMap): string[] {
   const keys = Object.keys(sensors).sort();
   const adapters = adapterPrefixes(keys);
-  return keys.filter((k) => HARDWARE.test(k) && !adapters.some((a) => k.startsWith(a)));
+  return keys.filter(
+    (k) => HARDWARE.test(k) && !adapters.some((a) => k.startsWith(a)) && !(k.startsWith("hwinfo.") && HWINFO_NETWORK.test(sensors[k].name?.trim() ?? "")),
+  );
+}
+
+/**
+ * Each listed key as the report shows it: an HWiNFO key past its reading's slug (`hwinfo.drive_temperature_s_m_a_r_t___…serial…`)
+ * as that slug and the device's number in key order, `hwinfo.drive_temperature (device 2)`.
+ */
+function shownKeys(sensors: SensorMap, keys: string[]): Map<string, string> {
+  const devices = new Map<string, number>();
+  let unnamed = 0;
+  return new Map(
+    keys.map((k) => {
+      const name = sensors[k].name?.trim();
+      const base = name ? `hwinfo.${slugOf(name)}` : "";
+      if (!k.startsWith("hwinfo.") || k === base) return [k, k];
+      // fail closed: a key the reading's slug doesn't start (no name, a renamed reading) may still carry its device
+      if (!base || !k.startsWith(base)) return [k, `hwinfo.(reading ${++unnamed})`];
+      const device = k.slice(base.length);
+      if (!devices.has(device)) devices.set(device, devices.size + 1);
+      return [k, `${base} (device ${devices.get(device)})`];
+    }),
+  );
 }
 
 const round = (v: number) => String(Math.round(v * 100) / 100);
@@ -103,7 +132,9 @@ function screenLines(config: DashboardConfig | null): string[] {
 const fixed = (v: number | undefined, unit: string) => (v === undefined ? "–" : `${round(v)} ${unit}`);
 
 /** What each reading role resolved to, and the values the widgets show from them. */
-function roleLines(sensors: SensorMap): string[] {
+function roleLines(raw: SensorMap): string[] {
+  // as the widgets read them: HWiNFO's readings stand in where LibreHardwareMonitor has none
+  const sensors = withHwinfoAliases(raw);
   const keys = systemKeys(sensors);
   const r = readSystem(sensors);
   const roles = (Object.entries(keys) as [RuleName, string | undefined][]).filter(([, k]) => k);
@@ -113,7 +144,7 @@ function roleLines(sensors: SensorMap): string[] {
     `RAM: ${fixed(r.ram.load, "%")} of ${fixed(r.ram.total, "GB")} · drives ${r.disks.length}`,
     "",
     "Roles (the key each one reads):",
-    ...(roles.length ? roles.map(([name, k]) => `- ${name}: ${k} = ${valueText(sensors[k!])}`) : ["- none found"]),
+    ...(roles.length ? roles.map(([name, k]) => `- ${name}: ${k} = ${valueText(sensors[k!])}${aliasSource(sensors, k!) !== k ? " (from HWiNFO)" : ""}`) : ["- none found"]),
   ];
 }
 
@@ -122,6 +153,7 @@ export function troubleshootingReport(input: ReportInput): string {
   const { app, infopanel, sensors } = input;
   const all = Object.keys(sensors);
   const listed = listedKeys(sensors);
+  const shown = shownKeys(sensors, listed);
   const adapters = adapterPrefixes(all).length;
   const lines = [
     "# InfoPanel Studio troubleshooting report",
@@ -157,7 +189,7 @@ export function troubleshootingReport(input: ReportInput): string {
     ...screenLines(input.config),
     "",
     `## Hardware readings (${listed.length})`,
-    ...listed.map((k) => `${k} | ${sensors[k].name ?? ""} | ${valueText(sensors[k])}`),
+    ...listed.map((k) => `${shown.get(k)} | ${sensors[k].name ?? ""} | ${valueText(sensors[k])}`),
     "",
   ];
   return lines.join("\n");

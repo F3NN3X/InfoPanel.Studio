@@ -46,7 +46,7 @@ export default function CpuMonitor(p: CpuMonitorProps) {
   const cores: Core[] = (cpu?.cores ?? []).slice(0, 64).map((load, n) => {
     const i = n + 1;
     // AMD: `core__N__effective`, `core__N_vid`; Intel: `cpu_core__N_clock`, `cpu_core__N_voltage`
-    return { i, load, mhz: either(num(k(`core__${i}__effective`)), num(k(`cpu_core__${i}_clock`))), vid: either(num(k(`core__${i}_vid`)), num(k(`cpu_core__${i}_voltage`))), w: num(k(`core__${i}__smu`)) };
+    return { i, load, mhz: either(num(k(`core__${i}__effective`)), num(k(`cpu_core__${i}_clock`))), vid: either(num(k(`core__${i}_vid`)), num(k(`cpu_core__${i}_voltage`))), w: either(num(k(`core__${i}__smu`)), num(k(`cpu_core__${i}_power`))) };
   });
   const hist = useHistory(total);
   if (!id)

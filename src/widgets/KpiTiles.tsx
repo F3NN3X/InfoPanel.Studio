@@ -1,6 +1,6 @@
 import { readSystemFlat } from "@/lib/system-metrics";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, get, num, fmt, rateParts, toMBps, pretty, Spark, useHistory, useSkin, numFont, hw, type ShellProps } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, rateParts, toMBps, pretty, Spark, useHistory, useSkin, numFont, hw, adapterOf, type ShellProps } from "./kit";
 import { meta } from "./meta/KpiTiles";
 
 export { meta };
@@ -31,12 +31,15 @@ export default function KpiTiles(p: KpiTilesProps) {
     gpu = hw(d).gpu;
   const sys = readSystemFlat(d ?? {}, p.names);
   const L = (k: string) => num(get(d, `libre.${k}`));
-  const rate = rateParts(L("ethernet_download_speed"));
+  // the busiest adapter, as Network Traffic picks it
+  const net = adapterOf(d);
+  const down = net ? L(`${net}_download_speed`) : NaN;
+  const rate = rateParts(down);
   const ALL: Record<Metric, Kpi> = {
     cpu: { l: "CPU", v: L(`${cpu}_cpu_total`), u: "%", sub: (sys.cpu.name ?? pretty(cpu ?? "")).replace(/^AMD Ryzen/, "Ryzen"), max: 100 },
     gpu: { l: "GPU", v: L(`${gpu}_gpu_core_load`), u: "%", sub: (sys.gpu.name ?? pretty(gpu ?? "")).replace(/^NVIDIA /, ""), max: 100 },
     ram: { l: "Memory", v: L("total_memory_memory_used"), u: "GB", d: 1, sub: `of ${fmt(L("total_memory_memory_used") + L("total_memory_memory_available"), 0)} GB` },
-    net: { l: "Download", v: toMBps(L("ethernet_download_speed")), text: rate.text, u: rate.unit, sub: "Ethernet" },
+    net: { l: "Download", v: toMBps(down), text: rate.text, u: rate.unit, sub: net ? pretty(net) : "Network" },
     vram: { l: "VRAM", v: L(`${gpu}_gpu_memory_used`) / 1024, u: "GB", d: 1, sub: `of ${fmt(L(`${gpu}_gpu_memory_total`) / 1024, 0)} GB` },
     power: { l: "Power", v: (sys.cpu.power ?? NaN) + L(`${gpu}_gpu_package`), u: "W", sub: "CPU + GPU" },
   };

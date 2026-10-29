@@ -6,7 +6,7 @@ export const meta: WidgetMeta = {
   name: "Memory",
   category: "Hardware",
   icon: "memory_alt",
-  prefixes: ["libre.total_memory", "libre.virtual_memory"],
+  prefixes: [],
   defaultSize: [2, 1],
   minSize: [1, 1],
   blurb: "Physical and virtual memory in use",

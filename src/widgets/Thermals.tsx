@@ -1,7 +1,7 @@
 import { readSystemFlat } from "@/lib/system-metrics";
 import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, get, num, fmt, detect, diskShort, tone, TONES, useHistory, Empty, Ring, Num, slideX, hw, type Tone, type ShellProps } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, diskShort, tone, TONES, useHistory, Empty, Ring, Num, slideX, hw, type Tone, type ShellProps } from "./kit";
 import { readings } from "./hardware-readings";
 import { meta } from "./meta/Thermals";
 
@@ -47,7 +47,7 @@ export default function Thermals(p: ThermalsProps) {
     raw.push({ id: "gpu", label: "GPU", v: L(`${gpu}_gpu_core`), warn: 75, crit: 85 });
     raw.push({ id: "hot", label: "GPU memory", v: L(`${gpu}_gpu_memory_junction`), warn: 90, crit: 100 });
   }
-  for (const s of p.discover ? [] : detect(d, /^libre\.(.+)_power_on_hours$/))
+  for (const s of p.discover ? [] : hw(d).disks)
     raw.push({ id: s, label: diskShort(s, get(d, `libre.${s}_volumes`)), v: [`${s}_composite_temperature`, `${s}_temperature`, `${s}_temperature__2`].map(L).find(Number.isFinite) ?? NaN, warn: L(`${s}_warning_temperature`) || 70, crit: L(`${s}_critical_temperature`) || 85 });
   if (!p.discover) raw.push({ id: "vrm", label: "VRM", v: L("embedded_controller_vrm"), warn: 90, crit: 105 });
   const list: Sensor[] = raw.filter((x) => Number.isFinite(x.v) && x.v > 0).map((x) => ({ ...x, t: tone(x.v, p.warn ?? x.warn, p.crit ?? x.crit) }));

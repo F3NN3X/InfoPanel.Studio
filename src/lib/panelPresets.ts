@@ -1,7 +1,8 @@
-import type { ModuleSettings } from "@/modules/types";
+import type { ModuleSettings, SensorMap } from "@/modules/types";
 import { clonePanel, newPanel, uid, type PanelDef, type Widget } from "./layout";
 import { layoutStarters } from "./panel-starters";
 import type { UserPanelPreset } from "./panel-model";
+import { liveSensors, retargetPanel } from "./sample-keys";
 
 type Seed = Omit<Widget, "id" | "visible"> & { visible?: boolean };
 
@@ -305,25 +306,25 @@ export const panelPresets: PanelPreset[] = [
           w({
             kind: "stat",
             label: "Sky",
-            sensor: "plugins.yr-weather-plugin.brevik-norway.weather",
+            sensor: "plugins.yr-weather-plugin.place.weather",
           }),
           w({
             kind: "stat",
             label: "Gust",
-            sensor: "plugins.yr-weather-plugin.brevik-norway.wind_gust",
+            sensor: "plugins.yr-weather-plugin.place.wind_gust",
             unit: "m/s",
             decimals: 1,
           }),
           w({
             kind: "stat",
             label: "Wind",
-            sensor: "plugins.yr-weather-plugin.brevik-norway.wind_deg",
+            sensor: "plugins.yr-weather-plugin.place.wind_deg",
             unit: "°",
           }),
           w({
             kind: "stat",
             label: "Pressure",
-            sensor: "plugins.yr-weather-plugin.brevik-norway.pressure",
+            sensor: "plugins.yr-weather-plugin.place.pressure",
             unit: "hPa",
           }),
         ],
@@ -397,6 +398,9 @@ export function userPanelPreset(saved: UserPanelPreset): PanelPreset {
 export function allPanelPresets(saved: UserPanelPreset[] = []): PanelPreset[] {
   return [...panelPresets, ...layoutStarters, ...saved.map(userPanelPreset)];
 }
+
+/** A preset's panel: a built-in one's keys point at this PC's sensors (`sample-keys.ts`), a saved one's stay as saved. */
+export const makePreset = (p: PanelPreset, live: SensorMap = liveSensors()): PanelDef => (p.user ? p.make() : retargetPanel(p.make(), live));
 
 /** A preset (built in, starter or saved) by id. */
 export function findPanelPreset(id: string, saved?: UserPanelPreset[]): PanelPreset | undefined {
