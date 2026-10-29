@@ -54,7 +54,7 @@ const hasOnlyCanvasRef = (p: unknown): boolean => isRecord(p) && p.canvas === un
  * the reason. Only the app's known profile and page fields are kept. Canvas zones holding only a ref
  * are dropped (`skippedCanvases` counts them). Ids are the file's own: see `importedProfile`.
  */
-export async function parseProfileFile(text: string): Promise<{ profile: MonitorProfile; skippedCanvases: number } | { error: string }> {
+export async function parseProfileFile(text: string): Promise<{ profile: MonitorProfile; skippedCanvases: number; upgradedFrom?: number } | { error: string }> {
   if (text.length > MAX_PROFILE_FILE_BYTES) return { error: TOO_BIG };
   let json: unknown;
   try {
@@ -65,11 +65,11 @@ export async function parseProfileFile(text: string): Promise<{ profile: Monitor
   if (!isRecord(json)) return { error: "Not a profile file" };
   const enveloped = json.type === PROFILE_FILE_TYPE;
   if (enveloped && (typeof json.version !== "number" || json.version > PROFILE_FILE_VERSION)) {
-    return { error: "This profile file is from a newer version of InfoPanel Studio" };
+    return { error: "This profile file is from a newer version of InfoPanel Studio: update InfoPanel Studio to open it" };
   }
   const raw = enveloped ? json.profile : json;
   const version = enveloped && typeof json.configVersion === "number" ? json.configVersion : CONFIG_VERSION;
-  if (version > CONFIG_VERSION) return { error: "This profile is from a newer version of InfoPanel Studio" };
+  if (version > CONFIG_VERSION) return { error: "This profile is from a newer version of InfoPanel Studio: update InfoPanel Studio to open it" };
   if (!isRecord(raw) || !(Array.isArray(raw.pages) || Array.isArray(raw.placements))) {
     return { error: "Not a profile file: no pages found" };
   }
@@ -99,7 +99,8 @@ export async function parseProfileFile(text: string): Promise<{ profile: Monitor
   try {
     // A file goes through the upgrade, whatever version it says (readImportedConfig).
     const [profile] = (await readImportedConfig({ version, profiles: [picked as unknown as StoredProfile] })).profiles;
-    return { profile, skippedCanvases };
+    // One way only: an older file is upgraded, and the import says so.
+    return { profile, skippedCanvases, ...(version < CONFIG_VERSION ? { upgradedFrom: version } : {}) };
   } catch {
     return { error: "Not a profile file: it could not be read" };
   }

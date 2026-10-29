@@ -118,6 +118,17 @@ describe("runImport", () => {
     expect(r.failed[0]).toMatch(/backup\.json: .*could not be backed up/);
   });
 
+  it("says when a file from an older version was updated on the way in", async () => {
+    const { ctx } = context(configOf("Mine"));
+    const older = JSON.stringify({ type: "infopanel-studio-profile", version: 1, configVersion: 13, profile: newProfile("Old", 800, 480) });
+    const screen = await runImport([await door("old.json", older)], replace, ctx);
+    expect(screen.done[0]).toMatch(/Added screen Old · updated from an older version \(format 13\)$/);
+    const config = await runImport([await door("backup.json", text({ ...configOf("Theirs"), version: 12 }))], replace, context(configOf("Mine")).ctx);
+    expect(config.done[0]).toMatch(/updated from an older version \(format 12\)/);
+    const current = await runImport([await door("new.json", profileFileText(newProfile("New", 800, 480)))], replace, context(configOf("Mine")).ctx);
+    expect(current.done[0]).not.toMatch(/older version/);
+  });
+
   it("takes a Studio profile file through the door as a new screen, and goes to Screens", async () => {
     const original: MonitorProfile = { ...newProfile("Wide", 1920, 550), gap: 8 };
     const current = configOf("Wide");

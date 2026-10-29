@@ -66,15 +66,16 @@ export async function exportConfigFile(config: DashboardConfig, onError: ReportE
  * they are loaded); the next push lifts them into the canvas store. `missing` names the zones whose ref could not be
  * loaded. A file that is not a config rejects with the reason.
  */
-export async function readConfigText(text: string): Promise<{ config: DashboardConfig; missing: string[] }> {
+export async function readConfigText(text: string): Promise<{ config: DashboardConfig; missing: string[]; upgradedFrom?: number }> {
   const parsed = (JSON.parse(text) ?? {}) as Partial<DashboardConfig>;
   if (!looksLikeConfig(parsed)) {
     throw new Error("Not a Studio config: it needs a version and screens with ids and pages");
   }
-  if ((parsed.version as number) > CONFIG_VERSION) throw new Error("This config is from a newer version of InfoPanel Studio");
+  if ((parsed.version as number) > CONFIG_VERSION) throw new Error("This config is from a newer version of InfoPanel Studio: update InfoPanel Studio to open it");
   // A file goes through the upgrade, whatever version it says (readImportedConfig).
   const config = await inlineCanvases(await readImportedConfig(parsed));
-  return { config, missing: unresolvedCanvases(config) };
+  const from = typeof parsed.version === "number" && parsed.version < CONFIG_VERSION ? parsed.version : undefined;
+  return { config, missing: unresolvedCanvases(config), ...(from !== undefined ? { upgradedFrom: from } : {}) };
 }
 
 /** The sentence for zones a restore could not load a canvas for. */
