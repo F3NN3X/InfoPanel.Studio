@@ -113,7 +113,7 @@ Five kinds of reusable starting points exist: profiles (whole pages), panel pres
 
 **Styles:** a widget's look keys only (surface, accent, typography, spacing, border, effects, custom CSS), saved to Library › Styles and applied per widget from the Style tab's toolbar; Copy style and Paste style move a look between widgets, and Make this the theme for… sends it to All screens, the screen or the page.
 
-**Themes** (appearance presets) are the user's own: Theme › Save as Theme keeps the scope's colors, corners, widget style and (optionally) background in Library › Themes, and Apply a theme here… (or Start from) applies one to All screens, a screen or a page in one undo step. Its background only lands where none is set unless Include background is ticked. Six color palettes (Zinc, Neutral, Slate, Ocean, Forest, Paper) are built in.
+**Themes** (appearance presets) are the user's own or a screen template's look: a theme is a palette (19 tokens and an accent), a skin, corners and a background. Theme › Switch theme applies one to a screen or a page in one undo step, with its background unless **Keep my background** is ticked; a pick after the first keeps the level's fine-tune changes. **Save as theme** / **Save as new** save a level's look, and **Update ‹name›** refreshes every level using it. Six color palettes (Zinc, Neutral, Slate, Ocean, Forest, Paper) are built in, beside the users' and the template themes'.
 
 ## Styling model
 

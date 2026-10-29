@@ -511,7 +511,7 @@ keys, `accent`, `surface`), the palette roles, the four Units & format rows, the
 A screen's own values sit over All screens'; Reset on a card drops them (`resetCard`). A locked card is the
 screen's on every page and widget.
 
-### 5.3 Saved themes (Appearance presets; Theme › Apply a theme here…, Library › Themes)
+### 5.3 Saved themes (Appearance presets; Theme › Switch theme)
 
 See §6.1.
 
@@ -543,7 +543,7 @@ scope, or per **Profile** (`theme` partial, `radius`) at a screen's. On a page t
 | Control | Label | Control type | Range / options | Default |
 |---|---|---|---|---|
 | `radius` | Corners (rem; hint: a widget's own Corner radius wins; Theme › Shape & spacing) | slider | 0 to 1.5 step 0.05 | `0.5` |
-| palette | swatches (`THEME_PRESETS`, `theme.ts:68`) in Start from and Apply a theme here… | 6: Zinc, Neutral, Slate, Ocean, Forest, Paper (light); changes colors only, not corners | | Zinc |
+| palette | Theme card › Palette picker (`THEME_PRESETS`, `theme.ts`; the user's `palettes`; the template themes', `themePalettes`) | 6 built-in: Zinc, Neutral, Slate, Ocean, Forest, Paper (light); a palette sets the 19 tokens and its accent (`palettes.ts`), not corners | | Zinc |
 | `general.font` / `MonitorProfile.font` | Page font (Theme › Typography; §5.6) | select | `FONT_CATALOG` (26 incl. System) | `system` |
 
 On a page the Colors card reads "Custom" when the tokens match no palette.
@@ -640,16 +640,17 @@ background? }`. All are the user's; the `builtin:` id prefix is reserved (`isBui
 
 | Control | Label | Control type | Default | Target |
 |---|---|---|---|---|
-| Theme top bar | Apply a theme here… | popover of Saved themes and Palettes; a click applies the theme, corners, style and (optionally) background to the scope | | Theme |
-| Include background | check (disabled on a page: "Set per screen") | | off | Apply a theme here…, Save as Theme |
-| Theme top bar | Save as Theme | name input (label "Theme name"), Enter saves the scope's resolved colors, widget style and (optionally) background | | Theme; the Theme lands in Library › Themes |
-| Theme top bar | Update ‹name› | overwrites the matched saved Theme with the scope's look (one undo step) | | Theme |
-| Saved theme card menu | Rename…, Delete | | | Apply a theme here…; Library › Themes |
-| Start from › Saved themes | click applies the Theme to the scope | | | Theme (not on a page) |
+| Theme card › Switch theme | Switch theme | list of saved themes and template rows with variant chips (filters All, Saved, Templates, Light); a click applies the theme to the level | | Theme |
+| Switch theme | Keep my background | check, off by default, kept until the studio closes | off | Switch theme |
+| Switch theme | Apply to other screens… | checklist of screens (Select all), Apply | | Theme (screens only) |
+| Switch theme | + Save current look as a theme | name input (label "Theme name") | | Theme; listed under Saved |
+| Preview header | Update ‹name› / Save as new / Save as theme | the Update bar, once a part of the applied theme changed | | Theme |
+| Theme card ⋯ | Reset to ‹name›, Rename, Duplicate, Delete | | | Theme |
 
-An apply is one undo step (`useAppearancePresets`, `use-appearance-presets.ts:38`). A screen
-apply writes the screen's `theme`, `radius`, `widgetTheme.values` and `background`
-(`applyAppearancePreset`, `src/lib/appearance-preset-apply.ts:76`).
+An apply is one undo step (`useAppearancePresets`, `src/components/studio/use-appearance-presets.ts`). A pick
+writes the level's palette, skin, corners and (unless kept) background, merges the theme's style values over what the
+last theme wrote, and stores what it wrote as the level's snapshot (`appliedTheme`); see `applyTheme`,
+`src/lib/theme-apply.ts`.
 
 ### 6.2 Style presets (Styles; `stylePresets`: `{ id, name, settings }`)
 
@@ -834,7 +835,7 @@ shows; Theme's scope is the scope bar (All screens, a screen, a page).
 
 | UI surface | Scope written | Code |
 |---|---|---|
-| Theme › Colors › Color tokens, Start from palettes, Apply a theme here… palettes (All screens / a screen) | `DashboardConfig.theme`, or `MonitorProfile.theme` | `withToken`, `withTokens` (`theme-cards.ts:253,259`) |
+| Theme › Colors › Color tokens, the Palette picker (a screen) | `MonitorProfile.theme` (and, for a palette with an accent, `widgetTheme.values.accent` and the snapshot) | `withToken`, `withTokens` (`theme-cards.ts`) |
 | Theme › Shape & spacing › Corners (rem) | `DashboardConfig.radius`, or `MonitorProfile.radius` | `withThemeRadius` (`theme-cards.ts:265`) |
 | Theme › Typography › Page font | `general.font` (All screens), or `MonitorProfile.font` | `withPageFont` (`theme-cards.ts:274`) |
 | Theme › Background | `DashboardConfig.background`, or `MonitorProfile.background` | `withBackgroundAt` (`theme-cards.ts:280`), `withBackground` (`appearance.ts:184`) |
@@ -843,7 +844,7 @@ shows; Theme's scope is the scope bar (All screens, a screen, a page).
 | Theme › a widget-style row at a page; Customise here / Reset on a card | `ProfilePage.widgetTheme.values` and `follow` | `withScopeValues`, `withPageFollow` (`theme-editor-model.ts:125`), `customiseCard`, `resetCard` (`theme-cards.ts:232,226`) |
 | Theme › a card's lock (screen scope), Lock all / Unlock all | `MonitorProfile.widgetTheme.locks` | `withCardLock` (`theme-cards.ts:243`), `withLock`, `withLockAll` (`theme-editor-model.ts:117,121`) |
 | Theme › Exceptions › Follow, Follow all | `Placement.follow` (the zones follow again) | `makeFollow`, `makeAllFollow` (`theme-exceptions.ts:79,87`) |
-| Theme › Apply a theme here…, Save as Theme, Update ‹name› | applies theme, corners, style and background to the scope; saves `DashboardConfig.appearancePresets` | `useAppearancePresets` (`use-appearance-presets.ts:38`), `applyAppearancePreset` (`appearance-preset-apply.ts:76`) |
+| Theme › Switch theme, Save as theme, Update ‹name› | applies palette, skin, corners and background to the level and stores its snapshot; saves `DashboardConfig.appearancePresets` | `useAppearancePresets` (`use-appearance-presets.ts`), `applyTheme` / `saveAsTheme` / `updateThemeEverywhere` (`theme-apply.ts`) |
 | Screens › When the app opens; card ⋯ › Always open this one | `DashboardConfig.activeProfile` | `withLaunch` (`screens-model.ts:19`) |
 | Screens › card click | Browser `studio.pinnedProfile` | `pinned-profile.ts:30` |
 | Screens › card ⋯ › Rename | `MonitorProfile.name` | `rename` (`screens-view.tsx`) |
