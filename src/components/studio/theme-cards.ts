@@ -192,7 +192,9 @@ const ACCENT_FOLLOWERS = ["glowColor", "numGlowColor", "borderColor"] as const;
 
 /**
  * A palette from the Palette picker: every color token, and its accent (when it has one) as the screen's, with the
- * glow, number glow and border colors that were the old accent.
+ * glow, number glow and border colors that were the old accent. The accent is part of the palette, a theme part, so
+ * the snapshot of the theme applied here takes it too: the next theme picked replaces it rather than keeping it as a
+ * fine-tune change of the screen's own.
  */
 export function withTokens(config: DashboardConfig, at: TwoLevelAt, tokens: ThemeTokens, accent?: string): DashboardConfig {
   return withProfile(config, at.profileId, (p) => {
@@ -200,8 +202,9 @@ export function withTokens(config: DashboardConfig, at: TwoLevelAt, tokens: Them
     const old = values.accent;
     if (accent === undefined || accent === old) return { ...p, theme: { ...tokens } };
     const was = (v: unknown) => typeof v === "string" && typeof old === "string" && old !== "" && v.toLowerCase() === old.toLowerCase();
-    const followers = Object.fromEntries(ACCENT_FOLLOWERS.filter((k) => was(values[k])).map((k) => [k, accent]));
-    return { ...p, theme: { ...tokens }, widgetTheme: withThemeValues(p.widgetTheme, { ...values, accent, ...followers }) };
+    const written = { accent, ...Object.fromEntries(ACCENT_FOLLOWERS.filter((k) => was(values[k])).map((k) => [k, accent])) };
+    const applied = p.appliedTheme ? { appliedTheme: { ...p.appliedTheme, values: { ...p.appliedTheme.values, ...written } } } : {};
+    return { ...p, theme: { ...tokens }, widgetTheme: withThemeValues(p.widgetTheme, { ...values, ...written }), ...applied };
   });
 }
 
