@@ -62,7 +62,7 @@ export interface RunResult {
 export async function restoreConfig(
   text: string,
   o: { current: DashboardConfig; mode: DoorChoices["config"]; backupFirst: boolean; backup: DoorContext["backup"] },
-): Promise<{ config: DashboardConfig; missing: string[]; backedUp: boolean }> {
+): Promise<{ config: DashboardConfig; missing: string[]; backedUp: boolean; upgradedFrom?: number }> {
   const read = await readConfigText(text);
   if (o.mode === "add-screens") {
     const config = read.config.profiles.reduce(
@@ -70,13 +70,16 @@ export async function restoreConfig(
       (acc, p) => ({ ...acc, profiles: [...acc.profiles, importedProfile(acc, p)] }),
       o.current,
     );
-    return { config, missing: read.missing, backedUp: false };
+    return { config, missing: read.missing, backedUp: false, upgradedFrom: read.upgradedFrom };
   }
   if (o.backupFirst && !(await o.backup(o.current))) {
     throw new Error("the current dashboard could not be backed up first (the Save As was cancelled or failed), so nothing was replaced. Untick the backup box to replace without one");
   }
-  return { config: read.config, missing: read.missing, backedUp: o.backupFirst };
+  return { config: read.config, missing: read.missing, backedUp: o.backupFirst, upgradedFrom: read.upgradedFrom };
 }
+
+/** The import line's note for a file an older version saved: it was upgraded on the way in (one way: a newer one is refused). */
+export const upgradedNote = (from: number | undefined): string => (from === undefined ? "" : ` · updated from an older version (format ${from})`);
 
 const reason = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const kindOf = (f: DoorFile): ImportKind => f.sniffed?.kind ?? "unknown";
@@ -103,6 +106,7 @@ export async function runImport(files: readonly DoorFile[], choices: DoorChoices
       result.done.push(
         `${added} ${r.config.profiles.length - (choices.config === "add-screens" ? ctx.config.profiles.length : 0)} screens from ${f.file.name}` +
           (r.backedUp ? " · the old dashboard was backed up first" : "") +
+          upgradedNote(r.upgradedFrom) +
           (r.missing.length ? ` · ${missingCanvases(r.missing)}` : ""),
       );
     } catch (e) {
@@ -119,7 +123,9 @@ export async function runImport(files: readonly DoorFile[], choices: DoorChoices
     const screen = importedProfile(working, parsed.profile);
     working = { ...working, profiles: [...working.profiles, screen] };
     ctx.addScreen(screen);
-    result.done.push(`Added screen ${screen.name}${parsed.skippedCanvases ? ` · ${parsed.skippedCanvases} InfoPanel pages left out (their profile is not in the file)` : ""}`);
+    result.done.push(
+      `Added screen ${screen.name}${parsed.skippedCanvases ? ` · ${parsed.skippedCanvases} InfoPanel pages left out (their profile is not in the file)` : ""}${upgradedNote(parsed.upgradedFrom)}`,
+    );
     result.go = { to: "screens" };
   }
 

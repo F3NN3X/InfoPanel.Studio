@@ -69,6 +69,15 @@ describe("profile file", () => {
     expect(upgraded).not.toHaveProperty("placements");
   });
 
+  it("says which version an older file was upgraded from, and nothing for a current or bare one", async () => {
+    const { pages: _pages, ...rest } = profile();
+    const legacy = { ...rest, placements: [] };
+    const older = await parseProfileFile(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 2, profile: legacy }));
+    expect(older).toMatchObject({ upgradedFrom: 2 });
+    expect(await parseProfileFile(profileFileText(profile()))).not.toHaveProperty("upgradedFrom");
+    expect(await parseProfileFile(JSON.stringify(profile()))).not.toHaveProperty("upgradedFrom");
+  });
+
   it("rejects files that are not a profile", async () => {
     expect(await error("not json")).toMatch(/JSON/);
     expect(await error("[]")).toMatch(/Not a profile/);
@@ -113,7 +122,7 @@ describe("profile file", () => {
 
   it("rejects a file from a newer version", async () => {
     expect(await error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 99, profile: profile() }))).toMatch(/newer/);
-    expect(await error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 99, profile: profile() }))).toMatch(/newer/);
+    expect(await error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 99, profile: profile() }))).toMatch(/newer.*update InfoPanel Studio to open it/);
   });
 });
 

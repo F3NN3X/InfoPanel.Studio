@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **Screens and configs from an older version import, one way.** A screen or config file saved by an older InfoPanel Studio is updated on the way in, and the import says so (*updated from an older version*). A file from a newer version is refused with a note to update InfoPanel Studio. The update steps for older configs now load only when one is opened, so the kiosk and the studio start with less to download.
+
 ## [1.3.0-beta.39] - 2026-10-29
 
 ### Added

@@ -65,7 +65,12 @@ describe("reading a config file", () => {
 
   it("refuses a config from a newer build, which the upgrade would downgrade", async () => {
     const newer = { ...defaultConfig(), version: CONFIG_VERSION + 1 };
-    await expect(readConfigText(JSON.stringify(newer))).rejects.toThrow("newer version");
+    await expect(readConfigText(JSON.stringify(newer))).rejects.toThrow("newer version of InfoPanel Studio: update InfoPanel Studio to open it");
+  });
+
+  it("says which version an older config was upgraded from, and nothing for a current one", async () => {
+    expect(await readConfigText(JSON.stringify({ ...defaultConfig(), version: 12 }))).toMatchObject({ upgradedFrom: 12 });
+    expect(await readConfigText(JSON.stringify(defaultConfig()))).not.toHaveProperty("upgradedFrom");
   });
 });
 
