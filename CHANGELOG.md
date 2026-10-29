@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.42] - 2026-10-29
+
 ### Fixed
 
 - **A theme picked after a palette changes the colors again.** The accent a palette brought counted as a change of the screen's own, so every theme picked after it kept that accent and the screen stayed the palette's color. It now counts as part of the theme, and the next theme replaces it. A screen that picked a palette in 1.3.0-beta.41 still holds that accent as its own: **Reset to ‹theme›** in the theme card's ⋯, or **Reset to inherited** on Colors, clears it.
