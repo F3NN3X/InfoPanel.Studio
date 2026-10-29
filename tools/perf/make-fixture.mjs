@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Builds the perf fixture: a complete dashboard data folder, made through the server's own HTTP API
-// (asset upload, canvas store, config save) and written to tests/fixtures/perf/data, plus the manifest
+// (asset upload, config save) and written to tests/fixtures/perf/data, plus the manifest
 // tests/fixtures/perf/fixture.json the e2e specs read. Output is deterministic: the ids are fixed, the
-// asset and canvas files are named by content, and the canvas carries a fixed import time.
+// asset file is named by content, and the canvas carries a fixed import time.
 //   node tools/perf/make-fixture.mjs
 // Starts ips-server (tools/perf/server-command.mjs) on a temp DASHBOARD_DATA_DIR; never touches the real data folder.
 
@@ -18,7 +18,7 @@ const outDir = path.join(root, "tests/fixtures/perf");
 const dataOut = path.join(outDir, "data");
 
 // Keep in step with CONFIG_VERSION in src/lib/layout.ts.
-const CONFIG_VERSION = 11;
+const CONFIG_VERSION = 16;
 
 const CPU_TOTAL = "libre.amd_ryzen_9_9950x3d_cpu_total";
 const GPU_LOAD = "libre.nvidia_geforce_rtx_5090_gpu_core_load";
@@ -99,6 +99,29 @@ function canvasDoc() {
 
 /* ---------------- the config ---------------- */
 
+/** The built-in Zinc palette (DEFAULT_THEME in src/lib/theme.ts). */
+const ZINC = {
+  background: "240 10% 3.9%",
+  foreground: "0 0% 98%",
+  card: "240 10% 3.9%",
+  "card-foreground": "0 0% 98%",
+  popover: "240 10% 3.9%",
+  "popover-foreground": "0 0% 98%",
+  primary: "0 0% 98%",
+  "primary-foreground": "240 5.9% 10%",
+  secondary: "240 3.7% 15.9%",
+  "secondary-foreground": "0 0% 98%",
+  muted: "240 3.7% 15.9%",
+  "muted-foreground": "240 5% 64.9%",
+  accent: "240 3.7% 15.9%",
+  "accent-foreground": "0 0% 98%",
+  destructive: "0 62.8% 30.6%",
+  "destructive-foreground": "0 0% 98%",
+  border: "240 3.7% 15.9%",
+  input: "240 3.7% 15.9%",
+  ring: "240 4.9% 83.9%",
+};
+
 const zone = (id, module, colStart, rowStart, colSpan, rowSpan, extra = {}) => ({
   id,
   module,
@@ -153,7 +176,27 @@ const LIGHT_ZONES = { clock: "perf-clock", cpu: "perf-cpu", gpu: "perf-gpu" };
 /** The visualisers (Phase 2's hot/cold round trip): a profile of its own, so the heavy and light numbers stay comparable. */
 const VIZ_ZONES = { nowPlaying: "perf-nowplaying", visualizer: "perf-visualizer" };
 
-function buildConfig({ canvasRef, backgroundSrc }) {
+/**
+ * The canvas as a page holds it since Edit v3 (what the v15 step makes of a free area): its two items placed on the
+ * page in screen pixels, in a group that keeps the zone and the canvas they came from, and the page's free canvas.
+ */
+function gaugeItems() {
+  const { items, ...canvas } = canvasDoc();
+  const [gauge, label] = items;
+  const groupId = "perf-gauge-group";
+  const item = (id, colStart, rowStart, colSpan, rowSpan, body, px) => ({ ...zone(id, "item", colStart, rowStart, colSpan, rowSpan), item: body, px, groupId });
+  return {
+    placements: [
+      item("perf-gauge-cpu", 9, 2, 2, 4, { ...gauge, X: 1314, Y: 177, Width: 290, Height: 290 }, { x: 1314, y: 177, w: 290, h: 290 }),
+      item("perf-gauge-gpu", 11, 4, 2, 2, { ...label, X: 1630, Y: 296, FontSize: 53 }, { x: 1630, y: 296, w: 408, h: 116 }),
+    ],
+    groups: [{ id: groupId, name: "Perf gauge", from: { zone: zone(HEAVY_ZONES.gauges, "infopanel", 9, 2, 4, 5), canvas } }],
+    freeCanvas: canvas,
+  };
+}
+
+function buildConfig({ backgroundSrc }) {
+  const gauges = gaugeItems();
   const heavy = {
     id: "perf-heavy",
     name: "Perf heavy",
@@ -173,10 +216,12 @@ function buildConfig({ canvasRef, backgroundSrc }) {
           zone(HEAVY_ZONES.overview, "SystemOverview", 1, 2, 4, 5, { settings: { sections: "cpu,gpu,ram", ring: "ring", coreView: "heatmap", sparkline: true } }),
           zone(HEAVY_ZONES.heatmap, "CoreHeatmap", 5, 2, 2, 3, { settings: { shape: "grid", metric: "load" } }),
           zone(HEAVY_ZONES.rings, "GpuRings", 5, 5, 2, 2, { settings: { outer: "vram", inner: "load" } }),
-          zone(HEAVY_ZONES.audio, "AudioMeter", 7, 2, 2, 2, { settings: {} }),
+          zone(HEAVY_ZONES.audio, "AudioMeter", 7, 2, 2, 2),
           zone(HEAVY_ZONES.weather, "Weather", 7, 4, 2, 3, { settings: { fxOn: true, fxPreview: "rain", tint: true } }),
-          zone(HEAVY_ZONES.gauges, "infopanel", 9, 2, 4, 5, { canvasRef }),
+          ...gauges.placements,
         ],
+        groups: gauges.groups,
+        freeCanvas: gauges.freeCanvas,
       },
     ],
   };
@@ -220,7 +265,7 @@ function buildConfig({ canvasRef, backgroundSrc }) {
         name: "Main",
         placements: [
           zone(VIZ_ZONES.nowPlaying, "NowPlaying", 1, 1, 6, 6, { settings: { source: "media", progress: "visualizer", vizMode: "bars" } }),
-          zone(VIZ_ZONES.visualizer, "Visualizer", 7, 1, 6, 6, { settings: {} }),
+          zone(VIZ_ZONES.visualizer, "Visualizer", 7, 1, 6, 6),
         ],
       },
     ],
@@ -228,29 +273,8 @@ function buildConfig({ canvasRef, backgroundSrc }) {
   return {
     version: CONFIG_VERSION,
     activeProfile: "perf-heavy",
-    profiles: [heavy, light, viz],
-    theme: {
-      background: "240 10% 3.9%",
-      foreground: "0 0% 98%",
-      card: "240 10% 3.9%",
-      "card-foreground": "0 0% 98%",
-      popover: "240 10% 3.9%",
-      "popover-foreground": "0 0% 98%",
-      primary: "0 0% 98%",
-      "primary-foreground": "240 5.9% 10%",
-      secondary: "240 3.7% 15.9%",
-      "secondary-foreground": "0 0% 98%",
-      muted: "240 3.7% 15.9%",
-      "muted-foreground": "240 5% 64.9%",
-      accent: "240 3.7% 15.9%",
-      "accent-foreground": "0 0% 98%",
-      destructive: "0 62.8% 30.6%",
-      "destructive-foreground": "0 0% 98%",
-      border: "240 3.7% 15.9%",
-      input: "240 3.7% 15.9%",
-      ring: "240 4.9% 83.9%",
-    },
-    radius: 0.5,
+    // Each screen owns its look (v16): the Zinc tokens and the default corners.
+    profiles: [heavy, light, viz].map((p) => ({ ...p, theme: { ...ZINC }, radius: 0.5 })),
     // A placeholder: the harness rewrites the port.
     dataApiUrl: "http://127.0.0.1:3921",
   };
@@ -295,16 +319,7 @@ try {
     await api(server.base, "/api/assets", { method: "POST", headers: { "content-type": "image/png", "x-dashboard-asset": "1" }, body: png }, 200),
   );
 
-  const canvas = JSON.parse(
-    await api(
-      server.base,
-      "/api/canvases",
-      { method: "POST", headers: { "content-type": "application/json", "x-dashboard-canvas": "1" }, body: JSON.stringify(canvasDoc()) },
-      200,
-    ),
-  );
-
-  const config = buildConfig({ canvasRef: canvas.id, backgroundSrc: asset.url });
+  const config = buildConfig({ backgroundSrc: asset.url });
   await api(
     server.base,
     "/api/config",
@@ -321,7 +336,7 @@ await new Promise((r) => setTimeout(r, 300));
 
 fs.rmSync(dataOut, { recursive: true, force: true });
 fs.mkdirSync(dataOut, { recursive: true });
-const keep = (name) => name === "config.json" || name === "assets" || name === "canvases";
+const keep = (name) => name === "config.json" || name === "assets";
 for (const name of fs.readdirSync(tmp).filter(keep)) fs.cpSync(path.join(tmp, name), path.join(dataOut, name), { recursive: true });
 const skipped = fs.readdirSync(tmp).filter((n) => !keep(n));
 fs.rmSync(tmp, { recursive: true, force: true });

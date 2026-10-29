@@ -6,6 +6,17 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **The studio asks before it updates your screens to a new version.** When a new version stores screens in a newer format, the app opens the studio at launch and shows *Your screens need an update*. **Update now** saves them in the new format; the old `config.json` is kept first as `config.backup-before-v<N>.json` beside it, and the message says where. Nothing is saved before you click it.
+- **Zoom in the Theme preview.** The preview now fits the whole screen without blowing it up past its real size (**Fit**, the default), with − / + and **100%** as in the screen editor; past the fit it scrolls.
+- **The Palette picker lists the palettes the themes carry.** Next to the six built-in palettes and yours, the 30 palettes of the template themes (Terminal · Amber, Paper · Ink and the rest) are there to pick on their own, tagged *Theme*. The Made of row names them instead of *Custom*.
+
+### Fixed
+
+- **Panel widgets draw in the accent.** A panel's sparkline, gauge, bar, shape and title dot with no color of their own drew near-black (the sparkline's area filled black); they now take the accent a widget would: the look's, else the skin's, else the default.
+- **DiskIO, Network throughput and Storage health draw their write / upload line from the accent** instead of a fixed violet, so it follows the theme, skin and palette. A color you set still wins.
+
 ## [1.3.0-beta.38] - 2026-10-29
 
 ### Added

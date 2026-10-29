@@ -220,9 +220,13 @@ async fn keeps_the_older_config_before_a_save_raises_its_version() {
     let v15 = r#"{"version":15,"theme":{"primary":"1 2% 3%"},"profiles":[]}"#;
     assert_eq!(post_config(s.port, v15, &[]).await.status, 200);
     assert!(!backup.exists());
-    // The first v16 save copies the v15 file first, byte for byte.
-    assert_eq!(post_config(s.port, r#"{"version":16,"profiles":[]}"#, &[]).await.status, 200);
+    // The first v16 save copies the v15 file first, byte for byte, and says where.
+    let raised = post_config(s.port, r#"{"version":16,"profiles":[]}"#, &[]).await;
+    assert_eq!(raised.status, 200);
+    assert_eq!(json(&raised)["backup"], backup.display().to_string());
     assert_eq!(std::fs::read_to_string(&backup).unwrap(), v15);
+    // A save that keeps the version names no backup.
+    assert!(json(&post_config(s.port, r#"{"version":16,"profiles":[2]}"#, &[]).await).get("backup").is_none());
     // Another v16 save, or a refused older one, leaves it as it was; a later raise never overwrites it.
     assert_eq!(post_config(s.port, r#"{"version":16,"profiles":[1]}"#, &[]).await.status, 200);
     assert_eq!(post_config(s.port, v15, &[]).await.status, 409);

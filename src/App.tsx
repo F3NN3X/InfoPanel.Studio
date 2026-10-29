@@ -36,6 +36,7 @@ import { trackEventSource } from "@/lib/sensor-store";
 import type { AdoptChange } from "@/hooks/use-config-history";
 import { type SettingsPatch, withSettingsPatch } from "@/lib/settings-patch";
 import { onStudioMessage } from "@/lib/studio-channel";
+import { updateFrom } from "@/lib/config-update";
 import {
   CONFIG_EVENTS_URL,
   fetchConfig,
@@ -99,6 +100,7 @@ const TOUCH_THROTTLE_MS = 5000;
 const StudioView = lazy(() =>
   import("@/components/studio/studio-view").then((m) => ({ default: m.StudioView }))
 );
+const ConfigUpdateDialog = lazy(() => import("@/components/studio/config-update-dialog").then((m) => ({ default: m.ConfigUpdateDialog })));
 
 interface AppProps {
   /** A dev fixture (`?fixture=`, src/dev/fixtures): its config replaces the saved one, nothing is read from or saved to the server. */
@@ -271,6 +273,11 @@ export default function App({ fixture }: AppProps = {}) {
   // page's own storage (or the defaults, in a fresh browser) must not be
   // pushed over it. If the server can't be read, only Save pushes.
   const [synced, setSynced] = useState(false);
+  // The one-time update of a config an older version saved (the studio's message): nothing is pushed until it is saved.
+  const [update, setUpdate] = useState<{ from: number; saved: boolean }>();
+  const updating = update !== undefined && !update.saved;
+  const updatingRef = useRef(updating);
+  updatingRef.current = updating;
   useEffect(() => {
     if (kiosk || fixture) return;
     let alive = true;
@@ -281,6 +288,9 @@ export default function App({ fixture }: AppProps = {}) {
           const log: string[] = [];
           const merged = withPinnedProfile(mergeConfig(server, log));
           logMigration(log);
+          // A config an older version saved is updated on disk once the user says so (the studio's message).
+          const from = updateFrom(server);
+          if (from !== undefined) setUpdate({ from, saved: false });
           // Before the render that mounts its widgets: their effects run before ours.
           setApiBase(merged.dataApiUrl);
           saveConfig(merged);
@@ -330,7 +340,7 @@ export default function App({ fixture }: AppProps = {}) {
     if (!kiosk && !synced && config !== firstConfig.current) setPushPending(true);
   }, [config, kiosk, synced]);
   useEffect(() => {
-    if (kiosk || !synced || refused) return; // kiosk pages only read; don't push from them
+    if (kiosk || !synced || refused || updating) return; // kiosk pages only read; don't push from them
     // A Settings change needs no push, unless an edit of the studio's own still waits for one (it then carries both).
     if (config === adopted.current && !pendingRef.current) return;
     let superseded = false;
@@ -353,7 +363,7 @@ export default function App({ fixture }: AppProps = {}) {
       superseded = true;
       window.clearTimeout(t);
     };
-  }, [config, kiosk, synced, refused]);
+  }, [config, kiosk, synced, refused, updating]);
 
   // The Settings window's changes (PLAN decision 22): the server took them, so the studio applies the same patch to
   // its working copy, unsaved edits and all, and its next push carries them; Reset everything… replaced the saved
@@ -512,7 +522,7 @@ export default function App({ fixture }: AppProps = {}) {
   // config event stream.
   // Resolves to whether the server took it, so the button only says "Saved" when it did.
   const handleStudioSave = useCallback((cfg: DashboardConfig) => {
-    if (fixture) return Promise.resolve(false); // a fixture never reaches the saved config
+    if (fixture || updatingRef.current) return Promise.resolve(false); // a fixture never reaches the saved config
     saveConfig(cfg); // local copy first (offline fallback)
     return pushConfig(cfg)
       .then(() => {
@@ -650,6 +660,24 @@ export default function App({ fixture }: AppProps = {}) {
             fixture={fixture}
           />
         </Suspense>
+        {update && !refused && (
+          <Suspense fallback={null}>
+            <ConfigUpdateDialog
+              from={update.from}
+              config={config}
+              onSaved={(saved) => {
+                setOffline(false);
+                setUpdate({ from: update.from, saved: true });
+                if (latestConfig.current === saved) setPushPending(false);
+              }}
+              onFailed={(err) => {
+                setOffline(isUnreachable(err));
+                if (err instanceof NewerConfigError) setRefused(true);
+              }}
+              onClose={() => setUpdate(undefined)}
+            />
+          </Suspense>
+        )}
       </PerformanceProvider>
     </GeneralProvider>
     );

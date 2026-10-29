@@ -21,6 +21,12 @@ pub fn version_refusal(stored_text: &str, incoming: &Value) -> Option<Refusal> {
     Some(Refusal::new(409, "a newer dashboard version saved this config; reload"))
 }
 
+/// Whether a saved config is older than this build's (`CONFIG_VERSION`) and so needs the studio to update it. A config
+/// that doesn't parse, or holds no screens, has nothing to update.
+pub fn needs_update(stored_text: &str) -> bool {
+    json::parse(stored_text).is_some_and(|stored| stored.get("profiles").is_some_and(Value::is_array) && version_of(&stored) < f64::from(crate::CONFIG_VERSION))
+}
+
 /// The backup file the stored config is copied to before `incoming` raises its version: `config.backup-before-v<N>.json`
 /// for a whole-number incoming version above the stored one; `None` otherwise (an unreadable stored config included).
 pub fn version_backup_name(stored_text: &str, incoming: &Value) -> Option<String> {
@@ -56,6 +62,18 @@ mod tests {
         assert!(version_refusal(r#"{"version":16}"#, &serde_json::json!({ "version": 15 })).is_some());
         assert!(version_refusal(r#"{"version":15}"#, &serde_json::json!({ "version": 16 })).is_none());
         assert!(version_refusal(r#"{"version":16}"#, &serde_json::json!({ "version": 16 })).is_none());
+    }
+
+    #[test]
+    fn a_saved_config_needs_an_update_below_this_builds_version_only() {
+        let below = format!(r#"{{"version":{},"profiles":[]}}"#, crate::CONFIG_VERSION - 1);
+        let current = format!(r#"{{"version":{},"profiles":[]}}"#, crate::CONFIG_VERSION);
+        assert!(needs_update(&below));
+        assert!(needs_update(r#"{"profiles":[]}"#));
+        assert!(!needs_update(&current));
+        assert!(!needs_update(r#"{"version":99,"profiles":[]}"#));
+        assert!(!needs_update(r#"{"version":3}"#));
+        assert!(!needs_update("not json"));
     }
 
     #[test]

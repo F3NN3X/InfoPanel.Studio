@@ -85,6 +85,11 @@ export function isUnreachable(err: unknown): boolean {
   return !(err instanceof NewerConfigError) && !(err instanceof ConfigRejectedError);
 }
 
+/** What the server said of a save it took: the backup it kept of the file it replaced, when the save raised the version. */
+export interface SaveResult {
+  backup?: string;
+}
+
 /** The push in flight: pushes run one after another, so a slow canvas save can't land an older config last. */
 let pushing: Promise<unknown> = Promise.resolve();
 
@@ -93,7 +98,7 @@ let pushing: Promise<unknown> = Promise.resolve();
  * canvases go to the canvas store first, the config then holds their refs. `replace`: the config is meant to
  * replace the saved one whole (Reset everything…), so no Settings patch is applied again over it.
  */
-export function pushConfig(config: DashboardConfig, replace = false): Promise<void> {
+export function pushConfig(config: DashboardConfig, replace = false): Promise<SaveResult> {
   const run = pushing.then(async () => {
     const lifted = await liftCanvases(config).catch((err: unknown) => {
       // A refused canvas is a refused save, not an unreachable server.
@@ -112,6 +117,8 @@ export function pushConfig(config: DashboardConfig, replace = false): Promise<vo
     if (res.status === 409) throw new NewerConfigError();
     // 422: a canvasRef names no file in the canvas store.
     if (!res.ok) throw new ConfigRejectedError(res.status, (await res.text().catch(() => "")).slice(0, 200));
+    const { backup } = (await res.json().catch(() => ({}))) as { backup?: unknown };
+    return typeof backup === "string" ? { backup } : {};
   });
   pushing = run.catch(() => {});
   return run;
