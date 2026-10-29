@@ -1,3 +1,4 @@
+import { readSystemFlat } from "@/lib/system-metrics";
 import type { ModuleSettings } from "@/modules/types";
 import { fitFontPx } from "./fit-font";
 import { bodyGap, fitRows, Widget, shell, get, num, fmt, fmtRate, rateParts, toMBps, detect, Spark, useHistory, useSkin, tone, TONES, hw, type ShellProps } from "./kit";
@@ -59,7 +60,7 @@ export default function Vitals(p: VitalsProps) {
   const up = detect(d, /^libre\.(.+)_upload_speed$/).reduce((a, n) => a + (L(`${n}_upload_speed`) || 0), 0);
   const rate = rateParts(net);
   const all: Record<Metric, Vital> = {
-    cpu: { label: "CPU", v: L(`${cpu}_cpu_total`), unit: "%", max: 100, sub: `${fmt(L(`${cpu}_core__tctl_tdie`), 0)}°C` },
+    cpu: { label: "CPU", v: L(`${cpu}_cpu_total`), unit: "%", max: 100, sub: `${fmt(readSystemFlat(d ?? {}).cpu.temp ?? NaN, 0)}°C` },
     gpu: { label: "GPU", v: L(`${gpu}_gpu_core_load`), unit: "%", max: 100, sub: `${fmt(L(`${gpu}_gpu_core`), 0)}°C` },
     ram: { label: "RAM", v: L("total_memory_memory"), unit: "%", max: 100, sub: `${fmt(L("total_memory_memory_used"), 1)} GB` },
     net: { label: "Net ↓", v: toMBps(net), text: rate.text, unit: rate.unit, sub: `↑ ${fmtRate(up)}` },

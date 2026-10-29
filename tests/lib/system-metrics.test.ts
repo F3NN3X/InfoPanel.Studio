@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SensorMap } from "@/modules/types";
 import { toFlat } from "@/widgets/data-adapter";
-import { diskMetric, filterDisks, formatTemp, MBPS, netMetric, pickAdapter, pickDisk, rateTop, readAdapters, readAdaptersFlat, readSystem, readSystemFlat } from "@/lib/system-metrics";
+import { diskMetric, filterDisks, formatTemp, MBPS, netMetric, pickAdapter, pickDisk, rateTop, readAdapters, readAdaptersFlat, readCpuFlat, readSystem, readSystemFlat } from "@/lib/system-metrics";
 import { fixtureSensors } from "@/widgets/__fixtures__";
 
 const s = (value: number, unit: string, name: string) => ({ value, unit, name });
@@ -97,15 +97,63 @@ describe("readSystem", () => {
     expect(readSystem({ [`${GPU}_gpu_core_load`]: s(0, "%", "x") }).gpu.load).toBe(0);
   });
 
+  // The Data API's keys for LibreHardwareMonitor on a 14900K: "CPU Package" is both a temperature and a power, and
+  // "CPU Core #9" (an E-core) a temperature, a load and a clock, so the temperature keeps the bare key and the
+  // others get their sensor type (`SensorSnapshotBuilder.LibreKeys`).
+  const I = "libre.intel_core_i9_14900k";
+  const intel = {
+    [`${I}_cpu_total`]: s(20, "%", "Intel Core i9-14900K CPU Total"),
+    [`${I}_cpu_package`]: s(71, "°C", "Intel Core i9-14900K CPU Package"),
+    [`${I}_cpu_package_power`]: s(120, "W", "Intel Core i9-14900K CPU Package"),
+    [`${I}_cpu_cores`]: s(95, "W", "Intel Core i9-14900K CPU Cores"),
+    [`${I}_cpu_core__1`]: s(64, "°C", "Intel Core i9-14900K CPU Core #1"),
+    [`${I}_cpu_core__1_clock`]: s(5700, "MHz", "Intel Core i9-14900K CPU Core #1"),
+    [`${I}_cpu_core__1_thread__1`]: s(40, "%", "Intel Core i9-14900K CPU Core #1 Thread #1"),
+    [`${I}_cpu_core__1_thread__2`]: s(10, "%", "Intel Core i9-14900K CPU Core #1 Thread #2"),
+    [`${I}_cpu_core__9`]: s(55, "°C", "Intel Core i9-14900K CPU Core #9"),
+    [`${I}_cpu_core__9_clock`]: s(4300, "MHz", "Intel Core i9-14900K CPU Core #9"),
+    [`${I}_cpu_core__9_load`]: s(30, "%", "Intel Core i9-14900K CPU Core #9"),
+    [`${I}_cpu_core__10`]: s(0, "°C", "Intel Core i9-14900K CPU Core #10"),
+    [`${I}_cpu_core__10_clock`]: s(0, "MHz", "Intel Core i9-14900K CPU Core #10"),
+    [`${I}_cpu_core__10_load`]: s(5, "%", "Intel Core i9-14900K CPU Core #10"),
+    [`${GPU}_gpu_package`]: s(300, "W", "x"),
+  };
+
   it("reads Intel's CPU package temperature and power, never the GPU's", () => {
-    const intel = readSystem({
-      "libre.intel_core_i9_14900k_cpu_package": s(71, "°C", "Intel Core i9-14900K CPU Package"),
-      "libre.intel_core_i9_14900k_package": s(120, "W", "Intel Core i9-14900K Package"),
-      [`${GPU}_gpu_package`]: s(300, "W", "x"),
-    });
-    expect(intel.cpu.temp).toBe(71);
-    expect(intel.cpu.power).toBe(120);
-    expect(intel.gpu.power).toBe(300);
+    const r = readSystem(intel);
+    expect(r.cpu.temp).toBe(71);
+    expect(r.cpu.power).toBe(120);
+    expect(r.gpu.power).toBe(300);
+  });
+
+  it("averages Intel's live per-core clocks, which have no average sensor", () => {
+    expect(readSystem(intel).cpu.clock).toBe(5000);
+  });
+
+  it("lists Intel's thread and E-core loads in core then thread order, not the core temperatures", () => {
+    expect(readSystem(intel).cpu.cores).toEqual([40, 10, 30, 5]);
+  });
+
+  it("prefers AMD's effective core average for the clock", () => {
+    expect(
+      readSystem({
+        [`${CPU}_cpu_total`]: s(20, "%", "x"),
+        [`${CPU}_cores__average`]: s(5100, "MHz", "x"),
+        [`${CPU}_cores__average_effective`]: s(3900, "MHz", "x"),
+        [`${CPU}_core__1`]: s(5500, "MHz", "x"),
+      }).cpu.clock,
+    ).toBe(3900);
+    expect(readSystem({ [`${CPU}_cores__average`]: s(5100, "MHz", "x") }).cpu.clock).toBe(5100);
+  });
+
+  it("reads one chosen CPU's readings from flat data, not another's", () => {
+    const flat = toFlat({ ...intel, "libre.amd_ryzen_7_3700x_cpu_total": s(90, "%", "x"), "libre.amd_ryzen_7_3700x_core__tctl": s(61, "°C", "x") } as SensorMap);
+    expect(readCpuFlat(flat, "intel_core_i9_14900k")).toMatchObject({ load: 20, temp: 71, power: 120, clock: 5000 });
+    expect(readCpuFlat(flat, "amd_ryzen_7_3700x")).toMatchObject({ load: 90, temp: 61, power: undefined });
+  });
+
+  it("reads older Zen's Tctl", () => {
+    expect(readSystem({ "libre.amd_ryzen_7_3700x_core__tctl": s(61, "°C", "x") }).cpu.temp).toBe(61);
   });
 
   it("lists every thread's load in numeric order, keeping real zeros", () => {
@@ -188,7 +236,7 @@ describe("readSystem", () => {
 
   it("returns empty readings without hardware data", () => {
     expect(readSystem({})).toEqual({
-      cpu: { cores: [], name: undefined, load: undefined, temp: undefined, power: undefined },
+      cpu: { cores: [], name: undefined, load: undefined, temp: undefined, power: undefined, clock: undefined },
       gpu: {
         name: undefined,
         load: undefined,

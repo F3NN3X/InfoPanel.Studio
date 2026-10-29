@@ -67,6 +67,17 @@ describe("drawn item readings", () => {
     expect(cardReading("gpuRing", d, "c")).toMatchObject({ kind: "ring", label: "GPU" });
     expect(cardReading("cpuLine", d, "f")).toMatchObject({ kind: "line", values: [expect.stringMatching(/%$/), expect.stringMatching(/°$/)] });
   });
+  it("reads an Intel CPU's power, clock and package temperature", () => {
+    const I = "libre.intel_core_i9_14900k";
+    const d = data({
+      [`${I}_cpu_total`]: { value: 20, unit: "%" },
+      [`${I}_cpu_package`]: { value: 71, unit: "°C" },
+      [`${I}_cpu_package_power`]: { value: 120, unit: "W" },
+      [`${I}_cpu_core__1_clock`]: { value: 5000, unit: "MHz" },
+    });
+    expect((cardReading("cpuDual", d, "c") as Extract<Card, { kind: "dual" }>).rows.map((r) => r.text)).toEqual(["120 W", "5.0 GHz"]);
+    expect(cardReading("cpuLine", d, "c")).toMatchObject({ values: ["20%", "71°"] });
+  });
   it("is nothing on a machine without that hardware", () => {
     for (const key of CARD_ITEMS) expect(cardReading(key, {}, "c")).toBeNull();
   });

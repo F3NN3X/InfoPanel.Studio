@@ -1,43 +1,14 @@
 // What each Status Bar item reads from the data, as plain values: an item whose data is absent is null, so the bar never shows "–".
 import { weatherKind, type WeatherCondition } from "@/lib/weather-icons";
+import { readSystemFlat, systemKeysFlat } from "@/lib/system-metrics";
 import { inUnit } from "@/modules/setting-readers";
 import { adapterOf, detect, fmt, fmtRate, get, has, hw, num, type Data, type IpTagExtra, type RateUnit } from "../kit";
 import { trackOf } from "../NowPlaying/track";
 import type { Card } from "./card-model";
-import { CARD_ITEMS, cardReading } from "./card-readings";
+import { cardReading } from "./card-readings";
+import type { ItemKey } from "./item-keys";
 
-export const ITEMS = ["logo", "text", "date", "time", "datetime", "weather", "cpu", "gpu", "ram", "cpuTemp", "gpuTemp", "down", "up", "disk", "network", "volume", "battery", "media", "uptime", ...CARD_ITEMS] as const;
-export type ItemKey = (typeof ITEMS)[number];
-export const ITEM_LABELS: Record<ItemKey, string> = {
-  logo: "Logo",
-  text: "Text",
-  date: "Date",
-  time: "Time",
-  datetime: "Date and time",
-  weather: "Weather",
-  cpu: "CPU load",
-  gpu: "GPU load",
-  ram: "Memory",
-  cpuTemp: "CPU temperature",
-  gpuTemp: "GPU temperature",
-  down: "Download",
-  up: "Upload",
-  disk: "Disk used",
-  network: "Network",
-  volume: "Volume",
-  battery: "Battery",
-  media: "Now playing",
-  uptime: "Uptime",
-  cpuRing: "CPU ring",
-  gpuRing: "GPU ring",
-  cpuDual: "CPU double ring",
-  gpuDual: "GPU double ring",
-  fps: "FPS",
-  frameTime: "Frame time",
-  cpuLine: "CPU line",
-  gpuLine: "GPU line",
-  fpsLine: "FPS line",
-};
+export { ITEMS, ITEM_LABELS, type ItemKey } from "./item-keys";
 
 /**
  * The drop order in the presets when the bar is narrow: the lowest goes first. An item not listed ranks 0 and goes before these,
@@ -185,7 +156,7 @@ export function readingOf(key: ItemKey, c: ReadCtx): Reading | null {
     case "ram":
       return withIcon("memory_alt", pct(L(d, "total_memory_memory")), "libre.total_memory_memory");
     case "cpuTemp":
-      return withIcon("device_thermostat", temp(L(d, `${cpu}_core__tctl_tdie`), c.tempUnit), c.tempUnit === "c" ? `libre.${cpu}_core__tctl_tdie` : undefined);
+      return withIcon("device_thermostat", temp(readSystemFlat(d).cpu.temp ?? NaN, c.tempUnit), c.tempUnit === "c" ? systemKeysFlat(d).cpuTemp : undefined);
     case "gpuTemp":
       return withIcon("device_thermostat", temp(L(d, `${gpu}_gpu_core`), c.tempUnit), c.tempUnit === "c" ? `libre.${gpu}_gpu_core` : undefined);
     case "down":

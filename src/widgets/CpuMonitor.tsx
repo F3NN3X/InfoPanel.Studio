@@ -1,6 +1,7 @@
+import { readCpuFlat } from "@/lib/system-metrics";
 import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { fitRows, StatGrid, Widget, shell, get, num, fmt, pretty, has, Metric, Ring, Spark, Stat, useHistory, tone, Empty, heat, hw, Num, scaleY, type ShellProps } from "./kit";
+import { fitRows, StatGrid, Widget, shell, get, num, fmt, pretty, Metric, Ring, Spark, Stat, useHistory, tone, Empty, heat, hw, Num, scaleY, type ShellProps } from "./kit";
 import { meta } from "./meta/CpuMonitor";
 
 export { meta };
@@ -15,7 +16,7 @@ export interface CpuMonitorProps extends ShellProps {
   crit?: number;
   /** The unit its temperatures read in (default °C). */
   tempUnit?: "c" | "f";
-  /** The temperatures' decimals; unset: none in the header and card, one for Tctl/Tdie. */
+  /** The temperatures' decimals; unset: none in the header and card, one for the Tctl/Tdie (Intel: Package) stat. */
   decimals?: number;
 }
 
@@ -34,17 +35,19 @@ export default function CpuMonitor(p: CpuMonitorProps) {
   const totalKey = `libre.${id}_cpu_total`;
   const total = num(k("cpu_total")),
     maxCore = num(k("cpu_core_max"));
-  const temp = num(k("core__tctl_tdie")),
-    power = num(k("package")),
-    clock = num(k("cores__average_effective"));
+  // temperature, power and clock by role, so Intel's key shapes read as well as AMD's
+  const cpu = id ? readCpuFlat(d ?? {}, id) : undefined;
+  const temp = cpu?.temp ?? NaN,
+    power = cpu?.power ?? NaN,
+    clock = cpu?.clock ?? NaN;
   const vrm = num(get(d, "libre.embedded_controller_vrm")),
     fan = num(get(d, "libre.embedded_controller_cpu_optional_fan"));
-  const cores: Core[] = [];
-  for (let i = 1; i <= 64; i++) {
-    const l = k(`cpu_core__${i}`);
-    if (!has(l)) break;
-    cores.push({ i, load: num(l), mhz: num(k(`core__${i}__effective`)), vid: num(k(`core__${i}_vid`)), w: num(k(`core__${i}__smu`)) });
-  }
+  const either = (a: number, b: number) => (Number.isFinite(a) ? a : b);
+  const cores: Core[] = (cpu?.cores ?? []).slice(0, 64).map((load, n) => {
+    const i = n + 1;
+    // AMD: `core__N__effective`, `core__N_vid`; Intel: `cpu_core__N_clock`, `cpu_core__N_voltage`
+    return { i, load, mhz: either(num(k(`core__${i}__effective`)), num(k(`cpu_core__${i}_clock`))), vid: either(num(k(`core__${i}_vid`)), num(k(`cpu_core__${i}_voltage`))), w: num(k(`core__${i}__smu`)) };
+  });
   const hist = useHistory(total);
   if (!id)
     return (
@@ -140,7 +143,7 @@ export default function CpuMonitor(p: CpuMonitorProps) {
               <StatGrid
                 cols={4}
                 items={[
-                  { label: "Tctl/Tdie", value: deg(temp, 1, " ") },
+                  { label: /^amd/.test(id) ? "Tctl/Tdie" : "Package", value: deg(temp, 1, " ") },
                   { label: "Core VID", value: `${fmt(cores[0]?.vid ?? NaN, 2)} V` },
                   { label: "VRM", value: Number.isFinite(vrm) ? deg(vrm, 0, " ") : "–" },
                   { label: "CPU fan", value: Number.isFinite(fan) ? `${fmt(fan, 0)} RPM` : "–" },

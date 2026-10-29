@@ -38,7 +38,7 @@ export default function KpiTiles(p: KpiTilesProps) {
     ram: { l: "Memory", v: L("total_memory_memory_used"), u: "GB", d: 1, sub: `of ${fmt(L("total_memory_memory_used") + L("total_memory_memory_available"), 0)} GB` },
     net: { l: "Download", v: toMBps(L("ethernet_download_speed")), text: rate.text, u: rate.unit, sub: "Ethernet" },
     vram: { l: "VRAM", v: L(`${gpu}_gpu_memory_used`) / 1024, u: "GB", d: 1, sub: `of ${fmt(L(`${gpu}_gpu_memory_total`) / 1024, 0)} GB` },
-    power: { l: "Power", v: L(`${cpu}_package`) + L(`${gpu}_gpu_package`), u: "W", sub: "CPU + GPU" },
+    power: { l: "Power", v: (sys.cpu.power ?? NaN) + L(`${gpu}_gpu_package`), u: "W", sub: "CPU + GPU" },
   };
   const keys = p.metrics ?? (["cpu", "gpu", "ram", "net"] as Metric[]);
   const H: Record<Metric, number[]> = {

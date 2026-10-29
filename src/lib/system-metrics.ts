@@ -98,13 +98,24 @@ type Rule = { suffix: RegExp; unit?: RegExp; not?: RegExp };
 
 const RULES = {
   cpuLoad: { suffix: /_cpu_total$/, unit: /%/ },
-  // AMD reports Tctl/Tdie, Intel "CPU Package" (°C); "Core Max" as a fallback.
+  // AMD reports Tctl/Tdie (older Zen Tctl), Intel "CPU Package" (°C); "Core Max" as a fallback.
   cpuTemp: [
     { suffix: /_core__tctl_tdie$/, unit: /°C/ },
+    { suffix: /_core__tctl$/, unit: /°C/ },
     { suffix: /_cpu_package$/, unit: /°C/ },
     { suffix: /_core_max$/, unit: /°C/, not: /_gpu_/ },
   ],
-  cpuPower: { suffix: /_package$/, unit: /^W$/, not: /_gpu_/ },
+  // AMD's power is "Package"; Intel's "CPU Package" shares its name with the temperature, so the Data API keys it
+  // `…_cpu_package_power` (the temperature keeps the bare key).
+  cpuPower: [
+    { suffix: /_cpu_package_power$/, unit: /^W$/ },
+    { suffix: /_package$/, unit: /^W$/, not: /_gpu_/ },
+  ],
+  // AMD has the core averages; Intel only per-core clocks, averaged in `readSystem`.
+  cpuClock: [
+    { suffix: /_cores__average_effective$/, unit: /MHz/ },
+    { suffix: /_cores__average$/, unit: /MHz/ },
+  ],
   gpuLoad: { suffix: /_gpu_core_load$/, unit: /%/ },
   gpuTemp: { suffix: /_gpu_core$/, unit: /°C/ },
   gpuPower: { suffix: /_gpu_package$/, unit: /^W$/ },
@@ -167,17 +178,26 @@ function hardwareName(s: SensorValue | undefined, tail: RegExp): string | undefi
 const average = (values: number[]): number | undefined =>
   values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : undefined;
 
-/** Per-thread loads (`…_cpu_core__N`, %), sorted by N numerically. */
+/**
+ * Per-thread loads (%), in thread order: `…_cpu_core__N`, or Intel's `…_cpu_core__N_thread__M` and, where the
+ * core's temperature took the bare key, `…_cpu_core__N_load`.
+ */
 function readCores(sensors: SensorMap, keys: string[]): number[] {
   return keys
     .flatMap((k) => {
-      const n = /_cpu_core__(\d+)$/.exec(k)?.[1];
+      const m = /_cpu_core__(\d+)(?:_thread__(\d+)|_load)?$/.exec(k);
       const v = num(sensors[k]);
-      return n !== undefined && v !== undefined && /%/.test(sensors[k].unit ?? "") ? [[Number(n), v]] : [];
+      return m && v !== undefined && /%/.test(sensors[k].unit ?? "") ? [[Number(m[1]), Number(m[2] ?? 0), v]] : [];
     })
-    .sort((a, b) => a[0] - b[0])
-    .map(([, v]) => v);
+    .sort((a, b) => a[0] - b[0] || a[1] - b[1])
+    .map(([, , v]) => v);
 }
+
+/** The average of a CPU's live per-core clocks (`…_cpu_core__N_clock`, or bare `…_cpu_core__N` in MHz). */
+const coreClock = (sensors: SensorMap, keys: string[], base: string): number | undefined =>
+  base
+    ? average(keys.filter((k) => k.startsWith(base) && /_cpu_core__\d+(_clock)?$/.test(k) && /MHz/.test(sensors[k].unit ?? "")).flatMap((k) => live(sensors[k]) ?? []))
+    : undefined;
 
 /** Average of the live (non-zero) readings behind `…_gpu_fan_N` (RPM) or `…_gpu_fan_N_control` (%). */
 function readFans(sensors: SensorMap, keys: string[], base: string, control: boolean) {
@@ -275,7 +295,8 @@ export function readSystem(sensors: SensorMap): SystemReadings {
   const pageTotal = pageUsed !== undefined && pageFree !== undefined ? pageUsed + pageFree : undefined;
   const pageLoad =
     num(at("pageLoad")) ?? (pageUsed !== undefined && pageTotal ? (pageUsed / pageTotal) * 100 : undefined);
-  // Fans belong to the same card as the GPU load sensor.
+  // Per-core clocks belong to the CPU of the load sensor, fans to the card of the GPU load sensor.
+  const cpuBase = f.cpuLoad?.[0].replace(/_cpu_total$/, "") ?? "";
   const gpuBase = f.gpuLoad?.[0].replace(/_gpu_core_load$/, "") ?? "";
 
   return {
@@ -285,6 +306,7 @@ export function readSystem(sensors: SensorMap): SystemReadings {
       load: num(sensors["system.cpu.load"]) ?? num(at("cpuLoad")),
       temp: live(at("cpuTemp")),
       power: live(at("cpuPower")),
+      clock: live(at("cpuClock")) ?? coreClock(sensors, keys, cpuBase),
     },
     gpu: {
       name: hardwareName(at("gpuLoad"), /\s*GPU Core$/i),
@@ -362,7 +384,10 @@ function unflatten(raw: string): SensorValue {
 function flatSensors(data: Record<string, string | { value: string }>, names?: Record<string, string>): SensorMap {
   const sensors: SensorMap = {};
   for (const [key, v] of Object.entries(data)) {
-    if (key.startsWith("libre.") || key.startsWith("system.")) sensors[key] = { ...unflatten(typeof v === "object" ? v.value : v), name: names?.[key] };
+    if (!key.startsWith("libre.") && !key.startsWith("system.")) continue;
+    const raw = typeof v === "object" ? v.value : v;
+    // a sensor ({ value, unit }) passed as data reads as itself
+    sensors[key] = { ...(typeof raw === "string" ? unflatten(raw) : (v as unknown as SensorValue)), name: names?.[key] };
   }
   return sensors;
 }
@@ -380,6 +405,12 @@ export function readSystemFlat(data: Record<string, string | { value: string }>,
   const readings = readSystem(flatSensors(data, names));
   flatCache.set(data, { names, readings });
   return readings;
+}
+
+/** The CPU readings of one CPU (`id`, its key slug, as `hw(data).cpu`) from the templates' flat data. */
+export function readCpuFlat(data: Record<string, string | { value: string }>, id: string): SystemReadings["cpu"] {
+  const own = `libre.${id}_`;
+  return readSystem(flatSensors(Object.fromEntries(Object.entries(data).filter(([k]) => k.startsWith(own))))).cpu;
 }
 
 /** The key each reading of `readSystemFlat` comes from (`cpuTemp` → `libre.…_core__tctl_tdie`), for the InfoPanel conversion's tags. */

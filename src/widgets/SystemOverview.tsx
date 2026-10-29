@@ -215,8 +215,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
       stats: [
         ...(on("temps") ? temp("Temp", r.cpu.temp, true, rk.cpuTemp) : []),
         ...stat(on("power"), r.cpu.power, (v) => ({ l: "Power", v: `${fmt(v, 0)} W`, bare: true, k: rk.cpuPower })),
-        // a clock sensor reading 0 is a missing one
-        ...stat(true, C("cores__average_effective"), (v) => (v > 0 ? { l: "Clock", v: `${fmt(v / 1000, 2)} GHz`, k: `libre.${cpu}_cores__average_effective`, mul: 0.001 } : null)),
+        ...stat(true, r.cpu.clock, (v) => ({ l: "Clock", v: `${fmt(v / 1000, 2)} GHz`, k: rk.cpuClock, mul: 0.001 })),
         ...stat(true, C("cpu_core_max"), (v) => ({ l: "Max core", v: `${fmt(v, 0)}%`, k: `libre.${cpu}_cpu_core_max` })),
       ],
       present: r.cpu.load !== undefined,
