@@ -1,9 +1,10 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyHistory, recordChange, undoChange } from "@/hooks/config-history";
 import { withoutProfile } from "@/components/studio/profile-actions";
 import { inlineCanvases, liftCanvases, refOf, resetWriteRefusal } from "@/lib/canvas-store";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
-import { CANVAS_ID, CONFIG_VERSION, defaultConfig, mergeConfig, newProfile, type DashboardConfig, type StoredConfig } from "@/lib/layout";
+import { CANVAS_ID, CONFIG_VERSION, defaultConfig, newProfile, type DashboardConfig, type StoredConfig } from "@/lib/layout";
 import { stampEdited } from "@/lib/screens/edited";
 
 const at = new Date("2026-10-25T12:00:00Z");
@@ -35,14 +36,14 @@ describe("updatedAt in saved data", () => {
   const stored = (extra: Record<string, unknown>): StoredConfig =>
     ({ version: CONFIG_VERSION, activeProfile: "auto", profiles: [{ ...newProfile("A", 800, 480), id: "p", ...extra }] }) as unknown as StoredConfig;
   it("round-trips through a load, and an older config without it loads as before", () => {
-    const once = mergeConfig(stored({ updatedAt: "2026-10-01T10:00:00.000Z" }));
+    const once = upgradeConfig(stored({ updatedAt: "2026-10-01T10:00:00.000Z" }));
     expect(once.profiles[0].updatedAt).toBe("2026-10-01T10:00:00.000Z");
-    expect(mergeConfig(JSON.parse(JSON.stringify(once)) as StoredConfig)).toEqual(once);
-    expect(mergeConfig({ ...stored({}), version: 12 }).profiles[0].updatedAt).toBeUndefined();
+    expect(upgradeConfig(JSON.parse(JSON.stringify(once)) as StoredConfig)).toEqual(once);
+    expect(upgradeConfig({ ...stored({}), version: 12 }).profiles[0].updatedAt).toBeUndefined();
   });
   it("drops a value that is not a time", () => {
-    expect(mergeConfig(stored({ updatedAt: "last tuesday" })).profiles[0].updatedAt).toBeUndefined();
-    expect(mergeConfig(stored({ updatedAt: 5 })).profiles[0].updatedAt).toBeUndefined();
+    expect(upgradeConfig(stored({ updatedAt: "last tuesday" })).profiles[0].updatedAt).toBeUndefined();
+    expect(upgradeConfig(stored({ updatedAt: 5 })).profiles[0].updatedAt).toBeUndefined();
   });
 });
 

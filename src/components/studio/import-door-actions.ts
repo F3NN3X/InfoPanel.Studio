@@ -111,7 +111,7 @@ export async function runImport(files: readonly DoorFile[], choices: DoorChoices
   }
 
   for (const f of files.filter((x) => kindOf(x) === "profile")) {
-    const parsed = parseProfileFile(await f.file.text());
+    const parsed = await parseProfileFile(await f.file.text());
     if ("error" in parsed) {
       result.failed.push(`${f.file.name}: ${parsed.error}`);
       continue;

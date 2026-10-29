@@ -1,3 +1,4 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import {
   backgroundKey,
@@ -11,7 +12,7 @@ import {
   withBackgroundType,
   type PageBackground,
 } from "@/lib/appearance";
-import { mergeConfig, type DashboardConfig } from "@/lib/layout";
+import { type DashboardConfig } from "@/lib/layout";
 
 describe("resolveBackground", () => {
   const own: PageBackground = { type: "gradient", gradient: { from: "#000", to: "#fff", angle: 90 } };
@@ -144,7 +145,7 @@ describe("color", () => {
 
 describe("withBackground", () => {
   const config = (): DashboardConfig =>
-    mergeConfig({
+    upgradeConfig({
       profiles: [
         { id: "a", name: "A", width: 800, height: 480, cols: 4, rows: 2, fit: "fill", placements: [] },
         { id: "b", name: "B", width: 800, height: 480, cols: 4, rows: 2, fit: "fill", placements: [] },

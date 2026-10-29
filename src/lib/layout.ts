@@ -4,30 +4,16 @@ import { normalizeAppearancePresets, type AppearancePreset } from "./appearance-
 import { normalizeAppliedTheme, type AppliedTheme } from "./applied-theme";
 import type { ModuleSettings } from "@/modules/types";
 import type { SectionFlags, WidgetTheme } from "./theme-model";
-import {
-  migrateBaseStyleV6,
-  migrateGeneralV7,
-  migrateProfileV6,
-  migrateProfileV7,
-  migrateProfileV10,
-  migrateProfileV12,
-  migrateProfileV14,
-  migrateProfileV8,
-  migrateStyleV7,
-  type LegacyProfileFields,
-} from "./settings-migrate";
+import type { LegacyProfileFields } from "./settings-migrate";
 import { normalizeApiBase } from "./data-api";
 import { normalizeFont, normalizeGeneral, type GeneralFont, type GeneralSettings } from "./general";
 import { normalizeSpacing } from "./profile-grid";
-import { YR_FORECAST_KEY } from "./sensors";
 import { mainPage, normalizeRotate } from "./pages";
 import { normalizeAlerts, type AlertsConfig } from "./alerts";
-import { migrateLegacyZones } from "./legacy-zones";
-import { migrateProfileV15 } from "./page-model/migrate";
 import { storageCopy } from "./canvas-store";
 import { normalizeIsland, type IslandConfig } from "./island/config";
 import { normalizePerformance, type ScreenPerformance } from "./performance";
-import { clockOfStyle, dashboardLook, migrateScreensV16, type LegacyDashboardFields } from "./screen-look-migrate";
+import type { LegacyDashboardFields } from "./screen-look-migrate";
 import {
   normalizePanelPlacement,
   normalizePanelPresets,
@@ -557,7 +543,8 @@ function normalizePartFields(pl: Placement): Placement {
   };
 }
 
-function normalizeProfile(input: StoredProfile): MonitorProfile & LegacyProfileFields {
+/** A stored profile, guarded and with its pages normalised (shared by `mergeConfig` and the upgrade). */
+export function normalizeProfile(input: StoredProfile): MonitorProfile & LegacyProfileFields {
   const { placements: _legacy, ...p } = input;
   const cols = Math.max(2, p.cols ?? 12);
   const rows = Math.max(1, p.rows ?? (p.height <= 700 ? 4 : 6));
@@ -589,25 +576,6 @@ function profileExtras(p: StoredProfile): Partial<MonitorProfile> {
   };
 }
 
-/**
- * Image paths saved while the DataBridge plugin served the dashboard point
- * at http://127.0.0.1:3921/assets/<file>; those files now ship in the
- * build under /assets/ip/arcv2/ (see ASSET). Rewrites any saved copy.
- */
-const LEGACY_ASSET_PREFIX = "http://127.0.0.1:3921/assets/";
-/** InfoPanel export assets, shipped in public/assets/ip/arcv2/. */
-const ASSET = (f: string) => `/assets/ip/arcv2/${f}`;
-
-/**
- * The DataBridge's open-meteo forecast is gone; bindings to it move to the
- * yr plugin's forecast, resolved at runtime (YR_FORECAST_KEY) because the
- * location slug differs per user.
- */
-const LEGACY_FORECAST_KEYS = [
-  "plugins.InfoPanel.DataBridge.weather.forecast",
-  "plugins.data-bridge.weather.forecast",
-];
-
 /** A config as stored: any version, its profiles v3 or legacy. */
 export type StoredConfig = Omit<Partial<DashboardConfig>, "version" | "profiles"> & LegacyDashboardFields & {
   version?: number;
@@ -616,103 +584,60 @@ export type StoredConfig = Omit<Partial<DashboardConfig>, "version" | "profiles"
   styleEnforce?: boolean;
 };
 
-function migrateAssetUrls(config: StoredConfig): StoredConfig {
-  const json = JSON.stringify(config);
-  const needsFix =
-    json.includes(LEGACY_ASSET_PREFIX) ||
-    LEGACY_FORECAST_KEYS.some((k) => json.includes(k));
-  if (!needsFix) return config;
-  let fixed = json.replaceAll(LEGACY_ASSET_PREFIX, ASSET(""));
-  for (const key of LEGACY_FORECAST_KEYS)
-    fixed = fixed.replaceAll(key, YR_FORECAST_KEY);
-  return JSON.parse(fixed);
-}
-
 const isSettings = (v: unknown): v is ModuleSettings =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** A style that picks a surface ("auto" / empty leave the widget's own). */
-const hasSurface = (style: ModuleSettings | undefined): boolean =>
-  style?.surface !== undefined && style.surface !== "" && style.surface !== "auto";
+/**
+ * A config saved at this build's version, merged over the defaults (tolerates missing fields): the local load, the
+ * server-synced copy (the kiosk pages pull the studio's latest state this way), a Settings read. An older config goes
+ * through `readConfig`, which upgrades it first (`config-upgrade.ts`); a pin to a missing profile falls back to Auto.
+ */
+export function mergeConfig(input: StoredConfig): DashboardConfig {
+  const defaults = defaultConfig();
+  const profiles: MonitorProfile[] = (input.profiles && input.profiles.length > 0 ? input.profiles : defaults.profiles).map(normalizeProfile);
+  const byId = new Set(profiles.map((p) => p.id));
+  const pinned = input.activeProfile ?? defaults.activeProfile;
+  return {
+    version: CONFIG_VERSION,
+    activeProfile: pinned !== "auto" && !byId.has(pinned) ? "auto" : pinned,
+    sourcePrefs: input.sourcePrefs,
+    profiles,
+    dataApiUrl: normalizeApiBase(input.dataApiUrl) ?? undefined,
+    stylePresets: Array.isArray(input.stylePresets) ? input.stylePresets : undefined,
+    panelPresets: normalizePanelPresets(input.panelPresets),
+    appearancePresets: normalizeAppearancePresets(input.appearancePresets),
+    palettes: normalizePalettes(input.palettes),
+    general: normalizeGeneral(isSettings(input.general) ? input.general : undefined),
+    alerts: normalizeAlerts(input.alerts),
+  };
+}
 
-/** v3→v4: every page's legacy zones become their templates' (see `migrateLegacyZones`). */
-function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: P, dashboardSurface: boolean): P {
-  const ctx = { styledSurface: dashboardSurface || hasSurface(p.style ?? p.widgetTheme?.values) };
-  const pages = p.pages.map((pg) => {
-    const placements = migrateLegacyZones(pg.placements, ctx);
-    return placements === pg.placements ? pg : { ...pg, placements };
-  });
-  return pages.every((pg, i) => pg === p.pages[i]) ? p : { ...p, pages };
+/** A config saved at this build's version or a newer one (a newer build's: the server refuses its save over it). */
+export const isCurrentConfig = (c: Pick<StoredConfig, "version">): boolean => typeof c.version === "number" && c.version >= CONFIG_VERSION;
+
+/**
+ * A stored config of any version as this build's: a current one merged (`mergeConfig`), an older one upgraded first
+ * (`upgradeConfig`, in a chunk of its own: only an older config loads it). `log` takes a line per change the v15 step
+ * makes.
+ */
+export async function readConfig(input: StoredConfig, log?: string[]): Promise<DashboardConfig> {
+  if (isCurrentConfig(input)) return mergeConfig(input);
+  const { upgradeConfig } = await import("./config-upgrade");
+  return upgradeConfig(input, log);
 }
 
 /**
- * Merge a stored/partial config over the defaults (tolerates missing
- * fields). Used by the local load and by the server-synced copy (the
- * kiosk pages pull the studio's latest state this way). Also runs the
- * migrations: v1→v2 fills explicit zone boxes + rows on legacy profiles,
- * v2→v3 moves a profile's zones onto its first page, v3→v4 rewrites the
- * legacy module ids to their templates, v5→v6 moves the style onto the
- * widget theme, v6→v7 renames the shared keys, v7→v8 the sample widgets', v8→v9 moves a Custom
- * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it), v9→v10
- * drops the widget `preset` key, v11→v12 turns the audio widgets' single `device` into a pick, v12→v13 only stamps the version,
- * v13→v14 marks Free pages and the screens made for InfoPanel, v14→v15 makes every page one kind
- * (`migrateProfileV15`, a line in `log` per change it makes), v15→v16 gives each screen the look it inherited
- * (`migrateScreensV16`); a pin to a missing profile falls back to Auto.
+ * A config from outside the app (a config or screen file, a pasted screen): always through the upgrade, whose repairs
+ * that no version gates (a dead widget `preset` key, the audio widgets' single `device`, legacy module ids, old asset
+ * URLs) also fix a file an older build wrote and labelled current, or a bare screen that carries no version at all.
  */
-export function mergeConfig(input: StoredConfig, log?: string[]): DashboardConfig {
-  const parsed = migrateAssetUrls(input);
-  const defaults = defaultConfig();
-  const profiles = (
-    parsed.profiles && parsed.profiles.length > 0
-      ? parsed.profiles
-      : defaults.profiles
-  )
-    .map(normalizeProfile)
-    .map((p) => migrateProfileZones(p, isSettings(parsed.style) && hasSurface(parsed.style)))
-    .map((p) =>
-      migrateProfileV6(p, {
-        legacy: (parsed.version ?? 0) < 6,
-        base: isSettings(parsed.style) ? parsed.style : undefined,
-        enforce: parsed.styleEnforce === true,
-      })
-    )
-    .map((p) => migrateProfileV7(p, { legacy: (parsed.version ?? 0) < 7 }))
-    .map((p) => migrateProfileV8(p, { legacy: (parsed.version ?? 0) < 8 }))
-    .map(migrateProfileV10)
-    .map(migrateProfileV12)
-    .map((p) => migrateProfileV14(p, { legacy: (parsed.version ?? 0) < 14 }))
-    .map((p) => migrateProfileV15(p, { legacy: (parsed.version ?? 0) < 15, log }));
-  // v7: the clocks' 12 / 24 h moves from `general` into the all-profiles style (its themed `clock`).
-  const v7 = migrateGeneralV7(isSettings(parsed.general) ? parsed.general : undefined, isSettings(parsed.style) ? migrateStyleV7(migrateBaseStyleV6(parsed.style)) : undefined);
-  // A pin to a profile that is gone falls back to Auto.
-  const byId = new Set(profiles.map((p) => p.id));
-  let activeProfile = parsed.activeProfile ?? defaults.activeProfile;
-  if (activeProfile !== "auto" && !byId.has(activeProfile))
-    activeProfile = "auto";
-  const legacy = (parsed.version ?? 0) < 16;
-  // v16: the all-profiles style's 12 / 24 h becomes the app's.
-  const clock = legacy ? clockOfStyle(v7.style) : undefined;
-  const config: DashboardConfig = {
-    version: CONFIG_VERSION,
-    activeProfile,
-    sourcePrefs: parsed.sourcePrefs,
-    profiles,
-    dataApiUrl: normalizeApiBase(parsed.dataApiUrl) ?? undefined,
-    stylePresets: Array.isArray(parsed.stylePresets)
-      ? parsed.stylePresets.map((p) => (isSettings(p?.settings) ? { ...p, settings: migrateStyleV7(p.settings) } : p))
-      : undefined,
-    panelPresets: normalizePanelPresets(parsed.panelPresets),
-    appearancePresets: normalizeAppearancePresets(parsed.appearancePresets),
-    palettes: normalizePalettes(parsed.palettes),
-    general: normalizeGeneral(clock ? { ...v7.general, clock } : v7.general),
-    alerts: normalizeAlerts(parsed.alerts),
-  };
-  // v16: each screen gets the look it inherited from the dashboard, whose fields go.
-  return legacy ? migrateScreensV16(config, dashboardLook({ ...parsed, general: v7.general }, v7.style)) : config;
+export async function readImportedConfig(input: StoredConfig): Promise<DashboardConfig> {
+  const { upgradeConfig } = await import("./config-upgrade");
+  return upgradeConfig(input);
 }
 
 /** Saved palettes, guarded: an id and a name required, the tokens over the defaults; none kept = undefined. */
-function normalizePalettes(v: unknown): SavedPalette[] | undefined {
+export function normalizePalettes(v: unknown): SavedPalette[] | undefined {
   const kept = (Array.isArray(v) ? (v as Partial<SavedPalette>[]) : []).flatMap((p) => {
     // Tokens found means `p` is an object.
     const tokens = normalizeThemePatch(p?.tokens);
@@ -727,7 +652,9 @@ export function loadConfig(): DashboardConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultConfig();
-    return mergeConfig(JSON.parse(raw) as StoredConfig);
+    const stored = JSON.parse(raw) as StoredConfig;
+    // An older copy (the offline fallback) is not upgraded here: the server's copy replaces it once read.
+    return isCurrentConfig(stored) ? mergeConfig(stored) : defaultConfig();
   } catch {
     return defaultConfig();
   }

@@ -1,5 +1,6 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { mergeConfig } from "@/lib/layout";
+
 import { arcv2Profile } from "@tests/lib/__fixtures__/arcv2-profile";
 import { sampleProfile } from "@tests/lib/__fixtures__/sample-profile";
 import { allPlacements } from "@/lib/pages";
@@ -15,7 +16,7 @@ describe.each([
   ["arcv2", arcv2Profile],
 ])("%s profile panels", (_, make) => {
   const raw = make();
-  const loaded = mergeConfig({ profiles: [raw] }).profiles.find((p) => p.id === raw.id)!;
+  const loaded = upgradeConfig({ profiles: [raw] }).profiles.find((p) => p.id === raw.id)!;
   const rawPanels = allPlacements(raw).filter((p) => p.panel);
 
   it("has panels to check", () => {

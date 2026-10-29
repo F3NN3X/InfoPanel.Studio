@@ -16,104 +16,104 @@ function profile(): MonitorProfile {
   };
 }
 
-const ok = (text: string): MonitorProfile => {
-  const parsed = parseProfileFile(text);
+const ok = async (text: string): Promise<MonitorProfile> => {
+  const parsed = await parseProfileFile(text);
   if ("error" in parsed) throw new Error(parsed.error);
   return parsed.profile;
 };
-const error = (text: string): string => {
-  const parsed = parseProfileFile(text);
+const error = async (text: string): Promise<string> => {
+  const parsed = await parseProfileFile(text);
   if (!("error" in parsed)) throw new Error("accepted");
   return parsed.error;
 };
 
 describe("profile file", () => {
-  it("round-trips a profile through export and import", () => {
+  it("round-trips a profile through export and import", async () => {
     const source = profile();
-    expect(ok(profileFileText(source))).toEqual(source);
+    expect(await ok(profileFileText(source))).toEqual(source);
   });
 
-  it("round-trips an InfoPanel screen with its canvas, and does not import the edit time", () => {
+  it("round-trips an InfoPanel screen with its canvas, and does not import the edit time", async () => {
     const canvas = newStored({ name: "Desk", width: 800, height: 480, now: new Date("2026-10-25T10:00:00Z") });
     const source = profile();
     source.updatedAt = "2026-10-25T10:00:00.000Z";
     source.pages[0].placements.push({ id: "c1", module: "infopanel", colStart: 1, rowStart: 3, colSpan: 4, rowSpan: 2, visible: true, canvas });
-    const back = ok(profileFileText(source));
+    const back = await ok(profileFileText(source));
     expect(back.pages[0].placements[1].canvas).toEqual(canvas);
     expect(back.updatedAt).toBeUndefined();
     expect(screenPayload({ ...defaultConfig(), profiles: [source] }, source)).toMatchObject({ name: "Wide.json" });
   });
 
-  it("keeps the screen's page font through export and import, and drops an unknown one", () => {
+  it("keeps the screen's page font through export and import, and drops an unknown one", async () => {
     const source = { ...profile(), font: "inter" as const };
-    expect(ok(profileFileText(source)).font).toBe("inter");
-    expect(ok(JSON.stringify({ ...profile(), font: "comic" })).font).toBeUndefined();
+    expect((await ok(profileFileText(source))).font).toBe("inter");
+    expect((await ok(JSON.stringify({ ...profile(), font: "comic" }))).font).toBeUndefined();
   });
 
-  it("carries the envelope that tells it from other JSON", () => {
+  it("carries the envelope that tells it from other JSON", async () => {
     const file = JSON.parse(profileFileText(profile()));
     expect(file).toMatchObject({ type: PROFILE_FILE_TYPE, version: 1 });
   });
 
-  it("takes a bare profile as Copy profile JSON gives it", () => {
+  it("takes a bare profile as Copy profile JSON gives it", async () => {
     const source = profile();
-    expect(ok(JSON.stringify(source, null, 2))).toEqual(source);
+    expect(await ok(JSON.stringify(source, null, 2))).toEqual(source);
   });
 
-  it("upgrades an old-version profile: legacy zones move onto a first page", () => {
+  it("upgrades an old-version profile: legacy zones move onto a first page", async () => {
     const { pages: _pages, ...rest } = profile();
     const legacy = { ...rest, placements: [{ id: "z1", module: "SystemOverview", colStart: 1, rowStart: 1, colSpan: 4, rowSpan: 2, visible: true }] };
-    const upgraded = ok(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 2, profile: legacy }));
+    const upgraded = await ok(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 2, profile: legacy }));
     expect(upgraded.pages).toHaveLength(1);
     expect(upgraded.pages[0].placements.map((p) => p.id)).toEqual(["z1"]);
     expect(upgraded).not.toHaveProperty("placements");
   });
 
-  it("rejects files that are not a profile", () => {
-    expect(error("not json")).toMatch(/JSON/);
-    expect(error("[]")).toMatch(/Not a profile/);
-    expect(error(JSON.stringify(defaultConfig()))).toMatch(/Not a profile/);
-    expect(error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, profile: null }))).toMatch(/Not a profile/);
+  it("rejects files that are not a profile", async () => {
+    expect(await error("not json")).toMatch(/JSON/);
+    expect(await error("[]")).toMatch(/Not a profile/);
+    expect(await error(JSON.stringify(defaultConfig()))).toMatch(/Not a profile/);
+    expect(await error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, profile: null }))).toMatch(/Not a profile/);
   });
 
-  it("rejects a profile that fails normalisation: no name or size", () => {
+  it("rejects a profile that fails normalisation: no name or size", async () => {
     const { name: _name, ...nameless } = profile();
-    expect(error(JSON.stringify(nameless))).toMatch(/name and a size/);
-    expect(error(JSON.stringify({ ...profile(), width: "wide" }))).toMatch(/name and a size/);
-    expect(error(JSON.stringify({ ...profile(), height: 0 }))).toMatch(/name and a size/);
+    expect(await error(JSON.stringify(nameless))).toMatch(/name and a size/);
+    expect(await error(JSON.stringify({ ...profile(), width: "wide" }))).toMatch(/name and a size/);
+    expect(await error(JSON.stringify({ ...profile(), height: 0 }))).toMatch(/name and a size/);
   });
 
-  it("rejects a grid or size outside the studio's limits", () => {
+  it("rejects a grid or size outside the studio's limits", async () => {
     for (const bad of [{ cols: NaN }, { cols: "abc" }, { cols: 1e9 }, { cols: 1 }, { rows: 0 }, { rows: 25 }, { width: 1e12 }, { height: 20001 }]) {
-      expect(error(JSON.stringify({ ...profile(), ...bad }))).toMatch(/grid|name and a size/);
+      expect(await error(JSON.stringify({ ...profile(), ...bad }))).toMatch(/grid|name and a size/);
     }
-    expect(ok(JSON.stringify({ ...profile(), cols: 24, rows: 24, width: 20000 })).cols).toBe(24);
+    expect((await ok(JSON.stringify({ ...profile(), cols: 24, rows: 24, width: 20000 }))).cols).toBe(24);
   });
 
-  it("drops an unknown fit and keeps only the known fields", () => {
-    const parsed = ok(JSON.stringify({ ...profile(), fit: "stretch", evil: "x".repeat(50), pages: [{ ...profile().pages[0], junk: 1 }] }));
+  it("drops an unknown fit and keeps only the known fields", async () => {
+    const parsed = await ok(JSON.stringify({ ...profile(), fit: "stretch", evil: "x".repeat(50), pages: [{ ...profile().pages[0], junk: 1 }] }));
     expect(parsed.fit).toBeUndefined();
     expect(parsed).not.toHaveProperty("evil");
     expect(parsed.pages[0]).not.toHaveProperty("junk");
     expect(parsed.pages[0].name).toBe("Main");
   });
 
-  it("refuses a file over 5 MB", () => {
-    expect(error(" ".repeat(5 * 1024 * 1024 + 1))).toMatch(/over 5 MB/);
+  it("refuses a file over 5 MB", async () => {
+    expect(await error(" ".repeat(5 * 1024 * 1024 + 1))).toMatch(/over 5 MB/);
   });
 
-  it("drops canvas zones that hold only a ref and counts them", () => {
+  it("drops canvas zones that hold only a ref and counts them", async () => {
     const source = profile();
     source.pages[0].placements.push({ ...source.pages[0].placements[0], id: "c1", module: "infopanel", canvasRef: "abc.json" });
-    const parsed = parseProfileFile(JSON.stringify(source));
+    const parsed = await parseProfileFile(JSON.stringify(source));
     if ("error" in parsed) throw new Error(parsed.error);
     expect(parsed.skippedCanvases).toBe(1);
     expect(parsed.profile.pages[0].placements.map((p) => p.id)).toEqual(["z1"]);
   });
 
-  it("rejects a file from a newer version", () => {
-    expect(error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 99, profile: profile() }))).toMatch(/newer/);
-    expect(error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 99, profile: profile() }))).toMatch(/newer/);
+  it("rejects a file from a newer version", async () => {
+    expect(await error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 99, profile: profile() }))).toMatch(/newer/);
+    expect(await error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 99, profile: profile() }))).toMatch(/newer/);
   });
 });
 

@@ -1,6 +1,7 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import { parseProfileFile } from "@/components/studio/profile-file";
-import { CONFIG_VERSION, mergeConfig, type Placement, type StoredConfig } from "@/lib/layout";
+import { CONFIG_VERSION, type Placement, type StoredConfig } from "@/lib/layout";
 import { profileWithPage } from "@/lib/pages";
 import { migratePlacementV10, migrateProfileV10 } from "@/lib/settings-migrate";
 import { appearanceOf, resolveWith } from "@/lib/style-resolve";
@@ -25,10 +26,10 @@ const stored = (version: number, placements: Record<string, unknown>[]): StoredC
     profiles: [{ id: "p", name: "Desk", width: 1920, height: 1080, cols: 12, rows: 6, fit: "scroll", pages: [{ id: "main", name: "Main", placements }] }],
   }) as unknown as StoredConfig;
 
-const zonesOf = (c: ReturnType<typeof mergeConfig>): Placement[] => c.profiles[0].pages[0].placements;
+const zonesOf = (c: ReturnType<typeof upgradeConfig>): Placement[] => c.profiles[0].pages[0].placements;
 
 /** What each zone resolves to under its profile's theme (the settings a widget renders with). */
-function effective(config: ReturnType<typeof mergeConfig>): Record<string, ModuleSettings> {
+function effective(config: ReturnType<typeof upgradeConfig>): Record<string, ModuleSettings> {
   const view = profileWithPage(config.profiles[0]);
   const appearance = appearanceOf(config, view);
   return Object.fromEntries(
@@ -50,7 +51,7 @@ const PICKED: Record<string, ModuleSettings> = {
 describe("v10: the widget preset key", () => {
   it("drops the key and nothing else, and every preset zone resolves as before", () => {
     const legacy = stored(9, Object.entries(PICKED).map(([id, settings]) => zone(id, { settings: { ...settings, sensor: "libre.cpu" }, follow: { surface: false, colors: false } })));
-    const migrated = mergeConfig(legacy);
+    const migrated = upgradeConfig(legacy);
     const before = effective({ ...migrated, profiles: [{ ...migrated.profiles[0], pages: [{ ...migrated.profiles[0].pages[0], placements: legacy.profiles![0].pages![0].placements as Placement[] }] }] });
     expect(migrated.version).toBe(CONFIG_VERSION);
     for (const z of zonesOf(migrated)) {
@@ -66,29 +67,29 @@ describe("v10: the widget preset key", () => {
   });
 
   it("a zone whose only setting was the preset ends with no settings", () => {
-    const [z] = zonesOf(mergeConfig(stored(9, [zone("a", { settings: { preset: "default" } })])));
+    const [z] = zonesOf(upgradeConfig(stored(9, [zone("a", { settings: { preset: "default" } })])));
     expect(z.settings).toBeUndefined();
   });
 
   it("is a no-op, by identity, on a zone or profile without the key", () => {
-    const p = mergeConfig(stored(10, [zone("a", { settings: { accent: "#ff0000" } }), zone("b")])).profiles[0];
+    const p = upgradeConfig(stored(10, [zone("a", { settings: { accent: "#ff0000" } }), zone("b")])).profiles[0];
     expect(migrateProfileV10(p)).toBe(p);
     for (const z of p.pages[0].placements) expect(migratePlacementV10(z)).toBe(z);
   });
 
   it("a migrated config migrates to itself", () => {
-    const once = mergeConfig(stored(9, [zone("a", { settings: PICKED.vivid })]));
-    expect(mergeConfig(JSON.parse(JSON.stringify(once)))).toEqual(once);
+    const once = upgradeConfig(stored(9, [zone("a", { settings: PICKED.vivid })]));
+    expect(upgradeConfig(JSON.parse(JSON.stringify(once)))).toEqual(once);
   });
 
-  it("drops the key from a profile file too (the import path runs mergeConfig)", () => {
+  it("drops the key from a profile file too (the import path runs upgradeConfig)", async () => {
     const text = JSON.stringify({
       name: "Desk",
       width: 1920,
       height: 1080,
       pages: [{ id: "main", name: "Main", placements: [zone("a", { settings: PICKED.mono })] }],
     });
-    const result = parseProfileFile(text);
+    const result = await parseProfileFile(text);
     if ("error" in result) throw new Error(result.error);
     expect(result.profile.pages[0].placements[0].settings).toEqual({ surface: "matte-dark", tint: false, accent: "#fafafa" });
   });

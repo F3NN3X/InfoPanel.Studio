@@ -1,5 +1,6 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { CANVAS_ID, ITEM_ID, defaultConfig, mergeConfig, newProfile, type DashboardConfig, type Placement, type ProfileView } from "@/lib/layout";
+import { CANVAS_ID, ITEM_ID, defaultConfig, newProfile, type DashboardConfig, type Placement, type ProfileView } from "@/lib/layout";
 import { profileWithPage } from "@/lib/pages";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { canvasRect, canvasZoneOf, countItems, importAsProfile, importIntoProfile, withCanvas } from "@/components/studio/import-actions";
@@ -52,7 +53,7 @@ describe("importAsProfile", () => {
 
   it("survives a reload unchanged (normalization keeps the zone and its canvas)", () => {
     const { config: out, profileId } = importAsProfile(config(), canvas(), "Arc", { width: 1920, height: 550 });
-    const back = mergeConfig(JSON.parse(JSON.stringify(out)));
+    const back = upgradeConfig(JSON.parse(JSON.stringify(out)));
     const p = back.profiles.find((x) => x.id === profileId)!;
     expect(p.pages[0].placements[0]).toMatchObject({ module: CANVAS_ID, colSpan: 19, rowSpan: 6, canvas: canvas() });
     expect(back.profiles.find((x) => x.id === profileId)).toEqual(out.profiles.find((x) => x.id === profileId));

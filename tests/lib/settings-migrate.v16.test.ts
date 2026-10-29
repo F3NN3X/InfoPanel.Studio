@@ -1,11 +1,12 @@
 // v16 (screens own their look): the dashboard level ("All screens") goes, each screen keeps the look it showed. Each
-// case loads a literal v15 config through `mergeConfig`, as the app does, and checks the fields one by one; the last
+// case loads a literal v15 config through `upgradeConfig`, as the app does, and checks the fields one by one; the last
 // cases resolve every screen's look under the v15 rules and the v16 rules and compare them.
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import { normalizeBackground, resolveBackground, type PageBackground } from "@/lib/appearance";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { GENERAL_DEFAULTS, resolveFont, resolveGeneral } from "@/lib/general";
-import { CONFIG_VERSION, mergeConfig, type DashboardConfig, type MonitorProfile, type Placement, type StoredConfig } from "@/lib/layout";
+import { CONFIG_VERSION, type DashboardConfig, type MonitorProfile, type Placement, type StoredConfig } from "@/lib/layout";
 import { RENDERING_KEYS } from "@/lib/performance";
 import { appearanceOf, resolveWith } from "@/lib/style-resolve";
 import { DEFAULT_THEME, resolveTheme, THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
@@ -34,7 +35,7 @@ const screen = (id: string, extra: Record<string, unknown> = {}) => ({
 const v15 = (dashboard: Record<string, unknown>, profiles: unknown[]): StoredConfig =>
   JSON.parse(JSON.stringify({ version: 15, activeProfile: "auto", ...dashboard, profiles })) as StoredConfig;
 
-const load = (c: StoredConfig): DashboardConfig => mergeConfig(c);
+const load = (c: StoredConfig): DashboardConfig => upgradeConfig(c);
 const byId = (c: DashboardConfig, id: string): MonitorProfile => c.profiles.find((p) => p.id === id)!;
 
 /** A dashboard look like a real one: every kind of value at All screens. */
@@ -237,7 +238,7 @@ function lookV16(c: DashboardConfig): Record<string, Look> {
 const asV15 = (stored: StoredConfig): V15 => {
   const raw = stored as unknown as V15;
   // The screens' own fields and pages come through the earlier migrations unchanged; v16 only adds to them.
-  const screens = mergeConfig({ ...stored, theme: undefined, radius: undefined, background: undefined, style: undefined, general: undefined, appliedTheme: undefined, version: 16 } as StoredConfig).profiles;
+  const screens = upgradeConfig({ ...stored, theme: undefined, radius: undefined, background: undefined, style: undefined, general: undefined, appliedTheme: undefined, version: 16 } as StoredConfig).profiles;
   return { ...raw, background: normalizeBackground(raw.background), profiles: screens };
 };
 

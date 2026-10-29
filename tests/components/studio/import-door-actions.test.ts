@@ -130,7 +130,7 @@ describe("runImport", () => {
     expect(added.pages).toHaveLength(original.pages.length);
     expect(r.go).toEqual({ to: "screens" });
     // The file's own contents survive the trip: parsing the export gives the same profile the door added (bar ids and name).
-    const parsed = parseProfileFile(profileFileText(original));
+    const parsed = await parseProfileFile(profileFileText(original));
     if ("error" in parsed) throw new Error(parsed.error);
     expect({ ...added, id: "", name: "", pages: [] }).toEqual({ ...parsed.profile, id: "", name: "", pages: [] });
   });

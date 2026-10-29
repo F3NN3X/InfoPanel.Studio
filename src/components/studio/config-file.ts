@@ -1,6 +1,6 @@
 import { inlineCanvases, unresolvedCanvases } from "@/lib/canvas-store";
 import { looksLikeConfig } from "@/lib/import-sniff";
-import { CONFIG_VERSION, mergeConfig, type DashboardConfig } from "@/lib/layout";
+import { CONFIG_VERSION, readImportedConfig, type DashboardConfig } from "@/lib/layout";
 import { isTauri, saveTextFile } from "@/lib/desktop";
 
 const EXPORT_NAME = "infopanel-studio-config.json";
@@ -72,8 +72,8 @@ export async function readConfigText(text: string): Promise<{ config: DashboardC
     throw new Error("Not a Studio config: it needs a version and screens with ids and pages");
   }
   if ((parsed.version as number) > CONFIG_VERSION) throw new Error("This config is from a newer version of InfoPanel Studio");
-  // mergeConfig runs the v1→v2 migration (explicit zone boxes, rows).
-  const config = await inlineCanvases(mergeConfig(parsed));
+  // A file goes through the upgrade, whatever version it says (readImportedConfig).
+  const config = await inlineCanvases(await readImportedConfig(parsed));
   return { config, missing: unresolvedCanvases(config) };
 }
 

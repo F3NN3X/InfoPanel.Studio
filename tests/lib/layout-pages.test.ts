@@ -1,5 +1,6 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { mergeConfig, newProfile, type Placement, type StoredProfile } from "@/lib/layout";
+import { newProfile, type Placement, type StoredProfile } from "@/lib/layout";
 import { mainPage, pageOf } from "@/lib/pages";
 
 const zone = (id: string, extra: Partial<Placement> = {}): Placement => ({
@@ -14,9 +15,9 @@ const zone = (id: string, extra: Partial<Placement> = {}): Placement => ({
 });
 
 const base = { id: "mine", name: "Mine", width: 1920, height: 550, cols: 12, rows: 2, fit: "fill" as const };
-const mergeOne = (p: StoredProfile) => mergeConfig({ profiles: [p] }).profiles.find((x) => x.id === p.id)!;
+const mergeOne = (p: StoredProfile) => upgradeConfig({ profiles: [p] }).profiles.find((x) => x.id === p.id)!;
 
-describe("mergeConfig pages migration", () => {
+describe("upgradeConfig pages migration", () => {
   it("wraps a v2 profile's placements into one Main page, keeping every zone as it was", () => {
     const zones = [
       zone("a", { colStart: 1, settings: { accent: "#ff0000" }, design: { accent: "#00ff00" } }),
@@ -99,13 +100,13 @@ describe("mergeConfig pages migration", () => {
   });
 
   it("stamps the current version and is stable when merged again", () => {
-    const once = mergeConfig({ version: 2, profiles: [{ ...base, placements: [zone("a")] }] });
+    const once = upgradeConfig({ version: 2, profiles: [{ ...base, placements: [zone("a")] }] });
     expect(once.version).toBe(16);
-    expect(mergeConfig(JSON.parse(JSON.stringify(once)))).toEqual(JSON.parse(JSON.stringify(once)));
+    expect(upgradeConfig(JSON.parse(JSON.stringify(once)))).toEqual(JSON.parse(JSON.stringify(once)));
   });
 
   it("emits pages from the default profile and new profiles", () => {
-    const config = mergeConfig({});
+    const config = upgradeConfig({});
     for (const p of config.profiles) {
       expect(p.pages.length).toBeGreaterThan(0);
       expect(p).not.toHaveProperty("placements");

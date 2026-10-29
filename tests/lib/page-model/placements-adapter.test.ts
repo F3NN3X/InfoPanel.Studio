@@ -1,7 +1,8 @@
 // A screen's page through the page model (Edit v3 SPEC §3.4, acceptance 10, 13, 14): read and written back with no
 // change it is the same page, object for object; every op lands in the placements, groups and flags it names.
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { ITEM_ID, mergeConfig, type MonitorProfile, type PageGroup, type Placement, type ProfilePage, type StoredConfig } from "@/lib/layout";
+import { ITEM_ID, type MonitorProfile, type PageGroup, type Placement, type ProfilePage, type StoredConfig } from "@/lib/layout";
 import { applyPage, cellRect, findNode, partsOf, readPage, writePage, type PartNode } from "@/lib/page-model";
 import { applyPlacements, readPlacements, screenGrid, writePlacements } from "@/lib/page-model/placements-adapter";
 
@@ -72,9 +73,9 @@ describe("a screen page round trip", () => {
     expect(writePage(profile, page, readPage(profile, page)!)).toBe(page);
   });
 
-  it("survives a save and load (mergeConfig) unchanged, and reads the same model again", () => {
+  it("survives a save and load (upgradeConfig) unchanged, and reads the same model again", () => {
     const profile = desk();
-    const loaded = mergeConfig(JSON.parse(JSON.stringify({ version: 15, profiles: [profile] })) as StoredConfig).profiles[0];
+    const loaded = upgradeConfig(JSON.parse(JSON.stringify({ version: 15, profiles: [profile] })) as StoredConfig).profiles[0];
     expect(loaded.pages[0]).toEqual(profile.pages[0]);
     expect(writePlacements(loaded.pages[0], readPlacements(loaded, loaded.pages[0]))).toBe(loaded.pages[0]);
   });
@@ -216,7 +217,7 @@ describe("ops on a screen page", () => {
   });
 
   it("applyPage changes one page of the config as one change; nothing changed gives the same config", () => {
-    const config = mergeConfig({ version: 15, profiles: [desk()] } as unknown as StoredConfig);
+    const config = upgradeConfig({ version: 15, profiles: [desk()] } as unknown as StoredConfig);
     expect(applyPage(config, "desk", "main", [])).toBe(config);
     expect(applyPage(config, "desk", "nope", [{ type: "remove", id: "cpu" }])).toBe(config);
     const next = applyPage(config, "desk", "main", [{ type: "remove", id: "cpu" }]);

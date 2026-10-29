@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { exportConfigFile } from "@/components/studio/config-file";
 import { CONFIG_EVENTS_URL, CONFIG_URL, fetchConfig, patchSettings, pushConfig } from "@/lib/dashboard-server";
-import { defaultConfig, mergeConfig, type DashboardConfig, type StoredConfig } from "@/lib/layout";
+import { defaultConfig, readConfig, type DashboardConfig, type StoredConfig } from "@/lib/layout";
 import { withSettingsPatch, type SettingsPatch } from "@/lib/settings-patch";
 import { onStudioMessage, postStudioMessage } from "@/lib/studio-channel";
 
@@ -36,7 +36,8 @@ export function useDashboardSettings() {
       if (res.status === 404) throw new Error("Nothing is saved yet: open the Studio once first.");
       if (!res.ok) throw new Error(`The server answered ${res.status}.`);
       const parsed = (await res.json()) as StoredConfig;
-      if (inflight.current === 0) setConfig(mergeConfig(parsed));
+      const read = await readConfig(parsed);
+      if (inflight.current === 0) setConfig(read);
       setLoadError(undefined);
     } catch (err) {
       setConfig((c) => c ?? null);
@@ -102,7 +103,7 @@ export function useDashboardSettings() {
     try {
       const saved = await fetchConfig();
       if (!saved) throw new Error("nothing is saved yet");
-      await exportConfigFile(mergeConfig(saved), (error) => setNote({ id: nextId.current++, error }));
+      await exportConfigFile(await readConfig(saved), (error) => setNote({ id: nextId.current++, error }));
     } catch (err) {
       setNote({ id: nextId.current++, error: `Not exported: ${why(err)}` });
     }

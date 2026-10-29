@@ -1,5 +1,6 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
-import { CONFIG_VERSION, mergeConfig, type Placement, type StoredConfig } from "@/lib/layout";
+import { CONFIG_VERSION, type Placement, type StoredConfig } from "@/lib/layout";
 import { chromeOf } from "@/modules/standard-settings";
 import { chromeVars, numGlowAttr } from "@/components/widget-style";
 import { skinContext } from "@/widgets/core/look";
@@ -9,25 +10,25 @@ const zone = (id: string, module: string, settings?: Record<string, unknown>) =>
 const stored = (version: number, placements: Record<string, unknown>[], extra: Record<string, unknown> = {}): StoredConfig =>
   ({ version, activeProfile: "auto", profiles: [{ id: "p", name: "Desk", width: 1920, height: 1080, cols: 12, rows: 6, fit: "scroll", pages: [{ id: "main", name: "Main", placements }] }], ...extra }) as unknown as StoredConfig;
 
-const zonesOf = (c: ReturnType<typeof mergeConfig>): Placement[] => c.profiles[0].pages[0].placements;
+const zonesOf = (c: ReturnType<typeof upgradeConfig>): Placement[] => c.profiles[0].pages[0].placements;
 
 describe("v13: glow (the migration is the identity)", () => {
   it("stamps the version and changes no data", () => {
     const v12 = stored(12, [zone("cpu", "CpuMonitor", { device: "cpu0", accent: "#fff" })]);
-    const out = mergeConfig(v12);
+    const out = upgradeConfig(v12);
     expect(out.version).toBe(CONFIG_VERSION);
     expect(CONFIG_VERSION).toBeGreaterThanOrEqual(13);
     expect(zonesOf(out)[0].settings).toEqual({ device: "cpu0", accent: "#fff" });
   });
 
   it("keeps the number-glow keys of a zone and round-trips through JSON", () => {
-    const once = mergeConfig(stored(13, [zone("cpu", "CpuMonitor", { numGlow: "strong", numGlowColor: "#00ffff" })]));
+    const once = upgradeConfig(stored(13, [zone("cpu", "CpuMonitor", { numGlow: "strong", numGlowColor: "#00ffff" })]));
     expect(zonesOf(once)[0].settings).toEqual({ numGlow: "strong", numGlowColor: "#00ffff" });
-    expect(mergeConfig(JSON.parse(JSON.stringify(once)) as StoredConfig)).toEqual(once);
+    expect(upgradeConfig(JSON.parse(JSON.stringify(once)) as StoredConfig)).toEqual(once);
   });
 
   it("migrates a v11 config through v12 to v13 in one load", () => {
-    const out = mergeConfig(stored(11, [zone("mix", "VolumeMixer", { device: "default-audio" })]));
+    const out = upgradeConfig(stored(11, [zone("mix", "VolumeMixer", { device: "default-audio" })]));
     expect(out.version).toBe(CONFIG_VERSION);
     expect(zonesOf(out)[0].settings).toEqual({ devices: "default-audio" });
   });

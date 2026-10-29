@@ -1,14 +1,9 @@
+import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import { applyView, mainPage, pageOf, profileWithPage } from "@/lib/pages";
 import { panelLegacyLook } from "@/lib/panel-model";
 import {
-  CONFIG_VERSION,
-  PANEL_ID,
-  defaultConfig,
-  mergeConfig,
-  type PanelDef,
-  type StoredProfile,
-} from "@/lib/layout";
+  CONFIG_VERSION, PANEL_ID, defaultConfig, type PanelDef, type StoredProfile } from "@/lib/layout";
 import { arcv2Profile } from "@tests/lib/__fixtures__/arcv2-profile";
 import { ISLAND_DEFAULTS } from "@/lib/island/config";
 import { DEFAULT_THEME } from "@/lib/theme";
@@ -39,9 +34,9 @@ const userProfile = (extra: Partial<StoredProfile> = {}): StoredProfile => ({
   ...extra,
 });
 
-describe("mergeConfig", () => {
+describe("upgradeConfig", () => {
   it("fills a missing config with the defaults: one blank profile", () => {
-    const c = mergeConfig({});
+    const c = upgradeConfig({});
     expect(c.version).toBe(16);
     expect(c.activeProfile).toBe("auto");
     expect(c.profiles).toHaveLength(1);
@@ -60,13 +55,13 @@ describe("mergeConfig", () => {
   });
 
   it("keeps user profiles and injects no sample profile", () => {
-    const ids = mergeConfig({ profiles: [userProfile()] }).profiles.map((p) => p.id);
+    const ids = upgradeConfig({ profiles: [userProfile()] }).profiles.map((p) => p.id);
     expect(ids).toEqual(["mine"]);
   });
 
   it("keeps a stored copy of a formerly shipped profile as it is", () => {
     const old = { ...arcv2Profile(), sampleVersion: 4, pages: [mainPage()] };
-    const arc = mergeConfig({ profiles: [userProfile(), old] }).profiles.find((p) => p.id === "arcv2")!;
+    const arc = upgradeConfig({ profiles: [userProfile(), old] }).profiles.find((p) => p.id === "arcv2")!;
     expect(arc.sampleVersion).toBe(4);
     expect(pageOf(arc).placements).toEqual([]);
   });
@@ -81,7 +76,7 @@ describe("mergeConfig", () => {
         { id: "two", name: "Two", placements: [legacy("t", "textfile")] },
       ],
     };
-    const c = mergeConfig({ version: 3, profiles: [stored] });
+    const c = upgradeConfig({ version: 3, profiles: [stored] });
     expect(c.version).toBe(16);
     const [one, two] = c.profiles[0].pages;
     expect(one.placements[0]).toMatchObject({ id: "s", module: "SystemOverview", settings: { coreView: "heatmap", sections: "cpu,gpu,vram,ram" } });
@@ -89,19 +84,19 @@ describe("mergeConfig", () => {
     expect(one.placements[1]).toEqual(legacy("u", "someplugin", { x: "1" }));
     expect(two.placements[0]).toMatchObject({ id: "t", module: "TextFile", settings: { surface: "theme" } });
     // Already migrated: merging again changes nothing.
-    expect(mergeConfig(JSON.parse(JSON.stringify(c)))).toEqual(JSON.parse(JSON.stringify(c)));
+    expect(upgradeConfig(JSON.parse(JSON.stringify(c)))).toEqual(JSON.parse(JSON.stringify(c)));
   });
 
   it("leaves a card's surface to a dashboard or profile style that picks one", () => {
     const textfile = { id: "t", module: "textfile", colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 1, visible: true };
-    const surfaceOf = (c: ReturnType<typeof mergeConfig>) => pageOf(c.profiles[0]).placements[0].settings?.surface;
-    expect(surfaceOf(mergeConfig({ profiles: [userProfile({ placements: [textfile] })], style: { surface: "glass" } }))).toBeUndefined();
-    expect(surfaceOf(mergeConfig({ profiles: [userProfile({ placements: [textfile], style: { surface: "matte-dark" } })] }))).toBeUndefined();
-    expect(surfaceOf(mergeConfig({ profiles: [userProfile({ placements: [textfile], style: { surface: "auto" } })] }))).toBe("theme");
+    const surfaceOf = (c: ReturnType<typeof upgradeConfig>) => pageOf(c.profiles[0]).placements[0].settings?.surface;
+    expect(surfaceOf(upgradeConfig({ profiles: [userProfile({ placements: [textfile] })], style: { surface: "glass" } }))).toBeUndefined();
+    expect(surfaceOf(upgradeConfig({ profiles: [userProfile({ placements: [textfile], style: { surface: "matte-dark" } })] }))).toBeUndefined();
+    expect(surfaceOf(upgradeConfig({ profiles: [userProfile({ placements: [textfile], style: { surface: "auto" } })] }))).toBe("theme");
   });
 
   it("normalizes panel placements and leaves module placements alone", () => {
-    const [mine] = mergeConfig({ profiles: [userProfile()] }).profiles;
+    const [mine] = upgradeConfig({ profiles: [userProfile()] }).profiles;
     const [panel, module] = pageOf(mine).placements;
     expect(panel.panel).toMatchObject({ layout: "stack", direction: "row", wrap: true, title: "Net" });
     expect(panel.panel?.widgets[0].box).toEqual({ w: "fill" });
@@ -112,48 +107,48 @@ describe("mergeConfig", () => {
   });
 
   it("keeps a profile's island, guarded, and adds none to a profile without one", () => {
-    const [plain] = mergeConfig({ profiles: [userProfile()] }).profiles;
+    const [plain] = upgradeConfig({ profiles: [userProfile()] }).profiles;
     expect(plain.island).toBeUndefined();
     expect(JSON.parse(JSON.stringify(plain))).not.toHaveProperty("island");
     // Stored before the later options existed (values, reserve, look, motion...): those take their defaults.
     const island = { enabled: true, idle: "time-date", size: "l", offsetY: 99, collapseAfter: 30 };
-    const [mine] = mergeConfig({ profiles: [userProfile({ island } as never)] }).profiles;
+    const [mine] = upgradeConfig({ profiles: [userProfile({ island } as never)] }).profiles;
     expect(mine.island).toEqual({ ...ISLAND_DEFAULTS, ...island, offsetY: 64 });
     // It is a profile field, so it survives the page view round trip.
     expect(applyView(mine, profileWithPage(mine)).island).toEqual(mine.island);
   });
 
   it("is stable when a loaded config is merged again", () => {
-    const once = mergeConfig({ profiles: [userProfile()] });
-    expect(mergeConfig(JSON.parse(JSON.stringify(once)))).toEqual(JSON.parse(JSON.stringify(once)));
+    const once = upgradeConfig({ profiles: [userProfile()] });
+    expect(upgradeConfig(JSON.parse(JSON.stringify(once)))).toEqual(JSON.parse(JSON.stringify(once)));
   });
 
 
   it("copies the dashboard style down to the screens, its force switch becoming the profiles' locks, dropping malformed ones", () => {
-    const merged = mergeConfig({ profiles: [userProfile()], style: { accent: "#ff0000" }, styleEnforce: true });
+    const merged = upgradeConfig({ profiles: [userProfile()], style: { accent: "#ff0000" }, styleEnforce: true });
     expect(merged.profiles[0].widgetTheme?.values).toEqual({ accent: "#ff0000" });
     expect(merged).not.toHaveProperty("style");
     expect(merged).not.toHaveProperty("styleEnforce");
     expect(merged.profiles[0].widgetTheme?.locks?.colors).toBe(true);
-    const bad = mergeConfig({ profiles: [userProfile()], style: ["x"], styleEnforce: "yes" } as never);
+    const bad = upgradeConfig({ profiles: [userProfile()], style: ["x"], styleEnforce: "yes" } as never);
     expect(bad).not.toHaveProperty("style");
     expect(bad.profiles[0].widgetTheme).toBeUndefined();
   });
 
   it("unpins a profile that no longer exists", () => {
-    expect(mergeConfig({ activeProfile: "gone", profiles: [userProfile()] }).activeProfile).toBe("auto");
-    expect(mergeConfig({ activeProfile: "mine", profiles: [userProfile()] }).activeProfile).toBe("mine");
+    expect(upgradeConfig({ activeProfile: "gone", profiles: [userProfile()] }).activeProfile).toBe("auto");
+    expect(upgradeConfig({ activeProfile: "mine", profiles: [userProfile()] }).activeProfile).toBe("mine");
   });
 
   it("keeps stored style presets and drops a non-list", () => {
     const preset = { id: "s", name: "S", settings: { radius: "4" } };
-    expect(mergeConfig({ stylePresets: [preset] }).stylePresets).toEqual([preset]);
-    expect(mergeConfig({ stylePresets: "x" } as never).stylePresets).toBeUndefined();
+    expect(upgradeConfig({ stylePresets: [preset] }).stylePresets).toEqual([preset]);
+    expect(upgradeConfig({ stylePresets: "x" } as never).stylePresets).toBeUndefined();
   });
 
   it("keeps the user's appearance presets, guarding each field", () => {
     const good = { id: "a", name: " Mine ", description: "d", theme: "paper", radius: 0.75, style: { surface: "theme" } };
-    const c = mergeConfig({
+    const c = upgradeConfig({
       appearancePresets: [
         good,
         { id: "b", name: "Bad bits", theme: { card: "0 0% 50%", bogus: "x" }, radius: 9, style: { surface: "lava", padding: "8", label: "x" }, background: { type: "image", src: "javascript:alert(1)" } },
@@ -171,14 +166,14 @@ describe("mergeConfig", () => {
     expect(bad.background).toEqual({ type: "image" });
     expect(typeof bad.theme === "object" && bad.theme.card).toBe("0 0% 50%");
     expect(bad.theme).not.toHaveProperty("bogus");
-    expect(mergeConfig({ appearancePresets: "x" } as never).appearancePresets).toBeUndefined();
-    expect(mergeConfig({ appearancePresets: [] }).appearancePresets).toBeUndefined();
-    expect(mergeConfig(JSON.parse(JSON.stringify(c))).appearancePresets).toEqual(c.appearancePresets);
+    expect(upgradeConfig({ appearancePresets: "x" } as never).appearancePresets).toBeUndefined();
+    expect(upgradeConfig({ appearancePresets: [] }).appearancePresets).toBeUndefined();
+    expect(upgradeConfig(JSON.parse(JSON.stringify(c))).appearancePresets).toEqual(c.appearancePresets);
   });
 
   it("keeps the user's saved palettes, guarding each, and round-trips them", () => {
     const tokens = { ...DEFAULT_THEME, primary: "200 80% 50%" };
-    const c = mergeConfig({
+    const c = upgradeConfig({
       palettes: [
         { id: "a", name: " Desk ", tokens },
         { id: "b", name: "Partial", tokens: { primary: "1 2% 3%", bogus: "x", ring: 4 } },
@@ -192,24 +187,24 @@ describe("mergeConfig", () => {
       { id: "a", name: "Desk", tokens },
       { id: "b", name: "Partial", tokens: { ...DEFAULT_THEME, primary: "1 2% 3%" } },
     ]);
-    expect(mergeConfig(JSON.parse(JSON.stringify(c))).palettes).toEqual(c.palettes);
-    expect(mergeConfig({ palettes: "x" } as never).palettes).toBeUndefined();
-    expect(mergeConfig({ palettes: [] }).palettes).toBeUndefined();
+    expect(upgradeConfig(JSON.parse(JSON.stringify(c))).palettes).toEqual(c.palettes);
+    expect(upgradeConfig({ palettes: "x" } as never).palettes).toBeUndefined();
+    expect(upgradeConfig({ palettes: [] }).palettes).toBeUndefined();
   });
 
   it("passes the dashboard and profile backgrounds through, normalized (the dashboard's onto the screens without one)", () => {
-    const c = mergeConfig({
+    const c = upgradeConfig({
       background: { type: "image", src: "/bg.png", dim: 140 },
       profiles: [userProfile({ background: { type: "none" } }), { ...userProfile(), id: "other" }],
     });
     expect(c).not.toHaveProperty("background");
     expect(c.profiles.find((p) => p.id === "mine")?.background).toEqual({ type: "none" });
     expect(c.profiles.find((p) => p.id === "other")?.background).toEqual({ type: "image", src: "/bg.png", dim: 100 });
-    expect(mergeConfig(JSON.parse(JSON.stringify(c)))).toEqual(JSON.parse(JSON.stringify(c)));
+    expect(upgradeConfig(JSON.parse(JSON.stringify(c)))).toEqual(JSON.parse(JSON.stringify(c)));
   });
 
   it("drops an unusable background", () => {
-    const c = mergeConfig({
+    const c = upgradeConfig({
       background: { type: "pattern" } as never,
       profiles: [userProfile({ background: "red" as never })],
     });
@@ -218,8 +213,8 @@ describe("mergeConfig", () => {
   });
 
   it("guards the general settings", () => {
-    expect(mergeConfig({}).general).toBeUndefined();
-    const c = mergeConfig({ general: { font: "serif", locale: "de-DE", motion: "warp" } as never });
+    expect(upgradeConfig({}).general).toBeUndefined();
+    const c = upgradeConfig({ general: { font: "serif", locale: "de-DE", motion: "warp" } as never });
     expect(c.general).toEqual({ locale: "de-DE" });
     // v16: the page font is the screen's.
     expect(c.profiles[0].font).toBe("serif");
@@ -227,7 +222,7 @@ describe("mergeConfig", () => {
   });
 
   it("guards a profile's gap, padding, theme and radius", () => {
-    const [mine] = mergeConfig({
+    const [mine] = upgradeConfig({
       version: CONFIG_VERSION,
       profiles: [
         userProfile({
@@ -240,7 +235,7 @@ describe("mergeConfig", () => {
     }).profiles;
     expect(mine).toMatchObject({ gap: 25, padding: 0, theme: { background: "0 0% 100%" }, radius: 1 });
     expect(mine.theme).not.toHaveProperty("nonsense");
-    const [bad] = mergeConfig({
+    const [bad] = upgradeConfig({
       version: CONFIG_VERSION,
       profiles: [userProfile({ gap: "wide" as never, theme: "paper" as never, radius: Number.NaN })],
     }).profiles;
