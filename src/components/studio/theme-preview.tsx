@@ -41,6 +41,8 @@ interface ThemePreviewProps {
   levelName: string;
   /** What below the level doesn't follow it, the theme's own writes left out (`differencesOf`). */
   differences: readonly ThemeException[];
+  /** The Update bar (`ThemeUpdateBar`), in the header before the differences pill and the zoom. */
+  bar?: ReactNode;
   /** The toast row, under the header. */
   toast?: ReactNode;
   /** Make these follow the level again, in one change. */
@@ -55,7 +57,7 @@ interface ThemePreviewProps {
  * "✎ ‹section›". A widget clicked is selected, and the bar under the canvas says what it uses of its own, with Use
  * theme's value and Open in Edit; with none selected, Make all follow.
  */
-export function ThemePreview({ config, at, profile, page, onPage, levelName, differences, toast, onFollow, onOpenInEdit }: ThemePreviewProps) {
+export function ThemePreview({ config, at, profile, page, onPage, levelName, differences, bar, toast, onFollow, onOpenInEdit }: ThemePreviewProps) {
   const { ref, w } = useElementSize();
   // Fit, or a zoom picked with − / + / 100% (the frame then scrolls).
   const [zoom, setZoom] = useState<number | "fit">("fit");
@@ -122,7 +124,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
             </button>
           ))}
         </div>
-        <div className="flex-1" />
+        <div className="flex min-w-0 flex-1 justify-end">{bar}</div>
         <button
           type="button"
           aria-pressed={tags}

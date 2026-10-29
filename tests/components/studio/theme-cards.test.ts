@@ -12,6 +12,7 @@ import {
   withCardLock,
   withPageFont,
   withToken,
+  withTokens,
   type ThemeAt,
 } from "@/components/studio/theme-cards";
 import { withPageFollow, withScopeValues } from "@/components/studio/theme-editor-model";
@@ -119,5 +120,26 @@ describe("the screen's stores", () => {
   it("a token edit on a screen starts from what it shows", () => {
     const c = withToken(withToken(setup(), SCREEN, "accent", "9 9% 9%"), SCREEN, "primary", "1 2% 3%");
     expect(desk(c).theme).toEqual({ ...DEFAULT_THEME, accent: "9 9% 9%", primary: "1 2% 3%" });
+  });
+});
+
+describe("withTokens (a palette picked)", () => {
+  const themed = () => withScopeValues(setup(), "desk", { kind: "profile" }, () => ({ accent: "#22d3ee", glowColor: "#22D3EE", borderColor: "#ffffff" }));
+  const blue = { ...DEFAULT_THEME, primary: "200 80% 50%" };
+
+  it("a palette with an accent recolors the screen's accent and the glow that was it; other colors stay", () => {
+    const c = withTokens(themed(), SCREEN, blue, "#ffb000");
+    expect(desk(c).theme).toEqual(blue);
+    expect(desk(c).widgetTheme?.values).toEqual({ accent: "#ffb000", glowColor: "#ffb000", borderColor: "#ffffff" });
+  });
+
+  it("a palette without one changes the tokens only", () => {
+    const c = withTokens(themed(), SCREEN, blue);
+    expect(desk(c).theme).toEqual(blue);
+    expect(desk(c).widgetTheme?.values).toEqual(desk(themed()).widgetTheme?.values);
+  });
+
+  it("a screen with no accent of its own takes the palette's", () => {
+    expect(desk(withTokens(setup(), SCREEN, blue, "#ffb000")).widgetTheme?.values).toEqual({ accent: "#ffb000" });
   });
 });

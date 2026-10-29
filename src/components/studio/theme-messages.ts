@@ -47,7 +47,7 @@ export const appliedToScreensToast = (name: string, screens: number, keepBackgro
   sub: keepBackground ? "Backgrounds kept." : "Backgrounds included.",
 });
 
-export const paletteToast = (name: string): ToastText => ({ title: `Palette changed to ${name}.`, sub: "Skin, corners, background and fine-tune kept." });
+export const paletteToast = (name: string): ToastText => ({ title: `Palette changed to ${name}.`, sub: "Skin, corners, background and the rest of the fine-tune kept." });
 
 /** A page's skin: its palette, corners and background are its screen's (owner decision 1). */
 export const skinToast = (name: string, level: ThemeLevel, screen: string): ToastText => ({

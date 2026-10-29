@@ -48,7 +48,7 @@ import { differencesOf, followAll, widgetCount, widgetsKeeping } from "./theme-d
 import { exceptionsOf, widgetOverrides } from "./theme-exceptions";
 import { FineTuneHeader, FineTuneRow, RowsLabel } from "./theme-fine-tune";
 import { changedHere, fineTuneChip, fineTuneHeading, fineTuneSummary, resetFineTune } from "./theme-fine-tune-model";
-import { ThemeLookCard } from "./theme-look-card";
+import { ThemeLookCard, ThemeUpdateBar } from "./theme-look-card";
 import { appliedToast, appliedToScreensToast, paletteToast, paletteUsedBy, resetToast, savedToast, skinToast } from "./theme-messages";
 import { PalettePicker } from "./theme-palette-picker";
 import { BackgroundPicker, SkinPicker } from "./theme-part-pickers";
@@ -250,7 +250,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   const kind = cardKind(state);
   const name = cardName(state);
   const updateText = updateBarText(state, others);
-  const palette = paletteName(theme.tokens, config.palettes, templatePalettes);
+  const palette = paletteName(theme.tokens, config.palettes, templatePalettes, effective.accent);
   const saved = state.theme && kind === "saved" ? state.theme : undefined;
 
   const applyPreset = (p: AppearancePreset, keepBackground: boolean) => {
@@ -436,13 +436,14 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
         return (
           <PalettePicker
             current={theme.tokens}
+            currentAccent={effective.accent}
             saved={config.palettes ?? []}
             themes={templatePalettes}
             usedBy={(tokens) => paletteUsedBy(paletteUsers(config, tokens))}
             onBack={toMain}
-            onPick={(paletteLabel, tokens) => {
+            onPick={(paletteLabel, colors) => {
               if (!twoLevel) return;
-              setConfig((c) => withTokens(c, twoLevel, tokens));
+              setConfig((c) => withTokens(c, twoLevel, colors.tokens, colors.accent));
               toMain();
               show(paletteToast(paletteLabel));
             }}
@@ -450,7 +451,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
             onDuplicate={(id) => setConfig((c) => duplicatePalette(c, id, uid("palette")))}
             onDelete={(id) => setConfig((c) => deletePalette(c, id))}
             onSaveCurrent={(n) => {
-              setConfig((c) => savePalette(c, uid("palette"), n, theme.tokens));
+              setConfig((c) => savePalette(c, uid("palette"), n, theme.tokens, effective.accent));
               show(savedToast(n, "palette"));
             }}
           />
@@ -500,9 +501,6 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
               onRename={saved ? (n) => presets.rename(saved.id, n) : undefined}
               onDuplicate={saved ? () => presets.duplicate(saved.id) : state.theme ? () => presets.saveCopy(state.theme!) : undefined}
               onDelete={saved ? () => presets.remove(saved.id) : undefined}
-              update={updateText ? { text: updateText, onUpdate: saved ? () => presets.update(saved.id, at) : undefined } : undefined}
-              onSave={saveTheme}
-              saveName={kind === "template" ? `${name} copy` : ""}
               tokens={theme.tokens}
               paletteName={palette}
               skinName={skinLabel(effective.skin)}
@@ -566,6 +564,15 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
             levelName={levelName}
             differences={exceptions}
             toast={toast && <ThemeToastRow toast={toast} onUndo={onUndo} onDismiss={dismiss} />}
+            bar={
+              <ThemeUpdateBar
+                name={name}
+                kind={kind}
+                update={updateText ? { text: updateText, onUpdate: saved ? () => presets.update(saved.id, at) : undefined } : undefined}
+                onSave={saveTheme}
+                saveName={kind === "template" ? `${name} copy` : ""}
+              />
+            }
             onFollow={(list) => setConfig((c) => followAll(c, list))}
             onOpenInEdit={(pageId, zoneId) => onOpenZone(profile.id, pageId, zoneId)}
           />

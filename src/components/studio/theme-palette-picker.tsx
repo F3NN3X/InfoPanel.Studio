@@ -1,8 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { MoreHorizontal } from "lucide-react";
-import { sameValues } from "@/lib/applied-theme";
 import type { SavedPalette } from "@/lib/layout";
-import type { ThemePalette } from "@/lib/palettes";
+import { builtinPalettes, paletteName, type PaletteColors, type ThemePalette } from "@/lib/palettes";
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { ThemeNameInput } from "./theme-name-input";
@@ -15,13 +14,15 @@ const ACTION = "rounded-sm text-[12px] text-[#60a5fa] hover:underline focus-visi
 
 interface PalettePickerProps {
   current: ThemeTokens;
+  /** The level's accent: the tile marked is the palette the level's tokens and accent go by (`paletteName`). */
+  currentAccent?: unknown;
   /** The user's palettes (`config.palettes`). */
   saved: readonly SavedPalette[];
   /** The palettes the built-in themes carry (`themePalettes`); none until the templates load. */
   themes: readonly ThemePalette[];
   /** A saved palette's "used by" line. */
   usedBy: (tokens: ThemeTokens) => string;
-  onPick: (name: string, tokens: ThemeTokens) => void;
+  onPick: (name: string, colors: PaletteColors) => void;
   onRename: (id: string, name: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
@@ -41,7 +42,8 @@ export function PalettePicker(p: PalettePickerProps) {
   const [saving, setSaving] = useState(false);
   // A rename belongs to the panel it was started in: closing or switching panels ends it.
   useEffect(() => setRenaming(undefined), [menuFor]);
-  const same = (tokens: ThemeTokens) => sameValues(tokens, p.current);
+  const shown = paletteName(p.current, p.saved, p.themes, p.currentAccent);
+  const same = (named: { name: string }) => named.name === shown;
   const open = p.saved.find((s) => s.id === menuFor);
   // The ⋯ panel spans the grid under the open tile's row (tiles count from 0, two per row).
   const openAt = open ? THEME_PRESETS.length + p.saved.indexOf(open) : -1;
@@ -83,15 +85,15 @@ export function PalettePicker(p: PalettePickerProps) {
   );
 
   const tiles: ReactNode[] = [
-    ...THEME_PRESETS.map((t) => (
-      <Tile key={t.name} name={t.label} tag={t.name === "zinc" ? "Built-in default" : "Built-in"} selected={same(t.tokens)} onPick={() => p.onPick(t.label, t.tokens)}>
-        <PaletteSwatch tokens={t.tokens} />
+    ...builtinPalettes().map((t) => (
+      <Tile key={t.name} name={t.label} tag={t.name === "zinc" ? "Built-in default" : "Built-in"} selected={same({ name: t.label })} onPick={() => p.onPick(t.label, t)}>
+        <PaletteSwatch tokens={t.tokens} accent={t.accent} />
       </Tile>
     )),
     ...p.saved.map((s) => (
       <div key={s.id} className="relative grid min-w-0">
-        <Tile name={s.name} tag="Yours" selected={same(s.tokens)} onPick={() => p.onPick(s.name, s.tokens)}>
-          <PaletteSwatch tokens={s.tokens} />
+        <Tile name={s.name} tag="Yours" selected={same(s)} onPick={() => p.onPick(s.name, s)}>
+          <PaletteSwatch tokens={s.tokens} accent={s.accent} />
         </Tile>
         <button
           type="button"
@@ -105,8 +107,8 @@ export function PalettePicker(p: PalettePickerProps) {
       </div>
     )),
     ...p.themes.map((t) => (
-      <Tile key={t.id} name={t.name} tag="Theme" selected={same(t.tokens)} onPick={() => p.onPick(t.name, t.tokens)}>
-        <PaletteSwatch tokens={t.tokens} />
+      <Tile key={t.id} name={t.name} tag="Theme" selected={same(t)} onPick={() => p.onPick(t.name, t)}>
+        <PaletteSwatch tokens={t.tokens} accent={t.accent} />
       </Tile>
     )),
   ];
@@ -114,7 +116,7 @@ export function PalettePicker(p: PalettePickerProps) {
   return (
     <PickerShell
       title="Palette"
-      help="The 19 color tokens. Changing the palette keeps the skin, corners, background and fine-tune."
+      help="The 19 color tokens and the accent. Changing the palette keeps the skin, corners, background and the rest of the fine-tune."
       onBack={p.onBack}
       footer={
         <div className="flex items-center gap-3 text-[12px]">
