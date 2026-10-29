@@ -37,12 +37,26 @@ const ROWS = [1, 24] as const;
 const PROFILE_KEYS = [
   "id", "name", "width", "height", "cols", "rows", "fit", "pages", "placements", "rotate", "widgetTheme", "background",
   "theme", "radius", "gap", "padding", "island", "performance", "font", "sampleVersion", "style", "styleEnforce", "madeFor",
+  "appliedTheme",
 ] as const;
 /** The fields of a page (ProfilePage). */
-const PAGE_KEYS = ["id", "name", "icon", "placements", "widgetTheme", "layout"] as const;
+const PAGE_KEYS = ["id", "name", "icon", "placements", "widgetTheme", "layout", "appliedTheme", "groups", "snapItems", "freeCanvas"] as const;
 
 const pick = (from: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> =>
   Object.fromEntries(keys.filter((k) => from[k] !== undefined).map((k) => [k, from[k]]));
+
+/** The first config version where each screen holds its whole look (before it, a screen could take it from All screens). */
+const OWN_LOOK_VERSION = 16;
+
+/**
+ * A screen saved before v16 that had no look of its own: it showed the All screens look, which a screen file never
+ * held, so it imports with the built-in look.
+ */
+function tookSharedLook(raw: Record<string, unknown>, version: number): boolean {
+  if (version >= OWN_LOOK_VERSION) return false;
+  const values = isRecord(raw.widgetTheme) && isRecord(raw.widgetTheme.values) ? raw.widgetTheme.values : {};
+  return raw.theme === undefined && raw.background === undefined && raw.style === undefined && Object.keys(values).length === 0;
+}
 
 /** Placements of a canvas that lives only in the sender's canvas store (a ref, no canvas): this machine can't load them. */
 const hasOnlyCanvasRef = (p: unknown): boolean => isRecord(p) && p.canvas === undefined && typeof p.canvasRef === "string";
@@ -54,7 +68,9 @@ const hasOnlyCanvasRef = (p: unknown): boolean => isRecord(p) && p.canvas === un
  * the reason. Only the app's known profile and page fields are kept. Canvas zones holding only a ref
  * are dropped (`skippedCanvases` counts them). Ids are the file's own: see `importedProfile`.
  */
-export async function parseProfileFile(text: string): Promise<{ profile: MonitorProfile; skippedCanvases: number; upgradedFrom?: number } | { error: string }> {
+export async function parseProfileFile(
+  text: string,
+): Promise<{ profile: MonitorProfile; skippedCanvases: number; upgradedFrom?: number; sharedLook?: boolean } | { error: string }> {
   if (text.length > MAX_PROFILE_FILE_BYTES) return { error: TOO_BIG };
   let json: unknown;
   try {
@@ -100,7 +116,7 @@ export async function parseProfileFile(text: string): Promise<{ profile: Monitor
     // A file goes through the upgrade, whatever version it says (readImportedConfig).
     const [profile] = (await readImportedConfig({ version, profiles: [picked as unknown as StoredProfile] })).profiles;
     // One way only: an older file is upgraded, and the import says so.
-    return { profile, skippedCanvases, ...(version < CONFIG_VERSION ? { upgradedFrom: version } : {}) };
+    return { profile, skippedCanvases, ...(version < CONFIG_VERSION ? { upgradedFrom: version } : {}), ...(tookSharedLook(raw, version) ? { sharedLook: true } : {}) };
   } catch {
     return { error: "Not a profile file: it could not be read" };
   }

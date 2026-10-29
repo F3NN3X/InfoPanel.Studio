@@ -124,7 +124,8 @@ export async function runImport(files: readonly DoorFile[], choices: DoorChoices
     working = { ...working, profiles: [...working.profiles, screen] };
     ctx.addScreen(screen);
     result.done.push(
-      `Added screen ${screen.name}${parsed.skippedCanvases ? ` · ${parsed.skippedCanvases} InfoPanel pages left out (their profile is not in the file)` : ""}${upgradedNote(parsed.upgradedFrom)}`,
+      `Added screen ${screen.name}${parsed.skippedCanvases ? ` · ${parsed.skippedCanvases} InfoPanel pages left out (their profile is not in the file)` : ""}${upgradedNote(parsed.upgradedFrom)}` +
+        (parsed.sharedLook ? " · it used the All screens look, which the file doesn't hold, so it has the built-in look: pick a theme in Theme" : ""),
     );
     result.go = { to: "screens" };
   }

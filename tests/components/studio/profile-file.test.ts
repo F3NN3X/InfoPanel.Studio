@@ -120,6 +120,29 @@ describe("profile file", () => {
     expect(parsed.profile.pages[0].placements.map((p) => p.id)).toEqual(["z1"]);
   });
 
+  it("keeps the applied theme, and a page's groups, snap and own theme (#239)", async () => {
+    const source = profile();
+    const applied = { id: "builtin:tpl-gaming", name: "Gaming", tokens: { primary: "0 0% 98%" }, radius: 0.5, values: { accent: "#22d3ee" }, zones: { z1: { was: {}, now: { accent: "#22d3ee" } } } };
+    source.appliedTheme = applied;
+    source.pages[0] = { ...source.pages[0], groups: [{ id: "g1", name: "Group" }], snapItems: false, appliedTheme: { id: "t", name: "T", values: {} } };
+    source.pages[0].placements[0].groupId = "g1";
+    const back = await ok(profileFileText(source));
+    expect(back.appliedTheme).toEqual(applied);
+    expect(back.pages[0].groups).toEqual([{ id: "g1", name: "Group" }]);
+    expect(back.pages[0].snapItems).toBe(false);
+    expect(back.pages[0].appliedTheme?.id).toBe("t");
+  });
+
+  it("says when a pre-v16 screen had no look of its own, so it comes in with the built-in look (#240)", async () => {
+    const file = (extra: object) => JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 15, profile: { ...profile(), ...extra } });
+    const shared = await parseProfileFile(file({}));
+    expect("sharedLook" in shared && shared.sharedLook).toBe(true);
+    const own = await parseProfileFile(file({ theme: { primary: "200 80% 50%" } }));
+    expect("profile" in own && own.sharedLook).toBeFalsy();
+    const current = await parseProfileFile(profileFileText(profile()));
+    expect("profile" in current && current.sharedLook).toBeFalsy();
+  });
+
   it("rejects a file from a newer version", async () => {
     expect(await error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 99, profile: profile() }))).toMatch(/newer/);
     expect(await error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 99, profile: profile() }))).toMatch(/newer.*update InfoPanel Studio to open it/);
@@ -136,6 +159,12 @@ describe("importedProfile", () => {
     expect(imported.pages.map((p) => p.id)).not.toContain("p1");
     expect(imported.pages[0].placements[0].id).not.toBe("z1");
     expect(imported.rotate?.pages).toEqual([imported.pages[1].id]);
+  });
+
+  it("moves an applied theme's zone writes to the zones' new ids", () => {
+    const source = { ...profile(), appliedTheme: { id: "t", name: "T", values: {}, zones: { z1: { was: {}, now: { accent: "#fff" } }, gone: { was: {}, now: {} } } } };
+    const imported = importedProfile(config, source);
+    expect(imported.appliedTheme?.zones).toEqual({ [imported.pages[0].placements[0].id]: { was: {}, now: { accent: "#fff" } } });
   });
 
   it("keeps a name that is free", () => {

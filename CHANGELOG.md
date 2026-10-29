@@ -6,6 +6,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Fixed
+
+- **A screen file keeps its theme, groups and InfoPanel page data.** Importing a screen dropped the theme it had applied (so Update and Reset didn't reach it), its pages' groups and snap setting, and an InfoPanel page's profile settings. They come in now, and so does a duplicated screen's link from the theme to the widgets it recolored.
+- **An old screen file says when its look stays behind.** A screen saved before 1.3.0 that took its whole look from All screens imports with the built-in look, since the file never held it; the import now says so and points to Theme.
+
 ## [1.3.0] - 2026-10-29
 
 Everything since 1.2.0, gathered from the 1.3.0 betas below.

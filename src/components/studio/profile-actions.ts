@@ -1,3 +1,4 @@
+import type { AppliedTheme } from "@/lib/applied-theme";
 import { clonePlacement, uid, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
 
 /**
@@ -27,20 +28,35 @@ export function withoutProfile(config: DashboardConfig, id: string): DashboardCo
 
 /**
  * A deep copy of `profile` with fresh ids throughout: the profile, its pages, their zones and the
- * panels and widgets in them. `rotate.pages` follows the pages to their new ids. Nothing is shared
- * with the source, by id or by reference.
+ * panels and widgets in them. `rotate.pages` follows the pages to their new ids, and so do the zone writes an applied
+ * theme keeps (`appliedTheme.zones`) to their zones'. Nothing is shared with the source, by id or by reference.
  */
 export function withFreshIds(profile: MonitorProfile): MonitorProfile {
   const copy = structuredClone(profile);
   const pageIds = new Map<string, string>();
-  const pages = copy.pages.map((page) => {
-    const id = uid("page");
-    pageIds.set(page.id, id);
-    return { ...page, id, placements: page.placements.map(clonePlacement) };
-  });
+  const zoneIds = new Map<string, string>();
+  const rezoned = (applied: AppliedTheme | undefined): { appliedTheme?: AppliedTheme } => {
+    if (!applied) return {};
+    if (!applied.zones) return { appliedTheme: applied };
+    const zones = Object.fromEntries(Object.entries(applied.zones).flatMap(([id, write]) => (zoneIds.has(id) ? [[zoneIds.get(id)!, write]] : [])));
+    return { appliedTheme: { ...applied, zones } };
+  };
+  const pages = copy.pages
+    .map((page) => {
+      const id = uid("page");
+      pageIds.set(page.id, id);
+      const placements = page.placements.map((z) => {
+        const fresh = clonePlacement(z);
+        zoneIds.set(z.id, fresh.id);
+        return fresh;
+      });
+      return { ...page, id, placements };
+    })
+    .map((page) => ({ ...page, ...rezoned(page.appliedTheme) }));
   const { rotate } = copy;
   return {
     ...copy,
+    ...rezoned(copy.appliedTheme),
     id: uid("profile"),
     pages,
     rotate: rotate && {
