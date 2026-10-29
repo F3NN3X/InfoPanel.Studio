@@ -52,6 +52,12 @@ export function widgetsKeeping(config: DashboardConfig, at: ThemeAt, preset: App
   );
 }
 
+/**
+ * The toast's count after a pick: the widgets that keep their own look on the config the pick makes, since a pick can
+ * change what a widget holds (a variant's swaps become the theme's writes, the last theme's are taken back).
+ */
+export const widgetsKeepingAfter = (picked: DashboardConfig, at: ThemeAt, preset: AppearancePreset): number => widgetCount(widgetsKeeping(picked, at, preset));
+
 /** How many widgets a list of differences names. */
 export const widgetCount = (differences: readonly ThemeException[]): number => new Set(differences.map((ex) => `${ex.page?.id}:${ex.zone?.id}`)).size;
 

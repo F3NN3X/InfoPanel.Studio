@@ -11,7 +11,7 @@ import { deletePalette, duplicatePalette, paletteName, paletteUsers, renamePalet
 import type { TemplatePresetGroup } from "@/lib/screen-templates/template-presets";
 import { templateThemeRows } from "@/lib/screen-templates/template-rows";
 import { hexToHsl, hslToHex, resolveTheme } from "@/lib/theme";
-import { themeState, themeUses } from "@/lib/theme-apply";
+import { applyTheme, themeState, themeUses } from "@/lib/theme-apply";
 import { allLocked, themedOf } from "@/lib/theme-model";
 import { skinLabel, skinOf } from "@/lib/theme-skins";
 import type { ModuleSettings } from "@/modules/types";
@@ -44,7 +44,7 @@ import {
 } from "./theme-cards";
 import { scopeAppearance, scopeId, scopeLookValues, validScope, withLockAll, type ThemeScope } from "./theme-editor-model";
 import { THEME_EDITOR_SETTINGS } from "./theme-editor-settings";
-import { differencesOf, followAll, widgetCount, widgetsKeeping } from "./theme-differences";
+import { differencesOf, followAll, widgetsKeeping, widgetsKeepingAfter } from "./theme-differences";
 import { exceptionsOf, widgetOverrides } from "./theme-exceptions";
 import { FineTuneHeader, FineTuneRow, RowsLabel } from "./theme-fine-tune";
 import { changedHere, fineTuneChip, fineTuneHeading, fineTuneSummary, resetFineTune } from "./theme-fine-tune-model";
@@ -257,7 +257,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
     // A level with no snapshot has nothing of its own: the pick replaces its look.
     const replaced = !state.applied;
     const kept = replaced ? 0 : state.own.length;
-    const widgets = widgetCount(widgetsKeeping(config, at, p));
+    const widgets = widgetsKeepingAfter(applyTheme(config, p, target, { keepBackground }), at, p);
     presets.apply(p, at, keepBackground);
     setDrill("main");
     const background = at.level !== "page" && !keepBackground && p.background !== undefined;
