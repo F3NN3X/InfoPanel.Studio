@@ -9,7 +9,7 @@
  */
 import type { ApiSources } from "@/lib/catalog";
 import type { DashboardConfig } from "@/lib/layout";
-import { aliasSource, slugOf, withHwinfoAliases } from "@/lib/hwinfo-aliases";
+import { aliasSource, isHwinfoDefaultName, slugOf, withHwinfoAliases } from "@/lib/hwinfo-aliases";
 import { CANVAS_ID } from "@/lib/layout";
 import { readSystem, systemKeys, type RuleName } from "@/lib/system-metrics";
 import type { SensorMap } from "@/modules/types";
@@ -74,15 +74,20 @@ function shownKeys(sensors: SensorMap, keys: string[]): Map<string, string> {
     keys.map((k) => {
       const name = sensors[k].name?.trim();
       const base = name ? `hwinfo.${slugOf(name)}` : "";
-      if (!k.startsWith("hwinfo.") || k === base) return [k, k];
-      // fail closed: a key the reading's slug doesn't start (no name, a renamed reading) may still carry its device
-      if (!base || !k.startsWith(base)) return [k, `hwinfo.(reading ${++unnamed})`];
+      if (!k.startsWith("hwinfo.")) return [k, k];
+      // fail closed: a reading renamed by its user (the key is its new name's slug) or a key the slug doesn't start
+      // (no name) may say something about them, or still carry its device
+      if (!name || !isHwinfoDefaultName(name) || !k.startsWith(base)) return [k, `hwinfo.(reading ${++unnamed})`];
+      if (k === base) return [k, k];
       const device = k.slice(base.length);
       if (!devices.has(device)) devices.set(device, devices.size + 1);
       return [k, `${base} (device ${devices.get(device)})`];
     }),
   );
 }
+
+/** A reading `shownKeys` hid (a renamed or unnamed HWiNFO one): its name stays out too. */
+const hiddenName = (k: string, shown: Map<string, string>) => shown.get(k)?.startsWith("hwinfo.(reading ") === true;
 
 const round = (v: number) => String(Math.round(v * 100) / 100);
 
@@ -189,7 +194,7 @@ export function troubleshootingReport(input: ReportInput): string {
     ...screenLines(input.config),
     "",
     `## Hardware readings (${listed.length})`,
-    ...listed.map((k) => `${shown.get(k)} | ${sensors[k].name ?? ""} | ${valueText(sensors[k])}`),
+    ...listed.map((k) => `${shown.get(k)} | ${hiddenName(k, shown) ? "(renamed)" : (sensors[k].name ?? "")} | ${valueText(sensors[k])}`),
     "",
   ];
   return lines.join("\n");

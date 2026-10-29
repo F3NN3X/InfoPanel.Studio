@@ -18,7 +18,10 @@ export default function GpuMonitor(p: GpuMonitorProps) {
   const loadKey = `libre.${id}_gpu_core_load`;
   const load = k("gpu_core_load"),
     temp = k("gpu_core"),
-    hot = k("gpu_memory_junction"),
+    // the die's hot spot (0 on cards without one, RTX 50), else the memory junction
+    hotSpot = k("gpu_hot_spot"),
+    hasHotSpot = Number.isFinite(hotSpot) && hotSpot > 0,
+    hot = hasHotSpot ? hotSpot : k("gpu_memory_junction"),
     watts = k("gpu_package");
   const used = k("gpu_memory_used"),
     total = k("gpu_memory_total");
@@ -79,7 +82,7 @@ export default function GpuMonitor(p: GpuMonitorProps) {
               <div className="grid flex-1 grid-cols-3 gap-3">
                 <Stat label="Power" value={`${fmt(watts, 1)} W`} />
                 <Stat label="Core" value={`${fmt(k("gpu_core_clock"), 0)} MHz`} />
-                <Stat label="Hotspot" value={`${fmt(hot, 0)} °C`} />
+                <Stat label={hasHotSpot ? "Hotspot" : "Memory"} value={`${fmt(hot, 0)} °C`} />
               </div>
             </div>
             <BarRow label="VRAM" value={used} max={total} hint={`of ${fmt(total / 1024, 0)} GB`} display={`${fmt(used / 1024, 1)} GB`} />

@@ -6,6 +6,7 @@
  * this PC has, or one with no match, is kept.
  */
 import { getCatalog } from "@/lib/catalog";
+import { preferredGpu } from "@/lib/gpu-pick";
 import { withHwinfoAliases } from "@/lib/hwinfo-aliases";
 import type { PanelDef } from "@/lib/layout";
 import { sensorStore } from "@/lib/sensor-store";
@@ -43,7 +44,9 @@ export function onThisPc(key: string, live: SensorMap): string {
     const cpu = id(/^libre\.(.+)_cpu_total$/);
     for (const tail of CPU_STAND_INS[rest] ?? [rest]) next ??= found(cpu && `libre.${cpu}_${tail}`);
   } else if (key.startsWith(SAMPLE_GPU)) {
-    next = found(`libre.${id(/^libre\.(.+)_gpu_core_load$/)}_${key.slice(SAMPLE_GPU.length)}`);
+    const gpus = keys.flatMap((k) => /^libre\.(.+)_gpu_core_load$/.exec(k)?.[1] ?? []);
+    const memory = (g: string) => all[`libre.${g}_gpu_memory_total`]?.value ?? NaN;
+    next = found(`libre.${preferredGpu(gpus, memory)}_${key.slice(SAMPLE_GPU.length)}`);
   } else if (key.startsWith(SAMPLE_ADAPTER)) {
     // the busiest adapter, as Network Traffic picks it
     const speed = (k: string) => (typeof all[k].value === "number" ? all[k].value! : -1);

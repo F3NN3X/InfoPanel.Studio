@@ -101,6 +101,7 @@ export const SHORT: Record<Role, string> = {
   "ram.total": "Total", "ram.free": "Free", "disk.free": "Free",
   "cpu.maxcore": "Busiest core", "cpu.ccd1": "CCD1", "cpu.ccd2": "CCD2",
   "psu.12v": "12V", "ups.power": "UPS", "ram.speed": "Speed",
+  "board.vrm": "VRM", "cpu.fan": "CPU fan",
 };
 
 /**

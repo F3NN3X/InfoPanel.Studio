@@ -53,6 +53,8 @@ export const MOCK_SENSORS: Readonly<Record<string, DataApiValue>> = {
   "mock.cpu.maxcore": libre("/amdcpu/0/load/1", "Mock CPU Core Max", "%", 88),
   "mock.cpu.ccd1": libre("/amdcpu/0/temperature/3", "Mock CPU CCD1 (Tdie)", "°C", 57),
   "mock.cpu.ccd2": libre("/amdcpu/0/temperature/4", "Mock CPU CCD2 (Tdie)", "°C", 60),
+  "mock.board.vrm": libre("/lpc/nct6798d/0/temperature/2", "Mock Board VRM MOS", "°C", 52),
+  "mock.cpu.fan": libre("/lpc/nct6798d/0/fan/1", "Mock Board CPU Optional", "RPM", 1180),
   "mock.psu.12v": { value: 12.1, unit: "V", name: "+12V" },
   "mock.ups.power": { value: 212, unit: "W", name: "UPS Power", ref: "plugin:/ups-plugin/ups/power" },
   "mock.ram.speed": { value: 6000, unit: "MHz", name: "Memory Clock", ref: "plugin:/hwinfo-plugin/memory/clock" },

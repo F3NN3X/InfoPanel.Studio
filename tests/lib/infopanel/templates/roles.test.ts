@@ -54,6 +54,12 @@ describe("the template sensor roles", () => {
     ["psu.12v", { "h.5": v("+5V", "V"), "h.12": v("+12V", "V") }, "h.12"],
     ["ups.power", { "p.load": v("UPS Battery", "%"), "p.w": v("UPS Power", "W") }, "p.w"],
     ["ram.speed", { "m.t": v("Memory Timings", "ns"), "m.c": v("Memory Clock", "MHz") }, "m.c"],
+    ["board.vrm", { "l.cpu": v("ASUS EC CPU", "°C"), "l.vrm": v("ASUS EC VRM", "°C"), "l.gpu": v("NVIDIA GPU VRM", "W") }, "l.vrm"],
+    ["board.vrm", { "h.mos": v("MOS", "°C") }, "h.mos"],
+    ["cpu.fan", { "l.gpu": v("NVIDIA GPU Fan 1", "RPM"), "l.cpu": v("ASUS EC CPU Optional", "RPM") }, "l.cpu"],
+    ["cpu.fan", { "h.t": v("CPU", "°C"), "h.f": v("CPU_OPT Fan", "RPM") }, "h.f"],
+    // with integrated graphics beside a card, the card's reading
+    ["gpu.temp", { "l.igpu": v("AMD Radeon(TM) Graphics GPU Core", "°C", "libre:/gpu-amd/0/temperature/0"), "l.card": v("NVIDIA GeForce RTX 4080 GPU Core", "°C", "libre:/gpu-nvidia/0/temperature/0") }, "l.card"],
     ["clock.second", { "plugins.c.minute": v("Clock \uFFFD Minute", ""), "plugins.c.second": v("Clock \uFFFD Second", "") }, "plugins.c.second"],
   ])("%s picks the right sensor (%#)", (role, sensors, key) => {
     expect(resolveRole(role, sensors)?.key).toBe(key);

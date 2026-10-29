@@ -27,7 +27,7 @@ const plugin = (prefix: string, limit = 6): Spec => (f) =>
 
 const SPECS: Record<string, Spec> = {
   PowerDraw: (f) => [...f.role("cpu.power", "graph"), ...f.role("gpu.power", "graph")],
-  Fans: (f) => [...f.role("gpu.fan"), ...f.key("libre.embedded_controller_cpu_optional_fan", "CPU fan"), ...f.key("libre.embedded_controller_vrm", "VRM")],
+  Fans: (f) => [...f.role("gpu.fan"), ...f.role("cpu.fan", "value", "CPU fan"), ...f.role("board.vrm", "value", "VRM")],
   Thermals: (f) => [...f.role("cpu.temp", "ring"), ...f.role("gpu.temp", "ring"), ...f.role("gpu.hotspot"), ...f.role("vram.temp"), ...f.role("disk.temp")],
   Vitals: (f) => [...f.role("cpu.load", "bar"), ...f.role("gpu.load", "bar"), ...f.role("ram.load", "bar"), ...f.role("net.down"), ...f.role("vram.used"), ...f.role("fps")],
   SystemOverview: (f) => [...f.role("cpu.load", "ring"), ...f.role("gpu.load", "ring"), ...f.role("ram.load", "ring"), ...f.role("cpu.temp"), ...f.role("gpu.temp"), ...f.role("fps")],

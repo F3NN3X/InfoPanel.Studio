@@ -9,6 +9,7 @@
  */
 import type { ChosenSensor } from "../editor/bind.ts";
 import { fixUnit, type DataApiValue } from "../sensors.ts";
+import { preferredGpu } from "../../gpu-pick.ts";
 
 export const ROLES = [
   "cpu.load", "cpu.temp", "cpu.clock", "cpu.power",
@@ -21,6 +22,7 @@ export const ROLES = [
   "ram.total", "ram.free", "disk.free",
   "cpu.maxcore", "cpu.ccd1", "cpu.ccd2",
   "psu.12v", "ups.power", "ram.speed",
+  "board.vrm", "cpu.fan",
 ] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -78,6 +80,8 @@ export const ROLE_INFO: Record<Role, RoleInfo> = {
   "psu.12v": { label: "12V rail", unit: "V", min: 10, max: 14, precision: 2 },
   "ups.power": { label: "UPS power", unit: "W", min: 0, max: 1500, precision: 0 },
   "ram.speed": { label: "Memory speed", unit: "MHz", min: 0, max: 8000, precision: 0 },
+  "board.vrm": { label: "VRM temperature", unit: "°C", min: 0, max: 120, precision: 0, warn: 90, crit: 105 },
+  "cpu.fan": { label: "CPU fan", unit: "RPM", min: 0, max: 3000, precision: 0 },
 };
 
 /** One way to recognise a role's sensor: every pattern given must match. */
@@ -162,6 +166,10 @@ const RULES: Record<Role, readonly Rule[]> = {
   "ups.power": [{ name: /^UPS .*(Power|Load)$/i, unit: "W" }, { name: /^UPS Power$/i }],
   // HWiNFO's memory group: "Memory Clock" is the DRAM's (the GPU's is "GPU Memory Clock").
   "ram.speed": [{ name: /^(Memory Clock|DRAM Frequency)$/i, unit: "MHz" }],
+  // An ASUS board's embedded controller ("VRM", "CPU Optional"), a Super I/O chip as the board names it, or HWiNFO's
+  "board.vrm": [{ name: /\bVRM( MOS)?$/i, unit: "°C" }, { name: /\b(VRM|VR VCC|VR MOS|MOS)\b/i, unit: "°C" }],
+  // "CPU", "CPU Fan", "CPU_OPT", "CPU_OPT Fan", "CPU Optional": a board fan, never the GPU's
+  "cpu.fan": [{ name: /\bCPU Optional$/i, unit: "RPM" }, { name: /^(?!.*GPU)(.*\s)?CPU([ _](OPT|Optional|Fan))*$/i, unit: "RPM" }],
 };
 
 /** Adapters that aren't the machine's own link (virtual switches, VPNs, Bluetooth). */
@@ -174,6 +182,13 @@ const matches = (rule: Rule, v: DataApiValue): boolean =>
 
 const byKey = new Intl.Collator("en", { numeric: true }).compare;
 
+/** The preferred GPU's key prefix (`libre.nvidia_geforce_rtx_5090_`) among LibreHardwareMonitor's GPUs, if there are any. */
+function preferredGpuKey(sensors: Readonly<Record<string, DataApiValue>>): string | undefined {
+  const ids = Object.keys(sensors).flatMap((k) => /^libre\.(.+)_gpu_core_load$/.exec(k)?.[1] ?? []);
+  const id = preferredGpu(ids, (g) => sensors[`libre.${g}_gpu_memory_total`]?.value ?? NaN);
+  return id && `libre.${id}_`;
+}
+
 /** The sensor a role reads, or undefined when nothing on this machine matches. */
 export function resolveRole(role: Role, sensors: Readonly<Record<string, DataApiValue>>): ChosenSensor | undefined {
   const net = role === "net.down" || role === "net.up";
@@ -182,7 +197,10 @@ export function resolveRole(role: Role, sensors: Readonly<Record<string, DataApi
     const hits = entries.filter(([, v]) => matches(rule, v));
     if (hits.length === 0) continue;
     const value = (v: DataApiValue) => (typeof v.value === "number" ? v.value : -1);
-    hits.sort(([ka, a], [kb, b]) => Number(!a.ref) - Number(!b.ref) || (net ? value(b) - value(a) : 0) || byKey(ka, kb));
+    // with several GPUs, the card's readings before the integrated graphics' (`gpu-pick.ts`)
+    const gpu = /^(gpu|vram)\./.test(role) ? preferredGpuKey(sensors) : undefined;
+    const onGpu = (k: string) => (gpu && k.startsWith(gpu) ? 0 : 1);
+    hits.sort(([ka, a], [kb, b]) => Number(!a.ref) - Number(!b.ref) || onGpu(ka) - onGpu(kb) || (net ? value(b) - value(a) : 0) || byKey(ka, kb));
     const [key, v] = hits[0];
     return { key, name: v.name ?? key, ...(v.unit ? { unit: fixUnit(v.unit) } : {}), ...(v.ref ? { ref: v.ref } : {}) };
   }

@@ -79,7 +79,8 @@ const CPU: Alias[] = [
 const GPU: Alias[] = [
   { as: "gpu_core_load", name: /^GPU (Core )?(Load|Utilization)$/i, unit: /%/, title: "GPU Core" },
   { as: "gpu_core", name: /^GPU Temperature$/i, unit: /°C/ },
-  { as: "gpu_package", name: /^(GPU Power|Total Board Power|GPU ASIC Power)$/i, unit: /^W$/ },
+  // the card's total; "GPU Core Power" is the core rail only
+  { as: "gpu_package", name: /^(GPU Power|GPU Power \(Total\)|Total Board Power|GPU ASIC Power)$/i, unit: /^W$/ },
   { as: "gpu_core_clock", name: /^GPU Clock$/i, unit: /MHz/ },
   { as: "gpu_memory_clock", name: /^GPU Memory Clock$/i, unit: /MHz/ },
   { as: "gpu_memory_junction", name: /^GPU Memory Junction Temperature$/i, unit: /°C/ },
@@ -95,8 +96,11 @@ const MEMORY: Alias[] = [
   { as: "total_memory_memory_used", name: /^Physical Memory Used$/i, unit: /MB/, convert: MB_TO_GB, to: "GB" },
   { as: "total_memory_memory_available", name: /^Physical Memory Available$/i, unit: /MB/, convert: MB_TO_GB, to: "GB" },
   { as: "virtual_memory_memory", name: /^Virtual Memory Load$/i, unit: /%/ },
+  // HWiNFO's units for these aren't documented: MB converts, GB stays
   { as: "virtual_memory_memory_used", name: /^Virtual Memory Committed$/i, unit: /MB/, convert: MB_TO_GB, to: "GB" },
+  { as: "virtual_memory_memory_used", name: /^Virtual Memory Committed$/i, unit: /GB/ },
   { as: "virtual_memory_memory_available", name: /^Virtual Memory Available$/i, unit: /MB/, convert: MB_TO_GB, to: "GB" },
+  { as: "virtual_memory_memory_available", name: /^Virtual Memory Available$/i, unit: /GB/ },
 ];
 const DRIVE: Alias[] = [
   { as: "total_activity", name: /^Total Activity$/i, unit: /%/ },
@@ -107,6 +111,13 @@ const DRIVE: Alias[] = [
   { as: "temperature", name: /^Drive Temperature$/i, unit: /°C/ },
   { as: "life", name: /^Drive Remaining Life$/i, unit: /%/ },
   { as: "power_on_hours", name: /^Power-On Hours$/i },
+  { as: "data_read", name: /^Total Host Reads$/i, unit: /GB/ },
+  { as: "data_written", name: /^Total Host Writes$/i, unit: /GB/ },
+];
+// The board's VRM and CPU fan, as `templates/roles.ts` finds them ("VRM", "MOS", "CPU_OPT Fan")
+const BOARD: Alias[] = [
+  { as: "vrm", name: /\b(VRM|VR VCC|VR MOS|MOS)\b/i, unit: /°C/ },
+  { as: "cpu_fan", name: /^(?!.*GPU)(.*\s)?CPU([ _](OPT|Optional|Fan))*$/i, unit: /RPM/ },
 ];
 const ADAPTER: Alias[] = [
   { as: "download_speed", name: /^Current DL rate$/i, unit: /KB\/s/, title: "Download Speed", convert: KB_TO_B, to: "KB/s" },
@@ -119,8 +130,27 @@ const ADAPTER: Alias[] = [
 const THREAD = /^(?:[PE]-)?Core (\d+) T(\d+) Usage$/i;
 const CORE_CLOCK = /^(?:[PE]-)?Core (\d+) Clock\b/i;
 const CORE_POWER = /^(?:[PE]-)?Core (\d+) Power$/i;
+const CORE_VID = /^(?:[PE]-)?Core (\d+) VID$/i;
 
 const matches = (a: Alias, r: Local) => a.name.test(r.name) && (!a.unit || a.unit.test(r.unit));
+
+/**
+ * HWiNFO's own reading names beyond the aliases' (InfoPanel profiles bind by them, so the corpus and a live capture
+ * show them): a reading named otherwise was renamed by its user, or is one this list doesn't know.
+ */
+const DEFAULT_NAMES = [
+  /^(Bus Clock|Ring\/LLC Clock|Fan\d*|Pump\d*|T_Sensor\d*|Vcore|\+3\.3V|\+5V|\+12V|Core Max|Total Errors|Memory Clock|Memory Clock Ratio)$/i,
+  /^(Memory Controller Clock \(UCLK\)|CPU IOD Hotspot|CPU Core Max|GPU Core Power|GPU D3D Usage|GPU Memory Controller Load)$/i,
+  /^Framerate( \(Presented\)| Presented \(avg\)| 1% Low| 0\.1% Low)?$/i,
+  /^Frame Time$/i,
+  /^Drive Temperature( \d+)?$/i,
+  /^(?:[PE]-)?Core \d+( T\d+)?( Usage| Clock.*| Effective Clock| Power| VID)?$/i,
+];
+
+/** Whether `name` is one of HWiNFO's default reading names (a renamed one could say anything about its user). */
+export const isHwinfoDefaultName = (name: string): boolean =>
+  [CPU, GPU, MEMORY, DRIVE, ADAPTER, BOARD].some((list) => list.some((a) => a.name.test(name))) ||
+  [THREAD, CORE_CLOCK, CORE_POWER, CORE_VID, /^GPU Fan ?\d+$/i, ...DEFAULT_NAMES].some((re) => re.test(name));
 
 /** A drive's or an adapter's device suffix as an id: the model (no serial) or the connection, `_2` for a repeat. */
 function deviceId(device: string, kind: "drive" | "adapter"): string {
@@ -134,7 +164,9 @@ function deviceId(device: string, kind: "drive" | "adapter"): string {
 /** The drive a device suffix is (a "Drive:" and a "S.M.A.R.T.:" device of one drive share it): model, serial and letter. */
 const driveGroup = (device: string): string => device.replace(/^_(?:drive|s_m_a_r_t)_+/, "");
 
-const has = (map: Readonly<Record<string, unknown>>, re: RegExp) => Object.keys(map).some((k) => re.test(k));
+/** Whether a key matches `re` (with a unit matching `unit`, when given): LibreHardwareMonitor reports that reading. */
+const has = (map: Readonly<Record<string, Reading>>, re: RegExp, unit?: RegExp) =>
+  Object.keys(map).some((k) => re.test(k) && (!unit || unit.test(unitOf(map[k]))));
 
 const cache = new WeakMap<object, object>();
 const sources = new WeakMap<object, Map<string, string>>();
@@ -180,10 +212,25 @@ export function withHwinfoAliases<V extends Reading>(map: Readonly<Record<string
         if (clock && /MHz/.test(r.unit) && !r.device) put(`libre.cpu_cpu_core__${Number(clock[1]) + 1}_clock`, r, {}, "CPU");
         const power = CORE_POWER.exec(r.name);
         if (power && /^W$/.test(r.unit) && !r.device) put(`libre.cpu_cpu_core__${Number(power[1]) + 1}_power`, r, {}, "CPU");
+        const vid = CORE_VID.exec(r.name);
+        if (vid && /^V$/.test(r.unit) && !r.device) put(`libre.cpu_cpu_core__${Number(vid[1]) + 1}_voltage`, r, {}, "CPU");
       }
     }
     if (!has(map, /^libre\..+_gpu_core_load$/)) {
-      first("gpu", "GPU", GPU);
+      // HWiNFO names a discrete card's device "dGPU [#0]" and an integrated one "iGPU": a reading's first device keeps the
+      // bare key, so with both the dGPU is the suffixed one, or the bare one when the iGPU is suffixed
+      for (const a of GPU) {
+        const hits = readings.filter((x) => matches(a, x));
+        const r = hits.find((x) => /^_dgpu_/.test(x.device)) ?? hits.find((x) => !x.device) ?? hits[0];
+        if (r) put(`libre.gpu_${a.as}`, r, a, "GPU");
+      }
+      // no total in HWiNFO: what is allocated over the share it is of the card's memory
+      const used = out["libre.gpu_gpu_memory_used"]?.value;
+      const share = out["libre.gpu_gpu_memory"]?.value;
+      if (typeof used === "number" && typeof share === "number" && share >= 1) {
+        const src = readings.find((x) => x.key === from.get("libre.gpu_gpu_memory_used"));
+        if (src) put("libre.gpu_gpu_memory_total", src, { convert: () => Math.round(used / (share / 100)), to: "MB", title: "GPU Memory Total" }, "GPU");
+      }
       // "GPU Fan1" reads RPM on one device and % (its duty) on another
       for (const r of readings) {
         const n = /^GPU Fan ?(\d+)$/i.exec(r.name)?.[1];
@@ -191,6 +238,8 @@ export function withHwinfoAliases<V extends Reading>(map: Readonly<Record<string
         if (n && /%/.test(r.unit)) put(`libre.gpu_gpu_fan_${n}_control`, r, {}, "GPU");
       }
     }
+    if (!has(map, /^libre\..+_(vrm|vr_vcc|vr_mos|mos)(_|$)/, /°C/)) first("board", "Board", BOARD.slice(0, 1));
+    if (!has(map, /^libre\..+_cpu(_opt|_optional|_fan)*(_\d+)?$/, /RPM/)) first("board", "Board", BOARD.slice(1));
     if (!has(map, /^libre\.total_memory_/)) for (const a of MEMORY) {
       const r = readings.find((x) => matches(a, x));
       if (r) put(`libre.${a.as}`, r, a, "Memory");

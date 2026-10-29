@@ -49,7 +49,7 @@ export default function Thermals(p: ThermalsProps) {
   }
   for (const s of p.discover ? [] : hw(d).disks)
     raw.push({ id: s, label: diskShort(s, get(d, `libre.${s}_volumes`)), v: [`${s}_composite_temperature`, `${s}_temperature`, `${s}_temperature__2`].map(L).find(Number.isFinite) ?? NaN, warn: L(`${s}_warning_temperature`) || 70, crit: L(`${s}_critical_temperature`) || 85 });
-  if (!p.discover) raw.push({ id: "vrm", label: "VRM", v: L("embedded_controller_vrm"), warn: 90, crit: 105 });
+  if (!p.discover) raw.push({ id: "vrm", label: "VRM", v: readSystemFlat(d ?? {}).board.vrm ?? NaN, warn: 90, crit: 105 });
   const list: Sensor[] = raw.filter((x) => Number.isFinite(x.v) && x.v > 0).map((x) => ({ ...x, t: tone(x.v, p.warn ?? x.warn, p.crit ?? x.crit) }));
   if (p.sortBy !== "fixed") list.sort((a, b) => b.v - a.v);
   const top = list[0];

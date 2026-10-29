@@ -47,7 +47,9 @@ export default function MenuBar(p: MenuBarProps) {
     gpu = hw(d).gpu;
   const disk = firstDisk(hw(d).disks);
   const L = (k: string) => num(get(d, `libre.${k}`));
-  const c = readSystemFlat(d ?? {}).cpu;
+  const r = readSystemFlat(d ?? {});
+  // the GPU's die hot spot, where the card reports one
+  const c = { ...r.cpu, hot: r.gpu.hotspot };
   // the same adapter, readings (bytes per second) and units as Network Traffic
   const net = adapterOf(d, p.adapter);
   const N = (k: string) => (net ? L(`${net}_${k}`) : NaN);
@@ -56,7 +58,7 @@ export default function MenuBar(p: MenuBarProps) {
   const ALL: Record<Key, Item> = {
     cpu: { k: "CPU", v: L(`${cpu}_cpu_total`), u: "%", max: 100, more: [["Package", `${fmt(c.power ?? NaN, 0)} W`], ["Max core", `${fmt(L(`${cpu}_cpu_core_max`), 0)}%`], ["Clock", `${fmt((c.clock ?? NaN) / 1000, 2)} GHz`]] },
     gpu: { k: "GPU", v: L(`${gpu}_gpu_core_load`), u: "%", max: 100, more: [["Power", `${fmt(L(`${gpu}_gpu_package`), 0)} W`], ["Clock", `${fmt(L(`${gpu}_gpu_core_clock`), 0)} MHz`], ["VRAM", `${fmt(L(`${gpu}_gpu_memory_used`) / 1024, 1)} GB`]] },
-    temp: { k: "Temp", v: L(`${gpu}_gpu_core`), u: "°", max: 100, warn: 75, crit: 85, more: [["CPU", `${fmt(c.temp ?? NaN, 0)}°C`], ["Hotspot", `${fmt(L(`${gpu}_gpu_memory_junction`), 0)}°C`]] },
+    temp: { k: "Temp", v: L(`${gpu}_gpu_core`), u: "°", max: 100, warn: 75, crit: 85, more: [["CPU", `${fmt(c.temp ?? NaN, 0)}°C`], [c.hot === undefined ? "Memory" : "Hotspot", `${fmt(c.hot ?? L(`${gpu}_gpu_memory_junction`), 0)}°C`]] },
     mem: { k: "Mem", v: L("total_memory_memory"), u: "%", max: 100, warn: 85, crit: 95, more: [["Used", `${fmt(L("total_memory_memory_used"), 1)} GB`], ["Free", `${fmt(L("total_memory_memory_available"), 1)} GB`]] },
     down: { k: "↓ Down", v: dn, u: "", text: rateText(dn, p.rateUnit), more: [["Downloaded", fmtGB(N("data_downloaded"))], ["Utilisation", `${fmt(N("network_utilization"), 1)}%`]] },
     up: { k: "↑ Up", v: up, u: "", text: rateText(up, p.rateUnit), more: [["Uploaded", fmtGB(N("data_uploaded"))], ["Utilisation", `${fmt(N("network_utilization"), 1)}%`]] },
