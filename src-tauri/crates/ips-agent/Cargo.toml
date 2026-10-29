@@ -1,6 +1,6 @@
 [package]
 name = "ips-agent"
-version = "1.3.1-beta.2"
+version = "1.3.1-beta.3"
 description = "InfoPanel Studio's coding-agent hook and statusline forwarder"
 edition = "2021"
 publish = false

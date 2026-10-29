@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.1-beta.3] - 2026-10-29
+
 ### Fixed
 
 - **Web Page shows sites that refuse to be framed.** Sites such as vg.no and reddit.com showed the browser's "refused to connect" page in a Web Page widget. In the desktop app they now load, as in InfoPanel's own web view. A browser on another device can't show them, so the widget says there that the site doesn't allow being shown inside another page and that it shows in the desktop app.
