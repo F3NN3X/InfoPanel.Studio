@@ -17,9 +17,7 @@ use tokio::time::{interval_at, Instant, MissedTickBehavior};
 
 use crate::alerts;
 use crate::config::now_ms;
-use crate::control::{
-    durable, durable_shape, load, public_state, reduce, reduce_config, State, DISPLAY_SEEN_SAVE_MS,
-};
+use crate::control::{durable, durable_shape, load, public_state, reduce, reduce_config, State, DISPLAY_SEEN_SAVE_MS};
 use crate::http::{self, Req};
 use crate::json::{parse as parse_json, stringify};
 use crate::request_guard::control_write_refusal;
@@ -28,9 +26,7 @@ use crate::{js, sse, store, supervisor, App};
 const TICK: Duration = Duration::from_secs(1);
 const MAX_CONTROL_BYTES: usize = 4096;
 /// The action types a POST may name (`alert` is the alerts module's).
-const CONTROL_ACTIONS: [&str; 7] = [
-    "page", "profile", "rotate", "touch", "alert", "kiosk", "display",
-];
+const CONTROL_ACTIONS: [&str; 7] = ["page", "profile", "rotate", "touch", "alert", "kiosk", "display"];
 
 struct Inner {
     state: State,
@@ -73,29 +69,11 @@ fn view_event(view: &Value) -> Bytes {
 
 impl Control {
     /// The store for `file` at time `now` (the reload counters start there); `read_config` returns the parsed config.
-    pub fn new(
-        file: PathBuf,
-        now: i64,
-        read_config: impl Fn() -> Option<Value> + Send + Sync + 'static,
-    ) -> Arc<Self> {
-        let state = State {
-            reload: now as f64,
-            ..load(store::read_text(&file).ok().as_deref(), now as f64)
-        };
+    pub fn new(file: PathBuf, now: i64, read_config: impl Fn() -> Option<Value> + Send + Sync + 'static) -> Arc<Self> {
+        let state = State { reload: now as f64, ..load(store::read_text(&file).ok().as_deref(), now as f64) };
         let config = read_config().unwrap_or(Value::Null);
-        let inner = Inner {
-            state,
-            config,
-            listeners: BTreeMap::new(),
-            next_listener: 0,
-            kiosk_seq: 0,
-            saved_at: now_ms() as f64,
-        };
-        Arc::new(Self {
-            file,
-            read_config: Box::new(read_config),
-            inner: Mutex::new(inner),
-        })
+        let inner = Inner { state, config, listeners: BTreeMap::new(), next_listener: 0, kiosk_seq: 0, saved_at: now_ms() as f64 };
+        Arc::new(Self { file, read_config: Box::new(read_config), inner: Mutex::new(inner) })
     }
 
     pub fn get(&self) -> Value {
@@ -116,25 +94,19 @@ impl Control {
         // Connecting and disconnecting only move a display's last-seen time: that waits for another durable write, or
         // for DISPLAY_SEEN_SAVE_MS, so a flood of connections can't churn the file.
         let now = now_ms() as f64;
-        let seen_due = now - inner.saved_at >= DISPLAY_SEEN_SAVE_MS
-            && stringify(&durable(&next)) != stringify(&durable(&inner.state));
-        let persist =
-            seen_due || stringify(&durable_shape(&next)) != stringify(&durable_shape(&inner.state));
+        let seen_due = now - inner.saved_at >= DISPLAY_SEEN_SAVE_MS && stringify(&durable(&next)) != stringify(&durable(&inner.state));
+        let persist = seen_due || stringify(&durable_shape(&next)) != stringify(&durable_shape(&inner.state));
         let was_muted = inner.state.muted_until;
         inner.state = next;
         if inner.state.muted_until != was_muted {
             match inner.state.muted_until {
                 None => log::info!(target: "server", "alerts unmuted"),
-                Some(until) => {
-                    log::info!(target: "server", "alerts muted until {}", js::iso_string(until as i64))
-                }
+                Some(until) => log::info!(target: "server", "alerts muted until {}", js::iso_string(until as i64)),
             }
         }
         if persist {
             inner.saved_at = now;
-            if let Err(e) =
-                store::write_atomic(&self.file, stringify(&durable(&inner.state)).as_bytes())
-            {
+            if let Err(e) = store::write_atomic(&self.file, stringify(&durable(&inner.state)).as_bytes()) {
                 log::error!(target: "server", "control.json save failed: {e}");
             }
         }
@@ -143,21 +115,13 @@ impl Control {
 
     fn notify(inner: &mut Inner) {
         let event = view_event(&public_state(&inner.state, &inner.config));
-        inner
-            .listeners
-            .retain(|_, tx| tx.send(event.clone()).is_ok());
+        inner.listeners.retain(|_, tx| tx.send(event.clone()).is_ok());
     }
 
-    fn dispatch_locked(
-        &self,
-        inner: &mut Inner,
-        action: &Value,
-        now: f64,
-    ) -> Result<Value, &'static str> {
+    fn dispatch_locked(&self, inner: &mut Inner, action: &Value, now: f64) -> Result<Value, &'static str> {
         if let Some(next) = reduce(&inner.state, action, &inner.config, now)? {
             // Only publish when what clients see (or the durable part) changed; `next_at` moves silently.
-            let visible = stringify(&public_state(&next, &inner.config))
-                != stringify(&public_state(&inner.state, &inner.config));
+            let visible = stringify(&public_state(&next, &inner.config)) != stringify(&public_state(&inner.state, &inner.config));
             if visible || stringify(&durable(&next)) != stringify(&durable(&inner.state)) {
                 self.commit(inner, next);
             } else {
@@ -180,10 +144,7 @@ impl Control {
     pub fn set_alerts(&self, list: Value) {
         let mut inner = lock(&self.inner);
         if stringify(&list) != stringify(&inner.state.alerts) {
-            let next = State {
-                alerts: list,
-                ..inner.state.clone()
-            };
+            let next = State { alerts: list, ..inner.state.clone() };
             self.commit(&mut inner, next);
         }
     }
@@ -191,10 +152,7 @@ impl Control {
     /// The config was saved: re-read it, drop stale overrides, publish.
     pub fn config_changed(&self) {
         let mut inner = lock(&self.inner);
-        let previous = std::mem::replace(
-            &mut inner.config,
-            (self.read_config)().unwrap_or(Value::Null),
-        );
+        let previous = std::mem::replace(&mut inner.config, (self.read_config)().unwrap_or(Value::Null));
         match reduce_config(&inner.state, &previous, &inner.config) {
             Some(next) => self.commit(&mut inner, next),
             // Same state, but pages may have been added or removed: publish anyway.
@@ -214,9 +172,7 @@ impl Control {
             "type": "connect", "id": id, "profile": link.profile, "page": link.page, "address": link.address,
             "display": link.display, "pinned": link.pinned,
         });
-        self.dispatch_locked(inner, &action, now_ms() as f64)
-            .ok()
-            .map(|_| id)
+        self.dispatch_locked(inner, &action, now_ms() as f64).ok().map(|_| id)
     }
 
     pub fn disconnect(&self, id: &str) {
@@ -230,37 +186,21 @@ impl Control {
         (rx, self.register(&mut inner, tx, None))
     }
 
-    fn register(
-        self: &Arc<Self>,
-        inner: &mut Inner,
-        tx: mpsc::UnboundedSender<Bytes>,
-        kiosk: Option<String>,
-    ) -> Stream {
+    fn register(self: &Arc<Self>, inner: &mut Inner, tx: mpsc::UnboundedSender<Bytes>, kiosk: Option<String>) -> Stream {
         let id = inner.next_listener;
         inner.next_listener += 1;
         inner.listeners.insert(id, tx);
-        Stream {
-            control: Arc::clone(self),
-            listener: id,
-            kiosk,
-        }
+        Stream { control: Arc::clone(self), listener: id, kiosk }
     }
 
     /// A control event stream: a kiosk (`profile` given) is reported as shown and listed until the stream closes. The
     /// current state is queued first, then every change.
-    fn open_stream(
-        self: &Arc<Self>,
-        kiosk: Option<KioskLink>,
-    ) -> (mpsc::UnboundedReceiver<Bytes>, Stream) {
+    fn open_stream(self: &Arc<Self>, kiosk: Option<KioskLink>) -> (mpsc::UnboundedReceiver<Bytes>, Stream) {
         let (tx, rx) = mpsc::unbounded_channel();
         let mut inner = lock(&self.inner);
         let mut id = None;
         if let Some(link) = kiosk {
-            let _ = self.dispatch_locked(
-                &mut inner,
-                &json!({ "type": "shown", "profile": link.profile }),
-                now_ms() as f64,
-            );
+            let _ = self.dispatch_locked(&mut inner, &json!({ "type": "shown", "profile": link.profile }), now_ms() as f64);
             id = self.connect_locked(&mut inner, link);
         }
         let _ = tx.send(view_event(&public_state(&inner.state, &inner.config)));
@@ -309,21 +249,14 @@ pub async fn handle(app: &App, mut req: Req) -> Response<Body> {
         }
         return http::json(200, &app.control.get());
     }
-    let kind = req
-        .path
-        .strip_prefix("/api/control/")
-        .unwrap_or_default()
-        .to_string();
+    let kind = req.path.strip_prefix("/api/control/").unwrap_or_default().to_string();
     if !CONTROL_ACTIONS.contains(&kind.as_str()) {
         return http::empty(404);
     }
     if req.method != Method::POST {
         return http::empty(405);
     }
-    if let Some(refusal) = control_write_refusal(
-        req.header("content-type").as_deref(),
-        req.header("x-dashboard-control").as_deref(),
-    ) {
+    if let Some(refusal) = control_write_refusal(req.header("content-type").as_deref(), req.header("x-dashboard-control").as_deref()) {
         return http::text(refusal.status, refusal.message);
     }
     let body = match req.read_body(MAX_CONTROL_BYTES).await {
@@ -354,19 +287,10 @@ pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
     let address = req.is_loopback().then_some(req.peer.as_str());
     let display = req.query("display");
     let pinned = req.query("pinned").as_deref() == Some("1");
-    let link = |profile| KioskLink {
-        profile,
-        page: page.as_deref(),
-        address,
-        display: display.as_deref(),
-        pinned,
-    };
+    let link = |profile| KioskLink { profile, page: page.as_deref(), address, display: display.as_deref(), pinned };
     let (rx, stream) = app.control.open_stream(shown.as_deref().map(link));
-    let studio =
-        shown.is_none() && req.query("client").as_deref() == Some("studio") && req.is_loopback();
-    let client = app
-        .debug
-        .sse_open(if studio { "studio" } else { "control" });
+    let studio = shown.is_none() && req.query("client").as_deref() == Some("studio") && req.is_loopback();
+    let client = app.debug.sse_open(if studio { "studio" } else { "control" });
     sse::response(rx, app.shutdown.clone(), Box::new((stream, client)))
 }
 
@@ -383,28 +307,15 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let control = Control::new(dir.path().join("control.json"), 1000, || Some(config()));
         let (mut watcher, _guard) = control.subscribe();
-        let (mut rx, stream) = control.open_stream(Some(KioskLink {
-            profile: "desk",
-            address: Some("::ffff:10.0.0.2"),
-            ..KioskLink::default()
-        }));
-        let first: Value = serde_json::from_str(
-            std::str::from_utf8(&rx.try_recv().unwrap())
-                .unwrap()
-                .trim_start_matches("data: ")
-                .trim(),
-        )
-        .unwrap();
+        let (mut rx, stream) = control.open_stream(Some(KioskLink { profile: "desk", address: Some("::ffff:10.0.0.2"), ..KioskLink::default() }));
+        let first: Value = serde_json::from_str(std::str::from_utf8(&rx.try_recv().unwrap()).unwrap().trim_start_matches("data: ").trim()).unwrap();
         assert_eq!(first["kiosks"][0]["address"], "10.0.0.2");
         assert_eq!(first["shown"], "desk");
         // `shown` changed (not yet a kiosk), then the kiosk joined.
         assert!(watcher.try_recv().is_ok() && watcher.try_recv().is_ok());
         // Kiosks are live state: control.json never lists them or their addresses.
         let saved = std::fs::read_to_string(dir.path().join("control.json")).unwrap_or_default();
-        assert!(
-            !saved.contains("kiosks") && !saved.contains("10.0.0.2"),
-            "{saved}"
-        );
+        assert!(!saved.contains("kiosks") && !saved.contains("10.0.0.2"), "{saved}");
         drop(stream);
         assert!(watcher.try_recv().is_ok());
         assert_eq!(control.get()["kiosks"], json!([]));
@@ -415,11 +326,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("control.json");
         let control = Control::new(file.clone(), 1000, || Some(config()));
-        let link = KioskLink {
-            profile: "desk",
-            display: Some("hall"),
-            ..KioskLink::default()
-        };
+        let link = KioskLink { profile: "desk", display: Some("hall"), ..KioskLink::default() };
         // Registering writes the file.
         let (_rx, stream) = control.open_stream(Some(link));
         let saved = std::fs::read_to_string(&file).unwrap();
@@ -430,19 +337,12 @@ mod tests {
         let (_rx, _stream) = control.open_stream(Some(link));
         assert_eq!(std::fs::read_to_string(&file).unwrap(), saved);
         let seen = control.get()["displays"][0]["lastSeen"].as_f64().unwrap();
-        assert!(
-            seen > serde_json::from_str::<Value>(&saved).unwrap()["displays"]["hall"]["lastSeen"]
-                .as_f64()
-                .unwrap()
-        );
+        assert!(seen > serde_json::from_str::<Value>(&saved).unwrap()["displays"]["hall"]["lastSeen"].as_f64().unwrap());
         // Assigning is durable and carries the newer last seen along.
         control.dispatch(&json!({ "type": "display", "action": "assign", "display": "hall", "screen": "desk" })).unwrap();
         let after: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
         assert_eq!(after["displays"]["hall"]["screen"], "desk");
-        assert_eq!(
-            after["displays"]["hall"]["lastSeen"].as_f64().unwrap(),
-            seen
-        );
+        assert_eq!(after["displays"]["hall"]["lastSeen"].as_f64().unwrap(), seen);
     }
 
     #[test]
@@ -450,17 +350,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         // The file's parent is a file, so every write fails.
         std::fs::write(dir.path().join("blocked"), "").unwrap();
-        let control = Control::new(
-            dir.path().join("blocked").join("control.json"),
-            1000,
-            || Some(config()),
-        );
-        let state = control
-            .dispatch_at(
-                &json!({ "type": "page", "profile": "desk", "page": "b" }),
-                0.0,
-            )
-            .unwrap();
+        let control = Control::new(dir.path().join("blocked").join("control.json"), 1000, || Some(config()));
+        let state = control.dispatch_at(&json!({ "type": "page", "profile": "desk", "page": "b" }), 0.0).unwrap();
         assert_eq!(state["profiles"]["desk"]["page"], "b");
     }
 }

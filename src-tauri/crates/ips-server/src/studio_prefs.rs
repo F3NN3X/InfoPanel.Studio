@@ -10,29 +10,19 @@ use serde_json::{Map, Value};
 use crate::{json, store};
 
 /// Each preference and the values it takes.
-pub const STUDIO_PREFS: [(&str, &[&str]); 1] = [(
-    "studio.previewData",
-    &["live", "frozen", "frozenWhenUnfocused"],
-)];
+pub const STUDIO_PREFS: [(&str, &[&str]); 1] = [("studio.previewData", &["live", "frozen", "frozenWhenUnfocused"])];
 
 fn values_of(key: &str) -> Option<&'static [&'static str]> {
-    STUDIO_PREFS
-        .iter()
-        .find(|(k, _)| *k == key)
-        .map(|(_, values)| *values)
+    STUDIO_PREFS.iter().find(|(k, _)| *k == key).map(|(_, values)| *values)
 }
 
 /// The known keys of `raw` with a known value; anything else is dropped.
 pub fn normalize_prefs(raw: &Value) -> Map<String, Value> {
-    let Some(raw) = raw.as_object() else {
-        return Map::new();
-    };
+    let Some(raw) = raw.as_object() else { return Map::new() };
     STUDIO_PREFS
         .iter()
         .filter_map(|(key, values)| match raw.get(*key) {
-            Some(Value::String(v)) if values.contains(&v.as_str()) => {
-                Some((key.to_string(), Value::String(v.clone())))
-            }
+            Some(Value::String(v)) if values.contains(&v.as_str()) => Some((key.to_string(), Value::String(v.clone()))),
             _ => None,
         })
         .collect()
@@ -66,13 +56,8 @@ pub struct StudioPrefs {
 
 impl StudioPrefs {
     pub fn load(file: &Path) -> Self {
-        let prefs = store::read_json(file)
-            .map(|raw| Value::Object(normalize_prefs(&raw)))
-            .unwrap_or_else(|| Value::Object(Map::new()));
-        Self {
-            file: file.to_path_buf(),
-            prefs: Mutex::new(prefs),
-        }
+        let prefs = store::read_json(file).map(|raw| Value::Object(normalize_prefs(&raw))).unwrap_or_else(|| Value::Object(Map::new()));
+        Self { file: file.to_path_buf(), prefs: Mutex::new(prefs) }
     }
 
     pub fn get(&self) -> Value {
@@ -107,10 +92,7 @@ mod tests {
         let frozen = json!({ "studio.previewData": "frozenWhenUnfocused" });
         assert_eq!(prefs.apply(&frozen).unwrap().unwrap(), frozen);
         assert_eq!(StudioPrefs::load(&file).get(), frozen);
-        assert!(prefs
-            .apply(&json!({ "studio.previewData": "x" }))
-            .unwrap()
-            .is_err());
+        assert!(prefs.apply(&json!({ "studio.previewData": "x" })).unwrap().is_err());
         assert_eq!(StudioPrefs::load(&file).get(), frozen);
     }
 }

@@ -21,23 +21,14 @@ const CSP: [&str; 11] = [
 /// Whether `search` (a URL's `?...`) names the Studio or Settings page (`?studio`, `?settings`).
 pub fn is_editor_page(search: &str) -> bool {
     let query = search.strip_prefix('?').unwrap_or(search);
-    url::form_urlencoded::parse(query.as_bytes())
-        .any(|(key, _)| key == "studio" || key == "settings")
+    url::form_urlencoded::parse(query.as_bytes()).any(|(key, _)| key == "studio" || key == "settings")
 }
 
 /// The security headers of a static response, in Node's order.
 pub fn security_headers(is_html: bool, search: &str) -> Vec<(&'static str, String)> {
     let mut headers = vec![
         ("X-Content-Type-Options", "nosniff".to_string()),
-        (
-            "Referrer-Policy",
-            if is_html {
-                "strict-origin-when-cross-origin"
-            } else {
-                "no-referrer"
-            }
-            .to_string(),
-        ),
+        ("Referrer-Policy", if is_html { "strict-origin-when-cross-origin" } else { "no-referrer" }.to_string()),
     ];
     if is_html {
         let mut directives = CSP.to_vec();

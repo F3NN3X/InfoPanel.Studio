@@ -123,8 +123,7 @@ pub fn apply_setting(app: &AppHandle, key: &str, value: Value) -> SetResult {
         crate::apply_log_level(st.debug());
     }
     if old.experimental_touch != next.experimental_touch {
-        app.state::<crate::touch::Touch>()
-            .set_enabled(next.experimental_touch);
+        app.state::<crate::touch::Touch>().set_enabled(next.experimental_touch);
     }
     if old.update_channel != next.update_channel {
         let app = app.clone();
@@ -644,17 +643,11 @@ pub fn default_browser_kind() -> studio_target::BrowserKind {
 pub async fn infopanel_local(app: AppHandle) -> CmdResult<infopanel_local::Local> {
     log::debug!("ipc: infopanel_local");
     let setup = setup_open(&app);
-    blocking(move || infopanel_local::Local {
-        setup,
-        ..infopanel_local::local()
-    })
-    .await
+    blocking(move || infopanel_local::Local { setup, ..infopanel_local::local() }).await
 }
 
 fn setup_open(app: &AppHandle) -> bool {
-    app.state::<AppState>()
-        .setup
-        .load(std::sync::atomic::Ordering::SeqCst)
+    app.state::<AppState>().setup.load(std::sync::atomic::Ordering::SeqCst)
 }
 
 /// Starting InfoPanel and the setup's switches only work in a setup session the shell opened.
@@ -679,9 +672,7 @@ pub fn run_setup(app: AppHandle) {
 #[tauri::command]
 pub fn setup_end(app: AppHandle) {
     log::info!("ipc: setup_end");
-    app.state::<AppState>()
-        .setup
-        .store(false, std::sync::atomic::Ordering::SeqCst);
+    app.state::<AppState>().setup.store(false, std::sync::atomic::Ordering::SeqCst);
 }
 
 /// Opens a path through the shell: InfoPanel asks to run as administrator, so only the shell can start it.
@@ -716,19 +707,13 @@ pub async fn port_owner(port: u16) -> CmdResult<Option<ProcessInfo>> {
 
 /// The setup's Finish switches: start at login and the update check. Finishing ends the session.
 #[tauri::command]
-pub async fn setup_options(
-    app: AppHandle,
-    start_at_login: bool,
-    check_for_updates: bool,
-) -> CmdResult<Settings> {
+pub async fn setup_options(app: AppHandle, start_at_login: bool, check_for_updates: bool) -> CmdResult<Settings> {
     log::info!("ipc: setup_options");
     setup_gate(&app)?;
     blocking(move || {
         apply_setting(&app, "startAtLogin", Value::from(start_at_login));
         let saved = apply_setting(&app, "checkForUpdates", Value::from(check_for_updates)).settings;
-        app.state::<AppState>()
-            .setup
-            .store(false, std::sync::atomic::Ordering::SeqCst);
+        app.state::<AppState>().setup.store(false, std::sync::atomic::Ordering::SeqCst);
         saved
     })
     .await

@@ -20,8 +20,8 @@ use tokio::task::JoinHandle;
 
 use crate::agent_usage::AgentUsage;
 use crate::http::{self, Req};
-use crate::json::{parse as parse_json, stringify};
 use crate::request_guard::agent_write_refusal;
+use crate::json::{parse as parse_json, stringify};
 use crate::{supervisor, App};
 
 pub const AGENTS: [&str; 2] = ["claude", "codex"];
@@ -34,12 +34,7 @@ const MAX_AGENT_BYTES: usize = 512 * 1024;
 const SWEEP: Duration = Duration::from_secs(30);
 pub const PUBLISH_THROTTLE: Duration = Duration::from_millis(250);
 /// The hook events that put a session into a state; anything else only refreshes it.
-const NEEDS_YOU: [&str; 4] = [
-    "permission_prompt",
-    "idle_prompt",
-    "elicitation_dialog",
-    "agent_needs_input",
-];
+const NEEDS_YOU: [&str; 4] = ["permission_prompt", "idle_prompt", "elicitation_dialog", "agent_needs_input"];
 
 /// One agent session as the server keeps it. `hooked` is set once a hook event has named it.
 #[derive(Debug, Clone, PartialEq)]
@@ -105,8 +100,7 @@ pub fn slice16(s: &str, max: usize) -> String {
 
 /// `str(v, max)`: a string cut to `max`, else "".
 fn str_of(v: Option<&Value>, max: usize) -> String {
-    v.and_then(Value::as_str)
-        .map_or_else(String::new, |s| slice16(s, max))
+    v.and_then(Value::as_str).map_or_else(String::new, |s| slice16(s, max))
 }
 
 /// The project folder's name from a cwd (both slash kinds), never the path.
@@ -121,9 +115,7 @@ pub fn tool_of(v: Option<&Value>) -> String {
     let s = str_of(v, 200);
     // `^mcp__.*__`: greedy, and `.` stops at a line break.
     let stripped = s.strip_prefix("mcp__").and_then(|rest| {
-        let line = rest
-            .find(['\n', '\r', '\u{2028}', '\u{2029}'])
-            .unwrap_or(rest.len());
+        let line = rest.find(['\n', '\r', '\u{2028}', '\u{2029}']).unwrap_or(rest.len());
         rest[..line].rfind("__").map(|i| &rest[i + 2..])
     });
     slice16(stripped.unwrap_or(&s), 60)
@@ -165,12 +157,7 @@ fn clear_turn(s: &mut Session) {
 
 /// One hook event into the sessions: `event` is the hook's JSON, `agent` "claude" or "codex", `now` ms. `None`: nothing
 /// to change (the state is returned as it was).
-pub fn reduce_agents(
-    state: &AgentsState,
-    agent: &str,
-    event: &Value,
-    now: f64,
-) -> Option<AgentsState> {
+pub fn reduce_agents(state: &AgentsState, agent: &str, event: &Value, now: f64) -> Option<AgentsState> {
     if !AGENTS.contains(&agent) || event.is_null() || !(event.is_object() || event.is_array()) {
         return None;
     }
@@ -183,10 +170,7 @@ pub fn reduce_agents(
     let mut sessions = state.sessions.clone();
     if name == "SessionEnd" {
         sessions.retain(|(k, _)| *k != key);
-        return Some(AgentsState {
-            sessions,
-            ..state.clone()
-        });
+        return Some(AgentsState { sessions, ..state.clone() });
     }
     let prev = find(&sessions, &key).cloned().unwrap_or_else(|| Session {
         agent: agent.into(),
@@ -205,16 +189,7 @@ pub fn reduce_agents(
         model: String::new(),
     });
     let project = project_of(event.get("cwd"));
-    let mut next = Session {
-        project: if project.is_empty() {
-            prev.project.clone()
-        } else {
-            project
-        },
-        last_seen: now,
-        hooked: true,
-        ..prev.clone()
-    };
+    let mut next = Session { project: if project.is_empty() { prev.project.clone() } else { project }, last_seen: now, hooked: true, ..prev.clone() };
     let tool = tool_of(event.get("tool_name"));
     match name.as_str() {
         "SessionStart" => {
@@ -241,11 +216,7 @@ pub fn reduce_agents(
                 next.tool = tool;
             }
         }
-        "Notification"
-            if NEEDS_YOU.contains(&str_of(event.get("notification_type"), 40).as_str()) =>
-        {
-            to(&mut next, "waiting", now)
-        }
+        "Notification" if NEEDS_YOU.contains(&str_of(event.get("notification_type"), 40).as_str()) => to(&mut next, "waiting", now),
         "SubagentStart" => next.subagents = (prev.subagents + 1).min(50),
         "SubagentStop" => next.subagents = prev.subagents.saturating_sub(1),
         "Stop" => {
@@ -266,20 +237,13 @@ pub fn reduce_agents(
         _ => {}
     }
     set(&mut sessions, &key, next);
-    Some(AgentsState {
-        sessions: trim(sessions),
-        ..state.clone()
-    })
+    Some(AgentsState { sessions: trim(sessions), ..state.clone() })
 }
 
 /// Claude Code's session files into the sessions: a live session without hooks is added and follows its file; a live one is
 /// not expired; one whose process ended (a crash), or an unhooked one whose file is gone, is dropped. Hooked sessions
 /// without a file are left to `expire_agents`. `None`: unchanged.
-pub fn merge_claude_sessions(
-    state: &AgentsState,
-    live: &[LiveSession],
-    now: f64,
-) -> Option<AgentsState> {
+pub fn merge_claude_sessions(state: &AgentsState, live: &[LiveSession], now: f64) -> Option<AgentsState> {
     let mut sessions = state.sessions.clone();
     let mut changed = false;
     let mut live_keys: Vec<String> = Vec::new();
@@ -315,10 +279,7 @@ pub fn merge_claude_sessions(
             changed = true;
             continue;
         };
-        let mut next = Session {
-            last_seen: now,
-            ..prev.clone()
-        };
+        let mut next = Session { last_seen: now, ..prev.clone() };
         if !prev.hooked {
             if !l.project.is_empty() {
                 next.project = l.project.clone();
@@ -337,10 +298,7 @@ pub fn merge_claude_sessions(
     let before = sessions.len();
     sessions.retain(|(key, s)| !(s.agent == "claude" && !s.hooked && !live_keys.contains(key)));
     changed |= sessions.len() != before;
-    changed.then(|| AgentsState {
-        sessions: trim(sessions),
-        ..state.clone()
-    })
+    changed.then(|| AgentsState { sessions: trim(sessions), ..state.clone() })
 }
 
 /// Drops sessions gone quiet (working or waiting past `STALE_MS`, finished past `DONE_KEEP_MS`). `None`: none dropped.
@@ -350,18 +308,11 @@ pub fn expire_agents(state: &AgentsState, now: f64) -> Option<AgentsState> {
         .iter()
         .filter(|(_, s)| {
             let quiet = now - s.last_seen;
-            if s.state == "working" || s.state == "waiting" {
-                quiet < STALE_MS
-            } else {
-                quiet < DONE_KEEP_MS
-            }
+            if s.state == "working" || s.state == "waiting" { quiet < STALE_MS } else { quiet < DONE_KEEP_MS }
         })
         .cloned()
         .collect();
-    (keep.len() != state.sessions.len()).then(|| AgentsState {
-        sessions: keep,
-        ..state.clone()
-    })
+    (keep.len() != state.sessions.len()).then(|| AgentsState { sessions: keep, ..state.clone() })
 }
 
 /// `pct(v)`: a finite number clamped to 0..100.
@@ -403,22 +354,15 @@ pub fn reduce_statusline(state: &AgentsState, payload: &Value, now: f64) -> Opti
         return None;
     }
     let empty = Map::new();
-    let limits = nullish(payload.get("rate_limits"), None)
-        .and_then(Value::as_object)
-        .unwrap_or(&empty);
+    let limits = nullish(payload.get("rate_limits"), None).and_then(Value::as_object).unwrap_or(&empty);
     let five_hour = window(limits.get("five_hour"));
     let seven_day = window(limits.get("seven_day"));
     // Any other weekly window (a per-model one) by its key's suffix.
     let extra: Vec<Value> = limits
         .iter()
         .filter_map(|(k, w)| {
-            let name = str_of(
-                Some(&Value::String(k.strip_prefix("seven_day_")?.to_string())),
-                30,
-            );
-            let Value::Object(mut win) = window(Some(w)).filter(|_| !name.is_empty())? else {
-                return None;
-            };
+            let name = str_of(Some(&Value::String(k.strip_prefix("seven_day_")?.to_string())), 30);
+            let Value::Object(mut win) = window(Some(w)).filter(|_| !name.is_empty())? else { return None };
             let mut out = Map::new();
             out.insert("name".into(), Value::String(name));
             out.append(&mut win);
@@ -427,16 +371,10 @@ pub fn reduce_statusline(state: &AgentsState, payload: &Value, now: f64) -> Opti
         .collect();
     let version = str_of(payload.get("version"), 20);
     let prev_claude = state.plan.get("claude").and_then(Value::as_object);
-    let prev_version = prev_claude
-        .and_then(|c| c.get("version"))
-        .and_then(Value::as_str)
-        .unwrap_or("");
+    let prev_version = prev_claude.and_then(|c| c.get("version")).and_then(Value::as_str).unwrap_or("");
     let mut plan = state.plan.clone();
     // JavaScript compares the plan object itself: it is a new one exactly when a branch below builds it.
-    let rebuilt = five_hour.is_some()
-        || seven_day.is_some()
-        || !extra.is_empty()
-        || (!version.is_empty() && version != prev_version);
+    let rebuilt = five_hour.is_some() || seven_day.is_some() || !extra.is_empty() || (!version.is_empty() && version != prev_version);
     if five_hour.is_some() || seven_day.is_some() || !extra.is_empty() {
         let mut claude = Map::new();
         if let Some(w) = five_hour {
@@ -449,14 +387,7 @@ pub fn reduce_statusline(state: &AgentsState, payload: &Value, now: f64) -> Opti
             claude.insert("extra".into(), Value::Array(extra));
         }
         if !version.is_empty() || !prev_version.is_empty() {
-            claude.insert(
-                "version".into(),
-                Value::String(if version.is_empty() {
-                    prev_version.into()
-                } else {
-                    version
-                }),
-            );
+            claude.insert("version".into(), Value::String(if version.is_empty() { prev_version.into() } else { version }));
         }
         claude.insert("at".into(), num(now));
         plan.insert("claude".into(), Value::Object(claude));
@@ -470,45 +401,22 @@ pub fn reduce_statusline(state: &AgentsState, payload: &Value, now: f64) -> Opti
     }
     let id = str_of(payload.get("session_id"), 100);
     let key = format!("claude:{id}");
-    let prev = if id.is_empty() {
-        None
-    } else {
-        find(&state.sessions, &key)
-    };
+    let prev = if id.is_empty() { None } else { find(&state.sessions, &key) };
     let mut sessions = state.sessions.clone();
     if let Some(prev) = prev {
-        let context = pct(payload
-            .get("context_window")
-            .and_then(|c| c.get("used_percentage")));
-        let cost = payload
-            .get("cost")
-            .and_then(|c| c.get("total_cost_usd"))
-            .and_then(Value::as_f64);
+        let context = pct(payload.get("context_window").and_then(|c| c.get("used_percentage")));
+        let cost = payload.get("cost").and_then(|c| c.get("total_cost_usd")).and_then(Value::as_f64);
         let m = payload.get("model");
-        let model = str_of(
-            nullish(
-                m.and_then(|m| m.get("display_name")),
-                m.and_then(|m| m.get("id")),
-            ),
-            40,
-        );
+        let model = str_of(nullish(m.and_then(|m| m.get("display_name")), m.and_then(|m| m.get("id"))), 40);
         let next = Session {
             context: context.or(prev.context),
             cost: cost.or(prev.cost),
-            model: if model.is_empty() {
-                prev.model.clone()
-            } else {
-                model
-            },
+            model: if model.is_empty() { prev.model.clone() } else { model },
             ..prev.clone()
         };
         set(&mut sessions, &key, next);
     }
-    (rebuilt || prev.is_some()).then(|| AgentsState {
-        sessions,
-        plan,
-        ..state.clone()
-    })
+    (rebuilt || prev.is_some()).then(|| AgentsState { sessions, plan, ..state.clone() })
 }
 
 /// Codex's rate limits as its session files report them (`primary`, `secondary`). Which is the 5-hour and which the weekly
@@ -517,26 +425,12 @@ pub fn codex_plan(state: &AgentsState, limits: &Value, now: f64) -> Option<Agent
     if !(limits.is_object() || limits.is_array()) {
         return None;
     }
-    let windows: Vec<&Value> = ["primary", "secondary"]
-        .iter()
-        .filter_map(|k| limits.get(k))
-        .filter(|w| w.is_object() || w.is_array())
-        .collect();
-    let short = windows.iter().position(|w| {
-        w.get("window_minutes")
-            .and_then(Value::as_f64)
-            .is_none_or(|m| m <= 360.0)
-    });
-    let long = windows
-        .iter()
-        .enumerate()
-        .find(|(i, _)| Some(*i) != short)
-        .map(|(i, _)| i);
+    let windows: Vec<&Value> = ["primary", "secondary"].iter().filter_map(|k| limits.get(k)).filter(|w| w.is_object() || w.is_array()).collect();
+    let short = windows.iter().position(|w| w.get("window_minutes").and_then(Value::as_f64).is_none_or(|m| m <= 360.0));
+    let long = windows.iter().enumerate().find(|(i, _)| Some(*i) != short).map(|(i, _)| i);
     let as_window = |i: Option<usize>| {
         let w = windows[i?];
-        window(Some(
-            &json!({ "used_percent": w.get("used_percent"), "resets_at": w.get("resets_at") }),
-        ))
+        window(Some(&json!({ "used_percent": w.get("used_percent"), "resets_at": w.get("resets_at") })))
     };
     let (five_hour, seven_day) = (as_window(short), as_window(long));
     if five_hour.is_none() && seven_day.is_none() {
@@ -552,10 +446,7 @@ pub fn codex_plan(state: &AgentsState, limits: &Value, now: f64) -> Option<Agent
     codex.insert("at".into(), num(now));
     let mut plan = state.plan.clone();
     plan.insert("codex".into(), Value::Object(codex));
-    Some(AgentsState {
-        plan,
-        ..state.clone()
-    })
+    Some(AgentsState { plan, ..state.clone() })
 }
 
 /// What the kiosks get: sessions newest first, each keyed by a short hash (not the agent's session id).
@@ -567,10 +458,7 @@ pub fn public_agents(state: &AgentsState) -> Value {
         .map(|(key, s)| {
             let digest = Sha256::digest(key.as_bytes());
             let mut out = Map::new();
-            out.insert(
-                "key".into(),
-                Value::String(digest.iter().take(6).map(|b| format!("{b:02x}")).collect()),
-            );
+            out.insert("key".into(), Value::String(digest.iter().take(6).map(|b| format!("{b:02x}")).collect()));
             out.insert("agent".into(), s.agent.clone().into());
             out.insert("project".into(), s.project.clone().into());
             out.insert("state".into(), s.state.clone().into());
@@ -599,11 +487,7 @@ pub fn public_agents(state: &AgentsState) -> Value {
             Value::Object(out)
         })
         .collect();
-    let usage = if state.usage.is_null() {
-        json!({})
-    } else {
-        state.usage.clone()
-    };
+    let usage = if state.usage.is_null() { json!({}) } else { state.usage.clone() };
     json!({ "sessions": sessions, "plan": state.plan, "usage": usage })
 }
 
@@ -660,33 +544,13 @@ impl Session {
 
 impl AgentsState {
     pub fn to_json(&self) -> Value {
-        let sessions: Map<String, Value> = self
-            .sessions
-            .iter()
-            .map(|(k, s)| (k.clone(), s.to_json()))
-            .collect();
+        let sessions: Map<String, Value> = self.sessions.iter().map(|(k, s)| (k.clone(), s.to_json())).collect();
         json!({ "sessions": sessions, "plan": self.plan, "usage": self.usage })
     }
 
     pub fn from_json(v: &Value) -> Self {
-        let sessions = v
-            .get("sessions")
-            .and_then(Value::as_object)
-            .map(|m| {
-                m.iter()
-                    .map(|(k, s)| (k.clone(), Session::from_json(s)))
-                    .collect()
-            })
-            .unwrap_or_default();
-        Self {
-            sessions,
-            plan: v
-                .get("plan")
-                .and_then(Value::as_object)
-                .cloned()
-                .unwrap_or_default(),
-            usage: v.get("usage").cloned().unwrap_or_else(|| json!({})),
-        }
+        let sessions = v.get("sessions").and_then(Value::as_object).map(|m| m.iter().map(|(k, s)| (k.clone(), Session::from_json(s))).collect()).unwrap_or_default();
+        Self { sessions, plan: v.get("plan").and_then(Value::as_object).cloned().unwrap_or_default(), usage: v.get("usage").cloned().unwrap_or_else(|| json!({})) }
     }
 }
 
@@ -713,16 +577,7 @@ pub struct Agents(Arc<Inner>);
 
 impl Agents {
     pub fn new(sources: Sources, throttle: Duration) -> Self {
-        let agents = Self(Arc::new(Inner {
-            state: Mutex::new(AgentsState {
-                usage: json!({}),
-                ..AgentsState::default()
-            }),
-            sources,
-            throttle,
-            pending: AtomicBool::new(false),
-            on_change: OnceLock::new(),
-        }));
+        let agents = Self(Arc::new(Inner { state: Mutex::new(AgentsState { usage: json!({}), ..AgentsState::default() }), sources, throttle, pending: AtomicBool::new(false), on_change: OnceLock::new() }));
         agents.refresh();
         agents
     }
@@ -787,11 +642,7 @@ impl Agents {
         let sources = &self.0.sources;
         let now = (sources.now)();
         let live = (sources.claude_sessions)();
-        let (limits, limits_at, usage) = (
-            sources.usage.codex_limits(),
-            sources.usage.codex_limits_at(),
-            sources.usage.totals(),
-        );
+        let (limits, limits_at, usage) = (sources.usage.codex_limits(), sources.usage.codex_limits_at(), sources.usage.totals());
         let mut state = self.lock();
         let mut next = merge_claude_sessions(&state, &live, now).unwrap_or_else(|| state.clone());
         next = expire_agents(&next, now).unwrap_or(next);
@@ -853,11 +704,7 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
     if req.method != Method::POST {
         return Ok(http::empty(405));
     }
-    if let Some(refusal) = agent_write_refusal(
-        req.header("content-type").as_deref(),
-        req.header("x-agent-event").as_deref(),
-        Some(&req.peer),
-    ) {
+    if let Some(refusal) = agent_write_refusal(req.header("content-type").as_deref(), req.header("x-agent-event").as_deref(), Some(&req.peer)) {
         return Ok(http::text(refusal.status, refusal.message));
     }
     let payload = match req.read_body(MAX_AGENT_BYTES).await {
@@ -870,8 +717,7 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
     if req.path == "/api/agents/statusline" {
         app.agents.statusline(&payload);
     } else {
-        app.agents
-            .event(&req.query("agent").unwrap_or_default(), &payload);
+        app.agents.event(&req.query("agent").unwrap_or_default(), &payload);
     }
     Ok(http::empty(204))
 }

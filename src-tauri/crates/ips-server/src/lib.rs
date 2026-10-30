@@ -81,10 +81,7 @@ const MAX_STUDIO_PREFS_BYTES: usize = 4 * 1024;
 
 /// Whether `path` is a route family's root or anything under it.
 fn is_family(path: &str, root: &str) -> bool {
-    path == root
-        || path
-            .strip_prefix(root)
-            .is_some_and(|rest| rest.starts_with('/'))
+    path == root || path.strip_prefix(root).is_some_and(|rest| rest.starts_with('/'))
 }
 
 /// What the server runs with: the same inputs as the Node server's environment.
@@ -112,15 +109,11 @@ impl ServerConfig {
         Ok(Self {
             host: env::non_empty("HOST").unwrap_or_else(|| "127.0.0.1".into()),
             port: env::parse_port(std::env::var("PORT").ok().as_deref())?,
-            allowed_hosts: request_guard::parse_allowed_hosts(
-                std::env::var("ALLOWED_HOSTS").ok().as_deref(),
-            ),
+            allowed_hosts: request_guard::parse_allowed_hosts(std::env::var("ALLOWED_HOSTS").ok().as_deref()),
             allow_remote_edit: flag("ALLOW_REMOTE_EDIT"),
             allow_remote_upload: flag("ALLOW_REMOTE_UPLOAD"),
-            dist: env::non_empty("DASHBOARD_DIST")
-                .map_or_else(|| env::resolve("dist"), |d| env::resolve(&d)),
-            data_dir: env::non_empty("DASHBOARD_DATA_DIR")
-                .map_or_else(env::default_data_dir, |d| env::resolve(&d)),
+            dist: env::non_empty("DASHBOARD_DIST").map_or_else(|| env::resolve("dist"), |d| env::resolve(&d)),
+            data_dir: env::non_empty("DASHBOARD_DATA_DIR").map_or_else(env::default_data_dir, |d| env::resolve(&d)),
             infopanel_dir: env::infopanel_dir(),
             debug: flag("DASHBOARD_DEBUG"),
             version: env::version(),
@@ -144,9 +137,7 @@ pub enum StartError {
 impl std::fmt::Display for StartError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::AddrInUse(at) => {
-                write!(f, "Error: listen EADDRINUSE: address already in use {at}")
-            }
+            Self::AddrInUse(at) => write!(f, "Error: listen EADDRINUSE: address already in use {at}"),
             Self::Access(at) => write!(f, "Error: listen EACCES: permission denied {at}"),
             Self::Other(message) => write!(f, "Error: {message}"),
         }
@@ -177,10 +168,7 @@ impl App {
     /// The 403 (JSON) for a config write from another machine while ALLOW_REMOTE_EDIT is off.
     pub fn refuse_remote_edit(&self, req: &Req) -> Option<Response<Body>> {
         let refusal = remote_edit_refusal(Some(&req.peer), self.cfg.allow_remote_edit)?;
-        Some(http::json(
-            refusal.status,
-            &json!({ "error": refusal.message }),
-        ))
+        Some(http::json(refusal.status, &json!({ "error": refusal.message })))
     }
 }
 
@@ -208,17 +196,12 @@ fn listen_socket(addr: SocketAddr) -> std::io::Result<std::net::TcpListener> {
 
 /// Takes the port, loads the data folder and prints the start line (stdout), as the Node server did on listen.
 pub async fn bind(cfg: ServerConfig) -> Result<Bound, StartError> {
-    bind_with_home(
-        cfg,
-        std::env::home_dir().unwrap_or_else(|| PathBuf::from(".")),
-    )
-    .await
+    bind_with_home(cfg, std::env::home_dir().unwrap_or_else(|| PathBuf::from("."))).await
 }
 
 /// `bind` with the user's home (where `.claude` and `.codex` are read) given, so a test never reads the real one.
 pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, StartError> {
-    std::fs::create_dir_all(&cfg.data_dir)
-        .map_err(|e| StartError::Other(format!("{}: {e}", cfg.data_dir.display())))?;
+    std::fs::create_dir_all(&cfg.data_dir).map_err(|e| StartError::Other(format!("{}: {e}", cfg.data_dir.display())))?;
     let config = ConfigStore::load(&cfg.config_file());
     let prefs = StudioPrefs::load(&cfg.data_dir.join("studio-prefs.json"));
 
@@ -235,10 +218,7 @@ pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, S
             std::io::ErrorKind::PermissionDenied => StartError::Access(at.clone()),
             _ => StartError::Other(format!("listen {e} {at}")),
         })?;
-    let port = listener
-        .local_addr()
-        .map_err(|e| StartError::Other(e.to_string()))?
-        .port();
+    let port = listener.local_addr().map_err(|e| StartError::Other(e.to_string()))?.port();
 
     let machine_name = sysinfo::System::host_name().unwrap_or_default();
     let guard = RequestGuard::new(&cfg.host, &cfg.allowed_hosts, &machine_name);
@@ -256,15 +236,10 @@ pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, S
     });
     control_store::start_tick(Arc::clone(&control), shutdown.clone());
     // The alert engine reads the Data API for the rules' sensors; re-reads the rules after control has on a save.
-    let alerts = Alerts::new(AlertsOptions::live(
-        cfg.data_dir.join("alerts.json"),
-        Arc::clone(&control),
-        shutdown.clone(),
-        {
-            let config = Arc::clone(&config);
-            move || config.read()
-        },
-    ));
+    let alerts = Alerts::new(AlertsOptions::live(cfg.data_dir.join("alerts.json"), Arc::clone(&control), shutdown.clone(), {
+        let config = Arc::clone(&config);
+        move || config.read()
+    }));
     alerts.start(&shutdown);
     config.on_saved({
         let alerts = Arc::clone(&alerts);
@@ -304,35 +279,12 @@ pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, S
     sweeper.trigger();
     let assets = Assets::new(cfg.data_dir.join("assets"), cfg.allow_remote_upload);
     let library = LibraryStore::new(cfg.data_dir.join("library"));
-    println!(
-        "InfoPanel Studio on http://{}:{port} (config: {})",
-        cfg.host,
-        cfg.config_file().display()
-    );
+    println!("InfoPanel Studio on http://{}:{port} (config: {})", cfg.host, cfg.config_file().display());
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App {
-        cfg,
-        guard,
-        started: Instant::now(),
-        debug,
-        config,
-        control,
-        alerts,
-        extras,
-        agents,
-        assets,
-        canvases,
-        library,
-        prefs,
-        shutdown,
-    };
-    Ok(Bound {
-        listener,
-        app: Arc::new(app),
-        stop,
-    })
+    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, agents, assets, canvases, library, prefs, shutdown };
+    Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
 impl Bound {
@@ -355,10 +307,7 @@ impl Bound {
             let _ = stop.send(true);
         };
         let service = router.into_make_service_with_connect_info::<SocketAddr>();
-        if let Err(e) = axum::serve(self.listener, service)
-            .with_graceful_shutdown(signal)
-            .await
-        {
+        if let Err(e) = axum::serve(self.listener, service).with_graceful_shutdown(signal).await {
             log::error!(target: "server", "server failed: {e}");
         }
     }
@@ -369,53 +318,28 @@ fn peer_of(addr: SocketAddr) -> String {
     addr.ip().to_string()
 }
 
-async fn dispatch(
-    State(app): State<Arc<App>>,
-    ConnectInfo(peer): ConnectInfo<SocketAddr>,
-    request: Request,
-) -> Response<Body> {
+async fn dispatch(State(app): State<Arc<App>>, ConnectInfo(peer): ConnectInfo<SocketAddr>, request: Request) -> Response<Body> {
     let (parts, body) = request.into_parts();
     // Node refuses an HTTP/1.1 request without a Host before its handler runs.
     if parts.version == Version::HTTP_11 && !parts.headers.contains_key("host") {
         let mut response = Response::new(http::chunked(""));
         *response.status_mut() = axum::http::StatusCode::BAD_REQUEST;
-        response
-            .headers_mut()
-            .insert("Connection", HeaderValue::from_static("close"));
+        response.headers_mut().insert("Connection", HeaderValue::from_static("close"));
         return response;
     }
     let header = |name: &str| http::header(&parts.headers, name);
-    if let Some(refusal) = app.guard.check(
-        parts.method.as_str(),
-        header("host").as_deref(),
-        header("sec-fetch-site").as_deref(),
-        header("origin").as_deref(),
-    ) {
+    if let Some(refusal) = app.guard.check(parts.method.as_str(), header("host").as_deref(), header("sec-fetch-site").as_deref(), header("origin").as_deref()) {
         let mut response = http::text(refusal.status, refusal.message);
-        response
-            .headers_mut()
-            .insert("Connection", HeaderValue::from_static("close"));
+        response.headers_mut().insert("Connection", HeaderValue::from_static("close"));
         return response;
     }
     let url = parts.uri.to_string();
-    let (path, search) = match url::Url::parse("http://localhost").and_then(|base| base.join(&url))
-    {
-        Ok(u) => (
-            u.path().to_string(),
-            u.query().map_or(String::new(), |q| format!("?{q}")),
-        ),
+    let (path, search) = match url::Url::parse("http://localhost").and_then(|base| base.join(&url)) {
+        Ok(u) => (u.path().to_string(), u.query().map_or(String::new(), |q| format!("?{q}"))),
         Err(_) => ("/".into(), String::new()),
     };
     let method = parts.method.clone();
-    let req = Req {
-        method: parts.method,
-        headers: parts.headers,
-        peer: peer_of(peer),
-        url: url.clone(),
-        path,
-        search,
-        body,
-    };
+    let req = Req { method: parts.method, headers: parts.headers, peer: peer_of(peer), url: url.clone(), path, search, body };
     let path = req.path.clone();
     let response = match route(&app, req).await {
         Ok(response) => response,
@@ -434,9 +358,7 @@ fn debug_tools_off() -> Response<Body> {
 
 /// Whether the request is for the Widget QA page: `/widget-qa`, or `/?widget-qa`.
 fn is_widget_qa(path: &str, search: &str) -> bool {
-    path == "/widget-qa"
-        || url::form_urlencoded::parse(search.trim_start_matches('?').as_bytes())
-            .any(|(key, _)| key == "widget-qa")
+    path == "/widget-qa" || url::form_urlencoded::parse(search.trim_start_matches('?').as_bytes()).any(|(key, _)| key == "widget-qa")
 }
 
 async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
@@ -455,21 +377,15 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/events/extras" => Ok(extras::handle_events(app)),
         "/events/touch" => Ok(touch_hub::handle_events(app, &req)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
-        "/api/agents/event" | "/api/agents/statusline" => {
-            agents::handle(app, req).await.map_err(io)
-        }
+        "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),
         "/api/image-proxy" => proxy::handle(req).await,
         "/api/font-proxy" => font_proxy::handle(app, req).await,
         "/api/frame-check" => frame_check::handle(req).await,
-        p if p == "/api/control" || p.starts_with("/api/control/") => {
-            Ok(control_store::handle(app, req).await)
-        }
+        p if p == "/api/control" || p.starts_with("/api/control/") => Ok(control_store::handle(app, req).await),
         p if is_family(p, "/api/assets") => assets::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/library") => library::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/canvases") => canvases::handle(app, req).await.map_err(io),
-        p if is_family(p, "/api/infopanel/installed") => {
-            infopanel_local::handle(app, &req).map_err(io)
-        }
+        p if is_family(p, "/api/infopanel/installed") => infopanel_local::handle(app, &req).map_err(io),
         p if p.starts_with("/api/") => Ok(http::empty(404)),
         // The debug tools, served in debug mode only: the InfoPanel lab (dist/lab/, a separate build) and Widget QA
         // (a page of the app, at /widget-qa or the older /?widget-qa).
@@ -478,20 +394,14 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
                 return Ok(debug_tools_off());
             }
             if p == "/lab" {
-                return Ok(Response::builder()
-                    .status(302)
-                    .header("Location", "/lab/")
-                    .body(Body::empty())
-                    .unwrap_or_default());
+                return Ok(Response::builder().status(302).header("Location", "/lab/").body(Body::empty()).unwrap_or_default());
             }
             if p.ends_with('/') {
                 req.path.push_str("index.html");
             }
             static_files::serve(&app.cfg.dist, &req)
         }
-        p if (p == "/widget-qa" || p == "/") && is_widget_qa(p, &req.search) && !app.cfg.debug => {
-            Ok(debug_tools_off())
-        }
+        p if (p == "/widget-qa" || p == "/") && is_widget_qa(p, &req.search) && !app.cfg.debug => Ok(debug_tools_off()),
         _ => static_files::serve(&app.cfg.dist, &req),
     }
 }
@@ -501,10 +411,7 @@ fn health(app: &App, req: &Req) -> Response<Body> {
     if req.method != Method::GET {
         return http::empty(405);
     }
-    http::json(
-        200,
-        &json!({ "app": APP_ID, "version": app.cfg.version, "configVersion": app.config.version() }),
-    )
+    http::json(200, &json!({ "app": APP_ID, "version": app.cfg.version, "configVersion": app.config.version() }))
 }
 
 /// GET /api/server/stats → uptime and open SSE clients for the desktop app; this machine only.
@@ -527,10 +434,7 @@ fn server_stats(app: &App, req: &Req) -> Response<Body> {
 /// studio. This machine only; a write takes the config write headers.
 async fn studio_prefs(app: &App, mut req: Req) -> std::io::Result<Response<Body>> {
     if !req.is_loopback() {
-        return Ok(http::text(
-            403,
-            "studio preferences are served to this machine only",
-        ));
+        return Ok(http::text(403, "studio preferences are served to this machine only"));
     }
     if req.method == Method::GET {
         return Ok(http::json(200, &app.prefs.get()));
@@ -538,18 +442,13 @@ async fn studio_prefs(app: &App, mut req: Req) -> std::io::Result<Response<Body>
     if req.method != Method::PUT {
         return Ok(http::empty(405));
     }
-    if let Some(refusal) = config_write_refusal(
-        req.header("content-type").as_deref(),
-        req.header("x-dashboard-config").as_deref(),
-    ) {
+    if let Some(refusal) = config_write_refusal(req.header("content-type").as_deref(), req.header("x-dashboard-config").as_deref()) {
         return Ok(http::text(refusal.status, refusal.message));
     }
     let patch = match req.read_body(MAX_STUDIO_PREFS_BYTES).await {
         Ok(body) if body.is_empty() => Some(json!({})),
         Ok(body) => json::parse(&body),
-        Err(http::BodyRefused) => {
-            return Ok(http::closing(http::text(400, "expected a JSON object")))
-        }
+        Err(http::BodyRefused) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
     };
     let Some(patch) = patch else {
         return Ok(http::text(400, "expected a JSON object"));

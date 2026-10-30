@@ -18,9 +18,8 @@ use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 use crate::asset_types::{
-    by_ext, declared_type, hash_of, is_asset_id, limit_of, parse_range, referenced_hashes,
-    sniff_type, upload_quota_refusal, AssetType, Range, DEFAULT_MAX_BYTES, HEAD_BYTES,
-    MAX_IN_FLIGHT, SVG_CSP,
+    by_ext, declared_type, hash_of, is_asset_id, limit_of, parse_range, referenced_hashes, sniff_type, upload_quota_refusal, AssetType, Range,
+    DEFAULT_MAX_BYTES, HEAD_BYTES, MAX_IN_FLIGHT, SVG_CSP,
 };
 use crate::http::{self, Req};
 use crate::{js, App};
@@ -59,18 +58,10 @@ impl Assets {
     }
 
     fn with_max_bytes(dir: PathBuf, allow_remote: bool, max_bytes: f64) -> Self {
-        for name in names(&dir)
-            .into_iter()
-            .filter(|n| n.starts_with(TEMP_PREFIX))
-        {
+        for name in names(&dir).into_iter().filter(|n| n.starts_with(TEMP_PREFIX)) {
             let _ = std::fs::remove_file(dir.join(name));
         }
-        Self {
-            dir,
-            max_bytes,
-            allow_remote,
-            in_flight: AtomicUsize::new(0),
-        }
+        Self { dir, max_bytes, allow_remote, in_flight: AtomicUsize::new(0) }
     }
 
     /// The file of an asset id, or `None` for anything not an id.
@@ -83,17 +74,12 @@ impl Assets {
         if req.header("x-dashboard-asset").as_deref() != Some("1") {
             return Some("missing X-Dashboard-Asset header");
         }
-        (!self.allow_remote && !req.is_loopback())
-            .then_some("uploads are accepted from this computer only")
+        (!self.allow_remote && !req.is_loopback()).then_some("uploads are accepted from this computer only")
     }
 
     /// The total size of the entries in the folder (temp files of running uploads included).
     fn dir_bytes(&self) -> u64 {
-        names(&self.dir)
-            .iter()
-            .filter_map(|n| std::fs::metadata(self.dir.join(n)).ok())
-            .map(|m| m.len())
-            .sum()
+        names(&self.dir).iter().filter_map(|n| std::fs::metadata(self.dir.join(n)).ok()).map(|m| m.len()).sum()
     }
 }
 
@@ -102,22 +88,15 @@ pub fn names(dir: &Path) -> Vec<String> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Vec::new();
     };
-    let mut names: Vec<String> = entries
-        .filter_map(Result::ok)
-        .map(|e| e.file_name().to_string_lossy().into_owned())
-        .collect();
+    let mut names: Vec<String> = entries.filter_map(Result::ok).map(|e| e.file_name().to_string_lossy().into_owned()).collect();
     names.sort();
     names
 }
 
 fn json_of(id: &str, t: &AssetType, size: u64, mtime: Option<i64>) -> Value {
     match mtime {
-        Some(mtime) => {
-            json!({ "id": id, "url": format!("/api/assets/{id}"), "type": t.mime, "kind": t.kind, "size": size, "mtime": mtime })
-        }
-        None => {
-            json!({ "id": id, "url": format!("/api/assets/{id}"), "type": t.mime, "size": size })
-        }
+        Some(mtime) => json!({ "id": id, "url": format!("/api/assets/{id}"), "type": t.mime, "kind": t.kind, "size": size, "mtime": mtime }),
+        None => json!({ "id": id, "url": format!("/api/assets/{id}"), "type": t.mime, "size": size }),
     }
 }
 
@@ -126,11 +105,7 @@ fn list(assets: &Assets) -> std::io::Result<Vec<Value>> {
     let mut found = Vec::new();
     for id in names(&assets.dir).into_iter().filter(|n| is_asset_id(n)) {
         let meta = std::fs::metadata(assets.dir.join(&id))?;
-        let mtime = meta
-            .modified()
-            .ok()
-            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-            .map_or(0, |d| d.as_millis() as i64);
+        let mtime = meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_millis() as i64);
         let t = by_ext(&id[65..]).unwrap_or(&crate::asset_types::TYPES[0]);
         found.push((mtime, json_of(&id, t, meta.len(), Some(mtime))));
     }
@@ -142,40 +117,22 @@ fn handle_list(app: &App, req: &Req) -> std::io::Result<Response<Body>> {
     let mut assets = list(&app.assets)?;
     if req.query("unused").as_deref() == Some("1") {
         let config = &app.cfg.config_file();
-        let mut texts = vec![if config.exists() {
-            crate::store::read_text(config)?
-        } else {
-            String::new()
-        }];
+        let mut texts = vec![if config.exists() { crate::store::read_text(config)? } else { String::new() }];
         texts.extend(app.library.texts());
         texts.extend(app.canvases.texts());
         let used = referenced_hashes(&texts.join("\n"));
-        assets.retain(|a| {
-            !used
-                .iter()
-                .any(|h| h == hash_of(a["id"].as_str().unwrap_or("")))
-        });
+        assets.retain(|a| !used.iter().any(|h| h == hash_of(a["id"].as_str().unwrap_or(""))));
     }
     Ok(http::json(200, &Value::Array(assets)))
 }
 
 /// Streams the body into `tmp` while hashing it, refusing it once it passes `limit` or once its first bytes are not
 /// the `expected` type. Returns the size and the SHA-256 in hex; the caller deletes `tmp` on a refusal.
-async fn receive(
-    mut req: Req,
-    tmp: &Path,
-    limit: u64,
-    expected: &str,
-) -> Result<(u64, String), Refused> {
+async fn receive(mut req: Req, tmp: &Path, limit: u64, expected: &str) -> Result<(u64, String), Refused> {
     let refuse = |status: u16, message: &str| Refused(status, message.to_string());
     let mismatch = || refuse(415, "file content does not match its type");
     let matches_head = |head: &[u8]| sniff_type(head).is_some_and(|t| t.ext == expected);
-    let mut file = tokio::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(tmp)
-        .await
-        .map_err(|_| refuse(500, ""))?;
+    let mut file = tokio::fs::OpenOptions::new().write(true).create_new(true).open(tmp).await.map_err(|_| refuse(500, ""))?;
     let mut stream = std::mem::take(&mut req.body).into_data_stream();
     let mut hash = Sha256::new();
     let mut head: Vec<u8> = Vec::new();
@@ -216,9 +173,7 @@ async fn handle_upload(app: &App, req: Req) -> std::io::Result<Response<Body>> {
     };
     let limit = limit_of(declared);
     // Close the connection after an early answer instead of reading the rest.
-    let length = req
-        .header("content-length")
-        .map_or(f64::NAN, |v| js::string_to_number(&v));
+    let length = req.header("content-length").map_or(f64::NAN, |v| js::string_to_number(&v));
     if length > limit as f64 {
         return Ok(http::closing(http::empty(413)));
     }
@@ -226,19 +181,11 @@ async fn handle_upload(app: &App, req: Req) -> std::io::Result<Response<Body>> {
     let taken = assets.in_flight.fetch_add(1, Ordering::SeqCst);
     let slot = Slot(&assets.in_flight);
     let incoming = if length > 0.0 { length } else { limit as f64 };
-    if let Some((status, message)) = upload_quota_refusal(
-        taken,
-        MAX_IN_FLIGHT,
-        assets.dir_bytes() as f64,
-        incoming,
-        assets.max_bytes,
-    ) {
+    if let Some((status, message)) = upload_quota_refusal(taken, MAX_IN_FLIGHT, assets.dir_bytes() as f64, incoming, assets.max_bytes) {
         return Ok(http::closing(http::text(status, message)));
     }
     std::fs::create_dir_all(&assets.dir)?;
-    let tmp = assets
-        .dir
-        .join(format!("{TEMP_PREFIX}{}.tmp", uuid::Uuid::new_v4()));
+    let tmp = assets.dir.join(format!("{TEMP_PREFIX}{}.tmp", uuid::Uuid::new_v4()));
     let received = receive(req, &tmp, limit, declared.ext).await;
     drop(slot);
     let (size, digest) = match received {
@@ -250,11 +197,7 @@ async fn handle_upload(app: &App, req: Req) -> std::io::Result<Response<Body>> {
     };
     let id = format!("{digest}.{}", declared.ext);
     let file = assets.dir.join(&id);
-    let stored = if file.exists() {
-        std::fs::remove_file(&tmp)
-    } else {
-        std::fs::rename(&tmp, &file)
-    };
+    let stored = if file.exists() { std::fs::remove_file(&tmp) } else { std::fs::rename(&tmp, &file) };
     if let Err(e) = stored {
         let _ = std::fs::remove_file(&tmp);
         // A concurrent upload of the same bytes got there first.
@@ -278,41 +221,35 @@ fn handle_delete(app: &App, req: &Req, file: &Path) -> std::io::Result<Response<
 
 /// The bytes `start..start + len` of `file`; a read error ends the response mid-way, as Node destroys it.
 fn range_body(file: PathBuf, start: u64, len: u64) -> Body {
-    let stream = futures_util::stream::unfold(
-        Some((file, None::<tokio::fs::File>, len)),
-        move |state| async move {
-            let (path, open, left) = state?;
-            if left == 0 {
-                return None;
-            }
-            let mut handle = match open {
-                Some(handle) => handle,
-                None => {
-                    let opened = async {
-                        let mut handle = tokio::fs::File::open(&path).await?;
-                        handle.seek(SeekFrom::Start(start)).await?;
-                        Ok::<_, std::io::Error>(handle)
-                    };
-                    match opened.await {
-                        Ok(handle) => handle,
-                        Err(e) => return Some((Err(e), None)),
-                    }
+    let stream = futures_util::stream::unfold(Some((file, None::<tokio::fs::File>, len)), move |state| async move {
+        let (path, open, left) = state?;
+        if left == 0 {
+            return None;
+        }
+        let mut handle = match open {
+            Some(handle) => handle,
+            None => {
+                let opened = async {
+                    let mut handle = tokio::fs::File::open(&path).await?;
+                    handle.seek(SeekFrom::Start(start)).await?;
+                    Ok::<_, std::io::Error>(handle)
+                };
+                match opened.await {
+                    Ok(handle) => handle,
+                    Err(e) => return Some((Err(e), None)),
                 }
-            };
-            let mut buf = vec![0; CHUNK.min(left as usize)];
-            match handle.read(&mut buf).await {
-                Ok(0) => None,
-                Ok(n) => {
-                    buf.truncate(n);
-                    Some((
-                        Ok(Bytes::from(buf)),
-                        Some((path, Some(handle), left - n as u64)),
-                    ))
-                }
-                Err(e) => Some((Err(e), None)),
             }
-        },
-    );
+        };
+        let mut buf = vec![0; CHUNK.min(left as usize)];
+        match handle.read(&mut buf).await {
+            Ok(0) => None,
+            Ok(n) => {
+                buf.truncate(n);
+                Some((Ok(Bytes::from(buf)), Some((path, Some(handle), left - n as u64))))
+            }
+            Err(e) => Some((Err(e), None)),
+        }
+    });
     Body::from_stream(stream)
 }
 
@@ -323,10 +260,7 @@ fn serve_asset(req: &Req, file: PathBuf) -> Response<Body> {
     let size = meta.len();
     let ext = file.extension().and_then(|e| e.to_str()).unwrap_or("");
     let mut builder = Response::builder()
-        .header(
-            "Content-Type",
-            by_ext(ext).map_or("application/octet-stream", |t| t.mime),
-        )
+        .header("Content-Type", by_ext(ext).map_or("application/octet-stream", |t| t.mime))
         .header("Cache-Control", "public, max-age=31536000, immutable")
         .header("X-Content-Type-Options", "nosniff");
     if ext == "svg" {
@@ -336,11 +270,7 @@ fn serve_asset(req: &Req, file: PathBuf) -> Response<Body> {
     let range = parse_range(req.header("range").as_deref(), size);
     let (status, start, end) = match range {
         Range::Unsatisfiable => {
-            let response = builder
-                .status(416)
-                .header("Content-Range", format!("bytes */{size}"))
-                .header("Content-Length", "0")
-                .body(Body::empty());
+            let response = builder.status(416).header("Content-Range", format!("bytes */{size}")).header("Content-Length", "0").body(Body::empty());
             return response.unwrap_or_default();
         }
         Range::Span(start, end) => (206, start, end),
@@ -348,9 +278,7 @@ fn serve_asset(req: &Req, file: PathBuf) -> Response<Body> {
     };
     // A zero-size file has no bytes to read: its length is 1 - 0 by the formula, 0 here.
     let len = if size == 0 { 0 } else { end - start + 1 };
-    builder = builder
-        .status(status)
-        .header("Content-Length", len.to_string());
+    builder = builder.status(status).header("Content-Length", len.to_string());
     if status == 206 {
         builder = builder.header("Content-Range", format!("bytes {start}-{end}/{size}"));
     }

@@ -25,9 +25,7 @@ pub fn server_config(s: &Settings, paths: &Paths, debug: bool, version: &str) ->
         data_dir: paths
             .data_dir
             .as_ref()
-            .map_or_else(env::default_data_dir, |dir| {
-                env::resolve(&paths::display(dir))
-            }),
+            .map_or_else(env::default_data_dir, |dir| env::resolve(&paths::display(dir))),
         infopanel_dir: env::infopanel_dir(),
         debug,
         version: version.into(),
@@ -208,15 +206,7 @@ mod tests {
         drop(held);
 
         let first = crate::control::find_free_port("127.0.0.1", 20000).unwrap();
-        let cfg = server_config(
-            &Settings {
-                port: first,
-                ..s.clone()
-            },
-            &paths(&root),
-            false,
-            "9.9.9",
-        );
+        let cfg = server_config(&Settings { port: first, ..s.clone() }, &paths(&root), false, "9.9.9");
         assert_eq!(
             start_line(&cfg, first),
             format!(
@@ -233,17 +223,9 @@ mod tests {
 
         // A restart with a new port, as a saved port change does.
         server.stop();
-        assert!(
-            crate::probe::is_port_free("127.0.0.1", first),
-            "port {first} still held"
-        );
+        assert!(crate::probe::is_port_free("127.0.0.1", first), "port {first} still held");
         let second = crate::control::find_free_port("127.0.0.1", first + 1).unwrap();
-        let cfg = server_config(
-            &Settings { port: second, ..s },
-            &paths(&root),
-            false,
-            "9.9.9",
-        );
+        let cfg = server_config(&Settings { port: second, ..s }, &paths(&root), false, "9.9.9");
         let server = start(cfg, Some(home)).expect("restarts");
         assert_eq!(health(second)["app"], crate::probe::DASHBOARD_APP);
         server.stop();

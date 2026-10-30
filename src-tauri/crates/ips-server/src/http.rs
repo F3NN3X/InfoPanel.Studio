@@ -72,9 +72,7 @@ impl Req {
     /// `searchParams.get(name)`.
     pub fn query(&self, name: &str) -> Option<String> {
         let query = self.search.strip_prefix('?').unwrap_or(&self.search);
-        url::form_urlencoded::parse(query.as_bytes())
-            .find(|(k, _)| k == name)
-            .map(|(_, v)| v.into_owned())
+        url::form_urlencoded::parse(query.as_bytes()).find(|(k, _)| k == name).map(|(_, v)| v.into_owned())
     }
 
     pub fn is_loopback(&self) -> bool {
@@ -106,9 +104,7 @@ pub fn send(status: u16, body: impl Into<Bytes>, content_type: &str) -> Response
 /// A body sent chunked, without a length, as Node sends one written after its head.
 pub fn chunked(body: impl Into<Bytes>) -> Body {
     let body: Bytes = body.into();
-    Body::from_stream(futures_util::stream::once(async move {
-        Ok::<_, Infallible>(body)
-    }))
+    Body::from_stream(futures_util::stream::once(async move { Ok::<_, Infallible>(body) }))
 }
 
 /// `send(res, status, message)`: plain text.
@@ -128,8 +124,6 @@ pub fn json(status: u16, value: &Value) -> Response<Body> {
 
 /// A body read that failed (over the limit or broken off): Node destroys the socket, so this one is closed too.
 pub fn closing(mut response: Response<Body>) -> Response<Body> {
-    response
-        .headers_mut()
-        .insert("Connection", HeaderValue::from_static("close"));
+    response.headers_mut().insert("Connection", HeaderValue::from_static("close"));
     response
 }

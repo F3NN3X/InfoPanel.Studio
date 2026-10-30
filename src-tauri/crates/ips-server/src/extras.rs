@@ -17,9 +17,9 @@ use crate::calendar::Calendar;
 use crate::guarded_net::GuardedClient;
 use crate::http::{self, Req};
 use crate::integrations::IntegrationsStore;
-use crate::json::{parse as parse_json, stringify};
 use crate::obs::Obs;
 use crate::request_guard::config_write_refusal;
+use crate::json::{parse as parse_json, stringify};
 use crate::{sse, supervisor, App};
 
 const MAX_INTEGRATIONS_BYTES: usize = 16 * 1024;
@@ -48,21 +48,13 @@ struct Listener {
 
 impl Drop for Listener {
     fn drop(&mut self) {
-        self.extras
-            .listeners
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .open
-            .remove(&self.id);
+        self.extras.listeners.lock().unwrap_or_else(PoisonError::into_inner).open.remove(&self.id);
     }
 }
 
 impl Extras {
     /// The extras over the integrations in `file`. `agents` returns the agents' public state (`{ sessions, plan, usage }`).
-    pub fn new(
-        file: &Path,
-        agents: impl Fn() -> Value + Send + Sync + 'static,
-    ) -> Result<Arc<Self>, String> {
+    pub fn new(file: &Path, agents: impl Fn() -> Value + Send + Sync + 'static) -> Result<Arc<Self>, String> {
         let integrations = Arc::new(IntegrationsStore::load(file));
         let client = GuardedClient::new(false)?;
         let extras = Arc::new_cyclic(|weak: &Weak<Self>| {
@@ -74,31 +66,18 @@ impl Extras {
                     }
                 })
             };
-            let obs = Obs::new(
-                {
-                    let integrations = Arc::clone(&integrations);
-                    move || integrations.get().obs
-                },
-                {
-                    let publish = Arc::clone(&publish);
-                    move || publish()
-                },
-            );
-            let calendar = Calendar::new(
-                client,
-                {
-                    let integrations = Arc::clone(&integrations);
-                    move || integrations.get().links
-                },
-                move || publish(),
-            );
-            Self {
-                integrations: Arc::clone(&integrations),
-                obs,
-                calendar,
-                agents: Box::new(agents),
-                listeners: Mutex::new(Listeners::default()),
-            }
+            let obs = Obs::new({
+                let integrations = Arc::clone(&integrations);
+                move || integrations.get().obs
+            }, {
+                let publish = Arc::clone(&publish);
+                move || publish()
+            });
+            let calendar = Calendar::new(client, {
+                let integrations = Arc::clone(&integrations);
+                move || integrations.get().links
+            }, move || publish());
+            Self { integrations: Arc::clone(&integrations), obs, calendar, agents: Box::new(agents), listeners: Mutex::new(Listeners::default()) }
         });
         integrations.subscribe({
             let (obs, calendar) = (Arc::clone(&extras.obs), Arc::clone(&extras.calendar));
@@ -122,31 +101,18 @@ impl Extras {
     /// Sends the full state to every open stream.
     pub fn publish(&self) {
         let event = sse::event(&stringify(&self.state()));
-        self.listeners
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .open
-            .retain(|_, tx| tx.send(event.clone()).is_ok());
+        self.listeners.lock().unwrap_or_else(PoisonError::into_inner).open.retain(|_, tx| tx.send(event.clone()).is_ok());
     }
 
     /// A stream's receiver, with the state now already queued, and the registration to drop.
     fn listen(self: &Arc<Self>) -> (mpsc::UnboundedReceiver<Bytes>, Listener) {
         let (tx, rx) = mpsc::unbounded_channel();
         let _ = tx.send(sse::event(&stringify(&self.state())));
-        let mut listeners = self
-            .listeners
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner);
+        let mut listeners = self.listeners.lock().unwrap_or_else(PoisonError::into_inner);
         let id = listeners.next;
         listeners.next += 1;
         listeners.open.insert(id, tx);
-        (
-            rx,
-            Listener {
-                extras: Arc::clone(self),
-                id,
-            },
-        )
+        (rx, Listener { extras: Arc::clone(self), id })
     }
 
     /// Starts the OBS connection and the calendar refresh, each under the supervisor.
@@ -193,18 +159,13 @@ pub async fn handle_integrations(app: &App, mut req: Req) -> std::io::Result<Res
     if let Some(response) = app.refuse_remote_edit(&req) {
         return Ok(response);
     }
-    if let Some(refusal) = config_write_refusal(
-        req.header("content-type").as_deref(),
-        req.header("x-dashboard-config").as_deref(),
-    ) {
+    if let Some(refusal) = config_write_refusal(req.header("content-type").as_deref(), req.header("x-dashboard-config").as_deref()) {
         return Ok(http::text(refusal.status, refusal.message));
     }
     let body = match req.read_body(MAX_INTEGRATIONS_BYTES).await {
         Ok(body) if body.is_empty() => Some(json!({})),
         Ok(body) => parse_json(&body),
-        Err(http::BodyRefused) => {
-            return Ok(http::closing(http::text(400, "expected a JSON object")))
-        }
+        Err(http::BodyRefused) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
     };
     let Some(patch) = body else {
         return Ok(http::text(400, "expected a JSON object"));

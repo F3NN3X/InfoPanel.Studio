@@ -7,14 +7,20 @@ use serde_json::Value;
 pub fn is_js_space(c: char) -> bool {
     matches!(
         c,
-        '\t' | '\n' | '\u{b}' | '\u{c}' | '\r' | ' ' | '\u{a0}' | '\u{1680}' | '\u{2000}'
-            ..='\u{200a}'
-                | '\u{2028}'
-                | '\u{2029}'
-                | '\u{202f}'
-                | '\u{205f}'
-                | '\u{3000}'
-                | '\u{feff}'
+        '\t' | '\n'
+            | '\u{b}'
+            | '\u{c}'
+            | '\r'
+            | ' '
+            | '\u{a0}'
+            | '\u{1680}'
+            | '\u{2000}'..='\u{200a}'
+            | '\u{2028}'
+            | '\u{2029}'
+            | '\u{202f}'
+            | '\u{205f}'
+            | '\u{3000}'
+            | '\u{feff}'
     )
 }
 
@@ -29,33 +35,17 @@ pub fn string_to_number(s: &str) -> f64 {
     if t.is_empty() {
         return 0.0;
     }
-    for (prefix, radix) in [
-        ("0x", 16),
-        ("0X", 16),
-        ("0o", 8),
-        ("0O", 8),
-        ("0b", 2),
-        ("0B", 2),
-    ] {
+    for (prefix, radix) in [("0x", 16), ("0X", 16), ("0o", 8), ("0O", 8), ("0b", 2), ("0B", 2)] {
         if let Some(digits) = t.strip_prefix(prefix) {
             if digits.is_empty() {
                 return f64::NAN;
             }
-            return digits
-                .chars()
-                .try_fold(0.0, |acc, c| {
-                    c.to_digit(radix).map(|d| acc * radix as f64 + d as f64)
-                })
-                .unwrap_or(f64::NAN);
+            return digits.chars().try_fold(0.0, |acc, c| c.to_digit(radix).map(|d| acc * radix as f64 + d as f64)).unwrap_or(f64::NAN);
         }
     }
     let unsigned = t.strip_prefix(['+', '-']).unwrap_or(t);
     if unsigned == "Infinity" {
-        return if t.starts_with('-') {
-            f64::NEG_INFINITY
-        } else {
-            f64::INFINITY
-        };
+        return if t.starts_with('-') { f64::NEG_INFINITY } else { f64::INFINITY };
     }
     if !is_decimal_literal(unsigned) {
         return f64::NAN;
@@ -103,20 +93,12 @@ pub fn number_to_string(n: f64) -> String {
     let body = if k <= point && point <= 21 {
         format!("{digits}{}", "0".repeat((point - k) as usize))
     } else if 0 < point && point <= 21 {
-        format!(
-            "{}.{}",
-            &digits[..point as usize],
-            &digits[point as usize..]
-        )
+        format!("{}.{}", &digits[..point as usize], &digits[point as usize..])
     } else if -6 < point && point <= 0 {
         format!("0.{}{digits}", "0".repeat(-point as usize))
     } else {
         let e = point - 1;
-        let m = if k == 1 {
-            digits
-        } else {
-            format!("{}.{}", &digits[..1], &digits[1..])
-        };
+        let m = if k == 1 { digits } else { format!("{}.{}", &digits[..1], &digits[1..]) };
         format!("{m}e{}{}", if e >= 0 { "+" } else { "-" }, e.abs())
     };
     format!("{sign}{body}")
@@ -144,13 +126,7 @@ pub fn to_property_key(v: Option<&Value>) -> String {
         Some(Value::String(s)) => s.clone(),
         Some(Value::Array(items)) => items
             .iter()
-            .map(|item| {
-                if item.is_null() {
-                    String::new()
-                } else {
-                    to_property_key(Some(item))
-                }
-            })
+            .map(|item| if item.is_null() { String::new() } else { to_property_key(Some(item)) })
             .collect::<Vec<_>>()
             .join(","),
         Some(Value::Object(_)) => "[object Object]".into(),
@@ -182,12 +158,7 @@ pub fn iso_string(ms: i64) -> String {
     let day = doy - (153 * mp + 2) / 5 + 1;
     let month = if mp < 10 { mp + 3 } else { mp - 9 };
     let year = yoe + era * 400 + i64::from(month <= 2);
-    let (h, m, s, milli) = (
-        in_day / 3_600_000,
-        in_day / 60_000 % 60,
-        in_day / 1000 % 60,
-        in_day % 1000,
-    );
+    let (h, m, s, milli) = (in_day / 3_600_000, in_day / 60_000 % 60, in_day / 1000 % 60, in_day % 1000);
     format!("{year:04}-{month:02}-{day:02}T{h:02}:{m:02}:{s:02}.{milli:03}Z")
 }
 

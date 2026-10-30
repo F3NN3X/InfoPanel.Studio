@@ -22,12 +22,7 @@ where
     spawn_with(name, shutdown, FIRST_DELAY, make)
 }
 
-fn spawn_with<F, Fut>(
-    name: &'static str,
-    mut shutdown: watch::Receiver<bool>,
-    first_delay: Duration,
-    make: F,
-) -> JoinHandle<()>
+fn spawn_with<F, Fut>(name: &'static str, mut shutdown: watch::Receiver<bool>, first_delay: Duration, make: F) -> JoinHandle<()>
 where
     F: Fn() -> Fut + Send + 'static,
     Fut: Future<Output = ()> + Send + 'static,
@@ -45,12 +40,8 @@ where
                 }
             };
             match outcome {
-                Ok(()) => {
-                    log::warn!(target: "server", "{name} stopped; restarting in {} ms", delay.as_millis())
-                }
-                Err(e) => {
-                    log::error!(target: "server", "{name} failed: {e}; restarting in {} ms", delay.as_millis())
-                }
+                Ok(()) => log::warn!(target: "server", "{name} stopped; restarting in {} ms", delay.as_millis()),
+                Err(e) => log::error!(target: "server", "{name} failed: {e}; restarting in {} ms", delay.as_millis()),
             }
             if started.elapsed() >= HEALTHY {
                 delay = first_delay;

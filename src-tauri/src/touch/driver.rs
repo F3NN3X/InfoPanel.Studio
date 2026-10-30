@@ -1,6 +1,6 @@
 // Giving a touchscreen back to Windows (Settings › Touch): installing WinUSB is the user's step (Zadig, guided by the
-// page); uninstalling is automated. An elevated PowerShell script (one UAC prompt, passed inline) removes the WinUSB binding for this
-// vid:pid and the certificate libwdi/Zadig left for it, and Windows rebinds its own HID driver.
+// page); uninstalling is automated. An elevated PowerShell script (one UAC prompt, passed inline) removes the WinUSB
+// binding for this vid:pid and the certificate libwdi/Zadig left for it, and Windows rebinds its own HID driver.
 
 use serde::Serialize;
 use std::path::Path;

@@ -4,10 +4,10 @@
 
 use crate::nav;
 use crate::state::{lock, AppState, Phase, FLUSH_TIMEOUT};
-use serde::Serialize;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
+use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tauri_plugin_opener::OpenerExt;
@@ -44,10 +44,7 @@ fn browser_args() -> &'static str {
 
 fn browser_args_for(debug_build: bool, port: Option<&str>) -> String {
     let base = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
-    match port
-        .and_then(|p| p.parse::<u16>().ok())
-        .filter(|_| debug_build)
-    {
+    match port.and_then(|p| p.parse::<u16>().ok()).filter(|_| debug_build) {
         Some(port) => format!("{base} --remote-debugging-port={port}"),
         None => base.to_string(),
     }
@@ -55,9 +52,7 @@ fn browser_args_for(debug_build: bool, port: Option<&str>) -> String {
 
 /// Every webview shares one WebView2 environment, so they all take the same data folder: a test run's own
 /// (paths::webview_data_dir), else WebView2's default.
-fn with_webview_data_dir<'a, R: tauri::Runtime, M: Manager<R>>(
-    builder: WebviewWindowBuilder<'a, R, M>,
-) -> WebviewWindowBuilder<'a, R, M> {
+fn with_webview_data_dir<'a, R: tauri::Runtime, M: Manager<R>>(builder: WebviewWindowBuilder<'a, R, M>) -> WebviewWindowBuilder<'a, R, M> {
     match crate::paths::webview_data_dir() {
         Some(dir) => builder.data_directory(dir),
         None => builder,
@@ -66,9 +61,7 @@ fn with_webview_data_dir<'a, R: tauri::Runtime, M: Manager<R>>(
 
 /// A window built elsewhere (the touch setup overlays) on the same WebView2 environment as the app's own: its browser
 /// arguments and data folder, the pages' background, and local pages only.
-pub fn local_overlay<'a, R: tauri::Runtime, M: Manager<R>>(
-    builder: WebviewWindowBuilder<'a, R, M>,
-) -> WebviewWindowBuilder<'a, R, M> {
+pub fn local_overlay<'a, R: tauri::Runtime, M: Manager<R>>(builder: WebviewWindowBuilder<'a, R, M>) -> WebviewWindowBuilder<'a, R, M> {
     with_webview_data_dir(
         builder
             .additional_browser_args(browser_args())
@@ -192,18 +185,8 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
             if let Some(w) = handle.get_webview_window(MAIN) {
                 crate::webview2::set_unfocused(&w, !*focused);
             }
-            let reduce = handle
-                .state::<AppState>()
-                .settings()
-                .reduce_unfocused_animation;
-            let _ = handle.emit_to(
-                MAIN,
-                STUDIO_FOCUS_EVENT,
-                StudioFocus {
-                    focused: *focused,
-                    reduce,
-                },
-            );
+            let reduce = handle.state::<AppState>().settings().reduce_unfocused_animation;
+            let _ = handle.emit_to(MAIN, STUDIO_FOCUS_EVENT, StudioFocus { focused: *focused, reduce });
         }
         // Minimizing and restoring arrive as resizes; a minimized studio suspends like a hidden one.
         if let tauri::WindowEvent::Resized(_) = event {
@@ -488,10 +471,7 @@ fn show_page(app: &AppHandle, label: &str, title: &str, url: WebviewUrl, server:
         .additional_browser_args(browser_args())
         .on_navigation(move |url| {
             let allowed = if server {
-                origin
-                    .read()
-                    .map(|o| nav::is_allowed_nav(url, &o))
-                    .unwrap_or(false)
+                origin.read().map(|o| nav::is_allowed_nav(url, &o)).unwrap_or(false)
             } else {
                 nav::is_local_page(url)
             };
@@ -554,13 +534,7 @@ pub fn settings_follow_server(app: &AppHandle, origin: &str) {
 
 /// Shows the help window, at an article and heading when given.
 pub fn show_help(app: &AppHandle, target: &HelpTarget) {
-    if show_page(
-        app,
-        HELP,
-        "InfoPanel Studio help",
-        WebviewUrl::App(target.page().into()),
-        false,
-    ) {
+    if show_page(app, HELP, "InfoPanel Studio help", WebviewUrl::App(target.page().into()), false) {
         let _ = app.emit_to(HELP, HELP_EVENT, target);
     }
 }
@@ -663,10 +637,7 @@ mod tests {
         let base = browser_args_for(true, None);
         assert!(!base.contains("remote-debugging-port"));
         assert!(base.contains("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"));
-        assert_eq!(
-            browser_args_for(true, Some("9222")),
-            format!("{base} --remote-debugging-port=9222")
-        );
+        assert_eq!(browser_args_for(true, Some("9222")), format!("{base} --remote-debugging-port=9222"));
         assert_eq!(browser_args_for(true, Some("nope")), base);
         assert_eq!(browser_args_for(true, Some("70000")), base);
         assert_eq!(browser_args_for(false, Some("9222")), base);
@@ -675,15 +646,13 @@ mod tests {
     #[cfg(debug_assertions)]
     #[test]
     fn a_debug_build_opens_the_port() {
-        assert!(browser_args_for(cfg!(debug_assertions), Some("9222"))
-            .contains("--remote-debugging-port=9222"));
+        assert!(browser_args_for(cfg!(debug_assertions), Some("9222")).contains("--remote-debugging-port=9222"));
     }
 
     #[cfg(not(debug_assertions))]
     #[test]
     fn a_release_build_never_opens_the_port() {
-        assert!(!browser_args_for(cfg!(debug_assertions), Some("9222"))
-            .contains("remote-debugging-port"));
+        assert!(!browser_args_for(cfg!(debug_assertions), Some("9222")).contains("remote-debugging-port"));
     }
 
     #[test]
@@ -691,23 +660,9 @@ mod tests {
         let at = |s| server_settings_url("http://127.0.0.1:3922", s);
         assert_eq!(at(None), "http://127.0.0.1:3922/?settings");
         assert_eq!(at(Some("server")), "http://127.0.0.1:3922/?settings#server");
-        assert_eq!(
-            at(Some("dashboard")),
-            "http://127.0.0.1:3922/?settings#dashboard"
-        );
-        assert_eq!(
-            at(Some("dashboard/performance")),
-            "http://127.0.0.1:3922/?settings#dashboard/performance"
-        );
-        for bad in [
-            "nope",
-            "dashboard/",
-            "dashboard/a/b",
-            "studio/Grid",
-            "nope/clock",
-            "server#x?y=1",
-            "",
-        ] {
+        assert_eq!(at(Some("dashboard")), "http://127.0.0.1:3922/?settings#dashboard");
+        assert_eq!(at(Some("dashboard/performance")), "http://127.0.0.1:3922/?settings#dashboard/performance");
+        for bad in ["nope", "dashboard/", "dashboard/a/b", "studio/Grid", "nope/clock", "server#x?y=1", ""] {
             assert_eq!(at(Some(bad)), "http://127.0.0.1:3922/?settings", "{bad}");
         }
         // The rescue page has the App sections only.
@@ -717,10 +672,7 @@ mod tests {
     #[test]
     fn settings_opens_at_a_known_section_only() {
         assert_eq!(settings_page(Some("server")), "app/settings.html#server");
-        assert_eq!(
-            settings_page(Some("changelog")),
-            "app/settings.html#changelog"
-        );
+        assert_eq!(settings_page(Some("changelog")), "app/settings.html#changelog");
         assert_eq!(settings_page(None), "app/settings.html");
         assert_eq!(settings_page(Some("nope")), "app/settings.html");
         assert_eq!(settings_page(Some("server#x?y=1")), "app/settings.html");
@@ -745,10 +697,7 @@ mod tests {
         assert_eq!(HelpTarget::new(Some(""), None), none);
         assert_eq!(HelpTarget::new(Some(&"a".repeat(81)), None), none);
         // A bad heading keeps the article; a heading alone is nothing.
-        assert_eq!(
-            HelpTarget::new(Some("kiosk"), Some("a/b?c")).page(),
-            "app/help.html#kiosk"
-        );
+        assert_eq!(HelpTarget::new(Some("kiosk"), Some("a/b?c")).page(), "app/help.html#kiosk");
         assert_eq!(HelpTarget::new(None, Some("part")), none);
     }
 
@@ -756,9 +705,6 @@ mod tests {
     fn help_event_carries_only_what_is_set() {
         let json = |t: &HelpTarget| serde_json::to_string(t).unwrap();
         assert_eq!(json(&HelpTarget::new(None, None)), "{}");
-        assert_eq!(
-            json(&HelpTarget::new(Some("kiosk"), Some("ports"))),
-            r#"{"article":"kiosk","heading":"ports"}"#
-        );
+        assert_eq!(json(&HelpTarget::new(Some("kiosk"), Some("ports"))), r#"{"article":"kiosk","heading":"ports"}"#);
     }
 }

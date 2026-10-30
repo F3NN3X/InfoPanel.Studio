@@ -13,8 +13,7 @@ pub fn parse(text: &str) -> Option<Value> {
 
 /// Whether `key` is an array index, which a JavaScript object orders before its other keys.
 fn is_index(key: &str) -> bool {
-    let canonical = key == "0"
-        || (!key.starts_with('0') && !key.is_empty() && key.bytes().all(|b| b.is_ascii_digit()));
+    let canonical = key == "0" || (!key.starts_with('0') && !key.is_empty() && key.bytes().all(|b| b.is_ascii_digit()));
     canonical && key.parse::<u64>().is_ok_and(|n| n < u32::MAX as u64)
 }
 
@@ -76,26 +75,17 @@ mod tests {
     #[test]
     fn keeps_insertion_order_with_integer_keys_first() {
         let v = parse(r#"{"b":1,"2":2,"a":3,"1":4,"01":5,"4294967295":6}"#).unwrap();
-        assert_eq!(
-            stringify(&v),
-            r#"{"1":4,"2":2,"b":1,"a":3,"01":5,"4294967295":6}"#
-        );
+        assert_eq!(stringify(&v), r#"{"1":4,"2":2,"b":1,"a":3,"01":5,"4294967295":6}"#);
     }
 
     #[test]
     fn prints_numbers_and_strings_as_javascript() {
         let v = parse(r#"[1.0,1e21,1e-7,-0,12345678901234567890,"a\u0001\n\"/ "]"#).unwrap();
-        assert_eq!(
-            stringify(&v),
-            "[1,1e+21,1e-7,0,12345678901234567000,\"a\\u0001\\n\\\"/\u{2028}\"]"
-        );
+        assert_eq!(stringify(&v), "[1,1e+21,1e-7,0,12345678901234567000,\"a\\u0001\\n\\\"/\u{2028}\"]");
     }
 
     #[test]
     fn keeps_the_last_of_a_duplicate_key_in_the_first_place() {
-        assert_eq!(
-            stringify(&parse(r#"{"a":1,"b":2,"a":3}"#).unwrap()),
-            r#"{"a":3,"b":2}"#
-        );
+        assert_eq!(stringify(&parse(r#"{"a":1,"b":2,"a":3}"#).unwrap()), r#"{"a":3,"b":2}"#);
     }
 }

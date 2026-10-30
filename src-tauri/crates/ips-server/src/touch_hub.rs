@@ -49,9 +49,7 @@ impl TouchHub {
             Some(Keep::Status) => entry.status = Some(event.clone()),
             None => {}
         }
-        entry
-            .subscribers
-            .retain(|tx| tx.send(event.clone()).is_ok());
+        entry.subscribers.retain(|tx| tx.send(event.clone()).is_ok());
     }
 
     /// A new subscriber to `panel`'s messages, starting with its kept setup and status.
@@ -87,17 +85,10 @@ pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
         return http::text(403, "The touch stream is for this computer only.");
     }
     let Some(panel) = req.query("panel").filter(|p| valid_panel(p)) else {
-        return http::text(
-            400,
-            "Name the touch panel: ?panel=<id>, letters, digits and -.",
-        );
+        return http::text(400, "Name the touch panel: ?panel=<id>, letters, digits and -.");
     };
     let client = app.debug.sse_open("touch");
-    sse::response(
-        HUB.subscribe(&panel),
-        app.shutdown.clone(),
-        Box::new(client),
-    )
+    sse::response(HUB.subscribe(&panel), app.shutdown.clone(), Box::new(client))
 }
 
 #[cfg(test)]
@@ -116,26 +107,13 @@ mod tests {
         hub.publish("a", r#"{"type":"Pointer"}"#, None);
         let mut a = hub.subscribe("a");
         let mut b = hub.subscribe("b");
-        assert_eq!(
-            text(a.try_recv().unwrap()),
-            "data: {\"setup\":{}}\n\n",
-            "setup first"
-        );
-        assert_eq!(
-            text(a.try_recv().unwrap()),
-            "data: {\"status\":\"Disconnected\"}\n\n"
-        );
-        assert!(
-            a.try_recv().is_err(),
-            "a pointer before subscribing is not replayed"
-        );
+        assert_eq!(text(a.try_recv().unwrap()), "data: {\"setup\":{}}\n\n", "setup first");
+        assert_eq!(text(a.try_recv().unwrap()), "data: {\"status\":\"Disconnected\"}\n\n");
+        assert!(a.try_recv().is_err(), "a pointer before subscribing is not replayed");
         assert!(b.try_recv().is_err(), "nothing kept for b");
 
         hub.publish("a", r#"{"type":"Gesture"}"#, None);
-        assert_eq!(
-            text(a.try_recv().unwrap()),
-            "data: {\"type\":\"Gesture\"}\n\n"
-        );
+        assert_eq!(text(a.try_recv().unwrap()), "data: {\"type\":\"Gesture\"}\n\n");
         assert!(b.try_recv().is_err(), "b hears nothing from a");
     }
 

@@ -13,12 +13,7 @@ pub struct AssetType {
 }
 
 const fn kind_type(ext: &'static str, mime: &'static str, kind: &'static str) -> AssetType {
-    AssetType {
-        ext,
-        mime,
-        kind,
-        limit: None,
-    }
+    AssetType { ext, mime, kind, limit: None }
 }
 
 /// The largest SVG accepted (SVG templates and icons).
@@ -41,12 +36,7 @@ pub const TYPES: [AssetType; 15] = [
     kind_type("avif", "image/avif", "image"),
     kind_type("bmp", "image/bmp", "image"),
     kind_type("ico", "image/x-icon", "image"),
-    AssetType {
-        ext: "svg",
-        mime: "image/svg+xml",
-        kind: "image",
-        limit: Some(SVG_LIMIT),
-    },
+    AssetType { ext: "svg", mime: "image/svg+xml", kind: "image", limit: Some(SVG_LIMIT) },
     kind_type("mp4", "video/mp4", "video"),
     kind_type("webm", "video/webm", "video"),
     kind_type("ttf", "font/ttf", "font"),
@@ -73,9 +63,7 @@ pub fn by_ext(ext: &str) -> Option<&'static AssetType> {
 pub fn is_asset_id(id: &str) -> bool {
     id.len() > 65
         && id.as_bytes()[64] == b'.'
-        && id.as_bytes()[..64]
-            .iter()
-            .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+        && id.as_bytes()[..64].iter().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
         && by_ext(&id[65..]).is_some()
 }
 
@@ -90,10 +78,7 @@ fn bytes(buf: &[u8], start: usize, end: usize) -> &[u8] {
 }
 
 const AVIF_BRANDS: [&[u8]; 2] = [b"avif", b"avis"];
-const MP4_BRANDS: [&[u8]; 12] = [
-    b"isom", b"iso2", b"iso4", b"iso5", b"iso6", b"mp41", b"mp42", b"avc1", b"dash", b"M4V ",
-    b"mmp4", b"MSNV",
-];
+const MP4_BRANDS: [&[u8]; 12] = [b"isom", b"iso2", b"iso4", b"iso5", b"iso6", b"mp41", b"mp42", b"avc1", b"dash", b"M4V ", b"mmp4", b"MSNV"];
 
 /// ISO-BMFF brands (the `ftyp` box) of MP4 video and of AVIF.
 fn sniff_ftyp(buf: &[u8]) -> Option<&'static str> {
@@ -102,10 +87,7 @@ fn sniff_ftyp(buf: &[u8]) -> Option<&'static str> {
     }
     let box_end = (u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]) as usize).min(buf.len());
     let major = bytes(buf, 8, 12);
-    let mut compatible = (16..)
-        .step_by(4)
-        .take_while(|i| i + 4 <= box_end)
-        .map(|i| &buf[i..i + 4]);
+    let mut compatible = (16..).step_by(4).take_while(|i| i + 4 <= box_end).map(|i| &buf[i..i + 4]);
     // AVIF files often carry a generic major brand (mif1) and list avif later.
     if AVIF_BRANDS.contains(&major) || compatible.any(|b| AVIF_BRANDS.contains(&b)) {
         return Some("avif");
@@ -116,11 +98,7 @@ fn sniff_ftyp(buf: &[u8]) -> Option<&'static str> {
 
 /// Where a prologue item (`<?..?>`, a comment, a doctype) starting at `i` ends, or `None`.
 fn prologue_end(c: &[char], i: usize) -> Option<usize> {
-    let at = |j: usize, s: &str| {
-        s.chars()
-            .enumerate()
-            .all(|(k, ch)| c.get(j + k) == Some(&ch))
-    };
+    let at = |j: usize, s: &str| s.chars().enumerate().all(|(k, ch)| c.get(j + k) == Some(&ch));
     let find = |from: usize, s: &str| (from..c.len()).find(|&j| at(j, s));
     if at(i, "<?") {
         return find(i + 2, "?>").map(|j| j + 2);
@@ -128,32 +106,20 @@ fn prologue_end(c: &[char], i: usize) -> Option<usize> {
     if at(i, "<!--") {
         return find(i + 4, "-->").map(|j| j + 3);
     }
-    let doctype = c.len() > i + 9
-        && c[i..i + 2] == ['<', '!']
-        && c[i + 2..i + 9]
-            .iter()
-            .zip("doctype".chars())
-            .all(|(a, b)| a.eq_ignore_ascii_case(&b));
+    let doctype = c.len() > i + 9 && c[i..i + 2] == ['<', '!'] && c[i + 2..i + 9].iter().zip("doctype".chars()).all(|(a, b)| a.eq_ignore_ascii_case(&b));
     if !doctype || !js::is_js_space(c[i + 9]) {
         return None;
     }
     // `<!DOCTYPE\s[^<>]*(?:\[[\s\S]*?\])?\s*>`, as a regex backtracks it: the longest `[^<>]*` first.
     let after = i + 10;
-    let run_end = (after..c.len())
-        .find(|&j| matches!(c[j], '<' | '>'))
-        .unwrap_or(c.len());
+    let run_end = (after..c.len()).find(|&j| matches!(c[j], '<' | '>')).unwrap_or(c.len());
     let close = |from: usize| {
-        let m = (from..c.len())
-            .find(|&j| !js::is_js_space(c[j]))
-            .unwrap_or(c.len());
+        let m = (from..c.len()).find(|&j| !js::is_js_space(c[j])).unwrap_or(c.len());
         (c.get(m) == Some(&'>')).then_some(m + 1)
     };
     for k in (after..=run_end).rev() {
         if c.get(k) == Some(&'[') {
-            if let Some(end) = (k + 1..c.len())
-                .filter(|&j| c[j] == ']')
-                .find_map(|j| close(j + 1))
-            {
+            if let Some(end) = (k + 1..c.len()).filter(|&j| c[j] == ']').find_map(|j| close(j + 1)) {
                 return Some(end);
             }
         }
@@ -178,9 +144,7 @@ pub fn is_svg_text(text: &str) -> bool {
             None => break,
         }
     }
-    c.len() >= i + 5
-        && c[i..i + 4] == ['<', 's', 'v', 'g']
-        && (js::is_js_space(c[i + 4]) || matches!(c[i + 4], '>' | '/'))
+    c.len() >= i + 5 && c[i..i + 4] == ['<', 's', 'v', 'g'] && (js::is_js_space(c[i + 4]) || matches!(c[i + 4], '>' | '/'))
 }
 
 /// The type of a file from its first bytes (`HEAD_BYTES` is plenty), or `None` when it is not an accepted type.
@@ -195,16 +159,10 @@ pub fn sniff_type(buf: &[u8]) -> Option<&'static AssetType> {
     } else if bytes(buf, 0, 4) == b"RIFF" && bytes(buf, 8, 12) == b"WEBP" {
         "webp"
     // BITMAPFILEHEADER followed by a header size of a known BITMAPINFOHEADER kind.
-    } else if bytes(buf, 0, 2) == b"BM"
-        && buf.len() >= 18
-        && [12, 40, 52, 56, 64, 108, 124].contains(&le32(14))
-    {
+    } else if bytes(buf, 0, 2) == b"BM" && buf.len() >= 18 && [12, 40, 52, 56, 64, 108, 124].contains(&le32(14)) {
         "bmp"
     // ICONDIR: reserved 0, type 1 (icon), at least one image.
-    } else if buf.starts_with(&[0, 0, 1, 0])
-        && buf.len() >= 6
-        && u16::from_le_bytes([buf[4], buf[5]]) > 0
-    {
+    } else if buf.starts_with(&[0, 0, 1, 0]) && buf.len() >= 6 && u16::from_le_bytes([buf[4], buf[5]]) > 0 {
         "ico"
     // Matroska EBML header: stored as webm, which browsers play either way.
     } else if buf.starts_with(&[0x1a, 0x45, 0xdf, 0xa3]) {
@@ -263,10 +221,7 @@ pub fn referenced_hashes(text: &str) -> Vec<String> {
             i += 1;
             continue;
         }
-        let end = b[i..]
-            .iter()
-            .position(|x| !is_hex(x))
-            .map_or(b.len(), |n| i + n);
+        let end = b[i..].iter().position(|x| !is_hex(x)).map_or(b.len(), |n| i + n);
         if end - i == 64 && !found.iter().any(|h| h.as_bytes() == &b[i..end]) {
             found.push(text[i..end].to_string());
         }
@@ -310,11 +265,7 @@ pub fn parse_range(header: Option<&str>, size: u64) -> Range {
         return Range::Span((size_f - n).max(0.0) as u64, size - 1);
     }
     let start = digits(first);
-    let end = if last.is_empty() {
-        size_f - 1.0
-    } else {
-        digits(last).min(size_f - 1.0)
-    };
+    let end = if last.is_empty() { size_f - 1.0 } else { digits(last).min(size_f - 1.0) };
     if !last.is_empty() && digits(last) < start {
         return Range::Whole;
     }
@@ -326,13 +277,7 @@ pub fn parse_range(header: Option<&str>, size: u64) -> Range {
 
 /// The refusal `(status, message)` for a new upload: 429 when `max_in_flight` uploads are already running, 507 when
 /// `used + incoming` would pass `max_bytes`.
-pub fn upload_quota_refusal(
-    in_flight: usize,
-    max_in_flight: usize,
-    used: f64,
-    incoming: f64,
-    max_bytes: f64,
-) -> Option<(u16, &'static str)> {
+pub fn upload_quota_refusal(in_flight: usize, max_in_flight: usize, used: f64, incoming: f64, max_bytes: f64) -> Option<(u16, &'static str)> {
     if in_flight >= max_in_flight {
         return Some((429, "too many uploads in progress"));
     }
@@ -360,10 +305,7 @@ mod tests {
 
     #[test]
     fn sniffs_by_magic_bytes() {
-        assert_eq!(
-            ext(&[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0]),
-            Some("png")
-        );
+        assert_eq!(ext(&[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0]), Some("png"));
         assert_eq!(ext(b"GIF89a.."), Some("gif"));
         assert_eq!(ext(b"RIFF\0\0\0\0WEBPVP8 "), Some("webp"));
         assert_eq!(ext(&[0x1a, 0x45, 0xdf, 0xa3]), Some("webm"));
@@ -389,18 +331,9 @@ mod tests {
 
     #[test]
     fn declares_types_by_content_type() {
-        assert_eq!(
-            declared_type(Some("Image/PNG; x=y")).map(|t| t.ext),
-            Some("png")
-        );
-        assert_eq!(
-            declared_type(Some(" video/x-matroska ")).map(|t| t.ext),
-            Some("webm")
-        );
-        assert_eq!(
-            declared_type(Some("application/font-woff")).map(|t| t.ext),
-            Some("woff")
-        );
+        assert_eq!(declared_type(Some("Image/PNG; x=y")).map(|t| t.ext), Some("png"));
+        assert_eq!(declared_type(Some(" video/x-matroska ")).map(|t| t.ext), Some("webm"));
+        assert_eq!(declared_type(Some("application/font-woff")).map(|t| t.ext), Some("woff"));
         assert!(declared_type(Some("image/jpg")).is_none());
         assert!(declared_type(None).is_none());
     }
@@ -408,11 +341,7 @@ mod tests {
     #[test]
     fn finds_hashes_of_exactly_sixty_four_digits() {
         let h = "a".repeat(64);
-        let text = format!(
-            "/api/assets/{h}.png {h} {}b {}",
-            "c".repeat(64),
-            "d".repeat(64)
-        );
+        let text = format!("/api/assets/{h}.png {h} {}b {}", "c".repeat(64), "d".repeat(64));
         assert_eq!(referenced_hashes(&text), vec![h, "d".repeat(64)]);
         assert!(is_asset_id(&format!("{}.woff2", "0".repeat(64))));
         assert!(!is_asset_id(&format!("{}.exe", "0".repeat(64))));
@@ -437,14 +366,8 @@ mod tests {
 
     #[test]
     fn refuses_uploads_over_the_quota() {
-        assert_eq!(
-            upload_quota_refusal(2, 2, 0.0, 1.0, 10.0).map(|r| r.0),
-            Some(429)
-        );
-        assert_eq!(
-            upload_quota_refusal(0, 2, 6.0, 5.0, 10.0).map(|r| r.0),
-            Some(507)
-        );
+        assert_eq!(upload_quota_refusal(2, 2, 0.0, 1.0, 10.0).map(|r| r.0), Some(429));
+        assert_eq!(upload_quota_refusal(0, 2, 6.0, 5.0, 10.0).map(|r| r.0), Some(507));
         assert!(upload_quota_refusal(1, 2, 5.0, 5.0, 10.0).is_none());
     }
 }

@@ -462,69 +462,26 @@ mod tests {
 
     #[test]
     fn studio_refresh_defaults_to_idle_for_older_files() {
-        assert_eq!(
-            load_from_str(r#"{ "port": 3942 }"#).unwrap().studio_refresh,
-            StudioRefresh::Idle
-        );
-        assert_eq!(
-            load_from_str(r#"{ "studioRefresh": "daily" }"#)
-                .unwrap()
-                .studio_refresh,
-            StudioRefresh::Daily
-        );
-        assert_eq!(
-            load_from_str(r#"{ "studioRefresh": "hourly" }"#)
-                .unwrap()
-                .studio_refresh,
-            StudioRefresh::Idle
-        );
+        assert_eq!(load_from_str(r#"{ "port": 3942 }"#).unwrap().studio_refresh, StudioRefresh::Idle);
+        assert_eq!(load_from_str(r#"{ "studioRefresh": "daily" }"#).unwrap().studio_refresh, StudioRefresh::Daily);
+        assert_eq!(load_from_str(r#"{ "studioRefresh": "hourly" }"#).unwrap().studio_refresh, StudioRefresh::Idle);
     }
 
     #[test]
     fn studio_refresh_takes_its_three_values_only() {
         let s = Settings::default();
-        assert_eq!(
-            with_setting(&s, "studioRefresh", json!("off"))
-                .unwrap()
-                .studio_refresh,
-            StudioRefresh::Off
-        );
-        assert_eq!(
-            with_setting(&s, "studioRefresh", json!("daily"))
-                .unwrap()
-                .studio_refresh,
-            StudioRefresh::Daily
-        );
+        assert_eq!(with_setting(&s, "studioRefresh", json!("off")).unwrap().studio_refresh, StudioRefresh::Off);
+        assert_eq!(with_setting(&s, "studioRefresh", json!("daily")).unwrap().studio_refresh, StudioRefresh::Daily);
         assert!(with_setting(&s, "studioRefresh", json!("hourly")).is_err());
         assert!(with_setting(&s, "studioRefresh", json!(true)).is_err());
     }
 
     #[test]
     fn release_hidden_studio_defaults_to_ten_minutes_for_older_files() {
-        assert_eq!(
-            load_from_str(r#"{ "port": 3942 }"#)
-                .unwrap()
-                .release_hidden_studio,
-            ReleaseHiddenStudio::After10m
-        );
-        assert_eq!(
-            load_from_str(r#"{ "releaseHiddenStudio": "never" }"#)
-                .unwrap()
-                .release_hidden_studio,
-            ReleaseHiddenStudio::Never
-        );
-        assert_eq!(
-            load_from_str(r#"{ "releaseHiddenStudio": "after1m" }"#)
-                .unwrap()
-                .release_hidden_studio,
-            ReleaseHiddenStudio::After1m
-        );
-        assert_eq!(
-            load_from_str(r#"{ "releaseHiddenStudio": "soon" }"#)
-                .unwrap()
-                .release_hidden_studio,
-            ReleaseHiddenStudio::After10m
-        );
+        assert_eq!(load_from_str(r#"{ "port": 3942 }"#).unwrap().release_hidden_studio, ReleaseHiddenStudio::After10m);
+        assert_eq!(load_from_str(r#"{ "releaseHiddenStudio": "never" }"#).unwrap().release_hidden_studio, ReleaseHiddenStudio::Never);
+        assert_eq!(load_from_str(r#"{ "releaseHiddenStudio": "after1m" }"#).unwrap().release_hidden_studio, ReleaseHiddenStudio::After1m);
+        assert_eq!(load_from_str(r#"{ "releaseHiddenStudio": "soon" }"#).unwrap().release_hidden_studio, ReleaseHiddenStudio::After10m);
     }
 
     #[test]
@@ -541,60 +498,29 @@ mod tests {
 
     #[test]
     fn reduce_unfocused_animation_defaults_on_and_takes_a_boolean() {
-        assert!(
-            load_from_str(r#"{ "port": 3942 }"#)
-                .unwrap()
-                .reduce_unfocused_animation
-        );
-        assert!(
-            !load_from_str(r#"{ "reduceUnfocusedAnimation": false }"#)
-                .unwrap()
-                .reduce_unfocused_animation
-        );
+        assert!(load_from_str(r#"{ "port": 3942 }"#).unwrap().reduce_unfocused_animation);
+        assert!(!load_from_str(r#"{ "reduceUnfocusedAnimation": false }"#).unwrap().reduce_unfocused_animation);
         let s = Settings::default();
-        assert_eq!(
-            with_setting(&s, "reduceUnfocusedAnimation", json!(false))
-                .map(|n| n.reduce_unfocused_animation),
-            Ok(false)
-        );
+        assert_eq!(with_setting(&s, "reduceUnfocusedAnimation", json!(false)).map(|n| n.reduce_unfocused_animation), Ok(false));
         assert!(with_setting(&s, "reduceUnfocusedAnimation", json!("off")).is_err());
     }
 
     #[test]
     fn open_studio_in_defaults_to_the_app_window_and_takes_its_three_values_only() {
-        assert_eq!(
-            load_from_str(r#"{ "port": 3942 }"#).unwrap().open_studio_in,
-            OpenStudioIn::AppWindow
-        );
-        assert_eq!(
-            load_from_str(r#"{ "openStudioIn": "edgeApp" }"#)
-                .unwrap()
-                .open_studio_in,
-            OpenStudioIn::EdgeApp
-        );
-        assert_eq!(
-            load_from_str(r#"{ "openStudioIn": "netscape" }"#)
-                .unwrap()
-                .open_studio_in,
-            OpenStudioIn::AppWindow
-        );
+        assert_eq!(load_from_str(r#"{ "port": 3942 }"#).unwrap().open_studio_in, OpenStudioIn::AppWindow);
+        assert_eq!(load_from_str(r#"{ "openStudioIn": "edgeApp" }"#).unwrap().open_studio_in, OpenStudioIn::EdgeApp);
+        assert_eq!(load_from_str(r#"{ "openStudioIn": "netscape" }"#).unwrap().open_studio_in, OpenStudioIn::AppWindow);
         let s = Settings::default();
         let set = |v| with_setting(&s, "openStudioIn", v).map(|n| n.open_studio_in);
         assert_eq!(set(json!("appWindow")), Ok(OpenStudioIn::AppWindow));
         assert_eq!(set(json!("edgeApp")), Ok(OpenStudioIn::EdgeApp));
-        assert_eq!(
-            set(json!("defaultBrowser")),
-            Ok(OpenStudioIn::DefaultBrowser)
-        );
+        assert_eq!(set(json!("defaultBrowser")), Ok(OpenStudioIn::DefaultBrowser));
         assert!(set(json!("netscape")).is_err());
     }
 
     #[test]
     fn server_is_no_longer_a_setting() {
-        assert!(serde_json::to_value(Settings::default())
-            .unwrap()
-            .get("server")
-            .is_none());
+        assert!(serde_json::to_value(Settings::default()).unwrap().get("server").is_none());
         assert!(with_setting(&Settings::default(), "server", json!("native")).is_err());
     }
 
@@ -638,14 +564,9 @@ mod tests {
     fn the_server_key_is_dropped_below_version_4() {
         for version in [0, 1, 2, 3] {
             for server in ["node", "native"] {
-                let text =
-                    format!(r#"{{ "version": {version}, "server": "{server}", "port": 3942 }}"#);
+                let text = format!(r#"{{ "version": {version}, "server": "{server}", "port": 3942 }}"#);
                 let s = load_from_str(&text).unwrap();
-                assert_eq!(
-                    (s.port, s.version),
-                    (3942, SETTINGS_VERSION),
-                    "v{version} {server}"
-                );
+                assert_eq!((s.port, s.version), (3942, SETTINGS_VERSION), "v{version} {server}");
                 let mut raw: Value = serde_json::from_str(&text).unwrap();
                 migrate(&mut raw);
                 assert!(raw.get("server").is_none(), "v{version} {server}");

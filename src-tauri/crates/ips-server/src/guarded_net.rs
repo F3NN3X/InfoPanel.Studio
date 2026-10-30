@@ -29,10 +29,7 @@ pub fn blocked_ip(ip: IpAddr, block_lan: bool) -> bool {
 
 fn blocked_v4(ip: Ipv4Addr, block_lan: bool) -> bool {
     let [a, b, _, _] = ip.octets();
-    let lan = a == 10
-        || (a == 172 && (16..=31).contains(&b))
-        || (a == 192 && b == 168)
-        || (a == 100 && (64..=127).contains(&b));
+    let lan = a == 10 || (a == 172 && (16..=31).contains(&b)) || (a == 192 && b == 168) || (a == 100 && (64..=127).contains(&b));
     a == 0 || a == 127 || (a == 169 && b == 254) || a >= 224 || (block_lan && lan)
 }
 
@@ -44,21 +41,10 @@ fn blocked_v6(ip: Ipv6Addr, block_lan: bool) -> bool {
     let compatible = zero(0, 6) && w[6] != 0;
     let nat64 = w[0] == 0x64 && w[1] == 0xff9b && zero(2, 6);
     if mapped || compatible || nat64 {
-        return blocked_v4(
-            Ipv4Addr::new(
-                (w[6] >> 8) as u8,
-                (w[6] & 255) as u8,
-                (w[7] >> 8) as u8,
-                (w[7] & 255) as u8,
-            ),
-            block_lan,
-        );
+        return blocked_v4(Ipv4Addr::new((w[6] >> 8) as u8, (w[6] & 255) as u8, (w[7] >> 8) as u8, (w[7] & 255) as u8), block_lan);
     }
     let unspecified_or_loopback = zero(0, 7) && w[7] <= 1;
-    unspecified_or_loopback
-        || (w[0] & 0xffc0) == 0xfe80
-        || w[0] >> 8 == 0xff
-        || (block_lan && (w[0] & 0xfe00) == 0xfc00)
+    unspecified_or_loopback || (w[0] & 0xffc0) == 0xfe80 || w[0] >> 8 == 0xff || (block_lan && (w[0] & 0xfe00) == 0xfc00)
 }
 
 /// `blockedAddress(ip, blockLan)` for text: a zone id (`fe80::1%eth0`) is ignored, and anything that is not an address
@@ -69,8 +55,7 @@ pub fn blocked_address(ip: &str, block_lan: bool) -> bool {
     }
     let bare = ip.to_lowercase();
     let bare = bare.split('%').next().unwrap_or("");
-    bare.parse::<Ipv6Addr>()
-        .map_or(true, |v6| blocked_v6(v6, block_lan))
+    bare.parse::<Ipv6Addr>().map_or(true, |v6| blocked_v6(v6, block_lan))
 }
 
 #[derive(Debug)]
@@ -85,11 +70,7 @@ impl fmt::Display for NotAllowed {
 impl Error for NotAllowed {}
 
 /// The addresses of a name, or the reason it has none.
-pub type Lookup = Arc<
-    dyn Fn(String) -> Pin<Box<dyn Future<Output = Result<Vec<IpAddr>, String>> + Send>>
-        + Send
-        + Sync,
->;
+pub type Lookup = Arc<dyn Fn(String) -> Pin<Box<dyn Future<Output = Result<Vec<IpAddr>, String>> + Send>> + Send + Sync>;
 
 /// Whether a client refuses an address.
 pub type Block = Arc<dyn Fn(IpAddr) -> bool + Send + Sync>;
@@ -98,9 +79,7 @@ pub type Block = Arc<dyn Fn(IpAddr) -> bool + Send + Sync>;
 pub fn os_lookup() -> Lookup {
     Arc::new(|host: String| {
         Box::pin(async move {
-            let found = tokio::net::lookup_host((host.as_str(), 0))
-                .await
-                .map_err(|_| format!("getaddrinfo ENOTFOUND {host}"))?;
+            let found = tokio::net::lookup_host((host.as_str(), 0)).await.map_err(|_| format!("getaddrinfo ENOTFOUND {host}"))?;
             Ok(found.map(|addr| addr.ip()).collect())
         })
     })
@@ -130,9 +109,7 @@ impl Resolve for GuardedResolver {
 /// setup: rustls on ring. The app installs the provider too; a second install is refused.
 pub fn client_builder() -> reqwest::ClientBuilder {
     let _ = rustls::crypto::ring::default_provider().install_default();
-    reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        .no_proxy()
+    reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).no_proxy()
 }
 
 /// A response whose body was read up to a limit.
@@ -163,19 +140,9 @@ impl GuardedClient {
 
     /// A client on the given lookup and block list (tests stand in for DNS with it).
     pub fn with(lookup: Lookup, block: Block) -> Result<Self, String> {
-        let resolver = GuardedResolver {
-            lookup: Arc::clone(&lookup),
-            block: Arc::clone(&block),
-        };
-        let client = client_builder()
-            .dns_resolver(Arc::new(resolver))
-            .build()
-            .map_err(describe)?;
-        Ok(Self {
-            client,
-            lookup,
-            block,
-        })
+        let resolver = GuardedResolver { lookup: Arc::clone(&lookup), block: Arc::clone(&block) };
+        let client = client_builder().dns_resolver(Arc::new(resolver)).build().map_err(describe)?;
+        Ok(Self { client, lookup, block })
     }
 
     /// Whether this client refuses `ip`.
@@ -201,12 +168,7 @@ impl GuardedClient {
     }
 
     /// One GET, its body read up to `max_bytes` (more is "too large"). The caller checks the target first.
-    pub async fn get(
-        &self,
-        url: &url::Url,
-        headers: &[(&str, &str)],
-        max_bytes: usize,
-    ) -> Result<Fetched, String> {
+    pub async fn get(&self, url: &url::Url, headers: &[(&str, &str)], max_bytes: usize) -> Result<Fetched, String> {
         let mut response = self.send(url, headers).await?;
         let (status, headers) = (response.status().as_u16(), response.headers().clone());
         let mut body = Vec::new();
@@ -216,19 +178,11 @@ impl GuardedClient {
             }
             body.extend_from_slice(&chunk);
         }
-        Ok(Fetched {
-            status,
-            headers,
-            body,
-        })
+        Ok(Fetched { status, headers, body })
     }
 
     /// One GET, answered once its head is in; the body is the caller's to read.
-    pub async fn send(
-        &self,
-        url: &url::Url,
-        headers: &[(&str, &str)],
-    ) -> Result<reqwest::Response, String> {
+    pub async fn send(&self, url: &url::Url, headers: &[(&str, &str)]) -> Result<reqwest::Response, String> {
         let mut request = self.client.get(url.clone());
         for (name, value) in headers {
             request = request.header(*name, *value);
@@ -258,16 +212,7 @@ mod tests {
 
     #[test]
     fn blocks_this_machine_link_local_unspecified_and_multicast_not_the_lan() {
-        for ip in [
-            "127.0.0.1",
-            "0.0.0.0",
-            "169.254.169.254",
-            "224.0.0.1",
-            "::1",
-            "::",
-            "fe80::1",
-            "::ffff:127.0.0.1",
-        ] {
+        for ip in ["127.0.0.1", "0.0.0.0", "169.254.169.254", "224.0.0.1", "::1", "::", "fe80::1", "::ffff:127.0.0.1"] {
             assert!(blocked_address(ip, false), "{ip}");
         }
         for ip in ["192.168.1.10", "10.0.0.5", "93.184.216.34", "2606:4700::1"] {
@@ -277,43 +222,17 @@ mod tests {
 
     #[test]
     fn reads_ipv4_inside_ipv6_in_any_spelling() {
-        for ip in [
-            "::ffff:7f00:1",
-            "::FFFF:A9FE:A9FE",
-            "64:ff9b::7f00:1",
-            "::127.0.0.1",
-            "0:0:0:0:0:0:0:1",
-            "0000::",
-            "FE80::1%eth0",
-            "febf::1",
-            "ff02::1",
-            "not an ip",
-        ] {
+        for ip in ["::ffff:7f00:1", "::FFFF:A9FE:A9FE", "64:ff9b::7f00:1", "::127.0.0.1", "0:0:0:0:0:0:0:1", "0000::", "FE80::1%eth0", "febf::1", "ff02::1", "not an ip"] {
             assert!(blocked_address(ip, false), "{ip}");
         }
-        for ip in [
-            "::ffff:c0a8:10a",
-            "::ffff:192.168.1.10",
-            "64:ff9b::5db8:d822",
-            "2001:db8::1",
-            "fec0::1",
-        ] {
+        for ip in ["::ffff:c0a8:10a", "::ffff:192.168.1.10", "64:ff9b::5db8:d822", "2001:db8::1", "fec0::1"] {
             assert!(!blocked_address(ip, false), "{ip}");
         }
     }
 
     #[test]
     fn the_image_proxy_mode_refuses_the_private_ranges_too() {
-        for ip in [
-            "10.1.2.3",
-            "172.16.0.1",
-            "172.31.255.255",
-            "192.168.0.1",
-            "100.64.0.1",
-            "fc00::1",
-            "fdff::1",
-            "::ffff:192.168.1.10",
-        ] {
+        for ip in ["10.1.2.3", "172.16.0.1", "172.31.255.255", "192.168.0.1", "100.64.0.1", "fc00::1", "fdff::1", "::ffff:192.168.1.10"] {
             assert!(blocked_address(ip, true), "{ip}");
         }
         for ip in ["172.32.0.1", "100.128.0.1", "93.184.216.34", "fe00::1"] {
@@ -363,14 +282,7 @@ mod tests {
             assert!(!blocked_address(outside, true), "{outside} should pass");
         }
         // The calendar's mode keeps the LAN ranges.
-        for lan in [
-            "10.0.0.0",
-            "172.31.255.255",
-            "192.168.0.0",
-            "100.64.0.0",
-            "fc00::",
-            "::ffff:192.168.1.1",
-        ] {
+        for lan in ["10.0.0.0", "172.31.255.255", "192.168.0.0", "100.64.0.0", "fc00::", "::ffff:192.168.1.1"] {
             assert!(!blocked_address(lan, false), "{lan}");
         }
     }
@@ -384,18 +296,9 @@ mod tests {
             ("http://localhost/a.ics", NOT_ALLOWED),
             ("ftp://example.com/a.ics", "not an http(s) link"),
         ] {
-            assert_eq!(
-                client.check_target(&url.parse().unwrap()).await,
-                Err(why.to_string()),
-                "{url}"
-            );
+            assert_eq!(client.check_target(&url.parse().unwrap()).await, Err(why.to_string()), "{url}");
         }
-        assert_eq!(
-            client
-                .check_target(&"http://93.184.216.34/".parse().unwrap())
-                .await,
-            Ok(())
-        );
+        assert_eq!(client.check_target(&"http://93.184.216.34/".parse().unwrap()).await, Ok(()));
     }
 
     #[tokio::test]
@@ -404,9 +307,7 @@ mod tests {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
         let client = GuardedClient::new(false).unwrap();
-        let url: url::Url = format!("http://localhost:{port}/secret-token.ics")
-            .parse()
-            .unwrap();
+        let url: url::Url = format!("http://localhost:{port}/secret-token.ics").parse().unwrap();
         let error = client.get(&url, &[], 1024).await.err().unwrap();
         assert_eq!(error, NOT_ALLOWED);
     }

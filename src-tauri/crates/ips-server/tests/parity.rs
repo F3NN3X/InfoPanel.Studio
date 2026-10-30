@@ -5,13 +5,11 @@ use std::path::PathBuf;
 
 use ips_server::config_guard::version_refusal;
 use ips_server::config_settings::{apply_settings_patch, reapply_settings, SettingsEntry};
-use ips_server::control::{
-    current_page, is_island_shown, is_rotating, public_state, reduce, target_profile, State,
-};
+use ips_server::control::{current_page, is_island_shown, is_rotating, public_state, reduce, target_profile, State};
 use ips_server::control_store::Control;
 use ips_server::request_guard::{
-    agent_write_refusal, config_write_refusal, control_write_refusal, hostname_of, is_loopback,
-    parse_allowed_hosts, remote_edit_refusal, Refusal, RequestGuard,
+    agent_write_refusal, config_write_refusal, control_write_refusal, hostname_of, is_loopback, parse_allowed_hosts,
+    remote_edit_refusal, Refusal, RequestGuard,
 };
 use ips_server::security_headers::security_headers;
 use ips_server::studio_prefs::{apply_prefs, normalize_prefs};
@@ -19,15 +17,11 @@ use ips_server::{js, json, locale};
 use serde_json::{json, Value};
 
 fn cases(module: &str) -> Vec<(Value, Value)> {
-    let file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../tests/fixtures/parity")
-        .join(format!("{module}.json"));
+    let file = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../tests/fixtures/parity").join(format!("{module}.json"));
     let text = std::fs::read_to_string(&file).unwrap_or_else(|e| panic!("{}: {e}", file.display()));
     let list: Vec<Value> = serde_json::from_str(&text).unwrap();
     assert!(!list.is_empty(), "{module}: no cases");
-    list.into_iter()
-        .map(|case| (case["input"].clone(), case["output"].clone()))
-        .collect()
+    list.into_iter().map(|case| (case["input"].clone(), case["output"].clone())).collect()
 }
 
 fn str_of<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
@@ -35,20 +29,12 @@ fn str_of<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
 }
 
 fn refusal(r: Option<Refusal>) -> Value {
-    r.map_or(
-        Value::Null,
-        |r| json!({ "status": r.status, "message": r.message }),
-    )
+    r.map_or(Value::Null, |r| json!({ "status": r.status, "message": r.message }))
 }
 
 /// Compares as JSON text, so key order counts.
 fn same(module: &str, input: &Value, got: &Value, want: &Value) {
-    assert_eq!(
-        json::stringify(got),
-        json::stringify(want),
-        "{module}: {}",
-        json::stringify(input)
-    );
+    assert_eq!(json::stringify(got), json::stringify(want), "{module}: {}", json::stringify(input));
 }
 
 #[test]
@@ -62,18 +48,9 @@ fn request_guard() {
                 let allowed: Vec<String> = options
                     .get("allowedHosts")
                     .and_then(Value::as_array)
-                    .map(|a| {
-                        a.iter()
-                            .filter_map(Value::as_str)
-                            .map(String::from)
-                            .collect()
-                    })
+                    .map(|a| a.iter().filter_map(Value::as_str).map(String::from).collect())
                     .unwrap_or_default();
-                let guard = RequestGuard::new(
-                    str_of(options, "host").unwrap(),
-                    &allowed,
-                    str_of(options, "machineName").unwrap_or(""),
-                );
+                let guard = RequestGuard::new(str_of(options, "host").unwrap(), &allowed, str_of(options, "machineName").unwrap_or(""));
                 refusal(guard.check(
                     str_of(&input, "method").unwrap(),
                     str_of(headers, "host"),
@@ -82,14 +59,8 @@ fn request_guard() {
                 ))
             }
             "parseAllowedHosts" => json!(parse_allowed_hosts(str_of(&input, "value"))),
-            "configWriteRefusal" => refusal(config_write_refusal(
-                str_of(headers, "content-type"),
-                str_of(headers, "x-dashboard-config"),
-            )),
-            "controlWriteRefusal" => refusal(control_write_refusal(
-                str_of(headers, "content-type"),
-                str_of(headers, "x-dashboard-control"),
-            )),
+            "configWriteRefusal" => refusal(config_write_refusal(str_of(headers, "content-type"), str_of(headers, "x-dashboard-config"))),
+            "controlWriteRefusal" => refusal(control_write_refusal(str_of(headers, "content-type"), str_of(headers, "x-dashboard-control"))),
             "agentWriteRefusal" => refusal(agent_write_refusal(
                 str_of(headers, "content-type"),
                 str_of(headers, "x-agent-event"),
@@ -109,16 +80,8 @@ fn request_guard() {
 #[test]
 fn security_headers_match() {
     for (input, want) in cases("security-headers") {
-        let headers = security_headers(
-            input["isHtml"].as_bool().unwrap(),
-            str_of(&input, "search").unwrap(),
-        );
-        let got = Value::Object(
-            headers
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), Value::String(v)))
-                .collect(),
-        );
+        let headers = security_headers(input["isHtml"].as_bool().unwrap(), str_of(&input, "search").unwrap());
+        let got = Value::Object(headers.into_iter().map(|(k, v)| (k.to_string(), Value::String(v))).collect());
         same("security-headers", &input, &got, &want);
     }
 }
@@ -126,10 +89,7 @@ fn security_headers_match() {
 #[test]
 fn config_guard() {
     for (input, want) in cases("config-guard") {
-        let got = refusal(version_refusal(
-            str_of(&input, "storedText").unwrap(),
-            &input["incoming"],
-        ));
+        let got = refusal(version_refusal(str_of(&input, "storedText").unwrap(), &input["incoming"]));
         same("config-guard", &input, &got, &want);
     }
 }
@@ -152,10 +112,7 @@ fn config_settings() {
                     .as_array()
                     .unwrap()
                     .iter()
-                    .map(|e| SettingsEntry {
-                        rev: e["rev"].as_i64().unwrap(),
-                        patch: e["patch"].clone(),
-                    })
+                    .map(|e| SettingsEntry { rev: e["rev"].as_i64().unwrap(), patch: e["patch"].clone() })
                     .collect();
                 let since = js::string_to_number(str_of(&input, "sinceRev").unwrap());
                 json!({ "text": json::stringify(&reapply_settings(config, &log, since)) })
@@ -194,12 +151,7 @@ fn control() {
         let config = &input["config"];
         let id = &input["id"];
         let got = match str_of(&input, "fn").unwrap() {
-            "reduce" => match reduce(
-                &state,
-                &input["action"],
-                config,
-                input["now"].as_f64().unwrap(),
-            ) {
+            "reduce" => match reduce(&state, &input["action"], config, input["now"].as_f64().unwrap()) {
                 Err(error) => json!({ "error": error }),
                 Ok(None) => json!({ "same": true }),
                 Ok(Some(next)) => json!({ "state": next.to_value() }),
@@ -212,11 +164,7 @@ fn control() {
             "session" => session(&input),
             other => panic!("unknown fn {other}"),
         };
-        let want = if want.get("state").is_some() {
-            json!({ "state": full_state(&want["state"]) })
-        } else {
-            want
-        };
+        let want = if want.get("state").is_some() { json!({ "state": full_state(&want["state"]) }) } else { want };
         same("control", &input, &got, &want);
     }
 }
@@ -230,9 +178,7 @@ fn session(input: &Value) -> Value {
     }
     let config = std::sync::Arc::new(std::sync::Mutex::new(input["config"].clone()));
     let read = std::sync::Arc::clone(&config);
-    let control = Control::new(file.clone(), input["now0"].as_i64().unwrap(), move || {
-        Some(read.lock().unwrap().clone()).filter(|c| !c.is_null())
-    });
+    let control = Control::new(file.clone(), input["now0"].as_i64().unwrap(), move || Some(read.lock().unwrap().clone()).filter(|c| !c.is_null()));
     let (mut rx, _listener) = control.subscribe();
     let mut now = input["now0"].as_f64().unwrap();
     let mut steps = Vec::new();

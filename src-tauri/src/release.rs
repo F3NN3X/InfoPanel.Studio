@@ -67,11 +67,7 @@ pub fn start(app: &AppHandle) {
 fn tick(app: &AppHandle) {
     let st = app.state::<AppState>();
     let hidden_for = lock(&HIDDEN_SINCE).map(|s| s.elapsed());
-    if !due(
-        st.settings().release_hidden_studio,
-        hidden_for,
-        st.is_quitting(),
-    ) {
+    if !due(st.settings().release_hidden_studio, hidden_for, st.is_quitting()) {
         return;
     }
     // Taken, so it fires once; a show in the meantime already cleared it.
@@ -98,10 +94,7 @@ fn tick(app: &AppHandle) {
         return;
     }
     crate::webview2::forget();
-    log::info!(
-        "studio released after {}m hidden",
-        since.elapsed().as_secs() / 60
-    );
+    log::info!("studio released after {}m hidden", since.elapsed().as_secs() / 60);
 }
 
 #[cfg(test)]

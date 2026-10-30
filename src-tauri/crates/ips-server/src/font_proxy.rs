@@ -25,13 +25,7 @@ use crate::{json, store, App};
 
 pub const CATALOGUE: &str = "https://www.fontsquirrel.com/api/fontlist/all";
 const PROXIED: [&str; 1] = ["www.fontsquirrel.com"];
-const FONT_HOSTS: [&str; 5] = [
-    "api.fontsource.org",
-    "cdn.jsdelivr.net",
-    "fonts.google.com",
-    "fonts.gstatic.com",
-    "www.fontsquirrel.com",
-];
+const FONT_HOSTS: [&str; 5] = ["api.fontsource.org", "cdn.jsdelivr.net", "fonts.google.com", "fonts.gstatic.com", "www.fontsquirrel.com"];
 pub const MAX_BYTES: usize = 30 * 1024 * 1024;
 const MAX_REDIRECTS: usize = 3;
 pub const FETCH_TIMEOUT: Duration = Duration::from_secs(60);
@@ -40,8 +34,7 @@ const CACHE_FILE: &str = "fontsquirrel-list.json";
 
 /// Whether `url` is https on one of `hosts`.
 fn https_on(url: &str, hosts: &[&str]) -> bool {
-    Url::parse(url)
-        .is_ok_and(|u| u.scheme() == "https" && u.host_str().is_some_and(|h| hosts.contains(&h)))
+    Url::parse(url).is_ok_and(|u| u.scheme() == "https" && u.host_str().is_some_and(|h| hosts.contains(&h)))
 }
 
 /// May the server fetch this for a page?
@@ -87,10 +80,7 @@ pub async fn fetch_bytes(url: &str, fetch: &Fetch, deadline: Instant) -> Result<
             Err(_) => return Err(Failure::Timeout(504)),
         };
         if let Some(location) = upstream.location() {
-            url = parsed
-                .join(&location)
-                .map_err(|_| "Invalid URL")?
-                .to_string();
+            url = parsed.join(&location).map_err(|_| "Invalid URL")?.to_string();
             continue;
         }
         if !(200..300).contains(&upstream.status) {
@@ -123,19 +113,9 @@ fn default_fetch() -> Result<Fetch, String> {
             Ok(Arc::new(move |url: Url| -> Fetching {
                 let request = client.get(url).header("User-Agent", "infopanel-studio");
                 Box::pin(async move {
-                    let upstream = Upstream::of(
-                        request
-                            .send()
-                            .await
-                            .map_err(|_| "fetch failed".to_string())?,
-                    );
-                    let body = upstream
-                        .body
-                        .map(|chunk| chunk.map_err(|_| "terminated".to_string()));
-                    Ok(Upstream {
-                        body: Box::pin(body),
-                        ..upstream
-                    })
+                    let upstream = Upstream::of(request.send().await.map_err(|_| "fetch failed".to_string())?);
+                    let body = upstream.body.map(|chunk| chunk.map_err(|_| "terminated".to_string()));
+                    Ok(Upstream { body: Box::pin(body), ..upstream })
                 })
             }) as Fetch)
         })
@@ -146,34 +126,20 @@ fn default_fetch() -> Result<Fetch, String> {
 /// the stale copy, else nothing.
 async fn catalogue(cache_dir: &Path, fetch: &Fetch, deadline: Instant) -> Result<Vec<u8>, String> {
     let cache = cache_dir.join(CACHE_FILE);
-    let modified = tokio::fs::metadata(&cache)
-        .await
-        .and_then(|m| m.modified())
-        .ok();
+    let modified = tokio::fs::metadata(&cache).await.and_then(|m| m.modified()).ok();
     // A copy from the future counts as fresh, as Node's negative age does.
-    if modified.is_some_and(|m| {
-        SystemTime::now()
-            .duration_since(m)
-            .map_or(true, |age| age < WEEK)
-    }) {
+    if modified.is_some_and(|m| SystemTime::now().duration_since(m).map_or(true, |age| age < WEEK)) {
         return tokio::fs::read(&cache).await.map_err(|e| e.to_string());
     }
     let fresh = async {
-        let body = fetch_bytes(CATALOGUE, fetch, deadline)
-            .await
-            .map_err(|_| "fetch failed".to_string())?;
+        let body = fetch_bytes(CATALOGUE, fetch, deadline).await.map_err(|_| "fetch failed".to_string())?;
         // Only a whole list replaces the copy. TextDecoder drops a byte order mark.
         let text = String::from_utf8_lossy(&body);
         json::parse(text.strip_prefix('\u{feff}').unwrap_or(&text)).ok_or("not JSON")?;
-        tokio::fs::create_dir_all(cache_dir)
-            .await
-            .map_err(|e| e.to_string())?;
+        tokio::fs::create_dir_all(cache_dir).await.map_err(|e| e.to_string())?;
         // Atomic: a crash mid-write must not leave a cut list that a week of reads then serves.
         let (file, bytes) = (cache.clone(), body.clone());
-        tokio::task::spawn_blocking(move || store::write_atomic(&file, &bytes))
-            .await
-            .map_err(|e| e.to_string())?
-            .map_err(|e| e.to_string())?;
+        tokio::task::spawn_blocking(move || store::write_atomic(&file, &bytes)).await.map_err(|e| e.to_string())?.map_err(|e| e.to_string())?;
         Ok::<_, String>(body)
     };
     match fresh.await {
@@ -184,25 +150,12 @@ async fn catalogue(cache_dir: &Path, fetch: &Fetch, deadline: Instant) -> Result
 
 /// The route, on the server's network and data folder.
 pub async fn handle(app: &App, req: Req) -> Result<Response<Body>, String> {
-    Ok(respond(
-        &req.method,
-        req.query("url"),
-        &app.cfg.data_dir.join("cache"),
-        &default_fetch()?,
-        FETCH_TIMEOUT,
-    )
-    .await)
+    Ok(respond(&req.method, req.query("url"), &app.cfg.data_dir.join("cache"), &default_fetch()?, FETCH_TIMEOUT).await)
 }
 
 /// The route for a method and `url` parameter, with the catalogue copy in `cache_dir`, fetching through `fetch` within
 /// `timeout`.
-pub async fn respond(
-    method: &Method,
-    url: Option<String>,
-    cache_dir: &Path,
-    fetch: &Fetch,
-    timeout: Duration,
-) -> Response<Body> {
+pub async fn respond(method: &Method, url: Option<String>, cache_dir: &Path, fetch: &Fetch, timeout: Duration) -> Response<Body> {
     if method != Method::GET {
         return http::empty(405);
     }
@@ -211,18 +164,10 @@ pub async fn respond(
         return http::text(400, "not an allowed font URL");
     }
     let deadline = Instant::now() + timeout;
-    let body = if url == CATALOGUE {
-        catalogue(cache_dir, fetch, deadline)
-            .await
-            .map_err(Failure::from)
-    } else {
-        fetch_bytes(&url, fetch, deadline).await
-    };
+    let body = if url == CATALOGUE { catalogue(cache_dir, fetch, deadline).await.map_err(Failure::from) } else { fetch_bytes(&url, fetch, deadline).await };
     match body {
         // proxy_allowed holds, so the host is Font Squirrel's.
-        Ok(body) if body.is_empty() && url != CATALOGUE => {
-            http::text(502, format!("{} sent nothing (throttled?)", PROXIED[0]))
-        }
+        Ok(body) if body.is_empty() && url != CATALOGUE => http::text(502, format!("{} sent nothing (throttled?)", PROXIED[0])),
         Ok(body) => Response::builder()
             .status(200)
             .header("Content-Type", "application/octet-stream")
