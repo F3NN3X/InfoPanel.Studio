@@ -40,6 +40,15 @@ While signed in, the server keeps an IRC-over-WebSocket chat session and polls t
 /api/chat`) and `POST /api/chat/send` writes (same guards as the audio act; 20 sends in 30 s). `src/lib/chat.ts` and
 `src/lib/twitch.ts` are the page's clients.
 
+YouTube is the `youtube` module, signed in with the user's own Google "Desktop app" client (the quota is per Google
+project). `POST /api/youtube/signin` returns the Google address (OAuth with PKCE and a random state); Google sends the
+browser back to `GET /api/youtube/callback` on this server's own 127.0.0.1 port, which answers this machine only and only
+for the pending state, and trades the code for tokens. The client id and secret and the tokens live in `streaming.youtube`
+of `integrations.json` and nowhere else (the studio's view says only `clientConfigured`). One loop looks for the live
+broadcast every 60 s, then reads the viewers every 30 s and the chat every 5, 10 or 20 s (the user's choice) within the
+10,000 units a day, counted in memory and stopped until midnight Pacific when Google says the day is used up. The
+`chat_hub` merges Twitch's and YouTube's windows by time for `/events/chat`, `GET /api/chat` and `POST /api/chat/send`.
+
 ## 1. The InfoPanel Data API
 
 The base URL is the `dataApiUrl` setting of the config, default

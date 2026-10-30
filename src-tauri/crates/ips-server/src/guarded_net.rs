@@ -196,6 +196,15 @@ impl GuardedClient {
         read_capped(request.send().await.map_err(describe)?, max_bytes).await
     }
 
+    /// One POST of a JSON body, its reply read up to `max_bytes`. The caller checks the target first.
+    pub async fn post_json(&self, url: &url::Url, headers: &[(&str, &str)], body: &str, max_bytes: usize) -> Result<Fetched, String> {
+        let mut request = self.client.post(url.clone()).header("Content-Type", "application/json").body(body.to_string());
+        for (name, value) in headers {
+            request = request.header(*name, *value);
+        }
+        read_capped(request.send().await.map_err(describe)?, max_bytes).await
+    }
+
     /// One GET, answered once its head is in; the body is the caller's to read.
     pub async fn send(&self, url: &url::Url, headers: &[(&str, &str)]) -> Result<reqwest::Response, String> {
         let mut request = self.client.get(url.clone());

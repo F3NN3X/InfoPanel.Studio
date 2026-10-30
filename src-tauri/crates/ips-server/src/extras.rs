@@ -14,6 +14,7 @@ use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
 
 use crate::calendar::Calendar;
+use crate::chat_hub::ChatHub;
 use crate::guarded_net::GuardedClient;
 use crate::http::{self, Req};
 use crate::integrations::IntegrationsStore;
@@ -21,6 +22,7 @@ use crate::obs::Obs;
 use crate::request_guard::config_write_refusal;
 use crate::streaming;
 use crate::twitch::{auth::Endpoints, Twitch};
+use crate::youtube::{self, Youtube};
 use crate::json::{parse as parse_json, stringify};
 use crate::{sse, supervisor, App};
 
@@ -35,12 +37,14 @@ struct Listeners {
     open: BTreeMap<u64, mpsc::UnboundedSender<Bytes>>,
 }
 
-/// OBS, the calendar, Twitch and the agents' sessions as the kiosks see them, and the stored integrations that drive the first three.
+/// OBS, the calendar, Twitch, YouTube and the agents' sessions as the kiosks see them, and the stored integrations that drive them.
 pub struct Extras {
     pub integrations: Arc<IntegrationsStore>,
     obs: Arc<Obs>,
     calendar: Arc<Calendar>,
     twitch: Arc<Twitch>,
+    youtube: Arc<Youtube>,
+    chat: ChatHub,
     agents: Box<dyn Fn() -> Value + Send + Sync>,
     listeners: Mutex<Listeners>,
 }
@@ -58,12 +62,13 @@ impl Drop for Listener {
 }
 
 impl Extras {
-    /// The extras over the integrations in `file`, with Twitch at `twitch`. `agents` returns the agents' public state
-    /// (`{ sessions, plan, usage }`).
-    pub fn new(file: &Path, twitch: Endpoints, agents: impl Fn() -> Value + Send + Sync + 'static) -> Result<Arc<Self>, String> {
+    /// The extras over the integrations in `file`, with Twitch at `twitch` and Google at `google`. `agents` returns the
+    /// agents' public state (`{ sessions, plan, usage }`).
+    pub fn new(file: &Path, twitch: Endpoints, google: youtube::auth::Endpoints, agents: impl Fn() -> Value + Send + Sync + 'static) -> Result<Arc<Self>, String> {
         let integrations = Arc::new(IntegrationsStore::load(file));
         let client = GuardedClient::new(false)?;
         let twitch_client = client.clone();
+        let youtube_client = client.clone();
         let extras = Arc::new_cyclic(|weak: &Weak<Self>| {
             let publish: Arc<dyn Fn() + Send + Sync> = {
                 let weak = weak.clone();
@@ -91,15 +96,45 @@ impl Extras {
                 let publish = Arc::clone(&publish);
                 move || publish()
             });
+            let youtube = Youtube::new(google, youtube_client, integrations.get().streaming.youtube, {
+                let integrations = Arc::clone(&integrations);
+                move |auth| {
+                    if let Err(e) = integrations.set_youtube_auth(auth) {
+                        log::error!(target: "server", "saving the YouTube sign-in failed: {e}");
+                    }
+                }
+            }, {
+                let publish = Arc::clone(&publish);
+                move || publish()
+            });
+            // Either platform's chat window changing makes the hub publish the merged chat.
+            let publish_chat: Arc<dyn Fn() + Send + Sync> = {
+                let weak = weak.clone();
+                Arc::new(move || {
+                    if let Some(extras) = weak.upgrade() {
+                        extras.chat.publish();
+                    }
+                })
+            };
+            twitch.set_chat_hook({
+                let publish_chat = Arc::clone(&publish_chat);
+                move || publish_chat()
+            });
+            youtube.set_chat_hook(move || publish_chat());
             let calendar = Calendar::new(client, {
                 let integrations = Arc::clone(&integrations);
                 move || integrations.get().links
             }, move || publish());
-            Self { integrations: Arc::clone(&integrations), obs, calendar, twitch, agents: Box::new(agents), listeners: Mutex::new(Listeners::default()) }
+            let chat = ChatHub::new(Arc::clone(&twitch), Arc::clone(&youtube));
+            Self { integrations: Arc::clone(&integrations), obs, calendar, twitch, youtube, chat, agents: Box::new(agents), listeners: Mutex::new(Listeners::default()) }
         });
         integrations.subscribe({
-            let (obs, calendar, twitch) = (Arc::clone(&extras.obs), Arc::clone(&extras.calendar), Arc::clone(&extras.twitch));
+            let (obs, calendar, twitch, youtube) = (Arc::clone(&extras.obs), Arc::clone(&extras.calendar), Arc::clone(&extras.twitch), Arc::clone(&extras.youtube));
             move |next, prev| {
+                let (y, py) = (&next.streaming.youtube, &prev.streaming.youtube);
+                if (&y.client_id, &y.client_secret, y.chat_interval) != (&py.client_id, &py.client_secret, py.chat_interval) {
+                    youtube.sync(y);
+                }
                 if next.streaming.twitch.channel != prev.streaming.twitch.channel {
                     twitch.set_channel(&next.streaming.twitch.channel);
                 }
@@ -123,9 +158,18 @@ impl Extras {
         &self.twitch
     }
 
-    /// The state kiosks get: `{ obs, calendar, agents, twitch }`.
+    pub fn youtube(&self) -> &Arc<Youtube> {
+        &self.youtube
+    }
+
+    /// Twitch's and YouTube's chat as one.
+    pub fn chat(&self) -> &ChatHub {
+        &self.chat
+    }
+
+    /// The state kiosks get: `{ obs, calendar, agents, twitch, youtube }`.
     pub fn state(&self) -> Value {
-        json!({ "obs": self.obs.json(), "calendar": self.calendar.state(), "agents": (self.agents)(), "twitch": self.twitch.status() })
+        json!({ "obs": self.obs.json(), "calendar": self.calendar.state(), "agents": (self.agents)(), "twitch": self.twitch.status(), "youtube": self.youtube.status() })
     }
 
     /// Sends the full state to every open stream.
@@ -145,13 +189,14 @@ impl Extras {
         (rx, Listener { extras: Arc::clone(self), id })
     }
 
-    /// Starts the OBS connection, the calendar refresh and Twitch's chat and viewers, each under the supervisor.
-    pub fn start(self: &Arc<Self>, shutdown: &watch::Receiver<bool>) -> [JoinHandle<()>; 4] {
+    /// Starts the OBS connection, the calendar refresh, Twitch's chat and viewers and YouTube's live loop, each under the supervisor.
+    pub fn start(self: &Arc<Self>, shutdown: &watch::Receiver<bool>) -> [JoinHandle<()>; 5] {
         let (obs, calendar) = (Arc::clone(&self.obs), Arc::clone(&self.calendar));
         let [chat, viewers] = self.twitch.start(shutdown);
         [
             chat,
             viewers,
+            self.youtube.start(shutdown),
             supervisor::spawn("obs", shutdown.clone(), move || {
                 let obs = Arc::clone(&obs);
                 async move { obs.run().await }

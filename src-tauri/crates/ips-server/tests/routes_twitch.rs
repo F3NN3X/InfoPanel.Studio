@@ -234,7 +234,7 @@ async fn validates_a_chat_send_before_it_looks_for_a_connection() {
         "[]".into(),
         "{}".into(),
         r#"{"text":"hi"}"#.into(),
-        r#"{"platform":"youtube","text":"hi"}"#.into(),
+        r#"{"platform":"mixer","text":"hi"}"#.into(),
         r#"{"platform":"twitch"}"#.into(),
         r#"{"platform":"twitch","text":5}"#.into(),
         r#"{"platform":"twitch","text":"   "}"#.into(),

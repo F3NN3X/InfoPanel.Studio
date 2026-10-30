@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ChatMessage, ChatState } from "@/lib/chat";
-import { EMPTY_TWITCH } from "@/lib/extras";
+import { EMPTY_TWITCH, EMPTY_YOUTUBE } from "@/lib/extras";
 import { canSend, mentions, mergeChat, nameHue, sendTarget } from "@/widgets/StreamChat/merge";
 
 const msg = (id: string, ts: number, platform: ChatMessage["platform"] = "twitch"): ChatMessage => ({ id, platform, user: "u", text: id, color: "", badge: "", ts });
@@ -51,6 +51,16 @@ describe("canSend", () => {
     expect(canSend({ ...base, twitch: { ...EMPTY_TWITCH, signedIn: false } })).toBe(false);
     expect(canSend({ ...base, twitch: undefined })).toBe(false);
     expect(canSend({ ...base, target: "youtube" })).toBe(false);
+  });
+
+  it("sends to YouTube only when signed in there and its chat is read", () => {
+    const both: ChatState = { messages: [], platforms: { twitch: { connected: true, channel: "c" }, youtube: { connected: true, channel: "Me" } } };
+    const yt = { ...base, target: "youtube" as const, youtube: { ...EMPTY_YOUTUBE, signedIn: true }, chat: both };
+    expect(canSend(yt)).toBe(true);
+    expect(canSend({ ...yt, youtube: { ...EMPTY_YOUTUBE, signedIn: false } })).toBe(false);
+    expect(canSend({ ...yt, chat: { ...both, platforms: { youtube: { connected: false, channel: "Me" } } } })).toBe(false);
+    // Twitch being connected does not open the YouTube box.
+    expect(canSend({ ...yt, chat: { ...both, platforms: { twitch: { connected: true, channel: "c" } } } })).toBe(false);
   });
 
   it("sends to the one platform, or to the chosen one when both", () => {

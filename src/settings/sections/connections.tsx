@@ -2,11 +2,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import { CalendarBlock } from "@/components/connections/calendar-block";
 import { ObsBlock } from "@/components/connections/obs-block";
 import { TwitchBlock } from "@/components/connections/twitch-block";
+import { YoutubeBlock } from "@/components/connections/youtube-block";
 import { pageEnv } from "@/help/env";
-import { EMPTY_TWITCH } from "@/lib/extras";
+import { EMPTY_TWITCH, EMPTY_YOUTUBE } from "@/lib/extras";
 import { fetchIntegrations, saveIntegrations, type IntegrationsPatch, type PublicIntegrations } from "@/lib/integrations";
 import { cn } from "@/lib/utils";
 import { twitchSignin, twitchSignout, useTwitchPending } from "@/lib/twitch";
+import { youtubeSignin, youtubeSignout, useYoutubePending } from "@/lib/youtube";
 import { useExtras } from "@/widgets/time-hooks";
 import { useFound } from "../store";
 import { Group } from "../ui";
@@ -32,6 +34,8 @@ export function ConnectionsSection() {
   const [error, setError] = useState("");
   const twitch = useExtras().twitch ?? EMPTY_TWITCH;
   const pending = useTwitchPending(twitch.pending);
+  const youtube = useExtras().youtube ?? EMPTY_YOUTUBE;
+  const youtubePending = useYoutubePending(youtube.pending);
   useEffect(() => {
     let alive = true;
     fetchIntegrations()
@@ -73,7 +77,22 @@ export function ConnectionsSection() {
           />
         </ConnectionCard>
       </Group>
-      {/* YouTube goes here (phase 4), as a Group beside Twitch. */}
+      <Group title="YouTube">
+        <ConnectionCard id="youtube">
+          <YoutubeBlock
+            state={youtube}
+            clientConfigured={stored.streaming?.youtube?.clientConfigured ?? false}
+            chatInterval={stored.streaming?.youtube?.chatInterval ?? 10}
+            pending={youtubePending}
+            onSaveClient={(clientId, clientSecret) => save({ streaming: { youtube: { ...(clientId ? { client_id: clientId } : {}), ...(clientSecret ? { client_secret: clientSecret } : {}) } } })}
+            onSaveInterval={(seconds) => save({ streaming: { youtube: { chat_interval: seconds } } })}
+            onSignin={youtubeSignin}
+            onCancel={() => void youtubeSignout()}
+            onSignout={() => void youtubeSignout()}
+            onOpen={pageEnv().openExternal}
+          />
+        </ConnectionCard>
+      </Group>
       <Group title="Calendar">
         <ConnectionCard id="calendar">
           <CalendarBlock stored={stored.calendar.links} onSave={(links) => save({ calendar: { links } })} />

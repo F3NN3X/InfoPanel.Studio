@@ -1,5 +1,5 @@
-// The Twitch routes: POST /api/twitch/signin and /signout, GET /api/chat and the SSE /events/chat, POST /api/chat/send. A
-// write is refused from other machines (unless remote editing is on) and needs the control marker header, like the audio and
+// The Twitch routes: POST /api/twitch/signin and /signout, GET /api/chat and the SSE /events/chat (both platforms' chat, from
+// the chat hub), POST /api/chat/send (to Twitch or YouTube). A write is refused from other machines (unless remote editing is on) and needs the control marker header, like the audio and
 // OBS writes. Nothing here carries a token.
 
 use axum::body::Body;
@@ -10,12 +10,13 @@ use super::{SendError, SigninError};
 use crate::http::{self, Req};
 use crate::json::parse as parse_json;
 use crate::request_guard::control_write_refusal;
+use crate::youtube::SendError as YoutubeSendError;
 use crate::{sse, App};
 
 const MAX_BODY_BYTES: usize = 4 * 1024;
 
 /// The body of a guarded POST, or the response that refuses it.
-async fn guarded_body(app: &App, req: &mut Req) -> Result<String, Response<Body>> {
+pub(crate) async fn guarded_body(app: &App, req: &mut Req) -> Result<String, Response<Body>> {
     if req.method != Method::POST {
         return Err(http::empty(405));
     }
@@ -73,19 +74,19 @@ pub fn handle_chat(app: &App, req: &Req) -> Response<Body> {
     if req.method != Method::GET {
         return http::empty(405);
     }
-    http::json(200, &app.extras.twitch().chat_json())
+    http::json(200, &app.extras.chat().json())
 }
 
 /// /events/chat: the chat now, then the newest after each change (a reader that falls behind skips the ones between).
 pub fn handle_chat_events(app: &App) -> Response<Body> {
-    let rx = app.extras.twitch().listen();
+    let rx = app.extras.chat().listen();
     let client = app.debug.sse_open("chat");
     sse::latest_response(rx, app.shutdown.clone(), Box::new(client))
 }
 
-/// POST /api/chat/send `{ platform: "twitch", text }` → 204 once the message is on its way; 400 for a body that is not a
-/// message (or text that isn't 1 to 500 characters on one line); 503 while the chat isn't connected; 429 past 20 messages in 30
-/// seconds.
+/// POST /api/chat/send `{ platform: "twitch" | "youtube", text }` → 204 once the message is on its way; 400 for a body that is
+/// not a message (or text that isn't 1 to 500 characters on one line, 200 for YouTube); 503 while the chat isn't connected
+/// (YouTube: not signed in or not live); 429 past 20 Twitch messages in 30 seconds; 502 when YouTube refuses the message.
 pub async fn handle_chat_send(app: &App, mut req: Req) -> std::io::Result<Response<Body>> {
     let body = match guarded_body(app, &mut req).await {
         Ok(body) => body,
@@ -94,12 +95,21 @@ pub async fn handle_chat_send(app: &App, mut req: Req) -> std::io::Result<Respon
     let Some(Value::Object(body)) = parse_json(&body) else {
         return Ok(http::text(400, "expected a JSON object"));
     };
-    if body.get("platform").and_then(Value::as_str) != Some("twitch") {
-        return Ok(http::text(400, "platform: expected \"twitch\""));
+    let platform = body.get("platform").and_then(Value::as_str);
+    if !matches!(platform, Some("twitch" | "youtube")) {
+        return Ok(http::text(400, "platform: expected \"twitch\" or \"youtube\""));
     }
     let Some(text) = body.get("text").and_then(Value::as_str) else {
         return Ok(http::text(400, "text: expected text"));
     };
+    if platform == Some("youtube") {
+        return Ok(match app.extras.youtube().send(text).await {
+            Ok(()) => http::empty(204),
+            Err(YoutubeSendError::Invalid(message)) => http::text(400, message),
+            Err(YoutubeSendError::NotLive) => http::text(503, "YouTube chat isn't live."),
+            Err(YoutubeSendError::Failed(message)) => http::text(502, message),
+        });
+    }
     Ok(match app.extras.twitch().send(text) {
         Ok(()) => http::empty(204),
         Err(SendError::Invalid(message)) => http::text(400, message),

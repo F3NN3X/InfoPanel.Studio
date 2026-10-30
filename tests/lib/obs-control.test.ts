@@ -68,6 +68,8 @@ describe("parseExtras, the OBS control fields", () => {
     expect(bare.obs).toEqual({ ...EMPTY_EXTRAS.obs, configured: true });
     expect(bare.twitch).toBeUndefined();
     expect(parseExtras({ twitch: { viewers: 12 }, youtube: { viewers: "x" } })).toMatchObject({ twitch: { viewers: 12 } });
-    expect(parseExtras({ youtube: { viewers: "x" } }).youtube).toBeUndefined();
+    // The YouTube status is read whole and tolerantly; a bad viewer count reads as none.
+    expect(parseExtras({ youtube: { viewers: "x", signedIn: true, channel: "Me", quota: { used: 12, estimatePerHour: "x" } } }).youtube).toMatchObject({ viewers: 0, signedIn: true, channel: "Me", quota: { used: 12, estimatePerHour: 0 }, error: null });
+    expect(parseExtras({}).youtube).toBeUndefined();
   });
 });

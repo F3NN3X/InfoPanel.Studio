@@ -1,7 +1,7 @@
 // What Stream Chat shows, apart from drawing it: which messages (merged by time across the platforms), who is mentioned and
 // whether the send box can work. Pure.
 import type { ChatMessage, ChatPlatform, ChatState } from "@/lib/chat";
-import type { TwitchState } from "@/lib/extras";
+import type { TwitchState, YoutubeState } from "@/lib/extras";
 
 export type ChatSource = "twitch" | "youtube" | "both";
 
@@ -42,11 +42,13 @@ export interface SendGate {
   refused: boolean;
   target: ChatPlatform;
   twitch: TwitchState | undefined;
+  youtube?: YoutubeState | undefined;
   chat: ChatState;
 }
 
-/** The send box shows only when a send can work: signed in, the chat connected, and not refused. YouTube sending arrives with its connection. */
+/** The send box shows only when a send can work: signed in, the target's chat connected, and not refused. */
 export function canSend(g: SendGate): boolean {
   if (!g.enabled || g.refused) return false;
-  return g.target === "twitch" && g.twitch?.signedIn === true && g.chat.platforms.twitch?.connected === true;
+  const signedIn = g.target === "twitch" ? g.twitch?.signedIn : g.youtube?.signedIn;
+  return signedIn === true && g.chat.platforms[g.target]?.connected === true;
 }

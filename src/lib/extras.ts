@@ -79,6 +79,26 @@ export interface TwitchState {
 
 export const EMPTY_TWITCH: TwitchState = { configured: false, signedIn: false, login: "", channel: "", pending: false, error: null, connected: false, live: false, viewers: 0 };
 
+/** The YouTube status the server publishes; it never carries a token or the client secret. */
+export interface YoutubeState {
+  /** The user's Google client is entered. */
+  clientConfigured: boolean;
+  signedIn: boolean;
+  /** The signed-in channel's title. */
+  channel: string;
+  live: boolean;
+  viewers: number;
+  /** The live chat is being read. */
+  connected: boolean;
+  error: string | null;
+  /** A sign-in page is waiting for the user. Its address is not in the extras: `GET /api/youtube/signin` gives it to this machine. */
+  pending: boolean;
+  /** Units used today (counted from our own calls) and what the current polling costs an hour. */
+  quota: { used: number; estimatePerHour: number };
+}
+
+export const EMPTY_YOUTUBE: YoutubeState = { clientConfigured: false, signedIn: false, channel: "", live: false, viewers: 0, connected: false, error: null, pending: false, quota: { used: 0, estimatePerHour: 0 } };
+
 export interface Extras {
   obs: ObsState & ObsLive;
   calendar: CalendarState;
@@ -86,8 +106,8 @@ export interface Extras {
   agents: Agents;
   /** The Twitch sign-in, chat connection and viewers (ips-server's twitch module); absent from an older server. */
   twitch?: TwitchState;
-  /** Viewers on the stream, once a YouTube connection reports them. */
-  youtube?: { viewers: number };
+  /** The YouTube sign-in, live state, viewers and quota (ips-server's youtube module); absent from an older server. */
+  youtube?: YoutubeState;
 }
 
 export const EMPTY_OBS_LIVE: ObsLive = { scenes: [], currentScene: "", uptime: 0, kbps: 0, fps: 0, mic: null, replay: null, inputs: [] };
@@ -123,8 +143,21 @@ function parseObsLive(o: Record<string, unknown>): ObsLive {
   };
 }
 
-/** A platform's viewer count, when the server reports one. */
-const viewers = (v: unknown): { viewers: number } | undefined => (isObject(v) && typeof v.viewers === "number" && Number.isFinite(v.viewers) ? { viewers: Math.max(0, v.viewers) } : undefined);
+/** Tolerant read of the YouTube status. */
+function parseYoutube(o: Record<string, unknown>): YoutubeState {
+  const q = isObject(o.quota) ? o.quota : {};
+  return {
+    clientConfigured: o.clientConfigured === true,
+    signedIn: o.signedIn === true,
+    channel: text(o.channel),
+    live: o.live === true,
+    viewers: count(o.viewers),
+    connected: o.connected === true,
+    error: text(o.error) || null,
+    pending: o.pending === true,
+    quota: { used: count(q.used), estimatePerHour: count(q.estimatePerHour) },
+  };
+}
 
 /** Tolerant read of the Twitch status. */
 function parseTwitch(o: Record<string, unknown>): TwitchState {
@@ -164,7 +197,7 @@ export function parseExtras(raw: unknown): Extras {
     calendar: { configured: c.configured === true, events, ...(typeof c.error === "string" && c.error ? { error: c.error } : {}) },
     agents: parseAgents(raw.agents),
     ...(isObject(raw.twitch) ? { twitch: parseTwitch(raw.twitch) } : {}),
-    ...(viewers(raw.youtube) ? { youtube: viewers(raw.youtube) } : {}),
+    ...(isObject(raw.youtube) ? { youtube: parseYoutube(raw.youtube) } : {}),
   };
 }
 

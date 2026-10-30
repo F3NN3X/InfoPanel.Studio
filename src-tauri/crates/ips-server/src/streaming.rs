@@ -1,7 +1,9 @@
 // The Streaming widgets' saved settings: the `streaming` section of integrations.json, beside `obs` and `calendar`. The OBS
 // section holds the mic input the Stream Control tile follows and, per scene, the line under its name and its icon. Nothing
 // in it is secret, so the studio reads it back whole. The Twitch section holds the chat channel and, secret, the sign-in's
-// tokens: the studio's view (`to_json`) leaves the tokens out, the file (`to_stored_json`) keeps them. Absent from the file
+// tokens: the studio's view (`to_json`) leaves the tokens out, the file (`to_stored_json`) keeps them. The YouTube section
+// holds the user's own Google client (id and secret, never shown back: the view says only whether they are set), the chat
+// refresh and the sign-in's tokens, kept the same way. Absent from the file
 // (and from every output) until something is set.
 
 use std::collections::BTreeMap;
@@ -19,6 +21,12 @@ const MAX_ICON: usize = 40;
 const MAX_TOKEN: usize = 512;
 /// Twitch logins are 25 characters at most.
 const MAX_LOGIN: usize = 25;
+const MAX_CLIENT: usize = 256;
+const MAX_CHANNEL_TITLE: usize = 100;
+const MAX_CHANNEL_ID: usize = 64;
+/// The seconds between two reads of YouTube's chat the user can choose, and the default.
+pub const CHAT_INTERVALS: [u64; 3] = [5, 10, 20];
+pub const DEFAULT_CHAT_INTERVAL: u64 = 10;
 
 /// What the Stream Control tile shows for a scene besides its name.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -54,10 +62,39 @@ pub struct TwitchSettings {
     pub auth: TwitchAuth,
 }
 
+/// What a YouTube sign-in leaves: secret, written only by the server's own sign-in (never by a studio patch).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct YoutubeAuth {
+    pub access_token: String,
+    pub refresh_token: String,
+    /// When the access token runs out, in ms since the epoch.
+    pub expires_at: i64,
+    /// The channel's title and id.
+    pub channel: String,
+    pub channel_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct YoutubeSettings {
+    /// The user's own Google OAuth client ("Desktop app"); "" = not set. The secret is not shown back.
+    pub client_id: String,
+    pub client_secret: String,
+    /// Seconds between two reads of the live chat: 5, 10 or 20.
+    pub chat_interval: u64,
+    pub auth: YoutubeAuth,
+}
+
+impl Default for YoutubeSettings {
+    fn default() -> Self {
+        Self { client_id: String::new(), client_secret: String::new(), chat_interval: DEFAULT_CHAT_INTERVAL, auth: YoutubeAuth::default() }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Streaming {
     pub obs: ObsStreaming,
     pub twitch: TwitchSettings,
+    pub youtube: YoutubeSettings,
 }
 
 impl Streaming {
@@ -109,6 +146,25 @@ fn normalize_twitch(raw: Option<&Value>) -> TwitchSettings {
     }
 }
 
+fn normalize_youtube(raw: Option<&Value>) -> YoutubeSettings {
+    let Some(youtube) = raw.and_then(Value::as_object) else {
+        return YoutubeSettings::default();
+    };
+    let interval = youtube.get("chat_interval").and_then(Value::as_u64).filter(|n| CHAT_INTERVALS.contains(n));
+    YoutubeSettings {
+        client_id: text(youtube.get("client_id"), MAX_CLIENT),
+        client_secret: text(youtube.get("client_secret"), MAX_CLIENT),
+        chat_interval: interval.unwrap_or(DEFAULT_CHAT_INTERVAL),
+        auth: YoutubeAuth {
+            access_token: text(youtube.get("access_token"), MAX_TOKEN),
+            refresh_token: text(youtube.get("refresh_token"), MAX_TOKEN),
+            expires_at: youtube.get("expires_at").and_then(Value::as_i64).unwrap_or(0),
+            channel: text(youtube.get("channel"), MAX_CHANNEL_TITLE),
+            channel_id: text(youtube.get("channel_id"), MAX_CHANNEL_ID),
+        },
+    }
+}
+
 /// A Twitch channel name: lowercase letters, digits and `_` (a leading `#` is dropped); "" for none; `None` for anything else.
 pub fn clean_channel(v: Option<&Value>) -> Option<String> {
     let raw = text(v, MAX_LOGIN + 1);
@@ -122,7 +178,7 @@ pub fn normalize(raw: Option<&Value>) -> Streaming {
     let Some(raw) = raw.and_then(Value::as_object) else {
         return Streaming::default();
     };
-    Streaming { obs: normalize_obs(raw.get("obs")), twitch: normalize_twitch(raw.get("twitch")) }
+    Streaming { obs: normalize_obs(raw.get("obs")), twitch: normalize_twitch(raw.get("twitch")), youtube: normalize_youtube(raw.get("youtube")) }
 }
 
 fn obs_json(s: &Streaming) -> Value {
@@ -135,7 +191,8 @@ fn obs_json(s: &Streaming) -> Value {
     json!({ "mic": s.obs.mic, "scenes": scenes })
 }
 
-/// The section as the studio sees it, or `None` while nothing is set. The Twitch tokens are not in it.
+/// The section as the studio sees it, or `None` while nothing is set. The Twitch tokens and the YouTube client and tokens
+/// are not in it (only whether a client is set).
 pub fn to_json(s: &Streaming) -> Option<Value> {
     if s.is_empty() {
         return None;
@@ -143,6 +200,10 @@ pub fn to_json(s: &Streaming) -> Option<Value> {
     let mut section = json!({ "obs": obs_json(s) });
     if s.twitch != TwitchSettings::default() {
         section["twitch"] = json!({ "channel": s.twitch.channel, "login": s.twitch.auth.login });
+    }
+    if s.youtube != YoutubeSettings::default() {
+        let y = &s.youtube;
+        section["youtube"] = json!({ "clientConfigured": !y.client_id.is_empty() && !y.client_secret.is_empty(), "channel": y.auth.channel, "chatInterval": y.chat_interval });
     }
     Some(section)
 }
@@ -157,6 +218,14 @@ pub fn to_stored_json(s: &Streaming) -> Option<Value> {
             "expires_at": a.expires_at, "login": a.login, "user_id": a.user_id,
         });
     }
+    if s.youtube != YoutubeSettings::default() {
+        let y = &s.youtube;
+        section["youtube"] = json!({
+            "client_id": y.client_id, "client_secret": y.client_secret, "chat_interval": y.chat_interval,
+            "access_token": y.auth.access_token, "refresh_token": y.auth.refresh_token, "expires_at": y.auth.expires_at,
+            "channel": y.auth.channel, "channel_id": y.auth.channel_id,
+        });
+    }
     Some(section)
 }
 
@@ -164,6 +233,8 @@ pub fn to_stored_json(s: &Streaming) -> Option<Value> {
 /// - `obs.mic`: the input's name; "" clears it, absent keeps it.
 /// - `obs.scenes`: the full map of { sub?, icon? } by scene id; a scene with neither is dropped.
 /// - `twitch.channel`: the chat to read; "" = the signed-in user's own, absent keeps it. The tokens are not settable here.
+/// - `youtube.client_id` / `client_secret`: the user's Google client, absent keeps it; changing either ends the sign-in (its
+///   tokens belong to the old client). `youtube.chat_interval`: 5, 10 or 20 seconds. The tokens are not settable here.
 pub fn apply(s: &Streaming, patch: &Value) -> Result<Streaming, String> {
     let Some(patch) = patch.as_object() else {
         return Err("streaming: expected an object".into());
@@ -194,7 +265,36 @@ pub fn apply(s: &Streaming, patch: &Value) -> Result<Streaming, String> {
             Some(_) => return Err("streaming.twitch.channel: expected text".into()),
         }
     }
+    if let Some(youtube) = patch.get("youtube") {
+        apply_youtube(&mut next.youtube, youtube)?;
+    }
     Ok(next)
+}
+
+fn apply_youtube(next: &mut YoutubeSettings, patch: &Value) -> Result<(), String> {
+    let Some(patch) = patch.as_object() else {
+        return Err("streaming.youtube: expected an object".into());
+    };
+    let before = (next.client_id.clone(), next.client_secret.clone());
+    for (key, field) in [("client_id", &mut next.client_id), ("client_secret", &mut next.client_secret)] {
+        match patch.get(key) {
+            None => {}
+            Some(v @ Value::String(_)) => *field = text(Some(v), MAX_CLIENT),
+            Some(_) => return Err(format!("streaming.youtube.{key}: expected text")),
+        }
+    }
+    match patch.get("chat_interval") {
+        None => {}
+        Some(v) => match v.as_u64().filter(|n| CHAT_INTERVALS.contains(n)) {
+            Some(n) => next.chat_interval = n,
+            None => return Err("streaming.youtube.chat_interval: 5, 10 or 20".into()),
+        },
+    }
+    // The tokens belong to the client that got them.
+    if (next.client_id.clone(), next.client_secret.clone()) != before {
+        next.auth = YoutubeAuth::default();
+    }
+    Ok(())
 }
 
 /// Drops from a patch's `streaming.obs.scenes` the looks of scenes not in `known` (OBS's current list), so deleted scenes
@@ -346,6 +446,46 @@ mod tests {
         assert_eq!(normalize(Some(&stored)), s, "round-trips");
         // Until Twitch is used, the key is in neither form.
         assert!(to_json(&Streaming { obs: ObsStreaming { mic: "m".into(), ..Default::default() }, ..Default::default() }).unwrap().get("twitch").is_none());
+    }
+
+    fn youtube_stored() -> Streaming {
+        normalize(Some(&json!({ "youtube": { "client_id": "cid", "client_secret": "SECRET-CS", "chat_interval": 20, "access_token": "SECRET-AT", "refresh_token": "SECRET-RT", "expires_at": 77, "channel": "My channel", "channel_id": "UC1" } })))
+    }
+
+    #[test]
+    fn keeps_the_youtube_client_and_tokens_in_the_file_and_out_of_the_studios_view() {
+        let s = youtube_stored();
+        assert_eq!((s.youtube.chat_interval, s.youtube.auth.expires_at, s.youtube.auth.channel_id.as_str()), (20, 77, "UC1"));
+        let public = to_json(&s).unwrap();
+        assert_eq!(public["youtube"], json!({ "clientConfigured": true, "channel": "My channel", "chatInterval": 20 }));
+        let shown = public.to_string();
+        assert!(!shown.contains("SECRET") && !shown.contains("cid"), "{shown}");
+        let stored = to_stored_json(&s).unwrap();
+        assert_eq!(stored["youtube"]["client_secret"], "SECRET-CS");
+        assert_eq!(normalize(Some(&stored)), s, "round-trips");
+        // Untouched, the key is in neither form; a bad interval reads as the default.
+        assert!(to_json(&Streaming { obs: ObsStreaming { mic: "m".into(), ..Default::default() }, ..Default::default() }).unwrap().get("youtube").is_none());
+        assert_eq!(normalize(Some(&json!({ "youtube": { "chat_interval": 7 } }))).youtube.chat_interval, DEFAULT_CHAT_INTERVAL);
+        // A client alone is not configured.
+        let half = normalize(Some(&json!({ "youtube": { "client_id": "cid" } })));
+        assert_eq!(to_json(&half).unwrap()["youtube"]["clientConfigured"], false);
+    }
+
+    #[test]
+    fn a_patch_sets_the_youtube_client_and_interval_but_never_the_tokens() {
+        let s = youtube_stored();
+        // The same client keeps the sign-in; the interval and an attempt at the tokens change nothing else.
+        let same = apply(&s, &json!({ "youtube": { "client_id": "cid", "chat_interval": 5, "access_token": "EVIL", "channel": "x" } })).unwrap();
+        assert_eq!(same.youtube.chat_interval, 5);
+        assert_eq!(same.youtube.auth, s.youtube.auth);
+        // Another client ends it.
+        let other = apply(&s, &json!({ "youtube": { "client_secret": "new" } })).unwrap();
+        assert_eq!((other.youtube.client_secret.as_str(), other.youtube.auth.clone()), ("new", YoutubeAuth::default()));
+        let refusal = |patch: Value| apply(&s, &patch).unwrap_err();
+        assert_eq!(refusal(json!({ "youtube": 1 })), "streaming.youtube: expected an object");
+        assert_eq!(refusal(json!({ "youtube": { "client_id": 3 } })), "streaming.youtube.client_id: expected text");
+        assert_eq!(refusal(json!({ "youtube": { "client_secret": [] } })), "streaming.youtube.client_secret: expected text");
+        assert_eq!(refusal(json!({ "youtube": { "chat_interval": 7 } })), "streaming.youtube.chat_interval: 5, 10 or 20");
     }
 
     #[test]

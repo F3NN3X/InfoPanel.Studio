@@ -9,7 +9,7 @@ use std::sync::Mutex;
 
 use serde_json::{json, Value};
 
-use crate::streaming::{self, Streaming, TwitchAuth};
+use crate::streaming::{self, Streaming, TwitchAuth, YoutubeAuth};
 use crate::{js, store};
 
 pub const OBS_DEFAULT_PORT: u16 = 4455;
@@ -299,6 +299,14 @@ impl IntegrationsStore {
         self.commit(state, next)
     }
 
+    /// Stores the YouTube sign-in (an empty one is a sign-out) and keeps everything else, the client and the chat refresh included.
+    pub fn set_youtube_auth(&self, auth: YoutubeAuth) -> std::io::Result<()> {
+        let state = self.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut next = state.clone();
+        next.streaming.youtube.auth = auth;
+        self.commit(state, next)
+    }
+
     fn commit(&self, mut state: std::sync::MutexGuard<'_, Integrations>, next: Integrations) -> std::io::Result<()> {
         let prev = std::mem::replace(&mut *state, next);
         let mut text = String::new();
@@ -458,5 +466,26 @@ mod tests {
         // Signing out leaves nothing of the tokens in the file.
         store.set_twitch_auth(TwitchAuth::default()).unwrap();
         assert!(!std::fs::read_to_string(&file).unwrap().contains("secret-"));
+    }
+
+    #[test]
+    fn stores_the_youtube_client_and_sign_in_privately_and_a_new_client_ends_the_sign_in() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("integrations.json");
+        let store = IntegrationsStore::load(&file);
+        store.apply(&json!({ "streaming": { "youtube": { "client_id": "cid", "client_secret": "secret-cs" } } })).unwrap().unwrap();
+        let auth = YoutubeAuth { access_token: "secret-access".into(), refresh_token: "secret-refresh".into(), expires_at: 99, channel: "Me".into(), channel_id: "UC1".into() };
+        store.set_youtube_auth(auth.clone()).unwrap();
+        let file_text = std::fs::read_to_string(&file).unwrap();
+        assert!(file_text.contains("secret-access") && file_text.contains("secret-cs"));
+        let reloaded = IntegrationsStore::load(&file).get().streaming.youtube;
+        assert_eq!((reloaded.client_id.as_str(), reloaded.auth), ("cid", auth));
+        let public = store.public().to_string();
+        assert!(!public.contains("secret-") && !public.contains("cid") && public.contains("\"clientConfigured\":true"), "{public}");
+        // The same client keeps the sign-in; another one drops its tokens from the file.
+        store.apply(&json!({ "streaming": { "youtube": { "client_id": "cid", "chat_interval": 20 } } })).unwrap().unwrap();
+        assert_eq!(store.get().streaming.youtube.auth.access_token, "secret-access");
+        store.apply(&json!({ "streaming": { "youtube": { "client_id": "other" } } })).unwrap().unwrap();
+        assert!(!std::fs::read_to_string(&file).unwrap().contains("secret-access"));
     }
 }

@@ -77,7 +77,7 @@ export default function StreamControl(p: StreamControlProps) {
   const mic = obs.mic;
   const muted = mic?.muted === true;
   const tw = extras.twitch?.signedIn ? extras.twitch.viewers : undefined;
-  const yt = extras.youtube?.viewers;
+  const yt = extras.youtube?.signedIn ? extras.youtube.viewers : undefined;
   const total = (tw ?? 0) + (yt ?? 0);
   const vHist = useHistory(live ? total : 0, 48, 1);
   const mHist = useHistory(muted || !mic ? 0 : mic.level, 24, 0.6);

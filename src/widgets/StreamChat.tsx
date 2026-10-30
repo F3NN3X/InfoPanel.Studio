@@ -31,18 +31,19 @@ const TITLE: Record<ChatSource, string> = { twitch: "Twitch chat", youtube: "You
 
 export default function StreamChat(p: StreamChatProps) {
   const chat = useChat();
-  const twitch = useExtras().twitch;
+  const { twitch, youtube } = useExtras();
   const readOnly = chatRefusal.use();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const source = p.source ?? "twitch";
   const msgs = mergeChat(chat.messages, source, p.maxMessages ?? 60);
   const from = platformsOf(source);
-  const viewers = from.includes("twitch") && twitch?.signedIn ? twitch.viewers : 0;
-  const live = from.includes("twitch") && twitch?.live === true;
+  const viewers = (from.includes("twitch") && twitch?.signedIn ? twitch.viewers : 0) + (from.includes("youtube") && youtube?.signedIn ? youtube.viewers : 0);
+  const live = (from.includes("twitch") && twitch?.live === true) || (from.includes("youtube") && youtube?.live === true);
   const target = sendTarget(source, p.sendTo);
-  const sending = canSend({ enabled: p.showInput !== false, refused: readOnly, target, twitch, chat });
-  const highlight = p.highlight?.trim() || twitch?.login || "";
+  const sending = canSend({ enabled: p.showInput !== false, refused: readOnly, target, twitch, youtube, chat });
+  const highlight = p.highlight?.trim() || (source === "youtube" ? youtube?.channel : twitch?.login) || "";
+  const signedIn = (from.includes("twitch") && twitch?.signedIn === true) || (from.includes("youtube") && youtube?.signedIn === true);
   const title = p.title ?? TITLE[source];
   const last = msgs[msgs.length - 1];
   const send = async (e: SubmitEvent<HTMLFormElement>) => {
@@ -74,7 +75,7 @@ export default function StreamChat(p: StreamChatProps) {
           <div className="flex h-full min-h-0 flex-col gap-2">
             {!msgs.length ? (
               <div className="min-h-0 flex-1">
-                <Empty icon="forum" label={twitch?.signedIn ? "No messages yet" : "Sign in to Twitch in Settings › Connections"} />
+                <Empty icon="forum" label={signedIn ? "No messages yet" : `Sign in to ${source === "youtube" ? "YouTube" : "Twitch"} in Settings › Connections`} />
               </div>
             ) : (
               // Newest at the bottom; older lines clip off the top instead of overflowing.
@@ -100,7 +101,7 @@ export default function StreamChat(p: StreamChatProps) {
               <form onSubmit={(e) => void send(e)} className="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-white/[0.05] pl-3 pr-1">
                 <input
                   value={draft}
-                  maxLength={500}
+                  maxLength={target === "youtube" ? 200 : 500}
                   aria-label="Chat message"
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder={error || (source === "both" ? `Send to ${target === "youtube" ? "YouTube" : "Twitch"}` : "Send a message")}

@@ -9,10 +9,10 @@ pub mod irc;
 pub mod routes;
 mod session;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::time::{Duration, Instant};
 
 use axum::body::Bytes;
@@ -117,6 +117,8 @@ pub struct Twitch {
     outgoing: Mutex<Option<mpsc::Sender<String>>>,
     /// The chat as an event; a stream only ever needs the newest.
     latest: watch::Sender<Bytes>,
+    /// Tells the chat hub (which merges the platforms' chats) the window changed; set once.
+    on_chat: OnceLock<Box<dyn Fn() + Send + Sync>>,
     /// When each repeating failure was last logged.
     warned: Mutex<std::collections::HashMap<&'static str, Instant>>,
 }
@@ -149,6 +151,7 @@ impl Twitch {
             next_flow: AtomicU64::new(1),
             outgoing: Mutex::new(None),
             latest: watch::channel(Bytes::new()).0,
+            on_chat: OnceLock::new(),
             warned: Mutex::default(),
         });
         twitch.publish_chat();
@@ -173,8 +176,19 @@ impl Twitch {
 
     /// The chat stream's event data: the window, oldest first, and each platform's connection.
     pub fn chat_json(&self) -> Value {
+        let (messages, twitch) = self.chat_parts();
+        json!({ "messages": messages, "platforms": { "twitch": twitch } })
+    }
+
+    /// The window, oldest first, and this platform's connection.
+    pub fn chat_parts(&self) -> (Vec<Message>, Value) {
         let i = locked(&self.inner);
-        json!({ "messages": i.window.messages(), "platforms": { "twitch": { "connected": i.connected, "channel": i.channel() } } })
+        (i.window.messages(), json!({ "connected": i.connected, "channel": i.channel() }))
+    }
+
+    /// Runs `f` after every change to the chat window (once; a second call is ignored).
+    pub fn set_chat_hook(&self, f: impl Fn() + Send + Sync + 'static) {
+        let _ = self.on_chat.set(Box::new(f));
     }
 
     fn publish_status(&self) {
@@ -186,6 +200,9 @@ impl Twitch {
     fn publish_chat(&self) {
         self.latest
             .send_modify(|event| *event = sse::event(&crate::json::stringify(&self.chat_json())));
+        if let Some(hook) = self.on_chat.get() {
+            hook();
+        }
     }
 
     fn publish_all(&self) {

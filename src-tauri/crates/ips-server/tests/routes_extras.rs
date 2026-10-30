@@ -153,7 +153,7 @@ async fn starts_with_nothing_set_up_and_sends_no_secret() {
     assert_eq!(extras.status, 200);
     assert_eq!(
         extras.text(),
-        r#"{"obs":{"configured":false,"connected":false,"streaming":false,"recording":false},"calendar":{"configured":false,"events":[]},"agents":{"sessions":[],"plan":{},"usage":{}},"twitch":{"configured":true,"signedIn":false,"login":"","channel":"","pending":false,"error":null,"connected":false,"live":false,"viewers":0}}"#
+        r#"{"obs":{"configured":false,"connected":false,"streaming":false,"recording":false},"calendar":{"configured":false,"events":[]},"agents":{"sessions":[],"plan":{},"usage":{}},"twitch":{"configured":true,"signedIn":false,"login":"","channel":"","pending":false,"error":null,"connected":false,"live":false,"viewers":0},"youtube":{"clientConfigured":false,"signedIn":false,"channel":"","live":false,"viewers":0,"connected":false,"error":null,"pending":false,"quota":{"used":0,"estimatePerHour":0}}}"#
     );
     assert_eq!(extras.header("content-type"), Some("application/json; charset=utf-8"));
     assert_eq!(extras.header("cache-control"), Some("no-store"));

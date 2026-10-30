@@ -17,6 +17,7 @@ pub mod claude_sessions;
 pub mod config;
 pub mod config_guard;
 pub mod config_settings;
+pub mod chat_hub;
 pub mod control;
 pub mod control_store;
 pub mod debug;
@@ -48,6 +49,7 @@ pub mod studio_prefs;
 pub mod supervisor;
 pub mod touch_hub;
 pub mod twitch;
+pub mod youtube;
 
 use std::future::Future;
 use std::net::{SocketAddr, ToSocketAddrs};
@@ -161,6 +163,8 @@ pub struct App {
     pub control: Arc<Control>,
     pub alerts: Arc<Alerts>,
     pub extras: Arc<Extras>,
+    /// The port the server listens on (the real one when the config asked for 0).
+    pub port: u16,
     pub audio: Arc<Audio>,
     pub agents: Agents,
     pub assets: Assets,
@@ -269,9 +273,10 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
         agents::PUBLISH_THROTTLE,
     );
     // The OBS connection and the calendar refresh.
-    // A server that does not run its backends (a test) is given a Twitch it cannot reach.
+    // A server that does not run its backends (a test) is given a Twitch and a Google it cannot reach.
     let twitch = if live_audio { twitch::auth::Endpoints::twitch() } else { twitch::auth::Endpoints::offline() };
-    let extras = Extras::new(&cfg.data_dir.join("integrations.json"), twitch, {
+    let google = if live_audio { youtube::auth::Endpoints::google() } else { youtube::auth::Endpoints::offline() };
+    let extras = Extras::new(&cfg.data_dir.join("integrations.json"), twitch, google, {
         let agents = agents.clone();
         move || agents.state()
     })
@@ -301,7 +306,7 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, audio, agents, assets, canvases, library, prefs, shutdown };
+    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, agents, assets, canvases, library, prefs, shutdown };
     Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
@@ -399,6 +404,9 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/api/obs/act" => obs_control::handle_act(app, req).await.map_err(io),
         "/api/twitch/signin" => twitch::routes::handle_signin(app, req).await.map_err(io),
         "/api/twitch/signout" => twitch::routes::handle_signout(app, req).await.map_err(io),
+        "/api/youtube/signin" => youtube::routes::handle_signin(app, req).await.map_err(io),
+        "/api/youtube/signout" => youtube::routes::handle_signout(app, req).await.map_err(io),
+        "/api/youtube/callback" => youtube::routes::handle_callback(app, req).await.map_err(io),
         "/api/chat" => Ok(twitch::routes::handle_chat(app, &req)),
         "/api/chat/send" => twitch::routes::handle_chat_send(app, req).await.map_err(io),
         "/events/chat" => Ok(twitch::routes::handle_chat_events(app)),

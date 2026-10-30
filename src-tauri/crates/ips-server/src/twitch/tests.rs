@@ -19,23 +19,23 @@ use crate::config::now_ms;
 
 // ---- fakes ----
 
-struct Request {
-    path: String,
-    head: String,
-    body: String,
+pub(crate) struct Request {
+    pub(crate) path: String,
+    pub(crate) head: String,
+    pub(crate) body: String,
 }
 
 type Script = Arc<dyn Fn(&Request, usize) -> (u16, String) + Send + Sync>;
 
 /// A fake HTTP server: `script(request, how many requests this path has had)` answers each one.
-async fn http_fake(
+pub(crate) async fn http_fake(
     script: impl Fn(&Request, usize) -> (u16, String) + Send + Sync + 'static,
 ) -> (String, Arc<Mutex<Vec<Request>>>) {
     http_fake_slow("", Duration::ZERO, script).await
 }
 
 /// Like `http_fake`, with the answers to `slow_path` held back by `delay`.
-async fn http_fake_slow(
+pub(crate) async fn http_fake_slow(
     slow_path: &'static str,
     delay: Duration,
     script: impl Fn(&Request, usize) -> (u16, String) + Send + Sync + 'static,
@@ -183,7 +183,7 @@ fn signed_in(login: &str, expires_in_ms: i64) -> TwitchSettings {
     }
 }
 
-async fn until(what: &str, mut cond: impl FnMut() -> bool) {
+pub(crate) async fn until(what: &str, mut cond: impl FnMut() -> bool) {
     for _ in 0..500 {
         if cond() {
             return;
@@ -193,13 +193,13 @@ async fn until(what: &str, mut cond: impl FnMut() -> bool) {
     panic!("timed out waiting for {what}");
 }
 
-fn form_of(body: &str) -> Vec<(String, String)> {
+pub(crate) fn form_of(body: &str) -> Vec<(String, String)> {
     url::form_urlencoded::parse(body.as_bytes())
         .into_owned()
         .collect()
 }
 
-fn field(body: &str, key: &str) -> String {
+pub(crate) fn field(body: &str, key: &str) -> String {
     form_of(body)
         .into_iter()
         .find(|(k, _)| k == key)

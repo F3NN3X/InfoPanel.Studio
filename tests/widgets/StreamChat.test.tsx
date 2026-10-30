@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chatRefusal, type ChatMessage, type ChatState } from "@/lib/chat";
-import { EMPTY_EXTRAS, EMPTY_TWITCH, type Extras } from "@/lib/extras";
+import { EMPTY_EXTRAS, EMPTY_TWITCH, EMPTY_YOUTUBE, type Extras } from "@/lib/extras";
 
 const mocks = vi.hoisted(() => ({ extras: null as Extras | null, chat: null as ChatState | null, send: vi.fn() }));
 
@@ -42,6 +42,22 @@ describe("StreamChat", () => {
     expect(container.textContent).toContain("TW");
     expect(container.textContent).not.toContain("one");
     expect(container.textContent).toContain("three");
+  });
+
+  it("merges both platforms by time with their tags, adds their viewers and sends to the chosen one", async () => {
+    mocks.extras = { ...EMPTY_EXTRAS, twitch: { ...EMPTY_TWITCH, signedIn: true, connected: true, live: true, viewers: 7 }, youtube: { ...EMPTY_YOUTUBE, signedIn: true, live: true, viewers: 5, connected: true } };
+    mocks.chat = {
+      messages: [m("t2", 30, "Tess", "later"), m("y1", 10, "Yan", "first", { platform: "youtube" }), m("t1", 20, "Tom", "middle")],
+      platforms: { twitch: { connected: true, channel: "me" }, youtube: { connected: true, channel: "Yan" } },
+    };
+    mocks.send.mockResolvedValue({ ok: true });
+    const { container } = render(<StreamChat data={{}} source="both" sendTo="youtube" />);
+    const lines = [...container.querySelectorAll("div.shrink-0")].map((l) => l.textContent);
+    expect(lines).toEqual(["YTYan first", "TWTom middle", "TWTess later"]);
+    expect(screen.getByText(/12 watching/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Chat message"), { target: { value: "hey" } });
+    fireEvent.click(screen.getByLabelText("Send"));
+    await waitFor(() => expect(mocks.send).toHaveBeenCalledWith("youtube", "hey"));
   });
 
   it("says where to sign in, or that there are no messages", () => {
