@@ -6,6 +6,7 @@
 
 import { useSyncExternalStore } from "react";
 import { trackEventSource } from "@/lib/sensor-store";
+import { createRefusal } from "@/lib/write-refusal";
 
 export const AUDIO_EVENTS_URL = "/events/audio";
 export const AUDIO_ACT_URL = "/api/audio/act";
@@ -123,8 +124,8 @@ type Listener = (state: AudioState) => void;
 /** Between tries at a stream the server refused. */
 const RETRY_MS = 5000;
 
-/** True after the server refused a write (403: another machine, remote editing off); the widgets stay read-only until the stream reconnects. */
-let refused = false;
+/** Set after the server refused a write (403: another machine, remote editing off): the widgets show themselves read-only until the state changes. */
+export const audioRefusal = createRefusal();
 
 /** The shared audio client: `getState` / `subscribe`. */
 function createAudioClient(url: string) {
@@ -141,7 +142,7 @@ function createAudioClient(url: string) {
       if (listeners.size) setTimeout(open, RETRY_MS);
     };
     source.onopen = () => {
-      refused = false;
+      audioRefusal.set(false);
     };
     source.onmessage = (e) => {
       try {
@@ -150,7 +151,7 @@ function createAudioClient(url: string) {
         return;
       }
       // A refusal may have been a passing one; the next change of state is a fresh start.
-      refused = false;
+      audioRefusal.set(false);
       for (const l of listeners) l(state);
     };
   };
@@ -177,7 +178,7 @@ export const useAudio = (): AudioState => useSyncExternalStore(audio.subscribe, 
 
 /** Sends an action. Resolves to whether the server took it; never throws. After a 403 it sends nothing more until the stream reconnects. */
 export async function audioAct(body: AudioAction): Promise<boolean> {
-  if (refused) return false;
+  if (audioRefusal.get()) return false;
   try {
     const res = await fetch(AUDIO_ACT_URL, {
       method: "POST",
@@ -185,7 +186,7 @@ export async function audioAct(body: AudioAction): Promise<boolean> {
       headers: { "Content-Type": "application/json", "X-Dashboard-Control": "1" },
       body: JSON.stringify(body),
     });
-    if (res.status === 403) refused = true;
+    if (res.status === 403) audioRefusal.set(true);
     return res.ok;
   } catch {
     return false;

@@ -240,7 +240,8 @@
       "paths": [
         "src-tauri/crates/ips-server/src/audio/**",
         "src-tauri/crates/ips-server/tests/*_audio.rs",
-        "src/lib/audio-control.ts"
+        "src/lib/audio-control.ts",
+        "src/lib/write-refusal.ts"
       ],
       "tests": ["tests/lib/audio-control.test.ts"],
       "checks": ["typecheck", "unit", "cargo-server", "cargo-app"],

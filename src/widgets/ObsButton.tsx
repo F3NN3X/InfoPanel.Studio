@@ -1,6 +1,7 @@
-import { obsAct } from "@/lib/obs-control";
+import { obsAct, obsRefusal } from "@/lib/obs-control";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, Icon, STATE, type ShellProps } from "./kit";
+import { ReadOnly } from "./ReadOnly";
 import { useExtras } from "./time-hooks";
 import { meta } from "./meta/ObsButton";
 
@@ -20,6 +21,7 @@ export interface ObsButtonProps extends ShellProps {
 
 export default function ObsButton(p: ObsButtonProps) {
   const obs = useExtras().obs;
+  const readOnly = obsRefusal.use();
   const action = p.action ?? "scene";
   const scene = action === "scene" ? obs.scenes.find((s) => s.id === p.scene) : undefined;
   const muted = action === "mic" && obs.mic?.muted === true;
@@ -39,6 +41,7 @@ export default function ObsButton(p: ObsButtonProps) {
         const small = Math.min(w, h) < 90;
         const corner = p.radius === undefined ? "calc(var(--radius, 1rem) * 0.62)" : `${p.radius * 0.62}px`;
         return (
+          <ReadOnly on={readOnly}>
           <button
             type="button"
             disabled={!ready}
@@ -57,6 +60,7 @@ export default function ObsButton(p: ObsButtonProps) {
             <span className="max-w-full truncate px-1 text-[12px] font-semibold leading-tight">{name}</span>
             {!small && ready && action === "scene" && active && <span className="text-[11px] text-[color:var(--w-muted)]">On air</span>}
           </button>
+          </ReadOnly>
         );
       }}
     </Widget>

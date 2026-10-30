@@ -6,6 +6,7 @@
 
 import { trackEventSource } from "@/lib/sensor-store";
 import { EMPTY_AGENTS, parseAgents, type Agents } from "./agents";
+import { obsRefusal } from "./obs-control";
 
 export interface ObsState {
   /** An OBS connection is set up (host and port saved). */
@@ -143,6 +144,8 @@ function createExtrasClient(url: string) {
   const open = () => {
     if (source || typeof EventSource === "undefined") return;
     source = trackEventSource(new EventSource(url));
+    // A reconnect is a fresh start for a write the server turned away.
+    source.onopen = () => obsRefusal.set(false);
     source.onmessage = (e) => {
       try {
         state = parseExtras(JSON.parse(String(e.data)));

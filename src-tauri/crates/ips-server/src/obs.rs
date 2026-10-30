@@ -126,7 +126,12 @@ struct Command {
     reply: oneshot::Sender<Reply>,
 }
 
-type Outgoing = mpsc::UnboundedSender<Command>;
+type Outgoing = mpsc::Sender<Command>;
+
+/// Actions waiting for the session; past this a caller is turned away (503) instead of queueing without end.
+const QUEUED_ACTIONS: usize = 32;
+/// The least time between two publishes that only carry a new mic level.
+const LEVEL_PUBLISH_EVERY: Duration = Duration::from_millis(250);
 
 /// How long an action waits for OBS's answer.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(3);
@@ -160,6 +165,10 @@ pub struct Obs {
     reconfigure: watch::Sender<u64>,
     /// The open session's inbox for actions; none between sessions.
     commands: Mutex<Option<Outgoing>>,
+    /// Bumped when the mic changes; the open session subscribes to the meters again over its open socket.
+    mic_changes: watch::Sender<u64>,
+    /// When a publish last went out for a mic level alone.
+    level_published: Mutex<Option<Instant>>,
 }
 
 impl Obs {
@@ -178,6 +187,8 @@ impl Obs {
             on_change: Box::new(on_change),
             reconfigure: watch::channel(0).0,
             commands: Mutex::new(None),
+            mic_changes: watch::channel(0).0,
+            level_published: Mutex::new(None),
         })
     }
 
@@ -202,17 +213,23 @@ impl Obs {
         json
     }
 
+    /// The ids of OBS's scenes now; None while not connected or when it lists none.
+    pub fn scene_ids(&self) -> Option<Vec<String>> {
+        let ids: Vec<String> = self.live().scenes.into_iter().map(|s| s.id).collect();
+        (self.state().connected && !ids.is_empty()).then_some(ids)
+    }
+
     /// Call after the settings change: closes the connection and connects again at once.
     pub fn reconfigure(&self) {
         self.reconfigure.send_modify(|generation| *generation += 1);
     }
 
-    /// Call after the Streaming settings change: a new mic needs a new connection (the meters are subscribed to by it),
-    /// anything else only changes what is published.
+    /// Call after the Streaming settings change: a new mic makes the open session subscribe to the meters again (no new
+    /// connection), anything else only changes what is published.
     pub fn set_streaming(&self, next: ObsStreaming) {
         let prev = std::mem::replace(&mut *locked(&self.streaming), next.clone());
         if prev.mic != next.mic {
-            self.reconfigure();
+            self.mic_changes.send_modify(|generation| *generation += 1);
         } else if prev != next {
             (self.on_change)();
         }
@@ -220,6 +237,15 @@ impl Obs {
 
     /// Sets both halves of the state and tells `on_change` once if either changed.
     fn commit(&self, next: ObsState, live: ObsLive) {
+        // A new mic level alone is published at most every 250 ms (it comes ten times a second and a publish sends the whole
+        // extras); the level that was held back is not stored, so the next reading brings it again.
+        if next == self.state() && locked(&self.live).only_level_differs(&live) {
+            let mut last = locked(&self.level_published);
+            if last.is_some_and(|at| at.elapsed() < LEVEL_PUBLISH_EVERY) {
+                return;
+            }
+            *last = Some(Instant::now());
+        }
         let mut changed = false;
         {
             let mut state = locked(&self.state);
@@ -255,7 +281,10 @@ impl Obs {
         let mic = locked(&self.streaming).mic.clone();
         let (kind, data) = act_request(&act, &self.live(), &mic).map_err(ActError::Refused)?;
         let (reply, answer) = oneshot::channel();
-        inbox.send(Command { kind, data, reply }).map_err(|_| ActError::NotConnected)?;
+        inbox.try_send(Command { kind, data, reply }).map_err(|e| match e {
+            mpsc::error::TrySendError::Full(_) => ActError::Busy,
+            mpsc::error::TrySendError::Closed(_) => ActError::NotConnected,
+        })?;
         match tokio::time::timeout(timeout, answer).await {
             Ok(Ok(Ok(_))) => Ok(()),
             Ok(Ok(Err(comment))) => Err(ActError::Failed(comment)),
@@ -298,14 +327,14 @@ impl Obs {
 
     /// One connection, until it closes or fails. Actions are taken only while it is open.
     async fn session(&self, settings: &ObsSettings, delay: &mut Duration) {
-        let (outgoing, mut inbox) = mpsc::unbounded_channel();
+        let (outgoing, mut inbox) = mpsc::channel(QUEUED_ACTIONS);
         *locked(&self.commands) = Some(outgoing);
         self.talk(settings, delay, &mut inbox).await;
         *locked(&self.commands) = None;
     }
 
     /// `delay` goes back to its minimum once OBS has identified us.
-    async fn talk(&self, settings: &ObsSettings, delay: &mut Duration, inbox: &mut mpsc::UnboundedReceiver<Command>) {
+    async fn talk(&self, settings: &ObsSettings, delay: &mut Duration, inbox: &mut mpsc::Receiver<Command>) {
         let upgrade = format!("ws://{}:{}", settings.host, settings.port).into_client_request().map(|mut upgrade| {
             upgrade.headers_mut().insert("Sec-WebSocket-Protocol", "obswebsocket.json".parse().expect("a header value"));
             upgrade
@@ -318,7 +347,8 @@ impl Obs {
             }
         };
         let Ok((mut socket, _)) = tokio_tungstenite::connect_async(upgrade).await else { return };
-        let mic = locked(&self.streaming).mic.clone();
+        let mut mic_changes = self.mic_changes.subscribe();
+        let mut mic = locked(&self.streaming).mic.clone();
         let (started, mut pending) = (Instant::now(), Pending::default());
         let mut poll = tokio::time::interval_at(tokio::time::Instant::now() + POLL_EVERY, POLL_EVERY);
         loop {
@@ -331,6 +361,24 @@ impl Obs {
                     let id = pending.insert(command.reply);
                     if !send_all(&mut socket, vec![request(&id, command.kind, command.data)]).await {
                         return;
+                    }
+                    continue;
+                }
+                Ok(()) = mic_changes.changed() => {
+                    mic = locked(&self.streaming).mic.clone();
+                    if self.state().connected {
+                        // Subscribe to the meters (or stop) on the open socket and read the new mic's mute.
+                        let mut send = vec![json!({ "op": 3, "d": { "eventSubscriptions": subscriptions(!mic.is_empty()) } })];
+                        if mic.is_empty() {
+                            let mut live = self.live();
+                            live.mic = None;
+                            self.commit(self.state(), live);
+                        } else {
+                            send.push(ObsLive::mic_request(&mic));
+                        }
+                        if !send_all(&mut socket, send).await {
+                            return;
+                        }
                     }
                     continue;
                 }
@@ -479,5 +527,36 @@ mod tests {
         assert!(changes.load(std::sync::atomic::Ordering::SeqCst) >= 3);
         task.abort();
         server.abort();
+    }
+
+    #[tokio::test]
+    async fn publishes_a_new_mic_level_alone_at_most_four_times_a_second() {
+        use crate::obs_control::Mic;
+        let changes = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let obs = Obs::new(|| ObsSettings { host: "h".into(), port: 1, password: String::new() }, {
+            let changes = Arc::clone(&changes);
+            move || {
+                changes.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            }
+        });
+        let connected = ObsState { configured: true, connected: true, streaming: false, recording: false };
+        let with_level = |level: u8| {
+            let mut live = ObsLive::default();
+            live.mic = Some(Mic { name: "M".into(), muted: false, level });
+            live
+        };
+        let seen = || changes.load(std::sync::atomic::Ordering::SeqCst);
+        obs.commit(connected, with_level(10));
+        assert_eq!(seen(), 1);
+        // The first level-only change goes out; the next ones, inside 250 ms, are held back and not stored.
+        obs.commit(connected, with_level(20));
+        obs.commit(connected, with_level(30));
+        assert_eq!((seen(), obs.live().mic.unwrap().level), (2, 20));
+        // Anything else is published at once.
+        obs.commit(ObsState { streaming: true, ..connected }, with_level(20));
+        assert_eq!(seen(), 3);
+        tokio::time::sleep(LEVEL_PUBLISH_EVERY + Duration::from_millis(20)).await;
+        obs.commit(ObsState { streaming: true, ..connected }, with_level(30));
+        assert_eq!((seen(), obs.live().mic.unwrap().level), (4, 30));
     }
 }

@@ -1,9 +1,11 @@
-import type { ReactNode } from "react";
-import { obsAct } from "@/lib/obs-control";
+import { useRef, type ReactNode } from "react";
+import { obsAct, obsRefusal } from "@/lib/obs-control";
+import { READ_ONLY_HINT } from "@/lib/write-refusal";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, fmt, clamp, Icon, Chip, Dot, Num, Spark, Empty, useHistory, hue, STATE, type ShellProps } from "./kit";
+import { ReadOnly } from "./ReadOnly";
 import { clock, GAP, planTiles } from "./StreamControl/layout";
-import { useExtras, useInStudio } from "./time-hooks";
+import { useExtras, useInStudio, useNow } from "./time-hooks";
 import { meta } from "./meta/StreamControl";
 
 export { meta };
@@ -20,6 +22,17 @@ export interface StreamControlProps extends ShellProps {
 const SCENE_HUES = [0, 95, -75, -115, 40, -150];
 
 const tint = (c: string, p = 16) => `color-mix(in oklab, ${c} ${p}%, transparent)`;
+
+/**
+ * The seconds on air, ticking each second between the server's readings (they come every 2 s, which would make the timer
+ * jump): the last reading plus the time since it arrived.
+ */
+function useUptime(streaming: boolean, reading: number): number {
+  const seen = useRef({ reading: -1, at: 0 });
+  if (seen.current.reading !== reading) seen.current = { reading, at: Date.now() };
+  const now = useNow(1000, streaming);
+  return streaming ? reading + Math.max(0, Math.floor((now - seen.current.at) / 1000)) : 0;
+}
 
 function Badge({ icon, color }: { icon: string; color: string }) {
   return (
@@ -57,8 +70,10 @@ export default function StreamControl(p: StreamControlProps) {
   const extras = useExtras();
   const obs = extras.obs;
   const studio = useInStudio();
+  const readOnly = obsRefusal.use();
   const up = obs.connected;
   const live = obs.streaming;
+  const uptime = useUptime(live, obs.uptime);
   const mic = obs.mic;
   const muted = mic?.muted === true;
   const tw = extras.twitch?.viewers;
@@ -93,13 +108,15 @@ export default function StreamControl(p: StreamControlProps) {
             <Dot ok={false} />
             Offline
           </Chip>
+        ) : readOnly ? (
+          <Chip>{READ_ONLY_HINT}</Chip>
         ) : live && obs.kbps > 0 ? (
           <Chip>
             {fmt(obs.kbps)} kbps · {fmt(obs.fps)} fps
           </Chip>
         ) : null
       }
-      compact={{ label: live ? "Live" : "Offline", value: live ? clock(obs.uptime) : "–", sub: total ? `${fmt(total)} watching` : curName, icon: "videocam", hist: vHist, kind: "spark", t: live ? "ok" : undefined }}
+      compact={{ label: live ? "Live" : "Offline", value: live ? clock(uptime) : "–", sub: total ? `${fmt(total)} watching` : curName, icon: "videocam", hist: vHist, kind: "spark", t: live ? "ok" : undefined }}
     >
       {({ w, h }) => {
         if (!up && !scenes.length)
@@ -115,10 +132,11 @@ export default function StreamControl(p: StreamControlProps) {
             />
           );
         const { cols, rows, cells, colW, tileH } = planTiles({ w, h, scenes, current: obs.currentScene, showMic, showReplay });
-        const liveSpan = Math.min(2, cols);
+        const liveSpan = cells.find((c) => c.kind === "live")?.span ?? 1;
         const fs = clamp(Math.min((colW * liveSpan + GAP) / 5, tileH * 0.34), 16, 64);
         const act = up ? obsAct : undefined;
         return (
+          <ReadOnly on={readOnly}>
           <div className="grid h-full" style={{ gap: GAP, gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0,1fr))`, gridAutoFlow: "row dense" }}>
             {cells.map((cell) => {
               if (cell.kind === "live")
@@ -131,7 +149,7 @@ export default function StreamControl(p: StreamControlProps) {
                       {viewers && colW * cell.span > 200 && <span className="ml-auto truncate text-[11px] normal-case tracking-normal tabular-nums text-zinc-200">{viewers}</span>}
                     </div>
                     <Num className="mt-1.5 block leading-none tracking-tight" style={{ fontSize: fs }}>
-                      {live ? clock(obs.uptime) : "0:00:00"}
+                      {live ? clock(uptime) : "0:00:00"}
                     </Num>
                     {tileH > 100 && (
                       <div className="mt-2 min-h-0 flex-1">
@@ -187,6 +205,7 @@ export default function StreamControl(p: StreamControlProps) {
               );
             })}
           </div>
+          </ReadOnly>
         );
       }}
     </Widget>

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { audioAct, useAudio, type AudioState } from "@/lib/audio-control";
+import { audioAct, audioRefusal, useAudio, type AudioState } from "@/lib/audio-control";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, num, fmt, clamp, Icon, Num, Empty, hue, type ShellProps } from "./kit";
 import { allChannels, iconOf, pickChannels, type AudioSource } from "./StreamMixer/channels";
 import { setVolume, toggleMute } from "./StreamMixer/control";
 import { MixFader, type FaderMode } from "./StreamMixer/Fader";
 import { OutputPicker } from "./StreamMixer/OutputPicker";
+import { ReadOnly } from "./ReadOnly";
 import { meta } from "./meta/StreamMixer";
 
 export { meta };
@@ -40,6 +41,7 @@ function emptyLabel(source: AudioSource, audio: AudioState): string {
 
 export default function StreamMixer(p: StreamMixerProps) {
   const audio = useAudio();
+  const readOnly = audioRefusal.use();
   const source = p.source ?? "windows";
   const [picking, setPicking] = useState(false);
   let ci = 0;
@@ -88,6 +90,7 @@ export default function StreamMixer(p: StreamMixerProps) {
         // The tile's corner follows the shell's.
         const corner = p.radius === undefined ? "calc(var(--radius, 1rem) * 0.62)" : `${p.radius * 0.62}px`;
         return (
+          <ReadOnly on={readOnly}>
           <ul className="flex h-full flex-col" style={{ gap }}>
             {rows.slice(0, n).map(({ c, color, icon }) => (
               <li
@@ -122,6 +125,7 @@ export default function StreamMixer(p: StreamMixerProps) {
               </li>
             ))}
           </ul>
+          </ReadOnly>
         );
       }}
     </Widget>

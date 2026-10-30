@@ -110,6 +110,15 @@ pub fn apply(s: &Streaming, patch: &Value) -> Result<Streaming, String> {
     Ok(next)
 }
 
+/// Drops from a patch's `streaming.obs.scenes` the looks of scenes not in `known` (OBS's current list), so deleted scenes
+/// do not pile up toward `MAX_SCENES`.
+pub fn prune_patch(patch: &mut Value, known: &[String]) {
+    let scenes = patch.get_mut("streaming").and_then(|s| s.get_mut("obs")).and_then(|o| o.get_mut("scenes")).and_then(Value::as_object_mut);
+    if let Some(scenes) = scenes {
+        scenes.retain(|id, _| known.contains(id));
+    }
+}
+
 fn apply_scenes(scenes: &Value) -> Result<BTreeMap<String, SceneLook>, String> {
     let Some(scenes) = scenes.as_object() else {
         return Err("streaming.obs.scenes: expected an object".into());
@@ -184,6 +193,18 @@ mod tests {
             to_json(&cleared).unwrap(),
             json!({ "obs": { "mic": "", "scenes": { "u3": { "sub": "", "icon": "movie" } } } })
         );
+    }
+
+    #[test]
+    fn prunes_the_looks_of_scenes_obs_no_longer_has() {
+        let mut patch = json!({ "streaming": { "obs": { "mic": "M", "scenes": { "a": { "sub": "x" }, "gone": { "sub": "y" } } } } });
+        prune_patch(&mut patch, &["a".to_string(), "b".to_string()]);
+        assert_eq!(patch, json!({ "streaming": { "obs": { "mic": "M", "scenes": { "a": { "sub": "x" } } } } }));
+        // Patches without a scenes map are left alone.
+        let mut other = json!({ "obs": { "host": "h" }, "streaming": { "obs": { "mic": "M" } } });
+        let before = other.clone();
+        prune_patch(&mut other, &[]);
+        assert_eq!(other, before);
     }
 
     #[test]

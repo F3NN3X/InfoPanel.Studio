@@ -1,8 +1,9 @@
-import { audioAct, useAudio } from "@/lib/audio-control";
+import { audioAct, audioRefusal, useAudio } from "@/lib/audio-control";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, Icon, STATE, type ShellProps } from "./kit";
 import { findChannel, iconOf } from "./StreamMixer/channels";
 import { toggleMute } from "./StreamMixer/control";
+import { ReadOnly } from "./ReadOnly";
 import { meta } from "./meta/AudioButton";
 
 export { meta };
@@ -25,6 +26,7 @@ export interface AudioButtonProps extends ShellProps {
 
 export default function AudioButton(p: AudioButtonProps) {
   const audio = useAudio();
+  const readOnly = audioRefusal.use();
   const output = p.action === "output";
   const device = output ? audio.windows.outputs.find((d) => d.id === p.device) : undefined;
   const channel = output ? undefined : findChannel(audio, p.channel ?? "master", p.mix);
@@ -43,6 +45,7 @@ export default function AudioButton(p: AudioButtonProps) {
         const small = Math.min(w, h) < 90;
         const corner = p.radius === undefined ? "calc(var(--radius, 1rem) * 0.62)" : `${p.radius * 0.62}px`;
         return (
+          <ReadOnly on={readOnly}>
           <button
             type="button"
             disabled={!ready}
@@ -61,6 +64,7 @@ export default function AudioButton(p: AudioButtonProps) {
             <span className="max-w-full truncate px-1 text-[12px] font-semibold leading-tight">{name}</span>
             {!small && ready && <span className="text-[11px] text-[color:var(--w-muted)]">{output ? (active ? "Active" : "Switch") : active ? "Muted" : "Live"}</span>}
           </button>
+          </ReadOnly>
         );
       }}
     </Widget>

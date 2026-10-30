@@ -20,10 +20,10 @@ describe("planTiles", () => {
     expect(names(plan.cells)).toContain("live");
   });
 
-  it("keeps the live tile alone in a 2x1 zone and drops the rest", () => {
+  it("fits only the current scene and the mic in a 2x1 zone (it used to be the live tile alone, with no scene to tap)", () => {
     for (const cell of [110, 150]) {
       const small = planTiles({ ...zone(2, 1, cell), scenes: scenes(3), current: "s2", showMic: true, showReplay: true });
-      expect(names(small.cells)).toEqual(["live"]);
+      expect(names(small.cells)).toEqual(["s2", "mic"]);
     }
   });
 
@@ -35,6 +35,16 @@ describe("planTiles", () => {
       expect(kept).not.toContain("replay");
       expect(mid.cells.reduce((n, c) => n + c.span, 0)).toBeLessThanOrEqual(mid.cols * mid.rows);
     }
+  });
+
+  it("keeps a scene tappable in a zone of two cells: the live tile is one cell and ranks after the current scene", () => {
+    const plan = planTiles({ w: 300, h: 100, scenes: scenes(2), current: "s1", showMic: true, showReplay: true });
+    expect(plan.cols * plan.rows).toBe(2);
+    expect(names(plan.cells)).toEqual(["s1", "mic"]);
+    // With no mic, the live tile takes the second cell.
+    const noMic = planTiles({ w: 300, h: 100, scenes: scenes(2), current: "s0", showMic: false, showReplay: false });
+    expect(names(noMic.cells)).toEqual(["s0", "live"]);
+    expect(noMic.cells.find((c) => c.kind === "live")?.span).toBe(1);
   });
 
   it("uses only the rows it needs and then spreads the columns", () => {

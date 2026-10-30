@@ -12,6 +12,8 @@ vi.mock("@/lib/audio-control", async (original) => ({
   audioActThrottled: mocks.throttled,
 }));
 
+import { audioRefusal } from "@/lib/audio-control";
+import { READ_ONLY_HINT } from "@/lib/write-refusal";
 import AudioButton from "@/widgets/AudioButton";
 import StreamMixer from "@/widgets/StreamMixer";
 
@@ -32,6 +34,7 @@ beforeEach(() => {
   mocks.state = SAMPLE;
   mocks.act.mockReset();
   mocks.throttled.mockReset();
+  audioRefusal.set(false);
 });
 
 afterEach(() => {
@@ -84,6 +87,24 @@ describe("StreamMixer", () => {
     render(<StreamMixer data={{}} source="wavelink" />);
     expect(screen.queryByLabelText("Output device")).toBeNull();
     expect(screen.getByText("Music")).toBeTruthy();
+  });
+});
+
+describe("a refused write", () => {
+  it("dims the mixer and the buttons and puts the hint on them until the refusal clears", () => {
+    audioRefusal.set(true);
+    const { container } = render(
+      <>
+        <StreamMixer data={{}} />
+        <AudioButton data={{}} channel="mic" />
+      </>
+    );
+    expect(screen.getAllByTitle(READ_ONLY_HINT)).toHaveLength(2);
+    expect(container.querySelectorAll(".pointer-events-none").length).toBeGreaterThan(1);
+    cleanup();
+    audioRefusal.set(false);
+    render(<AudioButton data={{}} channel="mic" />);
+    expect(screen.queryByTitle(READ_ONLY_HINT)).toBeNull();
   });
 });
 

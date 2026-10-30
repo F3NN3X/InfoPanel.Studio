@@ -224,6 +224,23 @@ async fn follows_scenes_mic_and_replay_and_takes_actions() {
         Err(ActError::Failed("OBS didn't answer".into()))
     );
 
+    // A new mic subscribes again on the open socket (Reidentify) and reads its mute; nobody sees OBS drop.
+    let other = ObsStreaming { mic: "Desk mic".into(), scenes: BTreeMap::new() };
+    obs.set_streaming(other.clone());
+    until("the new mic", || obs.json()["mic"]["name"] == "Desk mic").await;
+    assert_eq!(obs.json()["connected"], true);
+    assert_eq!(obs.json()["scenes"].as_array().map(Vec::len), Some(2));
+    // No mic: the meters are dropped from the subscriptions and the mic goes.
+    obs.set_streaming(ObsStreaming { mic: String::new(), ..other });
+    until("no mic", || obs.json()["mic"].is_null()).await;
+    let mut subscribed = Vec::new();
+    while let Ok(message) = seen.try_recv() {
+        if message["op"] == 3 {
+            subscribed.push(message["d"]["eventSubscriptions"].clone());
+        }
+    }
+    assert_eq!(subscribed, [json!(1 | 4 | 8 | 64 | 65536), json!(1 | 4 | 8 | 64)]);
+
     // Clearing the host closes the connection: the extras go back to the four on-air fields and actions are turned away.
     settings.lock().unwrap().host.clear();
     obs.reconfigure();

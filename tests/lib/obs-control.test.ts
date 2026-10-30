@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_EXTRAS, parseExtras } from "@/lib/extras";
-import { obsAct, OBS_ACT_URL } from "@/lib/obs-control";
+import { obsAct, obsRefusal, OBS_ACT_URL } from "@/lib/obs-control";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  obsRefusal.set(false);
+});
 
 describe("obsAct", () => {
   it("posts the action as JSON with the control marker and says whether OBS took it", async () => {
@@ -18,6 +21,20 @@ describe("obsAct", () => {
     expect(await obsAct({ op: "mic" })).toBe(false);
     fetch.mockRejectedValue(new Error("offline"));
     expect(await obsAct({ op: "replay" })).toBe(false);
+  });
+});
+
+describe("a refused write", () => {
+  it("is remembered after a 403: the flag is set and nothing more is sent until it clears", async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 });
+    vi.stubGlobal("fetch", fetch);
+    expect(await obsAct({ op: "mic" })).toBe(false);
+    expect(obsRefusal.get()).toBe(true);
+    fetch.mockResolvedValue({ ok: true, status: 204 });
+    expect(await obsAct({ op: "mic" })).toBe(false);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    obsRefusal.set(false);
+    expect(await obsAct({ op: "mic" })).toBe(true);
   });
 });
 

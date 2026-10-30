@@ -1,9 +1,10 @@
-import { useAudio } from "@/lib/audio-control";
+import { audioRefusal, useAudio } from "@/lib/audio-control";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, fmt, clamp, Icon, Num, Empty, hue, type ShellProps } from "./kit";
 import { findChannel, iconOf } from "./StreamMixer/channels";
 import { setVolume, toggleMute } from "./StreamMixer/control";
 import { MixFader, type FaderMode } from "./StreamMixer/Fader";
+import { ReadOnly } from "./ReadOnly";
 import { meta } from "./meta/AudioFader";
 
 export { meta };
@@ -21,6 +22,7 @@ export interface AudioFaderProps extends ShellProps {
 
 export default function AudioFader(p: AudioFaderProps) {
   const audio = useAudio();
+  const readOnly = audioRefusal.use();
   const c = findChannel(audio, p.channel ?? "master", p.mix);
   const color = !c || c.mute ? "#52525b" : c.master ? "#e4e4e7" : hue(95);
   const name = p.name || c?.name || "Audio";
@@ -42,7 +44,7 @@ export default function AudioFader(p: AudioFaderProps) {
           </Num>
         );
         const fader = <MixFader value={c.vol} color={color} segs={vertical ? clamp(h / 8, 8, 40) : clamp(w / 8, 8, 40)} mode={mode} vertical={vertical} onChange={(v) => setVolume(c, v)} />;
-        return vertical ? (
+        const body = vertical ? (
           <div className="flex h-full flex-col items-center gap-2">
             {mute}
             <div className="min-h-0 w-full flex-1 px-2">{fader}</div>
@@ -55,6 +57,7 @@ export default function AudioFader(p: AudioFaderProps) {
             <span className="w-9 shrink-0">{value}</span>
           </div>
         );
+        return <ReadOnly on={readOnly}>{body}</ReadOnly>;
       }}
     </Widget>
   );

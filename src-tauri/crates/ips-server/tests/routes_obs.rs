@@ -212,6 +212,21 @@ async fn guards_and_validates_a_write_before_asking_obs() {
 }
 
 #[tokio::test]
+async fn takes_64_scenes_looks_at_their_longest_in_one_save() {
+    let s = start().await;
+    let scenes: serde_json::Map<String, serde_json::Value> = (0..64)
+        .map(|i| (format!("{i:03}{}", "i".repeat(125)), serde_json::json!({ "sub": "s".repeat(60), "icon": "c".repeat(40) })))
+        .collect();
+    let body = serde_json::json!({ "streaming": { "obs": { "mic": "m".repeat(256), "scenes": scenes } } }).to_string();
+    assert!(body.len() > 16 * 1024, "{} bytes is more than the old cap", body.len());
+    let saved = send(s.port, "PUT", "/api/integrations", &[("Content-Type", "application/json"), ("X-Dashboard-Config", "1")], &body).await;
+    assert_eq!(saved.status, 200);
+    let view: serde_json::Value = serde_json::from_slice(&saved.body).unwrap();
+    assert_eq!(view["streaming"]["obs"]["scenes"].as_object().map(|m| m.len()), Some(64));
+    s.stop().await;
+}
+
+#[tokio::test]
 async fn saves_the_streaming_settings_beside_the_obs_ones() {
     let s = start().await;
     let put = |body: &'static str| {

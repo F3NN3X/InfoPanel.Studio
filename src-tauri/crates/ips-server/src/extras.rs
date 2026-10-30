@@ -19,10 +19,13 @@ use crate::http::{self, Req};
 use crate::integrations::IntegrationsStore;
 use crate::obs::Obs;
 use crate::request_guard::config_write_refusal;
+use crate::streaming;
 use crate::json::{parse as parse_json, stringify};
 use crate::{sse, supervisor, App};
 
 const MAX_INTEGRATIONS_BYTES: usize = 16 * 1024;
+/// A save with a `streaming` section may be longer: 64 scenes' looks at their longest.
+const MAX_STREAMING_BYTES: usize = 32 * 1024;
 
 /// The open /events/extras streams by id, and the next id.
 #[derive(Default)]
@@ -167,14 +170,22 @@ pub async fn handle_integrations(app: &App, mut req: Req) -> std::io::Result<Res
     if let Some(refusal) = config_write_refusal(req.header("content-type").as_deref(), req.header("x-dashboard-config").as_deref()) {
         return Ok(http::text(refusal.status, refusal.message));
     }
-    let body = match req.read_body(MAX_INTEGRATIONS_BYTES).await {
+    let body = match req.read_body(MAX_STREAMING_BYTES).await {
         Ok(body) if body.is_empty() => Some(json!({})),
+        // Past the plain cap only a patch that has a `streaming` section is taken; anything else is cut off as before.
+        Ok(body) if body.len() > MAX_INTEGRATIONS_BYTES && !body.contains("\"streaming\"") => {
+            return Ok(http::closing(http::text(400, "expected a JSON object")));
+        }
         Ok(body) => parse_json(&body),
         Err(http::BodyRefused) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
     };
-    let Some(patch) = body else {
+    let Some(mut patch) = body else {
         return Ok(http::text(400, "expected a JSON object"));
     };
+    // The looks of scenes OBS no longer has are not kept.
+    if let Some(known) = extras.obs().scene_ids() {
+        streaming::prune_patch(&mut patch, &known);
+    }
     Ok(match extras.integrations.apply(&patch)? {
         Ok(()) => http::json(200, &extras.integrations.public()),
         Err(message) => http::text(400, message),

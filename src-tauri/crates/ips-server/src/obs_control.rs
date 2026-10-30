@@ -192,8 +192,23 @@ impl ObsLive {
         send
     }
 
-    fn mic_request(mic: &str) -> Value {
+    pub fn mic_request(mic: &str) -> Value {
         request("mic", "GetInputMute", Some(json!({ "inputName": mic })))
+    }
+
+    /// Whether `other` is this state with only the mic's level different.
+    pub fn only_level_differs(&self, other: &Self) -> bool {
+        match (&self.mic, &other.mic) {
+            (Some(a), Some(b)) if a.level != b.level => {
+                let mut same = other.clone();
+                if let Some(m) = same.mic.as_mut() {
+                    m.level = a.level;
+                }
+                same.level_at = self.level_at;
+                same == *self
+            }
+            _ => false,
+        }
     }
 
     /// One message from OBS: the next state and the requests to send. `mic` is the configured input ("" = none); `now_ms` is
@@ -494,6 +509,8 @@ pub enum ActError {
     Refused(String),
     /// OBS refused the request or didn't answer: 502.
     Failed(String),
+    /// Too many actions are waiting for OBS: 503.
+    Busy,
 }
 
 /// POST /api/obs/act → 204 once OBS has done it. Needs a JSON body and `X-Dashboard-Control: 1`; 403 from another machine
@@ -527,6 +544,7 @@ pub async fn handle_act(app: &App, mut req: Req) -> std::io::Result<Response<Bod
         Err(ActError::NotConnected) => http::text(503, "OBS isn't connected"),
         Err(ActError::Refused(message)) => http::text(400, message),
         Err(ActError::Failed(message)) => http::text(502, message),
+        Err(ActError::Busy) => http::text(503, "OBS is busy"),
     })
 }
 
@@ -735,6 +753,17 @@ mod tests {
         let (live, _) =
             ObsLive::default().step(&response("stats", json!({ "activeFps": 59.94 })), "", 0);
         assert_eq!(live.fps, 60);
+    }
+
+    #[test]
+    fn tells_a_change_of_the_mic_level_alone_from_any_other() {
+        let with = |level: u8, muted: bool| ObsLive { mic: Some(Mic { name: "M".into(), muted, level }), ..ObsLive::default() };
+        assert!(with(10, false).only_level_differs(&with(40, false)));
+        assert!(!with(10, false).only_level_differs(&with(10, false)));
+        assert!(!with(10, false).only_level_differs(&with(40, true)));
+        assert!(!with(10, false).only_level_differs(&ObsLive::default()));
+        let moved = ObsLive { current: "s".into(), ..with(40, false) };
+        assert!(!with(10, false).only_level_differs(&moved));
     }
 
     #[test]

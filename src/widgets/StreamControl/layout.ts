@@ -43,7 +43,8 @@ interface Ranked {
 /**
  * Columns are `floor((w + gap) / 112)` (2 to 6) and rows `floor((h + gap) / 92)`; only the rows the tiles need are used, and
  * the columns then spread to fill the width. Tiles are kept by priority (live, mic, the current scene, the other scenes in
- * order, replay) until the grid is full, then laid out as scene 1, scene 2, live, the other scenes, mic, replay.
+ * order, replay) until the grid is full, then laid out as scene 1, scene 2, live, the other scenes, mic, replay. In a grid
+ * of two cells or fewer the live tile is one cell wide and ranks after the current scene, so a scene can still be tapped.
  */
 export function planTiles({ w, h, scenes, current, showMic, showReplay }: PlanInput): Plan {
   const colsFit = Math.max(2, Math.min(6, Math.floor((w + GAP) / 112)));
@@ -51,9 +52,10 @@ export function planTiles({ w, h, scenes, current, showMic, showReplay }: PlanIn
   const totalSpan = 2 + scenes.length + (showMic ? 1 : 0) + (showReplay ? 1 : 0);
   const rows = Math.min(rowsFit, Math.ceil(totalSpan / colsFit));
   const cols = Math.max(2, Math.min(colsFit, Math.ceil(totalSpan / rows)));
-  const liveSpan = Math.min(2, cols);
+  const tiny = cols * rows <= 2;
+  const liveSpan = tiny ? 1 : Math.min(2, cols);
   const all: Ranked[] = [
-    { cell: { kind: "live", span: liveSpan } as Cell, pri: 0, ord: 1.5 },
+    { cell: { kind: "live", span: liveSpan } as Cell, pri: tiny ? 2.5 : 0, ord: 1.5 },
     ...(showMic ? [{ cell: { kind: "mic", span: 1 } as Cell, pri: 1, ord: 100 }] : []),
     ...scenes.map((scene) => ({ cell: { kind: "scene", span: 1, scene } as Cell, pri: scene.id === current ? 2 : 3 + scene.i, ord: scene.i < 2 ? scene.i : scene.i + 1 })),
     ...(showReplay ? [{ cell: { kind: "replay", span: 1 } as Cell, pri: 60, ord: 101 }] : []),

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::path::Path;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::Duration;
 
 use tokio::sync::{oneshot, watch};
@@ -19,6 +19,9 @@ use windows::Win32::Media::Audio::{
     eCapture, eCommunications, eConsole, eMultimedia, eRender, AudioSessionStateExpired, EDataFlow,
     IAudioSessionControl2, IAudioSessionManager2, IMMDevice, IMMDeviceEnumerator,
     ISimpleAudioVolume, MMDeviceEnumerator, DEVICE_STATE_ACTIVE,
+};
+use windows::Win32::Storage::FileSystem::{
+    GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW,
 };
 use windows::Win32::System::Com::StructuredStorage::PropVariantToStringAlloc;
 use windows::Win32::System::Com::{
@@ -295,8 +298,8 @@ struct Session {
     device: String,
 }
 
-/// The executable's file name, lowercase, of a process.
-fn exe_of(pid: u32) -> Option<String> {
+/// The full path of a process's executable.
+fn exe_path_of(pid: u32) -> Option<String> {
     // SAFETY: the handle is closed before returning; the buffer is as long as the length we pass.
     unsafe {
         let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
@@ -310,11 +313,86 @@ fn exe_of(pid: u32) -> Option<String> {
         );
         let _ = CloseHandle(process);
         queried.ok()?;
-        let path = String::from_utf16_lossy(&buffer[..len as usize]);
-        Path::new(&path)
-            .file_name()
-            .map(|f| f.to_string_lossy().to_lowercase())
+        Some(String::from_utf16_lossy(&buffer[..len as usize]))
     }
+}
+
+/// The executable's file name, lowercase, of a path.
+fn exe_name(path: &str) -> Option<String> {
+    Path::new(path)
+        .file_name()
+        .map(|f| f.to_string_lossy().to_lowercase())
+}
+
+fn wide(text: &str) -> Vec<u16> {
+    text.encode_utf16().chain(Some(0)).collect()
+}
+
+/// One string of a version-info block (`\StringFileInfo\...`), without its terminator.
+///
+/// # Safety
+/// `block` must be a buffer filled by `GetFileVersionInfoW` that outlives the call.
+unsafe fn version_string(block: &[u8], key: &str) -> Option<String> {
+    let (mut value, mut len) = (std::ptr::null_mut::<c_void>(), 0u32);
+    let key = wide(key);
+    if !VerQueryValueW(block.as_ptr().cast(), PCWSTR(key.as_ptr()), &mut value, &mut len).as_bool()
+        || value.is_null()
+        || len == 0
+    {
+        return None;
+    }
+    let text = std::slice::from_raw_parts(value.cast::<u16>(), len as usize);
+    let text = String::from_utf16_lossy(text);
+    Some(text.trim_end_matches('\0').trim().to_string()).filter(|t| !t.is_empty())
+}
+
+/// The `FileDescription` in an executable's version info ("Discord", "OBS Studio"), under its first listed language.
+fn read_file_description(path: &str) -> Option<String> {
+    let file = wide(path);
+    // SAFETY: the buffer is as long as the size Windows asked for and lives through every query.
+    unsafe {
+        let size = GetFileVersionInfoSizeW(PCWSTR(file.as_ptr()), None);
+        if size == 0 {
+            return None;
+        }
+        let mut block = vec![0u8; size as usize];
+        GetFileVersionInfoW(PCWSTR(file.as_ptr()), None, size, block.as_mut_ptr().cast()).ok()?;
+        let (mut value, mut len) = (std::ptr::null_mut::<c_void>(), 0u32);
+        let key = wide("\\VarFileInfo\\Translation");
+        let mut languages = vec![(0x0409u16, 0x04b0u16)];
+        if VerQueryValueW(block.as_ptr().cast(), PCWSTR(key.as_ptr()), &mut value, &mut len).as_bool()
+            && !value.is_null()
+            && len >= 4
+        {
+            let pairs = std::slice::from_raw_parts(value.cast::<u16>(), (len / 4 * 2) as usize);
+            languages = pairs.chunks_exact(2).map(|p| (p[0], p[1])).collect();
+        }
+        languages.into_iter().find_map(|(lang, page)| {
+            version_string(&block, &format!("\\StringFileInfo\\{lang:04x}{page:04x}\\FileDescription"))
+        })
+    }
+}
+
+/// `read_file_description`, remembered per executable path (reading it opens the file; sessions are listed five times a second).
+fn file_description(path: &str) -> Option<String> {
+    static CACHE: OnceLock<Mutex<HashMap<String, Option<String>>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(Default::default);
+    if let Some(known) = cache.lock().unwrap_or_else(PoisonError::into_inner).get(path) {
+        return known.clone();
+    }
+    let read = read_file_description(path);
+    cache
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .insert(path.to_string(), read.clone());
+    read
+}
+
+/// What an app is called: its executable's file description, else the name the session gave itself, else the file's name.
+fn app_name(description: Option<String>, display: String, exe: &str) -> String {
+    description
+        .or_else(|| Some(display).filter(|d| !d.is_empty() && !d.starts_with('@')))
+        .unwrap_or_else(|| stem_of(exe))
 }
 
 /// `Discord` for `discord.exe`.
@@ -358,12 +436,9 @@ fn sessions(device: &IMMDevice, device_id: &str) -> Vec<Session> {
                         device: device_id.into(),
                     });
                 }
-                let exe = exe_of(control2.GetProcessId().ok()?)?;
-                let name = if display.is_empty() || display.starts_with('@') {
-                    stem_of(&exe)
-                } else {
-                    display
-                };
+                let path = exe_path_of(control2.GetProcessId().ok()?)?;
+                let exe = exe_name(&path)?;
+                let name = app_name(file_description(&path), display, &exe);
                 Some(Session {
                     app: exe,
                     name,
@@ -532,6 +607,18 @@ mod tests {
     fn names_an_app_from_its_executable() {
         assert_eq!(stem_of("discord.exe"), "Discord");
         assert_eq!(stem_of("obs64.exe"), "Obs64");
+        // The file description wins, then the session's own name (unless it is a resource reference), then the file's name.
+        let described = |d: Option<&str>, display: &str| app_name(d.map(Into::into), display.into(), "obs64.exe");
+        assert_eq!(described(Some("OBS Studio"), "Other"), "OBS Studio");
+        assert_eq!(described(None, "Other"), "Other");
+        assert_eq!(described(None, "@%SystemRoot%\\x.dll,-1"), "Obs64");
+        assert_eq!(described(None, ""), "Obs64");
+        assert_eq!(exe_name("C:\\Apps\\OBS\\Obs64.EXE").as_deref(), Some("obs64.exe"));
+        // Real version info: Windows' own Notepad (or any system exe) has a description; a missing file has none.
+        let system = std::env::var("SystemRoot").unwrap_or_default();
+        let description = file_description(&format!("{system}\\System32\\notepad.exe"));
+        assert!(description.is_some_and(|d| !d.is_empty()));
+        assert_eq!(file_description("C:\\definitely\\not\\here.exe"), None);
         assert_eq!(stem_of(""), "");
     }
 

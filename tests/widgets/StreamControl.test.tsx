@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_EXTRAS, type Extras } from "@/lib/extras";
+import { obsRefusal } from "@/lib/obs-control";
+import { READ_ONLY_HINT } from "@/lib/write-refusal";
 
 const mocks = vi.hoisted(() => ({ extras: null as Extras | null, act: vi.fn() }));
 
@@ -9,7 +11,7 @@ vi.mock("@/widgets/time-hooks", async (original) => ({
   ...(await original<typeof import("@/widgets/time-hooks")>()),
   useExtras: () => mocks.extras,
 }));
-vi.mock("@/lib/obs-control", () => ({ obsAct: mocks.act }));
+vi.mock("@/lib/obs-control", async (original) => ({ ...(await original<typeof import("@/lib/obs-control")>()), obsAct: mocks.act }));
 
 import ObsButton from "@/widgets/ObsButton";
 import StreamControl from "@/widgets/StreamControl";
@@ -34,9 +36,13 @@ const connected = (obs: Partial<Extras["obs"]> = {}): Extras => ({
 beforeEach(() => {
   mocks.extras = connected();
   mocks.act.mockReset();
+  obsRefusal.set(false);
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe("StreamControl", () => {
   it("says OBS is not connected when there is nothing to show", () => {
@@ -82,6 +88,25 @@ describe("StreamControl", () => {
     expect(screen.getAllByText(/watching/).length).toBeGreaterThan(0);
   });
 
+  it("ticks the timer each second between the server's readings", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    mocks.extras = connected({ streaming: true, uptime: 100 });
+    render(<StreamControl data={{}} />);
+    expect(screen.getByText("0:01:40")).toBeTruthy();
+    act(() => void vi.advanceTimersByTime(1100));
+    expect(screen.getByText("0:01:41")).toBeTruthy();
+    act(() => void vi.advanceTimersByTime(2000));
+    expect(screen.getByText("0:01:43")).toBeTruthy();
+  });
+
+  it("shows itself read-only once the server has refused a write", () => {
+    obsRefusal.set(true);
+    render(<StreamControl data={{}} />);
+    expect(screen.getAllByTitle(READ_ONLY_HINT).length).toBeGreaterThan(0);
+    expect(screen.getByText(READ_ONLY_HINT)).toBeTruthy();
+  });
+
   it("is read-only while OBS is not connected", () => {
     mocks.extras = connected({ connected: false });
     render(<StreamControl data={{}} />);
@@ -91,6 +116,12 @@ describe("StreamControl", () => {
 });
 
 describe("ObsButton", () => {
+  it("shows itself read-only once the server has refused a write", () => {
+    obsRefusal.set(true);
+    render(<ObsButton data={{}} action="mic" />);
+    expect(screen.getByTitle(READ_ONLY_HINT)).toBeTruthy();
+  });
+
   it("switches to its scene, rings while it is the current one and is off while OBS is not connected", () => {
     render(<ObsButton data={{}} action="scene" scene="u2" />);
     const other = screen.getByLabelText("Chatting");
