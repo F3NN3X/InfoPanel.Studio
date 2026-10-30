@@ -9,6 +9,7 @@ use std::sync::Mutex;
 
 use serde_json::{json, Value};
 
+use crate::streaming::{self, Streaming};
 use crate::{js, store};
 
 pub const OBS_DEFAULT_PORT: u16 = 4455;
@@ -34,14 +35,16 @@ pub struct Link {
 pub struct Integrations {
     pub obs: ObsSettings,
     pub links: Vec<Link>,
+    /// The Streaming widgets' settings (`streaming.rs`); not in the Node server's file, so written only when set.
+    pub streaming: Streaming,
 }
 
 pub fn empty_integrations() -> Integrations {
-    Integrations { obs: ObsSettings { host: String::new(), port: OBS_DEFAULT_PORT, password: String::new() }, links: vec![] }
+    Integrations { obs: ObsSettings { host: String::new(), port: OBS_DEFAULT_PORT, password: String::new() }, links: vec![], streaming: Streaming::default() }
 }
 
 /// `s.slice(0, max)`: `max` is in UTF-16 units; a pair cut in half is dropped (JSON can't hold half of one).
-fn slice_units(s: &str, max: usize) -> String {
+pub(crate) fn slice_units(s: &str, max: usize) -> String {
     let mut units = 0;
     let mut out = String::new();
     for c in s.chars() {
@@ -55,7 +58,7 @@ fn slice_units(s: &str, max: usize) -> String {
 }
 
 /// `text(v, max)`: a string trimmed and cut to `max` units, or "".
-fn text(v: Option<&Value>, max: usize) -> String {
+pub(crate) fn text(v: Option<&Value>, max: usize) -> String {
     v.and_then(Value::as_str).map_or_else(String::new, |s| slice_units(js::trim(s), max))
 }
 
@@ -112,6 +115,7 @@ pub fn normalize_integrations(raw: &Value) -> Integrations {
         })
         .take(MAX_LINKS)
         .collect();
+    state.streaming = streaming::normalize(raw.get("streaming"));
     state
 }
 
@@ -124,18 +128,26 @@ fn host_of(url: &str) -> String {
 
 /// What the studio may see: no password, and each link only as its host.
 pub fn public_view(s: &Integrations) -> Value {
-    json!({
+    let mut view = json!({
         "obs": { "host": s.obs.host, "port": s.obs.port, "hasPassword": !s.obs.password.is_empty() },
         "calendar": { "links": s.links.iter().map(|l| json!({ "id": l.id, "label": l.label, "host": host_of(&l.url) })).collect::<Vec<_>>() },
-    })
+    });
+    if let Some(section) = streaming::to_json(&s.streaming) {
+        view["streaming"] = section;
+    }
+    view
 }
 
 /// The stored form (the keys in the order the file has them).
 pub fn stored_form(s: &Integrations) -> Value {
-    json!({
+    let mut form = json!({
         "obs": { "host": s.obs.host, "port": s.obs.port, "password": s.obs.password },
         "calendar": { "links": s.links.iter().map(|l| json!({ "id": l.id, "label": l.label, "url": l.url })).collect::<Vec<_>>() },
-    })
+    });
+    if let Some(section) = streaming::to_json(&s.streaming) {
+        form["streaming"] = section;
+    }
+    form
 }
 
 fn apply_obs(s: &Integrations, obs: &Value) -> Result<ObsSettings, String> {
@@ -180,6 +192,7 @@ fn apply_links(s: &Integrations, calendar: &Value, new_id: &mut dyn FnMut() -> S
 /// The state with a studio patch applied, or the error to answer with:
 /// - `obs`: { host?, port?, password? }: a password string replaces it, "" clears it, absent keeps it.
 /// - `calendar.links`: the full list in order; { id, label? } keeps a stored link, { url, label? } adds one.
+/// - `streaming`: see `streaming::apply`.
 pub fn apply_integrations(s: &Integrations, patch: &Value, new_id: &mut dyn FnMut() -> String) -> Result<Integrations, String> {
     let Some(patch) = patch.as_object() else { return Err("expected a JSON object".into()) };
     let mut next = s.clone();
@@ -188,6 +201,9 @@ pub fn apply_integrations(s: &Integrations, patch: &Value, new_id: &mut dyn FnMu
     }
     if let Some(calendar) = patch.get("calendar") {
         next.links = apply_links(s, calendar, new_id)?;
+    }
+    if let Some(section) = patch.get("streaming") {
+        next.streaming = streaming::apply(&s.streaming, section)?;
     }
     Ok(next)
 }
@@ -376,5 +392,32 @@ mod tests {
         let mut text = String::new();
         pretty(&stored_form(&empty_integrations()), 0, &mut text);
         assert_eq!(text, "{\n  \"obs\": {\n    \"host\": \"\",\n    \"port\": 4455,\n    \"password\": \"\"\n  },\n  \"calendar\": {\n    \"links\": []\n  }\n}");
+    }
+
+    #[test]
+    fn keeps_the_streaming_section_through_a_save_and_a_load_and_leaves_the_rest_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("integrations.json");
+        let store = IntegrationsStore::load(&file);
+        store.apply(&json!({ "obs": { "host": "obs-pc", "password": "pw" } })).unwrap().unwrap();
+        // Until something is set, the section is in neither the file nor the studio's view.
+        assert!(!std::fs::read_to_string(&file).unwrap().contains("streaming"));
+        assert!(store.public().get("streaming").is_none());
+        let seen = std::sync::Arc::new(Mutex::new(Vec::new()));
+        let log = std::sync::Arc::clone(&seen);
+        store.subscribe(move |next, prev| log.lock().unwrap().push((next.streaming.obs.mic.clone(), prev.obs == next.obs)));
+        store.apply(&json!({ "streaming": { "obs": { "mic": "Mic/Aux", "scenes": { "u1": { "sub": "Cam", "icon": "videocam" } } } } })).unwrap().unwrap();
+        assert_eq!(*seen.lock().unwrap(), [("Mic/Aux".to_string(), true)]);
+        let reloaded = IntegrationsStore::load(&file).get();
+        assert_eq!(reloaded.streaming.obs.mic, "Mic/Aux");
+        assert_eq!(reloaded.streaming.obs.scenes["u1"].icon, "videocam");
+        assert_eq!((reloaded.obs.host.as_str(), reloaded.obs.password.as_str()), ("obs-pc", "pw"));
+        let public = store.public();
+        assert_eq!(public["streaming"]["obs"]["scenes"]["u1"], json!({ "sub": "Cam", "icon": "videocam" }));
+        assert!(!public.to_string().contains("\"pw\""));
+        // A bad streaming patch is refused whole; a later obs patch keeps the section.
+        assert!(store.apply(&json!({ "streaming": { "obs": { "mic": 4 } } })).unwrap().is_err());
+        store.apply(&json!({ "obs": { "port": 4456 } })).unwrap().unwrap();
+        assert_eq!(IntegrationsStore::load(&file).get().streaming.obs.mic, "Mic/Aux");
     }
 }

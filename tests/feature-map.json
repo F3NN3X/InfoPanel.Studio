@@ -128,7 +128,11 @@
         "src-tauri/crates/ips-server/src/infopanel_local.rs",
         "src-tauri/crates/ips-server/src/touch_hub.rs",
         "src-tauri/crates/ips-server/src/audio/**",
-        "src-tauri/crates/ips-server/tests/*_audio.rs"
+        "src-tauri/crates/ips-server/tests/*_audio.rs",
+        "src-tauri/crates/ips-server/src/obs_control.rs",
+        "src-tauri/crates/ips-server/src/streaming.rs",
+        "src-tauri/crates/ips-server/tests/obs_live.rs",
+        "src-tauri/crates/ips-server/tests/routes_obs.rs"
       ],
       "tests": [
         "tests/server/server.test.mjs",
@@ -241,6 +245,20 @@
       "tests": ["tests/lib/audio-control.test.ts"],
       "checks": ["typecheck", "unit", "cargo-server", "cargo-app"],
       "note": "The Windows backend (audio/coreaudio.rs) is exercised read-only by its own test on Windows; setting the default endpoint (IPolicyConfig) and writing volumes need a real PC and are never run by a test."
+    },
+    {
+      "id": "obs-control",
+      "summary": "The server's OBS control (scenes, mic, replay buffer and stream numbers over the obs-websocket connection), the streaming settings section of integrations.json, POST /api/obs/act and its client.",
+      "paths": [
+        "src-tauri/crates/ips-server/src/obs_control.rs",
+        "src-tauri/crates/ips-server/src/streaming.rs",
+        "src-tauri/crates/ips-server/tests/obs_live.rs",
+        "src-tauri/crates/ips-server/tests/routes_obs.rs",
+        "src/lib/obs-control.ts"
+      ],
+      "tests": ["tests/lib/obs-control.test.ts"],
+      "checks": ["typecheck", "unit", "cargo-server", "cargo-app"],
+      "note": "Every test talks to a fake obs-websocket server; none connects to a real OBS, so the scene order OBS really returns and its replay-buffer errors are checked only against the protocol as documented."
     },
     {
       "id": "coding-agents",
@@ -375,6 +393,7 @@
         "tests/widgets/RadialClock/**",
         "tests/widgets/OnAir/**",
         "tests/widgets/StreamMixer/**",
+        "tests/widgets/StreamControl/**",
         "tests/widgets/StatusBar/**",
         "tests/widgets/weather-fx/**",
         "tests/e2e/kiosk-renders.spec.ts",

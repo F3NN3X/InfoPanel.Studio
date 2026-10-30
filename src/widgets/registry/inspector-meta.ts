@@ -98,6 +98,9 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   StreamMixer: yes(BOTH),
   AudioButton: yes(NONE),
   AudioFader: yes(NONE),
+  // Stream OBS: the server's OBS connection
+  StreamControl: yes(BOTH),
+  ObsButton: yes(NONE),
 };
 
 /**

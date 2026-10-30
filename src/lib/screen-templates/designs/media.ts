@@ -5,7 +5,7 @@ const viz = { mode: "bars", vizColorMode: "gradient", vizGlow: "on" };
 
 export const MEDIA: ScreenTemplate = {
   id: "media",
-  name: "Streaming",
+  name: "Media",
   blurb: "Now playing, visualiser, mixer and on air",
   fits: ["strip", "wide", "standard", "tall"],
   size: { width: 1024, height: 600 },

@@ -18,13 +18,15 @@ const REFILED = [
   "DayPlanner", "RadialClockStack", "OnAirBeacon",
   // Stream audio
   "StreamMixer", "AudioButton", "AudioFader",
+  // Stream OBS
+  "StreamControl", "ObsButton",
   // History and analysis
   "BottleneckLens", "FrameHistogram", "SessionStats", "ThresholdTimeline",
 ];
 
-it("covers all 66 widgets", () => {
-  expect(REFILED).toHaveLength(66);
-  expect(new Set(REFILED).size).toBe(66);
+it("covers all 68 widgets", () => {
+  expect(REFILED).toHaveLength(68);
+  expect(new Set(REFILED).size).toBe(68);
   expect([...REFILED].sort()).toEqual(modules.filter((m) => INSPECTOR_META[m.id]).map((m) => m.id).sort());
 });
 

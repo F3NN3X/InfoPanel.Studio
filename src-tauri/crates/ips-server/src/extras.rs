@@ -66,10 +66,10 @@ impl Extras {
                     }
                 })
             };
-            let obs = Obs::new({
+            let obs = Obs::with_streaming({
                 let integrations = Arc::clone(&integrations);
                 move || integrations.get().obs
-            }, {
+            }, integrations.get().streaming.obs, {
                 let publish = Arc::clone(&publish);
                 move || publish()
             });
@@ -85,6 +85,7 @@ impl Extras {
                 if next.obs != prev.obs {
                     obs.reconfigure();
                 }
+                obs.set_streaming(next.streaming.obs.clone());
                 if next.links != prev.links {
                     calendar.reconfigure();
                 }
@@ -93,9 +94,13 @@ impl Extras {
         Ok(extras)
     }
 
+    pub fn obs(&self) -> &Arc<Obs> {
+        &self.obs
+    }
+
     /// The state kiosks get: `{ obs, calendar, agents }`.
     pub fn state(&self) -> Value {
-        json!({ "obs": self.obs.state().to_json(), "calendar": self.calendar.state(), "agents": (self.agents)() })
+        json!({ "obs": self.obs.json(), "calendar": self.calendar.state(), "agents": (self.agents)() })
     }
 
     /// Sends the full state to every open stream.

@@ -1,9 +1,10 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { extras } from "@/lib/extras";
-import { fetchIntegrations, saveIntegrations, type IntegrationsPatch, type PublicIntegrations } from "@/lib/integrations";
+import { fetchIntegrations, saveIntegrations, type IntegrationsPatch, type PublicIntegrations, type SceneLooks } from "@/lib/integrations";
 import { cn } from "@/lib/utils";
 import { FIELD, StackRow } from "../setting-rows";
+import { ObsStreamingFields } from "./obs-streaming-fields";
 
 const BUTTON = "flex h-[28px] items-center gap-1.5 rounded-[6px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:opacity-50";
 
@@ -40,17 +41,19 @@ export function IntegrationsCard({ obs, calendar }: { obs: boolean; calendar: bo
   if (!stored) return error ? <p className="text-[11px] text-ui-danger">{error}</p> : null;
   return (
     <div className="space-y-3 rounded-[8px] border border-ui-default p-2.5">
-      {obs && <ObsBlock stored={stored.obs} onSave={(o) => save({ obs: o })} />}
+      {obs && <ObsBlock stored={stored.obs} streaming={stored.streaming?.obs} onSave={save} />}
       {calendar && <CalendarBlock stored={stored.calendar.links} onSave={(links) => save({ calendar: { links } })} />}
       {error && <p className="text-[11px] text-ui-danger">{error}</p>}
     </div>
   );
 }
 
-function ObsBlock({ stored, onSave }: { stored: PublicIntegrations["obs"]; onSave: (o: NonNullable<IntegrationsPatch["obs"]>) => Promise<boolean> }) {
+function ObsBlock({ stored, streaming, onSave }: { stored: PublicIntegrations["obs"]; streaming: NonNullable<PublicIntegrations["streaming"]>["obs"] | undefined; onSave: (patch: IntegrationsPatch) => Promise<boolean> }) {
   const [host, setHost] = useState(stored.host || "127.0.0.1");
   const [port, setPort] = useState(String(stored.port));
   const [password, setPassword] = useState("");
+  const [mic, setMic] = useState(streaming?.mic ?? "");
+  const [looks, setLooks] = useState<SceneLooks>(streaming?.scenes ?? {});
   const live = useExtras().obs;
   const status = !live.configured ? "Not set up" : live.connected ? (live.streaming ? "Connected · live" : live.recording ? "Connected · recording" : "Connected") : "Waiting for OBS";
   return (
@@ -80,18 +83,23 @@ function ObsBlock({ stored, onSave }: { stored: PublicIntegrations["obs"]; onSav
           className={cn(FIELD, "h-[30px] w-full")}
         />
       </StackRow>
+      <ObsStreamingFields mic={mic} inputs={live.inputs} scenes={live.scenes} looks={looks} onMic={setMic} onLook={(id, look) => setLooks((prev) => ({ ...prev, [id]: look }))} />
       <div className="flex gap-2">
         <button
           type="button"
           className={BUTTON}
           onClick={async () => {
-            if (await onSave({ host: host.trim(), port: Number(port) || 4455, ...(password ? { password } : {}) })) setPassword("");
+            // The scenes OBS lists now keep their looks; a scene it no longer lists is dropped.
+            const kept = Object.fromEntries(live.scenes.flatMap((s) => (looks[s.id] ? [[s.id, looks[s.id]]] : [])));
+            const scenes = live.scenes.length ? kept : looks;
+            const patch: IntegrationsPatch = { obs: { host: host.trim(), port: Number(port) || 4455, ...(password ? { password } : {}) }, streaming: { obs: { mic, scenes } } };
+            if (await onSave(patch)) setPassword("");
           }}
         >
           Save OBS
         </button>
         {stored.host && (
-          <button type="button" className={BUTTON} onClick={() => void onSave({ host: "", password: "" })}>
+          <button type="button" className={BUTTON} onClick={() => void onSave({ obs: { host: "", password: "" } })}>
             Disconnect
           </button>
         )}

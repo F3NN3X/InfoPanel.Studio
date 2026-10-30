@@ -52,7 +52,7 @@ A fresh install has one blank screen, **Main display**, at 1920 × 1080 with a 1
 | **Gaming** | An OSD strip, the frame rate, frame pacing, the game you're playing and your friends. A second page, **System**, has the GPU, the CPU, temperatures and power |
 | **Work** | Clock, calendar, weather, processes, system status and your coding agents |
 | **Hardware** | Core heatmap, GPU rings, temperatures, fans, power draw and drives, in the HUD skin |
-| **Streaming** | Now playing, a visualiser, the volume mixer, whether OBS has you live or recording, and the system state |
+| **Media** | Now playing, a visualiser, the volume mixer, whether OBS has you live or recording, and the system state |
 | **Minimal** | A big clock with the date and three readings: CPU and GPU temperature and RAM load |
 | **Status bar** | One bar with the time, load, temperatures and network, for thin strip displays |
 

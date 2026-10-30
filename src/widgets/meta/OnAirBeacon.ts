@@ -4,7 +4,7 @@ import type { WidgetMeta } from "../core/types";
 export const meta: WidgetMeta = {
   id: "OnAirBeacon",
   name: "On-Air Beacon",
-  category: "Info",
+  category: "Streaming",
   icon: "sensors",
   prefixes: [],
   defaultSize: [3, 1],

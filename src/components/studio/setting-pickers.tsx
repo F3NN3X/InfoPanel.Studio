@@ -1,6 +1,7 @@
 import { Circle, CircleDot, Square, SquareCheck } from "lucide-react";
 import { useAudioDevices } from "@/hooks/use-audio-devices";
 import { useAudio } from "@/lib/audio-control";
+import { useExtras } from "@/widgets/time-hooks";
 import { useSensors } from "@/hooks/useSensors";
 import { useSensorCatalog } from "@/lib/catalog";
 import { parseNameList } from "@/lib/name-list";
@@ -176,6 +177,25 @@ export function AudioControlPicker({ def, value, onChange, lead, hint }: PickerP
           ))}
         </select>
       )}
+    </StackRow>
+  );
+}
+
+/** Picker for the OBS buttons' scene (`optionsFrom: "obs-scenes"`): the scenes OBS has now. A stored id that is not listed stays selectable as typed. */
+export function ObsScenePicker({ def, value, onChange, lead, hint }: PickerProps) {
+  const scenes = useExtras().obs.scenes;
+  const options = scenes.map((s) => ({ value: s.id, label: s.name }));
+  const all = value && !options.some((o) => o.value === value) ? [...options, { value, label: value }] : options;
+  return (
+    <StackRow label={def.label} lead={lead} hint={hint}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} className={SELECT}>
+        <option value="">Choose a scene</option>
+        {all.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
     </StackRow>
   );
 }

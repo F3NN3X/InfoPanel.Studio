@@ -36,11 +36,13 @@ pub mod json;
 pub mod library;
 pub mod locale;
 pub mod obs;
+pub mod obs_control;
 pub mod proxy;
 pub mod request_guard;
 pub mod security_headers;
 pub mod sse;
 pub mod static_files;
+pub mod streaming;
 pub mod store;
 pub mod studio_prefs;
 pub mod supervisor;
@@ -391,6 +393,7 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/api/audio" => Ok(audio::handle_state(app, &req)),
         "/events/audio" => Ok(audio::handle_events(app)),
         "/api/audio/act" => audio::handle_act(app, req).await.map_err(io),
+        "/api/obs/act" => obs_control::handle_act(app, req).await.map_err(io),
         "/events/touch" => Ok(touch_hub::handle_events(app, &req)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),

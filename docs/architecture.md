@@ -26,6 +26,13 @@ can do neither. `ips-server`'s `audio` module reads both into one state
 another machine, remote editing turned on. `src/lib/audio-control.ts` is the
 page's client. Off Windows the Windows side reports `available: false`.
 
+OBS control rides the same connection as the on-air dot. `ips-server`'s `obs` module keeps one obs-websocket
+session; `obs_control` reads the scenes, the mic, the replay buffer and the stream numbers from it into the extras'
+`obs` (SSE `/events/extras`, while connected), and `POST /api/obs/act` (same guards as the audio act) switches the
+scene, toggles the mic's mute or saves the replay. There is no start or stop stream action. The mic input and each
+scene's line and icon are the `streaming` section of `integrations.json` (`streaming.rs`), kept apart from `obs` so
+the old Node-server cases still hold. `src/lib/obs-control.ts` is the page's client.
+
 ## 1. The InfoPanel Data API
 
 The base URL is the `dataApiUrl` setting of the config, default

@@ -20,7 +20,7 @@ import {
   type RowLabelProps,
 } from "./setting-rows";
 import { DriveIconsField } from "./drive-icons-field";
-import { AudioControlPicker, DevicePicker, MediaDevicePicker, MultiSelect, NameListField, WavelinkMeterPicker } from "./setting-pickers";
+import { AudioControlPicker, DevicePicker, MediaDevicePicker, MultiSelect, NameListField, ObsScenePicker, WavelinkMeterPicker } from "./setting-pickers";
 import { SensorField } from "./widget-editor/sensor-field";
 import { SensorListField } from "./widget-editor/sensor-list-field";
 import { ThresholdsRow } from "./thresholds-control";
@@ -217,6 +217,10 @@ export function SettingRow({
       // The audio control widgets' channels, mixes and output devices, from the server's audio state.
       if (def.optionsFrom === "audio-control") {
         return <AudioControlPicker def={def} value={String(value)} onChange={onChange} lead={lead} hint={hint} />;
+      }
+      // The scenes OBS has now, for the OBS buttons.
+      if (def.optionsFrom === "obs-scenes") {
+        return <ObsScenePicker def={def} value={String(value)} onChange={onChange} lead={lead} hint={hint} />;
       }
       // Hardware / audio / drive devices found in the live keys: Auto and its pick, or a checkbox list.
       if (isDeviceKind(def.optionsFrom)) {

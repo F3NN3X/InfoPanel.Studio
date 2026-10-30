@@ -111,12 +111,13 @@ export interface ModuleSetting {
    * - `"wavelink"` — the Wave Link app's meter inventory (channels + output
    *   devices) from the wavelink-plugin; options are the meter keys the
    *   widget filters on, "" = all meters.
-   * - `"audio-control"` � what the server's audio control offers now (`AudioControlPicker`): by the row's
+   * - `"audio-control"` — what the server's audio control offers now (`AudioControlPicker`): by the row's
    *   key, channels (`channel`, `channels`), Wave Link mixes (`mix`) or output devices (`device`).
+   * - `"obs-scenes"` - the scenes OBS has now (`ObsScenePicker`); the value is a scene id.
    * - `"cpu" | "gpu" | "disk" | "adapter" | "audio" | "drive"` — the devices
    *   found in the live keys (`deviceOptions`), "" = Auto first. Data tab by default.
    */
-  optionsFrom?: "sources" | "media" | "wavelink" | "audio-control" | DeviceKind;
+  optionsFrom?: "sources" | "media" | "wavelink" | "audio-control" | "obs-scenes" | DeviceKind;
   /** Key prefix whose containers become the dynamic select's options (type "status": whose containers it lists). */
   sourcePlugin?: string;
   /**
