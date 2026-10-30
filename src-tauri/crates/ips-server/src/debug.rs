@@ -6,8 +6,8 @@
 // Node's handle types; `eventLoopDelayMs` is how late a 10 ms timer fires (a scheduling-delay sample over the last
 // ~10 s: p50 and p99; max since start), not the event-loop histogram. `uptimeSeconds` and `sseClients` are as in Node.
 
-use std::pin::Pin;
 use std::collections::VecDeque;
+use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
@@ -42,7 +42,11 @@ pub struct Debug {
 
 impl Debug {
     pub fn new(enabled: bool) -> Arc<Self> {
-        Arc::new(Self { enabled, clients: Mutex::default(), delays: Mutex::default() })
+        Arc::new(Self {
+            enabled,
+            clients: Mutex::default(),
+            delays: Mutex::default(),
+        })
     }
 
     fn count(&self, channel: &'static str, delta: i64) -> i64 {
@@ -65,7 +69,10 @@ impl Debug {
         if self.enabled {
             log::info!(target: "server", "[debug] sse connect {channel} ({n} now)");
         }
-        SseClient { debug: Arc::clone(self), channel }
+        SseClient {
+            debug: Arc::clone(self),
+            channel,
+        }
     }
 
     /// Open SSE connections across all channels.
@@ -75,7 +82,12 @@ impl Debug {
 
     /// Open SSE connections on `channel`.
     pub fn sse_clients(&self, channel: &str) -> i64 {
-        self.clients.lock().unwrap().iter().find(|(c, _)| *c == channel).map_or(0, |(_, n)| *n)
+        self.clients
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|(c, _)| *c == channel)
+            .map_or(0, |(_, n)| *n)
     }
 
     /// Samples the scheduling delay until `shutdown` (debug mode only).
@@ -90,7 +102,9 @@ impl Debug {
                 loop {
                     let asked = Instant::now();
                     tokio::time::sleep(SAMPLE_EVERY).await;
-                    debug.record_delay(asked.elapsed().saturating_sub(SAMPLE_EVERY).as_secs_f64() * 1000.0);
+                    debug.record_delay(
+                        asked.elapsed().saturating_sub(SAMPLE_EVERY).as_secs_f64() * 1000.0,
+                    );
                 }
             }
         });
@@ -120,7 +134,13 @@ impl Debug {
 
     /// The numbers behind GET /api/debug/stats.
     pub fn stats(&self, uptime_seconds: u64) -> Value {
-        let sse_clients: Map<String, Value> = self.clients.lock().unwrap().iter().map(|(c, n)| ((*c).to_string(), json!(n))).collect();
+        let sse_clients: Map<String, Value> = self
+            .clients
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|(c, n)| ((*c).to_string(), json!(n)))
+            .collect();
         let metrics = tokio::runtime::Handle::current().metrics();
         json!({
             "memory": process_memory(),
@@ -138,7 +158,13 @@ impl Debug {
         }
         let status = response.status().as_u16();
         let line = format!("[debug] {method} {url} {status}");
-        response.map(|body| Body::new(Logged { inner: body, line, start: Instant::now() }))
+        response.map(|body| {
+            Body::new(Logged {
+                inner: body,
+                line,
+                start: Instant::now(),
+            })
+        })
     }
 }
 
@@ -147,8 +173,14 @@ fn process_memory() -> Value {
     use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
     let pid = Pid::from_u32(std::process::id());
     let mut sys = System::new();
-    sys.refresh_processes_specifics(ProcessesToUpdate::Some(&[pid]), true, ProcessRefreshKind::nothing().with_memory());
-    let (rss, virtual_memory) = sys.process(pid).map_or((0, 0), |p| (p.memory(), p.virtual_memory()));
+    sys.refresh_processes_specifics(
+        ProcessesToUpdate::Some(&[pid]),
+        true,
+        ProcessRefreshKind::nothing().with_memory(),
+    );
+    let (rss, virtual_memory) = sys
+        .process(pid)
+        .map_or((0, 0), |p| (p.memory(), p.virtual_memory()));
     json!({ "rss": rss, "virtual": virtual_memory })
 }
 
@@ -163,7 +195,11 @@ pub fn handle_stats(app: &App, req: &Req) -> Response<Body> {
     if !req.is_loopback() {
         return http::text(403, "debug stats are served to this machine only");
     }
-    http::json(200, &app.debug.stats(app.started.elapsed().as_secs_f64().round() as u64))
+    http::json(
+        200,
+        &app.debug
+            .stats(app.started.elapsed().as_secs_f64().round() as u64),
+    )
 }
 
 /// One open SSE stream on a channel.
@@ -198,7 +234,10 @@ impl http_body::Body for Logged {
     type Data = Bytes;
     type Error = axum::Error;
 
-    fn poll_frame(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Result<Frame<Bytes>, Self::Error>>> {
+    fn poll_frame(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<Result<Frame<Bytes>, Self::Error>>> {
         Pin::new(&mut self.inner).poll_frame(cx)
     }
 

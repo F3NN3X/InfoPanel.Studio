@@ -28,15 +28,33 @@ impl FakeApi {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
         let (events, _) = broadcast::channel(64);
-        let api = Self { url, seen: Arc::default(), open: Arc::default(), events };
-        let (seen, open, tx, mut failing) = (Arc::clone(&api.seen), Arc::clone(&api.open), api.events.clone(), fail);
+        let api = Self {
+            url,
+            seen: Arc::default(),
+            open: Arc::default(),
+            events,
+        };
+        let (seen, open, tx, mut failing) = (
+            Arc::clone(&api.seen),
+            Arc::clone(&api.open),
+            api.events.clone(),
+            fail,
+        );
         tokio::spawn(async move {
             loop {
-                let Ok((stream, _)) = listener.accept().await else { return };
+                let Ok((stream, _)) = listener.accept().await else {
+                    return;
+                };
                 // Only this loop counts the failures, so a plain counter does.
                 let fail_this = failing > 0;
                 failing -= usize::from(fail_this);
-                tokio::spawn(serve_stream(stream, fail_this, Arc::clone(&seen), Arc::clone(&open), tx.subscribe()));
+                tokio::spawn(serve_stream(
+                    stream,
+                    fail_this,
+                    Arc::clone(&seen),
+                    Arc::clone(&open),
+                    tx.subscribe(),
+                ));
             }
         });
         api
@@ -67,13 +85,27 @@ async fn serve_stream(
         head.push(byte[0]);
     }
     let head = String::from_utf8_lossy(&head).into_owned();
-    let accept = head.lines().find(|l| l.to_lowercase().starts_with("accept:")).unwrap_or_default().to_lowercase();
-    seen.lock().unwrap().push(format!("{} | {}", head.lines().next().unwrap_or_default(), accept));
+    let accept = head
+        .lines()
+        .find(|l| l.to_lowercase().starts_with("accept:"))
+        .unwrap_or_default()
+        .to_lowercase();
+    seen.lock().unwrap().push(format!(
+        "{} | {}",
+        head.lines().next().unwrap_or_default(),
+        accept
+    ));
     if fail {
         let _ = stream.write_all(b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await;
         return;
     }
-    if stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\n").await.is_err() {
+    if stream
+        .write_all(
+            b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\n",
+        )
+        .await
+        .is_err()
+    {
         return;
     }
     open.fetch_add(1, Ordering::SeqCst);
@@ -111,7 +143,10 @@ impl Server {
 
     async fn stop(mut self) {
         let _ = self.stop.take().unwrap().send(());
-        tokio::time::timeout(Duration::from_secs(5), &mut self.done).await.expect("graceful stop").unwrap();
+        tokio::time::timeout(Duration::from_secs(5), &mut self.done)
+            .await
+            .expect("graceful stop")
+            .unwrap();
     }
 }
 
@@ -137,13 +172,20 @@ async fn start(saved: Option<&Value>) -> Server {
     if let Some(saved) = saved {
         std::fs::write(dir.path().join("data/config.json"), saved.to_string()).unwrap();
     }
-    let bound = bind_with_home(config(dir.path()), dir.path().join("home")).await.unwrap();
+    let bound = bind_with_home(config(dir.path()), dir.path().join("home"))
+        .await
+        .unwrap();
     let port = bound.port();
     let (stop, stopped) = oneshot::channel::<()>();
     let done = tokio::spawn(bound.serve(async {
         let _ = stopped.await;
     }));
-    Server { port, dir, stop: Some(stop), done }
+    Server {
+        port,
+        dir,
+        stop: Some(stop),
+        done,
+    }
 }
 
 struct Reply {
@@ -164,7 +206,8 @@ impl Reply {
 fn dechunk(mut raw: &[u8]) -> Vec<u8> {
     let mut out = Vec::new();
     while let Some(end) = raw.windows(2).position(|w| w == b"\r\n") {
-        let size = usize::from_str_radix(std::str::from_utf8(&raw[..end]).unwrap().trim(), 16).unwrap();
+        let size =
+            usize::from_str_radix(std::str::from_utf8(&raw[..end]).unwrap().trim(), 16).unwrap();
         if size == 0 {
             break;
         }
@@ -176,24 +219,41 @@ fn dechunk(mut raw: &[u8]) -> Vec<u8> {
 
 async fn send(port: u16, method: &str, path: &str, headers: &[(&str, &str)], body: &str) -> Reply {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
-    let mut request = format!("{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n");
+    let mut request =
+        format!("{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n");
     for (k, v) in headers {
         request.push_str(&format!("{k}: {v}\r\n"));
     }
     request.push_str(&format!("Content-Length: {}\r\n\r\n{body}", body.len()));
     stream.write_all(request.as_bytes()).await.unwrap();
     let mut raw = Vec::new();
-    tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw)).await.unwrap().unwrap();
+    tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw))
+        .await
+        .unwrap()
+        .unwrap();
     let split = raw.windows(4).position(|w| w == b"\r\n\r\n").unwrap();
     let head = String::from_utf8_lossy(&raw[..split]).into_owned();
     let status = head.split(' ').nth(1).unwrap().parse().unwrap();
     let chunked = head.to_lowercase().contains("transfer-encoding: chunked");
     let rest = &raw[split + 4..];
-    Reply { status, body: if chunked { dechunk(rest) } else { rest.to_vec() } }
+    Reply {
+        status,
+        body: if chunked {
+            dechunk(rest)
+        } else {
+            rest.to_vec()
+        },
+    }
 }
 
-const CONTROL: [(&str, &str); 2] = [("Content-Type", "application/json"), ("X-Dashboard-Control", "1")];
-const CONFIG: [(&str, &str); 2] = [("Content-Type", "application/json"), ("X-Dashboard-Config", "1")];
+const CONTROL: [(&str, &str); 2] = [
+    ("Content-Type", "application/json"),
+    ("X-Dashboard-Control", "1"),
+];
+const CONFIG: [(&str, &str); 2] = [
+    ("Content-Type", "application/json"),
+    ("X-Dashboard-Config", "1"),
+];
 
 async fn post_alert(port: u16, body: &str) -> Reply {
     send(port, "POST", "/api/control/alert", &CONTROL, body).await
@@ -238,7 +298,13 @@ async fn the_history_route_is_get_only_and_starts_empty() {
     let reply = send(server.port, "GET", "/api/alerts/history", &[], "").await;
     assert_eq!((reply.status, reply.text().as_str()), (200, "[]"));
     for method in ["POST", "PUT", "DELETE", "PATCH"] {
-        assert_eq!(send(server.port, method, "/api/alerts/history", &[], "").await.status, 405, "{method}");
+        assert_eq!(
+            send(server.port, method, "/api/alerts/history", &[], "")
+                .await
+                .status,
+            405,
+            "{method}"
+        );
     }
     server.stop().await;
 }
@@ -247,11 +313,29 @@ async fn the_history_route_is_get_only_and_starts_empty() {
 async fn the_alert_action_checks_its_guards_before_the_engine() {
     let server = start(None).await;
     let p = server.port;
-    assert_eq!(send(p, "GET", "/api/control/alert", &[], "").await.status, 405);
-    assert_eq!(send(p, "POST", "/api/control/alert", &[("Content-Type", "application/json")], "{}").await.status, 403);
+    assert_eq!(
+        send(p, "GET", "/api/control/alert", &[], "").await.status,
+        405
+    );
+    assert_eq!(
+        send(
+            p,
+            "POST",
+            "/api/control/alert",
+            &[("Content-Type", "application/json")],
+            "{}"
+        )
+        .await
+        .status,
+        403
+    );
     for body in ["{", "5", "[]", "null", "\"x\""] {
         let reply = post_alert(p, body).await;
-        assert_eq!((reply.status, reply.text().as_str()), (400, "expected a JSON object"), "{body}");
+        assert_eq!(
+            (reply.status, reply.text().as_str()),
+            (400, "expected a JSON object"),
+            "{body}"
+        );
     }
     for (body, error) in [
         ("{}", "unknown action"),
@@ -266,7 +350,11 @@ async fn the_alert_action_checks_its_guards_before_the_engine() {
         (r#"{"action":"mute","minutes":1.5}"#, "bad mute minutes"),
     ] {
         let reply = post_alert(p, body).await;
-        assert_eq!((reply.status, reply.text()), (400, error.to_string()), "{body}");
+        assert_eq!(
+            (reply.status, reply.text()),
+            (400, error.to_string()),
+            "{body}"
+        );
     }
     // An empty body is an empty object, so an unknown action as well.
     assert_eq!(post_alert(p, "").await.text(), "unknown action");
@@ -283,7 +371,9 @@ async fn mute_sets_the_deadline_and_zero_clears_it() {
     assert_eq!(body["alerts"], json!([]));
     let until = body["mutedUntil"].as_f64().unwrap();
     assert_eq!(control_state(p).await["mutedUntil"].as_f64(), Some(until));
-    let cleared = post_alert(p, r#"{"action":"mute","minutes":0}"#).await.json();
+    let cleared = post_alert(p, r#"{"action":"mute","minutes":0}"#)
+        .await
+        .json();
     assert_eq!(cleared, json!({ "alerts": [], "mutedUntil": null }));
     server.stop().await;
 }
@@ -294,14 +384,30 @@ async fn a_reading_fires_an_alert_that_switches_the_page_and_clears_with_it() {
     let server = start(Some(&saved_config(&api.url, json!([gpu_rule()])))).await;
     let p = server.port;
     until("the subscription", || async { !api.requests().is_empty() }).await;
-    assert_eq!(api.requests(), ["GET /events?prefix=gpu.&interval=1000 HTTP/1.1 | accept: text/event-stream"]);
-    until("the stream", || async { api.open.load(Ordering::SeqCst) == 1 }).await;
+    assert_eq!(
+        api.requests(),
+        ["GET /events?prefix=gpu.&interval=1000 HTTP/1.1 | accept: text/event-stream"]
+    );
+    until("the stream", || async {
+        api.open.load(Ordering::SeqCst) == 1
+    })
+    .await;
 
     api.send(&json!({ "sensors": { "gpu.temp": { "value": 90, "unit": "°C" } }, "removed": [] }));
-    until("the alert", || async { control_state(p).await["alerts"].as_array().unwrap().len() == 1 }).await;
+    until("the alert", || async {
+        control_state(p).await["alerts"].as_array().unwrap().len() == 1
+    })
+    .await;
     let state = control_state(p).await;
     let alert = &state["alerts"][0];
-    assert_eq!((alert["ruleId"].as_str(), alert["text"].as_str(), alert["severity"].as_str()), (Some("r1"), Some("90°C"), Some("critical")));
+    assert_eq!(
+        (
+            alert["ruleId"].as_str(),
+            alert["text"].as_str(),
+            alert["severity"].as_str()
+        ),
+        (Some("r1"), Some("90°C"), Some("critical"))
+    );
     assert_eq!(state["profiles"]["desk"]["page"], "alerts");
 
     let history = send(p, "GET", "/api/alerts/history", &[], "").await.json();
@@ -316,32 +422,55 @@ async fn a_reading_fires_an_alert_that_switches_the_page_and_clears_with_it() {
     assert_eq!(acked.json()["alerts"][0]["acknowledged"], true);
     assert_eq!(acked.json()["mutedUntil"], Value::Null);
     api.send(&json!({ "sensors": { "gpu.temp": { "value": 60 } } }));
-    until("the clear", || async { control_state(p).await["alerts"] == json!([]) }).await;
+    until("the clear", || async {
+        control_state(p).await["alerts"] == json!([])
+    })
+    .await;
     assert_eq!(control_state(p).await["profiles"]["desk"]["page"], "main");
     let history = send(p, "GET", "/api/alerts/history", &[], "").await.json();
     assert!(history[0]["endedAt"].is_number() && history[0]["acknowledgedAt"].is_number());
 
     // The history reaches alerts.json after the debounce (compact, as Node writes it).
     let file = server.data().join("alerts.json");
-    until("alerts.json", || async { std::fs::read_to_string(&file).is_ok_and(|t| t.contains("endedAt")) }).await;
+    until("alerts.json", || async {
+        std::fs::read_to_string(&file).is_ok_and(|t| t.contains("endedAt"))
+    })
+    .await;
     let saved = std::fs::read_to_string(&file).unwrap();
-    assert!(saved.starts_with(r#"{"history":[{"id":""#) && !saved.contains('\n') && !saved.contains(": "));
+    assert!(
+        saved.starts_with(r#"{"history":[{"id":""#)
+            && !saved.contains('\n')
+            && !saved.contains(": ")
+    );
     server.stop().await;
 }
 
 #[tokio::test]
 async fn a_test_alert_fires_without_a_reading_and_dismiss_removes_it() {
-    let server = start(Some(&saved_config("http://127.0.0.1:9", json!([gpu_rule()])))).await;
+    let server = start(Some(&saved_config(
+        "http://127.0.0.1:9",
+        json!([gpu_rule()]),
+    )))
+    .await;
     let p = server.port;
     let test = post_alert(p, r#"{"action":"test","ruleId":"r1"}"#).await;
     assert_eq!(test.status, 200);
     let alerts = test.json()["alerts"].clone();
-    assert_eq!((alerts[0]["test"].clone(), alerts[0]["text"].clone()), (json!(true), json!("")));
+    assert_eq!(
+        (alerts[0]["test"].clone(), alerts[0]["text"].clone()),
+        (json!(true), json!(""))
+    );
     let id = alerts[0]["id"].as_str().unwrap();
     let dismissed = post_alert(p, &json!({ "action": "dismiss", "id": id }).to_string()).await;
-    assert_eq!(dismissed.json(), json!({ "alerts": [], "mutedUntil": null }));
+    assert_eq!(
+        dismissed.json(),
+        json!({ "alerts": [], "mutedUntil": null })
+    );
     let history = send(p, "GET", "/api/alerts/history", &[], "").await.json();
-    assert_eq!((history[0]["test"].clone(), history[0]["dismissed"].clone()), (json!(true), json!(true)));
+    assert_eq!(
+        (history[0]["test"].clone(), history[0]["dismissed"].clone()),
+        (json!(true), json!(true))
+    );
     server.stop().await;
 }
 
@@ -350,21 +479,46 @@ async fn saving_the_config_changes_the_streams_and_closes_the_old_ones() {
     let api = FakeApi::start(0).await;
     let server = start(Some(&saved_config(&api.url, json!([gpu_rule()])))).await;
     let p = server.port;
-    until("the first stream", || async { api.open.load(Ordering::SeqCst) == 1 }).await;
+    until("the first stream", || async {
+        api.open.load(Ordering::SeqCst) == 1
+    })
+    .await;
 
     // The same keys again: no reconnect. A rule on another prefix adds a stream.
     let same = saved_config(&api.url, json!([gpu_rule()])).to_string();
-    assert_eq!(send(p, "POST", "/api/config", &CONFIG, &same).await.status, 200);
-    let more = saved_config(&api.url, json!([gpu_rule(), { "id": "r2", "source": { "kind": "sensor", "key": "cpu.load", "op": ">", "value": 1 } }]));
-    assert_eq!(send(p, "POST", "/api/config", &CONFIG, &more.to_string()).await.status, 200);
-    until("the second stream", || async { api.open.load(Ordering::SeqCst) == 2 }).await;
+    assert_eq!(
+        send(p, "POST", "/api/config", &CONFIG, &same).await.status,
+        200
+    );
+    let more = saved_config(
+        &api.url,
+        json!([gpu_rule(), { "id": "r2", "source": { "kind": "sensor", "key": "cpu.load", "op": ">", "value": 1 } }]),
+    );
+    assert_eq!(
+        send(p, "POST", "/api/config", &CONFIG, &more.to_string())
+            .await
+            .status,
+        200
+    );
+    until("the second stream", || async {
+        api.open.load(Ordering::SeqCst) == 2
+    })
+    .await;
     assert_eq!(api.requests().len(), 2);
 
     // Alerts off: every stream closes.
     let mut off = more.clone();
     off["alerts"]["enabled"] = json!(false);
-    assert_eq!(send(p, "POST", "/api/config", &CONFIG, &off.to_string()).await.status, 200);
-    until("the streams to close", || async { api.open.load(Ordering::SeqCst) == 0 }).await;
+    assert_eq!(
+        send(p, "POST", "/api/config", &CONFIG, &off.to_string())
+            .await
+            .status,
+        200
+    );
+    until("the streams to close", || async {
+        api.open.load(Ordering::SeqCst) == 0
+    })
+    .await;
     server.stop().await;
 }
 
@@ -373,8 +527,15 @@ async fn a_refused_connection_is_retried_after_a_second() {
     let api = FakeApi::start(1).await;
     let started = Instant::now();
     let server = start(Some(&saved_config(&api.url, json!([gpu_rule()])))).await;
-    until("the retry", || async { api.open.load(Ordering::SeqCst) == 1 }).await;
+    until("the retry", || async {
+        api.open.load(Ordering::SeqCst) == 1
+    })
+    .await;
     assert_eq!(api.requests().len(), 2);
-    assert!(started.elapsed() >= Duration::from_millis(900), "retried after {:?}", started.elapsed());
+    assert!(
+        started.elapsed() >= Duration::from_millis(900),
+        "retried after {:?}",
+        started.elapsed()
+    );
     server.stop().await;
 }

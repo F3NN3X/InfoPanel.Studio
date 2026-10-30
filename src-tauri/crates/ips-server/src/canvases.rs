@@ -29,7 +29,11 @@ pub const SWEEP_EVERY_MS: i64 = 10 * 60 * 1000;
 
 /// `CANVAS_ID_RE`: `^cnv_[a-f0-9]{32}$`.
 pub fn is_canvas_id(id: &str) -> bool {
-    id.len() == 36 && id.starts_with("cnv_") && id[4..].bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+    id.len() == 36
+        && id.starts_with("cnv_")
+        && id[4..]
+            .bytes()
+            .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
 }
 
 /// The canvas ids a config's text references (any `canvasRef` string, wherever it sits) in the order they appear, or
@@ -65,16 +69,28 @@ fn walk(v: &Value, ids: &mut Vec<String>) {
 
 /// `put`'s temporary file: `<id>.json.<uuid>.tmp`.
 fn is_tmp_name(name: &str) -> bool {
-    let Some(rest) = name.strip_suffix(".tmp") else { return false };
-    let Some((id, uuid)) = rest.split_once(".json.") else { return false };
-    let hex = |s: &str, n: usize| s.len() == n && s.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'));
+    let Some(rest) = name.strip_suffix(".tmp") else {
+        return false;
+    };
+    let Some((id, uuid)) = rest.split_once(".json.") else {
+        return false;
+    };
+    let hex = |s: &str, n: usize| {
+        s.len() == n && s.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+    };
     let parts: Vec<&str> = uuid.split('-').collect();
-    is_canvas_id(id) && parts.len() == 5 && [8, 4, 4, 4, 12].iter().zip(&parts).all(|(n, p)| hex(p, *n))
+    is_canvas_id(id)
+        && parts.len() == 5
+        && [8, 4, 4, 4, 12].iter().zip(&parts).all(|(n, p)| hex(p, *n))
 }
 
 /// The id of a canvas's bytes.
 pub fn canvas_id_of(text: &str) -> String {
-    let digest: String = Sha256::digest(text.as_bytes()).iter().take(16).map(|b| format!("{b:02x}")).collect();
+    let digest: String = Sha256::digest(text.as_bytes())
+        .iter()
+        .take(16)
+        .map(|b| format!("{b:02x}"))
+        .collect();
     format!("cnv_{digest}")
 }
 
@@ -91,14 +107,23 @@ pub fn canvas_refusal(text: &str) -> Option<&'static str> {
 }
 
 /// The reason a canvas write is refused, or `None`: the header, then this computer, then JSON.
-pub fn canvas_write_refusal(content_type: Option<&str>, header: Option<&str>, peer: Option<&str>, allow_remote: bool) -> Option<Refusal> {
+pub fn canvas_write_refusal(
+    content_type: Option<&str>,
+    header: Option<&str>,
+    peer: Option<&str>,
+    allow_remote: bool,
+) -> Option<Refusal> {
     if header != Some("1") {
         return Some(Refusal::new(403, "missing X-Dashboard-Canvas header"));
     }
     if !allow_remote && !crate::request_guard::is_loopback(peer) {
-        return Some(Refusal::new(403, "canvas changes are accepted from this computer only"));
+        return Some(Refusal::new(
+            403,
+            "canvas changes are accepted from this computer only",
+        ));
     }
-    let kind = crate::js::trim(content_type.unwrap_or("").split(';').next().unwrap_or("")).to_lowercase();
+    let kind =
+        crate::js::trim(content_type.unwrap_or("").split(';').next().unwrap_or("")).to_lowercase();
     (kind != "application/json").then(|| Refusal::new(415, "expected application/json"))
 }
 
@@ -109,7 +134,9 @@ pub struct CanvasStore {
 
 impl CanvasStore {
     pub fn new(dir: &Path) -> Self {
-        Self { dir: dir.to_path_buf() }
+        Self {
+            dir: dir.to_path_buf(),
+        }
     }
 
     fn file_of(&self, id: &str) -> Option<PathBuf> {
@@ -135,10 +162,15 @@ impl CanvasStore {
         let file = self.dir.join(format!("{id}.json"));
         if file.exists() {
             // Sent again: young again, so the sweep leaves it until a config can reference it.
-            std::fs::OpenOptions::new().write(true).open(&file)?.set_modified(SystemTime::now())?;
+            std::fs::OpenOptions::new()
+                .write(true)
+                .open(&file)?
+                .set_modified(SystemTime::now())?;
         } else {
             std::fs::create_dir_all(&self.dir)?;
-            let tmp = self.dir.join(format!("{id}.json.{}.tmp", uuid::Uuid::new_v4()));
+            let tmp = self
+                .dir
+                .join(format!("{id}.json.{}.tmp", uuid::Uuid::new_v4()));
             std::fs::write(&tmp, text)?;
             std::fs::rename(&tmp, &file)?;
         }
@@ -161,10 +193,16 @@ impl CanvasStore {
             }
             let file = self.dir.join(&name);
             // Gone or locked: the next sweep tries again.
-            let Some(mtime) = std::fs::metadata(&file).ok().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(UNIX_EPOCH).ok()) else {
+            let Some(mtime) = std::fs::metadata(&file)
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            else {
                 continue;
             };
-            if now - mtime.as_secs_f64() * 1000.0 <= grace_ms || std::fs::remove_file(&file).is_err() {
+            if now - mtime.as_secs_f64() * 1000.0 <= grace_ms
+                || std::fs::remove_file(&file).is_err()
+            {
                 continue;
             }
             deleted.push(if tmp { name } else { id.to_string() });
@@ -192,7 +230,11 @@ pub struct Sweeper {
 
 impl Sweeper {
     pub fn new(store: Arc<CanvasStore>, config_file: PathBuf) -> Arc<Self> {
-        Arc::new(Self { store, config_file, last: Mutex::new(None) })
+        Arc::new(Self {
+            store,
+            config_file,
+            last: Mutex::new(None),
+        })
     }
 
     pub fn trigger(&self) {
@@ -205,7 +247,9 @@ impl Sweeper {
             *last = Some(now);
         }
         let (store, config_file) = (Arc::clone(&self.store), self.config_file.clone());
-        let Ok(runtime) = tokio::runtime::Handle::try_current() else { return };
+        let Ok(runtime) = tokio::runtime::Handle::try_current() else {
+            return;
+        };
         runtime.spawn_blocking(move || {
             if !config_file.exists() {
                 return;
@@ -250,7 +294,10 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
     if req.method != Method::GET {
         return Ok(http::empty(405));
     }
-    Ok(app.canvases.get(id).map_or_else(|| http::empty(404), |text| http::send(200, text, http::JSON_TYPE)))
+    Ok(app.canvases.get(id).map_or_else(
+        || http::empty(404),
+        |text| http::send(200, text, http::JSON_TYPE),
+    ))
 }
 
 #[cfg(test)]
@@ -261,7 +308,9 @@ mod tests {
     const HOUR: f64 = SWEEP_GRACE_MS;
 
     fn canvas(name: &str) -> String {
-        format!(r#"{{"format":"infopanel-canvas","version":1,"source":{{"name":"{name}"}},"items":[]}}"#)
+        format!(
+            r#"{{"format":"infopanel-canvas","version":1,"source":{{"name":"{name}"}},"items":[]}}"#
+        )
     }
 
     fn config_of(refs: &[&str]) -> String {
@@ -270,8 +319,12 @@ mod tests {
     }
 
     fn age(dir: &Path, name: &str, ms: f64) {
-        let file = std::fs::OpenOptions::new().write(true).open(dir.join(name)).unwrap();
-        file.set_modified(SystemTime::now() - std::time::Duration::from_millis(ms as u64)).unwrap();
+        let file = std::fs::OpenOptions::new()
+            .write(true)
+            .open(dir.join(name))
+            .unwrap();
+        file.set_modified(SystemTime::now() - std::time::Duration::from_millis(ms as u64))
+            .unwrap();
     }
 
     #[test]
@@ -285,8 +338,14 @@ mod tests {
         assert_eq!(store.get(&id).as_deref(), Some(text.as_str()));
         assert_eq!(store.put(&text).unwrap().unwrap(), id);
         assert_eq!(store.texts(), vec![text]);
-        assert_eq!(store.put("{}").unwrap(), Err("expected a canvas (format \"infopanel-canvas\")"));
-        assert_eq!(store.put("[]").unwrap(), Err("expected a canvas (format \"infopanel-canvas\")"));
+        assert_eq!(
+            store.put("{}").unwrap(),
+            Err("expected a canvas (format \"infopanel-canvas\")")
+        );
+        assert_eq!(
+            store.put("[]").unwrap(),
+            Err("expected a canvas (format \"infopanel-canvas\")")
+        );
         assert_eq!(store.put("{broken").unwrap(), Err("expected JSON"));
         assert!(store.get("../config").is_none());
         assert!(store.get("cnv_0123456789abcdef0123456789abcdef").is_none());
@@ -297,7 +356,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let canvases = dir.path().join("canvases");
         let store = CanvasStore::new(&canvases);
-        let [kept, young, old] = ["referenced", "young", "old"].map(|n| store.put(&canvas(n)).unwrap().unwrap());
+        let [kept, young, old] =
+            ["referenced", "young", "old"].map(|n| store.put(&canvas(n)).unwrap().unwrap());
         age(&canvases, &format!("{kept}.json"), 48.0 * HOUR);
         age(&canvases, &format!("{young}.json"), HOUR / 2.0);
         age(&canvases, &format!("{old}.json"), 2.0 * HOUR);
@@ -310,7 +370,10 @@ mod tests {
         let old_tmp = leftover("0f8e2a1c-3b4d-4e5f-8a9b-0c1d2e3f4a5b", 2.0 * HOUR);
         let young_tmp = leftover("1f8e2a1c-3b4d-4e5f-8a9b-0c1d2e3f4a5b", HOUR / 2.0);
         let now = now_ms() as f64;
-        assert_eq!(store.sweep("{broken", now, SWEEP_GRACE_MS), Vec::<String>::new());
+        assert_eq!(
+            store.sweep("{broken", now, SWEEP_GRACE_MS),
+            Vec::<String>::new()
+        );
         assert_eq!(store.sweep("{}", now, SWEEP_GRACE_MS), Vec::<String>::new());
         let mut deleted = store.sweep(&config_of(&[&kept]), now, SWEEP_GRACE_MS);
         deleted.sort();
@@ -327,25 +390,49 @@ mod tests {
         let canvases = dir.path().join("canvases");
         let store = CanvasStore::new(&canvases);
         let id = store.put(&canvas("x")).unwrap().unwrap();
-        let others = ["notes.json", "cnv_short.json", &format!("cnv_{}.json.1234.tmp", "a".repeat(32))];
+        let others = [
+            "notes.json",
+            "cnv_short.json",
+            &format!("cnv_{}.json.1234.tmp", "a".repeat(32)),
+        ];
         for name in others {
             std::fs::write(canvases.join(name), "{}").unwrap();
         }
         let far = now_ms() as f64 + 48.0 * HOUR;
-        assert_eq!(store.sweep(&config_of(&[]), far, SWEEP_GRACE_MS), vec![id.clone()]);
+        assert_eq!(
+            store.sweep(&config_of(&[]), far, SWEEP_GRACE_MS),
+            vec![id.clone()]
+        );
         let id = store.put(&canvas("again")).unwrap().unwrap();
         age(&canvases, &format!("{id}.json"), 2.0 * HOUR);
         store.put(&canvas("again")).unwrap().unwrap();
-        assert!(store.sweep(&config_of(&[]), now_ms() as f64, SWEEP_GRACE_MS).is_empty());
+        assert!(store
+            .sweep(&config_of(&[]), now_ms() as f64, SWEEP_GRACE_MS)
+            .is_empty());
     }
 
     #[test]
     fn guards_canvas_writes_in_order() {
         let ok = Some("application/json");
         assert!(canvas_write_refusal(ok, Some("1"), Some("127.0.0.1"), false).is_none());
-        assert_eq!(canvas_write_refusal(ok, None, Some("127.0.0.1"), false).unwrap().status, 403);
-        assert_eq!(canvas_write_refusal(Some("text/plain"), Some("1"), Some("::1"), false).unwrap().status, 415);
-        assert_eq!(canvas_write_refusal(ok, Some("1"), Some("192.168.1.5"), false).unwrap().status, 403);
+        assert_eq!(
+            canvas_write_refusal(ok, None, Some("127.0.0.1"), false)
+                .unwrap()
+                .status,
+            403
+        );
+        assert_eq!(
+            canvas_write_refusal(Some("text/plain"), Some("1"), Some("::1"), false)
+                .unwrap()
+                .status,
+            415
+        );
+        assert_eq!(
+            canvas_write_refusal(ok, Some("1"), Some("192.168.1.5"), false)
+                .unwrap()
+                .status,
+            403
+        );
         assert!(canvas_write_refusal(ok, Some("1"), Some("192.168.1.5"), true).is_none());
     }
 }

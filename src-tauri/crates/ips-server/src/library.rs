@@ -16,7 +16,9 @@ use crate::http::{self, Req};
 use crate::request_guard::{is_loopback, Refusal};
 use crate::{js, json, App};
 
-pub const KINDS: [&str; 8] = ["image", "video", "font", "svg", "gauge", "panel", "style", "canvas"];
+pub const KINDS: [&str; 8] = [
+    "image", "video", "font", "svg", "gauge", "panel", "style", "canvas",
+];
 /// The largest item file (an imported canvas holds a whole profile).
 pub const MAX_ITEM_BYTES: usize = 8 * 1024 * 1024;
 /// The largest `meta` (tags, sizes, colours: what the grid filters and sorts by).
@@ -30,7 +32,11 @@ const BODY_REFUSED: &str = "expected a JSON body under 8 MB";
 
 /// `ITEM_ID_RE`: `^lib_[a-z0-9]{12}$`.
 pub fn is_item_id(id: &str) -> bool {
-    id.len() == 16 && id.starts_with("lib_") && id[4..].bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'z'))
+    id.len() == 16
+        && id.starts_with("lib_")
+        && id[4..]
+            .bytes()
+            .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'z'))
 }
 
 /// A new item id: `lib_` and 12 characters from 9 random bytes (base64url, lowercased, anything else a zero).
@@ -38,7 +44,12 @@ pub fn new_item_id() -> String {
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;
     use base64::Engine;
     let random = uuid::Uuid::new_v4();
-    let text: String = URL_SAFE_NO_PAD.encode(&random.as_bytes()[..9]).to_lowercase().chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '0' }).collect();
+    let text: String = URL_SAFE_NO_PAD
+        .encode(&random.as_bytes()[..9])
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '0' })
+        .collect();
     format!("lib_{}", &text[..12])
 }
 
@@ -69,7 +80,13 @@ fn normalize_copy(raw: &Value) -> Option<Value> {
     }
     let mut copy = Map::new();
     copy.insert("profileId".into(), Value::String(profile_id));
-    for (key, max) in [("pageId", 100), ("zoneId", 100), ("itemPath", 100), ("label", MAX_NAME), ("at", 40)] {
+    for (key, max) in [
+        ("pageId", 100),
+        ("zoneId", 100),
+        ("itemPath", 100),
+        ("label", MAX_NAME),
+        ("at", 40),
+    ] {
         if raw.get(key).is_some_and(Value::is_string) {
             copy.insert(key.into(), Value::String(text(raw.get(key), max)));
         }
@@ -78,8 +95,16 @@ fn normalize_copy(raw: &Value) -> Option<Value> {
 }
 
 /// `key in raw ? raw[key] : existing ? existing[key] : fallback`, with `None` for undefined.
-fn pick<'a>(raw: &'a Value, existing: Option<&'a Value>, key: &str, fallback: Option<&'a Value>) -> Option<&'a Value> {
-    if raw.as_object().is_some_and(|fields| fields.contains_key(key)) {
+fn pick<'a>(
+    raw: &'a Value,
+    existing: Option<&'a Value>,
+    key: &str,
+    fallback: Option<&'a Value>,
+) -> Option<&'a Value> {
+    if raw
+        .as_object()
+        .is_some_and(|fields| fields.contains_key(key))
+    {
         raw.get(key)
     } else if let Some(e) = existing {
         e.get(key)
@@ -94,8 +119,15 @@ pub fn normalize_item(raw: &Value, existing: Option<&Value>, now: i64) -> Result
     if !raw.is_object() {
         return Err("expected an object".into());
     }
-    let kind_value = if let Some(e) = existing { e.get("kind") } else { raw.get("kind") };
-    let Some(kind) = kind_value.and_then(Value::as_str).filter(|k| KINDS.contains(k)) else {
+    let kind_value = if let Some(e) = existing {
+        e.get("kind")
+    } else {
+        raw.get("kind")
+    };
+    let Some(kind) = kind_value
+        .and_then(Value::as_str)
+        .filter(|k| KINDS.contains(k))
+    else {
         return Err(format!("kind must be one of {}", KINDS.join(", ")));
     };
     if let (Some(e), Some(raw_kind)) = (existing, raw.get("kind")) {
@@ -103,22 +135,36 @@ pub fn normalize_item(raw: &Value, existing: Option<&Value>, now: i64) -> Result
             return Err("kind cannot change".into());
         }
     }
-    let (empty_text, empty_list, empty_object) = (Value::String(String::new()), Value::Array(Vec::new()), Value::Object(Map::new()));
-    let name = js::trim(&text(pick(raw, existing, "name", Some(&empty_text)), MAX_NAME)).to_string();
+    let (empty_text, empty_list, empty_object) = (
+        Value::String(String::new()),
+        Value::Array(Vec::new()),
+        Value::Object(Map::new()),
+    );
+    let name = js::trim(&text(
+        pick(raw, existing, "name", Some(&empty_text)),
+        MAX_NAME,
+    ))
+    .to_string();
     if name.is_empty() {
         return Err("name is required".into());
     }
     let files = pick(raw, existing, "files", Some(&empty_list)).and_then(Value::as_array);
-    let Some(files) = files.filter(|f| f.len() <= MAX_FILES && f.iter().all(|f| f.as_str().is_some_and(is_asset_id))) else {
+    let Some(files) = files
+        .filter(|f| f.len() <= MAX_FILES && f.iter().all(|f| f.as_str().is_some_and(is_asset_id)))
+    else {
         return Err("files must be asset ids".into());
     };
-    let Some(meta) = pick(raw, existing, "meta", Some(&empty_object)).filter(|m| m.is_object()) else {
+    let Some(meta) = pick(raw, existing, "meta", Some(&empty_object)).filter(|m| m.is_object())
+    else {
         return Err("meta must be an object".into());
     };
     if json_len(meta) > MAX_META_BYTES {
         return Err("meta is too large".into());
     }
-    let Some(copies) = pick(raw, existing, "copies", Some(&empty_list)).and_then(Value::as_array).filter(|c| c.len() <= MAX_COPIES) else {
+    let Some(copies) = pick(raw, existing, "copies", Some(&empty_list))
+        .and_then(Value::as_array)
+        .filter(|c| c.len() <= MAX_COPIES)
+    else {
         return Err("copies must be a list".into());
     };
     let mut unique: Vec<Value> = Vec::new();
@@ -129,7 +175,10 @@ pub fn normalize_item(raw: &Value, existing: Option<&Value>, now: i64) -> Result
     }
     let stamp = Value::String(js::iso_string(now));
     let mut item = Map::new();
-    item.insert("id".into(), existing.map_or_else(|| Value::String(new_item_id()), |e| e["id"].clone()));
+    item.insert(
+        "id".into(),
+        existing.map_or_else(|| Value::String(new_item_id()), |e| e["id"].clone()),
+    );
     item.insert("kind".into(), Value::String(kind.to_string()));
     item.insert("name".into(), Value::String(name));
     if let Some(created) = existing.map_or(Some(&stamp), |e| e.get("createdAt")) {
@@ -138,7 +187,10 @@ pub fn normalize_item(raw: &Value, existing: Option<&Value>, now: i64) -> Result
     item.insert("updatedAt".into(), stamp);
     item.insert("files".into(), Value::Array(unique));
     item.insert("meta".into(), meta.clone());
-    item.insert("copies".into(), Value::Array(copies.iter().filter_map(normalize_copy).collect()));
+    item.insert(
+        "copies".into(),
+        Value::Array(copies.iter().filter_map(normalize_copy).collect()),
+    );
     if let Some(data) = pick(raw, existing, "data", None) {
         item.insert("data".into(), data.clone());
     }
@@ -166,12 +218,21 @@ pub fn summary_of(item: &Value) -> Value {
 
 /// The reason a library write is refused, or `None` (`body`: the write sends JSON): the header, then this computer,
 /// then the type.
-pub fn library_write_refusal(content_type: Option<&str>, header: Option<&str>, peer: Option<&str>, allow_remote: bool, body: bool) -> Option<Refusal> {
+pub fn library_write_refusal(
+    content_type: Option<&str>,
+    header: Option<&str>,
+    peer: Option<&str>,
+    allow_remote: bool,
+    body: bool,
+) -> Option<Refusal> {
     if header != Some("1") {
         return Some(Refusal::new(403, "missing X-Dashboard-Library header"));
     }
     if !allow_remote && !is_loopback(peer) {
-        return Some(Refusal::new(403, "library changes are accepted from this computer only"));
+        return Some(Refusal::new(
+            403,
+            "library changes are accepted from this computer only",
+        ));
     }
     let kind = js::trim(content_type.unwrap_or("").split(';').next().unwrap_or("")).to_lowercase();
     (body && kind != "application/json").then(|| Refusal::new(415, "expected application/json"))
@@ -193,14 +254,25 @@ impl LibraryStore {
 
     fn read(file: &Path) -> Option<Value> {
         let item = crate::store::read_json(file)?;
-        let valid = item.is_object() && is_item_id(&js::to_property_key(item.get("id"))) && item.get("kind").and_then(Value::as_str).is_some_and(|k| KINDS.contains(&k));
+        let valid = item.is_object()
+            && is_item_id(&js::to_property_key(item.get("id")))
+            && item
+                .get("kind")
+                .and_then(Value::as_str)
+                .is_some_and(|k| KINDS.contains(&k));
         valid.then_some(item)
     }
 
     fn write(&self, item: &Value) -> std::io::Result<()> {
         std::fs::create_dir_all(&self.dir)?;
-        let file = self.dir.join(format!("{}.json", item["id"].as_str().unwrap_or("")));
-        let tmp = self.dir.join(format!("{}.json.{}.tmp", item["id"].as_str().unwrap_or(""), uuid::Uuid::new_v4()));
+        let file = self
+            .dir
+            .join(format!("{}.json", item["id"].as_str().unwrap_or("")));
+        let tmp = self.dir.join(format!(
+            "{}.json.{}.tmp",
+            item["id"].as_str().unwrap_or(""),
+            uuid::Uuid::new_v4()
+        ));
         std::fs::write(&tmp, json::stringify(item))?;
         std::fs::rename(&tmp, &file)
     }
@@ -230,7 +302,12 @@ impl LibraryStore {
     }
 
     /// `None` when there is no such item (checked before the validation).
-    pub fn update(&self, id: &str, raw: &Value, now: i64) -> std::io::Result<Option<Result<Value, String>>> {
+    pub fn update(
+        &self,
+        id: &str,
+        raw: &Value,
+        now: i64,
+    ) -> std::io::Result<Option<Result<Value, String>>> {
         let Some(existing) = self.get(id) else {
             return Ok(None);
         };
@@ -271,7 +348,10 @@ async fn body(app: &App, req: &mut Req) -> Result<Value, Box<Response<Body>>> {
     if let Some(refusal) = guard {
         return Err(Box::new(http::text(refusal.status, refusal.message)));
     }
-    let text = req.read_body(MAX_ITEM_BYTES + 1024).await.map_err(|http::BodyRefused| Box::new(http::closing(http::text(400, BODY_REFUSED))))?;
+    let text = req
+        .read_body(MAX_ITEM_BYTES + 1024)
+        .await
+        .map_err(|http::BodyRefused| Box::new(http::closing(http::text(400, BODY_REFUSED))))?;
     json::parse(&text).ok_or_else(|| Box::new(http::text(400, BODY_REFUSED)))
 }
 
@@ -287,7 +367,10 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
     let now = crate::config::now_ms();
     if req.path == "/api/library" {
         return Ok(match req.method {
-            Method::GET => http::json(200, &Value::Array(app.library.list().iter().map(summary_of).collect())),
+            Method::GET => http::json(
+                200,
+                &Value::Array(app.library.list().iter().map(summary_of).collect()),
+            ),
             Method::POST => match body(app, &mut req).await {
                 Ok(raw) => answer(201, app.library.create(&raw, now)?),
                 Err(refusal) => *refusal,
@@ -300,9 +383,15 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
         return Ok(http::empty(404));
     }
     Ok(match req.method {
-        Method::GET => app.library.get(&id).map_or_else(|| http::empty(404), |item| http::json(200, &item)),
+        Method::GET => app
+            .library
+            .get(&id)
+            .map_or_else(|| http::empty(404), |item| http::json(200, &item)),
         Method::PUT => match body(app, &mut req).await {
-            Ok(raw) => app.library.update(&id, &raw, now)?.map_or_else(|| http::empty(404), |made| answer(200, made)),
+            Ok(raw) => app
+                .library
+                .update(&id, &raw, now)?
+                .map_or_else(|| http::empty(404), |made| answer(200, made)),
             Err(refusal) => *refusal,
         },
         Method::DELETE => {
@@ -349,33 +438,67 @@ mod tests {
     fn refuses_what_is_not_an_item() {
         let error = |raw: Value| normalize_item(&raw, None, NOW).unwrap_err();
         assert_eq!(error(json!([])), "expected an object");
-        assert!(error(json!({ "kind": "script", "name": "x" })).starts_with("kind must be one of image, video"));
-        assert_eq!(error(json!({ "kind": "gauge", "name": " " })), "name is required");
-        assert_eq!(error(json!({ "kind": "image", "name": "x", "files": ["../config.json"] })), "files must be asset ids");
-        assert_eq!(error(json!({ "kind": "image", "name": "x", "meta": [] })), "meta must be an object");
-        assert_eq!(error(json!({ "kind": "image", "name": "x", "meta": { "s": "x".repeat(70_000) } })), "meta is too large");
-        assert_eq!(error(json!({ "kind": "image", "name": "x", "copies": {} })), "copies must be a list");
+        assert!(error(json!({ "kind": "script", "name": "x" }))
+            .starts_with("kind must be one of image, video"));
+        assert_eq!(
+            error(json!({ "kind": "gauge", "name": " " })),
+            "name is required"
+        );
+        assert_eq!(
+            error(json!({ "kind": "image", "name": "x", "files": ["../config.json"] })),
+            "files must be asset ids"
+        );
+        assert_eq!(
+            error(json!({ "kind": "image", "name": "x", "meta": [] })),
+            "meta must be an object"
+        );
+        assert_eq!(
+            error(json!({ "kind": "image", "name": "x", "meta": { "s": "x".repeat(70_000) } })),
+            "meta is too large"
+        );
+        assert_eq!(
+            error(json!({ "kind": "image", "name": "x", "copies": {} })),
+            "copies must be a list"
+        );
     }
 
     #[test]
     fn updates_over_an_existing_item_keeping_its_id_kind_and_creation() {
-        let first = normalize_item(&json!({ "kind": "gauge", "name": "Arc", "data": { "shape": "arc" } }), None, NOW).unwrap();
+        let first = normalize_item(
+            &json!({ "kind": "gauge", "name": "Arc", "data": { "shape": "arc" } }),
+            None,
+            NOW,
+        )
+        .unwrap();
         let later = NOW + 86_400_000;
         let item = normalize_item(&json!({ "name": "Arc copy", "copies": [{ "profileId": "p" }], "id": "lib_other000000" }), Some(&first), later).unwrap();
         assert_eq!(item["id"], first["id"]);
         assert_eq!(item["createdAt"], first["createdAt"]);
         assert_eq!(item["updatedAt"], js::iso_string(later));
         assert_eq!(item["data"], json!({ "shape": "arc" }));
-        assert_eq!(normalize_item(&json!({ "kind": "image" }), Some(&first), NOW).unwrap_err(), "kind cannot change");
+        assert_eq!(
+            normalize_item(&json!({ "kind": "image" }), Some(&first), NOW).unwrap_err(),
+            "kind cannot change"
+        );
     }
 
     #[test]
     fn leaves_large_data_out_of_the_list() {
-        let big = normalize_item(&json!({ "kind": "canvas", "name": "c", "data": { "s": "x".repeat(LIST_DATA_BYTES) } }), None, NOW).unwrap();
+        let big = normalize_item(
+            &json!({ "kind": "canvas", "name": "c", "data": { "s": "x".repeat(LIST_DATA_BYTES) } }),
+            None,
+            NOW,
+        )
+        .unwrap();
         let summary = summary_of(&big);
         assert!(summary.get("data").is_none());
         assert!(summary["dataSize"].as_u64().unwrap() > LIST_DATA_BYTES as u64);
-        let small = normalize_item(&json!({ "kind": "gauge", "name": "g", "data": { "shape": "arc" } }), None, NOW).unwrap();
+        let small = normalize_item(
+            &json!({ "kind": "gauge", "name": "g", "data": { "shape": "arc" } }),
+            None,
+            NOW,
+        )
+        .unwrap();
         assert_eq!(summary_of(&small), small);
     }
 
@@ -383,14 +506,30 @@ mod tests {
     fn stores_lists_newest_first_and_removes() {
         let dir = tempfile::tempdir().unwrap();
         let store = LibraryStore::new(dir.path().join("library"));
-        let a = store.create(&json!({ "kind": "image", "name": "a" }), NOW).unwrap().unwrap();
-        let b = store.create(&json!({ "kind": "font", "name": "b" }), NOW + 1000).unwrap().unwrap();
+        let a = store
+            .create(&json!({ "kind": "image", "name": "a" }), NOW)
+            .unwrap()
+            .unwrap();
+        let b = store
+            .create(&json!({ "kind": "font", "name": "b" }), NOW + 1000)
+            .unwrap()
+            .unwrap();
         std::fs::write(dir.path().join("library/lib_broken00000.json"), "{broken").unwrap();
         assert_eq!(store.list().len(), 2);
         assert_eq!(store.list()[0]["id"], b["id"]);
         assert_eq!(store.get(a["id"].as_str().unwrap()).unwrap()["name"], "a");
-        assert!(store.update("lib_missing0000", &json!({}), NOW).unwrap().is_none());
-        assert_eq!(store.update(a["id"].as_str().unwrap(), &json!({ "name": " " }), NOW).unwrap().unwrap().unwrap_err(), "name is required");
+        assert!(store
+            .update("lib_missing0000", &json!({}), NOW)
+            .unwrap()
+            .is_none());
+        assert_eq!(
+            store
+                .update(a["id"].as_str().unwrap(), &json!({ "name": " " }), NOW)
+                .unwrap()
+                .unwrap()
+                .unwrap_err(),
+            "name is required"
+        );
         assert!(store.remove(a["id"].as_str().unwrap()).unwrap());
         assert!(!store.remove(a["id"].as_str().unwrap()).unwrap());
         assert_eq!(store.texts().len(), 2);
@@ -401,16 +540,30 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let library = dir.path().join("library");
         let store = LibraryStore::new(library.clone());
-        let item = store.create(&json!({ "kind": "image", "name": "a" }), NOW).unwrap().unwrap();
+        let item = store
+            .create(&json!({ "kind": "image", "name": "a" }), NOW)
+            .unwrap()
+            .unwrap();
         assert!(is_item_id(item["id"].as_str().unwrap()) && is_item_id(&new_item_id()));
         std::fs::write(library.join("lib_aaaaaaaaaaaa.json"), "{broken").unwrap();
         std::fs::write(library.join("notes.json"), "{}").unwrap();
         std::fs::write(dir.path().join("config.json"), "{}").unwrap();
         assert_eq!(store.list().len(), 1);
-        for id in ["../config", "..\\x", "lib_aaaaaaaaaaaa/../../config", "notes"] {
-            assert!(store.get(id).is_none() && !store.remove(id).unwrap(), "{id}");
+        for id in [
+            "../config",
+            "..\\x",
+            "lib_aaaaaaaaaaaa/../../config",
+            "notes",
+        ] {
+            assert!(
+                store.get(id).is_none() && !store.remove(id).unwrap(),
+                "{id}"
+            );
         }
-        assert!(store.update("../config", &json!({ "name": "x" }), NOW).unwrap().is_none());
+        assert!(store
+            .update("../config", &json!({ "name": "x" }), NOW)
+            .unwrap()
+            .is_none());
         assert!(dir.path().join("config.json").exists() && library.join("notes.json").exists());
     }
 
@@ -418,9 +571,27 @@ mod tests {
     fn guards_library_writes_in_order() {
         let ok = Some("application/json");
         assert!(library_write_refusal(ok, Some("1"), Some("127.0.0.1"), false, true).is_none());
-        assert_eq!(library_write_refusal(ok, None, Some("::1"), false, true).unwrap().status, 403);
-        assert_eq!(library_write_refusal(Some("text/plain"), Some("1"), Some("::1"), false, true).unwrap().status, 415);
-        assert!(library_write_refusal(Some("text/plain"), Some("1"), Some("::1"), false, false).is_none());
-        assert_eq!(library_write_refusal(ok, Some("1"), Some("192.168.1.5"), false, true).unwrap().status, 403);
+        assert_eq!(
+            library_write_refusal(ok, None, Some("::1"), false, true)
+                .unwrap()
+                .status,
+            403
+        );
+        assert_eq!(
+            library_write_refusal(Some("text/plain"), Some("1"), Some("::1"), false, true)
+                .unwrap()
+                .status,
+            415
+        );
+        assert!(
+            library_write_refusal(Some("text/plain"), Some("1"), Some("::1"), false, false)
+                .is_none()
+        );
+        assert_eq!(
+            library_write_refusal(ok, Some("1"), Some("192.168.1.5"), false, true)
+                .unwrap()
+                .status,
+            403
+        );
     }
 }

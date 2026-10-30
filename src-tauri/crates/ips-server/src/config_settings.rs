@@ -48,7 +48,8 @@ fn is_clock(v: &Value) -> bool {
 /// The `general` keys Settings › Dashboard edits (the performance ones: a pre-v16 Settings window's). The page font is Theme's.
 fn general_check(key: &str) -> Option<Check> {
     Some(match key {
-        "showSeconds" | "hideCursor" | "kioskPageNav" | "ringGlide" | "blurLimit" | "innerBlur" | "liveGlow" => is_bool,
+        "showSeconds" | "hideCursor" | "kioskPageNav" | "ringGlide" | "blurLimit" | "innerBlur"
+        | "liveGlow" => is_bool,
         "clock" => is_clock,
         "locale" => is_locale,
         "motion" => is_motion,
@@ -77,7 +78,10 @@ fn bad(message: String) -> Refusal {
 
 /// `target` with each key of `patch` set, or removed when null; `None` when nothing is left.
 fn merge_keys(target: Option<&Value>, patch: &Map<String, Value>) -> Option<Value> {
-    let mut out = target.and_then(Value::as_object).cloned().unwrap_or_default();
+    let mut out = target
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
     for key in json::keys(patch) {
         match &patch[key] {
             Value::Null => {
@@ -119,14 +123,23 @@ pub fn apply_settings_patch(stored: &Value, patch: &Value) -> Result<Value, Refu
     let Some(patch) = patch.as_object() else {
         return Err(bad("expected a settings patch".into()));
     };
-    if let Some(extra) = json::keys(patch).into_iter().find(|k| !["general", "style", "profiles", "activeProfile"].contains(&k.as_str())) {
+    if let Some(extra) = json::keys(patch)
+        .into_iter()
+        .find(|k| !["general", "style", "profiles", "activeProfile"].contains(&k.as_str()))
+    {
         return Err(bad(format!("not a setting: {extra}")));
     }
     let mut config = stored.clone();
 
     if let Some(launch) = patch.get("activeProfile") {
         let known = |id: &str| {
-            config.get("profiles").and_then(Value::as_array).is_some_and(|ps| ps.iter().any(|p| p.get("id").and_then(Value::as_str) == Some(id)))
+            config
+                .get("profiles")
+                .and_then(Value::as_array)
+                .is_some_and(|ps| {
+                    ps.iter()
+                        .any(|p| p.get("id").and_then(Value::as_str) == Some(id))
+                })
         };
         let id = match launch {
             Value::Null => "auto",
@@ -136,8 +149,13 @@ pub fn apply_settings_patch(stored: &Value, patch: &Value) -> Result<Value, Refu
         config.insert("activeProfile".into(), Value::String(id.to_string()));
     }
 
-    for (name, checks) in [("general", general_check as fn(&str) -> Option<Check>), ("style", style_check)] {
-        let Some(section) = patch.get(name) else { continue };
+    for (name, checks) in [
+        ("general", general_check as fn(&str) -> Option<Check>),
+        ("style", style_check),
+    ] {
+        let Some(section) = patch.get(name) else {
+            continue;
+        };
         let Some(section) = section.as_object() else {
             return Err(bad(format!("{name} must be an object")));
         };
@@ -152,30 +170,50 @@ pub fn apply_settings_patch(stored: &Value, patch: &Value) -> Result<Value, Refu
         let Some(changes) = changes.as_object() else {
             return Err(bad("profiles must be an object".into()));
         };
-        let profiles = config.get("profiles").and_then(Value::as_array).cloned().unwrap_or_default();
+        let profiles = config
+            .get("profiles")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
         for id in json::keys(changes) {
             let change = &changes[id];
-            if !change.as_object().is_some_and(|c| c.keys().all(|k| k == "performance")) {
+            if !change
+                .as_object()
+                .is_some_and(|c| c.keys().all(|k| k == "performance"))
+            {
                 return Err(bad(format!("not a valid profiles.{id}")));
             }
             let valid = match change.get("performance") {
                 Some(Value::Null) => true,
-                Some(Value::Object(perf)) => invalid_key(perf, performance_check).is_none() && !perf.values().any(Value::is_null),
+                Some(Value::Object(perf)) => {
+                    invalid_key(perf, performance_check).is_none()
+                        && !perf.values().any(Value::is_null)
+                }
                 _ => false,
             };
             if !valid {
                 return Err(bad(format!("not a valid profiles.{id}.performance")));
             }
-            if !profiles.iter().any(|p| p.get("id").and_then(Value::as_str) == Some(id.as_str())) {
+            if !profiles
+                .iter()
+                .any(|p| p.get("id").and_then(Value::as_str) == Some(id.as_str()))
+            {
                 return Err(Refusal::new(404, format!("no screen {id}")));
             }
         }
         let mapped = profiles
             .into_iter()
             .map(|p| {
-                let Some(profile) = p.as_object() else { return p };
-                let Some(change) = changes.get(&js::to_property_key(profile.get("id"))) else { return p };
-                let performance = change.get("performance").and_then(Value::as_object).and_then(|perf| merge_keys(None, perf));
+                let Some(profile) = p.as_object() else {
+                    return p;
+                };
+                let Some(change) = changes.get(&js::to_property_key(profile.get("id"))) else {
+                    return p;
+                };
+                let performance = change
+                    .get("performance")
+                    .and_then(Value::as_object)
+                    .and_then(|perf| merge_keys(None, perf));
                 Value::Object(with_key(profile, "performance", performance))
             })
             .collect();
@@ -197,7 +235,9 @@ pub struct SettingsEntry {
 pub fn reapply_settings(config: Value, log: &[SettingsEntry], since_rev: f64) -> Value {
     log.iter()
         .filter(|entry| entry.rev as f64 > since_rev)
-        .fold(config, |acc, entry| apply_settings_patch(&acc, &entry.patch).unwrap_or(acc))
+        .fold(config, |acc, entry| {
+            apply_settings_patch(&acc, &entry.patch).unwrap_or(acc)
+        })
 }
 
 #[cfg(test)]
@@ -212,25 +252,43 @@ mod tests {
     // v16: the app's 12 / 24 h is `general.clock`; a screen's performance holds the rendering switches.
     #[test]
     fn sets_the_app_clock_and_a_screens_full_performance() {
-        let out = apply_settings_patch(&stored(), &json!({ "general": { "clock": "12" } })).unwrap();
+        let out =
+            apply_settings_patch(&stored(), &json!({ "general": { "clock": "12" } })).unwrap();
         assert_eq!(out["general"], json!({ "locale": "de-DE", "clock": "12" }));
         let perf = json!({ "maxFps": 30, "motion": "reduce", "ringGlide": true, "blurLimit": false, "innerBlur": true, "liveGlow": false });
-        let out = apply_settings_patch(&stored(), &json!({ "profiles": { "desk": { "performance": perf } } })).unwrap();
+        let out = apply_settings_patch(
+            &stored(),
+            &json!({ "profiles": { "desk": { "performance": perf } } }),
+        )
+        .unwrap();
         assert_eq!(out["profiles"][0]["performance"], perf);
     }
 
     #[test]
     fn refuses_a_bad_clock_or_switch() {
-        for bad in [json!({ "general": { "clock": "auto" } }), json!({ "profiles": { "desk": { "performance": { "ringGlide": "yes" } } } })] {
-            assert_eq!(apply_settings_patch(&stored(), &bad).unwrap_err().status, 400);
+        for bad in [
+            json!({ "general": { "clock": "auto" } }),
+            json!({ "profiles": { "desk": { "performance": { "ringGlide": "yes" } } } }),
+        ] {
+            assert_eq!(
+                apply_settings_patch(&stored(), &bad).unwrap_err().status,
+                400
+            );
         }
     }
 
     // A Settings window built before v16 still writes `style.clock` and the dashboard performance keys.
     #[test]
     fn still_accepts_a_pre_v16_settings_patch() {
-        let out = apply_settings_patch(&stored(), &json!({ "style": { "clock": "24" }, "general": { "maxFps": 15, "liveGlow": true } })).unwrap();
+        let out = apply_settings_patch(
+            &stored(),
+            &json!({ "style": { "clock": "24" }, "general": { "maxFps": 15, "liveGlow": true } }),
+        )
+        .unwrap();
         assert_eq!(out["style"], json!({ "clock": "24" }));
-        assert_eq!(out["general"], json!({ "locale": "de-DE", "maxFps": 15, "liveGlow": true }));
+        assert_eq!(
+            out["general"],
+            json!({ "locale": "de-DE", "maxFps": 15, "liveGlow": true })
+        );
     }
 }

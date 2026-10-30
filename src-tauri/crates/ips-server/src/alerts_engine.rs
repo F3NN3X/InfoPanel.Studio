@@ -6,8 +6,9 @@ use std::collections::HashMap;
 use serde_json::{json, Map, Number, Value};
 
 use crate::alerts_rules::{
-    change_key, clears, conditions_of, fill, finite, fmt_number, get, get_in, holds, is_object, is_quiet, is_sensor_rule, numeric, readout, rules_of,
-    sensor_name, text_of, Last, Vars, NOTIFICATION_KEY,
+    change_key, clears, conditions_of, fill, finite, fmt_number, get, get_in, holds, is_object,
+    is_quiet, is_sensor_rule, numeric, readout, rules_of, sensor_name, text_of, Last, Vars,
+    NOTIFICATION_KEY,
 };
 use crate::ical::LocalZone;
 use crate::js;
@@ -85,7 +86,10 @@ pub struct AlertsState {
 
 impl AlertsState {
     pub fn with_history(history: Vec<Value>) -> Self {
-        Self { history, ..Self::default() }
+        Self {
+            history,
+            ..Self::default()
+        }
     }
 
     /// The alerts clients see.
@@ -114,7 +118,9 @@ impl Event {
     pub fn to_json(&self) -> Value {
         match self {
             Self::Fire(alert) => json!({ "type": "fire", "alert": alert }),
-            Self::Clear { alert, reason } => json!({ "type": "clear", "alert": alert, "reason": reason }),
+            Self::Clear { alert, reason } => {
+                json!({ "type": "clear", "alert": alert, "reason": reason })
+            }
         }
     }
 }
@@ -147,14 +153,21 @@ fn display_of(rule: &Value, alerts: Option<&Value>) -> Value {
     let defaults = get_in(alerts, "defaults");
     let own = get_in(get(rule, "outputs"), "display");
     let mut display = json!({ "style": "toast", "position": "top-right", "backdrop": "none", "size": "m", "seconds": 8 });
-    for source in [defaults, own].into_iter().flatten().filter(|d| is_object(d)) {
+    for source in [defaults, own]
+        .into_iter()
+        .flatten()
+        .filter(|d| is_object(d))
+    {
         for key in ["style", "position", "backdrop", "size"] {
             if let Some(v) = get(source, key).filter(|v| v.is_string()) {
                 display[key] = v.clone();
             }
         }
     }
-    let seconds = [get_in(own, "seconds"), get_in(defaults, "seconds")].into_iter().find(|s| finite(*s).is_some()).flatten();
+    let seconds = [get_in(own, "seconds"), get_in(defaults, "seconds")]
+        .into_iter()
+        .find(|s| finite(*s).is_some())
+        .flatten();
     if let Some(seconds) = seconds {
         display["seconds"] = seconds.clone();
     }
@@ -163,7 +176,10 @@ fn display_of(rule: &Value, alerts: Option<&Value>) -> Value {
 
 /// The text template; `None` for a rule with several conditions, whose text names the sensors that fired.
 fn template_of(rule: &Value, hits: &[Hit]) -> Option<String> {
-    let custom = get_in(get_in(Some(rule), "outputs"), "display").and_then(|d| get(d, "text")).and_then(Value::as_str).filter(|t| !t.is_empty());
+    let custom = get_in(get_in(Some(rule), "outputs"), "display")
+        .and_then(|d| get(d, "text"))
+        .and_then(Value::as_str)
+        .filter(|t| !t.is_empty());
     if let Some(custom) = custom {
         return Some(custom.to_string());
     }
@@ -173,8 +189,17 @@ fn template_of(rule: &Value, hits: &[Hit]) -> Option<String> {
     if conditions_of(&rule["source"]).len() > 1 {
         return None;
     }
-    let missing = hits.first().is_some_and(|h| get(h.cond, "op").and_then(Value::as_str) == Some("missing"));
-    Some(if missing { "Stopped reporting" } else { "{value}{unit}" }.into())
+    let missing = hits
+        .first()
+        .is_some_and(|h| get(h.cond, "op").and_then(Value::as_str) == Some("missing"));
+    Some(
+        if missing {
+            "Stopped reporting"
+        } else {
+            "{value}{unit}"
+        }
+        .into(),
+    )
 }
 
 fn string_of(v: Option<&Value>) -> String {
@@ -187,7 +212,9 @@ fn string_of(v: Option<&Value>) -> String {
 fn highlight_of(rule: &Value, hits: &[Hit]) -> Option<Value> {
     let highlight = get_in(get(rule, "outputs"), "highlight").filter(|h| is_object(h))?;
     let mut out = Map::new();
-    if let Some(zones) = get(highlight, "zones").filter(|z| z.as_array().is_some_and(|a| !a.is_empty())) {
+    if let Some(zones) =
+        get(highlight, "zones").filter(|z| z.as_array().is_some_and(|a| !a.is_empty()))
+    {
         out.insert("zones".into(), zones.clone());
     }
     if let (true, Some(hit)) = (is_sensor_rule(rule), hits.first()) {
@@ -199,14 +226,40 @@ fn highlight_of(rule: &Value, hits: &[Hit]) -> Option<Value> {
 /// Open an alert instance. `hits` are the sensor conditions that fired. `one_shot` ones expire after the display seconds
 /// (0 = when acknowledged).
 fn start(s: &mut AlertsState, events: &mut Vec<Event>, p: Start) -> String {
-    let Start { rule, alerts, env, hits, notification, one_shot, test } = p;
+    let Start {
+        rule,
+        alerts,
+        env,
+        hits,
+        notification,
+        one_shot,
+        test,
+    } = p;
     let now = env.now;
     let display = display_of(rule, alerts);
     let sensor = is_sensor_rule(rule);
     let reading = hits.first().and_then(|h| h.reading);
-    let value: Option<Value> = if sensor { numeric(reading).map(num).or_else(|| text_of(reading).map(Value::String)) } else { None };
-    let unit = if sensor { Some(get_in(reading, "unit").filter(|u| !u.is_null()).cloned().unwrap_or_else(|| json!(""))) } else { None };
-    let name = get(rule, "name").filter(|n| !n.is_null()).unwrap_or(&rule["id"]).clone();
+    let value: Option<Value> = if sensor {
+        numeric(reading)
+            .map(num)
+            .or_else(|| text_of(reading).map(Value::String))
+    } else {
+        None
+    };
+    let unit = if sensor {
+        Some(
+            get_in(reading, "unit")
+                .filter(|u| !u.is_null())
+                .cloned()
+                .unwrap_or_else(|| json!("")),
+        )
+    } else {
+        None
+    };
+    let name = get(rule, "name")
+        .filter(|n| !n.is_null())
+        .unwrap_or(&rule["id"])
+        .clone();
     let vars = Vars {
         name: js::to_property_key(Some(&name)),
         value: match &value {
@@ -214,27 +267,62 @@ fn start(s: &mut AlertsState, events: &mut Vec<Event>, p: Start) -> String {
             other => string_of(other.as_ref()),
         },
         unit: string_of(unit.as_ref()),
-        sensor: hits.first().map(|h| sensor_name(h.cond, h.reading)).unwrap_or_default(),
-        app: notification.map(|n| string_of(get(n, "app"))).unwrap_or_default(),
-        title: notification.map(|n| string_of(get(n, "title"))).unwrap_or_default(),
-        body: notification.map(|n| string_of(get(n, "body"))).unwrap_or_default(),
+        sensor: hits
+            .first()
+            .map(|h| sensor_name(h.cond, h.reading))
+            .unwrap_or_default(),
+        app: notification
+            .map(|n| string_of(get(n, "app")))
+            .unwrap_or_default(),
+        title: notification
+            .map(|n| string_of(get(n, "title")))
+            .unwrap_or_default(),
+        body: notification
+            .map(|n| string_of(get(n, "body")))
+            .unwrap_or_default(),
     };
-    let quiet = !test && (env.muted || is_quiet(get_in(alerts, "quietHours"), get(rule, "severity"), now, env.zone));
+    let quiet = !test
+        && (env.muted
+            || is_quiet(
+                get_in(alerts, "quietHours"),
+                get(rule, "severity"),
+                now,
+                env.zone,
+            ));
 
     s.seq += 1;
     let id = format!("{}-{}", base36(now as u64), s.seq);
-    let severity =
-        ["info", "warning", "critical"].into_iter().find(|s| get(rule, "severity").and_then(Value::as_str) == Some(s)).unwrap_or("warning");
+    let severity = ["info", "warning", "critical"]
+        .into_iter()
+        .find(|s| get(rule, "severity").and_then(Value::as_str) == Some(s))
+        .unwrap_or("warning");
     let text = match template_of(rule, hits) {
         Some(template) => fill(&template, &vars),
-        None => hits.iter().map(|h| format!("{} {}", sensor_name(h.cond, h.reading), readout(h.cond, h.reading))).collect::<Vec<_>>().join(", "),
+        None => hits
+            .iter()
+            .map(|h| {
+                format!(
+                    "{} {}",
+                    sensor_name(h.cond, h.reading),
+                    readout(h.cond, h.reading)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", "),
     };
     let text = js::trim(&text).to_string();
     let mut alert = Map::new();
     alert.insert("id".into(), json!(id));
     alert.insert("ruleId".into(), rule["id"].clone());
     alert.insert("name".into(), name.clone());
-    alert.insert("title".into(), if notification.is_some() && !vars.app.is_empty() { json!(vars.app) } else { name.clone() });
+    alert.insert(
+        "title".into(),
+        if notification.is_some() && !vars.app.is_empty() {
+            json!(vars.app)
+        } else {
+            name.clone()
+        },
+    );
     alert.insert("severity".into(), json!(severity));
     alert.insert("text".into(), json!(text));
     if let Some(value) = value {
@@ -249,13 +337,17 @@ fn start(s: &mut AlertsState, events: &mut Vec<Event>, p: Start) -> String {
     alert.insert("startedAt".into(), num(now));
     alert.insert("acknowledged".into(), json!(false));
     alert.insert("display".into(), display.clone());
-    if let Some(page) = get_in(get(rule, "outputs"), "page").filter(|p| is_object(p) && get(p, "page").is_some_and(Value::is_string)) {
+    if let Some(page) = get_in(get(rule, "outputs"), "page")
+        .filter(|p| is_object(p) && get(p, "page").is_some_and(Value::is_string))
+    {
         alert.insert("page".into(), page.clone());
     }
     if let Some(highlight) = highlight_of(rule, hits) {
         alert.insert("highlight".into(), highlight);
     }
-    if let Some(profiles) = get(rule, "profiles").filter(|p| p.as_array().is_some_and(|a| !a.is_empty())) {
+    if let Some(profiles) =
+        get(rule, "profiles").filter(|p| p.as_array().is_some_and(|a| !a.is_empty()))
+    {
         alert.insert("profiles".into(), profiles.clone());
     }
     if test {
@@ -267,7 +359,11 @@ fn start(s: &mut AlertsState, events: &mut Vec<Event>, p: Start) -> String {
     let alert = Value::Object(alert);
     let seconds = display["seconds"].as_f64().unwrap_or(0.0);
     let expires_at = (one_shot && seconds > 0.0).then_some(now + seconds * 1000.0);
-    s.active.push(Entry { alert: alert.clone(), one_shot, expires_at });
+    s.active.push(Entry {
+        alert: alert.clone(),
+        one_shot,
+        expires_at,
+    });
     let mut entry = Map::new();
     for (key, value) in [
         ("id", &alert["id"]),
@@ -305,8 +401,17 @@ fn base36(mut n: u64) -> String {
 }
 
 /// Close an instance: out of the active list, into the history, and the rule's runtime reset.
-fn end(s: &mut AlertsState, events: &mut Vec<Event>, id: &str, now: f64, dismissed: bool, reason: &'static str) {
-    let Some(at) = s.active.iter().position(|e| e.id() == id) else { return };
+fn end(
+    s: &mut AlertsState,
+    events: &mut Vec<Event>,
+    id: &str,
+    now: f64,
+    dismissed: bool,
+    reason: &'static str,
+) {
+    let Some(at) = s.active.iter().position(|e| e.id() == id) else {
+        return;
+    };
     let entry = s.active.remove(at);
     s.touch_history(|history| {
         for h in history.iter_mut().filter(|h| h["id"].as_str() == Some(id)) {
@@ -319,7 +424,11 @@ fn end(s: &mut AlertsState, events: &mut Vec<Event>, id: &str, now: f64, dismiss
         }
     });
     if !entry.is_test() {
-        let owns = s.rules.get(entry.rule_id()).and_then(|rs| rs.active.as_deref()) == Some(id);
+        let owns = s
+            .rules
+            .get(entry.rule_id())
+            .and_then(|rs| rs.active.as_deref())
+            == Some(id);
         s.patch(entry.rule_id(), |rs| {
             rs.cleared_at = Some(now);
             if owns {
@@ -328,7 +437,10 @@ fn end(s: &mut AlertsState, events: &mut Vec<Event>, id: &str, now: f64, dismiss
             }
         });
     }
-    events.push(Event::Clear { alert: entry.alert, reason: if dismissed { "dismissed" } else { reason } });
+    events.push(Event::Clear {
+        alert: entry.alert,
+        reason: if dismissed { "dismissed" } else { reason },
+    });
 }
 
 /// No refire within the cooldown after a clear (and, for one-shots, while one is still showing).
@@ -338,10 +450,16 @@ fn blocked(s: &AlertsState, rule: &Value, now: f64) -> bool {
         return false;
     }
     let id = rule["id"].as_str().unwrap_or_default();
-    if s.active.iter().any(|e| !e.is_test() && e.rule_id() == id && e.one_shot) {
+    if s.active
+        .iter()
+        .any(|e| !e.is_test() && e.rule_id() == id && e.one_shot)
+    {
         return true;
     }
-    s.rules.get(id).and_then(|rs| rs.cleared_at).is_some_and(|cleared| now - cleared < cooldown)
+    s.rules
+        .get(id)
+        .and_then(|rs| rs.cleared_at)
+        .is_some_and(|cleared| now - cleared < cooldown)
 }
 
 /* ---------------- evaluate ---------------- */
@@ -356,7 +474,14 @@ fn parse_notification(reading: Option<&Value>) -> Option<Value> {
 }
 
 fn lower(list: Option<&Value>) -> Vec<String> {
-    list.and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_str).map(str::to_lowercase).collect()).unwrap_or_default()
+    list.and_then(Value::as_array)
+        .map(|a| {
+            a.iter()
+                .filter_map(Value::as_str)
+                .map(str::to_lowercase)
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// Whether a notification passes a rule's `apps` (include), `exclude` and `match` filters.
@@ -369,8 +494,17 @@ fn passes(source: &Value, n: &Value) -> bool {
     if lower(get(source, "exclude")).contains(&app) {
         return false;
     }
-    match get(source, "match").and_then(Value::as_str).filter(|m| !m.is_empty()) {
-        Some(m) => format!("{} {}", string_of(get(n, "title")), string_of(get(n, "body"))).to_lowercase().contains(&m.to_lowercase()),
+    match get(source, "match")
+        .and_then(Value::as_str)
+        .filter(|m| !m.is_empty())
+    {
+        Some(m) => format!(
+            "{} {}",
+            string_of(get(n, "title")),
+            string_of(get(n, "body"))
+        )
+        .to_lowercase()
+        .contains(&m.to_lowercase()),
         None => true,
     }
 }
@@ -379,23 +513,40 @@ fn passes(source: &Value, n: &Value) -> bool {
 /// condition has held `forSeconds`, clear per `clears`, and refire only after `cooldownSeconds`. `changes`, notification
 /// and test alerts are one-shots that expire after the display seconds (0 = until acknowledged). Disabled rules, and
 /// everything while `alerts.enabled === false`, fire nothing and clear what is active. While muted, every new alert is quiet.
-pub fn evaluate(s: &mut AlertsState, alerts: Option<&Value>, readings: &Readings, env: Env) -> Vec<Event> {
+pub fn evaluate(
+    s: &mut AlertsState,
+    alerts: Option<&Value>,
+    readings: &Readings,
+    env: Env,
+) -> Vec<Event> {
     let mut events = vec![];
     let enabled = get_in(alerts, "enabled") != Some(&Value::Bool(false));
     let mut live: Vec<(&str, &Value)> = vec![];
-    for rule in rules_of(alerts).into_iter().filter(|r| enabled && get(r, "enabled") != Some(&Value::Bool(false))) {
+    for rule in rules_of(alerts)
+        .into_iter()
+        .filter(|r| enabled && get(r, "enabled") != Some(&Value::Bool(false)))
+    {
         let id = rule["id"].as_str().unwrap_or_default();
         match live.iter_mut().find(|(known, _)| *known == id) {
             Some(slot) => slot.1 = rule,
             None => live.push((id, rule)),
         }
     }
-    let gone: Vec<String> =
-        s.active.iter().filter(|e| !e.is_test() && !live.iter().any(|(id, _)| *id == e.rule_id())).map(|e| e.id().to_string()).collect();
+    let gone: Vec<String> = s
+        .active
+        .iter()
+        .filter(|e| !e.is_test() && !live.iter().any(|(id, _)| *id == e.rule_id()))
+        .map(|e| e.id().to_string())
+        .collect();
     for id in gone {
         end(s, &mut events, &id, env.now, false, "cleared");
     }
-    let expired: Vec<String> = s.active.iter().filter(|e| e.expires_at.is_some_and(|at| env.now >= at)).map(|e| e.id().to_string()).collect();
+    let expired: Vec<String> = s
+        .active
+        .iter()
+        .filter(|e| e.expires_at.is_some_and(|at| env.now >= at))
+        .map(|e| e.id().to_string())
+        .collect();
     for id in expired {
         end(s, &mut events, &id, env.now, false, "expired");
     }
@@ -409,14 +560,37 @@ pub fn evaluate(s: &mut AlertsState, alerts: Option<&Value>, readings: &Readings
     events
 }
 
-fn notification_pass(s: &mut AlertsState, events: &mut Vec<Event>, alerts: Option<&Value>, rule: &Value, readings: &Readings, env: Env) {
+fn notification_pass(
+    s: &mut AlertsState,
+    events: &mut Vec<Event>,
+    alerts: Option<&Value>,
+    rule: &Value,
+    readings: &Readings,
+    env: Env,
+) {
     let id = rule["id"].as_str().unwrap_or_default();
     let rs = s.rules.get(id).cloned().unwrap_or_default();
     let n = parse_notification(readings.get(NOTIFICATION_KEY));
     let n_id = n.as_ref().map(|n| js::to_property_key(get(n, "id")));
     if let Some(n) = &n {
-        if rs.seeded && n_id != rs.last_id && passes(&rule["source"], n) && !blocked(s, rule, env.now) {
-            start(s, events, Start { rule, alerts, env, hits: &[], notification: Some(n), one_shot: true, test: false });
+        if rs.seeded
+            && n_id != rs.last_id
+            && passes(&rule["source"], n)
+            && !blocked(s, rule, env.now)
+        {
+            start(
+                s,
+                events,
+                Start {
+                    rule,
+                    alerts,
+                    env,
+                    hits: &[],
+                    notification: Some(n),
+                    one_shot: true,
+                    test: false,
+                },
+            );
         }
     }
     // Baseline the latest notification once data has arrived, so an old one never fires.
@@ -440,9 +614,19 @@ struct Pass<'a> {
     unknown: bool,
 }
 
-fn condition_pass<'a>(conds: &[&'a Value], rs: &RuleState, readings: &'a Readings, for_ms: f64, now: f64) -> Pass<'a> {
+fn condition_pass<'a>(
+    conds: &[&'a Value],
+    rs: &RuleState,
+    readings: &'a Readings,
+    for_ms: f64,
+    now: f64,
+) -> Pass<'a> {
     let mut pass = Pass {
-        states: conds.iter().enumerate().map(|(i, _)| rs.conds.get(i).cloned().unwrap_or_default()).collect(),
+        states: conds
+            .iter()
+            .enumerate()
+            .map(|(i, _)| rs.conds.get(i).cloned().unwrap_or_default())
+            .collect(),
         changed: vec![],
         met: vec![],
         level: vec![],
@@ -454,7 +638,9 @@ fn condition_pass<'a>(conds: &[&'a Value], rs: &RuleState, readings: &'a Reading
         let st = &mut pass.states[i];
         let op = get(cond, "op").and_then(Value::as_str);
         if op == Some("changes") {
-            let Some(current) = change_key(reading) else { continue };
+            let Some(current) = change_key(reading) else {
+                continue;
+            };
             if st.seeded && st.last.as_ref().is_some_and(|last| *last != current) {
                 pass.changed.push(Hit { cond, reading });
             }
@@ -473,7 +659,11 @@ fn condition_pass<'a>(conds: &[&'a Value], rs: &RuleState, readings: &'a Reading
             pass.unknown = true;
             continue;
         };
-        st.on = if st.on { !clears(cond, reading, holds_now) } else { holds_now };
+        st.on = if st.on {
+            !clears(cond, reading, holds_now)
+        } else {
+            holds_now
+        };
         if holds_now {
             pass.holding = true;
             let since = *st.since.get_or_insert(now);
@@ -491,7 +681,14 @@ fn condition_pass<'a>(conds: &[&'a Value], rs: &RuleState, readings: &'a Reading
 /// but `changes`) has held `forSeconds`, naming those that did, and clears when none is still on. A `missing` condition holds
 /// while its key is absent, but only after the rule has seen the key. A `changes` condition is a one-shot on its own. A
 /// dismissed alert waits for every condition to stop holding before it can fire again.
-fn sensor_pass(s: &mut AlertsState, events: &mut Vec<Event>, alerts: Option<&Value>, rule: &Value, readings: &Readings, env: Env) {
+fn sensor_pass(
+    s: &mut AlertsState,
+    events: &mut Vec<Event>,
+    alerts: Option<&Value>,
+    rule: &Value,
+    readings: &Readings,
+    env: Env,
+) {
     let id = rule["id"].as_str().unwrap_or_default();
     let rs = s.rules.get(id).cloned().unwrap_or_default();
     let conds = conditions_of(&rule["source"]);
@@ -502,7 +699,11 @@ fn sensor_pass(s: &mut AlertsState, events: &mut Vec<Event>, alerts: Option<&Val
     let (holding, unknown) = (pass.holding, pass.unknown);
     s.patch(id, |r| r.conds = pass.states);
 
-    let active_id = rs.active.as_deref().filter(|a| s.active.iter().any(|e| e.id() == *a)).map(str::to_string);
+    let active_id = rs
+        .active
+        .as_deref()
+        .filter(|a| s.active.iter().any(|e| e.id() == *a))
+        .map(str::to_string);
     if let Some(active) = active_id {
         if has_level && !any_on {
             end(s, events, &active, env.now, false, "cleared");
@@ -512,11 +713,35 @@ fn sensor_pass(s: &mut AlertsState, events: &mut Vec<Event>, alerts: Option<&Val
             s.patch(id, |r| r.dismissed = false);
         }
     } else if !rs.dismissed && !pass.met.is_empty() && !blocked(s, rule, env.now) {
-        let started = start(s, events, Start { rule, alerts, env, hits: &pass.met, notification: None, one_shot: false, test: false });
+        let started = start(
+            s,
+            events,
+            Start {
+                rule,
+                alerts,
+                env,
+                hits: &pass.met,
+                notification: None,
+                one_shot: false,
+                test: false,
+            },
+        );
         s.patch(id, |r| r.active = Some(started));
     }
     if !pass.changed.is_empty() && !blocked(s, rule, env.now) {
-        start(s, events, Start { rule, alerts, env, hits: &pass.changed, notification: None, one_shot: true, test: false });
+        start(
+            s,
+            events,
+            Start {
+                rule,
+                alerts,
+                env,
+                hits: &pass.changed,
+                notification: None,
+                one_shot: true,
+                test: false,
+            },
+        );
     }
 }
 
@@ -524,8 +749,18 @@ fn sensor_pass(s: &mut AlertsState, events: &mut Vec<Event>, alerts: Option<&Val
 
 /// A test shows the conditions with a reading (the first one when none has).
 fn test_hits<'a>(rule: &'a Value, readings: &'a Readings) -> Vec<Hit<'a>> {
-    let all: Vec<Hit> = conditions_of(&rule["source"]).into_iter().map(|cond| Hit { cond, reading: readings.get(cond_key(cond)) }).collect();
-    let live: Vec<Hit> = all.iter().copied().filter(|h| h.reading.is_some()).collect();
+    let all: Vec<Hit> = conditions_of(&rule["source"])
+        .into_iter()
+        .map(|cond| Hit {
+            cond,
+            reading: readings.get(cond_key(cond)),
+        })
+        .collect();
+    let live: Vec<Hit> = all
+        .iter()
+        .copied()
+        .filter(|h| h.reading.is_some())
+        .collect();
     if live.is_empty() {
         all.into_iter().take(1).collect()
     } else {
@@ -540,23 +775,53 @@ fn test_notification() -> Value {
 /// Apply a client action: `{ id, action: "ack" | "dismiss" }` or `{ ruleId, action: "test" }`. Acknowledge hides the
 /// alert on kiosks until it clears (a one-shot that stays until acknowledged ends); dismiss removes it now; test fires a
 /// one-shot of the rule's output. The events, or the error text.
-pub fn act(s: &mut AlertsState, action: &Value, alerts: Option<&Value>, readings: &Readings, env: Env) -> Result<Vec<Event>, &'static str> {
+pub fn act(
+    s: &mut AlertsState,
+    action: &Value,
+    alerts: Option<&Value>,
+    readings: &Readings,
+    env: Env,
+) -> Result<Vec<Event>, &'static str> {
     let mut events = vec![];
     let kind = get(action, "action").and_then(Value::as_str);
     if kind == Some("test") {
         let wanted = get(action, "ruleId");
-        let rule = rules_of(alerts).into_iter().find(|r| wanted.is_some() && get(r, "id") == wanted).ok_or("unknown rule")?;
+        let rule = rules_of(alerts)
+            .into_iter()
+            .find(|r| wanted.is_some() && get(r, "id") == wanted)
+            .ok_or("unknown rule")?;
         let sensor = is_sensor_rule(rule);
-        let hits = if sensor { test_hits(rule, readings) } else { vec![] };
+        let hits = if sensor {
+            test_hits(rule, readings)
+        } else {
+            vec![]
+        };
         let notification = (!sensor).then(test_notification);
-        start(s, &mut events, Start { rule, alerts, env, hits: &hits, notification: notification.as_ref(), one_shot: true, test: true });
+        start(
+            s,
+            &mut events,
+            Start {
+                rule,
+                alerts,
+                env,
+                hits: &hits,
+                notification: notification.as_ref(),
+                one_shot: true,
+                test: true,
+            },
+        );
         return Ok(events);
     }
     if kind != Some("ack") && kind != Some("dismiss") {
         return Err("unknown action");
     }
     let wanted = get(action, "id");
-    let entry = s.active.iter().find(|e| wanted.is_some() && Some(&e.alert["id"]) == wanted).cloned().ok_or("unknown alert")?;
+    let entry = s
+        .active
+        .iter()
+        .find(|e| wanted.is_some() && Some(&e.alert["id"]) == wanted)
+        .cloned()
+        .ok_or("unknown alert")?;
     let id = entry.id().to_string();
     if kind == Some("dismiss") {
         end(s, &mut events, &id, env.now, true, "cleared");
@@ -567,7 +832,10 @@ pub fn act(s: &mut AlertsState, action: &Value, alerts: Option<&Value>, readings
             e.alert["acknowledged"] = json!(true);
         }
         s.touch_history(|history| {
-            for h in history.iter_mut().filter(|h| h["id"].as_str() == Some(id.as_str())) {
+            for h in history
+                .iter_mut()
+                .filter(|h| h["id"].as_str() == Some(id.as_str()))
+            {
                 if let Some(map) = h.as_object_mut() {
                     map.insert("acknowledgedAt".into(), num(env.now));
                 }
@@ -582,15 +850,28 @@ pub fn act(s: &mut AlertsState, action: &Value, alerts: Option<&Value>, readings
 
 /// Mark every active alert (tests excepted) quiet, in the history too.
 pub fn quieten(s: &mut AlertsState) {
-    let ids: Vec<String> = s.active.iter().filter(|e| !e.is_test() && e.alert.get("quiet").is_none()).map(|e| e.id().to_string()).collect();
+    let ids: Vec<String> = s
+        .active
+        .iter()
+        .filter(|e| !e.is_test() && e.alert.get("quiet").is_none())
+        .map(|e| e.id().to_string())
+        .collect();
     if ids.is_empty() {
         return;
     }
-    for e in s.active.iter_mut().filter(|e| ids.iter().any(|id| id == e.id())) {
+    for e in s
+        .active
+        .iter_mut()
+        .filter(|e| ids.iter().any(|id| id == e.id()))
+    {
         e.alert["quiet"] = json!(true);
     }
     s.touch_history(|history| {
-        for h in history.iter_mut().filter(|h| h["id"].as_str().is_some_and(|id| ids.iter().any(|i| i == id))) {
+        for h in history.iter_mut().filter(|h| {
+            h["id"]
+                .as_str()
+                .is_some_and(|id| ids.iter().any(|i| i == id))
+        }) {
             h["quiet"] = json!(true);
         }
     });

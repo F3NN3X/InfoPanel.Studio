@@ -5,7 +5,10 @@ use std::path::{Path, PathBuf};
 use crate::js;
 
 /// The repo's package.json, whose version GET /api/health reports.
-const PACKAGE_JSON: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../package.json"));
+const PACKAGE_JSON: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../../package.json"
+));
 
 /// The `version` of a package.json's text, or "0.0.0" when it has none.
 pub fn read_version(package_json: &str) -> String {
@@ -49,7 +52,11 @@ pub fn parse_port(value: Option<&str>) -> Result<u16, String> {
 pub fn default_data_dir() -> PathBuf {
     let local = non_empty("LOCALAPPDATA")
         .map(PathBuf::from)
-        .unwrap_or_else(|| Path::new(&non_empty("HOME").unwrap_or_else(|| ".".into())).join(".local").join("share"));
+        .unwrap_or_else(|| {
+            Path::new(&non_empty("HOME").unwrap_or_else(|| ".".into()))
+                .join(".local")
+                .join("share")
+        });
     local.join("InfoPanel").join("Dashboard")
 }
 
@@ -57,7 +64,9 @@ pub fn default_data_dir() -> PathBuf {
 pub fn infopanel_dir() -> PathBuf {
     non_empty("INFOPANEL_DATA_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|| Path::new(&non_empty("LOCALAPPDATA").unwrap_or_default()).join("InfoPanel"))
+        .unwrap_or_else(|| {
+            Path::new(&non_empty("LOCALAPPDATA").unwrap_or_default()).join("InfoPanel")
+        })
 }
 
 #[cfg(test)]
@@ -70,7 +79,9 @@ mod tests {
         assert_eq!(parse_port(Some("")), Ok(3922));
         assert_eq!(parse_port(Some("0")), Ok(0));
         assert_eq!(parse_port(Some(" 0x10 ")), Ok(16));
-        assert!(parse_port(Some("abc")).unwrap_err().contains("Received type number (NaN)"));
+        assert!(parse_port(Some("abc"))
+            .unwrap_err()
+            .contains("Received type number (NaN)"));
         assert!(parse_port(Some("65536")).is_err());
         assert!(parse_port(Some("1.5")).is_err());
     }

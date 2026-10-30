@@ -32,10 +32,18 @@ fn civil_from_days(days: i64) -> (i64, i64, i64) {
 
 /// The local zone's offset from UTC at an instant, ms.
 fn offset_ms(zone: LocalZone, utc_ms: i64) -> i64 {
-    let Some(at) = chrono::DateTime::from_timestamp_millis(utc_ms) else { return 0 };
+    let Some(at) = chrono::DateTime::from_timestamp_millis(utc_ms) else {
+        return 0;
+    };
     let seconds = match zone {
-        LocalZone::Pinned(tz) => tz.offset_from_utc_datetime(&at.naive_utc()).fix().local_minus_utc(),
-        LocalZone::System => Local.offset_from_utc_datetime(&at.naive_utc()).fix().local_minus_utc(),
+        LocalZone::Pinned(tz) => tz
+            .offset_from_utc_datetime(&at.naive_utc())
+            .fix()
+            .local_minus_utc(),
+        LocalZone::System => Local
+            .offset_from_utc_datetime(&at.naive_utc())
+            .fix()
+            .local_minus_utc(),
     };
     i64::from(seconds) * 1000
 }
@@ -75,12 +83,16 @@ fn date_part(s: &str) -> Option<(i64, i64, i64, &str)> {
         }
         _ => digits(s, 4)?,
     };
-    let Some(rest) = rest.strip_prefix('-') else { return Some((year, 1, 1, rest)) };
+    let Some(rest) = rest.strip_prefix('-') else {
+        return Some((year, 1, 1, rest));
+    };
     let (month, rest) = digits(rest, 2)?;
     if !(1..=12).contains(&month) {
         return None;
     }
-    let Some(rest) = rest.strip_prefix('-') else { return Some((year, month, 1, rest)) };
+    let Some(rest) = rest.strip_prefix('-') else {
+        return Some((year, month, 1, rest));
+    };
     let (day, rest) = digits(rest, 2)?;
     // V8 takes any day up to 31 and lets it overflow into the next month.
     if !(1..=31).contains(&day) {
@@ -107,7 +119,11 @@ fn time_part(s: &str) -> Option<(i64, &str)> {
         millis = head.parse::<i64>().ok()? * 10_i64.pow(3 - head.len() as u32);
         rest = &r[n..];
     }
-    if hour > 24 || minute > 59 || second > 59 || (hour == 24 && (minute, second, millis) != (0, 0, 0)) {
+    if hour > 24
+        || minute > 59
+        || second > 59
+        || (hour == 24 && (minute, second, millis) != (0, 0, 0))
+    {
         return None;
     }
     Some((((hour * 60 + minute) * 60 + second) * 1000 + millis, rest))
@@ -125,7 +141,11 @@ fn zone_part(s: &str) -> Option<Option<i64>> {
                 let (m, end) = digits(rest, 2)?;
                 end.is_empty().then_some((h, m))
             });
-            Some(parsed.filter(|&(h, m)| h <= 23 && m <= 59).map(|(h, m)| (h * 60 + m) * 60_000 * if *sign == b'-' { -1 } else { 1 }))
+            Some(
+                parsed
+                    .filter(|&(h, m)| h <= 23 && m <= 59)
+                    .map(|(h, m)| (h * 60 + m) * 60_000 * if *sign == b'-' { -1 } else { 1 }),
+            )
         }
         Some(_) => Some(None),
     }
@@ -179,7 +199,16 @@ mod tests {
         // Days overflow into the next month; 24:00 is the next midnight.
         assert_eq!(at("2026-02-30"), Some(1_772_409_600_000.0));
         assert_eq!(at("2026-10-15T24:00:00Z"), Some(1_792_108_800_000.0));
-        for bad in ["2026-10-15T24:00:01Z", "2026-13-01", "2026-10-15T10Z", "2026-10-15T10:00:60Z", "2026-10-15T1:00:00Z", "", "1760000000", "Oct 15 2026"] {
+        for bad in [
+            "2026-10-15T24:00:01Z",
+            "2026-13-01",
+            "2026-10-15T10Z",
+            "2026-10-15T10:00:60Z",
+            "2026-10-15T1:00:00Z",
+            "",
+            "1760000000",
+            "Oct 15 2026",
+        ] {
             assert_eq!(at(bad), None, "{bad}");
         }
     }
@@ -188,7 +217,13 @@ mod tests {
     fn names_the_local_day() {
         // 22:30 UTC on the 14th is already the 15th in Oslo (UTC+2).
         assert_eq!(day_key(1_792_017_000_000.0, OSLO), "2026-10-15");
-        assert_eq!(day_key(1_792_017_000_000.0 - 3_600_000.0, OSLO), "2026-10-14");
-        assert_eq!(day_key(0.0, LocalZone::Pinned(chrono_tz::UTC)), "1970-01-01");
+        assert_eq!(
+            day_key(1_792_017_000_000.0 - 3_600_000.0, OSLO),
+            "2026-10-14"
+        );
+        assert_eq!(
+            day_key(0.0, LocalZone::Pinned(chrono_tz::UTC)),
+            "1970-01-01"
+        );
     }
 }

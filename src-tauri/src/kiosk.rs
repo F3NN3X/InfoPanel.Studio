@@ -4,9 +4,7 @@
 use crate::state::{lock, AppState};
 use crate::windows;
 use serde::Deserialize;
-use tauri::{
-    AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewWindow,
-};
+use tauri::{AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 
 /// The studio window's least size (`create_main`'s).
 const MIN_WIDTH: f64 = 960.0;

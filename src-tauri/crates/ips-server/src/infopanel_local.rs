@@ -33,12 +33,23 @@ pub struct Profile {
 /// `GUID`: `8-4-4-4-12` hex digits, any case.
 pub fn is_guid(s: &str) -> bool {
     let parts: Vec<&str> = s.split('-').collect();
-    parts.len() == 5 && [8, 4, 4, 4, 12].iter().zip(&parts).all(|(n, p)| p.len() == *n && p.bytes().all(|b| b.is_ascii_hexdigit()))
+    parts.len() == 5
+        && [8, 4, 4, 4, 12]
+            .iter()
+            .zip(&parts)
+            .all(|(n, p)| p.len() == *n && p.bytes().all(|b| b.is_ascii_hexdigit()))
 }
 
 /// An asset file name as InfoPanel stores it: one plain name, no folders, no dot-only names.
 pub fn is_asset_name(s: &str) -> bool {
-    !s.is_empty() && !s.chars().any(|c| matches!(c, '\\' | '/' | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '\0')) && !s.chars().all(|c| c == '.')
+    !s.is_empty()
+        && !s.chars().any(|c| {
+            matches!(
+                c,
+                '\\' | '/' | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '\0'
+            )
+        })
+        && !s.chars().all(|c| c == '.')
 }
 
 fn unescape(s: &str) -> String {
@@ -47,7 +58,15 @@ fn unescape(s: &str) -> String {
     while let Some(at) = rest.find('&') {
         out.push_str(&rest[..at]);
         rest = &rest[at..];
-        let known = [("&lt;", '<'), ("&gt;", '>'), ("&amp;", '&'), ("&quot;", '"'), ("&apos;", '\'')].into_iter().find(|(e, _)| rest.starts_with(e));
+        let known = [
+            ("&lt;", '<'),
+            ("&gt;", '>'),
+            ("&amp;", '&'),
+            ("&quot;", '"'),
+            ("&apos;", '\''),
+        ]
+        .into_iter()
+        .find(|(e, _)| rest.starts_with(e));
         match known {
             Some((entity, c)) => {
                 out.push(c);
@@ -82,13 +101,19 @@ pub fn profiles_from_xml(text: &str) -> Vec<Profile> {
     let mut out = Vec::new();
     let mut rest = text;
     while let Some(start) = rest.find("<Profile>") {
-        let Some(len) = rest[start + 9..].find("</Profile>") else { break };
+        let Some(len) = rest[start + 9..].find("</Profile>") else {
+            break;
+        };
         let end = start + 9 + len + 10;
         let block = &rest[start..end];
         rest = &rest[end..];
         let guid = field(block, "Guid").unwrap_or("");
         if is_guid(guid) {
-            out.push(Profile { guid: guid.to_string(), name: unescape(field(block, "Name").unwrap_or("")), xml: block.to_string() });
+            out.push(Profile {
+                guid: guid.to_string(),
+                name: unescape(field(block, "Name").unwrap_or("")),
+                xml: block.to_string(),
+            });
         }
     }
     out
@@ -104,16 +129,24 @@ fn missing<T>(result: std::io::Result<T>) -> std::io::Result<Option<T>> {
 }
 
 fn profiles(dir: &Path) -> std::io::Result<Option<Vec<Profile>>> {
-    Ok(missing(std::fs::read(dir.join("profiles.xml")))?.map(|bytes| profiles_from_xml(&String::from_utf8_lossy(&bytes))))
+    Ok(missing(std::fs::read(dir.join("profiles.xml")))?
+        .map(|bytes| profiles_from_xml(&String::from_utf8_lossy(&bytes))))
 }
 
 /// Every profile: guid, name, the size of its items file and its asset names.
 fn list(dir: &Path) -> std::io::Result<Value> {
     let mut found = Vec::new();
     for p in profiles(dir)?.unwrap_or_default() {
-        let bytes = std::fs::metadata(dir.join("profiles").join(format!("{}.xml", p.guid))).map_or(0, |m| m.len());
+        let bytes = std::fs::metadata(dir.join("profiles").join(format!("{}.xml", p.guid)))
+            .map_or(0, |m| m.len());
         let mut assets: Vec<String> = std::fs::read_dir(dir.join("assets").join(&p.guid))
-            .map(|entries| entries.filter_map(Result::ok).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| is_asset_name(n)).collect())
+            .map(|entries| {
+                entries
+                    .filter_map(Result::ok)
+                    .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .filter(|n| is_asset_name(n))
+                    .collect()
+            })
             .unwrap_or_default();
         // The default sort compares UTF-16 code units.
         assets.sort_by(|a, b| a.encode_utf16().cmp(b.encode_utf16()));
@@ -128,11 +161,15 @@ fn read(dir: &Path, guid: &str, parts: &[String]) -> std::io::Result<Option<Vec<
         return Ok(None);
     }
     match parts {
-        [name] if name == "Profile.xml" => {
-            Ok(profiles(dir)?.and_then(|all| all.into_iter().find(|p| p.guid == guid)).map(|p| p.xml.into_bytes()))
+        [name] if name == "Profile.xml" => Ok(profiles(dir)?
+            .and_then(|all| all.into_iter().find(|p| p.guid == guid))
+            .map(|p| p.xml.into_bytes())),
+        [name] if name == "DisplayItems.xml" => missing(std::fs::read(
+            dir.join("profiles").join(format!("{guid}.xml")),
+        )),
+        [name, asset] if name == "assets" && is_asset_name(asset) => {
+            missing(std::fs::read(dir.join("assets").join(guid).join(asset)))
         }
-        [name] if name == "DisplayItems.xml" => missing(std::fs::read(dir.join("profiles").join(format!("{guid}.xml")))),
-        [name, asset] if name == "assets" && is_asset_name(asset) => missing(std::fs::read(dir.join("assets").join(guid).join(asset))),
         _ => Ok(None),
     }
 }
@@ -143,13 +180,19 @@ pub fn handle(app: &App, req: &Req) -> std::io::Result<Response<Body>> {
         return Ok(http::empty(405));
     }
     if !req.is_loopback() {
-        return Ok(http::text(403, "installed profiles are served to this computer only"));
+        return Ok(http::text(
+            403,
+            "installed profiles are served to this computer only",
+        ));
     }
     let dir = &app.cfg.infopanel_dir;
     if req.path == PREFIX {
         return Ok(http::json(200, &list(dir)?));
     }
-    let parts: Option<Vec<String>> = req.path[PREFIX.len() + 1..].split('/').map(decode_uri_component).collect();
+    let parts: Option<Vec<String>> = req.path[PREFIX.len() + 1..]
+        .split('/')
+        .map(decode_uri_component)
+        .collect();
     let Some(mut parts) = parts.filter(|p| !p.is_empty()) else {
         return Ok(http::empty(404));
     };
@@ -158,7 +201,11 @@ pub fn handle(app: &App, req: &Req) -> std::io::Result<Response<Body>> {
         return Ok(http::empty(404));
     };
     // Assets are the profile's own files, served as bytes: never rendered here.
-    let kind = if parts.first().is_some_and(|p| p == "assets") { "application/octet-stream" } else { "application/xml; charset=utf-8" };
+    let kind = if parts.first().is_some_and(|p| p == "assets") {
+        "application/octet-stream"
+    } else {
+        "application/xml; charset=utf-8"
+    };
     let response = Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", HeaderValue::from_static(kind))
@@ -184,7 +231,10 @@ mod tests {
     fn lists_each_profile_with_its_own_element_skipping_invalid_guids() {
         let list = profiles_from_xml(&profiles_xml());
         assert_eq!(list.len(), 1);
-        assert_eq!((list[0].guid.as_str(), list[0].name.as_str()), (G1, "A & B &lt; &bogus;"));
+        assert_eq!(
+            (list[0].guid.as_str(), list[0].name.as_str()),
+            (G1, "A & B &lt; &bogus;")
+        );
         assert!(list[0].xml.starts_with("<Profile><Guid>") && list[0].xml.ends_with("</Profile>"));
         assert!(profiles_from_xml("<Profile><Guid>x").is_empty());
         let odd = format!("<Profile><Guid>a<b</Guid><Guid>{G1}</Guid></Profile>");
@@ -195,8 +245,12 @@ mod tests {
     fn accepts_guids_and_plain_file_names_only() {
         assert!(is_guid(G1) && is_guid(&G1.to_uppercase()));
         assert!(!is_guid("..") && !is_guid(&format!("{G1}0")));
-        assert!(["a.png", "Donut_00001.png", "with space.gif", "..a"].iter().all(|n| is_asset_name(n)));
-        assert!(!["..", ".", "a/b.png", "a\\b.png", "C:x", ""].iter().any(|n| is_asset_name(n)));
+        assert!(["a.png", "Donut_00001.png", "with space.gif", "..a"]
+            .iter()
+            .all(|n| is_asset_name(n)));
+        assert!(!["..", ".", "a/b.png", "a\\b.png", "C:x", ""]
+            .iter()
+            .any(|n| is_asset_name(n)));
     }
 
     #[test]
@@ -206,17 +260,45 @@ mod tests {
         assert_eq!(list(root).unwrap(), json!([]));
         std::fs::write(root.join("profiles.xml"), profiles_xml()).unwrap();
         std::fs::create_dir_all(root.join("profiles")).unwrap();
-        std::fs::write(root.join("profiles").join(format!("{G1}.xml")), "<ArrayOfDisplayItem/>").unwrap();
+        std::fs::write(
+            root.join("profiles").join(format!("{G1}.xml")),
+            "<ArrayOfDisplayItem/>",
+        )
+        .unwrap();
         std::fs::create_dir_all(root.join("assets").join(G1)).unwrap();
         std::fs::write(root.join("assets").join(G1).join("logo.png"), "png").unwrap();
-        assert_eq!(list(root).unwrap(), json!([{ "guid": G1, "name": "A & B &lt; &bogus;", "bytes": 21, "assets": ["logo.png"] }]));
+        assert_eq!(
+            list(root).unwrap(),
+            json!([{ "guid": G1, "name": "A & B &lt; &bogus;", "bytes": 21, "assets": ["logo.png"] }])
+        );
         let parts = |p: &[&str]| p.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-        assert_eq!(read(root, G1, &parts(&["DisplayItems.xml"])).unwrap().unwrap(), b"<ArrayOfDisplayItem/>");
-        assert_eq!(read(root, G1, &parts(&["assets", "logo.png"])).unwrap().unwrap(), b"png");
-        assert!(read(root, G1, &parts(&["assets", "gone.png"])).unwrap().is_none());
-        assert!(read(root, G1, &parts(&["assets", "..", "x"])).unwrap().is_none());
-        assert!(read(root, "nope", &parts(&["Profile.xml"])).unwrap().is_none());
-        assert!(read(root, G1, &parts(&["Profile.xml"])).unwrap().unwrap().starts_with(b"<Profile>"));
-        assert!(read(root, &G1.to_uppercase(), &parts(&["Profile.xml"])).unwrap().is_none());
+        assert_eq!(
+            read(root, G1, &parts(&["DisplayItems.xml"]))
+                .unwrap()
+                .unwrap(),
+            b"<ArrayOfDisplayItem/>"
+        );
+        assert_eq!(
+            read(root, G1, &parts(&["assets", "logo.png"]))
+                .unwrap()
+                .unwrap(),
+            b"png"
+        );
+        assert!(read(root, G1, &parts(&["assets", "gone.png"]))
+            .unwrap()
+            .is_none());
+        assert!(read(root, G1, &parts(&["assets", "..", "x"]))
+            .unwrap()
+            .is_none());
+        assert!(read(root, "nope", &parts(&["Profile.xml"]))
+            .unwrap()
+            .is_none());
+        assert!(read(root, G1, &parts(&["Profile.xml"]))
+            .unwrap()
+            .unwrap()
+            .starts_with(b"<Profile>"));
+        assert!(read(root, &G1.to_uppercase(), &parts(&["Profile.xml"]))
+            .unwrap()
+            .is_none());
     }
 }

@@ -26,8 +26,17 @@ struct Stream {
 }
 
 /// The stream's response: the events sent on `rx`, then keep-alives, until the client closes or `shutdown` is set.
-pub fn response(rx: mpsc::UnboundedReceiver<Bytes>, shutdown: watch::Receiver<bool>, guards: Box<dyn Any + Send>) -> Response<Body> {
-    let state = Stream { rx, keep_alive: interval_at(Instant::now() + KEEP_ALIVE, KEEP_ALIVE), shutdown, _guards: guards };
+pub fn response(
+    rx: mpsc::UnboundedReceiver<Bytes>,
+    shutdown: watch::Receiver<bool>,
+    guards: Box<dyn Any + Send>,
+) -> Response<Body> {
+    let state = Stream {
+        rx,
+        keep_alive: interval_at(Instant::now() + KEEP_ALIVE, KEEP_ALIVE),
+        shutdown,
+        _guards: guards,
+    };
     let body = futures_util::stream::unfold(state, |mut s| async move {
         let next = tokio::select! {
             _ = s.shutdown.wait_for(|stop| *stop) => None,

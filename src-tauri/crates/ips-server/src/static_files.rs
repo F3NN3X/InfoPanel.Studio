@@ -77,7 +77,9 @@ pub fn join_under(dist: &Path, rel: &str) -> Option<PathBuf> {
     if rel.ends_with(is_separator) {
         joined.push(MAIN_SEPARATOR);
     }
-    joined.starts_with(&format!("{dist}{MAIN_SEPARATOR}")).then(|| PathBuf::from(joined))
+    joined
+        .starts_with(&format!("{dist}{MAIN_SEPARATOR}"))
+        .then(|| PathBuf::from(joined))
 }
 
 /// `path.extname(file).toLowerCase()` (trailing separators do not count).
@@ -105,30 +107,34 @@ fn fs_path(file: &str) -> PathBuf {
 
 pub fn content_type(file: &str) -> &'static str {
     let ext = extension(file);
-    TYPES.iter().find(|(e, _)| *e == ext).map_or("application/octet-stream", |(_, t)| t)
+    TYPES
+        .iter()
+        .find(|(e, _)| *e == ext)
+        .map_or("application/octet-stream", |(_, t)| t)
 }
 
 /// The file's bytes in chunks; a read error ends the response mid-way, as Node destroys it.
 fn file_body(file: PathBuf) -> Body {
-    let stream = futures_util::stream::unfold(Some((file, None::<tokio::fs::File>)), |state| async move {
-        let (path, open) = state?;
-        let mut handle = match open {
-            Some(handle) => handle,
-            None => match tokio::fs::File::open(&path).await {
-                Ok(handle) => handle,
-                Err(e) => return Some((Err(e), None)),
-            },
-        };
-        let mut buf = vec![0; CHUNK];
-        match handle.read(&mut buf).await {
-            Ok(0) => None,
-            Ok(n) => {
-                buf.truncate(n);
-                Some((Ok(Bytes::from(buf)), Some((path, Some(handle)))))
+    let stream =
+        futures_util::stream::unfold(Some((file, None::<tokio::fs::File>)), |state| async move {
+            let (path, open) = state?;
+            let mut handle = match open {
+                Some(handle) => handle,
+                None => match tokio::fs::File::open(&path).await {
+                    Ok(handle) => handle,
+                    Err(e) => return Some((Err(e), None)),
+                },
+            };
+            let mut buf = vec![0; CHUNK];
+            match handle.read(&mut buf).await {
+                Ok(0) => None,
+                Ok(n) => {
+                    buf.truncate(n);
+                    Some((Ok(Bytes::from(buf)), Some((path, Some(handle)))))
+                }
+                Err(e) => Some((Err(e), None)),
             }
-            Err(e) => Some((Err(e), None)),
-        }
-    });
+        });
     Body::from_stream(stream)
 }
 
@@ -137,12 +143,18 @@ pub fn serve(dist: &Path, req: &Req) -> Result<Response<Body>, String> {
         return Ok(http::empty(405));
     }
     if !dist.exists() {
-        return Ok(http::text(503, "No build found. Run `npm run build` first."));
+        return Ok(http::text(
+            503,
+            "No build found. Run `npm run build` first.",
+        ));
     }
     let decoded = decode_uri_component(&req.path).ok_or("URIError: URI malformed")?;
     let rel = decoded.trim_start_matches('/');
     let rel = if rel.is_empty() { "index.html" } else { rel };
-    if rel.split('/').any(|seg| seg == ".." || seg.starts_with('.')) {
+    if rel
+        .split('/')
+        .any(|seg| seg == ".." || seg.starts_with('.'))
+    {
         return Ok(http::empty(404));
     }
     let name = join_under(dist, rel)
@@ -154,7 +166,10 @@ pub fn serve(dist: &Path, req: &Req) -> Result<Response<Body>, String> {
         .status(200)
         .header("Content-Type", content_type(&name))
         // index.html must track the latest build (hashed asset names change).
-        .header("Cache-Control", if is_html { "no-store" } else { "no-cache" });
+        .header(
+            "Cache-Control",
+            if is_html { "no-store" } else { "no-cache" },
+        );
     for (key, value) in security_headers(is_html, &req.search) {
         response = response.header(key, value);
     }

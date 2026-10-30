@@ -51,7 +51,11 @@ const STUDIO_PERMISSIONS: &[&str] = &[
 /// What the studio gets on top only once the shell opens a setup session (`AppState::setup`): starting and restarting
 /// InfoPanel and the setup's Finish switches. Tauri can't take a capability back, so each command also refuses
 /// outside a session (`commands::setup_gate`).
-const SETUP_PERMISSIONS: &[&str] = &["allow-infopanel-start", "allow-infopanel-restart", "allow-setup-options"];
+const SETUP_PERMISSIONS: &[&str] = &[
+    "allow-infopanel-start",
+    "allow-infopanel-restart",
+    "allow-setup-options",
+];
 
 /// The permissions the Settings window gets on the studio's origin (PLAN decision 21): exactly what its
 /// pages call (src/settings/ipc.ts), the Back up first save, the jump back to the studio, and its title bar.
@@ -641,11 +645,16 @@ fn add_setup_capability(app: &AppHandle, origin: &str) {
     if !st.setup.load(Ordering::SeqCst) {
         return;
     }
-    let id = format!("setup-{}", origin.replace(|c: char| !c.is_ascii_alphanumeric(), "-"));
+    let id = format!(
+        "setup-{}",
+        origin.replace(|c: char| !c.is_ascii_alphanumeric(), "-")
+    );
     if !lock(&st.capabilities).insert(id.clone()) {
         return;
     }
-    let mut cap = tauri::ipc::CapabilityBuilder::new(id).remote(format!("{origin}/*")).window(windows::MAIN);
+    let mut cap = tauri::ipc::CapabilityBuilder::new(id)
+        .remote(format!("{origin}/*"))
+        .window(windows::MAIN);
     for p in SETUP_PERMISSIONS {
         cap = cap.permission(*p);
     }
@@ -730,16 +739,45 @@ mod tests {
     fn the_studio_keeps_only_what_it_calls() {
         assert_unique(STUDIO_PERMISSIONS);
         // The studio opens the Settings window and reads the status bar's state; it changes nothing in the shell.
-        for command in ["allow-open-settings", "allow-get-settings", "allow-server-status", "allow-update-state", "allow-flush-done", "allow-infopanel-local"] {
-            assert!(STUDIO_PERMISSIONS.contains(&command), "{command} is missing");
+        for command in [
+            "allow-open-settings",
+            "allow-get-settings",
+            "allow-server-status",
+            "allow-update-state",
+            "allow-flush-done",
+            "allow-infopanel-local",
+        ] {
+            assert!(
+                STUDIO_PERMISSIONS.contains(&command),
+                "{command} is missing"
+            );
         }
-        for command in ["allow-set-setting", "allow-stop-server", "allow-install-update", "allow-set-agents", "allow-read-log", "allow-reveal-path", "allow-show-studio"] {
-            assert!(!STUDIO_PERMISSIONS.contains(&command), "{command} is granted to the studio");
+        for command in [
+            "allow-set-setting",
+            "allow-stop-server",
+            "allow-install-update",
+            "allow-set-agents",
+            "allow-read-log",
+            "allow-reveal-path",
+            "allow-show-studio",
+        ] {
+            assert!(
+                !STUDIO_PERMISSIONS.contains(&command),
+                "{command} is granted to the studio"
+            );
         }
         // Starting or restarting InfoPanel and writing settings come only with a setup session the shell opens.
         assert_unique(SETUP_PERMISSIONS);
-        for command in ["allow-infopanel-start", "allow-infopanel-restart", "allow-setup-options", "allow-run-setup"] {
-            assert!(!STUDIO_PERMISSIONS.contains(&command), "{command} is granted to the studio for the whole session");
+        for command in [
+            "allow-infopanel-start",
+            "allow-infopanel-restart",
+            "allow-setup-options",
+            "allow-run-setup",
+        ] {
+            assert!(
+                !STUDIO_PERMISSIONS.contains(&command),
+                "{command} is granted to the studio for the whole session"
+            );
         }
     }
 
@@ -749,14 +787,33 @@ mod tests {
         let commands = settings_page_commands();
         assert!(commands.len() > 20, "ipc.ts was not read: {commands:?}");
         for command in &commands {
-            assert!(SETTINGS_PERMISSIONS.contains(&command.as_str()), "{command} is missing");
+            assert!(
+                SETTINGS_PERMISSIONS.contains(&command.as_str()),
+                "{command} is missing"
+            );
         }
-        for command in ["allow-save-text-file", "allow-show-studio", "core:window:allow-close"] {
-            assert!(SETTINGS_PERMISSIONS.contains(&command), "{command} is missing");
+        for command in [
+            "allow-save-text-file",
+            "allow-show-studio",
+            "core:window:allow-close",
+        ] {
+            assert!(
+                SETTINGS_PERMISSIONS.contains(&command),
+                "{command} is missing"
+            );
         }
         // Nothing the studio window alone does: Kiosk view, its files, its health samples.
-        for command in ["allow-kiosk-window", "allow-open-text-file", "allow-save-binary-file", "allow-report-metrics", "allow-flush-done"] {
-            assert!(!SETTINGS_PERMISSIONS.contains(&command), "{command} is granted to the settings window");
+        for command in [
+            "allow-kiosk-window",
+            "allow-open-text-file",
+            "allow-save-binary-file",
+            "allow-report-metrics",
+            "allow-flush-done",
+        ] {
+            assert!(
+                !SETTINGS_PERMISSIONS.contains(&command),
+                "{command} is granted to the settings window"
+            );
         }
     }
 

@@ -33,13 +33,18 @@ pub const PROXY_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_REDIRECTS: usize = 3;
 const LOOPBACK_HOSTS: [&str; 3] = ["localhost", "127.0.0.1", "[::1]"];
 /// What the https fetch sends; some image hosts refuse a request without a User-Agent.
-const PROXY_HEADERS: [(&str, &str); 2] = [("user-agent", "InfoPanel-Studio"), ("accept", "image/*,*/*;q=0.8")];
+const PROXY_HEADERS: [(&str, &str); 2] = [
+    ("user-agent", "InfoPanel-Studio"),
+    ("accept", "image/*,*/*;q=0.8"),
+];
 
 /// The ports Node's fetch refuses to connect to (the Fetch standard's "bad ports"), which the loopback path keeps.
 const BAD_PORTS: [u16; 82] = [
-    1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123,
-    135, 137, 139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993,
-    995, 1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080,
+    1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102,
+    103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465,
+    512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993,
+    995, 1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668,
+    6669, 6679, 6697, 10080,
 ];
 
 /// An upstream body, chunk by chunk.
@@ -63,7 +68,11 @@ impl Upstream {
                 Err(e) => Some((Err(describe(e)), None)),
             }
         });
-        Self { status, headers, body: Box::pin(body) }
+        Self {
+            status,
+            headers,
+            body: Box::pin(body),
+        }
     }
 
     /// `headers.get(name)`.
@@ -73,7 +82,11 @@ impl Upstream {
 
     /// The `Location` of a redirect (300-399 with a non-empty one), or `None`.
     pub fn location(&self) -> Option<String> {
-        (300..400).contains(&self.status).then(|| self.header("location")).flatten().filter(|l| !l.is_empty())
+        (300..400)
+            .contains(&self.status)
+            .then(|| self.header("location"))
+            .flatten()
+            .filter(|l| !l.is_empty())
     }
 }
 
@@ -89,7 +102,10 @@ pub fn is_valid_proxy_target(url: &Url) -> bool {
 }
 
 fn is_loopback_http(url: &Url) -> bool {
-    url.scheme() == "http" && url.host_str().is_some_and(|host| LOOPBACK_HOSTS.contains(&host))
+    url.scheme() == "http"
+        && url
+            .host_str()
+            .is_some_and(|host| LOOPBACK_HOSTS.contains(&host))
 }
 
 /// An https GET that connects only to the addresses `client` allows.
@@ -98,7 +114,11 @@ pub async fn guarded_proxy_fetch(client: &GuardedClient, url: &Url) -> Result<Up
 }
 
 /// `guarded_proxy_fetch` sending `headers`.
-async fn guarded_fetch(client: &GuardedClient, url: &Url, headers: &[(&str, &str)]) -> Result<Upstream, String> {
+async fn guarded_fetch(
+    client: &GuardedClient,
+    url: &Url,
+    headers: &[(&str, &str)],
+) -> Result<Upstream, String> {
     // The client skips the lookup for an IP literal, so it is checked here.
     let literal = match url.host() {
         Some(Host::Ipv4(ip)) => Some(IpAddr::V4(ip)),
@@ -118,15 +138,27 @@ pub fn fetch_with(guarded: GuardedClient, plain: reqwest::Client) -> Fetch {
 }
 
 /// `fetch_with`, its https requests sending `headers` (frame_check.rs asks for a page, not an image).
-pub fn fetch_sending(guarded: GuardedClient, plain: reqwest::Client, headers: &'static [(&'static str, &'static str)]) -> Fetch {
+pub fn fetch_sending(
+    guarded: GuardedClient,
+    plain: reqwest::Client,
+    headers: &'static [(&'static str, &'static str)],
+) -> Fetch {
     Arc::new(move |url: Url| -> Fetching {
         let (guarded, plain) = (guarded.clone(), plain.clone());
         Box::pin(async move {
             if url.scheme() == "http" {
-                if url.port_or_known_default().is_some_and(|port| BAD_PORTS.contains(&port)) {
+                if url
+                    .port_or_known_default()
+                    .is_some_and(|port| BAD_PORTS.contains(&port))
+                {
                     return Err("bad port".into());
                 }
-                return plain.get(url).send().await.map(Upstream::of).map_err(describe);
+                return plain
+                    .get(url)
+                    .send()
+                    .await
+                    .map(Upstream::of)
+                    .map_err(describe);
             }
             guarded_fetch(&guarded, &url, headers).await
         })
@@ -147,7 +179,9 @@ fn default_fetch() -> Result<Fetch, String> {
 /// The final upstream answer for `target`, following redirects by hand and checking each hop, or `None` when a hop is
 /// refused or there are too many. A network error is `Err`.
 pub async fn fetch_proxied(target: Url, fetch: &Fetch) -> Result<Option<Upstream>, String> {
-    Ok(fetch_final(target, fetch).await?.map(|(_, upstream)| upstream))
+    Ok(fetch_final(target, fetch)
+        .await?
+        .map(|(_, upstream)| upstream))
 }
 
 /// `fetch_proxied`, with the URL the answer came from.
@@ -164,7 +198,9 @@ pub async fn fetch_final(target: Url, fetch: &Fetch) -> Result<Option<(Url, Upst
         }
         let upstream = fetch(url.clone()).await?;
         previous = url;
-        let Some(location) = upstream.location() else { return Ok(Some((previous, upstream))) };
+        let Some(location) = upstream.location() else {
+            return Ok(Some((previous, upstream)));
+        };
         drop(upstream);
         url = match previous.join(&location) {
             Ok(next) => next,
@@ -182,8 +218,14 @@ fn essence(header: &str) -> String {
 /// Whether an upstream media type may be relayed as it is.
 pub fn is_allowed_proxy_type(header: &str) -> bool {
     let t = essence(header);
-    let Some(sub) = t.strip_prefix("image/") else { return false };
-    !sub.is_empty() && sub.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b".+-".contains(&b)) && t != "image/svg+xml"
+    let Some(sub) = t.strip_prefix("image/") else {
+        return false;
+    };
+    !sub.is_empty()
+        && sub
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b".+-".contains(&b))
+        && t != "image/svg+xml"
 }
 
 /// The image type the first bytes of `buf` show, or `None`.
@@ -200,7 +242,10 @@ pub fn sniff_image_type(buf: &[u8]) -> Option<&'static str> {
     if buf.len() >= 12 && &buf[0..4] == b"RIFF" && &buf[8..12] == b"WEBP" {
         return Some("image/webp");
     }
-    if buf.len() >= 12 && &buf[4..8] == b"ftyp" && (&buf[8..12] == b"avif" || &buf[8..12] == b"avis") {
+    if buf.len() >= 12
+        && &buf[4..8] == b"ftyp"
+        && (&buf[8..12] == b"avif" || &buf[8..12] == b"avis")
+    {
         return Some("image/avif");
     }
     None
@@ -220,15 +265,28 @@ pub fn resolve_proxy_type(header: Option<&str>, body: &[u8]) -> Option<String> {
 
 /// The route, on the server's network.
 pub async fn handle(req: Req) -> Result<Response<Body>, String> {
-    Ok(respond(&req.method, req.query("url"), &default_fetch()?, PROXY_TIMEOUT).await)
+    Ok(respond(
+        &req.method,
+        req.query("url"),
+        &default_fetch()?,
+        PROXY_TIMEOUT,
+    )
+    .await)
 }
 
 /// The route for a method and `url` parameter, fetching through `fetch`; `timeout` covers the hops and the body.
-pub async fn respond(method: &Method, url: Option<String>, fetch: &Fetch, timeout: Duration) -> Response<Body> {
+pub async fn respond(
+    method: &Method,
+    url: Option<String>,
+    fetch: &Fetch,
+    timeout: Duration,
+) -> Response<Body> {
     if method != Method::GET {
         return http::empty(405);
     }
-    let Ok(target) = Url::parse(&url.unwrap_or_default()) else { return http::empty(400) };
+    let Ok(target) = Url::parse(&url.unwrap_or_default()) else {
+        return http::empty(400);
+    };
     if !is_valid_proxy_target(&target) {
         return http::empty(400);
     }
@@ -241,19 +299,24 @@ pub async fn respond(method: &Method, url: Option<String>, fetch: &Fetch, timeou
     if !(200..300).contains(&upstream.status) {
         return relay_status(upstream.status);
     }
-    if js::string_to_number(&upstream.header("content-length").unwrap_or_default()) > MAX_PROXY_BYTES as f64 {
+    if js::string_to_number(&upstream.header("content-length").unwrap_or_default())
+        > MAX_PROXY_BYTES as f64
+    {
         return http::empty(413);
     }
     let mut body = Vec::new();
     loop {
         match timeout_at(deadline, upstream.body.next()).await {
-            Ok(Some(Ok(chunk))) if body.len() + chunk.len() > MAX_PROXY_BYTES => return http::empty(413),
+            Ok(Some(Ok(chunk))) if body.len() + chunk.len() > MAX_PROXY_BYTES => {
+                return http::empty(413)
+            }
             Ok(Some(Ok(chunk))) => body.extend_from_slice(&chunk),
             Ok(None) => break,
             Ok(Some(Err(_))) | Err(_) => return http::empty(502),
         }
     }
-    let Some(content_type) = resolve_proxy_type(upstream.header("content-type").as_deref(), &body) else {
+    let Some(content_type) = resolve_proxy_type(upstream.header("content-type").as_deref(), &body)
+    else {
         return http::text(406, "not an image");
     };
     Response::builder()
@@ -270,11 +333,16 @@ fn relay_status(status: u16) -> Response<Body> {
     let reason = match status {
         418 => Some(&b"I'm a Teapot"[..]),
         509 => Some(&b"Bandwidth Limit Exceeded"[..]),
-        _ => StatusCode::from_u16(status).ok().filter(|s| s.canonical_reason().is_none()).map(|_| &b"unknown"[..]),
+        _ => StatusCode::from_u16(status)
+            .ok()
+            .filter(|s| s.canonical_reason().is_none())
+            .map(|_| &b"unknown"[..]),
     };
     let mut response = http::empty(status);
     if let Some(reason) = reason {
-        response.extensions_mut().insert(hyper::ext::ReasonPhrase::from_static(reason));
+        response
+            .extensions_mut()
+            .insert(hyper::ext::ReasonPhrase::from_static(reason));
     }
     response
 }

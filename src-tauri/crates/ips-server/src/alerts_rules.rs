@@ -48,7 +48,10 @@ fn str_of(v: Option<&Value>) -> Option<&str> {
 /// A sensor source's conditions: its list, or the one key / op / value of a rule saved before v11.
 pub fn conditions_of(source: &Value) -> Vec<&Value> {
     if let Some(list) = get(source, "conditions").and_then(Value::as_array) {
-        return list.iter().filter(|c| is_object(c) && get(c, "key").is_some_and(Value::is_string)).collect();
+        return list
+            .iter()
+            .filter(|c| is_object(c) && get(c, "key").is_some_and(Value::is_string))
+            .collect();
     }
     if get(source, "key").is_some_and(Value::is_string) {
         vec![source]
@@ -59,10 +62,14 @@ pub fn conditions_of(source: &Value) -> Vec<&Value> {
 
 /// The usable rules of a stored `alerts` value.
 pub fn rules_of(alerts: Option<&Value>) -> Vec<&Value> {
-    let Some(list) = get_in(alerts, "rules").and_then(Value::as_array) else { return vec![] };
+    let Some(list) = get_in(alerts, "rules").and_then(Value::as_array) else {
+        return vec![];
+    };
     list.iter()
         .filter(|r| {
-            let Some(source) = get(r, "source").filter(|s| is_object(s)) else { return false };
+            let Some(source) = get(r, "source").filter(|s| is_object(s)) else {
+                return false;
+            };
             get(r, "id").is_some_and(Value::is_string)
                 && match str_of(get(source, "kind")) {
                     Some("sensor") => !conditions_of(source).is_empty(),
@@ -134,7 +141,9 @@ pub fn text_of(reading: Option<&Value>) -> Option<String> {
     if let Some(text) = str_of(get_in(reading, "text")) {
         return Some(text.to_string());
     }
-    get_in(reading, "value").and_then(Value::as_f64).map(js::number_to_string)
+    get_in(reading, "value")
+        .and_then(Value::as_f64)
+        .map(js::number_to_string)
 }
 
 /// What a `changes` condition compares.
@@ -146,7 +155,9 @@ pub enum Last {
 
 /// The value a `changes` rule compares: the number, else the text.
 pub fn change_key(reading: Option<&Value>) -> Option<Last> {
-    numeric(reading).map(Last::Num).or_else(|| text_of(reading).map(Last::Text))
+    numeric(reading)
+        .map(Last::Num)
+        .or_else(|| text_of(reading).map(Last::Text))
 }
 
 /// Whether a non-`changes` condition holds: `None` when the sensor has no reading.
@@ -161,7 +172,9 @@ pub fn holds(source: &Value, reading: Option<&Value>) -> Option<bool> {
         Some("contains") => text_of(reading).map(|text| text.to_lowercase().contains(&wanted())),
         Some(op @ ("=" | "!=" | "≠")) => {
             let equal = match value {
-                Some(Value::Number(want)) => numeric(reading).is_some_and(|n| Some(n) == want.as_f64()),
+                Some(Value::Number(want)) => {
+                    numeric(reading).is_some_and(|n| Some(n) == want.as_f64())
+                }
                 _ => text_of(reading).unwrap_or_default().to_lowercase() == wanted(),
             };
             Some(if op == "=" { equal } else { !equal })
@@ -185,7 +198,10 @@ pub fn holds(source: &Value, reading: Option<&Value>) -> Option<bool> {
 /// Whether an active threshold alert clears. With `clearBelow` (hysteresis) a `>` / `>=` rule clears once the value is
 /// at or below it and a `<` / `<=` rule once it is at or above it; otherwise it clears as soon as the condition stops.
 pub fn clears(source: &Value, reading: Option<&Value>, cond: bool) -> bool {
-    if let (Some(level), Some(n)) = (get(source, "clearBelow").and_then(Value::as_f64), numeric(reading)) {
+    if let (Some(level), Some(n)) = (
+        get(source, "clearBelow").and_then(Value::as_f64),
+        numeric(reading),
+    ) {
         match str_of(get(source, "op")) {
             Some(">" | ">=") => return n <= level,
             Some("<" | "<=") => return n >= level,
@@ -322,14 +338,29 @@ fn local_minutes(now: f64, zone: LocalZone) -> Option<i64> {
 }
 
 /// Whether `now` (local time) is inside the quiet window and `severity` is below its minimum.
-pub fn is_quiet(quiet_hours: Option<&Value>, severity: Option<&Value>, now: f64, zone: LocalZone) -> bool {
-    let Some(hours) = quiet_hours.filter(|q| is_object(q)) else { return false };
-    let (Some(from), Some(to)) = (minutes(get(hours, "from")), minutes(get(hours, "to"))) else { return false };
+pub fn is_quiet(
+    quiet_hours: Option<&Value>,
+    severity: Option<&Value>,
+    now: f64,
+    zone: LocalZone,
+) -> bool {
+    let Some(hours) = quiet_hours.filter(|q| is_object(q)) else {
+        return false;
+    };
+    let (Some(from), Some(to)) = (minutes(get(hours, "from")), minutes(get(hours, "to"))) else {
+        return false;
+    };
     if from == to {
         return false;
     }
-    let Some(at) = local_minutes(now, zone) else { return false };
-    let inside = if from < to { at >= from && at < to } else { at >= from || at < to };
+    let Some(at) = local_minutes(now, zone) else {
+        return false;
+    };
+    let inside = if from < to {
+        at >= from && at < to
+    } else {
+        at >= from || at < to
+    };
     inside && rank(severity).unwrap_or(1) < rank(get(hours, "minSeverity")).unwrap_or(2)
 }
 
@@ -357,7 +388,13 @@ pub fn take_events(buffer: &str) -> (Vec<String>, String) {
         let lines: Vec<&str> = pieces
             .iter()
             .enumerate()
-            .map(|(i, l)| if i < last { l.strip_suffix('\r').unwrap_or(l) } else { l })
+            .map(|(i, l)| {
+                if i < last {
+                    l.strip_suffix('\r').unwrap_or(l)
+                } else {
+                    l
+                }
+            })
             .filter_map(|l| l.strip_prefix("data:"))
             .map(|l| l.strip_prefix(' ').unwrap_or(l))
             .collect();
@@ -375,7 +412,8 @@ mod tests {
 
     #[test]
     fn splits_events_and_keeps_the_unfinished_rest() {
-        let (data, rest) = take_events("data: {\"a\":1}\r\n\r\n: keep\n\ndata:x\ndata: y\n\ndata: part");
+        let (data, rest) =
+            take_events("data: {\"a\":1}\r\n\r\n: keep\n\ndata:x\ndata: y\n\ndata: part");
         assert_eq!(data, ["{\"a\":1}", "x\ny"]);
         assert_eq!(rest, "data: part");
         let (data, rest) = take_events("data: a\r\n\r");
@@ -393,10 +431,28 @@ mod tests {
     #[test]
     fn a_blank_value_compares_against_zero_and_an_unknown_op_means_greater() {
         let reading = json!({ "value": 5 });
-        assert_eq!(holds(&json!({ "op": ">", "value": "" }), Some(&reading)), Some(true));
-        assert_eq!(holds(&json!({ "op": "weird", "value": 9 }), Some(&reading)), Some(false));
-        assert_eq!(holds(&json!({ "op": "=", "value": "5" }), Some(&json!({ "text": "5" }))), Some(true));
-        assert_eq!(holds(&json!({ "op": "=", "value": 5 }), Some(&json!({ "text": "five" }))), Some(false));
+        assert_eq!(
+            holds(&json!({ "op": ">", "value": "" }), Some(&reading)),
+            Some(true)
+        );
+        assert_eq!(
+            holds(&json!({ "op": "weird", "value": 9 }), Some(&reading)),
+            Some(false)
+        );
+        assert_eq!(
+            holds(
+                &json!({ "op": "=", "value": "5" }),
+                Some(&json!({ "text": "5" }))
+            ),
+            Some(true)
+        );
+        assert_eq!(
+            holds(
+                &json!({ "op": "=", "value": 5 }),
+                Some(&json!({ "text": "five" }))
+            ),
+            Some(false)
+        );
         assert_eq!(holds(&json!({ "op": ">", "value": 1 }), None), None);
     }
 
@@ -410,7 +466,14 @@ mod tests {
 
     #[test]
     fn fills_only_the_known_variables() {
-        let vars = Vars { name: "N".into(), value: "1".into(), ..Vars::default() };
-        assert_eq!(fill("{name}={value}{unit} {x} {{name}", &vars), "N=1 {x} {N");
+        let vars = Vars {
+            name: "N".into(),
+            value: "1".into(),
+            ..Vars::default()
+        };
+        assert_eq!(
+            fill("{name}={value}{unit} {x} {{name}", &vars),
+            "N=1 {x} {N"
+        );
     }
 }

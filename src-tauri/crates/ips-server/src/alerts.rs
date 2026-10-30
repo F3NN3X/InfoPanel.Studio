@@ -15,7 +15,9 @@ use serde_json::{json, Value};
 use tokio::sync::{watch, Notify};
 use tokio::time::{interval_at, Instant, MissedTickBehavior};
 
-use crate::alerts_engine::{act, evaluate, num, quieten, AlertsState, Env, Event, Readings, HISTORY_MAX};
+use crate::alerts_engine::{
+    act, evaluate, num, quieten, AlertsState, Env, Event, Readings, HISTORY_MAX,
+};
 use crate::alerts_rules::{get, is_object, keys_of, prefix_of, take_events, truthy};
 use crate::config::now_ms;
 use crate::control_store::Control;
@@ -73,7 +75,8 @@ impl Options {
         shutdown: watch::Receiver<bool>,
         read_config: impl Fn() -> Option<Value> + Send + Sync + 'static,
     ) -> Self {
-        let connect: Connector = Arc::new(move |url, on_message| sse_connect(url, on_message, shutdown.clone()));
+        let connect: Connector =
+            Arc::new(move |url, on_message| sse_connect(url, on_message, shutdown.clone()));
         Self {
             file,
             control,
@@ -126,7 +129,12 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 /// alerts.json's history: entries with a string id, the ones still open when the server stopped closed now.
 fn load_history(file: &std::path::Path, now: f64) -> Vec<Value> {
     let raw = store::read_json(file);
-    let list = raw.as_ref().and_then(|r| get(r, "history")).and_then(Value::as_array).cloned().unwrap_or_default();
+    let list = raw
+        .as_ref()
+        .and_then(|r| get(r, "history"))
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     list.into_iter()
         .filter(|h| is_object(h) && h["id"].is_string())
         .map(|mut h| {
@@ -146,7 +154,9 @@ fn api_base(config: &Value) -> String {
         v => js::to_property_key(v),
     };
     match url::Url::parse(&text) {
-        Ok(u) if u.scheme() == "http" || u.scheme() == "https" => u.as_str().trim_end_matches('/').to_string(),
+        Ok(u) if u.scheme() == "http" || u.scheme() == "https" => {
+            u.as_str().trim_end_matches('/').to_string()
+        }
         _ => DEFAULT_API.to_string(),
     }
 }
@@ -169,7 +179,10 @@ pub fn stream_urls(config: &Value) -> Vec<String> {
     let base = api_base(config);
     let mut urls: Vec<String> = vec![];
     for key in keys_of(get(config, "alerts")) {
-        let url = format!("{base}/events?prefix={}&interval=1000", encode_component(prefix_of(&key)));
+        let url = format!(
+            "{base}/events?prefix={}&interval=1000",
+            encode_component(prefix_of(&key))
+        );
         if !urls.contains(&url) {
             urls.push(url);
         }
@@ -179,7 +192,15 @@ pub fn stream_urls(config: &Value) -> Vec<String> {
 
 impl Alerts {
     pub fn new(options: Options) -> Arc<Self> {
-        let Options { file, control, read_config, now, zone, connect, save_after } = options;
+        let Options {
+            file,
+            control,
+            read_config,
+            now,
+            zone,
+            connect,
+            save_after,
+        } = options;
         let history = load_history(&file, now());
         let config = read_config().unwrap_or(Value::Null);
         let inner = Inner {
@@ -238,7 +259,11 @@ impl Alerts {
     fn env(&self) -> Env {
         let now = (self.now)();
         let muted = self.control.muted_until().is_some_and(|until| now < until);
-        Env { now, muted, zone: self.zone }
+        Env {
+            now,
+            muted,
+            zone: self.zone,
+        }
     }
 
     /// One evaluation pass at the current time (the once-a-second tick).
@@ -249,7 +274,12 @@ impl Alerts {
 
     fn run(&self, inner: &mut Inner) {
         let env = self.env();
-        let events = evaluate(&mut inner.state, get(&inner.config, "alerts"), &inner.readings, env);
+        let events = evaluate(
+            &mut inner.state,
+            get(&inner.config, "alerts"),
+            &inner.readings,
+            env,
+        );
         self.apply(inner, &events);
     }
 
@@ -257,7 +287,8 @@ impl Alerts {
     fn profile_for(&self, inner: &Inner, id: Option<&Value>) -> Option<String> {
         let state = self.control.get();
         let profiles = state["profiles"].as_object()?;
-        let pinned = get(&inner.config, "activeProfile").filter(|p| truthy(Some(*p)) && p.as_str() != Some("auto"));
+        let pinned = get(&inner.config, "activeProfile")
+            .filter(|p| truthy(Some(*p)) && p.as_str() != Some("auto"));
         let found = [id, Some(&state["profile"]), Some(&state["shown"]), pinned]
             .into_iter()
             .flatten()
@@ -275,23 +306,48 @@ impl Alerts {
     fn run_outputs(&self, inner: &mut Inner, events: &[Event]) {
         for event in events {
             match event {
-                Event::Fire(alert) if alert.get("page").is_some() && alert.get("quiet").is_none() => {
+                Event::Fire(alert)
+                    if alert.get("page").is_some() && alert.get("quiet").is_none() =>
+                {
                     let page = &alert["page"];
-                    let Some(profile) = self.profile_for(inner, get(page, "profile")) else { continue };
+                    let Some(profile) = self.profile_for(inner, get(page, "profile")) else {
+                        continue;
+                    };
                     let from = self.page_of(&profile);
-                    if self.control.dispatch(&json!({ "type": "page", "profile": profile, "page": page["page"] })).is_err() {
+                    if self
+                        .control
+                        .dispatch(
+                            &json!({ "type": "page", "profile": profile, "page": page["page"] }),
+                        )
+                        .is_err()
+                    {
                         continue;
                     }
-                    if let (true, Some(from)) = (truthy(get(page, "returnAfter")), from.as_str().filter(|f| !f.is_empty())) {
+                    if let (true, Some(from)) = (
+                        truthy(get(page, "returnAfter")),
+                        from.as_str().filter(|f| !f.is_empty()),
+                    ) {
                         let id = alert["id"].as_str().unwrap_or_default().to_string();
-                        inner.returns.insert(id, Return { profile, from: from.to_string(), to: page["page"].clone() });
+                        inner.returns.insert(
+                            id,
+                            Return {
+                                profile,
+                                from: from.to_string(),
+                                to: page["page"].clone(),
+                            },
+                        );
                     }
                 }
                 Event::Clear { alert, .. } => {
-                    let Some(back) = alert["id"].as_str().and_then(|id| inner.returns.remove(id)) else { continue };
+                    let Some(back) = alert["id"].as_str().and_then(|id| inner.returns.remove(id))
+                    else {
+                        continue;
+                    };
                     // Only go back if nobody moved the profile off the alert's page meanwhile.
                     if self.page_of(&back.profile) == back.to {
-                        let _ = self.control.dispatch(&json!({ "type": "page", "profile": back.profile, "page": back.from }));
+                        let _ = self.control.dispatch(
+                            &json!({ "type": "page", "profile": back.profile, "page": back.from }),
+                        );
                     }
                 }
                 Event::Fire(_) => {}
@@ -386,12 +442,22 @@ impl Alerts {
                 quieten(&mut inner.state);
                 self.apply(inner, &[]);
             }
-            return Ok(json!({ "alerts": inner.state.active_alerts(), "mutedUntil": done["mutedUntil"] }));
+            return Ok(
+                json!({ "alerts": inner.state.active_alerts(), "mutedUntil": done["mutedUntil"] }),
+            );
         }
         let env = self.env();
-        let events = act(&mut inner.state, action, get(&inner.config, "alerts"), &inner.readings, env)?;
+        let events = act(
+            &mut inner.state,
+            action,
+            get(&inner.config, "alerts"),
+            &inner.readings,
+            env,
+        )?;
         self.apply(inner, &events);
-        Ok(json!({ "alerts": inner.state.active_alerts(), "mutedUntil": self.control.get()["mutedUntil"] }))
+        Ok(
+            json!({ "alerts": inner.state.active_alerts(), "mutedUntil": self.control.get()["mutedUntil"] }),
+        )
     }
 
     /// The history, newest first.
@@ -426,7 +492,9 @@ pub struct Backoff {
 
 impl Backoff {
     pub const fn new() -> Self {
-        Self { delay: RECONNECT_MIN }
+        Self {
+            delay: RECONNECT_MIN,
+        }
     }
 
     pub fn connected(&mut self) {
@@ -453,7 +521,11 @@ fn http_client() -> Result<&'static reqwest::Client, String> {
         .get_or_init(|| {
             // The same TLS setup as the updater: rustls on ring. A second install is refused.
             let _ = rustls::crypto::ring::default_provider().install_default();
-            reqwest::Client::builder().no_proxy().connect_timeout(CONNECT_TIMEOUT).build().map_err(|e| e.without_url().to_string())
+            reqwest::Client::builder()
+                .no_proxy()
+                .connect_timeout(CONNECT_TIMEOUT)
+                .build()
+                .map_err(|e| e.without_url().to_string())
         })
         .as_ref()
         .map_err(Clone::clone)
@@ -489,13 +561,22 @@ fn decode_utf8(tail: &mut Vec<u8>, chunk: &[u8], out: &mut String) {
 
 /// One connection: until the stream ends or fails. Every parsed message goes to `on_message`; a malformed one is skipped.
 async fn read_once(url: &str, on_message: &OnMessage, backoff: &mut Backoff) -> Result<(), String> {
-    let mut response = http_client()?.get(url).header("Accept", "text/event-stream").send().await.map_err(|e| e.without_url().to_string())?;
+    let mut response = http_client()?
+        .get(url)
+        .header("Accept", "text/event-stream")
+        .send()
+        .await
+        .map_err(|e| e.without_url().to_string())?;
     if !response.status().is_success() {
         return Err(format!("HTTP {}", response.status().as_u16()));
     }
     backoff.connected();
     let (mut tail, mut buffer) = (Vec::new(), String::new());
-    while let Some(chunk) = response.chunk().await.map_err(|e| e.without_url().to_string())? {
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|e| e.without_url().to_string())?
+    {
         decode_utf8(&mut tail, &chunk, &mut buffer);
         let (data, rest) = take_events(&buffer);
         buffer = rest;
@@ -509,7 +590,11 @@ async fn read_once(url: &str, on_message: &OnMessage, backoff: &mut Backoff) -> 
 }
 
 /// Reads a Data API stream, reconnecting with a 1 to 30 s backoff, until `stop` is set.
-pub fn sse_connect(url: &str, on_message: OnMessage, shutdown: watch::Receiver<bool>) -> StreamHandle {
+pub fn sse_connect(
+    url: &str,
+    on_message: OnMessage,
+    shutdown: watch::Receiver<bool>,
+) -> StreamHandle {
     let (stop, closed) = watch::channel(false);
     let stop = Arc::new(stop);
     // The stream ends with the server too.
@@ -607,9 +692,16 @@ mod tests {
     fn a_stored_history_reloads_with_open_entries_closed() {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("alerts.json");
-        std::fs::write(&file, r#"{"history":[{"id":"a","startedAt":1},{"id":"b","endedAt":3},{"id":5},7]}"#).unwrap();
+        std::fs::write(
+            &file,
+            r#"{"history":[{"id":"a","startedAt":1},{"id":"b","endedAt":3},{"id":5},7]}"#,
+        )
+        .unwrap();
         let history = load_history(&file, 99.0);
-        assert_eq!(stringify(&Value::Array(history)), r#"[{"id":"a","startedAt":1,"endedAt":99},{"id":"b","endedAt":3}]"#);
+        assert_eq!(
+            stringify(&Value::Array(history)),
+            r#"[{"id":"a","startedAt":1,"endedAt":99},{"id":"b","endedAt":3}]"#
+        );
         std::fs::write(&file, "{broken").unwrap();
         assert!(load_history(&file, 99.0).is_empty());
     }

@@ -51,7 +51,11 @@ pub enum Recovery {
 }
 
 #[cfg_attr(not(windows), allow(dead_code))]
-pub fn recovery(renderer: bool, browser_exited: bool, since_last: Option<std::time::Duration>) -> Recovery {
+pub fn recovery(
+    renderer: bool,
+    browser_exited: bool,
+    since_last: Option<std::time::Duration>,
+) -> Recovery {
     let allowed = since_last.is_none_or(|d| d >= std::time::Duration::from_secs(60));
     match (allowed, renderer, browser_exited) {
         (true, true, _) => Recovery::Reload,
@@ -121,7 +125,10 @@ pub use windows_impl::{open_task_manager, set_unfocused, watch};
 
 #[cfg(windows)]
 mod windows_impl {
-    use super::{flip, stale, wants_suspend, Recovery, MEMORY_LOWERED, RESUMES, RUNTIME_UPDATED_EVENT, SUSPENDED};
+    use super::{
+        flip, stale, wants_suspend, Recovery, MEMORY_LOWERED, RESUMES, RUNTIME_UPDATED_EVENT,
+        SUSPENDED,
+    };
     use std::sync::atomic::{AtomicBool, Ordering};
     use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
     use webview2_com::Microsoft::Web::WebView2::Win32::{
@@ -142,7 +149,11 @@ mod windows_impl {
         webview: &ICoreWebView2,
         level: COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL,
     ) -> windows_core::Result<()> {
-        unsafe { webview.cast::<ICoreWebView2_19>()?.SetMemoryUsageTargetLevel(level) }
+        unsafe {
+            webview
+                .cast::<ICoreWebView2_19>()?
+                .SetMemoryUsageTargetLevel(level)
+        }
     }
 
     /// Hides the webview, then suspends it; WebView2 lowers its memory target with it. When it
@@ -156,7 +167,8 @@ mod windows_impl {
             let done = TrySuspendCompletedHandler::create(Box::new(move |result, suspended| {
                 log::debug!("webview suspend: {result:?}, suspended={}", suspended);
                 // A resume since then cancelled this suspend: the window is shown, leave its memory target be.
-                let current = SUSPENDED.load(Ordering::SeqCst) && RESUMES.load(Ordering::SeqCst) == resumes;
+                let current =
+                    SUSPENDED.load(Ordering::SeqCst) && RESUMES.load(Ordering::SeqCst) == resumes;
                 if current && (result.is_err() || !suspended) {
                     match set_memory_level(&fallback, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW) {
                         Ok(()) => MEMORY_LOWERED.store(true, Ordering::SeqCst),
@@ -187,7 +199,10 @@ mod windows_impl {
                         }
                     }
                     if MEMORY_LOWERED.swap(false, Ordering::SeqCst) {
-                        if let Err(e) = set_memory_level(&webview, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL) {
+                        if let Err(e) = set_memory_level(
+                            &webview,
+                            COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
+                        ) {
                             log::warn!("could not restore the webview's memory use: {e}");
                         }
                     }
@@ -205,18 +220,32 @@ mod windows_impl {
         let sent = window.with_webview(move |webview| {
             // Shown again (or about to be) since the suspend was asked for: leave it running.
             if suspending
-                && (stale(shows) || !wants_suspend(target.is_minimized().unwrap_or(false), target.is_visible().unwrap_or(true)))
+                && (stale(shows)
+                    || !wants_suspend(
+                        target.is_minimized().unwrap_or(false),
+                        target.is_visible().unwrap_or(true),
+                    ))
             {
                 return;
             }
             if !flip(&SUSPENDED, suspending) {
                 return;
             }
-            log::debug!("{} the {label} webview", if suspending { "suspending" } else { "resuming" });
+            log::debug!(
+                "{} the {label} webview",
+                if suspending { "suspending" } else { "resuming" }
+            );
             let controller = webview.controller();
-            let result = if suspending { suspend(&controller) } else { resume(&controller) };
+            let result = if suspending {
+                suspend(&controller)
+            } else {
+                resume(&controller)
+            };
             if let Err(e) = result {
-                log::warn!("could not {} the {label} webview: {e}", if suspending { "suspend" } else { "resume" });
+                log::warn!(
+                    "could not {} the {label} webview: {e}",
+                    if suspending { "suspend" } else { "resume" }
+                );
             }
         });
         if let Err(e) = sent {
@@ -254,7 +283,8 @@ mod windows_impl {
     }
 
     /// The last recovery after a failure, so a page that keeps crashing doesn't reload or rebuild in a loop.
-    static LAST_RECOVERY: std::sync::Mutex<Option<std::time::Instant>> = std::sync::Mutex::new(None);
+    static LAST_RECOVERY: std::sync::Mutex<Option<std::time::Instant>> =
+        std::sync::Mutex::new(None);
 
     /// Reloads a page whose renderer crashed or hung, and rebuilds the window when the browser
     /// process exited (at most once a minute); other process failures are only logged.
@@ -278,7 +308,10 @@ mod windows_impl {
                 }
             }
             Recovery::Rebuild => {
-                log::warn!("webview browser process exited (kind {}); rebuilding the studio window", kind.0);
+                log::warn!(
+                    "webview browser process exited (kind {}); rebuilding the studio window",
+                    kind.0
+                );
                 // Off this callback: destroying the window from inside its own webview's event is not safe.
                 let app = app.clone();
                 std::thread::spawn(move || crate::windows::rebuild_main(&app));
@@ -305,7 +338,9 @@ mod windows_impl {
         let handler = NewBrowserVersionAvailableEventHandler::create(Box::new(move |env, _| {
             let mut raw = windows_core::PWSTR::null();
             let version = match env {
-                Some(env) if unsafe { env.BrowserVersionString(&mut raw) }.is_ok() => take_pwstr(raw),
+                Some(env) if unsafe { env.BrowserVersionString(&mut raw) }.is_ok() => {
+                    take_pwstr(raw)
+                }
                 _ => String::new(),
             };
             log::info!("a newer WebView2 runtime is installed ({version:?})");

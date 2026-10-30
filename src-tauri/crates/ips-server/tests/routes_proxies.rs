@@ -21,7 +21,10 @@ struct Server {
 impl Server {
     async fn stop(mut self) {
         let _ = self.stop.take().unwrap().send(());
-        tokio::time::timeout(Duration::from_secs(5), &mut self.done).await.expect("graceful stop").unwrap();
+        tokio::time::timeout(Duration::from_secs(5), &mut self.done)
+            .await
+            .expect("graceful stop")
+            .unwrap();
     }
 }
 
@@ -48,7 +51,12 @@ async fn start_with(dir: tempfile::TempDir, cfg: ServerConfig) -> Server {
     let done = tokio::spawn(bound.serve(async {
         let _ = stopped.await;
     }));
-    Server { port, dir, stop: Some(stop), done }
+    Server {
+        port,
+        dir,
+        stop: Some(stop),
+        done,
+    }
 }
 
 async fn start() -> Server {
@@ -71,7 +79,10 @@ struct Reply {
 
 impl Reply {
     fn header(&self, name: &str) -> Option<&str> {
-        self.headers.iter().find(|(k, _)| k.eq_ignore_ascii_case(name)).map(|(_, v)| v.as_str())
+        self.headers
+            .iter()
+            .find(|(k, _)| k.eq_ignore_ascii_case(name))
+            .map(|(_, v)| v.as_str())
     }
 
     fn text(&self) -> String {
@@ -82,7 +93,8 @@ impl Reply {
 fn dechunk(mut raw: &[u8]) -> Vec<u8> {
     let mut out = Vec::new();
     while let Some(end) = raw.windows(2).position(|w| w == b"\r\n") {
-        let size = usize::from_str_radix(std::str::from_utf8(&raw[..end]).unwrap().trim(), 16).unwrap();
+        let size =
+            usize::from_str_radix(std::str::from_utf8(&raw[..end]).unwrap().trim(), 16).unwrap();
         if size == 0 {
             break;
         }
@@ -105,16 +117,38 @@ async fn send(port: u16, method: &str, path: &str, headers: &[(&str, &str)], bod
     request.push_str(&format!("Content-Length: {}\r\n\r\n{body}", body.len()));
     stream.write_all(request.as_bytes()).await.unwrap();
     let mut raw = Vec::new();
-    tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw)).await.unwrap().unwrap();
+    tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw))
+        .await
+        .unwrap()
+        .unwrap();
     let split = raw.windows(4).position(|w| w == b"\r\n\r\n").unwrap();
     let head = String::from_utf8_lossy(&raw[..split]).into_owned();
     let mut lines = head.split("\r\n");
-    let status = lines.next().unwrap().split(' ').nth(1).unwrap().parse().unwrap();
-    let headers: Vec<(String, String)> =
-        lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_string(), v.trim().to_string())).collect();
+    let status = lines
+        .next()
+        .unwrap()
+        .split(' ')
+        .nth(1)
+        .unwrap()
+        .parse()
+        .unwrap();
+    let headers: Vec<(String, String)> = lines
+        .filter_map(|l| l.split_once(':'))
+        .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
+        .collect();
     let rest = &raw[split + 4..];
-    let chunked = headers.iter().any(|(k, v)| k.eq_ignore_ascii_case("transfer-encoding") && v == "chunked");
-    Reply { status, body: if chunked { dechunk(rest) } else { rest.to_vec() }, headers }
+    let chunked = headers
+        .iter()
+        .any(|(k, v)| k.eq_ignore_ascii_case("transfer-encoding") && v == "chunked");
+    Reply {
+        status,
+        body: if chunked {
+            dechunk(rest)
+        } else {
+            rest.to_vec()
+        },
+        headers,
+    }
 }
 
 async fn get(port: u16, path: &str) -> Reply {
@@ -126,7 +160,9 @@ const JPEG: &[u8] = b"\xff\xd8\xff\xe0\0\0";
 
 /// The raw answer an upstream path gets.
 fn upstream_answer(path: &str) -> Vec<u8> {
-    let ok = |t: &str, body: &[u8]| [format!("HTTP/1.1 200 OK\r\nContent-Type: {t}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).into_bytes(), body.to_vec()].concat();
+    let ok = |t: &str, body: &[u8]| {
+        [format!("HTTP/1.1 200 OK\r\nContent-Type: {t}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).into_bytes(), body.to_vec()].concat()
+    };
     let head = |line: &str| format!("HTTP/1.1 {line}\r\nConnection: close\r\n\r\n").into_bytes();
     match path {
         "/jpg" => ok("image/jpeg", JPEG),
@@ -185,10 +221,17 @@ async fn relays_raster_images_with_nosniff_and_refuses_everything_else() {
     assert_eq!(jpg.header("x-content-type-options"), Some("nosniff"));
     assert_eq!(jpg.header("transfer-encoding"), Some("chunked"));
     let sniffed = image(s.port, &format!("{origin}/png-octet")).await;
-    assert_eq!((sniffed.status, sniffed.header("content-type")), (200, Some("image/png")));
+    assert_eq!(
+        (sniffed.status, sniffed.header("content-type")),
+        (200, Some("image/png"))
+    );
     for p in ["/svg", "/html", "/octet-html"] {
         let refused = image(s.port, &format!("{origin}{p}")).await;
-        assert_eq!((refused.status, refused.text().as_str()), (406, "not an image"), "{p}");
+        assert_eq!(
+            (refused.status, refused.text().as_str()),
+            (406, "not an image"),
+            "{p}"
+        );
     }
     let missing = image(s.port, &format!("{origin}/missing")).await;
     assert_eq!((missing.status, missing.body.len()), (404, 0));
@@ -200,9 +243,15 @@ async fn follows_redirects_only_to_allowed_targets() {
     let s = start().await;
     let origin = format!("http://127.0.0.1:{}", upstream().await);
     let hop = image(s.port, &format!("{origin}/hop")).await;
-    assert_eq!((hop.status, hop.header("content-type")), (200, Some("image/jpeg")));
+    assert_eq!(
+        (hop.status, hop.header("content-type")),
+        (200, Some("image/jpeg"))
+    );
     let escape = image(s.port, &format!("{origin}/escape")).await;
-    assert_eq!((escape.status, escape.text().as_str()), (502, "redirect refused"));
+    assert_eq!(
+        (escape.status, escape.text().as_str()),
+        (502, "redirect refused")
+    );
     // An https hop to a private address is refused before it connects, a 504 as in Node.
     let private = image(s.port, &format!("{origin}/to-private")).await;
     assert_eq!((private.status, private.body.len()), (504, 0));
@@ -218,9 +267,19 @@ async fn maps_oversize_cut_and_unreachable_upstreams_to_node_statuses() {
     let closed = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let dead = closed.local_addr().unwrap().port();
     drop(closed);
-    assert_eq!(image(s.port, &format!("http://127.0.0.1:{dead}/a")).await.status, 504);
+    assert_eq!(
+        image(s.port, &format!("http://127.0.0.1:{dead}/a"))
+            .await
+            .status,
+        504
+    );
     // This machine over https, as a literal, an IPv4-mapped literal or a name: refused before any connection.
-    for url in ["https://127.0.0.1:1/a.png", "https://[::ffff:127.0.0.1]:1/a.png", "https://localhost:1/a.png", "https://169.254.169.254/latest"] {
+    for url in [
+        "https://127.0.0.1:1/a.png",
+        "https://[::ffff:127.0.0.1]:1/a.png",
+        "https://localhost:1/a.png",
+        "https://169.254.169.254/latest",
+    ] {
         assert_eq!(image(s.port, url).await.status, 504, "{url}");
     }
     s.stop().await;
@@ -230,12 +289,25 @@ async fn maps_oversize_cut_and_unreachable_upstreams_to_node_statuses() {
 async fn refuses_bad_image_targets_and_other_methods() {
     let s = start().await;
     assert_eq!(get(s.port, "/api/image-proxy").await.status, 400);
-    for url in ["not a url", "http://example.com/a.png", "file:///etc/passwd", "ftp://example.com/a", "http://127.0.0.2/a", "http://[::ffff:127.0.0.1]/a"] {
+    for url in [
+        "not a url",
+        "http://example.com/a.png",
+        "file:///etc/passwd",
+        "ftp://example.com/a",
+        "http://127.0.0.2/a",
+        "http://[::ffff:127.0.0.1]/a",
+    ] {
         let refused = image(s.port, url).await;
         assert_eq!((refused.status, refused.body.len()), (400, 0), "{url}");
     }
     for method in ["POST", "DELETE", "OPTIONS"] {
-        assert_eq!(send(s.port, method, "/api/image-proxy?url=x", &[], "").await.status, 405, "{method}");
+        assert_eq!(
+            send(s.port, method, "/api/image-proxy?url=x", &[], "")
+                .await
+                .status,
+            405,
+            "{method}"
+        );
     }
     s.stop().await;
 }
@@ -260,34 +332,80 @@ async fn the_frame_check_reads_the_pages_headers_for_this_dashboards_origin() {
         ("/escape", "unknown"),
     ] {
         let reply = frame_check(s.port, &format!("{origin}{path}")).await;
-        assert_eq!((reply.status, reply.text()), (200, format!("{{\"frame\":\"{frame}\"}}")), "{path}");
+        assert_eq!(
+            (reply.status, reply.text()),
+            (200, format!("{{\"frame\":\"{frame}\"}}")),
+            "{path}"
+        );
         assert_eq!(reply.header("cache-control"), Some("no-store"));
     }
     // This machine over https is refused before it connects: nothing to say.
-    assert_eq!(frame_check(s.port, "https://localhost:1/").await.text(), "{\"frame\":\"unknown\"}");
+    assert_eq!(
+        frame_check(s.port, "https://localhost:1/").await.text(),
+        "{\"frame\":\"unknown\"}"
+    );
     for url in ["not a url", "http://example.com/", "file:///etc/passwd"] {
         assert_eq!(frame_check(s.port, url).await.status, 400, "{url}");
     }
-    assert_eq!(send(s.port, "POST", "/api/frame-check?url=x", &[], "").await.status, 405);
+    assert_eq!(
+        send(s.port, "POST", "/api/frame-check?url=x", &[], "")
+            .await
+            .status,
+        405
+    );
     s.stop().await;
 }
 
 #[tokio::test]
 async fn the_font_proxy_refuses_other_urls_and_serves_a_fresh_catalogue_copy() {
     let s = start().await;
-    assert_eq!(send(s.port, "POST", "/api/font-proxy?url=x", &[], "").await.status, 405);
-    for url in ["", "https://evil.example/x", "http://www.fontsquirrel.com/x", "https://fonts.google.com/x"] {
+    assert_eq!(
+        send(s.port, "POST", "/api/font-proxy?url=x", &[], "")
+            .await
+            .status,
+        405
+    );
+    for url in [
+        "",
+        "https://evil.example/x",
+        "http://www.fontsquirrel.com/x",
+        "https://fonts.google.com/x",
+    ] {
         let refused = get(s.port, &format!("/api/font-proxy?url={}", encode(url))).await;
-        assert_eq!((refused.status, refused.text().as_str()), (400, "not an allowed font URL"), "{url}");
+        assert_eq!(
+            (refused.status, refused.text().as_str()),
+            (400, "not an allowed font URL"),
+            "{url}"
+        );
     }
     let cache = s.dir.path().join("data/cache");
     std::fs::create_dir_all(&cache).unwrap();
-    std::fs::write(cache.join("fontsquirrel-list.json"), "[{\"family_name\":\"Roboto\"}]").unwrap();
-    let list = get(s.port, &format!("/api/font-proxy?url={}", encode("https://www.fontsquirrel.com/api/fontlist/all"))).await;
-    assert_eq!((list.status, list.text().as_str()), (200, "[{\"family_name\":\"Roboto\"}]"));
-    assert_eq!(list.header("content-type"), Some("application/octet-stream"));
+    std::fs::write(
+        cache.join("fontsquirrel-list.json"),
+        "[{\"family_name\":\"Roboto\"}]",
+    )
+    .unwrap();
+    let list = get(
+        s.port,
+        &format!(
+            "/api/font-proxy?url={}",
+            encode("https://www.fontsquirrel.com/api/fontlist/all")
+        ),
+    )
+    .await;
+    assert_eq!(
+        (list.status, list.text().as_str()),
+        (200, "[{\"family_name\":\"Roboto\"}]")
+    );
+    assert_eq!(
+        list.header("content-type"),
+        Some("application/octet-stream")
+    );
     assert_eq!(list.header("cache-control"), Some("no-store"));
     assert_eq!(list.header("x-content-type-options"), Some("nosniff"));
-    assert_eq!(list.header("content-security-policy"), Some("sandbox; default-src 'none'"));
+    assert_eq!(
+        list.header("content-security-policy"),
+        Some("sandbox; default-src 'none'")
+    );
     s.stop().await;
 }

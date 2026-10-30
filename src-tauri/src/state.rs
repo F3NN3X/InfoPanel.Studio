@@ -2,8 +2,8 @@
 
 use crate::debug::History;
 use crate::paths::Paths;
-use crate::settings::{self, Listen, Settings};
 use crate::server_log::RotatingLog;
+use crate::settings::{self, Listen, Settings};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::{HashSet, VecDeque};

@@ -27,7 +27,9 @@ pub const MAX_SETTINGS_BYTES: usize = 16 * 1024;
 const SETTINGS_LOG_MAX: usize = 50;
 
 pub fn now_ms() -> i64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as i64)
 }
 
 struct State {
@@ -57,8 +59,18 @@ impl ConfigStore {
             .ok()
             .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
             .map_or(0, |d| d.as_millis() as i64);
-        let state = State { version, settings_rev: now_ms(), settings_log: Vec::new(), listeners: BTreeMap::new(), next_listener: 0 };
-        Arc::new(Self { file: file.to_path_buf(), state: Mutex::new(state), on_saved: Mutex::new(Vec::new()) })
+        let state = State {
+            version,
+            settings_rev: now_ms(),
+            settings_log: Vec::new(),
+            listeners: BTreeMap::new(),
+            next_listener: 0,
+        };
+        Arc::new(Self {
+            file: file.to_path_buf(),
+            state: Mutex::new(state),
+            on_saved: Mutex::new(Vec::new()),
+        })
     }
 
     pub fn file(&self) -> &Path {
@@ -80,7 +92,9 @@ impl ConfigStore {
     }
 
     fn event(state: &State) -> Bytes {
-        sse::event(&json::stringify(&serde_json::json!({ "version": state.version, "settingsRev": state.settings_rev })))
+        sse::event(&json::stringify(
+            &serde_json::json!({ "version": state.version, "settingsRev": state.settings_rev }),
+        ))
     }
 
     /// Writes `text` as the config, bumps the version and tells every config stream.
@@ -88,7 +102,9 @@ impl ConfigStore {
         store::write_atomic(&self.file, text.as_bytes())?;
         state.version = now_ms().max(state.version + 1);
         let event = Self::event(state);
-        state.listeners.retain(|_, tx| tx.send(event.clone()).is_ok());
+        state
+            .listeners
+            .retain(|_, tx| tx.send(event.clone()).is_ok());
         for hook in self.on_saved.lock().unwrap().iter() {
             hook();
         }
@@ -103,7 +119,13 @@ impl ConfigStore {
         let id = state.next_listener;
         state.next_listener += 1;
         state.listeners.insert(id, tx);
-        (rx, Listener { store: Arc::clone(self), id })
+        (
+            rx,
+            Listener {
+                store: Arc::clone(self),
+                id,
+            },
+        )
     }
 }
 
@@ -148,7 +170,10 @@ pub async fn handle_config(app: &App, mut req: Req) -> std::io::Result<Response<
     if let Some(response) = app.refuse_remote_edit(&req) {
         return Ok(response);
     }
-    if let Some(refusal) = config_write_refusal(req.header("content-type").as_deref(), req.header("x-dashboard-config").as_deref()) {
+    if let Some(refusal) = config_write_refusal(
+        req.header("content-type").as_deref(),
+        req.header("x-dashboard-config").as_deref(),
+    ) {
         return Ok(refused(refusal));
     }
     let Ok(mut body) = req.read_body(MAX_CONFIG_BYTES).await else {
@@ -159,23 +184,46 @@ pub async fn handle_config(app: &App, mut req: Req) -> std::io::Result<Response<
         return Ok(http::text(400, "expected a config object"));
     };
     let mut state = config.state.lock().unwrap();
-    let stored_text = if config.file.exists() { Some(store::read_text(&config.file)?) } else { None };
+    let stored_text = if config.file.exists() {
+        Some(store::read_text(&config.file)?)
+    } else {
+        None
+    };
     // An older build must not overwrite a config a newer one saved.
-    if let Some(refusal) = stored_text.as_deref().and_then(|text| version_refusal(text, &parsed)) {
+    if let Some(refusal) = stored_text
+        .as_deref()
+        .and_then(|text| version_refusal(text, &parsed))
+    {
         return Ok(refused(refusal));
     }
-    let backup = stored_text.as_deref().and_then(|text| version_backup_name(text, &parsed));
+    let backup = stored_text
+        .as_deref()
+        .and_then(|text| version_backup_name(text, &parsed));
     // A push built before a Settings patch landed gets that patch again.
-    let known_rev = req.header("x-settings-rev").map_or(f64::NAN, |v| js::string_to_number(&v));
-    if known_rev.is_finite() && state.settings_log.iter().any(|entry| entry.rev as f64 > known_rev) {
+    let known_rev = req
+        .header("x-settings-rev")
+        .map_or(f64::NAN, |v| js::string_to_number(&v));
+    if known_rev.is_finite()
+        && state
+            .settings_log
+            .iter()
+            .any(|entry| entry.rev as f64 > known_rev)
+    {
         body = json::stringify(&reapply_settings(parsed, &state.settings_log, known_rev));
     }
     // Every canvasRef must name a file in the canvas store, or its zone would save blank.
     let canvases = CanvasStore::new(&app.cfg.data_dir.join("canvases"));
-    let missing: Vec<String> = referenced_canvas_ids(&body).unwrap_or_default().into_iter().filter(|id| !canvases.has(id)).collect();
+    let missing: Vec<String> = referenced_canvas_ids(&body)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|id| !canvases.has(id))
+        .collect();
     if !missing.is_empty() {
         let first: Vec<&str> = missing.iter().take(5).map(String::as_str).collect();
-        return Ok(http::text(422, format!("canvas files missing from the store: {}", first.join(", "))));
+        return Ok(http::text(
+            422,
+            format!("canvas files missing from the store: {}", first.join(", ")),
+        ));
     }
     // A save that raises the version keeps the file it replaces, once: an older build can't save over it any more.
     let backup = backup.map(|name| config.file.with_file_name(name));
@@ -200,14 +248,24 @@ pub async fn handle_config(app: &App, mut req: Req) -> std::io::Result<Response<
 pub async fn handle_settings(app: &App, mut req: Req) -> std::io::Result<Response<Body>> {
     let config = &app.config;
     if req.method == Method::GET {
-        let since = req.query("since").filter(|s| !s.is_empty()).map_or(f64::NAN, |s| js::string_to_number(&s));
+        let since = req
+            .query("since")
+            .filter(|s| !s.is_empty())
+            .map_or(f64::NAN, |s| js::string_to_number(&s));
         if !since.is_finite() {
             return Ok(http::text(400, "expected ?since=<revision>"));
         }
         let state = config.state.lock().unwrap();
-        let patches: Vec<Value> =
-            state.settings_log.iter().filter(|e| e.rev as f64 > since).map(|e| serde_json::json!({ "rev": e.rev, "patch": e.patch })).collect();
-        return Ok(http::json(200, &serde_json::json!({ "settingsRev": state.settings_rev, "patches": patches })));
+        let patches: Vec<Value> = state
+            .settings_log
+            .iter()
+            .filter(|e| e.rev as f64 > since)
+            .map(|e| serde_json::json!({ "rev": e.rev, "patch": e.patch }))
+            .collect();
+        return Ok(http::json(
+            200,
+            &serde_json::json!({ "settingsRev": state.settings_rev, "patches": patches }),
+        ));
     }
     if req.method.as_str() != "PATCH" {
         return Ok(http::empty(405));
@@ -215,7 +273,10 @@ pub async fn handle_settings(app: &App, mut req: Req) -> std::io::Result<Respons
     if let Some(response) = app.refuse_remote_edit(&req) {
         return Ok(response);
     }
-    if let Some(refusal) = config_write_refusal(req.header("content-type").as_deref(), req.header("x-dashboard-config").as_deref()) {
+    if let Some(refusal) = config_write_refusal(
+        req.header("content-type").as_deref(),
+        req.header("x-dashboard-config").as_deref(),
+    ) {
         return Ok(refused(refusal));
     }
     let Ok(body) = req.read_body(MAX_SETTINGS_BYTES).await else {
@@ -240,7 +301,10 @@ pub async fn handle_settings(app: &App, mut req: Req) -> std::io::Result<Respons
         state.settings_log.remove(0);
     }
     config.save(&mut state, &json::stringify(&merged))?;
-    Ok(http::json(200, &serde_json::json!({ "ok": true, "version": state.version, "settingsRev": rev })))
+    Ok(http::json(
+        200,
+        &serde_json::json!({ "ok": true, "version": state.version, "settingsRev": rev }),
+    ))
 }
 
 /// The config stream: the version and the newest Settings revision now, then after each save.

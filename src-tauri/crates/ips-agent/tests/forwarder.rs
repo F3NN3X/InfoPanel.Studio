@@ -230,7 +230,10 @@ fn hooks_post_the_raw_stdin_and_print_nothing() {
         r#"{"hook_event_name":"Stop","session_id":"x"}"#,
     );
     let (outcome, claude) = run_case(&stop);
-    assert_eq!((outcome.stdout, outcome.stderr, outcome.code), (vec![], vec![], Some(0)));
+    assert_eq!(
+        (outcome.stdout, outcome.stderr, outcome.code),
+        (vec![], vec![], Some(0))
+    );
     assert_eq!(claude.len(), 1);
     assert_eq!(claude[0].path, "/api/agents/event?agent=claude");
     assert_eq!(claude[0].content_type, "application/json");
@@ -288,7 +291,10 @@ fn statusline_posts_and_passes_the_wrapped_output_through() {
         input,
     ));
     assert_eq!(echoed.len(), 1);
-    assert!(String::from_utf8_lossy(&outcome.stdout).contains(input), "the wrapped output");
+    assert!(
+        String::from_utf8_lossy(&outcome.stdout).contains(input),
+        "the wrapped output"
+    );
     // Blank input: nothing is posted but the wrapped command still gets it.
     assert!(post(Case::new(
         &["statusline", &wrapped(ECHO), "--url={URL}"],
@@ -390,9 +396,8 @@ fn a_dead_server_is_not_an_error() {
 #[test]
 fn a_silent_server_is_given_up_on_after_a_second() {
     let started = Instant::now();
-    let seen = post(
-        Case::new(&["hook", "claude", "--url={URL}"], r#"{"slow":true}"#).reply(Reply::Hang),
-    );
+    let seen =
+        post(Case::new(&["hook", "claude", "--url={URL}"], r#"{"slow":true}"#).reply(Reply::Hang));
     if !seen.is_empty() {
         assert_eq!(seen.len(), 1);
         assert!(started.elapsed() < Duration::from_secs(6));

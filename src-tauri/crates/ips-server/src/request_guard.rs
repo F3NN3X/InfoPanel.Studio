@@ -21,7 +21,10 @@ pub struct Refusal {
 
 impl Refusal {
     pub fn new(status: u16, message: impl Into<String>) -> Self {
-        Self { status, message: message.into() }
+        Self {
+            status,
+            message: message.into(),
+        }
     }
 }
 
@@ -37,12 +40,17 @@ pub fn hostname_of(value: Option<&str>) -> Option<String> {
     let end = if let Some(inner) = v.strip_prefix('[') {
         let close = inner.find(']')?;
         let ip = &inner[..close];
-        if ip.is_empty() || !ip.chars().all(|c| c.is_ascii_hexdigit() || c == ':' || c == '.') {
+        if ip.is_empty()
+            || !ip
+                .chars()
+                .all(|c| c.is_ascii_hexdigit() || c == ':' || c == '.')
+        {
             return None;
         }
         close + 2
     } else {
-        v.find(|c: char| !(c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))).unwrap_or(v.len())
+        v.find(|c: char| !(c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')))
+            .unwrap_or(v.len())
     };
     if end == 0 {
         return None;
@@ -101,7 +109,13 @@ impl RequestGuard {
     }
 
     /// The refusal for a request with these headers, or `None` to let it through.
-    pub fn check(&self, method: &str, host: Option<&str>, sec_fetch_site: Option<&str>, origin: Option<&str>) -> Option<Refusal> {
+    pub fn check(
+        &self,
+        method: &str,
+        host: Option<&str>,
+        sec_fetch_site: Option<&str>,
+        origin: Option<&str>,
+    ) -> Option<Refusal> {
         let hostname = match hostname_of(host) {
             Some(h) if self.host_allowed(&h) => h,
             _ => return Some(Refusal::new(421, "host not allowed")),
@@ -116,9 +130,11 @@ impl RequestGuard {
             let Some(origin_host) = origin_host(origin) else {
                 return Some(Refusal::new(403, "origin not allowed"));
             };
-            let same_host = origin_host.to_lowercase() == js::trim(host.unwrap_or("undefined")).to_lowercase();
+            let same_host =
+                origin_host.to_lowercase() == js::trim(host.unwrap_or("undefined")).to_lowercase();
             // A dev proxy may rewrite Host but not Origin: two loopback names are the same machine.
-            let both_loopback = hostname_of(Some(&origin_host)).is_some_and(|h| LOOPBACK_NAMES.contains(&h.as_str()))
+            let both_loopback = hostname_of(Some(&origin_host))
+                .is_some_and(|h| LOOPBACK_NAMES.contains(&h.as_str()))
                 && LOOPBACK_NAMES.contains(&hostname.as_str());
             if !same_host && !both_loopback {
                 return Some(Refusal::new(403, "origin not allowed"));
@@ -130,7 +146,13 @@ impl RequestGuard {
 
 /// The names of a comma-separated ALLOWED_HOSTS value.
 pub fn parse_allowed_hosts(value: Option<&str>) -> Vec<String> {
-    value.unwrap_or("").split(',').map(js::trim).filter(|s| !s.is_empty()).map(String::from).collect()
+    value
+        .unwrap_or("")
+        .split(',')
+        .map(js::trim)
+        .filter(|s| !s.is_empty())
+        .map(String::from)
+        .collect()
 }
 
 /// The media type of a Content-Type value: before any `;`, trimmed, lowercase.
@@ -138,7 +160,11 @@ fn media_type(content_type: Option<&str>) -> String {
     js::trim(content_type.unwrap_or("").split(';').next().unwrap_or("")).to_lowercase()
 }
 
-fn json_write_refusal(content_type: Option<&str>, marker: Option<&str>, missing: &str) -> Option<Refusal> {
+fn json_write_refusal(
+    content_type: Option<&str>,
+    marker: Option<&str>,
+    missing: &str,
+) -> Option<Refusal> {
     if media_type(content_type) != "application/json" {
         return Some(Refusal::new(415, "expected application/json"));
     }
@@ -173,9 +199,16 @@ pub fn is_loopback(address: Option<&str>) -> bool {
 }
 
 /// Why a POST /api/agents/* is refused (this machine only, then Content-Type and `X-Agent-Event`), or `None`.
-pub fn agent_write_refusal(content_type: Option<&str>, marker: Option<&str>, address: Option<&str>) -> Option<Refusal> {
+pub fn agent_write_refusal(
+    content_type: Option<&str>,
+    marker: Option<&str>,
+    address: Option<&str>,
+) -> Option<Refusal> {
     if !is_loopback(address) {
-        return Some(Refusal::new(403, "agent status is accepted from this machine only"));
+        return Some(Refusal::new(
+            403,
+            "agent status is accepted from this machine only",
+        ));
     }
     json_write_refusal(content_type, marker, "missing X-Agent-Event header")
 }

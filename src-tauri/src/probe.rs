@@ -217,7 +217,10 @@ Active Connections
             exe: None,
             same_user,
         };
-        assert!(!may_adopt(&info("node.exe", true)), "a Node server is just another app");
+        assert!(
+            !may_adopt(&info("node.exe", true)),
+            "a Node server is just another app"
+        );
         assert!(!may_adopt(&info("InfoPanel.exe", true)));
         assert!(may_adopt(&info("ips-server.exe", true)));
         assert!(may_adopt(&info("IPS-SERVER.EXE", true)));

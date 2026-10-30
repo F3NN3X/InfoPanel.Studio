@@ -157,7 +157,10 @@ mod tests {
     use super::*;
 
     const MIN: Duration = Duration::from_secs(60);
-    const NOON: Clock = Clock { day: 20261023, minute: 12 * 60 };
+    const NOON: Clock = Clock {
+        day: 20261023,
+        minute: 12 * 60,
+    };
 
     fn idle(awake: bool, unfocused: Option<Duration>, done: bool) -> Option<&'static str> {
         due(StudioRefresh::Idle, awake, unfocused, done, None, None)
@@ -178,16 +181,42 @@ mod tests {
     fn a_focused_or_sleeping_window_is_never_refreshed() {
         assert_eq!(idle(true, None, false), None);
         assert_eq!(idle(false, Some(90 * MIN), false), None);
-        let night = Clock { day: 20261023, minute: 5 * 60 };
-        assert_eq!(due(StudioRefresh::Daily, true, None, false, None, Some(night)), None);
-        assert_eq!(due(StudioRefresh::Daily, false, Some(MIN), false, None, Some(night)), None);
+        let night = Clock {
+            day: 20261023,
+            minute: 5 * 60,
+        };
+        assert_eq!(
+            due(StudioRefresh::Daily, true, None, false, None, Some(night)),
+            None
+        );
+        assert_eq!(
+            due(
+                StudioRefresh::Daily,
+                false,
+                Some(MIN),
+                false,
+                None,
+                Some(night)
+            ),
+            None
+        );
     }
 
     #[test]
     fn daily_runs_from_four_once_per_day() {
         let due_at = |minute, day_done| {
-            let clock = Clock { day: 20261023, minute };
-            due(StudioRefresh::Daily, true, Some(MIN), false, day_done, Some(clock))
+            let clock = Clock {
+                day: 20261023,
+                minute,
+            };
+            due(
+                StudioRefresh::Daily,
+                true,
+                Some(MIN),
+                false,
+                day_done,
+                Some(clock),
+            )
         };
         assert_eq!(due_at(3 * 60 + 59, None), None);
         assert!(due_at(4 * 60, None).is_some());
@@ -197,17 +226,48 @@ mod tests {
 
     #[test]
     fn daily_without_a_clock_never_runs() {
-        assert_eq!(due(StudioRefresh::Daily, true, Some(MIN), false, None, None), None);
+        assert_eq!(
+            due(StudioRefresh::Daily, true, Some(MIN), false, None, None),
+            None
+        );
     }
 
     #[test]
     fn off_never_refreshes() {
-        assert_eq!(due(StudioRefresh::Off, true, Some(999 * MIN), false, None, Some(NOON)), None);
+        assert_eq!(
+            due(
+                StudioRefresh::Off,
+                true,
+                Some(999 * MIN),
+                false,
+                None,
+                Some(NOON)
+            ),
+            None
+        );
     }
 
     #[test]
     fn each_mode_ignores_the_other_modes_trigger() {
-        assert_eq!(due(StudioRefresh::Daily, true, Some(90 * MIN), true, Some(20261023), Some(NOON)), None);
-        assert!(due(StudioRefresh::Idle, true, Some(30 * MIN), false, Some(20261023), Some(NOON)).is_some());
+        assert_eq!(
+            due(
+                StudioRefresh::Daily,
+                true,
+                Some(90 * MIN),
+                true,
+                Some(20261023),
+                Some(NOON)
+            ),
+            None
+        );
+        assert!(due(
+            StudioRefresh::Idle,
+            true,
+            Some(30 * MIN),
+            false,
+            Some(20261023),
+            Some(NOON)
+        )
+        .is_some());
     }
 }

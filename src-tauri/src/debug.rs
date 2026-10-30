@@ -290,7 +290,10 @@ pub fn parse_server_stats(body: &str) -> Option<(u64, u64)> {
 
 /// The studio pages on this machine from `GET /api/server/stats` (`studios`).
 pub fn parse_server_studios(body: &str) -> Option<u64> {
-    serde_json::from_str::<Value>(body).ok()?.get("studios")?.as_u64()
+    serde_json::from_str::<Value>(body)
+        .ok()?
+        .get("studios")?
+        .as_u64()
 }
 
 #[cfg(test)]
@@ -305,9 +308,15 @@ mod tests {
 
     #[test]
     fn server_studios_parse() {
-        assert_eq!(parse_server_studios(r#"{"uptimeSeconds":12,"clients":3,"studios":1}"#), Some(1));
+        assert_eq!(
+            parse_server_studios(r#"{"uptimeSeconds":12,"clients":3,"studios":1}"#),
+            Some(1)
+        );
         // An older server that doesn't count them.
-        assert_eq!(parse_server_studios(r#"{"uptimeSeconds":12,"clients":3}"#), None);
+        assert_eq!(
+            parse_server_studios(r#"{"uptimeSeconds":12,"clients":3}"#),
+            None
+        );
         assert_eq!(parse_server_studios("not json"), None);
     }
 

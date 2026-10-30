@@ -10,7 +10,9 @@ use std::time::Duration;
 
 use ips_server::alerts::{Alerts, Options, StreamHandle};
 use ips_server::alerts_engine::{act, evaluate, quieten, AlertsState, Env, Event, Readings};
-use ips_server::alerts_rules::{conditions_of, is_quiet, keys_of, prefix_of, rules_of, take_events};
+use ips_server::alerts_rules::{
+    conditions_of, is_quiet, keys_of, prefix_of, rules_of, take_events,
+};
 use ips_server::control_store::Control;
 use ips_server::ical::LocalZone;
 use ips_server::json;
@@ -19,11 +21,15 @@ use serde_json::{json, Map, Value};
 const ZONE: LocalZone = LocalZone::Pinned(chrono_tz::Europe::Oslo);
 
 fn cases(module: &str) -> Vec<(Value, Value)> {
-    let file = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../tests/fixtures/parity").join(format!("{module}.json"));
+    let file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../tests/fixtures/parity")
+        .join(format!("{module}.json"));
     let text = std::fs::read_to_string(&file).unwrap_or_else(|e| panic!("{}: {e}", file.display()));
     let list: Vec<Value> = serde_json::from_str(&text).unwrap();
     assert!(!list.is_empty(), "{module}: no cases");
-    list.into_iter().map(|case| (case["input"].clone(), case["output"].clone())).collect()
+    list.into_iter()
+        .map(|case| (case["input"].clone(), case["output"].clone()))
+        .collect()
 }
 
 fn str_of<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
@@ -33,7 +39,12 @@ fn str_of<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
 /// Compares as JSON text, so key order counts.
 fn same(module: &str, input: &Value, got: &Value, want: &Value) {
     let shown = json::stringify(input);
-    assert_eq!(json::stringify(got), json::stringify(want), "{module}: {}", &shown[..shown.len().min(600)]);
+    assert_eq!(
+        json::stringify(got),
+        json::stringify(want),
+        "{module}: {}",
+        &shown[..shown.len().min(600)]
+    );
 }
 
 #[test]
@@ -43,13 +54,23 @@ fn helpers() {
         let got = match str_of(&input, "fn").unwrap() {
             "keysOf" => json!(keys_of(alerts)),
             "rulesOf" => Value::Array(rules_of(alerts).iter().map(|r| r["id"].clone()).collect()),
-            "conditionsOf" => Value::Array(conditions_of(&input["source"]).into_iter().cloned().collect()),
+            "conditionsOf" => Value::Array(
+                conditions_of(&input["source"])
+                    .into_iter()
+                    .cloned()
+                    .collect(),
+            ),
             "prefixOf" => json!(prefix_of(str_of(&input, "key").unwrap())),
             "takeEvents" => {
                 let (data, rest) = take_events(str_of(&input, "buffer").unwrap());
                 json!({ "data": data, "rest": rest })
             }
-            "isQuiet" => json!(is_quiet(input.get("quietHours"), input.get("severity"), input["now"].as_f64().unwrap(), ZONE)),
+            "isQuiet" => json!(is_quiet(
+                input.get("quietHours"),
+                input.get("severity"),
+                input["now"].as_f64().unwrap(),
+                ZONE
+            )),
             other => panic!("unknown fn {other}"),
         };
         same("alerts", &input, &got, &want);
@@ -61,7 +82,14 @@ fn digest(event: &Event) -> Value {
         Event::Fire(alert) => ("fire", alert, Value::Null),
         Event::Clear { alert, reason } => ("clear", alert, json!(reason)),
     };
-    json!([kind, alert["id"], alert["text"], alert.get("quiet").is_some(), alert.get("test").is_some(), reason])
+    json!([
+        kind,
+        alert["id"],
+        alert["text"],
+        alert.get("quiet").is_some(),
+        alert.get("test").is_some(),
+        reason
+    ])
 }
 
 /// One scripted run through `evaluate` / `act` / `quieten`.
@@ -78,7 +106,11 @@ fn run_sequence(input: &Value) -> Value {
         if let Some(Value::Object(next)) = step.get("readings") {
             readings = next.clone();
         }
-        let env = Env { now: step["at"].as_f64().unwrap(), muted: step["muted"] == json!(true), zone: ZONE };
+        let env = Env {
+            now: step["at"].as_f64().unwrap(),
+            muted: step["muted"] == json!(true),
+            zone: ZONE,
+        };
         let alerts = (!current.is_null()).then_some(&current);
         let mut error = None;
         let events = match str_of(step, "op").unwrap_or("evaluate") {
@@ -108,7 +140,11 @@ fn run_sequence(input: &Value) -> Value {
         let active = if mode == "brief" {
             json!(state.active.len())
         } else {
-            json!(state.active_alerts().iter().map(|a| a["id"].clone()).collect::<Vec<_>>())
+            json!(state
+                .active_alerts()
+                .iter()
+                .map(|a| a["id"].clone())
+                .collect::<Vec<_>>())
         };
         result.insert("active".into(), active);
         steps.push(Value::Object(result));
@@ -204,16 +240,38 @@ fn run_live(input: &Value) -> Value {
                 Ok(done) => done,
                 Err(error) => json!({ "error": error }),
             };
-            if done.get("mutedUntil").is_some_and(|m| m.as_f64().is_some_and(|m| m != 0.0)) {
+            if done
+                .get("mutedUntil")
+                .is_some_and(|m| m.as_f64().is_some_and(|m| m != 0.0))
+            {
                 done["mutedUntil"] = json!(true);
             }
             result.insert("result".into(), done);
         }
         let state = control.get();
-        let pages: Map<String, Value> = state["profiles"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v["page"].clone())).collect();
+        let pages: Map<String, Value> = state["profiles"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(k, v)| (k.clone(), v["page"].clone()))
+            .collect();
         result.insert("pages".into(), Value::Object(pages));
-        result.insert("active".into(), Value::Array(alerts.alerts().as_array().unwrap().iter().map(|a| a["id"].clone()).collect()));
-        result.insert("controlAlerts".into(), json!(state["alerts"].as_array().unwrap().len()));
+        result.insert(
+            "active".into(),
+            Value::Array(
+                alerts
+                    .alerts()
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|a| a["id"].clone())
+                    .collect(),
+            ),
+        );
+        result.insert(
+            "controlAlerts".into(),
+            json!(state["alerts"].as_array().unwrap().len()),
+        );
         result.insert("muted".into(), json!(!state["mutedUntil"].is_null()));
         steps.push(Value::Object(result));
     }
