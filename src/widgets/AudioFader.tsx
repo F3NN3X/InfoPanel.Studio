@@ -32,7 +32,9 @@ export default function AudioFader(p: AudioFaderProps) {
         if (!c) return <Empty icon="volume_off" label="Channel not found" />;
         const vertical = h > w * 1.15;
         const mode = p.fader === "bar" ? "bar" : "leds";
-        const tile = Math.round(clamp(Math.min(w, h) * 0.5, 28, 44));
+        // Across a narrow box the value and the gaps come first: the mute tile shrinks to leave the fader some room.
+        const wanted = Math.round(clamp(Math.min(w, h) * 0.5, 28, 44));
+        const tile = vertical ? wanted : Math.min(wanted, Math.max(24, w - 60));
         const mute = (
           <button type="button" onClick={() => toggleMute(c)} aria-label={c.mute ? `Unmute ${name}` : `Mute ${name}`} className="flex shrink-0 items-center justify-center rounded-lg bg-white/[0.05] active:scale-95" style={{ width: tile, height: tile, color }}>
             <Icon name={iconOf(c)} className="text-[20px]" />

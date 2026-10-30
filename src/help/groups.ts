@@ -6,7 +6,7 @@ export const HELP_GROUPS: { label: string; articles: string[] }[] = [
     articles: ["studio", "profiles", "zones", "widgets", "panels", "panel-widgets", "presets", "library"],
   },
   { label: "Style", articles: ["themes", "widget-settings", "background", "custom-css", "island-alerts"] },
-  { label: "Data", articles: ["sensors", "connections", "agents"] },
+  { label: "Data", articles: ["sensors", "connections", "streaming", "agents"] },
   { label: "Import from InfoPanel", articles: ["import", "infopanel-editor", "canvas", "remap", "assets", "gauges"] },
   { label: "Run", articles: ["kiosk", "touch", "performance", "startup", "updates"] },
   { label: "Troubleshoot", articles: ["problems", "diagnostics"] },

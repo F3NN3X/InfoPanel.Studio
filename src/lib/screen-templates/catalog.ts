@@ -21,11 +21,12 @@ import { QUOTA } from "./designs/quota";
 import { READOUT } from "./designs/readout";
 import { TERMINAL } from "./designs/terminal";
 import { TICKER } from "./designs/ticker";
+import { STREAM_DECK } from "./designs/streamdeck";
 import { TOWER } from "./designs/tower";
 import { WORK } from "./designs/work";
 import type { ScreenTemplate } from "./kit";
 
-const STARTERS: readonly ScreenTemplate[] = [GENERAL, GAMING, WORK, HARDWARE, MEDIA, MINIMAL, BAR];
+const STARTERS: readonly ScreenTemplate[] = [GENERAL, GAMING, WORK, HARDWARE, MEDIA, MINIMAL, BAR, STREAM_DECK];
 /** The native versions of the InfoPanel profile templates, in the InfoPanel gallery's order. */
 const PORTS: readonly ScreenTemplate[] = [GRAPHITE, GLASS, NEON, PAPER, MONO, TERMINAL, CLOCK, CORES, DECK, METERS, ORBIT, TOWER, TICKER, READOUT, CONSOLE, FROSTBAR, QUOTA];
 

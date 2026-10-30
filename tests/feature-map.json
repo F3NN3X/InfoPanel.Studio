@@ -422,6 +422,7 @@
         "tests/widgets/StatusBar/**",
         "tests/widgets/weather-fx/**",
         "tests/e2e/kiosk-renders.spec.ts",
+        "tests/e2e/streaming-widgets-fit.spec.ts",
         "tests/e2e/visualiser-round-trip.spec.ts"
       ],
       "checks": ["typecheck", "unit", "e2e"],

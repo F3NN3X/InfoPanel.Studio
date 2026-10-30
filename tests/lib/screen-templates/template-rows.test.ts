@@ -6,10 +6,10 @@ import { isLightTheme, templateThemeRows, variantName } from "@/lib/screen-templ
 const look = (id: string, name: string, style: Record<string, string>): AppearancePreset => ({ id, name, description: "", theme: "zinc", radius: 0.5, style });
 
 describe("template rows", () => {
-  it("fold the catalog's identical templates into one row: 22 templates, 55 looks, Meters also Orbit and Ticker", () => {
+  it("fold the catalog's identical templates into one row: 23 templates, 56 looks, Meters also Orbit and Ticker", () => {
     const rows = templateThemeRows(TEMPLATE_PRESET_GROUPS);
-    expect(rows).toHaveLength(22);
-    expect(rows.reduce((n, r) => n + r.presets.length, 0)).toBe(55);
+    expect(rows).toHaveLength(23);
+    expect(rows.reduce((n, r) => n + r.presets.length, 0)).toBe(56);
     const meters = rows.find((r) => r.name === "Meters");
     expect(meters?.also).toEqual(["Orbit", "Ticker"]);
     expect(rows.some((r) => r.name === "Orbit" || r.name === "Ticker")).toBe(false);

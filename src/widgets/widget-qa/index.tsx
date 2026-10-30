@@ -12,6 +12,7 @@ import { forceMountAll } from "./Frame";
 import { overflowReport, type Issue } from "./probe";
 import { DEFAULT_STATE, parseParams, parseSpans, placementSettings, serializeParams, type QaState } from "./params";
 import { filterModules, groupByCategory, pickModules } from "./plan";
+import { installDemoStreams } from "./demo-streams";
 
 /**
  * Dev-only oracle page for the widget library (`?widget-qa`): the template widgets (or exactly the
@@ -20,6 +21,9 @@ import { filterModules, groupByCategory, pickModules } from "./plan";
  * (params in `./params.ts`). `window.__qaOverflow()` lists what pokes out of its zone or overlaps
  * (see docs/redesign/phase9/qa.md).
  */
+
+// `data=fixtures` also gives the streaming widgets their OBS, chat and mixer demo data.
+if (new URLSearchParams(window.location.search).get("data") === "fixtures") installDemoStreams();
 
 const CATEGORY_ORDER = INSERT_CATEGORIES.filter((c) => !["All", "Layouts", "My panels"].includes(c));
 
