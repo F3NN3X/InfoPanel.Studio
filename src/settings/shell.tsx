@@ -15,7 +15,7 @@ import { tone } from "./ui";
 
 /** The rescue window's groups (app/settings.html): the App sections only. */
 const NAV_GROUPS: NavGroup[] = [
-  { label: "App", items: ["general", "server", "agents", "updates"] },
+  { label: "App", items: ["general", "server", "agents", "touch", "updates"] },
   { label: "Troubleshoot", items: ["diagnostics", "logs"] },
   { label: "InfoPanel Studio", items: ["about", "changelog"] },
 ];

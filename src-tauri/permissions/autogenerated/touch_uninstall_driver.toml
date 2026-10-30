@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-touch-uninstall-driver"
+description = "Enables the touch_uninstall_driver command without any pre-configured scope."
+commands.allow = ["touch_uninstall_driver"]
+
+[[permission]]
+identifier = "deny-touch-uninstall-driver"
+description = "Denies the touch_uninstall_driver command without any pre-configured scope."
+commands.deny = ["touch_uninstall_driver"]

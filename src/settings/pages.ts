@@ -7,6 +7,7 @@ import { DiagnosticsSection } from "./sections/diagnostics";
 import { GeneralSection } from "./sections/general";
 import { LogsSection } from "./sections/logs";
 import { ServerSection } from "./sections/server";
+import { TouchSection } from "./sections/touch";
 import { UpdatesSection } from "./sections/updates";
 
 export interface Page {
@@ -21,6 +22,7 @@ export const PAGES: Record<SectionId, Page> = {
   general: { subtitle: "How the app starts, closes and scales.", Section: GeneralSection },
   server: { subtitle: "The local server the kiosk and studio load from.", Section: ServerSection },
   agents: { subtitle: "Claude Code and Codex on your dashboard.", Section: AgentsSection },
+  touch: { subtitle: "Experimental: touch panels that drive the kiosk, never Windows.", Section: TouchSection },
   updates: { subtitle: "Get new versions of InfoPanel Studio.", Section: UpdatesSection },
   diagnostics: { subtitle: "Find errors and memory leaks.", wide: true, Section: DiagnosticsSection },
   logs: { subtitle: "Live output from the server, the app and the studio.", wide: true, Section: LogsSection },

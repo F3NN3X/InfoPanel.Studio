@@ -56,6 +56,15 @@ fn main() {
         "setup_options",
         "setup_end",
         "run_setup",
+        "touch_view",
+        "touch_set",
+        "touch_screens",
+        "touch_uninstall_driver",
+        "touch_setup",
+        "touch_pair",
+        "touch_calibrate",
+        "touch_identify",
+        "touch_cancel",
     ]);
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))
         .expect("failed to run the Tauri build script");

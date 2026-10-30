@@ -91,6 +91,9 @@ const profilePin = new URLSearchParams(window.location.search).get("profile");
 const displayParam = new URLSearchParams(window.location.search).get("display");
 const displayName = isDisplayName(displayParam) ? displayParam : undefined;
 
+/** ?touch=<panel id> (experimental touch): this kiosk shows that touch panel and takes its touches from Studio. */
+const touchPanel = new URLSearchParams(window.location.search).get("touch");
+
 const NO_ALERTS: readonly never[] = [];
 
 /** A touch tells the server to hold auto-rotation (it holds 30 s); at most this often. */
@@ -101,6 +104,8 @@ const StudioView = lazy(() =>
   import("@/components/studio/studio-view").then((m) => ({ default: m.StudioView }))
 );
 const ConfigUpdateDialog = lazy(() => import("@/components/studio/config-update-dialog").then((m) => ({ default: m.ConfigUpdateDialog })));
+// Experimental touch: only a kiosk with ?touch= loads it.
+const TouchLayer = lazy(() => import("@/components/touch-layer").then((m) => ({ default: m.TouchLayer })));
 
 interface AppProps {
   /** A dev fixture (`?fixture=`, src/dev/fixtures): its config replaces the saved one, nothing is read from or saved to the server. */
@@ -262,6 +267,16 @@ export default function App({ fixture }: AppProps = {}) {
       stored.pages.map((p) => p.id),
       profile.pageId ?? stored.pages[0].id,
       dir === "next" ? 1 : -1
+    );
+    if (next) goToPage(next);
+  };
+  // A touch gesture's page action: like a swipe, but not tied to the page dots setting; a ?page= pin still holds.
+  const touchPage = (to: "next" | "prev") => {
+    if (stored.pages.length < 2 || kioskPageId({ pin: pagePin, control: null, profile: stored }) !== undefined) return;
+    const next = neighbourPage(
+      stored.pages.map((p) => p.id),
+      profile.pageId ?? stored.pages[0].id,
+      to === "next" ? 1 : -1
     );
     if (next) goToPage(next);
   };
@@ -807,6 +822,12 @@ export default function App({ fixture }: AppProps = {}) {
           onSelect={goToPage}
           onToggleRotate={() => void postControl("rotate", { profile: stored.id, state: "toggle" })}
         />
+
+        {kiosk && touchPanel && (
+          <Suspense fallback={null}>
+            <TouchLayer panel={touchPanel} onPage={touchPage} />
+          </Suspense>
+        )}
 
         {/* Desktop Kiosk view has no title bar: the top edge brings a strip with Back, Minimize and Close */}
         {!kiosk && isTauri() && <KioskStrip onBack={enterStudio} onClose={closeFromKiosk} />}

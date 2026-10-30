@@ -46,6 +46,7 @@ const SETTINGS_ARTICLES: Partial<Record<PageId, string>> = {
   general: "startup",
   server: "kiosk",
   agents: "agents",
+  touch: "touch",
   updates: "updates",
   diagnostics: "diagnostics",
   logs: "diagnostics",

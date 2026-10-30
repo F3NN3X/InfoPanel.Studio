@@ -93,6 +93,16 @@ const SETTINGS_PERMISSIONS: &[&str] = &[
     "allow-show-studio",
     // General › Run setup opens a setup session in the studio.
     "allow-run-setup",
+    // Touch (experimental).
+    "allow-touch-view",
+    "allow-touch-set",
+    "allow-touch-screens",
+    "allow-touch-uninstall-driver",
+    "allow-touch-setup",
+    "allow-touch-pair",
+    "allow-touch-calibrate",
+    "allow-touch-identify",
+    "allow-touch-cancel",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "core:window:allow-minimize",

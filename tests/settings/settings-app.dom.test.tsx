@@ -24,6 +24,7 @@ const settingsDefaults: Settings = {
   updateChannel: "stable",
   autoDownload: false,
   agents: { enabled: false },
+  experimentalTouch: false,
   debug: false,
 };
 

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-touch-identify"
+description = "Enables the touch_identify command without any pre-configured scope."
+commands.allow = ["touch_identify"]
+
+[[permission]]
+identifier = "deny-touch-identify"
+description = "Denies the touch_identify command without any pre-configured scope."
+commands.deny = ["touch_identify"]

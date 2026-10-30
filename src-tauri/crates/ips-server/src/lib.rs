@@ -43,6 +43,7 @@ pub mod static_files;
 pub mod store;
 pub mod studio_prefs;
 pub mod supervisor;
+pub mod touch_hub;
 
 use std::future::Future;
 use std::net::{SocketAddr, ToSocketAddrs};
@@ -374,6 +375,7 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/api/alerts/history" => Ok(alerts::handle_history(app, &req)),
         "/api/extras" => Ok(extras::handle_extras(app, &req)),
         "/events/extras" => Ok(extras::handle_events(app)),
+        "/events/touch" => Ok(touch_hub::handle_events(app, &req)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),
         "/api/image-proxy" => proxy::handle(req).await,

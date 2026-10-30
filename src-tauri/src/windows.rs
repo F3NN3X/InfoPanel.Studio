@@ -59,6 +59,17 @@ fn with_webview_data_dir<'a, R: tauri::Runtime, M: Manager<R>>(builder: WebviewW
     }
 }
 
+/// A window built elsewhere (the touch setup overlays) on the same WebView2 environment as the app's own: its browser
+/// arguments and data folder, the pages' background, and local pages only.
+pub fn local_overlay<'a, R: tauri::Runtime, M: Manager<R>>(builder: WebviewWindowBuilder<'a, R, M>) -> WebviewWindowBuilder<'a, R, M> {
+    with_webview_data_dir(
+        builder
+            .additional_browser_args(browser_args())
+            .background_color(PAGE_BACKGROUND)
+            .on_navigation(nav::is_local_page),
+    )
+}
+
 /// At most one external open per second, so a page can't flood the browser with tabs.
 fn external_allowed() -> bool {
     use std::time::{Duration, Instant};
@@ -331,10 +342,11 @@ pub const SETTINGS_EVENT: &str = "settings-section";
 pub const HELP_EVENT: &str = "help-open";
 
 /// The App sections, all the rescue page has (`SectionId` in src/settings/model/search.ts).
-const SETTINGS_SECTIONS: [&str; 8] = [
+const SETTINGS_SECTIONS: [&str; 9] = [
     "general",
     "server",
     "agents",
+    "touch",
     "updates",
     "diagnostics",
     "logs",

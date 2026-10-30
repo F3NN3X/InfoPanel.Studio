@@ -19,6 +19,7 @@ mod server_log;
 mod settings;
 mod state;
 mod studio_target;
+mod touch;
 mod tray;
 mod unframe;
 mod updater;
@@ -243,6 +244,15 @@ pub fn run() {
             commands::setup_options,
             commands::setup_end,
             commands::run_setup,
+            touch::commands::touch_view,
+            touch::commands::touch_set,
+            touch::commands::touch_screens,
+            touch::commands::touch_uninstall_driver,
+            touch::screens::touch_setup,
+            touch::screens::touch_pair,
+            touch::screens::touch_calibrate,
+            touch::screens::touch_identify,
+            touch::screens::touch_cancel,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -257,6 +267,7 @@ pub fn run() {
             let start_at_login = s.start_at_login;
             let check_updates = s.check_for_updates;
             let start_server = s.start_server;
+            let experimental_touch = s.experimental_touch;
             app.manage(updater::Updates::new(&version));
             let st = AppState {
                 server_log,
@@ -276,7 +287,17 @@ pub fn run() {
                 log::info!("the saved config is older than this version; opening the studio to update it");
             }
             let open_window = open_window || outdated;
+            let touch = touch::Touch::new(
+                &st.paths.config_dir,
+                ips_server::touch_hub::HUB.clone(),
+            );
             app.manage(st);
+            app.manage(touch);
+            app.manage(touch::screens::Busy::default());
+            if experimental_touch {
+                handle.state::<touch::Touch>().set_enabled(true);
+            }
+            touch::watch(handle.clone());
             commands::sync_autostart(&handle, start_at_login);
             tray::create(&handle)?;
             if open_window {

@@ -125,7 +125,8 @@
         "src-tauri/crates/ips-server/src/agent*.rs",
         "src-tauri/crates/ips-server/src/claude_sessions.rs",
         "src-tauri/crates/ips-server/tests/*_agents.rs",
-        "src-tauri/crates/ips-server/src/infopanel_local.rs"
+        "src-tauri/crates/ips-server/src/infopanel_local.rs",
+        "src-tauri/crates/ips-server/src/touch_hub.rs"
       ],
       "tests": [
         "tests/server/server.test.mjs",
@@ -555,10 +556,18 @@
       "id": "desktop-shell",
       "summary": "The Tauri shell: windows, tray, sidecar, probe, settings, updater, WebView2 handling, kiosk view, logs, debug metrics.",
       "paths": ["src-tauri/**", "src/lib/desktop*.ts"],
-      "exclude": ["src-tauri/crates/**", "src-tauri/src/agents.rs"],
+      "exclude": ["src-tauri/crates/**", "src-tauri/src/agents.rs", "src-tauri/src/touch/**"],
       "tests": ["tests/lib/desktop.test.ts", "tests/help/generated.test.ts", "tests/settings/**"],
       "checks": ["typecheck", "unit", "cargo-app"],
       "note": "Rust tests live in their modules. The app crate needs Windows (WebView2 crates); elsewhere verify reports cargo-app as not run (exit 3)."
+    },
+    {
+      "id": "touch",
+      "summary": "Experimental touch: the touch engine (touch-core over raw USB, touch.json), the server's touch stream, and the kiosk's touch bridge and layer.",
+      "paths": ["src-tauri/src/touch/**", "src-tauri/crates/ips-server/src/touch_hub.rs", "src/lib/touch/**", "src/components/touch-layer.tsx", "src/touch-overlay/**", "touch.html"],
+      "tests": ["tests/lib/touch/**", "tests/touch-overlay/**", "tests/settings/touch.dom.test.tsx"],
+      "checks": ["typecheck", "unit", "build", "cargo-server", "cargo-app"],
+      "note": "The engine's and the hub's Rust tests live in their modules; the stream's route test is in ips-server's tests/routes.rs (server-core)."
     },
     {
       "id": "release",
