@@ -110,6 +110,9 @@ export const MODULE_TIERS: Record<string, TierEntry> = {
   DayPlanner: only("it joins the dashboard's calendar links and the weather, which InfoPanel can't read"),
   RadialClockStack: only("it joins the clock, the dashboard's calendar links and a sensor in one set of rings"),
   OnAirBeacon: only("its state comes from the dashboard's OBS connection, not from InfoPanel"),
+  StreamMixer: only("it controls Windows audio and Wave Link through the dashboard's server, which InfoPanel items can't"),
+  AudioButton: only("it controls Windows audio and Wave Link through the dashboard's server, which InfoPanel items can't"),
+  AudioFader: only("it controls Windows audio and Wave Link through the dashboard's server, which InfoPanel items can't"),
 };
 
 /** The tier entry of a registry module; an id without one is `native-only` (the guard test keeps this from happening). */

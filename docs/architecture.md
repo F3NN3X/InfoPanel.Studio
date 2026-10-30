@@ -17,6 +17,15 @@ Sensor data never passes through the dashboard server. `ips-server` serves
 the build, stores the config and uploaded media, and proxies cover-art
 images; the page talks to the Data API directly.
 
+The one exception is audio control state. The Stream Mixer and the audio
+buttons read and write this PC's Windows audio (Core Audio) and Elgato Wave
+Link through the server, because the volume plugin is read-only and a browser
+can do neither. `ips-server`'s `audio` module reads both into one state
+(`GET /api/audio`, SSE `/events/audio`) and applies writes from
+`POST /api/audio/act`, which needs a JSON body, `X-Dashboard-Control: 1` and, from
+another machine, remote editing turned on. `src/lib/audio-control.ts` is the
+page's client. Off Windows the Windows side reports `available: false`.
+
 ## 1. The InfoPanel Data API
 
 The base URL is the `dataApiUrl` setting of the config, default

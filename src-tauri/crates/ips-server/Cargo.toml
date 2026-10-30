@@ -33,6 +33,10 @@ uuid = { version = "1", default-features = false, features = ["v4"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading"] }
+# Core Audio (the mixer's Windows backend). 0.61 is the version Tauri already puts in the lock; windows-core is
+# there because the `interface` macro names it.
+windows-core = "0.61"
+windows = { version = "0.61", features = ["Win32_Devices_FunctionDiscovery", "Win32_Foundation", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Threading", "Win32_System_Variant", "Win32_UI_Shell_PropertiesSystem"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

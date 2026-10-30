@@ -126,7 +126,9 @@
         "src-tauri/crates/ips-server/src/claude_sessions.rs",
         "src-tauri/crates/ips-server/tests/*_agents.rs",
         "src-tauri/crates/ips-server/src/infopanel_local.rs",
-        "src-tauri/crates/ips-server/src/touch_hub.rs"
+        "src-tauri/crates/ips-server/src/touch_hub.rs",
+        "src-tauri/crates/ips-server/src/audio/**",
+        "src-tauri/crates/ips-server/tests/*_audio.rs"
       ],
       "tests": [
         "tests/server/server.test.mjs",
@@ -227,6 +229,18 @@
         "tests/fixtures/parity/obs.json"
       ],
       "checks": ["typecheck", "unit", "server-suite", "cargo-server"]
+    },
+    {
+      "id": "audio-control",
+      "summary": "The server's audio control (Windows Core Audio and Elgato Wave Link), its client, and the state it publishes to the Stream Mixer and the audio buttons.",
+      "paths": [
+        "src-tauri/crates/ips-server/src/audio/**",
+        "src-tauri/crates/ips-server/tests/*_audio.rs",
+        "src/lib/audio-control.ts"
+      ],
+      "tests": ["tests/lib/audio-control.test.ts"],
+      "checks": ["typecheck", "unit", "cargo-server", "cargo-app"],
+      "note": "The Windows backend (audio/coreaudio.rs) is exercised read-only by its own test on Windows; setting the default endpoint (IPolicyConfig) and writing volumes need a real PC and are never run by a test."
     },
     {
       "id": "coding-agents",
@@ -360,6 +374,7 @@
         "tests/widgets/DayPlanner/**",
         "tests/widgets/RadialClock/**",
         "tests/widgets/OnAir/**",
+        "tests/widgets/StreamMixer/**",
         "tests/widgets/StatusBar/**",
         "tests/widgets/weather-fx/**",
         "tests/e2e/kiosk-renders.spec.ts",

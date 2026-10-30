@@ -94,6 +94,10 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   DayPlanner: yes(BOTH),
   RadialClockStack: yes(BOTH),
   OnAirBeacon: yes(NONE),
+  // Stream audio: the server's audio control
+  StreamMixer: yes(BOTH),
+  AudioButton: yes(NONE),
+  AudioFader: yes(NONE),
 };
 
 /**

@@ -10,6 +10,7 @@ pub mod alerts_engine;
 pub mod alerts_rules;
 pub mod asset_types;
 pub mod assets;
+pub mod audio;
 pub mod calendar;
 pub mod canvases;
 pub mod claude_sessions;
@@ -62,6 +63,7 @@ use crate::agent_usage::AgentUsage;
 use crate::agents::{Agents, Sources};
 use crate::alerts::{Alerts, Options as AlertsOptions};
 use crate::assets::Assets;
+use crate::audio::Audio;
 use crate::canvases::{CanvasStore, Sweeper};
 use crate::config::ConfigStore;
 use crate::control_store::Control;
@@ -156,6 +158,7 @@ pub struct App {
     pub control: Arc<Control>,
     pub alerts: Arc<Alerts>,
     pub extras: Arc<Extras>,
+    pub audio: Arc<Audio>,
     pub agents: Agents,
     pub assets: Assets,
     pub canvases: Arc<CanvasStore>,
@@ -196,11 +199,16 @@ fn listen_socket(addr: SocketAddr) -> std::io::Result<std::net::TcpListener> {
 
 /// Takes the port, loads the data folder and prints the start line (stdout), as the Node server did on listen.
 pub async fn bind(cfg: ServerConfig) -> Result<Bound, StartError> {
-    bind_with_home(cfg, std::env::home_dir().unwrap_or_else(|| PathBuf::from("."))).await
+    bind_inner(cfg, std::env::home_dir().unwrap_or_else(|| PathBuf::from(".")), true).await
 }
 
-/// `bind` with the user's home (where `.claude` and `.codex` are read) given, so a test never reads the real one.
+/// `bind` with the user's home (where `.claude` and `.codex` are read) given, so a test never reads the real one. It does
+/// not start the audio backends either: a test never reads or writes this PC's audio devices or Wave Link.
 pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, StartError> {
+    bind_inner(cfg, home, false).await
+}
+
+async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Result<Bound, StartError> {
     std::fs::create_dir_all(&cfg.data_dir).map_err(|e| StartError::Other(format!("{}: {e}", cfg.data_dir.display())))?;
     let config = ConfigStore::load(&cfg.config_file());
     let prefs = StudioPrefs::load(&cfg.data_dir.join("studio-prefs.json"));
@@ -269,6 +277,11 @@ pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, S
     });
     extras.start(&shutdown);
     agents.start(&shutdown);
+    // Windows' audio and Wave Link, for the mixer.
+    let audio = Audio::new(if live_audio { audio::local_ws_info() } else { None });
+    if live_audio {
+        audio.start(&shutdown);
+    }
     let canvases = Arc::new(CanvasStore::new(&cfg.data_dir.join("canvases")));
     // Canvas files the config no longer references: at start and after saves, off the request that triggered it.
     let sweeper = Sweeper::new(Arc::clone(&canvases), cfg.config_file());
@@ -283,7 +296,7 @@ pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, S
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, agents, assets, canvases, library, prefs, shutdown };
+    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, audio, agents, assets, canvases, library, prefs, shutdown };
     Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
@@ -375,6 +388,9 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/api/alerts/history" => Ok(alerts::handle_history(app, &req)),
         "/api/extras" => Ok(extras::handle_extras(app, &req)),
         "/events/extras" => Ok(extras::handle_events(app)),
+        "/api/audio" => Ok(audio::handle_state(app, &req)),
+        "/events/audio" => Ok(audio::handle_events(app)),
+        "/api/audio/act" => audio::handle_act(app, req).await.map_err(io),
         "/events/touch" => Ok(touch_hub::handle_events(app, &req)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),
