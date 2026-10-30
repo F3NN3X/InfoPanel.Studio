@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { TwitchState } from "@/lib/extras";
-import { TWITCH_ACTIVATE_URL, type SigninResult } from "@/lib/twitch";
+import { safeActivateUrl, type PendingSignin, type SigninResult } from "@/lib/twitch";
 import { cn } from "@/lib/utils";
 import { FIELD, StackRow } from "@/components/studio/setting-rows";
 
@@ -9,6 +9,8 @@ const BUTTON = "flex h-[28px] items-center gap-1.5 rounded-[6px] border border-u
 export interface TwitchBlockProps {
   /** The server's Twitch status (`useExtras().twitch`). */
   state: TwitchState;
+  /** The code to approve while a sign-in is pending (`useTwitchPending`; the extras do not carry it). */
+  pending: PendingSignin | null;
   /** The chat channel saved ("" = the user's own). */
   channel: string;
   onSignin: () => Promise<SigninResult>;
@@ -30,12 +32,11 @@ export function countdown(at: number, now: number): string {
 }
 
 /** The Twitch sign-in: signed out, a code to approve, or signed in with the chat channel. Knows nothing of where it is shown. */
-export function TwitchBlock({ state, channel, onSignin, onCancel, onSignout, onSaveChannel, onOpen, now = Date.now }: TwitchBlockProps) {
+export function TwitchBlock({ state, pending, channel, onSignin, onCancel, onSignout, onSaveChannel, onOpen, now = Date.now }: TwitchBlockProps) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState(channel);
   const [tick, setTick] = useState(now());
-  const pending = state.pending;
   useEffect(() => {
     if (!pending) return;
     setTick(now());
@@ -43,9 +44,9 @@ export function TwitchBlock({ state, channel, onSignin, onCancel, onSignout, onS
     return () => clearInterval(t);
   }, [pending, now]);
   useEffect(() => setDraft(channel), [channel]);
-  const status = state.signedIn ? (state.connected ? "Chat connected" : "Connecting chat") : pending ? "Waiting for approval" : "Signed out";
+  const status = state.signedIn ? (state.connected ? "Chat connected" : "Connecting chat") : pending || state.pending ? "Waiting for approval" : "Signed out";
   const shown = error || state.error;
-  const url = pending?.verificationUri || TWITCH_ACTIVATE_URL;
+  const url = safeActivateUrl(pending?.verificationUri ?? "");
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between text-[12px] font-semibold text-ui-1">

@@ -273,7 +273,7 @@
         "src/lib/twitch.ts",
         "src/components/connections/**"
       ],
-      "tests": ["tests/lib/chat.test.ts", "tests/components/connections/**"],
+      "tests": ["tests/lib/chat.test.ts", "tests/lib/twitch.test.tsx", "tests/components/connections/**"],
       "checks": ["typecheck", "unit", "cargo-server", "cargo-app"],
       "note": "Every test talks to fake HTTP and WebSocket servers; none contacts Twitch, so the live device flow, the wss connection with the system's certificates and Twitch's real replies are checked only against the documented protocol. The tokens' absence from the public view, the extras and the chat stream is asserted."
     },

@@ -33,8 +33,9 @@ describe("the Twitch status in the extras", () => {
     expect(parseExtras({ twitch: {} }).twitch).toEqual(EMPTY_TWITCH);
     const twitch = parseExtras({ twitch: { configured: true, signedIn: true, login: "me", channel: "me", pending: null, error: "x", connected: true, live: true, viewers: 12 } }).twitch;
     expect(twitch).toMatchObject({ signedIn: true, login: "me", error: "x", connected: true, live: true, viewers: 12 });
-    expect(parseExtras({ twitch: { pending: { userCode: "AB-CD", verificationUri: "https://t/a", expiresAt: 9 } } }).twitch?.pending).toEqual({ userCode: "AB-CD", verificationUri: "https://t/a", expiresAt: 9 });
-    expect(parseExtras({ twitch: { pending: { userCode: "" } } }).twitch?.pending).toBeNull();
+    expect(parseExtras({ twitch: { pending: true } }).twitch?.pending).toBe(true);
+    // A code in the extras (an older server) is not read.
+    expect(parseExtras({ twitch: { pending: { userCode: "AB-CD" } } }).twitch?.pending).toBe(false);
   });
 });
 

@@ -33,9 +33,18 @@ async fn guarded_body(app: &App, req: &mut Req) -> Result<String, Response<Body>
         .map_err(|http::BodyRefused| http::closing(http::text(400, "expected a JSON object")))
 }
 
+/// GET /api/twitch/signin → `{ pending: { user_code, verification_uri, expires_at } | null, error }`, for this machine only (or
+/// with remote editing on).
 /// POST /api/twitch/signin → `{ user_code, verification_uri, expires_in }` once Twitch has handed out a code; 409 while a
 /// sign-in is under way; 502 when Twitch can't be reached.
 pub async fn handle_signin(app: &App, mut req: Req) -> std::io::Result<Response<Body>> {
+    if req.method == Method::GET {
+        // The code to approve is shown to this machine only (and to remote editors): a kiosk on the LAN must not see it.
+        if let Some(response) = app.refuse_remote_edit(&req) {
+            return Ok(response);
+        }
+        return Ok(http::json(200, &app.extras.twitch().pending_json()));
+    }
     if let Err(response) = guarded_body(app, &mut req).await {
         return Ok(response);
     }
@@ -44,6 +53,7 @@ pub async fn handle_signin(app: &App, mut req: Req) -> std::io::Result<Response<
             200,
             &json!({ "user_code": code.user_code, "verification_uri": code.verification_uri, "expires_in": code.expires_in }),
         ),
+        Err(SigninError::Cancelled) => http::text(409, "The sign-in was cancelled."),
         Err(SigninError::Busy) => http::text(409, "A sign-in is already under way."),
         Err(SigninError::Failed(message)) => http::text(502, message),
     })

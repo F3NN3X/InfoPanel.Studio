@@ -78,6 +78,8 @@ pub struct Tokens {
 pub enum Poll {
     Pending,
     SlowDown,
+    /// Twitch had trouble (a 5xx): ask again.
+    Retry,
     Done(Tokens),
     /// The sign-in is over, for this reason.
     Failed(String),
@@ -162,6 +164,9 @@ pub async fn start_device(client: &GuardedClient, ep: &Endpoints) -> Result<Devi
 pub fn classify_poll(status: u16, body: &Value, now_ms: i64) -> Poll {
     if status == 200 && !text(body, "access_token").is_empty() {
         return Poll::Done(tokens_of(body, now_ms));
+    }
+    if status >= 500 {
+        return Poll::Retry;
     }
     let message = [text(body, "message"), text(body, "error")]
         .join(" ")
@@ -337,9 +342,7 @@ mod tests {
         assert!(
             matches!(classify_poll(400, &json!({ "message": "invalid device code" }), 0), Poll::Failed(m) if m.contains("expired"))
         );
-        assert!(
-            matches!(classify_poll(500, &Value::Null, 0), Poll::Failed(m) if m.contains("500"))
-        );
+        assert!(classify_poll(500, &Value::Null, 0) == Poll::Retry);
         let done = json!({ "access_token": "a", "refresh_token": "r", "expires_in": 100, "scope": ["chat:read"] });
         assert_eq!(
             classify_poll(200, &done, 5000),

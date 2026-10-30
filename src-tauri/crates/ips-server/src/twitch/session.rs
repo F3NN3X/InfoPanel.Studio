@@ -64,7 +64,12 @@ impl Twitch {
             }
             match end {
                 End::Kicked => {}
-                End::Reconnect => backoff = BACKOFF_MIN,
+                End::Reconnect => {
+                    // Twitch asked for a new connection, not for a stampede.
+                    backoff = BACKOFF_MIN;
+                    self.pause(&mut kick, &mut backoff).await;
+                    backoff = BACKOFF_MIN;
+                }
                 End::AuthFailed if !refreshed => {
                     refreshed = true;
                     // The token Twitch refused is replaced; a refresh Twitch refuses too signs the user out.

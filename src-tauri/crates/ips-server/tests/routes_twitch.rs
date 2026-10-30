@@ -162,11 +162,14 @@ async fn guards_the_writes_the_same_way_as_the_other_control_routes() {
         "/api/twitch/signout",
         "/api/chat/send",
     ] {
-        assert_eq!(
-            send(s.port, "GET", path, &[], "").await.status,
-            405,
-            "{path}"
-        );
+        // The sign-in's GET is the pending code, for this machine.
+        if path != "/api/twitch/signin" {
+            assert_eq!(
+                send(s.port, "GET", path, &[], "").await.status,
+                405,
+                "{path}"
+            );
+        }
         assert_eq!(
             send(s.port, "PUT", path, &WRITE, "{}").await.status,
             405,
@@ -217,7 +220,7 @@ async fn a_sign_in_that_cannot_reach_twitch_says_so_and_sign_out_always_answers(
     let extras = json_of(&send(s.port, "GET", "/api/extras", &[], "").await);
     assert_eq!(
         extras["twitch"],
-        serde_json::json!({ "configured": true, "signedIn": false, "login": "", "channel": "", "pending": null, "error": null, "connected": false, "live": false, "viewers": 0 })
+        serde_json::json!({ "configured": true, "signedIn": false, "login": "", "channel": "", "pending": false, "error": null, "connected": false, "live": false, "viewers": 0 })
     );
     s.stop().await;
 }
@@ -339,5 +342,20 @@ async fn never_shows_a_stored_sign_in_to_the_studio_a_kiosk_or_a_stream() {
             && !file.contains("EVIL"),
         "{file}"
     );
+    s.stop().await;
+}
+
+#[tokio::test]
+async fn shows_the_pending_sign_in_to_this_machine_only_through_its_own_route() {
+    let s = start().await;
+    let reply = send(s.port, "GET", "/api/twitch/signin", &[], "").await;
+    assert_eq!(reply.status, 200);
+    assert_eq!(
+        json_of(&reply),
+        serde_json::json!({ "pending": null, "error": null })
+    );
+    // The kiosks' extras say only that one is pending, never its code.
+    let extras = json_of(&send(s.port, "GET", "/api/extras", &[], "").await);
+    assert_eq!(extras["twitch"]["pending"], false);
     s.stop().await;
 }

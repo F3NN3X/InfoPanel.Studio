@@ -68,8 +68,8 @@ export interface TwitchState {
   login: string;
   /** The chat being read (the user's own unless another is chosen). */
   channel: string;
-  /** A sign-in waiting for the code to be approved; `expiresAt` is unix ms. */
-  pending: { userCode: string; verificationUri: string; expiresAt: number } | null;
+  /** A sign-in is waiting for its code to be approved. The code itself is not in the extras (every kiosk reads them): `GET /api/twitch/signin` gives it to this machine. */
+  pending: boolean;
   error: string | null;
   /** The chat connection is up. */
   connected: boolean;
@@ -77,7 +77,7 @@ export interface TwitchState {
   viewers: number;
 }
 
-export const EMPTY_TWITCH: TwitchState = { configured: false, signedIn: false, login: "", channel: "", pending: null, error: null, connected: false, live: false, viewers: 0 };
+export const EMPTY_TWITCH: TwitchState = { configured: false, signedIn: false, login: "", channel: "", pending: false, error: null, connected: false, live: false, viewers: 0 };
 
 export interface Extras {
   obs: ObsState & ObsLive;
@@ -128,13 +128,12 @@ const viewers = (v: unknown): { viewers: number } | undefined => (isObject(v) &&
 
 /** Tolerant read of the Twitch status. */
 function parseTwitch(o: Record<string, unknown>): TwitchState {
-  const p = isObject(o.pending) && text(o.pending.userCode) ? { userCode: text(o.pending.userCode), verificationUri: text(o.pending.verificationUri), expiresAt: count(o.pending.expiresAt) } : null;
   return {
     configured: o.configured === true,
     signedIn: o.signedIn === true,
     login: text(o.login),
     channel: text(o.channel),
-    pending: p,
+    pending: o.pending === true,
     error: text(o.error) || null,
     connected: o.connected === true,
     live: o.live === true,

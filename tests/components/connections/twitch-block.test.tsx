@@ -8,6 +8,7 @@ afterEach(cleanup);
 
 const props = (over: Partial<TwitchBlockProps> = {}): TwitchBlockProps => ({
   state: EMPTY_TWITCH,
+  pending: null,
   channel: "",
   onSignin: vi.fn(async () => ({ ok: true as const, userCode: "AB", verificationUri: "u", expiresIn: 1 })),
   onCancel: vi.fn(),
@@ -28,8 +29,8 @@ describe("TwitchBlock", () => {
   });
 
   it("shows the code big with the activate link, a countdown and Cancel while a sign-in is pending", () => {
-    const state = { ...EMPTY_TWITCH, pending: { userCode: "ABCD-EFGH", verificationUri: "https://www.twitch.tv/activate", expiresAt: 1_000_000 + 125_000 } };
-    const p = props({ state });
+    const pending = { userCode: "ABCD-EFGH", verificationUri: "https://www.twitch.tv/activate", expiresAt: 1_000_000 + 125_000 };
+    const p = props({ state: { ...EMPTY_TWITCH, pending: true }, pending });
     render(<TwitchBlock {...p} />);
     expect(screen.getByLabelText("Twitch code").textContent).toBe("ABCD-EFGH");
     expect(screen.getByText("Expires in 2:05")).toBeTruthy();
@@ -38,6 +39,14 @@ describe("TwitchBlock", () => {
     fireEvent.click(screen.getByText("Cancel"));
     expect(p.onCancel).toHaveBeenCalled();
     expect(screen.queryByText("Sign in with Twitch")).toBeNull();
+  });
+
+  it("links only to twitch.tv over https, whatever address the server sent", () => {
+    const pending = { userCode: "AB", verificationUri: "https://evil.example/activate", expiresAt: 1_000_000 + 5000 };
+    const p = props({ state: { ...EMPTY_TWITCH, pending: true }, pending });
+    render(<TwitchBlock {...p} />);
+    fireEvent.click(screen.getByText("https://www.twitch.tv/activate"));
+    expect(p.onOpen).toHaveBeenCalledWith("https://www.twitch.tv/activate");
   });
 
   it("shows the login, saves the chat channel and signs out when signed in", async () => {

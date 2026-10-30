@@ -48,6 +48,8 @@ struct Inner {
     pending: Option<Pending>,
     /// A sign-in is being asked for (the device request is out).
     starting: bool,
+    /// Bumped by every sign-out or cancel, so a sign-in started before it can tell.
+    generation: u64,
     error: Option<String>,
     connected: bool,
     live: bool,
@@ -77,6 +79,8 @@ impl Inner {
 pub enum SigninError {
     /// One is under way.
     Busy,
+    /// Cancelled or signed out while the code was being asked for.
+    Cancelled,
     Failed(String),
 }
 
@@ -113,6 +117,8 @@ pub struct Twitch {
     outgoing: Mutex<Option<mpsc::Sender<String>>>,
     /// The chat as an event; a stream only ever needs the newest.
     latest: watch::Sender<Bytes>,
+    /// When each repeating failure was last logged.
+    warned: Mutex<std::collections::HashMap<&'static str, Instant>>,
 }
 
 fn locked<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -143,6 +149,7 @@ impl Twitch {
             next_flow: AtomicU64::new(1),
             outgoing: Mutex::new(None),
             latest: watch::channel(Bytes::new()).0,
+            warned: Mutex::default(),
         });
         twitch.publish_chat();
         twitch
@@ -151,13 +158,12 @@ impl Twitch {
     /// The status in the extras.
     pub fn status(&self) -> Value {
         let i = locked(&self.inner);
-        let pending = i.pending.as_ref().map(|p| json!({ "userCode": p.user_code, "verificationUri": p.verification_uri, "expiresAt": p.expires_at }));
         json!({
             "configured": !self.ep.client_id.is_empty(),
             "signedIn": i.signed_in(),
             "login": i.auth.login,
             "channel": i.channel(),
-            "pending": pending,
+            "pending": i.pending.is_some(),
             "error": i.error,
             "connected": i.connected,
             "live": i.live,
@@ -217,18 +223,22 @@ impl Twitch {
 
     /// Starts a sign-in: asks Twitch for a code and waits for the user to approve it in the background.
     pub async fn signin(self: &Arc<Self>) -> Result<Code, SigninError> {
-        {
+        let generation = {
             let mut i = locked(&self.inner);
             if i.pending.is_some() || i.starting {
                 return Err(SigninError::Busy);
             }
             i.starting = true;
-        }
+            i.generation
+        };
         let device = auth::start_device(&self.client, &self.ep).await;
         let device = match device {
             Ok(device) => device,
             Err(message) => {
-                locked(&self.inner).starting = false;
+                let mut i = locked(&self.inner);
+                if i.generation == generation {
+                    i.starting = false;
+                }
                 return Err(SigninError::Failed(message));
             }
         };
@@ -240,6 +250,9 @@ impl Twitch {
         };
         {
             let mut i = locked(&self.inner);
+            if i.generation != generation {
+                return Err(SigninError::Cancelled);
+            }
             i.starting = false;
             i.error = None;
             i.pending = Some(Pending {
@@ -266,12 +279,13 @@ impl Twitch {
                 break Err("The code expired. Start again.".to_string());
             }
             match auth::poll_device(&self.client, &self.ep, &device, now_ms()).await {
-                Ok(Poll::Pending) => {}
+                Ok(Poll::Pending) => self.recovered("signin"),
                 Ok(Poll::SlowDown) => interval += self.ep.slow_down_step,
+                Ok(Poll::Retry) => self.warn_throttled("signin", "Twitch had trouble answering"),
                 Ok(Poll::Done(tokens)) => break Ok(tokens),
                 Ok(Poll::Failed(message)) => break Err(message),
                 // Twitch couldn't be asked just now; the code is still good, so ask again.
-                Err(message) => log::warn!(target: "server", "twitch sign-in: {message}"),
+                Err(message) => self.warn_throttled("signin", &message),
             }
         };
         let result = match outcome {
@@ -349,6 +363,8 @@ impl Twitch {
         let old = {
             let mut i = locked(&self.inner);
             let old = std::mem::take(&mut i.auth);
+            i.generation += 1;
+            i.starting = false;
             i.pending = None;
             i.error = reason;
             i.connected = false;
@@ -379,7 +395,10 @@ impl Twitch {
             return Ok(token);
         }
         match self.refresh_stale(&token).await {
-            Err(_) if expires_at > now_ms() => Ok(token),
+            // Twitch could not be asked and the token still works; a refused refresh has signed the user out instead.
+            Err(_) if expires_at > now_ms() && locked(&self.inner).auth.access_token == token => {
+                Ok(token)
+            }
             other => other,
         }
     }
@@ -399,22 +418,62 @@ impl Twitch {
         };
         match auth::refresh(&self.client, &self.ep, &refresh_token, now_ms()).await {
             Ok(tokens) => {
+                // A sign-out or a newer sign-in may have come while Twitch was answering; then these tokens are not wanted.
                 let next = {
                     let mut i = locked(&self.inner);
-                    i.auth.access_token = tokens.access_token.clone();
-                    i.auth.refresh_token = tokens.refresh_token;
-                    i.auth.expires_at = tokens.expires_at;
-                    i.auth.clone()
+                    if !i.signed_in() || i.auth.refresh_token != refresh_token {
+                        None
+                    } else {
+                        i.auth.access_token = tokens.access_token.clone();
+                        i.auth.refresh_token = tokens.refresh_token.clone();
+                        i.auth.expires_at = tokens.expires_at;
+                        Some(i.auth.clone())
+                    }
+                };
+                let Some(next) = next else {
+                    let (client, ep) = (self.client.clone(), self.ep.clone());
+                    tokio::spawn(
+                        async move { auth::revoke(&client, &ep, &tokens.access_token).await },
+                    );
+                    return Err("signed out".into());
                 };
                 (self.persist)(next);
                 Ok(tokens.access_token)
             }
             Err(RefreshError::Rejected(_)) => {
-                self.signed_out("Your Twitch sign-in ran out. Sign in again.");
+                // Only the sign-in that was refreshed is ended, not a newer one.
+                if locked(&self.inner).auth.refresh_token == refresh_token {
+                    self.signed_out("Your Twitch sign-in ran out. Sign in again.");
+                }
                 Err("sign-in ran out".into())
             }
             Err(RefreshError::Unreachable(message)) => Err(message),
         }
+    }
+
+    /// Logs a failure that repeats: the first time, then at most once a minute while it goes on.
+    fn warn_throttled(&self, key: &'static str, message: &str) {
+        let mut warned = locked(&self.warned);
+        if warned
+            .get(key)
+            .is_some_and(|at| at.elapsed() < Duration::from_secs(60))
+        {
+            return;
+        }
+        warned.insert(key, Instant::now());
+        log::warn!(target: "server", "twitch {key}: {message}");
+    }
+
+    /// A repeating failure stopped: the next one is logged at once.
+    fn recovered(&self, key: &'static str) {
+        locked(&self.warned).remove(key);
+    }
+
+    /// The sign-in under way, for the Settings page: the code to approve and when it runs out.
+    pub fn pending_json(&self) -> Value {
+        let i = locked(&self.inner);
+        let pending = i.pending.as_ref().map(|p| json!({ "user_code": p.user_code, "verification_uri": p.verification_uri, "expires_at": p.expires_at }));
+        json!({ "pending": pending, "error": i.error })
     }
 
     /// Whether a channel is live and its viewers, with the signed-in token; a 401 refreshes the token once and asks again.
@@ -510,8 +569,11 @@ impl Twitch {
             if signed_in && !channel.is_empty() {
                 let found = self.stream_info(&channel).await;
                 match found {
-                    Ok((live, viewers)) => self.set_live(live, viewers),
-                    Err(message) => log::warn!(target: "server", "twitch viewers: {message}"),
+                    Ok((live, viewers)) => {
+                        self.recovered("viewers");
+                        self.set_live(live, viewers);
+                    }
+                    Err(message) => self.warn_throttled("viewers", &message),
                 }
             } else {
                 self.set_live(false, 0);
