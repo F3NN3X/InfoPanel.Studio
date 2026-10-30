@@ -124,6 +124,7 @@ impl Backend {
     ) {
         let (done, ended) = oneshot::channel::<()>();
         let backend = Arc::clone(self);
+        let after = Arc::clone(&on_state);
         let spawned = std::thread::Builder::new()
             .name("audio-windows".into())
             .spawn(move || {
@@ -133,6 +134,8 @@ impl Backend {
         if spawned.is_ok() {
             let _ = ended.await;
         }
+        // The thread is gone (stopped, failed or panicked): nothing reads the writes now, so say Windows audio isn't there.
+        after(WindowsState::default());
     }
 
     fn thread(
@@ -163,6 +166,8 @@ impl Backend {
         on_state: &(dyn Fn(WindowsState) + Send + Sync),
     ) {
         let inbox = self.inbox.lock().unwrap_or_else(PoisonError::into_inner);
+        // Writes queued while the thread was down are stale.
+        while inbox.try_recv().is_ok() {}
         let mut names = HashMap::new();
         let mut last: Option<WindowsState> = None;
         while !*shutdown.borrow() {

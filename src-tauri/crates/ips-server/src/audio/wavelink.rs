@@ -10,7 +10,7 @@ use std::time::Duration;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use tokio::sync::mpsc;
-use tokio::time::{interval, sleep, sleep_until, Instant};
+use tokio::time::{interval, sleep, sleep_until, timeout, Instant};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::HeaderValue;
 use tokio_tungstenite::tungstenite::Message;
@@ -18,8 +18,6 @@ use tokio_tungstenite::tungstenite::Message;
 use super::act::WlAct;
 use super::state::{WaveLinkState, WlChannel, WlMix, WlRoute, WlStatus};
 
-const RECONNECT_MIN: Duration = Duration::from_secs(5);
-const RECONNECT_MAX: Duration = Duration::from_secs(60);
 /// Notifications arriving together are read once.
 const DEBOUNCE: Duration = Duration::from_millis(50);
 /// A full read when no notification asked for one (a missed event).
@@ -200,6 +198,31 @@ pub fn writes_of(act: &WlAct) -> Vec<(&'static str, Value)> {
     out
 }
 
+/// How long it waits for Wave Link.
+#[derive(Debug, Clone, Copy)]
+pub struct Timing {
+    /// Looking for `ws-info.json` while there is none: cheap, so often.
+    pub absent_poll: Duration,
+    /// To connect, and to answer a request; past it the attempt has failed.
+    pub connect: Duration,
+    pub request: Duration,
+    /// Between connection attempts to a port that is there: it doubles from the first up to the second while they fail.
+    pub reconnect_min: Duration,
+    pub reconnect_max: Duration,
+}
+
+impl Default for Timing {
+    fn default() -> Self {
+        Self {
+            absent_poll: Duration::from_secs(3),
+            connect: Duration::from_secs(3),
+            request: Duration::from_secs(3),
+            reconnect_min: Duration::from_secs(5),
+            reconnect_max: Duration::from_secs(60),
+        }
+    }
+}
+
 /// What a request in flight asked for.
 enum Pending {
     Channels,
@@ -210,6 +233,7 @@ enum Pending {
 /// The connection: `run` is the supervised task, `send` queues a write.
 pub struct WaveLink {
     ws_info: Option<PathBuf>,
+    timing: Timing,
     state: Mutex<WaveLinkState>,
     on_change: Box<dyn Fn() + Send + Sync>,
     commands: mpsc::UnboundedSender<WlAct>,
@@ -222,11 +246,18 @@ impl WaveLink {
         let (commands, inbox) = mpsc::unbounded_channel();
         Self {
             ws_info,
+            timing: Timing::default(),
             state: Mutex::new(WaveLinkState::new(WlStatus::Absent)),
             on_change: Box::new(on_change),
             commands,
             inbox: tokio::sync::Mutex::new(inbox),
         }
+    }
+
+    /// The same with other waits (the tests').
+    pub fn with_timing(mut self, timing: Timing) -> Self {
+        self.timing = timing;
+        self
     }
 
     pub fn state(&self) -> WaveLinkState {
@@ -260,18 +291,20 @@ impl WaveLink {
 
     /// Follows Wave Link while it runs, and looks for it again after a growing delay. Never returns.
     pub async fn run(&self) {
-        let mut delay = RECONNECT_MIN;
+        let mut delay = self.timing.reconnect_min;
         loop {
-            match self.port() {
-                None => self.update(|s| *s = WaveLinkState::new(WlStatus::Absent)),
-                Some(port) => {
-                    self.update(|s| *s = WaveLinkState::new(WlStatus::Down));
-                    self.session(port, &mut delay).await;
-                    self.update(|s| *s = WaveLinkState::new(WlStatus::Down));
-                }
-            }
+            let Some(port) = self.port() else {
+                // Wave Link isn't running: look again soon, whatever happened before.
+                self.update(|s| *s = WaveLinkState::new(WlStatus::Absent));
+                delay = self.timing.reconnect_min;
+                sleep(self.timing.absent_poll).await;
+                continue;
+            };
+            self.update(|s| *s = WaveLinkState::new(WlStatus::Down));
+            self.session(port, &mut delay).await;
+            self.update(|s| *s = WaveLinkState::new(WlStatus::Down));
             sleep(delay).await;
-            delay = (delay * 2).min(RECONNECT_MAX);
+            delay = (delay * 2).min(self.timing.reconnect_max);
         }
     }
 
@@ -284,16 +317,25 @@ impl WaveLink {
         upgrade
             .headers_mut()
             .insert("Origin", HeaderValue::from_static("streamdeck://"));
-        let Ok((mut socket, _)) = tokio_tungstenite::connect_async(upgrade).await else {
+        // A port that takes the connection but never finishes the handshake must not hold this up.
+        let Ok(Ok((mut socket, _))) = timeout(
+            self.timing.connect,
+            tokio_tungstenite::connect_async(upgrade),
+        )
+        .await
+        else {
             return;
         };
         let mut inbox = self.inbox.lock().await;
-        let mut pending: HashMap<u64, Pending> = HashMap::new();
+        // Writes queued for an earlier connection are stale now.
+        while inbox.try_recv().is_ok() {}
+        let mut pending: HashMap<u64, (Pending, Instant)> = HashMap::new();
         let mut next_id = 0u64;
         let (mut channels_due, mut mixes_due) = (true, true);
         let mut due = Some(Instant::now());
         let mut refresh = interval(SAFETY_REFRESH);
         refresh.tick().await;
+        let mut sweep = interval(self.timing.request / 2);
         loop {
             tokio::select! {
                 frame = socket.next() => {
@@ -305,16 +347,16 @@ impl WaveLink {
                         continue;
                     };
                     match classify(data.as_str()) {
-                        Incoming::Response { id, result } => match (pending.remove(&id), result) {
+                        Incoming::Response { id, result } => match (pending.remove(&id).map(|(kind, _)| kind), result) {
                             (Some(Pending::Channels), Ok(result)) => {
-                                *delay = RECONNECT_MIN;
+                                *delay = self.timing.reconnect_min;
                                 self.update(|s| {
                                     s.status = WlStatus::Up;
                                     s.channels = channels_of(&result);
                                 });
                             }
                             (Some(Pending::Mixes), Ok(result)) => {
-                                *delay = RECONNECT_MIN;
+                                *delay = self.timing.reconnect_min;
                                 self.update(|s| {
                                     s.status = WlStatus::Up;
                                     s.mixes = mixes_of(&result);
@@ -338,7 +380,7 @@ impl WaveLink {
                     let Some(act) = act else { return };
                     for (method, params) in writes_of(&act) {
                         next_id += 1;
-                        pending.insert(next_id, Pending::Write);
+                        pending.insert(next_id, (Pending::Write, Instant::now()));
                         if socket.send(Message::text(request(next_id, method, Some(params)))).await.is_err() {
                             return;
                         }
@@ -354,10 +396,16 @@ impl WaveLink {
                             continue;
                         }
                         next_id += 1;
-                        pending.insert(next_id, kind);
+                        pending.insert(next_id, (kind, Instant::now()));
                         if socket.send(Message::text(request(next_id, method, None))).await.is_err() {
                             return;
                         }
+                    }
+                }
+                _ = sweep.tick() => {
+                    // Wave Link has stopped answering: this connection is no good.
+                    if pending.values().any(|(_, sent)| sent.elapsed() > self.timing.request) {
+                        return;
                     }
                 }
                 _ = refresh.tick() => {
@@ -656,5 +704,117 @@ mod tests {
             .await
             .expect("down once the socket closes");
         task.abort();
+    }
+
+    fn fast() -> Timing {
+        Timing {
+            absent_poll: Duration::from_millis(20),
+            connect: Duration::from_millis(200),
+            request: Duration::from_millis(300),
+            reconnect_min: Duration::from_millis(50),
+            reconnect_max: Duration::from_millis(100),
+        }
+    }
+
+    async fn until_up(link: &WaveLink) {
+        for _ in 0..300 {
+            if link.state().status == WlStatus::Up && !link.state().channels.is_empty() {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        panic!("not up: {:?}", link.state());
+    }
+
+    #[tokio::test]
+    async fn gives_up_on_a_handshake_that_never_completes_and_on_a_connection_that_never_answers() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let dir = tempfile::tempdir().unwrap();
+        let info = dir.path().join("ws-info.json");
+        std::fs::write(&info, format!(r#"{{"port":{port}}}"#)).unwrap();
+        let (writes, _written) = mpsc::unbounded_channel();
+        let server = tokio::spawn(async move {
+            // First: the TCP connection is taken and nothing more happens.
+            let (_hung, _) = listener.accept().await.unwrap();
+            // Second: the handshake completes but no request is ever answered.
+            let (stream, _) = listener.accept().await.unwrap();
+            let _silent = tokio_tungstenite::accept_async(stream).await.unwrap();
+            fake_wave_link(listener, writes).await;
+        });
+        let link = Arc::new(WaveLink::new(Some(info), || {}).with_timing(fast()));
+        let task = tokio::spawn({
+            let link = Arc::clone(&link);
+            async move { link.run().await }
+        });
+        // Reaching Up means the third connection was made: the first two were given up on.
+        tokio::time::timeout(Duration::from_secs(5), until_up(&link))
+            .await
+            .expect("retries past both");
+        task.abort();
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn notices_wave_link_starting_without_waiting_out_a_backoff() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let dir = tempfile::tempdir().unwrap();
+        let info = dir.path().join("ws-info.json");
+        let (writes, _written) = mpsc::unbounded_channel();
+        let server = tokio::spawn(fake_wave_link(listener, writes));
+        // The delay between attempts at a port is long here; looking for the file must not use it.
+        let timing = Timing {
+            reconnect_min: Duration::from_secs(30),
+            reconnect_max: Duration::from_secs(60),
+            ..fast()
+        };
+        let link = Arc::new(WaveLink::new(Some(info.clone()), || {}).with_timing(timing));
+        let task = tokio::spawn({
+            let link = Arc::clone(&link);
+            async move { link.run().await }
+        });
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        assert_eq!(link.state().status, WlStatus::Absent);
+        std::fs::write(&info, format!(r#"{{"port":{port}}}"#)).unwrap();
+        tokio::time::timeout(Duration::from_secs(5), until_up(&link))
+            .await
+            .expect("up soon after the file appears");
+        task.abort();
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn drops_writes_queued_for_an_earlier_connection() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let dir = tempfile::tempdir().unwrap();
+        let info = dir.path().join("ws-info.json");
+        std::fs::write(&info, format!(r#"{{"port":{port}}}"#)).unwrap();
+        let (writes, mut written) = mpsc::unbounded_channel();
+        let server = tokio::spawn(fake_wave_link(listener, writes));
+        let link = Arc::new(WaveLink::new(Some(info), || {}).with_timing(fast()));
+        // A write that got in the queue before this connection existed.
+        link.commands
+            .send(WlAct::Mix {
+                id: "m1".into(),
+                level: Some(5),
+                muted: None,
+            })
+            .unwrap();
+        let task = tokio::spawn({
+            let link = Arc::clone(&link);
+            async move { link.run().await }
+        });
+        tokio::time::timeout(Duration::from_secs(5), until_up(&link))
+            .await
+            .expect("connects");
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        assert!(
+            written.try_recv().is_err(),
+            "the stale write was not replayed"
+        );
+        task.abort();
+        server.abort();
     }
 }

@@ -107,4 +107,51 @@ describe("the writes", () => {
     expect(await audioAct(volume(3))).toBe(true);
     off();
   });
+  it("sends one value at a time per fader, in order, the newest last", async () => {
+    const releases: (() => void)[] = [];
+    const bodies: number[] = [];
+    vi.stubGlobal("fetch", (_url: string, init: RequestInit) => {
+      bodies.push((JSON.parse(String(init.body)) as { value: number }).value);
+      return new Promise<Response>((resolve) => releases.push(() => resolve(new Response(null, { status: 204 }))));
+    });
+    audioActThrottled("slow", volume(1));
+    await vi.advanceTimersByTimeAsync(THROTTLE_MS * 3);
+    audioActThrottled("slow", volume(2));
+    audioActThrottled("slow", volume(3));
+    await vi.advanceTimersByTimeAsync(THROTTLE_MS * 3);
+    expect(bodies, "the second waits for the first to settle").toEqual([1]);
+    releases[0]();
+    await vi.advanceTimersByTimeAsync(THROTTLE_MS * 3);
+    expect(bodies, "and then only the newest goes").toEqual([1, 3]);
+    releases[1]();
+  });
+
+  it("clears a refusal on the next state message, and opens a stream the server refused again", async () => {
+    class FakeSource {
+      static CLOSED = 2;
+      static all: FakeSource[] = [];
+      readyState = 1;
+      onopen: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      onmessage: ((e: { data: string }) => void) | null = null;
+      constructor() {
+        FakeSource.all.push(this);
+      }
+      close() {}
+    }
+    vi.stubGlobal("EventSource", FakeSource);
+    const off = audio.subscribe(() => {});
+    status = 403;
+    expect(await audioAct(volume(1))).toBe(false);
+    status = 204;
+    expect(await audioAct(volume(2))).toBe(false);
+    FakeSource.all[0].onmessage?.({ data: "{}" });
+    expect(await audioAct(volume(3))).toBe(true);
+
+    FakeSource.all[0].readyState = 2;
+    FakeSource.all[0].onerror?.();
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(FakeSource.all).toHaveLength(2);
+    off();
+  });
 });

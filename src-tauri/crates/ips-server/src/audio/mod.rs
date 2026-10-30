@@ -9,7 +9,6 @@ mod coreaudio;
 pub mod state;
 pub mod wavelink;
 
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, PoisonError, Weak};
@@ -17,7 +16,7 @@ use std::sync::{Arc, Mutex, PoisonError, Weak};
 use axum::body::{Body, Bytes};
 use axum::http::{Method, Response};
 use serde_json::Value;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
 use crate::http::{self, Req};
@@ -29,13 +28,6 @@ use wavelink::WaveLink;
 
 const MAX_BODY_BYTES: usize = 4 * 1024;
 
-/// The open /events/audio streams by id, and the next id.
-#[derive(Default)]
-struct Listeners {
-    next: u64,
-    open: BTreeMap<u64, mpsc::UnboundedSender<Bytes>>,
-}
-
 /// Windows' audio and Wave Link as kiosks see them, and the way to write to both.
 pub struct Audio {
     windows: Mutex<WindowsState>,
@@ -43,25 +35,10 @@ pub struct Audio {
     #[cfg(windows)]
     core: Arc<coreaudio::Backend>,
     /// Set by `start`: a server that never started its backends (a test) neither writes to Windows nor opens its settings.
+    #[cfg_attr(not(windows), allow(dead_code))]
     started: AtomicBool,
-    listeners: Mutex<Listeners>,
-}
-
-/// A stream's place in the listeners; dropped with the stream.
-struct Listener {
-    audio: Arc<Audio>,
-    id: u64,
-}
-
-impl Drop for Listener {
-    fn drop(&mut self) {
-        self.audio
-            .listeners
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .open
-            .remove(&self.id);
-    }
+    /// The newest state as an event; a stream only ever needs this one, so a reader that stalls costs nothing.
+    latest: watch::Sender<Bytes>,
 }
 
 /// Wave Link's `ws-info.json` under this user's local app data, when there is one.
@@ -84,7 +61,7 @@ impl Audio {
                 #[cfg(windows)]
                 core: Arc::new(coreaudio::Backend::new()),
                 started: AtomicBool::new(false),
-                listeners: Mutex::new(Listeners::default()),
+                latest: watch::channel(Bytes::new()).0,
             }
         })
     }
@@ -104,34 +81,17 @@ impl Audio {
         serde_json::to_string(&self.state()).unwrap_or_else(|_| "{}".into())
     }
 
-    /// Sends the full state to every open stream.
+    /// Makes the full state the one every open stream sends next. The state is read inside the channel's lock, so of two
+    /// publishes the later reader wins.
     pub fn publish(&self) {
-        let event = sse::event(&self.json());
-        self.listeners
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .open
-            .retain(|_, tx| tx.send(event.clone()).is_ok());
+        self.latest
+            .send_modify(|event| *event = sse::event(&self.json()));
     }
 
-    /// A stream's receiver, with the state now already queued, and the registration to drop.
-    fn listen(self: &Arc<Self>) -> (mpsc::UnboundedReceiver<Bytes>, Listener) {
-        let (tx, rx) = mpsc::unbounded_channel();
-        let _ = tx.send(sse::event(&self.json()));
-        let mut listeners = self
-            .listeners
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner);
-        let id = listeners.next;
-        listeners.next += 1;
-        listeners.open.insert(id, tx);
-        (
-            rx,
-            Listener {
-                audio: Arc::clone(self),
-                id,
-            },
-        )
+    /// A stream's receiver, holding the state as of now.
+    fn listen(&self) -> watch::Receiver<Bytes> {
+        self.publish();
+        self.latest.subscribe()
     }
 
     /// Starts the Windows audio thread and the Wave Link connection, each under the supervisor.
@@ -198,9 +158,9 @@ pub fn handle_state(app: &App, req: &Req) -> Response<Body> {
 
 /// /events/audio: the state now, then each change.
 pub fn handle_events(app: &App) -> Response<Body> {
-    let (rx, listener) = app.audio.listen();
+    let rx = app.audio.listen();
     let client = app.debug.sse_open("audio");
-    sse::response(rx, app.shutdown.clone(), Box::new((listener, client)))
+    sse::latest_response(rx, app.shutdown.clone(), Box::new(client))
 }
 
 /// POST /api/audio/act → 204 once the write is handed on. Needs a JSON body and `X-Dashboard-Control: 1`; 403 from another

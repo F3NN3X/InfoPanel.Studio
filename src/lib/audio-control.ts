@@ -120,6 +120,9 @@ export function parseAudio(raw: unknown): AudioState {
 
 type Listener = (state: AudioState) => void;
 
+/** Between tries at a stream the server refused. */
+const RETRY_MS = 5000;
+
 /** True after the server refused a write (403: another machine, remote editing off); the widgets stay read-only until the stream reconnects. */
 let refused = false;
 
@@ -131,6 +134,12 @@ function createAudioClient(url: string) {
   const open = () => {
     if (source || typeof EventSource === "undefined") return;
     source = trackEventSource(new EventSource(url));
+    // A refused stream (a status other than 200) is closed for good by the browser: open it again after a while.
+    source.onerror = () => {
+      if (source?.readyState !== EventSource.CLOSED) return;
+      source = null;
+      if (listeners.size) setTimeout(open, RETRY_MS);
+    };
     source.onopen = () => {
       refused = false;
     };
@@ -140,6 +149,8 @@ function createAudioClient(url: string) {
       } catch {
         return;
       }
+      // A refusal may have been a passing one; the next change of state is a fresh start.
+      refused = false;
       for (const l of listeners) l(state);
     };
   };
@@ -187,31 +198,41 @@ export const THROTTLE_MS = 50;
 interface Slot {
   last: number;
   timer?: ReturnType<typeof setTimeout>;
+  /** The newest value not sent yet. */
   pending?: AudioAction;
+  /** A send is in flight: the next waits for it, so the server hears the values in order. */
+  busy?: boolean;
 }
 
 const slots = new Map<string, Slot>();
 
+function flush(slot: Slot): void {
+  if (slot.busy || !slot.pending) return;
+  const wait = slot.last + THROTTLE_MS - Date.now();
+  if (wait > 0) {
+    slot.timer ??= setTimeout(() => {
+      slot.timer = undefined;
+      flush(slot);
+    }, wait);
+    return;
+  }
+  const body = slot.pending;
+  slot.pending = undefined;
+  slot.busy = true;
+  slot.last = Date.now();
+  void audioAct(body).finally(() => {
+    slot.busy = false;
+    flush(slot);
+  });
+}
+
 /**
- * A fader drag's sends: at most one per `THROTTLE_MS` for each `key` (one fader), and the last value always follows,
- * so the target ends where the finger stopped.
+ * A fader drag's sends: at most one per `THROTTLE_MS` for each `key` (one fader), one at a time, and the last value
+ * always follows, so the target ends where the finger stopped.
  */
 export function audioActThrottled(key: string, body: AudioAction): void {
   const slot = slots.get(key) ?? { last: -Infinity };
   slots.set(key, slot);
-  const wait = slot.last + THROTTLE_MS - Date.now();
-  if (wait <= 0 && !slot.timer) {
-    slot.last = Date.now();
-    void audioAct(body);
-    return;
-  }
   slot.pending = body;
-  if (slot.timer) return;
-  slot.timer = setTimeout(() => {
-    slot.timer = undefined;
-    slot.last = Date.now();
-    const next = slot.pending;
-    slot.pending = undefined;
-    if (next) void audioAct(next);
-  }, Math.max(0, wait));
+  flush(slot);
 }
