@@ -52,6 +52,7 @@ export { meta as SteamNews } from "./SteamNews";
 export { meta as SteamProfile } from "./SteamProfile";
 export { meta as StorageHealth } from "./StorageHealth";
 export { meta as StreamDeck } from "./StreamDeck";
+export { meta as StreamChat } from "./StreamChat";
 export { meta as StreamControl } from "./StreamControl";
 export { meta as StreamMixer } from "./StreamMixer";
 export { meta as SystemOverview } from "./SystemOverview";

@@ -20,6 +20,7 @@ use crate::integrations::IntegrationsStore;
 use crate::obs::Obs;
 use crate::request_guard::config_write_refusal;
 use crate::streaming;
+use crate::twitch::{auth::Endpoints, Twitch};
 use crate::json::{parse as parse_json, stringify};
 use crate::{sse, supervisor, App};
 
@@ -34,11 +35,12 @@ struct Listeners {
     open: BTreeMap<u64, mpsc::UnboundedSender<Bytes>>,
 }
 
-/// OBS, the calendar and the agents' sessions as the kiosks see them, and the stored integrations that drive the first two.
+/// OBS, the calendar, Twitch and the agents' sessions as the kiosks see them, and the stored integrations that drive the first three.
 pub struct Extras {
     pub integrations: Arc<IntegrationsStore>,
     obs: Arc<Obs>,
     calendar: Arc<Calendar>,
+    twitch: Arc<Twitch>,
     agents: Box<dyn Fn() -> Value + Send + Sync>,
     listeners: Mutex<Listeners>,
 }
@@ -56,10 +58,12 @@ impl Drop for Listener {
 }
 
 impl Extras {
-    /// The extras over the integrations in `file`. `agents` returns the agents' public state (`{ sessions, plan, usage }`).
-    pub fn new(file: &Path, agents: impl Fn() -> Value + Send + Sync + 'static) -> Result<Arc<Self>, String> {
+    /// The extras over the integrations in `file`, with Twitch at `twitch`. `agents` returns the agents' public state
+    /// (`{ sessions, plan, usage }`).
+    pub fn new(file: &Path, twitch: Endpoints, agents: impl Fn() -> Value + Send + Sync + 'static) -> Result<Arc<Self>, String> {
         let integrations = Arc::new(IntegrationsStore::load(file));
         let client = GuardedClient::new(false)?;
+        let twitch_client = client.clone();
         let extras = Arc::new_cyclic(|weak: &Weak<Self>| {
             let publish: Arc<dyn Fn() + Send + Sync> = {
                 let weak = weak.clone();
@@ -76,15 +80,29 @@ impl Extras {
                 let publish = Arc::clone(&publish);
                 move || publish()
             });
+            let twitch = Twitch::new(twitch, twitch_client, integrations.get().streaming.twitch, {
+                let integrations = Arc::clone(&integrations);
+                move |auth| {
+                    if let Err(e) = integrations.set_twitch_auth(auth) {
+                        log::error!(target: "server", "saving the Twitch sign-in failed: {e}");
+                    }
+                }
+            }, {
+                let publish = Arc::clone(&publish);
+                move || publish()
+            });
             let calendar = Calendar::new(client, {
                 let integrations = Arc::clone(&integrations);
                 move || integrations.get().links
             }, move || publish());
-            Self { integrations: Arc::clone(&integrations), obs, calendar, agents: Box::new(agents), listeners: Mutex::new(Listeners::default()) }
+            Self { integrations: Arc::clone(&integrations), obs, calendar, twitch, agents: Box::new(agents), listeners: Mutex::new(Listeners::default()) }
         });
         integrations.subscribe({
-            let (obs, calendar) = (Arc::clone(&extras.obs), Arc::clone(&extras.calendar));
+            let (obs, calendar, twitch) = (Arc::clone(&extras.obs), Arc::clone(&extras.calendar), Arc::clone(&extras.twitch));
             move |next, prev| {
+                if next.streaming.twitch.channel != prev.streaming.twitch.channel {
+                    twitch.set_channel(&next.streaming.twitch.channel);
+                }
                 if next.obs != prev.obs {
                     obs.reconfigure();
                 }
@@ -101,9 +119,13 @@ impl Extras {
         &self.obs
     }
 
-    /// The state kiosks get: `{ obs, calendar, agents }`.
+    pub fn twitch(&self) -> &Arc<Twitch> {
+        &self.twitch
+    }
+
+    /// The state kiosks get: `{ obs, calendar, agents, twitch }`.
     pub fn state(&self) -> Value {
-        json!({ "obs": self.obs.json(), "calendar": self.calendar.state(), "agents": (self.agents)() })
+        json!({ "obs": self.obs.json(), "calendar": self.calendar.state(), "agents": (self.agents)(), "twitch": self.twitch.status() })
     }
 
     /// Sends the full state to every open stream.
@@ -123,10 +145,13 @@ impl Extras {
         (rx, Listener { extras: Arc::clone(self), id })
     }
 
-    /// Starts the OBS connection and the calendar refresh, each under the supervisor.
-    pub fn start(self: &Arc<Self>, shutdown: &watch::Receiver<bool>) -> [JoinHandle<()>; 2] {
+    /// Starts the OBS connection, the calendar refresh and Twitch's chat and viewers, each under the supervisor.
+    pub fn start(self: &Arc<Self>, shutdown: &watch::Receiver<bool>) -> [JoinHandle<()>; 4] {
         let (obs, calendar) = (Arc::clone(&self.obs), Arc::clone(&self.calendar));
+        let [chat, viewers] = self.twitch.start(shutdown);
         [
+            chat,
+            viewers,
             supervisor::spawn("obs", shutdown.clone(), move || {
                 let obs = Arc::clone(&obs);
                 async move { obs.run().await }

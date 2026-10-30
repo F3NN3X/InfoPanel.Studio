@@ -101,6 +101,8 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   // Stream OBS: the server's OBS connection
   StreamControl: yes(BOTH),
   ObsButton: yes(NONE),
+  // Stream chat: the server's Twitch connection
+  StreamChat: yes(BOTH),
 };
 
 /**

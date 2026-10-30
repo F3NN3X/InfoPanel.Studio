@@ -19,14 +19,14 @@ const REFILED = [
   // Stream audio
   "StreamMixer", "AudioButton", "AudioFader",
   // Stream OBS
-  "StreamControl", "ObsButton",
+  "StreamControl", "ObsButton", "StreamChat",
   // History and analysis
   "BottleneckLens", "FrameHistogram", "SessionStats", "ThresholdTimeline",
 ];
 
-it("covers all 68 widgets", () => {
-  expect(REFILED).toHaveLength(68);
-  expect(new Set(REFILED).size).toBe(68);
+it("covers all 69 widgets", () => {
+  expect(REFILED).toHaveLength(69);
+  expect(new Set(REFILED).size).toBe(69);
   expect([...REFILED].sort()).toEqual(modules.filter((m) => INSPECTOR_META[m.id]).map((m) => m.id).sort());
 });
 

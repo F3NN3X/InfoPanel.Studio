@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { EMPTY_EXTRAS, type Extras } from "@/lib/extras";
+import { EMPTY_EXTRAS, EMPTY_TWITCH, type Extras } from "@/lib/extras";
 import { obsRefusal } from "@/lib/obs-control";
 import { READ_ONLY_HINT } from "@/lib/write-refusal";
 
@@ -83,7 +83,7 @@ describe("StreamControl", () => {
   });
 
   it("renders with viewers from a platform", () => {
-    mocks.extras = { ...connected({ streaming: true }), twitch: { viewers: 120 } };
+    mocks.extras = { ...connected({ streaming: true }), twitch: { ...EMPTY_TWITCH, signedIn: true, viewers: 120 } };
     render(<StreamControl data={{}} />);
     expect(screen.getAllByText(/watching/).length).toBeGreaterThan(0);
   });

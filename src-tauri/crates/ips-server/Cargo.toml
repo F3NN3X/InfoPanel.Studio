@@ -26,7 +26,7 @@ sha2 = { workspace = true }
 socket2 = { workspace = true }
 sysinfo = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "fs", "time", "sync", "signal", "io-util"] }
-tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect"] }
+tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect", "rustls-tls-native-roots"] }
 tower-http = { workspace = true, features = ["catch-panic"] }
 url = { workspace = true }
 uuid = { version = "1", default-features = false, features = ["v4"] }

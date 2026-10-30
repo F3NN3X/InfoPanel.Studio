@@ -33,6 +33,13 @@ scene, toggles the mic's mute or saves the replay. There is no start or stop str
 scene's line and icon are the `streaming` section of `integrations.json` (`streaming.rs`), kept apart from `obs` so
 the old Node-server cases still hold. `src/lib/obs-control.ts` is the page's client.
 
+Twitch chat is the `twitch` module. A device-code sign-in (`POST /api/twitch/signin`, a public client, no secret) leaves
+tokens in `streaming.twitch` of `integrations.json` and nowhere else: not in the studio's view, the extras or the log.
+While signed in, the server keeps an IRC-over-WebSocket chat session and polls the channel's viewers; the extras'
+`twitch` carries the status, the last 60 messages go out on their own latest-wins stream (`/events/chat`, `GET
+/api/chat`) and `POST /api/chat/send` writes (same guards as the audio act; 20 sends in 30 s). `src/lib/chat.ts` and
+`src/lib/twitch.ts` are the page's clients.
+
 ## 1. The InfoPanel Data API
 
 The base URL is the `dataApiUrl` setting of the config, default

@@ -9,7 +9,7 @@ use std::sync::Mutex;
 
 use serde_json::{json, Value};
 
-use crate::streaming::{self, Streaming};
+use crate::streaming::{self, Streaming, TwitchAuth};
 use crate::{js, store};
 
 pub const OBS_DEFAULT_PORT: u16 = 4455;
@@ -144,7 +144,7 @@ pub fn stored_form(s: &Integrations) -> Value {
         "obs": { "host": s.obs.host, "port": s.obs.port, "password": s.obs.password },
         "calendar": { "links": s.links.iter().map(|l| json!({ "id": l.id, "label": l.label, "url": l.url })).collect::<Vec<_>>() },
     });
-    if let Some(section) = streaming::to_json(&s.streaming) {
+    if let Some(section) = streaming::to_stored_json(&s.streaming) {
         form["streaming"] = section;
     }
     form
@@ -283,11 +283,23 @@ impl IntegrationsStore {
     /// Applies a studio patch: `Ok(Err(message))` for a patch that is refused, `Err` when the file can't be written (the
     /// state has changed by then, as it does in Node, and the listeners are not told).
     pub fn apply(&self, patch: &Value) -> std::io::Result<Result<(), String>> {
-        let mut state = self.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let state = self.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let next = match apply_integrations(&state, patch, &mut || uuid::Uuid::new_v4().to_string()) {
             Ok(next) => next,
             Err(message) => return Ok(Err(message)),
         };
+        self.commit(state, next).map(Ok)
+    }
+
+    /// Stores the Twitch sign-in (an empty one is a sign-out) and keeps everything else, the chat channel included.
+    pub fn set_twitch_auth(&self, auth: TwitchAuth) -> std::io::Result<()> {
+        let state = self.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut next = state.clone();
+        next.streaming.twitch.auth = auth;
+        self.commit(state, next)
+    }
+
+    fn commit(&self, mut state: std::sync::MutexGuard<'_, Integrations>, next: Integrations) -> std::io::Result<()> {
         let prev = std::mem::replace(&mut *state, next);
         let mut text = String::new();
         pretty(&stored_form(&state), 0, &mut text);
@@ -295,7 +307,7 @@ impl IntegrationsStore {
         for listener in self.listeners.lock().unwrap_or_else(std::sync::PoisonError::into_inner).iter() {
             listener(&state, &prev);
         }
-        Ok(Ok(()))
+        Ok(())
     }
 }
 
@@ -419,5 +431,32 @@ mod tests {
         assert!(store.apply(&json!({ "streaming": { "obs": { "mic": 4 } } })).unwrap().is_err());
         store.apply(&json!({ "obs": { "port": 4456 } })).unwrap().unwrap();
         assert_eq!(IntegrationsStore::load(&file).get().streaming.obs.mic, "Mic/Aux");
+    }
+
+    #[test]
+    fn stores_the_twitch_sign_in_privately_and_never_shows_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("integrations.json");
+        let store = IntegrationsStore::load(&file);
+        store.apply(&json!({ "streaming": { "twitch": { "channel": "friend" } } })).unwrap().unwrap();
+        let seen = std::sync::Arc::new(Mutex::new(Vec::new()));
+        let log = std::sync::Arc::clone(&seen);
+        store.subscribe(move |next, prev| log.lock().unwrap().push((next.streaming.twitch.auth.login.clone(), prev.streaming.twitch.channel == next.streaming.twitch.channel)));
+        let auth = TwitchAuth { access_token: "secret-access".into(), refresh_token: "secret-refresh".into(), expires_at: 99, login: "me".into(), user_id: "1".into() };
+        store.set_twitch_auth(auth.clone()).unwrap();
+        assert_eq!(*seen.lock().unwrap(), [("me".to_string(), true)]);
+        let file_text = std::fs::read_to_string(&file).unwrap();
+        assert!(file_text.contains("secret-access") && file_text.contains("secret-refresh"));
+        let reloaded = IntegrationsStore::load(&file).get().streaming.twitch;
+        assert_eq!((reloaded.channel.as_str(), reloaded.auth), ("friend", auth));
+        let public = store.public().to_string();
+        assert!(!public.contains("secret-") && public.contains("\"login\":\"me\""));
+        // A studio patch can't write the tokens, and the sign-in outlives a channel change.
+        store.apply(&json!({ "streaming": { "twitch": { "channel": "other", "access_token": "evil" } } })).unwrap().unwrap();
+        let kept = store.get().streaming.twitch;
+        assert_eq!((kept.channel.as_str(), kept.auth.access_token.as_str()), ("other", "secret-access"));
+        // Signing out leaves nothing of the tokens in the file.
+        store.set_twitch_auth(TwitchAuth::default()).unwrap();
+        assert!(!std::fs::read_to_string(&file).unwrap().contains("secret-"));
     }
 }

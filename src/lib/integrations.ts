@@ -13,7 +13,7 @@ export interface PublicIntegrations {
   obs: { host: string; port: number; hasPassword: boolean };
   calendar: { links: { id: string; label: string; host: string }[] };
   /** Absent until a mic or a scene look is saved. */
-  streaming?: { obs: { mic: string; scenes: SceneLooks } };
+  streaming?: { obs: { mic: string; scenes: SceneLooks }; twitch?: { channel: string; login: string } };
 }
 
 /** A change: `password` replaces it ("" clears it, absent keeps it); `links` is the full list. */
@@ -21,7 +21,7 @@ export interface IntegrationsPatch {
   obs?: { host?: string; port?: number; password?: string };
   calendar?: { links: ({ id: string; label?: string } | { url: string; label?: string })[] };
   /** `mic` "" clears it; `scenes` is the full map (a scene with no line and no icon is dropped). */
-  streaming?: { obs?: { mic?: string; scenes?: SceneLooks } };
+  streaming?: { obs?: { mic?: string; scenes?: SceneLooks }; twitch?: { channel?: string } };
 }
 
 export async function fetchIntegrations(): Promise<PublicIntegrations> {

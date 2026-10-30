@@ -61,13 +61,32 @@ export interface CalendarState {
   error?: string;
 }
 
+/** The Twitch status the server publishes; it never carries a token. */
+export interface TwitchState {
+  configured: boolean;
+  signedIn: boolean;
+  login: string;
+  /** The chat being read (the user's own unless another is chosen). */
+  channel: string;
+  /** A sign-in waiting for the code to be approved; `expiresAt` is unix ms. */
+  pending: { userCode: string; verificationUri: string; expiresAt: number } | null;
+  error: string | null;
+  /** The chat connection is up. */
+  connected: boolean;
+  live: boolean;
+  viewers: number;
+}
+
+export const EMPTY_TWITCH: TwitchState = { configured: false, signedIn: false, login: "", channel: "", pending: null, error: null, connected: false, live: false, viewers: 0 };
+
 export interface Extras {
   obs: ObsState & ObsLive;
   calendar: CalendarState;
   /** The coding agents' sessions, plan use and token history (`src/lib/agents.ts`). */
   agents: Agents;
-  /** Viewers on the stream, once a Twitch or YouTube connection reports them. */
-  twitch?: { viewers: number };
+  /** The Twitch sign-in, chat connection and viewers (ips-server's twitch module); absent from an older server. */
+  twitch?: TwitchState;
+  /** Viewers on the stream, once a YouTube connection reports them. */
   youtube?: { viewers: number };
 }
 
@@ -107,6 +126,22 @@ function parseObsLive(o: Record<string, unknown>): ObsLive {
 /** A platform's viewer count, when the server reports one. */
 const viewers = (v: unknown): { viewers: number } | undefined => (isObject(v) && typeof v.viewers === "number" && Number.isFinite(v.viewers) ? { viewers: Math.max(0, v.viewers) } : undefined);
 
+/** Tolerant read of the Twitch status. */
+function parseTwitch(o: Record<string, unknown>): TwitchState {
+  const p = isObject(o.pending) && text(o.pending.userCode) ? { userCode: text(o.pending.userCode), verificationUri: text(o.pending.verificationUri), expiresAt: count(o.pending.expiresAt) } : null;
+  return {
+    configured: o.configured === true,
+    signedIn: o.signedIn === true,
+    login: text(o.login),
+    channel: text(o.channel),
+    pending: p,
+    error: text(o.error) || null,
+    connected: o.connected === true,
+    live: o.live === true,
+    viewers: count(o.viewers),
+  };
+}
+
 /** Tolerant read of the server's message. */
 export function parseExtras(raw: unknown): Extras {
   if (!isObject(raw)) return EMPTY_EXTRAS;
@@ -129,7 +164,7 @@ export function parseExtras(raw: unknown): Extras {
     obs: { configured: o.configured === true, connected: o.connected === true, streaming: o.streaming === true, recording: o.recording === true, ...parseObsLive(o) },
     calendar: { configured: c.configured === true, events, ...(typeof c.error === "string" && c.error ? { error: c.error } : {}) },
     agents: parseAgents(raw.agents),
-    ...(viewers(raw.twitch) ? { twitch: viewers(raw.twitch) } : {}),
+    ...(isObject(raw.twitch) ? { twitch: parseTwitch(raw.twitch) } : {}),
     ...(viewers(raw.youtube) ? { youtube: viewers(raw.youtube) } : {}),
   };
 }

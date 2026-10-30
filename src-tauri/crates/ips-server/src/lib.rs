@@ -47,6 +47,7 @@ pub mod store;
 pub mod studio_prefs;
 pub mod supervisor;
 pub mod touch_hub;
+pub mod twitch;
 
 use std::future::Future;
 use std::net::{SocketAddr, ToSocketAddrs};
@@ -268,7 +269,9 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
         agents::PUBLISH_THROTTLE,
     );
     // The OBS connection and the calendar refresh.
-    let extras = Extras::new(&cfg.data_dir.join("integrations.json"), {
+    // A server that does not run its backends (a test) is given a Twitch it cannot reach.
+    let twitch = if live_audio { twitch::auth::Endpoints::twitch() } else { twitch::auth::Endpoints::offline() };
+    let extras = Extras::new(&cfg.data_dir.join("integrations.json"), twitch, {
         let agents = agents.clone();
         move || agents.state()
     })
@@ -394,6 +397,11 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/events/audio" => Ok(audio::handle_events(app)),
         "/api/audio/act" => audio::handle_act(app, req).await.map_err(io),
         "/api/obs/act" => obs_control::handle_act(app, req).await.map_err(io),
+        "/api/twitch/signin" => twitch::routes::handle_signin(app, req).await.map_err(io),
+        "/api/twitch/signout" => twitch::routes::handle_signout(app, req).await.map_err(io),
+        "/api/chat" => Ok(twitch::routes::handle_chat(app, &req)),
+        "/api/chat/send" => twitch::routes::handle_chat_send(app, req).await.map_err(io),
+        "/events/chat" => Ok(twitch::routes::handle_chat_events(app)),
         "/events/touch" => Ok(touch_hub::handle_events(app, &req)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),

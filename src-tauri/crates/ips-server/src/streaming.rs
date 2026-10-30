@@ -1,6 +1,8 @@
 // The Streaming widgets' saved settings: the `streaming` section of integrations.json, beside `obs` and `calendar`. The OBS
 // section holds the mic input the Stream Control tile follows and, per scene, the line under its name and its icon. Nothing
-// in it is secret, so the studio reads it back whole. Absent from the file (and from every output) until something is set.
+// in it is secret, so the studio reads it back whole. The Twitch section holds the chat channel and, secret, the sign-in's
+// tokens: the studio's view (`to_json`) leaves the tokens out, the file (`to_stored_json`) keeps them. Absent from the file
+// (and from every output) until something is set.
 
 use std::collections::BTreeMap;
 
@@ -14,6 +16,9 @@ const MAX_ID: usize = 128;
 const MAX_MIC: usize = 256;
 const MAX_SUB: usize = 60;
 const MAX_ICON: usize = 40;
+const MAX_TOKEN: usize = 512;
+/// Twitch logins are 25 characters at most.
+const MAX_LOGIN: usize = 25;
 
 /// What the Stream Control tile shows for a scene besides its name.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -31,9 +36,28 @@ pub struct ObsStreaming {
     pub scenes: BTreeMap<String, SceneLook>,
 }
 
+/// What a Twitch sign-in leaves: secret, written only by the server's own sign-in (never by a studio patch).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct TwitchAuth {
+    pub access_token: String,
+    pub refresh_token: String,
+    /// When the access token runs out, in ms since the epoch.
+    pub expires_at: i64,
+    pub login: String,
+    pub user_id: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct TwitchSettings {
+    /// The chat to read; "" = the signed-in user's own.
+    pub channel: String,
+    pub auth: TwitchAuth,
+}
+
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Streaming {
     pub obs: ObsStreaming,
+    pub twitch: TwitchSettings,
 }
 
 impl Streaming {
@@ -49,46 +73,97 @@ fn look_of(raw: &Value) -> SceneLook {
     }
 }
 
-/// Tolerant read of the stored section.
-pub fn normalize(raw: Option<&Value>) -> Streaming {
-    let Some(obs) = raw.and_then(|s| s.get("obs")).and_then(Value::as_object) else {
-        return Streaming::default();
+fn normalize_obs(raw: Option<&Value>) -> ObsStreaming {
+    let Some(obs) = raw.and_then(Value::as_object) else {
+        return ObsStreaming::default();
     };
     let scenes = obs
         .get("scenes")
         .and_then(Value::as_object)
         .into_iter()
         .flatten();
-    Streaming {
-        obs: ObsStreaming {
-            mic: text(obs.get("mic"), MAX_MIC),
-            scenes: scenes
-                .filter(|(id, look)| !id.is_empty() && id.len() <= MAX_ID && look.is_object())
-                .map(|(id, look)| (id.clone(), look_of(look)))
-                .filter(|(_, look)| *look != SceneLook::default())
-                .take(MAX_SCENES)
-                .collect(),
+    ObsStreaming {
+        mic: text(obs.get("mic"), MAX_MIC),
+        scenes: scenes
+            .filter(|(id, look)| !id.is_empty() && id.len() <= MAX_ID && look.is_object())
+            .map(|(id, look)| (id.clone(), look_of(look)))
+            .filter(|(_, look)| *look != SceneLook::default())
+            .take(MAX_SCENES)
+            .collect(),
+    }
+}
+
+fn normalize_twitch(raw: Option<&Value>) -> TwitchSettings {
+    let Some(twitch) = raw.and_then(Value::as_object) else {
+        return TwitchSettings::default();
+    };
+    TwitchSettings {
+        channel: clean_channel(twitch.get("channel")).unwrap_or_default(),
+        auth: TwitchAuth {
+            access_token: text(twitch.get("access_token"), MAX_TOKEN),
+            refresh_token: text(twitch.get("refresh_token"), MAX_TOKEN),
+            expires_at: twitch.get("expires_at").and_then(Value::as_i64).unwrap_or(0),
+            login: text(twitch.get("login"), MAX_LOGIN),
+            user_id: text(twitch.get("user_id"), MAX_LOGIN),
         },
     }
 }
 
-/// The section as stored and as the studio sees it, or `None` while nothing is set.
-pub fn to_json(s: &Streaming) -> Option<Value> {
-    if s.is_empty() {
-        return None;
-    }
+/// A Twitch channel name: lowercase letters, digits and `_` (a leading `#` is dropped); "" for none; `None` for anything else.
+pub fn clean_channel(v: Option<&Value>) -> Option<String> {
+    let raw = text(v, MAX_LOGIN + 1);
+    let name = raw.strip_prefix('#').unwrap_or(&raw).to_ascii_lowercase();
+    let valid = name.len() <= MAX_LOGIN && name.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_');
+    valid.then_some(name)
+}
+
+/// Tolerant read of the stored section.
+pub fn normalize(raw: Option<&Value>) -> Streaming {
+    let Some(raw) = raw.and_then(Value::as_object) else {
+        return Streaming::default();
+    };
+    Streaming { obs: normalize_obs(raw.get("obs")), twitch: normalize_twitch(raw.get("twitch")) }
+}
+
+fn obs_json(s: &Streaming) -> Value {
     let scenes: Map<String, Value> = s
         .obs
         .scenes
         .iter()
         .map(|(id, look)| (id.clone(), json!({ "sub": look.sub, "icon": look.icon })))
         .collect();
-    Some(json!({ "obs": { "mic": s.obs.mic, "scenes": scenes } }))
+    json!({ "mic": s.obs.mic, "scenes": scenes })
+}
+
+/// The section as the studio sees it, or `None` while nothing is set. The Twitch tokens are not in it.
+pub fn to_json(s: &Streaming) -> Option<Value> {
+    if s.is_empty() {
+        return None;
+    }
+    let mut section = json!({ "obs": obs_json(s) });
+    if s.twitch != TwitchSettings::default() {
+        section["twitch"] = json!({ "channel": s.twitch.channel, "login": s.twitch.auth.login });
+    }
+    Some(section)
+}
+
+/// The section as stored, tokens included, or `None` while nothing is set.
+pub fn to_stored_json(s: &Streaming) -> Option<Value> {
+    let mut section = to_json(s)?;
+    if s.twitch != TwitchSettings::default() {
+        let a = &s.twitch.auth;
+        section["twitch"] = json!({
+            "channel": s.twitch.channel, "access_token": a.access_token, "refresh_token": a.refresh_token,
+            "expires_at": a.expires_at, "login": a.login, "user_id": a.user_id,
+        });
+    }
+    Some(section)
 }
 
 /// The state with a `streaming` patch applied, or the error to answer with:
 /// - `obs.mic`: the input's name; "" clears it, absent keeps it.
 /// - `obs.scenes`: the full map of { sub?, icon? } by scene id; a scene with neither is dropped.
+/// - `twitch.channel`: the chat to read; "" = the signed-in user's own, absent keeps it. The tokens are not settable here.
 pub fn apply(s: &Streaming, patch: &Value) -> Result<Streaming, String> {
     let Some(patch) = patch.as_object() else {
         return Err("streaming: expected an object".into());
@@ -105,6 +180,18 @@ pub fn apply(s: &Streaming, patch: &Value) -> Result<Streaming, String> {
         }
         if let Some(scenes) = obs.get("scenes") {
             next.obs.scenes = apply_scenes(scenes)?;
+        }
+    }
+    if let Some(twitch) = patch.get("twitch") {
+        let Some(twitch) = twitch.as_object() else {
+            return Err("streaming.twitch: expected an object".into());
+        };
+        match twitch.get("channel") {
+            None => {}
+            Some(channel @ Value::String(_)) => {
+                next.twitch.channel = clean_channel(Some(channel)).ok_or("streaming.twitch.channel: a Twitch channel name")?;
+            }
+            Some(_) => return Err("streaming.twitch.channel: expected text".into()),
         }
     }
     Ok(next)
@@ -239,5 +326,40 @@ mod tests {
             refusal(json!({ "obs": { "scenes": many } })),
             "streaming.obs.scenes: at most 64"
         );
+    }
+
+    fn signed_in() -> Streaming {
+        let stored = json!({ "twitch": { "channel": "#Some_Chan", "access_token": "at", "refresh_token": "rt", "expires_at": 1234, "login": "me", "user_id": "9" } });
+        normalize(Some(&stored))
+    }
+
+    #[test]
+    fn keeps_the_twitch_tokens_in_the_file_and_out_of_the_studios_view() {
+        let s = signed_in();
+        assert_eq!(s.twitch.channel, "some_chan");
+        assert_eq!((s.twitch.auth.access_token.as_str(), s.twitch.auth.expires_at, s.twitch.auth.user_id.as_str()), ("at", 1234, "9"));
+        let public = to_json(&s).unwrap();
+        assert_eq!(public["twitch"], json!({ "channel": "some_chan", "login": "me" }));
+        assert!(!public.to_string().contains("at\"") && !public.to_string().contains("rt"));
+        let stored = to_stored_json(&s).unwrap();
+        assert_eq!(stored["twitch"]["access_token"], "at");
+        assert_eq!(normalize(Some(&stored)), s, "round-trips");
+        // Until Twitch is used, the key is in neither form.
+        assert!(to_json(&Streaming { obs: ObsStreaming { mic: "m".into(), ..Default::default() }, ..Default::default() }).unwrap().get("twitch").is_none());
+    }
+
+    #[test]
+    fn a_patch_sets_the_twitch_channel_but_never_the_tokens() {
+        let s = signed_in();
+        let next = apply(&s, &json!({ "twitch": { "channel": "  Other_One ", "access_token": "evil", "login": "x" } })).unwrap();
+        assert_eq!(next.twitch.channel, "other_one");
+        assert_eq!(next.twitch.auth, s.twitch.auth);
+        assert_eq!(apply(&s, &json!({ "twitch": {} })).unwrap(), s);
+        assert_eq!(apply(&s, &json!({ "twitch": { "channel": "" } })).unwrap().twitch.channel, "");
+        let refusal = |patch: Value| apply(&s, &patch).unwrap_err();
+        assert_eq!(refusal(json!({ "twitch": 1 })), "streaming.twitch: expected an object");
+        assert_eq!(refusal(json!({ "twitch": { "channel": 3 } })), "streaming.twitch.channel: expected text");
+        assert_eq!(refusal(json!({ "twitch": { "channel": "bad name" } })), "streaming.twitch.channel: a Twitch channel name");
+        assert_eq!(refusal(json!({ "twitch": { "channel": "x".repeat(26) } })), "streaming.twitch.channel: a Twitch channel name");
     }
 }

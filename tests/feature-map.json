@@ -132,7 +132,9 @@
         "src-tauri/crates/ips-server/src/obs_control.rs",
         "src-tauri/crates/ips-server/src/streaming.rs",
         "src-tauri/crates/ips-server/tests/obs_live.rs",
-        "src-tauri/crates/ips-server/tests/routes_obs.rs"
+        "src-tauri/crates/ips-server/tests/routes_obs.rs",
+        "src-tauri/crates/ips-server/src/twitch/**",
+        "src-tauri/crates/ips-server/tests/routes_twitch.rs"
       ],
       "tests": [
         "tests/server/server.test.mjs",
@@ -260,6 +262,20 @@
       "tests": ["tests/lib/obs-control.test.ts"],
       "checks": ["typecheck", "unit", "cargo-server", "cargo-app"],
       "note": "Every test talks to a fake obs-websocket server; none connects to a real OBS, so the scene order OBS really returns and its replay-buffer errors are checked only against the protocol as documented."
+    },
+    {
+      "id": "twitch-chat",
+      "summary": "Twitch sign-in (device code), chat over IRC and viewers on the server, the chat stream and send route, their clients and the sign-in block of the Connections settings.",
+      "paths": [
+        "src-tauri/crates/ips-server/src/twitch/**",
+        "src-tauri/crates/ips-server/tests/routes_twitch.rs",
+        "src/lib/chat.ts",
+        "src/lib/twitch.ts",
+        "src/components/connections/**"
+      ],
+      "tests": ["tests/lib/chat.test.ts", "tests/components/connections/**"],
+      "checks": ["typecheck", "unit", "cargo-server", "cargo-app"],
+      "note": "Every test talks to fake HTTP and WebSocket servers; none contacts Twitch, so the live device flow, the wss connection with the system's certificates and Twitch's real replies are checked only against the documented protocol. The tokens' absence from the public view, the extras and the chat stream is asserted."
     },
     {
       "id": "coding-agents",
@@ -395,6 +411,7 @@
         "tests/widgets/OnAir/**",
         "tests/widgets/StreamMixer/**",
         "tests/widgets/StreamControl/**",
+        "tests/widgets/StreamChat/**",
         "tests/widgets/StatusBar/**",
         "tests/widgets/weather-fx/**",
         "tests/e2e/kiosk-renders.spec.ts",

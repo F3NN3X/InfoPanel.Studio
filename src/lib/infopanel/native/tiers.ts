@@ -115,6 +115,7 @@ export const MODULE_TIERS: Record<string, TierEntry> = {
   AudioFader: only("it controls Windows audio and Wave Link through the dashboard's server, which InfoPanel items can't"),
   StreamControl: only("it controls OBS through the dashboard's server, which InfoPanel items can't"),
   ObsButton: only("it controls OBS through the dashboard's server, which InfoPanel items can't"),
+  StreamChat: only("it reads and sends Twitch chat through the dashboard's server, which InfoPanel items can't"),
 };
 
 /** The tier entry of a registry module; an id without one is `native-only` (the guard test keeps this from happening). */
