@@ -122,6 +122,9 @@ pub fn apply_setting(app: &AppHandle, key: &str, value: Value) -> SetResult {
     if old.debug != next.debug {
         crate::apply_log_level(st.debug());
     }
+    if old.experimental_touch != next.experimental_touch {
+        app.state::<crate::touch::Touch>().set_enabled(next.experimental_touch);
+    }
     if old.update_channel != next.update_channel {
         let app = app.clone();
         tauri::async_runtime::spawn(async move {

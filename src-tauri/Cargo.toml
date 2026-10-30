@@ -53,6 +53,12 @@ if-addrs = "0.13"
 ips-agent = { path = "crates/ips-agent" }
 ips-server = { path = "crates/ips-server" }
 tokio = { workspace = true, features = ["sync"] }
+# Experimental touch (src/touch): raw USB touch input from touch-kit, pinned to a release tag.
+touch-core = { git = "https://github.com/F3NN3X/touch-kit", tag = "v1.2.1" }
+# The never-activating window of the touch setup overlays.
+touch-kit-tauri = { git = "https://github.com/F3NN3X/touch-kit", tag = "v1.2.1" }
+# touch-core logs through tracing; its "log" feature hands those lines to the app log.
+tracing = { version = "0.1", features = ["log"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Threading"] }

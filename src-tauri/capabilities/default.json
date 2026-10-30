@@ -5,7 +5,8 @@
   "windows": [
     "main",
     "settings",
-    "help"
+    "help",
+    "touch-overlay-*"
   ],
   "local": true,
   "permissions": [
@@ -47,6 +48,15 @@
     "allow-open-external",
     "allow-default-browser-kind",
     "allow-run-setup",
+    "allow-touch-view",
+    "allow-touch-set",
+    "allow-touch-screens",
+    "allow-touch-uninstall-driver",
+    "allow-touch-setup",
+    "allow-touch-pair",
+    "allow-touch-calibrate",
+    "allow-touch-identify",
+    "allow-touch-cancel",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-internal-toggle-maximize",

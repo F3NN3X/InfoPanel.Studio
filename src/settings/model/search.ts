@@ -1,4 +1,4 @@
-export type SectionId = "general" | "server" | "agents" | "updates" | "diagnostics" | "logs" | "about" | "changelog";
+export type SectionId = "general" | "server" | "agents" | "touch" | "updates" | "diagnostics" | "logs" | "about" | "changelog";
 
 /** Whether `value` names a settings section. */
 export const isSectionId = (value: string): value is SectionId => Object.hasOwn(SECTION_NAMES, value);
@@ -7,6 +7,7 @@ export const SECTION_NAMES: Record<SectionId, string> = {
   general: "General",
   server: "Server",
   agents: "Coding agents",
+  touch: "Touch",
   updates: "Updates",
   diagnostics: "Diagnostics",
   logs: "Logs",
@@ -67,6 +68,10 @@ export const SEARCH_INDEX: SearchEntry[] = [
   { row: "agents", label: "Connect coding agents", section: "agents" },
   { row: "agent-claude", label: "Claude Code hooks", section: "agents" },
   { row: "agent-codex", label: "Codex hooks", section: "agents" },
+  { row: "touch", label: "Touch panels (experimental)", section: "touch" },
+  { row: "touch-screens", label: "Touchscreen driver (WinUSB, Zadig)", section: "touch" },
+  { row: "touch-gestures", label: "Touch gestures", section: "touch" },
+  { row: "touch-testing", label: "Touch testing mode", section: "touch" },
   { row: "update-card", label: "Check for updates", section: "updates" },
   { row: "check-updates", label: "Check for updates at startup", section: "updates" },
   { row: "channel", label: "Release channel", section: "updates" },

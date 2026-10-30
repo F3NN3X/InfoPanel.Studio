@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-touch-view"
+description = "Enables the touch_view command without any pre-configured scope."
+commands.allow = ["touch_view"]
+
+[[permission]]
+identifier = "deny-touch-view"
+description = "Denies the touch_view command without any pre-configured scope."
+commands.deny = ["touch_view"]

@@ -1,0 +1,29 @@
+@import "tailwindcss" source(none);
+@source "./";
+
+/* The touch setup overlays (touch.html): full-screen pages on the touch displays. */
+@theme {
+  --font-sans: "Geist Variable", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  cursor: none;
+  user-select: none;
+}
+
+@keyframes touch-ripple {
+  from {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}

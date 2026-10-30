@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-touch-calibrate"
+description = "Enables the touch_calibrate command without any pre-configured scope."
+commands.allow = ["touch_calibrate"]
+
+[[permission]]
+identifier = "deny-touch-calibrate"
+description = "Denies the touch_calibrate command without any pre-configured scope."
+commands.deny = ["touch_calibrate"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-touch-screens"
+description = "Enables the touch_screens command without any pre-configured scope."
+commands.allow = ["touch_screens"]
+
+[[permission]]
+identifier = "deny-touch-screens"
+description = "Denies the touch_screens command without any pre-configured scope."
+commands.deny = ["touch_screens"]

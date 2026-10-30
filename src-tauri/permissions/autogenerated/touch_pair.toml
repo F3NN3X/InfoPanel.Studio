@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-touch-pair"
+description = "Enables the touch_pair command without any pre-configured scope."
+commands.allow = ["touch_pair"]
+
+[[permission]]
+identifier = "deny-touch-pair"
+description = "Denies the touch_pair command without any pre-configured scope."
+commands.deny = ["touch_pair"]

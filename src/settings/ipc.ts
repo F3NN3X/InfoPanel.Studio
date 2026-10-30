@@ -15,6 +15,8 @@ import type {
   Settings,
   Status,
   StopResult,
+  Touchscreen,
+  TouchView,
   UpdateState,
 } from "./types";
 
@@ -39,6 +41,19 @@ export const ipc = {
   agentsStatus: () => invoke<AgentStatus[]>("agents_status"),
   repairAgents: () => invoke<AgentStatus[]>("repair_agents"),
   openAgentBackups: () => invoke<void>("open_agent_backups"),
+  touchView: () => invoke<TouchView>("touch_view"),
+  /** Writes one touch.json key (`null` = back to its default); rejects with the reasons when the file wouldn't apply. */
+  touchSet: (key: string, value: unknown) => invoke<void>("touch_set", { key, value }),
+  touchScreens: () => invoke<Touchscreen[]>("touch_screens"),
+  touchUninstallDriver: (vid: number, pid: number) => invoke<{ changed: boolean; log: string }>("touch_uninstall_driver", { vid, pid }),
+  /** Set up panels: resolves once the touch displays are bound (or cancelled), with what was bound. */
+  touchSetup: () => invoke<{ port: string; monitor: string }[]>("touch_setup"),
+  /** Resolves to the USB port touched on the panel's screen. */
+  touchPair: (index: number) => invoke<string>("touch_pair", { index }),
+  /** Resolves to the saved fit's error in panel px. */
+  touchCalibrate: (index: number) => invoke<number>("touch_calibrate", { index }),
+  touchIdentify: (index: number) => invoke<void>("touch_identify", { index }),
+  touchCancel: () => invoke<void>("touch_cancel"),
   updateState: () => invoke<UpdateState>("update_state"),
   checkForUpdate: () => invoke<UpdateState>("check_for_update"),
   downloadUpdate: () => invoke<UpdateState>("download_update"),

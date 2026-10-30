@@ -39,6 +39,7 @@ import {
  */
 const ICONS: Record<string, LucideIcon> = {
   waving_hand: Hand,
+  touch_app: Hand,
   rocket_launch: Rocket,
   account_tree: Network,
   space_dashboard: LayoutDashboard,

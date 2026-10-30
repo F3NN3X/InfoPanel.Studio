@@ -122,6 +122,8 @@ pub struct Settings {
     /// Download an update as soon as a check finds it.
     pub auto_download: bool,
     pub agents: AgentSettings,
+    /// Experimental touch: read the touch panels in touch.json over raw USB and send their touches to the kiosk.
+    pub experimental_touch: bool,
     pub debug: bool,
     /// The one-time "closing stops the kiosk" warning was shown (close to tray off).
     pub close_warning_shown: bool,
@@ -167,6 +169,7 @@ impl Default for Settings {
             update_channel: Channel::Stable,
             auto_download: false,
             agents: AgentSettings::default(),
+            experimental_touch: false,
             debug: false,
             close_warning_shown: false,
         }
@@ -277,6 +280,7 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
         "checkForUpdates" => next.check_for_updates = parse(key, value)?,
         "updateChannel" => next.update_channel = parse(key, value)?,
         "autoDownload" => next.auto_download = parse(key, value)?,
+        "experimentalTouch" => next.experimental_touch = parse(key, value)?,
         "debug" => next.debug = parse(key, value)?,
         _ => return Err(format!("\"{key}\" is not a setting.")),
     }
@@ -647,6 +651,7 @@ mod tests {
             "rememberBounds",
             "checkForUpdates",
             "autoDownload",
+            "experimentalTouch",
             "debug",
         ] {
             let flipped = !serde_json::to_value(&s).unwrap()[key].as_bool().unwrap();
@@ -693,6 +698,7 @@ mod tests {
         "checkForUpdates",
         "updateChannel",
         "autoDownload",
+        "experimentalTouch",
         "debug",
     ];
 

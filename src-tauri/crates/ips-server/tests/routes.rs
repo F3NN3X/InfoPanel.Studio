@@ -359,6 +359,39 @@ async fn streams_config_events_and_counts_the_clients() {
 }
 
 #[tokio::test]
+async fn streams_a_touch_panels_messages_starting_with_its_kept_setup() {
+    use ips_server::touch_hub::{Keep, HUB};
+    let s = start().await;
+    assert_eq!(get(s.port, "/events/touch").await.status, 400, "no panel");
+    assert_eq!(get(s.port, "/events/touch?panel=a%20b").await.status, 400);
+    assert_eq!(send(s.port, "POST", "/events/touch?panel=routes-1", &[], "").await.status, 405);
+
+    HUB.publish("routes-1", r#"{"setup":{"name":"Left"}}"#, Some(Keep::Setup));
+    HUB.publish("routes-1", r#"{"type":"Pointer","kind":"Down"}"#, None);
+    let mut stream = TcpStream::connect(("127.0.0.1", s.port)).await.unwrap();
+    stream.write_all(format!("GET /events/touch?panel=routes-1 HTTP/1.1\r\nHost: localhost:{}\r\n\r\n", s.port).as_bytes()).await.unwrap();
+    let mut seen = String::new();
+    events(&mut stream, &mut seen, 1).await;
+    assert!(seen.starts_with("HTTP/1.1 200"), "{seen}");
+    assert!(seen.to_ascii_lowercase().contains("content-type: text/event-stream\r\n"));
+    assert!(seen.contains("data: {\"setup\":{\"name\":\"Left\"}}\n\n"), "{seen}");
+    assert!(!seen.contains("Pointer"), "a message from before the page connected is not replayed: {seen}");
+
+    for _ in 0..100 {
+        if HUB.subscribers("routes-1") == 1 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    HUB.publish("routes-1", r#"{"type":"Gesture"}"#, None);
+    HUB.publish("routes-2", r#"{"type":"Pointer"}"#, None);
+    events(&mut stream, &mut seen, 2).await;
+    assert!(seen.contains("data: {\"type\":\"Gesture\"}\n\n"), "{seen}");
+    assert!(!seen.contains("Pointer"), "only its own panel: {seen}");
+    s.stop().await;
+}
+
+#[tokio::test]
 async fn keeps_the_studio_prefs_in_their_own_file() {
     let s = start().await;
     let put = |body: &'static str| send(s.port, "PUT", "/api/studio-prefs", &JSON_WRITE, body);
