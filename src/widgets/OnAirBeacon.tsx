@@ -41,7 +41,7 @@ export default function OnAirBeacon(p: OnAirBeaconProps) {
           return (
             <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-[color:var(--w-muted)]">
               <Icon name="sensors_off" className="text-xl" />
-              <span className="text-xs">OBS isn't set up. Connect it under Island › On air.</span>
+              <span className="text-xs">OBS isn't set up. Connect it under Settings › Connections.</span>
             </div>
           );
         const wide = w >= h * 2.2;

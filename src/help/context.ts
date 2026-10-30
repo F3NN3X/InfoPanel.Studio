@@ -45,6 +45,7 @@ const SETTINGS_ARTICLES: Partial<Record<PageId, string>> = {
   studio: "studio",
   general: "startup",
   server: "kiosk",
+  connections: "connections",
   agents: "agents",
   touch: "touch",
   updates: "updates",

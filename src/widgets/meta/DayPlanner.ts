@@ -11,5 +11,5 @@ export const meta: WidgetMeta = {
   minSize: [2, 2],
   blurb: "Calendar events on a time rail with weather",
   tags: "calendar agenda schedule events timeline weather rain today tomorrow",
-  description: "Today's events on a time rail with a now line, over a band for the temperature and rain. It reads the calendar links set under Island › Calendar and the Yr weather plugin.",
+  description: "Today's events on a time rail with a now line, over a band for the temperature and rain. It reads the calendar links set under Settings › Connections and the Yr weather plugin.",
 };

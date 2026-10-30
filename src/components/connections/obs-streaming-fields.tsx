@@ -1,7 +1,7 @@
 import type { ObsScene } from "@/lib/extras";
 import type { SceneLooks } from "@/lib/integrations";
 import { cn } from "@/lib/utils";
-import { FIELD, SELECT, StackRow } from "../setting-rows";
+import { FIELD, SELECT, StackRow } from "@/components/studio/setting-rows";
 
 interface Props {
   /** The mic input saved; "" = none. */

@@ -12,7 +12,7 @@ export { meta };
 
 export interface StreamControlProps extends ShellProps {
   look?: ModuleSettings;
-  /** The mic tile (needs a mic input set under Island › On air). Default on. */
+  /** The mic tile (needs a mic input set under Settings › Connections). Default on. */
   showMic?: boolean;
   /** The replay tile (needs OBS's replay buffer). Default on. */
   showReplay?: boolean;
@@ -126,7 +126,7 @@ export default function StreamControl(p: StreamControlProps) {
               label={
                 <span className="flex flex-col items-center gap-0.5 text-center">
                   <span>OBS not connected</span>
-                  {studio && !obs.configured && <span className="text-[10.5px] opacity-70">Connect OBS under Island › On air</span>}
+                  {studio && !obs.configured && <span className="text-[10.5px] opacity-70">Connect OBS under Settings › Connections</span>}
                 </span>
               }
             />

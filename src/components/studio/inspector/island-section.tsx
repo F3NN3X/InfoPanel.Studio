@@ -18,10 +18,10 @@ import {
   type IslandStat,
 } from "@/lib/island/config";
 import { ISLAND_LOOKS, showsLook, type IslandLookFields } from "@/lib/island/looks";
+import { openSettings } from "@/lib/desktop";
 import { cn } from "@/lib/utils";
 import { FIELD, SegmentedRow, SelectRow, SliderRow, ColorRow, TextRow, ToggleRow } from "../setting-rows";
 import { SensorField } from "../widget-editor/sensor-field";
-import { IntegrationsCard } from "./integrations-card";
 
 type Options = { value: string; label: string; title?: string }[];
 
@@ -385,7 +385,14 @@ export function IslandSection({ island, previewBus, onChange, onLook, onOpenExpl
           onChange={(calendarLead) => onChange({ calendarLead })}
         />
       )}
-      {(v.notices.onAir || v.notices.calendar) && <IntegrationsCard obs={v.notices.onAir} calendar={v.notices.calendar} />}
+      {(v.notices.onAir || v.notices.calendar) && (
+        <p className="flex items-center justify-between text-[11px] text-ui-4">
+          Connections are in Settings › Connections
+          <button type="button" onClick={() => void openSettings("connections")} className="h-7 rounded-md border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover">
+            Open
+          </button>
+        </p>
+      )}
       <button
         type="button"
         onClick={preview}

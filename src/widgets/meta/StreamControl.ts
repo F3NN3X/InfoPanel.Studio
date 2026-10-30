@@ -11,5 +11,5 @@ export const meta: WidgetMeta = {
   minSize: [2, 1],
   blurb: "OBS scenes, live timer, mic mute and replay",
   tags: "obs stream streaming scene scenes live mic mute replay twitch youtube viewers",
-  description: "OBS scene buttons, a live tile with the timer and viewers, mic mute with its level and replay save. Connect OBS under Island › On air.",
+  description: "OBS scene buttons, a live tile with the timer and viewers, mic mute with its level and replay save. Connect OBS under Settings › Connections.",
 };

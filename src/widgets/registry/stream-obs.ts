@@ -13,7 +13,7 @@ const ObsButton = lazyWidget(() => import("../ObsButton"));
 const StreamControl = lazyWidget(() => import("../StreamControl"));
 
 export const STREAM_CONTROL_SETTINGS: ModuleSetting[] = [
-  boolSetting("showMic", "Show mic", true, { group: "Tiles", hint: "Needs a mic input under Island › On air" }),
+  boolSetting("showMic", "Show mic", true, { group: "Tiles", hint: "Needs a mic input under Settings › Connections" }),
   boolSetting("showReplay", "Show replay", true, { group: "Tiles", hint: "Needs the replay buffer turned on in OBS" }),
 ];
 

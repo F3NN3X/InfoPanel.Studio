@@ -11,5 +11,5 @@ export const meta: WidgetMeta = {
   minSize: [1, 1],
   blurb: "Live, recording or off air, from OBS",
   tags: "obs stream streaming recording rec live broadcast",
-  description: "A large LIVE, REC or Off air state read from OBS, with how long it has been going. Connect OBS under Island › On air.",
+  description: "A large LIVE, REC or Off air state read from OBS, with how long it has been going. Connect OBS under Settings › Connections.",
 };

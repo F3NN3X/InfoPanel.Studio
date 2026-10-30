@@ -1457,7 +1457,7 @@ or uninstalling the app, takes them out again. The hooks post to
 `http://127.0.0.1:3922` (set `DASHBOARD_URL` for another port) and never slow an agent
 down: with the dashboard closed they give up after a second.
 
-With On air or Calendar countdown on, a card below sets them up. Both run on the
+Settings › Connections sets them up. Both run on the
 dashboard server, so every kiosk shares one OBS connection and one calendar fetch:
 
 - **OBS WebSocket** - in OBS, *Tools › WebSocket Server Settings*: enable it and copy the
