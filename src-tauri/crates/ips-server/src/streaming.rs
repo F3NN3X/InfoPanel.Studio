@@ -18,7 +18,7 @@ const MAX_ID: usize = 128;
 const MAX_MIC: usize = 256;
 const MAX_SUB: usize = 60;
 const MAX_ICON: usize = 40;
-const MAX_TOKEN: usize = 512;
+const MAX_TOKEN: usize = 4096;
 /// Twitch logins are 25 characters at most.
 const MAX_LOGIN: usize = 25;
 const MAX_CLIENT: usize = 256;
@@ -469,6 +469,14 @@ mod tests {
         // A client alone is not configured.
         let half = normalize(Some(&json!({ "youtube": { "client_id": "cid" } })));
         assert_eq!(to_json(&half).unwrap()["youtube"]["clientConfigured"], false);
+    }
+
+    #[test]
+    fn keeps_long_google_tokens_whole_through_a_reload() {
+        let long = "t".repeat(2500);
+        let s = normalize(Some(&json!({ "youtube": { "access_token": long, "refresh_token": long } })));
+        assert_eq!(s.youtube.auth.access_token.len(), 2500);
+        assert_eq!(normalize(Some(&to_stored_json(&s).unwrap())), s);
     }
 
     #[test]

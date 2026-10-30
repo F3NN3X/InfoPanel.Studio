@@ -77,6 +77,8 @@ struct Inner {
     connected: bool,
     window: Window,
     quota: Quota,
+    /// Broadcasts seen to have ended (the search can still list them for a while); not looked at again.
+    ended: Vec<String>,
 }
 
 impl Inner {
@@ -122,6 +124,9 @@ pub enum SendError {
     Failed(String),
 }
 
+/// Stores a sign-in for the client (its id) that got it.
+type Persist = Box<dyn Fn(&str, YoutubeAuth) + Send + Sync>;
+
 #[derive(Clone, Copy)]
 enum Call<'a> {
     Get(&'a str),
@@ -134,8 +139,11 @@ pub struct Youtube {
     /// Ms since the epoch; a test holds it.
     now: Box<dyn Fn() -> i64 + Send + Sync>,
     inner: Mutex<Inner>,
-    /// Stores the sign-in. Called with no lock held (the store tells its listeners, which come back here).
-    persist: Box<dyn Fn(YoutubeAuth) + Send + Sync>,
+    /// Stores the sign-in for the client that got it (the store refuses it when the client has changed since). Called with
+    /// no `inner` lock held (the store tells its listeners, which come back here).
+    persist: Persist,
+    /// Held while the sign-in is changed in memory and stored, so a refresh cannot store its tokens after a sign-out.
+    persist_lock: Mutex<()>,
     /// Tells the extras the status changed.
     on_change: Box<dyn Fn() + Send + Sync>,
     /// Tells the chat hub the window changed; set once.
@@ -166,7 +174,7 @@ impl Youtube {
         ep: Endpoints,
         client: GuardedClient,
         settings: YoutubeSettings,
-        persist: impl Fn(YoutubeAuth) + Send + Sync + 'static,
+        persist: impl Fn(&str, YoutubeAuth) + Send + Sync + 'static,
         on_change: impl Fn() + Send + Sync + 'static,
     ) -> Arc<Self> {
         Self::with_clock(ep, client, settings, now_ms, persist, on_change)
@@ -178,7 +186,7 @@ impl Youtube {
         client: GuardedClient,
         settings: YoutubeSettings,
         now: impl Fn() -> i64 + Send + Sync + 'static,
-        persist: impl Fn(YoutubeAuth) + Send + Sync + 'static,
+        persist: impl Fn(&str, YoutubeAuth) + Send + Sync + 'static,
         on_change: impl Fn() + Send + Sync + 'static,
     ) -> Arc<Self> {
         Arc::new(Self {
@@ -190,6 +198,7 @@ impl Youtube {
                 ..Inner::default()
             }),
             persist: Box::new(persist),
+            persist_lock: Mutex::new(()),
             on_change: Box::new(on_change),
             on_chat: OnceLock::new(),
             refresh_lock: tokio::sync::Mutex::new(()),
@@ -384,17 +393,21 @@ impl Youtube {
         let result = match tokens {
             Ok(tokens) => {
                 self.spend(COST_LIST);
-                auth::identity(&self.client, &self.ep, &tokens.access_token)
-                    .await
-                    .map(|who| (tokens, who))
-                    .map_err(|e| match e {
-                        ApiError::Unauthorized => {
-                            "Google didn't accept the new sign-in.".to_string()
-                        }
-                        ApiError::Quota => QUOTA_MESSAGE.to_string(),
-                        ApiError::ChatGone => "YouTube didn't say who you are.".to_string(),
-                        ApiError::Failed(message) => format!("Signed in, but {message}."),
-                    })
+                match auth::identity(&self.client, &self.ep, &tokens.access_token).await {
+                    Ok(who) => Ok((tokens, who)),
+                    Err(e) => {
+                        // Google granted the sign-in but it can't be used: the grant is not left standing.
+                        self.revoke_later(tokens.refresh_token);
+                        Err(match e {
+                            ApiError::Unauthorized => {
+                                "Google didn't accept the new sign-in.".to_string()
+                            }
+                            ApiError::Quota => QUOTA_MESSAGE.to_string(),
+                            ApiError::ChatGone => "YouTube didn't say who you are.".to_string(),
+                            ApiError::Failed(message) => format!("Signed in, but {message}."),
+                        })
+                    }
+                }
             }
             Err(message) => Err(message),
         };
@@ -411,8 +424,7 @@ impl Youtube {
                     return Ok(());
                 }
                 // Signed out or cancelled while Google was answering: the new tokens are not wanted.
-                let (client, ep) = (self.client.clone(), self.ep.clone());
-                tokio::spawn(async move { auth::revoke(&client, &ep, &auth.refresh_token).await });
+                self.revoke_later(auth.refresh_token);
                 Err(CallbackError::Failed("The sign-in was cancelled.".into()))
             }
             Err(message) => {
@@ -431,7 +443,8 @@ impl Youtube {
 
     /// Takes the new sign-in unless it was cancelled or signed out meanwhile.
     fn finish_signin(&self, id: u64, generation: u64, auth: YoutubeAuth) -> bool {
-        {
+        let stored = locked(&self.persist_lock);
+        let client_id = {
             let mut i = locked(&self.inner);
             if i.generation != generation || i.pending.as_ref().is_none_or(|p| p.id != id) {
                 return false;
@@ -443,8 +456,10 @@ impl Youtube {
             i.live = None;
             i.viewers = 0;
             i.connected = false;
-        }
-        (self.persist)(auth);
+            i.settings.client_id.clone()
+        };
+        (self.persist)(&client_id, auth);
+        drop(stored);
         self.kick();
         self.publish_all();
         true
@@ -482,9 +497,14 @@ impl Youtube {
             old.refresh_token
         };
         if !token.is_empty() {
-            let (client, ep) = (self.client.clone(), self.ep.clone());
-            tokio::spawn(async move { auth::revoke(&client, &ep, &token).await });
+            self.revoke_later(token);
         }
+    }
+
+    /// Tells Google, off the caller's path, that a token is not wanted.
+    fn revoke_later(&self, token: String) {
+        let (client, ep) = (self.client.clone(), self.ep.clone());
+        tokio::spawn(async move { auth::revoke(&client, &ep, &token).await });
     }
 
     /// Signs out for a reason the user is shown (their sign-in no longer works).
@@ -495,7 +515,9 @@ impl Youtube {
     /// Forgets the sign-in and everything it fetched. `persist` says whether the file is told (a save of the client already
     /// dropped the tokens from it).
     fn clear(&self, reason: Option<String>, persist: bool) -> YoutubeAuth {
-        let old = {
+        // Not taken when the file is not written: that is a store listener, which runs inside a write that holds it.
+        let stored = persist.then(|| locked(&self.persist_lock));
+        let (old, client_id) = {
             let mut i = locked(&self.inner);
             let old = std::mem::take(&mut i.settings.auth);
             i.generation += 1;
@@ -505,11 +527,13 @@ impl Youtube {
             i.viewers = 0;
             i.connected = false;
             i.window.clear_all();
-            old
+            i.ended.clear();
+            (old, i.settings.client_id.clone())
         };
         if persist {
-            (self.persist)(YoutubeAuth::default());
+            (self.persist)(&client_id, YoutubeAuth::default());
         }
+        drop(stored);
         self.kick();
         self.publish_all();
         old
@@ -592,9 +616,14 @@ impl Youtube {
         {
             Ok(tokens) => {
                 // A sign-out or a newer sign-in may have come while Google was answering; then these tokens are not wanted.
+                // The check and the store happen under one lock, so a sign-out cannot be followed by this write.
+                let stored = locked(&self.persist_lock);
                 let next = {
                     let mut i = locked(&self.inner);
-                    if !i.signed_in() || i.settings.auth.refresh_token != refresh_token {
+                    if !i.signed_in()
+                        || i.settings.auth.refresh_token != refresh_token
+                        || i.settings.client_id != client_id
+                    {
                         None
                     } else {
                         i.settings.auth.access_token = tokens.access_token.clone();
@@ -604,13 +633,12 @@ impl Youtube {
                     }
                 };
                 let Some(next) = next else {
-                    let (client, ep) = (self.client.clone(), self.ep.clone());
-                    tokio::spawn(
-                        async move { auth::revoke(&client, &ep, &tokens.access_token).await },
-                    );
+                    drop(stored);
+                    self.revoke_later(tokens.access_token);
                     return Err("signed out".into());
                 };
-                (self.persist)(next);
+                (self.persist)(&client_id, next);
+                drop(stored);
                 Ok(tokens.access_token)
             }
             Err(RefreshError::Rejected(_)) => {
@@ -669,7 +697,13 @@ impl Youtube {
                 Err(ApiError::Unauthorized) if attempt == 0 => {
                     token = self.refresh_stale(&token).await.map_err(ApiError::Failed)?
                 }
-                Err(ApiError::Unauthorized) => break,
+                Err(ApiError::Unauthorized) => {
+                    // A token just refreshed is refused too: the sign-in is no use. (Only the one that was refused is ended.)
+                    if locked(&self.inner).settings.auth.access_token == token {
+                        self.signed_out("Sign in to YouTube again.");
+                    }
+                    break;
+                }
                 Err(ApiError::Quota) => {
                     self.exhaust();
                     return Err(ApiError::Quota);
@@ -896,7 +930,12 @@ impl Youtube {
                     let wait = self.find().await;
                     nap(&mut kick, wait).await;
                 }
-                Stage::Live(live) => self.watch(&mut kick, live).await,
+                Stage::Live(live) => {
+                    // An ended broadcast the search may still list: not looked for again at once.
+                    if self.watch(&mut kick, live).await {
+                        nap(&mut kick, self.ep.find_every).await;
+                    }
+                }
             }
         }
     }
@@ -912,7 +951,17 @@ impl Youtube {
         {
             Ok(body) => {
                 self.recovered("find");
-                match body.pointer("/items/0") {
+                let ended = locked(&self.inner).ended.clone();
+                let listed = body
+                    .get("items")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten();
+                let found = listed.into_iter().find(|item| {
+                    let id = item.get("id").and_then(Value::as_str).unwrap_or("");
+                    !ended.iter().any(|e| e == id)
+                });
+                match found {
                     Some(item) => {
                         let text = |p: &str| {
                             item.pointer(p)
@@ -938,8 +987,9 @@ impl Youtube {
         }
     }
 
-    /// Reads the viewers and the chat of a live broadcast until it ends, the quota runs out or the sign-in changes.
-    async fn watch(&self, kick: &mut watch::Receiver<u64>, live: Live) {
+    /// Reads the viewers and the chat of a live broadcast until it ends, the quota runs out or the sign-in changes. True
+    /// when the broadcast ended.
+    async fn watch(&self, kick: &mut watch::Receiver<u64>, live: Live) -> bool {
         let mut page_token = String::new();
         let mut chat_on = !live.chat_id.is_empty();
         let (mut next_chat, mut next_viewers) = (Tick::now(), Tick::now());
@@ -951,7 +1001,7 @@ impl Youtube {
             };
             tokio::select! {
                 _ = tokio::time::sleep_until(due) => {}
-                _ = kick.changed() => return,
+                _ = kick.changed() => return false,
             }
             if chat_on && Tick::now() >= next_chat {
                 match self.read_chat(&live.chat_id, &page_token).await {
@@ -959,7 +1009,7 @@ impl Youtube {
                         self.recovered("chat");
                         (page_token, next_chat) = (token, Tick::now() + wait);
                     }
-                    Err(ApiError::Quota) => return,
+                    Err(ApiError::Quota) => return false,
                     // The chat is over or off; the broadcast may still be on, so the viewers go on.
                     Err(ApiError::ChatGone) => {
                         chat_on = false;
@@ -982,10 +1032,10 @@ impl Youtube {
                         next_viewers = Tick::now() + self.ep.viewers_every;
                     }
                     Ok(None) => {
-                        self.set_live(None);
-                        return;
+                        self.end(&live.video_id);
+                        return true;
                     }
-                    Err(ApiError::Quota) => return,
+                    Err(ApiError::Quota) => return false,
                     Err(e) => {
                         self.warn_throttled("viewers", &format!("{e:?}"));
                         next_viewers = Tick::now() + self.ep.retry_every;
@@ -993,9 +1043,23 @@ impl Youtube {
                 }
             }
             if locked(&self.inner).live.as_ref() != Some(&live) {
-                return;
+                return false;
             }
         }
+    }
+
+    /// The broadcast is over: no live state, and it is not picked up again if the search still lists it.
+    fn end(&self, video_id: &str) {
+        {
+            let mut i = locked(&self.inner);
+            if !i.ended.iter().any(|e| e == video_id) {
+                if i.ended.len() == 16 {
+                    i.ended.remove(0);
+                }
+                i.ended.push(video_id.to_string());
+            }
+        }
+        self.set_live(None);
     }
 
     /// One page of the chat: the token for the next and how long to wait for it.

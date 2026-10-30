@@ -687,12 +687,8 @@ async fn reads_the_chat_answers_pings_sends_and_clears() {
         )
     );
     assert!(mine["id"].as_str().unwrap().starts_with("local-"));
-    // The status moved with it, and a stream's first event is this chat.
+    // The status moved with it.
     assert!(rig.changes.load(Ordering::SeqCst) > 0);
-    let first = rig.twitch.listen().borrow().clone();
-    assert!(std::str::from_utf8(&first)
-        .unwrap()
-        .starts_with("data: {\"messages\":"));
 
     // A new channel clears the window and joins the other chat.
     rig.twitch.set_channel("other");

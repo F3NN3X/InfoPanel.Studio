@@ -98,8 +98,8 @@ impl Extras {
             });
             let youtube = Youtube::new(google, youtube_client, integrations.get().streaming.youtube, {
                 let integrations = Arc::clone(&integrations);
-                move |auth| {
-                    if let Err(e) = integrations.set_youtube_auth(auth) {
+                move |client_id, auth| {
+                    if let Err(e) = integrations.set_youtube_auth(client_id, auth) {
                         log::error!(target: "server", "saving the YouTube sign-in failed: {e}");
                     }
                 }

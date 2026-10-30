@@ -100,7 +100,7 @@ mod tests {
             crate::youtube::auth::Endpoints::offline(),
             GuardedClient::open(),
             youtube,
-            |_| {},
+            |_, _| {},
             || {},
         );
         ChatHub::new(twitch, youtube)

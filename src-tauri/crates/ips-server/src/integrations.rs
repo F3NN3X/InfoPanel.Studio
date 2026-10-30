@@ -299,9 +299,13 @@ impl IntegrationsStore {
         self.commit(state, next)
     }
 
-    /// Stores the YouTube sign-in (an empty one is a sign-out) and keeps everything else, the client and the chat refresh included.
-    pub fn set_youtube_auth(&self, auth: YoutubeAuth) -> std::io::Result<()> {
+    /// Stores the YouTube sign-in (an empty one is a sign-out) and keeps everything else, the client and the chat refresh
+    /// included. A sign-in made with another client than the stored one (the client was changed meanwhile) is not stored.
+    pub fn set_youtube_auth(&self, client_id: &str, auth: YoutubeAuth) -> std::io::Result<()> {
         let state = self.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        if state.streaming.youtube.client_id != client_id {
+            return Ok(());
+        }
         let mut next = state.clone();
         next.streaming.youtube.auth = auth;
         self.commit(state, next)
@@ -475,7 +479,9 @@ mod tests {
         let store = IntegrationsStore::load(&file);
         store.apply(&json!({ "streaming": { "youtube": { "client_id": "cid", "client_secret": "secret-cs" } } })).unwrap().unwrap();
         let auth = YoutubeAuth { access_token: "secret-access".into(), refresh_token: "secret-refresh".into(), expires_at: 99, channel: "Me".into(), channel_id: "UC1".into() };
-        store.set_youtube_auth(auth.clone()).unwrap();
+        store.set_youtube_auth("cid", auth.clone()).unwrap();
+        // A write from a client that has since been replaced is not stored.
+        store.set_youtube_auth("old-client", YoutubeAuth::default()).unwrap();
         let file_text = std::fs::read_to_string(&file).unwrap();
         assert!(file_text.contains("secret-access") && file_text.contains("secret-cs"));
         let reloaded = IntegrationsStore::load(&file).get().streaming.youtube;

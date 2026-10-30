@@ -56,7 +56,7 @@ fn rig(ep: Endpoints, settings: YoutubeSettings) -> Rig {
         },
         {
             let saved = Arc::clone(&saved);
-            move |auth| saved.lock().unwrap().push(auth)
+            move |_client, auth| saved.lock().unwrap().push(auth)
         },
         {
             let changes = Arc::clone(&changes);
@@ -964,4 +964,173 @@ fn estimates_the_units_an_hour_from_what_is_polled() {
         json!({ "used": 0, "estimatePerHour": 0 })
     );
     assert_eq!(rig.now(), NOON);
+}
+
+// ---- review fixes ----
+
+#[tokio::test]
+async fn an_ended_broadcast_the_search_still_lists_is_not_chased_in_a_loop() {
+    let a = chat_message("a", "Plain", "UC-p", json!({}), "2026-07-15T12:00:00Z");
+    let (base, seen) = http_fake(move |r, _| {
+        if r.path.starts_with("/youtube/v3/liveBroadcasts") {
+            return (
+                200,
+                json!({ "items": [{ "id": "vid-1", "snippet": { "liveChatId": "chat-1" } }] })
+                    .to_string(),
+            );
+        }
+        if r.path.starts_with("/youtube/v3/videos") {
+            let details =
+                json!({ "concurrentViewers": "3", "actualEndTime": "2026-07-15T13:00:00Z" });
+            return (
+                200,
+                json!({ "items": [{ "liveStreamingDetails": details }] }).to_string(),
+            );
+        }
+        (200, page(vec![a.clone()], "P1"))
+    })
+    .await;
+    let rig = rig(endpoints(&base), signed_in(HOUR));
+    let (stop, shutdown) = tokio::sync::watch::channel(false);
+    let task = rig.youtube.start(&shutdown);
+    until("the broadcast to be seen ending", || {
+        seen.lock()
+            .unwrap()
+            .iter()
+            .any(|r| r.path.starts_with("/youtube/v3/videos"))
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(400)).await;
+    let count = |prefix: &str| {
+        seen.lock()
+            .unwrap()
+            .iter()
+            .filter(|r| r.path.starts_with(prefix))
+            .count()
+    };
+    // One pass over it, then a search every find_every (40 ms here) that skips it: a loop would be in the hundreds.
+    assert_eq!(count("/youtube/v3/videos"), 1);
+    assert!(
+        count("/youtube/v3/liveChat/messages") <= 2,
+        "{}",
+        count("/youtube/v3/liveChat/messages")
+    );
+    assert!(
+        count("/youtube/v3/liveBroadcasts") <= 14,
+        "{}",
+        count("/youtube/v3/liveBroadcasts")
+    );
+    let status = rig.youtube.status();
+    assert_eq!(
+        (status["live"].as_bool(), status["viewers"].as_u64()),
+        (Some(false), Some(0))
+    );
+    assert_eq!(
+        ids(&rig.youtube),
+        ["a"],
+        "the chat was not wiped again and again"
+    );
+    stop.send(true).unwrap();
+    task.await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_sign_out_cannot_be_followed_by_a_refresh_writing_the_old_tokens_back() {
+    let (base, _) = http_fake(|r, _| match r.path.as_str() {
+        "/token" => (200, TOKENS.into()),
+        _ => (200, "{}".into()),
+    })
+    .await;
+    let saved: Arc<Mutex<Vec<YoutubeAuth>>> = Arc::default();
+    let youtube = Youtube::with_clock(
+        endpoints(&base),
+        GuardedClient::open(),
+        signed_in(0),
+        || NOON,
+        {
+            let saved = Arc::clone(&saved);
+            // A slow store: the window in which a sign-out used to slip in between the check and the write.
+            move |_client, auth| {
+                if !auth.access_token.is_empty() {
+                    std::thread::sleep(Duration::from_millis(250));
+                }
+                saved.lock().unwrap().push(auth)
+            }
+        },
+        || {},
+    );
+    let refreshing = Arc::clone(&youtube);
+    let refresh = tokio::spawn(async move { refreshing.access_token().await });
+    tokio::time::sleep(Duration::from_millis(120)).await;
+    youtube.signout();
+    assert_eq!(refresh.await.unwrap(), Ok("new-access".to_string()));
+    let saved = saved.lock().unwrap().clone();
+    assert_eq!(saved.len(), 2);
+    assert_eq!(saved[0].access_token, "new-access");
+    assert_eq!(
+        saved[1],
+        YoutubeAuth::default(),
+        "the sign-out is the last word"
+    );
+    assert_eq!(youtube.status()["signedIn"], false);
+}
+
+#[tokio::test]
+async fn a_token_google_refuses_even_after_a_refresh_ends_the_sign_in() {
+    let (base, seen) = http_fake(|r, _| match r.path.as_str() {
+        "/token" => (
+            200,
+            r#"{"access_token":"new-access","expires_in":3599}"#.into(),
+        ),
+        _ => (401, "{}".into()),
+    })
+    .await;
+    let rig = rig(endpoints(&base), signed_in(HOUR));
+    let answer = rig
+        .youtube
+        .call(Call::Get("/youtube/v3/videos?id=v"), 1)
+        .await;
+    assert!(matches!(answer, Err(ApiError::Failed(_))));
+    let status = rig.youtube.status();
+    assert_eq!(
+        (status["signedIn"].as_bool(), status["error"].as_str()),
+        (Some(false), Some("Sign in to YouTube again."))
+    );
+    assert_eq!(
+        rig.saved.lock().unwrap().last(),
+        Some(&YoutubeAuth::default())
+    );
+    assert_eq!(
+        seen.lock()
+            .unwrap()
+            .iter()
+            .filter(|r| r.path == "/token")
+            .count(),
+        1
+    );
+}
+
+#[tokio::test]
+async fn a_sign_in_whose_identity_cannot_be_read_is_revoked() {
+    let (base, seen) = http_fake(|r, _| match r.path.as_str() {
+        "/token" => (200, TOKENS.into()),
+        p if p.starts_with("/youtube/v3/channels") => (500, "{}".into()),
+        _ => (200, "{}".into()),
+    })
+    .await;
+    let rig = rig(endpoints(&base), configured());
+    let state = query_of(&rig.youtube.signin(3922).unwrap())["state"].clone();
+    assert!(rig
+        .youtube
+        .callback(Some("code-1"), Some(&state), None)
+        .await
+        .is_err());
+    assert!(rig.saved.lock().unwrap().is_empty());
+    until("the unusable grant to be revoked", || {
+        seen.lock()
+            .unwrap()
+            .iter()
+            .any(|r| r.path == "/revoke" && field(&r.body, "token") == "new-refresh")
+    })
+    .await;
 }

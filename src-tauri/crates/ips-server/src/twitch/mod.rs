@@ -1,7 +1,7 @@
 // Twitch for the Stream Chat widget and the Streaming chip: the device-code sign-in (auth.rs), the chat over IRC on a
 // WebSocket (session.rs, irc.rs, chat.rs) and the channel's viewers. The sign-in's tokens are kept in the integrations file
 // (streaming.twitch) and nowhere else: not in the studio's view, the extras, the chat stream or the log. The status kiosks
-// get is in `status`; the chat has its own latest-wins stream (`chat_json`).
+// get is in `status`; the chat window is read by the chat hub (`chat_parts`), which serves the stream.
 
 pub mod auth;
 pub mod chat;
@@ -15,7 +15,6 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::time::{Duration, Instant};
 
-use axum::body::Bytes;
 use serde_json::{json, Value};
 use tokio::sync::{mpsc, watch};
 use tokio::task::{AbortHandle, JoinHandle};
@@ -23,7 +22,7 @@ use tokio::task::{AbortHandle, JoinHandle};
 use crate::config::now_ms;
 use crate::guarded_net::GuardedClient;
 use crate::streaming::{TwitchAuth, TwitchSettings};
-use crate::{sse, supervisor};
+use crate::supervisor;
 use auth::{ApiError, Device, Endpoints, Poll, RefreshError};
 use chat::{SendLimiter, Window};
 use irc::{Entry, Me, Message};
@@ -115,8 +114,8 @@ pub struct Twitch {
     next_flow: AtomicU64,
     /// The open chat session's way to send; none between sessions.
     outgoing: Mutex<Option<mpsc::Sender<String>>>,
-    /// The chat as an event; a stream only ever needs the newest.
-    latest: watch::Sender<Bytes>,
+    /// Held while the sign-in is changed in memory and stored, so a refresh cannot store its tokens after a sign-out.
+    persist_lock: Mutex<()>,
     /// Tells the chat hub (which merges the platforms' chats) the window changed; set once.
     on_chat: OnceLock<Box<dyn Fn() + Send + Sync>>,
     /// When each repeating failure was last logged.
@@ -135,7 +134,7 @@ impl Twitch {
         persist: impl Fn(TwitchAuth) + Send + Sync + 'static,
         on_change: impl Fn() + Send + Sync + 'static,
     ) -> Arc<Self> {
-        let twitch = Arc::new(Self {
+        Arc::new(Self {
             ep,
             client,
             inner: Mutex::new(Inner {
@@ -150,12 +149,10 @@ impl Twitch {
             flow: Mutex::new(None),
             next_flow: AtomicU64::new(1),
             outgoing: Mutex::new(None),
-            latest: watch::channel(Bytes::new()).0,
+            persist_lock: Mutex::new(()),
             on_chat: OnceLock::new(),
             warned: Mutex::default(),
-        });
-        twitch.publish_chat();
-        twitch
+        })
     }
 
     /// The status in the extras.
@@ -195,11 +192,8 @@ impl Twitch {
         (self.on_change)();
     }
 
-    /// Makes the chat the one every open stream sends next. It is read inside the channel's lock, so of two publishes the
-    /// later reader wins.
+    /// Tells the chat hub the window changed.
     fn publish_chat(&self) {
-        self.latest
-            .send_modify(|event| *event = sse::event(&crate::json::stringify(&self.chat_json())));
         if let Some(hook) = self.on_chat.get() {
             hook();
         }
@@ -208,12 +202,6 @@ impl Twitch {
     fn publish_all(&self) {
         self.publish_chat();
         self.publish_status();
-    }
-
-    /// A chat stream's receiver, holding the chat as of now.
-    pub fn listen(&self) -> watch::Receiver<Bytes> {
-        self.publish_chat();
-        self.latest.subscribe()
     }
 
     fn kick(&self) {
@@ -340,6 +328,7 @@ impl Twitch {
     }
 
     fn finish_signin(&self, id: u64, auth: TwitchAuth) {
+        let stored = locked(&self.persist_lock);
         {
             let mut i = locked(&self.inner);
             if i.pending.as_ref().is_none_or(|p| p.id != id) {
@@ -353,6 +342,7 @@ impl Twitch {
             i.viewers = 0;
         }
         (self.persist)(auth);
+        drop(stored);
         self.kick();
         self.publish_all();
     }
@@ -374,6 +364,7 @@ impl Twitch {
     }
 
     fn clear(&self, reason: Option<String>) -> TwitchAuth {
+        let stored = locked(&self.persist_lock);
         if let Some(flow) = locked(&self.flow).take() {
             flow.abort();
         }
@@ -392,6 +383,7 @@ impl Twitch {
             old
         };
         (self.persist)(TwitchAuth::default());
+        drop(stored);
         self.kick();
         self.publish_all();
         old
@@ -436,6 +428,8 @@ impl Twitch {
         match auth::refresh(&self.client, &self.ep, &refresh_token, now_ms()).await {
             Ok(tokens) => {
                 // A sign-out or a newer sign-in may have come while Twitch was answering; then these tokens are not wanted.
+                // The check and the store happen under one lock, so a sign-out cannot be followed by this write.
+                let stored = locked(&self.persist_lock);
                 let next = {
                     let mut i = locked(&self.inner);
                     if !i.signed_in() || i.auth.refresh_token != refresh_token {
@@ -455,6 +449,7 @@ impl Twitch {
                     return Err("signed out".into());
                 };
                 (self.persist)(next);
+                drop(stored);
                 Ok(tokens.access_token)
             }
             Err(RefreshError::Rejected(_)) => {
