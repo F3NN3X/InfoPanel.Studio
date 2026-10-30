@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.1-beta.4] - 2026-10-30
+
 ### Added
 
 - **Touch panels (experimental).** A USB touch display can now drive the kiosk on it without Windows ever seeing a touch: touching it never moves the mouse or takes focus from the game or app you're using. Turn it on in **Settings** › **Touch**, give the touchscreen the WinUSB driver once (the page walks you through Zadig), press **Set up panels…** and tap the circle on each touch display, then open the panel's kiosk URL in an InfoPanel web page profile that fills that display. Taps work on widgets as clicks, a two-finger swipe changes page and a three-finger tap shows a touch status strip. Pair, Calibrate and Identify run on the panel's own screen, virtual panels replay recorded touches for trying it without hardware, and a touchscreen can be given back to Windows from the same page. Built on [touch-kit](https://github.com/F3NN3X/touch-kit).
