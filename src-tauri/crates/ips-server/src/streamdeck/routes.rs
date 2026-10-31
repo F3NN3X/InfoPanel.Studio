@@ -64,9 +64,11 @@ fn refused(error: ActError) -> Response<Body> {
     }
 }
 
-/// POST /api/streamdeck/act → 204 (create: 200 `{ id }`). Needs a JSON body and `X-Dashboard-Control: 1`; 403 from another
+/// POST /api/streamdeck/act → 204 (create: 200 `{ id }`; forget: 200 `{ appDevice: "deleted" | "none" | "kept" }`, "kept"
+/// when the app's device couldn't be deleted). Needs a JSON body and `X-Dashboard-Control: 1`; 403 from another
 /// machine while remote editing is off; 400 for a body that is not an action; 404 for a device not in the registry; 503
-/// when the connection is off (pair, press, page) or the device isn't open in the app (press, page).
+/// when the connection is off (pair, press, page) or the device isn't open in the app (press, page). A press's index must
+/// be on the device's grid (400).
 pub async fn handle_act(app: &App, mut req: Req) -> std::io::Result<Response<Body>> {
     let body = match guarded_body(app, &mut req).await {
         Ok(body) => body,
@@ -82,7 +84,7 @@ pub async fn handle_act(app: &App, mut req: Req) -> std::io::Result<Response<Bod
             device,
             index,
             down,
-        } => deck.press(&device, index, down),
+        } => deck.press(&device, index, down).await,
         Act::Page { device, to } => deck.page(&device, to),
         Act::Pair => deck.pair(),
         Act::Create { name, cols, rows } => {
@@ -93,7 +95,12 @@ pub async fn handle_act(app: &App, mut req: Req) -> std::io::Result<Response<Bod
         }
         Act::Grid { device, cols, rows } => deck.grid(&device, cols, rows)?,
         Act::Rename { device, name } => deck.rename(&device, name)?,
-        Act::Forget { device } => deck.forget(&device).await?,
+        Act::Forget { device } => {
+            return Ok(match deck.forget(&device).await? {
+                Ok(forgot) => http::json(200, &json!({ "appDevice": forgot.as_str() })),
+                Err(error) => refused(error),
+            });
+        }
     };
     Ok(match done {
         Ok(()) => http::empty(204),

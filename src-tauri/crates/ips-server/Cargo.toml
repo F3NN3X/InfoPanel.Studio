@@ -21,6 +21,8 @@ getrandom = "0.4"
 lz4_flex = { version = "0.11", default-features = false, features = ["safe-decode", "std"] }
 png = "0.18"
 prost = { version = "0.14", default-features = false, features = ["derive", "std"] }
+# Wipes the key's temporary buffers (already in the lock through crypto_box).
+zeroize = "1"
 chrono = { workspace = true, features = ["std", "clock"] }
 chrono-tz = "0.10"
 futures-util = { workspace = true }

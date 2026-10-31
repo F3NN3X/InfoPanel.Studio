@@ -276,6 +276,9 @@ async fn keeps_a_registry_of_devices_and_never_shows_the_key() {
         .to_string();
     let press = format!(r#"{{"op":"press","device":"{id}","index":0,"down":true}}"#);
     assert_eq!(act(s.port, &press).await.status, 503);
+    // A key off the device's 5 x 3 grid is refused whatever the connection does.
+    let off_grid = format!(r#"{{"op":"press","device":"{id}","index":15,"down":true}}"#);
+    assert_eq!(act(s.port, &off_grid).await.status, 400);
     let off = state(s.port).await;
     assert_eq!(
         off["devices"],
@@ -404,12 +407,12 @@ async fn keeps_a_registry_of_devices_and_never_shows_the_key() {
         400
     );
 
-    // Forget drops a device; off again, the rest show as off.
+    // Forget drops a device (the app never had one for it); off again, the rest show as off.
+    let forgot = act(s.port, &format!(r#"{{"op":"forget","device":"{second}"}}"#)).await;
+    assert_eq!(forgot.status, 200);
     assert_eq!(
-        act(s.port, &format!(r#"{{"op":"forget","device":"{second}"}}"#))
-            .await
-            .status,
-        204
+        serde_json::from_slice::<Value>(&forgot.body).unwrap(),
+        json!({ "appDevice": "none" })
     );
     set_enabled(s.port, false).await;
     let after = state(s.port).await;

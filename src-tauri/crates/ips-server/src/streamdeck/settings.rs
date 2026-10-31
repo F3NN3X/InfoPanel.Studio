@@ -34,12 +34,28 @@ pub struct Device {
     pub app_id: String,
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq)]
 pub struct StreamdeckSettings {
     pub enabled: bool,
     /// 64 hex characters, or "" until the connection is first turned on.
     pub secret_key: String,
     pub devices: Vec<Device>,
+}
+
+/// Without the key: a debug print never shows it.
+impl std::fmt::Debug for StreamdeckSettings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let key = if self.secret_key.is_empty() {
+            ""
+        } else {
+            "<redacted>"
+        };
+        f.debug_struct("StreamdeckSettings")
+            .field("enabled", &self.enabled)
+            .field("secret_key", &key)
+            .field("devices", &self.devices)
+            .finish()
+    }
 }
 
 impl StreamdeckSettings {
@@ -231,6 +247,10 @@ mod tests {
         );
         assert!(!public.to_string().contains(KEY) && !public.to_string().contains("app-a"));
         assert_eq!(to_stored_json(&s)["secret_key"], KEY);
+        assert!(
+            !format!("{s:?}").contains(KEY),
+            "a debug print redacts the key"
+        );
         assert_eq!(to_json(&StreamdeckSettings::default())["pairingCode"], "");
     }
 

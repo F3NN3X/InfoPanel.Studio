@@ -8,6 +8,7 @@ use blake2::{Blake2b, Digest};
 use crypto_box::aead::generic_array::GenericArray;
 use crypto_box::aead::Aead;
 use crypto_box::{PublicKey, SalsaBox, SecretKey};
+use zeroize::Zeroizing;
 
 pub const NONCE_LEN: usize = 24;
 const KEY_LEN: usize = 32;
@@ -28,15 +29,17 @@ fn unhex(s: &str) -> Option<Vec<u8>> {
 
 /// A new secret key as stored (64 hex characters), from the OS's random source.
 pub fn new_secret() -> Result<String, String> {
-    let mut key = [0u8; KEY_LEN];
-    getrandom::fill(&mut key).map_err(|e| format!("no random source: {e}"))?;
-    Ok(hex(&key))
+    let mut key = Zeroizing::new([0u8; KEY_LEN]);
+    getrandom::fill(key.as_mut()).map_err(|e| format!("no random source: {e}"))?;
+    Ok(hex(key.as_ref()))
 }
 
 /// The stored secret key, or `None` for anything that isn't one.
 pub fn secret_key(stored: &str) -> Option<SecretKey> {
-    let bytes: [u8; KEY_LEN] = unhex(stored)?.try_into().ok()?;
-    Some(SecretKey::from(bytes))
+    // The key's bytes are wiped from these buffers once the key holds them (SecretKey wipes its own).
+    let raw = Zeroizing::new(unhex(stored)?);
+    let bytes = Zeroizing::new(<[u8; KEY_LEN]>::try_from(raw.as_slice()).ok()?);
+    Some(SecretKey::from(*bytes))
 }
 
 pub fn public_key(secret: &SecretKey) -> [u8; KEY_LEN] {

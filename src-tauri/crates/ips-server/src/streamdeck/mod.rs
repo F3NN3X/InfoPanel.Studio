@@ -40,7 +40,9 @@ use settings::{Device, StreamdeckSettings};
 pub const MAX_KEYS: u32 = settings::MAX_GRID * settings::MAX_GRID;
 const QUEUED_CMDS: usize = 32;
 /// How long a forget waits for the session to delete the app's device.
-const FORGET_WAIT: Duration = Duration::from_secs(3);
+const FORGET_WAIT: Duration = Duration::from_secs(5);
+/// How long a key release waits for room in a busy session's queue (a press is refused at once instead).
+const RELEASE_WAIT: Duration = Duration::from_secs(2);
 
 /// Where a device's session is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -79,6 +81,26 @@ pub enum PageTo {
     Index(u32),
 }
 
+/// What became of the app's device when ours was forgotten.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Forgot {
+    Deleted,
+    /// There was none to delete (never created, or already gone from the app).
+    Nothing,
+    /// It couldn't be deleted (the app isn't connected): it stays in the Stream Deck app.
+    Kept,
+}
+
+impl Forgot {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Deleted => "deleted",
+            Self::Nothing => "none",
+            Self::Kept => "kept",
+        }
+    }
+}
+
 /// Why an action was refused.
 #[derive(Debug, PartialEq)]
 pub enum ActError {
@@ -95,6 +117,8 @@ struct DeviceState {
     error: Option<String>,
     /// (current, total)
     page: (u32, u32),
+    /// The page and profile of the last context; none before the first.
+    context: Option<(u32, String)>,
     titles: BTreeMap<u32, String>,
     icons: BTreeMap<u32, IconData>,
 }
@@ -105,6 +129,7 @@ impl Default for DeviceState {
             status: Status::Connecting,
             error: None,
             page: (0, 0),
+            context: None,
             titles: BTreeMap::new(),
             icons: BTreeMap::new(),
         }
@@ -129,8 +154,9 @@ struct Session {
     stop: watch::Sender<bool>,
 }
 
-/// The pairing: the app asks the user once per keypair, so one session at a time asks (sends `Authenticate`), and once
-/// it said yes the others ask too (the app knows the key by then).
+/// The pairing: the app asks the user once per keypair, so one session at a time asks (sends `Authenticate`): at most
+/// one ask is in flight. Once the app said yes the others ask in turn without a Pair press (the app knows the key by
+/// then), until a hello asks for authentication again after that: the trust was taken back, and Pair is needed again.
 #[derive(Default)]
 struct Pairing {
     /// An ask is wanted: the connection was just turned on, or the user pressed Pair.
@@ -253,13 +279,20 @@ impl StreamDeck {
         } else {
             Vec::new()
         };
+        let mut stopped = Vec::new();
         inner.sessions.retain(|id, session| {
             let keep = wanted.contains(id);
             if !keep {
                 let _ = session.stop.send(true);
+                stopped.push(id.clone());
             }
             keep
         });
+        // A stopped session is aborted wherever it waits; an ask it had in flight is given up here (its drop guard does
+        // the same once the task is gone).
+        for id in stopped {
+            self.abandon_pair(&id);
+        }
         inner.states.retain(|id, _| wanted.contains(id));
         for id in wanted {
             if !inner.sessions.contains_key(&id) {
@@ -353,6 +386,7 @@ impl StreamDeck {
             st.error = error;
             if status != Status::Ready {
                 st.page = (0, 0);
+                st.context = None;
                 st.titles.clear();
                 st.icons.clear();
             }
@@ -361,6 +395,12 @@ impl StreamDeck {
 
     fn context(&self, id: &str, context: &proto::Context) {
         self.update(id, |st| {
+            // Another page or profile: the icons shown are the old page's; the new page's follow.
+            let seen = (context.current_page, context.profile_id.clone());
+            if st.context.as_ref().is_some_and(|last| *last != seen) {
+                st.icons.clear();
+            }
+            st.context = Some(seen);
             st.page = (context.current_page, context.total_pages);
             st.titles = context
                 .actions
@@ -429,18 +469,28 @@ impl StreamDeck {
         self.pair_kick.send_modify(|n| *n += 1);
     }
 
-    /// Whether the session of `id` may ask now; it is the one asking from here on.
+    /// Whether the session of `id` may ask now (it already holds the ask, or none is in flight and one is wanted or the
+    /// key is trusted); it is the one asking from here on.
     fn claim_pair(&self, id: &str) -> bool {
         let mut p = locked(&self.pairing);
-        if p.trusted {
+        if p.claimant.as_deref() == Some(id) {
             return true;
         }
-        if !p.wanted || p.claimant.is_some() {
+        if p.claimant.is_some() || !(p.wanted || p.trusted) {
             return false;
         }
         p.wanted = false;
         p.claimant = Some(id.to_string());
         true
+    }
+
+    /// A hello asked for authentication: after the app had trusted us, the trust is gone, and only Pair asks again.
+    fn needs_auth_seen(&self) {
+        let mut p = locked(&self.pairing);
+        if p.trusted {
+            p.trusted = false;
+            p.wanted = false;
+        }
     }
 
     /// The app answered the ask of `id`'s session.
@@ -500,11 +550,27 @@ impl StreamDeck {
         }
     }
 
-    /// Presses (`down`) or releases a key.
-    pub fn press(&self, id: &str, index: u32, down: bool) -> Result<(), ActError> {
+    /// Presses (`down`) or releases a key on the device's grid. A press is refused while the session's queue is full; a
+    /// release waits for room, so a key pressed down is let go.
+    pub async fn press(&self, id: &str, index: u32, down: bool) -> Result<(), ActError> {
+        let keys = self
+            .device(id)
+            .map(|d| d.cols * d.rows)
+            .ok_or(ActError::NoDevice)?;
+        if index >= keys {
+            return Err(ActError::Invalid(format!(
+                "\"index\" must be a key on the device's grid, 0 to {}",
+                keys - 1
+            )));
+        }
         let session = self.ready_session(id)?;
+        let cmd = Cmd::Press { index, down };
+        if down {
+            return session.try_send(cmd).map_err(|_| ActError::NotReady);
+        }
         session
-            .try_send(Cmd::Press { index, down })
+            .send_timeout(cmd, RELEASE_WAIT)
+            .await
             .map_err(|_| ActError::NotReady)
     }
 
@@ -580,6 +646,7 @@ impl StreamDeck {
 
     /// A device's name: stored (our id stays), and the app's device replaced by one with the new name.
     pub fn rename(&self, id: &str, name: String) -> std::io::Result<Result<(), ActError>> {
+        let mut old_app_id = String::new();
         let renamed = self.store.update_streamdeck(|s| {
             if s.devices.iter().any(|d| d.name == name && d.id != id) {
                 return Err(ActError::Invalid(
@@ -591,12 +658,12 @@ impl StreamDeck {
                 return Ok(false);
             }
             device.name = name.clone();
-            device.app_id = String::new();
+            old_app_id = std::mem::take(&mut device.app_id);
             Ok(true)
         })?;
         match renamed {
             Ok(true) => {
-                self.tell(id, Cmd::Rename);
+                self.tell(id, Cmd::Rename { old_app_id });
                 Ok(Ok(()))
             }
             Ok(false) => Ok(Ok(())),
@@ -604,20 +671,28 @@ impl StreamDeck {
         }
     }
 
-    /// Deletes the app's device (when its session has it open) and drops it from the registry.
-    pub async fn forget(&self, id: &str) -> std::io::Result<Result<(), ActError>> {
-        if self.device(id).is_none() {
+    /// Deletes the app's device (its session opens it to do so when it isn't open) and drops ours from the registry,
+    /// saying what became of the app's device.
+    pub async fn forget(&self, id: &str) -> std::io::Result<Result<Forgot, ActError>> {
+        let Some(device) = self.device(id) else {
             return Ok(Err(ActError::NoDevice));
-        }
+        };
         let session = locked(&self.inner).sessions.get(id).map(|s| s.cmds.clone());
+        let mut forgot = if device.app_id.is_empty() {
+            Forgot::Nothing
+        } else {
+            Forgot::Kept
+        };
         if let Some(session) = session {
             let (ack, done) = oneshot::channel();
             if session.send(Cmd::Forget(ack)).await.is_ok() {
-                let _ = tokio::time::timeout(FORGET_WAIT, done).await;
+                if let Ok(Ok(answer)) = tokio::time::timeout(FORGET_WAIT, done).await {
+                    forgot = answer;
+                }
             }
         }
         self.store
             .update_streamdeck(|s| s.devices.retain(|d| d.id != id))?;
-        Ok(Ok(()))
+        Ok(Ok(forgot))
     }
 }

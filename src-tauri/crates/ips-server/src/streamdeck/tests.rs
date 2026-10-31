@@ -17,7 +17,8 @@ use super::crypto::{self, Channel};
 use super::proto::{
     self, client_message::Payload as C, server_message::Payload as S, ClientMessage, ServerMessage,
 };
-use super::{routes, ActError, Endpoint, PageTo, StreamDeck};
+use super::session::Cmd;
+use super::{routes, ActError, Endpoint, Forgot, PageTo, StreamDeck};
 use crate::integrations::IntegrationsStore;
 
 const WAIT: Duration = Duration::from_secs(5);
@@ -357,7 +358,7 @@ async fn pairs_creates_the_device_and_follows_its_keys() {
     until(&d.deck, |s| s["devices"][0]["keys"] == json!([{ "index": 0, "title": "", "icon": version }, { "index": 1, "title": "Cam", "icon": null }])).await;
 
     // Presses and pages.
-    d.deck.press("d1", 1, true).unwrap();
+    d.deck.press("d1", 1, true).await.unwrap();
     assert_eq!(
         c.expect().await,
         C::KeyPress(proto::KeyPress {
@@ -365,7 +366,7 @@ async fn pairs_creates_the_device_and_follows_its_keys() {
             pressed: true
         })
     );
-    d.deck.press("d1", 1, false).unwrap();
+    d.deck.press("d1", 1, false).await.unwrap();
     assert_eq!(
         c.expect().await,
         C::KeyPress(proto::KeyPress {
@@ -384,7 +385,7 @@ async fn pairs_creates_the_device_and_follows_its_keys() {
         d.deck.page("d1", to).unwrap();
         assert_eq!(c.expect().await, want);
     }
-    assert_eq!(d.deck.press("nope", 0, true), Err(ActError::NoDevice));
+    assert_eq!(d.deck.press("nope", 0, true).await, Err(ActError::NoDevice));
 
     // Turning the connection off ends the session and the state.
     d.store
@@ -394,7 +395,7 @@ async fn pairs_creates_the_device_and_follows_its_keys() {
     assert_eq!(c.next().await, None, "the connection is closed");
     let state = until(&d.deck, status_is("off")).await;
     assert_eq!(state["devices"][0]["keys"], json!([]));
-    assert_eq!(d.deck.press("d1", 1, true), Err(ActError::Off));
+    assert_eq!(d.deck.press("d1", 1, true).await, Err(ActError::Off));
     assert_eq!(d.deck.pair(), Err(ActError::Off));
     assert!(d.deck.icon("d1", 0).is_none());
 }
@@ -465,7 +466,7 @@ async fn changes_the_grid_renames_reconnects_and_forgets() {
 
     // Forget deletes the app's device and drops ours.
     let (forgot, sent) = tokio::join!(d.deck.forget("d1"), c.expect());
-    forgot.unwrap().unwrap();
+    assert_eq!(forgot.unwrap().unwrap(), Forgot::Deleted);
     assert_eq!(sent, C::DeleteVirtualDevice(proto::DeleteVirtualDevice {}));
     assert_eq!(d.deck.json()["devices"], json!([]));
     assert!(d.store.get().streaming.streamdeck.devices.is_empty());
@@ -548,7 +549,7 @@ async fn asks_to_pair_again_only_when_pair_is_pressed_after_a_refusal() {
         c.expect().await,
         C::Authenticate(proto::Authenticate { request_id: 0 })
     );
-    assert!(d.deck.press("d1", 0, true) == Err(ActError::NotReady));
+    assert!(d.deck.press("d1", 0, true).await == Err(ActError::NotReady));
 }
 
 #[tokio::test]
@@ -560,7 +561,10 @@ async fn reports_the_app_absent_when_nothing_listens() {
     until(&d.deck, status_is("absent")).await;
     let offline = deck_with(Endpoint::Offline, one_device(""));
     until(&offline.deck, status_is("absent")).await;
-    assert_eq!(offline.deck.press("d1", 0, true), Err(ActError::NotReady));
+    assert_eq!(
+        offline.deck.press("d1", 0, true).await,
+        Err(ActError::NotReady)
+    );
 }
 
 #[tokio::test]
@@ -636,4 +640,253 @@ async fn applies_a_grid_changed_while_the_device_was_being_created() {
     c.send(opened(create.request_id, "app-1", "IPStudio"));
     assert_eq!(update_layout(c.expect().await), (4, 4));
     until(&d.deck, status_is("ready")).await;
+}
+
+const AUTH: C = C::Authenticate(proto::Authenticate { request_id: 0 });
+
+fn set_enabled(d: &Deck, on: bool) {
+    d.store
+        .apply(&json!({ "streaming": { "streamdeck": { "enabled": on } } }))
+        .unwrap()
+        .unwrap();
+}
+
+#[tokio::test]
+async fn a_session_stopped_while_asking_to_pair_gives_the_ask_back() {
+    let mut app = fake_app(true).await;
+    let d = deck_with(Endpoint::Fixed(app.port), one_device(""));
+    let mut c = app.conn().await;
+    assert_eq!(c.expect().await, AUTH);
+    // Turned off while the app's dialog is up: the task is aborted mid-wait, without an answer.
+    set_enabled(&d, false);
+    assert_eq!(c.next().await, None);
+    set_enabled(&d, true);
+    let mut c = app.conn().await;
+    assert_eq!(c.expect().await, AUTH, "the next session may ask again");
+}
+
+#[tokio::test]
+async fn asks_from_one_session_at_a_time_and_needs_pair_once_the_trust_is_gone() {
+    let mut app = fake_app(true).await;
+    let two = json!({ "enabled": true, "devices": [{ "id": "d1", "name": "A" }, { "id": "d2", "name": "B" }] });
+    let d = deck_with(Endpoint::Fixed(app.port), two);
+    let (mut a, mut b) = (app.conn().await, app.conn().await);
+    let asks = (
+        a.within(Duration::from_millis(400)).await,
+        b.within(Duration::from_millis(400)).await,
+    );
+    let (asker, other) = match asks {
+        (Some(AUTH), None) => (&mut a, &mut b),
+        (None, Some(AUTH)) => (&mut b, &mut a),
+        other => panic!("expected one ask, got {other:?}"),
+    };
+    // Once the app trusts us, the other session asks in turn.
+    asker.send(S::Ok(proto::Ok { request_id: 0 }));
+    assert_eq!(asker.expect().await, CAPS);
+    assert_eq!(other.expect().await, AUTH);
+    other.send(S::Ok(proto::Ok { request_id: 0 }));
+    assert_eq!(other.expect().await, CAPS);
+    // A later hello that asks for authentication again means the trust was taken back: nothing asks until Pair.
+    drop(a);
+    let mut again = app.conn().await;
+    assert_eq!(again.within(Duration::from_millis(300)).await, None);
+    d.deck.pair().unwrap();
+    assert_eq!(again.expect().await, AUTH);
+    drop(b);
+}
+
+#[tokio::test]
+async fn presses_only_keys_on_the_grid_and_never_loses_a_release_to_a_full_queue() {
+    let d = deck_with(Endpoint::Offline, one_device(""));
+    until(&d.deck, status_is("absent")).await;
+    // A 5 x 3 grid has keys 0 to 14.
+    assert!(matches!(
+        d.deck.press("d1", 15, true).await,
+        Err(ActError::Invalid(_))
+    ));
+    // A session whose queue holds one command and is not being read.
+    let (cmds, mut rx) = mpsc::channel(1);
+    {
+        let mut inner = super::locked(&d.deck.inner);
+        let stop = watch::channel(false).0;
+        inner
+            .sessions
+            .insert("d1".into(), super::Session { cmds, stop });
+        inner.states.entry("d1".into()).or_default().status = super::Status::Ready;
+    }
+    d.deck.press("d1", 2, true).await.unwrap();
+    assert_eq!(
+        d.deck.press("d1", 3, true).await,
+        Err(ActError::NotReady),
+        "a press is refused while the queue is full"
+    );
+    let deck = Arc::clone(&d.deck);
+    let release = tokio::spawn(async move { deck.press("d1", 2, false).await });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    assert!(matches!(
+        rx.recv().await,
+        Some(Cmd::Press {
+            index: 2,
+            down: true
+        })
+    ));
+    release.await.unwrap().unwrap();
+    assert!(matches!(
+        rx.recv().await,
+        Some(Cmd::Press {
+            index: 2,
+            down: false
+        })
+    ));
+}
+
+#[tokio::test]
+async fn drops_the_old_pages_icons_when_the_page_changes() {
+    let mut app = fake_app(false).await;
+    let d = deck_with(Endpoint::Fixed(app.port), one_device(""));
+    let mut c = app.conn().await;
+    assert_eq!(c.expect().await, CAPS);
+    open_new(&mut c, &d, "app-1").await;
+    let context = |page: u32, title: &str| {
+        S::Context(proto::Context {
+            profile_id: "p".into(),
+            total_pages: 2,
+            current_page: page,
+            actions: vec![proto::Action {
+                index: 0,
+                title: title.into(),
+                ..Default::default()
+            }],
+        })
+    };
+    c.send(context(0, "One"));
+    let image = proto::Image {
+        format: proto::ImageFormat::Png as i32,
+        r#type: 0,
+        size: None,
+        row_bytes: 0,
+        image: vec![1, 2, 3],
+    };
+    c.send(S::Icon(proto::Icon {
+        index: 0,
+        image: Some(image),
+    }));
+    until(&d.deck, |s| s["devices"][0]["keys"][0]["icon"].is_string()).await;
+    // The same page again keeps the icon; another page drops it until its own icons come.
+    c.send(context(0, "One again"));
+    until(&d.deck, |s| {
+        s["devices"][0]["keys"][0]["title"] == "One again"
+            && s["devices"][0]["keys"][0]["icon"].is_string()
+    })
+    .await;
+    c.send(context(1, "Two"));
+    until(&d.deck, |s| {
+        s["devices"][0]["keys"] == json!([{ "index": 0, "title": "Two", "icon": null }])
+    })
+    .await;
+    assert!(d.deck.icon("d1", 0).is_none());
+}
+
+#[tokio::test]
+async fn a_rename_adopts_a_device_the_app_has_with_the_new_name() {
+    let mut app = fake_app(false).await;
+    let d = deck_with(Endpoint::Fixed(app.port), one_device(""));
+    let mut c = app.conn().await;
+    assert_eq!(c.expect().await, CAPS);
+    open_new(&mut c, &d, "app-1").await;
+    c.send(device_list(&[
+        ("app-1", "IPStudio"),
+        ("users-desk", "Desk"),
+    ]));
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    d.deck.rename("d1", "Desk".into()).unwrap().unwrap();
+    assert_eq!(
+        c.expect().await,
+        C::DeleteVirtualDevice(proto::DeleteVirtualDevice {})
+    );
+    let C::OpenVirtualDevice(open) = c.expect().await else {
+        panic!("expected an open")
+    };
+    assert_eq!(open.device_id, "users-desk");
+    c.send(opened(open.request_id, "users-desk", "Desk"));
+    assert_eq!(update_layout(c.expect().await), (5, 3));
+    until(&d.deck, status_is("ready")).await;
+    assert_eq!(app_id(&d), "users-desk");
+}
+
+#[tokio::test]
+async fn a_rename_while_disconnected_deletes_the_old_device_on_the_next_connection() {
+    let mut app = fake_app(false).await;
+    let d = deck_with(Endpoint::Fixed(app.port), one_device(""));
+    let mut c = app.conn().await;
+    assert_eq!(c.expect().await, CAPS);
+    open_new(&mut c, &d, "app-1").await;
+    drop(c);
+    until(&d.deck, status_is("error")).await;
+    d.deck.rename("d1", "Desk".into()).unwrap().unwrap();
+    let mut c = app.conn().await;
+    assert_eq!(c.expect().await, CAPS);
+    c.send(device_list(&[("app-1", "IPStudio")]));
+    let C::OpenVirtualDevice(open) = c.expect().await else {
+        panic!("expected the old device to be opened")
+    };
+    assert_eq!(open.device_id, "app-1");
+    c.send(opened(open.request_id, "app-1", "IPStudio"));
+    assert_eq!(
+        c.expect().await,
+        C::DeleteVirtualDevice(proto::DeleteVirtualDevice {})
+    );
+    let C::CreateVirtualDevice(create) = c.expect().await else {
+        panic!("expected a create")
+    };
+    assert_eq!(create.name, "Desk");
+}
+
+#[tokio::test]
+async fn forgets_a_device_that_is_still_being_opened_and_says_when_it_could_not() {
+    let mut app = fake_app(false).await;
+    let d = deck_with(Endpoint::Fixed(app.port), one_device("app-9"));
+    let mut c = app.conn().await;
+    assert_eq!(c.expect().await, CAPS);
+    c.send(device_list(&[("app-9", "IPStudio")]));
+    let C::OpenVirtualDevice(open) = c.expect().await else {
+        panic!("expected an open")
+    };
+    let deck = Arc::clone(&d.deck);
+    let forget = tokio::spawn(async move { deck.forget("d1").await });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    c.send(opened(open.request_id, "app-9", "IPStudio"));
+    assert_eq!(
+        c.expect().await,
+        C::DeleteVirtualDevice(proto::DeleteVirtualDevice {})
+    );
+    assert_eq!(forget.await.unwrap().unwrap(), Ok(Forgot::Deleted));
+    // With no app to reach, the app's device stays and the answer says so.
+    let offline = deck_with(Endpoint::Offline, one_device("app-9"));
+    until(&offline.deck, status_is("absent")).await;
+    assert_eq!(offline.deck.forget("d1").await.unwrap(), Ok(Forgot::Kept));
+    assert!(offline.store.get().streaming.streamdeck.devices.is_empty());
+}
+
+#[tokio::test]
+async fn an_open_the_app_never_answers_is_a_failed_attempt() {
+    let mut app = fake_app(false).await;
+    let d = deck_with(Endpoint::Fixed(app.port), one_device(""));
+    let mut c = app.conn().await;
+    assert_eq!(c.expect().await, CAPS);
+    c.send(device_list(&[]));
+    let C::CreateVirtualDevice(_) = c.expect().await else {
+        panic!("expected a create")
+    };
+    let state = until(&d.deck, status_is("error")).await;
+    assert!(
+        state["devices"][0]["error"]
+            .as_str()
+            .unwrap()
+            .contains("didn't answer"),
+        "{state}"
+    );
+    assert_eq!(c.next().await, None, "the connection is closed");
+    let mut c = app.conn().await;
+    assert_eq!(c.expect().await, CAPS, "and tried again");
 }

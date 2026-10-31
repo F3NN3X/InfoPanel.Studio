@@ -35,8 +35,8 @@ impl IconData {
 
 /// BGRA to RGBA in place, leaving fully zero pixels alone.
 pub fn bgra_to_rgba(pixels: &mut [u8]) {
-    for px in pixels.chunks_exact_mut(4) {
-        if px != [0, 0, 0, 0] {
+    for px in pixels.as_chunks_mut::<4>().0 {
+        if *px != [0, 0, 0, 0] {
             px.swap(0, 2);
         }
     }
