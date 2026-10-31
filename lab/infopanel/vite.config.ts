@@ -19,7 +19,8 @@ export default defineConfig(({ command }) => ({
   base: command === "build" ? "./" : "/",
   plugins: [react(), tailwindcss(), infopanelData(), gaugeLibrary(path.join(__dirname, "gauges")), fontProxy(path.join(__dirname, "fonts")), assetStore(path.join(__dirname, "asset-store"))],
   resolve: { alias: { "@": path.resolve(__dirname, "../../src") } },
-  build: { outDir: path.resolve(__dirname, "../../dist/lab"), emptyOutDir: true },
+  // The lab bundles the studio's InfoPanel code in one entry (~570 kB); 700 kB still flags real growth.
+  build: { outDir: path.resolve(__dirname, "../../dist/lab"), emptyOutDir: true, chunkSizeWarningLimit: 700 },
   server: { port: 5174, strictPort: true },
   test: { include: ["src/**/*.test.{ts,tsx}"] },
 }));

@@ -479,7 +479,8 @@
         "src/lib/fonts.ts",
         "src/modules/**",
         "src/index.css",
-        "src/select.css"
+        "src/select.css",
+        "src/select-scrollbar.css"
       ],
       "tests": [
         "tests/lib/theme*.test.ts",

@@ -40,6 +40,9 @@ export default defineConfig(({ mode }) => ({
     ...(mode === "fixtures" ? { outDir: ".cache/dist-fixtures", emptyOutDir: true } : {}),
     // dist/.vite/manifest.json, read by tools/perf/bundle-report.mjs (the server never serves dot folders).
     manifest: true,
+    // Vite's generic 500 kB note fires on sensor-store and studio-view; the real size gate is the gzip budgets in
+    // tools/perf/budgets.json, so this only catches a chunk that grows well past today's.
+    chunkSizeWarningLimit: 700,
     // The studio, and the Help page its rail opens in a browser tab (served as /help.html).
     rollupOptions: { input: [path.resolve(__dirname, "index.html"), path.resolve(__dirname, "help.html")] },
   },
