@@ -10,7 +10,8 @@ import { gaugeDataOf, type GaugeLibraryData, type LibraryFrame } from "@/lib/gau
 import { getLibraryItem, type LibraryItem } from "@/lib/library";
 import type { AssetType } from "@/lib/infopanel/assets/assets";
 import type { DashboardConfig } from "@/lib/layout";
-import type { DroppedFile } from "@/lib/infopanel/canvas-edit";
+import { editItems, withDroppedGauge, withDroppedImage, type DroppedFile } from "@/lib/infopanel/canvas-edit";
+import { componentCanvas, withComponent } from "@/lib/infopanel/component";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { UserPanelPreset } from "@/lib/panel-model";
 import { isComponent, rolesOf } from "@/lib/my-library/component-meta";
@@ -106,7 +107,7 @@ async function dropIntoCanvas(b: StudioBridge, item: LibraryItem, zoneId: string
   const file = droppedFileOf(item);
   if (!file) return b.toast(`${item.name} can’t be drawn by InfoPanel`);
   // The canvas code loads with the zone, not with the studio.
-  const [{ openCanvas }, { editItems, withDroppedImage }] = await Promise.all([import("@/lib/infopanel/canvas"), import("@/lib/infopanel/canvas-edit")]);
+  const { openCanvas } = await import("@/lib/infopanel/canvas");
   const open = openCanvas(canvas);
   const point = { x: at.fx * open.profile.Width, y: at.fy * open.profile.Height };
   const r = withDroppedImage(open.stored, open.profile, editItems(open), file, point);
@@ -149,7 +150,7 @@ function canvasIn(config: DashboardConfig, zoneId: string): StoredCanvas | undef
 async function dropGaugeIntoCanvas(b: StudioBridge, item: LibraryItem, zoneId: string, at: CanvasPoint): Promise<void> {
   const data = await gaugeOf(b, item);
   if (!data) return;
-  const [{ openCanvas }, { editItems, withDroppedGauge }] = await Promise.all([import("@/lib/infopanel/canvas"), import("@/lib/infopanel/canvas-edit")]);
+  const { openCanvas } = await import("@/lib/infopanel/canvas");
   let frames = data.frames?.map(frameFile);
   let baked: string | undefined;
   // A spec with no frames draws nothing in InfoPanel: bake it now, and drop nothing if that fails.
@@ -195,7 +196,7 @@ async function componentOf(b: StudioBridge, item: LibraryItem): Promise<StoredCa
 export async function addComponentZone(b: StudioBridge, item: LibraryItem, rect?: ZoneRect | null): Promise<void> {
   const stored = await componentOf(b, item);
   if (!stored) return;
-  const [{ componentCanvas, withComponent }, { openCanvas }] = await Promise.all([import("@/lib/infopanel/component"), import("@/lib/infopanel/canvas")]);
+  const { openCanvas } = await import("@/lib/infopanel/canvas");
   const own = componentCanvas(stored, item.name);
   // The roles bind the zone's own copy: merge it into an empty canvas of its size, which keeps the sensors it finds.
   const open = openCanvas(own);
@@ -214,7 +215,7 @@ export async function addComponentZone(b: StudioBridge, item: LibraryItem, rect?
 async function dropComponentIntoCanvas(b: StudioBridge, item: LibraryItem, zoneId: string, at: CanvasPoint): Promise<void> {
   const data = await componentOf(b, item);
   if (!data) return;
-  const [{ openCanvas }, { editItems }, { withComponent }] = await Promise.all([import("@/lib/infopanel/canvas"), import("@/lib/infopanel/canvas-edit"), import("@/lib/infopanel/component")]);
+  const { openCanvas } = await import("@/lib/infopanel/canvas");
   let placed: { path: string; name: string; open: number } | undefined;
   b.setConfig((c) => {
     const current = canvasIn(c, zoneId);

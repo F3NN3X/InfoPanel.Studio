@@ -1,0 +1,19 @@
+/* A long list (fonts) in the customizable select scrolls with the studio's thin thumb, not the classic bar with
+   arrows. Imported from JS (main.tsx, settings/main.tsx), not from select.css: Tailwind's optimizer (Lightning CSS)
+   can't parse a pseudo-element after ::picker(select) and drops these rules from the build. */
+::picker(select)::-webkit-scrollbar {
+  width: 6px;
+}
+
+::picker(select)::-webkit-scrollbar-button {
+  display: none;
+}
+
+::picker(select)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::picker(select)::-webkit-scrollbar-thumb {
+  background: #2e2e35;
+  border-radius: 3px;
+}
