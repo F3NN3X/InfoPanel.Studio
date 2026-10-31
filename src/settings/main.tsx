@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./settings.css";
+import "../select-scrollbar.css";
 import { suppressNativeMenu } from "@/lib/native-menu";
 import { SettingsApp } from "./app";
 

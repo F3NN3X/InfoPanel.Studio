@@ -7,13 +7,14 @@
  * selection to the Library, whatever it holds.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Shapes, type LucideIcon } from "lucide-react";
-import { ITEM_ID, uid, type MonitorProfile, type Placement, type ProfilePage } from "@/lib/layout";
+import { uid, type MonitorProfile, type Placement, type ProfilePage } from "@/lib/layout";
 import { applyOps, cellsOverlap, findNode, partsOf, type LayerNode, type PageModel, type PageOp } from "@/lib/page-model/model";
 import { partKeyOps } from "@/lib/page-model/keys";
 import { dropBlocked, dropOps, groupMoveOps, layerActionOps, layerActionsFor, type LayerAction } from "@/lib/page-model/layer-actions";
 import { readPlacements } from "@/lib/page-model/placements-adapter";
 import type { ElementType } from "@/lib/infopanel/elements/spec";
+import { kindIcon } from "@/components/infopanel/edit/item-icons";
+import { ELEMENT_ICONS } from "@/components/infopanel/edit/element-icons";
 import type { DisplayItem } from "@/lib/infopanel/schema";
 import type { LayersHost, SelectHow, TreeNode } from "./layers-tree";
 import type { ItemSelection } from "./use-item-selection";
@@ -50,14 +51,6 @@ function widgetsOverlap(model: PageModel): boolean {
   return cells.some((a, i) => cells.some((b, j) => i < j && cellsOverlap(a, b)));
 }
 
-/** The item kinds' and elements' icons, loaded when a page has items (most screen pages have none). */
-interface ItemIcons {
-  kindIcon: (kind: DisplayItem["kind"]) => LucideIcon;
-  elementIcons: Record<ElementType, LucideIcon>;
-}
-const loadIcons = (): Promise<ItemIcons> =>
-  Promise.all([import("@/components/infopanel/edit/item-icons"), import("@/components/infopanel/edit/element-icons")]).then(([a, b]) => ({ kindIcon: a.kindIcon, elementIcons: b.ELEMENT_ICONS }));
-
 const treeOf = (nodes: readonly LayerNode[]): TreeNode[] =>
   nodes.map((n) =>
     n.type === "group"
@@ -74,11 +67,6 @@ export function usePageLayers({ profile, page, zones, items, focusZone, applyPag
   const [renameRequest, setRenameRequest] = useState(0);
   /** The node picked last: the primary, the start of a Shift range. */
   const [last, setLast] = useState<string | null>(null);
-  const [icons, setIcons] = useState<ItemIcons | null>(null);
-  const hasItems = page.placements.some((p) => p.module === ITEM_ID);
-  useEffect(() => {
-    if (hasItems && !icons) void loadIcons().then(setIcons);
-  }, [hasItems, icons]);
   useEffect(() => {
     setGroupSel([]);
     setClosed(new Set());
@@ -166,9 +154,8 @@ export function usePageLayers({ profile, page, zones, items, focusZone, applyPag
     const p: Placement | undefined = byId.get(node.id);
     if (node.kind === "widget") return moduleIcon(p?.module ?? "");
     // An item placement holds the stored item: a studio element's spec is its `$.element`.
-    if (!icons) return Shapes;
     const element = (p?.item?.$ as { element?: { type?: ElementType } } | undefined)?.element?.type;
-    return element && icons.elementIcons[element] ? icons.elementIcons[element] : icons.kindIcon((p?.item?.kind ?? "Shape") as DisplayItem["kind"]);
+    return element && ELEMENT_ICONS[element] ? ELEMENT_ICONS[element] : kindIcon((p?.item?.kind ?? "Shape") as DisplayItem["kind"]);
   };
 
   const host: LayersHost = {

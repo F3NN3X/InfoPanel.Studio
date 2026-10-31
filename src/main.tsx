@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import "./select-scrollbar.css";
 import { startDesktopDebug } from "./lib/desktop-debug";
 import { isTauri } from "./lib/desktop";
 import { suppressNativeMenu } from "./lib/native-menu";
