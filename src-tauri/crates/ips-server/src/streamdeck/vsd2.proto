@@ -1,0 +1,256 @@
+// Reconstructed from the FileDescriptorProto embedded in StreamDeck.exe
+// (messages.proto, package vsd2, proto3). Field numbers verified against
+// the parsed descriptor (research/out/vs2_schema.txt).
+syntax = "proto3";
+package vsd2;
+
+enum ImageFormat {
+  LZF = 0;
+  LZFSE = 1;
+  LZ4 = 2;
+  BMP = 3;
+  JPG = 4;
+  PNG = 5;
+  Invalid = 100;
+}
+
+enum ImageType {
+  Opaque = 0;
+  Transparent = 1;
+}
+
+message Size {
+  uint32 width = 1;
+  uint32 height = 2;
+}
+
+message UIntRange {
+  uint32 min = 1;
+  uint32 max = 2;
+}
+
+message Image {
+  ImageFormat format = 1;
+  ImageType type = 2;
+  Size size = 3;
+  uint32 rowBytes = 4;
+  bytes image = 5;
+}
+
+message ClientInformation {
+  string name = 1;
+  string userAgent = 2;
+  uint32 protocolVersion = 3;
+  string deviceModel = 4;
+  string osName = 5;
+  string osVersion = 6;
+}
+
+message HelloFromClient {
+  bytes publicKey = 1;
+  ClientInformation clientInformation = 2;
+}
+
+message Authenticate {
+  uint32 requestID = 1;
+}
+
+message CancelAuthenticate {
+  uint32 requestID = 1;
+}
+
+message KeypadConfig {
+  repeated ImageFormat supportedIconImageFormats = 1;
+  Size iconSize = 2;
+  Size pressedIconSize = 3;
+  bool highDPI = 4;
+  bool overscale = 5;
+  Size layoutCrop = 6;
+  bool enableContextAPI = 7;
+}
+
+message UpdateKeypadConfig {
+  Size iconSize = 1;
+  Size pressedIconSize = 2;
+  bool highDPI = 3;
+  Size layoutCrop = 4;
+}
+
+message Error {
+  uint32 requestID = 1;
+  Code code = 2;
+  string reason = 3;
+
+  enum Code {
+    DeviceNotFound = 0;
+    DeviceNameAlreadyTaken = 1;
+    ResourceLimitReached = 2;
+    AuthenticationRejected = 3;
+    Cancelled = 4;
+    InvalidState = 5;
+  }
+}
+
+message Ok {
+  uint32 requestID = 1;
+}
+
+message VirtualDevice {
+  string id = 1;
+  string name = 2;
+}
+
+message CreateVirtualDevice {
+  uint32 requestID = 1;
+  string name = 2;
+  KeypadConfig keypadConfig = 3;
+  bool skipUniquenessOfNameValidation = 4;
+}
+
+message OpenVirtualDevice {
+  uint32 requestID = 1;
+  string deviceID = 2;
+  KeypadConfig keypadConfig = 3;
+}
+
+message DeleteVirtualDevice {
+}
+
+message VirtualDeviceOpened {
+  uint32 requestID = 1;
+  VirtualDevice device = 2;
+}
+
+message VirtualDeviceList {
+  repeated VirtualDevice devices = 1;
+}
+
+message ServiceEndpoints {
+  repeated string addresses = 1;
+  uint32 port = 2;
+}
+
+message ClientCapabilities {
+  bool isUserPro = 1;
+}
+
+message HelloFromServer {
+  string workstationID = 1;
+  string hostname = 2;
+  string version = 3;
+  uint32 protocolVersion = 4;
+  bytes publicKey = 5;
+  bool clientNeedsAuthentication = 6;
+  string osName = 7;
+  string osVersion = 8;
+  ServiceEndpoints endpoints = 9;
+}
+
+message Icon {
+  uint32 index = 1;
+  Image image = 2;
+}
+
+message KeyPress {
+  uint32 index = 1;
+  bool pressed = 2;
+}
+
+message NextPage {
+}
+
+message PreviousPage {
+}
+
+message PageByIndex {
+  uint32 index = 1;
+}
+
+message Action {
+  uint32 index = 1;
+  string title = 2;
+  string name = 3;
+  string category = 4;
+  string shortcutID = 5;
+}
+
+message Context {
+  string profileID = 1;
+  uint32 totalPages = 2;
+  uint32 currentPage = 3;
+  repeated Action actions = 4;
+}
+
+message ContextUpdate {
+  string profileID = 1;
+  repeated Action replace = 2;
+  repeated uint32 remove = 3;
+}
+
+message Shortcut {
+  string id = 1;
+  string title = 2;
+  string name = 3;
+  string category = 4;
+  Image icon = 5;
+}
+
+message Shortcuts {
+  repeated Shortcut shortcuts = 1;
+}
+
+message ShortcutsUpdate {
+  repeated Shortcut replace = 1;
+  repeated string remove = 2;
+}
+
+message AssignShortcut {
+  string profileID = 1;
+  string shortcutID = 2;
+  uint32 index = 3;
+}
+
+message RemoveShortcut {
+  uint32 requestID = 1;
+  string shortcutID = 2;
+}
+
+message TriggerShortcut {
+  string deviceID = 1;
+  string shortcutID = 2;
+}
+
+message ServerMessage {
+  oneof payload {
+    Error error = 1;
+    Ok ok = 2;
+    HelloFromServer hello = 10;
+    VirtualDeviceList virtualDeviceList = 20;
+    VirtualDeviceOpened virtualDeviceOpened = 21;
+    Context context = 30;
+    ContextUpdate contextUpdate = 31;
+    Shortcuts shortcuts = 32;
+    ShortcutsUpdate shortcutsUpdate = 33;
+    Icon icon = 40;
+  }
+}
+
+message ClientMessage {
+  oneof payload {
+    HelloFromClient hello = 1;
+    Authenticate authenticate = 2;
+    CancelAuthenticate cancelAuthenticate = 3;
+    CreateVirtualDevice createVirtualDevice = 10;
+    OpenVirtualDevice openVirtualDevice = 11;
+    DeleteVirtualDevice deleteVirtualDevice = 12;
+    KeyPress keyPress = 20;
+    NextPage nextPage = 21;
+    PreviousPage previousPage = 22;
+    PageByIndex pageByIndex = 23;
+    UpdateKeypadConfig updateKeypadConfig = 30;
+    AssignShortcut assignShortcut = 31;
+    RemoveShortcut removeShortcut = 32;
+    TriggerShortcut triggerShortcut = 33;
+    ClientCapabilities clientCapabilities = 100;
+  }
+}

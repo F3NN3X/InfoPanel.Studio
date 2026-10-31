@@ -12,6 +12,15 @@ path = "src/main.rs"
 [dependencies]
 axum = { workspace = true, features = ["tokio", "http1"] }
 base64 = { workspace = true }
+# The Stream Deck connection (src/streamdeck): BLAKE2b for the pairing code, XSalsa20-Poly1305 boxes (pure Rust, so the
+# Linux build needs no libsodium), the OS RNG uuid already pulls in, LZ4 icons, PNG out (0.18, the version Tauri locks) and
+# the hand-written protobuf messages.
+blake2 = "0.10"
+crypto_box = { version = "0.9", default-features = false, features = ["alloc", "salsa20"] }
+getrandom = "0.4"
+lz4_flex = { version = "0.11", default-features = false, features = ["safe-decode", "std"] }
+png = "0.18"
+prost = { version = "0.14", default-features = false, features = ["derive", "std"] }
 chrono = { workspace = true, features = ["std", "clock"] }
 chrono-tz = "0.10"
 futures-util = { workspace = true }
@@ -36,7 +45,7 @@ windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_
 # Core Audio (the mixer's Windows backend). 0.61 is the version Tauri already puts in the lock; windows-core is
 # there because the `interface` macro names it.
 windows-core = "0.61"
-windows = { version = "0.61", features = ["Win32_Devices_FunctionDiscovery", "Win32_Foundation", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Threading", "Win32_System_Variant", "Win32_UI_Shell_PropertiesSystem"] }
+windows = { version = "0.61", features = ["Win32_Devices_FunctionDiscovery", "Win32_Foundation", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Registry", "Win32_System_Threading", "Win32_System_Variant", "Win32_UI_Shell_PropertiesSystem"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

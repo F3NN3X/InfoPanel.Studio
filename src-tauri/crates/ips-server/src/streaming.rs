@@ -3,14 +3,16 @@
 // in it is secret, so the studio reads it back whole. The Twitch section holds the chat channel and, secret, the sign-in's
 // tokens: the studio's view (`to_json`) leaves the tokens out, the file (`to_stored_json`) keeps them. The YouTube section
 // holds the user's own Google client (id and secret, never shown back: the view says only whether they are set), the chat
-// refresh and the sign-in's tokens, kept the same way. Absent from the file
-// (and from every output) until something is set.
+// refresh and the sign-in's tokens, kept the same way. The Stream Deck section (`streamdeck/settings.rs`) holds the
+// connection's switch, its secret key (kept the same way; the view shows the pairing code) and the virtual devices.
+// Absent from the file (and from every output) until something is set.
 
 use std::collections::BTreeMap;
 
 use serde_json::{json, Map, Value};
 
 use crate::integrations::text;
+use crate::streamdeck::settings::{self as streamdeck, StreamdeckSettings};
 
 /// Most scenes with a saved look.
 pub const MAX_SCENES: usize = 64;
@@ -95,6 +97,7 @@ pub struct Streaming {
     pub obs: ObsStreaming,
     pub twitch: TwitchSettings,
     pub youtube: YoutubeSettings,
+    pub streamdeck: StreamdeckSettings,
 }
 
 impl Streaming {
@@ -178,7 +181,12 @@ pub fn normalize(raw: Option<&Value>) -> Streaming {
     let Some(raw) = raw.and_then(Value::as_object) else {
         return Streaming::default();
     };
-    Streaming { obs: normalize_obs(raw.get("obs")), twitch: normalize_twitch(raw.get("twitch")), youtube: normalize_youtube(raw.get("youtube")) }
+    Streaming {
+        obs: normalize_obs(raw.get("obs")),
+        twitch: normalize_twitch(raw.get("twitch")),
+        youtube: normalize_youtube(raw.get("youtube")),
+        streamdeck: streamdeck::normalize(raw.get("streamdeck")),
+    }
 }
 
 fn obs_json(s: &Streaming) -> Value {
@@ -191,8 +199,8 @@ fn obs_json(s: &Streaming) -> Value {
     json!({ "mic": s.obs.mic, "scenes": scenes })
 }
 
-/// The section as the studio sees it, or `None` while nothing is set. The Twitch tokens and the YouTube client and tokens
-/// are not in it (only whether a client is set).
+/// The section as the studio sees it, or `None` while nothing is set. The Twitch tokens, the YouTube client and tokens and
+/// the Stream Deck key are not in it (only whether a client is set, and the pairing code).
 pub fn to_json(s: &Streaming) -> Option<Value> {
     if s.is_empty() {
         return None;
@@ -204,6 +212,9 @@ pub fn to_json(s: &Streaming) -> Option<Value> {
     if s.youtube != YoutubeSettings::default() {
         let y = &s.youtube;
         section["youtube"] = json!({ "clientConfigured": !y.client_id.is_empty() && !y.client_secret.is_empty(), "channel": y.auth.channel, "chatInterval": y.chat_interval });
+    }
+    if s.streamdeck != StreamdeckSettings::default() {
+        section["streamdeck"] = streamdeck::to_json(&s.streamdeck);
     }
     Some(section)
 }
@@ -226,6 +237,9 @@ pub fn to_stored_json(s: &Streaming) -> Option<Value> {
             "channel": y.auth.channel, "channel_id": y.auth.channel_id,
         });
     }
+    if s.streamdeck != StreamdeckSettings::default() {
+        section["streamdeck"] = streamdeck::to_stored_json(&s.streamdeck);
+    }
     Some(section)
 }
 
@@ -235,6 +249,7 @@ pub fn to_stored_json(s: &Streaming) -> Option<Value> {
 /// - `twitch.channel`: the chat to read; "" = the signed-in user's own, absent keeps it. The tokens are not settable here.
 /// - `youtube.client_id` / `client_secret`: the user's Google client, absent keeps it; changing either ends the sign-in (its
 ///   tokens belong to the old client). `youtube.chat_interval`: 5, 10 or 20 seconds. The tokens are not settable here.
+/// - `streamdeck.enabled`: the Stream Deck connection on or off. The key and the devices are not settable here.
 pub fn apply(s: &Streaming, patch: &Value) -> Result<Streaming, String> {
     let Some(patch) = patch.as_object() else {
         return Err("streaming: expected an object".into());
@@ -267,6 +282,9 @@ pub fn apply(s: &Streaming, patch: &Value) -> Result<Streaming, String> {
     }
     if let Some(youtube) = patch.get("youtube") {
         apply_youtube(&mut next.youtube, youtube)?;
+    }
+    if let Some(section) = patch.get("streamdeck") {
+        next.streamdeck = streamdeck::apply(&next.streamdeck, section)?;
     }
     Ok(next)
 }
