@@ -26,13 +26,17 @@ sha2 = { workspace = true }
 socket2 = { workspace = true }
 sysinfo = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "fs", "time", "sync", "signal", "io-util"] }
-tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect"] }
+tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect", "rustls-tls-native-roots"] }
 tower-http = { workspace = true, features = ["catch-panic"] }
 url = { workspace = true }
 uuid = { version = "1", default-features = false, features = ["v4"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading"] }
+# Core Audio (the mixer's Windows backend). 0.61 is the version Tauri already puts in the lock; windows-core is
+# there because the `interface` macro names it.
+windows-core = "0.61"
+windows = { version = "0.61", features = ["Win32_Devices_FunctionDiscovery", "Win32_Foundation", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Threading", "Win32_System_Variant", "Win32_UI_Shell_PropertiesSystem"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

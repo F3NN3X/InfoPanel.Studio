@@ -52,7 +52,7 @@ export const RADIAL_SETTINGS: ModuleSetting[] = [
   sensorSetting("sensor", "Sensor ring", { group: "Rings", tab: "data", hint: "Empty = no sensor ring" }),
   numberSetting("sensorMin", "Sensor empty at", 0, { group: "Rings", tab: "data", visibleIf: (v) => !!v.sensor }),
   numberSetting("sensorMax", "Sensor full at", 100, { group: "Rings", tab: "data", visibleIf: (v) => !!v.sensor }),
-  boolSetting("showEvent", "Next event ring", true, { group: "Rings", hint: "Fills as the next calendar event gets close; needs a calendar under Island › Calendar" }),
+  boolSetting("showEvent", "Next event ring", true, { group: "Rings", hint: "Fills as the next calendar event gets close; needs a calendar under Settings › Connections" }),
   numberSetting("horizon", "Event run-up (minutes)", 120, { min: 5, max: 1440, step: 5, group: "Rings", tab: "data", visibleIf: (v) => v.showEvent !== false }),
   boolSetting("showSeconds", "Seconds ring", false, { group: "Rings", hint: "Ticks every second instead of every minute" }),
   formatSetting("clock"),

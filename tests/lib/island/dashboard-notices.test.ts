@@ -57,7 +57,7 @@ describe("parseExtras", () => {
         error: "x: HTTP 404",
       },
     });
-    expect(s.obs).toEqual({ configured: true, connected: true, streaming: false, recording: true });
+    expect(s.obs).toEqual({ ...EMPTY_EXTRAS.obs, configured: true, connected: true, streaming: false, recording: true });
     expect(s.calendar).toEqual({ configured: true, events: [{ id: "a", title: "Event", start: 1, end: 2, allDay: false }], error: "x: HTTP 404" });
   });
 });

@@ -67,7 +67,7 @@ export function withSkinSurface(look: ModuleSettings, saved: ModuleSettings | un
  * Template ids whose data is not a sensor key (the browser clock, the Wave Link socket, a URL, the timer), so
  * they render with an empty sensor map; every other template renders nothing until a key shows up.
  */
-export const SENSORLESS: ReadonlySet<string> = new Set(["Clock", "Calendar", "WebPage", "WaveLink", "Timer", "CodingAgents", "DayPlanner", "RadialClockStack", "OnAirBeacon"]);
+export const SENSORLESS: ReadonlySet<string> = new Set(["Clock", "Calendar", "WebPage", "WaveLink", "Timer", "CodingAgents", "DayPlanner", "RadialClockStack", "OnAirBeacon", "StreamMixer", "AudioButton", "AudioFader", "StreamControl", "ObsButton", "StreamChat"]);
 
 /** Whether the map holds a key under any prefix (a module with no prefixes reads any key). */
 function hasKeys(sensors: SensorMap, prefixes: readonly string[]): boolean {

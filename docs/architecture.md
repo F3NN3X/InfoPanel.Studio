@@ -17,6 +17,38 @@ Sensor data never passes through the dashboard server. `ips-server` serves
 the build, stores the config and uploaded media, and proxies cover-art
 images; the page talks to the Data API directly.
 
+The one exception is audio control state. The Stream Mixer and the audio
+buttons read and write this PC's Windows audio (Core Audio) and Elgato Wave
+Link through the server, because the volume plugin is read-only and a browser
+can do neither. `ips-server`'s `audio` module reads both into one state
+(`GET /api/audio`, SSE `/events/audio`) and applies writes from
+`POST /api/audio/act`, which needs a JSON body, `X-Dashboard-Control: 1` and, from
+another machine, remote editing turned on. `src/lib/audio-control.ts` is the
+page's client. Off Windows the Windows side reports `available: false`.
+
+OBS control rides the same connection as the on-air dot. `ips-server`'s `obs` module keeps one obs-websocket
+session; `obs_control` reads the scenes, the mic, the replay buffer and the stream numbers from it into the extras'
+`obs` (SSE `/events/extras`, while connected), and `POST /api/obs/act` (same guards as the audio act) switches the
+scene, toggles the mic's mute or saves the replay. There is no start or stop stream action. The mic input and each
+scene's line and icon are the `streaming` section of `integrations.json` (`streaming.rs`), kept apart from `obs` so
+the old Node-server cases still hold. `src/lib/obs-control.ts` is the page's client.
+
+Twitch chat is the `twitch` module. A device-code sign-in (`POST /api/twitch/signin`, a public client, no secret) leaves
+tokens in `streaming.twitch` of `integrations.json` and nowhere else: not in the studio's view, the extras or the log.
+While signed in, the server keeps an IRC-over-WebSocket chat session and polls the channel's viewers; the extras'
+`twitch` carries the status, the last 60 messages go out on their own latest-wins stream (`/events/chat`, `GET
+/api/chat`) and `POST /api/chat/send` writes (same guards as the audio act; 20 sends in 30 s). `src/lib/chat.ts` and
+`src/lib/twitch.ts` are the page's clients.
+
+YouTube is the `youtube` module, signed in with the user's own Google "Desktop app" client (the quota is per Google
+project). `POST /api/youtube/signin` returns the Google address (OAuth with PKCE and a random state); Google sends the
+browser back to `GET /api/youtube/callback` on this server's own 127.0.0.1 port, which answers this machine only and only
+for the pending state, and trades the code for tokens. The client id and secret and the tokens live in `streaming.youtube`
+of `integrations.json` and nowhere else (the studio's view says only `clientConfigured`). One loop looks for the live
+broadcast every 60 s, then reads the viewers every 30 s and the chat every 5, 10 or 20 s (the user's choice) within the
+10,000 units a day, counted in memory and stopped until midnight Pacific when Google says the day is used up. The
+`chat_hub` merges Twitch's and YouTube's windows by time for `/events/chat`, `GET /api/chat` and `POST /api/chat/send`.
+
 ## 1. The InfoPanel Data API
 
 The base URL is the `dataApiUrl` setting of the config, default

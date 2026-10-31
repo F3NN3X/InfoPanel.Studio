@@ -64,7 +64,7 @@ export default function DayPlanner(p: DayPlannerProps) {
   const summary = { label: "Next", value: upcoming ? timeText(upcoming.start) : "–", sub: upcoming ? upcoming.title : calendar.configured ? "Nothing planned" : "No calendar", icon: "timeline", kind: "text" as const };
 
   const hints = studio
-    ? [!calendar.configured && "No calendar yet. Add an ICS link under Island › Calendar.", p.showWeather !== false && !weather.present && "No weather: add the Yr weather plugin."].filter((x): x is string => !!x)
+    ? [!calendar.configured && "No calendar yet. Add an ICS link under Settings › Connections.", p.showWeather !== false && !weather.present && "No weather: add the Yr weather plugin."].filter((x): x is string => !!x)
     : [];
   const temps = weather.band?.map((b) => b.temp) ?? [];
   const lo = Math.min(...temps);

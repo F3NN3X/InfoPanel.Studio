@@ -46,7 +46,7 @@ export interface AddItem {
 }
 
 /** The category chips' order; a category not listed goes before Generic. */
-export const CATEGORY_ORDER = ["System", "Hardware", "Storage", "Network", "Media", "Audio", "Info", "Gaming", "Generic"];
+export const CATEGORY_ORDER = ["System", "Hardware", "Storage", "Network", "Media", "Audio", "Streaming", "Info", "Gaming", "Generic"];
 
 const MY_PANELS = "My panels";
 const PANEL_PRESETS = "Panel presets";

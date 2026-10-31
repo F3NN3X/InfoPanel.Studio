@@ -6,6 +6,7 @@
 
 import { trackEventSource } from "@/lib/sensor-store";
 import { EMPTY_AGENTS, parseAgents, type Agents } from "./agents";
+import { obsRefusal } from "./obs-control";
 
 export interface ObsState {
   /** An OBS connection is set up (host and port saved). */
@@ -13,6 +14,32 @@ export interface ObsState {
   connected: boolean;
   streaming: boolean;
   recording: boolean;
+}
+
+/** One OBS scene: `id` is its uuid (its name on an OBS that sends none); `sub` and `icon` are the look saved for it. */
+export interface ObsScene {
+  id: string;
+  name: string;
+  sub: string;
+  icon: string;
+}
+
+/** What the connection knows besides the on-air flags; sent only while OBS is connected (`parseExtras` fills the rest). */
+export interface ObsLive {
+  /** As OBS's own panel shows them, top to bottom. */
+  scenes: ObsScene[];
+  /** The program scene's id. */
+  currentScene: string;
+  /** Seconds on air. */
+  uptime: number;
+  kbps: number;
+  fps: number;
+  /** The configured mic input; null when none is set. */
+  mic: { name: string; muted: boolean; level: number } | null;
+  /** null when OBS has no replay buffer. */
+  replay: { active: boolean } | null;
+  /** The audio inputs, for the settings' mic picker. */
+  inputs: string[];
 }
 
 export interface CalendarEvent {
@@ -34,15 +61,59 @@ export interface CalendarState {
   error?: string;
 }
 
+/** The Twitch status the server publishes; it never carries a token. */
+export interface TwitchState {
+  configured: boolean;
+  signedIn: boolean;
+  login: string;
+  /** The chat being read (the user's own unless another is chosen). */
+  channel: string;
+  /** A sign-in is waiting for its code to be approved. The code itself is not in the extras (every kiosk reads them): `GET /api/twitch/signin` gives it to this machine. */
+  pending: boolean;
+  error: string | null;
+  /** The chat connection is up. */
+  connected: boolean;
+  live: boolean;
+  viewers: number;
+}
+
+export const EMPTY_TWITCH: TwitchState = { configured: false, signedIn: false, login: "", channel: "", pending: false, error: null, connected: false, live: false, viewers: 0 };
+
+/** The YouTube status the server publishes; it never carries a token or the client secret. */
+export interface YoutubeState {
+  /** The user's Google client is entered. */
+  clientConfigured: boolean;
+  signedIn: boolean;
+  /** The signed-in channel's title. */
+  channel: string;
+  live: boolean;
+  viewers: number;
+  /** The live chat is being read. */
+  connected: boolean;
+  error: string | null;
+  /** A sign-in page is waiting for the user. Its address is not in the extras: `GET /api/youtube/signin` gives it to this machine. */
+  pending: boolean;
+  /** Units used today (counted from our own calls) and what the current polling costs an hour. */
+  quota: { used: number; estimatePerHour: number };
+}
+
+export const EMPTY_YOUTUBE: YoutubeState = { clientConfigured: false, signedIn: false, channel: "", live: false, viewers: 0, connected: false, error: null, pending: false, quota: { used: 0, estimatePerHour: 0 } };
+
 export interface Extras {
-  obs: ObsState;
+  obs: ObsState & ObsLive;
   calendar: CalendarState;
   /** The coding agents' sessions, plan use and token history (`src/lib/agents.ts`). */
   agents: Agents;
+  /** The Twitch sign-in, chat connection and viewers (ips-server's twitch module); absent from an older server. */
+  twitch?: TwitchState;
+  /** The YouTube sign-in, live state, viewers and quota (ips-server's youtube module); absent from an older server. */
+  youtube?: YoutubeState;
 }
 
+export const EMPTY_OBS_LIVE: ObsLive = { scenes: [], currentScene: "", uptime: 0, kbps: 0, fps: 0, mic: null, replay: null, inputs: [] };
+
 export const EMPTY_EXTRAS: Extras = {
-  obs: { configured: false, connected: false, streaming: false, recording: false },
+  obs: { configured: false, connected: false, streaming: false, recording: false, ...EMPTY_OBS_LIVE },
   calendar: { configured: false, events: [] },
   agents: EMPTY_AGENTS,
 };
@@ -50,6 +121,58 @@ export const EMPTY_EXTRAS: Extras = {
 export const EXTRAS_EVENTS_URL = "/events/extras";
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+const count = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : 0);
+const text = (v: unknown): string => (typeof v === "string" ? v : "");
+
+/** Tolerant read of the OBS fields the server adds while connected. */
+function parseObsLive(o: Record<string, unknown>): ObsLive {
+  const scenes = (Array.isArray(o.scenes) ? o.scenes : []).flatMap((s): ObsScene[] =>
+    isObject(s) && text(s.id) ? [{ id: text(s.id), name: text(s.name) || text(s.id), sub: text(s.sub), icon: text(s.icon) }] : []
+  );
+  const mic = isObject(o.mic) && text(o.mic.name) ? { name: text(o.mic.name), muted: o.mic.muted === true, level: Math.min(100, count(o.mic.level)) } : null;
+  return {
+    scenes,
+    currentScene: text(o.currentScene),
+    uptime: count(o.uptime),
+    kbps: count(o.kbps),
+    fps: count(o.fps),
+    mic,
+    replay: isObject(o.replay) ? { active: o.replay.active === true } : null,
+    inputs: (Array.isArray(o.inputs) ? o.inputs : []).filter((n): n is string => typeof n === "string" && n !== ""),
+  };
+}
+
+/** Tolerant read of the YouTube status. */
+function parseYoutube(o: Record<string, unknown>): YoutubeState {
+  const q = isObject(o.quota) ? o.quota : {};
+  return {
+    clientConfigured: o.clientConfigured === true,
+    signedIn: o.signedIn === true,
+    channel: text(o.channel),
+    live: o.live === true,
+    viewers: count(o.viewers),
+    connected: o.connected === true,
+    error: text(o.error) || null,
+    pending: o.pending === true,
+    quota: { used: count(q.used), estimatePerHour: count(q.estimatePerHour) },
+  };
+}
+
+/** Tolerant read of the Twitch status. */
+function parseTwitch(o: Record<string, unknown>): TwitchState {
+  return {
+    configured: o.configured === true,
+    signedIn: o.signedIn === true,
+    login: text(o.login),
+    channel: text(o.channel),
+    pending: o.pending === true,
+    error: text(o.error) || null,
+    connected: o.connected === true,
+    live: o.live === true,
+    viewers: count(o.viewers),
+  };
+}
 
 /** Tolerant read of the server's message. */
 export function parseExtras(raw: unknown): Extras {
@@ -70,9 +193,11 @@ export function parseExtras(raw: unknown): Extras {
     ];
   });
   return {
-    obs: { configured: o.configured === true, connected: o.connected === true, streaming: o.streaming === true, recording: o.recording === true },
+    obs: { configured: o.configured === true, connected: o.connected === true, streaming: o.streaming === true, recording: o.recording === true, ...parseObsLive(o) },
     calendar: { configured: c.configured === true, events, ...(typeof c.error === "string" && c.error ? { error: c.error } : {}) },
     agents: parseAgents(raw.agents),
+    ...(isObject(raw.twitch) ? { twitch: parseTwitch(raw.twitch) } : {}),
+    ...(isObject(raw.youtube) ? { youtube: parseYoutube(raw.youtube) } : {}),
   };
 }
 
@@ -86,6 +211,8 @@ function createExtrasClient(url: string) {
   const open = () => {
     if (source || typeof EventSource === "undefined") return;
     source = trackEventSource(new EventSource(url));
+    // A reconnect is a fresh start for a write the server turned away.
+    source.onopen = () => obsRefusal.set(false);
     source.onmessage = (e) => {
       try {
         state = parseExtras(JSON.parse(String(e.data)));

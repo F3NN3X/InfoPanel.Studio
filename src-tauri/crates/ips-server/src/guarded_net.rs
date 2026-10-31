@@ -119,6 +119,19 @@ pub struct Fetched {
     pub body: Vec<u8>,
 }
 
+/// A response's status and headers, and its body up to `max_bytes` (more is "too large").
+async fn read_capped(mut response: reqwest::Response, max_bytes: usize) -> Result<Fetched, String> {
+    let (status, headers) = (response.status().as_u16(), response.headers().clone());
+    let mut body = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(describe)? {
+        if body.len() + chunk.len() > max_bytes {
+            return Err("too large".into());
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(Fetched { status, headers, body })
+}
+
 /// An HTTP client that connects only through the guard (`client_builder`'s, with the guarded resolver).
 #[derive(Clone)]
 pub struct GuardedClient {
@@ -169,16 +182,27 @@ impl GuardedClient {
 
     /// One GET, its body read up to `max_bytes` (more is "too large"). The caller checks the target first.
     pub async fn get(&self, url: &url::Url, headers: &[(&str, &str)], max_bytes: usize) -> Result<Fetched, String> {
-        let mut response = self.send(url, headers).await?;
-        let (status, headers) = (response.status().as_u16(), response.headers().clone());
-        let mut body = Vec::new();
-        while let Some(chunk) = response.chunk().await.map_err(describe)? {
-            if body.len() + chunk.len() > max_bytes {
-                return Err("too large".into());
-            }
-            body.extend_from_slice(&chunk);
+        read_capped(self.send(url, headers).await?, max_bytes).await
+    }
+
+    /// One POST of a form (`application/x-www-form-urlencoded`), its body read up to `max_bytes`. The caller checks the
+    /// target first.
+    pub async fn post_form(&self, url: &url::Url, headers: &[(&str, &str)], form: &[(&str, &str)], max_bytes: usize) -> Result<Fetched, String> {
+        let body = url::form_urlencoded::Serializer::new(String::new()).extend_pairs(form).finish();
+        let mut request = self.client.post(url.clone()).header("Content-Type", "application/x-www-form-urlencoded").body(body);
+        for (name, value) in headers {
+            request = request.header(*name, *value);
         }
-        Ok(Fetched { status, headers, body })
+        read_capped(request.send().await.map_err(describe)?, max_bytes).await
+    }
+
+    /// One POST of a JSON body, its reply read up to `max_bytes`. The caller checks the target first.
+    pub async fn post_json(&self, url: &url::Url, headers: &[(&str, &str)], body: &str, max_bytes: usize) -> Result<Fetched, String> {
+        let mut request = self.client.post(url.clone()).header("Content-Type", "application/json").body(body.to_string());
+        for (name, value) in headers {
+            request = request.header(*name, *value);
+        }
+        read_capped(request.send().await.map_err(describe)?, max_bytes).await
     }
 
     /// One GET, answered once its head is in; the body is the caller's to read.

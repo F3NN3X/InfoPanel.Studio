@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **A Stream Deck screen, and the widgets to run it.** The **Stream Deck** template puts OBS control, live chat and a sound mixer on one wide touch screen. The widgets are in the Library too: **Stream Control** (scenes, a live tile with the time on air and viewers, mic and replay), **Stream Chat** (Twitch, YouTube or both), **Stream Mixer** (Windows audio or Elgato Wave Link faders), and the small **OBS Button**, **Audio Button** and **Audio Fader**. Studio now controls Windows audio, Wave Link and OBS. Connect them in the new **Settings** › **Connections**, which also holds Twitch and calendar sign-ins. YouTube needs your own Google API client, set up there; the page walks you through it.
+
 ## [1.3.1-beta.4] - 2026-10-30
 
 ### Added

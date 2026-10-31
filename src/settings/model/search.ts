@@ -1,4 +1,4 @@
-export type SectionId = "general" | "server" | "agents" | "touch" | "updates" | "diagnostics" | "logs" | "about" | "changelog";
+export type SectionId = "general" | "server" | "connections" | "agents" | "touch" | "updates" | "diagnostics" | "logs" | "about" | "changelog";
 
 /** Whether `value` names a settings section. */
 export const isSectionId = (value: string): value is SectionId => Object.hasOwn(SECTION_NAMES, value);
@@ -6,6 +6,7 @@ export const isSectionId = (value: string): value is SectionId => Object.hasOwn(
 export const SECTION_NAMES: Record<SectionId, string> = {
   general: "General",
   server: "Server",
+  connections: "Connections",
   agents: "Coding agents",
   touch: "Touch",
   updates: "Updates",
@@ -65,6 +66,16 @@ export const SEARCH_INDEX: SearchEntry[] = [
   { row: "allow-remote-edit", label: "Allow editing from other devices", section: "server" },
   { row: "kiosk", label: "Kiosk URL", section: "server" },
   { row: "auto-restart", label: "Restart automatically if it crashes", section: "server" },
+  { row: "obs", label: "OBS", section: "connections" },
+  { row: "obs", label: "OBS password", section: "connections" },
+  { row: "obs", label: "OBS mic", section: "connections" },
+  { row: "obs", label: "OBS scenes", section: "connections" },
+  { row: "calendar", label: "Calendar links", section: "connections" },
+  { row: "twitch", label: "Twitch sign-in", section: "connections" },
+  { row: "twitch", label: "Twitch chat channel", section: "connections" },
+  { row: "youtube", label: "YouTube sign-in", section: "connections" },
+  { row: "youtube", label: "YouTube client ID and secret", section: "connections" },
+  { row: "youtube", label: "YouTube chat refresh", section: "connections" },
   { row: "agents", label: "Connect coding agents", section: "agents" },
   { row: "agent-claude", label: "Claude Code hooks", section: "agents" },
   { row: "agent-codex", label: "Codex hooks", section: "agents" },

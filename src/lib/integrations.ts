@@ -6,15 +6,22 @@
 
 export const INTEGRATIONS_URL = "/api/integrations";
 
+/** The Streaming widgets' look for each OBS scene, by scene id. */
+export type SceneLooks = Record<string, { sub: string; icon: string }>;
+
 export interface PublicIntegrations {
   obs: { host: string; port: number; hasPassword: boolean };
   calendar: { links: { id: string; label: string; host: string }[] };
+  /** Absent until a mic or a scene look is saved. */
+  streaming?: { obs: { mic: string; scenes: SceneLooks }; twitch?: { channel: string; login: string }; youtube?: { clientConfigured: boolean; channel: string; chatInterval: number } };
 }
 
 /** A change: `password` replaces it ("" clears it, absent keeps it); `links` is the full list. */
 export interface IntegrationsPatch {
   obs?: { host?: string; port?: number; password?: string };
   calendar?: { links: ({ id: string; label?: string } | { url: string; label?: string })[] };
+  /** `mic` "" clears it; `scenes` is the full map (a scene with no line and no icon is dropped). */
+  streaming?: { obs?: { mic?: string; scenes?: SceneLooks }; twitch?: { channel?: string }; youtube?: { client_id?: string; client_secret?: string; chat_interval?: number } };
 }
 
 export async function fetchIntegrations(): Promise<PublicIntegrations> {

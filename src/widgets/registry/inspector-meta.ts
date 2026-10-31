@@ -94,6 +94,15 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   DayPlanner: yes(BOTH),
   RadialClockStack: yes(BOTH),
   OnAirBeacon: yes(NONE),
+  // Stream audio: the server's audio control
+  StreamMixer: yes(BOTH),
+  AudioButton: yes(NONE),
+  AudioFader: yes(NONE),
+  // Stream OBS: the server's OBS connection
+  StreamControl: yes(BOTH),
+  ObsButton: yes(NONE),
+  // Stream chat: the server's Twitch connection
+  StreamChat: yes(BOTH),
 };
 
 /**

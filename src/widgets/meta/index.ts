@@ -1,5 +1,7 @@
 // Every widget's catalog entry by id, light enough for the kiosk entry (the components load on demand, `lazy-widget.tsx`).
 export { meta as Achievements } from "./Achievements";
+export { meta as AudioButton } from "./AudioButton";
+export { meta as AudioFader } from "./AudioFader";
 export { meta as AudioMeter } from "./AudioMeter";
 export { meta as Bluetooth } from "./Bluetooth";
 export { meta as BottleneckLens } from "./BottleneckLens";
@@ -30,6 +32,7 @@ export { meta as NetworkAdapters } from "./NetworkAdapters";
 export { meta as NetworkThroughput } from "./NetworkThroughput";
 export { meta as Notifications } from "./Notifications";
 export { meta as NowPlaying } from "./NowPlaying";
+export { meta as ObsButton } from "./ObsButton";
 export { meta as OnAirBeacon } from "./OnAirBeacon";
 export { meta as OsdStrip } from "./OsdStrip";
 export { meta as PlaytimeShare } from "./PlaytimeShare";
@@ -49,6 +52,9 @@ export { meta as SteamNews } from "./SteamNews";
 export { meta as SteamProfile } from "./SteamProfile";
 export { meta as StorageHealth } from "./StorageHealth";
 export { meta as StreamDeck } from "./StreamDeck";
+export { meta as StreamChat } from "./StreamChat";
+export { meta as StreamControl } from "./StreamControl";
+export { meta as StreamMixer } from "./StreamMixer";
 export { meta as SystemOverview } from "./SystemOverview";
 export { meta as SystemStatus } from "./SystemStatus";
 export { meta as TextFile } from "./TextFile";

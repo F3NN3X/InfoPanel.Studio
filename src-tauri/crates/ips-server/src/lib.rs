@@ -10,12 +10,14 @@ pub mod alerts_engine;
 pub mod alerts_rules;
 pub mod asset_types;
 pub mod assets;
+pub mod audio;
 pub mod calendar;
 pub mod canvases;
 pub mod claude_sessions;
 pub mod config;
 pub mod config_guard;
 pub mod config_settings;
+pub mod chat_hub;
 pub mod control;
 pub mod control_store;
 pub mod debug;
@@ -35,15 +37,19 @@ pub mod json;
 pub mod library;
 pub mod locale;
 pub mod obs;
+pub mod obs_control;
 pub mod proxy;
 pub mod request_guard;
 pub mod security_headers;
 pub mod sse;
 pub mod static_files;
+pub mod streaming;
 pub mod store;
 pub mod studio_prefs;
 pub mod supervisor;
 pub mod touch_hub;
+pub mod twitch;
+pub mod youtube;
 
 use std::future::Future;
 use std::net::{SocketAddr, ToSocketAddrs};
@@ -62,6 +68,7 @@ use crate::agent_usage::AgentUsage;
 use crate::agents::{Agents, Sources};
 use crate::alerts::{Alerts, Options as AlertsOptions};
 use crate::assets::Assets;
+use crate::audio::Audio;
 use crate::canvases::{CanvasStore, Sweeper};
 use crate::config::ConfigStore;
 use crate::control_store::Control;
@@ -156,6 +163,9 @@ pub struct App {
     pub control: Arc<Control>,
     pub alerts: Arc<Alerts>,
     pub extras: Arc<Extras>,
+    /// The port the server listens on (the real one when the config asked for 0).
+    pub port: u16,
+    pub audio: Arc<Audio>,
     pub agents: Agents,
     pub assets: Assets,
     pub canvases: Arc<CanvasStore>,
@@ -196,11 +206,16 @@ fn listen_socket(addr: SocketAddr) -> std::io::Result<std::net::TcpListener> {
 
 /// Takes the port, loads the data folder and prints the start line (stdout), as the Node server did on listen.
 pub async fn bind(cfg: ServerConfig) -> Result<Bound, StartError> {
-    bind_with_home(cfg, std::env::home_dir().unwrap_or_else(|| PathBuf::from("."))).await
+    bind_inner(cfg, std::env::home_dir().unwrap_or_else(|| PathBuf::from(".")), true).await
 }
 
-/// `bind` with the user's home (where `.claude` and `.codex` are read) given, so a test never reads the real one.
+/// `bind` with the user's home (where `.claude` and `.codex` are read) given, so a test never reads the real one. It does
+/// not start the audio backends either: a test never reads or writes this PC's audio devices or Wave Link.
 pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, StartError> {
+    bind_inner(cfg, home, false).await
+}
+
+async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Result<Bound, StartError> {
     std::fs::create_dir_all(&cfg.data_dir).map_err(|e| StartError::Other(format!("{}: {e}", cfg.data_dir.display())))?;
     let config = ConfigStore::load(&cfg.config_file());
     let prefs = StudioPrefs::load(&cfg.data_dir.join("studio-prefs.json"));
@@ -258,7 +273,10 @@ pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, S
         agents::PUBLISH_THROTTLE,
     );
     // The OBS connection and the calendar refresh.
-    let extras = Extras::new(&cfg.data_dir.join("integrations.json"), {
+    // A server that does not run its backends (a test) is given a Twitch and a Google it cannot reach.
+    let twitch = if live_audio { twitch::auth::Endpoints::twitch() } else { twitch::auth::Endpoints::offline() };
+    let google = if live_audio { youtube::auth::Endpoints::google() } else { youtube::auth::Endpoints::offline() };
+    let extras = Extras::new(&cfg.data_dir.join("integrations.json"), twitch, google, {
         let agents = agents.clone();
         move || agents.state()
     })
@@ -269,6 +287,11 @@ pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, S
     });
     extras.start(&shutdown);
     agents.start(&shutdown);
+    // Windows' audio and Wave Link, for the mixer.
+    let audio = Audio::new(if live_audio { audio::local_ws_info() } else { None });
+    if live_audio {
+        audio.start(&shutdown);
+    }
     let canvases = Arc::new(CanvasStore::new(&cfg.data_dir.join("canvases")));
     // Canvas files the config no longer references: at start and after saves, off the request that triggered it.
     let sweeper = Sweeper::new(Arc::clone(&canvases), cfg.config_file());
@@ -283,7 +306,7 @@ pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, S
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, agents, assets, canvases, library, prefs, shutdown };
+    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, agents, assets, canvases, library, prefs, shutdown };
     Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
@@ -375,6 +398,18 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/api/alerts/history" => Ok(alerts::handle_history(app, &req)),
         "/api/extras" => Ok(extras::handle_extras(app, &req)),
         "/events/extras" => Ok(extras::handle_events(app)),
+        "/api/audio" => Ok(audio::handle_state(app, &req)),
+        "/events/audio" => Ok(audio::handle_events(app)),
+        "/api/audio/act" => audio::handle_act(app, req).await.map_err(io),
+        "/api/obs/act" => obs_control::handle_act(app, req).await.map_err(io),
+        "/api/twitch/signin" => twitch::routes::handle_signin(app, req).await.map_err(io),
+        "/api/twitch/signout" => twitch::routes::handle_signout(app, req).await.map_err(io),
+        "/api/youtube/signin" => youtube::routes::handle_signin(app, req).await.map_err(io),
+        "/api/youtube/signout" => youtube::routes::handle_signout(app, req).await.map_err(io),
+        "/api/youtube/callback" => youtube::routes::handle_callback(app, req).await.map_err(io),
+        "/api/chat" => Ok(twitch::routes::handle_chat(app, &req)),
+        "/api/chat/send" => twitch::routes::handle_chat_send(app, req).await.map_err(io),
+        "/events/chat" => Ok(twitch::routes::handle_chat_events(app)),
         "/events/touch" => Ok(touch_hub::handle_events(app, &req)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),

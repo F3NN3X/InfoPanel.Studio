@@ -19,6 +19,7 @@ export const INSERT_CATEGORIES = [
   "Network",
   "Media",
   "Audio",
+  "Streaming",
   "Info",
   "Gaming",
   "Generic",
@@ -147,7 +148,7 @@ export interface InsertGroup {
   items: Insertable[];
 }
 
-const WIDGET_GROUPS: InsertCategory[] = ["System", "Hardware", "Storage", "Network", "Media", "Audio", "Info", "Gaming", "Generic"];
+const WIDGET_GROUPS: InsertCategory[] = ["System", "Hardware", "Storage", "Network", "Media", "Audio", "Streaming", "Info", "Gaming", "Generic"];
 
 /**
  * The non-empty groups of a (filtered) list: the widgets by category, then

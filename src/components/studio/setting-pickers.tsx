@@ -1,5 +1,7 @@
 import { Circle, CircleDot, Square, SquareCheck } from "lucide-react";
 import { useAudioDevices } from "@/hooks/use-audio-devices";
+import { useAudio } from "@/lib/audio-control";
+import { useExtras } from "@/widgets/time-hooks";
 import { useSensors } from "@/hooks/useSensors";
 import { useSensorCatalog } from "@/lib/catalog";
 import { parseNameList } from "@/lib/name-list";
@@ -7,6 +9,7 @@ import { AUTO_RULES, autoDevice, deviceOptions, deviceReading } from "@/lib/devi
 import { cn } from "@/lib/utils";
 import { meterKey, useWavelinkState } from "@/lib/wavelink";
 import { shortName } from "@/widgets/audio-data";
+import { allChannels } from "@/widgets/StreamMixer/channels";
 import type { DeviceKind, ModuleSetting, ModuleSettingValue } from "@/modules/types";
 import { ChipsField } from "./alerts-fields";
 import { SELECT as SELECT_BASE, StackRow, type RowLabelProps } from "./setting-rows";
@@ -131,6 +134,68 @@ export function WavelinkMeterPicker({ def, value, onChange, lead, hint, flow }: 
           Wave Link is not running â€” start the app and its meters appear here.
         </span>
       )}
+    </StackRow>
+  );
+}
+
+/**
+ * Picker for the audio control widgets (`optionsFrom: "audio-control"`), by the row's key: `channels` / `channel` list the
+ * Windows and Wave Link channels as they are now, `mix` Wave Link's mixes, `device` the Windows output devices. A stored
+ * id that is not listed now (an app that is closed) stays selectable as typed.
+ */
+export function AudioControlPicker({ def, value, onChange, lead, hint }: PickerProps) {
+  const audio = useAudio();
+  const ids = (list: { id: string; name: string }[], prefix = "") => list.map((x) => ({ value: prefix + x.id, label: x.name }));
+  let options: { value: string; label: string }[];
+  let blank = "";
+  if (def.key === "mix") {
+    options = [{ value: "all", label: "All mixes (each channel's own level)" }, ...ids(audio.wavelink.mixes)];
+    blank = "First mix";
+  } else if (def.key === "device") {
+    options = ids(audio.windows.outputs);
+    blank = "Choose a device";
+  } else {
+    options = [
+      ...allChannels(audio, "windows").map((c) => ({ value: c.id, label: `Windows · ${c.name}` })),
+      ...allChannels(audio, "wavelink", "all").map((c) => ({ value: c.id, label: `Wave Link · ${c.name}` })),
+    ];
+    blank = def.multiple ? "" : "Master";
+  }
+  const stored = (def.multiple ? splitList(value) : value ? [value] : []).filter((v) => !options.some((o) => o.value === v));
+  const all = [...options, ...stored.map((v) => ({ value: v, label: v }))];
+  return (
+    <StackRow label={def.label} lead={lead} hint={hint}>
+      {def.multiple ? (
+        <MultiSelect value={value} onChange={onChange} options={all} label={def.label} />
+      ) : (
+        <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} className={SELECT}>
+          <option value="">{blank}</option>
+          {all.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      )}
+    </StackRow>
+  );
+}
+
+/** Picker for the OBS buttons' scene (`optionsFrom: "obs-scenes"`): the scenes OBS has now. A stored id that is not listed stays selectable as typed. */
+export function ObsScenePicker({ def, value, onChange, lead, hint }: PickerProps) {
+  const scenes = useExtras().obs.scenes;
+  const options = scenes.map((s) => ({ value: s.id, label: s.name }));
+  const all = value && !options.some((o) => o.value === value) ? [...options, { value, label: value }] : options;
+  return (
+    <StackRow label={def.label} lead={lead} hint={hint}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} className={SELECT}>
+        <option value="">Choose a scene</option>
+        {all.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
     </StackRow>
   );
 }

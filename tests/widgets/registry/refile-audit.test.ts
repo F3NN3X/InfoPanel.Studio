@@ -16,13 +16,17 @@ const REFILED = [
   "FpsMonitor", "GameSpotlight", "OsdStrip", "FramePacing", "PlaytimeShare", "SteamFriends", "SteamGame", "Achievements", "SteamLibrary", "SteamNews", "TextFile", "Notifications", "Departures", "Bluetooth", "StreamDeck",
   // Time and status
   "DayPlanner", "RadialClockStack", "OnAirBeacon",
+  // Stream audio
+  "StreamMixer", "AudioButton", "AudioFader",
+  // Stream OBS
+  "StreamControl", "ObsButton", "StreamChat",
   // History and analysis
   "BottleneckLens", "FrameHistogram", "SessionStats", "ThresholdTimeline",
 ];
 
-it("covers all 63 widgets", () => {
-  expect(REFILED).toHaveLength(63);
-  expect(new Set(REFILED).size).toBe(63);
+it("covers all 69 widgets", () => {
+  expect(REFILED).toHaveLength(69);
+  expect(new Set(REFILED).size).toBe(69);
   expect([...REFILED].sort()).toEqual(modules.filter((m) => INSPECTOR_META[m.id]).map((m) => m.id).sort());
 });
 

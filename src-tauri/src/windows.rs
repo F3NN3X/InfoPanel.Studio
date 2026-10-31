@@ -354,8 +354,9 @@ const SETTINGS_SECTIONS: [&str; 9] = [
     "changelog",
 ];
 
-/// The pages only the Settings window on the studio's server has (`PageId`).
-const PREFERENCE_PAGES: [&str; 2] = ["dashboard", "studio"];
+/// The pages only the Settings window on the studio's server has (`PageId`): Connections talks to the server's own
+/// API, which the rescue page cannot reach.
+const PREFERENCE_PAGES: [&str; 3] = ["connections", "dashboard", "studio"];
 
 /// The section if the rescue page has it: its URL only ever carries known ids.
 fn settings_section(section: Option<&str>) -> Option<&str> {
@@ -667,6 +668,8 @@ mod tests {
         }
         // The rescue page has the App sections only.
         assert_eq!(settings_page(Some("dashboard")), "app/settings.html");
+        assert_eq!(at(Some("connections")), "http://127.0.0.1:3922/?settings#connections");
+        assert_eq!(settings_page(Some("connections")), "app/settings.html");
     }
 
     #[test]
