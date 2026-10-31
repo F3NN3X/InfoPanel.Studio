@@ -365,7 +365,7 @@ fn read_file_description(path: &str) -> Option<String> {
             && len >= 4
         {
             let pairs = std::slice::from_raw_parts(value.cast::<u16>(), (len / 4 * 2) as usize);
-            languages = pairs.chunks_exact(2).map(|p| (p[0], p[1])).collect();
+            languages = pairs.as_chunks::<2>().0.iter().map(|&[a, b]| (a, b)).collect();
         }
         languages.into_iter().find_map(|(lang, page)| {
             version_string(&block, &format!("\\StringFileInfo\\{lang:04x}{page:04x}\\FileDescription"))

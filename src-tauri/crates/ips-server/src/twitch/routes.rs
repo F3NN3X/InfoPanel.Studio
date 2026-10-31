@@ -16,6 +16,7 @@ use crate::{sse, App};
 const MAX_BODY_BYTES: usize = 4 * 1024;
 
 /// The body of a guarded POST, or the response that refuses it.
+#[allow(clippy::result_large_err)]
 pub(crate) async fn guarded_body(app: &App, req: &mut Req) -> Result<String, Response<Body>> {
     if req.method != Method::POST {
         return Err(http::empty(405));
