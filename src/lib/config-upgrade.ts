@@ -5,7 +5,7 @@
  * zones onto its first page, v3→v4 rewrites the legacy module ids to their templates, v5→v6 moves the style onto the
  * widget theme, v6→v7 renames the shared keys, v7→v8 the sample widgets', v8→v9 moves a Custom gauge panel widget's
  * width (`settings-migrate.ts`; the panels' own normalisation runs it), v9→v10 drops the widget `preset` key, v11→v12
- * turns the audio widgets' single `device` into a pick, v12→v13 only stamps the version, v13→v14 marks Free pages and
+ * turns the audio widgets' single `device` into a pick, v12→v13 only stamps the version, the old Stream Deck widget's mirror keys go (`migrateProfileStreamDeck`, no version of its own), v13→v14 marks Free pages and
  * the screens made for InfoPanel, v14→v15 makes every page one kind (`migrateProfileV15`, a line in `log` per change
  * it makes), v15→v16 gives each screen the look it inherited (`migrateScreensV16`). A config at this build's version
  * comes out as `mergeConfig` makes it.
@@ -29,6 +29,7 @@ import {
   migrateProfileV8,
   migrateProfileV10,
   migrateProfileV12,
+  migrateProfileStreamDeck,
   migrateProfileV14,
   migrateStyleV7,
   type LegacyProfileFields,
@@ -104,6 +105,7 @@ export function upgradeConfig(input: StoredConfig, log?: string[]): DashboardCon
     .map((p) => migrateProfileV8(p, { legacy: (parsed.version ?? 0) < 8 }))
     .map(migrateProfileV10)
     .map(migrateProfileV12)
+    .map(migrateProfileStreamDeck)
     .map((p) => migrateProfileV14(p, { legacy: (parsed.version ?? 0) < 14 }))
     .map((p) => migrateProfileV15(p, { legacy: (parsed.version ?? 0) < 15, log }));
   // v7: the clocks' 12 / 24 h moves from `general` into the all-profiles style (its themed `clock`).

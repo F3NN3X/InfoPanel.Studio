@@ -6,7 +6,7 @@ related: [connections, widgets, touch]
 verified: 1.3.1-beta.4
 ---
 
-Six widgets in the **Streaming** and **Audio** groups of the Library turn a touch screen into a stream deck: OBS scenes, live chat and a sound mixer. The **Stream Deck** screen template puts the first three on one wide screen; pick it in **New screen**.
+Seven widgets in the **Streaming** and **Audio** groups of the Library turn a touch screen into a stream deck: OBS scenes, live chat, a sound mixer and a virtual Elgato Stream Deck. The **Stream Deck** screen template puts the first three on one wide screen; pick it in **New screen**.
 
 Connect OBS, Twitch and YouTube first, under **Settings › Connections**. See [Connections](connections).
 
@@ -26,6 +26,17 @@ Touch faders for Windows audio (Master, Mic and the apps playing) or for Elgato 
 
 The small versions, for a grid of buttons. **OBS Button** does one thing in OBS: switch to a scene, mute the mic or save the replay. It rings while its scene is on air and lights while the mic is muted. **Audio Button** mutes a channel or switches the output device, and lights while muted or active. **Audio Fader** is one channel's fader.
 
+## Elgato Stream Deck
+
+A virtual Stream Deck on the screen. Its keys come from the Stream Deck app, and a tap runs the real action, so anything you can put on a key there works here.
+
+1. Turn on **Stream Deck** in **Settings › Connections** and press **Pair**. The Stream Deck app asks you to confirm the same 6-character code. It only asks when a freshly started Stream Deck app meets a new client.
+2. Add the widget and, in its **Device** setting, pick a device or press **New device**. Each widget has its own virtual deck, named IPStudio, IPStudio 2 and so on.
+3. Open the Stream Deck app. The deck appears there like a real one: set its buttons there.
+4. Set the **Grid** in the widget's settings, from 1×1 up to 8×8, with presets for 5×3, 8×4, 8×5 and 8×8. The widget draws the grid square and centred in its zone.
+
+When the deck has more than one page, a page row shows ‹ 1 / 3 ›; swiping sideways over the keys changes page too. If the widget says the Stream Deck app isn't running, start it; the widget connects again by itself.
+
 ## Who can use them
 
-The widgets act on OBS and the audio of the PC that runs Studio. A kiosk on this PC controls them. A kiosk on another device does too once **Allow editing from other devices** is on under **Settings › Server**; without it the widget shows **Read-only** there. The sign-ins and passwords stay on this PC either way.
+The widgets act on OBS, the audio and the Stream Deck app of the PC that runs Studio. A kiosk on this PC controls them. A kiosk on another device does too once **Allow editing from other devices** is on under **Settings › Server**; without it the widget shows **Read-only** there. The sign-ins and passwords stay on this PC either way.

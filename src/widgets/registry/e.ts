@@ -13,8 +13,6 @@ import type { DeparturesProps } from "../Departures";
 import { meta as departuresMeta } from "../meta/Departures";
 import type { NotificationsProps } from "../Notifications";
 import { meta as notificationsMeta } from "../meta/Notifications";
-import type { StreamDeckProps } from "../StreamDeck";
-import { meta as streamDeckMeta } from "../meta/StreamDeck";
 import type { TextFileProps } from "../TextFile";
 import { meta as textFileMeta } from "../meta/TextFile";
 import type { WebPageProps } from "../WebPage";
@@ -24,7 +22,6 @@ import { meta as webPageMeta } from "../meta/WebPage";
 const Bluetooth = lazyWidget(() => import("../Bluetooth"));
 const Departures = lazyWidget(() => import("../Departures"));
 const Notifications = lazyWidget(() => import("../Notifications"));
-const StreamDeck = lazyWidget(() => import("../StreamDeck"));
 const TextFile = lazyWidget(() => import("../TextFile"));
 const WebPage = lazyWidget(() => import("../WebPage"));
 
@@ -103,23 +100,10 @@ export const bluetoothOptions: TemplateOptions<Pick<BluetoothProps, "showStatus"
   }),
 };
 
-export const STREAMDECK_SETTINGS: ModuleSetting[] = [
-  boolSetting("showProfile", "Active profile", true, { group: "Profile" }),
-  boolSetting("showLabels", "Button labels", true, { group: "Buttons" }),
-];
-
-export const streamDeckOptions: TemplateOptions<Pick<StreamDeckProps, "showProfile" | "showLabels">> = {
-  meta: streamDeckMeta,
-  Component: StreamDeck,
-  settings: STREAMDECK_SETTINGS,
-  toProps: (s) => ({ showProfile: boolOf(s.showProfile), showLabels: boolOf(s.showLabels) }),
-};
-
 export const GROUP_E: DashboardModule[] = [
   templateModule(webPageOptions),
   templateModule(textFileOptions),
   templateModule(notificationsOptions),
   templateModule(departuresOptions),
   templateModule(bluetoothOptions),
-  templateModule(streamDeckOptions),
 ];

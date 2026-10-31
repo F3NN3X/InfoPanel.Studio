@@ -6,6 +6,14 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **An Elgato Stream Deck widget.** It is a virtual Stream Deck on your screen: its keys, titles and icons come from the Stream Deck app, and a tap runs the real action. Turn it on in **Settings** › **Connections** and confirm the pairing code in the Stream Deck app, then pick or create a device in the widget's settings. Each widget has its own device, the grid can be anything up to 8×8 and a page row (or a sideways swipe) changes page.
+
+### Changed
+
+- **The old Stream Deck widget is replaced.** It only mirrored a physical Stream Deck through the InfoPanel plugin, read-only. Screens that use it keep the zone, now as the Elgato Stream Deck widget with no device chosen yet: pick or create one. Its profile and label switches are gone.
+
 ## [1.3.1-beta.5] - 2026-10-31
 
 ### Added

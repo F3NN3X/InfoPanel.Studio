@@ -2,7 +2,7 @@
  * Image detection for sensor text values.
  *
  * InfoPanel plugins expose images as plain text URLs — either from their own
- * localhost image servers (Media's cover-art server, StreamDeck's icon server)
+ * localhost image servers (Media's cover-art server)
  * or remote CDNs (Steam static, Spotify, OpenWeatherMap weather icons). The
  * Data API carries those strings unchanged; the dashboard decides which
  * text values are actually images. Images a plugin hands to InfoPanel itself

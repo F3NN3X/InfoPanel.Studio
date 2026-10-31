@@ -163,9 +163,9 @@ describe("registry", () => {
   });
 
   it("keeps the covered plugins' keys out of the catch-all, and only those", () => {
-    for (const key of ["system.cpu.load", "libre.cpu_load", "plugins.spotify-plugin.spotify.title", "plugins.InfoPanel.StreamDeck.x"]) expect(isClaimed(key), key).toBe(true);
+    for (const key of ["system.cpu.load", "libre.cpu_load", "plugins.spotify-plugin.spotify.title"]) expect(isClaimed(key), key).toBe(true);
     // the template-only sources (Clock, Weather's OpenWeatherMap, the volume plugin) stay unclaimed
-    for (const key of ["plugins.clock-plugin.time", "plugins.weather-plugin.temp", "plugins.volume-plugin.volume", "nothing.claims.this"]) expect(isClaimed(key), key).toBe(false);
+    for (const key of ["plugins.clock-plugin.time", "plugins.weather-plugin.temp", "plugins.volume-plugin.volume", "plugins.InfoPanel.StreamDeck.x", "nothing.claims.this"]) expect(isClaimed(key), key).toBe(false);
   });
 });
 

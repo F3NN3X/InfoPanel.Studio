@@ -6,7 +6,7 @@ import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import { toFlat } from "@/widgets/data-adapter";
 import { fixtureSensors } from "@/widgets/__fixtures__";
 import type { SensorMap } from "@/modules/types";
-import { bluetoothOptions, departuresOptions, notificationsOptions, streamDeckOptions, textFileOptions, webPageOptions } from "@/widgets/registry/e";
+import { bluetoothOptions, departuresOptions, notificationsOptions, textFileOptions, webPageOptions } from "@/widgets/registry/e";
 
 // These templates have no handoff spec: the manifest is the props each component's own interface declares
 // (beyond ShellProps and `look`), with the setting key that carries each.
@@ -20,7 +20,6 @@ const MANIFEST = [
     options: bluetoothOptions,
     props: { showStatus: "showStatus", showDevices: "showDevices", showBattery: "showBattery", batteryMidColor: "batteryMidColor", batteryLowColor: "batteryLowColor" },
   },
-  { id: "StreamDeck", options: streamDeckOptions, props: { showProfile: "showProfile", showLabels: "showLabels" } },
 ] as const;
 
 const STANDARD_KEYS = new Set(STANDARD_SETTINGS.map((d) => d.key));

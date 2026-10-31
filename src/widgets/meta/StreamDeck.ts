@@ -1,18 +1,15 @@
 // StreamDeck's catalog entry, apart from its component so the registry can list it without loading the widget.
 import type { WidgetMeta } from "../core/types";
 
-/** The plugin's key prefix. */
-export const P = "plugins.InfoPanel.StreamDeck.";
-
 export const meta: WidgetMeta = {
   id: "StreamDeck",
-  name: "Stream Deck",
-  category: "Generic",
+  name: "Elgato Stream Deck",
+  category: "Streaming",
   icon: "grid_view",
-  prefixes: [P],
-  defaultSize: [4, 3],
-  minSize: [3, 2],
-  blurb: "Stream Deck keys with icons and labels",
-  tags: "elgato buttons keys",
-  description: "Elgato Stream Deck keys with their icons and labels, one grid per connected device.",
+  prefixes: [],
+  defaultSize: [4, 2],
+  minSize: [1, 1],
+  blurb: "A virtual Stream Deck with real keys",
+  tags: "elgato stream deck keys buttons macro hotkeys virtual pages",
+  description: "A virtual Elgato Stream Deck: its keys come from the Stream Deck app, a press runs the real action. Turn it on under Settings › Connections, then pick or create a device.",
 };

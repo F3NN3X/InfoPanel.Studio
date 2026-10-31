@@ -50,7 +50,6 @@ function hardware(): [string, DataApiValue][] {
     ...["name", "ipv4-0"].map((e) => plugin(`network-info-plugin/{ABC}/${e}`)),
     ...["battery-level", "device-name"].map((e) => plugin(`bluetooth-battery-plugin/headset/${e}`)),
     plugin("InfoPanel.VBZ/departures/next", { text: "5 min" }),
-    plugin("InfoPanel.StreamDeck/deck/key-1", { text: "x" }),
     plugin("InfoPanel.TextFile/file/line-1", { text: "x" }),
     plugin("InfoPanel.SteamAPI/SteamAPI-Session/current-game"),
     plugin("InfoPanel.SteamAPI/SteamAPI-Session/current-game-playtime"),

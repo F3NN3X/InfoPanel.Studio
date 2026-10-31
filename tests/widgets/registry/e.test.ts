@@ -8,7 +8,6 @@ import type { ShellProps } from "@/widgets/kit";
 import Bluetooth, { meta as bluetooth } from "@/widgets/Bluetooth";
 import Departures, { meta as departures } from "@/widgets/Departures";
 import Notifications, { meta as notifications } from "@/widgets/Notifications";
-import StreamDeck, { meta as streamDeck } from "@/widgets/StreamDeck";
 import TextFile, { meta as textFile } from "@/widgets/TextFile";
 import WebPage, { meta as webPage } from "@/widgets/WebPage";
 import { GROUP_E } from "@/widgets/registry/e";
@@ -20,7 +19,6 @@ const WIDGETS: [typeof webPage, ComponentType<ShellProps>, string, Record<string
   [notifications, Notifications, "Info", {}],
   [departures, Departures, "Info", {}],
   [bluetooth, Bluetooth, "Generic", {}],
-  [streamDeck, StreamDeck, "Generic", {}],
 ];
 const DATA = toFlat(fixtureSensors() as SensorMap);
 

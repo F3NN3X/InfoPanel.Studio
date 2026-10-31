@@ -8,6 +8,7 @@ import { GROUP_E } from "./registry/e";
 import { GROUP_HISTORY } from "./registry/history";
 import { GROUP_STREAM_AUDIO } from "./registry/stream-audio";
 import { GROUP_STREAM_CHAT } from "./registry/stream-chat";
+import { GROUP_STREAM_DECK } from "./registry/stream-deck";
 import { GROUP_STREAM_OBS } from "./registry/stream-obs";
 import { TIME_WIDGETS } from "./registry/time";
 import { fitSettings, INSPECTOR_META } from "./registry/inspector-meta";
@@ -19,7 +20,7 @@ const deviceKindOf = (m: DashboardModule): DashboardModule["deviceKind"] => {
 };
 
 /** Each with its inspector metadata (header, small zones, ...; `inspector-meta.ts`) and the Fit rows it can draw. */
-export const TEMPLATE_MODULES: DashboardModule[] = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D, ...GROUP_E, ...TIME_WIDGETS, ...GROUP_HISTORY, ...GROUP_STREAM_AUDIO, ...GROUP_STREAM_OBS, ...GROUP_STREAM_CHAT].map((m) => {
+export const TEMPLATE_MODULES: DashboardModule[] = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D, ...GROUP_E, ...TIME_WIDGETS, ...GROUP_HISTORY, ...GROUP_STREAM_AUDIO, ...GROUP_STREAM_OBS, ...GROUP_STREAM_CHAT, ...GROUP_STREAM_DECK].map((m) => {
   const meta = INSPECTOR_META[m.id];
   const kind = deviceKindOf(m);
   return {

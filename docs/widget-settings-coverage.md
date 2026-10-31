@@ -709,9 +709,4 @@ Tested spans: 2x1, 3x1, 4x1, 6x1, 2x2, 3x2, 4x2, 6x2, 2x3, 3x3, 3x4, 4x4, 6x4.
 
 ## StreamDeck
 
-Tested spans: 3x2, 4x2, 6x2, 3x3, 3x4, 4x4, 6x4.
-
-| Setting | Takes effect at | Needs |
-|---|---|---|
-| Active profile (`showProfile`) | every size | — |
-| Button labels (`showLabels`) | every size | — |
+The Elgato Stream Deck widget (replaced the plugin mirror, which had Active profile and Button labels). Its keys, device and grid come from the dashboard server, so the audit's fixture data does not draw it; its settings are Device (`device`), Grid (`grid`, written to the device, not stored), Titles (`showTitles`), Title size (`titleSize`), Page row (`showPages`), Swipe to change page (`swipe`), Key gap (`keyGap`), Key corner radius (`keyRadius`) and Pressed effect (`pressedEffect`). The fit check (`tests/e2e/streaming-widgets-fit.spec.ts`) holds it to 1x1, 2x1, 2x2, 3x2, 4x2 and 4x4.

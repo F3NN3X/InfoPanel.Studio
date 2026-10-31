@@ -28,7 +28,6 @@ const claimedPrefixes = [
   "plugins.bluetooth-battery-plugin.",
   "plugins.InfoPanel.Notifications.",
   "plugins.InfoPanel.TextFile.",
-  "plugins.InfoPanel.StreamDeck.",
 ];
 
 /** True when a built-in widget covers the key. */

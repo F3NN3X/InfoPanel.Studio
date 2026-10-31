@@ -96,7 +96,6 @@ export const MODULE_TIERS: Record<string, TierEntry> = {
   Notifications: plug(true, "only the latest notification shows"),
   Bluetooth: plug(),
   Departures: plug(),
-  StreamDeck: plug(),
   TextFile: plug(),
   BottleneckLens: only("it judges a game's frame rate from readings over time, which InfoPanel items can't"),
   FrameHistogram: only("it bins frame times over the last minute, which InfoPanel items can't"),
@@ -115,6 +114,7 @@ export const MODULE_TIERS: Record<string, TierEntry> = {
   AudioFader: only("it controls Windows audio and Wave Link through the dashboard's server, which InfoPanel items can't"),
   StreamControl: only("it controls OBS through the dashboard's server, which InfoPanel items can't"),
   ObsButton: only("it controls OBS through the dashboard's server, which InfoPanel items can't"),
+  StreamDeck: only("its keys come from the Stream Deck app through the dashboard server, which InfoPanel items can't"),
   StreamChat: only("it reads and sends Twitch chat through the dashboard's server, which InfoPanel items can't"),
 };
 

@@ -289,9 +289,10 @@
       "summary": "The Stream Deck connection on the server: the Elgato app's VSD2 virtual decks (pairing, one session per virtual device, keys and icons, presses and pages), the device registry in the streaming section of integrations.json and the /api/streamdeck routes.",
       "paths": [
         "src-tauri/crates/ips-server/src/streamdeck/**",
-        "src-tauri/crates/ips-server/tests/routes_streamdeck.rs"
+        "src-tauri/crates/ips-server/tests/routes_streamdeck.rs",
+        "src/lib/streamdeck.ts"
       ],
-      "tests": [],
+      "tests": ["tests/lib/streamdeck.test.ts", "tests/components/connections/streamdeck-block.test.tsx"],
       "checks": ["typecheck", "unit", "cargo-server", "cargo-app"],
       "note": "Every session test talks to a fake VSD2 server over a real socket (src/streamdeck/tests.rs); none connects to the real Stream Deck app, and a server from bind_with_home has no app to reach. So the app's own replies (pairing dialog, layout, icons, a press running an action) are checked only against the prototype's protocol notes and captured schema bytes."
     },
@@ -429,6 +430,7 @@
         "tests/widgets/OnAir/**",
         "tests/widgets/StreamMixer/**",
         "tests/widgets/StreamControl/**",
+        "tests/widgets/StreamDeck/**",
         "tests/widgets/StreamChat/**",
         "tests/widgets/StatusBar/**",
         "tests/widgets/weather-fx/**",

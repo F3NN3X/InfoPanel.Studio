@@ -72,7 +72,6 @@ const SPECS: Record<string, Spec> = {
   Notifications: (f) => [...f.match(tail("windows.latest"), named("Latest"), "value", 1), ...f.match(tail("windows.count"), named("Count"), "value", 1)],
   Bluetooth: plugin("bluetooth-battery-plugin"),
   Departures: plugin("InfoPanel.VBZ"),
-  StreamDeck: plugin("InfoPanel.StreamDeck"),
   TextFile: plugin("InfoPanel.TextFile"),
 };
 

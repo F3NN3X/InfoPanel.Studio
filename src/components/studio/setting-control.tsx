@@ -23,6 +23,7 @@ import { DriveIconsField } from "./drive-icons-field";
 import { AudioControlPicker, DevicePicker, MediaDevicePicker, MultiSelect, NameListField, ObsScenePicker, WavelinkMeterPicker } from "./setting-pickers";
 import { SensorField } from "./widget-editor/sensor-field";
 import { SensorListField } from "./widget-editor/sensor-list-field";
+import { StreamDeckDevicePicker, StreamDeckGridPicker } from "./streamdeck-pickers";
 import { ThresholdsRow } from "./thresholds-control";
 
 /** The icon grid's cells: "none" first, then every widget icon. */
@@ -98,7 +99,7 @@ export function SettingRow({
   tempUnit?: "c" | "f";
   /** Type "color" following its palette role: the role's name stands for the value ("Series 1"). */
   roleLabel?: string;
-  /** Types "select" listing audio devices or Wave Link meters: the widget's Show filter (all / output / input). */
+  /** Types "select" listing audio devices or Wave Link meters: the widget's Show filter (all / output / input); the Stream Deck grid row: the Device row's value. */
   flow?: string;
 }) {
   const label: RowLabelProps = { label: def.label, lead, trail, changed, hint };
@@ -221,6 +222,13 @@ export function SettingRow({
       // The scenes OBS has now, for the OBS buttons.
       if (def.optionsFrom === "obs-scenes") {
         return <ObsScenePicker def={def} value={String(value)} onChange={onChange} lead={lead} hint={hint} />;
+      }
+      // The Elgato Stream Deck widget's device (the server's virtual decks) and its grid (read from the device, not stored).
+      if (def.optionsFrom === "streamdeck-devices") {
+        return <StreamDeckDevicePicker def={def} value={String(value)} onChange={onChange} lead={lead} hint={hint} />;
+      }
+      if (def.optionsFrom === "streamdeck-grid") {
+        return <StreamDeckGridPicker def={def} deviceId={flow ?? ""} lead={lead} hint={hint} />;
       }
       // Hardware / audio / drive devices found in the live keys: Auto and its pick, or a checkbox list.
       if (isDeviceKind(def.optionsFrom)) {
