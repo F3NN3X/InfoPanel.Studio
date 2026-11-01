@@ -7,7 +7,7 @@
 
 import { useSyncExternalStore } from "react";
 import { trackEventSource } from "@/lib/sensor-store";
-import { createRefusal } from "@/lib/write-refusal";
+import { createRefusal, READ_ONLY_HINT } from "@/lib/write-refusal";
 
 export const STREAMDECK_EVENTS_URL = "/events/streamdeck";
 export const STREAMDECK_ACT_URL = "/api/streamdeck/act";
@@ -158,13 +158,28 @@ export interface DeckResult {
   ok: boolean;
   status: number;
   data?: { id?: string; appDevice?: "deleted" | "none" | "kept" };
-  /** The server's message when it refused. */
+  /** Why it was refused, in plain words (`actMessage`), never the server's body. */
   error?: string;
 }
 
+/**
+ * What a refused action says, by the server's status. Its body (a parser's message, a guard's text) never reaches the
+ * UI: these say what happened in plain words.
+ */
+export const ACT_MESSAGES: Readonly<Record<number, string>> = {
+  0: "The dashboard server didn't answer",
+  400: "The dashboard server didn't accept that change",
+  403: READ_ONLY_HINT,
+  404: "That Stream Deck device is gone",
+  503: "The Stream Deck app isn't connected",
+};
+
+/** The message for a refused action's status. */
+export const actMessage = (status: number): string => ACT_MESSAGES[status] ?? "The Stream Deck change didn't go through";
+
 /** Sends an action. Resolves to what the server answered; never throws. After a 403 it sends nothing more until the stream reconnects. */
 export async function deckAct(body: DeckAction): Promise<DeckResult> {
-  if (streamDeckRefusal.get()) return { ok: false, status: 403, error: "Read-only on this screen" };
+  if (streamDeckRefusal.get()) return { ok: false, status: 403, error: actMessage(403) };
   return post(body);
 }
 
@@ -177,11 +192,11 @@ async function post(body: DeckAction): Promise<DeckResult> {
       body: JSON.stringify(body),
     });
     if (res.status === 403) streamDeckRefusal.set(true);
-    if (!res.ok) return { ok: false, status: res.status, error: (await res.text().catch(() => "")) || `The server answered ${res.status}` };
+    if (!res.ok) return { ok: false, status: res.status, error: actMessage(res.status) };
     const data = res.status === 204 ? undefined : ((await res.json().catch(() => undefined)) as DeckResult["data"]);
     return { ok: true, status: res.status, data };
   } catch {
-    return { ok: false, status: 0, error: "The dashboard server didn't answer" };
+    return { ok: false, status: 0, error: actMessage(0) };
   }
 }
 
