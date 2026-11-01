@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { allSections, widgetContext } from "@/components/studio/inspector-model";
+import { categorize, tabOf } from "@/components/studio/inspector-categories";
 import { STANDARD_KEYS } from "@/modules/standard-settings";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { withDemo } from "./demo-settings";
@@ -46,13 +46,19 @@ const TABS = [
 ] as const;
 
 /**
- * The widget's settings as its inspector files them: per tab, each section (a general one marked) and its rows. The
- * reference for where a setting lives and which of them are the widget's own.
+ * The widget's settings as its inspector files them (`categorize`, `tabOf`): per tab, each section (a general one
+ * marked) and its rows. The reference for where a setting lives and which of them are the widget's own.
  */
 function SettingsByTab({ mod }: { mod: DashboardModule }) {
-  const sections = allSections(widgetContext(mod)).filter((s) => s.settings.length > 0);
-  const own = (mod.settings ?? []).filter((d) => !d.hidden && !STANDARD_KEYS.has(d.key)).length;
-  const total = sections.reduce((n, s) => n + s.settings.length, 0);
+  const shown = (mod.settings ?? []).filter((d) => !d.hidden);
+  const sections = categorize(shown).flatMap((c) =>
+    TABS.flatMap(([tab]) => {
+      const settings = c.defs.filter((d) => tabOf(d, c) === tab);
+      return settings.length ? [{ id: `${c.id}-${tab}`, title: c.title, general: c.general, tab, settings }] : [];
+    })
+  );
+  const own = shown.filter((d) => !STANDARD_KEYS.has(d.key)).length;
+  const total = shown.length;
   return (
     <details className="mt-2">
       <summary className="cursor-pointer text-[11px] opacity-70">
