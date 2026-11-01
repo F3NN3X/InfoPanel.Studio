@@ -741,7 +741,7 @@ async fn presses_only_keys_on_the_grid_and_never_loses_a_release_to_a_full_queue
 }
 
 #[tokio::test]
-async fn drops_the_old_pages_icons_when_the_page_changes() {
+async fn keeps_icons_across_a_page_change_each_replaced_as_it_comes() {
     let mut app = fake_app(false).await;
     let d = deck_with(Endpoint::Fixed(app.port), one_device(""));
     let mut c = app.conn().await;
@@ -769,22 +769,43 @@ async fn drops_the_old_pages_icons_when_the_page_changes() {
     };
     c.send(S::Icon(proto::Icon {
         index: 0,
-        image: Some(image),
+        image: Some(image.clone()),
     }));
     until(&d.deck, |s| s["devices"][0]["keys"][0]["icon"].is_string()).await;
-    // The same page again keeps the icon; another page drops it until its own icons come.
-    c.send(context(0, "One again"));
+    let first = d.deck.icon("d1", 0).unwrap().version;
+    // Another page: the app sends the new page's icons, some before its context; an icon that came first is kept.
+    c.send(S::Icon(proto::Icon {
+        index: 0,
+        image: Some(proto::Image {
+            image: vec![4, 5, 6],
+            ..image.clone()
+        }),
+    }));
+    c.send(context(1, "Two"));
     until(&d.deck, |s| {
-        s["devices"][0]["keys"][0]["title"] == "One again"
-            && s["devices"][0]["keys"][0]["icon"].is_string()
+        s["devices"][0]["keys"][0]["title"] == "Two" && s["devices"][0]["page"]["current"] == 1
     })
     .await;
-    c.send(context(1, "Two"));
+    let second = d.deck.icon("d1", 0).unwrap().version;
+    assert_ne!(first, second);
+    // An empty icon clears the key.
+    c.send(S::Icon(proto::Icon {
+        index: 0,
+        image: None,
+    }));
+    until(&d.deck, |s| s["devices"][0]["keys"][0]["icon"].is_null()).await;
+    // A smaller grid hides the keys outside it; the app only crops, so it sends nothing for them.
+    c.send(S::Icon(proto::Icon {
+        index: 3,
+        image: Some(image),
+    }));
+    until(&d.deck, |s| s["devices"][0]["keys"][1]["index"] == 3).await;
+    d.deck.grid("d1", 1, 1).unwrap().unwrap();
+    assert_eq!(update_layout(c.expect().await), (1, 1));
     until(&d.deck, |s| {
         s["devices"][0]["keys"] == json!([{ "index": 0, "title": "Two", "icon": null }])
     })
     .await;
-    assert!(d.deck.icon("d1", 0).is_none());
 }
 
 #[tokio::test]

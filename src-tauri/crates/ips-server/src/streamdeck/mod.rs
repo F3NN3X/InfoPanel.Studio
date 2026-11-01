@@ -117,8 +117,6 @@ struct DeviceState {
     error: Option<String>,
     /// (current, total)
     page: (u32, u32),
-    /// The page and profile of the last context; none before the first.
-    context: Option<(u32, String)>,
     titles: BTreeMap<u32, String>,
     icons: BTreeMap<u32, IconData>,
 }
@@ -129,7 +127,6 @@ impl Default for DeviceState {
             status: Status::Connecting,
             error: None,
             page: (0, 0),
-            context: None,
             titles: BTreeMap::new(),
             icons: BTreeMap::new(),
         }
@@ -137,12 +134,14 @@ impl Default for DeviceState {
 }
 
 impl DeviceState {
-    fn keys_json(&self) -> Vec<Value> {
+    /// The keys within a grid of `count` keys: a smaller grid hides the rest (the app keeps them, it only crops).
+    fn keys_json(&self, count: u32) -> Vec<Value> {
         let indexes: BTreeSet<u32> = self
             .titles
             .keys()
             .chain(self.icons.keys())
             .copied()
+            .filter(|i| *i < count)
             .collect();
         let key = |i: u32| json!({ "index": i, "title": self.titles.get(&i).map_or("", String::as_str), "icon": self.icons.get(&i).map(|icon| icon.version.as_str()) });
         indexes.into_iter().map(key).collect()
@@ -329,7 +328,7 @@ impl StreamDeck {
                 let mut device = json!({
                     "id": d.id, "name": d.name, "cols": d.cols, "rows": d.rows, "status": status.as_str(),
                     "page": { "current": current, "total": total },
-                    "keys": state.map_or_else(Vec::new, DeviceState::keys_json),
+                    "keys": state.map_or_else(Vec::new, |st| st.keys_json(d.cols * d.rows)),
                 });
                 if let Some(error) = state.and_then(|st| st.error.as_ref()) {
                     device["error"] = json!(error);
@@ -386,7 +385,6 @@ impl StreamDeck {
             st.error = error;
             if status != Status::Ready {
                 st.page = (0, 0);
-                st.context = None;
                 st.titles.clear();
                 st.icons.clear();
             }
@@ -394,13 +392,9 @@ impl StreamDeck {
     }
 
     fn context(&self, id: &str, context: &proto::Context) {
+        // Icons are kept: on another page or profile the app sends every key's new icon, some of them before this
+        // context (seen with the real app), and each replaces the one before it.
         self.update(id, |st| {
-            // Another page or profile: the icons shown are the old page's; the new page's follow.
-            let seen = (context.current_page, context.profile_id.clone());
-            if st.context.as_ref().is_some_and(|last| *last != seen) {
-                st.icons.clear();
-            }
-            st.context = Some(seen);
             st.page = (context.current_page, context.total_pages);
             st.titles = context
                 .actions
