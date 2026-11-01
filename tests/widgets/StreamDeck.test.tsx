@@ -6,6 +6,9 @@ import type { StreamDeckState } from "@/lib/streamdeck";
 
 const mocks = vi.hoisted(() => ({ state: null as StreamDeckState | null, press: vi.fn(), act: vi.fn() }));
 
+// A skin's fonts load from Google Fonts, which happy-dom refuses (loudly).
+vi.mock("@/widgets/core/fonts", () => ({ ensureSkinFonts: () => undefined }));
+
 vi.mock("@/lib/streamdeck", async (original) => ({
   ...(await original<typeof import("@/lib/streamdeck")>()),
   useStreamDeck: () => mocks.state,
@@ -52,6 +55,17 @@ describe("StreamDeck", () => {
     expect(img?.getAttribute("src")).toBe("/api/streamdeck/icon?device=d1&index=0&v=v1");
     expect(img?.getAttribute("draggable")).toBe("false");
     expect(screen.getByText("1 / 2")).toBeTruthy();
+  });
+
+  it("draws its keys in the skin, not its frame, and plainly for a key style it doesn't know", () => {
+    // A chosen skin brings its own surface into the look (`withSkinSurface`); the frame doesn't take it.
+    const { rerender } = render(<StreamDeck data={{}} device="d1" skin="cyber" look={{ skin: "cyber", surface: "cyber" }} />);
+    expect(keys()).toHaveLength(15);
+    expect(keys()[0].getAttribute("data-key-style")).toBe("auto");
+    expect(keys()[0].style.clipPath).toContain("polygon");
+    expect((document.querySelector("[data-wp-tier]") as HTMLElement).style.clipPath).toBe("");
+    rerender(<StreamDeck data={{}} device="d1" skin="cyber" keyStyle="gone-surface" />);
+    expect(keys()[0].className).toContain("bg-white/[0.06]");
   });
 
   it("says what is missing instead of a grid", () => {

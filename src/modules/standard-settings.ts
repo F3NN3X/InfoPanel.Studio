@@ -65,6 +65,9 @@ const APP_SURFACE_OPTIONS = [
   { value: "theme", label: "Match theme" },
 ];
 
+/** Every surface a widget can pick by name: the app's materials, then the generic ones. */
+export const SURFACE_OPTIONS = [...APP_SURFACE_OPTIONS, ...Object.keys(BASE_SURFACES).map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) }))];
+
 /** Size, alignment, spacing, colors and type — every widget gets these. */
 export const STYLE_SETTINGS: ModuleSetting[] = [
   {
@@ -324,11 +327,7 @@ export const STANDARD_SETTINGS: ModuleSetting[] = [
     label: "Surface",
     type: "select",
     default: "glass",
-    options: [
-      { value: "auto", label: "Auto (skin's card)" },
-      ...APP_SURFACE_OPTIONS,
-      ...Object.keys(BASE_SURFACES).map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })),
-    ],
+    options: [{ value: "auto", label: "Auto (skin's card)" }, ...SURFACE_OPTIONS],
     section: "surface",
   },
   { key: "showTitle", label: "Show title", type: "boolean", default: true, section: "header" },

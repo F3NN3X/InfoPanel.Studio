@@ -1,15 +1,19 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { deckAct, deckPress, iconUrl, streamDeckRefusal, useStreamDeck, type Deck } from "@/lib/streamdeck";
 import { READ_ONLY_HINT } from "@/lib/write-refusal";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, Icon, Empty, type ShellProps } from "./kit";
+import { chromeOf } from "@/modules/standard-settings";
+import { Widget, shell, Icon, Empty, usePane, type ShellProps } from "./kit";
 import { ReadOnly } from "./ReadOnly";
+import { resolveAccent, skinContext } from "./core/look";
+import type { SkinContext } from "./core/types";
 import { fitKeys, HOLD_MS, PAGE_ROW, pageText, SLOP_PX, swipeOf, titlePx } from "./StreamDeck/layout";
+import { frameSurface, keyLook, keyRadius, pressedOf, type IconOverlay, type KeyFrame, type KeyStyle, type PressedEffect } from "./StreamDeck/look";
 import { meta } from "./meta/StreamDeck";
 
 export { meta };
 
-export type PressedEffect = "dip" | "glow" | "none";
+export type { IconOverlay, KeyFrame, KeyStyle, PressedEffect };
 
 export interface StreamDeckProps extends ShellProps {
   look?: ModuleSettings;
@@ -27,10 +31,106 @@ export interface StreamDeckProps extends ShellProps {
   keyGap?: number;
   /** A key's corner radius, px; unset follows the widget's corners (their radius × 0.62). */
   keyRadius?: number;
+  /** The keys' surface: `auto` the skin's card (default), `widget` the widget's, `plain`, or a surface's name. */
+  keyStyle?: KeyStyle;
+  /** How much of the surface shows round the icon. Default thin. */
+  keyFrame?: KeyFrame;
+  /** Drawn over the icon: the surface's edge (default), a sheen, a glow, or nothing. */
+  iconOverlay?: IconOverlay;
+  /** The overlay's strength, 0–100 %. Default 100. */
+  overlayStrength?: number;
+  /** Default skin: glow on the skins that glow, dip on the rest. */
   pressedEffect?: PressedEffect;
 }
 
 const DEFAULT_GAP = 8;
+
+interface KeyProps {
+  index: number;
+  title: string;
+  /** The icon's URL, or null. */
+  icon: string | null;
+  on: boolean;
+  /** The key's side, px. */
+  size: number;
+  /** The title's font size, px; 0 hides it. */
+  titles: number;
+  look: Pick<StreamDeckProps, "keyStyle" | "keyFrame" | "iconOverlay" | "overlayStrength" | "pressedEffect" | "keyRadius" | "radius">;
+  /** The skin the keys are drawn in (the widget's frame is not). */
+  skin: SkinContext;
+  /** The accent the look or the widget sets, if any. */
+  accent?: string;
+  onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerMove: (e: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerUp: (e: ReactPointerEvent<HTMLDivElement>) => void;
+  onRelease: (e: ReactPointerEvent<HTMLDivElement>) => void;
+}
+
+/** One key, drawn in the skin (its own component, so it reads the surface of the widget it is in). */
+function Key({ index, title, icon, on, size, titles, look, skin, accent, onPointerDown, onPointerMove, onPointerUp, onRelease }: KeyProps) {
+  const pane = usePane();
+  const style = look.keyStyle || "auto";
+  const face = keyLook({ style, frame: look.keyFrame ?? "thin", overlay: look.iconOverlay ?? "skin", strength: look.overlayStrength ?? 100, size, skin, pane });
+  const radius = keyRadius({ keyRadius: look.keyRadius, radius: look.radius, style, skin });
+  const effect = pressedOf(look.pressedEffect ?? "skin", skin);
+  const [broken, setBroken] = useState(false);
+  const shown = icon !== null && !broken;
+  const inset = shown ? face.inset : 0;
+  const inner = inset > 0 ? `max(0px, calc(${radius} - ${inset}px))` : radius;
+  return (
+    <div
+      role="button"
+      aria-label={title || `Key ${index + 1}`}
+      aria-pressed={on}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onRelease}
+      onLostPointerCapture={onRelease}
+      // Without capture (the touch bridge's pointers) a pointer leaving the key lets go of it; with it this comes after the release.
+      onPointerLeave={onRelease}
+      data-key-style={style}
+      className={`relative flex items-center justify-center overflow-hidden transition-transform duration-75 ${face.className}`}
+      style={{
+        ...face.style,
+        "--accent": resolveAccent(accent, skin, face.tone),
+        fontFamily: skin.font,
+        borderRadius: radius,
+        opacity: icon !== null || title !== "" ? 1 : 0.35,
+        transform: on && effect === "dip" ? "scale(0.93)" : undefined,
+        filter: on && effect === "dip" ? "brightness(0.75)" : undefined,
+        ...(on && effect === "glow" ? { boxShadow: "0 0 0 2px var(--accent, #fff), 0 0 14px var(--accent, #fff)" } : null),
+      } as CSSProperties}
+    >
+      {shown && (
+        <img
+          src={icon}
+          alt=""
+          draggable={false}
+          className="pointer-events-none absolute object-cover"
+          style={{ inset, width: `calc(100% - ${inset * 2}px)`, height: `calc(100% - ${inset * 2}px)`, borderRadius: inner }}
+          onError={() => setBroken(true)}
+        />
+      )}
+      {face.overlay && <div aria-hidden className={`pointer-events-none absolute inset-0 ${face.overlay.className}`} style={{ ...face.overlay.style, borderRadius: radius }} />}
+      {titles > 0 && title && (
+        <span
+          className="pointer-events-none relative max-w-full truncate px-1 text-center font-semibold leading-tight"
+          style={{
+            fontSize: titles,
+            // Over an icon the title is white with a shadow, as the app draws it; on a bare key it takes the surface's text colour.
+            color: shown ? "#fff" : "var(--w-fg)",
+            textShadow: shown ? "0 1px 3px rgba(0,0,0,.85)" : undefined,
+            marginTop: shown ? "auto" : undefined,
+            marginBottom: shown ? inset + 2 : undefined,
+          }}
+        >
+          {title}
+        </span>
+      )}
+    </div>
+  );
+}
 
 /** What the deck says when it has no keys to show: its state, or why not. */
 function notice(deck: Deck | undefined, enabled: boolean, device: string | undefined, code: string): { icon: string; label: string; sub?: string } | null {
@@ -62,9 +162,11 @@ export default function StreamDeck(p: StreamDeckProps) {
   // lifting) so a swipe that starts on a key never presses it; a sent press gets its release, once, however the contact ends.
   const held = useRef(new Map<number, { device: string; index: number; x: number; y: number; sent: boolean; timer?: ReturnType<typeof setTimeout> }>());
   const swiping = useRef(new Map<number, { x: number; y: number }>());
-  const effect = p.pressedEffect ?? "dip";
   const gap = p.keyGap ?? DEFAULT_GAP;
-  const radius = p.keyRadius !== undefined && p.keyRadius > 0 ? `${p.keyRadius}px` : p.radius === undefined ? "calc(var(--radius, 1rem) * 0.62)" : `${p.radius * 0.62}px`;
+  // The skin styles the keys, not the frame: the shell draws unskinned, and drops a surface only the skin brought in.
+  const chrome = useMemo(() => (p.look ? chromeOf(p.look) : undefined), [p.look]);
+  const keySkin = useMemo(() => skinContext(p.skin ?? "default", { chrome }), [p.skin, chrome]);
+  const frameLook = useMemo(() => p.look && { ...p.look, surface: frameSurface(String(p.look.surface ?? "")) ?? "" }, [p.look]);
   const status = notice(deck, state.enabled, p.device, state.pairingCode);
   const ready = deck !== undefined && status === null;
 
@@ -110,6 +212,9 @@ export default function StreamDeck(p: StreamDeckProps) {
   return (
     <Widget
       {...shell(p)}
+      skin={undefined}
+      surface={frameSurface(p.surface)}
+      look={frameLook}
       title={p.title ?? label}
       icon="grid_view"
       right={readOnly ? <span className="text-[color:var(--w-muted)]">{READ_ONLY_HINT}</span> : undefined}
@@ -178,50 +283,23 @@ export default function StreamDeck(p: StreamDeckProps) {
               >
                 {Array.from({ length: deck.cols * deck.rows }, (_, index) => {
                   const key = byIndex.get(index);
-                  const filled = key !== undefined && (key.icon !== null || key.title !== "");
-                  const on = down.has(index);
                   return (
-                    <div
+                    <Key
                       key={index}
-                      role="button"
-                      aria-label={key?.title || `Key ${index + 1}`}
-                      aria-pressed={on}
+                      index={index}
+                      title={key?.title ?? ""}
+                      icon={key?.icon ? iconUrl(deck.id, index, key.icon) : null}
+                      on={down.has(index)}
+                      size={fit.size}
+                      titles={titles}
+                      look={p}
+                      skin={keySkin}
+                      accent={chrome?.accent || p.accent}
                       onPointerDown={(e) => onKeyDown(e, index)}
                       onPointerMove={onKeyMove}
                       onPointerUp={onKeyUp}
-                      onPointerCancel={(e) => release(e.pointerId)}
-                      onLostPointerCapture={(e) => release(e.pointerId)}
-                      // Without capture (the touch bridge's pointers) a pointer leaving the key lets go of it; with it this comes after the release.
-                      onPointerLeave={(e) => release(e.pointerId)}
-                      className="relative flex items-center justify-center overflow-hidden bg-white/[0.06] transition-transform duration-75"
-                      style={{
-                        borderRadius: radius,
-                        opacity: filled ? 1 : 0.35,
-                        transform: on && effect === "dip" ? "scale(0.93)" : undefined,
-                        filter: on && effect === "dip" ? "brightness(0.75)" : undefined,
-                        boxShadow: on && effect === "glow" ? "0 0 0 2px var(--accent, #fff), 0 0 14px var(--accent, #fff)" : "inset 0 0 0 1px rgba(255,255,255,.05)",
-                      }}
-                    >
-                      {key?.icon && (
-                        <img
-                          src={iconUrl(deck.id, index, key.icon)}
-                          alt=""
-                          draggable={false}
-                          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      )}
-                      {titles > 0 && key?.title && (
-                        <span
-                          className="pointer-events-none relative max-w-full truncate px-1 text-center font-semibold leading-tight text-white"
-                          style={{ fontSize: titles, textShadow: "0 1px 3px rgba(0,0,0,.85)", marginTop: key.icon ? "auto" : undefined, marginBottom: key.icon ? 2 : undefined }}
-                        >
-                          {key.title}
-                        </span>
-                      )}
-                    </div>
+                      onRelease={(e) => release(e.pointerId)}
+                    />
                   );
                 })}
               </div>

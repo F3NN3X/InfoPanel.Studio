@@ -1,5 +1,6 @@
 // The Elgato Stream Deck widget: a virtual deck the dashboard server keeps in the Stream Deck app. It reads the server's
 // Stream Deck state (`src/lib/streamdeck.ts`), not sensor data.
+import { SURFACE_OPTIONS } from "@/modules/standard-settings";
 import type { DashboardModule, ModuleSetting } from "@/modules/types";
 import { templateModule } from "../module";
 import { lazyWidget } from "../lazy-widget";
@@ -31,10 +32,42 @@ export const STREAM_DECK_SETTINGS: ModuleSetting[] = [
   numberSetting("keyGap", "Key gap (px)", 8, { min: 0, max: 24, step: 1, group: "Keys", tab: "style" }),
   numberSetting("keyRadius", "Key corner radius (px)", 0, { min: 0, max: 48, step: 1, group: "Keys", tab: "style", hint: "0 follows the widget's corners" }),
   enumSetting(
+    "keyStyle",
+    "Key style",
+    "auto",
+    [{ value: "auto", label: "Skin's card" }, { value: "widget", label: "Same as widget" }, { value: "plain", label: "Plain" }, ...SURFACE_OPTIONS],
+    { group: "Keys", tab: "style", hint: "The keys' surface; it shows as a frame round each icon" }
+  ),
+  enumSetting(
+    "keyFrame",
+    "Frame",
+    "thin",
+    [
+      { value: "none", label: "None" },
+      { value: "thin", label: "Thin" },
+      { value: "thick", label: "Thick" },
+    ],
+    { group: "Keys", tab: "style", visibleIf: (v) => v.keyStyle !== "plain" }
+  ),
+  enumSetting(
+    "iconOverlay",
+    "Icon overlay",
+    "skin",
+    [
+      { value: "skin", label: "Skin's edge" },
+      { value: "sheen", label: "Sheen" },
+      { value: "glow", label: "Glow" },
+      { value: "none", label: "None" },
+    ],
+    { group: "Keys", tab: "style", hint: "Drawn over each icon" }
+  ),
+  numberSetting("overlayStrength", "Overlay strength (%)", 100, { min: 0, max: 100, step: 5, group: "Keys", tab: "style", visibleIf: (v) => v.iconOverlay !== "none" }),
+  enumSetting(
     "pressedEffect",
     "Pressed effect",
-    "dip",
+    "skin",
     [
+      { value: "skin", label: "Skin" },
       { value: "dip", label: "Dip" },
       { value: "glow", label: "Glow" },
       { value: "none", label: "None" },
@@ -48,7 +81,7 @@ export const GROUP_STREAM_DECK: DashboardModule[] = [
     meta: streamDeck,
     Component: StreamDeck,
     settings: STREAM_DECK_SETTINGS,
-    toProps: (s): Pick<StreamDeckProps, "device" | "showTitles" | "titleSize" | "showPages" | "swipe" | "keyGap" | "keyRadius" | "pressedEffect"> => ({
+    toProps: (s): Pick<StreamDeckProps, "device" | "showTitles" | "titleSize" | "showPages" | "swipe" | "keyGap" | "keyRadius" | "keyStyle" | "keyFrame" | "iconOverlay" | "overlayStrength" | "pressedEffect"> => ({
       device: stringOf(s.device),
       showTitles: boolOf(s.showTitles),
       titleSize: oneOf(s.titleSize, ["sm", "md", "lg"] as const),
@@ -56,7 +89,11 @@ export const GROUP_STREAM_DECK: DashboardModule[] = [
       swipe: boolOf(s.swipe),
       keyGap: numberOf(s.keyGap),
       keyRadius: numberOf(s.keyRadius),
-      pressedEffect: oneOf(s.pressedEffect, ["dip", "glow", "none"] as const),
+      keyStyle: stringOf(s.keyStyle),
+      keyFrame: oneOf(s.keyFrame, ["none", "thin", "thick"] as const),
+      iconOverlay: oneOf(s.iconOverlay, ["skin", "sheen", "glow", "none"] as const),
+      overlayStrength: numberOf(s.overlayStrength),
+      pressedEffect: oneOf(s.pressedEffect, ["skin", "dip", "glow", "none"] as const),
     }),
   }),
 ];
