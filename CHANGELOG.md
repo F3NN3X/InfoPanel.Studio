@@ -6,9 +6,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.1-beta.6] - 2026-11-01
+
 ### Added
 
-- **An Elgato Stream Deck widget.** It is a virtual Stream Deck on your screen: its keys, titles and icons come from the Stream Deck app, and a tap runs the real action. Turn it on in **Settings** › **Connections** and confirm the pairing code in the Stream Deck app, then pick or create a device in the widget's settings. Each widget has its own device, the grid can be anything up to 8×8 and a page row (or a sideways swipe) changes page.
+- **An Elgato Stream Deck widget.** It is a virtual Stream Deck on your screen: its keys, titles and icons come from the Stream Deck app, and a tap runs the real action. Turn it on in **Settings** › **Connections** and confirm the pairing code in the Stream Deck app, then pick or create a device in the widget's settings. Each widget has its own device, the grid can be anything up to 8×8 and a page row (or a sideways swipe) changes page. The widget's **Skin** styles its keys, not its frame: under **Style**, pick the key style, a frame round each icon, an icon overlay (the skin's edge, a sheen or a glow) and how strong it is, and the pressed effect.
 
 ### Changed
 
