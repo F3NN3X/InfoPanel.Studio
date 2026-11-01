@@ -29,5 +29,5 @@ export function PulseDot({ color, pulse, className, label }: { color: string; pu
   useEffect(() => {
     if (!live && ref.current) ref.current.style.boxShadow = "";
   }, [live]);
-  return <span ref={ref} className={className} style={{ background: color }} aria-label={label} />;
+  return <span ref={ref} role={label ? "img" : undefined} className={className} style={{ background: color }} aria-label={label} />;
 }

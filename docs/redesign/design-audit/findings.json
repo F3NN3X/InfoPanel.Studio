@@ -94,7 +94,7 @@
     "evidence": "studio-top-bar.tsx:58 and context-menu.tsx:133-134 opened: fill-only highlight.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-005",
@@ -113,7 +113,7 @@
     "evidence": "color-field.tsx:25-42 opened: opacity-0 input, no focus style.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-006",
@@ -138,7 +138,7 @@
     "evidence": "toast.tsx:5,40 opened: setTimeout(.., options?.ms ?? TOAST_MS), TOAST_MS = 1800.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-007",
@@ -162,7 +162,7 @@
     "evidence": "source-dot.tsx:30-40 opened: span with title only, default aria-hidden.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-008",
@@ -213,7 +213,7 @@
     "evidence": "status-bar.tsx:143-158 and streamdeck-block.tsx:15,105 opened.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-010",
@@ -367,7 +367,7 @@
     "evidence": "bottom-sheet.tsx:37, setting-card.tsx:97, overlay.tsx:78 opened; grep prefers-reduced-motion = 0 in settings.css, window.css, help.css. No motion-reduce use under components/studio. B-06's WCAG 2.3.3 is AAA but the project trigger applies.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-017",
@@ -407,7 +407,7 @@
     "evidence": "layers-tree.tsx:268-275 opened: outline-none, no focus class; .focus() at :149.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-019",
@@ -445,7 +445,7 @@
     "evidence": "import-dialog.tsx:432-434 opened: nav max-md:hidden contains Dialog.Title.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-021",
@@ -465,7 +465,7 @@
     "evidence": "config-update-dialog.tsx:56-66 opened: plain div, no key handling (grep Escape/onKeyDown: none).",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-022",
@@ -566,7 +566,7 @@
     "evidence": "Static; forced-colors rendering inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-026",
@@ -597,7 +597,7 @@
     "evidence": "Mixed verified/inferred; spacing exception means some are margin, not failure.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-027",
@@ -630,7 +630,7 @@
     "evidence": "Static; templates' wizard-gallery implements arrows correctly.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-028",
@@ -987,7 +987,7 @@
     "evidence": "B-07 verified; B-16, C-16 inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-044",
@@ -1006,7 +1006,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-045",
@@ -1032,7 +1032,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-046",
@@ -1078,7 +1078,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-048",
@@ -1098,7 +1098,7 @@
     "evidence": "Inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-049",
@@ -1145,7 +1145,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-051",
@@ -1178,7 +1178,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-052",
@@ -1205,7 +1205,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-053",
@@ -1225,7 +1225,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-054",
@@ -1245,7 +1245,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-055",
@@ -1270,7 +1270,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-056",
@@ -1327,7 +1327,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-059",
@@ -1368,7 +1368,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-061",
@@ -1745,7 +1745,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-078",

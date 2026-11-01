@@ -35,6 +35,7 @@ import type { LibraryItem } from "@/lib/library";
 import { setActiveLibraryDrag, setLibraryDrag } from "@/lib/my-library/drag";
 import { isOlderItem } from "@/lib/my-library/item-format";
 import { COLLECTIONS, SORTS, cardTag, cleanupCounts, flagOf, isDraggable, type CollectionId, type LibraryIndex, type SortId } from "@/lib/my-library/model";
+import { FOCUS } from "@/components/studio/menu-styles";
 import { AssetThumb } from "./asset-thumb";
 import type { ClickMod } from "./multi-delete";
 
@@ -167,7 +168,8 @@ export function LibraryCard({ item, index, selected, checked, selectMode, onSele
         }
       }}
       className={cn(
-        "group flex cursor-pointer flex-col gap-2 rounded-[12px] border border-ui-subtle bg-ui-panel p-1.5 pb-2.5 outline-none hover:border-ui-default focus-visible:border-ui-accent",
+        "group flex cursor-pointer flex-col gap-2 rounded-[12px] border border-ui-subtle bg-ui-panel p-1.5 pb-2.5 outline-none hover:border-ui-default",
+        FOCUS,
         (selected || checked) && "border-ui-accent bg-ui-accent/[.06] hover:border-ui-accent",
         className,
       )}
@@ -179,6 +181,7 @@ export function LibraryCard({ item, index, selected, checked, selectMode, onSele
             type="checkbox"
             aria-label={`Select ${item.name}`}
             checked={!!checked}
+            tabIndex={-1}
             onChange={() => {}}
             onClick={(e) => {
               e.stopPropagation();

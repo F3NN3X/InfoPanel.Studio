@@ -24,9 +24,9 @@ export const HEALTH_LABEL: Record<Health, string> = {
 };
 
 const HEALTH_COLOR: Record<Health, string> = {
-  ok: "bg-ui-success",
-  warn: "bg-ui-warning",
-  off: "bg-[#5a5a63]",
+  ok: "rounded-full bg-ui-success",
+  warn: "rotate-45 rounded-[1px] bg-ui-warning",
+  off: "rounded-full border border-[#8a8a94]",
 };
 
 export function StatusDot({ health, className }: { health: Health; className?: string }) {
@@ -35,7 +35,7 @@ export function StatusDot({ health, className }: { health: Health; className?: s
       role="img"
       aria-label={HEALTH_LABEL[health]}
       title={HEALTH_LABEL[health]}
-      className={cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", HEALTH_COLOR[health], className)}
+      className={cn("inline-block h-1.5 w-1.5 shrink-0", HEALTH_COLOR[health], className)}
     />
   );
 }

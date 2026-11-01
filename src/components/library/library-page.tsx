@@ -7,6 +7,7 @@
  * page; ticked cards (Select, Ctrl, Shift) are deleted together; the edited
  * screen's canvas files are one button away. Every upload is an item (`useAdoptUploads`). Lazy-loaded.
  */
+import { onRovingKeyDown } from "@/lib/roving";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy,
@@ -533,7 +534,7 @@ export default function LibraryPage(p: LibraryPageProps) {
           )}
         </label>
         {!empty && !showFiles && (
-          <div role="radiogroup" aria-label="View" className="flex h-[34px] items-center gap-0.5 rounded-[9px] border border-ui-default p-0.5">
+          <div role="radiogroup" aria-label="View" onKeyDown={(e) => onRovingKeyDown(e, '[role="radio"]')} className="flex h-[34px] items-center gap-0.5 rounded-[9px] border border-ui-default p-0.5">
             {(
               [
                 ["grid", "Grid", LayoutGrid],
@@ -545,6 +546,7 @@ export default function LibraryPage(p: LibraryPageProps) {
                 type="button"
                 role="radio"
                 aria-checked={view === id}
+                tabIndex={view === id ? 0 : -1}
                 onClick={() => {
                   setView(id);
                   if (id === "shelves") setCollection("all");

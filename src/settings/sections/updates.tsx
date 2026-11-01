@@ -50,10 +50,12 @@ export function UpdatesSection() {
           <Icon className={cn("h-6 w-6", card.icon === "checking" && "animate-spin")} />
         </StateTile>
         <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
-          <span className="text-base font-semibold">{card.title}</span>
-          <span className="text-[12.5px] text-s-muted">{card.detail}</span>
+          <span role="status" className="flex flex-col gap-[3px]">
+            <span className="text-base font-semibold">{card.title}</span>
+            <span className="text-[12.5px] text-s-muted">{card.detail}</span>
+          </span>
           {card.progress !== null && (
-            <div role="progressbar" aria-valuenow={Math.round(card.progress * 100)} aria-valuemin={0} aria-valuemax={100} className="mt-1.5 h-1 max-w-[280px] overflow-hidden rounded-sm bg-s-track-line">
+            <div role="progressbar" aria-label="Update progress" aria-valuetext={`${Math.round(card.progress * 100)} percent`} aria-valuenow={Math.round(card.progress * 100)} aria-valuemin={0} aria-valuemax={100} className="mt-1.5 h-1 max-w-[280px] overflow-hidden rounded-sm bg-s-track-line">
               <div className="h-full bg-s-accent" style={{ width: `${card.progress * 100}%` }} />
             </div>
           )}

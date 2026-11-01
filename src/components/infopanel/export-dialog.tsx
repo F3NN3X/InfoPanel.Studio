@@ -4,6 +4,7 @@
  * and icons to one image each) puts the new files on the zone as one undo step. What it reports about each part is
  * the editor's Export check (`exportCheck`), read from the items it writes, so the two never disagree.
  */
+import { onRovingKeyDown } from "@/lib/roving";
 import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Archive, Share, TriangleAlert, X } from "lucide-react";
@@ -128,7 +129,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
   const stem = fileStem(name);
   const fileName = out === "stored" ? `${stem}.canvas.zip` : `${stem}.infopanel`;
   if (!opened) return <p className="p-5 text-[12.5px] text-ui-3">Reading the canvas’s files…</p>;
-  if (opened instanceof Error) return <p className="p-5 text-[12.5px] text-ui-danger">{opened.message}</p>;
+  if (opened instanceof Error) return <p role="alert" className="p-5 text-[12.5px] text-ui-danger">{opened.message}</p>;
 
   const doc: Doc = { items: opened.parsed.items, assets: opened.assets };
   const stale = staleGauges(doc.items);
@@ -279,12 +280,12 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
       )}
       <div className="flex items-center border-b border-ui-subtle px-5 py-4">
         <Dialog.Title className="flex-1 text-[15px] font-semibold text-ui-1">Export {name}</Dialog.Title>
-        <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+        <Dialog.Close title="Close" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
           <X className="h-5 w-5" />
         </Dialog.Close>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-auto px-5 py-[18px]">
-        <div role="radiogroup" aria-label="Output" className="grid grid-cols-2 gap-2.5 max-sm:grid-cols-1">
+        <div role="radiogroup" aria-label="Output" onKeyDown={(e) => onRovingKeyDown(e, '[role="radio"]')} className="grid grid-cols-2 gap-2.5 max-sm:grid-cols-1">
           {outputs.map((o) => {
             const Icon = o.icon;
             const on = out === o.value;
@@ -294,6 +295,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
                 type="button"
                 role="radio"
                 aria-checked={on}
+                tabIndex={on ? 0 : -1}
                 onClick={() => setOut(o.value)}
                 className={cn("flex flex-col gap-1.5 rounded-[10px] border p-3.5 text-left", on ? "border-ui-accent bg-ui-accent-soft" : "border-ui-default bg-ui-tile hover:bg-ui-hover")}
               >

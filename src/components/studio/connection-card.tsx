@@ -73,6 +73,8 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
           type="text"
           value={draft}
           aria-label="Data API URL"
+          aria-invalid={!valid}
+          aria-describedby={valid ? undefined : "data-api-url-error"}
           data-nav-control="url"
           onChange={(e) => {
             setDraft(e.target.value);
@@ -84,12 +86,18 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
           className={cn(FIELD, "h-[30px] w-full font-ui-mono text-[11.5px]", !valid && "border-ui-danger")}
         />
       </StackRow>
-      {!valid && <div className="text-[11px] text-ui-danger">Enter an http(s) URL.</div>}
+      {!valid && (
+        <div id="data-api-url-error" role="alert" className="text-[11px] text-ui-danger">
+          Enter an http(s) URL.
+        </div>
+      )}
       <div className="flex min-h-7 items-center gap-2 text-[12px] text-ui-3">
         <span className="min-w-0 flex-1 truncate">Test connection</span>
-        {probe === "testing" && <span>testing...</span>}
-        {probe === "ok" && <span className="text-ui-success">connected</span>}
-        {probe === "fail" && <span className="text-ui-danger">not reachable</span>}
+        <span role="status" className="flex items-center gap-2">
+          {probe === "testing" && <span>testing...</span>}
+          {probe === "ok" && <span className="text-ui-success">connected</span>}
+          {probe === "fail" && <span className="text-ui-danger">not reachable</span>}
+        </span>
         <button
           type="button"
           onClick={() => void test()}

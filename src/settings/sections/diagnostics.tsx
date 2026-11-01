@@ -36,7 +36,8 @@ function SeriesTable({ diag, filter }: { diag: Diagnostics; filter: "notable" | 
             {g.rows.map(({ series, name }) => (
               <div key={series.name} className={cn(GRID, "items-center px-4 py-[7px] text-[12.5px] hover:bg-[#151519]")}>
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", series.growing ? "bg-s-amber" : "bg-[#55555e]")} />
+                  <span aria-hidden="true" className={cn("h-1.5 w-1.5 shrink-0 rounded-full", series.growing ? "bg-s-amber" : "bg-[#55555e]")} />
+                  {series.growing && <span className="sr-only">Rising: </span>}
                   <span className="truncate font-mono text-s-t2">{name}</span>
                 </span>
                 <span className="text-right font-mono">{fmt(series.latest)}</span>

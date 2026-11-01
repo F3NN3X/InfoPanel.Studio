@@ -24,10 +24,12 @@ interface SearchBoxProps {
   onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
   /** The placeholder and the accessible name. */
   label: string;
+  /** Makes it a combobox over a listbox: the list's id and the id of the highlighted option. */
+  list?: { id: string; activeId?: string };
 }
 
 /** The 34px sidebar search field: a clear button once there is text, the `Ctrl K` hint before. */
-export function SearchBox({ inputRef, value, onChange, onKeyDown, label }: SearchBoxProps) {
+export function SearchBox({ inputRef, value, onChange, onKeyDown, label, list }: SearchBoxProps) {
   return (
     <div className="flex h-[34px] items-center gap-2 rounded-[9px] border border-s-track-line bg-[#141418] px-2.5">
       <Search className="h-[17px] w-[17px] shrink-0 text-s-dim" />
@@ -36,6 +38,13 @@ export function SearchBox({ inputRef, value, onChange, onKeyDown, label }: Searc
         value={value}
         placeholder={label}
         aria-label={label}
+        {...(list && {
+          role: "combobox",
+          "aria-expanded": value !== "",
+          "aria-controls": list.id,
+          "aria-autocomplete": "list" as const,
+          "aria-activedescendant": value !== "" ? list.activeId : undefined,
+        })}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
         className="min-w-0 flex-1 border-0 bg-transparent text-[13px] text-s-t1 outline-none placeholder:text-s-dim"

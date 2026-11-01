@@ -57,6 +57,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
           inputRef={input}
           value={query}
           label="Search settings"
+          list={{ id: "settings-results", activeId: results.length ? `settings-result-${Math.min(active, results.length - 1)}` : undefined }}
           onChange={(value) => {
             setQuery(value);
             setActive(0);
@@ -75,15 +76,20 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto px-2 pb-3 pt-1">
         {query ? (
           <>
-            <div className="px-2.5 pb-1.5 pt-2 text-[10.5px] uppercase tracking-[0.07em] text-s-dim">{results.length === 0 ? "No matches" : `${results.length} result${results.length === 1 ? "" : "s"}`}</div>
+            <div role="status" className="px-2.5 pb-1.5 pt-2 text-[10.5px] uppercase tracking-[0.07em] text-s-dim">{results.length === 0 ? "No matches" : `${results.length} result${results.length === 1 ? "" : "s"}`}</div>
+            <div id="settings-results" role="listbox" aria-label="Settings search results" className="contents">
             {results.map((r, i) => {
               const Icon = PAGE_ICONS[r.section];
               return (
                 <button
                   key={`${r.row}-${r.label}`}
+                  id={`settings-result-${i}`}
                   type="button"
+                  role="option"
+                  aria-selected={i === active}
+                  tabIndex={-1}
                   onClick={() => open(i)}
-                  className={cn("flex w-full cursor-pointer flex-col gap-0.5 rounded-lg border-0 px-2.5 py-2 text-left text-s-t1 hover:bg-s-nav-hover", i === active ? "bg-s-nav-hover" : "bg-transparent")}
+                  className={cn("flex w-full cursor-pointer flex-col gap-0.5 rounded-lg border-0 px-2.5 py-2 text-left text-s-t1 hover:bg-s-nav-hover", i === active ? "bg-s-nav-hover outline outline-2 -outline-offset-2 outline-s-accent" : "bg-transparent")}
                 >
                   <span className="text-[13px]">{r.label}</span>
                   <span className="flex items-center gap-1 text-[11.5px] text-s-dim">
@@ -93,6 +99,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
                 </button>
               );
             })}
+            </div>
           </>
         ) : (
           <nav aria-label="Settings sections" className="contents">
@@ -100,10 +107,20 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
               <div key={group.label} className="contents">
                 <NavGroupLabel>{group.label}</NavGroupLabel>
                 {group.items.map((id) => (
-                  <NavItem key={id} id={id} on={section === id} onClick={() => go(id)}>
-                    {id === "server" && <span className={cn("h-[7px] w-[7px] rounded-full", t.dot)} />}
-                    {id === "diagnostics" && settings.debug && <span className="h-[7px] w-[7px] rounded-full bg-s-amber" />}
-                    {id === "updates" && updateBadge && <span className="rounded-full bg-s-accent/18 px-1.5 py-px text-[10.5px] font-semibold text-s-accent-text">1</span>}
+                  <NavItem
+                    key={id}
+                    id={id}
+                    on={section === id}
+                    onClick={() => go(id)}
+                    status={id === "server" ? card.title : id === "diagnostics" && settings.debug ? "Debug is on" : id === "updates" && updateBadge ? "Update available" : undefined}
+                  >
+                    {id === "server" && <span aria-hidden="true" className={cn("h-[7px] w-[7px] rounded-full", t.dot)} />}
+                    {id === "diagnostics" && settings.debug && <span aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-s-amber" />}
+                    {id === "updates" && updateBadge && (
+                      <span aria-hidden="true" className="rounded-full bg-s-accent/18 px-1.5 py-px text-[10.5px] font-semibold text-s-accent-text">
+                        1
+                      </span>
+                    )}
                   </NavItem>
                 ))}
               </div>

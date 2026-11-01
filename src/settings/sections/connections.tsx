@@ -59,7 +59,7 @@ export function ConnectionsSection() {
       return false;
     }
   };
-  if (!stored) return error ? <p className="m-0 text-[12.5px] text-s-red">{error}</p> : null;
+  if (!stored) return error ? <p role="alert" className="m-0 text-[12.5px] text-s-red">{error}</p> : null;
   return (
     <>
       <Group title="OBS">
@@ -107,7 +107,7 @@ export function ConnectionsSection() {
           <CalendarBlock stored={stored.calendar.links} onSave={(links) => save({ calendar: { links } })} />
         </ConnectionCard>
       </Group>
-      {error && <p className="m-0 text-[12.5px] text-s-red">{error}</p>}
+      {error && <p role="alert" className="m-0 text-[12.5px] text-s-red">{error}</p>}
     </>
   );
 }

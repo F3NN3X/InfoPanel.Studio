@@ -1,3 +1,4 @@
+import { onRovingKeyDown } from "@/lib/roving";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { Segmented } from "@/components/ui/segmented";
 import { useAddChip, useAddFilter, type AddFilter } from "./add-prefs";
@@ -5,6 +6,7 @@ import { FilePlus2, FileUp, Search, SquareDashedMousePointer, X, type LucideIcon
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { iconFor } from "@/widgets/core/icons";
+import { FOCUS } from "./menu-styles";
 import { addGroups, fitsIn, searchItems, sizeText, type AddCatalog, type AddItem, type AddKind } from "./add-catalog";
 import type { AddListDensity } from "./add-prefs";
 import { AddPreview, previewTop } from "./add-preview";
@@ -40,8 +42,6 @@ const OPEN_MS = 250;
 const ADDED_MS = 1500;
 /** The sticky group header's height: a highlighted row scrolls into view below it. */
 const HEADER_H = 30;
-
-const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[oklch(0.72_0.15_255)]";
 
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
@@ -460,7 +460,7 @@ export function AddPanel({
         </label>
       </div>
 
-      <div role="tablist" aria-label="What to add" className="mx-2.5 mt-2 flex shrink-0 gap-4 border-b border-ui-subtle">
+      <div role="tablist" aria-label="What to add" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="mx-2.5 mt-2 flex shrink-0 gap-4 border-b border-ui-subtle">
         {KINDS.map((k) => {
           const off = k.kind === "layout" ? layoutsOff : undefined;
           return (
@@ -469,6 +469,7 @@ export function AddPanel({
               type="button"
               role="tab"
               aria-selected={kind === k.kind}
+              tabIndex={kind === k.kind ? 0 : -1}
               disabled={off !== undefined}
               title={off}
               onClick={() => pickKind(k.kind)}

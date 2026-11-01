@@ -71,7 +71,7 @@ export function TwitchBlock({ state, pending, channel, onSignin, onCancel, onSig
             </a>{" "}
             and enter this code:
           </p>
-          <div aria-label="Twitch code" className="select-all text-center text-[26px] font-semibold tracking-[0.18em] text-ui-1">
+          <div role="group" aria-label="Twitch code" className="select-all text-center text-[26px] font-semibold tracking-[0.18em] text-ui-1">
             {pending.userCode}
           </div>
           <div className="flex items-center justify-between text-[11px] text-ui-4">

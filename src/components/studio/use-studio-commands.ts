@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/scroll-behavior";
 import { modules } from "@/modules";
 import { togglePreviewFrozen } from "@/hooks/use-preview-data";
 import { previewSnapshot } from "@/lib/preview-data";
@@ -87,7 +88,7 @@ export function useStudioCommands({
     requestAnimationFrame(() =>
       ui.scrollRef.current
         ?.querySelector(`[data-zone-id="${CSS.escape(id)}"]`)
-        ?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" })
+        ?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: scrollBehavior() })
     );
   };
 

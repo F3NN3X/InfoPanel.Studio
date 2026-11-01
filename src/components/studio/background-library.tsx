@@ -52,7 +52,11 @@ export function BackgroundLibrary({ kind, value, onPick, onOpenLibrary }: Backgr
               <Popover.Title className="font-medium text-ui-1">Background {noun}</Popover.Title>
               <span className="text-[11px] text-ui-4">{items ? `${items.length} in My library` : "Loading…"}</span>
             </div>
-            {error && <div className="text-[11px] text-ui-danger">Could not load My library.</div>}
+            {error && (
+              <div role="alert" className="text-[11px] text-ui-danger">
+                Could not load My library.
+              </div>
+            )}
             {items && items.length === 0 && (
               <div className="space-y-2 py-3 text-center text-[11px] text-ui-4">
                 <p>

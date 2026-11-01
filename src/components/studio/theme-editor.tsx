@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/scroll-behavior";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Lock } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
@@ -196,7 +197,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         const section = document.querySelector(`[data-nav-section="${CSS.escape(id)}"]`);
-        section?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        section?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
         if (jumpTo.key)
           section?.querySelector<HTMLElement>(`[data-setting-key="${CSS.escape(jumpTo.key)}"] :is(input, select, textarea, button)`)?.focus({ preventScroll: true });
       })

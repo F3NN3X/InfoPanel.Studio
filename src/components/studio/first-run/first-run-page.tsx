@@ -6,6 +6,7 @@
  * never with the studio.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Check, RefreshCw, X } from "lucide-react";
 import { DEFAULT_API_BASE, normalizeApiBase } from "@/lib/data-api";
 import { appSettings, isTauri, openHelp } from "@/lib/desktop";
@@ -446,7 +447,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
         {isTauri() ? (
           <WindowControls />
         ) : (
-          <button type="button" aria-label={rerun ? "Close setup" : "Skip setup"} onClick={() => setAskSkip(true)} className="mr-2 grid h-7 w-7 place-items-center rounded-[7px] text-ui-3 hover:bg-ui-hover hover:text-ui-1">
+          <button type="button" aria-label={rerun ? "Close setup" : "Skip setup"} onClick={() => setAskSkip(true)} className="mr-2 grid h-8 w-8 place-items-center rounded-[7px] text-ui-3 hover:bg-ui-hover hover:text-ui-1">
             <X className="h-4 w-4" />
           </button>
         )}
@@ -463,7 +464,10 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
             >
               <StepNumber n={i} current={i === step} done={visited.has(i) && i !== step} />
               {label}
-              {i === DATA && !t.running && (t.fails > 0 || t.warns > 0) && <span aria-label="Has issues" className={cn("h-1.5 w-1.5 rounded-full", t.fails > 0 ? "bg-ui-danger" : "bg-ui-warning")} />}
+              {i === DATA && !t.running && (t.fails > 0 || t.warns > 0) && <>
+                <span aria-hidden="true" className={cn("h-1.5 w-1.5 rounded-full", t.fails > 0 ? "bg-ui-danger" : "bg-ui-warning")} />
+                <span className="sr-only">Has issues</span>
+              </>}
             </button>
           ))}
         </nav>
@@ -536,17 +540,19 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
           {server?.state === "running" ? `Server · :${server.port}` : "Server · starting"}
         </span>
       </div>
-      {askSkip && (
-        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4">
-          <div role="alertdialog" aria-modal="true" aria-labelledby="first-run-skip-title" aria-describedby="first-run-skip-body" className="flex w-[420px] max-w-full flex-col gap-3 rounded-[12px] border border-ui-strong bg-ui-panel p-5 shadow-ui-modal">
-            <h2 id="first-run-skip-title" className="m-0 text-[14px] font-semibold text-ui-1">
-              {rerun ? "Close setup?" : "Skip setup?"}
-            </h2>
-            <p id="first-run-skip-body" className="m-0 text-[12.5px] leading-[1.5] text-ui-2">
+      <AlertDialog.Root open={askSkip} onOpenChange={setAskSkip}>
+        <AlertDialog.Portal>
+          <AlertDialog.Backdrop className="fixed inset-0 z-[60] bg-black/60" />
+          <AlertDialog.Popup
+            initialFocus={keepButton}
+            className="fixed left-1/2 top-1/2 z-[60] flex w-[420px] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-[12px] border border-ui-strong bg-ui-panel p-5 shadow-ui-modal outline-none"
+          >
+            <AlertDialog.Title className="m-0 text-[14px] font-semibold text-ui-1">{rerun ? "Close setup?" : "Skip setup?"}</AlertDialog.Title>
+            <AlertDialog.Description className="m-0 text-[12.5px] leading-[1.5] text-ui-2">
               {rerun
                 ? "Nothing has changed. Your data address, screens and options stay as they were."
                 : `Studio opens with a blank screen${answered ? "" : " and no live data"}. You can run setup again from Settings → General → Run setup.`}
-            </p>
+            </AlertDialog.Description>
             <div className="flex justify-end gap-2">
               <button ref={keepButton} type="button" onClick={() => setAskSkip(false)} className={cn(OUTLINE_BUTTON, "h-8 px-3.5 text-[12.5px]")}>
                 {rerun ? "Keep going" : "Keep setting up"}
@@ -555,9 +561,9 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
                 {rerun ? "Close" : "Skip setup"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </AlertDialog.Popup>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
     </div>
   );
 }

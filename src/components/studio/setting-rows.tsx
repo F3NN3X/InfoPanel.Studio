@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Info } from "lucide-react";
+import { Popover } from "@/components/ui/popover";
 import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
 import { ensureAllFonts, fontById } from "@/lib/fonts";
@@ -45,9 +46,15 @@ function Label({ label, lead, hint, changed, className }: RowLabelProps & { clas
         {label}
       </span>
       {hint && (
-        <span title={hint} className="shrink-0 cursor-help text-ui-hint hover:text-ui-2">
-          <Info className="h-3.5 w-3.5" aria-label={hint} />
-        </span>
+        <Popover
+          trigger={<Info className="h-3.5 w-3.5" aria-hidden="true" />}
+          triggerLabel={`About ${label}`}
+          triggerClassName="relative shrink-0 cursor-help rounded-sm text-ui-hint hover:text-ui-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent after:absolute after:-inset-1.5 after:content-['']"
+          align="start"
+          className="max-w-64 text-pretty text-[12px] leading-snug"
+        >
+          {hint}
+        </Popover>
       )}
     </span>
   );

@@ -127,3 +127,26 @@ a:hover {
   color: var(--color-s-t1);
   font-weight: 600;
 }
+
+/* Reduced motion: no transitions, spins or smooth scroll; a found row keeps a still outline until the cue clears. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .row-found {
+    animation: none;
+    outline-color: var(--color-s-accent);
+    background-color: oklch(0.72 0.15 255 / 0.1);
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight !important;
+  }
+}

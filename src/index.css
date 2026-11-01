@@ -485,3 +485,23 @@
     animation: none;
   }
 }
+
+/* Reduced motion: nothing here slides, fades, spins or scrolls smoothly (widgets also follow the JS flag). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Windows contrast themes drop box-shadows, so a ring-only focus vanishes: draw an outline there. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+}

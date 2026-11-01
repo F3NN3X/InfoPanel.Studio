@@ -130,8 +130,8 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
               e.onSelect?.();
             }}
             className={cn(
-              "flex h-[29px] w-full items-center gap-2 rounded-md px-2 text-left text-[12.5px] outline-none focus-visible:bg-[#24242a] disabled:text-[#55555e]",
-              e.danger ? "text-ui-danger hover:bg-ui-danger/15" : "text-[#e4e4e8] hover:bg-[#24242a] disabled:hover:bg-transparent"
+              "flex h-[29px] w-full items-center gap-2 rounded-md px-2 text-left text-[12.5px] outline-none focus-visible:bg-ui-active focus-visible:shadow-[inset_2px_0_0_var(--ui-accent)] disabled:text-[#55555e]",
+              e.danger ? "text-ui-danger hover:bg-ui-danger/15" : "text-[#e4e4e8] hover:bg-ui-active disabled:hover:bg-transparent"
             )}
           >
             <span className="flex h-4 w-4 shrink-0 items-center justify-center [&>svg]:h-[13px] [&>svg]:w-[13px]">

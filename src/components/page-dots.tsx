@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 /** How long a press must last to toggle auto-rotate. */
 export const LONG_PRESS_MS = 600;
 /** Bottom padding the grid reserves while the dots show, in px. */
-export const PAGE_DOTS_STRIP_PX = 20;
+export const PAGE_DOTS_STRIP_PX = 24;
 
 interface PageDotsProps {
   /** The setting (General › Page dots and swipe). */
@@ -61,14 +61,18 @@ export function PageDots({ enabled, pages, current, paused, onSelect, onToggleRo
                 if (fired.current) fired.current = false;
                 else onSelect(page.id);
               }}
-              className="flex h-5 w-5 items-center justify-center"
+              className="flex h-6 w-6 items-center justify-center"
             >
               <span className={cn("h-2 w-2 rounded-full", active ? "bg-primary" : "bg-muted-foreground/40")} />
             </button>
           );
         })}
       </div>
-      {paused && <Pause aria-label="Auto-rotate paused" className="h-3 w-3 text-muted-foreground" />}
+      {paused && (
+        <span role="img" aria-label="Auto-rotate paused" className="inline-flex">
+          <Pause aria-hidden="true" className="h-3 w-3 text-muted-foreground" />
+        </span>
+      )}
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { Cast, Copy, File, LayoutDashboard, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Cast, Copy, File, LayoutDashboard, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import type { ProfilePage } from "@/lib/layout";
+import { onRovingKeyDown } from "@/lib/roving";
 import { cn } from "@/lib/utils";
 import { pageIcon } from "./page-icons";
 import { pastDragThreshold, trackPointer } from "./pointer-drag";
@@ -59,12 +60,23 @@ export function dropIndex(rects: { left: number; width: number }[], from: number
 /** The rows of a page's menu (Edit v3 SPEC §1: every page is one kind, so no layout to pick); Delete is off on the only page. */
 export function pageMenuEntries(
   pages: ProfilePage[],
-  actions: { rename: () => void; icon: () => void; duplicate: () => void; remove: () => void; settings: () => void },
+  actions: {
+    rename: () => void;
+    icon: () => void;
+    duplicate: () => void;
+    remove: () => void;
+    settings: () => void;
+    /** The keyboard route to what the drag does; each is left out at the end of the strip. */
+    moveLeft?: () => void;
+    moveRight?: () => void;
+  },
 ): ContextMenuEntry[] {
   return [
     { id: "rename", label: "Rename", icon: <Pencil />, onSelect: actions.rename },
     { id: "icon", label: "Icon…", icon: <Shapes />, onSelect: actions.icon },
     { id: "duplicate", label: "Duplicate", icon: <Copy />, onSelect: actions.duplicate },
+    ...(actions.moveLeft ? [{ id: "move-left", label: "Move left", icon: <ArrowLeft />, onSelect: actions.moveLeft }] : []),
+    ...(actions.moveRight ? [{ id: "move-right", label: "Move right", icon: <ArrowRight />, onSelect: actions.moveRight }] : []),
     { id: "delete", label: "Delete", icon: <Trash2 />, danger: true, disabled: pages.length <= 1, onSelect: actions.remove },
     "separator",
     { id: "settings", label: "Page settings", icon: <Settings2 />, onSelect: actions.settings },
@@ -175,14 +187,18 @@ export function PageTabs({
   };
 
   const openMenu = (id: string, x: number, y: number) => setMenu({ id, x, y });
-  const menuEntries = (id: string) =>
-    pageMenuEntries(pages, {
+  const menuEntries = (id: string) => {
+    const at = pages.findIndex((p) => p.id === id);
+    return pageMenuEntries(pages, {
+      moveLeft: at > 0 ? () => onMove(id, at - 1) : undefined,
+      moveRight: at >= 0 && at < pages.length - 1 ? () => onMove(id, at + 1) : undefined,
       rename: () => onRenamingChange(id),
       icon: () => onIcon(id),
       duplicate: () => onDuplicate(id),
       remove: () => onDeletingChange(id),
       settings: () => onPageSettings(id),
     });
+  };
 
   // The slot the dragged tab would drop into, among the tabs without it.
   const others = drag ? pages.filter((p) => p.id !== drag.id) : pages;
@@ -198,7 +214,13 @@ export function PageTabs({
       >
         {leftOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
       </IconButton>
-      <div ref={rowRef} role="tablist" aria-label="Pages" className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
+      <div
+        ref={rowRef}
+        role="tablist"
+        aria-label="Pages"
+        onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')}
+        className="flex min-w-0 items-center gap-0.5 overflow-x-auto"
+      >
         {pages.map((page) => {
           const Icon = pageIcon(page.icon) ?? (imported ? File : LayoutDashboard);
           const active = page.id === current;
@@ -235,6 +257,16 @@ export function PageTabs({
                       type="button"
                       role="tab"
                       aria-selected={active}
+                      tabIndex={active ? 0 : -1}
+                      onKeyDown={(e) => {
+                        // Alt+Left / Alt+Right moves the page, the keyboard route to the drag.
+                        const at = pages.findIndex((p) => p.id === page.id);
+                        const to = e.key === "ArrowLeft" ? at - 1 : e.key === "ArrowRight" ? at + 1 : -1;
+                        if (!e.altKey || to < 0 || to >= pages.length) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onMove(page.id, to);
+                      }}
                       onClick={() => !dragged.current && onSelect(page.id)}
                       onDoubleClick={() => onRenamingChange(page.id)}
                       title="Double-click to rename, drag to reorder"
@@ -257,7 +289,7 @@ export function PageTabs({
                         openMenu(page.id, r.left, r.bottom + 4);
                       }}
                       // Faded out until the tab is hovered or focused; the space stays so tabs do not jump.
-                      className="mr-1 flex h-5 w-5 shrink-0 items-center justify-center rounded text-ui-4 opacity-0 hover:bg-ui-hover hover:text-ui-1 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100"
+                      className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-ui-4 opacity-0 hover:bg-ui-hover hover:text-ui-1 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100"
                     >
                       <MoreHorizontal className="h-3.5 w-3.5" />
                     </button>

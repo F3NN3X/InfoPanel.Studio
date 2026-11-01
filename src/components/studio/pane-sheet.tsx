@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { useFocusReturn } from "@/hooks/use-focus-return";
 import { useElementSize } from "@/hooks/use-element-size";
 import { BottomSheet } from "./bottom-sheet";
 import { sheetHeight, type SheetSnap } from "./studio-layout";
@@ -20,9 +21,22 @@ export function PaneSheet({ label, onClose, children }: PaneSheetProps) {
   const { ref, h } = useElementSize();
   const [snap, setSnap] = useState<SheetSnap>("half");
   const [drag, setDrag] = useState<number | null>(null);
+  useFocusReturn(ref);
   return (
     // The wrapper only measures: the sheet takes the pointer, the page under it keeps it.
-    <div ref={ref} role="region" aria-label={label} className="pointer-events-none absolute inset-0 z-40 [&>*]:pointer-events-auto">
+    <div
+      ref={ref}
+      role="region"
+      aria-label={label}
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        // A popup opened inside the sheet is portalled out, but its keys still bubble through React: leave those to it.
+        if (e.key !== "Escape" || e.defaultPrevented || !e.currentTarget.contains(e.target as Node)) return;
+        e.stopPropagation();
+        onClose();
+      }}
+      className="pointer-events-none absolute inset-0 z-40 outline-none [&>*]:pointer-events-auto"
+    >
       {h > 0 && (
         <BottomSheet snap={snap} onSnap={setSnap} height={drag ?? sheetHeight(snap, h, true)} area={h} selected drag={drag} onDrag={setDrag}>
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -31,7 +45,7 @@ export function PaneSheet({ label, onClose, children }: PaneSheetProps) {
                 type="button"
                 aria-label="Close"
                 onClick={onClose}
-                className="flex h-7 w-7 items-center justify-center rounded-[7px] text-ui-3 hover:bg-ui-hover hover:text-ui-1"
+                className="flex h-8 w-8 items-center justify-center rounded-[7px] text-ui-3 hover:bg-ui-hover hover:text-ui-1"
               >
                 <X className="h-4 w-4" />
               </button>

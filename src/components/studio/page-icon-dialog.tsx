@@ -31,7 +31,7 @@ export function PageIconDialog({
         <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[22rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-tile p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
           <div className="flex items-center">
             <Dialog.Title className="flex-1 text-sm font-semibold">Icon for {page?.name}</Dialog.Title>
-            <Dialog.Close title="Close (Esc)" className="text-ui-3 transition-colors hover:text-ui-1">
+            <Dialog.Close title="Close (Esc)" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-3 transition-colors hover:text-ui-1">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>

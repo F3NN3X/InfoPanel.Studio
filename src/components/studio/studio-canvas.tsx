@@ -561,6 +561,9 @@ export function StudioCanvas({
     <PageIslandProvider value={pageIsland}>
     {/* The app's toasts sit at its top centre (data-toast-anchor). */}
     <div data-toast-anchor="" className="relative flex min-h-0 flex-1 flex-col bg-ui-app">
+      <p role="status" className="sr-only">
+        {selected ? `Chosen part: ${selected.module}, ${sizeText(selected.colSpan, selected.rowSpan)}. Layers lists every part.` : "No part chosen"}
+      </p>
       <div
         className="relative min-h-0 flex-1"
         // On the wrapper, not the scroller: the cards over the canvas are drop targets too.
@@ -572,7 +575,11 @@ export function StudioCanvas({
       >
         <div
           ref={attachScroll}
-          className="h-full w-full overflow-auto"
+          role="region"
+          aria-label="Canvas"
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region takes focus so the keyboard can scroll it
+          tabIndex={0}
+          className="h-full w-full overflow-auto outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent"
           style={{ backgroundImage: DOTS, backgroundSize: DOT_PITCH }}
           onContextMenu={(e) => {
             e.preventDefault();

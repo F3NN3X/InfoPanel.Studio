@@ -43,7 +43,7 @@ export function MadeForControl({ value = "studio", onChange }: MadeForControlPro
                   role="menuitemradio"
                   aria-checked={m.value === value}
                   onClick={() => m.value !== value && onChange(m.value)}
-                  className="flex cursor-default items-start gap-2 rounded-md px-2 py-1.5 outline-none select-none data-highlighted:bg-ui-hover"
+                  className="flex cursor-default items-start gap-2 rounded-md px-2 py-1.5 outline-none select-none data-highlighted:bg-ui-active data-highlighted:text-ui-1 data-highlighted:shadow-[inset_2px_0_0_var(--ui-accent)]"
                 >
                   <span className="mt-0.5 grid h-3.5 w-3.5 shrink-0 place-items-center">
                     {m.value === value && <Check className="h-3.5 w-3.5 text-ui-accent-text" />}

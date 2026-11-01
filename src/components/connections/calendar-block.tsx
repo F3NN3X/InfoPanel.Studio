@@ -33,7 +33,11 @@ export function CalendarBlock({ stored, onSave }: CalendarBlockProps) {
           </button>
         </div>
       ))}
-      {live.error && <p className="text-[11px] text-ui-danger">{live.error}</p>}
+      {live.error && (
+        <p role="alert" className="text-[11px] text-ui-danger">
+          {live.error}
+        </p>
+      )}
       <StackRow label="Add an ICS link" hint="Google: Settings › your calendar › Secret address in iCal format. Outlook: Publish calendar › ICS. Saved on the dashboard server only.">
         <input aria-label="Calendar link" type="url" autoComplete="off" value={url} placeholder="https://…/basic.ics" onChange={(e) => setUrl(e.target.value)} className={cn(FIELD, "h-[30px] w-full")} />
       </StackRow>

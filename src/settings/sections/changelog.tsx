@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/scroll-behavior";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -78,7 +79,7 @@ export function ChangelogSection() {
     if (!isOpen(r, i)) setOpened((o) => toggle(o, r.version));
     // After the release has expanded, so the scroll lands on its final position.
     requestAnimationFrame(() =>
-      wrap.current?.querySelector(`[id="${releaseId(r)}"]`)?.scrollIntoView?.({ behavior: "smooth", block: "start" })
+      wrap.current?.querySelector(`[id="${releaseId(r)}"]`)?.scrollIntoView?.({ behavior: scrollBehavior(), block: "start" })
     );
   };
   // Links in the notes open in the default browser.

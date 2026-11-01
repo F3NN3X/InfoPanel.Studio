@@ -3,6 +3,7 @@
  * reaches the config until "Import <name>", which is one undo step; assets upload to the asset
  * store in the background from the moment a source opens.
  */
+import { onRovingKeyDown } from "@/lib/roving";
 import { isProfileItem } from "@/lib/my-library/component-meta";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Dialog } from "@base-ui/react/dialog";
@@ -147,7 +148,7 @@ function SourceStep({
   const pct = upload?.total ? Math.min(1, upload.done / upload.total) : upload?.finished ? 1 : 0;
   return (
     <div className="flex flex-col gap-4" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
-      <div role="radiogroup" aria-label="Source" className="grid grid-cols-3 gap-2.5 max-sm:grid-cols-1">
+      <div role="radiogroup" aria-label="Source" onKeyDown={(e) => onRovingKeyDown(e, '[role="radio"]')} className="grid grid-cols-3 gap-2.5 max-sm:grid-cols-1">
         {sources.map((s) => {
           const on = kind === s.value;
           const Icon = s.icon;
@@ -157,6 +158,7 @@ function SourceStep({
               type="button"
               role="radio"
               aria-checked={on}
+              tabIndex={on ? 0 : -1}
               onClick={() => onKind(s.value)}
               className={cn(
                 "flex flex-col gap-1.5 rounded-[10px] border p-3.5 text-left transition-colors",
@@ -184,7 +186,14 @@ function SourceStep({
             </span>
           ) : (
             <>
-              <div className="h-1.5 overflow-hidden rounded-[3px] bg-ui-hover">
+              <div
+                role="progressbar"
+                aria-label="Upload progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round((state ? pct : 0.05) * 100)}
+                className="h-1.5 overflow-hidden rounded-[3px] bg-ui-hover"
+              >
                 <div
                   className={cn("h-full rounded-[3px] transition-[width]", upload?.finished ? "bg-ui-success" : "bg-ui-accent")}
                   style={{ width: `${(state ? pct : 0.05) * 100}%` }}
@@ -256,6 +265,7 @@ function SourceStep({
             <button
               key={p.guid}
               type="button"
+              aria-pressed={picked === p.guid}
               onClick={() => {
                 setPicked(p.guid);
                 onOpen(p.name, p.bytes, () => openEntries(p.name, installedEntries(p), "installed"));
@@ -283,6 +293,7 @@ function SourceStep({
               <button
                 key={c.id}
                 type="button"
+                aria-pressed={picked === c.id}
                 onClick={() => {
                   setPicked(c.id);
                   onOpen(c.name, c.dataSize, async () => openStored((await getLibraryItem<StoredCanvas>(c.id)).data, (h, e, t) => readStoreFile(h, e, t)));
@@ -434,7 +445,7 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
     // The remap step has its own Help article (F1).
     <div data-help-article={step === 3 ? "remap" : "import"} className="grid h-full grid-cols-[210px_minmax(0,1fr)] max-md:grid-cols-1">
       <nav aria-label="Import steps" className="flex flex-col gap-1 border-r border-ui-subtle bg-ui-chrome px-3 py-[18px] max-md:hidden">
-        <Dialog.Title className="px-2 pb-0.5 text-[13.5px] font-semibold text-ui-1">Import InfoPanel</Dialog.Title>
+        <span className="px-2 pb-0.5 text-[13.5px] font-semibold text-ui-1">Import InfoPanel</span>
         <span className="px-2 pb-3.5 text-[11.5px] text-ui-4">Review before commit</span>
         {STEPS.map((label, i) => {
           const done = i < step;
@@ -466,9 +477,12 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
       </nav>
       <div className="flex min-h-0 flex-col">
         <div className="relative flex flex-col gap-1 border-b border-ui-subtle px-[22px] pb-3.5 pt-[18px]">
-          <button type="button" aria-label="Close" onClick={onCancel} className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-md text-ui-3 hover:bg-ui-hover hover:text-ui-1">
+          <button type="button" aria-label="Close" onClick={onCancel} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-md text-ui-3 hover:bg-ui-hover hover:text-ui-1">
             <X className="h-4 w-4" />
           </button>
+          <Dialog.Title className="text-[11.5px] font-normal text-ui-4">
+            Import InfoPanel · Step {step + 1} of {STEPS.length}
+          </Dialog.Title>
           <span className="text-[16px] font-semibold text-ui-1">{TITLES[step]}</span>
           <Dialog.Description className="text-pretty text-[12.5px] text-ui-3">{step === 4 && lockDest ? "Name it, then import." : SUBTITLES[step]}</Dialog.Description>
         </div>
@@ -487,7 +501,11 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
           <button type="button" onClick={onCancel} className="h-8 rounded-[7px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1">
             Cancel
           </button>
-          {footNote && <span className={cn("text-[11.5px]", step === 4 && error ? "text-ui-danger" : "text-ui-3")}>{footNote}</span>}
+          {footNote && (
+            <span role={step === 4 && error ? "alert" : "status"} className={cn("text-[11.5px]", step === 4 && error ? "text-ui-danger" : "text-ui-3")}>
+              {footNote}
+            </span>
+          )}
           <span className="flex-1" />
           {step > 0 && (
             <button type="button" className={GHOST} onClick={() => setStep(step - 1)}>

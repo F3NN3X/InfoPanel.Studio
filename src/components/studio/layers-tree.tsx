@@ -139,15 +139,33 @@ export function LayersTree({ host }: { host: LayersHost }) {
   const onRow = (id: string, e: MouseEvent) => host.select(id, e.shiftKey ? "range" : e.ctrlKey || e.metaKey ? "toggle" : "only", visible);
   /** The one row Tab reaches (a roving tab stop): the primary selection when it is shown, else the top row. */
   const tabStop = primary !== undefined && visible.includes(primary) ? primary : visible[0];
-  /** Keys on a row (the tree's own, SPEC §14 keyboard use): arrows move between rows, Shift extends the selection, Enter or Space selects, Ctrl+Space toggles. */
+  const focusRow = (id: string | undefined) => {
+    if (id !== undefined) listRef.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(id)}"]`)?.focus();
+  };
+  /** Keys on a row (the tree's own, SPEC §14 keyboard use): Up and Down move between rows, Home and End go to the ends, Left and Right close and open a group, Shift extends the selection, Enter or Space selects, Ctrl+Space toggles. */
   const onRowKey = (id: string, e: KeyboardEvent<HTMLDivElement>) => {
     if (e.target !== e.currentTarget) return;
     if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !e.altKey && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       const next = visible[visible.indexOf(id) + (e.key === "ArrowDown" ? 1 : -1)];
       if (next === undefined) return;
-      listRef.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(next)}"]`)?.focus();
+      focusRow(next);
       if (e.shiftKey) host.select(next, "range", visible);
+    } else if ((e.key === "Home" || e.key === "End") && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      e.preventDefault();
+      focusRow(e.key === "Home" ? visible[0] : visible[visible.length - 1]);
+    } else if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      // APG tree: Right opens a group (or steps into it), Left closes it (or steps out to its parent).
+      const row = rows.find((r) => r.node.id === id);
+      if (!row) return;
+      e.preventDefault();
+      const group = row.node.type === "group";
+      const open = group && host.isOpen(id);
+      if (e.key === "ArrowRight") {
+        if (group && !open) host.setOpen([id], true);
+        else if (group) focusRow(visible[visible.indexOf(id) + 1]);
+      } else if (open) host.setOpen([id], false);
+      else if (row.parentId) focusRow(row.parentId);
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       host.select(id, e.key === " " && (e.ctrlKey || e.metaKey) ? "toggle" : "only", visible);
@@ -267,7 +285,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
                 setMenu({ x: e.clientX, y: e.clientY });
               }}
               className={cn(
-                "group/row relative flex h-[28px] shrink-0 cursor-pointer items-center gap-[5px] rounded-[6px] pr-1.5 outline-none",
+                "group/row relative flex h-[28px] shrink-0 cursor-pointer items-center gap-[5px] rounded-[6px] pr-1.5 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
                 isSelected ? "bg-ui-accent/18 text-white" : tinted.has(node.id) ? "bg-ui-accent/7" : "hover:bg-ui-hover",
                 mark === "inside" && "outline outline-1 -outline-offset-1 outline-ui-accent",
               )}
@@ -284,11 +302,12 @@ export function LayersTree({ host }: { host: LayersHost }) {
                 <button
                   type="button"
                   aria-label={open ? "Collapse" : "Expand"}
+                  tabIndex={-1}
                   onClick={(e) => {
                     e.stopPropagation();
                     host.setOpen(e.altKey ? deep(node) : [node.id], !open);
                   }}
-                  className="grid h-[14px] w-[14px] shrink-0 place-items-center text-ui-4"
+                  className="relative grid h-[14px] w-[14px] shrink-0 place-items-center text-ui-4 after:absolute after:-inset-1.5 after:content-['']"
                 >
                   {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 </button>
@@ -327,8 +346,8 @@ export function LayersTree({ host }: { host: LayersHost }) {
               )}
               <span className={cn("shrink-0 font-ui-mono text-[9.5px] text-ui-hint", node.hidden && "opacity-45")}>{group ? `group · ${node.children?.length ?? 0}` : KIND_WORD[node.kind ?? "item"]}</span>
               {node.free && !widget && (
-                <span title="Placed freely (Alt)" aria-label="Placed freely (Alt)" className="inline-flex shrink-0 text-ui-4">
-                  <Move className="h-3 w-3" />
+                <span role="img" title="Placed freely (Alt)" aria-label="Placed freely (Alt)" className="inline-flex shrink-0 text-ui-4">
+                  <Move className="h-3 w-3" aria-hidden="true" />
                 </span>
               )}
               {status && (
@@ -341,12 +360,13 @@ export function LayersTree({ host }: { host: LayersHost }) {
                 title={node.locked ? "Unlock" : "Lock"}
                 aria-label={node.locked ? `Unlock ${label}` : `Lock ${label}`}
                 aria-pressed={Boolean(node.locked)}
+                tabIndex={-1}
                 onClick={(e) => {
                   e.stopPropagation();
                   host.setLocked(node.id, !node.locked);
                 }}
                 className={cn(
-                  "grid h-[18px] w-[16px] shrink-0 place-items-center",
+                  "relative grid h-[18px] w-[16px] shrink-0 place-items-center after:absolute after:-inset-1 after:content-['']",
                   node.locked ? "text-ui-2" : "text-ui-hint opacity-0 focus-visible:opacity-100 group-hover/row:opacity-100",
                 )}
               >
@@ -357,11 +377,12 @@ export function LayersTree({ host }: { host: LayersHost }) {
                 title={node.hidden ? "Show" : "Hide"}
                 aria-label={node.hidden ? `Show ${label}` : `Hide ${label}`}
                 aria-pressed={Boolean(node.hidden)}
+                tabIndex={-1}
                 onClick={(e) => {
                   e.stopPropagation();
                   host.setHidden(node.id, !node.hidden);
                 }}
-                className={cn("grid h-[18px] w-[16px] shrink-0 place-items-center", node.hidden ? "text-ui-2" : "text-ui-hint")}
+                className={cn("relative grid h-[18px] w-[16px] shrink-0 place-items-center after:absolute after:-inset-1 after:content-['']", node.hidden ? "text-ui-2" : "text-ui-hint")}
               >
                 {node.hidden ? <EyeOff className="h-[13px] w-[13px]" /> : <Eye className="h-[13px] w-[13px]" />}
               </button>

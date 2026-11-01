@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useFocusReturn } from "@/hooks/use-focus-return";
 import { cn } from "@/lib/utils";
 import { trackPointer } from "./pointer-drag";
 import { FLOAT_MARGIN, FLOAT_WIDTH } from "./studio-layout";
@@ -30,6 +31,7 @@ export function FloatingInspector({ open, onClose, children }: FloatingInspector
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const stop = useRef<(() => void) | null>(null);
   useEffect(() => () => stop.current?.(), []);
+  useFocusReturn(ref, open);
 
   const begin = (e: PointerEvent<HTMLDivElement>) => {
     const card = ref.current;
@@ -50,7 +52,7 @@ export function FloatingInspector({ open, onClose, children }: FloatingInspector
     );
   };
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== "Escape" || e.defaultPrevented) return;
+    if (e.key !== "Escape" || e.defaultPrevented || !e.currentTarget.contains(e.target as Node)) return;
     e.preventDefault();
     e.stopPropagation();
     onClose();
@@ -60,10 +62,11 @@ export function FloatingInspector({ open, onClose, children }: FloatingInspector
     <div
       ref={ref}
       onPointerDown={begin}
+      tabIndex={-1}
       onKeyDown={onKeyDown}
       style={{ width: FLOAT_WIDTH, margin: FLOAT_MARGIN, transform: `translate(${offset.x}px, ${offset.y}px)` }}
       className={cn(
-        "absolute bottom-0 right-0 top-0 z-40 flex overflow-hidden rounded-xl border border-ui-strong shadow-[0_16px_40px_rgba(0,0,0,.5)] [&_[data-inspector-header]]:cursor-grab [&_[data-inspector-header]]:select-none",
+        "absolute bottom-0 right-0 top-0 z-40 flex overflow-hidden rounded-xl outline-none border border-ui-strong shadow-[0_16px_40px_rgba(0,0,0,.5)] [&_[data-inspector-header]]:cursor-grab [&_[data-inspector-header]]:select-none",
         !open && "hidden"
       )}
     >

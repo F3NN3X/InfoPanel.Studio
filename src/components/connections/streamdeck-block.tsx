@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FIELD, ToggleRow } from "@/components/studio/setting-rows";
 import type { Deck, DeckAction, DeckResult, DeckStatus, StreamDeckLink, StreamDeckState } from "@/lib/streamdeck";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,15 @@ export interface StreamDeckBlockProps {
   act: (body: DeckAction) => Promise<DeckResult>;
 }
 
-const DOT: Record<DeckStatus, string> = { off: "bg-zinc-600", absent: "bg-zinc-600", connecting: "bg-amber-400", pairing: "bg-amber-400", ready: "bg-emerald-400", error: "bg-red-400" };
+/** Shape first, hue second: ready a dot, waiting a diamond, error a square, off an empty ring. */
+const DOT: Record<DeckStatus, string> = {
+  off: "rounded-full border border-zinc-500",
+  absent: "rounded-full border border-zinc-500",
+  connecting: "rotate-45 rounded-[1px] bg-amber-400",
+  pairing: "rotate-45 rounded-[1px] bg-amber-400",
+  ready: "rounded-full bg-emerald-400",
+  error: "rounded-[2px] bg-red-400",
+};
 const WORDS: Record<DeckStatus, string> = {
   off: "Off",
   absent: "The Stream Deck app isn't running",
@@ -69,6 +77,11 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
   const [confirming, setConfirming] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [forgetting, setForgetting] = useState(false);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  // The row swaps for the question, so the focused Forget button is gone: put focus on the safe answer.
+  useEffect(() => {
+    if (confirming) cancelRef.current?.focus();
+  }, [confirming]);
   const run = async (body: DeckAction) => {
     const res = await act(body);
     setError(res.ok ? "" : (res.error ?? "The server refused"));
@@ -89,7 +102,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
       />
       {showCode && (
         <div className="space-y-1.5">
-          <div aria-label="Pairing code" className="font-mono text-[22px] font-semibold tracking-[0.3em] text-ui-1">
+          <div role="group" aria-label="Pairing code" className="font-mono text-[22px] font-semibold tracking-[0.3em] text-ui-1">
             {state.pairingCode}
           </div>
           <button type="button" className={BUTTON} onClick={() => void run({ op: "pair" })}>
@@ -102,8 +115,9 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
         {state.devices.map((d) => (
           <div key={d.id} role="listitem" className="space-y-1">
             <div className="flex items-center gap-2">
-              <span title={WORDS[d.status]} className={cn("h-2 w-2 shrink-0 rounded-full", DOT[d.status])} />
+              <span aria-hidden="true" className={cn("h-2 w-2 shrink-0", DOT[d.status])} />
               <NameField deck={d} act={act} onError={setError} />
+              <span className="shrink-0 text-[11px] text-ui-3">{WORDS[d.status]}</span>
               <span className="shrink-0 text-[11px] tabular-nums text-ui-4">
                 {d.cols}×{d.rows}
               </span>
@@ -115,7 +129,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
             </div>
             {d.error && state.enabled && <p className="m-0 pl-4 text-[11px] text-s-red">{d.error}</p>}
             {confirming === d.id && (
-              <div className="flex flex-wrap items-center gap-2 pl-4 text-[11.5px] text-ui-3">
+              <div role="alert" className="flex flex-wrap items-center gap-2 pl-4 text-[11.5px] text-ui-3">
                 <span>Forget {d.name}? A widget using it will ask for another device.</span>
                 <button
                   type="button"
@@ -131,7 +145,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
                 >
                   Confirm forget
                 </button>
-                <button type="button" className={BUTTON} onClick={() => setConfirming(null)}>
+                <button ref={cancelRef} type="button" className={BUTTON} onClick={() => setConfirming(null)}>
                   Cancel
                 </button>
               </div>
@@ -139,13 +153,21 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
           </div>
         ))}
       </div>
-      {note && <p className="m-0 text-[11.5px] text-ui-3">{note}</p>}
+      {note && (
+        <p role="status" className="m-0 text-[11.5px] text-ui-3">
+          {note}
+        </p>
+      )}
       <div className="flex gap-2">
         <button type="button" className={BUTTON} onClick={() => void run({ op: "create" })}>
           Add device
         </button>
       </div>
-      {error && <p className="m-0 text-[11.5px] text-s-red">{error}</p>}
+      {error && (
+        <p role="alert" className="m-0 text-[11.5px] text-s-red">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

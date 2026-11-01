@@ -28,13 +28,14 @@ export function NavGroupLabel({ children }: { children: ReactNode }) {
   return <div className="px-2.5 pb-1.5 pt-3 text-[10.5px] font-medium uppercase tracking-[0.07em] text-s-dim">{children}</div>;
 }
 
-/** A page in the sidebar; `children` are its indicators (a status dot, a count). */
-export function NavItem({ id, on, onClick, children }: { id: PageId; on: boolean; onClick: () => void; children?: ReactNode }) {
+/** A page in the sidebar; `children` are its indicators (a status dot, a count) and `status` says what they mean in words. */
+export function NavItem({ id, on, onClick, status, children }: { id: PageId; on: boolean; onClick: () => void; status?: string; children?: ReactNode }) {
   const Icon = PAGE_ICONS[id];
   return (
     <button
       type="button"
       aria-current={on ? "page" : undefined}
+      aria-description={status}
       onClick={onClick}
       className={cn(
         "flex h-[34px] w-full cursor-pointer items-center gap-2.5 rounded-lg border-0 px-2.5 text-left text-[13px] font-medium",

@@ -50,6 +50,7 @@ select option:hover,
 select option:focus-visible {
   background: var(--color-s-hover);
   color: var(--color-s-t1);
+  box-shadow: inset 2px 0 0 var(--color-s-accent, currentColor);
 }
 
 select option:checked {

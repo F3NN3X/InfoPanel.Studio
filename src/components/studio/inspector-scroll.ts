@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/scroll-behavior";
 import { INSPECTOR_SCROLL } from "./inspector-layout";
 
 /** The element that scrolls the inspector: its body under the header (the aside as a fallback). */
@@ -20,7 +21,7 @@ export function revealInInspector(aside: HTMLElement | null, el: HTMLElement | n
   const left = r.left - b.left;
   const inView = top >= 0 && top < box.clientHeight - 64 && left >= 0 && left < box.clientWidth - 64;
   if (inView) return;
-  box.scrollTo({ top: box.scrollTop + top - 8, left: box.scrollLeft + left - 8, behavior: "smooth" });
+  box.scrollTo({ top: box.scrollTop + top - 8, left: box.scrollLeft + left - 8, behavior: scrollBehavior() });
 }
 
 /** Scroll the inspector so the widget editor shows. */

@@ -23,7 +23,7 @@ interface BottomSheetProps {
 /**
  * The phone's inspector: a sheet anchored to the bottom of the canvas area
  * that rests at a peek, half or full height. The handle drags it (it snaps
- * to the nearest height on release); a tap toggles peek and half.
+ * to the nearest height on release); a tap toggles peek and half; Enter or Space cycles peek, half, full.
  */
 export function BottomSheet({ snap, onSnap, height, area, selected, drag, onDrag, children }: BottomSheetProps) {
   const start = useRef<{ y: number; height: number; moved: boolean } | null>(null);
@@ -41,7 +41,8 @@ export function BottomSheet({ snap, onSnap, height, area, selected, drag, onDrag
       <div
         role="button"
         tabIndex={0}
-        aria-label={snap === "peek" ? "Expand the settings sheet" : "Collapse the settings sheet"}
+        aria-label="Settings sheet height"
+        aria-expanded={snap !== "peek"}
         className="flex h-6 shrink-0 cursor-grab touch-none items-center justify-center"
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -70,7 +71,8 @@ export function BottomSheet({ snap, onSnap, height, area, selected, drag, onDrag
         onKeyDown={(e) => {
           if (e.key !== "Enter" && e.key !== " ") return;
           e.preventDefault();
-          onSnap(snap === "peek" ? "half" : "peek");
+          // The keyboard reaches full height too (the drag does): peek, half, full, then back to peek.
+          onSnap(snap === "peek" ? "half" : snap === "half" ? "full" : "peek");
         }}
       >
         <span aria-hidden className="h-[5px] w-10 rounded-full bg-ui-control" />

@@ -81,7 +81,11 @@ export function MediaLibrary({ kind, value, onPick }: MediaLibraryProps) {
               <Popover.Title className="font-medium text-ui-1">Uploaded {kind === "image" ? "images" : "videos"}</Popover.Title>
               <span className="text-[11px] text-ui-4">{state ? `${shown.length} files` : "Loading…"}</span>
             </div>
-            {error && <div className="text-[11px] text-ui-danger">{error}</div>}
+            {error && (
+              <div role="alert" className="text-[11px] text-ui-danger">
+                {error}
+              </div>
+            )}
             {state && shown.length === 0 && (
               <p className="py-4 text-center text-[11px] text-ui-4">
                 Nothing uploaded yet. Use Upload… or drop a file on the field.

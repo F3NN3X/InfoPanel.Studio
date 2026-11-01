@@ -20,7 +20,7 @@ export function Toggle({ checked, onChange, label, disabled, className }: Toggle
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors duration-150",
+        "relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors duration-150 after:absolute after:-inset-1 after:content-['']",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60 disabled:opacity-40",
         checked ? "bg-ui-accent" : "bg-ui-control",
         className

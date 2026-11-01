@@ -90,7 +90,7 @@ export function SettingSection({
           <button
             type="button"
             tabIndex={-1}
-            aria-hidden
+            aria-label={open ? "Collapse section" : "Expand section"}
             onClick={onToggle}
             className="flex h-[30px] w-[26px] shrink-0 items-center justify-center rounded-[7px] text-ui-hint hover:bg-[#16161a]"
           >

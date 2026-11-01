@@ -363,7 +363,11 @@ function KindPage({ kind, onKind, screen, initial, carry, onCreateScreen, onCrea
           Also save to Library
         </label>
       )}
-      {error && <p className="m-0 text-[11.5px] text-ui-danger">{error}</p>}
+      {error && (
+        <p role="alert" className="m-0 text-[11.5px] text-ui-danger">
+          {error}
+        </p>
+      )}
       <p className="m-0 text-[11.5px] leading-normal text-ui-4">
         {ip
           ? "It comes in as a new screen and opens in Edit. You can change the size later in its profile settings."

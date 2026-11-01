@@ -1,3 +1,5 @@
+import { onRovingKeyDown } from "@/lib/roving";
+import { scrollBehavior } from "@/lib/scroll-behavior";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { CircleHelp } from "lucide-react";
 import { Popover } from "@/components/ui/popover";
@@ -153,7 +155,7 @@ function Tabs({
   const description = active && info?.[active]?.description;
   if (underline)
     return (
-      <div role="tablist" className="flex shrink-0 gap-3.5 border-b border-ui-subtle px-3.5">
+      <div role="tablist" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="flex shrink-0 gap-3.5 border-b border-ui-subtle px-3.5">
         {tabs.map((t) => {
           const selected = t.id === active;
           const n = counts[t.id] ?? 0;
@@ -163,6 +165,7 @@ function Tabs({
               type="button"
               role="tab"
               aria-selected={selected}
+              tabIndex={selected ? 0 : -1}
               disabled={t.disabled}
               onClick={() => onTab(t.id)}
               className={cn(
@@ -180,7 +183,7 @@ function Tabs({
     );
   return (
     <div className={cn("shrink-0 pl-4 pr-3", description ? "pb-1.5" : "pb-2.5")}>
-      <div role="tablist" className="flex flex-wrap gap-0.5 rounded-lg border border-ui-default bg-ui-app p-0.5">
+      <div role="tablist" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="flex flex-wrap gap-0.5 rounded-lg border border-ui-default bg-ui-app p-0.5">
         {tabs.map((t) => {
           const selected = t.id === active;
           const n = counts[t.id] ?? 0;
@@ -190,6 +193,7 @@ function Tabs({
               type="button"
               role="tab"
               aria-selected={selected}
+              tabIndex={selected ? 0 : -1}
               disabled={t.disabled}
               onClick={() => onTab(t.id)}
               className={cn(
@@ -345,7 +349,7 @@ export function InspectorView({
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         const card = root.current?.querySelector(`[${SETTING_CARD}="${CSS.escape(target.id)}"]`);
-        card?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        card?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
         // "Go to setting" also puts the cursor in the field.
         if (jumpTo.key)
           card

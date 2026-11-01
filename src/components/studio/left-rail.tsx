@@ -51,7 +51,7 @@ function RailButton({ label, icon: Icon, narrow, active, onClick }: RailButtonPr
     <Tooltip.Root disableHoverablePopup>
       <Tooltip.Trigger
         aria-label={label}
-        aria-pressed={active}
+        aria-current={active ? "page" : undefined}
         onClick={onClick}
         className={cn(
           "flex flex-col items-center gap-[3px] rounded-lg pb-[6px] pt-[7px] transition-colors",

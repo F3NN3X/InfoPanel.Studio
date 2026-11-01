@@ -315,9 +315,10 @@ function Idle({ config, pending, accent, animate }: { config: IslandConfig; pend
 function Badge({ pending, accent }: { pending: number; accent?: string }) {
   if (pending <= 0) return null;
   return (
-    <span className="flex shrink-0 items-center gap-[0.35em] font-semibold tabular-nums" aria-label={`${pending} active alerts`}>
-      <span className="h-[0.6em] w-[0.6em] rounded-full" style={{ background: accent }} />
-      {pending}
+    <span className="flex shrink-0 items-center gap-[0.35em] font-semibold tabular-nums">
+      <span aria-hidden="true" className="h-[0.6em] w-[0.6em] rounded-full" style={{ background: accent }} />
+      <span aria-hidden="true">{pending}</span>
+      <span className="sr-only">{pending} active alerts</span>
     </span>
   );
 }
@@ -436,8 +437,9 @@ function Expanded({ item }: { item: IslandItem }) {
         <div className="flex min-w-0 items-baseline gap-[0.4em]">
           <span className="truncate [font-weight:var(--island-weight)]">{item.title}</span>
           {item.count > 1 && (
-            <span className="shrink-0 rounded-full bg-current/15 px-[0.45em] text-[0.78em] tabular-nums" aria-label={`${item.count} notices`}>
-              ×{item.count}
+            <span className="shrink-0 rounded-full bg-current/15 px-[0.45em] text-[0.78em] tabular-nums">
+              <span aria-hidden="true">×{item.count}</span>
+              <span className="sr-only">{item.count} notices</span>
             </span>
           )}
         </div>

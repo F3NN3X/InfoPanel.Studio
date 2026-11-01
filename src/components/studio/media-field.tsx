@@ -141,7 +141,11 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
             Uploading {status.name} ({formatBytes(status.size)})…
           </div>
         )}
-        {status.state === "error" && <div className="mt-1 text-[11px] text-ui-danger">{status.message}</div>}
+        {status.state === "error" && (
+          <div role="alert" className="mt-1 text-[11px] text-ui-danger">
+            {status.message}
+          </div>
+        )}
       </div>
       {preview === "large" && value && <LargePreview kind={kind} src={value} fill={fill} />}
     </div>

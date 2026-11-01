@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Check, Download, FileOutput, Gauge, Monitor, Package, X, type LucideIcon } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import { dataOf } from "@/components/library/library-actions";
 import { gaugePayload } from "@/lib/gauge-studio/import-file";
 import { gaugeDataOf } from "@/lib/gauge-studio/model";
@@ -37,6 +38,7 @@ interface ExportRowProps {
 }
 
 function ExportRow({ icon: Icon, title, detail, picked, blocked, children, actions, copy, onCopied, copied, id }: ExportRowProps) {
+  const toast = useToast();
   return (
     <section aria-label={title} className={cn("flex flex-col gap-2 rounded-[10px] border px-3.5 py-3", picked ? "border-ui-accent bg-ui-accent-soft" : "border-ui-default bg-ui-chrome")}>
       <div className="flex items-start gap-3">
@@ -52,7 +54,7 @@ function ExportRow({ icon: Icon, title, detail, picked, blocked, children, actio
         <button
           type="button"
           disabled={!copy}
-          onClick={() => copy && void copyPayload(copy).then(() => onCopied(id), () => {})}
+          onClick={() => copy && void copyPayload(copy).then(() => onCopied(id), () => toast("Couldn’t copy the JSON"))}
           className="flex items-center gap-1 text-[11.5px] text-ui-accent-text hover:underline disabled:cursor-not-allowed disabled:text-ui-hint disabled:no-underline"
         >
           {copied ? (
@@ -72,6 +74,12 @@ function ExportRow({ icon: Icon, title, detail, picked, blocked, children, actio
 function GaugeChooser({ onPick }: { onPick: (name: string, gauge: VectorGauge) => void }) {
   const [items, setItems] = useState<LibraryItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
+  const list = useRef<HTMLDivElement>(null);
+  // The chooser opens from a button: put the keyboard on its first gauge.
+  useEffect(() => {
+    if (items?.length) list.current?.querySelector<HTMLElement>("button")?.focus();
+  }, [items]);
   useEffect(() => {
     listLibrary().then(
       (all) => setItems(all.filter((i) => i.kind === "gauge")),
@@ -85,9 +93,9 @@ function GaugeChooser({ onPick }: { onPick: (name: string, gauge: VectorGauge) =
     void dataOf(item).then((raw) => {
       const spec = gaugeDataOf(raw)?.vector;
       if (spec) onPick(item.name, spec);
-    }, () => {});
+    }, () => toast(`Couldn’t read ${item.name}`));
   return (
-    <div className="ml-[30px] flex max-h-40 flex-col overflow-auto rounded-lg border border-ui-default bg-ui-panel">
+    <div ref={list} className="ml-[30px] flex max-h-40 flex-col overflow-auto rounded-lg border border-ui-default bg-ui-panel">
       {items === null && <span className="p-2.5 text-[12px] text-ui-4">Reading…</span>}
       {items?.length === 0 && <span className="p-2.5 text-[12px] text-ui-4">{error ?? "No gauges in your library yet."}</span>}
       {items?.map((item) => (
@@ -159,7 +167,7 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
               <Dialog.Title className="text-[16px] font-semibold text-ui-1">Export &amp; back up</Dialog.Title>
               <Dialog.Description className="text-[12.5px] text-ui-3">Pick what to take out. Each one can also be copied as JSON.</Dialog.Description>
             </div>
-            <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+            <Dialog.Close title="Close" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
               <X className="h-5 w-5" />
             </Dialog.Close>
           </div>
@@ -231,7 +239,7 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
               copied={copied === "gauge"}
               actions={
                 <>
-                  <button type="button" className={OUTLINE} onClick={() => setChoosing((c) => !c)}>
+                  <button type="button" className={OUTLINE} aria-expanded={choosing} onClick={() => setChoosing((c) => !c)}>
                     {chosen ? "Choose another…" : "Choose…"}
                   </button>
                   {chosen && gauge && (

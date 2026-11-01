@@ -2,6 +2,7 @@
  * The Gauges page (spec §6, A7): browse presets, the profile's gauges and My library's, and edit
  * one. A [Gauges | Editor] segment in the header; lazily loaded by studio-view.
  */
+import { onRovingKeyDown } from "@/lib/roving";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -187,11 +188,12 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
     >
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4">
         <h1 className="text-[15px] font-semibold text-ui-1">Gauges</h1>
-        <div role="tablist" aria-label="Gauges" className="flex h-[34px] items-center gap-0.5 rounded-[9px] border border-ui-default p-0.5">
+        <div role="tablist" aria-label="Gauges" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="flex h-[34px] items-center gap-0.5 rounded-[9px] border border-ui-default p-0.5">
           <button
             type="button"
             role="tab"
             aria-selected={!editor}
+            tabIndex={editor ? -1 : 0}
             onClick={() => (editorRef.current ? editorRef.current.requestBack() : closeEditor())}
             className={cn("h-full rounded-[7px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1", !editor && "bg-ui-active text-ui-1")}
           >
@@ -201,6 +203,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
             type="button"
             role="tab"
             aria-selected={!!editor}
+            tabIndex={editor ? 0 : -1}
             disabled={!editor}
             title={editor ? undefined : "Open a gauge to edit it"}
             className={cn("h-full rounded-[7px] px-3 text-[12.5px] text-ui-3 disabled:opacity-40", editor && "bg-ui-active text-ui-1")}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { Copy, Info, OctagonAlert, Trash2, TriangleAlert, type LucideIcon } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
@@ -46,7 +46,7 @@ export interface AlertRulesProps {
 const MENU_POPUP =
   "max-h-[60vh] min-w-52 overflow-y-auto rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
 const MENU_ITEM =
-  "flex min-h-[30px] cursor-default flex-col justify-center rounded-md px-2 py-1 outline-none select-none data-highlighted:bg-ui-hover";
+  "flex min-h-[30px] cursor-default flex-col justify-center rounded-md px-2 py-1 outline-none select-none data-highlighted:bg-ui-active data-highlighted:text-ui-1 data-highlighted:shadow-[inset_2px_0_0_var(--ui-accent)]";
 
 /** The "New rule" menu (SPEC §10.3): blank rules and the presets. */
 export function NewRuleMenu({ onAdd, points }: { onAdd: (rule: AlertRule) => void; points: readonly DataPoint[] }) {
@@ -104,14 +104,19 @@ interface RuleRowProps {
 }
 
 function RuleRow({ rule, summary, style, fired, now, confirming, ...on }: RuleRowProps) {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  // The row swaps for the question, so the focused Delete button is gone: put focus on the safe answer.
+  useEffect(() => {
+    if (confirming) cancelRef.current?.focus();
+  }, [confirming]);
   if (confirming) {
     return (
-      <li className="flex items-center gap-2 border-t border-[#1a1a1f] bg-ui-hover px-3.5 py-2.5 text-[12px] text-ui-2 first:border-t-0">
+      <li role="alert" className="flex items-center gap-2 border-t border-[#1a1a1f] bg-ui-hover px-3.5 py-2.5 text-[12px] text-ui-2 first:border-t-0">
         <span className="min-w-0 flex-1 truncate">Delete “{rule.name}”?</span>
         <button type="button" onClick={on.onDelete} className="h-6 rounded-md bg-ui-danger px-2 text-[11.5px] text-black">
           Delete
         </button>
-        <button type="button" onClick={on.onCancelDelete} className="h-6 rounded-md border border-ui-strong px-2 text-[11.5px]">
+        <button ref={cancelRef} type="button" onClick={on.onCancelDelete} className="h-6 rounded-md border border-ui-strong px-2 text-[11.5px]">
           Cancel
         </button>
       </li>

@@ -52,12 +52,17 @@ function PaletteBody({ commands, onRun }: Pick<CommandPaletteProps, "commands" |
           onKeyDown={onKeyDown}
           placeholder="Type a command or search…"
           aria-label="Command"
+          aria-controls="command-results"
+          aria-autocomplete="list"
+          aria-activedescendant={results.length ? `command-option-${current}` : undefined}
           className="w-full bg-transparent py-2.5 pl-9 pr-3 text-sm text-ui-1 outline-none placeholder:text-ui-4"
         />
       </div>
-      <div ref={listRef} role="listbox" className="min-h-0 flex-1 overflow-y-auto p-1">
+      <div ref={listRef} id="command-results" role="listbox" aria-label="Commands" className="min-h-0 flex-1 overflow-y-auto p-1">
         {results.length === 0 && (
-          <div className="py-6 text-center text-xs text-ui-4">No commands match</div>
+          <div role="status" className="py-6 text-center text-xs text-ui-4">
+            No commands match
+          </div>
         )}
         {results.map((command, i) => (
           <div key={command.id}>
@@ -67,6 +72,7 @@ function PaletteBody({ commands, onRun }: Pick<CommandPaletteProps, "commands" |
               </div>
             )}
             <div
+              id={`command-option-${i}`}
               role="option"
               aria-selected={i === current}
               data-index={i}

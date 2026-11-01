@@ -457,13 +457,18 @@
         "src/components/surfaces.ts",
         "src/lib/island/**",
         "src/lib/panel-*.ts",
-        "src/lib/panelPresets.ts"
+        "src/lib/panelPresets.ts",
+        "src/lib/roving.ts",
+        "src/lib/scroll-behavior.ts"
       ],
       "tests": [
         "tests/components/*.test.*",
         "tests/components/widgets/**",
+        "tests/components/ui/**",
         "tests/lib/island/**",
         "tests/lib/panel-*.test.ts",
+        "tests/lib/roving.test.ts",
+        "tests/lib/roving-keys.dom.test.tsx",
         "tests/lib/shipped-panels.test.ts"
       ],
       "checks": ["typecheck", "unit"]

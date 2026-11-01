@@ -33,10 +33,10 @@ export interface StatusBarProps extends StatusBarData {
 type Tone = "ok" | "warn" | "bad" | "idle";
 
 const DOT: Readonly<Record<Tone, string>> = {
-  ok: "bg-ui-success",
-  warn: "bg-ui-warning",
-  bad: "bg-ui-danger",
-  idle: "bg-ui-hint",
+  ok: "rounded-full bg-ui-success",
+  warn: "rotate-45 rounded-[1px] bg-ui-warning",
+  bad: "rounded-[2px] bg-ui-danger",
+  idle: "rounded-full border border-ui-hint",
 };
 
 const TEXT: Readonly<Record<Tone, string>> = {
@@ -139,7 +139,7 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
             TEXT[item.tone]
           )}
         >
-          <span aria-hidden className={cn("h-[7px] w-[7px] shrink-0 rounded-full", DOT[item.tone])} />
+          <span aria-hidden className={cn("h-[7px] w-[7px] shrink-0", DOT[item.tone])} />
           <span className="max-[959px]:sr-only">{item.label}</span>
         </button>
       ))}
@@ -155,7 +155,7 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
         </button>
       )}
       <div className="flex-1" />
-      <span role="status" className="whitespace-nowrap px-2 max-[959px]:sr-only">
+      <span role="status" className="whitespace-nowrap px-2">
         {SAVE_TEXT[save]}
       </span>
     </footer>
