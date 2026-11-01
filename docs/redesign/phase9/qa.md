@@ -40,7 +40,10 @@ Params, all optional:
 | `skin`, `variant=default\|studio`, `surface`, `graph`, `meter`, `accent`, `radius` | merged into every placement's settings |
 | `theme=paper` | a theme preset's tokens on the page (the light check) |
 | `settings=<url-encoded JSON>` | merged into every placement's settings, over the keys above |
-| `data=live` | the live sensor store and the server's own streams instead of the fixtures (the default); changing it reloads the page |
+| `data=stress` | the fixtures at their extremes: percentages at 100, other readings ten times larger, prose and display names lengthened, long names in the demo streams and more agent sessions (`stress.ts`, `demo-streams.ts`) |
+| `data=live` | the live sensor store and the server's own streams instead of the fixtures (the default); changing `data` reloads the page |
+| `grid=1` | the grid's cells (dashed) and gaps drawn over every frame |
+| `noted=1` | only the widgets with redesign notes |
 | `gallery=<id>` | the Skins and Surfaces galleries show this widget, opened |
 | `q=cpu` | the filter box: widgets whose id or title contains it |
 | `eager=1` | mount every frame at once (see below) |
@@ -53,6 +56,21 @@ measuring). The full-sweep script below loads with `module=`, so it needs neithe
 Examples: `?widget-qa&module=CpuMonitor,Clock&cell=150`, `?widget-qa&theme=paper&skin=<name>`,
 `?widget-qa&settings=%7B%22variant%22%3A%22studio%22%7D`, `?widget-qa&gallery=StreamDeck#galleries`.
 
+## Referencing a frame, notes and issue badges
+
+Click a frame's caption to copy a reference to it: a line such as `CodingAgents 2x1 (cell 110, skin default)` and a
+link that opens the widget alone, scrolled to and outlining that frame (each figure's id is `<module>--<span>` or
+`<module>--view-<id>`). Paste it into a request so it names exactly that frame.
+
+Redesign notes live in `src/widgets/widget-qa/notes.json`, by widget id and then frame: a span (`2x1`), a view
+(`view:gauge`) or `*` for the widget as a whole. The page shows each in amber under its frame and lists a widget's notes
+in its info column; `noted=1` shows only noted widgets. `tests/widgets/widget-qa/notes.test.ts` fails on a note for a
+widget, span form or view that does not exist.
+
+Each frame runs the overflow probe on itself once its widget has settled (1.5 s after it mounts, and again after any
+toolbar change) and shows a red count beside its caption, with a red outline on the frame; hover the count for each
+issue's kind, size and selector.
+
 ## Parity
 
 `tests/widgets/widget-qa/plan.test.ts` fails when a registered widget is missing from the page, so a new
@@ -64,8 +82,10 @@ on a scratch server and fails on any blank frame or empty state, in the span fra
 `npm run qa:shots` (after `npm run build`) loads the page on a scratch server with fixture data and writes one PNG per
 widget and span, and per view, into `.cache/qa-shots/<label>/<skin>/` (`<module>_<span>.png`, `<module>_view-<id>.png`).
 Options: `--label before` (default: the short commit), `--skins default,cyber` or `--skins all` (default: `default`),
-`--spans 2x2,4x4` (the default), `--module a,b`. Run it before and after a redesign and compare the two folders.
-It is report-only and never gates.
+`--spans 2x2,4x4` (the default), `--module a,b`, `--data stress`. The clock is fixed, animations are off and reduced motion is
+on, so an unchanged frame gives the same PNG. Run it before and after a redesign, then
+`npm run qa:shots -- --compare <before> <after>` writes `.cache/qa-shots/compare-<before>-<after>.html` with each shot
+of the two runs side by side, the changed ones (and those only one run has) first. It is report-only and never gates.
 
 Each zone is a `<figure data-qa-module data-qa-span>`. With the Playwright MCP, navigate to the
 URL, then run this through `browser_run_code_unsafe` (set `stage` to `before` or `after`, `cell` to

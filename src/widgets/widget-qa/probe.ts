@@ -29,9 +29,8 @@ function clipped(el: Element, root: Element, axis: "x" | "y"): boolean {
   return false;
 }
 
-function probe(fig: Element): Issue[] {
-  const root = fig.querySelector("[data-qa-box]");
-  if (!root) return [];
+/** What overflows, overlaps or is clipped inside one zone box (`[data-qa-box]`). */
+export function probeBox(root: Element): Issue[] {
   const rootBox = toBox(root.getBoundingClientRect());
   const issues: Issue[] = [];
   const leaves: { el: Element; box: Box }[] = [];
@@ -68,6 +67,11 @@ function probe(fig: Element): Issue[] {
     }
   }
   return issues;
+}
+
+function probe(fig: Element): Issue[] {
+  const root = fig.querySelector("[data-qa-box]");
+  return root ? probeBox(root) : [];
 }
 
 /** Gallery figures carry `data-qa-gallery` instead, so the sweeps never see them. */

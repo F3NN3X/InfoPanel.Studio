@@ -15,7 +15,9 @@ const CONTROLS: [string, string][] = [
   ["spans", "The sizes each widget is shown at, as columns x rows (2x1 is two cells wide, one tall). A size under the widget's minimum shows as a dimmed placeholder."],
   ["page", "The page's theme. paper is the light check."],
   ["gallery", "The widget the Skins and Surfaces galleries show, at its default size. Blank shows CpuMonitor and SystemStatus."],
-  ["data", "fixtures is the same demo data every time (sensors, OBS, chat, Wave Link, Stream Deck, agents). live reads your sensors and streams. Changing it reloads the page."],
+  ["data", "fixtures is the same demo data every time (sensors, OBS, chat, Wave Link, Stream Deck, agents). stress is that data at its extremes: percentages at 100, other readings ten times larger, long names and text, more sessions. live reads your sensors and streams. Changing it reloads the page."],
+  ["grid", "Draws the grid over every frame: the dashed squares are cells, the space between them the gap."],
+  ["noted only", "Shows only the widgets with redesign notes."],
   ["Reset", "Puts every control back to its default."],
 ];
 
@@ -23,13 +25,16 @@ const CONTROLS: [string, string][] = [
 const PAGE: [string, string][] = [
   ["Widget section", "One per widget: its title, id, links, category, minimum and default size, description, views, tags and data prefixes, then the frames."],
   ["Frames", "Each caption is the span and its size in px. Frames are drawn by the kiosk's own renderer, so what you see here is what a dashboard shows."],
+  ["Copy a frame", "Click a caption to copy a reference to that frame (\"CodingAgents 2x1 (cell 110, skin default)\" and a link that opens it). Paste it into a request so it names exactly that frame."],
+  ["Issue badge", "A red count beside a caption: things in the frame that overflow, overlap or are clipped, checked once the widget has settled. Hover it for the list."],
+  ["Notes", "Redesign notes, in amber under their frame and in the widget's info column. They live in src/widgets/widget-qa/notes.json, by widget id and then span (2x1), view (view:gauge) or * for the whole widget."],
   ["Views", "A widget with more than one view (layout) also gets a row of them, each at that view's default size."],
   ["solo", "Opens the widget alone, keeping the toolbar."],
   ["skins & surfaces", "Opens this widget in the Skins and Surfaces galleries."],
   ["#", "A link to this widget's section, to share or bookmark."],
   ["URL", "Every control is mirrored to the URL, so a copied link opens exactly this view."],
   ["Console", "window.__qaOverflow() lists what overflows, overlaps or is clipped in each frame; await window.__qaMountAll() first."],
-  ["Screenshots", "npm run qa:shots writes a PNG per widget, span, view and skin to .cache/qa-shots/ (see docs/redesign/phase9/qa.md)."],
+  ["Screenshots", "npm run qa:shots writes a PNG per widget, span, view and skin to .cache/qa-shots/<label>/; npm run qa:shots -- --compare before after writes a page of the two side by side, changed first (see docs/redesign/phase9/qa.md)."],
 ];
 
 function Rows({ rows }: { rows: [string, string][] }) {

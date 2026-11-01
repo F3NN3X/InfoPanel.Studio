@@ -13,7 +13,12 @@ import { WL_LIVE } from "../__fixtures__/wavelink";
  * stream to the real EventSource. Dev-only, like the rest of `widget-qa`.
  */
 
-const SCENES = ["Gameplay", "Just Chatting", "Starting Soon", "Be Right Back", "Interview", "Ending"].map((name, i) => ({ id: `scene-${i}`, name, sub: `Scene ${i + 1}`, icon: "" }));
+// `data=stress` (installDemoStreams(true)) lengthens every name and line and adds sessions, to find what breaks.
+let stress = false;
+/** A name, made long under stress. */
+const L = (s: string) => (stress && s ? `${s} with a much longer name than usual` : s);
+
+const scenes = () => ["Gameplay", "Just Chatting", "Starting Soon", "Be Right Back", "Interview", "Ending"].map((name, i) => ({ id: `scene-${i}`, name: L(name), sub: `Scene ${i + 1}`, icon: "" }));
 
 const USERS = ["zed", "mod_rock", "kairo", "neonwolf", "pixelhuse", "drift", "ola_b", "yt_marta"];
 const LINES = ["that replay was insane", "be nice in chat or the face gets you", "GG", "LETS GOOOO", "what is that screen under your monitor??", "W streamer", "spacs are in the panels below", "hi from youtube!"];
@@ -22,8 +27,8 @@ const chat = () => ({
   messages: Array.from({ length: 40 }, (_, i) => ({
     id: `m${i}`,
     platform: i % 3 === 2 ? "youtube" : "twitch",
-    user: USERS[i % USERS.length],
-    text: `${LINES[i % LINES.length]}${i % 7 === 0 ? " and a much longer message that has to wrap onto a second line of the chat" : ""}`,
+    user: stress ? `${USERS[i % USERS.length]}_the_very_long_username` : USERS[i % USERS.length],
+    text: `${LINES[i % LINES.length]}${stress || i % 7 === 0 ? " and a much longer message that has to wrap onto a second line of the chat" : ""}`,
     color: i % 2 ? "#60a5fa" : "#f472b6",
     badge: ["", "mod", "", "vip", "sub", "", "", "broadcaster"][i % 8],
     ts: 1_700_000_000_000 + i * 4000,
@@ -51,14 +56,16 @@ const agents = () => {
       today: days[13].total,
       history: days.reduce((n, d) => n + d.total, 0),
       days,
-      breakdown: { today: { projects: [{ name: "InfoPanel.Studio", total: Math.round(days[13].total * 0.7) }, { name: "ips-server", total: Math.round(days[13].total * 0.3) }], models: [{ name: "opus", total: Math.round(days[13].total * 0.8) }, { name: "sonnet", total: Math.round(days[13].total * 0.2) }] } },
+      breakdown: { today: { projects: [{ name: L("InfoPanel.Studio"), total: Math.round(days[13].total * 0.7) }, { name: "ips-server", total: Math.round(days[13].total * 0.3) }], models: [{ name: "opus", total: Math.round(days[13].total * 0.8) }, { name: "sonnet", total: Math.round(days[13].total * 0.2) }] } },
     };
   };
+  const extra = stress ? Array.from({ length: 5 }, (_, i) => ({ key: `x${i}`, agent: i % 2 ? "codex" : "claude", project: L(`side-project-${i + 1}`), state: "working", since: now - (i + 1) * 60_000, turnStart: now - (i + 1) * 60_000, tool: "Read", model: "claude-opus-5-5" })) : [];
   return {
     sessions: [
-      { key: "s1", agent: "claude", project: "InfoPanel.Studio", state: "working", since: now - 95_000, turnStart: now - 95_000, tool: "Edit", subagents: 1, context: 42, cost: 3.12, model: "claude-opus-5-5" },
-      { key: "s2", agent: "codex", project: "ips-server", state: "waiting", since: now - 20_000, tool: "Bash", model: "gpt-5" },
-      { key: "s3", agent: "claude", project: "docs", state: "done", since: now - 600_000, lastTurnMs: 240_000, context: 18, cost: 0.41, model: "claude-sonnet-5-5" },
+      ...extra,
+      { key: "s1", agent: "claude", project: L("InfoPanel.Studio"), state: "working", since: now - 95_000, turnStart: now - 95_000, tool: "Edit", subagents: 1, context: 42, cost: 3.12, model: "claude-opus-5-5" },
+      { key: "s2", agent: "codex", project: L("ips-server"), state: "waiting", since: now - 20_000, tool: "Bash", model: "gpt-5" },
+      { key: "s3", agent: "claude", project: L("docs"), state: "done", since: now - 600_000, lastTurnMs: 240_000, context: 18, cost: 0.41, model: "claude-sonnet-5-5" },
     ],
     plan: {
       claude: { fiveHour: { used: 38, resetsAt: now + 2 * 3_600_000 }, sevenDay: { used: 61, resetsAt: now + 3 * DAY }, extra: [{ name: "opus", used: 44, resetsAt: now + 3 * DAY }], version: "2.4.0", at: now },
@@ -69,19 +76,19 @@ const agents = () => {
 };
 
 const extras = () => ({
-  obs: { configured: true, connected: true, streaming: true, recording: false, scenes: SCENES, currentScene: "scene-1", uptime: 5196, kbps: 6000, fps: 60, mic: { name: "Mic/Aux", muted: false, level: 40 }, replay: { active: true }, inputs: ["Mic/Aux"] },
+  obs: { configured: true, connected: true, streaming: true, recording: false, scenes: scenes(), currentScene: "scene-1", uptime: 5196, kbps: 6000, fps: 60, mic: { name: "Mic/Aux", muted: false, level: 40 }, replay: { active: true }, inputs: ["Mic/Aux"] },
   twitch: { configured: true, signedIn: true, login: "demo", channel: "demo", connected: true, live: true, viewers: 1243 },
   youtube: { clientConfigured: true, signedIn: true, channel: "Demo", live: true, viewers: 312, connected: true },
   agents: agents(),
 });
 
-const device = (id: string, name: string, volume: number, muted = false, def = false) => ({ id, name, volume, muted, default: def });
+const device = (id: string, name: string, volume: number, muted = false, def = false) => ({ id, name: L(name), volume, muted, default: def });
 const audio = () => ({
   windows: {
     available: true,
     outputs: [device("out1", "Headset (USB audio)", 72, false, true)],
     inputs: [device("in1", "Wave:3 microphone", 86, false, true)],
-    apps: [["game.exe", "Game", 64], ["discord.exe", "Discord", 50], ["spotify.exe", "Spotify", 36], ["chrome.exe", "Chrome", 28]].map(([id, name, volume]) => ({ id, name, volume, muted: false, deviceId: "out1" })),
+    apps: [["game.exe", "Game", 64], ["discord.exe", "Discord", 50], ["spotify.exe", "Spotify", 36], ["chrome.exe", "Chrome", 28]].map(([id, name, volume]) => ({ id, name: L(name as string), volume, muted: false, deviceId: "out1" })),
   },
   wavelink: { status: "absent", channels: [], mixes: [] },
 });
@@ -90,7 +97,7 @@ const KEY_TITLES = ["Scene 1", "Scene 2", "Mute mic", "Replay", "Go live", "Chat
 const streamdeck = () => ({
   enabled: true,
   pairingCode: "AB12CD",
-  devices: [{ id: "demo", name: "IPStudio", cols: 5, rows: 3, status: "ready", page: { current: 0, total: 3 }, keys: KEY_TITLES.flatMap((title, index) => (title ? [{ index, title, icon: null }] : [])) }],
+  devices: [{ id: "demo", name: "IPStudio", cols: 5, rows: 3, status: "ready", page: { current: 0, total: 3 }, keys: KEY_TITLES.flatMap((title, index) => (title ? [{ index, title: L(title), icon: null }] : [])) }],
 });
 
 const STREAMS: Record<string, () => unknown> = { [EXTRAS_EVENTS_URL]: extras, [AUDIO_EVENTS_URL]: audio, [CHAT_EVENTS_URL]: chat, [STREAMDECK_EVENTS_URL]: streamdeck };
@@ -123,8 +130,9 @@ class DemoEventSource {
   }
 }
 
-/** Answers the streams above with demo data from now on; call before any widget mounts. */
-export function installDemoStreams(): void {
+/** Answers the streams above with demo data from now on (long and full with `withStress`); call before any widget mounts. */
+export function installDemoStreams(withStress = false): void {
+  stress = withStress;
   const Real = window.EventSource;
   window.EventSource = new Proxy(Real, {
     construct: (target, args: [string, EventSourceInit?]) => {

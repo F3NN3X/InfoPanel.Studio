@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import { modules } from "@/modules";
 import { INSERT_CATEGORIES } from "@/components/studio/insert-panel";
@@ -11,7 +11,8 @@ import { Toolbar } from "./Toolbar";
 import { WidgetSection } from "./Section";
 import { forceMountAll } from "./Frame";
 import { overflowReport, type Issue } from "./probe";
-import { DEFAULT_STATE, parseParams, parseSpans, placementSettings, serializeParams, widgetLinks, type QaState } from "./params";
+import { NOTES } from "./notes";
+import { DEFAULT_STATE, frameRef, parseParams, parseSpans, placementSettings, serializeParams, widgetLinks, type QaState } from "./params";
 import { filterModules, groupByCategory, pickModules } from "./plan";
 import { installDemoStreams } from "./demo-streams";
 
@@ -25,7 +26,8 @@ import { installDemoStreams } from "./demo-streams";
 
 // Fixture data (the default) also gives the streaming widgets their OBS, chat, mixer, Stream Deck and agents demo data;
 // `data=live` reads the server's own streams.
-if (new URLSearchParams(window.location.search).get("data") !== "live") installDemoStreams();
+const DATA_PARAM = new URLSearchParams(window.location.search).get("data");
+if (DATA_PARAM !== "live") installDemoStreams(DATA_PARAM === "stress");
 
 const CATEGORY_ORDER = INSERT_CATEGORIES.filter((c) => !["All", "Layouts", "My panels"].includes(c));
 
@@ -37,14 +39,16 @@ export default function WidgetQa() {
     setState(next);
     window.history.replaceState(null, "", serializeParams(next) + window.location.hash);
   };
+  // The sections render after the browser's own jump to the hash, so jump once they exist (a copied frame link, a # link).
+  useEffect(() => document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView({ block: "center" }), []);
   const theme = THEME_PRESETS.find((p) => p.name === state.theme);
   const spans = useMemo(() => parseSpans(state.spans), [state.spans]);
   const settings = useMemo(() => placementSettings(state), [state]);
-  const picked = useMemo(() => pickModules(modules, TEMPLATE_MODULES, state.module), [state.module]);
+  const picked = useMemo(() => pickModules(modules, TEMPLATE_MODULES, state.module).filter((m) => !state.noted || NOTES[m.id]), [state.module, state.noted]);
   const sections = useMemo(() => groupByCategory(filterModules(picked, state.q), CATEGORY_ORDER), [picked, state.q]);
   const shown = sections.reduce((n, s) => n + s.mods.length, 0);
   const live = state.data === "live";
-  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, links: (id: string) => widgetLinks(state, id) };
+  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, grid: state.grid, links: (id: string) => widgetLinks(state, id), frameRef: (id: string, key: string) => frameRef(state, id, key, `${window.location.origin}${window.location.pathname}`) };
   const galleryMod = state.gallery ? modules.find((m) => m.id === state.gallery) : undefined;
   const galleries = useMemo(() => galleriesFor(galleryMod), [galleryMod]);
   // The header is frosted: translucent over the frames that scroll under it, blurred.
@@ -58,7 +62,7 @@ export default function WidgetQa() {
           <h1 className="text-sm font-semibold">Widget QA</h1>
           <QaHelp background={solidBg} />
           <p className="font-mono text-[11px] opacity-60">
-            {shown} modules · {SKIN_NAMES.length} skins · {spans.length} spans · {shown * spans.length} frames · cell {state.cell} · gap {state.gap} · {live ? "live data" : "fixtures"}
+            {shown} modules · {SKIN_NAMES.length} skins · {spans.length} spans · {shown * spans.length} frames · cell {state.cell} · gap {state.gap} · {live ? "live data" : state.data}
           </p>
         </div>
         <Toolbar state={state} onChange={(patch) => apply({ ...state, ...patch })} onReset={() => apply({ ...DEFAULT_STATE })} />

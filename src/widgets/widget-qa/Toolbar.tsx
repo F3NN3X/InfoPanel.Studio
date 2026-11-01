@@ -43,6 +43,15 @@ function Pick({ name, value, options, onChange, blank = "—" }: { name: string;
   );
 }
 
+function Check({ name, checked, onChange }: { name: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-1 text-[11px]">
+      <input type="checkbox" className="size-3.5 accent-current" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span className="opacity-60">{name}</span>
+    </label>
+  );
+}
+
 /** The one global control strip; every change goes through `onChange`, which updates state and the URL. */
 export function Toolbar({ state, onChange, onReset }: { state: QaState; onChange: (patch: Partial<QaState>) => void; onReset: () => void }) {
   return (
@@ -90,9 +99,12 @@ export function Toolbar({ state, onChange, onReset }: { state: QaState; onChange
       <Label name="data">
         <select className={`${field} [&>option]:text-black`} value={state.data} onChange={(e) => onChange({ data: e.target.value as QaState["data"] })}>
           <option value="fixtures">fixtures</option>
+          <option value="stress">stress</option>
           <option value="live">live</option>
         </select>
       </Label>
+      <Check name="grid" checked={state.grid} onChange={(grid) => onChange({ grid })} />
+      <Check name="noted only" checked={state.noted} onChange={(noted) => onChange({ noted })} />
       <button type="button" onClick={onReset} className={`${field} px-2`}>
         Reset
       </button>
