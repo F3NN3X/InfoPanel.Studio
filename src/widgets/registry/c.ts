@@ -103,7 +103,7 @@ export const GROUP_C: DashboardModule[] = [
     Component: AudioMeter,
     settings: [
       viewSetting(audioMeter, { label: "Mode", group: "Meter" }),
-      single(enumSetting("meterStyle", "Meter style", "led", opts(METER_STYLES), { group: "Meter" })),
+      single(enumSetting("meterStyle", "Meter type", "led", opts(METER_STYLES), { group: "Meter" })),
       single(numberSetting("segments", "Segments (0 = auto)", 0, { min: 0, max: 64, step: 1, group: "Meter", visibleIf: (v) => v.meterStyle === "led" })),
       bridge(enumSetting("orientation", "Bridge layout", "vertical", [{ value: "vertical", label: "Columns" }, { value: "horizontal", label: "Rows" }], { group: "Meter" })),
       ...audioSettings("showDevice", "showDetails", "showVolume", "showMute").map((d) => ({ ...d, group: "Details", label: AUDIO_METER_LABELS[d.key] ?? d.label })),

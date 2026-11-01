@@ -87,10 +87,11 @@ describe("batch C", () => {
     for (const id of ["FpsMonitor", "Bluetooth"]) expect(modules.find((m) => m.id === id)!.settings!.find((d) => d.key === "view")!.type, id).toBe("preset");
   });
 
-  it("files the look-only scrims under Widget colors, per widget", () => {
-    for (const id of ["GameSpotlight", "SteamGame"]) {
+  // A scrim darkens the widget's own artwork, so it sits with the artwork in Show (docs/redesign/settings-audit.md).
+  it("files the scrims with the artwork in Show", () => {
+    for (const [id, group] of [["GameSpotlight", "Layout"], ["SteamGame", "Artwork"]]) {
       const scrim = modules.find((m) => m.id === id)!.settings!.find((d) => d.key === "scrim")!;
-      expect([scrim.tab, scrim.perWidget], id).toEqual(["style", true]);
+      expect([scrim.tab, scrim.group], id).toEqual([undefined, group]);
     }
   });
 });

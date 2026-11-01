@@ -41,7 +41,7 @@ export const STREAM_CHAT_SETTINGS: ModuleSetting[] = [
       { value: "md", label: "M" },
       { value: "lg", label: "L" },
     ],
-    { group: "Messages", tab: "style" }
+    { group: "Messages", tab: "show" }
   ),
   numberSetting("maxMessages", "Messages shown", 60, { min: 5, max: 60, step: 5, group: "Messages", tab: "behaviour" }),
   enumSetting(

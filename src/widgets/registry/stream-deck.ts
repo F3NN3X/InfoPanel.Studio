@@ -29,14 +29,14 @@ export const STREAM_DECK_SETTINGS: ModuleSetting[] = [
   ),
   boolSetting("showPages", "Page row", true, { group: "Pages", tab: "show", hint: "Shows when the deck has more than one page" }),
   boolSetting("swipe", "Swipe to change page", true, { group: "Pages", tab: "behaviour" }),
-  numberSetting("keyGap", "Key gap (px)", 8, { min: 0, max: 24, step: 1, group: "Keys", tab: "style" }),
-  numberSetting("keyRadius", "Key corner radius (px)", 0, { min: 0, max: 48, step: 1, group: "Keys", tab: "style", hint: "0 follows the widget's corners" }),
+  numberSetting("keyGap", "Key gap (px)", 8, { min: 0, max: 24, step: 1, group: "Key look", tab: "show" }),
+  numberSetting("keyRadius", "Key corner radius (px)", 0, { min: 0, max: 48, step: 1, group: "Key look", tab: "show", hint: "0 follows the widget's corners" }),
   enumSetting(
     "keyStyle",
     "Key style",
     "auto",
     [{ value: "auto", label: "Skin's card" }, { value: "widget", label: "Same as widget" }, { value: "plain", label: "Plain" }, ...SURFACE_OPTIONS],
-    { group: "Keys", tab: "style", hint: "The keys' surface; it shows as a frame round each icon" }
+    { group: "Key look", tab: "show", hint: "The keys' surface; it shows as a frame round each icon" }
   ),
   enumSetting(
     "keyFrame",
@@ -47,7 +47,7 @@ export const STREAM_DECK_SETTINGS: ModuleSetting[] = [
       { value: "thin", label: "Thin" },
       { value: "thick", label: "Thick" },
     ],
-    { group: "Keys", tab: "style", visibleIf: (v) => v.keyStyle !== "plain" }
+    { group: "Key look", tab: "show", visibleIf: (v) => v.keyStyle !== "plain" }
   ),
   enumSetting(
     "iconOverlay",
@@ -59,9 +59,9 @@ export const STREAM_DECK_SETTINGS: ModuleSetting[] = [
       { value: "glow", label: "Glow" },
       { value: "none", label: "None" },
     ],
-    { group: "Keys", tab: "style", hint: "Drawn over each icon" }
+    { group: "Key look", tab: "show", hint: "Drawn over each icon" }
   ),
-  numberSetting("overlayStrength", "Overlay strength (%)", 100, { min: 0, max: 100, step: 5, group: "Keys", tab: "style", visibleIf: (v) => v.iconOverlay !== "none" }),
+  numberSetting("overlayStrength", "Overlay strength (%)", 100, { min: 0, max: 100, step: 5, group: "Key look", tab: "show", visibleIf: (v) => v.iconOverlay !== "none" }),
   enumSetting(
     "pressedEffect",
     "Pressed effect",
@@ -72,7 +72,7 @@ export const STREAM_DECK_SETTINGS: ModuleSetting[] = [
       { value: "glow", label: "Glow" },
       { value: "none", label: "None" },
     ],
-    { group: "Keys", tab: "style" }
+    { group: "Key look", tab: "show" }
   ),
 ];
 

@@ -435,7 +435,7 @@ describe("More rows", () => {
 
   it("lists a section's More rows after its link", () => {
     const visualizer = splitMore(find(sectionsFor(spotify, "show"), "Visualizer"));
-    expect(visualizer.more.map((d) => d.key)).toEqual(["vizShape", "vizGap", "vizOrientation", "vizMinLevel", "vizLine", "vizFade", "vizFadeWidth"]);
+    expect(visualizer.more.map((d) => d.key)).toEqual(["vizShape", "vizGap", "vizOpacity", "vizGlow", "vizOrientation", "vizMinLevel", "vizLine", "vizFade", "vizFadeWidth"]);
     const dynamics = splitMore(find(sectionsFor(spotify, "behaviour"), "Visualizer dynamics"));
     expect(dynamics.rows.map((d) => d.key)).toEqual(["vizGain", "vizAutoGain"]);
     expect(dynamics.count).toBe(5);

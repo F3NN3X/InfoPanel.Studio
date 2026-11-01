@@ -1740,7 +1740,9 @@ the usual `key`, `label`, `type` and `default`:
   instead: the standard block's keys, and any widget row that belongs there.
 - `tab` (`"show" | "style" | "data" | "behaviour"`) picks the inspector tab.
   Unset, a data setting (a sensor or device) goes to Data and the rest to
-  Show; `style` files a colour or look toggle in Style › Widget colors.
+  Show; `style` files a colour, or a row that chooses how the colours work, in
+  Style › Widget colors. Any other own row goes to Show, Data or Behaviour
+  ([redesign/settings-audit.md](redesign/settings-audit.md)).
 - `more: true` lists it behind its section's "More (n)" link (`advanced` is
   read as the same).
 - `role` (a colour row): the palette colour it stands for (`s1`…`s6`, `ok`,

@@ -1456,6 +1456,7 @@ exports[`GameSpotlight > files its rows by the rules 1`] = `
     {
       "Layout": [
         "spotlightLayout",
+        "scrim",
       ],
     },
     {
@@ -1494,7 +1495,6 @@ exports[`GameSpotlight > files its rows by the rules 1`] = `
         "accent",
         "textColor",
         "mutedColor",
-        "scrim · per widget",
       ],
     },
     {
@@ -3342,6 +3342,7 @@ exports[`SteamGame > files its rows by the rules 1`] = `
     {
       "Artwork": [
         "art",
+        "scrim",
       ],
     },
     {
@@ -3367,7 +3368,6 @@ exports[`SteamGame > files its rows by the rules 1`] = `
         "accent",
         "textColor",
         "mutedColor",
-        "scrim · per widget",
       ],
     },
     {
@@ -3746,6 +3746,17 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
       ],
     },
     {
+      "Key look": [
+        "keyGap",
+        "keyRadius",
+        "keyStyle",
+        "keyFrame",
+        "iconOverlay",
+        "overlayStrength",
+        "pressedEffect",
+      ],
+    },
+    {
       "Fit": [
         "compact",
         "sizeTier · more",
@@ -3766,13 +3777,6 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
         "accent",
         "textColor",
         "mutedColor",
-        "keyGap",
-        "keyRadius",
-        "keyStyle",
-        "keyFrame",
-        "iconOverlay",
-        "overlayStrength",
-        "pressedEffect",
       ],
     },
     {
@@ -4276,6 +4280,8 @@ exports[`Visualizer > files its rows by the rules 1`] = `
         "peaks",
         "vizShape · more",
         "vizGap · more",
+        "vizOpacity · more",
+        "vizGlow · more",
       ],
     },
     {
@@ -4305,8 +4311,6 @@ exports[`Visualizer > files its rows by the rules 1`] = `
         "vizColor2 · role s2",
         "vizColor3 · role s3",
         "vizPeakColor · more · role crit",
-        "vizOpacity · more · per widget",
-        "vizGlow · more · per widget",
       ],
     },
     {

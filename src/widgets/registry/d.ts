@@ -107,7 +107,7 @@ export const GROUP_D: DashboardModule[] = [
       layoutIs("combo")(enumSetting("music", "Music source", "media", [{ value: "media", label: "Media" }, { value: "spotify", label: "Spotify" }], { group: "Music card" })),
       layoutIs("combo")(enumSetting("progress", "Music progress", "wave", [{ value: "wave", label: "Wave" }, { value: "visualizer", label: "Visualizer" }], { group: "Music card" })),
       layoutIs("combo")(enumSetting("vizMode", "Visualizer mode", "bars", ["bars", "mirror", "wave", "dots", "line"].map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })), { group: "Music card", visibleIf: (v) => v.progress === "visualizer" })),
-      layoutIs(...viewsExcept(gameSpotlightMeta, ...FIXED_SCRIM))(numberSetting("scrim", "Scrim darkness", 0.6, { min: 0, max: 1, step: 0.05, tab: "style", perWidget: true })),
+      layoutIs(...viewsExcept(gameSpotlightMeta, ...FIXED_SCRIM))(numberSetting("scrim", "Scrim darkness", 0.6, { min: 0, max: 1, step: 0.05, group: "Layout" })),
       layoutIs(...viewsExcept(gameSpotlightMeta, "poster"))(boolSetting("motion", "Ken Burns motion", true, { group: "Dynamics", tab: "behaviour" })),
     ],
     toProps: (s) => ({
@@ -196,7 +196,7 @@ export const GROUP_D: DashboardModule[] = [
     Component: SteamGame,
     settings: [
       enumSetting("art", "Artwork", "banner", [{ value: "banner", label: "Banner" }, { value: "grid", label: "Grid" }, { value: "none", label: "None" }], { group: "Artwork" }),
-      numberSetting("scrim", "Scrim darkness", 0.55, { min: 0, max: 1, step: 0.05, tab: "style", perWidget: true }),
+      numberSetting("scrim", "Scrim darkness", 0.55, { min: 0, max: 1, step: 0.05, group: "Artwork" }),
     ],
     toProps: (s) => ({ art: oneOf(s.art, ["banner", "grid", "none"]), scrim: numberOf(s.scrim) }),
   }),

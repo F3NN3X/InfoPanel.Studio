@@ -38,7 +38,7 @@ A setting can also set where and how its row shows:
 | Field | Effect |
 |---|---|
 | `section` | The shared section it is filed in (`header`, `fit`, `skin`, `colors`, `palette`, `surface`, `type`, `spacing`, `border`, `css`, `format`, `thresholds`, `island`, `motion`) instead of a `group` of the widget's own. |
-| `tab` | `"show"`, `"style"`, `"data"` or `"behaviour"`. Unset: Data for a sensor or device, else Show. `style` files a widget colour or look toggle in Style › Widget colors. |
+| `tab` | `"show"`, `"style"`, `"data"` or `"behaviour"`. Unset: Data for a sensor or device, else Show. `style` files a widget colour, or a row that chooses how its colours work (a ramp, a tint), in Style › Widget colors; any other row of its own goes to Show, Data or Behaviour ([the settings audit](redesign/settings-audit.md), checked by `refile-audit.test.ts`). |
 | `more` | Listed after the section's **More (n)** link (`advanced` is read as the same). |
 | `role` | A colour row's palette colour (`s1`…`s6`, `ok`, `warn`, `crit`): following the theme it shows that colour, custom its own, Auto = the role. |
 | `perWidget` | Never comes from a theme (a tint, a background image): editable while the section follows. |

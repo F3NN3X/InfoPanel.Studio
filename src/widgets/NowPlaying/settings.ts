@@ -28,13 +28,14 @@ const DYNAMICS = vizDynamicsSettings();
 const AUTO_GAIN = DYNAMICS.find((d) => d.key === "vizAutoGain")!;
 
 /**
- * The template's settings (config v8 names, SPEC §6.3): the player and its visualiser in Show, the
- * visualiser's colours in Style › Widget colors, the player source and the visualiser's audio in Data,
+ * The template's settings (config v8 names, SPEC §6.3): the player and its visualiser (its shape, opacity and glow
+ * too) in Show, the visualiser's colours in Style › Widget colors, the player source and the visualiser's audio in Data,
  * the dynamics in Behaviour. Every visualiser row shows only for the Visualizer progress style.
  */
 const OWN_SETTINGS: ModuleSetting[] = [
   PLAYER_LAYOUT,
   viewOnly(meta, ...ART_LAYOUTS)(boolSetting("showArt", "Cover art", true, { group: PLAYER })),
+  boolSetting("artBackground", "Blurred cover behind", false, { group: PLAYER }),
   boolSetting("showProgress", "Progress", true, { group: PLAYER }),
   enumSetting("progress", "Progress style", "bar", [{ value: "bar", label: "Bar" }, { value: "wave", label: "Wavy" }, { value: "visualizer", label: "Visualizer" }], { group: PLAYER, visibleIf: (v) => v.showProgress !== false }),
   boolSetting("showTimes", "Times", true, { group: PLAYER }),
@@ -51,7 +52,6 @@ const OWN_SETTINGS: ModuleSetting[] = [
   numberSetting("vizFadeWidth", "Fade width (px)", 24, { min: 0, max: 200, step: 4, group: VISUALIZER, more: true, visibleIf: (v) => v.vizFade !== false }),
   // the template draws untinted unless asked
   boolSetting("tint", "Tint from cover art", false, { tab: "style", perWidget: true }),
-  boolSetting("artBackground", "Blurred cover behind", false, { tab: "style", perWidget: true }),
   ...vizColorSettings(colorSetting("vizColor1", "Color 1")).map((d) => ({ ...d, ...COLOR_ROWS[d.key] })),
   enumSetting("source", "Source", "auto", [{ value: "auto", label: "Auto" }, { value: "media", label: "Windows" }, { value: "spotify", label: "Spotify" }, { value: "pushed", label: "Pushed" }], { group: "Player source", tab: "data", hint: "Auto: Spotify when connected, else Windows Media." }),
   { ...devicesSetting("Audio devices (none = loudest)", "audio", { group: AUDIO_SOURCE }), key: "vizDevices" },
