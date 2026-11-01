@@ -108,12 +108,12 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
   return (
     <Widget
       {...shell(p)}
-      title={p.title ?? `Cores · ${metric}`}
+      title={p.title ?? "Cores"}
       icon="grid_on"
       studio={{ label: `CPU · ${cores.length} cores`, value: total, unit: "%", cells: cores.map(norm), sub: metric }}
       right={
-        <span className="tabular-nums text-[color:var(--w-muted)]">
-          {fmt(total, 0)}%{cores.length ? ` · hottest T${hot.i} ${fmt(hot.load, 0)}%` : ""}
+        <span className="tabular-nums text-[color:var(--w-muted)]" title={cores.length ? `Average ${fmt(total, 0)}%, hottest thread ${hot.i} at ${fmt(hot.load, 0)}%` : undefined}>
+          {fmt(total, 0)}%{cores.length ? ` · T${hot.i} ${fmt(hot.load, 0)}%` : ""}
         </span>
       }
     >

@@ -76,7 +76,7 @@ export default function Calendar(p: CalendarProps) {
           )}
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <span {...tag("date", { kind: "clock", format: "MMMM" })} className="text-xs font-semibold text-[color:var(--w-fg)]">{M[mon - 1]}</span>
-            <div className="grid min-h-0 flex-1 grid-cols-7 gap-0.5 text-center text-[11px]" style={{ gridAutoRows: "minmax(0,1fr)" }}>
+            <div className="grid min-h-0 flex-1 grid-cols-7 gap-0.5 text-center text-[11px]" style={{ gridAutoRows: "minmax(0,1fr)", maxHeight: "21rem" }}>
               {Array.from({ length: 7 }, (_, i) => (
                 <span key={`h${i}`} className="text-micro font-medium text-[color:var(--w-faint)]">
                   {W[(i + ws) % 7][0]}
