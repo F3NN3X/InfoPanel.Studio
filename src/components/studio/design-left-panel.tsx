@@ -49,8 +49,6 @@ export function LeftPanelFrame({ tab, onTab, width, children }: Pick<DesignLeftP
       <div className="shrink-0 px-3 pb-2 pt-3">
         <Segmented
           label="Left panel"
-          // The one-editor spec tabs onto the unselected Layers radio (fixtures.spec.ts tabTo), so both stay tab stops.
-          roving={false}
           className="w-full flex-nowrap [&>button]:flex-1"
           value={tab}
           onChange={onTab}

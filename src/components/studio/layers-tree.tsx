@@ -3,7 +3,8 @@
  * chevron slot, an icon tile, the name (double-click renames), the kind word, the placed-freely mark, the Export
  * check's status (made for InfoPanel), the lock and the eye. Click selects, Shift a range, Ctrl toggles; a row drags
  * between rows (a 2 px line where it lands) or onto a group's middle (an outline: into it), carrying the selection.
- * Right-click opens the layer menu. The page's host (`use-page-layers.ts` on a screen's page, `canvas-layers.ts` on an imported profile's) reads the
+ * Right-click opens the layer menu. The chevron, lock and eye are pointer controls kept out of the accessibility tree (APG tree: no
+ * interactive descendants of a treeitem); the keyboard has Left and Right, Ctrl+L and Ctrl+H, and the row's state is its aria-description. The page's host (`use-page-layers.ts` on a screen's page, `canvas-layers.ts` on an imported profile's) reads the
  * page into rows and runs every change.
  */
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
@@ -90,6 +91,12 @@ function counts(nodes: readonly TreeNode[]): { parts: number; groups: number } {
   return { parts, groups };
 }
 
+/** A row's state for the treeitem (its lock and eye buttons are for the pointer and hidden from assistive tech; Ctrl+L and Ctrl+H change them). */
+function rowState(node: TreeNode): string | undefined {
+  const state = [node.locked && "Locked", node.hidden && "Hidden"].filter(Boolean).join(", ");
+  return state || undefined;
+}
+
 const KIND_WORD: Record<PartKind, string> = { widget: "widget", item: "item", element: "element" };
 
 export function LayersTree({ host }: { host: LayersHost }) {
@@ -101,6 +108,8 @@ export function LayersTree({ host }: { host: LayersHost }) {
   const [why, setWhy] = useState<string | null>(null);
   const [dragging, setDragging] = useState<readonly string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const seen = useRef<Map<string, string>>(new Map());
   const selected = host.selectedIds;
   const primary = selected.at(-1);
   // Rows inside a selected group tint.
@@ -115,6 +124,24 @@ export function LayersTree({ host }: { host: LayersHost }) {
     mark(host.nodes, false);
     return out;
   }, [host.nodes, selected]);
+
+  // Ctrl+L and Ctrl+H change a row the user may not be looking at: say what changed (the icons are hidden from assistive tech).
+  useEffect(() => {
+    const now = new Map<string, string>();
+    const said: string[] = [];
+    const visit = (list: readonly TreeNode[]) => {
+      for (const n of list) {
+        const state = rowState(n) ?? "";
+        const before = seen.current.get(n.id);
+        now.set(n.id, state);
+        if (before !== undefined && before !== state) said.push(`${n.name || "Layer"}: ${state ? state.toLowerCase() : "unlocked and shown"}`);
+        if (n.type === "group") visit(n.children ?? []);
+      }
+    };
+    visit(host.nodes);
+    seen.current = now;
+    if (said.length === 1) setAnnouncement(said[0]);
+  }, [host.nodes]);
 
   // F2: rename the primary node.
   const request = useRef(host.renameRequest);
@@ -252,6 +279,8 @@ export function LayersTree({ host }: { host: LayersHost }) {
               aria-selected={isSelected}
               aria-level={depth + 1}
               aria-expanded={group ? open : undefined}
+              aria-description={rowState(node)}
+              aria-keyshortcuts="Control+L Control+H"
               data-testid="layers-row"
               data-row-id={node.id}
               data-kind={group ? "group" : node.kind}
@@ -301,8 +330,10 @@ export function LayersTree({ host }: { host: LayersHost }) {
               {group ? (
                 <button
                   type="button"
-                  aria-label={open ? "Collapse" : "Expand"}
+                  aria-hidden="true"
+                  data-row-action="expand"
                   tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.stopPropagation();
                     host.setOpen(e.altKey ? deep(node) : [node.id], !open);
@@ -344,6 +375,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
                   {label}
                 </span>
               )}
+              {rowState(node) && <span className="sr-only">, {rowState(node)}</span>}
               <span className={cn("shrink-0 font-ui-mono text-[10px] text-ui-hint", node.hidden && "opacity-45")}>{group ? `group · ${node.children?.length ?? 0}` : KIND_WORD[node.kind ?? "item"]}</span>
               {node.free && !widget && (
                 <span role="img" title="Placed freely (Alt)" aria-label="Placed freely (Alt)" className="inline-flex shrink-0 text-ui-4">
@@ -358,16 +390,17 @@ export function LayersTree({ host }: { host: LayersHost }) {
               <button
                 type="button"
                 title={node.locked ? "Unlock" : "Lock"}
-                aria-label={node.locked ? `Unlock ${label}` : `Lock ${label}`}
-                aria-pressed={Boolean(node.locked)}
+                aria-hidden="true"
+                data-row-action="lock"
                 tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => {
                   e.stopPropagation();
                   host.setLocked(node.id, !node.locked);
                 }}
                 className={cn(
                   "relative grid h-[18px] w-[16px] shrink-0 place-items-center after:absolute after:-inset-1 after:content-['']",
-                  node.locked ? "text-ui-2" : "text-ui-hint opacity-0 focus-visible:opacity-100 group-hover/row:opacity-100",
+                  node.locked ? "text-ui-2" : "text-ui-hint opacity-0 group-hover/row:opacity-100",
                 )}
               >
                 <Lock className="h-[13px] w-[13px]" />
@@ -375,9 +408,10 @@ export function LayersTree({ host }: { host: LayersHost }) {
               <button
                 type="button"
                 title={node.hidden ? "Show" : "Hide"}
-                aria-label={node.hidden ? `Show ${label}` : `Hide ${label}`}
-                aria-pressed={Boolean(node.hidden)}
+                aria-hidden="true"
+                data-row-action="hide"
                 tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => {
                   e.stopPropagation();
                   host.setHidden(node.id, !node.hidden);
@@ -390,6 +424,9 @@ export function LayersTree({ host }: { host: LayersHost }) {
           );
         })}
       </div>
+      <p aria-live="polite" aria-atomic="true" data-testid="layers-announcement" className="sr-only">
+        {announcement}
+      </p>
       {why && (
         <p role="status" className="border-t border-ui-subtle px-3.5 py-2 text-[11px] leading-snug text-ui-warn">
           {why}

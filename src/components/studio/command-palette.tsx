@@ -44,6 +44,8 @@ function PaletteBody({ commands, onRun }: Pick<CommandPaletteProps, "commands" |
         <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ui-4" />
         <input
           type="text"
+          role="combobox"
+          aria-expanded={results.length > 0}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);

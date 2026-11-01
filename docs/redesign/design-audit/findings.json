@@ -630,7 +630,7 @@
     "evidence": "Static; templates' wizard-gallery implements arrows correctly.",
     "checked": false,
     "exportRisk": false,
-    "status": "partial"
+    "status": "fixed"
   },
   {
     "id": "FND-028",
@@ -1032,7 +1032,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "partial"
+    "status": "fixed"
   },
   {
     "id": "FND-046",
@@ -1145,7 +1145,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "partial"
+    "status": "fixed"
   },
   {
     "id": "FND-051",

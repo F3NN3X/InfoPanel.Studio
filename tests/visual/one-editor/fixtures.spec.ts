@@ -133,8 +133,10 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
         expect([tile.w, tile.h]).toEqual([20, 20]);
         expect(tile.cls).toContain("text-ui-accent");
         await expect(row).toContainText("widget");
-        await expect(row.getByRole("button", { name: /^Lock / })).toHaveCount(1);
-        await expect(row.getByRole("button", { name: /^Hide / })).toHaveCount(1);
+        // The lock and eye are there for the pointer; the treeitem holds no interactive descendant (APG tree).
+        await expect(row.locator('[data-row-action="lock"]')).toHaveCount(1);
+        await expect(row.locator('[data-row-action="hide"]')).toHaveCount(1);
+        await expect(row.getByRole("button")).toHaveCount(0);
         expect(await row.textContent()).not.toMatch(/\d×\d/);
       }
       await expect(page.getByTestId("layers-row").first()).toHaveText(/Coding Agents/);
@@ -415,16 +417,28 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
     },
     [CHECKS.layersF[5].text]: async (page) => {
       const load = layersRow(page, "CPU load");
-      await load.getByRole("button", { name: "Hide CPU load" }).click();
+      // Hide and Lock are row commands: select the row, then Ctrl+H, Ctrl+L (the eye and lock icons are for the pointer).
+      await load.click();
+      await page.keyboard.press("Control+h");
       await expect(load).toHaveAttribute("data-hidden", "");
+      await expect(load).toHaveAttribute("aria-description", "Hidden");
+      // Selecting the row for the key made it white; select another row so the unselected muting shows.
+      await layersRow(page, "Temps").click();
       // The design audit (FND-001) keeps the name readable: it mutes to text-ui-4 while the icon dims to 45 %.
       await expect(load).toHaveCSS("opacity", "1");
       await expect(load.getByText("CPU load", { exact: true })).toHaveClass(/text-ui-4/);
       await expect(load.locator("svg").first().locator("..")).toHaveCSS("opacity", "0.45");
-      await load.getByRole("button", { name: "Show CPU load" }).click();
-      await load.getByRole("button", { name: "Lock CPU load" }).click();
+      await load.click();
+      await page.keyboard.press("Control+h");
+      await expect(load).not.toHaveAttribute("data-hidden");
+      await load.click();
+      await page.keyboard.press("Control+l");
       await expect(load).toHaveAttribute("data-locked", "");
-      await expect(load.getByRole("button", { name: "Unlock CPU load" })).toBeVisible();
+      await expect(load).toHaveAttribute("aria-description", "Locked");
+      await expect(load.locator('[data-row-action="lock"]')).toHaveAttribute("title", "Unlock");
+      // A locked row shows its lock (an unlocked one only on hover).
+      await expect(load.locator('[data-row-action="lock"]')).toBeVisible();
+      await expect(load.locator('[data-row-action="lock"]')).toHaveCSS("opacity", "1");
       // A drag on the locked item leaves it where it is.
       const drawn = page.locator('[data-path="2"]');
       const before = await profileBox(page, drawn);
@@ -728,10 +742,11 @@ test("one-editor/profile: keyboard only, from Add to Export", async ({ page, scr
   // Alt+Arrow nudges the item 1 px: it is placed freely.
   await page.keyboard.press("Alt+ArrowRight");
   expect((await placeRow(page)).mode).toBe("free");
-  // Layers by its tab, then the tree: the new item is the top row and its tab stop; Shift+Down takes the widget too.
-  const layersTab = page.getByRole("radio", { name: "Layers" });
-  await tabTo(page, layersTab);
-  await page.keyboard.press("Enter");
+  // Layers by its radio (one tab stop, the checked one; an arrow key moves and selects), then the tree: the new item is the top row and its tab stop; Shift+Down takes the widget too.
+  const checkedTab = page.getByRole("radiogroup", { name: "Left panel" }).getByRole("radio", { checked: true });
+  await tabTo(page, checkedTab);
+  if ((await checkedTab.textContent()) !== "Layers") await page.keyboard.press("ArrowLeft");
+  await expect(page.getByRole("radio", { name: "Layers" })).toBeChecked();
   const top = page.getByTestId("layers-row").first();
   await tabTo(page, top);
   await expect(top).toHaveAttribute("data-selected", "");
@@ -826,14 +841,14 @@ test("one-editor/screen: a hidden widget isn't drawn; Layers selects it as an ou
   const clock = page.locator('[data-zone-id="clock"]');
   const before = (await clock.boundingBox())!;
   await expect(clock.locator("*")).not.toHaveCount(0);
-  await layersRow(page, "Clock").hover();
-  await page.getByRole("button", { name: "Hide Clock" }).click();
+  await layersRow(page, "Clock").click();
+  await page.keyboard.press("Control+h");
   await expect(clock).toHaveAttribute("data-hidden", "");
   await expect(clock.locator("*")).toHaveCount(0);
   await layersRow(page, "Clock").click();
   await expect(clock.locator("[data-hidden-zone]")).toBeVisible();
   expect(await clock.boundingBox()).toEqual(before);
-  await page.getByRole("button", { name: "Show Clock" }).click();
+  await page.keyboard.press("Control+h");
   await expect(clock).not.toHaveAttribute("data-hidden");
 });
 
@@ -900,8 +915,9 @@ test("one-editor/screen: a widget is hidden from Layers or Ctrl+H, not its inspe
 // SPEC §7.1, acceptance 18: a locked widget is drawn but can't be moved on the canvas.
 test("one-editor/screen: a locked widget doesn't move on the canvas", async ({ page, scratch }) => {
   await openFixture(page, scratch.base, "screen");
-  await layersRow(page, "Clock").hover();
-  await page.getByRole("button", { name: "Lock Clock" }).click();
+  await layersRow(page, "Clock").click();
+  await page.keyboard.press("Control+l");
+  await expect(layersRow(page, "Clock")).toHaveAttribute("data-locked", "");
   const clock = page.locator('[data-zone-id="clock"]');
   const before = await clock.boundingBox();
   await dragBy(page, clock, 0, -150);

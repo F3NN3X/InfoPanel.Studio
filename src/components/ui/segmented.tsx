@@ -16,8 +16,6 @@ interface SegmentedProps<T extends string> {
   label?: string;
   /** `bar` is the top bar's Design | Sources variant (bigger, on the raised surface). */
   size?: "field" | "bar";
-  /** One tab stop for the group (default, the APG radio pattern). Off makes every option a tab stop; the arrow keys work either way. */
-  roving?: boolean;
   className?: string;
 }
 
@@ -28,7 +26,6 @@ export function Segmented<T extends string>({
   onChange,
   label,
   size = "field",
-  roving = true,
   className,
 }: SegmentedProps<T>) {
   const bar = size === "bar";
@@ -50,7 +47,7 @@ export function Segmented<T extends string>({
           type="button"
           role="radio"
           aria-checked={o.value === value}
-          tabIndex={!roving || o.value === tabStop ? 0 : -1}
+          tabIndex={o.value === tabStop ? 0 : -1}
           title={o.title}
           onClick={() => onChange(o.value)}
           className={cn(
