@@ -173,20 +173,23 @@ export default function StreamDeck(p: StreamDeckProps) {
   const status = notice(deck, state.enabled, p.device, state.pairingCode, link);
   const ready = deck !== undefined && status === null;
 
+  // Two pointers can hold one key: the key goes down with the first press sent and up when the last of them lets go.
+  const holders = (device: string, index: number, sentOnly: boolean) => [...held.current.values()].filter((k) => k.device === device && k.index === index && (!sentOnly || k.sent)).length;
   const send = (pointerId: number) => {
     const key = held.current.get(pointerId);
     if (!key || key.sent) return;
     clearTimeout(key.timer);
+    const first = holders(key.device, key.index, true) === 0;
     key.sent = true;
-    void deckPress(key.device, key.index, true);
+    if (first) void deckPress(key.device, key.index, true);
   };
   const release = (pointerId: number) => {
     const key = held.current.get(pointerId);
     if (!key) return;
     clearTimeout(key.timer);
     held.current.delete(pointerId);
-    setDown((prev) => new Set([...prev].filter((i) => i !== key.index)));
-    if (key.sent) void deckPress(key.device, key.index, false);
+    if (holders(key.device, key.index, false) === 0) setDown((prev) => new Set([...prev].filter((i) => i !== key.index)));
+    if (key.sent && holders(key.device, key.index, true) === 0) void deckPress(key.device, key.index, false);
   };
   const travelled = (pointerId: number, x: number, y: number) => {
     const key = held.current.get(pointerId);
@@ -202,11 +205,16 @@ export default function StreamDeck(p: StreamDeckProps) {
   useEffect(() => {
     const keys = held.current;
     return () => {
+      const down = new Set<string>();
       for (const [, key] of keys) {
         clearTimeout(key.timer);
-        if (key.sent) void deckPress(key.device, key.index, false);
+        if (key.sent) down.add(`${key.device}\n${key.index}`);
       }
       keys.clear();
+      for (const k of down) {
+        const [device, index] = k.split("\n");
+        void deckPress(device, Number(index), false);
+      }
     };
   }, []);
 

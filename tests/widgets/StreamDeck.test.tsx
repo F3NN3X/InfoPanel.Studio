@@ -138,6 +138,25 @@ describe("StreamDeck", () => {
     expect(mocks.press.mock.calls.slice(2)).toEqual([["d1", 1, true], ["d1", 1, false]]);
   });
 
+  it("sends one down and one up for a key two pointers hold, the up when the last lets go", () => {
+    mocks.state = state({ page: { current: 0, total: 1 } });
+    const { unmount } = render(<StreamDeck data={{}} device="d1" />);
+    const key = keys()[0];
+    fireEvent.pointerDown(key, { pointerId: 1, button: 0 });
+    fireEvent.pointerDown(key, { pointerId: 2, button: 0 });
+    fireEvent.pointerUp(key, { pointerId: 1 });
+    expect(mocks.press.mock.calls).toEqual([["d1", 0, true]]);
+    expect(key.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.pointerUp(key, { pointerId: 2 });
+    expect(mocks.press.mock.calls).toEqual([["d1", 0, true], ["d1", 0, false]]);
+    expect(key.getAttribute("aria-pressed")).toBe("false");
+    // Both still down when the widget goes away: one release.
+    fireEvent.pointerDown(key, { pointerId: 3, button: 0 });
+    fireEvent.pointerDown(key, { pointerId: 4, button: 0 });
+    unmount();
+    expect(mocks.press.mock.calls.slice(2)).toEqual([["d1", 0, true], ["d1", 0, false]]);
+  });
+
   it("lets go of a key the pointer leaves", () => {
     mocks.state = state({ page: { current: 0, total: 1 } });
     render(<StreamDeck data={{}} device="d1" />);
