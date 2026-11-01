@@ -25,6 +25,8 @@ interface Route {
   heading: string | null;
   /** Bumped by every open, so opening the same article again still scrolls. */
   seq: number;
+  /** The target named an article that does not exist, so Home says so. */
+  missing: boolean;
 }
 
 /** Zoom keys, and the version, of the desktop window. */
@@ -203,7 +205,7 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
           ) : (
             <>
               {/* Typed on Home: its field stays mounted under the results, so focus and the caret stay put. */}
-              {!article && <HomeView content={content} query={query} onQuery={setQuery} onOpen={openArticle} searching={searching} />}
+              {!article && <HomeView content={content} query={query} onQuery={setQuery} onOpen={openArticle} searching={searching} missing={route.missing} />}
               {searching && <ResultsView query={query} hits={hits} onHit={openHit} onHome={goHome} />}
             </>
           )}
@@ -227,5 +229,5 @@ function findHeading(pane: HTMLElement, id: string): HTMLElement | null {
 function toRoute(target: HelpTarget, content: HelpContent, seq: number): Route {
   const article = target.article !== undefined && Object.hasOwn(content.articles, target.article) ? content.articles[target.article] : null;
   const heading = article?.blocks.some((b) => b.type === "h" && b.id === target.heading) ? (target.heading ?? null) : null;
-  return { article: article?.id ?? null, heading, seq };
+  return { article: article?.id ?? null, heading, seq, missing: target.article !== undefined && !article };
 }

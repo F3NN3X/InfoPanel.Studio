@@ -149,7 +149,7 @@ export function ScreensView({
 
         <DisplaysList displays={displays} profiles={config.profiles} />
 
-        {empty && <ListEmpty>{query ? `Nothing matches "${query}".` : "Nothing here yet."}</ListEmpty>}
+        {empty && <ListEmpty>{query ? `Nothing matches “${query}”.` : "No screens yet. Use New to start one."}</ListEmpty>}
 
         {screens.length > 0 && (
           <ul aria-label="Your screens" className={CARD_GRID}>

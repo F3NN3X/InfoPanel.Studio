@@ -20,6 +20,8 @@ export interface SheetIdentity {
   hidden?: boolean;
   /** The visibility button; omitted for the dashboard. */
   onToggleVisible?: () => void;
+  /** What the visibility button hides, as it is named ("widget" when omitted). */
+  noun?: string;
   /** Shown alone at the peek instead of the header and the strip ("Tap a widget to edit it."). */
   peekNote?: string;
 }
@@ -163,8 +165,8 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
           <button
             type="button"
             onClick={identity.onToggleVisible}
-            title={identity.hidden ? "Show" : "Hide"}
-            aria-label={identity.hidden ? "Show" : "Hide"}
+            title={`${identity.hidden ? "Show" : "Hide"} ${identity.noun ?? "widget"}`}
+            aria-label={`${identity.hidden ? "Show" : "Hide"} ${identity.noun ?? "widget"}`}
             className={BUTTON}
           >
             {identity.hidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}

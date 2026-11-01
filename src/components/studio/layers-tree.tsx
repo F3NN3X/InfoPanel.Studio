@@ -233,7 +233,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
         onDragLeave={(e) => e.currentTarget === e.target && clear()}
         className="relative flex min-h-0 flex-1 flex-col gap-px overflow-y-auto px-2 pb-2"
       >
-        {rows.length === 0 && <p className="px-2 py-5 text-center text-xs text-ui-4">Nothing on this page yet.</p>}
+        {rows.length === 0 && <p className="px-2 py-5 text-center text-xs text-ui-4">Nothing on this page yet. Use the Add tab to place a widget.</p>}
         {rows.map((row) => {
           const { node, depth } = row;
           const group = node.type === "group";

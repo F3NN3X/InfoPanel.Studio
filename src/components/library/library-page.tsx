@@ -372,7 +372,7 @@ export default function LibraryPage(p: LibraryPageProps) {
     return { removed, stayed, failed };
   };
   const summary = (verb: string, r: { removed: number; stayed: number; failed: number }) =>
-    [`${verb} ${r.removed} item${r.removed === 1 ? "" : "s"}`, r.stayed && `${r.stayed} kept: a screen uses ${r.stayed === 1 ? "its file" : "their files"}`, r.failed && `${r.failed} failed`].filter(Boolean).join("; ");
+    [`${verb} ${r.removed} item${r.removed === 1 ? "" : "s"}`, r.stayed && `${r.stayed} kept: a screen uses ${r.stayed === 1 ? "its file" : "their files"}`, r.failed && `${r.failed} could not be removed; try again`].filter(Boolean).join("; ");
   const removeMany = async (items: readonly LibraryItem[]) => toast(summary("Removed", await removeEach(items)));
   /** The multi-delete: saved Styles and panels from the config in one edit, the rest through the Library's remove. */
   const deletePicked = async (items: readonly LibraryItem[]) => {

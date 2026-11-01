@@ -44,6 +44,15 @@ pub enum Phase {
     Error,
 }
 
+/// Which step an error came from, so the card can say what to try again.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FailedDuring {
+    Check,
+    Download,
+    Install,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateState {
@@ -64,6 +73,9 @@ pub struct UpdateState {
     pub total: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// The step that failed, while in the error state.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failed_during: Option<FailedDuring>,
     /// On Stable: a beta newer than the running version and than Stable's own offer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub newer_beta: Option<String>,
@@ -89,6 +101,7 @@ impl UpdateState {
             downloaded: None,
             total: None,
             error: None,
+            failed_during: None,
             newer_beta: None,
         }
     }
@@ -96,12 +109,14 @@ impl UpdateState {
     pub fn checking(&mut self) {
         self.state = Phase::Checking;
         self.error = None;
+        self.failed_during = None;
     }
 
     /// The check finished: `found` is the newer release, if any.
     pub fn checked(&mut self, found: Option<Found>, now: u64) {
         self.checked_at = Some(now);
         self.error = None;
+        self.failed_during = None;
         self.downloaded = None;
         self.total = None;
         match found {
@@ -120,9 +135,10 @@ impl UpdateState {
         }
     }
 
-    pub fn failed(&mut self, error: String, now: u64) {
+    pub fn failed(&mut self, during: FailedDuring, error: String, now: u64) {
         self.state = Phase::Error;
         self.error = Some(error);
+        self.failed_during = Some(during);
         self.checked_at = Some(now);
         self.downloaded = None;
         self.total = None;
@@ -133,6 +149,7 @@ impl UpdateState {
         self.downloaded = Some(0);
         self.total = None;
         self.error = None;
+        self.failed_during = None;
     }
 
     pub fn progress(&mut self, chunk: usize, total: Option<u64>) {
@@ -291,7 +308,7 @@ impl Flow {
                 self.has_update = false;
                 self.state.checked(None, now);
             }
-            Err(e) => self.state.failed(e, now),
+            Err(e) => self.state.failed(FailedDuring::Check, e, now),
         }
         self.channel = Some(channel);
         true
@@ -303,6 +320,7 @@ impl Flow {
             Phase::Available if self.has_update => {}
             Phase::Error if self.bytes.is_some() => {
                 self.state.error = None;
+                self.state.failed_during = None;
                 self.state.ready();
                 return DownloadStart::Ready;
             }
@@ -338,7 +356,7 @@ impl Flow {
                 self.bytes = Some(bytes);
                 self.state.ready();
             }
-            Err(e) => self.state.failed(e, now),
+            Err(e) => self.state.failed(FailedDuring::Download, e, now),
         }
         true
     }
@@ -367,7 +385,7 @@ impl Flow {
     /// The install failed: the bytes come back, so a retry needs no new download.
     pub fn install_failed(&mut self, bytes: Vec<u8>, error: String, now: u64) {
         self.bytes = Some(bytes);
-        self.state.failed(error, now);
+        self.state.failed(FailedDuring::Install, error, now);
     }
 }
 
@@ -709,12 +727,14 @@ mod tests {
     fn errors_carry_the_reason() {
         let mut s = UpdateState::new("1.2.0");
         s.checking();
-        s.failed("offline".into(), 5);
+        s.failed(FailedDuring::Check, "offline".into(), 5);
         assert_eq!(s.state, Phase::Error);
         assert_eq!(s.error.as_deref(), Some("offline"));
+        assert_eq!(s.failed_during, Some(FailedDuring::Check));
         assert_eq!(s.offered(), None);
         s.checking();
         assert_eq!(s.error, None);
+        assert_eq!(s.failed_during, None);
     }
 
     #[test]
@@ -897,6 +917,7 @@ mod tests {
         // An error before anything was found: check again.
         let (id, _) = f.begin_check(Channel::Stable).unwrap();
         f.finish_check(id, Channel::Stable, Err("offline".into()), 2);
+        assert_eq!(f.state.failed_during, Some(FailedDuring::Check));
         assert_eq!(f.begin_download(), DownloadStart::Check);
     }
 
@@ -910,6 +931,7 @@ mod tests {
         };
         assert!(f.finish_download(d, Err("reset".into()), 2));
         assert_eq!(f.state.state, Phase::Error);
+        assert_eq!(f.state.failed_during, Some(FailedDuring::Download));
         assert!(matches!(f.begin_download(), DownloadStart::Start(_)));
     }
 
@@ -941,6 +963,7 @@ mod tests {
         assert_eq!(f.begin_download(), DownloadStart::Ignore);
         f.install_failed(bytes, "denied".into(), 3);
         assert_eq!(f.state.state, Phase::Error);
+        assert_eq!(f.state.failed_during, Some(FailedDuring::Install));
         // The bytes are back: ready again without a download.
         assert_eq!(f.begin_download(), DownloadStart::Ready);
         assert_eq!(f.state.state, Phase::Ready);

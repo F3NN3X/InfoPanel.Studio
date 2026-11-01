@@ -44,8 +44,8 @@ function weatherOf(d: ShellProps["data"], location: string | undefined, win: Rai
 
 const hourLabel = (hour: number, h12: boolean) => (h12 ? `${hour % 12 || 12}${hour < 12 ? "a" : "p"}` : String(hour).padStart(2, "0"));
 
-/** The label of a midnight mark: Tmrw for the next day, else the weekday. */
-const dayName = (at: number, day: number) => (day === 1 ? "Tmrw" : new Date(at).toLocaleDateString(undefined, { weekday: "short" }));
+/** The label of a midnight mark: the weekday. */
+const dayName = (at: number) => new Date(at).toLocaleDateString(undefined, { weekday: "short" });
 
 export default function DayPlanner(p: DayPlannerProps) {
   const { locale } = useGeneral();
@@ -104,7 +104,7 @@ export default function DayPlanner(p: DayPlannerProps) {
               <div className={`relative shrink-0 text-micro tabular-nums text-[color:var(--w-faint)] ${horizontal ? "h-4" : "w-7"}`}>
                 {marks.map((m) => (
                   <span key={m.at} className="absolute whitespace-nowrap leading-none" style={horizontal ? { left: along(m.fraction), transform: "translateX(-50%)" } : { top: along(m.fraction), transform: "translateY(-50%)" }}>
-                    {m.hour === 0 && m.day >= 1 ? dayName(m.at, m.day) : hourLabel(m.hour, h12)}
+                    {m.hour === 0 && m.day >= 1 ? dayName(m.at) : hourLabel(m.hour, h12)}
                   </span>
                 ))}
               </div>

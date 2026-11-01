@@ -58,7 +58,7 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
       setStatus({ state: "idle" });
       onChange(asset.url);
     } catch (err) {
-      setStatus({ state: "error", message: err instanceof AssetError ? err.message : "The upload failed." });
+      setStatus({ state: "error", message: err instanceof AssetError ? err.message : "The upload failed. Try again." });
     }
   };
 

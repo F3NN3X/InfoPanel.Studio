@@ -218,10 +218,17 @@ export default function FpsMonitor(p: FpsMonitorProps) {
   return (
     <Widget
       {...shell(p)}
-      title={p.title ?? (idle ? "FPS" : title)}
+      title={p.title ?? "FPS"}
       icon="speed"
       compact={gauge ? gaugeCompact : { label: idle ? "FPS" : title, value: idle ? "–" : fps, unit: idle ? "" : "FPS", sub: idle ? "No game running" : fpsSubLine(low, frame), idle: idle ? "No game running" : undefined, icon: "sports_esports", hist: idle ? undefined : fpsH, kind: idle ? "value" : "spark", t: idle ? "ok" : t }}
-      right={has(k("graphics-api")) && <Chip>{k("graphics-api")}</Chip>}
+      right={
+        (!idle && !!title) || has(k("graphics-api")) ? (
+          <>
+            {!idle && !!title && <Chip className="max-w-40 truncate">{title}</Chip>}
+            {has(k("graphics-api")) && <Chip>{k("graphics-api")}</Chip>}
+          </>
+        ) : undefined
+      }
     >
       {({ size, w, h }) =>
         gauge ? (

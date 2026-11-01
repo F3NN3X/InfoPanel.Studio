@@ -304,8 +304,8 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
             <button
               type="button"
               onClick={onToggleVisible}
-              title={hidden ? "Show" : "Hide"}
-              aria-label={hidden ? "Show" : "Hide"}
+              title={`${hidden ? "Show" : "Hide"} ${zones.length > 1 ? "widgets" : "widget"}`}
+              aria-label={`${hidden ? "Show" : "Hide"} ${zones.length > 1 ? "widgets" : "widget"}`}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-ui-3 hover:bg-[#1e1e24] hover:text-ui-1"
             >
               {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

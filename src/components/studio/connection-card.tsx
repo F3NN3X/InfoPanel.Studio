@@ -94,7 +94,7 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
       <div className="flex min-h-7 items-center gap-2 text-[12px] text-ui-3">
         <span className="min-w-0 flex-1 truncate">Test connection</span>
         <span role="status" className="flex items-center gap-2">
-          {probe === "testing" && <span>testing...</span>}
+          {probe === "testing" && <span>testing…</span>}
           {probe === "ok" && <span className="text-ui-success">connected</span>}
           {probe === "fail" && <span className="text-ui-danger">not reachable</span>}
         </span>

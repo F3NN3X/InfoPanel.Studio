@@ -15,16 +15,19 @@ interface HomeViewProps {
   onOpen: (article: string) => void;
   /** A query is typed: only the field stays, so it is the same field the user is typing in and keeps its focus. */
   searching?: boolean;
+  /** The link that brought the reader here named an article that is not there. */
+  missing?: boolean;
 }
 
 /** Help home: the search field, the three Start here cards, and a card per group of articles. */
-export function HomeView({ content, query, onQuery, onOpen, searching = false }: HomeViewProps) {
+export function HomeView({ content, query, onQuery, onOpen, searching = false, missing = false }: HomeViewProps) {
   const start = START_IDS.flatMap((id) => (content.articles[id] ? [content.articles[id]] : []));
   return (
     <div className={searching ? "mx-auto box-border flex max-w-[760px] flex-col px-8 pt-9" : "mx-auto box-border flex max-w-[880px] flex-col gap-10 px-8 pb-20 pt-12"}>
       <div className="flex flex-col gap-3.5">
         {!searching && (
           <>
+            {missing && <p role="status" className="m-0 text-sm text-s-muted">That article isn’t here. Browse the topics.</p>}
             <h1 className="m-0 text-[30px] font-semibold tracking-[-0.02em]">How can we help?</h1>
             <p className="m-0 max-w-[600px] text-pretty text-sm leading-[1.55] text-s-muted">Every feature of InfoPanel Studio, explained. Search, or start with the basics below.</p>
           </>

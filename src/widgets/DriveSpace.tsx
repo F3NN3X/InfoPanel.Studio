@@ -1,6 +1,6 @@
 import type { ModuleSettings } from "@/modules/types";
 import { DriveIcon, DriveRows, type DriveRow } from "./DriveSpaceViews";
-import { useFitRows, Widget, shell, get, num, fmt, fmtMB, Bar, BarRow, Ring, Num, tone, Pill, type ShellProps, type Tone } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, fmtMB, Bar, BarRow, Ring, Num, tone, Chip, Pill, type ShellProps, type Tone } from "./kit";
 import { meta } from "./meta/DriveSpace";
 
 export { meta };
@@ -40,9 +40,16 @@ export default function DriveSpace(p: DriveSpaceProps) {
   return (
     <Widget
       {...shell(p)}
-      title={p.title ?? (one ? `${one.name} ${one.label}` : "Drives")}
+      title={p.title ?? "Drive space"}
       icon="hard_drive"
-      right={critN > 0 && <Pill state="crit" className="text-[11px]">{critN} critical</Pill>}
+      right={
+        (one || critN > 0) && (
+          <>
+            {one && <Chip>{`${one.name} ${one.label}`.trim()}</Chip>}
+            {critN > 0 && <Pill state="crit" className="text-[11px]">{critN} critical</Pill>}
+          </>
+        )
+      }
       studio={first && { label: "Drives", value: first.pct, unit: "%", sub: `${first.name} · ${fmtMB(first.free)} free`, pct: first.pct, rows: list.map((x) => ({ n: `${x.name} ${x.label}`, v: `${fmtMB(x.free)} free`, pct: x.pct })) }}
       compact={first && { label: `${first.name} ${first.label}`, value: first.pct, unit: "%", sub: `${fmtMB(first.free)} free`, pct: first.pct, t: tone(first.pct, warn, crit) }}
     >

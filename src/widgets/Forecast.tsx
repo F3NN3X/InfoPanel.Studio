@@ -72,7 +72,7 @@ export default function Forecast(p: ForecastProps) {
             <ul className="flex h-full flex-col justify-between gap-1">
               {fc.slice(0, p.days ?? Math.max(1, Math.floor(h / 34))).map((f, i) => (
                 <li key={i} className={`grid items-center text-xs ${narrow ? "gap-1" : "gap-2"}`} style={{ gridTemplateColumns: narrow ? "minmax(0,1fr) 18px auto" : w < 200 ? "36px 20px minmax(0,1fr) 32px" : "34px 22px 28px minmax(0,1fr) 28px" }} title={`${f.cond} · ${f.rain} mm · ${f.wind}`}>
-                  <span className="truncate text-[color:var(--w-muted)]">{i === 0 ? "Tmrw" : f.day}</span>
+                  <span className="truncate text-[color:var(--w-muted)]">{i === 0 ? "Tomorrow" : f.day}</span>
                   {glyph(f.cond, "text-lg text-[color:var(--w-fg)]")}
                   {w >= 200 && <span className="text-right tabular-nums text-[color:var(--w-faint)]">{fmt(f.lo, 0)}°</span>}
                   {!narrow && range(f, true)}
@@ -88,7 +88,7 @@ export default function Forecast(p: ForecastProps) {
             <div className="grid h-full items-center gap-1" style={{ gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` }}>
               {fc.slice(0, n).map((f, i) => (
                 <div key={i} className="flex min-w-0 flex-col items-center gap-0.5" title={`${f.cond} · ${f.rain} mm · ${f.wind}`}>
-                  {h >= 34 && <span className="text-[11px] leading-[14px] text-[color:var(--w-muted)]">{i === 0 ? "Tmrw" : f.day}</span>}
+                  {h >= 34 && <span className="text-[11px] leading-[14px] text-[color:var(--w-muted)]">{f.day}</span>}
                   <span className="flex min-w-0 items-center gap-1 text-xs leading-4">
                     {glyph(f.cond, "shrink-0 text-base text-[color:var(--w-fg)]")}
                     <span className="truncate tabular-nums">
@@ -104,7 +104,7 @@ export default function Forecast(p: ForecastProps) {
           <div className="grid h-full gap-1" style={{ gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` }}>
             {fc.slice(0, n).map((f, i) => (
               <div key={i} className="flex min-h-0 flex-col items-center gap-1.5" title={`${f.cond} · ${f.rain} mm · ${f.wind}`}>
-                <span className="text-[11px] text-[color:var(--w-muted)]">{i === 0 ? "Tmrw" : f.day}</span>
+                <span className="text-[11px] text-[color:var(--w-muted)]">{f.day}</span>
                 {glyph(f.cond, `${h > 200 ? "text-3xl" : "text-xl"} text-[color:var(--w-fg)]`)}
                 <span className="text-xs font-semibold tabular-nums">{fmt(f.hi, 0)}°</span>
                 {h > 150 && <div className="flex min-h-[16px] flex-1 justify-center">{range(f)}</div>}

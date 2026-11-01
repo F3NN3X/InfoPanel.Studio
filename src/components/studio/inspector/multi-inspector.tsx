@@ -118,6 +118,7 @@ export function MultiInspector({
         meta: () => "Edits apply to all of them",
         hidden: zones.every((z) => !z.visible),
         onToggleVisible,
+        noun: "widgets",
       }}
       quickKeys={quickDefsFor(zones, pins, zoneDefs).map((d) => d.key)}
     />

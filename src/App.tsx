@@ -7,6 +7,7 @@ import { LivePlacement } from "@/components/studio/placement-content";
 import { PageBackground } from "@/components/page-background";
 import { startKioskPull } from "@/lib/kiosk-config-pull";
 import { KioskConnecting } from "@/components/ui/kiosk-connecting";
+import { KioskWaitingForData } from "@/components/ui/kiosk-waiting";
 import { AlertLayer, useShownAlerts, ZoneHighlights } from "@/components/alerts/alert-layer";
 import { DynamicIsland } from "@/components/island/dynamic-island";
 import { islandReserve } from "@/components/island/island-model";
@@ -787,6 +788,8 @@ export default function App({ fixture }: AppProps = {}) {
             ))}
           {kiosk && <ZoneHighlights alerts={shownAlerts} profile={profile} />}
         </PageGrid>
+
+        {kiosk && <KioskWaitingForData />}
 
         {kiosk && <DimOverlay level={control?.profiles[stored.id]?.dim ?? 0} />}
 

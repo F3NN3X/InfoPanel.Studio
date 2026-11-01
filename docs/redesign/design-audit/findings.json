@@ -340,7 +340,7 @@
     "evidence": "zone-error-boundary.tsx:27-32 opened: role=alert, 'failed to render', raw message.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-016",
@@ -883,7 +883,7 @@
     "evidence": "Read from audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-039",
@@ -1121,7 +1121,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-050",
@@ -1289,7 +1289,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-057",
@@ -1349,7 +1349,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-060",
@@ -1503,7 +1503,7 @@
     "evidence": "Inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-067",
@@ -1568,7 +1568,7 @@
     "evidence": "Verified in audit (code and shots).",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-070",
@@ -1768,7 +1768,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-079",
@@ -1851,7 +1851,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-083",
@@ -1912,7 +1912,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-086",
@@ -1977,7 +1977,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-089",

@@ -25,6 +25,7 @@ export function BackgroundLibrary({ kind, value, onPick, onOpenLibrary }: Backgr
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<LibraryItem[] | null>(null);
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const noun = kind === "image" ? "images" : "videos";
 
   // Reload on every open: the Library changes while the inspector stays.
@@ -38,7 +39,7 @@ export function BackgroundLibrary({ kind, value, onPick, onOpenLibrary }: Backgr
     return () => {
       live = false;
     };
-  }, [open, kind]);
+  }, [open, kind, attempt]);
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -53,8 +54,11 @@ export function BackgroundLibrary({ kind, value, onPick, onOpenLibrary }: Backgr
               <span className="text-[11px] text-ui-4">{items ? `${items.length} in My library` : "Loading…"}</span>
             </div>
             {error && (
-              <div role="alert" className="text-[11px] text-ui-danger">
+              <div role="alert" className="flex items-center justify-between gap-2 text-[11px] text-ui-danger">
                 Could not load My library.
+                <button type="button" onClick={() => setAttempt((n) => n + 1)} className="rounded-md px-1.5 py-0.5 text-ui-2 hover:bg-ui-hover hover:text-ui-1">
+                  Try again
+                </button>
               </div>
             )}
             {items && items.length === 0 && (

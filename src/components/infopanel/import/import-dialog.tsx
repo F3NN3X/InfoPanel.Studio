@@ -259,7 +259,7 @@ function SourceStep({
           <div className="border-b border-ui-subtle bg-ui-chrome px-3 py-2 font-ui-mono text-[11px] text-ui-4">%LOCALAPPDATA%\InfoPanel\profiles · read-only</div>
           {installed === null && <span className="p-3 text-[12px] text-ui-4">Reading…</span>}
           {installed?.length === 0 && (
-            <span className="p-3 text-[12px] text-ui-4">{listError ?? "No InfoPanel profiles on the PC running InfoPanel Studio (or InfoPanel keeps them elsewhere: set INFOPANEL_DATA_DIR on the server)."}</span>
+            <span className="p-3 text-[12px] text-ui-4">{listError ?? "No InfoPanel profiles found on this PC. Import a file instead."}</span>
           )}
           {installed?.map((p) => (
             <button
@@ -430,7 +430,9 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
   const footNote =
     step === 0 && uploading
       ? "Large assets keep uploading while you read"
-      : step === 3 && sensorsBlocked
+      : step === 0 && !state
+        ? "Choose a file to continue"
+        : step === 3 && sensorsBlocked
         ? `${state!.unresolved} groups need a sensor, or Leave unbound`
         : step === 3 && state && !state.online
           ? "The Data API is not reachable: sensors stay unresolved until you remap them from the page"
@@ -438,7 +440,9 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
             ? (error ?? "Importing…")
             : step === 4 && uploading
               ? `Uploading assets · ${formatBytes(state!.upload.done)} of ${formatBytes(state!.upload.total)}`
-              : "";
+              : step === 4 && choices.name.trim() === ""
+                ? "Name the screen to continue"
+                : "";
   const nextLabel = step === 4 ? `Import ${choices.name.trim() || "screen"}` : step === 2 ? "Looks right, continue" : "Continue";
 
   return (
