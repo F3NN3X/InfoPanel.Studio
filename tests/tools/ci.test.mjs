@@ -10,9 +10,19 @@ describe("plan outputs", () => {
     expect(planOutputs(plan("default", "-lint"))).toMatchObject({ docs_only: true, lint: false, unit: false, full: false });
   });
 
-  it("switches on the jobs a widget change needs, e2e pulling in the build", () => {
-    const out = planOutputs(plan("default", "lint", "typecheck", "unit", "build", "server-bin", "e2e"));
-    expect(out).toMatchObject({ lint: true, typecheck: true, unit: true, build: true, e2e: true, server: false, rust: false, windows: false, docs_only: false });
+  it("switches on the jobs a widget change needs, leaving e2e to the ci:e2e opt-in", () => {
+    const widget = plan("default", "lint", "typecheck", "unit", "build", "server-bin", "e2e");
+    expect(planOutputs(widget)).toMatchObject({ lint: true, typecheck: true, unit: true, build: true, e2e: false, server: false, rust: false, windows: false, docs_only: false });
+    expect(planOutputs(widget, { e2e: true }).e2e).toBe(true);
+  });
+
+  it("builds the pages for an opted-in e2e run even when the change needs no build", () => {
+    expect(planOutputs(plan("default", "-lint"), { e2e: true })).toMatchObject({ e2e: true, build: true, docs_only: false });
+  });
+
+  it("runs only the cache-saving jobs on a push to main (--warm)", () => {
+    const warm = planOutputs(plan("full", "lint", "unit", "e2e"), { warm: true });
+    expect(Object.entries(warm).filter(([, value]) => value).map(([name]) => name).sort()).toEqual(["rust", "server", "windows"]);
   });
 
   it("sends server work to the server job and to windows, and the app crate to the rust job", () => {
@@ -20,7 +30,7 @@ describe("plan outputs", () => {
     expect(planOutputs(plan("default", "typecheck", "cargo-app"))).toMatchObject({ rust: true, windows: true, server: false });
   });
 
-  it("is everything on --all (a push to main, the ci:full label), and `full` follows an escalated plan", () => {
+  it("is everything on --all (the ci:full label), and `full` follows an escalated plan", () => {
     const all = planOutputs(plan("default", "-lint"), { all: true });
     expect(Object.entries(all).filter(([name, value]) => name !== "docs_only" && !value)).toEqual([]);
     expect(all.docs_only).toBe(false);

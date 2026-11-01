@@ -1,0 +1,49 @@
+name: Run the e2e specs
+description: The Playwright specs and the Edit v3 fixtures against the built pages in dist/ and a debug ips-server built here. The caller sets up Node (setup-node-deps) and dist/ first.
+
+inputs:
+  save-cache:
+    description: Save the Rust cache ("false" where nothing else can restore it, as under a release tag)
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+    # A warm cache makes this build seconds, so no binary changes hands between jobs.
+    - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      with:
+        workspaces: src-tauri
+        shared-key: native
+        save-if: ${{ inputs.save-cache == 'true' }}
+    - shell: bash
+      run: cargo build -p ips-server
+      working-directory: src-tauri
+    - id: playwright
+      shell: bash
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+    - id: browsers
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+    # apt can hang (run 40234176716 sat 8+ min): bound each try and retry once. Infrastructure only, never the tests.
+    - if: steps.browsers.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        for _ in 1 2; do
+          timeout 150 npx playwright install --with-deps chromium && exit 0
+        done
+        exit 1
+    - if: steps.browsers.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        for _ in 1 2; do
+          timeout 150 npx playwright install-deps chromium && exit 0
+        done
+        exit 1
+    - shell: bash
+      run: npm run test:e2e
+    # The Edit v3 fixtures (src/dev/fixtures); the project builds its own fixtures build.
+    - shell: bash
+      run: npm run test:one-editor
