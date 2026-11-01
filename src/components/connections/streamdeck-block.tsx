@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { FIELD, ToggleRow } from "@/components/studio/setting-rows";
-import type { Deck, DeckAction, DeckResult, DeckStatus, StreamDeckState } from "@/lib/streamdeck";
+import type { Deck, DeckAction, DeckResult, DeckStatus, StreamDeckLink, StreamDeckState } from "@/lib/streamdeck";
 import { cn } from "@/lib/utils";
 import { BUTTON } from "./obs-block";
 
 export interface StreamDeckBlockProps {
   /** The server's Stream Deck state (`useStreamDeck`). */
   state: StreamDeckState;
+  /** Whether that state is live (`useStreamDeckLink`); unset counts as live. */
+  link?: StreamDeckLink;
   /** Turns the connection on or off; resolves to whether the server kept it. */
   onEnable: (enabled: boolean) => Promise<boolean>;
   act: (body: DeckAction) => Promise<DeckResult>;
@@ -22,8 +24,10 @@ const WORDS: Record<DeckStatus, string> = {
   error: "Error",
 };
 
-/** The one line for the whole connection: the furthest state any device has reached. */
-function overall(state: StreamDeckState): string {
+/** The one line for the whole connection: the furthest state any device has reached, or that it isn't known now. */
+function overall(state: StreamDeckState, link: StreamDeckLink): string {
+  if (link === "lost") return "The dashboard server isn't answering";
+  if (link === "connecting") return "Connecting to the dashboard server";
   if (!state.enabled) return "Off";
   if (state.devices.length === 0) return "On · add a device to connect";
   for (const s of ["ready", "pairing", "error", "connecting"] as const) if (state.devices.some((d) => d.status === s)) return WORDS[s];
@@ -60,7 +64,7 @@ function NameField({ deck, act, onError }: { deck: Deck; act: StreamDeckBlockPro
  * The Stream Deck connection: on or off, the pairing code to confirm in the Stream Deck app, and the virtual decks the
  * dashboard holds there (one per widget). Everything but the switch goes straight to the server's act route.
  */
-export function StreamDeckBlock({ state, onEnable, act }: StreamDeckBlockProps) {
+export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamDeckBlockProps) {
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -75,7 +79,7 @@ export function StreamDeckBlock({ state, onEnable, act }: StreamDeckBlockProps) 
     <div className="space-y-2">
       <div className="flex items-baseline justify-between text-[12px] font-semibold text-ui-1">
         Stream Deck
-        <span className="text-[11px] font-normal text-ui-4">{overall(state)}</span>
+        <span className="text-[11px] font-normal text-ui-4">{overall(state, link)}</span>
       </div>
       <ToggleRow
         label="Connect to the Stream Deck app"

@@ -101,23 +101,38 @@ const RETRY_MS = 5000;
 /** Set after the server refused a write (403: another machine, remote editing off): the widget shows itself read-only until the state changes. */
 export const streamDeckRefusal = createRefusal();
 
-/** The shared client: `getState` / `subscribe`. */
-function createStreamDeckClient(url: string) {
+/**
+ * The stream to the dashboard server: `connecting` until it first opens, `open`, then `lost` while it retries after
+ * dropping. The last state stays as it was, so this is what says it is stale.
+ */
+export type StreamDeckLink = "connecting" | "open" | "lost";
+
+/** The shared client: `getState` / `getLink` / `subscribe`. */
+export function createStreamDeckClient(url: string) {
   let state = EMPTY_STREAMDECK;
+  let link: StreamDeckLink = "connecting";
   let source: EventSource | null = null;
   const listeners = new Set<Listener>();
   let retry: ReturnType<typeof setTimeout> | undefined;
+  const setLink = (next: StreamDeckLink) => {
+    if (next === link) return;
+    link = next;
+    for (const l of listeners) l(state);
+  };
   const open = () => {
     if (source || !listeners.size || typeof EventSource === "undefined") return;
     source = trackEventSource(new EventSource(url));
-    // A refused stream (a status other than 200) is closed for good by the browser: open it again after a while.
+    // Any error drops the stream: the browser retries one that broke, and closes one the server refused (a status other
+    // than 200) for good, so that one is opened again after a while.
     source.onerror = () => {
+      if (link === "open") setLink("lost");
       if (source?.readyState !== EventSource.CLOSED) return;
       source = null;
       if (listeners.size) retry = setTimeout(open, RETRY_MS);
     };
     source.onopen = () => {
       streamDeckRefusal.set(false);
+      setLink("open");
     };
     source.onmessage = (e) => {
       try {
@@ -130,6 +145,7 @@ function createStreamDeckClient(url: string) {
   };
   return {
     getState: (): StreamDeckState => state,
+    getLink: (): StreamDeckLink => link,
     subscribe(fn: Listener): () => void {
       listeners.add(fn);
       open();
@@ -139,6 +155,7 @@ function createStreamDeckClient(url: string) {
           clearTimeout(retry);
           source?.close();
           source = null;
+          link = "connecting";
         }
       };
     },
@@ -149,6 +166,9 @@ export const streamDeck = createStreamDeckClient(STREAMDECK_EVENTS_URL);
 
 /** Every device and the connection, live. */
 export const useStreamDeck = (): StreamDeckState => useSyncExternalStore(streamDeck.subscribe, streamDeck.getState, streamDeck.getState);
+
+/** Whether the state above is live (`open`), not here yet (`connecting`), or stale while the stream retries (`lost`). */
+export const useStreamDeckLink = (): StreamDeckLink => useSyncExternalStore(streamDeck.subscribe, streamDeck.getLink, streamDeck.getLink);
 
 /** One device, live (undefined: not in the registry, or the state has not arrived). */
 export const useDeck = (id: string): Deck | undefined => useStreamDeck().devices.find((d) => d.id === id);

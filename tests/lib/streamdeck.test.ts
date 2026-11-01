@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deckAct, deckPress, iconUrl, parseStreamDeck, streamDeckRefusal } from "@/lib/streamdeck";
+import { createStreamDeckClient, deckAct, deckPress, iconUrl, parseStreamDeck, streamDeckRefusal } from "@/lib/streamdeck";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -95,6 +95,45 @@ describe("deckAct and deckPress", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect((await deckPress("retry", 1, false)).ok).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("the stream's link", () => {
+  class FakeSource {
+    static CONNECTING = 0;
+    static OPEN = 1;
+    static CLOSED = 2;
+    static last: FakeSource | null = null;
+    readyState = FakeSource.CONNECTING;
+    onopen: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    onmessage: ((e: { data: string }) => void) | null = null;
+    constructor() {
+      FakeSource.last = this;
+    }
+    close() {
+      this.readyState = FakeSource.CLOSED;
+    }
+  }
+
+  it("is connecting until the stream opens, lost while it retries after dropping, open again when it is back", () => {
+    vi.stubGlobal("EventSource", FakeSource);
+    const client = createStreamDeckClient("/events/streamdeck");
+    const seen: string[] = [];
+    const stop = client.subscribe(() => seen.push(client.getLink()));
+    const source = FakeSource.last!;
+    expect(client.getLink()).toBe("connecting");
+    source.onopen?.();
+    source.onmessage?.({ data: JSON.stringify({ enabled: true, devices: [{ id: "d1" }] }) });
+    expect(client.getLink()).toBe("open");
+    // The server went away: the browser retries, and the last state is kept but stale.
+    source.onerror?.();
+    expect(client.getLink()).toBe("lost");
+    expect(client.getState().devices.map((d) => d.id)).toEqual(["d1"]);
+    source.onopen?.();
+    expect(seen).toEqual(["open", "open", "lost", "open"]);
+    stop();
+    expect(client.getLink()).toBe("connecting");
   });
 });
 

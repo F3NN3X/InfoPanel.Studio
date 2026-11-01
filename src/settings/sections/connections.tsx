@@ -9,7 +9,7 @@ import { EMPTY_TWITCH, EMPTY_YOUTUBE } from "@/lib/extras";
 import { fetchIntegrations, saveIntegrations, type IntegrationsPatch, type PublicIntegrations } from "@/lib/integrations";
 import { cn } from "@/lib/utils";
 import { twitchSignin, twitchSignout, useTwitchPending } from "@/lib/twitch";
-import { deckAct, useStreamDeck } from "@/lib/streamdeck";
+import { deckAct, useStreamDeck, useStreamDeckLink } from "@/lib/streamdeck";
 import { youtubeSignin, youtubeSignout, useYoutubePending } from "@/lib/youtube";
 import { useExtras } from "@/widgets/time-hooks";
 import { useFound } from "../store";
@@ -39,6 +39,7 @@ export function ConnectionsSection() {
   const youtube = useExtras().youtube ?? EMPTY_YOUTUBE;
   const youtubePending = useYoutubePending(youtube.pending);
   const streamDeck = useStreamDeck();
+  const streamDeckLink = useStreamDeckLink();
   useEffect(() => {
     let alive = true;
     fetchIntegrations()
@@ -98,7 +99,7 @@ export function ConnectionsSection() {
       </Group>
       <Group title="Stream Deck">
         <ConnectionCard id="streamdeck">
-          <StreamDeckBlock state={streamDeck} act={deckAct} onEnable={(enabled) => save({ streaming: { streamdeck: { enabled } } })} />
+          <StreamDeckBlock state={streamDeck} link={streamDeckLink} act={deckAct} onEnable={(enabled) => save({ streaming: { streamdeck: { enabled } } })} />
         </ConnectionCard>
       </Group>
       <Group title="Calendar">

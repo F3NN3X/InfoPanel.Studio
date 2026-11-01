@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { deckAct, deckPress, iconUrl, streamDeckRefusal, useStreamDeck, type Deck } from "@/lib/streamdeck";
+import { deckAct, deckPress, iconUrl, streamDeckRefusal, useStreamDeck, useStreamDeckLink, type Deck, type StreamDeckLink } from "@/lib/streamdeck";
 import { READ_ONLY_HINT } from "@/lib/write-refusal";
 import type { ModuleSettings } from "@/modules/types";
 import { chromeOf } from "@/modules/standard-settings";
@@ -132,9 +132,11 @@ function Key({ index, title, icon, on, size, titles, look, skin, accent, onPoint
   );
 }
 
-/** What the deck says when it has no keys to show: its state, or why not. */
-function notice(deck: Deck | undefined, enabled: boolean, device: string | undefined, code: string): { icon: string; label: string; sub?: string } | null {
+/** What the deck says when it has no keys to show: its state, or why not. A stream that isn't open has only stale keys. */
+function notice(deck: Deck | undefined, enabled: boolean, device: string | undefined, code: string, link: StreamDeckLink): { icon: string; label: string; sub?: string } | null {
   if (!device) return { icon: "grid_view", label: "Pick or create a device" };
+  if (link === "connecting") return { icon: "sync", label: "Connecting to the dashboard server" };
+  if (link === "lost") return { icon: "cloud_off", label: "The dashboard server isn't answering", sub: "Reconnecting…" };
   if (!enabled) return { icon: "power_settings_new", label: "Turn on Stream Deck in Settings › Connections" };
   if (!deck) return { icon: "grid_view", label: "That device is gone", sub: "Pick or create another" };
   switch (deck.status) {
@@ -155,6 +157,7 @@ function notice(deck: Deck | undefined, enabled: boolean, device: string | undef
 
 export default function StreamDeck(p: StreamDeckProps) {
   const state = useStreamDeck();
+  const link = useStreamDeckLink();
   const deck = state.devices.find((d) => d.id === p.device);
   const readOnly = streamDeckRefusal.use();
   const [down, setDown] = useState<ReadonlySet<number>>(new Set());
@@ -167,7 +170,7 @@ export default function StreamDeck(p: StreamDeckProps) {
   const chrome = useMemo(() => (p.look ? chromeOf(p.look) : undefined), [p.look]);
   const keySkin = useMemo(() => skinContext(p.skin ?? "default", { chrome }), [p.skin, chrome]);
   const frameLook = useMemo(() => p.look && { ...p.look, surface: frameSurface(String(p.look.surface ?? "")) ?? "" }, [p.look]);
-  const status = notice(deck, state.enabled, p.device, state.pairingCode);
+  const status = notice(deck, state.enabled, p.device, state.pairingCode, link);
   const ready = deck !== undefined && status === null;
 
   const send = (pointerId: number) => {
