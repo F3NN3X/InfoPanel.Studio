@@ -21,9 +21,36 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # A scheduled night with main where the last green nightly left it has nothing new to check, so the other jobs skip
+  # (the skipped run stays green on that commit, which release-gate.mjs accepts). A manual run always runs.
+  changes:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    outputs:
+      run: ${{ steps.last.outputs.run }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - id: last
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          last=$(gh run list --workflow nightly.yml --branch main --status success --limit 1 --json headSha --jq '.[0].headSha // empty')
+          if [ "$EVENT" = "schedule" ] && [ "$last" = "$GITHUB_SHA" ]; then
+            echo "main is still ${GITHUB_SHA::7}, where the last green nightly ran: nothing to do." >> "$GITHUB_STEP_SUMMARY"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
   # Every check in tests/feature-map.json on Linux. cargo-app needs Windows, so exit 3 (incomplete) is expected here
   # and the Windows job covers it.
   linux:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
@@ -42,6 +69,8 @@ jobs:
   # Windows: the unsigned installer build (what release.yml does without the updater key, so packaging breaks show here
   # first), then every check with cargo-app running against the real resources it just prepared.
   windows:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
@@ -63,6 +92,8 @@ jobs:
   # The perf suites measure and never gate (docs/performance.md). The JSON goes up as an artifact, and the table against
   # the previous nightly's artifact lands in the run summary.
   perf:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     continue-on-error: true
@@ -89,14 +120,16 @@ jobs:
           name: perf-nightly
           path: .cache/perf/nightly
           retention-days: 30
+      # The newest earlier run that measured: a skipped night has no perf artifact.
       - name: Compare with the previous nightly
         run: |
-          previous=$(gh run list --workflow nightly.yml --status completed --limit 5 --json databaseId,conclusion --jq '[.[] | select(.databaseId != ${{ github.run_id }})][0].databaseId')
-          if [ -n "$previous" ] && gh run download "$previous" -n perf-nightly -D .cache/perf/previous; then
-            node tools/perf/compare.mjs previous nightly | tee .cache/perf/compare.md >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "No previous nightly perf artifact to compare with." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          for previous in $(gh run list --workflow nightly.yml --status completed --limit 15 --json databaseId --jq '.[] | select(.databaseId != ${{ github.run_id }}) | .databaseId'); do
+            if gh run download "$previous" -n perf-nightly -D .cache/perf/previous 2>/dev/null; then
+              node tools/perf/compare.mjs previous nightly | tee .cache/perf/compare.md >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          done
+          echo "No previous nightly perf artifact to compare with." >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: perf-compare

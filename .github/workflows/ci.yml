@@ -1,10 +1,11 @@
 name: CI
 
 # PRs run the checks their change needs. `plan` asks tools/verify.mjs (tests/feature-map.json) which checks the changed
-# files call for and the jobs below run or skip accordingly; `ci-ok` is the one required status check. A push to main
-# runs only when the dependencies or the Rust code change (GitHub shares caches saved on main with every PR, so that
-# keeps the npm and Rust caches warm for the next PRs) and then runs everything. The label ci:full does the same on a PR. Every code change already passed
-# this check in its PR, and a release tag re-checks it in release.yml.
+# files call for and the jobs below run or skip accordingly; `ci-ok` is the one required status check. The e2e specs
+# are slow, so a PR runs them only with the label ci:e2e (or ci:full, which runs every job); the release runs them
+# before it publishes (release.yml) and the nightly every night. A push to main runs only when the dependencies or the
+# Rust code change, and then only the jobs that save the Rust and npm caches (GitHub shares caches saved on main with
+# every PR): every change already passed this check in its PR.
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
@@ -26,7 +27,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Which jobs the change needs (tools/ci/plan-outputs.mjs). A push to main or the ci:full label turns every one on.
+  # Which jobs the change needs (tools/ci/plan-outputs.mjs). ci:full turns every one on, ci:e2e adds e2e, a push to
+  # main runs the cache-saving ones.
   plan:
     runs-on: ubuntu-26.04
     timeout-minutes: 5
@@ -55,12 +57,16 @@ jobs:
           EVENT: ${{ github.event_name }}
           BASE: ${{ github.base_ref }}
           FULL_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'ci:full') }}
+          E2E_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'ci:e2e') }}
         run: |
-          if [ "$EVENT" != "pull_request" ] || [ "$FULL_LABEL" = "true" ]; then
+          if [ "$EVENT" != "pull_request" ]; then
+            echo '{"mode":"full","steps":[]}' | node tools/ci/plan-outputs.mjs --warm
+          elif [ "$FULL_LABEL" = "true" ]; then
             echo '{"mode":"full","steps":[]}' | node tools/ci/plan-outputs.mjs --all
           else
             node tools/verify.mjs --plan --json --base "origin/$BASE" > "$RUNNER_TEMP/plan.json"
-            node tools/ci/plan-outputs.mjs < "$RUNNER_TEMP/plan.json"
+            if [ "$E2E_LABEL" = "true" ]; then e2e=--e2e; else e2e=; fi
+            node tools/ci/plan-outputs.mjs $e2e < "$RUNNER_TEMP/plan.json"
           fi
 
   lint:
@@ -152,8 +158,8 @@ jobs:
         run: cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings
         working-directory: src-tauri
 
-  # The Playwright specs against the built pages (artifact from typecheck-build) and a debug ips-server built here: a
-  # warm Rust cache makes that build seconds, so no binary changes hands between jobs.
+  # Opt-in (ci:e2e, ci:full): the Playwright specs against the built pages (artifact from typecheck-build), in the
+  # shared action release.yml runs too.
   e2e:
     needs: [plan, typecheck-build]
     if: needs.plan.outputs.e2e == 'true'
@@ -166,39 +172,7 @@ jobs:
         with:
           name: dist
           path: dist
-      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          workspaces: src-tauri
-          shared-key: native
-      - run: cargo build -p ips-server
-        working-directory: src-tauri
-      - id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      - id: browsers
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      - if: steps.browsers.outputs.cache-hit != 'true'
-        timeout-minutes: 7
-        # apt can hang (run 40234176716 sat 8+ min): bound each try and retry once. Infrastructure only, never the tests.
-        run: |
-          for _ in 1 2; do
-            timeout 150 npx playwright install --with-deps chromium && exit 0
-          done
-          exit 1
-      - if: steps.browsers.outputs.cache-hit == 'true'
-        timeout-minutes: 7
-        # apt can hang (run 40234176716 sat 8+ min): bound each try and retry once. Infrastructure only, never the tests.
-        run: |
-          for _ in 1 2; do
-            timeout 150 npx playwright install-deps chromium && exit 0
-          done
-          exit 1
-      - run: npm run test:e2e
-      # The Edit v3 fixtures (src/dev/fixtures); the project builds its own fixtures build.
-      - run: npm run test:one-editor
+      - uses: ./.github/actions/e2e
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -227,7 +201,9 @@ jobs:
       - name: cargo test (server, agent)
         run: cargo test -p ips-server -p ips-agent
         working-directory: src-tauri
-      - name: cargo clippy (server, agent)
+      # The workspace clippy below covers these when the app crate is in play.
+      - if: needs.plan.outputs.rust != 'true'
+        name: cargo clippy (server, agent)
         run: cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings
         working-directory: src-tauri
       # The agent is built by the tests above; the stub copies it, so tauri-build does not leave an empty file over it.

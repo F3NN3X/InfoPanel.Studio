@@ -68,27 +68,31 @@ Run `npm run verify:full` before opening a pull request. Optionally, `git config
 
 ## CI and releases
 
-`.github/workflows/ci.yml` runs on every pull request (and on `main` when the dependencies or `src-tauri/` change, then everything, which keeps main's caches warm for PRs).
+`.github/workflows/ci.yml` runs on every pull request, and on `main` when the dependencies or `src-tauri/` change. On `main`
+it runs only `server` and `rust`, the jobs whose Rust and npm caches PRs restore, since every change already passed in its PR.
 Its `plan` job asks `node tools/verify.mjs --plan --json` which checks the change needs, so a docs change runs almost
 nothing and a widget change skips Rust. The jobs: `lint` (Biome, and actionlint when `.github/` changed),
 `typecheck-build` (`tsc -b`, the build, the Settings build, the bundle budgets), `unit` (the whole Vitest suite),
 `lab`, `server` (Linux: `npm run test:server`, `cargo test`/`clippy` for `ips-server` and `ips-agent`), `e2e`
-(Playwright against the built pages and a debug `ips-server`) and `rust` (Windows: the same Rust tests for the server
-crates, plus the Tauri app's `cargo test` and `clippy --workspace` when the app crate is involved). `ci-ok` is the one
-required check: it passes when every job that ran passed. The label `ci:full` on a pull request runs everything. On
+(Playwright against the built pages and a debug `ips-server`, in `.github/actions/e2e`) and `rust` (Windows: the same
+Rust tests for the server crates, plus the Tauri app's `cargo test` and `clippy --workspace` when the app crate is
+involved). `ci-ok` is the one required check: it passes when every job that ran passed. The e2e specs are slow, so a pull
+request runs them only with the label `ci:e2e`; the release runs them before it publishes, and the nightly every night.
+The label `ci:full` runs everything. On
 the Windows runner `tools/ci-stub-desktop.mjs` replaces `npm run desktop:prepare`: tauri-build only checks that the
 bundled resources exist.
 
 `.github/workflows/nightly.yml` (23:30 UTC, 01:30 in Oslo in summer) runs every check on Linux and Windows, an unsigned
 installer build, and the perf suites (report-only, with a table against the previous night). One issue, "Nightly
-failing", follows its result.
+failing", follows its result. A scheduled night with `main` still on the last green nightly's commit skips (a manual run
+always runs).
 
 `.github/workflows/release.yml` runs when a tag `vX.Y.Z` is pushed. It fails unless the tag matches `version` in
 `package.json` and `CHANGELOG.md` has a `## [X.Y.Z]` section, and unless CI vouches for the commit (a green `ci-ok` on it
-or on the pull request that merged it, or the last green nightly: `tools/ci/release-gate.mjs`). It then runs
-`npm test`, the Rust tests and `npm run desktop:build` on `windows-latest` and creates a GitHub release with that
-section as its notes and the NSIS installer (`InfoPanel Studio_<version>_x64-setup.exe`) attached. No test depends on
-the machine's locale.
+or on the pull request that merged it, or the last green nightly: `tools/ci/release-gate.mjs`). Then `npm run desktop:build`
+on `windows-latest` and the e2e specs on Linux run side by side, and once both pass it creates a GitHub release with that
+section as its notes and the NSIS installer (`InfoPanel Studio_<version>_x64-setup.exe`) attached. The unit and Rust
+tests don't run again: the gate already requires them green. No test depends on the machine's locale.
 
 `main` takes changes only through pull requests: its ruleset requires `ci-ok` and blocks deleting the branch.
 
