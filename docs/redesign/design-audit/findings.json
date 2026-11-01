@@ -1,0 +1,2079 @@
+[
+  {
+    "id": "FND-001",
+    "sev": "HIGH",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Studio chrome, Settings, Help (shared tokens)",
+    "locations": [
+      "src/index.css:123 --ui-text-5",
+      "src/settings/tokens.css:21-22 --color-s-dim, --color-s-faint",
+      "src/select.css:70",
+      "text-ui-5 (66 lines/44 files): layers-tree.tsx:329,392; panel-layers.tsx:84; setting-card.tsx:84; import-dialog.tsx:218,301; remap-panel.tsx:124-145; explorer/*",
+      "text-s-dim (44/17), text-s-faint (17/8): nav.tsx:28; shell.tsx:78,89,134,143; diagnostics.tsx; logs.tsx; help/ui/sidebar.tsx, results-view.tsx, blocks.tsx, article-view.tsx"
+    ],
+    "issue": "Hint, helper, caption, group-label and placeholder text at 10-12.5px uses #6f6f79 (3.4-3.9:1 on panel/card/hover/active; 2.87 on ui-active) or #55555e (2.3-2.6:1). AA needs 4.5:1. ui-text-4 #85858f is also only 3.90 on ui-active.",
+    "fix": "Raise --ui-text-5 and --color-s-dim to about #8a8a94 (5.5:1; already hand-typed 18 times); keep s-faint for icons/decoration only and move its 17 text uses to s-dim; reserve a dark tone for disabled text; nudge ui-text-4 to about #8f8f99. Add a grep guard for text-ui-5 with text-[..px].",
+    "sources": [
+      "F-01",
+      "B-05",
+      "C-12",
+      "D-03",
+      "D-04"
+    ],
+    "evidence": "Token values read in index.css:122-123 and tokens.css:19-22; ratios from audits' WCAG computation.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-002",
+    "sev": "HIGH",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Widgets and kiosk (shared token)",
+    "locations": [
+      "src/widgets/core/theme.ts:49,51 --w-faint #71717a; :55 theme-tone faint (80% mix); :114 TONES.muted",
+      "src/components/widgets/panel-skin.tsx:37",
+      "src/widgets/core/views.tsx:19,61,73,90,122,193",
+      "uses in about 60 widget files e.g. Achievements.tsx:39-54, AudioMeter.tsx:149-195"
+    ],
+    "issue": "Faint widget text (units, counts, sub-labels, no-value dashes at 10-11px, one also at opacity .7) is 3.28-4.40:1 across dark, glass, matte, carbon, aurora, Paper and matte-light surfaces.",
+    "fix": "dark --w-faint to #8a8a94; light to #636366; theme tone: drop the 80% mix and use hsl(var(--muted-foreground)); make TONES.muted var(--w-faint); drop opacity .7 from NO_VALUE. --w-fg/--w-muted stay, so gauges/vector.ts stays valid; re-check vector.ts THEME if any of fg/muted/STATE/accent change.",
+    "sources": [
+      "F-02",
+      "A-11"
+    ],
+    "evidence": "theme.ts:49-56 opened: dark and light faint are #71717a.",
+    "checked": true,
+    "exportRisk": true,
+    "status": "open"
+  },
+  {
+    "id": "FND-003",
+    "sev": "HIGH",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Built-in themes and template palettes",
+    "locations": [
+      "src/lib/theme.ts:110 slate muted-foreground 215 16.3% 46.9%",
+      "src/lib/screen-templates/designs/ports.ts:71-78 (White family)",
+      "designs/paper.ts:19",
+      "designs/mono.ts"
+    ],
+    "issue": "Muted text under 4.5:1 in palettes users pick by name: Slate 4.21 on bg and 3.07 on chip; Paper 3.31; White variants fg on bg 1.67; 41 of 70 palettes fail muted-on-chip (Float 1.85, Mono amber 2.75).",
+    "fix": "Slate muted-foreground to 215 20% 65%; lift sub per template to 4.5 on chip; White needs a light bg. Add a vitest case over THEME_PRESETS and TEMPLATE_PRESETS for card-foreground/card and muted-foreground/{background,muted}.",
+    "sources": [
+      "F-07"
+    ],
+    "evidence": "theme.ts:110 slate value opened; ratios from F's palette sweep (inferred for page-level impact).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-004",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Studio menus, select pickers (shared)",
+    "locations": [
+      "src/components/studio/studio-top-bar.tsx:58",
+      "studio/insert-row.tsx:21",
+      "studio/alerts-rules.tsx:49",
+      "studio/phone-tab-bar.tsx:35",
+      "studio/made-for-control.tsx:46",
+      "src/components/ui/context-menu.tsx:133-134",
+      "src/select.css:41-44"
+    ],
+    "issue": "The only indicator of the keyboard-highlighted menu row is a background step: ui-hover on ui-raised 1.03:1, context menu #24242a 1.17, select option #1f1f25 1.09. A keyboard user cannot see what Enter fires; mouse hover is equally faint.",
+    "fix": "One shared MENU_ITEM constant beside MENU_POPUP: data-highlighted:bg-ui-active text-ui-1 with an inset 2px accent edge; mirror in context-menu.tsx and select.css.",
+    "sources": [
+      "F-03"
+    ],
+    "evidence": "studio-top-bar.tsx:58 and context-menu.tsx:133-134 opened: fill-only highlight.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-005",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Studio color fields (shared primitive)",
+    "locations": [
+      "src/components/ui/color-field.tsx:29-39"
+    ],
+    "issue": "Native input[type=color] is opacity-0 inside a label with no focus-within style, so Tab lands on an invisible control. Used by every colour row in the theme editor and widget style panels.",
+    "fix": "has-[:focus-visible]:outline-2 outline-offset-2 outline-ui-accent on the label.",
+    "sources": [
+      "F-04"
+    ],
+    "evidence": "color-field.tsx:25-42 opened: opacity-0 input, no focus style.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-006",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Toasts: Studio, Library, Gauges, Settings",
+    "locations": [
+      "src/components/ui/toast.tsx:5,40 TOAST_MS=1800",
+      "library/library-page.tsx:171,262,290,375",
+      "gauges/gauges-page.tsx:130,153,160",
+      "studio/export-sheet.tsx:55,88",
+      "src/settings/store.tsx:8,151 (4.5s error toast); shell.tsx:172-183; window-pages.tsx:11-35"
+    ],
+    "issue": "Every toast, including failures and the one carrying Undo, vanishes after 1.8s (Settings errors after 4.5s) with no pause on hover/focus and no keyboard route to the action. role=status is mounted together with its text, so announcement is unreliable.",
+    "fix": "Toasts with an action stay until dismissed (no timer); errors persist until dismissed or 6s+; pause on pointerenter/focusin; keep one empty role=status region mounted and fill it.",
+    "sources": [
+      "F-05",
+      "C-02",
+      "D-12"
+    ],
+    "evidence": "toast.tsx:5,40 opened: setTimeout(.., options?.ms ?? TOAST_MS), TOAST_MS = 1800.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-007",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Studio inspector, explorer (source dots)",
+    "locations": [
+      "src/components/studio/inspector/source-dot.tsx:6-45",
+      "setting-rows.tsx (lead)",
+      "explorer/explorer-parts.tsx:32-40",
+      "explorer/source-tree.tsx row dots",
+      "src/index.css:134-135 --ui-dot-profile/--ui-dot-dashboard"
+    ],
+    "issue": "Field source state (app, screen, here, overriding, ignored) is a 7px dot told apart by hue only; non-default dots are a bare span with title (no role, no text); the reset dot is 7x7. Explorer health dots are colour-only.",
+    "fix": "Give each state a distinct shape (ring, dot, half-fill, diamond) with hue secondary; role=img + aria-label on every non-default dot; pad the reset dot hit area (before:-inset-2); reuse in explorer rows; make the default outline at least 3:1.",
+    "sources": [
+      "F-06",
+      "B-02"
+    ],
+    "evidence": "source-dot.tsx:30-40 opened: span with title only, default aria-hidden.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-008",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Widgets and island (state by colour)",
+    "locations": [
+      "src/widgets/core/primitives.tsx:56,619 (Num applies TONES[t])",
+      "FpsMonitor.tsx:78,221,238",
+      "OsdStrip.tsx:76",
+      "Bluetooth, StatusTracker, Thermals, KpiTiles",
+      "src/components/island/dynamic-island.tsx:35,379-381",
+      "StreamChat.tsx, StreamControl.tsx (platform squares, user colours)"
+    ],
+    "issue": "ok/warn/crit is carried only by the number's colour (FPS 78 shown red, island stats amber/red via data-level, which has no text). Platform and user identity in stream widgets is colour-only too.",
+    "fix": "In Num/Metric add a non-colour cue when tone != ok (glyph or word, plus state in the accessible name); island: glyph plus sr-only 'warning'/'critical'; platform glyph or initial in stream widgets.",
+    "sources": [
+      "E-01",
+      "A-08",
+      "E-26"
+    ],
+    "evidence": "FpsMonitor.tsx:78 opened (numColor from TONES); dynamic-island.tsx:35,380-381 opened (colour only, data-level attribute).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-009",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Status indicators (Studio status bar, Stream Deck, Settings nav, Diagnostics)",
+    "locations": [
+      "src/components/studio/status-bar.tsx:143,154,158 (max-[959px]:sr-only)",
+      "connections/streamdeck-block.tsx:15,105",
+      "src/settings/shell.tsx:104-106",
+      "src/settings/sections/diagnostics.tsx:12,37-43"
+    ],
+    "issue": "Status is a bare 7-8px colour dot with a title only: under 960px the status bar hides every label including 'unsaved changes'; device status shows one colour for Ready vs Error; Settings nav server/debug dots and the update '1' badge and Diagnostics 'rising' series have no text.",
+    "fix": "Keep the save text visible (or a shape-changing icon); render the status word beside the dot; sr-only text for nav indicators and flagged rows; glyphs for warn/bad.",
+    "sources": [
+      "B-03",
+      "C-03",
+      "D-13",
+      "D-14"
+    ],
+    "evidence": "status-bar.tsx:143-158 and streamdeck-block.tsx:15,105 opened.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-010",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Kiosk page dots",
+    "locations": [
+      "src/components/page-dots.tsx:66 (cited :137; file is 74 lines)"
+    ],
+    "issue": "Current page is marked by colour only: two 8px circles, bg-primary vs bg-muted-foreground/40 (2.11:1 inactive on default background).",
+    "fix": "Make the active dot a wider pill and the inactive bg-muted-foreground/70 (or a 1px ring); keep aria-selected.",
+    "sources": [
+      "A-02"
+    ],
+    "evidence": "page-dots.tsx:66 opened: same 8px circle, colour is the only difference. Cited line numbers drifted.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-011",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Kiosk page dots",
+    "locations": [
+      "src/components/page-dots.tsx:39-49,142 (cited :110-134)"
+    ],
+    "issue": "Pause/resume of auto-rotate is only a 600ms pointer long-press. Keyboard has no path; role=tab with no arrow keys or tabpanel; nothing tells users the long-press exists.",
+    "fix": "Add a visible Pause/Play toggle (aria-pressed) when rotate is on; replace tablist/tab with buttons using aria-current.",
+    "sources": [
+      "A-03"
+    ],
+    "evidence": "page-dots.tsx:39-49 opened: role=tablist/tab, onPointerDown timer.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-012",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Kiosk alerts and island",
+    "locations": [
+      "src/components/alerts/alert-layer.tsx:192-195",
+      "src/components/island/dynamic-island.tsx:187-191"
+    ],
+    "issue": "Acknowledging an alert and opening/dismissing an island notice is div onClick with cursor-pointer: no button, no tabindex, no key handler, no visible cue. A persistent alert cannot be dismissed without a pointer.",
+    "fix": "Real Dismiss button (aria-label 'Dismiss <title>') inside the card; island pill becomes a button when tappable; keep whole-card tap.",
+    "sources": [
+      "A-04"
+    ],
+    "evidence": "Both div onClick sites opened.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-013",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Kiosk desktop strip",
+    "locations": [
+      "src/components/kiosk-strip.tsx:47-64"
+    ],
+    "issue": "Back to studio / Minimize / Close appear only on pointerenter of an 8px invisible zone and are inert while hidden, so keyboard users cannot reveal or reach them.",
+    "fix": "Reveal on focus-within, make the zone a focusable hidden button or bind Esc to show(); drop inert while the zone has focus.",
+    "sources": [
+      "A-05"
+    ],
+    "evidence": "kiosk-strip.tsx:47-56 opened: pointerEnter only, inert={!shown}.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-014",
+    "sev": "HIGH",
+    "batch": 3,
+    "domain": "layout / typography",
+    "surface": "Kiosk alerts, island, widgets, Studio layers and tabs",
+    "locations": [
+      "src/components/island/dynamic-island.tsx:437,444",
+      "src/components/alerts/alert-layer.tsx:207",
+      "MeterBridge.tsx:156,188",
+      "SessionStats.tsx:87,95",
+      "ThresholdTimeline.tsx:72",
+      "Departures.tsx:76",
+      "Notifications.tsx:72,87",
+      "studio/layers-tree.tsx:325",
+      "studio/page-tabs.tsx:240,244",
+      "studio/panel-layers.tsx:128",
+      "studio/setting-rows.tsx:46"
+    ],
+    "issue": "Truncated titles/bodies/names with no route to the full value: island body is cut even when expanded, toast titles cut, widget rows become indistinguishable (AMD Ryzen 9 9950X3...), and Studio layer/page names rely on hover title (page tab title is the how-to).",
+    "fix": "Island body line-clamp-2 with box height growth; toast break-words line-clamp-2; truncate hardware names at the start or drop vendor prefix; 2 lines for headlines; Studio: full name in title and inspector header, wrap label rows in sheet mode.",
+    "sources": [
+      "A-06",
+      "E-06",
+      "B-14"
+    ],
+    "evidence": "alert-layer.tsx:207 and dynamic-island.tsx:437,444 opened: truncate on title/body.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-015",
+    "sev": "HIGH",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Kiosk zone error",
+    "locations": [
+      "src/components/zone-error-boundary.tsx:27,31-32 (cited :183-212; file is 69 lines)"
+    ],
+    "issue": "A crashed zone shows '<title> failed to render' plus the raw first JS error line (10px, line-clamp-2) and names no next step. Every failed zone mounts its own role=alert.",
+    "fix": "Copy: '<title> can't be shown' + 'Open InfoPanel Studio and re-pick the widget or reset its settings'; keep raw message in console/studio only; role=status or one shared live region.",
+    "sources": [
+      "A-07"
+    ],
+    "evidence": "zone-error-boundary.tsx:27-32 opened: role=alert, 'failed to render', raw message.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-016",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Motion outside the JS reduced-motion flag (Studio, Settings, Help, touch overlay)",
+    "locations": [
+      "src/index.css:253-262,276-300,314-340 (page-fade-in, alert-in-*, island-*, alert-ring-pulse, wp-blink, add-flash)",
+      "components/studio/bottom-sheet.tsx:37 (height 280ms)",
+      "studio/setting-card.tsx:97 (chevron)",
+      "src/settings/settings.css:84-88 and window.css:41-45 (.row-found)",
+      "src/settings/ui.tsx:56,78,112; updates.tsx:50 animate-spin; changelog.tsx:185 smooth scroll",
+      "src/touch-overlay/overlay.tsx:78, overlay.css (touch-ripple infinite)"
+    ],
+    "issue": "Reduced motion works only through the useReducedMotion JS flag and three CSS classes. Studio sheet slide, chevron, Settings/Help transitions and spin, smooth scroll and the infinite touch ripple run regardless of the OS preference; Settings' found-row cue is motion only (a fade that leaves nothing behind).",
+    "fix": "One @media (prefers-reduced-motion: reduce) block per stylesheet (index.css, settings.css, window.css, help.css, overlay.css) zeroing transitions/animations; keep a static accent outline on .row-found until FOUND_MS clears; smooth scroll gated on matchMedia.",
+    "sources": [
+      "F-17",
+      "B-06",
+      "D-02",
+      "A-09"
+    ],
+    "evidence": "bottom-sheet.tsx:37, setting-card.tsx:97, overlay.tsx:78 opened; grep prefers-reduced-motion = 0 in settings.css, window.css, help.css. No motion-reduce use under components/studio. B-06's WCAG 2.3.3 is AAA but the project trigger applies.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-017",
+    "sev": "HIGH",
+    "batch": 5,
+    "domain": "ui",
+    "surface": "Kiosk offline state",
+    "locations": [
+      "src/App.tsx:763,805-813",
+      "src/lib/sensor-store.ts:303-307",
+      "src/lib/island/system.ts:30-39"
+    ],
+    "issue": "When the Data API drops the kiosk keeps showing the last values with no cue; the only outage notice is the island warning (after 5s) and only if the profile has an island. A wall display can show a frozen temperature for hours.",
+    "fix": "Corner role=status pill ('Data API disconnected') driven by useSensorsConnected with the same 5s debounce, hidden when the island is on.",
+    "sources": [
+      "A-01"
+    ],
+    "evidence": "Header ConnectionStatus (App.tsx:883-890) is non-kiosk; island message in system.ts:34 opened. Behavioural claim otherwise read from audit.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-018",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Studio layers tree",
+    "locations": [
+      "src/components/studio/layers-tree.tsx:270 (row), :143-155"
+    ],
+    "issue": "Layer rows are treeitems with outline-none and no focus style; arrow keys move focus without selecting, so the focused row looks like its neighbours.",
+    "fix": "focus-visible:outline-2 -outline-offset-2 outline-ui-accent on the row.",
+    "sources": [
+      "B-01"
+    ],
+    "evidence": "layers-tree.tsx:268-275 opened: outline-none, no focus class; .focus() at :149.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-019",
+    "sev": "HIGH",
+    "batch": 3,
+    "domain": "layout",
+    "surface": "Studio quick bar",
+    "locations": [
+      "src/components/studio/quick-bar.tsx:259"
+    ],
+    "issue": "Pinned controls scroll sideways with [scrollbar-width:none] and no fade, chevron or peek; at narrow widths pinned controls are unreachable without wheel/drag and have no cue.",
+    "fix": "Edge fade mask or overflow chevrons, or wrap to a second row below the breakpoint.",
+    "sources": [
+      "B-04"
+    ],
+    "evidence": "quick-bar.tsx:259 opened: overflow-x-auto [scrollbar-width:none].",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-020",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Import dialog",
+    "locations": [
+      "src/components/infopanel/import/import-dialog.tsx:433-434"
+    ],
+    "issue": "Dialog.Title sits inside the step nav that is max-md:hidden, so below 768px the dialog has no accessible name and no step cue.",
+    "fix": "Move Dialog.Title into the content header; add 'Step n of 5'.",
+    "sources": [
+      "C-01"
+    ],
+    "evidence": "import-dialog.tsx:432-434 opened: nav max-md:hidden contains Dialog.Title.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-021",
+    "sev": "HIGH",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Config-update dialog and first-run skip",
+    "locations": [
+      "src/components/studio/config-update-dialog.tsx:59-65",
+      "src/components/studio/first-run/first-run-page.tsx:538-541"
+    ],
+    "issue": "Hand-built role=alertdialog aria-modal overlays have no focus trap, no inert background, no Escape and no focus return. Config-update gates a data migration.",
+    "fix": "Rebuild on AlertDialog from @base-ui/react like reset-config-dialog.tsx.",
+    "sources": [
+      "C-04"
+    ],
+    "evidence": "config-update-dialog.tsx:56-66 opened: plain div, no key handling (grep Escape/onKeyDown: none).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-022",
+    "sev": "HIGH",
+    "batch": 0,
+    "domain": "bug",
+    "surface": "Settings window",
+    "locations": [
+      "src/settings/store.tsx:127-136,246",
+      "src/settings/window-desktop.tsx:44-52",
+      "src/settings/app.tsx:41-49"
+    ],
+    "issue": "load().then(...) has no .catch and StoreProvider returns null until it resolves; the title bar and sidebar are its children. If load rejects, the frameless window stays blank with no caption buttons.",
+    "fix": "Render TitleBar outside StoreProvider; .catch sets loadError and renders 'Couldn't load settings' with Retry; skeleton instead of null.",
+    "sources": [
+      "D-01"
+    ],
+    "evidence": "store.tsx:127 void load().then(...) with no catch and :246 'return null' opened.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-023",
+    "sev": "HIGH",
+    "batch": 0,
+    "domain": "bug",
+    "surface": "FPS widgets (copy bug)",
+    "locations": [
+      "src/widgets/FpsMonitor.tsx:221,238",
+      "src/widgets/OsdStrip.tsx:76",
+      "(guarded correctly at FpsMonitor.tsx:111)"
+    ],
+    "issue": "The compact and Metric sub line prints '1% 0 . 12.6 ms' when 1% low is 0 or unknown; GaugeView guards low > 0 but these paths do not. '1% 0' reads as a 0 fps stutter.",
+    "fix": "Same guard everywhere: omit the 1% part when low <= 0; label it '1% low'.",
+    "sources": [
+      "E-02"
+    ],
+    "evidence": "FpsMonitor.tsx:221 opened: sub: `1% ${fmt(low)} . ...` unguarded; :111 guarded.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-024",
+    "sev": "MEDIUM",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Studio, Settings, Help (control boundaries)",
+    "locations": [
+      "src/index.css:114-118 --ui-border-default/-strong",
+      "src/settings/tokens.css:11-12 s-input-line, s-track-line",
+      "ui/toggle.tsx:21-26 (off track #2c2c33)",
+      "ui/segmented.tsx:32-48",
+      "ui/device-checklist.tsx:40-42",
+      "ui/slider-field.tsx:46",
+      "setting-rows.tsx:21,25",
+      "quick-bar.tsx:85,113,156",
+      "bottom-sheet.tsx:76 handle #3a3a42",
+      "src/settings/ui.tsx:21,44,96"
+    ],
+    "issue": "Field, select, checkbox, segmented and switch-off boundaries are 1.22-1.40:1 against their surface (3:1 needed); sheet drag handle 1.67.",
+    "fix": "Add --ui-border-control (about #5b5b66) and raise --color-s-input-line/--color-s-track-line to about #62626c for inputs, checkboxes, segmented, toggle off-track; handle to ui-3/ui-4. Dividers stay subtle.",
+    "sources": [
+      "F-09",
+      "B-12",
+      "D-06",
+      "B-24"
+    ],
+    "evidence": "Values from index.css and tokens.css; ratios from audits (not rendered).",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-025",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Studio and shared controls (focus in forced-colors)",
+    "locations": [
+      "ui/icon-button.tsx:25",
+      "ui/toggle.tsx:25",
+      "ui/toast.tsx:61",
+      "index.css:370-372,449",
+      "studio/left-rail.tsx:59",
+      "studio/phone-tab-bar.tsx:31",
+      "studio/page-tabs.tsx:241",
+      "studio/align-grid.tsx:125",
+      "31 outline-none lines e.g. first-run/steps.tsx:209, place-row.tsx:65, gauges-browse.tsx:123, settings/sections/server.tsx:253,295"
+    ],
+    "issue": "Focus is a ring (box-shadow) with outline-none; Windows contrast themes (WebView2) drop box-shadows and no forced-colors rule exists, so no focus shows. No base :focus-visible rule; every control opts in.",
+    "fix": "Base-layer :focus-visible rule (2px accent outline, offset 2px) and outline-hidden in place of outline-none; or a single @media (forced-colors: active) rule.",
+    "sources": [
+      "F-08",
+      "B-11"
+    ],
+    "evidence": "Static; forced-colors rendering inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-026",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Switch, page dots, dense rows, phone views (target size)",
+    "locations": [
+      "ui/toggle.tsx:24 (30x18)",
+      "ui/device-checklist.tsx (16px box)",
+      "src/components/page-dots.tsx:8,79 (20px)",
+      "studio/layers-tree.tsx:285-368",
+      "inspector/source-dot.tsx:35-43",
+      "studio/page-tabs.tsx:260",
+      "studio/quick-bar.tsx:69",
+      "first-run/first-run-page.tsx:447",
+      "library/profile-assets/drawer.tsx:15",
+      "studio/pane-sheet.tsx:30-37"
+    ],
+    "issue": "Targets under 24px (switch 18px, page dots 20px with adjacent 20px spacing, 7-22px dense row buttons, 16-28px close buttons on phone views).",
+    "fix": "after:absolute after:-inset-1 hit-area on Toggle and dense buttons; page dots 24px (PAGE_DOTS_STRIP_PX to 24, 44 on touch profiles); h-8 w-8 minimum for close buttons on narrow.",
+    "sources": [
+      "F-10",
+      "A-19",
+      "B-21",
+      "C-32"
+    ],
+    "evidence": "Mixed verified/inferred; spacing exception means some are margin, not failure.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-027",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Segmented, radio and tab patterns (shared)",
+    "locations": [
+      "ui/segmented.tsx:33-58",
+      "ui/icon-grid.tsx:25-49",
+      "studio/inspector/inspector-view.tsx:156,183",
+      "studio/page-tabs.tsx:201-263",
+      "import-dialog.tsx:149-157",
+      "export-dialog.tsx:306-318",
+      "library/library-page.tsx:536-548",
+      "gauges/gauges-page.tsx:171-190",
+      "studio/alerts-view.tsx:84-98",
+      "studio/add-panel.tsx:463-471",
+      "src/settings/ui.tsx:57-70, logs.tsx:108-130"
+    ],
+    "issue": "role=radiogroup/radio and tablist/tab built from plain buttons: every option is a tab stop, no arrow keys, no aria-controls/tabpanel; Gauges' selected tab is disabled; roving is hand-written three times in Settings.",
+    "fix": "Put roving tabindex + arrow/Home/End once in Segmented (or Base UI RadioGroup/ToggleGroup); otherwise drop roles and use aria-pressed/aria-current buttons; label inspector tablists; one Switch and a chip variant in Settings.",
+    "sources": [
+      "F-11",
+      "B-10",
+      "C-08",
+      "C-09",
+      "D-25"
+    ],
+    "evidence": "Static; templates' wizard-gallery implements arrows correctly.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-028",
+    "sev": "MEDIUM",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Matte-light and glass surfaces",
+    "locations": [
+      "src/components/surfaces.ts:60,79",
+      "src/widgets/core/theme.ts:55 (SURFACE_TOKENS muted)"
+    ],
+    "issue": "matte-light muted rgba(24,24,27,.6) is 4.49:1 on #f4f4f5 and 4.20 on its chip; glass over a white page gives fg 3.78 and muted 2.39.",
+    "fix": "matte-light muted alpha .6 to .72 (and SURFACE_TOKENS likewise); glass: raise end alpha to about .72 on light pages or document it in the Surface picker.",
+    "sources": [
+      "F-12"
+    ],
+    "evidence": "surfaces.ts:60 opened; glass inferred. theme.ts:55 is mirrored by vector.ts: check gauge export.",
+    "checked": false,
+    "exportRisk": true,
+    "status": "open"
+  },
+  {
+    "id": "FND-029",
+    "sev": "MEDIUM",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Status colour tokens",
+    "locations": [
+      "index.css:127-131,139-141 --ui-success/--ui-ok, --ui-warning/--ui-warn, --ui-info",
+      "src/settings/tokens.css:25-28 s-green/s-amber/s-red"
+    ],
+    "issue": "Two parallel status sets for the same meanings 5 degrees apart plus a third in Settings; ui-info (hue 245) sits 10 degrees from the accent (255), so info and selected are one colour.",
+    "fix": "Collapse to --ui-ok/--ui-warn/--ui-danger/--ui-info, alias success/warning, point s-* at the same variables, move info to about hue 215 or neutral (about 150 mechanical renames).",
+    "sources": [
+      "F-13"
+    ],
+    "evidence": "Static.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-030",
+    "sev": "MEDIUM",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Hard-coded colours across the UI",
+    "locations": [
+      "326 bg-/text-/border-[#hex] in components (text-[#71717a] x33, #a1a1aa x20, #8a8a94 x18)",
+      "select.css:9-69, select-scrollbar.css:14",
+      "studio/theme-look-card.tsx:15",
+      "31 Studio files e.g. inspector-view.tsx:197,208,463, quick-bar.tsx:187,270, inherit-chip.tsx:37-39",
+      "~25 hexes in src/settings, help/ui, app-window",
+      "connections/streamdeck-block.tsx:15,147 (raw zinc/amber/emerald/red)",
+      "island/dynamic-island.tsx:35,354; alerts/alert-model.ts:100; island-look.ts:24-25",
+      "src/settings/sections/logs.tsx:148 (#4a4a52, 2.27:1)"
+    ],
+    "issue": "Greys and fills outside the token set (at least five near-duplicate text greys, three hover fills, #1c1c21 divider x9+); select.css copies tokens as literals so a token change will not reach pickers; some literals fail contrast (#71717a, #55555e, #4a4a52); crit red has two values.",
+    "fix": "Map to --ui-text-n / --ui-bg-*; add --ui-bg-hover-2, --ui-divider, --ui-text-muted, --color-s-body/s-field/s-hover; var(--ui-*) in select.css; severityColor() in island/alerts; vitest grep failing on [#hex] under components/ui and components/studio.",
+    "sources": [
+      "F-14",
+      "B-19",
+      "D-23",
+      "D-05",
+      "C-30",
+      "A-22"
+    ],
+    "evidence": "Counts from greps in the audits; logs.tsx:148 contrast 2.27:1.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-031",
+    "sev": "MEDIUM",
+    "batch": 3,
+    "domain": "typography",
+    "surface": "All surfaces (no type scale)",
+    "locations": [
+      "src/index.css (no --text-* in @theme)",
+      "text-[11px] x401, 12px x374, 12.5px x294, 11.5px x244, 10.5px x149, 10px x116, plus 9/9.5/8",
+      "src/settings/**, help/ui (12 sizes, 32 under 12px)",
+      "core/views.tsx:145,198,218,359,367",
+      "modern-chrome.tsx:149",
+      "alert-model.ts:59, alert-layer.tsx:208",
+      "touch-layer.tsx:384",
+      "phone-tab-bar.tsx:31 (9.5px on touch)",
+      "rulers.tsx:15 (8px)",
+      "widgets: OsdStrip.tsx:91, MenuBar.tsx:114, StreamControl.tsx:167,198, GameSpotlight.tsx:172, AudioMeter.tsx:27,195, CoreHeatmap.tsx:126,157, CpuMonitor.tsx:138, WaveLink.tsx:125"
+    ],
+    "issue": "About 24 arbitrary px sizes in 0.5px steps, 140+ uses at 10px or below, in px not rem; kiosk captions and widget labels at 9-9.5px, SVG text at 6-7px; phone tab bar 9.5px.",
+    "fix": "@theme --text-micro .6875rem / caption .75rem / body .8125rem / title .9375rem; round half-pixel sizes; 11px floor for kiosk captions, 11px on phone bar; promote SensorValue's LINE_MIN_PX to a shared floor; scale heatmap cell numbers with cell size.",
+    "sources": [
+      "F-15",
+      "A-15",
+      "B-20",
+      "D-22",
+      "E-05"
+    ],
+    "evidence": "Counts from greps; kiosk legibility depends on zoom/DPI (inferred).",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-032",
+    "sev": "MEDIUM",
+    "batch": 3,
+    "domain": "ui",
+    "surface": "Design tokens (radius, height, z-index)",
+    "locations": [
+      "src/index.css:107-185 (shadow tokens only)",
+      "rounded-[7px] x155, 8px x63, 10px x60, 6px x47, 9px x44...",
+      "h-[30px] x63 and five other control heights",
+      "z-50 x57 plus z-[60]/[80]/[90]/[11]/[15]"
+    ],
+    "issue": "No radius, control-height or z-index scale: nine arbitrary radii and six control heights coexist; 34 arbitrary shadows.",
+    "fix": "--radius-ui-sm/md/lg (6/8/12, menu 9), --ui-h-control 28, --ui-h-field 34, --z-menu/dialog/toast in @theme; migrate as files are touched.",
+    "sources": [
+      "F-16"
+    ],
+    "evidence": "Counts from greps.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-033",
+    "sev": "MEDIUM",
+    "batch": 3,
+    "domain": "layout",
+    "surface": "Studio dialogs",
+    "locations": [
+      "studio/reset-config-dialog.tsx:20",
+      "library/remove-item-dialog.tsx:29,70,122",
+      "gauges/unsaved-dialog.tsx:18",
+      "studio/make-theme-dialog.tsx:33",
+      "studio/page-icon-dialog.tsx:31",
+      "studio/widget-picker-dialog.tsx:84",
+      "studio/command-palette.tsx:105"
+    ],
+    "issue": "Popups use fixed w-[22..32rem] (352-512px) with no max-w, clipped at 320px; delete-dialog.tsx:22 already uses w-[min(24rem,calc(100vw-2rem))].",
+    "fix": "w-[min(26rem,calc(100vw-2rem))] with max-h and overflow-y-auto; one shared popup class constant.",
+    "sources": [
+      "C-06"
+    ],
+    "evidence": "Code verified in audit; render inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-034",
+    "sev": "MEDIUM",
+    "batch": 3,
+    "domain": "layout",
+    "surface": "Kiosk scrolling (downgraded from HIGH)",
+    "locations": [
+      "src/index.css:232-244",
+      "src/App.tsx:722-725"
+    ],
+    "issue": "In Scroll fit (min-h-screen, 120px rows; 'Main display', 'Small 1024x600') every scrollbar is hidden, so content below the fold has no cue and only wheel/touch drag reaches it.",
+    "fix": "Keep hidden for fit: fill; for scroll profiles a thin 4px thumb or a bottom fade hint.",
+    "sources": [
+      "A-10"
+    ],
+    "evidence": "index.css:232-244 opened: scrollbars hidden by design (comment). Downgraded: deliberate for a passive display, impact on scroll profiles unconfirmed.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-035",
+    "sev": "MEDIUM",
+    "batch": 5,
+    "domain": "ui",
+    "surface": "Library and Add panel deletes (downgraded from HIGH)",
+    "locations": [
+      "src/components/library/library-page.tsx:329-338,403",
+      "studio/use-studio-mutations.ts:216",
+      "studio/insert-row.tsx:62-65",
+      "library/library-views.tsx:156-162"
+    ],
+    "issue": "Deleting a saved panel has no confirm and no visible Undo: toast 'Deleted X' has no action (1.8s); the Add panel Delete gives no feedback; Delete/Backspace on a focused card deletes directly. Undo exists only as Ctrl+Z.",
+    "fix": "toast('Deleted X', { action: Undo, ms: 8000 }) in both paths as Screens does.",
+    "sources": [
+      "C-05"
+    ],
+    "evidence": "library-page.tsx:329-334 opened: setConfig = one undo step, toast has no action. Downgraded: undo exists (Ctrl+Z).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-036",
+    "sev": "MEDIUM",
+    "batch": 3,
+    "domain": "layout",
+    "surface": "System Overview widget (downgraded from HIGH)",
+    "locations": [
+      "src/widgets/SystemOverview.tsx:311-330"
+    ],
+    "issue": "At small sizes (shape tile, w - h <= 60) three concentric rings show no label, number or unit; colour alone separates CPU/GPU/RAM.",
+    "fix": "Legend or lead value inside the rings below the gate, or fall back to the compact text.",
+    "sources": [
+      "E-03"
+    ],
+    "evidence": "SystemOverview.tsx:309-331 opened: rings carry the value visually; legend only when w - h > 60. Downgraded: data readable as ring fill, only identity is colour (also covered by the colour-state row).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-037",
+    "sev": "MEDIUM",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Kiosk critical alert colour",
+    "locations": [
+      "src/index.css:51 --destructive",
+      "alerts/alert-model.ts:105",
+      "index.css:290-294 .alert-ring",
+      "zone-error-boundary.tsx:206-208",
+      "ui/clip-indicator.tsx (dead)"
+    ],
+    "issue": "Default destructive colour is 1.99:1 on the default background; critical alert border/icon, ring, island glow and ZoneError border all use it, so critical is the least visible severity.",
+    "fix": "Dedicated --alert-critical about hsl(0 84% 60%) (5.6:1); keep --destructive for fills.",
+    "sources": [
+      "A-12"
+    ],
+    "evidence": "Default theme; other themes vary.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-038",
+    "sev": "MEDIUM",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Kiosk empty state",
+    "locations": [
+      "src/components/studio/placement-frame.tsx:39-46,180"
+    ],
+    "issue": "Zones with no data (and blank zones) return null in the kiosk; a profile with all widgets waiting is a bare background with no message (NoLiveData is studio-only).",
+    "fix": "When every zone is hidden, one centred line: 'Waiting for data. Check that InfoPanel and its plugins are running.'",
+    "sources": [
+      "A-13"
+    ],
+    "evidence": "Read from audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-039",
+    "sev": "MEDIUM",
+    "batch": 0,
+    "domain": "bug",
+    "surface": "Kiosk first load",
+    "locations": [
+      "src/App.tsx:466,471,708"
+    ],
+    "issue": "The kiosk renders null until the config SSE sends its first message (pull runs only from onmessage, App.tsx:471); if the stream never delivers the display stays blank with no message or retry.",
+    "fix": "Call pull() once on mount; after about 3s show 'Connecting to InfoPanel Studio...'.",
+    "sources": [
+      "A-14"
+    ],
+    "evidence": "App.tsx:471 opened: events.onmessage = () => void pull(); only pull() call site.",
+    "checked": true,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-040",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Kiosk alert cards",
+    "locations": [
+      "alerts/alert-layer.tsx:193,208",
+      "alert-model.ts:94-98"
+    ],
+    "issue": "The whole card is role=alert and contains the age label that changes every minute, so AT can re-announce the alert.",
+    "fix": "role=alert on a wrapper holding only title and text; age label outside or aria-hidden.",
+    "sources": [
+      "A-16"
+    ],
+    "evidence": "Inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-041",
+    "sev": "MEDIUM",
+    "batch": 5,
+    "domain": "ui",
+    "surface": "Kiosk alert stack",
+    "locations": [
+      "alerts/alert-layer.tsx:168-172",
+      "alert-model.ts:6 MAX_PER_SLOT",
+      "alert-layer.tsx:102-110 (backdrop)"
+    ],
+    "issue": "Past 3 alerts per slot the rest collapse to a non-interactive '+N more' chip; with a dim/blur backdrop a tap on it does nothing and nothing says how to close a persistent alert.",
+    "fix": "Chip becomes a button ('Dismiss N more'); backdrop tap acks the top alert or show a 'Tap to dismiss' caption on persistent alerts.",
+    "sources": [
+      "A-17",
+      "A-18"
+    ],
+    "evidence": "Read from audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-042",
+    "sev": "MEDIUM",
+    "batch": 3,
+    "domain": "layout",
+    "surface": "Kiosk modern-chrome header",
+    "locations": [
+      "src/components/modern-chrome.tsx:147-159"
+    ],
+    "issue": "Title header is absolutely placed with no max-width, truncation or content offset; a long label overflows the zone or overlaps the first row.",
+    "fix": "max-w-[calc(100%-1.5rem)] truncate and offset the body by the header height when showHeader.",
+    "sources": [
+      "A-20"
+    ],
+    "evidence": "Inferred (panel path only).",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-043",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Studio sheets and floating inspector, side drawer",
+    "locations": [
+      "studio/bottom-sheet.tsx:42-69",
+      "studio/pane-sheet.tsx:332",
+      "studio/floating-inspector.tsx:28-73",
+      "library/profile-assets/drawer.tsx:6-10"
+    ],
+    "issue": "The full sheet snap is drag-only with no aria-expanded; PaneSheet has no Esc close; floating inspector and drawer do not move focus in on open or restore it on close.",
+    "fix": "Enter/Space cycles peek/half/full with aria-expanded; Esc closes and returns focus; focus the card/drawer on open (tabIndex -1).",
+    "sources": [
+      "B-07",
+      "B-16",
+      "C-16"
+    ],
+    "evidence": "B-07 verified; B-16, C-16 inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-044",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Studio page tabs",
+    "locations": [
+      "studio/page-tabs.tsx:153-175 (drag), :60-72 (menu)"
+    ],
+    "issue": "Pages reorder by pointer drag only; the page menu has no Move left/right.",
+    "fix": "Add 'Move left'/'Move right' to pageMenuEntries; optionally Alt+Arrow.",
+    "sources": [
+      "B-08"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-045",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Studio lists and cards (nested interactive content)",
+    "locations": [
+      "studio/layers-tree.tsx:230-368",
+      "studio/panel-layers.tsx:92-155",
+      "explorer/source-tree.tsx:238",
+      "explorer/point-table.tsx:247,294",
+      "library/library-views.tsx:137-139,177-190",
+      "studio/insert-row.tsx:52,106-108,130",
+      "studio/add-row.tsx:124,168-171"
+    ],
+    "issue": "treeitem/option/role=button rows contain real buttons or a checkbox (3-5 tab stops per row, menu trigger at opacity-0); no Left/Right/Home/End in the tree.",
+    "fix": "Inner buttons tabIndex -1 and arrow-key reachable, or card = container with one real primary button and sibling controls; add tree keys.",
+    "sources": [
+      "B-09",
+      "C-13"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-046",
+    "sev": "MEDIUM",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Studio low-contrast graphics",
+    "locations": [
+      "studio/settings-panel.tsx:86 (#4a4a52, 2.15:1)",
+      "studio/rulers.tsx:15 (#5a5a63, 8px)",
+      "studio/layers-tree.tsx:273 (opacity-45 hidden rows)"
+    ],
+    "issue": "Unpinned pin icon 2.15:1; ruler numbers 2.86:1 at 8px and scale down with zoom; hidden layer rows fade the whole name to about 3:1.",
+    "fix": "Pin text-ui-4; rulers outside the zoom transform at 10px+ text-ui-4; fade only the icon and tag on hidden rows.",
+    "sources": [
+      "B-13"
+    ],
+    "evidence": "layers-tree.tsx:273 opened (opacity-45).",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-047",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Help and reasons only in title attributes",
+    "locations": [
+      "studio/setting-rows.tsx:46-52",
+      "studio/settings-panel.tsx:117-120",
+      "studio/inherit-chip.tsx:117",
+      "studio/status-bar.tsx:135",
+      "layers-tree.tsx:331",
+      "settings/sections/diagnostics.tsx:104; shell.tsx:136; help/ui/blocks.tsx:154"
+    ],
+    "issue": "Hints and read-only reasons live in title on non-focusable spans; keyboard and touch users cannot learn why a field is locked or what the hint says.",
+    "fix": "Hint becomes a button opening the existing Popover; show the read-only reason as visible muted text; visible hint under buttons as Tool rows do.",
+    "sources": [
+      "B-15",
+      "D-32"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-048",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Studio canvas",
+    "locations": [
+      "studio/studio-canvas.tsx:563-580",
+      "studio/placement-frame.tsx:344-420"
+    ],
+    "issue": "The canvas and zones have no role, name or tab stop; the keyboard route to zones is Layers plus shortcuts, undiscoverable from the canvas.",
+    "fix": "Scroll container role=region aria-label='Canvas' tabIndex=0 and a role=status line ('Selected CPU, 2 by 1').",
+    "sources": [
+      "B-17"
+    ],
+    "evidence": "Inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-049",
+    "sev": "MEDIUM",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Studio icon and button naming",
+    "locations": [
+      "selection-chip.tsx:87 (EyeOff when visible)",
+      "quick-bar.tsx:308,311",
+      "layers-tree.tsx:367",
+      "group-inspector.tsx:104-107",
+      "inspector/sheet-view.tsx:167"
+    ],
+    "issue": "Two icon conventions for visibility in one view (action vs state icon) and bare names ('Hide', 'Show', 'Delete') with no object.",
+    "fix": "State icon everywhere (Eye = visible); names 'Hide widget', 'Delete group' as panel-layers.tsx:140 does.",
+    "sources": [
+      "B-18"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-050",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Search and command palettes (combobox)",
+    "locations": [
+      "studio/command-palette.tsx:51-60,76-84",
+      "src/settings/shell.tsx:64-95",
+      "src/app-window/search-box.tsx:30-52",
+      "help/ui/results-view.tsx:318-322",
+      "help/app.tsx:180"
+    ],
+    "issue": "Search inputs are not comboboxes: arrow keys move a highlight with no listbox/option ids, aria-activedescendant or expanded state; result counts and empty lines are not in a live region; Help Enter opens an unmarked first hit.",
+    "fix": "Copy add-panel.tsx:432-437 wiring (combobox + listbox + activedescendant); always-mounted role=status for counts; highlight the first Help hit.",
+    "sources": [
+      "C-07",
+      "D-09"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-051",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Errors and results not announced",
+    "locations": [
+      "infopanel/convert-dialog.tsx:126",
+      "export-dialog.tsx:131,404",
+      "import-dialog.tsx:484",
+      "studio/media-field.tsx:144",
+      "studio/media-library.tsx:84",
+      "studio/background-library.tsx:55",
+      "templates/new-page.tsx:366",
+      "export-sheet.tsx:55,88",
+      "streamdeck-block.tsx:147",
+      "calendar-block.tsx:36",
+      "studio/connection-card.tsx:77-96",
+      "src/settings/sections/updates.tsx:48-69",
+      "sections/connections.tsx:~90"
+    ],
+    "issue": "Error text renders as plain p/span; Copy JSON and gauge-pick failures are swallowed; connection-card has no aria-invalid/describedby and its probe results are silent; the Settings update card state changes and progress bar have no live region or name.",
+    "fix": "role=alert on flow-level errors; surface swallowed rejections via a persistent toast; aria-invalid + aria-describedby; role=status on probe/update text; progressbar aria-label + aria-valuetext.",
+    "sources": [
+      "C-10",
+      "C-18",
+      "D-11"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-052",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "aria-label on role-less elements",
+    "locations": [
+      "connections/twitch-block.tsx:74",
+      "connections/streamdeck-block.tsx:92",
+      "infopanel/convert-dialog.tsx:49",
+      "components/pulse-dot.tsx:177",
+      "island/dynamic-island.tsx:318,439",
+      "page-dots.tsx pause icon",
+      "first-run/first-run-page.tsx:464,470-480"
+    ],
+    "issue": "aria-label on plain div/span/svg is dropped, so codes, reports, badge counts and 'Has issues' steps are not exposed.",
+    "fix": "role=group/img or sr-only text; table/list semantics for the conversion report.",
+    "sources": [
+      "C-11",
+      "A-21",
+      "C-25"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-053",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Studio card focus",
+    "locations": [
+      "library/library-views.tsx:166-167",
+      "studio/insert-row.tsx:124"
+    ],
+    "issue": "Card focus is a 1px border change identical to the selected border, so a focused unselected card reads as selected.",
+    "fix": "focus-visible:outline-2 outline-offset-2 outline-ui-accent (promote add-panel.tsx:44 FOCUS to a shared constant).",
+    "sources": [
+      "C-14"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-054",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Inline confirms",
+    "locations": [
+      "studio/alerts-rules.tsx:107-117",
+      "connections/streamdeck-block.tsx:110-123"
+    ],
+    "issue": "Inline confirm swaps the row, so the focused button unmounts, focus drops to body and the question is not announced.",
+    "fix": "Focus Cancel after entering confirm; role=alert on the question.",
+    "sources": [
+      "C-15"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-055",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Dialog close buttons",
+    "locations": [
+      "infopanel/convert-dialog.tsx:126",
+      "export-dialog.tsx:282",
+      "remap-dialog.tsx:46",
+      "studio/export-sheet.tsx:162",
+      "studio/page-icon-dialog.tsx:34",
+      "studio/shortcuts-dialog.tsx:25",
+      "studio/widget-picker-dialog.tsx:95"
+    ],
+    "issue": "Icon-only close buttons are named by title only; page-icon and shortcuts ones are a bare 16px icon.",
+    "fix": "aria-label='Close', h-8 w-8, keep title (as ui/icon-button.tsx).",
+    "sources": [
+      "C-17"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-056",
+    "sev": "MEDIUM",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Import dialog copy",
+    "locations": [
+      "infopanel/import/import-dialog.tsx:445-448,481-495,~272"
+    ],
+    "issue": "Next is disabled on step 0 and step 4 with no reason; empty state tells the user to 'set INFOPANEL_DATA_DIR on the server'.",
+    "fix": "Footnote 'Choose a file to continue'; empty copy 'No InfoPanel profiles found. If InfoPanel keeps them elsewhere, set its data folder in Settings.'",
+    "sources": [
+      "C-19"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-057",
+    "sev": "MEDIUM",
+    "batch": 0,
+    "domain": "bug",
+    "surface": "Import dialog data loss",
+    "locations": [
+      "infopanel/import/import-dialog.tsx:506-516"
+    ],
+    "issue": "Escape or backdrop click closes the 5-step import (remap choices, name, screenshot) with no discard confirm and no close button.",
+    "fix": "Guard onOpenChange: if step > 0 ask like UnsavedDialog; add an X.",
+    "sources": [
+      "C-20"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-058",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Import dialog state",
+    "locations": [
+      "import-dialog.tsx:182-186,262-274,~300-312"
+    ],
+    "issue": "Upload progress is a bare div; installed-profile and saved-canvas lists show the picked state only as a Radio dot and background.",
+    "fix": "role=progressbar with aria-valuenow; aria-pressed={picked===id}.",
+    "sources": [
+      "C-21"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-059",
+    "sev": "MEDIUM",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Failure copy",
+    "locations": [
+      "library/library-page.tsx:371-374",
+      "gauges/gauges-page.tsx:155-160",
+      "studio/media-field.tsx:61",
+      "studio/background-library.tsx:55"
+    ],
+    "issue": "'N failed', 'The upload failed.', 'Could not load My library.' name no reason and no Retry.",
+    "fix": "Retry on list-load errors; upload errors name the AssetError reason + 'Try again'; summaries name the failed items.",
+    "sources": [
+      "C-22"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-060",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Export sheet disclosure",
+    "locations": [
+      "studio/export-sheet.tsx:234"
+    ],
+    "issue": "'Choose...' gauge disclosure has no aria-expanded/aria-controls and no focus move.",
+    "fix": "aria-expanded={choosing}; focus the first option on open.",
+    "sources": [
+      "C-23"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-061",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Settings/Help links, sticky bar, scrollers, tables, hints",
+    "locations": [
+      "src/settings/settings.css:39-45, window.css:16-22 (a); model/changelog.ts:122-125",
+      "settings/shell.tsx:158, app.tsx:26, window-pages.tsx:108 (sticky RestartBar)",
+      "sections/logs.tsx:144; diagnostics.tsx:24; help/ui/blocks.tsx:73 (scrollers)",
+      "help/ui/blocks.tsx:70-87,111-125; diagnostics.tsx:24-51 (div tables)",
+      "ui.tsx:161-181; general.tsx:109-176; server.tsx:238,295 (label/hint)"
+    ],
+    "issue": "Links have no underline (about 1.2:1 against body text); sticky RestartBar can cover focused rows; unfocusable scrollers and div-grid tables; hints/consequences are not tied to controls (no describedby, clicking the label does not toggle).",
+    "fix": "a { text-decoration: underline } in both stylesheets; scroll-pt-16 on main; tabIndex=0 role=region on scrollers; real table/th/dl; useId + aria-describedby and label htmlFor in Row; role=alert on the rejection hint.",
+    "sources": [
+      "D-07",
+      "D-08",
+      "D-10",
+      "D-15",
+      "D-16",
+      "D-31"
+    ],
+    "evidence": "D-08, D-15 inferred; rest verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-062",
+    "sev": "MEDIUM",
+    "batch": 0,
+    "domain": "bug",
+    "surface": "Help search focus",
+    "locations": [
+      "src/help/app.tsx:160-163",
+      "help/ui/home-view.tsx:401-410"
+    ],
+    "issue": "The first character typed in Home's field moves focus to the sidebar field (queryFromHome): caret/IME break and two fields named 'Search help' are on screen.",
+    "fix": "Hide the sidebar field while Home shows, or sync values without moving focus.",
+    "sources": [
+      "D-17"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-063",
+    "sev": "MEDIUM",
+    "batch": 3,
+    "domain": "layout",
+    "surface": "Desktop shell at high zoom",
+    "locations": [
+      "src/settings/shell.tsx:54 (236px)",
+      "help/ui/sidebar.tsx:251 (248px)",
+      "src/app-window/zoom.ts:4",
+      "src-tauri/src/windows.rs:471 (min 760)"
+    ],
+    "issue": "Fixed sidebars with no narrow breakpoint: at 150% zoom in a 760px window the main pane is about 270 CSS px; 560px tables and the 6-segment zoom control cannot shrink.",
+    "fix": "Below about 700 CSS px collapse the sidebar to a 56px icon rail (names in title and aria-label).",
+    "sources": [
+      "D-18"
+    ],
+    "evidence": "Inferred; needs WebView2 render.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-064",
+    "sev": "MEDIUM",
+    "batch": 0,
+    "domain": "bug",
+    "surface": "Settings/Help swallowed IPC failures",
+    "locations": [
+      "settings/sections/general.tsx:74",
+      "shell.tsx:137",
+      "help/env.tsx:181-182",
+      "diagnostics.tsx:62",
+      "logs.tsx:71",
+      "help/app.tsx:36-38"
+    ],
+    "issue": "IPC failures are swallowed with .catch(() => {}) for Run setup, Help, Open Settings, diagnostics refresh, log polling and zoom sync: a click does nothing and says nothing.",
+    "fix": "toast(errorText(e), true) as about.tsx:51 does; 'Can't read the log' footer in Logs.",
+    "sources": [
+      "D-19"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-065",
+    "sev": "MEDIUM",
+    "batch": 5,
+    "domain": "ui",
+    "surface": "Settings loading/failure states",
+    "locations": [
+      "settings/sections/changelog.tsx:196",
+      "about.tsx:50",
+      "connections.tsx:~90",
+      "diagnostics.tsx:62"
+    ],
+    "issue": "Loading and failure are blank: changelog returns null on load and failure; Connections' error is a bare p with raw e.message, no retry.",
+    "fix": "One shared PageState: skeleton while loading, 'Couldn't load the changelog. {reason}' with Try again and the releases link.",
+    "sources": [
+      "D-20"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-066",
+    "sev": "MEDIUM",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Update error card",
+    "locations": [
+      "src/settings/model/cards.ts:199-206"
+    ],
+    "issue": "The error card says 'Couldn't check for updates' for every failure including download and install; detail is raw u.error or 'Something went wrong.'",
+    "fix": "Branch on phase ('Couldn't download 1.3.2'); detail 'Check your connection, then try again.' with raw error secondary.",
+    "sources": [
+      "D-21"
+    ],
+    "evidence": "Inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-067",
+    "sev": "MEDIUM",
+    "batch": 5,
+    "domain": "ui",
+    "surface": "Settings zoom",
+    "locations": [
+      "settings/sections/general.tsx:32-69",
+      "src/app-window/zoom.ts:4,15-27",
+      "help/app.tsx:31-53"
+    ],
+    "issue": "Zoom has two controls for one value (stepper and 6-segment group, both named 'App zoom'), tops at 150%, and Ctrl +/-/0 give no feedback.",
+    "fix": "Keep the segmented control, drop the stepper, add 175 and 200, show a 1.2s '125%' toast from useZoomKeys.",
+    "sources": [
+      "D-24"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-068",
+    "sev": "MEDIUM",
+    "batch": 3,
+    "domain": "layout",
+    "surface": "SensorValue empty state",
+    "locations": [
+      "src/widgets/SensorValue.tsx:~176"
+    ],
+    "issue": "An unbound SensorValue renders nothing outside the studio canvas: a blank card with no empty state.",
+    "fix": "<Empty label='No sensor' /> or hide the zone.",
+    "sources": [
+      "E-04"
+    ],
+    "evidence": "Verified in audit (shots).",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-069",
+    "sev": "MEDIUM",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Widget unit and format drift",
+    "locations": [
+      "Fans.tsx:35,49 vs CpuMonitor.tsx:151, GpuRings (rpm/RPM, off/Off)",
+      "Forecast/Weather ('Tmrw', '42.5mm')",
+      "WaveLink.tsx:125-142; MeterBridge.tsx:216-222 (-inf without dB)",
+      "CountdownViews.tsx, Clock, StatusBar, Countdown (three date styles, '0 minutes')"
+    ],
+    "issue": "Unit case, abbreviations, spacing, date styles and plurals differ between widgets; '-inf' has no unit.",
+    "fix": "One shared formatter in core/data.ts (RPM, Off, '42.5 mm', one date helper, hide zero units); dB once on the scale header.",
+    "sources": [
+      "E-07",
+      "E-08",
+      "E-11",
+      "E-21"
+    ],
+    "evidence": "Verified in audit (code and shots).",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-070",
+    "sev": "MEDIUM",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Weather widget",
+    "locations": [
+      "src/widgets/Weather.tsx, WeatherViews.tsx (amber/night gradient)"
+    ],
+    "issue": "Muted grey text on the amber gradient looks under 4.5:1.",
+    "fix": "Derive text colour from the gradient (white at .85+ alpha) or darken the gradient under text.",
+    "sources": [
+      "E-09"
+    ],
+    "evidence": "Inferred; measure needed.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-071",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Audio widgets mute marker",
+    "locations": [
+      "src/widgets/WaveLink.tsx:58",
+      "src/widgets/MeterBridge.tsx:103"
+    ],
+    "issue": "Mute is a 10px red letter M with only a title: no accessible name, cryptic, a speck in retro.",
+    "fix": "Muted-speaker icon with aria-label='Muted', larger than 10px.",
+    "sources": [
+      "E-10"
+    ],
+    "evidence": "Verified in audit (shots).",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-072",
+    "sev": "MEDIUM",
+    "batch": 3,
+    "domain": "layout",
+    "surface": "Widget layout at 4x4 and small sizes",
+    "locations": [
+      "Calendar.tsx (4x4)",
+      "BottleneckLens, StorageHealth, ThresholdTimeline, SessionStats, PlaytimeShare, Notifications, Timer, Uptime (4x4)",
+      "StreamDeck.tsx:135-155 (2x2)",
+      "CoreHeatmap 2x2 header",
+      "TextFile.tsx 2x2 header",
+      "KpiTiles, Vitals, CpuMonitor, PowerDraw, DiskIO, GpuMonitor (4x4 sparklines)"
+    ],
+    "issue": "Calendar grid uneven; 8 widgets leave 40-60% of the card empty with inconsistent alignment; StreamDeck shows no keys at 2x2; CoreHeatmap and TextFile headers are crammed; 4x4 sparklines have no scale.",
+    "fix": "One alignment rule in core/layout.ts; second row/trend at 4x4; mini key grid or 'Enlarge to use'; shorten titles and move summaries; min/max or last value on sparklines.",
+    "sources": [
+      "E-12",
+      "E-13",
+      "E-14",
+      "E-16",
+      "E-17",
+      "E-24"
+    ],
+    "evidence": "Verified in audit (shots).",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-073",
+    "sev": "MEDIUM",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Timer presets",
+    "locations": [
+      "src/widgets/Timer.tsx:54"
+    ],
+    "issue": "Preset pills (5m 15m 25m) are about 24px tall with no aria-label on a touch kiosk.",
+    "fix": "40-44px min height, aria-label='Start 5 minute timer'.",
+    "sources": [
+      "E-15"
+    ],
+    "evidence": "Verified (shots), label inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-074",
+    "sev": "LOW",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Kiosk island secondary text and widgets over art or skins",
+    "locations": [
+      "island/dynamic-island.tsx:340,347,356,402,444 (opacity-60/65)",
+      "GameSpotlight.tsx, GameSpotlightComposite.tsx, SteamGame.tsx",
+      "nixie skin: Departures, StatusTracker, KpiTiles, OsdStrip"
+    ],
+    "issue": "Contrast depends on user colours or art: secondary island text can fall below 4.5:1 with custom tint; 9px text over key art; thin nixie numerals lose weight.",
+    "fix": "Cap at opacity-75 or compute from fgColor/bgColor; scrim behind text blocks; raise nixie numWeight or size floor.",
+    "sources": [
+      "A-23",
+      "E-27",
+      "E-30"
+    ],
+    "evidence": "Inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-075",
+    "sev": "LOW",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Kiosk and plain page misc",
+    "locations": [
+      "src/App.tsx:836-843 (Wrench button)",
+      "components/page-background.tsx:78-93 (looping video)",
+      "components/touch-layer.tsx:383-392",
+      "src/App.tsx:716-736"
+    ],
+    "issue": "Wrench button is opacity-50 with title only and no aria-label/focus style; looping background video has no pause; touch notices are not a live region; kiosk root has no main landmark.",
+    "fix": "aria-label='Open InfoPanel Studio', opacity-70 + focus ring; pause toggle on the dots strip or documented exception; role=status; <main aria-label={pageName}>.",
+    "sources": [
+      "A-24",
+      "A-25",
+      "A-26",
+      "A-28"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-076",
+    "sev": "LOW",
+    "batch": 3,
+    "domain": "layout",
+    "surface": "Kiosk dots strip and touch overlay",
+    "locations": [
+      "page-dots.tsx:108 / App.tsx:734",
+      "src/touch-overlay/overlay.tsx:101,108"
+    ],
+    "issue": "Fixed dots strip covers content on scroll pages; overlay headings use fixed text-5xl/7xl and overflow with long names.",
+    "fix": "Strip backdrop in scroll mode; max-w-[90vw] break-words text-[clamp(2rem,8vw,4.5rem)].",
+    "sources": [
+      "A-27",
+      "A-29"
+    ],
+    "evidence": "Inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-077",
+    "sev": "LOW",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Navigation state semantics",
+    "locations": [
+      "studio/left-rail.tsx:54",
+      "studio/phone-tab-bar.tsx:46",
+      "studio/setting-card.tsx:90-98"
+    ],
+    "issue": "Navigation views use aria-pressed instead of aria-current; the section chevron is aria-hidden yet focusable.",
+    "fix": "aria-current={active ? 'page' : undefined}; make chevron a span or keep tabIndex -1 without aria-hidden.",
+    "sources": [
+      "B-22"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-078",
+    "sev": "LOW",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Empty states without a next step",
+    "locations": [
+      "layers-tree.tsx:218",
+      "panel-layers.tsx:84",
+      "quick-bar.tsx:261",
+      "studio/screens-view.tsx:150"
+    ],
+    "issue": "'Nothing on this page yet.' and 'Nothing here yet.' state the fact and do not point forward.",
+    "fix": "'Nothing on this page yet. Use the Add tab to place a widget.' (button to tab=add); 'No screens yet. Use New to start one.'",
+    "sources": [
+      "B-23",
+      "C-28"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-079",
+    "sev": "LOW",
+    "batch": 5,
+    "domain": "ui",
+    "surface": "Destructive controls lack distinct treatment",
+    "locations": [
+      "studio/group-inspector.tsx:104-109",
+      "studio/zone-inspector-parts.tsx:88",
+      "gauges/unsaved-dialog.tsx:21-33"
+    ],
+    "issue": "Delete sits beside Hide in neutral text-ui-5 and turns red only on hover; Discard looks identical to Cancel with no focus on the safe option.",
+    "fix": "Delete last behind a divider with text-ui-danger/80 and 'Delete group'; danger outline for Discard and focus Cancel.",
+    "sources": [
+      "B-25",
+      "C-31"
+    ],
+    "evidence": "Verified in audit; undo exists so not a trigger.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-080",
+    "sev": "LOW",
+    "batch": 0,
+    "domain": "bug",
+    "surface": "First-run Escape and screen timing",
+    "locations": [
+      "studio/first-run/first-run-page.tsx:241-247",
+      "studio/screens-view.tsx:213"
+    ],
+    "issue": "Window-level Escape toggles 'Skip setup?' even from the address field; Convert opens its dialog after a 300ms setTimeout, which may fire before the screen is ready.",
+    "fix": "Mirror the Enter guard (skip for inputs/defaultPrevented); open from an effect once the screen is active.",
+    "sources": [
+      "C-24",
+      "C-29"
+    ],
+    "evidence": "C-24 verified; C-29 inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-081",
+    "sev": "LOW",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Add-row dimming",
+    "locations": [
+      "studio/add-row.tsx:136"
+    ],
+    "issue": "Rows that need a bigger zone get opacity-40 on the whole row, pushing name and reason text under 3:1.",
+    "fix": "Dim icon and footprint only.",
+    "sources": [
+      "C-26"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-082",
+    "sev": "LOW",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Ellipsis and quote punctuation",
+    "locations": [
+      "studio/connection-card.tsx:~90",
+      "studio/screens-view.tsx:150",
+      "add-panel.tsx:558"
+    ],
+    "issue": "'testing...' (three dots) vs ellipsis character elsewhere; straight vs curly quotes in 'Nothing matches'.",
+    "fix": "Use the ellipsis character and curly quotes.",
+    "sources": [
+      "C-27"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-083",
+    "sev": "LOW",
+    "batch": 5,
+    "domain": "ui",
+    "surface": "Title bar maximize icon",
+    "locations": [
+      "src/app-window/title-bar.tsx:33"
+    ],
+    "issue": "Maximize and Restore both use the Square icon.",
+    "fix": "Two-square icon when maximized.",
+    "sources": [
+      "D-26"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-084",
+    "sev": "LOW",
+    "batch": 2,
+    "domain": "accessibility",
+    "surface": "Settings button names and copy feedback",
+    "locations": [
+      "settings/sections/changelog.tsx:263-272",
+      "about.tsx:96-99",
+      "ui.tsx:5-16; about.tsx:73; logs.tsx:174; diagnostics.tsx:110"
+    ],
+    "issue": "'Show all (12)' has no aria-expanded and no collapse; three buttons all named 'Show'; 'Copied' appears only in the button label.",
+    "fix": "aria-expanded and 'Show all {section} changes ({n})' with toggle; aria-label='Show {label}'; also toast('Copied') via the status region.",
+    "sources": [
+      "D-27",
+      "D-28",
+      "D-29"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-085",
+    "sev": "LOW",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Help unknown article",
+    "locations": [
+      "src/help/app.tsx:204-208"
+    ],
+    "issue": "An unknown article link opens Help home with no message.",
+    "fix": "A line at the top of Home: 'That article isn't here. Browse the topics.'",
+    "sources": [
+      "D-30"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-086",
+    "sev": "LOW",
+    "batch": 3,
+    "domain": "layout",
+    "surface": "Changelog release rail",
+    "locations": [
+      "src/settings/sections/changelog.tsx:199"
+    ],
+    "issue": "The sticky top-5 release rail does not scroll itself; 10 entries are about 440px, taller than a 520px window.",
+    "fix": "max-h-[calc(100vh-40px)] overflow-auto on the rail.",
+    "sources": [
+      "D-33"
+    ],
+    "evidence": "Inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-087",
+    "sev": "LOW",
+    "batch": 3,
+    "domain": "typography",
+    "surface": "Widget chart axis text",
+    "locations": [
+      "FramePacing.tsx, FrameHistogram.tsx (4x4)"
+    ],
+    "issue": "Axis labels (60 fps / 16.7 ms, 0 ms . last 1 min) about 9px grey.",
+    "fix": "10-11px, --w-muted.",
+    "sources": [
+      "E-18"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-088",
+    "sev": "LOW",
+    "batch": 4,
+    "domain": "writing",
+    "surface": "Widget naming and status copy",
+    "locations": [
+      "FrameHistogram '1% LOW', FramePacing, FpsMonitor",
+      "DayPlanner, Calendar, DriveSpace, StatusTracker (title changes with size)",
+      "OnAirBeacon.tsx ('LIVE / 0 min')",
+      "StatusTracker.tsx:111; ServiceHealth.tsx ('4/5 OK now')",
+      "Bluetooth.tsx ('Connected' repeated)"
+    ],
+    "issue": "Titles name the wrong stat or change with size; 'LIVE / 0 min' looks like a bug; '4/5 OK now' does not name the failing item; Bluetooth repeats 'Connected' on every row.",
+    "fix": "Titles 'Frame histogram'/'Frame time'; keep the kind's name as title with dynamic value as subtitle; 'Live for 0 min' or hide until 1 min; name the failing item at 2x2; show only non-default states.",
+    "sources": [
+      "E-19",
+      "E-20",
+      "E-22",
+      "E-23",
+      "E-25"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-089",
+    "sev": "LOW",
+    "batch": 5,
+    "domain": "ui",
+    "surface": "Visualizer empty state",
+    "locations": [
+      "src/widgets/Visualizer.tsx (4x4)"
+    ],
+    "issue": "4x4 shot is blank apart from title and '-8.7 dB' (2x2 shows bars): no empty/no-signal state if the canvas is empty.",
+    "fix": "Quiet baseline or Empty; check QA capture delay.",
+    "sources": [
+      "E-28"
+    ],
+    "evidence": "Inferred; may be a capture-timing gap.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-090",
+    "sev": "LOW",
+    "batch": 3,
+    "domain": "typography",
+    "surface": "Skins: duplicate titles and tiny pixel fonts",
+    "locations": [
+      "tui and retro: CoreHeatmap, Timer, OsdStrip, StatusTracker, FpsMonitor, Weather 2x2"
+    ],
+    "issue": "In tui the inner header repeats the frame title; in retro Timer presets and Music/Game labels fall to about 7px.",
+    "fix": "Hide the inner title when the skin frames one; floor font size in retro.",
+    "sources": [
+      "E-29"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-091",
+    "sev": "LOW",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Dead audio primitive and tokens",
+    "locations": [
+      "src/components/ui/clip-indicator.tsx (no importer)",
+      "index.css:68-86,95-100 --meter-*, --channel-*, --wave-*"
+    ],
+    "issue": "Unused file and tokens carrying failing pairs (colour-only on/off dot 1.19:1 apart; focus ring 2.11:1).",
+    "fix": "Delete the file and the unused tokens.",
+    "sources": [
+      "F-18"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-092",
+    "sev": "LOW",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Scrollbar thumb",
+    "locations": [
+      "src/index.css:206-224",
+      "src/select-scrollbar.css:13-18"
+    ],
+    "issue": "6px thumb #2e2e35 on #0c0c0e is 1.45:1 with arrows removed; long lists show no idle scroll cue.",
+    "fix": "Thumb about #4a4a54 and 8px wide, or fade masks.",
+    "sources": [
+      "F-19"
+    ],
+    "evidence": "Verified in audit.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  },
+  {
+    "id": "FND-093",
+    "sev": "LOW",
+    "batch": 1,
+    "domain": "colors",
+    "surface": "Token naming",
+    "locations": [
+      "src/index.css:109-146 (--ui-text-1..5)"
+    ],
+    "issue": "Numbered text tones next to role names; choosing by number is how failing text-ui-5 reached body copy.",
+    "fix": "When the contrast fix lands rename 5 to hint/disabled, keep 1-4.",
+    "sources": [
+      "F-20"
+    ],
+    "evidence": "Inferred.",
+    "checked": false,
+    "exportRisk": false,
+    "status": "open"
+  }
+]
