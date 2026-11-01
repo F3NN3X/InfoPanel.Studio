@@ -6,6 +6,7 @@ import { THEME_PRESETS, themeVars } from "@/lib/theme";
 import { SKIN_NAMES } from "@/widgets/core/theme";
 import { TEMPLATE_MODULES } from "@/widgets/registry";
 import { Gallery, galleriesFor } from "./Gallery";
+import { QaHelp } from "./Help";
 import { Toolbar } from "./Toolbar";
 import { WidgetSection } from "./Section";
 import { forceMountAll } from "./Frame";
@@ -46,13 +47,16 @@ export default function WidgetQa() {
   const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, links: (id: string) => widgetLinks(state, id) };
   const galleryMod = state.gallery ? modules.find((m) => m.id === state.gallery) : undefined;
   const galleries = useMemo(() => galleriesFor(galleryMod), [galleryMod]);
-  const bg = theme ? `hsl(${theme.tokens.background} / .92)` : "rgba(12,12,14,.92)";
+  // The header is frosted: translucent over the frames that scroll under it, blurred.
+  const bg = theme ? `hsl(${theme.tokens.background} / .6)` : "rgba(12,12,14,.6)";
+  const solidBg = theme ? `hsl(${theme.tokens.background})` : "#16161a";
   const style = theme ? ({ ...themeVars(theme.tokens), background: `hsl(${theme.tokens.background})`, color: `hsl(${theme.tokens.foreground})` } as CSSProperties) : undefined;
   return (
     <main className={`min-h-screen px-6 pb-10 ${theme ? "" : "bg-[#0c0c0e] text-zinc-100"}`} style={style}>
-      <header className="sticky top-0 z-10 -mx-6 space-y-2 border-b border-current/15 px-6 py-3 backdrop-blur" style={{ background: bg }}>
-        <div className="flex items-baseline gap-3">
+      <header className="sticky top-0 z-10 -mx-6 space-y-2 border-b border-current/15 px-6 py-3 backdrop-blur-xl backdrop-saturate-150" style={{ background: bg }}>
+        <div className="flex items-center gap-3">
           <h1 className="text-sm font-semibold">Widget QA</h1>
+          <QaHelp background={solidBg} />
           <p className="font-mono text-[11px] opacity-60">
             {shown} modules · {SKIN_NAMES.length} skins · {spans.length} spans · {shown * spans.length} frames · cell {state.cell} · gap {state.gap} · {live ? "live data" : "fixtures"}
           </p>

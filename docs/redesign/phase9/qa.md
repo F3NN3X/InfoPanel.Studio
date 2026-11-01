@@ -9,7 +9,7 @@ in `src/widgets/widget-qa/`.
 
 `npm run dev`, then `http://localhost:5173/?widget-qa` (use the port Vite prints). The page has a
 sticky toolbar (skin, variant, surface, graph, meter, accent, radius, cell, gap, spans, page theme,
-gallery, data, a filter box, Reset), a jump-to-widget list and a category nav with counts, and one
+gallery, data, a filter box, Reset; the `?` beside the title explains each of them), a jump-to-widget list and a category nav with counts, and one
 section per widget (its anchor is its id): an info column (title, id, links, category, min and default
 size, blurb, description, views, tags, data prefixes, a collapsible settings list) and the span
 frames, each captioned `CxR` plus its pixel size. A widget with more than one view also gets a
