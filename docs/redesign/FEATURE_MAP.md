@@ -344,7 +344,7 @@ Rows from `docs/redesign/widgets/docs/CLAUDE_CODE.md` §3, plus the six template
 | Sensor and device pickers for widget settings | Data tab | ✅ `sensorSetting` / `deviceSetting` in `src/widgets/registry/settings-kit.ts`, rendered by `setting-pickers.tsx` |
 | Skin-aware panel widgets (a skin set → Bar / Spark / Ring / Num) | Style › Look on a panel zone (Variant and Summary card are hidden) | ✅ `src/components/widgets/panel-skin.tsx`; `NOT_FOR_PANELS` `standard-settings.ts:358` |
 | Per-zone error tile (a throwing widget does not blank the kiosk) | Automatic | ✅ `src/components/zone-error-boundary.tsx`, `placement-frame.tsx:154` |
-| Widget QA page (every module at six spans, overflow / overlap / clipping probe) | Dev only: `?widget-qa` | ✅ `src/widgets/widget-qa.tsx`, `qa-geometry.ts`; `docs/redesign/phase9/qa.md` |
+| Widget QA page (every registered widget at a set of spans and in each view, fixture and stress data, frame references, redesign notes, overflow / overlap / clipping badges, `qa:shots` with compare) | Dev only: `?widget-qa` | ✅ `src/widgets/widget-qa/`, `qa-geometry.ts`, `tools/audit/qa-shots.mjs`; `docs/redesign/phase9/qa.md` |
 
 ## 17. Pages (profile pages, P2)
 Plan: `docs/redesign/pages/PLAN.md`. The studio edits one page of the active profile at a time; page ops are the pure helpers in `src/lib/pages.ts`.
