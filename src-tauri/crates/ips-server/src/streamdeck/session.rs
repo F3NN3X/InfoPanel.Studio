@@ -26,6 +26,12 @@ const PENDING_TIMEOUT: Duration = if cfg!(test) {
 } else {
     Duration::from_secs(10)
 };
+/// How long a delete waits for the app to close the connection.
+const DELETE_SETTLE: Duration = if cfg!(test) {
+    Duration::from_millis(200)
+} else {
+    Duration::from_secs(3)
+};
 
 /// What the routes ask a session to do.
 pub(super) enum Cmd {
@@ -52,7 +58,12 @@ pub(super) enum Cmd {
 enum End {
     Absent,
     Forgotten,
-    Failed { message: String, opened: bool },
+    /// A device was deleted to be replaced (a rename): the app closes the connection, and the next one goes on.
+    Replaced,
+    Failed {
+        message: String,
+        opened: bool,
+    },
 }
 
 /// Keeps a connection for the device `id` until the task is stopped.
@@ -76,6 +87,10 @@ pub(super) async fn run(
                 ABSENT_POLL
             }
             End::Forgotten => BACKOFF_MIN,
+            End::Replaced => {
+                deck.set_status(&id, Status::Connecting, None);
+                Duration::ZERO
+            }
             End::Failed { message, opened } => {
                 if opened {
                     backoff = BACKOFF_MIN;
@@ -312,10 +327,15 @@ impl Session<'_> {
         Err(End::Forgotten)
     }
 
+    /// Deletes the open device and waits for the app to close the connection, which it does once the device is gone.
+    /// Closing first, or sending more, loses the delete (seen with the real app); the connection is over either way.
     async fn delete_open_device(&mut self) -> Result<(), End> {
         self.opened = false;
         self.send(C::DeleteVirtualDevice(proto::DeleteVirtualDevice {}))
-            .await
+            .await?;
+        let until = Instant::now() + DELETE_SETTLE;
+        while let Ok(Ok(_)) = tokio::time::timeout_at(until, self.conn.recv()).await {}
+        Ok(())
     }
 
     async fn handle(&mut self, message: S) -> Result<(), End> {
@@ -359,13 +379,13 @@ impl Session<'_> {
                 }
                 if pending.purpose == Purpose::Purge {
                     self.delete_open_device().await?;
-                    return self.next_step().await;
+                    return Err(End::Replaced);
                 }
                 let device = self.deck.device(self.id);
                 if device.as_ref().is_some_and(|d| d.name != pending.name) {
                     // Renamed while this was being opened: it is the old name's device, replaced like an open one.
                     self.delete_open_device().await?;
-                    return self.next_step().await;
+                    return Err(End::Replaced);
                 }
                 let app_id = opened.device.map(|d| d.id).unwrap_or_default();
                 self.deck.opened(self.id, &pending.name, &app_id);
@@ -518,12 +538,11 @@ impl Session<'_> {
                 )))
                 .await
             }
-            // DeleteVirtualDevice deletes the device the session has open, so the old one goes first, then the new
-            // name is adopted from the app's list or created.
+            // DeleteVirtualDevice deletes the device the session has open, so the old one goes first; the next
+            // connection adopts the new name from the app's list or creates it.
             Cmd::Rename { .. } if self.opened => {
                 self.delete_open_device().await?;
-                self.deck.set_status(self.id, Status::Connecting, None);
-                self.next_step().await
+                Err(End::Replaced)
             }
             // Not open yet: an open under way for the old name is replaced once it answers, and the old device left
             // in the app is deleted before ours is opened.

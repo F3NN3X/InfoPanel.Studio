@@ -232,6 +232,29 @@ fn device_list(devices: &[(&str, &str)]) -> S {
 const CAPS: C = C::ClientCapabilities(proto::ClientCapabilities { is_user_pro: false });
 
 /// Pairs (auto or not, as the fake app needs), then creates the device as the app's `app_id`.
+/// The delete the client sends, after which it sends nothing more: the real app closes the connection once the device
+/// is gone, which the fake does here. The next connection gets `list`.
+async fn deleted_then_reconnects(
+    app: &mut FakeApp,
+    mut c: FakeConn,
+    list: &[(&str, &str)],
+) -> FakeConn {
+    assert_eq!(
+        c.expect().await,
+        C::DeleteVirtualDevice(proto::DeleteVirtualDevice {})
+    );
+    let more = tokio::time::timeout(Duration::from_millis(100), c.from_client.recv()).await;
+    assert!(
+        more.is_err(),
+        "the client sent more or closed after the delete"
+    );
+    drop(c);
+    let mut c = app.conn().await;
+    assert_eq!(c.expect().await, CAPS);
+    c.send(device_list(list));
+    c
+}
+
 async fn open_new(c: &mut FakeConn, d: &Deck, app_id: &str) {
     c.send(device_list(&[("other", "Other")]));
     let C::CreateVirtualDevice(create) = c.expect().await else {
@@ -415,12 +438,9 @@ async fn changes_the_grid_renames_reconnects_and_forgets() {
     let stored = &d.store.get().streaming.streamdeck.devices[0];
     assert_eq!((stored.cols, stored.rows), (8, 1));
 
-    // A rename deletes the app's device (the one open), then creates the new name; our id stays.
+    // A rename deletes the app's device (the one open), then the next connection creates the new name; our id stays.
     d.deck.rename("d1", "Desk".into()).unwrap().unwrap();
-    assert_eq!(
-        c.expect().await,
-        C::DeleteVirtualDevice(proto::DeleteVirtualDevice {})
-    );
+    let mut c = deleted_then_reconnects(&mut app, c, &[]).await;
     let C::CreateVirtualDevice(create) = c.expect().await else {
         panic!("expected a create")
     };
@@ -464,10 +484,19 @@ async fn changes_the_grid_renames_reconnects_and_forgets() {
     );
     until(&d.deck, status_is("ready")).await;
 
-    // Forget deletes the app's device and drops ours.
-    let (forgot, sent) = tokio::join!(d.deck.forget("d1"), c.expect());
+    // Forget deletes the app's device and drops ours. The connection stays open until the app closes it: the real
+    // app loses the delete when the client closes first.
+    let (forgot, ()) = tokio::join!(d.deck.forget("d1"), async {
+        assert_eq!(
+            c.expect().await,
+            C::DeleteVirtualDevice(proto::DeleteVirtualDevice {})
+        );
+        let still_open =
+            tokio::time::timeout(Duration::from_millis(100), c.from_client.recv()).await;
+        assert!(still_open.is_err(), "the client closed before the app did");
+        drop(c);
+    });
     assert_eq!(forgot.unwrap().unwrap(), Forgot::Deleted);
-    assert_eq!(sent, C::DeleteVirtualDevice(proto::DeleteVirtualDevice {}));
     assert_eq!(d.deck.json()["devices"], json!([]));
     assert!(d.store.get().streaming.streamdeck.devices.is_empty());
     assert_eq!(d.deck.forget("d1").await.unwrap(), Err(ActError::NoDevice));
@@ -821,10 +850,7 @@ async fn a_rename_adopts_a_device_the_app_has_with_the_new_name() {
     ]));
     tokio::time::sleep(Duration::from_millis(50)).await;
     d.deck.rename("d1", "Desk".into()).unwrap().unwrap();
-    assert_eq!(
-        c.expect().await,
-        C::DeleteVirtualDevice(proto::DeleteVirtualDevice {})
-    );
+    let mut c = deleted_then_reconnects(&mut app, c, &[("users-desk", "Desk")]).await;
     let C::OpenVirtualDevice(open) = c.expect().await else {
         panic!("expected an open")
     };
@@ -853,10 +879,7 @@ async fn a_rename_while_disconnected_deletes_the_old_device_on_the_next_connecti
     };
     assert_eq!(open.device_id, "app-1");
     c.send(opened(open.request_id, "app-1", "IPStudio"));
-    assert_eq!(
-        c.expect().await,
-        C::DeleteVirtualDevice(proto::DeleteVirtualDevice {})
-    );
+    let mut c = deleted_then_reconnects(&mut app, c, &[]).await;
     let C::CreateVirtualDevice(create) = c.expect().await else {
         panic!("expected a create")
     };
