@@ -43,7 +43,7 @@ export function AddTileGrid({ sections, highlighted, justAdded, dimmed, status, 
       {sections.map((s) => (
         <section key={s.id} aria-label={s.title ?? "Matches"}>
           {s.title && (
-            <div className="flex h-7 items-end px-1 pb-[5px] font-ui-mono text-[10.5px] tracking-[0.06em] text-ui-3">
+            <div className="flex h-7 items-end px-1 pb-[5px] font-ui-mono text-micro tracking-[0.06em] text-ui-3">
               {s.title}
               {s.count !== undefined && <span className="ml-[0.5em] text-ui-hint">{s.count}</span>}
             </div>
@@ -112,7 +112,7 @@ function Tile({ tile, highlighted, added, dim, status, onAdd, onHover, onDragSta
       )}
     >
       <Icon className={cn("h-5 w-5 shrink-0", tile.kind === "widget" ? "text-ui-accent" : "text-ui-3")} strokeWidth={1.75} aria-hidden />
-      <span className="max-w-full truncate text-[10.5px] text-ui-2">{tile.name}</span>
+      <span className="max-w-full truncate text-micro text-ui-2">{tile.name}</span>
       {size && <span className="absolute left-[5px] top-1 font-ui-mono text-[8.5px] leading-none text-ui-hint">{size}</span>}
       {status && s && (
         <span className="absolute right-1 top-1 leading-none">

@@ -63,12 +63,12 @@ export default function SteamProfile(p: SteamProfileProps) {
               <ul className="flex min-h-0 flex-col gap-2.5 overflow-hidden">
                 {friends.slice(0, n).map((f, i) => (
                   <li key={i} className="flex min-w-0 items-center gap-2 text-xs">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[color:var(--w-track)] text-[10px] font-semibold text-[color:var(--w-fg)]">{f.name?.[0]}</span>
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[color:var(--w-track)] text-micro font-semibold text-[color:var(--w-fg)]">{f.name?.[0]}</span>
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate text-[color:var(--w-fg)]">{f.name}</span>
                       <span className="truncate text-[11px] text-[color:var(--w-faint)]">{has(f.game) ? f.game : f.state}</span>
                     </div>
-                    <span className="ml-auto shrink-0 text-[10.5px] text-[color:var(--w-faint)]">{f.when}</span>
+                    <span className="ml-auto shrink-0 text-micro text-[color:var(--w-faint)]">{f.when}</span>
                   </li>
                 ))}
               </ul>

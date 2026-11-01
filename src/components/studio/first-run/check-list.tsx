@@ -129,7 +129,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
           <div className="flex items-center gap-1.5">
             <span className={cn("text-[12.5px] font-medium", status === "skip" || status === "waiting" ? "text-ui-3" : "text-ui-1")}>{title}</span>
             {fixed && status === "ok" && <span className="rounded-[4px] bg-ui-success/15 px-[5px] py-px text-[10px] text-ui-success">Fixed</span>}
-            {status === "checking" && elapsed >= 1 && <span className="font-ui-mono text-[10.5px] text-ui-4">{elapsed} s</span>}
+            {status === "checking" && elapsed >= 1 && <span className="font-ui-mono text-micro text-ui-4">{elapsed} s</span>}
           </div>
           <span
             className={cn(
@@ -151,7 +151,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
                   >
                     <Icon className={cn("h-3 w-3", zero ? "text-ui-warning" : "text-ui-3")} />
                     {c.name}
-                    <span className={cn("font-ui-mono text-[10.5px]", zero ? "text-ui-warning" : "text-ui-3")}>{c.count}</span>
+                    <span className={cn("font-ui-mono text-micro", zero ? "text-ui-warning" : "text-ui-3")}>{c.count}</span>
                   </span>
                 );
               })}
@@ -162,7 +162,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
               )}
             </div>
           )}
-          {result.sample && <span className="mt-0.5 font-ui-mono text-[10.5px] text-ui-3">{result.sample}</span>}
+          {result.sample && <span className="mt-0.5 font-ui-mono text-micro text-ui-3">{result.sample}</span>}
         </div>
         {rich && !open && !narrow && actions[0] && <ActionButton small primary action={actions[0]} onClick={() => onAction(id, actions[0])} />}
         {more && (
@@ -190,7 +190,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
               <ol className="m-0 flex list-none flex-col gap-1.5 p-0">
                 {result.steps.map((s, i) => (
                   <li key={s} className="flex items-start gap-2 text-[12px] leading-[1.5] text-ui-2">
-                    <span className="mt-px grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-ui-raised font-ui-mono text-[10.5px] text-ui-3">{i + 1}</span>
+                    <span className="mt-px grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-ui-raised font-ui-mono text-micro text-ui-3">{i + 1}</span>
                     <span>
                       <Rich text={s} />
                     </span>

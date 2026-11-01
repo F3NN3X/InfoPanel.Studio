@@ -110,7 +110,7 @@ export function BoundData({
                   <TypeIcon type={point?.type ?? "empty"} />
                   <span className="flex min-w-0 flex-1 flex-col gap-px">
                     <span className="block truncate text-[12px] leading-[15px] text-ui-1">{point?.name ?? key}</span>
-                    <span className="block truncate text-[10.5px] leading-[13px] text-ui-4">{pointPlace(point)}</span>
+                    <span className="block truncate text-micro leading-[13px] text-ui-4">{pointPlace(point)}</span>
                   </span>
                   <span
                     className={cn(

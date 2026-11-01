@@ -218,7 +218,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
               ...widgets?.scope,
             }}
           >
-            {showRulers && <RulerLabels width={profile.Width} height={profile.Height} />}
+            {showRulers && <RulerLabels width={profile.Width} height={profile.Height} scale={scale} />}
             <ProfileView
               profile={profile}
               items={drawn}

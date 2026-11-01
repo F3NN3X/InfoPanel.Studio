@@ -109,7 +109,7 @@ function Current(p: WeatherProps) {
       title={p.title ?? (has(k("name")) ? k("name") : "Weather")}
       icon="location_on"
       compact={{ label: has(k("name")) ? k("name") : "Weather", value: `${fmt(T(temp), 0)}°`, sub: `${k("weather_desc")}${feelsText}`, icon, kind: "value" }}
-      right={has(k("last_refreshed")) && <span className="font-mono text-[10px] text-[color:var(--w-muted)]">{String(k("last_refreshed")).slice(11)}</span>}
+      right={has(k("last_refreshed")) && <span className="font-mono text-micro text-[color:var(--w-muted)]">{String(k("last_refreshed")).slice(11)}</span>}
     >
       {({ size, w, h }) => {
         const shown = Math.max(1, Math.min(7, Math.round(p.days ?? (size === "lg" ? 7 : 5))));
@@ -174,7 +174,7 @@ function Current(p: WeatherProps) {
                       </div>
                     )}
                     {showLo && <span className="text-[11px] tabular-nums text-[color:var(--w-muted)]">{fmt(T(f.lo), 0)}°</span>}
-                    {showRain && f.rain > 0 && <span className="whitespace-nowrap text-[10px] tabular-nums text-sky-300">{`${f.rain}mm`}</span>}
+                    {showRain && f.rain > 0 && <span className="whitespace-nowrap text-micro tabular-nums text-sky-300">{`${f.rain}mm`}</span>}
                   </div>
                 ))}
               </div>

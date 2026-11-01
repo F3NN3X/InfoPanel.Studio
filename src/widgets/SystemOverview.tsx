@@ -313,7 +313,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
           // VRAM is a detail of the GPU at this size: the three rings are the loads (CPU, GPU, RAM), amber / red when hot.
           const rings = keys.filter((k) => k !== "vram").slice(0, 3);
           return (
-            <div className="flex h-full items-center gap-2" style={{ "--sys-base": "var(--accent)" } as CSSProperties}>
+            <div className="flex h-full items-center gap-2" role="img" aria-label={rings.map((k) => `${label(k)} ${fmt(ALL[k].v, dec)}%`).join(", ")} style={{ "--sys-base": "var(--accent)" } as CSSProperties}>
               <RingStack
                 rings={rings.map((k) => {
                   const c = toneOf(k) === "ok" ? col(k) ?? "var(--accent)" : TONES[toneOf(k)];

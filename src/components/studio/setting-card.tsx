@@ -83,7 +83,7 @@ export function SettingSection({
           <span className="truncate text-[12.5px] font-semibold">{title}</span>
           {filtering && tabLabel && <span className="shrink-0 whitespace-nowrap text-[11px] text-ui-hint">{tabLabel}</span>}
           {pill}
-          {changed > 0 && <span className="min-w-0 shrink-[100] overflow-hidden whitespace-nowrap text-[10.5px] text-ui-hint">{changed} changed</span>}
+          {changed > 0 && <span className="min-w-0 shrink-[100] overflow-hidden whitespace-nowrap text-micro text-ui-hint">{changed} changed</span>}
         </button>
         {chip}
         {!filtering && (

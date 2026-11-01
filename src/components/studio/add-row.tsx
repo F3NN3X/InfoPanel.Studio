@@ -158,7 +158,7 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
       {tag && (
         <span
           className={cn(
-            "shrink-0 rounded-[4px] px-1.5 py-0.5 text-[10.5px]",
+            "shrink-0 rounded-[4px] px-1.5 py-0.5 text-micro",
             tag === "best" ? "bg-[oklch(0.72_0.15_255/0.16)] text-[oklch(0.85_0.10_255)]" : "bg-ui-subtle text-ui-hint"
           )}
         >

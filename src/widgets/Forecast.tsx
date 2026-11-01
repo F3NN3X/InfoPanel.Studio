@@ -109,7 +109,7 @@ export default function Forecast(p: ForecastProps) {
                 <span className="text-xs font-semibold tabular-nums">{fmt(f.hi, 0)}°</span>
                 {h > 150 && <div className="flex min-h-[16px] flex-1 justify-center">{range(f)}</div>}
                 <span className="text-[11px] tabular-nums text-[color:var(--w-faint)]">{fmt(f.lo, 0)}°</span>
-                {h > 230 && f.rain > 0 && <span className="text-[10px] tabular-nums text-sky-300">{fmt(f.rain, 1)} mm</span>}
+                {h > 230 && f.rain > 0 && <span className="text-micro tabular-nums text-sky-300">{fmt(f.rain, 1)} mm</span>}
               </div>
             ))}
           </div>

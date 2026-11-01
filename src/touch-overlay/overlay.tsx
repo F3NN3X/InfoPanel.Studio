@@ -98,14 +98,14 @@ export function Overlay() {
       {route.kind === "pair" && (
         <div className="grid h-full place-items-center">
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="text-5xl font-semibold text-zinc-100">Touch this screen</div>
-            <div className="font-mono text-base text-zinc-400">to pair {route.name}</div>
+            <div className="max-w-[90vw] break-words text-[clamp(2rem,8vw,3rem)] font-semibold text-zinc-100">Touch this screen</div>
+            <div className="max-w-[90vw] break-words font-mono text-base text-zinc-400">to pair {route.name}</div>
           </div>
         </div>
       )}
       {route.kind === "identify" && (
         <div className="grid h-full place-items-center">
-          <div className="text-7xl font-semibold text-zinc-100">{route.name}</div>
+          <div className="max-w-[90vw] break-words text-[clamp(2rem,8vw,4.5rem)] font-semibold text-zinc-100">{route.name}</div>
         </div>
       )}
       {route.kind === "calibrate" && <Calibrate name={route.name} progress={progress} />}

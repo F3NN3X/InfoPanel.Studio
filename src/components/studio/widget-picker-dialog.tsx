@@ -81,7 +81,7 @@ export function WidgetPickerDialog({ placement, onClose, ...body }: WidgetPicker
         <Dialog.Popup
           ref={popupRef}
           initialFocus={() => popupRef.current?.querySelector("input") ?? true}
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[26rem] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-ui-strong bg-ui-raised font-ui text-ui-1 shadow-ui-modal outline-none"
+          className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-ui-strong bg-ui-raised font-ui text-ui-1 shadow-ui-modal outline-none"
         >
           {placement && (
             <>

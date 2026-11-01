@@ -20,7 +20,7 @@ export function PageHeader({ name }: { name: string }) {
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-px">
         <span className="truncate text-[13px] font-semibold text-ui-1">Page · {name}</span>
-        <span className="truncate text-[10.5px] text-ui-4">Nothing selected</span>
+        <span className="truncate text-micro text-ui-4">Nothing selected</span>
       </span>
       <CloseButton />
     </div>

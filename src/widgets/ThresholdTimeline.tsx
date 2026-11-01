@@ -69,25 +69,25 @@ export default function ThresholdTimeline(p: ThresholdTimelineProps) {
               {shown.map((l) => (
                 <div key={l.key} className={`flex min-w-0 flex-1 gap-2 ${stacked ? "flex-col justify-center gap-0.5" : "min-h-[14px] items-center"}`} style={{ maxHeight: stacked ? 38 : 34 }}>
                   {!stacked && (
-                    <span className="truncate text-[12px] text-[color:var(--w-muted)]" style={{ width: labelW }}>
+                    <span className="truncate text-[12px] text-[color:var(--w-muted)]" style={{ width: labelW }} title={l.label}>
                       {l.label}
                     </span>
                   )}
-                  {stacked && <span className="truncate text-[11px] leading-tight text-[color:var(--w-muted)]">{l.label}</span>}
+                  {stacked && <span className="truncate text-[11px] leading-tight text-[color:var(--w-muted)]" title={l.label}>{l.label}</span>}
                   <svg viewBox={`0 0 ${COLUMNS} 1`} preserveAspectRatio="none" shapeRendering="crispEdges" className={`min-w-0 rounded-[3px] bg-[color:var(--w-track)] ${stacked ? "h-3.5 w-full shrink-0" : "h-full flex-1"}`} aria-hidden>
                     {l.runs.map((r) => (r.tone ? <rect key={r.from} x={r.from} y={0} width={r.to - r.from} height={1} fill={LANE_COLOR[r.tone]} /> : null))}
                   </svg>
                   {w >= 340 && (
                     <span className="w-[4.5em] shrink-0 whitespace-nowrap text-right text-[13px]">
                       <Num weight={600}>{fmt(l.v, Math.abs(l.v) >= 100 ? 0 : 1)}</Num>
-                      <span className="ml-0.5 text-[10.5px] text-[color:var(--w-faint)]">{l.unit}</span>
+                      <span className="ml-0.5 text-micro text-[color:var(--w-faint)]">{l.unit}</span>
                     </span>
                   )}
                 </div>
               ))}
             </div>
             {axis && (
-              <div className="flex shrink-0 justify-between text-[10.5px] leading-none text-[color:var(--w-faint)]" style={{ paddingLeft: labelW ? labelW + 8 : 0, paddingRight: w >= 340 ? "calc(4.5em + 8px)" : 0 }}>
+              <div className="flex shrink-0 justify-between text-micro leading-none text-[color:var(--w-faint)]" style={{ paddingLeft: labelW ? labelW + 8 : 0, paddingRight: w >= 340 ? "calc(4.5em + 8px)" : 0 }}>
                 <span>{span}</span>
                 <span>now</span>
               </div>

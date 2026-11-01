@@ -78,7 +78,7 @@ export default function BottleneckLens(p: BottleneckLensProps) {
               <div className="mt-2 grid gap-2" style={{ gridTemplateColumns: `repeat(${w > 300 ? meters.length : 1}, minmax(0,1fr))` }}>
                 {meters.slice(0, w > 300 ? 3 : 1).map((m) => (
                   <div key={m.n} className="flex min-w-0 flex-col gap-1">
-                    <span className="truncate text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]">{m.n}</span>
+                    <span className="truncate text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]">{m.n}</span>
                     <Bar value={m.v} max={100} t={idle ? "ok" : m.t} className="h-1.5" />
                   </div>
                 ))}

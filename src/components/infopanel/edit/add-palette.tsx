@@ -89,7 +89,7 @@ export function PaletteGroups({ onAdd, query = "", status }: AddPaletteProps & {
     <>
       {PALETTE_GROUPS.filter((g) => items.some((p) => p.group === g)).map((g) => (
         <div key={g} role="group" aria-label={g} className="mt-1.5">
-          <div className="px-1 pb-1 text-[10.5px] font-medium uppercase tracking-wide text-ui-4">{g}</div>
+          <div className="px-1 pb-1 text-micro font-medium uppercase tracking-wide text-ui-4">{g}</div>
           <div className="grid grid-cols-2 gap-1">
             {items.filter((p) => p.group === g).map((p) => {
               const native = NATIVE_NAME[p.kind];
@@ -110,7 +110,7 @@ export function PaletteGroups({ onAdd, query = "", status }: AddPaletteProps & {
       ))}
       {elements.length > 0 && (
         <div role="group" aria-label="Elements" className="mt-1.5">
-          <div className="px-1 pb-1 text-[10.5px] font-medium uppercase tracking-wide text-ui-4">Elements</div>
+          <div className="px-1 pb-1 text-micro font-medium uppercase tracking-wide text-ui-4">Elements</div>
           <div className="grid grid-cols-2 gap-1">
             {elements.map((e) => (
               <AddButton

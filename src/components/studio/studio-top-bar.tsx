@@ -170,7 +170,7 @@ export function StudioTopBar(props: StudioTopBarProps) {
         >
           <Search className="h-4 w-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate text-left max-[959px]:sr-only">Search settings or run a command</span>
-          <kbd className="rounded border border-ui-default px-1.5 font-ui-mono text-[10.5px] text-ui-4 max-[959px]:hidden">{KEYS.palette}</kbd>
+          <kbd className="rounded border border-ui-default px-1.5 font-ui-mono text-micro text-ui-4 max-[959px]:hidden">{KEYS.palette}</kbd>
         </button>
       </div>
       <IconButton

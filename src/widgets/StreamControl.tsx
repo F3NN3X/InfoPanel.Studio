@@ -126,7 +126,7 @@ export default function StreamControl(p: StreamControlProps) {
               label={
                 <span className="flex flex-col items-center gap-0.5 text-center">
                   <span>OBS not connected</span>
-                  {studio && !obs.configured && <span className="text-[10.5px] opacity-70">Connect OBS under Settings › Connections</span>}
+                  {studio && !obs.configured && <span className="text-micro opacity-70">Connect OBS under Settings › Connections</span>}
                 </span>
               }
             />
@@ -142,7 +142,7 @@ export default function StreamControl(p: StreamControlProps) {
               if (cell.kind === "live")
                 return (
                   <Tile key="live" span={cell.span} radius={radius}>
-                    <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                    <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-micro font-semibold uppercase tracking-[0.14em] text-zinc-400">
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: live ? STATE.crit : "#52525b", boxShadow: live ? `0 0 6px ${STATE.crit}` : "none" }} />
                       {live ? "Live" : up ? "Offline" : "Not connected"}
                       {obs.recording && <span className="text-zinc-500">· Rec</span>}
@@ -164,7 +164,7 @@ export default function StreamControl(p: StreamControlProps) {
                     <div className="flex items-start justify-between gap-2">
                       <Badge icon={muted ? "mic_off" : "mic"} color={muted ? STATE.crit : hue(-75)} />
                       {muted && (
-                        <span className="rounded px-1.5 py-[2px] text-[9px] font-bold uppercase tracking-[0.1em]" style={{ background: tint(STATE.crit, 20), color: STATE.crit }}>
+                        <span className="rounded px-1.5 py-[2px] text-micro font-bold uppercase tracking-[0.1em]" style={{ background: tint(STATE.crit, 20), color: STATE.crit }}>
                           Muted
                         </span>
                       )}
@@ -185,7 +185,7 @@ export default function StreamControl(p: StreamControlProps) {
                     <Badge icon="replay" color={hue(0)} />
                     <div className="mt-auto min-w-0 pt-2">
                       <div className="truncate text-[14px] font-semibold leading-tight">Replay</div>
-                      {tileH > 96 && <div className="mt-0.5 truncate text-[10.5px] text-zinc-500">{obs.replay?.active ? "Save clip" : "Buffer off"}</div>}
+                      {tileH > 96 && <div className="mt-0.5 truncate text-micro text-zinc-500">{obs.replay?.active ? "Save clip" : "Buffer off"}</div>}
                     </div>
                   </Tile>
                 );
@@ -195,11 +195,11 @@ export default function StreamControl(p: StreamControlProps) {
                 <Tile key={s.id} radius={radius} active={on} onClick={act && (() => void act({ op: "scene", id: s.id }))} label={s.name}>
                   <div className="flex items-start justify-between gap-2">
                     <Badge icon={s.icon} color={s.color} />
-                    {on && live && <span className="whitespace-nowrap rounded bg-white px-1.5 py-[2px] text-[9px] font-bold uppercase tracking-[0.1em] text-zinc-950">On air</span>}
+                    {on && live && <span className="whitespace-nowrap rounded bg-white px-1.5 py-[2px] text-micro font-bold uppercase tracking-[0.1em] text-zinc-950">On air</span>}
                   </div>
                   <div className="mt-auto min-w-0 pt-2">
                     <div className="line-clamp-2 text-[14px] font-semibold leading-tight">{s.name}</div>
-                    {s.sub && tileH > 96 && <div className="mt-0.5 truncate text-[10.5px] text-zinc-500">{s.sub}</div>}
+                    {s.sub && tileH > 96 && <div className="mt-0.5 truncate text-micro text-zinc-500">{s.sub}</div>}
                   </div>
                 </Tile>
               );

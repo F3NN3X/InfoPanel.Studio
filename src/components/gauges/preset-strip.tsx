@@ -23,7 +23,7 @@ export function PresetStrip({ scope, onPick }: PresetStripProps) {
           className={cn("flex h-[60px] w-[64px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-[8px] border border-ui-default bg-[#0b0b0e] hover:border-ui-menu")}
         >
           <GaugeView gauge={p.gauge} p={0.65} size={34} scope={scope} />
-          <span className="w-full truncate px-1 text-center text-[9.5px] text-ui-3">{p.name}</span>
+          <span className="w-full truncate px-1 text-center text-[10px] text-ui-3">{p.name}</span>
         </button>
       ))}
     </div>

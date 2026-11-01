@@ -61,7 +61,7 @@ function RailButton({ label, icon: Icon, narrow, active, onClick }: RailButtonPr
         )}
       >
         <Icon className="h-5 w-5" strokeWidth={1.5} />
-        {!narrow && <span className="text-[10.5px] font-medium leading-tight">{label}</span>}
+        {!narrow && <span className="text-micro font-medium leading-tight">{label}</span>}
       </Tooltip.Trigger>
       {narrow && (
         <Tooltip.Portal>

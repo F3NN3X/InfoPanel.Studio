@@ -40,7 +40,7 @@ export function Sidebar({ content, inputRef, current, query, version, onQuery, o
   };
 
   return (
-    <aside className="flex min-h-0 w-[248px] shrink-0 flex-col border-r border-s-side-line bg-s-side">
+    <aside className="flex min-h-0 w-[248px] shrink-0 max-[700px]:w-[184px] flex-col border-r border-s-side-line bg-s-side">
       <div role="search" className="px-3 pb-1.5 pt-3.5">
         <SearchBox inputRef={inputRef} value={query} label="Search help" onChange={onQuery} onKeyDown={onKeyDown} />
       </div>
@@ -51,7 +51,7 @@ export function Sidebar({ content, inputRef, current, query, version, onQuery, o
         </button>
         {content.groups.map((group) => (
           <div key={group.label} className="contents">
-            <div className="px-2.5 pb-[5px] pt-3.5 text-[10.5px] font-medium uppercase tracking-[0.07em] text-s-dim">{group.label}</div>
+            <div className="px-2.5 pb-[5px] pt-3.5 text-micro font-medium uppercase tracking-[0.07em] text-s-dim">{group.label}</div>
             {group.articles.map((a) => {
               const on = current === a.id && !searching;
               const Icon = iconFor(a.icon);

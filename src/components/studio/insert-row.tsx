@@ -145,7 +145,7 @@ export function InsertRow({
       ) : (
         <span className="break-words text-xs font-medium text-ui-1">{item.title}</span>
       )}
-      <span className="text-[10.5px] leading-[1.35] text-ui-hint">{describe(item)}</span>
+      <span className="text-micro leading-[1.35] text-ui-hint">{describe(item)}</span>
     </div>
   );
 }

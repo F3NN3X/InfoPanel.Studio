@@ -20,7 +20,7 @@ export function PanelTitle({ title, icon, className }: PanelTitleProps) {
   return (
     <div
       className={cn(
-        "wp-panel-title flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest",
+        "wp-panel-title flex items-center gap-1.5 text-micro font-semibold uppercase tracking-widest",
         className
       )}
     >

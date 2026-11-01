@@ -239,7 +239,7 @@ export default function StreamDeck(p: StreamDeckProps) {
               label={
                 <span className="flex flex-col items-center gap-0.5 text-center">
                   <span>{status?.label}</span>
-                  {status?.sub && <span className="text-[10.5px] opacity-70">{status.sub}</span>}
+                  {status?.sub && <span className="text-micro opacity-70">{status.sub}</span>}
                 </span>
               }
             />

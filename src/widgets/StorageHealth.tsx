@@ -14,8 +14,8 @@ export interface StorageHealthProps extends ShellProps {
 function RateGraph({ rH, wH, rd, wr }: { rH: number[]; wH: number[]; rd: number; wr: number }) {
   const legend = (
     <>
-      <LegendRow color="var(--accent)" label="read" value={fmtRate(rd)} className="text-[10px]" />
-      <LegendRow color={hue(70)} label="write" value={fmtRate(wr)} className="text-[10px]" />
+      <LegendRow color="var(--accent)" label="read" value={fmtRate(rd)} className="text-micro" />
+      <LegendRow color={hue(70)} label="write" value={fmtRate(wr)} className="text-micro" />
     </>
   );
   if (useSkin().graph === "braille")
@@ -77,7 +77,7 @@ export default function StorageHealth(p: StorageHealthProps) {
                 {fmt(life, 0)}
                 <span className="text-xs text-[color:var(--w-muted)]">%</span>
               </Num>
-              <span className="text-[10px] text-[color:var(--w-faint)]">life</span>
+              <span className="text-micro text-[color:var(--w-faint)]">life</span>
             </Ring>
             <div className="grid min-w-0 flex-1 gap-2">
               <Stat label="Read" value={fmtRate(rd)} />

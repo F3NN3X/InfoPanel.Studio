@@ -45,7 +45,7 @@ export default function Discovered(p: SensorGroupProps) {
             {list.slice(0, fit * cols).map((r) => (
               <div key={r.key} className={cn("flex min-w-0 items-center gap-2 rounded-lg bg-[color:var(--w-track)] px-2.5", small ? "py-0.5" : "py-1.5")}>
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: dot(r) }} />
-                <span className={cn("min-w-0 truncate text-[color:var(--w-fg)]", small ? "text-[10px]" : "text-xs")} title={r.label}>
+                <span className={cn("min-w-0 truncate text-[color:var(--w-fg)]", small ? "text-micro" : "text-xs")} title={r.label}>
                   {r.label}
                 </span>
                 <Num className={cn("ml-auto shrink-0 font-semibold", small ? "text-xs" : "text-sm")} weight={600}>

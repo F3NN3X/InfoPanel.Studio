@@ -304,7 +304,7 @@ function Row({
           {label}
         </span>
       )}
-      <span className={cn("font-ui-mono text-[10.5px] tabular-nums", kind === "all" ? "text-ui-4" : "text-ui-hint")}>{count}</span>
+      <span className={cn("font-ui-mono text-micro tabular-nums", kind === "all" ? "text-ui-4" : "text-ui-hint")}>{count}</span>
       {onMenu && (
         <button
           type="button"

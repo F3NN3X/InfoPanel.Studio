@@ -73,7 +73,7 @@ export function UploadTray({ rows, onClear, onShow }: { rows: UploadRow[]; onCle
               >
                 {r.name}
               </button>
-              <span className="shrink-0 font-ui-mono text-[10.5px] text-ui-4">{formatBytes(r.size)}</span>
+              <span className="shrink-0 font-ui-mono text-micro text-ui-4">{formatBytes(r.size)}</span>
             </div>
             <div className={cn("ml-[22px] text-[11px]", r.state === "error" ? "text-ui-danger" : "text-ui-4")}>{r.message ?? STATE_TEXT[r.state]}</div>
             {(r.state === "reading" || r.state === "uploading" || r.state === "queued") && (

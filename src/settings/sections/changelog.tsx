@@ -93,7 +93,7 @@ export function ChangelogSection() {
   if (source === null) return null;
   return (
     <div ref={wrap} className="flex flex-wrap items-start gap-x-7 gap-y-4">
-      <div className={cn("sticky top-5 flex w-[172px] shrink-0 flex-col gap-0.5", found.className)} ref={found.ref}>
+      <div className={cn("sticky top-5 flex max-h-[calc(100vh-40px)] w-[172px] shrink-0 flex-col gap-0.5 overflow-y-auto", found.className)} ref={found.ref}>
         {releases.map((r, i) => {
           const on = active === releaseId(r);
           return (

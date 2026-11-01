@@ -53,7 +53,7 @@ export default function SteamGame(p: SteamGameProps) {
                   {size === "lg" && <Stat label="Started" value={S("session-start-time")} />}
                   {size !== "sm" && Number.isFinite(total) && (
                     <div className="flex min-w-[140px] flex-1 flex-col gap-1">
-                      <div className="flex justify-between text-[10.5px]">
+                      <div className="flex justify-between text-micro">
                         <span className="text-[color:var(--w-faint)]">Achievements</span>
                         <span className="tabular-nums text-[color:var(--w-fg)]">
                           {fmt(unlocked)}/{fmt(total)} · {A("current-achievements")}
@@ -68,7 +68,7 @@ export default function SteamGame(p: SteamGameProps) {
                 <div className="mt-1 flex items-center gap-2.5 rounded-lg bg-black/35 p-2 backdrop-blur" data-wp-inner-blur="">
                   <Img src={widgetImage(A("latest-achievement-icon"))} icon="trophy" className="h-8 w-8 rounded-md" />
                   <div className="flex min-w-0 flex-col">
-                    <span className="text-[10.5px] text-[color:var(--w-faint)]">Latest achievement</span>
+                    <span className="text-micro text-[color:var(--w-faint)]">Latest achievement</span>
                     <span className="truncate text-xs font-medium">{A("latest-achievement")}</span>
                   </div>
                   <Icon name="trophy" className="ml-auto text-lg text-amber-300" />

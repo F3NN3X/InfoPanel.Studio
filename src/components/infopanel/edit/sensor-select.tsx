@@ -109,7 +109,7 @@ export function SensorSelect({ label, current, fallbackName, placeholder = "Choo
                 aria-controls="sensor-select-list"
                 className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-ui-4"
               />
-              <span className="text-[10.5px] text-ui-hint">↑↓ Enter</span>
+              <span className="text-micro text-ui-hint">↑↓ Enter</span>
             </div>
             <div id="sensor-select-list" role="listbox" aria-label="Sensors" className="min-h-0 flex-1 overflow-y-auto p-1">
               {onClear && (
@@ -151,7 +151,7 @@ export function SensorSelect({ label, current, fallbackName, placeholder = "Choo
                         <span className="w-3.5 shrink-0 text-ui-accent">{p.key === current && <Check className="h-3.5 w-3.5" />}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[12.5px] text-ui-1">{p.name}</span>
-                          {!native && <span className="block truncate font-ui-mono text-[10.5px] text-ui-4">preview only</span>}
+                          {!native && <span className="block truncate font-ui-mono text-micro text-ui-4">preview only</span>}
                         </span>
                         <span className="max-w-[110px] shrink-0 truncate font-ui-mono text-[11.5px] text-ui-2">{p.raw}</span>
                       </button>

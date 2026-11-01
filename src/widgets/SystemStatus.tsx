@@ -30,7 +30,7 @@ export default function SystemStatus(p: SystemStatusProps) {
       icon="monitor_heart"
       compact={{ label: "CPU", value: cpu, unit: "%", sub: `RAM ${fmt(ram, 0)}%`, hist: cpuH, min: 0, max: 100, t: tone(cpu, warn, crit) }}
       right={
-        <span className="flex items-center gap-1.5 font-mono text-[10.5px] text-[color:var(--w-muted)]">
+        <span className="flex items-center gap-1.5 font-mono text-micro text-[color:var(--w-muted)]">
           <Dot ok={ok} />
           {get(d, "system.bridge.time")}
         </span>

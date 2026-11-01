@@ -123,7 +123,7 @@ function KeyPicker({
           }}
           className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-ui-hint"
         />
-        <span className="text-[10.5px] text-ui-hint">↑↓ Enter</span>
+        <span className="text-micro text-ui-hint">↑↓ Enter</span>
       </label>
       <span className="text-[11px] text-ui-4">{searching ? `${cands.length} matching sensors` : "Suggested"}</span>
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
@@ -142,7 +142,7 @@ function KeyPicker({
                 <span className="truncate text-[12.5px] text-ui-1">
                   {v?.name ?? c.key} {v?.source && <span className="text-ui-4">· {v.source}</span>}
                 </span>
-                <span className="truncate font-ui-mono text-[10.5px] text-ui-hint">{c.key}</span>
+                <span className="truncate font-ui-mono text-micro text-ui-hint">{c.key}</span>
                 {c.why && <span className="text-[11px] text-ui-accent-text">{c.why}</span>}
               </span>
               <span className="max-w-[110px] shrink-0 truncate font-ui-mono text-[12px] text-ui-1" title={valueText(v)}>
@@ -209,7 +209,7 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
               )}
             >
               {f.label}
-              <span className="font-ui-mono text-[10.5px] text-ui-4">{counts[f.value]}</span>
+              <span className="font-ui-mono text-micro text-ui-4">{counts[f.value]}</span>
             </button>
           ))}
         </div>

@@ -69,7 +69,7 @@ export default function TextFile(p: TextFileProps) {
         ) : size === "xs" ? (
           // no header at this size: the title and the size / lines / status line sit above the first lines
           <div className="flex h-full min-w-0 flex-col gap-1">
-            <div className="flex min-w-0 shrink-0 gap-2 text-[10.5px] text-[color:var(--w-muted)]">
+            <div className="flex min-w-0 shrink-0 gap-2 text-micro text-[color:var(--w-muted)]">
               {p.look?.showTitle !== false && <span className="shrink-0 font-medium uppercase tracking-[0.08em]">{p.title ?? "Text File"}</span>}
               {showMeta && <span className="truncate">{bits.join(" · ")}</span>}
             </div>

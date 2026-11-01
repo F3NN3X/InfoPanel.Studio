@@ -60,7 +60,7 @@ export default function Fans(p: FansProps) {
                   <Icon name="mode_fan" className={`${size === "lg" ? "text-5xl" : "text-3xl"} ${f.rpm > 0 ? "text-[color:var(--accent)]" : "text-[color:var(--w-faint)]"}`} />
                 </span>
                 <Num className="text-sm font-semibold">{f.rpm > 0 ? fmt(f.rpm) : "Off"}</Num>
-                <span className="max-w-full truncate text-[10.5px] text-[color:var(--w-faint)]">
+                <span className="max-w-full truncate text-micro text-[color:var(--w-faint)]">
                   {f.label}
                   {Number.isFinite(f.duty) ? ` · ${fmt(f.duty ?? NaN)}%` : ""}
                 </span>

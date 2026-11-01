@@ -21,7 +21,7 @@ interface ArticleViewProps {
 /** The "Coming soon" chip of an article that is not shipped yet. */
 export function SoonChip({ className }: { className?: string }) {
   return (
-    <span className={cn("shrink-0 whitespace-nowrap rounded-full border border-[oklch(0.72_0.12_300/0.3)] bg-[oklch(0.72_0.12_300/0.1)] px-2 py-px text-[10.5px] font-medium text-[oklch(0.84_0.1_300)]", className)}>
+    <span className={cn("shrink-0 whitespace-nowrap rounded-full border border-[oklch(0.72_0.12_300/0.3)] bg-[oklch(0.72_0.12_300/0.1)] px-2 py-px text-micro font-medium text-[oklch(0.84_0.1_300)]", className)}>
       Coming soon
     </span>
   );

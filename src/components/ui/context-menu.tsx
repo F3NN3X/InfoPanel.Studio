@@ -138,7 +138,7 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
               {e.icon}
             </span>
             <span className="min-w-0 flex-1 truncate">{e.label}</span>
-            {e.hint && <span className="font-ui-mono text-[10.5px] text-ui-hint">{e.hint}</span>}
+            {e.hint && <span className="font-ui-mono text-micro text-ui-hint">{e.hint}</span>}
             {e.submenu && <ChevronRight className="h-3 w-3 shrink-0 text-ui-4" />}
           </button>
           {e.submenu && openSub === e.id && (

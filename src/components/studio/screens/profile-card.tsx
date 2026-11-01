@@ -12,7 +12,7 @@ export function Badge({ children, tone = "plain", title }: { children: ReactNode
     <span
       title={title}
       className={cn(
-        "inline-flex h-[18px] items-center whitespace-nowrap rounded px-1.5 text-[10.5px] leading-none",
+        "inline-flex h-[18px] items-center whitespace-nowrap rounded px-1.5 text-micro leading-none",
         tone === "plain" && "bg-ui-hover text-ui-3",
         tone === "accent" && "bg-ui-accent-soft text-ui-accent-text",
         tone === "live" && "bg-ui-success/15 text-ui-success"

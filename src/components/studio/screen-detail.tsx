@@ -126,7 +126,7 @@ export function ScreenDetail({
         <Monitor className="h-[18px] w-[18px] shrink-0 text-ui-3" />
         <div className="min-w-0 flex-1">
           <div className="truncate text-[13px] font-semibold text-ui-1">{stored.name}</div>
-          <div className="truncate font-ui-mono text-[10.5px] text-ui-4">{screenMeta(stored)}</div>
+          <div className="truncate font-ui-mono text-micro text-ui-4">{screenMeta(stored)}</div>
         </div>
         <button
           type="button"

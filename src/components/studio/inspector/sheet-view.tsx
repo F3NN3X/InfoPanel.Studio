@@ -74,7 +74,7 @@ function Tile({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "relative flex h-[60px] w-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-[10px] border text-[10.5px] font-medium [&>svg]:h-5 [&>svg]:w-5",
+        "relative flex h-[60px] w-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-[10px] border text-micro font-medium [&>svg]:h-5 [&>svg]:w-5",
         active ? "border-ui-accent/60 bg-ui-accent/[.14] text-ui-1" : "border-ui-default text-ui-3 hover:text-ui-1"
       )}
     >

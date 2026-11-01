@@ -123,7 +123,7 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
           return (
             <div className="flex h-full min-h-0 gap-2">
               {size !== "xs" && (
-                <div className="flex flex-col justify-between py-0.5 text-[9px] tabular-nums text-[color:var(--w-faint)]">
+                <div className="flex flex-col justify-between py-0.5 text-micro tabular-nums text-[color:var(--w-faint)]">
                   {cores.filter((_, i) => i % Math.ceil(n / Math.max(2, Math.floor(h / 16))) === 0).map((c) => (
                     <span key={c.i}>{c.i}</span>
                   ))}
@@ -187,7 +187,7 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
                   {fmt(total, 0)}
                   <span className="text-[0.5em] text-[color:var(--w-muted)]">%</span>
                 </Num>
-                {size !== "xs" && <span className="text-[10px] text-[color:var(--w-faint)]">{n} cores</span>}
+                {size !== "xs" && <span className="text-micro text-[color:var(--w-faint)]">{n} cores</span>}
               </div>
             </div>
           );
@@ -201,7 +201,7 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
                 <div
                   key={c.i}
                   title={`Core ${c.i} · ${fmt(c.load, 0)}% · ${fmt(c.mhz, 0)} MHz · ${fmt(c.vid, 2)} V`}
-                  className="flex min-h-0 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums"
+                  className="flex min-h-0 items-center justify-center rounded-md text-micro font-semibold tabular-nums"
                   style={{ background: `color-mix(in srgb, ${heat(v, ramp)} ${Math.round(18 + v * 0.82)}%, var(--w-track))`, color: text(v), outline: v > hotLine ? "2px solid #F2665E" : "none", outlineOffset: -2 }}
                 >
                   {/* the load is tagged for the InfoPanel conversion; the other metrics are scaled, so they stay in its picture */}

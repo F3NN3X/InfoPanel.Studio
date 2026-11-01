@@ -136,7 +136,7 @@ const Pct = ({ view, percent }: { view: WindowView; percent: Percent }) => (
 );
 
 const ResetLine = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex min-w-0 items-center gap-1 text-[10.5px] text-[color:var(--w-faint)]">
+  <div className="flex min-w-0 items-center gap-1 text-micro text-[color:var(--w-faint)]">
     <Icon name="schedule" className="!text-[11px] shrink-0" />
     <span className="truncate tabular-nums">{children}</span>
   </div>
@@ -197,7 +197,7 @@ function RowBars({ id, plan, percent, now, wide }: { id: AgentId; plan: AgentPla
       </span>
       {windowsOf(plan, now).map(({ k, short, view }) => (
         <div key={k} className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <div className="flex min-w-0 items-baseline justify-between gap-1 text-[10.5px] text-[color:var(--w-muted)]">
+          <div className="flex min-w-0 items-baseline justify-between gap-1 text-micro text-[color:var(--w-muted)]">
             <span className="truncate">
               {short} <Pct view={view} percent={percent} />
             </span>
@@ -264,7 +264,7 @@ function RingPair({ id, plan, percent, now, layout }: { id: AgentId; plan: Agent
                 </span>
                 <Reset view={view} now={now} wide />
                 {layout.pace && view.hit !== null && (
-                  <div className="truncate text-[10.5px] tabular-nums">
+                  <div className="truncate text-micro tabular-nums">
                     <PaceText hit={view.hit} now={now} />
                   </div>
                 )}

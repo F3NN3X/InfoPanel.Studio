@@ -146,7 +146,7 @@ export function ModernChrome({
       </div>
       {showHeader && (
         <div
-          className="absolute left-3 top-2 z-20 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider"
+          className="absolute left-3 top-2 z-20 flex max-w-[calc(100%-1.5rem)] items-center gap-1.5 text-micro font-medium uppercase tracking-wider"
           style={{ color: HEADER_COLOR }}
         >
           {Icon && (
@@ -155,7 +155,7 @@ export function ModernChrome({
               style={chrome?.accent ? { color: chrome.accent } : undefined}
             />
           )}
-          {chrome?.label ? chrome.label : null}
+          {chrome?.label ? <span className="min-w-0 truncate">{chrome.label}</span> : null}
         </div>
       )}
     </div>

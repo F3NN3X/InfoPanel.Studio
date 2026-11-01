@@ -89,10 +89,10 @@ export function PointInspector({
 
       <div className="flex flex-col gap-2.5 rounded-[10px] border border-ui-default bg-ui-app p-3.5">
         <div className="flex items-center gap-1.5">
-          <Chip className="px-[7px] py-0.5 text-[10.5px] text-ui-2 rounded-[9px]">{TYPE_LABEL[point.type]}</Chip>
-          {point.kind && <Chip className="px-[7px] py-0.5 text-[10.5px] text-ui-2 rounded-[9px]">{point.kind}</Chip>}
+          <Chip className="px-[7px] py-0.5 text-micro text-ui-2 rounded-[9px]">{TYPE_LABEL[point.type]}</Chip>
+          {point.kind && <Chip className="px-[7px] py-0.5 text-micro text-ui-2 rounded-[9px]">{point.kind}</Chip>}
           {live && (
-            <span className="ml-auto flex items-center gap-1 text-[10.5px] text-ui-success">
+            <span className="ml-auto flex items-center gap-1 text-micro text-ui-success">
               <span className="h-[5px] w-[5px] rounded-full bg-ui-success" />
               Live
             </span>
@@ -204,7 +204,7 @@ function History({ history, pointKey, unit, tick }: { history: SampleHistory; po
           ] as const
         ).map(([label, n]) => (
           <div key={label} className="flex flex-col gap-px">
-            <span className="text-[10.5px] leading-[1.25] text-ui-4">{label}</span>
+            <span className="text-micro leading-[1.25] text-ui-4">{label}</span>
             <span className="font-ui-mono text-[11.5px] leading-[1.25] text-ui-1">{n === undefined ? "—" : fmt(n)}</span>
           </div>
         ))}

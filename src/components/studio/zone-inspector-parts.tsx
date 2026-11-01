@@ -189,7 +189,7 @@ export function ZoneHeader({
             <div className={TITLE}>{name}</div>
           )}
           {kind ? (
-            <div data-testid="inspector-kind" className="truncate text-[10.5px] text-ui-accent" title={details}>
+            <div data-testid="inspector-kind" className="truncate text-micro text-ui-accent" title={details}>
               {kind}
             </div>
           ) : (

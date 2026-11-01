@@ -67,7 +67,7 @@ export default function SteamLibrary(p: SteamLibraryProps) {
                 {news.slice(0, newsN).map((n, i) => (
                   <div key={i} className="flex min-w-0 flex-col">
                     <span className="line-clamp-1 text-xs text-[color:var(--w-fg)]">{n.title}</span>
-                    <span className="text-[10.5px] text-[color:var(--w-faint)]">
+                    <span className="text-micro text-[color:var(--w-faint)]">
                       {n.game} · {n.date}
                     </span>
                   </div>

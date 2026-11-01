@@ -707,6 +707,7 @@ export default function App({ fixture }: AppProps = {}) {
           "flex flex-col text-foreground",
           !background && "bg-background",
           kiosk && "kiosk",
+          kiosk && !fill && "kiosk-scroll",
           kiosk && general.hideCursor && "kiosk-hide-cursor",
           fill
             ? kiosk
@@ -805,6 +806,7 @@ export default function App({ fixture }: AppProps = {}) {
 
         <PageDots
           enabled={pageNav}
+          scroll={!fill}
           pages={stored.pages}
           current={profile.pageId ?? stored.pages[0].id}
           rotateOn={stored.rotate?.enabled === true}

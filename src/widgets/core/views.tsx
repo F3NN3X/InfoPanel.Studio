@@ -37,7 +37,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
     </span>
   );
   const label = c.label && (
-    <div className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-[color:var(--w-muted)]" style={labelStyle()}>
+    <div className="flex min-w-0 items-center gap-1.5 text-micro font-medium uppercase tracking-[0.08em] text-[color:var(--w-muted)]" style={labelStyle()}>
       <Icon name={c.icon ?? icon} className="text-[14px] text-[color:var(--accent)]" />
       <span className="truncate">{c.label}</span>
     </div>
@@ -110,7 +110,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
             <Ring value={c.pct!} t={c.t} color={c.color} thickness={10}>
               <span {...c.ip} className="font-semibold tabular-nums" style={{ fontSize: Math.max(12, Math.min(18, (w * 0.45) / Math.max(2.5, String(val).length * 0.62))), ...(none ? NO_VALUE : null) }}>
                 {val}
-                {!none && <span className="text-[10px] text-[color:var(--w-muted)]">{c.unit}</span>}
+                {!none && <span className="text-micro text-[color:var(--w-muted)]">{c.unit}</span>}
               </span>
             </Ring>
           </div>
@@ -142,7 +142,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
   const glow = sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null;
   const toneC = c.t && c.t !== "ok" ? TONES[c.t] : undefined;
   const label = (className = "") => (c.label || c.right || c.live != null) && (
-    <div className={`flex min-w-0 shrink-0 items-center gap-1.5 text-[9.5px] uppercase tracking-[0.06em] text-[color:var(--w-muted)] ${className}`} style={{ ...mono, ...labelStyle() }}>
+    <div className={`flex min-w-0 shrink-0 items-center gap-1.5 text-micro uppercase tracking-[0.06em] text-[color:var(--w-muted)] ${className}`} style={{ ...mono, ...labelStyle() }}>
       {c.live != null && <span className="h-[5px] w-[5px] shrink-0 rounded-full" style={{ background: c.live ? "oklch(0.75 0.15 150)" : "#52525b" }} />}
       {c.label && <span className="truncate">{c.label}</span>}
       {c.right && <span className="ml-auto shrink-0 normal-case tracking-normal text-[color:var(--w-muted)]">{c.right}</span>}
@@ -170,12 +170,12 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
       <div className="flex h-full min-w-0 items-center gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           {label()}
-          {c.sub && w > 260 && <span className="truncate text-[10px] text-[color:var(--w-muted)]">{c.sub}</span>}
+          {c.sub && w > 260 && <span className="truncate text-micro text-[color:var(--w-muted)]">{c.sub}</span>}
         </div>
         {c.hist && w > 300 ? <Spark values={c.hist} min={c.min} max={c.max} graph="line" fill={false} className="h-[46%] min-w-0 flex-1 opacity-80" /> : Number.isFinite(c.pct) && w > 300 ? thin(c.pct!, "min-w-0 flex-1") : <span className="flex-1" />}
         <span {...c.ip} className="shrink-0 whitespace-nowrap text-[15px] font-semibold tracking-[-0.01em] tabular-nums" style={{ fontFamily: sk.num, color: toneC, ...glow }}>
           {val ?? "–"}
-          {c.unit && <span className="ml-0.5 text-[10px] font-medium text-[color:var(--w-muted)]">{c.unit}</span>}
+          {c.unit && <span className="ml-0.5 text-micro font-medium text-[color:var(--w-muted)]">{c.unit}</span>}
         </span>
       </div>
     );
@@ -195,7 +195,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
         </div>
         {c.viz && <div className="mt-2 shrink-0">{c.viz("h-7")}</div>}
         {(pr || Number.isFinite(c.pct)) && (
-          <div className="mt-2 flex shrink-0 items-center gap-2 text-[9px] text-[color:var(--w-muted)]" style={mono}>
+          <div className="mt-2 flex shrink-0 items-center gap-2 text-micro text-[color:var(--w-muted)]" style={mono}>
             {pr?.a && <span className="min-w-0 truncate">{pr.a}</span>}
             {thin(pr?.pct ?? c.pct ?? 0, "min-w-6 flex-1")}
             {pr?.b && <span className="shrink-0">{pr.b}</span>}
@@ -215,7 +215,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
               <div className="relative min-h-0 flex-1 overflow-hidden rounded-[3px] bg-[color:var(--w-track)]">
                 <div className="absolute inset-0 transition-transform duration-300" style={{ ...scaleY(clamp(m.v)), background: "var(--accent)" }} />
               </div>
-              <span className="truncate text-center text-[9px] text-[color:var(--w-muted)]">{m.n}</span>
+              <span className="truncate text-center text-micro text-[color:var(--w-muted)]">{m.n}</span>
             </div>
           ))}
         </div>
@@ -233,7 +233,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
         <div className="mt-auto flex flex-col gap-[7px] pt-2">
           {c.rows.slice(0, n).map((r, i) => (
             <div key={i} className="flex min-w-0 flex-col gap-[3px]">
-              <div className="flex min-w-0 items-baseline justify-between gap-2 text-[10.5px]">
+              <div className="flex min-w-0 items-baseline justify-between gap-2 text-micro">
                 <span className="flex min-w-0 items-center gap-1.5 font-medium">
                   {r.dot != null && <span className="h-[5px] w-[5px] shrink-0 rounded-full" style={{ background: r.dot ? "oklch(0.75 0.15 150)" : "#52525b" }} />}
                   <span className="truncate">{r.n}</span>
@@ -259,7 +259,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
         </div>
         <div className="mt-2 flex items-baseline justify-between gap-2">
           {big(22)}
-          {c.sub && <span className="truncate text-[10px] text-[color:var(--w-muted)]">{c.sub}</span>}
+          {c.sub && <span className="truncate text-micro text-[color:var(--w-muted)]">{c.sub}</span>}
         </div>
       </div>
     );
@@ -274,7 +274,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
       )}
       <div className={`${c.hist && h >= 150 ? "mt-2" : "mt-auto"} flex min-w-0 flex-col`}>
         {big(bigMax)}
-        {c.sub && <span className="mt-1 truncate text-[10px] text-[color:var(--w-muted)]">{c.sub}</span>}
+        {c.sub && <span className="mt-1 truncate text-micro text-[color:var(--w-muted)]">{c.sub}</span>}
         {Number.isFinite(c.pct) && thin(c.pct!, "mt-1.5")}
       </div>
     </div>
@@ -334,7 +334,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d" }: 
           <span className="truncate px-0.5 font-semibold lowercase text-[color:var(--accent)]" style={{ textTransform: "var(--wp-label-case, lowercase)" as CSSProperties["textTransform"] }}>{title}</span>
           <span style={{ color: mix(55, "#52525b") }}>┌</span>
         </div>
-        {right && tuiRight.fits && <div ref={tuiRight.rightRef} className="absolute right-3 top-[5px] z-10 flex -translate-y-1/2 items-center gap-1 px-1 text-[10.5px] leading-none text-[color:var(--w-muted)]" style={{ background: bg }}>{right}</div>}
+        {right && tuiRight.fits && <div ref={tuiRight.rightRef} className="absolute right-3 top-[5px] z-10 flex -translate-y-1/2 items-center gap-1 px-1 text-micro leading-none text-[color:var(--w-muted)]" style={{ background: bg }}>{right}</div>}
       </>
     );
   const base = "relative z-10 flex min-w-0 items-center";
@@ -356,7 +356,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d" }: 
     );
   if (kind === "hud")
     return (
-      <header className={`${base} mb-2 gap-2 text-[9.5px] uppercase tracking-[0.28em] text-[color:var(--accent)]`} style={st("uppercase")}>
+      <header className={`${base} mb-2 gap-2 text-micro uppercase tracking-[0.28em] text-[color:var(--accent)]`} style={st("uppercase")}>
         <span className="truncate">{title}</span>
         <span className="h-px min-w-[12px] flex-1" style={{ background: mix(35) }} />
         {right && <span className="shrink-0 tracking-[0.1em] text-[color:var(--w-muted)]">{right}</span>}
@@ -364,7 +364,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d" }: 
     );
   if (kind === "ink")
     return (
-      <header className={`${base} mb-3 gap-2 text-[10px] uppercase tracking-[0.22em] text-[color:var(--w-faint)]`} style={st("uppercase")}>
+      <header className={`${base} mb-3 gap-2 text-micro uppercase tracking-[0.22em] text-[color:var(--w-faint)]`} style={st("uppercase")}>
         <span className="truncate">{title}</span>
         {r}
       </header>
@@ -408,13 +408,13 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d" }: 
       <header className={`${base} mb-2 gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]`} style={st("uppercase")}>
         <span className="h-3 w-1 shrink-0 bg-[var(--accent)]" />
         <span className="truncate">{title}</span>
-        <span className="text-[9.5px] font-normal text-[color:var(--w-faint)]">{"//"}{String(title).length.toString(16).padStart(2, "0")}</span>
+        <span className="text-micro font-normal text-[color:var(--w-faint)]">{"//"}{String(title).length.toString(16).padStart(2, "0")}</span>
         {r}
       </header>
     );
   if (kind === "nixie")
     return (
-      <header className={`${base} mb-2 gap-2 text-[10px] uppercase tracking-[0.3em] text-[#a8805e]`} style={st("uppercase")}>
+      <header className={`${base} mb-2 gap-2 text-micro uppercase tracking-[0.3em] text-[#a8805e]`} style={st("uppercase")}>
         <span className="truncate">{title}</span>
         {r}
       </header>

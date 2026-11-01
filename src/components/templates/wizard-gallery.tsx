@@ -117,7 +117,7 @@ export function WizardGallery(p: WizardGalleryProps) {
               <section key={s.key} id={sectionId(s.key)} aria-labelledby={`${sectionId(s.key)}-title`} className="flex scroll-mt-3.5 flex-col gap-2">
                 <h3 className="m-0 flex items-baseline gap-2 text-[12px] font-medium text-ui-2">
                   <span id={`${sectionId(s.key)}-title`}>{s.title}</span>
-                  {s.count !== undefined && <span className="font-ui-mono text-[10.5px] font-normal text-ui-4">{s.count}</span>}
+                  {s.count !== undefined && <span className="font-ui-mono text-micro font-normal text-ui-4">{s.count}</span>}
                   {s.note && <span className="truncate text-[11px] font-normal text-ui-4">{s.note}</span>}
                 </h3>
                 <div role="radiogroup" aria-label={s.title} className="grid items-start gap-2.5" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${s.min}px, 1fr))` }}>
@@ -180,7 +180,7 @@ function Card({ card, p, selected, tabbable }: { card: GalleryCard; p: WizardGal
       <div className="flex min-w-0 flex-col gap-0.5 px-[9px] pb-2 pt-[7px]">
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-ui-1">{entry.name}</span>
-          <span className="shrink-0 font-ui-mono text-[10.5px] text-ui-4">
+          <span className="shrink-0 font-ui-mono text-micro text-ui-4">
             {size.width}×{size.height}
           </span>
         </div>

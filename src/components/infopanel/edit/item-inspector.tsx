@@ -239,7 +239,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
           </span>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13px] font-semibold text-ui-1">{name}</div>
-            <div data-testid="inspector-kind" title={mode} className="truncate text-[10.5px] text-ui-3">
+            <div data-testid="inspector-kind" title={mode} className="truncate text-micro text-ui-3">
               {kindWord}
             </div>
           </div>

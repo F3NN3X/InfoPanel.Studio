@@ -60,7 +60,7 @@ export default function Notifications(p: NotificationsProps) {
           return (
             <div className="flex h-full min-w-0 flex-col justify-center gap-0.5">
               <Metric label={h === 0 || h >= 56 ? "Notifications" : undefined} value={hasCount ? Math.round(count) : "–"} scale={h === 0 || h >= 56 ? "lg" : "md"} sub={h === 0 || h >= 72 ? last : undefined} />
-              {status && (h === 0 || h >= 88) && <div className="truncate text-[10px] text-[color:var(--w-faint)]">{status}</div>}
+              {status && (h === 0 || h >= 88) && <div className="truncate text-micro text-[color:var(--w-faint)]">{status}</div>}
             </div>
           );
         // the history shows the lines that fit (no scroll container); before the first measurement (h = 0) all of them
@@ -69,7 +69,7 @@ export default function Notifications(p: NotificationsProps) {
         const text = size === "lg" ? "text-sm" : "text-xs";
         return (
           <div className="flex h-full min-h-0 flex-col">
-            {last && <div className={`truncate font-medium text-[color:var(--w-fg)] ${size === "lg" ? "text-base" : "text-sm"}`}>{last}</div>}
+            {last && <div title={last} className={`font-medium text-[color:var(--w-fg)] ${size === "lg" ? "line-clamp-2 break-words text-base" : "truncate text-sm"}`}>{last}</div>}
             {status && <div className="mt-1 truncate text-xs text-[color:var(--w-faint)]">{status}</div>}
             {showHistory && (
               <div className="mt-3 min-h-0 flex-1 space-y-1 overflow-hidden border-t border-[color:var(--w-track)] pt-3">
@@ -79,7 +79,7 @@ export default function Notifications(p: NotificationsProps) {
                     <div key={i} className={`flex items-baseline gap-2 ${text}`}>
                       <span className="shrink-0 font-mono tabular-nums text-[color:var(--w-muted)]">{l.time}</span>
                       <span
-                        className="shrink-0 rounded px-1.5 py-px text-[10px] tracking-wider text-[color:var(--w-muted)]"
+                        className="shrink-0 rounded px-1.5 py-px text-micro tracking-wider text-[color:var(--w-muted)]"
                         style={{ background: c ? `color-mix(in oklab, ${c} 14%, transparent)` : "var(--w-track)", ...(c ? { color: c } : null) }}
                       >
                         {l.type}

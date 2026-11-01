@@ -206,7 +206,7 @@ function AssetTile({
       </button>
       <div className="flex items-center justify-between gap-1 px-1 py-0.5 text-[10px] text-ui-4">
         <span className="tabular-nums">{formatBytes(asset.size)}</span>
-        {unused && <span className="rounded-full bg-ui-hover px-1 text-[9px] leading-tight">unused</span>}
+        {unused && <span className="rounded-full bg-ui-hover px-1 text-[10px] leading-tight">unused</span>}
       </div>
       <button
         type="button"
@@ -219,7 +219,7 @@ function AssetTile({
         )}
       >
         <Trash2 className="h-3 w-3" />
-        {confirming && <span className="ml-0.5 text-[9px]">Delete?</span>}
+        {confirming && <span className="ml-0.5 text-[10px]">Delete?</span>}
       </button>
     </div>
   );

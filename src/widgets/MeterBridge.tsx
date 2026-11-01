@@ -156,14 +156,14 @@ export default function MeterBridge(p: MeterBridgeProps) {
                       {showName && <span className="truncate">{c.name}</span>}
                       {mute(c)}
                     </span>
-                    {p.showVolume !== false && Number.isFinite(c.vol) && <span className="text-[10.5px] tabular-nums text-[color:var(--w-faint)]">{fmt(c.vol)}%</span>}
+                    {p.showVolume !== false && Number.isFinite(c.vol) && <span className="text-micro tabular-nums text-[color:var(--w-faint)]">{fmt(c.vol)}%</span>}
                   </div>
                   <div className="flex h-[22px] flex-col gap-[3px]">
                     {ladder(c.l, c.lh, segs, true)}
                     {ladder(c.r, c.rh, segs, true)}
                   </div>
                   {details && (
-                    <div className="flex flex-col text-right font-mono text-[10px] leading-tight tabular-nums text-[color:var(--w-muted)]">
+                    <div className="flex flex-col text-right font-mono text-micro leading-tight tabular-nums text-[color:var(--w-muted)]">
                       <span>{fmtDb(c.l)}</span>
                       {w > 300 && <span>{fmtDb(c.r)}</span>}
                     </div>
@@ -198,7 +198,7 @@ export default function MeterBridge(p: MeterBridgeProps) {
                 </div>
                 <div className="flex min-h-0 flex-1 gap-2">
                   {scale && (
-                    <div className="relative w-[30px] shrink-0 font-mono text-[10px] tabular-nums text-[color:var(--w-faint)]">
+                    <div className="relative w-[30px] shrink-0 font-mono text-micro tabular-nums text-[color:var(--w-faint)]">
                       {SCALE.filter((s) => s >= floor).map((s) => (
                         <span key={s} className="absolute right-0 flex -translate-y-1/2 items-center gap-1" style={{ top: `${100 - pos(s)}%` }}>
                           <span className="h-px w-1.5 bg-[color:var(--w-faint)]" />
@@ -213,7 +213,7 @@ export default function MeterBridge(p: MeterBridgeProps) {
                   </div>
                 </div>
                 {showDetails && (
-                <div className="grid grid-cols-2 gap-1 font-mono text-[10px] tabular-nums text-[color:var(--w-faint)]">
+                <div className="grid grid-cols-2 gap-1 font-mono text-micro tabular-nums text-[color:var(--w-faint)]">
                   <span className="flex justify-between gap-1">
                     <span className="font-sans font-semibold text-[color:var(--w-muted)]">L</span>
                     {fmtDb(c.l)}

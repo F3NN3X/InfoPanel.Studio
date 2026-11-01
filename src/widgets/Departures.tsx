@@ -58,7 +58,7 @@ export default function Departures(p: DeparturesProps) {
           return (
             <div className="flex h-full min-w-0 flex-col justify-center gap-1">
               <Metric label={station ?? "Departures"} value={first?.time ?? "--:--"} scale="md" sub={next} />
-              {showStatus && <div className="truncate text-[10px] text-[color:var(--w-faint)]">{status}</div>}
+              {showStatus && <div className="truncate text-micro text-[color:var(--w-faint)]">{status}</div>}
             </div>
           );
         // before the first measurement (h = 0) every row renders

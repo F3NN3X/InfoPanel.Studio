@@ -455,7 +455,7 @@ export function AddPanel({
               <X className="h-3.5 w-3.5" />
             </button>
           ) : (
-            <kbd className="shrink-0 rounded-[4px] border border-ui-strong px-[5px] py-px font-ui-mono text-[10.5px] leading-[14px] text-[#7c7c86]">/</kbd>
+            <kbd className="shrink-0 rounded-[4px] border border-ui-strong px-[5px] py-px font-ui-mono text-micro leading-[14px] text-[#7c7c86]">/</kbd>
           )}
         </label>
       </div>
@@ -631,7 +631,7 @@ export function AddPanel({
         )}
       </div>
 
-      <div className="flex h-7 shrink-0 items-center gap-2.5 overflow-hidden whitespace-nowrap border-t border-ui-subtle px-3 text-[10.5px] text-ui-hint">
+      <div className="flex h-7 shrink-0 items-center gap-2.5 overflow-hidden whitespace-nowrap border-t border-ui-subtle px-3 text-micro text-ui-hint">
         <span>Hover for details</span>
         <span>←↑→↓ browse</span>
         <span>Enter add</span>

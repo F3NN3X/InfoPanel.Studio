@@ -85,7 +85,7 @@ function PaletteBody({ commands, onRun }: Pick<CommandPaletteProps, "commands" |
             >
               <span className="min-w-0 flex-1 truncate">{command.label}</span>
               {command.hint && (
-                <span className="shrink-0 font-ui-mono text-[10.5px] text-ui-4">{command.hint}</span>
+                <span className="shrink-0 font-ui-mono text-micro text-ui-4">{command.hint}</span>
               )}
             </div>
           </div>
@@ -108,7 +108,7 @@ export function CommandPalette({ open, onOpenChange, commands, onRun }: CommandP
         <Dialog.Popup
           ref={popupRef}
           initialFocus={() => popupRef.current?.querySelector("input") ?? true}
-          className="fixed left-1/2 top-[15vh] z-50 flex max-h-[60vh] w-[32rem] -translate-x-1/2 flex-col rounded-xl border border-ui-strong bg-ui-raised font-ui text-ui-1 shadow-ui-modal outline-none"
+          className="fixed left-1/2 top-[15vh] z-50 flex max-h-[60vh] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 flex-col rounded-xl border border-ui-strong bg-ui-raised font-ui text-ui-1 shadow-ui-modal outline-none"
         >
           <Dialog.Title className="sr-only">Command palette</Dialog.Title>
           {open && (

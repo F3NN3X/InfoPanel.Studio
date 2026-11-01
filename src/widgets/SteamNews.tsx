@@ -36,7 +36,7 @@ export default function SteamNews(p: SteamNewsProps) {
             <li key={i} className="flex min-w-0 gap-3">
               <span className="mt-1 h-auto w-0.5 shrink-0 rounded-full" style={{ background: i === 0 ? "var(--accent)" : "var(--w-track)" }} />
               <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]">
+                <span className="text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]">
                   {n.game}
                   {n.date ? ` · ${n.date}` : ""}
                 </span>

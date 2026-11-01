@@ -52,7 +52,7 @@ export default function Uptime(p: UptimeProps) {
                   <Num ip={tag(key(entry))} className="font-semibold leading-none tracking-tight" style={{ fontSize: numPx(size, w, h, shown.length, bodyGap(p.look, 16, w)), ...(u === "d" ? { color: "var(--accent)" } : null) }}>
                     {pad(v)}
                   </Num>
-                  <span className="mt-1.5 text-[10.5px] uppercase tracking-wider text-[color:var(--w-faint)]">{l}</span>
+                  <span className="mt-1.5 text-micro uppercase tracking-wider text-[color:var(--w-faint)]">{l}</span>
                 </div>
               </Fragment>
             ))}

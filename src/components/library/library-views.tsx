@@ -74,7 +74,7 @@ export function LibrarySidebar({ active, counts, onPick, onOpenTheme }: { active
     <nav aria-label="Collections" className="flex w-[216px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-panel px-2 py-3.5 font-ui max-sm:w-full max-sm:flex-row max-sm:gap-1.5 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:border-b max-sm:border-r-0 max-sm:py-2 max-sm:[scrollbar-width:none]">
       {sections.map(([s, title]) => (
         <div key={s} className="max-sm:flex max-sm:gap-1.5">
-          <div className="px-2 pb-1.5 text-[10.5px] font-medium uppercase tracking-[.08em] text-ui-4 max-sm:hidden">{title}</div>
+          <div className="px-2 pb-1.5 text-micro font-medium uppercase tracking-[.08em] text-ui-4 max-sm:hidden">{title}</div>
           {COLLECTIONS.filter((c) => c.section === s).map((c) => {
             const Icon = COLLECTION_ICON[c.id];
             return (
@@ -194,7 +194,7 @@ export function LibraryCard({ item, index, selected, checked, selectMode, onSele
         {flag && (
           <span
             className={cn(
-              "absolute right-1.5 top-1.5 rounded-[4px] px-1.5 py-px text-[10.5px] font-medium",
+              "absolute right-1.5 top-1.5 rounded-[4px] px-1.5 py-px text-micro font-medium",
               flag === "Duplicate" ? "bg-ui-warning text-black" : "bg-[#2a1d0a] text-ui-warning",
             )}
           >
@@ -202,7 +202,7 @@ export function LibraryCard({ item, index, selected, checked, selectMode, onSele
           </span>
         )}
         {isOlderItem(item) && (
-          <span title="Saved by an older version: open it to update" className="absolute bottom-1.5 left-1.5 rounded-[4px] bg-[#2a1d0a] px-1.5 py-px text-[10.5px] font-medium text-ui-warning">
+          <span title="Saved by an older version: open it to update" className="absolute bottom-1.5 left-1.5 rounded-[4px] bg-[#2a1d0a] px-1.5 py-px text-micro font-medium text-ui-warning">
             Older version
           </span>
         )}

@@ -64,7 +64,7 @@ export function NewRuleMenu({ onAdd, points }: { onAdd: (rule: AlertRule) => voi
             <Menu.Item className={MENU_ITEM} onClick={() => onAdd(blankNotificationRule())}>
               Blank notification rule
             </Menu.Item>
-            <div className="my-1 border-t border-ui-subtle px-2 pt-1.5 text-[10.5px] uppercase tracking-wide text-ui-4">Presets</div>
+            <div className="my-1 border-t border-ui-subtle px-2 pt-1.5 text-micro uppercase tracking-wide text-ui-4">Presets</div>
             {ALERT_PRESETS.map((preset) => (
               <Menu.Item key={preset.id} className={MENU_ITEM} onClick={() => onAdd(presetRule(preset, points))}>
                 <span className="text-ui-1">{preset.label}</span>
@@ -138,7 +138,7 @@ function RuleRow({ rule, summary, style, fired, now, confirming, ...on }: RuleRo
         <span className="block truncate font-ui-mono text-[11px] text-ui-3" title={summary}>
           {summary}
         </span>
-        <span className="block truncate text-[10.5px] text-ui-4">
+        <span className="block truncate text-micro text-ui-4">
           {fired ? `Last fired ${ageText(fired.startedAt, now)} ago` : "Never fired"}
         </span>
       </button>

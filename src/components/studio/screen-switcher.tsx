@@ -39,7 +39,7 @@ export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage, 
       >
         <Monitor className="h-[15px] w-[15px] shrink-0 text-ui-3" strokeWidth={1.75} />
         <span className="truncate font-semibold">{profile.name}</span>
-        <span className="font-ui-mono text-[10.5px] text-ui-hint max-[959px]:hidden">
+        <span className="font-ui-mono text-micro text-ui-hint max-[959px]:hidden">
           {profile.width}×{profile.height}
         </span>
         <span aria-hidden className="text-ui-hint">

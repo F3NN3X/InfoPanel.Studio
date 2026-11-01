@@ -269,7 +269,7 @@ export function PageTabs({
                       }}
                       onClick={() => !dragged.current && onSelect(page.id)}
                       onDoubleClick={() => onRenamingChange(page.id)}
-                      title="Double-click to rename, drag to reorder"
+                      title={`${page.name}: double-click to rename, drag to reorder`}
                       className="flex h-7 max-w-44 items-center gap-1.5 rounded-[7px] pl-2.5 pr-1 outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60"
                     >
                       <Icon className="h-[15px] w-[15px] shrink-0" />

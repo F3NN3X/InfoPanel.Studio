@@ -48,7 +48,7 @@ export function SensorField({ label, hint, lead, value, onChange, onOpenExplorer
           {value ? (
             <>
               <span className="block truncate text-[12px] text-ui-1">{point?.name ?? sensorName(value)}</span>
-              <span className="block truncate font-ui-mono text-[10.5px] text-ui-4">{value}</span>
+              <span className="block truncate font-ui-mono text-micro text-ui-4">{value}</span>
             </>
           ) : (
             <span className="block truncate text-[12px] text-ui-4">No sensor bound</span>

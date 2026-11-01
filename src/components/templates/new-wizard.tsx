@@ -88,7 +88,7 @@ function Stepper({ step, onStep }: { step: WizardStep; onStep: (s: WizardStep) =
   );
 }
 
-const Kbd = ({ children }: { children: ReactNode }) => <kbd className="rounded-[4px] border border-ui-default px-1 font-ui-mono text-[10.5px] text-ui-3">{children}</kbd>;
+const Kbd = ({ children }: { children: ReactNode }) => <kbd className="rounded-[4px] border border-ui-default px-1 font-ui-mono text-micro text-ui-3">{children}</kbd>;
 
 interface NewWizardProps {
   kind: WizardKind;
@@ -305,7 +305,7 @@ export function WizardPreview({ width, height, max, hint, onExpand, noData, chil
 
 export function NoDataPill() {
   return (
-    <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1.5 rounded-full border border-ui-danger/40 bg-ui-app/90 px-2 py-0.5 text-[10.5px] text-ui-2">
+    <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1.5 rounded-full border border-ui-danger/40 bg-ui-app/90 px-2 py-0.5 text-micro text-ui-2">
       <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ui-danger" />
       No live data · placeholders
     </span>

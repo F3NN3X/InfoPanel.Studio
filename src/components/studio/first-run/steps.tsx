@@ -90,7 +90,7 @@ export function WelcomeStep({ headRef, rerun, narrow, results, onSeeChecks }: We
                 {c.title}
               </span>
               <span className="text-[11.5px] leading-[1.45] text-ui-3">{c.text}</span>
-              <span className="mt-auto font-ui-mono text-[10.5px] text-ui-4">{c.meta}</span>
+              <span className="mt-auto font-ui-mono text-micro text-ui-4">{c.meta}</span>
             </div>
           </li>
         ))}
@@ -153,7 +153,7 @@ function Preview({ size, source }: { size: Size; source: SizeSource }) {
     <>
       <div className="grid h-[166px] w-[196px] shrink-0 place-items-center">
         <div className="grid place-items-center rounded-[3px] border-[1.5px] border-ui-accent bg-ui-accent/[0.08]" style={{ width: w, height: h }}>
-          {w > 56 && h > 22 && <span className="font-ui-mono text-[10.5px] text-ui-2">{(size.width / size.height).toFixed(2)}:1</span>}
+          {w > 56 && h > 22 && <span className="font-ui-mono text-micro text-ui-2">{(size.width / size.height).toFixed(2)}:1</span>}
         </div>
       </div>
       <div className="flex flex-col items-center gap-0.5 text-center">
@@ -259,7 +259,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
                   <span className="font-ui-mono text-[11.5px] text-ui-1">
                     {p.width} × {p.height}
                   </span>
-                  <span className="w-full truncate text-[10.5px] text-ui-3">{hintOf(p) ?? `${(p.width / p.height).toFixed(2)}:1`}</span>
+                  <span className="w-full truncate text-micro text-ui-3">{hintOf(p) ?? `${(p.width / p.height).toFixed(2)}:1`}</span>
                 </button>
               );
             })}
@@ -405,7 +405,7 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
                   <span className="truncate px-2 pt-1.5 text-[12px] font-medium text-ui-1">{t.name}</span>
                   <span className="truncate px-2 text-[11px] text-ui-4">{t.blurb}</span>
                   {cover ? (
-                    <span className={cn("flex items-center gap-1 px-2 pb-2 pt-1 text-[10.5px]", cover.tone === "warn" ? "text-ui-warning" : cover.tone === "ok" ? "text-ui-3" : "text-ui-4")}>
+                    <span className={cn("flex items-center gap-1 px-2 pb-2 pt-1 text-micro", cover.tone === "warn" ? "text-ui-warning" : cover.tone === "ok" ? "text-ui-3" : "text-ui-4")}>
                       <Radar className="h-3 w-3 shrink-0" />
                       {cover.text}
                     </span>

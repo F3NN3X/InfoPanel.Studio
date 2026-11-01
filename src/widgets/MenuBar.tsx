@@ -111,7 +111,7 @@ export default function MenuBar(p: MenuBarProps) {
                     className={`flex min-h-[34px] min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-1 text-left transition-colors ${on ? "bg-[var(--accent)] text-[#0E1014]" : "hover:bg-[color:var(--w-track)]"}`}
                   >
                     <span className={`grid min-w-0 leading-[1.05] ${stacked ? "" : "grid-flow-col items-baseline gap-1.5"}`}>
-                      <span className={`truncate text-[9px] font-semibold uppercase tracking-[0.08em] ${on ? "opacity-80" : "text-[color:var(--w-muted)]"}`}>{m.k}</span>
+                      <span className={`truncate text-micro font-semibold uppercase tracking-[0.08em] ${on ? "opacity-80" : "text-[color:var(--w-muted)]"}`}>{m.k}</span>
                       <span className="whitespace-nowrap text-[14px] font-semibold tabular-nums" style={{ ...numFont(sk), color: !on && t !== "ok" ? TONES[t] : undefined }}>
                         {shown(m)[0]}
                         <small className={`text-[11px] font-medium ${m.text ? "ml-0.5" : ""}`}>{shown(m)[1]}</small>
@@ -142,7 +142,7 @@ export default function MenuBar(p: MenuBarProps) {
                 <div className="grid gap-x-4 gap-y-1 text-xs" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))" }}>
                   {it.more.map(([a, b]) => (
                     <div key={a} className="flex flex-col">
-                      <span className="text-[10.5px] uppercase tracking-[0.06em] text-[color:var(--w-faint)]">{a}</span>
+                      <span className="text-micro uppercase tracking-[0.06em] text-[color:var(--w-faint)]">{a}</span>
                       <span className="font-medium tabular-nums">{b}</span>
                     </div>
                   ))}

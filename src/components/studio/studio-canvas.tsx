@@ -636,7 +636,7 @@ export function StudioCanvas({
                 if (e.target === e.currentTarget) onSelect(null);
               }}
             >
-              {showRulers && <RulerLabels width={canvas.w} height={canvas.h} />}
+              {showRulers && <RulerLabels width={canvas.w} height={canvas.h} scale={zoom} />}
               {profile.island?.enabled && (
                 <DynamicIsland config={profile.island} alerts={islandAlerts} placement="absolute" page={islandPage} />
               )}

@@ -36,7 +36,7 @@ export default function Achievements(p: AchievementsProps) {
             </div>
             {h > 150 && has(A("latest-achievement")) && (
               <div className="mt-auto flex min-w-0 flex-col gap-0.5 text-xs">
-                <span className="text-[10.5px] uppercase tracking-[0.06em] text-[color:var(--w-faint)]">Latest unlock</span>
+                <span className="text-micro uppercase tracking-[0.06em] text-[color:var(--w-faint)]">Latest unlock</span>
                 <span className="truncate font-medium">{A("latest-achievement")}</span>
                 <span className="text-[color:var(--w-faint)]">{fmt(tot - un)} left to 100%</span>
               </div>
@@ -51,7 +51,7 @@ export default function Achievements(p: AchievementsProps) {
                 <span className="text-xs text-[color:var(--w-muted)]">%</span>
               </span>
               {Math.min(h, w) >= 76 && (
-                <span className="text-[10.5px] text-[color:var(--w-faint)]">
+                <span className="text-micro text-[color:var(--w-faint)]">
                   {fmt(un)}/{fmt(tot)}
                 </span>
               )}
@@ -59,7 +59,7 @@ export default function Achievements(p: AchievementsProps) {
             </div>
             {w >= 230 && has(A("latest-achievement")) && (
               <div className="flex min-w-0 flex-1 flex-col gap-2">
-                <span className="text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--w-faint)]">Latest unlock</span>
+                <span className="text-micro uppercase tracking-[0.08em] text-[color:var(--w-faint)]">Latest unlock</span>
                 <div className="flex min-w-0 items-center gap-2.5">
                   <Img src={latestIcon} icon="trophy" className={`${size === "lg" ? "h-12 w-12" : "h-9 w-9"} shrink-0 rounded-lg`} />
                   <span className={`${size === "lg" ? "text-base" : "text-sm"} line-clamp-2 font-medium leading-snug`}>{A("latest-achievement")}</span>

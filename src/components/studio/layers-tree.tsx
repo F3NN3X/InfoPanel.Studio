@@ -215,7 +215,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
     <section aria-label="Layers" className="flex min-h-0 flex-1 flex-col font-ui">
       <div className="flex h-[38px] shrink-0 items-center gap-1.5 pl-3.5 pr-2.5">
         <span className="text-[12px] font-semibold text-ui-1">Layers</span>
-        <span className="text-[10.5px] text-ui-4">top first</span>
+        <span className="text-micro text-ui-4">top first</span>
         <span className="flex-1" />
         <IconButton label="Group selection (Ctrl+G)" className="h-6 w-6 rounded-[6px] text-ui-4 hover:bg-ui-hover hover:text-ui-2" disabled={!host.menu.available.group} onClick={() => host.menu.run("group")}>
           <FolderPlus className="h-[14px] w-[14px]" />
@@ -340,11 +340,11 @@ export function LayersTree({ host }: { host: LayersHost }) {
                   className="h-[22px] min-w-0 flex-1 rounded-[5px] border border-ui-accent bg-ui-app px-1.5 text-[12px] text-ui-1 outline-none"
                 />
               ) : (
-                <span onDoubleClick={() => setRenaming(node.id)} className={cn("min-w-0 flex-1 truncate text-[12px]", isSelected ? "text-white" : node.hidden ? "text-ui-4" : "text-ui-2")}>
+                <span onDoubleClick={() => setRenaming(node.id)} title={label} className={cn("min-w-0 flex-1 truncate text-[12px]", isSelected ? "text-white" : node.hidden ? "text-ui-4" : "text-ui-2")}>
                   {label}
                 </span>
               )}
-              <span className={cn("shrink-0 font-ui-mono text-[9.5px] text-ui-hint", node.hidden && "opacity-45")}>{group ? `group · ${node.children?.length ?? 0}` : KIND_WORD[node.kind ?? "item"]}</span>
+              <span className={cn("shrink-0 font-ui-mono text-[10px] text-ui-hint", node.hidden && "opacity-45")}>{group ? `group · ${node.children?.length ?? 0}` : KIND_WORD[node.kind ?? "item"]}</span>
               {node.free && !widget && (
                 <span role="img" title="Placed freely (Alt)" aria-label="Placed freely (Alt)" className="inline-flex shrink-0 text-ui-4">
                   <Move className="h-3 w-3" aria-hidden="true" />
@@ -405,7 +405,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
           />
         </Suspense>
       )}
-      <div className="flex shrink-0 flex-col gap-0.5 border-t border-ui-subtle px-3.5 py-2.5 text-[10.5px]">
+      <div className="flex shrink-0 flex-col gap-0.5 border-t border-ui-subtle px-3.5 py-2.5 text-micro">
         <span className="text-ui-3">
           {total.parts} part{total.parts === 1 ? "" : "s"} · {total.groups} group{total.groups === 1 ? "" : "s"}
         </span>

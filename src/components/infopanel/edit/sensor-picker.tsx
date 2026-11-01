@@ -97,7 +97,7 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
                         >
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[12.5px] text-ui-1">{p.name}</span>
-                            <span className="block truncate font-ui-mono text-[10.5px] text-ui-4">{native ? ref : `${p.key} · preview only`}</span>
+                            <span className="block truncate font-ui-mono text-micro text-ui-4">{native ? ref : `${p.key} · preview only`}</span>
                           </span>
                           <span className="max-w-[150px] shrink-0 truncate font-ui-mono text-[11.5px] text-ui-2">{p.raw}</span>
                         </button>

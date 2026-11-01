@@ -149,7 +149,7 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
               ) : (
                 <span className="grid h-full place-items-center text-[10px] text-ui-danger">missing</span>
               )}
-              <span className="absolute bottom-0 left-0 rounded-tr-[5px] bg-black/60 px-1 font-ui-mono text-[9.5px] text-ui-2">{i + 1}</span>
+              <span className="absolute bottom-0 left-0 rounded-tr-[5px] bg-black/60 px-1 font-ui-mono text-[10px] text-ui-2">{i + 1}</span>
               {i === current && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-ui-accent shadow-[0_0_0_1.5px_#0b0b0e]" />}
             </button>
           </li>

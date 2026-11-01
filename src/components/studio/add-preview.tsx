@@ -84,7 +84,7 @@ function Schematic({ item }: { item: AddItem }) {
       {(item.parts ?? []).map((part, i) => (
         <div key={i} className="flex min-h-0 min-w-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-[6px] bg-[#1f1f24] px-1">
           <PartIcon kind={part.kind} />
-          <span className="max-w-full truncate text-[10.5px] text-ui-hint">{part.label}</span>
+          <span className="max-w-full truncate text-micro text-ui-hint">{part.label}</span>
         </div>
       ))}
     </div>

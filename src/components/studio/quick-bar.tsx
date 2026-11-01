@@ -256,7 +256,7 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
         {fields && (
           <>
             <Divider />
-            <div className="flex min-w-0 flex-[0_1_auto] items-center gap-0.5 overflow-x-auto [scrollbar-width:none]">
+            <div className="flex min-w-0 flex-[0_1_auto] items-center gap-0.5 overflow-x-auto px-2 [mask-image:linear-gradient(to_right,transparent,#000_8px,#000_calc(100%-8px),transparent)] [scrollbar-width:none]">
               {shown.length === 0 ? (
                 <span className="whitespace-nowrap px-2 text-[11.5px] text-ui-4">Pin settings from the panel to show them here</span>
               ) : (

@@ -204,7 +204,7 @@ function AlertCard({ alert, now, from, leaving, reduced, onAck }: AlertCardProps
         {/* The live region holds the title and text; the age label ticks every minute and stays out of it. */}
         <div role={alert.severity === "info" ? "status" : "alert"} className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-3">
-            <div className="truncate font-semibold">{alert.title ?? alert.name}</div>
+            <div className="line-clamp-2 break-words font-semibold">{alert.title ?? alert.name}</div>
             <div aria-hidden className="shrink-0 text-[0.75em] text-muted-foreground">{ageLabel(alert, now)}</div>
           </div>
           {alert.text && <div className="mt-0.5 whitespace-pre-line text-[0.9em] text-muted-foreground">{alert.text}</div>}

@@ -28,7 +28,7 @@ interface PhoneTabBarProps {
 }
 
 const TAB =
-  "flex flex-1 flex-col items-center justify-center gap-0.5 text-[9.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ui-accent/60";
+  "flex flex-1 flex-col items-center justify-center gap-0.5 text-micro font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ui-accent/60";
 const POPUP =
   "min-w-52 rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[13px] text-ui-2 shadow-ui-menu outline-none";
 const ITEM =

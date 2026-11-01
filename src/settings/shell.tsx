@@ -51,7 +51,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
   const updateBadge = update.state === "available" || update.state === "ready";
 
   return (
-    <aside className="flex w-[236px] shrink-0 flex-col border-r border-s-side-line bg-s-side">
+    <aside className="flex w-[236px] shrink-0 max-[700px]:w-[184px] flex-col border-r border-s-side-line bg-s-side">
       <div className="px-3 pb-2.5 pt-3.5">
         <SearchBox
           inputRef={input}
@@ -76,7 +76,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto px-2 pb-3 pt-1">
         {query ? (
           <>
-            <div role="status" className="px-2.5 pb-1.5 pt-2 text-[10.5px] uppercase tracking-[0.07em] text-s-dim">{results.length === 0 ? "No matches" : `${results.length} result${results.length === 1 ? "" : "s"}`}</div>
+            <div role="status" className="px-2.5 pb-1.5 pt-2 text-micro uppercase tracking-[0.07em] text-s-dim">{results.length === 0 ? "No matches" : `${results.length} result${results.length === 1 ? "" : "s"}`}</div>
             <div id="settings-results" role="listbox" aria-label="Settings search results" className="contents">
             {results.map((r, i) => {
               const Icon = PAGE_ICONS[r.section];
@@ -117,7 +117,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
                     {id === "server" && <span aria-hidden="true" className={cn("h-[7px] w-[7px] rounded-full", t.dot)} />}
                     {id === "diagnostics" && settings.debug && <span aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-s-amber" />}
                     {id === "updates" && updateBadge && (
-                      <span aria-hidden="true" className="rounded-full bg-s-accent/18 px-1.5 py-px text-[10.5px] font-semibold text-s-accent-text">
+                      <span aria-hidden="true" className="rounded-full bg-s-accent/18 px-1.5 py-px text-micro font-semibold text-s-accent-text">
                         1
                       </span>
                     )}

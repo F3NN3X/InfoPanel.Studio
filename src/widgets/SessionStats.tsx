@@ -81,7 +81,7 @@ export default function SessionStats(p: SessionStatsProps) {
         return (
           <div className="flex h-full min-w-0 flex-col justify-center">
             {head && (
-              <div className="mb-1 grid gap-2 text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]" style={grid}>
+              <div className="mb-1 grid gap-2 text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]" style={grid}>
                 <span />
                 {shown.map((c) => (
                   <span key={c.id} className="truncate text-right">
@@ -92,11 +92,11 @@ export default function SessionStats(p: SessionStatsProps) {
             )}
             {rows.slice(0, fit).map((r) => (
               <div key={r.key} className="grid items-baseline gap-2 py-1" style={{ ...grid, minHeight: rowH }}>
-                <span className="truncate text-[13px] text-[color:var(--w-muted)]">{r.label}</span>
+                <span className="truncate text-[13px] text-[color:var(--w-muted)]" title={r.label}>{r.label}</span>
                 {shown.map((c) => (
                   <span key={c.id} className="truncate whitespace-nowrap text-right text-[15px]">
                     {r.stat ? <Num weight={600}>{c.text(r.stat)}</Num> : "–"}
-                    {c.id !== "above" && r.unit && <span className="ml-0.5 text-[10.5px] text-[color:var(--w-faint)]">{r.unit}</span>}
+                    {c.id !== "above" && r.unit && <span className="ml-0.5 text-micro text-[color:var(--w-faint)]">{r.unit}</span>}
                   </span>
                 ))}
               </div>

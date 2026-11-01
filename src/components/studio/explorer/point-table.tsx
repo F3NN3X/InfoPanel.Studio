@@ -258,7 +258,7 @@ function GroupHeader({ row, onGroup }: { row: GroupRow; onGroup: (row: GroupRow)
     >
       <span className="truncate text-[12px] font-semibold text-ui-1">{row.title}</span>
       {row.sourceName !== row.title && <span className="truncate text-[11px] text-ui-4">{row.sourceName}</span>}
-      <span className="ml-auto font-ui-mono text-[10.5px] text-ui-hint">{row.count}</span>
+      <span className="ml-auto font-ui-mono text-micro text-ui-hint">{row.count}</span>
     </div>
   );
 }
@@ -316,7 +316,7 @@ function PointRow({ point, cols, values, usage, selected, onSelect, screens, sou
             <span className="truncate text-[12.5px] text-ui-1">{point.name}</span>
             {point.kind && <Chip>{point.kind}</Chip>}
           </div>
-          <div className="truncate font-ui-mono text-[10.5px] text-ui-hint">{point.key}</div>
+          <div className="truncate font-ui-mono text-micro text-ui-hint">{point.key}</div>
         </div>
       </div>
       <span

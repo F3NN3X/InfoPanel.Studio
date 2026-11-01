@@ -148,7 +148,7 @@ export function CompositeView(p: CompositeProps) {
             )}
           </div>
           {p.showNews && news && (
-            <Text className="mt-2 text-[10px] text-[color:var(--w-muted)]">{news}</Text>
+            <Text className="mt-2 text-micro text-[color:var(--w-muted)]">{news}</Text>
           )}
         </div>
       </div>
@@ -165,7 +165,7 @@ export function CompositeView(p: CompositeProps) {
           <Num className="block text-sm leading-tight" style={{ color: bigColor }} weight={600}>
             {total}
           </Num>
-          <Text className="text-[10px] tabular-nums text-[color:var(--w-muted)]">
+          <Text className="text-micro tabular-nums text-[color:var(--w-muted)]">
             {[games, friends, Number.isFinite(achPct) ? `${Math.round(achPct)}% ach` : ""].filter(Boolean).join(" · ") || "offline"}
           </Text>
         </div>
@@ -184,7 +184,7 @@ export function CompositeView(p: CompositeProps) {
             <Num className="block text-sm leading-tight" weight={600}>
               {Math.round(achPct)}%
             </Num>
-            <div className="text-[9px] text-[color:var(--w-muted)]">ach</div>
+            <div className="text-micro text-[color:var(--w-muted)]">ach</div>
           </div>
         )}
       </div>
@@ -212,7 +212,7 @@ export function CompositeView(p: CompositeProps) {
               <Text className="text-xs text-[color:var(--w-muted)]">{latestAch ? `latest: ${latestAch}` : "achievements"}</Text>
             </>
           )}
-          {p.showNews && news && h >= 180 && <Text className="mt-1 text-[10px] text-[color:var(--w-muted)]">{news}</Text>}
+          {p.showNews && news && h >= 180 && <Text className="mt-1 text-micro text-[color:var(--w-muted)]">{news}</Text>}
         </div>
       </div>
     );
@@ -231,7 +231,7 @@ export function CompositeView(p: CompositeProps) {
           {(sessionTime || sessionStart) && (
             <Text className="text-xs text-[color:var(--w-muted)]">{[sessionTime && `session ${sessionTime}`, sessionStart].filter(Boolean).join(" · ")}</Text>
           )}
-          {p.showNews && news && h >= 120 && <Text className="mt-1.5 text-[10px] text-[color:var(--w-muted)]">{news}</Text>}
+          {p.showNews && news && h >= 120 && <Text className="mt-1.5 text-micro text-[color:var(--w-muted)]">{news}</Text>}
         </div>
         {p.showStats && (
           <div className="w-[26%] min-w-[140px] max-w-[240px] shrink text-right">

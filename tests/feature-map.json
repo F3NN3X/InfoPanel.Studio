@@ -576,6 +576,7 @@
       "tests": [
         "tests/components/studio/**",
         "tests/lib/image.test.ts",
+        "tests/lib/utils.test.ts",
         "tests/lib/import-sniff.test.ts",
         "tests/lib/studio-focus.test.ts",
         "tests/lib/screens/**",

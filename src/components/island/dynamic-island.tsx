@@ -459,7 +459,7 @@ function Expanded({ item }: { item: IslandItem }) {
       )}
       <div className="min-w-0 flex-1 leading-tight">
         <div className="flex min-w-0 items-baseline gap-[0.4em]">
-          <span className="truncate [font-weight:var(--island-weight)]">{item.title}</span>
+          <span className="truncate [font-weight:var(--island-weight)]" title={item.title}>{item.title}</span>
           {item.count > 1 && (
             <span className="shrink-0 rounded-full bg-current/15 px-[0.45em] text-[0.78em] tabular-nums">
               <span aria-hidden="true">×{item.count}</span>
@@ -467,7 +467,7 @@ function Expanded({ item }: { item: IslandItem }) {
             </span>
           )}
         </div>
-        {item.body && <div className="truncate text-[0.86em] opacity-75">{item.body}</div>}
+        {item.body && <div className="line-clamp-2 break-words text-[0.86em] opacity-75" title={item.body}>{item.body}</div>}
         {item.progress !== undefined && (
           <div className="mt-[0.35em] h-[0.3em] overflow-hidden rounded-full bg-current/20" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(item.progress * 100)}>
             <div className="island-level h-full rounded-full" style={{ width: `${Math.round(item.progress * 100)}%`, background: color }} />

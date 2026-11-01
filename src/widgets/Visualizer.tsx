@@ -47,7 +47,7 @@ export default function Visualizer(p: VisualizerProps) {
       title={p.title ?? name}
       icon="equalizer"
       studio={{ label: name, live: (k("audio-level") || 0) > 0, value: fmt(k("peak-level"), 1), unit: "dB", meters: [{ n: "L", v: k("left-channel") }, { n: "R", v: k("right-channel") }, { n: "LVL", v: k("audio-level") }] }}
-      right={<span className="font-mono text-[10.5px] tabular-nums text-[color:var(--w-muted)]">{fmt(k("peak-level"), 1)} dB</span>}
+      right={<span className="font-mono text-micro tabular-nums text-[color:var(--w-muted)]">{fmt(k("peak-level"), 1)} dB</span>}
     >
       <AudioViz style={p.mode ?? "bars"} look={look} input={input} className="absolute inset-0 h-full" aria-label={`${name} visualizer`} />
     </Widget>

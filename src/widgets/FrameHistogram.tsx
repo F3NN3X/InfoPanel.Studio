@@ -93,7 +93,7 @@ export default function FrameHistogram(p: FrameHistogramProps) {
             </div>
             <div className="relative min-h-[40px] flex-1">{chart}</div>
             {h > 170 && (
-              <div className="relative h-3.5 text-[10.5px] leading-none text-[color:var(--w-faint)]">
+              <div className="relative h-3.5 text-micro leading-none text-[color:var(--w-muted)]">
                 <span className="absolute left-0">{w > 300 ? `0 ms · ${span}` : "0 ms"}</span>
                 {GUIDES.filter((g) => x(g.ms) > (w > 300 ? 30 : 14) && x(g.ms) < 80).map((g) => (
                   <span key={g.label} className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `${x(g.ms)}%` }}>

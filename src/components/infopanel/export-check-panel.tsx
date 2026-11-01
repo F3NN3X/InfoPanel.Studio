@@ -103,7 +103,7 @@ export function CheckGroups({ rows, onSelect, skipOk = false }: { rows: readonly
               const body = (
                 <>
                   <span className="block truncate text-[11.5px] text-ui-1">{r.name}</span>
-                  <span className="block text-[10.5px] leading-snug text-ui-4">{r.why}</span>
+                  <span className="block text-micro leading-snug text-ui-4">{r.why}</span>
                 </>
               );
               return onSelect ? (

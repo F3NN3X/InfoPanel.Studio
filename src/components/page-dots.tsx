@@ -13,6 +13,8 @@ export const PAUSE_SHOW_MS = 4000;
 interface PageDotsProps {
   /** The setting (General › Page dots and swipe). */
   enabled: boolean;
+  /** A scrolling page: the strip gets a backdrop so content scrolling under it stays legible. */
+  scroll?: boolean;
   pages: { id: string; name: string }[];
   current: string;
   /** The profile has auto-rotate saved on. */
@@ -29,7 +31,7 @@ interface PageDotsProps {
  * (or the Pause button, when auto-rotate is on) to pause or resume auto-rotate. Drawn in the dashboard theme; the grid
  * reserves `PAGE_DOTS_STRIP_PX` so the dots never cover a zone.
  */
-export function PageDots({ enabled, pages, current, rotateOn, paused, onSelect, onToggleRotate }: PageDotsProps) {
+export function PageDots({ enabled, scroll, pages, current, rotateOn, paused, onSelect, onToggleRotate }: PageDotsProps) {
   const timer = useRef<number | undefined>(undefined);
   const fired = useRef(false);
   const reduced = useReducedMotion();
@@ -59,7 +61,7 @@ export function PageDots({ enabled, pages, current, rotateOn, paused, onSelect, 
   return (
     <div
       style={{ height: PAGE_DOTS_STRIP_PX }}
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex items-center justify-center gap-2"
+      className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-40 flex items-center justify-center gap-2", scroll && "bg-gradient-to-t from-background to-transparent")}
     >
       <div role="group" aria-label="Pages" className="pointer-events-auto relative flex items-center">
         {pages.map((page) => {

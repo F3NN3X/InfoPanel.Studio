@@ -68,7 +68,7 @@ export function ModeStep({ state }: { state: ImportState }) {
           <span className="flex flex-1 flex-col gap-1">
             <span className="flex items-center gap-2 text-[13.5px] font-semibold text-ui-1">
               {m.title}
-              {m.recommended && <span className="rounded bg-ui-accent-soft px-1.5 py-px text-[10.5px] font-medium text-ui-accent-text">Recommended</span>}
+              {m.recommended && <span className="rounded bg-ui-accent-soft px-1.5 py-px text-micro font-medium text-ui-accent-text">Recommended</span>}
             </span>
             <span className="text-[12.5px] text-ui-3">{m.text}</span>
           </span>

@@ -588,7 +588,7 @@ function StepNumber({ n, current, done }: { n: number; current: boolean; done: b
 
 const Hint = ({ k, text }: { k: string; text: string }) => (
   <span className="flex items-center gap-1">
-    <kbd className="rounded-[4px] border border-ui-strong px-1 font-ui-mono text-[10.5px] text-ui-3">{k}</kbd>
+    <kbd className="rounded-[4px] border border-ui-strong px-1 font-ui-mono text-micro text-ui-3">{k}</kbd>
     {text}
   </span>
 );

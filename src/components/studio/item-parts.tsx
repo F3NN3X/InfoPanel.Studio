@@ -299,7 +299,7 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
         >
           {/* The chip, 26 px above the box at its screen size whatever the zoom. */}
           <span className="absolute left-0 whitespace-nowrap" style={{ zoom: 1 / zoom, top: -26 }}>
-            <span data-testid="group-chip" className="rounded-[4px] bg-ui-accent px-1.5 py-0.5 text-[10.5px] font-semibold text-ui-inverse-fg">
+            <span data-testid="group-chip" className="rounded-[4px] bg-ui-accent px-1.5 py-0.5 text-micro font-semibold text-ui-inverse-fg">
               {node.name} · group
             </span>
           </span>
@@ -374,7 +374,7 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
             {drag?.free && drag.id === part.id && (
               // The live readout, 6 px under the part, at its screen size whatever the zoom.
               <span data-shot-skip data-testid="alt-readout" className="absolute left-0 top-full whitespace-pre" style={{ zoom: 1 / zoom, marginTop: 6 }}>
-                <span className="rounded-[4px] bg-ui-accent px-1.5 py-px font-ui-mono text-[10.5px] font-semibold text-ui-inverse-fg">
+                <span className="rounded-[4px] bg-ui-accent px-1.5 py-px font-ui-mono text-micro font-semibold text-ui-inverse-fg">
                   X {Math.round(b.x)}  Y {Math.round(b.y)}  W {Math.round(b.w)}  H {Math.round(b.h)} · free
                 </span>
               </span>

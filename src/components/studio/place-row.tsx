@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { Grid3x3, Move } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const SECTION_LABEL = "font-ui-mono text-[10.5px] uppercase tracking-[0.06em] text-ui-3";
+export const SECTION_LABEL = "font-ui-mono text-micro uppercase tracking-[0.06em] text-ui-3";
 
 export type CellPatch = Partial<{ col: number; row: number; cols: number; rows: number }>;
 export type PxPatch = Partial<{ x: number; y: number; w: number; h: number }>;
@@ -46,7 +46,7 @@ function Box({ label, value, onCommit, disabled }: { label: string; value: numbe
         refused ? "border-ui-danger" : "border-ui-default",
       )}
     >
-      <span className="shrink-0 text-[9.5px] text-ui-hint">{label}</span>
+      <span className="shrink-0 text-[10px] text-ui-hint">{label}</span>
       {onCommit && !disabled ? (
         <input
           aria-label={label}
@@ -77,7 +77,7 @@ export function PlaceRow({ cell, px, onCells, onPx, onSnap, disabled }: PlaceRow
     <section data-testid="inspector-place" data-mode={onGrid ? "grid" : "free"} className="flex flex-col gap-[7px] border-b border-ui-subtle px-3.5 py-3">
       <div className="flex items-center justify-between gap-2">
         <span className={SECTION_LABEL}>{onGrid ? "Place on grid" : "Position and size (px)"}</span>
-        <span className={cn("inline-flex h-5 items-center gap-1 rounded-[5px] px-[7px] text-[10.5px]", onGrid ? "bg-ui-hover text-ui-3" : "bg-ui-accent/14 text-ui-accent")}>
+        <span className={cn("inline-flex h-5 items-center gap-1 rounded-[5px] px-[7px] text-micro", onGrid ? "bg-ui-hover text-ui-3" : "bg-ui-accent/14 text-ui-accent")}>
           {onGrid ? <Grid3x3 className="h-3 w-3" /> : <Move className="h-3 w-3" />}
           {onGrid ? "On grid" : "Placed freely"}
         </span>

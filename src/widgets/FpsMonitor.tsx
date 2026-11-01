@@ -127,7 +127,7 @@ export function GaugeView({ idle, size, w, h, fps, low, low01, ft, hz, maxFps, t
   );
   const spark = hist && <Spark values={hist} min={0} color={sparkColor} className="h-6 w-full" />;
   const sourceLine = (
-    <span className="text-[10.5px] font-medium text-[color:var(--w-muted)]">
+    <span className="text-micro font-medium text-[color:var(--w-muted)]">
       {source} · {fmt(maxFps)} {targeted ? "fps target" : "Hz"}
     </span>
   );
@@ -257,7 +257,7 @@ export default function FpsMonitor(p: FpsMonitorProps) {
               </div>
             </div>
             <div className="flex min-h-0 flex-1 flex-col">
-              <span className="shrink-0 self-end text-[10px] text-[color:var(--w-faint)]">frame time</span>
+              <span className="shrink-0 self-end text-micro text-[color:var(--w-faint)]">frame time</span>
               <div className="relative min-h-0 flex-1">
                 <Spark values={hist} min={0} max={ftTop} curve={false} className="absolute inset-0 h-full" />
               </div>

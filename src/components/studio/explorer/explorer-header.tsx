@@ -104,7 +104,7 @@ export function ExplorerHeader({ pointCount, sourceCount, apiBase, config }: Exp
               >
                 <span
                   className={cn(
-                    "pt-px font-ui-mono text-[10.5px] font-medium",
+                    "pt-px font-ui-mono text-micro font-medium",
                     e.method === "GET" ? "text-ui-success" : "text-ui-warning"
                   )}
                 >

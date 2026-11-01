@@ -321,7 +321,7 @@
     "evidence": "alert-layer.tsx:207 and dynamic-island.tsx:437,444 opened: truncate on title/body.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-015",
@@ -426,7 +426,7 @@
     "evidence": "quick-bar.tsx:259 opened: overflow-x-auto [scrollbar-width:none].",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-020",
@@ -733,7 +733,7 @@
     "evidence": "Counts from greps; kiosk legibility depends on zoom/DPI (inferred).",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-032",
@@ -755,7 +755,7 @@
     "evidence": "Counts from greps.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-033",
@@ -780,7 +780,7 @@
     "evidence": "Code verified in audit; render inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-034",
@@ -800,7 +800,7 @@
     "evidence": "index.css:232-244 opened: scrollbars hidden by design (comment). Downgraded: deliberate for a passive display, impact on scroll profiles unconfirmed.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-035",
@@ -841,7 +841,7 @@
     "evidence": "SystemOverview.tsx:309-331 opened: rings carry the value visually; legend only when w - h > 60. Downgraded: data readable as ring fill, only identity is colour (also covered by the colour-state row).",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-037",
@@ -963,7 +963,7 @@
     "evidence": "Inferred (panel path only).",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-043",
@@ -1053,7 +1053,7 @@
     "evidence": "layers-tree.tsx:273 opened (opacity-45).",
     "checked": false,
     "exportRisk": false,
-    "status": "partial"
+    "status": "fixed"
   },
   {
     "id": "FND-047",
@@ -1438,7 +1438,7 @@
     "evidence": "Inferred; needs WebView2 render.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-064",
@@ -1543,7 +1543,7 @@
     "evidence": "Verified in audit (shots).",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-069",
@@ -1724,7 +1724,7 @@
     "evidence": "Inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-077",
@@ -1931,7 +1931,7 @@
     "evidence": "Inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-087",
@@ -1950,7 +1950,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-088",
@@ -2015,7 +2015,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-091",

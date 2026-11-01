@@ -92,7 +92,7 @@ export default function OsdStrip(p: OsdStripProps) {
                 const [l, v, c] = ALL[k];
                 return (
                   <div key={k} className={`flex min-w-0 ${inline ? "items-baseline gap-1.5 px-2 py-1" : "flex-col gap-0.5 px-2.5 py-1.5"} ${i ? "border-l border-white/10" : ""}`}>
-                    <span className={`${inline ? "shrink-0 " : ""}truncate text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[color:var(--w-muted)]`}>{l}</span>
+                    <span className={`${inline ? "shrink-0 " : ""}truncate text-micro font-semibold uppercase tracking-[0.08em] text-[color:var(--w-muted)]`}>{l}</span>
                     <span
                       className={`truncate ${inline && h < 30 ? "text-[13px]" : "text-[15px]"} font-medium tabular-nums text-[color:var(--w-fg)]`}
                       style={{ fontFamily: sk.skin === "retro" || sk.skin === "tui" ? sk.num : "'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace", color: c ?? (k === "fps" && !idle ? "var(--accent)" : undefined) }}

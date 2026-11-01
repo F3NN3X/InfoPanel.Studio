@@ -56,7 +56,7 @@ export function ShapeChips({ filter, onFilter, counts, className = "mb-2" }: Sha
         >
           {f !== "all" && <span aria-hidden className="rounded-[1.5px] border-[1.25px] border-current opacity-70" style={{ width: GLYPHS[f][0], height: GLYPHS[f][1] }} />}
           {f === "all" ? "All" : CLASS_NAMES[f]}
-          {counts && <span className="font-ui-mono text-[10.5px] text-ui-4">{counts[f]}</span>}
+          {counts && <span className="font-ui-mono text-micro text-ui-4">{counts[f]}</span>}
         </button>
       ))}
     </div>

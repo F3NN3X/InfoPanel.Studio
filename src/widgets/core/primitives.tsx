@@ -566,11 +566,11 @@ export const Dot = ({ ok, className = "" }: { ok?: boolean; className?: string }
   <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${className}`} style={{ background: ok ? "#4ade80" : "#52525b", boxShadow: ok ? "0 0 6px #4ade80" : "none" }} />
 );
 export const Chip = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
-  <span className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md bg-[color:var(--w-track)] px-1.5 py-0.5 text-[10.5px] font-medium text-[color:var(--w-fg)] ${className}`}>{children}</span>
+  <span className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md bg-[color:var(--w-track)] px-1.5 py-0.5 text-micro font-medium text-[color:var(--w-fg)] ${className}`}>{children}</span>
 );
 export const Stat = ({ label, value, className = "", tag }: { label?: ReactNode; value?: ReactNode; className?: string; tag?: Record<string, string | number> }) => (
   <div className={`flex min-w-0 flex-col gap-0.5 ${className}`} style={{ alignItems: "var(--wp-x-cross, stretch)" }}>
-    <span className="max-w-full truncate text-[10.5px] text-[color:var(--w-faint)]" style={labelStyle("none")}>{label}</span>
+    <span className="max-w-full truncate text-micro text-[color:var(--w-faint)]" style={labelStyle("none")}>{label}</span>
     <span {...tag} className="max-w-full truncate text-[13px] font-medium tabular-nums text-[color:var(--w-fg)]">{value}</span>
   </div>
 );
@@ -650,7 +650,7 @@ export function Segmented<T extends string>({ value, options, onChange, classNam
   return (
     <span className={`inline-flex rounded-md bg-[color:var(--w-track)] p-[2px] ${className}`}>
       {options.map(([v, l]) => (
-        <button key={v} type="button" onClick={() => onChange?.(v)} className={`whitespace-nowrap rounded px-2 py-0.5 text-[10.5px] ${value === v ? "bg-[color:var(--w-fg)]/[0.12] text-[color:var(--w-fg)]" : "text-[color:var(--w-muted)]"}`}>
+        <button key={v} type="button" onClick={() => onChange?.(v)} className={`whitespace-nowrap rounded px-2 py-0.5 text-micro ${value === v ? "bg-[color:var(--w-fg)]/[0.12] text-[color:var(--w-fg)]" : "text-[color:var(--w-muted)]"}`}>
           {l}
         </button>
       ))}

@@ -36,7 +36,7 @@ interface PageInspectorProps {
   onGap: (gap: number) => void;
 }
 
-const SECTION_LABEL = "text-[10.5px] font-semibold uppercase tracking-[0.06em] text-ui-4";
+const SECTION_LABEL = "text-micro font-semibold uppercase tracking-[0.06em] text-ui-4";
 const SELECT = "h-7 max-w-[150px] rounded-md border border-ui-default bg-ui-app px-1.5 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
 const ACTION =
   "flex h-8 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40";

@@ -52,7 +52,7 @@ export default function Calendar(p: CalendarProps) {
             <div className="grid min-w-0 flex-1 grid-cols-7 gap-0.5 text-center">
               {weekOf(date, ws).map((x) => (
                 <div key={x.getTime()} className="flex min-w-0 flex-col items-center gap-0.5">
-                  {h >= 40 && <span className="text-[10px] font-medium leading-3 text-[color:var(--w-faint)]">{W[x.getDay()][0]}</span>}
+                  {h >= 40 && <span className="text-micro font-medium leading-3 text-[color:var(--w-faint)]">{W[x.getDay()][0]}</span>}
                   <span
                     className={`flex h-6 w-full max-w-8 items-center justify-center rounded-md text-[11px] tabular-nums ${x.getDate() === day ? "font-semibold text-[#0c0c0e]" : "text-[color:var(--w-fg)]"}`}
                     style={x.getDate() === day ? TODAY : undefined}
@@ -78,7 +78,7 @@ export default function Calendar(p: CalendarProps) {
             <span {...tag("date", { kind: "clock", format: "MMMM" })} className="text-xs font-semibold text-[color:var(--w-fg)]">{M[mon - 1]}</span>
             <div className="grid min-h-0 flex-1 grid-cols-7 gap-0.5 text-center text-[11px]" style={{ gridAutoRows: "minmax(0,1fr)" }}>
               {Array.from({ length: 7 }, (_, i) => (
-                <span key={`h${i}`} className="text-[10px] font-medium text-[color:var(--w-faint)]">
+                <span key={`h${i}`} className="text-micro font-medium text-[color:var(--w-faint)]">
                   {W[(i + ws) % 7][0]}
                 </span>
               ))}

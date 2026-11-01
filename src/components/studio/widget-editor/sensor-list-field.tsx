@@ -52,7 +52,7 @@ export function SensorListField({
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[12px] text-ui-1">{overrides[key]?.label ?? name}</span>
-                    <span className="block truncate font-ui-mono text-[10.5px] text-ui-4">{key}</span>
+                    <span className="block truncate font-ui-mono text-micro text-ui-4">{key}</span>
                   </span>
                   <span className="shrink-0 font-ui-mono text-[11px] text-ui-4">{liveText(live[key], point) ?? "–"}</span>
                   {items && (

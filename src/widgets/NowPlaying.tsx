@@ -122,7 +122,7 @@ export default function NowPlaying(p: NowPlayingProps) {
   const times = (cls: string) =>
     showTimes &&
     has(m.elapsed) && (
-      <div className={`flex justify-between font-mono text-[10px] ${cls}`}>
+      <div className={`flex justify-between font-mono text-micro ${cls}`}>
         <span>{m.elapsed}</span>
         <span>-{m.remaining}</span>
       </div>
@@ -162,7 +162,7 @@ export default function NowPlaying(p: NowPlayingProps) {
       }
       right={
         <Chip>
-          <span className="text-[9px]">{m.playing ? "▶" : "❚❚"}</span>
+          <span className="text-micro">{m.playing ? "▶" : "❚❚"}</span>
           {m.app}
         </Chip>
       }
@@ -197,7 +197,7 @@ export default function NowPlaying(p: NowPlayingProps) {
                 <div className="flex min-w-0 flex-1 flex-col gap-2.5 pb-1">
                   <div className="flex items-center gap-2">
                     <Eq on={m.playing} />
-                    <span className="text-[10.5px] uppercase tracking-[0.1em] text-zinc-300">{m.app}</span>
+                    <span className="text-micro uppercase tracking-[0.1em] text-zinc-300">{m.app}</span>
                   </div>
                   {text(size === "lg" ? "text-2xl" : "text-base", true)}
                   {waveBlock(size === "lg" ? "h-12" : "h-9", true)}
@@ -233,7 +233,7 @@ export default function NowPlaying(p: NowPlayingProps) {
                 {art && <Img src={cover} icon="album" className="aspect-square h-11 shrink-0 rounded-lg" />}
                 <div className="flex min-w-0 flex-col">
                   {text("text-sm")}
-                  {showTimes && has(m.elapsed) && <span className="truncate font-mono text-[10px] text-[color:var(--w-faint)]">{`${m.elapsed} / ${m.remaining}`}</span>}
+                  {showTimes && has(m.elapsed) && <span className="truncate font-mono text-micro text-[color:var(--w-faint)]">{`${m.elapsed} / ${m.remaining}`}</span>}
                 </div>
               </div>
               {media(viz ? "visualizer" : "bar", "h-4")}

@@ -25,12 +25,12 @@ export function FramesInspector({ tools, recolour, onRecolour }: FramesInspector
         </header>
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
           <section className="space-y-3">
-            <h3 className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-ui-4">Playback</h3>
+            <h3 className="text-micro font-medium uppercase tracking-[0.06em] text-ui-4">Playback</h3>
             <NumRow label="Frames per second" value={tools.animationSpeed} min={0} max={120} onChange={tools.setSpeed} />
             <p className="text-[12px] leading-snug text-ui-4">How fast the shown frame moves toward the value. 0 jumps straight to it.</p>
           </section>
           <section className="space-y-3">
-            <h3 className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-ui-4">Recolor</h3>
+            <h3 className="text-micro font-medium uppercase tracking-[0.06em] text-ui-4">Recolor</h3>
             <NumRow label="Hue" value={recolour.hue} min={-180} max={180} unit="°" onChange={(hue) => onRecolour({ ...recolour, hue })} />
             <NumRow label="Saturation" value={recolour.saturation} min={0} max={300} unit="%" onChange={(saturation) => onRecolour({ ...recolour, saturation })} />
             <NumRow label="Brightness" value={recolour.brightness} min={0} max={300} unit="%" onChange={(brightness) => onRecolour({ ...recolour, brightness })} />
@@ -45,7 +45,7 @@ export function FramesInspector({ tools, recolour, onRecolour }: FramesInspector
             <p className="text-[12px] leading-snug text-ui-4">Previewed here first. Apply makes recolored copies of the frames in one step.</p>
           </section>
           <section className="space-y-3">
-            <h3 className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-ui-4">Vector</h3>
+            <h3 className="text-micro font-medium uppercase tracking-[0.06em] text-ui-4">Vector</h3>
             <button type="button" disabled={off} onClick={() => void tools.convert()} className={BUTTON}>
               Convert to vector
             </button>

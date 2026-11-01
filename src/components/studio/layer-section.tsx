@@ -6,7 +6,7 @@
 import { ArrowDown, ArrowUp, BringToFront, SendToBack, type LucideIcon } from "lucide-react";
 import type { LayerAction } from "@/lib/page-model/layer-actions";
 
-const SECTION_LABEL = "font-ui-mono text-[10.5px] uppercase tracking-[0.06em] text-ui-4";
+const SECTION_LABEL = "font-ui-mono text-micro uppercase tracking-[0.06em] text-ui-4";
 
 const BUTTONS: { action: LayerAction; label: string; icon: LucideIcon }[] = [
   { action: "front", label: "Bring to front", icon: BringToFront },

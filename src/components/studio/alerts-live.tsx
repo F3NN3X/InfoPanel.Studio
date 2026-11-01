@@ -43,7 +43,7 @@ export function ActiveList({ active, now }: { active: readonly ActiveAlert[]; no
             <span className="min-w-0 flex-1 truncate text-[12.5px] text-ui-1">{a.name}</span>
             {a.test && <Tag>test</Tag>}
             {a.quiet && <Tag>quiet</Tag>}
-            <span className="shrink-0 font-ui-mono text-[10.5px] text-ui-4">{ageText(a.startedAt, now)}</span>
+            <span className="shrink-0 font-ui-mono text-micro text-ui-4">{ageText(a.startedAt, now)}</span>
           </div>
           <div className="mt-0.5 truncate text-[11.5px] text-ui-3" title={a.text}>
             {a.text}
@@ -85,7 +85,7 @@ export function HistoryList({ history, now }: { history: readonly AlertHistoryEn
           {h.test && <Tag>test</Tag>}
           {h.quiet && <Tag>quiet</Tag>}
           {h.dismissed && <Tag>dismissed</Tag>}
-          <span className="shrink-0 font-ui-mono text-[10.5px] text-ui-4">{ageText(h.startedAt, now)}</span>
+          <span className="shrink-0 font-ui-mono text-micro text-ui-4">{ageText(h.startedAt, now)}</span>
         </li>
       ))}
     </ul>
