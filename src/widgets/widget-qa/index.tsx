@@ -22,14 +22,17 @@ import { installDemoStreams } from "./demo-streams";
  * (see docs/redesign/phase9/qa.md).
  */
 
-// `data=fixtures` also gives the streaming widgets their OBS, chat and mixer demo data.
-if (new URLSearchParams(window.location.search).get("data") === "fixtures") installDemoStreams();
+// Fixture data (the default) also gives the streaming widgets their OBS, chat, mixer, Stream Deck and agents demo data;
+// `data=live` reads the server's own streams.
+if (new URLSearchParams(window.location.search).get("data") !== "live") installDemoStreams();
 
 const CATEGORY_ORDER = INSERT_CATEGORIES.filter((c) => !["All", "Layouts", "My panels"].includes(c));
 
 export default function WidgetQa() {
   const [state, setState] = useState(() => parseParams(window.location.search));
   const apply = (next: QaState) => {
+    // The demo streams are installed before anything mounts, so a change of data source loads the page again.
+    if (next.data !== state.data) return window.location.assign(serializeParams(next) + window.location.hash);
     setState(next);
     window.history.replaceState(null, "", serializeParams(next) + window.location.hash);
   };

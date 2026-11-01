@@ -4,9 +4,11 @@ import { EXTRAS_EVENTS_URL } from "@/lib/extras";
 import { STREAMDECK_EVENTS_URL } from "@/lib/streamdeck";
 
 /**
- * Demo streams for `?widget-qa&data=fixtures`: the streaming widgets read OBS, chat and audio from the server's event
- * streams, so the page answers those four URLs itself (6 OBS scenes, 40 chat lines on both platforms, 6 mixer
- * channels, a 5x3 Stream Deck named "demo" with titles and no icons: the icon route has no deck behind it here) and leaves every other stream to the real EventSource. Dev-only, like the rest of `widget-qa`.
+ * Demo streams for `?widget-qa` on fixture data (the default): the streaming widgets read OBS, chat, audio, the
+ * coding agents and the Stream Deck from the server's event streams, so the page answers those four URLs itself (6 OBS
+ * scenes, 40 chat lines on both platforms, 6 mixer channels, three agent sessions with plan use and two weeks of tokens,
+ * a 5x3 Stream Deck "demo" with titles and no icons: the icon route has no deck behind it here) and leaves every other
+ * stream to the real EventSource. Dev-only, like the rest of `widget-qa`.
  */
 
 const SCENES = ["Gameplay", "Just Chatting", "Starting Soon", "Be Right Back", "Interview", "Ending"].map((name, i) => ({ id: `scene-${i}`, name, sub: `Scene ${i + 1}`, icon: "" }));
@@ -27,10 +29,48 @@ const chat = () => ({
   platforms: { twitch: { connected: true, channel: "demo" }, youtube: { connected: true, channel: "Demo" } },
 });
 
+const DAY = 86_400_000;
+/** Two weeks of token use, ending today, growing towards today. */
+const usageDays = (now: number, scale: number) =>
+  Array.from({ length: 14 }, (_, i) => {
+    const input = Math.round(scale * (40 + ((i * 37) % 60)) * 1000);
+    const output = Math.round(input * 0.18);
+    const cacheRead = input * 6;
+    const cacheWrite = Math.round(input * 0.4);
+    return { day: new Date(now - (13 - i) * DAY).toISOString().slice(0, 10), input, output, cacheRead, cacheWrite, total: input + output + cacheRead + cacheWrite };
+  });
+
+/** Three sessions (working, waiting for permission, done), both agents' plan windows and two weeks of usage. */
+const agents = () => {
+  const now = Date.now();
+  const usage = (scale: number) => {
+    const days = usageDays(now, scale);
+    return {
+      today: days[13].total,
+      history: days.reduce((n, d) => n + d.total, 0),
+      days,
+      breakdown: { today: { projects: [{ name: "InfoPanel.Studio", total: Math.round(days[13].total * 0.7) }, { name: "ips-server", total: Math.round(days[13].total * 0.3) }], models: [{ name: "opus", total: Math.round(days[13].total * 0.8) }, { name: "sonnet", total: Math.round(days[13].total * 0.2) }] } },
+    };
+  };
+  return {
+    sessions: [
+      { key: "s1", agent: "claude", project: "InfoPanel.Studio", state: "working", since: now - 95_000, turnStart: now - 95_000, tool: "Edit", subagents: 1, context: 42, cost: 3.12, model: "claude-opus-5-5" },
+      { key: "s2", agent: "codex", project: "ips-server", state: "waiting", since: now - 20_000, tool: "Bash", model: "gpt-5" },
+      { key: "s3", agent: "claude", project: "docs", state: "done", since: now - 600_000, lastTurnMs: 240_000, context: 18, cost: 0.41, model: "claude-sonnet-5-5" },
+    ],
+    plan: {
+      claude: { fiveHour: { used: 38, resetsAt: now + 2 * 3_600_000 }, sevenDay: { used: 61, resetsAt: now + 3 * DAY }, extra: [{ name: "opus", used: 44, resetsAt: now + 3 * DAY }], version: "2.4.0", at: now },
+      codex: { fiveHour: { used: 12, resetsAt: now + 4 * 3_600_000 }, sevenDay: { used: 27, resetsAt: now + 5 * DAY }, at: now },
+    },
+    usage: { claude: usage(1), codex: usage(0.35) },
+  };
+};
+
 const extras = () => ({
   obs: { configured: true, connected: true, streaming: true, recording: false, scenes: SCENES, currentScene: "scene-1", uptime: 5196, kbps: 6000, fps: 60, mic: { name: "Mic/Aux", muted: false, level: 40 }, replay: { active: true }, inputs: ["Mic/Aux"] },
   twitch: { configured: true, signedIn: true, login: "demo", channel: "demo", connected: true, live: true, viewers: 1243 },
   youtube: { clientConfigured: true, signedIn: true, channel: "Demo", live: true, viewers: 312, connected: true },
+  agents: agents(),
 });
 
 const device = (id: string, name: string, volume: number, muted = false, def = false) => ({ id, name, volume, muted, default: def });

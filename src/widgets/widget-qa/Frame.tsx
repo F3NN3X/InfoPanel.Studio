@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, 
 import { LivePlacement, placementContent } from "@/components/studio/placement-content";
 import type { Placement } from "@/lib/layout";
 import { fixtureSensors } from "../__fixtures__";
+import { MarkEmptyCtx } from "../core/primitives";
 
 const SENSORS = fixtureSensors();
 
@@ -28,7 +29,7 @@ export function Frame({ p, w, h, live, eager }: { p: Placement; w: number; h: nu
   }, [mounted]);
   const frame = (content: ReactNode, scope?: CSSProperties) => (
     <div ref={ref} data-qa-box className="relative overflow-visible" style={{ width: w, height: h, ...scope }}>
-      {content}
+      <MarkEmptyCtx.Provider value>{content}</MarkEmptyCtx.Provider>
     </div>
   );
   if (!mounted) return frame(null);

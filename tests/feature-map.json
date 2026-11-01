@@ -431,6 +431,7 @@
         "tests/widgets/StreamMixer/**",
         "tests/widgets/StreamControl/**",
         "tests/widgets/StreamDeck/**",
+        "tests/widgets/widget-qa/**",
         "tests/widgets/StreamChat/**",
         "tests/widgets/StatusBar/**",
         "tests/widgets/weather-fx/**",

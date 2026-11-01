@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ModuleSettings } from "@/modules/types";
 import { SKIN_NAMES, SURFACE_NAMES } from "@/widgets/core/theme";
+import { withDemo } from "./demo-settings";
 import { Frame } from "./Frame";
 import { placement, spanSize } from "./plan";
 
@@ -33,7 +34,7 @@ export function GalleryGrid({ def, base, cell, gap, live }: GalleryProps) {
       {def.variants.map((v) => (
         <figure key={v.label} data-qa-gallery={def.title} className="m-0 flex flex-col gap-1">
           <Frame
-            p={{ ...placement(def.module, c, r, { ...base, ...v.settings }), id: `qa-gallery-${def.title}-${v.label}` }}
+            p={{ ...placement(def.module, c, r, withDemo(def.module, { ...base, ...v.settings }, live)), id: `qa-gallery-${def.title}-${v.label}` }}
             w={spanSize(c, cell, gap)}
             h={spanSize(r, cell, gap)}
             live={live}

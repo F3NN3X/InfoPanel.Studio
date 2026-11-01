@@ -38,7 +38,8 @@ export const DEFAULT_STATE: QaState = {
   radius: "",
   theme: "",
   settings: "",
-  data: "live",
+  // Fixtures by default, so the page draws the same every time; `data=live` reads the server's sensors.
+  data: "fixtures",
   q: "",
   eager: false,
 };
@@ -58,7 +59,7 @@ export function parseParams(search: string): QaState {
     module: ids?.length ? ids : undefined,
     cell: Number(q.get("cell")) || DEFAULT_STATE.cell,
     gap: q.has("gap") ? Number(q.get("gap")) || 0 : DEFAULT_STATE.gap,
-    data: q.get("data") === "fixtures" ? "fixtures" : "live",
+    data: q.get("data") === "live" ? "live" : "fixtures",
     eager: q.get("eager") === "1",
   };
 }
@@ -71,7 +72,7 @@ export function serializeParams(s: QaState): string {
   for (const k of TEXT_KEYS) if (s[k] !== DEFAULT_STATE[k]) add(k, s[k]);
   if (s.cell !== DEFAULT_STATE.cell) add("cell", s.cell);
   if (s.gap !== DEFAULT_STATE.gap) add("gap", s.gap);
-  if (s.data === "fixtures") add("data", "fixtures");
+  if (s.data === "live") add("data", "live");
   if (s.eager) add("eager", "1");
   return `?${parts.join("&")}`;
 }

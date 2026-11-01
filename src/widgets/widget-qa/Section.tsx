@@ -1,4 +1,5 @@
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
+import { withDemo } from "./demo-settings";
 import { Frame } from "./Frame";
 import { framePlan, placement, spanSize } from "./plan";
 
@@ -59,7 +60,7 @@ export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View 
             </div>
           ) : (
             <figure key={`${c}x${r}`} data-qa-module={mod.id} data-qa-span={`${c}x${r}`} className="m-0 flex flex-col gap-1">
-              <Frame p={placement(mod.id, c, r, view.settings)} w={w} h={h} live={view.live} eager={view.eager} />
+              <Frame p={placement(mod.id, c, r, withDemo(mod.id, view.settings, view.live))} w={w} h={h} live={view.live} eager={view.eager} />
               <figcaption className="font-mono text-[10px] opacity-60">{caption}</figcaption>
             </figure>
           );
