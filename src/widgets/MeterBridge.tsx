@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useFastSensors } from "@/hooks/useSensors";
 import { AUDIO } from "./audio-device";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, fmt, Dot, LedLadder, HoldMark, scaleX, scaleY, slideX, STATE, useMeterBallistics, type BallisticsPreset, type ShellProps } from "./kit";
+import { useFitRows, Widget, shell, fmt, Dot, Icon, LedLadder, HoldMark, scaleX, scaleY, slideX, STATE, useMeterBallistics, type BallisticsPreset, type ShellProps } from "./kit";
 import { audioIdsIn, pickedIds, readDevice, type FlowFilter } from "./audio-data";
 import { meta } from "./meta/MeterBridge";
 
@@ -100,7 +100,7 @@ export default function MeterBridge(p: MeterBridgeProps) {
   const showName = p.showName !== false,
     showDetails = p.showDetails !== false,
     showMute = p.showMute !== false;
-  const mute = (c: Channel) => showMute && c.muted && <span className="shrink-0 text-[10px] font-semibold" style={{ color: STATE.crit }} title="Muted">M</span>;
+  const mute = (c: Channel) => showMute && c.muted && <span role="img" aria-label="Muted" className="shrink-0 text-[13px]" style={{ color: STATE.crit }} title="Muted"><Icon name="volume_off" /></span>;
   const pos = (db: number) => Math.min(100, Math.max(0, ((Math.max(floor, db) - floor) / -floor) * 100));
   const vertical = p.orientation !== "horizontal";
   const anyLive = ch.some((c) => c.l > floor || c.r > floor);

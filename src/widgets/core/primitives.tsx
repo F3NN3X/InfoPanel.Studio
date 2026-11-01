@@ -29,6 +29,18 @@ const SCALES = ["sm", "md", "lg", "xl", "2xl"] as const;
 type Scale = (typeof SCALES)[number];
 const NUM_GLOW: CSSProperties = { color: "color-mix(in oklab, var(--accent) 55%, var(--w-fg))", textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent), 0 0 30px color-mix(in oklab, var(--accent) 50%, transparent)" };
 
+/** A small glyph and screen-reader word beside a number whose colour says warn or crit, so the state is not colour alone. Nothing for ok. */
+export function ToneCue({ t, size = "max(8px, 0.45em)" }: { t?: Tone; size?: string }) {
+  const skip = useContext(IpTagCtx) ? { "data-ip-skip": "" } : undefined;
+  if (!t || t === "ok") return null;
+  return (
+    <>
+      <span {...skip} aria-hidden className="mr-[0.2em] inline-block align-middle leading-none" style={{ fontSize: size }}>{t === "warn" ? "▲" : "✕"}</span>
+      <span {...skip} className="sr-only">{t === "warn" ? "warning: " : "critical: "}</span>
+    </>
+  );
+}
+
 export interface MetricProps {
   label?: ReactNode;
   value: ReactNode;
@@ -54,6 +66,7 @@ export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok",
     <div className={`flex min-w-0 flex-col ${align === "center" ? "items-center text-center" : ""} ${className}`} style={align === "center" ? { alignItems: "var(--wp-x-cross, center)", textAlign: "var(--wp-text-align, center)" as CSSProperties["textAlign"] } : { alignItems: "var(--wp-x-cross, stretch)" }}>
       {label && <span className="max-w-full truncate text-[11px] font-medium text-[color:var(--w-muted)]" style={labelStyle("none")}>{label}</span>}
       <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey && typeof unit === "string" ? unit : undefined} data-ip-decimals={ipKey ? d : undefined} className={`${px ? "" : big} font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(px ? { fontSize: px } : null), fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow ? NUM_GLOW : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
+        <ToneCue t={t} />
         {shown}
         {unit && <span className="ml-0.5 inline-block align-top leading-none text-[0.45em] font-medium text-[color:var(--w-muted)]">{unit}</span>}
       </span>

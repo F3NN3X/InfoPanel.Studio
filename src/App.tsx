@@ -699,7 +699,8 @@ export default function App({ fixture }: AppProps = {}) {
     <GeneralProvider value={general}>
       <PerformanceProvider value={perfOverride}>
       <PageIslandProvider value={pageIsland}>
-      <div
+      <main
+        aria-label={pageName || undefined}
         className={cn(
           // A page background replaces the theme's page color (it sits
           // behind the grid, under this element's own paint).
@@ -806,6 +807,7 @@ export default function App({ fixture }: AppProps = {}) {
           enabled={pageNav}
           pages={stored.pages}
           current={profile.pageId ?? stored.pages[0].id}
+          rotateOn={stored.rotate?.enabled === true}
           paused={stored.rotate?.enabled === true && control?.profiles[stored.id]?.rotating === false}
           onSelect={goToPage}
           onToggleRotate={() => void postControl("rotate", { profile: stored.id, state: "toggle" })}
@@ -824,13 +826,14 @@ export default function App({ fixture }: AppProps = {}) {
         {!kiosk && (
           <button
             onClick={enterStudio}
-            className="fixed bottom-4 right-4 z-50 rounded-full border bg-popover p-2.5 text-muted-foreground shadow-lg opacity-50 transition-opacity hover:opacity-100"
+            className="fixed bottom-4 right-4 z-50 rounded-full border bg-popover p-2.5 text-muted-foreground shadow-lg opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100 kiosk-focus"
             title="Open dashboard studio"
+            aria-label="Open InfoPanel Studio"
           >
             <Wrench className="h-4 w-4" />
           </button>
         )}
-      </div>
+      </main>
       </PageIslandProvider>
     </PerformanceProvider>
     </GeneralProvider>

@@ -190,7 +190,6 @@ function AlertCard({ alert, now, from, leaving, reduced, onAck }: AlertCardProps
   const overlay = alert.display.style === "overlay";
   return (
     <div
-      role={alert.severity === "info" ? "status" : "alert"}
       data-alert-id={alert.id}
       onClick={() => onAck(alert.id)}
       className={cn(
@@ -202,14 +201,23 @@ function AlertCard({ alert, now, from, leaving, reduced, onAck }: AlertCardProps
     >
       <div className={cn("flex items-start gap-3", overlay && "gap-5")}>
         <Icon className={cn("mt-0.5 shrink-0", overlay ? "h-10 w-10" : "h-[1.4em] w-[1.4em]")} style={{ color }} aria-hidden />
-        <div className="min-w-0 flex-1">
+        {/* The live region holds the title and text; the age label ticks every minute and stays out of it. */}
+        <div role={alert.severity === "info" ? "status" : "alert"} className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-3">
             <div className="truncate font-semibold">{alert.title ?? alert.name}</div>
-            <div className="shrink-0 text-[0.75em] text-muted-foreground">{ageLabel(alert, now)}</div>
+            <div aria-hidden className="shrink-0 text-[0.75em] text-muted-foreground">{ageLabel(alert, now)}</div>
           </div>
           {alert.text && <div className="mt-0.5 whitespace-pre-line text-[0.9em] text-muted-foreground">{alert.text}</div>}
         </div>
       </div>
+      {/* Keyboard path for the whole-card tap: shown on focus only. The click reaches the card's handler. */}
+      <button
+        type="button"
+        aria-label={`Dismiss ${alert.title ?? alert.name}`}
+        className="alert-dismiss kiosk-focus sr-only"
+      >
+        Dismiss
+      </button>
       {fraction !== null && (
         <div
           className="absolute inset-x-0 bottom-0 h-1 origin-left"

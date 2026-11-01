@@ -70,20 +70,25 @@ function columns(n: number): string {
 
 function Table({ head, rows, onOpen }: { head: string[]; rows: string[][]; onOpen: BlockProps["onOpen"] }) {
   return (
-    <div className="overflow-auto rounded-[11px] border border-s-card-line bg-s-card">
-      <div className="grid" style={{ gridTemplateColumns: columns(head.length), minWidth: head.length > 2 ? 520 : 0 }}>
+    // biome-ignore lint/a11y/noNoninteractiveTabindex: a scroller must take focus so the keyboard can scroll it.
+    <div role="region" aria-label={head.join(", ")} tabIndex={0} className="overflow-auto rounded-[11px] border border-s-card-line bg-s-card">
+      <div role="table" className="grid" style={{ gridTemplateColumns: columns(head.length), minWidth: head.length > 2 ? 520 : 0 }}>
+        <div role="row" className="contents">
         {head.map((cell, i) => (
-          <div key={i} className="border-b border-s-card-line bg-s-side px-3.5 py-[9px] text-[11.5px] font-medium text-s-dim">
+          <div key={i} role="columnheader" className="border-b border-s-card-line bg-s-side px-3.5 py-[9px] text-[11.5px] font-medium text-s-dim">
             {cell}
           </div>
         ))}
-        {rows.map((row, r) =>
-          row.map((cell, c) => (
-            <div key={`${r}-${c}`} className={cn("px-3.5 py-2.5 text-[13px] leading-[1.55]", c === 0 ? "text-s-t1" : "text-[#c2c2ca]", r > 0 && "border-t border-s-divider")}>
+        </div>
+        {rows.map((row, r) => (
+          <div key={r} role="row" className="contents">
+            {row.map((cell, c) => (
+            <div key={c} role={c === 0 ? "rowheader" : "cell"} className={cn("px-3.5 py-2.5 text-[13px] leading-[1.55]", c === 0 ? "text-s-t1" : "text-[#c2c2ca]", r > 0 && "border-t border-s-divider")}>
               <InlineText text={cell} onOpen={onOpen} small />
             </div>
-          ))
-        )}
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );

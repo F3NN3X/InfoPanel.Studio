@@ -239,7 +239,7 @@ function PortRow() {
   }, [parsed, settings.port, save]);
 
   return (
-    <Row id="port" label="Port" hint={parsed === null ? "Use a number from 1024 to 65535." : "1024 – 65535"} hintClass={parsed === null ? "text-s-red" : undefined}>
+    <Row id="port" label="Port" hint={parsed === null ? "Use a number from 1024 to 65535." : "1024 – 65535"} hintClass={parsed === null ? "text-s-red" : undefined} hintAlert={parsed === null}>
       <input
         ref={input}
         value={draft}
@@ -283,6 +283,7 @@ function AllowedHostsRow() {
       label="Allowed host names"
       hint={error ?? "Extra names other devices use to reach the PC running InfoPanel Studio, comma separated. Requests for any other name are refused."}
       hintClass={error ? "text-s-red" : undefined}
+      hintAlert={!!error}
     >
       <input
         ref={input}

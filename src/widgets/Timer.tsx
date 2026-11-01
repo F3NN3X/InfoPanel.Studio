@@ -17,10 +17,10 @@ export interface TimerProps extends ShellProps {
 }
 
 const BTN =
-  "flex h-7 min-w-0 shrink-0 items-center justify-center gap-1 rounded-full border border-[color:var(--w-track)] px-2.5 text-[12px] font-semibold tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
+  "flex h-10 max-h-full min-w-0 shrink-0 items-center justify-center gap-1 rounded-full border border-[color:var(--w-track)] px-2.5 text-[12px] font-semibold tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
 /** A preset button's width with its gap, px (a "25m" chip). */
 const CHIP_W = 52;
-const ROW_H = 34;
+const ROW_H = 46;
 
 const useTimer = (): TimerState => useSyncExternalStore(timer.subscribe, timer.getState, timer.getState);
 
@@ -30,6 +30,12 @@ export function presetsThatFit(count: number, w: number, h: number): number {
   const perRow = Math.max(1, Math.floor((w + 6) / CHIP_W));
   const rows = Math.max(1, Math.floor((h + 6) / ROW_H));
   return Math.min(count, perRow * rows);
+}
+
+/** The running clock's font size, px: what the box leaves under the Pause / Stop row (a button row and its gap are `ROW_H`) and the caption and bar. */
+export function runningClockPx(size: string, w: number, h: number): number {
+  const tiny = size === "xs" || h < 70;
+  return Math.max(18, Math.min(tiny ? 26 : size === "sm" ? 34 : 56, (w - 8) / 4.2, h - (tiny ? ROW_H : ROW_H + 30)));
 }
 
 export default function Timer(p: TimerProps) {
@@ -51,7 +57,7 @@ export default function Timer(p: TimerProps) {
           return (
             <div className="flex h-full flex-wrap content-center items-center justify-center gap-1.5">
               {buttons.slice(0, Math.max(1, fit)).map((b) => (
-                <button key={b.key} type="button" className={BTN} onClick={b.run}>
+                <button key={b.key} type="button" aria-label={b.key === "pomo" ? "Start pomodoro" : `Start ${b.key.slice(1)} minute timer`} className={BTN} onClick={b.run}>
                   {b.label}
                 </button>
               ))}
@@ -59,7 +65,7 @@ export default function Timer(p: TimerProps) {
           );
         }
         const tiny = size === "xs" || h < 70;
-        const px = Math.max(18, Math.min(tiny ? 26 : size === "sm" ? 34 : 56, (w - 8) / 4.2, h - (tiny ? 34 : 64)));
+        const px = runningClockPx(size, w, h);
         return (
           <div className="flex h-full min-w-0 flex-col items-center justify-center gap-1.5">
             {!tiny && <span className="max-w-full truncate text-[11px] text-[color:var(--w-muted)]">{caption}</span>}

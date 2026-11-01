@@ -15,6 +15,7 @@
 
 .s-scope a {
   color: var(--color-s-accent-text);
+  text-decoration: underline;
 }
 
 .s-scope a:hover {

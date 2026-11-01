@@ -23,7 +23,7 @@ function Content() {
     main.current?.scrollTo?.({ top: 0 });
   }, [section]);
   return (
-    <main ref={main} data-scroll-root className="relative min-w-0 flex-1 overflow-auto">
+    <main ref={main} data-scroll-root className="relative min-w-0 flex-1 scroll-pt-16 overflow-auto">
       <RestartBar />
       <div className={cn("mx-auto flex w-full min-w-0 flex-col gap-7 px-8 pb-20 pt-8", wide ? "max-w-[1040px]" : "max-w-[780px]")}>
         <div className="flex flex-col gap-1.5">

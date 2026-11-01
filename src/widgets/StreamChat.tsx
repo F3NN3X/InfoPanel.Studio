@@ -87,7 +87,7 @@ export default function StreamChat(p: StreamChatProps) {
                     data-mention={mentions(m.text, highlight) || undefined}
                     style={{ fontSize: fs, background: mentions(m.text, highlight) ? "color-mix(in oklab, var(--accent) 14%, transparent)" : undefined }}
                   >
-                    {m.badge && <span title={m.badge} className="mr-1.5 inline-block h-[0.8em] w-[0.8em] rounded-[3px] align-[-0.05em]" style={{ background: BADGE_COLOR[m.badge] }} />}
+                    {m.badge && <span role="img" aria-label={m.badge} title={m.badge} className="mr-1.5 inline-block h-[0.8em] w-[0.8em] rounded-[3px] align-[-0.05em]" style={{ background: BADGE_COLOR[m.badge] }} />}
                     {source === "both" && <span className="mr-1.5 rounded bg-white/[0.08] px-1 align-[0.1em] text-[0.68em] font-semibold text-zinc-400">{TAG[m.platform]}</span>}
                     <span className="font-semibold" style={{ color: (p.nameColors !== "accent" && m.color) || hue(nameHue(m.user)) }}>
                       {m.user}

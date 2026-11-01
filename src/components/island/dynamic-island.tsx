@@ -33,6 +33,8 @@ const ACTIVITY_PEEK = "activity";
 const NO_KEYS: readonly string[] = [];
 /** The colours a value turns past its thresholds. */
 const LEVEL_COLOR = { warn: severityColor("warning"), crit: severityColor("critical") } as const;
+/** The cue beside a coloured value, so the level does not rest on colour alone. */
+const LEVEL_CUE = { warn: { Icon: TriangleAlert, word: "warning" }, crit: { Icon: OctagonAlert, word: "critical" } } as const;
 /** The notch's concave corners, px at scale 100: small closed, larger open (L4 NotchBar). */
 const EAR = { closed: 6, open: 14 } as const;
 const SLOW = typeof location === "undefined" ? 1 : motionScale(location.search);
@@ -184,11 +186,22 @@ function IslandPill({ mode, snap, config, size, placement, onAck, bus }: IslandP
         style={{ borderRadius: shapeRadius, transition: shape && springTransition(spring, ["border-radius"]), "--island-accent": accent } as CSSProperties}
       >
         <div
-          role={item ? (item.severity === "info" ? "status" : "alert") : undefined}
+          role={item ? (item.severity === "info" ? "status" : "alert") : tappable ? "button" : undefined}
+          aria-label={tappable && !item ? (snap.pending.length > 0 ? "Show next notice" : "Show details") : undefined}
+          tabIndex={tappable ? 0 : undefined}
           onClick={tappable ? tap : undefined}
+          onKeyDown={
+            tappable
+              ? (e) => {
+                  if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+                  e.preventDefault();
+                  tap();
+                }
+              : undefined
+          }
           className={cn(
             "island relative flex max-w-full items-center overflow-hidden",
-            tappable && "pointer-events-auto cursor-pointer select-none",
+            tappable && "pointer-events-auto cursor-pointer select-none kiosk-focus",
             animate && "island-motion"
           )}
           style={
@@ -382,10 +395,21 @@ function IslandStats({ stats }: { stats: readonly IslandStat[] }) {
             data-level={level ?? undefined}
           >
             {stat.label && <span className="mr-[0.35em] opacity-75">{stat.label}</span>}
+            {level && <LevelCue level={level} />}
             {text}
           </span>
         );
       })}
+    </>
+  );
+}
+
+function LevelCue({ level }: { level: "warn" | "crit" }) {
+  const { Icon, word } = LEVEL_CUE[level];
+  return (
+    <>
+      <Icon className="mr-[0.25em] inline-block h-[0.85em] w-[0.85em] align-[-0.1em]" aria-hidden />
+      <span className="sr-only">{word}: </span>
     </>
   );
 }

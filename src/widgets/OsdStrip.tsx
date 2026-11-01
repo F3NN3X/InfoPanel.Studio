@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { Widget, shell, get, num, fmt, has, useSkin, useIpTag, hw, type IpTagExtra, type ShellProps } from "./kit";
+import { Widget, shell, get, num, fmt, has, useSkin, useIpTag, ToneCue, hw, type IpTagExtra, type ShellProps } from "./kit";
 import { fpsSubLine } from "./fps-line";
 import { meta } from "./meta/OsdStrip";
 
@@ -17,6 +17,9 @@ export interface OsdStripProps extends ShellProps {
 // The strip is a dark panel of its own, so its text stays light on every surface.
 /** The content height (px) under which a cell's label and value go on one line. */
 const INLINE_H = 52;
+/** The colours a dropped frame rate takes: below half and below three quarters of the target. */
+const DROP_CRIT = "#F2665E";
+const DROP_WARN = "#EDB232";
 
 const OSD_TEXT = { color: "#f4f4f5", "--w-fg": "#f4f4f5", "--w-muted": "#d4d4d8", "--w-faint": "#a1a1aa", "--w-track": "rgba(255,255,255,0.1)" } as CSSProperties;
 
@@ -33,7 +36,7 @@ export default function OsdStrip(p: OsdStripProps) {
     hz = num(R("refreshrate"));
   const idle = !(fps > 0);
   const target = p.target ?? hz;
-  const drop = (v: number): string | null => (idle || !Number.isFinite(v) ? null : v < target * 0.5 ? "#F2665E" : v < target * 0.75 ? "#EDB232" : null);
+  const drop = (v: number): string | null => (idle || !Number.isFinite(v) ? null : v < target * 0.5 ? DROP_CRIT : v < target * 0.75 ? DROP_WARN : null);
   const res = String(R("resolution")).replace(/\s/g, ""),
     resL = /3840x2160/.test(res) ? "4K" : /2560x1440/.test(res) ? "1440p" : /1920x1080/.test(res) ? "1080p" : res;
   const ALL: Record<OsdCell, [string, string, string | null]> = {
@@ -74,7 +77,7 @@ export default function OsdStrip(p: OsdStripProps) {
       {...shell(p)}
       showHeader={false}
       compact={(box) =>
-        box.shape === "strip" ? undefined : { label: "FPS", value: idle ? "—" : fps, sub: idle ? "No game running" : fpsSubLine(low, ft), idle: idle ? "No game running" : undefined, kind: "value", icon: idle ? "sports_esports" : "videogame_asset", t: drop(fps) === "#F2665E" ? "crit" : drop(fps) ? "warn" : "ok" }
+        box.shape === "strip" ? undefined : { label: "FPS", value: idle ? "—" : fps, sub: idle ? "No game running" : fpsSubLine(low, ft), idle: idle ? "No game running" : undefined, kind: "value", icon: idle ? "sports_esports" : "videogame_asset", t: drop(fps) === DROP_CRIT ? "crit" : drop(fps) ? "warn" : "ok" }
       }
       studio={{ label: "OSD", live: !idle, value: idle ? "—" : fps, unit: idle ? "" : "fps", rows: keys.map((k) => ({ n: ALL[k][0], v: ALL[k][1] })) }}
     >
@@ -94,6 +97,7 @@ export default function OsdStrip(p: OsdStripProps) {
                       className={`truncate ${inline && h < 30 ? "text-[13px]" : "text-[15px]"} font-medium tabular-nums text-[color:var(--w-fg)]`}
                       style={{ fontFamily: sk.skin === "retro" || sk.skin === "tui" ? sk.num : "'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace", color: c ?? (k === "fps" && !idle ? "var(--accent)" : undefined) }}
                     >
+                      {c && <ToneCue t={c === DROP_CRIT ? "crit" : "warn"} size="0.75em" />}
                       {shownAs(k, v)}
                     </span>
                   </div>

@@ -187,8 +187,8 @@
     ],
     "evidence": "FpsMonitor.tsx:78 opened (numColor from TONES); dynamic-island.tsx:35,380-381 opened (colour only, data-level attribute).",
     "checked": true,
-    "exportRisk": false,
-    "status": "open"
+    "exportRisk": true,
+    "status": "partial"
   },
   {
     "id": "FND-009",
@@ -232,7 +232,7 @@
     "evidence": "page-dots.tsx:66 opened: same 8px circle, colour is the only difference. Cited line numbers drifted.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-011",
@@ -251,7 +251,7 @@
     "evidence": "page-dots.tsx:39-49 opened: role=tablist/tab, onPointerDown timer.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-012",
@@ -271,7 +271,7 @@
     "evidence": "Both div onClick sites opened.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-013",
@@ -290,7 +290,7 @@
     "evidence": "kiosk-strip.tsx:47-56 opened: pointerEnter only, inert={!shown}.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-014",
@@ -922,7 +922,7 @@
     "evidence": "Inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-041",
@@ -1396,7 +1396,7 @@
     "evidence": "D-08, D-15 inferred; rest verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-062",
@@ -1607,7 +1607,7 @@
     "evidence": "Verified in audit (shots).",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-072",
@@ -1655,7 +1655,7 @@
     "evidence": "Verified (shots), label inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-074",
@@ -1703,7 +1703,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-076",
@@ -1893,7 +1893,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-085",

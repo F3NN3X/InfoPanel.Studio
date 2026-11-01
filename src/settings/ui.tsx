@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { useFound } from "./store";
+import { useFound, useStore } from "./store";
 
-/** Briefly true after `flash()`: the "Copied" label. */
+/** Briefly true after `flash()`: the "Copied" label, also said through the toast's status region. */
 export function useFlag(ms = 1500): [boolean, () => void] {
+  const { toast } = useStore();
   const [on, setOn] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
   const flash = useCallback(() => {
     clearTimeout(timer.current);
     setOn(true);
+    toast("Copied");
     timer.current = setTimeout(() => setOn(false), ms);
-  }, [ms]);
+  }, [ms, toast]);
   return [on, flash];
 }
 
@@ -185,18 +187,31 @@ interface RowProps {
   label: string;
   hint?: ReactNode;
   hintClass?: string;
+  /** The hint is a rejection: announced when it appears. */
+  hintAlert?: boolean;
   /** The control, on the right. */
   children?: ReactNode;
 }
 
 /** Label and hint on the left, the control on the right. */
-export function Row({ id, label, hint, hintClass, children }: RowProps) {
+export function Row({ id, label, hint, hintClass, hintAlert, children }: RowProps) {
   const found = useFound(id);
+  const uid = useId();
   return (
-    <div ref={found.ref} className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 px-[18px] py-3.5", found.className)}>
+    <div
+      ref={found.ref}
+      role="group"
+      aria-labelledby={`${uid}-label`}
+      aria-describedby={hint ? `${uid}-hint` : undefined}
+      className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 px-[18px] py-3.5", found.className)}
+    >
       <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
-        <span className="text-[13.5px] font-medium">{label}</span>
-        {hint && <span className={cn("text-[12.5px] leading-[1.45] text-s-muted", hintClass)}>{hint}</span>}
+        <span id={`${uid}-label`} className="text-[13.5px] font-medium">{label}</span>
+        {hint && (
+          <span id={`${uid}-hint`} role={hintAlert ? "alert" : undefined} className={cn("text-[12.5px] leading-[1.45] text-s-muted", hintClass)}>
+            {hint}
+          </span>
+        )}
       </div>
       {children}
     </div>

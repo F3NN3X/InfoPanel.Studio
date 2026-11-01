@@ -38,6 +38,7 @@ button {
 
 a {
   color: var(--color-s-accent-text);
+  text-decoration: underline;
 }
 
 a:hover {

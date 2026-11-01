@@ -1,4 +1,4 @@
-import { Widget, shell, get, num, fmt, has, clamp, Metric, Ring, Spark, Stat, Chip, Num, hue, useHistory, frameSample, frameBudgets, frameTimeTop, clampSpikes, Icon, TONES, type ShellProps, type Tier, type Tone } from "./kit";
+import { Widget, shell, get, num, fmt, has, clamp, Metric, Ring, Spark, Stat, Chip, Num, ToneCue, hue, useHistory, frameSample, frameBudgets, frameTimeTop, clampSpikes, Icon, TONES, type ShellProps, type Tier, type Tone } from "./kit";
 import { fpsSubLine } from "./fps-line";
 import { meta } from "./meta/FpsMonitor";
 
@@ -81,6 +81,7 @@ export function GaugeView({ idle, size, w, h, fps, low, low01, ft, hz, maxFps, t
     <div className="shrink-0" style={{ width: ringSize, height: ringSize }}>
       <Ring value={idle ? 0 : fps} max={maxFps} t={tone} color={color} thickness={10} className="h-full w-full">
         <Num className="leading-none" style={{ fontSize: Math.max(12, ringSize * 0.26), color: numColor }}>
+          {!idle && <ToneCue t={tone} />}
           {idle ? "–" : fmt(fps)}
         </Num>
       </Ring>

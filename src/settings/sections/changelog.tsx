@@ -157,14 +157,16 @@ export function ChangelogSection() {
                             </ul>
                           </div>
                         )}
-                        {!expanded && (entries.length > HEADLINES || entries.some(headlineShortens)) && (
+                        {(entries.length > HEADLINES || entries.some(headlineShortens)) && (
                           <div>
                             <button
                               type="button"
+                              aria-expanded={expanded}
+                              aria-label={expanded ? `Show fewer ${s.title} changes` : `Show all ${s.title} changes (${entries.length})`}
                               onClick={() => setAll((a) => toggle(a, key))}
                               className="cursor-pointer border-0 bg-transparent p-0 text-[12.5px] text-s-accent-text hover:text-s-t1"
                             >
-                              Show all ({entries.length})
+                              {expanded ? "Show fewer" : `Show all (${entries.length})`}
                             </button>
                           </div>
                         )}

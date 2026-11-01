@@ -93,7 +93,7 @@ export function AboutSection() {
                 <span className="text-[13px] font-medium">{label}</span>
                 <span className="break-all font-mono text-xs text-s-muted">{path}</span>
               </div>
-              <Button className="h-[30px] text-xs" onClick={() => void ipc.revealPath(path).catch(fail)}>
+              <Button className="h-[30px] text-xs" aria-label={`Show ${label}`} onClick={() => void ipc.revealPath(path).catch(fail)}>
                 <FolderOpen className="h-[15px] w-[15px]" />
                 Show
               </Button>

@@ -144,7 +144,8 @@ export function LogsSection() {
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-xl border border-s-card-line bg-s-well">
-        <div ref={viewer} onScroll={onScroll} className="h-[420px] overflow-auto py-2.5 font-mono text-xs leading-[1.7]" data-testid="log-viewer">
+        {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroller must take focus so the keyboard can scroll it. */}
+        <div ref={viewer} onScroll={onScroll} role="region" aria-label="Log lines" tabIndex={0} className="h-[420px] overflow-auto py-2.5 font-mono text-xs leading-[1.7]" data-testid="log-viewer">
           <div className="w-max min-w-full">
             {visible.map((l) => (
               <div key={l.id} className="flex gap-3 whitespace-pre px-3.5 hover:bg-[#121215]">

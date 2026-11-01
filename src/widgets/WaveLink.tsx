@@ -54,9 +54,9 @@ export const gainLabel = (gain: WlGain): string => {
   if (db !== null) return formatDb(db, { decimals: 1 });
   return gain.value === null ? "—" : `${Math.round(gain.value * 100)}%`;
 };
-const MuteMark =({ title = "Muted" }: { title?: string }) => (
-  <span className="shrink-0 text-[10px] font-semibold" style={{ color: "var(--wl-mute)" }} title={title}>
-    M
+const MuteMark = ({ title = "Muted" }: { title?: string }) => (
+  <span role="img" aria-label={title} className="shrink-0 text-[13px]" style={{ color: "var(--wl-mute)" }} title={title}>
+    <Icon name="volume_off" />
   </span>
 );
 const Pip = ({ muted }: { muted: boolean }) => <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: muted ? "var(--wl-mute)" : "var(--wl-live)" }} />;
