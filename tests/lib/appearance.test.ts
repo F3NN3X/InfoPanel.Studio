@@ -12,7 +12,7 @@ import {
   withBackgroundType,
   type PageBackground,
 } from "@/lib/appearance";
-import { type DashboardConfig } from "@/lib/layout";
+import type { DashboardConfig } from "@/lib/layout";
 
 describe("resolveBackground", () => {
   const own: PageBackground = { type: "gradient", gradient: { from: "#000", to: "#fff", angle: 90 } };

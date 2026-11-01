@@ -178,6 +178,4 @@ export const PARITY_CASES: ParityCase[] = [
   { id: "bt-default", module: "Bluetooth" },
   { id: "bt-own", module: "Bluetooth", settings: { view: "status", showStatus: true, showDevices: false, showBattery: false, batteryMidColor: "#ff0000", batteryLowColor: "#00ff00" } },
   { id: "bt-own-follows", module: "Bluetooth", settings: { batteryLowColor: "#ff0000" }, follow: { palette: true } },
-  { id: "deck-default", module: "StreamDeck" },
-  { id: "deck-own", module: "StreamDeck", settings: { showProfile: false, showLabels: false } },
 ];

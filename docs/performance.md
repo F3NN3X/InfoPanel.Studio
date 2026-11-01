@@ -288,7 +288,8 @@ spec starts its own scratch server on a temp copy of `tests/fixtures/perf/data`.
   the git short SHA).
 - **`npm run perf:all`** builds and runs all of it; **`npm run perf:compare <A> <B>`** prints a markdown table, flagging
   differences whose ranges overlap as noise.
-- **Budgets** (`tools/perf/budgets.json`, `npm run perf:budgets`, in CI): kiosk and studio entry gzip bytes, kiosk load
+- **Budgets** (`tools/perf/budgets.json`, `npm run perf:budgets`, in CI): kiosk and studio entry gzip bytes (CI's
+  measured bytes, with `entryGzipSlack`, 0.1 %, on top: the same build gzips a few bytes apart per platform), kiosk load
   requests (in `tests/e2e/kiosk-budget.spec.ts`), whether React's server renderer may be in the kiosk closure, and no
   debug-only global (`__tickerStats`) in either closure.
   CPU, memory and frame counts are report-only.

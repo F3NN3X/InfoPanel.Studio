@@ -2,7 +2,7 @@ import { upgradeConfig } from "@/lib/config-upgrade";
 import { describe, expect, it } from "vitest";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { guessAppliedThemes, normalizeAppliedTheme } from "@/lib/applied-theme";
-import { type DashboardConfig, type MonitorProfile, type Placement, type StoredConfig } from "@/lib/layout";
+import type { DashboardConfig, MonitorProfile, Placement, StoredConfig } from "@/lib/layout";
 import { mainPage } from "@/lib/pages";
 import { METERS } from "@/lib/screen-templates/designs/meters";
 import { TERMINAL } from "@/lib/screen-templates/designs/terminal";

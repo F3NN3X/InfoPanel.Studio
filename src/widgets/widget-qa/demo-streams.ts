@@ -1,11 +1,12 @@
 import { AUDIO_EVENTS_URL } from "@/lib/audio-control";
 import { CHAT_EVENTS_URL } from "@/lib/chat";
 import { EXTRAS_EVENTS_URL } from "@/lib/extras";
+import { STREAMDECK_EVENTS_URL } from "@/lib/streamdeck";
 
 /**
  * Demo streams for `?widget-qa&data=fixtures`: the streaming widgets read OBS, chat and audio from the server's event
- * streams, so the page answers those three URLs itself (6 OBS scenes, 40 chat lines on both platforms, 6 mixer
- * channels) and leaves every other stream to the real EventSource. Dev-only, like the rest of `widget-qa`.
+ * streams, so the page answers those four URLs itself (6 OBS scenes, 40 chat lines on both platforms, 6 mixer
+ * channels, a 5x3 Stream Deck named "demo" with titles and no icons: the icon route has no deck behind it here) and leaves every other stream to the real EventSource. Dev-only, like the rest of `widget-qa`.
  */
 
 const SCENES = ["Gameplay", "Just Chatting", "Starting Soon", "Be Right Back", "Interview", "Ending"].map((name, i) => ({ id: `scene-${i}`, name, sub: `Scene ${i + 1}`, icon: "" }));
@@ -43,7 +44,14 @@ const audio = () => ({
   wavelink: { status: "absent", channels: [], mixes: [] },
 });
 
-const STREAMS: Record<string, () => unknown> = { [EXTRAS_EVENTS_URL]: extras, [AUDIO_EVENTS_URL]: audio, [CHAT_EVENTS_URL]: chat };
+const KEY_TITLES = ["Scene 1", "Scene 2", "Mute mic", "Replay", "Go live", "Chat", "Music", "Lights", "BRB", "Clip", "Zoom", "Discord", "Macro", "Volume", ""];
+const streamdeck = () => ({
+  enabled: true,
+  pairingCode: "AB12CD",
+  devices: [{ id: "demo", name: "IPStudio", cols: 5, rows: 3, status: "ready", page: { current: 0, total: 3 }, keys: KEY_TITLES.flatMap((title, index) => (title ? [{ index, title, icon: null }] : [])) }],
+});
+
+const STREAMS: Record<string, () => unknown> = { [EXTRAS_EVENTS_URL]: extras, [AUDIO_EVENTS_URL]: audio, [CHAT_EVENTS_URL]: chat, [STREAMDECK_EVENTS_URL]: streamdeck };
 
 class DemoEventSource {
   readyState = 1;
@@ -63,7 +71,7 @@ class DemoEventSource {
   }
 }
 
-/** Answers the three streams above with demo data from now on; call before any widget mounts. */
+/** Answers the streams above with demo data from now on; call before any widget mounts. */
 export function installDemoStreams(): void {
   const Real = window.EventSource;
   window.EventSource = new Proxy(Real, {

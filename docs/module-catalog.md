@@ -41,10 +41,11 @@ inspector's Show, Data and Behaviour tabs.
 | Audio | `AudioMeter`, `MeterBridge`, `VolumeMixer`, `Visualizer`, `WaveLink` (all 1×1) |
 | Info | `Clock`, `Calendar`, `Timer`, `Weather`, `Forecast` (all 1×1); `Departures`, `Notifications`, `TextFile` (all 2×1) |
 | Gaming | `FpsMonitor`, `GameSpotlight`, `PlaytimeShare`, `SteamProfile`, `SteamFriends`, `Achievements`, `SteamLibrary`, `SteamNews` (all 1×1); `FramePacing`, `OsdStrip`, `SteamGame` (all 2×1) |
-| Generic | `SensorValue`, `SensorGroup`, `CustomGauge` (all 1×1), `Bluetooth` 2×1, `StreamDeck` 3×2, `WebPage` 4×2 |
+| Generic | `SensorValue`, `SensorGroup`, `CustomGauge` (all 1×1), `Bluetooth` 2×1, `WebPage` 4×2 |
+| Streaming | `StreamDeck` 4×2 (min 1×1; the Elgato Stream Deck, `registry/stream-deck.ts`) |
 
 44 of these came from the widget handoff (`docs/redesign/widgets/`);
-`Departures`, `Notifications`, `TextFile`, `Bluetooth`, `StreamDeck`, `Timer`,
+`Departures`, `Notifications`, `TextFile`, `Bluetooth`, `Timer`,
 `CodingAgents`, `WebPage` and `CustomGauge` were written for the plugin cards that had no template, in the same
 style. The Other sensors zone (below) draws one `SensorValue` card per unclaimed key. A template reads its sensors
 through the data adapter (below). `Clock`, `Calendar`, `Timer`, `CodingAgents`, `WebPage` and

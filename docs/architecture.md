@@ -49,6 +49,17 @@ broadcast every 60 s, then reads the viewers every 30 s and the chat every 5, 10
 10,000 units a day, counted in memory and stopped until midnight Pacific when Google says the day is used up. The
 `chat_hub` merges Twitch's and YouTube's windows by time for `/events/chat`, `GET /api/chat` and `POST /api/chat/send`.
 
+The Stream Deck connection is the `streamdeck` module, a client of the Elgato Stream Deck app's local "Virtual Stream
+Deck v2" server (a WebSocket on the port in `HKCU\Software\Elgato Systems GmbH\StreamDeck\vsd2_current_port`, else
+28198; protobuf frames, boxed with XSalsa20-Poly1305 after the hellos). It is off until `streaming.streamdeck.enabled` is
+set through `PUT /api/integrations`. `streaming.streamdeck` of `integrations.json` holds the one keypair's secret (never
+in a view, event or log; the views carry the pairing code the app's trust dialog shows) and the registry of virtual
+devices, one per widget: our id, the name ("IPStudio", then "IPStudio 2"...), the grid (1 to 8 per side) and the app's
+device id. While on, each device has a supervised session that pairs, opens the app's device by its id or name or
+creates it, and follows its titles, page and icons; `GET /api/streamdeck` and the latest-wins `/events/streamdeck` carry
+that state, `GET /api/streamdeck/icon` serves an icon by its version (cached for good), and `POST /api/streamdeck/act`
+(same guards as the audio act) presses keys, changes pages, pairs and creates, re-grids, renames or forgets devices.
+
 ## 1. The InfoPanel Data API
 
 The base URL is the `dataApiUrl` setting of the config, default

@@ -43,6 +43,7 @@ pub mod request_guard;
 pub mod security_headers;
 pub mod sse;
 pub mod static_files;
+pub mod streamdeck;
 pub mod streaming;
 pub mod store;
 pub mod studio_prefs;
@@ -77,6 +78,7 @@ use crate::extras::Extras;
 use crate::http::Req;
 use crate::library::LibraryStore;
 use crate::request_guard::{config_write_refusal, remote_edit_refusal, RequestGuard};
+use crate::streamdeck::StreamDeck;
 use crate::studio_prefs::StudioPrefs;
 
 /// The health route's app id: older than the InfoPanel Studio name, and what the desktop app matches on.
@@ -166,6 +168,7 @@ pub struct App {
     /// The port the server listens on (the real one when the config asked for 0).
     pub port: u16,
     pub audio: Arc<Audio>,
+    pub streamdeck: Arc<StreamDeck>,
     pub agents: Agents,
     pub assets: Assets,
     pub canvases: Arc<CanvasStore>,
@@ -292,6 +295,10 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
     if live_audio {
         audio.start(&shutdown);
     }
+    // The Stream Deck app's virtual decks; a server that does not run its backends (a test) never reaches the real app.
+    let endpoint = if live_audio { streamdeck::Endpoint::Local } else { streamdeck::Endpoint::Offline };
+    let streamdeck = StreamDeck::new(Arc::clone(&extras.integrations), endpoint);
+    streamdeck.start(&shutdown);
     let canvases = Arc::new(CanvasStore::new(&cfg.data_dir.join("canvases")));
     // Canvas files the config no longer references: at start and after saves, off the request that triggered it.
     let sweeper = Sweeper::new(Arc::clone(&canvases), cfg.config_file());
@@ -306,7 +313,7 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, agents, assets, canvases, library, prefs, shutdown };
+    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, streamdeck, agents, assets, canvases, library, prefs, shutdown };
     Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
@@ -402,6 +409,10 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/events/audio" => Ok(audio::handle_events(app)),
         "/api/audio/act" => audio::handle_act(app, req).await.map_err(io),
         "/api/obs/act" => obs_control::handle_act(app, req).await.map_err(io),
+        "/api/streamdeck" => Ok(streamdeck::routes::handle_state(app, &req)),
+        "/events/streamdeck" => Ok(streamdeck::routes::handle_events(app)),
+        "/api/streamdeck/icon" => Ok(streamdeck::routes::handle_icon(app, &req)),
+        "/api/streamdeck/act" => streamdeck::routes::handle_act(app, req).await.map_err(io),
         "/api/twitch/signin" => twitch::routes::handle_signin(app, req).await.map_err(io),
         "/api/twitch/signout" => twitch::routes::handle_signout(app, req).await.map_err(io),
         "/api/youtube/signin" => youtube::routes::handle_signin(app, req).await.map_err(io),

@@ -9,6 +9,7 @@ use std::sync::Mutex;
 
 use serde_json::{json, Value};
 
+use crate::streamdeck::settings::{ensure_key, StreamdeckSettings};
 use crate::streaming::{self, Streaming, TwitchAuth, YoutubeAuth};
 use crate::{js, store};
 
@@ -311,7 +312,22 @@ impl IntegrationsStore {
         self.commit(state, next)
     }
 
-    fn commit(&self, mut state: std::sync::MutexGuard<'_, Integrations>, next: Integrations) -> std::io::Result<()> {
+    /// Changes the Stream Deck settings with `f` (the device registry, which no studio patch writes) and stores them when
+    /// they changed. `f`'s result is handed back.
+    pub fn update_streamdeck<R>(&self, f: impl FnOnce(&mut StreamdeckSettings) -> R) -> std::io::Result<R> {
+        let state = self.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut next = state.clone();
+        let result = f(&mut next.streaming.streamdeck);
+        ensure_key(&mut next.streaming.streamdeck);
+        if next != *state {
+            self.commit(state, next)?;
+        }
+        Ok(result)
+    }
+
+    fn commit(&self, mut state: std::sync::MutexGuard<'_, Integrations>, mut next: Integrations) -> std::io::Result<()> {
+        // A Stream Deck connection that is on has its key from the first save that turns it on.
+        ensure_key(&mut next.streaming.streamdeck);
         let prev = std::mem::replace(&mut *state, next);
         let mut text = String::new();
         pretty(&stored_form(&state), 0, &mut text);

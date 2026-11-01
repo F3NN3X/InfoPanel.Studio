@@ -6,7 +6,7 @@ related: [widgets, island-alerts, problems]
 verified: 1.3.1-beta.3
 ---
 
-Connect OBS, Twitch, YouTube and your calendars so the Streaming widgets, the island's On air notice and the calendar widgets have something to show. Everything is set in one place, and it all runs on the dashboard server, so every kiosk shares one connection.
+Connect OBS, Twitch, YouTube, the Stream Deck app and your calendars so the Streaming widgets, the island's On air notice and the calendar widgets have something to show. Everything is set in one place, and it all runs on the dashboard server, so every kiosk shares one connection.
 
 :::open settings/connections Settings › Connections
 
@@ -34,6 +34,10 @@ YouTube gives each Google project 10,000 units a day, so you make your own proje
 5. Press **Sign in with Google**. Your browser opens; approve, and the page says you can close the tab.
 
 Once signed in, **Chat refresh** sets how often the live chat is read (5, 10 or 20 seconds) and shows how many hours of live chat a day that allows. The page also shows about how many of the 10,000 units are used today. If the quota runs out, YouTube is left alone until midnight Pacific time. **Sign out** forgets the sign-in on this PC.
+
+## Stream Deck
+
+Turn on **Connect to the Stream Deck app**. Studio then adds virtual decks to the Stream Deck app, one for each Elgato Stream Deck widget. The block shows a 6-character code: press **Pair** and confirm the same code in the Stream Deck app. The app only asks when a freshly started Stream Deck app meets a new client. Each device is listed with its name (edit it in place), its grid and a status dot. **Add device** makes another and **Forget** removes one, after a confirmation. If the Stream Deck app isn't running, the status says so and the connection is made once it starts.
 
 ## Calendar links
 

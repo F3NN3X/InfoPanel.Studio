@@ -3705,6 +3705,11 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
 {
   "Behavior": [
     {
+      "Pages": [
+        "swipe",
+      ],
+    },
+    {
       "Motion": [
         "smoothing",
       ],
@@ -3713,6 +3718,11 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
   "Data": [
     {
       "Bound data [boundData]": [],
+    },
+    {
+      "Device": [
+        "device",
+      ],
     },
   ],
   "Show": [
@@ -3724,13 +3734,15 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Profile": [
-        "showProfile",
+      "Keys": [
+        "grid",
+        "showTitles",
+        "titleSize",
       ],
     },
     {
-      "Buttons": [
-        "showLabels",
+      "Pages": [
+        "showPages",
       ],
     },
     {
@@ -3754,6 +3766,13 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
         "accent",
         "textColor",
         "mutedColor",
+        "keyGap",
+        "keyRadius",
+        "keyStyle",
+        "keyFrame",
+        "iconOverlay",
+        "overlayStrength",
+        "pressedEffect",
       ],
     },
     {

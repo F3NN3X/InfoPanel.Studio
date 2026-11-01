@@ -114,10 +114,13 @@ export interface ModuleSetting {
    * - `"audio-control"` — what the server's audio control offers now (`AudioControlPicker`): by the row's
    *   key, channels (`channel`, `channels`), Wave Link mixes (`mix`) or output devices (`device`).
    * - `"obs-scenes"` - the scenes OBS has now (`ObsScenePicker`); the value is a scene id.
+   * - `"streamdeck-devices"` - the server's virtual Stream Deck devices (`StreamDeckDevicePicker`), with a New device button.
+   * - `"streamdeck-grid"` - the grid of the device the `device` row picks (`StreamDeckGridPicker`): read from the server and
+   *   written with a grid action, never stored in the widget's settings.
    * - `"cpu" | "gpu" | "disk" | "adapter" | "audio" | "drive"` — the devices
    *   found in the live keys (`deviceOptions`), "" = Auto first. Data tab by default.
    */
-  optionsFrom?: "sources" | "media" | "wavelink" | "audio-control" | "obs-scenes" | DeviceKind;
+  optionsFrom?: "sources" | "media" | "wavelink" | "audio-control" | "obs-scenes" | "streamdeck-devices" | "streamdeck-grid" | DeviceKind;
   /** Key prefix whose containers become the dynamic select's options (type "status": whose containers it lists). */
   sourcePlugin?: string;
   /**

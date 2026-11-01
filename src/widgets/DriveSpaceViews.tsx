@@ -11,7 +11,7 @@ export const DriveIcon = (p: { icons?: string; id: string; name: string; px: num
       <DriveIconImpl {...p} icons={p.icons} />
     </Suspense>
   ) : (
-    <>{p.fallback}</>
+    p.fallback
   );
 
 export interface DriveRow {

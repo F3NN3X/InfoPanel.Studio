@@ -88,3 +88,12 @@ describe("Settings › Connections, OBS", () => {
     expect(puts[0].streaming).toEqual({ obs: { mic: "Old mic", scenes: { u9: { sub: "Kept", icon: "" } } } });
   });
 });
+
+describe("Settings › Connections, Stream Deck", () => {
+  it("turns the connection on as a streaming patch", async () => {
+    render(<ConnectionsSection />);
+    fireEvent.click(await screen.findByRole("switch", { name: "Connect to the Stream Deck app" }));
+    await waitFor(() => expect(puts).toHaveLength(1));
+    expect(puts[0]).toEqual({ streaming: { streamdeck: { enabled: true } } });
+  });
+});

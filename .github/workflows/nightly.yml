@@ -24,7 +24,7 @@ jobs:
   # Every check in tests/feature-map.json on Linux. cargo-app needs Windows, so exit 3 (incomplete) is expected here
   # and the Windows job covers it.
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -63,7 +63,7 @@ jobs:
   # The perf suites measure and never gate (docs/performance.md). The JSON goes up as an artifact, and the table against
   # the previous nightly's artifact lands in the run summary.
   perf:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     continue-on-error: true
     permissions:
@@ -109,7 +109,7 @@ jobs:
   report:
     needs: [linux, windows, perf]
     if: always() && (github.event_name == 'schedule' || inputs.issues)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
       issues: write

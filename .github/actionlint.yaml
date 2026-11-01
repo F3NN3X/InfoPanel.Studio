@@ -1,0 +1,5 @@
+# actionlint v1.7.12 (the latest release, tools/ci/actionlint.mjs) predates GitHub's ubuntu-26.04 runner label, so it is
+# declared here. Drop it once an actionlint release knows the label.
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04

@@ -28,7 +28,7 @@ concurrency:
 jobs:
   # Which jobs the change needs (tools/ci/plan-outputs.mjs). A push to main or the ci:full label turns every one on.
   plan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     outputs:
       lint: ${{ steps.plan.outputs.lint }}
@@ -66,7 +66,7 @@ jobs:
   lint:
     needs: plan
     if: needs.plan.outputs.lint == 'true' || needs.plan.outputs.actionlint == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -82,7 +82,7 @@ jobs:
   typecheck-build:
     needs: plan
     if: needs.plan.outputs.typecheck == 'true' || needs.plan.outputs.build == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -107,7 +107,7 @@ jobs:
   unit:
     needs: plan
     if: needs.plan.outputs.unit == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -118,7 +118,7 @@ jobs:
   lab:
     needs: plan
     if: needs.plan.outputs.lab == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -131,7 +131,7 @@ jobs:
   server:
     needs: plan
     if: needs.plan.outputs.server == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -157,7 +157,7 @@ jobs:
   e2e:
     needs: [plan, typecheck-build]
     if: needs.plan.outputs.e2e == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -246,7 +246,7 @@ jobs:
   ci-ok:
     if: always()
     needs: [plan, lint, typecheck-build, unit, lab, server, e2e, rust]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - env:

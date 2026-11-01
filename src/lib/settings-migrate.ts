@@ -754,6 +754,32 @@ export function migrateProfileV12<P extends MigratableProfile>(p: P): P {
   return pages.every((pg, i) => pg === p.pages[i]) ? p : { ...p, pages };
 }
 
+/* ───────── the Elgato Stream Deck widget replaces the plugin mirror ───────── */
+
+/** The keys the old Stream Deck widget (a mirror of the InfoPanel plugin's keys) saved; the new one reads none of them. */
+const STREAMDECK_MIRROR_KEYS = ["showProfile", "showLabels"];
+
+/**
+ * Per placement and keyed on the keys' presence (so any config from before the swap migrates the same): a `StreamDeck`
+ * zone keeps its id and place and becomes the Elgato Stream Deck widget, which has no device yet (the user picks or
+ * creates one); the mirror's own keys are dropped.
+ */
+export function migratePlacementStreamDeck<P extends MigratablePlacement>(p: P): P {
+  if (p.module !== "StreamDeck" || !p.settings || !STREAMDECK_MIRROR_KEYS.some((k) => p.settings![k] !== undefined)) return p;
+  const rest = Object.fromEntries(Object.entries(p.settings).filter(([k]) => !STREAMDECK_MIRROR_KEYS.includes(k)));
+  const { settings: _s, ...others } = p;
+  return { ...others, ...(Object.keys(rest).length > 0 ? { settings: rest } : {}) } as P;
+}
+
+/** The Stream Deck swap for one profile: its zones. */
+export function migrateProfileStreamDeck<P extends MigratableProfile>(p: P): P {
+  const pages = p.pages.map((pg) => {
+    const placements = pg.placements.map(migratePlacementStreamDeck);
+    return placements.every((pl, i) => pl === pg.placements[i]) ? pg : { ...pg, placements };
+  });
+  return pages.every((pg, i) => pg === p.pages[i]) ? p : { ...p, pages };
+}
+
 /* ───────── v14: one editor ───────── */
 
 /** CANVAS_ID (layout.ts imports this file). */

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { modules } from "@/modules";
 import { alignOf, compactOf, sizeTierOf } from "@/modules/setting-readers";
 import { effectiveSettings, type DashboardModule, type ModuleSettings } from "@/modules/types";
-import { type StoredConfig } from "@/lib/layout";
+import type { StoredConfig } from "@/lib/layout";
 import { profileWithPage } from "@/lib/pages";
 import { appearanceOf, resolveWith } from "@/lib/style-resolve";
 
