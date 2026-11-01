@@ -2,7 +2,7 @@
 -only patterns.
 docs/redesign/widgets/**/*.md text eol=lf
 # Vitest cannot parse a shebang line that ends in CR.
-tools/*.mjs text eol=lf
+tools/**/*.mjs text eol=lf
 # Vitest writes snapshots with LF; a CRLF checkout shows them modified after every run.
 *.snap text eol=lf
 # Tauri regenerates these on every build with LF; a CRLF checkout shows them modified.
@@ -12,4 +12,3 @@ tests/fixtures/parity/*.json text eol=lf
 tools/parity/*.mjs text eol=lf
 # The optional pre-push hook is a shell script.
 .githooks/* text eol=lf
-tools/ci/*.mjs text eol=lf

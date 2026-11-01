@@ -689,8 +689,8 @@
       "id": "budgets",
       "summary": "The gating bundle budgets and the report that feeds them.",
       "paths": ["tools/perf/budgets.json", "tools/perf/check-budgets.mjs", "tools/perf/bundle-report.mjs"],
-      "tests": [],
-      "checks": ["build", "budgets"]
+      "tests": ["tests/tools/perf/check-budgets.test.mjs"],
+      "checks": ["build", "unit", "budgets"]
     },
     {
       "id": "perf",
