@@ -89,7 +89,7 @@ const invoke = vi.fn(async (command: string, args?: Record<string, unknown>): Pr
     case "touch_screens":
       return screens;
     case "touch_setup":
-      return new Promise((resolve) => (finishSetup = () => resolve([{ port: "USBROOT(0)-4.2", monitor: "\\.\DISPLAY4" }])));
+      return new Promise((resolve) => (finishSetup = () => resolve([{ port: "USBROOT(0)-4.2", monitor: "\\\\.\\DISPLAY4" }])));
     case "touch_cancel":
       finishSetup?.();
       return undefined;
@@ -177,7 +177,7 @@ describe("Settings › Touch", () => {
     expect(await screen.findByText(/Tap the circle on each touch display/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Pair…" }).hasAttribute("disabled")).toBe(true);
     await user.click(screen.getByRole("button", { name: "Finish" }));
-    expect(await screen.findByText("Set up \\.\DISPLAY4.")).toBeTruthy();
+    expect(await screen.findByText("Set up \\\\.\\DISPLAY4.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Set up panels…" })).toBeTruthy();
   });
 
