@@ -15,7 +15,7 @@ function Content() {
   const section = isSectionId(page) ? page : "general";
   const main = useRef<HTMLElement>(null);
   const { subtitle, wide, Section } = PAGES[section];
-  useZoomKeys(settings.zoom, setZoom);
+  useZoomKeys(settings.zoom, setZoom, toast);
   // F1 opens the Help article for the section on show.
   useHelpKey(() => settingsHelpTarget(section), (target) => void ipc.openHelp(target).catch((e) => toast(errorText(e), true)));
   // A new section starts at the top (a search jump scrolls to its row after this).

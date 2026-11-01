@@ -131,7 +131,7 @@ export function LogsSection() {
             );
           })}
         </div>
-        <div className="flex h-8 min-w-40 flex-1 items-center gap-1.5 rounded-lg border border-s-track-line bg-[#141418] px-2.5">
+        <div className="flex h-8 min-w-40 flex-1 items-center gap-1.5 rounded-lg border border-s-track-line bg-ui-tile px-2.5">
           <ListFilter className="h-4 w-4 shrink-0 text-s-dim" />
           <input
             value={query}
@@ -148,7 +148,7 @@ export function LogsSection() {
         <div ref={viewer} onScroll={onScroll} role="region" aria-label="Log lines" tabIndex={0} className="h-[420px] overflow-auto py-2.5 font-mono text-xs leading-[1.7]" data-testid="log-viewer">
           <div className="w-max min-w-full">
             {visible.map((l) => (
-              <div key={l.id} className="flex gap-3 whitespace-pre px-3.5 hover:bg-[#121215]">
+              <div key={l.id} className="flex gap-3 whitespace-pre px-3.5 hover:bg-ui-panel">
                 <span className="w-[12ch] shrink-0 text-s-dim">{l.ts}</span>
                 <span className={cn("w-10 shrink-0", LEVEL_TEXT[l.level])}>{l.level.toUpperCase()}</span>
                 <span className={MESSAGE_TEXT[l.level]}>{l.msg}</span>
@@ -165,7 +165,7 @@ export function LogsSection() {
             onClick={() => setFollow(!follow)}
             className="flex h-7 cursor-pointer items-center gap-2 rounded-[7px] border-0 bg-transparent px-2.5 text-xs text-s-t2"
           >
-            <span className={cn("relative h-4 w-7 rounded-lg", follow ? "bg-s-accent" : "bg-[#2e2e35]")}>
+            <span className={cn("relative h-4 w-7 rounded-lg", follow ? "bg-s-accent" : "bg-ui-menu")}>
               <span className={cn("absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform", follow && "translate-x-3")} />
             </span>
             Follow new lines

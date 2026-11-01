@@ -59,7 +59,7 @@ const STATUS_ICON: Record<"ok" | "warn" | "fail" | "skip" | "waiting", { icon: L
   ok: { icon: CircleCheck, className: "text-ui-success", label: "Passed" },
   warn: { icon: TriangleAlert, className: "text-ui-warning", label: "Warning" },
   fail: { icon: CircleX, className: "text-ui-danger", label: "Failed" },
-  skip: { icon: CircleMinus, className: "text-[#55555e]", label: "Skipped" },
+  skip: { icon: CircleMinus, className: "text-ui-disabled", label: "Skipped" },
   waiting: { icon: Circle, className: "text-[#3a3a42]", label: "Waiting" },
 };
 
@@ -114,7 +114,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
   const line = status === "checking" ? checkingLine(id, address, elapsed * 1000) : status === "waiting" ? "Waiting" : result.result;
   const again: CheckAction = { kind: "default", label: "Check again" };
   return (
-    <li className={cn("list-none", !first && "border-t border-[#1c1c21]", status === "fail" && "bg-[oklch(0.6_0.15_25/0.05)]")}>
+    <li className={cn("list-none", !first && "border-t border-s-divider", status === "fail" && "bg-[oklch(0.6_0.15_25/0.05)]")}>
       <div
         className={cn("flex items-start gap-2.5 px-3 py-2.5", more && "cursor-pointer")}
         onClick={(e) => {
@@ -147,7 +147,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
                 return (
                   <span
                     key={c.name}
-                    className={cn("inline-flex h-[22px] items-center gap-1.5 rounded-[6px] border bg-[#121215] px-2 text-[11px]", zero ? "border-ui-warning/40 text-ui-warning" : "border-ui-strong text-[#c8c8ce]")}
+                    className={cn("inline-flex h-[22px] items-center gap-1.5 rounded-[6px] border bg-ui-panel px-2 text-[11px]", zero ? "border-ui-warning/40 text-ui-warning" : "border-ui-strong text-ui-2")}
                   >
                     <Icon className={cn("h-3 w-3", zero ? "text-ui-warning" : "text-ui-3")} />
                     {c.name}
@@ -156,7 +156,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
                 );
               })}
               {result.chips.length > CHIPS_SHOWN && (
-                <span className="inline-flex h-[22px] items-center rounded-[6px] border border-ui-strong bg-[#121215] px-2 text-[11px] text-ui-3">
+                <span className="inline-flex h-[22px] items-center rounded-[6px] border border-ui-strong bg-ui-panel px-2 text-[11px] text-ui-3">
                   {result.chips.length - CHIPS_SHOWN} more
                 </span>
               )}

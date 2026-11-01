@@ -6,7 +6,7 @@ export default function ScreensList({ screens, onApply }: { screens: readonly { 
   const all = ticked.length === screens.length;
   const toggle = (id: string) => setTicked((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
   return (
-    <div role="group" aria-label="Other screens" className="flex flex-col gap-1.5 rounded-lg border border-ui-strong bg-[#131316] px-3 py-2">
+    <div role="group" aria-label="Other screens" className="flex flex-col gap-1.5 rounded-lg border border-ui-strong bg-ui-panel px-3 py-2">
       <label className="flex items-center gap-2 text-[12px] text-[#a1a1aa]">
         <input type="checkbox" checked={all} onChange={() => setTicked(all ? [] : screens.map((s) => s.id))} />
         Select all

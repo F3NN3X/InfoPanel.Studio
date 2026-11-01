@@ -71,11 +71,11 @@ export function TileCard({ tile, left, top, status, appearance, pageStyle }: Til
     <div
       data-testid="add-preview"
       aria-hidden
-      className="add-preview-in pointer-events-none fixed z-[60] flex flex-col overflow-hidden rounded-[12px] border border-[#2a2a31] bg-[#141418] font-ui shadow-[0_20px_50px_#000c]"
+      className="add-preview-in pointer-events-none fixed z-[60] flex flex-col overflow-hidden rounded-[12px] border border-ui-active bg-ui-tile font-ui shadow-[0_20px_50px_#000c]"
       style={{ left, top, width: CARD_WIDTH }}
     >
       <div
-        className="flex h-[150px] items-center justify-center overflow-hidden border-b border-[#24242a]"
+        className="flex h-[150px] items-center justify-center overflow-hidden border-b border-ui-default"
         style={{ background: "radial-gradient(ellipse at 50% 40%, #1d1d24, #0c0c0e)" }}
       >
         {tile.widget ? (
@@ -95,7 +95,7 @@ export function TileCard({ tile, left, top, status, appearance, pageStyle }: Til
         </span>
         <p className="text-pretty text-[12px] leading-[1.5] text-ui-2">{cardDescription(tile)}</p>
         <span className="flex items-center gap-2 text-[11px] text-ui-3">
-          <span className="rounded-[4px] bg-[#1f1f25] px-1.5 py-px font-ui-mono text-ui-1">{size.chip}</span>
+          <span className="rounded-[4px] bg-ui-subtle px-1.5 py-px font-ui-mono text-ui-1">{size.chip}</span>
           {size.note}
         </span>
         {status && s && (
@@ -104,7 +104,7 @@ export function TileCard({ tile, left, top, status, appearance, pageStyle }: Til
             On InfoPanel: {status.word[s]}
           </span>
         )}
-        <span className="border-t border-[#24242a] pt-2 text-[11px] text-ui-hint">Click to add · drag to place</span>
+        <span className="border-t border-ui-default pt-2 text-[11px] text-ui-hint">Click to add · drag to place</span>
       </div>
     </div>,
     document.body,

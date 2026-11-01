@@ -108,7 +108,7 @@ export function SourceTree({
               onClick={() => onHealth(health === h ? null : h)}
               className={cn(
                 "inline-flex h-6 items-center gap-[5px] whitespace-nowrap rounded-full border px-2 text-[11px] text-ui-2 transition-colors",
-                health === h ? "border-[#3a3a44] bg-[#26262c]" : "border-ui-default hover:bg-ui-hover"
+                health === h ? "border-[#3a3a44] bg-ui-default" : "border-ui-default hover:bg-ui-hover"
               )}
             >
               <StatusDot health={h} />

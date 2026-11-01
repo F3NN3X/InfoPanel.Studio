@@ -122,7 +122,7 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
             disabled={busy}
             onClick={() => fileInput.current?.click()}
             title={`Upload ${kind === "image" ? "an image" : "a video"} to the dashboard server (or drop a file here)`}
-            className="flex h-[30px] shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-ui-strong bg-ui-hover px-[9px] text-[11.5px] text-ui-1 hover:bg-[#222228] disabled:opacity-50"
+            className="flex h-[30px] shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-ui-strong bg-ui-hover px-[9px] text-[11.5px] text-ui-1 hover:bg-ui-default disabled:opacity-50"
           >
             <Upload className="h-[15px] w-[15px]" /> Upload
           </button>

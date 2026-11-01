@@ -122,12 +122,12 @@ export function InsertRow({
       title={item.description ? `${item.description} — ${hint.toLowerCase()}` : hint}
       className={cn(
         "flex min-w-0 cursor-pointer flex-col gap-1.5 rounded-lg border border-ui-default bg-ui-tile p-2.5 text-left",
-        "transition-colors hover:border-ui-accent hover:bg-[#17171c] focus-visible:border-ui-accent",
+        "transition-colors hover:border-ui-accent hover:bg-s-nav-hover focus-visible:border-ui-accent",
         FOCUS,
         draggable && "active:cursor-grabbing"
       )}
     >
-      <div className="flex items-center justify-between gap-1 text-[#c8c8ce]">
+      <div className="flex items-center justify-between gap-1 text-ui-2">
         <Icon className="h-5 w-5 shrink-0" strokeWidth={1.5} />
         <span className="flex items-center gap-1.5 font-ui-mono text-[10px] text-ui-hint">
           {size.cols}×{size.rows}

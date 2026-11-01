@@ -111,7 +111,7 @@ function RuleRow({ rule, summary, style, fired, now, confirming, ...on }: RuleRo
   }, [confirming]);
   if (confirming) {
     return (
-      <li role="alert" className="flex items-center gap-2 border-t border-[#1a1a1f] bg-ui-hover px-3.5 py-2.5 text-[12px] text-ui-2 first:border-t-0">
+      <li role="alert" className="flex items-center gap-2 border-t border-ui-hover bg-ui-hover px-3.5 py-2.5 text-[12px] text-ui-2 first:border-t-0">
         <span className="min-w-0 flex-1 truncate">Delete “{rule.name}”?</span>
         <button type="button" onClick={on.onDelete} className="h-6 rounded-md bg-ui-danger px-2 text-[11.5px] text-black">
           Delete
@@ -124,7 +124,7 @@ function RuleRow({ rule, summary, style, fired, now, confirming, ...on }: RuleRo
   }
   const { icon: Icon, tone } = SEVERITY_ICON[rule.severity];
   return (
-    <li className="group flex items-center gap-3 border-t border-[#1a1a1f] px-3.5 py-2.5 first:border-t-0 hover:bg-ui-hover">
+    <li className="group flex items-center gap-3 border-t border-ui-hover px-3.5 py-2.5 first:border-t-0 hover:bg-ui-hover">
       <Icon className={cn("h-[17px] w-[17px] shrink-0", tone)} aria-label={rule.severity} />
       <button
         type="button"

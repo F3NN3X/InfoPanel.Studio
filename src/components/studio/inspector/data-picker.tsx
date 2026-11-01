@@ -76,7 +76,7 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
                     title={p.key}
                     onClick={() => pick(p)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-2 text-left hover:bg-[#1c1c21]",
+                      "flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-2 text-left hover:bg-s-divider",
                       on && "bg-ui-accent/10"
                     )}
                   >

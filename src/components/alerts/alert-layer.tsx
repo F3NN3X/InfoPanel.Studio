@@ -108,6 +108,10 @@ export function AlertLayer({ alerts, onAck }: AlertLayerProps) {
           )}
         />
       )}
+      {backdrop !== "none" && items.some((a) => !(a.display.seconds > 0)) && (
+        // A persistent alert has no countdown, so say how it closes.
+        <p className="pointer-events-none absolute inset-x-0 bottom-3 m-0 text-center text-xs text-muted-foreground">Tap an alert to dismiss it</p>
+      )}
       <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-4 p-4">
         {slots
           .filter((s) => s.key !== "banner-top" && s.key !== "banner-bottom")
@@ -166,9 +170,13 @@ function SlotStack({ slot, now, leavingIds, reduced, onAck }: SlotStackProps) {
         />
       ))}
       {slot.more > 0 && (
-        <div className="pointer-events-auto rounded-full bg-card/90 px-3 py-1 text-xs font-medium text-muted-foreground shadow">
-          +{slot.more} more
-        </div>
+        <button
+          type="button"
+          onClick={() => slot.rest.forEach((a) => onAck(a.id))}
+          className="pointer-events-auto rounded-full bg-card/90 px-3 py-1 text-xs font-medium text-muted-foreground shadow outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Dismiss {slot.more} more
+        </button>
       )}
     </div>
   );

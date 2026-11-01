@@ -111,7 +111,7 @@ const FILE_BUTTON =
   "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong px-2.5 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 max-sm:hidden max-[959px]:px-1.5";
 
 /** Undo / redo: #c9c9cf when they can act, #4a4a52 when they cannot. */
-const HISTORY_BUTTON = "text-[#c9c9cf] disabled:text-[#4a4a52] disabled:opacity-100";
+const HISTORY_BUTTON = "text-ui-2 disabled:text-[#4a4a52] disabled:opacity-100";
 
 /** The one Import and one Export button (SPEC §3.1): the Import door and the Export & back up sheet. */
 function FileButton({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) {

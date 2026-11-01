@@ -78,11 +78,11 @@ export function WidgetStage({ item, appearance, pageStyle, stage }: { item: AddI
 function Schematic({ item }: { item: AddItem }) {
   return (
     <div
-      className="flex flex-wrap gap-1.5 overflow-hidden rounded-[8px] border border-[#27272a] bg-[#18181b] p-2.5"
+      className="flex flex-wrap gap-1.5 overflow-hidden rounded-[8px] border border-[#27272a] bg-ui-raised p-2.5"
       style={{ width: Math.min(STAGE_W, item.w * 70), height: Math.min(STAGE_H, item.h * 70), flexDirection: item.dir === "column" ? "column" : "row" }}
     >
       {(item.parts ?? []).map((part, i) => (
-        <div key={i} className="flex min-h-0 min-w-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-[6px] bg-[#1f1f24] px-1">
+        <div key={i} className="flex min-h-0 min-w-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-[6px] bg-ui-subtle px-1">
           <PartIcon kind={part.kind} />
           <span className="max-w-full truncate text-micro text-ui-hint">{part.label}</span>
         </div>
@@ -117,11 +117,11 @@ export function AddPreview({ item, left, top, via, target, appearance, pageStyle
   return createPortal(
     <div
       aria-hidden
-      className="add-preview-in pointer-events-none fixed z-[60] overflow-hidden rounded-[12px] border border-ui-strong bg-[#141418] font-ui shadow-[0_18px_48px_rgba(0,0,0,.55)]"
+      className="add-preview-in pointer-events-none fixed z-[60] overflow-hidden rounded-[12px] border border-ui-strong bg-ui-tile font-ui shadow-[0_18px_48px_rgba(0,0,0,.55)]"
       style={{ left, top, width: PREVIEW_WIDTH }}
     >
       <div
-        className="flex h-[200px] items-center justify-center border-b border-ui-subtle bg-[#0c0c0e]"
+        className="flex h-[200px] items-center justify-center border-b border-ui-subtle bg-ui-app"
         style={{ backgroundImage: "radial-gradient(#1a1a1f 1px, transparent 1px)", backgroundSize: "12px 12px" }}
       >
         {item.kind === "widget" ? <WidgetStage item={item} appearance={appearance} pageStyle={pageStyle} /> : <Schematic item={item} />}
@@ -133,7 +133,7 @@ export function AddPreview({ item, left, top, via, target, appearance, pageStyle
         </div>
         <p className="text-pretty text-[12px] leading-[1.5] text-[#a1a1aa]">{item.description || item.blurb}</p>
         <div className="flex items-center gap-2 text-[11.5px] text-ui-hint">
-          <span className="rounded-[4px] bg-ui-subtle px-1.5 py-0.5 font-ui-mono text-[11px] text-[#c8c8ce]">{sizeText(item.w, item.h)}</span>
+          <span className="rounded-[4px] bg-ui-subtle px-1.5 py-0.5 font-ui-mono text-[11px] text-ui-2">{sizeText(item.w, item.h)}</span>
           {item.mw === 1 && item.mh === 1 ? "Adapts down to 1×1" : `Needs at least ${sizeText(item.mw, item.mh)}`}
         </div>
         <div

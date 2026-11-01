@@ -148,7 +148,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
   const data = useGaugeData(item);
   const spec = data?.vector ?? null;
   const tall = (m.height ?? 0) > (m.width ?? 0) * 1.2;
-  const box = cn("relative flex items-center justify-center overflow-hidden rounded-[8px] bg-[#141418]", className);
+  const box = cn("relative flex items-center justify-center overflow-hidden rounded-[8px] bg-ui-tile", className);
 
   if (broken) {
     return (
@@ -161,7 +161,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
     case "image":
     case "svg":
       return (
-        <div className={cn(box, tall || item.kind === "svg" ? "bg-[#101013]" : "")}>
+        <div className={cn(box, tall || item.kind === "svg" ? "bg-ui-chrome" : "")}>
           {url && (
             <img
               src={url}
@@ -242,7 +242,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
       );
     case "gauge":
       return (
-        <div className={cn(box, "bg-[#111115]")}>
+        <div className={cn(box, "bg-ui-panel")}>
           {live && data ? (
             <LiveGauge data={data} size={GAUGE_PX[size]} />
           ) : spec ? (

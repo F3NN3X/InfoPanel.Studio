@@ -23,7 +23,7 @@ import { KEYS } from "./use-studio-shortcuts";
 /** The 32 px icon box of a header (the glyph in the accent text colour). */
 export function HeaderIcon({ children }: { children: ReactNode }) {
   return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1c1c21] text-[oklch(0.78_0.12_255)] [&>svg]:h-[19px] [&>svg]:w-[19px]">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-s-divider text-[oklch(0.78_0.12_255)] [&>svg]:h-[19px] [&>svg]:w-[19px]">
       {children}
     </span>
   );
@@ -85,7 +85,8 @@ function ZoneActions({
       <IconButton label={zoneKeys ? `Duplicate (${KEYS.duplicate})` : "Duplicate widget"} onClick={onDuplicate} className={touch}>
         <Copy className="h-4 w-4" />
       </IconButton>
-      <IconButton label={zoneKeys ? `Delete (${KEYS.remove})` : "Delete widget"} danger onClick={onRemove} className={touch}>
+      <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 bg-ui-subtle" />
+      <IconButton label={zoneKeys ? `Delete (${KEYS.remove})` : "Delete widget"} danger onClick={onRemove} className={cn("text-ui-danger/80", touch)}>
         <Trash2 className="h-4 w-4" />
       </IconButton>
       <CloseButton />

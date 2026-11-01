@@ -30,6 +30,8 @@ export interface Slot {
   /** Newest first, at most MAX_PER_SLOT. */
   shown: ActiveAlert[];
   more: number;
+  /** The alerts behind "+N more". */
+  rest: ActiveAlert[];
 }
 
 /** Group alerts by anchor slot: newest first, `MAX_PER_SLOT` visible, the rest counted. */
@@ -43,6 +45,7 @@ export function groupBySlot(alerts: readonly ActiveAlert[]): Slot[] {
     key,
     shown: list.slice(0, MAX_PER_SLOT),
     more: Math.max(0, list.length - MAX_PER_SLOT),
+    rest: list.slice(MAX_PER_SLOT),
   }));
 }
 

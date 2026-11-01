@@ -388,7 +388,7 @@
     "evidence": "Header ConnectionStatus (App.tsx:883-890) is non-kiosk; island message in system.ts:34 opened. Behavioural claim otherwise read from audit.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-018",
@@ -822,7 +822,7 @@
     "evidence": "library-page.tsx:329-334 opened: setConfig = one undo step, toast has no action. Downgraded: undo exists (Ctrl+Z).",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-036",
@@ -944,7 +944,7 @@
     "evidence": "Read from audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-042",
@@ -1484,7 +1484,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-066",
@@ -1524,7 +1524,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-068",
@@ -1790,7 +1790,7 @@
     "evidence": "Verified in audit; undo exists so not a trigger.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-080",
@@ -1870,7 +1870,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-084",
@@ -1996,7 +1996,7 @@
     "evidence": "Inferred; may be a capture-timing gap.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-090",

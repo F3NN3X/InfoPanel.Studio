@@ -35,7 +35,7 @@ function SeriesTable({ diag, filter }: { diag: Diagnostics; filter: "notable" | 
           <div key={g.name} role="rowgroup">
             <div role="row" className="px-4 pb-1 pt-2.5 text-[11px] uppercase tracking-[0.06em] text-s-dim"><span role="rowheader">{g.name}</span></div>
             {g.rows.map(({ series, name }) => (
-              <div key={series.name} role="row" className={cn(GRID, "items-center px-4 py-[7px] text-[12.5px] hover:bg-[#151519]")}>
+              <div key={series.name} role="row" className={cn(GRID, "items-center px-4 py-[7px] text-[12.5px] hover:bg-ui-tile")}>
                 <span role="cell" className="flex min-w-0 items-center gap-2">
                   <span aria-hidden="true" className={cn("h-1.5 w-1.5 shrink-0 rounded-full", series.growing ? "bg-s-amber" : "bg-[#55555e]")} />
                   {series.growing && <span className="sr-only">Rising: </span>}

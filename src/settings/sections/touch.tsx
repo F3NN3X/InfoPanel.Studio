@@ -535,7 +535,7 @@ export function TouchSection() {
     <>
       <div className="overflow-hidden rounded-xl border border-s-card-line bg-s-card">
         <div ref={found.ref} className={cn("flex items-center gap-4 px-[18px] py-4", found.className)}>
-          <div className="grid h-9 w-9 place-items-center rounded-[9px] bg-[#1a1a1f] text-s-t2">
+          <div className="grid h-9 w-9 place-items-center rounded-[9px] bg-ui-hover text-s-t2">
             <Hand className="h-5 w-5" />
           </div>
           <div className="flex flex-1 flex-col gap-[3px]">

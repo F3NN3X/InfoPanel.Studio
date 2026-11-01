@@ -330,7 +330,8 @@ export default function LibraryPage(p: LibraryPageProps) {
   const deleteSavedPanel = (item: LibraryItem) => {
     if (selectedId === item.id) setSelectedId(null);
     p.bridge.setConfig((c) => deletePanelPreset(c, (item.data as { id: string }).id));
-    toast(`Deleted ${item.name}`);
+    const undo = p.bridge.undo;
+    toast(`Deleted ${item.name}`, undo ? { action: { label: "Undo", onClick: undo }, ms: 8000 } : undefined);
   };
   const askRemove = (item: LibraryItem) => {
     // Delete on a ticked card deletes the whole ticked set.

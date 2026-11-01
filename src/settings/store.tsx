@@ -210,7 +210,7 @@ export function StoreProvider({ children, pages = SECTIONS }: { children: ReactN
       try {
         const result = await ipc.setZoom(percent / 100);
         applyResult("zoom", result, seq);
-        if (result.ok) toast("Saved");
+        if (result.ok) toast(`${percent}%`);
         else toast(result.error ?? "Not saved.", true);
       } catch (e) {
         toast(errorText(e), true);

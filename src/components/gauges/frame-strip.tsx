@@ -140,7 +140,7 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
               title={i === current ? `Frame ${i + 1}: shown at this value` : `Frame ${i + 1}`}
               onClick={(e) => onSelect(selectFrame(picked, i, e.shiftKey))}
               className={cn(
-                "relative block h-[68px] w-[76px] overflow-hidden rounded-[7px] border bg-[#0b0b0e] outline-none focus-visible:border-ui-accent",
+                "relative block h-[68px] w-[76px] overflow-hidden rounded-[7px] border bg-ui-app outline-none focus-visible:border-ui-accent",
                 isSelected(picked, i) ? "border-ui-accent shadow-[0_0_0_1px_var(--ui-accent)]" : "border-ui-subtle hover:border-ui-menu",
               )}
             >

@@ -22,7 +22,7 @@ export function RulerLabels({ width, height, scale = 1 }: { width: number; heigh
     <>
       <div data-shot-skip className="pointer-events-none absolute left-0 right-0 select-none" style={{ top: -30 * inv, height: 14 * inv }} aria-hidden>
         {rulerMarks(width).map((x) => (
-          <span key={x} className={`${LABEL} top-0 h-full border-l border-[#2a2a31]`} style={{ left: x }}>
+          <span key={x} className={`${LABEL} top-0 h-full border-l border-ui-active`} style={{ left: x }}>
             <span className="inline-block pl-0.5" style={text}>
               {x}
             </span>
@@ -31,7 +31,7 @@ export function RulerLabels({ width, height, scale = 1 }: { width: number; heigh
       </div>
       <div data-shot-skip className="pointer-events-none absolute bottom-0 top-0 select-none" style={{ left: -34 * inv, width: 22 * inv }} aria-hidden>
         {rulerMarks(height).map((y) => (
-          <span key={y} className={`${LABEL} left-0 w-full border-t border-[#2a2a31]`} style={{ top: y }}>
+          <span key={y} className={`${LABEL} left-0 w-full border-t border-ui-active`} style={{ top: y }}>
             <span className="inline-block" style={text}>
               {y}
             </span>

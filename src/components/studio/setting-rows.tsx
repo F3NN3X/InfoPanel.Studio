@@ -178,7 +178,7 @@ export function SliderRow({
 }
 
 const SEGMENT_BUTTONS =
-  "gap-0.5 rounded-[7px] [&>button]:whitespace-nowrap [&>button]:text-[11.5px] [&>button]:font-medium [&>button:not([aria-checked=true])]:text-[#8f8f99]";
+  "gap-0.5 rounded-[7px] [&>button]:whitespace-nowrap [&>button]:text-[11.5px] [&>button]:font-medium [&>button:not([aria-checked=true])]:text-ui-4";
 
 /**
  * A segmented control at full width: one line that scrolls sideways if it

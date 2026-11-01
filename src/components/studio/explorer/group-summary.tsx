@@ -60,7 +60,7 @@ export function GroupSummary({
         {stats.map((s) => (
           <div
             key={s.label}
-            className="flex justify-between gap-3 whitespace-nowrap border-b border-[#1c1c21] py-2 text-[12.5px]"
+            className="flex justify-between gap-3 whitespace-nowrap border-b border-s-divider py-2 text-[12.5px]"
           >
             <span className="text-ui-2">{s.label}</span>
             <span className="font-ui-mono text-[12px] text-ui-1">{s.value}</span>

@@ -57,7 +57,7 @@ export function ExplorerHeader({ pointCount, sourceCount, apiBase, config }: Exp
         <Popover
           align="end"
           className="w-[300px]"
-          triggerClassName="inline-flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong bg-ui-raised px-[11px] text-[12px] text-ui-1 hover:bg-[#1e1e23] aria-expanded:bg-ui-active"
+          triggerClassName="inline-flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong bg-ui-raised px-[11px] text-[12px] text-ui-1 hover:bg-ui-subtle aria-expanded:bg-ui-active"
           trigger={
             <>
               <FileText className="h-4 w-4" />
@@ -83,7 +83,7 @@ export function ExplorerHeader({ pointCount, sourceCount, apiBase, config }: Exp
           align="end"
           anchor={actionsRef}
           className="w-[min(520px,calc(100vw-32px))] rounded-[10px] p-1.5"
-          triggerClassName="inline-flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong bg-ui-raised px-[11px] text-[12px] text-ui-1 hover:bg-[#1e1e23] aria-expanded:bg-ui-active"
+          triggerClassName="inline-flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong bg-ui-raised px-[11px] text-[12px] text-ui-1 hover:bg-ui-subtle aria-expanded:bg-ui-active"
           trigger={
             <>
               <Waypoints className="h-4 w-4" />
@@ -100,7 +100,7 @@ export function ExplorerHeader({ pointCount, sourceCount, apiBase, config }: Exp
                 key={`${e.method} ${e.path}`}
                 type="button"
                 onClick={() => copy(`${apiBase}${e.path}`)}
-                className="grid w-full grid-cols-[44px_minmax(0,1fr)] gap-2.5 rounded-md px-2.5 py-2 text-left hover:bg-[#202026]"
+                className="grid w-full grid-cols-[44px_minmax(0,1fr)] gap-2.5 rounded-md px-2.5 py-2 text-left hover:bg-ui-subtle"
               >
                 <span
                   className={cn(

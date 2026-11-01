@@ -54,7 +54,7 @@ export function MoreRows({
   if (count === 0) return null;
   return (
     <>
-      {open && <div className="bg-[#0f0f12] py-1">{children}</div>}
+      {open && <div className="bg-ui-chrome py-1">{children}</div>}
       <button
         type="button"
         aria-expanded={open}

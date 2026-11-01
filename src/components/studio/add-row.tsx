@@ -57,7 +57,7 @@ export function AddItemIcon({ item, size }: { item: AddItem; size: number }) {
   const glyph = size >= 40 ? 22 : 18;
   return (
     <span
-      className="flex shrink-0 items-center justify-center rounded-[8px] border border-ui-default bg-ui-raised text-[#c8c8ce]"
+      className="flex shrink-0 items-center justify-center rounded-[8px] border border-ui-default bg-ui-raised text-ui-2"
       style={{ width: size, height: size }}
     >
       <Icon style={{ width: glyph, height: glyph }} strokeWidth={1.6} />
@@ -132,7 +132,7 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
       className={cn(
         "group/row flex cursor-pointer select-none items-center gap-2.5 rounded-[8px] px-2",
         compact ? "h-10 py-[5px]" : "h-[52px] py-[7px]",
-        highlighted && "bg-[#1c1c21]"
+        highlighted && "bg-s-divider"
       )}
     >
       <span className={cn("flex shrink-0", needs && "opacity-40")}>

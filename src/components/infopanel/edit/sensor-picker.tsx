@@ -93,7 +93,7 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
                           aria-selected={p.key === current}
                           title={native ? ref : `${p.key} · ${NOT_EXPORTABLE}`}
                           onClick={() => pick(p)}
-                          className={cn("flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-1.5 text-left hover:bg-[#1c1c21]", p.key === current && "bg-ui-accent/10")}
+                          className={cn("flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-1.5 text-left hover:bg-s-divider", p.key === current && "bg-ui-accent/10")}
                         >
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[12.5px] text-ui-1">{p.name}</span>

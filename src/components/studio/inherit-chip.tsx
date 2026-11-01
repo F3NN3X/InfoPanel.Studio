@@ -34,7 +34,7 @@ interface ChipLook {
 }
 
 /** The handoff's chip colors (SPEC §4.6): changed here, inherited (dashed), locked. */
-const CHANGED = "border-[#3b82f6] bg-[#0b1530] text-[#93c5fd]";
+const CHANGED = "border-[#3b82f6] bg-[#0b1530] text-ui-accent-text";
 const INHERITED = "border-dashed border-[#3f3f46] text-[#a1a1aa]";
 export const LOCKED = "border-[#b45309] bg-[#2a1d05] text-[#fcd34d]";
 
@@ -126,7 +126,7 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner className="z-50" sideOffset={4} align="start">
-          <Menu.Popup className={cn(POPUP, "w-[220px] bg-[#1a1a1f] border-[#33333a]")}>
+          <Menu.Popup className={cn(POPUP, "w-[220px] bg-ui-hover border-ui-menu")}>
             {line && <div className="px-2 pb-1 pt-1.5 text-[11px] leading-snug text-ui-4">{line}</div>}
             {state === "custom" && (
               <>

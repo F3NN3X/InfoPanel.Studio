@@ -180,7 +180,7 @@ function ListenRow() {
               {...radioProps(LISTEN_OPTIONS.map((x) => x.value), settings.listen, o.value, (v) => void save("listen", v))}
               className={cn(
                 "flex cursor-pointer items-start gap-2.5 rounded-[10px] border px-3.5 py-3 text-left text-s-t1",
-                on ? "border-s-accent bg-s-accent/10" : "border-s-input-line bg-s-input hover:bg-[#1c1c21]"
+                on ? "border-s-accent bg-s-accent/10" : "border-s-input-line bg-s-input hover:bg-s-divider"
               )}
             >
               <o.icon className={cn("mt-px h-5 w-5 shrink-0", on ? "text-s-accent-text" : "text-s-muted")} />

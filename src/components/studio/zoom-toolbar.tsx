@@ -42,9 +42,9 @@ export interface ExportView {
   onChange: (infoPanel: boolean) => void;
 }
 
-const BAR_BUTTON = "h-7 w-7 rounded-md hover:bg-[#24242a]";
-const TOGGLE_BUTTON = cn(BAR_BUTTON, "text-[#c9c9cf]");
-const TEXT_BUTTON = "flex h-[26px] items-center gap-1 rounded-md px-2 text-[11.5px] text-[#c9c9cf] transition-colors hover:bg-[#24242a]";
+const BAR_BUTTON = "h-7 w-7 rounded-md hover:bg-ui-default";
+const TOGGLE_BUTTON = cn(BAR_BUTTON, "text-ui-2");
+const TEXT_BUTTON = "flex h-[26px] items-center gap-1 rounded-md px-2 text-[11.5px] text-ui-2 transition-colors hover:bg-ui-default";
 
 function Divider() {
   return <div className="mx-1 h-[18px] w-px shrink-0 bg-ui-strong" />;
@@ -103,7 +103,7 @@ export function ZoomToolbar({
         title={`Fit the page to the canvas and keep it fitted (${KEYS.fit})`}
         className={cn(
           "h-[26px] rounded-md px-[9px] text-[11.5px] font-medium transition-colors",
-          fitting ? "bg-ui-active text-ui-1" : "text-[#8f8f99] hover:bg-[#24242a]"
+          fitting ? "bg-ui-active text-ui-1" : "text-ui-4 hover:bg-ui-default"
         )}
       >
         Fit
@@ -145,7 +145,7 @@ function ExportViewSwitch({ view }: { view: ExportView }) {
       aria-checked={view.infoPanel === infoPanel}
       title={title}
       onClick={() => view.onChange(infoPanel)}
-      className={cn("h-[22px] rounded-[5px] px-2 text-[11.5px] transition-colors", view.infoPanel === infoPanel ? "bg-ui-active text-ui-1" : "text-[#8f8f99] hover:text-ui-1")}
+      className={cn("h-[22px] rounded-[5px] px-2 text-[11.5px] transition-colors", view.infoPanel === infoPanel ? "bg-ui-active text-ui-1" : "text-ui-4 hover:text-ui-1")}
     >
       {label}
     </button>

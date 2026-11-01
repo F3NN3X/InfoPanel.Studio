@@ -12,8 +12,8 @@ import { BackgroundSwatch, TokenSwatches } from "./theme-swatches";
 import { radiusPx, pxRadius, remText, type CardKind } from "./theme-view-model";
 
 /** The theme card's ⋯ menu (SPEC §4.3.1): 260 px, #131316 on #3f3f46. */
-const MENU = "w-[260px] rounded-[10px] border border-[#3f3f46] bg-[#131316] p-1 font-ui text-[12.5px] text-ui-2 shadow-[0_12px_32px_rgba(0,0,0,.6)] outline-none";
-const LINK = "rounded-sm text-[12px] text-[#93c5fd] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const MENU = "w-[260px] rounded-[10px] border border-[#3f3f46] bg-ui-panel p-1 font-ui text-[12.5px] text-ui-2 shadow-[0_12px_32px_rgba(0,0,0,.6)] outline-none";
+const LINK = "rounded-sm text-[12px] text-ui-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 const PRIMARY = "h-7 rounded-md bg-[#3b82f6] px-2.5 text-[12px] font-medium text-white hover:bg-[#2563eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 interface ThemeLookCardProps {
@@ -54,9 +54,9 @@ function PartRow({ label, onOpen, children }: { label: string; onOpen?: () => vo
       {onOpen && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-ui-hint" aria-hidden />}
     </>
   );
-  const row = "flex w-full items-center gap-2 border-t border-[#1a1a1d] px-3 py-[9px] text-left first:border-t-0";
+  const row = "flex w-full items-center gap-2 border-t border-ui-raised px-3 py-[9px] text-left first:border-t-0";
   return onOpen ? (
-    <button type="button" onClick={onOpen} className={cn(row, "hover:bg-[#111113] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent")}>
+    <button type="button" onClick={onOpen} className={cn(row, "hover:bg-ui-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent")}>
       {body}
     </button>
   ) : (
@@ -176,7 +176,7 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
         </Menu.Root>
       </div>
       <div className="overflow-hidden rounded-[9px] border border-ui-strong">
-        <h3 className="border-b border-[#1a1a1d] px-3 py-1.5 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-ui-hint">Made of</h3>
+        <h3 className="border-b border-ui-raised px-3 py-1.5 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-ui-hint">Made of</h3>
         <PartRow label="Palette" onOpen={p.partsNote ? undefined : p.onPalette}>
           <TokenSwatches tokens={p.tokens} />
           <span className="truncate">{p.paletteName}</span>
@@ -203,7 +203,7 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
           <BackgroundSwatch bg={p.background} tokens={p.tokens} />
           <span className="truncate">{p.backgroundLabel}</span>
         </PartRow>
-        {p.partsNote && <p className="border-t border-[#1a1a1d] px-3 py-2 text-[11.5px] leading-snug text-ui-hint">{p.partsNote}</p>}
+        {p.partsNote && <p className="border-t border-ui-raised px-3 py-2 text-[11.5px] leading-snug text-ui-hint">{p.partsNote}</p>}
       </div>
       <button
         type="button"

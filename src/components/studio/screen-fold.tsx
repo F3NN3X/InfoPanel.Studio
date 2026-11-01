@@ -15,7 +15,7 @@ export function ScreenFold({ height, zoom }: { height: number; zoom: number }) {
       style={{ top: height, borderTop: `${px(1.5)}px dashed #8a8a94` }}
     >
       <span
-        className="absolute left-0 whitespace-nowrap rounded-b-md bg-[#1c1c21] font-ui text-[#c9c9cf]"
+        className="absolute left-0 whitespace-nowrap rounded-b-md bg-s-divider font-ui text-ui-2"
         style={{ top: 0, fontSize: px(11), padding: `${px(2)}px ${px(8)}px`, marginLeft: px(8) }}
       >
         {`Screen ends at ${height} px · the kiosk scrolls`}

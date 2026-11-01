@@ -56,7 +56,7 @@ export function Segmented<T extends string>({
           className={cn(
             "font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
             bar ? "rounded-md px-3.5 py-[5px] text-[12.5px]" : "rounded-[5px] px-[9px] py-1 text-[11.5px]",
-            o.value === value ? "bg-ui-active text-ui-1" : "text-[#8f8f99] hover:text-ui-1"
+            o.value === value ? "bg-ui-active text-ui-1" : "text-ui-4 hover:text-ui-1"
           )}
         >
           {o.label}

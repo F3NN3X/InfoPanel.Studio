@@ -21,7 +21,7 @@ const INDEX = [...SEARCH_INDEX, ...PREFERENCES_INDEX];
 
 function Content() {
   const { section, settings, setZoom, found, toast } = useStore();
-  useZoomKeys(settings.zoom, setZoom);
+  useZoomKeys(settings.zoom, setZoom, toast);
   // F1 opens the Help article for the page on show.
   useHelpKey(() => settingsHelpTarget(section), (target) => void ipc.openHelp(target).catch((e) => toast(errorText(e), true)));
   const app = isSectionId(section);

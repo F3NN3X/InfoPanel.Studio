@@ -441,7 +441,7 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
           {profiles && profiles.length > 0 && (
             <ul className="m-0 overflow-hidden rounded-[9px] border border-ui-subtle bg-ui-panel p-0">
               {profiles.map((p, i) => (
-                <li key={p.guid} className={cn("flex items-center gap-3 px-3 py-2 text-[12px]", i > 0 && "border-t border-[#1c1c21]")}>
+                <li key={p.guid} className={cn("flex items-center gap-3 px-3 py-2 text-[12px]", i > 0 && "border-t border-s-divider")}>
                   <span className="min-w-0 flex-1 truncate text-ui-1">{p.name || "Untitled"}</span>
                   <span className="hidden truncate text-[11px] text-ui-4 sm:block">{p.file}</span>
                   <span className="w-16 shrink-0 text-right font-ui-mono text-[11px] text-ui-3">{fmtBytes(p.bytes)}</span>
@@ -518,7 +518,7 @@ export function FinishStep({ headRef, rerun, rows, onChange, options }: FinishSt
       </div>
       <ul className="m-0 overflow-hidden rounded-[9px] border border-ui-subtle bg-ui-panel p-0">
         {rows.map((r, i) => (
-          <li key={r.label} className={cn("flex items-start gap-3 px-3 py-2.5", i > 0 && "border-t border-[#1c1c21]")}>
+          <li key={r.label} className={cn("flex items-start gap-3 px-3 py-2.5", i > 0 && "border-t border-s-divider")}>
             <r.icon className={cn("mt-px h-4 w-4 shrink-0", r.tone === "ok" ? "text-ui-success" : r.tone === "warn" ? "text-ui-warning" : r.tone === "fail" ? "text-ui-danger" : "text-ui-3")} />
             <span className="w-24 shrink-0 text-[12px] text-ui-2">{r.label}</span>
             <span className="flex min-w-0 flex-1 flex-col">
@@ -537,7 +537,7 @@ export function FinishStep({ headRef, rerun, rows, onChange, options }: FinishSt
       </ul>
       <section aria-label="Options" className="flex flex-col gap-1.5">
         <h2 className="m-0 text-[12px] font-medium text-ui-1">Options</h2>
-        <div className="divide-y divide-[#1c1c21] overflow-hidden rounded-[9px] border border-ui-subtle bg-ui-panel">{options}</div>
+        <div className="divide-y divide-s-divider overflow-hidden rounded-[9px] border border-ui-subtle bg-ui-panel">{options}</div>
       </section>
       <p className="m-0 text-[11px] text-ui-4">Run setup again any time from Settings → General → Run setup.</p>
     </div>

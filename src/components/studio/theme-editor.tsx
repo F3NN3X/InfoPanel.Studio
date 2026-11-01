@@ -555,7 +555,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
         >
           <InspectorChromeProvider value={{ mode: "docked" }}>{column()}</InspectorChromeProvider>
         </aside>
-        <main className="flex min-w-0 flex-1 flex-col items-start overflow-y-auto bg-[#0b0b0d] px-6 py-5 max-sm:shrink-0 max-sm:overflow-visible max-sm:p-4">
+        <main className="flex min-w-0 flex-1 flex-col items-start overflow-y-auto bg-ui-app px-6 py-5 max-sm:shrink-0 max-sm:overflow-visible max-sm:p-4">
           <ThemePreview
             config={config}
             at={at}

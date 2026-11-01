@@ -10,7 +10,7 @@ import { PickerShell } from "./theme-pickers";
 import { PaletteSwatch } from "./theme-swatches";
 import { paletteCounts } from "./theme-messages";
 
-const ACTION = "rounded-sm text-[12px] text-[#60a5fa] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const ACTION = "rounded-sm text-[12px] text-ui-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 interface PalettePickerProps {
   current: ThemeTokens;
@@ -50,7 +50,7 @@ export function PalettePicker(p: PalettePickerProps) {
   const rowEnd = Math.min(openAt + (openAt % 2 === 0 ? 1 : 0), THEME_PRESETS.length + p.saved.length - 1);
 
   const menu = open && (
-    <div key="menu" className="col-span-2 flex flex-col gap-1.5 rounded-lg border border-ui-strong bg-[#131316] px-3 py-2">
+    <div key="menu" className="col-span-2 flex flex-col gap-1.5 rounded-lg border border-ui-strong bg-ui-panel px-3 py-2">
       <p className="text-[11px] text-ui-hint">{p.usedBy(open.tokens)}</p>
       {renaming === open.id ? (
         <ThemeNameInput

@@ -121,7 +121,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
                 onClick={() => setPickedId(p.id)}
                 className={cn(
                   "h-[26px] rounded-md border px-2.5 text-[12px] text-ui-2 hover:border-ui-strong",
-                  p.id === profile.id ? "border-[#3a3a44] bg-[#26262c] text-ui-1" : "border-ui-default"
+                  p.id === profile.id ? "border-[#3a3a44] bg-ui-default text-ui-1" : "border-ui-default"
                 )}
               >
                 {p.name}

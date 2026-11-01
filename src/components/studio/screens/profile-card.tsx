@@ -73,7 +73,7 @@ export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thu
       )}
     >
       <button type="button" aria-label={label} className="block w-full outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ui-accent/60">
-        <div className="w-full bg-[#0a0a0c]" style={{ aspectRatio: aspect }}>
+        <div className="w-full bg-s-well" style={{ aspectRatio: aspect }}>
           {thumb}
         </div>
       </button>

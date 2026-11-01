@@ -114,7 +114,7 @@ function GridPreview({ profile }: { profile: ProfileView }) {
   return (
     <div
       aria-hidden
-      className="flex items-center justify-center rounded-lg border border-ui-subtle bg-[#0a0a0c]"
+      className="flex items-center justify-center rounded-lg border border-ui-subtle bg-s-well"
       style={{ height: GRID_PREVIEW_BOX.height }}
     >
       <div

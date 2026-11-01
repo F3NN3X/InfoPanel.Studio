@@ -1,6 +1,5 @@
-import { Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { stepZoom, ZOOMS } from "@/app-window/zoom";
+import { ZOOMS } from "@/app-window/zoom";
 import { usePreviewDataSetting } from "@/hooks/use-preview-data-setting";
 import { PREVIEW_DATA_HINT, PREVIEW_DATA_OPTIONS, parsePreviewData } from "@/lib/preview-data-pref";
 import { errorText, ipc } from "../ipc";
@@ -25,25 +24,11 @@ export function GeneralSection() {
       alive = false;
     };
   }, [settings.openStudioIn]);
-  const step = (s: -1 | 1) => void setZoom(stepZoom(settings.zoom, s));
-  const stepButton = "grid h-8 w-8 cursor-pointer place-items-center rounded-lg border border-s-input-line bg-s-input text-s-t2 hover:bg-[#1c1c21] disabled:cursor-default disabled:opacity-40";
   return (
     <>
       <Group title="Zoom">
         <Card className="divide-y-0 pb-[18px]">
-          <Row id="zoom" label="App zoom" hint="Scales the Studio and the app window. Doesn't change the kiosk.">
-              <div className="flex items-center gap-1.5">
-                <button type="button" aria-label="Zoom out" className={stepButton} disabled={settings.zoom <= ZOOMS[0]} onClick={() => step(-1)}>
-                  <Minus className="h-[18px] w-[18px]" />
-                </button>
-                <div className="w-16 text-center font-mono text-sm font-medium" aria-live="polite">
-                  {settings.zoom}%
-                </div>
-                <button type="button" aria-label="Zoom in" className={stepButton} disabled={settings.zoom >= ZOOMS[ZOOMS.length - 1]} onClick={() => step(1)}>
-                  <Plus className="h-[18px] w-[18px]" />
-                </button>
-              </div>
-          </Row>
+          <Row id="zoom" label="App zoom" hint="Scales the Studio and the app window. Doesn't change the kiosk." />
           <div className="flex flex-col gap-4 px-[18px]">
             <Segmented
               label="App zoom"

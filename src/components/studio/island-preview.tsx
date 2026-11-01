@@ -15,7 +15,7 @@ export function IslandPreview({ island, page, bus }: IslandPreviewProps) {
   const config = island ?? { ...ISLAND_DEFAULTS, enabled: false };
   return (
     <div className="flex flex-col gap-1.5">
-      <div aria-label="Island preview" className="relative h-[120px] overflow-hidden rounded-[10px] border border-ui-subtle bg-[#070709]">
+      <div aria-label="Island preview" className="relative h-[120px] overflow-hidden rounded-[10px] border border-ui-subtle bg-s-well">
         <DynamicIsland config={config} alerts={[]} placement="absolute" page={page} bus={bus} />
       </div>
       {!config.enabled && (

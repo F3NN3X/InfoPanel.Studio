@@ -6,7 +6,7 @@ import { InheritChip, InheritLockNote, LOCKED } from "./inherit-chip";
 import type { ThemeCard } from "./theme-cards";
 import { changedHere, type FineTuneChip } from "./theme-fine-tune-model";
 
-const LINK = "rounded-sm text-[#60a5fa] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const LINK = "rounded-sm text-ui-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 /** Whether a key press is the user typing (a field keeps its ⌫). */
 const typing = (e: KeyboardEvent<HTMLElement>): boolean =>
@@ -81,7 +81,7 @@ export function FineTuneRow({ card, chip, summary, parentText, open, onToggle, l
           onReset();
         }
       }}
-      className={cn("border-t border-[#1a1a1d] transition-shadow duration-500", flash && "shadow-[inset_0_0_0_1.5px_var(--ui-accent)]")}
+      className={cn("border-t border-ui-raised transition-shadow duration-500", flash && "shadow-[inset_0_0_0_1.5px_var(--ui-accent)]")}
     >
       <header className="flex items-center gap-2 px-4 py-2.5">
         <button

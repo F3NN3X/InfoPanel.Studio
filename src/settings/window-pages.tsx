@@ -26,7 +26,7 @@ function NoteToast({ note }: { note?: SaveNote }) {
     <div
       key={shown.id}
       role="status"
-      className="fixed bottom-5 right-6 z-10 flex h-[34px] items-center gap-2 rounded-[9px] border border-s-input-line bg-[#1c1c21] px-3.5 text-[12.5px] text-s-t1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+      className="fixed bottom-5 right-6 z-10 flex h-[34px] items-center gap-2 rounded-[9px] border border-s-input-line bg-s-divider px-3.5 text-[12.5px] text-s-t1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
     >
       {shown.error ? <X className="h-4 w-4 text-s-red" /> : <CircleCheck className="h-4 w-4 text-s-green" />}
       {shown.error ?? "Saved"}

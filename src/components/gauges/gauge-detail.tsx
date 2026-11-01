@@ -36,7 +36,7 @@ export function GaugeDetail({ entry, sheet, copies, scope, actions }: GaugeDetai
         sheet ? "min-w-0 flex-1" : "w-[320px] shrink-0 border-l border-ui-subtle",
       )}
     >
-      <div className={cn("flex aspect-square w-full items-center justify-center rounded-[10px] border border-ui-subtle bg-[#0b0b0e]", sheet && "max-w-[248px] self-center")}>
+      <div className={cn("flex aspect-square w-full items-center justify-center rounded-[10px] border border-ui-subtle bg-ui-app", sheet && "max-w-[248px] self-center")}>
         <GaugeView gauge={entry.gauge} frames={entry.frames} p={playback.p} size={248} scope={scope} />
       </div>
       <PlayControls playback={playback} />

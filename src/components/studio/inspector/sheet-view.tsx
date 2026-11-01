@@ -45,7 +45,7 @@ interface SheetViewProps {
   advanced: boolean;
 }
 
-const BUTTON = "flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-ui-3 hover:bg-[#1e1e24] hover:text-ui-1";
+const BUTTON = "flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-ui-3 hover:bg-s-nav-on hover:text-ui-1";
 
 /** A 44 px button that opens the full inspector. */
 function AllSettings({ onClick }: { onClick: () => void }) {
@@ -154,7 +154,7 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center gap-2.5 pl-4 pr-2">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1c1c21] text-[oklch(0.78_0.12_255)] [&>svg]:h-[19px] [&>svg]:w-[19px]">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-s-divider text-[oklch(0.78_0.12_255)] [&>svg]:h-[19px] [&>svg]:w-[19px]">
           {identity.icon}
         </span>
         <div className="min-w-0 flex-1">

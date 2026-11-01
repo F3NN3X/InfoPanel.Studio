@@ -267,6 +267,7 @@ function StudioViewBody({
     onPresetSaved: () => ui.setPresetNaming(false),
     onPageChange,
     onSelectProfile: selectProfile,
+    onUndo: history.undo,
   });
   const { setScopeStyle, appearancePresets } = useStyleEdits(config, profile, setConfig);
   /** The global style the zones render under. */
@@ -511,6 +512,7 @@ function StudioViewBody({
     selection: sel.selection,
     select: (id) => sel.select(id),
     toast,
+    undo: history.undo,
     addCopy: (item, copy) => void recordCopy(item, copy),
   };
 

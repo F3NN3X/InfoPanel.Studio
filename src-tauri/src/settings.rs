@@ -14,7 +14,7 @@ pub const LAN_HOST: &str = "0.0.0.0";
 pub const DEFAULT_PORT: u16 = 3922;
 pub const MIN_PORT: u16 = 1024;
 /// The app zoom steps, in percent.
-pub const ZOOMS: &[u16] = &[80, 90, 100, 110, 125, 150];
+pub const ZOOMS: &[u16] = &[80, 90, 100, 110, 125, 150, 175, 200];
 pub const DEFAULT_ZOOM: u16 = 100;
 
 /// Who can reach the server: this computer only (127.0.0.1) or the local network (0.0.0.0).

@@ -103,7 +103,7 @@ export function PointTable({
       <div className="space-y-2.5 border-b border-ui-subtle px-4 pb-2.5 pt-3">
         <div className="flex flex-wrap items-center gap-1 text-[12.5px] leading-[1.25]">
           {crumbs.map((c, i) => {
-            const tone = i === crumbs.length - 1 ? "font-semibold text-ui-1" : "text-[#8f8f99]";
+            const tone = i === crumbs.length - 1 ? "font-semibold text-ui-1" : "text-ui-4";
             return (
               <span key={`${i}:${c.label}`} className="inline-flex items-center gap-1">
                 {i > 0 && <ChevronRight className="h-4 w-4 text-ui-hint" aria-hidden />}
@@ -254,7 +254,7 @@ function GroupHeader({ row, onGroup }: { row: GroupRow; onGroup: (row: GroupRow)
         }
       }}
       style={{ height: GROUP_ROW_H }}
-      className="flex cursor-pointer items-center gap-2 border-b border-ui-subtle bg-[#101013] px-4"
+      className="flex cursor-pointer items-center gap-2 border-b border-ui-subtle bg-ui-chrome px-4"
     >
       <span className="truncate text-[12px] font-semibold text-ui-1">{row.title}</span>
       {row.sourceName !== row.title && <span className="truncate text-[11px] text-ui-4">{row.sourceName}</span>}
@@ -279,7 +279,7 @@ interface PointRowProps {
   onToggleBind: (point: DataPoint, bound: boolean) => void;
 }
 
-const ROW_ACTION = "flex h-6 w-6 items-center justify-center rounded-[5px] hover:bg-[#26262c]";
+const ROW_ACTION = "flex h-6 w-6 items-center justify-center rounded-[5px] hover:bg-ui-default";
 
 function PointRow({ point, cols, values, usage, selected, onSelect, screens, sources, sourcePrefs, onDisplayName, showUsedIn, target, onToggleBind }: PointRowProps) {
   const copy = useCopy();
@@ -356,7 +356,7 @@ function PointRow({ point, cols, values, usage, selected, onSelect, screens, sou
         <span className="truncate text-[12px] text-ui-hint">—</span>
       )}
       {showUsedIn && (
-        <span title={used.used ? (screens.get(point.key) ?? []).join(", ") : undefined} className={cn("truncate text-[11.5px]", used.used ? "text-ui-accent-text" : "text-[#55555e]")}>
+        <span title={used.used ? (screens.get(point.key) ?? []).join(", ") : undefined} className={cn("truncate text-[11.5px]", used.used ? "text-ui-accent-text" : "text-ui-disabled")}>
           {used.text}
         </span>
       )}

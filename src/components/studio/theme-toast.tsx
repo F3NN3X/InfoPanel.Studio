@@ -54,18 +54,18 @@ interface ThemeToastRowProps {
 /** The toast row under the preview's header (SPEC §4.4): green dot, title and sub-line, Reset to ‹name›, Make them follow, Undo and ✕. */
 export function ThemeToastRow({ toast, onUndo, onDismiss }: ThemeToastRowProps) {
   return (
-    <div role="status" className="flex w-full items-center gap-3 rounded-[9px] border border-ui-strong bg-[#131316] px-3 py-[9px] text-[13px]">
+    <div role="status" className="flex w-full items-center gap-3 rounded-[9px] border border-ui-strong bg-ui-panel px-3 py-[9px] text-[13px]">
       <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-[#4ade80]" aria-hidden />
       <p className="min-w-0 flex-1">
         <b className="font-semibold text-ui-1">{toast.title}</b> <span className="text-[#a1a1aa]">{toast.sub}</span>
       </p>
       {toast.reset && (
-        <button type="button" className={`${LINK} text-[#60a5fa]`} onClick={toast.reset.run}>
+        <button type="button" className={`${LINK} text-ui-accent`} onClick={toast.reset.run}>
           {toast.reset.label}
         </button>
       )}
       {toast.follow && (
-        <button type="button" className={`${LINK} text-[#60a5fa]`} onClick={toast.follow.run}>
+        <button type="button" className={`${LINK} text-ui-accent`} onClick={toast.follow.run}>
           {toast.follow.label}
         </button>
       )}

@@ -115,7 +115,7 @@ export function PanelLayers({
               "relative flex cursor-pointer items-center gap-[7px] rounded-[7px] border py-1.5 pl-1.5 pr-1",
               w.id === selectedId
                 ? "border-ui-accent/50 bg-ui-accent/[.12]"
-                : "border-ui-subtle bg-ui-app hover:border-[#33333a]",
+                : "border-ui-subtle bg-ui-app hover:border-ui-menu",
               w.id === dragId && "opacity-40",
               !w.visible && "opacity-50"
             )}

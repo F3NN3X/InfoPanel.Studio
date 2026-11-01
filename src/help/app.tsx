@@ -30,7 +30,7 @@ interface Route {
 }
 
 /** Zoom keys, and the version, of the desktop window. */
-function useDesktopInfo(enabled: boolean) {
+function useDesktopInfo(enabled: boolean, say: (message: string) => void) {
   const [version, setVersion] = useState<string | null>(null);
   const [zoom, setZoom] = useState(100);
   useEffect(() => {
@@ -44,13 +44,14 @@ function useDesktopInfo(enabled: boolean) {
   }, [enabled]);
   const changeZoom = useCallback(async (percent: number) => {
     setZoom(percent);
+    say(`${percent}%`);
     await ipc.setZoom(percent / 100).catch(reportFailure);
-  }, []);
+  }, [say]);
   return { version, zoom, changeZoom };
 }
 
-function ZoomKeys({ zoom, setZoom }: { zoom: number; setZoom: (percent: number) => Promise<void> }) {
-  useZoomKeys(zoom, setZoom);
+function ZoomKeys({ zoom, setZoom, say }: { zoom: number; setZoom: (percent: number) => Promise<void>; say: (message: string) => void }) {
+  useZoomKeys(zoom, setZoom, say);
   return null;
 }
 
@@ -65,6 +66,15 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
   const search = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [failure, setFailure] = useState<string | null>(null);
+  // A short line for what a key did (the zoom); the status region stays mounted so it is announced.
+  const [note, setNote] = useState<string | null>(null);
+  const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const say = useCallback((message: string) => {
+    clearTimeout(noteTimer.current);
+    setNote(message);
+    noteTimer.current = setTimeout(() => setNote(null), 1200);
+  }, []);
+  useEffect(() => () => clearTimeout(noteTimer.current), []);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     const off = setFailureHandler((message) => {
@@ -82,7 +92,7 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
   routeRef.current = route;
   const [active, setActive] = useState<string | null>(null);
   const [mainWidth, setMainWidth] = useState(0);
-  const { version, zoom, changeZoom } = useDesktopInfo(env.desktop);
+  const { version, zoom, changeZoom } = useDesktopInfo(env.desktop, say);
 
   const index = useMemo(() => buildIndex(content), [content]);
   const hits = useMemo(() => searchHelp(query, content, index, env.desktop ? SEARCH_INDEX : []), [query, content, index, env.desktop]);
@@ -186,7 +196,7 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-s-win">
       {env.desktop && <TitleBar title={"InfoPanel Studio — Help"} />}
-      {env.desktop && <ZoomKeys zoom={zoom} setZoom={changeZoom} />}
+      {env.desktop && <ZoomKeys zoom={zoom} setZoom={changeZoom} say={say} />}
       <div className="flex min-h-0 flex-1">
         <Sidebar
           content={content}
@@ -210,6 +220,9 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
             </>
           )}
         </main>
+      </div>
+      <div role="status" className="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2">
+        {note && <span className="rounded-lg border border-s-card-line bg-s-card px-3.5 py-2 font-mono text-[12.5px] text-s-t1 shadow-lg">{note}</span>}
       </div>
       {failure && (
         <div role="alert" className="fixed bottom-4 left-1/2 z-50 max-w-[min(480px,calc(100vw-32px))] -translate-x-1/2 rounded-lg border border-s-card-line bg-s-card px-3.5 py-2.5 text-[12.5px] text-s-red shadow-lg">

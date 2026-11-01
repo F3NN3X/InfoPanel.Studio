@@ -18,7 +18,7 @@ export function AddToast({ toast, onUndo, onChange }: { toast: AddToastState; on
       key={toast.id}
       role="status"
       data-testid="add-toast"
-      className="add-toast-in pointer-events-auto flex max-w-[min(560px,calc(100%-32px))] items-center gap-3 rounded-[9px] border border-[#2e2e36] bg-[#1a1a1f] px-3 py-[9px] font-ui text-[12px] text-ui-1 shadow-[0_10px_30px_#0009]"
+      className="add-toast-in pointer-events-auto flex max-w-[min(560px,calc(100%-32px))] items-center gap-3 rounded-[9px] border border-ui-menu bg-ui-hover px-3 py-[9px] font-ui text-[12px] text-ui-1 shadow-[0_10px_30px_#0009]"
     >
       {toast.added ? (
         <CircleCheck className="h-4 w-4 shrink-0 text-ui-ok" aria-hidden />

@@ -103,7 +103,7 @@ function Thumb({ entry, selected, p, scope, renaming, onSelect, onOpen, onDragSt
         selected ? "border-ui-accent shadow-[0_0_0_1px_var(--ui-accent)]" : "border-ui-subtle hover:border-ui-menu",
       )}
     >
-      <span className="flex aspect-square w-full items-center justify-center bg-[#0b0b0e]">
+      <span className="flex aspect-square w-full items-center justify-center bg-ui-app">
         <GaugeView gauge={entry.gauge} frames={entry.frames} p={p} size={96} scope={scope} />
       </span>
       {renaming ? (

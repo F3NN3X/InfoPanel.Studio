@@ -5,6 +5,7 @@ import { BUILD_ID } from "@/lib/buildInfo";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { shortDate } from "../model/changelog";
+import { PageState } from "../page-state";
 import { useFound, useStore } from "../store";
 import type { AppInfo } from "../types";
 import { Button, Group, HeroCard, useFlag } from "../ui";
@@ -35,19 +36,22 @@ export function systemText(info: AppInfo): string {
 export function AboutSection() {
   const { go, toast } = useStore();
   const [info, setInfo] = useState<AppInfo | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [tries, setTries] = useState(0);
   const [copied, flash] = useFlag();
   const hero = useFound("about-hero");
   const files = useFound("about-files");
 
   useEffect(() => {
     let alive = true;
-    void ipc.appInfo().then((i) => alive && setInfo(i)).catch((e) => toast(errorText(e), true));
+    setFailure(null);
+    void ipc.appInfo().then((i) => alive && setInfo(i)).catch((e) => alive && setFailure(errorText(e)));
     return () => {
       alive = false;
     };
-  }, [toast]);
+  }, [tries]);
 
-  if (!info) return null;
+  if (!info) return <PageState what="the app details" error={failure} onRetry={() => setTries((n) => n + 1)} />;
   const fail = (e: unknown) => toast(errorText(e), true);
   const copy = () => navigator.clipboard.writeText(systemText(info)).then(flash, () => toast("Could not copy.", true));
   const paths: [string, string][] = [

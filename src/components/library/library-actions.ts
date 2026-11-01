@@ -54,6 +54,8 @@ export interface StudioBridge {
   selection: Placement[];
   select: (id: string) => void;
   toast: (message: string) => void;
+  /** The history's undo, for a delete toast's button. */
+  undo?: () => void;
   addCopy: (item: LibraryItem, copy: LibraryCopy) => void;
 }
 

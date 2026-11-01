@@ -460,7 +460,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
               type="button"
               aria-current={i === step ? "step" : undefined}
               onClick={() => go(i)}
-              className={cn("flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12px]", i === step ? "bg-[#1d1d22] text-ui-1" : "text-ui-3 hover:text-ui-1")}
+              className={cn("flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12px]", i === step ? "bg-s-divider text-ui-1" : "text-ui-3 hover:text-ui-1")}
             >
               <StepNumber n={i} current={i === step} done={visited.has(i) && i !== step} />
               {label}
@@ -482,7 +482,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
                     type="button"
                     aria-current={i === step ? "step" : undefined}
                     onClick={() => go(i)}
-                    className={cn("flex w-full items-start gap-2.5 rounded-[8px] px-2.5 py-2 text-left", i === step ? "bg-[#1d1d22]" : "hover:bg-ui-hover")}
+                    className={cn("flex w-full items-start gap-2.5 rounded-[8px] px-2.5 py-2 text-left", i === step ? "bg-s-divider" : "hover:bg-ui-hover")}
                   >
                     <StepNumber n={i} current={i === step} done={visited.has(i) && i !== step} />
                     <span className="flex min-w-0 flex-col">

@@ -93,7 +93,7 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: boolean) 
       aria-checked={on}
       aria-label={label}
       onClick={() => onChange(!on)}
-      className={cn("relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors", on ? "bg-ui-accent" : "bg-[#34343b]")}
+      className={cn("relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors", on ? "bg-ui-accent" : "bg-ui-menu")}
     >
       <span className={cn("absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-[left]", on ? "left-[14px]" : "left-0.5")} />
     </button>

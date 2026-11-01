@@ -29,7 +29,7 @@ export function Fact({ label, children, tone }: { label: string; children: React
 
 export function PreviewBox({ family }: { family: string | null }) {
   return (
-    <div className="rounded-[12px] border border-ui-subtle bg-[#141418] p-4">
+    <div className="rounded-[12px] border border-ui-subtle bg-ui-tile p-4">
       <div className="truncate text-[40px] leading-tight text-ui-1" style={{ fontFamily: family ? `"${family}"` : undefined }}>
         Aa 54°
       </div>

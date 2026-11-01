@@ -198,7 +198,7 @@ function Tabs({
               onClick={() => onTab(t.id)}
               className={cn(
                 "flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors",
-                selected ? "bg-ui-active text-ui-1" : "text-[#8f8f99] enabled:hover:text-ui-1",
+                selected ? "bg-ui-active text-ui-1" : "text-ui-4 enabled:hover:text-ui-1",
                 t.disabled && "opacity-35"
               )}
             >
@@ -382,7 +382,7 @@ export function InspectorView({
     const inh = inherit?.(whole);
     if (p.plain)
       return (
-        <section key={s.id} {...{ [SETTING_CARD]: s.id }} className="border-b border-[#1c1c21] px-4 pb-3.5 pt-3">
+        <section key={s.id} {...{ [SETTING_CARD]: s.id }} className="border-b border-s-divider px-4 pb-3.5 pt-3">
           {p.body}
         </section>
       );

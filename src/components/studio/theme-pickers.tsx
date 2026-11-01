@@ -10,7 +10,7 @@ import { ThemeNameInput } from "./theme-name-input";
 import { filteredThemes, rowTag, templatesHeading, type ThemeFilter } from "./theme-view-model";
 
 const HEADING = "px-4 pb-1.5 pt-3 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-ui-hint";
-const ACTION = "rounded-sm text-[12px] text-[#60a5fa] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const ACTION = "rounded-sm text-[12px] text-ui-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 /** A picker's frame (SPEC §4.3.3): ‹ Back and the title, the help text, the list, and a footer. */
 export function PickerShell({ title, help, onBack, footer, children }: { title: string; help: string; onBack: () => void; footer?: ReactNode; children: ReactNode }) {
@@ -44,7 +44,7 @@ function Thumb({ preset, selected, onPick }: { preset: AppearancePreset; selecte
       type="button"
       onClick={onPick}
       aria-label={`Apply ${preset.name}`}
-      className={cn("shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ui-accent", selected && "ring-2 ring-[#60a5fa]")}
+      className={cn("shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ui-accent", selected && "ring-2 ring-ui-accent")}
     >
       <AppearancePreview preset={preset} className="h-[46px] w-[72px] rounded-md" />
     </button>
@@ -162,7 +162,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
             onClick={() => setFilter(f.id)}
             className={cn(
               "h-6 rounded-full border px-2.5 text-[12px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
-              filter === f.id ? "border-[#60a5fa] bg-[#0b1530] text-[#bfdbfe]" : "border-ui-strong text-[#a1a1aa] hover:text-ui-1"
+              filter === f.id ? "border-ui-accent bg-[#0b1530] text-[#bfdbfe]" : "border-ui-strong text-[#a1a1aa] hover:text-ui-1"
             )}
           >
             {f.label}
@@ -175,7 +175,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
           {shown.saved.length === 0 && <p className="px-4 pb-2 text-[12px] text-ui-hint">Themes you save appear here.</p>}
           {shown.saved.map((t) => (
             <div key={t.id}>
-              <div className="flex items-center gap-3 px-4 py-2 hover:bg-[#111113]">
+              <div className="flex items-center gap-3 px-4 py-2 hover:bg-ui-hover">
                 <Thumb preset={t} selected={t.id === p.currentId} onPick={() => apply(t)} />
                 {renaming === t.id ? (
                   <ThemeNameInput
@@ -203,7 +203,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
                 </button>
               </div>
               {menuFor === t.id && (
-                <div className="mx-4 mb-2 flex flex-col gap-1.5 rounded-lg border border-ui-strong bg-[#131316] px-3 py-2">
+                <div className="mx-4 mb-2 flex flex-col gap-1.5 rounded-lg border border-ui-strong bg-ui-panel px-3 py-2">
                   <p className="text-[11px] text-ui-hint">{p.usedBy(t.id)}</p>
                   <div className="flex gap-3">
                     <button type="button" className={ACTION} onClick={() => setRenaming(t.id)}>
@@ -233,7 +233,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
               apply(row.presets[i]);
             };
             return (
-              <div key={row.id} className="flex items-start gap-3 px-4 py-2 hover:bg-[#111113]">
+              <div key={row.id} className="flex items-start gap-3 px-4 py-2 hover:bg-ui-hover">
                 <Thumb preset={chosen} selected={row.presets.some((x) => x.id === p.currentId)} onPick={() => apply(chosen)} />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <button type="button" onClick={() => apply(chosen)} className="flex flex-col items-start text-left">
@@ -251,7 +251,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
                           onClick={() => pick(i)}
                           className={cn(
                             "flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px]",
-                            v.id === chosen.id ? "border-[#60a5fa] bg-[#0b1530] text-[#bfdbfe]" : "border-ui-strong text-[#a1a1aa] hover:text-ui-1"
+                            v.id === chosen.id ? "border-ui-accent bg-[#0b1530] text-[#bfdbfe]" : "border-ui-strong text-[#a1a1aa] hover:text-ui-1"
                           )}
                         >
                           <span className="h-1.5 w-1.5 rounded-full" style={{ background: accentOf(v) }} aria-hidden />

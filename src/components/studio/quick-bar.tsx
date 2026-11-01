@@ -184,7 +184,7 @@ function Divider() {
 function Identity({ icon, name }: { icon: ReactNode; name: string }) {
   return (
     <span className="flex shrink-0 items-center gap-2 pl-1 pr-2">
-      <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-[#1f1f25] text-[oklch(0.80_0.12_255)] [&>svg]:h-4 [&>svg]:w-4">
+      <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-ui-subtle text-[oklch(0.80_0.12_255)] [&>svg]:h-4 [&>svg]:w-4">
         {icon}
       </span>
       <span className="max-w-[160px] truncate text-[12.5px] font-semibold text-ui-1">{name}</span>
@@ -267,7 +267,7 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
                   return (
                     <span
                       key={def.key}
-                      className="flex h-9 shrink-0 items-center gap-2 rounded-lg px-[9px] hover:bg-[#1e1e24]"
+                      className="flex h-9 shrink-0 items-center gap-2 rounded-lg px-[9px] hover:bg-s-nav-on"
                     >
                       {changed && <span aria-hidden className="h-[5px] w-[5px] rounded-full bg-ui-accent" />}
                       <span className="whitespace-nowrap text-[11.5px] text-ui-3">{splitUnit(def.label).label}</span>
@@ -306,7 +306,7 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
               onClick={onToggleVisible}
               title={`${hidden ? "Show" : "Hide"} ${zones.length > 1 ? "widgets" : "widget"}`}
               aria-label={`${hidden ? "Show" : "Hide"} ${zones.length > 1 ? "widgets" : "widget"}`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-ui-3 hover:bg-[#1e1e24] hover:text-ui-1"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-ui-3 hover:bg-s-nav-on hover:text-ui-1"
             >
               {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -318,7 +318,7 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
               aria-pressed={allSettings.open}
               className={cn(
                 "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[12px] font-medium",
-                allSettings.open ? "bg-ui-active text-ui-1" : "text-ui-2 hover:bg-[#1e1e24] hover:text-ui-1"
+                allSettings.open ? "bg-ui-active text-ui-1" : "text-ui-2 hover:bg-s-nav-on hover:text-ui-1"
               )}
             >
               <SlidersHorizontal className="h-4 w-4" />

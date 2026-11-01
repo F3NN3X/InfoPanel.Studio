@@ -85,7 +85,7 @@ export function BoundData({
         <button
           type="button"
           onClick={openPicker}
-          className="ml-auto flex h-[26px] items-center gap-1 rounded-md border border-ui-strong bg-ui-raised px-[9px] text-[11.5px] text-ui-1 hover:bg-[#1e1e23]"
+          className="ml-auto flex h-[26px] items-center gap-1 rounded-md border border-ui-strong bg-ui-raised px-[9px] text-[11.5px] text-ui-1 hover:bg-ui-subtle"
         >
           <Link2 className="h-[15px] w-[15px]" /> Bind
         </button>
@@ -99,7 +99,7 @@ export function BoundData({
             return (
               <li
                 key={`${panelWidgetId ?? ""}:${key}`}
-                className="flex items-center gap-[9px] rounded-[7px] border border-ui-subtle bg-ui-app py-[7px] pl-2 pr-1.5 hover:border-[#33333a]"
+                className="flex items-center gap-[9px] rounded-[7px] border border-ui-subtle bg-ui-app py-[7px] pl-2 pr-1.5 hover:border-ui-menu"
               >
                 <button
                   type="button"
@@ -127,7 +127,7 @@ export function BoundData({
                     onClick={() => unbind(key, panelWidgetId)}
                     aria-label={`Unbind ${point?.name ?? key}`}
                     title="Unbind"
-                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[5px] text-ui-4 hover:bg-[#26262c] hover:text-ui-1"
+                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[5px] text-ui-4 hover:bg-ui-default hover:text-ui-1"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

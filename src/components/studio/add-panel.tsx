@@ -507,7 +507,7 @@ export function AddPanel({
                 className={cn(
                   "flex h-6 shrink-0 items-center rounded-full border px-[9px] text-[11px]",
                   FOCUS,
-                  on ? "border-[#ededf0] bg-[#ededf0] text-[#0c0c0e]" : "border-[#26262d] text-ui-3 hover:text-ui-1"
+                  on ? "border-ui-inverse bg-ui-inverse text-ui-inverse-fg" : "border-s-seg-on text-ui-3 hover:text-ui-1"
                 )}
               >
                 {c}
@@ -564,7 +564,7 @@ export function AddPanel({
               <button
                 type="button"
                 onClick={() => add(sensor)}
-                className={cn("flex h-7 items-center gap-1.5 rounded-md bg-[#ededf0] px-2.5 text-[12px] font-semibold text-[#0c0c0e]", FOCUS)}
+                className={cn("flex h-7 items-center gap-1.5 rounded-md bg-ui-inverse px-2.5 text-[12px] font-semibold text-ui-inverse-fg", FOCUS)}
               >
                 {(() => {
                   const Icon = iconFor("sensors");
@@ -596,7 +596,7 @@ export function AddPanel({
             <section key={`${gi}:${g.title}`} aria-label={g.title}>
               <div className="sticky top-0 z-10 flex items-baseline gap-1.5 bg-ui-panel px-1.5 pb-1.5 pt-2.5 font-ui-mono text-[10px] uppercase tracking-[0.06em]">
                 <span className="text-ui-hint">{g.title}</span>
-                <span className="text-[#55555e]">{g.items.length}</span>
+                <span className="text-ui-disabled">{g.items.length}</span>
               </div>
               {g.items.map((item) => {
                 const index = rows.findIndex((r) => r.gi === gi && r.item === item);
@@ -651,9 +651,9 @@ function DoorRow({ compact, icon: Icon, title, note, onClick }: { compact: boole
     <button
       type="button"
       onClick={onClick}
-      className={cn("flex w-full items-center gap-2.5 rounded-[8px] px-2 text-left hover:bg-[#1c1c21]", compact ? "h-10" : "h-[52px]", FOCUS)}
+      className={cn("flex w-full items-center gap-2.5 rounded-[8px] px-2 text-left hover:bg-s-divider", compact ? "h-10" : "h-[52px]", FOCUS)}
     >
-      <span className={cn("flex shrink-0 items-center justify-center rounded-[8px] border border-ui-default bg-ui-raised text-[#c8c8ce]", compact ? "h-7 w-7" : "h-[34px] w-[34px]")}>
+      <span className={cn("flex shrink-0 items-center justify-center rounded-[8px] border border-ui-default bg-ui-raised text-ui-2", compact ? "h-7 w-7" : "h-[34px] w-[34px]")}>
         <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
       </span>
       <span className="flex min-w-0 flex-col">

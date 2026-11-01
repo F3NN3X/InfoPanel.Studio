@@ -61,13 +61,15 @@ interface MutationDeps {
   onPageChange: (pageId: string) => void;
   /** Select a profile for editing (studio-only view state, not in the config). */
   onSelectProfile: (id: string) => void;
+  /** The history's undo: a saved panel's delete toast offers it. */
+  onUndo?: () => void;
 }
 
 /**
  * Every edit the studio makes to the config, through the undo history.
  * Same-`key` changes coalesce into one undo step (a drag, a key repeat).
  */
-export function useStudioMutations({ config, profile, setConfig, sel, onPresetSaved, onPageChange, onSelectProfile }: MutationDeps) {
+export function useStudioMutations({ config, profile, setConfig, sel, onPresetSaved, onPageChange, onSelectProfile, onUndo }: MutationDeps) {
   const { selected } = sel;
   const toast = useToast();
 
@@ -213,7 +215,11 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
   };
 
   const renameSavedPanel = (id: string, name: string) => setConfig((c) => renamePanelPreset(c, id, name));
-  const deleteSavedPanel = (id: string) => setConfig((c) => deletePanelPreset(c, id));
+  const deleteSavedPanel = (id: string) => {
+    const name = config.panelPresets?.find((x) => x.id === id)?.name;
+    setConfig((c) => deletePanelPreset(c, id));
+    toast(name ? `Deleted ${name}` : "Deleted panel", onUndo ? { action: { label: "Undo", onClick: onUndo }, ms: 8000 } : undefined);
+  };
 
   /** A zone drawn on the canvas becomes a blank zone, then is selected. */
   const addDrawnZone = (rect: ZoneRect) => {

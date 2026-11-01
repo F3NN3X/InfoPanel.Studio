@@ -69,7 +69,7 @@ export function PointInspector({
   return (
     <div className="flex h-full w-full flex-col gap-4 overflow-y-auto bg-ui-panel p-4 font-ui text-ui-2">
       <div className="flex items-start gap-2.5">
-        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#1c1c21]">
+        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-s-divider">
           <TypeIcon type={point.type} className="h-[18px] w-[18px] text-[oklch(0.78_0.12_255)]" />
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -127,7 +127,7 @@ export function PointInspector({
               key={`${u.zoneId}:${u.panelWidgetId ?? ""}`}
               type="button"
               onClick={() => onOpenUsage(u)}
-              className="flex items-center gap-2 rounded-[7px] bg-ui-raised px-2 py-[7px] text-left text-[12px] text-ui-1 hover:bg-[#1e1e23]"
+              className="flex items-center gap-2 rounded-[7px] bg-ui-raised px-2 py-[7px] text-left text-[12px] text-ui-1 hover:bg-ui-subtle"
             >
               <Icon className="h-4 w-4 shrink-0 text-ui-4" aria-hidden />
               <span className="min-w-0 flex-1 truncate" title={u.label}>
@@ -166,7 +166,7 @@ export function PointInspector({
         <button
           type="button"
           onClick={onNewWidget}
-          className="flex h-8 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised text-[12px] text-ui-1 hover:bg-[#1e1e23]"
+          className="flex h-8 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised text-[12px] text-ui-1 hover:bg-ui-subtle"
         >
           <SquarePlus className="h-4 w-4" />
           New widget from this value

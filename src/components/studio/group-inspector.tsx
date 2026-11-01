@@ -104,7 +104,8 @@ export function GroupInspectorView({ name, contents, hidden, locked, place, onTo
         <IconButton label={hidden ? "Show group" : "Hide group"} className="text-ui-hint" onClick={onToggleHidden}>
           {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </IconButton>
-        <IconButton label="Delete group" danger className="text-ui-hint" disabled={locked} onClick={onDelete}>
+        <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 bg-ui-subtle" />
+        <IconButton label="Delete group" danger className="text-ui-danger/80" disabled={locked} onClick={onDelete}>
           <Trash2 className="h-4 w-4" />
         </IconButton>
       </div>

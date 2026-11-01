@@ -4,13 +4,14 @@ import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { entryHeadline, headlineShortens, latestReleases, parseChangelog, RELEASES_SHOWN, RELEASES_URL, renderMarkdown, sectionEntries, sectionTone, shortDate, type Release, type SectionTone } from "../model/changelog";
+import { PageState } from "../page-state";
 import { useFound, useStore } from "../store";
 
 const TONE_CLASS: Record<SectionTone, string> = {
   green: "bg-s-green/14 text-[oklch(0.84_0.14_150)]",
   blue: "bg-s-accent/14 text-s-accent-text",
   amber: "bg-s-amber/14 text-s-amber",
-  neutral: "bg-[#24242b] text-s-t2",
+  neutral: "bg-s-seg-on text-s-t2",
 };
 
 const releaseId = (r: Release) => `release-${r.version}`;
@@ -49,6 +50,8 @@ function useScrollSpy(releases: Release[], root: HTMLElement | null): string | n
 export function ChangelogSection() {
   const { status, toast } = useStore();
   const [source, setSource] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [tries, setTries] = useState(0);
   // Older releases start collapsed; a category shows its headlines until "Show all".
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const [all, setAll] = useState<Set<string>>(new Set());
@@ -59,11 +62,12 @@ export function ChangelogSection() {
 
   useEffect(() => {
     let alive = true;
-    void ipc.changelog().then((s) => alive && setSource(s)).catch((e) => toast(errorText(e), true));
+    setFailure(null);
+    void ipc.changelog().then((s) => alive && setSource(s)).catch((e) => alive && setFailure(errorText(e)));
     return () => {
       alive = false;
     };
-  }, [toast]);
+  }, [tries]);
   useEffect(() => setRoot(wrap.current?.closest<HTMLElement>("[data-scroll-root]") ?? null), [source]);
 
   const releases = useMemo(() => (source ? latestReleases(parseChangelog(source)) : []), [source]);
@@ -90,7 +94,7 @@ export function ChangelogSection() {
     void ipc.openExternal(link.href).catch((err) => toast(errorText(err), true));
   };
 
-  if (source === null) return null;
+  if (source === null) return <PageState what="the changelog" error={failure} onRetry={() => setTries((n) => n + 1)} fallback={{ label: "Open the releases on GitHub", href: RELEASES_URL }} />;
   return (
     <div ref={wrap} className="flex flex-wrap items-start gap-x-7 gap-y-4">
       <div className={cn("sticky top-5 flex max-h-[calc(100vh-40px)] w-[172px] shrink-0 flex-col gap-0.5 overflow-y-auto", found.className)} ref={found.ref}>

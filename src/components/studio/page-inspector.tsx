@@ -105,7 +105,7 @@ function LookCard({ section, profile, page, inherit }: { section: SectionId; pro
 
 function Block({ label, children, labelClassName }: { label: string; children: ReactNode; labelClassName?: string }) {
   return (
-    <section className="space-y-2 border-b border-[#1c1c21] px-4 py-3">
+    <section className="space-y-2 border-b border-s-divider px-4 py-3">
       <h3 className={cn(SECTION_LABEL, labelClassName)}>{label}</h3>
       {children}
     </section>
@@ -128,7 +128,7 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
       <PageHeader name={page.name} />
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
         <SnapSection snapItems={page.snapItems !== false} onSnapItems={onSnapItems} />
-        <section className="flex flex-col gap-1.5 border-b border-[#1c1c21] px-3.5 py-3">
+        <section className="flex flex-col gap-1.5 border-b border-s-divider px-3.5 py-3">
           <NameRow key={`${page.id}:${page.name}`} page={page} onRename={(name) => onRename(page.id, name)} />
           <PageRow label="Size">
             <select
