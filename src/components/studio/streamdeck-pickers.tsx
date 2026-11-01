@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { deckAct, GRID_PRESETS, MAX_SIDE, useStreamDeck, type DeckResult } from "@/lib/streamdeck";
 import { cn } from "@/lib/utils";
 import type { ModuleSetting, ModuleSettingValue } from "@/modules/types";
@@ -24,15 +24,21 @@ export function StreamDeckDevicePicker({ def, value, onChange, lead, hint }: Pic
   const { devices } = useStreamDeck();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // The device just created: the server's next state lists it, until then it is new, not gone.
+  const [created, setCreated] = useState("");
+  // The create answers after a render or two: its pick goes through the newest onChange, built on the newest placement.
+  const latest = useRef(onChange);
+  latest.current = onChange;
   const options = devices.map((d) => ({ value: d.id, label: `${d.name} · ${d.cols}×${d.rows}` }));
-  const all = value && !options.some((o) => o.value === value) ? [...options, { value, label: `${value} (gone)` }] : options;
+  const all = value && !options.some((o) => o.value === value) ? [...options, { value, label: value === created ? "New device…" : `${value} (gone)` }] : options;
   const create = async () => {
     setBusy(true);
     const res = await deckAct({ op: "create" });
     setBusy(false);
     if (res.ok && res.data?.id) {
       setError("");
-      onChange(res.data.id);
+      setCreated(res.data.id);
+      latest.current(res.data.id);
     } else setError(res.error ?? "Couldn't create a device");
   };
   return (
