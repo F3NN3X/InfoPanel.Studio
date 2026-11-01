@@ -17,7 +17,7 @@ import type { MeterFrame } from "@/lib/audio/types";
  * AudioCN meters paint themselves without re-rendering React.
  */
 
-const WL_PREFIX = "plugins.wavelink-plugin.wavelink.";
+export const WL_PREFIX = "plugins.wavelink-plugin.wavelink.";
 const WL_STATUS = `${WL_PREFIX}status`;
 const WL_STATE = `${WL_PREFIX}state`;
 const WL_METERS = `${WL_PREFIX}meters`;

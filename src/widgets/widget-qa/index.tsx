@@ -1,59 +1,85 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import { modules } from "@/modules";
 import { INSERT_CATEGORIES } from "@/components/studio/insert-panel";
 import { THEME_PRESETS, themeVars } from "@/lib/theme";
 import { SKIN_NAMES } from "@/widgets/core/theme";
 import { TEMPLATE_MODULES } from "@/widgets/registry";
-import { Gallery, GALLERIES } from "./Gallery";
+import { Gallery, galleriesFor } from "./Gallery";
+import { QaHelp } from "./Help";
 import { Toolbar } from "./Toolbar";
 import { WidgetSection } from "./Section";
 import { forceMountAll } from "./Frame";
 import { overflowReport, type Issue } from "./probe";
-import { DEFAULT_STATE, parseParams, parseSpans, placementSettings, serializeParams, type QaState } from "./params";
+import { NOTES } from "./notes";
+import { DEFAULT_STATE, frameRef, parseParams, parseSpans, placementSettings, serializeParams, widgetLinks, type QaState } from "./params";
 import { filterModules, groupByCategory, pickModules } from "./plan";
 import { installDemoStreams } from "./demo-streams";
 
 /**
- * Dev-only oracle page for the widget library (`?widget-qa`): the template widgets (or exactly the
- * `module=` ids) at a set of spans, rendered through the kiosk's own `placementContent` from fixture
- * sensors, grouped by category. One toolbar drives every placement and mirrors itself to the URL
- * (params in `./params.ts`). `window.__qaOverflow()` lists what pokes out of its zone or overlaps
- * (see docs/redesign/phase9/qa.md).
+ * Dev-only oracle and reference page for the widget library (`?widget-qa`): every registered widget (or exactly the
+ * `module=` ids) at a set of spans and in each of its views, rendered through the kiosk's own `placementContent` from
+ * fixture sensors and demo streams, grouped by category. One toolbar drives every placement and mirrors itself to the
+ * URL (params in `./params.ts`); each widget links to itself alone and to its skin and surface galleries.
+ * `window.__qaOverflow()` lists what pokes out of its zone or overlaps (see docs/redesign/phase9/qa.md).
  */
 
-// `data=fixtures` also gives the streaming widgets their OBS, chat and mixer demo data.
-if (new URLSearchParams(window.location.search).get("data") === "fixtures") installDemoStreams();
+// Fixture data (the default) also gives the streaming widgets their OBS, chat, mixer, Stream Deck and agents demo data;
+// `data=live` reads the server's own streams.
+const DATA_PARAM = new URLSearchParams(window.location.search).get("data");
+if (DATA_PARAM !== "live") installDemoStreams(DATA_PARAM === "stress");
 
 const CATEGORY_ORDER = INSERT_CATEGORIES.filter((c) => !["All", "Layouts", "My panels"].includes(c));
 
 export default function WidgetQa() {
   const [state, setState] = useState(() => parseParams(window.location.search));
   const apply = (next: QaState) => {
+    // The demo streams are installed before anything mounts, so a change of data source loads the page again.
+    if (next.data !== state.data) return window.location.assign(serializeParams(next) + window.location.hash);
     setState(next);
     window.history.replaceState(null, "", serializeParams(next) + window.location.hash);
   };
+  // The sections render after the browser's own jump to the hash, so jump once they exist (a copied frame link, a # link).
+  useEffect(() => document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView({ block: "center" }), []);
   const theme = THEME_PRESETS.find((p) => p.name === state.theme);
   const spans = useMemo(() => parseSpans(state.spans), [state.spans]);
   const settings = useMemo(() => placementSettings(state), [state]);
-  const picked = useMemo(() => pickModules(modules, TEMPLATE_MODULES, state.module), [state.module]);
+  const picked = useMemo(() => pickModules(modules, TEMPLATE_MODULES, state.module).filter((m) => !state.noted || NOTES[m.id]), [state.module, state.noted]);
   const sections = useMemo(() => groupByCategory(filterModules(picked, state.q), CATEGORY_ORDER), [picked, state.q]);
   const shown = sections.reduce((n, s) => n + s.mods.length, 0);
   const live = state.data === "live";
-  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings };
-  const bg = theme ? `hsl(${theme.tokens.background} / .92)` : "rgba(12,12,14,.92)";
+  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, grid: state.grid, links: (id: string) => widgetLinks(state, id), frameRef: (id: string, key: string) => frameRef(state, id, key, `${window.location.origin}${window.location.pathname}`) };
+  const galleryMod = state.gallery ? modules.find((m) => m.id === state.gallery) : undefined;
+  const galleries = useMemo(() => galleriesFor(galleryMod), [galleryMod]);
+  // The header is frosted: translucent over the frames that scroll under it, blurred.
+  const bg = theme ? `hsl(${theme.tokens.background} / .6)` : "rgba(12,12,14,.6)";
+  const solidBg = theme ? `hsl(${theme.tokens.background})` : "#16161a";
   const style = theme ? ({ ...themeVars(theme.tokens), background: `hsl(${theme.tokens.background})`, color: `hsl(${theme.tokens.foreground})` } as CSSProperties) : undefined;
   return (
     <main className={`min-h-screen px-6 pb-10 ${theme ? "" : "bg-[#0c0c0e] text-zinc-100"}`} style={style}>
-      <header className="sticky top-0 z-10 -mx-6 space-y-2 border-b border-current/15 px-6 py-3 backdrop-blur" style={{ background: bg }}>
-        <div className="flex items-baseline gap-3">
+      <header className="sticky top-0 z-10 -mx-6 space-y-2 border-b border-current/15 px-6 py-3 backdrop-blur-xl backdrop-saturate-150" style={{ background: bg }}>
+        <div className="flex items-center gap-3">
           <h1 className="text-sm font-semibold">Widget QA</h1>
+          <QaHelp background={solidBg} />
           <p className="font-mono text-[11px] opacity-60">
-            {shown} modules · {SKIN_NAMES.length} skins · {spans.length} spans · {shown * spans.length} frames · cell {state.cell} · gap {state.gap} · {live ? "live data" : "fixtures"}
+            {shown} modules · {SKIN_NAMES.length} skins · {spans.length} spans · {shown * spans.length} frames · cell {state.cell} · gap {state.gap} · {live ? "live data" : state.data}
           </p>
         </div>
         <Toolbar state={state} onChange={(patch) => apply({ ...state, ...patch })} onReset={() => apply({ ...DEFAULT_STATE })} />
-        <nav className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+        <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+          {/* Every shown widget by name: picking one jumps to it (its section's anchor is its id). */}
+          <select aria-label="Jump to a widget" className="h-6 rounded border border-current/25 bg-transparent px-1.5 text-[11px] [&>optgroup]:text-black [&_option]:text-black" value="" onChange={(e) => e.target.value && document.getElementById(e.target.value)?.scrollIntoView()}>
+            <option value="">Jump to a widget…</option>
+            {sections.map((s) => (
+              <optgroup key={s.id} label={s.category}>
+                {s.mods.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.title}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
           {sections.map((s) => (
             <a key={s.id} href={`#${s.id}`} className="opacity-70 hover:opacity-100">
               {s.category} <span className="opacity-50">{s.mods.length}</span>
@@ -61,9 +87,9 @@ export default function WidgetQa() {
           ))}
         </nav>
       </header>
-      <div className="pt-4">
-        {GALLERIES.map((g) => (
-          <Gallery key={g.title} def={g} base={settings} cell={state.cell} gap={state.gap} live={live} />
+      <div id="galleries" className="scroll-mt-32 pt-4">
+        {galleries.map((g) => (
+          <Gallery key={`${g.title}-${g.module}`} def={g} base={settings} cell={state.cell} gap={state.gap} live={live} opened={!!galleryMod} />
         ))}
       </div>
       {sections.map((s) => (

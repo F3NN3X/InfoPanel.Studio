@@ -23,6 +23,7 @@ From `package.json`:
 | `npm run perf:kiosk`, `perf:studio` | `playwright test --project=perf-…` | Idle and load measurements into `.cache/perf/<label>/` |
 | `npm run perf:all` | build, perf specs, bundle and disk reports | A full perf run; `PERF_LABEL` names it |
 | `npm run perf:compare <A> <B>` | `node tools/perf/compare.mjs` | Markdown table of two runs |
+| `npm run qa:shots` | `node tools/audit/qa-shots.mjs` | A PNG per widget, span, view and skin from the Widget QA page into `.cache/qa-shots/<label>/` (build first); `-- --compare <A> <B>` writes a side-by-side page of two runs. Report-only ([redesign/phase9/qa.md](redesign/phase9/qa.md)) |
 | `npm run perf:budgets` | `node tools/perf/check-budgets.mjs` | The deterministic bundle budgets (CI) |
 | `npm run test:one-editor` | `playwright test --project=one-editor` | The Edit v3 reference states: opens each `?fixture=one-editor/<name>` (`src/dev/fixtures`) on a scratch server, after building `.cache/dist-fixtures` itself (`vite build --mode fixtures`, also `npm run build:fixtures`). Release builds leave the fixtures out |
 | `npm run build:stats` | `vite build --mode stats` | An unminified build in `.cache/dist-stats` with the ticker's debug stats (`window.__tickerStats()`); serve it with `DASHBOARD_DIST` |

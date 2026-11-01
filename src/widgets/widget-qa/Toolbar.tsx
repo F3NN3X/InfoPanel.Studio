@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { modules } from "@/modules";
 import { STYLE_SETTINGS } from "@/modules/standard-settings";
 import { THEME_PRESETS } from "@/lib/theme";
 import { SKIN_NAMES, SURFACE_NAMES } from "@/widgets/core/theme";
@@ -13,6 +14,8 @@ const METERS = optionsOf("meter");
 const RADII = optionsOf("radius");
 const ACCENTS = ["#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#fbbf24", "#f87171"];
 const CELLS = [110, 150];
+/** The widgets the Skins and Surfaces galleries can show, by id. */
+const GALLERY_IDS = modules.map((m) => m.id).sort();
 
 const field = "h-6 rounded border border-current/25 bg-transparent px-1.5 text-[11px]";
 
@@ -37,6 +40,15 @@ function Pick({ name, value, options, onChange, blank = "—" }: { name: string;
         ))}
       </select>
     </Label>
+  );
+}
+
+function Check({ name, checked, onChange }: { name: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-1 text-[11px]">
+      <input type="checkbox" className="size-3.5 accent-current" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span className="opacity-60">{name}</span>
+    </label>
   );
 }
 
@@ -83,12 +95,16 @@ export function Toolbar({ state, onChange, onReset }: { state: QaState; onChange
         <input className={`${field} w-44`} value={state.spans} onChange={(e) => onChange({ spans: e.target.value })} />
       </Label>
       <Pick name="page" value={state.theme} options={THEME_PRESETS.map((p) => p.name)} onChange={(theme) => onChange({ theme })} blank="dark" />
+      <Pick name="gallery" value={state.gallery} options={GALLERY_IDS} onChange={(gallery) => onChange({ gallery })} blank="default" />
       <Label name="data">
         <select className={`${field} [&>option]:text-black`} value={state.data} onChange={(e) => onChange({ data: e.target.value as QaState["data"] })}>
           <option value="fixtures">fixtures</option>
+          <option value="stress">stress</option>
           <option value="live">live</option>
         </select>
       </Label>
+      <Check name="grid" checked={state.grid} onChange={(grid) => onChange({ grid })} />
+      <Check name="noted only" checked={state.noted} onChange={(noted) => onChange({ noted })} />
       <button type="button" onClick={onReset} className={`${field} px-2`}>
         Reset
       </button>

@@ -382,9 +382,16 @@ serials) are looked up with `entryText` and `containers`
 ### QA harness
 
 `?widget-qa` (a lazy chunk, `src/widgets/widget-qa/`, never linked) renders
-every module at a set of spans through `placementContent` from fixture sensors
-(`src/widgets/__fixtures__/`), in both variants, any skin and surface, and on a
-light theme (`theme=paper`). `window.__qaOverflow()` reports, per zone, what
+every registered module at a set of spans, and each of its views, through
+`placementContent` from fixture sensors (`src/widgets/__fixtures__/`), demo
+streams and demo settings (`data=live` reads the real ones), in both variants,
+any skin and surface, and on a light theme (`theme=paper`). Each widget links to
+itself alone and to its skin and surface galleries; a unit test and an e2e spec
+hold the page to the registry and to every frame drawing content. Each frame
+copies a reference to itself from its caption, shows its redesign notes
+(`notes.json`) and a badge for what the probe below finds in it; `data=stress`
+pushes the fixtures to their extremes and `grid=1` draws the cells over the frames.
+`window.__qaOverflow()` reports, per zone, what
 pokes out of it (`exceeds`), leaf text that overlaps (`overlaps`) and content
 cut off by `overflow: hidden` (`clipped`); the geometry is pure
 (`qa-geometry.ts`, unit-tested). Parameters, the screenshot recipe and the
