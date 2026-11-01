@@ -39,8 +39,9 @@ describe.each(SAMPLES)("%s", (id) => {
 });
 
 describe("More counts", () => {
-  it("NowPlaying keeps 7 visualiser rows behind More", () => {
+  // Opacity and glow joined the visualiser's own rows from Widget colors, behind More as they were there.
+  it("NowPlaying keeps 9 visualiser rows behind More", () => {
     const viz = allSections(widgetContext(modules.find((m) => m.id === "NowPlaying")!)).find((s) => s.title === "Visualizer" && s.tab === "show")!;
-    expect(splitMore(viz).count).toBe(7);
+    expect(splitMore(viz).count).toBe(9);
   });
 });

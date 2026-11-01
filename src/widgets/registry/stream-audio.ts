@@ -24,7 +24,7 @@ const FADERS = [
 /** A row listing what the server's audio control offers now (channels, mixes, output devices). */
 const audioPick = (key: string, label: string, extra: Partial<ModuleSetting> = {}): ModuleSetting => ({ key, label, type: "select", default: "", optionsFrom: "audio-control", tab: "data", ...extra });
 
-const faderSetting = (): ModuleSetting => enumSetting("fader", "Fader", "leds", FADERS, { group: "Fader", tab: "style" });
+const faderSetting = (): ModuleSetting => enumSetting("fader", "Fader", "leds", FADERS, { group: "Fader" });
 const mixSetting = (visibleIf?: ModuleSetting["visibleIf"]): ModuleSetting => audioPick("mix", "Wave Link mix", { group: "Source", hint: "The mix whose levels and mutes the channels use", ...(visibleIf ? { visibleIf } : {}) });
 const LINES = "One per line, as channel id = text";
 

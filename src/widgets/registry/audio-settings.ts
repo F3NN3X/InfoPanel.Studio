@@ -23,7 +23,7 @@ export const METER_BALLISTICS: ModuleSetting = {
 
 const METER_VARIANT: ModuleSetting = {
   key: "meterVariant",
-  label: "Meter style",
+  label: "Meter type",
   type: "select",
   default: "solid",
   options: [

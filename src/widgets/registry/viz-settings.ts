@@ -29,8 +29,6 @@ export function vizColorSettings(color1: ModuleSetting): ModuleSetting[] {
     colorSetting("vizColor2", "Color 2", { group: VIZ_COLORS_GROUP, visibleIf: custom }),
     colorSetting("vizColor3", "Color 3", { group: VIZ_COLORS_GROUP, visibleIf: custom }),
     colorSetting("vizPeakColor", "Peak cap color", { group: VIZ_COLORS_GROUP }),
-    numberSetting("vizOpacity", "Opacity (%)", 100, { ...style, min: 10, max: 100, step: 5 }),
-    enumSetting("vizGlow", "Glow", "auto", [{ value: "auto", label: "Skin" }, { value: "on", label: "On" }, { value: "off", label: "Off" }], style),
   ];
 }
 
@@ -42,16 +40,19 @@ export const vizColorRows = (color1Key: string): Readonly<Record<string, Partial
   vizColor2: { label: "Color 2", role: "s2", more: false },
   vizColor3: { label: "Color 3", role: "s3", more: false },
   vizPeakColor: { label: "Peak cap", role: "crit", more: true },
-  vizOpacity: { label: "Visualizer opacity (%)", perWidget: true },
-  vizGlow: { perWidget: true },
 });
 
-/** The shape and gap; `modeKey` is the widget's own style key, which decides whether they are drawn. */
+/**
+ * The shape and gap, then the opacity and glow: the visualiser's own look, filed with it in Show. `modeKey` is the
+ * widget's own style key, which decides whether the bar shape and gap are drawn.
+ */
 export const vizShapeSettings = (modeKey: string): ModuleSetting[] => {
   const bars = (v: ModuleSettings) => BAR_STYLES.includes(String(v[modeKey]));
   return [
     enumSetting("vizShape", "Bar shape", "auto", [{ value: "auto", label: "Skin" }, { value: "round", label: "Round" }, { value: "square", label: "Square" }, { value: "segments", label: "Segments" }, { value: "pill", label: "Pill" }], { group: VIZ_SHAPE_GROUP, visibleIf: bars }),
     numberSetting("vizGap", "Bar gap (% of the slot)", 30, { min: 0, max: 80, step: 5, group: VIZ_SHAPE_GROUP, visibleIf: bars }),
+    numberSetting("vizOpacity", "Opacity (%)", 100, { min: 10, max: 100, step: 5, group: VIZ_SHAPE_GROUP }),
+    enumSetting("vizGlow", "Glow", "auto", [{ value: "auto", label: "Skin" }, { value: "on", label: "On" }, { value: "off", label: "Off" }], { group: VIZ_SHAPE_GROUP }),
   ];
 };
 
