@@ -37,7 +37,7 @@ export function DeviceChecklist({ devices, value, onChange, label, className }: 
             <span
               className={cn(
                 "flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border",
-                on ? "border-ui-accent bg-ui-accent text-ui-inverse-fg" : "border-ui-strong bg-ui-app"
+                on ? "border-ui-accent bg-ui-accent text-ui-inverse-fg" : "border-ui-control bg-ui-app"
               )}
             >
               {on && <Check className="h-3 w-3" strokeWidth={3} />}

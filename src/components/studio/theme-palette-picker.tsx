@@ -51,7 +51,7 @@ export function PalettePicker(p: PalettePickerProps) {
 
   const menu = open && (
     <div key="menu" className="col-span-2 flex flex-col gap-1.5 rounded-lg border border-ui-strong bg-[#131316] px-3 py-2">
-      <p className="text-[11px] text-[#71717a]">{p.usedBy(open.tokens)}</p>
+      <p className="text-[11px] text-ui-hint">{p.usedBy(open.tokens)}</p>
       {renaming === open.id ? (
         <ThemeNameInput
           initial={open.name}
@@ -120,7 +120,7 @@ export function PalettePicker(p: PalettePickerProps) {
       onBack={p.onBack}
       footer={
         <div className="flex items-center gap-3 text-[12px]">
-          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[#71717a]">{paletteCounts(THEME_PRESETS.length + p.themes.length, p.saved.length)}</span>
+          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-ui-hint">{paletteCounts(THEME_PRESETS.length + p.themes.length, p.saved.length)}</span>
           {saving ? (
             <ThemeNameInput
               initial=""

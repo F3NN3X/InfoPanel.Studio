@@ -22,7 +22,7 @@ export function Toggle({ checked, onChange, label, disabled, className }: Toggle
       className={cn(
         "relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60 disabled:opacity-40",
-        checked ? "bg-ui-accent" : "bg-[#2c2c33]",
+        checked ? "bg-ui-accent" : "bg-ui-control",
         className
       )}
     >

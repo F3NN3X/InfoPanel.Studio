@@ -34,7 +34,7 @@ export function LinkRow({ label, value, from, mono, note, link, onNavigate, clas
           </span>
         </div>
       )}
-      <span className="text-[11px] leading-[1.45] text-ui-5">
+      <span className="text-[11px] leading-[1.45] text-ui-hint">
         {note && <>{note} </>}
         <button
           type="button"

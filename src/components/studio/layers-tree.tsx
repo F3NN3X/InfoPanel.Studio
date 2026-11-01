@@ -270,7 +270,6 @@ export function LayersTree({ host }: { host: LayersHost }) {
                 "group/row relative flex h-[28px] shrink-0 cursor-pointer items-center gap-[5px] rounded-[6px] pr-1.5 outline-none",
                 isSelected ? "bg-ui-accent/18 text-white" : tinted.has(node.id) ? "bg-ui-accent/7" : "hover:bg-ui-hover",
                 mark === "inside" && "outline outline-1 -outline-offset-1 outline-ui-accent",
-                node.hidden && "opacity-45",
               )}
               style={{ paddingLeft: 6 + depth * 16 }}
             >
@@ -296,7 +295,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
               ) : (
                 <span className="w-[14px] shrink-0" />
               )}
-              <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-[5px]", widget ? "bg-ui-accent/14 text-ui-accent" : "bg-ui-hover text-ui-3")}>
+              <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-[5px]", widget ? "bg-ui-accent/14 text-ui-accent" : "bg-ui-hover text-ui-3", node.hidden && "opacity-45")}>
                 <Icon className="h-[13px] w-[13px]" strokeWidth={1.75} />
               </span>
               {renaming === node.id ? (
@@ -322,11 +321,11 @@ export function LayersTree({ host }: { host: LayersHost }) {
                   className="h-[22px] min-w-0 flex-1 rounded-[5px] border border-ui-accent bg-ui-app px-1.5 text-[12px] text-ui-1 outline-none"
                 />
               ) : (
-                <span onDoubleClick={() => setRenaming(node.id)} className={cn("min-w-0 flex-1 truncate text-[12px]", isSelected ? "text-white" : "text-ui-2")}>
+                <span onDoubleClick={() => setRenaming(node.id)} className={cn("min-w-0 flex-1 truncate text-[12px]", isSelected ? "text-white" : node.hidden ? "text-ui-4" : "text-ui-2")}>
                   {label}
                 </span>
               )}
-              <span className="shrink-0 font-ui-mono text-[9.5px] text-ui-5">{group ? `group · ${node.children?.length ?? 0}` : KIND_WORD[node.kind ?? "item"]}</span>
+              <span className={cn("shrink-0 font-ui-mono text-[9.5px] text-ui-hint", node.hidden && "opacity-45")}>{group ? `group · ${node.children?.length ?? 0}` : KIND_WORD[node.kind ?? "item"]}</span>
               {node.free && !widget && (
                 <span title="Placed freely (Alt)" aria-label="Placed freely (Alt)" className="inline-flex shrink-0 text-ui-4">
                   <Move className="h-3 w-3" />
@@ -348,7 +347,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
                 }}
                 className={cn(
                   "grid h-[18px] w-[16px] shrink-0 place-items-center",
-                  node.locked ? "text-ui-2" : "text-ui-5 opacity-0 focus-visible:opacity-100 group-hover/row:opacity-100",
+                  node.locked ? "text-ui-2" : "text-ui-hint opacity-0 focus-visible:opacity-100 group-hover/row:opacity-100",
                 )}
               >
                 <Lock className="h-[13px] w-[13px]" />
@@ -362,7 +361,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
                   e.stopPropagation();
                   host.setHidden(node.id, !node.hidden);
                 }}
-                className={cn("grid h-[18px] w-[16px] shrink-0 place-items-center", node.hidden ? "text-ui-2" : "text-ui-5")}
+                className={cn("grid h-[18px] w-[16px] shrink-0 place-items-center", node.hidden ? "text-ui-2" : "text-ui-hint")}
               >
                 {node.hidden ? <EyeOff className="h-[13px] w-[13px]" /> : <Eye className="h-[13px] w-[13px]" />}
               </button>
@@ -389,7 +388,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
         <span className="text-ui-3">
           {total.parts} part{total.parts === 1 ? "" : "s"} · {total.groups} group{total.groups === 1 ? "" : "s"}
         </span>
-        <span className="text-ui-5">Drag to reorder or into a group · right-click for more</span>
+        <span className="text-ui-hint">Drag to reorder or into a group · right-click for more</span>
       </div>
     </section>
   );

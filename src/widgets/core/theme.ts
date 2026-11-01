@@ -46,13 +46,13 @@ export function resolveSurface(surface: string | undefined, skin: string | undef
    text stays legible on light materials and follows the theme on the theme surface. */
 export type TextVars = Record<"--w-fg" | "--w-muted" | "--w-faint" | "--w-track", string> & Partial<Record<"--w-warn" | "--w-crit", string>>;
 export const TEXT_VARS: Record<SurfaceTone, TextVars> = {
-  dark: { "--w-fg": "#f4f4f5", "--w-muted": "#a1a1aa", "--w-faint": "#71717a", "--w-track": "rgba(255,255,255,.07)" },
+  dark: { "--w-fg": "#f4f4f5", "--w-muted": "#a1a1aa", "--w-faint": "#8a8a94", "--w-track": "rgba(255,255,255,.07)" },
   // light and theme surfaces darken the warn / crit text so it keeps contrast (dark surfaces use STATE as is)
-  light: { "--w-fg": "#18181b", "--w-muted": "#52525b", "--w-faint": "#71717a", "--w-track": "rgba(24,24,27,.1)", "--w-warn": "#a15c07", "--w-crit": "#c4261d" },
+  light: { "--w-fg": "#18181b", "--w-muted": "#52525b", "--w-faint": "#636366", "--w-track": "rgba(24,24,27,.1)", "--w-warn": "#a15c07", "--w-crit": "#c4261d" },
   theme: {
     "--w-fg": "hsl(var(--card-foreground))",
     "--w-muted": "hsl(var(--muted-foreground))",
-    "--w-faint": "color-mix(in oklab, hsl(var(--muted-foreground)) 80%, transparent)",
+    "--w-faint": "hsl(var(--muted-foreground))",
     "--w-track": "color-mix(in oklab, hsl(var(--card-foreground)) 9%, transparent)",
     "--w-warn": "color-mix(in oklab, #EDB232 60%, hsl(var(--card-foreground)))",
     "--w-crit": "color-mix(in oklab, #F2665E 60%, hsl(var(--card-foreground)))",
@@ -111,7 +111,7 @@ export const numFont = (sk: Partial<SkinTokens>, weight = 700): CSSProperties =>
 export const STATE = { ok: "#3CC97F", warn: "#EDB232", crit: "#F2665E", none: "rgba(255,255,255,0.07)" } as const;
 // Tone → colour: ok follows the accent; warn / crit are the semantic STATE colours.
 // On light / theme surfaces the shell's --w-warn / --w-crit darken them for contrast.
-export const TONES: Record<Tone | "muted", string> = { ok: "var(--accent)", warn: `var(--w-warn, ${STATE.warn})`, crit: `var(--w-crit, ${STATE.crit})`, muted: "#71717a" };
+export const TONES: Record<Tone | "muted", string> = { ok: "var(--accent)", warn: `var(--w-warn, ${STATE.warn})`, crit: `var(--w-crit, ${STATE.crit})`, muted: "var(--w-faint, #8a8a94)" };
 // 0-100 → colour for heatmaps. ramp 'accent' (accent intensity) or 'thermal' (blue → green → amber → red)
 export const heat = (v: number, ramp = "accent"): string => {
   const t = clamp(v) / 100;

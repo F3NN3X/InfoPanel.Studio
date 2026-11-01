@@ -29,7 +29,7 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
           <div className="min-h-0 flex-1 overflow-y-auto sm:columns-2 sm:gap-10">
             {SHORTCUT_GROUPS.map((group) => (
               <section key={group.title} className="break-inside-avoid">
-                <div className="pb-1 pt-3 text-[10.5px] font-medium uppercase tracking-wider text-ui-5">{group.title}</div>
+                <div className="pb-1 pt-3 text-[10.5px] font-medium uppercase tracking-wider text-ui-hint">{group.title}</div>
                 <dl>
                   {group.items.map((item) => (
                     <div key={item.label} className="flex items-center gap-3 border-b border-ui-subtle py-[7px] text-[12.5px]">

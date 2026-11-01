@@ -46,7 +46,7 @@ function Box({ label, value, onCommit, disabled }: { label: string; value: numbe
         refused ? "border-ui-danger" : "border-ui-default",
       )}
     >
-      <span className="shrink-0 text-[9.5px] text-ui-5">{label}</span>
+      <span className="shrink-0 text-[9.5px] text-ui-hint">{label}</span>
       {onCommit && !disabled ? (
         <input
           aria-label={label}

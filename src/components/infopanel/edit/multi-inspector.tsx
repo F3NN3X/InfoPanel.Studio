@@ -36,7 +36,7 @@ const ALIGN: { edge: AlignEdge; label: string; icon: LucideIcon }[] = [
   { edge: "bottom", label: "Align bottom", icon: AlignEndHorizontal },
 ];
 
-const INPUT = "h-7 w-full min-w-0 rounded-[6px] border bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none placeholder:text-ui-5 focus:border-ui-accent";
+const INPUT = "h-7 w-full min-w-0 rounded-[6px] border bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none placeholder:text-ui-hint focus:border-ui-accent";
 
 function IconButton({ icon: Icon, label, onClick, disabled }: { icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean }) {
   return (

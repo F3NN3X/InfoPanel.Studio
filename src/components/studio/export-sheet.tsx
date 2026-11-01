@@ -14,7 +14,7 @@ import { screenPayload } from "./profile-file";
 
 type Row = NonNullable<ExportRequest["row"]>;
 
-const PRIMARY = "h-7 shrink-0 rounded-[7px] bg-ui-inverse px-3 text-[12.5px] font-semibold text-ui-inverse-fg hover:opacity-90 disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-5";
+const PRIMARY = "h-7 shrink-0 rounded-[7px] bg-ui-inverse px-3 text-[12.5px] font-semibold text-ui-inverse-fg hover:opacity-90 disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-hint";
 const OUTLINE = "h-7 shrink-0 rounded-[7px] border border-ui-strong px-3 text-[12.5px] font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-40";
 
 interface ExportRowProps {
@@ -53,7 +53,7 @@ function ExportRow({ icon: Icon, title, detail, picked, blocked, children, actio
           type="button"
           disabled={!copy}
           onClick={() => copy && void copyPayload(copy).then(() => onCopied(id), () => {})}
-          className="flex items-center gap-1 text-[11.5px] text-ui-accent-text hover:underline disabled:cursor-not-allowed disabled:text-ui-5 disabled:no-underline"
+          className="flex items-center gap-1 text-[11.5px] text-ui-accent-text hover:underline disabled:cursor-not-allowed disabled:text-ui-hint disabled:no-underline"
         >
           {copied ? (
             <>

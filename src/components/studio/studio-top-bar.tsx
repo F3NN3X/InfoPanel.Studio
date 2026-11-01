@@ -55,7 +55,7 @@ interface StudioTopBarProps {
 const POPUP =
   "min-w-52 rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
 const ITEM =
-  "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-disabled:text-ui-5 data-highlighted:bg-ui-hover";
+  "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-disabled:text-ui-hint data-highlighted:bg-ui-hover";
 const SEPARATOR = "mx-1 my-1 h-px bg-ui-subtle";
 
 /**

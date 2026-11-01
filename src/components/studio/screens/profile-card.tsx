@@ -107,4 +107,4 @@ export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thu
 
 /** A footer button of a card. */
 export const CARD_BUTTON =
-  "inline-flex h-7 items-center gap-1.5 rounded-[7px] px-2 text-[12px] text-ui-2 outline-none hover:bg-ui-hover hover:text-ui-1 focus-visible:ring-2 focus-visible:ring-ui-accent/60 disabled:pointer-events-none disabled:text-ui-5";
+  "inline-flex h-7 items-center gap-1.5 rounded-[7px] px-2 text-[12px] text-ui-2 outline-none hover:bg-ui-hover hover:text-ui-1 focus-visible:ring-2 focus-visible:ring-ui-accent/60 disabled:pointer-events-none disabled:text-ui-hint";

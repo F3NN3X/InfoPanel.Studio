@@ -311,7 +311,7 @@ export function AddressBar({ mode, address, invalid, onMode, onAddress, onDefaul
             aria-invalid={invalid}
             placeholder="http://192.168.1.40:3921"
             onChange={(e) => onAddress(e.target.value)}
-            className="h-full min-w-0 flex-1 bg-transparent font-ui-mono text-[12px] text-ui-1 outline-none placeholder:text-ui-5 focus-visible:shadow-none"
+            className="h-full min-w-0 flex-1 bg-transparent font-ui-mono text-[12px] text-ui-1 outline-none placeholder:text-ui-hint focus-visible:shadow-none"
           />
         </div>
         {!isDefault && (

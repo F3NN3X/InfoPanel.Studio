@@ -106,7 +106,7 @@ export function PointTable({
             const tone = i === crumbs.length - 1 ? "font-semibold text-ui-1" : "text-[#8f8f99]";
             return (
               <span key={`${i}:${c.label}`} className="inline-flex items-center gap-1">
-                {i > 0 && <ChevronRight className="h-4 w-4 text-ui-5" aria-hidden />}
+                {i > 0 && <ChevronRight className="h-4 w-4 text-ui-hint" aria-hidden />}
                 {c.scope ? (
                   <button
                     type="button"
@@ -258,7 +258,7 @@ function GroupHeader({ row, onGroup }: { row: GroupRow; onGroup: (row: GroupRow)
     >
       <span className="truncate text-[12px] font-semibold text-ui-1">{row.title}</span>
       {row.sourceName !== row.title && <span className="truncate text-[11px] text-ui-4">{row.sourceName}</span>}
-      <span className="ml-auto font-ui-mono text-[10.5px] text-ui-5">{row.count}</span>
+      <span className="ml-auto font-ui-mono text-[10.5px] text-ui-hint">{row.count}</span>
     </div>
   );
 }
@@ -316,7 +316,7 @@ function PointRow({ point, cols, values, usage, selected, onSelect, screens, sou
             <span className="truncate text-[12.5px] text-ui-1">{point.name}</span>
             {point.kind && <Chip>{point.kind}</Chip>}
           </div>
-          <div className="truncate font-ui-mono text-[10.5px] text-ui-5">{point.key}</div>
+          <div className="truncate font-ui-mono text-[10.5px] text-ui-hint">{point.key}</div>
         </div>
       </div>
       <span
@@ -353,7 +353,7 @@ function PointRow({ point, cols, values, usage, selected, onSelect, screens, sou
           className="h-6 min-w-0 rounded border border-ui-default bg-ui-app px-1.5 text-[12px] text-ui-1 placeholder:text-ui-4 focus:border-ui-accent/60 focus:outline-none"
         />
       ) : (
-        <span className="truncate text-[12px] text-ui-5">—</span>
+        <span className="truncate text-[12px] text-ui-hint">—</span>
       )}
       {showUsedIn && (
         <span title={used.used ? (screens.get(point.key) ?? []).join(", ") : undefined} className={cn("truncate text-[11.5px]", used.used ? "text-ui-accent-text" : "text-[#55555e]")}>

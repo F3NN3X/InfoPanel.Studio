@@ -1080,7 +1080,7 @@ function StudioViewBody({
         extra={
           <>
             <MadeForControl value={storedProfile.madeFor} onChange={setMadeFor} />
-            {checkOn ? pill : <span className="whitespace-nowrap text-[11.5px] text-ui-5">Studio panels only · no export check</span>}
+            {checkOn ? pill : <span className="whitespace-nowrap text-[11.5px] text-ui-hint">Studio panels only · no export check</span>}
           </>
         }
       />

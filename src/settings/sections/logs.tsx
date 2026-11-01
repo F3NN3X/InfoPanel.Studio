@@ -145,12 +145,12 @@ export function LogsSection() {
           <div className="w-max min-w-full">
             {visible.map((l) => (
               <div key={l.id} className="flex gap-3 whitespace-pre px-3.5 hover:bg-[#121215]">
-                <span className="w-[12ch] shrink-0 text-[#4a4a52]">{l.ts}</span>
+                <span className="w-[12ch] shrink-0 text-s-dim">{l.ts}</span>
                 <span className={cn("w-10 shrink-0", LEVEL_TEXT[l.level])}>{l.level.toUpperCase()}</span>
                 <span className={MESSAGE_TEXT[l.level]}>{l.msg}</span>
               </div>
             ))}
-            {visible.length === 0 && <div className="px-3.5 py-6 text-s-faint">No lines match.</div>}
+            {visible.length === 0 && <div className="px-3.5 py-6 text-s-dim">No lines match.</div>}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 border-t border-s-side-line bg-s-side px-2.5 py-2">
@@ -166,7 +166,7 @@ export function LogsSection() {
             </span>
             Follow new lines
           </button>
-          <span className="min-w-0 flex-1 text-[11.5px] text-s-faint">
+          <span className="min-w-0 flex-1 text-[11.5px] text-s-dim">
             {visible.length} of {buffer.lines.length} lines{settings.debug ? "" : " · debug lines hidden (debug mode off)"}
           </span>
           <Button className="h-7 text-xs" onClick={() => void copy()}>

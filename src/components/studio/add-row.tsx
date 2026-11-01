@@ -132,11 +132,12 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
       className={cn(
         "group/row flex cursor-pointer select-none items-center gap-2.5 rounded-[8px] px-2",
         compact ? "h-10 py-[5px]" : "h-[52px] py-[7px]",
-        highlighted && "bg-[#1c1c21]",
-        needs && "opacity-40"
+        highlighted && "bg-[#1c1c21]"
       )}
     >
-      <AddItemIcon item={item} size={compact ? 28 : 34} />
+      <span className={cn("flex shrink-0", needs && "opacity-40")}>
+        <AddItemIcon item={item} size={compact ? 28 : 34} />
+      </span>
       <span className="flex min-w-0 flex-1 flex-col">
         {renaming && onRename ? (
           <RenameInput
@@ -149,7 +150,7 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
         ) : (
           <span className="truncate text-[12.5px] font-medium leading-4 text-ui-1">{item.name}</span>
         )}
-        {!compact && <span className="mt-0.5 truncate text-[11.5px] leading-[15px] text-[#8a8a94]">{item.blurb}</span>}
+        {!compact && <span className="mt-0.5 truncate text-[11.5px] leading-[15px] text-ui-hint">{item.blurb}</span>}
         <span id={`${id}-desc`} className="sr-only">
           {item.description}
         </span>
@@ -158,7 +159,7 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
         <span
           className={cn(
             "shrink-0 rounded-[4px] px-1.5 py-0.5 text-[10.5px]",
-            tag === "best" ? "bg-[oklch(0.72_0.15_255/0.16)] text-[oklch(0.85_0.10_255)]" : "bg-ui-subtle text-[#8a8a94]"
+            tag === "best" ? "bg-[oklch(0.72_0.15_255/0.16)] text-[oklch(0.85_0.10_255)]" : "bg-ui-subtle text-ui-hint"
           )}
         >
           {tag === "best" ? "Best fit" : `Needs ${needs}`}
@@ -170,7 +171,9 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
         </span>
       )}
       {status}
-      <Footprint item={item} on={highlighted} compact={compact} />
+      <span className={cn("flex shrink-0", needs && "opacity-40")}>
+        <Footprint item={item} on={highlighted} compact={compact} />
+      </span>
     </div>
   );
 }

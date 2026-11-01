@@ -61,44 +61,9 @@
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
   --ring: 240 4.9% 83.9%;
+  /* Critical alert lines, rings and icons: --destructive is a fill and only 2:1 on the default page. */
+  --alert-critical: hsl(0 84% 60%);
   --radius: 0.5rem;
-
-  /* audiocn audio tokens — the six meaning tokens shadcn has no token for.
-     Mapped into the color namespace below so bg-meter-ok & co. work too. */
-  --meter-ok: oklch(0.72 0.12 200);
-  --meter-ok-foreground: oklch(0.72 0.12 200);
-  --meter-warn: oklch(0.78 0.15 80);
-  --meter-warn-foreground: oklch(0.78 0.15 80);
-  --meter-clip: hsl(var(--destructive));
-  --meter-clip-foreground: hsl(var(--destructive-foreground));
-  --channel-mute: hsl(var(--destructive));
-  --channel-mute-foreground: hsl(var(--destructive-foreground));
-  --channel-solo: oklch(0.78 0.15 80);
-  --channel-solo-foreground: oklch(0.78 0.15 80);
-  --channel-monitor: oklch(0.62 0.14 235);
-  --channel-monitor-foreground: oklch(0.62 0.14 235);
-
-  /* audiocn Waveform colors. The component's canvas reads these as CSS
-     colors (fillStyle), so they must resolve to full colors — wrap the
-     HSL triplet tokens, not the raw triplets. */
-  --wave-progress: hsl(var(--primary));
-  --wave-unplayed: hsl(var(--muted-foreground));
-  --wave-cursor: hsl(var(--foreground));
-}
-
-@theme inline {
-  --color-meter-ok: var(--meter-ok);
-  --color-meter-ok-foreground: var(--meter-ok-foreground);
-  --color-meter-warn: var(--meter-warn);
-  --color-meter-warn-foreground: var(--meter-warn-foreground);
-  --color-meter-clip: var(--meter-clip);
-  --color-meter-clip-foreground: var(--meter-clip-foreground);
-  --color-channel-mute: var(--channel-mute);
-  --color-channel-mute-foreground: var(--channel-mute-foreground);
-  --color-channel-solo: var(--channel-solo);
-  --color-channel-solo-foreground: var(--channel-solo-foreground);
-  --color-channel-monitor: var(--channel-monitor);
-  --color-channel-monitor-foreground: var(--channel-monitor-foreground);
 }
 
 /* Studio chrome tokens (docs/redesign/README.md §9). Fixed values: the
@@ -116,21 +81,18 @@
   --ui-border-default: #24242a;
   --ui-border-strong: #2a2a31;
   --ui-border-menu: #2e2e35;
+  /* Boundaries of controls (fields, checkboxes, segmented, switch tracks, drag handles): 3:1 on every panel. Dividers keep the subtle ones. */
+  --ui-border-control: #66666f;
   --ui-text-1: #ededf0;
   --ui-text-2: #c9c9cf;
   --ui-text-3: #9696a0;
-  --ui-text-4: #85858f;
-  --ui-text-5: #6f6f79;
+  --ui-text-4: #8f8f99;
+  /* Hints, helpers, captions and placeholders (4.5:1 on panels and cards); not for disabled text, that is --ui-text-disabled. */
+  --ui-text-hint: #8a8a94;
+  --ui-text-disabled: #55555e;
   --ui-accent: oklch(0.72 0.15 255);
   --ui-accent-soft: oklch(0.72 0.15 255 / 0.14);
   --ui-accent-text: oklch(0.82 0.12 255);
-  --ui-success: oklch(0.75 0.15 150);
-  --ui-warning: oklch(0.8 0.15 75);
-  --ui-danger: oklch(0.72 0.17 25);
-  /* The Export check's statuses (Edit v3 SPEC §11.2): exports as is, approximated, becomes a picture; left out is danger. */
-  --ui-ok: oklch(0.78 0.14 155);
-  --ui-warn: oklch(0.82 0.13 80);
-  --ui-info: oklch(0.78 0.11 245);
   --ui-dot-profile: oklch(0.74 0.13 300);
   --ui-dot-dashboard: oklch(0.76 0.11 190);
   --ui-inverse-bg: #ededf0;
@@ -158,7 +120,9 @@
   --color-ui-2: var(--ui-text-2);
   --color-ui-3: var(--ui-text-3);
   --color-ui-4: var(--ui-text-4);
-  --color-ui-5: var(--ui-text-5);
+  --color-ui-hint: var(--ui-text-hint);
+  --color-ui-disabled: var(--ui-text-disabled);
+  --color-ui-control: var(--ui-border-control);
   --color-ui-accent: var(--ui-accent);
   --color-ui-accent-soft: var(--ui-accent-soft);
   --color-ui-accent-text: var(--ui-accent-text);
@@ -201,8 +165,8 @@
    Chromium on Windows to the classic bar (with buttons), so the studio styles the
    webkit parts instead. */
 :root:has(.studio-root, .s-scope) *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 :root:has(.studio-root, .s-scope) *::-webkit-scrollbar-button {
@@ -218,8 +182,8 @@
 }
 
 :root:has(.studio-root, .s-scope) *::-webkit-scrollbar-thumb {
-  background: var(--ui-border-menu);
-  border-radius: 3px;
+  background: var(--ui-border-control);
+  border-radius: 4px;
 }
 
 /* Studio chrome radii are fixed (README §9): the dashboard theme's --radius,
@@ -257,19 +221,6 @@
 }
 .page-fade-in {
   animation: page-fade-in 250ms ease-out;
-}
-
-/* A region with its own theme tokens (the studio canvas showing a profile
-   with its own colours): the derived colors above are resolved where they
-   are declared, so re-declare them against the scoped tokens. */
-[data-theme-scope] {
-  --meter-clip: hsl(var(--destructive));
-  --meter-clip-foreground: hsl(var(--destructive-foreground));
-  --channel-mute: hsl(var(--destructive));
-  --channel-mute-foreground: hsl(var(--destructive-foreground));
-  --wave-progress: hsl(var(--primary));
-  --wave-unplayed: hsl(var(--muted-foreground));
-  --wave-cursor: hsl(var(--foreground));
 }
 
 /* Alerts (src/components/alerts): enter / exit slides (not applied with reduced motion). */

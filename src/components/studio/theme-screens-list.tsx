@@ -15,7 +15,7 @@ export default function ScreensList({ screens, onApply }: { screens: readonly { 
         <label key={s.id} className="flex items-center gap-2 text-[13px] text-ui-1">
           <input type="checkbox" checked={ticked.includes(s.id)} onChange={() => toggle(s.id)} />
           <span className="min-w-0 flex-1 truncate">{s.name}</span>
-          <span className="shrink-0 text-[11px] text-[#71717a]">{s.size}</span>
+          <span className="shrink-0 text-[11px] text-ui-hint">{s.size}</span>
         </label>
       ))}
       <button

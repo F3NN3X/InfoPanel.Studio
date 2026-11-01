@@ -104,7 +104,7 @@ function Keys({ rows }: { rows: [string, string][] }) {
           <span className="flex flex-wrap items-center justify-end gap-1">
             {comboParts(combo).map((alt, a) => (
               <span key={a} className="flex items-center gap-1">
-                {a > 0 && <span className="text-[11px] text-s-faint">/</span>}
+                {a > 0 && <span className="text-[11px] text-s-dim">/</span>}
                 {alt.map((key, k) => (
                   <Cap key={k}>{key}</Cap>
                 ))}
@@ -123,7 +123,7 @@ function Flow({ steps }: { steps: [string, string][] }) {
       {steps.map(([title, description], i) => (
         <div key={i} className="flex flex-[1_1_140px] items-center gap-1.5">
           <div className="flex flex-1 flex-col gap-1 self-stretch rounded-[10px] border border-s-card-line bg-s-card px-3.5 py-3">
-            <span className="font-mono text-[11px] text-s-faint">{String(i + 1).padStart(2, "0")}</span>
+            <span className="font-mono text-[11px] text-s-dim">{String(i + 1).padStart(2, "0")}</span>
             <span className="text-[13.5px] font-semibold">{title}</span>
             <span className="text-xs leading-[1.45] text-s-muted">{description}</span>
           </div>

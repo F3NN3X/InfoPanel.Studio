@@ -73,7 +73,7 @@ export function Switch({ checked, onChange, label, disabled }: SwitchProps) {
       onClick={() => onChange(!checked)}
       className={cn(
         "relative h-[22px] w-[38px] shrink-0 cursor-pointer rounded-full border-0 p-0 transition-colors duration-150 disabled:cursor-default disabled:opacity-50",
-        checked ? "bg-s-accent" : "bg-[#2e2e35]"
+        checked ? "bg-s-accent" : "bg-s-track-line"
       )}
     >
       <span

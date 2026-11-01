@@ -81,9 +81,9 @@ export function SettingSection({
         >
           <Icon className="h-[17px] w-[17px] shrink-0 text-[#7c7c86]" strokeWidth={1.75} />
           <span className="truncate text-[12.5px] font-semibold">{title}</span>
-          {filtering && tabLabel && <span className="shrink-0 whitespace-nowrap text-[11px] text-ui-5">{tabLabel}</span>}
+          {filtering && tabLabel && <span className="shrink-0 whitespace-nowrap text-[11px] text-ui-hint">{tabLabel}</span>}
           {pill}
-          {changed > 0 && <span className="min-w-0 shrink-[100] overflow-hidden whitespace-nowrap text-[10.5px] text-[#8a8a94]">{changed} changed</span>}
+          {changed > 0 && <span className="min-w-0 shrink-[100] overflow-hidden whitespace-nowrap text-[10.5px] text-ui-hint">{changed} changed</span>}
         </button>
         {chip}
         {!filtering && (
@@ -92,7 +92,7 @@ export function SettingSection({
             tabIndex={-1}
             aria-hidden
             onClick={onToggle}
-            className="flex h-[30px] w-[26px] shrink-0 items-center justify-center rounded-[7px] text-ui-5 hover:bg-[#16161a]"
+            className="flex h-[30px] w-[26px] shrink-0 items-center justify-center rounded-[7px] text-ui-hint hover:bg-[#16161a]"
           >
             <ChevronDown className={cn("h-[18px] w-[18px] transition-transform duration-150", open && "rotate-180")} />
           </button>

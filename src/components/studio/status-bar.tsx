@@ -36,7 +36,7 @@ const DOT: Readonly<Record<Tone, string>> = {
   ok: "bg-ui-success",
   warn: "bg-ui-warning",
   bad: "bg-ui-danger",
-  idle: "bg-ui-5",
+  idle: "bg-ui-hint",
 };
 
 const TEXT: Readonly<Record<Tone, string>> = {

@@ -460,14 +460,14 @@ export function InspectorView({
       )}
       {!filtering && tabs.length > 0 && <Tabs tabs={tabs} active={tab} counts={counts} onTab={setTab} info={tabInfo} underline={underline} />}
       {filtering && (
-        <div className="flex shrink-0 items-center gap-2 pb-2 pl-4 pr-3 text-[11.5px] text-[#8a8a94]">
+        <div className="flex shrink-0 items-center gap-2 pb-2 pl-4 pr-3 text-[11.5px] text-ui-hint">
           <span className="flex-1">{`${shownCount} matching setting${shownCount === 1 ? "" : "s"}`}</span>
         </div>
       )}
       <div className="h-px shrink-0 bg-ui-subtle" />
       <div {...{ [INSPECTOR_SCROLL]: "" }} ref={root} className="min-h-0 flex-1 overflow-y-auto pb-3">
         {!filtering && notes?.(tab)}
-        {empty && <p className="px-4 py-6 text-[12.5px] text-[#8a8a94]">{empty}</p>}
+        {empty && <p className="px-4 py-6 text-[12.5px] text-ui-hint">{empty}</p>}
         {sections.map(renderSection)}
         {after}
       </div>

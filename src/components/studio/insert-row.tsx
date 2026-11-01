@@ -127,7 +127,7 @@ export function InsertRow({
     >
       <div className="flex items-center justify-between gap-1 text-[#c8c8ce]">
         <Icon className="h-5 w-5 shrink-0" strokeWidth={1.5} />
-        <span className="flex items-center gap-1.5 font-ui-mono text-[10px] text-ui-5">
+        <span className="flex items-center gap-1.5 font-ui-mono text-[10px] text-ui-hint">
           {size.cols}×{size.rows}
           {saved && <SavedPanelMenu onRename={() => setRenaming(true)} onDelete={saved.onDelete} />}
         </span>
@@ -143,7 +143,7 @@ export function InsertRow({
       ) : (
         <span className="break-words text-xs font-medium text-ui-1">{item.title}</span>
       )}
-      <span className="text-[10.5px] leading-[1.35] text-[#8a8a94]">{describe(item)}</span>
+      <span className="text-[10.5px] leading-[1.35] text-ui-hint">{describe(item)}</span>
     </div>
   );
 }

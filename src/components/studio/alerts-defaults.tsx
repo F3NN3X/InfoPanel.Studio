@@ -41,7 +41,7 @@ export function AlertDefaults({ alerts, setConfig }: { alerts: AlertsConfig; set
         onChange={(style) => setDefaults("style", { style: style as AlertStyle })}
         options={ALERT_STYLES.map((s) => ({ value: s, label: cap(s) }))}
       />
-      {d.style === "island" && <p className="text-[11px] leading-snug text-ui-5">{ISLAND_HINT}</p>}
+      {d.style === "island" && <p className="text-[11px] leading-snug text-ui-hint">{ISLAND_HINT}</p>}
       {d.style !== "island" && (
         <InlineRow label="Position">
           <PositionGrid value={d.position} onChange={(position) => setDefaults("position", { position })} />

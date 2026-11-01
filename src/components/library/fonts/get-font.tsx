@@ -150,7 +150,7 @@ export function GetFont({ initialFamily, needed, onAdd, onClose }: GetFontProps)
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Family name"
-          className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-ui-5"
+          className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-ui-hint"
         />
       </label>
       {catalogs && catalogs.unavailable.length > 0 && <p className="text-[11.5px] leading-snug text-ui-warning">Some sources are unavailable: {catalogs.unavailable.join("; ")}</p>}

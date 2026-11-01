@@ -119,7 +119,7 @@ export function ArticleView({ article, content, showToc, active, onOpen, onHome,
 
       {showToc && (
         <nav aria-label="On this page" className="sticky top-8 flex w-[190px] shrink-0 flex-col gap-0.5">
-          <div className="pb-2 pl-3 text-[11px] font-medium uppercase tracking-[0.07em] text-s-faint">On this page</div>
+          <div className="pb-2 pl-3 text-[11px] font-medium uppercase tracking-[0.07em] text-s-dim">On this page</div>
           {headings.map((h) => {
             const on = h.id === active;
             return (

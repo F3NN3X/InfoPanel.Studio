@@ -109,7 +109,7 @@ export function SensorSelect({ label, current, fallbackName, placeholder = "Choo
                 aria-controls="sensor-select-list"
                 className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-ui-4"
               />
-              <span className="text-[10.5px] text-ui-5">↑↓ Enter</span>
+              <span className="text-[10.5px] text-ui-hint">↑↓ Enter</span>
             </div>
             <div id="sensor-select-list" role="listbox" aria-label="Sensors" className="min-h-0 flex-1 overflow-y-auto p-1">
               {onClear && (

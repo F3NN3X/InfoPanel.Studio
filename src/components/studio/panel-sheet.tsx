@@ -139,7 +139,7 @@ export function usePanelSheet({
           onRemove={actions.remove}
         />
           <AddWidgetSelect onAdd={(kind: WidgetKind) => actions.insert(newWidget(kind))} />
-          <p className="text-[11px] leading-snug text-ui-5">
+          <p className="text-[11px] leading-snug text-ui-hint">
             Click a widget to edit it. Copy / paste and change kind keep the shared fields.
           </p>
         </>

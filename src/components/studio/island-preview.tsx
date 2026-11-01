@@ -19,7 +19,7 @@ export function IslandPreview({ island, page, bus }: IslandPreviewProps) {
         <DynamicIsland config={config} alerts={[]} placement="absolute" page={page} bus={bus} />
       </div>
       {!config.enabled && (
-        <p className="text-[11px] text-ui-5">The island is off on this screen. This is how it will look when you turn it on.</p>
+        <p className="text-[11px] text-ui-hint">The island is off on this screen. This is how it will look when you turn it on.</p>
       )}
     </div>
   );

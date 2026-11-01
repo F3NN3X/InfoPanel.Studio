@@ -162,9 +162,9 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
               </ul>
             )}
             {unplaced.length > 0 && (
-              <p className="text-pretty text-[11px] leading-snug text-ui-5">Add one of these to send more: {unplaced.join(", ")}.</p>
+              <p className="text-pretty text-[11px] leading-snug text-ui-hint">Add one of these to send more: {unplaced.join(", ")}.</p>
             )}
-            <span className="text-[11px] text-ui-5">Turn this on per widget: Behavior › Send to island.</span>
+            <span className="text-[11px] text-ui-hint">Turn this on per widget: Behavior › Send to island.</span>
           </div>
           <LinkRow
             label="Alert rules"

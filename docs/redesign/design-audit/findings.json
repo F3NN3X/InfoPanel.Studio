@@ -24,7 +24,7 @@
     "evidence": "Token values read in index.css:122-123 and tokens.css:19-22; ratios from audits' WCAG computation.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-002",
@@ -47,7 +47,7 @@
     "evidence": "theme.ts:49-56 opened: dark and light faint are #71717a.",
     "checked": true,
     "exportRisk": true,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-003",
@@ -69,7 +69,7 @@
     "evidence": "theme.ts:110 slate value opened; ratios from F's palette sweep (inferred for page-level impact).",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-004",
@@ -538,7 +538,7 @@
     "evidence": "Values from index.css and tokens.css; ratios from audits (not rendered).",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-025",
@@ -650,7 +650,7 @@
     "evidence": "surfaces.ts:60 opened; glass inferred. theme.ts:55 is mirrored by vector.ts: check gauge export.",
     "checked": false,
     "exportRisk": true,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-029",
@@ -670,7 +670,7 @@
     "evidence": "Static.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-030",
@@ -701,7 +701,7 @@
     "evidence": "Counts from greps in the audits; logs.tsx:148 contrast 2.27:1.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-031",
@@ -864,7 +864,7 @@
     "evidence": "Default theme; other themes vary.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-038",
@@ -1053,7 +1053,7 @@
     "evidence": "layers-tree.tsx:273 opened (opacity-45).",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-047",
@@ -1587,7 +1587,7 @@
     "evidence": "Inferred; measure needed.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-071",
@@ -1678,7 +1678,7 @@
     "evidence": "Inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "partial"
   },
   {
     "id": "FND-075",
@@ -1830,7 +1830,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-082",
@@ -2035,7 +2035,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-092",
@@ -2055,7 +2055,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-093",
@@ -2074,6 +2074,6 @@
     "evidence": "Inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   }
 ]

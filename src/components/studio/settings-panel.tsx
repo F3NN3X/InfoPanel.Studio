@@ -83,7 +83,7 @@ function PinButton({ pinned, label, onToggle }: { pinned: boolean; label: string
       aria-pressed={pinned}
       className={cn(
         "flex h-6 w-6 shrink-0 items-center justify-center rounded-md hover:bg-[#1e1e24]",
-        pinned ? "text-ui-accent-text" : "text-[#4a4a52] hover:text-ui-2"
+        pinned ? "text-ui-accent-text" : "text-ui-4 hover:text-ui-2"
       )}
     >
       <Pin className="h-[15px] w-[15px]" fill={pinned ? "currentColor" : "none"} strokeWidth={1.75} />

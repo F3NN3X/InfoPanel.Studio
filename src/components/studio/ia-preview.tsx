@@ -88,7 +88,7 @@ function LiveChip({ path, scope, config, setConfig, go }: {
         onJump={inh.jump}
         onMakeTheme={scope.level === "widget" ? (t) => toast(`Make this the theme for: ${t}`) : undefined}
       />
-      <span className="font-ui-mono text-[10.5px] text-ui-5">{valueText(path, inh.resolvedValue)}</span>
+      <span className="font-ui-mono text-[10.5px] text-ui-hint">{valueText(path, inh.resolvedValue)}</span>
       {inh.keptOverride && <InheritLockNote holder={scope.level === "widget" ? "widget" : "page"} section={PATHS.find((p) => p.path === path)?.label ?? path} />}
     </div>
   );

@@ -79,7 +79,7 @@ export function ThemeToastRow({ toast, onUndo, onDismiss }: ThemeToastRowProps) 
       >
         Undo
       </button>
-      <button type="button" aria-label="Dismiss" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-[#71717a] hover:text-ui-1" onClick={onDismiss}>
+      <button type="button" aria-label="Dismiss" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-ui-hint hover:text-ui-1" onClick={onDismiss}>
         <X className="h-3.5 w-3.5" />
       </button>
     </div>

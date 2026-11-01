@@ -31,7 +31,7 @@ export function ResultsView({ query, hits, onHit, onHome }: ResultsViewProps) {
                     {hit.label}
                     <span className="font-normal text-s-dim">{`  ›  Settings › ${SECTION_NAMES[hit.section]}`}</span>
                   </span>
-                  <span className="text-[11.5px] text-s-faint">Settings</span>
+                  <span className="text-[11.5px] text-s-dim">Settings</span>
                 </span>
               </button>
             );
@@ -50,7 +50,7 @@ export function ResultsView({ query, hits, onHit, onHome }: ResultsViewProps) {
                   {hit.hit && <mark className="rounded-[3px] bg-s-accent/25 px-px text-s-t1">{hit.hit}</mark>}
                   {hit.post}
                 </span>
-                <span className="text-[11.5px] text-s-faint">{hit.group}</span>
+                <span className="text-[11.5px] text-s-dim">{hit.group}</span>
               </span>
             </button>
           );

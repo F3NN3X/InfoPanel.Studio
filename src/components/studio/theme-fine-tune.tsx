@@ -14,7 +14,7 @@ const typing = (e: KeyboardEvent<HTMLElement>): boolean =>
 
 /** A small mono overline inside a section ("WIDGET COLORS", "STATUS"). */
 export function RowsLabel({ children }: { children: ReactNode }) {
-  return <h4 className="px-4 pb-0.5 pt-2 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-[#71717a] first:pt-0">{children}</h4>;
+  return <h4 className="px-4 pb-0.5 pt-2 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-ui-hint first:pt-0">{children}</h4>;
 }
 
 /** A section's lock at Screen level (SPEC §4.6): "Lock" off, the Locked colors on. */
@@ -28,7 +28,7 @@ function LockToggle({ on, screen, onToggle }: { on: boolean; screen: string; onT
       title={`Lock forces this section on every page and widget of ${screen}`}
       className={cn(
         "flex h-5 shrink-0 items-center gap-[3px] rounded-full border px-2 text-[11px] font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
-        on ? LOCKED : "border-[#27272a] text-[#71717a] hover:text-ui-1"
+        on ? LOCKED : "border-[#27272a] text-ui-hint hover:text-ui-1"
       )}
     >
       <Icon className="h-3 w-3" strokeWidth={1.75} aria-hidden />
@@ -91,7 +91,7 @@ export function FineTuneRow({ card, chip, summary, parentText, open, onToggle, l
           className="flex min-w-0 flex-1 flex-col items-start rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
         >
           <span className="truncate text-[14px] font-medium text-ui-1">{card.title}</span>
-          <span className="w-full truncate text-[12px] text-[#71717a]">{summary}</span>
+          <span className="w-full truncate text-[12px] text-ui-hint">{summary}</span>
         </button>
         {lock && <LockToggle on={lock.on} screen={lock.screen} onToggle={lock.onToggle} />}
         <InheritChip state={chip.state} from={chip.from} fromName={chip.fromName} parentText={parentText} onReset={onReset} onCustomise={onChange} onJump={onJump} />
@@ -100,7 +100,7 @@ export function FineTuneRow({ card, chip, summary, parentText, open, onToggle, l
           tabIndex={-1}
           aria-hidden
           onClick={onToggle}
-          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md text-[#71717a] hover:bg-ui-hover"
+          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md text-ui-hint hover:bg-ui-hover"
         >
           <ChevronDown className={cn("h-4 w-4 transition-transform duration-150", open && "rotate-180")} />
         </button>
@@ -126,7 +126,7 @@ export function FineTuneRow({ card, chip, summary, parentText, open, onToggle, l
               </button>
             )}
             {overrides > 0 && (
-              <span className="text-[#71717a]">
+              <span className="text-ui-hint">
                 {overrides} {overrides === 1 ? "widget differs" : "widgets differ"}
                 {lock?.on && " — ignored while locked"}
               </span>
@@ -142,12 +142,12 @@ export function FineTuneRow({ card, chip, summary, parentText, open, onToggle, l
 export function FineTuneHeader({ heading }: { heading: string }) {
   return (
     <div className="flex items-center gap-3 border-t border-ui-subtle px-4 pb-1.5 pt-4">
-      <h3 className="flex-1 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-[#71717a]">{heading}</h3>
-      <span className="flex items-center gap-1 text-[11px] text-[#71717a]">
+      <h3 className="flex-1 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-ui-hint">{heading}</h3>
+      <span className="flex items-center gap-1 text-[11px] text-ui-hint">
         <span className="h-1.5 w-1.5 rounded-full bg-[#3b82f6]" aria-hidden />
         changed here
       </span>
-      <span className="flex items-center gap-1 text-[11px] text-[#71717a]">
+      <span className="flex items-center gap-1 text-[11px] text-ui-hint">
         <span className="h-1.5 w-1.5 rounded-full bg-[#2dd4bf]" aria-hidden />
         inherited
       </span>

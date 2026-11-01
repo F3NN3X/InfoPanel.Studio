@@ -50,7 +50,7 @@ const STATE: Record<RemapState, { label: string; dot: string; text: string }> = 
   chosen: { label: "Your choice", dot: "bg-ui-accent", text: "text-ui-accent-text" },
   check: { label: "Check", dot: "bg-ui-warning", text: "text-ui-warning" },
   unresolved: { label: "Unresolved", dot: "bg-ui-danger", text: "text-ui-danger" },
-  unbound: { label: "Left unbound", dot: "bg-ui-5", text: "text-ui-4" },
+  unbound: { label: "Left unbound", dot: "bg-ui-hint", text: "text-ui-4" },
 };
 
 const HOW: Record<string, string> = {
@@ -121,9 +121,9 @@ function KeyPicker({
             else return;
             e.preventDefault();
           }}
-          className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-ui-5"
+          className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-ui-hint"
         />
-        <span className="text-[10.5px] text-ui-5">↑↓ Enter</span>
+        <span className="text-[10.5px] text-ui-hint">↑↓ Enter</span>
       </label>
       <span className="text-[11px] text-ui-4">{searching ? `${cands.length} matching sensors` : "Suggested"}</span>
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
@@ -142,7 +142,7 @@ function KeyPicker({
                 <span className="truncate text-[12.5px] text-ui-1">
                   {v?.name ?? c.key} {v?.source && <span className="text-ui-4">· {v.source}</span>}
                 </span>
-                <span className="truncate font-ui-mono text-[10.5px] text-ui-5">{c.key}</span>
+                <span className="truncate font-ui-mono text-[10.5px] text-ui-hint">{c.key}</span>
                 {c.why && <span className="text-[11px] text-ui-accent-text">{c.why}</span>}
               </span>
               <span className="max-w-[110px] shrink-0 truncate font-ui-mono text-[12px] text-ui-1" title={valueText(v)}>
@@ -257,8 +257,8 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
                     {r.group.sensorName || "(no name)"}
                     <span className="font-normal text-ui-4"> · {r.group.type}</span>
                   </span>
-                  <span className={cn("flex items-center gap-1.5 truncate text-[11.5px]", r.match ? "text-ui-2" : "text-ui-5")}>
-                    <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-ui-5" />
+                  <span className={cn("flex items-center gap-1.5 truncate text-[11.5px]", r.match ? "text-ui-2" : "text-ui-hint")}>
+                    <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-ui-hint" />
                     {r.match ? (v?.name ?? r.match.key) : r.state === "unbound" ? "no sensor" : "no match"}
                     {v?.source && <span className="text-ui-4">{v.source}</span>}
                   </span>

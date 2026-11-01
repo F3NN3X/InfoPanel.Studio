@@ -57,7 +57,7 @@ export function CardMenu({ actions, label }: { actions: readonly CardAction[]; l
               <Fragment key={a.id}>
                 {a.danger && i > 0 && !actions[i - 1].danger && <Menu.Separator className={SEPARATOR} />}
                 <Menu.Item
-                  className={cn(ITEM, a.danger && "text-ui-danger data-disabled:text-ui-5")}
+                  className={cn(ITEM, a.danger && "text-ui-danger data-disabled:text-ui-hint")}
                   disabled={a.disabled}
                   onClick={() => {
                     toField.current = Boolean(a.focusesField);

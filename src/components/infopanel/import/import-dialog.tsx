@@ -215,7 +215,7 @@ function SourceStep({
           <button type="button" className={GHOST} onClick={() => folderRef.current?.click()}>
             <FolderOpen className="h-4 w-4" /> Choose folder…
           </button>
-          <span className="text-[11.5px] text-ui-5">Or drop an .infopanel or a .canvas.zip here.</span>
+          <span className="text-[11.5px] text-ui-hint">Or drop an .infopanel or a .canvas.zip here.</span>
           <input
             ref={fileRef}
             type="file"
@@ -298,7 +298,7 @@ function SourceStep({
             <button type="button" className={GHOST} onClick={() => zipRef.current?.click()}>
               <FileArchive className="h-4 w-4" /> Open a .canvas.zip…
             </button>
-            <span className="text-[11.5px] text-ui-5">Each file is checked against its SHA-256.</span>
+            <span className="text-[11.5px] text-ui-hint">Each file is checked against its SHA-256.</span>
             <input
               ref={zipRef}
               type="file"
@@ -492,7 +492,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
             type="button"
             disabled={!canNext}
             onClick={next}
-            className="h-8 rounded-[7px] bg-ui-inverse px-4 text-[12.5px] font-semibold text-ui-inverse-fg disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-5"
+            className="h-8 rounded-[7px] bg-ui-inverse px-4 text-[12.5px] font-semibold text-ui-inverse-fg disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-hint"
           >
             {nextLabel}
           </button>

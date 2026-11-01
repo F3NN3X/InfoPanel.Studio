@@ -64,7 +64,7 @@ function KindChips({ kind, onChange }: { kind: WidgetKind; onChange: (kind: Widg
           );
         })}
       </div>
-      <p className="text-[11px] leading-snug text-ui-5">Changing the kind keeps the label, sensor, unit, color and placement.</p>
+      <p className="text-[11px] leading-snug text-ui-hint">Changing the kind keeps the label, sensor, unit, color and placement.</p>
     </div>
   );
 }

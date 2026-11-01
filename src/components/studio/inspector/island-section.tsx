@@ -401,7 +401,7 @@ export function IslandSection({ island, previewBus, onChange, onLook, onOpenExpl
         <Play className="h-3.5 w-3.5" aria-hidden />
         Preview an alert
       </button>
-      <p className="text-[11px] leading-snug text-ui-5">
+      <p className="text-[11px] leading-snug text-ui-hint">
         Alert rules show here when their display style is Island; widgets with “Send to island” on and the
         dashboard notices add theirs on the kiosk. The preview above plays only here, and test alerts play on the canvas.
       </p>

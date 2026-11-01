@@ -439,7 +439,7 @@ export function AddPanel({
             onChange={(e) => changeQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-[#6f6f79]"
+            className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-ui-hint"
           />
           {query ? (
             <button
@@ -479,7 +479,7 @@ export function AddPanel({
               )}
             >
               {k.label}
-              <span className="font-ui-mono text-[10px] font-normal text-[#6f6f79]">
+              <span className="font-ui-mono text-[10px] font-normal text-ui-hint">
                 {onAddPart && k.kind === "widget" ? `${counts.widget} · ${ITEM_TILES.length} items` : counts[k.kind]}
               </span>
             </button>
@@ -556,7 +556,7 @@ export function AddPanel({
         {empty ? (
           <div className="flex flex-col items-start gap-2.5 px-2 py-5">
             <div className="text-[12.5px] font-medium text-ui-1">Nothing matches “{query.trim()}”</div>
-            <p className="text-[12px] leading-[1.5] text-[#8a8a94]">
+            <p className="text-[12px] leading-[1.5] text-ui-hint">
               A Sensor shows any single value from your data sources, so it covers most things a dedicated widget doesn’t.
             </p>
             {sensor && (
@@ -594,7 +594,7 @@ export function AddPanel({
           groups.map((g, gi) => (
             <section key={`${gi}:${g.title}`} aria-label={g.title}>
               <div className="sticky top-0 z-10 flex items-baseline gap-1.5 bg-ui-panel px-1.5 pb-1.5 pt-2.5 font-ui-mono text-[10px] uppercase tracking-[0.06em]">
-                <span className="text-[#8a8a94]">{g.title}</span>
+                <span className="text-ui-hint">{g.title}</span>
                 <span className="text-[#55555e]">{g.items.length}</span>
               </div>
               {g.items.map((item) => {
@@ -630,7 +630,7 @@ export function AddPanel({
         )}
       </div>
 
-      <div className="flex h-7 shrink-0 items-center gap-2.5 overflow-hidden whitespace-nowrap border-t border-ui-subtle px-3 text-[10.5px] text-[#6f6f79]">
+      <div className="flex h-7 shrink-0 items-center gap-2.5 overflow-hidden whitespace-nowrap border-t border-ui-subtle px-3 text-[10.5px] text-ui-hint">
         <span>Hover for details</span>
         <span>←↑→↓ browse</span>
         <span>Enter add</span>
@@ -657,7 +657,7 @@ function DoorRow({ compact, icon: Icon, title, note, onClick }: { compact: boole
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-[12.5px] font-medium text-ui-1">{title}</span>
-        {!compact && <span className="truncate text-[11.5px] text-[#8a8a94]">{note}</span>}
+        {!compact && <span className="truncate text-[11.5px] text-ui-hint">{note}</span>}
       </span>
     </button>
   );

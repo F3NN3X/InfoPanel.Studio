@@ -116,7 +116,7 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
       return quick.length > 0 ? (
         quick.map((def) => <SettingField key={def.key} def={def} fields={fields} sources={sources} />)
       ) : (
-        <p className="px-4 py-4 text-[12.5px] text-[#8a8a94]">Pin settings from the panel to show them here</p>
+        <p className="px-4 py-4 text-[12.5px] text-ui-hint">Pin settings from the panel to show them here</p>
       );
     const p = parts(active);
     const inh = inherit?.(active);
@@ -157,7 +157,7 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
         </span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[14px] font-semibold leading-4 text-ui-1">{identity.name}</div>
-          <div className="truncate text-[11px] text-[#8a8a94]">{identity.meta(changed)}</div>
+          <div className="truncate text-[11px] text-ui-hint">{identity.meta(changed)}</div>
         </div>
         {identity.onToggleVisible && (
           <button

@@ -84,7 +84,7 @@ function Schematic({ item }: { item: AddItem }) {
       {(item.parts ?? []).map((part, i) => (
         <div key={i} className="flex min-h-0 min-w-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-[6px] bg-[#1f1f24] px-1">
           <PartIcon kind={part.kind} />
-          <span className="max-w-full truncate text-[10.5px] text-[#8a8a94]">{part.label}</span>
+          <span className="max-w-full truncate text-[10.5px] text-ui-hint">{part.label}</span>
         </div>
       ))}
     </div>
@@ -132,7 +132,7 @@ export function AddPreview({ item, left, top, via, target, appearance, pageStyle
           <span className="shrink-0 text-[11.5px] text-[#7c7c86]">{item.kind === "widget" ? item.category : KIND_NAME[item.kind]}</span>
         </div>
         <p className="text-pretty text-[12px] leading-[1.5] text-[#a1a1aa]">{item.description || item.blurb}</p>
-        <div className="flex items-center gap-2 text-[11.5px] text-[#8a8a94]">
+        <div className="flex items-center gap-2 text-[11.5px] text-ui-hint">
           <span className="rounded-[4px] bg-ui-subtle px-1.5 py-0.5 font-ui-mono text-[11px] text-[#c8c8ce]">{sizeText(item.w, item.h)}</span>
           {item.mw === 1 && item.mh === 1 ? "Adapts down to 1×1" : `Needs at least ${sizeText(item.mw, item.mh)}`}
         </div>

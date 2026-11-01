@@ -69,7 +69,7 @@ export function NativeExportStep({ rows, choices, onChoose, onSetAll }: NativeEx
                         disabled={!offered}
                         title={!offered ? "Not available for this widget yet" : undefined}
                         onClick={() => onChoose(r.zoneId, r.key, c)}
-                        className={cn("flex items-center gap-1.5 text-[12px]", offered ? "text-ui-2" : "cursor-not-allowed text-ui-5 opacity-50")}
+                        className={cn("flex items-center gap-1.5 text-[12px]", offered ? "text-ui-2" : "cursor-not-allowed text-ui-hint opacity-50")}
                       >
                         <Radio on={picked === c} /> {CHOICE_LABEL[c]}
                       </button>

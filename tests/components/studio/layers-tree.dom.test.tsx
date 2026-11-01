@@ -59,7 +59,8 @@ describe("Layers rows", () => {
     // Locked shows its lock, hidden dims, the selected group's children tint.
     expect(row("Weather").dataset.locked).toBe("");
     expect(within(row("Weather")).getByRole("button", { name: "Unlock Weather" }).className).toContain("text-ui-2");
-    expect(row("Clock").className).toContain("opacity-45");
+    expect(row("Clock").className).not.toContain("opacity-45");
+    expect(row("Clock").querySelector(".opacity-45")).toBeTruthy();
     expect(within(row("Clock")).getByRole("button", { name: "Show Clock" })).toBeTruthy();
     expect(row("Title text").className).toContain("bg-ui-accent/7");
     expect(row("Overlay").dataset.selected).toBe("");

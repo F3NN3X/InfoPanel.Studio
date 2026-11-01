@@ -104,7 +104,7 @@ export function TileCard({ tile, left, top, status, appearance, pageStyle }: Til
             On InfoPanel: {status.word[s]}
           </span>
         )}
-        <span className="border-t border-[#24242a] pt-2 text-[11px] text-ui-5">Click to add · drag to place</span>
+        <span className="border-t border-[#24242a] pt-2 text-[11px] text-ui-hint">Click to add · drag to place</span>
       </div>
     </div>,
     document.body,

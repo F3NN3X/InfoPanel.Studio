@@ -265,7 +265,7 @@ function Row({
             onChevron?.();
           }}
           className={cn(
-            "grid h-[18px] w-[18px] shrink-0 place-items-center text-ui-5 hover:text-ui-1 disabled:hover:text-ui-5",
+            "grid h-[18px] w-[18px] shrink-0 place-items-center text-ui-hint hover:text-ui-1 disabled:hover:text-ui-hint",
             chevron === "none" ? "opacity-0" : chevronDisabled && "opacity-40"
           )}
         >
@@ -304,7 +304,7 @@ function Row({
           {label}
         </span>
       )}
-      <span className={cn("font-ui-mono text-[10.5px] tabular-nums", kind === "all" ? "text-ui-4" : "text-ui-5")}>{count}</span>
+      <span className={cn("font-ui-mono text-[10.5px] tabular-nums", kind === "all" ? "text-ui-4" : "text-ui-hint")}>{count}</span>
       {onMenu && (
         <button
           type="button"

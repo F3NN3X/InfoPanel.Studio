@@ -227,7 +227,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
   const name = item.Name || item.kind;
   const mode = badgeText(item.kind, editor.modes.get(path)?.state);
   const kindWord = item.kind === "Group" && !element ? "Group" : element ? "Element" : "InfoPanel item";
-  const ACTION = "grid h-7 w-7 shrink-0 place-items-center rounded-md text-ui-5 transition-colors hover:bg-ui-hover hover:text-ui-1";
+  const ACTION = "grid h-7 w-7 shrink-0 place-items-center rounded-md text-ui-hint transition-colors hover:bg-ui-hover hover:text-ui-1";
   return (
     <InspectorView
       context={context}
@@ -518,7 +518,7 @@ function SensorCard({
   const key = editKeyOf(item);
   const via = importOf(item)?.via;
   const value = key ? live[key] : undefined;
-  const dot = !key ? "bg-ui-5" : via === "name" || via === "suggested" ? "bg-ui-warning" : "bg-ui-success";
+  const dot = !key ? "bg-ui-hint" : via === "name" || via === "suggested" ? "bg-ui-warning" : "bg-ui-success";
   const status = !key ? (via === "unbound" ? "Left unbound" : "Not mapped") : via === "name" || via === "suggested" ? "Check the match" : "Mapped";
   const id = groupId(item);
   const min = Number(valueOf(item, "MinValue") ?? 0);

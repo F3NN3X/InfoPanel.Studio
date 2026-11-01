@@ -75,7 +75,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto px-2 pb-3 pt-1">
         {query ? (
           <>
-            <div className="px-2.5 pb-1.5 pt-2 text-[10.5px] uppercase tracking-[0.07em] text-s-faint">{results.length === 0 ? "No matches" : `${results.length} result${results.length === 1 ? "" : "s"}`}</div>
+            <div className="px-2.5 pb-1.5 pt-2 text-[10.5px] uppercase tracking-[0.07em] text-s-dim">{results.length === 0 ? "No matches" : `${results.length} result${results.length === 1 ? "" : "s"}`}</div>
             {results.map((r, i) => {
               const Icon = PAGE_ICONS[r.section];
               return (
@@ -140,7 +140,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
           <CircleHelp className="h-[14px] w-[14px]" />
           Help
         </button>
-        <span className="text-[11px] text-s-faint">v{status.appVersion}</span>
+        <span className="text-[11px] text-s-dim">v{status.appVersion}</span>
       </div>
     </aside>
   );

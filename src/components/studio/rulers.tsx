@@ -12,7 +12,7 @@ export function rulerMarks(length: number): number[] {
   return Array.from({ length: count }, (_, i) => i * EVERY);
 }
 
-const LABEL = "absolute font-ui-mono text-[8px] text-[#5a5a63]";
+const LABEL = "absolute font-ui-mono text-[10px] text-ui-4";
 
 export function RulerLabels({ width, height }: { width: number; height: number }) {
   return (

@@ -21,7 +21,7 @@ export function Tile({ name, tag, title, selected, disabled, onPick, children }:
     >
       <div className={cn("h-[72px] w-full overflow-hidden rounded-lg border bg-background text-foreground", selected ? "border-[#60a5fa] ring-1 ring-[#60a5fa]" : "border-ui-strong hover:border-[#52525b]")}>{children}</div>
       <span className="truncate text-[13px] font-medium text-ui-1">{name}</span>
-      {tag && <span className="-mt-1 text-[11px] text-[#71717a]">{tag}</span>}
+      {tag && <span className="-mt-1 text-[11px] text-ui-hint">{tag}</span>}
     </button>
   );
 }

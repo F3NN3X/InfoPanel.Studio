@@ -51,7 +51,7 @@ function PartRow({ label, onOpen, children }: { label: string; onOpen?: () => vo
     <>
       <span className="w-[78px] shrink-0 text-[12px] text-[#a1a1aa]">{label}</span>
       <span className="flex min-w-0 flex-1 items-center gap-2 text-[12px] text-ui-1">{children}</span>
-      {onOpen && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#71717a]" aria-hidden />}
+      {onOpen && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-ui-hint" aria-hidden />}
     </>
   );
   const row = "flex w-full items-center gap-2 border-t border-[#1a1a1d] px-3 py-[9px] text-left first:border-t-0";
@@ -156,7 +156,7 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
               <Menu.Popup className={MENU}>
                 <Menu.Item className={cn(ITEM, "h-auto flex-col items-start gap-0.5 py-1.5")} disabled={!p.reset} onClick={p.reset?.onReset}>
                   <span>Reset to {p.reset ? p.name : "a theme"}</span>
-                  <span className="text-[11px] leading-snug text-[#71717a]">{p.reset?.text ?? "This look wasn't applied from a theme. Save it as one first."}</span>
+                  <span className="text-[11px] leading-snug text-ui-hint">{p.reset?.text ?? "This look wasn't applied from a theme. Save it as one first."}</span>
                 </Menu.Item>
                 <Menu.Separator className={SEPARATOR} />
                 <Menu.Item className={ITEM} disabled={!p.onRename} onClick={() => setRenaming(true)}>
@@ -176,7 +176,7 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
         </Menu.Root>
       </div>
       <div className="overflow-hidden rounded-[9px] border border-ui-strong">
-        <h3 className="border-b border-[#1a1a1d] px-3 py-1.5 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-[#71717a]">Made of</h3>
+        <h3 className="border-b border-[#1a1a1d] px-3 py-1.5 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-ui-hint">Made of</h3>
         <PartRow label="Palette" onOpen={p.partsNote ? undefined : p.onPalette}>
           <TokenSwatches tokens={p.tokens} />
           <span className="truncate">{p.paletteName}</span>
@@ -203,7 +203,7 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
           <BackgroundSwatch bg={p.background} tokens={p.tokens} />
           <span className="truncate">{p.backgroundLabel}</span>
         </PartRow>
-        {p.partsNote && <p className="border-t border-[#1a1a1d] px-3 py-2 text-[11.5px] leading-snug text-[#71717a]">{p.partsNote}</p>}
+        {p.partsNote && <p className="border-t border-[#1a1a1d] px-3 py-2 text-[11.5px] leading-snug text-ui-hint">{p.partsNote}</p>}
       </div>
       <button
         type="button"
@@ -211,7 +211,7 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
         data-nav-section="start"
         className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-ui-strong text-[13px] font-medium text-ui-1 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
       >
-        Switch theme <span className="font-normal text-[#71717a]">{p.counts}</span>
+        Switch theme <span className="font-normal text-ui-hint">{p.counts}</span>
       </button>
     </section>
   );

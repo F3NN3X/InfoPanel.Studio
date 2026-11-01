@@ -8,8 +8,8 @@
   --color-s-card-line: #1f1f24;
   --color-s-divider: #1c1c21;
   --color-s-input: #16161a;
-  --color-s-input-line: #2a2a31;
-  --color-s-track-line: #24242a;
+  --color-s-input-line: #66666f;
+  --color-s-track-line: #66666f;
   --color-s-seg-on: #24242b;
   --color-s-nav-on: #1c1c22;
   --color-s-nav-hover: #18181d;
@@ -18,17 +18,29 @@
   --color-s-t1: #ededf0;
   --color-s-t2: #c9c9cf;
   --color-s-muted: #8a8a94;
-  --color-s-dim: #6f6f79;
+  --color-s-dim: #8a8a94;
+  /* Icons and decoration only; text is s-dim or brighter. */
   --color-s-faint: #55555e;
 
   --color-s-accent: oklch(0.72 0.15 255);
   --color-s-accent-text: oklch(0.84 0.12 255);
-  --color-s-green: oklch(0.78 0.16 150);
-  --color-s-amber: oklch(0.82 0.14 75);
-  --color-s-red: oklch(0.7 0.18 25);
+  --color-s-green: var(--ui-ok);
+  --color-s-amber: var(--ui-warn);
+  --color-s-red: var(--ui-danger);
 
   --color-s-bar-bg: oklch(0.25 0.05 75);
   --color-s-bar-line: oklch(0.4 0.08 75);
   --color-s-bar-text: oklch(0.94 0.04 80);
   --color-s-bar-button: oklch(0.86 0.13 80);
+}
+
+/* The one status set (Studio and Settings): ok, warn, danger, info. The Export check's statuses (Edit v3 SPEC §11.2):
+   exports as is, approximated, becomes a picture; left out is danger. Info sits away from the accent hue (255). */
+:root {
+  --ui-ok: oklch(0.78 0.14 155);
+  --ui-warn: oklch(0.82 0.13 80);
+  --ui-danger: oklch(0.72 0.17 25);
+  --ui-info: oklch(0.78 0.09 205);
+  --ui-success: var(--ui-ok);
+  --ui-warning: var(--ui-warn);
 }

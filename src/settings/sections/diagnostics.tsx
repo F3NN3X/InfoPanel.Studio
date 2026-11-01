@@ -29,10 +29,10 @@ function SeriesTable({ diag, filter }: { diag: Diagnostics; filter: "notable" | 
           <span className="text-right">Δ 30 min</span>
           <span className="text-right">Δ 60 min</span>
         </div>
-        {groups.length === 0 && <div className="px-4 py-6 text-[12.5px] text-s-faint">Nothing stands out.</div>}
+        {groups.length === 0 && <div className="px-4 py-6 text-[12.5px] text-s-dim">Nothing stands out.</div>}
         {groups.map((g) => (
           <div key={g.name}>
-            <div className="px-4 pb-1 pt-2.5 text-[11px] uppercase tracking-[0.06em] text-s-faint">{g.name}</div>
+            <div className="px-4 pb-1 pt-2.5 text-[11px] uppercase tracking-[0.06em] text-s-dim">{g.name}</div>
             {g.rows.map(({ series, name }) => (
               <div key={series.name} className={cn(GRID, "items-center px-4 py-[7px] text-[12.5px] hover:bg-[#151519]")}>
                 <span className="flex min-w-0 items-center gap-2">

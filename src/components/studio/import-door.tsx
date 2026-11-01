@@ -239,7 +239,7 @@ export function ImportDoorDialog({ open, files, choices, onChoices, busy, curren
               type="button"
               disabled={!ready}
               onClick={onRun}
-              className="h-8 rounded-[7px] bg-ui-inverse px-4 text-[12.5px] font-semibold text-ui-inverse-fg disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-5"
+              className="h-8 rounded-[7px] bg-ui-inverse px-4 text-[12.5px] font-semibold text-ui-inverse-fg disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-hint"
             >
               {busy ? "Importing…" : onlyConfig && replacing ? "Restore" : "Import"}
             </button>

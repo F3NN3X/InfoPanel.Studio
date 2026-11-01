@@ -17,7 +17,7 @@ export function EmptyLayoutCard({ onBrowse, onImport, onUseSample }: EmptyLayout
   return (
     <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
       <div className="flex max-w-[340px] flex-col items-center gap-2.5 rounded-xl border border-ui-default bg-ui-panel px-7 py-6 text-center font-ui">
-        <LayoutDashboard className="h-7 w-7 text-[#8a8a94]" strokeWidth={1.5} />
+        <LayoutDashboard className="h-7 w-7 text-ui-hint" strokeWidth={1.5} />
         <div className="text-[14px] font-semibold text-ui-1">Drop widgets or InfoPanel items here</div>
         <div className="pointer-events-auto mt-1.5 flex gap-2">
           <button

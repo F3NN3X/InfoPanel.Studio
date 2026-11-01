@@ -82,7 +82,7 @@ function QuickControl({
             value={n}
             step={def.step}
             onChange={(e) => write(e.target.value === "" ? Number(def.default) || 0 : Number(e.target.value))}
-            className="h-[26px] w-16 rounded-md border border-ui-default bg-ui-app px-1.5 text-right font-ui-mono text-[11.5px] text-ui-1 outline-none focus:border-ui-accent"
+            className="h-[26px] w-16 rounded-md border border-ui-control bg-ui-app px-1.5 text-right font-ui-mono text-[11.5px] text-ui-1 outline-none focus:border-ui-accent"
           />
         );
       return (
@@ -110,7 +110,7 @@ function QuickControl({
           aria-label={def.label}
           value={String(value)}
           onChange={(e) => fields.onPatch({ [def.key]: e.target.value })}
-          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
         >
           {ALIGN_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -136,7 +136,7 @@ function QuickControl({
           aria-label={def.label}
           value={String(value)}
           onChange={(e) => write(e.target.value)}
-          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
         >
           {options.map((o) => (
             <option key={o.value} value={o.value}>
@@ -153,7 +153,7 @@ function QuickControl({
           aria-label={def.label}
           value={String(value)}
           onChange={(e) => write(e.target.value)}
-          className="h-[26px] w-[120px] rounded-md border border-ui-default bg-ui-app px-2 text-[12px] text-ui-1 outline-none [color-scheme:dark] focus:border-ui-accent"
+          className="h-[26px] w-[120px] rounded-md border border-ui-control bg-ui-app px-2 text-[12px] text-ui-1 outline-none [color-scheme:dark] focus:border-ui-accent"
         />
       );
   }

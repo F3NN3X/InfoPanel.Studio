@@ -32,7 +32,7 @@ export const PEEK_MS = 6000;
 const ACTIVITY_PEEK = "activity";
 const NO_KEYS: readonly string[] = [];
 /** The colours a value turns past its thresholds. */
-const LEVEL_COLOR = { warn: severityColor("warning"), crit: "#ef4444" } as const;
+const LEVEL_COLOR = { warn: severityColor("warning"), crit: severityColor("critical") } as const;
 /** The notch's concave corners, px at scale 100: small closed, larger open (L4 NotchBar). */
 const EAR = { closed: 6, open: 14 } as const;
 const SLOW = typeof location === "undefined" ? 1 : motionScale(location.search);
@@ -337,14 +337,14 @@ function IslandClock({ config, date }: { config: IslandConfig; date: boolean }) 
   return (
     <span className="min-w-0 truncate tabular-nums [font-weight:var(--island-weight)]">
       {now.time}
-      {date && <span className="ml-[0.6em] font-normal opacity-60">{now.date}</span>}
+      {date && <span className="ml-[0.6em] font-normal opacity-75">{now.date}</span>}
     </span>
   );
 }
 
 function IslandDate() {
   const now = formatClock(useNow(60_000), useGeneral());
-  return <span className="min-w-0 truncate opacity-60">{now.date}</span>;
+  return <span className="min-w-0 truncate opacity-75">{now.date}</span>;
 }
 
 function NextEvent({ event }: { event: CalendarEvent }) {
@@ -353,7 +353,7 @@ function NextEvent({ event }: { event: CalendarEvent }) {
     <span className="min-w-0 truncate">
       <span className="mr-[0.35em] inline-block h-[0.5em] w-[0.5em] rounded-full bg-[#3b82f6]" aria-hidden />
       <span className="opacity-80">{event.title}</span>
-      <span className="ml-[0.35em] opacity-60">{startsIn(event.start - now)}</span>
+      <span className="ml-[0.35em] opacity-75">{startsIn(event.start - now)}</span>
     </span>
   );
 }
@@ -380,7 +380,7 @@ function IslandStats({ stats }: { stats: readonly IslandStat[] }) {
             style={level ? { color: LEVEL_COLOR[level], transition: "color 300ms" } : { transition: "color 300ms" }}
             data-level={level ?? undefined}
           >
-            {stat.label && <span className="mr-[0.35em] opacity-60">{stat.label}</span>}
+            {stat.label && <span className="mr-[0.35em] opacity-75">{stat.label}</span>}
             {text}
           </span>
         );
@@ -399,7 +399,7 @@ function Activity({ activity, config, pending = 0, accent }: { activity: IslandA
       <div className="flex min-w-0 flex-1 items-center justify-end gap-[0.5em]">
         <span className="min-w-0 truncate text-right">
           <span className="[font-weight:var(--island-weight)]">{activity.title}</span>
-          {activity.subtitle && <span className="ml-[0.4em] opacity-60">{activity.subtitle}</span>}
+          {activity.subtitle && <span className="ml-[0.4em] opacity-75">{activity.subtitle}</span>}
         </span>
         {activity.image ? (
           <img src={activity.image} alt="" className="h-[1.9em] w-[1.9em] shrink-0 rounded-[0.45em] object-cover" />
@@ -441,7 +441,7 @@ function Expanded({ item }: { item: IslandItem }) {
             </span>
           )}
         </div>
-        {item.body && <div className="truncate text-[0.86em] opacity-65">{item.body}</div>}
+        {item.body && <div className="truncate text-[0.86em] opacity-75">{item.body}</div>}
         {item.progress !== undefined && (
           <div className="mt-[0.35em] h-[0.3em] overflow-hidden rounded-full bg-current/20" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(item.progress * 100)}>
             <div className="island-level h-full rounded-full" style={{ width: `${Math.round(item.progress * 100)}%`, background: color }} />

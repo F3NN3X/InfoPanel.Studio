@@ -99,10 +99,10 @@ export function ageLabel(alert: ActiveAlert, now: number): string {
 
 export const WARNING_COLOR = "hsl(38 92% 50%)";
 
-/** The severity accent: info = primary, warning = amber, critical = destructive. */
+/** The severity accent: info = primary, warning = amber, critical = --alert-critical (destructive is a fill, too dark as a line). */
 export function severityColor(severity: Severity): string {
   if (severity === "warning") return WARNING_COLOR;
-  return severity === "critical" ? "hsl(var(--destructive))" : "hsl(var(--primary))";
+  return severity === "critical" ? "var(--alert-critical)" : "hsl(var(--primary))";
 }
 
 const RANK: Record<Severity, number> = { info: 0, warning: 1, critical: 2 };

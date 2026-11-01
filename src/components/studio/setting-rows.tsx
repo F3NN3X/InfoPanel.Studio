@@ -18,11 +18,11 @@ import { useInInspector, useInspectorChrome } from "./inspector-layout";
  */
 
 export const FIELD =
-  "rounded-md border border-ui-default bg-ui-app px-[9px] text-[12.5px] text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent";
+  "rounded-md border border-ui-control bg-ui-app px-[9px] text-[12.5px] text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent";
 
 /** A select: h28, #1a1a1f, up to 150 wide. */
 export const SELECT =
-  "h-7 max-w-[150px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent";
+  "h-7 max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent";
 
 export interface RowLabelProps {
   label: string;
@@ -45,7 +45,7 @@ function Label({ label, lead, hint, changed, className }: RowLabelProps & { clas
         {label}
       </span>
       {hint && (
-        <span title={hint} className="shrink-0 cursor-help text-ui-5 hover:text-ui-2">
+        <span title={hint} className="shrink-0 cursor-help text-ui-hint hover:text-ui-2">
           <Info className="h-3.5 w-3.5" aria-label={hint} />
         </span>
       )}

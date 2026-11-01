@@ -409,7 +409,7 @@ export function PlacementFrame({
                 <button
                   type="button"
                   onClick={onPickWidget}
-                  className="flex items-center gap-1 rounded-md px-2 py-1 font-ui text-[11px] text-[#8a8a94] transition-colors hover:bg-ui-hover hover:text-ui-1"
+                  className="flex items-center gap-1 rounded-md px-2 py-1 font-ui text-[11px] text-ui-hint transition-colors hover:bg-ui-hover hover:text-ui-1"
                 >
                   <Plus className="h-[15px] w-[15px]" /> Pick a widget
                 </button>

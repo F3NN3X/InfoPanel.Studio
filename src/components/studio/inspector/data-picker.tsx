@@ -100,7 +100,7 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
             {shown.length === 0 && <li className="px-3 py-6 text-center text-[12px] text-ui-4">No data points match.</li>}
           </ul>
           <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-4 py-2.5">
-            <span className="text-[11.5px] text-[#8a8a94]">
+            <span className="text-[11.5px] text-ui-hint">
               {resultsLabel(shown.length)} · {bound.size} bound
             </span>
             <button

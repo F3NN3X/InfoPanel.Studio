@@ -16,7 +16,7 @@ const isNoValue = (v: unknown): boolean => v == null || v === "" || v === "–" 
 /** A text value with no spaces (an IP address) cannot wrap: shrink it to the width instead of cutting it off. */
 const tokenFit = (v: unknown, avail: number, base: number): CSSProperties | undefined =>
   typeof v === "string" && v.length > 0 && !/\s/.test(v) ? { fontSize: Math.max(11, Math.min(base, avail / (v.length * 0.6))) } : undefined;
-const NO_VALUE: CSSProperties = { color: "var(--w-faint)", fontWeight: 400, textShadow: "none", opacity: 0.7 };
+const NO_VALUE: CSSProperties = { color: "var(--w-faint)", fontWeight: 400, textShadow: "none" };
 
 /* Compact views — rendered automatically for tile / strip / column shapes when a widget passes `compact`.
    compact = { label, value, unit, d, sub, icon, t, pct, hist, img, kind: 'spark' | 'bar' | 'ring' | 'text' } */

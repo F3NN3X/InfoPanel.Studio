@@ -83,7 +83,7 @@ export function ScreenPages({ pages, rotate, onMove, onRotate, onOpen }: ScreenP
               aria-label={`Drag ${page.name} to reorder`}
               title="Drag to reorder"
               onPointerDown={(e) => start(e, pages.findIndex((p) => p.id === page.id))}
-              className="flex h-6 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-ui-5 hover:text-ui-2 active:cursor-grabbing"
+              className="flex h-6 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-ui-hint hover:text-ui-2 active:cursor-grabbing"
             >
               <GripVertical className="h-4 w-4" />
             </button>
@@ -98,7 +98,7 @@ export function ScreenPages({ pages, rotate, onMove, onRotate, onOpen }: ScreenP
               onClick={() => toggle && onRotate(toggle)}
               className={cn(
                 "flex h-6 w-6 shrink-0 items-center justify-center rounded hover:bg-ui-active disabled:pointer-events-none",
-                inRotation ? "text-ui-2" : "text-ui-5"
+                inRotation ? "text-ui-2" : "text-ui-hint"
               )}
             >
               {inRotation ? <RefreshCw className="h-4 w-4" /> : <RefreshCwOff className="h-4 w-4" />}

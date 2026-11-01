@@ -29,7 +29,7 @@ export function HeaderIcon({ children }: { children: ReactNode }) {
   );
 }
 
-const META = "truncate text-[11px] text-[#8a8a94]";
+const META = "truncate text-[11px] text-ui-hint";
 
 /** The sub line's count: "3 changed", or "defaults" when nothing is set here. */
 export const changedLabel = (changed: number) => (changed > 0 ? `${changed} changed` : "defaults");
@@ -119,7 +119,7 @@ function Breadcrumb({
       >
         {title}
       </button>
-      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-ui-5" />
+      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-ui-hint" />
       <button type="button" onClick={onWidget} title="Show the widget's settings" className={cn(crumb, "text-ui-2")}>
         {widget}
       </button>
@@ -285,7 +285,7 @@ export function WidgetPicker({ placement, onPickWidget }: { placement: Placement
         </button>
       </InlineRow>
       {placement.panel && (
-        <p className="text-[11px] leading-snug text-ui-5">
+        <p className="text-[11px] leading-snug text-ui-hint">
           Edit the panel&apos;s widgets in Content; picking another widget replaces the panel.
         </p>
       )}

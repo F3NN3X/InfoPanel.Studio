@@ -25,7 +25,7 @@ export interface NavGroup {
 }
 
 export function NavGroupLabel({ children }: { children: ReactNode }) {
-  return <div className="px-2.5 pb-1.5 pt-3 text-[10.5px] font-medium uppercase tracking-[0.07em] text-s-faint">{children}</div>;
+  return <div className="px-2.5 pb-1.5 pt-3 text-[10.5px] font-medium uppercase tracking-[0.07em] text-s-dim">{children}</div>;
 }
 
 /** A page in the sidebar; `children` are its indicators (a status dot, a count). */

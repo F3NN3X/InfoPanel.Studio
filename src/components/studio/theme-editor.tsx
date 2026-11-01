@@ -354,7 +354,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
               />
             </DataRow>
           ) : (
-            <p className="px-4 pb-1 text-[12px] text-[#71717a]">
+            <p className="px-4 pb-1 text-[12px] text-ui-hint">
               Page font: <span className="text-ui-1">{fontLabel}</span>, from {profile.name}
             </p>
           ))}
@@ -531,7 +531,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
           Live look of
         </span>
         <ThemeScopeBar config={config} at={at} profile={profile} page={page} onPick={pick} />
-        <p className="min-w-0 truncate text-[13px] text-[#71717a]">{levelHelp(at.level, profile.name, page.name)}</p>
+        <p className="min-w-0 truncate text-[13px] text-ui-hint">{levelHelp(at.level, profile.name, page.name)}</p>
         <div className="flex-1" />
         {at.level === "screen" && (
           <button

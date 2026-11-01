@@ -112,7 +112,7 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
             Open ↗
           </a>
         ) : (
-          <span className="text-ui-5">Open ↗</span>
+          <span className="text-ui-hint">Open ↗</span>
         )}
       </div>
     </section>

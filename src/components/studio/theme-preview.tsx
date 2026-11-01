@@ -213,7 +213,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
         <div className="flex flex-wrap items-center gap-4 rounded-[10px] border border-ui-strong bg-[#111113] px-4 py-3.5">
           <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
             <p className="truncate text-[14px] font-semibold text-ui-1">
-              {zoneName(zone)} <span className="font-normal text-[#71717a]">· widget on {page.name}</span>
+              {zoneName(zone)} <span className="font-normal text-ui-hint">· widget on {page.name}</span>
             </p>
             <p className="text-[13px] text-[#a1a1aa]">{differenceSummary(zone, diff, levelName)}</p>
           </div>
@@ -227,7 +227,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
           </button>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-4 text-[13px] text-[#71717a]">
+        <div className="flex flex-wrap items-center gap-4 text-[13px] text-ui-hint">
           <span>Click a widget to see what it changes.</span>
           {diffs.size > 0 && (
             <button type="button" className={`${LINK} text-[#a1a1aa]`} onClick={() => onFollow([...diffs.values()].flatMap((d) => d.exceptions))}>

@@ -9,7 +9,7 @@ import { getKeepBackground, setKeepBackground } from "./theme-keep-background";
 import { ThemeNameInput } from "./theme-name-input";
 import { filteredThemes, rowTag, templatesHeading, type ThemeFilter } from "./theme-view-model";
 
-const HEADING = "px-4 pb-1.5 pt-3 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-[#71717a]";
+const HEADING = "px-4 pb-1.5 pt-3 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-ui-hint";
 const ACTION = "rounded-sm text-[12px] text-[#60a5fa] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 /** A picker's frame (SPEC §4.3.3): ‹ Back and the title, the help text, the list, and a footer. */
@@ -124,7 +124,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
             </span>
             Keep my background
           </label>
-          <p className="text-[12px] text-[#71717a]">{keep ? "Your background stays." : "A theme with a background replaces yours."}</p>
+          <p className="text-[12px] text-ui-hint">{keep ? "Your background stays." : "A theme with a background replaces yours."}</p>
           {p.otherScreens && p.otherScreens.length > 0 && p.onApplyToScreens && (
             <>
               <button type="button" onClick={() => setToScreens(!toScreens)} className={cn(ACTION, "self-start")}>
@@ -134,7 +134,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
             </>
           )}
           <div className="flex items-center gap-3 text-[12px]">
-            <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[#71717a]">{p.counts}</span>
+            <span className="min-w-0 flex-1 truncate whitespace-nowrap text-ui-hint">{p.counts}</span>
             {saving ? (
               <ThemeNameInput
                 initial=""
@@ -172,7 +172,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
       {shown.saved && (
         <>
           <h3 className={HEADING}>Saved themes · {shown.saved.length}</h3>
-          {shown.saved.length === 0 && <p className="px-4 pb-2 text-[12px] text-[#71717a]">Themes you save appear here.</p>}
+          {shown.saved.length === 0 && <p className="px-4 pb-2 text-[12px] text-ui-hint">Themes you save appear here.</p>}
           {shown.saved.map((t) => (
             <div key={t.id}>
               <div className="flex items-center gap-3 px-4 py-2 hover:bg-[#111113]">
@@ -189,7 +189,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
                 ) : (
                   <button type="button" onClick={() => apply(t)} className="flex min-w-0 flex-1 flex-col items-start text-left">
                     <span className="truncate text-[13px] font-medium text-ui-1">{t.name}</span>
-                    <span className="text-[11px] text-[#71717a]">Saved</span>
+                    <span className="text-[11px] text-ui-hint">Saved</span>
                   </button>
                 )}
                 <button
@@ -197,14 +197,14 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
                   aria-expanded={menuFor === t.id}
                   aria-label={`${t.name} actions`}
                   onClick={() => setMenuFor(menuFor === t.id ? undefined : t.id)}
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[#71717a] hover:bg-ui-hover hover:text-ui-1"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-ui-hint hover:bg-ui-hover hover:text-ui-1"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
               </div>
               {menuFor === t.id && (
                 <div className="mx-4 mb-2 flex flex-col gap-1.5 rounded-lg border border-ui-strong bg-[#131316] px-3 py-2">
-                  <p className="text-[11px] text-[#71717a]">{p.usedBy(t.id)}</p>
+                  <p className="text-[11px] text-ui-hint">{p.usedBy(t.id)}</p>
                   <div className="flex gap-3">
                     <button type="button" className={ACTION} onClick={() => setRenaming(t.id)}>
                       Rename
@@ -225,7 +225,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
       {shown.rows && (
         <>
           <h3 className={HEADING}>{p.rows ? templatesHeading(shown.rows) : "From screen templates"}</h3>
-          {!p.rows && <p className="px-4 pb-2 text-[12px] text-[#71717a]">Loading…</p>}
+          {!p.rows && <p className="px-4 pb-2 text-[12px] text-ui-hint">Loading…</p>}
           {shown.rows.map((row) => {
             const chosen = row.presets[variant[row.id] ?? 0] ?? row.presets[0];
             const pick = (i: number) => {
@@ -238,7 +238,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <button type="button" onClick={() => apply(chosen)} className="flex flex-col items-start text-left">
                     <span className="truncate text-[13px] font-medium text-ui-1">{row.name}</span>
-                    <span className="text-[11px] text-[#71717a]">{rowTag(row)}</span>
+                    <span className="text-[11px] text-ui-hint">{rowTag(row)}</span>
                   </button>
                   {row.presets.length > 1 && (
                     <div className="flex flex-wrap gap-1">

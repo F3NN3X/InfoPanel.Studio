@@ -51,7 +51,7 @@ export function Sidebar({ content, inputRef, current, query, version, onQuery, o
         </button>
         {content.groups.map((group) => (
           <div key={group.label} className="contents">
-            <div className="px-2.5 pb-[5px] pt-3.5 text-[10.5px] font-medium uppercase tracking-[0.07em] text-s-faint">{group.label}</div>
+            <div className="px-2.5 pb-[5px] pt-3.5 text-[10.5px] font-medium uppercase tracking-[0.07em] text-s-dim">{group.label}</div>
             {group.articles.map((a) => {
               const on = current === a.id && !searching;
               const Icon = iconFor(a.icon);
@@ -78,14 +78,14 @@ export function Sidebar({ content, inputRef, current, query, version, onQuery, o
           <Rocket className="h-[17px] w-[17px] text-s-dim" />
           Run setup again
         </button>
-        {asked && <span role="status" className="text-[11px] text-s-faint">The setup opens in Studio.</span>}
+        {asked && <span role="status" className="text-[11px] text-s-dim">The setup opens in Studio.</span>}
         {env.desktop && (
           <div className="flex items-center gap-2.5">
             <button type="button" onClick={() => env.openSettings("general")} className="flex flex-1 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-[12.5px] text-s-t2 hover:text-s-t1">
               <Settings className="h-[17px] w-[17px] text-s-dim" />
               Open Settings
             </button>
-            {version && <span className="text-[11px] text-s-faint">v{version}</span>}
+            {version && <span className="text-[11px] text-s-dim">v{version}</span>}
           </div>
         )}
       </div>

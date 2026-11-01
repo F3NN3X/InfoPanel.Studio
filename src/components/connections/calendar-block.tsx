@@ -27,7 +27,7 @@ export function CalendarBlock({ stored, onSave }: CalendarBlockProps) {
       {stored.map((l) => (
         <div key={l.id} className="flex items-center gap-2 text-[12px] text-ui-2">
           <span className="min-w-0 flex-1 truncate">{l.label || l.host}</span>
-          <span className="truncate text-[11px] text-ui-5">{l.label ? l.host : ""}</span>
+          <span className="truncate text-[11px] text-ui-hint">{l.label ? l.host : ""}</span>
           <button type="button" aria-label={`Remove ${l.label || l.host}`} className="text-ui-4 hover:text-ui-danger" onClick={() => void onSave(keep.filter((k) => k.id !== l.id))}>
             <Trash2 className="h-3.5 w-3.5" />
           </button>

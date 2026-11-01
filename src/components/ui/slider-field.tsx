@@ -42,7 +42,7 @@ export function SliderField({ value, onChange, min = 0, max = 100, step = 1, lab
         step={step}
         value={value}
         onChange={(e) => e.currentTarget.value !== "" && commit(e.currentTarget.valueAsNumber)}
-        className="h-[26px] w-[52px] rounded-md border border-ui-default bg-ui-app px-1.5 text-right font-ui-mono text-[11.5px] text-ui-1 focus:border-ui-accent focus:outline-none"
+        className="h-[26px] w-[52px] rounded-md border border-ui-control bg-ui-app px-1.5 text-right font-ui-mono text-[11.5px] text-ui-1 focus:border-ui-accent focus:outline-none"
       />
     </div>
   );

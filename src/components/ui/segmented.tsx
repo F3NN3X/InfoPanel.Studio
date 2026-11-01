@@ -33,7 +33,7 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={label}
       className={cn(
-        "flex flex-wrap border border-ui-default p-0.5",
+        "flex flex-wrap border border-ui-control p-0.5",
         bar ? "gap-0.5 rounded-lg bg-ui-raised" : "rounded-[7px] bg-ui-app",
         className
       )}
