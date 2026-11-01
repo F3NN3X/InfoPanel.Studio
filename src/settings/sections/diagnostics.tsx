@@ -59,7 +59,18 @@ export function DiagnosticsSection() {
   const [copied, flash] = useFlag();
   const actions = useFound("diag-actions");
 
-  const refresh = useCallback(() => ipc.getDiagnostics().then(setDiag).catch(() => {}), []);
+  const [unreadable, setUnreadable] = useState(false);
+  const refresh = useCallback(
+    () =>
+      ipc
+        .getDiagnostics()
+        .then((d) => {
+          setDiag(d);
+          setUnreadable(false);
+        })
+        .catch(() => setUnreadable(true)),
+    []
+  );
   useEffect(() => {
     const timer = setInterval(() => document.visibilityState === "visible" && void refresh(), REFRESH_MS);
     return () => clearInterval(timer);
@@ -83,6 +94,11 @@ export function DiagnosticsSection() {
 
   return (
     <>
+      {unreadable && (
+        <span role="alert" className="px-0.5 text-[12.5px] leading-[1.45] text-s-red">
+          Can't read the diagnostics. The server may be stopped; check the Server page.
+        </span>
+      )}
       <div className="overflow-hidden rounded-xl border border-s-card-line bg-s-card">
         <DebugRow onSaved={() => void refresh()} />
         <div ref={actions.ref} className={cn("flex flex-wrap gap-2 px-[18px] pb-4", actions.className)}>

@@ -4,7 +4,7 @@ import { useZoomKeys } from "@/app-window/zoom";
 import { ipc, onEvent } from "@/settings/ipc";
 import { SEARCH_INDEX } from "@/settings/model/search";
 import { HELP } from "./content";
-import { useEnv } from "./env";
+import { reportFailure, setFailureHandler, useEnv } from "./env";
 import { helpPageUrl, parseHelpHash, type HelpTarget } from "./links";
 import { buildIndex, searchHelp, type Hit } from "./search";
 import type { HelpContent } from "./types";
@@ -42,7 +42,7 @@ function useDesktopInfo(enabled: boolean) {
   }, [enabled]);
   const changeZoom = useCallback(async (percent: number) => {
     setZoom(percent);
-    await ipc.setZoom(percent / 100).catch(() => {});
+    await ipc.setZoom(percent / 100).catch(reportFailure);
   }, []);
   return { version, zoom, changeZoom };
 }
@@ -62,7 +62,22 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
   const main = useRef<HTMLElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
+  const [failure, setFailure] = useState<string | null>(null);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const off = setFailureHandler((message) => {
+      clearTimeout(timer);
+      setFailure(message);
+      timer = setTimeout(() => setFailure(null), 4500);
+    });
+    return () => {
+      off();
+      clearTimeout(timer);
+    };
+  }, []);
   const [route, setRoute] = useState<Route>(() => toRoute(parseHelpHash(window.location.hash), content, 0));
+  const routeRef = useRef(route);
+  routeRef.current = route;
   const [active, setActive] = useState<string | null>(null);
   const [mainWidth, setMainWidth] = useState(0);
   const { version, zoom, changeZoom } = useDesktopInfo(env.desktop);
@@ -86,7 +101,14 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
 
   // Another window (or a link to this page) asks for an article.
   useEffect(() => {
-    const onHash = () => open(parseHelpHash(window.location.hash));
+    const onHash = () => {
+      // A hash change that names the page already shown (a late event for the page's own address) is not a navigation:
+      // opening it again would clear the search the user is typing.
+      const next = toRoute(parseHelpHash(window.location.hash), content, 0);
+      const now = routeRef.current;
+      if (next.article === now.article && next.heading === now.heading) return;
+      open(parseHelpHash(window.location.hash));
+    };
     window.addEventListener("hashchange", onHash);
     let alive = true;
     let off: (() => void) | undefined;
@@ -98,7 +120,7 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
       off?.();
       window.removeEventListener("hashchange", onHash);
     };
-  }, [env.desktop, open]);
+  }, [env.desktop, open, content]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -156,12 +178,6 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
     else open({ article: hit.article, heading: hit.headingId ?? undefined });
   };
 
-  // Typing in Home's own field moves to the sidebar's, which stays on screen when the results replace Home.
-  const queryFromHome = (value: string) => {
-    setQuery(value);
-    search.current?.focus();
-  };
-
   const headings = article?.blocks.filter((b) => b.type === "h").length ?? 0;
   const showToc = headings > 1 && mainWidth >= TOC_MIN_WIDTH;
 
@@ -182,15 +198,22 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
           onOpen={openArticle}
         />
         <main ref={main} onScroll={onScroll} className="relative min-w-0 flex-1 overflow-auto">
-          {searching ? (
-            <ResultsView query={query} hits={hits} onHit={openHit} onHome={goHome} />
-          ) : article ? (
+          {article && !searching ? (
             <ArticleView article={article} content={content} showToc={showToc} active={active} onOpen={openArticle} onHome={goHome} onToc={toc} />
           ) : (
-            <HomeView content={content} query={query} onQuery={queryFromHome} onOpen={openArticle} />
+            <>
+              {/* Typed on Home: its field stays mounted under the results, so focus and the caret stay put. */}
+              {!article && <HomeView content={content} query={query} onQuery={setQuery} onOpen={openArticle} searching={searching} />}
+              {searching && <ResultsView query={query} hits={hits} onHit={openHit} onHome={goHome} />}
+            </>
           )}
         </main>
       </div>
+      {failure && (
+        <div role="alert" className="fixed bottom-4 left-1/2 z-50 max-w-[min(480px,calc(100vw-32px))] -translate-x-1/2 rounded-lg border border-s-card-line bg-s-card px-3.5 py-2.5 text-[12.5px] text-s-red shadow-lg">
+          {failure}
+        </div>
+      )}
     </div>
   );
 }

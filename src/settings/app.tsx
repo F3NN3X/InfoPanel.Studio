@@ -5,19 +5,19 @@ import { settingsHelpTarget } from "@/help/context";
 import { cn } from "@/lib/utils";
 import { isSectionId, SECTION_NAMES } from "./model/search";
 import { PAGES } from "./pages";
-import { ipc } from "./ipc";
+import { errorText, ipc } from "./ipc";
 import { RestartBar, Sidebar, TitleBar, ToastView } from "./shell";
 import { StoreProvider, useStore } from "./store";
 
 function Content() {
-  const { section: page, settings, setZoom } = useStore();
+  const { section: page, settings, setZoom, toast } = useStore();
   // This window's store has the App sections only.
   const section = isSectionId(page) ? page : "general";
   const main = useRef<HTMLElement>(null);
   const { subtitle, wide, Section } = PAGES[section];
   useZoomKeys(settings.zoom, setZoom);
   // F1 opens the Help article for the section on show.
-  useHelpKey(() => settingsHelpTarget(section), (target) => void ipc.openHelp(target).catch(() => {}));
+  useHelpKey(() => settingsHelpTarget(section), (target) => void ipc.openHelp(target).catch((e) => toast(errorText(e), true)));
   // A new section starts at the top (a search jump scrolls to its row after this).
   useLayoutEffect(() => {
     main.current?.scrollTo?.({ top: 0 });

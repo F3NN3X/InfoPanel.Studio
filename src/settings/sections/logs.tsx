@@ -44,6 +44,7 @@ export function LogsSection() {
   const [copied, flash] = useFlag();
   const buffers = useRef(new Map<LogSource, Buffer>());
   const viewer = useRef<HTMLDivElement>(null);
+  const [unreadable, setUnreadable] = useState(false);
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   const found = useFound("logs");
 
@@ -68,8 +69,10 @@ export function LogsSection() {
           lines: pushLines(kept, chunk.lines, buf.nextId),
         });
         redraw();
+        setUnreadable(false);
       } catch {
         // The next poll tries again.
+        if (alive) setUnreadable(true);
       } finally {
         reading = false;
       }
@@ -167,7 +170,7 @@ export function LogsSection() {
             Follow new lines
           </button>
           <span className="min-w-0 flex-1 text-[11.5px] text-s-dim">
-            {visible.length} of {buffer.lines.length} lines{settings.debug ? "" : " · debug lines hidden (debug mode off)"}
+            {unreadable ? "Can't read the log. It will keep trying." : `${visible.length} of ${buffer.lines.length} lines${settings.debug ? "" : " · debug lines hidden (debug mode off)"}`}
           </span>
           <Button className="h-7 text-xs" onClick={() => void copy()}>
             {copied ? <Check className="h-[15px] w-[15px]" /> : <Copy className="h-[15px] w-[15px]" />}

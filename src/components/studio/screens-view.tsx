@@ -6,7 +6,7 @@ import { FILTERS, filterEntries, KIND_LABEL, savedEntries, screenEntries, screen
 import { moveProfile } from "@/lib/screens/order";
 import { withPlaceName } from "@/components/infopanel/edit/place-actions";
 import type { LibraryItem } from "@/lib/library";
-import { openConvertDialog, openExportSheet, openImportDoor } from "./file-doors";
+import { openExportSheet, openImportDoor } from "./file-doors";
 import { RenameInput } from "./rename-input";
 import { ScreenDetail } from "./screen-detail";
 import { DeleteDialog } from "./screens/delete-dialog";
@@ -43,6 +43,8 @@ interface ScreensViewProps
     | "autoProfileId"
     | "onOpenScreen"
   > {
+  /** Open a screen, then its Convert to InfoPanel dialog once the screen is the edited one. */
+  onConvertScreen: (id: string) => void;
   /** Select a screen for editing (never changes what the app opens on). */
   onSelectProfile: (id: string) => void;
   onDuplicateProfile: (id: string) => void;
@@ -99,7 +101,7 @@ export function ScreensView({
     if (filterRequest) setFilter(filterRequest.filter);
   }, [filterRequest?.seq]);
   const [sort, setSort] = useState<ListSort>("edited");
-  const { setConfig, onOpenScreen } = detail;
+  const { setConfig, onOpenScreen, onConvertScreen } = detail;
   const stored = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
 
   const screens = useMemo(
@@ -208,10 +210,7 @@ export function ScreensView({
                     onCopyLink: () => copyLink(p.id),
                     onExport: () => openExportSheet({ row: "screen", screenId: p.id }),
                     // The conversion reads the zones where they are drawn, so the screen opens on the canvas first.
-                    onConvert: () => {
-                      onOpenScreen(p.id);
-                      window.setTimeout(() => openConvertDialog("screen"), 300);
-                    },
+                    onConvert: () => onConvertScreen(p.id),
                     onDelete: () => setDeletingId(p.id),
                   })}
                 >

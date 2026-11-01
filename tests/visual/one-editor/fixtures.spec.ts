@@ -417,7 +417,10 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       const load = layersRow(page, "CPU load");
       await load.getByRole("button", { name: "Hide CPU load" }).click();
       await expect(load).toHaveAttribute("data-hidden", "");
-      await expect(load).toHaveCSS("opacity", "0.45");
+      // The design audit (FND-001) keeps the name readable: it mutes to text-ui-4 while the icon dims to 45 %.
+      await expect(load).toHaveCSS("opacity", "1");
+      await expect(load.getByText("CPU load", { exact: true })).toHaveClass(/text-ui-4/);
+      await expect(load.locator("svg").first().locator("..")).toHaveCSS("opacity", "0.45");
       await load.getByRole("button", { name: "Show CPU load" }).click();
       await load.getByRole("button", { name: "Lock CPU load" }).click();
       await expect(load).toHaveAttribute("data-locked", "");

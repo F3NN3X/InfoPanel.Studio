@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { PlacementFrame } from "@/components/studio/placement-frame";
 import { LivePlacement } from "@/components/studio/placement-content";
 import { PageBackground } from "@/components/page-background";
+import { startKioskPull } from "@/lib/kiosk-config-pull";
+import { KioskConnecting } from "@/components/ui/kiosk-connecting";
 import { AlertLayer, useShownAlerts, ZoneHighlights } from "@/components/alerts/alert-layer";
 import { DynamicIsland } from "@/components/island/dynamic-island";
 import { islandReserve } from "@/components/island/island-model";
@@ -441,36 +443,22 @@ export default function App({ fixture }: AppProps = {}) {
   // without a reload. The ?profile= pin still decides which profile shows.
   useEffect(() => {
     if (!kiosk) return;
-    let alive = true;
-    // The last config pulled, so a reconnect (the same version again) is not counted as an update.
-    let last: string | null = null;
-    const pull = async () => {
-      try {
-        const parsed = await fetchConfig();
-        if (!alive) return;
-        if (parsed) {
-          const text = JSON.stringify(parsed);
-          if (last !== null && text !== last) setLayoutVersion((v) => v + 1);
-          last = text;
-          const merged = withPinnedProfile(await readConfig(parsed));
-          if (!alive) return;
-          // Before the render that mounts its widgets: their effects run before ours.
-          setApiBase(merged.dataApiUrl);
-          saveConfig(merged); // also seed the local copy (offline fallback)
-          setConfig(merged);
-        }
-        // Nothing saved yet: the local copy stands.
-      } catch {
-        // Server offline — the local fallback (loadConfig) stands.
-      }
-      if (alive) setKioskPulled(true);
-    };
-    // The stream sends the current version on connect (and on every
-    // reconnect), then one event per save — each one triggers a pull.
+    const pull = startKioskPull({
+      fetchConfig,
+      resolve: async (parsed) => withPinnedProfile(await readConfig(parsed as Parameters<typeof readConfig>[0])),
+      apply: (merged) => {
+        // Before the render that mounts its widgets: their effects run before ours.
+        setApiBase(merged.dataApiUrl);
+        saveConfig(merged); // also seed the local copy (offline fallback)
+        setConfig(merged);
+      },
+      onChange: () => setLayoutVersion((v) => v + 1),
+      settled: () => setKioskPulled(true),
+    });
     const events = trackEventSource(new EventSource(CONFIG_EVENTS_URL));
-    events.onmessage = () => void pull();
+    events.onmessage = pull.message;
     return () => {
-      alive = false;
+      pull.stop();
       events.close();
     };
   }, [kiosk]);
@@ -705,7 +693,7 @@ export default function App({ fixture }: AppProps = {}) {
 
   // Kiosk: nothing until the server's config has been read (or failed to), so the local copy's layout (the
   // defaults in a fresh browser) never mounts widgets that open sensor streams to its Data API.
-  if (kiosk && !kioskPulled) return null;
+  if (kiosk && !kioskPulled) return <KioskConnecting />;
 
   return (
     <GeneralProvider value={general}>

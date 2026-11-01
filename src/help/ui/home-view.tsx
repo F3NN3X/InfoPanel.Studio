@@ -13,16 +13,22 @@ interface HomeViewProps {
   query: string;
   onQuery: (query: string) => void;
   onOpen: (article: string) => void;
+  /** A query is typed: only the field stays, so it is the same field the user is typing in and keeps its focus. */
+  searching?: boolean;
 }
 
 /** Help home: the search field, the three Start here cards, and a card per group of articles. */
-export function HomeView({ content, query, onQuery, onOpen }: HomeViewProps) {
+export function HomeView({ content, query, onQuery, onOpen, searching = false }: HomeViewProps) {
   const start = START_IDS.flatMap((id) => (content.articles[id] ? [content.articles[id]] : []));
   return (
-    <div className="mx-auto box-border flex max-w-[880px] flex-col gap-10 px-8 pb-20 pt-12">
+    <div className={searching ? "mx-auto box-border flex max-w-[760px] flex-col px-8 pt-9" : "mx-auto box-border flex max-w-[880px] flex-col gap-10 px-8 pb-20 pt-12"}>
       <div className="flex flex-col gap-3.5">
-        <h1 className="m-0 text-[30px] font-semibold tracking-[-0.02em]">How can we help?</h1>
-        <p className="m-0 max-w-[600px] text-pretty text-sm leading-[1.55] text-s-muted">Every feature of InfoPanel Studio, explained. Search, or start with the basics below.</p>
+        {!searching && (
+          <>
+            <h1 className="m-0 text-[30px] font-semibold tracking-[-0.02em]">How can we help?</h1>
+            <p className="m-0 max-w-[600px] text-pretty text-sm leading-[1.55] text-s-muted">Every feature of InfoPanel Studio, explained. Search, or start with the basics below.</p>
+          </>
+        )}
         <div role="search" className="flex h-[46px] max-w-[600px] items-center gap-2.5 rounded-[11px] border border-s-input-line bg-[#141418] px-3.5">
           <Search className="h-5 w-5 shrink-0 text-s-dim" />
           <input
@@ -35,7 +41,7 @@ export function HomeView({ content, query, onQuery, onOpen }: HomeViewProps) {
         </div>
       </div>
 
-      {start.length > 0 && (
+      {!searching && start.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="m-0 text-xs font-medium text-s-muted">{START_GROUP}</h2>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
@@ -60,6 +66,7 @@ export function HomeView({ content, query, onQuery, onOpen }: HomeViewProps) {
         </section>
       )}
 
+      {!searching && (
       <section className="flex flex-col gap-3">
         <h2 className="m-0 text-xs font-medium text-s-muted">All topics</h2>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3">
@@ -87,6 +94,7 @@ export function HomeView({ content, query, onQuery, onOpen }: HomeViewProps) {
             ))}
         </div>
       </section>
+      )}
     </div>
   );
 }

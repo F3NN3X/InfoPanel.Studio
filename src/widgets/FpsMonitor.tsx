@@ -1,4 +1,5 @@
 import { Widget, shell, get, num, fmt, has, clamp, Metric, Ring, Spark, Stat, Chip, Num, hue, useHistory, frameSample, frameBudgets, frameTimeTop, clampSpikes, Icon, TONES, type ShellProps, type Tier, type Tone } from "./kit";
+import { fpsSubLine } from "./fps-line";
 import { meta } from "./meta/FpsMonitor";
 
 export { meta };
@@ -201,7 +202,7 @@ export default function FpsMonitor(p: FpsMonitorProps) {
   const ratio = fps / maxFps;
   const gt: Tone = ratio >= 0.9 ? "ok" : ratio >= 0.6 ? "warn" : "crit";
   const source = num(get(d, RTSS + "fps")) > 0 ? "RTSS" : has(get(d, PRESENTMON + "gpu utilization")) ? "PresentMon" : "FPS";
-  const lowLine = [low > 0 ? `1% ${fmt(low)}` : "", frame > 0 ? `${fmt(frame, 1)} ms` : ""].filter(Boolean).join(" · ");
+  const lowLine = fpsSubLine(low, frame);
   const gaugeCompact = {
     label: idle ? "FPS" : title || source,
     value: idle ? "–" : fps,
@@ -218,7 +219,7 @@ export default function FpsMonitor(p: FpsMonitorProps) {
       {...shell(p)}
       title={p.title ?? (idle ? "FPS" : title)}
       icon="speed"
-      compact={gauge ? gaugeCompact : { label: idle ? "FPS" : title, value: idle ? "–" : fps, unit: idle ? "" : "FPS", sub: idle ? "No game running" : `1% ${fmt(low)} · ${fmt(frame, 1)} ms`, idle: idle ? "No game running" : undefined, icon: "sports_esports", hist: idle ? undefined : fpsH, kind: idle ? "value" : "spark", t: idle ? "ok" : t }}
+      compact={gauge ? gaugeCompact : { label: idle ? "FPS" : title, value: idle ? "–" : fps, unit: idle ? "" : "FPS", sub: idle ? "No game running" : fpsSubLine(low, frame), idle: idle ? "No game running" : undefined, icon: "sports_esports", hist: idle ? undefined : fpsH, kind: idle ? "value" : "spark", t: idle ? "ok" : t }}
       right={has(k("graphics-api")) && <Chip>{k("graphics-api")}</Chip>}
     >
       {({ size, w, h }) =>
@@ -235,12 +236,12 @@ export default function FpsMonitor(p: FpsMonitorProps) {
             )}
           </div>
         ) : size === "xs" ? (
-          <Metric value={idle ? "–" : fps} unit="FPS" scale="lg" sub={idle ? "Idle" : `1% ${fmt(low)}`} t={idle ? "ok" : t} className="h-full justify-center" />
+          <Metric value={idle ? "–" : fps} unit="FPS" scale="lg" sub={idle ? "Idle" : fpsSubLine(low, 0)} t={idle ? "ok" : t} className="h-full justify-center" />
         ) : size === "sm" ? (
           <div className="flex h-full items-end justify-between gap-3">
             <Metric value={fps} unit="FPS" scale="xl" t={t} />
             <div className="grid gap-1.5 text-right">
-              <Stat label="1% low" value={fmt(low)} />
+              <Stat label="1% low" value={low > 0 ? fmt(low) : "–"} />
               <Stat label="Frame" value={`${fmt(frame, 1)} ms`} />
             </div>
           </div>
@@ -249,7 +250,7 @@ export default function FpsMonitor(p: FpsMonitorProps) {
             <div className="flex items-end gap-5">
               <Metric value={fps} unit="FPS" scale={size === "lg" ? "2xl" : "xl"} t={t} />
               <div className="grid flex-1 grid-cols-3 gap-3">
-                <Stat label="1% low" value={fmt(low)} />
+                <Stat label="1% low" value={low > 0 ? fmt(low) : "–"} />
                 <Stat label="Avg" value={fmt(num(k("avg-fps")))} />
                 <Stat label="Frame time" value={`${fmt(frame, 1)} ms`} />
               </div>

@@ -134,7 +134,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
         <button
           type="button"
           title="Help (F1)"
-          onClick={() => void ipc.openHelp(settingsHelpTarget(section)).catch(() => {})}
+          onClick={() => void ipc.openHelp(settingsHelpTarget(section)).catch((e) => toast(errorText(e), true))}
           className="flex h-6 cursor-pointer items-center gap-1 rounded-md border-0 bg-transparent px-1.5 text-[11.5px] text-s-muted hover:bg-s-nav-hover hover:text-s-t1"
         >
           <CircleHelp className="h-[14px] w-[14px]" />

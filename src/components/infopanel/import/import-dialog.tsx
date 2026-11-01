@@ -6,7 +6,7 @@
 import { isProfileItem } from "@/lib/my-library/component-meta";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { Check, FileArchive, FolderOpen, HardDrive, Library, Monitor, Upload } from "lucide-react";
+import { Check, FileArchive, FolderOpen, HardDrive, Library, Monitor, Upload, X } from "lucide-react";
 import { formatBytes, uploadAsset } from "@/lib/assets";
 import { getLibraryItem, listLibrary, type LibraryItem } from "@/lib/library";
 import { readStoreFile } from "@/lib/infopanel/canvas";
@@ -24,6 +24,7 @@ import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { cn } from "@/lib/utils";
 import { RemapPanel } from "../remap-panel";
 import { ModeStep, Radio, ReviewStep, SaveStep, type Dest, type SaveChoices, type ShotState } from "./import-steps";
+import { useCloseGuard } from "./use-close-guard";
 import { useImport, type ImportState } from "./use-import";
 
 export interface ImportCommit {
@@ -317,8 +318,10 @@ function SourceStep({
   );
 }
 
-function ImportBody({ onClose, profileName, profileSize, initialDest = "new", onImport, initialSource, lockDest }: Omit<ImportDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
+function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initialDest = "new", onImport, initialSource, lockDest }: Omit<ImportDialogProps, "open" | "onOpenChange"> & { onClose: () => void; onCancel: () => void; onStep: (step: number) => void }) {
   const [step, setStep] = useState(0);
+  useEffect(() => onStep(step), [step, onStep]);
+  useEffect(() => () => onStep(0), [onStep]);
   const [kind, setKind] = useState<SourceKind>("file");
   const [opening, setOpening] = useState<Opening | null>(null);
   const [source, setSource] = useState<OpenedSource | null>(null);
@@ -462,7 +465,10 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
         })}
       </nav>
       <div className="flex min-h-0 flex-col">
-        <div className="flex flex-col gap-1 border-b border-ui-subtle px-[22px] pb-3.5 pt-[18px]">
+        <div className="relative flex flex-col gap-1 border-b border-ui-subtle px-[22px] pb-3.5 pt-[18px]">
+          <button type="button" aria-label="Close" onClick={onCancel} className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-md text-ui-3 hover:bg-ui-hover hover:text-ui-1">
+            <X className="h-4 w-4" />
+          </button>
           <span className="text-[16px] font-semibold text-ui-1">{TITLES[step]}</span>
           <Dialog.Description className="text-pretty text-[12.5px] text-ui-3">{step === 4 && lockDest ? "Name it, then import." : SUBTITLES[step]}</Dialog.Description>
         </div>
@@ -478,7 +484,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-[22px] py-3">
-          <button type="button" onClick={onClose} className="h-8 rounded-[7px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1">
+          <button type="button" onClick={onCancel} className="h-8 rounded-[7px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1">
             Cancel
           </button>
           {footNote && <span className={cn("text-[11.5px]", step === 4 && error ? "text-ui-danger" : "text-ui-3")}>{footNote}</span>}
@@ -503,14 +509,41 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
 }
 
 export function ImportDialog({ open, onOpenChange, ...body }: ImportDialogProps) {
+  // Past the first step the dialog holds choices (remaps, name, screenshot): closing asks first.
+  const [step, setStep] = useState(0);
+  const guard = useCloseGuard(step > 0, onOpenChange);
+  // The parent closing it (after a commit) takes the question down with it.
+  useEffect(() => {
+    if (!open) guard.keep();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 h-[min(640px,calc(100vh-48px))] w-[min(960px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
-          {open && <ImportBody {...body} onClose={() => onOpenChange(false)} />}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <>
+      <Dialog.Root open={open} onOpenChange={(o) => (o ? onOpenChange(true) : guard.request())}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
+          <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 h-[min(640px,calc(100vh-48px))] w-[min(960px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
+            {open && <ImportBody {...body} onClose={() => onOpenChange(false)} onCancel={guard.request} onStep={setStep} />}
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+      <Dialog.Root open={guard.asking} onOpenChange={(o) => !o && guard.keep()}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-[60] bg-black/60" />
+          <Dialog.Popup className="fixed left-1/2 top-1/2 z-[60] w-[26rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-raised p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
+            <Dialog.Title className="text-sm font-semibold text-ui-1">Discard this import?</Dialog.Title>
+            <Dialog.Description className="text-xs leading-relaxed text-ui-3">Your choices so far will be lost. Keep going to finish the import.</Dialog.Description>
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={guard.discard} className="h-8 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover">
+                Discard
+              </button>
+              <button type="button" onClick={guard.keep} className="h-8 rounded-[8px] bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90">
+                Keep going
+              </button>
+            </div>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
   );
 }

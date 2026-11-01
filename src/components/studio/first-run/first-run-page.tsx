@@ -240,6 +240,8 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
     const onKey = (e: KeyboardEvent) => {
       const k = keys.current;
       if (e.key === "Escape") {
+        // Escape in a field (the Data API address) or one a dialog already handled is not "skip setup".
+        if (e.defaultPrevented || (!k.askSkip && (e.target instanceof Element && e.target.closest("input, textarea, select")))) return;
         e.preventDefault();
         setAskSkip((open) => !open);
         return;

@@ -834,6 +834,15 @@ function StudioViewBody({
     selectProfile(id);
     ui.setMode("design");
   };
+  // Convert from a Screens card: the dialog reads the zones where they are drawn, so it opens once that screen is shown.
+  const [convertAfter, setConvertAfter] = useState<string | null>(null);
+  useEffect(() => {
+    if (convertAfter === null || showScreens) return;
+    // The screen did not open (it was removed, say): drop the request rather than convert some later screen.
+    if (profile.id !== convertAfter) return setConvertAfter(null);
+    setConvertAfter(null);
+    openConvertDialog("screen");
+  }, [convertAfter, showScreens, profile.id]);
   // A link to the old InfoPanel view that names a profile opens it in Edit, as Screens' Open does.
   useEffect(() => {
     if (ui.editRequest && config.profiles.some((p) => p.id === ui.editRequest?.id)) openScreen(ui.editRequest.id);
@@ -863,6 +872,10 @@ function StudioViewBody({
       kiosks={kiosksOf(control)}
       displays={control?.displays ?? NO_DISPLAYS}
       onOpenScreen={openScreen}
+      onConvertScreen={(id) => {
+        openScreen(id);
+        setConvertAfter(id);
+      }}
       onDuplicateProfile={edit.duplicateProfile}
       onRemoveProfile={edit.removeProfile}
       onUndo={history.undo}

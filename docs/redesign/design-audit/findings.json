@@ -486,7 +486,7 @@
     "evidence": "store.tsx:127 void load().then(...) with no catch and :246 'return null' opened.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-023",
@@ -507,7 +507,7 @@
     "evidence": "FpsMonitor.tsx:221 opened: sub: `1% ${fmt(low)} . ...` unguarded; :111 guarded.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-024",
@@ -902,7 +902,7 @@
     "evidence": "App.tsx:471 opened: events.onmessage = () => void pull(); only pull() call site.",
     "checked": true,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-040",
@@ -1308,7 +1308,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-058",
@@ -1416,7 +1416,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-063",
@@ -1462,7 +1462,7 @@
     "evidence": "Verified in audit.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-065",
@@ -1811,7 +1811,7 @@
     "evidence": "C-24 verified; C-29 inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "open"
+    "status": "fixed"
   },
   {
     "id": "FND-081",

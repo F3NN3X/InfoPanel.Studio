@@ -1,7 +1,7 @@
 import { useZoomKeys } from "@/app-window/zoom";
 import { settingsHelpTarget } from "@/help/context";
 import { useHelpKey } from "@/help/use-help-key";
-import { ipc } from "./ipc";
+import { errorText, ipc } from "./ipc";
 import { isSectionId, PAGE_NAMES, PREFERENCES_INDEX, SEARCH_INDEX } from "./model/search";
 import type { NavGroup } from "./nav";
 import { PAGES } from "./pages";
@@ -20,10 +20,10 @@ const PAGE_IDS = GROUPS.flatMap((g) => g.items);
 const INDEX = [...SEARCH_INDEX, ...PREFERENCES_INDEX];
 
 function Content() {
-  const { section, settings, setZoom, found } = useStore();
+  const { section, settings, setZoom, found, toast } = useStore();
   useZoomKeys(settings.zoom, setZoom);
   // F1 opens the Help article for the page on show.
-  useHelpKey(() => settingsHelpTarget(section), (target) => void ipc.openHelp(target).catch(() => {}));
+  useHelpKey(() => settingsHelpTarget(section), (target) => void ipc.openHelp(target).catch((e) => toast(errorText(e), true)));
   const app = isSectionId(section);
   const { subtitle, wide, Section } = app ? PAGES[section] : PREFERENCE_PAGES[section];
   return (
