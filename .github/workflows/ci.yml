@@ -219,8 +219,10 @@ jobs:
         working-directory: src-tauri
 
   # The one required status check. Skipped jobs (not needed for this change) pass; a failed or cancelled one fails it.
+  # A run cancelled as a whole (a newer push or label superseded it) reports nothing, so its stale failure can't block
+  # the PR next to the newer run's result.
   ci-ok:
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [plan, lint, typecheck-build, unit, lab, server, e2e, rust]
     runs-on: ubuntu-26.04
     timeout-minutes: 5
