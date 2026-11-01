@@ -36,6 +36,7 @@
     "lab:fonts": "node lab/infopanel/scripts/fonts.mjs",
     "lab:font-get": "node lab/infopanel/scripts/font-get.mjs",
     "audit:views": "vitest run --config tools/audit/vitest.config.ts",
+    "qa:shots": "node tools/audit/qa-shots.mjs",
     "build:stats": "vite build --mode stats",
     "build:fixtures": "vite build --mode fixtures"
   },

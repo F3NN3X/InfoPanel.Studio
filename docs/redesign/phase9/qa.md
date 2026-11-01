@@ -61,6 +61,12 @@ on a scratch server and fails on any blank frame or empty state, in the span fra
 
 ## Screenshots
 
+`npm run qa:shots` (after `npm run build`) loads the page on a scratch server with fixture data and writes one PNG per
+widget and span, and per view, into `.cache/qa-shots/<label>/<skin>/` (`<module>_<span>.png`, `<module>_view-<id>.png`).
+Options: `--label before` (default: the short commit), `--skins default,cyber` or `--skins all` (default: `default`),
+`--spans 2x2,4x4` (the default), `--module a,b`. Run it before and after a redesign and compare the two folders.
+It is report-only and never gates.
+
 Each zone is a `<figure data-qa-module data-qa-span>`. With the Playwright MCP, navigate to the
 URL, then run this through `browser_run_code_unsafe` (set `stage` to `before` or `after`, `cell` to
 the page's cell). It writes one PNG per figure and returns only the count, never images:

@@ -441,7 +441,7 @@
         "tests/e2e/visualiser-round-trip.spec.ts"
       ],
       "checks": ["typecheck", "unit", "e2e"],
-      "report": ["npm run audit:views"],
+      "report": ["npm run audit:views", "npm run qa:shots"],
       "note": "The registry schema tests and key-audit read docs/redesign/widgets/docs/widgets/*.md and .facts.json: a change there is a test change."
     },
     {
@@ -723,7 +723,7 @@
       "paths": ["tools/audit/**", "tools/gen-bg.mjs", "tools/vendor-meteocons.mjs"],
       "tests": [],
       "checks": [],
-      "report": ["npm run audit:views"]
+      "report": ["npm run audit:views", "npm run qa:shots"]
     },
     {
       "id": "public-assets",
