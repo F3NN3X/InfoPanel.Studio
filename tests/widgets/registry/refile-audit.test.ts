@@ -1,7 +1,8 @@
 import { expect, it } from "vitest";
 import { allSections, inspectorTabs, tabStates, widgetContext } from "@/components/studio/inspector-model";
-import { OTHER_TITLE } from "@/components/studio/inspector-categories";
+import { categorize, OTHER_TITLE } from "@/components/studio/inspector-categories";
 import { modules } from "@/modules";
+import { STANDARD_KEYS } from "@/modules/standard-settings";
 import { INSPECTOR_META } from "@/widgets/registry/inspector-meta";
 
 // The audit of the refile (widget settings v2, SPEC §6.4 and §9), over every widget filed so far:
@@ -48,4 +49,20 @@ it("files every widget by the rules: no Content, Other or widget-name section, a
     for (const t of states.filter((s) => !s.disabled)) expect(sections.filter((s) => s.tab === t.id).length, `${id} ${t.label}`).toBeGreaterThan(0);
     for (const s of sections.filter((x) => !x.special)) expect(s.settings.length, `${id} ${s.title}`).toBeGreaterThan(0);
   }
+});
+
+// Style holds the general sections plus a widget's own colours: colour rows, and the few rows that choose how its
+// colours work. Anything else of its own (key gap, scrim, fader, glow) is content the widget draws, so it goes to
+// Show, Data or Behaviour, where people look for what is unique to the widget (docs/redesign/settings-audit.md).
+const COLOR_CHOICES = new Set(["unifiedColor", "heatRamp", "ramp", "neutral", "tint", "vizColorMode", "vizGradient", "nameColors"]);
+
+it("files a widget's own row in Style only when it is a colour or chooses its colours", () => {
+  const misfiled = modules.flatMap((mod) =>
+    categorize(mod.settings ?? [])
+      .filter((c) => c.id === "palette")
+      .flatMap((c) => c.defs)
+      .filter((d) => !STANDARD_KEYS.has(d.key) && d.type !== "color" && !COLOR_CHOICES.has(d.key))
+      .map((d) => `${mod.id}.${d.key}`)
+  );
+  expect(misfiled).toEqual([]);
 });
