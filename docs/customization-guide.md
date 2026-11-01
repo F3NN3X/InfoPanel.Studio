@@ -397,7 +397,9 @@ inherited**) applies to each of them; the chip shows the primary zone's state.
     variants](#skins-and-variants)), **Colors** (**Accent color**, **Text
     color**, **Secondary text color**), **Widget
     colors** (the widget's own colors, each standing for a palette color such
-    as *Series 1* or *Critical*, plus look toggles such as the tint),
+    as *Series 1* or *Critical*, plus the rows that choose how they work, such
+    as the tint or a heat ramp; what a widget draws and how, like a Stream
+    Deck's key gap or a scrim, is in its own sections under *Show*),
     **Typography** (**Font**, **Value weight**, **Label case**), **Shape &
     spacing** (**Size %**, the 3×3 **Alignment** with **Spread**, **Inner
     padding**, **Gap between items**, **Corner radius**), **Surface & effects**

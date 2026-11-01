@@ -37,7 +37,7 @@ A virtual Stream Deck on the screen. Its keys come from the Stream Deck app, and
 
 When the deck has more than one page, a page row shows ‹ 1 / 3 ›; swiping sideways over the keys changes page too. If the widget says the Stream Deck app isn't running, start it; the widget connects again by itself.
 
-The widget's **Skin** styles its keys only; the widget's own frame stays as it is. Under **Style**, **Key style** is the skin's own card by default, and can be the widget's surface, plain, or any surface. The icons from the Stream Deck app fill their key, so the surface shows as a **Frame** round each icon (none, thin or thick). **Icon overlay** draws over each icon: the skin's edge, a sheen, a glow or nothing, with **Overlay strength** to tone it down. **Pressed effect** on **Skin** glows on the skins that glow and dips on the rest.
+The widget's **Skin** styles its keys only; the widget's own frame stays as it is. Under **Show › Key look**, **Key style** is the skin's own card by default, and can be the widget's surface, plain, or any surface. The icons from the Stream Deck app fill their key, so the surface shows as a **Frame** round each icon (none, thin or thick). **Icon overlay** draws over each icon: the skin's edge, a sheen, a glow or nothing, with **Overlay strength** to tone it down. **Pressed effect** on **Skin** glows on the skins that glow and dips on the rest.
 
 ## Who can use them
 
