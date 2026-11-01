@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { modules } from "@/modules";
 import { STYLE_SETTINGS } from "@/modules/standard-settings";
 import { THEME_PRESETS } from "@/lib/theme";
 import { SKIN_NAMES, SURFACE_NAMES } from "@/widgets/core/theme";
@@ -13,6 +14,8 @@ const METERS = optionsOf("meter");
 const RADII = optionsOf("radius");
 const ACCENTS = ["#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#fbbf24", "#f87171"];
 const CELLS = [110, 150];
+/** The widgets the Skins and Surfaces galleries can show, by id. */
+const GALLERY_IDS = modules.map((m) => m.id).sort();
 
 const field = "h-6 rounded border border-current/25 bg-transparent px-1.5 text-[11px]";
 
@@ -83,6 +86,7 @@ export function Toolbar({ state, onChange, onReset }: { state: QaState; onChange
         <input className={`${field} w-44`} value={state.spans} onChange={(e) => onChange({ spans: e.target.value })} />
       </Label>
       <Pick name="page" value={state.theme} options={THEME_PRESETS.map((p) => p.name)} onChange={(theme) => onChange({ theme })} blank="dark" />
+      <Pick name="gallery" value={state.gallery} options={GALLERY_IDS} onChange={(gallery) => onChange({ gallery })} blank="default" />
       <Label name="data">
         <select className={`${field} [&>option]:text-black`} value={state.data} onChange={(e) => onChange({ data: e.target.value as QaState["data"] })}>
           <option value="fixtures">fixtures</option>

@@ -5,21 +5,21 @@ import { INSERT_CATEGORIES } from "@/components/studio/insert-panel";
 import { THEME_PRESETS, themeVars } from "@/lib/theme";
 import { SKIN_NAMES } from "@/widgets/core/theme";
 import { TEMPLATE_MODULES } from "@/widgets/registry";
-import { Gallery, GALLERIES } from "./Gallery";
+import { Gallery, galleriesFor } from "./Gallery";
 import { Toolbar } from "./Toolbar";
 import { WidgetSection } from "./Section";
 import { forceMountAll } from "./Frame";
 import { overflowReport, type Issue } from "./probe";
-import { DEFAULT_STATE, parseParams, parseSpans, placementSettings, serializeParams, type QaState } from "./params";
+import { DEFAULT_STATE, parseParams, parseSpans, placementSettings, serializeParams, widgetLinks, type QaState } from "./params";
 import { filterModules, groupByCategory, pickModules } from "./plan";
 import { installDemoStreams } from "./demo-streams";
 
 /**
- * Dev-only oracle page for the widget library (`?widget-qa`): the template widgets (or exactly the
- * `module=` ids) at a set of spans, rendered through the kiosk's own `placementContent` from fixture
- * sensors, grouped by category. One toolbar drives every placement and mirrors itself to the URL
- * (params in `./params.ts`). `window.__qaOverflow()` lists what pokes out of its zone or overlaps
- * (see docs/redesign/phase9/qa.md).
+ * Dev-only oracle and reference page for the widget library (`?widget-qa`): every registered widget (or exactly the
+ * `module=` ids) at a set of spans and in each of its views, rendered through the kiosk's own `placementContent` from
+ * fixture sensors and demo streams, grouped by category. One toolbar drives every placement and mirrors itself to the
+ * URL (params in `./params.ts`); each widget links to itself alone and to its skin and surface galleries.
+ * `window.__qaOverflow()` lists what pokes out of its zone or overlaps (see docs/redesign/phase9/qa.md).
  */
 
 // Fixture data (the default) also gives the streaming widgets their OBS, chat, mixer, Stream Deck and agents demo data;
@@ -43,7 +43,9 @@ export default function WidgetQa() {
   const sections = useMemo(() => groupByCategory(filterModules(picked, state.q), CATEGORY_ORDER), [picked, state.q]);
   const shown = sections.reduce((n, s) => n + s.mods.length, 0);
   const live = state.data === "live";
-  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings };
+  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, links: (id: string) => widgetLinks(state, id) };
+  const galleryMod = state.gallery ? modules.find((m) => m.id === state.gallery) : undefined;
+  const galleries = useMemo(() => galleriesFor(galleryMod), [galleryMod]);
   const bg = theme ? `hsl(${theme.tokens.background} / .92)` : "rgba(12,12,14,.92)";
   const style = theme ? ({ ...themeVars(theme.tokens), background: `hsl(${theme.tokens.background})`, color: `hsl(${theme.tokens.foreground})` } as CSSProperties) : undefined;
   return (
@@ -56,7 +58,20 @@ export default function WidgetQa() {
           </p>
         </div>
         <Toolbar state={state} onChange={(patch) => apply({ ...state, ...patch })} onReset={() => apply({ ...DEFAULT_STATE })} />
-        <nav className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+        <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+          {/* Every shown widget by name: picking one jumps to it (its section's anchor is its id). */}
+          <select aria-label="Jump to a widget" className="h-6 rounded border border-current/25 bg-transparent px-1.5 text-[11px] [&>optgroup]:text-black [&_option]:text-black" value="" onChange={(e) => e.target.value && document.getElementById(e.target.value)?.scrollIntoView()}>
+            <option value="">Jump to a widget…</option>
+            {sections.map((s) => (
+              <optgroup key={s.id} label={s.category}>
+                {s.mods.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.title}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
           {sections.map((s) => (
             <a key={s.id} href={`#${s.id}`} className="opacity-70 hover:opacity-100">
               {s.category} <span className="opacity-50">{s.mods.length}</span>
@@ -64,9 +79,9 @@ export default function WidgetQa() {
           ))}
         </nav>
       </header>
-      <div className="pt-4">
-        {GALLERIES.map((g) => (
-          <Gallery key={g.title} def={g} base={settings} cell={state.cell} gap={state.gap} live={live} />
+      <div id="galleries" className="scroll-mt-32 pt-4">
+        {galleries.map((g) => (
+          <Gallery key={`${g.title}-${g.module}`} def={g} base={settings} cell={state.cell} gap={state.gap} live={live} opened={!!galleryMod} />
         ))}
       </div>
       {sections.map((s) => (

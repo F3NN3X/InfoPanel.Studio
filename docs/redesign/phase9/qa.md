@@ -1,36 +1,47 @@
 # Widget QA harness
 
-The oracle page for 9.4 and 9.8: the template widgets at a set of spans, rendered through the
-kiosk's `placementContent` from fixture sensors (`src/widgets/__fixtures__/snapshot.json` plus
-`extra.json`, extra wins). The code is in `src/widgets/widget-qa/`.
+The testing and reference page for the widget library: every registered widget at a set of spans and
+in each of its views, rendered through the kiosk's `placementContent` from fixture sensors
+(`src/widgets/__fixtures__/snapshot.json` plus `extra.json`, extra wins) and demo streams. The code is
+in `src/widgets/widget-qa/`.
 
 ## Open it
 
 `npm run dev`, then `http://localhost:5173/?widget-qa` (use the port Vite prints). The page has a
 sticky toolbar (skin, variant, surface, graph, meter, accent, radius, cell, gap, spans, page theme,
-data, a filter box, Reset), a category nav with counts, and one section per widget: an info column
-(title, id, category, min size, description, data prefixes, a collapsible settings list) and the span
-frames, each captioned `CxR` plus its pixel size. A span below the widget's minimum is a dimmed
+gallery, data, a filter box, Reset), a jump-to-widget list and a category nav with counts, and one
+section per widget (its anchor is its id): an info column (title, id, links, category, min and default
+size, blurb, description, views, tags, data prefixes, a collapsible settings list) and the span
+frames, each captioned `CxR` plus its pixel size. A widget with more than one view also gets a
+**Views** row: each view at its default size (never under the widget's minimum), captioned with the
+view's name. View figures carry `data-qa-view` and `data-qa-view-of`, not `data-qa-module`. A span below the widget's minimum is a dimmed
 "below min" placeholder. Widgets are grouped by category in the studio Library's order, sorted by title.
 Every control applies live and mirrors itself to the URL, so a loaded URL reproduces the view.
 
 Two collapsed galleries at the top show one widget under every skin (CpuMonitor 3x2) and every
-surface (SystemStatus 2x2). Gallery figures carry `data-qa-gallery`, not `data-qa-module`, so
-`__qaOverflow` and the sweeps never see them.
+surface (SystemStatus 2x2), or, with `gallery=<id>`, that widget at its default size, opened. Gallery
+figures carry `data-qa-gallery`, not `data-qa-module`, so `__qaOverflow` and the sweeps never see them.
+Each widget's **solo** link opens it alone (`module=<id>`) and **skins & surfaces** opens its galleries,
+both keeping the current toolbar.
 
-By default only the template widgets show. `module=<ids>` renders exactly those ids.
+By default every registered widget shows. `module=<ids>` renders exactly those ids.
+
+The data is fixtures by default: the sensor snapshot, demo streams for OBS, chat, Wave Link, the Stream
+Deck and the agents, and demo settings where a widget needs one to draw (`demo-settings.ts`: the demo
+Stream Deck, a countdown 42 days out). Inside the QA frames an empty state carries `data-wp-empty`.
 
 Params, all optional:
 
 | param | meaning |
 | --- | --- |
-| `module=a,b` | exactly these ids (default: all template widgets) |
+| `module=a,b` | exactly these ids (default: every registered widget) |
 | `spans=1x1,2x1,3x1,1x2,2x2,4x2` | spans below a widget's minimum render as a "below min" placeholder |
 | `cell=110\|150`, `gap=8` | grid cell size and gap in px |
 | `skin`, `variant=default\|studio`, `surface`, `graph`, `meter`, `accent`, `radius` | merged into every placement's settings |
 | `theme=paper` | a theme preset's tokens on the page (the light check) |
 | `settings=<url-encoded JSON>` | merged into every placement's settings, over the keys above |
-| `data=fixtures` | the fixture snapshot instead of the live sensor store (the default is live data from the Data API, so every widget shows the real data points; sweeps pass `data=fixtures` for repeatable results) |
+| `data=live` | the live sensor store and the server's own streams instead of the fixtures (the default); changing it reloads the page |
+| `gallery=<id>` | the Skins and Surfaces galleries show this widget, opened |
 | `q=cpu` | the filter box: widgets whose id or title contains it |
 | `eager=1` | mount every frame at once (see below) |
 
@@ -40,7 +51,13 @@ before `__qaOverflow()` (which also mounts anything left, but cannot wait for th
 measuring). The full-sweep script below loads with `module=`, so it needs neither.
 
 Examples: `?widget-qa&module=CpuMonitor,Clock&cell=150`, `?widget-qa&theme=paper&skin=<name>`,
-`?widget-qa&settings=%7B%22variant%22%3A%22studio%22%7D`.
+`?widget-qa&settings=%7B%22variant%22%3A%22studio%22%7D`, `?widget-qa&gallery=StreamDeck#galleries`.
+
+## Parity
+
+`tests/widgets/widget-qa/plan.test.ts` fails when a registered widget is missing from the page, so a new
+widget is on it the day it is added. `tests/e2e/widget-qa-parity.spec.ts` loads the page at 2x2 and 4x4
+on a scratch server and fails on any blank frame or empty state, in the span frames and the views rows.
 
 ## Screenshots
 

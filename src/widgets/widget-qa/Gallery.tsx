@@ -1,9 +1,9 @@
 import { useState } from "react";
-import type { ModuleSettings } from "@/modules/types";
+import type { DashboardModule, ModuleSettings } from "@/modules/types";
 import { SKIN_NAMES, SURFACE_NAMES } from "@/widgets/core/theme";
 import { withDemo } from "./demo-settings";
 import { Frame } from "./Frame";
-import { placement, spanSize } from "./plan";
+import { gallerySpan, placement, spanSize } from "./plan";
 
 export interface GalleryDef {
   title: string;
@@ -13,10 +13,16 @@ export interface GalleryDef {
   variants: { label: string; settings: ModuleSettings }[];
 }
 
-export const GALLERIES: GalleryDef[] = [
-  { title: "Skins", module: "CpuMonitor", span: [3, 2], variants: SKIN_NAMES.map((skin) => ({ label: skin, settings: { skin } })) },
-  { title: "Surfaces", module: "SystemStatus", span: [2, 2], variants: SURFACE_NAMES.map((surface) => ({ label: surface, settings: { surface } })) },
-];
+/**
+ * The Skins and Surfaces galleries: CpuMonitor at 3x2 and SystemStatus at 2x2, or both for the `gallery=` widget at its
+ * default size, so any widget can be compared across every skin and surface.
+ */
+export function galleriesFor(mod: DashboardModule | undefined): GalleryDef[] {
+  return [
+    { title: "Skins", module: mod?.id ?? "CpuMonitor", span: mod ? gallerySpan(mod, [3, 2]) : [3, 2], variants: SKIN_NAMES.map((skin) => ({ label: skin, settings: { skin } })) },
+    { title: "Surfaces", module: mod?.id ?? "SystemStatus", span: mod ? gallerySpan(mod, [2, 2]) : [2, 2], variants: SURFACE_NAMES.map((surface) => ({ label: surface, settings: { surface } })) },
+  ];
+}
 
 interface GalleryProps {
   def: GalleryDef;
@@ -47,12 +53,12 @@ export function GalleryGrid({ def, base, cell, gap, live }: GalleryProps) {
   );
 }
 
-/** Collapsed by default; the frames mount only once opened. */
-export function Gallery(props: GalleryProps) {
-  const [open, setOpen] = useState(false);
+/** Collapsed unless `opened` (a `gallery=` widget); the frames mount only once open. */
+export function Gallery({ opened = false, ...props }: GalleryProps & { opened?: boolean }) {
+  const [open, setOpen] = useState(opened);
   const { def } = props;
   return (
-    <details className="mb-3" onToggle={(e) => setOpen(e.currentTarget.open)}>
+    <details className="mb-3" open={opened || undefined} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="cursor-pointer text-xs font-semibold">
         {def.title} gallery{" "}
         <span className="font-normal opacity-60">

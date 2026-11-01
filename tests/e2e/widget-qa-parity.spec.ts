@@ -29,4 +29,13 @@ test("every widget on the QA page draws content on fixture data", async ({ page 
   expect(sections.filter((id) => !frames.some((f) => f.module === id))).toEqual([]);
   expect(frames.filter((f) => f.empty).map((f) => `${f.module} ${f.span}`)).toEqual([]);
   expect(frames.filter((f) => f.emptyState).map((f) => `${f.module} ${f.span}`)).toEqual([]);
+  // The views rows: every view of every widget with more than one draws something too.
+  const views = await page.$$eval("figure[data-qa-view]", (figs) =>
+    figs.map((f) => {
+      const box = f.querySelector("[data-qa-box]");
+      return { name: `${f.getAttribute("data-qa-view-of")} ${f.getAttribute("data-qa-view")}`, blank: !box || box.childElementCount === 0 || !!box.querySelector("[data-wp-empty]") };
+    })
+  );
+  expect(views.length).toBeGreaterThan(20);
+  expect(views.filter((v) => v.blank).map((v) => v.name)).toEqual([]);
 });

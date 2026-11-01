@@ -20,6 +20,8 @@ export interface QaState {
   data: "fixtures" | "live";
   /** Filter box: matches a module id or title. */
   q: string;
+  /** The widget the Skins and Surfaces galleries show; unset = CpuMonitor and SystemStatus. */
+  gallery: string;
   /** Mount every frame at once instead of as they scroll into view. */
   eager: boolean;
 }
@@ -41,11 +43,12 @@ export const DEFAULT_STATE: QaState = {
   // Fixtures by default, so the page draws the same every time; `data=live` reads the server's sensors.
   data: "fixtures",
   q: "",
+  gallery: "",
   eager: false,
 };
 
 /** The text params, in URL order. */
-const TEXT_KEYS = ["spans", "skin", "variant", "surface", "graph", "meter", "accent", "radius", "theme", "settings", "q"] as const;
+const TEXT_KEYS = ["spans", "skin", "variant", "surface", "graph", "meter", "accent", "radius", "theme", "settings", "q", "gallery"] as const;
 /** The look keys merged into every placement's settings. */
 export const LOOK_KEYS = ["skin", "variant", "surface", "graph", "meter", "accent", "radius"] as const;
 
@@ -62,6 +65,11 @@ export function parseParams(search: string): QaState {
     data: q.get("data") === "live" ? "live" : "fixtures",
     eager: q.get("eager") === "1",
   };
+}
+
+/** A widget's own links: the page with only it (`solo`), and with its Skins and Surfaces galleries (`skins`). */
+export function widgetLinks(s: QaState, id: string): { solo: string; skins: string } {
+  return { solo: serializeParams({ ...s, module: [id], q: "" }), skins: `${serializeParams({ ...s, gallery: id })}#galleries` };
 }
 
 /** The query string (with `?widget-qa`) for a state; params at their default are left out. */
