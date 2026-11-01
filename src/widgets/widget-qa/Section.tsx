@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { allSections, widgetContext } from "@/components/studio/inspector-model";
+import { STANDARD_KEYS } from "@/modules/standard-settings";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { withDemo } from "./demo-settings";
 import { Frame } from "./Frame";
@@ -25,13 +27,57 @@ export interface View {
 function settingRow(s: ModuleSetting) {
   const opts = s.options?.map((o) => o.value).join(" | ");
   return (
-    <li key={s.key} className="font-mono text-[10px]">
+    // The widget's own rows bright, the general ones (the same on every widget) dim.
+    <li key={s.key} className={`font-mono text-[10px] ${STANDARD_KEYS.has(s.key) ? "opacity-50" : ""}`}>
       <span className="opacity-90">{s.key}</span>{" "}
       <span className="opacity-50">
         {s.type} = {JSON.stringify(s.default)}
       </span>
       {opts && <span className="opacity-50"> [{opts}]</span>}
     </li>
+  );
+}
+
+const TABS = [
+  ["show", "Show"],
+  ["style", "Style"],
+  ["data", "Data"],
+  ["behaviour", "Behaviour"],
+] as const;
+
+/**
+ * The widget's settings as its inspector files them: per tab, each section (a general one marked) and its rows. The
+ * reference for where a setting lives and which of them are the widget's own.
+ */
+function SettingsByTab({ mod }: { mod: DashboardModule }) {
+  const sections = allSections(widgetContext(mod)).filter((s) => s.settings.length > 0);
+  const own = (mod.settings ?? []).filter((d) => !d.hidden && !STANDARD_KEYS.has(d.key)).length;
+  const total = sections.reduce((n, s) => n + s.settings.length, 0);
+  return (
+    <details className="mt-2">
+      <summary className="cursor-pointer text-[11px] opacity-70">
+        {total} settings · {own} its own
+      </summary>
+      <div className="mt-1 space-y-2">
+        {TABS.map(([tab, label]) => {
+          const inTab = sections.filter((s) => s.tab === tab);
+          return inTab.length === 0 ? null : (
+            <div key={tab}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider opacity-60">{label}</p>
+              {inTab.map((sec) => (
+                <div key={sec.id} className="mt-1">
+                  <p className="text-[11px]">
+                    {sec.title}
+                    {sec.general && <span className="opacity-50"> · general</span>}
+                  </p>
+                  <ul className="space-y-0.5 pl-2">{sec.settings.map(settingRow)}</ul>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </details>
   );
 }
 
@@ -168,12 +214,7 @@ export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View 
         {views.length > 0 && <p className="mt-1 font-mono text-[10px] opacity-60">views: {views.map((v) => v.id).join(", ")}</p>}
         {mod.tags && <p className="mt-1 font-mono text-[10px] opacity-50">{mod.tags}</p>}
         <NoteList id={mod.id} />
-        {mod.settings && mod.settings.length > 0 && (
-          <details className="mt-2">
-            <summary className="cursor-pointer text-[11px] opacity-70">{mod.settings.length} settings</summary>
-            <ul className="mt-1 space-y-0.5">{mod.settings.map(settingRow)}</ul>
-          </details>
-        )}
+        {mod.settings && mod.settings.length > 0 && <SettingsByTab mod={mod} />}
       </div>
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex min-w-0 flex-wrap items-start gap-6">

@@ -24,6 +24,7 @@ const CONTROLS: [string, string][] = [
 /** What the rest of the page shows. */
 const PAGE: [string, string][] = [
   ["Widget section", "One per widget: its title, id, links, category, minimum and default size, description, views, tags and data prefixes, then the frames."],
+  ["Settings", "Under the info column, every setting as the studio inspector files it: by tab (Show, Style, Data, Behaviour) and section. General sections, the same on every widget, are marked; the widget's own rows are bright, the general ones dim."],
   ["Frames", "Each caption is the span and its size in px. Frames are drawn by the kiosk's own renderer, so what you see here is what a dashboard shows."],
   ["Copy a frame", "Click a caption to copy a reference to that frame (\"CodingAgents 2x1 (cell 110, skin default)\" and a link that opens it). Paste it into a request so it names exactly that frame."],
   ["Issue badge", "A red count beside a caption: things in the frame that overflow, overlap or are clipped, checked once the widget has settled. Hover it for the list."],
