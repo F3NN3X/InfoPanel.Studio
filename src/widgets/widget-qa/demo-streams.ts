@@ -2,6 +2,8 @@ import { AUDIO_EVENTS_URL } from "@/lib/audio-control";
 import { CHAT_EVENTS_URL } from "@/lib/chat";
 import { EXTRAS_EVENTS_URL } from "@/lib/extras";
 import { STREAMDECK_EVENTS_URL } from "@/lib/streamdeck";
+import { WL_PREFIX } from "@/lib/wavelink";
+import { WL_LIVE } from "../__fixtures__/wavelink";
 
 /**
  * Demo streams for `?widget-qa` on fixture data (the default): the streaming widgets read OBS, chat, audio, the
@@ -93,16 +95,26 @@ const streamdeck = () => ({
 
 const STREAMS: Record<string, () => unknown> = { [EXTRAS_EVENTS_URL]: extras, [AUDIO_EVENTS_URL]: audio, [CHAT_EVENTS_URL]: chat, [STREAMDECK_EVENTS_URL]: streamdeck };
 
+/** The Wave Link client reads its plugin's two sensors off the sensor stream (`/events?prefix=…`): a connected Wave Link. */
+const wavelink = () => ({ sensors: { [`${WL_PREFIX}status`]: { text: "up" }, [`${WL_PREFIX}state`]: { text: JSON.stringify(WL_LIVE) } } });
+
+/** The demo payload for a stream URL, or undefined for one the page leaves to the real EventSource. */
+function demoFor(url: string): (() => unknown) | undefined {
+  if (url in STREAMS) return STREAMS[url];
+  const u = new URL(url, window.location.href);
+  return u.pathname.endsWith("/events") && u.searchParams.get("prefix") === WL_PREFIX ? wavelink : undefined;
+}
+
 class DemoEventSource {
   readyState = 1;
   onopen: (() => void) | null = null;
   onerror: (() => void) | null = null;
   onmessage: ((e: { data: string }) => void) | null = null;
   private timer: ReturnType<typeof setTimeout>;
-  constructor(url: string) {
+  constructor(payload: () => unknown) {
     this.timer = setTimeout(() => {
       this.onopen?.();
-      this.onmessage?.({ data: JSON.stringify(STREAMS[url]()) });
+      this.onmessage?.({ data: JSON.stringify(payload()) });
     }, 0);
   }
   close() {
@@ -115,6 +127,9 @@ class DemoEventSource {
 export function installDemoStreams(): void {
   const Real = window.EventSource;
   window.EventSource = new Proxy(Real, {
-    construct: (target, args: [string, EventSourceInit?]) => (args[0] in STREAMS ? (new DemoEventSource(args[0]) as unknown as EventSource) : new target(...args)),
+    construct: (target, args: [string, EventSourceInit?]) => {
+      const payload = demoFor(args[0]);
+      return payload ? (new DemoEventSource(payload) as unknown as EventSource) : new target(...args);
+    },
   });
 }
