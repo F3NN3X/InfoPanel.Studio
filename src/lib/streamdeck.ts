@@ -7,7 +7,7 @@
 
 import { useSyncExternalStore } from "react";
 import { trackEventSource } from "@/lib/sensor-store";
-import { createRefusal } from "@/lib/write-refusal";
+import { createRefusal, READ_ONLY_HINT } from "@/lib/write-refusal";
 
 export const STREAMDECK_EVENTS_URL = "/events/streamdeck";
 export const STREAMDECK_ACT_URL = "/api/streamdeck/act";
@@ -101,23 +101,38 @@ const RETRY_MS = 5000;
 /** Set after the server refused a write (403: another machine, remote editing off): the widget shows itself read-only until the state changes. */
 export const streamDeckRefusal = createRefusal();
 
-/** The shared client: `getState` / `subscribe`. */
-function createStreamDeckClient(url: string) {
+/**
+ * The stream to the dashboard server: `connecting` until it first opens, `open`, then `lost` while it retries after
+ * dropping. The last state stays as it was, so this is what says it is stale.
+ */
+export type StreamDeckLink = "connecting" | "open" | "lost";
+
+/** The shared client: `getState` / `getLink` / `subscribe`. */
+export function createStreamDeckClient(url: string) {
   let state = EMPTY_STREAMDECK;
+  let link: StreamDeckLink = "connecting";
   let source: EventSource | null = null;
   const listeners = new Set<Listener>();
   let retry: ReturnType<typeof setTimeout> | undefined;
+  const setLink = (next: StreamDeckLink) => {
+    if (next === link) return;
+    link = next;
+    for (const l of listeners) l(state);
+  };
   const open = () => {
     if (source || !listeners.size || typeof EventSource === "undefined") return;
     source = trackEventSource(new EventSource(url));
-    // A refused stream (a status other than 200) is closed for good by the browser: open it again after a while.
+    // Any error drops the stream: the browser retries one that broke, and closes one the server refused (a status other
+    // than 200) for good, so that one is opened again after a while.
     source.onerror = () => {
+      if (link === "open") setLink("lost");
       if (source?.readyState !== EventSource.CLOSED) return;
       source = null;
       if (listeners.size) retry = setTimeout(open, RETRY_MS);
     };
     source.onopen = () => {
       streamDeckRefusal.set(false);
+      setLink("open");
     };
     source.onmessage = (e) => {
       try {
@@ -130,6 +145,7 @@ function createStreamDeckClient(url: string) {
   };
   return {
     getState: (): StreamDeckState => state,
+    getLink: (): StreamDeckLink => link,
     subscribe(fn: Listener): () => void {
       listeners.add(fn);
       open();
@@ -139,6 +155,7 @@ function createStreamDeckClient(url: string) {
           clearTimeout(retry);
           source?.close();
           source = null;
+          link = "connecting";
         }
       };
     },
@@ -150,6 +167,9 @@ export const streamDeck = createStreamDeckClient(STREAMDECK_EVENTS_URL);
 /** Every device and the connection, live. */
 export const useStreamDeck = (): StreamDeckState => useSyncExternalStore(streamDeck.subscribe, streamDeck.getState, streamDeck.getState);
 
+/** Whether the state above is live (`open`), not here yet (`connecting`), or stale while the stream retries (`lost`). */
+export const useStreamDeckLink = (): StreamDeckLink => useSyncExternalStore(streamDeck.subscribe, streamDeck.getLink, streamDeck.getLink);
+
 /** One device, live (undefined: not in the registry, or the state has not arrived). */
 export const useDeck = (id: string): Deck | undefined => useStreamDeck().devices.find((d) => d.id === id);
 
@@ -158,13 +178,28 @@ export interface DeckResult {
   ok: boolean;
   status: number;
   data?: { id?: string; appDevice?: "deleted" | "none" | "kept" };
-  /** The server's message when it refused. */
+  /** Why it was refused, in plain words (`actMessage`), never the server's body. */
   error?: string;
 }
 
+/**
+ * What a refused action says, by the server's status. Its body (a parser's message, a guard's text) never reaches the
+ * UI: these say what happened in plain words.
+ */
+export const ACT_MESSAGES: Readonly<Record<number, string>> = {
+  0: "The dashboard server didn't answer",
+  400: "The dashboard server didn't accept that change",
+  403: READ_ONLY_HINT,
+  404: "That Stream Deck device is gone",
+  503: "The Stream Deck app isn't connected",
+};
+
+/** The message for a refused action's status. */
+export const actMessage = (status: number): string => ACT_MESSAGES[status] ?? "The Stream Deck change didn't go through";
+
 /** Sends an action. Resolves to what the server answered; never throws. After a 403 it sends nothing more until the stream reconnects. */
 export async function deckAct(body: DeckAction): Promise<DeckResult> {
-  if (streamDeckRefusal.get()) return { ok: false, status: 403, error: "Read-only on this screen" };
+  if (streamDeckRefusal.get()) return { ok: false, status: 403, error: actMessage(403) };
   return post(body);
 }
 
@@ -177,11 +212,11 @@ async function post(body: DeckAction): Promise<DeckResult> {
       body: JSON.stringify(body),
     });
     if (res.status === 403) streamDeckRefusal.set(true);
-    if (!res.ok) return { ok: false, status: res.status, error: (await res.text().catch(() => "")) || `The server answered ${res.status}` };
+    if (!res.ok) return { ok: false, status: res.status, error: actMessage(res.status) };
     const data = res.status === 204 ? undefined : ((await res.json().catch(() => undefined)) as DeckResult["data"]);
     return { ok: true, status: res.status, data };
   } catch {
-    return { ok: false, status: 0, error: "The dashboard server didn't answer" };
+    return { ok: false, status: 0, error: actMessage(0) };
   }
 }
 

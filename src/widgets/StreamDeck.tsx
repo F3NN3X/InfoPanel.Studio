@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { deckAct, deckPress, iconUrl, streamDeckRefusal, useStreamDeck, type Deck } from "@/lib/streamdeck";
+import { deckAct, deckPress, iconUrl, streamDeckRefusal, useStreamDeck, useStreamDeckLink, type Deck, type StreamDeckLink } from "@/lib/streamdeck";
 import { READ_ONLY_HINT } from "@/lib/write-refusal";
 import type { ModuleSettings } from "@/modules/types";
 import { chromeOf } from "@/modules/standard-settings";
@@ -132,9 +132,11 @@ function Key({ index, title, icon, on, size, titles, look, skin, accent, onPoint
   );
 }
 
-/** What the deck says when it has no keys to show: its state, or why not. */
-function notice(deck: Deck | undefined, enabled: boolean, device: string | undefined, code: string): { icon: string; label: string; sub?: string } | null {
+/** What the deck says when it has no keys to show: its state, or why not. A stream that isn't open has only stale keys. */
+function notice(deck: Deck | undefined, enabled: boolean, device: string | undefined, code: string, link: StreamDeckLink): { icon: string; label: string; sub?: string } | null {
   if (!device) return { icon: "grid_view", label: "Pick or create a device" };
+  if (link === "connecting") return { icon: "sync", label: "Connecting to the dashboard server" };
+  if (link === "lost") return { icon: "cloud_off", label: "The dashboard server isn't answering", sub: "Reconnecting…" };
   if (!enabled) return { icon: "power_settings_new", label: "Turn on Stream Deck in Settings › Connections" };
   if (!deck) return { icon: "grid_view", label: "That device is gone", sub: "Pick or create another" };
   switch (deck.status) {
@@ -155,6 +157,7 @@ function notice(deck: Deck | undefined, enabled: boolean, device: string | undef
 
 export default function StreamDeck(p: StreamDeckProps) {
   const state = useStreamDeck();
+  const link = useStreamDeckLink();
   const deck = state.devices.find((d) => d.id === p.device);
   const readOnly = streamDeckRefusal.use();
   const [down, setDown] = useState<ReadonlySet<number>>(new Set());
@@ -167,23 +170,26 @@ export default function StreamDeck(p: StreamDeckProps) {
   const chrome = useMemo(() => (p.look ? chromeOf(p.look) : undefined), [p.look]);
   const keySkin = useMemo(() => skinContext(p.skin ?? "default", { chrome }), [p.skin, chrome]);
   const frameLook = useMemo(() => p.look && { ...p.look, surface: frameSurface(String(p.look.surface ?? "")) ?? "" }, [p.look]);
-  const status = notice(deck, state.enabled, p.device, state.pairingCode);
+  const status = notice(deck, state.enabled, p.device, state.pairingCode, link);
   const ready = deck !== undefined && status === null;
 
+  // Two pointers can hold one key: the key goes down with the first press sent and up when the last of them lets go.
+  const holders = (device: string, index: number, sentOnly: boolean) => [...held.current.values()].filter((k) => k.device === device && k.index === index && (!sentOnly || k.sent)).length;
   const send = (pointerId: number) => {
     const key = held.current.get(pointerId);
     if (!key || key.sent) return;
     clearTimeout(key.timer);
+    const first = holders(key.device, key.index, true) === 0;
     key.sent = true;
-    void deckPress(key.device, key.index, true);
+    if (first) void deckPress(key.device, key.index, true);
   };
   const release = (pointerId: number) => {
     const key = held.current.get(pointerId);
     if (!key) return;
     clearTimeout(key.timer);
     held.current.delete(pointerId);
-    setDown((prev) => new Set([...prev].filter((i) => i !== key.index)));
-    if (key.sent) void deckPress(key.device, key.index, false);
+    if (holders(key.device, key.index, false) === 0) setDown((prev) => new Set([...prev].filter((i) => i !== key.index)));
+    if (key.sent && holders(key.device, key.index, true) === 0) void deckPress(key.device, key.index, false);
   };
   const travelled = (pointerId: number, x: number, y: number) => {
     const key = held.current.get(pointerId);
@@ -199,11 +205,16 @@ export default function StreamDeck(p: StreamDeckProps) {
   useEffect(() => {
     const keys = held.current;
     return () => {
+      const down = new Set<string>();
       for (const [, key] of keys) {
         clearTimeout(key.timer);
-        if (key.sent) void deckPress(key.device, key.index, false);
+        if (key.sent) down.add(`${key.device}\n${key.index}`);
       }
       keys.clear();
+      for (const k of down) {
+        const [device, index] = k.split("\n");
+        void deckPress(device, Number(index), false);
+      }
     };
   }, []);
 

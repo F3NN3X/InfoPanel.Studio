@@ -2,9 +2,9 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HOLD_MS } from "@/widgets/StreamDeck/layout";
-import type { StreamDeckState } from "@/lib/streamdeck";
+import type { StreamDeckLink, StreamDeckState } from "@/lib/streamdeck";
 
-const mocks = vi.hoisted(() => ({ state: null as StreamDeckState | null, press: vi.fn(), act: vi.fn() }));
+const mocks = vi.hoisted(() => ({ state: null as StreamDeckState | null, link: "open" as StreamDeckLink, press: vi.fn(), act: vi.fn() }));
 
 // A skin's fonts load from Google Fonts, which happy-dom refuses (loudly).
 vi.mock("@/widgets/core/fonts", () => ({ ensureSkinFonts: () => undefined }));
@@ -12,6 +12,7 @@ vi.mock("@/widgets/core/fonts", () => ({ ensureSkinFonts: () => undefined }));
 vi.mock("@/lib/streamdeck", async (original) => ({
   ...(await original<typeof import("@/lib/streamdeck")>()),
   useStreamDeck: () => mocks.state,
+  useStreamDeckLink: () => mocks.link,
   deckPress: mocks.press,
   deckAct: mocks.act,
 }));
@@ -36,6 +37,7 @@ const state = (d: Record<string, unknown> = {}, extra: Partial<StreamDeckState> 
 
 beforeEach(() => {
   mocks.state = state();
+  mocks.link = "open";
   mocks.press.mockReset();
   mocks.act.mockReset();
   streamDeckRefusal.set(false);
@@ -83,6 +85,20 @@ describe("StreamDeck", () => {
     expect(screen.getByText("Confirm it in the Stream Deck app")).toBeTruthy();
   });
 
+  it("says the server is gone instead of the last keys while the stream retries, and lets go of a held key", () => {
+    mocks.state = state({ page: { current: 0, total: 1 } });
+    const { rerender } = render(<StreamDeck data={{}} device="d1" />);
+    fireEvent.pointerDown(keys()[0], { pointerId: 1, button: 0 });
+    mocks.link = "lost";
+    rerender(<StreamDeck data={{}} device="d1" />);
+    expect(screen.queryByTestId("streamdeck-grid")).toBeNull();
+    expect(screen.getByText("The dashboard server isn't answering")).toBeTruthy();
+    expect(mocks.press.mock.calls).toEqual([["d1", 0, true], ["d1", 0, false]]);
+    mocks.link = "connecting";
+    rerender(<StreamDeck data={{}} device="d1" />);
+    expect(screen.getByText("Connecting to the dashboard server")).toBeTruthy();
+  });
+
   it("presses on pointer down and releases on pointer up, once, on a deck with one page", () => {
     mocks.state = state({ page: { current: 0, total: 1 } });
     render(<StreamDeck data={{}} device="d1" />);
@@ -120,6 +136,25 @@ describe("StreamDeck", () => {
     act(() => streamDeckRefusal.set(true));
     rerender(<StreamDeck data={{}} device="d1" />);
     expect(mocks.press.mock.calls.slice(2)).toEqual([["d1", 1, true], ["d1", 1, false]]);
+  });
+
+  it("sends one down and one up for a key two pointers hold, the up when the last lets go", () => {
+    mocks.state = state({ page: { current: 0, total: 1 } });
+    const { unmount } = render(<StreamDeck data={{}} device="d1" />);
+    const key = keys()[0];
+    fireEvent.pointerDown(key, { pointerId: 1, button: 0 });
+    fireEvent.pointerDown(key, { pointerId: 2, button: 0 });
+    fireEvent.pointerUp(key, { pointerId: 1 });
+    expect(mocks.press.mock.calls).toEqual([["d1", 0, true]]);
+    expect(key.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.pointerUp(key, { pointerId: 2 });
+    expect(mocks.press.mock.calls).toEqual([["d1", 0, true], ["d1", 0, false]]);
+    expect(key.getAttribute("aria-pressed")).toBe("false");
+    // Both still down when the widget goes away: one release.
+    fireEvent.pointerDown(key, { pointerId: 3, button: 0 });
+    fireEvent.pointerDown(key, { pointerId: 4, button: 0 });
+    unmount();
+    expect(mocks.press.mock.calls.slice(2)).toEqual([["d1", 0, true], ["d1", 0, false]]);
   });
 
   it("lets go of a key the pointer leaves", () => {

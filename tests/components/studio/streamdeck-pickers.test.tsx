@@ -39,6 +39,23 @@ describe("StreamDeckDevicePicker", () => {
     expect(mocks.act).toHaveBeenCalledWith({ op: "create" });
   });
 
+  it("picks the new device through the newest onChange, and calls it new, not gone, until the server lists it", async () => {
+    let answer: (v: unknown) => void = () => {};
+    mocks.act.mockReturnValue(new Promise((r) => (answer = r)));
+    const first = vi.fn();
+    const second = vi.fn();
+    const { rerender } = render(<StreamDeckDevicePicker def={def("device", "Device")} value="" onChange={first} />);
+    fireEvent.click(screen.getByText("New device"));
+    // Another edit lands while the create is out: the placement, and so the onChange, is a newer one.
+    rerender(<StreamDeckDevicePicker def={def("device", "Device")} value="" onChange={second} />);
+    answer({ ok: true, status: 200, data: { id: "d2" } });
+    await waitFor(() => expect(second).toHaveBeenCalledWith("d2"));
+    expect(first).not.toHaveBeenCalled();
+    rerender(<StreamDeckDevicePicker def={def("device", "Device")} value="d2" onChange={second} />);
+    expect(screen.getByText("New device…")).toBeTruthy();
+    expect(screen.queryByText("d2 (gone)")).toBeNull();
+  });
+
   it("says plainly when the server refuses", async () => {
     mocks.act.mockResolvedValue({ ok: false, status: 400, error: "Too many devices" });
     render(<StreamDeckDevicePicker def={def("device", "Device")} value="" onChange={vi.fn()} />);
