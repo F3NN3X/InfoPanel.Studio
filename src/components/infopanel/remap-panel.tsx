@@ -71,7 +71,7 @@ const FILTERS: { value: RemapFilter; label: string }[] = [
 const itemsText = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
 
 const GHOST =
-  "inline-flex h-[30px] items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-[12px] text-ui-1 transition-colors hover:bg-ui-hover disabled:opacity-50";
+  "inline-flex h-[30px] items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-caption text-ui-1 transition-colors hover:bg-ui-hover disabled:opacity-50";
 
 function KeyPicker({
   row,
@@ -96,7 +96,7 @@ function KeyPicker({
   return (
     <div className="flex min-h-0 flex-col gap-2.5 rounded-[10px] border border-ui-default bg-ui-chrome p-3.5">
       <div className="flex flex-col gap-0.5">
-        <span className="truncate text-[13px] font-semibold text-ui-1">{group.sensorName || "(no name)"}</span>
+        <span className="truncate text-body font-semibold text-ui-1">{group.sensorName || "(no name)"}</span>
         <span className="truncate text-[11.5px] text-ui-4">
           {`${group.type} · ${group.ref ?? "no id"} · ${itemsText(group.paths.length)}`}
         </span>
@@ -125,7 +125,7 @@ function KeyPicker({
         />
         <span className="text-micro text-ui-hint">↑↓ Enter</span>
       </label>
-      <span className="text-[11px] text-ui-4">{searching ? `${cands.length} matching sensors` : "Suggested"}</span>
+      <span className="text-micro text-ui-4">{searching ? `${cands.length} matching sensors` : "Suggested"}</span>
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
         {cands.map((c, i) => {
           const v = index.catalog.sensors[c.key];
@@ -143,16 +143,16 @@ function KeyPicker({
                   {v?.name ?? c.key} {v?.source && <span className="text-ui-4">· {v.source}</span>}
                 </span>
                 <span className="truncate font-ui-mono text-micro text-ui-hint">{c.key}</span>
-                {c.why && <span className="text-[11px] text-ui-accent-text">{c.why}</span>}
+                {c.why && <span className="text-micro text-ui-accent-text">{c.why}</span>}
               </span>
-              <span className="max-w-[110px] shrink-0 truncate font-ui-mono text-[12px] text-ui-1" title={valueText(v)}>
+              <span className="max-w-[110px] shrink-0 truncate font-ui-mono text-caption text-ui-1" title={valueText(v)}>
                 {valueText(v)}
               </span>
             </button>
           );
         })}
         {cands.length === 0 && (
-          <span className="p-2 text-[12px] text-ui-4">
+          <span className="p-2 text-caption text-ui-4">
             {searching ? "Nothing matches. Every word must match a key, name or ref." : "No strong candidate. Search, or leave it unbound."}
           </span>
         )}
@@ -204,7 +204,7 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
               aria-checked={filter === f.value}
               onClick={() => setFilter(f.value)}
               className={cn(
-                "flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12px] font-medium",
+                "flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-caption font-medium",
                 filter === f.value ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1",
               )}
             >
@@ -268,7 +268,7 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
                     {valueText(v)}
                   </span>
                 )}
-                <span className={cn("w-[84px] shrink-0 text-[11px]", STATE[r.state].text)}>{STATE[r.state].label}</span>
+                <span className={cn("w-[84px] shrink-0 text-micro", STATE[r.state].text)}>{STATE[r.state].label}</span>
                 <button
                   type="button"
                   title={onSelectItems ? "Select these items on the canvas" : `${itemsText(r.group.paths.length)} read this sensor`}
@@ -277,7 +277,7 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
                     e.stopPropagation();
                     onSelectItems?.(r.group.paths);
                   }}
-                  className="shrink-0 whitespace-nowrap rounded-[5px] bg-ui-hover px-[7px] py-0.5 font-ui-mono text-[11px] text-ui-2 enabled:hover:bg-ui-active"
+                  className="shrink-0 whitespace-nowrap rounded-[5px] bg-ui-hover px-[7px] py-0.5 font-ui-mono text-micro text-ui-2 enabled:hover:bg-ui-active"
                 >
                   {itemsText(r.group.paths.length)}
                 </button>
@@ -298,7 +298,7 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
               </div>
             );
           })}
-          {shown.length === 0 && <p className="p-3 text-[12px] text-ui-4">Nothing in this filter.</p>}
+          {shown.length === 0 && <p className="p-3 text-caption text-ui-4">Nothing in this filter.</p>}
         </div>
         {sel && (
           <KeyPicker

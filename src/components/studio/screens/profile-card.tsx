@@ -79,7 +79,7 @@ export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thu
       </button>
       <div className="flex min-w-0 flex-col gap-1 px-3 pb-2 pt-2">
         <div className="flex min-w-0 items-center gap-1">
-          <div className="min-w-0 flex-1 text-[13px] font-medium text-ui-1">{nameField ?? <span className="block truncate">{name}</span>}</div>
+          <div className="min-w-0 flex-1 text-body font-medium text-ui-1">{nameField ?? <span className="block truncate">{name}</span>}</div>
           {actions && (
             <div onClick={(e) => e.stopPropagation()}>
               <CardMenu actions={actions} label={actionsLabel} />
@@ -88,7 +88,7 @@ export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thu
         </div>
         {badges && <div className="flex flex-wrap gap-1">{badges}</div>}
         {detail && <span className="truncate text-[11.5px] text-ui-4">{detail}</span>}
-        <span className="truncate font-ui-mono text-[11px] text-ui-3">{meta}</span>
+        <span className="truncate font-ui-mono text-micro text-ui-3">{meta}</span>
       </div>
       {children && (
         <div onClick={(e) => e.stopPropagation()} className="mt-auto flex items-center gap-0.5 border-t border-ui-subtle px-1.5 py-1">
@@ -107,4 +107,4 @@ export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thu
 
 /** A footer button of a card. */
 export const CARD_BUTTON =
-  "inline-flex h-7 items-center gap-1.5 rounded-[7px] px-2 text-[12px] text-ui-2 outline-none hover:bg-ui-hover hover:text-ui-1 focus-visible:ring-2 focus-visible:ring-ui-accent/60 disabled:pointer-events-none disabled:text-ui-hint";
+  "inline-flex h-7 items-center gap-1.5 rounded-[7px] px-2 text-caption text-ui-2 outline-none hover:bg-ui-hover hover:text-ui-1 focus-visible:ring-2 focus-visible:ring-ui-accent/60 disabled:pointer-events-none disabled:text-ui-hint";

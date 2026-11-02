@@ -106,7 +106,7 @@ export function ScreenPages({ pages, rotate, onMove, onRotate, onOpen }: ScreenP
             <button
               type="button"
               onClick={() => onOpen(page.id)}
-              className="rounded-sm px-1 text-[11px] text-ui-accent-text hover:underline"
+              className="rounded-sm px-1 text-micro text-ui-accent-text hover:underline"
             >
               Open
             </button>

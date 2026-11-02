@@ -166,7 +166,7 @@ function SourceStep({
               )}
             >
               <Icon className={cn("h-[22px] w-[22px]", on ? "text-ui-accent" : "text-ui-3")} strokeWidth={1.75} />
-              <span className="text-[13px] font-semibold text-ui-1">{s.title}</span>
+              <span className="text-body font-semibold text-ui-1">{s.title}</span>
               <span className="text-[11.5px] text-ui-4">{s.text}</span>
             </button>
           );
@@ -181,7 +181,7 @@ function SourceStep({
             {opening.size !== undefined && <span className="font-ui-mono text-[11.5px] text-ui-4">{formatBytes(opening.size)}</span>}
           </div>
           {opening.error ? (
-            <span role="alert" className="whitespace-pre-wrap text-[12px] text-ui-danger">
+            <span role="alert" className="whitespace-pre-wrap text-caption text-ui-danger">
               {opening.error}
             </span>
           ) : (
@@ -210,7 +210,7 @@ function SourceStep({
                 {state && <span className="font-ui-mono">{Math.round(pct * 100)}%</span>}
               </div>
               {state?.source.restore && state.source.restore.missing.length > 0 && (
-                <span className="text-[12px] text-ui-warning">Missing from the saved canvas: {state.source.restore.missing.join(", ")}</span>
+                <span className="text-caption text-ui-warning">Missing from the saved canvas: {state.source.restore.missing.join(", ")}</span>
               )}
             </>
           )}
@@ -256,10 +256,10 @@ function SourceStep({
 
       {kind === "installed" && (
         <div className="flex flex-col overflow-hidden rounded-[10px] border border-ui-default">
-          <div className="border-b border-ui-subtle bg-ui-chrome px-3 py-2 font-ui-mono text-[11px] text-ui-4">%LOCALAPPDATA%\InfoPanel\profiles · read-only</div>
-          {installed === null && <span className="p-3 text-[12px] text-ui-4">Reading…</span>}
+          <div className="border-b border-ui-subtle bg-ui-chrome px-3 py-2 font-ui-mono text-micro text-ui-4">%LOCALAPPDATA%\InfoPanel\profiles · read-only</div>
+          {installed === null && <span className="p-3 text-caption text-ui-4">Reading…</span>}
           {installed?.length === 0 && (
-            <span className="p-3 text-[12px] text-ui-4">{listError ?? "No InfoPanel profiles found on this PC. Import a file instead."}</span>
+            <span className="p-3 text-caption text-ui-4">{listError ?? "No InfoPanel profiles found on this PC. Import a file instead."}</span>
           )}
           {installed?.map((p) => (
             <button
@@ -274,8 +274,8 @@ function SourceStep({
             >
               <Radio on={picked === p.guid} />
               <span className="flex-1 truncate text-[12.5px] text-ui-1">{p.name || "(no name)"}</span>
-              <span className="font-ui-mono text-[11px] text-ui-4">{p.assets.length === 1 ? "1 asset" : `${p.assets.length} assets`}</span>
-              <span className="font-ui-mono text-[11px] text-ui-4">{formatBytes(p.bytes)}</span>
+              <span className="font-ui-mono text-micro text-ui-4">{p.assets.length === 1 ? "1 asset" : `${p.assets.length} assets`}</span>
+              <span className="font-ui-mono text-micro text-ui-4">{formatBytes(p.bytes)}</span>
             </button>
           ))}
         </div>
@@ -287,8 +287,8 @@ function SourceStep({
             <div className="flex items-center gap-2 border-b border-ui-subtle bg-ui-chrome px-3 py-2 text-[11.5px] text-ui-4">
               <HardDrive className="h-3.5 w-3.5" /> My library · Imported canvases
             </div>
-            {canvases === null && <span className="p-3 text-[12px] text-ui-4">Reading…</span>}
-            {canvases?.length === 0 && <span className="p-3 text-[12px] text-ui-4">{listError ?? "No saved canvases yet."}</span>}
+            {canvases === null && <span className="p-3 text-caption text-ui-4">Reading…</span>}
+            {canvases?.length === 0 && <span className="p-3 text-caption text-ui-4">{listError ?? "No saved canvases yet."}</span>}
             {canvases?.map((c) => (
               <button
                 key={c.id}
@@ -302,7 +302,7 @@ function SourceStep({
               >
                 <Radio on={picked === c.id} />
                 <span className="flex-1 truncate text-[12.5px] text-ui-1">{c.name}</span>
-                <span className="font-ui-mono text-[11px] text-ui-4">{c.files.length === 1 ? "1 file" : `${c.files.length} files`}</span>
+                <span className="font-ui-mono text-micro text-ui-4">{c.files.length === 1 ? "1 file" : `${c.files.length} files`}</span>
               </button>
             ))}
           </div>
@@ -465,15 +465,15 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
             >
               <span
                 className={cn(
-                  "grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border-[1.5px] font-ui-mono text-[11px] font-semibold",
-                  done ? "border-transparent bg-ui-accent text-ui-inverse-fg" : cur ? "border-transparent bg-ui-inverse text-ui-inverse-fg" : "border-[#3a3a42] text-ui-4",
+                  "grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border-[1.5px] font-ui-mono text-micro font-semibold",
+                  done ? "border-transparent bg-ui-accent text-ui-inverse-fg" : cur ? "border-transparent bg-ui-inverse text-ui-inverse-fg" : "border-ui-edge text-ui-4",
                 )}
               >
                 {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </span>
               <span className="flex min-w-0 flex-col gap-px">
                 <span className="text-[12.5px] font-medium">{label}</span>
-                <span className="truncate text-[11px] text-ui-4">{i <= step ? subs[i] : ""}</span>
+                <span className="truncate text-micro text-ui-4">{i <= step ? subs[i] : ""}</span>
               </span>
             </button>
           );
@@ -551,15 +551,15 @@ export function ImportDialog({ open, onOpenChange, ...body }: ImportDialogProps)
       </Dialog.Root>
       <Dialog.Root open={guard.asking} onOpenChange={(o) => !o && guard.keep()}>
         <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 z-[60] bg-black/60" />
-          <Dialog.Popup className="fixed left-1/2 top-1/2 z-[60] w-[26rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-raised p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
+          <Dialog.Backdrop className="fixed inset-0 z-(--z-dialog) bg-black/60" />
+          <Dialog.Popup className="fixed left-1/2 top-1/2 z-(--z-dialog) w-[26rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-raised p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
             <Dialog.Title className="text-sm font-semibold text-ui-1">Discard this import?</Dialog.Title>
             <Dialog.Description className="text-xs leading-relaxed text-ui-3">Your choices so far will be lost. Keep going to finish the import.</Dialog.Description>
             <div className="flex justify-end gap-2 pt-1">
-              <button type="button" onClick={guard.discard} className="h-8 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover">
+              <button type="button" onClick={guard.discard} className="h-8 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover">
                 Discard
               </button>
-              <button type="button" onClick={guard.keep} className="h-8 rounded-[8px] bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90">
+              <button type="button" onClick={guard.keep} className="h-8 rounded-ui-md bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90">
                 Keep going
               </button>
             </div>

@@ -50,7 +50,7 @@ export function MadeForControl({ value = "studio", onChange }: MadeForControlPro
                   </span>
                   <span className="min-w-0">
                     <span className="block text-[12.5px] text-ui-1">{m.label}</span>
-                    <span className="block text-[11px] leading-snug text-ui-4">{m.note}</span>
+                    <span className="block text-micro leading-snug text-ui-4">{m.note}</span>
                   </span>
                 </Menu.Item>
               ))}

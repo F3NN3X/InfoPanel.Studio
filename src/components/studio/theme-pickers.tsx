@@ -10,7 +10,7 @@ import { ThemeNameInput } from "./theme-name-input";
 import { filteredThemes, rowTag, templatesHeading, type ThemeFilter } from "./theme-view-model";
 
 const HEADING = "px-4 pb-1.5 pt-3 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-ui-hint";
-const ACTION = "rounded-sm text-[12px] text-ui-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const ACTION = "rounded-sm text-caption text-ui-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 /** A picker's frame (SPEC §4.3.3): ‹ Back and the title, the help text, the list, and a footer. */
 export function PickerShell({ title, help, onBack, footer, children }: { title: string; help: string; onBack: () => void; footer?: ReactNode; children: ReactNode }) {
@@ -20,14 +20,14 @@ export function PickerShell({ title, help, onBack, footer, children }: { title: 
         <button
           type="button"
           onClick={onBack}
-          className="flex h-7 items-center gap-0.5 rounded-md border border-ui-strong pl-1.5 pr-2.5 text-[13px] text-[#a1a1aa] hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+          className="flex h-7 items-center gap-0.5 rounded-md border border-ui-strong pl-1.5 pr-2.5 text-body text-ui-soft hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
         >
           <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
           Back
         </button>
         <h2 className="truncate text-[14px] font-semibold text-ui-1">{title}</h2>
       </div>
-      <p className="px-4 py-2 text-[12px] leading-snug text-[#a1a1aa]">{help}</p>
+      <p className="px-4 py-2 text-caption leading-snug text-ui-soft">{help}</p>
       <div className="flex-1">{children}</div>
       {footer && <div className="sticky bottom-0 flex flex-col gap-2 border-t border-ui-subtle bg-ui-chrome px-4 py-3">{footer}</div>}
     </div>
@@ -103,7 +103,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
       onBack={p.onBack}
       footer={
         <>
-          <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ui-1">
+          <label className="flex cursor-pointer items-center gap-2 text-body text-ui-1">
             <input
               type="checkbox"
               checked={keep}
@@ -117,14 +117,14 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
               aria-hidden
               className={cn(
                 "flex h-4 w-4 items-center justify-center rounded-[4px] border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ui-accent",
-                keep ? "border-[#3b82f6] bg-[#3b82f6] text-white" : "border-[#52525b]"
+                keep ? "border-ui-blue bg-ui-blue text-white" : "border-[#52525b]"
               )}
             >
               {keep && <Check className="h-3 w-3" strokeWidth={3} />}
             </span>
             Keep my background
           </label>
-          <p className="text-[12px] text-ui-hint">{keep ? "Your background stays." : "A theme with a background replaces yours."}</p>
+          <p className="text-caption text-ui-hint">{keep ? "Your background stays." : "A theme with a background replaces yours."}</p>
           {p.otherScreens && p.otherScreens.length > 0 && p.onApplyToScreens && (
             <>
               <button type="button" onClick={() => setToScreens(!toScreens)} className={cn(ACTION, "self-start")}>
@@ -133,7 +133,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
               {toScreens && <ScreensList screens={p.otherScreens} onApply={(ids) => p.onApplyToScreens?.(ids, keep)} />}
             </>
           )}
-          <div className="flex items-center gap-3 text-[12px]">
+          <div className="flex items-center gap-3 text-caption">
             <span className="min-w-0 flex-1 truncate whitespace-nowrap text-ui-hint">{p.counts}</span>
             {saving ? (
               <ThemeNameInput
@@ -161,8 +161,8 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
             aria-pressed={filter === f.id}
             onClick={() => setFilter(f.id)}
             className={cn(
-              "h-6 rounded-full border px-2.5 text-[12px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
-              filter === f.id ? "border-ui-accent bg-[#0b1530] text-[#bfdbfe]" : "border-ui-strong text-[#a1a1aa] hover:text-ui-1"
+              "h-6 rounded-full border px-2.5 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+              filter === f.id ? "border-ui-accent bg-[#0b1530] text-[#bfdbfe]" : "border-ui-strong text-ui-soft hover:text-ui-1"
             )}
           >
             {f.label}
@@ -172,7 +172,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
       {shown.saved && (
         <>
           <h3 className={HEADING}>Saved themes · {shown.saved.length}</h3>
-          {shown.saved.length === 0 && <p className="px-4 pb-2 text-[12px] text-ui-hint">Themes you save appear here.</p>}
+          {shown.saved.length === 0 && <p className="px-4 pb-2 text-caption text-ui-hint">Themes you save appear here.</p>}
           {shown.saved.map((t) => (
             <div key={t.id}>
               <div className="flex items-center gap-3 px-4 py-2 hover:bg-ui-hover">
@@ -188,8 +188,8 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
                   />
                 ) : (
                   <button type="button" onClick={() => apply(t)} className="flex min-w-0 flex-1 flex-col items-start text-left">
-                    <span className="truncate text-[13px] font-medium text-ui-1">{t.name}</span>
-                    <span className="text-[11px] text-ui-hint">Saved</span>
+                    <span className="truncate text-body font-medium text-ui-1">{t.name}</span>
+                    <span className="text-micro text-ui-hint">Saved</span>
                   </button>
                 )}
                 <button
@@ -204,7 +204,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
               </div>
               {menuFor === t.id && (
                 <div className="mx-4 mb-2 flex flex-col gap-1.5 rounded-lg border border-ui-strong bg-ui-panel px-3 py-2">
-                  <p className="text-[11px] text-ui-hint">{p.usedBy(t.id)}</p>
+                  <p className="text-micro text-ui-hint">{p.usedBy(t.id)}</p>
                   <div className="flex gap-3">
                     <button type="button" className={ACTION} onClick={() => setRenaming(t.id)}>
                       Rename
@@ -225,7 +225,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
       {shown.rows && (
         <>
           <h3 className={HEADING}>{p.rows ? templatesHeading(shown.rows) : "From screen templates"}</h3>
-          {!p.rows && <p className="px-4 pb-2 text-[12px] text-ui-hint">Loading…</p>}
+          {!p.rows && <p className="px-4 pb-2 text-caption text-ui-hint">Loading…</p>}
           {shown.rows.map((row) => {
             const chosen = row.presets[variant[row.id] ?? 0] ?? row.presets[0];
             const pick = (i: number) => {
@@ -237,8 +237,8 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
                 <Thumb preset={chosen} selected={row.presets.some((x) => x.id === p.currentId)} onPick={() => apply(chosen)} />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <button type="button" onClick={() => apply(chosen)} className="flex flex-col items-start text-left">
-                    <span className="truncate text-[13px] font-medium text-ui-1">{row.name}</span>
-                    <span className="text-[11px] text-ui-hint">{rowTag(row)}</span>
+                    <span className="truncate text-body font-medium text-ui-1">{row.name}</span>
+                    <span className="text-micro text-ui-hint">{rowTag(row)}</span>
                   </button>
                   {row.presets.length > 1 && (
                     <div className="flex flex-wrap gap-1">
@@ -250,8 +250,8 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
                           title={v.name}
                           onClick={() => pick(i)}
                           className={cn(
-                            "flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px]",
-                            v.id === chosen.id ? "border-ui-accent bg-[#0b1530] text-[#bfdbfe]" : "border-ui-strong text-[#a1a1aa] hover:text-ui-1"
+                            "flex h-5 items-center gap-1 rounded-full border px-1.5 text-micro",
+                            v.id === chosen.id ? "border-ui-accent bg-[#0b1530] text-[#bfdbfe]" : "border-ui-strong text-ui-soft hover:text-ui-1"
                           )}
                         >
                           <span className="h-1.5 w-1.5 rounded-full" style={{ background: accentOf(v) }} aria-hidden />

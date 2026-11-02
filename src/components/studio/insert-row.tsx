@@ -17,7 +17,7 @@ export interface SavedPanelActions {
 }
 
 const MENU_POPUP =
-  "min-w-36 rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
+  "min-w-36 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
 const MENU_ITEM =
   "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-highlighted:bg-ui-active data-highlighted:text-ui-1 data-highlighted:shadow-[inset_2px_0_0_var(--ui-accent)]";
 

@@ -147,7 +147,7 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
               data-sub={e.id}
               style={{ width }}
               className={cn(
-                "absolute top-0 z-10 rounded-[9px] border border-ui-menu bg-ui-raised p-1 shadow-ui-menu",
+                "absolute top-0 z-10 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 shadow-ui-menu",
                 // Flip to the left when the flyout would leave the viewport.
                 left + width * 2 + 8 > window.innerWidth ? "right-full mr-1" : "left-full ml-1"
               )}
@@ -167,7 +167,7 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
       style={{ left, top, width }}
       onContextMenu={(e) => e.preventDefault()}
       onKeyDown={onMenuKey}
-      className="fixed z-[90] rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui shadow-ui-menu"
+      className="fixed z-[90] rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui shadow-ui-menu"
     >
       {rows(entries, 0)}
     </div>,

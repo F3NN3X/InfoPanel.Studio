@@ -425,8 +425,8 @@ export function AddPanel({
   return (
     <div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 px-2.5 pt-2.5">
-        <label className="flex h-8 items-center gap-2 rounded-[8px] border border-ui-default bg-ui-tile px-2.5 focus-within:border-[#3f3f48]">
-          <Search className="h-4 w-4 shrink-0 text-[#7c7c86]" strokeWidth={1.75} aria-hidden />
+        <label className="flex h-8 items-center gap-2 rounded-ui-md border border-ui-default bg-ui-tile px-2.5 focus-within:border-[#3f3f48]">
+          <Search className="h-4 w-4 shrink-0 text-ui-hint" strokeWidth={1.75} aria-hidden />
           <input
             ref={inputRef}
             role="combobox"
@@ -455,7 +455,7 @@ export function AddPanel({
               <X className="h-3.5 w-3.5" />
             </button>
           ) : (
-            <kbd className="shrink-0 rounded-[4px] border border-ui-strong px-[5px] py-px font-ui-mono text-micro leading-[14px] text-[#7c7c86]">/</kbd>
+            <kbd className="shrink-0 rounded-[4px] border border-ui-strong px-[5px] py-px font-ui-mono text-micro leading-[14px] text-ui-hint">/</kbd>
           )}
         </label>
       </div>
@@ -474,9 +474,9 @@ export function AddPanel({
               title={off}
               onClick={() => pickKind(k.kind)}
               className={cn(
-                "-mb-px flex h-7 items-center gap-1.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-40",
+                "-mb-px flex h-7 items-center gap-1.5 text-caption font-medium disabled:cursor-not-allowed disabled:opacity-40",
                 FOCUS,
-                kind === k.kind ? "text-ui-1 shadow-[inset_0_-2px_0_#ededf0]" : "text-[#7c7c86] hover:text-ui-2"
+                kind === k.kind ? "text-ui-1 shadow-[inset_0_-2px_0_#ededf0]" : "text-ui-hint hover:text-ui-2"
               )}
             >
               {k.label}
@@ -505,7 +505,7 @@ export function AddPanel({
                 aria-pressed={on}
                 onClick={() => pickChip(c)}
                 className={cn(
-                  "flex h-6 shrink-0 items-center rounded-full border px-[9px] text-[11px]",
+                  "flex h-6 shrink-0 items-center rounded-full border px-[9px] text-micro",
                   FOCUS,
                   on ? "border-ui-inverse bg-ui-inverse text-ui-inverse-fg" : "border-s-seg-on text-ui-3 hover:text-ui-1"
                 )}
@@ -518,13 +518,13 @@ export function AddPanel({
       )}
 
       {target && (
-        <div className="mx-2.5 mt-2.5 flex shrink-0 items-center gap-2.5 rounded-[8px] border border-[oklch(0.72_0.15_255/0.35)] bg-[oklch(0.72_0.15_255/0.10)] px-2.5 py-[9px]">
-          <SquareDashedMousePointer className="h-[18px] w-[18px] shrink-0 text-[oklch(0.82_0.12_255)]" strokeWidth={1.75} aria-hidden />
+        <div className="mx-2.5 mt-2.5 flex shrink-0 items-center gap-2.5 rounded-ui-md border border-[oklch(0.72_0.15_255/0.35)] bg-[oklch(0.72_0.15_255/0.10)] px-2.5 py-[9px]">
+          <SquareDashedMousePointer className="h-[18px] w-[18px] shrink-0 text-ui-accent-text" strokeWidth={1.75} aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[12.5px] font-medium text-ui-1">
               Filling blank space · <span className="font-ui-mono text-[11.5px]">{sizeText(target.cols, target.rows)}</span>
             </div>
-            <div className="truncate text-[11.5px] text-[#a1a1aa]">Click a widget to fill it.</div>
+            <div className="truncate text-[11.5px] text-ui-soft">Click a widget to fill it.</div>
           </div>
           <button
             type="button"
@@ -557,14 +557,14 @@ export function AddPanel({
         {empty ? (
           <div className="flex flex-col items-start gap-2.5 px-2 py-5">
             <div className="text-[12.5px] font-medium text-ui-1">Nothing matches “{query.trim()}”</div>
-            <p className="text-[12px] leading-[1.5] text-ui-hint">
+            <p className="text-caption leading-[1.5] text-ui-hint">
               A Sensor shows any single value from your data sources, so it covers most things a dedicated widget doesn’t.
             </p>
             {sensor && (
               <button
                 type="button"
                 onClick={() => add(sensor)}
-                className={cn("flex h-7 items-center gap-1.5 rounded-md bg-ui-inverse px-2.5 text-[12px] font-semibold text-ui-inverse-fg", FOCUS)}
+                className={cn("flex h-7 items-center gap-1.5 rounded-md bg-ui-inverse px-2.5 text-caption font-semibold text-ui-inverse-fg", FOCUS)}
               >
                 {(() => {
                   const Icon = iconFor("sensors");
@@ -574,7 +574,7 @@ export function AddPanel({
               </button>
             )}
             {elsewhere && (
-              <button type="button" onClick={() => pickKind(elsewhere.kind)} className={cn("text-[12px] text-ui-accent-text hover:underline", FOCUS)}>
+              <button type="button" onClick={() => pickKind(elsewhere.kind)} className={cn("text-caption text-ui-accent-text hover:underline", FOCUS)}>
                 {elsewhere.n} {elsewhere.one}
                 {elsewhere.n === 1 ? "" : "s"} match in {elsewhere.label} →
               </button>
@@ -651,9 +651,9 @@ function DoorRow({ compact, icon: Icon, title, note, onClick }: { compact: boole
     <button
       type="button"
       onClick={onClick}
-      className={cn("flex w-full items-center gap-2.5 rounded-[8px] px-2 text-left hover:bg-s-divider", compact ? "h-10" : "h-[52px]", FOCUS)}
+      className={cn("flex w-full items-center gap-2.5 rounded-ui-md px-2 text-left hover:bg-s-divider", compact ? "h-10" : "h-[52px]", FOCUS)}
     >
-      <span className={cn("flex shrink-0 items-center justify-center rounded-[8px] border border-ui-default bg-ui-raised text-ui-2", compact ? "h-7 w-7" : "h-[34px] w-[34px]")}>
+      <span className={cn("flex shrink-0 items-center justify-center rounded-ui-md border border-ui-default bg-ui-raised text-ui-2", compact ? "h-7 w-7" : "h-(--ui-h-field) w-[34px]")}>
         <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
       </span>
       <span className="flex min-w-0 flex-col">

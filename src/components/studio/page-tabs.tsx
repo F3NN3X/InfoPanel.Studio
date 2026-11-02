@@ -205,7 +205,7 @@ export function PageTabs({
   const marker = <span aria-hidden className="h-4 w-0.5 shrink-0 rounded-full bg-ui-accent" />;
 
   return (
-    <div className="flex h-10 shrink-0 items-center gap-1 overflow-hidden border-b border-ui-subtle bg-ui-panel px-2 font-ui text-[12px]">
+    <div className="flex h-10 shrink-0 items-center gap-1 overflow-hidden border-b border-ui-subtle bg-ui-panel px-2 font-ui text-caption">
       <IconButton
         label={leftOpen ? "Hide the left panel" : "Show the left panel"}
         className="h-7 w-7"

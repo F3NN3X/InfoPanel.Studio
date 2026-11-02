@@ -126,7 +126,7 @@ export function LogsSection() {
               >
                 <span className={cn("h-1.5 w-1.5 rounded-full", c.dot)} />
                 {c.label}
-                <span className="font-mono text-[11px] text-s-dim">{counts[c.value]}</span>
+                <span className="font-mono text-micro text-s-dim">{counts[c.value]}</span>
               </button>
             );
           })}

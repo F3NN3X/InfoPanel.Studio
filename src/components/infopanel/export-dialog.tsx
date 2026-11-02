@@ -301,17 +301,17 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
               >
                 <span className="flex items-center gap-2">
                   <Icon className="h-5 w-5 text-ui-3" />
-                  <span className="flex-1 text-[13px] font-semibold text-ui-1">{o.title}</span>
+                  <span className="flex-1 text-body font-semibold text-ui-1">{o.title}</span>
                   <Radio on={on} />
                 </span>
                 <span className="font-ui-mono text-[11.5px] text-ui-2">{o.file}</span>
-                <span className="text-[12px] text-ui-4">{o.text}</span>
+                <span className="text-caption text-ui-4">{o.text}</span>
               </button>
             );
           })}
         </div>
         {missing.length > 0 && (
-          <p className="flex gap-1.5 text-[12px] text-ui-warning">
+          <p className="flex gap-1.5 text-caption text-ui-warning">
             <TriangleAlert className="h-4 w-4 shrink-0" /> Not in the asset store, so not exported: {missing.join(", ")}
           </p>
         )}
@@ -349,7 +349,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
         {out === "infopanel" && (
           <div className="rounded-[10px] border border-ui-default px-3.5 py-3">
             <div className="text-[12.5px] font-medium text-ui-1">On the PC that opens it</div>
-            <ul className="mt-1 space-y-0.5 text-[12px] text-ui-3">
+            <ul className="mt-1 space-y-0.5 text-caption text-ui-3">
               <li>
                 {fonts.length > 0
                   ? `InfoPanel draws with installed fonts only, and an .infopanel carries none. Install ${fonts.join(", ")} there.`
@@ -362,7 +362,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
         {out === "stored" && <FontLicenceReview rows={licences} choices={choices} targets={targets} onChoose={(hash, c) => setChoices(new Map(choices).set(hash, c))} />}
         <div className="flex flex-col gap-[5px] rounded-[10px] border border-ui-subtle bg-ui-chrome px-3.5 py-3">
           {contents.map(([a, b]) => (
-            <div key={a} className="flex gap-3 text-[12px]">
+            <div key={a} className="flex gap-3 text-caption">
               <span className="w-[140px] font-ui-mono text-[11.5px] text-ui-2">{a}</span>
               <span className="text-ui-3">{b}</span>
             </div>
@@ -370,7 +370,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
         </div>
       </div>
       <div className="flex items-center gap-2.5 border-t border-ui-subtle px-5 py-3">
-        <span className="font-ui-mono text-[12px] text-ui-2">{fileName}</span>
+        <span className="font-ui-mono text-caption text-ui-2">{fileName}</span>
         <span className={cn("text-[11.5px]", error ? "text-ui-danger" : "text-ui-4")}>{error ?? busy ?? `≈ ${formatBytes(Math.max(0, size))}`}</span>
         <span className="flex-1" />
         <button type="button" onClick={onClose} className="h-8 px-3 text-[12.5px] text-ui-3 hover:text-ui-1">

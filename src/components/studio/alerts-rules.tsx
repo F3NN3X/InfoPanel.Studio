@@ -44,7 +44,7 @@ export interface AlertRulesProps {
 }
 
 const MENU_POPUP =
-  "max-h-[60vh] min-w-52 overflow-y-auto rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
+  "max-h-[60vh] min-w-52 overflow-y-auto rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
 const MENU_ITEM =
   "flex min-h-[30px] cursor-default flex-col justify-center rounded-md px-2 py-1 outline-none select-none data-highlighted:bg-ui-active data-highlighted:text-ui-1 data-highlighted:shadow-[inset_2px_0_0_var(--ui-accent)]";
 
@@ -52,7 +52,7 @@ const MENU_ITEM =
 export function NewRuleMenu({ onAdd, points }: { onAdd: (rule: AlertRule) => void; points: readonly DataPoint[] }) {
   return (
     <Menu.Root>
-      <Menu.Trigger className="inline-flex h-7 items-center rounded-[7px] bg-ui-inverse px-3 text-[12px] font-semibold text-ui-inverse-fg hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60">
+      <Menu.Trigger className="inline-flex h-7 items-center rounded-[7px] bg-ui-inverse px-3 text-caption font-semibold text-ui-inverse-fg hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60">
         New rule
       </Menu.Trigger>
       <Menu.Portal>
@@ -68,7 +68,7 @@ export function NewRuleMenu({ onAdd, points }: { onAdd: (rule: AlertRule) => voi
             {ALERT_PRESETS.map((preset) => (
               <Menu.Item key={preset.id} className={MENU_ITEM} onClick={() => onAdd(presetRule(preset, points))}>
                 <span className="text-ui-1">{preset.label}</span>
-                <span className="text-[11px] text-ui-4">{preset.hint}</span>
+                <span className="text-micro text-ui-4">{preset.hint}</span>
               </Menu.Item>
             ))}
           </Menu.Popup>
@@ -111,7 +111,7 @@ function RuleRow({ rule, summary, style, fired, now, confirming, ...on }: RuleRo
   }, [confirming]);
   if (confirming) {
     return (
-      <li role="alert" className="flex items-center gap-2 border-t border-ui-hover bg-ui-hover px-3.5 py-2.5 text-[12px] text-ui-2 first:border-t-0">
+      <li role="alert" className="flex items-center gap-2 border-t border-ui-hover bg-ui-hover px-3.5 py-2.5 text-caption text-ui-2 first:border-t-0">
         <span className="min-w-0 flex-1 truncate">Delete “{rule.name}”?</span>
         <button type="button" onClick={on.onDelete} className="h-6 rounded-md bg-ui-danger px-2 text-[11.5px] text-black">
           Delete
@@ -135,7 +135,7 @@ function RuleRow({ rule, summary, style, fired, now, confirming, ...on }: RuleRo
         )}
       >
         <span className="block truncate text-[12.5px] font-medium text-ui-1">{rule.name}</span>
-        <span className="block truncate font-ui-mono text-[11px] text-ui-3" title={summary}>
+        <span className="block truncate font-ui-mono text-micro text-ui-3" title={summary}>
           {summary}
         </span>
         <span className="block truncate text-micro text-ui-4">
@@ -208,7 +208,7 @@ export function AlertRules({ config, setConfig, active, points, current, pushPen
       </div>
       <div className="overflow-hidden rounded-[10px] border border-ui-default">
         {alerts.rules.length === 0 ? (
-          <p className="px-3.5 py-3 text-pretty text-[12px] leading-[1.45] text-ui-4">
+          <p className="px-3.5 py-3 text-pretty text-caption leading-[1.45] text-ui-4">
             No alert rules yet. Use New rule to start from a blank rule or a preset such as “GPU temperature high”.
           </p>
         ) : (

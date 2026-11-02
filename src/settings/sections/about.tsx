@@ -68,7 +68,7 @@ export function AboutSection() {
         </div>
         <div className="flex min-w-[140px] flex-1 flex-col gap-1">
           <span className="text-xl font-semibold tracking-[-0.01em]">InfoPanel Studio</span>
-          <span className="text-[13px] text-s-muted">
+          <span className="text-body text-s-muted">
             Version {info.version} · {capitalize(info.channel)} · built {shortDate(info.buildDate)}
           </span>
         </div>
@@ -81,7 +81,7 @@ export function AboutSection() {
       <Group title="System">
         <div className="divide-y divide-s-divider overflow-hidden rounded-xl border border-s-card-line bg-s-card">
           {systemRows(info).map(([k, v]) => (
-            <div key={k} className="flex gap-4 px-[18px] py-[11px] text-[13px]">
+            <div key={k} className="flex gap-4 px-[18px] py-[11px] text-body">
               <span className="w-[140px] shrink-0 text-s-muted">{k}</span>
               <span className="min-w-0 break-words font-mono text-[12.5px] text-[#d6d6db]">{v}</span>
             </div>
@@ -94,7 +94,7 @@ export function AboutSection() {
           {paths.map(([label, path]) => (
             <div key={label} className="flex flex-wrap items-center gap-3.5 px-[18px] py-3">
               <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
-                <span className="text-[13px] font-medium">{label}</span>
+                <span className="text-body font-medium">{label}</span>
                 <span className="break-all font-mono text-xs text-s-muted">{path}</span>
               </div>
               <Button className="h-[30px] text-xs" aria-label={`Show ${label}`} onClick={() => void ipc.revealPath(path).catch(fail)}>

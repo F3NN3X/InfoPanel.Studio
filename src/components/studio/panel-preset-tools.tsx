@@ -54,7 +54,7 @@ export function PresetNameInput({
         }}
         placeholder="Panel name"
         aria-label="Panel name"
-        className="min-w-0 flex-1 rounded-md border border-ui-default bg-ui-app px-2 py-0.5 text-[12px] text-ui-1 placeholder:text-ui-4 outline-none focus:border-ui-accent"
+        className="min-w-0 flex-1 rounded-md border border-ui-default bg-ui-app px-2 py-0.5 text-caption text-ui-1 placeholder:text-ui-4 outline-none focus:border-ui-accent"
       />
       <button
         type="button"

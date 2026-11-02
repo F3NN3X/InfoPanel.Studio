@@ -63,7 +63,7 @@ function NameField({ deck, act, onError }: { deck: Deck; act: StreamDeckBlockPro
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => void commit()}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      className={cn(FIELD, "h-[28px] min-w-0 flex-1")}
+      className={cn(FIELD, "h-(--ui-h-control) min-w-0 flex-1")}
     />
   );
 }
@@ -90,9 +90,9 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
   const showCode = state.enabled && state.pairingCode !== "" && !state.devices.some((d) => d.status === "ready");
   return (
     <div className="space-y-2">
-      <div className="flex items-baseline justify-between text-[12px] font-semibold text-ui-1">
+      <div className="flex items-baseline justify-between text-caption font-semibold text-ui-1">
         Stream Deck
-        <span className="text-[11px] font-normal text-ui-4">{overall(state, link)}</span>
+        <span className="text-micro font-normal text-ui-4">{overall(state, link)}</span>
       </div>
       <ToggleRow
         label="Connect to the Stream Deck app"
@@ -108,7 +108,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
           <button type="button" className={BUTTON} onClick={() => void run({ op: "pair" })}>
             Pair
           </button>
-          <p className="text-[11px] leading-snug text-ui-4">Confirm the same code in the Stream Deck app. It only asks when a freshly started Stream Deck app meets a new client.</p>
+          <p className="text-micro leading-snug text-ui-4">Confirm the same code in the Stream Deck app. It only asks when a freshly started Stream Deck app meets a new client.</p>
         </div>
       )}
       <div role="list" aria-label="Stream Deck devices" className="space-y-1.5">
@@ -117,8 +117,8 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
             <div className="flex items-center gap-2">
               <span aria-hidden="true" className={cn("h-2 w-2 shrink-0", DOT[d.status])} />
               <NameField deck={d} act={act} onError={setError} />
-              <span className="shrink-0 text-[11px] text-ui-3">{WORDS[d.status]}</span>
-              <span className="shrink-0 text-[11px] tabular-nums text-ui-4">
+              <span className="shrink-0 text-micro text-ui-3">{WORDS[d.status]}</span>
+              <span className="shrink-0 text-micro tabular-nums text-ui-4">
                 {d.cols}×{d.rows}
               </span>
               {confirming === d.id ? null : (
@@ -127,7 +127,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
                 </button>
               )}
             </div>
-            {d.error && state.enabled && <p className="m-0 pl-4 text-[11px] text-s-red">{d.error}</p>}
+            {d.error && state.enabled && <p className="m-0 pl-4 text-micro text-s-red">{d.error}</p>}
             {confirming === d.id && (
               <div role="alert" className="flex flex-wrap items-center gap-2 pl-4 text-[11.5px] text-ui-3">
                 <span>Forget {d.name}? A widget using it will ask for another device.</span>

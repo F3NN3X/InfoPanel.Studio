@@ -81,7 +81,7 @@ export function BoundData({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <span className="text-[12.5px] font-semibold text-ui-1">Bound data</span>
-        <span className="font-ui-mono text-[11px] text-ui-4">{rows.length}</span>
+        <span className="font-ui-mono text-micro text-ui-4">{rows.length}</span>
         <button
           type="button"
           onClick={openPicker}
@@ -91,7 +91,7 @@ export function BoundData({
         </button>
       </div>
       {rows.length === 0 ? (
-        <span className="block text-[12px] text-ui-4">No data bound yet. Bind a value to make this widget live.</span>
+        <span className="block text-caption text-ui-4">No data bound yet. Bind a value to make this widget live.</span>
       ) : (
         <ul className="space-y-2">
           {rows.map(({ key, point, panelWidgetId }) => {
@@ -109,12 +109,12 @@ export function BoundData({
                 >
                   <TypeIcon type={point?.type ?? "empty"} />
                   <span className="flex min-w-0 flex-1 flex-col gap-px">
-                    <span className="block truncate text-[12px] leading-[15px] text-ui-1">{point?.name ?? key}</span>
+                    <span className="block truncate text-caption leading-[15px] text-ui-1">{point?.name ?? key}</span>
                     <span className="block truncate text-micro leading-[13px] text-ui-4">{pointPlace(point)}</span>
                   </span>
                   <span
                     className={cn(
-                      "max-w-24 shrink-0 truncate font-ui-mono text-[11px] leading-[15px]",
+                      "max-w-24 shrink-0 truncate font-ui-mono text-micro leading-[15px]",
                       value === null ? "text-ui-warning" : "text-ui-2"
                     )}
                   >

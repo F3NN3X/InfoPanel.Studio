@@ -1,5 +1,5 @@
 import { AGENT_COLORS, AGENT_NAMES, FIVE_HOUR_MS, SEVEN_DAY_MS, paceHit, planView, shortDuration, type AgentId, type AgentPlan, type PlanWindow } from "@/lib/agents";
-import { Bar, Icon, Num, Ring, TONES } from "../kit";
+import { Bar, Icon, Num, Ring, TONES, fmtDate } from "../kit";
 
 export type LimitStyle = "bars" | "rings";
 export type Percent = "used" | "left";
@@ -47,7 +47,7 @@ export const shown = (w: PlanWindow, percent: Percent) => Math.round(percent ===
 export function resetText(at: number, now: number): string {
   const d = new Date(at);
   const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  return at - now < 20 * 3_600_000 ? time : `${d.toLocaleDateString(undefined, { weekday: "short" })} ${time}`;
+  return at - now < 20 * 3_600_000 ? time : `${fmtDate(d, "weekday")} ${time}`;
 }
 
 /** "8m", "4h 30m", "2d 6h": how long until a reset. */

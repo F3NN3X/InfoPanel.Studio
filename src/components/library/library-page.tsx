@@ -513,8 +513,8 @@ export default function LibraryPage(p: LibraryPageProps) {
     >
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4 max-sm:h-auto max-sm:flex-wrap max-sm:gap-2 max-sm:px-3 max-sm:py-2">
         <h1 className="text-[15px] font-semibold text-ui-1">Library</h1>
-        <span className="hidden min-w-0 truncate text-[12px] text-ui-4 xl:block">Everything you’ve saved, beside the built-ins.</span>
-        <label className="flex h-[34px] min-w-0 max-w-[520px] flex-1 items-center gap-2 rounded-[9px] border border-ui-default bg-ui-panel px-3 focus-within:border-ui-accent">
+        <span className="hidden min-w-0 truncate text-caption text-ui-4 xl:block">Everything you’ve saved, beside the built-ins.</span>
+        <label className="flex h-(--ui-h-field) min-w-0 max-w-[520px] flex-1 items-center gap-2 rounded-ui-menu border border-ui-default bg-ui-panel px-3 focus-within:border-ui-accent">
           <Search className="h-4 w-4 shrink-0 text-ui-4" />
           <input
             type="search"
@@ -535,7 +535,7 @@ export default function LibraryPage(p: LibraryPageProps) {
           )}
         </label>
         {!empty && !showFiles && (
-          <div role="radiogroup" aria-label="View" onKeyDown={(e) => onRovingKeyDown(e, '[role="radio"]')} className="flex h-[34px] items-center gap-0.5 rounded-[9px] border border-ui-default p-0.5">
+          <div role="radiogroup" aria-label="View" onKeyDown={(e) => onRovingKeyDown(e, '[role="radio"]')} className="flex h-(--ui-h-field) items-center gap-0.5 rounded-ui-menu border border-ui-default p-0.5">
             {(
               [
                 ["grid", "Grid", LayoutGrid],
@@ -567,7 +567,7 @@ export default function LibraryPage(p: LibraryPageProps) {
             setUsedBy(e.target.value);
             setShowFiles(false);
           }}
-          className="h-[34px] max-w-[200px] rounded-[9px] border border-ui-default bg-ui-panel px-2.5 text-[12.5px] text-ui-2"
+          className="h-(--ui-h-field) max-w-[200px] rounded-ui-menu border border-ui-default bg-ui-panel px-2.5 text-[12.5px] text-ui-2"
         >
           <option value="">Used by any screen</option>
           {p.bridge.config.profiles.map((s) => (
@@ -581,7 +581,7 @@ export default function LibraryPage(p: LibraryPageProps) {
           aria-pressed={showFiles}
           onClick={() => setShowFiles((on) => !on)}
           title="The files its canvases use: replace and optimize them"
-          className={cn("flex h-[34px] max-w-[220px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover", showFiles && "bg-ui-active")}
+          className={cn("flex h-(--ui-h-field) max-w-[220px] items-center gap-1.5 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover", showFiles && "bg-ui-active")}
         >
           <FolderInput className="h-4 w-4 shrink-0" />
           <span className="truncate">Canvas files · {p.profileName}</span>
@@ -591,14 +591,14 @@ export default function LibraryPage(p: LibraryPageProps) {
           type="button"
           onClick={() => openNewInfoPanel()}
           title="An InfoPanel profile from scratch, as a new screen in Edit"
-          className="flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover"
+          className="flex h-(--ui-h-field) items-center gap-1.5 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover"
         >
           New InfoPanel profile…
         </button>
         <button
           type="button"
           onClick={() => openImportDoor()}
-          className="flex h-[34px] items-center gap-1.5 rounded-[8px] bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90"
+          className="flex h-(--ui-h-field) items-center gap-1.5 rounded-ui-md bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90"
         >
           Add files…
         </button>
@@ -631,7 +631,7 @@ export default function LibraryPage(p: LibraryPageProps) {
                         {older.length === 1 ? "1 item was" : `${older.length} items were`} saved by an older version. {older.length === 1 ? "It works" : "They work"} as{" "}
                         {older.length === 1 ? "it is" : "they are"}; Update saves {older.length === 1 ? "it" : "them"} in today&rsquo;s format and keeps a copy of {older.length === 1 ? "it" : "each"} as it was.
                       </span>
-                      <button type="button" onClick={() => updateFormat(older)} className="h-[28px] shrink-0 rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
+                      <button type="button" onClick={() => updateFormat(older)} className="h-(--ui-h-control) shrink-0 rounded-[7px] border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover">
                         {older.length === 1 ? "Update" : "Update all"}
                       </button>
                     </div>
@@ -690,12 +690,12 @@ export default function LibraryPage(p: LibraryPageProps) {
                     <button
                       type="button"
                       onClick={askDeletePicked}
-                      className="flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-danger/50 px-3 text-ui-danger hover:bg-ui-danger/10"
+                      className="flex h-(--ui-h-field) items-center gap-1.5 rounded-ui-md border border-ui-danger/50 px-3 text-ui-danger hover:bg-ui-danger/10"
                     >
                       <Trash2 className="h-4 w-4" />
                       Delete…
                     </button>
-                    <button type="button" onClick={() => setPicked([])} className="text-[12px] text-ui-4 hover:text-ui-1">
+                    <button type="button" onClick={() => setPicked([])} className="text-caption text-ui-4 hover:text-ui-1">
                       Clear selection
                     </button>
                   </aside>
@@ -731,7 +731,7 @@ export default function LibraryPage(p: LibraryPageProps) {
               p.onShowCanvas();
             }}
             onDragOver={(e) => e.preventDefault()}
-            className="absolute bottom-6 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-full border border-dashed border-ui-accent bg-ui-raised px-5 text-[13px] text-ui-1 shadow-ui-modal"
+            className="absolute bottom-6 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-full border border-dashed border-ui-accent bg-ui-raised px-5 text-body text-ui-1 shadow-ui-modal"
           >
             <MonitorPlay className="h-4 w-4 text-ui-accent-text" />
             Drag here to place it on the canvas

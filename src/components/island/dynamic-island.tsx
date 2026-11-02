@@ -365,7 +365,7 @@ function NextEvent({ event }: { event: CalendarEvent }) {
   const now = useNow(30_000).getTime();
   return (
     <span className="min-w-0 truncate">
-      <span className="mr-[0.35em] inline-block h-[0.5em] w-[0.5em] rounded-full bg-[#3b82f6]" aria-hidden />
+      <span className="mr-[0.35em] inline-block h-[0.5em] w-[0.5em] rounded-full bg-ui-blue" aria-hidden />
       <span className="opacity-80">{event.title}</span>
       <span className="ml-[0.35em] opacity-75">{startsIn(event.start - now)}</span>
     </span>

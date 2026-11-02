@@ -23,7 +23,7 @@ export interface ScreensToolbarProps<F extends string = ListFilter> {
 }
 
 const BUTTON =
-  "inline-flex h-8 items-center gap-1.5 rounded-[7px] border border-ui-strong bg-transparent px-2.5 text-[12px] text-ui-1 transition-colors hover:bg-ui-hover";
+  "inline-flex h-8 items-center gap-1.5 rounded-[7px] border border-ui-strong bg-transparent px-2.5 text-caption text-ui-1 transition-colors hover:bg-ui-hover";
 
 /** Search, the Show filter, the sort, Import, Import .infopanel and New: the strip above the cards on Screens. */
 export function ScreensToolbar<F extends string = ListFilter>({
@@ -72,7 +72,7 @@ export function ScreensToolbar<F extends string = ListFilter>({
             aria-pressed={filter === f.id}
             onClick={() => onFilter(f.id)}
             className={cn(
-              "h-full rounded-[5px] px-2.5 text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
+              "h-full rounded-[5px] px-2.5 text-caption outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
               filter === f.id ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1"
             )}
           >
@@ -80,13 +80,13 @@ export function ScreensToolbar<F extends string = ListFilter>({
           </button>
         ))}
       </div>
-      <label className="flex items-center gap-1.5 text-[12px] text-ui-3">
+      <label className="flex items-center gap-1.5 text-caption text-ui-3">
         <span className="max-sm:sr-only">Sort</span>
         <select
           value={sort}
           onChange={(e) => onSort(e.target.value as ListSort)}
           aria-label={`Sort ${noun}`}
-          className="h-8 cursor-pointer rounded-[7px] border border-ui-default bg-ui-raised px-2 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-8 cursor-pointer rounded-[7px] border border-ui-default bg-ui-raised px-2 text-caption text-ui-1 outline-none focus:border-ui-accent"
         >
           {SORTS.map((s) => (
             <option key={s.id} value={s.id}>
@@ -108,7 +108,7 @@ export function ScreensToolbar<F extends string = ListFilter>({
       <button
         type="button"
         onClick={onNew}
-        className="inline-flex h-8 items-center gap-1.5 rounded-[7px] bg-ui-1 px-3 text-[12px] font-semibold text-ui-inverse-fg outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ui-accent/60"
+        className="inline-flex h-8 items-center gap-1.5 rounded-[7px] bg-ui-1 px-3 text-caption font-semibold text-ui-inverse-fg outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ui-accent/60"
       >
         <Plus className="h-3.5 w-3.5" />
         New

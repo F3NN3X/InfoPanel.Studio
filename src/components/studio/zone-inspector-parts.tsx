@@ -29,7 +29,7 @@ export function HeaderIcon({ children }: { children: ReactNode }) {
   );
 }
 
-const META = "truncate text-[11px] text-ui-hint";
+const META = "truncate text-micro text-ui-hint";
 
 /** The sub line's count: "3 changed", or "defaults" when nothing is set here. */
 export const changedLabel = (changed: number) => (changed > 0 ? `${changed} changed` : "defaults");
@@ -111,7 +111,7 @@ function Breadcrumb({
 }) {
   const crumb = "min-w-0 truncate rounded hover:text-ui-1 hover:underline";
   return (
-    <nav aria-label="Selection" className="flex min-w-0 items-center gap-1 text-[12px]">
+    <nav aria-label="Selection" className="flex min-w-0 items-center gap-1 text-caption">
       <button
         type="button"
         onClick={onZone}
@@ -286,7 +286,7 @@ export function WidgetPicker({ placement, onPickWidget }: { placement: Placement
         </button>
       </InlineRow>
       {placement.panel && (
-        <p className="text-[11px] leading-snug text-ui-hint">
+        <p className="text-micro leading-snug text-ui-hint">
           Edit the panel&apos;s widgets in Content; picking another widget replaces the panel.
         </p>
       )}

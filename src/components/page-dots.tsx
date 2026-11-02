@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
 export const LONG_PRESS_MS = 600;
 /** Bottom padding the grid reserves while the dots show, in px. */
 export const PAGE_DOTS_STRIP_PX = 24;
+/** The same on a coarse pointer (a touch screen), where targets are 44 px. */
+export const PAGE_DOTS_STRIP_TOUCH_PX = 44;
+/** The strip height for the pointer in use now. */
+export const pageDotsStripPx = () => (window.matchMedia("(pointer: coarse)").matches ? PAGE_DOTS_STRIP_TOUCH_PX : PAGE_DOTS_STRIP_PX);
 /** How long the Pause button stays after the last touch, click or key, ms. */
 export const PAUSE_SHOW_MS = 4000;
 
@@ -60,7 +64,7 @@ export function PageDots({ enabled, scroll, pages, current, rotateOn, paused, on
   const cancel = () => window.clearTimeout(timer.current);
   return (
     <div
-      style={{ height: PAGE_DOTS_STRIP_PX }}
+      style={{ height: pageDotsStripPx() }}
       className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-40 flex items-center justify-center gap-2", scroll && "bg-gradient-to-t from-background to-transparent")}
     >
       <div role="group" aria-label="Pages" className="pointer-events-auto relative flex items-center">
@@ -87,7 +91,7 @@ export function PageDots({ enabled, scroll, pages, current, rotateOn, paused, on
                 if (fired.current) fired.current = false;
                 else onSelect(page.id);
               }}
-              className="flex h-6 w-6 items-center justify-center rounded-full kiosk-focus"
+              className="flex h-6 w-6 items-center justify-center rounded-full kiosk-focus pointer-coarse:h-11 pointer-coarse:w-11"
             >
               <span className={cn("h-2 rounded-full", active ? "w-4 bg-primary" : "w-2 bg-muted-foreground/70")} />
             </button>
@@ -102,7 +106,7 @@ export function PageDots({ enabled, scroll, pages, current, rotateOn, paused, on
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             className={cn(
-              "absolute left-full ml-1 flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground kiosk-focus",
+              "absolute left-full ml-1 flex h-6 w-6 pointer-coarse:h-11 pointer-coarse:w-11 items-center justify-center rounded-full text-muted-foreground kiosk-focus",
               !reduced && "transition-opacity duration-300",
               awake || focused ? "opacity-100" : "pointer-events-none opacity-0"
             )}

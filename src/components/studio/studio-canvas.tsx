@@ -688,7 +688,7 @@ export function StudioCanvas({
                       return (
                         <div
                           data-shot-skip
-                          className="pointer-events-none absolute z-30 rounded-[8px] border-2 border-dashed border-ui-accent bg-ui-accent/10"
+                          className="pointer-events-none absolute z-30 rounded-ui-md border-2 border-dashed border-ui-accent bg-ui-accent/10"
                           style={style}
                         >
                           <span className="absolute left-1.5 top-0.5 font-ui-mono text-[10px] font-semibold tabular-nums text-ui-accent-text">
@@ -707,7 +707,7 @@ export function StudioCanvas({
                       return (
                         <div
                           data-shot-skip
-                          className="pointer-events-none absolute z-30 flex items-center justify-center rounded-[8px] border-[1.5px] border-dashed font-ui text-[11px] font-medium"
+                          className="pointer-events-none absolute z-30 flex items-center justify-center rounded-ui-md border-[1.5px] border-dashed font-ui text-micro font-medium"
                           style={{ ...style, borderColor: tone.line, background: tone.fill, color: tone.line }}
                         >
                           {dropPreview.label ?? (dropPreview.ok ? "Drop here" : "No room")}
@@ -727,16 +727,16 @@ export function StudioCanvas({
                       <div
                         key="target"
                         data-shot-skip
-                        className="pointer-events-none absolute z-30 rounded-[8px] border-[1.5px] border-dashed border-ui-accent bg-ui-accent/10"
+                        className="pointer-events-none absolute z-30 rounded-ui-md border-[1.5px] border-dashed border-ui-accent bg-ui-accent/10"
                         style={style}
                       >
-                        <span className="absolute left-2 top-1.5 flex items-center gap-1 font-ui text-[11px] font-medium text-ui-accent-text">
+                        <span className="absolute left-2 top-1.5 flex items-center gap-1 font-ui text-micro font-medium text-ui-accent-text">
                           <SquareDashedMousePointer className="h-3.5 w-3.5" strokeWidth={1.75} />
                           Filling · <span className="font-ui-mono">{sizeText(p.colSpan, p.rowSpan)}</span>
                         </span>
                       </div>
                     ) : (
-                      <div key={`flash:${flash?.seq}`} data-shot-skip className="add-flash pointer-events-none absolute z-30 rounded-[8px]" style={style} />
+                      <div key={`flash:${flash?.seq}`} data-shot-skip className="add-flash pointer-events-none absolute z-30 rounded-ui-md" style={style} />
                     );
                   })}
 
@@ -873,7 +873,7 @@ export function StudioCanvas({
           so the zone being moved/resized is always visibly tracked. */}
       {zoneDrag && dragged && (
         <div
-          className="pointer-events-none fixed z-50 rounded-md border border-ui-menu bg-ui-raised px-2 py-1 font-ui text-[11px] font-medium text-ui-1 shadow-ui-float"
+          className="pointer-events-none fixed z-50 rounded-md border border-ui-menu bg-ui-raised px-2 py-1 font-ui text-micro font-medium text-ui-1 shadow-ui-float"
           style={{ left: zoneDrag.x + 14, top: zoneDrag.y + 14 }}
         >
           {zoneDrag.ids.length > 1 ? `${zoneDrag.ids.length} widgets` : placementTitle(dragged)}{" "}

@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import type { DashboardConfig } from "@/lib/layout";
 import type { ToastText } from "./theme-messages";
 
-const LINK = "shrink-0 rounded-sm text-[13px] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const LINK = "shrink-0 rounded-sm text-body hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 /** How long a toast waits for the change it reports (a theme applies once its chunk has loaded). */
 const LAND_MS = 2000;
@@ -54,10 +54,10 @@ interface ThemeToastRowProps {
 /** The toast row under the preview's header (SPEC §4.4): green dot, title and sub-line, Reset to ‹name›, Make them follow, Undo and ✕. */
 export function ThemeToastRow({ toast, onUndo, onDismiss }: ThemeToastRowProps) {
   return (
-    <div role="status" className="flex w-full items-center gap-3 rounded-[9px] border border-ui-strong bg-ui-panel px-3 py-[9px] text-[13px]">
+    <div role="status" className="flex w-full items-center gap-3 rounded-ui-menu border border-ui-strong bg-ui-panel px-3 py-[9px] text-body">
       <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-[#4ade80]" aria-hidden />
       <p className="min-w-0 flex-1">
-        <b className="font-semibold text-ui-1">{toast.title}</b> <span className="text-[#a1a1aa]">{toast.sub}</span>
+        <b className="font-semibold text-ui-1">{toast.title}</b> <span className="text-ui-soft">{toast.sub}</span>
       </p>
       {toast.reset && (
         <button type="button" className={`${LINK} text-ui-accent`} onClick={toast.reset.run}>
@@ -71,7 +71,7 @@ export function ThemeToastRow({ toast, onUndo, onDismiss }: ThemeToastRowProps) 
       )}
       <button
         type="button"
-        className={`${LINK} text-[#a1a1aa]`}
+        className={`${LINK} text-ui-soft`}
         onClick={() => {
           onDismiss();
           onUndo();

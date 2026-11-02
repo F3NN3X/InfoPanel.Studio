@@ -50,7 +50,7 @@ export function SelectionChip({
 }: SelectionChipProps) {
   const multi = count > 1;
   return (
-    <div className="flex h-7 items-center gap-0.5 whitespace-nowrap rounded-[6px] bg-ui-accent px-1 font-ui text-[13px] font-bold text-ui-inverse-fg">
+    <div className="flex h-7 items-center gap-0.5 whitespace-nowrap rounded-ui-sm bg-ui-accent px-1 font-ui text-body font-bold text-ui-inverse-fg">
       {multi ? (
         <span className="px-1.5">{count} selected</span>
       ) : (

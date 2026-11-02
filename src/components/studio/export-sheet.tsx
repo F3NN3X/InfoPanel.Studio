@@ -44,8 +44,8 @@ function ExportRow({ icon: Icon, title, detail, picked, blocked, children, actio
       <div className="flex items-start gap-3">
         <Icon className="mt-0.5 h-[18px] w-[18px] shrink-0 text-ui-3" strokeWidth={1.75} />
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-semibold text-ui-1">{title}</div>
-          <div className="text-pretty text-[12px] text-ui-4">{detail}</div>
+          <div className="text-body font-semibold text-ui-1">{title}</div>
+          <div className="text-pretty text-caption text-ui-4">{detail}</div>
         </div>
         <div className="flex shrink-0 items-center gap-2">{actions}</div>
       </div>
@@ -96,8 +96,8 @@ function GaugeChooser({ onPick }: { onPick: (name: string, gauge: VectorGauge) =
     }, () => toast(`Couldn’t read ${item.name}`));
   return (
     <div ref={list} className="ml-[30px] flex max-h-40 flex-col overflow-auto rounded-lg border border-ui-default bg-ui-panel">
-      {items === null && <span className="p-2.5 text-[12px] text-ui-4">Reading…</span>}
-      {items?.length === 0 && <span className="p-2.5 text-[12px] text-ui-4">{error ?? "No gauges in your library yet."}</span>}
+      {items === null && <span className="p-2.5 text-caption text-ui-4">Reading…</span>}
+      {items?.length === 0 && <span className="p-2.5 text-caption text-ui-4">{error ?? "No gauges in your library yet."}</span>}
       {items?.map((item) => (
         <button key={item.id} type="button" onClick={() => pick(item)} className="flex items-center gap-2 border-b border-ui-subtle px-2.5 py-2 text-left text-[12.5px] text-ui-1 last:border-b-0 hover:bg-ui-hover">
           <Gauge className="h-3.5 w-3.5 shrink-0 text-ui-3" />
@@ -160,7 +160,7 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Popup
           data-help-article="import"
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(520px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[12px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
+          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(520px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-ui-lg border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
         >
           <div className="flex items-start gap-3 border-b border-ui-subtle px-5 pb-3.5 pt-4">
             <div className="flex min-w-0 flex-1 flex-col gap-1">

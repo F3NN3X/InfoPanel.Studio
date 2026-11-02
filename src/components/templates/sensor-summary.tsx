@@ -41,17 +41,17 @@ export function SensorSummary({ kind, fit, noData, children }: SensorSummaryProp
     <>
       <span aria-hidden className={cn("h-[7px] w-[7px] shrink-0 rounded-full", dot)} />
       <span className="flex min-w-0 flex-1 flex-col text-left">
-        <span className="truncate text-[12px] text-ui-1">{title}</span>
-        <span className="truncate text-[11px] text-ui-3">{note}</span>
+        <span className="truncate text-caption text-ui-1">{title}</span>
+        <span className="truncate text-micro text-ui-3">{note}</span>
       </span>
     </>
   );
   return (
-    <div role="group" aria-label="Sensors" className="overflow-hidden rounded-[8px] border border-ui-default">
+    <div role="group" aria-label="Sensors" className="overflow-hidden rounded-ui-md border border-ui-default">
       {canOpen ? (
         <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2.5 bg-ui-raised px-2.5 py-2 hover:bg-ui-hover">
           {line}
-          <span className="flex shrink-0 items-center gap-0.5 text-[11px] text-ui-3">
+          <span className="flex shrink-0 items-center gap-0.5 text-micro text-ui-3">
             {open ? "Hide" : "Review"}
             {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </span>

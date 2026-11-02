@@ -26,13 +26,13 @@ export function ColorPill({
           type="button"
           aria-label={`Reset ${label} to Auto`}
           onClick={onReset}
-          className="text-[11px] text-ui-4 hover:text-ui-1"
+          className="text-micro text-ui-4 hover:text-ui-1"
         >
           Auto
         </button>
       )}
       <label className="flex h-7 cursor-pointer items-center gap-2 rounded-md border border-ui-strong bg-ui-hover pl-[9px] pr-1">
-        <span className="font-ui-mono text-[11px] text-ui-2">{value ? value.toUpperCase() : "Auto"}</span>
+        <span className="font-ui-mono text-micro text-ui-2">{value ? value.toUpperCase() : "Auto"}</span>
         <span
           className="relative h-5 w-5 shrink-0 overflow-hidden rounded-[4px] border border-ui-strong"
           style={value ? { backgroundColor: value } : { background: CHECKER }}

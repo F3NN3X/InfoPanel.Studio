@@ -20,21 +20,21 @@ export function CalendarBlock({ stored, onSave }: CalendarBlockProps) {
   const keep = stored.map((l) => ({ id: l.id }));
   return (
     <div className="space-y-2">
-      <div className="flex items-baseline justify-between text-[12px] font-semibold text-ui-1">
+      <div className="flex items-baseline justify-between text-caption font-semibold text-ui-1">
         Calendar links
-        <span className="truncate pl-2 text-[11px] font-normal text-ui-4">{stored.length === 0 ? "None" : next ? `Next: ${next.title}` : "No events in 36 h"}</span>
+        <span className="truncate pl-2 text-micro font-normal text-ui-4">{stored.length === 0 ? "None" : next ? `Next: ${next.title}` : "No events in 36 h"}</span>
       </div>
       {stored.map((l) => (
-        <div key={l.id} className="flex items-center gap-2 text-[12px] text-ui-2">
+        <div key={l.id} className="flex items-center gap-2 text-caption text-ui-2">
           <span className="min-w-0 flex-1 truncate">{l.label || l.host}</span>
-          <span className="truncate text-[11px] text-ui-hint">{l.label ? l.host : ""}</span>
+          <span className="truncate text-micro text-ui-hint">{l.label ? l.host : ""}</span>
           <button type="button" aria-label={`Remove ${l.label || l.host}`} className="text-ui-4 hover:text-ui-danger" onClick={() => void onSave(keep.filter((k) => k.id !== l.id))}>
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       ))}
       {live.error && (
-        <p role="alert" className="text-[11px] text-ui-danger">
+        <p role="alert" className="text-micro text-ui-danger">
           {live.error}
         </p>
       )}

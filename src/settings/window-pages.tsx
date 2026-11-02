@@ -26,7 +26,7 @@ function NoteToast({ note }: { note?: SaveNote }) {
     <div
       key={shown.id}
       role="status"
-      className="fixed bottom-5 right-6 z-10 flex h-[34px] items-center gap-2 rounded-[9px] border border-s-input-line bg-s-divider px-3.5 text-[12.5px] text-s-t1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+      className="fixed bottom-5 right-6 z-10 flex h-(--ui-h-field) items-center gap-2 rounded-ui-menu border border-s-input-line bg-s-divider px-3.5 text-[12.5px] text-s-t1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
     >
       {shown.error ? <X className="h-4 w-4 text-s-red" /> : <CircleCheck className="h-4 w-4 text-s-green" />}
       {shown.error ?? "Saved"}
@@ -105,7 +105,7 @@ export function WindowMain({ title, subtitle, wide, focus, top, children }: Wind
     return () => cancelAnimationFrame(id);
   }, [focus?.row, focus?.n, title]);
   return (
-    <main ref={main} data-scroll-root className="relative min-w-0 flex-1 overflow-auto">
+    <main ref={main} data-scroll-root className="relative min-w-0 flex-1 scroll-pt-16 overflow-auto">
       {top}
       <div className={cn("mx-auto flex w-full min-w-0 flex-col gap-7 px-8 pb-20 pt-8 max-sm:px-4", wide ? "max-w-[1040px]" : "max-w-[780px]")}>
         <div className="flex flex-col gap-1.5">

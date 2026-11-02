@@ -54,15 +54,15 @@ interface ItemInspectorProps {
   actions?: { onToggleHidden: () => void; onDuplicate: () => void; onDelete: () => void };
 }
 
-const INPUT = "h-7 w-full min-w-0 rounded-[6px] border bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
+const INPUT = "h-7 w-full min-w-0 rounded-ui-sm border bg-ui-raised px-2 font-ui-mono text-caption text-ui-1 outline-none focus:border-ui-accent";
 const Message = ({ children }: { children: ReactNode }) => <p className="mt-1.5 text-[11.5px] leading-snug text-ui-danger">{children}</p>;
 
 /** The panel shell for no selection or several items. */
 function Placeholder({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="px-5 py-6 font-ui">
-      <div className="text-[13px] font-semibold text-ui-1">{title}</div>
-      <p className="mt-1.5 text-[12px] leading-snug text-ui-4">{children}</p>
+      <div className="text-body font-semibold text-ui-1">{title}</div>
+      <p className="mt-1.5 text-caption leading-snug text-ui-4">{children}</p>
     </div>
   );
 }
@@ -197,7 +197,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
                   type="button"
                   title="Round the corners to half the height and fill with a gradient from accent 1 to accent 2"
                   onClick={() => editor.commit(updateAt(editor.committed, path, (bar) => gradientBar(bar, editor.palette)))}
-                  className="mx-4 mb-2 flex h-7 w-[calc(100%-2rem)] items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-[12px] text-ui-1 hover:border-ui-strong"
+                  className="mx-4 mb-2 flex h-7 w-[calc(100%-2rem)] items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-caption text-ui-1 hover:border-ui-strong"
                 >
                   Rounded gradient look
                 </button>
@@ -210,7 +210,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
           body: (
             <div className="px-4 pb-3">
               <p className="mb-1.5 text-[11.5px] text-ui-4">Exported as they came.</p>
-              <pre className="max-h-48 overflow-auto rounded-md bg-ui-raised p-2 font-ui-mono text-[11px] leading-snug text-ui-3">
+              <pre className="max-h-48 overflow-auto rounded-md bg-ui-raised p-2 font-ui-mono text-micro leading-snug text-ui-3">
                 {Object.entries(item.unknown)
                   .map(([k, v]) => `${k}: ${v}`)
                   .join("\n")}
@@ -238,7 +238,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
             <Icon />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-semibold text-ui-1">{name}</div>
+            <div className="truncate text-body font-semibold text-ui-1">{name}</div>
             <div data-testid="inspector-kind" title={mode} className="truncate text-micro text-ui-3">
               {kindWord}
             </div>
@@ -348,18 +348,18 @@ function DrawAs({ editor, path }: { editor: CanvasEditor; path: Path }) {
         onChange={(v) => editor.setField(path, "native", v === "native")}
       />
       {!c.ok ? (
-        <div className="rounded-lg border border-ui-danger/40 bg-ui-danger/10 px-3 py-2 text-[12px] leading-snug text-ui-2">
+        <div className="rounded-lg border border-ui-danger/40 bg-ui-danger/10 px-3 py-2 text-caption leading-snug text-ui-2">
           <span className="font-medium text-ui-danger">Can’t convert yet.</span> {c.reason}
         </div>
       ) : m.state === "native" ? (
         <div className="space-y-2">
-          <div className="rounded-lg border border-ui-default bg-ui-raised px-3 py-2 text-[12px] leading-snug text-ui-2">
+          <div className="rounded-lg border border-ui-default bg-ui-raised px-3 py-2 text-caption leading-snug text-ui-2">
             Dashboard <span className="font-medium text-ui-1">{c.native.widget.kind}</span>: {describeNative(c.native)}
           </div>
           {c.native.lost.length > 0 && (
             <div>
-              <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-ui-4">Lost while native</div>
-              <ul className="space-y-0.5 text-[12px] text-ui-warning">
+              <div className="mb-1 text-micro font-medium uppercase tracking-wide text-ui-4">Lost while native</div>
+              <ul className="space-y-0.5 text-caption text-ui-warning">
                 {c.native.lost.map((l) => (
                   <li key={l}>· {l}</li>
                 ))}
@@ -368,10 +368,10 @@ function DrawAs({ editor, path }: { editor: CanvasEditor; path: Path }) {
           )}
           {c.native.needs.length > 0 && (
             <div>
-              <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-ui-4">Uses app feature</div>
+              <div className="mb-1 text-micro font-medium uppercase tracking-wide text-ui-4">Uses app feature</div>
               <div className="flex flex-wrap gap-1">
                 {c.native.needs.map((n) => (
-                  <span key={n} className="rounded-full border border-ui-default px-2 py-0.5 text-[11px] text-ui-3">
+                  <span key={n} className="rounded-full border border-ui-default px-2 py-0.5 text-micro text-ui-3">
                     {n}
                   </span>
                 ))}
@@ -380,7 +380,7 @@ function DrawAs({ editor, path }: { editor: CanvasEditor; path: Path }) {
           )}
         </div>
       ) : (
-        <p className="text-[12px] leading-snug text-ui-4">Drawn as InfoPanel draws it; the dashboard theme doesn’t apply.</p>
+        <p className="text-caption leading-snug text-ui-4">Drawn as InfoPanel draws it; the dashboard theme doesn’t apply.</p>
       )}
     </div>
   );
@@ -397,7 +397,7 @@ function GeoInput({ label, value, onCommit }: { label: string; value: number; on
   };
   return (
     <label className="block min-w-0">
-      <span className="mb-1 block text-[11px] text-ui-4">{label}</span>
+      <span className="mb-1 block text-micro text-ui-4">{label}</span>
       <input
         inputMode="numeric"
         aria-label={label}
@@ -457,7 +457,7 @@ function PositionGrid({ editor, path, item }: { editor: CanvasEditor; path: Path
           />
         )}
         {has("FlipX") && (
-          <label className="col-span-2 flex h-7 items-center gap-2 text-[12px] text-ui-2">
+          <label className="col-span-2 flex h-7 items-center gap-2 text-caption text-ui-2">
             <input
               type="checkbox"
               checked={valueOf(item, "FlipX") === true}
@@ -487,7 +487,7 @@ function EditGaugeButton({ onClick }: { onClick: () => void }) {
         type="button"
         onClick={onClick}
         title="Open this gauge in Gauges"
-        className="flex w-full items-center gap-2.5 rounded-lg border border-ui-default bg-ui-raised px-3 py-2 text-left text-[12px] text-ui-1 hover:border-ui-strong"
+        className="flex w-full items-center gap-2.5 rounded-lg border border-ui-default bg-ui-raised px-3 py-2 text-left text-caption text-ui-1 hover:border-ui-strong"
       >
         Edit gauge…
       </button>
@@ -542,22 +542,22 @@ function SensorCard({
       >
         <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dot)} aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-ui-mono text-[12px] text-ui-1">{key ?? status}</span>
-          <span className="block truncate text-[11px] text-ui-4">
+          <span className="block truncate font-ui-mono text-caption text-ui-1">{key ?? status}</span>
+          <span className="block truncate text-micro text-ui-4">
             {key ? [status, value?.source].filter(Boolean).join(" · ") : "Remap to choose a sensor"}
           </span>
-          <span className="block truncate text-[11px] text-ui-4">was {item.SensorName || "unnamed"}</span>
+          <span className="block truncate text-micro text-ui-4">was {item.SensorName || "unnamed"}</span>
         </span>
-        {value && <span className="shrink-0 font-ui-mono text-[12px] text-ui-2">{valueText(value)}</span>}
+        {value && <span className="shrink-0 font-ui-mono text-caption text-ui-2">{valueText(value)}</span>}
       </button>
-      <p className="truncate text-[11px] text-ui-4" title={native ?? undefined}>
+      <p className="truncate text-micro text-ui-4" title={native ?? undefined}>
         InfoPanel reads <span className="font-ui-mono text-ui-3">{native ?? "no sensor"}</span>
       </p>
       {previewOnly && <p className="text-[11.5px] leading-snug text-ui-warning">{NOT_EXPORTABLE}.</p>}
-      {item.kind === "TableSensor" && key && <p className="text-[11px] leading-snug text-ui-4">{tableFormatNote(entry)}</p>}
+      {item.kind === "TableSensor" && key && <p className="text-micro leading-snug text-ui-4">{tableFormatNote(entry)}</p>}
       {editor.sensorMode === "mock" && (
         <label className="block">
-          <span className="mb-1 flex justify-between text-[11px] text-ui-4">
+          <span className="mb-1 flex justify-between text-micro text-ui-4">
             Mock value <span className="font-ui-mono text-ui-2">{mock}</span>
           </span>
           <input

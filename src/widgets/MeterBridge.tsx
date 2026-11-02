@@ -213,7 +213,7 @@ export default function MeterBridge(p: MeterBridgeProps) {
                   </div>
                 </div>
                 {showDetails && (
-                <div className="grid grid-cols-2 gap-1 font-mono text-micro tabular-nums text-[color:var(--w-faint)]">
+                <div title="Level in dB, left and right" className="grid grid-cols-2 gap-1 font-mono text-micro tabular-nums text-[color:var(--w-faint)]">
                   <span className="flex justify-between gap-1">
                     <span className="font-sans font-semibold text-[color:var(--w-muted)]">L</span>
                     {fmtDb(c.l)}

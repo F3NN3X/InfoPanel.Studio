@@ -28,7 +28,7 @@ export function PaintRow({ label, value, onChange, fixedOnly }: { label: string;
           aria-label={`${label} source`}
           value={theme ? value : "custom"}
           onChange={(e) => onChange(e.target.value === "custom" ? customOf(value) : followOf(e.target.value))}
-          className="h-7 max-w-[120px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-7 max-w-[120px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent"
         >
           {THEME_COLORS.map((c) => (
             <option key={c} value={c}>

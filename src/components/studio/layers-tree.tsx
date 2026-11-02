@@ -241,13 +241,13 @@ export function LayersTree({ host }: { host: LayersHost }) {
   return (
     <section aria-label="Layers" className="flex min-h-0 flex-1 flex-col font-ui">
       <div className="flex h-[38px] shrink-0 items-center gap-1.5 pl-3.5 pr-2.5">
-        <span className="text-[12px] font-semibold text-ui-1">Layers</span>
+        <span className="text-caption font-semibold text-ui-1">Layers</span>
         <span className="text-micro text-ui-4">top first</span>
         <span className="flex-1" />
-        <IconButton label="Group selection (Ctrl+G)" className="h-6 w-6 rounded-[6px] text-ui-4 hover:bg-ui-hover hover:text-ui-2" disabled={!host.menu.available.group} onClick={() => host.menu.run("group")}>
+        <IconButton label="Group selection (Ctrl+G)" className="h-6 w-6 rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-2" disabled={!host.menu.available.group} onClick={() => host.menu.run("group")}>
           <FolderPlus className="h-[14px] w-[14px]" />
         </IconButton>
-        <IconButton label="Collapse all" className="h-6 w-6 rounded-[6px] text-ui-4 hover:bg-ui-hover hover:text-ui-2" onClick={() => host.setOpen(groupIds(host.nodes), false)}>
+        <IconButton label="Collapse all" className="h-6 w-6 rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-2" onClick={() => host.setOpen(groupIds(host.nodes), false)}>
           <ChevronsDownUp className="h-[14px] w-[14px]" />
         </IconButton>
       </div>
@@ -314,7 +314,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
                 setMenu({ x: e.clientX, y: e.clientY });
               }}
               className={cn(
-                "group/row relative flex h-[28px] shrink-0 cursor-pointer items-center gap-[5px] rounded-[6px] pr-1.5 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
+                "group/row relative flex h-(--ui-h-control) shrink-0 cursor-pointer items-center gap-[5px] rounded-ui-sm pr-1.5 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
                 isSelected ? "bg-ui-accent/18 text-white" : tinted.has(node.id) ? "bg-ui-accent/7" : "hover:bg-ui-hover",
                 mark === "inside" && "outline outline-1 -outline-offset-1 outline-ui-accent",
               )}
@@ -368,10 +368,10 @@ export function LayersTree({ host }: { host: LayersHost }) {
                       e.currentTarget.blur();
                     }
                   }}
-                  className="h-[22px] min-w-0 flex-1 rounded-[5px] border border-ui-accent bg-ui-app px-1.5 text-[12px] text-ui-1 outline-none"
+                  className="h-[22px] min-w-0 flex-1 rounded-[5px] border border-ui-accent bg-ui-app px-1.5 text-caption text-ui-1 outline-none"
                 />
               ) : (
-                <span onDoubleClick={() => setRenaming(node.id)} title={label} className={cn("min-w-0 flex-1 truncate text-[12px]", isSelected ? "text-white" : node.hidden ? "text-ui-4" : "text-ui-2")}>
+                <span onDoubleClick={() => setRenaming(node.id)} title={label} className={cn("min-w-0 flex-1 truncate text-caption", isSelected ? "text-white" : node.hidden ? "text-ui-4" : "text-ui-2")}>
                   {label}
                 </span>
               )}
@@ -428,7 +428,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
         {announcement}
       </p>
       {why && (
-        <p role="status" className="border-t border-ui-subtle px-3.5 py-2 text-[11px] leading-snug text-ui-warn">
+        <p role="status" className="border-t border-ui-subtle px-3.5 py-2 text-micro leading-snug text-ui-warn">
           {why}
         </p>
       )}

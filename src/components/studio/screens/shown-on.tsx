@@ -92,14 +92,14 @@ export function ShownOn({ screenId, isDefault, isBestFit, kiosks, onChangeDefaul
         maxLength={DISPLAY_NAME_MAX}
         value={display}
         onChange={(e) => setDisplay(e.target.value)}
-        className="h-7 rounded-md border border-ui-strong bg-ui-hover px-2 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+        className="h-7 rounded-md border border-ui-strong bg-ui-hover px-2 text-caption text-ui-1 outline-none focus:border-ui-accent"
       />
       {display !== "" && !named && <span className="text-[11.5px] text-ui-4">Use letters, digits, - and _ only.</span>}
       <button
         type="button"
         disabled={display !== "" && !named}
         onClick={() => copy(screenId, named ? display : undefined)}
-        className="inline-flex h-7 items-center justify-center gap-1.5 self-start rounded-[7px] disabled:opacity-50 border border-ui-strong px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover"
+        className="inline-flex h-7 items-center justify-center gap-1.5 self-start rounded-[7px] disabled:opacity-50 border border-ui-strong px-2.5 text-caption text-ui-1 hover:bg-ui-hover"
       >
         <LinkIcon className="h-3.5 w-3.5" />
         Copy kiosk link

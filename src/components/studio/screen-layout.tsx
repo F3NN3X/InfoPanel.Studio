@@ -25,7 +25,7 @@ function SizeInput({ label, value, onCommit }: { label: string; value: number; o
   };
   return (
     <label className="block min-w-0 flex-1 space-y-1" title="Design size (px)">
-      <span className="text-[12px] text-ui-4">{label}</span>
+      <span className="text-caption text-ui-4">{label}</span>
       <input
         type="number"
         min={1}
@@ -139,10 +139,10 @@ function GridPreview({ profile }: { profile: ProfileView }) {
 
 /** A count with − and + buttons. */
 function Stepper({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
-  const button = "flex h-[28px] w-[30px] items-center justify-center text-ui-2 hover:text-ui-1 disabled:pointer-events-none disabled:opacity-35";
+  const button = "flex h-(--ui-h-control) w-[30px] items-center justify-center text-ui-2 hover:text-ui-1 disabled:pointer-events-none disabled:opacity-35";
   return (
     <div className="min-w-0 flex-1 space-y-1.5">
-      <span className="text-[12px] text-ui-3">{label}</span>
+      <span className="text-caption text-ui-3">{label}</span>
       <div role="group" aria-label={label} className="flex h-[30px] items-center rounded-[7px] border border-ui-default bg-ui-app">
         <button type="button" aria-label={`Fewer ${label.toLowerCase()}`} disabled={value <= min} onClick={() => onChange(value - 1)} className={button}>
           <Minus className="h-3.5 w-3.5" />

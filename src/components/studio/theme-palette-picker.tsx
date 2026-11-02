@@ -10,7 +10,7 @@ import { PickerShell } from "./theme-pickers";
 import { PaletteSwatch } from "./theme-swatches";
 import { paletteCounts } from "./theme-messages";
 
-const ACTION = "rounded-sm text-[12px] text-ui-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const ACTION = "rounded-sm text-caption text-ui-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 interface PalettePickerProps {
   current: ThemeTokens;
@@ -51,7 +51,7 @@ export function PalettePicker(p: PalettePickerProps) {
 
   const menu = open && (
     <div key="menu" className="col-span-2 flex flex-col gap-1.5 rounded-lg border border-ui-strong bg-ui-panel px-3 py-2">
-      <p className="text-[11px] text-ui-hint">{p.usedBy(open.tokens)}</p>
+      <p className="text-micro text-ui-hint">{p.usedBy(open.tokens)}</p>
       {renaming === open.id ? (
         <ThemeNameInput
           initial={open.name}
@@ -119,7 +119,7 @@ export function PalettePicker(p: PalettePickerProps) {
       help="The 19 color tokens and the accent. Changing the palette keeps the skin, corners, background and the rest of the fine-tune."
       onBack={p.onBack}
       footer={
-        <div className="flex items-center gap-3 text-[12px]">
+        <div className="flex items-center gap-3 text-caption">
           <span className="min-w-0 flex-1 truncate whitespace-nowrap text-ui-hint">{paletteCounts(THEME_PRESETS.length + p.themes.length, p.saved.length)}</span>
           {saving ? (
             <ThemeNameInput

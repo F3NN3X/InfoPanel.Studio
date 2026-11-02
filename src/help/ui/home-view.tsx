@@ -57,7 +57,7 @@ export function HomeView({ content, query, onQuery, onOpen, searching = false, m
                   onClick={() => onOpen(a.id)}
                   className="flex cursor-pointer flex-col gap-2.5 whitespace-normal rounded-xl border border-s-card-line bg-s-card p-[18px] text-left text-s-t1 hover:border-[#33333b] hover:bg-[#141418]"
                 >
-                  <div className="grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-s-accent/14 text-s-accent-text">
+                  <div className="grid h-(--ui-h-field) w-[34px] place-items-center rounded-ui-menu bg-s-accent/14 text-s-accent-text">
                     <Icon className="h-[19px] w-[19px]" strokeWidth={1.75} />
                   </div>
                   <span className="text-sm font-semibold">{a.title}</span>
@@ -77,7 +77,7 @@ export function HomeView({ content, query, onQuery, onOpen, searching = false, m
             .filter((g) => g.label !== START_GROUP && g.articles.length > 0)
             .map((g) => (
               <div key={g.label} className="flex flex-col gap-0.5 rounded-xl border border-s-card-line bg-s-card px-2 pb-2.5 pt-4">
-                <h3 className="m-0 px-2.5 pb-1.5 text-[13px] font-semibold">{g.label}</h3>
+                <h3 className="m-0 px-2.5 pb-1.5 text-body font-semibold">{g.label}</h3>
                 {g.articles.map((a) => {
                   const Icon = iconFor(a.icon);
                   return (
@@ -85,7 +85,7 @@ export function HomeView({ content, query, onQuery, onOpen, searching = false, m
                       key={a.id}
                       type="button"
                       onClick={() => onOpen(a.id)}
-                      className="flex cursor-pointer items-center gap-[9px] whitespace-normal rounded-[7px] border-0 bg-transparent px-2.5 py-1.5 text-left text-[13px] text-[#b4b4bd] hover:bg-s-nav-hover hover:text-s-t1"
+                      className="flex cursor-pointer items-center gap-[9px] whitespace-normal rounded-[7px] border-0 bg-transparent px-2.5 py-1.5 text-left text-body text-[#b4b4bd] hover:bg-s-nav-hover hover:text-s-t1"
                     >
                       <Icon className="h-4 w-4 shrink-0 text-s-dim" />
                       <span className="flex-1">{a.title}</span>

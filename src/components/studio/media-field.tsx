@@ -134,15 +134,15 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
             )}
           </span>
         </div>
-        {!valid && <div className="mt-1 text-[11px] text-ui-danger">Use an http(s) URL or a path such as /assets/…</div>}
+        {!valid && <div className="mt-1 text-micro text-ui-danger">Use an http(s) URL or a path such as /assets/…</div>}
         {status.state === "uploading" && (
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-ui-4">
+          <div className="mt-1 flex items-center gap-1.5 text-micro text-ui-4">
             <Loader2 className="h-3 w-3 animate-spin" />
             Uploading {status.name} ({formatBytes(status.size)})…
           </div>
         )}
         {status.state === "error" && (
-          <div role="alert" className="mt-1 text-[11px] text-ui-danger">
+          <div role="alert" className="mt-1 text-micro text-ui-danger">
             {status.message}
           </div>
         )}
@@ -174,7 +174,7 @@ function LargePreview({ kind, src, fill }: { kind: AssetKind; src: string; fill:
       style={{ backgroundColor: fill }}
     >
       {broken ? (
-        <span className="text-[11px] text-ui-4">The {kind} could not be loaded</span>
+        <span className="text-micro text-ui-4">The {kind} could not be loaded</span>
       ) : kind === "image" ? (
         <img src={src} alt="" className="max-h-full max-w-full object-contain" onError={() => setBroken(true)} />
       ) : (

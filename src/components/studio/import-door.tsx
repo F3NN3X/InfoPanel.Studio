@@ -60,7 +60,7 @@ export function groupsOf(files: readonly DoorFile[], current: { screen: string; 
 
 function RadioDot({ on }: { on: boolean }) {
   return (
-    <span className={cn("grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px]", on ? "border-ui-accent" : "border-[#3a3a42]")}>
+    <span className={cn("grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px]", on ? "border-ui-accent" : "border-ui-edge")}>
       {on && <span className="h-2 w-2 rounded-full bg-ui-accent" />}
     </span>
   );
@@ -74,7 +74,7 @@ function FileRow({ file, onRemove }: { file: DoorFile; onRemove: () => void }) {
     <li className="flex items-center gap-2.5 py-2">
       <Icon className={cn("h-[18px] w-[18px] shrink-0", bad ? "text-ui-danger" : "text-ui-3")} strokeWidth={1.75} />
       <span className="min-w-0 flex-1 truncate font-ui-mono text-[12.5px] text-ui-1">{file.file.name}</span>
-      <span className={cn("shrink-0 text-[12px]", !s ? "text-ui-4" : bad ? "text-ui-danger" : "text-ui-success")} role={bad ? "alert" : undefined}>
+      <span className={cn("shrink-0 text-caption", !s ? "text-ui-4" : bad ? "text-ui-danger" : "text-ui-success")} role={bad ? "alert" : undefined}>
         {!s ? "Reading…" : bad ? s.label : `Detected: ${s.label}`}
       </span>
       <button type="button" aria-label={`Remove ${file.file.name}`} onClick={onRemove} className="grid h-5 w-5 shrink-0 place-items-center rounded text-ui-4 hover:bg-ui-hover hover:text-ui-1">
@@ -100,8 +100,8 @@ function DestinationCards({ group, value, onPick }: { group: Group; value: Desti
           >
             <RadioDot on={on} />
             <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-[13px] font-medium text-ui-1">{d.title}</span>
-              <span className="text-[12px] text-ui-4">{d.text}</span>
+              <span className="text-body font-medium text-ui-1">{d.title}</span>
+              <span className="text-caption text-ui-4">{d.text}</span>
             </span>
           </button>
         );
@@ -148,7 +148,7 @@ export function ImportDoorDialog({ open, files, choices, onChoices, busy, curren
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Popup
           data-help-article="import"
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(560px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[12px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
+          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(560px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-ui-lg border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
         >
           <div className="flex flex-col gap-1 border-b border-ui-subtle px-5 pb-3.5 pt-4">
             <Dialog.Title className="text-[16px] font-semibold text-ui-1">Import</Dialog.Title>
@@ -165,12 +165,12 @@ export function ImportDoorDialog({ open, files, choices, onChoices, busy, curren
               >
                 <Upload className="h-6 w-6" strokeWidth={1.5} />
                 <span className="text-[12.5px]">Drop files here, or choose them</span>
-                <span className="text-[11px] text-ui-4">Config backups, screens, .infopanel, gauges, images, videos, fonts</span>
+                <span className="text-micro text-ui-4">Config backups, screens, .infopanel, gauges, images, videos, fonts</span>
               </button>
             ) : null}
             {files.length === 0 && (
               <div className="-mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                <button type="button" onClick={onInstalled} className="text-[12px] text-ui-accent-text hover:underline">
+                <button type="button" onClick={onInstalled} className="text-caption text-ui-accent-text hover:underline">
                   From InfoPanel on this PC…
                 </button>
                 <button
@@ -179,7 +179,7 @@ export function ImportDoorDialog({ open, files, choices, onChoices, busy, curren
                     onClose();
                     openNewInfoPanel();
                   }}
-                  className="text-[12px] text-ui-accent-text hover:underline"
+                  className="text-caption text-ui-accent-text hover:underline"
                 >
                   No file? New InfoPanel profile…
                 </button>
@@ -192,14 +192,14 @@ export function ImportDoorDialog({ open, files, choices, onChoices, busy, curren
                     <FileRow key={f.id} file={f} onRemove={() => onRemove(f.id)} />
                   ))}
                 </ul>
-                <button type="button" onClick={() => input.current?.click()} className="mb-1 mt-0.5 text-[12px] text-ui-accent-text hover:underline">
+                <button type="button" onClick={() => input.current?.click()} className="mb-1 mt-0.5 text-caption text-ui-accent-text hover:underline">
                   Add more files…
                 </button>
               </section>
             )}
             {groups.map((g) => (
               <section key={g.key} className="flex flex-col gap-2">
-                <span className="text-[12px] text-ui-3">
+                <span className="text-caption text-ui-3">
                   Destination{groups.length > 1 ? ` · ${g.files.length === 1 ? g.files[0].file.name : `${g.files.length} files`}` : ""}
                 </span>
                 <DestinationCards group={g} value={valueOf(g)} onPick={(id) => pick(g, id)} />

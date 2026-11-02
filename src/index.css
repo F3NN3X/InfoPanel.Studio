@@ -7,22 +7,6 @@
 /* The studio's phone width (SPEC §3.5, `PHONE_MAX`): `sm:` and `max-sm:` switch at 600 px, not Tailwind's 640. */
 @theme {
   --breakpoint-sm: 600px;
-  /* Type scale: use these instead of arbitrary px sizes. Kiosk and widget text
-     never goes below micro; studio chrome never below 10px. */
-  --text-micro: 0.6875rem;
-  --text-caption: 0.75rem;
-  --text-body: 0.8125rem;
-  --text-title: 0.9375rem;
-  /* Studio control scale: radii, heights and stacking. New code uses these; older call sites still carry arbitrary values. */
-  --radius-ui-sm: 6px;
-  --radius-ui-md: 8px;
-  --radius-ui-lg: 12px;
-  --radius-ui-menu: 9px;
-  --ui-h-control: 28px;
-  --ui-h-field: 34px;
-  --z-menu: 50;
-  --z-dialog: 60;
-  --z-toast: 90;
 }
 
 /* shadcn theme tokens.
@@ -106,6 +90,11 @@
   /* Hints, helpers, captions and placeholders (4.5:1 on panels and cards); not for disabled text, that is --ui-text-disabled. */
   --ui-text-hint: #8a8a94;
   --ui-text-disabled: #55555e;
+  /* Secondary text and edges the studio used as hex literals (FND-030): one step each, not near-duplicates. */
+  --ui-text-soft: #a1a1aa;
+  --ui-border-edge: #3a3a44;
+  --ui-accent-blue: #3b82f6;
+  --ui-text-ok: oklch(0.88 0.1 150);
   --ui-accent: oklch(0.72 0.15 255);
   --ui-accent-soft: oklch(0.72 0.15 255 / 0.14);
   --ui-accent-text: oklch(0.82 0.12 255);
@@ -138,6 +127,10 @@
   --color-ui-4: var(--ui-text-4);
   --color-ui-hint: var(--ui-text-hint);
   --color-ui-disabled: var(--ui-text-disabled);
+  --color-ui-soft: var(--ui-text-soft);
+  --color-ui-edge: var(--ui-border-edge);
+  --color-ui-blue: var(--ui-accent-blue);
+  --color-ui-ok-text: var(--ui-text-ok);
   --color-ui-control: var(--ui-border-control);
   --color-ui-accent: var(--ui-accent);
   --color-ui-accent-soft: var(--ui-accent-soft);

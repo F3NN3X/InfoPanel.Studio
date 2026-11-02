@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { breakdownOf, dateLine, isDate, isTime, phaseOf, targetOf, tickMs, unitWord } from "@/lib/countdown";
+import { breakdownOf, dateLine, isDate, isTime, phaseOf, targetOf, tickMs, trimTrailingZeros, unitWord } from "@/lib/countdown";
 
 const at = (y: number, m: number, d: number, h = 0, mi = 0, s = 0) => new Date(y, m - 1, d, h, mi, s);
 const flat = (now: Date, target: Date, b: Parameters<typeof breakdownOf>[2]) => breakdownOf(now, target, b).map((p) => `${p.value} ${unitWord(p)}`);
@@ -104,5 +104,19 @@ describe("dateLine", () => {
   });
   it("writes midnight as 00:00 on a 24 h clock", () => {
     expect(dateLine(at(2030, 1, 1, 0, 5), false, "until", "24", "en-US")).toBe("until January 1, 2030, 00:05");
+  });
+});
+
+describe("trimTrailingZeros", () => {
+  const show = (parts: Parameters<typeof trimTrailingZeros>[0]) => trimTrailingZeros(parts).map((p) => `${p.value} ${p.unit}`);
+  it("drops zero units from the end, keeping the zero in the middle", () => {
+    expect(show([{ value: 1, unit: "years" }, { value: 0, unit: "months" }, { value: 0, unit: "days" }])).toEqual(["1 years"]);
+    expect(show([{ value: 1, unit: "days" }, { value: 0, unit: "hours" }, { value: 5, unit: "minutes" }])).toEqual(["1 days", "0 hours", "5 minutes"]);
+  });
+  it("keeps a live readout's seconds so it does not jump", () => {
+    expect(show([{ value: 1, unit: "minutes" }, { value: 0, unit: "seconds" }])).toEqual(["1 minutes", "0 seconds"]);
+  });
+  it("always keeps one unit", () => {
+    expect(show([{ value: 0, unit: "days" }, { value: 0, unit: "hours" }, { value: 0, unit: "minutes" }])).toEqual(["0 days"]);
   });
 });

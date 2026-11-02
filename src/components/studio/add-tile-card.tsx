@@ -71,7 +71,7 @@ export function TileCard({ tile, left, top, status, appearance, pageStyle }: Til
     <div
       data-testid="add-preview"
       aria-hidden
-      className="add-preview-in pointer-events-none fixed z-[60] flex flex-col overflow-hidden rounded-[12px] border border-ui-active bg-ui-tile font-ui shadow-[0_20px_50px_#000c]"
+      className="add-preview-in pointer-events-none fixed z-[60] flex flex-col overflow-hidden rounded-ui-lg border border-ui-active bg-ui-tile font-ui shadow-[0_20px_50px_#000c]"
       style={{ left, top, width: CARD_WIDTH }}
     >
       <div
@@ -91,20 +91,20 @@ export function TileCard({ tile, left, top, status, appearance, pageStyle }: Til
       <div className="flex flex-col gap-2 px-3.5 py-3">
         <span className="flex items-baseline gap-2">
           <span className="truncate text-[14px] font-semibold text-ui-1">{tile.name}</span>
-          <span className="shrink-0 text-[11px] text-ui-4">{cardCategory(tile)}</span>
+          <span className="shrink-0 text-micro text-ui-4">{cardCategory(tile)}</span>
         </span>
-        <p className="text-pretty text-[12px] leading-[1.5] text-ui-2">{cardDescription(tile)}</p>
-        <span className="flex items-center gap-2 text-[11px] text-ui-3">
+        <p className="text-pretty text-caption leading-[1.5] text-ui-2">{cardDescription(tile)}</p>
+        <span className="flex items-center gap-2 text-micro text-ui-3">
           <span className="rounded-[4px] bg-ui-subtle px-1.5 py-px font-ui-mono text-ui-1">{size.chip}</span>
           {size.note}
         </span>
         {status && s && (
-          <span className={cn("flex items-center gap-1.5 text-[11px]", status.text[s])}>
+          <span className={cn("flex items-center gap-1.5 text-micro", status.text[s])}>
             <status.Icon status={s} className="h-3.5 w-3.5" />
             On InfoPanel: {status.word[s]}
           </span>
         )}
-        <span className="border-t border-ui-default pt-2 text-[11px] text-ui-hint">Click to add · drag to place</span>
+        <span className="border-t border-ui-default pt-2 text-micro text-ui-hint">Click to add · drag to place</span>
       </div>
     </div>,
     document.body,

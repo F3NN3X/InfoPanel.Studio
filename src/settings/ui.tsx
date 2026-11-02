@@ -42,11 +42,12 @@ export function Button({ kind = "neutral", size = "sm", disabled, onClick, title
     <button
       type="button"
       title={title}
+      aria-description={title}
       disabled={disabled}
       onClick={onClick}
       className={cn(
         "flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg transition-colors disabled:cursor-default disabled:opacity-50",
-        size === "md" ? "h-[34px] px-3.5 text-[13px]" : "h-8 px-3 text-[12.5px]",
+        size === "md" ? "h-(--ui-h-field) px-3.5 text-body" : "h-8 px-3 text-[12.5px]",
         BUTTON_KINDS[kind],
         className
       )}
@@ -127,7 +128,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
     buttons?.[options.indexOf(next)]?.focus();
   };
   return (
-    <div role="radiogroup" aria-label={label} className={cn("flex gap-0.5 rounded-[9px] border border-s-track-line bg-s-win p-[3px]", className)}>
+    <div role="radiogroup" aria-label={label} className={cn("flex gap-0.5 rounded-ui-menu border border-s-track-line bg-s-win p-[3px]", className)}>
       {options.map((o) => {
         const on = o.value === value;
         return (
@@ -206,7 +207,19 @@ export function Row({ id, label, hint, hintClass, hintAlert, children }: RowProp
       className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 px-[18px] py-3.5", found.className)}
     >
       <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
-        <span id={`${uid}-label`} className="text-[13.5px] font-medium">{label}</span>
+        {/* Clicking the label works the row's control, as a <label for> would. The control is passed as children and has no id to point at. */}
+        <span
+          id={`${uid}-label`}
+          className="text-[13.5px] font-medium"
+          onClick={(e) => {
+            const control = e.currentTarget.closest<HTMLElement>('[role="group"]')?.querySelector<HTMLElement>('[role="switch"],input:not([type="hidden"]),select,textarea,button:not([disabled])');
+            if (!control) return;
+            if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement) control.focus();
+            else control.click();
+          }}
+        >
+          {label}
+        </span>
         {hint && (
           <span id={`${uid}-hint`} role={hintAlert ? "alert" : undefined} className={cn("text-[12.5px] leading-[1.45] text-s-muted", hintClass)}>
             {hint}

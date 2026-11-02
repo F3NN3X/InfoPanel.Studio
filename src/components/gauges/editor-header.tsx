@@ -6,7 +6,7 @@ import { KIND_LABEL, kindOf } from "@/lib/gauge-studio/model";
 import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
 import type { GaugeEdit } from "./use-gauge-edit";
 
-const BUTTON = "flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
+const BUTTON = "flex h-(--ui-h-field) items-center gap-1.5 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
 
 export interface EditorHeaderProps {
   edit: GaugeEdit;
@@ -47,9 +47,9 @@ export function EditorHeader({ edit, gauge, saving, onBack, onImport, onExport, 
           setDraft(e.target.value);
           edit.rename(e.target.value);
         }}
-        className="h-8 w-[240px] min-w-0 rounded-[6px] border border-transparent bg-transparent px-1.5 text-[14px] font-semibold text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent"
+        className="h-8 w-[240px] min-w-0 rounded-ui-sm border border-transparent bg-transparent px-1.5 text-[14px] font-semibold text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent"
       />
-      <span className="font-ui-mono text-[11px] text-ui-4">
+      <span className="font-ui-mono text-micro text-ui-4">
         {KIND_LABEL[kindOf(gauge)]}
         {where(edit)}
       </span>
@@ -87,7 +87,7 @@ export function EditorHeader({ edit, gauge, saving, onBack, onImport, onExport, 
         type="button"
         onClick={onSave}
         disabled={saving}
-        className="flex h-[34px] items-center gap-1.5 rounded-[8px] bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90 disabled:opacity-50"
+        className="flex h-(--ui-h-field) items-center gap-1.5 rounded-ui-md bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90 disabled:opacity-50"
       >
         <Save className="h-4 w-4" /> Save to library
       </button>

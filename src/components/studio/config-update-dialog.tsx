@@ -59,7 +59,7 @@ export function ConfigUpdateDialog({ from, config, onSaved, onFailed, onClose }:
     <AlertDialog.Root open onOpenChange={(open) => !open && done && onClose()}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="fixed inset-0 z-[70] bg-black/60" />
-        <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-[70] flex w-[440px] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-[12px] border border-ui-strong bg-ui-panel p-5 shadow-ui-modal outline-none">
+        <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-[70] flex w-[440px] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-ui-lg border border-ui-strong bg-ui-panel p-5 shadow-ui-modal outline-none">
           <AlertDialog.Title className="m-0 text-[14px] font-semibold text-ui-1">{title}</AlertDialog.Title>
           <AlertDialog.Description className="m-0 break-words text-[12.5px] leading-[1.5] text-ui-2">{body}</AlertDialog.Description>
           <div className="flex justify-end gap-2">

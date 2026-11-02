@@ -100,7 +100,7 @@ interface ThemeEditorProps {
 const FONTS = FONT_CATALOG.map((f) => ({ value: f.id, label: f.label }));
 
 const TOP_BUTTON =
-  "flex h-7 shrink-0 items-center gap-[5px] whitespace-nowrap rounded-[7px] border border-ui-strong px-2.5 text-[12px] text-ui-1 transition-colors hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+  "flex h-7 shrink-0 items-center gap-[5px] whitespace-nowrap rounded-[7px] border border-ui-strong px-2.5 text-caption text-ui-1 transition-colors hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 /** How long a section a link opened stays outlined. */
 const FLASH_MS = 1200;
@@ -355,7 +355,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
               />
             </DataRow>
           ) : (
-            <p className="px-4 pb-1 text-[12px] text-ui-hint">
+            <p className="px-4 pb-1 text-caption text-ui-hint">
               Page font: <span className="text-ui-1">{fontLabel}</span>, from {profile.name}
             </p>
           ))}
@@ -527,12 +527,12 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
       <div className="flex min-h-14 shrink-0 flex-wrap items-center gap-3.5 border-b border-ui-subtle px-4 py-2">
         <h1 className="text-[16px] font-semibold text-ui-1">Theme</h1>
-        <span className="flex items-center gap-1.5 text-[12px] font-medium text-[#4ade80]">
+        <span className="flex items-center gap-1.5 text-caption font-medium text-[#4ade80]">
           <span className="h-[7px] w-[7px] rounded-full bg-[#4ade80] shadow-[0_0_0_3px_rgba(74,222,128,.18)]" aria-hidden />
           Live look of
         </span>
         <ThemeScopeBar config={config} at={at} profile={profile} page={page} onPick={pick} />
-        <p className="min-w-0 truncate text-[13px] text-ui-hint">{levelHelp(at.level, profile.name, page.name)}</p>
+        <p className="min-w-0 truncate text-body text-ui-hint">{levelHelp(at.level, profile.name, page.name)}</p>
         <div className="flex-1" />
         {at.level === "screen" && (
           <button

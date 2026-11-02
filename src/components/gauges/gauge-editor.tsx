@@ -58,7 +58,7 @@ function Gone({ ref, onBack }: { ref?: Ref<EditorHandle>; onBack: () => void }) 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-ui-app font-ui text-center">
       <p className="text-[12.5px] text-ui-3">This gauge is no longer on the page.</p>
-      <button type="button" onClick={onBack} className="h-[34px] rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover">
+      <button type="button" onClick={onBack} className="h-(--ui-h-field) rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover">
         Back to Gauges
       </button>
     </div>

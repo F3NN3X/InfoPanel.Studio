@@ -119,12 +119,12 @@ export function SettingsDashboard({ config, onPatch, onExport, onReset, onOpenSc
         <div className="flex min-h-[30px] items-center gap-2.5 text-[12.5px]">
           <span className="min-w-0 flex-1 text-ui-2">
             Reset everything
-            <span className="block text-[11px] text-ui-4">You&apos;ll be offered a backup first.</span>
+            <span className="block text-micro text-ui-4">You&apos;ll be offered a backup first.</span>
           </span>
           <button
             type="button"
             onClick={() => setConfirmReset(true)}
-            className="h-7 shrink-0 rounded-md border border-ui-strong px-2.5 text-[12px] text-ui-danger hover:bg-ui-hover"
+            className="h-7 shrink-0 rounded-md border border-ui-strong px-2.5 text-caption text-ui-danger hover:bg-ui-hover"
           >
             Reset everything…
           </button>

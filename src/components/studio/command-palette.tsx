@@ -69,7 +69,7 @@ function PaletteBody({ commands, onRun }: Pick<CommandPaletteProps, "commands" |
         {results.map((command, i) => (
           <div key={command.id}>
             {!searching && command.group !== results[i - 1]?.group && (
-              <div className="px-2 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wider text-ui-4">
+              <div className="px-2 pb-1 pt-2 text-micro font-medium uppercase tracking-wider text-ui-4">
                 {command.group}
               </div>
             )}

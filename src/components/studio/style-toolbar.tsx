@@ -47,7 +47,7 @@ function StyleCard({ name, settings, onPick }: { name: string; settings: ModuleS
     <button
       type="button"
       onClick={onPick}
-      className="flex min-w-0 items-center gap-2 rounded-md border border-ui-subtle p-1.5 text-left text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1"
+      className="flex min-w-0 items-center gap-2 rounded-md border border-ui-subtle p-1.5 text-left text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1"
     >
       <span
         aria-hidden
@@ -96,7 +96,7 @@ export function StyleToolbar({ saved, hasStyle, canMakeTheme, onApply, onSave, m
             if (e.key === "Escape") setName(null);
           }}
           placeholder="Style name"
-          className="h-7 min-w-0 flex-1 rounded-md border border-ui-default bg-ui-app px-2 text-[12px] text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent"
+          className="h-7 min-w-0 flex-1 rounded-md border border-ui-default bg-ui-app px-2 text-caption text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent"
         />
         <button type="button" className={ICON_BUTTON} disabled={!name.trim()} onClick={save} title="Save to Library › Styles">
           <Check className="h-3 w-3" />
@@ -115,9 +115,9 @@ export function StyleToolbar({ saved, hasStyle, canMakeTheme, onApply, onSave, m
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner side="bottom" align="start" sideOffset={6} className="z-[80]">
-            <Popover.Popup className="w-[264px] space-y-2 rounded-[9px] border border-ui-menu bg-ui-raised p-2 font-ui shadow-ui-menu outline-none">
+            <Popover.Popup className="w-[264px] space-y-2 rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui shadow-ui-menu outline-none">
               <div>
-                <p className="px-0.5 pb-1 text-[11px] text-ui-4">Built-in</p>
+                <p className="px-0.5 pb-1 text-micro text-ui-4">Built-in</p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {BUILTIN_STYLES.map((s) => (
                     <StyleCard key={s.id} name={s.name} settings={s.settings} onPick={() => apply(s.settings)} />
@@ -125,7 +125,7 @@ export function StyleToolbar({ saved, hasStyle, canMakeTheme, onApply, onSave, m
                 </div>
               </div>
               <div>
-                <p className="px-0.5 pb-1 text-[11px] text-ui-4">Saved</p>
+                <p className="px-0.5 pb-1 text-micro text-ui-4">Saved</p>
                 {saved.length === 0 ? (
                   <p className="px-0.5 pb-0.5 text-[11.5px] text-ui-4">Styles you save appear here and in Library.</p>
                 ) : (

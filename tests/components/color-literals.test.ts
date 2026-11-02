@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 const LITERAL = /\[(?:#[0-9a-fA-F]{3,8}|(?:rgba?|hsla?|oklch|oklab|lab|lch)\(|[a-z-]+:#[0-9a-fA-F]{3,8})/g;
 
 // The count across src after the FND-030 sweep. Lower it when you remove a literal; never raise it: use a token instead.
-const MAX_LITERALS = 216;
+const MAX_LITERALS = 148;
 
 // Files that hold literal palettes on purpose.
 const EXCLUDED = new Set([

@@ -113,7 +113,7 @@ export function ZoomToolbar({
         type="button"
         onClick={onOpenProfile}
         title={sizeTitle}
-        className={cn(TEXT_BUTTON, "font-ui-mono text-[11px]")}
+        className={cn(TEXT_BUTTON, "font-ui-mono text-micro")}
       >
         {profile.width}×{profile.height} ↗
       </button>

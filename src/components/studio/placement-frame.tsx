@@ -365,7 +365,7 @@ export function PlacementFrame({
             <div
               aria-hidden
               data-shot-skip
-              className="pointer-events-none absolute inset-0 z-[15] hidden rounded-lg border-solid border-[#3a3a42] group-hover/zone:block"
+              className="pointer-events-none absolute inset-0 z-[15] hidden rounded-lg border-solid border-ui-edge group-hover/zone:block"
               style={{ borderWidth: 1 / zoom }}
             />
           )}
@@ -404,12 +404,12 @@ export function PlacementFrame({
       <div className="h-full min-w-0 w-full overflow-hidden">
         <div className="flex h-full w-full flex-col">
           {studio && blank ? (
-            <div data-shot-skip className="flex h-full min-h-16 flex-col items-center justify-center rounded-lg border border-dashed border-[#3a3a44] p-3">
+            <div data-shot-skip className="flex h-full min-h-16 flex-col items-center justify-center rounded-lg border border-dashed border-ui-edge p-3">
               {onPickWidget && (
                 <button
                   type="button"
                   onClick={onPickWidget}
-                  className="flex items-center gap-1 rounded-md px-2 py-1 font-ui text-[11px] text-ui-hint transition-colors hover:bg-ui-hover hover:text-ui-1"
+                  className="flex items-center gap-1 rounded-md px-2 py-1 font-ui text-micro text-ui-hint transition-colors hover:bg-ui-hover hover:text-ui-1"
                 >
                   <Plus className="h-[15px] w-[15px]" /> Pick a widget
                 </button>

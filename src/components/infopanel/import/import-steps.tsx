@@ -25,7 +25,7 @@ const cardTone = (on: boolean) => (on ? "border-ui-accent bg-ui-accent-soft" : "
 
 export function Radio({ on }: { on: boolean }) {
   return (
-    <span className={cn("grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px]", on ? "border-ui-accent" : "border-[#3a3a42]")}>
+    <span className={cn("grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px]", on ? "border-ui-accent" : "border-ui-edge")}>
       {on && <span className="h-2 w-2 rounded-full bg-ui-accent" />}
     </span>
   );
@@ -72,7 +72,7 @@ export function ModeStep({ state }: { state: ImportState }) {
             </span>
             <span className="text-[12.5px] text-ui-3">{m.text}</span>
           </span>
-          <span className="whitespace-nowrap font-ui-mono text-[11px] text-ui-4">{meta[m.value]}</span>
+          <span className="whitespace-nowrap font-ui-mono text-micro text-ui-4">{meta[m.value]}</span>
         </button>
       ))}
     </div>
@@ -199,13 +199,13 @@ export function ReviewStep({ state }: { state: ImportState }) {
     <div className="flex flex-col gap-3.5">
       <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-2">
         {tiles.map((t) => (
-          <div key={t.label} className="flex flex-col gap-[3px] rounded-[9px] border border-ui-default bg-ui-chrome px-3 py-[11px]">
-            <span className="flex items-center gap-1.5 text-[11px] text-ui-4">
+          <div key={t.label} className="flex flex-col gap-[3px] rounded-ui-menu border border-ui-default bg-ui-chrome px-3 py-[11px]">
+            <span className="flex items-center gap-1.5 text-micro text-ui-4">
               {t.label}
               {t.tone && <span className={cn("h-1.5 w-1.5 rounded-full", TONE_DOT[t.tone])} />}
             </span>
             <span className="font-ui-mono text-[18px] font-semibold text-ui-1">{t.value}</span>
-            <span className={cn("truncate text-[11px]", t.tone ? TONE_TEXT[t.tone] : "text-ui-4")}>{t.detail}</span>
+            <span className={cn("truncate text-micro", t.tone ? TONE_TEXT[t.tone] : "text-ui-4")}>{t.detail}</span>
           </div>
         ))}
       </div>
@@ -228,9 +228,9 @@ export function ReviewStep({ state }: { state: ImportState }) {
               </button>
               {isOpen && (
                 <div className="flex flex-col gap-[5px] pb-3 pl-[41px] pr-3.5">
-                  {row.rows.length === 0 && <span className="text-[12px] text-ui-4">Nothing here.</span>}
+                  {row.rows.length === 0 && <span className="text-caption text-ui-4">Nothing here.</span>}
                   {row.rows.map(([a, b, c], i) => (
-                    <div key={i} className="flex gap-3 text-[12px]">
+                    <div key={i} className="flex gap-3 text-caption">
                       <span className="flex-1 text-ui-2">{a}</span>
                       <span className="font-ui-mono text-[11.5px] text-ui-1">{b}</span>
                       <span className="w-[190px] truncate text-ui-4" title={c}>
@@ -297,16 +297,16 @@ export function SaveStep({
   return (
     <div className="flex max-w-[560px] flex-col gap-4">
       <label className="flex flex-col gap-1.5">
-        <span className="text-[12px] text-ui-3">Name</span>
+        <span className="text-caption text-ui-3">Name</span>
         <input
           value={choices.name}
           onChange={(e) => onChoices({ ...choices, name: e.target.value })}
-          className="h-[34px] rounded-lg border border-ui-strong bg-ui-app px-2.5 text-[13px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-(--ui-h-field) rounded-lg border border-ui-strong bg-ui-app px-2.5 text-body text-ui-1 outline-none focus:border-ui-accent"
         />
       </label>
       {!lockDest && (
         <div role="radiogroup" aria-label="Lands in" className="flex flex-col gap-2">
-          <span className="text-[12px] text-ui-3">Lands in</span>
+          <span className="text-caption text-ui-3">Lands in</span>
           {dests.map((d) => (
             <button
               key={d.value}
@@ -318,8 +318,8 @@ export function SaveStep({
             >
               <Radio on={choices.dest === d.value} />
               <span className="flex flex-col gap-0.5">
-                <span className="text-[13px] font-medium text-ui-1">{d.title}</span>
-                <span className="text-[12px] text-ui-4">{d.text}</span>
+                <span className="text-body font-medium text-ui-1">{d.title}</span>
+                <span className="text-caption text-ui-4">{d.text}</span>
               </span>
             </button>
           ))}
@@ -344,12 +344,12 @@ export function SaveStep({
         Keep InfoPanel&apos;s screenshot for Compare
       </label>
       {choices.keepShot && (
-        <div className="flex items-center gap-2.5 pl-6 text-[12px] text-ui-3">
+        <div className="flex items-center gap-2.5 pl-6 text-caption text-ui-3">
           <button
             type="button"
             disabled={shotState.busy}
             onClick={() => shotInput.current?.click()}
-            className="h-7 rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover disabled:opacity-50"
+            className="h-7 rounded-[7px] border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover disabled:opacity-50"
           >
             {choices.shot ? "Change screenshot…" : "Choose screenshot…"}
           </button>
@@ -370,7 +370,7 @@ export function SaveStep({
           </span>
         </div>
       )}
-      <div className="rounded-[9px] border border-ui-default bg-ui-chrome px-3.5 py-3 text-[12px] leading-relaxed text-ui-3">
+      <div className="rounded-ui-menu border border-ui-default bg-ui-chrome px-3.5 py-3 text-caption leading-relaxed text-ui-3">
         {plural(items, "item")} · {drawnNative} native, {items - drawnNative} InfoPanel · {plural(state.source.assets.size, "asset")} ·{" "}
         {plural(state.report.fonts.requests, "font")} · {plural(state.groups.length, "sensor group")}. Import is one undo step.
       </div>

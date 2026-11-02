@@ -161,14 +161,14 @@ function ZoneAssets({ zoneId, stored, picker, setConfig, onSelectUses, onSaveToL
                 disabled={found.counts[id] === 0 && filter !== id}
                 onClick={() => setFilter(filter === id ? null : id)}
                 className={cn(
-                  "flex h-[28px] items-center gap-1.5 rounded-full border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40",
+                  "flex h-(--ui-h-control) items-center gap-1.5 rounded-full border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40",
                   id === "missing" && found.counts[id] > 0 && "border-ui-danger/50 text-ui-danger",
                   filter === id && "border-ui-accent bg-ui-accent/10 text-ui-1",
                 )}
               >
                 <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
                 {FINDING_LABEL[id]}
-                <span className="font-ui-mono text-[11px] text-ui-warning">{found.counts[id]}</span>
+                <span className="font-ui-mono text-micro text-ui-warning">{found.counts[id]}</span>
               </button>
             ))}
             {tiledSrc && (
@@ -179,13 +179,13 @@ function ZoneAssets({ zoneId, stored, picker, setConfig, onSelectUses, onSaveToL
                 title="Files used as the page background's tile"
                 onClick={() => setTiledOnly(!tiledOnly)}
                 className={cn(
-                  "flex h-[28px] items-center gap-1.5 rounded-full border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40",
+                  "flex h-(--ui-h-control) items-center gap-1.5 rounded-full border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40",
                   tiledOnly && "border-ui-accent bg-ui-accent/10 text-ui-1",
                 )}
               >
                 <Grid2x2 className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Tiled
-                <span className="font-ui-mono text-[11px] text-ui-warning">{tiled}</span>
+                <span className="font-ui-mono text-micro text-ui-warning">{tiled}</span>
               </button>
             )}
           </div>
@@ -204,7 +204,7 @@ function ZoneAssets({ zoneId, stored, picker, setConfig, onSelectUses, onSaveToL
           </button>
       </div>
       {note && (
-        <div role="status" className="px-6 pb-2 text-[12px] text-ui-3">
+        <div role="status" className="px-6 pb-2 text-caption text-ui-3">
           {note}
         </div>
       )}

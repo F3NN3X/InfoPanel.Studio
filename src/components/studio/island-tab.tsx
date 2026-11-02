@@ -35,7 +35,7 @@ export interface IslandTabProps {
   navigateTo: (target: NavTarget) => void;
 }
 
-const FOLLOW = "rounded-sm text-[11px] text-ui-accent-text hover:underline";
+const FOLLOW = "rounded-sm text-micro text-ui-accent-text hover:underline";
 
 /** A read-only island row (Font, Clock format) with its `↗` link; an island's own older value can be handed back. */
 function IslandLinkRow({ label, link, linkText, onNavigate, followText, onFollow }: {
@@ -112,7 +112,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
       lead={
         <>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-1 text-[12px] text-ui-4">Island for</span>
+            <span className="mr-1 text-caption text-ui-4">Island for</span>
             {config.profiles.map((p) => (
               <button
                 key={p.id}
@@ -120,8 +120,8 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
                 aria-pressed={p.id === profile.id}
                 onClick={() => setPickedId(p.id)}
                 className={cn(
-                  "h-[26px] rounded-md border px-2.5 text-[12px] text-ui-2 hover:border-ui-strong",
-                  p.id === profile.id ? "border-[#3a3a44] bg-ui-default text-ui-1" : "border-ui-default"
+                  "h-[26px] rounded-md border px-2.5 text-caption text-ui-2 hover:border-ui-strong",
+                  p.id === profile.id ? "border-ui-edge bg-ui-default text-ui-1" : "border-ui-default"
                 )}
               >
                 {p.name}
@@ -136,7 +136,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
           <div className="flex flex-col gap-2 rounded-[10px] border border-ui-default p-3.5">
             <div className="font-ui-mono text-[10px] font-medium uppercase tracking-[.06em] text-ui-4">Widgets sent to the island</div>
             {widgets.length === 0 ? (
-              <p className="text-pretty text-[12px] leading-[1.45] text-ui-4">No widget on this screen sends to the island yet.</p>
+              <p className="text-pretty text-caption leading-[1.45] text-ui-4">No widget on this screen sends to the island yet.</p>
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {widgets.map((w) => (
@@ -144,7 +144,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12.5px] text-ui-1">{w.title}</span>
                       {(multiPage || !w.visible || w.shadowed) && (
-                        <span className="block truncate text-[11px] text-ui-4">
+                        <span className="block truncate text-micro text-ui-4">
                           {[multiPage && w.pageName, !w.visible && "Hidden, sends nothing", w.shadowed && "Another one sends first"].filter(Boolean).join(" · ")}
                         </span>
                       )}
@@ -162,9 +162,9 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
               </ul>
             )}
             {unplaced.length > 0 && (
-              <p className="text-pretty text-[11px] leading-snug text-ui-hint">Add one of these to send more: {unplaced.join(", ")}.</p>
+              <p className="text-pretty text-micro leading-snug text-ui-hint">Add one of these to send more: {unplaced.join(", ")}.</p>
             )}
-            <span className="text-[11px] text-ui-hint">Turn this on per widget: Behavior › Send to island.</span>
+            <span className="text-micro text-ui-hint">Turn this on per widget: Behavior › Send to island.</span>
           </div>
           <LinkRow
             label="Alert rules"

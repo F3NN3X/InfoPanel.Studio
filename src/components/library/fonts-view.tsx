@@ -98,19 +98,19 @@ export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: F
       <div className="min-w-0 flex-1 overflow-y-auto p-6 font-ui">
         <div className="mb-4 flex items-center gap-3">
           <h2 className="text-[14px] font-semibold text-ui-1">Fonts</h2>
-          {unsuppliedCount > 0 && <span className="rounded-[5px] bg-ui-danger/15 px-1.5 py-0.5 text-[11px] text-ui-danger">{unsuppliedCount} missing</span>}
+          {unsuppliedCount > 0 && <span className="rounded-[5px] bg-ui-danger/15 px-1.5 py-0.5 text-micro text-ui-danger">{unsuppliedCount} missing</span>}
           <span className="flex-1" />
           <button
             type="button"
             onClick={() => openImportDoor()}
-            className="flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover"
+            className="flex h-(--ui-h-field) items-center gap-1.5 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover"
           >
             <Plus className="h-4 w-4" /> Add fonts
           </button>
           <button
             type="button"
             onClick={() => getFamily(open[0]?.request.font ?? "")}
-            className="flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover"
+            className="flex h-(--ui-h-field) items-center gap-1.5 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover"
           >
             <SearchCheck className="h-4 w-4" /> Get a font
           </button>
@@ -129,7 +129,7 @@ export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: F
       ) : selected ? (
         <FontDetail item={selected} />
       ) : (
-        <aside aria-label="Font details" className="w-[320px] shrink-0 border-l border-ui-subtle bg-ui-panel p-4 font-ui text-[12px] leading-snug text-ui-4">
+        <aside aria-label="Font details" className="w-[320px] shrink-0 border-l border-ui-subtle bg-ui-panel p-4 font-ui text-caption leading-snug text-ui-4">
           Select a font to see its licence and faces, or get one for a missing font.
         </aside>
       )}

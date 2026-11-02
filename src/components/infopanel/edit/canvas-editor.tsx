@@ -613,7 +613,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
       {shell.pageTabs?.(checkOn ? <ExportCheckPill check={check} open={checkOpen} onClick={toggleCheck} /> : null)}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {unbound && unbound.length > 0 && (
-          <div role="status" className="flex shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[12px] text-ui-2">
+          <div role="status" className="flex shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-caption text-ui-2">
             <span className="min-w-0 flex-1">
               Not found on this PC, so left unbound: {unbound.join(", ")}.
             </span>

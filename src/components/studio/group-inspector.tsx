@@ -96,7 +96,7 @@ export function GroupInspectorView({ name, contents, hidden, locked, place, onTo
           <Folder className="h-4 w-4" />
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-[13px] font-semibold text-ui-1">{name}</span>
+          <span className="truncate text-body font-semibold text-ui-1">{name}</span>
           <span data-testid="inspector-kind" className="truncate text-micro text-ui-4">
             Group · {contents}
           </span>
@@ -110,7 +110,7 @@ export function GroupInspectorView({ name, contents, hidden, locked, place, onTo
         </IconButton>
       </div>
       {place}
-      <p className="text-pretty border-b border-ui-subtle px-3.5 py-3 text-[11px] leading-[1.5] text-ui-3">
+      <p className="text-pretty border-b border-ui-subtle px-3.5 py-3 text-micro leading-[1.5] text-ui-3">
         Moves, hides and locks as one. Double-click on the canvas to select a part inside.
       </p>
       <div className="flex gap-1.5 px-3.5 py-3">

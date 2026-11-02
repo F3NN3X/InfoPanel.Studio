@@ -26,7 +26,7 @@ export const HEALTH_LABEL: Record<Health, string> = {
 const HEALTH_COLOR: Record<Health, string> = {
   ok: "rounded-full bg-ui-success",
   warn: "rotate-45 rounded-[1px] bg-ui-warning",
-  off: "rounded-full border border-[#8a8a94]",
+  off: "rounded-full border border-ui-hint",
 };
 
 export function StatusDot({ health, className }: { health: Health; className?: string }) {
@@ -106,9 +106,9 @@ export function CopyField({ label, value, display, get, onCopy }: CopyFieldProps
         title="Copy"
         aria-label={`Copy ${label.toLowerCase()}`}
         onClick={() => onCopy(value)}
-        className="flex items-center gap-2 rounded-[7px] border border-ui-default bg-ui-app px-2.5 py-2 text-left text-ui-1 transition-colors hover:border-[#3a3a44]"
+        className="flex items-center gap-2 rounded-[7px] border border-ui-default bg-ui-app px-2.5 py-2 text-left text-ui-1 transition-colors hover:border-ui-edge"
       >
-        <span className="min-w-0 flex-1 break-all font-ui-mono text-[11px] leading-[1.3]">
+        <span className="min-w-0 flex-1 break-all font-ui-mono text-micro leading-[1.3]">
           {get && <span className="text-ui-success">GET </span>}
           {display ?? value}
         </span>

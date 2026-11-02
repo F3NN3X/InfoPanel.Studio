@@ -20,7 +20,7 @@ const LICENCE_LINE: Record<Verdict, string> = {
 
 export function Fact({ label, children, tone }: { label: string; children: ReactNode; tone?: string }) {
   return (
-    <div className="flex gap-3 py-[3px] text-[12px]">
+    <div className="flex gap-3 py-[3px] text-caption">
       <span className="w-[86px] shrink-0 text-ui-4">{label}</span>
       <span className={cn("min-w-0 flex-1 truncate text-ui-2", tone)}>{children}</span>
     </div>
@@ -29,11 +29,11 @@ export function Fact({ label, children, tone }: { label: string; children: React
 
 export function PreviewBox({ family }: { family: string | null }) {
   return (
-    <div className="rounded-[12px] border border-ui-subtle bg-ui-tile p-4">
+    <div className="rounded-ui-lg border border-ui-subtle bg-ui-tile p-4">
       <div className="truncate text-[40px] leading-tight text-ui-1" style={{ fontFamily: family ? `"${family}"` : undefined }}>
         Aa 54°
       </div>
-      <div className="mt-1 truncate text-[12px] text-ui-3" style={{ fontFamily: family ? `"${family}"` : undefined }}>
+      <div className="mt-1 truncate text-caption text-ui-3" style={{ fontFamily: family ? `"${family}"` : undefined }}>
         The quick brown fox · 0123456789
       </div>
     </div>
@@ -56,7 +56,7 @@ export function FontDetail({ item }: { item: LibraryItem }) {
           {m.licence ? LICENCE_LABEL[m.licence] : "—"}
         </Fact>
       </div>
-      {m.licence && <p className="text-[12px] leading-snug text-ui-3">{LICENCE_LINE[m.licence]}</p>}
+      {m.licence && <p className="text-caption leading-snug text-ui-3">{LICENCE_LINE[m.licence]}</p>}
     </aside>
   );
 }

@@ -436,7 +436,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
   return (
     <div data-help-article="quickstart" className="fixed inset-0 z-50 flex flex-col bg-ui-app font-ui text-ui-1">
       <header data-tauri-drag-region className="flex h-10 shrink-0 items-center gap-2.5 border-b border-ui-subtle pl-3">
-        <span aria-hidden className="h-5 w-5 rounded-[6px] bg-ui-accent" />
+        <span aria-hidden className="h-5 w-5 rounded-ui-sm bg-ui-accent" />
         <span data-tauri-drag-region className="text-[12.5px] font-semibold">
           {rerun ? "Run setup again" : "Set up InfoPanel Studio"}
         </span>
@@ -460,7 +460,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
               type="button"
               aria-current={i === step ? "step" : undefined}
               onClick={() => go(i)}
-              className={cn("flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12px]", i === step ? "bg-s-divider text-ui-1" : "text-ui-3 hover:text-ui-1")}
+              className={cn("flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-caption", i === step ? "bg-s-divider text-ui-1" : "text-ui-3 hover:text-ui-1")}
             >
               <StepNumber n={i} current={i === step} done={visited.has(i) && i !== step} />
               {label}
@@ -482,14 +482,14 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
                     type="button"
                     aria-current={i === step ? "step" : undefined}
                     onClick={() => go(i)}
-                    className={cn("flex w-full items-start gap-2.5 rounded-[8px] px-2.5 py-2 text-left", i === step ? "bg-s-divider" : "hover:bg-ui-hover")}
+                    className={cn("flex w-full items-start gap-2.5 rounded-ui-md px-2.5 py-2 text-left", i === step ? "bg-s-divider" : "hover:bg-ui-hover")}
                   >
                     <StepNumber n={i} current={i === step} done={visited.has(i) && i !== step} />
                     <span className="flex min-w-0 flex-col">
                       <span className={cn("text-[12.5px] font-medium", i === step ? "text-ui-1" : "text-ui-2")}>{label}</span>
                       <span
                         className={cn(
-                          "truncate text-[11px]",
+                          "truncate text-micro",
                           i === DATA ? (t.running ? "text-ui-3" : !t.api || t.fails > 0 ? "text-ui-danger" : t.warns > 0 ? "text-ui-warning" : "text-ui-success") : "text-ui-4",
                         )}
                       >
@@ -500,7 +500,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
                 </li>
               ))}
             </ol>
-            <p className="m-0 mt-auto px-2.5 pb-1 text-[11px] leading-[1.5] text-ui-4">
+            <p className="m-0 mt-auto px-2.5 pb-1 text-micro leading-[1.5] text-ui-4">
               {rerun ? "Your screens and settings are kept. Only what you change here is saved." : "Skip any step. You can run setup again from Settings → General."}
             </p>
           </nav>
@@ -514,7 +514,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
           {rerun ? "Close" : "Skip setup"}
         </button>
         {!narrow && (
-          <span className="flex items-center gap-3 text-[11px] text-ui-4">
+          <span className="flex items-center gap-3 text-micro text-ui-4">
             <Hint k="Enter" text="next" />
             <Hint k="Alt+←" text="back" />
             {step === DATA && <Hint k="F5" text="check again" />}
@@ -526,11 +526,11 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
             Back
           </button>
         )}
-        <button type="button" onClick={primary} className={cn(PRIMARY_BUTTON, "h-8 rounded-[8px] px-4 text-[12.5px]")}>
+        <button type="button" onClick={primary} className={cn(PRIMARY_BUTTON, "h-8 rounded-ui-md px-4 text-[12.5px]")}>
           {primaryLabel}
         </button>
       </footer>
-      <div className="flex h-[26px] shrink-0 items-center gap-4 border-t border-ui-subtle px-3 text-[11px] text-ui-3">
+      <div className="flex h-[26px] shrink-0 items-center gap-4 border-t border-ui-subtle px-3 text-micro text-ui-3">
         <span className="flex items-center gap-1.5" title={strip.title}>
           <span className={cn("h-1.5 w-1.5 rounded-full", apiDot)} />
           {t.api ? `Data API · ${where}` : results.reachable && results.reachable.status !== "checking" ? "Data API · not connected" : "Data API · checking…"}
@@ -542,10 +542,10 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
       </div>
       <AlertDialog.Root open={askSkip} onOpenChange={setAskSkip}>
         <AlertDialog.Portal>
-          <AlertDialog.Backdrop className="fixed inset-0 z-[60] bg-black/60" />
+          <AlertDialog.Backdrop className="fixed inset-0 z-(--z-dialog) bg-black/60" />
           <AlertDialog.Popup
             initialFocus={keepButton}
-            className="fixed left-1/2 top-1/2 z-[60] flex w-[420px] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-[12px] border border-ui-strong bg-ui-panel p-5 shadow-ui-modal outline-none"
+            className="fixed left-1/2 top-1/2 z-(--z-dialog) flex w-[420px] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-ui-lg border border-ui-strong bg-ui-panel p-5 shadow-ui-modal outline-none"
           >
             <AlertDialog.Title className="m-0 text-[14px] font-semibold text-ui-1">{rerun ? "Close setup?" : "Skip setup?"}</AlertDialog.Title>
             <AlertDialog.Description className="m-0 text-[12.5px] leading-[1.5] text-ui-2">
@@ -577,7 +577,7 @@ function StepNumber({ n, current, done }: { n: number; current: boolean; done: b
     <span
       aria-hidden
       className={cn(
-        "grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[11px]",
+        "grid h-5 w-5 shrink-0 place-items-center rounded-full border text-micro",
         current ? "border-ui-1 bg-ui-1 font-medium text-ui-inverse-fg" : "border-ui-strong text-ui-3",
       )}
     >

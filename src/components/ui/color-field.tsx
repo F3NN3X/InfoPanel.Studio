@@ -37,7 +37,7 @@ export function ColorField({ value, onChange, label, autoLabel = "Auto", classNa
           type="button"
           aria-label={`Reset ${label} to ${autoLabel}`}
           onClick={() => onChange("")}
-          className="text-[11px] text-ui-4 hover:text-ui-1"
+          className="text-micro text-ui-4 hover:text-ui-1"
         >
           {autoLabel}
         </button>

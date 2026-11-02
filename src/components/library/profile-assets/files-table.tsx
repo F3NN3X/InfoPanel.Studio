@@ -19,7 +19,7 @@ export const FINDING_LABEL: Record<Finding, string> = {
 const TYPE_LABEL: Record<string, string> = { jpeg: "JPEG", png: "PNG", gif: "GIF", webp: "WebP", bmp: "BMP", ico: "ICO", svg: "SVG", video: "Video", other: "File" };
 const COLUMNS = "grid-cols-[64px_minmax(0,1.5fr)_minmax(0,1fr)_96px_96px_72px_48px_minmax(0,1.3fr)_136px]";
 const checker = "bg-[repeating-conic-gradient(#2c2c32_0_25%,#1c1c21_0_50%)] bg-[length:10px_10px]";
-const ICON = "flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-ui-4 hover:bg-ui-hover hover:text-ui-1";
+const ICON = "flex h-(--ui-h-control) w-[28px] items-center justify-center rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-1";
 
 /** One object URL per file content for files the asset store does not serve yet (added ones), revoked on unmount. */
 function useObjectUrls(): (f: AssetFile) => string | undefined {
@@ -41,7 +41,7 @@ function useObjectUrls(): (f: AssetFile) => string | undefined {
 }
 
 function Preview({ file, url }: { file: AssetFile | null; url: string | undefined }) {
-  const box = cn("flex h-[36px] w-[56px] items-center justify-center overflow-hidden rounded-[6px] border border-ui-subtle", checker);
+  const box = cn("flex h-[36px] w-[56px] items-center justify-center overflow-hidden rounded-ui-sm border border-ui-subtle", checker);
   if (!file) {
     return (
       <div className={box}>
@@ -49,7 +49,7 @@ function Preview({ file, url }: { file: AssetFile | null; url: string | undefine
       </div>
     );
   }
-  if (!url || file.type === "other") return <div className={cn(box, "text-[11px] text-ui-4")}>?</div>;
+  if (!url || file.type === "other") return <div className={cn(box, "text-micro text-ui-4")}>?</div>;
   return (
     <div className={box}>
       {file.type === "video" ? <video src={url} muted preload="metadata" className="h-full w-full object-contain" /> : <img src={url} alt="" loading="lazy" className="h-full w-full object-contain" />}
@@ -59,7 +59,7 @@ function Preview({ file, url }: { file: AssetFile | null; url: string | undefine
 
 function Chip({ finding }: { finding: Finding }) {
   return (
-    <span className={cn("rounded-[5px] border px-1.5 py-px text-[11px]", finding === "missing" ? "border-ui-danger/50 text-ui-danger" : "border-ui-warning/50 text-ui-warning")}>{FINDING_LABEL[finding]}</span>
+    <span className={cn("rounded-[5px] border px-1.5 py-px text-micro", finding === "missing" ? "border-ui-danger/50 text-ui-danger" : "border-ui-warning/50 text-ui-warning")}>{FINDING_LABEL[finding]}</span>
   );
 }
 
@@ -116,7 +116,7 @@ export function FilesTable(p: FilesTableProps) {
     const drawn = drawnSize(refs);
     const note = typeNote(f);
     return (
-      <div key={f.name} role="row" className={cn("grid items-center gap-3 border-t border-ui-subtle px-2 py-2 text-[12px] text-ui-2 hover:bg-ui-hover/40", COLUMNS)}>
+      <div key={f.name} role="row" className={cn("grid items-center gap-3 border-t border-ui-subtle px-2 py-2 text-caption text-ui-2 hover:bg-ui-hover/40", COLUMNS)}>
         <div role="cell">
           <Preview file={f} url={urlOf(f)} />
         </div>
@@ -138,7 +138,7 @@ export function FilesTable(p: FilesTableProps) {
         </span>
         <div role="cell">{uses(refs)}</div>
         <div role="cell" className="flex flex-wrap gap-1">
-          {isTiled(f, p.tiledSrc) && <span className="rounded-[5px] border border-ui-accent/50 px-1.5 py-px text-[11px] text-ui-accent-text">Tiled</span>}
+          {isTiled(f, p.tiledSrc) && <span className="rounded-[5px] border border-ui-accent/50 px-1.5 py-px text-micro text-ui-accent-text">Tiled</span>}
           {(p.found.byName.get(assetKey(f.name)) ?? []).map((x) => (
             <Chip key={x} finding={x} />
           ))}
@@ -183,7 +183,7 @@ export function FilesTable(p: FilesTableProps) {
     const expanded = open.has(stem);
     const Chevron = expanded ? ChevronDown : ChevronRight;
     return (
-      <div role="row" aria-label={`${stem} frame series`} className={cn("grid items-center gap-3 border-t border-ui-subtle px-2 py-2 text-[12px] text-ui-2 hover:bg-ui-hover/40", COLUMNS)}>
+      <div role="row" aria-label={`${stem} frame series`} className={cn("grid items-center gap-3 border-t border-ui-subtle px-2 py-2 text-caption text-ui-2 hover:bg-ui-hover/40", COLUMNS)}>
         <div role="cell">
           <Preview file={frames[0]} url={urlOf(frames[0])} />
         </div>
@@ -191,7 +191,7 @@ export function FilesTable(p: FilesTableProps) {
           <button type="button" aria-expanded={expanded} title={expanded ? "Hide the frames" : "Show the frames"} onClick={() => toggle(stem)} className="flex w-full min-w-0 items-center gap-1 text-left text-ui-1">
             <Chevron className="h-4 w-4 shrink-0 text-ui-4" strokeWidth={1.75} />
             <span className="truncate font-ui-mono">{stem}</span>
-            <span className="shrink-0 rounded-[5px] bg-ui-raised px-1.5 py-px text-[11px] text-ui-3">{frames.length} frames</span>
+            <span className="shrink-0 rounded-[5px] bg-ui-raised px-1.5 py-px text-micro text-ui-3">{frames.length} frames</span>
           </button>
         </div>
         <span role="cell" className="text-ui-3">
@@ -206,7 +206,7 @@ export function FilesTable(p: FilesTableProps) {
         </span>
         <div role="cell">{uses(refs)}</div>
         <div role="cell" className="flex flex-wrap gap-1">
-          {frames.some((f) => isTiled(f, p.tiledSrc)) && <span className="rounded-[5px] border border-ui-accent/50 px-1.5 py-px text-[11px] text-ui-accent-text">Tiled</span>}
+          {frames.some((f) => isTiled(f, p.tiledSrc)) && <span className="rounded-[5px] border border-ui-accent/50 px-1.5 py-px text-micro text-ui-accent-text">Tiled</span>}
           {kinds.map((x) => (
             <Chip key={x} finding={x} />
           ))}
@@ -239,7 +239,7 @@ export function FilesTable(p: FilesTableProps) {
           ),
         )}
         {missing.map((m) => (
-          <div key={m.name} role="row" className={cn("grid items-center gap-3 border-t border-ui-subtle px-2 py-2 text-[12px] text-ui-2", COLUMNS)}>
+          <div key={m.name} role="row" className={cn("grid items-center gap-3 border-t border-ui-subtle px-2 py-2 text-caption text-ui-2", COLUMNS)}>
             <div role="cell">
               <Preview file={null} url={undefined} />
             </div>
@@ -264,10 +264,10 @@ export function FilesTable(p: FilesTableProps) {
 
       {outside.length > 0 && (
         <section className="mt-6" aria-label="Outside the screen">
-          <h3 className="mb-2 text-[12px] font-semibold text-ui-1">Outside the screen</h3>
+          <h3 className="mb-2 text-caption font-semibold text-ui-1">Outside the screen</h3>
           {outside.map((o) => (
-            <div key={`${o.kind}:${o.value}`} className="flex items-center gap-3 border-t border-ui-subtle py-2 text-[12px]">
-              <span className="w-[96px] shrink-0 rounded-[5px] bg-ui-raised px-2 py-0.5 text-center text-[11px] text-ui-3">{o.kind === "url" ? "URL" : "Absolute path"}</span>
+            <div key={`${o.kind}:${o.value}`} className="flex items-center gap-3 border-t border-ui-subtle py-2 text-caption">
+              <span className="w-[96px] shrink-0 rounded-[5px] bg-ui-raised px-2 py-0.5 text-center text-micro text-ui-3">{o.kind === "url" ? "URL" : "Absolute path"}</span>
               <button
                 type="button"
                 title="Select the items that draw it"

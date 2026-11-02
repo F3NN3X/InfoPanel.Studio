@@ -51,7 +51,7 @@ function PickerBody({
           <button
             type="button"
             onClick={() => onPick("blank")}
-            className="flex h-[30px] w-full items-center gap-2 rounded-md border border-dashed border-[#3a3a44] px-2 text-left text-xs text-ui-3 hover:border-ui-accent hover:text-ui-1"
+            className="flex h-[30px] w-full items-center gap-2 rounded-md border border-dashed border-ui-edge px-2 text-left text-xs text-ui-3 hover:border-ui-accent hover:text-ui-1"
           >
             <SquareDashed className="h-3.5 w-3.5" /> Blank zone — remove the widget
           </button>

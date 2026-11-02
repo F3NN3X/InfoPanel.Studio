@@ -62,8 +62,8 @@ export interface RequestedTableProps {
 
 export function RequestedTable({ zone, answers, fonts, declared, onSelectItems, onGet, onUse }: RequestedTableProps) {
   return (
-    <div role="table" aria-label={`Fonts requested by ${zone.title}`} className="overflow-hidden rounded-[12px] border border-ui-subtle bg-ui-panel text-[12.5px]">
-      <div role="row" className={cn(COLUMNS, "border-b border-ui-subtle px-3.5 py-2 text-[11px] text-ui-4")}>
+    <div role="table" aria-label={`Fonts requested by ${zone.title}`} className="overflow-hidden rounded-ui-lg border border-ui-subtle bg-ui-panel text-[12.5px]">
+      <div role="row" className={cn(COLUMNS, "border-b border-ui-subtle px-3.5 py-2 text-micro text-ui-4")}>
         <span role="columnheader">Requested by {zone.title}</span>
         <span role="columnheader">Drawn with</span>
         <span role="columnheader">How</span>
@@ -71,7 +71,7 @@ export function RequestedTable({ zone, answers, fonts, declared, onSelectItems, 
         <span role="columnheader">License</span>
         <span role="columnheader" />
       </div>
-      {zone.entries.length === 0 && <div className="px-3.5 py-3 text-[12px] text-ui-4">This canvas has no text.</div>}
+      {zone.entries.length === 0 && <div className="px-3.5 py-3 text-caption text-ui-4">This canvas has no text.</div>}
       {zone.entries.map((entry) => {
         const r = answers.resolved.get(entry.key);
         const missing = isMissing(answers.loader, entry.request, r);
@@ -96,7 +96,7 @@ export function RequestedTable({ zone, answers, fonts, declared, onSelectItems, 
                 type="button"
                 onClick={() => onSelectItems(zone.zoneId, entry.paths)}
                 title="Select these text items on the canvas"
-                className="min-w-[26px] rounded-[5px] bg-ui-active px-1.5 py-0.5 font-ui-mono text-[11px] text-ui-1 hover:bg-ui-strong"
+                className="min-w-[26px] rounded-[5px] bg-ui-active px-1.5 py-0.5 font-ui-mono text-micro text-ui-1 hover:bg-ui-strong"
               >
                 {entry.paths.length}
               </button>
@@ -119,18 +119,18 @@ export function RequestedTable({ zone, answers, fonts, declared, onSelectItems, 
                 <button
                   type="button"
                   onClick={() => onGet(entry.request.font)}
-                  className="h-[28px] truncate rounded-[7px] bg-ui-inverse px-2.5 text-[12px] font-medium text-ui-inverse-fg hover:opacity-90"
+                  className="h-(--ui-h-control) truncate rounded-[7px] bg-ui-inverse px-2.5 text-caption font-medium text-ui-inverse-fg hover:opacity-90"
                 >
                   Get {entry.request.font}
                 </button>
               )}
-              {s.status === "switched" && <span className="text-[12px] text-ui-4">InfoPanel fallback</span>}
+              {s.status === "switched" && <span className="text-caption text-ui-4">InfoPanel fallback</span>}
               {entry.supplied && missing && (
                 <button
                   type="button"
                   onClick={() => onUse(zone.zoneId, entry.key, entry.use === "supplied" ? "infopanel" : "supplied")}
                   title={entry.use === "supplied" ? "Draw this request with InfoPanel's fallback, as InfoPanel shows it" : `Draw this request with the supplied ${entry.supplied.family}`}
-                  className="h-[28px] truncate rounded-[7px] border border-ui-default px-2 text-[12px] text-ui-2 hover:bg-ui-hover"
+                  className="h-(--ui-h-control) truncate rounded-[7px] border border-ui-default px-2 text-caption text-ui-2 hover:bg-ui-hover"
                 >
                   {entry.use === "supplied" ? "Use fallback" : `Use ${entry.supplied.family}`}
                 </button>

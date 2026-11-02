@@ -27,7 +27,7 @@ function LockToggle({ on, screen, onToggle }: { on: boolean; screen: string; onT
       onClick={onToggle}
       title={`Lock forces this section on every page and widget of ${screen}`}
       className={cn(
-        "flex h-5 shrink-0 items-center gap-[3px] rounded-full border px-2 text-[11px] font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+        "flex h-5 shrink-0 items-center gap-[3px] rounded-full border px-2 text-micro font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
         on ? LOCKED : "border-[#27272a] text-ui-hint hover:text-ui-1"
       )}
     >
@@ -91,7 +91,7 @@ export function FineTuneRow({ card, chip, summary, parentText, open, onToggle, l
           className="flex min-w-0 flex-1 flex-col items-start rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
         >
           <span className="truncate text-[14px] font-medium text-ui-1">{card.title}</span>
-          <span className="w-full truncate text-[12px] text-ui-hint">{summary}</span>
+          <span className="w-full truncate text-caption text-ui-hint">{summary}</span>
         </button>
         {lock && <LockToggle on={lock.on} screen={lock.screen} onToggle={lock.onToggle} />}
         <InheritChip state={chip.state} from={chip.from} fromName={chip.fromName} parentText={parentText} onReset={onReset} onCustomise={onChange} onJump={onJump} />
@@ -113,8 +113,8 @@ export function FineTuneRow({ card, chip, summary, parentText, open, onToggle, l
             </div>
           )}
           {children}
-          {help && <p className="mt-1 px-4 text-[12px] leading-snug text-[#a1a1aa]">{help}</p>}
-          <p className="mt-1 flex flex-wrap gap-x-3.5 gap-y-1.5 whitespace-nowrap px-4 text-[12px] leading-snug">
+          {help && <p className="mt-1 px-4 text-caption leading-snug text-ui-soft">{help}</p>}
+          <p className="mt-1 flex flex-wrap gap-x-3.5 gap-y-1.5 whitespace-nowrap px-4 text-caption leading-snug">
             {changed && (
               <button type="button" onClick={onReset} className={LINK}>
                 Reset to inherited
@@ -143,11 +143,11 @@ export function FineTuneHeader({ heading }: { heading: string }) {
   return (
     <div className="flex items-center gap-3 border-t border-ui-subtle px-4 pb-1.5 pt-4">
       <h3 className="flex-1 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-ui-hint">{heading}</h3>
-      <span className="flex items-center gap-1 text-[11px] text-ui-hint">
-        <span className="h-1.5 w-1.5 rounded-full bg-[#3b82f6]" aria-hidden />
+      <span className="flex items-center gap-1 text-micro text-ui-hint">
+        <span className="h-1.5 w-1.5 rounded-full bg-ui-blue" aria-hidden />
         changed here
       </span>
-      <span className="flex items-center gap-1 text-[11px] text-ui-hint">
+      <span className="flex items-center gap-1 text-micro text-ui-hint">
         <span className="h-1.5 w-1.5 rounded-full bg-[#2dd4bf]" aria-hidden />
         inherited
       </span>

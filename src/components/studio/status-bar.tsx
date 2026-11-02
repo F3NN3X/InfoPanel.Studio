@@ -133,6 +133,7 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
           key={item.id}
           type="button"
           title={item.tip}
+          aria-description={item.tip}
           onClick={item.onClick}
           className={cn(
             "flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
@@ -148,7 +149,7 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
           type="button"
           title="Open Live control"
           onClick={onOpenLive}
-          className="flex h-[20px] min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-dashed border-[oklch(0.78_0.15_150/0.5)] px-2 text-[11px] text-[oklch(0.88_0.10_150)] transition-colors hover:bg-[oklch(0.78_0.15_150/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+          className="flex h-[20px] min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-dashed border-[oklch(0.78_0.15_150/0.5)] px-2 text-micro text-ui-ok-text transition-colors hover:bg-[oklch(0.78_0.15_150/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
         >
           <Cast aria-hidden className="h-3 w-3 shrink-0" />
           <span className="truncate max-[959px]:sr-only">{kioskChip}</span>

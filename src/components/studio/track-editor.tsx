@@ -5,7 +5,7 @@ import { joinTracks, splitTracks } from "./grid-tracks";
 const EXAMPLES = "1fr, 2fr, auto, 120px, minmax(0, 1fr)";
 
 const CHIP =
-  "h-6 rounded-md border border-ui-default bg-ui-app px-1.5 font-ui-mono text-[11px] text-ui-1 outline-none focus:border-ui-accent";
+  "h-6 rounded-md border border-ui-default bg-ui-app px-1.5 font-ui-mono text-micro text-ui-1 outline-none focus:border-ui-accent";
 const STEP =
   "flex h-6 w-6 items-center justify-center rounded-md border border-ui-default text-ui-3 hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40";
 
@@ -36,7 +36,7 @@ export function TrackEditor({ name, value, equalCount, onChange }: TrackEditorPr
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-1">
-        {tracks.length === 0 && <span className="px-1 text-[11px] text-ui-4">auto</span>}
+        {tracks.length === 0 && <span className="px-1 text-micro text-ui-4">auto</span>}
         {tracks.map((t, i) => (
           <input
             key={`${i}:${t}`}
@@ -71,7 +71,7 @@ export function TrackEditor({ name, value, equalCount, onChange }: TrackEditorPr
           <button
             type="button"
             onClick={() => onChange(undefined)}
-            className="text-[11px] text-ui-3 hover:text-ui-1"
+            className="text-micro text-ui-3 hover:text-ui-1"
             title="Back to equal tracks"
           >
             Equal

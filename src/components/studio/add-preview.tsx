@@ -44,7 +44,7 @@ function StageNote({ item, text }: { item: AddItem; text: string }) {
   return (
     <div className="flex flex-col items-center gap-2">
       <AddItemIcon item={item} size={40} />
-      <span className="text-[11.5px] text-[#7c7c86]">{text}</span>
+      <span className="text-[11.5px] text-ui-hint">{text}</span>
     </div>
   );
 }
@@ -62,7 +62,7 @@ export function WidgetStage({ item, appearance, pageStyle, stage }: { item: AddI
           content == null ? (
             <StageNote item={item} text="No live data yet" />
           ) : (
-            <div className="overflow-hidden rounded-[8px]" style={{ width: width * scale, height: height * scale }}>
+            <div className="overflow-hidden rounded-ui-md" style={{ width: width * scale, height: height * scale }}>
               <div className="origin-top-left text-foreground" style={{ ...pageStyle, ...scope, width, height, transform: `scale(${scale})` }}>
                 {content}
               </div>
@@ -78,11 +78,11 @@ export function WidgetStage({ item, appearance, pageStyle, stage }: { item: AddI
 function Schematic({ item }: { item: AddItem }) {
   return (
     <div
-      className="flex flex-wrap gap-1.5 overflow-hidden rounded-[8px] border border-[#27272a] bg-ui-raised p-2.5"
+      className="flex flex-wrap gap-1.5 overflow-hidden rounded-ui-md border border-[#27272a] bg-ui-raised p-2.5"
       style={{ width: Math.min(STAGE_W, item.w * 70), height: Math.min(STAGE_H, item.h * 70), flexDirection: item.dir === "column" ? "column" : "row" }}
     >
       {(item.parts ?? []).map((part, i) => (
-        <div key={i} className="flex min-h-0 min-w-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-[6px] bg-ui-subtle px-1">
+        <div key={i} className="flex min-h-0 min-w-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-ui-sm bg-ui-subtle px-1">
           <PartIcon kind={part.kind} />
           <span className="max-w-full truncate text-micro text-ui-hint">{part.label}</span>
         </div>
@@ -117,7 +117,7 @@ export function AddPreview({ item, left, top, via, target, appearance, pageStyle
   return createPortal(
     <div
       aria-hidden
-      className="add-preview-in pointer-events-none fixed z-[60] overflow-hidden rounded-[12px] border border-ui-strong bg-ui-tile font-ui shadow-[0_18px_48px_rgba(0,0,0,.55)]"
+      className="add-preview-in pointer-events-none fixed z-[60] overflow-hidden rounded-ui-lg border border-ui-strong bg-ui-tile font-ui shadow-[0_18px_48px_rgba(0,0,0,.55)]"
       style={{ left, top, width: PREVIEW_WIDTH }}
     >
       <div
@@ -129,11 +129,11 @@ export function AddPreview({ item, left, top, via, target, appearance, pageStyle
       <div className="flex flex-col gap-2 px-3.5 pb-3.5 pt-3">
         <div className="flex items-baseline gap-2">
           <span className="truncate text-[14px] font-semibold text-ui-1">{item.name}</span>
-          <span className="shrink-0 text-[11.5px] text-[#7c7c86]">{item.kind === "widget" ? item.category : KIND_NAME[item.kind]}</span>
+          <span className="shrink-0 text-[11.5px] text-ui-hint">{item.kind === "widget" ? item.category : KIND_NAME[item.kind]}</span>
         </div>
-        <p className="text-pretty text-[12px] leading-[1.5] text-[#a1a1aa]">{item.description || item.blurb}</p>
+        <p className="text-pretty text-caption leading-[1.5] text-ui-soft">{item.description || item.blurb}</p>
         <div className="flex items-center gap-2 text-[11.5px] text-ui-hint">
-          <span className="rounded-[4px] bg-ui-subtle px-1.5 py-0.5 font-ui-mono text-[11px] text-ui-2">{sizeText(item.w, item.h)}</span>
+          <span className="rounded-[4px] bg-ui-subtle px-1.5 py-0.5 font-ui-mono text-micro text-ui-2">{sizeText(item.w, item.h)}</span>
           {item.mw === 1 && item.mh === 1 ? "Adapts down to 1×1" : `Needs at least ${sizeText(item.mw, item.mh)}`}
         </div>
         <div

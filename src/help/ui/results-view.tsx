@@ -21,7 +21,7 @@ export function ResultsView({ query, hits, onHit, onHome }: ResultsViewProps) {
     <div className="mx-auto box-border flex max-w-[760px] flex-col gap-[18px] px-8 pb-20 pt-9">
       <div role="status" className="flex flex-col gap-1">
         <h1 className="m-0 text-[22px] font-semibold tracking-[-0.015em]">{hits.length ? `${hits.length} result${hits.length > 1 ? "s" : ""}` : "No results"}</h1>
-        <p className="m-0 text-[13px] text-s-muted">{`for “${query.trim()}”`}</p>
+        <p className="m-0 text-body text-s-muted">{`for “${query.trim()}”`}</p>
       </div>
       <div className="flex flex-col gap-2">
         {hits.map((hit, i) => {
@@ -62,9 +62,9 @@ export function ResultsView({ query, hits, onHit, onHome }: ResultsViewProps) {
       {hits.length === 0 && (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-s-input-line px-5 py-8 text-center">
           <SearchX className="h-7 w-7 text-s-faint" />
-          <span className="max-w-[360px] text-[13px] leading-normal text-s-muted">
+          <span className="max-w-[360px] text-body leading-normal text-s-muted">
             Try fewer or different words, or browse{" "}
-            <button type="button" onClick={onHome} className="cursor-pointer border-0 bg-transparent p-0 text-[13px] text-s-accent-text hover:text-s-t1">
+            <button type="button" onClick={onHome} className="cursor-pointer border-0 bg-transparent p-0 text-body text-s-accent-text hover:text-s-t1">
               all topics
             </button>
             .

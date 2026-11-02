@@ -138,6 +138,7 @@ function MixColumn({ channel, state, o }: { channel: WlChannel; state: WlState; 
             <span className="mr-1 font-sans text-micro text-[color:var(--w-faint)]">L</span>
             {fmtDb(levels.l.v)}
           </span>
+          <span className="font-sans text-micro text-[color:var(--w-faint)]">dB</span>
           <span>
             <span className="mr-1 font-sans text-micro text-[color:var(--w-faint)]">R</span>
             {fmtDb(levels.r.v)}

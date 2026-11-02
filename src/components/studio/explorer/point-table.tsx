@@ -121,7 +121,7 @@ export function PointTable({
               </span>
             );
           })}
-          <span className="ml-1.5 whitespace-nowrap font-ui-mono text-[11px] text-ui-4">
+          <span className="ml-1.5 whitespace-nowrap font-ui-mono text-micro text-ui-4">
             {shown} of {total}
           </span>
           <span className="ml-auto text-[11.5px] font-normal text-ui-4">Display names apply to every screen.</span>
@@ -256,8 +256,8 @@ function GroupHeader({ row, onGroup }: { row: GroupRow; onGroup: (row: GroupRow)
       style={{ height: GROUP_ROW_H }}
       className="flex cursor-pointer items-center gap-2 border-b border-ui-subtle bg-ui-chrome px-4"
     >
-      <span className="truncate text-[12px] font-semibold text-ui-1">{row.title}</span>
-      {row.sourceName !== row.title && <span className="truncate text-[11px] text-ui-4">{row.sourceName}</span>}
+      <span className="truncate text-caption font-semibold text-ui-1">{row.title}</span>
+      {row.sourceName !== row.title && <span className="truncate text-micro text-ui-4">{row.sourceName}</span>}
       <span className="ml-auto font-ui-mono text-micro text-ui-hint">{row.count}</span>
     </div>
   );
@@ -322,7 +322,7 @@ function PointRow({ point, cols, values, usage, selected, onSelect, screens, sou
       <span
         title={cell.text}
         className={cn(
-          "truncate text-[12px]",
+          "truncate text-caption",
           cell.tone === "number" && "font-ui-mono text-ui-1",
           cell.tone === "text" && "text-ui-2",
           cell.tone === "empty" && "text-[#5f5f68]"
@@ -350,10 +350,10 @@ function PointRow({ point, cols, values, usage, selected, onSelect, screens, sou
               e.currentTarget.blur();
             }
           }}
-          className="h-6 min-w-0 rounded border border-ui-default bg-ui-app px-1.5 text-[12px] text-ui-1 placeholder:text-ui-4 focus:border-ui-accent/60 focus:outline-none"
+          className="h-6 min-w-0 rounded border border-ui-default bg-ui-app px-1.5 text-caption text-ui-1 placeholder:text-ui-4 focus:border-ui-accent/60 focus:outline-none"
         />
       ) : (
-        <span className="truncate text-[12px] text-ui-hint">—</span>
+        <span className="truncate text-caption text-ui-hint">—</span>
       )}
       {showUsedIn && (
         <span title={used.used ? (screens.get(point.key) ?? []).join(", ") : undefined} className={cn("truncate text-[11.5px]", used.used ? "text-ui-accent-text" : "text-ui-disabled")}>

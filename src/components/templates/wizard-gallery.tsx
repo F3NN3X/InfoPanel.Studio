@@ -79,7 +79,7 @@ export function WizardGallery(p: WizardGalleryProps) {
                   p.onSearchEnter();
                 }
               }}
-              className="min-w-0 flex-1 bg-transparent text-[12px] text-ui-1 outline-none placeholder:text-ui-4 focus-visible:shadow-none [&::-webkit-search-cancel-button]:hidden"
+              className="min-w-0 flex-1 bg-transparent text-caption text-ui-1 outline-none placeholder:text-ui-4 focus-visible:shadow-none [&::-webkit-search-cancel-button]:hidden"
             />
             {p.query && (
               <button type="button" aria-label="Clear the search" onClick={() => p.onQuery("")} className="grid h-4 w-4 shrink-0 place-items-center rounded-full text-ui-3 hover:text-ui-1">
@@ -115,10 +115,10 @@ export function WizardGallery(p: WizardGalleryProps) {
           ) : (
             p.sections.map((s) => (
               <section key={s.key} id={sectionId(s.key)} aria-labelledby={`${sectionId(s.key)}-title`} className="flex scroll-mt-3.5 flex-col gap-2">
-                <h3 className="m-0 flex items-baseline gap-2 text-[12px] font-medium text-ui-2">
+                <h3 className="m-0 flex items-baseline gap-2 text-caption font-medium text-ui-2">
                   <span id={`${sectionId(s.key)}-title`}>{s.title}</span>
                   {s.count !== undefined && <span className="font-ui-mono text-micro font-normal text-ui-4">{s.count}</span>}
-                  {s.note && <span className="truncate text-[11px] font-normal text-ui-4">{s.note}</span>}
+                  {s.note && <span className="truncate text-micro font-normal text-ui-4">{s.note}</span>}
                 </h3>
                 <div role="radiogroup" aria-label={s.title} className="grid items-start gap-2.5" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${s.min}px, 1fr))` }}>
                   {s.cards.map((card) => (
@@ -163,7 +163,7 @@ function Card({ card, p, selected, tabbable }: { card: GalleryCard; p: WizardGal
         }
       }}
       className={cn(
-        "group flex min-w-0 cursor-pointer select-none flex-col overflow-hidden rounded-[9px] border outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
+        "group flex min-w-0 cursor-pointer select-none flex-col overflow-hidden rounded-ui-menu border outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
         selected ? "border-ui-accent bg-ui-accent/10" : "border-ui-default bg-ui-raised hover:ring-1 hover:ring-ui-strong",
       )}
     >
@@ -179,12 +179,12 @@ function Card({ card, p, selected, tabbable }: { card: GalleryCard; p: WizardGal
       </div>
       <div className="flex min-w-0 flex-col gap-0.5 px-[9px] pb-2 pt-[7px]">
         <div className="flex min-w-0 items-baseline gap-2">
-          <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-ui-1">{entry.name}</span>
+          <span className="min-w-0 flex-1 truncate text-caption font-medium text-ui-1">{entry.name}</span>
           <span className="shrink-0 font-ui-mono text-micro text-ui-4">
             {size.width}×{size.height}
           </span>
         </div>
-        <span className="truncate text-[11px] text-ui-3" title={entry.blurb}>
+        <span className="truncate text-micro text-ui-3" title={entry.blurb}>
           {entry.blurb}
         </span>
         <div className="mt-[5px] flex min-h-[16px] items-center gap-1.5">
@@ -221,13 +221,13 @@ function Card({ card, p, selected, tabbable }: { card: GalleryCard; p: WizardGal
 function Skeleton() {
   return (
     <>
-      <p role="status" className="m-0 flex items-center gap-2 text-[12px] text-ui-3">
+      <p role="status" className="m-0 flex items-center gap-2 text-caption text-ui-3">
         <span aria-hidden className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-ui-strong border-t-ui-3" />
         Loading templates… Blank, the sample layout and Import work now.
       </p>
       <div aria-hidden className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(188px, 1fr))" }}>
         {Array.from({ length: 10 }, (_, i) => (
-          <div key={i} className="overflow-hidden rounded-[9px] border border-ui-subtle" style={{ opacity: 1 - i * 0.07 }}>
+          <div key={i} className="overflow-hidden rounded-ui-menu border border-ui-subtle" style={{ opacity: 1 - i * 0.07 }}>
             <div className="w-full bg-gradient-to-b from-ui-raised to-ui-hover" style={{ aspectRatio: "1024 / 600" }} />
             <div className="flex flex-col gap-1.5 p-2.5">
               <span className="h-2 w-1/2 rounded bg-ui-hover" />
@@ -245,7 +245,7 @@ function NoResults({ query, onStartBlank, onClear }: { query: string; onStartBla
     <div className="mx-auto mt-12 flex max-w-[360px] flex-col items-center gap-2 text-center">
       <SearchX aria-hidden className="h-7 w-7 text-ui-4" strokeWidth={1.5} />
       <p className="m-0 text-[12.5px] font-semibold text-ui-1">No template matches “{query.trim()}”</p>
-      <p className="m-0 text-[12px] leading-normal text-ui-3">
+      <p className="m-0 text-caption leading-normal text-ui-3">
         Search covers names, the widgets a template uses and the sensors it reads. Start blank and add widgets yourself, or clear the search.
       </p>
       <div className="mt-1 flex gap-2">

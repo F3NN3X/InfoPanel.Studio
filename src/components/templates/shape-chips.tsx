@@ -50,7 +50,7 @@ export function ShapeChips({ filter, onFilter, counts, className = "mb-2" }: Sha
           aria-checked={filter === f}
           onClick={() => onFilter(f)}
           className={cn(
-            "flex h-7 items-center gap-1.5 rounded-[7px] border px-[9px] text-[12px]",
+            "flex h-7 items-center gap-1.5 rounded-[7px] border px-[9px] text-caption",
             filter === f ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default text-ui-2 hover:bg-ui-hover",
           )}
         >

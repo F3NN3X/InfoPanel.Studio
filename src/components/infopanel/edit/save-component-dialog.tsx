@@ -46,7 +46,7 @@ export function SaveComponentDialog({ open, onOpenChange, count, initialName, on
             </div>
             <div className="space-y-3 px-5 py-4">
               <label className="block">
-                <span className="mb-1 block text-[12px] text-ui-3">Name</span>
+                <span className="mb-1 block text-caption text-ui-3">Name</span>
                 <input autoFocus value={name} onChange={(e) => setName(e.target.value)} aria-label="Name" className={INPUT} />
               </label>
               <p className="text-[11.5px] leading-snug text-ui-4">
@@ -55,10 +55,10 @@ export function SaveComponentDialog({ open, onOpenChange, count, initialName, on
               </p>
             </div>
             <div className="flex justify-end gap-2 border-t border-ui-subtle px-5 py-3">
-              <Dialog.Close type="button" className="h-8 rounded-[8px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1">
+              <Dialog.Close type="button" className="h-8 rounded-ui-md px-3 text-[12.5px] text-ui-3 hover:text-ui-1">
                 Cancel
               </Dialog.Close>
-              <button type="submit" disabled={!ok} className="h-8 rounded-[8px] bg-ui-accent px-4 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90 disabled:opacity-40">
+              <button type="submit" disabled={!ok} className="h-8 rounded-ui-md bg-ui-accent px-4 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90 disabled:opacity-40">
                 Save
               </button>
             </div>

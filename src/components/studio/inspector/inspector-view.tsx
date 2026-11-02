@@ -125,7 +125,7 @@ const always = () => true;
 /** A note or banner above the sections. */
 export function InspectorNote({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-4 mb-1 mt-3 rounded-lg border border-ui-default bg-ui-raised px-3 py-2.5 text-[12px] leading-snug text-ui-2">
+    <div className="mx-4 mb-1 mt-3 rounded-lg border border-ui-default bg-ui-raised px-3 py-2.5 text-caption leading-snug text-ui-2">
       {children}
     </div>
   );
@@ -169,7 +169,7 @@ function Tabs({
               disabled={t.disabled}
               onClick={() => onTab(t.id)}
               className={cn(
-                "-mb-px flex h-8 items-center gap-1.5 whitespace-nowrap border-b-2 text-[12px] transition-colors",
+                "-mb-px flex h-8 items-center gap-1.5 whitespace-nowrap border-b-2 text-caption transition-colors",
                 selected ? "border-ui-accent text-ui-1" : "border-transparent text-ui-4 enabled:hover:text-ui-1",
                 t.disabled && "opacity-35"
               )}
@@ -197,7 +197,7 @@ function Tabs({
               disabled={t.disabled}
               onClick={() => onTab(t.id)}
               className={cn(
-                "flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors",
+                "flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-caption font-medium transition-colors",
                 selected ? "bg-ui-active text-ui-1" : "text-ui-4 enabled:hover:text-ui-1",
                 t.disabled && "opacity-35"
               )}
@@ -209,7 +209,7 @@ function Tabs({
           );
         })}
       </div>
-      {description && <p className="px-0.5 pt-2 text-[11.5px] leading-snug text-[#7c7c86]">{description}</p>}
+      {description && <p className="px-0.5 pt-2 text-[11.5px] leading-snug text-ui-hint">{description}</p>}
     </div>
   );
 }
@@ -227,7 +227,7 @@ function Footer() {
       >
         <DotLegend />
       </Popover>
-      <span className="flex-1 text-[12px] text-ui-3">What the dots mean</span>
+      <span className="flex-1 text-caption text-ui-3">What the dots mean</span>
     </footer>
   );
 }
@@ -455,7 +455,7 @@ export function InspectorView({
           </div>
           <label
             title="Show every setting, including ones the theme controls"
-            className="flex shrink-0 cursor-pointer items-center gap-1.5 text-[12px] text-ui-2"
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 text-caption text-ui-2"
           >
             Advanced
             <Toggle checked={advanced} onChange={setAdvanced} label="Advanced" />

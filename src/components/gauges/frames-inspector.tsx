@@ -4,7 +4,7 @@ import { NO_RECOLOUR, type Recolour } from "@/lib/infopanel/gauges/raster";
 import type { FramesTools } from "./frames-tools";
 import { NumRow } from "./inspector/rows";
 
-const BUTTON = "h-8 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
+const BUTTON = "h-8 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
 
 export interface FramesInspectorProps {
   tools: FramesTools;
@@ -21,13 +21,13 @@ export function FramesInspector({ tools, recolour, onRecolour }: FramesInspector
     <InspectorChromeProvider value={{ mode: "docked" }}>
       <aside aria-label="Image sequence settings" className="flex w-[300px] shrink-0 flex-col border-l border-ui-subtle bg-ui-panel font-ui max-[899px]:w-full max-[899px]:border-l-0 max-[899px]:border-t">
         <header className="flex h-11 shrink-0 items-center border-b border-ui-subtle px-4">
-          <h2 className="truncate text-[13px] font-semibold text-ui-1">Image sequence</h2>
+          <h2 className="truncate text-body font-semibold text-ui-1">Image sequence</h2>
         </header>
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
           <section className="space-y-3">
             <h3 className="text-micro font-medium uppercase tracking-[0.06em] text-ui-4">Playback</h3>
             <NumRow label="Frames per second" value={tools.animationSpeed} min={0} max={120} onChange={tools.setSpeed} />
-            <p className="text-[12px] leading-snug text-ui-4">How fast the shown frame moves toward the value. 0 jumps straight to it.</p>
+            <p className="text-caption leading-snug text-ui-4">How fast the shown frame moves toward the value. 0 jumps straight to it.</p>
           </section>
           <section className="space-y-3">
             <h3 className="text-micro font-medium uppercase tracking-[0.06em] text-ui-4">Recolor</h3>
@@ -42,14 +42,14 @@ export function FramesInspector({ tools, recolour, onRecolour }: FramesInspector
                 Reset
               </button>
             </div>
-            <p className="text-[12px] leading-snug text-ui-4">Previewed here first. Apply makes recolored copies of the frames in one step.</p>
+            <p className="text-caption leading-snug text-ui-4">Previewed here first. Apply makes recolored copies of the frames in one step.</p>
           </section>
           <section className="space-y-3">
             <h3 className="text-micro font-medium uppercase tracking-[0.06em] text-ui-4">Vector</h3>
             <button type="button" disabled={off} onClick={() => void tools.convert()} className={BUTTON}>
               Convert to vector
             </button>
-            <p className="text-[12px] leading-snug text-ui-4">Draws the gauge live from a vector spec sized to these frames, starting from the preset closest in shape. The frames are kept.</p>
+            <p className="text-caption leading-snug text-ui-4">Draws the gauge live from a vector spec sized to these frames, starting from the preset closest in shape. The frames are kept.</p>
           </section>
         </div>
       </aside>

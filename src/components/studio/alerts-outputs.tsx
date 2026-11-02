@@ -57,7 +57,7 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
           onChange={(style) => setDisplay("style", { style: style as AlertStyle })}
           options={ALERT_STYLES.map((s) => ({ value: s, label: cap(s) }))}
         />
-        {island && <p className="text-[11px] leading-snug text-ui-hint">{ISLAND_HINT}</p>}
+        {island && <p className="text-micro leading-snug text-ui-hint">{ISLAND_HINT}</p>}
         {!island && (
           <InlineRow label="Position">
             <PositionGrid value={display.position ?? defaults.position} onChange={(position) => setDisplay("position", { position })} />

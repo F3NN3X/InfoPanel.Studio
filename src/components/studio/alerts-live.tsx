@@ -29,7 +29,7 @@ export function useAlertHistory(active: readonly ActiveAlert[]): AlertHistoryEnt
 }
 
 const BUTTON =
-  "flex h-6 items-center gap-1 rounded-md border border-ui-strong px-1.5 text-[11px] text-ui-2 hover:bg-ui-hover hover:text-ui-1";
+  "flex h-6 items-center gap-1 rounded-md border border-ui-strong px-1.5 text-micro text-ui-2 hover:bg-ui-hover hover:text-ui-1";
 
 /** "Active now": the alerts the server holds, each with Acknowledge and Dismiss. */
 export function ActiveList({ active, now }: { active: readonly ActiveAlert[]; now: number }) {

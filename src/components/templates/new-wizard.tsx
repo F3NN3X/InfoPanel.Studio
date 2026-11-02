@@ -25,8 +25,8 @@ export const KIND_SENTENCES: Record<WizardKind, string> = {
   ip: "A profile is free-placed elements on a canvas, edited in Edit and exportable to the InfoPanel app.",
 };
 
-const PRIMARY = "h-8 rounded-[8px] bg-ui-accent px-4 text-[12.5px] font-semibold text-ui-inverse-fg hover:opacity-90 disabled:opacity-40";
-const OUTLINE = "h-8 rounded-[8px] border border-ui-strong px-3 text-[12.5px] text-ui-2 hover:bg-ui-hover hover:text-ui-1";
+const PRIMARY = "h-8 rounded-ui-md bg-ui-accent px-4 text-[12.5px] font-semibold text-ui-inverse-fg hover:opacity-90 disabled:opacity-40";
+const OUTLINE = "h-8 rounded-ui-md border border-ui-strong px-3 text-[12.5px] text-ui-2 hover:bg-ui-hover hover:text-ui-1";
 
 /** Whether the element is narrower than the wizard's two columns need. */
 export function useNarrow<T extends HTMLElement>(): [RefObject<T | null>, boolean] {
@@ -48,7 +48,7 @@ function KindSwitch({ kind, onKind }: { kind: WizardKind; onKind: (k: WizardKind
     { k: "ip" as const, label: "InfoPanel profile", icon: PenTool },
   ];
   return (
-    <div role="radiogroup" aria-label="What to make" className="flex shrink-0 rounded-[8px] border border-ui-default bg-ui-raised p-0.5">
+    <div role="radiogroup" aria-label="What to make" className="flex shrink-0 rounded-ui-md border border-ui-default bg-ui-raised p-0.5">
       {kinds.map(({ k, label, icon: Icon }) => (
         <button
           key={k}
@@ -56,7 +56,7 @@ function KindSwitch({ kind, onKind }: { kind: WizardKind; onKind: (k: WizardKind
           role="radio"
           aria-checked={kind === k}
           onClick={() => kind !== k && onKind(k)}
-          className={cn("flex h-6 items-center gap-1.5 rounded-[6px] px-2.5 text-[12px]", kind === k ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1")}
+          className={cn("flex h-6 items-center gap-1.5 rounded-ui-sm px-2.5 text-caption", kind === k ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1")}
         >
           <Icon className="h-[15px] w-[15px]" strokeWidth={1.75} />
           {label}
@@ -74,7 +74,7 @@ function Stepper({ step, onStep }: { step: WizardStep; onStep: (s: WizardStep) =
           <button type="button" onClick={() => onStep(i as WizardStep)} className="flex items-center gap-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60">
             <span
               className={cn(
-                "grid h-5 w-5 place-items-center rounded-full border text-[11px] font-medium",
+                "grid h-5 w-5 place-items-center rounded-full border text-micro font-medium",
                 i === step ? "border-ui-1 bg-ui-1 text-ui-inverse-fg" : "border-ui-strong text-ui-3",
               )}
             >
@@ -159,13 +159,13 @@ export function NewWizard(p: NewWizardProps) {
         {narrow ? (
           <div className="flex min-w-0 flex-1 items-baseline gap-2 truncate">{p.summary}</div>
         ) : (
-          <p className="m-0 flex min-w-0 flex-1 items-center gap-1.5 truncate text-[11px] text-ui-4">
+          <p className="m-0 flex min-w-0 flex-1 items-center gap-1.5 truncate text-micro text-ui-4">
             <Kbd>←→</Kbd> browse <span className="w-2" />
             <Kbd>Enter</Kbd> create <span className="w-2" />
             Double-click a card to create it as shown
           </p>
         )}
-        <button type="button" onClick={p.onCancel} className="h-8 rounded-[8px] px-3 text-[12.5px] text-ui-2 hover:text-ui-1">
+        <button type="button" onClick={p.onCancel} className="h-8 rounded-ui-md px-3 text-[12.5px] text-ui-2 hover:text-ui-1">
           Cancel
         </button>
         {narrow && (
@@ -220,16 +220,16 @@ export function WaysIn({ items }: { items: readonly WayIn[] }) {
               }
             }}
             className={cn(
-              "flex h-11 min-w-0 items-center gap-2.5 rounded-[8px] border px-2.5 text-left outline-none focus-visible:border-ui-accent disabled:opacity-50",
+              "flex h-11 min-w-0 items-center gap-2.5 rounded-ui-md border px-2.5 text-left outline-none focus-visible:border-ui-accent disabled:opacity-50",
               checked ? "border-ui-accent bg-ui-accent/10" : "border-ui-default bg-ui-raised enabled:hover:bg-ui-hover",
             )}
           >
-            <span className={cn("grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[6px] border border-ui-strong bg-ui-app text-ui-2", does === "blank" && "border-dashed")}>
+            <span className={cn("grid h-[26px] w-[26px] shrink-0 place-items-center rounded-ui-sm border border-ui-strong bg-ui-app text-ui-2", does === "blank" && "border-dashed")}>
               <Icon className="h-[15px] w-[15px]" strokeWidth={1.75} />
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[12px] font-medium text-ui-1">{title}</span>
-              <span className="truncate text-[11px] text-ui-3">{note}</span>
+              <span className="truncate text-caption font-medium text-ui-1">{title}</span>
+              <span className="truncate text-micro text-ui-3">{note}</span>
             </span>
             {Trail ? (
               <Trail aria-hidden className="h-3.5 w-3.5 shrink-0 text-ui-4" />
@@ -283,11 +283,11 @@ interface WizardPreviewProps {
 export function WizardPreview({ width, height, max, hint, onExpand, noData, children }: WizardPreviewProps) {
   return (
     <figure aria-label="Preview" className="m-0 flex min-w-0 flex-col gap-1.5" style={{ width: `min(100%, ${max.width}px, ${(max.height * width) / height}px)` }}>
-      <div className="relative w-full overflow-hidden rounded-[8px] border border-ui-strong bg-ui-app" style={{ aspectRatio: `${width} / ${height}` }}>
+      <div className="relative w-full overflow-hidden rounded-ui-md border border-ui-strong bg-ui-app" style={{ aspectRatio: `${width} / ${height}` }}>
         {children}
         {noData && <NoDataPill />}
       </div>
-      <figcaption className="flex min-w-0 items-center gap-2 text-[11px]">
+      <figcaption className="flex min-w-0 items-center gap-2 text-micro">
         <span className="whitespace-nowrap font-ui-mono text-ui-2">
           {width} × {height}
         </span>

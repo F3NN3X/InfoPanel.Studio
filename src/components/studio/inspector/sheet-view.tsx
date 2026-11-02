@@ -98,7 +98,7 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
   if (identity.peekNote && sheet.snap === "peek")
     return (
       <div className="flex min-h-0 flex-1 items-center gap-2 pb-2 pl-4 pr-2">
-        <p className="flex-1 text-[13px] text-ui-3">{identity.peekNote}</p>
+        <p className="flex-1 text-body text-ui-3">{identity.peekNote}</p>
         <AllSettings onClick={toFull} />
       </div>
     );
@@ -159,7 +159,7 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
         </span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[14px] font-semibold leading-4 text-ui-1">{identity.name}</div>
-          <div className="truncate text-[11px] text-ui-hint">{identity.meta(changed)}</div>
+          <div className="truncate text-micro text-ui-hint">{identity.meta(changed)}</div>
         </div>
         {identity.onToggleVisible && (
           <button

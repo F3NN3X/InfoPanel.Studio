@@ -42,7 +42,7 @@ function Box({ label, value, onCommit, disabled }: { label: string; value: numbe
     <label
       title={refused ? "That spot overlaps another widget or is outside the grid" : undefined}
       className={cn(
-        "flex h-7 min-w-0 items-center gap-1.5 rounded-[6px] border bg-ui-app px-[7px] font-ui-mono text-[11px] text-ui-1 focus-within:border-ui-accent",
+        "flex h-7 min-w-0 items-center gap-1.5 rounded-ui-sm border bg-ui-app px-[7px] font-ui-mono text-micro text-ui-1 focus-within:border-ui-accent",
         refused ? "border-ui-danger" : "border-ui-default",
       )}
     >
@@ -65,7 +65,7 @@ function Box({ label, value, onCommit, disabled }: { label: string; value: numbe
           className="w-full min-w-0 bg-transparent outline-none"
         />
       ) : (
-        <span aria-label={label}>{Math.round(value)}</span>
+        <span role="img" aria-label={`${label} ${Math.round(value)}`}>{Math.round(value)}</span>
       )}
     </label>
   );
@@ -107,7 +107,7 @@ export function PlaceRow({ cell, px, onCells, onPx, onSnap, disabled }: PlaceRow
           data-testid="snap-to-grid"
           disabled={disabled}
           onClick={onSnap}
-          className="flex h-7 items-center justify-center gap-[5px] rounded-[7px] border border-ui-strong bg-ui-raised text-[12px] text-ui-1 transition-colors hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
+          className="flex h-7 items-center justify-center gap-[5px] rounded-[7px] border border-ui-strong bg-ui-raised text-caption text-ui-1 transition-colors hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
         >
           <Grid3x3 className="h-[15px] w-[15px]" />
           Snap to grid

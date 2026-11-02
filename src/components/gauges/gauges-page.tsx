@@ -47,7 +47,7 @@ export interface GaugesPageProps {
   onShowCanvas: () => void;
 }
 
-const HEADER_BUTTON = "flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover";
+const HEADER_BUTTON = "flex h-(--ui-h-field) items-center gap-1.5 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover";
 
 export default function GaugesPage({ bridge: studio, profileName, theme, initial, onOpened, onShowCanvas }: GaugesPageProps) {
   const toast = useToast();
@@ -188,7 +188,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
     >
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4">
         <h1 className="text-[15px] font-semibold text-ui-1">Gauges</h1>
-        <div role="tablist" aria-label="Gauges" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="flex h-[34px] items-center gap-0.5 rounded-[9px] border border-ui-default p-0.5">
+        <div role="tablist" aria-label="Gauges" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="flex h-(--ui-h-field) items-center gap-0.5 rounded-ui-menu border border-ui-default p-0.5">
           <button
             type="button"
             role="tab"
@@ -220,7 +220,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
             <button
               type="button"
               onClick={() => openEditor(newGaugeOpen())}
-              className="flex h-[34px] items-center gap-1.5 rounded-[8px] bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90"
+              className="flex h-(--ui-h-field) items-center gap-1.5 rounded-ui-md bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90"
             >
               <Plus className="h-4 w-4" /> New gauge
             </button>

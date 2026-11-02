@@ -60,7 +60,7 @@ export function MoreRows({
         aria-expanded={open}
         onClick={() => setMoreOpen(storeKey, !open)}
         className={cn(
-          "block py-1.5 pl-4 pr-2.5 text-left text-[12px] font-medium text-[oklch(0.80_0.12_255)] hover:underline",
+          "block py-1.5 pl-4 pr-2.5 text-left text-caption font-medium text-ui-accent-text hover:underline",
           className
         )}
       >

@@ -3,7 +3,7 @@ import { useGeneral } from "@/hooks/use-general";
 import { localeHour12 } from "@/lib/general";
 import { hour12Of } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, rows, fmt, mix, type ShellProps } from "./kit";
+import { Widget, shell, get, num, rows, fmt, fmtDate, mix, type ShellProps } from "./kit";
 import { allDayTitles, hourMarks, nowFraction, placeEvents, railWindow, type RailEvent, type RailWindow } from "./DayPlanner/layout";
 import { forecastDay, weatherBand, type BandPoint } from "./DayPlanner/weather-band";
 import { useExtras, useInStudio, useNow } from "./time-hooks";
@@ -45,7 +45,7 @@ function weatherOf(d: ShellProps["data"], location: string | undefined, win: Rai
 const hourLabel = (hour: number, h12: boolean) => (h12 ? `${hour % 12 || 12}${hour < 12 ? "a" : "p"}` : String(hour).padStart(2, "0"));
 
 /** The label of a midnight mark: the weekday. */
-const dayName = (at: number) => new Date(at).toLocaleDateString(undefined, { weekday: "short" });
+const dayName = (at: number) => fmtDate(new Date(at), "weekday");
 
 export default function DayPlanner(p: DayPlannerProps) {
   const { locale } = useGeneral();

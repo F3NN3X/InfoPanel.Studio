@@ -26,12 +26,12 @@ export function NativeExportStep({ rows, choices, onChoose, onSetAll }: NativeEx
   const asked = rows;
   return (
     <div className="flex flex-col gap-3">
-      <p className="flex gap-2 text-[12px] text-ui-3">
+      <p className="flex gap-2 text-caption text-ui-3">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-ui-4" />
         Native widgets are rebuilt from InfoPanel items, so they may look slightly different in InfoPanel.
       </p>
       {left.length > 0 && (
-        <ul className="flex flex-col gap-0.5 rounded-[10px] border border-ui-default px-3.5 py-2.5 text-[12px] text-ui-warning">
+        <ul className="flex flex-col gap-0.5 rounded-[10px] border border-ui-default px-3.5 py-2.5 text-caption text-ui-warning">
           {left.map((n) => (
             <li key={n} className="flex gap-1.5">
               <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {n}
@@ -40,7 +40,7 @@ export function NativeExportStep({ rows, choices, onChoose, onSetAll }: NativeEx
         </ul>
       )}
       {asked.length > 1 && (
-        <div className="flex items-center gap-2 text-[12px] text-ui-3">
+        <div className="flex items-center gap-2 text-caption text-ui-3">
           <span>Set all:</span>
           {ORDER.map((c) => (
             <button key={c} type="button" onClick={() => onSetAll(c)} className="rounded-[7px] border border-ui-default px-2 py-1 text-ui-2 hover:bg-ui-hover">
@@ -50,7 +50,7 @@ export function NativeExportStep({ rows, choices, onChoose, onSetAll }: NativeEx
         </div>
       )}
       <div className="flex flex-col rounded-[10px] border border-ui-default">
-        {asked.length === 0 && <span className="px-3.5 py-2.5 text-[12px] text-ui-4">Nothing here needs a choice.</span>}
+        {asked.length === 0 && <span className="px-3.5 py-2.5 text-caption text-ui-4">Nothing here needs a choice.</span>}
         {asked.map((r) => {
           const picked = choiceFor(r, choices[r.zoneId] ?? {});
           return (
@@ -69,7 +69,7 @@ export function NativeExportStep({ rows, choices, onChoose, onSetAll }: NativeEx
                         disabled={!offered}
                         title={!offered ? "Not available for this widget yet" : undefined}
                         onClick={() => onChoose(r.zoneId, r.key, c)}
-                        className={cn("flex items-center gap-1.5 text-[12px]", offered ? "text-ui-2" : "cursor-not-allowed text-ui-hint opacity-50")}
+                        className={cn("flex items-center gap-1.5 text-caption", offered ? "text-ui-2" : "cursor-not-allowed text-ui-hint opacity-50")}
                       >
                         <Radio on={picked === c} /> {CHOICE_LABEL[c]}
                       </button>

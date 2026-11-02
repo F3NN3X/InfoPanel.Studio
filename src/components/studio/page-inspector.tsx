@@ -37,7 +37,7 @@ interface PageInspectorProps {
 }
 
 const SECTION_LABEL = "text-micro font-semibold uppercase tracking-[0.06em] text-ui-4";
-const SELECT = "h-7 max-w-[150px] rounded-md border border-ui-default bg-ui-app px-1.5 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
+const SELECT = "h-7 max-w-[150px] rounded-md border border-ui-default bg-ui-app px-1.5 font-ui-mono text-caption text-ui-1 outline-none focus:border-ui-accent";
 const ACTION =
   "flex h-8 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40";
 
@@ -67,7 +67,7 @@ function NameRow({ page, onRename }: { page: ProfilePage; onRename: (name: strin
     else setDraft(page.name);
   };
   return (
-    <label className="flex min-h-7 items-center justify-between gap-2.5 text-[12px] text-ui-4">
+    <label className="flex min-h-7 items-center justify-between gap-2.5 text-caption text-ui-4">
       <span className="shrink-0">Name</span>
       <input
         value={draft}
@@ -83,7 +83,7 @@ function NameRow({ page, onRename }: { page: ProfilePage; onRename: (name: strin
             e.currentTarget.blur();
           }
         }}
-        className="h-7 min-w-0 max-w-[170px] flex-1 rounded-md border border-transparent bg-transparent px-1.5 text-right text-[12px] text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent"
+        className="h-7 min-w-0 max-w-[170px] flex-1 rounded-md border border-transparent bg-transparent px-1.5 text-right text-caption text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent"
       />
     </label>
   );
@@ -96,7 +96,7 @@ function LookCard({ section, profile, page, inherit }: { section: SectionId; pro
   const { chip } = sectionInherit({ sections: [section], title: sectionTitle(section), scope, ctx: inherit });
   return (
     <li className="flex h-9 items-center gap-2 rounded-lg border border-ui-default bg-ui-raised pl-2.5 pr-2">
-      <Icon className="h-4 w-4 shrink-0 text-[#7c7c86]" strokeWidth={1.75} />
+      <Icon className="h-4 w-4 shrink-0 text-ui-hint" strokeWidth={1.75} />
       <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ui-1">{sectionTitle(section)}</span>
       {chip}
     </li>
@@ -172,12 +172,12 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
               {rotationText(profile, page)}
             </button>
           </PageRow>
-          <div className="flex min-h-7 items-center justify-between gap-2.5 text-[12px] text-ui-4">
+          <div className="flex min-h-7 items-center justify-between gap-2.5 text-caption text-ui-4">
             <span className="shrink-0">Icon</span>
             <button
               type="button"
               onClick={() => onIcon(page.id)}
-              className="flex h-7 items-center gap-1.5 rounded-md border border-ui-default bg-ui-app px-2 text-[12px] text-ui-1 hover:bg-ui-hover"
+              className="flex h-7 items-center gap-1.5 rounded-md border border-ui-default bg-ui-app px-2 text-caption text-ui-1 hover:bg-ui-hover"
             >
               {Icon ? <Icon className="h-4 w-4" /> : null}
               {page.icon ?? "None"}
@@ -214,15 +214,15 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
           </p>
         </Block>
 
-        <Block label="Live" labelClassName="text-[oklch(0.88_0.10_150)]">
+        <Block label="Live" labelClassName="text-ui-ok-text">
           <button
             type="button"
             onClick={onShowOnKiosks}
-            className="flex h-8 w-full items-center justify-center gap-1.5 rounded-[7px] border border-[oklch(0.78_0.15_150/0.45)] bg-[oklch(0.78_0.15_150/0.12)] text-[12.5px] font-medium text-[oklch(0.88_0.10_150)] transition-colors hover:bg-[oklch(0.78_0.15_150/0.2)]"
+            className="flex h-8 w-full items-center justify-center gap-1.5 rounded-[7px] border border-[oklch(0.78_0.15_150/0.45)] bg-[oklch(0.78_0.15_150/0.12)] text-[12.5px] font-medium text-ui-ok-text transition-colors hover:bg-[oklch(0.78_0.15_150/0.2)]"
           >
             <Cast className="h-4 w-4" strokeWidth={1.75} /> Show on kiosks now
           </button>
-          <p className="mt-1.5 text-pretty text-[11px] leading-[1.4] text-ui-4">
+          <p className="mt-1.5 text-pretty text-micro leading-[1.4] text-ui-4">
             Switches the kiosks to this page right away. Not part of your design, so Save doesn't change it.
           </p>
         </Block>

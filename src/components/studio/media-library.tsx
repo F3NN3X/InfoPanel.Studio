@@ -76,18 +76,18 @@ export function MediaLibrary({ kind, value, onPick }: MediaLibraryProps) {
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Popover.Popup className="w-72 space-y-2 rounded-[9px] border border-ui-menu bg-ui-raised p-2 font-ui text-[12px] text-ui-2 shadow-ui-menu outline-none">
+          <Popover.Popup className="w-72 space-y-2 rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui text-caption text-ui-2 shadow-ui-menu outline-none">
             <div className="flex items-center justify-between">
               <Popover.Title className="font-medium text-ui-1">Uploaded {kind === "image" ? "images" : "videos"}</Popover.Title>
-              <span className="text-[11px] text-ui-4">{state ? `${shown.length} files` : "Loading…"}</span>
+              <span className="text-micro text-ui-4">{state ? `${shown.length} files` : "Loading…"}</span>
             </div>
             {error && (
-              <div role="alert" className="text-[11px] text-ui-danger">
+              <div role="alert" className="text-micro text-ui-danger">
                 {error}
               </div>
             )}
             {state && shown.length === 0 && (
-              <p className="py-4 text-center text-[11px] text-ui-4">
+              <p className="py-4 text-center text-micro text-ui-4">
                 Nothing uploaded yet. Use Upload… or drop a file on the field.
               </p>
             )}
@@ -139,7 +139,7 @@ function CleanupRow({
   if (confirming) {
     return (
       <div className="space-y-1.5 border-t border-ui-default pt-2">
-        <p className="text-[11px] text-ui-4">
+        <p className="text-micro text-ui-4">
           Delete {count} file{count === 1 ? "" : "s"} the saved config doesn&apos;t use (images and videos)? Undo can&apos;t bring them back.
         </p>
         <div className="flex justify-end gap-1.5">
@@ -159,7 +159,7 @@ function CleanupRow({
   }
   return (
     <div className="flex items-center justify-between border-t border-ui-default pt-2">
-      <span className="text-[11px] text-ui-4">{count} unused (images and videos)</span>
+      <span className="text-micro text-ui-4">{count} unused (images and videos)</span>
       <button
         type="button"
         disabled={count === 0}

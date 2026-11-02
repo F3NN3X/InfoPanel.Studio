@@ -94,6 +94,9 @@ export interface ModernChrome {
   smoothing?: "smooth" | "stepped";
 }
 
+/** The room the title header takes at the top of the zone, px (`top-2` plus the icon row). */
+const HEADER_PX = 28;
+
 export function ModernChrome({
   chrome,
   designSize,
@@ -113,9 +116,10 @@ export function ModernChrome({
   const { ref, w, h } = useElementSize();
   const scope = useId();
   const css = chrome?.customCss ? scopedCss(scope, chrome.customCss) : "";
-  const zoom = zoomFor({ w, h }, designSize, chrome);
   const Icon = chrome?.icon ? widgetIcon(chrome.icon) : undefined;
   const showHeader = Boolean(Icon || chrome?.label);
+  // The content sits under the header, so auto-scale fits the room that is left; the offset is on the unzoomed parent.
+  const zoom = zoomFor({ w, h: showHeader ? Math.max(0, h - HEADER_PX) : h }, designSize, chrome);
   const showBackground = Boolean(chrome?.backgroundOn && chrome?.background);
 
   return (
@@ -138,11 +142,10 @@ export function ModernChrome({
           <div className="absolute inset-0" style={{ background: SCRIM }} />
         </>
       )}
-      <div
-        className="relative z-10 h-full w-full"
-        style={zoom !== 1 ? ({ zoom } as CSSProperties) : undefined}
-      >
-        {children}
+      <div className="relative z-10 h-full w-full" style={showHeader ? { paddingTop: HEADER_PX } : undefined}>
+        <div className="h-full w-full" style={zoom !== 1 ? ({ zoom } as CSSProperties) : undefined}>
+          {children}
+        </div>
       </div>
       {showHeader && (
         <div

@@ -34,7 +34,7 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
                   {group.items.map((item) => (
                     <div key={item.label} className="flex items-center gap-3 border-b border-ui-subtle py-[7px] text-[12.5px]">
                       <dt className="min-w-0 flex-1 text-ui-2">{item.label}</dt>
-                      <dd className="shrink-0 rounded-[5px] border border-ui-menu px-[7px] py-0.5 font-ui-mono text-[11px] text-ui-1">
+                      <dd className="shrink-0 rounded-[5px] border border-ui-menu px-[7px] py-0.5 font-ui-mono text-micro text-ui-1">
                         {item.keys}
                       </dd>
                     </div>
@@ -42,7 +42,7 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
                 </dl>
               </section>
             ))}
-            <p className="break-inside-avoid pt-3 text-[11px] text-ui-4">
+            <p className="break-inside-avoid pt-3 text-micro text-ui-4">
               Plain keys are ignored while typing in a field; Esc, Ctrl+S, undo and redo always work.
             </p>
           </div>

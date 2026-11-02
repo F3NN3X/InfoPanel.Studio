@@ -60,7 +60,7 @@ export function ColorButton({
         open ? "border-ui-accent" : "border-ui-strong hover:border-ui-menu"
       )}
     >
-      <span className={cn(!name && !SWATCHES.some((s) => same(s.value, value)) && "font-ui-mono text-[11px]")}>{name ?? colorName(value)}</span>
+      <span className={cn(!name && !SWATCHES.some((s) => same(s.value, value)) && "font-ui-mono text-micro")}>{name ?? colorName(value)}</span>
       <span className="h-[18px] w-[18px] rounded-full" style={{ background: swatchBackground(value) }} />
     </button>
   );

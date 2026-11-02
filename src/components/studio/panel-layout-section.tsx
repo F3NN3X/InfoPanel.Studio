@@ -43,7 +43,7 @@ function Stepper({ value, min, max, onChange }: { value: number; min: number; ma
       <button type="button" className={btn} aria-label="Fewer" disabled={value <= min} onClick={() => onChange(value - 1)}>
         <Minus className="h-3 w-3" />
       </button>
-      <span className="w-6 text-center font-ui-mono text-[12px] text-ui-1">{value}</span>
+      <span className="w-6 text-center font-ui-mono text-caption text-ui-1">{value}</span>
       <button type="button" className={btn} aria-label="More" disabled={value >= max} onClick={() => onChange(value + 1)}>
         <Plus className="h-3 w-3" />
       </button>

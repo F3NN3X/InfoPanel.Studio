@@ -99,7 +99,7 @@ export function ArticleView({ article, content, showToc, active, onOpen, onHome,
                     key={r.id}
                     type="button"
                     onClick={() => onOpen(r.id)}
-                    className="flex cursor-pointer items-center gap-2.5 whitespace-normal rounded-[10px] border border-s-card-line bg-s-card px-3.5 py-3 text-left text-[13px] font-medium text-s-t1 hover:border-[#33333b]"
+                    className="flex cursor-pointer items-center gap-2.5 whitespace-normal rounded-[10px] border border-s-card-line bg-s-card px-3.5 py-3 text-left text-body font-medium text-s-t1 hover:border-[#33333b]"
                   >
                     <RelatedIcon className="h-[17px] w-[17px] shrink-0 text-s-dim" />
                     {r.title}
@@ -119,7 +119,7 @@ export function ArticleView({ article, content, showToc, active, onOpen, onHome,
 
       {showToc && (
         <nav aria-label="On this page" className="sticky top-8 flex w-[190px] shrink-0 flex-col gap-0.5">
-          <div className="pb-2 pl-3 text-[11px] font-medium uppercase tracking-[0.07em] text-s-dim">On this page</div>
+          <div className="pb-2 pl-3 text-micro font-medium uppercase tracking-[0.07em] text-s-dim">On this page</div>
           {headings.map((h) => {
             const on = h.id === active;
             return (

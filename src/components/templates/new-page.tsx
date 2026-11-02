@@ -354,7 +354,7 @@ function KindPage({ kind, onKind, screen, initial, carry, onCreateScreen, onCrea
         </SensorSummary>
       )}
       <label className="flex flex-col gap-1.5">
-        <span className="text-[12px] text-ui-2">Name</span>
+        <span className="text-caption text-ui-2">Name</span>
         <input value={shownName} onChange={(e) => setName(e.target.value)} aria-label="Name" className={INPUT} />
       </label>
       {ip && (
@@ -378,10 +378,10 @@ function KindPage({ kind, onKind, screen, initial, carry, onCreateScreen, onCrea
   const inspector = (
     <>
       <div className="flex min-w-0 items-baseline gap-2">
-        <h2 ref={heading} tabIndex={-1} className="m-0 shrink-0 text-[13px] font-semibold text-ui-1 outline-none">
+        <h2 ref={heading} tabIndex={-1} className="m-0 shrink-0 text-body font-semibold text-ui-1 outline-none">
           {entry ? entry.name : ip ? "Blank canvas" : "Blank grid"}
         </h2>
-        <span className="min-w-0 truncate text-[11px] text-ui-4">{template ? `Made for ${classList(template.fits)}` : saved ? entry?.blurb : "Add widgets after you create it"}</span>
+        <span className="min-w-0 truncate text-micro text-ui-4">{template ? `Made for ${classList(template.fits)}` : saved ? entry?.blurb : "Add widgets after you create it"}</span>
       </div>
       {tall ? (
         <div className="flex items-start gap-4">
@@ -417,8 +417,8 @@ function KindPage({ kind, onKind, screen, initial, carry, onCreateScreen, onCrea
       }}
       summary={
         <>
-          <span className="truncate text-[12px] font-medium text-ui-1">{entry ? [entry.name, variantName].filter(Boolean).join(" · ") : KIND_TITLES[kind].replace("New", "Blank")}</span>
-          <span className="shrink-0 font-ui-mono text-[11px] text-ui-3">
+          <span className="truncate text-caption font-medium text-ui-1">{entry ? [entry.name, variantName].filter(Boolean).join(" · ") : KIND_TITLES[kind].replace("New", "Blank")}</span>
+          <span className="shrink-0 font-ui-mono text-micro text-ui-3">
             {shown.width} × {shown.height}
           </span>
         </>

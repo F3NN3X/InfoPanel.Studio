@@ -61,7 +61,7 @@ export function KioskStrip({ onBack, onClose }: KioskStripProps) {
         <button
           type="button"
           onClick={onBack}
-          className="ml-1 flex h-6 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1"
+          className="ml-1 flex h-6 items-center gap-1.5 rounded-md px-2 text-caption font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1"
         >
           <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} /> Back to studio
         </button>

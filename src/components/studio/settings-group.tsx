@@ -6,8 +6,8 @@ export function SettingsGroup({ id, title, scope, children }: { id: string; titl
   return (
     <section data-nav-section={id} className="mb-[22px] flex flex-col gap-1">
       <div className="mb-1 flex items-center gap-2">
-        <h2 className="m-0 text-[13px] font-semibold text-ui-1">{title}</h2>
-        {scope && <span className="text-[11px] text-[#7c7c86]">{scope}</span>}
+        <h2 className="m-0 text-body font-semibold text-ui-1">{title}</h2>
+        {scope && <span className="text-micro text-ui-hint">{scope}</span>}
       </div>
       <div className="flex flex-col gap-2">{children}</div>
     </section>

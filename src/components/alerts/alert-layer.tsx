@@ -98,7 +98,7 @@ export function AlertLayer({ alerts, onAck }: AlertLayerProps) {
   if (items.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[60]" data-alert-layer>
+    <div className="pointer-events-none fixed inset-0 z-(--z-dialog)" data-alert-layer>
       {backdrop !== "none" && (
         // Swallows touches so the dashboard under it is not interactive.
         <div

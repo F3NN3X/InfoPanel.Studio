@@ -107,8 +107,8 @@ export function SourceTree({
               aria-pressed={health === h}
               onClick={() => onHealth(health === h ? null : h)}
               className={cn(
-                "inline-flex h-6 items-center gap-[5px] whitespace-nowrap rounded-full border px-2 text-[11px] text-ui-2 transition-colors",
-                health === h ? "border-[#3a3a44] bg-ui-default" : "border-ui-default hover:bg-ui-hover"
+                "inline-flex h-6 items-center gap-[5px] whitespace-nowrap rounded-full border px-2 text-micro text-ui-2 transition-colors",
+                health === h ? "border-ui-edge bg-ui-default" : "border-ui-default hover:bg-ui-hover"
               )}
             >
               <StatusDot health={h} />
@@ -289,13 +289,13 @@ function Row({
               rename.onCancel();
             }
           }}
-          className="h-6 min-w-0 flex-1 rounded border border-ui-default bg-ui-app px-1.5 text-[12px] text-ui-1 placeholder:text-ui-4 focus:border-ui-accent/60 focus:outline-none"
+          className="h-6 min-w-0 flex-1 rounded border border-ui-default bg-ui-app px-1.5 text-caption text-ui-1 placeholder:text-ui-4 focus:border-ui-accent/60 focus:outline-none"
         />
       ) : (
         <span
           className={cn(
             "min-w-0 flex-1 truncate",
-            kind === "container" ? "text-[12px]" : "text-[12.5px]",
+            kind === "container" ? "text-caption" : "text-[12.5px]",
             kind === "all" && "font-medium",
             labelTone,
             muted && "line-through opacity-60"

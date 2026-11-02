@@ -111,8 +111,8 @@ export function ChangelogSection() {
                 on ? "border-l-s-accent text-s-t1" : "border-l-transparent text-s-muted hover:text-s-t1"
               )}
             >
-              <span className="font-mono text-[13px] font-medium">{r.version}</span>
-              {r.date && <span className="text-[11px] text-s-dim">{shortDate(r.date)}</span>}
+              <span className="font-mono text-body font-medium">{r.version}</span>
+              {r.date && <span className="text-micro text-s-dim">{shortDate(r.date)}</span>}
             </button>
           );
         })}
@@ -133,7 +133,7 @@ export function ChangelogSection() {
                   <ChevronRight className={cn("h-4 w-4 shrink-0 self-center text-s-dim transition-transform", open && "rotate-90")} />
                   <span className="font-mono text-xl font-semibold tracking-[-0.01em]">{r.version}</span>
                   {r.date && <span className="text-[12.5px] text-s-dim">{shortDate(r.date)}</span>}
-                  {r.version === status.appVersion && <span className="rounded-[10px] bg-s-green/14 px-2 py-0.5 text-[11px] font-medium text-[oklch(0.84_0.14_150)]">Installed</span>}
+                  {r.version === status.appVersion && <span className="rounded-[10px] bg-s-green/14 px-2 py-0.5 text-micro font-medium text-[oklch(0.84_0.14_150)]">Installed</span>}
                   {count > 0 && <span className="text-[12.5px] text-s-dim">{count === 1 ? "1 change" : `${count} changes`}</span>}
                 </button>
                 {/* biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown escapes raw HTML and keeps only safe links. */}
@@ -146,7 +146,7 @@ export function ChangelogSection() {
                     return (
                       <div key={s.title} className="flex flex-col gap-1.5">
                         <div>
-                          <span className={cn("rounded-[5px] px-2 py-0.5 text-[11px] font-semibold tracking-[0.02em]", TONE_CLASS[sectionTone(s.title)])}>{s.title}</span>
+                          <span className={cn("rounded-[5px] px-2 py-0.5 text-micro font-semibold tracking-[0.02em]", TONE_CLASS[sectionTone(s.title)])}>{s.title}</span>
                         </div>
                         {expanded ? (
                           // biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown escapes raw HTML and keeps only safe links.

@@ -108,7 +108,10 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
   const sObj = sRaw && untitled(withUserLook(sRaw, user), titled);
   const form = isStudio ? null : summaryShape(compactView, box.shape, box.w, box.h);
   const cRaw = form ? (typeof compact === "function" ? compact({ ...box, shape: form }) : compact) : undefined;
-  const cObj = cRaw && untitled(withUserLook(cRaw, user), titled);
+  // tui frames the title on the border even over a summary view, so the summary's own copy of it would repeat it; the other skins draw no header over a summary.
+  const framed = skin === "tui" && showHeader && titled && !!heading;
+  const cTitled = cRaw && untitled(withUserLook(cRaw, user), titled);
+  const cObj = cTitled && framed && cTitled.label === heading ? { ...cTitled, label: "" } : cTitled;
   const useCompact = !!cObj;
   const tui = skin === "tui";
   const pad = shellPad({ box, studio: isStudio, compact: useCompact, bleed, tui, padding: chrome?.padding !== undefined ? Math.round((chrome.padding / zoom) * 100) / 100 : undefined });

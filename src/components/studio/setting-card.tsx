@@ -79,9 +79,9 @@ export function SettingSection({
             sheet ? "h-12" : "h-[42px]"
           )}
         >
-          <Icon className="h-[17px] w-[17px] shrink-0 text-[#7c7c86]" strokeWidth={1.75} />
+          <Icon className="h-[17px] w-[17px] shrink-0 text-ui-hint" strokeWidth={1.75} />
           <span className="truncate text-[12.5px] font-semibold">{title}</span>
-          {filtering && tabLabel && <span className="shrink-0 whitespace-nowrap text-[11px] text-ui-hint">{tabLabel}</span>}
+          {filtering && tabLabel && <span className="shrink-0 whitespace-nowrap text-micro text-ui-hint">{tabLabel}</span>}
           {pill}
           {changed > 0 && <span className="min-w-0 shrink-[100] overflow-hidden whitespace-nowrap text-micro text-ui-hint">{changed} changed</span>}
         </button>

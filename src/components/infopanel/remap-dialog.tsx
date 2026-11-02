@@ -48,7 +48,7 @@ export function RemapDialog({ open, onOpenChange, name, groups, overrides, index
             </Dialog.Close>
           </div>
           {!online && (
-            <div role="status" className="mx-5 mt-3 rounded-lg border border-ui-warning/40 bg-ui-warning/10 px-3 py-2 text-[12px] text-ui-2">
+            <div role="status" className="mx-5 mt-3 rounded-lg border border-ui-warning/40 bg-ui-warning/10 px-3 py-2 text-caption text-ui-2">
               The Data API isn’t reachable, so no sensor can be matched or chosen. The items keep the keys they have.
             </div>
           )}
@@ -68,7 +68,7 @@ export function RemapDialog({ open, onOpenChange, name, groups, overrides, index
             />
           </div>
           <div className="flex shrink-0 justify-end border-t border-ui-subtle px-5 py-3">
-            <Dialog.Close className="h-8 rounded-[8px] bg-ui-accent px-4 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90">Done</Dialog.Close>
+            <Dialog.Close className="h-8 rounded-ui-md bg-ui-accent px-4 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90">Done</Dialog.Close>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

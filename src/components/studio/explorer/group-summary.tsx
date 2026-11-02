@@ -52,7 +52,7 @@ export function GroupSummary({
       {note && noteLook && (
         <div className={cn("flex items-start gap-[9px] rounded-lg px-3 py-2.5", noteLook.bg)}>
           <noteLook.icon className={cn("h-[17px] w-[17px] shrink-0", noteLook.tone)} aria-hidden />
-          <span className="flex-1 text-[12px] leading-[1.45] text-[#d4d4da]">{note.text}</span>
+          <span className="flex-1 text-caption leading-[1.45] text-[#d4d4da]">{note.text}</span>
         </div>
       )}
 
@@ -63,7 +63,7 @@ export function GroupSummary({
             className="flex justify-between gap-3 whitespace-nowrap border-b border-s-divider py-2 text-[12.5px]"
           >
             <span className="text-ui-2">{s.label}</span>
-            <span className="font-ui-mono text-[12px] text-ui-1">{s.value}</span>
+            <span className="font-ui-mono text-caption text-ui-1">{s.value}</span>
           </div>
         ))}
       </div>
@@ -79,7 +79,7 @@ export function GroupSummary({
             return (
               <div key={c.id} className="rounded-md border border-ui-default bg-ui-tile p-2">
                 <div className="mb-1.5 flex items-center gap-2">
-                  <span className="min-w-0 flex-1 truncate text-[12px] text-ui-1">{c.title}</span>
+                  <span className="min-w-0 flex-1 truncate text-caption text-ui-1">{c.title}</span>
                   <Toggle
                     label={`Show ${c.title} in dashboard`}
                     checked={pref?.enabled !== false}
@@ -91,7 +91,7 @@ export function GroupSummary({
                   onChange={(e) => onPrefsChange(key, { displayName: e.target.value || undefined })}
                   placeholder={c.title}
                   aria-label={`Display name for ${c.title}`}
-                  className="h-7 w-full rounded border border-ui-default bg-ui-app px-2 text-[12px] text-ui-1 placeholder:text-ui-4 focus:border-ui-accent/60 focus:outline-none"
+                  className="h-7 w-full rounded border border-ui-default bg-ui-app px-2 text-caption text-ui-1 placeholder:text-ui-4 focus:border-ui-accent/60 focus:outline-none"
                 />
               </div>
             );
@@ -99,7 +99,7 @@ export function GroupSummary({
         </div>
       )}
 
-      <span className="text-[12px] leading-[1.5] text-ui-4">
+      <span className="text-caption leading-[1.5] text-ui-4">
         Select a data point to see its live value, history and which widgets use it.
       </span>
     </div>

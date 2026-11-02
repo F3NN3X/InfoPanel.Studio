@@ -17,7 +17,7 @@ import { ISLAND_DEFAULTS } from "@/lib/island/config";
 import { islandFeeds } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { useLoadedProfile, useWidgetPreload } from "@/widgets/preload";
-import { PageDots, PAGE_DOTS_STRIP_PX } from "@/components/page-dots";
+import { PageDots, pageDotsStripPx } from "@/components/page-dots";
 import { resolveBackground } from "@/lib/appearance";
 import { appearanceOf, zoneResolver } from "@/lib/style-resolve";
 import { applyTheme, resolveTheme } from "@/lib/theme";
@@ -621,7 +621,7 @@ export default function App({ fixture }: AppProps = {}) {
         {refused && (
           <div
             role="alert"
-            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-[12px] text-ui-1"
+            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-caption text-ui-1"
           >
             A newer dashboard version saved this config. Reload to keep editing.
             <button
@@ -636,7 +636,7 @@ export default function App({ fixture }: AppProps = {}) {
         {runtimeUpdated && (
           <div
             role="status"
-            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-[12px] text-ui-1"
+            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-caption text-ui-1"
           >
             WebView2 was updated. Restart InfoPanel Studio to use it.
             <button type="button" onClick={() => setRuntimeUpdated(false)} className="rounded px-2 py-0.5 text-ui-2 hover:bg-ui-hover hover:text-ui-1">
@@ -647,7 +647,7 @@ export default function App({ fixture }: AppProps = {}) {
         {readOnly && !refused && (
           <div
             role="alert"
-            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-[12px] text-ui-1"
+            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-caption text-ui-1"
           >
             Editing from other devices is off, so changes here are not saved. Turn it on in Settings › Server on the PC running InfoPanel Studio.
           </div>
@@ -723,7 +723,7 @@ export default function App({ fixture }: AppProps = {}) {
           // React never removes it from under the `padding` shorthand.
           paddingTop: profilePadding(profile, kiosk) + reserve,
           // The dots' strip: they sit in the bottom padding, so no zone is under them.
-          ...(pageNav && { paddingBottom: Math.max(profilePadding(profile, kiosk), PAGE_DOTS_STRIP_PX) }),
+          ...(pageNav && { paddingBottom: Math.max(profilePadding(profile, kiosk), pageDotsStripPx()) }),
           // Vertical scrolling stays with the browser; horizontal moves reach the swipe.
           ...(pageNav && { touchAction: "pan-y" }),
           fontFamily: fontStack(resolveFont(profile)),

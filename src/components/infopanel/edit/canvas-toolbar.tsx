@@ -26,7 +26,7 @@ export function Segmented<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex h-[30px] shrink-0 items-center gap-0.5 rounded-[8px] border border-ui-default p-0.5">
+    <div role="radiogroup" aria-label={label} className="flex h-[30px] shrink-0 items-center gap-0.5 rounded-ui-md border border-ui-default p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
@@ -37,7 +37,7 @@ export function Segmented<T extends string>({
           title={o.title}
           onClick={() => onChange(o.value)}
           className={cn(
-            "h-full rounded-[6px] px-2.5 text-[12px] text-ui-3 hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-35",
+            "h-full rounded-ui-sm px-2.5 text-caption text-ui-3 hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-35",
             value === o.value && "bg-ui-active text-ui-1",
           )}
         >
@@ -62,7 +62,7 @@ export interface CanvasViewProps {
   library?: LibraryLink;
 }
 
-const ROW = "flex min-h-7 items-center justify-between gap-2 text-[12px] text-ui-2";
+const ROW = "flex min-h-7 items-center justify-between gap-2 text-caption text-ui-2";
 
 /** The page settings' Preview section on an imported profile. */
 export function CanvasViewSection({ editor, showModes, onShowModes, compareOn, onCompareOn, compare, onCompare, apiUnreachable, library }: CanvasViewProps) {
@@ -73,7 +73,7 @@ export function CanvasViewSection({ editor, showModes, onShowModes, compareOn, o
   ];
   return (
     <section aria-label="Preview" className="flex flex-col gap-2 border-b border-ui-subtle px-4 py-3 font-ui">
-      <div className="text-[12px] font-semibold text-ui-1">Preview</div>
+      <div className="text-caption font-semibold text-ui-1">Preview</div>
       <div className={ROW}>
         Show modes
         <Toggle checked={showModes} onChange={onShowModes} label="Show modes" />
@@ -94,7 +94,7 @@ export function CanvasViewSection({ editor, showModes, onShowModes, compareOn, o
           onClick={library.run}
           disabled={library.busy}
           title="Keep this profile in your Library, to start new profiles from"
-          className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised text-[12px] text-ui-1 hover:bg-ui-hover disabled:opacity-50"
+          className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised text-caption text-ui-1 hover:bg-ui-hover disabled:opacity-50"
         >
           <Library className="h-3.5 w-3.5" />
           {library.label}
@@ -127,11 +127,11 @@ function ModesLegend({ editor }: { editor: CanvasEditor }) {
 function CompareControls({ compare, onCompare }: { compare: Compare | null; onCompare: (next: Compare | null) => void }) {
   const file = useRef<HTMLInputElement>(null);
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-ui-2">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-caption text-ui-2">
       <button
         type="button"
         onClick={() => file.current?.click()}
-        className="h-7 w-full rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover"
+        className="h-7 w-full rounded-[7px] border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover"
       >
         {compare ? "Change screenshot…" : "Choose InfoPanel screenshot…"}
       </button>
@@ -161,10 +161,10 @@ function CompareControls({ compare, onCompare }: { compare: Compare | null; onCo
             className="min-w-0 flex-1 accent-[var(--ui-accent)]"
           />
           <span className="font-ui-mono">{Math.round(compare.opacity * 100)} %</span>
-          <span className="w-full text-[11px] text-ui-4">Difference blend</span>
+          <span className="w-full text-micro text-ui-4">Difference blend</span>
         </>
       ) : (
-        <span className="text-[11px] leading-snug text-ui-4">A screenshot of the profile in InfoPanel, laid over the render: matching pixels go black.</span>
+        <span className="text-micro leading-snug text-ui-4">A screenshot of the profile in InfoPanel, laid over the render: matching pixels go black.</span>
       )}
     </div>
   );

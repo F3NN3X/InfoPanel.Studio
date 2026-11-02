@@ -322,7 +322,15 @@ export default function SystemOverview(p: SystemOverviewProps) {
                 thickness={10}
                 gap={3}
                 className="h-full min-w-0 flex-1"
-              />
+              >
+                {/* below the legend gate the lead ring is named in the hole (identity is not colour alone) when the hole is big enough to hold it */}
+                {w - h <= 60 && Math.min(w, h) >= 130 && rings[0] && (
+                  <>
+                    <span className="text-micro leading-none text-[color:var(--w-faint)]">{label(rings[0])}</span>
+                    <Num className="text-micro leading-none text-[color:var(--accent)]">{fmt(ALL[rings[0]].v, dec)}</Num>
+                  </>
+                )}
+              </RingStack>
               {w - h > 60 && (
                 <div className="flex shrink-0 flex-col gap-1">
                   {rings.map((k) => (

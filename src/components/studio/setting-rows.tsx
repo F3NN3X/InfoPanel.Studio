@@ -23,7 +23,7 @@ export const FIELD =
 
 /** A select: h28, #1a1a1f, up to 150 wide. */
 export const SELECT =
-  "h-7 max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent";
+  "h-7 max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent";
 
 export interface RowLabelProps {
   label: string;
@@ -51,7 +51,7 @@ function Label({ label, lead, hint, changed, className }: RowLabelProps & { clas
           triggerLabel={`About ${label}`}
           triggerClassName="relative shrink-0 cursor-help rounded-sm text-ui-hint hover:text-ui-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent after:absolute after:-inset-1.5 after:content-['']"
           align="start"
-          className="max-w-64 text-pretty text-[12px] leading-snug"
+          className="max-w-64 text-pretty text-caption leading-snug"
         >
           {hint}
         </Popover>

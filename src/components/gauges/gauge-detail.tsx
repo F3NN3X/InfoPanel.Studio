@@ -42,11 +42,11 @@ export function GaugeDetail({ entry, sheet, copies, scope, actions }: GaugeDetai
       <PlayControls playback={playback} />
       <div>
         <div className="truncate text-[14px] font-semibold text-ui-1">{entry.name}</div>
-        <div className="font-ui-mono text-[11px] text-ui-4">
+        <div className="font-ui-mono text-micro text-ui-4">
           {KIND_LABEL[entry.kind]} · {entry.where}
         </div>
         {copies !== undefined && (
-          <div className="mt-1 text-[12px] text-ui-3">
+          <div className="mt-1 text-caption text-ui-3">
             {copies === 0 ? "Not placed yet" : `${copies} cop${copies === 1 ? "y" : "ies"} placed`}
           </div>
         )}
@@ -55,7 +55,7 @@ export function GaugeDetail({ entry, sheet, copies, scope, actions }: GaugeDetai
         <button
           type="button"
           onClick={edit.run}
-          className="flex h-[34px] w-full items-center justify-center gap-2 rounded-[8px] bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90"
+          className="flex h-(--ui-h-field) w-full items-center justify-center gap-2 rounded-ui-md bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90"
         >
           <Pencil className="h-4 w-4" strokeWidth={1.75} />
           {entry.source.kind === "preset" ? "Customize a copy" : "Edit"}
@@ -68,7 +68,7 @@ export function GaugeDetail({ entry, sheet, copies, scope, actions }: GaugeDetai
               onClick={a.choices ? () => setPicking((p) => !p) : a.run}
               disabled={a.disabled}
               title={a.title}
-              className={cn("flex h-[34px] items-center justify-center gap-2 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40")}
+              className={cn("flex h-(--ui-h-field) items-center justify-center gap-2 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40")}
             >
               <a.icon className="h-4 w-4" strokeWidth={1.75} />
               {a.label}
@@ -76,7 +76,7 @@ export function GaugeDetail({ entry, sheet, copies, scope, actions }: GaugeDetai
           ))}
         </div>
         {picking && choices.length > 0 && (
-          <div role="group" aria-label="Canvas zones" className="flex flex-col gap-1 rounded-[8px] border border-ui-subtle p-1">
+          <div role="group" aria-label="Canvas zones" className="flex flex-col gap-1 rounded-ui-md border border-ui-subtle p-1">
             {choices.map((c) => (
               <button
                 key={c.id}
@@ -85,7 +85,7 @@ export function GaugeDetail({ entry, sheet, copies, scope, actions }: GaugeDetai
                   setPicking(false);
                   c.run();
                 }}
-                className="h-8 truncate rounded-[6px] px-2 text-left text-[12.5px] text-ui-1 hover:bg-ui-hover"
+                className="h-8 truncate rounded-ui-sm px-2 text-left text-[12.5px] text-ui-1 hover:bg-ui-hover"
               >
                 {c.label}
               </button>

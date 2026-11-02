@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detect, diskName, diskShort, firstDisk, fmtRate, rateParts } from "@/widgets/core/data";
+import { detect, diskName, diskShort, firstDisk, fmtDate, fmtRate, rateParts } from "@/widgets/core/data";
 
 describe("fmtRate", () => {
   it("reads the rate sensors as bytes per second and scales them (decimal prefixes)", () => {
@@ -44,5 +44,18 @@ describe("identical drives", () => {
     expect(firstDisk(["wdc_x__2", "kingston_y", "wdc_x"])).toBe("kingston_y");
     expect(firstDisk(["wdc_x__2"])).toBe("wdc_x__2");
     expect(firstDisk([])).toBeUndefined();
+  });
+});
+
+describe("fmtDate", () => {
+  const d = new Date(2026, 9, 26); // Monday
+  it("writes each style through the given locale", () => {
+    expect(fmtDate(d, "short", "en-US")).toBe("Mon, Oct 26");
+    expect(fmtDate(d, "weekday", "en-US")).toBe("Mon");
+    expect(fmtDate(d, "long", "en-US")).toBe("October 26, 2026");
+  });
+  it("follows another locale and treats an empty one as the browser's", () => {
+    expect(fmtDate(d, "weekday", "de-DE")).toBe("Mo");
+    expect(fmtDate(d, "weekday", "")).toBe(fmtDate(d, "weekday"));
   });
 });

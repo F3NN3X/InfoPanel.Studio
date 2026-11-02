@@ -36,7 +36,7 @@ const ALIGN: { edge: AlignEdge; label: string; icon: LucideIcon }[] = [
   { edge: "bottom", label: "Align bottom", icon: AlignEndHorizontal },
 ];
 
-const INPUT = "h-7 w-full min-w-0 rounded-[6px] border bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none placeholder:text-ui-hint focus:border-ui-accent";
+const INPUT = "h-7 w-full min-w-0 rounded-ui-sm border bg-ui-raised px-2 font-ui-mono text-caption text-ui-1 outline-none placeholder:text-ui-hint focus:border-ui-accent";
 
 function IconButton({ icon: Icon, label, onClick, disabled }: { icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean }) {
   return (
@@ -53,7 +53,7 @@ function IconButton({ icon: Icon, label, onClick, disabled }: { icon: LucideIcon
   );
 }
 
-const Heading = ({ children }: { children: ReactNode }) => <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-ui-4">{children}</div>;
+const Heading = ({ children }: { children: ReactNode }) => <div className="mb-1.5 text-micro font-medium uppercase tracking-wide text-ui-4">{children}</div>;
 
 /** The shared fields: present on every item; position only when no group is selected (a group's X and Y move nothing). */
 export function sharedFields(items: readonly DisplayItem[]): string[] {
@@ -95,7 +95,7 @@ function SharedField({ editor, paths, items, field }: { editor: CanvasEditor; pa
   const isColor = field.endsWith("Color");
   return (
     <label className="block min-w-0">
-      <span className="mb-1 block text-[11px] text-ui-4">{labelOf(field)}</span>
+      <span className="mb-1 block text-micro text-ui-4">{labelOf(field)}</span>
       <span className="flex items-center gap-1.5">
         {isColor && same && <span aria-hidden className="h-5 w-5 shrink-0 rounded-[5px] border border-ui-default" style={{ background: argbCss(String(values[0])) }} />}
         <input
@@ -134,8 +134,8 @@ export function MultiInspector({ editor }: { editor: CanvasEditor }) {
   return (
     <div className="space-y-4 px-4 py-5 font-ui">
       <div>
-        <div className="text-[13px] font-semibold text-ui-1">{paths.length} items selected</div>
-        <p className="mt-1 text-[12px] leading-snug text-ui-4">Drag, nudge, duplicate or delete them together. Locked items stay where they are.</p>
+        <div className="text-body font-semibold text-ui-1">{paths.length} items selected</div>
+        <p className="mt-1 text-caption leading-snug text-ui-4">Drag, nudge, duplicate or delete them together. Locked items stay where they are.</p>
       </div>
       <div>
         <Heading>Align</Heading>
@@ -163,7 +163,7 @@ export function MultiInspector({ editor }: { editor: CanvasEditor }) {
           </div>
         </div>
       ) : (
-        <p className="text-[12px] leading-snug text-ui-4">These items share no fields. Select one item to edit its fields.</p>
+        <p className="text-caption leading-snug text-ui-4">These items share no fields. Select one item to edit its fields.</p>
       )}
     </div>
   );

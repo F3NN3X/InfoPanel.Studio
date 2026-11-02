@@ -66,7 +66,7 @@ function QuickControl({
           aria-label={`${def.label} color`}
           aria-expanded={colorOpen}
           onClick={onColor}
-          className={cn("h-[22px] w-[22px] shrink-0 rounded-full", colorOpen && "shadow-[0_0_0_2px_#17171b,0_0_0_4px_#ededf0]")}
+          className={cn("h-6 w-6 shrink-0 rounded-full", colorOpen && "shadow-[0_0_0_2px_#17171b,0_0_0_4px_#ededf0]")}
           style={{ background: swatchBackground(color) }}
         />
       );
@@ -97,7 +97,7 @@ function QuickControl({
             onChange={(e) => write(e.currentTarget.valueAsNumber)}
             className="m-0 h-4 w-20 cursor-pointer accent-[var(--ui-accent)]"
           />
-          <span className="min-w-9 text-right font-ui-mono text-[11px] text-ui-1">
+          <span className="min-w-9 text-right font-ui-mono text-micro text-ui-1">
             {n}
             {unit}
           </span>
@@ -110,7 +110,7 @@ function QuickControl({
           aria-label={def.label}
           value={String(value)}
           onChange={(e) => fields.onPatch({ [def.key]: e.target.value })}
-          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent"
         >
           {ALIGN_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -136,7 +136,7 @@ function QuickControl({
           aria-label={def.label}
           value={String(value)}
           onChange={(e) => write(e.target.value)}
-          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent"
         >
           {options.map((o) => (
             <option key={o.value} value={o.value}>
@@ -153,7 +153,7 @@ function QuickControl({
           aria-label={def.label}
           value={String(value)}
           onChange={(e) => write(e.target.value)}
-          className="h-[26px] w-[120px] rounded-md border border-ui-control bg-ui-app px-2 text-[12px] text-ui-1 outline-none [color-scheme:dark] focus:border-ui-accent"
+          className="h-[26px] w-[120px] rounded-md border border-ui-control bg-ui-app px-2 text-caption text-ui-1 outline-none [color-scheme:dark] focus:border-ui-accent"
         />
       );
   }
@@ -184,7 +184,7 @@ function Divider() {
 function Identity({ icon, name }: { icon: ReactNode; name: string }) {
   return (
     <span className="flex shrink-0 items-center gap-2 pl-1 pr-2">
-      <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-ui-subtle text-[oklch(0.80_0.12_255)] [&>svg]:h-4 [&>svg]:w-4">
+      <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-ui-subtle text-ui-accent-text [&>svg]:h-4 [&>svg]:w-4">
         {icon}
       </span>
       <span className="max-w-[160px] truncate text-[12.5px] font-semibold text-ui-1">{name}</span>
@@ -317,7 +317,7 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
               onClick={allSettings.onToggle}
               aria-pressed={allSettings.open}
               className={cn(
-                "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[12px] font-medium",
+                "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-caption font-medium",
                 allSettings.open ? "bg-ui-active text-ui-1" : "text-ui-2 hover:bg-s-nav-on hover:text-ui-1"
               )}
             >

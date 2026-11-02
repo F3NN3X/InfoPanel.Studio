@@ -174,7 +174,7 @@ function Current(p: WeatherProps) {
                       </div>
                     )}
                     {showLo && <span className="text-[11px] tabular-nums text-[color:var(--w-muted)]">{fmt(T(f.lo), 0)}°</span>}
-                    {showRain && f.rain > 0 && <span className="whitespace-nowrap text-micro tabular-nums text-sky-300">{`${f.rain}mm`}</span>}
+                    {showRain && f.rain > 0 && <span className="whitespace-nowrap text-micro tabular-nums text-sky-300">{`${f.rain} mm`}</span>}
                   </div>
                 ))}
               </div>

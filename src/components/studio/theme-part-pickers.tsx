@@ -20,8 +20,8 @@ export function Tile({ name, tag, title, selected, disabled, onPick, children }:
       className="flex min-w-0 flex-col gap-1 rounded-lg text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent disabled:cursor-not-allowed disabled:opacity-40"
     >
       <div className={cn("h-[72px] w-full overflow-hidden rounded-lg border bg-background text-foreground", selected ? "border-ui-accent ring-1 ring-ui-accent" : "border-ui-strong hover:border-[#52525b]")}>{children}</div>
-      <span className="truncate text-[13px] font-medium text-ui-1">{name}</span>
-      {tag && <span className="-mt-1 text-[11px] text-ui-hint">{tag}</span>}
+      <span className="truncate text-body font-medium text-ui-1">{name}</span>
+      {tag && <span className="-mt-1 text-micro text-ui-hint">{tag}</span>}
     </button>
   );
 }

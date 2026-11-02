@@ -21,7 +21,7 @@ function FontCard({ item, selected, onSelect }: { item: LibraryItem; selected: b
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        "flex min-w-0 flex-col gap-1.5 rounded-[12px] border border-ui-subtle bg-ui-panel p-3.5 text-left outline-none hover:border-ui-default focus-visible:border-ui-accent",
+        "flex min-w-0 flex-col gap-1.5 rounded-ui-lg border border-ui-subtle bg-ui-panel p-3.5 text-left outline-none hover:border-ui-default focus-visible:border-ui-accent",
         selected && "border-ui-accent bg-ui-accent/[.06] hover:border-ui-accent",
       )}
     >

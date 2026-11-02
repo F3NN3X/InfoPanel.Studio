@@ -45,14 +45,14 @@ export function SourceDot({ state, onReset }: { state: SettingState; onReset?: (
 /** The dot legend (the footer's help tooltip). */
 export function DotLegend() {
   return (
-    <ul className="space-y-1.5 text-[12px] text-ui-2">
+    <ul className="space-y-1.5 text-caption text-ui-2">
       {DOT_LEGEND.map((state) => (
         <li key={state} className="flex items-center gap-2">
           <span aria-hidden="true" className={cn("block h-[7px] w-[7px] shrink-0", DOT[state])} />
           {state === "default" ? "None — the default" : DOT_MEANING[state]}
         </li>
       ))}
-      <li className="pt-1 text-[11px] text-ui-4">Click a dot set here to reset it.</li>
+      <li className="pt-1 text-micro text-ui-4">Click a dot set here to reset it.</li>
     </ul>
   );
 }

@@ -27,14 +27,14 @@ export function LinkRow({ label, value, from, mono, note, link, onNavigate, clas
     <div className={cn("flex flex-col gap-[3px] font-ui", className)}>
       {label !== undefined && (
         <div className="flex min-h-7 items-center gap-2.5">
-          <span className="min-w-0 flex-1 truncate text-[12px] text-ui-3">{label}</span>
-          <span className="min-w-0 truncate whitespace-nowrap text-[12px] text-ui-1">
-            <span className={cn(mono && "font-ui-mono text-[11px] tabular-nums")}>{value}</span>
+          <span className="min-w-0 flex-1 truncate text-caption text-ui-3">{label}</span>
+          <span className="min-w-0 truncate whitespace-nowrap text-caption text-ui-1">
+            <span className={cn(mono && "font-ui-mono text-micro tabular-nums")}>{value}</span>
             {from && <span className="text-ui-4"> · from {from}</span>}
           </span>
         </div>
       )}
-      <span className="text-[11px] leading-[1.45] text-ui-hint">
+      <span className="text-micro leading-[1.45] text-ui-hint">
         {note && <>{note} </>}
         <button
           type="button"

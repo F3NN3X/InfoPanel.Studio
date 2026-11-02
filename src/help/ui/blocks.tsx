@@ -83,7 +83,7 @@ function Table({ head, rows, onOpen }: { head: string[]; rows: string[][]; onOpe
         {rows.map((row, r) => (
           <div key={r} role="row" className="contents">
             {row.map((cell, c) => (
-            <div key={c} role={c === 0 ? "rowheader" : "cell"} className={cn("px-3.5 py-2.5 text-[13px] leading-[1.55]", c === 0 ? "text-s-t1" : "text-[#c2c2ca]", r > 0 && "border-t border-s-divider")}>
+            <div key={c} role={c === 0 ? "rowheader" : "cell"} className={cn("px-3.5 py-2.5 text-body leading-[1.55]", c === 0 ? "text-s-t1" : "text-[#c2c2ca]", r > 0 && "border-t border-s-divider")}>
               <InlineText text={cell} onOpen={onOpen} small />
             </div>
             ))}
@@ -105,11 +105,11 @@ function Keys({ rows }: { rows: [string, string][] }) {
     <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] rounded-[11px] border border-s-card-line bg-s-card">
       {rows.map(([combo, label], i) => (
         <div key={i} className="flex items-center gap-3 border-b border-s-side-line px-3.5 py-2.5">
-          <span className="flex-1 text-[13px] text-[#d0d0d6]">{label}</span>
+          <span className="flex-1 text-body text-[#d0d0d6]">{label}</span>
           <span className="flex flex-wrap items-center justify-end gap-1">
             {comboParts(combo).map((alt, a) => (
               <span key={a} className="flex items-center gap-1">
-                {a > 0 && <span className="text-[11px] text-s-dim">/</span>}
+                {a > 0 && <span className="text-micro text-s-dim">/</span>}
                 {alt.map((key, k) => (
                   <Cap key={k}>{key}</Cap>
                 ))}
@@ -128,7 +128,7 @@ function Flow({ steps }: { steps: [string, string][] }) {
       {steps.map(([title, description], i) => (
         <div key={i} className="flex flex-[1_1_140px] items-center gap-1.5">
           <div className="flex flex-1 flex-col gap-1 self-stretch rounded-[10px] border border-s-card-line bg-s-card px-3.5 py-3">
-            <span className="font-mono text-[11px] text-s-dim">{String(i + 1).padStart(2, "0")}</span>
+            <span className="font-mono text-micro text-s-dim">{String(i + 1).padStart(2, "0")}</span>
             <span className="text-[13.5px] font-semibold">{title}</span>
             <span className="text-xs leading-[1.45] text-s-muted">{description}</span>
           </div>
@@ -150,8 +150,9 @@ function OpenButton({ target, label, onOpen }: { target: string; label: string; 
     <button
       type="button"
       title={route.kind === "settings" ? `Settings › ${SECTION_NAMES[route.section]}` : undefined}
+      aria-description={route.kind === "settings" ? `Opens Settings › ${SECTION_NAMES[route.section]}` : undefined}
       onClick={go}
-      className="flex h-[34px] cursor-pointer items-center gap-2 self-start rounded-lg border border-s-input-line bg-s-input px-3 text-[12.5px] text-s-t1 hover:border-[#3a3a44]"
+      className="flex h-(--ui-h-field) cursor-pointer items-center gap-2 self-start rounded-lg border border-s-input-line bg-s-input px-3 text-[12.5px] text-s-t1 hover:border-[#3a3a44]"
     >
       <Icon className="h-4 w-4 text-s-accent-text" />
       Open {label}

@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const INPUT = "h-7 w-full min-w-0 rounded-[6px] border border-ui-default bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
+const INPUT = "h-7 w-full min-w-0 rounded-ui-sm border border-ui-default bg-ui-raised px-2 font-ui-mono text-caption text-ui-1 outline-none focus:border-ui-accent";
 
 /** A searchable list of the icon set: a preview grid and a search box. */
 export function IconPicker({ value, onPick }: { value: string; onPick: (name: string) => void }) {
@@ -42,7 +42,7 @@ export function IconPicker({ value, onPick }: { value: string; onPick: (name: st
             title={n}
             aria-label={n}
             onClick={() => onPick(n)}
-            className={cn("grid h-7 place-items-center rounded-[6px] text-ui-2 hover:bg-ui-hover", n === value && "bg-ui-active text-ui-1")}
+            className={cn("grid h-7 place-items-center rounded-ui-sm text-ui-2 hover:bg-ui-hover", n === value && "bg-ui-active text-ui-1")}
           >
             <svg
               viewBox="0 0 24 24"

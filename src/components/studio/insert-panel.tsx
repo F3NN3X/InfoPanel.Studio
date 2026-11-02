@@ -194,7 +194,7 @@ interface InsertListProps {
   onDeletePreset?: (id: string) => void;
 }
 
-const GROUP_LABEL = "text-[11px] font-medium uppercase tracking-wider text-ui-4";
+const GROUP_LABEL = "text-micro font-medium uppercase tracking-wider text-ui-4";
 
 /**
  * The insertable widgets, layout starters, panels and saved panels as
@@ -277,9 +277,9 @@ export function InsertFilters({
             type="button"
             onClick={() => onCategory(c)}
             className={cn(
-              "h-6 rounded-xl border px-[9px] text-[11px] transition-colors",
+              "h-6 rounded-xl border px-[9px] text-micro transition-colors",
               c === category
-                ? "border-[#3a3a44] bg-ui-active text-ui-1"
+                ? "border-ui-edge bg-ui-active text-ui-1"
                 : "border-ui-default text-[#a4a4ad]"
             )}
           >

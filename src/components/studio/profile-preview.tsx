@@ -24,7 +24,7 @@ export function ProfilePreview({ profile, width, height, active }: ProfilePrevie
     <span
       aria-hidden
       className={cn(
-        "pointer-events-none flex shrink-0 items-center justify-center overflow-hidden rounded-[6px] border",
+        "pointer-events-none flex shrink-0 items-center justify-center overflow-hidden rounded-ui-sm border",
         active ? "border-ui-accent" : "border-ui-default"
       )}
       style={{ width, height, background: `hsl(${resolveTheme(profile).tokens.background})` }}

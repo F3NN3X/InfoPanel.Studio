@@ -40,7 +40,7 @@ const PART_ICONS: Record<string, LucideIcon> = {
 
 export function PartIcon({ kind }: { kind: string }) {
   const Icon = PART_ICONS[kind] ?? StickyNote;
-  return <Icon className="h-4 w-4 shrink-0 text-[#a1a1aa]" strokeWidth={1.75} />;
+  return <Icon className="h-4 w-4 shrink-0 text-ui-soft" strokeWidth={1.75} />;
 }
 
 function itemIcon(item: AddItem): LucideIcon {
@@ -57,7 +57,7 @@ export function AddItemIcon({ item, size }: { item: AddItem; size: number }) {
   const glyph = size >= 40 ? 22 : 18;
   return (
     <span
-      className="flex shrink-0 items-center justify-center rounded-[8px] border border-ui-default bg-ui-raised text-ui-2"
+      className="flex shrink-0 items-center justify-center rounded-ui-md border border-ui-default bg-ui-raised text-ui-2"
       style={{ width: size, height: size }}
     >
       <Icon style={{ width: glyph, height: glyph }} strokeWidth={1.6} />
@@ -82,7 +82,7 @@ function Footprint({ item, on, compact }: { item: AddItem; on: boolean; compact:
           <span key={i} className="rounded-[1px]" style={{ width: cell, height: cell, background: on ? "#a1a1aa" : "#4a4a53" }} />
         ))}
       </span>
-      <span className="font-ui-mono text-[10px] leading-3 text-[#7c7c86]">{sizeText(item.w, item.h)}</span>
+      <span className="font-ui-mono text-[10px] leading-3 text-ui-hint">{sizeText(item.w, item.h)}</span>
     </span>
   );
 }
@@ -130,7 +130,7 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
       onClick={renaming ? undefined : onPick}
       onMouseEnter={onHover}
       className={cn(
-        "group/row flex cursor-pointer select-none items-center gap-2.5 rounded-[8px] px-2",
+        "group/row flex cursor-pointer select-none items-center gap-2.5 rounded-ui-md px-2",
         compact ? "h-10 py-[5px]" : "h-[52px] py-[7px]",
         highlighted && "bg-s-divider"
       )}

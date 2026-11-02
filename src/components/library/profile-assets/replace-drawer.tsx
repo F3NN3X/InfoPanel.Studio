@@ -13,8 +13,8 @@ import { BUTTON, Drawer, PRIMARY } from "./drawer";
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mb-4">
-      <h3 className="mb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-ui-4">{title}</h3>
-      <ul className="space-y-1 text-[12px] text-ui-2">{children}</ul>
+      <h3 className="mb-1.5 text-micro font-medium uppercase tracking-[.06em] text-ui-4">{title}</h3>
+      <ul className="space-y-1 text-caption text-ui-2">{children}</ul>
     </section>
   );
 }
@@ -36,7 +36,7 @@ export function ReplaceDrawer({ doc, files, onClose, onApply }: { doc: Doc; file
       onClose={onClose}
       footer={
         <>
-          <span className="min-w-0 flex-1 text-[12px] text-ui-3">{matches.length} to replace</span>
+          <span className="min-w-0 flex-1 text-caption text-ui-3">{matches.length} to replace</span>
           <button type="button" onClick={onClose} className={BUTTON}>
             Cancel
           </button>
@@ -81,7 +81,7 @@ export function ReplaceDrawer({ doc, files, onClose, onApply }: { doc: Doc; file
                   aria-label={`Target for ${n}`}
                   value={picks.get(n) ?? ""}
                   onChange={(e) => setPicks(new Map(picks).set(n, e.target.value))}
-                  className="h-[28px] max-w-[190px] rounded-[6px] border border-ui-default bg-ui-app px-1.5 font-ui-mono text-[12px] text-ui-1"
+                  className="h-(--ui-h-control) max-w-[190px] rounded-ui-sm border border-ui-default bg-ui-app px-1.5 font-ui-mono text-caption text-ui-1"
                 >
                   <option value="">Skip</option>
                   {candidatesFor(doc.assets, file).map((c) => (

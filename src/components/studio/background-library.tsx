@@ -48,13 +48,13 @@ export function BackgroundLibrary({ kind, value, onPick, onOpenLibrary }: Backgr
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Popover.Popup className="w-72 space-y-2 rounded-[9px] border border-ui-menu bg-ui-raised p-2 font-ui text-[12px] text-ui-2 shadow-ui-menu outline-none">
+          <Popover.Popup className="w-72 space-y-2 rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui text-caption text-ui-2 shadow-ui-menu outline-none">
             <div className="flex items-center justify-between">
               <Popover.Title className="font-medium text-ui-1">Background {noun}</Popover.Title>
-              <span className="text-[11px] text-ui-4">{items ? `${items.length} in My library` : "Loading…"}</span>
+              <span className="text-micro text-ui-4">{items ? `${items.length} in My library` : "Loading…"}</span>
             </div>
             {error && (
-              <div role="alert" className="flex items-center justify-between gap-2 text-[11px] text-ui-danger">
+              <div role="alert" className="flex items-center justify-between gap-2 text-micro text-ui-danger">
                 Could not load My library.
                 <button type="button" onClick={() => setAttempt((n) => n + 1)} className="rounded-md px-1.5 py-0.5 text-ui-2 hover:bg-ui-hover hover:text-ui-1">
                   Try again
@@ -62,7 +62,7 @@ export function BackgroundLibrary({ kind, value, onPick, onOpenLibrary }: Backgr
               </div>
             )}
             {items && items.length === 0 && (
-              <div className="space-y-2 py-3 text-center text-[11px] text-ui-4">
+              <div className="space-y-2 py-3 text-center text-micro text-ui-4">
                 <p>
                   No background {noun} yet. Add a wide {kind} to My library, or tag one Background.
                 </p>

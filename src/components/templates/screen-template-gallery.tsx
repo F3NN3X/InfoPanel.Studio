@@ -140,14 +140,14 @@ export function ScreenTemplateGallery({ choice, onChoice, width, height, variant
                 <div className="relative w-full" style={{ aspectRatio: aspectOf(size.width, size.height) }}>
                   <ScreenTemplateThumb template={t} variant={paletteOf(t)} width={size.width} height={size.height} />
                 </div>
-                <span className="truncate px-2 pt-1 text-[12px] font-medium text-ui-1">{t.name}</span>
-                <span className="truncate px-2 pb-1.5 text-[11px] text-ui-4">{t.blurb}</span>
+                <span className="truncate px-2 pt-1 text-caption font-medium text-ui-1">{t.name}</span>
+                <span className="truncate px-2 pb-1.5 text-micro text-ui-4">{t.blurb}</span>
               </button>
             );
           };
           return (
             <section key={cls} aria-label={filter === "all" ? CLASS_NAMES[cls] : undefined}>
-              {filter === "all" && <h3 className="mb-1.5 text-[12px] text-ui-3">{CLASS_NAMES[cls]}</h3>}
+              {filter === "all" && <h3 className="mb-1.5 text-caption text-ui-3">{CLASS_NAMES[cls]}</h3>}
               {((blank && n === 0) || templates.length > 0) && (
                 <div className={cn("grid items-start gap-2", COLUMNS[cls])}>
                   {blank && n === 0 && (
@@ -161,7 +161,7 @@ export function ScreenTemplateGallery({ choice, onChoice, width, height, variant
                       <div className="grid w-full place-items-center bg-ui-raised text-ui-4" style={{ aspectRatio: aspectOf(reference.width, reference.height) }}>
                         <FilePlus2 className="h-6 w-6" />
                       </div>
-                      <span className="px-2 pb-1.5 pt-1 text-[12px] font-medium text-ui-1">Blank</span>
+                      <span className="px-2 pb-1.5 pt-1 text-caption font-medium text-ui-1">Blank</span>
                     </button>
                   )}
                   {templates.map(card)}

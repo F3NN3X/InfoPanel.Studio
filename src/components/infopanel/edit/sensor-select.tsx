@@ -126,13 +126,13 @@ export function SensorSelect({ label, current, fallbackName, placeholder = "Choo
                   Leave unbound
                 </button>
               )}
-              {catalog.status === "error" && <p className="px-3 py-5 text-center text-[12px] text-ui-4">The Data API isn’t reachable, so there are no sensors to choose.</p>}
+              {catalog.status === "error" && <p className="px-3 py-5 text-center text-caption text-ui-4">The Data API isn’t reachable, so there are no sensors to choose.</p>}
               {catalog.status !== "error" && flat.length === 0 && (
-                <p className="px-3 py-5 text-center text-[12px] text-ui-4">{pluginOnly ? "No plugin sensors match." : "No sensors match."}</p>
+                <p className="px-3 py-5 text-center text-caption text-ui-4">{pluginOnly ? "No plugin sensors match." : "No sensors match."}</p>
               )}
               {sections.map((s) => (
                 <div key={s.title} role="group" aria-label={s.title}>
-                  <div className="sticky top-0 bg-ui-tile px-2.5 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-ui-4">{s.title}</div>
+                  <div className="sticky top-0 bg-ui-tile px-2.5 pb-1 pt-2 text-micro font-medium uppercase tracking-wide text-ui-4">{s.title}</div>
                   {s.points.map((p) => {
                     const index = flat.indexOf(p);
                     const native = isNative(p.key, sensors);
