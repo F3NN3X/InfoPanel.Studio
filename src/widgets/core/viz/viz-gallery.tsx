@@ -63,13 +63,13 @@ export default function VizGallery() {
           {rows.map((row) => (
             <SkinCtx.Provider key={row.name} value={skinCtx(row.skin)}>
               <div className="mb-3 flex items-start gap-3" style={{ "--accent": SKINS[row.skin]?.accent ?? "#34d399", "--w-track": "rgba(255,255,255,.07)", "--w-fg": "#f4f4f5" } as CSSProperties}>
-                <span className="w-40 shrink-0 font-mono text-[10px] opacity-70">{row.name}</span>
+                <span className="w-40 shrink-0 font-mono text-micro opacity-70">{row.name}</span>
                 {VIZ_STYLES.map((style) => (
                   <figure key={style} data-viz-tile={`${row.name}|${style}|${cell}`} className="m-0 flex flex-col gap-1">
                     <div className="relative rounded-lg bg-[#161a20] p-2" style={{ width: cell * 2 + 8, height: cell }}>
                       <AudioViz style={style} look={row.look} input={input} className="h-full" aria-label={`${style} test signal`} />
                     </div>
-                    <figcaption className="font-mono text-[10px] opacity-60">{style}</figcaption>
+                    <figcaption className="font-mono text-micro opacity-60">{style}</figcaption>
                   </figure>
                 ))}
               </div>

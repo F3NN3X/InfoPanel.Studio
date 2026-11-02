@@ -28,12 +28,12 @@ function KioskRow({ kiosk, profiles }: { kiosk: ControlKiosk; profiles: MonitorP
   const page = profile?.pages.find((p) => p.id === kiosk.page) ?? profile?.pages[0];
   return (
     <li className="flex items-center gap-2 py-1.5">
-      <Cast className="h-4 w-4 shrink-0 text-[oklch(0.88_0.10_150)]" strokeWidth={1.75} />
+      <Cast className="h-4 w-4 shrink-0 text-ui-ok-text" strokeWidth={1.75} />
       <span className="min-w-0 flex-1 truncate text-[12.5px] text-ui-1">
         {profile?.name ?? "Unknown screen"}
         {page && <span className="text-ui-3"> · {page.name}</span>}
       </span>
-      {kiosk.address && <span className="shrink-0 font-ui-mono text-[11px] text-ui-4">{kiosk.address}</span>}
+      {kiosk.address && <span className="shrink-0 font-ui-mono text-micro text-ui-4">{kiosk.address}</span>}
     </li>
   );
 }
@@ -98,7 +98,7 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
       <Popover.Trigger
         title="Live control"
         aria-label={`Live control, ${kiosks.length} ${kiosks.length === 1 ? "kiosk" : "kiosks"}`}
-        className="flex h-7 items-center gap-1.5 whitespace-nowrap rounded-[7px] max-sm:w-7 max-sm:justify-center max-sm:px-0 border border-[oklch(0.78_0.15_150/0.45)] bg-[oklch(0.78_0.15_150/0.12)] px-2.5 text-[12.5px] font-medium text-[oklch(0.88_0.10_150)] transition-colors hover:bg-[oklch(0.78_0.15_150/0.2)]"
+        className="flex h-7 items-center gap-1.5 whitespace-nowrap rounded-[7px] max-sm:w-7 max-sm:justify-center max-sm:px-0 border border-[oklch(0.78_0.15_150/0.45)] bg-[oklch(0.78_0.15_150/0.12)] px-2.5 text-[12.5px] font-medium text-ui-ok-text transition-colors hover:bg-[oklch(0.78_0.15_150/0.2)]"
       >
         <span aria-hidden className="h-[7px] w-[7px] rounded-full bg-[oklch(0.78_0.15_150)]" />
         <span className="max-sm:sr-only">Live · {kiosks.length}</span>
@@ -108,7 +108,7 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
           <Popover.Popup data-help-article="kiosk" className="w-[340px] rounded-[10px] border border-[oklch(0.78_0.15_150/0.45)] bg-ui-raised p-3 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
-                <Popover.Title className="text-[13px] font-semibold text-ui-1">Live control</Popover.Title>
+                <Popover.Title className="text-body font-semibold text-ui-1">Live control</Popover.Title>
                 <p className="mt-0.5 text-[11.5px] leading-snug text-ui-3">
                   Acts on the kiosks right now. None of it is part of your design, so Save doesn't change it.
                 </p>
@@ -120,13 +120,13 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
                   onOpenKioskView();
                 }}
                 title={isTauri() ? undefined : "Opens the kiosk in a separate window"}
-                className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong px-2 text-[12px] font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1"
+                className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong px-2 text-caption font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1"
               >
                 <Maximize className="h-3.5 w-3.5" strokeWidth={1.75} /> Open kiosk view
               </button>
             </div>
             {kiosks.length === 0 ? (
-              <p className="mt-3 text-[12px] text-ui-4">No kiosks are connected.</p>
+              <p className="mt-3 text-caption text-ui-4">No kiosks are connected.</p>
             ) : (
               <ul className="mt-2 divide-y divide-ui-subtle border-t border-ui-subtle">
                 {kiosks.map((k) => (

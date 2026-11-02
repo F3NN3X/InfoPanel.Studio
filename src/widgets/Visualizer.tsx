@@ -39,7 +39,8 @@ export default function Visualizer(p: VisualizerProps) {
   const dev = useLevelDevice(d, "", p.names, pickedIds(d, audioIdsIn(d, p.flow ?? "all"), p.devices));
   const k = (s: string) => num(get(d, `plugins.audio-level-meter.${dev}.${s}`));
   const name = String(get(d, `plugins.audio-level-meter.${dev}.device-name`) || "Audio").replace(/\s*\(.+\)$/, "");
-  const look = resolveLook({ ...p.vizLook, count: p.bands, color1: p.ramp, peaks: p.peaks !== false, gain: (p.sensitivity ?? NEUTRAL_SENS) / NEUTRAL_SENS });
+  // a 2px baseline keeps a silent widget from reading as broken; vizLook can override it
+  const look = resolveLook({ minPx: 2, ...p.vizLook, count: p.bands, color1: p.ramp, peaks: p.peaks !== false, gain: (p.sensitivity ?? NEUTRAL_SENS) / NEUTRAL_SENS });
   const { get: input } = useVizInput({ data: d, device: dev, look });
   return (
     <Widget
@@ -47,7 +48,7 @@ export default function Visualizer(p: VisualizerProps) {
       title={p.title ?? name}
       icon="equalizer"
       studio={{ label: name, live: (k("audio-level") || 0) > 0, value: fmt(k("peak-level"), 1), unit: "dB", meters: [{ n: "L", v: k("left-channel") }, { n: "R", v: k("right-channel") }, { n: "LVL", v: k("audio-level") }] }}
-      right={<span className="font-mono text-[10.5px] tabular-nums text-[color:var(--w-muted)]">{fmt(k("peak-level"), 1)} dB</span>}
+      right={<span className="font-mono text-micro tabular-nums text-[color:var(--w-muted)]">{fmt(k("peak-level"), 1)} dB</span>}
     >
       <AudioViz style={p.mode ?? "bars"} look={look} input={input} className="absolute inset-0 h-full" aria-label={`${name} visualizer`} />
     </Widget>

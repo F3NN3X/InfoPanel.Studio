@@ -68,7 +68,7 @@ export default function SteamFriends(p: SteamFriendsProps) {
                   <li key={i} className="flex min-w-0 items-center gap-2 text-xs">
                     {twoLine ? (
                       <span
-                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-semibold"
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-micro font-semibold"
                         style={{ background: `color-mix(in srgb, ${colorOf(f)} 22%, transparent)`, color: colorOf(f) }}
                       >
                         {f.name[0]}
@@ -79,11 +79,11 @@ export default function SteamFriends(p: SteamFriendsProps) {
                     <div className={`flex min-w-0 ${twoLine ? "flex-col" : "items-baseline gap-2"}`}>
                       {/* on one line the name keeps up to 70% and the game takes the rest */}
                       <span className={`truncate text-[color:var(--w-fg)] ${twoLine ? "" : "max-w-[70%] shrink-0"}`}>{f.name}</span>
-                      <span className={`truncate ${twoLine ? "text-[11px]" : "text-[10.5px]"}`} style={{ color: colorOf(f) }}>
+                      <span className={`truncate ${twoLine ? "text-[11px]" : "text-micro"}`} style={{ color: colorOf(f) }}>
                         {f.game || stateText(f)}
                       </span>
                     </div>
-                    {showTime && w >= 160 && <span className="ml-auto shrink-0 text-[10.5px] text-[color:var(--w-faint)]">{f.when}</span>}
+                    {showTime && w >= 160 && <span className="ml-auto shrink-0 text-micro text-[color:var(--w-faint)]">{f.when}</span>}
                   </li>
                 ))}
               </ul>
@@ -107,10 +107,10 @@ function FriendTable({ friends, colorOf, showTime, w, ip }: { friends: Friend[];
   return (
     <div {...ip} className="grid min-h-0 content-start items-center gap-x-3 overflow-hidden text-xs" style={{ gridTemplateColumns: cols, gridAutoRows: "22px" }}>
       <span />
-      <span className={`${cell} text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(0)}>Friend</span>
-      {status && <span className={`${cell} text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(1)}>Status</span>}
-      {game && <span className={`${cell} text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(2)}>Playing</span>}
-      {time && <span className={`${cell} text-right text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(3)}>Last online</span>}
+      <span className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(0)}>Friend</span>
+      {status && <span className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(1)}>Status</span>}
+      {game && <span className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(2)}>Playing</span>}
+      {time && <span className={`${cell} text-right text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(3)}>Last online</span>}
       {friends.map((f, i) => (
         <FriendRow key={i} f={f} color={colorOf(f)} status={status} game={game} time={time} cell={cell} />
       ))}
@@ -133,7 +133,7 @@ function FriendRow({ f, color, status, game, time, cell }: { f: Friend; color: s
           {f.game || "–"}
         </span>
       )}
-      {time && <span className={`${cell} text-right text-[10.5px] text-[color:var(--w-faint)]`}>{f.when}</span>}
+      {time && <span className={`${cell} text-right text-micro text-[color:var(--w-faint)]`}>{f.when}</span>}
     </>
   );
 }

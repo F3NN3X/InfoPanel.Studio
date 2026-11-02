@@ -33,7 +33,7 @@ interface AddPaletteProps {
 }
 
 const BUTTON =
-  "flex h-8 min-w-0 items-center gap-2 rounded-[7px] px-2 text-left text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60";
+  "flex h-8 min-w-0 items-center gap-2 rounded-[7px] px-2 text-left text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60";
 
 function AddButton({ add, icon: Icon, label, title, onAdd, status }: { add: AddEntry; icon: LucideIcon; label: string; title: string; onAdd: (entry: AddEntry) => void; status?: ReactNode }) {
   return (
@@ -62,7 +62,7 @@ export function AddPalette({ onAdd }: AddPaletteProps) {
   return (
     // The left panel's Add tab: Layers has its own tab, so the palette takes the column.
     <section aria-label="Add" className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-2.5 pt-1">
-      <div className="px-1 pb-1.5 text-[13px] font-semibold text-ui-1">Add</div>
+      <div className="px-1 pb-1.5 text-body font-semibold text-ui-1">Add</div>
       <PaletteGroups onAdd={onAdd} />
     </section>
   );
@@ -89,7 +89,7 @@ export function PaletteGroups({ onAdd, query = "", status }: AddPaletteProps & {
     <>
       {PALETTE_GROUPS.filter((g) => items.some((p) => p.group === g)).map((g) => (
         <div key={g} role="group" aria-label={g} className="mt-1.5">
-          <div className="px-1 pb-1 text-[10.5px] font-medium uppercase tracking-wide text-ui-4">{g}</div>
+          <div className="px-1 pb-1 text-micro font-medium uppercase tracking-wide text-ui-4">{g}</div>
           <div className="grid grid-cols-2 gap-1">
             {items.filter((p) => p.group === g).map((p) => {
               const native = NATIVE_NAME[p.kind];
@@ -110,7 +110,7 @@ export function PaletteGroups({ onAdd, query = "", status }: AddPaletteProps & {
       ))}
       {elements.length > 0 && (
         <div role="group" aria-label="Elements" className="mt-1.5">
-          <div className="px-1 pb-1 text-[10.5px] font-medium uppercase tracking-wide text-ui-4">Elements</div>
+          <div className="px-1 pb-1 text-micro font-medium uppercase tracking-wide text-ui-4">Elements</div>
           <div className="grid grid-cols-2 gap-1">
             {elements.map((e) => (
               <AddButton

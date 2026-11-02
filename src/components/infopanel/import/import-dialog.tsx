@@ -3,10 +3,11 @@
  * reaches the config until "Import <name>", which is one undo step; assets upload to the asset
  * store in the background from the moment a source opens.
  */
+import { onRovingKeyDown } from "@/lib/roving";
 import { isProfileItem } from "@/lib/my-library/component-meta";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { Check, FileArchive, FolderOpen, HardDrive, Library, Monitor, Upload } from "lucide-react";
+import { Check, FileArchive, FolderOpen, HardDrive, Library, Monitor, Upload, X } from "lucide-react";
 import { formatBytes, uploadAsset } from "@/lib/assets";
 import { getLibraryItem, listLibrary, type LibraryItem } from "@/lib/library";
 import { readStoreFile } from "@/lib/infopanel/canvas";
@@ -24,6 +25,7 @@ import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { cn } from "@/lib/utils";
 import { RemapPanel } from "../remap-panel";
 import { ModeStep, Radio, ReviewStep, SaveStep, type Dest, type SaveChoices, type ShotState } from "./import-steps";
+import { useCloseGuard } from "./use-close-guard";
 import { useImport, type ImportState } from "./use-import";
 
 export interface ImportCommit {
@@ -146,7 +148,7 @@ function SourceStep({
   const pct = upload?.total ? Math.min(1, upload.done / upload.total) : upload?.finished ? 1 : 0;
   return (
     <div className="flex flex-col gap-4" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
-      <div role="radiogroup" aria-label="Source" className="grid grid-cols-3 gap-2.5 max-sm:grid-cols-1">
+      <div role="radiogroup" aria-label="Source" onKeyDown={(e) => onRovingKeyDown(e, '[role="radio"]')} className="grid grid-cols-3 gap-2.5 max-sm:grid-cols-1">
         {sources.map((s) => {
           const on = kind === s.value;
           const Icon = s.icon;
@@ -156,6 +158,7 @@ function SourceStep({
               type="button"
               role="radio"
               aria-checked={on}
+              tabIndex={on ? 0 : -1}
               onClick={() => onKind(s.value)}
               className={cn(
                 "flex flex-col gap-1.5 rounded-[10px] border p-3.5 text-left transition-colors",
@@ -163,7 +166,7 @@ function SourceStep({
               )}
             >
               <Icon className={cn("h-[22px] w-[22px]", on ? "text-ui-accent" : "text-ui-3")} strokeWidth={1.75} />
-              <span className="text-[13px] font-semibold text-ui-1">{s.title}</span>
+              <span className="text-body font-semibold text-ui-1">{s.title}</span>
               <span className="text-[11.5px] text-ui-4">{s.text}</span>
             </button>
           );
@@ -178,12 +181,19 @@ function SourceStep({
             {opening.size !== undefined && <span className="font-ui-mono text-[11.5px] text-ui-4">{formatBytes(opening.size)}</span>}
           </div>
           {opening.error ? (
-            <span role="alert" className="whitespace-pre-wrap text-[12px] text-ui-danger">
+            <span role="alert" className="whitespace-pre-wrap text-caption text-ui-danger">
               {opening.error}
             </span>
           ) : (
             <>
-              <div className="h-1.5 overflow-hidden rounded-[3px] bg-ui-hover">
+              <div
+                role="progressbar"
+                aria-label="Upload progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round((state ? pct : 0.05) * 100)}
+                className="h-1.5 overflow-hidden rounded-[3px] bg-ui-hover"
+              >
                 <div
                   className={cn("h-full rounded-[3px] transition-[width]", upload?.finished ? "bg-ui-success" : "bg-ui-accent")}
                   style={{ width: `${(state ? pct : 0.05) * 100}%` }}
@@ -200,7 +210,7 @@ function SourceStep({
                 {state && <span className="font-ui-mono">{Math.round(pct * 100)}%</span>}
               </div>
               {state?.source.restore && state.source.restore.missing.length > 0 && (
-                <span className="text-[12px] text-ui-warning">Missing from the saved canvas: {state.source.restore.missing.join(", ")}</span>
+                <span className="text-caption text-ui-warning">Missing from the saved canvas: {state.source.restore.missing.join(", ")}</span>
               )}
             </>
           )}
@@ -215,7 +225,7 @@ function SourceStep({
           <button type="button" className={GHOST} onClick={() => folderRef.current?.click()}>
             <FolderOpen className="h-4 w-4" /> Choose folder…
           </button>
-          <span className="text-[11.5px] text-ui-5">Or drop an .infopanel or a .canvas.zip here.</span>
+          <span className="text-[11.5px] text-ui-hint">Or drop an .infopanel or a .canvas.zip here.</span>
           <input
             ref={fileRef}
             type="file"
@@ -246,15 +256,16 @@ function SourceStep({
 
       {kind === "installed" && (
         <div className="flex flex-col overflow-hidden rounded-[10px] border border-ui-default">
-          <div className="border-b border-ui-subtle bg-ui-chrome px-3 py-2 font-ui-mono text-[11px] text-ui-4">%LOCALAPPDATA%\InfoPanel\profiles · read-only</div>
-          {installed === null && <span className="p-3 text-[12px] text-ui-4">Reading…</span>}
+          <div className="border-b border-ui-subtle bg-ui-chrome px-3 py-2 font-ui-mono text-micro text-ui-4">%LOCALAPPDATA%\InfoPanel\profiles · read-only</div>
+          {installed === null && <span className="p-3 text-caption text-ui-4">Reading…</span>}
           {installed?.length === 0 && (
-            <span className="p-3 text-[12px] text-ui-4">{listError ?? "No InfoPanel profiles on the PC running InfoPanel Studio (or InfoPanel keeps them elsewhere: set INFOPANEL_DATA_DIR on the server)."}</span>
+            <span className="p-3 text-caption text-ui-4">{listError ?? "No InfoPanel profiles found on this PC. Import a file instead."}</span>
           )}
           {installed?.map((p) => (
             <button
               key={p.guid}
               type="button"
+              aria-pressed={picked === p.guid}
               onClick={() => {
                 setPicked(p.guid);
                 onOpen(p.name, p.bytes, () => openEntries(p.name, installedEntries(p), "installed"));
@@ -263,8 +274,8 @@ function SourceStep({
             >
               <Radio on={picked === p.guid} />
               <span className="flex-1 truncate text-[12.5px] text-ui-1">{p.name || "(no name)"}</span>
-              <span className="font-ui-mono text-[11px] text-ui-4">{p.assets.length === 1 ? "1 asset" : `${p.assets.length} assets`}</span>
-              <span className="font-ui-mono text-[11px] text-ui-4">{formatBytes(p.bytes)}</span>
+              <span className="font-ui-mono text-micro text-ui-4">{p.assets.length === 1 ? "1 asset" : `${p.assets.length} assets`}</span>
+              <span className="font-ui-mono text-micro text-ui-4">{formatBytes(p.bytes)}</span>
             </button>
           ))}
         </div>
@@ -276,12 +287,13 @@ function SourceStep({
             <div className="flex items-center gap-2 border-b border-ui-subtle bg-ui-chrome px-3 py-2 text-[11.5px] text-ui-4">
               <HardDrive className="h-3.5 w-3.5" /> My library · Imported canvases
             </div>
-            {canvases === null && <span className="p-3 text-[12px] text-ui-4">Reading…</span>}
-            {canvases?.length === 0 && <span className="p-3 text-[12px] text-ui-4">{listError ?? "No saved canvases yet."}</span>}
+            {canvases === null && <span className="p-3 text-caption text-ui-4">Reading…</span>}
+            {canvases?.length === 0 && <span className="p-3 text-caption text-ui-4">{listError ?? "No saved canvases yet."}</span>}
             {canvases?.map((c) => (
               <button
                 key={c.id}
                 type="button"
+                aria-pressed={picked === c.id}
                 onClick={() => {
                   setPicked(c.id);
                   onOpen(c.name, c.dataSize, async () => openStored((await getLibraryItem<StoredCanvas>(c.id)).data, (h, e, t) => readStoreFile(h, e, t)));
@@ -290,7 +302,7 @@ function SourceStep({
               >
                 <Radio on={picked === c.id} />
                 <span className="flex-1 truncate text-[12.5px] text-ui-1">{c.name}</span>
-                <span className="font-ui-mono text-[11px] text-ui-4">{c.files.length === 1 ? "1 file" : `${c.files.length} files`}</span>
+                <span className="font-ui-mono text-micro text-ui-4">{c.files.length === 1 ? "1 file" : `${c.files.length} files`}</span>
               </button>
             ))}
           </div>
@@ -298,7 +310,7 @@ function SourceStep({
             <button type="button" className={GHOST} onClick={() => zipRef.current?.click()}>
               <FileArchive className="h-4 w-4" /> Open a .canvas.zip…
             </button>
-            <span className="text-[11.5px] text-ui-5">Each file is checked against its SHA-256.</span>
+            <span className="text-[11.5px] text-ui-hint">Each file is checked against its SHA-256.</span>
             <input
               ref={zipRef}
               type="file"
@@ -317,8 +329,10 @@ function SourceStep({
   );
 }
 
-function ImportBody({ onClose, profileName, profileSize, initialDest = "new", onImport, initialSource, lockDest }: Omit<ImportDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
+function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initialDest = "new", onImport, initialSource, lockDest }: Omit<ImportDialogProps, "open" | "onOpenChange"> & { onClose: () => void; onCancel: () => void; onStep: (step: number) => void }) {
   const [step, setStep] = useState(0);
+  useEffect(() => onStep(step), [step, onStep]);
+  useEffect(() => () => onStep(0), [onStep]);
   const [kind, setKind] = useState<SourceKind>("file");
   const [opening, setOpening] = useState<Opening | null>(null);
   const [source, setSource] = useState<OpenedSource | null>(null);
@@ -416,7 +430,9 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
   const footNote =
     step === 0 && uploading
       ? "Large assets keep uploading while you read"
-      : step === 3 && sensorsBlocked
+      : step === 0 && !state
+        ? "Choose a file to continue"
+        : step === 3 && sensorsBlocked
         ? `${state!.unresolved} groups need a sensor, or Leave unbound`
         : step === 3 && state && !state.online
           ? "The Data API is not reachable: sensors stay unresolved until you remap them from the page"
@@ -424,14 +440,16 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
             ? (error ?? "Importing…")
             : step === 4 && uploading
               ? `Uploading assets · ${formatBytes(state!.upload.done)} of ${formatBytes(state!.upload.total)}`
-              : "";
+              : step === 4 && choices.name.trim() === ""
+                ? "Name the screen to continue"
+                : "";
   const nextLabel = step === 4 ? `Import ${choices.name.trim() || "screen"}` : step === 2 ? "Looks right, continue" : "Continue";
 
   return (
     // The remap step has its own Help article (F1).
     <div data-help-article={step === 3 ? "remap" : "import"} className="grid h-full grid-cols-[210px_minmax(0,1fr)] max-md:grid-cols-1">
       <nav aria-label="Import steps" className="flex flex-col gap-1 border-r border-ui-subtle bg-ui-chrome px-3 py-[18px] max-md:hidden">
-        <Dialog.Title className="px-2 pb-0.5 text-[13.5px] font-semibold text-ui-1">Import InfoPanel</Dialog.Title>
+        <span className="px-2 pb-0.5 text-[13.5px] font-semibold text-ui-1">Import InfoPanel</span>
         <span className="px-2 pb-3.5 text-[11.5px] text-ui-4">Review before commit</span>
         {STEPS.map((label, i) => {
           const done = i < step;
@@ -447,22 +465,28 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
             >
               <span
                 className={cn(
-                  "grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border-[1.5px] font-ui-mono text-[11px] font-semibold",
-                  done ? "border-transparent bg-ui-accent text-ui-inverse-fg" : cur ? "border-transparent bg-ui-inverse text-ui-inverse-fg" : "border-[#3a3a42] text-ui-4",
+                  "grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border-[1.5px] font-ui-mono text-micro font-semibold",
+                  done ? "border-transparent bg-ui-accent text-ui-inverse-fg" : cur ? "border-transparent bg-ui-inverse text-ui-inverse-fg" : "border-ui-edge text-ui-4",
                 )}
               >
                 {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </span>
               <span className="flex min-w-0 flex-col gap-px">
                 <span className="text-[12.5px] font-medium">{label}</span>
-                <span className="truncate text-[11px] text-ui-4">{i <= step ? subs[i] : ""}</span>
+                <span className="truncate text-micro text-ui-4">{i <= step ? subs[i] : ""}</span>
               </span>
             </button>
           );
         })}
       </nav>
       <div className="flex min-h-0 flex-col">
-        <div className="flex flex-col gap-1 border-b border-ui-subtle px-[22px] pb-3.5 pt-[18px]">
+        <div className="relative flex flex-col gap-1 border-b border-ui-subtle px-[22px] pb-3.5 pt-[18px]">
+          <button type="button" aria-label="Close" onClick={onCancel} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-md text-ui-3 hover:bg-ui-hover hover:text-ui-1">
+            <X className="h-4 w-4" />
+          </button>
+          <Dialog.Title className="text-[11.5px] font-normal text-ui-4">
+            Import InfoPanel · Step {step + 1} of {STEPS.length}
+          </Dialog.Title>
           <span className="text-[16px] font-semibold text-ui-1">{TITLES[step]}</span>
           <Dialog.Description className="text-pretty text-[12.5px] text-ui-3">{step === 4 && lockDest ? "Name it, then import." : SUBTITLES[step]}</Dialog.Description>
         </div>
@@ -478,10 +502,14 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-[22px] py-3">
-          <button type="button" onClick={onClose} className="h-8 rounded-[7px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1">
+          <button type="button" onClick={onCancel} className="h-8 rounded-[7px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1">
             Cancel
           </button>
-          {footNote && <span className={cn("text-[11.5px]", step === 4 && error ? "text-ui-danger" : "text-ui-3")}>{footNote}</span>}
+          {footNote && (
+            <span role={step === 4 && error ? "alert" : "status"} className={cn("text-[11.5px]", step === 4 && error ? "text-ui-danger" : "text-ui-3")}>
+              {footNote}
+            </span>
+          )}
           <span className="flex-1" />
           {step > 0 && (
             <button type="button" className={GHOST} onClick={() => setStep(step - 1)}>
@@ -492,7 +520,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
             type="button"
             disabled={!canNext}
             onClick={next}
-            className="h-8 rounded-[7px] bg-ui-inverse px-4 text-[12.5px] font-semibold text-ui-inverse-fg disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-5"
+            className="h-8 rounded-[7px] bg-ui-inverse px-4 text-[12.5px] font-semibold text-ui-inverse-fg disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-hint"
           >
             {nextLabel}
           </button>
@@ -503,14 +531,41 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
 }
 
 export function ImportDialog({ open, onOpenChange, ...body }: ImportDialogProps) {
+  // Past the first step the dialog holds choices (remaps, name, screenshot): closing asks first.
+  const [step, setStep] = useState(0);
+  const guard = useCloseGuard(step > 0, onOpenChange);
+  // The parent closing it (after a commit) takes the question down with it.
+  useEffect(() => {
+    if (!open) guard.keep();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 h-[min(640px,calc(100vh-48px))] w-[min(960px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
-          {open && <ImportBody {...body} onClose={() => onOpenChange(false)} />}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <>
+      <Dialog.Root open={open} onOpenChange={(o) => (o ? onOpenChange(true) : guard.request())}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
+          <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 h-[min(640px,calc(100vh-48px))] w-[min(960px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
+            {open && <ImportBody {...body} onClose={() => onOpenChange(false)} onCancel={guard.request} onStep={setStep} />}
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+      <Dialog.Root open={guard.asking} onOpenChange={(o) => !o && guard.keep()}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-(--z-dialog) bg-black/60" />
+          <Dialog.Popup className="fixed left-1/2 top-1/2 z-(--z-dialog) w-[26rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-raised p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
+            <Dialog.Title className="text-sm font-semibold text-ui-1">Discard this import?</Dialog.Title>
+            <Dialog.Description className="text-xs leading-relaxed text-ui-3">Your choices so far will be lost. Keep going to finish the import.</Dialog.Description>
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={guard.discard} className="h-8 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover">
+                Discard
+              </button>
+              <button type="button" onClick={guard.keep} className="h-8 rounded-ui-md bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90">
+                Keep going
+              </button>
+            </div>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
   );
 }

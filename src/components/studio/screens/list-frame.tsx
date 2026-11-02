@@ -15,14 +15,14 @@ export function ListTitle({ title, count }: { title: string; count: string }) {
   return (
     <div className="flex items-baseline gap-2">
       <h1 className="m-0 text-[15px] font-semibold text-ui-1">{title}</h1>
-      <span className="text-[12px] text-ui-4">{count}</span>
+      <span className="text-caption text-ui-4">{count}</span>
     </div>
   );
 }
 
 /** A section's heading over its own grid ("Saved in your Library"). */
 export function ListSection({ title }: { title: string }) {
-  return <h2 className="m-0 mt-1 text-[13px] font-semibold text-ui-1">{title}</h2>;
+  return <h2 className="m-0 mt-1 text-body font-semibold text-ui-1">{title}</h2>;
 }
 
 /** What the page shows when no card is left: nothing matches the search, or nothing exists yet. */

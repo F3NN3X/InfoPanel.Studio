@@ -32,8 +32,8 @@ export default function Fans(p: FansProps) {
       {...shell(p)}
       title={p.title ?? "Fans"}
       icon="mode_fan"
-      studio={{ label: "Fans", value: avg, unit: "rpm", rows: fans.map((f) => ({ n: f.label, v: f.rpm > 0 ? `${fmt(f.rpm)} rpm` : "off", pct: (f.rpm / max) * 100 })) }}
-      compact={{ label: "Fans", value: avg, unit: "rpm", sub: `${fans.filter((f) => f.rpm > 0).length} spinning`, pct: (avg / max) * 100, icon: "mode_fan" }}
+      studio={{ label: "Fans", value: avg, unit: "RPM", rows: fans.map((f) => ({ n: f.label, v: f.rpm > 0 ? `${fmt(f.rpm)} RPM` : "Off", pct: (f.rpm / max) * 100 })) }}
+      compact={{ label: "Fans", value: avg, unit: "RPM", sub: `${fans.filter((f) => f.rpm > 0).length} spinning`, pct: (avg / max) * 100, icon: "mode_fan" }}
     >
       {({ size, w, h }) => {
         // Tiles while each gets ~64px of width and ~80px of height; otherwise one line per fan, as many as fit.
@@ -60,7 +60,7 @@ export default function Fans(p: FansProps) {
                   <Icon name="mode_fan" className={`${size === "lg" ? "text-5xl" : "text-3xl"} ${f.rpm > 0 ? "text-[color:var(--accent)]" : "text-[color:var(--w-faint)]"}`} />
                 </span>
                 <Num className="text-sm font-semibold">{f.rpm > 0 ? fmt(f.rpm) : "Off"}</Num>
-                <span className="max-w-full truncate text-[10.5px] text-[color:var(--w-faint)]">
+                <span className="max-w-full truncate text-micro text-[color:var(--w-faint)]">
                   {f.label}
                   {Number.isFinite(f.duty) ? ` · ${fmt(f.duty ?? NaN)}%` : ""}
                 </span>

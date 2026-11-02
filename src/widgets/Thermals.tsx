@@ -1,7 +1,7 @@
 import { readSystemFlat } from "@/lib/system-metrics";
 import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, get, num, fmt, diskShort, tone, TONES, useHistory, Empty, Ring, Num, slideX, hw, type Tone, type ShellProps } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, diskShort, tone, TONES, useHistory, Empty, Ring, Num, ToneCue, slideX, hw, type Tone, type ShellProps } from "./kit";
 import { readings } from "./hardware-readings";
 import { meta } from "./meta/Thermals";
 
@@ -122,6 +122,7 @@ export default function Thermals(p: ThermalsProps) {
                   </div>
                 )}
                 <span className="text-right font-medium tabular-nums" style={x.t !== "ok" ? { color: TONES[x.t] } : undefined}>
+                  <ToneCue t={x.t} />
                   {T(x.v)}
                   {deg}
                 </span>

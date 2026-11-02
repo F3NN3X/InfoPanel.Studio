@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { LayoutDashboard, MoreHorizontal, PanelsTopLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FOCUS } from "./menu-styles";
 import type { Insertable } from "./insert-panel";
 import { DND_MIME, DND_MIME_PANEL } from "./studio-modules";
 import { iconFor } from "@/widgets/core/icons";
@@ -16,9 +17,9 @@ export interface SavedPanelActions {
 }
 
 const MENU_POPUP =
-  "min-w-36 rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
+  "min-w-36 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
 const MENU_ITEM =
-  "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-highlighted:bg-ui-hover";
+  "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-highlighted:bg-ui-active data-highlighted:text-ui-1 data-highlighted:shadow-[inset_2px_0_0_var(--ui-accent)]";
 
 /** The inline name input of a saved panel being renamed. */
 export function RenameInput({ initial, onDone }: { initial: string; onDone: (name: string | null) => void }) {
@@ -121,13 +122,14 @@ export function InsertRow({
       title={item.description ? `${item.description} — ${hint.toLowerCase()}` : hint}
       className={cn(
         "flex min-w-0 cursor-pointer flex-col gap-1.5 rounded-lg border border-ui-default bg-ui-tile p-2.5 text-left",
-        "transition-colors hover:border-ui-accent hover:bg-[#17171c] focus-visible:outline-none focus-visible:border-ui-accent",
+        "transition-colors hover:border-ui-accent hover:bg-s-nav-hover focus-visible:border-ui-accent",
+        FOCUS,
         draggable && "active:cursor-grabbing"
       )}
     >
-      <div className="flex items-center justify-between gap-1 text-[#c8c8ce]">
+      <div className="flex items-center justify-between gap-1 text-ui-2">
         <Icon className="h-5 w-5 shrink-0" strokeWidth={1.5} />
-        <span className="flex items-center gap-1.5 font-ui-mono text-[10px] text-ui-5">
+        <span className="flex items-center gap-1.5 font-ui-mono text-[10px] text-ui-hint">
           {size.cols}×{size.rows}
           {saved && <SavedPanelMenu onRename={() => setRenaming(true)} onDelete={saved.onDelete} />}
         </span>
@@ -143,7 +145,7 @@ export function InsertRow({
       ) : (
         <span className="break-words text-xs font-medium text-ui-1">{item.title}</span>
       )}
-      <span className="text-[10.5px] leading-[1.35] text-[#8a8a94]">{describe(item)}</span>
+      <span className="text-micro leading-[1.35] text-ui-hint">{describe(item)}</span>
     </div>
   );
 }

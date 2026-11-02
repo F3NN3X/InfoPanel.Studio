@@ -49,7 +49,7 @@ const TYPE_LABEL: Record<string, string> = { jpeg: "JPEG", png: "PNG", gif: "GIF
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex gap-3 py-[3px] text-[12px]">
+    <div className="flex gap-3 py-[3px] text-caption">
       <span className="w-[86px] shrink-0 text-ui-4">{label}</span>
       <span className="min-w-0 flex-1 truncate font-ui-mono text-ui-2">{children}</span>
     </div>
@@ -65,7 +65,7 @@ function ActionButton({ action, primary }: { action: DetailAction; primary?: boo
       disabled={action.disabled}
       title={action.title}
       className={cn(
-        "flex h-[34px] items-center justify-center gap-2 rounded-[8px] px-3 text-[12.5px] disabled:pointer-events-none disabled:opacity-40",
+        "flex h-(--ui-h-field) items-center justify-center gap-2 rounded-ui-md px-3 text-[12.5px] disabled:pointer-events-none disabled:opacity-40",
         primary ? "w-full bg-ui-inverse font-medium text-ui-inverse-fg hover:opacity-90" : "border border-ui-default text-ui-1 hover:bg-ui-hover",
       )}
     >
@@ -114,10 +114,10 @@ export function LibraryDetail(p: DetailProps) {
           onChange={(e) => setName(e.target.value)}
           onBlur={() => name.trim() && name !== item.name && p.onRename(name.trim())}
           onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-          className="w-full rounded-[6px] border border-transparent bg-transparent px-1 py-0.5 -mx-1 text-[14px] font-semibold text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent disabled:hover:border-transparent"
+          className="w-full rounded-ui-sm border border-transparent bg-transparent px-1 py-0.5 -mx-1 text-[14px] font-semibold text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent disabled:hover:border-transparent"
         />
-        <div className="font-ui-mono text-[11px] text-ui-4">{metaLine(item) || KIND_LABEL[item.kind]}</div>
-        {m.blurb && <p className="mt-1.5 text-[12px] leading-snug text-ui-3">{m.blurb}</p>}
+        <div className="font-ui-mono text-micro text-ui-4">{metaLine(item) || KIND_LABEL[item.kind]}</div>
+        {m.blurb && <p className="mt-1.5 text-caption leading-snug text-ui-3">{m.blurb}</p>}
       </div>
       <div className="flex flex-col gap-2">
         {p.primary && <ActionButton action={p.primary} primary />}
@@ -130,37 +130,37 @@ export function LibraryDetail(p: DetailProps) {
         )}
       </div>
       {group && (
-        <div className="rounded-[10px] border border-ui-warning/40 bg-ui-warning/10 p-3 text-[12px] leading-snug text-ui-2">
+        <div className="rounded-[10px] border border-ui-warning/40 bg-ui-warning/10 p-3 text-caption leading-snug text-ui-2">
           <div className="mb-2 flex items-center gap-2 font-medium text-ui-warning">
             <Copy className="h-3.5 w-3.5" /> Duplicate
           </div>
           {group.filter((g) => g.id !== item.id).map((g) => g.name).join(", ")} {group.length === 2 ? "has" : "have"} the same{" "}
           {hash && group.every((g) => hashOf(g) === hash) ? "bytes" : "picture"}. Merging keeps {group[0].name} and moves every copy count to it.
-          <button type="button" onClick={() => p.onMerge(group)} className="mt-2 block h-[28px] rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
+          <button type="button" onClick={() => p.onMerge(group)} className="mt-2 block h-(--ui-h-control) rounded-[7px] border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover">
             Merge
           </button>
         </div>
       )}
       {p.onUpdateFormat && (
-        <div className="rounded-[10px] border border-ui-warning/40 bg-ui-warning/10 p-3 text-[12px] leading-snug text-ui-2">
+        <div className="rounded-[10px] border border-ui-warning/40 bg-ui-warning/10 p-3 text-caption leading-snug text-ui-2">
           <div className="mb-2 flex items-center gap-2 font-medium text-ui-warning">
             <RefreshCw className="h-3.5 w-3.5" /> Older version
           </div>
           Saved by an older version of InfoPanel Studio. It still works as it is; Update saves it in today&rsquo;s format and keeps a copy of it as it was first.
-          <button type="button" onClick={p.onUpdateFormat} className="mt-2 block h-[28px] rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
+          <button type="button" onClick={p.onUpdateFormat} className="mt-2 block h-(--ui-h-control) rounded-[7px] border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover">
             Update
           </button>
         </div>
       )}
       {suggestion && (
-        <div className="flex gap-2 text-[12px] leading-snug text-ui-accent-text">
+        <div className="flex gap-2 text-caption leading-snug text-ui-accent-text">
           <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           Suggested for this theme: {suggestion.reason.charAt(0).toLowerCase() + suggestion.reason.slice(1)}.
         </div>
       )}
       {item.kind === "video" && (
         <div className="space-y-2 border-t border-ui-subtle pt-3">
-          <div className="text-[11px] font-medium uppercase tracking-[.06em] text-ui-4">Playback</div>
+          <div className="text-micro font-medium uppercase tracking-[.06em] text-ui-4">Playback</div>
           <label className="flex items-center justify-between text-[12.5px] text-ui-2">
             Loop
             <input type="checkbox" checked={m.loop ?? m.audio === false} onChange={(e) => p.onVideo({ loop: e.target.checked })} className="h-3.5 w-3.5 accent-[var(--ui-accent)]" />
@@ -187,12 +187,12 @@ export function LibraryDetail(p: DetailProps) {
         </div>
       )}
       {item.kind === "svg" && (
-        <div className="border-t border-ui-subtle pt-3 text-[12px] text-ui-2">
-          <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-ui-4">Driven by</div>
+        <div className="border-t border-ui-subtle pt-3 text-caption text-ui-2">
+          <div className="mb-1.5 text-micro font-medium uppercase tracking-[.06em] text-ui-4">Driven by</div>
           {m.vars?.length ? (
             <div className="flex flex-wrap gap-1">
               {m.vars.map((v) => (
-                <code key={v} className="rounded bg-ui-raised px-1.5 py-0.5 font-ui-mono text-[11px] text-ui-1">
+                <code key={v} className="rounded bg-ui-raised px-1.5 py-0.5 font-ui-mono text-micro text-ui-1">
                   {v}
                 </code>
               ))}
@@ -218,7 +218,7 @@ export function LibraryDetail(p: DetailProps) {
       </div>
       {tags.length > 0 && (
         <div>
-          <div className="mb-1.5 text-[11px] text-ui-4">Tags · auto</div>
+          <div className="mb-1.5 text-micro text-ui-4">Tags · auto</div>
           <div className="flex flex-wrap gap-1">
             {tags.map((t) => (
               <span key={t} className="rounded-full border border-ui-default px-2 py-0.5 text-[11.5px] text-ui-2">
@@ -240,7 +240,7 @@ export function LibraryDetail(p: DetailProps) {
                 // Copies recorded before profiles were tracked ("*") have nowhere to jump to.
                 disabled={c.profileId === "*"}
                 title={c.profileId === "*" ? "Recorded without a profile" : undefined}
-                className="flex h-[30px] items-center gap-2 rounded-[7px] border border-ui-subtle px-2.5 text-left text-[12px] text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-60"
+                className="flex h-[30px] items-center gap-2 rounded-[7px] border border-ui-subtle px-2.5 text-left text-caption text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-60"
               >
                 <span className="min-w-0 flex-1 truncate">{p.copyLabel(c)}</span>
                 <ArrowUpRight className="h-3.5 w-3.5 text-ui-4" />
@@ -250,7 +250,7 @@ export function LibraryDetail(p: DetailProps) {
         </div>
       )}
       {editable && (
-        <button type="button" onClick={p.onRemove} className="mt-auto flex items-center gap-1.5 self-start text-[12px] text-ui-4 hover:text-ui-danger">
+        <button type="button" onClick={p.onRemove} className="mt-auto flex items-center gap-1.5 self-start text-caption text-ui-4 hover:text-ui-danger">
           <Trash2 className="h-3.5 w-3.5" /> Remove from library
         </button>
       )}

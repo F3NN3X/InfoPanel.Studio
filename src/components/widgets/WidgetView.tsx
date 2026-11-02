@@ -203,7 +203,7 @@ function GaugeWidget({ widget, sensor, text, unit }: Ctx) {
             {unit && <span className="ml-0.5 font-normal text-muted-foreground" style={{ fontSize: "0.7em" }}>{unit}</span>}
           </span>
         </Ring>
-        {widget.label && <span className="wp-label text-[10px] uppercase tracking-wide text-muted-foreground">{widget.label}</span>}
+        {widget.label && <span className="wp-label text-micro uppercase tracking-wide text-muted-foreground">{widget.label}</span>}
       </div>
     );
   }
@@ -234,7 +234,7 @@ function VectorGaugeWidget({ widget, sensor }: { widget: Widget; sensor?: Sensor
   return (
     <div className="wp-gauge flex shrink-0 flex-col items-center gap-1.5" style={{ width: w }}>
       <FittedVectorGauge gauge={g} p={frac} id={id} width={w} height={Math.round((w * g.height) / g.width)} />
-      {widget.label && <span className="wp-label text-[10px] uppercase tracking-wide text-muted-foreground">{widget.label}</span>}
+      {widget.label && <span className="wp-label text-micro uppercase tracking-wide text-muted-foreground">{widget.label}</span>}
     </div>
   );
 }
@@ -626,7 +626,7 @@ export function WidgetView({ widget, sensors, studio }: WidgetViewProps) {
     <div className="flex min-w-0 flex-col gap-0.5">
       {view}
       <span
-        className="wp-hint text-[10px] italic text-muted-foreground/60"
+        className="wp-hint text-micro italic text-muted-foreground/60"
         style={{ textAlign: widget.align ?? (widget.kind === "gauge" ? "center" : undefined) }}
       >
         pick a sensor

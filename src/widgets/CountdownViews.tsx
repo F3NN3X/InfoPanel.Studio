@@ -44,7 +44,7 @@ function Name({ name, size }: { name: string; size: string }) {
 }
 
 function DateLine({ text, size }: { text: string; size: string }) {
-  return text ? <span className={`max-w-full truncate text-[color:var(--w-muted)] ${size === "xs" ? "text-[10px]" : "text-xs"}`}>{text}</span> : null;
+  return text ? <span className={`max-w-full truncate text-[color:var(--w-muted)] ${size === "xs" ? "text-micro" : "text-xs"}`}>{text}</span> : null;
 }
 
 /** The big accent line while the event is happening (width-fitted to the box). */
@@ -84,7 +84,7 @@ export function CountdownBodyView({ body, view }: { body: CountdownBody; view: C
               <div className="rounded-lg bg-[color:var(--w-track)] px-[0.3em] py-[0.15em] text-center" style={{ minWidth: `${2 * DIGIT + 0.6}em`, fontSize: px }}>
                 <Num className="block leading-none">{p.value}</Num>
               </div>
-              <span className="text-[10px] text-[color:var(--w-muted)]">{unitWord(p)}</span>
+              <span className="text-micro text-[color:var(--w-muted)]">{unitWord(p)}</span>
             </div>
           ))}
         </div>

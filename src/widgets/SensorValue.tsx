@@ -175,7 +175,7 @@ export default function SensorValue(p: SensorValueProps) {
         ) : disp === "figure" ? (
           <Figure label={label} text={numeric ? (p.smallUnit ? fmt(sv, p.decimals ?? (Math.abs(sv) < 10 || up ? 1 : 0)) : (readingText(v, unit) ?? "")) : has(raw) ? String(raw) : "–"} unit={numeric && p.smallUnit ? su : undefined} w={w} h={h} />
         ) : !p.sensor ? (
-          onCanvas ? <div className="flex h-full items-center text-xs text-[color:var(--w-faint)]">Pick a sensor</div> : null
+          onCanvas ? <div className="flex h-full items-center text-xs text-[color:var(--w-faint)]">Pick a sensor</div> : <div className="flex h-full items-center text-xs text-[color:var(--w-faint)]">No sensor</div>
         ) : !numeric ? (
           <div className="flex h-full flex-col justify-center">
             {size === "xs" && p.look?.showTitle !== false && <span className="text-[11px] text-[color:var(--w-muted)]">{label}</span>}

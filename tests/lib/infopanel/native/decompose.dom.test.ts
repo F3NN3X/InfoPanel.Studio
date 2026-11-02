@@ -5,7 +5,7 @@ import { defaultPalette } from "../../../../src/lib/infopanel/elements/palette.t
 import { cssToArgb, decompose, hideTagged, readTagged, shownAs } from "../../../../src/lib/infopanel/native/decompose.ts";
 import { fontSizeOf, type ConvertContext } from "../../../../src/lib/infopanel/native/items.ts";
 import { createElement } from "react";
-import { IpTagCtx } from "../../../../src/widgets/core/primitives.tsx";
+import { IpTagCtx, Metric } from "../../../../src/widgets/core/primitives.tsx";
 import { TEMPLATE_MODULES } from "../../../../src/widgets/registry.ts";
 import SensorValue, { type SensorValueProps } from "../../../../src/widgets/SensorValue.tsx";
 import { fixtureSensors } from "../../../../src/widgets/__fixtures__/index.ts";
@@ -280,5 +280,21 @@ describe("tables, images, text readings and graph tops", () => {
     };
     expect(graph().AutoValue).toBe(true);
     expect(graph(100)).toMatchObject({ AutoValue: false, MaxValue: 100 });
+  });
+});
+
+describe("a Metric at a warn or crit tone", () => {
+  it("reads the same value text and box as at ok (the state cue is not part of the value)", () => {
+    const read = (t: "ok" | "crit") => {
+      const root = document.createElement("div");
+      root.innerHTML = renderToStaticMarkup(createElement(IpTagCtx.Provider, { value: true }, createElement(Metric, { value: 88, t, ipKey: "libre.cpu_total" })));
+      document.body.append(root);
+      const node = root.querySelector("[data-ip-key]") as HTMLElement;
+      node.getBoundingClientRect = () => ({ left: 0, top: 0, width: 50, height: 40 }) as DOMRect;
+      root.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 100 }) as DOMRect;
+      return readTagged(root)[0];
+    };
+    expect(read("crit").text).toBe(read("ok").text);
+    expect(read("crit").text).toBe("88");
   });
 });

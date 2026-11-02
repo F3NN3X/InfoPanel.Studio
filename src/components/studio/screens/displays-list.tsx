@@ -25,7 +25,7 @@ export function DisplaysList({ displays, profiles }: DisplaysListProps) {
   const now = Date.now();
   return (
     <section aria-label="Displays" className="flex flex-col gap-2 rounded-[10px] border border-ui-default bg-ui-panel p-3.5">
-      <span className="text-[13px] font-medium text-ui-1">Displays</span>
+      <span className="text-body font-medium text-ui-1">Displays</span>
       <ul className="flex flex-col divide-y divide-ui-default">
         {displays.map((d) => (
           <li key={d.name} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-1.5 text-[12.5px] first:pt-0 last:pb-0">
@@ -45,7 +45,7 @@ export function DisplaysList({ displays, profiles }: DisplaysListProps) {
               aria-label={`Screen for ${d.name}`}
               value={d.screen}
               onChange={(e) => void postControl("display", { action: "assign", display: d.name, screen: e.target.value })}
-              className="ml-auto h-7 max-w-[200px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+              className="ml-auto h-7 max-w-[200px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent"
             >
               <option value={DISPLAY_FOLLOW}>Follow “When the app opens”</option>
               {profiles.map((p) => (
@@ -57,7 +57,7 @@ export function DisplaysList({ displays, profiles }: DisplaysListProps) {
             <button
               type="button"
               onClick={() => void postControl("display", { action: "forget", display: d.name })}
-              className="h-7 rounded-[7px] border border-ui-strong px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover"
+              className="h-7 rounded-[7px] border border-ui-strong px-2.5 text-caption text-ui-1 hover:bg-ui-hover"
             >
               Forget
             </button>

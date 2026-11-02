@@ -59,7 +59,7 @@ export function MetricGauges({ rows, w, h }: { rows: MetricRow[]; w: number; h: 
                 </Num>
                 {m.unit && <span className="leading-none text-[color:var(--w-faint)]" style={{ fontSize: Math.max(8, cell * 0.095) }}>{m.unit}</span>}
               </Ring>
-              <span className="w-full truncate text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[color:var(--w-muted)]" style={{ height: LABEL_H - 4 }}>{m.label}</span>
+              <span className="w-full truncate text-center text-micro font-semibold uppercase tracking-[0.14em] text-[color:var(--w-muted)]" style={{ height: LABEL_H - 4 }}>{m.label}</span>
             </div>
           ))}
         </div>

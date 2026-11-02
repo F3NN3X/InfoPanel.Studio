@@ -39,8 +39,8 @@ function VitalCard({ m, hist, w, h, tui }: { m: Vital; hist: number[]; w: number
     <div className="relative flex min-w-0 flex-col overflow-hidden rounded-xl bg-[color:var(--w-track)] px-3" style={{ paddingTop: padY, paddingBottom: padY }}>
       {!braille && <Spark values={hist} min={0} max={m.max} className="absolute inset-x-0 bottom-0 h-1/2 opacity-80" />}
       <div className="relative flex items-baseline justify-between gap-2 leading-[13px]">
-        <span className={`min-w-0 truncate text-[10.5px] font-medium uppercase ${tui ? "" : "tracking-[0.08em]"} text-[color:var(--w-muted)]`}>{m.label}</span>
-        {w > (tui ? 170 : 110) && <span className="truncate text-[10.5px] text-[color:var(--w-faint)]">{m.sub}</span>}
+        <span className={`min-w-0 truncate text-micro font-medium uppercase ${tui ? "" : "tracking-[0.08em]"} text-[color:var(--w-muted)]`}>{m.label}</span>
+        {w > (tui ? 170 : 110) && <span className="truncate text-micro text-[color:var(--w-faint)]">{m.sub}</span>}
       </div>
       {graphRows && <Spark values={hist} min={0} max={m.max} className="mt-1 min-h-0 flex-1 opacity-80" />}
       <span className="relative mt-auto block max-w-full overflow-hidden text-ellipsis whitespace-nowrap pb-1 font-semibold leading-none tabular-nums" style={{ fontSize: fs, ...(t !== "ok" ? { color: TONES[t] } : null) }}>

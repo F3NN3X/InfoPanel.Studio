@@ -1,0 +1,38 @@
+# Batch 3 notes (layout and typography)
+
+Fixed: 014, 019, 033, 034, 046 (finishes the batch-1 partial), 068, 076, 086, 087. Partial: 031, 032, 036, 042, 063, 074 (finishes part of the batch-1 partial). Not done (still `open`): 072, 090 (need rendered review of eight-plus widgets and two skins; nothing was changed for them).
+
+## Rows
+
+- FND-031 (partial): type scale added to `@theme` in `src/index.css` (`--text-micro` 11px, `caption` 12px, `body` 13px, `title` 15px) and `cn` taught that `text-micro|caption|body|title` are font sizes, not colours (`src/lib/utils.ts`, test `tests/lib/utils.test.ts`; without it twMerge would drop a colour class next to `text-micro`). Migrated: every `text-[9|9.5|10|10.5px]` in `src/widgets/**` (not widget-qa), `components/widgets`, `components/alerts`, `components/island`, `modern-chrome`, `phone-tab-bar`, `touch-overlay` to `text-micro` (11px floor for kiosk and widget text), and in the rest of `src` (studio, settings, help, library) `9/9.5px` to `text-[10px]` (10px chrome floor) and `10.5px` to `text-micro`. Left: studio/settings `10px`, `11px`, `11.5px`, `12px`, `12.5px`, `13px` arbitrary sizes (about 1,300 uses; no half-pixel sizes below 12px remain except 11.5), SVG text at 6-7px, inline `fontSize` numbers, heatmap cell numbers not scaled with cell size, `SensorValue` `LINE_MIN_PX` not promoted to a shared floor.
+- FND-032 (partial): tokens only, in `src/index.css` `@theme`: `--radius-ui-sm/md/lg/menu`, `--ui-h-control`, `--ui-h-field`, `--z-menu/dialog/toast`. No call sites migrated (the ledger says migrate as files are touched).
+- FND-014: island body `line-clamp-2 break-words` plus titles in `title` (`dynamic-island.tsx`; the expanded box is 64-96px high, two lines fit without growing it); toast title `line-clamp-2 break-words` (`alert-layer.tsx`); `title` with the full text on `SessionStats` row labels, `ThresholdTimeline` lane labels, Notifications headline (now 2 lines), Studio layer name (`layers-tree.tsx`), page tab (`page-tabs.tsx`: "name: double-click to rename, drag to reorder"), panel layer name (`panel-layers.tsx`). MeterBridge, Departures and setting-rows already carried `title`. Not done: dropping vendor prefix on hardware names, wrapping label rows in sheet mode.
+- FND-019: pinned-controls strip in `quick-bar.tsx` has an 8px edge fade (mask) with matching padding.
+- FND-033: the five dialogs plus widget picker and command palette use `w-[min(Nrem,calc(100vw-2rem))]`; the AlertDialog/Dialog popups also get `max-h-[calc(100vh-2rem)] overflow-y-auto`. No shared class constant was created.
+- FND-034: kiosk `main` gets `kiosk-scroll` when the page is not fit: fill; `index.css` styles the page's own scrollbar as a 4px translucent thumb for it. Uncertain: whether WebView2 showed a default scrollbar before; not rendered.
+- FND-036 (partial): the 1x1 ring tile is `role="img"` with an `aria-label` "CPU 12%, GPU 3%, RAM 40%" (`SystemOverview.tsx`). The visual identity (legend/lead value inside the rings) is not added.
+- FND-042 (partial): modern-chrome title `max-w-[calc(100%-1.5rem)]` and truncated (`modern-chrome.tsx`). Body is not offset by the header height (would shift every headed panel's content).
+- FND-046: `RulerLabels` takes `scale` (`rulers.tsx`; callers `studio-canvas.tsx` with the CSS zoom, `edit-canvas.tsx` with the transform scale). Ticks stay in design coordinates; the text and the offsets from the board are counter-scaled, so labels are 10px `text-ui-4` at any zoom. They are counter-scaled rather than moved out of the transform, which keeps them aligned with the page with no new coordinate plumbing.
+- FND-063 (partial): both sidebars shrink to 184px below 700px viewport width (`settings/shell.tsx`, `help/ui/sidebar.tsx`). The 56px icon rail was not built.
+- FND-068: an unbound `SensorValue` off the canvas shows "No sensor" (`SensorValue.tsx`).
+- FND-074 (partial): `ON_ART` in `GameSpotlight.tsx` gets a soft text-shadow (a gradient scrim already sat behind every layout); the 9px text over art is now 11px via FND-031. Not done: nixie numeral weight; Nixie One ships a single weight, so raising `numWeight` would only synthesise bold over the glow. A size floor for nixie needs rendering.
+- FND-076: `PageDots` takes `scroll` and gets a bottom-to-transparent background gradient strip on scroll pages (`page-dots.tsx`, `App.tsx`); the touch overlay headings use `max-w-[90vw] break-words` with `clamp()` sizes (`touch-overlay/overlay.tsx`).
+- FND-086: changelog rail `max-h-[calc(100vh-40px)] overflow-y-auto` (`changelog.tsx`).
+- FND-087: FramePacing/FrameHistogram axis labels were 10/10.5px, now `text-micro` (11px) in `--w-muted` instead of `--w-faint`.
+- FND-072 (open, round 1 reviewed): still untouched. The screenshots show the 4x4/2x2 gaps are per-widget design choices (second row, trend, key grid) across about 20 widgets, not one rule; deferred to a batch with a rendered review.
+- FND-090 (partial): retro floor: the `terminal` surface sets `font-size-adjust: 0.4` (`core/surfaces.ts:33`), so VT323 text (Timer presets, labels) is scaled to a readable x-height. Check retro shots, since numbers also grow. Duplicate tui titles: not visible in the batch1 tui shots (CoreHeatmap/Timer show only the frame title), so no logic change.
+- Round 1 review: Braille graph (`primitives.tsx:381`) stays `text-[10px] leading-[10px]`, matching its `floor(h/10)` row count; this glyph grid is the one exception to the 11px floor (11px would band the graph). `tests/lib/utils.test.ts` now also asserts `text-micro` vs `text-sm` and `text-[10px]` vs `text-micro`.
+- FND-074 opacity cap: island secondary text is already at 75% (batch 1). Widgets over art use solid `--w-muted`/`--w-faint` (`ON_ART`, #d4d4d8 / #a1a1aa), not opacity, and their only opacity classes are on the art itself, so there is nothing further to cap.
+- FND-032 stays partial: the new tokens still have no consumers.
+
+## Fixtures, budgets, map
+- `tests/lib/__fixtures__/v8-parity.json`: all `text-[9|9.5|10|10.5px]` strings became `text-micro`; cases `sv-default`/`sv-own` (the new "No sensor" div), `gsp-default`/`gsp-combo` (text-shadow on the art root), `notif-default`/`notif-own` (headline `title`, `line-clamp-2 break-words` replacing `truncate`) re-recorded from the renderer; every other case matched after the class rename. Those are exactly the intended changes.
+- `tools/perf/budgets.json`: kiosk 268534 to 268881, studio 604843 to 605421 gzip bytes (the new CSS and classes; same practice as batches 2a/2b).
+- `tests/feature-map.json`: `tests/lib/utils.test.ts` under `studio`.
+
+## Screenshots to check
+Whole-app 10 to 11px change in widgets, so every widget at 2x2: AudioMeter, WaveLink, StreamControl, CoreHeatmap, CpuMonitor, MenuBar, OsdStrip, SteamFriends, Achievements, CodingAgents, GameSpotlight (all layouts, now with text-shadow), SteamGame, Notifications (headline up to 2 lines), SessionStats, ThresholdTimeline, FramePacing, FrameHistogram, SensorValue unbound, SystemOverview tile, all skins that use `core/views.tsx` (nixie, retro, tui included). Kiosk: island expanded with long body, alert toast with long title, modern-chrome header with a long label, page dots on a scroll page, scroll-fit page scrollbar, phone tab bar (11px). Studio: canvas rulers at zoom 25%/100%/200%, quick bar at narrow width, dialogs at 320px, Settings and Help sidebars below 700px, changelog rail.
+
+## Screenshot review
+
+- Notifications 2x2: the two-line headline pushed the history list past the box (row 5 cut, overflow flag). The headline now wraps to two lines only at the lg size and truncates at md, with the full text in `title`. The v8 parity cases notif-default and notif-own record the md class.

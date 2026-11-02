@@ -19,8 +19,8 @@ export function PageHeader({ name }: { name: string }) {
         <Monitor className="h-[17px] w-[17px]" strokeWidth={1.75} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-px">
-        <span className="truncate text-[13px] font-semibold text-ui-1">Page · {name}</span>
-        <span className="truncate text-[10.5px] text-ui-4">Nothing selected</span>
+        <span className="truncate text-body font-semibold text-ui-1">Page · {name}</span>
+        <span className="truncate text-micro text-ui-4">Nothing selected</span>
       </span>
       <CloseButton />
     </div>
@@ -40,14 +40,14 @@ export function SnapSection({ snapItems, onSnapItems }: { snapItems: boolean; on
       <span className={SECTION_LABEL}>Grid</span>
       <div data-testid="page-snap-toggle" className="flex h-9 items-center gap-2.5 rounded-lg border border-ui-default bg-ui-raised px-2.5">
         <Grid3x3 className="h-[17px] w-[17px] shrink-0 text-ui-3" strokeWidth={1.75} />
-        <span className="flex-1 text-[12px] font-medium text-ui-1">Snap items to grid</span>
+        <span className="flex-1 text-caption font-medium text-ui-1">Snap items to grid</span>
         <Toggle checked={snapItems} onChange={onSnapItems} label="Snap items to grid" />
       </div>
-      <div className="flex items-center gap-1.5 text-[11px] text-ui-3">
+      <div className="flex items-center gap-1.5 text-micro text-ui-3">
         <kbd className="rounded-[4px] border border-b-2 border-ui-strong px-1.5 py-px font-ui-mono text-[10px] text-ui-1">Alt</kbd>
         <span>hold while dragging an item or element to place it freely</span>
       </div>
-      <p className="text-pretty text-[11px] leading-[1.5] text-ui-4">{snapNote(snapItems)}</p>
+      <p className="text-pretty text-micro leading-[1.5] text-ui-4">{snapNote(snapItems)}</p>
     </section>
   );
 }
@@ -55,7 +55,7 @@ export function SnapSection({ snapItems, onSnapItems }: { snapItems: boolean; on
 /** One row: the label on the left, its value or control on the right. */
 export function PageRow({ label, children, swatch }: { label: string; children: ReactNode; swatch?: string }) {
   return (
-    <div className="flex min-h-7 items-center justify-between gap-2 text-[12px]">
+    <div className="flex min-h-7 items-center justify-between gap-2 text-caption">
       <span className="shrink-0 text-ui-4">{label}</span>
       <span className="flex min-w-0 items-center justify-end gap-1.5 text-ui-1">
         {swatch && <span className="h-3 w-3 shrink-0 rounded-[3px] border border-white/15" style={{ background: swatch }} />}
@@ -65,7 +65,7 @@ export function PageRow({ label, children, swatch }: { label: string; children: 
   );
 }
 
-const NUMBER = "h-7 w-11 rounded-md border border-ui-default bg-ui-app px-1.5 text-right font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
+const NUMBER = "h-7 w-11 rounded-md border border-ui-default bg-ui-app px-1.5 text-right font-ui-mono text-caption text-ui-1 outline-none focus:border-ui-accent";
 
 /** A whole number typed and stored on Enter or leaving (Esc puts it back). */
 export function NumberInput({ label, value, min, max, onCommit, className }: { label: string; value: number; min: number; max: number; onCommit: (n: number) => void; className?: string }) {

@@ -30,6 +30,8 @@ export interface Slot {
   /** Newest first, at most MAX_PER_SLOT. */
   shown: ActiveAlert[];
   more: number;
+  /** The alerts behind "+N more". */
+  rest: ActiveAlert[];
 }
 
 /** Group alerts by anchor slot: newest first, `MAX_PER_SLOT` visible, the rest counted. */
@@ -43,6 +45,7 @@ export function groupBySlot(alerts: readonly ActiveAlert[]): Slot[] {
     key,
     shown: list.slice(0, MAX_PER_SLOT),
     more: Math.max(0, list.length - MAX_PER_SLOT),
+    rest: list.slice(MAX_PER_SLOT),
   }));
 }
 
@@ -99,10 +102,10 @@ export function ageLabel(alert: ActiveAlert, now: number): string {
 
 export const WARNING_COLOR = "hsl(38 92% 50%)";
 
-/** The severity accent: info = primary, warning = amber, critical = destructive. */
+/** The severity accent: info = primary, warning = amber, critical = --alert-critical (destructive is a fill, too dark as a line). */
 export function severityColor(severity: Severity): string {
   if (severity === "warning") return WARNING_COLOR;
-  return severity === "critical" ? "hsl(var(--destructive))" : "hsl(var(--primary))";
+  return severity === "critical" ? "var(--alert-critical)" : "hsl(var(--primary))";
 }
 
 const RANK: Record<Severity, number> = { info: 0, warning: 1, critical: 2 };

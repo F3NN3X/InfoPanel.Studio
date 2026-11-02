@@ -107,7 +107,7 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
   const rows = (list: ContextMenuEntry[], level: number) =>
     list.map((e, i) =>
       e === "separator" ? (
-        <div key={i} role="separator" className="mx-0.5 my-1 h-px bg-[#26262c]" />
+        <div key={i} role="separator" className="mx-0.5 my-1 h-px bg-ui-default" />
       ) : (
         <div key={e.id} className="relative" title={e.title} onMouseEnter={() => level === 0 && setOpenSub(e.submenu && !e.disabled ? e.id : null)}>
           <button
@@ -130,15 +130,15 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
               e.onSelect?.();
             }}
             className={cn(
-              "flex h-[29px] w-full items-center gap-2 rounded-md px-2 text-left text-[12.5px] outline-none focus-visible:bg-[#24242a] disabled:text-[#55555e]",
-              e.danger ? "text-ui-danger hover:bg-ui-danger/15" : "text-[#e4e4e8] hover:bg-[#24242a] disabled:hover:bg-transparent"
+              "flex h-[29px] w-full items-center gap-2 rounded-md px-2 text-left text-[12.5px] outline-none focus-visible:bg-ui-active focus-visible:shadow-[inset_2px_0_0_var(--ui-accent)] disabled:text-ui-disabled",
+              e.danger ? "text-ui-danger hover:bg-ui-danger/15" : "text-ui-1 hover:bg-ui-active disabled:hover:bg-transparent"
             )}
           >
             <span className="flex h-4 w-4 shrink-0 items-center justify-center [&>svg]:h-[13px] [&>svg]:w-[13px]">
               {e.icon}
             </span>
             <span className="min-w-0 flex-1 truncate">{e.label}</span>
-            {e.hint && <span className="font-ui-mono text-[10.5px] text-ui-5">{e.hint}</span>}
+            {e.hint && <span className="font-ui-mono text-micro text-ui-hint">{e.hint}</span>}
             {e.submenu && <ChevronRight className="h-3 w-3 shrink-0 text-ui-4" />}
           </button>
           {e.submenu && openSub === e.id && (
@@ -147,7 +147,7 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
               data-sub={e.id}
               style={{ width }}
               className={cn(
-                "absolute top-0 z-10 rounded-[9px] border border-ui-menu bg-ui-raised p-1 shadow-ui-menu",
+                "absolute top-0 z-10 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 shadow-ui-menu",
                 // Flip to the left when the flyout would leave the viewport.
                 left + width * 2 + 8 > window.innerWidth ? "right-full mr-1" : "left-full ml-1"
               )}
@@ -167,7 +167,7 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
       style={{ left, top, width }}
       onContextMenu={(e) => e.preventDefault()}
       onKeyDown={onMenuKey}
-      className="fixed z-[90] rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui shadow-ui-menu"
+      className="fixed z-[90] rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui shadow-ui-menu"
     >
       {rows(entries, 0)}
     </div>,

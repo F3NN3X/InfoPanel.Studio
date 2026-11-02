@@ -10,7 +10,7 @@ import { meta } from "./meta/GameSpotlight";
 export { meta };
 
 // Everything here sits on artwork behind a dark scrim, so the text stays light on every surface.
-const ON_ART = { color: "#f4f4f5", "--w-fg": "#f4f4f5", "--w-muted": "#d4d4d8", "--w-faint": "#a1a1aa", "--w-track": "rgba(255,255,255,0.15)" } as CSSProperties;
+const ON_ART = { color: "#f4f4f5", textShadow: "0 1px 3px rgba(0,0,0,0.55)", "--w-fg": "#f4f4f5", "--w-muted": "#d4d4d8", "--w-faint": "#a1a1aa", "--w-track": "rgba(255,255,255,0.15)" } as CSSProperties;
 
 /** A playtime sensor ("263.3999… hrs") as "263.4 h"; other text passes through. */
 export const hoursText = (v: string): string => {
@@ -149,7 +149,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
               <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/20" />
               <Img src={icon} icon="stadia_controller" className="relative aspect-square h-[58%] shrink-0 rounded-xl ring-1 ring-white/15" />
               <div className="relative flex min-w-0 flex-1 flex-col gap-1">
-                <span className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-[0.12em] text-[color:var(--w-muted)]">
+                <span className="flex items-center gap-1.5 text-micro font-medium uppercase tracking-[0.12em] text-[color:var(--w-muted)]">
                   <Dot ok />
                   {statusText}
                 </span>
@@ -169,7 +169,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
                 {w > 420 && Number.isFinite(ach) && (
                   <div className="h-9 w-9">
                     <Ring value={ach} thickness={12} className="h-full w-full">
-                      <span className="text-[9px] font-semibold">{fmt(ach)}</span>
+                      <span className="text-micro font-semibold">{fmt(ach)}</span>
                     </Ring>
                   </div>
                 )}
@@ -187,20 +187,20 @@ export default function GameSpotlight(p: GameSpotlightProps) {
               </div>
               <div className={`relative flex min-w-0 flex-col gap-3 ${tall ? "shrink-0 p-3 pt-0" : "flex-1 justify-between p-4 pl-1"}`}>
                 <div className="flex flex-col gap-1">
-                  <span className="truncate text-[10.5px] font-medium uppercase tracking-[0.12em] text-[color:var(--w-faint)]">{statusText}</span>
+                  <span className="truncate text-micro font-medium uppercase tracking-[0.12em] text-[color:var(--w-faint)]">{statusText}</span>
                   <span className={`${tall ? "line-clamp-2 text-sm" : "text-2xl"} font-bold leading-tight`}>{game}</span>
                 </div>
                 <div className={`grid gap-x-4 gap-y-2 ${tall && w < 150 ? "grid-cols-1" : "grid-cols-2"}`}>
                   {stats.slice(0, tall ? (w < 150 ? 1 : 2) : 4).map(([l, v]) => (
                     <div key={l} className="flex flex-col">
-                      <span className="text-[10.5px] text-[color:var(--w-faint)]">{l}</span>
+                      <span className="text-micro text-[color:var(--w-faint)]">{l}</span>
                       <span className="whitespace-nowrap text-sm font-semibold tabular-nums">{v}</span>
                     </div>
                   ))}
                 </div>
                 {Number.isFinite(ach) && !tall && (
                   <div className="flex flex-col gap-1">
-                    <div className="flex justify-between text-[10.5px] text-[color:var(--w-faint)]">
+                    <div className="flex justify-between text-micro text-[color:var(--w-faint)]">
                       <span>Achievements</span>
                       <span className="tabular-nums">
                         {fmt(un)}/{fmt(tot)}
@@ -284,13 +284,13 @@ export default function GameSpotlight(p: GameSpotlightProps) {
                     <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
                       {stats.slice(0, w > 560 ? 4 : 2).map(([l, v, entry]) => (
                         <div key={l} className="flex flex-col">
-                          <span className="text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--w-faint)]">{l}</span>
+                          <span className="text-micro uppercase tracking-[0.08em] text-[color:var(--w-faint)]">{l}</span>
                           <span {...tag(steam(entry), entry.endsWith("playtime") ? { decimals: 1, unit: " h" } : undefined)} className="text-[15px] font-semibold tabular-nums">{v}</span>
                         </div>
                       ))}
                       {Number.isFinite(ach) && w > 420 && (
                         <div className="ml-auto flex min-w-[150px] max-w-[220px] flex-1 flex-col gap-1">
-                          <div className="flex justify-between text-[10.5px]">
+                          <div className="flex justify-between text-micro">
                             <span className="flex items-center gap-1 text-[color:var(--w-faint)]">
                               <Icon name="trophy" className="text-sm text-amber-300" />
                               {A("latest-achievement")}

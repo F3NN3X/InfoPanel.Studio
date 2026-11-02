@@ -38,25 +38,14 @@ export default function TextFile(p: TextFileProps) {
   const hasLines = Number.isFinite(lines) && lines > 0;
   const showMeta = p.showMeta ?? true;
   const body = (content ?? "").split("\n");
-  const bits = [size, hasLines ? `${lines} lines` : undefined, status].filter((x): x is string => !!x);
+  // "OK" is the default status and says nothing; only a status that names a problem is shown
+  const shownStatus = status && status.trim().toLowerCase() !== "ok" ? status : undefined;
+  const bits = [size, hasLines ? `${lines} lines` : undefined, shownStatus].filter((x): x is string => !!x);
   return (
     <Widget
       {...shell(p)}
       title={p.title ?? "Text File"}
       icon="description"
-      right={
-        showMeta && bits.length > 0 ? (
-          <span className="flex min-w-0 gap-2 text-[color:var(--w-muted)]">
-            {size && <span>{size}</span>}
-            {hasLines && <span>{`${lines} lines`}</span>}
-            {status && (
-              <span className="max-w-48 truncate" title={status}>
-                {status}
-              </span>
-            )}
-          </span>
-        ) : undefined
-      }
       compact={(box) =>
         // a 2x1 tile hides the compact sub line (the file text): lay out the meta line and the first lines instead
         box.shape === "tile" && box.w >= 200 ? undefined : { label: "Text File", value: hasLines ? `${lines} lines` : (status ?? "—"), sub: body[0] ?? "", kind: "text", icon: "description" }
@@ -69,14 +58,17 @@ export default function TextFile(p: TextFileProps) {
         ) : size === "xs" ? (
           // no header at this size: the title and the size / lines / status line sit above the first lines
           <div className="flex h-full min-w-0 flex-col gap-1">
-            <div className="flex min-w-0 shrink-0 gap-2 text-[10.5px] text-[color:var(--w-muted)]">
+            <div className="flex min-w-0 shrink-0 gap-2 text-micro text-[color:var(--w-muted)]">
               {p.look?.showTitle !== false && <span className="shrink-0 font-medium uppercase tracking-[0.08em]">{p.title ?? "Text File"}</span>}
               {showMeta && <span className="truncate">{bits.join(" · ")}</span>}
             </div>
             <pre className="min-h-0 flex-1 overflow-hidden whitespace-pre-wrap break-words font-mono text-xs text-[color:var(--w-fg)]/85" style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: Math.max(1, Math.floor((h - 18) / XS_LINE)), lineHeight: `${XS_LINE}px` }}>{content ?? "No content"}</pre>
           </div>
         ) : (
-          <pre className="h-full overflow-y-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-[color:var(--w-fg)]/85">{content ?? "No content"}</pre>
+          <div className="flex h-full min-w-0 flex-col gap-1.5">
+            <pre className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-[color:var(--w-fg)]/85">{content ?? "No content"}</pre>
+            {showMeta && bits.length > 0 && <span className="shrink-0 truncate text-micro text-[color:var(--w-muted)]">{bits.join(" · ")}</span>}
+          </div>
         )
       }
     </Widget>

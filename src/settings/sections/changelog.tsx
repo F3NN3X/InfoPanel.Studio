@@ -1,15 +1,17 @@
+import { scrollBehavior } from "@/lib/scroll-behavior";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { entryHeadline, headlineShortens, latestReleases, parseChangelog, RELEASES_SHOWN, RELEASES_URL, renderMarkdown, sectionEntries, sectionTone, shortDate, type Release, type SectionTone } from "../model/changelog";
+import { PageState } from "../page-state";
 import { useFound, useStore } from "../store";
 
 const TONE_CLASS: Record<SectionTone, string> = {
   green: "bg-s-green/14 text-[oklch(0.84_0.14_150)]",
   blue: "bg-s-accent/14 text-s-accent-text",
   amber: "bg-s-amber/14 text-s-amber",
-  neutral: "bg-[#24242b] text-s-t2",
+  neutral: "bg-s-seg-on text-s-t2",
 };
 
 const releaseId = (r: Release) => `release-${r.version}`;
@@ -48,6 +50,8 @@ function useScrollSpy(releases: Release[], root: HTMLElement | null): string | n
 export function ChangelogSection() {
   const { status, toast } = useStore();
   const [source, setSource] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [tries, setTries] = useState(0);
   // Older releases start collapsed; a category shows its headlines until "Show all".
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const [all, setAll] = useState<Set<string>>(new Set());
@@ -58,11 +62,12 @@ export function ChangelogSection() {
 
   useEffect(() => {
     let alive = true;
-    void ipc.changelog().then((s) => alive && setSource(s)).catch((e) => toast(errorText(e), true));
+    setFailure(null);
+    void ipc.changelog().then((s) => alive && setSource(s)).catch((e) => alive && setFailure(errorText(e)));
     return () => {
       alive = false;
     };
-  }, [toast]);
+  }, [tries]);
   useEffect(() => setRoot(wrap.current?.closest<HTMLElement>("[data-scroll-root]") ?? null), [source]);
 
   const releases = useMemo(() => (source ? latestReleases(parseChangelog(source)) : []), [source]);
@@ -78,7 +83,7 @@ export function ChangelogSection() {
     if (!isOpen(r, i)) setOpened((o) => toggle(o, r.version));
     // After the release has expanded, so the scroll lands on its final position.
     requestAnimationFrame(() =>
-      wrap.current?.querySelector(`[id="${releaseId(r)}"]`)?.scrollIntoView?.({ behavior: "smooth", block: "start" })
+      wrap.current?.querySelector(`[id="${releaseId(r)}"]`)?.scrollIntoView?.({ behavior: scrollBehavior(), block: "start" })
     );
   };
   // Links in the notes open in the default browser.
@@ -89,10 +94,10 @@ export function ChangelogSection() {
     void ipc.openExternal(link.href).catch((err) => toast(errorText(err), true));
   };
 
-  if (source === null) return null;
+  if (source === null) return <PageState what="the changelog" error={failure} onRetry={() => setTries((n) => n + 1)} fallback={{ label: "Open the releases on GitHub", href: RELEASES_URL }} />;
   return (
     <div ref={wrap} className="flex flex-wrap items-start gap-x-7 gap-y-4">
-      <div className={cn("sticky top-5 flex w-[172px] shrink-0 flex-col gap-0.5", found.className)} ref={found.ref}>
+      <div className={cn("sticky top-5 flex max-h-[calc(100vh-40px)] w-[172px] shrink-0 flex-col gap-0.5 overflow-y-auto", found.className)} ref={found.ref}>
         {releases.map((r, i) => {
           const on = active === releaseId(r);
           return (
@@ -106,8 +111,8 @@ export function ChangelogSection() {
                 on ? "border-l-s-accent text-s-t1" : "border-l-transparent text-s-muted hover:text-s-t1"
               )}
             >
-              <span className="font-mono text-[13px] font-medium">{r.version}</span>
-              {r.date && <span className="text-[11px] text-s-dim">{shortDate(r.date)}</span>}
+              <span className="font-mono text-body font-medium">{r.version}</span>
+              {r.date && <span className="text-micro text-s-dim">{shortDate(r.date)}</span>}
             </button>
           );
         })}
@@ -128,7 +133,7 @@ export function ChangelogSection() {
                   <ChevronRight className={cn("h-4 w-4 shrink-0 self-center text-s-dim transition-transform", open && "rotate-90")} />
                   <span className="font-mono text-xl font-semibold tracking-[-0.01em]">{r.version}</span>
                   {r.date && <span className="text-[12.5px] text-s-dim">{shortDate(r.date)}</span>}
-                  {r.version === status.appVersion && <span className="rounded-[10px] bg-s-green/14 px-2 py-0.5 text-[11px] font-medium text-[oklch(0.84_0.14_150)]">Installed</span>}
+                  {r.version === status.appVersion && <span className="rounded-[10px] bg-s-green/14 px-2 py-0.5 text-micro font-medium text-[oklch(0.84_0.14_150)]">Installed</span>}
                   {count > 0 && <span className="text-[12.5px] text-s-dim">{count === 1 ? "1 change" : `${count} changes`}</span>}
                 </button>
                 {/* biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown escapes raw HTML and keeps only safe links. */}
@@ -141,7 +146,7 @@ export function ChangelogSection() {
                     return (
                       <div key={s.title} className="flex flex-col gap-1.5">
                         <div>
-                          <span className={cn("rounded-[5px] px-2 py-0.5 text-[11px] font-semibold tracking-[0.02em]", TONE_CLASS[sectionTone(s.title)])}>{s.title}</span>
+                          <span className={cn("rounded-[5px] px-2 py-0.5 text-micro font-semibold tracking-[0.02em]", TONE_CLASS[sectionTone(s.title)])}>{s.title}</span>
                         </div>
                         {expanded ? (
                           // biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown escapes raw HTML and keeps only safe links.
@@ -156,14 +161,16 @@ export function ChangelogSection() {
                             </ul>
                           </div>
                         )}
-                        {!expanded && (entries.length > HEADLINES || entries.some(headlineShortens)) && (
+                        {(entries.length > HEADLINES || entries.some(headlineShortens)) && (
                           <div>
                             <button
                               type="button"
+                              aria-expanded={expanded}
+                              aria-label={expanded ? `Show fewer ${s.title} changes` : `Show all ${s.title} changes (${entries.length})`}
                               onClick={() => setAll((a) => toggle(a, key))}
                               className="cursor-pointer border-0 bg-transparent p-0 text-[12.5px] text-s-accent-text hover:text-s-t1"
                             >
-                              Show all ({entries.length})
+                              {expanded ? "Show fewer" : `Show all (${entries.length})`}
                             </button>
                           </div>
                         )}

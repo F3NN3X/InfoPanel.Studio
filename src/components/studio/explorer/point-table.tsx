@@ -103,10 +103,10 @@ export function PointTable({
       <div className="space-y-2.5 border-b border-ui-subtle px-4 pb-2.5 pt-3">
         <div className="flex flex-wrap items-center gap-1 text-[12.5px] leading-[1.25]">
           {crumbs.map((c, i) => {
-            const tone = i === crumbs.length - 1 ? "font-semibold text-ui-1" : "text-[#8f8f99]";
+            const tone = i === crumbs.length - 1 ? "font-semibold text-ui-1" : "text-ui-4";
             return (
               <span key={`${i}:${c.label}`} className="inline-flex items-center gap-1">
-                {i > 0 && <ChevronRight className="h-4 w-4 text-ui-5" aria-hidden />}
+                {i > 0 && <ChevronRight className="h-4 w-4 text-ui-hint" aria-hidden />}
                 {c.scope ? (
                   <button
                     type="button"
@@ -121,7 +121,7 @@ export function PointTable({
               </span>
             );
           })}
-          <span className="ml-1.5 whitespace-nowrap font-ui-mono text-[11px] text-ui-4">
+          <span className="ml-1.5 whitespace-nowrap font-ui-mono text-micro text-ui-4">
             {shown} of {total}
           </span>
           <span className="ml-auto text-[11.5px] font-normal text-ui-4">Display names apply to every screen.</span>
@@ -254,11 +254,11 @@ function GroupHeader({ row, onGroup }: { row: GroupRow; onGroup: (row: GroupRow)
         }
       }}
       style={{ height: GROUP_ROW_H }}
-      className="flex cursor-pointer items-center gap-2 border-b border-ui-subtle bg-[#101013] px-4"
+      className="flex cursor-pointer items-center gap-2 border-b border-ui-subtle bg-ui-chrome px-4"
     >
-      <span className="truncate text-[12px] font-semibold text-ui-1">{row.title}</span>
-      {row.sourceName !== row.title && <span className="truncate text-[11px] text-ui-4">{row.sourceName}</span>}
-      <span className="ml-auto font-ui-mono text-[10.5px] text-ui-5">{row.count}</span>
+      <span className="truncate text-caption font-semibold text-ui-1">{row.title}</span>
+      {row.sourceName !== row.title && <span className="truncate text-micro text-ui-4">{row.sourceName}</span>}
+      <span className="ml-auto font-ui-mono text-micro text-ui-hint">{row.count}</span>
     </div>
   );
 }
@@ -279,7 +279,7 @@ interface PointRowProps {
   onToggleBind: (point: DataPoint, bound: boolean) => void;
 }
 
-const ROW_ACTION = "flex h-6 w-6 items-center justify-center rounded-[5px] hover:bg-[#26262c]";
+const ROW_ACTION = "flex h-6 w-6 items-center justify-center rounded-[5px] hover:bg-ui-default";
 
 function PointRow({ point, cols, values, usage, selected, onSelect, screens, sources, sourcePrefs, onDisplayName, showUsedIn, target, onToggleBind }: PointRowProps) {
   const copy = useCopy();
@@ -316,13 +316,13 @@ function PointRow({ point, cols, values, usage, selected, onSelect, screens, sou
             <span className="truncate text-[12.5px] text-ui-1">{point.name}</span>
             {point.kind && <Chip>{point.kind}</Chip>}
           </div>
-          <div className="truncate font-ui-mono text-[10.5px] text-ui-5">{point.key}</div>
+          <div className="truncate font-ui-mono text-micro text-ui-hint">{point.key}</div>
         </div>
       </div>
       <span
         title={cell.text}
         className={cn(
-          "truncate text-[12px]",
+          "truncate text-caption",
           cell.tone === "number" && "font-ui-mono text-ui-1",
           cell.tone === "text" && "text-ui-2",
           cell.tone === "empty" && "text-[#5f5f68]"
@@ -350,13 +350,13 @@ function PointRow({ point, cols, values, usage, selected, onSelect, screens, sou
               e.currentTarget.blur();
             }
           }}
-          className="h-6 min-w-0 rounded border border-ui-default bg-ui-app px-1.5 text-[12px] text-ui-1 placeholder:text-ui-4 focus:border-ui-accent/60 focus:outline-none"
+          className="h-6 min-w-0 rounded border border-ui-default bg-ui-app px-1.5 text-caption text-ui-1 placeholder:text-ui-4 focus:border-ui-accent/60 focus:outline-none"
         />
       ) : (
-        <span className="truncate text-[12px] text-ui-5">—</span>
+        <span className="truncate text-caption text-ui-hint">—</span>
       )}
       {showUsedIn && (
-        <span title={used.used ? (screens.get(point.key) ?? []).join(", ") : undefined} className={cn("truncate text-[11.5px]", used.used ? "text-ui-accent-text" : "text-[#55555e]")}>
+        <span title={used.used ? (screens.get(point.key) ?? []).join(", ") : undefined} className={cn("truncate text-[11.5px]", used.used ? "text-ui-accent-text" : "text-ui-disabled")}>
           {used.text}
         </span>
       )}

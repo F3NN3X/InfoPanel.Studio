@@ -121,7 +121,7 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 /** A threshold box: empty = none. */
 function LimitBox({ label, value, onChange }: { label: string; value: number | undefined; onChange: (v: number | undefined) => void }) {
   return (
-    <label className="flex min-w-0 flex-1 items-center gap-1.5 text-[11px] text-ui-4">
+    <label className="flex min-w-0 flex-1 items-center gap-1.5 text-micro text-ui-4">
       {label}
       <input
         type="number"
@@ -143,7 +143,7 @@ function StatsEditor({ stats, onChange, onOpenExplorer }: { stats: IslandStat[];
   return (
     <div className="space-y-3">
       {list.map((stat, i) => (
-        <div key={i} className="space-y-2 rounded-[8px] border border-ui-subtle p-2.5">
+        <div key={i} className="space-y-2 rounded-ui-md border border-ui-subtle p-2.5">
           <div className="flex items-start gap-1">
             <div className="min-w-0 flex-1">
               <SensorField
@@ -181,7 +181,7 @@ function StatsEditor({ stats, onChange, onOpenExplorer }: { stats: IslandStat[];
         <button
           type="button"
           onClick={() => onChange([...stats, { key: "", label: "" }])}
-          className="flex h-[28px] items-center gap-1.5 rounded-[6px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1"
+          className="flex h-(--ui-h-control) items-center gap-1.5 rounded-ui-sm border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden />
           Add a value
@@ -292,7 +292,7 @@ export function IslandSection({ island, previewBus, onChange, onLook, onOpenExpl
                 aria-pressed={showsLook(v, l.look)}
                 onClick={() => onLook(l.look)}
                 className={cn(
-                  "h-[28px] truncate rounded-[6px] border border-ui-default px-2 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1",
+                  "h-(--ui-h-control) truncate rounded-ui-sm border border-ui-default px-2 text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1",
                   showsLook(v, l.look) && "bg-ui-active text-ui-1",
                 )}
               >
@@ -386,9 +386,9 @@ export function IslandSection({ island, previewBus, onChange, onLook, onOpenExpl
         />
       )}
       {(v.notices.onAir || v.notices.calendar) && (
-        <p className="flex items-center justify-between text-[11px] text-ui-4">
+        <p className="flex items-center justify-between text-micro text-ui-4">
           Connections are in Settings › Connections
-          <button type="button" onClick={() => void openSettings("connections")} className="h-7 rounded-md border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover">
+          <button type="button" onClick={() => void openSettings("connections")} className="h-7 rounded-md border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover">
             Open
           </button>
         </p>
@@ -396,12 +396,12 @@ export function IslandSection({ island, previewBus, onChange, onLook, onOpenExpl
       <button
         type="button"
         onClick={preview}
-        className="flex h-[28px] items-center gap-1.5 rounded-[6px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1"
+        className="flex h-(--ui-h-control) items-center gap-1.5 rounded-ui-sm border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1"
       >
         <Play className="h-3.5 w-3.5" aria-hidden />
         Preview an alert
       </button>
-      <p className="text-[11px] leading-snug text-ui-5">
+      <p className="text-micro leading-snug text-ui-hint">
         Alert rules show here when their display style is Island; widgets with “Send to island” on and the
         dashboard notices add theirs on the kiosk. The preview above plays only here, and test alerts play on the canvas.
       </p>

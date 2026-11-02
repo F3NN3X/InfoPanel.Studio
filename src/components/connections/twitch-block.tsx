@@ -4,7 +4,7 @@ import { safeActivateUrl, type PendingSignin, type SigninResult } from "@/lib/tw
 import { cn } from "@/lib/utils";
 import { FIELD, StackRow } from "@/components/studio/setting-rows";
 
-const BUTTON = "flex h-[28px] items-center gap-1.5 rounded-[6px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:opacity-50";
+const BUTTON = "flex h-(--ui-h-control) items-center gap-1.5 rounded-ui-sm border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:opacity-50";
 
 export interface TwitchBlockProps {
   /** The server's Twitch status (`useExtras().twitch`). */
@@ -49,13 +49,13 @@ export function TwitchBlock({ state, pending, channel, onSignin, onCancel, onSig
   const url = safeActivateUrl(pending?.verificationUri ?? "");
   return (
     <div className="space-y-2">
-      <div className="flex items-baseline justify-between text-[12px] font-semibold text-ui-1">
+      <div className="flex items-baseline justify-between text-caption font-semibold text-ui-1">
         Twitch
-        <span className="text-[11px] font-normal text-ui-4">{status}</span>
+        <span className="text-micro font-normal text-ui-4">{status}</span>
       </div>
       {pending ? (
         <div className="space-y-1.5">
-          <p className="text-[11px] leading-snug text-ui-4">
+          <p className="text-micro leading-snug text-ui-4">
             Open{" "}
             <a
               href={url}
@@ -71,10 +71,10 @@ export function TwitchBlock({ state, pending, channel, onSignin, onCancel, onSig
             </a>{" "}
             and enter this code:
           </p>
-          <div aria-label="Twitch code" className="select-all text-center text-[26px] font-semibold tracking-[0.18em] text-ui-1">
+          <div role="group" aria-label="Twitch code" className="select-all text-center text-[26px] font-semibold tracking-[0.18em] text-ui-1">
             {pending.userCode}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-ui-4">
+          <div className="flex items-center justify-between text-micro text-ui-4">
             <span>Expires in {countdown(pending.expiresAt, tick)}</span>
             <button type="button" className={BUTTON} onClick={onCancel}>
               Cancel
@@ -83,7 +83,7 @@ export function TwitchBlock({ state, pending, channel, onSignin, onCancel, onSig
         </div>
       ) : state.signedIn ? (
         <>
-          <div className="text-[12px] text-ui-2">
+          <div className="text-caption text-ui-2">
             Signed in as <span className="font-semibold">{state.login}</span>
           </div>
           <StackRow label="Chat channel" hint="Whose chat Stream Chat reads. Leave blank for your own.">
@@ -114,7 +114,7 @@ export function TwitchBlock({ state, pending, channel, onSignin, onCancel, onSig
           Sign in with Twitch
         </button>
       )}
-      {shown && <p className="text-[11px] text-ui-danger">{shown}</p>}
+      {shown && <p className="text-micro text-ui-danger">{shown}</p>}
     </div>
   );
 }

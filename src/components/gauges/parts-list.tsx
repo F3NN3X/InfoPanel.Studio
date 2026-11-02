@@ -16,7 +16,7 @@ export function PartsList({ g, selected, onSelect, set }: PartsListProps) {
     <nav aria-label="Parts" className="w-[220px] shrink-0 overflow-y-auto border-r border-ui-subtle bg-ui-panel py-2 font-ui max-[899px]:flex max-[899px]:max-h-[240px] max-[899px]:w-full max-[899px]:border-b max-[899px]:border-r-0">
       {groupedParts(g.shape).map(({ group, parts }) => (
         <section key={group} className="pb-2 max-[899px]:w-[200px] max-[899px]:shrink-0">
-          <h3 className="px-4 pb-1 pt-2 text-[10.5px] font-medium uppercase tracking-[0.06em] text-ui-4">{group}</h3>
+          <h3 className="px-4 pb-1 pt-2 text-micro font-medium uppercase tracking-[0.06em] text-ui-4">{group}</h3>
           {parts.map((p) => {
             const on = hasPart(g, p.id);
             const fixed = ALWAYS_ON.includes(p.id);

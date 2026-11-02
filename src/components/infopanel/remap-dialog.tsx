@@ -43,12 +43,12 @@ export function RemapDialog({ open, onOpenChange, name, groups, overrides, index
         <Dialog.Popup data-help-article="remap" className="fixed left-1/2 top-1/2 z-50 flex h-[min(640px,calc(100vh-48px))] w-[min(980px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
           <div className="flex shrink-0 items-center gap-3 border-b border-ui-subtle px-5 py-3.5">
             <Dialog.Title className="flex-1 truncate text-[15px] font-semibold text-ui-1">Sensor remap · {name}</Dialog.Title>
-            <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+            <Dialog.Close title="Close" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
           {!online && (
-            <div role="status" className="mx-5 mt-3 rounded-lg border border-ui-warning/40 bg-ui-warning/10 px-3 py-2 text-[12px] text-ui-2">
+            <div role="status" className="mx-5 mt-3 rounded-lg border border-ui-warning/40 bg-ui-warning/10 px-3 py-2 text-caption text-ui-2">
               The Data API isn’t reachable, so no sensor can be matched or chosen. The items keep the keys they have.
             </div>
           )}
@@ -68,7 +68,7 @@ export function RemapDialog({ open, onOpenChange, name, groups, overrides, index
             />
           </div>
           <div className="flex shrink-0 justify-end border-t border-ui-subtle px-5 py-3">
-            <Dialog.Close className="h-8 rounded-[8px] bg-ui-accent px-4 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90">Done</Dialog.Close>
+            <Dialog.Close className="h-8 rounded-ui-md bg-ui-accent px-4 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90">Done</Dialog.Close>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

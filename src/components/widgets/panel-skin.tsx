@@ -34,7 +34,7 @@ export const panelAccent = (accent: string | undefined, skin: string | undefined
 export const PANEL_SKIN_VARS = {
   "--w-fg": "hsl(var(--foreground))",
   "--w-muted": "hsl(var(--muted-foreground))",
-  "--w-faint": "hsl(var(--muted-foreground) / .8)",
+  "--w-faint": "hsl(var(--muted-foreground))",
   "--w-track": "hsl(var(--foreground) / .1)",
 } as CSSProperties;
 

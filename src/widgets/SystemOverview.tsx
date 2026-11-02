@@ -313,7 +313,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
           // VRAM is a detail of the GPU at this size: the three rings are the loads (CPU, GPU, RAM), amber / red when hot.
           const rings = keys.filter((k) => k !== "vram").slice(0, 3);
           return (
-            <div className="flex h-full items-center gap-2" style={{ "--sys-base": "var(--accent)" } as CSSProperties}>
+            <div className="flex h-full items-center gap-2" role="img" aria-label={rings.map((k) => `${label(k)} ${fmt(ALL[k].v, dec)}%`).join(", ")} style={{ "--sys-base": "var(--accent)" } as CSSProperties}>
               <RingStack
                 rings={rings.map((k) => {
                   const c = toneOf(k) === "ok" ? col(k) ?? "var(--accent)" : TONES[toneOf(k)];
@@ -322,7 +322,15 @@ export default function SystemOverview(p: SystemOverviewProps) {
                 thickness={10}
                 gap={3}
                 className="h-full min-w-0 flex-1"
-              />
+              >
+                {/* below the legend gate the lead ring is named in the hole (identity is not colour alone) when the hole is big enough to hold it */}
+                {w - h <= 60 && Math.min(w, h) >= 130 && rings[0] && (
+                  <>
+                    <span className="text-micro leading-none text-[color:var(--w-faint)]">{label(rings[0])}</span>
+                    <Num className="text-micro leading-none text-[color:var(--accent)]">{fmt(ALL[rings[0]].v, dec)}</Num>
+                  </>
+                )}
+              </RingStack>
               {w - h > 60 && (
                 <div className="flex shrink-0 flex-col gap-1">
                   {rings.map((k) => (

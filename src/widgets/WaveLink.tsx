@@ -54,9 +54,9 @@ export const gainLabel = (gain: WlGain): string => {
   if (db !== null) return formatDb(db, { decimals: 1 });
   return gain.value === null ? "—" : `${Math.round(gain.value * 100)}%`;
 };
-const MuteMark =({ title = "Muted" }: { title?: string }) => (
-  <span className="shrink-0 text-[10px] font-semibold" style={{ color: "var(--wl-mute)" }} title={title}>
-    M
+const MuteMark = ({ title = "Muted" }: { title?: string }) => (
+  <span role="img" aria-label={title} className="shrink-0 text-[13px]" style={{ color: "var(--wl-mute)" }} title={title}>
+    <Icon name="volume_off" />
   </span>
 );
 const Pip = ({ muted }: { muted: boolean }) => <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: muted ? "var(--wl-mute)" : "var(--wl-live)" }} />;
@@ -68,7 +68,7 @@ function MixChips({ channel, state }: { channel: WlChannel; state: WlState }) {
     // one line (rows are counted at one chip line): chips shrink and their names truncate in a narrow row
     <div className="flex min-w-0 gap-1">
       {channel.mixes.map((m) => (
-        <span key={m.id} className="inline-flex min-w-0 items-center gap-1 rounded-full bg-[color:var(--w-track)] px-1.5 py-0.5 text-[10px] text-[color:var(--w-muted)]" title={m.isMuted ? `${name(m.id)} (muted)` : name(m.id)}>
+        <span key={m.id} className="inline-flex min-w-0 items-center gap-1 rounded-full bg-[color:var(--w-track)] px-1.5 py-0.5 text-micro text-[color:var(--w-muted)]" title={m.isMuted ? `${name(m.id)} (muted)` : name(m.id)}>
           <Pip muted={m.isMuted} />
           <span className="truncate">{name(m.id)}</span>
         </span>
@@ -80,7 +80,7 @@ function MixChips({ channel, state }: { channel: WlChannel; state: WlState }) {
 function MixFooter({ mixes }: { mixes: WlMix[] }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[color:var(--w-track)] pt-2">
-      <span className="text-[10px] uppercase tracking-wider text-[color:var(--w-faint)]">Mixes</span>
+      <span className="text-micro uppercase tracking-wider text-[color:var(--w-faint)]">Mixes</span>
       {mixes.map((m) => (
         <span key={m.id} className="flex items-center gap-1.5 text-xs">
           <Pip muted={m.isMuted} />
@@ -122,7 +122,7 @@ function MixColumn({ channel, state, o }: { channel: WlChannel; state: WlState; 
       </div>
       <div className="flex min-h-0 flex-1 items-stretch gap-1 py-1.5">
         {o.readout && (
-          <div ref={scale.ref} className="relative w-5 shrink-0 font-mono text-[9px] tabular-nums text-[color:var(--w-faint)]">
+          <div ref={scale.ref} className="relative w-5 shrink-0 font-mono text-micro tabular-nums text-[color:var(--w-faint)]">
             {scaleTicks(scale.h).map((db) => (
               <span key={db} className="absolute right-0 -translate-y-1/2" style={{ top: `${100 - dbPos(10 ** (db / 20) * 100)}%` }}>
                 {db === 0 ? "0" : `−${-db}`}
@@ -135,11 +135,12 @@ function MixColumn({ channel, state, o }: { channel: WlChannel; state: WlState; 
       {o.readout && (
         <div className="flex items-center justify-between gap-2 font-mono text-[11px] tabular-nums">
           <span>
-            <span className="mr-1 font-sans text-[10px] text-[color:var(--w-faint)]">L</span>
+            <span className="mr-1 font-sans text-micro text-[color:var(--w-faint)]">L</span>
             {fmtDb(levels.l.v)}
           </span>
+          <span className="font-sans text-micro text-[color:var(--w-faint)]">dB</span>
           <span>
-            <span className="mr-1 font-sans text-[10px] text-[color:var(--w-faint)]">R</span>
+            <span className="mr-1 font-sans text-micro text-[color:var(--w-faint)]">R</span>
             {fmtDb(levels.r.v)}
           </span>
         </div>
@@ -165,11 +166,11 @@ function ChannelRow({ channel, state, o, wide, w }: { channel: WlChannel; state:
             </span>
             {channel.isMuted && <MuteMark />}
           </span>
-          {o.fader && <span className="text-[10.5px] tabular-nums text-[color:var(--w-faint)]">{fader(channel.level, channel.levelDb)}</span>}
+          {o.fader && <span className="text-micro tabular-nums text-[color:var(--w-faint)]">{fader(channel.level, channel.levelDb)}</span>}
         </div>
         <MeterPair levels={levels} variant={o.variant} color={o.color ?? "var(--accent)"} hot={STATE.crit} thickness={wide ? 8 : 6} />
         {readout && (
-          <div className="flex flex-col text-right font-mono text-[10px] leading-tight tabular-nums text-[color:var(--w-muted)]">
+          <div className="flex flex-col text-right font-mono text-micro leading-tight tabular-nums text-[color:var(--w-muted)]">
             <span>{fmtDb(levels.l.v)}</span>
             {wide && <span>{fmtDb(levels.r.v)}</span>}
           </div>
@@ -203,7 +204,7 @@ function DenseRow({ channel, o, w }: { channel: WlChannel; o: Opts; w: number })
       {o.fader && !narrow && <span className="w-[54px] shrink-0 whitespace-nowrap text-right text-[11px] tabular-nums text-[color:var(--w-muted)]">{fader(channel.level, channel.levelDb)}</span>}
       <MeterPair levels={levels} variant={o.variant} color={o.color ?? "var(--accent)"} hot={STATE.crit} thickness={5} className="min-w-0 flex-1" />
       {o.readout && w >= 280 && (
-        <span className="w-[60px] shrink-0 text-right font-mono text-[10px] tabular-nums text-[color:var(--w-muted)]">
+        <span className="w-[60px] shrink-0 text-right font-mono text-micro tabular-nums text-[color:var(--w-muted)]">
           {fmtDb(levels.l.v)} {fmtDb(levels.r.v)}
         </span>
       )}
@@ -262,7 +263,7 @@ export function WaveLinkLayout({ size, w, h, up, state, channels, devices, mixes
           ))}
           {side && (
             <div className="flex w-52 shrink-0 flex-col justify-center gap-1.5 overflow-hidden">
-              <span className="text-[10px] uppercase tracking-wider text-[color:var(--w-faint)]">Devices</span>
+              <span className="text-micro uppercase tracking-wider text-[color:var(--w-faint)]">Devices</span>
               {devices.slice(0, 4).map((d) => (
                 <DeviceRow key={d.id} device={d} o={o} />
               ))}

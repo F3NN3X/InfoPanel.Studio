@@ -59,7 +59,7 @@ const ROW_H = 18;
 const FOOT_H = 16;
 const LIMIT_BIG_H = 44;
 
-const Heading = ({ children }: { children: string }) => <div className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--w-faint)]">{children}</div>;
+const Heading = ({ children }: { children: string }) => <div className="shrink-0 text-micro font-semibold uppercase tracking-wider text-[color:var(--w-faint)]">{children}</div>;
 
 /** Limits view: only the limit rows, large, spread over the height. */
 export function LimitsView({ plans, percent, now, h }: { plans: PlanEntry[]; percent: Percent; now: number; h: number }) {

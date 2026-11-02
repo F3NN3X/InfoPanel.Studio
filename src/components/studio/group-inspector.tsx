@@ -96,20 +96,21 @@ export function GroupInspectorView({ name, contents, hidden, locked, place, onTo
           <Folder className="h-4 w-4" />
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-[13px] font-semibold text-ui-1">{name}</span>
-          <span data-testid="inspector-kind" className="truncate text-[10.5px] text-ui-4">
+          <span className="truncate text-body font-semibold text-ui-1">{name}</span>
+          <span data-testid="inspector-kind" className="truncate text-micro text-ui-4">
             Group · {contents}
           </span>
         </span>
-        <IconButton label={hidden ? "Show" : "Hide"} className="text-ui-5" onClick={onToggleHidden}>
+        <IconButton label={hidden ? "Show group" : "Hide group"} className="text-ui-hint" onClick={onToggleHidden}>
           {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </IconButton>
-        <IconButton label="Delete" danger className="text-ui-5" disabled={locked} onClick={onDelete}>
+        <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 bg-ui-subtle" />
+        <IconButton label="Delete group" danger className="text-ui-danger/80" disabled={locked} onClick={onDelete}>
           <Trash2 className="h-4 w-4" />
         </IconButton>
       </div>
       {place}
-      <p className="text-pretty border-b border-ui-subtle px-3.5 py-3 text-[11px] leading-[1.5] text-ui-3">
+      <p className="text-pretty border-b border-ui-subtle px-3.5 py-3 text-micro leading-[1.5] text-ui-3">
         Moves, hides and locks as one. Double-click on the canvas to select a part inside.
       </p>
       <div className="flex gap-1.5 px-3.5 py-3">

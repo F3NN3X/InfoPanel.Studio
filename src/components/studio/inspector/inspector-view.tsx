@@ -1,3 +1,5 @@
+import { onRovingKeyDown } from "@/lib/roving";
+import { scrollBehavior } from "@/lib/scroll-behavior";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { CircleHelp } from "lucide-react";
 import { Popover } from "@/components/ui/popover";
@@ -123,7 +125,7 @@ const always = () => true;
 /** A note or banner above the sections. */
 export function InspectorNote({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-4 mb-1 mt-3 rounded-lg border border-ui-default bg-ui-raised px-3 py-2.5 text-[12px] leading-snug text-ui-2">
+    <div className="mx-4 mb-1 mt-3 rounded-lg border border-ui-default bg-ui-raised px-3 py-2.5 text-caption leading-snug text-ui-2">
       {children}
     </div>
   );
@@ -153,7 +155,7 @@ function Tabs({
   const description = active && info?.[active]?.description;
   if (underline)
     return (
-      <div role="tablist" className="flex shrink-0 gap-3.5 border-b border-ui-subtle px-3.5">
+      <div role="tablist" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="flex shrink-0 gap-3.5 border-b border-ui-subtle px-3.5">
         {tabs.map((t) => {
           const selected = t.id === active;
           const n = counts[t.id] ?? 0;
@@ -163,10 +165,11 @@ function Tabs({
               type="button"
               role="tab"
               aria-selected={selected}
+              tabIndex={selected ? 0 : -1}
               disabled={t.disabled}
               onClick={() => onTab(t.id)}
               className={cn(
-                "-mb-px flex h-8 items-center gap-1.5 whitespace-nowrap border-b-2 text-[12px] transition-colors",
+                "-mb-px flex h-8 items-center gap-1.5 whitespace-nowrap border-b-2 text-caption transition-colors",
                 selected ? "border-ui-accent text-ui-1" : "border-transparent text-ui-4 enabled:hover:text-ui-1",
                 t.disabled && "opacity-35"
               )}
@@ -180,7 +183,7 @@ function Tabs({
     );
   return (
     <div className={cn("shrink-0 pl-4 pr-3", description ? "pb-1.5" : "pb-2.5")}>
-      <div role="tablist" className="flex flex-wrap gap-0.5 rounded-lg border border-ui-default bg-ui-app p-0.5">
+      <div role="tablist" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="flex flex-wrap gap-0.5 rounded-lg border border-ui-default bg-ui-app p-0.5">
         {tabs.map((t) => {
           const selected = t.id === active;
           const n = counts[t.id] ?? 0;
@@ -190,11 +193,12 @@ function Tabs({
               type="button"
               role="tab"
               aria-selected={selected}
+              tabIndex={selected ? 0 : -1}
               disabled={t.disabled}
               onClick={() => onTab(t.id)}
               className={cn(
-                "flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors",
-                selected ? "bg-ui-active text-ui-1" : "text-[#8f8f99] enabled:hover:text-ui-1",
+                "flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-caption font-medium transition-colors",
+                selected ? "bg-ui-active text-ui-1" : "text-ui-4 enabled:hover:text-ui-1",
                 t.disabled && "opacity-35"
               )}
             >
@@ -205,7 +209,7 @@ function Tabs({
           );
         })}
       </div>
-      {description && <p className="px-0.5 pt-2 text-[11.5px] leading-snug text-[#7c7c86]">{description}</p>}
+      {description && <p className="px-0.5 pt-2 text-[11.5px] leading-snug text-ui-hint">{description}</p>}
     </div>
   );
 }
@@ -223,7 +227,7 @@ function Footer() {
       >
         <DotLegend />
       </Popover>
-      <span className="flex-1 text-[12px] text-ui-3">What the dots mean</span>
+      <span className="flex-1 text-caption text-ui-3">What the dots mean</span>
     </footer>
   );
 }
@@ -345,7 +349,7 @@ export function InspectorView({
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         const card = root.current?.querySelector(`[${SETTING_CARD}="${CSS.escape(target.id)}"]`);
-        card?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        card?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
         // "Go to setting" also puts the cursor in the field.
         if (jumpTo.key)
           card
@@ -378,7 +382,7 @@ export function InspectorView({
     const inh = inherit?.(whole);
     if (p.plain)
       return (
-        <section key={s.id} {...{ [SETTING_CARD]: s.id }} className="border-b border-[#1c1c21] px-4 pb-3.5 pt-3">
+        <section key={s.id} {...{ [SETTING_CARD]: s.id }} className="border-b border-s-divider px-4 pb-3.5 pt-3">
           {p.body}
         </section>
       );
@@ -451,7 +455,7 @@ export function InspectorView({
           </div>
           <label
             title="Show every setting, including ones the theme controls"
-            className="flex shrink-0 cursor-pointer items-center gap-1.5 text-[12px] text-ui-2"
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 text-caption text-ui-2"
           >
             Advanced
             <Toggle checked={advanced} onChange={setAdvanced} label="Advanced" />
@@ -460,14 +464,14 @@ export function InspectorView({
       )}
       {!filtering && tabs.length > 0 && <Tabs tabs={tabs} active={tab} counts={counts} onTab={setTab} info={tabInfo} underline={underline} />}
       {filtering && (
-        <div className="flex shrink-0 items-center gap-2 pb-2 pl-4 pr-3 text-[11.5px] text-[#8a8a94]">
+        <div className="flex shrink-0 items-center gap-2 pb-2 pl-4 pr-3 text-[11.5px] text-ui-hint">
           <span className="flex-1">{`${shownCount} matching setting${shownCount === 1 ? "" : "s"}`}</span>
         </div>
       )}
       <div className="h-px shrink-0 bg-ui-subtle" />
       <div {...{ [INSPECTOR_SCROLL]: "" }} ref={root} className="min-h-0 flex-1 overflow-y-auto pb-3">
         {!filtering && notes?.(tab)}
-        {empty && <p className="px-4 py-6 text-[12.5px] text-[#8a8a94]">{empty}</p>}
+        {empty && <p className="px-4 py-6 text-[12.5px] text-ui-hint">{empty}</p>}
         {sections.map(renderSection)}
         {after}
       </div>

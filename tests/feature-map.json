@@ -457,13 +457,18 @@
         "src/components/surfaces.ts",
         "src/lib/island/**",
         "src/lib/panel-*.ts",
-        "src/lib/panelPresets.ts"
+        "src/lib/panelPresets.ts",
+        "src/lib/roving.ts",
+        "src/lib/scroll-behavior.ts"
       ],
       "tests": [
         "tests/components/*.test.*",
         "tests/components/widgets/**",
+        "tests/components/ui/**",
         "tests/lib/island/**",
         "tests/lib/panel-*.test.ts",
+        "tests/lib/roving.test.ts",
+        "tests/lib/roving-keys.dom.test.tsx",
         "tests/lib/shipped-panels.test.ts"
       ],
       "checks": ["typecheck", "unit"]
@@ -511,6 +516,7 @@
         "src/lib/page-layout.ts",
         "src/lib/profile-shot*.ts",
         "src/lib/kiosk-refresh.ts",
+        "src/lib/kiosk-config-pull.ts",
         "src/lib/sample-layout.ts",
         "src/lib/device-options.ts",
         "src/lib/name-list.ts",
@@ -531,6 +537,7 @@
         "tests/lib/profile-grid.test.ts",
         "tests/lib/profile-shot*.test.ts",
         "tests/lib/kiosk-refresh.test.ts",
+        "tests/lib/kiosk-config-pull.test.ts",
         "tests/lib/device-options.test.ts",
         "tests/e2e/kiosk-renders.spec.ts",
         "tests/e2e/kiosk-budget.spec.ts",
@@ -569,6 +576,7 @@
       "tests": [
         "tests/components/studio/**",
         "tests/lib/image.test.ts",
+        "tests/lib/utils.test.ts",
         "tests/lib/import-sniff.test.ts",
         "tests/lib/studio-focus.test.ts",
         "tests/lib/screens/**",

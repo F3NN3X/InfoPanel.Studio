@@ -20,6 +20,8 @@ export interface SheetIdentity {
   hidden?: boolean;
   /** The visibility button; omitted for the dashboard. */
   onToggleVisible?: () => void;
+  /** What the visibility button hides, as it is named ("widget" when omitted). */
+  noun?: string;
   /** Shown alone at the peek instead of the header and the strip ("Tap a widget to edit it."). */
   peekNote?: string;
 }
@@ -43,7 +45,7 @@ interface SheetViewProps {
   advanced: boolean;
 }
 
-const BUTTON = "flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-ui-3 hover:bg-[#1e1e24] hover:text-ui-1";
+const BUTTON = "flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-ui-3 hover:bg-s-nav-on hover:text-ui-1";
 
 /** A 44 px button that opens the full inspector. */
 function AllSettings({ onClick }: { onClick: () => void }) {
@@ -74,7 +76,7 @@ function Tile({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "relative flex h-[60px] w-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-[10px] border text-[10.5px] font-medium [&>svg]:h-5 [&>svg]:w-5",
+        "relative flex h-[60px] w-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-[10px] border text-micro font-medium [&>svg]:h-5 [&>svg]:w-5",
         active ? "border-ui-accent/60 bg-ui-accent/[.14] text-ui-1" : "border-ui-default text-ui-3 hover:text-ui-1"
       )}
     >
@@ -96,7 +98,7 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
   if (identity.peekNote && sheet.snap === "peek")
     return (
       <div className="flex min-h-0 flex-1 items-center gap-2 pb-2 pl-4 pr-2">
-        <p className="flex-1 text-[13px] text-ui-3">{identity.peekNote}</p>
+        <p className="flex-1 text-body text-ui-3">{identity.peekNote}</p>
         <AllSettings onClick={toFull} />
       </div>
     );
@@ -116,7 +118,7 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
       return quick.length > 0 ? (
         quick.map((def) => <SettingField key={def.key} def={def} fields={fields} sources={sources} />)
       ) : (
-        <p className="px-4 py-4 text-[12.5px] text-[#8a8a94]">Pin settings from the panel to show them here</p>
+        <p className="px-4 py-4 text-[12.5px] text-ui-hint">Pin settings from the panel to show them here</p>
       );
     const p = parts(active);
     const inh = inherit?.(active);
@@ -152,19 +154,19 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center gap-2.5 pl-4 pr-2">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1c1c21] text-[oklch(0.78_0.12_255)] [&>svg]:h-[19px] [&>svg]:w-[19px]">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-s-divider text-[oklch(0.78_0.12_255)] [&>svg]:h-[19px] [&>svg]:w-[19px]">
           {identity.icon}
         </span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[14px] font-semibold leading-4 text-ui-1">{identity.name}</div>
-          <div className="truncate text-[11px] text-[#8a8a94]">{identity.meta(changed)}</div>
+          <div className="truncate text-micro text-ui-hint">{identity.meta(changed)}</div>
         </div>
         {identity.onToggleVisible && (
           <button
             type="button"
             onClick={identity.onToggleVisible}
-            title={identity.hidden ? "Show" : "Hide"}
-            aria-label={identity.hidden ? "Show" : "Hide"}
+            title={`${identity.hidden ? "Show" : "Hide"} ${identity.noun ?? "widget"}`}
+            aria-label={`${identity.hidden ? "Show" : "Hide"} ${identity.noun ?? "widget"}`}
             className={BUTTON}
           >
             {identity.hidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}

@@ -9,7 +9,7 @@ export function CanvasDropPill({ onShowCanvas }: { onShowCanvas: () => void }) {
         onShowCanvas();
       }}
       onDragOver={(e) => e.preventDefault()}
-      className="absolute bottom-6 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-full border border-dashed border-ui-accent bg-ui-raised px-5 text-[13px] text-ui-1 shadow-ui-modal"
+      className="absolute bottom-6 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-full border border-dashed border-ui-accent bg-ui-raised px-5 text-body text-ui-1 shadow-ui-modal"
     >
       <MonitorPlay className="h-4 w-4 text-ui-accent-text" />
       Drag here to place it on the canvas

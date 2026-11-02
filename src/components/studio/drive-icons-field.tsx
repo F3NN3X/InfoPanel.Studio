@@ -29,13 +29,13 @@ export function DriveIconsField({ def, value, onChange, ...label }: RowLabelProp
   return (
     <StackRow {...label}>
       <div role="group" aria-label={def.label} className="flex flex-col gap-2">
-        {drives.length === 0 && <span className="text-[11px] text-ui-4">No drives found yet</span>}
+        {drives.length === 0 && <span className="text-micro text-ui-4">No drives found yet</span>}
         {drives.map((d) => {
           const own = Object.hasOwn(icons, d.value) ? icons[d.value] : undefined;
           const id = own && "asset" in own ? own.asset : undefined;
           return (
             <div key={d.value} className="space-y-1">
-              <span className="text-[12px] text-ui-2">{d.label}</span>
+              <span className="text-caption text-ui-2">{d.label}</span>
               <MediaField
                 label={`${d.label} image`}
                 kind="image"
@@ -52,12 +52,12 @@ export function DriveIconsField({ def, value, onChange, ...label }: RowLabelProp
                   aria-label={`${d.label}: pick an icon from the set`}
                   aria-expanded={listFor === d.value}
                   onClick={() => setListFor(listFor === d.value ? null : d.value)}
-                  className="flex h-7 items-center rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-[12px] text-ui-1 hover:border-ui-strong"
+                  className="flex h-7 items-center rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-caption text-ui-1 hover:border-ui-strong"
                 >
                   Icon set{own && "lucide" in own ? `: ${own.lucide}` : ""}
                 </button>
                 {own && (
-                  <button type="button" aria-label={`${d.label}: back to the default`} onClick={() => set(d.value, null)} className="flex h-7 items-center rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-[12px] text-ui-3 hover:border-ui-strong">
+                  <button type="button" aria-label={`${d.label}: back to the default`} onClick={() => set(d.value, null)} className="flex h-7 items-center rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-caption text-ui-3 hover:border-ui-strong">
                     Reset
                   </button>
                 )}

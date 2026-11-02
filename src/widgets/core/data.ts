@@ -19,6 +19,13 @@ export const has = (v: unknown): boolean => v != null && v !== "" && v !== "-" &
 export const clamp = (v: number, a = 0, b = 100): number => Math.min(b, Math.max(a, Number.isFinite(v) ? v : a));
 export const fmt = (v: number, d = 0): string =>
   Number.isFinite(v) ? v.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d }) : "–";
+/** The date styles widgets use: `short` "Mon, Oct 26", `weekday` "Mon", `long` "October 26, 2026". Always through the widget's locale (empty = the browser's). */
+export const DATE_STYLES = {
+  short: { weekday: "short", month: "short", day: "numeric" },
+  weekday: { weekday: "short" },
+  long: { year: "numeric", month: "long", day: "numeric" },
+} as const satisfies Record<string, Intl.DateTimeFormatOptions>;
+export const fmtDate = (d: Date, style: keyof typeof DATE_STYLES, locale = ""): string => d.toLocaleDateString(locale || undefined, DATE_STYLES[style]);
 /** The units a throughput can show in; `auto` scales bytes per second to the reading. */
 export const RATE_UNITS = ["auto", "MB/s", "Mb/s", "KB/s", "Kb/s", "Mbps"] as const;
 export type RateUnit = (typeof RATE_UNITS)[number];

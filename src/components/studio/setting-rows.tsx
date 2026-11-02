@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Info } from "lucide-react";
+import { Popover } from "@/components/ui/popover";
 import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
 import { ensureAllFonts, fontById } from "@/lib/fonts";
@@ -18,11 +19,11 @@ import { useInInspector, useInspectorChrome } from "./inspector-layout";
  */
 
 export const FIELD =
-  "rounded-md border border-ui-default bg-ui-app px-[9px] text-[12.5px] text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent";
+  "rounded-md border border-ui-control bg-ui-app px-[9px] text-[12.5px] text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent";
 
-/** A select: h28, #1a1a1f, up to 150 wide. */
+/** A select: h28, #1a1a1f, up to 170 wide. */
 export const SELECT =
-  "h-7 max-w-[150px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent";
+  "h-7 max-w-[170px] cursor-pointer whitespace-nowrap rounded-md border border-ui-control bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent";
 
 export interface RowLabelProps {
   label: string;
@@ -45,9 +46,15 @@ function Label({ label, lead, hint, changed, className }: RowLabelProps & { clas
         {label}
       </span>
       {hint && (
-        <span title={hint} className="shrink-0 cursor-help text-ui-5 hover:text-ui-2">
-          <Info className="h-3.5 w-3.5" aria-label={hint} />
-        </span>
+        <Popover
+          trigger={<Info className="h-3.5 w-3.5" aria-hidden="true" />}
+          triggerLabel={`About ${label}`}
+          triggerClassName="relative shrink-0 cursor-help rounded-sm text-ui-hint hover:text-ui-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent after:absolute after:-inset-1.5 after:content-['']"
+          align="start"
+          className="max-w-64 text-pretty text-caption leading-snug"
+        >
+          {hint}
+        </Popover>
       )}
     </span>
   );
@@ -171,7 +178,7 @@ export function SliderRow({
 }
 
 const SEGMENT_BUTTONS =
-  "gap-0.5 rounded-[7px] [&>button]:whitespace-nowrap [&>button]:text-[11.5px] [&>button]:font-medium [&>button:not([aria-checked=true])]:text-[#8f8f99]";
+  "gap-0.5 rounded-[7px] [&>button]:whitespace-nowrap [&>button]:text-[11.5px] [&>button]:font-medium [&>button:not([aria-checked=true])]:text-ui-4";
 
 /**
  * A segmented control at full width: one line that scrolls sideways if it
@@ -185,9 +192,9 @@ export const SEGMENTED_CLASS = cn(
 const SEGMENTED_INLINE = cn(SEGMENT_BUTTONS, "shrink-0 flex-nowrap [&>button]:px-2 [&>button]:py-1");
 
 /** Longest option label that still sits beside the field's label. */
-const INLINE_LABEL = 9;
+const INLINE_LABEL = 11;
 
-/** A segmented set sits inline when it is short: at most three options of at most nine characters. */
+/** A segmented set sits inline when it is short: at most three options of at most eleven characters. */
 export const segmentedInline = (labels: readonly string[]): boolean =>
   labels.length <= 3 && labels.every((l) => l.length <= INLINE_LABEL);
 

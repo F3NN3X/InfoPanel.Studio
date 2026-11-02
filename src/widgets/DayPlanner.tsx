@@ -3,7 +3,7 @@ import { useGeneral } from "@/hooks/use-general";
 import { localeHour12 } from "@/lib/general";
 import { hour12Of } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, rows, fmt, mix, type ShellProps } from "./kit";
+import { Widget, shell, get, num, rows, fmt, fmtDate, mix, type ShellProps } from "./kit";
 import { allDayTitles, hourMarks, nowFraction, placeEvents, railWindow, type RailEvent, type RailWindow } from "./DayPlanner/layout";
 import { forecastDay, weatherBand, type BandPoint } from "./DayPlanner/weather-band";
 import { useExtras, useInStudio, useNow } from "./time-hooks";
@@ -44,8 +44,8 @@ function weatherOf(d: ShellProps["data"], location: string | undefined, win: Rai
 
 const hourLabel = (hour: number, h12: boolean) => (h12 ? `${hour % 12 || 12}${hour < 12 ? "a" : "p"}` : String(hour).padStart(2, "0"));
 
-/** The label of a midnight mark: Tmrw for the next day, else the weekday. */
-const dayName = (at: number, day: number) => (day === 1 ? "Tmrw" : new Date(at).toLocaleDateString(undefined, { weekday: "short" }));
+/** The label of a midnight mark: the weekday. */
+const dayName = (at: number) => fmtDate(new Date(at), "weekday");
 
 export default function DayPlanner(p: DayPlannerProps) {
   const { locale } = useGeneral();
@@ -101,10 +101,10 @@ export default function DayPlanner(p: DayPlannerProps) {
               </div>
             )}
             <div className={`flex min-h-0 flex-1 ${horizontal ? "flex-col" : "flex-row"}`}>
-              <div className={`relative shrink-0 text-[10px] tabular-nums text-[color:var(--w-faint)] ${horizontal ? "h-4" : "w-7"}`}>
+              <div className={`relative shrink-0 text-micro tabular-nums text-[color:var(--w-faint)] ${horizontal ? "h-4" : "w-7"}`}>
                 {marks.map((m) => (
                   <span key={m.at} className="absolute whitespace-nowrap leading-none" style={horizontal ? { left: along(m.fraction), transform: "translateX(-50%)" } : { top: along(m.fraction), transform: "translateY(-50%)" }}>
-                    {m.hour === 0 && m.day >= 1 ? dayName(m.at, m.day) : hourLabel(m.hour, h12)}
+                    {m.hour === 0 && m.day >= 1 ? dayName(m.at) : hourLabel(m.hour, h12)}
                   </span>
                 ))}
               </div>
@@ -133,7 +133,7 @@ export default function DayPlanner(p: DayPlannerProps) {
                     <div key={event.id} className="absolute p-px" style={box(from, to, lane, lanes)} title={`${event.title} · ${timeText(event.start)}`}>
                       <div className="h-full w-full overflow-hidden rounded-[5px] px-1.5 text-[11px] leading-[14px]" style={{ background: mix(30, "var(--w-track)"), borderLeft: "3px solid var(--accent)", color: "var(--w-fg)" }}>
                         {(!horizontal || len >= 44) && <div className={horizontal ? "truncate" : len >= 28 ? "line-clamp-2" : "truncate"}>{event.title}</div>}
-                        {len >= (horizontal ? 70 : 40) && <div className="truncate text-[10px] text-[color:var(--w-muted)]">{timeText(event.start)}</div>}
+                        {len >= (horizontal ? 70 : 40) && <div className="truncate text-micro text-[color:var(--w-muted)]">{timeText(event.start)}</div>}
                       </div>
                     </div>
                   );

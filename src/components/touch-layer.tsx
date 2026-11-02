@@ -135,7 +135,7 @@ export function TouchLayer({ panel, onPage }: TouchLayerProps) {
       {setup?.touch_dots && <TouchDots />}
       {(notice || showDebug) && (
         <div className="pointer-events-none fixed bottom-2 left-2 z-[100] flex max-w-[calc(100%-1rem)] flex-col gap-1 text-xs">
-          {notice && <div className="w-fit rounded-md bg-black/75 px-2.5 py-1.5 text-white">{notice}</div>}
+          {notice && <div role="status" className="w-fit rounded-md bg-black/75 px-2.5 py-1.5 text-white">{notice}</div>}
           {showDebug && (
             <div className="w-fit rounded-md bg-black/75 px-2.5 py-1.5 font-mono text-white/90">
               {name} · {status?.status ?? "waiting"} · {lastGesture || "no gesture yet"}

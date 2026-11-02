@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { errorText, ipc, onEvent } from "./ipc";
+import { LoadState } from "./load-state";
 import { restartItems, type RestartItem } from "./model/restart";
 import { parsePageTarget, SECTION_NAMES, type PageId, type SectionId } from "./model/search";
 import type { SetResult, SettingKey, Settings, Status, UpdateState } from "./types";
@@ -96,6 +97,8 @@ const SECTIONS = Object.keys(SECTION_NAMES) as SectionId[];
  */
 export function StoreProvider({ children, pages = SECTIONS }: { children: ReactNode; pages?: readonly PageId[] }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [update, setUpdate] = useState<UpdateState | null>(null);
@@ -124,15 +127,6 @@ export function StoreProvider({ children, pages = SECTIONS }: { children: ReactN
       const target = alive ? parsePageTarget(s, pages) : null;
       if (target) goRef.current(target.section, target.row);
     }).then((u) => (alive ? unlisten.push(u) : u()));
-    void load().then((l) => {
-      if (!alive) return;
-      setLoaded(l);
-      setDebugForced(l.debugForced);
-      setSettings(l.settings);
-      // A status event that arrived while loading is newer than the one fetched.
-      setStatus((current) => current ?? l.status);
-      setUpdate((current) => current ?? l.update);
-    });
     return () => {
       alive = false;
       unlisten.forEach((u) => u());
@@ -140,6 +134,27 @@ export function StoreProvider({ children, pages = SECTIONS }: { children: ReactN
       clearTimeout(foundTimer.current);
     };
   }, []);
+
+  // The first load, and each Retry after it failed.
+  useEffect(() => {
+    let alive = true;
+    setLoadError(null);
+    load().then(
+      (l) => {
+        if (!alive) return;
+        setLoaded(l);
+        setDebugForced(l.debugForced);
+        setSettings(l.settings);
+        // A status event that arrived while loading is newer than the one fetched.
+        setStatus((current) => current ?? l.status);
+        setUpdate((current) => current ?? l.update);
+      },
+      (e) => alive && setLoadError(errorText(e))
+    );
+    return () => {
+      alive = false;
+    };
+  }, [attempt]);
 
   useEffect(() => {
     settingsRef.current = settings;
@@ -195,7 +210,7 @@ export function StoreProvider({ children, pages = SECTIONS }: { children: ReactN
       try {
         const result = await ipc.setZoom(percent / 100);
         applyResult("zoom", result, seq);
-        if (result.ok) toast("Saved");
+        if (result.ok) toast(`${percent}%`);
         else toast(result.error ?? "Not saved.", true);
       } catch (e) {
         toast(errorText(e), true);
@@ -243,7 +258,9 @@ export function StoreProvider({ children, pages = SECTIONS }: { children: ReactN
   const goRef = useRef(go);
   goRef.current = go;
 
-  if (!loaded || !settings || !status || !update) return null;
+  if (!loaded || !settings || !status || !update) {
+    return <LoadState error={loadError} onRetry={() => setAttempt((n) => n + 1)} />;
+  }
   const store: Store = {
     settings,
     status,

@@ -113,6 +113,28 @@ describe("the settings window", () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it("shows a retry, with the caption buttons, when the first load fails, and opens after it", async () => {
+    const user = userEvent.setup({ delay: null });
+    let failing = true;
+    const base = invoke.getMockImplementation()!;
+    invoke.mockImplementation(async (c, a) => {
+      if (failing && c === "get_settings") throw new Error("settings.json is unreadable");
+      return base(c, a);
+    });
+    try {
+      render(<SettingsApp />);
+      expect(await screen.findByText("Couldn't load settings")).toBeTruthy();
+      expect(screen.getByText("settings.json is unreadable")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Close" })).toBeTruthy();
+      failing = false;
+      await user.click(screen.getByRole("button", { name: "Retry" }));
+      expect(await screen.findByRole("switch", { name: "Close to tray" })).toBeTruthy();
+      expect(screen.queryByText("Couldn't load settings")).toBeNull();
+    } finally {
+      invoke.mockImplementation(base);
+    }
+  });
+
   it("saves a toggle right away and says so", async () => {
     const user = userEvent.setup({ delay: null });
     render(<SettingsApp />);

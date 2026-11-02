@@ -200,8 +200,8 @@ export function updateCard(u: UpdateState, now: number): UpdateCard {
       return {
         tone: "red",
         icon: "error",
-        title: "Couldn't check for updates",
-        detail: u.error ?? "Something went wrong.",
+        title: u.failedDuring === "install" ? `Couldn't install ${u.version}` : u.failedDuring === "download" ? `Couldn't download ${u.version}` : "Couldn't check for updates",
+        detail: `${u.failedDuring === "install" ? "Try again." : "Check your connection, then try again."}${u.error ? ` Details: ${u.error}` : ""}`,
         progress: null,
         primary: { ...check, label: "Try again" },
       };

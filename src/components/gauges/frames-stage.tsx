@@ -21,7 +21,7 @@ export function FramesStage({ tools, playback, filter }: FramesStageProps) {
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-ui-app max-[899px]:flex-none">
       <section aria-label="Preview" className="flex min-h-0 flex-1 flex-col items-center p-5 font-ui max-[899px]:min-h-[420px] max-[899px]:flex-none">
-        <div className="flex w-full min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[12px] border border-ui-subtle bg-[#0b0b0e]">
+        <div className="flex w-full min-h-0 flex-1 items-center justify-center overflow-hidden rounded-ui-lg border border-ui-subtle bg-ui-app">
           <FramesPreview frames={tools.frames} p={playback.p} speed={tools.animationSpeed} size={360} filter={filter} />
         </div>
         <PlayControls playback={playback} className="mt-4 w-full max-w-[460px]" />

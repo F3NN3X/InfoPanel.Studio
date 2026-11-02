@@ -1,24 +1,26 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { useFound } from "./store";
+import { useFound, useStore } from "./store";
 
-/** Briefly true after `flash()`: the "Copied" label. */
+/** Briefly true after `flash()`: the "Copied" label, also said through the toast's status region. */
 export function useFlag(ms = 1500): [boolean, () => void] {
+  const { toast } = useStore();
   const [on, setOn] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
   const flash = useCallback(() => {
     clearTimeout(timer.current);
     setOn(true);
+    toast("Copied");
     timer.current = setTimeout(() => setOn(false), ms);
-  }, [ms]);
+  }, [ms, toast]);
   return [on, flash];
 }
 
 type ButtonKind = "neutral" | "accent" | "green" | "quiet";
 
 const BUTTON_KINDS: Record<ButtonKind, string> = {
-  neutral: "border border-s-input-line bg-s-input text-s-t1 hover:bg-[#1c1c21]",
+  neutral: "border border-s-input-line bg-s-input text-s-t1 hover:bg-s-divider",
   accent: "border-0 bg-s-accent font-semibold text-[#0b0d14] hover:brightness-110",
   green: "border-0 bg-s-green font-semibold text-[#07130c] hover:brightness-110",
   quiet: "border-0 bg-transparent text-s-t2 hover:bg-s-nav-hover",
@@ -40,11 +42,12 @@ export function Button({ kind = "neutral", size = "sm", disabled, onClick, title
     <button
       type="button"
       title={title}
+      aria-description={title}
       disabled={disabled}
       onClick={onClick}
       className={cn(
         "flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg transition-colors disabled:cursor-default disabled:opacity-50",
-        size === "md" ? "h-[34px] px-3.5 text-[13px]" : "h-8 px-3 text-[12.5px]",
+        size === "md" ? "h-(--ui-h-field) px-3.5 text-body" : "h-8 px-3 text-[12.5px]",
         BUTTON_KINDS[kind],
         className
       )}
@@ -73,13 +76,15 @@ export function Switch({ checked, onChange, label, disabled }: SwitchProps) {
       onClick={() => onChange(!checked)}
       className={cn(
         "relative h-[22px] w-[38px] shrink-0 cursor-pointer rounded-full border-0 p-0 transition-colors duration-150 disabled:cursor-default disabled:opacity-50",
-        checked ? "bg-s-accent" : "bg-[#2e2e35]"
+        "forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas] disabled:forced-colors:border-[color:GrayText]",
+        checked ? "bg-s-accent forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-s-track-line"
       )}
     >
       <span
         className={cn(
           "absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white transition-transform duration-150",
-          checked && "translate-x-4"
+          "forced-colors:bg-[color:ButtonText]",
+          checked && "translate-x-4 forced-colors:bg-[color:HighlightText]"
         )}
       />
     </button>
@@ -125,7 +130,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
     buttons?.[options.indexOf(next)]?.focus();
   };
   return (
-    <div role="radiogroup" aria-label={label} className={cn("flex gap-0.5 rounded-[9px] border border-s-track-line bg-s-win p-[3px]", className)}>
+    <div role="radiogroup" aria-label={label} className={cn("flex gap-0.5 rounded-ui-menu border border-s-track-line bg-s-win p-[3px]", className)}>
       {options.map((o) => {
         const on = o.value === value;
         return (
@@ -145,7 +150,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
               size === "lg" ? "h-[30px] px-3.5" : "h-[26px] px-2.5 text-xs",
               stretch && "flex-1 px-0",
               mono && "font-mono",
-              on ? "bg-s-seg-on text-s-t1" : "bg-transparent text-s-muted hover:text-s-t1"
+              on ? "bg-s-seg-on text-s-t1 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]" : "bg-transparent text-s-muted hover:text-s-t1"
             )}
           >
             {o.label}
@@ -185,18 +190,43 @@ interface RowProps {
   label: string;
   hint?: ReactNode;
   hintClass?: string;
+  /** The hint is a rejection: announced when it appears. */
+  hintAlert?: boolean;
   /** The control, on the right. */
   children?: ReactNode;
 }
 
 /** Label and hint on the left, the control on the right. */
-export function Row({ id, label, hint, hintClass, children }: RowProps) {
+export function Row({ id, label, hint, hintClass, hintAlert, children }: RowProps) {
   const found = useFound(id);
+  const uid = useId();
   return (
-    <div ref={found.ref} className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 px-[18px] py-3.5", found.className)}>
+    <div
+      ref={found.ref}
+      role="group"
+      aria-labelledby={`${uid}-label`}
+      aria-describedby={hint ? `${uid}-hint` : undefined}
+      className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 px-[18px] py-3.5", found.className)}
+    >
       <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
-        <span className="text-[13.5px] font-medium">{label}</span>
-        {hint && <span className={cn("text-[12.5px] leading-[1.45] text-s-muted", hintClass)}>{hint}</span>}
+        {/* Clicking the label works the row's control, as a <label for> would. The control is passed as children and has no id to point at. */}
+        <span
+          id={`${uid}-label`}
+          className="text-[13.5px] font-medium"
+          onClick={(e) => {
+            const control = e.currentTarget.closest<HTMLElement>('[role="group"]')?.querySelector<HTMLElement>('[role="switch"],input:not([type="hidden"]),select,textarea,button:not([disabled])');
+            if (!control) return;
+            if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement) control.focus();
+            else control.click();
+          }}
+        >
+          {label}
+        </span>
+        {hint && (
+          <span id={`${uid}-hint`} role={hintAlert ? "alert" : undefined} className={cn("text-[12.5px] leading-[1.45] text-s-muted", hintClass)}>
+            {hint}
+          </span>
+        )}
       </div>
       {children}
     </div>

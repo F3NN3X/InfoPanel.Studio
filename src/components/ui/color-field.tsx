@@ -19,7 +19,7 @@ export function ColorField({ value, onChange, label, autoLabel = "Auto", classNa
       </span>
       <label
         className={cn(
-          "relative h-[22px] w-[22px] shrink-0 cursor-pointer overflow-hidden rounded-md border",
+          "relative h-[22px] w-[22px] shrink-0 cursor-pointer overflow-hidden rounded-md border has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent",
           value ? "border-ui-strong" : "border-dashed border-ui-strong"
         )}
         style={value ? { backgroundColor: value } : undefined}
@@ -37,7 +37,7 @@ export function ColorField({ value, onChange, label, autoLabel = "Auto", classNa
           type="button"
           aria-label={`Reset ${label} to ${autoLabel}`}
           onClick={() => onChange("")}
-          className="text-[11px] text-ui-4 hover:text-ui-1"
+          className="text-micro text-ui-4 hover:text-ui-1"
         >
           {autoLabel}
         </button>

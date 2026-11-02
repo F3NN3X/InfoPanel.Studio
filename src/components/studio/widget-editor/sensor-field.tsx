@@ -43,19 +43,19 @@ export function SensorField({ label, hint, lead, value, onChange, onOpenExplorer
 
   return (
     <StackRow label={label} hint={hint} lead={lead}>
-      <div className="flex items-center gap-2 rounded-[7px] border border-ui-default bg-ui-app py-[7px] pl-[9px] pr-1.5 hover:border-[#3a3a44]">
+      <div className="flex items-center gap-2 rounded-[7px] border border-ui-default bg-ui-app py-[7px] pl-[9px] pr-1.5 hover:border-ui-edge">
         <span className="min-w-0 flex-1">
           {value ? (
             <>
-              <span className="block truncate text-[12px] text-ui-1">{point?.name ?? sensorName(value)}</span>
-              <span className="block truncate font-ui-mono text-[10.5px] text-ui-4">{value}</span>
+              <span className="block truncate text-caption text-ui-1">{point?.name ?? sensorName(value)}</span>
+              <span className="block truncate font-ui-mono text-micro text-ui-4">{value}</span>
             </>
           ) : (
-            <span className="block truncate text-[12px] text-ui-4">No sensor bound</span>
+            <span className="block truncate text-caption text-ui-4">No sensor bound</span>
           )}
         </span>
         {value && (
-          <span className="max-w-[90px] shrink-0 truncate font-ui-mono text-[11px] text-ui-2">
+          <span className="max-w-[90px] shrink-0 truncate font-ui-mono text-micro text-ui-2">
             {liveText(live[value], point) ?? "—"}
           </span>
         )}
@@ -75,7 +75,7 @@ export function SensorField({ label, hint, lead, value, onChange, onOpenExplorer
         )}
       </div>
       {missing && (
-        <div className="text-[11px] text-ui-warning">not in the live sensor list — it will show “—”</div>
+        <div className="text-micro text-ui-warning">not in the live sensor list — it will show “—”</div>
       )}
       <DataPicker
         open={open}

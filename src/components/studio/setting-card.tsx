@@ -66,7 +66,7 @@ export function SettingSection({
       {...{ [SETTING_CARD]: id }}
       data-widget-editor={editor ? "" : undefined}
       onKeyDown={onKeyDown}
-      className={cn("border-b border-[#1c1c21] transition-shadow duration-500", flash && "shadow-[inset_0_0_0_1.5px_var(--ui-accent)]")}
+      className={cn("border-b border-s-divider transition-shadow duration-500", flash && "shadow-[inset_0_0_0_1.5px_var(--ui-accent)]")}
     >
       <header className="sticky top-0 z-[1] flex items-center gap-0.5 bg-ui-panel px-2">
         <button
@@ -75,24 +75,24 @@ export function SettingSection({
           disabled={filtering}
           onClick={onToggle}
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-2 rounded-[7px] px-2 text-left text-ui-1 enabled:hover:bg-[#16161a]",
+            "flex min-w-0 flex-1 items-center gap-2 rounded-[7px] px-2 text-left text-ui-1 enabled:hover:bg-s-input",
             sheet ? "h-12" : "h-[42px]"
           )}
         >
-          <Icon className="h-[17px] w-[17px] shrink-0 text-[#7c7c86]" strokeWidth={1.75} />
+          <Icon className="h-[17px] w-[17px] shrink-0 text-ui-hint" strokeWidth={1.75} />
           <span className="truncate text-[12.5px] font-semibold">{title}</span>
-          {filtering && tabLabel && <span className="shrink-0 whitespace-nowrap text-[11px] text-ui-5">{tabLabel}</span>}
+          {filtering && tabLabel && <span className="shrink-0 whitespace-nowrap text-micro text-ui-hint">{tabLabel}</span>}
           {pill}
-          {changed > 0 && <span className="min-w-0 shrink-[100] overflow-hidden whitespace-nowrap text-[10.5px] text-[#8a8a94]">{changed} changed</span>}
+          {changed > 0 && <span className="min-w-0 shrink-[100] overflow-hidden whitespace-nowrap text-micro text-ui-hint">{changed} changed</span>}
         </button>
         {chip}
         {!filtering && (
           <button
             type="button"
             tabIndex={-1}
-            aria-hidden
+            aria-label={open ? "Collapse section" : "Expand section"}
             onClick={onToggle}
-            className="flex h-[30px] w-[26px] shrink-0 items-center justify-center rounded-[7px] text-ui-5 hover:bg-[#16161a]"
+            className="flex h-[30px] w-[26px] shrink-0 items-center justify-center rounded-[7px] text-ui-hint hover:bg-s-input"
           >
             <ChevronDown className={cn("h-[18px] w-[18px] transition-transform duration-150", open && "rotate-180")} />
           </button>
@@ -105,7 +105,7 @@ export function SettingSection({
             onClick={onReset}
             title={`Reset ${title}`}
             aria-label={`Reset ${title}`}
-            className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] text-ui-3 hover:bg-[#1e1e23] hover:text-ui-1"
+            className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] text-ui-3 hover:bg-ui-subtle hover:text-ui-1"
           >
             <RotateCcw className="h-4 w-4" />
           </button>

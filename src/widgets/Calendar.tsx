@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, Num, useIpTag, type ShellProps } from "./kit";
+import { Widget, shell, get, num, Num, roomy, useIpTag, type ShellProps } from "./kit";
 import { meta } from "./meta/Calendar";
 
 export { meta };
@@ -15,6 +15,9 @@ export interface CalendarProps extends ShellProps {
 
 // Today's pill: near-black text on a light accent, white on a dark one (the class's dark text stays where relative colours are unsupported).
 const TODAY = { background: "var(--accent)", color: "oklch(from var(--accent) clamp(0, (0.7 - l) * 1000, 1) 0 0)" };
+
+/** The weekday letters' row at 4x4, px. */
+const HEAD_H = 20;
 
 /** The seven days of the week holding `date`, the week starting on `weekStart` (0 = Sunday). */
 export const weekOf = (date: Date, weekStart: number): Date[] => {
@@ -35,10 +38,14 @@ export default function Calendar(p: CalendarProps) {
   const cells: (number | null)[] = [...Array(Number.isFinite(first) ? first : 0).fill(null), ...Array.from({ length: Number.isFinite(len) ? len : 0 }, (_, i) => i + 1)];
   const week = Math.ceil((date.getTime() - new Date(yr, 0, 1).getTime()) / 864e5 / 7);
   const tag = useIpTag();
+  const weeks = Math.ceil(cells.length / 7);
   return (
     <Widget {...shell(p)} title={p.title} showHeader={false} compact={{ label: W[date.getDay()], value: day, sub: `${M[mon - 1]} ${yr}`, kind: "value", icon: "calendar_today" }}>
-      {({ size, w, h }) =>
-        h > 0 && h < 120 ? (
+      {({ size, w, h }) => {
+        // 4x4: rows are sized from the cell (28 to 40px) and packed to the top, so the grid doesn't stretch to the box
+        const room = roomy(w, h);
+        const rowH = Math.min(40, Math.max(28, Math.floor((h - 24 - HEAD_H - weeks * 2) / weeks)));
+        return h > 0 && h < 120 ? (
           <div className="flex h-full min-w-0 items-center gap-4">
             {w > 300 && (
               <div className="flex shrink-0 flex-col leading-none">
@@ -52,7 +59,7 @@ export default function Calendar(p: CalendarProps) {
             <div className="grid min-w-0 flex-1 grid-cols-7 gap-0.5 text-center">
               {weekOf(date, ws).map((x) => (
                 <div key={x.getTime()} className="flex min-w-0 flex-col items-center gap-0.5">
-                  {h >= 40 && <span className="text-[10px] font-medium leading-3 text-[color:var(--w-faint)]">{W[x.getDay()][0]}</span>}
+                  {h >= 40 && <span className="text-micro font-medium leading-3 text-[color:var(--w-faint)]">{W[x.getDay()][0]}</span>}
                   <span
                     className={`flex h-6 w-full max-w-8 items-center justify-center rounded-md text-[11px] tabular-nums ${x.getDate() === day ? "font-semibold text-[#0c0c0e]" : "text-[color:var(--w-fg)]"}`}
                     style={x.getDate() === day ? TODAY : undefined}
@@ -76,9 +83,9 @@ export default function Calendar(p: CalendarProps) {
           )}
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <span {...tag("date", { kind: "clock", format: "MMMM" })} className="text-xs font-semibold text-[color:var(--w-fg)]">{M[mon - 1]}</span>
-            <div className="grid min-h-0 flex-1 grid-cols-7 gap-0.5 text-center text-[11px]" style={{ gridAutoRows: "minmax(0,1fr)" }}>
+            <div className={room ? "grid min-h-0 grid-cols-7 gap-0.5 text-center text-[11px]" : "grid min-h-0 flex-1 grid-cols-7 gap-0.5 text-center text-[11px]"} style={room ? { gridTemplateRows: `${HEAD_H}px repeat(${weeks}, ${rowH}px)`, alignContent: "start" } : { gridAutoRows: "minmax(0,1fr)", maxHeight: "21rem" }}>
               {Array.from({ length: 7 }, (_, i) => (
-                <span key={`h${i}`} className="text-[10px] font-medium text-[color:var(--w-faint)]">
+                <span key={`h${i}`} className="text-micro font-medium text-[color:var(--w-faint)]">
                   {W[(i + ws) % 7][0]}
                 </span>
               ))}
@@ -86,7 +93,7 @@ export default function Calendar(p: CalendarProps) {
                 <span
                   key={i}
                   className={`flex items-center justify-center rounded-md tabular-nums ${c === day ? "font-semibold text-[#0c0c0e]" : c ? "text-[color:var(--w-fg)]" : ""}`}
-                  style={c === day ? TODAY : undefined}
+                  style={c === day ? (room ? { ...TODAY, height: rowH - 4, aspectRatio: "1", alignSelf: "center", justifySelf: "center" } : TODAY) : undefined}
                 >
                   {c ?? ""}
                 </span>
@@ -94,8 +101,8 @@ export default function Calendar(p: CalendarProps) {
             </div>
           </div>
         </div>
-        )
-      }
+        );
+      }}
     </Widget>
   );
 }

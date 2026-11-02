@@ -79,6 +79,20 @@ describe("FirstRunPage", () => {
     expect(onSkip).toHaveBeenCalledWith(undefined);
   });
 
+  it("does not ask to skip when Escape is pressed in the address field", async () => {
+    const user = userEvent.setup();
+    open();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    const field = screen.getAllByRole("textbox")[0];
+    field.focus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    // Outside a field it still does.
+    (document.activeElement as HTMLElement).blur();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+  });
+
   it("run again starts on Don't add a screen and finishing adds none", async () => {
     const user = userEvent.setup();
     const { onFinish } = open({ rerun: true });

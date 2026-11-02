@@ -52,7 +52,7 @@ function Gallery() {
 
   return (
     <div
-      className="min-h-screen bg-ui-panel p-6 font-ui text-[13px] text-ui-2"
+      className="min-h-screen bg-ui-panel p-6 font-ui text-body text-ui-2"
       onContextMenu={(e) => {
         e.preventDefault();
         setMenu({ x: e.clientX, y: e.clientY });
@@ -60,7 +60,7 @@ function Gallery() {
     >
       <div className="mx-auto max-w-[340px]">
         <h1 className="text-[14px] font-semibold text-ui-1">UI primitives</h1>
-        <p className="text-[11px] text-ui-4">Right-click anywhere for the context menu.</p>
+        <p className="text-micro text-ui-4">Right-click anywhere for the context menu.</p>
         <Section title="Toggle">
           <Toggle checked={on} onChange={setOn} label="Example" />
         </Section>
@@ -90,13 +90,13 @@ function Gallery() {
             <button
               type="button"
               onClick={() => toast("Style copied")}
-              className="h-7 rounded-md border border-ui-strong bg-ui-raised px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover"
+              className="h-7 rounded-md border border-ui-strong bg-ui-raised px-2.5 text-caption text-ui-1 hover:bg-ui-hover"
             >
               Show toast
             </button>
             <Popover
               trigger="Open popover"
-              triggerClassName="h-7 rounded-md border border-ui-strong bg-ui-raised px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover"
+              triggerClassName="h-7 rounded-md border border-ui-strong bg-ui-raised px-2.5 text-caption text-ui-1 hover:bg-ui-hover"
             >
               Popover content
             </Popover>

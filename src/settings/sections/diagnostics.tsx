@@ -14,32 +14,34 @@ const DELTA_CLASS: Record<DeltaTone, string> = { flagged: "text-s-amber", fell: 
 const GRID = "grid grid-cols-[minmax(0,2.2fr)_80px_minmax(0,1fr)_minmax(0,1fr)] gap-3";
 
 function DeltaCell({ series, growth }: { series: Series; growth: Growth | null }) {
-  return <span className={cn("text-right font-mono", DELTA_CLASS[deltaTone(series, growth)])}>{fmtDelta(growth)}</span>;
+  return <span role="cell" className={cn("text-right font-mono", DELTA_CLASS[deltaTone(series, growth)])}>{fmtDelta(growth)}</span>;
 }
 
 function SeriesTable({ diag, filter }: { diag: Diagnostics; filter: "notable" | "all" }) {
   const found = useFound("diag-table");
   const groups = groupSeries(filter === "all" ? diag.series : diag.series.filter(isNotable));
   return (
-    <div ref={found.ref} className={cn("overflow-auto rounded-xl border border-s-card-line bg-s-card", found.className)}>
-      <div className="min-w-[560px]">
-        <div className={cn(GRID, "border-b border-s-divider px-4 py-2.5 text-[11.5px] text-s-dim")}>
-          <span>Series</span>
-          <span className="text-right">Latest</span>
-          <span className="text-right">Δ 30 min</span>
-          <span className="text-right">Δ 60 min</span>
+    // biome-ignore lint/a11y/noNoninteractiveTabindex: a scroller must take focus so the keyboard can scroll it.
+    <div ref={found.ref} role="region" aria-label="Series readings" tabIndex={0} className={cn("overflow-auto rounded-xl border border-s-card-line bg-s-card", found.className)}>
+      <div role="table" aria-label="Series" className="min-w-[560px]">
+        <div role="row" className={cn(GRID, "border-b border-s-divider px-4 py-2.5 text-[11.5px] text-s-dim")}>
+          <span role="columnheader">Series</span>
+          <span role="columnheader" className="text-right">Latest</span>
+          <span role="columnheader" className="text-right">Δ 30 min</span>
+          <span role="columnheader" className="text-right">Δ 60 min</span>
         </div>
-        {groups.length === 0 && <div className="px-4 py-6 text-[12.5px] text-s-faint">Nothing stands out.</div>}
+        {groups.length === 0 && <div className="px-4 py-6 text-[12.5px] text-s-dim">Nothing stands out.</div>}
         {groups.map((g) => (
-          <div key={g.name}>
-            <div className="px-4 pb-1 pt-2.5 text-[11px] uppercase tracking-[0.06em] text-s-faint">{g.name}</div>
+          <div key={g.name} role="rowgroup">
+            <div role="row" className="px-4 pb-1 pt-2.5 text-micro uppercase tracking-[0.06em] text-s-dim"><span role="rowheader">{g.name}</span></div>
             {g.rows.map(({ series, name }) => (
-              <div key={series.name} className={cn(GRID, "items-center px-4 py-[7px] text-[12.5px] hover:bg-[#151519]")}>
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", series.growing ? "bg-s-amber" : "bg-[#55555e]")} />
+              <div key={series.name} role="row" className={cn(GRID, "items-center px-4 py-[7px] text-[12.5px] hover:bg-ui-tile")}>
+                <span role="cell" className="flex min-w-0 items-center gap-2">
+                  <span aria-hidden="true" className={cn("h-1.5 w-1.5 shrink-0 rounded-full", series.growing ? "bg-s-amber" : "bg-[#55555e]")} />
+                  {series.growing && <span className="sr-only">Rising: </span>}
                   <span className="truncate font-mono text-s-t2">{name}</span>
                 </span>
-                <span className="text-right font-mono">{fmt(series.latest)}</span>
+                <span role="cell" className="text-right font-mono">{fmt(series.latest)}</span>
                 <DeltaCell series={series} growth={series.growth30} />
                 <DeltaCell series={series} growth={series.growth60} />
               </div>
@@ -59,7 +61,18 @@ export function DiagnosticsSection() {
   const [copied, flash] = useFlag();
   const actions = useFound("diag-actions");
 
-  const refresh = useCallback(() => ipc.getDiagnostics().then(setDiag).catch(() => {}), []);
+  const [unreadable, setUnreadable] = useState(false);
+  const refresh = useCallback(
+    () =>
+      ipc
+        .getDiagnostics()
+        .then((d) => {
+          setDiag(d);
+          setUnreadable(false);
+        })
+        .catch(() => setUnreadable(true)),
+    []
+  );
   useEffect(() => {
     const timer = setInterval(() => document.visibilityState === "visible" && void refresh(), REFRESH_MS);
     return () => clearInterval(timer);
@@ -83,6 +96,11 @@ export function DiagnosticsSection() {
 
   return (
     <>
+      {unreadable && (
+        <span role="alert" className="px-0.5 text-[12.5px] leading-[1.45] text-s-red">
+          Can't read the diagnostics. The server may be stopped; check the Server page.
+        </span>
+      )}
       <div className="overflow-hidden rounded-xl border border-s-card-line bg-s-card">
         <DebugRow onSaved={() => void refresh()} />
         <div ref={actions.ref} className={cn("flex flex-wrap gap-2 px-[18px] pb-4", actions.className)}>

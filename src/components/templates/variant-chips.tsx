@@ -18,7 +18,7 @@ interface VariantChipsProps {
 export function VariantChips({ variants, value, onChange, className = "mt-3" }: VariantChipsProps) {
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <span className="text-[12px] text-ui-2">Variant</span>
+      <span className="text-caption text-ui-2">Variant</span>
       <div role="radiogroup" aria-label="Variant" className="flex flex-wrap items-center gap-1.5">
         {variants.map((v) => (
           <button

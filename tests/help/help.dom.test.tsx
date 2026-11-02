@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { OBSERVED_SIZE } from "@tests/setup/dom-setup";
@@ -59,6 +59,35 @@ describe("the help window", () => {
     expect(screen.getByRole("button", { name: "Changing the port" }).getAttribute("aria-current")).toBe("location");
     expect(screen.getByRole("button", { name: "The kiosk URL" }).getAttribute("aria-current")).toBeNull();
     expect(window.location.hash).toBe("#kiosk/changing-the-port");
+  });
+
+  it("keeps focus in Home's own field while typing, with the results under it", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <EnvProvider value={browserEnv}>
+        <HelpApp content={content} />
+      </EnvProvider>
+    );
+    const pane = document.querySelector("main") as HTMLElement;
+    const field = within(pane).getByRole("textbox", { name: "Search help" });
+    await user.type(field, "pick port");
+    expect(screen.getByRole("heading", { name: "1 result" })).toBeTruthy();
+    expect(within(pane).getByRole("textbox", { name: "Search help" })).toBe(field);
+    expect(document.activeElement).toBe(field);
+    expect((field as HTMLInputElement).value).toBe("pick port");
+  });
+
+  it("keeps the search when a late hashchange names the page already shown", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <EnvProvider value={browserEnv}>
+        <HelpApp content={content} />
+      </EnvProvider>
+    );
+    const field = within(document.querySelector("main") as HTMLElement).getByRole("textbox", { name: "Search help" });
+    await user.type(field, "pick");
+    act(() => void window.dispatchEvent(new Event("hashchange")));
+    expect((field as HTMLInputElement).value).toBe("pick");
   });
 
   it("opens an article at the top for a crafted heading in the hash", () => {

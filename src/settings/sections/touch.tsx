@@ -94,7 +94,7 @@ function Field({ value, onCommit, label, numeric, step, unit, width = "w-28" }: 
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => e.key === "Enter" && commit()}
-        className={cn("h-[34px] rounded-lg border border-s-input-line bg-s-input px-2.5 text-[13px] text-s-t1 outline-none", width)}
+        className={cn("h-(--ui-h-field) rounded-lg border border-s-input-line bg-s-input px-2.5 text-body text-s-t1 outline-none", width)}
       />
       {unit && <span className="text-xs text-s-dim">{unit}</span>}
     </span>
@@ -179,7 +179,7 @@ function PanelCard({ view, entry, index, setKey, steps, onRemove }: PanelCardPro
           Open this in an InfoPanel web page profile shown full screen on this panel's display, with Interactive off. Add <span className="font-mono">&amp;profile=…</span> to pin a screen.
         </span>
         <div className="flex flex-wrap gap-2">
-          <div className="flex h-9 min-w-0 basis-40 flex-1 items-center truncate rounded-lg border border-s-track-line bg-s-win px-3 font-mono text-[13px]">{url}</div>
+          <div className="flex h-9 min-w-0 basis-40 flex-1 items-center truncate rounded-lg border border-s-track-line bg-s-win px-3 font-mono text-body">{url}</div>
           <Button size="md" className="h-9" onClick={copy}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copied" : "Copy"}
@@ -535,13 +535,13 @@ export function TouchSection() {
     <>
       <div className="overflow-hidden rounded-xl border border-s-card-line bg-s-card">
         <div ref={found.ref} className={cn("flex items-center gap-4 px-[18px] py-4", found.className)}>
-          <div className="grid h-9 w-9 place-items-center rounded-[9px] bg-[#1a1a1f] text-s-t2">
+          <div className="grid h-9 w-9 place-items-center rounded-ui-menu bg-ui-hover text-s-t2">
             <Hand className="h-5 w-5" />
           </div>
           <div className="flex flex-1 flex-col gap-[3px]">
             <span className="flex items-center gap-2 text-sm font-medium">
               Touch panels
-              <span className="rounded-[10px] bg-s-amber/14 px-2 py-0.5 text-[11px] font-normal text-s-amber">Experimental</span>
+              <span className="rounded-[10px] bg-s-amber/14 px-2 py-0.5 text-micro font-normal text-s-amber">Experimental</span>
             </span>
             <span className="text-[12.5px] leading-[1.45] text-s-muted">
               Studio reads USB touch displays itself, so touching one never moves the mouse or takes focus from what you're doing; the kiosk on that display gets the touches.

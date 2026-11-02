@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import type { ModuleSettings } from "@/modules/types";
-import { bodyGap, Widget, shell, get, num, Num, useIpTag, type ShellProps } from "./kit";
+import { bodyGap, roomy, Widget, shell, get, num, Num, useIpTag, type ShellProps } from "./kit";
 import { meta } from "./meta/Uptime";
 
 export { meta };
@@ -11,8 +11,8 @@ export interface UptimeProps extends ShellProps {
 }
 
 /** The numerals' size: the tier's (72 / 48 / 30px), shrunk so `n` two-digit groups, their colons and gaps fit the width, and the unit line fits under them. */
-export const numPx = (size: string, w: number, h: number, n: number, gap: number): number => {
-  const tier = size === "lg" ? 72 : size === "md" ? 48 : 30;
+export const numPx = (size: string, w: number, h: number, n: number, gap: number, tierPx?: number): number => {
+  const tier = tierPx ?? (size === "lg" ? 72 : size === "md" ? 48 : 30);
   if (!w || !h) return tier;
   const perGroup = (w - (n - 1) * (12 + gap)) / n;
   return Math.max(14, Math.floor(Math.min(tier, perGroup / 1.4, h - 24)));
@@ -42,6 +42,23 @@ export default function Uptime(p: UptimeProps) {
               {k("days")}d {k("hours")}h {pad(k("minutes"))}m
             </Num>
           </div>
+        ) : roomy(w, h) && h >= w * 0.8 && shown.length === 4 ? (
+          // a near-square 4x4: the four groups in two rows of two, each numeral twice the width, and the total under them
+          <div className="flex h-full flex-col justify-center gap-3">
+            <div className="grid grid-cols-2 gap-y-3" style={{ columnGap: bodyGap(p.look, 16, w) }}>
+              {shown.map(([u, v, l, entry]) => (
+                <div key={u} className="flex min-w-0 flex-col items-center">
+                  <Num ip={tag(key(entry))} className="font-semibold leading-none tracking-tight" style={{ fontSize: Math.min(numPx(size, w, h, 2, bodyGap(p.look, 16, w), 110), Math.floor((h - 70) / 2 - 24)), ...(u === "d" ? { color: "var(--accent)" } : null) }}>
+                    {pad(v)}
+                  </Num>
+                  <span className="mt-1.5 text-micro uppercase tracking-wider text-[color:var(--w-faint)]">{l}</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-[color:var(--w-track)] pt-3 text-center text-xs text-[color:var(--w-muted)]">
+              <span className="tabular-nums">{Number(pad(Math.round(k("days") * 24 + k("hours"))))} h {pad(k("minutes"))} min</span> total
+            </div>
+          </div>
         ) : (
           // the look's gap is the space between two numbers, split around the colon
           <div className="flex h-full items-center justify-between gap-2" style={{ columnGap: bodyGap(p.look, 16, w) / 2 }}>
@@ -52,7 +69,7 @@ export default function Uptime(p: UptimeProps) {
                   <Num ip={tag(key(entry))} className="font-semibold leading-none tracking-tight" style={{ fontSize: numPx(size, w, h, shown.length, bodyGap(p.look, 16, w)), ...(u === "d" ? { color: "var(--accent)" } : null) }}>
                     {pad(v)}
                   </Num>
-                  <span className="mt-1.5 text-[10.5px] uppercase tracking-wider text-[color:var(--w-faint)]">{l}</span>
+                  <span className="mt-1.5 text-micro uppercase tracking-wider text-[color:var(--w-faint)]">{l}</span>
                 </div>
               </Fragment>
             ))}

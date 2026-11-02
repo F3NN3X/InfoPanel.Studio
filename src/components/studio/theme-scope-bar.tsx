@@ -28,7 +28,7 @@ function Segment({ label, sub, active, onClick }: { label: string; sub: string; 
       )}
     >
       <span className="truncate">{label}</span>
-      <span className="font-ui-mono text-[11px] font-normal text-[#71717a] max-sm:hidden">{sub}</span>
+      <span className="font-ui-mono text-micro font-normal text-ui-hint max-sm:hidden">{sub}</span>
     </button>
   );
 }
@@ -52,7 +52,7 @@ function Pick<T extends { id: string; name: string }>({
       <Menu.Trigger
         aria-label={label}
         title={label}
-        className="-ml-0.5 flex h-7 w-4 shrink-0 items-center justify-center rounded-md text-[#71717a] hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
+        className="-ml-0.5 flex h-7 w-4 shrink-0 items-center justify-center rounded-md text-ui-hint hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
       >
         <ChevronDown className="h-3 w-3" />
       </Menu.Trigger>
@@ -62,7 +62,7 @@ function Pick<T extends { id: string; name: string }>({
             {items.map((item) => (
               <Menu.Item key={item.id} className={cn(ITEM, item.id === current && "text-ui-1")} onClick={() => onPick(item)}>
                 <span className="truncate">{item.name}</span>
-                {meta && <span className="font-ui-mono text-[11px] text-ui-4">{meta(item)}</span>}
+                {meta && <span className="font-ui-mono text-micro text-ui-4">{meta(item)}</span>}
               </Menu.Item>
             ))}
           </Menu.Popup>

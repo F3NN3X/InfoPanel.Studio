@@ -23,7 +23,7 @@ export function SkinSwatch({ skin }: { skin: string }) {
     <div className="h-full p-[3px]">
       <Widget skin={skin} surface="auto" radius={Math.min(SKINS[skin]?.radius ?? 16, 8)} showHeader={false}>
         <div className="flex h-full flex-col justify-between">
-          <Num className="text-[12px] leading-none">63%</Num>
+          <Num className="text-caption leading-none">63%</Num>
           <Spark values={HISTORY} min={0} max={100} className="h-3" />
         </div>
       </Widget>

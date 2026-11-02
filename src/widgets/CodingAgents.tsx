@@ -73,9 +73,9 @@ export function SessionRow({ s, now, width }: { s: AgentSession; now: number; wi
       <span className="min-w-0 flex-1 truncate text-[11px]" style={{ color: s.state === "waiting" ? STATE_COLOR.waiting : "var(--w-muted)" }}>
         {sessionStatus(s, now)}
       </span>
-      {wide && s.context !== undefined && <span className="shrink-0 tabular-nums text-[10.5px] text-[color:var(--w-faint)]">{Math.round(s.context)}% ctx</span>}
-      {wide && width >= MODEL_W && s.model && <span className="max-w-[28%] shrink-0 truncate text-[10.5px] text-[color:var(--w-muted)]">{modelLabel(s.model)}</span>}
-      {wide && cost && <span className="shrink-0 tabular-nums text-[10.5px] text-[color:var(--w-muted)]">{cost}</span>}
+      {wide && s.context !== undefined && <span className="shrink-0 tabular-nums text-micro text-[color:var(--w-faint)]">{Math.round(s.context)}% ctx</span>}
+      {wide && width >= MODEL_W && s.model && <span className="max-w-[28%] shrink-0 truncate text-micro text-[color:var(--w-muted)]">{modelLabel(s.model)}</span>}
+      {wide && cost && <span className="shrink-0 tabular-nums text-micro text-[color:var(--w-muted)]">{cost}</span>}
     </li>
   );
 }
@@ -273,7 +273,7 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
               {bd && breakdown ? (
                 <Breakdown data={bd} rows={breakdown.rows} tokens={breakdown.withTokens ? tokens : null} />
               ) : (
-                <span className="truncate text-[10.5px] tabular-nums text-[color:var(--w-faint)]" style={{ height: HEADER_H }}>
+                <span className="truncate text-micro tabular-nums text-[color:var(--w-faint)]" style={{ height: HEADER_H }}>
                   <span className="text-[color:var(--w-muted)]">{shortTokens(week)}</span> this week
                 </span>
               )}

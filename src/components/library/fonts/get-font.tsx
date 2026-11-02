@@ -126,37 +126,37 @@ export function GetFont({ initialFamily, needed, onAdd, onClose }: GetFontProps)
     <aside aria-label="Get a font" className="flex w-[320px] shrink-0 flex-col gap-3.5 overflow-y-auto border-l border-ui-subtle bg-ui-panel p-4 font-ui">
       <div className="flex items-center justify-between">
         <div className="text-[14px] font-semibold text-ui-1">Get a font</div>
-        <button type="button" onClick={onClose} className="text-[12px] text-ui-4 hover:text-ui-1">
+        <button type="button" onClick={onClose} className="text-caption text-ui-4 hover:text-ui-1">
           Close
         </button>
       </div>
-      <div role="group" aria-label="Source" className="flex h-[32px] rounded-[8px] border border-ui-default p-0.5">
+      <div role="group" aria-label="Source" className="flex h-[32px] rounded-ui-md border border-ui-default p-0.5">
         {SOURCES.map((s) => (
           <button
             key={s.id}
             type="button"
             aria-pressed={source === s.id}
             onClick={() => setSource(s.id)}
-            className={cn("flex-1 rounded-[6px] text-[12.5px] text-ui-3 hover:text-ui-1", source === s.id && "bg-ui-active text-ui-1")}
+            className={cn("flex-1 rounded-ui-sm text-[12.5px] text-ui-3 hover:text-ui-1", source === s.id && "bg-ui-active text-ui-1")}
           >
             {s.label}
           </button>
         ))}
       </div>
-      <label className="flex h-[34px] items-center gap-2 rounded-[8px] border border-ui-default px-2.5 text-ui-4 focus-within:border-ui-accent">
+      <label className="flex h-(--ui-h-field) items-center gap-2 rounded-ui-md border border-ui-default px-2.5 text-ui-4 focus-within:border-ui-accent">
         <Search className="h-4 w-4 shrink-0" />
         <input
           aria-label="Font family"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Family name"
-          className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-ui-5"
+          className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-ui-hint"
         />
       </label>
       {catalogs && catalogs.unavailable.length > 0 && <p className="text-[11.5px] leading-snug text-ui-warning">Some sources are unavailable: {catalogs.unavailable.join("; ")}</p>}
-      {!catalogs && <p className="text-[12px] text-ui-4">Reading the font catalogues…</p>}
+      {!catalogs && <p className="text-caption text-ui-4">Reading the font catalogues…</p>}
       {catalogs && !candidate && (
-        <p className="text-[12px] leading-snug text-ui-4">
+        <p className="text-caption leading-snug text-ui-4">
           {query.trim() ? "No free source has this family. Ask the profile's author for the file, then use Add fonts." : "Type a family name."}
         </p>
       )}
@@ -179,9 +179,9 @@ export function GetFont({ initialFamily, needed, onAdd, onClose }: GetFontProps)
       {candidate && review && (
         <>
           <PreviewBox family={preview} />
-          <div className="rounded-[10px] border border-ui-subtle p-3 text-[12px] leading-snug">
+          <div className="rounded-[10px] border border-ui-subtle p-3 text-caption leading-snug">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[13px] font-medium text-ui-1">{candidate.family}</span>
+              <span className="text-body font-medium text-ui-1">{candidate.family}</span>
               <a href={candidate.page} target="_blank" rel="noreferrer" aria-label={`${candidate.family} on its source`} className="text-ui-4 hover:text-ui-1">
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
@@ -190,13 +190,13 @@ export function GetFont({ initialFamily, needed, onAdd, onClose }: GetFontProps)
             <div className="text-ui-3">{candidate.license}</div>
           </div>
           <div>
-            <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-ui-4">Faces</div>
-            {loaded.state === "loading" && <p className="text-[12px] text-ui-4">Reading the faces…</p>}
-            {loaded.state === "error" && <p className="text-[12px] leading-snug text-ui-danger">{loaded.message}</p>}
+            <div className="mb-1.5 text-micro font-medium uppercase tracking-[.06em] text-ui-4">Faces</div>
+            {loaded.state === "loading" && <p className="text-caption text-ui-4">Reading the faces…</p>}
+            {loaded.state === "error" && <p className="text-caption leading-snug text-ui-danger">{loaded.message}</p>}
             {loaded.state === "ready" && (
               <div className="flex flex-col gap-0.5">
                 {loaded.faces.map((f) => (
-                  <label key={f.id} className="flex items-center gap-2 rounded-[6px] px-1.5 py-1 text-[12.5px] text-ui-2 hover:bg-ui-hover">
+                  <label key={f.id} className="flex items-center gap-2 rounded-ui-sm px-1.5 py-1 text-[12.5px] text-ui-2 hover:bg-ui-hover">
                     <input
                       type="checkbox"
                       checked={checked.has(f.id)}
@@ -205,7 +205,7 @@ export function GetFont({ initialFamily, needed, onAdd, onClose }: GetFontProps)
                     />
                     <span className="min-w-0 flex-1 truncate">{f.style}</span>
                     {need.has(f.id) && (
-                      <span className="shrink-0 text-[11px] text-ui-accent-text">
+                      <span className="shrink-0 text-micro text-ui-accent-text">
                         needed by {need.get(f.id)} item{need.get(f.id) === 1 ? "" : "s"}
                       </span>
                     )}
@@ -218,14 +218,14 @@ export function GetFont({ initialFamily, needed, onAdd, onClose }: GetFontProps)
             type="button"
             disabled={adding || chosen.length === 0}
             onClick={() => void add()}
-            className="h-[34px] w-full rounded-[8px] bg-ui-inverse text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
+            className="h-(--ui-h-field) w-full rounded-ui-md bg-ui-inverse text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
           >
             {adding ? "Adding…" : `Add ${candidate.family} · ${chosen.length} face${chosen.length === 1 ? "" : "s"}`}
           </button>
         </>
       )}
       {message && (
-        <p role="status" className={cn("text-[12px] leading-snug", message.tone === "ok" ? "text-ui-success" : "text-ui-danger")}>
+        <p role="status" className={cn("text-caption leading-snug", message.tone === "ok" ? "text-ui-success" : "text-ui-danger")}>
           {message.text}
         </p>
       )}

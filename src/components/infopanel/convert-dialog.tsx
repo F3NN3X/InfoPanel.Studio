@@ -46,14 +46,14 @@ const titleOf = (id: string) => modules.find((m) => m.id === id)?.title ?? id;
 
 function Report({ rows }: { rows: readonly ReportRow[] }) {
   return (
-    <div className="flex flex-col rounded-[10px] border border-ui-default" aria-label="Conversion report">
-      {rows.length === 0 && <span className="px-3.5 py-2.5 text-[12px] text-ui-4">Nothing was converted.</span>}
+    <div role="list" aria-label="Conversion report" className="flex flex-col rounded-[10px] border border-ui-default">
+      {rows.length === 0 && <span className="px-3.5 py-2.5 text-caption text-ui-4">Nothing was converted.</span>}
       {rows.map((r, i) => (
-        <div key={`${r.name}:${i}`} className="flex flex-col gap-0.5 border-b border-ui-subtle px-3.5 py-2.5 last:border-b-0">
+        <div key={`${r.name}:${i}`} role="listitem" className="flex flex-col gap-0.5 border-b border-ui-subtle px-3.5 py-2.5 last:border-b-0">
           <div className="flex items-baseline gap-3 text-[12.5px]">
             <span className="w-[150px] truncate font-medium text-ui-1">{r.name}</span>
             <span className={cn("w-[110px] text-[11.5px]", r.choice === "not-compatible" ? "text-ui-warning" : "text-ui-3")}>{r.choice === "not-compatible" ? "Not compatible" : CHOICE_LABEL[r.choice]}</span>
-            <span className="flex-1 text-[12px] text-ui-3">{r.outcome}</span>
+            <span className="flex-1 text-caption text-ui-3">{r.outcome}</span>
           </div>
           {r.notes.map((n) => (
             <span key={n} className="ml-[162px] text-[11.5px] text-ui-4">
@@ -117,13 +117,17 @@ function ConvertBody({ scope, profile, zoneId, page, onRemember, onConverted, on
     <>
       <div className="flex items-center border-b border-ui-subtle px-5 py-4">
         <Dialog.Title className="flex-1 text-[15px] font-semibold text-ui-1">{scope === "screen" ? "Convert screen to InfoPanel profile (experimental)" : "Convert widget to InfoPanel (experimental)"}</Dialog.Title>
-        <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+        <Dialog.Close title="Close" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
           <X className="h-5 w-5" />
         </Dialog.Close>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-5 py-[18px]">
         {report ? <Report rows={report} /> : <NativeExportStep rows={rows} choices={choices} onChoose={choose} onSetAll={setAll} />}
-        {error && <p className="text-[12px] text-ui-danger">{error}</p>}
+        {error && (
+          <p role="alert" className="text-caption text-ui-danger">
+            {error}
+          </p>
+        )}
       </div>
       <div className="flex items-center gap-2.5 border-t border-ui-subtle px-5 py-3">
         <span className="text-[11.5px] text-ui-4">{report ? "The converted canvas is on the screen: export it from Export & back up." : "Your choices are remembered for this screen."}</span>

@@ -51,7 +51,7 @@ function PickerBody({
           <button
             type="button"
             onClick={() => onPick("blank")}
-            className="flex h-[30px] w-full items-center gap-2 rounded-md border border-dashed border-[#3a3a44] px-2 text-left text-xs text-ui-3 hover:border-ui-accent hover:text-ui-1"
+            className="flex h-[30px] w-full items-center gap-2 rounded-md border border-dashed border-ui-edge px-2 text-left text-xs text-ui-3 hover:border-ui-accent hover:text-ui-1"
           >
             <SquareDashed className="h-3.5 w-3.5" /> Blank zone — remove the widget
           </button>
@@ -81,7 +81,7 @@ export function WidgetPickerDialog({ placement, onClose, ...body }: WidgetPicker
         <Dialog.Popup
           ref={popupRef}
           initialFocus={() => popupRef.current?.querySelector("input") ?? true}
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[26rem] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-ui-strong bg-ui-raised font-ui text-ui-1 shadow-ui-modal outline-none"
+          className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-ui-strong bg-ui-raised font-ui text-ui-1 shadow-ui-modal outline-none"
         >
           {placement && (
             <>
@@ -94,7 +94,8 @@ export function WidgetPickerDialog({ placement, onClose, ...body }: WidgetPicker
                 </div>
                 <Dialog.Close
                   title="Close"
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1"
+                  aria-label="Close"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1"
                 >
                   <X className="h-4 w-4" />
                 </Dialog.Close>

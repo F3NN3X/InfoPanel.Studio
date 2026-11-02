@@ -31,7 +31,7 @@ test("the breadcrumb has Screen settings… and no sliders button", async ({ pag
 test("Export check is in the command palette on a screen made for InfoPanel only", async ({ page, scratch }) => {
   await openFixture(page, scratch.base, "export");
   await page.keyboard.press("Control+k");
-  await page.getByRole("textbox", { name: "Command" }).fill("export check");
+  await page.getByRole("combobox", { name: "Command" }).fill("export check");
   await expect(page.getByRole("option", { name: /Export check/ })).toBeVisible();
   await shoot(page, "palette");
   await page.keyboard.press("Enter");
@@ -42,7 +42,7 @@ test("Export check is in the command palette on a screen made for InfoPanel only
 test("a screen made for Studio panels has no Export check entry", async ({ page, scratch }) => {
   await openFixture(page, scratch.base, "screen");
   await page.keyboard.press("Control+k");
-  await page.getByRole("textbox", { name: "Command" }).fill("export");
+  await page.getByRole("combobox", { name: "Command" }).fill("export");
   await expect(page.getByRole("option", { name: /Export & back up/ })).toBeVisible();
   await expect(page.getByRole("option", { name: /Export check/ })).toHaveCount(0);
 });

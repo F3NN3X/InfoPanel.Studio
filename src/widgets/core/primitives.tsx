@@ -4,7 +4,7 @@
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { has, clamp, fmt } from "./data";
 import { mix } from "./tokens";
-import { useSkin, STATE, TONES, tone } from "./theme";
+import { useSkin, STATE, TONES, tone, numGlowStyle } from "./theme";
 import { iconFor } from "./icons";
 import type { Tone } from "./types";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,23 @@ export function Icon({ name, className = "", fill }: { name?: string; className?
 
 const SCALES = ["sm", "md", "lg", "xl", "2xl"] as const;
 type Scale = (typeof SCALES)[number];
-const NUM_GLOW: CSSProperties = { color: "color-mix(in oklab, var(--accent) 55%, var(--w-fg))", textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent), 0 0 30px color-mix(in oklab, var(--accent) 50%, transparent)" };
+/** Back to a plain glow for text inside a stroked numeral (a unit, a tone glyph): the outline is sized for the numeral. */
+const SMALL_GLOW: CSSProperties = { WebkitTextStroke: "0", textShadow: "0 0 4px var(--accent)" };
+const NUM_TINT: CSSProperties = { color: "color-mix(in oklab, var(--accent) 55%, var(--w-fg))" };
+const NUM_HALO = "0 0 30px color-mix(in oklab, var(--accent) 50%, transparent)";
+
+/** A small glyph and screen-reader word beside a number whose colour says warn or crit, so the state is not colour alone. Nothing for ok. */
+export function ToneCue({ t, size = "max(8px, 0.45em)" }: { t?: Tone; size?: string }) {
+  const sk = useSkin();
+  const skip = useContext(IpTagCtx) ? { "data-ip-skip": "" } : undefined;
+  if (!t || t === "ok") return null;
+  return (
+    <>
+      <span {...skip} aria-hidden className="mr-[0.2em] inline-block align-middle leading-none" style={{ fontSize: size, ...(sk.numStroke ? SMALL_GLOW : null) }}>{t === "warn" ? "▲" : "✕"}</span>
+      <span {...skip} className="sr-only">{t === "warn" ? "warning: " : "critical: "}</span>
+    </>
+  );
+}
 
 export interface MetricProps {
   label?: ReactNode;
@@ -53,9 +69,10 @@ export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok",
   return (
     <div className={`flex min-w-0 flex-col ${align === "center" ? "items-center text-center" : ""} ${className}`} style={align === "center" ? { alignItems: "var(--wp-x-cross, center)", textAlign: "var(--wp-text-align, center)" as CSSProperties["textAlign"] } : { alignItems: "var(--wp-x-cross, stretch)" }}>
       {label && <span className="max-w-full truncate text-[11px] font-medium text-[color:var(--w-muted)]" style={labelStyle("none")}>{label}</span>}
-      <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey && typeof unit === "string" ? unit : undefined} data-ip-decimals={ipKey ? d : undefined} className={`${px ? "" : big} font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(px ? { fontSize: px } : null), fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow ? NUM_GLOW : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
+      <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey && typeof unit === "string" ? unit : undefined} data-ip-decimals={ipKey ? d : undefined} className={`${px ? "" : big} font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(px ? { fontSize: px } : null), fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow ? { ...NUM_TINT, ...numGlowStyle(sk, NUM_HALO) } : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
+        <ToneCue t={t} />
         {shown}
-        {unit && <span className="ml-0.5 inline-block align-top leading-none text-[0.45em] font-medium text-[color:var(--w-muted)]">{unit}</span>}
+        {unit && <span className="ml-0.5 inline-block align-top leading-none text-[0.45em] font-medium text-[color:var(--w-muted)]" style={sk.numStroke ? SMALL_GLOW : undefined}>{unit}</span>}
       </span>
       {sub && <span className="mt-1 max-w-full truncate text-[11px] text-[color:var(--w-faint)]">{sub}</span>}
     </div>
@@ -115,6 +132,18 @@ export function useIpTag(): (key: string | undefined, extra?: IpTagExtra) => Rec
     if (extra.rows !== undefined) out["data-ip-rows"] = extra.rows;
     return out;
   };
+}
+
+/** A `Bar` with a tick at each of `ticks` (in the bar's own units): where a limit sits against the value. Ticks are decoration; the limits are in the text beside. */
+export function TickBar({ ticks, max = 100, className = "h-1.5", ...bar }: BarProps & { ticks: number[] }) {
+  return (
+    <div className="relative">
+      <Bar max={max} className={className} {...bar} />
+      {ticks.map((at) => (
+        <span key={at} aria-hidden className="absolute -inset-y-[3px] w-0.5 -translate-x-1/2 rounded-full bg-[color:var(--w-fg)] opacity-60" style={{ left: `${clamp((at / max) * 100)}%` }} />
+      ))}
+    </div>
+  );
 }
 
 export function Bar(p: BarProps & { ipKey?: string }) {
@@ -376,6 +405,34 @@ function Braille({ values, lo, hi, className }: { values: number[]; lo: number; 
 /** Where `v` sits in a graph over [lo, hi], in % from the top (a 3 % margin, clamped to 2–98): lines drawn over a Spark line up with it. */
 export const sparkY = (v: number, lo: number, hi: number): number => Math.min(98, Math.max(2, 100 - ((v - lo) / (hi - lo || 1)) * 94 - 3));
 
+/** One marked sample: its index, value, and position in % of the graph (x from the left, y from the top, as `sparkY`). */
+export interface SparkMark {
+  i: number;
+  v: number;
+  x: number;
+  y: number;
+}
+
+/**
+ * The marks a graph over [lo, hi] can carry: the last sample, and the lowest and highest (a tie takes the latest). Non-finite
+ * samples are skipped. `min` / `max` are null when they add nothing: a flat series, or the extreme is the last sample itself.
+ */
+export function sparkMarks(values: readonly number[], lo: number, hi: number): { last: SparkMark | null; min: SparkMark | null; max: SparkMark | null } {
+  const at = (i: number): SparkMark => ({ i, v: values[i], x: values.length > 1 ? (i / (values.length - 1)) * 100 : 100, y: sparkY(values[i], lo, hi) });
+  let last = -1,
+    min = -1,
+    max = -1;
+  values.forEach((v, i) => {
+    if (!Number.isFinite(v)) return;
+    last = i;
+    if (min < 0 || v <= values[min]) min = i;
+    if (max < 0 || v >= values[max]) max = i;
+  });
+  if (last < 0) return { last: null, min: null, max: null };
+  const flat = values[max] - values[min] < 1e-9;
+  return { last: at(last), min: flat || min === last ? null : at(min), max: flat || max === last ? null : at(max) };
+}
+
 /** The line and area paths of a line / area / step graph over [lo, hi]; the points' x runs 0–100. `curve` false: straight segments. */
 function sparkPaths(pts: readonly ScrollPoint[], lo: number, hi: number, step: boolean, curve = true): { line: string; area: string } {
   const P: Pt[] = pts.map(([x, v]) => [x, sparkY(v, lo, hi)]);
@@ -498,6 +555,13 @@ export interface SparkProps {
   graph?: string;
   /** false: straight segments between samples instead of a curve (line / area graphs). */
   curve?: boolean;
+  /**
+   * Off by default. Marks the last sample with a dot and the lowest and highest with their values (a graph over a fixed
+   * range prints its scale instead); `"last"` is the dot alone. Not drawn under braille or a smooth-scrolling graph.
+   */
+  marks?: boolean | "last";
+  /** The text of a mark's value; default the reading to one decimal, none from 100. */
+  format?: (v: number) => string;
 }
 // Graph styles: area · line · step · bars · dots · braille (from the skin, or pass graph=)
 export function Spark(p: SparkProps & { ipKey?: string }) {
@@ -511,7 +575,56 @@ export function Spark(p: SparkProps & { ipKey?: string }) {
   );
 }
 
-function SparkBase({ values = [], min, max, className = "h-10", fill = true, color: own, width = 1.75, graph, curve = true }: SparkProps) {
+/** The scrolling graph (`smoothing: smooth`) draws line / area / step once there is a history to scroll. */
+const scrollsSmooth = (smooth: boolean | undefined, reduced: boolean, mode: string, n: number): boolean => !!smooth && !reduced && (mode === "area" || mode === "line" || mode === "step") && n >= 6;
+
+/** `Spark`, plus the marks over it when asked for (a wrapper only then: the svg stretches, so dots and text are HTML). */
+function SparkBase(p: SparkProps) {
+  const sk = useSkin();
+  const reduced = useReducedMotion();
+  const mode = p.graph ?? sk.graph ?? "area";
+  const values = p.values ?? [];
+  if (!p.marks || values.length < 2 || mode === "braille" || scrollsSmooth(sk.smooth, reduced, mode, values.length)) return <SparkGraph {...p} />;
+  return (
+    <div className={/\b(?:absolute|relative)\b/.test(p.className ?? "") ? p.className : `relative ${p.className ?? "h-10"}`}>
+      <SparkGraph {...p} className="h-full" />
+      <SparkMarks values={values} min={p.min} max={p.max} last={p.marks === "last"} bars={mode === "bars" || mode === "dots"} color={p.color || "var(--accent)"} format={p.format} glow={!!sk.numGlow} />
+    </div>
+  );
+}
+
+/** The last-sample dot, the lowest and highest values (or, over a fixed range, its scale), over a graph's box. Decoration: the reading is in the widget's text. */
+function SparkMarks({ values, min, max, last: lastOnly, bars, color, format, glow }: { values: number[]; min?: number; max?: number; last: boolean; bars: boolean; color: string; format?: (v: number) => string; glow: boolean }) {
+  const [lo, hi] = sparkRange(values, min, max);
+  const m = sparkMarks(values, lo, hi);
+  const text = format ?? ((v: number) => fmt(v, Math.abs(v) >= 100 ? 0 : 1));
+  const label = "absolute whitespace-nowrap text-micro leading-none tabular-nums text-[color:var(--w-faint)]";
+  // a label hangs off its point toward the middle: right-aligned near the right edge, left-aligned near the left
+  const side = (x: number): CSSProperties => (x > 85 ? { right: `${100 - x}%` } : x < 15 ? { left: `${x}%` } : { left: `${x}%`, transform: "translateX(-50%)" });
+  const crowded = !!m.min && !!m.max && Math.abs(m.min.x - m.max.x) < 14 && m.min.y - m.max.y < 45;
+  const fixed = min !== undefined && max !== undefined;
+  return (
+    <>
+      {m.last && (
+        <span aria-hidden className="absolute h-1.5 w-1.5 rounded-full" style={{ left: `${bars ? 100 - 50 / values.length : m.last.x}%`, top: `${m.last.y}%`, transform: "translate(-50%,-50%)", background: color, boxShadow: `0 0 0 2px rgba(0,0,0,.35)${glow ? ", 0 0 6px var(--accent)" : ""}` }} />
+      )}
+      {!lastOnly && fixed && (
+        <>
+          <span aria-hidden className={`${label} right-0 top-0`}>{text(hi)}</span>
+          <span aria-hidden className={`${label} bottom-0 right-0`}>{text(lo)}</span>
+        </>
+      )}
+      {!lastOnly && !fixed && m.max && (
+        <span aria-hidden className={label} style={{ top: `calc(${m.max.y}% + 5px)`, ...side(m.max.x) }}>{text(m.max.v)}</span>
+      )}
+      {!lastOnly && !fixed && m.min && !crowded && (
+        <span aria-hidden className={label} style={{ bottom: `calc(${100 - m.min.y}% + 5px)`, ...side(m.min.x) }}>{text(m.min.v)}</span>
+      )}
+    </>
+  );
+}
+
+function SparkGraph({ values = [], min, max, className = "h-10", fill = true, color: own, width = 1.75, graph, curve = true }: SparkProps) {
   // An unset color setting arrives as "": the accent, as when none is passed.
   const color = own || "var(--accent)";
   const id = `sp${useId().replace(/:/g, "")}`;
@@ -525,7 +638,7 @@ function SparkBase({ values = [], min, max, className = "h-10", fill = true, col
   const step = mode === "step";
   const strokeWidth = (sk.skin === "ink" ? 1 : width) * sk.stroke;
   const showFill = fill && (mode === "area" || step);
-  if (sk.smooth && !reduced && (mode === "area" || mode === "line" || step) && values.length >= 6)
+  if (scrollsSmooth(sk.smooth, reduced, mode, values.length))
     return <SmoothGraph values={values} min={min} max={max} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} glow={glow} curve={curve} className={className} />;
   const Y = (v: number) => sparkY(v, lo, hi);
   const svg = (kids: ReactNode) => (
@@ -553,11 +666,11 @@ export const Dot = ({ ok, className = "" }: { ok?: boolean; className?: string }
   <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${className}`} style={{ background: ok ? "#4ade80" : "#52525b", boxShadow: ok ? "0 0 6px #4ade80" : "none" }} />
 );
 export const Chip = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
-  <span className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md bg-[color:var(--w-track)] px-1.5 py-0.5 text-[10.5px] font-medium text-[color:var(--w-fg)] ${className}`}>{children}</span>
+  <span className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md bg-[color:var(--w-track)] px-1.5 py-0.5 text-micro font-medium text-[color:var(--w-fg)] ${className}`}>{children}</span>
 );
 export const Stat = ({ label, value, className = "", tag }: { label?: ReactNode; value?: ReactNode; className?: string; tag?: Record<string, string | number> }) => (
   <div className={`flex min-w-0 flex-col gap-0.5 ${className}`} style={{ alignItems: "var(--wp-x-cross, stretch)" }}>
-    <span className="max-w-full truncate text-[10.5px] text-[color:var(--w-faint)]" style={labelStyle("none")}>{label}</span>
+    <span className="max-w-full truncate text-micro text-[color:var(--w-faint)]" style={labelStyle("none")}>{label}</span>
     <span {...tag} className="max-w-full truncate text-[13px] font-medium tabular-nums text-[color:var(--w-fg)]">{value}</span>
   </div>
 );
@@ -616,7 +729,7 @@ export function Num({ children, className = "", style, weight = 700, ipKey: key,
   const sk = useSkin();
   const ipKey = useContext(IpTagCtx) ? key : undefined;
   return (
-    <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey ? ipUnit : undefined} data-ip-mul={ipKey ? ipMul : undefined} {...ip} className={`tabular-nums ${className}`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight ?? weight, fontStretch: sk.numStretch, ...(sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null), ...style }}>
+    <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey ? ipUnit : undefined} data-ip-mul={ipKey ? ipMul : undefined} {...ip} className={`tabular-nums ${className}`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight ?? weight, fontStretch: sk.numStretch, ...numGlowStyle(sk), ...style }}>
       {children}
     </span>
   );
@@ -637,7 +750,7 @@ export function Segmented<T extends string>({ value, options, onChange, classNam
   return (
     <span className={`inline-flex rounded-md bg-[color:var(--w-track)] p-[2px] ${className}`}>
       {options.map(([v, l]) => (
-        <button key={v} type="button" onClick={() => onChange?.(v)} className={`whitespace-nowrap rounded px-2 py-0.5 text-[10.5px] ${value === v ? "bg-[color:var(--w-fg)]/[0.12] text-[color:var(--w-fg)]" : "text-[color:var(--w-muted)]"}`}>
+        <button key={v} type="button" onClick={() => onChange?.(v)} className={`whitespace-nowrap rounded px-2 py-0.5 text-micro ${value === v ? "bg-[color:var(--w-fg)]/[0.12] text-[color:var(--w-fg)]" : "text-[color:var(--w-muted)]"}`}>
           {l}
         </button>
       ))}

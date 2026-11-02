@@ -1,6 +1,6 @@
 import { readSystemFlat } from "@/lib/system-metrics";
 import type { ModuleSettings } from "@/modules/types";
-import { StatGrid, Widget, shell, get, num, fmt, Spark, useHistory, hue, hw, Num, stackX, type ShellProps } from "./kit";
+import { roomy, StatGrid, Widget, shell, get, num, fmt, Spark, useHistory, hue, hw, Num, stackX, type ShellProps } from "./kit";
 import { meta } from "./meta/PowerDraw";
 
 export { meta };
@@ -49,7 +49,7 @@ export default function PowerDraw(p: PowerDrawProps) {
               <div className="absolute inset-0 transition-transform duration-700" style={{ ...stackX(0, (cw / budget) * 100), background: "var(--accent)" }} />
               <div className="absolute inset-0 transition-transform duration-700" style={{ ...stackX((cw / budget) * 100, (gw / budget) * 100), background: gpuColor }} />
             </div>
-            {size !== "sm" && !short && <Spark values={hist} min={0} className="min-h-0 flex-1" />}
+            {size !== "sm" && !short && <Spark values={hist} min={0} marks={roomy(w, h)} format={(v) => `${fmt(v, 0)} W`} className="min-h-0 flex-1" />}
             {size === "lg" && !short && (
               <StatGrid
                 cols={3}

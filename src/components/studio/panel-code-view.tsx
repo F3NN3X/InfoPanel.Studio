@@ -64,7 +64,7 @@ export function PanelCodeView({ panel, onApply }: PanelCodeViewProps) {
       />
       {error && <div className="text-[11.5px] text-ui-danger">{error}</div>}
       <div className="flex items-center justify-end gap-2">
-        <span className="mr-auto text-[11px] text-ui-4">Ctrl+Enter to apply · one undo step</span>
+        <span className="mr-auto text-micro text-ui-4">Ctrl+Enter to apply · one undo step</span>
         <button
           type="button"
           onClick={revert}
@@ -77,7 +77,7 @@ export function PanelCodeView({ panel, onApply }: PanelCodeViewProps) {
           type="button"
           onClick={apply}
           disabled={draft === null}
-          className="h-7 rounded-md bg-ui-inverse px-3 text-[12px] font-medium text-ui-inverse-fg disabled:opacity-40"
+          className="h-7 rounded-md bg-ui-inverse px-3 text-caption font-medium text-ui-inverse-fg disabled:opacity-40"
         >
           Apply
         </button>

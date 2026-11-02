@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useGeneral } from "@/hooks/use-general";
 import { useTick } from "@/hooks/use-tick";
-import { breakdownOf, dateLine, phaseOf, targetOf, tickMs, unitWord, type Breakdown, type CountMode } from "@/lib/countdown";
+import { breakdownOf, dateLine, phaseOf, targetOf, tickMs, trimTrailingZeros, unitWord, type Breakdown, type CountMode } from "@/lib/countdown";
 import type { ModuleSettings } from "@/modules/types";
 import { CountdownBodyView, type CountdownView } from "./CountdownViews";
 import { Empty, Widget, shell, type ShellProps } from "./kit";
@@ -48,7 +48,7 @@ export default function Countdown(p: CountdownProps) {
   const mode = p.count ?? "auto";
   const now = useNow((t) => (target ? tickMs(breakdown, phaseOf(new Date(t), target, mode, allDay), Math.abs(target.getTime() - t)) : 60_000), target !== null);
   const phase = target ? phaseOf(now, target, mode, allDay) : "until";
-  const parts = target && phase !== "now" ? breakdownOf(now, target, breakdown) : [];
+  const parts = target && phase !== "now" ? trimTrailingZeros(breakdownOf(now, target, breakdown)) : [];
   const line = target && p.showDate !== false ? dateLine(target, allDay, phase, p.clock ?? "auto", locale) : "";
   const name = p.eventName?.trim() ?? "";
   const first = parts[0];

@@ -40,7 +40,7 @@ export function SensorListField({
   return (
     <StackRow {...label}>
       {keys.length === 0 ? (
-        <span className="text-[11px] text-ui-4">No sensors bound</span>
+        <span className="text-micro text-ui-4">No sensors bound</span>
       ) : (
         <ul className="flex flex-col gap-1">
           {keys.map((key) => {
@@ -51,10 +51,10 @@ export function SensorListField({
               <li key={key} className="rounded-[7px] border border-ui-default bg-ui-app py-1 pl-[9px] pr-1.5">
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12px] text-ui-1">{overrides[key]?.label ?? name}</span>
-                    <span className="block truncate font-ui-mono text-[10.5px] text-ui-4">{key}</span>
+                    <span className="block truncate text-caption text-ui-1">{overrides[key]?.label ?? name}</span>
+                    <span className="block truncate font-ui-mono text-micro text-ui-4">{key}</span>
                   </span>
-                  <span className="shrink-0 font-ui-mono text-[11px] text-ui-4">{liveText(live[key], point) ?? "–"}</span>
+                  <span className="shrink-0 font-ui-mono text-micro text-ui-4">{liveText(live[key], point) ?? "–"}</span>
                   {items && (
                     <button
                       type="button"
@@ -86,7 +86,7 @@ export function SensorListField({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-[11px] text-ui-4 hover:text-ui-1"
+        className="flex items-center gap-1 text-micro text-ui-4 hover:text-ui-1"
       >
         <Plus className="h-3.5 w-3.5" /> Add sensors
       </button>

@@ -25,6 +25,7 @@ describe("onAirKind", () => {
 describe("elapsedText", () => {
   it("counts minutes unless seconds are on", () => {
     expect(elapsedText(5 * 60_000 + 59_000, false)).toBe("5 min");
+    expect(elapsedText(30_000, false)).toBe("Just started");
     expect(elapsedText(3_900_000, false)).toBe("1 h 05 min");
   });
 

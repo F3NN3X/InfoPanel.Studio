@@ -44,6 +44,7 @@ export function LogsSection() {
   const [copied, flash] = useFlag();
   const buffers = useRef(new Map<LogSource, Buffer>());
   const viewer = useRef<HTMLDivElement>(null);
+  const [unreadable, setUnreadable] = useState(false);
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   const found = useFound("logs");
 
@@ -68,8 +69,10 @@ export function LogsSection() {
           lines: pushLines(kept, chunk.lines, buf.nextId),
         });
         redraw();
+        setUnreadable(false);
       } catch {
         // The next poll tries again.
+        if (alive) setUnreadable(true);
       } finally {
         reading = false;
       }
@@ -123,12 +126,12 @@ export function LogsSection() {
               >
                 <span className={cn("h-1.5 w-1.5 rounded-full", c.dot)} />
                 {c.label}
-                <span className="font-mono text-[11px] text-s-dim">{counts[c.value]}</span>
+                <span className="font-mono text-micro text-s-dim">{counts[c.value]}</span>
               </button>
             );
           })}
         </div>
-        <div className="flex h-8 min-w-40 flex-1 items-center gap-1.5 rounded-lg border border-s-track-line bg-[#141418] px-2.5">
+        <div className="flex h-8 min-w-40 flex-1 items-center gap-1.5 rounded-lg border border-s-track-line bg-ui-tile px-2.5">
           <ListFilter className="h-4 w-4 shrink-0 text-s-dim" />
           <input
             value={query}
@@ -141,16 +144,17 @@ export function LogsSection() {
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-xl border border-s-card-line bg-s-well">
-        <div ref={viewer} onScroll={onScroll} className="h-[420px] overflow-auto py-2.5 font-mono text-xs leading-[1.7]" data-testid="log-viewer">
+        {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroller must take focus so the keyboard can scroll it. */}
+        <div ref={viewer} onScroll={onScroll} role="region" aria-label="Log lines" tabIndex={0} className="h-[420px] overflow-auto py-2.5 font-mono text-xs leading-[1.7]" data-testid="log-viewer">
           <div className="w-max min-w-full">
             {visible.map((l) => (
-              <div key={l.id} className="flex gap-3 whitespace-pre px-3.5 hover:bg-[#121215]">
-                <span className="w-[12ch] shrink-0 text-[#4a4a52]">{l.ts}</span>
+              <div key={l.id} className="flex gap-3 whitespace-pre px-3.5 hover:bg-ui-panel">
+                <span className="w-[12ch] shrink-0 text-s-dim">{l.ts}</span>
                 <span className={cn("w-10 shrink-0", LEVEL_TEXT[l.level])}>{l.level.toUpperCase()}</span>
                 <span className={MESSAGE_TEXT[l.level]}>{l.msg}</span>
               </div>
             ))}
-            {visible.length === 0 && <div className="px-3.5 py-6 text-s-faint">No lines match.</div>}
+            {visible.length === 0 && <div className="px-3.5 py-6 text-s-dim">No lines match.</div>}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 border-t border-s-side-line bg-s-side px-2.5 py-2">
@@ -161,13 +165,13 @@ export function LogsSection() {
             onClick={() => setFollow(!follow)}
             className="flex h-7 cursor-pointer items-center gap-2 rounded-[7px] border-0 bg-transparent px-2.5 text-xs text-s-t2"
           >
-            <span className={cn("relative h-4 w-7 rounded-lg", follow ? "bg-s-accent" : "bg-[#2e2e35]")}>
-              <span className={cn("absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform", follow && "translate-x-3")} />
+            <span className={cn("relative h-4 w-7 rounded-lg forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas]", follow ? "bg-s-accent forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-ui-menu")}>
+              <span className={cn("absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform forced-colors:bg-[color:ButtonText]", follow && "translate-x-3 forced-colors:bg-[color:HighlightText]")} />
             </span>
             Follow new lines
           </button>
-          <span className="min-w-0 flex-1 text-[11.5px] text-s-faint">
-            {visible.length} of {buffer.lines.length} lines{settings.debug ? "" : " · debug lines hidden (debug mode off)"}
+          <span className="min-w-0 flex-1 text-[11.5px] text-s-dim">
+            {unreadable ? "Can't read the log. It will keep trying." : `${visible.length} of ${buffer.lines.length} lines${settings.debug ? "" : " · debug lines hidden (debug mode off)"}`}
           </span>
           <Button className="h-7 text-xs" onClick={() => void copy()}>
             {copied ? <Check className="h-[15px] w-[15px]" /> : <Copy className="h-[15px] w-[15px]" />}

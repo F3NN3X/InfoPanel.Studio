@@ -13,6 +13,7 @@ import { deckAct, useStreamDeck, useStreamDeckLink } from "@/lib/streamdeck";
 import { youtubeSignin, youtubeSignout, useYoutubePending } from "@/lib/youtube";
 import { useExtras } from "@/widgets/time-hooks";
 import { useFound } from "../store";
+import { PageState } from "../page-state";
 import { Group } from "../ui";
 
 /** A connection's card; `id` is the row search jumps to. */
@@ -34,6 +35,8 @@ function ConnectionCard({ id, children }: { id: string; children: ReactNode }) {
 export function ConnectionsSection() {
   const [stored, setStored] = useState<PublicIntegrations | null>(null);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [tries, setTries] = useState(0);
   const twitch = useExtras().twitch ?? EMPTY_TWITCH;
   const pending = useTwitchPending(twitch.pending);
   const youtube = useExtras().youtube ?? EMPTY_YOUTUBE;
@@ -42,13 +45,14 @@ export function ConnectionsSection() {
   const streamDeckLink = useStreamDeckLink();
   useEffect(() => {
     let alive = true;
+    setLoadError(null);
     fetchIntegrations()
       .then((s) => alive && setStored(s))
-      .catch((e: Error) => alive && setError(e.message));
+      .catch((e: Error) => alive && setLoadError(e.message));
     return () => {
       alive = false;
     };
-  }, []);
+  }, [tries]);
   const save = async (patch: IntegrationsPatch) => {
     try {
       setStored(await saveIntegrations(patch));
@@ -59,7 +63,7 @@ export function ConnectionsSection() {
       return false;
     }
   };
-  if (!stored) return error ? <p className="m-0 text-[12.5px] text-s-red">{error}</p> : null;
+  if (!stored) return <PageState what="your connections" error={loadError} onRetry={() => setTries((n) => n + 1)} />;
   return (
     <>
       <Group title="OBS">
@@ -107,7 +111,7 @@ export function ConnectionsSection() {
           <CalendarBlock stored={stored.calendar.links} onSave={(links) => save({ calendar: { links } })} />
         </ConnectionCard>
       </Group>
-      {error && <p className="m-0 text-[12.5px] text-s-red">{error}</p>}
+      {error && <p role="alert" className="m-0 text-[12.5px] text-s-red">{error}</p>}
     </>
   );
 }

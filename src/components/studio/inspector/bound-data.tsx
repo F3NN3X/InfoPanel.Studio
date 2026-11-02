@@ -81,17 +81,17 @@ export function BoundData({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <span className="text-[12.5px] font-semibold text-ui-1">Bound data</span>
-        <span className="font-ui-mono text-[11px] text-ui-4">{rows.length}</span>
+        <span className="font-ui-mono text-micro text-ui-4">{rows.length}</span>
         <button
           type="button"
           onClick={openPicker}
-          className="ml-auto flex h-[26px] items-center gap-1 rounded-md border border-ui-strong bg-ui-raised px-[9px] text-[11.5px] text-ui-1 hover:bg-[#1e1e23]"
+          className="ml-auto flex h-[26px] items-center gap-1 rounded-md border border-ui-strong bg-ui-raised px-[9px] text-[11.5px] text-ui-1 hover:bg-ui-subtle"
         >
           <Link2 className="h-[15px] w-[15px]" /> Bind
         </button>
       </div>
       {rows.length === 0 ? (
-        <span className="block text-[12px] text-ui-4">No data bound yet. Bind a value to make this widget live.</span>
+        <span className="block text-caption text-ui-4">No data bound yet. Bind a value to make this widget live.</span>
       ) : (
         <ul className="space-y-2">
           {rows.map(({ key, point, panelWidgetId }) => {
@@ -99,7 +99,7 @@ export function BoundData({
             return (
               <li
                 key={`${panelWidgetId ?? ""}:${key}`}
-                className="flex items-center gap-[9px] rounded-[7px] border border-ui-subtle bg-ui-app py-[7px] pl-2 pr-1.5 hover:border-[#33333a]"
+                className="flex items-center gap-[9px] rounded-[7px] border border-ui-subtle bg-ui-app py-[7px] pl-2 pr-1.5 hover:border-ui-menu"
               >
                 <button
                   type="button"
@@ -109,12 +109,12 @@ export function BoundData({
                 >
                   <TypeIcon type={point?.type ?? "empty"} />
                   <span className="flex min-w-0 flex-1 flex-col gap-px">
-                    <span className="block truncate text-[12px] leading-[15px] text-ui-1">{point?.name ?? key}</span>
-                    <span className="block truncate text-[10.5px] leading-[13px] text-ui-4">{pointPlace(point)}</span>
+                    <span className="block truncate text-caption leading-[15px] text-ui-1">{point?.name ?? key}</span>
+                    <span className="block truncate text-micro leading-[13px] text-ui-4">{pointPlace(point)}</span>
                   </span>
                   <span
                     className={cn(
-                      "max-w-24 shrink-0 truncate font-ui-mono text-[11px] leading-[15px]",
+                      "max-w-24 shrink-0 truncate font-ui-mono text-micro leading-[15px]",
                       value === null ? "text-ui-warning" : "text-ui-2"
                     )}
                   >
@@ -127,7 +127,7 @@ export function BoundData({
                     onClick={() => unbind(key, panelWidgetId)}
                     aria-label={`Unbind ${point?.name ?? key}`}
                     title="Unbind"
-                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[5px] text-ui-4 hover:bg-[#26262c] hover:text-ui-1"
+                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[5px] text-ui-4 hover:bg-ui-default hover:text-ui-1"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

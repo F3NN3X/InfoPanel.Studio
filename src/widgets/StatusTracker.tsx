@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import type { ModuleSettings } from "@/modules/types";
-import { bodyGap, useFitRows, Widget, shell, get, num, fmt, STATE, hw, Pill, type ShellProps } from "./kit";
+import { bodyGap, useFitRows, Widget, shell, get, num, fmt, STATE, hw, Chip, Pill, type ShellProps } from "./kit";
 import { meta } from "./meta/StatusTracker";
 
 export { meta };
@@ -56,12 +56,16 @@ export default function StatusTracker(p: StatusTrackerProps) {
     });
   }
   const okNow = `${tracks.filter((t) => hist.current[t.label]?.at(-1)?.st === "ok").length}/${tracks.length}`;
+  // A track with no reading yet is not failing.
+  const failing = tracks.filter((t) => ["warn", "crit"].includes(hist.current[t.label]?.at(-1)?.st ?? "none")).map((t) => t.label);
+  const okSub = failing.length > 0 ? `${failing.slice(0, 2).join(", ")} not OK` : tracks.some((t) => hist.current[t.label]?.at(-1)?.st === "ok") ? "All OK" : "No data";
   return (
     <Widget
       {...shell(p)}
-      title={p.title ?? `Last ${N} readings`}
+      title={p.title ?? "Status tracker"}
       icon="view_week"
-      compact={(box) => (box.shape === "tile" || box.shape === "column" ? { label: "Status", value: okNow, sub: "OK now", kind: "value", icon: "view_week" } : undefined)}
+      right={<Chip>Last {N} readings</Chip>}
+      compact={(box) => (box.shape === "tile" || box.shape === "column" ? { label: "Status", value: okNow, sub: okSub, kind: "value", icon: "view_week" } : undefined)}
       studio={{
         label: `Last ${N} readings`,
         value: okNow,
@@ -90,7 +94,7 @@ export default function StatusTracker(p: StatusTrackerProps) {
                 <span className="truncate text-[13px]">{t.label}</span>
                 <div className="flex h-6 min-w-0 gap-[2px] overflow-hidden">
                   {(hist.current[t.label] ?? []).slice(-cells).map((c, i) => (
-                    <i key={i} title={`${t.label}: ${c.v}`} className="min-w-0 flex-1 rounded-[2px]" style={{ background: c.st === "none" ? "var(--w-track)" : STATE[c.st] }} />
+                    <i key={i} title={`${t.label}: ${c.v}`} className="min-w-0 flex-1 self-end rounded-[2px]" style={{ background: c.st === "none" ? "var(--w-track)" : STATE[c.st], height: c.st === "warn" ? "66%" : c.st === "crit" ? "33%" : "100%" }} />
                   ))}
                 </div>
               </div>

@@ -54,7 +54,7 @@ describe("surface registry", () => {
 
 describe("textVars", () => {
   it("sets light text on dark surfaces and dark text on light ones", () => {
-    expect(textVars("dark")).toEqual({ "--w-fg": "#f4f4f5", "--w-muted": "#a1a1aa", "--w-faint": "#71717a", "--w-track": "rgba(255,255,255,.07)" });
+    expect(textVars("dark")).toEqual({ "--w-fg": "#f4f4f5", "--w-muted": "#a1a1aa", "--w-faint": "#8a8a94", "--w-track": "rgba(255,255,255,.07)" });
     expect(textVars("light")).toEqual(TEXT_VARS.light);
     expect(TEXT_VARS.light["--w-fg"]).toBe("#18181b");
   });

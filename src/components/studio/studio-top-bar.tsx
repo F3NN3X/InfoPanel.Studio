@@ -53,9 +53,9 @@ interface StudioTopBarProps {
 }
 
 const POPUP =
-  "min-w-52 rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
+  "min-w-52 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
 const ITEM =
-  "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-disabled:text-ui-5 data-highlighted:bg-ui-hover";
+  "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-disabled:text-ui-hint data-highlighted:bg-ui-active data-highlighted:text-ui-1 data-highlighted:shadow-[inset_2px_0_0_var(--ui-accent)]";
 const SEPARATOR = "mx-1 my-1 h-px bg-ui-subtle";
 
 /**
@@ -111,7 +111,7 @@ const FILE_BUTTON =
   "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong px-2.5 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 max-sm:hidden max-[959px]:px-1.5";
 
 /** Undo / redo: #c9c9cf when they can act, #4a4a52 when they cannot. */
-const HISTORY_BUTTON = "text-[#c9c9cf] disabled:text-[#4a4a52] disabled:opacity-100";
+const HISTORY_BUTTON = "text-ui-2 disabled:text-[#4a4a52] disabled:opacity-100";
 
 /** The one Import and one Export button (SPEC §3.1): the Import door and the Export & back up sheet. */
 function FileButton({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) {
@@ -128,7 +128,7 @@ function KindTag({ profile }: { profile: MonitorProfile }) {
   const imported = importedFromInfoPanel(profile);
   const Icon = imported ? Download : Tv;
   return (
-    <span className="flex h-5 shrink-0 items-center gap-1 rounded-[5px] border border-ui-default bg-ui-hover px-1.5 text-[11px] text-ui-3 max-[959px]:hidden">
+    <span className="flex h-5 shrink-0 items-center gap-1 rounded-[5px] border border-ui-default bg-ui-hover px-1.5 text-micro text-ui-3 max-[959px]:hidden">
       <Icon className="h-[13px] w-[13px]" strokeWidth={1.75} />
       {imported ? "Imported from InfoPanel" : "Screen"}
     </span>
@@ -170,7 +170,7 @@ export function StudioTopBar(props: StudioTopBarProps) {
         >
           <Search className="h-4 w-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate text-left max-[959px]:sr-only">Search settings or run a command</span>
-          <kbd className="rounded border border-ui-default px-1.5 font-ui-mono text-[10.5px] text-ui-4 max-[959px]:hidden">{KEYS.palette}</kbd>
+          <kbd className="rounded border border-ui-default px-1.5 font-ui-mono text-micro text-ui-4 max-[959px]:hidden">{KEYS.palette}</kbd>
         </button>
       </div>
       <IconButton
@@ -210,7 +210,7 @@ export function StudioTopBar(props: StudioTopBarProps) {
         className="flex h-7 items-center gap-[7px] whitespace-nowrap rounded-[7px] bg-ui-inverse px-3 text-[12.5px] font-semibold text-ui-inverse-fg transition-opacity hover:opacity-90"
       >
         {!saved && unsaved && (
-          <span className="h-1.5 w-1.5 rounded-full bg-[oklch(0.62_0.17_255)]" aria-label="Unsaved changes" />
+          <span role="img" className="h-1.5 w-1.5 rounded-full bg-[oklch(0.62_0.17_255)]" aria-label="Unsaved changes" />
         )}
         {saved ? "Saved" : "Save"}
       </button>

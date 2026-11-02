@@ -48,7 +48,7 @@ export default function NetworkAdapters(p: NetworkAdaptersProps) {
           <div className="flex min-w-0 items-center gap-2">
             <Icon name="public" className="text-lg text-[color:var(--accent)]" />
             <div className="flex min-w-0 flex-col">
-              <span className="text-[10.5px] text-[color:var(--w-faint)]">Public IP</span>
+              <span className="text-micro text-[color:var(--w-faint)]">Public IP</span>
               <span className={`${size === "xs" ? "text-sm" : "text-base"} truncate font-semibold`}>{ip(pub4)}</span>
             </div>
             {size === "lg" && has(pub6) && <span className="ml-auto truncate text-[11px] text-[color:var(--w-faint)]">{ip(pub6)}</span>}

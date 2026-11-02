@@ -74,18 +74,18 @@ export function ImagePicker({ open, onOpenChange, title, onPick }: ImagePickerPr
                 if (f) void upload(f);
               }}
             />
-            {error && <p className="mb-2 text-[12px] text-ui-danger">{error}</p>}
+            {error && <p className="mb-2 text-caption text-ui-danger">{error}</p>}
             {items === null ? (
-              <p className="py-6 text-center text-[12px] text-ui-4">Loading My library…</p>
+              <p className="py-6 text-center text-caption text-ui-4">Loading My library…</p>
             ) : usable.length === 0 ? (
-              <p className="py-6 text-center text-[12px] text-ui-4">No images in My library yet.</p>
+              <p className="py-6 text-center text-caption text-ui-4">No images in My library yet.</p>
             ) : (
               <ul className="grid grid-cols-4 gap-2">
                 {usable.map((i) => (
                   <li key={i.id}>
                     <button type="button" onClick={() => pick(i)} title={i.name} className="flex w-full flex-col gap-1 rounded-lg border border-ui-default p-1.5 text-left hover:border-ui-strong">
                       <img src={`${ASSETS_URL}/${i.files[0]}`} alt="" className="aspect-square w-full rounded object-contain" />
-                      <span className="truncate text-[11px] text-ui-3">{i.name}</span>
+                      <span className="truncate text-micro text-ui-3">{i.name}</span>
                     </button>
                   </li>
                 ))}

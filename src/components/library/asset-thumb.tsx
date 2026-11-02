@@ -55,7 +55,7 @@ export function useLibraryFont(item: Pick<LibraryItem, "id" | "kind" | "files">)
   return family;
 }
 
-const PLAY: Record<ThumbSize, string> = { sm: "h-[22px] w-[22px]", md: "h-[34px] w-[34px]", lg: "h-[52px] w-[52px]" };
+const PLAY: Record<ThumbSize, string> = { sm: "h-[22px] w-[22px]", md: "h-(--ui-h-field) w-[34px]", lg: "h-[52px] w-[52px]" };
 const AA: Record<ThumbSize, string> = { sm: "text-[18px]", md: "text-[38px]", lg: "text-[72px]" };
 
 const GAUGE_PX: Record<ThumbSize, number> = { sm: 36, md: 96, lg: 180 };
@@ -148,7 +148,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
   const data = useGaugeData(item);
   const spec = data?.vector ?? null;
   const tall = (m.height ?? 0) > (m.width ?? 0) * 1.2;
-  const box = cn("relative flex items-center justify-center overflow-hidden rounded-[8px] bg-[#141418]", className);
+  const box = cn("relative flex items-center justify-center overflow-hidden rounded-ui-md bg-ui-tile", className);
 
   if (broken) {
     return (
@@ -161,7 +161,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
     case "image":
     case "svg":
       return (
-        <div className={cn(box, tall || item.kind === "svg" ? "bg-[#101013]" : "")}>
+        <div className={cn(box, tall || item.kind === "svg" ? "bg-ui-chrome" : "")}>
           {url && (
             <img
               src={url}
@@ -223,7 +223,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
     case "style":
       return (
         <div className={box}>
-          <span className="flex h-[52%] w-[62%] flex-col justify-center gap-1.5 rounded-[8px] border border-white/20 bg-slate-400/15 px-[10%] shadow-[0_8px_20px_rgba(0,0,0,.35)]">
+          <span className="flex h-[52%] w-[62%] flex-col justify-center gap-1.5 rounded-ui-md border border-white/20 bg-slate-400/15 px-[10%] shadow-[0_8px_20px_rgba(0,0,0,.35)]">
             <span className="h-1.5 w-1/2 rounded bg-slate-300/70" />
             <span className="h-1.5 w-3/4 rounded bg-slate-300/40" />
           </span>
@@ -242,7 +242,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
       );
     case "gauge":
       return (
-        <div className={cn(box, "bg-[#111115]")}>
+        <div className={cn(box, "bg-ui-panel")}>
           {live && data ? (
             <LiveGauge data={data} size={GAUGE_PX[size]} />
           ) : spec ? (

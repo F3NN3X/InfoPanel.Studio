@@ -105,7 +105,10 @@ describe("updateCard", () => {
   });
 
   it("an error shows the reason and offers Try again", () => {
-    expect(updateCard(update({ state: "error", error: "offline" }), now)).toMatchObject({ tone: "red", title: "Couldn't check for updates", detail: "offline", primary: { label: "Try again", action: "check" } });
+    expect(updateCard(update({ state: "error", error: "offline" }), now)).toMatchObject({ tone: "red", title: "Couldn't check for updates", detail: "Check your connection, then try again. Details: offline", primary: { label: "Try again", action: "check" } });
+    expect(updateCard(update({ state: "error", failedDuring: "check", version: "1.3.2" }), now)).toMatchObject({ title: "Couldn't check for updates", detail: "Check your connection, then try again." });
+    expect(updateCard(update({ state: "error", failedDuring: "download", version: "1.3.2" }), now)).toMatchObject({ title: "Couldn't download 1.3.2", detail: "Check your connection, then try again." });
+    expect(updateCard(update({ state: "error", failedDuring: "install", version: "1.3.2", error: "denied" }), now)).toMatchObject({ title: "Couldn't install 1.3.2", detail: "Try again. Details: denied" });
   });
 });
 

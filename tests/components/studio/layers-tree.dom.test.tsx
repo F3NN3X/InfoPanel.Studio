@@ -58,9 +58,13 @@ describe("Layers rows", () => {
     expect(within(row("Weather")).queryByTestId("layers-row-status")).toBeNull();
     // Locked shows its lock, hidden dims, the selected group's children tint.
     expect(row("Weather").dataset.locked).toBe("");
-    expect(within(row("Weather")).getByRole("button", { name: "Unlock Weather" }).className).toContain("text-ui-2");
-    expect(row("Clock").className).toContain("opacity-45");
-    expect(within(row("Clock")).getByRole("button", { name: "Show Clock" })).toBeTruthy();
+    expect(row("Weather").querySelector('[data-row-action="lock"]')!.className).toContain("text-ui-2");
+    expect(row("Weather").getAttribute("aria-description")).toBe("Locked");
+    expect(row("Clock").getAttribute("aria-description")).toBe("Hidden");
+    expect(row("Title text").hasAttribute("aria-description")).toBe(false);
+    expect(row("Clock").className).not.toContain("opacity-45");
+    expect(row("Clock").querySelector(".opacity-45")).toBeTruthy();
+    expect(row("Clock").querySelector('[data-row-action="hide"]')!.getAttribute("title")).toBe("Show");
     expect(row("Title text").className).toContain("bg-ui-accent/7");
     expect(row("Overlay").dataset.selected).toBe("");
     // Never a grid size or a pencil.
@@ -96,11 +100,37 @@ describe("Layers rows", () => {
     expect(vi.mocked(h.select).mock.calls).toEqual([["weather", "range", visible], ["weather", "only", visible], ["weather", "toggle", visible]]);
   });
 
+  it("keeps buttons out of the treeitem's accessibility tree (APG tree); the pointer icons still work", () => {
+    render(<LayersTree host={host()} />);
+    for (const r of screen.getAllByTestId("layers-row")) expect(within(r).queryAllByRole("button")).toHaveLength(0);
+    for (const el of row("Overlay").querySelectorAll("button")) expect(el.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("keeps focus on the row when a pointer icon is pressed, names the state, and announces a change", () => {
+    const h = host();
+    const { rerender } = render(<LayersTree host={h} />);
+    for (const el of row("Weather").querySelectorAll("button")) expect(fireEvent.mouseDown(el)).toBe(false);
+    expect(row("Weather").getAttribute("aria-keyshortcuts")).toBe("Control+L Control+H");
+    expect(row("Weather").querySelector(".sr-only")!.textContent).toBe(", Locked");
+    expect(screen.getByTestId("layers-announcement").textContent).toBe("");
+    rerender(<LayersTree host={host({ nodes: NODES.map((n) => (n.id === "weather" ? { ...n, locked: false } : n)) })} />);
+    expect(screen.getByTestId("layers-announcement").textContent).toBe("Weather: unlocked and shown");
+    rerender(<LayersTree host={host({ nodes: NODES.map((n) => (n.id === "weather" ? { ...n, locked: false, hidden: true } : n)) })} />);
+    expect(screen.getByTestId("layers-announcement").textContent).toBe("Weather: hidden");
+  });
+
+  it("opens and closes a group with Right and Left from the row", () => {
+    const h = host({ isOpen: (id) => id !== "overlay" });
+    render(<LayersTree host={h} />);
+    fireEvent.keyDown(row("Overlay"), { key: "ArrowRight" });
+    expect(h.setOpen).toHaveBeenCalledWith(["overlay"], true);
+  });
+
   it("toggles lock and eye, and Collapse all closes every group", () => {
     const h = host();
     render(<LayersTree host={h} />);
-    fireEvent.click(within(row("Accent glow")).getByRole("button", { name: "Lock Accent glow" }));
-    fireEvent.click(within(row("Weather")).getByRole("button", { name: "Hide Weather" }));
+    fireEvent.click(row("Accent glow").querySelector('[data-row-action="lock"]')!);
+    fireEvent.click(row("Weather").querySelector('[data-row-action="hide"]')!);
     fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
     expect(h.setLocked).toHaveBeenCalledWith("glow", true);
     expect(h.setHidden).toHaveBeenCalledWith("weather", true);

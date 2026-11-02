@@ -50,7 +50,7 @@ interface ScreenDetailProps {
   onOpenScreen: (id: string) => void;
 }
 
-const LABEL = "font-ui-mono text-[10px] tracking-[0.06em] text-[#7c7c86]";
+const LABEL = "font-ui-mono text-[10px] tracking-[0.06em] text-ui-hint";
 
 /** A group of the detail panel: a mono caption (and what sits at its end), then its rows. */
 function Group({ id, label, end, children }: { id: string; label: string; end?: ReactNode; children: ReactNode }) {
@@ -125,13 +125,13 @@ export function ScreenDetail({
       <div className="flex items-center gap-2 border-b border-ui-subtle p-3.5">
         <Monitor className="h-[18px] w-[18px] shrink-0 text-ui-3" />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-semibold text-ui-1">{stored.name}</div>
-          <div className="truncate font-ui-mono text-[10.5px] text-ui-4">{screenMeta(stored)}</div>
+          <div className="truncate text-body font-semibold text-ui-1">{stored.name}</div>
+          <div className="truncate font-ui-mono text-micro text-ui-4">{screenMeta(stored)}</div>
         </div>
         <button
           type="button"
           onClick={() => onOpenScreen(stored.id)}
-          className="inline-flex h-7 shrink-0 items-center rounded-[7px] bg-ui-1 px-3 text-[12px] font-semibold text-ui-inverse-fg hover:opacity-90"
+          className="inline-flex h-7 shrink-0 items-center rounded-[7px] bg-ui-1 px-3 text-caption font-semibold text-ui-inverse-fg hover:opacity-90"
         >
           Open
         </button>

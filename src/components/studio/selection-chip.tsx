@@ -50,7 +50,7 @@ export function SelectionChip({
 }: SelectionChipProps) {
   const multi = count > 1;
   return (
-    <div className="flex h-7 items-center gap-0.5 whitespace-nowrap rounded-[6px] bg-ui-accent px-1 font-ui text-[13px] font-bold text-ui-inverse-fg">
+    <div className="flex h-7 items-center gap-0.5 whitespace-nowrap rounded-ui-sm bg-ui-accent px-1 font-ui text-body font-bold text-ui-inverse-fg">
       {multi ? (
         <span className="px-1.5">{count} selected</span>
       ) : (
@@ -80,11 +80,11 @@ export function SelectionChip({
       <button
         type="button"
         onClick={onToggleVisible}
-        title={`${anyVisible ? "Hide" : "Show"} (${KEYS.hide})`}
-        aria-label={anyVisible ? "Hide" : "Show"}
+        title={`${anyVisible ? "Hide" : "Show"} ${multi ? "widgets" : "widget"} (${KEYS.hide})`}
+        aria-label={`${anyVisible ? "Hide" : "Show"} ${multi ? "widgets" : "widget"}`}
         className={cn(CHIP_BUTTON, "w-6")}
       >
-        {anyVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+        {anyVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
       </button>
       <button
         type="button"

@@ -81,7 +81,7 @@ export function SavedCard({ item, api, action, detail, renamable, onOpen }: Save
     >
       {removing ? (
         <>
-          <span className="min-w-0 flex-1 truncate px-1.5 text-[12px] text-ui-3">Remove from the Library?</span>
+          <span className="min-w-0 flex-1 truncate px-1.5 text-caption text-ui-3">Remove from the Library?</span>
           <button type="button" onClick={() => void api.remove(item)} className={`${CARD_BUTTON} text-ui-danger`}>
             Remove
           </button>

@@ -13,7 +13,7 @@ select {
 }
 
 select::picker-icon {
-  color: #85858f;
+  color: var(--color-s-muted);
   font-size: 10px;
 }
 
@@ -25,10 +25,10 @@ select:open::picker-icon {
   margin-block: 4px;
   max-height: min(360px, 60vh);
   padding: 4px;
-  border: 1px solid #2e2e35;
+  border: 1px solid var(--color-s-menu-line);
   border-radius: 9px;
-  background: #17171b;
-  color: #c9c9cf;
+  background: var(--color-s-menu);
+  color: var(--color-s-t2);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
   font-size: 12.5px;
 }
@@ -48,12 +48,13 @@ select option {
 
 select option:hover,
 select option:focus-visible {
-  background: #1f1f25;
-  color: #ededf0;
+  background: var(--color-s-hover);
+  color: var(--color-s-t1);
+  box-shadow: inset 2px 0 0 var(--color-s-accent, currentColor);
 }
 
 select option:checked {
-  color: #ededf0;
+  color: var(--color-s-t1);
   font-weight: 500;
 }
 
@@ -64,12 +65,12 @@ select option::checkmark {
 }
 
 select option:disabled {
-  color: #55555e;
+  color: var(--color-s-faint);
 }
 
 select optgroup {
   padding-top: 4px;
-  color: #6f6f79;
+  color: var(--color-s-dim);
   font-size: 11px;
   font-weight: 500;
 }

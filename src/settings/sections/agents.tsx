@@ -10,9 +10,9 @@ const AGENT_NAMES: Record<AgentName, string> = { claude: "Claude Code", codex: "
 
 const CHIPS: Record<HookState, { label: string; className: string }> = {
   installed: { label: "Hooks installed", className: "bg-s-green/14 text-[oklch(0.84_0.14_150)]" },
-  not_connected: { label: "Not connected", className: "bg-[#1f1f24] text-s-muted" },
+  not_connected: { label: "Not connected", className: "bg-ui-subtle text-s-muted" },
   needs_repair: { label: "Needs repair", className: "bg-s-amber/14 text-s-amber" },
-  not_found: { label: "Agent not found", className: "bg-[#1f1f24] text-s-muted" },
+  not_found: { label: "Agent not found", className: "bg-ui-subtle text-s-muted" },
 };
 
 /** Why an install or removal failed, for the error toast. */
@@ -29,9 +29,9 @@ function AgentFile({ item }: { item: AgentStatus }) {
   const found = useFound(`agent-${item.agent}`);
   const chip = CHIPS[item.status];
   return (
-    <div ref={found.ref} className={cn("flex flex-wrap items-center gap-3 rounded-[9px] border border-s-divider bg-s-side px-3 py-2.5", found.className)}>
-      <span className="w-24 text-[13px] font-medium">{AGENT_NAMES[item.agent]}</span>
-      <span className="min-w-40 flex-1 break-all font-mono text-xs text-[#9696a0]">{item.path}</span>
+    <div ref={found.ref} className={cn("flex flex-wrap items-center gap-3 rounded-ui-menu border border-s-divider bg-s-side px-3 py-2.5", found.className)}>
+      <span className="w-24 text-body font-medium">{AGENT_NAMES[item.agent]}</span>
+      <span className="min-w-40 flex-1 break-all font-mono text-xs text-ui-3">{item.path}</span>
       <span className={cn("rounded-[10px] px-2 py-0.5 text-[11.5px]", chip.className)}>{chip.label}</span>
     </div>
   );
@@ -83,7 +83,7 @@ export function AgentsSection() {
   return (
     <div className="overflow-hidden rounded-xl border border-s-card-line bg-s-card">
       <div ref={found.ref} className={cn("flex items-center gap-4 px-[18px] py-4", found.className)}>
-        <div className="grid h-9 w-9 place-items-center rounded-[9px] bg-[#1a1a1f] text-s-t2">
+        <div className="grid h-9 w-9 place-items-center rounded-ui-menu bg-ui-hover text-s-t2">
           <Terminal className="h-5 w-5" />
         </div>
         <div className="flex flex-1 flex-col gap-[3px]">

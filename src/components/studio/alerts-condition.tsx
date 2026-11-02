@@ -84,7 +84,7 @@ export function AlertCondition({ condition, position, onEdit, onOpenSources }: A
         onChange={(key) => onEdit("key", (c) => ({ ...c, key: key ?? "" }))}
         onOpenExplorer={onOpenSources}
       />
-      {condition.key === "" && <div className="text-[11px] text-ui-warning">Pick a sensor to watch.</div>}
+      {condition.key === "" && <div className="text-micro text-ui-warning">Pick a sensor to watch.</div>}
       <SelectRow
         label="Condition"
         value={condition.op}

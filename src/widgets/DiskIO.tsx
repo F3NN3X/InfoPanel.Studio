@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, hue, get, num, fmt, fmtRate, diskShort, Spark, useHistory, slideX, stackX, hw, type ShellProps } from "./kit";
+import { roomy, useFitRows, Widget, shell, hue, get, num, fmt, fmtRate, diskShort, Spark, useHistory, slideX, stackX, hw, type ShellProps } from "./kit";
 import { meta } from "./meta/DiskIO";
 
 export { meta };
@@ -81,7 +81,7 @@ export default function DiskIO(p: DiskIOProps) {
                 ))}
               </div>
             ))}
-            {showHistory && size !== "sm" && <Spark values={hist} min={0} color={rc} className="mt-auto min-h-[28px] flex-1" />}
+            {showHistory && size !== "sm" && <Spark values={hist} min={0} color={rc} marks={roomy(w, h)} format={fmtRate} className="mt-auto min-h-[28px] flex-1" />}
           </div>
         )
       }

@@ -40,7 +40,7 @@ export function Rich({ text }: { text: string }) {
               {part.slice(2, -2)}
             </b>
           ) : part.startsWith("`") ? (
-            <code key={i} className="font-ui-mono text-[11px] text-ui-2">
+            <code key={i} className="font-ui-mono text-micro text-ui-2">
               {part.slice(1, -1)}
             </code>
           ) : (
@@ -59,8 +59,8 @@ const STATUS_ICON: Record<"ok" | "warn" | "fail" | "skip" | "waiting", { icon: L
   ok: { icon: CircleCheck, className: "text-ui-success", label: "Passed" },
   warn: { icon: TriangleAlert, className: "text-ui-warning", label: "Warning" },
   fail: { icon: CircleX, className: "text-ui-danger", label: "Failed" },
-  skip: { icon: CircleMinus, className: "text-[#55555e]", label: "Skipped" },
-  waiting: { icon: Circle, className: "text-[#3a3a42]", label: "Waiting" },
+  skip: { icon: CircleMinus, className: "text-ui-disabled", label: "Skipped" },
+  waiting: { icon: Circle, className: "text-ui-edge", label: "Waiting" },
 };
 
 export function StatusIcon({ status }: { status: CheckResult["status"] }) {
@@ -74,7 +74,7 @@ const CHIPS_SHOWN = 6;
 const CHIP_ICON: Record<Chip["icon"], LucideIcon> = { hwinfo: Thermometer, system: Cpu, network: Network, media: Music, plugin: Puzzle };
 const ACTION_ICON: Partial<Record<CheckAction["kind"], LucideIcon>> = { start: Play, show: ExternalLink, restart: RotateCcw };
 
-const BUTTON = "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[7px] border px-2.5 text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60";
+const BUTTON = "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[7px] border px-2.5 text-caption outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60";
 export const PRIMARY_BUTTON = cn(BUTTON, "border-ui-accent bg-ui-accent font-semibold text-ui-inverse-fg hover:opacity-90");
 export const OUTLINE_BUTTON = cn(BUTTON, "border-ui-strong bg-ui-raised text-ui-1 hover:bg-ui-hover");
 
@@ -114,7 +114,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
   const line = status === "checking" ? checkingLine(id, address, elapsed * 1000) : status === "waiting" ? "Waiting" : result.result;
   const again: CheckAction = { kind: "default", label: "Check again" };
   return (
-    <li className={cn("list-none", !first && "border-t border-[#1c1c21]", status === "fail" && "bg-[oklch(0.6_0.15_25/0.05)]")}>
+    <li className={cn("list-none", !first && "border-t border-s-divider", status === "fail" && "bg-[oklch(0.6_0.15_25/0.05)]")}>
       <div
         className={cn("flex items-start gap-2.5 px-3 py-2.5", more && "cursor-pointer")}
         onClick={(e) => {
@@ -129,7 +129,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
           <div className="flex items-center gap-1.5">
             <span className={cn("text-[12.5px] font-medium", status === "skip" || status === "waiting" ? "text-ui-3" : "text-ui-1")}>{title}</span>
             {fixed && status === "ok" && <span className="rounded-[4px] bg-ui-success/15 px-[5px] py-px text-[10px] text-ui-success">Fixed</span>}
-            {status === "checking" && elapsed >= 1 && <span className="font-ui-mono text-[10.5px] text-ui-4">{elapsed} s</span>}
+            {status === "checking" && elapsed >= 1 && <span className="font-ui-mono text-micro text-ui-4">{elapsed} s</span>}
           </div>
           <span
             className={cn(
@@ -147,22 +147,22 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
                 return (
                   <span
                     key={c.name}
-                    className={cn("inline-flex h-[22px] items-center gap-1.5 rounded-[6px] border bg-[#121215] px-2 text-[11px]", zero ? "border-ui-warning/40 text-ui-warning" : "border-ui-strong text-[#c8c8ce]")}
+                    className={cn("inline-flex h-[22px] items-center gap-1.5 rounded-ui-sm border bg-ui-panel px-2 text-micro", zero ? "border-ui-warning/40 text-ui-warning" : "border-ui-strong text-ui-2")}
                   >
                     <Icon className={cn("h-3 w-3", zero ? "text-ui-warning" : "text-ui-3")} />
                     {c.name}
-                    <span className={cn("font-ui-mono text-[10.5px]", zero ? "text-ui-warning" : "text-ui-3")}>{c.count}</span>
+                    <span className={cn("font-ui-mono text-micro", zero ? "text-ui-warning" : "text-ui-3")}>{c.count}</span>
                   </span>
                 );
               })}
               {result.chips.length > CHIPS_SHOWN && (
-                <span className="inline-flex h-[22px] items-center rounded-[6px] border border-ui-strong bg-[#121215] px-2 text-[11px] text-ui-3">
+                <span className="inline-flex h-[22px] items-center rounded-ui-sm border border-ui-strong bg-ui-panel px-2 text-micro text-ui-3">
                   {result.chips.length - CHIPS_SHOWN} more
                 </span>
               )}
             </div>
           )}
-          {result.sample && <span className="mt-0.5 font-ui-mono text-[10.5px] text-ui-3">{result.sample}</span>}
+          {result.sample && <span className="mt-0.5 font-ui-mono text-micro text-ui-3">{result.sample}</span>}
         </div>
         {rich && !open && !narrow && actions[0] && <ActionButton small primary action={actions[0]} onClick={() => onAction(id, actions[0])} />}
         {more && (
@@ -171,7 +171,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
             aria-expanded={open}
             aria-label={`${open ? "Hide" : "Show"} details: ${title}`}
             onClick={() => setToggled(!open)}
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] text-ui-3 outline-none hover:bg-ui-hover hover:text-ui-1 focus-visible:ring-2 focus-visible:ring-ui-accent/60"
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-ui-sm text-ui-3 outline-none hover:bg-ui-hover hover:text-ui-1 focus-visible:ring-2 focus-visible:ring-ui-accent/60"
           >
             {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
@@ -186,11 +186,11 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
           )}
           {result.steps && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] text-ui-4">How to fix it</span>
+              <span className="text-micro text-ui-4">How to fix it</span>
               <ol className="m-0 flex list-none flex-col gap-1.5 p-0">
                 {result.steps.map((s, i) => (
-                  <li key={s} className="flex items-start gap-2 text-[12px] leading-[1.5] text-ui-2">
-                    <span className="mt-px grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-ui-raised font-ui-mono text-[10.5px] text-ui-3">{i + 1}</span>
+                  <li key={s} className="flex items-start gap-2 text-caption leading-[1.5] text-ui-2">
+                    <span className="mt-px grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-ui-raised font-ui-mono text-micro text-ui-3">{i + 1}</span>
                     <span>
                       <Rich text={s} />
                     </span>
@@ -223,7 +223,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
               ))}
               <ActionButton action={again} primary={actions.length === 0} onClick={() => onAgain(id)} />
               {result.help && (
-                <button type="button" onClick={() => result.help && onHelp(result.help)} className="rounded-sm text-[12px] text-ui-accent-text hover:underline">
+                <button type="button" onClick={() => result.help && onHelp(result.help)} className="rounded-sm text-caption text-ui-accent-text hover:underline">
                   Help: {result.help.label} ↗
                 </button>
               )}
@@ -239,10 +239,10 @@ export function CheckGroup({ title, note, children }: { title: string; note: str
   return (
     <section aria-label={title} className="flex flex-col gap-1.5">
       <div className="flex items-baseline gap-2">
-        <h2 className="m-0 text-[12px] font-medium text-ui-1">{title}</h2>
-        <span className="text-[11px] text-ui-4">{note}</span>
+        <h2 className="m-0 text-caption font-medium text-ui-1">{title}</h2>
+        <span className="text-micro text-ui-4">{note}</span>
       </div>
-      <ul className="m-0 overflow-hidden rounded-[9px] border border-ui-subtle bg-ui-panel p-0">{children}</ul>
+      <ul className="m-0 overflow-hidden rounded-ui-menu border border-ui-subtle bg-ui-panel p-0">{children}</ul>
     </section>
   );
 }
@@ -271,10 +271,10 @@ export function AddressBar({ mode, address, invalid, onMode, onAddress, onDefaul
     (e.currentTarget.parentElement?.querySelector(`[data-mode="${next}"]`) as HTMLElement | null)?.focus();
   };
   return (
-    <div className="flex flex-col gap-2.5 rounded-[9px] border border-ui-subtle bg-ui-panel p-3">
+    <div className="flex flex-col gap-2.5 rounded-ui-menu border border-ui-subtle bg-ui-panel p-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <span className="w-[118px] shrink-0 text-[12px] text-ui-2">InfoPanel runs on</span>
-        <div role="radiogroup" aria-label="InfoPanel runs on" className="flex rounded-[8px] border border-ui-subtle bg-ui-app p-0.5">
+        <span className="w-[118px] shrink-0 text-caption text-ui-2">InfoPanel runs on</span>
+        <div role="radiogroup" aria-label="InfoPanel runs on" className="flex rounded-ui-md border border-ui-subtle bg-ui-app p-0.5">
           {modes.map((m) => (
             <button
               key={m.value}
@@ -286,7 +286,7 @@ export function AddressBar({ mode, address, invalid, onMode, onAddress, onDefaul
               onKeyDown={move}
               onClick={() => onMode(m.value)}
               className={cn(
-                "flex h-[26px] items-center gap-1.5 rounded-[6px] px-2.5 text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
+                "flex h-[26px] items-center gap-1.5 rounded-ui-sm px-2.5 text-caption outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
                 mode === m.value ? "bg-ui-raised font-medium text-ui-1" : "text-ui-3 hover:text-ui-1",
               )}
             >
@@ -295,10 +295,10 @@ export function AddressBar({ mode, address, invalid, onMode, onAddress, onDefaul
             </button>
           ))}
         </div>
-        <span className="text-[11px] text-ui-4">{mode === "local" ? "Studio can also read InfoPanel’s settings" : "Only the connection checks run"}</span>
+        <span className="text-micro text-ui-4">{mode === "local" ? "Studio can also read InfoPanel’s settings" : "Only the connection checks run"}</span>
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <label htmlFor="first-run-address" className="w-[118px] shrink-0 text-[12px] text-ui-2">
+        <label htmlFor="first-run-address" className="w-[118px] shrink-0 text-caption text-ui-2">
           Data API address
         </label>
         <div className={cn("flex h-[30px] min-w-0 max-w-[380px] flex-1 items-center gap-2 rounded-[7px] border bg-ui-app px-2.5", invalid ? "border-[#b54848]" : "border-ui-default focus-within:border-ui-accent")}>
@@ -311,11 +311,11 @@ export function AddressBar({ mode, address, invalid, onMode, onAddress, onDefaul
             aria-invalid={invalid}
             placeholder="http://192.168.1.40:3921"
             onChange={(e) => onAddress(e.target.value)}
-            className="h-full min-w-0 flex-1 bg-transparent font-ui-mono text-[12px] text-ui-1 outline-none placeholder:text-ui-5 focus-visible:shadow-none"
+            className="h-full min-w-0 flex-1 bg-transparent font-ui-mono text-caption text-ui-1 outline-none placeholder:text-ui-hint focus-visible:shadow-none"
           />
         </div>
         {!isDefault && (
-          <button type="button" onClick={onDefault} className="rounded-sm text-[12px] text-ui-accent-text hover:underline">
+          <button type="button" onClick={onDefault} className="rounded-sm text-caption text-ui-accent-text hover:underline">
             Use default
           </button>
         )}
@@ -333,8 +333,8 @@ interface KioskCardProps {
 
 export function KioskCard({ url, local, onCopy, onOpen }: KioskCardProps) {
   return (
-    <div className="flex items-start gap-4 rounded-[9px] border border-ui-subtle bg-ui-panel p-3 max-sm:flex-col">
-      <div className="shrink-0 rounded-[6px] bg-white p-1.5">
+    <div className="flex items-start gap-4 rounded-ui-menu border border-ui-subtle bg-ui-panel p-3 max-sm:flex-col">
+      <div className="shrink-0 rounded-ui-sm bg-white p-1.5">
         <QrCode text={url} size={80} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -353,7 +353,7 @@ export function KioskCard({ url, local, onCopy, onOpen }: KioskCardProps) {
             Open in browser
           </button>
         </div>
-        <span className="text-[11px] text-ui-4">On this PC: {local}</span>
+        <span className="text-micro text-ui-4">On this PC: {local}</span>
       </div>
     </div>
   );

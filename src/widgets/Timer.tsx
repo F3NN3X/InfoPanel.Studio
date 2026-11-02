@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from "react";
 import type { ModuleSettings } from "@/modules/types";
 import { clockOf, leftOf, timer, type TimerState } from "@/lib/timer";
-import { Widget, shell, Num, Bar, Icon, type ShellProps } from "./kit";
+import { useNow } from "./time-hooks";
+import { Widget, shell, Num, Bar, Icon, roomy, type ShellProps } from "./kit";
 import { meta } from "./meta/Timer";
 
 export { meta };
@@ -17,10 +18,16 @@ export interface TimerProps extends ShellProps {
 }
 
 const BTN =
-  "flex h-7 min-w-0 shrink-0 items-center justify-center gap-1 rounded-full border border-[color:var(--w-track)] px-2.5 text-[12px] font-semibold tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
+  "flex h-10 max-h-full min-w-0 shrink-0 items-center justify-center gap-1 rounded-full border border-[color:var(--w-track)] px-2.5 text-[12px] font-semibold tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
+/** A preset tile at 4x4: a touch target, not a chip. */
+const TILE =
+  "flex h-[100px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[color:var(--w-track)] px-2 tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
 /** A preset button's width with its gap, px (a "25m" chip). */
 const CHIP_W = 52;
-const ROW_H = 34;
+const ROW_H = 46;
+
+/** "14:32": the clock time `minutes` from the minute `at` (minutes since the epoch). */
+const endsAt = (at: number, minutes: number): string => new Date((at + minutes) * 60_000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 const useTimer = (): TimerState => useSyncExternalStore(timer.subscribe, timer.getState, timer.getState);
 
@@ -32,6 +39,12 @@ export function presetsThatFit(count: number, w: number, h: number): number {
   return Math.min(count, perRow * rows);
 }
 
+/** The running clock's font size, px: what the box leaves under the Pause / Stop row (a button row and its gap are `ROW_H`) and the caption and bar. */
+export function runningClockPx(size: string, w: number, h: number): number {
+  const tiny = size === "xs" || h < 70;
+  return Math.max(18, Math.min(tiny ? 26 : size === "sm" ? 34 : roomy(w, h) ? 96 : 56, (w - 8) / 4.2, h - (tiny ? ROW_H : ROW_H + 30)));
+}
+
 export default function Timer(p: TimerProps) {
   const t = useTimer();
   const presets = p.presets?.length ? p.presets : [5, 15, 25];
@@ -39,6 +52,7 @@ export default function Timer(p: TimerProps) {
   const brk = p.breakMin ?? 5;
   const left = leftOf(t);
   const pct = t.active && t.durationMs > 0 ? (1 - left / t.durationMs) * 100 : 0;
+  const minute = Math.floor(useNow(60_000, !t.active) / 60_000);
   const caption = t.paused ? "Paused" : t.pomodoro ? `${t.label} · round ${t.pomodoro.round + 1}` : t.label || "Timer";
   return (
     <Widget {...shell(p)} title={p.title ?? "Timer"} icon="timer" showHeader={p.showHeader}>
@@ -46,12 +60,40 @@ export default function Timer(p: TimerProps) {
         if (!t.active) {
           const buttons = [...presets.map((m) => ({ key: `m${m}`, label: `${m}m`, run: () => timer.dispatch({ type: "start", minutes: m, label: `${m} min` }) }))];
           if (p.pomodoro) buttons.push({ key: "pomo", label: "Pomodoro", run: () => timer.dispatch({ type: "pomodoro", focusMin: focus, breakMin: brk }) });
+          if (roomy(w, h)) {
+            // 4x4: touch-sized tiles, two across, each with its end time (and the pomodoro its focus / break lengths)
+            const tiles = buttons.slice(0, 2 * Math.max(1, Math.floor((h + 8) / 108)));
+            return (
+              <div className="flex h-full flex-col justify-center gap-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {tiles.map((b, i) => (
+                    <button key={b.key} type="button" aria-label={b.key === "pomo" ? "Start pomodoro" : `Start ${b.key.slice(1)} minute timer`} className={i === tiles.length - 1 && tiles.length % 2 ? `${TILE} col-span-2` : TILE} onClick={b.run}>
+                      {b.key === "pomo" ? (
+                        <>
+                          <span className="text-lg font-semibold">Pomodoro</span>
+                          <span className="text-micro font-normal text-[color:var(--w-muted)]">{focus} focus / {brk} break</span>
+                          <span className="text-micro font-normal text-[color:var(--w-faint)]">ends {endsAt(minute, focus)}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Num className="text-4xl font-semibold leading-none">{b.key.slice(1)}</Num>
+                          <span className="text-micro font-normal text-[color:var(--w-muted)]">min</span>
+                          <span className="text-micro font-normal text-[color:var(--w-faint)]">ends {endsAt(minute, Number(b.key.slice(1)))}</span>
+                        </>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {t.finished && <span className="truncate text-center text-xs text-[color:var(--w-muted)]">{t.finished.label ? `${t.finished.label} done` : "Done"}</span>}
+              </div>
+            );
+          }
           // The pomodoro chip is about two presets wide.
           const fit = presetsThatFit(buttons.length + (p.pomodoro ? 1 : 0), w, h) - (p.pomodoro ? 1 : 0);
           return (
             <div className="flex h-full flex-wrap content-center items-center justify-center gap-1.5">
               {buttons.slice(0, Math.max(1, fit)).map((b) => (
-                <button key={b.key} type="button" className={BTN} onClick={b.run}>
+                <button key={b.key} type="button" aria-label={b.key === "pomo" ? "Start pomodoro" : `Start ${b.key.slice(1)} minute timer`} className={BTN} onClick={b.run}>
                   {b.label}
                 </button>
               ))}
@@ -59,7 +101,8 @@ export default function Timer(p: TimerProps) {
           );
         }
         const tiny = size === "xs" || h < 70;
-        const px = Math.max(18, Math.min(tiny ? 26 : size === "sm" ? 34 : 56, (w - 8) / 4.2, h - (tiny ? 34 : 64)));
+        const px = runningClockPx(size, w, h);
+        const big = !tiny && roomy(w, h);
         return (
           <div className="flex h-full min-w-0 flex-col items-center justify-center gap-1.5">
             {!tiny && <span className="max-w-full truncate text-[11px] text-[color:var(--w-muted)]">{caption}</span>}
@@ -67,8 +110,20 @@ export default function Timer(p: TimerProps) {
               {clockOf(left)}
             </Num>
             {!tiny && (
-              <div className="w-full max-w-[220px]">
+              <div className={`w-full ${big ? "" : "max-w-[220px]"}`}>
                 <Bar value={pct} className="h-1" />
+              </div>
+            )}
+            {big && (
+              <div className="flex items-center gap-3 text-xs text-[color:var(--w-muted)]">
+                {!t.paused && <span className="tabular-nums">ends {endsAt(Math.floor(t.endsAt / 60_000), 0)}</span>}
+                {t.pomodoro && (
+                  <span className="flex gap-1" aria-hidden>
+                    {Array.from({ length: Math.max(4, t.pomodoro.round + 1) }, (_, i) => (
+                      <i key={i} className="h-2 w-2 rounded-full" style={{ background: i < t.pomodoro!.round ? "var(--accent)" : "var(--w-track)", outline: i === t.pomodoro!.round && t.phase === "focus" ? "1px solid var(--accent)" : undefined }} />
+                    ))}
+                  </span>
+                )}
               </div>
             )}
             <div className="flex gap-1.5">

@@ -110,7 +110,7 @@ function LevelLine({ name, level, spec, free, text, fallback, onChange }: LevelL
           className="m-0 h-4 min-w-0 flex-1 cursor-pointer accent-[var(--ui-accent)] disabled:cursor-default disabled:opacity-40"
         />
       )}
-      <span className="min-w-[46px] text-right font-ui-mono text-[11px] text-ui-1">{text}</span>
+      <span className="min-w-[46px] text-right font-ui-mono text-micro text-ui-1">{text}</span>
       <button
         type="button"
         aria-pressed={off}
@@ -118,8 +118,8 @@ function LevelLine({ name, level, spec, free, text, fallback, onChange }: LevelL
         title={off ? `Turn ${name.toLowerCase()} on` : `Turn ${name.toLowerCase()} off`}
         onClick={() => onChange(off ? fallback : OFF)}
         className={cn(
-          "h-6 shrink-0 rounded-md border px-2 text-[11px] transition-colors",
-          off ? "border-[#3a3a44] bg-ui-active text-ui-1" : "border-ui-strong text-ui-3 hover:text-ui-1"
+          "h-6 shrink-0 rounded-md border px-2 text-micro transition-colors",
+          off ? "border-ui-edge bg-ui-active text-ui-1" : "border-ui-strong text-ui-3 hover:text-ui-1"
         )}
       >
         Off

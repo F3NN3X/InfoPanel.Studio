@@ -58,7 +58,7 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
       setStatus({ state: "idle" });
       onChange(asset.url);
     } catch (err) {
-      setStatus({ state: "error", message: err instanceof AssetError ? err.message : "The upload failed." });
+      setStatus({ state: "error", message: err instanceof AssetError ? err.message : "The upload failed. Try again." });
     }
   };
 
@@ -122,7 +122,7 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
             disabled={busy}
             onClick={() => fileInput.current?.click()}
             title={`Upload ${kind === "image" ? "an image" : "a video"} to the dashboard server (or drop a file here)`}
-            className="flex h-[30px] shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-ui-strong bg-ui-hover px-[9px] text-[11.5px] text-ui-1 hover:bg-[#222228] disabled:opacity-50"
+            className="flex h-[30px] shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-ui-strong bg-ui-hover px-[9px] text-[11.5px] text-ui-1 hover:bg-ui-default disabled:opacity-50"
           >
             <Upload className="h-[15px] w-[15px]" /> Upload
           </button>
@@ -134,14 +134,18 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
             )}
           </span>
         </div>
-        {!valid && <div className="mt-1 text-[11px] text-ui-danger">Use an http(s) URL or a path such as /assets/…</div>}
+        {!valid && <div className="mt-1 text-micro text-ui-danger">Use an http(s) URL or a path such as /assets/…</div>}
         {status.state === "uploading" && (
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-ui-4">
+          <div className="mt-1 flex items-center gap-1.5 text-micro text-ui-4">
             <Loader2 className="h-3 w-3 animate-spin" />
             Uploading {status.name} ({formatBytes(status.size)})…
           </div>
         )}
-        {status.state === "error" && <div className="mt-1 text-[11px] text-ui-danger">{status.message}</div>}
+        {status.state === "error" && (
+          <div role="alert" className="mt-1 text-micro text-ui-danger">
+            {status.message}
+          </div>
+        )}
       </div>
       {preview === "large" && value && <LargePreview kind={kind} src={value} fill={fill} />}
     </div>
@@ -170,7 +174,7 @@ function LargePreview({ kind, src, fill }: { kind: AssetKind; src: string; fill:
       style={{ backgroundColor: fill }}
     >
       {broken ? (
-        <span className="text-[11px] text-ui-4">The {kind} could not be loaded</span>
+        <span className="text-micro text-ui-4">The {kind} could not be loaded</span>
       ) : kind === "image" ? (
         <img src={src} alt="" className="max-h-full max-w-full object-contain" onError={() => setBroken(true)} />
       ) : (

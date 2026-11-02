@@ -5,6 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { PlacementFrame } from "@/components/studio/placement-frame";
 import { LivePlacement } from "@/components/studio/placement-content";
 import { PageBackground } from "@/components/page-background";
+import { startKioskPull } from "@/lib/kiosk-config-pull";
+import { KioskConnecting } from "@/components/ui/kiosk-connecting";
+import { KioskOfflinePill } from "@/components/ui/kiosk-offline";
+import { KioskWaitingForData } from "@/components/ui/kiosk-waiting";
 import { AlertLayer, useShownAlerts, ZoneHighlights } from "@/components/alerts/alert-layer";
 import { DynamicIsland } from "@/components/island/dynamic-island";
 import { islandReserve } from "@/components/island/island-model";
@@ -13,7 +17,7 @@ import { ISLAND_DEFAULTS } from "@/lib/island/config";
 import { islandFeeds } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { useLoadedProfile, useWidgetPreload } from "@/widgets/preload";
-import { PageDots, PAGE_DOTS_STRIP_PX } from "@/components/page-dots";
+import { PageDots, pageDotsStripPx } from "@/components/page-dots";
 import { resolveBackground } from "@/lib/appearance";
 import { appearanceOf, zoneResolver } from "@/lib/style-resolve";
 import { applyTheme, resolveTheme } from "@/lib/theme";
@@ -441,36 +445,22 @@ export default function App({ fixture }: AppProps = {}) {
   // without a reload. The ?profile= pin still decides which profile shows.
   useEffect(() => {
     if (!kiosk) return;
-    let alive = true;
-    // The last config pulled, so a reconnect (the same version again) is not counted as an update.
-    let last: string | null = null;
-    const pull = async () => {
-      try {
-        const parsed = await fetchConfig();
-        if (!alive) return;
-        if (parsed) {
-          const text = JSON.stringify(parsed);
-          if (last !== null && text !== last) setLayoutVersion((v) => v + 1);
-          last = text;
-          const merged = withPinnedProfile(await readConfig(parsed));
-          if (!alive) return;
-          // Before the render that mounts its widgets: their effects run before ours.
-          setApiBase(merged.dataApiUrl);
-          saveConfig(merged); // also seed the local copy (offline fallback)
-          setConfig(merged);
-        }
-        // Nothing saved yet: the local copy stands.
-      } catch {
-        // Server offline — the local fallback (loadConfig) stands.
-      }
-      if (alive) setKioskPulled(true);
-    };
-    // The stream sends the current version on connect (and on every
-    // reconnect), then one event per save — each one triggers a pull.
+    const pull = startKioskPull({
+      fetchConfig,
+      resolve: async (parsed) => withPinnedProfile(await readConfig(parsed as Parameters<typeof readConfig>[0])),
+      apply: (merged) => {
+        // Before the render that mounts its widgets: their effects run before ours.
+        setApiBase(merged.dataApiUrl);
+        saveConfig(merged); // also seed the local copy (offline fallback)
+        setConfig(merged);
+      },
+      onChange: () => setLayoutVersion((v) => v + 1),
+      settled: () => setKioskPulled(true),
+    });
     const events = trackEventSource(new EventSource(CONFIG_EVENTS_URL));
-    events.onmessage = () => void pull();
+    events.onmessage = pull.message;
     return () => {
-      alive = false;
+      pull.stop();
       events.close();
     };
   }, [kiosk]);
@@ -631,7 +621,7 @@ export default function App({ fixture }: AppProps = {}) {
         {refused && (
           <div
             role="alert"
-            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-[12px] text-ui-1"
+            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-caption text-ui-1"
           >
             A newer dashboard version saved this config. Reload to keep editing.
             <button
@@ -646,7 +636,7 @@ export default function App({ fixture }: AppProps = {}) {
         {runtimeUpdated && (
           <div
             role="status"
-            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-[12px] text-ui-1"
+            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-caption text-ui-1"
           >
             WebView2 was updated. Restart InfoPanel Studio to use it.
             <button type="button" onClick={() => setRuntimeUpdated(false)} className="rounded px-2 py-0.5 text-ui-2 hover:bg-ui-hover hover:text-ui-1">
@@ -657,7 +647,7 @@ export default function App({ fixture }: AppProps = {}) {
         {readOnly && !refused && (
           <div
             role="alert"
-            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-[12px] text-ui-1"
+            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-caption text-ui-1"
           >
             Editing from other devices is off, so changes here are not saved. Turn it on in Settings › Server on the PC running InfoPanel Studio.
           </div>
@@ -705,19 +695,21 @@ export default function App({ fixture }: AppProps = {}) {
 
   // Kiosk: nothing until the server's config has been read (or failed to), so the local copy's layout (the
   // defaults in a fresh browser) never mounts widgets that open sensor streams to its Data API.
-  if (kiosk && !kioskPulled) return null;
+  if (kiosk && !kioskPulled) return <KioskConnecting />;
 
   return (
     <GeneralProvider value={general}>
       <PerformanceProvider value={perfOverride}>
       <PageIslandProvider value={pageIsland}>
-      <div
+      <main
+        aria-label={pageName || undefined}
         className={cn(
           // A page background replaces the theme's page color (it sits
           // behind the grid, under this element's own paint).
           "flex flex-col text-foreground",
           !background && "bg-background",
           kiosk && "kiosk",
+          kiosk && !fill && "kiosk-scroll",
           kiosk && general.hideCursor && "kiosk-hide-cursor",
           fill
             ? kiosk
@@ -731,7 +723,7 @@ export default function App({ fixture }: AppProps = {}) {
           // React never removes it from under the `padding` shorthand.
           paddingTop: profilePadding(profile, kiosk) + reserve,
           // The dots' strip: they sit in the bottom padding, so no zone is under them.
-          ...(pageNav && { paddingBottom: Math.max(profilePadding(profile, kiosk), PAGE_DOTS_STRIP_PX) }),
+          ...(pageNav && { paddingBottom: Math.max(profilePadding(profile, kiosk), pageDotsStripPx()) }),
           // Vertical scrolling stays with the browser; horizontal moves reach the swipe.
           ...(pageNav && { touchAction: "pan-y" }),
           fontFamily: fontStack(resolveFont(profile)),
@@ -798,6 +790,10 @@ export default function App({ fixture }: AppProps = {}) {
           {kiosk && <ZoneHighlights alerts={shownAlerts} profile={profile} />}
         </PageGrid>
 
+        {kiosk && <KioskWaitingForData />}
+
+        {kiosk && <KioskOfflinePill island={!!island} />}
+
         {kiosk && <DimOverlay level={control?.profiles[stored.id]?.dim ?? 0} />}
 
         {kiosk && <AlertLayer alerts={splitAlerts.layer} onAck={ackAlert} />}
@@ -816,8 +812,10 @@ export default function App({ fixture }: AppProps = {}) {
 
         <PageDots
           enabled={pageNav}
+          scroll={!fill}
           pages={stored.pages}
           current={profile.pageId ?? stored.pages[0].id}
+          rotateOn={stored.rotate?.enabled === true}
           paused={stored.rotate?.enabled === true && control?.profiles[stored.id]?.rotating === false}
           onSelect={goToPage}
           onToggleRotate={() => void postControl("rotate", { profile: stored.id, state: "toggle" })}
@@ -836,13 +834,14 @@ export default function App({ fixture }: AppProps = {}) {
         {!kiosk && (
           <button
             onClick={enterStudio}
-            className="fixed bottom-4 right-4 z-50 rounded-full border bg-popover p-2.5 text-muted-foreground shadow-lg opacity-50 transition-opacity hover:opacity-100"
+            className="fixed bottom-4 right-4 z-50 rounded-full border bg-popover p-2.5 text-muted-foreground shadow-lg opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100 kiosk-focus"
             title="Open dashboard studio"
+            aria-label="Open InfoPanel Studio"
           >
             <Wrench className="h-4 w-4" />
           </button>
         )}
-      </div>
+      </main>
       </PageIslandProvider>
     </PerformanceProvider>
     </GeneralProvider>

@@ -1,5 +1,5 @@
 import { AGENT_COLORS, AGENT_NAMES, FIVE_HOUR_MS, SEVEN_DAY_MS, paceHit, planView, shortDuration, type AgentId, type AgentPlan, type PlanWindow } from "@/lib/agents";
-import { Bar, Icon, Num, Ring, TONES } from "../kit";
+import { Bar, Icon, Num, Ring, TONES, fmtDate } from "../kit";
 
 export type LimitStyle = "bars" | "rings";
 export type Percent = "used" | "left";
@@ -47,7 +47,7 @@ export const shown = (w: PlanWindow, percent: Percent) => Math.round(percent ===
 export function resetText(at: number, now: number): string {
   const d = new Date(at);
   const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  return at - now < 20 * 3_600_000 ? time : `${d.toLocaleDateString(undefined, { weekday: "short" })} ${time}`;
+  return at - now < 20 * 3_600_000 ? time : `${fmtDate(d, "weekday")} ${time}`;
 }
 
 /** "8m", "4h 30m", "2d 6h": how long until a reset. */
@@ -136,7 +136,7 @@ const Pct = ({ view, percent }: { view: WindowView; percent: Percent }) => (
 );
 
 const ResetLine = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex min-w-0 items-center gap-1 text-[10.5px] text-[color:var(--w-faint)]">
+  <div className="flex min-w-0 items-center gap-1 text-micro text-[color:var(--w-faint)]">
     <Icon name="schedule" className="!text-[11px] shrink-0" />
     <span className="truncate tabular-nums">{children}</span>
   </div>
@@ -197,7 +197,7 @@ function RowBars({ id, plan, percent, now, wide }: { id: AgentId; plan: AgentPla
       </span>
       {windowsOf(plan, now).map(({ k, short, view }) => (
         <div key={k} className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <div className="flex min-w-0 items-baseline justify-between gap-1 text-[10.5px] text-[color:var(--w-muted)]">
+          <div className="flex min-w-0 items-baseline justify-between gap-1 text-micro text-[color:var(--w-muted)]">
             <span className="truncate">
               {short} <Pct view={view} percent={percent} />
             </span>
@@ -264,7 +264,7 @@ function RingPair({ id, plan, percent, now, layout }: { id: AgentId; plan: Agent
                 </span>
                 <Reset view={view} now={now} wide />
                 {layout.pace && view.hit !== null && (
-                  <div className="truncate text-[10.5px] tabular-nums">
+                  <div className="truncate text-micro tabular-nums">
                     <PaceText hit={view.hit} now={now} />
                   </div>
                 )}

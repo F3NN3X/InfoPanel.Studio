@@ -98,11 +98,11 @@ export function AlertRuleEditor({
           type="button"
           onClick={onBack}
           aria-label="Back to the rules"
-          className="flex h-7 items-center gap-1 rounded-md px-1.5 text-[12px] text-ui-3 hover:bg-ui-hover hover:text-ui-1"
+          className="flex h-7 items-center gap-1 rounded-md px-1.5 text-caption text-ui-3 hover:bg-ui-hover hover:text-ui-1"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back
         </button>
-        <span className="ml-auto text-[13px] font-semibold text-ui-1">Alert rule</span>
+        <span className="ml-auto text-body font-semibold text-ui-1">Alert rule</span>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
         <PanelSection id="alert-rule" title="Rule" icon={Bell}>
@@ -144,7 +144,7 @@ export function AlertRuleEditor({
               <button
                 type="button"
                 onClick={addCondition}
-                className="flex h-7 items-center gap-1 self-start rounded-md px-1.5 text-[12px] text-ui-accent-text hover:bg-ui-hover"
+                className="flex h-7 items-center gap-1 self-start rounded-md px-1.5 text-caption text-ui-accent-text hover:bg-ui-hover"
               >
                 <Plus className="h-3.5 w-3.5" /> Add sensor
               </button>
@@ -265,7 +265,7 @@ export function AlertRuleEditor({
             <FlaskConical className="h-3.5 w-3.5" /> Test
           </button>
           {testBlocked && (
-            <div className="text-pretty text-[11px] leading-[1.4] text-ui-4">
+            <div className="text-pretty text-micro leading-[1.4] text-ui-4">
               {sensorEmpty ? "Pick a sensor first." : "Edits are not on the server yet. Save, then test."}
             </div>
           )}

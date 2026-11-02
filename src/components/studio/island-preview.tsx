@@ -15,11 +15,11 @@ export function IslandPreview({ island, page, bus }: IslandPreviewProps) {
   const config = island ?? { ...ISLAND_DEFAULTS, enabled: false };
   return (
     <div className="flex flex-col gap-1.5">
-      <div aria-label="Island preview" className="relative h-[120px] overflow-hidden rounded-[10px] border border-ui-subtle bg-[#070709]">
+      <div role="group" aria-label="Island preview" className="relative h-[120px] overflow-hidden rounded-[10px] border border-ui-subtle bg-s-well">
         <DynamicIsland config={config} alerts={[]} placement="absolute" page={page} bus={bus} />
       </div>
       {!config.enabled && (
-        <p className="text-[11px] text-ui-5">The island is off on this screen. This is how it will look when you turn it on.</p>
+        <p className="text-micro text-ui-hint">The island is off on this screen. This is how it will look when you turn it on.</p>
       )}
     </div>
   );

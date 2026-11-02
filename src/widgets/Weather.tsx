@@ -91,11 +91,14 @@ function Current(p: WeatherProps) {
     <WeatherFx kind={p.fxPreview && p.fxPreview !== "auto" ? p.fxPreview : cond.kind} night={cond.night} temp={temp} wind={windValue(p.fxWind ?? "auto", num(k("wind_speed")), num(k("wind_deg")))} opts={p.fxOpts} />
   );
   const tint = p.tint ? conditionTint(k("weather_desc")) : undefined;
+  // over the wash, muted and faint text are the card's own text colour at 90% / 85%: 4.5:1 on every condition tint (snow is the brightest)
+  const washText = tint ? { "--w-muted": "color-mix(in srgb, var(--w-fg) 90%, transparent)", "--w-faint": "color-mix(in srgb, var(--w-fg) 85%, transparent)" } : null;
   const feelsText = showFeels ? ` · feels ${fmt(T(feels), 0)}°` : "";
   const feelsLine = showFeels ? `feels like ${fmt(T(feels), 0)}°` : "";
   return (
     <Widget
       {...shell(p)}
+      style={washText ? { ...shell(p).style, ...washText } : shell(p).style}
       accent={p.accent ?? tint}
       backdrop={(tint || fx) && (
         <>
@@ -106,7 +109,7 @@ function Current(p: WeatherProps) {
       title={p.title ?? (has(k("name")) ? k("name") : "Weather")}
       icon="location_on"
       compact={{ label: has(k("name")) ? k("name") : "Weather", value: `${fmt(T(temp), 0)}°`, sub: `${k("weather_desc")}${feelsText}`, icon, kind: "value" }}
-      right={has(k("last_refreshed")) && <span className="font-mono text-[10px] text-[color:var(--w-faint)]">{String(k("last_refreshed")).slice(11)}</span>}
+      right={has(k("last_refreshed")) && <span className="font-mono text-micro text-[color:var(--w-muted)]">{String(k("last_refreshed")).slice(11)}</span>}
     >
       {({ size, w, h }) => {
         const shown = Math.max(1, Math.min(7, Math.round(p.days ?? (size === "lg" ? 7 : 5))));
@@ -162,7 +165,7 @@ function Current(p: WeatherProps) {
               <div className="mt-auto grid gap-1.5 border-t border-[color:var(--w-track)] pt-3" style={{ gridTemplateColumns: `repeat(${Math.min(fc.length, shown)}, minmax(0,1fr))` }}>
                 {fc.slice(0, shown).map((f, i) => (
                   <div key={i} className={`flex flex-col items-center ${tight ? "gap-1" : "gap-1.5"}`} title={`${f.cond} · ${f.rain} mm · ${f.wind}`}>
-                    <span className="whitespace-nowrap text-[11px] text-[color:var(--w-muted)]">{i === 0 ? `Tmrw ${f.date.split(" ")[1] ?? ""}` : f.date}</span>
+                    <span className="whitespace-nowrap text-[11px] text-[color:var(--w-muted)]">{f.date}</span>
                     <WeatherGlyph {...weatherKind("", f.cond)} {...icons} className="text-xl text-[color:var(--w-fg)]" />
                     <span className="text-xs font-semibold tabular-nums">{fmt(T(f.hi), 0)}°</span>
                     {bar && (
@@ -170,8 +173,8 @@ function Current(p: WeatherProps) {
                         <div className="absolute inset-x-0 rounded-full" style={{ background: "var(--accent)", bottom: `${((f.lo - lo) / (hi - lo || 1)) * 100}%`, top: `${100 - ((f.hi - lo) / (hi - lo || 1)) * 100}%` }} />
                       </div>
                     )}
-                    {showLo && <span className="text-[11px] tabular-nums text-[color:var(--w-faint)]">{fmt(T(f.lo), 0)}°</span>}
-                    {showRain && f.rain > 0 && <span className="whitespace-nowrap text-[10px] tabular-nums text-sky-300">{`${f.rain}mm`}</span>}
+                    {showLo && <span className="text-[11px] tabular-nums text-[color:var(--w-muted)]">{fmt(T(f.lo), 0)}°</span>}
+                    {showRain && f.rain > 0 && <span className="whitespace-nowrap text-micro tabular-nums text-sky-300">{`${f.rain} mm`}</span>}
                   </div>
                 ))}
               </div>

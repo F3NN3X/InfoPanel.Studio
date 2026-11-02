@@ -21,7 +21,7 @@ function FontCard({ item, selected, onSelect }: { item: LibraryItem; selected: b
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        "flex min-w-0 flex-col gap-1.5 rounded-[12px] border border-ui-subtle bg-ui-panel p-3.5 text-left outline-none hover:border-ui-default focus-visible:border-ui-accent",
+        "flex min-w-0 flex-col gap-1.5 rounded-ui-lg border border-ui-subtle bg-ui-panel p-3.5 text-left outline-none hover:border-ui-default focus-visible:border-ui-accent",
         selected && "border-ui-accent bg-ui-accent/[.06] hover:border-ui-accent",
       )}
     >
@@ -32,7 +32,7 @@ function FontCard({ item, selected, onSelect }: { item: LibraryItem; selected: b
         <span className="truncate text-[12.5px] font-medium text-ui-1">{m.family ?? item.name}</span>
         {m.licence && <span className={cn("shrink-0 text-[11.5px]", VERDICT_TONE[m.licence])}>{LICENCE_LABEL[m.licence]}</span>}
       </span>
-      <span className="truncate font-ui-mono text-[10.5px] text-ui-4">{metaLine(item)}</span>
+      <span className="truncate font-ui-mono text-micro text-ui-4">{metaLine(item)}</span>
     </button>
   );
 }

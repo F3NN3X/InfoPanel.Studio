@@ -108,3 +108,26 @@ export function holdVerdict(prev: HoldState | undefined, candidate: Verdict, now
   if (prev.pending !== candidate) return { shown: prev.shown, pending: candidate, since: now };
   return now - prev.since >= holdMs ? { shown: candidate, since: now } : prev;
 }
+
+/** A verdict that was shown from `t` (ms) until the next entry's `t`. */
+export interface VerdictAt {
+  v: Verdict;
+  t: number;
+}
+
+/** The most verdict changes the history keeps. */
+export const VERDICT_LOG_MAX = 60;
+
+/** `log` with `v` appended when it differs from the last entry; entries that ended before the window and the oldest past the cap go. */
+export function logVerdict(log: readonly VerdictAt[], v: Verdict, now: number, windowMs: number): VerdictAt[] {
+  const next = log.length && log[log.length - 1].v === v ? [...log] : [...log, { v, t: now }];
+  // keep the entry that was showing when the window opened
+  while (next.length > 1 && next[1].t <= now - windowMs) next.shift();
+  return next.slice(-VERDICT_LOG_MAX);
+}
+
+/** The log as runs over the window ending at `now`, `from` / `to` as fractions 0-1 of it; the first entry's run starts where the log does. */
+export function verdictRuns(log: readonly VerdictAt[], now: number, windowMs: number): { v: Verdict; from: number; to: number }[] {
+  const start = now - windowMs;
+  return log.map((e, i) => ({ v: e.v, from: Math.max(0, (e.t - start) / windowMs), to: Math.min(1, ((log[i + 1]?.t ?? now) - start) / windowMs) })).filter((r) => r.to > r.from);
+}

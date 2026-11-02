@@ -5,7 +5,7 @@ import type { ModuleSetting, ModuleSettingValue } from "@/modules/types";
 import { SELECT as SELECT_BASE, StackRow, type RowLabelProps } from "./setting-rows";
 
 const SELECT = cn(SELECT_BASE, "w-full max-w-none");
-const BUTTON = "flex h-[28px] items-center gap-1.5 rounded-[6px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:opacity-50";
+const BUTTON = "flex h-(--ui-h-control) items-center gap-1.5 rounded-ui-sm border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:opacity-50";
 
 interface PickerProps {
   def: ModuleSetting;
@@ -54,7 +54,7 @@ export function StreamDeckDevicePicker({ def, value, onChange, lead, hint }: Pic
       <button type="button" className={BUTTON} disabled={busy} onClick={() => void create()}>
         New device
       </button>
-      {error && <span className="block text-[11px] text-s-red">{error}</span>}
+      {error && <span className="block text-micro text-s-red">{error}</span>}
     </StackRow>
   );
 }
@@ -77,7 +77,7 @@ export function StreamDeckGridPicker({ def, deviceId, lead, hint }: Omit<PickerP
   if (!deck)
     return (
       <StackRow label={def.label} lead={lead} hint={hint}>
-        <span className="block text-[11px] text-ui-4">Pick a device first</span>
+        <span className="block text-micro text-ui-4">Pick a device first</span>
       </StackRow>
     );
   return (
@@ -106,7 +106,7 @@ export function StreamDeckGridPicker({ def, deviceId, lead, hint }: Omit<PickerP
           </button>
         ))}
       </div>
-      {error && <span className="block text-[11px] text-s-red">{error}</span>}
+      {error && <span className="block text-micro text-s-red">{error}</span>}
     </StackRow>
   );
 }

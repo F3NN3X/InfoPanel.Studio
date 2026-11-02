@@ -54,13 +54,13 @@ export function MoreRows({
   if (count === 0) return null;
   return (
     <>
-      {open && <div className="bg-[#0f0f12] py-1">{children}</div>}
+      {open && <div className="bg-ui-chrome py-1">{children}</div>}
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setMoreOpen(storeKey, !open)}
         className={cn(
-          "block py-1.5 pl-4 pr-2.5 text-left text-[12px] font-medium text-[oklch(0.80_0.12_255)] hover:underline",
+          "block py-1.5 pl-4 pr-2.5 text-left text-caption font-medium text-ui-accent-text hover:underline",
           className
         )}
       >

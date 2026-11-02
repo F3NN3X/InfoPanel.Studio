@@ -4,7 +4,7 @@ import { useZoomKeys } from "@/app-window/zoom";
 import { ipc, onEvent } from "@/settings/ipc";
 import { SEARCH_INDEX } from "@/settings/model/search";
 import { HELP } from "./content";
-import { useEnv } from "./env";
+import { reportFailure, setFailureHandler, useEnv } from "./env";
 import { helpPageUrl, parseHelpHash, type HelpTarget } from "./links";
 import { buildIndex, searchHelp, type Hit } from "./search";
 import type { HelpContent } from "./types";
@@ -25,10 +25,12 @@ interface Route {
   heading: string | null;
   /** Bumped by every open, so opening the same article again still scrolls. */
   seq: number;
+  /** The target named an article that does not exist, so Home says so. */
+  missing: boolean;
 }
 
 /** Zoom keys, and the version, of the desktop window. */
-function useDesktopInfo(enabled: boolean) {
+function useDesktopInfo(enabled: boolean, say: (message: string) => void) {
   const [version, setVersion] = useState<string | null>(null);
   const [zoom, setZoom] = useState(100);
   useEffect(() => {
@@ -42,13 +44,14 @@ function useDesktopInfo(enabled: boolean) {
   }, [enabled]);
   const changeZoom = useCallback(async (percent: number) => {
     setZoom(percent);
-    await ipc.setZoom(percent / 100).catch(() => {});
-  }, []);
+    say(`${percent}%`);
+    await ipc.setZoom(percent / 100).catch(reportFailure);
+  }, [say]);
   return { version, zoom, changeZoom };
 }
 
-function ZoomKeys({ zoom, setZoom }: { zoom: number; setZoom: (percent: number) => Promise<void> }) {
-  useZoomKeys(zoom, setZoom);
+function ZoomKeys({ zoom, setZoom, say }: { zoom: number; setZoom: (percent: number) => Promise<void>; say: (message: string) => void }) {
+  useZoomKeys(zoom, setZoom, say);
   return null;
 }
 
@@ -62,10 +65,34 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
   const main = useRef<HTMLElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
+  const [failure, setFailure] = useState<string | null>(null);
+  // A short line for what a key did (the zoom); the status region stays mounted so it is announced.
+  const [note, setNote] = useState<string | null>(null);
+  const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const say = useCallback((message: string) => {
+    clearTimeout(noteTimer.current);
+    setNote(message);
+    noteTimer.current = setTimeout(() => setNote(null), 1200);
+  }, []);
+  useEffect(() => () => clearTimeout(noteTimer.current), []);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const off = setFailureHandler((message) => {
+      clearTimeout(timer);
+      setFailure(message);
+      timer = setTimeout(() => setFailure(null), 4500);
+    });
+    return () => {
+      off();
+      clearTimeout(timer);
+    };
+  }, []);
   const [route, setRoute] = useState<Route>(() => toRoute(parseHelpHash(window.location.hash), content, 0));
+  const routeRef = useRef(route);
+  routeRef.current = route;
   const [active, setActive] = useState<string | null>(null);
   const [mainWidth, setMainWidth] = useState(0);
-  const { version, zoom, changeZoom } = useDesktopInfo(env.desktop);
+  const { version, zoom, changeZoom } = useDesktopInfo(env.desktop, say);
 
   const index = useMemo(() => buildIndex(content), [content]);
   const hits = useMemo(() => searchHelp(query, content, index, env.desktop ? SEARCH_INDEX : []), [query, content, index, env.desktop]);
@@ -86,7 +113,14 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
 
   // Another window (or a link to this page) asks for an article.
   useEffect(() => {
-    const onHash = () => open(parseHelpHash(window.location.hash));
+    const onHash = () => {
+      // A hash change that names the page already shown (a late event for the page's own address) is not a navigation:
+      // opening it again would clear the search the user is typing.
+      const next = toRoute(parseHelpHash(window.location.hash), content, 0);
+      const now = routeRef.current;
+      if (next.article === now.article && next.heading === now.heading) return;
+      open(parseHelpHash(window.location.hash));
+    };
     window.addEventListener("hashchange", onHash);
     let alive = true;
     let off: (() => void) | undefined;
@@ -98,7 +132,7 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
       off?.();
       window.removeEventListener("hashchange", onHash);
     };
-  }, [env.desktop, open]);
+  }, [env.desktop, open, content]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -156,19 +190,13 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
     else open({ article: hit.article, heading: hit.headingId ?? undefined });
   };
 
-  // Typing in Home's own field moves to the sidebar's, which stays on screen when the results replace Home.
-  const queryFromHome = (value: string) => {
-    setQuery(value);
-    search.current?.focus();
-  };
-
   const headings = article?.blocks.filter((b) => b.type === "h").length ?? 0;
   const showToc = headings > 1 && mainWidth >= TOC_MIN_WIDTH;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-s-win">
       {env.desktop && <TitleBar title={"InfoPanel Studio — Help"} />}
-      {env.desktop && <ZoomKeys zoom={zoom} setZoom={changeZoom} />}
+      {env.desktop && <ZoomKeys zoom={zoom} setZoom={changeZoom} say={say} />}
       <div className="flex min-h-0 flex-1">
         <Sidebar
           content={content}
@@ -182,15 +210,25 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
           onOpen={openArticle}
         />
         <main ref={main} onScroll={onScroll} className="relative min-w-0 flex-1 overflow-auto">
-          {searching ? (
-            <ResultsView query={query} hits={hits} onHit={openHit} onHome={goHome} />
-          ) : article ? (
+          {article && !searching ? (
             <ArticleView article={article} content={content} showToc={showToc} active={active} onOpen={openArticle} onHome={goHome} onToc={toc} />
           ) : (
-            <HomeView content={content} query={query} onQuery={queryFromHome} onOpen={openArticle} />
+            <>
+              {/* Typed on Home: its field stays mounted under the results, so focus and the caret stay put. */}
+              {!article && <HomeView content={content} query={query} onQuery={setQuery} onOpen={openArticle} searching={searching} missing={route.missing} />}
+              {searching && <ResultsView query={query} hits={hits} onHit={openHit} onHome={goHome} />}
+            </>
           )}
         </main>
       </div>
+      <div role="status" className="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2">
+        {note && <span className="rounded-lg border border-s-card-line bg-s-card px-3.5 py-2 font-mono text-[12.5px] text-s-t1 shadow-lg">{note}</span>}
+      </div>
+      {failure && (
+        <div role="alert" className="fixed bottom-4 left-1/2 z-50 max-w-[min(480px,calc(100vw-32px))] -translate-x-1/2 rounded-lg border border-s-card-line bg-s-card px-3.5 py-2.5 text-[12.5px] text-s-red shadow-lg">
+          {failure}
+        </div>
+      )}
     </div>
   );
 }
@@ -204,5 +242,5 @@ function findHeading(pane: HTMLElement, id: string): HTMLElement | null {
 function toRoute(target: HelpTarget, content: HelpContent, seq: number): Route {
   const article = target.article !== undefined && Object.hasOwn(content.articles, target.article) ? content.articles[target.article] : null;
   const heading = article?.blocks.some((b) => b.type === "h" && b.id === target.heading) ? (target.heading ?? null) : null;
-  return { article: article?.id ?? null, heading, seq };
+  return { article: article?.id ?? null, heading, seq, missing: target.article !== undefined && !article };
 }

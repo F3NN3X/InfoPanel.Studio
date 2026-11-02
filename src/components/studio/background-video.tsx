@@ -37,7 +37,7 @@ export function VideoOptions({ value, onPatch }: Omit<VideoFieldsProps, "onOpenL
         value={rate}
         onChange={(r) => onPatch({ rate: Number(r) })}
       />
-      <p className="text-[11px] leading-relaxed text-ui-4">
+      <p className="text-micro leading-relaxed text-ui-4">
         The poster shows until the video plays, and in its place on reduced motion. The kiosk plays this
         around the clock: use H.264 MP4 or VP9 WebM at the display&apos;s resolution and 24–30 fps. Blur
         over a video re-composites every frame, so keep it low or off. With sound on, the browser may

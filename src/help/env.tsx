@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { ipc } from "@/settings/ipc";
+import { errorText, ipc } from "@/settings/ipc";
 import type { SectionId } from "@/settings/model/search";
 import { isTauri } from "@/lib/desktop";
 
@@ -12,10 +12,23 @@ export interface HelpEnv {
   openExternal: (url: string) => void;
 }
 
+let onFailure: (message: string) => void = () => {};
+
+/** Where a failed shell call says so: the Help window sets this to show it, so a click is never silent. */
+export function setFailureHandler(handler: (message: string) => void): () => void {
+  onFailure = handler;
+  return () => {
+    if (onFailure === handler) onFailure = () => {};
+  };
+}
+
+/** Says a failed shell call out loud (see `setFailureHandler`). */
+export const reportFailure = (e: unknown) => onFailure(errorText(e));
+
 export const desktopEnv: HelpEnv = {
   desktop: true,
-  openSettings: (section) => void ipc.openSettings(section).catch(() => {}),
-  openExternal: (url) => void ipc.openExternal(url).catch(() => {}),
+  openSettings: (section) => void ipc.openSettings(section).catch(reportFailure),
+  openExternal: (url) => void ipc.openExternal(url).catch(reportFailure),
 };
 
 export const browserEnv: HelpEnv = {

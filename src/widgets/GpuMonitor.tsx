@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { StatGrid, Widget, shell, get, num, fmt, pretty, Metric, Ring, Spark, Stat, BarRow, useHistory, tone, Empty, hw, STATE, Num, type ShellProps } from "./kit";
+import { roomy, StatGrid, Widget, shell, get, num, fmt, pretty, Metric, Ring, Spark, Stat, BarRow, useHistory, tone, Empty, hw, STATE, Num, type ShellProps } from "./kit";
 import { meta } from "./meta/GpuMonitor";
 
 export { meta };
@@ -50,7 +50,7 @@ export default function GpuMonitor(p: GpuMonitorProps) {
         </span>
       }
     >
-      {({ size }) =>
+      {({ size, w, h }) =>
         size === "xs" ? (
           <div className="flex h-full items-center justify-between gap-2">
             <Metric ipKey={loadKey} label="GPU" value={load} unit="%" scale="lg" />
@@ -87,7 +87,7 @@ export default function GpuMonitor(p: GpuMonitorProps) {
             </div>
             <BarRow label="VRAM" value={used} max={total} hint={`of ${fmt(total / 1024, 0)} GB`} display={`${fmt(used / 1024, 1)} GB`} />
             {size === "md" ? (
-              <Spark ipKey={loadKey} values={hist} min={0} max={100} className="min-h-0 flex-1" />
+              <Spark ipKey={loadKey} values={hist} min={0} max={100} marks={roomy(w, h)} format={(v) => `${fmt(v, 0)} %`} className="min-h-0 flex-1" />
             ) : (
               <>
                 <div className="grid grid-cols-3 gap-x-4 gap-y-2.5">

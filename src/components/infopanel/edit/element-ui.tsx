@@ -17,7 +17,7 @@ const BADGE_TONE: Record<Badge["kind"], string> = {
 export function BadgeChip({ badge, compact = false }: { badge: Badge; compact?: boolean }) {
   const title = [badge.reason, ...(badge.lost.length ? [`Lost: ${badge.lost.join(", ")}.`] : [])].join(" ");
   return (
-    <span title={title} aria-label={`${BADGE_LABEL[badge.kind]}: ${title}`} className={cn("shrink-0 rounded-full border px-1.5 font-medium leading-4", compact ? "text-[10px]" : "py-0.5 text-[11px]", BADGE_TONE[badge.kind])}>
+    <span role="img" title={title} aria-label={`${BADGE_LABEL[badge.kind]}: ${title}`} className={cn("shrink-0 rounded-full border px-1.5 font-medium leading-4", compact ? "text-[10px]" : "py-0.5 text-micro", BADGE_TONE[badge.kind])}>
       {compact ? BADGE_LABEL[badge.kind][0] : BADGE_LABEL[badge.kind]}
     </span>
   );

@@ -73,7 +73,7 @@ export function OptimiseDrawer({ doc, onClose, onApply }: { doc: Doc; onClose: (
       onClose={onClose}
       footer={
         <>
-          <span className="min-w-0 flex-1 text-[12px] text-ui-3">{working ? "Working…" : `Saves ${formatBytes(saved)} across ${kept.length} file${kept.length === 1 ? "" : "s"}`}</span>
+          <span className="min-w-0 flex-1 text-caption text-ui-3">{working ? "Working…" : `Saves ${formatBytes(saved)} across ${kept.length} file${kept.length === 1 ? "" : "s"}`}</span>
           <button type="button" onClick={onClose} className={BUTTON}>
             Cancel
           </button>
@@ -84,7 +84,7 @@ export function OptimiseDrawer({ doc, onClose, onApply }: { doc: Doc; onClose: (
       }
     >
       <div className="space-y-4">
-        <label className="block text-[12px] text-ui-3">
+        <label className="block text-caption text-ui-3">
           <span className="mb-1.5 block">Format</span>
           <Segmented<EncodeFormat>
             label="Format"
@@ -96,13 +96,13 @@ export function OptimiseDrawer({ doc, onClose, onApply }: { doc: Doc; onClose: (
             ]}
           />
         </label>
-        <label className="block text-[12px] text-ui-3">
+        <label className="block text-caption text-ui-3">
           <span className="flex justify-between">
             Quality <span className="font-ui-mono text-ui-4">{quality}</span>
           </span>
           <input type="range" aria-label="Quality" min={1} max={100} value={quality} onChange={(e) => setQuality(Number(e.target.value))} className="mt-1 w-full accent-[var(--ui-accent)]" />
         </label>
-        <label className="block text-[12px] text-ui-3">
+        <label className="block text-caption text-ui-3">
           <span className="mb-1.5 block">Size cap</span>
           <Segmented<SizeCap>
             label="Size cap"
@@ -115,9 +115,9 @@ export function OptimiseDrawer({ doc, onClose, onApply }: { doc: Doc; onClose: (
             ]}
           />
         </label>
-        <table className="w-full text-[12px]">
+        <table className="w-full text-caption">
           <thead>
-            <tr className="text-left text-[11px] text-ui-4">
+            <tr className="text-left text-micro text-ui-4">
               <th className="pb-1.5 font-normal">File</th>
               <th className="pb-1.5 text-right font-normal">Before → after</th>
             </tr>
@@ -133,7 +133,7 @@ export function OptimiseDrawer({ doc, onClose, onApply }: { doc: Doc; onClose: (
                   </td>
                   <td className={cn("py-1.5 text-right font-ui-mono", note ? "text-ui-4" : "text-ui-2")}>
                     {note ?? `${formatBytes(f.bytes.length)} → ${formatBytes(r!.after.bytes.length)}`}
-                    {!note && r && r.after.width !== f.width && <div className="text-[11px] text-ui-4">{`${f.width}×${f.height} → ${r.after.width}×${r.after.height}`}</div>}
+                    {!note && r && r.after.width !== f.width && <div className="text-micro text-ui-4">{`${f.width}×${f.height} → ${r.after.width}×${r.after.height}`}</div>}
                   </td>
                 </tr>
               );

@@ -51,12 +51,13 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
   const updateBadge = update.state === "available" || update.state === "ready";
 
   return (
-    <aside className="flex w-[236px] shrink-0 flex-col border-r border-s-side-line bg-s-side">
-      <div className="px-3 pb-2.5 pt-3.5">
+    <aside data-narrow className="flex w-[236px] shrink-0 rail:w-14 flex-col border-r border-s-side-line bg-s-side">
+      <div className="px-3 pb-2.5 pt-3.5 rail:overflow-hidden rail:px-2">
         <SearchBox
           inputRef={input}
           value={query}
           label="Search settings"
+          list={{ id: "settings-results", activeId: results.length ? `settings-result-${Math.min(active, results.length - 1)}` : undefined }}
           onChange={(value) => {
             setQuery(value);
             setActive(0);
@@ -75,17 +76,22 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto px-2 pb-3 pt-1">
         {query ? (
           <>
-            <div className="px-2.5 pb-1.5 pt-2 text-[10.5px] uppercase tracking-[0.07em] text-s-faint">{results.length === 0 ? "No matches" : `${results.length} result${results.length === 1 ? "" : "s"}`}</div>
+            <div role="status" className="px-2.5 pb-1.5 pt-2 text-micro uppercase tracking-[0.07em] text-s-dim">{results.length === 0 ? "No matches" : `${results.length} result${results.length === 1 ? "" : "s"}`}</div>
+            <div id="settings-results" role="listbox" aria-label="Settings search results" className="contents">
             {results.map((r, i) => {
               const Icon = PAGE_ICONS[r.section];
               return (
                 <button
                   key={`${r.row}-${r.label}`}
+                  id={`settings-result-${i}`}
                   type="button"
+                  role="option"
+                  aria-selected={i === active}
+                  tabIndex={-1}
                   onClick={() => open(i)}
-                  className={cn("flex w-full cursor-pointer flex-col gap-0.5 rounded-lg border-0 px-2.5 py-2 text-left text-s-t1 hover:bg-s-nav-hover", i === active ? "bg-s-nav-hover" : "bg-transparent")}
+                  className={cn("flex w-full cursor-pointer flex-col gap-0.5 rounded-lg border-0 px-2.5 py-2 text-left text-s-t1 hover:bg-s-nav-hover", i === active ? "bg-s-nav-hover outline outline-2 -outline-offset-2 outline-s-accent" : "bg-transparent")}
                 >
-                  <span className="text-[13px]">{r.label}</span>
+                  <span className="text-body">{r.label}</span>
                   <span className="flex items-center gap-1 text-[11.5px] text-s-dim">
                     <Icon className="h-[13px] w-[13px]" />
                     {PAGE_NAMES[r.section]}
@@ -93,6 +99,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
                 </button>
               );
             })}
+            </div>
           </>
         ) : (
           <nav aria-label="Settings sections" className="contents">
@@ -100,10 +107,20 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
               <div key={group.label} className="contents">
                 <NavGroupLabel>{group.label}</NavGroupLabel>
                 {group.items.map((id) => (
-                  <NavItem key={id} id={id} on={section === id} onClick={() => go(id)}>
-                    {id === "server" && <span className={cn("h-[7px] w-[7px] rounded-full", t.dot)} />}
-                    {id === "diagnostics" && settings.debug && <span className="h-[7px] w-[7px] rounded-full bg-s-amber" />}
-                    {id === "updates" && updateBadge && <span className="rounded-full bg-s-accent/18 px-1.5 py-px text-[10.5px] font-semibold text-s-accent-text">1</span>}
+                  <NavItem
+                    key={id}
+                    id={id}
+                    on={section === id}
+                    onClick={() => go(id)}
+                    status={id === "server" ? card.title : id === "diagnostics" && settings.debug ? "Debug is on" : id === "updates" && updateBadge ? "Update available" : undefined}
+                  >
+                    {id === "server" && <span aria-hidden="true" className={cn("h-[7px] w-[7px] rounded-full", t.dot)} />}
+                    {id === "diagnostics" && settings.debug && <span aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-s-amber" />}
+                    {id === "updates" && updateBadge && (
+                      <span aria-hidden="true" className="rounded-full bg-s-accent/18 px-1.5 py-px text-micro font-semibold text-s-accent-text">
+                        1
+                      </span>
+                    )}
                   </NavItem>
                 ))}
               </div>
@@ -116,31 +133,32 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
                 e.preventDefault();
                 void ipc.openExternal(RELEASES_URL).catch((err) => toast(errorText(err), true));
               }}
-              className="flex h-[34px] w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-s-t2 no-underline hover:bg-s-nav-hover"
+              title="Releases on GitHub"
+              className="flex h-(--ui-h-field) w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-body font-medium text-s-t2 no-underline hover:bg-s-nav-hover rail:justify-center rail:px-0"
             >
               <ExternalLink className="h-[18px] w-[18px] text-s-dim" />
-              <span className="flex-1">Releases on GitHub</span>
+              <span className="flex-1 rail:sr-only">Releases on GitHub</span>
             </a>
           </nav>
         )}
       </div>
 
-      <div className="flex items-center gap-2.5 border-t border-s-side-line px-3.5 py-3">
-        <span className={cn("h-2 w-2 shrink-0 rounded-full", t.dot, t.halo)} />
-        <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex items-center gap-2.5 border-t border-s-side-line px-3.5 py-3 rail:flex-col rail:px-0">
+        <span role="img" aria-label={card.title.replace("…", "")} title={`${card.title.replace("…", "")}: ${status.state === "running" ? displayAddress(status.host, status.port, lanIp) : stateWord(status.state)}`} className={cn("h-2 w-2 shrink-0 rounded-full", t.dot, t.halo)} />
+        <div className="flex min-w-0 flex-1 flex-col rail:hidden">
           <span className="text-xs font-medium text-s-t2">{card.title.replace("…", "")}</span>
-          <span className="truncate font-mono text-[11px] text-s-dim">{status.state === "running" ? displayAddress(status.host, status.port, lanIp) : stateWord(status.state)}</span>
+          <span className="truncate font-mono text-micro text-s-dim">{status.state === "running" ? displayAddress(status.host, status.port, lanIp) : stateWord(status.state)}</span>
         </div>
         <button
           type="button"
           title="Help (F1)"
-          onClick={() => void ipc.openHelp(settingsHelpTarget(section)).catch(() => {})}
+          onClick={() => void ipc.openHelp(settingsHelpTarget(section)).catch((e) => toast(errorText(e), true))}
           className="flex h-6 cursor-pointer items-center gap-1 rounded-md border-0 bg-transparent px-1.5 text-[11.5px] text-s-muted hover:bg-s-nav-hover hover:text-s-t1"
         >
           <CircleHelp className="h-[14px] w-[14px]" />
-          Help
+          <span className="rail:sr-only">Help</span>
         </button>
-        <span className="text-[11px] text-s-faint">v{status.appVersion}</span>
+        <span className="text-micro text-s-dim rail:hidden">v{status.appVersion}</span>
       </div>
     </aside>
   );
@@ -157,7 +175,7 @@ export function RestartBar() {
   return (
     <div role="status" className="sticky top-0 z-[4] flex items-center gap-3 border-b border-s-bar-line bg-s-bar-bg px-7 py-2.5">
       <RotateCcw className="h-[18px] w-[18px] shrink-0 text-s-bar-button" />
-      <span className="flex-1 text-[13px] text-s-bar-text">{restartText(pending)}</span>
+      <span className="flex-1 text-body text-s-bar-text">{restartText(pending)}</span>
       <button type="button" onClick={() => void undoRestart()} className="h-[30px] cursor-pointer rounded-[7px] border border-[oklch(0.45_0.08_75)] bg-transparent px-3 text-[12.5px] text-s-bar-text">
         Undo
       </button>
@@ -176,7 +194,7 @@ export function ToastView() {
     <div
       key={toastState.id}
       role="status"
-      className="fixed bottom-5 right-6 z-10 flex h-[34px] items-center gap-2 rounded-[9px] border border-s-input-line bg-[#1c1c21] px-3.5 text-[12.5px] text-s-t1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+      className="fixed bottom-5 right-6 z-10 flex h-(--ui-h-field) items-center gap-2 rounded-ui-menu border border-s-input-line bg-s-divider px-3.5 text-[12.5px] text-s-t1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
     >
       {toastState.error ? <X className="h-4 w-4 text-s-red" /> : <CircleCheck className="h-4 w-4 text-s-green" />}
       {toastState.message}

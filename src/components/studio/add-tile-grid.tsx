@@ -43,9 +43,9 @@ export function AddTileGrid({ sections, highlighted, justAdded, dimmed, status, 
       {sections.map((s) => (
         <section key={s.id} aria-label={s.title ?? "Matches"}>
           {s.title && (
-            <div className="flex h-7 items-end px-1 pb-[5px] font-ui-mono text-[10.5px] tracking-[0.06em] text-ui-3">
+            <div className="flex h-7 items-end px-1 pb-[5px] font-ui-mono text-micro tracking-[0.06em] text-ui-3">
               {s.title}
-              {s.count !== undefined && <span className="ml-[0.5em] text-ui-5">{s.count}</span>}
+              {s.count !== undefined && <span className="ml-[0.5em] text-ui-hint">{s.count}</span>}
             </div>
           )}
           {s.groups.map((g, gi) => (
@@ -106,14 +106,14 @@ function Tile({ tile, highlighted, added, dim, status, onAdd, onHover, onDragSta
       onClick={onAdd}
       onMouseEnter={(e) => onHover(e.currentTarget)}
       className={cn(
-        "relative flex h-16 cursor-pointer select-none flex-col items-center justify-center gap-[5px] rounded-[8px] border px-1",
-        added ? "border-ui-accent/60 bg-ui-accent/14" : highlighted ? "border-[#3a3a44] bg-[#1c1c22]" : "border-[#22222a] bg-[#131317] hover:border-[#3a3a44] hover:bg-[#1c1c22]",
+        "relative flex h-16 cursor-pointer select-none flex-col items-center justify-center gap-[5px] rounded-ui-md border px-1",
+        added ? "border-ui-accent/60 bg-ui-accent/14" : highlighted ? "border-ui-edge bg-s-nav-on" : "border-s-seg-on bg-ui-tile hover:border-ui-edge hover:bg-s-nav-on",
         dim && "opacity-40",
       )}
     >
       <Icon className={cn("h-5 w-5 shrink-0", tile.kind === "widget" ? "text-ui-accent" : "text-ui-3")} strokeWidth={1.75} aria-hidden />
-      <span className="max-w-full truncate text-[10.5px] text-ui-2">{tile.name}</span>
-      {size && <span className="absolute left-[5px] top-1 font-ui-mono text-[8.5px] leading-none text-ui-5">{size}</span>}
+      <span className="max-w-full truncate text-micro text-ui-2">{tile.name}</span>
+      {size && <span className="absolute left-[5px] top-1 font-ui-mono text-[8.5px] leading-none text-ui-hint">{size}</span>}
       {status && s && (
         <span className="absolute right-1 top-1 leading-none">
           <status.Icon status={s} className="h-[11px] w-[11px]" />

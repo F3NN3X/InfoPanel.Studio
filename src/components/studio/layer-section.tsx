@@ -6,7 +6,7 @@
 import { ArrowDown, ArrowUp, BringToFront, SendToBack, type LucideIcon } from "lucide-react";
 import type { LayerAction } from "@/lib/page-model/layer-actions";
 
-const SECTION_LABEL = "font-ui-mono text-[10.5px] uppercase tracking-[0.06em] text-ui-4";
+const SECTION_LABEL = "font-ui-mono text-micro uppercase tracking-[0.06em] text-ui-4";
 
 const BUTTONS: { action: LayerAction; label: string; icon: LucideIcon }[] = [
   { action: "front", label: "Bring to front", icon: BringToFront },
@@ -45,13 +45,13 @@ export function LayerSection({ onAction, groups, inGroup, onInGroup }: LayerSect
           </button>
         ))}
       </div>
-      <label className="flex min-h-7 items-center justify-between gap-2.5 text-[12px] text-ui-3">
+      <label className="flex min-h-7 items-center justify-between gap-2.5 text-caption text-ui-3">
         <span>In group</span>
         <select
           aria-label="In group"
           value={inGroup ?? ""}
           onChange={(e) => onInGroup(e.target.value === NEW ? "new" : e.target.value === "" ? null : e.target.value)}
-          className="h-7 max-w-[60%] rounded-md border border-ui-strong bg-ui-app px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-7 max-w-[60%] rounded-md border border-ui-strong bg-ui-app px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent"
         >
           <option value="">None</option>
           {groups.map((g) => (

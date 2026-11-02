@@ -374,12 +374,9 @@ in [widget-settings-coverage.md](widget-settings-coverage.md).
 ## The audiocn views
 
 The audio + media widgets can render with the vendored **audiocn**
-audio-visualization library (`src/lib/audio/*`, `src/components/ui/` —
-`LevelMeter`, `DbReadout`, `DbScale`, `ClipIndicator`, `Waveform`). Those components read CSS custom
-properties as *colors*, so `index.css` defines the page-level color vars
-they need (`--meter-ok|warn|clip`, `--channel-*`, `--wave-progress|unplayed|cursor`),
-each wrapped in `hsl(var(--token))` so the runtime theme engine keeps
-working. The audio visualiser is not audiocn any more: one engine
+audio-visualization library (`src/lib/audio/*`). Its components read the theme's own colour
+tokens; the page-level `--meter-*`, `--channel-*` and `--wave-*` variables (and the unused
+`ClipIndicator`) are gone. The audio visualiser is not audiocn any more: one engine
 (`src/widgets/core/viz/`, below) draws it everywhere.
 
 ### Pro level meter — `MeterBridge`

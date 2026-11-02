@@ -89,7 +89,7 @@ export function Breakdown({ data, rows, tokens }: { data: BreakdownData; rows: n
               <span key={m.name} title={`${m.name} ${pct(m.share)}`} style={{ width: `${m.share * 100}%`, background: colorOf(m, i) }} />
             ))}
           </div>
-          <div className="truncate text-[10.5px] tabular-nums leading-[14px] text-[color:var(--w-muted)]">
+          <div className="truncate text-micro tabular-nums leading-[14px] text-[color:var(--w-muted)]">
             {data.models.map((m, i) => (
               <span key={m.name}>
                 {i > 0 && <span className="text-[color:var(--w-faint)]"> · </span>}
@@ -109,7 +109,7 @@ export function Breakdown({ data, rows, tokens }: { data: BreakdownData; rows: n
         </div>
       ))}
       {tokens && (
-        <div className="flex items-end truncate text-[10.5px] tabular-nums text-[color:var(--w-faint)]" style={{ height: TOKENS_H, marginTop: ROW_GAP }}>
+        <div className="flex items-end truncate text-micro tabular-nums text-[color:var(--w-faint)]" style={{ height: TOKENS_H, marginTop: ROW_GAP }}>
           in {shortTokens(tokens.input)} · out {shortTokens(tokens.output)} · cache {shortTokens(tokens.cache)}
         </div>
       )}

@@ -88,6 +88,14 @@ export function breakdownOf(now: Date, target: Date, breakdown: Breakdown): Part
   return parts.slice(first < 0 ? parts.length - 1 : first);
 }
 
+/** The parts as a countdown shows them: trailing zero units dropped ("1 year 0 months 0 days" is "1 year"), the seconds of a live readout kept so it doesn't jump. At least one stays. */
+export function trimTrailingZeros(parts: Part[]): Part[] {
+  if (parts[parts.length - 1]?.unit === "seconds") return parts;
+  let end = parts.length;
+  while (end > 1 && parts[end - 1].value === 0) end--;
+  return parts.slice(0, end);
+}
+
 /** The unit word for a value ("1 month", "2 months"). */
 export const unitWord = (p: Part): string => (p.value === 1 ? p.unit.slice(0, -1) : p.unit);
 

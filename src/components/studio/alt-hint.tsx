@@ -14,7 +14,7 @@ export function AltHint({ widget, className, style }: { widget: boolean; classNa
       data-testid="alt-hint"
       data-shot-skip
       className={cn(
-        "pointer-events-none flex h-[30px] items-center gap-2 whitespace-nowrap rounded-[8px] border border-ui-accent/60 bg-[#1a1a1f] px-3 font-ui text-[12px] text-ui-1 shadow-ui-float",
+        "pointer-events-none flex h-[30px] items-center gap-2 whitespace-nowrap rounded-ui-md border border-ui-accent/60 bg-ui-hover px-3 font-ui text-caption text-ui-1 shadow-ui-float",
         className,
       )}
       style={style}

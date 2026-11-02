@@ -39,10 +39,10 @@ export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage, 
       >
         <Monitor className="h-[15px] w-[15px] shrink-0 text-ui-3" strokeWidth={1.75} />
         <span className="truncate font-semibold">{profile.name}</span>
-        <span className="font-ui-mono text-[10.5px] text-ui-5 max-[959px]:hidden">
+        <span className="font-ui-mono text-micro text-ui-hint max-[959px]:hidden">
           {profile.width}×{profile.height}
         </span>
-        <span aria-hidden className="text-ui-5">
+        <span aria-hidden className="text-ui-hint">
           /
         </span>
         <span className="truncate text-ui-1">{page.name}</span>
@@ -56,7 +56,7 @@ export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage, 
                 <button type="button" className={cn(ROW, "h-8")} onClick={() => choose(p.id, p.id === profile.id ? page.id : p.pages[0].id)}>
                   <Monitor className="h-4 w-4 shrink-0 text-ui-3" strokeWidth={1.75} />
                   <span className={cn("min-w-0 flex-1 truncate", p.id === profile.id ? "font-semibold text-ui-1" : "text-ui-2")}>{p.name}</span>
-                  <span className="font-ui-mono text-[11px] text-ui-4">
+                  <span className="font-ui-mono text-micro text-ui-4">
                     {p.width}×{p.height}
                   </span>
                 </button>
@@ -65,7 +65,7 @@ export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage, 
                     <button
                       key={pg.id}
                       type="button"
-                      className={cn(ROW, "h-7 pl-8", pg.id === page.id ? "text-ui-1" : "text-[#8a8a94]")}
+                      className={cn(ROW, "h-7 pl-8", pg.id === page.id ? "text-ui-1" : "text-ui-hint")}
                       onClick={() => choose(p.id, pg.id)}
                     >
                       <span className="truncate">{pg.name}</span>

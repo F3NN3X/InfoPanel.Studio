@@ -2,7 +2,7 @@
    arrows. Imported from JS (main.tsx, settings/main.tsx), not from select.css: Tailwind's optimizer (Lightning CSS)
    can't parse a pseudo-element after ::picker(select) and drops these rules from the build. */
 ::picker(select)::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 ::picker(select)::-webkit-scrollbar-button {

@@ -60,7 +60,7 @@ export default function Bluetooth(p: BluetoothProps) {
         <span className={`truncate font-semibold text-[color:var(--w-fg)] ${small ? "text-xs" : "text-sm"}`} title={d.name}>
           {d.name}
         </span>
-        {d.status && <span className="truncate text-[10px] text-[color:var(--w-faint)]">{d.status}</span>}
+        {d.status && !/^connected$/i.test(d.status) && <span className="truncate text-micro text-[color:var(--w-faint)]">{d.status}</span>}
         {showBattery && (
           <Num className={`ml-auto shrink-0 ${small ? "text-sm" : "text-base"}`}>{d.battery !== undefined ? `${Math.round(d.battery)}%` : "—"}</Num>
         )}

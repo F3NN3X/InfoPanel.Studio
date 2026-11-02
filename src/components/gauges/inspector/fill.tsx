@@ -81,7 +81,7 @@ function Stops({ mode, stops, onChange }: { mode: FillMode; stops: ColorStop[]; 
         </div>
       ))}
       {stops.length < MAX_STOPS && (
-        <button type="button" onClick={() => onChange([...stops, { at: 100, color: "#FFFFFF" }])} className="mt-1 flex h-[28px] items-center gap-1.5 rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
+        <button type="button" onClick={() => onChange([...stops, { at: 100, color: "#FFFFFF" }])} className="mt-1 flex h-(--ui-h-control) items-center gap-1.5 rounded-[7px] border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover">
           <Plus className="h-3.5 w-3.5" /> Add stop
         </button>
       )}

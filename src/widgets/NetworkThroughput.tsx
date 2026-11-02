@@ -25,7 +25,7 @@ const rate = (dir: "down" | "up", v: number, unit: RateUnit | undefined, big: st
   <div className="flex min-w-0 flex-col" style={{ color }}>
     <div className="flex items-center gap-1.5">
       <Icon name={dir === "down" ? "south" : "north"} className="text-[15px]" />
-      {label && <span className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-[color:var(--w-muted)]">{label}</span>}
+      {label && <span className="text-micro font-medium uppercase tracking-[0.08em] text-[color:var(--w-muted)]">{label}</span>}
       {!label && <Num ip={ip} className={`${big} truncate font-semibold`} style={custom ? undefined : { color: "var(--w-fg)" }}>{fmtRate(v, unit)}</Num>}
     </div>
     {label && <Num ip={ip} className={`${big} truncate font-semibold`} style={custom ? undefined : { color: "var(--w-fg)" }}>{fmtRate(v, unit)}</Num>}

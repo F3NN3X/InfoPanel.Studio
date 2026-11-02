@@ -24,12 +24,13 @@ export function safeRender(title: string, render: () => ReactNode): ReactNode {
 export function ZoneError({ title, message }: { title: string; message: string }) {
   return (
     <div
-      role="alert"
-      className="flex h-full min-h-0 w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border border-dashed border-destructive/50 bg-card/40 p-3 text-center"
+      role="status"
+      title={message}
+      className="flex h-full min-h-0 w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border border-dashed border-[color:var(--alert-critical)]/50 bg-card/40 p-3 text-center"
     >
-      <TriangleAlert className="h-4 w-4 shrink-0 text-destructive" aria-hidden />
-      <div className="truncate text-xs font-medium text-foreground">{title} failed to render</div>
-      <div className="line-clamp-2 text-[10px] text-muted-foreground">{message}</div>
+      <TriangleAlert className="h-4 w-4 shrink-0 text-[color:var(--alert-critical)]" aria-hidden />
+      <div className="truncate text-xs font-medium text-foreground">{title} can’t be shown</div>
+      <div className="line-clamp-2 text-xs text-muted-foreground">Open InfoPanel Studio and re-pick the widget or reset its settings.</div>
     </div>
   );
 }
@@ -59,6 +60,10 @@ export class ZoneErrorBoundary extends Component<ZoneErrorBoundaryProps, ZoneErr
     state: ZoneErrorBoundaryState
   ): Partial<ZoneErrorBoundaryState> | null {
     return props.resetKey !== state.resetKey ? { error: null, resetKey: props.resetKey } : null;
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error(`${this.props.title} can’t be shown:`, error);
   }
 
   render() {

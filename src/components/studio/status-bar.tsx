@@ -33,10 +33,10 @@ export interface StatusBarProps extends StatusBarData {
 type Tone = "ok" | "warn" | "bad" | "idle";
 
 const DOT: Readonly<Record<Tone, string>> = {
-  ok: "bg-ui-success",
-  warn: "bg-ui-warning",
-  bad: "bg-ui-danger",
-  idle: "bg-ui-5",
+  ok: "rounded-full bg-ui-success",
+  warn: "rotate-45 rounded-[1px] bg-ui-warning",
+  bad: "rounded-[2px] bg-ui-danger",
+  idle: "rounded-full border border-ui-hint",
 };
 
 const TEXT: Readonly<Record<Tone, string>> = {
@@ -133,13 +133,14 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
           key={item.id}
           type="button"
           title={item.tip}
+          aria-description={item.tip}
           onClick={item.onClick}
           className={cn(
             "flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
             TEXT[item.tone]
           )}
         >
-          <span aria-hidden className={cn("h-[7px] w-[7px] shrink-0 rounded-full", DOT[item.tone])} />
+          <span aria-hidden className={cn("h-[7px] w-[7px] shrink-0", DOT[item.tone])} />
           <span className="max-[959px]:sr-only">{item.label}</span>
         </button>
       ))}
@@ -148,14 +149,14 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
           type="button"
           title="Open Live control"
           onClick={onOpenLive}
-          className="flex h-[20px] min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-dashed border-[oklch(0.78_0.15_150/0.5)] px-2 text-[11px] text-[oklch(0.88_0.10_150)] transition-colors hover:bg-[oklch(0.78_0.15_150/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+          className="flex h-[20px] min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-dashed border-[oklch(0.78_0.15_150/0.5)] px-2 text-micro text-ui-ok-text transition-colors hover:bg-[oklch(0.78_0.15_150/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
         >
           <Cast aria-hidden className="h-3 w-3 shrink-0" />
           <span className="truncate max-[959px]:sr-only">{kioskChip}</span>
         </button>
       )}
       <div className="flex-1" />
-      <span role="status" className="whitespace-nowrap px-2 max-[959px]:sr-only">
+      <span role="status" className="whitespace-nowrap px-2">
         {SAVE_TEXT[save]}
       </span>
     </footer>

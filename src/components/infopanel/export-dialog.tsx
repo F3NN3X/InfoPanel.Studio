@@ -4,6 +4,7 @@
  * and icons to one image each) puts the new files on the zone as one undo step. What it reports about each part is
  * the editor's Export check (`exportCheck`), read from the items it writes, so the two never disagree.
  */
+import { onRovingKeyDown } from "@/lib/roving";
 import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Archive, Share, TriangleAlert, X } from "lucide-react";
@@ -92,9 +93,9 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: boolean) 
       aria-checked={on}
       aria-label={label}
       onClick={() => onChange(!on)}
-      className={cn("relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors", on ? "bg-ui-accent" : "bg-[#34343b]")}
+      className={cn("relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas]", on ? "bg-ui-accent forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-ui-menu")}
     >
-      <span className={cn("absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-[left]", on ? "left-[14px]" : "left-0.5")} />
+      <span className={cn("absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-[left] forced-colors:bg-[color:ButtonText]", on ? "left-[14px] forced-colors:bg-[color:HighlightText]" : "left-0.5")} />
     </button>
   );
 }
@@ -128,7 +129,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
   const stem = fileStem(name);
   const fileName = out === "stored" ? `${stem}.canvas.zip` : `${stem}.infopanel`;
   if (!opened) return <p className="p-5 text-[12.5px] text-ui-3">Reading the canvas’s files…</p>;
-  if (opened instanceof Error) return <p className="p-5 text-[12.5px] text-ui-danger">{opened.message}</p>;
+  if (opened instanceof Error) return <p role="alert" className="p-5 text-[12.5px] text-ui-danger">{opened.message}</p>;
 
   const doc: Doc = { items: opened.parsed.items, assets: opened.assets };
   const stale = staleGauges(doc.items);
@@ -279,12 +280,12 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
       )}
       <div className="flex items-center border-b border-ui-subtle px-5 py-4">
         <Dialog.Title className="flex-1 text-[15px] font-semibold text-ui-1">Export {name}</Dialog.Title>
-        <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+        <Dialog.Close title="Close" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
           <X className="h-5 w-5" />
         </Dialog.Close>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-auto px-5 py-[18px]">
-        <div role="radiogroup" aria-label="Output" className="grid grid-cols-2 gap-2.5 max-sm:grid-cols-1">
+        <div role="radiogroup" aria-label="Output" onKeyDown={(e) => onRovingKeyDown(e, '[role="radio"]')} className="grid grid-cols-2 gap-2.5 max-sm:grid-cols-1">
           {outputs.map((o) => {
             const Icon = o.icon;
             const on = out === o.value;
@@ -294,22 +295,23 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
                 type="button"
                 role="radio"
                 aria-checked={on}
+                tabIndex={on ? 0 : -1}
                 onClick={() => setOut(o.value)}
                 className={cn("flex flex-col gap-1.5 rounded-[10px] border p-3.5 text-left", on ? "border-ui-accent bg-ui-accent-soft" : "border-ui-default bg-ui-tile hover:bg-ui-hover")}
               >
                 <span className="flex items-center gap-2">
                   <Icon className="h-5 w-5 text-ui-3" />
-                  <span className="flex-1 text-[13px] font-semibold text-ui-1">{o.title}</span>
+                  <span className="flex-1 text-body font-semibold text-ui-1">{o.title}</span>
                   <Radio on={on} />
                 </span>
                 <span className="font-ui-mono text-[11.5px] text-ui-2">{o.file}</span>
-                <span className="text-[12px] text-ui-4">{o.text}</span>
+                <span className="text-caption text-ui-4">{o.text}</span>
               </button>
             );
           })}
         </div>
         {missing.length > 0 && (
-          <p className="flex gap-1.5 text-[12px] text-ui-warning">
+          <p className="flex gap-1.5 text-caption text-ui-warning">
             <TriangleAlert className="h-4 w-4 shrink-0" /> Not in the asset store, so not exported: {missing.join(", ")}
           </p>
         )}
@@ -347,7 +349,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
         {out === "infopanel" && (
           <div className="rounded-[10px] border border-ui-default px-3.5 py-3">
             <div className="text-[12.5px] font-medium text-ui-1">On the PC that opens it</div>
-            <ul className="mt-1 space-y-0.5 text-[12px] text-ui-3">
+            <ul className="mt-1 space-y-0.5 text-caption text-ui-3">
               <li>
                 {fonts.length > 0
                   ? `InfoPanel draws with installed fonts only, and an .infopanel carries none. Install ${fonts.join(", ")} there.`
@@ -360,7 +362,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
         {out === "stored" && <FontLicenceReview rows={licences} choices={choices} targets={targets} onChoose={(hash, c) => setChoices(new Map(choices).set(hash, c))} />}
         <div className="flex flex-col gap-[5px] rounded-[10px] border border-ui-subtle bg-ui-chrome px-3.5 py-3">
           {contents.map(([a, b]) => (
-            <div key={a} className="flex gap-3 text-[12px]">
+            <div key={a} className="flex gap-3 text-caption">
               <span className="w-[140px] font-ui-mono text-[11.5px] text-ui-2">{a}</span>
               <span className="text-ui-3">{b}</span>
             </div>
@@ -368,7 +370,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zo
         </div>
       </div>
       <div className="flex items-center gap-2.5 border-t border-ui-subtle px-5 py-3">
-        <span className="font-ui-mono text-[12px] text-ui-2">{fileName}</span>
+        <span className="font-ui-mono text-caption text-ui-2">{fileName}</span>
         <span className={cn("text-[11.5px]", error ? "text-ui-danger" : "text-ui-4")}>{error ?? busy ?? `≈ ${formatBytes(Math.max(0, size))}`}</span>
         <span className="flex-1" />
         <button type="button" onClick={onClose} className="h-8 px-3 text-[12.5px] text-ui-3 hover:text-ui-1">

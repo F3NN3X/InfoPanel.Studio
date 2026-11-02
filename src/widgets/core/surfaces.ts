@@ -30,7 +30,7 @@ export const BASE_SURFACES: Record<string, SurfaceDef> = {
   carbon: dark("border border-white/[0.06]", { background: "repeating-linear-gradient(45deg, #17171b 0 5px, #121215 5px 10px)" }),
   inset: dark("", { background: "#0e0e11", boxShadow: "inset 0 2px 8px rgba(0,0,0,.7), inset 0 -1px 0 rgba(255,255,255,.05), 0 1px 0 rgba(255,255,255,.04)" }),
   studio: dark("border", { background: "linear-gradient(160deg, rgba(255,255,255,.075), rgba(255,255,255,.022))", borderColor: "rgba(255,255,255,.08)" }),
-  terminal: dark("border font-mono", { background: "repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px), #060807", borderColor: mix(30), textShadow: `0 0 8px ${mix(45)}` }),
+  terminal: dark("border font-mono", { background: "repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px), #060807", borderColor: mix(30), textShadow: `0 0 8px ${mix(45)}`, fontSizeAdjust: 0.4 }),
 };
 
 const LEGACY_TONES: Record<ModernStyle, SurfaceTone> = {

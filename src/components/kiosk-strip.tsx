@@ -26,7 +26,8 @@ const dragWindow = (e: React.MouseEvent) => {
 /**
  * The desktop app's Kiosk view has no title bar. An invisible 8px zone along the top edge fades in a
  * 32px strip over the page (drag region, Back to studio, Minimize, Close); it goes about 1.2 s after
- * the pointer leaves it. It takes no layout space and, hidden, no clicks.
+ * the pointer leaves it. It takes no layout space and, hidden, no clicks; Tab reaches its buttons even
+ * while it is hidden and focus shows it.
  */
 export function KioskStrip({ onBack, onClose }: KioskStripProps) {
   const [shown, setShown] = useState(false);
@@ -46,10 +47,11 @@ export function KioskStrip({ onBack, onClose }: KioskStripProps) {
     <>
       <div aria-hidden className={cn("fixed inset-x-0 top-0 z-[60] h-2", shown && "pointer-events-none")} onPointerEnter={show} />
       <div
-        inert={!shown}
         onMouseDown={dragWindow}
         onPointerEnter={show}
         onPointerLeave={hideSoon}
+        onFocus={show}
+        onBlur={hideSoon}
         className={cn(
           "fixed inset-x-0 top-0 z-[61] flex h-8 select-none items-center border-b border-ui-subtle bg-ui-chrome font-ui",
           !reduced && "transition-opacity duration-150",
@@ -59,7 +61,7 @@ export function KioskStrip({ onBack, onClose }: KioskStripProps) {
         <button
           type="button"
           onClick={onBack}
-          className="ml-1 flex h-6 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1"
+          className="ml-1 flex h-6 items-center gap-1.5 rounded-md px-2 text-caption font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1"
         >
           <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} /> Back to studio
         </button>

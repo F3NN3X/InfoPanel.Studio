@@ -68,7 +68,7 @@ export function Heatmap({ weeks, fit, color, todayKey }: { weeks: HeatCell[][]; 
   return (
     <div className="flex shrink-0" style={{ gap }} role="img" aria-label="Tokens per day">
       {fit.labels && (
-        <div className="flex flex-col text-[9px] leading-none text-[color:var(--w-faint)]" style={{ width: LABELS_W - gap, gap }}>
+        <div className="flex flex-col text-micro leading-none text-[color:var(--w-faint)]" style={{ width: LABELS_W - gap, gap }}>
           {["Mon", "", "Wed", "", "Fri", "", ""].map((l, i) => (
             <span key={i} className="flex items-center" style={{ height: cell }}>
               {l}

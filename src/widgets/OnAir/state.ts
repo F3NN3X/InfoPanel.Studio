@@ -15,12 +15,13 @@ export function onAirKind(obs: ObsState): OnAirKind {
 
 export const ON_AIR_LABEL: Record<OnAirKind, string> = { live: "LIVE", rec: "REC", both: "LIVE + REC", off: "Off air", unset: "Off air" };
 
-/** Elapsed ms as "H:MM:SS" with seconds, else "1 h 05 min" or "5 min" (the minute is the smallest step). */
+/** Elapsed ms as "H:MM:SS" with seconds, else "1 h 05 min", "5 min" or "Just started" (the minute is the smallest step). */
 export function elapsedText(ms: number, seconds: boolean): string {
   const total = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
   if (seconds) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  if (h === 0 && m === 0) return "Just started";
   return h > 0 ? `${h} h ${String(m).padStart(2, "0")} min` : `${m} min`;
 }

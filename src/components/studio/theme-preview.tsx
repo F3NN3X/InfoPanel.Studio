@@ -13,10 +13,10 @@ import { previewProfile, type ThemeException } from "./theme-exceptions";
 import { previewFit } from "./theme-view-model";
 
 const BUTTON =
-  "h-7 shrink-0 rounded-[7px] border border-ui-strong px-[11px] text-[13px] text-ui-1 transition-colors hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
-const ZOOM_BUTTON = "h-7 w-7 rounded-md text-[#c9c9cf] hover:bg-[#24242a]";
+  "h-7 shrink-0 rounded-[7px] border border-ui-strong px-[11px] text-body text-ui-1 transition-colors hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const ZOOM_BUTTON = "h-7 w-7 rounded-md text-ui-2 hover:bg-ui-default";
 const ZOOM_TEXT = "h-[26px] rounded-md px-[9px] text-[11.5px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
-const LINK = "shrink-0 rounded-sm text-[13px] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const LINK = "shrink-0 rounded-sm text-body hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 /** The share of the window's height the preview may take before it scrolls. */
 const MAX_HEIGHT = 0.7;
@@ -104,8 +104,8 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
   return (
     <section aria-label="Preview" className="flex w-full min-w-0 flex-col gap-3.5">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-[13px] font-normal text-[#a1a1aa]">Preview</h2>
-        <div role="group" aria-label="Page to preview" className="flex gap-0.5 rounded-[7px] border border-ui-strong bg-[#131316] p-0.5">
+        <h2 className="text-body font-normal text-ui-soft">Preview</h2>
+        <div role="group" aria-label="Page to preview" className="flex gap-0.5 rounded-[7px] border border-ui-strong bg-ui-panel p-0.5">
           {profile.pages.map((pg) => (
             <button
               key={pg.id}
@@ -116,8 +116,8 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
                 onPage(pg.id);
               }}
               className={cn(
-                "rounded-[5px] px-2.5 py-1 text-[12px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
-                pg.id === page.id ? "bg-[#27272a] text-[#fafafa]" : "text-[#a1a1aa] hover:text-ui-1"
+                "rounded-[5px] px-2.5 py-1 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+                pg.id === page.id ? "bg-[#27272a] text-[#fafafa]" : "text-ui-soft hover:text-ui-1"
               )}
             >
               {pg.name}
@@ -129,9 +129,9 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
           type="button"
           aria-pressed={tags}
           onClick={() => setTags((t) => !t)}
-          className="flex items-center gap-1.5 rounded-full border border-[#1e3a8a] bg-[#0b1530] px-[9px] py-1 text-[12px] text-[#93c5fd] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+          className="flex items-center gap-1.5 rounded-full border border-[#1e3a8a] bg-[#0b1530] px-[9px] py-1 text-caption text-ui-accent-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
         >
-          <span className="h-[7px] w-[7px] rounded-full bg-[#3b82f6]" aria-hidden />
+          <span className="h-[7px] w-[7px] rounded-full bg-ui-blue" aria-hidden />
           {foreign ? "Differences show on the page you edit" : differencesPill(diffs.size, tags)}
         </button>
         <div role="group" aria-label="Preview zoom" className="flex items-center gap-0.5">
@@ -147,7 +147,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
             aria-pressed={zoom === "fit"}
             title="Fit the whole screen, at most its real size"
             onClick={() => setZoom("fit")}
-            className={cn(ZOOM_TEXT, zoom === "fit" ? "bg-ui-active text-ui-1" : "text-[#8f8f99] hover:bg-[#24242a]")}
+            className={cn(ZOOM_TEXT, zoom === "fit" ? "bg-ui-active text-ui-1" : "text-ui-4 hover:bg-ui-default")}
           >
             Fit
           </button>
@@ -156,7 +156,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
             aria-pressed={zoom === 1}
             title="The screen at its real size"
             onClick={() => setZoom(1)}
-            className={cn(ZOOM_TEXT, zoom === 1 ? "bg-ui-active text-ui-1" : "text-[#8f8f99] hover:bg-[#24242a]")}
+            className={cn(ZOOM_TEXT, zoom === 1 ? "bg-ui-active text-ui-1" : "text-ui-4 hover:bg-ui-default")}
           >
             100%
           </button>
@@ -167,7 +167,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
         {scale > 0 && (
           <div
             ref={drawn}
-            className="relative mx-auto overflow-hidden rounded-[10px] bg-[#070709] ring-1 ring-ui-strong"
+            className="relative mx-auto overflow-hidden rounded-[10px] bg-s-well ring-1 ring-ui-strong"
             style={{ width: profile.width * scale, height: profile.height * scale }}
           >
             <div className="pointer-events-none absolute left-0 top-0 origin-top-left" style={{ scale: String(scale) }} inert>
@@ -192,13 +192,13 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
                     setSelected(b.id);
                   }}
                   className={cn(
-                    "absolute rounded-[6px] -outline-offset-2 focus-visible:outline-2 focus-visible:outline-ui-accent",
-                    selected === b.id && "outline outline-2 outline-[#60a5fa]"
+                    "absolute rounded-ui-sm -outline-offset-2 focus-visible:outline-2 focus-visible:outline-ui-accent",
+                    selected === b.id && "outline outline-2 outline-ui-accent"
                   )}
                   style={{ left: b.left, top: b.top, width: b.width, height: b.height }}
                 >
                   {tags && d && (
-                    <span className="absolute -right-[7px] -top-[7px] whitespace-nowrap rounded-full bg-[#3b82f6] px-[7px] py-0.5 text-[10px] font-semibold text-white shadow-[0_0_0_2px_#09090b]">
+                    <span className="absolute -right-[7px] -top-[7px] whitespace-nowrap rounded-full bg-ui-blue px-[7px] py-0.5 text-[10px] font-semibold text-white shadow-[0_0_0_2px_#09090b]">
                       ✎ {d.exceptions[0].card.title}
                       {d.exceptions.length > 1 ? ` +${d.exceptions.length - 1}` : ""}
                     </span>
@@ -210,27 +210,27 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
         )}
       </div>
       {zone ? (
-        <div className="flex flex-wrap items-center gap-4 rounded-[10px] border border-ui-strong bg-[#111113] px-4 py-3.5">
+        <div className="flex flex-wrap items-center gap-4 rounded-[10px] border border-ui-strong bg-ui-panel px-4 py-3.5">
           <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
             <p className="truncate text-[14px] font-semibold text-ui-1">
-              {zoneName(zone)} <span className="font-normal text-[#71717a]">· widget on {page.name}</span>
+              {zoneName(zone)} <span className="font-normal text-ui-hint">· widget on {page.name}</span>
             </p>
-            <p className="text-[13px] text-[#a1a1aa]">{differenceSummary(zone, diff, levelName)}</p>
+            <p className="text-body text-ui-soft">{differenceSummary(zone, diff, levelName)}</p>
           </div>
           {diff && (
             <button type="button" className={BUTTON} onClick={() => onFollow(diff.exceptions)}>
               Use theme's value
             </button>
           )}
-          <button type="button" className={`${LINK} text-[#60a5fa]`} onClick={() => onOpenInEdit(page.id, zone.id)}>
+          <button type="button" className={`${LINK} text-ui-accent`} onClick={() => onOpenInEdit(page.id, zone.id)}>
             Open in Edit ↗
           </button>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-4 text-[13px] text-[#71717a]">
+        <div className="flex flex-wrap items-center gap-4 text-body text-ui-hint">
           <span>Click a widget to see what it changes.</span>
           {diffs.size > 0 && (
-            <button type="button" className={`${LINK} text-[#a1a1aa]`} onClick={() => onFollow([...diffs.values()].flatMap((d) => d.exceptions))}>
+            <button type="button" className={`${LINK} text-ui-soft`} onClick={() => onFollow([...diffs.values()].flatMap((d) => d.exceptions))}>
               Make all follow
             </button>
           )}

@@ -68,19 +68,19 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={pluginOnly ? "Search plugin sensors" : "Search sensors, e.g. gpu temp"}
                 aria-label="Search sensors"
-                className="min-w-0 flex-1 bg-transparent text-[13px] text-ui-1 outline-none placeholder:text-ui-4"
+                className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-4"
               />
             </div>
             {noRefs && <p className="text-[11.5px] leading-snug text-ui-warning">{NOT_EXPORTABLE}. A choice binds the preview only.</p>}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-1">
-            {catalog.status === "error" && <p className="px-3 py-6 text-center text-[12px] text-ui-4">The Data API isn’t reachable, so there are no sensors to choose.</p>}
+            {catalog.status === "error" && <p className="px-3 py-6 text-center text-caption text-ui-4">The Data API isn’t reachable, so there are no sensors to choose.</p>}
             {catalog.status !== "error" && sections.length === 0 && (
-              <p className="px-3 py-6 text-center text-[12px] text-ui-4">{pluginOnly ? "No plugin sensors match." : "No sensors match."}</p>
+              <p className="px-3 py-6 text-center text-caption text-ui-4">{pluginOnly ? "No plugin sensors match." : "No sensors match."}</p>
             )}
             {sections.map((s) => (
               <section key={s.title} aria-label={s.title}>
-                <div className="sticky top-0 bg-ui-tile px-2.5 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-ui-4">{s.title}</div>
+                <div className="sticky top-0 bg-ui-tile px-2.5 pb-1 pt-2 text-micro font-medium uppercase tracking-wide text-ui-4">{s.title}</div>
                 <ul>
                   {s.points.map((p) => {
                     const ref = sensors[p.key]?.ref;
@@ -93,11 +93,11 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
                           aria-selected={p.key === current}
                           title={native ? ref : `${p.key} · ${NOT_EXPORTABLE}`}
                           onClick={() => pick(p)}
-                          className={cn("flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-1.5 text-left hover:bg-[#1c1c21]", p.key === current && "bg-ui-accent/10")}
+                          className={cn("flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-1.5 text-left hover:bg-s-divider", p.key === current && "bg-ui-accent/10")}
                         >
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[12.5px] text-ui-1">{p.name}</span>
-                            <span className="block truncate font-ui-mono text-[10.5px] text-ui-4">{native ? ref : `${p.key} · preview only`}</span>
+                            <span className="block truncate font-ui-mono text-micro text-ui-4">{native ? ref : `${p.key} · preview only`}</span>
                           </span>
                           <span className="max-w-[150px] shrink-0 truncate font-ui-mono text-[11.5px] text-ui-2">{p.raw}</span>
                         </button>

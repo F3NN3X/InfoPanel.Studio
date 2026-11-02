@@ -3,7 +3,8 @@
  * chevron slot, an icon tile, the name (double-click renames), the kind word, the placed-freely mark, the Export
  * check's status (made for InfoPanel), the lock and the eye. Click selects, Shift a range, Ctrl toggles; a row drags
  * between rows (a 2 px line where it lands) or onto a group's middle (an outline: into it), carrying the selection.
- * Right-click opens the layer menu. The page's host (`use-page-layers.ts` on a screen's page, `canvas-layers.ts` on an imported profile's) reads the
+ * Right-click opens the layer menu. The chevron, lock and eye are pointer controls kept out of the accessibility tree (APG tree: no
+ * interactive descendants of a treeitem); the keyboard has Left and Right, Ctrl+L and Ctrl+H, and the row's state is its aria-description. The page's host (`use-page-layers.ts` on a screen's page, `canvas-layers.ts` on an imported profile's) reads the
  * page into rows and runs every change.
  */
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
@@ -90,6 +91,12 @@ function counts(nodes: readonly TreeNode[]): { parts: number; groups: number } {
   return { parts, groups };
 }
 
+/** A row's state for the treeitem (its lock and eye buttons are for the pointer and hidden from assistive tech; Ctrl+L and Ctrl+H change them). */
+function rowState(node: TreeNode): string | undefined {
+  const state = [node.locked && "Locked", node.hidden && "Hidden"].filter(Boolean).join(", ");
+  return state || undefined;
+}
+
 const KIND_WORD: Record<PartKind, string> = { widget: "widget", item: "item", element: "element" };
 
 export function LayersTree({ host }: { host: LayersHost }) {
@@ -101,6 +108,8 @@ export function LayersTree({ host }: { host: LayersHost }) {
   const [why, setWhy] = useState<string | null>(null);
   const [dragging, setDragging] = useState<readonly string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const seen = useRef<Map<string, string>>(new Map());
   const selected = host.selectedIds;
   const primary = selected.at(-1);
   // Rows inside a selected group tint.
@@ -115,6 +124,24 @@ export function LayersTree({ host }: { host: LayersHost }) {
     mark(host.nodes, false);
     return out;
   }, [host.nodes, selected]);
+
+  // Ctrl+L and Ctrl+H change a row the user may not be looking at: say what changed (the icons are hidden from assistive tech).
+  useEffect(() => {
+    const now = new Map<string, string>();
+    const said: string[] = [];
+    const visit = (list: readonly TreeNode[]) => {
+      for (const n of list) {
+        const state = rowState(n) ?? "";
+        const before = seen.current.get(n.id);
+        now.set(n.id, state);
+        if (before !== undefined && before !== state) said.push(`${n.name || "Layer"}: ${state ? state.toLowerCase() : "unlocked and shown"}`);
+        if (n.type === "group") visit(n.children ?? []);
+      }
+    };
+    visit(host.nodes);
+    seen.current = now;
+    if (said.length === 1) setAnnouncement(said[0]);
+  }, [host.nodes]);
 
   // F2: rename the primary node.
   const request = useRef(host.renameRequest);
@@ -139,15 +166,33 @@ export function LayersTree({ host }: { host: LayersHost }) {
   const onRow = (id: string, e: MouseEvent) => host.select(id, e.shiftKey ? "range" : e.ctrlKey || e.metaKey ? "toggle" : "only", visible);
   /** The one row Tab reaches (a roving tab stop): the primary selection when it is shown, else the top row. */
   const tabStop = primary !== undefined && visible.includes(primary) ? primary : visible[0];
-  /** Keys on a row (the tree's own, SPEC §14 keyboard use): arrows move between rows, Shift extends the selection, Enter or Space selects, Ctrl+Space toggles. */
+  const focusRow = (id: string | undefined) => {
+    if (id !== undefined) listRef.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(id)}"]`)?.focus();
+  };
+  /** Keys on a row (the tree's own, SPEC §14 keyboard use): Up and Down move between rows, Home and End go to the ends, Left and Right close and open a group, Shift extends the selection, Enter or Space selects, Ctrl+Space toggles. */
   const onRowKey = (id: string, e: KeyboardEvent<HTMLDivElement>) => {
     if (e.target !== e.currentTarget) return;
     if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !e.altKey && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       const next = visible[visible.indexOf(id) + (e.key === "ArrowDown" ? 1 : -1)];
       if (next === undefined) return;
-      listRef.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(next)}"]`)?.focus();
+      focusRow(next);
       if (e.shiftKey) host.select(next, "range", visible);
+    } else if ((e.key === "Home" || e.key === "End") && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      e.preventDefault();
+      focusRow(e.key === "Home" ? visible[0] : visible[visible.length - 1]);
+    } else if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      // APG tree: Right opens a group (or steps into it), Left closes it (or steps out to its parent).
+      const row = rows.find((r) => r.node.id === id);
+      if (!row) return;
+      e.preventDefault();
+      const group = row.node.type === "group";
+      const open = group && host.isOpen(id);
+      if (e.key === "ArrowRight") {
+        if (group && !open) host.setOpen([id], true);
+        else if (group) focusRow(visible[visible.indexOf(id) + 1]);
+      } else if (open) host.setOpen([id], false);
+      else if (row.parentId) focusRow(row.parentId);
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       host.select(id, e.key === " " && (e.ctrlKey || e.metaKey) ? "toggle" : "only", visible);
@@ -196,13 +241,13 @@ export function LayersTree({ host }: { host: LayersHost }) {
   return (
     <section aria-label="Layers" className="flex min-h-0 flex-1 flex-col font-ui">
       <div className="flex h-[38px] shrink-0 items-center gap-1.5 pl-3.5 pr-2.5">
-        <span className="text-[12px] font-semibold text-ui-1">Layers</span>
-        <span className="text-[10.5px] text-ui-4">top first</span>
+        <span className="text-caption font-semibold text-ui-1">Layers</span>
+        <span className="text-micro text-ui-4">top first</span>
         <span className="flex-1" />
-        <IconButton label="Group selection (Ctrl+G)" className="h-6 w-6 rounded-[6px] text-ui-4 hover:bg-ui-hover hover:text-ui-2" disabled={!host.menu.available.group} onClick={() => host.menu.run("group")}>
+        <IconButton label="Group selection (Ctrl+G)" className="h-6 w-6 rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-2" disabled={!host.menu.available.group} onClick={() => host.menu.run("group")}>
           <FolderPlus className="h-[14px] w-[14px]" />
         </IconButton>
-        <IconButton label="Collapse all" className="h-6 w-6 rounded-[6px] text-ui-4 hover:bg-ui-hover hover:text-ui-2" onClick={() => host.setOpen(groupIds(host.nodes), false)}>
+        <IconButton label="Collapse all" className="h-6 w-6 rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-2" onClick={() => host.setOpen(groupIds(host.nodes), false)}>
           <ChevronsDownUp className="h-[14px] w-[14px]" />
         </IconButton>
       </div>
@@ -215,7 +260,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
         onDragLeave={(e) => e.currentTarget === e.target && clear()}
         className="relative flex min-h-0 flex-1 flex-col gap-px overflow-y-auto px-2 pb-2"
       >
-        {rows.length === 0 && <p className="px-2 py-5 text-center text-xs text-ui-4">Nothing on this page yet.</p>}
+        {rows.length === 0 && <p className="px-2 py-5 text-center text-xs text-ui-4">Nothing on this page yet. Use the Add tab to place a widget.</p>}
         {rows.map((row) => {
           const { node, depth } = row;
           const group = node.type === "group";
@@ -234,6 +279,8 @@ export function LayersTree({ host }: { host: LayersHost }) {
               aria-selected={isSelected}
               aria-level={depth + 1}
               aria-expanded={group ? open : undefined}
+              aria-description={rowState(node)}
+              aria-keyshortcuts="Control+L Control+H"
               data-testid="layers-row"
               data-row-id={node.id}
               data-kind={group ? "group" : node.kind}
@@ -267,10 +314,9 @@ export function LayersTree({ host }: { host: LayersHost }) {
                 setMenu({ x: e.clientX, y: e.clientY });
               }}
               className={cn(
-                "group/row relative flex h-[28px] shrink-0 cursor-pointer items-center gap-[5px] rounded-[6px] pr-1.5 outline-none",
+                "group/row relative flex h-(--ui-h-control) shrink-0 cursor-pointer items-center gap-[5px] rounded-ui-sm pr-1.5 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
                 isSelected ? "bg-ui-accent/18 text-white" : tinted.has(node.id) ? "bg-ui-accent/7" : "hover:bg-ui-hover",
                 mark === "inside" && "outline outline-1 -outline-offset-1 outline-ui-accent",
-                node.hidden && "opacity-45",
               )}
               style={{ paddingLeft: 6 + depth * 16 }}
             >
@@ -284,19 +330,22 @@ export function LayersTree({ host }: { host: LayersHost }) {
               {group ? (
                 <button
                   type="button"
-                  aria-label={open ? "Collapse" : "Expand"}
+                  aria-hidden="true"
+                  data-row-action="expand"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.stopPropagation();
                     host.setOpen(e.altKey ? deep(node) : [node.id], !open);
                   }}
-                  className="grid h-[14px] w-[14px] shrink-0 place-items-center text-ui-4"
+                  className="relative grid h-[14px] w-[14px] shrink-0 place-items-center text-ui-4 after:absolute after:-inset-1.5 after:content-['']"
                 >
                   {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 </button>
               ) : (
                 <span className="w-[14px] shrink-0" />
               )}
-              <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-[5px]", widget ? "bg-ui-accent/14 text-ui-accent" : "bg-ui-hover text-ui-3")}>
+              <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-[5px]", widget ? "bg-ui-accent/14 text-ui-accent" : "bg-ui-hover text-ui-3", node.hidden && "opacity-45")}>
                 <Icon className="h-[13px] w-[13px]" strokeWidth={1.75} />
               </span>
               {renaming === node.id ? (
@@ -319,17 +368,18 @@ export function LayersTree({ host }: { host: LayersHost }) {
                       e.currentTarget.blur();
                     }
                   }}
-                  className="h-[22px] min-w-0 flex-1 rounded-[5px] border border-ui-accent bg-ui-app px-1.5 text-[12px] text-ui-1 outline-none"
+                  className="h-[22px] min-w-0 flex-1 rounded-[5px] border border-ui-accent bg-ui-app px-1.5 text-caption text-ui-1 outline-none"
                 />
               ) : (
-                <span onDoubleClick={() => setRenaming(node.id)} className={cn("min-w-0 flex-1 truncate text-[12px]", isSelected ? "text-white" : "text-ui-2")}>
+                <span onDoubleClick={() => setRenaming(node.id)} title={label} className={cn("min-w-0 flex-1 truncate text-caption", isSelected ? "text-white" : node.hidden ? "text-ui-4" : "text-ui-2")}>
                   {label}
                 </span>
               )}
-              <span className="shrink-0 font-ui-mono text-[9.5px] text-ui-5">{group ? `group · ${node.children?.length ?? 0}` : KIND_WORD[node.kind ?? "item"]}</span>
+              {rowState(node) && <span className="sr-only">, {rowState(node)}</span>}
+              <span className={cn("shrink-0 font-ui-mono text-[10px] text-ui-hint", node.hidden && "opacity-45")}>{group ? `group · ${node.children?.length ?? 0}` : KIND_WORD[node.kind ?? "item"]}</span>
               {node.free && !widget && (
-                <span title="Placed freely (Alt)" aria-label="Placed freely (Alt)" className="inline-flex shrink-0 text-ui-4">
-                  <Move className="h-3 w-3" />
+                <span role="img" title="Placed freely (Alt)" aria-label="Placed freely (Alt)" className="inline-flex shrink-0 text-ui-4">
+                  <Move className="h-3 w-3" aria-hidden="true" />
                 </span>
               )}
               {status && (
@@ -340,15 +390,17 @@ export function LayersTree({ host }: { host: LayersHost }) {
               <button
                 type="button"
                 title={node.locked ? "Unlock" : "Lock"}
-                aria-label={node.locked ? `Unlock ${label}` : `Lock ${label}`}
-                aria-pressed={Boolean(node.locked)}
+                aria-hidden="true"
+                data-row-action="lock"
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => {
                   e.stopPropagation();
                   host.setLocked(node.id, !node.locked);
                 }}
                 className={cn(
-                  "grid h-[18px] w-[16px] shrink-0 place-items-center",
-                  node.locked ? "text-ui-2" : "text-ui-5 opacity-0 focus-visible:opacity-100 group-hover/row:opacity-100",
+                  "relative grid h-[18px] w-[16px] shrink-0 place-items-center after:absolute after:-inset-1 after:content-['']",
+                  node.locked ? "text-ui-2" : "text-ui-hint opacity-0 group-hover/row:opacity-100",
                 )}
               >
                 <Lock className="h-[13px] w-[13px]" />
@@ -356,13 +408,15 @@ export function LayersTree({ host }: { host: LayersHost }) {
               <button
                 type="button"
                 title={node.hidden ? "Show" : "Hide"}
-                aria-label={node.hidden ? `Show ${label}` : `Hide ${label}`}
-                aria-pressed={Boolean(node.hidden)}
+                aria-hidden="true"
+                data-row-action="hide"
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => {
                   e.stopPropagation();
                   host.setHidden(node.id, !node.hidden);
                 }}
-                className={cn("grid h-[18px] w-[16px] shrink-0 place-items-center", node.hidden ? "text-ui-2" : "text-ui-5")}
+                className={cn("relative grid h-[18px] w-[16px] shrink-0 place-items-center after:absolute after:-inset-1 after:content-['']", node.hidden ? "text-ui-2" : "text-ui-hint")}
               >
                 {node.hidden ? <EyeOff className="h-[13px] w-[13px]" /> : <Eye className="h-[13px] w-[13px]" />}
               </button>
@@ -370,8 +424,11 @@ export function LayersTree({ host }: { host: LayersHost }) {
           );
         })}
       </div>
+      <p aria-live="polite" aria-atomic="true" data-testid="layers-announcement" className="sr-only">
+        {announcement}
+      </p>
       {why && (
-        <p role="status" className="border-t border-ui-subtle px-3.5 py-2 text-[11px] leading-snug text-ui-warn">
+        <p role="status" className="border-t border-ui-subtle px-3.5 py-2 text-micro leading-snug text-ui-warn">
           {why}
         </p>
       )}
@@ -385,11 +442,11 @@ export function LayersTree({ host }: { host: LayersHost }) {
           />
         </Suspense>
       )}
-      <div className="flex shrink-0 flex-col gap-0.5 border-t border-ui-subtle px-3.5 py-2.5 text-[10.5px]">
+      <div className="flex shrink-0 flex-col gap-0.5 border-t border-ui-subtle px-3.5 py-2.5 text-micro">
         <span className="text-ui-3">
           {total.parts} part{total.parts === 1 ? "" : "s"} · {total.groups} group{total.groups === 1 ? "" : "s"}
         </span>
-        <span className="text-ui-5">Drag to reorder or into a group · right-click for more</span>
+        <span className="text-ui-hint">Drag to reorder or into a group · right-click for more</span>
       </div>
     </section>
   );

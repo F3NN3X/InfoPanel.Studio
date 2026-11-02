@@ -54,7 +54,7 @@ export const CHECKS: Record<FixtureName, Check[]> = {
     c(4, "Right-click menu: Bring to front, Bring forward, Send backward, Send to back · Group, Ungroup, Move to group ▸ · Lock, Hide · Rename, Duplicate, Delete"),
     c(4, "Dragging a row shows a 2 px accent line between rows (reorder) or an accent outline on a group (move into)"),
     c(4, "Selecting a group draws its box on the canvas with a label chip; its children tint in Layers"),
-    c(4, "Hidden rows dim to 45 %; locked rows show the lock and can’t be moved on the canvas"),
+    c(4, "Hidden rows mute their name and dim their icon to 45 % (the name stays readable); locked rows show the lock and can’t be moved on the canvas"),
   ],
   layersG: [
     c(4, 'Group "Gauges" holds CPU and GPU gauge; dragging the group moves both by cells'),

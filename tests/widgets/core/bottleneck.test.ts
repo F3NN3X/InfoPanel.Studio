@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { VERDICT_LABEL, classify, holdVerdict, reasonFor, type BottleneckInput, type HoldState } from "@/widgets/core/bottleneck";
+import { VERDICT_LABEL, VERDICT_LOG_MAX, classify, holdVerdict, logVerdict, reasonFor, verdictRuns, type BottleneckInput, type HoldState } from "@/widgets/core/bottleneck";
 
 const base: BottleneckInput = { gpuLoad: 50, cpuLoad: 30, cpuMaxCore: 40, vramUsed: 4000, vramTotal: 16000, fps: 120, gpuTemp: 60, thermalThrottle: false, powerThrottle: false };
 const NO_SENSORS: BottleneckInput = { ...base, gpuLoad: NaN, cpuLoad: NaN, cpuMaxCore: NaN, vramUsed: NaN, vramTotal: NaN, fps: NaN, gpuTemp: NaN };
@@ -94,5 +94,36 @@ describe("holdVerdict", () => {
     let s: HoldState | undefined = holdVerdict(undefined, "balanced", 0, hold);
     for (let t = 1000; t <= 60_000; t += 1000) s = holdVerdict(s, t % 2000 ? "gpu" : "cpu", t, hold);
     expect(s.shown).toBe("balanced");
+  });
+});
+
+describe("verdict history", () => {
+  const MIN = 60_000;
+
+  it("logs a verdict only when it changes", () => {
+    let log = logVerdict([], "balanced", 0, 5 * MIN);
+    log = logVerdict(log, "balanced", 1000, 5 * MIN);
+    log = logVerdict(log, "gpu", 2000, 5 * MIN);
+    expect(log).toEqual([{ v: "balanced", t: 0 }, { v: "gpu", t: 2000 }]);
+  });
+
+  it("drops entries that ended before the window but keeps the one showing when it opened", () => {
+    const log = logVerdict([{ v: "balanced", t: 0 }, { v: "cpu", t: MIN }], "gpu", 7 * MIN, 5 * MIN);
+    expect(log.map((e) => e.v)).toEqual(["cpu", "gpu"]);
+  });
+
+  it("caps the log", () => {
+    let log: ReturnType<typeof logVerdict> = [];
+    for (let i = 0; i < VERDICT_LOG_MAX + 10; i++) log = logVerdict(log, i % 2 ? "gpu" : "cpu", i, 5 * MIN);
+    expect(log).toHaveLength(VERDICT_LOG_MAX);
+  });
+
+  it("turns the log into runs over the window, the last one reaching now", () => {
+    const runs = verdictRuns([{ v: "balanced", t: 0 }, { v: "gpu", t: 2 * MIN }], 4 * MIN, 4 * MIN);
+    expect(runs).toEqual([{ v: "balanced", from: 0, to: 0.5 }, { v: "gpu", from: 0.5, to: 1 }]);
+  });
+
+  it("starts a young log where it starts, not at the window's edge", () => {
+    expect(verdictRuns([{ v: "idle", t: 3 * MIN }], 4 * MIN, 4 * MIN)).toEqual([{ v: "idle", from: 0.75, to: 1 }]);
   });
 });

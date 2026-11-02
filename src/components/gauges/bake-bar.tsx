@@ -50,7 +50,7 @@ function Bar({ bridge, source, entry, gauge, stored }: BakeBarProps & { stored: 
       <span className="text-[12.5px] text-ui-1">
         InfoPanel export · {stale ? (have ? "Frames out of date" : "No frames baked yet") : "Frames baked"}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[12px] text-ui-4">
+      <span className="min-w-0 flex-1 truncate text-caption text-ui-4">
         {busy ? `Baking ${done} of ${count}…` : (note ?? "The dashboard always draws this gauge live: baking only makes the frames the .infopanel export carries.")}
       </span>
       <button
@@ -58,7 +58,7 @@ function Bar({ bridge, source, entry, gauge, stored }: BakeBarProps & { stored: 
         disabled={busy !== null}
         onClick={run}
         title={`Draws the spec into ${count} PNG frames, replacing the gauge's frames`}
-        className="h-8 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
+        className="h-8 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
       >
         Bake frames
       </button>

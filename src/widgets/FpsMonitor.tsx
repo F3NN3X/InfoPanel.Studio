@@ -1,4 +1,5 @@
-import { Widget, shell, get, num, fmt, has, clamp, Metric, Ring, Spark, Stat, Chip, Num, hue, useHistory, frameSample, frameBudgets, frameTimeTop, clampSpikes, Icon, TONES, type ShellProps, type Tier, type Tone } from "./kit";
+import { Widget, shell, get, num, fmt, has, clamp, Metric, Ring, Spark, Stat, Chip, Num, ToneCue, hue, useHistory, frameSample, frameBudgets, frameTimeTop, clampSpikes, Icon, TONES, type ShellProps, type Tier, type Tone } from "./kit";
+import { fpsSubLine } from "./fps-line";
 import { meta } from "./meta/FpsMonitor";
 
 export { meta };
@@ -80,6 +81,7 @@ export function GaugeView({ idle, size, w, h, fps, low, low01, ft, hz, maxFps, t
     <div className="shrink-0" style={{ width: ringSize, height: ringSize }}>
       <Ring value={idle ? 0 : fps} max={maxFps} t={tone} color={color} thickness={10} className="h-full w-full">
         <Num className="leading-none" style={{ fontSize: Math.max(12, ringSize * 0.26), color: numColor }}>
+          {!idle && <ToneCue t={tone} />}
           {idle ? "–" : fmt(fps)}
         </Num>
       </Ring>
@@ -125,7 +127,7 @@ export function GaugeView({ idle, size, w, h, fps, low, low01, ft, hz, maxFps, t
   );
   const spark = hist && <Spark values={hist} min={0} color={sparkColor} className="h-6 w-full" />;
   const sourceLine = (
-    <span className="text-[10.5px] font-medium text-[color:var(--w-muted)]">
+    <span className="text-micro font-medium text-[color:var(--w-muted)]">
       {source} · {fmt(maxFps)} {targeted ? "fps target" : "Hz"}
     </span>
   );
@@ -201,7 +203,7 @@ export default function FpsMonitor(p: FpsMonitorProps) {
   const ratio = fps / maxFps;
   const gt: Tone = ratio >= 0.9 ? "ok" : ratio >= 0.6 ? "warn" : "crit";
   const source = num(get(d, RTSS + "fps")) > 0 ? "RTSS" : has(get(d, PRESENTMON + "gpu utilization")) ? "PresentMon" : "FPS";
-  const lowLine = [low > 0 ? `1% ${fmt(low)}` : "", frame > 0 ? `${fmt(frame, 1)} ms` : ""].filter(Boolean).join(" · ");
+  const lowLine = fpsSubLine(low, frame);
   const gaugeCompact = {
     label: idle ? "FPS" : title || source,
     value: idle ? "–" : fps,
@@ -216,10 +218,17 @@ export default function FpsMonitor(p: FpsMonitorProps) {
   return (
     <Widget
       {...shell(p)}
-      title={p.title ?? (idle ? "FPS" : title)}
+      title={p.title ?? "FPS"}
       icon="speed"
-      compact={gauge ? gaugeCompact : { label: idle ? "FPS" : title, value: idle ? "–" : fps, unit: idle ? "" : "FPS", sub: idle ? "No game running" : `1% ${fmt(low)} · ${fmt(frame, 1)} ms`, idle: idle ? "No game running" : undefined, icon: "sports_esports", hist: idle ? undefined : fpsH, kind: idle ? "value" : "spark", t: idle ? "ok" : t }}
-      right={has(k("graphics-api")) && <Chip>{k("graphics-api")}</Chip>}
+      compact={gauge ? gaugeCompact : { label: idle ? "FPS" : title, value: idle ? "–" : fps, unit: idle ? "" : "FPS", sub: idle ? "No game running" : fpsSubLine(low, frame), idle: idle ? "No game running" : undefined, icon: "sports_esports", hist: idle ? undefined : fpsH, kind: idle ? "value" : "spark", t: idle ? "ok" : t }}
+      right={
+        (!idle && !!title) || has(k("graphics-api")) ? (
+          <>
+            {!idle && !!title && <Chip className="max-w-40 truncate">{title}</Chip>}
+            {has(k("graphics-api")) && <Chip>{k("graphics-api")}</Chip>}
+          </>
+        ) : undefined
+      }
     >
       {({ size, w, h }) =>
         gauge ? (
@@ -235,12 +244,12 @@ export default function FpsMonitor(p: FpsMonitorProps) {
             )}
           </div>
         ) : size === "xs" ? (
-          <Metric value={idle ? "–" : fps} unit="FPS" scale="lg" sub={idle ? "Idle" : `1% ${fmt(low)}`} t={idle ? "ok" : t} className="h-full justify-center" />
+          <Metric value={idle ? "–" : fps} unit="FPS" scale="lg" sub={idle ? "Idle" : fpsSubLine(low, 0)} t={idle ? "ok" : t} className="h-full justify-center" />
         ) : size === "sm" ? (
           <div className="flex h-full items-end justify-between gap-3">
             <Metric value={fps} unit="FPS" scale="xl" t={t} />
             <div className="grid gap-1.5 text-right">
-              <Stat label="1% low" value={fmt(low)} />
+              <Stat label="1% low" value={low > 0 ? fmt(low) : "–"} />
               <Stat label="Frame" value={`${fmt(frame, 1)} ms`} />
             </div>
           </div>
@@ -249,13 +258,13 @@ export default function FpsMonitor(p: FpsMonitorProps) {
             <div className="flex items-end gap-5">
               <Metric value={fps} unit="FPS" scale={size === "lg" ? "2xl" : "xl"} t={t} />
               <div className="grid flex-1 grid-cols-3 gap-3">
-                <Stat label="1% low" value={fmt(low)} />
+                <Stat label="1% low" value={low > 0 ? fmt(low) : "–"} />
                 <Stat label="Avg" value={fmt(num(k("avg-fps")))} />
                 <Stat label="Frame time" value={`${fmt(frame, 1)} ms`} />
               </div>
             </div>
             <div className="flex min-h-0 flex-1 flex-col">
-              <span className="shrink-0 self-end text-[10px] text-[color:var(--w-faint)]">frame time</span>
+              <span className="shrink-0 self-end text-micro text-[color:var(--w-faint)]">frame time</span>
               <div className="relative min-h-0 flex-1">
                 <Spark values={hist} min={0} max={ftTop} curve={false} className="absolute inset-0 h-full" />
               </div>

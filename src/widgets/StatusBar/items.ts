@@ -2,7 +2,7 @@
 import { weatherKind, type WeatherCondition } from "@/lib/weather-icons";
 import { readSystemFlat, systemKeysFlat } from "@/lib/system-metrics";
 import { inUnit } from "@/modules/setting-readers";
-import { adapterOf, detect, fmt, fmtRate, get, has, hw, num, type Data, type IpTagExtra, type RateUnit } from "../kit";
+import { adapterOf, detect, fmt, fmtDate, fmtRate, get, has, hw, num, type Data, type IpTagExtra, type RateUnit } from "../kit";
 import { trackOf } from "../NowPlaying/track";
 import type { Card } from "./card-model";
 import { cardReading } from "./card-readings";
@@ -48,7 +48,7 @@ export interface ReadCtx {
 }
 
 /** "Thu, Jul 30". */
-export const dateText = (now: Date, locale: string): string => now.toLocaleDateString(locale || undefined, { weekday: "short", month: "short", day: "numeric" });
+export const dateText = (now: Date, locale: string): string => fmtDate(now, "short", locale);
 
 /** "14:05" or "2:05 PM", with seconds when asked. */
 export const timeText = (now: Date, locale: string, clock: ReadCtx["clock"], seconds: boolean): string =>

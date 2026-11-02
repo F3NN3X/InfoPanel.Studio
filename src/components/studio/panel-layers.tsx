@@ -81,7 +81,7 @@ export function PanelLayers({
 
   if (widgets.length === 0) {
     return (
-      <span className="block py-1 text-[12px] text-ui-5">No widgets in this panel yet.</span>
+      <span className="block py-1 text-caption text-ui-hint">No widgets in this panel yet.</span>
     );
   }
 
@@ -115,18 +115,18 @@ export function PanelLayers({
               "relative flex cursor-pointer items-center gap-[7px] rounded-[7px] border py-1.5 pl-1.5 pr-1",
               w.id === selectedId
                 ? "border-ui-accent/50 bg-ui-accent/[.12]"
-                : "border-ui-subtle bg-ui-app hover:border-[#33333a]",
+                : "border-ui-subtle bg-ui-app hover:border-ui-menu",
               w.id === dragId && "opacity-40",
               !w.visible && "opacity-50"
             )}
           >
             {dropAt === i && <DropLine edge="top" />}
             {dropAt === i + 1 && i === widgets.length - 1 && <DropLine edge="bottom" />}
-            <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-ui-5" />
+            <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-ui-hint" />
             <Icon className="h-4 w-4 shrink-0 text-ui-3" aria-label={label} />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12px] text-ui-1">{widgetName(w)}</span>
-              <span className="block truncate text-[10.5px] text-ui-4">
+              <span className="block truncate text-caption text-ui-1" title={widgetName(w)}>{widgetName(w)}</span>
+              <span className="block truncate text-micro text-ui-4">
                 {`${label} · ${w.sensor ? sensorName(w.sensor) : "no sensor"}`}
               </span>
             </span>

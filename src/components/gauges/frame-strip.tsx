@@ -12,7 +12,7 @@ import { FRAME_ACCEPT } from "./frame-files";
 import type { FramesTools } from "./frames-tools";
 import { useFrameKeys } from "./use-gauge-keys";
 
-const TOOL = "flex h-8 items-center gap-1.5 rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
+const TOOL = "flex h-8 items-center gap-1.5 rounded-[7px] border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
 
 export interface FrameStripProps {
   tools: FramesTools;
@@ -62,7 +62,7 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
   return (
     <section aria-label="Frames" className="w-full shrink-0 border-t border-ui-subtle bg-ui-panel font-ui">
       <div className="flex min-h-11 flex-wrap items-center gap-2 px-4 py-2">
-        <span className="mr-1 font-ui-mono text-[11px] text-ui-4">
+        <span className="mr-1 font-ui-mono text-micro text-ui-4">
           {n} frame{n === 1 ? "" : "s"}
           {idx.length > 1 ? ` · ${idx.length} selected` : ""}
         </span>
@@ -95,14 +95,14 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
           }}
         />
         {tools.note && (
-          <span role="status" className="min-w-0 truncate text-[12px] text-ui-3">
+          <span role="status" className="min-w-0 truncate text-caption text-ui-3">
             {tools.note}
           </span>
         )}
       </div>
       {resampling !== null && (
         <form
-          className="flex items-center gap-2 px-4 pb-2 text-[12px] text-ui-3"
+          className="flex items-center gap-2 px-4 pb-2 text-caption text-ui-3"
           onSubmit={(e) => {
             e.preventDefault();
             apply("Resampling", resampleEdit(n, picked, resampling));
@@ -118,14 +118,14 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
               value={resampling}
               autoFocus
               onChange={(e) => setResampling(Math.max(1, Math.min(1000, Math.round(e.currentTarget.valueAsNumber) || 1)))}
-              className="h-7 w-[72px] rounded-md border border-ui-strong bg-ui-hover px-2 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+              className="h-7 w-[72px] rounded-md border border-ui-strong bg-ui-hover px-2 text-caption text-ui-1 outline-none focus:border-ui-accent"
             />
             frames
           </label>
-          <button type="submit" className="h-7 rounded-[7px] bg-ui-inverse px-2.5 text-[12px] font-medium text-ui-inverse-fg hover:opacity-90">
+          <button type="submit" className="h-7 rounded-[7px] bg-ui-inverse px-2.5 text-caption font-medium text-ui-inverse-fg hover:opacity-90">
             Resample
           </button>
-          <button type="button" onClick={() => setResampling(null)} className="h-7 rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
+          <button type="button" onClick={() => setResampling(null)} className="h-7 rounded-[7px] border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover">
             Cancel
           </button>
         </form>
@@ -140,7 +140,7 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
               title={i === current ? `Frame ${i + 1}: shown at this value` : `Frame ${i + 1}`}
               onClick={(e) => onSelect(selectFrame(picked, i, e.shiftKey))}
               className={cn(
-                "relative block h-[68px] w-[76px] overflow-hidden rounded-[7px] border bg-[#0b0b0e] outline-none focus-visible:border-ui-accent",
+                "relative block h-[68px] w-[76px] overflow-hidden rounded-[7px] border bg-ui-app outline-none focus-visible:border-ui-accent",
                 isSelected(picked, i) ? "border-ui-accent shadow-[0_0_0_1px_var(--ui-accent)]" : "border-ui-subtle hover:border-ui-menu",
               )}
             >
@@ -149,7 +149,7 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
               ) : (
                 <span className="grid h-full place-items-center text-[10px] text-ui-danger">missing</span>
               )}
-              <span className="absolute bottom-0 left-0 rounded-tr-[5px] bg-black/60 px-1 font-ui-mono text-[9.5px] text-ui-2">{i + 1}</span>
+              <span className="absolute bottom-0 left-0 rounded-tr-[5px] bg-black/60 px-1 font-ui-mono text-[10px] text-ui-2">{i + 1}</span>
               {i === current && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-ui-accent shadow-[0_0_0_1.5px_#0b0b0e]" />}
             </button>
           </li>

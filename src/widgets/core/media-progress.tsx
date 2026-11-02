@@ -50,11 +50,11 @@ function CaptureRow({ deviceId, data, device, style, look, className }: RowProps
   const name = capture.label || deviceId;
   return (
     <div className="flex w-full items-center gap-2">
-      <span className="w-24 shrink-0 truncate text-[10px] font-medium tracking-wide text-[color:var(--w-muted)]" title={name}>
+      <span className="w-24 shrink-0 truncate text-micro font-medium tracking-wide text-[color:var(--w-muted)]" title={name}>
         {name}
       </span>
       {capture.status === "error" || capture.status === "blocked" ? (
-        <span className="min-w-0 flex-1 truncate text-[10px] text-[color:var(--w-faint)]" title={capture.error}>
+        <span className="min-w-0 flex-1 truncate text-micro text-[color:var(--w-faint)]" title={capture.error}>
           {capture.error ?? "capture unavailable"}
         </span>
       ) : (

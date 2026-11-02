@@ -78,8 +78,19 @@ function textRect(el: Element): DOMRect {
   if (typeof document.createRange !== "function") return own;
   const range = document.createRange();
   range.selectNodeContents(el);
+  // A state cue before the text (`data-ip-skip`) is not part of the value's box.
+  const cues = el.querySelectorAll(":scope > [data-ip-skip]");
+  if (cues.length > 0) range.setStartAfter(cues[cues.length - 1]);
   const r = range.getBoundingClientRect?.();
   return r && r.width > 0 && r.height > 0 ? r : own;
+}
+
+/** An element's text without its state cues (`data-ip-skip`: the glyph and screen-reader word of a warn or crit tone). */
+function valueText(el: Element): string {
+  if (!el.querySelector("[data-ip-skip]")) return el.textContent ?? "";
+  const copy = el.cloneNode(true) as Element;
+  for (const cue of copy.querySelectorAll("[data-ip-skip]")) cue.remove();
+  return copy.textContent ?? "";
 }
 
 const firstFamily = (css: string): string | undefined => {
@@ -196,7 +207,7 @@ function readOne(el: HTMLElement, origin: DOMRect, zoom: number): Tagged | null 
         box: rectOf(textRect(el), origin, zoom),
         font: firstFamily(style.fontFamily),
         align: alignOf(el, style),
-        text: el.textContent ?? "",
+        text: valueText(el),
         ...(el.dataset.ipFormat ? { format: el.dataset.ipFormat } : {}),
       };
     case "bar": {

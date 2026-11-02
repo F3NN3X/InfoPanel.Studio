@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Check, Download, FileOutput, Gauge, Monitor, Package, X, type LucideIcon } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import { dataOf } from "@/components/library/library-actions";
 import { gaugePayload } from "@/lib/gauge-studio/import-file";
 import { gaugeDataOf } from "@/lib/gauge-studio/model";
@@ -14,7 +15,7 @@ import { screenPayload } from "./profile-file";
 
 type Row = NonNullable<ExportRequest["row"]>;
 
-const PRIMARY = "h-7 shrink-0 rounded-[7px] bg-ui-inverse px-3 text-[12.5px] font-semibold text-ui-inverse-fg hover:opacity-90 disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-5";
+const PRIMARY = "h-7 shrink-0 rounded-[7px] bg-ui-inverse px-3 text-[12.5px] font-semibold text-ui-inverse-fg hover:opacity-90 disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-hint";
 const OUTLINE = "h-7 shrink-0 rounded-[7px] border border-ui-strong px-3 text-[12.5px] font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-40";
 
 interface ExportRowProps {
@@ -37,13 +38,14 @@ interface ExportRowProps {
 }
 
 function ExportRow({ icon: Icon, title, detail, picked, blocked, children, actions, copy, onCopied, copied, id }: ExportRowProps) {
+  const toast = useToast();
   return (
     <section aria-label={title} className={cn("flex flex-col gap-2 rounded-[10px] border px-3.5 py-3", picked ? "border-ui-accent bg-ui-accent-soft" : "border-ui-default bg-ui-chrome")}>
       <div className="flex items-start gap-3">
         <Icon className="mt-0.5 h-[18px] w-[18px] shrink-0 text-ui-3" strokeWidth={1.75} />
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-semibold text-ui-1">{title}</div>
-          <div className="text-pretty text-[12px] text-ui-4">{detail}</div>
+          <div className="text-body font-semibold text-ui-1">{title}</div>
+          <div className="text-pretty text-caption text-ui-4">{detail}</div>
         </div>
         <div className="flex shrink-0 items-center gap-2">{actions}</div>
       </div>
@@ -52,8 +54,8 @@ function ExportRow({ icon: Icon, title, detail, picked, blocked, children, actio
         <button
           type="button"
           disabled={!copy}
-          onClick={() => copy && void copyPayload(copy).then(() => onCopied(id), () => {})}
-          className="flex items-center gap-1 text-[11.5px] text-ui-accent-text hover:underline disabled:cursor-not-allowed disabled:text-ui-5 disabled:no-underline"
+          onClick={() => copy && void copyPayload(copy).then(() => onCopied(id), () => toast("Couldn’t copy the JSON"))}
+          className="flex items-center gap-1 text-[11.5px] text-ui-accent-text hover:underline disabled:cursor-not-allowed disabled:text-ui-hint disabled:no-underline"
         >
           {copied ? (
             <>
@@ -72,6 +74,12 @@ function ExportRow({ icon: Icon, title, detail, picked, blocked, children, actio
 function GaugeChooser({ onPick }: { onPick: (name: string, gauge: VectorGauge) => void }) {
   const [items, setItems] = useState<LibraryItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
+  const list = useRef<HTMLDivElement>(null);
+  // The chooser opens from a button: put the keyboard on its first gauge.
+  useEffect(() => {
+    if (items?.length) list.current?.querySelector<HTMLElement>("button")?.focus();
+  }, [items]);
   useEffect(() => {
     listLibrary().then(
       (all) => setItems(all.filter((i) => i.kind === "gauge")),
@@ -85,11 +93,11 @@ function GaugeChooser({ onPick }: { onPick: (name: string, gauge: VectorGauge) =
     void dataOf(item).then((raw) => {
       const spec = gaugeDataOf(raw)?.vector;
       if (spec) onPick(item.name, spec);
-    }, () => {});
+    }, () => toast(`Couldn’t read ${item.name}`));
   return (
-    <div className="ml-[30px] flex max-h-40 flex-col overflow-auto rounded-lg border border-ui-default bg-ui-panel">
-      {items === null && <span className="p-2.5 text-[12px] text-ui-4">Reading…</span>}
-      {items?.length === 0 && <span className="p-2.5 text-[12px] text-ui-4">{error ?? "No gauges in your library yet."}</span>}
+    <div ref={list} className="ml-[30px] flex max-h-40 flex-col overflow-auto rounded-lg border border-ui-default bg-ui-panel">
+      {items === null && <span className="p-2.5 text-caption text-ui-4">Reading…</span>}
+      {items?.length === 0 && <span className="p-2.5 text-caption text-ui-4">{error ?? "No gauges in your library yet."}</span>}
       {items?.map((item) => (
         <button key={item.id} type="button" onClick={() => pick(item)} className="flex items-center gap-2 border-b border-ui-subtle px-2.5 py-2 text-left text-[12.5px] text-ui-1 last:border-b-0 hover:bg-ui-hover">
           <Gauge className="h-3.5 w-3.5 shrink-0 text-ui-3" />
@@ -152,14 +160,14 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Popup
           data-help-article="import"
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(520px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[12px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
+          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(520px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-ui-lg border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
         >
           <div className="flex items-start gap-3 border-b border-ui-subtle px-5 pb-3.5 pt-4">
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <Dialog.Title className="text-[16px] font-semibold text-ui-1">Export &amp; back up</Dialog.Title>
               <Dialog.Description className="text-[12.5px] text-ui-3">Pick what to take out. Each one can also be copied as JSON.</Dialog.Description>
             </div>
-            <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+            <Dialog.Close title="Close" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
               <X className="h-5 w-5" />
             </Dialog.Close>
           </div>
@@ -231,7 +239,7 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
               copied={copied === "gauge"}
               actions={
                 <>
-                  <button type="button" className={OUTLINE} onClick={() => setChoosing((c) => !c)}>
+                  <button type="button" className={OUTLINE} aria-expanded={choosing} onClick={() => setChoosing((c) => !c)}>
                     {chosen ? "Choose another…" : "Choose…"}
                   </button>
                   {chosen && gauge && (

@@ -36,7 +36,7 @@ export function Popover({
         <BasePopover.Positioner side={side} align={align} anchor={anchor} sideOffset={6} className="z-[80]">
           <BasePopover.Popup
             className={cn(
-              "rounded-[9px] border border-ui-menu bg-ui-raised p-2 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none",
+              "rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none",
               className
             )}
           >

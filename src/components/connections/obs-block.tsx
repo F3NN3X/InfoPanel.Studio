@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useExtras } from "@/widgets/time-hooks";
 import { ObsStreamingFields } from "./obs-streaming-fields";
 
-export const BUTTON = "flex h-[28px] items-center gap-1.5 rounded-[6px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:opacity-50";
+export const BUTTON = "flex h-(--ui-h-control) items-center gap-1.5 rounded-ui-sm border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:opacity-50";
 
 export interface ObsBlockProps {
   stored: PublicIntegrations["obs"];
@@ -27,9 +27,9 @@ export function ObsBlock({ stored, streaming, onSave }: ObsBlockProps) {
   const status = !live.configured ? "Not set up" : live.connected ? (live.streaming ? "Connected · live" : live.recording ? "Connected · recording" : "Connected") : "Waiting for OBS";
   return (
     <div className="space-y-2">
-      <div className="flex items-baseline justify-between text-[12px] font-semibold text-ui-1">
+      <div className="flex items-baseline justify-between text-caption font-semibold text-ui-1">
         OBS WebSocket
-        <span className="text-[11px] font-normal text-ui-4">{status}</span>
+        <span className="text-micro font-normal text-ui-4">{status}</span>
       </div>
       <div className="flex gap-2">
         <StackRow label="Host">

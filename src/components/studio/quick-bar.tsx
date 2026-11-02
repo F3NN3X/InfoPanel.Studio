@@ -66,7 +66,7 @@ function QuickControl({
           aria-label={`${def.label} color`}
           aria-expanded={colorOpen}
           onClick={onColor}
-          className={cn("h-[22px] w-[22px] shrink-0 rounded-full", colorOpen && "shadow-[0_0_0_2px_#17171b,0_0_0_4px_#ededf0]")}
+          className={cn("h-6 w-6 shrink-0 rounded-full", colorOpen && "shadow-[0_0_0_2px_#17171b,0_0_0_4px_#ededf0]")}
           style={{ background: swatchBackground(color) }}
         />
       );
@@ -82,7 +82,7 @@ function QuickControl({
             value={n}
             step={def.step}
             onChange={(e) => write(e.target.value === "" ? Number(def.default) || 0 : Number(e.target.value))}
-            className="h-[26px] w-16 rounded-md border border-ui-default bg-ui-app px-1.5 text-right font-ui-mono text-[11.5px] text-ui-1 outline-none focus:border-ui-accent"
+            className="h-[26px] w-16 rounded-md border border-ui-control bg-ui-app px-1.5 text-right font-ui-mono text-[11.5px] text-ui-1 outline-none focus:border-ui-accent"
           />
         );
       return (
@@ -97,7 +97,7 @@ function QuickControl({
             onChange={(e) => write(e.currentTarget.valueAsNumber)}
             className="m-0 h-4 w-20 cursor-pointer accent-[var(--ui-accent)]"
           />
-          <span className="min-w-9 text-right font-ui-mono text-[11px] text-ui-1">
+          <span className="min-w-9 text-right font-ui-mono text-micro text-ui-1">
             {n}
             {unit}
           </span>
@@ -110,7 +110,7 @@ function QuickControl({
           aria-label={def.label}
           value={String(value)}
           onChange={(e) => fields.onPatch({ [def.key]: e.target.value })}
-          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent"
         >
           {ALIGN_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -136,7 +136,7 @@ function QuickControl({
           aria-label={def.label}
           value={String(value)}
           onChange={(e) => write(e.target.value)}
-          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent"
         >
           {options.map((o) => (
             <option key={o.value} value={o.value}>
@@ -153,7 +153,7 @@ function QuickControl({
           aria-label={def.label}
           value={String(value)}
           onChange={(e) => write(e.target.value)}
-          className="h-[26px] w-[120px] rounded-md border border-ui-default bg-ui-app px-2 text-[12px] text-ui-1 outline-none [color-scheme:dark] focus:border-ui-accent"
+          className="h-[26px] w-[120px] rounded-md border border-ui-control bg-ui-app px-2 text-caption text-ui-1 outline-none [color-scheme:dark] focus:border-ui-accent"
         />
       );
   }
@@ -184,7 +184,7 @@ function Divider() {
 function Identity({ icon, name }: { icon: ReactNode; name: string }) {
   return (
     <span className="flex shrink-0 items-center gap-2 pl-1 pr-2">
-      <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-[#1f1f25] text-[oklch(0.80_0.12_255)] [&>svg]:h-4 [&>svg]:w-4">
+      <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-ui-subtle text-ui-accent-text [&>svg]:h-4 [&>svg]:w-4">
         {icon}
       </span>
       <span className="max-w-[160px] truncate text-[12.5px] font-semibold text-ui-1">{name}</span>
@@ -256,7 +256,7 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
         {fields && (
           <>
             <Divider />
-            <div className="flex min-w-0 flex-[0_1_auto] items-center gap-0.5 overflow-x-auto [scrollbar-width:none]">
+            <div className="flex min-w-0 flex-[0_1_auto] items-center gap-0.5 overflow-x-auto px-2 [mask-image:linear-gradient(to_right,transparent,#000_8px,#000_calc(100%-8px),transparent)] [scrollbar-width:none]">
               {shown.length === 0 ? (
                 <span className="whitespace-nowrap px-2 text-[11.5px] text-ui-4">Pin settings from the panel to show them here</span>
               ) : (
@@ -267,7 +267,7 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
                   return (
                     <span
                       key={def.key}
-                      className="flex h-9 shrink-0 items-center gap-2 rounded-lg px-[9px] hover:bg-[#1e1e24]"
+                      className="flex h-9 shrink-0 items-center gap-2 rounded-lg px-[9px] hover:bg-s-nav-on"
                     >
                       {changed && <span aria-hidden className="h-[5px] w-[5px] rounded-full bg-ui-accent" />}
                       <span className="whitespace-nowrap text-[11.5px] text-ui-3">{splitUnit(def.label).label}</span>
@@ -304,9 +304,9 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
             <button
               type="button"
               onClick={onToggleVisible}
-              title={hidden ? "Show" : "Hide"}
-              aria-label={hidden ? "Show" : "Hide"}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-ui-3 hover:bg-[#1e1e24] hover:text-ui-1"
+              title={`${hidden ? "Show" : "Hide"} ${zones.length > 1 ? "widgets" : "widget"}`}
+              aria-label={`${hidden ? "Show" : "Hide"} ${zones.length > 1 ? "widgets" : "widget"}`}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-ui-3 hover:bg-s-nav-on hover:text-ui-1"
             >
               {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -317,8 +317,8 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
               onClick={allSettings.onToggle}
               aria-pressed={allSettings.open}
               className={cn(
-                "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[12px] font-medium",
-                allSettings.open ? "bg-ui-active text-ui-1" : "text-ui-2 hover:bg-[#1e1e24] hover:text-ui-1"
+                "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-caption font-medium",
+                allSettings.open ? "bg-ui-active text-ui-1" : "text-ui-2 hover:bg-s-nav-on hover:text-ui-1"
               )}
             >
               <SlidersHorizontal className="h-4 w-4" />

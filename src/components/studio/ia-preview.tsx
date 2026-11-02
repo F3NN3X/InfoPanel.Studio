@@ -88,7 +88,7 @@ function LiveChip({ path, scope, config, setConfig, go }: {
         onJump={inh.jump}
         onMakeTheme={scope.level === "widget" ? (t) => toast(`Make this the theme for: ${t}`) : undefined}
       />
-      <span className="font-ui-mono text-[10.5px] text-ui-5">{valueText(path, inh.resolvedValue)}</span>
+      <span className="font-ui-mono text-micro text-ui-hint">{valueText(path, inh.resolvedValue)}</span>
       {inh.keptOverride && <InheritLockNote holder={scope.level === "widget" ? "widget" : "page"} section={PATHS.find((p) => p.path === path)?.label ?? path} />}
     </div>
   );
@@ -136,10 +136,10 @@ function Gallery() {
   const live = useStatusBar(control, "saved");
   const locked = config.profiles[0].widgetTheme?.locks?.type === true;
   return (
-    <div className="min-h-screen bg-ui-panel p-6 font-ui text-[13px] text-ui-2">
+    <div className="min-h-screen bg-ui-panel p-6 font-ui text-body text-ui-2">
       <div className="mx-auto max-w-[860px]">
         <h1 className="text-[14px] font-semibold text-ui-1">Settings IA · shared pieces</h1>
-        <p className="text-[11px] text-ui-4">Inheritance chips, LinkRow and the status bar (IMPLEMENTATION_PLAN phase 1).</p>
+        <p className="text-micro text-ui-4">Inheritance chips, LinkRow and the status bar (IMPLEMENTATION_PLAN phase 1).</p>
 
         <Section title="InheritChip: every state">
           <div className="flex flex-wrap items-center gap-2">
@@ -199,12 +199,12 @@ function Gallery() {
         <Section title="StatusBar">
           {STATIC_BARS.map((bar) => (
             <div key={bar.title} className="space-y-1">
-              <p className="text-[11px] text-ui-4">{bar.title}</p>
+              <p className="text-micro text-ui-4">{bar.title}</p>
               <StatusBar {...bar.data} onNavigate={go} onOpenLive={() => toast("Open Live")} />
             </div>
           ))}
           <div className="space-y-1">
-            <p className="text-[11px] text-ui-4">Live (this page's Data API ping, server and kiosks)</p>
+            <p className="text-micro text-ui-4">Live (this page's Data API ping, server and kiosks)</p>
             <StatusBar {...live} onNavigate={go} onOpenLive={() => toast(`Kiosks: ${JSON.stringify(control?.kiosks ?? [])}`)} />
           </div>
         </Section>

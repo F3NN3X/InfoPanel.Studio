@@ -116,7 +116,7 @@ export default function AudioMeter(p: AudioMeterProps) {
       compact={bridge ? undefined : { label: name, value: one.peak, d: 1, pct: one.level, unit: "dB", sub: showMute && one.muted ? "Muted" : `L ${fmt(one.l)}% · R ${fmt(one.r)}%`, t: showMute && one.muted ? "crit" : undefined }}
       right={
         bridge ? undefined : (
-          <span className="flex items-center gap-1.5 font-mono text-[10.5px] text-[color:var(--w-muted)]">
+          <span className="flex items-center gap-1.5 font-mono text-micro text-[color:var(--w-muted)]">
             {showMute && one.muted && <span style={{ color: STATE.crit }}>Muted</span>}
             {fmt(one.peak, 1)} dB
           </span>
@@ -143,10 +143,10 @@ export default function AudioMeter(p: AudioMeterProps) {
                       <span className="flex min-w-0 flex-col text-xs leading-tight">
                         <span className="flex items-center gap-1">
                           <span className="truncate font-semibold">{m.name}</span>
-                          {mute && !tall && <span className="shrink-0 text-[10px] font-semibold" style={{ color: STATE.crit }}>M</span>}
+                          {mute && !tall && <span className="shrink-0 text-micro font-semibold" style={{ color: STATE.crit }}>M</span>}
                         </span>
                         {size !== "xs" && tall && (
-                          <span className="text-[10.5px] tabular-nums text-[color:var(--w-faint)]">
+                          <span className="text-micro tabular-nums text-[color:var(--w-faint)]">
                             {p.showVolume && Number.isFinite(m.vol) ? `${fmt(m.vol)}%` : ""}
                             {mute && <span style={{ color: STATE.crit }}> muted</span>}
                           </span>
@@ -160,7 +160,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                     {/* leading-none: the 12px level and 10px dB on one baseline otherwise make a 19px line, taller than a 16px row */}
                     <span className="flex items-baseline justify-end gap-1.5 whitespace-nowrap text-right leading-none tabular-nums">
                       <span className="text-xs font-semibold">{fmt(m.level)}%</span>
-                      {size !== "xs" && showDetails && <span className="font-mono text-[10px] text-[color:var(--w-faint)]">{fmt(m.peak, 1)} dB</span>}
+                      {size !== "xs" && showDetails && <span className="font-mono text-micro text-[color:var(--w-faint)]">{fmt(m.peak, 1)} dB</span>}
                     </span>
                   </li>
                 );
@@ -186,13 +186,13 @@ export default function AudioMeter(p: AudioMeterProps) {
                       </div>
                     </div>
                     {size !== "xs" && showDevice && (
-                      <span className="w-full truncate text-center text-[10px] text-[color:var(--w-muted)]" title={m.full}>
+                      <span className="w-full truncate text-center text-micro text-[color:var(--w-muted)]" title={m.full}>
                         {m.name}
                         {p.showVolume && Number.isFinite(m.vol) ? ` · ${fmt(m.vol)}%` : ""}
                         {showMute && m.muted && <span style={{ color: STATE.crit }}> · muted</span>}
                       </span>
                     )}
-                    {size !== "xs" && showDetails && <span className="font-mono text-[9.5px] tabular-nums text-[color:var(--w-faint)]">{fmt(m.peak, 1)} dB</span>}
+                    {size !== "xs" && showDetails && <span className="font-mono text-micro tabular-nums text-[color:var(--w-faint)]">{fmt(m.peak, 1)} dB</span>}
                   </div>
                 );
               })}
@@ -261,7 +261,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                     </div>
                   </div>
                 ))}
-                <div className="flex justify-between text-[10px] font-semibold text-[color:var(--w-faint)]">
+                <div className="flex justify-between text-micro font-semibold text-[color:var(--w-faint)]">
                   <span>L</span>
                   <span>R</span>
                 </div>
@@ -276,7 +276,7 @@ export default function AudioMeter(p: AudioMeterProps) {
               channels.map(([c, v, marker]) => {
                                 return (
                   <div key={c} className={`flex items-center gap-2 ${size === "lg" ? "h-5" : "h-3"}`}>
-                    <span className="w-3 text-[10px] font-semibold text-[color:var(--w-faint)]">{c}</span>
+                    <span className="w-3 text-micro font-semibold text-[color:var(--w-faint)]">{c}</span>
                     {st === "bar" || st === "solid" ? (
                       <div className="relative h-full flex-1 overflow-hidden rounded-full bg-[color:var(--w-track)]">
                         <div
@@ -303,7 +303,7 @@ export default function AudioMeter(p: AudioMeterProps) {
               })
             )}
             {p.showVolume && Number.isFinite(one.vol) && (
-              <div className="flex items-center gap-2 text-[10.5px] text-[color:var(--w-faint)]">
+              <div className="flex items-center gap-2 text-micro text-[color:var(--w-faint)]">
                 <span>Vol</span>
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[color:var(--w-track)]">
                   <div className="h-full rounded-full" style={{ width: `${clamp(one.vol)}%`, background: one.muted ? "var(--w-faint)" : "var(--w-muted)" }} />
@@ -320,7 +320,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                   ["Level", `${fmt(one.level, 1)}%`],
                 ].map(([l, v]) => (
                   <div key={l} className="flex min-w-0 flex-col">
-                    <span className="font-sans text-[10px] text-[color:var(--w-faint)]">{l}</span>
+                    <span className="font-sans text-micro text-[color:var(--w-faint)]">{l}</span>
                     <span className="truncate text-[color:var(--w-fg)]">{v}</span>
                   </div>
                 ))}

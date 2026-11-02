@@ -33,7 +33,7 @@ export function ThemeNameInput({ initial, label, onDone }: ThemeNameInputProps) 
       onBlur={commit}
       placeholder={label}
       aria-label={label}
-      className="h-7 min-w-0 flex-1 rounded-md border border-ui-default bg-ui-app px-2 text-[12px] text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent"
+      className="h-7 min-w-0 flex-1 rounded-md border border-ui-default bg-ui-app px-2 text-caption text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent"
     />
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { laneColumns, laneRuns } from "@/widgets/core/lanes";
+import { laneColumns, laneRuns, laneStats } from "@/widgets/core/lanes";
 
 const at = (t: number, v: number) => ({ t, v });
 
@@ -32,5 +32,14 @@ describe("laneRuns", () => {
   it("colours at the thresholds, boundary included, and is all ok without them", () => {
     expect(laneRuns([70, 90], 70, 90).map((r) => r.tone)).toEqual(["warn", "crit"]);
     expect(laneRuns([99, 100], undefined, undefined)).toEqual([{ from: 0, to: 2, tone: "ok" }]);
+  });
+});
+
+describe("laneStats", () => {
+  it("gives the peak and the share of readings at or above the warn level", () => {
+    expect(laneStats([at(0, 10), at(1, 70), at(2, 95), at(3, 20)], 70)).toEqual({ peak: 95, pctAbove: 50 });
+  });
+  it("has no peak for no readings", () => {
+    expect(laneStats([], 70)).toEqual({ peak: Number.NaN, pctAbove: 0 });
   });
 });

@@ -119,7 +119,7 @@ function StatusCard() {
         </div>
       </div>
       {card.callout && (
-        <div role="alert" className="flex flex-wrap items-center gap-2.5 rounded-[9px] border border-s-red/30 bg-s-red/10 px-3 py-2.5 text-[12.5px] text-[oklch(0.85_0.08_25)]">
+        <div role="alert" className="flex flex-wrap items-center gap-2.5 rounded-ui-menu border border-s-red/30 bg-s-red/10 px-3 py-2.5 text-[12.5px] text-[oklch(0.85_0.08_25)]">
           <CircleAlert className="h-[17px] w-[17px] shrink-0" />
           <span className="min-w-[140px] flex-1">{card.callout.message}</span>
           {card.callout.actions.map(act)}
@@ -180,12 +180,12 @@ function ListenRow() {
               {...radioProps(LISTEN_OPTIONS.map((x) => x.value), settings.listen, o.value, (v) => void save("listen", v))}
               className={cn(
                 "flex cursor-pointer items-start gap-2.5 rounded-[10px] border px-3.5 py-3 text-left text-s-t1",
-                on ? "border-s-accent bg-s-accent/10" : "border-s-input-line bg-s-input hover:bg-[#1c1c21]"
+                on ? "border-s-accent bg-s-accent/10" : "border-s-input-line bg-s-input hover:bg-s-divider"
               )}
             >
               <o.icon className={cn("mt-px h-5 w-5 shrink-0", on ? "text-s-accent-text" : "text-s-muted")} />
               <span className="flex flex-col gap-[3px]">
-                <span className="text-[13px] font-medium">{o.label}</span>
+                <span className="text-body font-medium">{o.label}</span>
                 <span className="font-mono text-xs text-s-muted">{o.value === "local" ? "127.0.0.1" : `0.0.0.0${lanIp ? ` · ${lanIp}` : ""}`}</span>
               </span>
             </button>
@@ -239,7 +239,7 @@ function PortRow() {
   }, [parsed, settings.port, save]);
 
   return (
-    <Row id="port" label="Port" hint={parsed === null ? "Use a number from 1024 to 65535." : "1024 – 65535"} hintClass={parsed === null ? "text-s-red" : undefined}>
+    <Row id="port" label="Port" hint={parsed === null ? "Use a number from 1024 to 65535." : "1024 – 65535"} hintClass={parsed === null ? "text-s-red" : undefined} hintAlert={parsed === null}>
       <input
         ref={input}
         value={draft}
@@ -250,7 +250,7 @@ function PortRow() {
         onChange={(e) => setDraft(e.target.value.replace(/\D/g, "").slice(0, 5))}
         onBlur={commit}
         onKeyDown={(e) => e.key === "Enter" && commit()}
-        className={cn("h-[34px] w-24 rounded-lg border bg-s-input px-2.5 text-right font-mono text-[13.5px] text-s-t1 outline-none", parsed === null ? "border-s-red" : "border-s-input-line")}
+        className={cn("h-(--ui-h-field) w-24 rounded-lg border bg-s-input px-2.5 text-right font-mono text-[13.5px] text-s-t1 outline-none", parsed === null ? "border-s-red" : "border-s-input-line")}
       />
     </Row>
   );
@@ -283,6 +283,7 @@ function AllowedHostsRow() {
       label="Allowed host names"
       hint={error ?? "Extra names other devices use to reach the PC running InfoPanel Studio, comma separated. Requests for any other name are refused."}
       hintClass={error ? "text-s-red" : undefined}
+      hintAlert={!!error}
     >
       <input
         ref={input}
@@ -292,7 +293,7 @@ function AllowedHostsRow() {
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => void commit()}
         onKeyDown={(e) => e.key === "Enter" && void commit()}
-        className="h-[34px] w-60 max-w-full rounded-lg border border-s-input-line bg-s-input px-2.5 text-[13px] text-s-t1 outline-none"
+        className="h-(--ui-h-field) w-60 max-w-full rounded-lg border border-s-input-line bg-s-input px-2.5 text-body text-s-t1 outline-none"
       />
     </Row>
   );
@@ -312,7 +313,7 @@ function KioskCard() {
       <div ref={found.ref} className={cn("flex flex-col gap-3 rounded-xl border border-s-card-line bg-s-card px-[18px] py-4", found.className)}>
         <span className="text-[12.5px] leading-[1.45] text-s-muted">Paste this into InfoPanel. It has to use the same port as the server.</span>
         <div className="flex flex-wrap gap-2">
-          <div className="flex h-9 min-w-0 basis-40 flex-1 items-center truncate rounded-lg border border-s-track-line bg-s-win px-3 font-mono text-[13px]">{url}</div>
+          <div className="flex h-9 min-w-0 basis-40 flex-1 items-center truncate rounded-lg border border-s-track-line bg-s-win px-3 font-mono text-body">{url}</div>
           <Button size="md" className="h-9" onClick={copy}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copied" : "Copy"}

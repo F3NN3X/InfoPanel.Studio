@@ -220,6 +220,7 @@ export default function StreamDeck(p: StreamDeckProps) {
 
   const label = deck?.name ?? "Stream Deck";
   const hint = status?.label ?? (deck ? `${deck.keys.length} keys` : "");
+  const summary = { label, value: ready ? `${deck.cols}×${deck.rows}` : "–", sub: hint, kind: "text" as const, icon: "grid_view" };
   return (
     <Widget
       {...shell(p)}
@@ -229,7 +230,9 @@ export default function StreamDeck(p: StreamDeckProps) {
       title={p.title ?? label}
       icon="grid_view"
       right={readOnly ? <span className="text-[color:var(--w-muted)]">{READ_ONLY_HINT}</span> : undefined}
-      compact={{ label, value: ready ? `${deck.cols}×${deck.rows}` : "–", sub: hint, kind: "text", icon: "grid_view" }}
+      // a 2x2 tile with a deck to press shows the keys, not a summary of them
+      compact={(box) => (ready && box.shape === "tile" && box.w >= 200 && box.h >= 200 ? undefined : summary)}
+      studio={summary}
     >
       {({ w, h }) => {
         if (!ready)
@@ -239,7 +242,7 @@ export default function StreamDeck(p: StreamDeckProps) {
               label={
                 <span className="flex flex-col items-center gap-0.5 text-center">
                   <span>{status?.label}</span>
-                  {status?.sub && <span className="text-[10.5px] opacity-70">{status.sub}</span>}
+                  {status?.sub && <span className="text-micro opacity-70">{status.sub}</span>}
                 </span>
               }
             />

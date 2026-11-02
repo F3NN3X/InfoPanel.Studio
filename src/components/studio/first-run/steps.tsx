@@ -70,7 +70,7 @@ export function WelcomeStep({ headRef, rerun, narrow, results, onSeeChecks }: We
         <Heading headRef={headRef} large>
           {rerun ? "Run setup again" : "Welcome to InfoPanel Studio"}
         </Heading>
-        <p className="m-0 mt-1.5 max-w-[600px] text-[13px] leading-[1.55] text-ui-2">
+        <p className="m-0 mt-1.5 max-w-[600px] text-body leading-[1.55] text-ui-2">
           {rerun
             ? "Check the link to InfoPanel again, see your kiosk address, or add a screen. Nothing changes until you finish, and your screens are kept."
             : "Design dashboards for the small screens on and around your PC: USB panels, case screens and bar displays. Studio reads your sensors from InfoPanel, a separate app, so it needs InfoPanel with the Data API installed. It’s already checking that link."}
@@ -84,18 +84,18 @@ export function WelcomeStep({ headRef, rerun, narrow, results, onSeeChecks }: We
                 <ArrowRight className="h-3.5 w-3.5" />
               </span>
             )}
-            <div className="flex flex-col gap-1.5 rounded-[9px] border border-ui-subtle bg-ui-panel p-3">
+            <div className="flex flex-col gap-1.5 rounded-ui-menu border border-ui-subtle bg-ui-panel p-3">
               <span className="flex items-center gap-2 text-[12.5px] font-medium text-ui-1">
                 <c.icon className="h-4 w-4 text-ui-3" />
                 {c.title}
               </span>
               <span className="text-[11.5px] leading-[1.45] text-ui-3">{c.text}</span>
-              <span className="mt-auto font-ui-mono text-[10.5px] text-ui-4">{c.meta}</span>
+              <span className="mt-auto font-ui-mono text-micro text-ui-4">{c.meta}</span>
             </div>
           </li>
         ))}
       </ol>
-      <div className="flex items-center gap-3 rounded-[9px] border border-ui-subtle bg-ui-panel px-3 py-2.5">
+      <div className="flex items-center gap-3 rounded-ui-menu border border-ui-subtle bg-ui-panel px-3 py-2.5">
         {strip.state === "running" ? (
           <Spinner />
         ) : (
@@ -105,7 +105,7 @@ export function WelcomeStep({ headRef, rerun, narrow, results, onSeeChecks }: We
           <span className="text-[12.5px] font-medium text-ui-1">{strip.title}</span>
           <span className="text-[11.5px] text-ui-3">{strip.note}</span>
         </span>
-        <button type="button" onClick={onSeeChecks} className="h-7 shrink-0 rounded-[7px] border border-ui-strong bg-ui-raised px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
+        <button type="button" onClick={onSeeChecks} className="h-7 shrink-0 rounded-[7px] border border-ui-strong bg-ui-raised px-2.5 text-caption text-ui-1 hover:bg-ui-hover">
           See the checks
         </button>
       </div>
@@ -153,15 +153,15 @@ function Preview({ size, source }: { size: Size; source: SizeSource }) {
     <>
       <div className="grid h-[166px] w-[196px] shrink-0 place-items-center">
         <div className="grid place-items-center rounded-[3px] border-[1.5px] border-ui-accent bg-ui-accent/[0.08]" style={{ width: w, height: h }}>
-          {w > 56 && h > 22 && <span className="font-ui-mono text-[10.5px] text-ui-2">{(size.width / size.height).toFixed(2)}:1</span>}
+          {w > 56 && h > 22 && <span className="font-ui-mono text-micro text-ui-2">{(size.width / size.height).toFixed(2)}:1</span>}
         </div>
       </div>
       <div className="flex flex-col items-center gap-0.5 text-center">
-        <span className="font-ui-mono text-[13px] text-ui-1">
+        <span className="font-ui-mono text-body text-ui-1">
           {size.width} × {size.height}
         </span>
         <span className="text-[11.5px] text-ui-2">{sizeNote(size, source)}</span>
-        <span className="text-[11px] text-ui-4">
+        <span className="text-micro text-ui-4">
           {n} of {SCREEN_KIT.entries.length} templates are made for {cls.toLowerCase()} screens
         </span>
       </div>
@@ -186,7 +186,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
   const typed = customSize(custom);
   const touched = custom.w !== "" || custom.h !== "";
   const tile = (on: boolean) =>
-    cn("flex min-w-0 items-center gap-2.5 rounded-[8px] border px-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60", on ? "border-ui-accent bg-ui-accent/10" : "border-ui-default bg-ui-raised hover:bg-ui-hover");
+    cn("flex min-w-0 items-center gap-2.5 rounded-ui-md border px-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60", on ? "border-ui-accent bg-ui-accent/10" : "border-ui-default bg-ui-raised hover:bg-ui-hover");
   const options = (
     <div role="radiogroup" aria-label="Screen size" onKeyDown={arrowsMove} className="flex min-w-0 flex-1 flex-col gap-3">
       <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-2">
@@ -194,7 +194,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
           <AppWindow className="h-4 w-4 shrink-0 text-ui-3" />
           <span className="flex min-w-0 flex-col">
             <span className="text-[12.5px] font-medium text-ui-1">This window</span>
-            <span className="font-ui-mono text-[11px] text-ui-3">
+            <span className="font-ui-mono text-micro text-ui-3">
               {windowSize.width} × {windowSize.height}
             </span>
           </span>
@@ -211,7 +211,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
             <Ratio className="h-4 w-4 text-ui-3" />
             <span className="text-[12.5px] font-medium text-ui-1">Custom</span>
           </button>
-          <span className={cn("flex h-[26px] items-center rounded-[6px] border bg-ui-app", touched && !typed ? "border-ui-danger" : "border-ui-default focus-within:border-ui-accent")}>
+          <span className={cn("flex h-[26px] items-center rounded-ui-sm border bg-ui-app", touched && !typed ? "border-ui-danger" : "border-ui-default focus-within:border-ui-accent")}>
             {(["w", "h"] as const).map((k, i) => (
               <span key={k} className="flex items-center">
                 {i === 1 && (
@@ -230,7 +230,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
               </span>
             ))}
           </span>
-          <span className={cn("min-w-0 truncate text-[11px]", touched && !typed ? "text-ui-danger" : "text-ui-4")}>
+          <span className={cn("min-w-0 truncate text-micro", touched && !typed ? "text-ui-danger" : "text-ui-4")}>
             {!touched ? "Any size" : typed ? `${classNameOf(typed)} · ${(typed.width / typed.height).toFixed(2)}:1` : "Whole numbers, 100 to 8192"}
           </span>
         </div>
@@ -239,8 +239,8 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
         <section key={cls} aria-label={CLASS_NAMES[cls]} className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
             <Glyph cls={cls} />
-            <span className="text-[12px] font-medium text-ui-1">{CLASS_NAMES[cls]}</span>
-            <span className="truncate text-[11px] text-ui-4">{CLASS_NOTES[cls]}</span>
+            <span className="text-caption font-medium text-ui-1">{CLASS_NAMES[cls]}</span>
+            <span className="truncate text-micro text-ui-4">{CLASS_NOTES[cls]}</span>
           </div>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(128px,1fr))] gap-1.5">
             {SIZE_PRESETS.filter((p) => shapeClassOf(p.width, p.height) === cls).map((p) => {
@@ -259,7 +259,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
                   <span className="font-ui-mono text-[11.5px] text-ui-1">
                     {p.width} × {p.height}
                   </span>
-                  <span className="w-full truncate text-[10.5px] text-ui-3">{hintOf(p) ?? `${(p.width / p.height).toFixed(2)}:1`}</span>
+                  <span className="w-full truncate text-micro text-ui-3">{hintOf(p) ?? `${(p.width / p.height).toFixed(2)}:1`}</span>
                 </button>
               );
             })}
@@ -276,7 +276,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
       </div>
       {narrow ? (
         <>
-          <div className="flex items-center gap-4 rounded-[9px] border border-ui-subtle bg-ui-panel p-3">
+          <div className="flex items-center gap-4 rounded-ui-menu border border-ui-subtle bg-ui-panel p-3">
             <Preview size={size} source={source} />
           </div>
           {options}
@@ -284,7 +284,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
       ) : (
         <div className="flex items-start gap-5">
           {options}
-          <aside className="sticky top-0 flex w-[240px] shrink-0 flex-col items-center gap-3 rounded-[9px] border border-ui-subtle bg-ui-panel p-[18px]">
+          <aside className="sticky top-0 flex w-[240px] shrink-0 flex-col items-center gap-3 rounded-ui-menu border border-ui-subtle bg-ui-panel p-[18px]">
             <Preview size={size} source={source} />
           </aside>
         </div>
@@ -355,7 +355,7 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
             tabIndex={start === c.value ? 0 : -1}
             onClick={() => onStart(c.value)}
             className={cn(
-              "flex h-12 min-w-0 items-center gap-2.5 rounded-[8px] border px-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
+              "flex h-12 min-w-0 items-center gap-2.5 rounded-ui-md border px-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
               start === c.value ? "border-ui-accent bg-ui-accent/10" : "border-ui-default bg-ui-raised hover:bg-ui-hover",
             )}
           >
@@ -364,7 +364,7 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-[12.5px] font-medium text-ui-1">{c.title}</span>
-              <span className="truncate text-[11px] text-ui-3">{c.note}</span>
+              <span className="truncate text-micro text-ui-3">{c.note}</span>
             </span>
             <span aria-hidden className={cn("grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full border", start === c.value ? "border-ui-accent" : "border-ui-strong")}>
               {start === c.value && <span className="h-2 w-2 rounded-full bg-ui-accent" />}
@@ -380,7 +380,7 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
             <h2 className="m-0 text-[12.5px] font-medium text-ui-1">
               {all ? `All ${SCREEN_KIT.entries.length} templates at` : "Top picks for"} {size.width} × {size.height}
             </h2>
-            <span className="text-[11px] text-ui-4">{noData ? "Shown with placeholders: no live data yet" : "Shown with your readings"}</span>
+            <span className="text-micro text-ui-4">{noData ? "Shown with placeholders: no live data yet" : "Shown with your readings"}</span>
           </div>
           <div role="radiogroup" aria-label="Template" onKeyDown={arrowsMove} className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-2">
             {picks.map((t: WizardEntry, i) => {
@@ -402,10 +402,10 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
                   <div className="relative w-full" style={{ aspectRatio: aspectOf(size.width, size.height) }}>
                     <SCREEN_KIT.Thumb entry={t} palette={t.palettes[0]?.id ?? ""} width={size.width} height={size.height} selected={on} />
                   </div>
-                  <span className="truncate px-2 pt-1.5 text-[12px] font-medium text-ui-1">{t.name}</span>
-                  <span className="truncate px-2 text-[11px] text-ui-4">{t.blurb}</span>
+                  <span className="truncate px-2 pt-1.5 text-caption font-medium text-ui-1">{t.name}</span>
+                  <span className="truncate px-2 text-micro text-ui-4">{t.blurb}</span>
                   {cover ? (
-                    <span className={cn("flex items-center gap-1 px-2 pb-2 pt-1 text-[10.5px]", cover.tone === "warn" ? "text-ui-warning" : cover.tone === "ok" ? "text-ui-3" : "text-ui-4")}>
+                    <span className={cn("flex items-center gap-1 px-2 pb-2 pt-1 text-micro", cover.tone === "warn" ? "text-ui-warning" : cover.tone === "ok" ? "text-ui-3" : "text-ui-4")}>
                       <Radar className="h-3 w-3 shrink-0" />
                       {cover.text}
                     </span>
@@ -423,7 +423,7 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
               >
                 <LayoutGrid className="h-4 w-4 text-ui-3" />
                 <span className="text-[12.5px] font-medium text-ui-1">Browse all {SCREEN_KIT.entries.length} templates</span>
-                <span className="text-[11px] text-ui-3">The ones made for this size come first</span>
+                <span className="text-micro text-ui-3">The ones made for this size come first</span>
               </button>
             )}
           </div>
@@ -436,16 +436,16 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
             <h2 className="m-0 text-[12.5px] font-medium text-ui-1">
               {profiles && profiles.length > 0 ? `${profiles.length} InfoPanel ${profiles.length === 1 ? "profile" : "profiles"} on this PC` : "No InfoPanel profiles on this PC"}
             </h2>
-            <span className="text-[11px] text-ui-4">{profiles ? "From %LOCALAPPDATA%\\InfoPanel\\profiles" : noProfiles}</span>
+            <span className="text-micro text-ui-4">{profiles ? "From %LOCALAPPDATA%\\InfoPanel\\profiles" : noProfiles}</span>
           </div>
           {profiles && profiles.length > 0 && (
-            <ul className="m-0 overflow-hidden rounded-[9px] border border-ui-subtle bg-ui-panel p-0">
+            <ul className="m-0 overflow-hidden rounded-ui-menu border border-ui-subtle bg-ui-panel p-0">
               {profiles.map((p, i) => (
-                <li key={p.guid} className={cn("flex items-center gap-3 px-3 py-2 text-[12px]", i > 0 && "border-t border-[#1c1c21]")}>
+                <li key={p.guid} className={cn("flex items-center gap-3 px-3 py-2 text-caption", i > 0 && "border-t border-s-divider")}>
                   <span className="min-w-0 flex-1 truncate text-ui-1">{p.name || "Untitled"}</span>
-                  <span className="hidden truncate text-[11px] text-ui-4 sm:block">{p.file}</span>
-                  <span className="w-16 shrink-0 text-right font-ui-mono text-[11px] text-ui-3">{fmtBytes(p.bytes)}</span>
-                  <span className="w-24 shrink-0 text-right text-[11px] text-ui-3">{fmtDate(p.modified)}</span>
+                  <span className="hidden truncate text-micro text-ui-4 sm:block">{p.file}</span>
+                  <span className="w-16 shrink-0 text-right font-ui-mono text-micro text-ui-3">{fmtBytes(p.bytes)}</span>
+                  <span className="w-24 shrink-0 text-right text-micro text-ui-3">{fmtDate(p.modified)}</span>
                 </li>
               ))}
             </ul>
@@ -459,7 +459,7 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
       )}
 
       {start === "blank" && (
-        <p className="m-0 rounded-[9px] border border-ui-subtle bg-ui-panel px-3 py-2.5 text-[12px] text-ui-2">
+        <p className="m-0 rounded-ui-menu border border-ui-subtle bg-ui-panel px-3 py-2.5 text-caption text-ui-2">
           An empty {size.width} × {size.height} grid. Add widgets from the Add panel: it suggests the ones your sensors can fill.
         </p>
       )}
@@ -484,17 +484,17 @@ export function Switch({ label, note, checked, onChange }: { label: string; note
     <label className="flex cursor-pointer items-center gap-3 px-3 py-2.5">
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="text-[12.5px] text-ui-1">{label}</span>
-        <span className="text-[11px] text-ui-3">{note}</span>
+        <span className="text-micro text-ui-3">{note}</span>
       </span>
       <input type="checkbox" role="switch" aria-checked={checked} checked={checked} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
       <span
         aria-hidden
         className={cn(
-          "relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ui-accent/60",
-          checked ? "bg-ui-accent" : "bg-ui-strong",
+          "relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ui-accent/60 forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas]",
+          checked ? "bg-ui-accent forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-ui-strong",
         )}
       >
-        <span className={cn("absolute top-[3px] h-3 w-3 rounded-full bg-white transition-[left]", checked ? "left-[15px]" : "left-[3px]")} />
+        <span className={cn("absolute top-[3px] h-3 w-3 rounded-full bg-white transition-[left] forced-colors:bg-[color:ButtonText]", checked ? "left-[15px] forced-colors:bg-[color:HighlightText]" : "left-[3px]")} />
       </span>
     </label>
   );
@@ -516,19 +516,19 @@ export function FinishStep({ headRef, rerun, rows, onChange, options }: FinishSt
         <Heading headRef={headRef}>{rerun ? "Review changes" : "Ready to go"}</Heading>
         <Sub>Here’s what Studio will set up. Change anything now, or later in Settings.</Sub>
       </div>
-      <ul className="m-0 overflow-hidden rounded-[9px] border border-ui-subtle bg-ui-panel p-0">
+      <ul className="m-0 overflow-hidden rounded-ui-menu border border-ui-subtle bg-ui-panel p-0">
         {rows.map((r, i) => (
-          <li key={r.label} className={cn("flex items-start gap-3 px-3 py-2.5", i > 0 && "border-t border-[#1c1c21]")}>
+          <li key={r.label} className={cn("flex items-start gap-3 px-3 py-2.5", i > 0 && "border-t border-s-divider")}>
             <r.icon className={cn("mt-px h-4 w-4 shrink-0", r.tone === "ok" ? "text-ui-success" : r.tone === "warn" ? "text-ui-warning" : r.tone === "fail" ? "text-ui-danger" : "text-ui-3")} />
-            <span className="w-24 shrink-0 text-[12px] text-ui-2">{r.label}</span>
+            <span className="w-24 shrink-0 text-caption text-ui-2">{r.label}</span>
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="break-words text-[12.5px] text-ui-1">{r.value}</span>
-              <span className={cn("text-[11px]", r.tone === "warn" ? "text-ui-warning" : r.tone === "fail" ? "text-ui-danger" : "text-ui-3")}>
+              <span className={cn("text-micro", r.tone === "warn" ? "text-ui-warning" : r.tone === "fail" ? "text-ui-danger" : "text-ui-3")}>
                 <Rich text={r.sub} />
               </span>
             </span>
             {r.step !== undefined && (
-              <button type="button" onClick={() => r.step !== undefined && onChange(r.step)} className="shrink-0 rounded-sm text-[12px] text-ui-accent-text hover:underline">
+              <button type="button" onClick={() => r.step !== undefined && onChange(r.step)} className="shrink-0 rounded-sm text-caption text-ui-accent-text hover:underline">
                 Change
               </button>
             )}
@@ -536,10 +536,10 @@ export function FinishStep({ headRef, rerun, rows, onChange, options }: FinishSt
         ))}
       </ul>
       <section aria-label="Options" className="flex flex-col gap-1.5">
-        <h2 className="m-0 text-[12px] font-medium text-ui-1">Options</h2>
-        <div className="divide-y divide-[#1c1c21] overflow-hidden rounded-[9px] border border-ui-subtle bg-ui-panel">{options}</div>
+        <h2 className="m-0 text-caption font-medium text-ui-1">Options</h2>
+        <div className="divide-y divide-s-divider overflow-hidden rounded-ui-menu border border-ui-subtle bg-ui-panel">{options}</div>
       </section>
-      <p className="m-0 text-[11px] text-ui-4">Run setup again any time from Settings → General → Run setup.</p>
+      <p className="m-0 text-micro text-ui-4">Run setup again any time from Settings → General → Run setup.</p>
     </div>
   );
 }

@@ -34,8 +34,8 @@ interface ChipLook {
 }
 
 /** The handoff's chip colors (SPEC §4.6): changed here, inherited (dashed), locked. */
-const CHANGED = "border-[#3b82f6] bg-[#0b1530] text-[#93c5fd]";
-const INHERITED = "border-dashed border-[#3f3f46] text-[#a1a1aa]";
+const CHANGED = "border-ui-blue bg-[#0b1530] text-ui-accent-text";
+const INHERITED = "border-dashed border-[#3f3f46] text-ui-soft";
 export const LOCKED = "border-[#b45309] bg-[#2a1d05] text-[#fcd34d]";
 
 /** Each state has its own icon, wording and border style, so color never carries it alone (SPEC §5). */
@@ -115,8 +115,9 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
     <Menu.Root>
       <Menu.Trigger
         title={look.tip(name)}
+        aria-description={look.tip(name)}
         className={cn(
-          "inline-flex h-5 shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border pl-1.5 pr-2 font-ui text-[11px] font-medium leading-none transition-[filter] hover:brightness-[1.18] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+          "inline-flex h-5 shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border pl-1.5 pr-2 font-ui text-micro font-medium leading-none transition-[filter] hover:brightness-[1.18] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
           look.className,
           className
         )}
@@ -125,15 +126,15 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
         {look.text(shown)}
       </Menu.Trigger>
       <Menu.Portal>
-        <Menu.Positioner className="z-50" sideOffset={4} align="start">
-          <Menu.Popup className={cn(POPUP, "w-[220px] bg-[#1a1a1f] border-[#33333a]")}>
-            {line && <div className="px-2 pb-1 pt-1.5 text-[11px] leading-snug text-ui-4">{line}</div>}
+        <Menu.Positioner className="z-(--z-menu)" sideOffset={4} align="start">
+          <Menu.Popup className={cn(POPUP, "w-[220px] bg-ui-hover border-ui-menu")}>
+            {line && <div className="px-2 pb-1 pt-1.5 text-micro leading-snug text-ui-4">{line}</div>}
             {state === "custom" && (
               <>
                 {line && <div className={SEPARATOR} />}
                 {onReset && (
                   <Menu.Item className={ITEM} onClick={onReset}>
-                    Reset to inherited <span className="text-[11px] text-ui-4">⌫</span>
+                    Reset to inherited <span className="text-micro text-ui-4">⌫</span>
                   </Menu.Item>
                 )}
                 {onJump && (
@@ -147,7 +148,7 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
                       Make this the theme for… <ChevronRight className="h-3 w-3" />
                     </Menu.SubmenuTrigger>
                     <Menu.Portal>
-                      <Menu.Positioner className="z-50" sideOffset={4} alignOffset={-4}>
+                      <Menu.Positioner className="z-(--z-menu)" sideOffset={4} alignOffset={-4}>
                         <Menu.Popup className={POPUP}>
                           {MAKE_THEME.map((m) => (
                             <Menu.Item key={m.target} className={ITEM} onClick={() => onMakeTheme(m.target)}>
@@ -176,7 +177,7 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
                 )}
               </>
             )}
-            {state === "theme" && <div className="px-2 py-1.5 text-[11px] leading-snug text-ui-4">{look.tip(name)}</div>}
+            {state === "theme" && <div className="px-2 py-1.5 text-micro leading-snug text-ui-4">{look.tip(name)}</div>}
             {state === "locked" && onJump && (
               <>
                 {line && <div className={SEPARATOR} />}

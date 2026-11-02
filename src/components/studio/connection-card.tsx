@@ -62,7 +62,7 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
   return (
     <section data-nav-section="connection" aria-label="Connection" className="flex shrink-0 flex-col gap-2 border-b border-ui-subtle p-3.5 font-ui">
       <div className="flex items-center gap-2">
-        <span className="flex-1 text-[13px] font-semibold text-ui-1">Connection</span>
+        <span className="flex-1 text-body font-semibold text-ui-1">Connection</span>
         <span className={cn("flex items-center gap-[5px] text-[11.5px]", PILL[pill.tone].tone)}>
           <Icon className="h-3.5 w-3.5" aria-hidden />
           {pill.text}
@@ -73,6 +73,8 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
           type="text"
           value={draft}
           aria-label="Data API URL"
+          aria-invalid={!valid}
+          aria-describedby={valid ? undefined : "data-api-url-error"}
           data-nav-control="url"
           onChange={(e) => {
             setDraft(e.target.value);
@@ -84,12 +86,18 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
           className={cn(FIELD, "h-[30px] w-full font-ui-mono text-[11.5px]", !valid && "border-ui-danger")}
         />
       </StackRow>
-      {!valid && <div className="text-[11px] text-ui-danger">Enter an http(s) URL.</div>}
-      <div className="flex min-h-7 items-center gap-2 text-[12px] text-ui-3">
+      {!valid && (
+        <div id="data-api-url-error" role="alert" className="text-micro text-ui-danger">
+          Enter an http(s) URL.
+        </div>
+      )}
+      <div className="flex min-h-7 items-center gap-2 text-caption text-ui-3">
         <span className="min-w-0 flex-1 truncate">Test connection</span>
-        {probe === "testing" && <span>testing...</span>}
-        {probe === "ok" && <span className="text-ui-success">connected</span>}
-        {probe === "fail" && <span className="text-ui-danger">not reachable</span>}
+        <span role="status" className="flex items-center gap-2">
+          {probe === "testing" && <span>testing…</span>}
+          {probe === "ok" && <span className="text-ui-success">connected</span>}
+          {probe === "fail" && <span className="text-ui-danger">not reachable</span>}
+        </span>
         <button
           type="button"
           onClick={() => void test()}
@@ -99,7 +107,7 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
           Test
         </button>
       </div>
-      <div className="flex min-h-7 items-center gap-2 text-[12px] text-ui-3">
+      <div className="flex min-h-7 items-center gap-2 text-caption text-ui-3">
         <span className="min-w-0 flex-1 truncate">API index</span>
         {valid ? (
           <a
@@ -112,7 +120,7 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
             Open ↗
           </a>
         ) : (
-          <span className="text-ui-5">Open ↗</span>
+          <span className="text-ui-hint">Open ↗</span>
         )}
       </div>
     </section>

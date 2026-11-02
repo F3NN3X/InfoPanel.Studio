@@ -27,11 +27,11 @@ import type { CanvasEditor } from "./use-canvas-editor";
 /** The spec as plain data without one key (a switched-off effect is an absent key, not a null). */
 const withoutKey = (spec: ElementSpec, key: string) => Object.fromEntries(Object.entries(spec).filter(([k]) => k !== key));
 
-const INPUT = "h-7 w-full min-w-0 rounded-[6px] border border-ui-default bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
+const INPUT = "h-7 w-full min-w-0 rounded-ui-sm border border-ui-default bg-ui-raised px-2 font-ui-mono text-caption text-ui-1 outline-none focus:border-ui-accent";
 
 function Row({ label, children, approx = false }: { label: string; children: ReactNode; approx?: boolean }) {
   return (
-    <div className="flex min-h-7 items-center justify-between gap-3 text-[12px] text-ui-2">
+    <div className="flex min-h-7 items-center justify-between gap-3 text-caption text-ui-2">
       <span className="flex shrink-0 items-center gap-1.5">
         {label}
         {approx && <ApproxMark />}
@@ -360,7 +360,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
                 ),
               )
             }
-            className="flex h-7 w-full items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-[12px] text-ui-1 hover:border-ui-strong"
+            className="flex h-7 w-full items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-caption text-ui-1 hover:border-ui-strong"
           >
             Find the drives again
           </button>
@@ -527,7 +527,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
             type="button"
             disabled={found.length === 0}
             onClick={() => editor.commit(updateAt(editor.committed, path, (g) => (g.kind === "Group" ? { ...g, DisplayItems: coreBars(editor.open.profile, palette, found) } : g)))}
-            className="flex h-7 w-full items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-[12px] text-ui-1 hover:border-ui-strong disabled:opacity-50"
+            className="flex h-7 w-full items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-caption text-ui-1 hover:border-ui-strong disabled:opacity-50"
           >
             Find the cores again
           </button>

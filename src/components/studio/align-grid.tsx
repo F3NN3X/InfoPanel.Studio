@@ -159,7 +159,7 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
       onClick={onClick}
       className={cn(
         "h-6 rounded-md border px-2.5 text-[11.5px] transition-colors",
-        on ? "border-[#3a3a44] bg-ui-active text-ui-1" : "border-ui-strong text-ui-3 hover:text-ui-1"
+        on ? "border-ui-edge bg-ui-active text-ui-1" : "border-ui-strong text-ui-3 hover:text-ui-1"
       )}
     >
       {children}

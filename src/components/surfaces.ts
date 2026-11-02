@@ -57,7 +57,7 @@ function buildSurface(style: ModernStyle, tint: RGB | null): Surface {
     return {
       background: rgba(base),
       fg: "rgb(24, 24, 27)",
-      muted: "rgba(24, 24, 27, 0.6)",
+      muted: "rgba(24, 24, 27, 0.72)",
       track: "rgba(24, 24, 27, 0.16)",
       fill: rgba(tint ? darken(tint, 0.12) : ([113, 113, 122] as RGB)),
       ring: "rgba(255, 255, 255, 0.4)",
@@ -126,7 +126,7 @@ function buildSurfacePalette(style: ModernStyle, tint: ArtTint): Surface {
     return {
       background: rgba(tint.light),
       fg: "rgb(24, 24, 27)",
-      muted: "rgba(24, 24, 27, 0.6)",
+      muted: "rgba(24, 24, 27, 0.72)",
       track: "rgba(24, 24, 27, 0.16)",
       fill: rgba(darken(tint.vibrant, 0.12)),
       ring: "rgba(255, 255, 255, 0.4)",
@@ -175,7 +175,7 @@ export function surfaceColors(surface: unknown): Surface {
 const SURFACE_TOKENS: Record<Exclude<ModernStyle, "theme">, { fg: string; muted: string; chip: string }> = {
   glass: { fg: "0 0% 98%", muted: "0 0% 98% / 0.6", chip: "240 3.7% 15.9%" },
   "matte-dark": { fg: "0 0% 98%", muted: "0 0% 98% / 0.6", chip: "240 3.7% 15.9%" },
-  "matte-light": { fg: "240 6% 10%", muted: "240 6% 10% / 0.6", chip: "240 5% 88%" },
+  "matte-light": { fg: "240 6% 10%", muted: "240 6% 10% / 0.72", chip: "240 5% 88%" },
 };
 
 /**

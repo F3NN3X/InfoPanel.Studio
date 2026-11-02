@@ -44,7 +44,7 @@ export default function ServiceHealth(p: ServiceHealthProps) {
           {okN}/{list.length}
         </span>
       }
-      compact={{ label: "Sources", value: `${okN}/${list.length}`, sub: list.filter((x) => !x.ok).map((x) => x.label).slice(0, 2).join(", ") + " off", pct: (okN / list.length) * 100, kind: "bar", icon: "health_and_safety" }}
+      compact={{ label: "Sources", value: `${okN}/${list.length}`, sub: okN === list.length ? "All online" : `${list.filter((x) => !x.ok).map((x) => x.label).slice(0, 2).join(", ")} off`, pct: (okN / list.length) * 100, kind: "bar", icon: "health_and_safety" }}
     >
       {({ h, w }) => {
         // a 16px row plus the 8px row gap, or the look's gap

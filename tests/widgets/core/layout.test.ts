@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boxOf, easeHistory, fitGrid, pickBy, shapeOf, summaryShape, tierOf } from "@/widgets/core/layout";
+import { boxOf, easeHistory, fitGrid, pickBy, roomy, rowsFor, shapeOf, summaryShape, tierOf } from "@/widgets/core/layout";
 
 describe("tierOf", () => {
   it("splits at 220×140, 340×210 and 500×320", () => {
@@ -82,5 +82,24 @@ describe("fitGrid", () => {
   });
   it("has no grid for no items", () => {
     expect(fitGrid(0, 400, 400)).toEqual({ cols: 0, rows: 0, cell: 0 });
+  });
+});
+
+describe("rowsFor", () => {
+  it("grows rows from the minimum to the maximum before it adds a gap", () => {
+    expect(rowsFor(400, 4, 36, 64)).toEqual({ n: 4, rowH: 64 });
+    expect(rowsFor(160, 4, 36, 64)).toEqual({ n: 4, rowH: 40 });
+  });
+  it("shows only the rows that fit, and always one", () => {
+    expect(rowsFor(100, 6, 36, 64)).toEqual({ n: 2, rowH: 50 });
+    expect(rowsFor(10, 3, 36, 64)).toEqual({ n: 1, rowH: 36 });
+  });
+});
+
+describe("roomy", () => {
+  it("is the 4x4 box and up, not a 2x2 or a wide strip", () => {
+    expect(roomy(432, 400)).toBe(true);
+    expect(roomy(216, 216)).toBe(false);
+    expect(roomy(900, 200)).toBe(false);
   });
 });

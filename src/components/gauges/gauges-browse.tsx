@@ -38,13 +38,13 @@ export function GaugesBrowse({ sections, selectedKey, p, scope, onSelect, onOpen
     <div className="min-w-0 flex-1 overflow-y-auto p-6 font-ui">
       {sections.map((s) => (
         <section key={s.id} aria-label={s.title} className="mb-8">
-          <h2 className="text-[13px] font-semibold text-ui-1">
+          <h2 className="text-body font-semibold text-ui-1">
             {s.title}
-            {s.entries.length > 0 && <span className="ml-2 font-ui-mono text-[11px] font-normal text-ui-4">{s.entries.length}</span>}
+            {s.entries.length > 0 && <span className="ml-2 font-ui-mono text-micro font-normal text-ui-4">{s.entries.length}</span>}
           </h2>
-          {s.note && <p className="mb-3 text-[12px] text-ui-4">{s.note}</p>}
+          {s.note && <p className="mb-3 text-caption text-ui-4">{s.note}</p>}
           {s.entries.length === 0 ? (
-            <p className="mt-2 text-[12px] text-ui-4">{s.empty}</p>
+            <p className="mt-2 text-caption text-ui-4">{s.empty}</p>
           ) : (
             <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-3">
               {s.entries.map((e) => (
@@ -103,7 +103,7 @@ function Thumb({ entry, selected, p, scope, renaming, onSelect, onOpen, onDragSt
         selected ? "border-ui-accent shadow-[0_0_0_1px_var(--ui-accent)]" : "border-ui-subtle hover:border-ui-menu",
       )}
     >
-      <span className="flex aspect-square w-full items-center justify-center bg-[#0b0b0e]">
+      <span className="flex aspect-square w-full items-center justify-center bg-ui-app">
         <GaugeView gauge={entry.gauge} frames={entry.frames} p={p} size={96} scope={scope} />
       </span>
       {renaming ? (
@@ -120,10 +120,10 @@ function Thumb({ entry, selected, p, scope, renaming, onSelect, onOpen, onDragSt
             if (e.key === "Enter") onRenamed(entry, e.currentTarget.value);
             if (e.key === "Escape") onRenamed(entry, null);
           }}
-          className="mx-1.5 my-1.5 h-7 min-w-0 rounded-[6px] border border-ui-accent bg-ui-app px-1.5 text-[12px] text-ui-1 outline-none"
+          className="mx-1.5 my-1.5 h-7 min-w-0 rounded-ui-sm border border-ui-accent bg-ui-app px-1.5 text-caption text-ui-1 outline-none"
         />
       ) : (
-        <span className="truncate px-2.5 py-2 text-[12px] text-ui-1">{entry.name}</span>
+        <span className="truncate px-2.5 py-2 text-caption text-ui-1">{entry.name}</span>
       )}
     </div>
   );

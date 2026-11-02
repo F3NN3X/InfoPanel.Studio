@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { Copy, Info, OctagonAlert, Trash2, TriangleAlert, type LucideIcon } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
@@ -44,15 +44,15 @@ export interface AlertRulesProps {
 }
 
 const MENU_POPUP =
-  "max-h-[60vh] min-w-52 overflow-y-auto rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
+  "max-h-[60vh] min-w-52 overflow-y-auto rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
 const MENU_ITEM =
-  "flex min-h-[30px] cursor-default flex-col justify-center rounded-md px-2 py-1 outline-none select-none data-highlighted:bg-ui-hover";
+  "flex min-h-[30px] cursor-default flex-col justify-center rounded-md px-2 py-1 outline-none select-none data-highlighted:bg-ui-active data-highlighted:text-ui-1 data-highlighted:shadow-[inset_2px_0_0_var(--ui-accent)]";
 
 /** The "New rule" menu (SPEC §10.3): blank rules and the presets. */
 export function NewRuleMenu({ onAdd, points }: { onAdd: (rule: AlertRule) => void; points: readonly DataPoint[] }) {
   return (
     <Menu.Root>
-      <Menu.Trigger className="inline-flex h-7 items-center rounded-[7px] bg-ui-inverse px-3 text-[12px] font-semibold text-ui-inverse-fg hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60">
+      <Menu.Trigger className="inline-flex h-7 items-center rounded-[7px] bg-ui-inverse px-3 text-caption font-semibold text-ui-inverse-fg hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60">
         New rule
       </Menu.Trigger>
       <Menu.Portal>
@@ -64,11 +64,11 @@ export function NewRuleMenu({ onAdd, points }: { onAdd: (rule: AlertRule) => voi
             <Menu.Item className={MENU_ITEM} onClick={() => onAdd(blankNotificationRule())}>
               Blank notification rule
             </Menu.Item>
-            <div className="my-1 border-t border-ui-subtle px-2 pt-1.5 text-[10.5px] uppercase tracking-wide text-ui-4">Presets</div>
+            <div className="my-1 border-t border-ui-subtle px-2 pt-1.5 text-micro uppercase tracking-wide text-ui-4">Presets</div>
             {ALERT_PRESETS.map((preset) => (
               <Menu.Item key={preset.id} className={MENU_ITEM} onClick={() => onAdd(presetRule(preset, points))}>
                 <span className="text-ui-1">{preset.label}</span>
-                <span className="text-[11px] text-ui-4">{preset.hint}</span>
+                <span className="text-micro text-ui-4">{preset.hint}</span>
               </Menu.Item>
             ))}
           </Menu.Popup>
@@ -104,14 +104,19 @@ interface RuleRowProps {
 }
 
 function RuleRow({ rule, summary, style, fired, now, confirming, ...on }: RuleRowProps) {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  // The row swaps for the question, so the focused Delete button is gone: put focus on the safe answer.
+  useEffect(() => {
+    if (confirming) cancelRef.current?.focus();
+  }, [confirming]);
   if (confirming) {
     return (
-      <li className="flex items-center gap-2 border-t border-[#1a1a1f] bg-ui-hover px-3.5 py-2.5 text-[12px] text-ui-2 first:border-t-0">
+      <li role="alert" className="flex items-center gap-2 border-t border-ui-hover bg-ui-hover px-3.5 py-2.5 text-caption text-ui-2 first:border-t-0">
         <span className="min-w-0 flex-1 truncate">Delete “{rule.name}”?</span>
         <button type="button" onClick={on.onDelete} className="h-6 rounded-md bg-ui-danger px-2 text-[11.5px] text-black">
           Delete
         </button>
-        <button type="button" onClick={on.onCancelDelete} className="h-6 rounded-md border border-ui-strong px-2 text-[11.5px]">
+        <button ref={cancelRef} type="button" onClick={on.onCancelDelete} className="h-6 rounded-md border border-ui-strong px-2 text-[11.5px]">
           Cancel
         </button>
       </li>
@@ -119,7 +124,7 @@ function RuleRow({ rule, summary, style, fired, now, confirming, ...on }: RuleRo
   }
   const { icon: Icon, tone } = SEVERITY_ICON[rule.severity];
   return (
-    <li className="group flex items-center gap-3 border-t border-[#1a1a1f] px-3.5 py-2.5 first:border-t-0 hover:bg-ui-hover">
+    <li className="group flex items-center gap-3 border-t border-ui-hover px-3.5 py-2.5 first:border-t-0 hover:bg-ui-hover">
       <Icon className={cn("h-[17px] w-[17px] shrink-0", tone)} aria-label={rule.severity} />
       <button
         type="button"
@@ -130,10 +135,10 @@ function RuleRow({ rule, summary, style, fired, now, confirming, ...on }: RuleRo
         )}
       >
         <span className="block truncate text-[12.5px] font-medium text-ui-1">{rule.name}</span>
-        <span className="block truncate font-ui-mono text-[11px] text-ui-3" title={summary}>
+        <span className="block truncate font-ui-mono text-micro text-ui-3" title={summary}>
           {summary}
         </span>
-        <span className="block truncate text-[10.5px] text-ui-4">
+        <span className="block truncate text-micro text-ui-4">
           {fired ? `Last fired ${ageText(fired.startedAt, now)} ago` : "Never fired"}
         </span>
       </button>
@@ -203,7 +208,7 @@ export function AlertRules({ config, setConfig, active, points, current, pushPen
       </div>
       <div className="overflow-hidden rounded-[10px] border border-ui-default">
         {alerts.rules.length === 0 ? (
-          <p className="px-3.5 py-3 text-pretty text-[12px] leading-[1.45] text-ui-4">
+          <p className="px-3.5 py-3 text-pretty text-caption leading-[1.45] text-ui-4">
             No alert rules yet. Use New rule to start from a blank rule or a preset such as “GPU temperature high”.
           </p>
         ) : (

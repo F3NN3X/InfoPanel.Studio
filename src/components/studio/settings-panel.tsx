@@ -82,8 +82,8 @@ function PinButton({ pinned, label, onToggle }: { pinned: boolean; label: string
       aria-label={title}
       aria-pressed={pinned}
       className={cn(
-        "flex h-6 w-6 shrink-0 items-center justify-center rounded-md hover:bg-[#1e1e24]",
-        pinned ? "text-ui-accent-text" : "text-[#4a4a52] hover:text-ui-2"
+        "flex h-6 w-6 shrink-0 items-center justify-center rounded-md hover:bg-s-nav-on",
+        pinned ? "text-ui-accent-text" : "text-ui-4 hover:text-ui-2"
       )}
     >
       <Pin className="h-[15px] w-[15px]" fill={pinned ? "currentColor" : "none"} strokeWidth={1.75} />
@@ -116,7 +116,6 @@ export function SettingField({
     <fieldset
       data-setting-key={def.key}
       disabled={readOnly}
-      title={readOnly ? "Set by the theme: customize the section (or edit its lock) to change it" : undefined}
       className={cn("m-0 min-w-0 border-0 py-[3px] pl-4 pr-2.5", readOnly && "opacity-50")}
     >
       <SettingRow
@@ -147,7 +146,7 @@ export function SettingField({
             {mixed && (
               <span
                 title="The selected widgets differ here: the value shown is the primary widget's, and a change sets it on all of them"
-                className="shrink-0 rounded-[5px] bg-[#1e1e24] px-1.5 py-px text-[10px] font-medium text-ui-3"
+                className="shrink-0 rounded-[5px] bg-s-nav-on px-1.5 py-px text-[10px] font-medium text-ui-3"
               >
                 Mixed
               </span>
@@ -156,6 +155,7 @@ export function SettingField({
           </>) : undefined
         }
       />
+      {readOnly && <p className="m-0 pb-1 text-micro leading-snug text-ui-4">Set by the theme: customize the section (or edit its lock) to change it.</p>}
     </fieldset>
   );
 }

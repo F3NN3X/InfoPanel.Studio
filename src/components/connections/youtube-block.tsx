@@ -4,7 +4,7 @@ import type { PendingYoutube, YoutubeSigninResult } from "@/lib/youtube";
 import { cn } from "@/lib/utils";
 import { FIELD, StackRow } from "@/components/studio/setting-rows";
 
-const BUTTON = "flex h-[28px] items-center gap-1.5 rounded-[6px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:opacity-50";
+const BUTTON = "flex h-(--ui-h-control) items-center gap-1.5 rounded-ui-sm border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:opacity-50";
 
 /** A Google project's units per day. */
 export const DAILY_UNITS = 10_000;
@@ -84,13 +84,13 @@ export function YoutubeBlock({ state, clientConfigured, chatInterval, pending, o
   );
   return (
     <div className="space-y-2">
-      <div className="flex items-baseline justify-between text-[12px] font-semibold text-ui-1">
+      <div className="flex items-baseline justify-between text-caption font-semibold text-ui-1">
         YouTube
-        <span className="text-[11px] font-normal text-ui-4">{status}</span>
+        <span className="text-micro font-normal text-ui-4">{status}</span>
       </div>
       {!state.signedIn && (
         <>
-          <details className="text-[11px] leading-snug text-ui-4">
+          <details className="text-micro leading-snug text-ui-4">
             <summary className="cursor-pointer text-ui-3">Set up your Google client</summary>
             <p className="mt-1">YouTube allows each Google project 10,000 units a day, so you make your own project and client.</p>
             <ol className="mt-1 list-decimal space-y-0.5 pl-4">
@@ -143,8 +143,8 @@ export function YoutubeBlock({ state, clientConfigured, chatInterval, pending, o
       )}
       {waiting && !state.signedIn && (
         <div className="space-y-1.5">
-          <p className="text-[11px] leading-snug text-ui-4">Finish signing in in your browser. This page updates when you are done.</p>
-          <div className="flex items-center justify-between text-[11px] text-ui-4">
+          <p className="text-micro leading-snug text-ui-4">Finish signing in in your browser. This page updates when you are done.</p>
+          <div className="flex items-center justify-between text-micro text-ui-4">
             <span>{pending ? `Expires in ${countdown(pending.expiresAt, tick)}` : ""}</span>
             <span className="flex gap-2">
               {pending && (
@@ -161,22 +161,22 @@ export function YoutubeBlock({ state, clientConfigured, chatInterval, pending, o
       )}
       {state.signedIn && (
         <>
-          <div className="text-[12px] text-ui-2">
+          <div className="text-caption text-ui-2">
             Signed in as <span className="font-semibold">{state.channel}</span>
           </div>
           <StackRow label="Chat refresh" hint="How often the live chat is read. Each read costs 5 units of the daily quota.">
             <div className="flex items-center gap-2">
-              <select aria-label="Chat refresh" value={chatInterval} onChange={(e) => void onSaveInterval(Number(e.target.value))} className="h-7 rounded-md border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1">
+              <select aria-label="Chat refresh" value={chatInterval} onChange={(e) => void onSaveInterval(Number(e.target.value))} className="h-7 rounded-md border border-ui-strong bg-ui-hover px-1.5 text-caption text-ui-1">
                 {CHAT_INTERVALS.map((s) => (
                   <option key={s} value={s}>
                     {s} s
                   </option>
                 ))}
               </select>
-              <span className="text-[11px] text-ui-4">About {chatHoursPerDay(chatInterval)} hours of live chat a day.</span>
+              <span className="text-micro text-ui-4">About {chatHoursPerDay(chatInterval)} hours of live chat a day.</span>
             </div>
           </StackRow>
-          <p className="text-[11px] text-ui-4">
+          <p className="text-micro text-ui-4">
             About {state.quota.used.toLocaleString("en-US")} of {DAILY_UNITS.toLocaleString("en-US")} units used today
             {state.quota.estimatePerHour > 0 ? `, about ${state.quota.estimatePerHour.toLocaleString("en-US")} an hour at this rate.` : "."}
           </p>
@@ -185,7 +185,7 @@ export function YoutubeBlock({ state, clientConfigured, chatInterval, pending, o
           </button>
         </>
       )}
-      {shown && <p className="text-[11px] text-ui-danger">{shown}</p>}
+      {shown && <p className="text-micro text-ui-danger">{shown}</p>}
     </div>
   );
 }

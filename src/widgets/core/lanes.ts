@@ -38,3 +38,10 @@ export function laneRuns(cols: readonly (number | null)[], warn: number | undefi
   });
   return runs;
 }
+
+/** The highest reading in the window and the share of readings (samples, not time: uneven sampling skews it) (0-100) at or above `warn`; peak NaN and share 0 with none. */
+export function laneStats(samples: readonly Sample[], warn: number): { peak: number; pctAbove: number } {
+  if (!samples.length) return { peak: Number.NaN, pctAbove: 0 };
+  const peak = samples.reduce((m, s) => Math.max(m, s.v), -Infinity);
+  return { peak, pctAbove: (samples.filter((s) => s.v >= warn).length / samples.length) * 100 };
+}

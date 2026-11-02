@@ -69,7 +69,7 @@ export function PointInspector({
   return (
     <div className="flex h-full w-full flex-col gap-4 overflow-y-auto bg-ui-panel p-4 font-ui text-ui-2">
       <div className="flex items-start gap-2.5">
-        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#1c1c21]">
+        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-s-divider">
           <TypeIcon type={point.type} className="h-[18px] w-[18px] text-[oklch(0.78_0.12_255)]" />
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -89,10 +89,10 @@ export function PointInspector({
 
       <div className="flex flex-col gap-2.5 rounded-[10px] border border-ui-default bg-ui-app p-3.5">
         <div className="flex items-center gap-1.5">
-          <Chip className="px-[7px] py-0.5 text-[10.5px] text-ui-2 rounded-[9px]">{TYPE_LABEL[point.type]}</Chip>
-          {point.kind && <Chip className="px-[7px] py-0.5 text-[10.5px] text-ui-2 rounded-[9px]">{point.kind}</Chip>}
+          <Chip className="px-[7px] py-0.5 text-micro text-ui-2 rounded-ui-menu">{TYPE_LABEL[point.type]}</Chip>
+          {point.kind && <Chip className="px-[7px] py-0.5 text-micro text-ui-2 rounded-ui-menu">{point.kind}</Chip>}
           {live && (
-            <span className="ml-auto flex items-center gap-1 text-[10.5px] text-ui-success">
+            <span className="ml-auto flex items-center gap-1 text-micro text-ui-success">
               <span className="h-[5px] w-[5px] rounded-full bg-ui-success" />
               Live
             </span>
@@ -108,7 +108,7 @@ export function PointInspector({
         </span>
         {point.type === "number" && live && <History history={history} pointKey={point.key} unit={values[point.key]?.unit} tick={tick} />}
         {point.type === "list" && (
-          <pre className="max-h-[180px] overflow-auto whitespace-pre-wrap break-words font-ui-mono text-[11px] leading-[1.55] text-ui-2">
+          <pre className="max-h-[180px] overflow-auto whitespace-pre-wrap break-words font-ui-mono text-micro leading-[1.55] text-ui-2">
             {list}
           </pre>
         )}
@@ -127,7 +127,7 @@ export function PointInspector({
               key={`${u.zoneId}:${u.panelWidgetId ?? ""}`}
               type="button"
               onClick={() => onOpenUsage(u)}
-              className="flex items-center gap-2 rounded-[7px] bg-ui-raised px-2 py-[7px] text-left text-[12px] text-ui-1 hover:bg-[#1e1e23]"
+              className="flex items-center gap-2 rounded-[7px] bg-ui-raised px-2 py-[7px] text-left text-caption text-ui-1 hover:bg-ui-subtle"
             >
               <Icon className="h-4 w-4 shrink-0 text-ui-4" aria-hidden />
               <span className="min-w-0 flex-1 truncate" title={u.label}>
@@ -137,7 +137,7 @@ export function PointInspector({
             </button>
           );
         })}
-        {usedBy.length === 0 && <span className="text-[12px] text-ui-4">Not used in this layout yet.</span>}
+        {usedBy.length === 0 && <span className="text-caption text-ui-4">Not used in this layout yet.</span>}
 
         <div className="mt-1 flex gap-1.5">
           <select
@@ -145,7 +145,7 @@ export function PointInspector({
             value={target ? options.indexOf(target) : ""}
             disabled={options.length === 0}
             onChange={(e) => onTarget(options[Number(e.target.value)])}
-            className="h-8 min-w-0 flex-1 rounded-[7px] border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent/60"
+            className="h-8 min-w-0 flex-1 rounded-[7px] border border-ui-strong bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent/60"
           >
             {options.length === 0 && <option value="">No widgets yet</option>}
             {options.map((o, i) => (
@@ -158,7 +158,7 @@ export function PointInspector({
             type="button"
             disabled={!target}
             onClick={() => target && (bound ? onUnbind(target.zoneId, target.widgetId) : onBind(target.zoneId, target.widgetId))}
-            className="h-8 shrink-0 rounded-[7px] bg-ui-inverse px-3.5 text-[12px] font-semibold text-ui-inverse-fg hover:opacity-90 disabled:opacity-40"
+            className="h-8 shrink-0 rounded-[7px] bg-ui-inverse px-3.5 text-caption font-semibold text-ui-inverse-fg hover:opacity-90 disabled:opacity-40"
           >
             {bound ? "Unbind" : "Bind"}
           </button>
@@ -166,7 +166,7 @@ export function PointInspector({
         <button
           type="button"
           onClick={onNewWidget}
-          className="flex h-8 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised text-[12px] text-ui-1 hover:bg-[#1e1e23]"
+          className="flex h-8 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised text-caption text-ui-1 hover:bg-ui-subtle"
         >
           <SquarePlus className="h-4 w-4" />
           New widget from this value
@@ -204,7 +204,7 @@ function History({ history, pointKey, unit, tick }: { history: SampleHistory; po
           ] as const
         ).map(([label, n]) => (
           <div key={label} className="flex flex-col gap-px">
-            <span className="text-[10.5px] leading-[1.25] text-ui-4">{label}</span>
+            <span className="text-micro leading-[1.25] text-ui-4">{label}</span>
             <span className="font-ui-mono text-[11.5px] leading-[1.25] text-ui-1">{n === undefined ? "—" : fmt(n)}</span>
           </div>
         ))}

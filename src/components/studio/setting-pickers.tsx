@@ -32,7 +32,7 @@ export function MultiSelect({
   options: { value: string; label: string }[];
   label?: string;
 }) {
-  if (options.length === 0) return <span className="text-[11px] text-ui-4">No options available</span>;
+  if (options.length === 0) return <span className="text-micro text-ui-4">No options available</span>;
   const ticked = splitList(value);
   const toggle = (id: string) => onChange((ticked.includes(id) ? ticked.filter((v) => v !== id) : [...ticked, id]).join(","));
   return (
@@ -47,7 +47,7 @@ export function MultiSelect({
             role="checkbox"
             aria-checked={on}
             onClick={() => toggle(o.value)}
-            className="flex items-center gap-2 px-0.5 py-1 text-left text-[12px] text-[#d4d4da]"
+            className="flex items-center gap-2 px-0.5 py-1 text-left text-caption text-[#d4d4da]"
           >
             <Box className={cn("h-[18px] w-[18px] shrink-0", on ? "text-ui-accent" : "text-ui-4")} />
             <span className="min-w-0 flex-1 truncate">{o.label}</span>
@@ -59,7 +59,7 @@ export function MultiSelect({
 }
 
 const SELECT = cn(SELECT_BASE, "w-full max-w-none");
-const LINK = "text-[11px] text-ui-4 hover:text-ui-1";
+const LINK = "text-micro text-ui-4 hover:text-ui-1";
 
 interface PickerProps {
   def: ModuleSetting;
@@ -130,7 +130,7 @@ export function WavelinkMeterPicker({ def, value, onChange, lead, hint, flow }: 
         </select>
       )}
       {state.status === "absent" && options.length === 0 && (
-        <span className="text-[11px] text-ui-4">
+        <span className="text-micro text-ui-4">
           Wave Link is not running — start the app and its meters appear here.
         </span>
       )}
@@ -209,11 +209,11 @@ function DeviceRow({ on, multi, label, detail, onClick }: { on: boolean; multi: 
       role={multi ? "checkbox" : "radio"}
       aria-checked={on}
       onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-md px-0.5 py-1 text-left text-[12px] text-[#d4d4da] hover:bg-ui-hover"
+      className="flex w-full items-center gap-2 rounded-md px-0.5 py-1 text-left text-caption text-[#d4d4da] hover:bg-ui-hover"
     >
       <Mark className={cn("h-4 w-4 shrink-0", on ? "text-ui-accent" : "text-ui-4")} />
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      {detail && <span className="max-w-[55%] shrink-0 truncate text-[11px] text-ui-4" title={detail}>{detail}</span>}
+      {detail && <span className="max-w-[55%] shrink-0 truncate text-micro text-ui-4" title={detail}>{detail}</span>}
     </button>
   );
 }

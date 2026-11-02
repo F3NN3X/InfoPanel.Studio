@@ -51,7 +51,7 @@ function RailButton({ label, icon: Icon, narrow, active, onClick }: RailButtonPr
     <Tooltip.Root disableHoverablePopup>
       <Tooltip.Trigger
         aria-label={label}
-        aria-pressed={active}
+        aria-current={active ? "page" : undefined}
         onClick={onClick}
         className={cn(
           "flex flex-col items-center gap-[3px] rounded-lg pb-[6px] pt-[7px] transition-colors",
@@ -61,7 +61,7 @@ function RailButton({ label, icon: Icon, narrow, active, onClick }: RailButtonPr
         )}
       >
         <Icon className="h-5 w-5" strokeWidth={1.5} />
-        {!narrow && <span className="text-[10.5px] font-medium leading-tight">{label}</span>}
+        {!narrow && <span className="text-micro font-medium leading-tight">{label}</span>}
       </Tooltip.Trigger>
       {narrow && (
         <Tooltip.Portal>

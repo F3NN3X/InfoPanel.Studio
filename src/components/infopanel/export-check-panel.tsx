@@ -28,7 +28,7 @@ export const useExportCheck = (): ExportCheckState => useContext(ExportCheckCont
 export function StatusIcon({ status, className }: { status: CheckStatus; className?: string }) {
   const { icon: Icon, text } = STATUS_UI[status];
   return (
-    <span title={STATUS_LABEL[status]} aria-label={STATUS_LABEL[status]} className={cn("inline-flex shrink-0", text)}>
+    <span role="img" title={STATUS_LABEL[status]} aria-label={STATUS_LABEL[status]} className={cn("inline-flex shrink-0", text)}>
       <Icon className={cn("h-[13px] w-[13px]", className)} strokeWidth={2} />
     </span>
   );
@@ -52,7 +52,7 @@ export function CheckBadge({ status }: { status: CheckStatus }) {
 /** The amber mark on a studio-only look that is set (decision D4). */
 export function ApproxMark() {
   return (
-    <span title="Approximated on InfoPanel" aria-label="Approximated on InfoPanel" className="inline-flex shrink-0 text-ui-warn">
+    <span role="img" title="Approximated on InfoPanel" aria-label="Approximated on InfoPanel" className="inline-flex shrink-0 text-ui-warn">
       <Triangle className="h-[13px] w-[13px]" strokeWidth={2} />
     </span>
   );
@@ -103,15 +103,15 @@ export function CheckGroups({ rows, onSelect, skipOk = false }: { rows: readonly
               const body = (
                 <>
                   <span className="block truncate text-[11.5px] text-ui-1">{r.name}</span>
-                  <span className="block text-[10.5px] leading-snug text-ui-4">{r.why}</span>
+                  <span className="block text-micro leading-snug text-ui-4">{r.why}</span>
                 </>
               );
               return onSelect ? (
-                <button key={r.path} type="button" onClick={() => onSelect(r.path)} className="rounded-[6px] bg-ui-raised px-2.5 py-1.5 text-left hover:bg-ui-hover">
+                <button key={r.path} type="button" onClick={() => onSelect(r.path)} className="rounded-ui-sm bg-ui-raised px-2.5 py-1.5 text-left hover:bg-ui-hover">
                   {body}
                 </button>
               ) : (
-                <div key={r.path} className="rounded-[6px] bg-ui-raised px-2.5 py-1.5">
+                <div key={r.path} className="rounded-ui-sm bg-ui-raised px-2.5 py-1.5">
                   {body}
                 </div>
               );
@@ -130,8 +130,8 @@ export function ExportCheckPanel({ check, onSelect, onExport, notice }: { check:
     <div className="flex min-h-0 flex-1 flex-col font-ui" data-help-article="infopanel-editor" data-testid="export-check">
       <div className="flex flex-col gap-2 border-b border-ui-subtle px-4 pb-3 pt-3.5">
         <div className="flex items-center">
-          <h2 className="flex-1 text-[13px] font-semibold text-ui-1">Export check</h2>
-          <span className="text-[11px] text-ui-ok">Live</span>
+          <h2 className="flex-1 text-body font-semibold text-ui-1">Export check</h2>
+          <span className="text-micro text-ui-ok">Live</span>
         </div>
         <p className="text-[11.5px] leading-snug text-ui-4">What happens to each part when you export to InfoPanel. Updates as you edit.</p>
         {notice}
@@ -147,7 +147,7 @@ export function ExportCheckPanel({ check, onSelect, onExport, notice }: { check:
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-        {total === 0 ? <p className="text-[12px] text-ui-4">Nothing to export yet.</p> : <CheckGroups rows={check.rows} onSelect={onSelect} />}
+        {total === 0 ? <p className="text-caption text-ui-4">Nothing to export yet.</p> : <CheckGroups rows={check.rows} onSelect={onSelect} />}
       </div>
       <div className="flex flex-col items-center gap-1.5 border-t border-ui-subtle px-4 py-3">
         <button
@@ -157,7 +157,7 @@ export function ExportCheckPanel({ check, onSelect, onExport, notice }: { check:
         >
           Export .infopanel
         </button>
-        <span className="text-[11px] text-ui-4">Export writes a copy. Your screen isn’t changed.</span>
+        <span className="text-micro text-ui-4">Export writes a copy. Your screen isn’t changed.</span>
       </div>
     </div>
   );

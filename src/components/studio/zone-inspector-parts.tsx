@@ -23,13 +23,13 @@ import { KEYS } from "./use-studio-shortcuts";
 /** The 32 px icon box of a header (the glyph in the accent text colour). */
 export function HeaderIcon({ children }: { children: ReactNode }) {
   return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1c1c21] text-[oklch(0.78_0.12_255)] [&>svg]:h-[19px] [&>svg]:w-[19px]">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-s-divider text-[oklch(0.78_0.12_255)] [&>svg]:h-[19px] [&>svg]:w-[19px]">
       {children}
     </span>
   );
 }
 
-const META = "truncate text-[11px] text-[#8a8a94]";
+const META = "truncate text-micro text-ui-hint";
 
 /** The sub line's count: "3 changed", or "defaults" when nothing is set here. */
 export const changedLabel = (changed: number) => (changed > 0 ? `${changed} changed` : "defaults");
@@ -85,7 +85,8 @@ function ZoneActions({
       <IconButton label={zoneKeys ? `Duplicate (${KEYS.duplicate})` : "Duplicate widget"} onClick={onDuplicate} className={touch}>
         <Copy className="h-4 w-4" />
       </IconButton>
-      <IconButton label={zoneKeys ? `Delete (${KEYS.remove})` : "Delete widget"} danger onClick={onRemove} className={touch}>
+      <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 bg-ui-subtle" />
+      <IconButton label={zoneKeys ? `Delete (${KEYS.remove})` : "Delete widget"} danger onClick={onRemove} className={cn("text-ui-danger/80", touch)}>
         <Trash2 className="h-4 w-4" />
       </IconButton>
       <CloseButton />
@@ -110,7 +111,7 @@ function Breadcrumb({
 }) {
   const crumb = "min-w-0 truncate rounded hover:text-ui-1 hover:underline";
   return (
-    <nav aria-label="Selection" className="flex min-w-0 items-center gap-1 text-[12px]">
+    <nav aria-label="Selection" className="flex min-w-0 items-center gap-1 text-caption">
       <button
         type="button"
         onClick={onZone}
@@ -119,7 +120,7 @@ function Breadcrumb({
       >
         {title}
       </button>
-      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-ui-5" />
+      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-ui-hint" />
       <button type="button" onClick={onWidget} title="Show the widget's settings" className={cn(crumb, "text-ui-2")}>
         {widget}
       </button>
@@ -189,7 +190,7 @@ export function ZoneHeader({
             <div className={TITLE}>{name}</div>
           )}
           {kind ? (
-            <div data-testid="inspector-kind" className="truncate text-[10.5px] text-ui-accent" title={details}>
+            <div data-testid="inspector-kind" className="truncate text-micro text-ui-accent" title={details}>
               {kind}
             </div>
           ) : (
@@ -285,7 +286,7 @@ export function WidgetPicker({ placement, onPickWidget }: { placement: Placement
         </button>
       </InlineRow>
       {placement.panel && (
-        <p className="text-[11px] leading-snug text-ui-5">
+        <p className="text-micro leading-snug text-ui-hint">
           Edit the panel&apos;s widgets in Content; picking another widget replaces the panel.
         </p>
       )}

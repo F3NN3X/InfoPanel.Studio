@@ -65,7 +65,7 @@ export function GridCheckPanel({ profile, page, nameOf, onSelect, onConvert, onC
       onSelect={(path) => onSelect(path.split(":")[0])}
       onExport={onConvert}
       notice={
-        <p className="rounded-[6px] bg-ui-hover px-2.5 py-1.5 text-[11.5px] leading-snug text-ui-2">
+        <p className="rounded-ui-sm bg-ui-hover px-2.5 py-1.5 text-[11.5px] leading-snug text-ui-2">
           This page will be converted when you export.{" "}
           <button type="button" onClick={onConvert} className="text-ui-accent-text hover:underline">
             Review conversion…

@@ -20,7 +20,7 @@ import type { DisplayItem } from "@/lib/infopanel/schema";
 
 type Field = keyof typeof PROFILE;
 
-const INPUT = "h-7 w-full min-w-0 rounded-[6px] border bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
+const INPUT = "h-7 w-full min-w-0 rounded-ui-sm border bg-ui-raised px-2 font-ui-mono text-caption text-ui-1 outline-none focus:border-ui-accent";
 
 const LABEL: Partial<Record<Field, string>> = {
   BackgroundColor: "Background",
@@ -60,8 +60,8 @@ function TypedField({ field, value, onCommit, inline = false }: { field: Field; 
     setDraft(null);
   };
   return (
-    <label className={inline ? "flex min-w-0 flex-wrap items-center justify-between gap-x-2 text-[12px]" : "block min-w-0"}>
-      <span className={inline ? "shrink-0 text-ui-4" : "mb-1 block text-[11px] text-ui-4"}>{label}</span>
+    <label className={inline ? "flex min-w-0 flex-wrap items-center justify-between gap-x-2 text-caption" : "block min-w-0"}>
+      <span className={inline ? "shrink-0 text-ui-4" : "mb-1 block text-micro text-ui-4"}>{label}</span>
       <input
         aria-label={label}
         aria-invalid={error !== null}
@@ -119,7 +119,7 @@ function PaletteRow({ slot, value, onSet }: { slot: Slot; value: string; onSet: 
   return (
     <div>
       <div className="flex items-center gap-2">
-        <span className="w-[72px] shrink-0 text-[12px] text-ui-2">{SLOT_LABEL[slot]}</span>
+        <span className="w-[72px] shrink-0 text-caption text-ui-2">{SLOT_LABEL[slot]}</span>
         <input
           aria-label={`Profile color ${SLOT_LABEL[slot]}`}
           value={draft ?? value}
@@ -192,7 +192,7 @@ export function ProfileSettings({ editor, page, onRemap, remapCount = 0, drawing
     const value = profile[f as keyof Profile];
     if (spec.kind === "bool") {
       return (
-        <div key={f} className="flex h-7 items-center justify-between gap-2 text-[12px] text-ui-2">
+        <div key={f} className="flex h-7 items-center justify-between gap-2 text-caption text-ui-2">
           {LABEL[f] ?? f}
           <Toggle checked={value === true} onChange={(on) => commit(f, on)} label={LABEL[f] ?? f} />
         </div>
@@ -234,25 +234,25 @@ export function ProfileSettings({ editor, page, onRemap, remapCount = 0, drawing
             type="button"
             onClick={onRemap}
             disabled={editor.groups.length === 0}
-            className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised text-[12px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
+            className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised text-caption text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
           >
             <Cable className="h-3.5 w-3.5" />
             Remap sensors
             {remapCount > 0 && <span className="rounded-full bg-ui-warning/20 px-1.5 font-ui-mono text-[10px] text-ui-warning">{remapCount}</span>}
           </button>
         )}
-        <p className="text-[11px] leading-snug text-ui-4">Resizing keeps every item where it is.</p>
+        <p className="text-micro leading-snug text-ui-4">Resizing keeps every item where it is.</p>
       </section>
       {drawing}
       {SECTIONS.map((s) => (
         <section key={s.title} aria-label={s.title} className="border-b border-ui-subtle px-4 py-3">
-          <div className="mb-2 text-[12px] font-semibold text-ui-1">{s.title}</div>
+          <div className="mb-2 text-caption font-semibold text-ui-1">{s.title}</div>
           <div className="flex flex-col gap-2">{s.fields.map(row)}</div>
           {s.note && <p className="mt-2 text-[11.5px] leading-snug text-ui-4">{s.note}</p>}
         </section>
       ))}
       <section aria-label="Profile colors" className="border-b border-ui-subtle px-4 py-3">
-        <div className="mb-2 text-[12px] font-semibold text-ui-1">Profile colors</div>
+        <div className="mb-2 text-caption font-semibold text-ui-1">Profile colors</div>
         <div className="flex flex-col gap-1.5">
           {SLOTS.map((slot) => (
             <PaletteRow key={slot} slot={slot} value={editor.palette[slot]} onSet={(v) => editor.setPalette(slot, v, `canvas-palette:${editor.zone.id}:${slot}`)} />

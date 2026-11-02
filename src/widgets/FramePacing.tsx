@@ -46,7 +46,7 @@ export default function FramePacing(p: FramePacingProps) {
   // Their labels in a column beside the graph, level with each line, so the line never runs through them.
   const labels = () =>
     budgets.map((b) => (
-      <span key={b.hz} className="absolute right-0 -translate-y-1/2 whitespace-nowrap text-right text-[10px] leading-tight tabular-nums text-[color:var(--w-faint)]" style={{ top: `${sparkY(b.ms, 0, top)}%` }}>
+      <span key={b.hz} className="absolute right-0 -translate-y-1/2 whitespace-nowrap text-right text-micro leading-tight tabular-nums text-[color:var(--w-muted)]" style={{ top: `${sparkY(b.ms, 0, top)}%` }}>
         {fmt(b.hz)} fps
         <br />
         {fmt(b.ms, 1)} ms

@@ -23,7 +23,7 @@ interface DataPickerProps {
   onOpenExplorer: () => void;
 }
 
-const FOOT_BUTTON = "h-[30px] rounded-[7px] px-3 text-[12px]";
+const FOOT_BUTTON = "h-[30px] rounded-[7px] px-3 text-caption";
 
 /** The data point picker (README §4.9). */
 export function DataPicker({ open, onOpenChange, title, points, mode, bound, onToggle, onOpenExplorer }: DataPickerProps) {
@@ -59,7 +59,7 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search 650+ data points — e.g. gpu temp, steam level"
                 aria-label="Search data points"
-                className="min-w-0 flex-1 bg-transparent text-[13px] text-ui-1 outline-none placeholder:text-ui-4"
+                className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-4"
               />
             </div>
           </div>
@@ -76,7 +76,7 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
                     title={p.key}
                     onClick={() => pick(p)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-2 text-left hover:bg-[#1c1c21]",
+                      "flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-2 text-left hover:bg-s-divider",
                       on && "bg-ui-accent/10"
                     )}
                   >
@@ -90,17 +90,17 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
                     <TypeIcon type={p.type} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12.5px] text-ui-1">{p.name}</span>
-                      <span className="block truncate text-[11px] text-ui-4">{pointPlace(p)}</span>
+                      <span className="block truncate text-micro text-ui-4">{pointPlace(p)}</span>
                     </span>
                     <span className="max-w-[150px] shrink-0 truncate font-ui-mono text-[11.5px] text-ui-2">{p.raw}</span>
                   </button>
                 </li>
               );
             })}
-            {shown.length === 0 && <li className="px-3 py-6 text-center text-[12px] text-ui-4">No data points match.</li>}
+            {shown.length === 0 && <li className="px-3 py-6 text-center text-caption text-ui-4">No data points match.</li>}
           </ul>
           <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-4 py-2.5">
-            <span className="text-[11.5px] text-[#8a8a94]">
+            <span className="text-[11.5px] text-ui-hint">
               {resultsLabel(shown.length)} · {bound.size} bound
             </span>
             <button

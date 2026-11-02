@@ -1,3 +1,4 @@
+import { onRovingKeyDown } from "@/lib/roving";
 import { useEffect, useState } from "react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import type { ActiveAlert, AlertRule } from "@/lib/alerts";
@@ -82,13 +83,14 @@ export function AlertsView({ tab, onTab, config, setConfig, active, points, scre
       <div className="flex shrink-0 items-center gap-4 border-b border-ui-subtle px-6 max-sm:flex-wrap max-sm:gap-x-3 max-sm:px-3">
         <h1 className="whitespace-nowrap py-3 text-[15px] font-semibold text-ui-1">Alerts &amp; Island</h1>
         {/* On a phone the tabs take their own row under the title and the New rule button. */}
-        <div role="tablist" aria-label="Alerts & Island" className="flex gap-1 self-stretch max-sm:order-last max-sm:w-full max-sm:overflow-x-auto">
+        <div role="tablist" aria-label="Alerts & Island" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="flex gap-1 self-stretch max-sm:order-last max-sm:w-full max-sm:overflow-x-auto">
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
               role="tab"
               aria-selected={tab === t.id}
+              tabIndex={tab === t.id ? 0 : -1}
               onClick={() => onTab(t.id)}
               className={cn(
                 "shrink-0 border-b-2 px-3 text-[12.5px] hover:text-ui-1 max-sm:py-2.5",

@@ -40,7 +40,7 @@ export function UploadTray({ rows, onClear, onShow }: { rows: UploadRow[]; onCle
     );
   }
   return (
-    <div role="status" aria-label="Uploads" className="absolute bottom-4 right-4 z-20 flex w-[360px] flex-col overflow-hidden rounded-[12px] border border-ui-strong bg-ui-raised font-ui shadow-ui-modal">
+    <div role="status" aria-label="Uploads" className="absolute bottom-4 right-4 z-20 flex w-[360px] flex-col overflow-hidden rounded-ui-lg border border-ui-strong bg-ui-raised font-ui shadow-ui-modal">
       <div className="flex items-center gap-2 border-b border-ui-subtle px-3.5 py-2.5">
         <span className="flex-1 text-[12.5px] font-medium text-ui-1">{summary}</span>
         <button type="button" aria-label="Collapse" onClick={() => setOpen(false)} className="grid h-6 w-6 place-items-center rounded text-ui-4 hover:text-ui-1">
@@ -55,7 +55,7 @@ export function UploadTray({ rows, onClear, onShow }: { rows: UploadRow[]; onCle
       <ul className="max-h-[280px] overflow-y-auto py-1">
         {rows.map((r) => (
           <li key={r.id} className="px-3.5 py-1.5">
-            <div className="flex items-center gap-2 text-[12px]">
+            <div className="flex items-center gap-2 text-caption">
               {r.state === "done" ? (
                 <Check className="h-3.5 w-3.5 shrink-0 text-ui-success" />
               ) : r.state === "duplicate" ? (
@@ -73,9 +73,9 @@ export function UploadTray({ rows, onClear, onShow }: { rows: UploadRow[]; onCle
               >
                 {r.name}
               </button>
-              <span className="shrink-0 font-ui-mono text-[10.5px] text-ui-4">{formatBytes(r.size)}</span>
+              <span className="shrink-0 font-ui-mono text-micro text-ui-4">{formatBytes(r.size)}</span>
             </div>
-            <div className={cn("ml-[22px] text-[11px]", r.state === "error" ? "text-ui-danger" : "text-ui-4")}>{r.message ?? STATE_TEXT[r.state]}</div>
+            <div className={cn("ml-[22px] text-micro", r.state === "error" ? "text-ui-danger" : "text-ui-4")}>{r.message ?? STATE_TEXT[r.state]}</div>
             {(r.state === "reading" || r.state === "uploading" || r.state === "queued") && (
               <div className="ml-[22px] mt-1 h-1 overflow-hidden rounded-full bg-ui-subtle">
                 <div className={cn("h-full rounded-full bg-ui-accent transition-[width]", r.state === "queued" ? "w-0" : r.state === "reading" ? "w-1/3" : "w-2/3 animate-pulse")} />

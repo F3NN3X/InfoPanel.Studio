@@ -28,11 +28,11 @@ interface PhoneTabBarProps {
 }
 
 const TAB =
-  "flex flex-1 flex-col items-center justify-center gap-0.5 text-[9.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ui-accent/60";
+  "flex flex-1 flex-col items-center justify-center gap-0.5 text-micro font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ui-accent/60";
 const POPUP =
-  "min-w-52 rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[13px] text-ui-2 shadow-ui-menu outline-none";
+  "min-w-52 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui text-body text-ui-2 shadow-ui-menu outline-none";
 const ITEM =
-  "flex h-11 cursor-default items-center gap-2.5 rounded-md px-2.5 outline-none select-none data-highlighted:bg-ui-hover data-[active]:text-ui-1";
+  "flex h-11 cursor-default items-center gap-2.5 rounded-md px-2.5 outline-none select-none data-highlighted:bg-ui-active data-highlighted:text-ui-1 data-highlighted:shadow-[inset_2px_0_0_var(--ui-accent)] data-[active]:text-ui-1";
 
 /** The phone's rail: a 52 px bottom bar, Edit · Theme · Library · More (Screens, Gauges, Data, Alerts & Island, Settings, Help). */
 export function PhoneTabBar({ active, onSelect, onHelp }: PhoneTabBarProps) {
@@ -43,7 +43,7 @@ export function PhoneTabBar({ active, onSelect, onHelp }: PhoneTabBarProps) {
         <button
           key={id}
           type="button"
-          aria-pressed={active === id}
+          aria-current={active === id ? "page" : undefined}
           onClick={() => onSelect(id)}
           className={cn(TAB, active === id ? "text-ui-1" : "text-ui-4")}
         >

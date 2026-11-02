@@ -12,9 +12,9 @@ import { BackgroundSwatch, TokenSwatches } from "./theme-swatches";
 import { radiusPx, pxRadius, remText, type CardKind } from "./theme-view-model";
 
 /** The theme card's ⋯ menu (SPEC §4.3.1): 260 px, #131316 on #3f3f46. */
-const MENU = "w-[260px] rounded-[10px] border border-[#3f3f46] bg-[#131316] p-1 font-ui text-[12.5px] text-ui-2 shadow-[0_12px_32px_rgba(0,0,0,.6)] outline-none";
-const LINK = "rounded-sm text-[12px] text-[#93c5fd] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
-const PRIMARY = "h-7 rounded-md bg-[#3b82f6] px-2.5 text-[12px] font-medium text-white hover:bg-[#2563eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const MENU = "w-[260px] rounded-[10px] border border-[#3f3f46] bg-ui-panel p-1 font-ui text-[12.5px] text-ui-2 shadow-[0_12px_32px_rgba(0,0,0,.6)] outline-none";
+const LINK = "rounded-sm text-caption text-ui-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const PRIMARY = "h-7 rounded-md bg-ui-blue px-2.5 text-caption font-medium text-white hover:bg-[#2563eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 interface ThemeLookCardProps {
   /** The level's look as a theme, for the thumbnail. */
@@ -49,14 +49,14 @@ interface ThemeLookCardProps {
 function PartRow({ label, onOpen, children }: { label: string; onOpen?: () => void; children: ReactNode }) {
   const body = (
     <>
-      <span className="w-[78px] shrink-0 text-[12px] text-[#a1a1aa]">{label}</span>
-      <span className="flex min-w-0 flex-1 items-center gap-2 text-[12px] text-ui-1">{children}</span>
-      {onOpen && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#71717a]" aria-hidden />}
+      <span className="w-[78px] shrink-0 text-caption text-ui-soft">{label}</span>
+      <span className="flex min-w-0 flex-1 items-center gap-2 text-caption text-ui-1">{children}</span>
+      {onOpen && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-ui-hint" aria-hidden />}
     </>
   );
-  const row = "flex w-full items-center gap-2 border-t border-[#1a1a1d] px-3 py-[9px] text-left first:border-t-0";
+  const row = "flex w-full items-center gap-2 border-t border-ui-raised px-3 py-[9px] text-left first:border-t-0";
   return onOpen ? (
-    <button type="button" onClick={onOpen} className={cn(row, "hover:bg-[#111113] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent")}>
+    <button type="button" onClick={onOpen} className={cn(row, "hover:bg-ui-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent")}>
       {body}
     </button>
   ) : (
@@ -85,7 +85,7 @@ export function ThemeUpdateBar(p: ThemeUpdateBarProps) {
   return (
     <div
       className={cn(
-        "flex min-w-0 items-center gap-3 rounded-lg px-2.5 py-1 text-[12px]",
+        "flex min-w-0 items-center gap-3 rounded-lg px-2.5 py-1 text-caption",
         p.update ? "border border-[#1e3a8a] bg-[#0b1530] text-[#bfdbfe]" : ""
       )}
     >
@@ -141,7 +141,7 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
         <AppearancePreview preset={p.preview} className="h-[60px] w-24 shrink-0 rounded-md" />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           {renaming ? nameField(p.name, "Theme name", (name) => p.onRename?.(name)) : <h2 className="truncate text-[16px] font-semibold text-ui-1">{p.name}</h2>}
-          <p className="truncate text-[12px] text-[#a1a1aa]">{p.kindLine}</p>
+          <p className="truncate text-caption text-ui-soft">{p.kindLine}</p>
         </div>
         <Menu.Root>
           <Menu.Trigger
@@ -156,7 +156,7 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
               <Menu.Popup className={MENU}>
                 <Menu.Item className={cn(ITEM, "h-auto flex-col items-start gap-0.5 py-1.5")} disabled={!p.reset} onClick={p.reset?.onReset}>
                   <span>Reset to {p.reset ? p.name : "a theme"}</span>
-                  <span className="text-[11px] leading-snug text-[#71717a]">{p.reset?.text ?? "This look wasn't applied from a theme. Save it as one first."}</span>
+                  <span className="text-micro leading-snug text-ui-hint">{p.reset?.text ?? "This look wasn't applied from a theme. Save it as one first."}</span>
                 </Menu.Item>
                 <Menu.Separator className={SEPARATOR} />
                 <Menu.Item className={ITEM} disabled={!p.onRename} onClick={() => setRenaming(true)}>
@@ -175,8 +175,8 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
           </Menu.Portal>
         </Menu.Root>
       </div>
-      <div className="overflow-hidden rounded-[9px] border border-ui-strong">
-        <h3 className="border-b border-[#1a1a1d] px-3 py-1.5 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-[#71717a]">Made of</h3>
+      <div className="overflow-hidden rounded-ui-menu border border-ui-strong">
+        <h3 className="border-b border-ui-raised px-3 py-1.5 font-ui-mono text-[10px] uppercase tracking-[0.08em] text-ui-hint">Made of</h3>
         <PartRow label="Palette" onOpen={p.partsNote ? undefined : p.onPalette}>
           <TokenSwatches tokens={p.tokens} />
           <span className="truncate">{p.paletteName}</span>
@@ -195,23 +195,23 @@ export function ThemeLookCard(p: ThemeLookCardProps) {
             disabled={p.partsNote !== undefined}
             onChange={(e) => p.onRadius(pxRadius(Number(e.target.value)))}
             aria-label="Corners (px)"
-            className="min-w-0 flex-1 accent-[#3b82f6] disabled:opacity-50"
+            className="min-w-0 flex-1 accent-ui-blue disabled:opacity-50"
           />
-          <span className="w-16 shrink-0 whitespace-nowrap text-right font-ui-mono text-[11px] text-[#a1a1aa]">{remText(p.radius)}</span>
+          <span className="w-16 shrink-0 whitespace-nowrap text-right font-ui-mono text-micro text-ui-soft">{remText(p.radius)}</span>
         </PartRow>
         <PartRow label="Background" onOpen={p.partsNote ? undefined : p.onBackground}>
           <BackgroundSwatch bg={p.background} tokens={p.tokens} />
           <span className="truncate">{p.backgroundLabel}</span>
         </PartRow>
-        {p.partsNote && <p className="border-t border-[#1a1a1d] px-3 py-2 text-[11.5px] leading-snug text-[#71717a]">{p.partsNote}</p>}
+        {p.partsNote && <p className="border-t border-ui-raised px-3 py-2 text-[11.5px] leading-snug text-ui-hint">{p.partsNote}</p>}
       </div>
       <button
         type="button"
         onClick={p.onSwitch}
         data-nav-section="start"
-        className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-ui-strong text-[13px] font-medium text-ui-1 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+        className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-ui-strong text-body font-medium text-ui-1 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
       >
-        Switch theme <span className="font-normal text-[#71717a]">{p.counts}</span>
+        Switch theme <span className="font-normal text-ui-hint">{p.counts}</span>
       </button>
     </section>
   );

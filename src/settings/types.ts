@@ -108,6 +108,9 @@ export interface StopResult {
 
 export type UpdatePhase = "current" | "checking" | "available" | "downloading" | "ready" | "installing" | "error";
 
+/** The step an update error came from. */
+export type UpdateFailedDuring = "check" | "download" | "install";
+
 export interface UpdateState {
   state: UpdatePhase;
   currentVersion: string;
@@ -118,6 +121,8 @@ export interface UpdateState {
   downloaded?: number;
   total?: number;
   error?: string;
+  /** In the error state: the step that failed. */
+  failedDuring?: UpdateFailedDuring;
   /** On Stable: a beta newer than this one and than Stable's offer. */
   newerBeta?: string;
 }
