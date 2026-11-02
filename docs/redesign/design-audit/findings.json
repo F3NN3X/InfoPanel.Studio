@@ -1636,7 +1636,7 @@
     "evidence": "Verified in audit (shots).",
     "checked": false,
     "exportRisk": false,
-    "status": "partial"
+    "status": "fixed"
   },
   {
     "id": "FND-073",
@@ -1678,7 +1678,7 @@
     "evidence": "Inferred.",
     "checked": false,
     "exportRisk": false,
-    "status": "partial"
+    "status": "fixed"
   },
   {
     "id": "FND-075",

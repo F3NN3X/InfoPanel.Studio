@@ -1,6 +1,6 @@
 import type { ModuleSettings } from "@/modules/types";
 import { entryText } from "./entries";
-import { Widget, shell, num, Chip, Empty, Metric, STATE, type ShellProps } from "./kit";
+import { Widget, shell, num, roomy, Chip, Empty, Metric, STATE, type ShellProps } from "./kit";
 import { meta, P } from "./meta/Notifications";
 
 export { meta };
@@ -54,7 +54,7 @@ export default function Notifications(p: NotificationsProps) {
       }
       studio={{ label: "Notifications", value: hasCount ? Math.round(count) : "–", sub: last ?? status ?? "", rows: lines.map((l) => ({ n: l.message, v: l.time })) }}
     >
-      {({ size, h }) => {
+      {({ size, w, h }) => {
         if (last === undefined && !hasCount && !status) return <Empty icon="notifications" label="No notifications" />;
         if (size === "xs")
           return (
@@ -64,19 +64,35 @@ export default function Notifications(p: NotificationsProps) {
             </div>
           );
         // the history shows the lines that fit (no scroll container); before the first measurement (h = 0) all of them
-        const rowH = size === "lg" ? 26 : 20;
-        const fit = h > 0 ? Math.max(1, Math.floor((h - 72) / rowH)) : lines.length;
+        // At 4x4 few lines get roomy rows and many pack tight, under a row of counts by type.
+        const room = roomy(w, h);
+        const rowH = room ? Math.min(30, Math.max(20, Math.floor((h - 120) / Math.max(lines.length, 5)))) : size === "lg" ? 26 : 20;
+        const fit = h > 0 ? Math.max(1, Math.floor((h - (room ? 120 : 72)) / rowH)) : lines.length;
+        const counts = room && showHistory ? [...lines.reduce((m, l) => m.set(l.type, (m.get(l.type) ?? 0) + 1), new Map<string, number>())] : [];
         const text = size === "lg" ? "text-sm" : "text-xs";
         return (
           <div className="flex h-full min-h-0 flex-col">
             {last && <div title={last} className={`font-medium text-[color:var(--w-fg)] ${size === "lg" ? "line-clamp-2 break-words text-base" : "truncate text-sm"}`}>{last}</div>}
             {status && <div className="mt-1 truncate text-xs text-[color:var(--w-faint)]">{status}</div>}
+            {counts.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {counts.map(([type, n]) => {
+                  const c = typeColor(type);
+                  return (
+                    <Chip key={type} className={c ? "" : "text-[color:var(--w-muted)]"}>
+                      <span className="tabular-nums" style={c ? { color: c } : undefined}>{n}</span>
+                      {type || "Other"}
+                    </Chip>
+                  );
+                })}
+              </div>
+            )}
             {showHistory && (
               <div className="mt-3 min-h-0 flex-1 space-y-1 overflow-hidden border-t border-[color:var(--w-track)] pt-3">
                 {lines.slice(0, fit).map((l, i) => {
                   const c = typeColor(l.type);
                   return (
-                    <div key={i} className={`flex items-baseline gap-2 ${text}`}>
+                    <div key={i} className={`flex ${room ? "items-center" : "items-baseline"} gap-2 ${text}`} style={room ? { minHeight: rowH - 4 } : undefined}>
                       <span className="shrink-0 font-mono tabular-nums text-[color:var(--w-muted)]">{l.time}</span>
                       <span
                         className="shrink-0 rounded px-1.5 py-px text-micro tracking-wider text-[color:var(--w-muted)]"

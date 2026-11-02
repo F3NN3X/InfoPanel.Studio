@@ -1,5 +1,5 @@
 import { useContext, useRef, useState } from "react";
-import { Widget, shell, get, num, fmt, pretty, sensorLabel, fitRows, IpTagCtx, Num, type ShellProps } from "./kit";
+import { Widget, shell, get, num, fmt, pretty, sensorLabel, fitRows, rowsFor, roomy, IpTagCtx, Num, type ShellProps } from "./kit";
 import { useOnData } from "./core/history";
 import { average, durationText, observe, type SessionStat } from "./core/session-stats";
 import { roleData, unitOf } from "./role-data";
@@ -36,6 +36,7 @@ export default function SessionStats(p: SessionStatsProps) {
       key,
       label: sensorLabel(key, p.names, pretty(key.split(".").pop() ?? key)),
       unit: unitOf(raw),
+      v: num(raw),
       stat: stats.current.get(`${key}@${above}`),
     };
   });
@@ -73,6 +74,7 @@ export default function SessionStats(p: SessionStatsProps) {
     >
       {({ w, h }) => {
         if (!rows.length) return <div className="grid h-full place-content-center text-xs text-[color:var(--w-faint)]">Pick sensors</div>;
+        if (roomy(w, h)) return <RangeBlocks rows={rows} above={above} h={h} />;
         const shown = cols.filter((c) => w >= c.show);
         const head = h >= 120;
         const rowH = 30;
@@ -105,5 +107,58 @@ export default function SessionStats(p: SessionStatsProps) {
         );
       }}
     </Widget>
+  );
+}
+
+/** Where `v` sits on a range bar, 0-100: percent sensors on their own 0-100 scale, the rest on 0 to a tenth over the session's peak. */
+const rangePct = (v: number, unit: string, peak: number): number => Math.min(100, Math.max(0, (v / (unit === "%" ? 100 : peak * 1.1 || 1)) * 100));
+
+/**
+ * The 4x4 box: a block per sensor (56 to 72px, top-aligned): its label and current reading, a bar with the session's
+ * min-to-max span, the average and the level as ticks, and the numbers and the time above the level under it.
+ */
+function RangeBlocks({ rows, above, h }: { rows: { key: string; label: string; unit: string; v: number; stat: SessionStat | undefined }[]; above: number; h: number }) {
+  const { n } = rowsFor(h, rows.length, 56, 72, 6);
+  return (
+    <div className="flex h-full min-w-0 flex-col gap-3">
+      {rows.slice(0, n).map((r) => {
+        const s = r.stat;
+        const dec = (v: number) => fmt(v, decimals(v));
+        const lo = s ? rangePct(s.min, r.unit, s.max) : 0;
+        const hi = s ? rangePct(s.max, r.unit, s.max) : 0;
+        return (
+          <div key={r.key} className="flex min-w-0 flex-col gap-1.5">
+            <div className="flex min-w-0 items-baseline justify-between gap-2">
+              <span className="truncate text-[13px] text-[color:var(--w-muted)]" title={r.label}>{r.label}</span>
+              <span className="shrink-0 whitespace-nowrap text-[15px]">
+                <Num weight={600}>{dec(r.v)}</Num>
+                <span className="ml-0.5 text-micro text-[color:var(--w-faint)]">{r.unit} now</span>
+              </span>
+            </div>
+            <div className="relative h-2 rounded-full bg-[color:var(--w-track)]" aria-hidden>
+              {s && (
+                <>
+                  <div className="absolute inset-y-0 rounded-full" style={{ left: `${lo}%`, width: `${Math.max(1.5, hi - lo)}%`, background: "color-mix(in oklab, var(--accent) 55%, transparent)" }} />
+                  <i className="absolute -inset-y-[3px] w-0.5 -translate-x-1/2 rounded-full bg-[color:var(--w-fg)]" style={{ left: `${rangePct(average(s), r.unit, s.max)}%` }} />
+                  {r.unit === "%" || above <= s.max * 1.1 ? <i className="absolute -inset-y-px w-px -translate-x-1/2 bg-[color:var(--w-faint)]" style={{ left: `${rangePct(above, r.unit, s.max)}%` }} /> : null}
+                </>
+              )}
+            </div>
+            <div className="flex justify-between gap-2 whitespace-nowrap text-micro text-[color:var(--w-faint)]">
+              {s ? (
+                <>
+                  <span>min {dec(s.min)}</span>
+                  <span>avg {dec(average(s))}</span>
+                  <span>max {dec(s.max)}</span>
+                  <span>above {fmt(above, 0)}: {durationText(s.aboveMs)}</span>
+                </>
+              ) : (
+                <span>waiting for a reading</span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

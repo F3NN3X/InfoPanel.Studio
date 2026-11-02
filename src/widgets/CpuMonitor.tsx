@@ -1,7 +1,7 @@
 import { readCpuFlat, readSystemFlat } from "@/lib/system-metrics";
 import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { fitRows, StatGrid, Widget, shell, get, num, fmt, pretty, Metric, Ring, Spark, Stat, useHistory, tone, Empty, heat, hw, Num, scaleY, type ShellProps } from "./kit";
+import { fitRows, roomy, StatGrid, Widget, shell, get, num, fmt, pretty, Metric, Ring, Spark, Stat, useHistory, tone, Empty, heat, hw, Num, scaleY, type ShellProps } from "./kit";
 import { meta } from "./meta/CpuMonitor";
 
 export { meta };
@@ -77,7 +77,7 @@ export default function CpuMonitor(p: CpuMonitorProps) {
       compact={{ label: "CPU", value: total, unit: "%", sub: Number.isFinite(temp) && temp > 0 ? `${deg(temp, 0)} · ${fmt(power, 0)} W` : `${fmt(power, 0)} W`, hist, min: 0, max: 100, t: tone(total, warn, crit) }}
       right={Number.isFinite(temp) && temp > 0 && <span className="tabular-nums text-[color:var(--w-fg)]">{deg(temp, 0)}</span>}
     >
-      {({ size, h }) =>
+      {({ size, w, h }) =>
         size === "xs" ? (
           <div className="flex h-full items-center justify-between gap-2">
             <Metric ipKey={totalKey} label={h >= 72 ? "CPU" : undefined} value={total} unit="%" scale={h >= 100 ? "lg" : h >= 60 ? "md" : "sm"} t={tone(total, warn, crit)} />
@@ -109,7 +109,7 @@ export default function CpuMonitor(p: CpuMonitorProps) {
                 <Stat label="Avg clock" value={`${fmt(clock / 1000, 2)} GHz`} />
               </div>
             </div>
-            {size === "md" && <Spark ipKey={totalKey} values={hist} min={0} max={100} className="min-h-0 flex-1" />}
+            {size === "md" && <Spark ipKey={totalKey} values={hist} min={0} max={100} marks={roomy(w, h)} format={(v) => `${fmt(v, 0)} %`} className="min-h-0 flex-1" />}
             {cores.length > 0 && view === "heatmap" && (
               // rows share the height left over (20px at most below large), so a short box squeezes them instead of overflowing
               <div className="grid min-h-0 flex-1 gap-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridAutoRows: "minmax(0,1fr)", maxHeight: size === "lg" ? undefined : Math.ceil(cores.length / cols) * 24 - 4 }}>

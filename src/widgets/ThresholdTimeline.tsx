@@ -1,6 +1,6 @@
-import { Widget, shell, get, num, fmt, pretty, sensorLabel, fitRows, tone, TONES, STATE, Num, type ShellProps, type Tone } from "./kit";
-import { useSeries, type SeriesLimits } from "./core/history";
-import { laneColumns, laneRuns } from "./core/lanes";
+import { Widget, shell, get, num, fmt, pretty, sensorLabel, fitRows, rowsFor, roomy, tone, TONES, STATE, Num, type ShellProps, type Tone } from "./kit";
+import { useSeries, type SeriesLimits, type SeriesStore } from "./core/history";
+import { laneColumns, laneRuns, laneStats, type LaneRun } from "./core/lanes";
 import { roleData, unitOf } from "./role-data";
 import { meta, MAX_LANES } from "./meta/ThresholdTimeline";
 
@@ -57,6 +57,7 @@ export default function ThresholdTimeline(p: ThresholdTimelineProps) {
     >
       {({ w, h }) => {
         if (!lanes.length) return <div className="grid h-full place-content-center text-xs text-[color:var(--w-faint)]">Pick sensors</div>;
+        if (roomy(w, h)) return <RoomyLanes lanes={lanes} store={store} w={w} h={h} warn={warn} crit={crit} minutes={minutes} span={span} />;
         const axis = h >= 110;
         // Narrow zones put each label over its lane; wide ones set it beside.
         const stacked = w < 260;
@@ -96,5 +97,62 @@ export default function ThresholdTimeline(p: ThresholdTimelineProps) {
         );
       }}
     </Widget>
+  );
+}
+
+const AXIS_H = 14;
+const LEGEND_H = 16;
+
+/**
+ * The 4x4 box: lanes top-aligned and as tall as the box allows (36 to 64px), each with a line under its strip that gives
+ * the peak and the share of the window above `warn`, then a ticked axis and the colour legend.
+ */
+function RoomyLanes({ lanes, store, w, h, warn, crit, minutes, span }: { lanes: { key: string; label: string; v: number; unit: string; runs: LaneRun[] }[]; store: SeriesStore; w: number; h: number; warn: number; crit: number; minutes: number; span: string }) {
+  const { n, rowH } = rowsFor(h - AXIS_H - LEGEND_H - 16, lanes.length, 36, 64, 8);
+  const labelW = Math.min(110, w * 0.26);
+  const pad = { paddingLeft: labelW + 8, paddingRight: "calc(4.5em + 8px)" };
+  return (
+    <div className="flex h-full min-w-0 flex-col gap-2">
+      <div className="flex flex-col gap-2">
+        {lanes.slice(0, n).map((l) => {
+          const st = laneStats(store.read(l.key), warn);
+          return (
+            <div key={l.key} className="flex min-w-0 items-start gap-2" style={{ height: rowH }}>
+              <span className="truncate pt-0.5 text-[12px] text-[color:var(--w-muted)]" style={{ width: labelW }} title={l.label}>{l.label}</span>
+              <div className="flex h-full min-w-0 flex-1 flex-col gap-1">
+                <svg viewBox={`0 0 ${COLUMNS} 1`} preserveAspectRatio="none" shapeRendering="crispEdges" className="min-h-0 w-full flex-1 rounded-[3px] bg-[color:var(--w-track)]" aria-hidden>
+                  {l.runs.map((r) => (r.tone ? <rect key={r.from} x={r.from} y={0} width={r.to - r.from} height={1} fill={LANE_COLOR[r.tone]} /> : null))}
+                </svg>
+                <span className="truncate text-micro leading-none text-[color:var(--w-faint)]">
+                  {Number.isFinite(st.peak) ? `peak ${fmt(st.peak, Math.abs(st.peak) >= 100 ? 0 : 1)} ${l.unit} · above ${fmt(warn, 0)}: ${fmt(st.pctAbove, 0)} %` : "no readings yet"}
+                </span>
+              </div>
+              <span className="w-[4.5em] shrink-0 whitespace-nowrap pt-0.5 text-right text-[13px]">
+                <Num weight={600}>{fmt(l.v, Math.abs(l.v) >= 100 ? 0 : 1)}</Num>
+                <span className="ml-0.5 text-micro text-[color:var(--w-faint)]">{l.unit}</span>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="relative shrink-0" style={{ height: AXIS_H, ...pad }}>
+        <div className="relative h-full">
+          {[0, 25, 50, 75, 100].map((x) => (
+            <i key={x} className="absolute top-0 h-1 w-px bg-[color:var(--w-faint)]" style={{ left: `${x}%` }} />
+          ))}
+          <span className="absolute left-0 top-1.5 text-micro leading-none text-[color:var(--w-faint)]">{span}</span>
+          <span className="absolute left-1/2 top-1.5 -translate-x-1/2 text-micro leading-none text-[color:var(--w-faint)]">−{fmt(minutes / 2, 1)} min</span>
+          <span className="absolute right-0 top-1.5 text-micro leading-none text-[color:var(--w-faint)]">now</span>
+        </div>
+      </div>
+      <div className="mt-auto flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-micro text-[color:var(--w-faint)]" style={{ minHeight: LEGEND_H }}>
+        {([["ok", `below ${fmt(warn, 0)}`], ["warn", `${fmt(warn, 0)} to ${fmt(crit, 0)}`], ["crit", `${fmt(crit, 0)} and up`]] as const).map(([t, text]) => (
+          <span key={t} className="flex items-center gap-1.5">
+            <i className="h-2 w-2 rounded-[2px]" style={{ background: LANE_COLOR[t] }} />
+            {text}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }

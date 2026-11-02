@@ -5,18 +5,18 @@ import { labelStyle } from "@/components/widget-style";
 import { clamp, fmt } from "./data";
 import { fitRows } from "./layout";
 import { mix } from "./tokens";
-import { useSkin, TONES } from "./theme";
+import { useSkin, TONES, numGlowStyle } from "./theme";
 import { Icon, Bar, Ring, Spark, Img } from "./primitives";
 import { scaleX, scaleY, slideY } from "./motion";
 import type { Compact, Shape, Studio } from "./types";
 
-const NUM_GLOW: CSSProperties = { color: "color-mix(in oklab, var(--accent) 55%, var(--w-fg))", textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" };
+const NUM_TINT: CSSProperties = { color: "color-mix(in oklab, var(--accent) 55%, var(--w-fg))" };
 /** A reading that has no value yet ("–" from `fmt`, or nothing): drawn quiet, not as a bright full-weight dash. */
 const isNoValue = (v: unknown): boolean => v == null || v === "" || v === "–" || v === "—";
 /** A text value with no spaces (an IP address) cannot wrap: shrink it to the width instead of cutting it off. */
 const tokenFit = (v: unknown, avail: number, base: number): CSSProperties | undefined =>
   typeof v === "string" && v.length > 0 && !/\s/.test(v) ? { fontSize: Math.max(11, Math.min(base, avail / (v.length * 0.6))) } : undefined;
-const NO_VALUE: CSSProperties = { color: "var(--w-faint)", fontWeight: 400, textShadow: "none" };
+const NO_VALUE: CSSProperties = { color: "var(--w-faint)", fontWeight: 400, textShadow: "none", WebkitTextStroke: "0" };
 
 /* Compact views — rendered automatically for tile / strip / column shapes when a widget passes `compact`.
    compact = { label, value, unit, d, sub, icon, t, pct, hist, img, kind: 'spark' | 'bar' | 'ring' | 'text' } */
@@ -31,7 +31,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
   const textLen = String(val ?? "–").length + (c.unit ? String(c.unit).length * 0.45 : 0);
   const fit = (base: number, avail: number) => ({ fontSize: Math.round(Math.max(13, Math.min(base, avail / (Math.max(2.5, textLen) * 0.62 * (sk.numWide ?? 1))))) });
   const value = (cls: string, base?: number, avail = 0) => (
-    <span {...c.ip} className={`${cls} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow ? NUM_GLOW : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null), ...(none ? NO_VALUE : null) }}>
+    <span {...c.ip} className={`${cls} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow ? { ...NUM_TINT, ...numGlowStyle(sk) } : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null), ...(none ? NO_VALUE : null) }}>
       {val ?? "–"}
       {c.unit && !none && <span className="ml-0.5 text-[0.45em] font-medium text-[color:var(--w-muted)]">{c.unit}</span>}
     </span>
@@ -139,7 +139,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
   const val = typeof c.value === "number" ? fmt(c.value, c.d ?? 0) : c.value;
   // The skin's UI face, else the shell's (the look's Font or the page font): no fixed mono, so the summary follows the styling.
   const mono = sk.font ? { fontFamily: sk.font } : undefined;
-  const glow = sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null;
+  const glow = numGlowStyle(sk);
   const toneC = c.t && c.t !== "ok" ? TONES[c.t] : undefined;
   const label = (className = "") => (c.label || c.right || c.live != null) && (
     <div className={`flex min-w-0 shrink-0 items-center gap-1.5 text-micro uppercase tracking-[0.06em] text-[color:var(--w-muted)] ${className}`} style={{ ...mono, ...labelStyle() }}>

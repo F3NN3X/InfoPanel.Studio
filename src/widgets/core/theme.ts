@@ -101,11 +101,27 @@ export const METER_STYLES = ["bar", "pill", "segments", "blocks", "hair", "wave"
 export const SkinCtx = createContext<SkinContext>({ skin: "default", graph: "area", meter: "bar", stroke: 1 });
 export const useSkin = (): SkinContext => useContext(SkinCtx);
 // Skin-aware numeral style for widgets that draw big numbers directly
+/** A length that is negative below 18px and huge from there: clamped, it switches a stroke or a blur on at that font size without knowing it. */
+const OVER_18PX = "calc((1em - 17.5px) * 1000)";
+/**
+ * The glow of a glowing skin's numerals (null for the others); `extra` adds a wider outer layer. A skin with `numStroke` also
+ * outlines them and glows harder, but only from 18px up: the outline would clog the counters of a smaller numeral.
+ */
+export const numGlowStyle = (sk: Partial<SkinTokens>, extra?: string): CSSProperties | null => {
+  if (!sk.numGlow) return null;
+  const outer = extra ? `, ${extra}` : "";
+  if (!sk.numStroke) return { textShadow: `0 0 4px var(--accent), 0 0 14px var(--accent)${outer}` };
+  return {
+    WebkitTextStroke: `clamp(0px, ${OVER_18PX}, ${sk.numStroke}) currentColor`,
+    paintOrder: "stroke fill",
+    textShadow: `0 0 clamp(0px, ${OVER_18PX}, 2px) currentColor, 0 0 clamp(4px, calc(4px + ${OVER_18PX}), 6px) var(--accent), 0 0 clamp(14px, calc(14px + ${OVER_18PX}), 18px) var(--accent)${outer}`,
+  };
+};
 export const numFont = (sk: Partial<SkinTokens>, weight = 700): CSSProperties => ({
   fontFamily: sk.num,
   fontWeight: sk.numWeight ?? weight,
   fontStretch: sk.numStretch,
-  ...(sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null),
+  ...numGlowStyle(sk),
 });
 // Semantic state colours (stay meaningful under every skin)
 export const STATE = { ok: "#3CC97F", warn: "#EDB232", crit: "#F2665E", none: "rgba(255,255,255,0.07)" } as const;

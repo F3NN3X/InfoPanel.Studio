@@ -81,6 +81,9 @@ export function useBox(forced: Tier | "auto" | undefined, zoom: number | ((w: nu
   return [ref, box, z];
 }
 
+/** The 4x4 box: roomy enough that a widget adds its second row, summary or trend (a 2x2 and smaller keep their layout). */
+export const roomy = (w: number, h: number): boolean => w >= 360 && h >= 340;
+
 export const pickBy = <T,>(size: Tier, map: Partial<Record<Tier, T>> & { md: T }): T => map[size] ?? map.md;
 
 /**
@@ -96,6 +99,12 @@ export function easeHistory(hist: number[], value: number, len = 48, ease = 0.45
 
 /** How many rows of height `rowH` (separated by `gap`) fit in `h`; always at least one. */
 export const fitRows = (h: number, rowH: number, gap = 0): number => Math.max(1, Math.floor((h + gap) / (rowH + gap)));
+
+/** How many of `count` rows fit `h` at `min` tall (always one) and how tall each is: they grow from `min` up to `max` before a gap does. */
+export function rowsFor(h: number, count: number, min: number, max: number, gap = 0): { n: number; rowH: number } {
+  const n = Math.max(1, Math.min(count, fitRows(h, min, gap)));
+  return { n, rowH: Math.min(max, Math.max(min, Math.floor((h + gap) / n - gap))) };
+}
 
 /**
  * The grid of `n` items (each `aspect` wide per 1 tall, `gap` apart) in w×h that makes them biggest:

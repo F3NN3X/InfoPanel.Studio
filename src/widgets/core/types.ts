@@ -101,6 +101,8 @@ export interface SkinTokens {
   numStretch: string;
   numUp: boolean;
   numGlow: boolean;
+  /** Numeral outline width (an em length); with `numGlow` it also strengthens the glow. Applied only from 18px up, where the stroke does not clog the counters. */
+  numStroke: string;
   /** Numeral advance relative to a normal sans (1); wide display faces set more so fitted numbers still fit. */
   numWide: number;
   glow: boolean;

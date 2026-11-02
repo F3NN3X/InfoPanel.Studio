@@ -1,4 +1,4 @@
-import { Widget, shell, get, num, fmt, rows, Num, LegendRow, useIpTag, type ShellProps } from "./kit";
+import { Widget, shell, get, num, fmt, rows, roomy, Num, LegendRow, useIpTag, type ShellProps } from "./kit";
 import { meta, PALETTE } from "./meta/PlaytimeShare";
 
 export { meta, PALETTE };
@@ -26,6 +26,8 @@ export default function PlaytimeShare(p: PlaytimeShareProps) {
     >
       {({ w, h }) => {
         // what the figures, the share bar and the lifetime line leave of the height, in 20px rows 6px apart
+        const room = roomy(w, h);
+        const sessions = num(Lb("recent-sessions"));
         const footer = h > 170,
           slim = h > 0 && h < 110;
         const rowsN = slim || (w > 0 && w < 150) ? 0 : Math.max(0, Math.floor((h - 99 - (footer ? 28 : 0) + 6) / 28));
@@ -53,11 +55,22 @@ export default function PlaytimeShare(p: PlaytimeShareProps) {
                 </span>
               </div>
               )}
+              {room && sessions > 0 && (
+              <div className="flex flex-col gap-1">
+                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-muted)]">Avg session</span>
+                <span className="text-[28px]">
+                  <Num className="leading-none">{fmt(num(Lb("recent-playtime")) / sessions, 1)}</Num>
+                  <span className="ml-1 text-sm text-[color:var(--w-muted)]">h</span>
+                </span>
+              </div>
+              )}
             </div>
             )}
-            <div className="flex h-3 w-full gap-[2px] overflow-hidden rounded-md">
+            <div className={`flex ${room ? "h-6" : "h-3"} w-full gap-[2px] overflow-hidden rounded-md`}>
               {games.map((g, i) => (
-                <span key={g.name} title={`${g.name} · ${fmt(g.two, 1)} h`} className="h-full first:rounded-l-md last:rounded-r-md" style={{ flexGrow: g.two, background: pal[i % pal.length] }} />
+                <span key={g.name} title={`${g.name} · ${fmt(g.two, 1)} h`} className={room ? "flex h-full items-center justify-center overflow-hidden text-micro font-semibold leading-none first:rounded-l-md last:rounded-r-md" : "h-full first:rounded-l-md last:rounded-r-md"} style={{ flexGrow: g.two, background: pal[i % pal.length], ...(room ? { color: `oklch(from ${pal[i % pal.length]} clamp(0, (0.7 - l) * 1000, 1) 0 0)` } : null) }}>
+                  {room && (g.two / sum) * 100 >= 14 && `${fmt((g.two / sum) * 100, 0)} %`}
+                </span>
               ))}
             </div>
             {rowsN > 0 && (
@@ -74,6 +87,7 @@ export default function PlaytimeShare(p: PlaytimeShareProps) {
                             {fmt(g.two, 1)}
                             {w >= 160 && " h"}
                           </b>
+                          {room && ` · ${fmt((g.two / sum) * 100, 0)} %`}
                           {w > 300 && ` · ${fmt(g.total, 1)} h total`}
                         </span>
                       }
