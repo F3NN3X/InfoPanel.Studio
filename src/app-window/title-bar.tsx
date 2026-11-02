@@ -25,7 +25,7 @@ export function TitleBar({ title }: { title: string }) {
     return () => void off.then((u) => u()).catch(() => {});
   }, []);
   const win = () => getCurrentWindow();
-  const caption = "grid h-full w-[46px] place-items-center border-0 bg-transparent text-s-muted transition-colors hover:bg-s-nav-hover hover:text-s-t1";
+  const caption = "grid h-full w-[46px] place-items-center border-0 bg-transparent text-s-muted transition-colors focus-visible:-outline-offset-2! hover:bg-s-nav-hover hover:text-s-t1";
   return (
     <div data-tauri-drag-region className="flex h-9 shrink-0 select-none items-center gap-2.5 border-b border-s-side-line bg-s-side pl-3">
       <div data-tauri-drag-region className="grid h-[18px] w-[18px] place-items-center">

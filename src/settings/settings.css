@@ -32,8 +32,11 @@ button {
   font-family: inherit;
 }
 
-button {
-  white-space: nowrap;
+/* in the base layer, so a button's own whitespace-* utility wins (an unlayered rule beat them all) */
+@layer base {
+  button {
+    white-space: nowrap;
+  }
 }
 
 a {

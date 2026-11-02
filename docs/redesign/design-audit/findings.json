@@ -2075,5 +2075,205 @@
     "checked": false,
     "exportRisk": false,
     "status": "fixed"
+  },
+  {
+    "id": "FND-094",
+    "sev": "HIGH",
+    "batch": 7,
+    "domain": "accessibility",
+    "surface": "Studio, Settings: switches",
+    "locations": [
+      "src/components/ui/toggle.tsx",
+      "src/settings/ui.tsx (Switch)",
+      "src/components/infopanel/export-dialog.tsx (Toggle)",
+      "src/settings/sections/logs.tsx (Follow)",
+      "src/components/studio/first-run/steps.tsx (switch)"
+    ],
+    "issue": "In forced colors (Windows contrast themes) the switch track background is dropped and nothing draws on/off; the knob is white on the page colour.",
+    "fix": "forced-colors: classes: ButtonText border, Canvas track, ButtonText knob; on = Highlight track and HighlightText knob.",
+    "sources": [
+      "walk"
+    ],
+    "evidence": "Rendered browser walk (chromium, forced-colors/640/1440).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "fixed"
+  },
+  {
+    "id": "FND-095",
+    "sev": "HIGH",
+    "batch": 7,
+    "domain": "accessibility",
+    "surface": "Segmented controls, tabs, Settings nav, Help sidebar",
+    "locations": [
+      "src/components/ui/segmented.tsx",
+      "src/settings/ui.tsx (Segmented)",
+      "src/settings/nav.tsx",
+      "src/help/ui/sidebar.tsx",
+      "src/index.css (forced-colors block, [role=tab])"
+    ],
+    "issue": "In forced colors the selected segment, tab and active page share the unselected look (the tint and underline are dropped).",
+    "fix": "Selected state gets Highlight/HighlightText with forced-color-adjust none (classes on the radios and nav; one CSS rule for role=tab).",
+    "sources": [
+      "walk"
+    ],
+    "evidence": "Rendered browser walk (chromium, forced-colors/640/1440).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "fixed"
+  },
+  {
+    "id": "FND-096",
+    "sev": "MEDIUM",
+    "batch": 7,
+    "domain": "layout-typography",
+    "surface": "Settings > Studio",
+    "locations": [
+      "src/components/studio/setting-rows.tsx (SELECT, INLINE_LABEL)"
+    ],
+    "issue": "The Design preview data select clips its two-line value; the Widget list row stacks its segmented control full width, unlike its siblings (Comfortable is 11 characters, over the nine-character inline limit).",
+    "fix": "Select: max 170 wide, no wrapping; inline limit 11 characters.",
+    "sources": [
+      "walk"
+    ],
+    "evidence": "Rendered browser walk (chromium, forced-colors/640/1440).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "fixed"
+  },
+  {
+    "id": "FND-097",
+    "sev": "LOW",
+    "batch": 7,
+    "domain": "layout-typography",
+    "surface": "Help search results",
+    "locations": [
+      "src/help/ui/results-view.tsx"
+    ],
+    "issue": "Snippet text overflows the card: the global unlayered `button { white-space: nowrap }` beats the card's whitespace-normal utility.",
+    "fix": "Make the card's whitespace-normal important.",
+    "sources": [
+      "walk"
+    ],
+    "evidence": "Rendered browser walk (chromium, forced-colors/640/1440).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "fixed"
+  },
+  {
+    "id": "FND-098",
+    "sev": "LOW",
+    "batch": 7,
+    "domain": "layout-typography",
+    "surface": "Settings and Help sidebars at 640",
+    "locations": [
+      "src/app-window/search-box.tsx",
+      "src/app-window/kbd.tsx"
+    ],
+    "issue": "In the icon rail a sliver of the search field (its Ctrl K hint) shows beside the icon.",
+    "fix": "Hide the input, clear button and hint in the rail and centre the icon.",
+    "sources": [
+      "walk"
+    ],
+    "evidence": "Rendered browser walk (chromium, forced-colors/640/1440).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "fixed"
+  },
+  {
+    "id": "FND-099",
+    "sev": "LOW",
+    "batch": 7,
+    "domain": "accessibility",
+    "surface": "Title bar",
+    "locations": [
+      "src/app-window/title-bar.tsx"
+    ],
+    "issue": "The Close button's focus ring sits outside the 36px bar and is clipped to a thin edge.",
+    "fix": "Draw the ring inside the button (negative offset).",
+    "sources": [
+      "walk"
+    ],
+    "evidence": "Rendered browser walk (chromium, forced-colors/640/1440).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "fixed"
+  },
+  {
+    "id": "FND-100",
+    "sev": "LOW",
+    "batch": 7,
+    "domain": "ui-motion",
+    "surface": "Studio Add panel chips",
+    "locations": [
+      "src/components/studio/add-panel.tsx:105-143"
+    ],
+    "issue": "Chips row is cut at the right edge ('Ma').",
+    "fix": "None: the row already scrolls sideways with an edge fade mask (FADE_PX); the cut chip is the scroll cue.",
+    "sources": [
+      "walk"
+    ],
+    "evidence": "Rendered browser walk (chromium, forced-colors/640/1440).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "no_change_needed"
+  },
+  {
+    "id": "FND-101",
+    "sev": "LOW",
+    "batch": 7,
+    "domain": "layout-typography",
+    "surface": "Studio quick bar at 640",
+    "locations": [
+      "src/components/studio/quick-bar.tsx:259"
+    ],
+    "issue": "'View' reads 'Vie' behind the eye icon.",
+    "fix": "None: the pinned-settings strip scrolls sideways with an 8px edge mask; the clip is the scroll cue.",
+    "sources": [
+      "walk"
+    ],
+    "evidence": "Rendered browser walk (chromium, forced-colors/640/1440).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "no_change_needed"
+  },
+  {
+    "id": "FND-102",
+    "sev": "LOW",
+    "batch": 7,
+    "domain": "layout-typography",
+    "surface": "Settings pages",
+    "locations": [
+      "src/components/studio/settings-studio.tsx vs src/settings/sections/*"
+    ],
+    "issue": "Studio and Dashboard pages use flat inspector rows; General and Updates use cards.",
+    "fix": "None: Studio and Dashboard reuse the studio's inspector row components, so unifying is a rewrite, not a small change.",
+    "sources": [
+      "walk"
+    ],
+    "evidence": "Rendered browser walk (chromium, forced-colors/640/1440).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "no_change_needed"
+  },
+  {
+    "id": "FND-103",
+    "sev": "LOW",
+    "batch": 7,
+    "domain": "layout-typography",
+    "surface": "Kiosk status bar",
+    "locations": [
+      "src/widgets status-bar"
+    ],
+    "issue": "Status bar values ellipsised on the 1920x550 fixture shown at 1440.",
+    "fix": "None: the widget's designed behaviour when its cell is narrower than the text.",
+    "sources": [
+      "walk"
+    ],
+    "evidence": "Rendered browser walk (chromium, forced-colors/640/1440).",
+    "checked": true,
+    "exportRisk": false,
+    "status": "no_change_needed"
   }
 ]
+

@@ -45,7 +45,7 @@ export function Sidebar({ content, inputRef, current, query, version, onQuery, o
         <SearchBox inputRef={inputRef} value={query} label="Search help" onChange={onQuery} onKeyDown={onKeyDown} />
       </div>
       <nav aria-label="Help topics" className="flex min-h-0 flex-1 flex-col gap-px overflow-auto px-2 pb-3 pt-1">
-        <button type="button" aria-current={home ? "page" : undefined} onClick={onHome} title="Help home" className={cn(ITEM, "h-(--ui-h-field)", home ? "bg-s-nav-on text-s-t1" : "bg-transparent text-[#a8a8b2] hover:bg-s-nav-hover")}>
+        <button type="button" aria-current={home ? "page" : undefined} onClick={onHome} title="Help home" className={cn(ITEM, "h-(--ui-h-field)", home ? "bg-s-nav-on text-s-t1 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]" : "bg-transparent text-[#a8a8b2] hover:bg-s-nav-hover")}>
           <House className={cn("h-[18px] w-[18px]", home ? "text-s-accent-text" : "text-s-dim")} />
           <span className="flex-1 rail:sr-only">Help home</span>
         </button>
@@ -56,7 +56,7 @@ export function Sidebar({ content, inputRef, current, query, version, onQuery, o
               const on = current === a.id && !searching;
               const Icon = iconFor(a.icon);
               return (
-                <button key={a.id} type="button" aria-current={on ? "page" : undefined} onClick={() => onOpen(a.id)} title={a.title} className={cn(ITEM, "min-h-8", on ? "bg-s-nav-on text-s-t1" : "bg-transparent text-[#a8a8b2] hover:bg-s-nav-hover")}>
+                <button key={a.id} type="button" aria-current={on ? "page" : undefined} onClick={() => onOpen(a.id)} title={a.title} className={cn(ITEM, "min-h-8", on ? "bg-s-nav-on text-s-t1 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]" : "bg-transparent text-[#a8a8b2] hover:bg-s-nav-hover")}>
                   <Icon className={cn("h-[17px] w-[17px] flex-none", on ? "text-s-accent-text" : "text-s-dim")} />
                   <span className="flex-1 rail:sr-only">{a.title}</span>
                   {a.status === "coming-soon" && <span className="contents rail:hidden"><SoonChip /></span>}

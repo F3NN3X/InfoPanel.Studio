@@ -165,8 +165,8 @@ export function LogsSection() {
             onClick={() => setFollow(!follow)}
             className="flex h-7 cursor-pointer items-center gap-2 rounded-[7px] border-0 bg-transparent px-2.5 text-xs text-s-t2"
           >
-            <span className={cn("relative h-4 w-7 rounded-lg", follow ? "bg-s-accent" : "bg-ui-menu")}>
-              <span className={cn("absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform", follow && "translate-x-3")} />
+            <span className={cn("relative h-4 w-7 rounded-lg forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas]", follow ? "bg-s-accent forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-ui-menu")}>
+              <span className={cn("absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform forced-colors:bg-[color:ButtonText]", follow && "translate-x-3 forced-colors:bg-[color:HighlightText]")} />
             </span>
             Follow new lines
           </button>

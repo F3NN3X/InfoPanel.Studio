@@ -490,11 +490,11 @@ export function Switch({ label, note, checked, onChange }: { label: string; note
       <span
         aria-hidden
         className={cn(
-          "relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ui-accent/60",
-          checked ? "bg-ui-accent" : "bg-ui-strong",
+          "relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ui-accent/60 forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas]",
+          checked ? "bg-ui-accent forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-ui-strong",
         )}
       >
-        <span className={cn("absolute top-[3px] h-3 w-3 rounded-full bg-white transition-[left]", checked ? "left-[15px]" : "left-[3px]")} />
+        <span className={cn("absolute top-[3px] h-3 w-3 rounded-full bg-white transition-[left] forced-colors:bg-[color:ButtonText]", checked ? "left-[15px] forced-colors:bg-[color:HighlightText]" : "left-[3px]")} />
       </span>
     </label>
   );

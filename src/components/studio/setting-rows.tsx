@@ -21,9 +21,9 @@ import { useInInspector, useInspectorChrome } from "./inspector-layout";
 export const FIELD =
   "rounded-md border border-ui-control bg-ui-app px-[9px] text-[12.5px] text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent";
 
-/** A select: h28, #1a1a1f, up to 150 wide. */
+/** A select: h28, #1a1a1f, up to 170 wide. */
 export const SELECT =
-  "h-7 max-w-[150px] cursor-pointer rounded-md border border-ui-control bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent";
+  "h-7 max-w-[170px] cursor-pointer whitespace-nowrap rounded-md border border-ui-control bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent";
 
 export interface RowLabelProps {
   label: string;
@@ -192,9 +192,9 @@ export const SEGMENTED_CLASS = cn(
 const SEGMENTED_INLINE = cn(SEGMENT_BUTTONS, "shrink-0 flex-nowrap [&>button]:px-2 [&>button]:py-1");
 
 /** Longest option label that still sits beside the field's label. */
-const INLINE_LABEL = 9;
+const INLINE_LABEL = 11;
 
-/** A segmented set sits inline when it is short: at most three options of at most nine characters. */
+/** A segmented set sits inline when it is short: at most three options of at most eleven characters. */
 export const segmentedInline = (labels: readonly string[]): boolean =>
   labels.length <= 3 && labels.every((l) => l.length <= INLINE_LABEL);
 

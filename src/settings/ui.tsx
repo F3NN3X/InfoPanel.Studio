@@ -76,13 +76,15 @@ export function Switch({ checked, onChange, label, disabled }: SwitchProps) {
       onClick={() => onChange(!checked)}
       className={cn(
         "relative h-[22px] w-[38px] shrink-0 cursor-pointer rounded-full border-0 p-0 transition-colors duration-150 disabled:cursor-default disabled:opacity-50",
-        checked ? "bg-s-accent" : "bg-s-track-line"
+        "forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas] disabled:forced-colors:border-[color:GrayText]",
+        checked ? "bg-s-accent forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-s-track-line"
       )}
     >
       <span
         className={cn(
           "absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white transition-transform duration-150",
-          checked && "translate-x-4"
+          "forced-colors:bg-[color:ButtonText]",
+          checked && "translate-x-4 forced-colors:bg-[color:HighlightText]"
         )}
       />
     </button>
@@ -148,7 +150,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
               size === "lg" ? "h-[30px] px-3.5" : "h-[26px] px-2.5 text-xs",
               stretch && "flex-1 px-0",
               mono && "font-mono",
-              on ? "bg-s-seg-on text-s-t1" : "bg-transparent text-s-muted hover:text-s-t1"
+              on ? "bg-s-seg-on text-s-t1 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]" : "bg-transparent text-s-muted hover:text-s-t1"
             )}
           >
             {o.label}
