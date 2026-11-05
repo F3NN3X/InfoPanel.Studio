@@ -100,6 +100,7 @@ test("the gauge-ink check catches a pack that hides some of its gauges and not a
 
 // A box over a neighbour's text hides it whatever the colours say: the check reads what the eye meets at each text (elementsFromPoint).
 test("the render measures catch an opaque box laid over other text", async ({ page }) => {
+  test.setTimeout(90_000); // three whole-page measures; a Windows runner took over 30 s
   await wornPage(page, PACK_STYLES.term, "term");
   const { worn: clean } = await page.evaluate(measurePack, measures("term"));
   // (the Term card's own header already overlaps the body at the smallest tier: that is the page, and a pack is judged against its twin)

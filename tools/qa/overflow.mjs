@@ -47,6 +47,9 @@ function collect() {
     for (const el of copy.querySelectorAll("[data-qa-bleed] > div[style*='scale(']")) el.setAttribute("style", el.getAttribute("style").replace(/transform: [^;]*/, "transform: ~"));
     for (const el of copy.querySelectorAll("span[style*='box-shadow: color-mix(']")) el.setAttribute("style", el.getAttribute("style").replace(/box-shadow: color-mix\([^;]*;/, "box-shadow: ~;"));
     for (const el of copy.querySelectorAll("[style='']")) el.removeAttribute("style");
+    // An inline style's and an element's order is the order React first wrote them, which moves with when a measure or a pack's part lands: the same properties and attributes are the same markup.
+    for (const el of copy.querySelectorAll("[style]")) el.setAttribute("style", el.getAttribute("style").split(/;s*/).filter(Boolean).sort().join("; "));
+    for (const el of copy.querySelectorAll("*")) for (const attr of [...el.attributes].sort((x, y) => (x.name < y.name ? -1 : 1))) el.setAttributeNode(el.removeAttributeNode(attr));
     const text = copy.innerHTML.replace(/:r[0-9a-z]+:|_r_[0-9a-z]+_|«r[0-9a-z]+»/g, ":r:");
     let h = 0x811c9dc5;
     for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0;
@@ -79,6 +82,9 @@ function collect() {
   return frames;
 }
 
+/** One transparent pixel: what an off-site image answers with. */
+const PIXEL = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+
 const scratch = await startScratch({ env: { DASHBOARD_DEBUG: "1" } });
 const browser = await chromium.launch({ headless: true });
 let frames;
@@ -88,6 +94,12 @@ try {
   // A fixed clock and zone: reset times and clocks on the fixtures are "now plus", so the text would differ per run.
   const page = await browser.newPage({ viewport: { width: 1800, height: 1000 }, timezoneId: "UTC", locale: "en-US" });
   await page.clock.setFixedTime(new Date("2026-01-15T12:00:00Z"));
+  // The fixtures' art lives on other hosts (a Steam logo on localhost:39482): loaded or not changes a widget's text, so each one answers here, on every machine.
+  await page.route("**/*", (route) => {
+    const request = route.request();
+    if (request.resourceType() !== "image" || request.url().startsWith(scratch.base)) return route.fallback();
+    return route.fulfill({ contentType: "image/png", body: PIXEL });
+  });
   const module = args.module ? `&module=${args.module}` : "";
   const run = async (surface, look) => {
     const style = look && PACK_STYLES[look];

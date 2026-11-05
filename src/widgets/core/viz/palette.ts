@@ -104,9 +104,9 @@ export function createCssResolver(host: Element): { resolve: (css: string) => Rg
   px.width = px.height = 1;
   const ctx = px.getContext("2d", { willReadFrequently: true });
   const resolve = (value: string): Rgba => {
-    probe.style.color = "";
     probe.style.color = value;
     const computed = getComputedStyle(probe).color;
+    probe.style.color = "";
     if (!ctx) return [...DEFAULT_ACCENT_RGB, 1];
     ctx.clearRect(0, 0, 1, 1);
     ctx.fillStyle = DEFAULT_ACCENT;
