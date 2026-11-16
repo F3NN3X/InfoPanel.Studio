@@ -856,7 +856,8 @@ controls, the clock, audio streams), and the button says why it is disabled.
   values. Before the first save the Sample takes each reading the recipe has no sample of from the live data.
 - The inspector's **Block** tab sets what the selected block reads (a sensor, or a device such as a CPU or GPU), its colour
   (accent, a series, or by thresholds; a Heatmap's own heat scale or a series; a Value's number also **Text**, its default, or
-  **Muted**), when it shows (always, or when an option has a value) and the smallest size it is drawn at. **Let people pick** turns a binding into an option, and **Replace sensor…** swaps
+  **Muted**), when it shows (always, or when an option has a value) and the sizes it is drawn at (**From the size** and **Up to the
+  size**, each in columns and rows). **Let people pick** turns a binding into an option, and **Replace sensor…** swaps
   the block's reading for another everywhere the recipe reads it (one undo step; the blocks it changed are listed). A **Row**'s
   **Align** (Start, Centre, End, Stretch) places each block across the row. A card's **Opens at** size is also its default
   preset's, so **Add to a screen** places it at that size.
@@ -878,11 +879,26 @@ controls, the clock, audio streams), and the button says why it is disabled.
   reading, each reading with its own unit and decimals, and the chips drag to reorder ("6° / 1°" is the high, " / " and the low).
 - A **Heatmap** lists its **Cells**, one reading each: **Add a cell** opens the data picker (tick several at once), × removes one
   and the rows drag to reorder. Inside a Repeat it draws a field of numbers of each place instead.
+- The **Image** tile asks for the picture first and adds the block only once one is picked; an Image has **Alt text** for screen
+  readers (empty for a picture that only decorates). A picture no Image shows is left out when the recipe is saved. A **Weather
+  icon** outside a Repeat picks from text readings (a condition), and has no **Let people pick**.
+- **Snippets** under the tiles add a few blocks at once, in a Row: **Label, value and bar**, **Ring with a caption** and **Value
+  and history**.
+- The eye and the lock on a row in **Layers** (shown when you point at the row, also in its menu, `Ctrl+Shift+H` and
+  `Ctrl+Shift+L`) are the builder's own: a hidden block is not drawn in the preview (it keeps its room), and a click on a locked
+  block in the preview selects the block holding it; a locked row does not drag. Neither is saved; **Shows when** is how a saved
+  recipe hides a block. The **Header** row under the card holds its title, sub-title and header icon (a click on the preview's
+  header selects it too).
+- Deleting a block that was the last to use an option (a Repeat's **Locations**) offers **Also remove … (not used now)**; it is one
+  undo step with the delete, and **Keep** leaves the option.
 - **Options** are what people can change when they add the widget, shown in its Content tab: a toggle, a choice, a number, a
   text, a sensor (its default picked with the data picker), a place list or a device (up to 24). A device option's **Kind** (CPU, GPU, Drive, Network adapter) changes what
   every block that follows it reads at once: each reading moves to the new kind's reading of the same sort (load, temperature,
   clock, power), and the ones with no match are listed so you can pick them again. That is how a GPU card is made from a CPU
-  card. **Presets** are named sets of options and a size (up to 16).
+  card. An option has a **Hint** (a line under it in the Content tab) and a **Group** (the heading it sits under), and a number a
+  **Step**. A choice that a block's **Shows when** names can't be removed until that block shows otherwise; a preset that picked a
+  removed choice goes back to the default. **Presets** are named sets of options and a size (up to 16), each with a **Blurb** (its
+  line in Add) and values for every kind of option: a text, a sensor, a place list and a device too.
 - The line under the preview says whether the recipe is valid. When it is not, it lists every problem in plain words, each
   naming its block as Layers does; click one to select that block (or open the Options or Presets tab). After each change it
   also measures the preview at the size shown and warns of crowding by block: a cut text, a ring too small for its value, a
