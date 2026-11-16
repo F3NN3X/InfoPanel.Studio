@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addBlock, addOption, blockAt, blockCount, devicesIn, duplicateBlock, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, presetLine, presetValues, recipeIssues, removeBlock, removeOption, removePreset, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, stepBlock, unpickBinding, updateBlock, validationLine, withFormat, withSample } from "@/components/widgets-page/builder-model";
-import { commit, historyOf, HISTORY_LIMIT, redo, undo } from "@/components/widgets-page/history";
+import { addBlock, addBlockAt, addOption, addRefusal, blockAt, blockCount, devicesIn, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, stepBlock, topLevel, unpickBinding, updateBlock, validationLine, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
+import { amend, commit, historyOf, HISTORY_LIMIT, redo, undo } from "@/components/widgets-page/history";
 import { NO_START, START, whyNoStart } from "@/components/widgets-page/start-points";
 import { WIDGET_ORDER } from "@/widgets/order";
 import { oneOf, wholeIn } from "@/widgets/recipe/follow";
@@ -384,5 +384,104 @@ describe("found in Phase A", () => {
     const h = addBlock(addOption(newRecipe("W", new Set()), { key: "core", label: "Core", type: "sensor", default: "libre.cpu_total" }), [], "heatmap", "libre.cpu_total");
     const r = updateBlock(h.recipe, h.path, { cells: [{ option: "core" }] });
     expect(optionUses(r, "core")).toBe(1);
+  });
+});
+
+describe("a selection of blocks (Phase B1, G11)", () => {
+  it("acts on the blocks themselves: the root and blocks inside another selected one left out, in tree order", () => {
+    expect(topLevel([[1], [], [0, 1, 0], [0], [0, 1], [1]])).toEqual([[0], [1]]);
+    expect(topLevel([[2, 1], [0, 3], [2]])).toEqual([[0, 3], [2]]);
+    // Shift+click: the rows between the last pick and this one, either way
+    const keys = ["", "0", "0.0", "0.1", "1"];
+    expect(rangeOf(keys, "1", "0.0")).toEqual([[0, 0], [0, 1], [1]]);
+    expect(rangeOf(keys, "missing", "0")).toEqual([[0]]);
+  });
+
+  it("deletes several blocks in one edit and selects the block before the first", () => {
+    const r = cpuCard(); // card[ Top row[ ring, Values[ value ] ], sparkline ]
+    const out = removeBlocks(r, [[1], [0, 1], [0, 1, 0]]);
+    expect(flatten(out.recipe).map(({ block }) => block.name ?? block.type)).toEqual(["card", "Top row", "ring"]);
+    expect(out.path).toEqual([0, 0]);
+    // the first of the root's blocks: nothing before it, so its parent
+    expect(removeBlocks(r, [[0], [1]]).path).toEqual([]);
+    expect(errorsOf(out.recipe)).toEqual([]);
+  });
+
+  it("moves a selection into a container in tree order, as one edit, and refuses it with the first reason", () => {
+    const r = addBlock(cpuCard(), [], "card", "x.y").recipe; // card[ Top row, sparkline, Card ]
+    const into = moveBlocks(r, [[1], [0, 0]], [2], 0);
+    if ("why" in into) throw new Error(into.why);
+    expect(namesAt(into.recipe, [1])).toEqual(["ring", "sparkline"]);
+    expect(into.paths).toEqual([[1, 0], [1, 1]]);
+    expect(pathsOf(into.recipe, into.paths.map((x) => blockAt(into.recipe, x)!))).toEqual(into.paths);
+    // within one container: before the first block left in place at the index
+    const within = moveBlocks(r, [[0], [1]], [], 3);
+    if ("why" in within) throw new Error(within.why);
+    expect(namesAt(within.recipe, [])).toEqual(["Card", "Top row", "sparkline"]);
+    // onto where they are: the recipe as it was
+    expect(moveBlocks(r, [[0], [1]], [], 0)).toMatchObject({ recipe: r });
+    const w = addBlock(weatherCard(), [], "repeat", "x.y").recipe;
+    expect(moveBlocks(w, [[0, 0], [1]], [0], 0)).toEqual({ why: "A Repeat can't go inside another Repeat" });
+    expect(moveBlocks(w, [[]], [0], 0)).toEqual({ why: "The widget's card stays where it is" });
+  });
+
+  it("wraps blocks side by side in a new Row where the first was, as one edit; blocks in different containers or too deep are refused", () => {
+    const r = cpuCard();
+    const wrapped = wrapInRow(r, [[1], [0]]);
+    if ("why" in wrapped) throw new Error(wrapped.why);
+    expect(wrapped.path).toEqual([0]);
+    expect(namesAt(wrapped.recipe, [])).toEqual(["Row"]);
+    expect(namesAt(wrapped.recipe, [0])).toEqual(["Top row", "sparkline"]);
+    expect(errorsOf(wrapped.recipe)).toEqual([]);
+    // one block wraps alone, in its place among its siblings
+    const one = wrapInRow(r, [[0, 1]]);
+    if ("why" in one) throw new Error(one.why);
+    expect(namesAt(one.recipe, [0])).toEqual(["ring", "Row"]);
+    expect(wrapInRow(r, [[1], [0, 0]])).toEqual({ why: "Only blocks in the same container wrap together" });
+    expect(wrapInRow(r, [[]])).toEqual({ why: "The widget's card can't go into a Row" });
+    // a label sixth (the card, four rows, the label): a Row around it, or around any row above it, would put it seventh
+    let deep = newRecipe("Deep", new Set());
+    let at: number[] = [];
+    for (let n = 0; n < 4; n++) {
+      const row = addBlock(deep, at, "row", "x.y");
+      deep = row.recipe;
+      at = row.path;
+    }
+    const label = addBlock(deep, at, "label", "x.y");
+    expect(wrapInRow(label.recipe, [label.path])).toEqual({ why: "Blocks nest at most 6 deep" });
+    expect(wrapInRow(label.recipe, [at])).toEqual({ why: "Blocks nest at most 6 deep" });
+    expect("why" in wrapInRow(addBlock(label.recipe, [], "label", "x.y").recipe, [[1]])).toBe(false);
+  });
+
+  it("duplicates each selected block right after it, and selects the copies", () => {
+    const r = cpuCard();
+    const d = duplicateBlocks(r, [[1], [0, 0]]);
+    expect(namesAt(d.recipe, [])).toEqual(["Top row", "sparkline", "sparkline"]);
+    expect(namesAt(d.recipe, [0])).toEqual(["ring", "ring", "Values"]);
+    expect(d.paths).toEqual([[0, 1], [2]]);
+  });
+});
+
+describe("a tile dropped at a place (Phase B1, G12)", () => {
+  it("adds the block there, or says why it can't go there", () => {
+    const r = cpuCard();
+    const at = addBlockAt(r, [0], 1, "value", "libre.x");
+    expect(at.path).toEqual([0, 1]);
+    expect(namesAt(at.recipe, [0])).toEqual(["ring", "value", "Values"]);
+    // past the end: at the end
+    expect(addBlockAt(r, [], 9, "label", "x.y").path).toEqual([2]);
+    const w = weatherCard();
+    expect(addRefusal(w, "repeat", [0])).toBe("A Repeat can't go inside another Repeat");
+    expect(addRefusal(w, "value", [0])).toBeUndefined();
+    expect(addRefusal(w, "label", [0, 0])).toBe("Only a Row, a Card or a Repeat holds blocks");
+  });
+});
+
+describe("undo of a cut and its paste (Phase B1, G10)", () => {
+  it("folds an edit into the last step: one undo goes back past both", () => {
+    const h = amend(commit(historyOf(1), 2), 3);
+    expect(h).toEqual({ past: [1], present: 3, future: [] });
+    expect(undo(h).present).toBe(1);
+    expect(amend(h, 3)).toBe(h);
   });
 });

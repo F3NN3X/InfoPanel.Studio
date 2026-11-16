@@ -17,6 +17,12 @@ export function commit<T>(h: History<T>, next: T): History<T> {
   return { past: [...h.past, h.present].slice(-HISTORY_LIMIT), present: next, future: [] };
 }
 
+/** An edit folded into the last step (a paste after a cut: one move, one undo step); what was undone is gone. */
+export function amend<T>(h: History<T>, next: T): History<T> {
+  if (next === h.present) return h;
+  return { past: h.past, present: next, future: [] };
+}
+
 export function undo<T>(h: History<T>): History<T> {
   if (!h.past.length) return h;
   return { past: h.past.slice(0, -1), present: h.past[h.past.length - 1], future: [h.present, ...h.future] };
