@@ -37,10 +37,10 @@ const ROWS = [1, 24] as const;
 const PROFILE_KEYS = [
   "id", "name", "width", "height", "cols", "rows", "fit", "pages", "placements", "rotate", "widgetTheme", "background",
   "theme", "radius", "gap", "padding", "edges", "island", "performance", "font", "sampleVersion", "style", "styleEnforce", "madeFor",
-  "appliedTheme",
+  "appliedTheme", "pinned", "autoSwitch",
 ] as const;
 /** The fields of a page (ProfilePage). */
-const PAGE_KEYS = ["id", "name", "icon", "placements", "widgetTheme", "layout", "appliedTheme", "groups", "snapItems", "freeCanvas"] as const;
+const PAGE_KEYS = ["id", "name", "icon", "placements", "widgetTheme", "layout", "appliedTheme", "groups", "snapItems", "freeCanvas", "hidePinned"] as const;
 
 const pick = (from: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> =>
   Object.fromEntries(keys.filter((k) => from[k] !== undefined).map((k) => [k, from[k]]));

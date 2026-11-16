@@ -583,6 +583,7 @@
         "src/lib/device-options.ts",
         "src/lib/name-list.ts",
         "src/lib/panel-starters.ts",
+        "src/lib/pinned.ts",
         "src/App.tsx",
         "src/main.tsx",
         "src/components/kiosk-strip.tsx",
@@ -593,6 +594,7 @@
       ],
       "tests": [
         "tests/lib/layout.test.ts",
+        "tests/lib/pinned.test.ts",
         "tests/lib/widget-presets.test.ts",
         "tests/lib/layout-pages.test.ts",
         "tests/lib/pages.test.ts",
