@@ -5,6 +5,7 @@
 // Code widgets (Phase 6b) are listed with the server's trust state; one that verified is loaded (`code/loader.ts`) for its preview
 // and Add. "Third-party code widgets" and "Turn this widget off" are the server's switches (`/api/widgets/code`), so every page that
 // asks this server obeys them, kiosks on other devices included.
+// An open recipe closes, and its unsaved changes are discarded, only after the page has asked (Phase B1, G13).
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Plus, Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { builtinPresets, useWidgetPresets } from "@/components/studio/widget-pre
 import { sensorName } from "@/components/studio/widget-kinds";
 import * as studio from "@/components/studio/studio-actions";
 import type { StudioBridge } from "@/components/library/library-actions";
+import { useHoldZoneShortcuts } from "@/components/library/use-hold-zone-shortcuts";
 import { download } from "@/components/infopanel/export-dialog";
 import { useSensors } from "@/hooks/useSensors";
 import { openSettings } from "@/lib/desktop";
@@ -37,7 +39,7 @@ import { toFlat } from "@/widgets/shared/data-adapter";
 import { blockCount, duplicateRecipe, newRecipe, nextVersion, presetValues, recipeIdFor, valueText, withSample } from "./builder-model";
 import type { Draft } from "./builder";
 import { loadDrafts, saveDrafts } from "./drafts-store";
-import { commit, historyOf, redo, undo } from "./history";
+import { amend, commit, historyOf, redo, undo } from "./history";
 import { START, whyNoStart } from "./start-points";
 import { storedValues } from "./recipe-preview";
 import { WidgetDetail, type WidgetDetailProps } from "./widget-detail";
@@ -108,6 +110,36 @@ export const sameFiles = (a: Pick<Manifest, "files"> | undefined, b: Pick<Manife
   return !!a && !!b && list(a) === list(b);
 };
 
+/** A question about an open recipe, waiting for the person's answer: close it without saving, or discard its changes (G13). */
+interface Asking {
+  key: string;
+  kind: "close" | "discard";
+}
+
+/** The page's inline question (an alert dialog in the page, as the import's replace question): its words and two answers. */
+function Ask({ title, detail, keep, go, onKeep, onGo }: { title: string; detail: string; keep: string; go: string; onKeep: () => void; onGo: () => void }) {
+  return (
+    <div
+      role="alertdialog"
+      aria-label={title}
+      data-ask=""
+      onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), onKeep())}
+      className="mx-7 mt-5 flex flex-wrap items-center gap-3 rounded-ui-lg border border-ui-warn/40 bg-ui-warn/10 px-4 py-3 text-caption text-ui-2"
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-body text-ui-1">{title}</p>
+        <p className="mt-1">{detail}</p>
+      </div>
+      <Button small autoFocus onClick={onKeep}>
+        {keep}
+      </Button>
+      <Button small variant="primary" onClick={onGo}>
+        {go}
+      </Button>
+    </div>
+  );
+}
+
 /** An import that would replace a stored recipe, waiting for the person's answer (B8). */
 interface Replacing {
   id: string;
@@ -123,6 +155,7 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
   const [notice, setNotice] = useState<string>();
   const [importError, setImportError] = useState<{ file: string; lines: string[] } | null>(null);
   const [replacing, setReplacing] = useState<Replacing | null>(null);
+  const [asking, setAsking] = useState<Asking | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<WidgetFilter>("all");
   const [allBuiltIns, setAllBuiltIns] = useState(false);
@@ -135,6 +168,8 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
   const [saving, setSaving] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const toast = bridge.toast;
+  // the studio's zone keys (Del, Ctrl+D, arrows …) would act on the screen hidden behind this page, as on Library and Gauges (B17)
+  useHoldZoneShortcuts();
   // the live readings a save writes into the recipe's sample (only while the builder is open)
   const sensors = useSensors(active ? null : []);
   const liveData = useMemo(() => toFlat(withHwinfoAliases(sensors)) as Data, [sensors]);
@@ -273,6 +308,42 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
   const unsaved = drafts.filter(isUnsaved);
   useEffect(() => saveDrafts(drafts), [drafts]);
   const setDraft = (next: Draft) => setDrafts((list) => list.map((d) => (d.key === next.key ? next : d)));
+  /** Closes an open recipe: the builder shows the next one open, else browse. */
+  const close = (key: string) => {
+    const left = drafts.filter((d) => d.key !== key);
+    setDrafts(left);
+    if (active === key) setActive(left[0]?.key ?? null);
+    setAsking(null);
+  };
+  /** Close, asking first when it has what the server has not (a new recipe nothing was done to closes at once). */
+  const askClose = (key: string) => {
+    const d = drafts.find((x) => x.key === key);
+    if (d && isUnsaved(d) && (d.stored || d.history.past.length)) setAsking({ key, kind: "close" });
+    else close(key);
+  };
+  /** Discard: the open recipe goes back to what is stored, one undo step (Undo brings the changes back). */
+  const discard = (key: string) => {
+    const d = drafts.find((x) => x.key === key);
+    if (d?.stored) setDraft({ ...d, history: commit(d.history, d.stored) });
+    setAsking(null);
+  };
+  const askingDraft = asking && drafts.find((d) => d.key === asking.key);
+  const question = askingDraft && asking && (
+    <Ask
+      title={asking.kind === "close" ? `Close ${askingDraft.history.present.name} without saving?` : `Discard your changes to ${askingDraft.history.present.name}?`}
+      detail={
+        asking.kind === "discard"
+          ? `It goes back to the saved ${askingDraft.stored?.version}. Undo brings the changes back.`
+          : askingDraft.stored
+            ? `The changes since the saved ${askingDraft.stored.version} are lost; that version stays.`
+            : "It was never saved: it is lost."
+      }
+      keep={asking.kind === "close" ? "Keep it open" : "Keep the changes"}
+      go={asking.kind === "close" ? "Close without saving" : "Discard changes"}
+      onKeep={() => setAsking(null)}
+      onGo={() => (asking.kind === "close" ? close(asking.key) : discard(asking.key))}
+    />
+  );
   const save = async (): Promise<Recipe | undefined> => {
     if (!draft) return;
     const changed = !draft.stored || JSON.stringify(draft.stored) !== JSON.stringify(draft.history.present);
@@ -324,7 +395,7 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
           drafts={drafts}
           active={draft}
           onActive={setActive}
-          onEdit={(recipe, images) => setDraft({ ...draft, history: commit(draft.history, recipe), images: images ?? draft.images })}
+          onEdit={(recipe, images, fold) => setDraft({ ...draft, history: (fold ? amend : commit)(draft.history, recipe), images: images ?? draft.images })}
           onUndo={() => setDraft({ ...draft, history: undo(draft.history) })}
           onRedo={() => setDraft({ ...draft, history: redo(draft.history) })}
           onBack={() => setActive(null)}
@@ -342,6 +413,9 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
               if (r) addRecipe(r, presetId);
             })
           }
+          onClose={() => askClose(draft.key)}
+          onDiscard={() => setAsking({ key: draft.key, kind: "discard" })}
+          prompt={asking?.key === draft.key ? question : undefined}
           appearance={appearance}
           pageStyle={pageStyle}
           onOpenSources={onOpenSources}
@@ -457,12 +531,18 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
             <div data-unsaved-recipes className="mx-7 mt-5 flex flex-wrap items-center gap-2 rounded-ui-lg border border-ui-warn/40 bg-ui-warn/10 px-4 py-2.5 text-caption text-ui-2">
               <span className="mr-1">Open in the builder, not saved:</span>
               {unsaved.map((d) => (
-                <Button key={d.key} small onClick={() => setActive(d.key)}>
-                  {d.history.present.name}
-                </Button>
+                <span key={d.key} className="flex items-center gap-1">
+                  <Button small onClick={() => setActive(d.key)}>
+                    {d.history.present.name}
+                  </Button>
+                  <Button small variant="ghost" aria-label={`Discard ${d.history.present.name}`} title="Close it without saving" onClick={() => askClose(d.key)}>
+                    Discard
+                  </Button>
+                </span>
               ))}
             </div>
           )}
+          {question}
           {replacing && (
             <div role="alertdialog" aria-label="Replace a widget" data-import-replace="" className="mx-7 mt-5 flex flex-wrap items-center gap-3 rounded-ui-lg border border-ui-warn/40 bg-ui-warn/10 px-4 py-3 text-caption text-ui-2">
               <div className="min-w-0 flex-1">

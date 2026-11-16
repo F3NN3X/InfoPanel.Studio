@@ -112,9 +112,25 @@ export function newBlock(type: BlockType, opts: { sensor: string; inRepeat: bool
  * selected. A Repeat needs a place list to run over: the recipe's first, else a new "Locations" option. Returns the new block's path.
  */
 export function addBlock(recipe: Recipe, at: Path, type: BlockType, sensor: string): { recipe: Recipe; path: number[] } {
+  const { into, index } = landing(recipe, at);
+  return addBlockAt(recipe, into, index, type, sensor);
+}
+
+/** Where Add and Paste put a block next to the selection `at`: into it when it holds blocks (at its end), else right after it. */
+export function landing(recipe: Recipe, at: Path): { into: number[]; index: number } {
   const target = blockAt(recipe, at);
-  const into = target && isContainer(target) ? [...at] : at.slice(0, -1);
-  const index = target && isContainer(target) ? target.children.length : (at[at.length - 1] ?? -1) + 1;
+  return target && isContainer(target) ? { into: [...at], index: target.children.length } : { into: at.slice(0, -1), index: (at[at.length - 1] ?? -1) + 1 };
+}
+
+/** Why a new block of `type` may not go into the container at `toParent` (a tile dropped there), or undefined. */
+export function addRefusal(recipe: Recipe, type: BlockType, toParent: Path): string | undefined {
+  const target = blockAt(recipe, toParent);
+  const inRepeat = !!target && (target.type === "repeat" || !!repeatAbove(recipe, [...toParent, 0]));
+  return placeRefusal(recipe, newBlock(type, { sensor: "x.y", inRepeat }), toParent);
+}
+
+/** Adds a block of `type` into the container at `into`, before its child `index` (a tile dropped on a row). Returns its path. */
+export function addBlockAt(recipe: Recipe, into: Path, index: number, type: BlockType, sensor: string): { recipe: Recipe; path: number[] } {
   let next = recipe;
   let over = recipe.options.find((o) => o.type === "place-list")?.key;
   if (type === "repeat" && !over) {
@@ -123,8 +139,9 @@ export function addBlock(recipe: Recipe, at: Path, type: BlockType, sensor: stri
   }
   const inRepeat = !!repeatAbove(next, [...into, 0]);
   const block = newBlock(type, { sensor, inRepeat, over });
-  next = mapAt(next, into, (b) => ({ ...b, children: [...childrenOf(b).slice(0, index), block, ...childrenOf(b).slice(index)] }) as Block);
-  return { recipe: type === "repeat" ? withSampleItems(next) : next, path: [...into, index] };
+  const at = Math.max(0, Math.min(index, childrenOf(blockAt(next, into)!).length));
+  next = mapAt(next, into, (b) => ({ ...b, children: [...childrenOf(b).slice(0, at), block, ...childrenOf(b).slice(at)] }) as Block);
+  return { recipe: type === "repeat" ? withSampleItems(next) : next, path: [...into, at] };
 }
 
 /** Takes a block (and what it holds) out; the root stays. Returns the path to select next: its previous sibling, else its parent. */
@@ -161,10 +178,17 @@ const readsField = (b: Block): boolean =>
  */
 export function moveRefusal(recipe: Recipe, from: Path, toParent: Path): string | undefined {
   const b = blockAt(recipe, from);
-  const target = blockAt(recipe, toParent);
   if (!from.length || !b) return "The widget's card stays where it is";
+  const target = blockAt(recipe, toParent);
   if (!target || !isContainer(target)) return "Only a Row, a Card or a Repeat holds blocks";
   if (toParent.length >= from.length && from.every((k, i) => toParent[i] === k)) return "A block can't go inside itself";
+  return placeRefusal(recipe, b, toParent);
+}
+
+/** Why block `b` (one of the recipe's, or one from elsewhere: a paste) may not go into the container at `toParent`, or undefined. */
+export function placeRefusal(recipe: Recipe, b: Block, toParent: Path): string | undefined {
+  const target = blockAt(recipe, toParent);
+  if (!target || !isContainer(target)) return "Only a Row, a Card or a Repeat holds blocks";
   const inRepeat = target.type === "repeat" || !!repeatAbove(recipe, [...toParent, 0]);
   if (inRepeat && holdsRepeat(b)) return "A Repeat can't go inside another Repeat";
   if (!inRepeat && readsField(b)) return `${layerName(recipe, b)} reads each place's weather: it goes inside a Repeat only`;
@@ -220,6 +244,126 @@ export function keyMove(recipe: Recipe, path: Path, way: "out" | "in"): { toPare
   const toParent = [...parent, k - 1];
   const why = moveRefusal(recipe, path, toParent);
   return why ? { why } : { toParent, index: above.children.length };
+}
+
+/* ───────── a selection of blocks (G11) ───────── */
+
+const keyOf = (p: Path): string => p.join(".");
+const isInside = (p: Path, outer: Path): boolean => p.length > outer.length && outer.every((k, i) => p[i] === k);
+/** Paths in tree order (a parent before what it holds, siblings left to right). */
+const byTree = (a: Path, b: Path): number => {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i] - b[i];
+  return a.length - b.length;
+};
+
+/** A selection as the blocks it acts on: the root and paths inside another selected block left out, the rest in tree order, once each. */
+export function topLevel(paths: readonly Path[]): number[][] {
+  const real = paths.filter((p) => p.length > 0);
+  const once = [...new Map(real.map((p) => [keyOf(p), [...p]])).values()];
+  return once.filter((p) => !once.some((q) => isInside(p, q))).sort(byTree);
+}
+
+/** Where each block stands now, found by the object itself (edits keep the blocks they do not touch). */
+export function pathsOf(recipe: Recipe, blocks: readonly Block[]): number[][] {
+  const rows = flatten(recipe);
+  return blocks.flatMap((b) => {
+    const row = rows.find((r) => r.block === b);
+    return row ? [[...row.path]] : [];
+  });
+}
+
+/** The tree with `drop` taken out wherever they are; `rebuilt` maps each container to the one that replaces it. */
+function without(b: Block, drop: ReadonlySet<Block>, rebuilt: Map<Block, Block>): Block {
+  if (!isContainer(b)) return b;
+  const kids = b.children.filter((c) => !drop.has(c)).map((c) => without(c, drop, rebuilt));
+  const next = kids.length === b.children.length && kids.every((c, i) => c === b.children[i]) ? b : ({ ...b, children: kids } as Block);
+  rebuilt.set(b, next);
+  return next;
+}
+
+/** Takes the selected blocks out (what they hold goes with them). Returns the path to select next, as `removeBlock` does for the first. */
+export function removeBlocks(recipe: Recipe, paths: readonly Path[]): { recipe: Recipe; path: number[] } {
+  const top = topLevel(paths);
+  if (top.length <= 1) return removeBlock(recipe, top[0] ?? []);
+  const first = top[0];
+  const parent = first.slice(0, -1);
+  const before = first[first.length - 1] > 0 ? blockAt(recipe, [...parent, first[first.length - 1] - 1]) : undefined;
+  const next = { ...recipe, root: without(recipe.root, new Set(top.map((p) => blockAt(recipe, p)!)), new Map()) as CardBlock };
+  const stays = before && pathsOf(next, [before])[0];
+  return { recipe: next, path: stays ?? (blockAt(next, parent) ? parent : []) };
+}
+
+/**
+ * Moves the selected blocks (tree order kept) into the container at `toParent`, before its child `index` as the tree is now: a drag
+ * of a selection. Refused, with the first reason, when any of them may not go there. A move that changes nothing returns the recipe
+ * as it was. Returns the blocks' paths after it.
+ */
+export function moveBlocks(recipe: Recipe, from: readonly Path[], toParent: Path, index: number): { recipe: Recipe; paths: number[][] } | { why: string } {
+  const top = topLevel(from);
+  if (!top.length) return { why: "The widget's card stays where it is" };
+  for (const p of top) {
+    const why = moveRefusal(recipe, p, toParent);
+    if (why) return { why };
+  }
+  const blocks = top.map((p) => blockAt(recipe, p)!);
+  const target = blockAt(recipe, toParent)!;
+  const drop = new Set(blocks);
+  const rebuilt = new Map<Block, Block>();
+  const root = without(recipe.root, drop, rebuilt) as CardBlock;
+  const left = { ...recipe, root };
+  const into = rebuilt.get(target) ?? target;
+  const intoPath = pathsOf(left, [into])[0] ?? [];
+  // the gap before the first child at or after `index` that stays, else the end
+  const anchor = childrenOf(target).slice(index).find((c) => !drop.has(c));
+  const at = anchor ? childrenOf(into).indexOf(rebuilt.get(anchor) ?? anchor) : childrenOf(into).length;
+  const next = mapAt(left, intoPath, (b) => ({ ...b, children: [...childrenOf(b).slice(0, at), ...blocks, ...childrenOf(b).slice(at)] }) as Block);
+  if (JSON.stringify(next.root) === JSON.stringify(recipe.root)) return { recipe, paths: top };
+  return { recipe: next, paths: blocks.map((_, k) => [...intoPath, at + k]) };
+}
+
+/**
+ * "Wrap in a row" (Ctrl+G): the selected blocks, side by side in one container, go into a new Row where the first was. Refused when
+ * they are in different containers, or when the extra level would nest deeper than `DEPTH_MAX`. Returns the Row's path.
+ */
+export function wrapInRow(recipe: Recipe, paths: readonly Path[]): { recipe: Recipe; path: number[] } | { why: string } {
+  const top = topLevel(paths);
+  if (!top.length) return { why: "The widget's card can't go into a Row" };
+  const parent = top[0].slice(0, -1);
+  if (top.some((p) => keyOf(p.slice(0, -1)) !== keyOf(parent))) return { why: "Only blocks in the same container wrap together" };
+  const blocks = top.map((p) => blockAt(recipe, p)!);
+  if (parent.length + 2 + Math.max(...blocks.map(heightOf)) > DEPTH_MAX) return { why: `Blocks nest at most ${DEPTH_MAX} deep` };
+  const row: Block = { type: "row", name: "Row", children: blocks };
+  const k = top[0][top[0].length - 1];
+  const drop = new Set(blocks);
+  const next = mapAt(recipe, parent, (b) => {
+    const kids = childrenOf(b);
+    return { ...b, children: [...kids.slice(0, k).filter((c) => !drop.has(c)), row, ...kids.slice(k).filter((c) => !drop.has(c))] } as Block;
+  });
+  return { recipe: next, path: [...parent, k] };
+}
+
+/** A copy of each selected block (and what it holds) right after it. Returns the copies' paths. */
+export function duplicateBlocks(recipe: Recipe, paths: readonly Path[]): { recipe: Recipe; paths: number[][] } {
+  const top = topLevel(paths);
+  const copies: Block[] = [];
+  let next = recipe;
+  // last first, so the paths before it stay where they are
+  for (const p of [...top].reverse()) {
+    const copy = structuredClone(blockAt(next, p)!);
+    copies.unshift(copy);
+    const parent = p.slice(0, -1);
+    const k = p[p.length - 1];
+    next = mapAt(next, parent, (b) => ({ ...b, children: [...childrenOf(b).slice(0, k + 1), copy, ...childrenOf(b).slice(k + 1)] }) as Block);
+  }
+  return { recipe: next, paths: pathsOf(next, copies) };
+}
+
+/** A click with Shift in Layers: every row from the anchor's to `to`'s, in the rows' order (`keys`, top first). */
+export function rangeOf(keys: readonly string[], anchor: string, to: string): number[][] {
+  const a = keys.indexOf(anchor);
+  const b = keys.indexOf(to);
+  if (a < 0 || b < 0) return [to ? to.split(".").map(Number) : []];
+  return keys.slice(Math.min(a, b), Math.max(a, b) + 1).map((k) => (k ? k.split(".").map(Number) : []));
 }
 
 /** Every block with its path, depth first (the root card first): Layers' rows. */

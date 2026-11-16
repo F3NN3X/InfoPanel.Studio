@@ -3,8 +3,11 @@
 // right. The page holds each open recipe's history (undo, redo) so its tabs keep their own; Save stores it through /api/widgets.
 // Layers moves a block into, out of and between containers by drag or Alt+arrows (Phase A, G1); a field's draft shows on the stage
 // while it is typed and is one undo step when it commits (G5); the validation line lists every problem in plain words (G6).
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
-import { ChevronRight, CircleAlert, CircleCheck, Link2, MonitorUp, Pencil, Redo2, Save, Undo2, Upload } from "lucide-react";
+// Phase B1: the layer menu, Copy, Cut and Paste across the open recipes, a selection of several blocks and Wrap in a row, tiles
+// dragged onto Layers or the stage, Close and Discard, Ctrl+S, and Layers as an APG tree whose rows carry their problems; moves,
+// pastes and refusals are said in a live region.
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
+import { ChevronRight, CircleAlert, CircleCheck, MonitorUp, Pencil, Redo2, RotateCcw, Save, Undo2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Segmented } from "@/components/ui/segmented";
@@ -19,13 +22,15 @@ import { cn } from "@/lib/utils";
 import { GALLERY_IDS } from "@/components/studio/look-gallery-model";
 import { SAMPLE_THEMES } from "@/looks/sample-themes";
 import type { Data } from "@/widgets/core/types";
-import type { Cells, PackageFile, Recipe } from "@/widgets/recipe/types";
+import type { BlockType, Cells, PackageFile, Recipe } from "@/widgets/recipe/types";
 import { toFlat, toNames } from "@/widgets/shared/data-adapter";
-import { ADD_ORDER, addBlock, BLOCK_LABEL, blockAt, devicesIn, duplicateBlock, flatten, isBound, keyMove, layerName, moveBlock, moveRefusal, presetValues, recipeIssues, removeBlock, stepBlock, updateBlock, validationLine, withFormat, type Path } from "./builder-model";
+import { ADD_ORDER, addBlock, addBlockAt, addRefusal, BLOCK_LABEL, blockAt, devicesIn, duplicateBlocks, flatten, keyMove, layerName, moveBlock, moveBlocks, presetValues, rangeOf, recipeIssues, removeBlocks, stepBlock, topLevel, updateBlock, validationLine, withFormat, wrapInRow, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { BlockTab } from "./block-tab";
+import { clipboard, copyOf, pasteBlocks, setClipboard } from "./clipboard";
 import { type Typing, TypingContext } from "./fields";
 import type { History } from "./history";
+import { type LayerCommand, Layers, type SelectHow } from "./layers";
 import { OptionsTab } from "./options-tab";
 import { type PlainIssue, plainIssue, plainIssues } from "./plain-issues";
 import { PresetsTab } from "./presets-tab";
@@ -44,8 +49,8 @@ export interface BuilderProps {
   drafts: readonly Draft[];
   active: Draft;
   onActive: (key: string) => void;
-  /** An edit of the active recipe (one undo step). */
-  onEdit: (recipe: Recipe, images?: PackageFile[]) => void;
+  /** An edit of the active recipe (one undo step; `amend`: folded into the last one, a paste after a cut). */
+  onEdit: (recipe: Recipe, images?: PackageFile[], amend?: boolean) => void;
   onUndo: () => void;
   onRedo: () => void;
   onBack: () => void;
@@ -55,6 +60,12 @@ export interface BuilderProps {
   saving: boolean;
   onExport: () => void;
   onAddToScreen: (presetId: string | null) => void;
+  /** Close the open recipe (the page asks first when it has unsaved changes). */
+  onClose: () => void;
+  /** Back to the stored version (the page asks first). */
+  onDiscard: () => void;
+  /** The page's question about closing or discarding, shown under the bar. */
+  prompt?: ReactNode;
   appearance?: Appearance;
   pageStyle?: CSSProperties;
   onOpenSources: () => void;
@@ -76,146 +87,6 @@ export function stageSizes(recipe: Recipe, shown?: Cells): Cells[] {
 function savedChip(d: Draft): { text: string; tone: "neutral" | "warn" } {
   if (!d.stored) return { text: "Not saved yet", tone: "warn" };
   return isUnsaved(d) ? { text: "Unsaved changes", tone: "warn" } : { text: "Recipe · saved", tone: "neutral" };
-}
-
-type Where = "above" | "below" | "inside";
-/** Where a drop on a row puts the block: into the container (at its end), else before or after the row in its parent. */
-const dropPlace = (at: number[], where: Where, size: number): { toParent: number[]; index: number } =>
-  where === "inside" ? { toParent: at, index: size } : { toParent: at.slice(0, -1), index: at[at.length - 1] + (where === "below" ? 1 : 0) };
-const indentOf = (depth: number): number => 10 + Math.min(depth, 4) * 16;
-
-interface LayersProps {
-  recipe: Recipe;
-  path: Path;
-  onSelect: (p: number[]) => void;
-  onRemove: (p: number[]) => void;
-  /** Alt+↑/↓: one place among its siblings. */
-  onStep: (p: number[], by: -1 | 1) => void;
-  /** A drop, or Alt+← / Alt+→ (`moveBlock`). */
-  onMove: (from: number[], toParent: number[], index: number) => void;
-}
-
-/**
- * Layers (G1): a row drags (the Edit page's tree: a 2 px line between rows, an outline on a container's middle) into, out of and
- * between Rows, Cards and Repeats; a drop the validator would refuse is refused, its reason at the drop line. Alt+← takes a block
- * out of its container, Alt+→ into the container just above it, Alt+↑/↓ moves it among its siblings.
- */
-function Layers({ recipe, path, onSelect, onRemove, onStep, onMove }: LayersProps) {
-  const rows = flatten(recipe);
-  const [dragging, setDragging] = useState<number[] | null>(null);
-  const [drop, setDrop] = useState<{ at: string; where: Where; depth: number; why?: string } | null>(null);
-  const [why, setWhy] = useState<string | null>(null);
-  const whereOf = (e: DragEvent, at: number[], container: boolean): Where => {
-    if (!at.length) return "inside";
-    const r = e.currentTarget.getBoundingClientRect();
-    const f = r.height ? (e.clientY - r.top) / r.height : 0.5;
-    return container ? (f < 0.25 ? "above" : f > 0.75 ? "below" : "inside") : f < 0.5 ? "above" : "below";
-  };
-  const placeOn = (e: DragEvent, at: number[], block: (typeof rows)[number]["block"]) => {
-    const container = "children" in block;
-    const where = whereOf(e, at, container);
-    const place = dropPlace(at, where, container ? block.children.length : 0);
-    return { where, place, why: dragging ? moveRefusal(recipe, dragging, place.toParent) : undefined };
-  };
-  const end = () => {
-    setDragging(null);
-    setDrop(null);
-  };
-  return (
-    <>
-      <ul aria-label="Layers" className="flex flex-col gap-0.5" onDragLeave={(e) => e.currentTarget === e.target && setDrop(null)}>
-        {rows.map(({ block, path: at, depth }) => {
-          const key = at.join(".");
-          const selected = key === path.join(".");
-          const mark = drop?.at === key ? drop : null;
-          return (
-            <li key={key || "root"} className="relative">
-              <button
-                type="button"
-                aria-current={selected || undefined}
-                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
-                data-layer={key}
-                data-drop={mark ? (mark.why ? "refused" : mark.where) : undefined}
-                draggable={at.length > 0}
-                onDragStart={(e) => {
-                  setDragging(at);
-                  setWhy(null);
-                  onSelect(at);
-                  e.dataTransfer.setData("text/plain", "recipe-layer");
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                // a refused drop fires no drop event (the browser cancels it): its reason stays under Layers
-                onDragEnd={() => {
-                  if (drop?.why) setWhy(drop.why);
-                  end();
-                }}
-                onDragOver={(e) => {
-                  if (!dragging) return;
-                  e.preventDefault();
-                  const { where, why: refused } = placeOn(e, at, block);
-                  e.dataTransfer.dropEffect = refused ? "none" : "move";
-                  setDrop({ at: key, where, depth: where === "inside" ? depth + 1 : depth, why: refused });
-                }}
-                onDrop={(e) => {
-                  if (!dragging) return;
-                  e.preventDefault();
-                  const { place, why: refused } = placeOn(e, at, block);
-                  const from = dragging;
-                  end();
-                  if (refused) setWhy(refused);
-                  else onMove(from, place.toParent, place.index);
-                }}
-                onClick={() => onSelect(at)}
-                onKeyDown={(e) => {
-                  if ((e.key === "Delete" || e.key === "Backspace") && at.length) {
-                    e.preventDefault();
-                    onRemove(at);
-                  }
-                  if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-                    e.preventDefault();
-                    setWhy(null);
-                    onStep(at, e.key === "ArrowUp" ? -1 : 1);
-                  }
-                  if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
-                    e.preventDefault();
-                    const to = keyMove(recipe, at, e.key === "ArrowLeft" ? "out" : "in");
-                    setWhy("why" in to ? to.why : null);
-                    if (!("why" in to)) onMove(at, to.toParent, to.index);
-                  }
-                }}
-                className={cn(
-                  "flex h-[34px] w-full items-center gap-2.5 rounded-ui-md pr-2 text-left text-body focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
-                  selected ? "bg-ui-active text-ui-1" : "text-ui-2 hover:bg-ui-raised hover:text-ui-1",
-                  mark?.where === "inside" && (mark.why ? "outline outline-1 -outline-offset-1 outline-ui-warn" : "outline outline-1 -outline-offset-1 outline-ui-accent"),
-                  dragging?.join(".") === key && "opacity-50",
-                )}
-                style={{ paddingLeft: indentOf(depth) }}
-              >
-                <span className={cn("shrink-0", selected ? "text-ui-accent-icon" : "text-ui-3")}>
-                  <BlockIcon block={block} className="h-3.5 w-3.5" />
-                </span>
-                <span className="min-w-0 flex-1 truncate">{layerName(recipe, block)}</span>
-                {isBound(block) && <Link2 className="h-3.5 w-3.5 shrink-0 text-ui-hint" strokeWidth={1.5} aria-label="Bound to data" />}
-              </button>
-              {mark && mark.where !== "inside" && (
-                <span aria-hidden className={cn("pointer-events-none absolute right-0 z-10 h-[2px]", mark.why ? "bg-ui-warn" : "bg-ui-accent", mark.where === "above" ? "-top-px" : "-bottom-px")} style={{ left: indentOf(mark.depth) }} />
-              )}
-              {mark?.why && (
-                <span data-drop-why="" className={cn("pointer-events-none absolute right-1 z-20 max-w-[200px] rounded-[4px] border border-ui-warn bg-ui-panel px-1.5 py-0.5 text-micro leading-tight text-ui-warn", mark.where === "above" ? "bottom-full mb-0.5" : "top-full mt-0.5")}>
-                  {mark.why}
-                </span>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {why && (
-        <p role="status" data-move-why="" className="mt-1 px-2 text-micro leading-snug text-ui-warn">
-          {why}
-        </p>
-      )}
-    </>
-  );
 }
 
 /** The selected block's box on the stage, in the zone's own px, with its name over it. */
@@ -253,6 +124,41 @@ function Selection({ zone, path, recipe, tick }: { zone: HTMLElement | null; pat
   );
 }
 
+/** Where a tile dragged over the stage lands (G12): into a container at its end, or before or after a block in its parent. */
+interface StageDrop {
+  key: string;
+  where: "inside" | "before" | "after";
+  /** The block's parent lays its blocks out side by side (the mark is a line at its left or right). */
+  across: boolean;
+  toParent: number[];
+  index: number;
+  /** "into Row", "after Ring". */
+  text: string;
+  why?: string;
+}
+
+/** The stage's drop mark: an outline on the container a tile goes into, else a line on the side of the block it goes by. */
+function DropMark({ zone, drop, tick }: { zone: HTMLElement | null; drop: StageDrop; tick: unknown }) {
+  const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = drop.key ? zone?.querySelector<HTMLElement>(`[data-recipe-path="${drop.key}"]`) : zone?.querySelector<HTMLElement>("[data-part='card']");
+    if (!zone || !el) return setBox(null);
+    const z = zone.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const scale = z.width / zone.offsetWidth || 1;
+    setBox({ x: (r.left - z.left) / scale, y: (r.top - z.top) / scale, w: r.width / scale, h: r.height / scale });
+  }, [zone, drop.key, tick]);
+  if (!box) return null;
+  const tone = drop.why ? "border-ui-warn" : "border-ui-accent";
+  const line = drop.where === "inside" ? null : drop.across ? { left: drop.where === "before" ? -2 : box.w, top: 0, width: 2, height: box.h } : { left: 0, top: drop.where === "before" ? -2 : box.h, width: box.w, height: 2 };
+  return (
+    <div data-stage-drop={drop.why ? "refused" : drop.where} className="pointer-events-none absolute z-20" style={{ left: box.x, top: box.y, width: box.w, height: box.h }}>
+      {line ? <div className={cn("absolute", drop.why ? "bg-ui-warn" : "bg-ui-accent")} style={line} /> : <div className={cn("h-full w-full rounded-[6px] border-2 border-dashed", tone)} />}
+      <span className={cn("absolute left-0 top-full mt-1 whitespace-nowrap rounded-[4px] px-1.5 py-0.5 font-ui text-[11px] font-medium", drop.why ? "border border-ui-warn bg-ui-panel text-ui-warn" : "bg-ui-accent text-white")}>{drop.why ?? `Add ${drop.text}`}</span>
+    </div>
+  );
+}
+
 export function Builder(p: BuilderProps) {
   const present = p.active.history.present;
   // a field's draft while it is typed (G5): drawn on the stage and in the inspector, no undo step until it commits
@@ -261,11 +167,11 @@ export function Builder(p: BuilderProps) {
   useEffect(() => setPreview(null), [present]);
   const previewing = useRef(false);
   /** Every edit of the recipe, with the format its keys need: one undo step, or while a field is typed its preview. */
-  const edit = (r: Recipe, images?: PackageFile[]) => {
+  const edit = (r: Recipe, images?: PackageFile[], amend?: boolean) => {
     const next = withFormat(r);
     if (previewing.current) return setPreview(next);
     setPreview(null);
-    p.onEdit(next, images);
+    p.onEdit(next, images, amend);
   };
   const typing = useMemo<Typing>(
     () => ({
@@ -281,7 +187,17 @@ export function Builder(p: BuilderProps) {
     }),
     [],
   );
-  const [path, setPath] = useState<number[]>([]);
+  // the selection (G11): the primary block (the Block tab's) and the others picked with Ctrl or Shift in Layers
+  const [path, setPrimary] = useState<number[]>([]);
+  const [also, setAlso] = useState<number[][]>([]);
+  const anchor = useRef<number[]>([]);
+  /** Selects `paths`, the primary the last unless named. */
+  const setSelection = (paths: readonly number[][], primary: number[] = paths[paths.length - 1] ?? []) => {
+    setPrimary(primary);
+    setAlso(paths.filter((x) => x.join(".") !== primary.join(".")));
+    anchor.current = primary;
+  };
+  const setPath = (at: number[]) => setSelection([at]);
   const [tab, setTab] = useState<Tab>("block");
   const [size, setSize] = useState<Cells>(recipe.size.default);
   const [live, setLive] = useState(true);
@@ -336,54 +252,233 @@ export function Builder(p: BuilderProps) {
   // the stage shows the picked preset (its values change in the Presets tab), else the options' defaults
   const shownValues = presetValues(recipe, recipe.presets.find((x) => x.id === preset));
 
-  // Ctrl+Z / Ctrl+Shift+Z (Ctrl+Y) outside a text field
-  const keys = useRef<BuilderProps & { duplicate?: () => void }>(p);
-  keys.current = { ...p, duplicate: keys.current.duplicate };
+  const selected = [...also.filter((x) => blockAt(recipe, x)), path];
+  const keyOf = (x: Path) => x.join(".");
+  /** A pick in Layers: that row only, added or taken away (Ctrl), or a range from the last pick (Shift). */
+  const select = (at: number[], how: SelectHow) => {
+    setTab("block");
+    if (how === "only") return setPath(at);
+    if (how === "range") {
+      const rows = rangeOf(flatten(recipe).map((r) => keyOf(r.path)), keyOf(anchor.current), keyOf(at));
+      setPrimary(at);
+      return setAlso(rows.filter((x) => keyOf(x) !== keyOf(at)));
+    }
+    const on = selected.some((x) => keyOf(x) === keyOf(at));
+    const rest = selected.filter((x) => keyOf(x) !== keyOf(at));
+    if (on && rest.length) return setSelection(rest);
+    setSelection([...rest, at]);
+  };
+  // each block's problems, for Layers' warning dots
+  const problemMap = new Map<string, string[]>();
+  for (const x of problems) if (x.path) problemMap.set(keyOf(x.path), [...(problemMap.get(keyOf(x.path)) ?? []), x.text]);
+
+  // what the builder says to a screen reader (moves, pastes, a save), and a refusal's reason under Layers (a status of its own)
+  const [said, setSaid] = useState("");
+  const say = (text: string) => setSaid((s) => (s === text ? `${text} ` : text));
+  const [why, setWhy] = useState<string | null>(null);
+  useEffect(() => setWhy(null), [p.active.key]);
+  const [canPaste, setCanPaste] = useState(() => clipboard() !== null);
+  const [tile, setTile] = useState<BlockType | null>(null);
+
+  // after a command by keyboard the block it left selected keeps the focus in Layers, at its new place
+  const [focusTick, setFocusTick] = useState(0);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (!(e.ctrlKey || e.metaKey) || t?.closest("input, textarea, select, [contenteditable]")) return;
-      const k = e.key.toLowerCase();
-      if (k === "z" && !e.shiftKey) keys.current.onUndo();
-      else if (k === "d") keys.current.duplicate?.();
-      else if ((k === "z" && e.shiftKey) || k === "y") keys.current.onRedo();
-      else return;
-      e.preventDefault();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    if (focusTick) document.querySelector<HTMLElement>(`[data-layer="${keyOf(path)}"]`)?.focus();
+  }, [focusTick]);
+  const refocus = () => setFocusTick((n) => n + 1);
 
   const firstSensor = Object.keys(live ? liveData : sampleData).find((k) => k.endsWith("_cpu_total")) ?? Object.keys(liveData)[0] ?? "libre.cpu_total";
-  const add = (type: (typeof ADD_ORDER)[number]) => {
+  const add = (type: (typeof ADD_ORDER)[number], byKey: boolean) => {
     const r = addBlock(recipe, path, type, firstSensor);
     edit(r.recipe);
     setPath(r.path);
     setTab("block");
+    say(`Added ${BLOCK_LABEL[type]}`);
+    if (byKey) refocus();
   };
-  const remove = (at: number[]) => {
-    const r = removeBlock(recipe, at);
+  /** A tile dropped on Layers or the stage: the new block at that place, unless the validator would refuse it there. */
+  const addAt = (type: BlockType, toParent: number[], index: number, where: string) => {
+    const refused = addRefusal(recipe, type, toParent);
+    if (refused) return refuse(refused);
+    const r = addBlockAt(recipe, toParent, index, type, firstSensor);
     edit(r.recipe);
     setPath(r.path);
+    setTab("block");
+    say(`Added ${BLOCK_LABEL[type]} ${where}`);
   };
-  const duplicate = (at: number[]) => {
-    const r = duplicateBlock(recipe, at);
-    edit(r.recipe);
-    setPath(r.path);
-  };
-  keys.current.duplicate = () => path.length > 0 && duplicate(path);
-  // after a move by keyboard the moved row keeps the focus, at its new place
-  const refocus = useRef(false);
-  useEffect(() => {
-    if (!refocus.current) return;
-    refocus.current = false;
-    document.querySelector<HTMLElement>(`[data-layer="${path.join(".")}"]`)?.focus();
-  }, [path]);
-  const moved = (r: { recipe: Recipe; path: number[] }) => {
+  const moved = (r: { recipe: Recipe; path: number[] }, text: string) => {
     if (r.recipe !== recipe) edit(r.recipe);
-    refocus.current = true;
     setPath(r.path);
+    refocus();
+    if (r.recipe !== recipe) say(text);
   };
+  const nameAt = (at: Path) => {
+    const b = blockAt(recipe, at);
+    return b ? layerName(recipe, b) : "the block";
+  };
+  const what = (list: readonly Path[]) => (list.length === 1 ? nameAt(list[0]) : `${list.length} blocks`);
+  function refuse(text: string) {
+    setWhy(text);
+    say(text);
+  }
+  /** A layer command on the row `at`: the whole selection when `at` is in it, else that block. */
+  const run = (cmd: LayerCommand, at: number[]) => {
+    setWhy(null);
+    const list = topLevel(selected.some((x) => keyOf(x) === keyOf(at)) ? selected : [at]);
+    switch (cmd) {
+      case "delete": {
+        if (!list.length) return;
+        const r = removeBlocks(recipe, list);
+        edit(r.recipe);
+        setPath(r.path);
+        refocus();
+        return say(`Deleted ${what(list)}`);
+      }
+      case "duplicate": {
+        if (!list.length) return;
+        const r = duplicateBlocks(recipe, list);
+        edit(r.recipe);
+        setSelection(r.paths);
+        refocus();
+        return say(`Duplicated ${what(list)}`);
+      }
+      case "copy":
+      case "cut": {
+        const clip = copyOf(recipe, list, p.active.images, p.active.key);
+        if (!clip) return;
+        setCanPaste(true);
+        if (cmd === "copy") {
+          setClipboard(clip);
+          return say(`Copied ${what(list)}`);
+        }
+        const r = removeBlocks(recipe, list);
+        const after = withFormat(r.recipe);
+        setClipboard({ ...clip, cut: after });
+        edit(after);
+        setPath(r.path);
+        refocus();
+        return say(`Cut ${what(list)}`);
+      }
+      case "paste": {
+        const clip = clipboard();
+        if (!clip) return refuse("Nothing to paste: copy or cut a block first");
+        const r = pasteBlocks(recipe, at, clip, p.active.images);
+        if ("why" in r) return refuse(r.why);
+        // a paste right after a cut in the same recipe is a move: one undo step with the cut
+        const amend = !!clip.cut && clip.cut === present && clip.from === p.active.key;
+        if (clip.cut) setClipboard({ ...clip, cut: undefined });
+        edit(r.recipe, r.images, amend);
+        setSelection(r.paths);
+        refocus();
+        const into = blockAt(r.recipe, r.paths[0].slice(0, -1));
+        const added = r.added.length ? `; added the option${r.added.length === 1 ? "" : "s"} ${r.added.join(", ")}` : "";
+        return say(`Pasted ${clip.blocks.length === 1 ? layerName(r.recipe, clip.blocks[0]) : `${clip.blocks.length} blocks`} into ${into ? layerName(r.recipe, into) : "the card"}${added}`);
+      }
+      case "wrap": {
+        const r = wrapInRow(recipe, list);
+        if ("why" in r) return refuse(r.why);
+        edit(r.recipe);
+        setPath(r.path);
+        refocus();
+        return say(`Wrapped ${what(list)} in a row`);
+      }
+      case "up":
+      case "down":
+        if (!at.length) return;
+        return moved(stepBlock(recipe, at, cmd === "up" ? -1 : 1), `Moved ${nameAt(at)} ${cmd}`);
+      case "out":
+      case "in": {
+        const to = keyMove(recipe, at, cmd);
+        if ("why" in to) return refuse(to.why);
+        return moved(moveBlock(recipe, at, to.toParent, to.index), `Moved ${nameAt(at)} ${cmd === "out" ? "out of" : "into"} ${nameAt(cmd === "out" ? at.slice(0, -1) : to.toParent)}`);
+      }
+    }
+  };
+  /** Rows dropped in Layers (`moveBlocks`). */
+  const drop = (from: number[][], toParent: number[], index: number) => {
+    const r = moveBlocks(recipe, from, toParent, index);
+    if ("why" in r) return refuse(r.why);
+    if (r.recipe === recipe) return;
+    edit(r.recipe);
+    setSelection(r.paths);
+    say(`Moved ${what(from)} into ${nameAt(toParent)}`);
+  };
+  /** Renamed in Layers (F2, double-click, the menu): its name in Layers; emptied, the type's name again. */
+  const rename = (at: number[], text: string) => {
+    const b = blockAt(recipe, at);
+    if (!b || !at.length || text === (b.name ?? (b.type === "repeat" ? "Repeat" : layerName(recipe, b)))) return;
+    edit(updateBlock(recipe, at, { name: text ? text.slice(0, 40) : undefined }));
+    say(text ? `Renamed to ${text}` : "Name cleared");
+  };
+
+  /** Ctrl+S: as the Save button (Save as a copy for a signed recipe), or why not. */
+  const saveNow = () => {
+    if (p.saving) return;
+    if (!line.ok) return say(`Not saved: ${first}`);
+    if (chip.text === "Recipe · saved") return say("Saved already");
+    (p.onSaveCopy ?? p.onSave)();
+  };
+  // The builder's keys, taken before the studio's on the window (whose Ctrl+S saves the screen in Edit and whose Ctrl+Z undid the
+  // screen's last edit as well, B17): Ctrl+S, undo and redo, and the layer commands on the selection outside a text field.
+  const keys = useRef({ p, run, saveNow, path });
+  keys.current = { p, run, saveNow, path };
+  useEffect(() => {
+    const COMMAND: Readonly<Record<string, LayerCommand>> = { d: "duplicate", c: "copy", x: "cut", v: "paste", g: "wrap" };
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.isComposing) return;
+      const k = e.key.toLowerCase();
+      const overlay = document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
+      if (k === "s" && !e.shiftKey) {
+        // never the browser's Save page dialog, nor the studio's save of the screen; a field being typed commits (on blur) first
+        e.preventDefault();
+        if (overlay) return;
+        const el = document.activeElement;
+        if (el instanceof HTMLElement && el.matches("input, textarea, select")) {
+          el.blur();
+          setTimeout(() => keys.current.saveNow(), 0);
+        } else keys.current.saveNow();
+        return;
+      }
+      const t = e.target as HTMLElement | null;
+      if (overlay || t?.closest("input, textarea, select, [contenteditable]")) return;
+      if (k === "z" && !e.shiftKey) keys.current.p.onUndo();
+      else if ((k === "z" && e.shiftKey) || k === "y") keys.current.p.onRedo();
+      else if (COMMAND[k] && !e.shiftKey) {
+        // text selected on the page copies as the browser's
+        if ((k === "c" || k === "x") && window.getSelection()?.toString()) return;
+        keys.current.run(COMMAND[k], keys.current.path);
+      } else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
+  // a tile dragged over the stage: where it would land, or why not (kept under Layers when the drag ends there)
+  const [stageDrop, setStageDrop] = useState<StageDrop | null>(null);
+  const stageWhy = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (tile) return;
+    if (stageWhy.current) setWhy(stageWhy.current);
+    stageWhy.current = undefined;
+    setStageDrop(null);
+  }, [tile]);
+  const stageTarget = (e: DragEvent): StageDrop | null => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>("[data-recipe-path]");
+    if (!tile || (!el && !(e.target as HTMLElement).closest("[data-recipe-zone]"))) return null;
+    const at = el ? el.dataset.recipePath!.split(".").map(Number) : [];
+    const b = blockAt(recipe, at);
+    if (!b) return null;
+    const across = !!el?.parentElement && getComputedStyle(el.parentElement).flexDirection === "row";
+    const r = el?.getBoundingClientRect();
+    const f = r ? (across ? (e.clientX - r.left) / (r.width || 1) : (e.clientY - r.top) / (r.height || 1)) : 1;
+    const where = "children" in b ? "inside" : f < 0.5 ? "before" : "after";
+    const toParent = where === "inside" ? at : at.slice(0, -1);
+    const index = "children" in b ? b.children.length : at[at.length - 1] + (where === "after" ? 1 : 0);
+    const name = layerName(recipe, b);
+    return { key: keyOf(at), where, across, toParent, index, text: where === "inside" ? `into ${name}` : `${where} ${name}`, why: addRefusal(recipe, tile, toParent) };
+  };
+
   const pickPreset = (id: string) => {
     const x = recipe.presets.find((q) => q.id === id);
     setPreset(id);
@@ -429,7 +524,15 @@ export function Builder(p: BuilderProps) {
         <StatusChip tone={chip.tone} dot={false} className="border border-ui-strong bg-transparent">
           {chip.text}
         </StatusChip>
+        {p.active.stored && chip.text === "Unsaved changes" && (
+          <Button variant="ghost" small icon={<RotateCcw strokeWidth={1.5} />} onClick={p.onDiscard} title={`Back to the saved ${p.active.stored.version}`}>
+            Discard changes
+          </Button>
+        )}
         {p.drafts.length > 1 && <Segmented label="Open recipes" size="bar" value={p.active.key} options={p.drafts.map((d) => ({ value: d.key, label: d.history.present.name.split(" · ")[0] }))} onChange={p.onActive} />}
+        <IconButton label={`Close ${recipe.name}`} size={32} onClick={p.onClose}>
+          <X className="h-4 w-4" />
+        </IconButton>
         <BarFill />
         <IconButton label="Undo (Ctrl+Z)" size={32} disabled={!p.active.history.past.length} onClick={p.onUndo}>
           <Undo2 className="h-4 w-4" />
@@ -454,20 +557,51 @@ export function Builder(p: BuilderProps) {
           Add to a screen
         </Button>
       </PageBar>
+      {p.prompt}
+      <p aria-live="polite" aria-atomic="true" data-announce="" className="sr-only">
+        {said}
+      </p>
       <div className="flex min-h-0 flex-1">
         <aside aria-label="Layers and blocks" className="flex w-[256px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-chrome p-3">
           <div>
             <h2 className="mb-2 px-2 text-caption text-ui-3">Layers</h2>
-            <Layers recipe={recipe} path={path} onSelect={(at) => (setPath(at), setTab("block"))} onRemove={remove} onStep={(at, by) => moved(stepBlock(recipe, at, by))} onMove={(from, to, index) => moved(moveBlock(recipe, from, to, index))} />
+            <Layers
+              recipe={recipe}
+              path={path}
+              selected={selected}
+              problems={problemMap}
+              tile={tile}
+              canPaste={canPaste}
+              onSelect={select}
+              onRename={rename}
+              onCommand={run}
+              onMove={drop}
+              onAdd={(type, toParent, index) => addAt(type, toParent, index, `into ${nameAt(toParent)}`)}
+              onWhy={setWhy}
+            />
+            {why && (
+              <p role="status" data-move-why="" className="mt-1 px-2 text-micro leading-snug text-ui-warn">
+                {why}
+              </p>
+            )}
           </div>
           <div>
             <h2 className="mb-2 px-2 text-caption text-ui-3">Add a block</h2>
+            <p className="mb-2 px-2 text-micro text-ui-3">Click to add by the selection, or drag onto Layers or the widget</p>
             <div className="grid grid-cols-3 gap-1.5">
               {ADD_ORDER.map((type) => (
                 <button
                   key={type}
                   type="button"
-                  onClick={() => add(type)}
+                  draggable
+                  onClick={(e) => add(type, e.detail === 0)}
+                  onDragStart={(e) => {
+                    setTile(type);
+                    setWhy(null);
+                    e.dataTransfer.setData("text/plain", `recipe-block:${type}`);
+                    e.dataTransfer.effectAllowed = "copy";
+                  }}
+                  onDragEnd={() => setTile(null)}
                   data-add-block={type}
                   className="flex h-[60px] flex-col items-center justify-center gap-1.5 rounded-ui-md border border-ui-subtle bg-ui-panel text-micro text-ui-2 hover:border-ui-strong hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
                 >
@@ -504,6 +638,29 @@ export function Builder(p: BuilderProps) {
                 setTab("block");
               } else if ((e.target as HTMLElement).closest("[data-recipe-zone]")) setPath([]);
             }}
+            // a tile from "Add a block" dropped onto the widget (G12)
+            onDragOver={(e) => {
+              const d = stageTarget(e);
+              stageWhy.current = d?.why;
+              setStageDrop(d);
+              if (!d) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = d.why ? "none" : "copy";
+            }}
+            onDragLeave={(e) => {
+              // left for good: to a place outside (a drag's leave often names no place: then only the box's own leave counts)
+              if (e.relatedTarget ? e.currentTarget.contains(e.relatedTarget as Node) : e.target !== e.currentTarget) return;
+              stageWhy.current = undefined;
+              setStageDrop(null);
+            }}
+            onDrop={(e) => {
+              const d = stageTarget(e);
+              stageWhy.current = undefined;
+              setStageDrop(null);
+              if (!d || !tile) return;
+              e.preventDefault();
+              addAt(tile, d.toParent, d.index, d.text);
+            }}
             className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-ui-lg border border-ui-subtle"
             style={{ backgroundImage: "radial-gradient(color-mix(in oklab, var(--ui-text-hint) 30%, transparent) 1px, transparent 1px)", backgroundSize: "16px 16px" }}
           >
@@ -519,7 +676,12 @@ export function Builder(p: BuilderProps) {
                 lookId={lookId}
                 fit={{ w: Math.max(100, stageBox.w - 96), h: Math.max(80, stageBox.h - 96) }}
                 maxScale={Math.min(1.6, 560 / w, 420 / h) > 1 ? Math.min(1.6, 560 / w, 420 / h) : 1}
-                overlay={<Selection zone={zoneHost.current?.querySelector<HTMLElement>("[data-recipe-zone]") ?? null} path={path} recipe={recipe} tick={[recipe, size, live, lookId, preset, stageBox, data]} />}
+                overlay={
+                  <>
+                    <Selection zone={zoneHost.current?.querySelector<HTMLElement>("[data-recipe-zone]") ?? null} path={path} recipe={recipe} tick={[recipe, size, live, lookId, preset, stageBox, data]} />
+                    {stageDrop && <DropMark zone={zoneHost.current?.querySelector<HTMLElement>("[data-recipe-zone]") ?? null} drop={stageDrop} tick={[recipe, size, stageBox]} />}
+                  </>
+                }
               />
             </div>
           </div>
@@ -560,8 +722,13 @@ export function Builder(p: BuilderProps) {
               { value: "presets", label: "Presets" },
             ]}
           />
+          {tab === "block" && selected.length > 1 && (
+            <p data-multi="" className="mx-4 mt-3 rounded-ui-md bg-ui-raised px-3 py-2 text-caption text-ui-2">
+              {selected.length} blocks selected: Delete, Duplicate, Copy, Cut and Wrap in a row act on all. The settings below are {layerName(recipe, blockAt(recipe, path) ?? recipe.root)}'s.
+            </p>
+          )}
           <TypingContext.Provider value={typing}>
-            {tab === "block" && <BlockTab recipe={recipe} path={path} onChange={(r) => edit(r)} onRemove={() => remove(path)} onDuplicate={() => duplicate(path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} />}
+            {tab === "block" && <BlockTab recipe={recipe} path={path} onChange={(r) => edit(r)} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} />}
             {tab === "options" && <OptionsTab recipe={recipe} onChange={(r) => edit(r)} data={{ ...sampleData, ...liveData }} />}
             {tab === "presets" && <PresetsTab recipe={recipe} onChange={(r) => edit(r)} current={preset} onPick={pickPreset} values={shownValues} size={size} />}
           </TypingContext.Provider>
