@@ -51,6 +51,8 @@ In **Block**, bind a block to a sensor, choose its colour (the accent, a series 
 
 A **Value** or a **Ring** can **Show in** another unit of its reading's kind: a clock in GHz rather than MHz, bytes in GB, a speed in MB/s, °F rather than °C, W in kW. Its decimals, a ring's range and its warning levels are in the unit shown. A Value's **Align** is **Spread** (label at the start, value at the end), **Start**, **Centre** or **End**, and a Label's is Start, Centre or End. A ring's **Centre colour** is **Text** or **Muted**.
 
+A Value and a Label have a **Weight** (**Regular**, **Medium** or **Semibold**, in the Look's font) and a **Case** (**As typed** or **UPPER**; a Value's unit keeps its case). **Opacity** (100, 80, 60 or 40 %) softens a block beside its colour: a ring's arc, a bar, a sparkline or heatmap cells take the step as it is, while text is never drawn under a 4.5:1 contrast on its card, so a step too faint for the Look is raised and the inspector says so. A **Card** inside the widget has a **Surface** (**None**, **Track** or **Raised**) and a **Padding** (**None**, **S**, **M** or **L**), the widget's own card a **Spacing** between its blocks (**Tight**, **Normal** or **Roomy**), a **Gauge** a **Sweep** (180°, 240° or 270°) and a **Bar** a **Height** (**S**, **M** or **L**).
+
 Colour by thresholds has a **Direction**. **High is bad** turns the colour as the reading rises, past the warning level and then the critical one. **Low is bad** turns it as the reading falls, for a battery or free space, so the warning level is the higher one. The line under the levels says the order in words, and a warning level past the critical one is listed as a problem.
 
 The widget's card (the top row in **Layers**) also holds its **Header icon** and its **Details**: the **Description** shown under its name on the Widgets page, a **Category**, the **Author**, the **Version** (each save raises it; the next one is shown) and its **Icon**, which its card on the Widgets page shows.
@@ -67,7 +69,7 @@ Type the widget's name at the top. **Undo** and **Redo** (`Ctrl+Z`, `Ctrl+Shift+
 
 **Discard changes**, next to the saved state, takes the recipe back to its saved version (**Undo** brings the changes back). The **×** after the recipe's name closes it; with unsaved changes it asks first. Recipes left open with unsaved changes are listed on the Widgets page, each with **Discard**.
 
-A recipe with a label of parts, or with any of **Align** on a Value or Label, a Value's **Muted** colour, **Centre colour**, **Show in** or **Low is bad**, is saved as a newer recipe format, which an older Studio cannot draw (it shows "Widget not available"); recipes without them draw everywhere.
+A recipe with a label of parts, or with any of **Align** on a Value or Label, a Value's **Muted** colour, **Centre colour**, **Show in**, **Low is bad**, **Weight**, **Case**, **Opacity**, a card's **Surface**, **Padding** or **Spacing**, a gauge's **Sweep** or a bar's **Height**, is saved as a newer recipe format, which an older Studio cannot draw (it shows "Widget not available"); recipes without them draw everywhere.
 
 ## Weather by place
 
