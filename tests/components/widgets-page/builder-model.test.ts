@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addBlock, addBlockAt, addOption, addRefusal, blockAt, blockCount, devicesIn, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, stepBlock, topLevel, unpickBinding, updateBlock, validationLine, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
+import { addBlock, addBlockAt, addOption, addRefusal, blockAt, blockCount, clampCells, devicesIn, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, stepBlock, topLevel, unpickBinding, updateBlock, validationLine, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
 import { amend, commit, historyOf, HISTORY_LIMIT, redo, undo } from "@/components/widgets-page/history";
 import { NO_START, START, whyNoStart } from "@/components/widgets-page/start-points";
 import { WIDGET_ORDER } from "@/widgets/order";
@@ -483,5 +483,48 @@ describe("undo of a cut and its paste (Phase B1, G10)", () => {
     expect(h).toEqual({ past: [1], present: 3, future: [] });
     expect(undo(h).present).toBe(1);
     expect(amend(h, 3)).toBe(h);
+  });
+});
+
+describe("Phase B2", () => {
+  it("Replace sensor swaps one key everywhere it is read, a sensor option's default too, and lists what changed (G16)", () => {
+    const key = `libre.${CPU}_cpu_total`;
+    const card = cpuCard();
+    const withOption = addOption(card, { key: "watch", label: "Watched", type: "sensor", default: key });
+    const r = replaceSensor(withOption, key, "libre.gpu_load");
+    expect(r.changed).toEqual(["Ring", "Sparkline", "Option “Watched”"]);
+    expect(blockAt(r.recipe, [0, 0])).toMatchObject({ bind: { sensor: "libre.gpu_load" } });
+    expect(blockAt(r.recipe, [1])).toMatchObject({ bind: { sensor: "libre.gpu_load" } });
+    // a key no block reads, and the same key, change nothing
+    expect(blockAt(r.recipe, [0, 1, 0])).toMatchObject({ bind: { sensor: `libre.${CPU}_core__tctl_tdie` } });
+    expect(r.recipe.options[0].default).toBe("libre.gpu_load");
+    expect(replaceSensor(card, "libre.none", "libre.gpu_load")).toEqual({ recipe: card, changed: [] });
+    expect(replaceSensor(card, key, key).recipe).toBe(card);
+    // a templated key swaps as it is written
+    const picked = pickBinding(card, [0, 0], DEVICES);
+    const t = replaceSensor(picked, "libre.{cpu}_cpu_total", "libre.{cpu}_package");
+    expect(t.changed).toEqual(["Ring", "Sparkline"]);
+    expect(errorsOf(t.recipe)).toEqual([]);
+  });
+
+  it("the stage's size is clamped to the recipe's range, whole cells (G17)", () => {
+    const r = newRecipe("Any size", new Set());
+    expect(r.size).toMatchObject({ min: [2, 2], max: [4, 3] });
+    expect(clampCells(r, [3, 3])).toEqual([3, 3]);
+    expect(clampCells(r, [9, 1])).toEqual([4, 2]);
+    expect(clampCells(r, [2.6, Number.NaN])).toEqual([3, 2]);
+  });
+
+  it("the Sample before a save fills the keys the sample lacks from the live readings, and keeps its own (G18)", () => {
+    const key = `libre.${CPU}_cpu_total`;
+    const temp = `libre.${CPU}_core__tctl_tdie`;
+    const fresh = cpuCard();
+    expect(fresh.sample.sensors).toEqual({});
+    expect(draftSample(fresh, DATA).sample.sensors).toEqual({ [key]: "64.2 %", [temp]: "67.5 °C" });
+    // a saved sample stays as it was saved; a key bound since comes from the live readings
+    const saved = { ...fresh, sample: { sensors: { [key]: "12 %" } } };
+    expect(draftSample(saved, DATA).sample.sensors).toEqual({ [key]: "12 %", [temp]: "67.5 °C" });
+    // nothing live: nothing made up
+    expect(draftSample(fresh, {}).sample.sensors).toEqual({});
   });
 });
