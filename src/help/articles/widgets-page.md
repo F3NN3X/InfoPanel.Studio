@@ -47,7 +47,11 @@ To move a block, drag its row in **Layers** onto the middle of a Row, Card or Re
 
 With the keyboard, **↑** and **↓** move through **Layers**, **Home** and **End** go to the first and last row, **→** and **←** open and close a Row, Card or Repeat, typing a name's first letters jumps to it, **Enter** selects and **Esc** goes back to the card.
 
-In **Block**, bind a block to a sensor, choose its colour (the accent, a series or by thresholds), and set when it shows (always, or when an option has a value) and the smallest size it is drawn at. **Let people pick** turns a binding into an option, so the person adding the widget chooses the sensor or the device (a CPU, GPU, drive or adapter, **Auto** by default). **Replace sensor…** under a block's data swaps that reading for another wherever the recipe reads it, in one step, and lists the blocks it changed. A **Row** has **Align**: **Start**, **Centre**, **End** or **Stretch**, where each block sits across the row. **Opens at** is also the size the widget is added at.
+In **Block**, bind a block to a sensor, choose its colour (the accent, a series or by thresholds; a Value's number is the **Text** colour unless you pick another, and can be **Muted**), and set when it shows (always, or when an option has a value) and the smallest size it is drawn at. **Let people pick** turns a binding into an option, so the person adding the widget chooses the sensor or the device (a CPU, GPU, drive or adapter, **Auto** by default). **Replace sensor…** under a block's data swaps that reading for another wherever the recipe reads it, in one step, and lists the blocks it changed. A **Row** has **Align**: **Start**, **Centre**, **End** or **Stretch**, where each block sits across the row. **Opens at** is also the size the widget is added at.
+
+A **Value** or a **Ring** can **Show in** another unit of its reading's kind: a clock in GHz rather than MHz, bytes in GB, a speed in MB/s, °F rather than °C, W in kW. Its decimals, a ring's range and its warning levels are in the unit shown. A Value's **Align** is **Spread** (label at the start, value at the end), **Start**, **Centre** or **End**, and a Label's is Start, Centre or End. A ring's **Centre colour** is **Text** or **Muted**.
+
+Colour by thresholds has a **Direction**. **High is bad** turns the colour as the reading rises, past the warning level and then the critical one. **Low is bad** turns it as the reading falls, for a battery or free space, so the warning level is the higher one. The line under the levels says the order in words, and a warning level past the critical one is listed as a problem.
 
 The widget's card (the top row in **Layers**) also holds its **Header icon** and its **Details**: the **Description** shown under its name on the Widgets page, a **Category**, the **Author**, the **Version** (each save raises it; the next one is shown) and its **Icon**, which its card on the Widgets page shows.
 
@@ -59,7 +63,7 @@ Type the widget's name at the top. **Undo** and **Redo** (`Ctrl+Z`, `Ctrl+Shift+
 
 **Discard changes**, next to the saved state, takes the recipe back to its saved version (**Undo** brings the changes back). The **×** after the recipe's name closes it; with unsaved changes it asks first. Recipes left open with unsaved changes are listed on the Widgets page, each with **Discard**.
 
-A recipe with a label of parts is saved as a newer recipe format, which an older Studio cannot draw (it shows "Widget not available"); recipes without one draw everywhere.
+A recipe with a label of parts, or with any of **Align** on a Value or Label, a Value's **Muted** colour, **Centre colour**, **Show in** or **Low is bad**, is saved as a newer recipe format, which an older Studio cannot draw (it shows "Widget not available"); recipes without them draw everywhere.
 
 ## Weather by place
 
