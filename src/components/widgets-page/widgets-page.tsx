@@ -36,7 +36,7 @@ import type { PackageFile, Recipe } from "@/widgets/recipe/types";
 import { checkPackage } from "@/widgets/recipe/validate";
 import type { Manifest } from "@/widgets/recipe/types";
 import { toFlat } from "@/widgets/shared/data-adapter";
-import { blockCount, duplicateRecipe, newRecipe, nextVersion, presetValues, recipeIdFor, valueText, withSample } from "./builder-model";
+import { blockCount, duplicateRecipe, newRecipe, nextVersion, packedImages, presetValues, recipeIdFor, valueText, withSample } from "./builder-model";
 import type { Draft } from "./builder";
 import { loadDrafts, saveDrafts } from "./drafts-store";
 import { amend, commit, historyOf, redo, undo } from "./history";
@@ -356,7 +356,7 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
       const rekey = (r: Recipe): Recipe => (r.id === id ? r : { ...r, id });
       const base = withSample(rekey(draft.history.present), liveData);
       const recipe = draft.stored && draft.stored.version === base.version ? { ...base, version: nextVersion(base.version) } : base;
-      const why = await storePackage(await packageOf(recipe, draft.images), "studio");
+      const why = await storePackage(await packageOf(recipe, packedImages(recipe, draft.images)), "studio");
       if (why) {
         toast(`Not saved: ${why}`);
         return undefined;
@@ -377,7 +377,7 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
     setSaving(true);
     try {
       const recipe = withSample(duplicateRecipe(draft.history.present, `${draft.history.present.name} copy`, taken()), liveData);
-      const why = await storePackage(await packageOf(recipe, draft.images), "studio");
+      const why = await storePackage(await packageOf(recipe, packedImages(recipe, draft.images)), "studio");
       if (why) return toast(`Not saved: ${why}`);
       setDrafts((list) => [...list.filter((d) => d.key !== draft.key), { key: recipe.id, history: historyOf(recipe), images: draft.images, stored: recipe }]);
       setActive(recipe.id);
