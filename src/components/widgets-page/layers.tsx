@@ -4,13 +4,17 @@
 // (a 2 px line between rows, an outline on a container's middle) carrying the selection, and a tile from "Add a block" drops the same
 // way; a drop the validator would refuse is refused with its reason at the drop line. Right-click, Shift+F10 or the Menu key opens
 // the layer menu. A row whose block has a problem carries a warning dot.
+// Phase D: an eye and a lock on each row hide a block on the stage and keep a click there from picking it (G25, the editor's only:
+// `editor-flags.ts`), also in the menu and on Ctrl+Shift+H and Ctrl+Shift+L; a "Header" pseudo-row under the card opens its title,
+// sub-title and icon (G37, Q12: no format change).
 import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPaste, Columns3, Copy, CopyPlus, Link2, Pencil, Scissors, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPaste, Columns3, Copy, CopyPlus, Eye, EyeOff, Heading, Link2, Lock, LockOpen, Pencil, Scissors, Trash2 } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import type { Block, BlockType, Recipe } from "@/widgets/recipe/types";
 import { addRefusal, flatten, isBound, layerName, moveRefusal, topLevel, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
+import { flagged } from "./editor-flags";
 
 /** What the layer menu and its keys do to a row (the selection, when the row is in it). */
 export type LayerCommand = "duplicate" | "copy" | "cut" | "paste" | "wrap" | "up" | "down" | "out" | "in" | "delete";
@@ -31,6 +35,10 @@ const isContainer = (b: Block): boolean => "children" in b;
 const kidsOf = (b: Block): readonly Block[] => ("children" in b ? b.children : []);
 /** Whether the row `k` holds the row `p` (the root holds every other). */
 const holds = (k: string, p: string): boolean => (k === "" ? p !== "" : p.startsWith(`${k}.`));
+/** The Header pseudo-row's key in the rows' order (G37): never a block's path, and not a `data-layer` (it is no block). */
+const HEADER = "header";
+/** What the editor alone keeps of a block (G25). */
+export type EditorFlag = "hidden" | "locked";
 
 export interface LayersProps {
   recipe: Recipe;
@@ -53,9 +61,17 @@ export interface LayersProps {
   onAdd: (type: BlockType, toParent: number[], index: number) => void;
   /** A refusal's reason, shown under Layers (null clears it). */
   onWhy: (why: string | null) => void;
+  /** The blocks hidden and locked in the editor, by path (G25). */
+  hidden: readonly string[];
+  locked: readonly string[];
+  /** Hide or lock (`on`) the row `at`, or the selection when it is in it. */
+  onFlag: (flag: EditorFlag, at: number[], on: boolean) => void;
+  /** The Header pseudo-row is the selection (G37). */
+  header: boolean;
+  onHeader: () => void;
 }
 
-export function Layers({ recipe, path, selected, problems, tile, canPaste, onSelect, onRename, onCommand, onMove, onAdd, onWhy }: LayersProps) {
+export function Layers({ recipe, path, selected, problems, tile, canPaste, onSelect, onRename, onCommand, onMove, onAdd, onWhy, hidden: hiddenKeys, locked, onFlag, header, onHeader }: LayersProps) {
   const all = useMemo(() => flatten(recipe), [recipe]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   // a container closed by its path: a change to the tree's shape opens them all again (the paths moved)
@@ -73,8 +89,11 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
   );
   const hidden = (p: number[]) => p.some((_, i) => collapsed.has(keyOf(p.slice(0, i))));
   const rows = all.filter((r) => !hidden(r.path));
-  const visible = rows.map((r) => keyOf(r.path));
-  const chosen = new Set(selected.map(keyOf));
+  // the Header pseudo-row sits right under the card, while the card is open
+  const headerShown = !collapsed.has("");
+  const visible = rows.flatMap((r) => (r.path.length === 0 && headerShown ? ["", HEADER] : [keyOf(r.path)]));
+  const chosen = new Set(header ? [] : selected.map(keyOf));
+  const nameOf = (key: string) => (key === HEADER ? "Header" : layerName(recipe, all.find((r) => keyOf(r.path) === key)!.block));
 
   const [dragging, setDragging] = useState<number[][] | null>(null);
   const [drop, setDrop] = useState<{ at: string; where: Where; depth: number; why?: string } | null>(null);
@@ -110,7 +129,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
     setDrop(null);
   };
   const focusRow = (key: string | undefined) => {
-    if (key !== undefined) listRef.current?.querySelector<HTMLElement>(`[data-layer="${key}"]`)?.focus();
+    if (key !== undefined) listRef.current?.querySelector<HTMLElement>(key === HEADER ? "[data-layer-header]" : `[data-layer="${key}"]`)?.focus();
   };
   const openMenu = (at: number[], x: number, y: number) => {
     if (!chosen.has(keyOf(at))) onSelect(at, "only");
@@ -123,7 +142,8 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
     const key = keyOf(at);
     const k = visible.indexOf(key);
     const plain = !e.altKey && !e.ctrlKey && !e.metaKey;
-    const container = kidsOf(block).length > 0;
+    // the card holds the Header row as well as its blocks
+    const container = kidsOf(block).length > 0 || !at.length;
     const move = ({ ArrowUp: "up", ArrowDown: "down", ArrowLeft: "out", ArrowRight: "in" } as const)[e.key as "ArrowUp"];
     if (e.altKey && !e.ctrlKey && !e.metaKey && move) {
       e.preventDefault();
@@ -133,7 +153,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
       const next = visible[k + (e.key === "ArrowDown" ? 1 : -1)];
       if (next === undefined) return;
       focusRow(next);
-      if (e.shiftKey) onSelect(pathOf(next), "range");
+      if (e.shiftKey && next !== HEADER) onSelect(pathOf(next), "range");
     } else if (plain && !e.shiftKey && (e.key === "Home" || e.key === "End")) {
       e.preventDefault();
       focusRow(e.key === "Home" ? visible[0] : visible[visible.length - 1]);
@@ -151,6 +171,10 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
     } else if (plain && !e.shiftKey && (e.key === "Delete" || e.key === "Backspace")) {
       e.preventDefault();
       if (at.length) onCommand("delete", at);
+    } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && (e.key.toLowerCase() === "h" || e.key.toLowerCase() === "l")) {
+      e.preventDefault();
+      const flag = e.key.toLowerCase() === "h" ? "hidden" : "locked";
+      if (at.length) onFlag(flag, at, !(flag === "hidden" ? hiddenKeys : locked).includes(key));
     } else if (plain && !e.shiftKey && e.key === "F2") {
       e.preventDefault();
       if (at.length) setRenaming(key);
@@ -167,7 +191,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
       const now = Date.now();
       typed.current = { text: (now - typed.current.at < 500 ? typed.current.text : "") + e.key.toLowerCase(), at: now };
       const order = [...visible.slice(k + (typed.current.text.length > 1 ? 0 : 1)), ...visible.slice(0, k + 1)];
-      const hit = order.find((v) => layerName(recipe, all.find((r) => keyOf(r.path) === v)!.block).toLowerCase().startsWith(typed.current.text));
+      const hit = order.find((v) => nameOf(v).toLowerCase().startsWith(typed.current.text));
       if (hit !== undefined) {
         e.preventDefault();
         focusRow(hit);
@@ -180,9 +204,13 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
   const many = topLevel(chosen.has(keyOf(menuAt)) ? selected : [menuAt]).length;
   const root = menuAt.length === 0;
   const entry = (cmd: LayerCommand, label: string, icon: ReactNode, hint: string, disabled = root, danger?: boolean): ContextMenuEntry => ({ id: cmd, label, icon, hint, disabled, danger, onSelect: () => onCommand(cmd, menuAt) });
+  const menuHidden = hiddenKeys.includes(keyOf(menuAt));
+  const menuLocked = locked.includes(keyOf(menuAt));
   const entries: ContextMenuEntry[] = [
     { id: "rename", label: "Rename", icon: <Pencil />, hint: "F2", disabled: root || many > 1, onSelect: () => setRenaming(keyOf(menuAt)) },
     entry("duplicate", "Duplicate", <CopyPlus />, "Ctrl+D"),
+    { id: "hide", label: menuHidden ? "Show on the stage" : "Hide on the stage", icon: menuHidden ? <Eye /> : <EyeOff />, hint: "Ctrl+Shift+H", disabled: root, onSelect: () => onFlag("hidden", menuAt, !menuHidden) },
+    { id: "lock", label: menuLocked ? "Unlock" : "Lock", icon: menuLocked ? <LockOpen /> : <Lock />, hint: "Ctrl+Shift+L", disabled: root, onSelect: () => onFlag("locked", menuAt, !menuLocked) },
     "separator",
     entry("copy", "Copy", <Copy />, "Ctrl+C"),
     entry("cut", "Cut", <Scissors />, "Ctrl+X"),
@@ -196,7 +224,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
     entry("delete", "Delete", <Trash2 />, "Del", root, true),
   ];
 
-  const tabStop = visible.includes(primaryKey) ? primaryKey : visible[0];
+  const tabStop = header && headerShown ? HEADER : visible.includes(primaryKey) ? primaryKey : visible[0];
   const active = !!dragging || !!tile;
   return (
     <>
@@ -211,7 +239,9 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
           const key = keyOf(at);
           const isSelected = chosen.has(key);
           const mark = drop?.at === key ? drop : null;
-          const parent = kidsOf(block).length > 0;
+          const parent = kidsOf(block).length > 0 || !at.length;
+          const isHidden = hiddenKeys.includes(key);
+          const isLocked = locked.includes(key);
           const open = parent && !collapsed.has(key);
           const issues = problems.get(key);
           const name = layerName(recipe, block);
@@ -222,12 +252,14 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
                 tabIndex={key === tabStop ? 0 : -1}
                 aria-level={depth + 1}
                 aria-selected={isSelected}
-                aria-current={key === primaryKey || undefined}
+                aria-current={(key === primaryKey && !header) || undefined}
                 aria-expanded={parent ? open : undefined}
-                aria-keyshortcuts="F2 Shift+F10 Delete Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
+                aria-keyshortcuts="F2 Shift+F10 Delete Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight Control+Shift+H Control+Shift+L"
                 data-layer={key}
+                data-hidden={isHidden ? "" : undefined}
+                data-locked={isLocked ? "" : undefined}
                 data-drop={mark ? (mark.why ? "refused" : mark.where) : undefined}
-                draggable={at.length > 0 && renaming !== key}
+                draggable={at.length > 0 && renaming !== key && !flagged(locked, at)}
                 onDragStart={(e) => {
                   const carry = isSelected ? topLevel(selected) : [at];
                   if (!isSelected) onSelect(at, "only");
@@ -269,8 +301,8 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
                 }}
                 onKeyDown={(e) => onKey(at, block, e)}
                 className={cn(
-                  "flex h-[34px] w-full cursor-default items-center gap-2 rounded-ui-md pr-2 text-left text-body focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
-                  key === primaryKey ? "bg-ui-active text-ui-1" : isSelected ? "bg-ui-accent/12 text-ui-1" : "text-ui-2 hover:bg-ui-raised hover:text-ui-1",
+                  "group flex h-[34px] w-full cursor-default items-center gap-2 rounded-ui-md pr-2 text-left text-body focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
+                  key === primaryKey && !header ? "bg-ui-active text-ui-1" : isSelected ? "bg-ui-accent/12 text-ui-1" : "text-ui-2 hover:bg-ui-raised hover:text-ui-1",
                   mark?.where === "inside" && (mark.why ? "outline outline-1 -outline-offset-1 outline-ui-warn" : "outline outline-1 -outline-offset-1 outline-ui-accent"),
                   dragging?.some((p) => keyOf(p) === key) && "opacity-50",
                 )}
@@ -321,15 +353,62 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
                     className="h-[24px] min-w-0 flex-1 rounded-[5px] border border-ui-accent bg-ui-app px-1.5 text-body text-ui-1 outline-none"
                   />
                 ) : (
-                  <span className="min-w-0 flex-1 truncate" onDoubleClick={() => at.length && setRenaming(key)}>
+                  <span className={cn("min-w-0 flex-1 truncate", flagged(hiddenKeys, at) && "opacity-50")} onDoubleClick={() => at.length && setRenaming(key)}>
                     {name}
                   </span>
+                )}
+                {at.length > 0 && (
+                  <>
+                    <FlagButton on={isHidden} label={`${isHidden ? "Show" : "Hide"} ${name} on the stage`} flag="hidden" onClick={() => onFlag("hidden", at, !isHidden)}>
+                      {isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </FlagButton>
+                    <FlagButton on={isLocked} label={`${isLocked ? "Unlock" : "Lock"} ${name}`} flag="locked" onClick={() => onFlag("locked", at, !isLocked)}>
+                      {isLocked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+                    </FlagButton>
+                  </>
                 )}
                 {issues && <span role="img" aria-label="Has a problem" title={issues.join("\n")} data-problem-dot="" className="h-2 w-2 shrink-0 rounded-full bg-ui-warn" />}
                 {isBound(block) && <Link2 className="h-3.5 w-3.5 shrink-0 text-ui-hint" strokeWidth={1.5} aria-label="Bound to data" />}
               </div>
               {mark && mark.where !== "inside" && (
                 <span aria-hidden className={cn("pointer-events-none absolute right-0 z-10 h-[2px]", mark.why ? "bg-ui-warn" : "bg-ui-accent", mark.where === "above" ? "-top-px" : "-bottom-px")} style={{ left: indentOf(mark.depth) + ICON_AT }} />
+              )}
+              {at.length === 0 && headerShown && (
+                <div
+                  role="treeitem"
+                  tabIndex={tabStop === HEADER ? 0 : -1}
+                  aria-level={2}
+                  aria-selected={header}
+                  aria-current={header || undefined}
+                  data-layer-header=""
+                  title="The card's title, sub-title and icon"
+                  onClick={onHeader}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget || e.altKey || e.ctrlKey || e.metaKey) return;
+                    const k = visible.indexOf(HEADER);
+                    const to = ({ ArrowDown: visible[k + 1], ArrowUp: visible[k - 1], ArrowLeft: "", Home: visible[0], End: visible[visible.length - 1] } as Record<string, string | undefined>)[e.key];
+                    if (to !== undefined) {
+                      e.preventDefault();
+                      focusRow(to);
+                    } else if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onHeader();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      onSelect([], "only");
+                      requestAnimationFrame(() => focusRow(""));
+                    }
+                  }}
+                  className={cn(
+                    "mt-0.5 flex h-[34px] w-full cursor-default items-center gap-2 rounded-ui-md pr-2 text-left text-body focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
+                    header ? "bg-ui-active text-ui-1" : "text-ui-2 hover:bg-ui-raised hover:text-ui-1",
+                  )}
+                  style={{ paddingLeft: indentOf(1) }}
+                >
+                  <span aria-hidden className="w-3.5 shrink-0" />
+                  <Heading className={cn("h-3.5 w-3.5 shrink-0", header ? "text-ui-accent-icon" : "text-ui-3")} aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">Header</span>
+                </div>
               )}
               {mark?.why && (
                 <span data-drop-why="" className={cn("pointer-events-none absolute right-1 z-20 max-w-[200px] rounded-[4px] border border-ui-warn bg-ui-panel px-1.5 py-0.5 text-micro leading-tight text-ui-warn", mark.where === "above" ? "bottom-full mb-0.5" : "top-full mt-0.5")}>
@@ -342,5 +421,26 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
       </div>
       {menu && <ContextMenu x={menu.x} y={menu.y} width={230} testId="builder-layer-menu" entries={entries} onClose={() => setMenu(null)} />}
     </>
+  );
+}
+
+/** A row's eye or lock (G25): shown on a row it is on, else while the row is hovered or focused; out of the tab order (the menu and Ctrl+Shift+H, L reach it). */
+function FlagButton({ on, label, flag, onClick, children }: { on: boolean; label: string; flag: EditorFlag; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label={label}
+      aria-pressed={on}
+      data-row-action={flag}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-ui-sm text-ui-hint hover:text-ui-1", !on && "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100")}
+    >
+      {children}
+    </button>
   );
 }

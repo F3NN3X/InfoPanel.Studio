@@ -1,6 +1,7 @@
 // The builder inspector's Options tab (Phase 5b, screenshots 05 and 07): what people can change when they add the widget, in the
 // order its Content tab will show them. Drag a row (or Alt+↑/↓ on it) to reorder; open one to edit its label and default; a
 // place list edits its default places with place search (Weather by place), as a placement's Content tab does.
+// Phase D (G29): an option's hint, group and a number's step.
 import { useState } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { ChevronDown, ChevronRight, GripVertical, Plus, X } from "lucide-react";
@@ -14,7 +15,7 @@ import { PlaceListEditor } from "@/components/studio/place-list/place-list-edito
 import { placeList } from "@/components/studio/place-list/place-search";
 import type { Data } from "@/widgets/core/types";
 import { DEVICE_KINDS, type Recipe, type RecipeDeviceKind, type RecipeOption } from "@/widgets/recipe/types";
-import { addOption, bindingsOf, DEVICE_LABEL, flatten, layerName, moveOption, optionLine, optionUses, removeOption, updateOption, withSampleItems } from "./builder-model";
+import { addOption, bindingsOf, choiceUses, DEVICE_LABEL, flatten, layerName, moveOption, optionLine, optionUses, removeChoice, removeOption, updateOption, withSampleItems } from "./builder-model";
 import { changeDeviceKind } from "./device-kind";
 import { Field, INPUT, NumberInput, Select, TextInput } from "./fields";
 
@@ -48,8 +49,8 @@ const NEW_OPTIONS: readonly { label: string; make: () => RecipeOption }[] = [
   ...DEVICE_KINDS.map((kind) => ({ label: DEVICE_LABEL[kind], make: (): RecipeOption => ({ key: kind, label: DEVICE_LABEL[kind], type: "device", kind, default: "auto" }) })),
 ];
 
-/** A sensor option's default (G15): the reading picked with the studio's data picker, as the Block tab's data row picks one. */
-function SensorDefault({ value, label, data, onPick, onOpenSources }: { value: string; label: string; data: Data; onPick: (key: string) => void; onOpenSources: () => void }) {
+/** A sensor option's default (G15), or a preset's value of it (G30): the reading picked with the studio's data picker, as the Block tab's data row picks one. */
+export function SensorDefault({ value, label, data, onPick, onOpenSources, name: aria = "Default sensor" }: { value: string; label: string; data: Data; onPick: (key: string) => void; onOpenSources: () => void; name?: string }) {
   const [open, setOpen] = useState(false);
   const model = useDataModel();
   const name = model.points.find((p) => p.key === value)?.name;
@@ -57,7 +58,7 @@ function SensorDefault({ value, label, data, onPick, onOpenSources }: { value: s
   const reading = typeof raw === "object" && raw ? raw.value : raw;
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label="Default sensor" className="flex w-full items-center gap-3 rounded-ui-lg border border-ui-subtle bg-ui-app px-3 py-2 text-left hover:border-ui-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent">
+      <button type="button" onClick={() => setOpen(true)} aria-label={aria} className="flex w-full items-center gap-3 rounded-ui-lg border border-ui-subtle bg-ui-app px-3 py-2 text-left hover:border-ui-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent">
         <span className="min-w-0 flex-1">
           <span className="block truncate text-body text-ui-1">{value ? (name ?? value) : "No sensor yet"}</span>
           <span className="block truncate font-ui-mono text-micro text-ui-3">{value || "Pick the sensor it starts with"}</span>
@@ -96,7 +97,14 @@ function OptionEditor({ recipe, o, onChange, data, onOpenSources }: { recipe: Re
           {(o.options ?? []).map((c, k) => (
             <Field key={c.value} label={k === 0 ? "Choices" : ""}>
               <TextInput label={`Choice ${k + 1}`} value={c.label} onChange={(v) => set({ options: (o.options ?? []).map((x, i) => (i === k ? { ...x, label: v.slice(0, 40) || x.label } : x)) })} width={130} />
-              <button type="button" aria-label={`Remove choice ${c.label}`} disabled={(o.options ?? []).length < 2} onClick={() => set({ options: (o.options ?? []).filter((_, i) => i !== k), default: o.default === c.value ? (o.options ?? []).find((_, i) => i !== k)?.value : o.default })} className="rounded-ui-sm p-1 text-ui-3 hover:text-ui-1 disabled:opacity-40">
+              <button
+                type="button"
+                aria-label={`Remove choice ${c.label}`}
+                disabled={(o.options ?? []).length < 2 || choiceUses(recipe, o.key, c.value).length > 0}
+                title={choiceUses(recipe, o.key, c.value).length ? `Shown or hidden by it: ${choiceUses(recipe, o.key, c.value).join(", ")}. Change their Shows when first` : undefined}
+                onClick={() => onChange(removeChoice(recipe, o.key, c.value))}
+                className="rounded-ui-sm p-1 text-ui-3 hover:text-ui-1 disabled:opacity-40"
+              >
                 <X className="h-3.5 w-3.5" />
               </button>
             </Field>
@@ -149,6 +157,17 @@ function OptionEditor({ recipe, o, onChange, data, onOpenSources }: { recipe: Re
         </Field>
       )}
       {o.type === "sensor" && <SensorDefault value={String(o.default)} label={o.label} data={data} onPick={(key) => set({ default: key })} onOpenSources={onOpenSources} />}
+      {o.type === "number" && (
+        <Field label="Step" hint="How much one click of its arrows moves it; empty is any number">
+          <NumberInput label="Step" value={o.step} placeholder="Any" min={0} onChange={(v) => set({ step: v === undefined ? undefined : Math.max(0, v) })} width={72} />
+        </Field>
+      )}
+      <Field label="Hint" hint="A line under it in the Content tab">
+        <TextInput label="Hint" value={o.hint ?? ""} placeholder="None" onChange={(v) => set({ hint: v.replace(/[<>]/g, "").trim().slice(0, 160) || undefined })} />
+      </Field>
+      <Field label="Group" hint="The Content tab's heading it sits under; empty is Options">
+        <TextInput label="Group" value={o.group ?? ""} placeholder="Options" onChange={(v) => set({ group: v.replace(/[<>]/g, "").trim().slice(0, 40) || undefined })} />
+      </Field>
       <div className="flex items-center justify-between pt-1">
         <span className="text-caption text-ui-3">{uses ? `Used by ${uses} block${uses === 1 ? "" : "s"}` : "Not used by a block yet"}</span>
         <Button small variant="danger" disabled={uses > 0} title={uses ? "Take it off its blocks first" : undefined} onClick={() => onChange(withSampleItems(removeOption(recipe, o.key)))}>

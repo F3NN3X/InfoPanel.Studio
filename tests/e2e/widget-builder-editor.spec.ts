@@ -98,16 +98,20 @@ test("Layers is an APG tree: roles, levels, selected and expanded states, arrows
   const tree = page.getByRole("tree", { name: "Layers" });
   await expect(tree).toHaveAttribute("aria-multiselectable", "true");
   const items = tree.getByRole("treeitem");
-  await expect(items).toHaveCount(4);
-  expect(await items.evaluateAll((els) => els.map((e) => [e.getAttribute("data-layer"), e.getAttribute("aria-level"), e.getAttribute("aria-expanded"), e.getAttribute("aria-selected")]))).toEqual([
+  await expect(items).toHaveCount(5);
+  // the card's Header pseudo-row (Phase D, G37) is its first row, a level under it
+  expect(await items.evaluateAll((els) => els.map((e) => [e.getAttribute("data-layer") ?? (e.hasAttribute("data-layer-header") ? "header" : null), e.getAttribute("aria-level"), e.getAttribute("aria-expanded"), e.getAttribute("aria-selected")]))).toEqual([
     ["", "1", "true", "false"],
+    ["header", "2", null, "false"],
     ["0", "2", "true", "false"],
     ["0.0", "3", null, "true"],
     ["1", "2", null, "false"],
   ]);
   // one tab stop: the selection's row
-  expect(await items.evaluateAll((els) => els.map((e) => e.getAttribute("tabindex")))).toEqual(["-1", "-1", "0", "-1"]);
+  expect(await items.evaluateAll((els) => els.map((e) => e.getAttribute("tabindex")))).toEqual(["-1", "-1", "-1", "0", "-1"]);
   await layer(page, "").click();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator("[data-layer-header]")).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(layer(page, "0")).toBeFocused();
   await page.keyboard.press("End");
@@ -116,9 +120,10 @@ test("Layers is an APG tree: roles, levels, selected and expanded states, arrows
   await expect(layer(page, "")).toBeFocused();
   // Left closes a container (its rows go), Right opens it, then steps into it; Left on a leaf goes to its parent
   await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowLeft");
   await expect(layer(page, "0")).toHaveAttribute("aria-expanded", "false");
-  await expect(items).toHaveCount(3);
+  await expect(items).toHaveCount(4);
   await page.keyboard.press("ArrowRight");
   await expect(layer(page, "0")).toHaveAttribute("aria-expanded", "true");
   await page.keyboard.press("ArrowRight");

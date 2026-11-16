@@ -8,6 +8,8 @@
 // pastes and refusals are said in a live region.
 // Phase B2: the stage at any size in the recipe's range, the Sample before a save, crowding warnings at the size it shows (each in the
 // problem list and as a Layers dot), and the line says "fits" only when that measure backs it.
+// Phase D: hide and lock in the editor (G25), a new Image asks for its picture first (G32), the offer to remove what a delete left
+// unused (G34), snippets (G35) and the Header row (G37).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
 import { ChevronRight, CircleAlert, CircleCheck, MonitorUp, Pencil, Redo2, RotateCcw, Save, Undo2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,16 +26,17 @@ import { cn } from "@/lib/utils";
 import { GALLERY_IDS } from "@/components/studio/look-gallery-model";
 import { SAMPLE_THEMES } from "@/looks/sample-themes";
 import type { Data } from "@/widgets/core/types";
-import type { BlockType, Cells, PackageFile, Recipe } from "@/widgets/recipe/types";
+import type { BlockType, Cells, PackageFile, Recipe, RecipeOption } from "@/widgets/recipe/types";
 import { toFlat, toNames } from "@/widgets/shared/data-adapter";
-import { ADD_ORDER, addBlock, addBlockAt, addRefusal, BLOCK_LABEL, blockAt, clampCells, devicesIn, draftSample, duplicateBlocks, flatten, keyMove, layerName, moveBlock, moveBlocks, nextVersion, presetValues, rangeOf, recipeIssues, removeBlocks, stepBlock, topLevel, updateBlock, validationLine, withFormat, wrapInRow, type Path } from "./builder-model";
+import { ADD_ORDER, addBlock, addBlockAt, addImageAt, addRefusal, addSnippet, BLOCK_LABEL, blockAt, clampCells, cleanUp, devicesIn, draftSample, duplicateBlocks, flatten, imagePath, keyMove, landing, layerName, leftUnused, moveBlock, moveBlocks, nextVersion, packedImages, presetValues, rangeOf, recipeIssues, removeBlocks, SNIPPETS, type SnippetId, stepBlock, topLevel, updateBlock, validationLine, withFormat, wrapInRow, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { BlockTab } from "./block-tab";
 import { clipboard, copyOf, pasteBlocks, setClipboard } from "./clipboard";
 import { type Crowd, crowdIssues, crowding, measureInks } from "./crowding";
+import { type EditorFlags, followFlags, hiddenRule, setKeys, stagePick } from "./editor-flags";
 import { NumberInput, type Typing, TypingContext } from "./fields";
 import type { History } from "./history";
-import { type LayerCommand, Layers, type SelectHow } from "./layers";
+import { type EditorFlag, type LayerCommand, Layers, type SelectHow } from "./layers";
 import { OptionsTab } from "./options-tab";
 import { type PlainIssue, plainIssue, plainIssues, plainWarnings } from "./plain-issues";
 import { PresetsTab } from "./presets-tab";
@@ -194,8 +197,11 @@ export function Builder(p: BuilderProps) {
   const [path, setPrimary] = useState<number[]>([]);
   const [also, setAlso] = useState<number[][]>([]);
   const anchor = useRef<number[]>([]);
+  // the Header pseudo-row picked (G37): the root card's title, sub-title and icon in the Block tab
+  const [header, setHeader] = useState(false);
   /** Selects `paths`, the primary the last unless named. */
   const setSelection = (paths: readonly number[][], primary: number[] = paths[paths.length - 1] ?? []) => {
+    setHeader(false);
     setPrimary(primary);
     setAlso(paths.filter((x) => x.join(".") !== primary.join(".")));
     anchor.current = primary;
@@ -246,7 +252,7 @@ export function Builder(p: BuilderProps) {
   const sampleData = useMemo(() => Object.fromEntries(Object.entries(sampled.sample.sensors).map(([k, v]) => [k, String(v)])) as Data, [sampled.sample.sensors]);
   const data = live ? liveData : sampleData;
   const devices = useMemo(() => devicesIn({ ...sampleData, ...liveData }), [sampleData, liveData]);
-  const issues = useMemo(() => recipeIssues(recipe, p.active.images), [recipe, p.active.images]);
+  const issues = useMemo(() => recipeIssues(recipe, packedImages(recipe, p.active.images)), [recipe, p.active.images]);
   const line = validationLine(recipe, issues);
   const problems = plainIssues(recipe, issues);
   const first = problems[0]?.text;
@@ -275,6 +281,7 @@ export function Builder(p: BuilderProps) {
     if (how === "only") return setPath(at);
     if (how === "range") {
       const rows = rangeOf(flatten(recipe).map((r) => keyOf(r.path)), keyOf(anchor.current), keyOf(at));
+      setHeader(false);
       setPrimary(at);
       return setAlso(rows.filter((x) => keyOf(x) !== keyOf(at)));
     }
@@ -295,6 +302,44 @@ export function Builder(p: BuilderProps) {
   const [canPaste, setCanPaste] = useState(() => clipboard() !== null);
   const [tile, setTile] = useState<BlockType | null>(null);
 
+  // hide and lock (G25): the editor's own, per open recipe, following their blocks through each edit; never in the recipe
+  const [allFlags, setAllFlags] = useState<Readonly<Record<string, EditorFlags>>>({});
+  const kept = allFlags[p.active.key];
+  const flags = kept ? followFlags(kept, recipe) : { recipe, hidden: [], locked: [] };
+  useEffect(() => {
+    if (kept && flags !== kept) setAllFlags((all) => ({ ...all, [p.active.key]: flags }));
+  }, [flags]);
+  /** The eye or the lock of a row: on the selection when the row is in it, else on that block. */
+  const setFlag = (flag: EditorFlag, at: number[], on: boolean) => {
+    const list = topLevel(selected.some((x) => keyOf(x) === keyOf(at)) ? selected : [at]);
+    setAllFlags((all) => ({ ...all, [p.active.key]: { ...flags, [flag]: setKeys(flags[flag], list, on) } }));
+    say(`${flag === "hidden" ? (on ? "Hidden on the stage" : "Shown on the stage") : on ? "Locked" : "Unlocked"}: ${what(list)}`);
+  };
+  /** The Header row picked (G37). */
+  const pickHeader = () => {
+    setSelection([[]]);
+    setHeader(true);
+    setTab("block");
+  };
+
+  // what a delete left unused (G34): offered for removal until the next edit
+  const [offer, setOffer] = useState<{ options: RecipeOption[]; base: Recipe } | null>(null);
+  const offerCleanUp = (before: Recipe, after: Recipe) => {
+    const options = leftUnused(before, after);
+    setOffer(options.length ? { options, base: after } : null);
+  };
+  const offerNames = offer ? offer.options.map((o) => o.label).join(", ") : "";
+
+  // a new Image asks for its picture first (G32): the place it goes waits for the file chooser
+  const imageInput = useRef<HTMLInputElement>(null);
+  const imageAt = useRef<{ into: number[]; index: number; where: string } | null>(null);
+  const latest = useRef(recipe);
+  latest.current = recipe;
+  const chooseImage = (into: number[], index: number, where: string) => {
+    imageAt.current = { into, index, where };
+    imageInput.current?.click();
+  };
+
   // after a command by keyboard the block it left selected keeps the focus in Layers, at its new place
   const [focusTick, setFocusTick] = useState(0);
   useEffect(() => {
@@ -304,6 +349,10 @@ export function Builder(p: BuilderProps) {
 
   const firstSensor = Object.keys(live ? liveData : sampleData).find((k) => k.endsWith("_cpu_total")) ?? Object.keys(liveData)[0] ?? "libre.cpu_total";
   const add = (type: (typeof ADD_ORDER)[number], byKey: boolean) => {
+    if (type === "image") {
+      const { into, index } = landing(recipe, path);
+      return chooseImage(into, index, "");
+    }
     const r = addBlock(recipe, path, type, firstSensor);
     edit(r.recipe);
     setPath(r.path);
@@ -311,10 +360,22 @@ export function Builder(p: BuilderProps) {
     say(`Added ${BLOCK_LABEL[type]}`);
     if (byKey) refocus();
   };
+  /** A snippet (G35): its Row where Add puts a block, or why it can't go there. */
+  const addSnip = (id: SnippetId, byKey: boolean) => {
+    const r = addSnippet(recipe, path, id, firstSensor);
+    if ("why" in r) return refuse(r.why);
+    setWhy(null);
+    edit(r.recipe);
+    setPath(r.path);
+    setTab("block");
+    say(`Added ${SNIPPETS.find((s) => s.id === id)!.label}`);
+    if (byKey) refocus();
+  };
   /** A tile dropped on Layers or the stage: the new block at that place, unless the validator would refuse it there. */
   const addAt = (type: BlockType, toParent: number[], index: number, where: string) => {
     const refused = addRefusal(recipe, type, toParent);
     if (refused) return refuse(refused);
+    if (type === "image") return chooseImage(toParent, index, ` ${where}`);
     const r = addBlockAt(recipe, toParent, index, type, firstSensor);
     edit(r.recipe);
     setPath(r.path);
@@ -344,7 +405,9 @@ export function Builder(p: BuilderProps) {
       case "delete": {
         if (!list.length) return;
         const r = removeBlocks(recipe, list);
-        edit(r.recipe);
+        const after = withFormat(r.recipe);
+        edit(after);
+        offerCleanUp(recipe, after);
         setPath(r.path);
         refocus();
         return say(`Deleted ${what(list)}`);
@@ -499,14 +562,26 @@ export function Builder(p: BuilderProps) {
     setPreset(id);
     if (x) setSize(x.size);
   };
+  /** A picture picked for a new Image (G32): the block goes where the tile was clicked or dropped, with its picture. */
+  const onNewImage = (file: File) => {
+    const at = imageAt.current;
+    imageAt.current = null;
+    if (!at) return;
+    void file.arrayBuffer().then((buf) => {
+      const r = addImageAt(latest.current, p.active.images, at.into, at.index, { path: imagePath(file.name, file.type), bytes: new Uint8Array(buf) });
+      if ("why" in r) return refuse(r.why);
+      edit(r.recipe, r.images);
+      setPath(r.path);
+      setTab("block");
+      say(`Added Image${at.where}`);
+    });
+  };
   const onImage = (file: File) => {
     void file.arrayBuffer().then((buf) => {
-      const ext = file.type === "image/jpeg" ? "jpg" : file.type === "image/webp" ? "webp" : "png";
-      const stem = file.name.toLowerCase().replace(/\.[a-z]+$/, "").replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "image";
-      const path2 = `images/${stem}.${ext}`;
+      const path2 = imagePath(file.name, file.type);
       const images = [...p.active.images.filter((f) => f.path !== path2), { path: path2, bytes: new Uint8Array(buf) }];
-      const used = new Set(flatten(recipe).flatMap(({ block }) => (block.type === "image" ? [block.file] : [])));
-      edit(blockAt(recipe, path)?.type === "image" ? updateBlock(recipe, path, { file: path2 }) : recipe, images.filter((f) => used.has(f.path) || f.path === path2));
+      // the picture it showed stays in the open recipe for an undo; a save packs only the ones shown (`packedImages`, B22)
+      edit(blockAt(recipe, path)?.type === "image" ? updateBlock(recipe, path, { file: path2 }) : recipe, images);
     });
   };
   const { w, h } = zonePx(size);
@@ -624,11 +699,37 @@ export function Builder(p: BuilderProps) {
               onMove={drop}
               onAdd={(type, toParent, index) => addAt(type, toParent, index, `into ${nameAt(toParent)}`)}
               onWhy={setWhy}
+              hidden={flags.hidden}
+              locked={flags.locked}
+              onFlag={setFlag}
+              header={header}
+              onHeader={pickHeader}
             />
             {why && (
               <p role="status" data-move-why="" className="mt-1 px-2 text-micro leading-snug text-ui-warn">
                 {why}
               </p>
+            )}
+            {offer && offer.base === present && (
+              <div role="status" data-clean-up="" className="mt-1 flex flex-col items-start gap-1.5 rounded-ui-md border border-ui-subtle bg-ui-raised px-2 py-1.5 text-micro leading-snug text-ui-2">
+                <span>Not used by a block now: {offerNames}</span>
+                <span className="flex gap-1.5">
+                  <Button
+                    small
+                    onClick={() => {
+                      // one undo step with the delete that left them
+                      edit(cleanUp(present, offer.options), undefined, true);
+                      setOffer(null);
+                      say(`Removed ${offerNames}`);
+                    }}
+                  >
+                    Also remove {offerNames} (not used now)
+                  </Button>
+                  <Button small variant="ghost" onClick={() => setOffer(null)}>
+                    Keep
+                  </Button>
+                </span>
+              </div>
             )}
           </div>
           <div>
@@ -653,6 +754,38 @@ export function Builder(p: BuilderProps) {
                 >
                   <BlockIcon type={type} />
                   {BLOCK_LABEL[type]}
+                </button>
+              ))}
+            </div>
+            <input
+              ref={imageInput}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              aria-label="Picture for the new Image"
+              tabIndex={-1}
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) onNewImage(file);
+                else imageAt.current = null;
+              }}
+            />
+          </div>
+          <div>
+            <h2 className="mb-2 px-2 text-caption text-ui-3">Snippets</h2>
+            <p className="mb-2 px-2 text-micro text-ui-3">A few blocks in a Row, added by the selection</p>
+            <div className="flex flex-col gap-1.5">
+              {SNIPPETS.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={(e) => addSnip(s.id, e.detail === 0)}
+                  data-add-snippet={s.id}
+                  className="flex h-9 items-center gap-2 rounded-ui-md border border-ui-subtle bg-ui-panel px-2.5 text-left text-micro text-ui-2 hover:border-ui-strong hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+                >
+                  <BlockIcon type="row" />
+                  {s.label}
                 </button>
               ))}
             </div>
@@ -683,11 +816,14 @@ export function Builder(p: BuilderProps) {
             role="presentation"
             data-builder-stage=""
             onClick={(e) => {
-              const hit = (e.target as HTMLElement).closest<HTMLElement>("[data-recipe-path]");
+              const target = e.target as HTMLElement;
+              const hit = target.closest<HTMLElement>("[data-recipe-path]");
               if (hit) {
-                setPath(hit.dataset.recipePath!.split(".").map(Number));
+                // a locked block is not picked here: the block holding it is (G25)
+                setPath(stagePick(flags.locked, hit.dataset.recipePath!.split(".").map(Number)));
                 setTab("block");
-              } else if ((e.target as HTMLElement).closest("[data-recipe-zone]")) setPath([]);
+              } else if (target.closest("[data-recipe-zone] [data-part='header']")) pickHeader();
+              else if (target.closest("[data-recipe-zone]")) setPath([]);
             }}
             // a tile from "Add a block" dropped onto the widget (G12)
             onDragOver={(e) => {
@@ -715,6 +851,7 @@ export function Builder(p: BuilderProps) {
             className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-ui-lg border border-ui-subtle"
             style={{ backgroundImage: "radial-gradient(color-mix(in oklab, var(--ui-text-hint) 30%, transparent) 1px, transparent 1px)", backgroundSize: "16px 16px" }}
           >
+            {flags.hidden.length > 0 && <style data-hidden-blocks="">{hiddenRule(flags.hidden)}</style>}
             <div ref={zoneHost}>
               <RecipePreview
                 recipe={live ? recipe : sampled}
@@ -782,9 +919,9 @@ export function Builder(p: BuilderProps) {
             </p>
           )}
           <TypingContext.Provider value={typing}>
-            {tab === "block" && <BlockTab recipe={recipe} path={path} onChange={(r) => edit(r)} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} />}
+            {tab === "block" && <BlockTab recipe={recipe} path={path} header={header} onChange={(r) => edit(r)} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} />}
             {tab === "options" && <OptionsTab recipe={recipe} onChange={(r) => edit(r)} data={{ ...sampleData, ...liveData }} onOpenSources={p.onOpenSources} />}
-            {tab === "presets" && <PresetsTab recipe={recipe} onChange={(r) => edit(r)} current={preset} onPick={pickPreset} values={shownValues} size={size} />}
+            {tab === "presets" && <PresetsTab recipe={recipe} onChange={(r) => edit(r)} current={preset} onPick={pickPreset} values={shownValues} size={size} data={{ ...sampleData, ...liveData }} devices={devices} onOpenSources={p.onOpenSources} />}
           </TypingContext.Provider>
         </aside>
       </div>

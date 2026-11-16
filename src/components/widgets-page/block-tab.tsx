@@ -2,7 +2,8 @@
 // Repeat item's field) and "Let people pick …", its range, its colour from the theme (accent, a series or the thresholds), what
 // its type has (a ring's centre value and thickness, a Repeat's list and direction, a row's direction), when it shows, and its
 // share of its row; Phase C: a value's and a label's alignment, the text colours, a ring's centre colour, "Show in" and a
-// threshold's direction. Every change is one edit of the recipe (one undo step).
+// threshold's direction. Phase D: "Up to the size" beside "From the size" (G28), an image's alt text (G31), and the Header row's
+// title, sub-title and icon on their own (G37). Every change is one edit of the recipe (one undo step).
 import type { ReactNode } from "react";
 import { Ban, Copy, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
@@ -14,10 +15,10 @@ import type { Data } from "@/widgets/core/types";
 import { type ConvertUnit, tableUnit, unitsLike } from "@/widgets/recipe/convert";
 import { isFollow, oneOf, wholeIn } from "@/widgets/recipe/follow";
 import { DEFAULT_SCALE } from "@/widgets/recipe/validate";
-import type { Binding, Block, BlockType, Cells, Follows, Recipe, RecipeColour, RecipeDeviceKind, TextColour, Thresholds } from "@/widgets/recipe/types";
-import { BLOCK_LABEL, blockAt, followable, followOf, layerName, setRecipeSize, thresholdLine, unitOfBinding, updateBlock, valueText, withDirection, type Path } from "./builder-model";
+import type { Binding, Block, BlockType, Follows, Recipe, RecipeColour, RecipeDeviceKind, TextColour, Thresholds } from "@/widgets/recipe/types";
+import { BLOCK_LABEL, blockAt, followable, followOf, layerName, setRecipeSize, thresholdLine, unitOfBinding, updateBlock, valueText, withDirection, withWhenSize, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
-import { DataRow, HeatmapCells, LabelText } from "./data-rows";
+import { DataRow, type DataRowsProps, HeatmapCells, LabelText } from "./data-rows";
 import { Field, Heading, NumberInput, Select, Slider, TextArea, TextInput } from "./fields";
 
 export interface BlockTabProps {
@@ -36,6 +37,8 @@ export interface BlockTabProps {
   onImage: (file: File) => void;
   /** The version the next save writes (the stored one's next; a recipe never saved keeps its own). */
   nextVersion: string;
+  /** The Header row is picked (G37): the root card's title, sub-title and icon only. */
+  header?: boolean;
 }
 
 type ColourKind = TextColour | "accent" | "series" | "thresholds";
@@ -220,12 +223,15 @@ function WhenRows({ recipe, path, block, onChange }: { recipe: Recipe; path: Pat
   const option = choices.find((o) => o.key === when?.option);
   const set = (next: Block["when"]) => onChange(updateBlock(recipe, path, { when: next && (next.option !== undefined || next.size) ? next : undefined }));
   const values = option?.type === "boolean" ? [true, false] : (option?.options ?? []).map((c) => c.value);
-  const min = when?.size?.min;
-  const setMin = (axis: 0 | 1, v: string) => {
-    const next: Cells = [min?.[0] ?? 1, min?.[1] ?? 1];
-    next[axis] = Number(v) || 1;
-    const none = !v && !(min?.[1 - axis] ?? 0);
-    set({ ...when, size: none ? undefined : { ...when?.size, min: next } });
+  /** One side of "From the size" (min) or "Up to the size" (max), as its select shows it: "" is any (1 for a min, 12 for a max). */
+  const side = (end: "min" | "max", axis: 0 | 1): string => {
+    const v = when?.size?.[end]?.[axis];
+    return v === undefined || v === (end === "min" ? 1 : 12) ? "" : String(v);
+  };
+  const sizeSelect = (end: "min" | "max", axis: 0 | 1, label: string) => {
+    const v = side(end, axis);
+    const options = [...new Set([...SIZE_OPTIONS, v])].map((n) => ({ value: n, label: n || "Any" }));
+    return <Select label={label} value={v} options={options} onChange={(x) => set(withWhenSize(when, end, axis, x ? Number(x) : undefined))} width={64} />;
   };
   return (
     <>
@@ -264,9 +270,14 @@ function WhenRows({ recipe, path, block, onChange }: { recipe: Recipe; path: Pat
         </Field>
       )}
       <Field label="From the size" hint="Hidden in a smaller zone: what keeps text above 11 px at small sizes">
-        <Select label="Smallest columns" value={min ? String(min[0]) : ""} options={SIZE_OPTIONS.map((n) => ({ value: n, label: n || "Any" }))} onChange={(v) => setMin(0, v)} width={64} />
+        {sizeSelect("min", 0, "Smallest columns")}
         <span className="text-ui-3">×</span>
-        <Select label="Smallest rows" value={min ? String(min[1]) : ""} options={SIZE_OPTIONS.map((n) => ({ value: n, label: n || "Any" }))} onChange={(v) => setMin(1, v)} width={64} />
+        {sizeSelect("min", 1, "Smallest rows")}
+      </Field>
+      <Field label="Up to the size" hint="Hidden in a larger zone: a compact block that a roomier one takes over from">
+        {sizeSelect("max", 0, "Largest columns")}
+        <span className="text-ui-3">×</span>
+        {sizeSelect("max", 1, "Largest rows")}
       </Field>
     </>
   );
@@ -350,6 +361,27 @@ function SizeRows({ recipe, onChange }: { recipe: Recipe; onChange: (r: Recipe) 
   );
 }
 
+/**
+ * The Header row's settings (G37, Q12): the root card's title, its sub-title from data and its header icon, the same fields the card's
+ * own Block tab holds, on their own. No format change: they are the card's keys.
+ */
+function HeaderRows({ block, rows, set }: { block: Extract<Block, { type: "card" }>; rows: DataRowsProps; set: (patch: Record<string, unknown>) => void }) {
+  return (
+    <div data-header-tab="" className="flex flex-col gap-2 p-4">
+      <div className="mb-1">
+        <span className="block text-lead font-medium text-ui-1">Header</span>
+        <span className="block text-caption text-ui-3">The top line of the widget's card</span>
+      </div>
+      <Field label="Title">
+        <TextInput label="Title" value={block.title ?? ""} onChange={(v) => set({ title: v.trim() ? v.slice(0, 60) : undefined })} />
+      </Field>
+      <Heading>Sub-title</Heading>
+      <DataRow block={block} props={rows} />
+      <IconPick label="Header icon" value={block.icon} none="The widget's icon" onChange={(icon) => set({ icon })} />
+    </div>
+  );
+}
+
 export function BlockTab(props: BlockTabProps) {
   const { recipe, path, onChange } = props;
   const block = blockAt(recipe, path);
@@ -359,6 +391,7 @@ export function BlockTab(props: BlockTabProps) {
   const raw = block as unknown as Record<string, unknown>;
   const bound = block.type !== "label" && block.type !== "heatmap" && ("bind" in block || block.type === "card");
   const rows = { recipe, path, onChange, data: props.data, names: props.names, devices: props.devices, onOpenSources: props.onOpenSources };
+  if (props.header && block.type === "card" && !path.length) return <HeaderRows block={block} rows={rows} set={set} />;
   return (
     <div className="flex flex-col gap-2 p-4">
       <div className="mb-1 flex items-center gap-3">
@@ -548,6 +581,9 @@ export function BlockTab(props: BlockTabProps) {
           </Field>
           <Field label="Fit">
             <Segmented label="Fit" value={block.fit ?? "contain"} options={[{ value: "contain", label: "Whole" }, { value: "cover", label: "Fill" }]} onChange={(v) => set({ fit: v })} />
+          </Field>
+          <Field label="Alt text" hint="What the picture shows, for a screen reader; empty for a picture that only decorates">
+            <TextInput label="Alt text" value={block.alt ?? ""} placeholder="Decorative" onChange={(v) => set({ alt: v.replace(/[<>]/g, "").trim().slice(0, 80) || undefined })} />
           </Field>
         </>
       )}
