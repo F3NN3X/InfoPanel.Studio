@@ -855,11 +855,21 @@ controls, the clock, audio streams), and the button says why it is disabled.
   smallest to its largest; **Preview in** draws it in another look, and **Data** switches between **Live data** and **Sample**
   values. Before the first save the Sample takes each reading the recipe has no sample of from the live data.
 - The inspector's **Block** tab sets what the selected block reads (a sensor, or a device such as a CPU or GPU), its colour
-  (accent, a series, or by thresholds; a Heatmap's own heat scale or a series), when it shows (always, or when an option has a
-  value) and the smallest size it is drawn at. **Let people pick** turns a binding into an option, and **Replace sensor…** swaps
+  (accent, a series, or by thresholds; a Heatmap's own heat scale or a series; a Value's number also **Text**, its default, or
+  **Muted**), when it shows (always, or when an option has a value) and the smallest size it is drawn at. **Let people pick** turns a binding into an option, and **Replace sensor…** swaps
   the block's reading for another everywhere the recipe reads it (one undo step; the blocks it changed are listed). A **Row**'s
   **Align** (Start, Centre, End, Stretch) places each block across the row. A card's **Opens at** size is also its default
   preset's, so **Add to a screen** places it at that size.
+- A **Value**'s and a **Ring**'s **Show in** shows the reading in another unit of its kind, from a fixed list: Hz, kHz, MHz and
+  GHz; B, KB, MB, GB and TB (by 1024); B/s, KB/s, MB/s and GB/s (by 1000); W and kW; °C and °F. A CPU's clock of 5120 MHz shows as
+  5.12 GHz with two decimals. The decimals, a ring's range and the warning levels are in the unit shown; a typed **Unit** and
+  **Show in** are one or the other. A ring's centre value has a **Centre colour** (Text or Muted).
+- A **Value**'s **Align** is **Spread** (the label at the start, the value at the end; the default), **Start**, **Centre** or
+  **End**; a **Label**'s is Start, Centre or End.
+- **Thresholds** have a **Direction**: **High is bad** (the default: warning from the warning level up, critical from the critical
+  level up) or **Low is bad**, for a battery or free space (warning at the warning level and under, critical at the critical
+  level and under). The line under the levels says the order in words; a warning level past the critical one for its direction
+  is a problem the recipe cannot be saved with.
 - The widget's card (the top row in Layers) has a **Header icon** and the recipe's **Details**: the **Description** shown on
   its card on the Widgets page, a **Category** (letters and spaces), the **Author**, the **Version** (each save raises it; the
   next is shown) and the **Icon** its card shows.
@@ -880,9 +890,10 @@ controls, the clock, audio streams), and the button says why it is disabled.
   stops a save, and the line says the recipe **fits** at that size only when nothing is crowded. **Save** stores it on
   the server, **Add to a screen** saves it and puts it on the screen, and **Export** saves it and writes the package. A recipe
   signed by someone else cannot be replaced by a save, only copied with **Save as a copy**.
-- A recipe that uses a label of parts is saved as recipe format 2. An older Studio draws it as "Widget not available" (a recipe
-  without parts stays format 1 and draws everywhere); this one says "made with a newer InfoPanel Studio; update to show it"
-  for a recipe of a format newer than it reads.
+- A recipe that uses a label of parts, a Value's or a Label's **Align**, a Value's **Muted** colour, a
+  ring's **Centre colour**, **Show in** or **Low is bad** is saved as recipe format 2, and needs this version of Studio. An older
+  Studio draws it as "Widget not available" (a recipe without any of them stays format 1 and draws everywhere); this one says
+  "made with a newer InfoPanel Studio; update to show it" for a recipe of a format newer than it reads.
 
 **Weather by place.** A recipe can show the weather for places people choose, with no plugin: a **Repeat** block over a place
 list, with a Weather icon and values bound to each place's temperature, wind, precipitation and so on. In the widget's Content

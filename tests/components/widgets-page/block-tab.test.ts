@@ -10,6 +10,12 @@ describe("the Colour row", () => {
   });
 
   it("offers the other blocks the accent, a series and thresholds", () => {
-    for (const type of ["ring", "gauge", "bar", "sparkline", "value"] as const) expect(colourKinds(type).map((c) => c.value), type).toEqual(["accent", "series", "thresholds"]);
+    for (const type of ["ring", "gauge", "bar", "sparkline"] as const) expect(colourKinds(type).map((c) => c.value), type).toEqual(["accent", "series", "thresholds"]);
+  });
+
+  // G22 and B19: a value's number is the text colour unless it names one, so Text (unset) and Muted come before the same three
+  it("offers a value the text colours, then the accent, a series and thresholds", () => {
+    expect(colourKinds("value").map((c) => c.value)).toEqual(["fg", "muted", "accent", "series", "thresholds"]);
+    expect(colourKinds("value")[0].label).toBe("Text");
   });
 });

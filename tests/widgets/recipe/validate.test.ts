@@ -318,3 +318,70 @@ describe("label parts and format 2 (Phase A, G4)", () => {
     expect(issues.map((i) => [i.rule, i.message])).toEqual([["depth", "$.root.children[0].children[0].children[0].children[0].children[0].children[0]: blocks nest 7 deep, at most 6"]]);
   });
 });
+
+describe("Phase C keys, format 2 (G21, G22, G23, G27)", () => {
+  /** The CPU card's values column and its Clock value. */
+  const values = (r: Recipe) => topRow(r).children[1] as Extract<Block, { type: "row" }>;
+  const clock = (r: Recipe) => values(r).children[1] as Extract<Block, { type: "value" }>;
+  /** The CPU card as format 2, so a Phase C key is allowed and the rule under test is the one that fires. */
+  const two = (edit: (r: Recipe) => void) => cpu((r) => ((r.format = 2), edit(r)));
+
+  it("align: start, center or end on a value and a label; stretch is a row's", async () => {
+    for (const align of ["start", "center", "end"] as const) expect(errors(await two((r) => (clock(r).align = align))), align).toEqual([]);
+    expect(errors(await two((r) => rootOf(r).children.push({ type: "label", text: "x", align: "end" })))).toEqual([]);
+    expect(errors(await two((r) => Object.assign(clock(r), { align: "stretch" })))).toEqual(["block"]);
+    expect(errors(await two((r) => Object.assign(clock(r), { align: "left" })))).toEqual(["schema"]);
+  });
+
+  it("text colours: fg and muted on a value's number, never a ring's stroke; a ring's centre takes tone fg or muted", async () => {
+    expect(errors(await two((r) => (clock(r).color = "muted")))).toEqual([]);
+    expect(errors(await two((r) => (clock(r).color = "fg")))).toEqual([]);
+    expect(errors(await two((r) => Object.assign(ring(r), { color: "muted", thresholds: undefined })))).toEqual(["block"]);
+    expect(errors(await two((r) => (ring(r).tone = "muted")))).toEqual([]);
+    expect(errors(await two((r) => Object.assign(ring(r), { tone: "accent" })))).toEqual(["block"]);
+    expect(errors(await two((r) => Object.assign(clock(r), { color: "#ff0000" })))).toEqual(["schema"]);
+  });
+
+  it("convert: a unit of the table, on a value or a ring, never beside a typed unit", async () => {
+    expect(errors(await two((r) => (clock(r).convert = "GHz")))).toEqual([]);
+    expect(errors(await two((r) => Object.assign(ring(r), { convert: "GHz", unit: undefined })))).toEqual([]);
+    expect(errors(await two((r) => Object.assign(clock(r), { convert: "furlongs" })))).toEqual(["schema"]);
+    expect(errors(await two((r) => Object.assign(clock(r), { convert: "GHz", unit: "G" })))).toEqual(["block"]);
+    expect(errors(await two((r) => Object.assign(r.root.children[1], { convert: "GHz" })))).toEqual(["block"]);
+  });
+
+  it("thresholds: low is bad refuses a warning past critical; high is bad only warns, so a recipe that loads today keeps loading; equal levels pass", async () => {
+    const past = validateRecipe({ files: await cpu((r) => (ring(r).thresholds = { warn: 95, crit: 10 })) });
+    expect(past.map((i) => [i.rule, i.severity])).toEqual([["thresholds", "warn"]]);
+    expect(errors(await cpu((r) => (ring(r).thresholds = { warn: 90, crit: 90 })))).toEqual([]);
+    expect(errors(await two((r) => (ring(r).thresholds = { warn: 30, crit: 10, low: true })))).toEqual([]);
+    expect(errors(await two((r) => (ring(r).thresholds = { warn: 10, crit: 10, low: true })))).toEqual([]);
+    expect(errors(await two((r) => (ring(r).thresholds = { warn: 9, crit: 10, low: true })))).toEqual(["thresholds"]);
+    expect(errors(await two((r) => Object.assign(ring(r), { thresholds: { warn: 30, crit: 10, low: false } })))).toEqual(["schema"]);
+    expect(past[0].message).toBe("$.root.children[0].children[0].thresholds: warning at 95 comes after critical at 10; when high is bad, warning is the lower level");
+    const low = validateRecipe({ files: await two((r) => (ring(r).thresholds = { warn: 9, crit: 10, low: true })) }).find((i) => i.rule === "thresholds");
+    expect(low?.severity).toBe("error");
+  });
+
+  it("format: each Phase C key in a recipe that says format 1 is refused, in words; format 1 without them stays as it was", async () => {
+    const cases: [string, (r: Recipe) => void, string][] = [
+      ["align", (r) => (clock(r).align = "center"), "$.root.children[0].children[1].children[1].align: text alignment needs recipe format 2"],
+      ["color", (r) => (clock(r).color = "muted"), "$.root.children[0].children[1].children[1].color: a text colour needs recipe format 2"],
+      ["tone", (r) => (ring(r).tone = "muted"), "$.root.children[0].children[0].tone: a centre value's colour needs recipe format 2"],
+      ["convert", (r) => (clock(r).convert = "GHz"), "$.root.children[0].children[1].children[1].convert: Show in needs recipe format 2"],
+      ["low", (r) => (ring(r).thresholds = { warn: 30, crit: 10, low: true }), "$.root.children[0].children[0].thresholds.low: low is bad needs recipe format 2"],
+    ];
+    for (const [name, edit, message] of cases) {
+      const issues = validateRecipe({ files: await cpu(edit) });
+      expect(issues.map((i) => [i.rule, i.message]), name).toEqual([["format", message]]);
+    }
+    expect(errors(await cpu(() => {}))).toEqual([]);
+  });
+
+  it("a format 1 recipe saved with warning above critical still loads (no feature lost): the package checks and the recipe comes back", async () => {
+    const files = await cpu((r) => (ring(r).thresholds = { warn: 95, crit: 10 }));
+    const checked = await checkPackage({ files });
+    expect(checked.recipe?.format).toBe(1);
+    expect(checked.issues.filter((i) => i.severity === "error")).toEqual([]);
+  });
+});

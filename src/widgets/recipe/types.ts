@@ -3,10 +3,12 @@
 // and drawn by `RecipeView.tsx` with the same primitives and theme tokens as the built-in widgets. No code and no URLs: every
 // value is a number, a word, a sensor key, an option key or a field of a Repeat's data source; an image is a file of the package.
 import type { WidgetPreset } from "../define";
+import type { ConvertUnit } from "./convert";
 
 /**
  * The newest recipe format this build reads (`recipe.json`'s `format`); it reads every one before it too. Format 2 adds keys format 1
- * has not got (a label's `parts`); a recipe that uses none of them is written as format 1, so an older build still draws it.
+ * has not got (a label's `parts`; Phase C: text alignment, the text colours, a centre value's colour, `convert` and thresholds' `low`);
+ * a recipe that uses none of them is written as format 1, so an older build still draws it.
  */
 export const RECIPE_FORMAT = 2;
 export type RecipeFormat = 1 | 2;
@@ -35,6 +37,20 @@ export type Follows<T extends string | number> = T | FollowOption<T>;
 
 /** A colour from the theme: its accent, one of its six series, or the status colours by the block's thresholds. */
 export type RecipeColour = "accent" | "series-1" | "series-2" | "series-3" | "series-4" | "series-5" | "series-6" | "thresholds";
+/** The theme's text colours (format 2): a Value's number, a ring's centre value. */
+export type TextColour = "fg" | "muted";
+/** Where a line of text sits across its block (format 2: a Value and a Label). */
+export type TextAlign = "start" | "center" | "end";
+
+/**
+ * Warning and critical levels. High is bad by default (warning from `warn` up, critical from `crit` up, so warn is at most crit);
+ * `low` (format 2) turns that round for a battery or free space (warning from `warn` down, critical from `crit` down).
+ */
+export interface Thresholds {
+  warn: number;
+  crit: number;
+  low?: true;
+}
 
 /** A zone size in grid cells, `[columns, rows]`. */
 export type Cells = [number, number];
@@ -65,7 +81,7 @@ export interface Ranged {
   max?: number;
   color?: RecipeColour;
   /** Warning and critical levels, for `color: "thresholds"`. */
-  thresholds?: { warn: number; crit: number };
+  thresholds?: Thresholds;
 }
 
 export interface CardBlock extends BlockBase {
@@ -113,6 +129,10 @@ export interface RingBlock extends BlockBase, Ranged {
   thickness?: number;
   unit?: string;
   decimals?: number;
+  /** The centre value's colour (format 2); unset is the text colour. */
+  tone?: TextColour;
+  /** "Show in": the reading in another unit of its family (format 2); the range and thresholds are in that unit too. */
+  convert?: ConvertUnit;
 }
 export interface BarBlock extends BlockBase, Ranged {
   type: "bar";
@@ -134,8 +154,13 @@ export interface ValueBlock extends BlockBase {
   decimals?: number;
   /** Text size, times the card's base (default 1). */
   scale?: number;
-  color?: RecipeColour;
-  thresholds?: { warn: number; crit: number };
+  /** The number's colour; unset is the text colour (`fg`, `muted`: format 2). */
+  color?: RecipeColour | TextColour;
+  thresholds?: Thresholds;
+  /** The line across the block (format 2); unset puts the label at the start and the value at the end. */
+  align?: TextAlign;
+  /** "Show in": the reading in another unit of its family (format 2); the thresholds are in that unit too. */
+  convert?: ConvertUnit;
 }
 /** One piece of a label's line (format 2): typed text, or a reading with its own decimals and unit ("6°", " / ", "1°"). */
 export type LabelPart = { text: string } | { bind: Binding; decimals?: number; unit?: string };
@@ -147,6 +172,8 @@ export interface LabelBlock extends BlockBase {
   parts?: LabelPart[];
   scale?: number;
   tone?: "fg" | "muted" | "accent";
+  /** The line across the block (format 2); unset is the start. */
+  align?: TextAlign;
 }
 export interface WeatherIconBlock extends BlockBase {
   type: "weather-icon";

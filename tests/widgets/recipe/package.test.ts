@@ -3,6 +3,7 @@ import { writeZip } from "@/lib/infopanel/zip";
 import { exportPackage, importPackage, packageOf } from "@/widgets/recipe/package";
 import { withFormat } from "@/components/widgets-page/builder-model";
 import { checkPackage } from "@/widgets/recipe/validate";
+import type { Block } from "@/widgets/recipe/types";
 import { FIXTURE_NAMES, fixtureFiles, fixtureImages, fixtureRecipe } from "./fixture-files";
 
 // A widget package's round trip: export writes a .zip of the manifest and the files; import reads it back to the same files, byte for
@@ -47,5 +48,22 @@ describe("format 2 in a package (Phase A)", () => {
       expect(withFormat(r)).toBe(r);
       expect((await packageOf(withFormat(r), fixtureImages(name))).map((f) => f.bytes)).toEqual(fixtureFiles(name).map((f) => f.bytes));
     }
+  });
+});
+
+describe("Phase C keys in a package", () => {
+  it("a recipe with every Phase C key goes out and back as format 2, byte for byte, and validates", async () => {
+    const r = fixtureRecipe("cpu-card");
+    const top = r.root.children[0] as Extract<Block, { type: "row" }>;
+    const values = top.children[1] as Extract<Block, { type: "row" }>;
+    Object.assign(top.children[0], { tone: "muted", thresholds: { warn: 30, crit: 10, low: true } });
+    Object.assign(values.children[1], { convert: "GHz", decimals: 2, align: "center", color: "muted" });
+    r.root.children.push({ type: "label", text: "Clock in GHz", align: "end" });
+    const files = await packageOf(withFormat(r));
+    expect(JSON.parse(new TextDecoder().decode(files[1].bytes)).format).toBe(2);
+    const back = await importPackage(exportPackage(files));
+    for (const f of files) expect(back.files.find((b) => b.path === f.path)?.bytes, f.path).toEqual(f.bytes);
+    expect((await checkPackage({ files: back.files })).issues).toEqual([]);
+    expect(exportPackage(back.files)).toEqual(exportPackage(files));
   });
 });

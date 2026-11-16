@@ -43,6 +43,8 @@ const FIELDS: Readonly<Record<string, string>> = {
   style: "Style",
   color: "Colour",
   thresholds: "Warning, critical",
+  low: "Direction",
+  convert: "Show in",
   file: "Picture",
   alt: "Alt text",
   fit: "Fit",
@@ -144,4 +146,10 @@ export function plainIssue(recipe: Recipe, issue: RecipeIssue): PlainIssue {
 export function plainIssues(recipe: Recipe, issues: readonly RecipeIssue[]): PlainIssue[] {
   const seen = new Set<string>();
   return issues.filter((i) => i.severity === "error").map((i) => plainIssue(recipe, i)).filter((p) => !seen.has(p.text) && seen.add(p.text));
+}
+
+/** The validator's warnings in the builder's words (a high-is-bad warning level past critical): listed, never stopping a save. */
+export function plainWarnings(recipe: Recipe, issues: readonly RecipeIssue[]): PlainIssue[] {
+  const seen = new Set<string>();
+  return issues.filter((i) => i.severity === "warn").map((i) => ({ ...plainIssue(recipe, i), warn: true })).filter((p) => !seen.has(p.text) && seen.add(p.text));
 }

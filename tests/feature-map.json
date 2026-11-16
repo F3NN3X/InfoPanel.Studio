@@ -494,7 +494,8 @@
         "tests/e2e/widget-qa-parity.spec.ts",
         "tests/e2e/visualiser-round-trip.spec.ts",
         "tests/e2e/code-widgets.spec.ts",
-        "tests/e2e/widget-builder-details.spec.ts"
+        "tests/e2e/widget-builder-details.spec.ts",
+        "tests/e2e/widget-builder-style.spec.ts"
       ],
       "checks": ["typecheck", "unit", "build", "budgets", "ui-usage", "e2e", "overflow"],
       "report": ["npm run audit:views", "npm run qa:shots"],
@@ -685,7 +686,7 @@
       "id": "widgets-page",
       "summary": "The Widgets page and the recipe builder (Phase 5b; code widgets, Phase 6b): browse, import and export of widget packages, the detail pane and its trust states, the builder's model (block tree, binding to option, options, presets, undo) and the start points.",
       "paths": ["src/components/widgets-page/**"],
-      "tests": ["tests/components/widgets-page/**", "tests/e2e/widget-builder.spec.ts", "tests/e2e/widget-builder-recipes.spec.ts", "tests/e2e/widget-builder-editor.spec.ts", "tests/e2e/widget-builder-details.spec.ts", "tests/e2e/code-widgets.spec.ts"],
+      "tests": ["tests/components/widgets-page/**", "tests/e2e/widget-builder.spec.ts", "tests/e2e/widget-builder-recipes.spec.ts", "tests/e2e/widget-builder-editor.spec.ts", "tests/e2e/widget-builder-details.spec.ts", "tests/e2e/widget-builder-style.spec.ts", "tests/e2e/code-widgets.spec.ts"],
       "checks": ["typecheck", "unit", "build", "budgets", "e2e"]
     },
     {

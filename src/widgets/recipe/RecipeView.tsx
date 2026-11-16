@@ -8,11 +8,12 @@ import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSP
 import { weatherKind } from "@/lib/weather-icons";
 import type { ModuleSettings } from "@/modules/types";
 import { Bar, Empty, fmt, get, heat, hue, hw, num, Num, pretty, Ring, shell, shortLabel, Spark, TONES, tone, useHistory, Widget, WeatherGlyph, type ShellProps, type Tone } from "../kit";
+import { convertValue, readingUnit, type ConvertUnit } from "./convert";
 import { cellsOf, TEXT_FLOOR, textPx } from "./metrics";
 import { followed, oneOf, wholeIn } from "./follow";
 import { expandKey } from "./reads";
 import { keyOf } from "./store";
-import type { Binding, Block, Cells, Condition, Place, Recipe, RecipeColour, Ranged, RepeatBlock, RepeatDirection, WeatherUnits } from "./types";
+import type { Binding, Block, Cells, Condition, Place, Recipe, RecipeColour, RepeatBlock, RepeatDirection, TextColour, Thresholds, WeatherUnits } from "./types";
 import { placesOf, sizeHolds } from "./validate";
 import { ATTRIBUTION, HOURS_DEFAULT, HOURS_MAX, inUnits, type Item, LICENCE, liveItem, placeState } from "./weather";
 
@@ -81,8 +82,14 @@ function read(b: Binding | undefined, ctx: Ctx): Reading {
     [raw, key] = sensorOption ? [get(ctx.data, String(v ?? ""), ""), String(v ?? "")] : [v, undefined];
   } else raw = ctx.item?.[b.field];
   const value = typeof raw === "number" ? raw : num(raw);
-  const unit = typeof raw === "string" ? raw.replace(/^[-\d.,\s]+/, "").trim() : "";
+  const unit = typeof raw === "string" ? readingUnit(key, raw) : "";
   return { raw, value, unit, key, device };
+}
+
+/** A reading shown in another unit of its family ("Show in", `convert.ts`); as it is read when it has no number or is of another family. */
+function inUnit(r: Reading, to: ConvertUnit | undefined): Reading {
+  const v = to && Number.isFinite(r.value) ? convertValue(r.value, r.unit, to) : undefined;
+  return v === undefined ? r : { ...r, raw: v, value: v, unit: to! };
 }
 
 /** Whether a block shows: its option part holds for the placement's values, and its size part for the card's size. */
@@ -97,9 +104,18 @@ function seriesInk(n: number, ctx: Ctx): string {
   return typeof own === "string" && own ? own : hue((n - 1) * 60);
 }
 
+/** The level a value is at: from the warning and critical levels up, or with `low` from them down (a battery, free space). */
+function level(value: number, t: Thresholds | undefined): Tone {
+  if (!t?.low) return tone(value, t?.warn, t?.crit);
+  return Number.isFinite(value) && value <= t.crit ? "crit" : Number.isFinite(value) && value <= t.warn ? "warn" : "ok";
+}
+
+/** The theme's text colours (a Value's number, a ring's centre value): `fg` is the number as the theme draws it (a skin's fill too), as unset. */
+const TEXT_INK: Record<TextColour, string | undefined> = { fg: undefined, muted: "var(--w-muted)" };
+
 /** A block's colour: `color` for a stroke or fill when it names one, `t` the tone (thresholds) otherwise. */
-function inkOf(c: RecipeColour | undefined, value: number, thresholds: Ranged["thresholds"], ctx: Ctx): { color?: string; t: Tone } {
-  if (c === "thresholds") return { t: tone(value, thresholds?.warn, thresholds?.crit) };
+function inkOf(c: RecipeColour | TextColour | undefined, value: number, thresholds: Thresholds | undefined, ctx: Ctx): { color?: string; t: Tone } {
+  if (c === "thresholds") return { t: level(value, thresholds) };
   if (c?.startsWith("series-")) return { color: seriesInk(Number(c.slice(7)), ctx), t: "ok" };
   return { t: "ok" };
 }
@@ -197,7 +213,7 @@ function NestedCard({ b, path }: { b: Extract<Block, { type: "card" }>; path: st
 
 function RingView({ b }: { b: Extract<Block, { type: "ring" | "gauge" }> }) {
   const ctx = useCtx();
-  const r = read(b.bind, ctx);
+  const r = inUnit(read(b.bind, ctx), b.convert);
   const min = b.min ?? 0;
   const max = b.max ?? 100;
   const ink = inkOf(b.color, r.value, b.thresholds, ctx);
@@ -206,7 +222,7 @@ function RingView({ b }: { b: Extract<Block, { type: "ring" | "gauge" }> }) {
     <div className="flex h-full w-full items-center justify-center">
       <Ring value={r.value - min} max={max - min} t={ink.t} color={ink.color} thickness={b.thickness} sweep={b.type === "gauge" ? 270 : undefined} className="h-full max-w-full">
         {b.center !== false && (
-          <Num className="font-semibold leading-none" style={{ fontSize: px }}>
+          <Num className="font-semibold leading-none" style={{ fontSize: px, color: b.tone && TEXT_INK[b.tone] }}>
             {shown(r, b.decimals ?? 0)}
             <span style={{ fontSize: Math.max(11, px * 0.4) }}>{b.unit ?? r.unit}</span>
           </Num>
@@ -242,14 +258,17 @@ function SparkView({ b }: { b: Extract<Block, { type: "sparkline" }> }) {
 
 function ValueView({ b }: { b: Extract<Block, { type: "value" }> }) {
   const ctx = useCtx();
-  const r = read(b.bind, ctx);
+  const r = inUnit(read(b.bind, ctx), b.convert);
   const px = textPx(b.scale ?? 1, ctx.w, ctx.h);
   const ink = inkOf(b.color, r.value, b.thresholds, ctx);
-  const color = ink.color ?? (ink.t !== "ok" ? TONES[ink.t] : undefined);
+  // unset is the text colour (the shell's); an Accent picked is the accent (B19)
+  const color = b.color === "fg" || b.color === "muted" ? TEXT_INK[b.color] : b.color === "accent" ? TONES.ok : (ink.color ?? (ink.t !== "ok" ? TONES[ink.t] : undefined));
+  // unset: the label at the start and the value at the end; aligned, the two together
+  const justify = b.align === "center" ? "center" : b.align === "end" ? "flex-end" : undefined;
   return (
-    <div className="flex w-full min-w-0 items-baseline gap-[0.6em] whitespace-nowrap leading-none" style={{ fontSize: px }}>
+    <div className="flex w-full min-w-0 items-baseline gap-[0.6em] whitespace-nowrap leading-none" style={{ fontSize: px, justifyContent: justify }}>
       {b.label && <span className="min-w-0 truncate text-[color:var(--w-muted)]">{b.label}</span>}
-      <Num className={b.label ? "ml-auto shrink-0" : "shrink-0"} style={color ? { color } : undefined}>
+      <Num className={b.label && !b.align ? "ml-auto shrink-0" : "shrink-0"} style={color ? { color } : undefined}>
         {shown(r, b.decimals)}
         {(b.unit ?? r.unit) && <span className="ml-[0.2em] text-[color:var(--w-muted)]" style={{ fontSize: Math.max(11, px * 0.6) }}>{b.unit ?? r.unit}</span>}
       </Num>
@@ -294,7 +313,7 @@ function LabelView({ b }: { b: Extract<Block, { type: "label" }> }) {
   const color = b.tone === "muted" ? "var(--w-muted)" : b.tone === "accent" ? "var(--w-accent)" : "var(--w-fg)";
   const [ref, px] = useFitPx(textPx(b.scale ?? 0.85, ctx.w, ctx.h), text);
   return (
-    <span ref={ref} className="block w-full truncate leading-tight" style={{ fontSize: px, color }}>
+    <span ref={ref} className="block w-full truncate leading-tight" style={{ fontSize: px, color, textAlign: b.align }}>
       {text}
     </span>
   );

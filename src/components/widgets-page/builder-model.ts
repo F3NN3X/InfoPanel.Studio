@@ -3,12 +3,13 @@
 // second child of its first), the same path the renderer writes on each block (`data-recipe-path`), so a click on the stage and
 // a row in Layers name the same block. What the validator says (`validate.ts`) is the builder's validation line; nothing here
 // writes to the server.
-import { hw } from "@/widgets/core/data";
+import { get, hw } from "@/widgets/core/data";
 import type { Data } from "@/widgets/core/types";
+import { readingUnit } from "@/widgets/recipe/convert";
 import { cellBasePx, TEXT_FLOOR } from "@/widgets/recipe/metrics";
 import { recipeBytes } from "@/widgets/recipe/package";
 import { boundSensors, expandKey } from "@/widgets/recipe/reads";
-import { BLOCK_TYPES, type Binding, type Block, type BlockType, type CardBlock, type Cells, type Container, type FollowOption, type LabelPart, type PackageFile, type Place, type Recipe, type RecipeDeviceKind, type RecipeOption } from "@/widgets/recipe/types";
+import { BLOCK_TYPES, type Binding, type Block, type BlockType, type CardBlock, type Cells, type Container, type FollowOption, type LabelPart, type PackageFile, type Place, type Recipe, type RecipeDeviceKind, type RecipeOption, type Thresholds } from "@/widgets/recipe/types";
 import { DEPTH_MAX, DEVICE_SLOT, format2Keys, ITEMS_MAX, type RecipeIssue, validateRecipe } from "@/widgets/recipe/validate";
 import type { WidgetPreset } from "@/widgets/define";
 
@@ -804,10 +805,50 @@ export function validationLine(recipe: Recipe, issues: readonly RecipeIssue[]): 
 
 /* ───────── format ───────── */
 
-/** The recipe with the format its keys need: 2 where it uses a key format 1 has not got (a label's parts), else 1, byte for byte. */
+/**
+ * The recipe with the format its keys need: 2 where it uses a key format 1 has not got (a label's parts; Phase C's text alignment,
+ * text colours, a ring's centre colour, Show in and low is bad: `format2Keys`), else 1, byte for byte.
+ */
 export function withFormat(recipe: Recipe): Recipe {
   const format = format2Keys(recipe.root).length ? 2 : 1;
   return recipe.format === format ? recipe : { ...recipe, format };
+}
+
+/* ───────── Show in ───────── */
+
+/**
+ * The unit of what a binding reads now (the stage's reading, else the sample's), for a Value's or a Ring's "Show in" (G23): a sensor
+ * key with each device option on its default, a sensor option's default key. "" when it reads no sensor or nothing is there.
+ */
+export function unitOfBinding(recipe: Recipe, bind: Binding | undefined, data: Data): string {
+  const defaults = Object.fromEntries(recipe.options.map((o) => [o.key, o.default]));
+  const all = { ...recipe.sample.sensors, ...data } as Data;
+  const sensorOption = bind && "option" in bind ? recipe.options.find((o) => o.key === bind.option && o.type === "sensor") : undefined;
+  const key = bind && "sensor" in bind ? expandKey(recipe, bind.sensor, defaults, all).key : sensorOption ? String(sensorOption.default) : undefined;
+  return key ? readingUnit(key, String(get(all, key))) : "";
+}
+
+/* ───────── thresholds ───────── */
+
+/**
+ * Thresholds turned to high is bad or low is bad (G27). `low` is written only for low is bad, so a recipe that never turns it keeps its
+ * bytes; levels that would be out of order for the new direction swap, so the pair stays one the validator takes.
+ */
+export function withDirection(t: Thresholds | undefined, low: boolean): Thresholds {
+  const { warn, crit } = t ?? { warn: 70, crit: 90 };
+  const [w, c] = (low ? warn >= crit : warn <= crit) ? [warn, crit] : [crit, warn];
+  return low ? { warn: w, crit: c, low: true } : { warn: w, crit: c };
+}
+
+/** The order of a block's levels in plain words, and whether it is one the validator takes (warning never past critical). */
+export function thresholdLine(t: Thresholds): { ok: boolean; text: string } {
+  if (t.low)
+    return t.warn >= t.crit
+      ? { ok: true, text: `Low is bad: warning at ${t.warn} and under, critical at ${t.crit} and under. Warning is the higher level.` }
+      : { ok: false, text: `Warning at ${t.warn} is under critical at ${t.crit}: when low is bad, warning is the higher level, reached first as the reading falls.` };
+  return t.warn <= t.crit
+    ? { ok: true, text: `High is bad: warning from ${t.warn} up, critical from ${t.crit} up. Warning is the lower level.` }
+    : { ok: false, text: `Warning at ${t.warn} is over critical at ${t.crit}: when high is bad, warning is the lower level, reached first as the reading rises.` };
 }
 
 /* ───────── labels ───────── */
