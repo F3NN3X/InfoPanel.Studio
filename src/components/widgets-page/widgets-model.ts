@@ -41,6 +41,9 @@ export interface UserWidget {
   trust: Trust;
   /** The card's line ("Made in Studio · ring, three values"). */
   blurb: string;
+  /** A recipe's icon and category (its details, G7): the card shows them by its name. */
+  icon?: string;
+  category?: string;
   version: string;
   /** Bytes on the server (`GET /api/widgets` `size`). */
   bytes: number;

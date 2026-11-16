@@ -45,7 +45,7 @@ function useDraft<T>(value: T, show: (v: T) => string, parse: (s: string) => T |
       if (v !== null && v !== start.current) onChange(v);
       else typing.cancel();
     },
-    undo: (el: HTMLInputElement) => {
+    undo: (el: HTMLElement) => {
       cancelled.current = true;
       el.blur();
     },
@@ -112,6 +112,32 @@ export function NumberInput({ label, value, onChange, unit, min, max, step, widt
 export function TextInput({ label, value, onChange, width = 160, placeholder }: { label: string; value: string; onChange: (v: string) => void; width?: number; placeholder?: string }) {
   const draft = useDraft(value, (v) => v, (s) => s, onChange);
   return <input aria-label={label} value={draft.text} placeholder={placeholder} onFocus={draft.begin} onChange={(e) => draft.type(e.target.value)} onBlur={draft.done} onKeyDown={keys(draft)} className={INPUT} style={{ width }} />;
+}
+
+/** A text of a few lines (a description), committed as `TextInput` is: on blur or Enter (a description is one paragraph). */
+export function TextArea({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const draft = useDraft(value, (v) => v, (s) => s.replace(/\s*\n\s*/g, " "), onChange);
+  return (
+    <textarea
+      aria-label={label}
+      value={draft.text}
+      placeholder={placeholder}
+      rows={3}
+      onFocus={draft.begin}
+      onChange={(e) => draft.type(e.target.value)}
+      onBlur={draft.done}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          e.stopPropagation();
+          draft.undo(e.currentTarget);
+        }
+      }}
+      className={cn(INPUT, "h-auto resize-none py-1.5 leading-snug")}
+    />
+  );
 }
 
 /** A range slider: the stage follows the drag, and the drag is one step, committed when it ends (pointer up, a key let go, blur). */

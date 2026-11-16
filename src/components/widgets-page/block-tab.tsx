@@ -3,10 +3,12 @@
 // its type has (a ring's centre value and thickness, a Repeat's list and direction, a row's direction), when it shows, and its
 // share of its row. Every change is one edit of the recipe (one undo step).
 import type { ReactNode } from "react";
-import { Copy, Trash2 } from "lucide-react";
+import { Ban, Copy, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
+import { IconGrid, type IconGridItem } from "@/components/ui/icon-grid";
 import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
+import { iconFor, MATERIAL_ICONS } from "@/widgets/core/icons";
 import type { Data } from "@/widgets/core/types";
 import { isFollow, oneOf, wholeIn } from "@/widgets/recipe/follow";
 import { DEFAULT_SCALE } from "@/widgets/recipe/validate";
@@ -14,7 +16,7 @@ import type { Block, BlockType, Cells, Follows, Recipe, RecipeColour, RecipeDevi
 import { BLOCK_LABEL, blockAt, followable, followOf, layerName, setRecipeSize, updateBlock, valueText, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { DataRow, HeatmapCells, LabelText } from "./data-rows";
-import { Field, Heading, NumberInput, Select, Slider, TextInput } from "./fields";
+import { Field, Heading, NumberInput, Select, Slider, TextArea, TextInput } from "./fields";
 
 export interface BlockTabProps {
   recipe: Recipe;
@@ -30,6 +32,8 @@ export interface BlockTabProps {
   onOpenSources: () => void;
   /** Adds an image file to the package and names it on the block. */
   onImage: (file: File) => void;
+  /** The version the next save writes (the stored one's next; a recipe never saved keeps its own). */
+  nextVersion: string;
 }
 
 /**
@@ -56,6 +60,13 @@ const DIRECTIONS = [
   { value: "rows", label: "Rows" },
   { value: "columns", label: "Columns" },
   { value: "grid", label: "Grid" },
+] as const;
+/** A Row's align (G20): where each block sits across the row, in its cell; Stretch (unset) fills it. */
+const ALIGNS = [
+  { value: "start", label: "Start" },
+  { value: "center", label: "Centre" },
+  { value: "end", label: "End" },
+  { value: "stretch", label: "Stretch" },
 ] as const;
 const UNITS = [
   { value: "metric", label: "°C, km/h" },
@@ -203,6 +214,66 @@ function WhenRows({ recipe, path, block, onChange }: { recipe: Recipe; path: Pat
   );
 }
 
+/** The icons a recipe and its card may take: Material Symbols words the format allows (`$defs.word`) that the app draws (`MATERIAL_ICONS`). */
+export const RECIPE_ICONS: readonly string[] = [
+  "dashboard", "memory", "memory_alt", "developer_board", "speed", "device_thermostat", "mode_fan", "bolt", "hard_drive", "lan", "wifi",
+  "settings_ethernet", "battery_full", "monitor_heart", "vital_signs", "query_stats", "timeline", "stacked_bar_chart", "donut_large", "equalizer",
+  "graphic_eq", "partly_cloudy_day", "clear_day", "rainy", "location_on", "public", "schedule", "timer", "calendar_month", "event",
+  "notifications", "music_note", "headset_mic", "mic", "videocam", "sports_esports", "trophy", "smart_toy", "sensors", "image", "newspaper",
+  "description", "tune", "group", "person",
+].filter((name) => Object.hasOwn(MATERIAL_ICONS, name));
+
+/** An icon picker (G7, G8): the grid of `RECIPE_ICONS`, with a first cell for none when `none` names what that means. */
+function IconPick({ label, value, none, onChange }: { label: string; value: string | undefined; none?: string; onChange: (icon: string | undefined) => void }) {
+  const cells: IconGridItem[] = [
+    ...(none ? [{ id: "", label: none, icon: <Ban /> }] : []),
+    ...RECIPE_ICONS.map((name) => {
+      const Icon = iconFor(name);
+      return { id: name, label: name.replace(/_/g, " "), icon: <Icon /> };
+    }),
+  ];
+  return (
+    <div className="flex flex-col gap-1.5 py-1">
+      <span className="text-body text-ui-2">{label}</span>
+      <IconGrid icons={cells} value={value ?? ""} onChange={(id) => onChange(id || undefined)} label={label} columns={9} />
+    </div>
+  );
+}
+
+/**
+ * The recipe's details (G7) on the root card: the browse card's line (description), its category and icon, the author, and the
+ * version, which a save bumps (`next`: the version the next save writes).
+ */
+function DetailRows({ recipe, next, onChange }: { recipe: Recipe; next: string; onChange: (r: Recipe) => void }) {
+  const set = (patch: Partial<Pick<Recipe, "description" | "category" | "icon" | "author">>) => {
+    const r = { ...recipe, ...patch } as Record<string, unknown>;
+    for (const [k, v] of Object.entries(patch)) if (v === undefined) delete r[k];
+    onChange(r as unknown as Recipe);
+  };
+  return (
+    <>
+      <Heading>Details</Heading>
+      <label className="flex flex-col gap-1.5 py-1">
+        <span className="text-body text-ui-2">Description</span>
+        <TextArea label="Description" value={recipe.description ?? ""} placeholder="The line under its name in Widgets and Add" onChange={(v) => set({ description: v.trim() ? v.slice(0, 400) : undefined })} />
+      </label>
+      <Field label="Category" hint="Letters and spaces, 24 at most">
+        <TextInput label="Category" value={recipe.category ?? ""} placeholder="Recipes" onChange={(v) => set({ category: v.trim() ? v.trim().slice(0, 24) : undefined })} />
+      </Field>
+      <Field label="Author">
+        <TextInput label="Author" value={recipe.author} onChange={(v) => v.trim() && set({ author: v.trim().slice(0, 80) })} />
+      </Field>
+      <Field label="Version">
+        <span data-version="" className="font-ui-mono text-body text-ui-2">
+          {recipe.version}
+          {next !== recipe.version && <span className="text-ui-3"> · next save {next}</span>}
+        </span>
+      </Field>
+      <IconPick label="Icon" value={recipe.icon} onChange={(icon) => set({ icon })} />
+    </>
+  );
+}
+
 function SizeRows({ recipe, onChange }: { recipe: Recipe; onChange: (r: Recipe) => void }) {
   const row = (label: string, key: "min" | "max" | "default") => (
     <Field label={label}>
@@ -259,6 +330,7 @@ export function BlockTab(props: BlockTabProps) {
           <TextInput label="Title" value={block.title ?? ""} onChange={(v) => set({ title: v.trim() ? v.slice(0, 60) : undefined })} />
         </Field>
       )}
+      {block.type === "card" && path.length === 0 && <IconPick label="Header icon" value={block.icon} none="The widget's icon" onChange={(icon) => set({ icon })} />}
       {block.type === "repeat" ? (
         <>
           <Heading>Repeat over</Heading>
@@ -350,6 +422,9 @@ export function BlockTab(props: BlockTabProps) {
           <Field label="Gap">
             <NumberInput label="Gap" value={block.gap} min={0} max={24} onChange={(v) => set({ gap: v })} unit="px" />
           </Field>
+          <Field label="Align" hint={block.direction === "column" ? "Where each block sits across the column" : "Where each block sits from top to bottom"}>
+            <Segmented label="Align" value={block.align ?? "stretch"} options={[...ALIGNS]} onChange={(v) => set({ align: v === "stretch" ? undefined : v })} />
+          </Field>
         </>
       )}
       {(block.type === "sparkline" || block.type === "bar") && (
@@ -393,6 +468,7 @@ export function BlockTab(props: BlockTabProps) {
         </>
       )}
       {block.type === "card" && path.length === 0 && <SizeRows recipe={recipe} onChange={onChange} />}
+      {block.type === "card" && path.length === 0 && <DetailRows recipe={recipe} next={props.nextVersion} onChange={onChange} />}
       {path.length > 0 && (
         <>
           <Heading>When it shows</Heading>
