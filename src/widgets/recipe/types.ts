@@ -7,8 +7,9 @@ import type { ConvertUnit } from "./convert";
 
 /**
  * The newest recipe format this build reads (`recipe.json`'s `format`); it reads every one before it too. Format 2 adds keys format 1
- * has not got (a label's `parts`; Phase C: text alignment, the text colours, a centre value's colour, `convert` and thresholds' `low`);
- * a recipe that uses none of them is written as format 1, so an older build still draws it.
+ * has not got (a label's `parts`; Phase C: text alignment, the text colours, a centre value's colour, `convert` and thresholds' `low`;
+ * Phase E: text weight and case, opacity, a card's surface and padding, the root's spacing, a gauge's sweep and a bar's height); a
+ * recipe that uses none of them is written as format 1, so an older build still draws it.
  */
 export const RECIPE_FORMAT = 2;
 export type RecipeFormat = 1 | 2;
@@ -41,6 +42,13 @@ export type RecipeColour = "accent" | "series-1" | "series-2" | "series-3" | "se
 export type TextColour = "fg" | "muted";
 /** Where a line of text sits across its block (format 2: a Value and a Label). */
 export type TextAlign = "start" | "center" | "end";
+/** A text's weight beside the theme's regular (format 2: a Value and a Label); the font stays the theme's. */
+export type TextWeight = "medium" | "semibold";
+/**
+ * An opacity step beside a block's colour (format 2); unset is 100. A mark (a ring's arc, a bar, a sparkline, heatmap cells) takes it as
+ * it is; a text is drawn at the lowest step from it that keeps 4.5:1 on its card (`opacity.ts`).
+ */
+export type OpacityStep = 80 | 60 | 40;
 
 /**
  * Warning and critical levels. High is bad by default (warning from `warn` up, critical from `crit` up, so warn is at most crit);
@@ -82,6 +90,7 @@ export interface Ranged {
   color?: RecipeColour;
   /** Warning and critical levels, for `color: "thresholds"`. */
   thresholds?: Thresholds;
+  opacity?: OpacityStep;
 }
 
 export interface CardBlock extends BlockBase {
@@ -91,6 +100,12 @@ export interface CardBlock extends BlockBase {
   /** A sub-title after it, from a binding (the CPU's name). */
   subtitle?: Binding;
   icon?: string;
+  /** A nested card's ground (format 2): none, or raised from the card; unset is the track tint. */
+  surface?: "none" | "raised";
+  /** A nested card's padding (format 2): none, S 4 px or L 12 px; unset is M, 8 px. */
+  padding?: "none" | "s" | "l";
+  /** The root card's room between its blocks (format 2): tight 2 px or roomy 12 px; unset is normal, 6 px. */
+  spacing?: "tight" | "roomy";
   children: Block[];
 }
 export interface RowBlock extends BlockBase {
@@ -133,10 +148,14 @@ export interface RingBlock extends BlockBase, Ranged {
   tone?: TextColour;
   /** "Show in": the reading in another unit of its family (format 2); the range and thresholds are in that unit too. */
   convert?: ConvertUnit;
+  /** A gauge's arc in degrees (format 2); unset is 270. */
+  sweep?: 180 | 240;
 }
 export interface BarBlock extends BlockBase, Ranged {
   type: "bar";
   style?: "bar" | "segments";
+  /** The bar's height (format 2): S 4 px or L 14 px; unset is M, 8 px. */
+  height?: "s" | "l";
 }
 export interface SparklineBlock extends BlockBase, Ranged {
   type: "sparkline";
@@ -161,6 +180,10 @@ export interface ValueBlock extends BlockBase {
   align?: TextAlign;
   /** "Show in": the reading in another unit of its family (format 2); the thresholds are in that unit too. */
   convert?: ConvertUnit;
+  weight?: TextWeight;
+  /** Upper case (format 2): the value's label only, never its unit ("kHz" is not "KHZ"). */
+  case?: "upper";
+  opacity?: OpacityStep;
 }
 /** One piece of a label's line (format 2): typed text, or a reading with its own decimals and unit ("6°", " / ", "1°"). */
 export type LabelPart = { text: string } | { bind: Binding; decimals?: number; unit?: string };
@@ -174,6 +197,10 @@ export interface LabelBlock extends BlockBase {
   tone?: "fg" | "muted" | "accent";
   /** The line across the block (format 2); unset is the start. */
   align?: TextAlign;
+  weight?: TextWeight;
+  /** Upper case (format 2); unset is as typed. */
+  case?: "upper";
+  opacity?: OpacityStep;
 }
 export interface WeatherIconBlock extends BlockBase {
   type: "weather-icon";
@@ -198,6 +225,7 @@ export interface HeatmapBlock extends BlockBase {
   max?: number;
   columns?: number;
   color?: RecipeColour;
+  opacity?: OpacityStep;
 }
 
 export type Block = CardBlock | RowBlock | RepeatBlock | RingBlock | BarBlock | SparklineBlock | ValueBlock | LabelBlock | WeatherIconBlock | ImageBlock | HeatmapBlock;

@@ -3,7 +3,8 @@
 // its type has (a ring's centre value and thickness, a Repeat's list and direction, a row's direction), when it shows, and its
 // share of its row; Phase C: a value's and a label's alignment, the text colours, a ring's centre colour, "Show in" and a
 // threshold's direction. Phase D: "Up to the size" beside "From the size" (G28), an image's alt text (G31), and the Header row's
-// title, sub-title and icon on their own (G37). Every change is one edit of the recipe (one undo step).
+// title, sub-title and icon on their own (G37). Phase E: the style rows of `style-rows.tsx` (weight, case, opacity, a card's surface,
+// padding and spacing, a gauge's sweep, a bar's height). Every change is one edit of the recipe (one undo step).
 import type { ReactNode } from "react";
 import { Ban, Copy, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
@@ -20,6 +21,7 @@ import { BLOCK_LABEL, blockAt, followable, followOf, layerName, setRecipeSize, t
 import { BlockIcon } from "./block-icons";
 import { DataRow, type DataRowsProps, HeatmapCells, LabelText } from "./data-rows";
 import { Field, Heading, NumberInput, Select, Slider, TextArea, TextInput } from "./fields";
+import { StyleRows } from "./style-rows";
 
 export interface BlockTabProps {
   recipe: Recipe;
@@ -39,6 +41,8 @@ export interface BlockTabProps {
   nextVersion: string;
   /** The Header row is picked (G37): the root card's title, sub-title and icon only. */
   header?: boolean;
+  /** The opacity step the stage draws the block's text at (Phase E), when it has one. */
+  drawnOpacity?: number;
 }
 
 type ColourKind = TextColour | "accent" | "series" | "thresholds";
@@ -471,7 +475,7 @@ export function BlockTab(props: BlockTabProps) {
           <NumberInput label="Range to" value={raw.max as number | undefined} onChange={(v) => set({ max: v })} />
         </Field>
       )}
-      {(block.type === "row" || block.type === "label" || block.type === "value" || block.type === "ring" || block.type === "gauge" || block.type === "bar" || block.type === "sparkline" || block.type === "heatmap") && <Heading>Look</Heading>}
+      {(block.type === "card" || block.type === "row" || block.type === "label" || block.type === "value" || block.type === "ring" || block.type === "gauge" || block.type === "bar" || block.type === "sparkline" || block.type === "heatmap") && <Heading>Look</Heading>}
       {(block.type === "ring" || block.type === "gauge" || block.type === "bar" || block.type === "sparkline" || block.type === "value" || block.type === "heatmap") && <ColourRow recipe={recipe} path={path} block={block} onChange={onChange} />}
       {(block.type === "ring" || block.type === "gauge") && (
         <>
@@ -531,6 +535,7 @@ export function BlockTab(props: BlockTabProps) {
           <Segmented label="Tone" value={block.tone ?? "fg"} options={[{ value: "fg", label: "Text" }, { value: "muted", label: "Muted" }, { value: "accent", label: "Accent" }]} onChange={(v) => set({ tone: v === "fg" ? undefined : v })} />
         </Field>
       )}
+      <StyleRows block={block} root={path.length === 0} set={set} drawn={props.drawnOpacity} />
       {block.type === "row" && (
         <>
           <Field label="Direction">

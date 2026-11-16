@@ -244,3 +244,72 @@ describe("RecipeView, Phase C", () => {
     expect(at("96 %")).toContain("--w-crit");
   });
 });
+
+describe("RecipeView, Phase E", () => {
+  const cpuWith = (blocks: Block[], root: object = {}) => {
+    const r = fixtureRecipe("cpu-card");
+    r.format = 2;
+    r.root = { ...r.root, ...root, children: blocks };
+    return r;
+  };
+  const LOAD = { sensor: "libre.amd_ryzen_9_9950x3d_cpu_total" };
+  const html = (blocks: Block[], root?: object) => draw(cpuWith(blocks, root));
+
+  it("weight: a label's and a value's text in the theme's font, heavier; the number's weight goes to Num, where a Look's own wins (G21)", () => {
+    expect(html([{ type: "label", text: "x", weight: "semibold" }])).toContain("font-weight:600");
+    const value = html([{ type: "value", label: "Load", bind: LOAD, weight: "medium" }]);
+    expect(value).toMatch(/whitespace-nowrap leading-none" style="[^"]*font-weight:500/);
+    expect(value).toMatch(/data-part="num"[^>]*style="[^"]*font-weight:500/);
+    // unset: the label regular, the number the theme's 700
+    const plain = html([{ type: "label", text: "x" }, { type: "value", label: "Load", bind: LOAD }]);
+    expect(plain).not.toMatch(/font-weight:(500|600)/);
+    expect(plain).toMatch(/data-part="num"[^>]*style="[^"]*font-weight:700/);
+  });
+
+  it("case: a label in capitals; a value's label only, so its unit keeps its case (G21)", () => {
+    expect(html([{ type: "label", text: "x", case: "upper" }])).toContain("text-transform:uppercase");
+    const value = html([{ type: "value", label: "Load", bind: LOAD, case: "upper" }]);
+    expect(value).toMatch(/<span class="min-w-0 truncate[^"]*" style="text-transform:uppercase">Load</);
+    const plain = html([{ type: "value", label: "Load", bind: LOAD }]);
+    expect((value.match(/text-transform/g) ?? []).length).toBe((plain.match(/text-transform/g) ?? []).length + 1);
+    expect(html([{ type: "label", text: "x" }])).toContain('<span class="block w-full truncate leading-tight" style="font-size:11px;color:var(--w-fg)">x</span>');
+  });
+
+  it("opacity on a mark, as it is: a ring's arc only, a bar's fill, a sparkline, heatmap cells; nothing unset (G22)", () => {
+    expect(html([{ type: "ring", bind: LOAD, opacity: 40 }])).toContain("[&amp;_[data-wp-ring]]:opacity-40");
+    expect(html([{ type: "bar", bind: LOAD, opacity: 60 }])).toContain("[&amp;&gt;*]:opacity-60");
+    expect(html([{ type: "sparkline", bind: LOAD, opacity: 80 }])).toMatch(/class="[^"]*\bopacity-80\b/);
+    expect(html([{ type: "heatmap", cells: [LOAD], opacity: 40 }])).toMatch(/class="grid h-full w-full gap-\[2px\] opacity-40"/);
+    expect(html([{ type: "ring", bind: LOAD }, { type: "bar", bind: LOAD }, { type: "sparkline", bind: LOAD }])).not.toMatch(/opacity-\d/);
+  });
+
+  it("a card inside: the track and 8 px when unset, as before; none, raised from the theme's text colour, and its padding (G26)", () => {
+    const card = (extra: object) => /data-recipe-block="card"[^>]*><div class="([^"]*)"(?: style="([^"]*)")?/.exec(html([{ type: "card", title: "In", children: [], ...extra } as Block]))?.slice(1).map((x) => x ?? "") ?? [];
+    expect(card({})).toEqual(["flex h-full w-full min-h-0 flex-col gap-1 rounded-lg p-2", "background:var(--w-track)"]);
+    expect(card({ surface: "none" })[1]).toBe("");
+    expect(card({ surface: "raised" })[1]).toContain("background:color-mix(in srgb, var(--w-fg) 11%, transparent)");
+    expect(card({ surface: "raised" })[0]).toContain("shadow-md ring-1 ring-inset ring-[color:var(--w-fg)]/15");
+    expect(card({ surface: "raised" })[1]).not.toMatch(/#[\da-f]{3,8}\b/i);
+    expect(card({ padding: "s" })).toEqual(["flex h-full w-full min-h-0 flex-col gap-1 rounded-lg", "background:var(--w-track);padding:4px"]);
+    expect(card({ padding: "none" })[1]).toContain("padding:0");
+    expect(card({ padding: "l" })[1]).toContain("padding:12px");
+  });
+
+  it("the root's spacing between its blocks: 6 px unset, as before; tight 2, roomy 12 (G26)", () => {
+    const gap = (root?: object) => /<div class="flex h-full w-full min-h-0 min-w-0" style="flex-direction:column;gap:(\d+)px/.exec(html([{ type: "label", text: "x" }], root))?.[1];
+    expect(gap()).toBe("6");
+    expect(gap({ spacing: "tight" })).toBe("2");
+    expect(gap({ spacing: "roomy" })).toBe("12");
+  });
+
+  it("a gauge's sweep, 270 unset as before; a bar's height, h-2 unset as before (G36)", () => {
+    const turn = (extra: object) => /<g transform="rotate\((-?\d+) 50 50\)"/.exec(html([{ type: "gauge", bind: LOAD, ...extra } as Block]))?.[1];
+    expect(turn({})).toBe("-135");
+    expect(turn({ sweep: 240 })).toBe("-120");
+    expect(turn({ sweep: 180 })).toBe("-90");
+    const bar = (extra: object) => /data-part="bar" class="([^"]*)"/.exec(html([{ type: "bar", bind: LOAD, ...extra } as Block]))?.[1] ?? "";
+    expect(bar({})).toMatch(/\bh-2$/);
+    expect(bar({ height: "s" })).toMatch(/\bh-1$/);
+    expect(bar({ height: "l" })).toMatch(/\bh-3\.5$/);
+  });
+});

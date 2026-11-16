@@ -385,3 +385,69 @@ describe("Phase C keys, format 2 (G21, G22, G23, G27)", () => {
     expect(checked.issues.filter((i) => i.severity === "error")).toEqual([]);
   });
 });
+
+describe("Phase E keys, format 2 (G21 weight and case, G22 opacity, G26, G36)", () => {
+  const two = (edit: (r: Recipe) => void) => cpu((r) => ((r.format = 2), edit(r)));
+  /** The CPU card as format 2 with `block` added at the end of its root. */
+  const withBlock = (block: Block) => two((r) => rootOf(r).children.push(block));
+  const bar = (extra: object = {}): Block => ({ type: "bar", bind: { sensor: "libre.amd_ryzen_9_9950x3d_cpu_total" }, ...extra }) as Block;
+  const gauge = (extra: object = {}): Block => ({ type: "gauge", bind: { sensor: "libre.amd_ryzen_9_9950x3d_cpu_total" }, ...extra }) as Block;
+  const nested = (extra: object = {}): Block => ({ type: "card", title: "Inner", children: [], ...extra }) as Block;
+
+  it("weight and case: medium or semibold, upper, on a value and a label; nowhere else, no other value", async () => {
+    for (const weight of ["medium", "semibold"]) expect(errors(await withBlock({ type: "label", text: "x", weight } as Block)), weight).toEqual([]);
+    expect(errors(await withBlock({ type: "value", bind: { sensor: "libre.amd_ryzen_9_9950x3d_cpu_total" }, weight: "semibold", case: "upper", label: "Load" } as Block))).toEqual([]);
+    expect(errors(await withBlock({ type: "label", text: "x", case: "upper" } as Block))).toEqual([]);
+    expect(errors(await withBlock({ type: "label", text: "x", weight: "bold" } as unknown as Block))).toEqual(["schema"]);
+    expect(errors(await withBlock({ type: "label", text: "x", case: "lower" } as unknown as Block))).toEqual(["schema"]);
+    expect(errors(await two((r) => Object.assign(ring(r), { weight: "medium" })))).toEqual(["block"]);
+  });
+
+  it("opacity: 80, 60 or 40 on a text or a mark; not on a container, no other step", async () => {
+    for (const opacity of [80, 60, 40]) expect(errors(await two((r) => Object.assign(ring(r), { opacity }))), String(opacity)).toEqual([]);
+    expect(errors(await withBlock({ type: "label", text: "x", opacity: 40 } as Block))).toEqual([]);
+    expect(errors(await withBlock(bar({ opacity: 60 })))).toEqual([]);
+    expect(errors(await two((r) => Object.assign(ring(r), { opacity: 50 })))).toEqual(["schema"]);
+    expect(errors(await two((r) => Object.assign(ring(r), { opacity: 100 })))).toEqual(["schema"]);
+    expect(errors(await two((r) => Object.assign(topRow(r), { opacity: 40 })))).toEqual(["block"]);
+  });
+
+  it("surface and padding on a card inside the root; spacing on the root card; never the other way round", async () => {
+    expect(errors(await withBlock(nested({ surface: "raised", padding: "l" })))).toEqual([]);
+    expect(errors(await withBlock(nested({ surface: "none", padding: "none" })))).toEqual([]);
+    expect(errors(await two((r) => Object.assign(rootOf(r), { spacing: "roomy" })))).toEqual([]);
+    expect(errors(await two((r) => Object.assign(rootOf(r), { spacing: "tight" })))).toEqual([]);
+    expect(errors(await withBlock(nested({ surface: "glass" })))).toEqual(["schema"]);
+    expect(errors(await withBlock(nested({ padding: "xl" })))).toEqual(["schema"]);
+    expect(errors(await two((r) => Object.assign(rootOf(r), { surface: "raised" })))).toEqual(["block"]);
+    expect(errors(await withBlock(nested({ spacing: "roomy" })))).toEqual(["block"]);
+    expect(errors(await two((r) => Object.assign(topRow(r), { padding: "s" })))).toEqual(["block"]);
+  });
+
+  it("sweep on a gauge, 180 or 240 (270 is unset); height on a bar, s or l (m is unset)", async () => {
+    for (const sweep of [180, 240]) expect(errors(await withBlock(gauge({ sweep }))), String(sweep)).toEqual([]);
+    for (const height of ["s", "l"]) expect(errors(await withBlock(bar({ height }))), height).toEqual([]);
+    expect(errors(await withBlock(gauge({ sweep: 360 })))).toEqual(["schema"]);
+    expect(errors(await withBlock(bar({ height: "xl" })))).toEqual(["schema"]);
+    expect(errors(await two((r) => Object.assign(ring(r), { sweep: 180 })))).toEqual(["block"]);
+    expect(errors(await withBlock(gauge({ height: "s" })))).toEqual(["block"]);
+  });
+
+  it("format: each Phase E key in a recipe that says format 1 is refused, in words", async () => {
+    const at = "$.root.children[0].children[0]";
+    const cases: [string, (r: Recipe) => void, string][] = [
+      ["weight", (r) => rootOf(r).children.push({ type: "label", text: "x", weight: "medium" }), "$.root.children[3].weight: text weight needs recipe format 2"],
+      ["case", (r) => rootOf(r).children.push({ type: "label", text: "x", case: "upper" }), "$.root.children[3].case: upper case needs recipe format 2"],
+      ["opacity", (r) => Object.assign(ring(r), { opacity: 60 }), `${at}.opacity: opacity needs recipe format 2`],
+      ["surface", (r) => rootOf(r).children.push(nested({ surface: "raised" })), "$.root.children[3].surface: a card's surface needs recipe format 2"],
+      ["padding", (r) => rootOf(r).children.push(nested({ padding: "s" })), "$.root.children[3].padding: a card's padding needs recipe format 2"],
+      ["spacing", (r) => Object.assign(rootOf(r), { spacing: "roomy" }), "$.root.spacing: the card's spacing needs recipe format 2"],
+      ["sweep", (r) => rootOf(r).children.push(gauge({ sweep: 180 })), "$.root.children[3].sweep: a gauge's sweep needs recipe format 2"],
+      ["height", (r) => rootOf(r).children.push(bar({ height: "l" })), "$.root.children[3].height: a bar's height needs recipe format 2"],
+    ];
+    for (const [name, edit, message] of cases) {
+      const issues = validateRecipe({ files: await cpu(edit) });
+      expect(issues.map((i) => [i.rule, i.message]), name).toEqual([["format", message]]);
+    }
+  });
+});

@@ -852,7 +852,7 @@ controls, the clock, audio streams), and the button says why it is disabled.
   after the name closes the recipe, asking first when it has unsaved changes; the Widgets page lists recipes left open with
   unsaved changes, each with **Discard**.
 - Above the preview, **Size** switches between the recipe's main sizes and the two boxes beside it take any size from its
-  smallest to its largest; **Preview in** draws it in another look, and **Data** switches between **Live data** and **Sample**
+  smallest to its largest; **Preview in** draws it in another look as a screen wearing that look would (its card, colours and art), and **Data** switches between **Live data** and **Sample**
   values. Before the first save the Sample takes each reading the recipe has no sample of from the live data.
 - The inspector's **Block** tab sets what the selected block reads (a sensor, or a device such as a CPU or GPU), its colour
   (accent, a series, or by thresholds; a Heatmap's own heat scale or a series; a Value's number also **Text**, its default, or
@@ -867,6 +867,17 @@ controls, the clock, audio streams), and the button says why it is disabled.
   **Show in** are one or the other. A ring's centre value has a **Centre colour** (Text or Muted).
 - A **Value**'s **Align** is **Spread** (the label at the start, the value at the end; the default), **Start**, **Centre** or
   **End**; a **Label**'s is Start, Centre or End.
+- A **Value** and a **Label** have a **Weight**: **Theme**, the default, draws the Look's own weights (regular text, and a Value's
+  number in the Look's numeral weight, bold on Classic); **Medium** and **Semibold** set 500 and 600 for the whole text, number
+  included, in the Look's own font (a Look that sets its numbers' weight keeps it) and a **Case** (As typed or UPPER; on a Value the label only, so a unit keeps its case).
+- **Opacity** (100 %, the default, 80, 60 or 40 %) sits by the colour of a Value, Label, Ring, Gauge, Bar, Sparkline or Heatmap. A
+  mark (a ring's arc, a bar's fill, a sparkline, the cells) is drawn at that step. Text (a Value, a Label, a ring's centre value) is
+  never drawn under a 4.5:1 contrast on its card: where the step is too faint for the Look it is shown on, it is drawn at the
+  lowest step that keeps it readable, and the inspector says so ("Shown at 80 % on this Look to stay readable").
+- A **Card** inside the widget has a **Surface** (None, Track, the default tint, or Raised, lifted off the card with an edge and a
+  shade) and a **Padding** (None, S, M, the default 8 px, or L). The widget's own card has a **Spacing** between its blocks
+  (Tight, Normal, the default, or Roomy). All of them take their colours from the Look.
+- A **Gauge** has a **Sweep** of 180°, 240° or 270° (the default), and a **Bar** a **Height** of S, M (the default) or L.
 - **Thresholds** have a **Direction**: **High is bad** (the default: warning from the warning level up, critical from the critical
   level up) or **Low is bad**, for a battery or free space (warning at the warning level and under, critical at the critical
   level and under). The line under the levels says the order in words; a warning level past the critical one for its direction

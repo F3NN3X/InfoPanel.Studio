@@ -2,10 +2,13 @@
 // It goes through one template module (the shell, the zone's look, the theme, a pack's T3 values) whose component reads the
 // recipe from context, so a draft that changes on every edit needs no module of its own. A zone is drawn at its size on the
 // validator's nominal grid (`metrics.ts`), so what the stage shows at 2×2 is what the floor was checked at, then scaled to its box.
-import { createContext, useContext, useEffect, useMemo, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { tokenScope } from "@/components/widget-style";
 import { useSensors } from "@/hooks/useSensors";
 import { resolveWith, type Appearance } from "@/lib/style-resolve";
+import { levelLook, withoutOwnCard } from "@/lib/theme-model";
+import { SAMPLE_LOOK_IDS } from "@/looks/ids";
+import { lookLayers } from "@/looks/sample-cards";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
 import { NOMINAL_CELL } from "@/widgets/recipe/metrics";
@@ -45,6 +48,26 @@ export function storedValues(recipe: Recipe, values: Record<string, unknown>): M
   return Object.fromEntries(recipe.options.flatMap((o) => (values[o.key] === undefined ? [] : [[o.key, o.type === "place-list" ? JSON.stringify(values[o.key]) : values[o.key]]]))) as ModuleSettings;
 }
 
+/**
+ * The levels of the screen as if it wore `lookId` (B24): the Look is set where the screen's own Look is (its page's when the page has its
+ * own Look section, else the screen's), and a card that level holds only because its old Look set it goes with that Look, so the new Look's
+ * material, tone, colours and pack layer draw as on a screen that picked it. What else the level holds of its own stays, as a pick keeps it.
+ */
+export function wearing(levels: Appearance | undefined, lookId: string): Appearance {
+  const at = levelLook(levels ?? {}).onPage ? "page" : "profile";
+  const theme = levels?.[at];
+  return { ...levels, [at]: { ...theme, values: { ...withoutOwnCard(theme?.values ?? {}), lookId } } };
+}
+
+/** Loads a sample Look's card and layer when the stage previews one the config does not use (`readConfig` registers only those it does), then draws again. */
+function useSampleLayer(lookId: string | undefined): void {
+  const missing = !!lookId && SAMPLE_LOOK_IDS.includes(lookId) && !lookLayers[lookId];
+  const [, setLoaded] = useState(0);
+  useEffect(() => {
+    if (missing) void import("@/looks/sample-materials").then((m) => (m.registerSampleCards(), setLoaded((n) => n + 1)));
+  }, [missing]);
+}
+
 export interface RecipePreviewProps {
   recipe: Recipe;
   /** The placement's option values (unset: the defaults). */
@@ -55,7 +78,7 @@ export interface RecipePreviewProps {
   appearance?: Appearance;
   /** The page's theme variables and font. */
   pageStyle?: CSSProperties;
-  /** A Look to draw it in ("Preview in"); unset: the screen's. */
+  /** A Look to draw it in ("Preview in"), as a screen wearing it draws it (`wearing`); unset: the screen's. */
   lookId?: string;
   /** The box it is scaled into, px; the scale never goes over `maxScale`. */
   fit: { w: number; h: number };
@@ -78,9 +101,10 @@ function useReadings(sample: boolean, recipe: Recipe, own: ModuleSettings) {
 
 export function RecipePreview({ recipe, values, cells, sample, appearance, pageStyle, lookId, fit, maxScale = 1, overlay, images }: RecipePreviewProps) {
   const urls = useImageUrls(images);
+  useSampleLayer(lookId);
   const own: ModuleSettings = { ...storedValues(recipe, values ?? {}), ...(lookId ? { lookId } : {}) };
   const sensors = useReadings(sample, recipe, own);
-  const settings = resolveWith(appearance, own, undefined, undefined, draftModule.settings) ?? own;
+  const settings = resolveWith(lookId ? wearing(appearance, lookId) : appearance, own, undefined, undefined, draftModule.settings) ?? own;
   const scope = tokenScope(chromeOf(settings)) as CSSProperties;
   const { w, h } = zonePx(cells);
   const scale = Math.min(maxScale, fit.w / w, fit.h / h);
