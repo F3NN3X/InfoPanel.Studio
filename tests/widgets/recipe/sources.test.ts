@@ -67,14 +67,13 @@ describe("device sources", () => {
 });
 
 describe("found in Phase F", () => {
-  // B26 (assigned to a later phase; fixing it changes SystemOverview's drive row): `readDisks` takes a drive's temperature from
-  // `_temperature__N` or `_composite_temperature`, so a drive whose sensor is the bare `_temperature` (the WDC SATA drive here) has
-  // none, in SystemOverview as in a Repeat over drives; Thermals reads that key. `it.fails` until it is fixed, then it becomes `it`.
+  // B26 (fixed): `readDisks` took a drive's temperature from `…_temperature__N` or the NVMe composite only, so a drive whose one
+  // reading is the bare `…_temperature` key showed none, in SystemOverview as in a Repeat over drives (Thermals read it).
   it("B26: the WDC drive has a bare temperature reading, and is listed", () => {
     expect(String(data["libre.wdc_wds100t2b0a_00sm50_temperature"])).toMatch(/ °C$/);
     expect(deviceItems("drives", data, names).find((i) => i.name === "WDC")).toBeDefined();
   });
-  it.fails("B26: every drive with a temperature reading has a temp field", () => {
+  it("B26: every drive with a temperature reading has a temp field", () => {
     expect(deviceItems("drives", data, names).find((i) => i.name === "WDC")?.temp).toBeDefined();
   });
 });
