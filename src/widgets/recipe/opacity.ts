@@ -31,7 +31,7 @@ export function readableStep(want: DrawnStep, inks: readonly Ink[], ground: read
   return OPACITY_STEPS.find((step) => step >= want && fits(step)) ?? 100;
 }
 
-/** A computed colour, as a browser gives it: `rgb()`, `rgba()`, or `color(srgb r g b / a)` (a `color-mix` in srgb); undefined for any other form. */
+/** A computed colour, as a browser gives it: an rgb or rgba function, or `color(srgb r g b / a)` (a `color-mix` in srgb); undefined for any other form. */
 export function inkOf(value: string): Ink | undefined {
   const v = value.trim();
   const rgb = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/i.exec(v);
@@ -43,7 +43,7 @@ export function inkOf(value: string): Ink | undefined {
   return { rgb: [1, 2, 3].map((k) => Number(m[k]) * (srgb ? 255 : 1)) as [number, number, number], alpha };
 }
 
-/** A CSS colour (a custom property's value: hex, `hsl()`, a `color-mix`) as the browser computes it, read in the card. */
+/** A CSS colour (a custom property's value: hex, an hsl function, a `color-mix`) as the browser computes it, read in the card. */
 function computed(card: HTMLElement, value: string): Ink | undefined {
   if (!value.trim()) return undefined;
   const probe = document.createElement("span");

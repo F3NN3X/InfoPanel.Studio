@@ -167,17 +167,14 @@ const SPACING = { tight: 2, normal: 6, roomy: 12 } as const;
 const PADDING = { none: 0, s: 4, l: 12 } as const;
 
 /**
- * A nested card's ground from the theme's text colour: the track tint (unset, as before), none, or raised: a stronger tint with an
- * edge and a shade under it, so it reads lifted off the card on a dark card (lighter) and on a light one (an edge and a shadow).
+ * A nested card's ground from the theme's text colour: the track tint (unset, as before), none, or raised: a stronger tint (in srgb, so
+ * the opacity clamp can read it), an edge of the text colour and the design system's shade under it, so it reads lifted off the card on
+ * a dark card (lighter) and on a light one (an edge and a shadow).
  */
-function surfaceOf(surface: CardBlock["surface"]): CSSProperties {
-  if (surface === "none") return {};
-  if (surface === "raised")
-    return {
-      background: "color-mix(in srgb, var(--w-fg) 11%, transparent)",
-      boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--w-fg) 16%, transparent), 0 2px 6px -1px rgb(0 0 0 / 0.35)",
-    };
-  return { background: "var(--w-track)" };
+function surfaceOf(surface: CardBlock["surface"]): { className: string; style: CSSProperties } {
+  if (surface === "none") return { className: "", style: {} };
+  if (surface === "raised") return { className: "shadow-md ring-1 ring-inset ring-[color:var(--w-fg)]/15", style: { background: "color-mix(in srgb, var(--w-fg) 11%, transparent)" } };
+  return { className: "", style: { background: "var(--w-track)" } };
 }
 
 /** The blocks whose height is their text's or glyph's, not a share of a column's (B16). */
@@ -244,8 +241,9 @@ function BlockView({ b, path }: { b: Block; path: string }): ReactNode {
 function NestedCard({ b, path }: { b: Extract<Block, { type: "card" }>; path: string }) {
   const ctx = useCtx();
   const subtitle = subtitleOf(b.subtitle, ctx);
+  const surface = surfaceOf(b.surface);
   return (
-    <div className={`flex h-full w-full min-h-0 flex-col gap-1 rounded-lg ${b.padding ? "" : "p-2"}`.trim()} style={{ ...surfaceOf(b.surface), ...(b.padding ? { padding: PADDING[b.padding] } : null) }}>
+    <div className={`flex h-full w-full min-h-0 flex-col gap-1 rounded-lg ${b.padding ? "" : "p-2"} ${surface.className}`.trim()} style={{ ...surface.style, ...(b.padding ? { padding: PADDING[b.padding] } : null) }}>
       {(b.title || subtitle) && (
         <span className="flex min-w-0 items-baseline gap-[0.4em] text-[color:var(--w-muted)]" style={{ fontSize: textPx(0.85, ctx.w, ctx.h) }}>
           {b.title && <span className="shrink-0 truncate">{b.title}</span>}

@@ -288,6 +288,7 @@ describe("RecipeView, Phase E", () => {
     expect(card({})).toEqual(["flex h-full w-full min-h-0 flex-col gap-1 rounded-lg p-2", "background:var(--w-track)"]);
     expect(card({ surface: "none" })[1]).toBe("");
     expect(card({ surface: "raised" })[1]).toContain("background:color-mix(in srgb, var(--w-fg) 11%, transparent)");
+    expect(card({ surface: "raised" })[0]).toContain("shadow-md ring-1 ring-inset ring-[color:var(--w-fg)]/15");
     expect(card({ surface: "raised" })[1]).not.toMatch(/#[\da-f]{3,8}\b/i);
     expect(card({ padding: "s" })).toEqual(["flex h-full w-full min-h-0 flex-col gap-1 rounded-lg", "background:var(--w-track);padding:4px"]);
     expect(card({ padding: "none" })[1]).toContain("padding:0");
