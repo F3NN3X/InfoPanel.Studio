@@ -189,6 +189,8 @@ test("B24: Preview in Paper on a Classic screen draws Paper's own card, and the 
   await expect
     .poll(async () => (await (await fetch(`${scratch.base}/api/config`)).json()).profiles.find((p: { id: string }) => p.id === "desk").pages[0].placements.length, { timeout: 5000 })
     .toBe(1);
+  // the studio closed first, so no later save of its own can write over the screen's Look
+  await page.goto("about:blank");
   const config = await (await fetch(`${scratch.base}/api/config`)).json();
   const profiles = config.profiles.map((p: { id: string }) => (p.id === "desk" ? { ...p, widgetTheme: { values: PACK_STYLES.paper } } : p));
   expect((await saveConfig(scratch.base, { ...config, profiles })).ok).toBe(true);
