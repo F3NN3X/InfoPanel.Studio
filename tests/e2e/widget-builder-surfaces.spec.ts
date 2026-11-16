@@ -161,6 +161,45 @@ test("40 % text on a light Look: drawn at a step that keeps 4.5:1 on the card, a
   expect(errors).toEqual([]);
 });
 
+test("B24: Preview in Paper on a Classic screen draws Paper's own card, and the step a Paper screen draws", async ({ page, scratch }) => {
+  const { errors } = watchErrors(page);
+  await deskAndNewWidget(page, scratch.base);
+  await type(page, "Widget name", "Preview card");
+  await add(page, "label");
+  await radio(page, "Opacity", "40 %");
+  const zoneCard = page.locator("[data-recipe-zone] [data-part='card']").first();
+  await expect(zoneCard).toHaveAttribute("data-mat", "glass");
+  // the screen wears Classic; the stage previews Paper as a screen wearing Paper draws it: its white card, light tone and pack layer
+  await page.getByLabel("Preview in", { exact: true }).selectOption("paper");
+  await expect(zoneCard).toHaveAttribute("data-mat", "look-paper");
+  await expect(zoneCard).toHaveAttribute("data-tone", "light");
+  await expect(zoneCard).toHaveAttribute("data-look", "paper");
+  const label = stage(page, "0").locator("[data-recipe-opacity]");
+  await expect(label).toHaveAttribute("data-recipe-opacity", /^(60|80|100)$/);
+  const previewed = await label.getAttribute("data-recipe-opacity");
+  await expect(page.locator("[data-opacity-raised]")).toHaveText(`Shown at ${previewed} % on this Look to stay readable`);
+  // and back: Classic is the screen's glass card again
+  await page.getByLabel("Preview in", { exact: true }).selectOption("classic");
+  await expect(zoneCard).toHaveAttribute("data-mat", "glass");
+
+  // the same recipe on a screen that wears Paper draws the label at the step the builder said
+  await page.getByRole("button", { name: "Add to a screen" }).click();
+  await expect(page.getByText("Added Preview card to Desk").first()).toBeVisible();
+  await page.keyboard.press("Control+s");
+  await expect
+    .poll(async () => (await (await fetch(`${scratch.base}/api/config`)).json()).profiles.find((p: { id: string }) => p.id === "desk").pages[0].placements.length, { timeout: 5000 })
+    .toBe(1);
+  const config = await (await fetch(`${scratch.base}/api/config`)).json();
+  const profiles = config.profiles.map((p: { id: string }) => (p.id === "desk" ? { ...p, widgetTheme: { values: PACK_STYLES.paper } } : p));
+  expect((await saveConfig(scratch.base, { ...config, profiles })).ok).toBe(true);
+  await page.goto(`${scratch.base}/?profile=desk`);
+  const shell = page.locator('[data-part="card"]:has([data-recipe="recipe:preview-card"])');
+  await expect(shell).toHaveAttribute("data-mat", "look-paper", { timeout: 10_000 });
+  await expect(shell.locator('[data-recipe-path="0"] [data-recipe-opacity]')).toHaveAttribute("data-recipe-opacity", previewed!);
+  fs.writeFileSync(test.info().outputPath("b24-step.txt"), `builder Preview in Paper ${previewed}, kiosk on a Paper screen ${previewed}`);
+  expect(errors).toEqual([]);
+});
+
 test("crowding still warns at every gauge sweep and every bar height (G36, G19)", async ({ page, scratch }) => {
   const { errors } = watchErrors(page);
   await deskAndNewWidget(page, scratch.base);
