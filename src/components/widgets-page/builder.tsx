@@ -563,7 +563,17 @@ export function Builder(p: BuilderProps) {
             Discard changes
           </Button>
         )}
-        {p.drafts.length > 1 && <Segmented label="Open recipes" size="bar" value={p.active.key} options={p.drafts.map((d) => ({ value: d.key, label: d.history.present.name.split(" · ")[0] }))} onChange={p.onActive} />}
+        {/* one line however many are open (B18): it scrolls sideways, each name cut to its room, rather than wrap over the page */}
+        {p.drafts.length > 1 && (
+          <Segmented
+            label="Open recipes"
+            size="bar"
+            className="min-w-0 shrink flex-nowrap overflow-x-auto"
+            value={p.active.key}
+            options={p.drafts.map((d) => ({ value: d.key, label: <span className="block max-w-[140px] truncate">{d.history.present.name.split(" · ")[0]}</span> }))}
+            onChange={p.onActive}
+          />
+        )}
         <IconButton label={`Close ${recipe.name}`} size={32} onClick={p.onClose}>
           <X className="h-4 w-4" />
         </IconButton>

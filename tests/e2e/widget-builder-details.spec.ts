@@ -230,3 +230,24 @@ test("B16: Weather · places' City and condition stay together, not spread over 
   await expect(page.getByText("Recipe · saved")).toBeVisible();
   expect(await (await fetch(`${scratch.base}/api/widgets/recipe.weather-places/recipe.json`)).text()).toBe(fs.readFileSync("tests/fixtures/recipes/weather-places/recipe.json", "utf8"));
 });
+
+test("B18: many open recipes stay on one line in the builder's bar instead of wrapping over the page", async ({ page, scratch }) => {
+  await newWidget(page, scratch.base);
+  await type(page, "Widget name", "A long recipe name number 1");
+  for (let n = 2; n <= 6; n++) {
+    await page.getByRole("button", { name: "Widgets", exact: true }).first().click();
+    await page.getByRole("button", { name: "New widget", exact: true }).click();
+    await type(page, "Widget name", `A long recipe name number ${n}`);
+  }
+  const open = page.getByRole("radiogroup", { name: "Open recipes" });
+  await expect(open.getByRole("radio")).toHaveCount(6);
+  const bar = await page.getByRole("button", { name: "Save", exact: true }).boundingBox();
+  const box = await open.boundingBox();
+  // one row of buttons, inside the bar (the Save button's row)
+  expect(box!.height).toBeLessThan(44);
+  expect(box!.y).toBeGreaterThanOrEqual(bar!.y - 8);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(bar!.y + bar!.height + 8);
+  // each recipe is still a radio of its own, by its whole name
+  await open.getByRole("radio", { name: "A long recipe name number 2" }).click();
+  await expect(page.getByLabel("Widget name")).toHaveValue("A long recipe name number 2");
+});
