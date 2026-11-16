@@ -1432,6 +1432,45 @@ all follow the gap. A gap of 0 makes the zones touch; with no card surface
 (for example a transparent surface) that turns the grid into one seamless
 page.
 
+## Pinned widgets
+
+A screen can pin widgets to its edges (config format 20): a now-playing bar along the bottom, an
+agents panel on the right, and later the page rail. They are the same on every page, and a page
+change or a swipe leaves them where they are. The editor for them comes in a later update; until
+then a pinned widget is set in the config, under the screen's `pinned`:
+
+```json
+"pinned": {
+  "items": [
+    {
+      "id": "now-bar",
+      "edge": "bottom",
+      "mode": "room",
+      "thickness": 84,
+      "inset": 12,
+      "show": "all",
+      "visible": true,
+      "placement": { "id": "now-bar-w", "module": "NowPlaying", "settings": { "showHeader": false } }
+    }
+  ]
+}
+```
+
+- **edge** - `left`, `right`, `top` or `bottom`.
+- **mode** - `room` (make room): the page loses the widget's thickness and inset on that edge and
+  its zones lay out in the space left, as with the Dynamic Island's **Reserve space**. `float`:
+  the widget lies over the page, which keeps its whole size.
+- **thickness** - the widget's size across its edge, in px; **inset** its distance from the
+  screen's edge (unset: none). A widget on the left or right runs the full height; one on the top
+  or bottom runs between them, lined up with the zones.
+- **show** - `"all"`, or `{ "pages": ["<page id>", …] }` for some pages only. A page with
+  `"hidePinned": true` shows none of them and gets its whole screen back.
+- **placement** - the widget, as a zone stores it but without its cells: its `module`, `settings`
+  and so on.
+
+Several widgets on one edge stack outwards from it in the order listed. A widget can't be pinned
+from the studio yet, and the studio's canvas doesn't draw them; the kiosk and the dashboard page do.
+
 ## Styles, Copy, Paste and Make this the theme
 
 The Style tab's toolbar and the zone menu work on a widget's look-only options:
