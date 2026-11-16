@@ -43,6 +43,8 @@ const FIELDS: Readonly<Record<string, string>> = {
   style: "Style",
   color: "Colour",
   thresholds: "Warning, critical",
+  low: "Direction",
+  convert: "Show in",
   file: "Picture",
   alt: "Alt text",
   fit: "Fit",

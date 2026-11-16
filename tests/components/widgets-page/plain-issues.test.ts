@@ -63,4 +63,14 @@ describe("validation messages in plain words", () => {
     expect(listOf(r).map((x) => x.text)).toEqual(["Label · Part 2 · Data: field temp is read only inside a Repeat"]);
     expect((r.root.children[0] as Block).type).toBe("label");
   });
+
+  it("Phase C: a key format 1 has not got, and warning past critical, in plain words by the block's name", () => {
+    const v = addBlock(newRecipe("Card", new Set()), [], "value", "libre.cpu_total");
+    const r = updateBlock(v.recipe, v.path, { name: "Clock", align: "center", color: "thresholds", thresholds: { warn: 95, crit: 10 } });
+    const list = listOf(r).map((x) => x.text);
+    expect(list).toEqual(["Clock · Warning, critical: warning at 95 comes after critical at 10; when high is bad, warning is the lower level", "Clock · Align: text alignment needs recipe format 2"]);
+    const low = updateBlock(v.recipe, v.path, { color: "thresholds", thresholds: { warn: 30, crit: 10, low: true } });
+    expect(listOf(low).map((x) => x.text)).toEqual(["Value · Warning, critical · Direction: low is bad needs recipe format 2"]);
+    for (const x of [...list]) expect(x).not.toMatch(NO_CODE_TERMS);
+  });
 });

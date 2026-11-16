@@ -1,7 +1,8 @@
 // The builder inspector's Block tab (Phase 5b, screenshots 04 and 08): what the selected block reads (a sensor, an option or a
 // Repeat item's field) and "Let people pick …", its range, its colour from the theme (accent, a series or the thresholds), what
 // its type has (a ring's centre value and thickness, a Repeat's list and direction, a row's direction), when it shows, and its
-// share of its row. Every change is one edit of the recipe (one undo step).
+// share of its row; Phase C: a value's and a label's alignment, the text colours, a ring's centre colour, "Show in" and a
+// threshold's direction. Every change is one edit of the recipe (one undo step).
 import type { ReactNode } from "react";
 import { Ban, Copy, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
@@ -10,10 +11,11 @@ import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
 import { iconFor, MATERIAL_ICONS } from "@/widgets/core/icons";
 import type { Data } from "@/widgets/core/types";
+import { type ConvertUnit, tableUnit, unitsLike } from "@/widgets/recipe/convert";
 import { isFollow, oneOf, wholeIn } from "@/widgets/recipe/follow";
 import { DEFAULT_SCALE } from "@/widgets/recipe/validate";
-import type { Block, BlockType, Cells, Follows, Recipe, RecipeColour, RecipeDeviceKind } from "@/widgets/recipe/types";
-import { BLOCK_LABEL, blockAt, followable, followOf, layerName, setRecipeSize, updateBlock, valueText, type Path } from "./builder-model";
+import type { Binding, Block, BlockType, Cells, Follows, Recipe, RecipeColour, RecipeDeviceKind, TextColour, Thresholds } from "@/widgets/recipe/types";
+import { BLOCK_LABEL, blockAt, followable, followOf, layerName, setRecipeSize, thresholdLine, unitOfBinding, updateBlock, valueText, withDirection, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { DataRow, HeatmapCells, LabelText } from "./data-rows";
 import { Field, Heading, NumberInput, Select, Slider, TextArea, TextInput } from "./fields";
@@ -36,21 +38,25 @@ export interface BlockTabProps {
   nextVersion: string;
 }
 
+type ColourKind = TextColour | "accent" | "series" | "thresholds";
+
 /**
  * The colours a block's Colour row offers: the ones its renderer draws (B13). A heatmap colours its cells by their level on its own
- * scale, or in a series' tints: it has no use for thresholds, and its scale is what "Accent" would draw.
+ * scale, or in a series' tints: it has no use for thresholds, and its scale is what "Accent" would draw. A value's number is the text
+ * colour unless it names another (B19: its "Accent" drew the text colour), so it is offered Text (unset) and Muted first (G22).
  */
-export function colourKinds(type: BlockType): readonly { value: "accent" | "series" | "thresholds"; label: string }[] {
+export function colourKinds(type: BlockType): readonly { value: ColourKind; label: string }[] {
   if (type === "heatmap")
     return [
       { value: "accent", label: "Heat" },
       { value: "series", label: "Series" },
     ];
-  return [
+  const roles = [
     { value: "accent", label: "Accent" },
     { value: "series", label: "Series" },
     { value: "thresholds", label: "Thresholds" },
-  ];
+  ] as const;
+  return type === "value" ? [{ value: "fg", label: "Text" }, { value: "muted", label: "Muted" }, ...roles] : roles;
 }
 
 const RANGED = new Set(["ring", "gauge", "bar", "sparkline", "heatmap"]);
@@ -76,6 +82,12 @@ const ALIGNS = [
   { value: "center", label: "Centre" },
   { value: "end", label: "End" },
   { value: "stretch", label: "Stretch" },
+] as const;
+/** A value's and a label's line across the block (G21); a label's Start is unset. */
+const TEXT_ALIGNS = [
+  { value: "start", label: "Start" },
+  { value: "center", label: "Centre" },
+  { value: "end", label: "End" },
 ] as const;
 const UNITS = [
   { value: "metric", label: "°C, km/h" },
@@ -136,10 +148,12 @@ function FollowRows<T extends string | number>({ label, recipe, value, words, ra
   );
 }
 
-function ColourRow({ recipe, path, block, onChange }: { recipe: Recipe; path: Path; block: Block & { color?: RecipeColour; thresholds?: { warn: number; crit: number } }; onChange: (r: Recipe) => void }) {
-  const colour = block.color ?? "accent";
-  const kind = colour.startsWith("series-") ? "series" : (colour as "accent" | "thresholds");
+function ColourRow({ recipe, path, block, onChange }: { recipe: Recipe; path: Path; block: Block & { color?: RecipeColour | TextColour; thresholds?: Thresholds }; onChange: (r: Recipe) => void }) {
+  const colour = block.color ?? (block.type === "value" ? "fg" : "accent");
+  const kind = colour.startsWith("series-") ? "series" : (colour as ColourKind);
   const set = (patch: Record<string, unknown>) => onChange(updateBlock(recipe, path, patch));
+  const levels = block.thresholds;
+  const line = levels && thresholdLine(levels);
   return (
     <>
       <Field label="Colour">
@@ -147,7 +161,7 @@ function ColourRow({ recipe, path, block, onChange }: { recipe: Recipe; path: Pa
           label="Colour"
           options={[...colourKinds(block.type)]}
           value={kind}
-          onChange={(v) => set(v === "series" ? { color: "series-1", thresholds: undefined } : v === "thresholds" ? { color: v, thresholds: block.thresholds ?? { warn: 70, crit: 90 } } : { color: v, thresholds: undefined })}
+          onChange={(v) => set(v === "series" ? { color: "series-1", thresholds: undefined } : v === "thresholds" ? { color: v, thresholds: block.thresholds ?? { warn: 70, crit: 90 } } : { color: v === "fg" ? undefined : v, thresholds: undefined })}
         />
       </Field>
       {kind === "series" && (
@@ -156,12 +170,47 @@ function ColourRow({ recipe, path, block, onChange }: { recipe: Recipe; path: Pa
         </Field>
       )}
       {kind === "thresholds" && (
-        <Field label="Warning, critical">
-          <NumberInput label="Warning at" value={block.thresholds?.warn} onChange={(v) => set({ thresholds: { warn: v ?? 0, crit: block.thresholds?.crit ?? 90 } })} />
-          <NumberInput label="Critical at" value={block.thresholds?.crit} onChange={(v) => set({ thresholds: { warn: block.thresholds?.warn ?? 70, crit: v ?? 0 } })} />
-        </Field>
+        <>
+          <Field label="Direction" hint="Low is bad for a battery or free space: the colour turns as the reading falls">
+            <Segmented
+              label="Direction"
+              value={levels?.low ? "low" : "high"}
+              options={[
+                { value: "high", label: "High is bad" },
+                { value: "low", label: "Low is bad" },
+              ]}
+              onChange={(v) => set({ thresholds: withDirection(levels, v === "low") })}
+            />
+          </Field>
+          <Field label="Warning, critical">
+            <NumberInput label="Warning at" value={levels?.warn} onChange={(v) => set({ thresholds: { ...levels, warn: v ?? 0, crit: levels?.crit ?? 90 } })} />
+            <NumberInput label="Critical at" value={levels?.crit} onChange={(v) => set({ thresholds: { ...levels, warn: levels?.warn ?? 70, crit: v ?? 0 } })} />
+          </Field>
+          {line && (
+            <p data-threshold-line={line.ok ? "" : "wrong"} className={line.ok ? "text-caption leading-snug text-ui-3" : "text-caption leading-snug text-ui-warn"}>
+              {line.text}
+            </p>
+          )}
+        </>
       )}
     </>
+  );
+}
+
+/**
+ * "Show in" (G23): the units of the reading's kind from the fixed table (`convert.ts`), the reading's own as "As read" (unset). A unit
+ * picked here and a unit typed in Unit are one or the other: each clears the other.
+ */
+function ShowIn({ recipe, bind, value, data, onChange }: { recipe: Recipe; bind: Binding; value: ConvertUnit | undefined; data: Data; onChange: (to: ConvertUnit | undefined) => void }) {
+  const unit = unitOfBinding(recipe, bind, data);
+  const own = tableUnit(unit);
+  const units = unitsLike(unit).filter((u) => u !== own);
+  const options = [{ value: "", label: unit ? `As read (${unit})` : "As read" }, ...units.map((u) => ({ value: u, label: u }))];
+  if (value && !units.includes(value)) options.push({ value, label: value });
+  return (
+    <Field label="Show in" hint={units.length ? "The reading in another unit of its kind; its range and warning levels are in that unit too" : "This reading has no other unit to show in"}>
+      <Select label="Show in" value={value ?? ""} options={options} onChange={(v) => onChange((v || undefined) as ConvertUnit | undefined)} width={120} />
+    </Field>
   );
 }
 
@@ -396,6 +445,19 @@ export function BlockTab(props: BlockTabProps) {
           <Field label="Value in the centre">
             <Toggle label="Value in the centre" checked={block.center !== false} onChange={(v) => set({ center: v ? undefined : false })} />
           </Field>
+          {block.center !== false && (
+            <Field label="Centre colour">
+              <Segmented
+                label="Centre colour"
+                value={block.tone ?? "fg"}
+                options={[
+                  { value: "fg", label: "Text" },
+                  { value: "muted", label: "Muted" },
+                ]}
+                onChange={(v) => set({ tone: v === "fg" ? undefined : v })}
+              />
+            </Field>
+          )}
           <Field label="Thickness">
             <Slider label="Thickness" min={2} max={24} value={block.thickness ?? 8} onChange={(v) => set({ thickness: v })} className="w-[110px] accent-ui-strong-text" />
             <span className="w-10 text-right font-ui-mono text-body text-ui-2">{block.thickness ?? 8} %</span>
@@ -403,10 +465,13 @@ export function BlockTab(props: BlockTabProps) {
         </>
       )}
       {(block.type === "value" || block.type === "ring" || block.type === "gauge") && (
-        <Field label="Unit, decimals">
-          <TextInput label="Unit" value={block.unit ?? ""} placeholder="Auto" onChange={(v) => set({ unit: v.slice(0, 8) || undefined })} width={72} />
-          <NumberInput label="Decimals" value={block.decimals} placeholder="Auto" min={0} max={4} onChange={(v) => set({ decimals: v })} width={76} />
-        </Field>
+        <>
+          <ShowIn recipe={recipe} bind={block.bind} value={block.convert} data={props.data} onChange={(to) => set({ convert: to, unit: undefined })} />
+          <Field label="Unit, decimals">
+            <TextInput label="Unit" value={block.unit ?? ""} placeholder={block.convert ?? "Auto"} onChange={(v) => set({ unit: v.slice(0, 8) || undefined, ...(v ? { convert: undefined } : {}) })} width={72} />
+            <NumberInput label="Decimals" value={block.decimals} placeholder="Auto" min={0} max={4} onChange={(v) => set({ decimals: v })} width={76} />
+          </Field>
+        </>
       )}
       {block.type === "value" && (
         <Field label="Label">
@@ -416,6 +481,16 @@ export function BlockTab(props: BlockTabProps) {
       {(block.type === "value" || block.type === "label" || block.type === "ring" || block.type === "gauge" || block.type === "weather-icon") && (
         <Field label="Text size" hint="Times the card's base size; never drawn under 11 px. Empty is the block's own size">
           <NumberInput label="Text size" value={block.scale} placeholder={String(DEFAULT_SCALE[block.type] ?? 2)} min={0.5} max={6} step={0.05} onChange={(v) => set({ scale: v })} unit="×" width={80} />
+        </Field>
+      )}
+      {(block.type === "value" || block.type === "label") && (
+        <Field label="Align" hint={block.type === "value" ? "Spread: the label at the start, the value at the end" : "Where the line sits across the block"}>
+          <Segmented
+            label="Align"
+            value={block.align ?? (block.type === "value" ? "spread" : "start")}
+            options={[...(block.type === "value" ? [{ value: "spread", label: "Spread" }] : []), ...TEXT_ALIGNS]}
+            onChange={(v) => set({ align: v === "spread" || (block.type === "label" && v === "start") ? undefined : v })}
+          />
         </Field>
       )}
       {block.type === "label" && (

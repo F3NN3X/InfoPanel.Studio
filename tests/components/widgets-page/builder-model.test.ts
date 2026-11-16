@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addBlock, addBlockAt, addOption, addRefusal, blockAt, blockCount, clampCells, devicesIn, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, stepBlock, topLevel, unpickBinding, updateBlock, validationLine, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
+import { addBlock, addBlockAt, addOption, addRefusal, blockAt, blockCount, clampCells, devicesIn, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, updateBlock, validationLine, withDirection, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
 import { amend, commit, historyOf, HISTORY_LIMIT, redo, undo } from "@/components/widgets-page/history";
 import { NO_START, START, whyNoStart } from "@/components/widgets-page/start-points";
 import { WIDGET_ORDER } from "@/widgets/order";
@@ -526,5 +526,54 @@ describe("Phase B2", () => {
     expect(draftSample(saved, DATA).sample.sensors).toEqual({ [key]: "12 %", [temp]: "67.5 °C" });
     // nothing live: nothing made up
     expect(draftSample(fresh, {}).sample.sensors).toEqual({});
+  });
+});
+
+describe("Phase C: format 2 keys, Show in and the thresholds' direction", () => {
+  /** A recipe of one value bound to the CPU's temperature, as the builder adds it. */
+  const oneValue = () => addBlock(newRecipe("Card", new Set()), [], "value", `libre.${CPU}_core__tctl_tdie`);
+
+  it("withFormat writes 2 for each Phase C key the builder sets, and 1, the very same recipe, when it goes again (G21-G23, G27)", () => {
+    const v = oneValue();
+    const patches: Record<string, unknown>[] = [{ align: "center" }, { color: "muted" }, { convert: "°F" }, { color: "thresholds", thresholds: withDirection(undefined, true) }];
+    for (const patch of patches) {
+      const r = withFormat(updateBlock(v.recipe, v.path, patch));
+      expect(r.format, JSON.stringify(patch)).toBe(2);
+      expect(errorsOf(r), JSON.stringify(patch)).toEqual([]);
+      const back = withFormat(updateBlock(r, v.path, Object.fromEntries(Object.keys(patch).map((k) => [k, undefined]))));
+      expect(back.format).toBe(1);
+      expect(JSON.stringify(back)).toBe(JSON.stringify(v.recipe));
+    }
+    const ring = addBlock(v.recipe, [], "ring", `libre.${CPU}_cpu_total`);
+    expect(withFormat(updateBlock(ring.recipe, ring.path, { tone: "muted" })).format).toBe(2);
+    // a recipe with no new key is the same object, so its bytes stay
+    expect(withFormat(v.recipe)).toBe(v.recipe);
+  });
+
+  it("withDirection: low is written only for low is bad, and the levels swap when they would be out of order", () => {
+    expect(withDirection({ warn: 70, crit: 90 }, true)).toEqual({ warn: 90, crit: 70, low: true });
+    expect(withDirection({ warn: 30, crit: 10 }, true)).toEqual({ warn: 30, crit: 10, low: true });
+    expect(withDirection({ warn: 30, crit: 10, low: true }, false)).toEqual({ warn: 10, crit: 30 });
+    expect(JSON.stringify(withDirection({ warn: 70, crit: 90, low: true }, false))).toBe('{"warn":70,"crit":90}');
+    expect(withDirection(undefined, false)).toEqual({ warn: 70, crit: 90 });
+  });
+
+  it("thresholdLine says the order in plain words, and says so when warning is past critical", () => {
+    expect(thresholdLine({ warn: 70, crit: 90 })).toEqual({ ok: true, text: "High is bad: warning from 70 up, critical from 90 up. Warning is the lower level." });
+    expect(thresholdLine({ warn: 20, crit: 10, low: true })).toEqual({ ok: true, text: "Low is bad: warning at 20 and under, critical at 10 and under. Warning is the higher level." });
+    expect(thresholdLine({ warn: 95, crit: 10 }).ok).toBe(false);
+    expect(thresholdLine({ warn: 5, crit: 10, low: true }).ok).toBe(false);
+    expect(thresholdLine({ warn: 10, crit: 10, low: true }).ok).toBe(true);
+  });
+
+  it("unitOfBinding: the unit of what a block reads now, through a device option and a sensor option, as Show in lists it", () => {
+    const v = oneValue();
+    expect(unitOfBinding(v.recipe, { sensor: `libre.${CPU}_core__tctl_tdie` }, DATA)).toBe("°C");
+    const picked = pickBinding(v.recipe, v.path, DEVICES);
+    expect(unitOfBinding(picked, (blockAt(picked, v.path) as Extract<Block, { type: "value" }>).bind, DATA)).toBe("°C");
+    const withSensorOption = addOption(v.recipe, { key: "watched", label: "Watched", type: "sensor", default: `libre.${CPU}_cpu_total` });
+    expect(unitOfBinding(withSensorOption, { option: "watched" }, DATA)).toBe("%");
+    expect(unitOfBinding(v.recipe, { sensor: "libre.ethernet_download_speed" }, { "libre.ethernet_download_speed": "5 KB/s" })).toBe("B/s");
+    expect(unitOfBinding(v.recipe, { field: "temp" }, DATA)).toBe("");
   });
 });
