@@ -194,19 +194,25 @@ async function storeFixture(base: string, name: string) {
   expect(res.ok).toBe(true);
 }
 
-test("B16: Weather · places' City and condition is a tight pair, not spread over the place's height", async ({ page, scratch }) => {
+test("B16: Weather · places' City and condition stay together, not spread over the place's height", async ({ page, scratch }) => {
   await storeFixture(scratch.base, "weather-places");
   await page.goto(`${scratch.base}/?studio=1`);
   await widgetsPage(page);
   await page.locator('[data-widget-card="recipe:weather-places"]').dblclick();
   await radio(page, "Data", "Sample");
+  // One place: the place has the whole card, which the lines used to be spread over (a third each, the text at the top of each)
+  await tab(page, "Presets");
+  await page.locator('[data-preset="one"] button[aria-pressed]').click();
+  await expect(page.locator("[data-recipe-zone] [data-recipe-item]")).toHaveCount(1);
   const item = page.locator("[data-recipe-zone] [data-recipe-item]").first();
   await expect(item).toBeVisible();
   // the city's line and the condition's, in the first place, by their text
   const lines = await item.locator('[data-recipe-path="0.2"] [data-recipe-path]').evaluateAll((els) =>
     els.map((el) => {
+      // the text itself, not the element holding it (which fills its share of the column)
+      const text = document.createTreeWalker(el, NodeFilter.SHOW_TEXT).nextNode()!;
       const r = document.createRange();
-      r.selectNodeContents(el);
+      r.selectNodeContents(text);
       const b = r.getBoundingClientRect();
       return { top: b.top, bottom: b.bottom };
     }),
@@ -215,10 +221,11 @@ test("B16: Weather · places' City and condition is a tight pair, not spread ove
     const b = el.getBoundingClientRect();
     return { top: b.top, bottom: b.bottom };
   });
-  expect(lines).toHaveLength(2);
-  // the column's gap is 2 px: the condition starts right under the city, and the pair sits in the middle of the room it has
-  expect(lines[1].top - lines[0].bottom).toBeLessThan(6);
-  expect(Math.abs((lines[0].top + lines[1].bottom) / 2 - (column.top + column.bottom) / 2)).toBeLessThan(4);
+  // the city, the temperature and the condition
+  expect(lines).toHaveLength(3);
+  // the column's gap is 2 px: each line starts right under the one before, and the three sit in the middle of the room they have
+  for (const k of [1, 2]) expect(lines[k].top - lines[k - 1].bottom).toBeLessThan(8);
+  expect(Math.abs((lines[0].top + lines[2].bottom) / 2 - (column.top + column.bottom) / 2)).toBeLessThan(6);
   // opened, looked at and left alone, the format 2 recipe stays as it was stored, byte for byte
   await expect(page.getByText("Recipe · saved")).toBeVisible();
   expect(await (await fetch(`${scratch.base}/api/widgets/recipe.weather-places/recipe.json`)).text()).toBe(fs.readFileSync("tests/fixtures/recipes/weather-places/recipe.json", "utf8"));
