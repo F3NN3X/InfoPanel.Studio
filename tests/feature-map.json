@@ -852,8 +852,8 @@
     {
       "id": "docs",
       "fallback": true,
-      "summary": "Prose docs with no test reading them.",
-      "paths": ["docs/**", "README.md"],
+      "summary": "Prose docs and third-party licence notices, with no test reading them.",
+      "paths": ["docs/**", "README.md", "licences/**"],
       "tests": [],
       "checks": [],
       "note": "Lowest priority: a path matched by another feature takes that feature's checks instead."
