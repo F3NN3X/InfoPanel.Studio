@@ -851,24 +851,33 @@ controls, the clock, audio streams), and the button says why it is disabled.
 - `Ctrl+S` saves the recipe (as **Save** does). **Discard changes** returns to the saved version (one undo step), and the **×**
   after the name closes the recipe, asking first when it has unsaved changes; the Widgets page lists recipes left open with
   unsaved changes, each with **Discard**.
-- Above the preview, **Size** switches between the sizes the recipe supports, **Preview in** draws it in another look, and
-  **Data** switches between **Live data** and **Sample** values.
+- Above the preview, **Size** switches between the recipe's main sizes and the two boxes beside it take any size from its
+  smallest to its largest; **Preview in** draws it in another look, and **Data** switches between **Live data** and **Sample**
+  values. Before the first save the Sample takes each reading the recipe has no sample of from the live data.
 - The inspector's **Block** tab sets what the selected block reads (a sensor, or a device such as a CPU or GPU), its colour
   (accent, a series, or by thresholds; a Heatmap's own heat scale or a series), when it shows (always, or when an option has a
-  value) and the smallest size it is drawn at. **Let people pick** turns a binding into an option. A card's **Opens at** size is
-  also its default preset's, so **Add to a screen** places it at that size.
+  value) and the smallest size it is drawn at. **Let people pick** turns a binding into an option, and **Replace sensor…** swaps
+  the block's reading for another everywhere the recipe reads it (one undo step; the blocks it changed are listed). A **Row**'s
+  **Align** (Start, Centre, End, Stretch) places each block across the row. A card's **Opens at** size is also its default
+  preset's, so **Add to a screen** places it at that size.
+- The widget's card (the top row in Layers) has a **Header icon** and the recipe's **Details**: the **Description** shown on
+  its card on the Widgets page, a **Category** (letters and spaces), the **Author**, the **Version** (each save raises it; the
+  next is shown) and the **Icon** its card shows.
 - A **Label**'s **Text** is **Typed** or **From data**: a sensor, an option people set (a text option, for instance) or, inside a
   Repeat, a field of each place. From data it is a line of parts shown as chips: **Add a part** adds typed text or another
   reading, each reading with its own unit and decimals, and the chips drag to reorder ("6° / 1°" is the high, " / " and the low).
 - A **Heatmap** lists its **Cells**, one reading each: **Add a cell** opens the data picker (tick several at once), × removes one
   and the rows drag to reorder. Inside a Repeat it draws a field of numbers of each place instead.
 - **Options** are what people can change when they add the widget, shown in its Content tab: a toggle, a choice, a number, a
-  text, a sensor, a place list or a device (up to 24). A device option's **Kind** (CPU, GPU, Drive, Network adapter) changes what
+  text, a sensor (its default picked with the data picker), a place list or a device (up to 24). A device option's **Kind** (CPU, GPU, Drive, Network adapter) changes what
   every block that follows it reads at once: each reading moves to the new kind's reading of the same sort (load, temperature,
   clock, power), and the ones with no match are listed so you can pick them again. That is how a GPU card is made from a CPU
   card. **Presets** are named sets of options and a size (up to 16).
 - The line under the preview says whether the recipe is valid. When it is not, it lists every problem in plain words, each
-  naming its block as Layers does; click one to select that block (or open the Options or Presets tab). **Save** stores it on
+  naming its block as Layers does; click one to select that block (or open the Options or Presets tab). After each change it
+  also measures the preview at the size shown and warns of crowding by block: a cut text, a ring too small for its value, a
+  block past the card or two blocks over each other ("At 2×2, Values overlaps Ring"), with a dot in Layers; a warning never
+  stops a save, and the line says the recipe **fits** at that size only when nothing is crowded. **Save** stores it on
   the server, **Add to a screen** saves it and puts it on the screen, and **Export** saves it and writes the package. A recipe
   signed by someone else cannot be replaced by a save, only copied with **Save as a copy**.
 - A recipe that uses a label of parts is saved as recipe format 2. An older Studio draws it as "Widget not available" (a recipe
