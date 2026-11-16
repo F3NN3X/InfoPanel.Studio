@@ -457,6 +457,22 @@ export function mapKeys(recipe: Recipe, fn: (key: string) => string): Recipe {
   return { ...recipe, root: go(recipe.root) as CardBlock };
 }
 
+/**
+ * "Replace sensor…" (G16): every binding of the key `from` (a block's, a heatmap cell's, a label part's, a card's sub-title) and every
+ * sensor option holding it as its default reads `to` instead, in one edit. Returns what changed, by Layers name and option label.
+ */
+export function replaceSensor(recipe: Recipe, from: string, to: string): { recipe: Recipe; changed: string[] } {
+  if (!from || from === to) return { recipe, changed: [] };
+  const blocks = flatten(recipe)
+    .filter(({ block }) => bindingsOf(block).some((b) => "sensor" in b && b.sensor === from))
+    .map(({ block }) => layerName(recipe, block));
+  const options = recipe.options.filter((o) => o.type === "sensor" && o.default === from);
+  const changed = [...blocks, ...options.map((o) => `Option “${o.label}”`)];
+  if (!changed.length) return { recipe, changed };
+  const keyed = mapKeys(recipe, (k) => (k === from ? to : k));
+  return { recipe: { ...keyed, options: keyed.options.map((o) => (options.includes(o) ? { ...o, default: to } : o)) }, changed };
+}
+
 const uniqueKey = (base: string, taken: (k: string) => boolean): string => {
   // "Show clock" is showClock
   const words = base.split(/[^A-Za-z0-9]+/).filter(Boolean);
@@ -727,6 +743,15 @@ export function withSample(recipe: Recipe, data: Data): Recipe {
   return withSampleItems({ ...recipe, sample: { ...recipe.sample, sensors } });
 }
 
+/**
+ * The sample the stage's Sample draws before a save writes one (G18): the recipe's own sample readings, and for every key it reads
+ * that the sample has not got (never saved, or bound since) the reading in `data` at the time it is asked.
+ */
+export function draftSample(recipe: Recipe, data: Data): Recipe {
+  const filled = withSample(recipe, data);
+  return { ...recipe, sample: { ...filled.sample, ...recipe.sample, sensors: { ...filled.sample.sensors, ...recipe.sample.sensors } } };
+}
+
 /* ───────── settings that follow an option (5c) ───────── */
 
 /** The options a block setting can follow: a select (its choices, mapped where they are not values the setting takes), and for a number a number option too. */
@@ -828,6 +853,13 @@ export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
 export function setRecipeSize(recipe: Recipe, key: "min" | "max" | "default", cells: Cells): Recipe {
   const size = { ...recipe.size, [key]: [...cells] as Cells };
   return key === "default" ? { ...recipe, size, presets: recipe.presets.map((p) => (p.default ? { ...p, size: [...cells] as Cells } : p)) } : { ...recipe, size };
+}
+
+/** A size the stage may show (G17): each side clamped to the recipe's smallest and largest, in whole cells. */
+export function clampCells(recipe: Recipe, cells: readonly number[]): Cells {
+  const { min, max } = recipe.size;
+  const side = (k: 0 | 1) => Math.max(min[k], Math.min(max[k], Math.round(cells[k]) || min[k]));
+  return [side(0), side(1)];
 }
 
 /** The base text size at a zone size (the stage's hint). */

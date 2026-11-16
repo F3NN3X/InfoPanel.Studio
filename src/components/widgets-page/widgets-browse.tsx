@@ -72,6 +72,7 @@ function SectionHead({ title, count, note, more }: { title: string; count: numbe
 
 function Card({ w, selected, uses, onSelect, onOpen, appearance, pageStyle, codePreview }: { w: UserWidget; selected: boolean; uses: Use[]; onSelect: () => void; onOpen: () => void; appearance?: Appearance; pageStyle?: CSSProperties; codePreview?: (w: UserWidget) => ReactNode }) {
   const chip = onScreensChip(uses);
+  const Icon = iconFor(w.icon);
   const refused = (!w.recipe && w.kind === "recipe") || w.trust.kind === "refused";
   return (
     <button
@@ -98,9 +99,18 @@ function Card({ w, selected, uses, onSelect, onOpen, appearance, pageStyle, code
       </span>
       {/* the name and its line get the card's whole width; the chips go on their own line under them, so a name is never cut to "T…" */}
       <span className="flex min-w-0 flex-col gap-2 px-3 py-2.5">
-        <span className="min-w-0">
-          <span className="block truncate text-body font-medium text-ui-1">{w.name}</span>
-          <span className="block truncate text-caption text-ui-3">{w.trust.kind === "refused" ? `Refused: ${w.trust.why}` : refused ? (w.issues.find((i) => i.severity === "error")?.message ?? "Refused") : w.blurb}</span>
+        <span className="flex min-w-0 items-start gap-2.5">
+          {w.icon && (
+            <span data-card-icon={w.icon} className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-ui-md bg-ui-raised text-ui-3">
+              <Icon className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+            </span>
+          )}
+          <span className="min-w-0">
+            <span className="block truncate text-body font-medium text-ui-1">{w.name}</span>
+            <span data-card-line="" className="block truncate text-caption text-ui-3">
+              {w.trust.kind === "refused" ? `Refused: ${w.trust.why}` : refused ? (w.issues.find((i) => i.severity === "error")?.message ?? "Refused") : [w.category, w.blurb].filter(Boolean).join(" · ")}
+            </span>
+          </span>
         </span>
         <span data-card-chips="" className="flex flex-wrap items-center gap-2">
           {chip && <StatusChip tone="ok">{chip}</StatusChip>}

@@ -188,7 +188,7 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
         }
         const l = await loadRecipe(w.id);
         const r = l.recipe;
-        return { id: w.id, name: r?.name ?? w.name, kind: "recipe", yours: w.origin === "studio", recipe: r, issues: l.issues, trust: { kind: "recipe" }, ...(w.trust === "unsigned" ? {} : { signed: w.trust }), blurb: r ? blurbOf(r) : w.name, version: w.version, bytes: w.size };
+        return { id: w.id, name: r?.name ?? w.name, kind: "recipe", yours: w.origin === "studio", recipe: r, issues: l.issues, trust: { kind: "recipe" }, ...(w.trust === "unsigned" ? {} : { signed: w.trust }), blurb: r ? blurbOf(r) : w.name, icon: r?.icon, category: r?.category, version: w.version, bytes: w.size };
       }),
     );
     const state = fixtureState();

@@ -6,6 +6,8 @@
 // Phase B1: the layer menu, Copy, Cut and Paste across the open recipes, a selection of several blocks and Wrap in a row, tiles
 // dragged onto Layers or the stage, Close and Discard, Ctrl+S, and Layers as an APG tree whose rows carry their problems; moves,
 // pastes and refusals are said in a live region.
+// Phase B2: the stage at any size in the recipe's range, the Sample before a save, crowding warnings at the size it shows (each in the
+// problem list and as a Layers dot), and the line says "fits" only when that measure backs it.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
 import { ChevronRight, CircleAlert, CircleCheck, MonitorUp, Pencil, Redo2, RotateCcw, Save, Undo2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,11 +26,12 @@ import { SAMPLE_THEMES } from "@/looks/sample-themes";
 import type { Data } from "@/widgets/core/types";
 import type { BlockType, Cells, PackageFile, Recipe } from "@/widgets/recipe/types";
 import { toFlat, toNames } from "@/widgets/shared/data-adapter";
-import { ADD_ORDER, addBlock, addBlockAt, addRefusal, BLOCK_LABEL, blockAt, devicesIn, duplicateBlocks, flatten, keyMove, layerName, moveBlock, moveBlocks, presetValues, rangeOf, recipeIssues, removeBlocks, stepBlock, topLevel, updateBlock, validationLine, withFormat, wrapInRow, type Path } from "./builder-model";
+import { ADD_ORDER, addBlock, addBlockAt, addRefusal, BLOCK_LABEL, blockAt, clampCells, devicesIn, draftSample, duplicateBlocks, flatten, keyMove, layerName, moveBlock, moveBlocks, nextVersion, presetValues, rangeOf, recipeIssues, removeBlocks, stepBlock, topLevel, updateBlock, validationLine, withFormat, wrapInRow, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { BlockTab } from "./block-tab";
 import { clipboard, copyOf, pasteBlocks, setClipboard } from "./clipboard";
-import { type Typing, TypingContext } from "./fields";
+import { type Crowd, crowdIssues, crowding, measureInks } from "./crowding";
+import { NumberInput, type Typing, TypingContext } from "./fields";
 import type { History } from "./history";
 import { type LayerCommand, Layers, type SelectHow } from "./layers";
 import { OptionsTab } from "./options-tab";
@@ -234,13 +237,23 @@ export function Builder(p: BuilderProps) {
   const sensors = useSensors(null);
   const liveData = useMemo(() => toFlat(withHwinfoAliases(sensors)) as Data, [sensors]);
   const names = useMemo(() => toNames(withHwinfoAliases(sensors)) as Record<string, string>, [sensors]);
-  const sampleData = useMemo(() => Object.fromEntries(Object.entries(recipe.sample.sensors).map(([k, v]) => [k, String(v)])) as Data, [recipe.sample.sensors]);
+  // the Sample before a save (G18): the recipe's own sample, and the live reading of each key it reads that the sample has not got,
+  // taken when the recipe changes (not on every tick, so the Sample holds still)
+  const liveNow = useRef(liveData);
+  liveNow.current = liveData;
+  const liveReady = Object.keys(liveData).length > 0;
+  const sampled = useMemo(() => draftSample(recipe, liveNow.current), [recipe, liveReady]);
+  const sampleData = useMemo(() => Object.fromEntries(Object.entries(sampled.sample.sensors).map(([k, v]) => [k, String(v)])) as Data, [sampled.sample.sensors]);
   const data = live ? liveData : sampleData;
   const devices = useMemo(() => devicesIn({ ...sampleData, ...liveData }), [sampleData, liveData]);
   const issues = useMemo(() => recipeIssues(recipe, p.active.images), [recipe, p.active.images]);
   const line = validationLine(recipe, issues);
   const problems = plainIssues(recipe, issues);
   const first = problems[0]?.text;
+  // crowding at the size the stage shows (G19, B11), measured after it draws; null until then
+  const [crowds, setCrowds] = useState<Crowd[] | null>(null);
+  const warnings = crowds ? crowdIssues(recipe, size, crowds) : [];
+  const listed = [...problems, ...warnings];
   const floorIssue = issues.find((i) => i.rule === "text-floor");
   /** A problem clicked: its block selected in its tab, or the Options or Presets tab. */
   const goTo = (x: PlainIssue) => {
@@ -270,7 +283,7 @@ export function Builder(p: BuilderProps) {
   };
   // each block's problems, for Layers' warning dots
   const problemMap = new Map<string, string[]>();
-  for (const x of problems) if (x.path) problemMap.set(keyOf(x.path), [...(problemMap.get(keyOf(x.path)) ?? []), x.text]);
+  for (const x of listed) if (x.path) problemMap.set(keyOf(x.path), [...(problemMap.get(keyOf(x.path)) ?? []), x.text]);
 
   // what the builder says to a screen reader (moves, pastes, a save), and a refusal's reason under Layers (a status of its own)
   const [said, setSaid] = useState("");
@@ -495,6 +508,27 @@ export function Builder(p: BuilderProps) {
     });
   };
   const { w, h } = zonePx(size);
+  const zoneEl = () => zoneHost.current?.querySelector<HTMLElement>("[data-recipe-zone]") ?? null;
+  useEffect(() => {
+    let frame = 0;
+    // after the card has measured itself (its blocks are sized from its box) and its labels have fitted their text
+    const timer = setTimeout(() => {
+      frame = requestAnimationFrame(() => {
+        const zone = zoneEl();
+        const m = zone && measureInks(zone);
+        const next = m ? crowding(m.inks, m.card) : [];
+        setCrowds((old) => (old && JSON.stringify(old) === JSON.stringify(next) ? old : next));
+      });
+    }, 120);
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(frame);
+    };
+  }, [recipe, size.join("x"), live, lookId, preset, stageBox, data]);
+  const fits = line.ok && crowds !== null && !warnings.length && recipe.root.children.length > 0;
+  const shown = `${size[0]}×${size[1]}`;
+  /** "Other" sizes (G17): a side typed in the stage's boxes, clamped to the recipe's range. */
+  const setSide = (k: 0 | 1, v: number | undefined) => setSize(clampCells(recipe, k === 0 ? [v ?? size[0], size[1]] : [size[0], v ?? size[1]]));
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
@@ -529,7 +563,17 @@ export function Builder(p: BuilderProps) {
             Discard changes
           </Button>
         )}
-        {p.drafts.length > 1 && <Segmented label="Open recipes" size="bar" value={p.active.key} options={p.drafts.map((d) => ({ value: d.key, label: d.history.present.name.split(" · ")[0] }))} onChange={p.onActive} />}
+        {/* one line however many are open (B18): it scrolls sideways, each name cut to its room, rather than wrap over the page */}
+        {p.drafts.length > 1 && (
+          <Segmented
+            label="Open recipes"
+            size="bar"
+            className="min-w-0 shrink flex-nowrap overflow-x-auto"
+            value={p.active.key}
+            options={p.drafts.map((d) => ({ value: d.key, label: <span className="block max-w-[140px] truncate">{d.history.present.name.split(" · ")[0]}</span> }))}
+            onChange={p.onActive}
+          />
+        )}
         <IconButton label={`Close ${recipe.name}`} size={32} onClick={p.onClose}>
           <X className="h-4 w-4" />
         </IconButton>
@@ -616,6 +660,11 @@ export function Builder(p: BuilderProps) {
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-body text-ui-3">Size</span>
             <Segmented label="Size" size="bar" value={`${size[0]}x${size[1]}`} options={sizes.map((c) => ({ value: `${c[0]}x${c[1]}`, label: `${c[0]}×${c[1]}` }))} onChange={(v) => setSize(v.split("x").map(Number) as Cells)} />
+            <span className="flex items-center gap-1 text-body text-ui-3" title={`Any size from ${recipe.size.min.join("×")} to ${recipe.size.max.join("×")}`}>
+              <NumberInput label="Stage columns" value={size[0]} min={recipe.size.min[0]} max={recipe.size.max[0]} onChange={(v) => setSide(0, v)} width={52} />
+              ×
+              <NumberInput label="Stage rows" value={size[1]} min={recipe.size.min[1]} max={recipe.size.max[1]} onChange={(v) => setSide(1, v)} width={52} />
+            </span>
             <span className="ml-3 text-body text-ui-3">Preview in</span>
             <select aria-label="Preview in" value={lookId} onChange={(e) => setLookId(e.target.value)} className="h-8 rounded-ui-md border border-ui-strong bg-ui-raised px-2.5 text-body font-medium text-ui-1 outline-none focus:border-ui-accent">
               {LOOKS.map((l) => (
@@ -666,7 +715,7 @@ export function Builder(p: BuilderProps) {
           >
             <div ref={zoneHost}>
               <RecipePreview
-                recipe={recipe}
+                recipe={live ? recipe : sampled}
                 images={p.active.images}
                 values={shownValues}
                 cells={size}
@@ -686,23 +735,26 @@ export function Builder(p: BuilderProps) {
             </div>
           </div>
           <div role="status" data-validation="" className="flex items-center gap-2 text-caption">
-            {line.ok ? <CircleCheck className="h-4 w-4 shrink-0 text-ui-ok" strokeWidth={1.5} aria-hidden /> : <CircleAlert className="h-4 w-4 shrink-0 text-ui-warn" strokeWidth={1.5} aria-hidden />}
-            {line.ok ? (
-              <span className="text-ui-2">{line.summary}</span>
-            ) : problems.length === 1 ? (
-              <button type="button" data-problem="0" onClick={() => goTo(problems[0])} className="min-w-0 truncate text-left text-ui-2 underline-offset-2 hover:text-ui-1 hover:underline">
-                {first}
+            {line.ok && !warnings.length ? <CircleCheck className="h-4 w-4 shrink-0 text-ui-ok" strokeWidth={1.5} aria-hidden /> : <CircleAlert className="h-4 w-4 shrink-0 text-ui-warn" strokeWidth={1.5} aria-hidden />}
+            {!listed.length ? (
+              <span className="text-ui-2">
+                {line.summary}
+                {fits && <span data-fits=""> · fits at {shown}</span>}
+              </span>
+            ) : listed.length === 1 ? (
+              <button type="button" data-problem="0" data-warning={listed[0].warn ? "" : undefined} onClick={() => goTo(listed[0])} className="min-w-0 truncate text-left text-ui-2 underline-offset-2 hover:text-ui-1 hover:underline">
+                {listed[0].text}
               </button>
             ) : (
-              <span className="text-ui-2">{problems.length} problems</span>
+              <span className="text-ui-2">{[problems.length && `${problems.length} problem${problems.length === 1 ? "" : "s"}`, warnings.length && `${warnings.length} warning${warnings.length === 1 ? "" : "s"} at ${shown}`].filter(Boolean).join(", ")}</span>
             )}
             <span className={cn("ml-auto shrink-0", floorIssue ? "text-ui-warn" : "text-ui-3")}>{floorIssue ? plainIssue(recipe, floorIssue).text : line.floor}</span>
           </div>
-          {problems.length > 1 && (
+          {listed.length > 1 && (
             <ul aria-label="Problems" data-problems="" className="-mt-1 flex max-h-[30%] shrink-0 flex-col gap-0.5 overflow-y-auto text-caption">
-              {problems.map((x, k) => (
-                <li key={x.text}>
-                  <button type="button" data-problem={k} onClick={() => goTo(x)} className="w-full truncate rounded-ui-sm px-6 py-0.5 text-left text-ui-2 hover:bg-ui-raised hover:text-ui-1">
+              {listed.map((x, k) => (
+                <li key={`${k} ${x.text}`}>
+                  <button type="button" data-problem={k} data-warning={x.warn ? "" : undefined} onClick={() => goTo(x)} className={cn("w-full truncate rounded-ui-sm px-6 py-0.5 text-left hover:bg-ui-raised hover:text-ui-1", x.warn ? "text-ui-3" : "text-ui-2")}>
                     {x.text}
                   </button>
                 </li>
@@ -728,8 +780,8 @@ export function Builder(p: BuilderProps) {
             </p>
           )}
           <TypingContext.Provider value={typing}>
-            {tab === "block" && <BlockTab recipe={recipe} path={path} onChange={(r) => edit(r)} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} />}
-            {tab === "options" && <OptionsTab recipe={recipe} onChange={(r) => edit(r)} data={{ ...sampleData, ...liveData }} />}
+            {tab === "block" && <BlockTab recipe={recipe} path={path} onChange={(r) => edit(r)} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} />}
+            {tab === "options" && <OptionsTab recipe={recipe} onChange={(r) => edit(r)} data={{ ...sampleData, ...liveData }} onOpenSources={p.onOpenSources} />}
             {tab === "presets" && <PresetsTab recipe={recipe} onChange={(r) => edit(r)} current={preset} onPick={pickPreset} values={shownValues} size={size} />}
           </TypingContext.Provider>
         </aside>

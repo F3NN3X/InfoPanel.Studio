@@ -12,6 +12,8 @@ export interface PlainIssue {
   tab: "block" | "options" | "presets";
   /** The block it is about (`[]` the root card); unset for an option or a preset. */
   path?: number[];
+  /** A warning (crowding on the stage, G19): it does not stop a save. */
+  warn?: boolean;
 }
 
 /** A block setting's name, as the Block tab labels it. */
