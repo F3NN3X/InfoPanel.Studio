@@ -584,6 +584,7 @@
         "src/lib/name-list.ts",
         "src/lib/panel-starters.ts",
         "src/lib/pinned.ts",
+        "src/components/pinned-layer.tsx",
         "src/App.tsx",
         "src/main.tsx",
         "src/components/kiosk-strip.tsx",
@@ -607,7 +608,8 @@
         "tests/e2e/kiosk-renders.spec.ts",
         "tests/e2e/kiosk-budget.spec.ts",
         "tests/e2e/config-live-update.spec.ts",
-        "tests/e2e/control-page-switch.spec.ts"
+        "tests/e2e/control-page-switch.spec.ts",
+        "tests/e2e/pinned-layer.spec.ts"
       ],
       "checks": ["typecheck", "unit", "build", "budgets", "ui-usage", "e2e"]
     },

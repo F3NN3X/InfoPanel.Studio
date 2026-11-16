@@ -21,6 +21,8 @@ import { islandFeeds } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { useLoadedProfile, useWidgetPreload } from "@/widgets/preload";
 import { PageDots, pageDotsStripPx } from "@/components/page-dots";
+import { leadsPage, PinnedItems } from "@/components/pinned-layer";
+import { pinnedOnPage, pinnedRoom } from "@/lib/pinned";
 import { resolveBackground } from "@/lib/appearance";
 import { appearanceOf, zoneResolver } from "@/lib/style-resolve";
 import { applyTheme, resolveTheme } from "@/lib/theme";
@@ -235,6 +237,9 @@ export default function App({ fixture }: AppProps = {}) {
     [kiosk, windowSize.w, windowSize.h, profile.width, profile.height]
   );
   const reserve = islandReserve(islandConfig, islandPage);
+  // The pinned layer (config v20): its items on this page, and the room the "make room" ones take off the page's edges.
+  const pinned = useMemo(() => pinnedOnPage(stored.pinned, profile.pageId, pageOf(stored, profile.pageId).hidePinned), [stored, profile.pageId]);
+  const room = pinnedRoom(pinned);
   const pageIsland = useMemo(() => ({ island, page: islandPage }), [island, islandPage]);
   const fill = profile.fit === "fill";
   const background = resolveBackground(profile);
@@ -741,9 +746,12 @@ export default function App({ fixture }: AppProps = {}) {
           padding: profilePadding(profile, kiosk),
           // "Reserve space": the zones start under the island instead of beneath it. Always set, so
           // React never removes it from under the `padding` shorthand.
-          paddingTop: profilePadding(profile, kiosk) + (bottomIsland ? 0 : reserve),
+          paddingTop: profilePadding(profile, kiosk) + (bottomIsland ? 0 : reserve) + room.top,
           // The dots' strip: they sit in the bottom padding, so no zone is under them. Always set, like paddingTop.
-          paddingBottom: Math.max(profilePadding(profile, kiosk), pageNav ? pageDotsStripPx() : 0) + (bottomIsland ? reserve : 0),
+          paddingBottom: Math.max(profilePadding(profile, kiosk), pageNav ? pageDotsStripPx() : 0) + (bottomIsland ? reserve : 0) + room.bottom,
+          // The pinned items that make room on the sides. Always set, like paddingTop.
+          paddingLeft: profilePadding(profile, kiosk) + room.left,
+          paddingRight: profilePadding(profile, kiosk) + room.right,
           // Vertical scrolling stays with the browser; horizontal moves reach the swipe.
           ...(pageNav && { touchAction: "pan-y" }),
           fontFamily: fontStack(resolveFont(profile)),
@@ -777,6 +785,8 @@ export default function App({ fixture }: AppProps = {}) {
           </div>
         )}
 
+        <PinnedItems all={pinned} items={pinned.filter(leadsPage)} profile={profile} appearance={appearance} padding={profilePadding(profile, kiosk)} />
+
         {/* Kiosk grid of zones (read-only) */}
         <PageGrid
           key={profile.pageId}
@@ -786,7 +796,7 @@ export default function App({ fixture }: AppProps = {}) {
             gridTemplateColumns: `repeat(${profile.cols}, minmax(0, 1fr))`,
             // Explicit uniform rows, mirroring the studio canvas.
             gridTemplateRows: fill
-              ? (kiosk && barRowTemplate(profile, drawn, windowSize.h - profilePadding(profile, kiosk) - (pageNav ? Math.max(profilePadding(profile, kiosk), pageDotsStripPx()) : profilePadding(profile, kiosk)) - reserve, windowSize.h)) ||
+              ? (kiosk && barRowTemplate(profile, drawn, windowSize.h - profilePadding(profile, kiosk) - (pageNav ? Math.max(profilePadding(profile, kiosk), pageDotsStripPx()) : profilePadding(profile, kiosk)) - reserve - room.top - room.bottom, windowSize.h)) ||
                 `repeat(${profile.rows}, minmax(0, 1fr))`
               : `repeat(${profile.rows}, ${SCROLL_ROW_H}px)`,
           }}
@@ -812,6 +822,9 @@ export default function App({ fixture }: AppProps = {}) {
             ))}
           {kiosk && <ZoneHighlights alerts={shownAlerts} profile={profile} />}
         </PageGrid>
+
+        {/* The pinned items on the right and bottom edges, and the ones floating over the page (drawn over its zones) */}
+        <PinnedItems all={pinned} items={pinned.filter((it) => !leadsPage(it))} profile={profile} appearance={appearance} padding={profilePadding(profile, kiosk)} />
 
         {kiosk && <KioskWaitingForData />}
 
@@ -843,7 +856,7 @@ export default function App({ fixture }: AppProps = {}) {
           paused={stored.rotate?.enabled === true && control?.profiles[stored.id]?.rotating === false}
           onSelect={goToPage}
           onToggleRotate={() => void postControl("rotate", { profile: stored.id, state: "toggle" })}
-          lift={shownIsland && bottomIsland ? reserve : 0}
+          lift={(shownIsland && bottomIsland ? reserve : 0) + room.bottom}
         />
 
         {kiosk && touchPanel && (
