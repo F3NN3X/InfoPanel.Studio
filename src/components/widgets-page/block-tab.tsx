@@ -4,7 +4,8 @@
 // share of its row; Phase C: a value's and a label's alignment, the text colours, a ring's centre colour, "Show in" and a
 // threshold's direction. Phase D: "Up to the size" beside "From the size" (G28), an image's alt text (G31), and the Header row's
 // title, sub-title and icon on their own (G37). Phase E: the style rows of `style-rows.tsx` (weight, case, opacity, a card's surface,
-// padding and spacing, a gauge's sweep, a bar's height). Every change is one edit of the recipe (one undo step).
+// padding and spacing, a gauge's sweep, a bar's height). Phase F (G38): "Repeat over" a place list or a device source, and a grid's
+// columns and spacing. Every change is one edit of the recipe (one undo step).
 import type { ReactNode } from "react";
 import { Ban, Copy, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
@@ -15,9 +16,10 @@ import { iconFor, MATERIAL_ICONS } from "@/widgets/core/icons";
 import type { Data } from "@/widgets/core/types";
 import { type ConvertUnit, tableUnit, unitsLike } from "@/widgets/recipe/convert";
 import { isFollow, oneOf, wholeIn } from "@/widgets/recipe/follow";
-import { DEFAULT_SCALE } from "@/widgets/recipe/validate";
+import { DEVICE_ITEMS_MAX, DEVICE_SOURCES, type DeviceSource, isDeviceSource } from "@/widgets/recipe/sources";
+import { DEFAULT_SCALE, GRID_COLUMNS_MAX, ITEMS_MAX } from "@/widgets/recipe/validate";
 import type { Binding, Block, BlockType, Follows, Recipe, RecipeColour, RecipeDeviceKind, TextColour, Thresholds } from "@/widgets/recipe/types";
-import { BLOCK_LABEL, blockAt, followable, followOf, layerName, setRecipeSize, thresholdLine, unitOfBinding, updateBlock, valueText, withDirection, withWhenSize, type Path } from "./builder-model";
+import { BLOCK_LABEL, blockAt, followable, followOf, ITEM_NOUN, layerName, setRecipeSize, setRepeatSource, SOURCE_LABEL, thresholdLine, unitOfBinding, updateBlock, valueText, withDirection, withWhenSize, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { DataRow, type DataRowsProps, HeatmapCells, LabelText } from "./data-rows";
 import { Field, Heading, NumberInput, Select, Slider, TextArea, TextInput } from "./fields";
@@ -391,7 +393,11 @@ export function BlockTab(props: BlockTabProps) {
   const block = blockAt(recipe, path);
   if (!block) return <p className="p-4 text-caption text-ui-3">Pick a block in Layers or on the stage.</p>;
   const set = (patch: Record<string, unknown>) => onChange(updateBlock(recipe, path, patch));
-  const parent = path.length ? layerName(recipe, blockAt(recipe, path.slice(0, -1))!) : undefined;
+  const above = path.length ? blockAt(recipe, path.slice(0, -1)) : undefined;
+  const parent = above && layerName(recipe, above);
+  // a Repeat in a grid fills its cells (no direction or dividers); over devices it shows up to 32
+  const inGrid = above?.type === "grid";
+  const most = block.type === "repeat" && isDeviceSource(block.source) ? DEVICE_ITEMS_MAX : ITEMS_MAX;
   const raw = block as unknown as Record<string, unknown>;
   const bound = block.type !== "label" && block.type !== "heatmap" && ("bind" in block || block.type === "card");
   const rows = { recipe, path, onChange, data: props.data, names: props.names, devices: props.devices, onOpenSources: props.onOpenSources };
@@ -429,12 +435,23 @@ export function BlockTab(props: BlockTabProps) {
       {block.type === "repeat" ? (
         <>
           <Heading>Repeat over</Heading>
-          <Field label="List">
-            <Select label="List" value={block.over} options={recipe.options.filter((o) => o.type === "place-list").map((o) => ({ value: o.key, label: `Option “${o.label}”` }))} onChange={(v) => set({ over: v })} />
+          <Field label="List" hint="A place list's weather, or the devices the readings have: each one an item">
+            <Select
+              label="List"
+              value={isDeviceSource(block.source) ? block.source : `list:${block.over}`}
+              options={[
+                ...recipe.options.filter((o) => o.type === "place-list").map((o) => ({ value: `list:${o.key}`, label: `Option “${o.label}”` })),
+                ...DEVICE_SOURCES.map((s) => ({ value: s, label: SOURCE_LABEL[s] })),
+              ]}
+              onChange={(v) => onChange(v.startsWith("list:") ? setRepeatSource(recipe, path, "weather-by-place", v.slice(5)) : setRepeatSource(recipe, path, v as DeviceSource))}
+            />
           </Field>
           <Field label="Data for each">
-            <span className="text-body text-ui-2">Weather · by place</span>
+            <span className="text-body text-ui-2">{isDeviceSource(block.source) ? `${SOURCE_LABEL[block.source]} · from the readings` : "Weather · by place"}</span>
           </Field>
+          {inGrid ? (
+            <p className="text-caption leading-snug text-ui-3">In a grid each {ITEM_NOUN[block.source]} is a cell of the grid, its blocks in a column.</p>
+          ) : (
           <FollowRows
             label="Direction"
             recipe={recipe}
@@ -444,20 +461,27 @@ export function BlockTab(props: BlockTabProps) {
             fixed={<Segmented label="Direction" value={isFollow(block.direction) ? "rows" : (block.direction ?? "rows")} options={[...DIRECTIONS]} onChange={(v) => set({ direction: v })} />}
             onChange={(v) => set({ direction: v })}
           />
-          <FollowRows label="Most shown" recipe={recipe} value={block.max} range={[1, 12]} fallback={12} fixed={<NumberInput label="Most shown" value={isFollow(block.max) ? 12 : (block.max ?? 12)} min={1} max={12} onChange={(v) => set({ max: v })} />} onChange={(v) => set({ max: v })} />
-          <FollowRows label="Forecast hours" recipe={recipe} value={block.hours} range={[1, 24]} fallback={8} fixed={<NumberInput label="Forecast hours" value={isFollow(block.hours) ? 8 : (block.hours ?? 8)} min={1} max={24} onChange={(v) => set({ hours: v })} />} onChange={(v) => set({ hours: v })} />
-          <FollowRows
-            label="Units"
-            recipe={recipe}
-            value={block.units}
-            words={UNITS}
-            fallback="metric"
-            fixed={<Segmented label="Units" value={isFollow(block.units) ? "metric" : (block.units ?? "metric")} options={[...UNITS]} onChange={(v) => set({ units: v === "metric" ? undefined : v })} />}
-            onChange={(v) => set({ units: v })}
-          />
-          <Field label="Divider lines">
-            <Toggle label="Divider lines" checked={!!block.dividers} onChange={(v) => set({ dividers: v || undefined })} />
-          </Field>
+          )}
+          <FollowRows label="Most shown" recipe={recipe} value={block.max} range={[1, most]} fallback={most} fixed={<NumberInput label="Most shown" value={isFollow(block.max) ? most : (block.max ?? most)} min={1} max={most} onChange={(v) => set({ max: v })} />} onChange={(v) => set({ max: v })} />
+          {!isDeviceSource(block.source) && (
+            <>
+              <FollowRows label="Forecast hours" recipe={recipe} value={block.hours} range={[1, 24]} fallback={8} fixed={<NumberInput label="Forecast hours" value={isFollow(block.hours) ? 8 : (block.hours ?? 8)} min={1} max={24} onChange={(v) => set({ hours: v })} />} onChange={(v) => set({ hours: v })} />
+              <FollowRows
+                label="Units"
+                recipe={recipe}
+                value={block.units}
+                words={UNITS}
+                fallback="metric"
+                fixed={<Segmented label="Units" value={isFollow(block.units) ? "metric" : (block.units ?? "metric")} options={[...UNITS]} onChange={(v) => set({ units: v === "metric" ? undefined : v })} />}
+                onChange={(v) => set({ units: v })}
+              />
+            </>
+          )}
+          {!inGrid && (
+            <Field label="Divider lines">
+              <Toggle label="Divider lines" checked={!!block.dividers} onChange={(v) => set({ dividers: v || undefined })} />
+            </Field>
+          )}
         </>
       ) : (
         bound && (
@@ -475,7 +499,7 @@ export function BlockTab(props: BlockTabProps) {
           <NumberInput label="Range to" value={raw.max as number | undefined} onChange={(v) => set({ max: v })} />
         </Field>
       )}
-      {(block.type === "card" || block.type === "row" || block.type === "label" || block.type === "value" || block.type === "ring" || block.type === "gauge" || block.type === "bar" || block.type === "sparkline" || block.type === "heatmap") && <Heading>Look</Heading>}
+      {(block.type === "card" || block.type === "row" || block.type === "grid" || block.type === "label" || block.type === "value" || block.type === "ring" || block.type === "gauge" || block.type === "bar" || block.type === "sparkline" || block.type === "heatmap") && <Heading>Look</Heading>}
       {(block.type === "ring" || block.type === "gauge" || block.type === "bar" || block.type === "sparkline" || block.type === "value" || block.type === "heatmap") && <ColourRow recipe={recipe} path={path} block={block} onChange={onChange} />}
       {(block.type === "ring" || block.type === "gauge") && (
         <>
@@ -549,6 +573,11 @@ export function BlockTab(props: BlockTabProps) {
           </Field>
         </>
       )}
+      {block.type === "grid" && (
+        <Field label="Columns" hint="Empty: as many as make the cells closest to square at the size shown. A Repeat in the grid gives a cell per item">
+          <NumberInput label="Columns" value={block.columns} placeholder="Auto" min={1} max={GRID_COLUMNS_MAX} onChange={(v) => set({ columns: v })} />
+        </Field>
+      )}
       {(block.type === "sparkline" || block.type === "bar") && (
         <Field label="Style">
           <Segmented
@@ -598,7 +627,8 @@ export function BlockTab(props: BlockTabProps) {
         <>
           <Heading>When it shows</Heading>
           <WhenRows recipe={recipe} path={path} block={block} onChange={onChange} />
-          {ownLine(recipe, path, block) ? (
+          {/* a grid's cells are all one size: no share there */}
+          {inGrid ? null : ownLine(recipe, path, block) ? (
             <Field label="Share of its row" hint="In a column a line of text takes its own height; a share makes it take that part of the column instead">
               <NumberInput label="Share of its row" value={block.grow} placeholder="Own" min={0} max={12} step={0.1} onChange={(v) => set({ grow: v })} />
             </Field>

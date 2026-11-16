@@ -451,3 +451,67 @@ describe("Phase E keys, format 2 (G21 weight and case, G22 opacity, G26, G36)", 
     }
   });
 });
+
+describe("Phase F: Repeat sources and the grid, format 2 (G38)", () => {
+  const two = (edit: (r: Recipe) => void) => cpu((r) => ((r.format = 2), edit(r)));
+  const withBlock = (block: Block) => two((r) => rootOf(r).children.push(block));
+  const over = (source: string, children: Block[], extra: object = {}): Block => ({ type: "repeat", source, children, ...extra }) as Block;
+  const field = (f: string): Block => ({ type: "value", bind: { field: f } }) as Block;
+  const grid = (children: Block[], extra: object = {}): Block => ({ type: "grid", children, ...extra }) as Block;
+  const message = async (files: Promise<PackageFile[]>, rule: string) => validateRecipe({ files: await files }).find((i) => i.rule === rule)?.message;
+
+  it("passes the devices fixture: a Repeat over drives, a grid of a Repeat over cores, a Repeat over fans", async () => {
+    const checked = await checkPackage({ files: fixtureFiles("devices") });
+    expect(checked.issues).toEqual([]);
+  });
+
+  it("source: each device source with its own fields; a field another source has is refused, naming the source's", async () => {
+    const own = { drives: "used", cores: "load", fans: "rpm", adapters: "down", gpus: "vram" };
+    for (const [source, f] of Object.entries(own)) expect(errors(await withBlock(over(source, [field("name"), field(f)]))), source).toEqual([]);
+    expect(errors(await withBlock(over("cores", [field("temp")])))).toEqual(["binding"]);
+    expect(await message(withBlock(over("fans", [field("used")])), "binding")).toBe("$.root.children[3].children[0].bind: field used is not a field of a Repeat over fans (name, rpm)");
+    // a place's field is not a drive's, nor the other way round
+    expect(await message(withBlock(over("drives", [field("hourly")])), "binding")).toMatch(/field hourly is not a field of a Repeat over drives/);
+    expect(errors(await withBlock(over("disks", [])))).toEqual(["schema"]);
+  });
+
+  it("source: a device Repeat names no list, hours or units; most shown 1 to 32 (places stay 1 to 12)", async () => {
+    expect(errors(await two((r) => r.options.push({ key: "places", label: "Places", type: "place-list", default: [] }) && rootOf(r).children.push(over("drives", [], { over: "places" }))))).toEqual(["repeat"]);
+    expect(errors(await withBlock(over("fans", [], { hours: 4 })))).toEqual(["repeat"]);
+    expect(errors(await withBlock(over("fans", [], { units: "imperial" })))).toEqual(["repeat"]);
+    for (const max of [1, 32]) expect(errors(await withBlock(over("cores", [], { max }))), String(max)).toEqual([]);
+    for (const max of [0, 33, 2.5]) expect(errors(await withBlock(over("cores", [], { max }))), String(max)).toEqual(["repeat"]);
+    // a number option from 1 to 32 may set a device Repeat's most shown
+    const cores = await two((r) => r.options.push({ key: "most", label: "Most", type: "number", default: 16, min: 1, max: 32 }) && rootOf(r).children.push(over("cores", [], { max: { option: "most" } })));
+    expect(errors(cores)).toEqual([]);
+  });
+
+  it("grid: columns a whole 1 to 12 or none, spacing tight or roomy, anything inside, a Repeat filling it", async () => {
+    expect(errors(await withBlock(grid([over("cores", [field("load")])])))).toEqual([]);
+    for (const columns of [1, 12]) expect(errors(await withBlock(grid([], { columns }))), String(columns)).toEqual([]);
+    for (const columns of [0, 13, 2.5]) expect(errors(await withBlock(grid([], { columns }))), String(columns)).not.toEqual([]);
+    expect(errors(await withBlock(grid([], { columns: 13 })))).toEqual(["grid"]);
+    for (const spacing of ["tight", "roomy"]) expect(errors(await withBlock(grid([], { spacing }))), spacing).toEqual([]);
+    expect(errors(await withBlock({ type: "row", children: [], spacing: "tight" } as unknown as Block))).toEqual(["block"]);
+    expect(errors(await withBlock(grid([{ type: "label", text: "x" } as Block, { type: "card", title: "In a cell", children: [] } as Block])))).toEqual([]);
+  });
+
+  it("grid: never inside a Repeat; a Repeat in a grid in a Repeat is still a Repeat in a Repeat; the depth limit counts it", async () => {
+    expect(await message(withBlock(over("drives", [grid([])])), "grid")).toBe("$.root.children[3].children[0]: a Grid inside a Repeat; a Repeat lays its items out as a grid itself");
+    expect(errors(await withBlock(grid([over("cores", [over("fans", [])])])))).toContain("repeat");
+    // root (1) > grid (2) > row (3) > row (4) > row (5) > row (6) > label (7)
+    const deep = grid([{ type: "row", children: [{ type: "row", children: [{ type: "row", children: [{ type: "row", children: [{ type: "label", text: "x" }] }] }] }] } as Block]);
+    expect(errors(await withBlock(deep))).toEqual(["depth"]);
+  });
+
+  it("format: a grid and a Repeat over devices in a recipe that says format 1 are refused, in words; their keys are not listed again", async () => {
+    const cases: [string, Block, string][] = [
+      ["grid", grid([], { columns: 4, spacing: "tight" }), "$.root.children[3].type: a grid needs recipe format 2"],
+      ["source", over("drives", [field("used")], { max: 20 }), "$.root.children[3].source: a Repeat over drives, cores, fans, adapters or GPUs needs recipe format 2"],
+    ];
+    for (const [name, block, text] of cases) {
+      const issues = validateRecipe({ files: await cpu((r) => rootOf(r).children.push(block)) });
+      expect(issues.map((i) => [i.rule, i.message]), name).toEqual([["format", text]]);
+    }
+  });
+});

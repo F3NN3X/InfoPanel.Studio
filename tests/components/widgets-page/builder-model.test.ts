@@ -1,9 +1,11 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, clampCells, devicesIn, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, updateBlock, validationLine, withDirection, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
+import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, clampCells, devicesIn, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, setRepeatSource, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, updateBlock, validationLine, withDirection, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
 import { amend, commit, historyOf, HISTORY_LIMIT, redo, undo } from "@/components/widgets-page/history";
 import { NO_START, START, whyNoStart } from "@/components/widgets-page/start-points";
 import { WIDGET_ORDER } from "@/widgets/order";
 import { oneOf, wholeIn } from "@/widgets/recipe/follow";
+import { recipeBytes } from "@/widgets/recipe/package";
 import type { Block, Recipe, RepeatDirection } from "@/widgets/recipe/types";
 
 // The builder's model: the block tree edits, a binding turned into an option (a device or a sensor), options and presets, undo,
@@ -202,7 +204,7 @@ describe("start points", () => {
       expect(!!START[id] !== !!NO_START[id], id).toBe(true);
       expect(!!whyNoStart(id), id).toBe(!START[id]);
     }
-    expect(Object.keys(START).sort()).toEqual(["CpuMonitor", "GpuMonitor", "SensorValue", "Weather"]);
+    expect(Object.keys(START).sort()).toEqual(["CoreHeatmap", "CpuMonitor", "DiskIO", "Fans", "GpuMonitor", "SensorValue", "Weather"]);
   });
 
   it("each start point is a recipe the validator passes", () => {
@@ -287,7 +289,7 @@ describe("moving a block between containers (G1)", () => {
     // a block reading a place's field stays inside a Repeat
     expect(moveRefusal(w, [0, 1], [])).toBe("City reads each place's weather: it goes inside a Repeat only");
     expect(moveRefusal(w, [0], [0, 1])).toBe("A block can't go inside itself");
-    expect(moveRefusal(w, [0, 0], [0, 0])).toBe("Only a Row, a Card or a Repeat holds blocks");
+    expect(moveRefusal(w, [0, 0], [0, 0])).toBe("Only a Row, a Grid, a Card or a Repeat holds blocks");
     expect(moveRefusal(w, [], [0])).toBe("The widget's card stays where it is");
     // deeper than six: rows nested four deep under the card, then a row holding a label moved into the deepest
     let deep = newRecipe("Deep", new Set());
@@ -307,7 +309,7 @@ describe("moving a block between containers (G1)", () => {
     const r = cpuCard();
     expect(keyMove(r, [0, 1, 0], "out")).toEqual({ toParent: [0], index: 2 });
     expect(keyMove(r, [1], "in")).toEqual({ toParent: [0], index: 2 });
-    expect(keyMove(r, [0, 0], "in")).toEqual({ why: "There is no Row, Card or Repeat just above it" });
+    expect(keyMove(r, [0, 0], "in")).toEqual({ why: "There is no Row, Grid, Card or Repeat just above it" });
     expect(keyMove(r, [1], "out")).toEqual({ why: "It is in the widget's card already" });
     expect(keyMove(weatherCard(), [0, 0], "out")).toEqual({ why: "Weather icon reads each place's weather: it goes inside a Repeat only" });
   });
@@ -473,7 +475,7 @@ describe("a tile dropped at a place (Phase B1, G12)", () => {
     const w = weatherCard();
     expect(addRefusal(w, "repeat", [0])).toBe("A Repeat can't go inside another Repeat");
     expect(addRefusal(w, "value", [0])).toBeUndefined();
-    expect(addRefusal(w, "label", [0, 0])).toBe("Only a Row, a Card or a Repeat holds blocks");
+    expect(addRefusal(w, "label", [0, 0])).toBe("Only a Row, a Grid, a Card or a Repeat holds blocks");
   });
 });
 
@@ -652,7 +654,7 @@ describe("Phase D: polish", () => {
     const again = addImageAt(two.recipe, two.images, [], 2, pngFile("images/logo.png"));
     if ("why" in again) throw new Error(again.why);
     expect(again.images.map((f) => f.path)).toEqual(["images/b.png", "images/logo.png"]);
-    expect(addImageAt(r.recipe, r.images, [0], 0, pngFile("images/c.png"))).toEqual({ why: "Only a Row, a Card or a Repeat holds blocks" });
+    expect(addImageAt(r.recipe, r.images, [0], 0, pngFile("images/c.png"))).toEqual({ why: "Only a Row, a Grid, a Card or a Repeat holds blocks" });
   });
 
   it("B22: a save packs only the pictures an Image shows, so a deleted Image's picture is not saved, while the open recipe keeps it for an undo", () => {
@@ -778,5 +780,83 @@ describe("Phase E: weight, case, opacity, surface, padding, spacing, sweep and h
     expect(roomy.format).toBe(2);
     expect(errorsOf(roomy)).toEqual([]);
     expect(JSON.stringify(withFormat(updateBlock(roomy, [], { spacing: undefined })))).toBe(JSON.stringify(base));
+  });
+});
+
+describe("Phase F: Repeat sources and the grid (G38)", () => {
+  /** A card with a Repeat over drives: a label of each drive's name and a value of its used space (`over` points the Repeat). */
+  const drivesCard = (): Recipe => {
+    const w = weatherCard(); // card[ Repeat[ weather icon, City[ label ] ] ]
+    const v = addBlock(w, [0], "value", "x.y");
+    return withFormat(setRepeatSource(v.recipe, [0], "drives"));
+  };
+
+  it("a Repeat set to a device source: no list, hours or units; each field the items lack reads the main one, without the old unit; a name stays", () => {
+    const w = updateBlock(addBlock(weatherCard(), [0], "value", "x.y").recipe, [0], { hours: 6, units: "imperial" });
+    const r = setRepeatSource(w, [0], "fans");
+    const rep = blockAt(r, [0]) as Extract<Block, { type: "repeat" }>;
+    expect(rep).toMatchObject({ source: "fans", max: 4, dividers: true });
+    expect(rep).not.toHaveProperty("over");
+    expect(rep).not.toHaveProperty("hours");
+    expect(rep).not.toHaveProperty("units");
+    expect(blockAt(r, [0, 0])).toMatchObject({ type: "weather-icon", bind: { field: "rpm" } });
+    expect(blockAt(r, [0, 1, 0])).toMatchObject({ type: "label", bind: { field: "name" } });
+    expect(blockAt(r, [0, 2])).toEqual({ type: "value", bind: { field: "rpm" }, decimals: 0 });
+    expect(withFormat(r).format).toBe(2);
+    expect(layerName(r, rep)).toBe("Repeat · Fans");
+    // a drive has a temperature: a place's stays a drive's, with its unit
+    expect(blockAt(setRepeatSource(w, [0], "drives"), [0, 2])).toEqual({ type: "value", bind: { field: "temp" }, unit: "°", decimals: 0 });
+  });
+
+  it("back to places: the recipe's place list again, most shown down to 12, a device's reading back to a place's temperature", () => {
+    const d = updateBlock(drivesCard(), [0], { max: 20 });
+    const r = setRepeatSource(d, [0], "weather-by-place", "places");
+    expect(blockAt(r, [0])).toMatchObject({ source: "weather-by-place", over: "places", max: 12 });
+    expect(blockAt(r, [0, 2])).toMatchObject({ bind: { field: "temp" } });
+    expect(errorsOf(withFormat(r))).toEqual([]);
+    expect(withFormat(r).format).toBe(1);
+  });
+
+  it("a new block in a Repeat over devices reads the source's main reading; a Grid is added empty", () => {
+    let r = setRepeatSource(addBlock(newRecipe("Cores", new Set()), [], "repeat", "x.y").recipe, [0], "cores");
+    for (const type of ["ring", "bar", "value", "sparkline", "heatmap"] as const) {
+      const added = addBlock(r, [0], type, "x.y");
+      expect(blockAt(added.recipe, added.path), type).toMatchObject({ bind: { field: "load" } });
+      r = added.recipe;
+    }
+    expect(errorsOf(withFormat(r))).toEqual([]);
+    const g = addBlock(newRecipe("Grid", new Set()), [], "grid", "x.y");
+    expect(blockAt(g.recipe, g.path)).toEqual({ type: "grid", name: "Grid", children: [] });
+    expect(addBlock(g.recipe, g.path, "label", "x.y").path).toEqual([0, 0]);
+  });
+
+  it("refuses a Grid into a Repeat and a block reading a field the new items have not got; a Repeat moves into a Grid", () => {
+    const d = drivesCard(); // card[ Repeat over drives[ icon, City[ label ], value ] ]
+    const g = addBlock(d, [], "grid", "x.y"); // card[ Repeat, Grid ]
+    expect(moveRefusal(g.recipe, [1], [0])).toBe("A Grid can't go inside a Repeat: a Repeat lays its items out as a grid itself (Direction: Grid)");
+    expect(addRefusal(g.recipe, "grid", [0])).toBe("A Grid can't go inside a Repeat: a Repeat lays its items out as a grid itself (Direction: Grid)");
+    const moved = moveBlock(g.recipe, [0], [1], 0);
+    expect(moved.path).toEqual([0, 0]);
+    expect(errorsOf(withFormat(moved.recipe))).toEqual([]);
+    // a place's temperature does not go into a Repeat over drives, nor a drive's used space out of one
+    const w = addBlock(weatherCard(), [], "repeat", "x.y"); // card[ Repeat over places, Repeat over places ]
+    const two = setRepeatSource(w.recipe, [1], "fans");
+    const temp = addBlock(two, [0], "value", "x.y");
+    expect(moveRefusal(temp.recipe, temp.path, [1])).toBe("Value reads temp, which a fan has not got");
+    expect(moveRefusal(setRepeatSource(drivesCard(), [0], "fans"), [0, 2], [])).toBe("Value reads each item of a Repeat: it goes inside a Repeat only");
+  });
+
+  it("the sample a save writes keeps the keys its device Repeats list items from, so the Sample lists the same drives", () => {
+    const data = { "libre.disk_a_used_space": "40 %", "libre.disk_a_temperature__1": "41 °C", "libre.disk_b_used_space": "70 %", "libre.other_reading": "5 W" };
+    const saved = withSample(drivesCard(), data);
+    expect(Object.keys(saved.sample.sensors).sort()).toEqual(["libre.disk_a_temperature__1", "libre.disk_a_used_space", "libre.disk_b_used_space"]);
+    expect(errorsOf(saved)).toEqual([]);
+  });
+
+  it("a recipe that uses neither keeps its bytes: the format 1 and format 2 fixtures are written as they are", () => {
+    for (const name of ["cpu-card", "gpu-card", "weather-places"]) {
+      const text = readFileSync(`tests/fixtures/recipes/${name}/recipe.json`, "utf8");
+      expect(new TextDecoder().decode(recipeBytes(withFormat(JSON.parse(text)))), name).toBe(text);
+    }
   });
 });

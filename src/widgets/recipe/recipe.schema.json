@@ -160,7 +160,7 @@
       "required": ["type"],
       "additionalProperties": false,
       "properties": {
-        "type": { "enum": ["card", "row", "repeat", "ring", "gauge", "bar", "sparkline", "value", "label", "weather-icon", "image", "heatmap"] },
+        "type": { "enum": ["card", "row", "repeat", "ring", "gauge", "bar", "sparkline", "value", "label", "weather-icon", "image", "heatmap", "grid"] },
         "name": { "type": "string", "pattern": "^[^<>]{1,40}$" },
         "when": { "$ref": "#/$defs/condition" },
         "grow": { "type": "number", "minimum": 0, "maximum": 12 },
@@ -172,7 +172,7 @@
         "gap": { "type": "number", "minimum": 0, "maximum": 24 },
         "align": { "enum": ["start", "center", "end", "stretch"] },
         "over": { "$ref": "#/$defs/key" },
-        "source": { "enum": ["weather-by-place"] },
+        "source": { "enum": ["weather-by-place", "drives", "cores", "fans", "adapters", "gpus"] },
         "max": { "$ref": "#/$defs/followNumber" },
         "hours": { "$ref": "#/$defs/followNumber" },
         "window": { "$ref": "#/$defs/followNumber" },

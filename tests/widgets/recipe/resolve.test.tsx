@@ -144,6 +144,8 @@ describe("the data gate of a recipe placement", () => {
     expect(weather(undefined)).toEqual(["weather.place.n3568e13969.", "weather.place.n5905e970.", "weather.place.n5991e1075."]);
     expect(weather({ places: JSON.stringify([{ name: "Bergen", lat: 60.39, lon: 5.32 }]) })).toEqual(["weather.place.n6039e532."]);
     expect(weather({ places: "[]" })).toEqual([]);
+    // a Repeat over devices reads its source's prefixes, as a hardware widget does (Phase F): drives and cores `libre.`, fans `hwinfo.` too
+    expect(recipeReads(fixtureRecipe("devices"))(undefined)).toEqual(["hwinfo.", "libre."]);
   });
 
   it("reads every key until the recipe has loaded, then only its own: an unrelated tick does not redraw the zone, a bound one does", async () => {

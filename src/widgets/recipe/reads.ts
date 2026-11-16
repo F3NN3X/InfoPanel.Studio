@@ -2,13 +2,15 @@
 // have through their prefixes): every sensor binding in its blocks, and the value of each sensor option (the placement's
 // stored one, else the recipe's default). A sensor key that names a device option (`libre.{cpu}_cpu_total`) reads the device the
 // placement picked; on Auto it reads by the key's part before the device, as a built-in hardware widget reads its prefix. A Repeat
-// over places reads its places' weather (`weather.place.<id>.`, the server's Weather by place) for the places the placement lists.
+// over places reads its places' weather (`weather.place.<id>.`, the server's Weather by place) for the places the placement lists;
+// a Repeat over devices reads its source's prefixes (`libre.`, and `hwinfo.` for fans), as a hardware widget does.
 // A recipe that reads none draws without data.
 import type { ModuleSettings } from "@/modules/types";
 import { hw } from "../core/data";
 import type { Data } from "../core/types";
 import type { Binding, Block, Recipe, RecipeDeviceKind } from "./types";
 import { DEVICE_SLOT, placesOf } from "./validate";
+import { type DeviceSource, isDeviceSource, SOURCE_PREFIXES } from "./sources";
 import { placePrefix } from "./weather";
 
 /** The sensor keys bound by name anywhere in the tree (a binding to an option is the option's, read per placement). */
@@ -56,7 +58,18 @@ export function expandKey(recipe: Recipe, key: string, values: Record<string, un
 export function weatherLists(recipe: Recipe): string[] {
   const out = new Set<string>();
   const walk = (b: Block) => {
-    if (b.type === "repeat" && b.source === "weather-by-place") out.add(b.over);
+    if (b.type === "repeat" && b.source === "weather-by-place" && b.over) out.add(b.over);
+    if ("children" in b) for (const c of b.children) walk(c);
+  };
+  walk(recipe.root);
+  return [...out];
+}
+
+/** The device sources a recipe's Repeats run over. */
+export function deviceSources(recipe: Recipe): DeviceSource[] {
+  const out = new Set<DeviceSource>();
+  const walk = (b: Block) => {
+    if (b.type === "repeat" && isDeviceSource(b.source)) out.add(b.source);
     if ("children" in b) for (const c of b.children) walk(c);
   };
   walk(recipe.root);
@@ -65,15 +78,17 @@ export function weatherLists(recipe: Recipe): string[] {
 
 /**
  * A placement's keys, sorted: the recipe's bound sensors (a device on Auto by the key's part before it), its sensor options' values,
- * and the weather prefix of each place its Repeats run over (the stored list, else the recipe's default, as the renderer reads it).
+ * the weather prefix of each place its Repeats run over (the stored list, else the recipe's default, as the renderer reads it), and
+ * the prefixes of its Repeats over devices.
  */
 export function recipeReads(recipe: Recipe): (saved: ModuleSettings | undefined) => string[] {
   const fixed = boundSensors(recipe);
   const options = recipe.options.filter((o) => o.type === "sensor");
-  const devices = recipe.options.filter((o) => o.type === "device");
+  const picked = recipe.options.filter((o) => o.type === "device");
   const lists = recipe.options.filter((o) => o.type === "place-list" && weatherLists(recipe).includes(o.key));
+  const devices = deviceSources(recipe).flatMap((s) => SOURCE_PREFIXES[s]);
   return (saved) => {
-    const values = Object.fromEntries(devices.map((o) => [o.key, saved?.[o.key] ?? o.default]));
+    const values = Object.fromEntries(picked.map((o) => [o.key, saved?.[o.key] ?? o.default]));
     const bound = fixed.map((k) => expandKey(recipe, k, values).key ?? k.slice(0, k.indexOf("{")));
     const chosen = options.flatMap((o) => String(saved?.[o.key] ?? o.default ?? "").split(",").filter(Boolean));
     const weather = lists.flatMap((o) => {
@@ -81,6 +96,6 @@ export function recipeReads(recipe: Recipe): (saved: ModuleSettings | undefined)
       const list = (Array.isArray(stored) ? stored : o.default) as { lat?: unknown; lon?: unknown }[];
       return (Array.isArray(list) ? list : []).flatMap((p) => (typeof p?.lat === "number" && typeof p.lon === "number" ? [placePrefix({ lat: p.lat, lon: p.lon })] : []));
     });
-    return [...new Set([...bound, ...chosen, ...weather])].sort();
+    return [...new Set([...bound, ...chosen, ...weather, ...devices])].sort();
   };
 }

@@ -330,6 +330,12 @@ export function Builder(p: BuilderProps) {
     const options = leftUnused(before, after);
     setOffer(options.length ? { options, base: after } : null);
   };
+  /** A Block tab edit; a Repeat set to run over devices offers to remove the place list it no longer reads (G34, G38). */
+  const onBlockEdit = (r: Recipe) => {
+    const after = withFormat(r);
+    edit(after);
+    if (blockAt(recipe, path)?.type === "repeat") offerCleanUp(recipe, after);
+  };
   const offerNames = offer ? offer.options.map((o) => o.label).join(", ") : "";
 
   // a new Image asks for its picture first (G32): the place it goes waits for the file chooser
@@ -927,7 +933,7 @@ export function Builder(p: BuilderProps) {
             </p>
           )}
           <TypingContext.Provider value={typing}>
-            {tab === "block" && <BlockTab recipe={recipe} path={path} header={header} onChange={(r) => edit(r)} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} drawnOpacity={drawn[path.join(".")]} />}
+            {tab === "block" && <BlockTab recipe={recipe} path={path} header={header} onChange={onBlockEdit} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} drawnOpacity={drawn[path.join(".")]} />}
             {tab === "options" && <OptionsTab recipe={recipe} onChange={(r) => edit(r)} data={{ ...sampleData, ...liveData }} onOpenSources={p.onOpenSources} />}
             {tab === "presets" && <PresetsTab recipe={recipe} onChange={(r) => edit(r)} current={preset} onPick={pickPreset} values={shownValues} size={size} data={{ ...sampleData, ...liveData }} devices={devices} onOpenSources={p.onOpenSources} />}
           </TypingContext.Provider>

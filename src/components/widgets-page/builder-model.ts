@@ -9,8 +9,9 @@ import type { Data } from "@/widgets/core/types";
 import { readingUnit } from "@/widgets/recipe/convert";
 import { cellBasePx, TEXT_FLOOR } from "@/widgets/recipe/metrics";
 import { recipeBytes } from "@/widgets/recipe/package";
-import { boundSensors, expandKey } from "@/widgets/recipe/reads";
-import { BLOCK_TYPES, type Binding, type Block, type BlockType, type CardBlock, type Cells, type Condition, type Container, type FollowOption, type LabelPart, type PackageFile, type Place, type Recipe, type RecipeDeviceKind, type RecipeOption, type Thresholds } from "@/widgets/recipe/types";
+import { boundSensors, deviceSources, expandKey } from "@/widgets/recipe/reads";
+import { type DeviceSource, isDeviceSource, type RepeatSource, SOURCE_FIELDS, SOURCE_MAIN, sourceKeys } from "@/widgets/recipe/sources";
+import { BLOCK_TYPES, type Binding, type Block, type BlockType, type CardBlock, type Cells, type Condition, type Container, type FollowOption, type LabelPart, type PackageFile, type Place, type Recipe, type RecipeDeviceKind, type RecipeOption, type Thresholds, WEATHER_PLACE_FIELDS } from "@/widgets/recipe/types";
 import { DEPTH_MAX, DEVICE_SLOT, format2Keys, ITEMS_MAX, type RecipeIssue, validateRecipe } from "@/widgets/recipe/validate";
 import type { WidgetPreset } from "@/widgets/define";
 
@@ -29,16 +30,17 @@ export const BLOCK_LABEL: Readonly<Record<BlockType, string>> = {
   image: "Image",
   heatmap: "Heatmap",
   row: "Row",
+  grid: "Grid",
   repeat: "Repeat",
   card: "Card",
 };
 /** "Add a block" in the mockup's order. */
-export const ADD_ORDER: readonly BlockType[] = ["ring", "gauge", "bar", "sparkline", "value", "label", "weather-icon", "image", "heatmap", "row", "repeat", "card"];
+export const ADD_ORDER: readonly BlockType[] = ["ring", "gauge", "bar", "sparkline", "value", "label", "weather-icon", "image", "heatmap", "row", "grid", "repeat", "card"];
 
 /** What a device option is called ("Let people pick the CPU"). */
 export const DEVICE_LABEL: Readonly<Record<RecipeDeviceKind, string>> = { cpu: "CPU", gpu: "GPU", disk: "Drive", adapter: "Network adapter" };
 
-const isContainer = (b: Block): b is Container => b.type === "card" || b.type === "row" || b.type === "repeat";
+const isContainer = (b: Block): b is Container => b.type === "card" || b.type === "row" || b.type === "grid" || b.type === "repeat";
 const childrenOf = (b: Block): Block[] => (isContainer(b) ? b.children : []);
 
 /* ───────── the tree ───────── */
@@ -79,25 +81,32 @@ export function updateBlock(recipe: Recipe, path: Path, patch: Record<string, un
   });
 }
 
-/** A new block of a type, bound to what fits where it goes: a Repeat item's field inside a Repeat, else `sensor`. */
-export function newBlock(type: BlockType, opts: { sensor: string; inRepeat: boolean; over?: string }): Block {
+/**
+ * A new block of a type, bound to what fits where it goes: a Repeat item's field inside a Repeat (a place's temperature, a device's
+ * main reading: `source` is the Repeat's), else `sensor`.
+ */
+export function newBlock(type: BlockType, opts: { sensor: string; inRepeat: boolean; over?: string; source?: RepeatSource }): Block {
   const bind: Binding = { sensor: opts.sensor };
   const field = (f: string): Binding => (opts.inRepeat ? { field: f } : bind);
+  const device = isDeviceSource(opts.source) ? opts.source : undefined;
+  const main = device ? SOURCE_MAIN[device] : "temp";
   switch (type) {
     case "card":
       return { type, name: "Card", title: "Card", children: [] };
     case "row":
       return { type, name: "Row", children: [] };
+    case "grid":
+      return { type, name: "Grid", children: [] };
     case "repeat":
       return { type, name: "Repeat", over: opts.over ?? "places", source: "weather-by-place", direction: "rows", max: 4, dividers: true, children: [] };
     case "ring":
     case "gauge":
     case "bar":
-      return { type, bind: field("temp"), min: 0, max: 100, color: "accent" };
+      return { type, bind: field(main), min: 0, max: 100, color: "accent" };
     case "sparkline":
-      return { type, bind: field("hourly"), style: opts.inRepeat ? "bars" : "area", color: "accent" };
+      return device ? { type, bind: field(main), style: "area", color: "accent" } : { type, bind: field("hourly"), style: opts.inRepeat ? "bars" : "area", color: "accent" };
     case "value":
-      return opts.inRepeat ? { type, bind: field("temp"), unit: "°", decimals: 0 } : { type, bind, label: "Value" };
+      return device && opts.inRepeat ? { type, bind: field(main) } : opts.inRepeat ? { type, bind: field("temp"), unit: "°", decimals: 0 } : { type, bind, label: "Value" };
     case "label":
       return opts.inRepeat ? { type, bind: field("name") } : { type, text: "Label" };
     case "weather-icon":
@@ -105,7 +114,7 @@ export function newBlock(type: BlockType, opts: { sensor: string; inRepeat: bool
     case "image":
       return { type, file: "images/image.png", fit: "contain" };
     case "heatmap":
-      return opts.inRepeat ? { type, bind: field("hourly") } : { type, cells: [bind], min: 0, max: 100 };
+      return opts.inRepeat ? { type, bind: field(device ? main : "hourly") } : { type, cells: [bind], min: 0, max: 100 };
   }
 }
 
@@ -127,8 +136,8 @@ export function landing(recipe: Recipe, at: Path): { into: number[]; index: numb
 /** Why a new block of `type` may not go into the container at `toParent` (a tile dropped there), or undefined. */
 export function addRefusal(recipe: Recipe, type: BlockType, toParent: Path): string | undefined {
   const target = blockAt(recipe, toParent);
-  const inRepeat = !!target && (target.type === "repeat" || !!repeatAbove(recipe, [...toParent, 0]));
-  return placeRefusal(recipe, newBlock(type, { sensor: "x.y", inRepeat }), toParent);
+  const repeat = target?.type === "repeat" ? target : repeatAbove(recipe, [...toParent, 0]);
+  return placeRefusal(recipe, newBlock(type, { sensor: "x.y", inRepeat: !!repeat, source: repeat?.source }), toParent);
 }
 
 /** Adds a block of `type` into the container at `into`, before its child `index` (a tile dropped on a row). Returns its path. */
@@ -139,8 +148,8 @@ export function addBlockAt(recipe: Recipe, into: Path, index: number, type: Bloc
     over = "places";
     next = addOption(next, { key: over, label: "Locations", type: "place-list", default: DEFAULT_PLACES });
   }
-  const inRepeat = !!repeatAbove(next, [...into, 0]);
-  const block = newBlock(type, { sensor, inRepeat, over });
+  const repeat = repeatAbove(next, [...into, 0]);
+  const block = newBlock(type, { sensor, inRepeat: !!repeat, over, source: repeat?.source });
   const at = Math.max(0, Math.min(index, childrenOf(blockAt(next, into)!).length));
   next = mapAt(next, into, (b) => ({ ...b, children: [...childrenOf(b).slice(0, at), block, ...childrenOf(b).slice(at)] }) as Block);
   return { recipe: type === "repeat" ? withSampleItems(next) : next, path: [...into, at] };
@@ -170,19 +179,26 @@ export function duplicateBlock(recipe: Recipe, path: Path): { recipe: Recipe; pa
 const heightOf = (b: Block): number => 1 + Math.max(0, ...childrenOf(b).map(heightOf));
 /** Whether a block is or holds a Repeat. */
 const holdsRepeat = (b: Block): boolean => b.type === "repeat" || childrenOf(b).some(holdsRepeat);
-/** Whether a block, or one it holds outside a Repeat of its own, reads a Repeat item's field. */
-const readsField = (b: Block): boolean =>
-  b.type !== "repeat" && (bindingsOf(b).some((x) => "field" in x) || childrenOf(b).some(readsField));
+/** The Repeat item's fields a block, and what it holds outside a Repeat of its own, reads. */
+const fieldsRead = (b: Block): string[] => (b.type === "repeat" ? [] : [...bindingsOf(b).flatMap((x) => ("field" in x ? [x.field] : [])), ...childrenOf(b).flatMap(fieldsRead)]);
+/** Whether a block is or holds a Grid. */
+const holdsGrid = (b: Block): boolean => b.type === "grid" || childrenOf(b).some(holdsGrid);
+/** The fields an item of a Repeat's source has. */
+export const itemFields = (source: RepeatSource): readonly string[] => (isDeviceSource(source) ? SOURCE_FIELDS[source] : WEATHER_PLACE_FIELDS);
+/** What one item of a source is called ("place", "drive"). */
+export const ITEM_NOUN: Readonly<Record<RepeatSource, string>> = { "weather-by-place": "place", drives: "drive", cores: "core", fans: "fan", adapters: "adapter", gpus: "GPU" };
+/** A device source's name in the builder ("Repeat over", Layers). */
+export const SOURCE_LABEL: Readonly<Record<DeviceSource, string>> = { drives: "Drives", cores: "CPU cores", fans: "Fans", adapters: "Network adapters", gpus: "GPUs" };
 
 /**
  * Why the block at `from` may not go into the container at `toParent`, in the words the drop line shows, or undefined. The rules
- * are the validator's: no Repeat inside a Repeat, no deeper than `DEPTH_MAX`, a field of each place only inside a Repeat.
+ * are the validator's: no Repeat or Grid inside a Repeat, no deeper than `DEPTH_MAX`, an item's field only inside a Repeat whose items have it.
  */
 export function moveRefusal(recipe: Recipe, from: Path, toParent: Path): string | undefined {
   const b = blockAt(recipe, from);
   if (!from.length || !b) return "The widget's card stays where it is";
   const target = blockAt(recipe, toParent);
-  if (!target || !isContainer(target)) return "Only a Row, a Card or a Repeat holds blocks";
+  if (!target || !isContainer(target)) return "Only a Row, a Grid, a Card or a Repeat holds blocks";
   if (toParent.length >= from.length && from.every((k, i) => toParent[i] === k)) return "A block can't go inside itself";
   return placeRefusal(recipe, b, toParent);
 }
@@ -190,10 +206,14 @@ export function moveRefusal(recipe: Recipe, from: Path, toParent: Path): string 
 /** Why block `b` (one of the recipe's, or one from elsewhere: a paste) may not go into the container at `toParent`, or undefined. */
 export function placeRefusal(recipe: Recipe, b: Block, toParent: Path): string | undefined {
   const target = blockAt(recipe, toParent);
-  if (!target || !isContainer(target)) return "Only a Row, a Card or a Repeat holds blocks";
-  const inRepeat = target.type === "repeat" || !!repeatAbove(recipe, [...toParent, 0]);
-  if (inRepeat && holdsRepeat(b)) return "A Repeat can't go inside another Repeat";
-  if (!inRepeat && readsField(b)) return `${layerName(recipe, b)} reads each place's weather: it goes inside a Repeat only`;
+  if (!target || !isContainer(target)) return "Only a Row, a Grid, a Card or a Repeat holds blocks";
+  const repeat = target.type === "repeat" ? target : repeatAbove(recipe, [...toParent, 0]);
+  if (repeat && holdsRepeat(b)) return "A Repeat can't go inside another Repeat";
+  if (repeat && holdsGrid(b)) return "A Grid can't go inside a Repeat: a Repeat lays its items out as a grid itself (Direction: Grid)";
+  const fields = fieldsRead(b);
+  if (!repeat && fields.length) return `${layerName(recipe, b)} ${fields.every((f) => (WEATHER_PLACE_FIELDS as readonly string[]).includes(f)) ? "reads each place's weather" : "reads each item of a Repeat"}: it goes inside a Repeat only`;
+  const missing = repeat && fields.find((f) => !itemFields(repeat.source).includes(f));
+  if (repeat && missing) return `${layerName(recipe, b)} reads ${missing}, which a ${ITEM_NOUN[repeat.source]} has not got`;
   if (toParent.length + 1 + heightOf(b) > DEPTH_MAX) return `Blocks nest at most ${DEPTH_MAX} deep`;
   return undefined;
 }
@@ -242,7 +262,7 @@ export function keyMove(recipe: Recipe, path: Path, way: "out" | "in"): { toPare
     return why ? { why } : { toParent, index: parent[parent.length - 1] + 1 };
   }
   const above = k > 0 ? blockAt(recipe, [...parent, k - 1]) : undefined;
-  if (!above || !isContainer(above)) return { why: "There is no Row, Card or Repeat just above it" };
+  if (!above || !isContainer(above)) return { why: "There is no Row, Grid, Card or Repeat just above it" };
   const toParent = [...parent, k - 1];
   const why = moveRefusal(recipe, path, toParent);
   return why ? { why } : { toParent, index: above.children.length };
@@ -382,9 +402,9 @@ export function flatten(recipe: Recipe): { block: Block; path: number[]; depth: 
 /** The block count the validation line says. */
 export const blockCount = (recipe: Recipe): number => flatten(recipe).length;
 
-/** A block's Layers name: its own, else its type's; a Repeat says what it runs over ("Repeat · Locations"). */
+/** A block's Layers name: its own, else its type's; a Repeat says what it runs over ("Repeat · Locations", "Repeat · Drives"). */
 export function layerName(recipe: Recipe, b: Block): string {
-  if (b.type === "repeat") return `${b.name && b.name !== "Repeat" ? b.name : "Repeat"} · ${recipe.options.find((o) => o.key === b.over)?.label ?? b.over}`;
+  if (b.type === "repeat") return `${b.name && b.name !== "Repeat" ? b.name : "Repeat"} · ${isDeviceSource(b.source) ? SOURCE_LABEL[b.source] : (recipe.options.find((o) => o.key === b.over)?.label ?? b.over)}`;
   if (b.name) return b.name;
   if (b.type === "card" && b.title) return b.title;
   if (b.type === "value" && b.label) return b.label;
@@ -449,7 +469,12 @@ export function pickWhat(recipe: Recipe, path: Path, devices: Partial<Record<Rec
 
 /** Every sensor key of the tree rewritten by `fn` (bindings, a card's sub-title, heatmap cells). */
 export function mapKeys(recipe: Recipe, fn: (key: string) => string): Recipe {
-  const bind = (b: Binding | undefined) => (b && "sensor" in b ? { sensor: fn(b.sensor) } : b);
+  return { ...recipe, root: mapBindings(recipe.root, (b) => ("sensor" in b ? { sensor: fn(b.sensor) } : b)) as CardBlock };
+}
+
+/** A block and what it holds with every binding (its own, a heatmap cell's, a label part's, a card's sub-title) put through `fn`. */
+function mapBindings(block: Block, fn: (b: Binding) => Binding): Block {
+  const bind = (b: Binding | undefined) => b && fn(b);
   const go = (b: Block): Block => {
     const next = { ...b } as Record<string, unknown>;
     if ("bind" in b && b.bind) next.bind = bind(b.bind);
@@ -459,7 +484,33 @@ export function mapKeys(recipe: Recipe, fn: (key: string) => string): Recipe {
     if (isContainer(b)) next.children = b.children.map(go);
     return next as unknown as Block;
   };
-  return { ...recipe, root: go(recipe.root) as CardBlock };
+  return go(block);
+}
+
+/**
+ * The Repeat at `path` run over `source` (G38): Weather by place over the place list `over`, or the drives, cores, fans, adapters or
+ * GPUs the readings name, which take no list, hours or units. A block inside that reads a field the new items have not got reads the
+ * source's main reading instead (a name stays a name), without the unit typed for the old one ("°" on a temperature).
+ */
+export function setRepeatSource(recipe: Recipe, path: Path, source: RepeatSource, over?: string): Recipe {
+  const b = blockAt(recipe, path);
+  if (b?.type !== "repeat") return recipe;
+  const fields = itemFields(source);
+  const main = isDeviceSource(source) ? SOURCE_MAIN[source] : "temp";
+  const children = b.children.map((c) =>
+    mapBindings(c, (x) => ("field" in x && !fields.includes(x.field) ? { field: main } : x)),
+  );
+  // a value whose reading changed loses the unit typed for the old one
+  const unitless = (old: Block, now: Block): Block => {
+    const kids = isContainer(now) && isContainer(old) ? { children: now.children.map((c, k) => unitless(old.children[k], c)) } : {};
+    const moved = "bind" in old && "bind" in now && old.bind !== undefined && now.bind !== undefined && "field" in old.bind && "field" in now.bind && old.bind.field !== now.bind.field;
+    const { unit: _u, ...rest } = now as Block & { unit?: string };
+    return { ...(moved ? rest : now), ...kids } as Block;
+  };
+  // a place list holds at most 12 places, so most shown above that comes down to it
+  const weather = { over: over ?? recipe.options.find((o) => o.type === "place-list")?.key ?? "places", ...(typeof b.max === "number" && b.max > ITEMS_MAX ? { max: ITEMS_MAX } : {}) };
+  const patch = isDeviceSource(source) ? { over: undefined, hours: undefined, units: undefined } : weather;
+  return updateBlock(recipe, path, { ...patch, source, children: children.map((c, k) => unitless(b.children[k], c)) });
 }
 
 /**
@@ -744,13 +795,15 @@ export function withSampleItems(recipe: Recipe): Recipe {
 
 /**
  * The sample a save writes: every sensor the recipe reads (its keys with the devices of `data` filled in, its sensor options'
- * defaults) at its reading in `data` where there is one, else the sample's own; nothing it does not read.
+ * defaults, the keys its Repeats over devices list their items from) at its reading in `data` where there is one, else the sample's own; nothing it does not read.
  */
 export function withSample(recipe: Recipe, data: Data): Recipe {
   const devices = Object.fromEntries(recipe.options.filter((o) => o.type === "device").map((o) => [o.key, o.default]));
   const keys = [
     ...boundSensors(recipe).map((k) => expandKey(recipe, k, devices, { ...recipe.sample.sensors, ...data } as Data).key),
     ...recipe.options.filter((o) => o.type === "sensor").map((o) => String(o.default)),
+    // a Repeat over devices: the keys its items are read from, so the Sample lists the same devices
+    ...deviceSources(recipe).flatMap((source) => sourceKeys(source, { ...recipe.sample.sensors, ...data } as Data)),
   ].filter((k): k is string => !!k && k.includes("."));
   const reading = (k: string) => {
     const v = data[k] ?? recipe.sample.sensors[k];

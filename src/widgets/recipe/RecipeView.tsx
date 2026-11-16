@@ -5,8 +5,10 @@
 // place, `weather.ts`) with the provider's credit under the card's blocks, where no block can reach it; in the builder's Sample it
 // draws the recipe's sample items and says so instead. Format 2's style keys (Phase E) are enums on the theme's own tokens: a text's
 // weight and case, an opacity step (a text never under 4.5:1 on its card, `opacity.ts`), a nested card's surface and padding, the root's
-// spacing, a gauge's sweep and a bar's height; each unset draws as before.
+// spacing, a gauge's sweep and a bar's height; each unset draws as before. Phase F: a Repeat over the drives, cores, fans, adapters
+// or GPUs the readings name (`sources.ts`), and a grid whose cells are its blocks and its Repeat's items.
 import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useElementSize } from "@/hooks/use-element-size";
 import { weatherKind } from "@/lib/weather-icons";
 import type { ModuleSettings } from "@/modules/types";
 import { Bar, Empty, fmt, get, heat, hue, hw, num, Num, pretty, Ring, shell, shortLabel, Spark, TONES, tone, useHistory, Widget, WeatherGlyph, type ShellProps, type Tone } from "../kit";
@@ -15,8 +17,9 @@ import { cellsOf, TEXT_FLOOR, textPx } from "./metrics";
 import { followed, oneOf, wholeIn } from "./follow";
 import { drawnStep } from "./opacity";
 import { expandKey } from "./reads";
+import { DEVICE_ITEMS_MAX, deviceItems, isDeviceSource } from "./sources";
 import { keyOf } from "./store";
-import type { Binding, Block, CardBlock, Cells, Condition, OpacityStep, Place, Recipe, RecipeColour, RepeatBlock, RepeatDirection, TextColour, TextWeight, Thresholds, WeatherUnits } from "./types";
+import type { Binding, Block, CardBlock, Cells, Condition, GridBlock, OpacityStep, Place, Recipe, RecipeColour, RepeatBlock, RepeatDirection, TextColour, TextWeight, Thresholds, WeatherUnits } from "./types";
 import { placesOf, sizeHolds } from "./validate";
 import { ATTRIBUTION, HOURS_DEFAULT, HOURS_MAX, inUnits, type Item, LICENCE, liveItem, placeState } from "./weather";
 
@@ -161,7 +164,7 @@ const FILL_FADE: Record<OpacityStep, string> = { 80: "[&>*]:opacity-80", 60: "[&
 
 /** A bar's height: S, M (unset, as before) or L. */
 const BAR_HEIGHT = { s: "h-1", m: "h-2", l: "h-3.5" } as const;
-/** The root card's room between its blocks (px): normal is 6, as before. */
+/** The root card's and a grid's room between their blocks (px): normal is 6, as before. */
 const SPACING = { tight: 2, normal: 6, roomy: 12 } as const;
 /** A nested card's padding (px); unset is M, its `p-2` (8 px) as before. */
 const PADDING = { none: 0, s: 4, l: 12 } as const;
@@ -218,6 +221,8 @@ function BlockView({ b, path }: { b: Block; path: string }): ReactNode {
       return <Blocks blocks={b.children} path={path} direction={b.direction ?? "row"} gap={b.gap} align={b.align} />;
     case "repeat":
       return <RepeatView b={b} path={path} />;
+    case "grid":
+      return <GridView b={b} path={path} />;
     case "ring":
     case "gauge":
       return <RingView b={b} />;
@@ -389,7 +394,9 @@ function ImageView({ b }: { b: Extract<Block, { type: "image" }> }) {
 
 function HeatmapView({ b }: { b: Extract<Block, { type: "heatmap" }> }) {
   const ctx = useCtx();
-  const list = b.cells ? b.cells.map((c) => read(c, ctx).value) : ((read(b.bind, ctx).raw as number[] | undefined) ?? []).map(Number);
+  // a field of numbers draws a cell each, a single reading one cell (B25: a number's `map` threw)
+  const bound = b.cells ? undefined : read(b.bind, ctx);
+  const list = b.cells ? b.cells.map((c) => read(c, ctx).value) : Array.isArray(bound?.raw) ? bound.raw.map(Number) : bound?.raw === undefined || bound.raw === "" ? [] : [bound.value];
   const lo = b.min ?? Math.min(...list.filter(Number.isFinite), 0);
   const hi = b.max ?? Math.max(...list.filter(Number.isFinite), 1);
   const columns = b.columns ?? list.length;
@@ -406,7 +413,8 @@ function HeatmapView({ b }: { b: Extract<Block, { type: "heatmap" }> }) {
 export function repeatShape(b: RepeatBlock, values: Record<string, unknown>): { direction: RepeatDirection; max: number; hours: number; units: WeatherUnits } {
   return {
     direction: followed(b.direction, values, oneOf<RepeatDirection>(["rows", "columns", "grid"]), "rows"),
-    max: followed(b.max, values, wholeIn(1, 12), 12),
+    // places up to 12 (a place list's cap), devices up to 32; unset shows all of them
+    max: isDeviceSource(b.source) ? followed(b.max, values, wholeIn(1, DEVICE_ITEMS_MAX), DEVICE_ITEMS_MAX) : followed(b.max, values, wholeIn(1, 12), 12),
     hours: followed(b.hours, values, wholeIn(1, HOURS_MAX), HOURS_DEFAULT),
     units: followed(b.units, values, oneOf<WeatherUnits>(["metric", "imperial"]), "metric"),
   };
@@ -428,21 +436,76 @@ export function itemsOf(recipe: Recipe, over: string, values: Record<string, unk
   return places.map((p, k) => inUnits({ ...(sample.find((s) => s.name === p.name) ?? sample[k] ?? {}), name: p.name }, hours, units));
 }
 
+/**
+ * The items a Repeat draws for a placement, cut to its most shown: a device source's from the readings (live, or the recipe's sample
+ * readings in the Sample), Weather by place's from its places.
+ */
+function repeatItems(b: RepeatBlock, ctx: Ctx): Item[] {
+  const shape = repeatShape(b, ctx.values);
+  const items = isDeviceSource(b.source) ? deviceItems(b.source, ctx.data, ctx.names) : itemsOf(ctx.recipe, b.over ?? "", ctx.values, { live: ctx.sample ? undefined : (ctx.data ?? {}), hours: shape.hours, units: shape.units });
+  return items.slice(0, shape.max);
+}
+
+/** A Repeat item's blocks: a row across a list's item, a centred column as a grid's cell (a tile). */
+function ItemBlocks({ b, path, item, tile }: { b: RepeatBlock; path: string; item: Item; tile?: boolean }) {
+  const ctx = useCtx();
+  return (
+    <RecipeCtx.Provider value={{ ...ctx, item }}>
+      <Blocks blocks={b.children} path={path} direction={tile ? "column" : "row"} gap={tile ? 2 : 8} align="center" />
+    </RecipeCtx.Provider>
+  );
+}
+
 function RepeatView({ b, path }: { b: RepeatBlock; path: string }) {
   const ctx = useCtx();
   const shape = repeatShape(b, ctx.values);
-  const items = itemsOf(ctx.recipe, b.over, ctx.values, { live: ctx.sample ? undefined : (ctx.data ?? {}), hours: shape.hours, units: shape.units }).slice(0, shape.max);
+  const items = repeatItems(b, ctx);
   const dir = shape.direction;
   const cols = dir === "grid" ? Math.ceil(Math.sqrt(items.length)) : dir === "columns" ? items.length : 1;
   return (
     <div className="grid h-full w-full min-h-0" style={{ gridTemplateColumns: `repeat(${Math.max(1, cols)}, minmax(0, 1fr))`, gridAutoRows: "minmax(0, 1fr)" }}>
       {items.map((item, k) => (
         <div key={k} data-recipe-item="" className="min-h-0 min-w-0 px-1 py-1" style={b.dividers && k > 0 ? (dir === "columns" ? { borderLeft: "1px solid var(--w-track)" } : { borderTop: "1px solid var(--w-track)" }) : undefined}>
-          <RecipeCtx.Provider value={{ ...ctx, item }}>
-            <Blocks blocks={b.children} path={path} direction="row" gap={8} align="center" />
-          </RecipeCtx.Provider>
+          <ItemBlocks b={b} path={path} item={item} />
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Columns for `n` cells in a box of `w` × `h`: the count that makes the cells closest to square, 1 to `n`. */
+export const autoColumns = (n: number, w: number, h: number): number => (n < 1 ? 1 : Math.max(1, Math.min(n, Math.round(Math.sqrt((n * Math.max(w, 1)) / Math.max(h, 1))))));
+
+/**
+ * A grid (Phase F): each child a cell, and each item of a Repeat child a cell of its own (a tile: its blocks in a centred column), so a
+ * Repeat over cores fills the grid with a tile per core. Columns are fixed, or as many as make the cells closest to square in the
+ * grid's own box (the card's until it is measured). A Repeat's direction and dividers are its list's, not a grid's.
+ */
+function GridView({ b, path }: { b: GridBlock; path: string }) {
+  const ctx = useCtx();
+  const box = useElementSize();
+  const kids = b.children.map((c, k) => [c, k] as const).filter(([c]) => holds(c.when, ctx.values, ctx.cells));
+  const cells = kids.map(([c]) => (c.type === "repeat" ? repeatItems(c, ctx) : undefined));
+  const n = cells.reduce((sum, items) => sum + (items ? items.length : 1), 0);
+  const cols = b.columns ?? autoColumns(n, box.w || ctx.w, box.h || ctx.h);
+  return (
+    <div ref={box.ref} className="grid h-full w-full min-h-0 min-w-0" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: "minmax(0, 1fr)", gap: SPACING[b.spacing ?? "normal"] }}>
+      {kids.map(([c, k], i) => {
+        const items = cells[i];
+        return items ? (
+          <div key={k} data-recipe-block="repeat" data-recipe-path={at(path, k)} className="contents">
+            {items.map((item, j) => (
+              <div key={j} data-recipe-item="" className="flex min-h-0 min-w-0">
+                <ItemBlocks b={c as RepeatBlock} path={at(path, k)} item={item} tile />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div key={k} data-recipe-block={c.type} data-recipe-path={at(path, k)} className="flex min-h-0 min-w-0">
+            <BlockView b={c} path={at(path, k)} />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -468,7 +531,7 @@ function WeatherFooter({ repeats }: { repeats: RepeatBlock[] }) {
         Sample weather
       </span>
     );
-  const states = repeats.flatMap((b) => placesIn(b.over, ctx.values).slice(0, repeatShape(b, ctx.values).max)).map((p) => placeState(ctx.data, p));
+  const states = repeats.flatMap((b) => placesIn(b.over ?? "", ctx.values).slice(0, repeatShape(b, ctx.values).max)).map((p) => placeState(ctx.data, p));
   const late = Math.max(0, ...states.filter((s) => s.status === "stale" && Number.isFinite(s.age)).map((s) => s.age));
   const none = states.length > 0 && states.every((s) => s.status === "" || s.status === "waiting" || s.status === "error");
   return (
