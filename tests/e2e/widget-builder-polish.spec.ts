@@ -27,8 +27,14 @@ const add = (page: Page, type: string) => page.locator(`[data-add-block="${type}
 const tab = (page: Page, name: string) => page.getByRole("tab", { name, exact: true }).click();
 const onStage = (page: Page, path: string) => page.locator(`[data-recipe-zone] [data-recipe-path="${path}"]`);
 const storedText = async (base: string, key: string) => (await fetch(`${base}/api/widgets/${key}/recipe.json`)).text();
+/**
+ * Saves and waits for the save to be done: the bar's chip says saved only once the server has stored it. A second save's "Saved …"
+ * toast is no sign, since the first one's may still be up.
+ */
 async function save(page: Page, name: string) {
+  await expect(page.getByText("Recipe · saved", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Recipe · saved", { exact: true })).toBeVisible();
   await expect(page.getByText(`Saved ${name}`).first()).toBeVisible();
 }
 
@@ -141,6 +147,7 @@ test("a new Image asks for its picture first, snippets add a Row of blocks, a de
   // B22: the Image deleted, the next save leaves its picture out of the package (it stayed in on main)
   await layer(page, "0").click();
   await layer(page, "0").press("Delete");
+  await expect(layer(page, "0")).toContainText("Ring with a caption");
   await save(page, "Odds");
   r = JSON.parse(await storedText(scratch.base, "recipe.odds"));
   expect(r.root.children.map((b: { type: string; name?: string }) => b.name ?? b.type)).toEqual(["Ring with a caption", "Label, value and bar"]);
