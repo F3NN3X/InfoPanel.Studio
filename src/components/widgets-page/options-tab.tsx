@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { ITEM, POPUP } from "@/components/studio/menu-styles";
 import { cn } from "@/lib/utils";
+import { DataPicker } from "@/components/studio/inspector/data-picker";
+import { useDataModel } from "@/lib/use-data-model";
 import { PlaceListEditor } from "@/components/studio/place-list/place-list-editor";
 import { placeList } from "@/components/studio/place-list/place-search";
 import type { Data } from "@/widgets/core/types";
@@ -21,6 +23,8 @@ export interface OptionsTabProps {
   onChange: (recipe: Recipe) => void;
   /** The readings the stage shows: a device option's Kind maps a key only where the new kind's device has it. */
   data: Data;
+  /** The data picker's "Open Data sources". */
+  onOpenSources?: () => void;
 }
 
 /** The blocks reading each of `keys`, as "Clock (libre.{cpu}_cores__average)". */
@@ -44,7 +48,28 @@ const NEW_OPTIONS: readonly { label: string; make: () => RecipeOption }[] = [
   ...DEVICE_KINDS.map((kind) => ({ label: DEVICE_LABEL[kind], make: (): RecipeOption => ({ key: kind, label: DEVICE_LABEL[kind], type: "device", kind, default: "auto" }) })),
 ];
 
-function OptionEditor({ recipe, o, onChange, data }: { recipe: Recipe; o: RecipeOption; onChange: (r: Recipe) => void; data: Data }) {
+/** A sensor option's default (G15): the reading picked with the studio's data picker, as the Block tab's data row picks one. */
+function SensorDefault({ value, label, data, onPick, onOpenSources }: { value: string; label: string; data: Data; onPick: (key: string) => void; onOpenSources: () => void }) {
+  const [open, setOpen] = useState(false);
+  const model = useDataModel();
+  const name = model.points.find((p) => p.key === value)?.name;
+  const raw = data[value];
+  const reading = typeof raw === "object" && raw ? raw.value : raw;
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} aria-label="Default sensor" className="flex w-full items-center gap-3 rounded-ui-lg border border-ui-subtle bg-ui-app px-3 py-2 text-left hover:border-ui-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent">
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-body text-ui-1">{value ? (name ?? value) : "No sensor yet"}</span>
+          <span className="block truncate font-ui-mono text-micro text-ui-3">{value || "Pick the sensor it starts with"}</span>
+        </span>
+        {value && <span className="shrink-0 font-ui-mono text-body text-ui-1">{reading ?? "–"}</span>}
+      </button>
+      <DataPicker open={open} onOpenChange={setOpen} title={`Default of ${label}`} points={model.points} mode="item" bound={new Set(value ? [value] : [])} onToggle={(p) => onPick(p.key)} onOpenExplorer={onOpenSources} />
+    </>
+  );
+}
+
+function OptionEditor({ recipe, o, onChange, data, onOpenSources }: { recipe: Recipe; o: RecipeOption; onChange: (r: Recipe) => void; data: Data; onOpenSources: () => void }) {
   const set = (patch: Partial<RecipeOption>) => onChange(updateOption(recipe, o.key, patch));
   const uses = optionUses(recipe, o.key);
   /** The keys the last Kind change could not map, by the blocks that read them. */
@@ -118,11 +143,12 @@ function OptionEditor({ recipe, o, onChange, data }: { recipe: Recipe; o: Recipe
           </Field>
         </>
       )}
-      {(o.type === "text" || o.type === "sensor") && (
+      {o.type === "text" && (
         <Field label="Default">
           <TextInput label="Default" value={String(o.default)} onChange={(v) => set({ default: v.slice(0, 200) })} />
         </Field>
       )}
+      {o.type === "sensor" && <SensorDefault value={String(o.default)} label={o.label} data={data} onPick={(key) => set({ default: key })} onOpenSources={onOpenSources} />}
       <div className="flex items-center justify-between pt-1">
         <span className="text-caption text-ui-3">{uses ? `Used by ${uses} block${uses === 1 ? "" : "s"}` : "Not used by a block yet"}</span>
         <Button small variant="danger" disabled={uses > 0} title={uses ? "Take it off its blocks first" : undefined} onClick={() => onChange(withSampleItems(removeOption(recipe, o.key)))}>
@@ -133,7 +159,7 @@ function OptionEditor({ recipe, o, onChange, data }: { recipe: Recipe; o: Recipe
   );
 }
 
-export function OptionsTab({ recipe, onChange, data }: OptionsTabProps) {
+export function OptionsTab({ recipe, onChange, data, onOpenSources = () => {} }: OptionsTabProps) {
   const [open, setOpen] = useState<string | null>(null);
   const [drag, setDrag] = useState<number | null>(null);
   /** "Add an option" asks for the name first: the option's key is made from it. */
@@ -188,7 +214,7 @@ export function OptionsTab({ recipe, onChange, data }: OptionsTabProps) {
               </span>
               {open === o.key ? <ChevronDown className="h-4 w-4 text-ui-3" aria-hidden /> : <ChevronRight className="h-4 w-4 text-ui-3" aria-hidden />}
             </button>
-            {open === o.key && <OptionEditor recipe={recipe} o={o} onChange={onChange} data={data} />}
+            {open === o.key && <OptionEditor recipe={recipe} o={o} onChange={onChange} data={data} onOpenSources={onOpenSources} />}
           </li>
         ))}
       </ul>

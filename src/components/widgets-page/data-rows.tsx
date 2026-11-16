@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import type { Data } from "@/widgets/core/types";
 import { expandKey } from "@/widgets/recipe/reads";
 import { type Binding, type Block, type LabelPart, type Recipe, type RecipeDeviceKind, WEATHER_PLACE_FIELDS } from "@/widgets/recipe/types";
-import { deviceOfKey, labelParts, layerName, moveItem, pickBinding, pickedOption, pickWhat, repeatAbove, setLabelParts, setLabelSource, unpickBinding, updateBlock, type Path } from "./builder-model";
+import { deviceOfKey, labelParts, layerName, moveItem, pickBinding, pickedOption, pickWhat, repeatAbove, replaceSensor, setLabelParts, setLabelSource, unpickBinding, updateBlock, type Path } from "./builder-model";
 import { Field, Heading, NumberInput, Select, TextInput } from "./fields";
 
 export interface DataRowsProps {
@@ -97,11 +97,59 @@ export function DataRow({ block, props }: { block: Block; props: DataRowsProps }
   return (
     <>
       <SensorButton recipe={recipe} bind={bind} title={`Data for ${layerName(recipe, block)}`} props={props} onPick={(key) => set({ sensor: key })} />
+      {bind && "sensor" in bind && <ReplaceSensor key={path.join(".")} from={bind.sensor} props={props} />}
       {what && (
         <Field label={`Let people pick ${what}`}>
           <Toggle label={`Let people pick ${what}`} checked={picked} onChange={(on) => props.onChange(on ? pickBinding(recipe, path, props.devices) : unpickBinding(recipe, path, props.data))} />
         </Field>
       )}
+    </>
+  );
+}
+
+/**
+ * "Replace sensor…" (G16): the key this block reads, swapped for the one picked wherever the recipe reads it, as one edit (one undo
+ * step); the blocks and options it changed are listed under it.
+ */
+function ReplaceSensor({ from, props }: { from: string; props: DataRowsProps }) {
+  const { recipe } = props;
+  const [open, setOpen] = useState(false);
+  const [changed, setChanged] = useState<{ to: string; list: string[] } | null>(null);
+  const model = useDataModel();
+  return (
+    <>
+      <Field label="">
+        <Button small variant="ghost" onClick={() => setOpen(true)} title={`Every block that reads ${from} reads the sensor you pick`}>
+          Replace sensor…
+        </Button>
+      </Field>
+      {changed && (
+        <div role="status" data-replaced="" className="rounded-ui-md border border-ui-subtle bg-ui-raised px-2.5 py-2 text-caption leading-snug text-ui-2">
+          <p className="break-all text-ui-1">{changed.list.length ? `Now reads ${changed.to}:` : "Nothing else read it"}</p>
+          {changed.list.length > 0 && (
+            <ul className="mt-1 list-disc pl-4">
+              {changed.list.map((line, k) => (
+                <li key={k}>{line}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      <DataPicker
+        open={open}
+        onOpenChange={setOpen}
+        title={`Replace ${from.split(".").pop()} everywhere`}
+        points={model.points}
+        mode="item"
+        bound={new Set()}
+        onToggle={(p) => {
+          const to = keyFor(recipe, p.key, props.devices);
+          const r = replaceSensor(recipe, from, to);
+          setChanged({ to, list: r.changed });
+          if (r.changed.length) props.onChange(r.recipe);
+        }}
+        onOpenExplorer={props.onOpenSources}
+      />
     </>
   );
 }
