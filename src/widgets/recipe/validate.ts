@@ -373,6 +373,7 @@ function blockRules(b: Block, at: string, repeat: string | undefined, options: M
   if (typeof raw.min === "number" && typeof raw.max === "number" && raw.min >= raw.max) add("block", R, `${at}: min ${raw.min} is not under max ${raw.max}`);
   if (raw.color === "thresholds" && raw.thresholds === undefined) add("block", R, `${at}: colour by thresholds needs its thresholds`);
   styleRules(b, at, add);
+  phaseERules(b, at, at === "$.root", add);
   if (b.when) {
     const { option, is, not, size } = b.when;
     if (option !== undefined && !options.has(option)) add("binding", R, `${at}.when: option ${option} is not one of the recipe's options`);
@@ -488,6 +489,25 @@ function styleRules(b: Block, at: string, add: Add): void {
     add("thresholds", R, `${at}.thresholds: warning at ${t.warn} comes after critical at ${t.crit}; ${t.low ? "when low is bad, warning is the higher level" : "when high is bad, warning is the lower level"}`, t.low ? "error" : "warn");
 }
 
+/** The blocks each Phase E key belongs to (the schema's block allows each on any block); `"nested"` is a card inside the root, `"root"` the root card. */
+const PHASE_E: Readonly<Record<string, { on: readonly string[]; what: string }>> = {
+  weight: { on: ["value", "label"], what: "a value's or a label's" },
+  case: { on: ["value", "label"], what: "a value's or a label's" },
+  opacity: { on: ["value", "label", "ring", "gauge", "bar", "sparkline", "heatmap"], what: "a text's or a mark's" },
+  surface: { on: ["nested"], what: "a card's inside the root (the root card is the theme's shell)" },
+  padding: { on: ["nested"], what: "a card's inside the root (the root card is the theme's shell)" },
+  spacing: { on: ["root"], what: "the root card's" },
+  sweep: { on: ["gauge"], what: "a gauge's" },
+  height: { on: ["bar"], what: "a bar's" },
+};
+
+/** Phase E's keys on the blocks they belong to: the values are the schema's enums, so what is left is where each may stand. */
+function phaseERules(b: Block, at: string, root: boolean, add: Add): void {
+  const raw = b as unknown as Record<string, unknown>;
+  const kind = b.type === "card" ? (root ? "root" : "nested") : b.type;
+  for (const [key, rule] of Object.entries(PHASE_E)) if (raw[key] !== undefined && !rule.on.includes(kind)) add("block", "recipe.json", `${at}: ${key} is ${rule.what}`);
+}
+
 /** What each format 2 key is, for the `format` rule's message (by the last part of its path). */
 const FORMAT2_WHAT: Readonly<Record<string, string>> = {
   parts: "parts need",
@@ -496,11 +516,20 @@ const FORMAT2_WHAT: Readonly<Record<string, string>> = {
   tone: "a centre value's colour needs",
   convert: "Show in needs",
   low: "low is bad needs",
+  weight: "text weight needs",
+  case: "upper case needs",
+  opacity: "opacity needs",
+  surface: "a card's surface needs",
+  padding: "a card's padding needs",
+  spacing: "the card's spacing needs",
+  sweep: "a gauge's sweep needs",
+  height: "a bar's height needs",
 };
 
 /**
- * Where a tree uses a key format 1 has not got: a label's parts (Phase A), and Phase C's text alignment on a value or a label, the
- * text colours on a value, a ring's centre tone, `convert`, and thresholds' `low`.
+ * Where a tree uses a key format 1 has not got: a label's parts (Phase A), Phase C's text alignment on a value or a label, the text
+ * colours on a value, a ring's centre tone, `convert` and thresholds' `low`, and every Phase E key (weight, case, opacity, surface,
+ * padding, spacing, sweep, height) on any block, none of which format 1 has.
  */
 export function format2Keys(block: Block, at = "$.root", out: string[] = []): string[] {
   const raw = block as unknown as Record<string, unknown>;
@@ -510,6 +539,7 @@ export function format2Keys(block: Block, at = "$.root", out: string[] = []): st
   if ((block.type === "ring" || block.type === "gauge") && block.tone !== undefined) out.push(`${at}.tone`);
   if (raw.convert !== undefined) out.push(`${at}.convert`);
   if ((raw.thresholds as Thresholds | undefined)?.low !== undefined) out.push(`${at}.thresholds.low`);
+  for (const key of Object.keys(PHASE_E)) if (raw[key] !== undefined) out.push(`${at}.${key}`);
   childrenOf(block).forEach((c, k) => format2Keys(c, `${at}.children[${k}]`, out));
   return out;
 }

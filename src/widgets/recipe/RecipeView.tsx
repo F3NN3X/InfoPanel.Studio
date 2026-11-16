@@ -3,17 +3,20 @@
 // its series (a pack's `series-n`, else the theme's palette role) or the status colours by thresholds. Text is sized from the
 // zone (`metrics.ts`) and never drawn under 11 px. A Repeat over places draws the server's weather for each place (Weather by
 // place, `weather.ts`) with the provider's credit under the card's blocks, where no block can reach it; in the builder's Sample it
-// draws the recipe's sample items and says so instead.
-import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+// draws the recipe's sample items and says so instead. Format 2's style keys (Phase E) are enums on the theme's own tokens: a text's
+// weight and case, an opacity step (a text never under 4.5:1 on its card, `opacity.ts`), a nested card's surface and padding, the root's
+// spacing, a gauge's sweep and a bar's height; each unset draws as before.
+import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { weatherKind } from "@/lib/weather-icons";
 import type { ModuleSettings } from "@/modules/types";
 import { Bar, Empty, fmt, get, heat, hue, hw, num, Num, pretty, Ring, shell, shortLabel, Spark, TONES, tone, useHistory, Widget, WeatherGlyph, type ShellProps, type Tone } from "../kit";
 import { convertValue, readingUnit, type ConvertUnit } from "./convert";
 import { cellsOf, TEXT_FLOOR, textPx } from "./metrics";
 import { followed, oneOf, wholeIn } from "./follow";
+import { drawnStep } from "./opacity";
 import { expandKey } from "./reads";
 import { keyOf } from "./store";
-import type { Binding, Block, Cells, Condition, Place, Recipe, RecipeColour, RepeatBlock, RepeatDirection, TextColour, Thresholds, WeatherUnits } from "./types";
+import type { Binding, Block, CardBlock, Cells, Condition, OpacityStep, Place, Recipe, RecipeColour, RepeatBlock, RepeatDirection, TextColour, TextWeight, Thresholds, WeatherUnits } from "./types";
 import { placesOf, sizeHolds } from "./validate";
 import { ATTRIBUTION, HOURS_DEFAULT, HOURS_MAX, inUnits, type Item, LICENCE, liveItem, placeState } from "./weather";
 
@@ -132,6 +135,51 @@ function subtitleOf(b: Binding | undefined, ctx: Ctx): string | undefined {
 const decimalsOf = (v: number, own: number | undefined): number => own ?? (Math.abs(v) < 10 ? 1 : 0);
 const shown = (r: Reading, decimals?: number): string => (Number.isFinite(r.value) && (typeof r.raw === "number" || /^-?\d/.test(String(r.raw).trim())) ? fmt(r.value, decimalsOf(r.value, decimals)) : r.raw === undefined || r.raw === "" ? "–" : String(r.raw));
 
+/** A text's weight (unset: the theme's regular, or a number's own). */
+const WEIGHT: Record<TextWeight, number> = { medium: 500, semibold: 600 };
+
+/**
+ * A text faded to an opacity step: drawn at the lowest step from it that keeps 4.5:1 on the card under it, on the Look and surface it
+ * is drawn on (`drawnStep`), measured after every render, before paint. The step drawn is written on the element for the builder.
+ * `inside` picks the text within `ref` (a ring's centre value).
+ */
+function useReadable(ref: RefObject<HTMLElement | null>, want: OpacityStep | undefined, inside?: string): void {
+  useLayoutEffect(() => {
+    const el = inside ? ref.current?.querySelector<HTMLElement>(inside) : ref.current;
+    if (!el) return;
+    const step = want ? drawnStep(el, want) : 100;
+    el.style.opacity = step === 100 ? "" : String(step / 100);
+    if (want) el.dataset.recipeOpacity = String(step);
+    else delete el.dataset.recipeOpacity;
+  });
+}
+
+/** A mark at its opacity step, as it is (a whole element; a ring's arc only, so its track and centre value stay). */
+const FADE: Record<OpacityStep, string> = { 80: "opacity-80", 60: "opacity-60", 40: "opacity-40" };
+const ARC_FADE: Record<OpacityStep, string> = { 80: "[&_[data-wp-ring]]:opacity-80", 60: "[&_[data-wp-ring]]:opacity-60", 40: "[&_[data-wp-ring]]:opacity-40" };
+const FILL_FADE: Record<OpacityStep, string> = { 80: "[&>*]:opacity-80", 60: "[&>*]:opacity-60", 40: "[&>*]:opacity-40" };
+
+/** A bar's height: S, M (unset, as before) or L. */
+const BAR_HEIGHT = { s: "h-1", m: "h-2", l: "h-3.5" } as const;
+/** The root card's room between its blocks (px): normal is 6, as before. */
+const SPACING = { tight: 2, normal: 6, roomy: 12 } as const;
+/** A nested card's padding (px); unset is M, its `p-2` (8 px) as before. */
+const PADDING = { none: 0, s: 4, l: 12 } as const;
+
+/**
+ * A nested card's ground from the theme's text colour: the track tint (unset, as before), none, or raised: a stronger tint with an
+ * edge and a shade under it, so it reads lifted off the card on a dark card (lighter) and on a light one (an edge and a shadow).
+ */
+function surfaceOf(surface: CardBlock["surface"]): CSSProperties {
+  if (surface === "none") return {};
+  if (surface === "raised")
+    return {
+      background: "color-mix(in srgb, var(--w-fg) 11%, transparent)",
+      boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--w-fg) 16%, transparent), 0 2px 6px -1px rgb(0 0 0 / 0.35)",
+    };
+  return { background: "var(--w-track)" };
+}
+
 /** The blocks whose height is their text's or glyph's, not a share of a column's (B16). */
 const ONE_LINE = new Set<Block["type"]>(["label", "value", "weather-icon"]);
 
@@ -197,7 +245,7 @@ function NestedCard({ b, path }: { b: Extract<Block, { type: "card" }>; path: st
   const ctx = useCtx();
   const subtitle = subtitleOf(b.subtitle, ctx);
   return (
-    <div className="flex h-full w-full min-h-0 flex-col gap-1 rounded-lg p-2" style={{ background: "var(--w-track)" }}>
+    <div className={`flex h-full w-full min-h-0 flex-col gap-1 rounded-lg ${b.padding ? "" : "p-2"}`.trim()} style={{ ...surfaceOf(b.surface), ...(b.padding ? { padding: PADDING[b.padding] } : null) }}>
       {(b.title || subtitle) && (
         <span className="flex min-w-0 items-baseline gap-[0.4em] text-[color:var(--w-muted)]" style={{ fontSize: textPx(0.85, ctx.w, ctx.h) }}>
           {b.title && <span className="shrink-0 truncate">{b.title}</span>}
@@ -218,9 +266,12 @@ function RingView({ b }: { b: Extract<Block, { type: "ring" | "gauge" }> }) {
   const max = b.max ?? 100;
   const ink = inkOf(b.color, r.value, b.thresholds, ctx);
   const px = textPx(b.scale ?? 1.6, ctx.w, ctx.h);
+  const box = useRef<HTMLDivElement>(null);
+  // the centre value is a text, kept readable; the arc is a mark, at its step as it is
+  useReadable(box, b.opacity, "[data-part='num']");
   return (
-    <div className="flex h-full w-full items-center justify-center">
-      <Ring value={r.value - min} max={max - min} t={ink.t} color={ink.color} thickness={b.thickness} sweep={b.type === "gauge" ? 270 : undefined} className="h-full max-w-full">
+    <div ref={box} className="flex h-full w-full items-center justify-center">
+      <Ring value={r.value - min} max={max - min} t={ink.t} color={ink.color} thickness={b.thickness} sweep={b.type === "gauge" ? (b.sweep ?? 270) : undefined} className={`h-full max-w-full ${b.opacity ? ARC_FADE[b.opacity] : ""}`}>
         {b.center !== false && (
           <Num className="font-semibold leading-none" style={{ fontSize: px, color: b.tone && TEXT_INK[b.tone] }}>
             {shown(r, b.decimals ?? 0)}
@@ -240,7 +291,7 @@ function BarView({ b }: { b: Extract<Block, { type: "bar" }> }) {
   const ink = inkOf(b.color, r.value, b.thresholds, ctx);
   return (
     <div className="flex w-full items-center">
-      <Bar value={r.value - min} max={max - min} t={ink.t} color={ink.color} style={b.style ?? "bar"} className="h-2" />
+      <Bar value={r.value - min} max={max - min} t={ink.t} color={ink.color} style={b.style ?? "bar"} className={`${BAR_HEIGHT[b.height ?? "m"]} ${b.opacity ? FILL_FADE[b.opacity] : ""}`.trim()} />
     </div>
   );
 }
@@ -253,7 +304,7 @@ function SparkView({ b }: { b: Extract<Block, { type: "sparkline" }> }) {
   const history = useHistory(Array.isArray(r.raw) ? Number.NaN : r.value, window);
   const values = Array.isArray(r.raw) ? (r.raw as number[]) : history;
   const ink = inkOf(b.color, r.value, b.thresholds, ctx);
-  return <Spark values={values} min={b.min} max={b.max} color={ink.color ?? (ink.t !== "ok" ? TONES[ink.t] : undefined)} graph={b.style ?? "area"} fill={b.style !== "line"} grid={false} className="h-full min-h-[12px] w-full" />;
+  return <Spark values={values} min={b.min} max={b.max} color={ink.color ?? (ink.t !== "ok" ? TONES[ink.t] : undefined)} graph={b.style ?? "area"} fill={b.style !== "line"} grid={false} className={`h-full min-h-[12px] w-full ${b.opacity ? FADE[b.opacity] : ""}`.trim()} />;
 }
 
 function ValueView({ b }: { b: Extract<Block, { type: "value" }> }) {
@@ -265,10 +316,12 @@ function ValueView({ b }: { b: Extract<Block, { type: "value" }> }) {
   const color = b.color === "fg" || b.color === "muted" ? TEXT_INK[b.color] : b.color === "accent" ? TONES.ok : (ink.color ?? (ink.t !== "ok" ? TONES[ink.t] : undefined));
   // unset: the label at the start and the value at the end; aligned, the two together
   const justify = b.align === "center" ? "center" : b.align === "end" ? "flex-end" : undefined;
+  const line = useRef<HTMLDivElement>(null);
+  useReadable(line, b.opacity);
   return (
-    <div className="flex w-full min-w-0 items-baseline gap-[0.6em] whitespace-nowrap leading-none" style={{ fontSize: px, justifyContent: justify }}>
-      {b.label && <span className="min-w-0 truncate text-[color:var(--w-muted)]">{b.label}</span>}
-      <Num className={b.label && !b.align ? "ml-auto shrink-0" : "shrink-0"} style={color ? { color } : undefined}>
+    <div ref={line} className="flex w-full min-w-0 items-baseline gap-[0.6em] whitespace-nowrap leading-none" style={{ fontSize: px, justifyContent: justify, fontWeight: b.weight && WEIGHT[b.weight] }}>
+      {b.label && <span className="min-w-0 truncate text-[color:var(--w-muted)]" style={b.case === "upper" ? { textTransform: "uppercase" } : undefined}>{b.label}</span>}
+      <Num className={b.label && !b.align ? "ml-auto shrink-0" : "shrink-0"} style={color ? { color } : undefined} weight={b.weight && WEIGHT[b.weight]}>
         {shown(r, b.decimals)}
         {(b.unit ?? r.unit) && <span className="ml-[0.2em] text-[color:var(--w-muted)]" style={{ fontSize: Math.max(11, px * 0.6) }}>{b.unit ?? r.unit}</span>}
       </Num>
@@ -312,8 +365,9 @@ function LabelView({ b }: { b: Extract<Block, { type: "label" }> }) {
   const text = labelText(b, (bind) => read(bind, ctx));
   const color = b.tone === "muted" ? "var(--w-muted)" : b.tone === "accent" ? "var(--w-accent)" : "var(--w-fg)";
   const [ref, px] = useFitPx(textPx(b.scale ?? 0.85, ctx.w, ctx.h), text);
+  useReadable(ref, b.opacity);
   return (
-    <span ref={ref} className="block w-full truncate leading-tight" style={{ fontSize: px, color, textAlign: b.align }}>
+    <span ref={ref} className="block w-full truncate leading-tight" style={{ fontSize: px, color, textAlign: b.align, fontWeight: b.weight && WEIGHT[b.weight], textTransform: b.case === "upper" ? "uppercase" : undefined }}>
       {text}
     </span>
   );
@@ -342,7 +396,7 @@ function HeatmapView({ b }: { b: Extract<Block, { type: "heatmap" }> }) {
   const hi = b.max ?? Math.max(...list.filter(Number.isFinite), 1);
   const columns = b.columns ?? list.length;
   return (
-    <div className="grid h-full w-full gap-[2px]" style={{ gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))` }}>
+    <div className={`grid h-full w-full gap-[2px] ${b.opacity ? FADE[b.opacity] : ""}`.trim()} style={{ gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))` }}>
       {list.map((v, k) => (
         <span key={k} className="min-h-[6px] rounded-[2px]" style={{ background: Number.isFinite(v) ? (b.color?.startsWith("series-") ? seriesInk(Number(b.color.slice(7)), ctx) : heat(((v - lo) / (hi - lo || 1)) * 100)) : "var(--w-track)", opacity: b.color?.startsWith("series-") ? 0.35 + 0.65 * ((v - lo) / (hi - lo || 1)) : undefined }} />
       ))}
@@ -442,7 +496,7 @@ export default function RecipeView(p: RecipeViewProps) {
           <RecipeCtx.Provider value={{ ...base, w, h, cells: cellsOf(outerW, outerH) }}>
             <div data-recipe={recipe.id} className="flex h-full w-full min-h-0 flex-col">
               <div className="min-h-0 flex-1">
-                <Blocks blocks={root.children} path="" />
+                <Blocks blocks={root.children} path="" gap={SPACING[root.spacing ?? "normal"]} />
               </div>
               <WeatherFooter repeats={weatherShown(root, values, cellsOf(outerW, outerH))} />
             </div>
