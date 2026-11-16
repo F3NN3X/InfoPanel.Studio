@@ -1224,7 +1224,7 @@ function StudioViewBody({
       onFit={ui.fitZoom}
       onActualSize={() => ui.setZoom(1)}
       onZoomSelection={() => runCommand({ type: "zoom-selection" })}
-      hasSelection={sel.selected != null && sel.selected.visible}
+      hasSelection={sel.selected?.visible === true}
       profile={profile}
       onOpenProfile={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
       preview={showSources ? undefined : preview}

@@ -154,7 +154,7 @@ async function main(args) {
     console.error(e.message);
     opts = null;
   }
-  if (!opts || !opts.roots.length) {
+  if (!opts?.roots.length) {
     console.error("usage: node tools/widgets/sign-all.mjs <folder>... [--key <secret.key>] [--pub <public.pub>] [--publisher <name>]... [--force] [--check]");
     return 2;
   }
