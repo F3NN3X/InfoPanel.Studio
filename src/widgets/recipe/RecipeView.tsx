@@ -116,9 +116,17 @@ function subtitleOf(b: Binding | undefined, ctx: Ctx): string | undefined {
 const decimalsOf = (v: number, own: number | undefined): number => own ?? (Math.abs(v) < 10 ? 1 : 0);
 const shown = (r: Reading, decimals?: number): string => (Number.isFinite(r.value) && (typeof r.raw === "number" || /^-?\d/.test(String(r.raw).trim())) ? fmt(r.value, decimalsOf(r.value, decimals)) : r.raw === undefined || r.raw === "" ? "–" : String(r.raw));
 
-/** The share a child takes of its row. */
-/** A weather icon keeps its glyph's width (its size is the text scale's, not the cell's); every other block shrinks to its cell. */
-const grow = (b: Block): CSSProperties => ({ flex: `${b.grow ?? 1} 1 0`, minWidth: b.type === "weather-icon" ? "auto" : 0, minHeight: 0 });
+/** The blocks whose height is their text's or glyph's, not a share of a column's (B16). */
+const ONE_LINE = new Set<Block["type"]>(["label", "value", "weather-icon"]);
+
+/**
+ * The share a child takes of its row. A weather icon keeps its glyph's width (its size is the text scale's, not the cell's); every
+ * other block shrinks to its cell. In a column, a line of text (a label, a value, a weather icon) takes its own height unless it is
+ * given a share, so a column of lines stays together (B16: "City and condition" was spread over the card's height, each line at
+ * the top of an equal share); the column centres the lines in the room they leave.
+ */
+const grow = (b: Block, direction: "row" | "column"): CSSProperties =>
+  direction === "column" && b.grow === undefined && ONE_LINE.has(b.type) ? { flex: "0 0 auto", minWidth: 0 } : { flex: `${b.grow ?? 1} 1 0`, minWidth: b.type === "weather-icon" ? "auto" : 0, minHeight: 0 };
 
 /** A block's place in the tree, its child indices from the root card's ("0.1"): the builder finds a block's box by it. */
 const at = (path: string, k: number): string => (path ? `${path}.${k}` : String(k));
@@ -131,9 +139,9 @@ function Blocks({ blocks, path, direction = "column", gap = 6, align }: { blocks
   const place = align === "center" ? "center" : align === "end" ? "flex-end" : align === "start" ? "flex-start" : undefined;
   const cell: CSSProperties | undefined = place && (direction === "row" ? { alignItems: place } : { justifyContent: place });
   return (
-    <div className="flex h-full w-full min-h-0 min-w-0" style={{ flexDirection: direction, gap }}>
+    <div className="flex h-full w-full min-h-0 min-w-0" style={{ flexDirection: direction, gap, justifyContent: direction === "column" ? "safe center" : undefined }}>
       {shownBlocks.map(([b, k]) => (
-        <div key={k} data-recipe-block={b.type} data-recipe-path={at(path, k)} className="flex min-h-0 min-w-0" style={{ ...grow(b), ...cell }}>
+        <div key={k} data-recipe-block={b.type} data-recipe-path={at(path, k)} className="flex min-h-0 min-w-0" style={{ ...grow(b, direction), ...cell }}>
           <BlockView b={b} path={at(path, k)} />
         </div>
       ))}
