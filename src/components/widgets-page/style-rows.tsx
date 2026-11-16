@@ -7,8 +7,9 @@ import type { Block } from "@/widgets/recipe/types";
 import { Field } from "./fields";
 
 /** The rows' choices, each list's first the unset one (written as no key). */
+/** Weight: unset is the Look's own ("Theme": regular text, a number in the Look's numeral weight, 700 on Classic); the others are explicit. */
 const WEIGHTS = [
-  { value: "", label: "Regular" },
+  { value: "", label: "Theme" },
   { value: "medium", label: "Medium" },
   { value: "semibold", label: "Semibold" },
 ];
@@ -81,7 +82,7 @@ export function StyleRows({ block, root, set, drawn }: StyleRowsProps) {
     <>
       {(block.type === "value" || block.type === "label") && (
         <>
-          <EnumRow label="Weight" hint="The theme's font in a heavier weight; a Look that sets its numbers' weight keeps its own" value={block.weight} options={WEIGHTS} onPick={(v) => set({ weight: v })} />
+          <EnumRow label="Weight" hint={block.type === "value" ? "Theme: the Look's own weights (its numbers often bold). Medium and Semibold set 500 and 600 for the label and the number; a Look that sets its numbers' weight keeps it" : "Theme: the Look's own weight. Medium and Semibold set 500 and 600, in the Look's font"} value={block.weight} options={WEIGHTS} onPick={(v) => set({ weight: v })} />
           <EnumRow label="Case" hint={block.type === "value" ? "The label in capitals; the unit keeps its own" : "The text in capitals"} value={block.case} options={CASES} onPick={(v) => set({ case: v })} />
         </>
       )}
