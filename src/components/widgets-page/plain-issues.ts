@@ -56,6 +56,10 @@ const FIELDS: Readonly<Record<string, string>> = {
   tone: "Tone",
   default: "Default",
   options: "Choice",
+  hint: "Hint",
+  group: "Group",
+  step: "Step",
+  blurb: "Blurb",
 };
 
 type Schema = { minimum?: number; maximum?: number; pattern?: string; $ref?: string; properties?: Record<string, Schema> };

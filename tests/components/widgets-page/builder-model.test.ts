@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addBlock, addBlockAt, addOption, addRefusal, blockAt, blockCount, clampCells, devicesIn, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, updateBlock, validationLine, withDirection, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
+import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, clampCells, devicesIn, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, updateBlock, validationLine, withDirection, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
 import { amend, commit, historyOf, HISTORY_LIMIT, redo, undo } from "@/components/widgets-page/history";
 import { NO_START, START, whyNoStart } from "@/components/widgets-page/start-points";
 import { WIDGET_ORDER } from "@/widgets/order";
@@ -575,5 +575,178 @@ describe("Phase C: format 2 keys, Show in and the thresholds' direction", () => 
     expect(unitOfBinding(withSensorOption, { option: "watched" }, DATA)).toBe("%");
     expect(unitOfBinding(v.recipe, { sensor: "libre.ethernet_download_speed" }, { "libre.ethernet_download_speed": "5 KB/s" })).toBe("B/s");
     expect(unitOfBinding(v.recipe, { field: "temp" }, DATA)).toBe("");
+  });
+});
+
+describe("Phase D: polish", () => {
+  const pngFile = (path: string) => ({ path, bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) });
+
+  it("withWhenSize sets From the size and Up to the size side by side; a side at any is 1 (from) or 12 (up to), and an end at any goes (G28)", () => {
+    expect(withWhenSize(undefined, "max", 0, 2)).toEqual({ size: { max: [2, 12] } });
+    const both = withWhenSize(withWhenSize(undefined, "max", 0, 2), "min", 1, 2);
+    expect(both).toEqual({ size: { max: [2, 12], min: [1, 2] } });
+    // back to any: that end goes, then the whole condition
+    expect(withWhenSize(both, "min", 1, undefined)).toEqual({ size: { max: [2, 12] } });
+    expect(withWhenSize({ size: { max: [2, 12] } }, "max", 0, undefined)).toBeUndefined();
+    // an option condition stays when the size goes
+    expect(withWhenSize({ option: "layout", is: "c1", size: { min: [2, 1] } }, "min", 0, undefined)).toEqual({ option: "layout", is: "c1" });
+    // the validator takes what it writes, and refuses a from past the up to
+    const card = updateBlock(cpuCard(), [1], { when: both });
+    expect(errorsOf(card)).toEqual([]);
+    expect(errorsOf(updateBlock(card, [1], { when: withWhenSize(both, "min", 0, 3) })).join()).toMatch(/min 3x2 is larger than max 2x12/);
+  });
+
+  it("updateOption and updatePreset take a field set to undefined out, so a cleared hint, group, step or blurb leaves no key (G29, G30)", () => {
+    let r = addOption(newRecipe("Opts", new Set()), { key: "hours", label: "Hours", type: "number", default: 8, min: 1, max: 24, step: 1 });
+    r = updateOption(r, "hours", { hint: "Of forecast", group: "Weather", step: 2 });
+    expect(r.options[0]).toEqual({ key: "hours", label: "Hours", type: "number", default: 8, min: 1, max: 24, step: 2, hint: "Of forecast", group: "Weather" });
+    expect(errorsOf(r)).toEqual([]);
+    r = updateOption(r, "hours", { hint: undefined, group: undefined, step: undefined });
+    expect(Object.keys(r.options[0])).toEqual(["key", "label", "type", "default", "min", "max"]);
+    r = updatePreset(r, "default", { blurb: "Eight hours" });
+    expect(r.presets[0].blurb).toBe("Eight hours");
+    expect(presetLine(r, r.presets[0])).toBe("Eight hours · 3×2");
+    expect("blurb" in updatePreset(r, "default", { blurb: undefined }).presets[0]).toBe(false);
+  });
+
+  it("blurbOf keeps 60 characters with no < or >, and empty is none (G30)", () => {
+    expect(blurbOf("  Ring and temperature  ")).toBe("Ring and temperature");
+    expect(blurbOf("<b>x</b>")).toBe("bx/b");
+    expect(blurbOf("a".repeat(70))).toHaveLength(60);
+    expect(blurbOf("   ")).toBeUndefined();
+  });
+
+  it("presetOptions offers every kind people pick, text, sensor, place list and device too, and setPresetValue stores each so the validator takes it (G30)", () => {
+    let r = pickBinding(cpuCard(), [0, 0], DEVICES);
+    r = addOption(r, { key: "note", label: "Note", type: "text", default: "" });
+    r = addOption(r, { key: "watch", label: "Watched", type: "sensor", default: "" });
+    r = withSampleItems(addOption(r, { key: "places", label: "Locations", type: "place-list", default: [] }));
+    const dated = { ...r, options: [...r.options, { key: "day", label: "Day", type: "date" as const, default: "" }] };
+    expect(presetOptions(dated).map((o) => o.key)).toEqual(["cpu", "note", "watch", "places"]);
+    r = savePreset(r, "Mine", {}, [3, 2]);
+    r = setPresetValue(r, "mine", "note", "Hello");
+    r = setPresetValue(r, "mine", "watch", "libre.gpu_load");
+    r = setPresetValue(r, "mine", "places", [{ name: "Oslo", lat: 59.91, lon: 10.75 }]);
+    r = setPresetValue(r, "mine", "cpu", CPU);
+    expect(r.presets.at(-1)?.settings).toEqual({ note: "Hello", watch: "libre.gpu_load", places: JSON.stringify([{ name: "Oslo", lat: 59.91, lon: 10.75 }]), cpu: CPU });
+    expect(presetValues(r, r.presets.at(-1))).toMatchObject({ places: [{ name: "Oslo", lat: 59.91, lon: 10.75 }], cpu: CPU });
+    expect(errorsOf(r)).toEqual([]);
+  });
+
+  it("imagePath makes a picked file's name a package path, its type the extension (G32)", () => {
+    expect(imagePath("My Photo (1).PNG", "image/png")).toBe("images/my-photo-1.png");
+    expect(imagePath("x.jpeg", "image/jpeg")).toBe("images/x.jpg");
+    expect(imagePath("___.webp", "image/webp")).toBe("images/image.webp");
+  });
+
+  it("addImageAt adds an Image only with its picture, so the recipe stays valid; a place it may not go is refused (G32)", () => {
+    const r = addImageAt(newRecipe("Pic", new Set()), [], [], 0, pngFile("images/logo.png"));
+    if ("why" in r) throw new Error(r.why);
+    expect(blockAt(r.recipe, r.path)).toEqual({ type: "image", file: "images/logo.png", fit: "contain" });
+    expect(r.images.map((f) => f.path)).toEqual(["images/logo.png"]);
+    expect(recipeIssues(r.recipe, r.images).filter((i) => i.severity === "error")).toEqual([]);
+    // a second picture joins the first; one of the same path takes its place
+    const two = addImageAt(r.recipe, r.images, [], 1, pngFile("images/b.png"));
+    if ("why" in two) throw new Error(two.why);
+    expect(two.images.map((f) => f.path)).toEqual(["images/logo.png", "images/b.png"]);
+    const again = addImageAt(two.recipe, two.images, [], 2, pngFile("images/logo.png"));
+    if ("why" in again) throw new Error(again.why);
+    expect(again.images.map((f) => f.path)).toEqual(["images/b.png", "images/logo.png"]);
+    expect(addImageAt(r.recipe, r.images, [0], 0, pngFile("images/c.png"))).toEqual({ why: "Only a Row, a Card or a Repeat holds blocks" });
+  });
+
+  it("B22: a save packs only the pictures an Image shows, so a deleted Image's picture is not saved, while the open recipe keeps it for an undo", () => {
+    const r = addImageAt(newRecipe("Pic", new Set()), [], [], 0, pngFile("images/logo.png"));
+    if ("why" in r) throw new Error(r.why);
+    const deleted = removeBlock(r.recipe, [0]).recipe;
+    // before the fix the save packed every picture the open recipe held: logo.png stayed in the package of a recipe with no Image
+    expect(packedImages(deleted, r.images)).toEqual([]);
+    expect(packedImages(r.recipe, r.images)).toEqual(r.images);
+  });
+
+  it("leftUnused names the options a delete left unused, and cleanUp takes them out with their presets' values and sample items (G34)", () => {
+    const weather = addBlock(newRecipe("Weather", new Set()), [], "repeat", "x.y").recipe;
+    const before = savePreset(addBlock(weather, [], "value", "x.y").recipe, "One place", { places: [DEFAULT_PLACES[0]] }, [3, 2]);
+    const after = removeBlock(before, [0]).recipe;
+    const unused = leftUnused(before, after);
+    expect(unused.map((o) => o.label)).toEqual(["Locations"]);
+    const clean = cleanUp(after, unused);
+    expect(clean.options).toEqual([]);
+    expect(clean.presets.at(-1)?.settings).toEqual({});
+    expect(clean.sample.items).toBeUndefined();
+    expect(errorsOf(clean)).toEqual([]);
+    // an option no block named before is not the delete's doing; nothing left: the recipe as it was
+    const spare = addOption(before, { key: "spare", label: "Spare", type: "boolean", default: true });
+    expect(leftUnused(spare, removeBlock(spare, [1]).recipe)).toEqual([]);
+    expect(cleanUp(after, [])).toBe(after);
+  });
+
+  it("each snippet is a Row of blocks the validator takes, in format 1, outside and inside a Repeat; too deep is refused (G35)", () => {
+    const key = `libre.${CPU}_cpu_total`;
+    for (const { id } of SNIPPETS) {
+      const r = addSnippet(newRecipe("Snip", new Set()), [], id, key);
+      if ("why" in r) throw new Error(r.why);
+      expect(blockAt(r.recipe, r.path)?.type).toBe("row");
+      expect(withFormat(r.recipe).format).toBe(1);
+      expect(errorsOf(r.recipe)).toEqual([]);
+      const inRepeat = addSnippet(addBlock(newRecipe("Snip", new Set()), [], "repeat", key).recipe, [0], id, key);
+      if ("why" in inRepeat) throw new Error(inRepeat.why);
+      expect(errorsOf(inRepeat.recipe)).toEqual([]);
+      expect(flatten(inRepeat.recipe).flatMap(({ block }) => bindingsOf(block)).every((b) => "field" in b)).toBe(true);
+    }
+    expect(newSnippet("ring-caption", { sensor: key, inRepeat: false })).toEqual({
+      type: "row",
+      name: "Ring with a caption",
+      direction: "column",
+      gap: 4,
+      align: "center",
+      children: [
+        { type: "ring", bind: { sensor: key }, min: 0, max: 100, color: "accent" },
+        { type: "label", text: "Caption", tone: "muted" },
+      ],
+    });
+    // four Rows deep, a snippet's Row and its blocks would nest past six
+    let deep = newRecipe("Deep", new Set());
+    let at: number[] = [];
+    for (let n = 0; n < 4; n++) {
+      const r = addBlock(deep, at, "row", key);
+      deep = r.recipe;
+      at = r.path;
+    }
+    expect(addSnippet(deep, at, "label-value-bar", key)).toEqual({ why: "Blocks nest at most 6 deep" });
+  });
+
+  it("pickerPoints gives a weather icon text readings only, and pickWhat offers it no Let people pick (G33)", () => {
+    const point = (key: string, type: "text" | "number") => ({ key, name: key, sourceId: "s", sourceName: "S", containerId: "s/c", containerRawId: "c", containerTitle: "C", raw: "", type, num: null, unit: "", kind: "" });
+    const points = [point("w.condition", "text"), point("libre.cpu_total", "number")];
+    const r = addBlock(newRecipe("Icon", new Set()), [], "weather-icon", `libre.${CPU}_cpu_total`);
+    expect(pickerPoints(blockAt(r.recipe, r.path)!, points).map((p) => p.key)).toEqual(["w.condition"]);
+    expect(pickerPoints({ type: "value", bind: { sensor: "x.y" } }, points)).toBe(points);
+    expect(pickWhat(r.recipe, r.path, DEVICES)).toBeUndefined();
+    expect(pickWhat(addBlock(r.recipe, [], "value", `libre.${CPU}_cpu_total`).recipe, [1], DEVICES)).toBe("the CPU");
+  });
+
+  it("B21: removing a choice moves a preset that picked it back to the default and drops it from a follow map; a block shown by it holds it", () => {
+    let r = addBlock(newRecipe("Layout", new Set()), [], "repeat", "x.y").recipe;
+    r = addOption(r, { key: "layout", label: "Layout", type: "select", default: "c2", options: [{ value: "c1", label: "List" }, { value: "c2", label: "Grid" }, { value: "c3", label: "One" }] });
+    r = updateBlock(r, [0], { direction: { option: "layout", map: { c1: "rows", c2: "grid", c3: "rows" } } });
+    r = savePreset(r, "One place", { layout: "c3" }, [3, 2]);
+    r = addBlock(r, [], "label", "x.y").recipe;
+    r = updateBlock(r, [1], { name: "Note", when: { option: "layout", not: "c1" } });
+    expect(choiceUses(r, "layout", "c1")).toEqual(["Note"]);
+    expect(choiceUses(r, "layout", "c3")).toEqual([]);
+    // the old Remove kept c3 in the preset, and the recipe could not be saved
+    const old = { ...r, options: r.options.map((o) => (o.key === "layout" ? { ...o, options: o.options?.slice(0, 2) } : o)) };
+    expect(errorsOf(old).join()).toMatch(/c3 is not one of its choices/);
+    const gone = removeChoice(r, "layout", "c3");
+    expect(gone.options.find((o) => o.key === "layout")?.options?.map((c) => c.value)).toEqual(["c1", "c2"]);
+    expect(gone.presets.at(-1)?.settings).toEqual({});
+    expect(blockAt(gone, [0])).toMatchObject({ direction: { option: "layout", map: { c1: "rows", c2: "grid" } } });
+    expect(blockAt(gone, [1])).toBe(blockAt(r, [1]));
+    expect(errorsOf(gone)).toEqual([]);
+    // the default passes to the first choice left; the last choice stays
+    expect(removeChoice(r, "layout", "c2").options.find((o) => o.key === "layout")?.default).toBe("c1");
+    const one = removeChoice(removeChoice(gone, "layout", "c2"), "layout", "c1");
+    expect(one.options.find((o) => o.key === "layout")?.options).toHaveLength(1);
   });
 });
