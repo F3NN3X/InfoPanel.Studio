@@ -837,6 +837,20 @@ controls, the clock, audio streams), and the button says why it is disabled.
   Row, Card or Repeat just above it, and **Alt+↑** / **Alt+↓** move it among its neighbours. A move the recipe can't hold (a
   Repeat inside a Repeat, more than six levels, a place's reading outside its Repeat) is refused, and the reason shows where you
   dropped it.
+- Click a tile in **Add a block** to add the block by the selection, or drag the tile onto a row in **Layers** or onto the
+  preview to put it exactly there (the same line or outline shows where, and a refused drop says why).
+- Right-click a row in **Layers** (or press **Shift+F10** or the Menu key) for **Rename** (**F2** or a double-click),
+  **Duplicate** (`Ctrl+D`), **Copy** (`Ctrl+C`), **Cut** (`Ctrl+X`), **Paste** (`Ctrl+V`), **Wrap in a row** (`Ctrl+G`),
+  **Move up**, **Move down**, **Move out** and **Delete** (**Del**). **Ctrl+click** and **Shift+click** select several rows;
+  Delete, Duplicate, Copy, Cut, Wrap in a row and a drag act on all of them. A paste lands after the selected block, or inside it
+  when it holds blocks, and works across the open recipes, bringing along the options the blocks use; a paste the recipe can't
+  hold is refused with the reason. A cut and its paste are one undo step. A row whose block has a problem has a warning dot.
+- **Layers** is a tree for the keyboard and screen readers: **↑** / **↓** move between rows, **Home** / **End** go to the ends,
+  **→** / **←** open and close a container, typing jumps to a row by name, **Enter** selects and **Esc** selects the card. Moves,
+  pastes and refusals are announced.
+- `Ctrl+S` saves the recipe (as **Save** does). **Discard changes** returns to the saved version (one undo step), and the **×**
+  after the name closes the recipe, asking first when it has unsaved changes; the Widgets page lists recipes left open with
+  unsaved changes, each with **Discard**.
 - Above the preview, **Size** switches between the sizes the recipe supports, **Preview in** draws it in another look, and
   **Data** switches between **Live data** and **Sample** values.
 - The inspector's **Block** tab sets what the selected block reads (a sensor, or a device such as a CPU or GPU), its colour
