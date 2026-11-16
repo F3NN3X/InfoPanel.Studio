@@ -4,18 +4,19 @@
 // value is a number, a word, a sensor key, an option key or a field of a Repeat's data source; an image is a file of the package.
 import type { WidgetPreset } from "../define";
 import type { ConvertUnit } from "./convert";
+import type { RepeatSource } from "./sources";
 
 /**
  * The newest recipe format this build reads (`recipe.json`'s `format`); it reads every one before it too. Format 2 adds keys format 1
  * has not got (a label's `parts`; Phase C: text alignment, the text colours, a centre value's colour, `convert` and thresholds' `low`;
- * Phase E: text weight and case, opacity, a card's surface and padding, the root's spacing, a gauge's sweep and a bar's height); a
- * recipe that uses none of them is written as format 1, so an older build still draws it.
+ * Phase E: text weight and case, opacity, a card's surface and padding, the root's spacing, a gauge's sweep and a bar's height;
+ * Phase F: a Repeat over drives, cores, fans, adapters or GPUs and the grid container); a recipe that uses none of them is written as format 1, so an older build still draws it.
  */
 export const RECIPE_FORMAT = 2;
 export type RecipeFormat = 1 | 2;
 
 /** The fixed list of blocks (the builder's "Add a block"). */
-export const BLOCK_TYPES = ["card", "row", "repeat", "ring", "gauge", "bar", "sparkline", "value", "label", "weather-icon", "image", "heatmap"] as const;
+export const BLOCK_TYPES = ["card", "row", "repeat", "ring", "gauge", "bar", "sparkline", "value", "label", "weather-icon", "image", "heatmap", "grid"] as const;
 export type BlockType = (typeof BLOCK_TYPES)[number];
 
 /**
@@ -116,14 +117,27 @@ export interface RowBlock extends BlockBase {
   align?: "start" | "center" | "end" | "stretch";
   children: Block[];
 }
+/**
+ * A grid of cells (format 2, Phase F): each child a cell, a Repeat's items a cell each. `columns` fixed (1-12), else as many as make
+ * the cells closest to square in the grid's box; `spacing` the room between cells (tight 2 px, roomy 12 px; unset 6 px).
+ */
+export interface GridBlock extends BlockBase {
+  type: "grid";
+  columns?: number;
+  spacing?: "tight" | "roomy";
+  children: Block[];
+}
 export interface RepeatBlock extends BlockBase {
   type: "repeat";
-  /** The list option it runs over (a `place-list`). */
-  over: string;
-  /** The data source each item reads: Weather by place (the server's `weather.place.<id>.*`; the recipe's sample items in the builder's Sample). */
-  source: "weather-by-place";
+  /** The list option it runs over (a `place-list`), for Weather by place; a device source has none. */
+  over?: string;
+  /**
+   * The data source each item reads: Weather by place (the server's `weather.place.<id>.*`; the recipe's sample items in the builder's
+   * Sample), or the drives, CPU cores, fans, network adapters or GPUs the readings name (format 2, `sources.ts`).
+   */
+  source: RepeatSource;
   direction?: Follows<RepeatDirection>;
-  /** Most shown (1-12). */
+  /** Most shown (1-12 places, 1-32 devices). */
   max?: Follows<number>;
   /** Hours of forecast in each item's `hourly` (1-24, default 8). */
   hours?: Follows<number>;
@@ -228,9 +242,9 @@ export interface HeatmapBlock extends BlockBase {
   opacity?: OpacityStep;
 }
 
-export type Block = CardBlock | RowBlock | RepeatBlock | RingBlock | BarBlock | SparklineBlock | ValueBlock | LabelBlock | WeatherIconBlock | ImageBlock | HeatmapBlock;
+export type Block = CardBlock | RowBlock | GridBlock | RepeatBlock | RingBlock | BarBlock | SparklineBlock | ValueBlock | LabelBlock | WeatherIconBlock | ImageBlock | HeatmapBlock;
 /** The blocks that hold others. */
-export type Container = CardBlock | RowBlock | RepeatBlock;
+export type Container = CardBlock | RowBlock | GridBlock | RepeatBlock;
 
 /** A place of a `place-list` option: what the placement stores (as JSON text, since a setting is a scalar). `here`: the place
  * "Use this PC's location first" put at the top (picked once by the person, never looked up by IP). */

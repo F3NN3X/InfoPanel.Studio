@@ -6,7 +6,7 @@ import { DEFAULT_PLACES, newRecipe, withSampleItems } from "./builder-model";
 
 /** Why a built-in can't be a recipe, by what it does that blocks can't. */
 const WHY = {
-  lists: "It lists as many rows as the data has (processes, drives, fans…); a recipe's blocks are a fixed set, and a Repeat runs over places only",
+  lists: "It lists rows of something a Repeat can't run over (processes, services, volumes, readings…); a Repeat runs over places, drives, cores, fans, adapters and GPUs",
   controls: "It has buttons or sliders that act on something; a recipe only shows values",
   time: "It draws the time and date itself; a recipe has no clock block",
   stream: "It draws the fast audio or frame stream at screen rate; recipe blocks draw sensor readings",
@@ -25,14 +25,11 @@ export const NO_START: Readonly<Record<string, keyof typeof WHY>> = {
   ServiceHealth: "lists",
   ProcessList: "lists",
   Uptime: "time",
-  CoreHeatmap: "runtime",
   MemoryUsage: "runtime",
   Thermals: "lists",
   PowerDraw: "runtime",
-  Fans: "lists",
   DriveSpace: "lists",
   StorageHealth: "lists",
-  DiskIO: "lists",
   NetworkThroughput: "runtime",
   NetworkAdapters: "lists",
   Clock: "time",
@@ -208,5 +205,92 @@ const weather: Make = (name, taken) =>
     },
   });
 
+/** Fans, as a Repeat over fans (G38): each fan's name and speed, every fan the readings have (Thermals' fan list). Format 2. */
+const fans: Make = (name, taken) => ({
+  ...newRecipe(name, taken),
+  format: 2,
+  icon: "mode_fan",
+  category: "Hardware",
+  description: "From Fans: each fan's name and speed, for every fan the readings have.",
+  size: { min: [2, 2], max: [6, 6], default: [3, 3] },
+  presets: [{ id: "default", name: "Default", settings: {}, size: [3, 3], default: true }],
+  root: {
+    type: "card",
+    title: "Fans",
+    icon: "mode_fan",
+    children: [
+      {
+        type: "repeat",
+        name: "Fans",
+        source: "fans",
+        direction: "rows",
+        max: 8,
+        dividers: true,
+        children: [
+          { type: "label", name: "Name", bind: { field: "name" }, grow: 2 },
+          { type: "value", name: "Speed", bind: { field: "rpm" }, decimals: 0, grow: 1 },
+        ],
+      },
+    ],
+  },
+});
+
+/** Disk I/O, as a Repeat over drives (G38): each drive's name, read and write. Format 2. */
+const diskio: Make = (name, taken) => ({
+  ...newRecipe(name, taken),
+  format: 2,
+  icon: "hard_drive",
+  category: "Hardware",
+  description: "From Disk I/O: each drive's read and write rate.",
+  size: { min: [3, 2], max: [6, 4], default: [4, 2] },
+  presets: [{ id: "default", name: "Default", settings: {}, size: [4, 2], default: true }],
+  root: {
+    type: "card",
+    title: "Disk I/O",
+    icon: "hard_drive",
+    children: [
+      {
+        type: "repeat",
+        name: "Drives",
+        source: "drives",
+        direction: "rows",
+        max: 4,
+        dividers: true,
+        children: [
+          { type: "label", name: "Name", bind: { field: "name" }, grow: 2 },
+          { type: "value", name: "Read", label: "R", bind: { field: "read" }, convert: "MB/s", decimals: 1, grow: 2 },
+          { type: "value", name: "Write", label: "W", bind: { field: "write" }, convert: "MB/s", decimals: 1, grow: 2 },
+        ],
+      },
+    ],
+  },
+});
+
+/** Core Heatmap, as a grid of a Repeat over cores (G38): a ring per core coloured by its load. Format 2. */
+const cores: Make = (name, taken) => ({
+  ...newRecipe(name, taken),
+  format: 2,
+  icon: "memory",
+  category: "Hardware",
+  description: "From Core Heatmap: a ring per core of the first CPU, coloured by its load.",
+  size: { min: [2, 2], max: [8, 6], default: [4, 3] },
+  presets: [{ id: "default", name: "Default", settings: {}, size: [4, 3], default: true }],
+  root: {
+    type: "card",
+    title: "Cores",
+    icon: "memory",
+    children: [
+      {
+        type: "grid",
+        name: "Cores",
+        spacing: "tight",
+        children: [
+          { type: "repeat", name: "Cores", source: "cores", children: [{ type: "ring", name: "Load", bind: { field: "load" }, min: 0, max: 100, color: "thresholds", thresholds: { warn: 70, crit: 90 }, center: false }] },
+        ],
+      },
+    ],
+  },
+});
+
 /** The built-ins that have a start point, by id. */
-export const START: Readonly<Record<string, Make>> = { CpuMonitor: cpu, GpuMonitor: gpu, SensorValue: sensor, Weather: weather };
+export const START: Readonly<Record<string, Make>> = { CpuMonitor: cpu, GpuMonitor: gpu, SensorValue: sensor, Weather: weather, Fans: fans, DiskIO: diskio, CoreHeatmap: cores };

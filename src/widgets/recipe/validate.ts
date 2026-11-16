@@ -10,7 +10,8 @@ import manifestSchema from "./manifest.schema.json";
 import { isFollow } from "./follow";
 import { cellBasePx, TEXT_FLOOR } from "./metrics";
 import recipeSchema from "./recipe.schema.json";
-import { BLOCK_TYPES, type Binding, type Block, type Cells, type Condition, DEVICE_ID, DEVICE_KINDS, type Manifest, OPTION_TYPES, type PackageFile, RECIPE_FORMAT, type Recipe, type RecipeOption, type Thresholds, WEATHER_PLACE_FIELDS } from "./types";
+import { DEVICE_ITEMS_MAX, isDeviceSource, SOURCE_FIELDS } from "./sources";
+import { BLOCK_TYPES, type Binding, type Block, type Cells, type Condition, DEVICE_ID, DEVICE_KINDS, type Manifest, OPTION_TYPES, type PackageFile, RECIPE_FORMAT, type Recipe, type RecipeOption, type RepeatBlock, type Thresholds, WEATHER_PLACE_FIELDS } from "./types";
 
 export interface RecipeIssue {
   rule: string;
@@ -36,7 +37,7 @@ export const DEPTH_MAX = 6;
 export const BLOCKS_MAX = 64;
 export const OPTIONS_MAX = 24;
 export const PRESETS_MAX = 16;
-/** A Repeat shows at most this many items, and a place list holds at most this many places. */
+/** A Repeat over places shows at most this many items, and a place list holds at most this many places (over devices: `DEVICE_ITEMS_MAX`). */
 export const ITEMS_MAX = 12;
 /** A label's line holds at most this many parts (format 2). */
 export const PARTS_MAX = 8;
@@ -211,7 +212,7 @@ function manifestRules(m: Manifest, r: Recipe, files: readonly PackageFile[], ad
 
 /** A block's children (none for a block that holds none). */
 const childrenOf = (b: Block): Block[] => ("children" in b && Array.isArray(b.children) ? b.children : []);
-const CONTAINERS = new Set(["card", "row", "repeat"]);
+const CONTAINERS = new Set(["card", "row", "repeat", "grid"]);
 const BOUND = new Set(["ring", "gauge", "bar", "sparkline", "value", "weather-icon"]);
 /** A block's text size by default, times the card's base (`metrics.ts`): the floor is checked against these when a block names none. */
 export const DEFAULT_SCALE: Partial<Record<Block["type"], number>> = { value: 1, label: 0.85, ring: 1.6, gauge: 1.6 };
@@ -261,12 +262,14 @@ function recipeRules(r: Recipe, files: readonly PackageFile[], add: Add): void {
   // the block tree
   if (r.root.type !== "card") add("block", R, "the root block is a card");
   let count = 0;
-  const walk = (b: Block, at: string, depth: number, repeat: string | undefined) => {
+  const walk = (b: Block, at: string, depth: number, repeat: RepeatBlock | undefined) => {
     count++;
     if (depth > DEPTH_MAX) return void add("depth", R, `${at}: blocks nest ${depth} deep, at most ${DEPTH_MAX}`);
     blockRules(b, at, repeat, options, files, add);
     if (b.type === "repeat" && repeat) add("repeat", R, `${at}: a Repeat inside a Repeat`);
-    childrenOf(b).forEach((c, k) => walk(c, `${at}.children[${k}]`, depth + 1, b.type === "repeat" ? b.over : repeat));
+    // a Repeat's item is one row or tile, and a Repeat lays its items out in a grid itself (Direction: Grid)
+    if (b.type === "grid" && repeat) add("grid", R, `${at}: a Grid inside a Repeat; a Repeat lays its items out as a grid itself`);
+    childrenOf(b).forEach((c, k) => walk(c, `${at}.children[${k}]`, depth + 1, b.type === "repeat" ? b : repeat));
   };
   walk(r.root, "$.root", 1, undefined);
   if (count > BLOCKS_MAX) add("size", R, `${count} blocks, at most ${BLOCKS_MAX}`);
@@ -339,8 +342,12 @@ function optionDefaultIssue(o: RecipeOption): string | undefined {
   return why && `default ${why}`;
 }
 
+/** The fields an item of a Repeat has, and its source as a message says it. */
+const fieldsOf = (repeat: RepeatBlock): { fields: readonly string[]; what: string } =>
+  isDeviceSource(repeat.source) ? { fields: SOURCE_FIELDS[repeat.source], what: `a Repeat over ${repeat.source}` } : { fields: WEATHER_PLACE_FIELDS, what: "Weather by place" };
+
 /** Why a binding names nothing there, or undefined. */
-function bindingIssue(b: Binding, repeat: string | undefined, options: Map<string, RecipeOption>): string | undefined {
+function bindingIssue(b: Binding, repeat: RepeatBlock | undefined, options: Map<string, RecipeOption>): string | undefined {
   if ("sensor" in b) {
     for (const [, key] of b.sensor.matchAll(DEVICE_SLOT)) if (options.get(key)?.type !== "device") return `sensor ${b.sensor.slice(0, 40)} names {${key}}, which is not a device option`;
     const plain = b.sensor.replace(DEVICE_SLOT, "x");
@@ -353,10 +360,11 @@ function bindingIssue(b: Binding, repeat: string | undefined, options: Map<strin
     return o.type === "place-list" ? `option ${b.option} is a place list, which a Repeat runs over` : undefined;
   }
   if (!repeat) return `field ${b.field} is read only inside a Repeat`;
-  return (WEATHER_PLACE_FIELDS as readonly string[]).includes(b.field) ? undefined : `field ${b.field} is not a field of Weather by place (${WEATHER_PLACE_FIELDS.join(", ")})`;
+  const { fields, what } = fieldsOf(repeat);
+  return fields.includes(b.field) ? undefined : `field ${b.field} is not a field of ${what} (${fields.join(", ")})`;
 }
 
-function blockRules(b: Block, at: string, repeat: string | undefined, options: Map<string, RecipeOption>, files: readonly PackageFile[], add: Add): void {
+function blockRules(b: Block, at: string, repeat: RepeatBlock | undefined, options: Map<string, RecipeOption>, files: readonly PackageFile[], add: Add): void {
   const R = "recipe.json";
   const raw = b as unknown as Record<string, unknown>;
   const bind = (binding: Binding | undefined, where: string) => {
@@ -401,10 +409,16 @@ function blockRules(b: Block, at: string, repeat: string | undefined, options: M
     b.cells?.forEach((c, k) => bind(c, `${at}.cells[${k}]`));
   }
   if (b.type === "repeat") {
-    if (options.get(b.over)?.type !== "place-list") add("repeat", R, `${at}: runs over option ${b.over}, which is not a place list`);
-    if (b.max !== undefined && !isFollow(b.max) && !(Number.isInteger(b.max) && b.max >= 1 && b.max <= ITEMS_MAX)) add("repeat", R, `${at}: most shown ${b.max}, a whole number from 1 to ${ITEMS_MAX}`);
+    const device = isDeviceSource(b.source);
+    const most = device ? DEVICE_ITEMS_MAX : ITEMS_MAX;
+    // Weather by place runs over a place list; a device source lists what the readings have, so it names no option
+    if (device && b.over !== undefined) add("repeat", R, `${at}: a Repeat over ${b.source} lists the devices the readings have, not an option`);
+    if (!device && options.get(String(b.over))?.type !== "place-list") add("repeat", R, `${at}: runs over option ${b.over}, which is not a place list`);
+    if (device) for (const key of ["hours", "units"] as const) if (b[key] !== undefined) add("repeat", R, `${at}: ${key} belong to Weather by place, not a Repeat over ${b.source}`);
+    if (b.max !== undefined && !isFollow(b.max) && !(Number.isInteger(b.max) && b.max >= 1 && b.max <= most)) add("repeat", R, `${at}: most shown ${b.max}, a whole number from 1 to ${most}`);
     if (b.hours !== undefined && !isFollow(b.hours) && !(Number.isInteger(b.hours) && b.hours >= 1 && b.hours <= HOURS_MAX)) add("repeat", R, `${at}: hours ${b.hours}, a whole number from 1 to ${HOURS_MAX}`);
   }
+  if (b.type === "grid" && b.columns !== undefined && !(Number.isInteger(b.columns) && b.columns >= 1 && b.columns <= GRID_COLUMNS_MAX)) add("grid", R, `${at}: ${b.columns} columns, a whole number from 1 to ${GRID_COLUMNS_MAX} (or none: as many as fit)`);
   if (b.type === "image") {
     const f = files.find((x) => x.path === b.file);
     if (!f) add("image", R, `${at}: ${b.file} is not in the package`);
@@ -414,6 +428,8 @@ function blockRules(b: Block, at: string, repeat: string | undefined, options: M
 
 /** The forecast hours a Weather-by-place item can carry (the server sends 24). */
 const HOURS_MAX = 24;
+/** A grid's fixed columns at most (unset: as many as make its cells closest to square). */
+export const GRID_COLUMNS_MAX = 12;
 /** The block settings that may follow an option, by block type, each with what its values may be. */
 const FOLLOWERS: Record<string, Record<string, { values?: readonly string[]; range?: [number, number] }>> = {
   repeat: { direction: { values: ["rows", "columns", "grid"] }, max: { range: [1, ITEMS_MAX] }, hours: { range: [1, HOURS_MAX] }, units: { values: ["metric", "imperial"] } },
@@ -430,7 +446,8 @@ const FOLLOWABLE = ["direction", "max", "hours", "units", "window"];
 function followRules(b: Block, at: string, options: Map<string, RecipeOption>, add: Add): void {
   const R = "recipe.json";
   const raw = b as unknown as Record<string, unknown>;
-  const own = FOLLOWERS[b.type] ?? {};
+  // a Repeat over devices shows up to `DEVICE_ITEMS_MAX`, so its most shown may follow a number up to that
+  const own = b.type === "repeat" && isDeviceSource(b.source) ? { ...FOLLOWERS.repeat, max: { range: [1, DEVICE_ITEMS_MAX] as [number, number] } } : (FOLLOWERS[b.type] ?? {});
   for (const key of FOLLOWABLE) {
     const v = raw[key];
     if (v === undefined) continue;
@@ -496,7 +513,7 @@ const PHASE_E: Readonly<Record<string, { on: readonly string[]; what: string }>>
   opacity: { on: ["value", "label", "ring", "gauge", "bar", "sparkline", "heatmap"], what: "a text's or a mark's" },
   surface: { on: ["nested"], what: "a card's inside the root (the root card is the theme's shell)" },
   padding: { on: ["nested"], what: "a card's inside the root (the root card is the theme's shell)" },
-  spacing: { on: ["root"], what: "the root card's" },
+  spacing: { on: ["root", "grid"], what: "the root card's or a grid's" },
   sweep: { on: ["gauge"], what: "a gauge's" },
   height: { on: ["bar"], what: "a bar's" },
 };
@@ -524,12 +541,15 @@ const FORMAT2_WHAT: Readonly<Record<string, string>> = {
   spacing: "the card's spacing needs",
   sweep: "a gauge's sweep needs",
   height: "a bar's height needs",
+  type: "a grid needs",
+  source: "a Repeat over drives, cores, fans, adapters or GPUs needs",
 };
 
 /**
  * Where a tree uses a key format 1 has not got: a label's parts (Phase A), Phase C's text alignment on a value or a label, the text
  * colours on a value, a ring's centre tone, `convert` and thresholds' `low`, and every Phase E key (weight, case, opacity, surface,
- * padding, spacing, sweep, height) on any block, none of which format 1 has.
+ * padding, spacing, sweep, height) on any block, and Phase F's grid and Repeat over devices, none of which format 1 has. A grid's
+ * columns and spacing and a device Repeat's most shown over 12 stand only with those, so they are not listed again.
  */
 export function format2Keys(block: Block, at = "$.root", out: string[] = []): string[] {
   const raw = block as unknown as Record<string, unknown>;
@@ -539,7 +559,9 @@ export function format2Keys(block: Block, at = "$.root", out: string[] = []): st
   if ((block.type === "ring" || block.type === "gauge") && block.tone !== undefined) out.push(`${at}.tone`);
   if (raw.convert !== undefined) out.push(`${at}.convert`);
   if ((raw.thresholds as Thresholds | undefined)?.low !== undefined) out.push(`${at}.thresholds.low`);
-  for (const key of Object.keys(PHASE_E)) if (raw[key] !== undefined) out.push(`${at}.${key}`);
+  for (const key of Object.keys(PHASE_E)) if (raw[key] !== undefined && block.type !== "grid") out.push(`${at}.${key}`);
+  if (block.type === "grid") out.push(`${at}.type`);
+  if (block.type === "repeat" && isDeviceSource(block.source)) out.push(`${at}.source`);
   childrenOf(block).forEach((c, k) => format2Keys(c, `${at}.children[${k}]`, out));
   return out;
 }

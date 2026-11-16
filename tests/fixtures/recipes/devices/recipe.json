@@ -1,0 +1,159 @@
+{
+  "format": 2,
+  "id": "recipe:devices",
+  "name": "Devices",
+  "version": "1.0.0",
+  "author": "InfoPanel Studio",
+  "description": "A Repeat over drives, a grid of a Repeat over cores and a Repeat over fans (builder Phase F).",
+  "category": "Hardware",
+  "icon": "memory",
+  "size": {
+    "min": [
+      3,
+      3
+    ],
+    "max": [
+      8,
+      6
+    ],
+    "default": [
+      4,
+      4
+    ]
+  },
+  "options": [],
+  "presets": [
+    {
+      "id": "default",
+      "name": "Default",
+      "settings": {},
+      "size": [
+        4,
+        4
+      ],
+      "default": true
+    }
+  ],
+  "root": {
+    "type": "card",
+    "title": "Devices",
+    "icon": "memory",
+    "children": [
+      {
+        "type": "repeat",
+        "name": "Drives",
+        "source": "drives",
+        "direction": "rows",
+        "dividers": true,
+        "children": [
+          {
+            "type": "label",
+            "name": "Name",
+            "bind": {
+              "field": "name"
+            },
+            "grow": 2
+          },
+          {
+            "type": "bar",
+            "name": "Used",
+            "bind": {
+              "field": "used"
+            },
+            "min": 0,
+            "max": 100,
+            "color": "thresholds",
+            "thresholds": {
+              "warn": 80,
+              "crit": 92
+            },
+            "grow": 2
+          },
+          {
+            "type": "value",
+            "name": "Temperature",
+            "bind": {
+              "field": "temp"
+            },
+            "decimals": 0,
+            "grow": 1
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "name": "Cores",
+        "spacing": "tight",
+        "grow": 2,
+        "children": [
+          {
+            "type": "repeat",
+            "name": "Cores",
+            "source": "cores",
+            "max": 8,
+            "children": [
+              {
+                "type": "ring",
+                "name": "Load",
+                "bind": {
+                  "field": "load"
+                },
+                "min": 0,
+                "max": 100,
+                "color": "thresholds",
+                "thresholds": {
+                  "warn": 70,
+                  "crit": 90
+                },
+                "center": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "repeat",
+        "name": "Fans",
+        "source": "fans",
+        "direction": "columns",
+        "children": [
+          {
+            "type": "label",
+            "name": "Fan",
+            "bind": {
+              "field": "name"
+            }
+          },
+          {
+            "type": "value",
+            "name": "Speed",
+            "bind": {
+              "field": "rpm"
+            },
+            "decimals": 0
+          }
+        ]
+      }
+    ]
+  },
+  "sample": {
+    "sensors": {
+      "libre.kingston_sfyrd2000g_used_space": "46.9 %",
+      "libre.kingston_sfyrd2000g_temperature__2": "63.9 °C",
+      "libre.wdc_wds100t2b0a_00sm50_used_space": "81.6 %",
+      "libre.wdc_wds100t2b0a_00sm50_temperature": "28 °C",
+      "libre.amd_ryzen_9_9950x3d_cpu_total": "54.4 %",
+      "libre.amd_ryzen_9_9950x3d_cpu_core__1": "79.3 %",
+      "libre.amd_ryzen_9_9950x3d_cpu_core__2": "79.9 %",
+      "libre.amd_ryzen_9_9950x3d_cpu_core__3": "74.8 %",
+      "libre.amd_ryzen_9_9950x3d_cpu_core__4": "62.9 %",
+      "libre.amd_ryzen_9_9950x3d_cpu_core__5": "65.4 %",
+      "libre.amd_ryzen_9_9950x3d_cpu_core__6": "57.9 %",
+      "libre.amd_ryzen_9_9950x3d_cpu_core__7": "69.8 %",
+      "libre.amd_ryzen_9_9950x3d_cpu_core__8": "71.7 %",
+      "libre.nvidia_geforce_rtx_5090_gpu_fan_1": "2022 RPM",
+      "libre.nvidia_geforce_rtx_5090_gpu_fan_2": "2025 RPM",
+      "hwinfo.case_fan": "860 RPM"
+    }
+  }
+}

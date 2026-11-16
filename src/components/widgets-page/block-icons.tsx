@@ -1,5 +1,5 @@
 // The builder's block icons (Layers, "Add a block", the Block tab's header), one per block type as the mockup draws them.
-import { Columns3, Gauge, Grid3x3, Hash, Image, List, LoaderCircle, Rows3, SlidersHorizontal, Square, SunMedium, TrendingUp, Type, type LucideIcon } from "lucide-react";
+import { Columns3, Gauge, Grid3x3, Hash, Image, LayoutGrid, List, LoaderCircle, Rows3, SlidersHorizontal, Square, SunMedium, TrendingUp, Type, type LucideIcon } from "lucide-react";
 import type { Block, BlockType } from "@/widgets/recipe/types";
 
 const ICON: Readonly<Record<BlockType, LucideIcon>> = {
@@ -13,6 +13,7 @@ const ICON: Readonly<Record<BlockType, LucideIcon>> = {
   image: Image,
   heatmap: Grid3x3,
   row: Columns3,
+  grid: LayoutGrid,
   repeat: Rows3,
   card: Square,
 };

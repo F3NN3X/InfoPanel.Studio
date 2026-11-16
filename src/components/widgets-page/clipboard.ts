@@ -33,7 +33,7 @@ export function optionKeysIn(b: Block, out: Set<string> = new Set()): Set<string
     if ("option" in bind) out.add(bind.option);
     if ("sensor" in bind) for (const [, key] of bind.sensor.matchAll(DEVICE_SLOT)) out.add(key);
   }
-  if (b.type === "repeat") out.add(b.over);
+  if (b.type === "repeat" && b.over) out.add(b.over);
   if (b.when?.option) out.add(b.when.option);
   const raw = b as unknown as Record<string, unknown>;
   for (const k of FOLLOWS) if (isFollow(raw[k])) out.add((raw[k] as { option: string }).option);

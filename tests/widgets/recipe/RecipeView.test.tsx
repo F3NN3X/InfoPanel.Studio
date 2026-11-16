@@ -1,7 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { ModuleSettings } from "@/modules/types";
-import RecipeView, { itemsOf, optionValues } from "@/widgets/recipe/RecipeView";
+import { fixtureSensors } from "@/widgets/__fixtures__";
+import RecipeView, { autoColumns, itemsOf, optionValues } from "@/widgets/recipe/RecipeView";
+import { toFlat, toNames } from "@/widgets/shared/data-adapter";
 import { BLOCK_TYPES, type Block, type Recipe } from "@/widgets/recipe/types";
 import { FIXTURE_NAMES, fixtureRecipe } from "./fixture-files";
 
@@ -311,5 +313,63 @@ describe("RecipeView, Phase E", () => {
     expect(bar({})).toMatch(/\bh-2$/);
     expect(bar({ height: "s" })).toMatch(/\bh-1$/);
     expect(bar({ height: "l" })).toMatch(/\bh-3\.5$/);
+  });
+});
+
+describe("RecipeView, Phase F (G38)", () => {
+  const live = { data: toFlat(fixtureSensors()), names: toNames(fixtureSensors()), sample: false };
+  /** The items each Repeat of a markup draws, in order. */
+  const itemCount = (html: string) => (html.match(/data-recipe-item=""/g) ?? []).length;
+  const devices = (edit: (r: Recipe) => void = () => {}) => {
+    const r = fixtureRecipe("devices");
+    edit(r);
+    return r;
+  };
+  const gridOf = (r: Recipe) => r.root.children[1] as Extract<Block, { type: "grid" }>;
+
+  it("the devices fixture's Sample: its drives, its 8 cores in the grid and its fans, from the sample readings", () => {
+    const html = draw(devices());
+    expect(itemCount(html)).toBe(2 + 8 + 3);
+    for (const text of ["Kingston", "WDC", "Case Fan", "860", "64"]) expect(html, text).toContain(text);
+    expect(typesIn(html)).toEqual(expect.arrayContaining(["grid", "repeat", "ring", "bar", "label", "value"]));
+  });
+
+  it("live: a Repeat over cores in a grid draws a cell per core the readings have, up to most shown; each cell is its own tile", () => {
+    const html = draw(devices((r) => delete (gridOf(r).children[0] as Extract<Block, { type: "repeat" }>).max), undefined, live);
+    expect(itemCount(html)).toBe(2 + 32 + 5);
+    // the Repeat's own box is no box in a grid: its items are the grid's cells
+    expect(html).toMatch(/data-recipe-block="repeat" data-recipe-path="1\.0" class="contents"/);
+    expect(itemCount(draw(devices((r) => Object.assign(gridOf(r).children[0], { max: 4 })), undefined, live))).toBe(2 + 4 + 5);
+  });
+
+  it("columns: fixed, or the count that makes the cells closest to square in the grid's box", () => {
+    expect(draw(devices((r) => Object.assign(gridOf(r), { columns: 4 })))).toContain("grid-template-columns:repeat(4, minmax(0, 1fr))");
+    expect(autoColumns(32, 800, 400)).toBe(8);
+    expect(autoColumns(32, 400, 800)).toBe(4);
+    expect(autoColumns(3, 100, 1000)).toBe(1);
+    expect(autoColumns(3, 1000, 10)).toBe(3);
+    expect(autoColumns(0, 100, 100)).toBe(1);
+  });
+
+  it("spacing: the grid's gap is 6 px unset, tight 2, roomy 12", () => {
+    const gap = (spacing?: string) => draw(devices((r) => Object.assign(gridOf(r), { spacing })));
+    expect(gap(undefined)).toContain("grid-auto-rows:minmax(0, 1fr);gap:6px");
+    expect(gap("tight")).toContain("grid-auto-rows:minmax(0, 1fr);gap:2px");
+    expect(gap("roomy")).toContain("grid-auto-rows:minmax(0, 1fr);gap:12px");
+  });
+
+  it("a Repeat over devices with no readings draws no items and no weather credit", () => {
+    const html = renderToStaticMarkup(<RecipeView data={{}} recipe={devices()} />);
+    expect(itemCount(html)).toBe(0);
+    expect(html).not.toContain("data-recipe-attribution");
+  });
+
+  it("B25: a heatmap in a Repeat bound to a field of one number draws one cell instead of throwing", () => {
+    const r = fixtureRecipe("weather-places");
+    const repeat = r.root.children.find((b) => b.type === "repeat") as Extract<Block, { type: "repeat" }>;
+    repeat.children = [{ type: "heatmap", bind: { field: "temp" } }];
+    const html = draw(r);
+    expect(html).toContain('data-recipe-block="heatmap"');
+    expect((html.match(/min-h-\[6px\]/g) ?? []).length).toBe(itemCount(html));
   });
 });

@@ -14,8 +14,9 @@ import { useDataModel } from "@/lib/use-data-model";
 import { cn } from "@/lib/utils";
 import type { Data } from "@/widgets/core/types";
 import { expandKey } from "@/widgets/recipe/reads";
-import { type Binding, type Block, type LabelPart, type Recipe, type RecipeDeviceKind, WEATHER_PLACE_FIELDS } from "@/widgets/recipe/types";
-import { deviceOfKey, labelParts, layerName, moveItem, pickBinding, pickerPoints, pickedOption, pickWhat, repeatAbove, replaceSensor, setLabelParts, setLabelSource, unpickBinding, updateBlock, type Path } from "./builder-model";
+import { isDeviceSource, type RepeatSource, SOURCE_MAIN } from "@/widgets/recipe/sources";
+import type { Binding, Block, LabelPart, Recipe, RecipeDeviceKind } from "@/widgets/recipe/types";
+import { deviceOfKey, ITEM_NOUN, itemFields, labelParts, layerName, moveItem, pickBinding, pickerPoints, pickedOption, pickWhat, repeatAbove, replaceSensor, setLabelParts, setLabelSource, unpickBinding, updateBlock, type Path } from "./builder-model";
 import { Field, Heading, NumberInput, Select, TextInput } from "./fields";
 
 export interface DataRowsProps {
@@ -81,18 +82,22 @@ function SensorButton({ recipe, bind, title, props, onPick, block }: { recipe: R
   );
 }
 
+/** The Field select's choices inside a Repeat: the fields its items have. */
+const fieldChoices = (source: RepeatSource) => itemFields(source).map((f) => ({ value: f, label: f }));
+
 /** A block's own reading (Ring, Value, a card's sub-title …) and "Let people pick …". */
 export function DataRow({ block, props }: { block: Block; props: DataRowsProps }) {
   const { recipe, path } = props;
   const bind = "bind" in block ? block.bind : block.type === "card" ? block.subtitle : undefined;
-  const inRepeat = !!repeatAbove(recipe, path);
+  const repeat = repeatAbove(recipe, path);
+  const inRepeat = !!repeat;
   const what = pickWhat(recipe, path, props.devices);
   const picked = !!pickedOption(recipe, bind);
   const set = (next: Binding | undefined) => props.onChange(updateBlock(recipe, path, block.type === "card" ? { subtitle: next } : { bind: next }));
   if (inRepeat && (!bind || "field" in bind))
     return (
       <Field label="Field">
-        <Select label="Field" value={bind && "field" in bind ? bind.field : "temp"} options={WEATHER_PLACE_FIELDS.map((f) => ({ value: f, label: f }))} onChange={(f) => set({ field: f })} />
+        <Select label="Field" value={bind && "field" in bind ? bind.field : "temp"} options={fieldChoices(repeat!.source)} onChange={(f) => set({ field: f })} />
       </Field>
     );
   return (
@@ -157,16 +162,16 @@ function ReplaceSensor({ from, props }: { from: string; props: DataRowsProps }) 
 
 /**
  * What one reading of a label comes from: a sensor (the picker), an option people set (a text, a number, a choice, a toggle, a
- * sensor option), or inside a Repeat a field of each place.
+ * sensor option), or inside a Repeat a field of each item (a place, a drive, a core …).
  */
 function SourceRows({ recipe, bind, label, props, onBind }: { recipe: Recipe; bind: Binding; label: string; props: DataRowsProps; onBind: (b: Binding) => void }) {
-  const inRepeat = !!repeatAbove(recipe, props.path);
+  const repeat = repeatAbove(recipe, props.path);
   const options = recipe.options.filter((o) => o.type !== "place-list" && o.type !== "device");
   const value = "sensor" in bind ? "sensor" : "option" in bind ? `option:${bind.option}` : `field:${bind.field}`;
   const choices = [
     { value: "sensor", label: "A sensor" },
     ...options.map((o) => ({ value: `option:${o.key}`, label: `Option “${o.label}”` })),
-    ...(inRepeat ? WEATHER_PLACE_FIELDS.map((f) => ({ value: `field:${f}`, label: `Each place's ${f}` })) : []),
+    ...(repeat ? itemFields(repeat.source).map((f) => ({ value: `field:${f}`, label: `Each ${ITEM_NOUN[repeat.source]}'s ${f}` })) : []),
   ];
   const firstSensor = Object.keys(props.data).find((k) => k.includes(".")) ?? "libre.cpu_total";
   return (
@@ -202,7 +207,8 @@ export function LabelText({ block, props }: { block: Extract<Block, { type: "lab
   const setPart = (next: LabelPart) => setParts(parts.map((p, i) => (i === k ? next : p)));
   const firstSensor = Object.keys(props.data).find((x) => x.includes(".")) ?? "libre.cpu_total";
   const add = (kind: "text" | "data") => {
-    const fresh: LabelPart = kind === "text" ? { text: " / " } : { bind: repeatAbove(recipe, path) ? { field: "temp" } : { sensor: firstSensor } };
+    const repeat = repeatAbove(recipe, path);
+    const fresh: LabelPart = kind === "text" ? { text: " / " } : { bind: repeat ? { field: isDeviceSource(repeat.source) ? SOURCE_MAIN[repeat.source] : "temp" } : { sensor: firstSensor } };
     setParts([...parts, fresh]);
     setAt(parts.length);
   };
@@ -302,10 +308,11 @@ export function HeatmapCells({ block, props }: { block: Extract<Block, { type: "
   const [drag, setDrag] = useState<number | null>(null);
   const cells = block.cells ?? [];
   const set = (next: Binding[]) => onChange(updateBlock(recipe, path, next.length ? { cells: next, bind: undefined } : { cells: undefined, bind: undefined }));
-  if (repeatAbove(recipe, path))
+  const repeat = repeatAbove(recipe, path);
+  if (repeat)
     return (
       <Field label="Field">
-        <Select label="Field" value={block.bind && "field" in block.bind ? block.bind.field : "hourly"} options={WEATHER_PLACE_FIELDS.map((f) => ({ value: f, label: f }))} onChange={(f) => onChange(updateBlock(recipe, path, { bind: { field: f }, cells: undefined }))} />
+        <Select label="Field" value={block.bind && "field" in block.bind ? block.bind.field : "hourly"} options={fieldChoices(repeat.source)} onChange={(f) => onChange(updateBlock(recipe, path, { bind: { field: f }, cells: undefined }))} />
       </Field>
     );
   const keys = cells.map((c) => keyOf(recipe, c, props.data));

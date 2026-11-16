@@ -1,7 +1,7 @@
 // The Block tab's Phase E rows (builder audit G21, G22, G26, G36; recipe format 2): a value's and a label's weight and case, an opacity
 // step beside a block's colour (a text is drawn at the step that keeps it readable on the Look shown, and the row says when that is
-// higher than the one picked), a nested card's surface and padding, the root card's spacing, a gauge's sweep and a bar's height. Each
-// is an enum on the theme's own tokens; its first choice is unset, so a recipe that picks none keeps its bytes.
+// higher than the one picked), a nested card's surface and padding, the root card's and a grid's spacing, a gauge's sweep and a bar's
+// height. Each is an enum on the theme's own tokens; its first choice is unset, so a recipe that picks none keeps its bytes.
 import { Segmented } from "@/components/ui/segmented";
 import type { Block } from "@/widgets/recipe/types";
 import { Field } from "./fields";
@@ -110,6 +110,7 @@ export function StyleRows({ block, root, set, drawn }: StyleRowsProps) {
         </>
       )}
       {block.type === "card" && root && <EnumRow label="Spacing" hint="Room between the card's blocks: 2, 6 or 12 px" value={block.spacing} options={SPACINGS} onPick={(v) => set({ spacing: v })} />}
+      {block.type === "grid" && <EnumRow label="Spacing" hint="Room between the grid's cells: 2, 6 or 12 px" value={block.spacing} options={SPACINGS} onPick={(v) => set({ spacing: v })} />}
       {block.type === "gauge" && <EnumRow label="Sweep" hint="How far round the gauge's arc goes" value={block.sweep} options={SWEEPS} number onPick={(v) => set({ sweep: v })} />}
       {block.type === "bar" && <EnumRow label="Height" hint="The bar's thickness: 4, 8 or 14 px" value={block.height} options={HEIGHTS} onPick={(v) => set({ height: v })} />}
     </>

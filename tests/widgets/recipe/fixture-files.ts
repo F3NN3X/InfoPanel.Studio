@@ -6,7 +6,7 @@ import { packageOf } from "@/widgets/recipe/package";
 import type { PackageFile, Recipe } from "@/widgets/recipe/types";
 
 export const FIXTURES = "tests/fixtures/recipes";
-export const FIXTURE_NAMES = ["cpu-card", "gpu-card", "weather-places"] as const;
+export const FIXTURE_NAMES = ["cpu-card", "gpu-card", "weather-places", "devices"] as const;
 
 /** A fixture package's files as they are on disk. */
 export function fixtureFiles(name: string): PackageFile[] {

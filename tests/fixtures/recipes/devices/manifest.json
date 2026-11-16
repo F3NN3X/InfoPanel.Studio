@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "kind": "recipe",
+  "id": "recipe:devices",
+  "version": "1.0.0",
+  "author": "InfoPanel Studio",
+  "name": "Devices",
+  "files": [
+    {
+      "path": "recipe.json",
+      "bytes": 3762,
+      "sha256": "0712f4735e4b3a84cac589670322f2df36f11bc1319a8ba0a97180b53c2e33b5"
+    }
+  ]
+}
