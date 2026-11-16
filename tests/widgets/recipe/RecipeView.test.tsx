@@ -233,4 +233,14 @@ describe("RecipeView, Phase C", () => {
     expect(high("20 %")).not.toContain("--w-warn");
     expect(high("30 %")).toContain("--w-warn");
   });
+
+  it("a format 1 recipe with warning above critical draws as before: critical from the critical level up, wins over warning (no feature lost)", () => {
+    const r = fixtureRecipe("cpu-card");
+    r.root.children = [{ type: "value", bind: { sensor: "system.ram.free" }, color: "thresholds", thresholds: { warn: 95, crit: 10 } }];
+    expect(r.format).toBe(1);
+    const at = (v: string) => draw(r, undefined, { data: { "system.ram.free": v }, sample: false });
+    expect(at("5 %")).not.toMatch(/--w-(warn|crit)/);
+    expect(at("50 %")).toContain("--w-crit");
+    expect(at("96 %")).toContain("--w-crit");
+  });
 });

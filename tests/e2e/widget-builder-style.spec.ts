@@ -111,6 +111,15 @@ test("free space that warns when low: Low is bad, the order said in words, a war
   await radio(page, "Colour", "Thresholds");
   const line = page.locator("[data-threshold-line]");
   await expect(line).toHaveText("High is bad: warning from 70 up, critical from 90 up. Warning is the lower level.");
+  // high is bad, warning past critical: a warning by the block's name that does not stop a save (a recipe like it loads as before)
+  await type(page, "Warning at", "95");
+  await type(page, "Critical at", "10");
+  await expect(line).toHaveAttribute("data-threshold-line", "wrong");
+  await expect(page.locator("[data-problem]")).toHaveText(["Value · Warning, critical: warning at 95 comes after critical at 10; when high is bad, warning is the lower level"]);
+  await expect(page.locator("[data-problem]")).toHaveAttribute("data-warning", "");
+  await expect(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+  await type(page, "Warning at", "70");
+  await type(page, "Critical at", "90");
   await radio(page, "Direction", "Low is bad");
   await type(page, "Warning at", "500");
   await type(page, "Critical at", "50");
@@ -119,6 +128,7 @@ test("free space that warns when low: Low is bad, the order said in words, a war
   await type(page, "Warning at", "20");
   await expect(line).toHaveAttribute("data-threshold-line", "wrong");
   await expect(page.locator("[data-problem]")).toHaveText(["Value · Warning, critical: warning at 20 comes after critical at 50; when low is bad, warning is the higher level"]);
+  await expect(page.locator("[data-problem]")).not.toHaveAttribute("data-warning", "");
   await expect(page.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
   await type(page, "Warning at", "500");
   await expect(page.locator('[data-recipe-zone] [data-recipe-path="0"] [data-part="num"]')).toHaveAttribute("style", /var\(--w-warn/);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addBlock, addOption, newRecipe, recipeIssues, updateBlock } from "@/components/widgets-page/builder-model";
-import { plainIssues } from "@/components/widgets-page/plain-issues";
+import { plainIssues, plainWarnings } from "@/components/widgets-page/plain-issues";
 import type { Block, Recipe } from "@/widgets/recipe/types";
 
 // G6 and B10: the validation list in the builder's words. Each problem names its block by its Layers name and an option by its
@@ -68,7 +68,11 @@ describe("validation messages in plain words", () => {
     const v = addBlock(newRecipe("Card", new Set()), [], "value", "libre.cpu_total");
     const r = updateBlock(v.recipe, v.path, { name: "Clock", align: "center", color: "thresholds", thresholds: { warn: 95, crit: 10 } });
     const list = listOf(r).map((x) => x.text);
-    expect(list).toEqual(["Clock · Warning, critical: warning at 95 comes after critical at 10; when high is bad, warning is the lower level", "Clock · Align: text alignment needs recipe format 2"]);
+    expect(list).toEqual(["Clock · Align: text alignment needs recipe format 2"]);
+    // high is bad, warning past critical: a warning by the block's name, not an error
+    expect(plainWarnings(r, recipeIssues(r))).toEqual([{ text: "Clock · Warning, critical: warning at 95 comes after critical at 10; when high is bad, warning is the lower level", tab: "block", path: [0], warn: true }]);
+    const lowPast = { ...updateBlock(v.recipe, v.path, { color: "thresholds", thresholds: { warn: 5, crit: 10, low: true } }), format: 2 as const };
+    expect(listOf(lowPast).map((x) => x.text)).toEqual(["Value · Warning, critical: warning at 5 comes after critical at 10; when low is bad, warning is the higher level"]);
     const low = updateBlock(v.recipe, v.path, { color: "thresholds", thresholds: { warn: 30, crit: 10, low: true } });
     expect(listOf(low).map((x) => x.text)).toEqual(["Value · Warning, critical · Direction: low is bad needs recipe format 2"]);
     for (const x of [...list]) expect(x).not.toMatch(NO_CODE_TERMS);

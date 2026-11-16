@@ -35,7 +35,7 @@ import { NumberInput, type Typing, TypingContext } from "./fields";
 import type { History } from "./history";
 import { type LayerCommand, Layers, type SelectHow } from "./layers";
 import { OptionsTab } from "./options-tab";
-import { type PlainIssue, plainIssue, plainIssues } from "./plain-issues";
+import { type PlainIssue, plainIssue, plainIssues, plainWarnings } from "./plain-issues";
 import { PresetsTab } from "./presets-tab";
 import { RecipePreview, zonePx } from "./recipe-preview";
 import { isUnsaved } from "./widgets-model";
@@ -253,7 +253,9 @@ export function Builder(p: BuilderProps) {
   // crowding at the size the stage shows (G19, B11), measured after it draws; null until then
   const [crowds, setCrowds] = useState<Crowd[] | null>(null);
   const warnings = crowds ? crowdIssues(recipe, size, crowds) : [];
-  const listed = [...problems, ...warnings];
+  // the validator's own warnings (a warning level past critical with high is bad): at every size, and no stop to a save
+  const cautions = plainWarnings(recipe, issues);
+  const listed = [...problems, ...cautions, ...warnings];
   const floorIssue = issues.find((i) => i.rule === "text-floor");
   /** A problem clicked: its block selected in its tab, or the Options or Presets tab. */
   const goTo = (x: PlainIssue) => {
@@ -735,7 +737,7 @@ export function Builder(p: BuilderProps) {
             </div>
           </div>
           <div role="status" data-validation="" className="flex items-center gap-2 text-caption">
-            {line.ok && !warnings.length ? <CircleCheck className="h-4 w-4 shrink-0 text-ui-ok" strokeWidth={1.5} aria-hidden /> : <CircleAlert className="h-4 w-4 shrink-0 text-ui-warn" strokeWidth={1.5} aria-hidden />}
+            {line.ok && !warnings.length && !cautions.length ? <CircleCheck className="h-4 w-4 shrink-0 text-ui-ok" strokeWidth={1.5} aria-hidden /> : <CircleAlert className="h-4 w-4 shrink-0 text-ui-warn" strokeWidth={1.5} aria-hidden />}
             {!listed.length ? (
               <span className="text-ui-2">
                 {line.summary}
@@ -746,7 +748,7 @@ export function Builder(p: BuilderProps) {
                 {listed[0].text}
               </button>
             ) : (
-              <span className="text-ui-2">{[problems.length && `${problems.length} problem${problems.length === 1 ? "" : "s"}`, warnings.length && `${warnings.length} warning${warnings.length === 1 ? "" : "s"} at ${shown}`].filter(Boolean).join(", ")}</span>
+              <span className="text-ui-2">{[problems.length && `${problems.length} problem${problems.length === 1 ? "" : "s"}`, cautions.length && `${cautions.length} warning${cautions.length === 1 ? "" : "s"}`, warnings.length && `${warnings.length} warning${warnings.length === 1 ? "" : "s"} at ${shown}`].filter(Boolean).join(", ")}</span>
             )}
             <span className={cn("ml-auto shrink-0", floorIssue ? "text-ui-warn" : "text-ui-3")}>{floorIssue ? plainIssue(recipe, floorIssue).text : line.floor}</span>
           </div>

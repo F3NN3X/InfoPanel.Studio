@@ -350,15 +350,17 @@ describe("Phase C keys, format 2 (G21, G22, G23, G27)", () => {
     expect(errors(await two((r) => Object.assign(r.root.children[1], { convert: "GHz" })))).toEqual(["block"]);
   });
 
-  it("thresholds: warning never past critical, for high is bad and for low is bad; equal levels pass", async () => {
-    expect(errors(await cpu((r) => (ring(r).thresholds = { warn: 95, crit: 10 })))).toEqual(["thresholds"]);
+  it("thresholds: low is bad refuses a warning past critical; high is bad only warns, so a recipe that loads today keeps loading; equal levels pass", async () => {
+    const past = validateRecipe({ files: await cpu((r) => (ring(r).thresholds = { warn: 95, crit: 10 })) });
+    expect(past.map((i) => [i.rule, i.severity])).toEqual([["thresholds", "warn"]]);
     expect(errors(await cpu((r) => (ring(r).thresholds = { warn: 90, crit: 90 })))).toEqual([]);
     expect(errors(await two((r) => (ring(r).thresholds = { warn: 30, crit: 10, low: true })))).toEqual([]);
     expect(errors(await two((r) => (ring(r).thresholds = { warn: 10, crit: 10, low: true })))).toEqual([]);
     expect(errors(await two((r) => (ring(r).thresholds = { warn: 9, crit: 10, low: true })))).toEqual(["thresholds"]);
     expect(errors(await two((r) => Object.assign(ring(r), { thresholds: { warn: 30, crit: 10, low: false } })))).toEqual(["schema"]);
-    const message = validateRecipe({ files: await cpu((r) => (ring(r).thresholds = { warn: 95, crit: 10 })) }).find((i) => i.rule === "thresholds")?.message;
-    expect(message).toBe("$.root.children[0].children[0].thresholds: warning at 95 comes after critical at 10; when high is bad, warning is the lower level");
+    expect(past[0].message).toBe("$.root.children[0].children[0].thresholds: warning at 95 comes after critical at 10; when high is bad, warning is the lower level");
+    const low = validateRecipe({ files: await two((r) => (ring(r).thresholds = { warn: 9, crit: 10, low: true })) }).find((i) => i.rule === "thresholds");
+    expect(low?.severity).toBe("error");
   });
 
   it("format: each Phase C key in a recipe that says format 1 is refused, in words; format 1 without them stays as it was", async () => {
@@ -374,5 +376,12 @@ describe("Phase C keys, format 2 (G21, G22, G23, G27)", () => {
       expect(issues.map((i) => [i.rule, i.message]), name).toEqual([["format", message]]);
     }
     expect(errors(await cpu(() => {}))).toEqual([]);
+  });
+
+  it("a format 1 recipe saved with warning above critical still loads (no feature lost): the package checks and the recipe comes back", async () => {
+    const files = await cpu((r) => (ring(r).thresholds = { warn: 95, crit: 10 }));
+    const checked = await checkPackage({ files });
+    expect(checked.recipe?.format).toBe(1);
+    expect(checked.issues.filter((i) => i.severity === "error")).toEqual([]);
   });
 });

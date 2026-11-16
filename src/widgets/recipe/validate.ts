@@ -472,6 +472,8 @@ const CONVERTS = new Set(["value", "ring", "gauge"]);
  * Phase C's keys on the blocks they belong to: a value's and a label's `align` (start, centre or end; stretch is a row's), the text
  * colours `fg` and `muted` as a value's colour only, a ring's centre `tone` (the text colour or muted), `convert` on a value or a ring
  * and never beside a typed unit, and thresholds whose warning level does not come after the critical one for their direction.
+ * That order refuses only low is bad (`low`, a format 2 key, so no recipe from before it can break); with high is bad a warning past
+ * critical loads and draws as it always has (critical wins), and the issue is a `warn` the builder shows without stopping a save.
  */
 function styleRules(b: Block, at: string, add: Add): void {
   const R = "recipe.json";
@@ -483,7 +485,7 @@ function styleRules(b: Block, at: string, add: Add): void {
   if (raw.convert !== undefined && raw.unit !== undefined) add("block", R, `${at}: a unit typed and a unit to show in; one of them`);
   const t = raw.thresholds as Thresholds | undefined;
   if (t && (t.low ? t.warn < t.crit : t.warn > t.crit))
-    add("thresholds", R, `${at}.thresholds: warning at ${t.warn} comes after critical at ${t.crit}; ${t.low ? "when low is bad, warning is the higher level" : "when high is bad, warning is the lower level"}`);
+    add("thresholds", R, `${at}.thresholds: warning at ${t.warn} comes after critical at ${t.crit}; ${t.low ? "when low is bad, warning is the higher level" : "when high is bad, warning is the lower level"}`, t.low ? "error" : "warn");
 }
 
 /** What each format 2 key is, for the `format` rule's message (by the last part of its path). */
