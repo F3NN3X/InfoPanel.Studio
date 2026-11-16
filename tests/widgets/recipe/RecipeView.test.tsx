@@ -167,3 +167,70 @@ describe("RecipeView, Phase A", () => {
     expect(draw(fixtureRecipe("gpu-card"))).toContain('src="/api/widgets/recipe.gpu-card/images/logo.png"');
   });
 });
+
+describe("RecipeView, Phase C", () => {
+  /** The CPU card with its root's blocks replaced, drawn from `data` (live) or its sample. */
+  const cpuWith = (blocks: Block[]) => {
+    const r = fixtureRecipe("cpu-card");
+    r.format = 2;
+    r.root.children = blocks;
+    return r;
+  };
+  const CLOCK = { sensor: "libre.amd_ryzen_9_9950x3d_cores__average" };
+
+  it("Show in: the clock in GHz with its decimals, else the value's own rule; the ring's centre and range in that unit (G23)", () => {
+    expect(draw(cpuWith([{ type: "value", label: "Clock", bind: CLOCK, convert: "GHz", decimals: 2 }]))).toMatch(/5\.12<span[^>]*>GHz</);
+    // no decimals of its own: one under 10, as any value
+    expect(draw(cpuWith([{ type: "value", bind: CLOCK, convert: "GHz" }]))).toMatch(/5\.1<span[^>]*>GHz</);
+    const ring = draw(cpuWith([{ type: "ring", bind: CLOCK, convert: "GHz", min: 0, max: 6, decimals: 1 }]));
+    expect(ring).toMatch(/5\.1<span[^>]*>GHz</);
+    // a reading of another family is shown as it is read
+    expect(draw(cpuWith([{ type: "value", bind: { sensor: "libre.amd_ryzen_9_9950x3d_cpu_total" }, convert: "GHz" }]))).toMatch(/>64<span[^>]*>%</);
+  });
+
+  it("a throughput key reads as bytes per second, so Show in gives MB/s right (B20)", () => {
+    const data = { "libre.ethernet_download_speed": "920111.6875 KB/s" };
+    const html = (b: Block) => draw(cpuWith([b]), undefined, { data, sample: false });
+    expect(html({ type: "value", bind: { sensor: "libre.ethernet_download_speed" }, convert: "MB/s", decimals: 2 })).toMatch(/0\.92<span[^>]*>MB\/s</);
+    expect(html({ type: "value", bind: { sensor: "libre.ethernet_download_speed" }, decimals: 0 })).toMatch(/920,112<span[^>]*>B\/s</);
+  });
+
+  it("a value's colour: unset is the text colour, Muted the theme's muted, an Accent picked the accent (G22, B19)", () => {
+    const num = (b: Partial<Extract<Block, { type: "value" }>>) => /data-part="num"[^>]*style="([^"]*)"/.exec(draw(cpuWith([{ type: "value", bind: CLOCK, ...b }])))?.[1] ?? "";
+    expect(num({})).not.toMatch(/(^|;)color:/);
+    expect(num({ color: "fg" })).not.toMatch(/(^|;)color:/);
+    expect(num({ color: "muted" })).toContain("color:var(--w-muted)");
+    expect(num({ color: "accent" })).toContain("color:var(--w-accent)");
+  });
+
+  it("a ring's centre value in Muted; the text colour when unset (G22)", () => {
+    const centre = (tone?: "fg" | "muted") => /data-part="num"[^>]*style="([^"]*)"/.exec(draw(cpuWith([{ type: "ring", bind: CLOCK, tone }])))?.[1] ?? "";
+    expect(centre("muted")).toContain("color:var(--w-muted)");
+    expect(centre()).not.toMatch(/(^|;)color:/);
+  });
+
+  it("align: a value's line together at the centre or the end, a label's text at its side; unset as before (G21)", () => {
+    const value = (align?: "start" | "center" | "end") => draw(cpuWith([{ type: "value", label: "Clock", bind: CLOCK, align }]));
+    /** The value block's line: its own style. */
+    const line = (html: string) => /whitespace-nowrap leading-none" style="([^"]*)"/.exec(html)?.[1] ?? "";
+    expect(line(value("center"))).toContain("justify-content:center");
+    expect(value("center")).not.toContain("tabular-nums ml-auto");
+    expect(line(value("end"))).toContain("justify-content:flex-end");
+    expect(value()).toContain("tabular-nums ml-auto");
+    expect(line(value())).not.toContain("justify-content");
+    expect(draw(cpuWith([{ type: "label", text: "x", align: "end" }]))).toContain("text-align:end");
+    expect(draw(cpuWith([{ type: "label", text: "x" }]))).not.toContain("text-align");
+  });
+
+  it("low is bad: warning at the warning level and under, critical at the critical level and under (G27)", () => {
+    const at = (v: string) => draw(cpuWith([{ type: "value", bind: { sensor: "system.ram.free" }, color: "thresholds", thresholds: { warn: 30, crit: 10, low: true } }]), undefined, { data: { "system.ram.free": v }, sample: false });
+    expect(at("34.4 %")).not.toContain("--w-warn");
+    expect(at("30 %")).toContain("--w-warn");
+    expect(at("10.5 %")).toContain("--w-warn");
+    expect(at("10 %")).toContain("--w-crit");
+    // high is bad, unchanged: from the levels up
+    const high = (v: string) => draw(cpuWith([{ type: "value", bind: { sensor: "system.ram.free" }, color: "thresholds", thresholds: { warn: 30, crit: 90 } }]), undefined, { data: { "system.ram.free": v }, sample: false });
+    expect(high("20 %")).not.toContain("--w-warn");
+    expect(high("30 %")).toContain("--w-warn");
+  });
+});

@@ -10,7 +10,7 @@ import manifestSchema from "./manifest.schema.json";
 import { isFollow } from "./follow";
 import { cellBasePx, TEXT_FLOOR } from "./metrics";
 import recipeSchema from "./recipe.schema.json";
-import { BLOCK_TYPES, type Binding, type Block, type Cells, type Condition, DEVICE_ID, DEVICE_KINDS, type Manifest, OPTION_TYPES, type PackageFile, RECIPE_FORMAT, type Recipe, type RecipeOption, WEATHER_PLACE_FIELDS } from "./types";
+import { BLOCK_TYPES, type Binding, type Block, type Cells, type Condition, DEVICE_ID, DEVICE_KINDS, type Manifest, OPTION_TYPES, type PackageFile, RECIPE_FORMAT, type Recipe, type RecipeOption, type Thresholds, WEATHER_PLACE_FIELDS } from "./types";
 
 export interface RecipeIssue {
   rule: string;
@@ -271,7 +271,7 @@ function recipeRules(r: Recipe, files: readonly PackageFile[], add: Add): void {
   walk(r.root, "$.root", 1, undefined);
   if (count > BLOCKS_MAX) add("size", R, `${count} blocks, at most ${BLOCKS_MAX}`);
   // format 1 is what an older build reads: a recipe using a key it has not got says format 2, so that build can say why it won't draw it
-  if (r.format === 1) for (const at of format2Keys(r.root)) add("format", R, `${at}: parts need recipe format 2`);
+  if (r.format === 1) for (const at of format2Keys(r.root)) add("format", R, `${at}: ${FORMAT2_WHAT[at.split(".").pop()!]} recipe format 2`);
 
   // the text floor at every size the recipe allows
   floorRules(r, add);
@@ -372,6 +372,7 @@ function blockRules(b: Block, at: string, repeat: string | undefined, options: M
   if (raw.style !== undefined && !STYLES[b.type]?.includes(String(raw.style))) add("block", R, `${at}: style ${String(raw.style)} is not a ${b.type}'s`);
   if (typeof raw.min === "number" && typeof raw.max === "number" && raw.min >= raw.max) add("block", R, `${at}: min ${raw.min} is not under max ${raw.max}`);
   if (raw.color === "thresholds" && raw.thresholds === undefined) add("block", R, `${at}: colour by thresholds needs its thresholds`);
+  styleRules(b, at, add);
   if (b.when) {
     const { option, is, not, size } = b.when;
     if (option !== undefined && !options.has(option)) add("binding", R, `${at}.when: option ${option} is not one of the recipe's options`);
@@ -463,9 +464,50 @@ function followRules(b: Block, at: string, options: Map<string, RecipeOption>, a
   }
 }
 
-/** Where a tree uses a key format 1 has not got (a label's parts). */
+/** The text, colour, unit and threshold keys of Phase C, by the blocks that have them (the schema's block allows each on any block). */
+const TEXT_ALIGNS = ["start", "center", "end"];
+const CONVERTS = new Set(["value", "ring", "gauge"]);
+
+/**
+ * Phase C's keys on the blocks they belong to: a value's and a label's `align` (start, centre or end; stretch is a row's), the text
+ * colours `fg` and `muted` as a value's colour only, a ring's centre `tone` (the text colour or muted), `convert` on a value or a ring
+ * and never beside a typed unit, and thresholds whose warning level does not come after the critical one for their direction.
+ */
+function styleRules(b: Block, at: string, add: Add): void {
+  const R = "recipe.json";
+  const raw = b as unknown as Record<string, unknown>;
+  if ((b.type === "value" || b.type === "label") && b.align !== undefined && !TEXT_ALIGNS.includes(b.align)) add("block", R, `${at}: align ${b.align} is a row's; a ${b.type} aligns start, center or end`);
+  if ((raw.color === "fg" || raw.color === "muted") && b.type !== "value") add("block", R, `${at}: colour ${raw.color} is a text colour, a value's (a ring's centre value takes tone)`);
+  if ((b.type === "ring" || b.type === "gauge") && b.tone !== undefined && b.tone !== "fg" && b.tone !== "muted") add("block", R, `${at}: tone ${String(b.tone)}: a ring's centre value takes the text colour or muted (fg, muted)`);
+  if (raw.convert !== undefined && !CONVERTS.has(b.type)) add("block", R, `${at}: convert is a value's or a ring's`);
+  if (raw.convert !== undefined && raw.unit !== undefined) add("block", R, `${at}: a unit typed and a unit to show in; one of them`);
+  const t = raw.thresholds as Thresholds | undefined;
+  if (t && (t.low ? t.warn < t.crit : t.warn > t.crit))
+    add("thresholds", R, `${at}.thresholds: warning at ${t.warn} comes after critical at ${t.crit}; ${t.low ? "when low is bad, warning is the higher level" : "when high is bad, warning is the lower level"}`);
+}
+
+/** What each format 2 key is, for the `format` rule's message (by the last part of its path). */
+const FORMAT2_WHAT: Readonly<Record<string, string>> = {
+  parts: "parts need",
+  align: "text alignment needs",
+  color: "a text colour needs",
+  tone: "a centre value's colour needs",
+  convert: "Show in needs",
+  low: "low is bad needs",
+};
+
+/**
+ * Where a tree uses a key format 1 has not got: a label's parts (Phase A), and Phase C's text alignment on a value or a label, the
+ * text colours on a value, a ring's centre tone, `convert`, and thresholds' `low`.
+ */
 export function format2Keys(block: Block, at = "$.root", out: string[] = []): string[] {
+  const raw = block as unknown as Record<string, unknown>;
   if (block.type === "label" && block.parts) out.push(`${at}.parts`);
+  if ((block.type === "value" || block.type === "label") && block.align !== undefined) out.push(`${at}.align`);
+  if (block.type === "value" && (block.color === "fg" || block.color === "muted")) out.push(`${at}.color`);
+  if ((block.type === "ring" || block.type === "gauge") && block.tone !== undefined) out.push(`${at}.tone`);
+  if (raw.convert !== undefined) out.push(`${at}.convert`);
+  if ((raw.thresholds as Thresholds | undefined)?.low !== undefined) out.push(`${at}.thresholds.low`);
   childrenOf(block).forEach((c, k) => format2Keys(c, `${at}.children[${k}]`, out));
   return out;
 }
