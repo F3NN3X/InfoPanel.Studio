@@ -61,6 +61,15 @@ const DIRECTIONS = [
   { value: "columns", label: "Columns" },
   { value: "grid", label: "Grid" },
 ] as const;
+/**
+ * A line of text in a column (a card's blocks, or a Row set to Column): it takes its own height unless it is given a share (B16), so
+ * its share field is empty by default rather than 1.
+ */
+const ownLine = (recipe: Recipe, path: Path, b: Block): boolean => {
+  const parent = path.length ? blockAt(recipe, path.slice(0, -1)) : undefined;
+  return (b.type === "label" || b.type === "value" || b.type === "weather-icon") && (parent?.type === "card" || (parent?.type === "row" && parent.direction === "column"));
+};
+
 /** A Row's align (G20): where each block sits across the row, in its cell; Stretch (unset) fills it. */
 const ALIGNS = [
   { value: "start", label: "Start" },
@@ -473,9 +482,15 @@ export function BlockTab(props: BlockTabProps) {
         <>
           <Heading>When it shows</Heading>
           <WhenRows recipe={recipe} path={path} block={block} onChange={onChange} />
-          <Field label="Share of its row">
-            <NumberInput label="Share of its row" value={block.grow ?? 1} min={0} max={12} step={0.1} onChange={(v) => set({ grow: v === 1 ? undefined : v })} />
-          </Field>
+          {ownLine(recipe, path, block) ? (
+            <Field label="Share of its row" hint="In a column a line of text takes its own height; a share makes it take that part of the column instead">
+              <NumberInput label="Share of its row" value={block.grow} placeholder="Own" min={0} max={12} step={0.1} onChange={(v) => set({ grow: v })} />
+            </Field>
+          ) : (
+            <Field label="Share of its row">
+              <NumberInput label="Share of its row" value={block.grow ?? 1} min={0} max={12} step={0.1} onChange={(v) => set({ grow: v === 1 ? undefined : v })} />
+            </Field>
+          )}
         </>
       )}
       <p className="mt-3 text-caption leading-snug text-ui-3">Colours come from the screen's theme, so the widget matches any theme or pack</p>
