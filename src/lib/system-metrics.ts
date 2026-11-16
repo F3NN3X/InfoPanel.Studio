@@ -247,13 +247,14 @@ function readDisks(sensors: SensorMap, keys: string[]): DiskReading[] {
     .map((key) => {
       const id = key.replace(/_used_space$/, "");
       const get = (suffix: string) => sensors[`${id}_${suffix}`];
-      // "Temperature #N" is the drive's own sensor; "Composite" the NVMe fallback.
+      // "Temperature #N" is the drive's own sensor; "Composite" the NVMe fallback; a drive with one sensor has the bare
+      // `…_temperature` key (B26: a SATA SSD's only reading, which Thermals showed and this list did not).
       const tempKey = keys.find((k) => k.startsWith(id) && /^_temperature__\d+$/.test(k.slice(id.length)));
       return {
         id,
         name: hardwareName(sensors[key], /\s*Used Space$/i) ?? id.replace(/^libre\./, ""),
         used: num(sensors[key]),
-        temp: live(tempKey ? sensors[tempKey] : get("composite_temperature")),
+        temp: live(tempKey ? sensors[tempKey] : (get("composite_temperature") ?? get("temperature"))),
         activity: num(get("total_activity")),
         read: num(get("read_rate")),
         write: num(get("write_rate")),
