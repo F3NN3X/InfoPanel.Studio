@@ -750,3 +750,33 @@ describe("Phase D: polish", () => {
     expect(one.options.find((o) => o.key === "layout")?.options).toHaveLength(1);
   });
 });
+
+describe("Phase E: weight, case, opacity, surface, padding, spacing, sweep and height (format 2)", () => {
+  it("withFormat writes 2 for each Phase E key the builder sets, and 1, byte for byte, when it goes again", () => {
+    const base = newRecipe("Card", new Set());
+    const cases: [Block["type"], Record<string, unknown>][] = [
+      ["value", { weight: "semibold" }],
+      ["label", { weight: "medium" }],
+      ["label", { case: "upper" }],
+      ["value", { opacity: 40 }],
+      ["bar", { opacity: 60 }],
+      ["card", { surface: "raised" }],
+      ["card", { surface: "none" }],
+      ["card", { padding: "l" }],
+      ["gauge", { sweep: 180 }],
+      ["bar", { height: "s" }],
+    ];
+    for (const [type, patch] of cases) {
+      const v = addBlock(base, [], type, `libre.${CPU}_cpu_total`);
+      const r = withFormat(updateBlock(v.recipe, v.path, patch));
+      expect(r.format, `${type} ${JSON.stringify(patch)}`).toBe(2);
+      expect(errorsOf(r), `${type} ${JSON.stringify(patch)}`).toEqual([]);
+      const back = withFormat(updateBlock(r, v.path, Object.fromEntries(Object.keys(patch).map((k) => [k, undefined]))));
+      expect(JSON.stringify(back)).toBe(JSON.stringify(v.recipe));
+    }
+    const roomy = withFormat(updateBlock(base, [], { spacing: "roomy" }));
+    expect(roomy.format).toBe(2);
+    expect(errorsOf(roomy)).toEqual([]);
+    expect(JSON.stringify(withFormat(updateBlock(roomy, [], { spacing: undefined })))).toBe(JSON.stringify(base));
+  });
+});

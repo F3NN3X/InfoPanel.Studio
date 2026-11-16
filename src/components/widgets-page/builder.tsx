@@ -258,6 +258,8 @@ export function Builder(p: BuilderProps) {
   const first = problems[0]?.text;
   // crowding at the size the stage shows (G19, B11), measured after it draws; null until then
   const [crowds, setCrowds] = useState<Crowd[] | null>(null);
+  // the opacity step each faded text is drawn at on the Look shown (Phase E), by block path: the Block tab says when it was raised
+  const [drawn, setDrawn] = useState<Record<string, number>>({});
   const warnings = crowds ? crowdIssues(recipe, size, crowds) : [];
   // the validator's own warnings (a warning level past critical with high is bad): at every size, and no stop to a save
   const cautions = plainWarnings(recipe, issues);
@@ -595,6 +597,12 @@ export function Builder(p: BuilderProps) {
         const m = zone && measureInks(zone);
         const next = m ? crowding(m.inks, m.card) : [];
         setCrowds((old) => (old && JSON.stringify(old) === JSON.stringify(next) ? old : next));
+        const steps: Record<string, number> = {};
+        for (const el of zone?.querySelectorAll<HTMLElement>("[data-recipe-opacity]") ?? []) {
+          const key = el.closest<HTMLElement>("[data-recipe-path]")?.dataset.recipePath;
+          if (key !== undefined) steps[key] = Math.max(steps[key] ?? 0, Number(el.dataset.recipeOpacity));
+        }
+        setDrawn((old) => (JSON.stringify(old) === JSON.stringify(steps) ? old : steps));
       });
     }, 120);
     return () => {
@@ -919,7 +927,7 @@ export function Builder(p: BuilderProps) {
             </p>
           )}
           <TypingContext.Provider value={typing}>
-            {tab === "block" && <BlockTab recipe={recipe} path={path} header={header} onChange={(r) => edit(r)} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} />}
+            {tab === "block" && <BlockTab recipe={recipe} path={path} header={header} onChange={(r) => edit(r)} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} drawnOpacity={drawn[path.join(".")]} />}
             {tab === "options" && <OptionsTab recipe={recipe} onChange={(r) => edit(r)} data={{ ...sampleData, ...liveData }} onOpenSources={p.onOpenSources} />}
             {tab === "presets" && <PresetsTab recipe={recipe} onChange={(r) => edit(r)} current={preset} onPick={pickPreset} values={shownValues} size={size} data={{ ...sampleData, ...liveData }} devices={devices} onOpenSources={p.onOpenSources} />}
           </TypingContext.Provider>
