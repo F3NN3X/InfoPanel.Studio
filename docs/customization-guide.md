@@ -823,20 +823,20 @@ was (in **Yours** when you made it). **Export**, in a widget's details or in the
 in the builder it saves your edits first, so the file is always the version the server holds.
 
 **New widget** opens the builder on a blank recipe. A built-in's details also have **Duplicate as a recipe** for CPU Monitor,
-GPU Monitor, Sensor and Weather; the other built-ins draw things blocks cannot (lists with as many rows as the data has,
-controls, the clock, audio streams), and the button says why it is disabled.
+GPU Monitor, Sensor, Weather, Fans, Disk I/O and Core Heatmap; the other built-ins draw things blocks cannot (lists of things that
+are not devices or places, controls, the clock, audio streams), and the button says why it is disabled.
 
 **The builder** has Layers and **Add a block** on the left, the preview in the middle and the inspector on the right.
 
-- A recipe is a card of blocks: Ring, Gauge, Bar, Sparkline, Value, Label, Weather icon, Image, Heatmap, Row and Repeat (up to
-  64 blocks, six levels deep). The name is edited in the bar at the top; **Undo** and **Redo** (`Ctrl+Z`, `Ctrl+Shift+Z`)
+- A recipe is a card of blocks: Ring, Gauge, Bar, Sparkline, Value, Label, Weather icon, Image, Heatmap, Row, Grid and Repeat (up
+  to 64 blocks, six levels deep). The name is edited in the bar at the top; **Undo** and **Redo** (`Ctrl+Z`, `Ctrl+Shift+Z`)
   step through edits, and every open recipe keeps its own history. A text or number field counts as one edit when you leave it
   or press **Enter** (the preview follows as you type; **Esc** puts the value back), and a slider drag is one edit.
-- In **Layers**, drag a block into a Row, a Card or a Repeat (onto the middle of its row), out of one, or between rows (a line
-  shows where it lands). On the keyboard, **Alt+←** takes the selected block out of its container, **Alt+→** puts it into the
-  Row, Card or Repeat just above it, and **Alt+↑** / **Alt+↓** move it among its neighbours. A move the recipe can't hold (a
-  Repeat inside a Repeat, more than six levels, a place's reading outside its Repeat) is refused, and the reason shows where you
-  dropped it.
+- In **Layers**, drag a block into a Row, a Grid, a Card or a Repeat (onto the middle of its row), out of one, or between rows (a
+  line shows where it lands). On the keyboard, **Alt+←** takes the selected block out of its container, **Alt+→** puts it into
+  the Row, Grid, Card or Repeat just above it, and **Alt+↑** / **Alt+↓** move it among its neighbours. A move the recipe can't
+  hold (a Repeat or a Grid inside a Repeat, more than six levels, an item's reading outside its Repeat or in a Repeat whose items
+  lack it) is refused, and the reason shows where you dropped it.
 - Click a tile in **Add a block** to add the block by the selection, or drag the tile onto a row in **Layers** or onto the
   preview to put it exactly there (the same line or outline shows where, and a refused drop says why).
 - Right-click a row in **Layers** (or press **Shift+F10** or the Menu key) for **Rename** (**F2** or a double-click),
@@ -901,7 +901,20 @@ controls, the clock, audio streams), and the button says why it is disabled.
   recipe hides a block. The **Header** row under the card holds its title, sub-title and header icon (a click on the preview's
   header selects it too).
 - Deleting a block that was the last to use an option (a Repeat's **Locations**) offers **Also remove … (not used now)**; it is one
-  undo step with the delete, and **Keep** leaves the option.
+  undo step with the delete, and **Keep** leaves the option. Setting a Repeat to run over devices offers the same for the place
+  list it no longer reads.
+- A **Repeat**'s **List** is a place list (Weather by place, below) or a device list the readings have: **Drives**, **CPU
+  cores**, **Fans**, **Network adapters** or **GPUs**, each found as the built-in widgets find them. The blocks inside read a
+  **Field** of each item: a drive's name, model, used space, temperature, activity, read and write rates, free and total space and
+  life; a core's name and load (the first CPU's threads, in order); a fan's name and speed in RPM (a fan at 0 is left out); an
+  adapter's name and download and upload rates; a GPU's name, load, temperature, clock, power and memory used. **Most shown** goes
+  up to 32 for devices (12 for places). Changing the list moves each block to a field the new items have (a name stays a name).
+  The Sample shows the devices the recipe was saved with.
+- A **Grid** lays its blocks out as cells of one size, in **Columns** you set (1 to 12) or, empty, as many as make the cells
+  closest to square at the size shown, with a **Spacing** (Tight, Normal or Roomy). A Repeat inside a Grid gives each item its own
+  cell, its blocks in a column: a Grid holding a Repeat over CPU cores with a Ring draws a ring per core. A Repeat in a Grid has
+  no Direction or divider lines of its own, and a Grid can't go inside a Repeat. At a small size the cells shrink; the crowding
+  warnings below name a block in a cell as anywhere else.
 - **Options** are what people can change when they add the widget, shown in its Content tab: a toggle, a choice, a number, a
   text, a sensor (its default picked with the data picker), a place list or a device (up to 24). A device option's **Kind** (CPU, GPU, Drive, Network adapter) changes what
   every block that follows it reads at once: each reading moves to the new kind's reading of the same sort (load, temperature,
@@ -918,7 +931,7 @@ controls, the clock, audio streams), and the button says why it is disabled.
   the server, **Add to a screen** saves it and puts it on the screen, and **Export** saves it and writes the package. A recipe
   signed by someone else cannot be replaced by a save, only copied with **Save as a copy**.
 - A recipe that uses a label of parts, a Value's or a Label's **Align**, a Value's **Muted** colour, a
-  ring's **Centre colour**, **Show in** or **Low is bad** is saved as recipe format 2, and needs this version of Studio. An older
+  ring's **Centre colour**, **Show in**, **Low is bad**, a **Grid** or a Repeat over devices is saved as recipe format 2, and needs this version of Studio. An older
   Studio draws it as "Widget not available" (a recipe without any of them stays format 1 and draws everywhere); this one says
   "made with a newer InfoPanel Studio; update to show it" for a recipe of a format newer than it reads.
 
