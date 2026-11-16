@@ -3,13 +3,14 @@
 // second child of its first), the same path the renderer writes on each block (`data-recipe-path`), so a click on the stage and
 // a row in Layers name the same block. What the validator says (`validate.ts`) is the builder's validation line; nothing here
 // writes to the server.
+import type { DataPoint } from "@/lib/data-points";
 import { get, hw } from "@/widgets/core/data";
 import type { Data } from "@/widgets/core/types";
 import { readingUnit } from "@/widgets/recipe/convert";
 import { cellBasePx, TEXT_FLOOR } from "@/widgets/recipe/metrics";
 import { recipeBytes } from "@/widgets/recipe/package";
 import { boundSensors, expandKey } from "@/widgets/recipe/reads";
-import { BLOCK_TYPES, type Binding, type Block, type BlockType, type CardBlock, type Cells, type Container, type FollowOption, type LabelPart, type PackageFile, type Place, type Recipe, type RecipeDeviceKind, type RecipeOption, type Thresholds } from "@/widgets/recipe/types";
+import { BLOCK_TYPES, type Binding, type Block, type BlockType, type CardBlock, type Cells, type Condition, type Container, type FollowOption, type LabelPart, type PackageFile, type Place, type Recipe, type RecipeDeviceKind, type RecipeOption, type Thresholds } from "@/widgets/recipe/types";
 import { DEPTH_MAX, DEVICE_SLOT, format2Keys, ITEMS_MAX, type RecipeIssue, validateRecipe } from "@/widgets/recipe/validate";
 import type { WidgetPreset } from "@/widgets/define";
 
@@ -430,11 +431,14 @@ export function pickedOption(recipe: Recipe, b: Binding | undefined): RecipeOpti
   return undefined;
 }
 
-/** What "Let people pick …" names for a block: the device its key belongs to, else "the sensor". Undefined for a block that cannot. */
+/**
+ * What "Let people pick …" names for a block: the device its key belongs to, else "the sensor". Undefined for a block that cannot: a
+ * Repeat item's field, and a weather icon, which reads a condition's text (G33), not a device's reading.
+ */
 export function pickWhat(recipe: Recipe, path: Path, devices: Partial<Record<RecipeDeviceKind, string[]>>): string | undefined {
   const b = blockAt(recipe, path);
   const bind = b && bindingOf(b);
-  if (!bind || "field" in bind) return undefined;
+  if (!bind || "field" in bind || (b.type === "weather-icon" && !pickedOption(recipe, bind))) return undefined;
   const picked = pickedOption(recipe, bind);
   if (picked?.type === "device") return `the ${DEVICE_LABEL[picked.kind!]}`;
   if (picked) return "the sensor";
@@ -532,10 +536,13 @@ export function addOption(recipe: Recipe, option: RecipeOption): Recipe {
   return { ...recipe, options: [...recipe.options, { ...option, key }] };
 }
 
-/** Changes an option's label, default or choices (its key stays: blocks and presets name it). */
+/** Changes an option's label, default, choices, hint, group or step (its key stays: blocks and presets name it); a field set to undefined goes. */
 export function updateOption(recipe: Recipe, key: string, patch: Partial<Omit<RecipeOption, "key" | "type">>): Recipe {
-  return { ...recipe, options: recipe.options.map((o) => (o.key === key ? { ...o, ...patch } : o)) };
+  return { ...recipe, options: recipe.options.map((o) => (o.key === key ? withoutUnset({ ...o, ...patch }) : o)) };
 }
+
+/** An object with its undefined fields taken out, so a cleared field leaves no key behind. */
+const withoutUnset = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 
 /** How many blocks name an option (a binding, a key's device, a Repeat, a condition). */
 export function optionUses(recipe: Recipe, key: string): number {
@@ -627,10 +634,19 @@ export function setPresetValue(recipe: Recipe, id: string, key: string, value: u
   return { ...recipe, presets: recipe.presets.map((p) => (p.id === id ? { ...p, settings } : p)) };
 }
 
-/** Changes a preset's name, blurb or size. */
+/** Changes a preset's name, blurb or size; a blurb set to undefined goes. */
 export function updatePreset(recipe: Recipe, id: string, patch: Partial<Pick<WidgetPreset, "name" | "blurb" | "size">>): Recipe {
-  return { ...recipe, presets: recipe.presets.map((p) => (p.id === id ? { ...p, ...patch } : p)) };
+  return { ...recipe, presets: recipe.presets.map((p) => (p.id === id ? withoutUnset({ ...p, ...patch }) : p)) };
 }
+
+/** A preset's blurb as typed (G30): the Add panel's line under its name, 60 characters with no < or >; empty is none. */
+export const blurbOf = (typed: string): string | undefined => typed.replace(/[<>]/g, "").trim().slice(0, 60) || undefined;
+
+/**
+ * The options a preset sets a value of (G30): every kind people pick in the Content tab, so a text, a sensor, a place list and a device
+ * too. Colour, date and time options are kept out of "Add an option" (Q9) and have no row.
+ */
+export const presetOptions = (recipe: Recipe): RecipeOption[] => recipe.options.filter((o) => o.type !== "color" && o.type !== "date" && o.type !== "time");
 
 /** Makes a preset the default (what a fresh add is). */
 export function setDefaultPreset(recipe: Recipe, id: string): Recipe {
@@ -908,3 +924,122 @@ export const baseAt = (cells: Cells): number => cellBasePx(cells[0], cells[1]);
 
 /** Whether a block type is one this build draws. */
 export const isBlockType = (t: string): t is BlockType => (BLOCK_TYPES as readonly string[]).includes(t);
+
+/* ───────── Phase D: polish ───────── */
+
+/**
+ * "From the size" and "Up to the size" (G28): one side of `when.size`'s `min` or `max` set, `undefined` for any. A side left at any is
+ * 1 in a `min` and 12 in a `max` (what holds at every size), so an end whose two sides are any goes, and a `when` left with no option
+ * and no size goes too.
+ */
+export function withWhenSize(when: Condition | undefined, end: "min" | "max", axis: 0 | 1, v: number | undefined): Condition | undefined {
+  const any = end === "min" ? 1 : 12;
+  const old = when?.size?.[end];
+  const next: Cells = [old?.[0] ?? any, old?.[1] ?? any];
+  next[axis] = v ?? any;
+  const { [end]: _old, ...rest } = when?.size ?? {};
+  const size = next[0] === any && next[1] === any ? rest : { ...rest, [end]: next };
+  const { size: _size, ...cond } = when ?? {};
+  const out: Condition = Object.keys(size).length ? { ...cond, size } : cond;
+  return out.option !== undefined || out.size ? out : undefined;
+}
+
+/** The package path a picked picture is stored under (`images/<name>.<png|jpg|webp>`): its file name made a slug, its type the extension. */
+export function imagePath(fileName: string, mime: string): string {
+  const ext = mime === "image/jpeg" ? "jpg" : mime === "image/webp" ? "webp" : "png";
+  const stem = fileName.toLowerCase().replace(/\.[a-z]+$/, "").replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "image";
+  return `images/${stem}.${ext}`;
+}
+
+/**
+ * The pictures a package holds: the ones an Image block shows (B22). The open recipe keeps every picture it was given, so an undo that
+ * brings an Image back finds its picture; a save and the validation line pack only these, so a deleted Image's picture is not saved.
+ */
+export function packedImages(recipe: Recipe, images: readonly PackageFile[]): PackageFile[] {
+  const used = new Set(flatten(recipe).flatMap(({ block }) => (block.type === "image" ? [block.file] : [])));
+  return images.filter((f) => used.has(f.path));
+}
+
+/**
+ * A new Image block with its picture (G32): the block is added only once a file is picked, so it is never a block whose picture is not in
+ * the package. The picture joins `images` (in place of one at the same path). Refused where a new Image may not go.
+ */
+export function addImageAt(recipe: Recipe, images: readonly PackageFile[], into: Path, index: number, file: PackageFile): { recipe: Recipe; images: PackageFile[]; path: number[] } | { why: string } {
+  const why = addRefusal(recipe, "image", into);
+  if (why) return { why };
+  const r = addBlockAt(recipe, into, index, "image", "x.y");
+  return { recipe: updateBlock(r.recipe, r.path, { file: file.path }), images: [...images.filter((f) => f.path !== file.path), file], path: r.path };
+}
+
+/** The options an edit left unused (G34): a block named each before, and none names it now. */
+export const leftUnused = (before: Recipe, after: Recipe): RecipeOption[] => after.options.filter((o) => optionUses(before, o.key) > 0 && optionUses(after, o.key) === 0);
+
+/** The clean-up offer taken (G34): those options out, with their presets' values and a place list's sample items. */
+export function cleanUp(recipe: Recipe, unused: readonly RecipeOption[]): Recipe {
+  const next = unused.reduce((r, o) => removeOption(r, o.key), recipe);
+  return unused.length ? withSampleItems(next) : next;
+}
+
+/** The snippets (G35): a common compound as one tile, added as a Row holding its blocks. */
+export const SNIPPETS = [
+  { id: "label-value-bar", label: "Label, value and bar" },
+  { id: "ring-caption", label: "Ring with a caption" },
+  { id: "value-sparkline", label: "Value and history" },
+] as const;
+export type SnippetId = (typeof SNIPPETS)[number]["id"];
+
+/** A snippet's Row (format 1 keys only, so it never changes a recipe's format), bound as a new block there would be (`newBlock`). */
+export function newSnippet(id: SnippetId, opts: { sensor: string; inRepeat: boolean }): Block {
+  const block = (type: BlockType, patch: Record<string, unknown> = {}) => withoutUnset({ ...newBlock(type, opts), ...patch }) as Block;
+  switch (id) {
+    case "label-value-bar":
+      return { type: "row", name: "Label, value and bar", direction: "column", gap: 4, children: [block("label", opts.inRepeat ? {} : { tone: "muted" }), block("value", opts.inRepeat ? {} : { label: undefined }), block("bar")] };
+    case "ring-caption":
+      return { type: "row", name: "Ring with a caption", direction: "column", gap: 4, align: "center", children: [block("ring"), block("label", opts.inRepeat ? {} : { text: "Caption", tone: "muted" })] };
+    case "value-sparkline":
+      return { type: "row", name: "Value and history", direction: "column", gap: 4, children: [block("value"), block("sparkline", { grow: 2 })] };
+  }
+}
+
+/** Adds a snippet where Add puts a block (`landing`), unless it may not go there (too deep, or a Repeat's fields outside one). */
+export function addSnippet(recipe: Recipe, at: Path, id: SnippetId, sensor: string): { recipe: Recipe; path: number[] } | { why: string } {
+  const { into, index } = landing(recipe, at);
+  const row = newSnippet(id, { sensor, inRepeat: !!repeatAbove(recipe, [...into, 0]) });
+  const why = placeRefusal(recipe, row, into);
+  if (why) return { why };
+  const k = Math.max(0, Math.min(index, childrenOf(blockAt(recipe, into)!).length));
+  return { recipe: mapAt(recipe, into, (b) => ({ ...b, children: [...childrenOf(b).slice(0, k), row, ...childrenOf(b).slice(k)] }) as Block), path: [...into, k] };
+}
+
+/** The data points a block's picker offers: a weather icon reads a condition's text or code (G33), so text readings only; any other all. */
+export const pickerPoints = (b: Block, points: readonly DataPoint[]): readonly DataPoint[] => (b.type === "weather-icon" ? points.filter((p) => p.type === "text") : points);
+
+/** The blocks shown or hidden by a choice of an option (`when` is or is not it), by Layers name: the choice can't go from under them (B21). */
+export function choiceUses(recipe: Recipe, key: string, value: string): string[] {
+  return flatten(recipe)
+    .filter(({ block: b }) => b.when?.option === key && (b.when.is === value || b.when.not === value))
+    .map(({ block }) => layerName(recipe, block));
+}
+
+/**
+ * A choice of a select option taken out (B21): the default passes to the first choice left, a preset that picked it goes back to the
+ * default, and a setting that follows the option drops it from its map (that choice keeps the setting's own value, as any choice a map
+ * leaves out). The blocks shown when it is picked are `choiceUses`'s to refuse.
+ */
+export function removeChoice(recipe: Recipe, key: string, value: string): Recipe {
+  const o = recipe.options.find((x) => x.key === key);
+  const left = (o?.options ?? []).filter((c) => c.value !== value);
+  if (o?.type !== "select" || !left.length || left.length === o.options?.length) return recipe;
+  const options = updateOption(recipe, key, { options: left, default: o.default === value ? left[0].value : o.default }).options;
+  const presets = recipe.presets.map((p) => (p.settings[key] === value ? { ...p, settings: Object.fromEntries(Object.entries(p.settings).filter(([k]) => k !== key)) } : p));
+  const unmap = (v: unknown) => (isFollowOf(v, key) && v.map && value in v.map ? { ...v, map: Object.fromEntries(Object.entries(v.map).filter(([c]) => c !== value)) } : v);
+  // a block keeps its object unless a setting of it (or of a block it holds) changed
+  const go = (b: Block): Block => {
+    const entries = Object.entries(b).map(([k, v]) => [k, k === "children" ? (v as Block[]).map(go) : unmap(v)] as const);
+    const same = entries.every(([k, v]) => (k === "children" ? (v as Block[]).every((c, i) => c === (b as Container).children[i]) : v === (b as unknown as Record<string, unknown>)[k]));
+    return same ? b : (Object.fromEntries(entries) as unknown as Block);
+  };
+  return { ...recipe, options, presets, root: go(recipe.root) as CardBlock };
+}
+
+const isFollowOf = (v: unknown, key: string): v is FollowOption<string | number> => typeof v === "object" && v !== null && !Array.isArray(v) && (v as FollowOption<string>).option === key;

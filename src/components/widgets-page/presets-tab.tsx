@@ -1,6 +1,7 @@
 // The builder inspector's Presets tab (Phase 5b, screenshot 06): named sets of option values and a size. Picking one shows it on
 // the stage, with its option values to change there; "Save current as a preset" keeps the stage's values and size under a name.
-// One is the default (what a fresh add is): its values are the options' defaults.
+// One is the default (what a fresh add is): its values are the options' defaults. Phase D (G30): a preset's blurb (the Add panel's line)
+// and its values of text, sensor, place list and device options too.
 import { useState } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { MoreHorizontal, Plus } from "lucide-react";
@@ -8,9 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { ITEM, POPUP } from "@/components/studio/menu-styles";
 import { cn } from "@/lib/utils";
-import type { Cells, Recipe } from "@/widgets/recipe/types";
-import { presetLine, presetValues, removePreset, savePreset, setDefaultPreset, setPresetValue, updatePreset } from "./builder-model";
-import { Field, INPUT, NumberInput, Select } from "./fields";
+import { PlaceListEditor } from "@/components/studio/place-list/place-list-editor";
+import { placeList } from "@/components/studio/place-list/place-search";
+import type { Data } from "@/widgets/core/types";
+import type { Cells, Recipe, RecipeDeviceKind } from "@/widgets/recipe/types";
+import { blurbOf, presetLine, presetOptions, presetValues, removePreset, savePreset, setDefaultPreset, setPresetValue, updatePreset, withSampleItems } from "./builder-model";
+import { Field, INPUT, NumberInput, Select, TextInput } from "./fields";
+import { SensorDefault } from "./options-tab";
 
 export interface PresetsTabProps {
   recipe: Recipe;
@@ -21,9 +26,13 @@ export interface PresetsTabProps {
   /** The stage's option values and size, for "Save current as a preset". */
   values: Record<string, unknown>;
   size: Cells;
+  /** The readings the stage has (a sensor value's reading) and the devices in them (a device value's choices). */
+  data: Data;
+  devices: Partial<Record<RecipeDeviceKind, string[]>>;
+  onOpenSources: () => void;
 }
 
-export function PresetsTab({ recipe, onChange, current, onPick, values, size }: PresetsTabProps) {
+export function PresetsTab({ recipe, onChange, current, onPick, values, size, data, devices, onOpenSources }: PresetsTabProps) {
   const [naming, setNaming] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   return (
@@ -78,7 +87,7 @@ export function PresetsTab({ recipe, onChange, current, onPick, values, size }: 
             </Menu.Portal>
           </Menu.Root>
         </div>
-        {current === p.id && <PresetValues recipe={recipe} id={p.id} onChange={onChange} />}
+        {current === p.id && <PresetValues recipe={recipe} id={p.id} onChange={onChange} data={data} devices={devices} onOpenSources={onOpenSources} />}
         </div>
       ))}
       {naming === null ? (
@@ -107,12 +116,14 @@ export function PresetsTab({ recipe, onChange, current, onPick, values, size }: 
   );
 }
 
-/** The picked preset's option values, changed in place (a place list and a device are the options' own, not a preset's). */
-function PresetValues({ recipe, id, onChange }: { recipe: Recipe; id: string; onChange: (recipe: Recipe) => void }) {
-  const values = presetValues(recipe, recipe.presets.find((p) => p.id === id));
-  const rows = recipe.options.filter((o) => o.type === "boolean" || o.type === "select" || o.type === "number");
-  const size = recipe.presets.find((p) => p.id === id)!.size;
-  const set = (key: string, v: unknown) => onChange(setPresetValue(recipe, id, key, v));
+/** The picked preset's blurb and option values, changed in place (the default preset's values are the options' defaults). */
+function PresetValues({ recipe, id, onChange, data, devices, onOpenSources }: { recipe: Recipe; id: string; onChange: (recipe: Recipe) => void } & Pick<PresetsTabProps, "data" | "devices" | "onOpenSources">) {
+  const preset = recipe.presets.find((p) => p.id === id)!;
+  const values = presetValues(recipe, preset);
+  const rows = presetOptions(recipe);
+  const size = preset.size;
+  // a place list's default places are the sample's items, so the default preset's list remakes them
+  const set = (key: string, v: unknown) => onChange(withSampleItems(setPresetValue(recipe, id, key, v)));
   const setSize = (axis: 0 | 1, v: number | undefined) => {
     const next = [...size] as Cells;
     next[axis] = Math.max(1, Math.min(12, Math.round(v ?? 1)));
@@ -125,13 +136,31 @@ function PresetValues({ recipe, id, onChange }: { recipe: Recipe; id: string; on
         <span className="text-ui-3">×</span>
         <NumberInput label="Preset rows" value={size[1]} min={1} max={12} onChange={(v) => setSize(1, v)} width={56} />
       </Field>
-      {rows.map((o) => (
-        <Field key={o.key} label={o.label}>
-          {o.type === "boolean" && <Toggle label={o.label} checked={values[o.key] === true} onChange={(v) => set(o.key, v)} />}
-          {o.type === "select" && <Select label={o.label} value={String(values[o.key])} options={(o.options ?? []).map((c) => ({ value: c.value, label: c.label }))} onChange={(v) => set(o.key, v)} width={130} />}
-          {o.type === "number" && <NumberInput label={o.label} value={Number(values[o.key])} min={o.min} max={o.max} onChange={(v) => v !== undefined && set(o.key, v)} />}
-        </Field>
-      ))}
+      <Field label="Blurb" hint="The line under its name in Add; empty says what it sets">
+        <TextInput label="Blurb" value={preset.blurb ?? ""} placeholder="What it sets" onChange={(v) => onChange(updatePreset(recipe, id, { blurb: blurbOf(v) }))} />
+      </Field>
+      {rows.map((o) =>
+        o.type === "place-list" ? (
+          <PlaceListEditor key={o.key} label={o.label} places={placeList(values[o.key])} onChange={(places) => set(o.key, places)} />
+        ) : o.type === "sensor" ? (
+          <div key={o.key} className="flex flex-col gap-1 py-1">
+            <span className="text-body text-ui-2">{o.label}</span>
+            <SensorDefault value={String(values[o.key] ?? "")} label={o.label} name={`${o.label} in this preset`} data={data} onPick={(key) => set(o.key, key)} onOpenSources={onOpenSources} />
+          </div>
+        ) : (
+          <Field key={o.key} label={o.label}>
+            {o.type === "boolean" && <Toggle label={o.label} checked={values[o.key] === true} onChange={(v) => set(o.key, v)} />}
+            {o.type === "select" && <Select label={o.label} value={String(values[o.key])} options={(o.options ?? []).map((c) => ({ value: c.value, label: c.label }))} onChange={(v) => set(o.key, v)} width={130} />}
+            {o.type === "number" && <NumberInput label={o.label} value={Number(values[o.key])} min={o.min} max={o.max} onChange={(v) => v !== undefined && set(o.key, v)} />}
+            {o.type === "text" && <TextInput label={o.label} value={String(values[o.key] ?? "")} onChange={(v) => set(o.key, v.slice(0, 200))} width={130} />}
+            {o.type === "device" && <Select label={o.label} value={String(values[o.key] ?? "auto")} options={deviceChoices(devices[o.kind ?? "cpu"] ?? [], String(values[o.key] ?? "auto"))} onChange={(v) => set(o.key, v)} width={160} />}
+          </Field>
+        ),
+      )}
     </div>
   );
 }
+
+/** A device value's choices: Auto, then the devices of its kind the data has, and the value held when the data has it not. */
+const deviceChoices = (ids: readonly string[], held: string): { value: string; label: string }[] =>
+  [...new Set(["auto", ...ids, held])].map((id) => ({ value: id, label: id === "auto" ? "Auto" : id }));

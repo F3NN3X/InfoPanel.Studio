@@ -461,6 +461,15 @@ impl Widgets {
         Ok(true)
     }
 
+    /// Package `key`'s folder and files, read under the write lock (B23): a save replaces a package by moving the old folder aside and
+    /// the new one in, and a read between the two moves found no folder, so a page reading the recipe while it was saved got a 404 or
+    /// an empty answer. `Err(404)`: no such package or file to serve; `Err(413)`: a folder that is not a package this server wrote.
+    fn read_package(&self, key: &str, file: &str) -> Result<Files, u16> {
+        let _held = self.write.lock().unwrap_or_else(|e| e.into_inner());
+        let root = self.path_of(key, file).and_then(|_| self.package_dir(key)).ok_or(404u16)?;
+        read_files(&root).ok_or(413)
+    }
+
     /// The canonical folder of package `key` under the canonical widgets folder, when it is a real folder (not a link).
     fn package_dir(&self, key: &str) -> Option<PathBuf> {
         let base = std::fs::canonicalize(&self.dir).ok()?;
@@ -602,6 +611,8 @@ fn off(mut reply: Response<Body>) -> Response<Body> {
 
 fn handle_list(app: &App) -> Response<Body> {
     let widgets = &app.widgets;
+    // under the write lock, so a package being replaced is listed as it was or as it is, never missing (B23)
+    let _held = widgets.write.lock().unwrap_or_else(|e| e.into_inner());
     let items: Vec<Value> = listed(widgets)
         .into_iter()
         .map(|(key, (l, size))| {
@@ -704,13 +715,14 @@ fn serve_file(app: &App, req: &Req, key: &str, file: &str) -> Response<Body> {
     if !widgets.enabled {
         return off(http::empty(404));
     }
-    let Some(root) = widgets.path_of(key, file).and_then(|_| widgets.package_dir(key)) else {
-        return http::empty(404);
-    };
     if widgets.turned_off(key) {
         return http::empty(404);
     }
-    let Some(((listed, manifest), files)) = read_files(&root).and_then(|files| Some((checked_files(&files, Some(key)).ok()?, files))) else {
+    let files = match widgets.read_package(key, file) {
+        Ok(files) => files,
+        Err(status) => return http::empty(status),
+    };
+    let Some(((listed, manifest), files)) = checked_files(&files, Some(key)).ok().map(|checked| (checked, files)) else {
         return http::empty(413);
     };
     if let Err(reason) = trust_of(&listed.kind, &manifest, &widgets.keys.keyring()) {
@@ -969,6 +981,28 @@ mod tests {
         widgets.code_enabled = false;
         assert_eq!(trusts(&widgets), ["recipe.mine unsigned"], "off: a code widget is not listed");
         assert!(widgets.path_of("ext.test.clock", BUNDLE).is_none(), "off: nor served");
+    }
+
+    #[test]
+    fn b23_a_read_waits_for_a_save_in_progress_rather_than_finding_no_package() {
+        // a save holds the write lock from moving the old folder aside to moving the new one in; a read taken meanwhile found no
+        // folder (a 404, an empty answer). It now waits for the lock and reads the package as the save left it.
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "recipe.mine", &package("recipe:mine"));
+        let widgets = Widgets::with(dir.path().to_path_buf(), true);
+        let held = widgets.write.lock().unwrap();
+        // the save's window: the package is not in its place
+        std::fs::rename(dir.path().join("recipe.mine"), dir.path().join("aside")).unwrap();
+        std::thread::scope(|s| {
+            let (tx, rx) = std::sync::mpsc::channel();
+            let w = &widgets;
+            s.spawn(move || tx.send(w.read_package("recipe.mine", "recipe.json").map(|files| files.len())).unwrap());
+            assert!(rx.recv_timeout(std::time::Duration::from_millis(200)).is_err(), "the read waits while the save holds the lock");
+            std::fs::rename(dir.path().join("aside"), dir.path().join("recipe.mine")).unwrap();
+            drop(held);
+            assert_eq!(rx.recv().unwrap(), Ok(package("recipe:mine").len()), "then reads the package the save left");
+        });
+        assert_eq!(widgets.read_package("recipe.none", "recipe.json"), Err(404));
     }
 
     fn write(dir: &Path, key: &str, files: &Files) -> PathBuf {

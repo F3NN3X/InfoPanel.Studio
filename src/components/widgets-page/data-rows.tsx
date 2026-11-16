@@ -1,6 +1,7 @@
 // The Block tab's data rows (Phase 5b; Phase A G2-G4): what a block reads and "Let people pick …"; a label's text, typed or from data,
 // as a line of parts ("high" " / " "low"); and a heatmap's cells, one row per reading with the data picker, drag to order, or inside a
-// Repeat the field of numbers it draws. Every change is one edit of the recipe.
+// Repeat the field of numbers it draws. Every change is one edit of the recipe. Phase D (G33): a weather icon outside a Repeat picks
+// from text readings only, with no "Let people pick".
 import { useState } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { GripVertical, Plus, X } from "lucide-react";
@@ -14,7 +15,7 @@ import { cn } from "@/lib/utils";
 import type { Data } from "@/widgets/core/types";
 import { expandKey } from "@/widgets/recipe/reads";
 import { type Binding, type Block, type LabelPart, type Recipe, type RecipeDeviceKind, WEATHER_PLACE_FIELDS } from "@/widgets/recipe/types";
-import { deviceOfKey, labelParts, layerName, moveItem, pickBinding, pickedOption, pickWhat, repeatAbove, replaceSensor, setLabelParts, setLabelSource, unpickBinding, updateBlock, type Path } from "./builder-model";
+import { deviceOfKey, labelParts, layerName, moveItem, pickBinding, pickerPoints, pickedOption, pickWhat, repeatAbove, replaceSensor, setLabelParts, setLabelSource, unpickBinding, updateBlock, type Path } from "./builder-model";
 import { Field, Heading, NumberInput, Select, TextInput } from "./fields";
 
 export interface DataRowsProps {
@@ -62,7 +63,7 @@ function bindingName(recipe: Recipe, b: Binding, names: Record<string, string> |
 }
 
 /** The sensor button: what it reads now, and the picker to change it. */
-function SensorButton({ recipe, bind, title, props, onPick }: { recipe: Recipe; bind: Binding | undefined; title: string; props: DataRowsProps; onPick: (key: string) => void }) {
+function SensorButton({ recipe, bind, title, props, onPick, block }: { recipe: Recipe; bind: Binding | undefined; title: string; props: DataRowsProps; onPick: (key: string) => void; block?: Block }) {
   const [open, setOpen] = useState(false);
   const model = useDataModel();
   const info = bind ? bindingInfo(recipe, bind, props.data, props.names) : undefined;
@@ -75,7 +76,7 @@ function SensorButton({ recipe, bind, title, props, onPick }: { recipe: Recipe; 
         </span>
         <span className="shrink-0 font-ui-mono text-body text-ui-1">{info?.value}</span>
       </button>
-      <DataPicker open={open} onOpenChange={setOpen} title={title} points={model.points} mode="item" bound={new Set()} onToggle={(p) => onPick(keyFor(recipe, p.key, props.devices))} onOpenExplorer={props.onOpenSources} />
+      <DataPicker open={open} onOpenChange={setOpen} title={title} points={block ? pickerPoints(block, model.points) : model.points} mode="item" bound={new Set()} onToggle={(p) => onPick(keyFor(recipe, p.key, props.devices))} onOpenExplorer={props.onOpenSources} />
     </>
   );
 }
@@ -96,7 +97,7 @@ export function DataRow({ block, props }: { block: Block; props: DataRowsProps }
     );
   return (
     <>
-      <SensorButton recipe={recipe} bind={bind} title={`Data for ${layerName(recipe, block)}`} props={props} onPick={(key) => set({ sensor: key })} />
+      <SensorButton recipe={recipe} bind={bind} title={`Data for ${layerName(recipe, block)}`} props={props} onPick={(key) => set({ sensor: key })} block={block} />
       {bind && "sensor" in bind && <ReplaceSensor key={path.join(".")} from={bind.sensor} props={props} />}
       {what && (
         <Field label={`Let people pick ${what}`}>
