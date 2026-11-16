@@ -269,7 +269,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
                 }}
                 onKeyDown={(e) => onKey(at, block, e)}
                 className={cn(
-                  "flex h-[34px] w-full cursor-default items-center gap-2 rounded-ui-md pr-2 text-left text-body outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
+                  "flex h-[34px] w-full cursor-default items-center gap-2 rounded-ui-md pr-2 text-left text-body focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
                   key === primaryKey ? "bg-ui-active text-ui-1" : isSelected ? "bg-ui-accent/12 text-ui-1" : "text-ui-2 hover:bg-ui-raised hover:text-ui-1",
                   mark?.where === "inside" && (mark.why ? "outline outline-1 -outline-offset-1 outline-ui-warn" : "outline outline-1 -outline-offset-1 outline-ui-accent"),
                   dragging?.some((p) => keyOf(p) === key) && "opacity-50",
