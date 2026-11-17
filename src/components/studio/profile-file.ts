@@ -1,7 +1,9 @@
 import { unresolvedCanvases } from "@/lib/canvas-store";
 import { CONFIG_VERSION, readImportedConfig, type DashboardConfig, type MonitorProfile, type Placement, type StoredProfile } from "@/lib/layout";
 import { PROFILE_FILE_TYPE } from "@/lib/import-sniff";
-import { bundleAssets, profileAssetIds, readBundled, type BundledAsset } from "@/lib/profile-assets";
+// the images a file carries are read and written by their own chunk, loaded only when a file has some (P5)
+import type { BundledAsset } from "@/lib/profile-assets";
+const profileAssets = () => import("@/lib/profile-assets");
 import { saveFilePayload, type FilePayload, type ReportError } from "./config-file";
 import { uniqueProfileName, withFreshIds } from "./profile-actions";
 
@@ -123,7 +125,7 @@ export async function parseProfileFile(
     const steps = enveloped ? version : Math.min(version, 16);
     const [profile] = (await readImportedConfig({ version: steps, profiles: [picked as unknown as StoredProfile] })).profiles;
     // One way only: an older file is upgraded, and the import says so.
-    const assets = enveloped ? readBundled(json.assets) : [];
+    const assets = enveloped && json.assets !== undefined ? (await profileAssets()).readBundled(json.assets) : [];
     return {
       profile,
       skippedCanvases,
@@ -163,6 +165,7 @@ export async function bundledScreenPayload(
 ): Promise<{ payload: FilePayload; left: number } | { error: string }> {
   const bare = screenPayload(config, profile);
   if ("error" in bare) return bare;
+  const { bundleAssets, profileAssetIds } = await profileAssets();
   const ids = profileAssetIds(profile);
   if (!ids.length) return { payload: bare, left: 0 };
   // the file's pretty-printing indents each image entry a little: a margin of a kilobyte covers it
