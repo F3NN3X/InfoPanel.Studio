@@ -81,6 +81,7 @@ import {
   useKioskReload,
   withControlPage,
 } from "@/lib/control";
+import { useKioskThemePreview } from "@/lib/theme-preview-kiosk";
 import { isDisplayName } from "@/lib/screens/display-name";
 import { DRAG_SETTLE_MS, dragAxis, dragSettle, startsOnPinned, swipeDirection } from "@/lib/swipe";
 import { cn } from "@/lib/utils";
@@ -168,6 +169,8 @@ export default function App({ fixture }: AppProps = {}) {
   // and the page. The stream also tells the server which profile this kiosk shows.
   const [shownId, setShownId] = useState<string>();
   const control = useControl(shownId, kiosk && shownId !== undefined, pagePin, false, displayName ? { name: displayName, pinned: !!profilePin } : undefined);
+  // Kiosk: a theme the studio previews here draws over the saved config (never saved; see theme-preview-kiosk).
+  const drawnConfig = useKioskThemePreview(config, kiosk ? control?.themePreview : undefined);
   // A tap or swipe switches at once; the server's state takes over when it arrives.
   const [optimistic, setOptimistic] = useState<{ profile: string; page: string } | null>(null);
   // Kiosk: studio saves pulled since load (the island's "Layout updated").
@@ -193,7 +196,7 @@ export default function App({ fixture }: AppProps = {}) {
   const [kioskPulled, setKioskPulled] = useState(false);
   // A kiosk keeps its screen up until the next screen's widgets are in (`src/widgets/preload.ts`).
   const stored = useLoadedProfile(
-    resolveProfile(forcedProfile ? { ...config, activeProfile: forcedProfile } : config, windowSize.w, windowSize.h),
+    resolveProfile(forcedProfile ? { ...drawnConfig, activeProfile: forcedProfile } : drawnConfig, windowSize.w, windowSize.h),
     modules,
     kiosk && kioskPulled
   );
@@ -263,9 +266,9 @@ export default function App({ fixture }: AppProps = {}) {
   const pageIsland = useMemo(() => ({ island, page: islandPage }), [island, islandPage]);
   const fill = profile.fit === "fill";
   const background = resolveBackground(profile);
-  const appearance = appearanceOf(config, profile);
+  const appearance = appearanceOf(drawnConfig, profile);
   // The skin the widgets of this screen wear, for an island that is part of it.
-  const pageSkin = useMemo(() => pageSkinOf(appearanceOf(config, profile)), [config, profile]);
+  const pageSkin = useMemo(() => pageSkinOf(appearanceOf(drawnConfig, profile)), [drawnConfig, profile]);
   // A pack Look's page layers (its stage) count as a page background.
   const pack = usePack(pageSkin.lookId);
   // The island's edge: the screen's own, else the pack's default, else the top (D21).
@@ -276,7 +279,7 @@ export default function App({ fixture }: AppProps = {}) {
   const linked = !!pack?.connectors;
   const zones = useMemo(() => (linked ? connectorZones(drawn, profile) : undefined), [linked, drawn, profile]);
   // The app settings under the shown screen's page font and performance.
-  const general = useMemo(() => resolveGeneral(config, stored), [config, stored]);
+  const general = useMemo(() => resolveGeneral(drawnConfig, stored), [drawnConfig, stored]);
   // Max FPS and motion: the ?fps= / ?animations= / ?motion= overrides (kiosk pages) over the shown profile's.
   const perfOverride = useMemo(
     () => ({ ...stored.performance, ...(kiosk ? performanceFromSearch(window.location.search) : undefined) }),

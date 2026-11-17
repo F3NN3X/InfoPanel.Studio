@@ -601,6 +601,7 @@
         "tests/modules/**",
         "tests/e2e/theme-switch.spec.ts",
         "tests/e2e/look-gallery.spec.ts",
+        "tests/e2e/theme-preview.spec.ts",
         "tests/e2e/dark-variant.spec.ts"
       ],
       "checks": ["typecheck", "unit", "ui-usage", "e2e"]
@@ -727,6 +728,7 @@
         "tests/e2e/frozen-preview.spec.ts",
         "tests/e2e/theme-switch.spec.ts",
         "tests/e2e/look-gallery.spec.ts",
+        "tests/e2e/theme-preview.spec.ts",
         "tests/e2e/dark-variant.spec.ts"
       ],
       "checks": ["typecheck", "unit", "build", "budgets", "e2e", "ui-usage"]

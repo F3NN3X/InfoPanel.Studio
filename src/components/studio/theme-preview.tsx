@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { zoneName } from "./inspector/zone-meta";
 import { ProfilePage } from "./profile-page";
 import { stepZoom } from "./studio-layout";
+import { PageCanvas } from "./theme-page-canvas";
 import type { ThemeAt } from "./theme-cards";
 import { differenceSummary, differencesPill, pageDifferences, type WidgetDifference } from "./theme-differences";
 import { previewProfile, type ThemeException } from "./theme-exceptions";
@@ -53,7 +54,13 @@ interface ThemePreviewProps {
   /** Make these follow the level again, in one change. */
   onFollow: (differences: readonly ThemeException[]) => void;
   onOpenInEdit: (pageId: string, zoneId: string) => void;
+  /** Compare: the screen as it is now, drawn beside the previewed one (above it on a wide screen). */
+  compare?: { config: DashboardConfig; profile: MonitorProfile };
 }
+
+/** The gap between Compare's two frames, and the height of a caption over one. */
+const COMPARE_GAP = 12;
+const CAPTION = 22;
 
 /**
  * The preview (handoff SPEC §4.4): "Preview", the screen's pages to look at (the level stays), the differences pill,
@@ -62,12 +69,18 @@ interface ThemePreviewProps {
  * "✎ ‹section›". A widget clicked is selected, and the bar under the canvas says what it uses of its own, with Use
  * theme's value and Open in Edit; with none selected, Make all follow.
  */
-export function ThemePreview({ config, at, profile, page, onPage, levelName, differences, lite, onLite, toast, footer, onFollow, onOpenInEdit }: ThemePreviewProps) {
+export function ThemePreview({ config, at, profile, page, onPage, levelName, differences, lite, onLite, toast, footer, onFollow, onOpenInEdit, compare }: ThemePreviewProps) {
   const { ref, w } = useElementSize();
   // Fit, or a zoom picked with − / + / 100% (the frame then scrolls).
   const [zoom, setZoom] = useState<number | "fit">("fit");
   const maxHeight = Math.round(window.innerHeight * MAX_HEIGHT);
-  const fit = previewFit(w, maxHeight, profile);
+  // Compare puts the two frames side by side, or one above the other on a screen more than twice as wide as tall.
+  const sideBySide = profile.width <= profile.height * 2;
+  const fit = compare
+    ? sideBySide
+      ? previewFit((w - COMPARE_GAP) / 2, maxHeight - CAPTION, profile)
+      : previewFit(w, (maxHeight - COMPARE_GAP) / 2 - CAPTION, profile)
+    : previewFit(w, maxHeight, profile);
   const scale = w > 0 ? (zoom === "fit" ? fit : zoom) : 0;
   const [selected, setSelected] = useState<string>();
   const [tags, setTags] = useState(true);
@@ -183,50 +196,56 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
       {toast}
       <div ref={ref} className="w-full overflow-auto p-px" style={{ maxHeight }} onClick={() => setSelected(undefined)}>
         {scale > 0 && (
-          <div
-            ref={drawn}
-            className="relative mx-auto overflow-hidden rounded-[10px] bg-s-well ring-1 ring-ui-strong"
-            style={{ width: profile.width * scale, height: profile.height * scale }}
-          >
-            <div className="pointer-events-none absolute left-0 top-0 origin-top-left" style={{ scale: String(scale) }} inert>
-              <MotionOverride reduce={lite}>
-                <ProfilePage
-                  profile={previewProfile(profile, at)}
-                  dashboard={config}
-                  pageId={page.id}
-                  stage
-                  badge={(p) => <span data-preview-zone={p.id} className="pointer-events-none absolute inset-0" />}
-                />
-              </MotionOverride>
-            </div>
-            {boxes.map((b) => {
-              const d = diffs.get(b.id);
-              const z = page.placements.find((x) => x.id === b.id);
-              return (
-                <button
-                  key={b.id}
-                  type="button"
-                  aria-label={z ? zoneName(z) : b.id}
-                  aria-pressed={selected === b.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelected(b.id);
-                  }}
-                  className={cn(
-                    "absolute rounded-ui-sm -outline-offset-2 focus-visible:outline-2 focus-visible:outline-ui-accent",
-                    selected === b.id && "outline outline-2 outline-ui-accent"
-                  )}
-                  style={{ left: b.left, top: b.top, width: b.width, height: b.height }}
-                >
-                  {tags && d && (
-                    <span className="absolute -right-[7px] -top-[7px] whitespace-nowrap rounded-full bg-ui-blue px-[7px] py-0.5 text-nano font-medium text-white shadow-[0_0_0_2px_#09090b]">
-                      ✎ {d.exceptions[0].card.title}
-                      {d.exceptions.length > 1 ? ` +${d.exceptions.length - 1}` : ""}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          <div data-compare={compare ? (sideBySide ? "side" : "stacked") : undefined} className={cn(compare && "flex justify-center", compare && (sideBySide ? "items-start gap-3" : "flex-col items-center gap-3"))}>
+            {compare && <PageCanvas config={compare.config} profile={compare.profile} at={at} pageId={page.id} scale={scale} label="Now" />}
+            <figure className="m-0 flex min-w-0 flex-col gap-1.5">
+              {compare && <figcaption className="text-caption text-ui-3">Preview</figcaption>}
+              <div
+                ref={drawn}
+                className="relative mx-auto overflow-hidden rounded-[10px] bg-s-well ring-1 ring-ui-strong"
+                style={{ width: profile.width * scale, height: profile.height * scale }}
+              >
+                <div className="pointer-events-none absolute left-0 top-0 origin-top-left" style={{ scale: String(scale) }} inert>
+                  <MotionOverride reduce={lite}>
+                    <ProfilePage
+                      profile={previewProfile(profile, at)}
+                      dashboard={config}
+                      pageId={page.id}
+                      stage
+                      badge={(p) => <span data-preview-zone={p.id} className="pointer-events-none absolute inset-0" />}
+                    />
+                  </MotionOverride>
+                </div>
+                {boxes.map((b) => {
+                  const d = diffs.get(b.id);
+                  const z = page.placements.find((x) => x.id === b.id);
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      aria-label={z ? zoneName(z) : b.id}
+                      aria-pressed={selected === b.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelected(b.id);
+                      }}
+                      className={cn(
+                        "absolute rounded-ui-sm -outline-offset-2 focus-visible:outline-2 focus-visible:outline-ui-accent",
+                        selected === b.id && "outline outline-2 outline-ui-accent"
+                      )}
+                      style={{ left: b.left, top: b.top, width: b.width, height: b.height }}
+                    >
+                      {tags && d && (
+                        <span className="absolute -right-[7px] -top-[7px] whitespace-nowrap rounded-full bg-ui-blue px-[7px] py-0.5 text-nano font-medium text-white shadow-[0_0_0_2px_#09090b]">
+                          ✎ {d.exceptions[0].card.title}
+                          {d.exceptions.length > 1 ? ` +${d.exceptions.length - 1}` : ""}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </figure>
           </div>
         )}
       </div>
