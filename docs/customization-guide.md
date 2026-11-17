@@ -1434,8 +1434,8 @@ page.
 
 ## Pinned widgets
 
-A screen can pin widgets to its edges (config format 20): a now-playing bar along the bottom, an
-agents panel on the right, and later the page rail. They are the same on every page, and a page
+A screen can pin widgets to its edges (config format 20): the page rail on the left, a now-playing
+bar along the bottom, an agents panel on the right. They are the same on every page, and a page
 change or a swipe leaves them where they are. The editor for them comes in a later update; until
 then a pinned widget is set in the config, under the screen's `pinned`:
 
@@ -1470,6 +1470,61 @@ then a pinned widget is set in the config, under the screen's `pinned`:
 
 Several widgets on one edge stack outwards from it in the order listed. A widget can't be pinned
 from the studio yet, and the studio's canvas doesn't draw them; the kiosk and the dashboard page do.
+A pinned widget sent to the Dynamic Island feeds it as one on a page does.
+
+### The page rail
+
+The **Page Rail** widget is a column of your pages and actions. Pinned to the left or right with
+`"thickness": 84`, it shows the profile chip, one button per page with the page's icon, the page
+lock (**Auto** while the pages rotate, **Locked** while they stay) and the Clock at its rail preset,
+the time over the short date. The page shown is marked in the Look's accent. Below 580 px of height
+it uses smaller buttons, never under 48 px. Its options turn off the chip, the page lock and the
+clock.
+
+With no `rail` list it shows every page. A `rail` list beside `placement` picks and orders its
+buttons instead:
+
+```json
+{
+  "id": "rail",
+  "edge": "left",
+  "mode": "room",
+  "thickness": 84,
+  "show": "all",
+  "visible": true,
+  "placement": { "id": "rail-w", "module": "PageRail" },
+  "rail": [
+    { "id": "keys", "group": "pages", "target": { "kind": "page", "pageId": "<page id>" }, "icon": { "from": "set", "name": "key-grid" } },
+    { "id": "agents", "group": "pages", "target": { "kind": "page", "pageId": "<page id>" }, "icon": { "from": "set", "name": "bot" }, "badge": { "when": "agents-waiting" } },
+    { "id": "mic", "group": "actions", "name": "Microphone", "target": { "kind": "action", "action": { "op": "audio", "body": { "target": "windows", "op": "mute", "kind": "input", "id": "<device id>" } } }, "icon": { "from": "set", "name": "mic-off" } }
+  ]
+}
+```
+
+- **group** - `top`, `pages`, `actions` and `widgets` are drawn in that order with a line between
+  groups; `bottom` sits at the foot, above the page lock.
+- **target** - a `page`; the `profile` (a logo slot; the profile picker comes in a later update);
+  an `action`: `page` (an id, `next` or `prev`), `lock` (the page lock), `audio` or `obs` (the same
+  requests the Audio and OBS buttons send, refused from another computer as theirs are); or a
+  `widget` with `module` and `settings`, drawn 72 px wide (a widget whose preset is a rail preset,
+  such as the Clock's **Rail**).
+- **icon** - `{ "from": "set", "name": … }` takes a page icon (the page icon picker's names, with
+  `key-grid`, `keyboard` and `mic-off`); `{ "from": "image", "asset": … }` an uploaded image, in
+  its own colours unless `"tint": true`; `{ "from": "text", "text": … }` a word. An app's own icon
+  comes in a later update. **shape** (`as-is`, `rounded`, `circle`) rounds an image, **label**
+  writes the name under the icon, and **name** is what a screen reader says (and an image's alt
+  text).
+- **badge** - `agents-waiting` (a dot while an agent needs you), `alerts` (a dot while an alert is
+  shown; on a page button, one that goes to that page) or `obs-live` (**LIVE** while OBS streams).
+- **touch** - what a `tap`, `hold` (600 ms) or `doubleTap` does, each an action as above; a tap
+  does what the target is unless it says otherwise.
+
+### Swiping beside pinned widgets
+
+With **Page dots and swipe** on, a page that fills the screen follows your finger: drag it and the
+next page comes in beside it, under the pinned widgets, which stay still. Let go past a quarter of
+the page's width, or flick, and it moves on; short of that it springs back. With reduced motion, or
+on a page that scrolls, a swipe changes the page at once, as before.
 
 ## Styles, Copy, Paste and Make this the theme
 
