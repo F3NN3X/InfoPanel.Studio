@@ -5,7 +5,7 @@
 // its module what its placements read (`reads.ts`), its options as Content tab rows and its sizes as Edit's floor (`settings.ts`).
 import { recipeReads } from "./reads";
 import { isCodeId, isRecipeId, learnReads, recipeModule } from "./resolve";
-import { learnSettings, learnSize } from "./settings";
+import { learnName, learnSettings, learnSize } from "./settings";
 import type { Manifest, PackageFile, Recipe } from "./types";
 import { checkPackage, jsonOf, type RecipeIssue } from "./validate";
 
@@ -95,6 +95,7 @@ export function loadRecipe(id: string): Promise<LoadedRecipe> {
         if (mod) {
           learnSettings(mod, loaded.recipe);
           learnSize(mod, loaded.recipe);
+          learnName(mod, loaded.recipe);
         }
         return loaded;
       });
@@ -111,6 +112,7 @@ export const forgetRecipe = (id: string): void => {
   if (mod) {
     learnSettings(mod);
     learnSize(mod);
+    learnName(mod);
   }
 };
 

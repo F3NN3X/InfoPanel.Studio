@@ -146,8 +146,9 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
               role="menu"
               data-sub={e.id}
               style={{ width }}
+              // a long flyout ("Move to" over many containers) scrolls rather than run off the screen
               className={cn(
-                "absolute top-0 z-10 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 shadow-ui-menu",
+                "absolute top-0 z-10 max-h-[min(20rem,60vh)] overflow-y-auto rounded-ui-menu border border-ui-menu bg-ui-raised p-1 shadow-ui-menu",
                 // Flip to the left when the flyout would leave the viewport.
                 left + width * 2 + 8 > window.innerWidth ? "right-full mr-1" : "left-full ml-1"
               )}

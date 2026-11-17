@@ -38,6 +38,14 @@ export function learnSize(mod: DashboardModule, recipe?: Recipe): void {
   mod.maxRows = recipe?.size.max[1];
 }
 
+/**
+ * The module's title: the recipe's name once it has loaded, so Edit names a placed recipe ("CPU card") under Widget type and as the
+ * zone's name instead of its id; without one (not loaded, forgotten) the id's name part, as the module was made.
+ */
+export function learnName(mod: DashboardModule, recipe?: Recipe): void {
+  mod.title = recipe?.name ?? mod.id.slice(mod.id.indexOf(":") + 1);
+}
+
 /** The module's rows: its standard look rows, then the recipe's (none to forget them). */
 export function learnSettings(mod: DashboardModule, recipe?: Recipe): void {
   mod.settings = [...(mod.settings ?? []).filter((s) => STANDARD_KEYS.has(s.key)), ...(recipe ? recipeSettings(recipe) : [])];

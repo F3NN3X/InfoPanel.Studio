@@ -7,6 +7,7 @@ import { STANDARD_KEYS } from "@/modules/standard-settings";
 import RecipeWidget from "@/widgets/recipe/RecipeWidget";
 import { recipeReads } from "@/widgets/recipe/reads";
 import { isRecipeId, loadReads, recipeModule, subscribeReads } from "@/widgets/recipe/resolve";
+import { placementTitle } from "@/components/studio/studio-modules";
 import { forgetRecipe, listUserWidgets, loadRecipe, removeWidget, storePackage } from "@/widgets/recipe/store";
 import type { PackageFile } from "@/widgets/recipe/types";
 import { fixtureFiles, fixtureRecipe, variant, withFile } from "./fixture-files";
@@ -69,6 +70,10 @@ describe("loading a recipe", () => {
     const loaded = await loadRecipe("recipe:gpu-card");
     expect(loaded.issues).toEqual([]);
     expect(loaded.recipe?.name).toBe("GPU card");
+    // Edit names the placement by the recipe's name once it has loaded, not "recipe:gpu-card"; forgotten, by its id's name part
+    expect(placementTitle({ id: "z", module: "recipe:gpu-card", colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 2, visible: true })).toBe("GPU card");
+    forgetRecipe("recipe:gpu-card");
+    expect(recipeModule("recipe:gpu-card")?.title).toBe("gpu-card");
     expect(calls.sort()).toEqual(["GET /api/widgets/recipe.gpu-card/images/logo.png", "GET /api/widgets/recipe.gpu-card/manifest.json", "GET /api/widgets/recipe.gpu-card/recipe.json"]);
   });
 
