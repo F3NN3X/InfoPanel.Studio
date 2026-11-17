@@ -601,6 +601,7 @@
         "tests/modules/**",
         "tests/e2e/theme-switch.spec.ts",
         "tests/e2e/look-gallery.spec.ts",
+        "tests/e2e/theme-preview.spec.ts",
         "tests/e2e/dark-variant.spec.ts"
       ],
       "checks": ["typecheck", "unit", "ui-usage", "e2e"]
@@ -727,6 +728,7 @@
         "tests/e2e/frozen-preview.spec.ts",
         "tests/e2e/theme-switch.spec.ts",
         "tests/e2e/look-gallery.spec.ts",
+        "tests/e2e/theme-preview.spec.ts",
         "tests/e2e/dark-variant.spec.ts"
       ],
       "checks": ["typecheck", "unit", "build", "budgets", "e2e", "ui-usage"]
@@ -763,7 +765,7 @@
       "id": "widgets-page",
       "summary": "The Widgets page and the recipe builder (Phase 5b; code widgets, Phase 6b): browse, import and export of widget packages, the detail pane and its trust states, the builder's model (block tree, binding to option, options, presets, undo) and the start points.",
       "paths": ["src/components/widgets-page/**"],
-      "tests": ["tests/components/widgets-page/**", "tests/e2e/widget-builder.spec.ts", "tests/e2e/widget-builder-recipes.spec.ts", "tests/e2e/widget-builder-editor.spec.ts", "tests/e2e/widget-builder-details.spec.ts", "tests/e2e/widget-builder-style.spec.ts", "tests/e2e/widget-builder-surfaces.spec.ts", "tests/e2e/widget-builder-polish.spec.ts", "tests/e2e/widget-builder-devices.spec.ts", "tests/e2e/widget-builder-stage.spec.ts", "tests/e2e/widget-builder-layout.spec.ts", "tests/e2e/code-widgets.spec.ts"],
+      "tests": ["tests/components/widgets-page/**", "tests/e2e/widget-builder.spec.ts", "tests/e2e/widget-builder-recipes.spec.ts", "tests/e2e/widget-builder-editor.spec.ts", "tests/e2e/widget-builder-details.spec.ts", "tests/e2e/widget-builder-style.spec.ts", "tests/e2e/widget-builder-surfaces.spec.ts", "tests/e2e/widget-builder-polish.spec.ts", "tests/e2e/widget-builder-devices.spec.ts", "tests/e2e/widget-builder-stage.spec.ts", "tests/e2e/widget-builder-layout.spec.ts", "tests/e2e/widget-builder-free.spec.ts", "tests/e2e/code-widgets.spec.ts"],
       "checks": ["typecheck", "unit", "build", "budgets", "e2e"]
     },
     {

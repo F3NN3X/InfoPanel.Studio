@@ -70,6 +70,12 @@ import { ThemeActions, ThemeLookCard, ThemeSave } from "./theme-look-card";
 import { SAMPLE_PRESET_GROUPS } from "@/lib/screen-templates/sample-presets";
 import { HIGHLIGHT, ITEM, POPUP } from "./menu-styles";
 import { ThemeBrowse } from "./theme-browse";
+import type { BrowseItem } from "./theme-browse-model";
+import { previewOrder, type PreviewItem } from "./theme-live-preview-model";
+import { PageCanvas } from "./theme-page-canvas";
+import { ThemePreviewBar } from "./theme-preview-bar";
+import { useThemeLivePreview } from "./use-theme-live-preview";
+import { applyPreview, type ThemePreview as LivePreviewOf } from "@/lib/theme-preview";
 import { changeSummary, changesLine } from "./theme-change-summary";
 import { ThemeChanges, type QuickTheme } from "./theme-changes";
 import { accentReadout, cardColour, colourRoles } from "./theme-contrast";
@@ -101,6 +107,7 @@ import {
   themeLinkOf,
   updateBarText,
   usedByText,
+  previewFit,
   type ThemeDrill,
   type ThemeLink,
 } from "./theme-view-model";
@@ -176,9 +183,6 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   const [open, setOpen] = useState<string | null>(null);
   const [tab, setTab] = useState<ThemeTab>("customise");
   const [lite, setLite] = useState(false);
-  // "Preview on screen": a theme drawn in Customise's preview without applying it.
-  const [previewing, setPreviewing] = useState<{ preset: AppearancePreset; look: boolean }>();
-  const [previewConfig, setPreviewConfig] = useState<DashboardConfig>();
   // Keep my background: remembered per screen on this PC, not saved with it.
   const [keep, setKeepNow] = useState(() => getKeepBackground(profile.id));
   useEffect(() => setKeepNow(getKeepBackground(profile.id)), [profile.id]);
@@ -339,7 +343,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   // One object while the look is unchanged, so the look card's thumbnail draws once (not on each slider step).
   const preview = useStablePreset({ id: "current", name, description: "", theme: theme.tokens, radius: theme.radius, style: themedOf(shownStyle), ...(background ? { background } : {}) });
   const applyPreset = (p: AppearancePreset, keepBackground: boolean) => {
-    setPreviewing(undefined);
+    live.cancel();
     // A level with no snapshot has nothing of its own: the pick replaces its look.
     const replaced = !state.applied;
     const kept = replaced ? 0 : state.own.length;
@@ -355,7 +359,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   };
   /** A gallery Look: its id, the level's own colors, corners and fine-tune kept (one undo step). */
   const pickLook = (p: AppearancePreset, keepBackground: boolean) => {
-    setPreviewing(undefined);
+    live.cancel();
     presets.applyLook(p, at, keepBackground);
     const background = at.level !== "page" && !keepBackground && p.background !== undefined;
     show({ ...lookToast(p.name, at.level, background, profile.name), reset: { label: `Reset to ${p.name}`, run: () => resetTo(p, p.name) } });
@@ -368,7 +372,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
     show(appliedToScreensToast(state.theme.name, profileIds.length + 1, keepBackground));
   };
   const resetTo = (p: AppearancePreset, themeName: string) => {
-    setPreviewing(undefined);
+    live.cancel();
     presets.reset(p, at);
     show(resetToast(themeName, at.level, levelName, profile.name));
   };
@@ -377,22 +381,22 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
     show(savedToast(themeName, "theme"));
   };
 
-  // A theme drawn on the screen without applying it: the config as applying it would leave it (the apply rule is its own chunk).
-  useEffect(() => {
-    if (!previewing) return setPreviewConfig(undefined);
-    let live = true;
-    void import("@/lib/theme-apply").then((m) => {
-      const apply = previewing.look ? m.applyLookToLevel : m.applyThemeToLevel;
-      if (live) setPreviewConfig(apply(config, previewing.preset, target, { keepBackground: keep }));
-    });
-    return () => {
-      live = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewing, config, keep, at.level, profile.id, at.level === "page" ? at.pageId : ""]);
-  const shownConfig = previewConfig ?? config;
+  /** The live preview's Apply: at the level as Switch theme does, or on every screen in one change (one undo step). */
+  const applyLive = (item: PreviewItem, p: LivePreviewOf) => {
+    if (p.scope.kind !== "all") return item.look ? pickLook(item.preset, p.keepBackground) : applyPreset(item.preset, p.keepBackground);
+    setConfig((c) => applyPreview(c, p));
+    setDrill("main");
+    show(appliedToScreensToast(item.name, config.profiles.length, p.keepBackground));
+  };
+  const order = useMemo(() => previewOrder(presets.presets, imported.packs, GALLERY_IDS, SAMPLES), [presets.presets, imported.packs]);
+  // A card picked (or hovered) is drawn without applying it: the config as Apply would leave it.
+  const live = useThemeLivePreview({ config, at, keepBackground: keep, order, onApply: applyLive });
+  const itemOf = (i: BrowseItem): PreviewItem => ({ id: i.id, name: i.name, preset: i.preset, look: i.kind !== "saved" });
+  const shownConfig = live.config ?? config;
   const shownProfile = shownConfig.profiles.find((p) => p.id === profile.id) ?? profile;
   const shownPage = shownProfile.pages.find((pg) => pg.id === previewPage.id) ?? previewPage;
+  // Browse's detail draws the previewed page across its width (with Compare, the two frames one above the other).
+  const detailScale = previewFit(338, live.compare ? 190 : 380, profile);
   // The quick switch: a few theme packs to try, each drawn as it would apply.
   const quick = useMemo<QuickTheme[]>(
     () =>
@@ -769,6 +773,16 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
           <ThemeToastRow toast={toast} onUndo={onUndo} onDismiss={dismiss} />
         </div>
       )}
+      <div className={cn("shrink-0 px-7 max-sm:px-3", live.shown && "pt-3")}>
+        <ThemePreviewBar
+          live={live}
+          screenName={profile.name}
+          pageName={page.name}
+          keepBackground={keep}
+          onKeepBackground={setKeep}
+          onLevel={(level) => pick(level, profile.id, page.id)}
+        />
+      </div>
       {tab === "browse" ? (
         <ThemeBrowse
           levelName={levelName}
@@ -782,9 +796,21 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
           keepBackground={keep}
           onApply={(p, keepBackground, isLook) => (isLook ? pickLook(p, keepBackground) : applyPreset(p, keepBackground))}
           onPreview={(p, isLook) => {
-            setPreviewing({ preset: p, look: isLook });
+            live.preview(order.find((o) => o.preset.id === p.id) ?? { id: p.id, name: p.name, preset: p, look: isLook });
             setTab("customise");
           }}
+          previewId={live.shown?.id}
+          onPreviewCard={(i) => live.preview(itemOf(i))}
+          onHoverCard={(i) => live.hover(i && itemOf(i))}
+          onVisible={live.setVisible}
+          canvas={
+            live.config && (
+              <div className="flex flex-col gap-3">
+                {live.compare && <PageCanvas config={config} profile={profile} at={at} pageId={previewPage.id} scale={detailScale} label="Now" />}
+                <PageCanvas config={live.config} profile={shownProfile} at={at} pageId={previewPage.id} scale={detailScale} label={live.compare ? "Preview" : `On ${profile.name}`} />
+              </div>
+            )
+          }
           onCustomise={() => setTab("customise")}
           onDuplicate={(item) => (item.kind === "saved" ? presets.duplicate(item.id) : presets.saveCopy(item.preset))}
           onRename={presets.rename}
@@ -811,35 +837,22 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
               page={shownPage}
               onPage={setPreviewId}
               levelName={levelName}
-              differences={previewing ? [] : exceptions}
+              differences={live.shown ? [] : exceptions}
+              compare={live.shown && live.compare ? { config, profile } : undefined}
               lite={lite}
               onLite={setLite}
               footer={
-                <>
-                  {previewing && (
-                    <div role="status" className="flex items-center gap-3 rounded-ui-lg border border-ui-subtle bg-ui-panel px-3 py-2 text-body">
-                      <span className="min-w-0 flex-1 text-ui-2">
-                        Previewing <b className="font-medium text-ui-1">{previewing.preset.name}</b> on {levelName}. Nothing is changed yet.
-                      </span>
-                      <Button variant="primary" small onClick={() => (previewing.look ? pickLook(previewing.preset, keep) : applyPreset(previewing.preset, keep))}>
-                        Apply to {levelName}
-                      </Button>
-                      <Button small onClick={() => setPreviewing(undefined)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
-                  <ThemeChanges
-                    line={changesLine(changeCount, name)}
-                    what={changeWhat}
-                    changed={changeCount > 0}
-                    reset={state.theme ? { name, onReset: () => resetTo(state.theme!, name) } : undefined}
-                    quick={quick}
-                    onQuick={(t) => pickLook(t.preset, keep)}
-                    allCount={allCount}
-                    onAll={() => setTab("browse")}
-                  />
-                </>
+                <ThemeChanges
+                  line={changesLine(changeCount, name)}
+                  what={changeWhat}
+                  changed={changeCount > 0}
+                  reset={state.theme ? { name, onReset: () => resetTo(state.theme!, name) } : undefined}
+                  quick={quick}
+                  onQuick={(t) => live.preview({ ...t, look: true })}
+                  onHover={(t) => live.hover(t && { ...t, look: true })}
+                  allCount={allCount}
+                  onAll={() => setTab("browse")}
+                />
               }
               onFollow={(list) => setConfig((c) => followAll(c, list))}
               onOpenInEdit={(pageId, zoneId) => onOpenZone(profile.id, pageId, zoneId)}

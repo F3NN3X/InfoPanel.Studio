@@ -20,19 +20,20 @@ interface ThemeChangesProps {
   changed: boolean;
   /** Reset to ‹name›. */
   reset?: { name: string; onReset: () => void };
-  /** A few themes to try, applied on a click. */
+  /** A few themes to try, previewed on a click. */
   quick: readonly QuickTheme[];
   onQuick: (theme: QuickTheme) => void;
+  /** The pointer is on a theme, or left it (`undefined`): Preview on hover. */
+  onHover?: (theme: QuickTheme | undefined) => void;
   /** All N: Browse themes. */
   allCount: number;
   onAll: () => void;
 }
 
-/** Under the preview: what changed from the theme, with Reset, and a quick switch to other themes (a click applies it, with Undo in the toast). */
-export function ThemeChanges({ line, what, changed, reset, quick, onQuick, allCount, onAll }: ThemeChangesProps) {
+/** Under the preview: what changed from the theme, with Reset, and a quick switch to other themes (a click previews it; the preview bar applies it). */
+export function ThemeChanges({ line, what, changed, reset, quick, onQuick, onHover, allCount, onAll }: ThemeChangesProps) {
   const lineRef = useRef<HTMLParagraphElement>(null);
-  const quickRef = useRef<HTMLDivElement>(null);
-  // Reset goes away with the change, and the theme applied by a click leaves the quick list: focus goes to the line, or the list's first button.
+  // Reset goes away with the change: focus goes to the line.
   const after = (el: () => HTMLElement | null | undefined) => requestAnimationFrame(() => el()?.focus());
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3 pt-1 text-body">
@@ -52,18 +53,17 @@ export function ThemeChanges({ line, what, changed, reset, quick, onQuick, allCo
       )}
       <span className="ml-auto" />
       {quick.length > 0 && (
-        <div ref={quickRef} role="group" aria-label="Try another theme" className="flex items-center gap-2">
+        <div role="group" aria-label="Try another theme" className="flex items-center gap-2">
           <span className="text-caption text-ui-3">Try another</span>
           {quick.map((t) => (
             <button
               key={t.id}
               type="button"
               title={t.name}
-              aria-label={`Apply ${t.name}`}
-              onClick={() => {
-                onQuick(t);
-                after(() => quickRef.current?.querySelector("button"));
-              }}
+              aria-label={`Preview ${t.name}`}
+              onClick={() => onQuick(t)}
+              onPointerEnter={onHover && (() => onHover(t))}
+              onPointerLeave={onHover && (() => onHover(undefined))}
               className={cn("overflow-hidden rounded-ui-sm border border-ui-subtle hover:border-ui-hover-edge", FOCUS_RING)}
             >
               <LookThumb preset={t.preset} width={56} />

@@ -24,7 +24,7 @@ import { BLOCK_LABEL, blockAt, CELLS_MAX, followable, followOf, ITEM_NOUN, large
 import { BlockIcon } from "./block-icons";
 import { DataRow, type DataRowsProps, HeatmapCells, LabelText } from "./data-rows";
 import { Field, Heading, NumberInput, Select, Slider, TextArea, TextInput } from "./fields";
-import { AreaRows, BackgroundRows, FillRows, MotionRow, ReadingRows, TrackRows } from "./layout-rows";
+import { AreaRows, BackgroundRows, BoxRows, FillRows, FreeRows, MotionRow, ReadingRows, TrackRows } from "./layout-rows";
 import { StyleRows } from "./style-rows";
 
 export interface BlockTabProps {
@@ -578,7 +578,9 @@ export function BlockTab(props: BlockTabProps) {
         </Field>
       )}
       <StyleRows block={block} root={path.length === 0} set={set} drawn={props.drawnOpacity} />
-      {block.type === "row" && (
+      {/* the free layout: a card's, a row's or a grid's blocks each at their own box (a flow's own fields go while it is on) */}
+      <FreeRows recipe={recipe} path={path} onChange={onChange} />
+      {block.type === "row" && block.layout !== "free" && (
         <>
           <Field label="Direction">
             <Segmented label="Direction" value={block.direction ?? "row"} options={[{ value: "row", label: "Row" }, { value: "column", label: "Column" }]} onChange={(v) => set({ direction: v === "row" ? undefined : v })} />
@@ -591,8 +593,8 @@ export function BlockTab(props: BlockTabProps) {
           </Field>
         </>
       )}
-      {block.type === "grid" && <TrackRows recipe={recipe} path={path} onChange={onChange} />}
-      {block.type === "grid" && !block.tracks && (
+      {block.type === "grid" && block.layout !== "free" && <TrackRows recipe={recipe} path={path} onChange={onChange} />}
+      {block.type === "grid" && !block.tracks && block.layout !== "free" && (
         <Field label="Columns" hint="Empty: as many as make the cells closest to square at the size shown. A Repeat in the grid gives a cell per item">
           <NumberInput label="Columns" value={block.columns} placeholder="Auto" min={1} max={GRID_COLUMNS_MAX} onChange={(v) => set({ columns: v })} />
         </Field>
@@ -645,6 +647,7 @@ export function BlockTab(props: BlockTabProps) {
       {path.length > 0 && (
         <>
           <AreaRows recipe={recipe} path={path} onChange={onChange} />
+          <BoxRows recipe={recipe} path={path} onChange={onChange} />
           <BackgroundRows recipe={recipe} path={path} onChange={onChange} />
           <Heading>When it shows</Heading>
           <WhenRows recipe={recipe} path={path} block={block} onChange={onChange} />
@@ -652,7 +655,7 @@ export function BlockTab(props: BlockTabProps) {
           <MotionRow block={block} onPick={(v) => set({ motion: v })} onClear={() => set({ motion: undefined })} />
           <FillRows recipe={recipe} path={path} onChange={onChange} />
           {/* a grid's cells are all one size: no share there; a background fills its container */}
-          {inGrid || block.background ? null : ownLine(recipe, path, block) ? (
+          {inGrid || block.background || block.box ? null : ownLine(recipe, path, block) ? (
             <Field label="Share of its row" hint="In a column a line of text takes its own height; a share makes it take that part of the column instead">
               <NumberInput label="Share of its row" value={block.grow} placeholder="Own" min={0} max={12} step={0.1} onChange={(v) => set({ grow: v })} />
             </Field>

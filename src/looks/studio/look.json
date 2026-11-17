@@ -253,6 +253,10 @@
       "bg-highlight": {
         "value": "#34343d",
         "usage": "The highlighted row of a menu or dropdown list: a neutral step over the menu (1.45:1 on bg-raised; the accent is kept for selection and focus), with its text at text-1 (10.5:1). No edge."
+      },
+      "guide": {
+        "value": "#ff56d3",
+        "usage": "Alignment guides while dragging or resizing (Edit's InfoPanel layer and the widget builder's stage): a magenta no widget or theme uses, so a guide never reads as content."
       }
     },
     "status": {

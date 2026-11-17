@@ -2,10 +2,12 @@
 // selection wherever the menu opens. Each row runs a `LayerCommand` on the row it opened on (the selection, when that row is in it).
 // Phase 4: "Move to" lists the containers (a refused one greyed, with its reason) and "Select" picks the parent or the children.
 // Phase 5: "Layer" sets a block as its container's background (or takes it out) and moves it in the drawing order, a flyout of its own
-// so the keyboard walk of the menu's rows stays as it was.
+// so the keyboard walk of the menu's rows stays as it was. The free layout: with two or more free blocks of one container, Layer adds
+// Align and Distribute.
 import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpLeft, BringToFront, ChevronDown, ChevronUp, ClipboardPaste, Layers2, SendToBack, Wallpaper, Columns3, Copy, CopyPlus, Eye, EyeOff, FolderInput, Grid2x2, LayoutPanelTop, ListTree, Lock, LockOpen, MousePointer2, Paintbrush, Pencil, Scissors, SquareDashed, Trash2 } from "lucide-react";
+import { AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, ArrowDown, ArrowUp, ArrowUpLeft, BringToFront, ChevronDown, ChevronUp, ClipboardPaste, Layers2, SendToBack, Wallpaper, Columns3, Copy, CopyPlus, Eye, EyeOff, FolderInput, Grid2x2, LayoutPanelTop, ListTree, Lock, LockOpen, MousePointer2, Paintbrush, Pencil, Scissors, SquareDashed, Trash2 } from "lucide-react";
 import type { ContextMenuEntry } from "@/components/ui/context-menu";
+import { ARRANGE_LABEL, type FreeArrange } from "./free-layout";
 
 /** What the layer menu and its keys do to a row (the selection, when the row is in it). */
 export type LayerCommand =
@@ -65,10 +67,25 @@ export interface LayerEntriesOf {
   onMoveTo: (at: number[], toParent: number[]) => void;
   onRename: (at: number[]) => void;
   onFlag: (flag: EditorFlag, at: number[], on: boolean) => void;
+  /** How many blocks of one free container the menu acts on (the free layout): two or more add Align, three Distribute, to Layer. */
+  arrange?: number;
+  onArrange?: (op: FreeArrange) => void;
 }
 
+/** The free layout's Align and Distribute rows, in the Layer flyout so the menu's own rows stay as many as the keyboard walks. */
+const ARRANGE_ROWS: readonly { op: FreeArrange; icon: ReactNode }[] = [
+  { op: "left", icon: <AlignStartVertical /> },
+  { op: "centre", icon: <AlignCenterVertical /> },
+  { op: "right", icon: <AlignEndVertical /> },
+  { op: "top", icon: <AlignStartHorizontal /> },
+  { op: "middle", icon: <AlignCenterHorizontal /> },
+  { op: "bottom", icon: <AlignEndHorizontal /> },
+  { op: "distribute-h", icon: <AlignHorizontalDistributeCenter /> },
+  { op: "distribute-v", icon: <AlignVerticalDistributeCenter /> },
+];
+
 /** The layer menu's rows for the row `at`. The root card takes only Paste. */
-export function layerEntries({ at, many, container, hidden, locked, canPaste, canPasteStyle, hasChildren, background, targets, onCommand, onMoveTo, onRename, onFlag }: LayerEntriesOf): ContextMenuEntry[] {
+export function layerEntries({ at, many, container, hidden, locked, canPaste, canPasteStyle, hasChildren, background, targets, onCommand, onMoveTo, onRename, onFlag, arrange = 0, onArrange }: LayerEntriesOf): ContextMenuEntry[] {
   const root = at.length === 0;
   const entry = (cmd: LayerCommand, label: string, icon: ReactNode, hint: string | undefined, disabled = root, danger?: boolean): ContextMenuEntry => ({ id: cmd, label, icon, hint, disabled, danger, onSelect: () => onCommand(cmd, at) });
   return [
@@ -123,6 +140,12 @@ export function layerEntries({ at, many, container, hidden, locked, canPaste, ca
         entry("backward", "Send backward", <ChevronDown />, undefined, root || many > 1),
         entry("front", "To front", <BringToFront />, undefined, root || many > 1),
         entry("back", "To back", <SendToBack />, undefined, root || many > 1),
+        ...(arrange >= 2 && onArrange
+          ? [
+              "separator" as const,
+              ...ARRANGE_ROWS.map(({ op, icon }): ContextMenuEntry => ({ id: `arrange:${op}`, label: ARRANGE_LABEL[op], icon, disabled: op.startsWith("distribute") && arrange < 3, onSelect: () => onArrange(op) })),
+            ]
+          : []),
       ],
     },
     "separator",

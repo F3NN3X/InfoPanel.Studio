@@ -18,6 +18,10 @@
 // Phase 5 (format 2): in a grid with tracks a block's body drags it a track at a time and its handles size its area (`area-handles.tsx`),
 // Alt+arrows nudge it a track and Alt+Shift+arrows size it; a block in a column or a row has handles on its other two sides for its
 // part of the room across; the layer menu's Layer flyout sets a background and the drawing order (`layout-model.ts`).
+// The free layout (format 2): a free block drags anywhere in its container and its eight handles size it, the selection moving together,
+// with smart guides, equal-spacing markers and a live readout (Alt: no snapping); a drag on the empty stage is a rubber band; the arrows
+// nudge 1 % (Shift 10 %); Align and Distribute in the Arrange bar and the Layer flyout; Ctrl+Shift+L locks (`free-*.ts`). Each gesture
+// is one undo step; a block dragged out of its free container follows the flow's move rules.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { pastDragThreshold, trackPointer } from "@/components/studio/pointer-drag";
 import { ChevronRight, CircleAlert, CircleCheck, MonitorUp, Pencil, Redo2, RotateCcw, Save, Undo2, Upload, X } from "lucide-react";
@@ -56,8 +60,12 @@ import { OptionsTab } from "./options-tab";
 import { type PlainIssue, plainIssue, plainIssues, plainWarnings } from "./plain-issues";
 import { PresetsTab } from "./presets-tab";
 import { RecipePreview, zonePx } from "./recipe-preview";
-import { AreaHandles, FillHandles, measureArea } from "./area-handles";
-import { areaGrid, areaNow, dragArea, fitLayout, nudgeArea, restack, setArea, setBackground, stepAreaSize, trackAt } from "./layout-model";
+import { AreaHandles, areaText, FillHandles, measureArea } from "./area-handles";
+import { areaGrid, areaNow, dragArea, fitLayout, nudgeArea, rectOf, restack, setArea, setBackground, stepAreaSize, trackAt } from "./layout-model";
+import { ArrangeBar, Band, boxIn, FreeGuides, FreeHandles, type Frame, frameOf, fractionOf, type GuideView, padOf, pxOf, siblingBoxes } from "./free-handles";
+import { ARRANGE_LABEL, arrangeBoxes, boxAtPoint, boxText, type FreeArrange, fitFree, freeParent, isFree, moveGroup, nudgeBoxes, offsetCopies, setBoxes } from "./free-layout";
+import { areaGuides, type Box, freeTargets, snapDistance, snapFreeMove } from "./free-snap";
+import { unionBox } from "@/lib/infopanel/editor/snap";
 import { ShareHandles } from "./share-handles";
 import { SizeCheckRun, type SpanResult, spansOf } from "./size-check";
 import { type Carry, dragTarget, dropAt, type StageDrop, stageStep } from "./stage-edit";
@@ -121,7 +129,7 @@ function savedChip(d: Draft): { text: string; tone: "neutral" | "warn" } {
 
 
 /** The stage's handles (shares, areas, parts across): a press or the click a drag ends with is theirs, not a pick. */
-const HANDLES = "[data-share-handle], [data-area-handle], [data-fill-handle]";
+const HANDLES = "[data-share-handle], [data-area-handle], [data-fill-handle], [data-free-handle]";
 
 /** The room the selection's name tag takes beside its block, in the zone's px (11 px text, its padding and gap). */
 const TAG_ROOM = 24;
@@ -194,7 +202,7 @@ export function Builder(p: BuilderProps) {
   /** Every edit of the recipe, with the format its keys need: one undo step, or while a field is typed its preview. */
   const edit = (r: Recipe, images?: PackageFile[], amend?: boolean) => {
     // the layout keys kept where they mean something after a move, a paste or a wrap (`fitLayout`), then the format they need
-    const next = withFormat(fitLayout(r));
+    const next = withFormat(fitFree(fitLayout(r)));
     if (previewing.current) return setPreview(next);
     setPreview(null);
     p.onEdit(next, images, amend);
@@ -437,14 +445,17 @@ export function Builder(p: BuilderProps) {
   };
   /**
    * A tile dropped on Layers or the stage: the new block at that place, unless the validator would refuse it there. `background`: dropped
-   * on a container's background slot in Layers, it is that container's background layer (one undo step with the add).
+   * on a container's background slot in Layers, it is that container's background layer (one undo step with the add). `at`: dropped on the
+   * stage into a free container, it lands centred at the pointer at its default size, kept inside the container.
    */
-  const addAt = (type: BlockType, toParent: number[], index: number, where: string, background?: boolean) => {
+  const addAt = (type: BlockType, toParent: number[], index: number, where: string, background?: boolean, at?: { x: number; y: number }) => {
     const refused = addRefusal(recipe, type, toParent) ?? (background && type === "repeat" ? "A Repeat lists items; it can't be a background" : undefined);
     if (refused) return refuse(refused);
     if (type === "image") return chooseImage(toParent, index, ` ${where}`, background);
     const r = addBlockAt(recipe, toParent, index, type, firstSensor);
-    const layered = background ? setBackground(r.recipe, [r.path], true) : r.recipe;
+    const frame = at && !background && isFree(blockAt(recipe, toParent)) ? frameOf(zoneEl(), toParent) : undefined;
+    const placed = frame ? setBoxes(r.recipe, [{ path: r.path, box: boxAtPoint({ x: (at!.x - frame.left) / frame.scale / (frame.w || 1), y: (at!.y - frame.top) / frame.scale / (frame.h || 1) }) }]) : r.recipe;
+    const layered = background ? setBackground(placed, [r.path], true) : placed;
     if ("why" in layered) return refuse(layered.why);
     edit(layered);
     setPath(r.path);
@@ -484,7 +495,8 @@ export function Builder(p: BuilderProps) {
       case "duplicate": {
         if (!list.length) return;
         const r = duplicateBlocks(recipe, list);
-        edit(r.recipe);
+        // a copy in a free container sits a step off its original, so it shows
+        edit(offsetCopies(r.recipe, r.paths));
         setSelection(r.paths);
         refocus();
         return say(`Duplicated ${what(list)}`);
@@ -607,12 +619,26 @@ export function Builder(p: BuilderProps) {
       }
     }
   };
-  /** Rows dropped in Layers (`moveBlocks`). */
-  const drop = (from: number[][], toParent: number[], index: number) => {
+  /**
+   * Rows dropped in Layers or blocks on the stage (`moveBlocks`). Dropped on the stage into a free container (`at`, the pointer), each
+   * lands centred there at the size it is drawn now, a step apart; elsewhere one takes the container's next default box (`fitFree`).
+   */
+  const drop = (from: number[][], toParent: number[], index: number, at?: { x: number; y: number }) => {
     const r = moveBlocks(recipe, from, toParent, index);
     if ("why" in r) return refuse(r.why);
     if (r.recipe === recipe) return;
-    edit(r.recipe);
+    const zone = zoneEl();
+    const frame = at && isFree(blockAt(recipe, toParent)) ? frameOf(zone, toParent) : undefined;
+    const placedAt = (f: Frame) =>
+      setBoxes(
+        r.recipe,
+        r.paths.map((p, i) => {
+          const was = zone?.querySelector<HTMLElement>(`[data-recipe-path="${keyOf(from[i] ?? p)}"]`)?.getBoundingClientRect();
+          const [w, h] = was ? [was.width / f.scale / f.w, was.height / f.scale / f.h] : [0.4, 0.25];
+          return { path: p, box: [(at!.x - f.left) / f.scale / f.w - w / 2 + i * 0.03, (at!.y - f.top) / f.scale / f.h - h / 2 + i * 0.03, w, h] };
+        }),
+      );
+    edit(frame ? placedAt(frame) : r.recipe);
     setSelection(r.paths);
     say(`Moved ${what(from)} into ${nameAt(toParent)}`);
   };
@@ -640,8 +666,12 @@ export function Builder(p: BuilderProps) {
   };
   // The builder's keys, taken before the studio's on the window (whose Ctrl+S saves the screen in Edit and whose Ctrl+Z undid the
   // screen's last edit as well, B17): Ctrl+S, undo and redo, and the layer commands on the selection outside a text field.
-  const keys = useRef({ p, run, saveNow, path });
-  keys.current = { p, run, saveNow, path };
+  /** Ctrl+Shift+L outside Layers (whose rows take it themselves): the selection locked, or unlocked when its primary is. */
+  const toggleLock = () => {
+    if (path.length) setFlag("locked", path, !flags.locked.includes(keyOf(path)));
+  };
+  const keys = useRef({ p, run, saveNow, path, toggleLock });
+  keys.current = { p, run, saveNow, path, toggleLock };
   useEffect(() => {
     const COMMAND: Readonly<Record<string, LayerCommand>> = { d: "duplicate", c: "copy", x: "cut", v: "paste", g: "wrap" };
     const onKey = (e: KeyboardEvent) => {
@@ -668,6 +698,7 @@ export function Builder(p: BuilderProps) {
         if ((k === "c" || k === "x") && window.getSelection()?.toString()) return;
         keys.current.run(COMMAND[k], keys.current.path);
       } else if (k === "g" && e.shiftKey) keys.current.run("unwrap", keys.current.path);
+      else if (k === "l" && e.shiftKey && !t?.closest('[role="tree"]')) keys.current.toggleLock();
       else return;
       e.preventDefault();
     };
@@ -709,28 +740,44 @@ export function Builder(p: BuilderProps) {
   const dragged = useRef(false);
   const stopDrag = useRef<(() => void) | null>(null);
   useEffect(() => () => stopDrag.current?.(), []);
+  // the free layout's guides and readout while a box moves or resizes, and the rubber band while it is dragged
+  const [guides, setGuides] = useState<GuideView | null>(null);
+  const [band, setBand] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const pressStage = (e: ReactPointerEvent<HTMLDivElement>) => {
     dragged.current = false;
-    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || tile) return;
+    if (e.button !== 0 || tile) return;
     const t = e.target as HTMLElement;
+    if (t.closest(HANDLES) || t.closest("[data-arrange-bar]")) return;
     const hit = t.closest<HTMLElement>("[data-recipe-path]");
-    if (!hit || t.closest(HANDLES)) return;
+    // a press on the empty stage, or on the empty part of a free container that is not the selection, drags a rubber band
+    const emptyFree = t.dataset.recipeFree;
+    if (!hit || (emptyFree !== undefined && emptyFree !== keyOf(path))) return pressBand(hit && emptyFree !== undefined ? pathOf(emptyFree) : [], e.clientX, e.clientY, e.ctrlKey || e.metaKey || e.shiftKey);
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;
     // a locked block (or one in it) stays where it is (G25)
     const at = dragTarget(recipe, pathOf(hit.dataset.recipePath!));
     if (flagged(flags.locked, at)) return;
     const from = selected.some((x) => keyOf(x) === keyOf(at)) ? topLevel(selected) : [at];
     const [x0, y0] = [e.clientX, e.clientY];
+    // a free block (format 2): the one pressed, or the selected free block holding the press, with the rest of the selection in its container
+    const freeAt = freeParent(recipe, at) ? at : path.length && freeParent(recipe, path) && keyOf(at).startsWith(`${keyOf(path)}.`) && !flagged(flags.locked, path) ? [...path] : null;
+    if (freeAt) {
+      const parent = freeParent(recipe, freeAt)!;
+      const group = selected.some((x) => keyOf(x) === keyOf(freeAt)) ? topLevel(selected).filter((x) => !flagged(flags.locked, x) && keyOf(freeParent(recipe, x) ?? [-1]) === keyOf(parent)) : [freeAt];
+      return pressFree(group.length ? group : [freeAt], parent, x0, y0);
+    }
     // in a grid with tracks (Phase 5) the selected block, pressed in it, moves a track at a time: the block itself, or the one holding the press
     const areaAt = areaGrid(recipe, at) ? at : path.length && areaGrid(recipe, path) && (keyOf(at) === keyOf(path) || keyOf(at).startsWith(`${keyOf(path)}.`)) && !flagged(flags.locked, path) ? [...path] : null;
     if (areaAt && from.length <= 1) return pressArea(areaAt, x0, y0);
     let started = false;
     let last: StageDrop | null = null;
+    let point = { x: x0, y: y0 };
     stopDrag.current = trackPointer(
       (m) => {
         if (!started && !pastDragThreshold(m.clientX - x0, m.clientY - y0)) return;
         // a block dragged that was not selected is the selection, as a row dragged in Layers
         if (!started && from.length === 1 && keyOf(from[0]) !== keyOf(path)) setPath(from[0]);
         started = true;
+        point = { x: m.clientX, y: m.clientY };
         last = dropUnder(m.clientX, m.clientY, { from });
         setMoving({ from, drop: last });
       },
@@ -742,10 +789,119 @@ export function Builder(p: BuilderProps) {
         if (cancelled) return say("Move cancelled");
         if (!last) return;
         if (last.why) return refuse(last.why);
-        drop(from, last.toParent, last.index);
+        drop(from, last.toParent, last.index, point);
       },
     );
   };
+
+  /**
+   * Free blocks dragged by their body (format 2): the group follows the pointer inside its container, snapped to the guides (Alt: free),
+   * shown as it goes with the readout; one undo step on release. Out of a container inside the card, the flow's move rules take over.
+   */
+  const pressFree = (paths: number[][], parent: number[], x0: number, y0: number) => {
+    const zone = zoneEl();
+    const frame = frameOf(zone, parent);
+    const starts = frame ? paths.map((p) => boxIn(zone, frame, p)) : [];
+    const own = paths.map((p) => blockAt(recipe, p)?.box);
+    if (!frame || starts.some((b) => !b) || own.some((b) => !b)) return;
+    const group = unionBox(starts as Box[])!;
+    const others = siblingBoxes(zone, recipe, parent, frame, paths);
+    const targets = freeTargets(frame, padOf(recipe, parent), others);
+    let started = false;
+    let last: ReturnType<typeof moveGroup> | null = null;
+    let out: StageDrop | null = null;
+    let point = { x: x0, y: y0 };
+    stopDrag.current = trackPointer(
+      (m) => {
+        if (!started && !pastDragThreshold(m.clientX - x0, m.clientY - y0)) return;
+        if (!started && paths.length === 1 && keyOf(paths[0]) !== keyOf(path)) setPath(paths[0]);
+        started = true;
+        point = { x: m.clientX, y: m.clientY };
+        const inside = m.clientX >= frame.left && m.clientX <= frame.left + frame.w * frame.scale && m.clientY >= frame.top && m.clientY <= frame.top + frame.h * frame.scale;
+        if (parent.length && !inside) {
+          setPreview(null);
+          setGuides(null);
+          out = dropUnder(m.clientX, m.clientY, { from: paths });
+          return setMoving({ from: paths, drop: out });
+        }
+        out = null;
+        setMoving(null);
+        const s = snapFreeMove({ ...group, x: group.x + (m.clientX - x0) / frame.scale, y: group.y + (m.clientY - y0) / frame.scale }, targets, others, snapDistance(frame.scale, m.altKey));
+        last = moveGroup(own as number[][], (s.box.x - group.x) / frame.w, (s.box.y - group.y) / frame.h);
+        const now = fractionOf(unionBox(last.map((b) => pxOf(b, frame)))!, frame);
+        setGuides({ frame, guides: s.guides, gaps: s.gaps, box: pxOf(now, frame), text: boxText(now) });
+        setPreview(setBoxes(recipe, paths.map((p, i) => ({ path: p, box: last![i] }))));
+      },
+      (cancelled) => {
+        stopDrag.current = null;
+        setGuides(null);
+        setMoving(null);
+        if (!started) return;
+        dragged.current = true;
+        setPreview(null);
+        if (cancelled) return say("Move cancelled");
+        if (out) return out.why ? refuse(out.why) : drop(paths, out.toParent, out.index, point);
+        if (!last) return;
+        edit(setBoxes(recipe, paths.map((p, i) => ({ path: p, box: last![i] }))));
+        say(`Moved ${what(paths)}: ${boxText(paths.length === 1 ? last[0] : fractionOf(unionBox(last.map((b) => pxOf(b, frame)))!, frame))}`);
+      },
+    );
+  };
+
+  /** A rubber band dragged over the stage: the blocks of `container` it touches selected (`add`: with the selection), never a locked one. */
+  const pressBand = (container: number[], x0: number, y0: number, add: boolean) => {
+    const zone = zoneEl();
+    const b = blockAt(recipe, container);
+    if (!zone || !b || !("children" in b)) return;
+    const z = zone.getBoundingClientRect();
+    const scale = z.width / (zone.offsetWidth || 1) || 1;
+    const kids = b.children.map((_, k) => [...container, k]).filter((p) => !blockAt(recipe, p)?.background && !flagged(flags.locked, p));
+    const before = add ? selected.filter((x) => x.length) : [];
+    let picked: number[][] = [];
+    let started = false;
+    stopDrag.current = trackPointer(
+      (m) => {
+        if (!started && !pastDragThreshold(m.clientX - x0, m.clientY - y0)) return;
+        started = true;
+        const [l, r, t, btm] = [Math.min(x0, m.clientX), Math.max(x0, m.clientX), Math.min(y0, m.clientY), Math.max(y0, m.clientY)];
+        setBand({ x: (l - z.left) / scale, y: (t - z.top) / scale, w: (r - l) / scale, h: (btm - t) / scale });
+        picked = kids.filter((p) => {
+          const e = zone.querySelector<HTMLElement>(`[data-recipe-path="${keyOf(p)}"]`)?.getBoundingClientRect();
+          return !!e && e.width > 0 && e.left < r && e.right > l && e.top < btm && e.bottom > t;
+        });
+      },
+      (cancelled) => {
+        stopDrag.current = null;
+        setBand(null);
+        if (!started) return;
+        dragged.current = true;
+        if (cancelled) return;
+        const all = [...before, ...picked.filter((p) => !before.some((x) => keyOf(x) === keyOf(p)))];
+        if (!all.length) return;
+        setSelection(all);
+        setTab("block");
+        say(`${what(all)} selected`);
+      },
+    );
+  };
+
+  /** The Arrange bar's and the layer menu's Align and Distribute on the selection's free blocks (a locked one stays). */
+  const arrangeNow = (op: FreeArrange) => {
+    setWhy(null);
+    const list = topLevel(selected).filter((x) => !flagged(flags.locked, x));
+    const parent = list.length ? freeParent(recipe, list[0]) : undefined;
+    const frame = parent && frameOf(zoneEl(), parent);
+    const r = arrangeBoxes(recipe, list, op, frame ?? { w: 1, h: 1 });
+    if ("why" in r) return refuse(r.why);
+    edit(r);
+    say(`${ARRANGE_LABEL[op]}: ${what(list)}`);
+  };
+  // the selection's free blocks of one container, for the Arrange bar and the menu's Align and Distribute
+  const freeSelected = (() => {
+    const list = topLevel(selected);
+    const parent = list.length > 1 ? freeParent(recipe, list[0]) : undefined;
+    return parent && list.every((x) => keyOf(freeParent(recipe, x) ?? [-1]) === keyOf(parent)) ? list.filter((x) => !flagged(flags.locked, x)).length : 0;
+  })();
 
   /** A block of a grid with tracks dragged by its body: its area follows the pointer's track, shown as it goes, one undo step on release. */
   const pressArea = (at: number[], x0: number, y0: number) => {
@@ -753,6 +909,15 @@ export function Builder(p: BuilderProps) {
     if (!m) return;
     const start = areaNow(recipe, at, m.drawn);
     const from = { col: trackAt(x0, m.lines.cols), row: trackAt(y0, m.lines.rows) };
+    // the guides: the track lines it shares with the other areas, and the readout in cells
+    const gridPath = at.slice(0, -1);
+    const frame = frameOf(zoneEl(), gridPath);
+    const grid = blockAt(recipe, gridPath);
+    const others = (grid && "children" in grid ? grid.children : []).flatMap((c, k) => (c.area && k !== at[at.length - 1] ? [rectOf(c.area)] : []));
+    const line = (starts: number[], end: number, l: number) => {
+      const of = (i: number) => (i < starts.length ? starts[i] : end);
+      return Number.isInteger(l) ? of(l) : (of(Math.floor(l)) + of(Math.ceil(l))) / 2;
+    };
     let started = false;
     let last: ReturnType<typeof dragArea> | null = null;
     stopDrag.current = trackPointer(
@@ -762,9 +927,16 @@ export function Builder(p: BuilderProps) {
         started = true;
         last = dragArea(start, from, { col: trackAt(p.clientX, m.lines.cols), row: trackAt(p.clientY, m.lines.rows) }, m.cols, m.rows);
         setPreview(setArea(recipe, at, last));
+        if (frame) {
+          const g = areaGuides(last, others);
+          const [x, y] = [(v: number) => (line(m.lines.cols, m.lines.colEnd, v) - frame.left) / frame.scale, (v: number) => (line(m.lines.rows, m.lines.rowEnd, v) - frame.top) / frame.scale];
+          const box = { x: x(last.col - 1), y: y(last.row - 1), width: x(last.col - 1 + last.cols) - x(last.col - 1), height: y(last.row - 1 + last.rows) - y(last.row - 1) };
+          setGuides({ frame, guides: [...g.cols.map((l) => ({ axis: "x" as const, at: x(l) })), ...g.rows.map((l) => ({ axis: "y" as const, at: y(l) }))], gaps: [], box, text: areaText(last) });
+        }
       },
       (cancelled) => {
         stopDrag.current = null;
+        setGuides(null);
         if (!started) return;
         dragged.current = true;
         if (cancelled || !last) {
@@ -804,6 +976,8 @@ export function Builder(p: BuilderProps) {
       onMoveTo: moveTo,
       onRename: (x) => setRenameAt({ key: keyOf(x) }),
       onFlag: setFlag,
+      arrange: list.length > 1 ? freeSelected : 0,
+      onArrange: arrangeNow,
     });
   };
 
@@ -817,6 +991,18 @@ export function Builder(p: BuilderProps) {
       return openStageMenu(path, r ? r.left + 12 : e.currentTarget.getBoundingClientRect().left + 24, r ? r.top + 12 : e.currentTarget.getBoundingClientRect().top + 24);
     }
     const move = ({ ArrowUp: "up", ArrowDown: "down", ArrowLeft: "out", ArrowRight: "in" } as const)[e.key as "ArrowUp"];
+    // free blocks (format 2): the arrows nudge the selection 1 %, Shift+arrows 10 %; a locked one stays
+    const sel = topLevel(selected);
+    if (move && !e.altKey && sel.length && sel.every((x) => freeParent(recipe, x))) {
+      e.preventDefault();
+      const free = sel.filter((x) => !flagged(flags.locked, x));
+      if (!free.length) return refuse(`${what(sel)} ${sel.length === 1 ? "is" : "are"} locked: unlock to move`);
+      const step = e.shiftKey ? 0.1 : 0.01;
+      const r = nudgeBoxes(recipe, free, e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0, e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0);
+      if ("why" in r) return refuse(r.why);
+      edit(r);
+      return say(`Moved ${what(free)}: ${boxText(blockAt(r, free[0])!.box!)}`);
+    }
     // a block of a grid with tracks (Phase 5): Alt+arrows move it a track, Alt+Shift+arrows size it by a track
     if (e.altKey && move && areaGrid(recipe, path) && !flagged(flags.locked, path)) {
       e.preventDefault();
@@ -1210,7 +1396,7 @@ export function Builder(p: BuilderProps) {
             role="group"
             aria-label="Widget preview"
             aria-roledescription="stage"
-            aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight Delete F2 Escape"
+            aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowUp Shift+ArrowDown Shift+ArrowLeft Shift+ArrowRight Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight Delete F2 Escape Control+Shift+L"
             // biome-ignore lint/a11y/noNoninteractiveTabindex: the stage takes focus so its keys (walk, move, Del, F2, Esc) reach it
             tabIndex={0}
             data-builder-stage=""
@@ -1261,11 +1447,16 @@ export function Builder(p: BuilderProps) {
               setStageDrop(null);
               if (!d || !tile) return;
               e.preventDefault();
-              addAt(tile, d.toParent, d.index, d.text);
+              addAt(tile, d.toParent, d.index, d.text, false, { x: e.clientX, y: e.clientY });
             }}
             className="relative flex min-h-0 flex-1 select-none items-center justify-center overflow-hidden rounded-ui-lg border border-ui-subtle outline-none focus-visible:border-ui-accent"
             style={{ backgroundImage: "radial-gradient(color-mix(in oklab, var(--ui-text-hint) 30%, transparent) 1px, transparent 1px)", backgroundSize: "16px 16px" }}
           >
+            {freeSelected >= 2 && !moving && (
+              <div className="absolute left-1/2 top-2 z-40 -translate-x-1/2">
+                <ArrangeBar count={freeSelected} onArrange={arrangeNow} />
+              </div>
+            )}
             {flags.hidden.length > 0 && <style data-hidden-blocks="">{hiddenRule(flags.hidden)}</style>}
             {moving && <style data-moving-blocks="">{moving.from.map((x) => `[data-builder-stage] [data-recipe-path="${keyOf(x)}"]{opacity:.45}`).join("\n")}</style>}
             <div ref={zoneHost}>
@@ -1301,6 +1492,14 @@ export function Builder(p: BuilderProps) {
                         }} />
                       </>
                     )}
+                    {!moving && !tile && selected.length === 1 && !header && (
+                      <FreeHandles zone={zoneEl()} recipe={recipe} path={path} locked={flags.locked} tick={[recipe, size, live, lookId, preset, stageBox, data]} onLive={setPreview} onGuides={setGuides} onDone={(r, text) => {
+                        edit(r);
+                        say(text);
+                      }} />
+                    )}
+                    {guides && <FreeGuides view={guides} />}
+                    {band && <Band box={band} />}
                     {(stageDrop ?? moving?.drop) && <DropMark zone={zoneEl()} drop={(stageDrop ?? moving?.drop)!} verb={moving ? "Move" : "Add"} tick={[recipe, size, stageBox]} />}
                   </>
                 }

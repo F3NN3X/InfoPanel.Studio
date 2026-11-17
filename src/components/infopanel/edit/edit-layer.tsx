@@ -117,7 +117,7 @@ const sameBoxes = (a: Record<string, Box>, b: Record<string, Box>) =>
   Object.entries(a).every(([p, x]) => b[p] && (["x", "y", "width", "height"] as const).every((f) => Math.abs(x[f] - b[p][f]) < 0.25));
 
 const ACCENT = "var(--ui-accent)";
-const GUIDE = "oklch(0.72 0.24 340)";
+const GUIDE = "var(--ui-guide)";
 const TINT: Record<ModeState, { bg: string; border: string }> = {
   native: { bg: "oklch(0.72 0.15 255 / 0.07)", border: "oklch(0.72 0.15 255 / 0.7)" },
   infopanel: { bg: "oklch(0.8 0.15 75 / 0.07)", border: "oklch(0.8 0.15 75 / 0.7)" },

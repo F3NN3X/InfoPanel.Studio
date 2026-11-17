@@ -9,7 +9,8 @@
 // or GPUs the readings name (`sources.ts`), and a grid whose cells are its blocks and its Repeat's items. Builder plan Phase 5 and 6
 // (format 2): a grid's tracks and its blocks' areas in them (a later block over an earlier one), background layers under a container's
 // blocks, a block's part of its column's width or its row's height, a condition on a reading, and a motion (a fade in, a pulse while
-// critical), which the app's reduced-motion rules turn off.
+// critical), which the app's reduced-motion rules turn off. The free layout (format 2): a card, a row or a grid whose blocks each sit
+// at their own box, fractions of its content box, a later one drawn over an earlier one.
 import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { useElementSize } from "@/hooks/use-element-size";
 import { weatherKind } from "@/lib/weather-icons";
@@ -258,8 +259,36 @@ function Layered({ layers, path, children }: { layers: (readonly [Block, number]
   );
 }
 
-function Blocks({ blocks, path, direction = "column", gap = 6, align }: { blocks: Block[]; path: string; direction?: "row" | "column"; gap?: number; align?: string }) {
+/** A box of a free layout as its place in the container: per cent of its content box, to 0.01 %. */
+const pct = (f: number): string => `${Math.round(f * 10000) / 100}%`;
+
+/**
+ * A free container's blocks (the builder's free layout, format 2): each at its own box, a fraction of the container's content box, so it
+ * keeps its place at every zone size; in their order, a later block drawn over an earlier one (each box its own stacking context). Its
+ * text keeps the card's base size, as everywhere.
+ */
+function FreeBlocks({ blocks, path }: { blocks: Block[]; path: string }) {
   const ctx = useCtx();
+  const { layers, content } = shownOf(blocks, ctx);
+  return (
+    <Layered layers={layers} path={path}>
+      <div data-recipe-children={path} data-recipe-free={path} className="relative h-full w-full min-h-0 min-w-0">
+        {content.map(([b, k]) => {
+          const [x, y, w, h] = b.box ?? [0, 0, 1, 1];
+          return (
+            <div key={k} data-recipe-block={b.type} data-recipe-path={at(path, k)} data-recipe-box={b.box?.join(" ")} className={`absolute isolate flex min-h-0 min-w-0 items-center ${motionOf(b, ctx)}`.trim()} style={{ left: pct(x), top: pct(y), width: pct(w), height: pct(h) }}>
+              <BlockView b={b} path={at(path, k)} />
+            </div>
+          );
+        })}
+      </div>
+    </Layered>
+  );
+}
+
+function Blocks({ blocks, path, direction = "column", gap = 6, align, free }: { blocks: Block[]; path: string; direction?: "row" | "column"; gap?: number; align?: string; free?: boolean }) {
+  const ctx = useCtx();
+  if (free) return <FreeBlocks blocks={blocks} path={path} />;
   const { layers, content: shownBlocks } = shownOf(blocks, ctx);
   // Each block's cell stretches across the row, so a block that fills its cell (a column of labels, a sparkline) has a definite
   // size; `align` places the block inside its cell instead.
@@ -267,7 +296,7 @@ function Blocks({ blocks, path, direction = "column", gap = 6, align }: { blocks
   const cell: CSSProperties | undefined = place && (direction === "row" ? { alignItems: place } : { justifyContent: place });
   return (
     <Layered layers={layers} path={path}>
-      <div className="flex h-full w-full min-h-0 min-w-0" style={{ flexDirection: direction, gap, justifyContent: direction === "column" ? "safe center" : undefined }}>
+      <div className="flex h-full w-full min-h-0 min-w-0" style={{ flexDirection: direction, gap, justifyContent: direction === "column" ? "safe center" : undefined }} data-recipe-children={path}>
         {shownBlocks.map(([b, k]) => (
           <div key={k} data-recipe-block={b.type} data-recipe-path={at(path, k)} className={`flex min-h-0 min-w-0 ${motionOf(b, ctx)}`.trim()} style={{ ...grow(b, direction), ...cell, ...fillOf(b, direction) }}>
             <BlockView b={b} path={at(path, k)} />
@@ -283,7 +312,7 @@ function BlockView({ b, path }: { b: Block; path: string }): ReactNode {
     case "card":
       return <NestedCard b={b} path={path} />;
     case "row":
-      return <Blocks blocks={b.children} path={path} direction={b.direction ?? "row"} gap={b.gap} align={b.align} />;
+      return <Blocks blocks={b.children} path={path} direction={b.direction ?? "row"} gap={b.gap} align={b.align} free={b.layout === "free"} />;
     case "repeat":
       return <RepeatView b={b} path={path} />;
     case "grid":
@@ -321,7 +350,7 @@ function NestedCard({ b, path }: { b: Extract<Block, { type: "card" }>; path: st
         </span>
       )}
       <div className="min-h-0 flex-1">
-        <Blocks blocks={b.children} path={path} />
+        <Blocks blocks={b.children} path={path} free={b.layout === "free"} />
       </div>
     </div>
   );
@@ -549,6 +578,12 @@ export const autoColumns = (n: number, w: number, h: number): number => (n < 1 ?
  * grid's own box (the card's until it is measured). A Repeat's direction and dividers are its list's, not a grid's.
  */
 function GridView({ b, path }: { b: GridBlock; path: string }) {
+  // a free grid (format 2) places its blocks by their boxes, as a free card does
+  if (b.layout === "free") return <Blocks blocks={b.children} path={path} free />;
+  return <CellGrid b={b} path={path} />;
+}
+
+function CellGrid({ b, path }: { b: GridBlock; path: string }) {
   const ctx = useCtx();
   const box = useElementSize();
   const { layers, content: kids } = shownOf(b.children, ctx);
@@ -564,7 +599,7 @@ function GridView({ b, path }: { b: GridBlock; path: string }) {
     t ? { position: "relative", isolation: "isolate", ...(c.area ? { gridColumn: `${c.area[0]} / span ${c.area[2]}`, gridRow: `${c.area[1]} / span ${c.area[3]}` } : null) } : undefined;
   return (
     <Layered layers={layers} path={path}>
-    <div ref={box.ref} data-recipe-grid={path} className="grid h-full w-full min-h-0 min-w-0" style={{ gridTemplateColumns: t ? tracks(t.cols) : `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: t ? tracks(t.rows) : undefined, gridAutoRows: "minmax(0, 1fr)", gap: SPACING[b.spacing ?? "normal"] }}>
+    <div ref={box.ref} data-recipe-grid={path} data-recipe-children={path} className="grid h-full w-full min-h-0 min-w-0" style={{ gridTemplateColumns: t ? tracks(t.cols) : `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: t ? tracks(t.rows) : undefined, gridAutoRows: "minmax(0, 1fr)", gap: SPACING[b.spacing ?? "normal"] }}>
       {kids.map(([c, k], i) => {
         const items = cells[i];
         return items ? (
@@ -633,7 +668,7 @@ export default function RecipeView(p: RecipeViewProps) {
           <RecipeCtx.Provider value={{ ...base, w, h, cells: cellsOf(outerW, outerH) }}>
             <div data-recipe={recipe.id} className="flex h-full w-full min-h-0 flex-col">
               <div className="min-h-0 flex-1">
-                <Blocks blocks={root.children} path="" gap={SPACING[root.spacing ?? "normal"]} />
+                <Blocks blocks={root.children} path="" gap={SPACING[root.spacing ?? "normal"]} free={root.layout === "free"} />
               </div>
               <WeatherFooter repeats={weatherShown(root, values, cellsOf(outerW, outerH))} />
             </div>

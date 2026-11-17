@@ -274,6 +274,8 @@ function recipeRules(r: Recipe, files: readonly PackageFile[], add: Add): void {
     if (b.type === "repeat" && repeat) add("repeat", R, `${at}: a Repeat inside a Repeat`);
     // a Repeat's item is one row or tile, and a Repeat lays its items out in a grid itself (Direction: Grid)
     if (b.type === "grid" && repeat) add("grid", R, `${at}: a Grid inside a Repeat; a Repeat lays its items out as a grid itself`);
+    // a Repeat's blocks are drawn once per item, and the builder places one set of boxes: its items keep a flow
+    if ((b as { layout?: unknown }).layout !== undefined && repeat) add("free", R, `${at}: a free layout inside a Repeat; a Repeat's items lay their blocks out in order`);
     childrenOf(b).forEach((c, k) => walk(c, `${at}.children[${k}]`, depth + 1, b.type === "repeat" ? b : repeat, b));
   };
   walk(r.root, "$.root", 1, undefined);
@@ -557,6 +559,8 @@ const FORMAT2_WHAT: Readonly<Record<string, string>> = {
   place: "a place in its column or row needs",
   motion: "a motion needs",
   reading: "a condition on a reading needs",
+  layout: "a free layout needs",
+  box: "a box in a free layout needs",
 };
 
 /**
@@ -583,11 +587,15 @@ export function format2Keys(block: Block, at = "$.root", out: string[] = []): st
 }
 
 /** The builder plan's Phase 5 and 6 keys a block may carry (format 2); `format2Keys` lists each where it stands. */
-const LAYOUT_KEYS = ["tracks", "area", "background", "fill", "place", "motion"] as const;
+const LAYOUT_KEYS = ["tracks", "area", "background", "fill", "place", "motion", "layout", "box"] as const;
 
 /** A grid's tracks at most per side, and a container's background layers at most. */
 export const TRACKS_MAX = 24;
 export const BACKGROUNDS_MAX = 4;
+/** A box in a free layout is at least this part of its container's width and height (a smaller one holds nothing readable). */
+export const BOX_MIN = 0.03;
+/** How far past its container's edge a box may reach by rounding alone. */
+const BOX_EPS = 1e-6;
 /** The blocks whose reading has warning levels a pulse follows. */
 const LEVELLED = new Set(["value", "ring", "gauge", "bar", "sparkline"]);
 /** The containers whose blocks lie in a flow (a column or a row), where `fill` and `place` stand. */
@@ -628,6 +636,7 @@ function layoutRules(b: Block, at: string, parent: Block | undefined, add: Add):
   if ((b.fill !== undefined || b.place !== undefined) && b.background === undefined && !FLOWS.has(parent?.type ?? ""))
     add("fill", R, `${at}: a part of its column or row is a block's in a card, a row or a Repeat${parent?.type === "grid" ? "; in a grid its area sets its size" : ""}`);
   if (b.place !== undefined && b.fill === undefined) add("fill", R, `${at}: place puts a block in what its fill leaves; it has no fill`);
+  freeRules(b, at, parent, add);
   if (b.motion === "pulse" && !(LEVELLED.has(b.type) && (b as { thresholds?: unknown }).thresholds)) add("motion", R, `${at}: a pulse follows a reading's warning levels; this block has none`);
   const layers = childrenOf(b).filter((c) => c.background !== undefined).length;
   if (layers > BACKGROUNDS_MAX) add("background", R, `${at}: ${layers} background layers, at most ${BACKGROUNDS_MAX}`);
@@ -637,6 +646,33 @@ function layoutRules(b: Block, at: string, parent: Block | undefined, add: Add):
       if (c.background && (c.background.opacity ?? 100) > 60)
         add("background", R, `${at}.children[${k}]: a background under text at ${c.background.opacity ?? 100} %; text over it may be hard to read: set its opacity to 60 % or lower (a scrim)`, "warn");
     });
+}
+
+/** The containers that may lay their blocks out free (a Repeat's items are drawn many times, so it may not). */
+const FREE_CONTAINERS = new Set(["card", "row", "grid"]);
+
+/**
+ * The free layout: `layout: "free"` on a card, a row or a grid (a grid then has no columns or tracks), never in a Repeat; a `box` on each
+ * content block of a free container and nowhere else, inside the container (0-1) and at least `BOX_MIN` a side, never beside an area, a
+ * part of its row or a background (a background fills its container). Boxes may overlap: a later block is drawn over an earlier one.
+ */
+function freeRules(b: Block, at: string, parent: Block | undefined, add: Add): void {
+  const R = "recipe.json";
+  const layout = (b as { layout?: unknown }).layout;
+  if (layout !== undefined) {
+    if (!FREE_CONTAINERS.has(b.type)) add("free", R, `${at}: a free layout is a card's, a row's or a grid's; a ${b.type} has none`);
+    if (b.type === "grid" && (b.columns !== undefined || b.tracks)) add("free", R, `${at}: a free grid places its blocks by their boxes; it has no columns or tracks`);
+  }
+  const free = (parent as { layout?: unknown } | undefined)?.layout === "free";
+  if (b.box === undefined) {
+    if (free && b.background === undefined) add("free", R, `${at}: a block in a free layout needs its box ([x, y, width, height])`);
+    return;
+  }
+  if (!free) return void add("free", R, `${at}.box: a box places a block in a free layout; it is in a ${parent?.type ?? "nothing"} that lays its blocks out in order`);
+  if (b.background !== undefined || b.area !== undefined || b.fill !== undefined || b.place !== undefined) add("free", R, `${at}: a block with a box has no background, area or part of its row`);
+  const [x, y, w, h] = b.box;
+  if (w < BOX_MIN || h < BOX_MIN) add("free", R, `${at}.box: ${Math.round(w * 1000) / 10} % by ${Math.round(h * 1000) / 10} % is too small; a box is at least ${BOX_MIN * 100} % of its container each way`);
+  if (x + w > 1 + BOX_EPS || y + h > 1 + BOX_EPS) add("free", R, `${at}.box: it reaches past its container (x + width and y + height are at most 1)`);
 }
 
 /** Whether a block draws text, itself or in a block it holds (not in its backgrounds). */

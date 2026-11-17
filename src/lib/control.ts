@@ -35,6 +35,11 @@ export interface ControlState {
   front?: string;
   /** Auto-switch is paused (the lock, or "Switch with the app in front" off); absent = on. */
   autoPaused?: boolean;
+  /**
+   * A theme a studio previews on the kiosks (`theme-preview.ts` parses it), until `until` (epoch ms): memory only on the
+   * server, dropped when the studio takes it back, its time is up, or the studio's stream closes.
+   */
+  themePreview?: { until: number } & Record<string, unknown>;
   /** Client only: which connection delivered this state (changes on every reconnect). */
   link?: number;
 }
@@ -127,6 +132,9 @@ export async function postControl(action: ControlAction, body: object): Promise<
   }
 }
 
+/** This studio page's control session: its stream holds it open, and a theme preview it shows on the kiosks lasts no longer. */
+export const STUDIO_SESSION = `s${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+
 let connections = 0;
 
 /**
@@ -173,10 +181,10 @@ export interface KioskDisplay {
 
 /**
  * The control stream's URL: a kiosk reports its profile, page pin and display; the studio marks itself, so the app
- * can tell a studio already open in a browser.
+ * can tell a studio already open in a browser, and names its session.
  */
 export function controlEventsUrl(shownProfile?: string, pinnedPage?: string, studio = false, display?: KioskDisplay): string {
-  if (!shownProfile) return studio ? `${CONTROL_EVENTS_URL}?client=studio` : CONTROL_EVENTS_URL;
+  if (!shownProfile) return studio ? `${CONTROL_EVENTS_URL}?client=studio&session=${STUDIO_SESSION}` : CONTROL_EVENTS_URL;
   const q = new URLSearchParams({
     profile: shownProfile,
     ...(pinnedPage ? { page: pinnedPage } : {}),

@@ -12,7 +12,8 @@ import type { RepeatSource } from "./sources";
  * Phase E: text weight and case, opacity, a card's surface and padding, the root's spacing, a gauge's sweep and a bar's height;
  * Phase F: a Repeat over drives, cores, fans, adapters or GPUs and the grid container; builder plan Phase 5 and 6: a grid's tracks and
  * a block's area in them, a background layer, a block's part of its column's width or its row's height, a condition on a reading and
- * a motion); a recipe that uses none of them is written as format 1, so an older build still draws it.
+ * a motion; the free layout: a container's `layout` and its blocks' `box`es); a recipe that uses none of them is written as format 1,
+ * so an older build still draws it.
  */
 export const RECIPE_FORMAT = 2;
 export type RecipeFormat = 1 | 2;
@@ -92,6 +93,16 @@ export interface ReadingCondition {
 export type GridArea = [number, number, number, number];
 
 /**
+ * A block's place in a free container (format 2, the builder's free layout): `[x, y, width, height]`, each a fraction (0-1) of the
+ * container's content box, so it keeps its place at every zone size. The container draws its blocks in their order, a later one over
+ * an earlier one.
+ */
+export type FreeBox = [number, number, number, number];
+
+/** How a container lays out its blocks: unset, in a flow (a column, a row, a grid's cells); `free`, each at its own `box`. */
+export type ContainerLayout = "free";
+
+/**
  * A block drawn as its container's background (format 2, builder plan Phase 5 A): it fills the container, `inset` px in from each side,
  * under the container's other blocks. A picture's `fit` (unset cover), `position` (unset centre) and `blur` (px); any block's `opacity`.
  */
@@ -123,6 +134,8 @@ interface BlockBase {
   fill?: number;
   place?: "start" | "center" | "end";
   motion?: BlockMotion;
+  /** Its place in a free container (format 2); a child of a container whose `layout` is `free` only, and every content block of one. */
+  box?: FreeBox;
 }
 
 export interface Ranged {
@@ -148,6 +161,8 @@ export interface CardBlock extends BlockBase {
   padding?: "none" | "s" | "l";
   /** The root card's room between its blocks (format 2): tight 2 px or roomy 12 px; unset is normal, 6 px. */
   spacing?: "tight" | "roomy";
+  /** Its blocks each at their own box (format 2) instead of in a column. */
+  layout?: ContainerLayout;
   children: Block[];
 }
 export interface RowBlock extends BlockBase {
@@ -156,6 +171,8 @@ export interface RowBlock extends BlockBase {
   /** Between the children, px (0-24). */
   gap?: number;
   align?: "start" | "center" | "end" | "stretch";
+  /** Its blocks each at their own box (format 2) instead of side by side. */
+  layout?: ContainerLayout;
   children: Block[];
 }
 /**
@@ -168,6 +185,8 @@ export interface GridBlock extends BlockBase {
   /** Its tracks (format 2, builder plan Phase 5): each column's and row's share as a fraction (`fr`), 1-24 of each; its blocks take `area`s in them. */
   tracks?: GridTracks;
   spacing?: "tight" | "roomy";
+  /** Its blocks each at their own box (format 2) instead of in cells; it then has no columns or tracks. */
+  layout?: ContainerLayout;
   children: Block[];
 }
 /** A grid's columns and rows, each a share (0.1-12) of the grid's width or height. */

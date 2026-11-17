@@ -52,6 +52,16 @@ export interface ThemeBrowseProps {
   /** The template themes (the older Saved and template themes picker) and its count line. */
   onTemplates: () => void;
   templatesText: string;
+  /** The card the live preview shows (it is the one selected). */
+  previewId?: string;
+  /** A card clicked: the live preview shows it. */
+  onPreviewCard?: (item: BrowseItem) => void;
+  /** The pointer is on a card, or left it (`undefined`): Preview on hover. */
+  onHoverCard?: (item: BrowseItem | undefined) => void;
+  /** The cards the filters leave, in order: the preview's Next and Previous step through them. */
+  onVisible?: (ids: readonly string[]) => void;
+  /** While previewing, the detail shows this (the page as it would look) instead of the theme's thumbnail. */
+  canvas?: ReactNode;
 }
 
 /** One group of cards under its heading. */
@@ -88,7 +98,7 @@ function Detail({ item, look, applied, warnings, p }: DetailProps) {
   useEffect(() => setRenaming(false), [item.id]);
   return (
     <aside aria-label="Theme detail" className="flex w-[380px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-chrome p-5 max-sm:w-full max-sm:border-l-0 max-sm:border-t">
-      <LookThumb preset={item.preset} width={338} className="rounded-ui-lg border border-ui-subtle" />
+      {p.canvas ?? <LookThumb preset={item.preset} width={338} className="rounded-ui-lg border border-ui-subtle" />}
       <div className="flex flex-col gap-1">
         {renaming ? (
           <ThemeNameInput
@@ -204,7 +214,12 @@ export function ThemeBrowse(p: ThemeBrowseProps) {
   const counts = browseCounts(items);
   const groups = browseGroups(items, filter, tag, query);
   const appliedId = p.saved.some((s) => s.id === p.currentPresetId) ? p.currentPresetId : p.currentLookId;
-  const selected = items.find((i) => i.id === picked) ?? items.find((i) => i.id === appliedId) ?? items[0];
+  const selected = items.find((i) => i.id === p.previewId) ?? items.find((i) => i.id === picked) ?? items.find((i) => i.id === appliedId) ?? items[0];
+  const visibleKey = [...groups.yours, ...groups.packs, ...groups.plain].map((i) => i.id).join("\n");
+  useEffect(() => {
+    p.onVisible?.(visibleKey ? visibleKey.split("\n") : []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleKey]);
   const warningsOf = (id: string) => p.packs.find((k) => k.id === id)?.warnings ?? [];
   const card = (i: BrowseItem) => (
     <ThemeCard
@@ -218,8 +233,13 @@ export function ThemeBrowse(p: ThemeBrowseProps) {
       selected={i.id === selected?.id}
       warnings={i.kind === "yours" ? warningsOf(i.id).length : 0}
       tabStop={i.id === selected?.id}
-      onSelect={() => setPicked(i.id)}
+      previewing={i.id === p.previewId}
+      onSelect={() => {
+        setPicked(i.id);
+        p.onPreviewCard?.(i);
+      }}
       onApply={() => p.onApply(i.preset, p.keepBackground, i.kind !== "saved")}
+      onHover={p.onHoverCard && ((on) => p.onHoverCard?.(on ? i : undefined))}
     />
   );
   const none = groups.yours.length + groups.packs.length + groups.plain.length === 0;
@@ -265,7 +285,8 @@ export function ThemeBrowse(p: ThemeBrowseProps) {
             Packs are turned off on this server.
           </p>
         )}
-        <div onKeyDown={(e) => onRovingKeyDown(e, "[data-look-card]", false)} className="flex flex-col gap-7">
+        {/* While previewing, the arrows step the preview: the card they move to is shown. */}
+        <div onKeyDown={(e) => onRovingKeyDown(e, "[data-look-card]", p.previewId !== undefined)} className="flex flex-col gap-7">
           <Group title="Yours" note="Saved themes and imported packs" count={groups.yours.length}>
             {groups.yours.map(card)}
           </Group>

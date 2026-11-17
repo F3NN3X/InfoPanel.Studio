@@ -23,17 +23,32 @@ interface CardProps {
   warnings?: number;
   /** The roving tab stop. */
   tabStop: boolean;
+  /** The theme the canvas previews: Enter on its card applies it. */
+  previewing?: boolean;
   onSelect: () => void;
   onApply: () => void;
+  /** The pointer came onto the card (`true`) or left it (Preview on hover). */
+  onHover?: (on: boolean) => void;
 }
 
-/** One theme card: the real-render thumbnail with its badges, the name and one line; a click shows its detail, a double click or Enter on the detail applies it. */
-export function ThemeCard({ id, name, description, preset, pack, applied, selected, warnings = 0, tabStop, onSelect, onApply }: CardProps) {
+/**
+ * One theme card: the real-render thumbnail with its badges, the name and one line; a click shows its detail and
+ * previews it, a double click, or Enter on the card being previewed, applies it.
+ */
+export function ThemeCard({ id, name, description, preset, pack, applied, selected, warnings = 0, tabStop, previewing, onSelect, onApply, onHover }: CardProps) {
   return (
     <button
       type="button"
       onClick={onSelect}
       onDoubleClick={onApply}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" || !previewing) return;
+        e.preventDefault();
+        onApply();
+      }}
+      onPointerEnter={onHover && (() => onHover(true))}
+      onPointerLeave={onHover && (() => onHover(false))}
+      data-previewing={previewing || undefined}
       aria-pressed={selected}
       aria-label={`${name}${pack ? ", theme pack" : ""}${applied ? ", applied" : ""}${warnings > 0 ? `, ${warnings} ${warnings === 1 ? "warning" : "warnings"}` : ""}`}
       tabIndex={tabStop ? 0 : -1}

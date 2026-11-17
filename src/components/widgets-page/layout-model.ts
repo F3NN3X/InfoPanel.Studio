@@ -246,6 +246,8 @@ export function fillAxis(recipe: Recipe, path: Path): "column" | "row" | undefin
   const b = blockAt(recipe, path);
   if (!path.length || !b || b.background || repeatAbove(recipe, path)) return undefined;
   const parent = blockAt(recipe, path.slice(0, -1));
+  // a free container's blocks have boxes instead
+  if (parent && "layout" in parent && parent.layout === "free") return undefined;
   if (parent?.type === "card") return "column";
   if (parent?.type === "row") return parent.direction === "column" ? "column" : "row";
   return undefined;
