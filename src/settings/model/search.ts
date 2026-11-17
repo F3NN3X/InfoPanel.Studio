@@ -1,4 +1,4 @@
-export type SectionId = "general" | "server" | "connections" | "agents" | "touch" | "updates" | "publishers" | "diagnostics" | "logs" | "about" | "changelog";
+export type SectionId = "general" | "server" | "connections" | "agents" | "actions" | "touch" | "updates" | "publishers" | "diagnostics" | "logs" | "about" | "changelog";
 
 /** Whether `value` names a settings section. */
 export const isSectionId = (value: string): value is SectionId => Object.hasOwn(SECTION_NAMES, value);
@@ -8,6 +8,7 @@ export const SECTION_NAMES: Record<SectionId, string> = {
   server: "Server",
   connections: "Connections",
   agents: "Coding agents",
+  actions: "Actions",
   touch: "Touch",
   updates: "Updates",
   publishers: "Widget publishers",
@@ -83,6 +84,11 @@ export const SEARCH_INDEX: SearchEntry[] = [
   { row: "agents", label: "Connect coding agents", section: "agents" },
   { row: "agent-claude", label: "Claude Code hooks", section: "agents" },
   { row: "agent-codex", label: "Codex hooks", section: "agents" },
+  { row: "action-runner", label: "Run commands from the panel", section: "actions" },
+  { row: "obs-stream-control", label: "Go live and stop in OBS from the panel", section: "actions" },
+  { row: "action-test-mode", label: "Test mode (commands)", section: "actions" },
+  { row: "action-commands", label: "Approve commands", section: "actions" },
+  { row: "action-log", label: "Command log", section: "actions" },
   { row: "touch", label: "Touch panels (experimental)", section: "touch" },
   { row: "touch-screens", label: "Touchscreen driver (WinUSB, Zadig)", section: "touch" },
   { row: "touch-gestures", label: "Touch gestures", section: "touch" },

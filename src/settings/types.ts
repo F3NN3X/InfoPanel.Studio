@@ -18,6 +18,10 @@ export interface Settings {
   port: number;
   allowedHosts: string[];
   allowRemoteEdit: boolean;
+  /** Keys and touch actions may run approved commands (the action runner, pinned layer P7); absent (an older app): off. */
+  actionRunner?: boolean;
+  /** OBS's go live and stop as a touch action (owner Q3); absent: off. */
+  obsStreamControl?: boolean;
   autoRestart: boolean;
   startAtLogin: boolean;
   openStudioOnLaunch: boolean;
@@ -66,6 +70,9 @@ export interface RunningConfig {
   debug: boolean;
   allowedHosts: string[];
   allowRemoteEdit: boolean;
+  /** Absent (an older app): off. */
+  actionRunner?: boolean;
+  obsStreamControl?: boolean;
 }
 
 export interface Status {

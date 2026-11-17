@@ -92,6 +92,8 @@ export type InspectorContext =
       header?: HeaderMode;
       /** What it draws in small zones (`DashboardModule.compact`). */
       compact?: CompactShape;
+      /** It is the Keys widget: its keys (`Placement.keys`) lead the Show tab. */
+      keys?: boolean;
     }
   | {
       kind: "panel";
@@ -137,6 +139,7 @@ export const widgetContext = (mod: DashboardModule, saved?: ModuleSettings): Ins
     noData: m.noData,
     header: m.header,
     compact: m.compact,
+    ...(mod.id === "Keys" ? { keys: true } : {}),
   };
 };
 
@@ -153,6 +156,7 @@ export type SpecialSection =
   | "blankPick"
   | "zoneFrame"
   | "touch"
+  | "keys"
   | "ipMode"
   | "ipPosition"
   | "ipSensor"
@@ -311,7 +315,9 @@ function withIdentity(sections: InspectorSection[], context: InspectorContext): 
 
 function widgetSections(context: Extract<InspectorContext, { kind: "widget" }>): InspectorSection[] {
   const defs = withHeaderMode(context.defs, context.header, context.compact);
-  const sections = withIdentity(sectionsOfCategories(zoneCategories(defs, context.header !== "none"), context), context);
+  const own = withIdentity(sectionsOfCategories(zoneCategories(defs, context.header !== "none"), context), context);
+  // the Keys widget's keys (`Placement.keys`, P7): its own editor, first of its own sections
+  const sections = context.keys ? [section({ id: "keys", title: "Key list", tab: "show", special: "keys", hint: "The keys, each with its icon and what a tap, a hold and a double tap run", terms: ["Key", "Folder", "Command", "Icon"] }), ...own] : own;
   return zoneTabs(
     sections,
     context.noData

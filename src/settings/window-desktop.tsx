@@ -11,7 +11,7 @@ import { PREFERENCE_PAGES, WindowMain } from "./window-pages";
 
 /** Every page, in the order PLAN decision 21 gives: App, then Dashboard and Studio, then the rest. */
 const GROUPS: NavGroup[] = [
-  { label: "App", items: ["general", "server", "connections", "agents", "touch", "updates", "publishers"] },
+  { label: "App", items: ["general", "server", "connections", "agents", "actions", "touch", "updates", "publishers"] },
   { label: "Preferences", items: ["dashboard", "studio"] },
   { label: "Troubleshoot", items: ["diagnostics", "logs"] },
   { label: "InfoPanel Studio", items: ["about", "changelog"] },

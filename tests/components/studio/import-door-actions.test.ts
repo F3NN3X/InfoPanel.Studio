@@ -198,4 +198,18 @@ describe("runImport", () => {
     expect((await runImport([file], replace, ctx)).wizard?.dest).toBe("new");
     expect((await runImport([file], { ...replace, canvas: "canvas-zone" }, ctx)).wizard?.dest).toBe("zone");
   });
+
+  it("lists every command an imported screen names for review, and none for a screen without (P7)", async () => {
+    const withKeys = (name: string): MonitorProfile => {
+      const p = newProfile(name, 1024, 600);
+      const keys = [{ id: "k", name: "Notes", touch: { tap: { op: "run" as const, command: "notepad.exe" } } }];
+      return { ...p, pages: [{ ...p.pages[0], placements: [{ id: "z", module: "Keys", colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, keys }] }] };
+    };
+    const screen = await runImport([await door("keys.json", profileFileText(withKeys("Keys")))], replace, context(configOf("Mine")).ctx);
+    expect(screen.commands.map((u) => [u.command, u.where])).toEqual([["notepad.exe", "Main › Keys › Notes, tap"]]);
+    // a restore lists the screens it brought, on a replace all of them
+    const restored = await runImport([await door("backup.json", text({ ...configOf(), profiles: [withKeys("A"), newProfile("B", 1024, 600)] }))], replace, context(configOf("Mine")).ctx);
+    expect(restored.commands.map((u) => u.profile)).toEqual(["A"]);
+    expect((await runImport([await door("plain.json", profileFileText(newProfile("Plain", 800, 480)))], replace, context(configOf("Mine")).ctx)).commands).toEqual([]);
+  });
 });

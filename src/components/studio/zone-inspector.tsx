@@ -122,6 +122,7 @@ const WidgetLookKnobs = lazy(() => import("./look-knobs"));
 
 // the Touch rows (P6) and the action list they read load with the section, not with the studio
 const TouchRows = lazy(() => import("./touch-rows").then((m) => ({ default: m.TouchRows })));
+const KeysEditor = lazy(() => import("./keys-editor").then((m) => ({ default: m.KeysEditor })));
 /** The widget's views as tiles (D-5), loaded with the first widget that has a choice of them. */
 const PresetRow = lazy(() => import("./editor/preset-row"));
 
@@ -373,6 +374,19 @@ export function ZoneInspector({
             </Suspense>
           ),
         };
+      case "keys":
+        return {
+          changed: zone.keys?.length ?? 0,
+          body: (
+            <Suspense fallback={null}>
+              <KeysEditor
+                keys={zone.keys}
+                pages={config.profiles.find((p) => p.id === profile.id)?.pages ?? []}
+                onChange={(keys, key) => update(({ keys: _k, ...p }) => (keys ? { ...p, keys } : p), key)}
+              />
+            </Suspense>
+          ),
+        };
       case undefined:
         break;
       default:
@@ -413,7 +427,7 @@ export function ZoneInspector({
 
   const present = (s: InspectorSection) =>
     s.special === undefined ||
-    ["boundData", "panelData", "blankPick", "zoneFrame", "touch"].includes(s.special) ||
+    ["boundData", "panelData", "blankPick", "zoneFrame", "touch", "keys"].includes(s.special) ||
     (cards.get(s.special)?.length ?? 0) > 0;
 
   const gaugeNote = zone.module === CUSTOM_GAUGE_ID && onEditGauge && <GaugeNote key="gauge" zone={zone} onEdit={onEditGauge} />;

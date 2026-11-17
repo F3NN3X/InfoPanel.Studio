@@ -16,14 +16,14 @@ export function parseHosts(text: string): string[] {
 }
 
 export interface RestartItem {
-  key: "port" | "listen" | "debug" | "allowedHosts" | "allowRemoteEdit";
+  key: "port" | "listen" | "debug" | "allowedHosts" | "allowRemoteEdit" | "actionRunner" | "obsStreamControl";
   /** What the restart bar lists. */
   label: string;
   /** The value the running server uses: Undo puts it back. */
   running: number | string | boolean | string[];
 }
 
-type Saved = Pick<Settings, "port" | "listen" | "debug" | "allowedHosts" | "allowRemoteEdit">;
+type Saved = Pick<Settings, "port" | "listen" | "debug" | "allowedHosts" | "allowRemoteEdit" | "actionRunner" | "obsStreamControl">;
 
 /**
  * The saved settings the running server hasn't picked up. Nothing is pending while no server runs
@@ -53,6 +53,13 @@ export function restartItems(saved: Saved, running: RunningConfig | null, debugF
       label: saved.allowRemoteEdit ? "editing from other devices on" : "editing from other devices off",
       running: running.allowRemoteEdit,
     });
+  }
+  // an older app's settings and running config have neither: read as off
+  if ((running.actionRunner ?? false) !== (saved.actionRunner ?? false)) {
+    items.push({ key: "actionRunner", label: saved.actionRunner ? "commands from the panel on" : "commands from the panel off", running: running.actionRunner ?? false });
+  }
+  if ((running.obsStreamControl ?? false) !== (saved.obsStreamControl ?? false)) {
+    items.push({ key: "obsStreamControl", label: saved.obsStreamControl ? "OBS go live on" : "OBS go live off", running: running.obsStreamControl ?? false });
   }
   return items;
 }
