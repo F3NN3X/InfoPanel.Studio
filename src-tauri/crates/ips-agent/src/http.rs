@@ -1,5 +1,6 @@
 // One POST, like the Node forwarder's fetch: raw TcpStream, no TLS, gives up after the timeout
-// (connect, write and waiting for the response head together) and never reports a failure.
+// (connect, write and waiting for the response head together) and never reports a failure. A permission request
+// (`exchange`) reads the whole answer instead, the panel's allow or deny.
 
 use socket2::{Domain, Protocol, Socket, Type};
 use std::io::{Read, Write};
@@ -157,6 +158,65 @@ pub fn post(base: &Base, path: &str, body: &str, timeout: Duration) {
     }
 }
 
+/// A response's status and body: a chunked body is joined, anything else is taken as it came.
+fn parse_response(raw: &[u8]) -> Option<(u16, Vec<u8>)> {
+    let end = raw.windows(4).position(|w| w == b"\r\n\r\n")?;
+    let head = String::from_utf8_lossy(&raw[..end]);
+    let status = head.split(' ').nth(1)?.parse().ok()?;
+    let chunked = head.lines().skip(1).any(|l| {
+        l.split_once(':').is_some_and(|(k, v)| {
+            k.trim().eq_ignore_ascii_case("transfer-encoding") && v.to_ascii_lowercase().contains("chunked")
+        })
+    });
+    let mut body = &raw[end + 4..];
+    if !chunked {
+        return Some((status, body.to_vec()));
+    }
+    let mut out = Vec::new();
+    while let Some(line) = body.windows(2).position(|w| w == b"\r\n") {
+        let size = std::str::from_utf8(&body[..line]).ok()?;
+        let size = usize::from_str_radix(size.split(';').next()?.trim(), 16).ok()?;
+        if size == 0 {
+            break;
+        }
+        let start = line + 2;
+        out.extend_from_slice(body.get(start..start + size)?);
+        body = body.get(start + size + 2..).unwrap_or_default();
+    }
+    Some((status, out))
+}
+
+/// POST `body` to `path` under `base` and read the whole answer (the request asks the server to close after it), or None
+/// when there is no complete answer before the timeout. Every error is swallowed.
+pub fn exchange(base: &Base, path: &str, body: &str, timeout: Duration) -> Option<(u16, Vec<u8>)> {
+    let deadline = Instant::now() + timeout;
+    let left = || {
+        deadline
+            .saturating_duration_since(Instant::now())
+            .max(Duration::from_millis(1))
+    };
+    let mut stream = base
+        .addresses()
+        .into_iter()
+        .find_map(|a| connect(&a, left()).ok())?;
+    let _ = stream.set_write_timeout(Some(left()));
+    stream.write_all(&request(base, path, body)).ok()?;
+    let mut raw = Vec::new();
+    let mut buf = [0u8; 4096];
+    loop {
+        if Instant::now() >= deadline {
+            return None;
+        }
+        let _ = stream.set_read_timeout(Some(left()));
+        match stream.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => raw.extend_from_slice(&buf[..n]),
+            Err(_) => return None,
+        }
+    }
+    parse_response(&raw)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -198,5 +258,14 @@ mod tests {
         assert!(req.contains("\r\nX-Agent-Event: 1\r\n"));
         assert!(req.contains("\r\nContent-Length: 7\r\n"));
         assert!(req.ends_with("\r\n\r\n{\"a\":1}"));
+    }
+
+    #[test]
+    fn reads_a_chunked_or_plain_answer() {
+        let chunked = b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\n{\"a\":\r\n2\r\n1}\r\n0\r\n\r\n";
+        assert_eq!(parse_response(chunked), Some((200, b"{\"a\":1}".to_vec())));
+        let plain = b"HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\nno";
+        assert_eq!(parse_response(plain), Some((404, b"no".to_vec())));
+        assert_eq!(parse_response(b"HTTP/1.1 200 OK\r\n"), None);
     }
 }

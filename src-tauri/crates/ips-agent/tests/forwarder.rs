@@ -26,6 +26,8 @@ enum Reply {
     ServerError,
     /// Accepts the request and never answers.
     Hang,
+    /// 200 with this JSON, chunked as ips-server sends it.
+    Json(&'static str),
 }
 
 struct Server {
@@ -113,6 +115,10 @@ fn serve(mut stream: TcpStream, reply: Reply, port: u16, log: &Mutex<Vec<Recorde
             );
         }
         Reply::Hang => std::thread::sleep(Duration::from_secs(4)),
+        Reply::Json(body) => {
+            let head = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n";
+            let _ = stream.write_all(format!("{head}{:x}\r\n{body}\r\n0\r\n\r\n", body.len()).as_bytes());
+        }
     }
 }
 
@@ -442,4 +448,53 @@ fn remove_hooks_takes_ours_out_of_the_home_it_is_given() {
         left,
         serde_json::from_str::<serde_json::Value>(mine).unwrap()
     );
+}
+
+const PERMISSION: &str = r#"{"hook_event_name":"PermissionRequest","session_id":"x","tool_name":"Bash","tool_input":{"command":"npm run build"}}"#;
+
+fn decision(stdout: &[u8]) -> serde_json::Value {
+    serde_json::from_slice(stdout).unwrap()
+}
+
+#[test]
+fn a_permission_request_prints_the_panels_allow() {
+    let (outcome, seen) = run_case(
+        &Case::new(&["permission", "claude", "--url={URL}"], PERMISSION).reply(Reply::Json(r#"{"behavior":"allow"}"#)),
+    );
+    assert_eq!(outcome.code, Some(0));
+    assert_eq!(seen[0].path, "/api/agents/permission?agent=claude");
+    assert_eq!(seen[0].agent_event, "1");
+    assert_eq!(seen[0].body, PERMISSION.as_bytes());
+    assert_eq!(
+        decision(&outcome.stdout),
+        serde_json::json!({ "hookSpecificOutput": { "hookEventName": "PermissionRequest", "decision": { "behavior": "allow" } } })
+    );
+}
+
+#[test]
+fn a_permission_request_prints_the_panels_deny() {
+    let (outcome, seen) = run_case(
+        &Case::new(&["permission", "codex", "--url={URL}"], PERMISSION).reply(Reply::Json(r#"{"behavior":"deny"}"#)),
+    );
+    assert_eq!(outcome.code, Some(0));
+    assert_eq!(seen[0].path, "/api/agents/permission?agent=codex");
+    let out = decision(&outcome.stdout);
+    assert_eq!(out["hookSpecificOutput"]["decision"]["behavior"], "deny");
+    assert_eq!(out["hookSpecificOutput"]["hookEventName"], "PermissionRequest");
+}
+
+#[test]
+fn a_permission_request_with_no_answer_prints_nothing_so_the_terminal_asks() {
+    // the server's own timeout (`{}`), a server that closes without answering, a refusal, and no server at all
+    for reply in [Reply::Json("{}"), Reply::Hang, Reply::ServerError] {
+        let (outcome, seen) = run_case(&Case::new(&["permission", "claude", "--url={URL}"], PERMISSION).reply(reply));
+        assert_eq!((outcome.stdout, outcome.code), (vec![], Some(0)));
+        assert_eq!(seen.len(), 1);
+    }
+    let mut down = Case::new(&["permission", "claude", "--url={URL}"], PERMISSION);
+    down.down = true;
+    let (outcome, _) = run_case(&down);
+    assert_eq!((outcome.stdout, outcome.code), (vec![], Some(0)));
+    // blank input asks nothing
+    assert!(post(Case::new(&["permission", "claude", "--url={URL}"], " ")).is_empty());
 }

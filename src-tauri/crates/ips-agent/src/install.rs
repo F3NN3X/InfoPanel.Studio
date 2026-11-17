@@ -103,14 +103,32 @@ fn without_hooks(hooks: &Object, test: fn(&Value) -> bool) -> Object {
     next
 }
 
-/// `hooks` with one group running `command` added to each event, unless it is there already; old
-/// Node hooks are dropped first.
-fn with_hooks(
-    hooks: Option<&Value>,
-    events: &[&str],
-    command: &str,
-    extra: Option<(&str, Value)>,
-) -> Object {
+/// A permission request waits for the panel (lib.rs `PERMISSION_DEADLINE`, 28 s), so its hook's timeout is above that.
+pub const PERMISSION_TIMEOUT: u64 = 30;
+
+/// The hook for one event: `<forward> hook <agent><suffix>` with a 5 s timeout, except PermissionRequest, which runs
+/// `<forward> permission <agent><suffix>` in the foreground (its answer is read) with `PERMISSION_TIMEOUT`, and goes on to
+/// the terminal prompt if it ever fails (`onFailure: continue`). `background` marks the others async (Claude Code).
+fn hook_for(event: &str, forward: &str, agent: &str, suffix: &str, background: bool) -> Object {
+    let mut hook = Object::new();
+    hook.insert("type".into(), json!("command"));
+    if event == "PermissionRequest" {
+        hook.insert("command".into(), json!(format!("{forward} permission {agent}{suffix}")));
+        hook.insert("timeout".into(), json!(PERMISSION_TIMEOUT));
+        hook.insert("onFailure".into(), json!("continue"));
+        return hook;
+    }
+    hook.insert("command".into(), json!(format!("{forward} hook {agent}{suffix}")));
+    hook.insert("timeout".into(), json!(5));
+    if background {
+        hook.insert("async".into(), json!(true));
+    }
+    hook
+}
+
+/// `hooks` with one group running our hook (`hook` gives it per event) added to each event, unless it is there already;
+/// old Node hooks are dropped first.
+fn with_hooks(hooks: Option<&Value>, events: &[&str], hook: impl Fn(&str) -> Object) -> Object {
     let base = hooks
         .and_then(Value::as_object)
         .cloned()
@@ -133,14 +151,7 @@ fn with_hooks(
         if present {
             continue;
         }
-        let mut hook = Object::new();
-        hook.insert("type".into(), json!("command"));
-        hook.insert("command".into(), json!(command));
-        hook.insert("timeout".into(), json!(5));
-        if let Some((key, value)) = &extra {
-            hook.insert((*key).into(), value.clone());
-        }
-        groups.push(json!({ "hooks": [Value::Object(hook)] }));
+        groups.push(json!({ "hooks": [Value::Object(hook(event))] }));
         next.insert((*event).into(), Value::Array(groups));
     }
     next
@@ -187,12 +198,9 @@ fn statusline_with(line: Option<&Value>, command: String) -> Value {
 /// Claude Code settings with the hooks added and the statusline wrapped (`forward` runs the
 /// forwarder, `suffix` ends each command).
 pub fn install_claude(settings: &Object, forward: &str, suffix: &str) -> Object {
-    let hooks = with_hooks(
-        settings.get("hooks"),
-        &CLAUDE_EVENTS,
-        &format!("{forward} hook claude{suffix}"),
-        Some(("async", json!(true))),
-    );
+    let hooks = with_hooks(settings.get("hooks"), &CLAUDE_EVENTS, |e| {
+        hook_for(e, forward, "claude", suffix, true)
+    });
     let line = settings.get("statusLine");
     let plain = format!("{forward} statusline{suffix}");
     let wrapped = |original: &str| {
@@ -251,12 +259,9 @@ pub fn remove_claude(settings: &Object) -> Object {
 }
 
 pub fn install_codex(file: &Object, forward: &str, suffix: &str) -> Object {
-    let hooks = with_hooks(
-        file.get("hooks"),
-        &CODEX_EVENTS,
-        &format!("{forward} hook codex{suffix}"),
-        None,
-    );
+    let hooks = with_hooks(file.get("hooks"), &CODEX_EVENTS, |e| {
+        hook_for(e, forward, "codex", suffix, false)
+    });
     let mut next = file.clone();
     next.insert("hooks".into(), Value::Object(hooks));
     next
@@ -565,6 +570,24 @@ mod tests {
             mine()["statusLine"]["command"].as_str().unwrap()
         );
         assert_eq!(next["model"], "opus");
+    }
+
+    #[test]
+    fn the_permission_hook_waits_in_the_foreground_and_never_blocks_on_failure() {
+        let url = url_suffix(Some("http://127.0.0.1:3999"));
+        let claude = install_claude(&Object::new(), FWD, &url);
+        assert_eq!(
+            claude["hooks"]["PermissionRequest"][0]["hooks"][0],
+            json!({ "type": "command", "command": format!("{FWD} permission claude --url=http://127.0.0.1:3999"), "timeout": PERMISSION_TIMEOUT, "onFailure": "continue" })
+        );
+        let codex = install_codex(&Object::new(), FWD, "");
+        assert_eq!(
+            codex["hooks"]["PermissionRequest"][0]["hooks"][0],
+            json!({ "type": "command", "command": format!("{FWD} permission codex"), "timeout": PERMISSION_TIMEOUT, "onFailure": "continue" })
+        );
+        // above the hook's own deadline, so the agent never kills it mid-wait
+        assert!(PERMISSION_TIMEOUT > crate::PERMISSION_DEADLINE.as_secs());
+        assert_eq!(remove_claude(&claude), Object::new());
     }
 
     #[test]
