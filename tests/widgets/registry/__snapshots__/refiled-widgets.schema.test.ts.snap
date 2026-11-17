@@ -13,6 +13,9 @@ exports[`Achievements > files its rows by the rules 1`] = `
         "island",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -107,6 +110,9 @@ exports[`Bluetooth > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -208,6 +214,9 @@ exports[`Calendar > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -297,6 +306,9 @@ exports[`Clock > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -402,6 +414,9 @@ exports[`CodingAgents > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -528,6 +543,9 @@ exports[`CoreHeatmap > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -631,6 +649,9 @@ exports[`CustomGauge > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -724,6 +745,9 @@ exports[`Departures > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -819,6 +843,9 @@ exports[`DiskIO > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -937,6 +964,9 @@ exports[`DriveSpace > files its rows by the rules 1`] = `
         "island",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -1044,6 +1074,9 @@ exports[`Fans > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -1150,6 +1183,9 @@ exports[`FpsMonitor > files its rows by the rules 1`] = `
         "islandStart",
         "islandFloor",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -1270,6 +1306,9 @@ exports[`FpsMonitor in the { view: 'pacing' } view > files its rows by the rules
         "island",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -1373,6 +1412,9 @@ exports[`GameSpotlight > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -1483,6 +1525,9 @@ exports[`GpuMonitor > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -1590,6 +1635,9 @@ exports[`GpuMonitor in the { view: 'rings' } view > files its rows by the rules 
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -1703,6 +1751,9 @@ exports[`KpiTiles > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -1808,6 +1859,9 @@ exports[`MemoryUsage > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -1902,6 +1956,9 @@ exports[`MenuBar > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -2015,6 +2072,9 @@ exports[`MeterBridge > files its rows by the rules 1`] = `
         "smoothing",
         "meterBallistics",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -2142,6 +2202,9 @@ exports[`NetworkAdapters > files its rows by the rules 1`] = `
         "islandPublicIp",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -2248,6 +2311,9 @@ exports[`NetworkThroughput > files its rows by the rules 1`] = `
         "island",
         "islandMinRate",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -2370,6 +2436,9 @@ exports[`Notifications > files its rows by the rules 1`] = `
         "islandBody",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -2464,6 +2533,9 @@ exports[`OsdStrip > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -2560,6 +2632,9 @@ exports[`PlaytimeShare > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -2655,6 +2730,9 @@ exports[`PowerDraw > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -2756,6 +2834,9 @@ exports[`ProcessList > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -2855,6 +2936,9 @@ exports[`SensorValue > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -2971,6 +3055,9 @@ exports[`ServiceHealth > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -3081,6 +3168,9 @@ exports[`StatusTracker > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -3202,6 +3292,9 @@ exports[`SteamFriends > files its rows by the rules 1`] = `
         "island",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -3305,6 +3398,9 @@ exports[`SteamGame > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -3395,6 +3491,9 @@ exports[`SteamLibrary > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -3496,6 +3595,9 @@ exports[`SteamNews > files its rows by the rules 1`] = `
         "island",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -3590,6 +3692,9 @@ exports[`StorageHealth > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -3690,6 +3795,9 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -3814,6 +3922,9 @@ exports[`SystemStatus > files its rows by the rules 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -3903,6 +4014,9 @@ exports[`TextFile > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -4009,6 +4123,9 @@ exports[`Thermals > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -4123,6 +4240,9 @@ exports[`Timer > files its rows by the rules 1`] = `
         "island",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -4234,6 +4354,9 @@ exports[`Visualizer > files its rows by the rules 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -4354,6 +4477,9 @@ exports[`VolumeMixer > files its rows by the rules 1`] = `
         "island",
         "islandDevice",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -4516,6 +4642,9 @@ exports[`WaveLink > files its rows by the rules 1`] = `
         "island",
         "islandFaders",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
