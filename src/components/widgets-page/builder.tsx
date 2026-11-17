@@ -1402,6 +1402,8 @@ export function Builder(p: BuilderProps) {
             data-builder-stage=""
             data-moving={moving ? "" : undefined}
             onPointerDown={pressStage}
+            // a picture on the stage moves as a block, never as the browser's own image drag (which takes the pointer away)
+            onDragStart={(e) => e.preventDefault()}
             onKeyDown={onStageKey}
             onContextMenu={(e) => {
               const t = e.target as HTMLElement;

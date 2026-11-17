@@ -118,3 +118,20 @@ test("free blocks: dragged onto one line by the guide snap, selected by a rubber
   expect(copy).toEqual([added[0] + 0.02, added[1] + 0.02, added[2], added[3]].map((n) => Math.round(n * 10000) / 10000));
   expect(errors).toEqual([]);
 });
+
+test("a picture on the stage never starts the browser's own drag, which would take the pointer and raise Drop to import", async ({ page, scratch }) => {
+  await newWidget(page, scratch.base, "Picture drag");
+  await layer(page, "").click();
+  await page.getByRole("switch", { name: "Place freely" }).click();
+  await add(page, "", "value");
+  // an image dragged on the stage starts a native drag (listed as "Files"): the stage cancels it, so the block's own move runs
+  const cancelled = await block(page, "0").evaluate((el) => {
+    const img = el.appendChild(document.createElement("img"));
+    const e = new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: new DataTransfer() });
+    img.dispatchEvent(e);
+    img.remove();
+    return e.defaultPrevented;
+  });
+  expect(cancelled).toBe(true);
+  await expect(page.getByText("Drop to import")).toHaveCount(0);
+});

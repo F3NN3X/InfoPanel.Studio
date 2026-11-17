@@ -76,7 +76,17 @@ export function useImportDoor(deps: ImportDoorDeps): ReactNode {
 
   useEffect(() => {
     let depth = 0;
-    const hasFiles = (e: DragEvent) => e.dataTransfer?.types.includes("Files") === true;
+    // A drag that starts in the page (an image on a widget, a picture in the builder) is not a file from outside, even
+    // when the browser lists it as "Files": `dragstart` only fires for those, so it marks them until they end.
+    let inPage = false;
+    const start = (e: DragEvent) => {
+      // one the page cancelled (the builder's stage) never ends with `dragend`
+      inPage = !e.defaultPrevented;
+    };
+    const end = () => {
+      inPage = false;
+    };
+    const hasFiles = (e: DragEvent) => !inPage && e.dataTransfer?.types.includes("Files") === true;
     const enter = (e: DragEvent) => {
       if (hasFiles(e)) depth++;
     };
@@ -94,6 +104,7 @@ export function useImportDoor(deps: ImportDoorDeps): ReactNode {
     };
     const drop = (e: DragEvent) => {
       depth = 0;
+      if (inPage) return end();
       setDragging(false);
       if (!hasFiles(e) || e.defaultPrevented || !e.dataTransfer?.files.length) return;
       e.preventDefault();
@@ -101,11 +112,15 @@ export function useImportDoor(deps: ImportDoorDeps): ReactNode {
       if (live.current.open) live.current.add(dropped);
       else live.current.openDoor({ files: dropped });
     };
+    window.addEventListener("dragstart", start);
+    window.addEventListener("dragend", end);
     window.addEventListener("dragenter", enter);
     window.addEventListener("dragover", over);
     window.addEventListener("dragleave", leave);
     window.addEventListener("drop", drop);
     return () => {
+      window.removeEventListener("dragstart", start);
+      window.removeEventListener("dragend", end);
       window.removeEventListener("dragenter", enter);
       window.removeEventListener("dragover", over);
       window.removeEventListener("dragleave", leave);
