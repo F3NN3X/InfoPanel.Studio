@@ -9,10 +9,15 @@
 // - attributes dropped: event handlers (`on…`), `xml:base`, a link (`href`, `xlink:href`) that is not `#…` or an embedded
 //   raster image, and a style value that loads anything (`image-set(`, `src(`, `element(`, …) or hides its words behind a
 //   CSS escape;
-// - in a style attribute or a `<style>`, `@import` is removed and an outside `url(…)` becomes `none`;
+// - in a style attribute or a `<style>`, `@import` is removed and an outside `url(…)` becomes `none`. A `<style>`'s text
+//   and CDATA are joined and cleaned as one stylesheet, as the browser reads them, and written back as one text node; a
+//   `<style>` holding a comment or an element is refused, since its parts could join into CSS no check saw;
+// - a character reference is decoded as the parser decodes it, any length; one it can't resolve (an unknown name, past
+//   U+10FFFF) refuses the file;
 // - processing instructions other than the XML declaration go (`<?xml-stylesheet?>` links out), and so does the DOCTYPE,
-//   after its plain internal entities are written into the text (Illustrator declares its namespaces that way). A DOCTYPE
-//   with any other entity (external, parameter, or one holding markup) is refused.
+//   after its plain internal entities are written into the text (Illustrator declares its namespaces that way), each
+//   write measured before it is made so the text never grows past `SVG_LIMIT`. A DOCTYPE with any other entity
+//   (external, parameter, or one holding markup or a reference) is refused.
 //
 // A file that is already clean comes back byte for byte, so its content hash, and every URL to it, stays the same. What
 // cannot be read (an unclosed tag, comment or quote, an unknown `<!` declaration) is refused, never passed through.
@@ -31,51 +36,55 @@ fn is_safe_ref(value: &str) -> bool {
     v.starts_with('#') || ["png", "jpeg", "gif", "webp"].iter().any(|t| [';', ','].iter().any(|end| v.starts_with(&format!("data:image/{t}{end}"))))
 }
 
-/// `&#NN;`, `&#xHH;` and the five predefined entities decoded, as the XML parser does before CSS or a link reads a value.
-fn decode(text: &str) -> String {
+/// A character reference's text (`#106`, `#x6A`, `lt`) as its character: digits of any length with checked arithmetic,
+/// the five predefined names; `None` for anything else, U+0000 or a value past U+10FFFF.
+fn reference(name: &str) -> Option<char> {
+    let ch = match name {
+        "lt" => '<',
+        "gt" => '>',
+        "amp" => '&',
+        "quot" => '"',
+        "apos" => '\'',
+        _ => {
+            let (digits, radix) = match name.strip_prefix("#x").or_else(|| name.strip_prefix("#X")) {
+                Some(hex) => (hex, 16),
+                None => (name.strip_prefix('#')?, 10),
+            };
+            if digits.is_empty() {
+                return None;
+            }
+            let mut value: u32 = 0;
+            for c in digits.chars() {
+                value = value.checked_mul(radix)?.checked_add(c.to_digit(radix)?)?;
+                if value > 0x10_FFFF {
+                    return None;
+                }
+            }
+            char::from_u32(value).filter(|&c| c != '\0')?
+        }
+    };
+    Some(ch)
+}
+
+/// Character references and the five predefined entities decoded, as the XML parser does before CSS or a link reads a
+/// value; `None` when a reference can't be resolved (or an `&` starts none), so it is refused rather than passed on.
+fn decode(text: &str) -> Option<String> {
     let mut out = String::with_capacity(text.len());
     let mut rest = text;
     while let Some(at) = rest.find('&') {
         out.push_str(&rest[..at]);
-        rest = &rest[at..];
-        let Some(end) = rest.find(';').filter(|&e| e <= 12) else {
-            out.push('&');
-            rest = &rest[1..];
-            continue;
-        };
-        let name = &rest[1..end];
-        let ch = match name {
-            "lt" => Some('<'),
-            "gt" => Some('>'),
-            "amp" => Some('&'),
-            "quot" => Some('"'),
-            "apos" => Some('\''),
-            _ => name
-                .strip_prefix("#x")
-                .or_else(|| name.strip_prefix("#X"))
-                .map(|h| u32::from_str_radix(h, 16).ok())
-                .or_else(|| name.strip_prefix('#').map(|d| d.parse::<u32>().ok()))
-                .flatten()
-                .and_then(char::from_u32),
-        };
-        match ch {
-            Some(c) => {
-                out.push(c);
-                rest = &rest[end + 1..];
-            }
-            None => {
-                out.push('&');
-                rest = &rest[1..];
-            }
-        }
+        let after = &rest[at + 1..];
+        let end = after.find(';')?;
+        out.push(reference(&after[..end])?);
+        rest = &after[end + 1..];
     }
     out.push_str(rest);
-    out
+    Some(out)
 }
 
 /// Text written back into an attribute value or element text.
 fn escape(text: &str) -> String {
-    text.replace('&', "&amp;").replace('<', "&lt;").replace('"', "&quot;")
+    text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
 }
 
 /// `cleanCss`: `@import` removed and an outside `url(…)` made `none`. `None`: the CSS loads something some other way, or
@@ -108,10 +117,10 @@ fn clean_css(css: &str) -> Option<String> {
     Some(out)
 }
 
-/// One attribute of a start tag: its name, its raw (undecoded) value and its whole source text.
+/// One attribute of a start tag: its name, its value as the parser reads it (references decoded) and its whole source text.
 struct Attr<'a> {
     name: &'a str,
-    value: &'a str,
+    value: String,
     source: &'a str,
 }
 
@@ -153,11 +162,11 @@ fn start_tag(s: &str) -> Option<(&str, Vec<Attr<'_>>, bool, usize)> {
             return None;
         }
         let close = s[i + 1..].find(quote as char).map(|e| i + 1 + e)?;
-        let value = &s[i + 1..close];
-        if value.contains('<') {
+        let raw = &s[i + 1..close];
+        if raw.contains('<') {
             return None;
         }
-        attrs.push(Attr { name: attr_name, value, source: &s[from..=close] });
+        attrs.push(Attr { name: attr_name, value: decode(raw)?, source: &s[from..=close] });
         i = close + 1;
     }
 }
@@ -170,8 +179,8 @@ fn local(name: &str) -> String {
 /// Whether an element goes with everything inside it.
 fn drops_element(name: &str, attrs: &[Attr]) -> bool {
     let lname = local(name);
-    let animates_ref = ANIMATIONS.contains(&lname.as_str()) && attrs.iter().any(|a| a.name == "attributeName" && decode(a.value).to_ascii_lowercase().contains("href"));
-    let foreign_ns = attrs.iter().any(|a| a.name == "xmlns" && decode(a.value).trim() != SVG_NS);
+    let animates_ref = ANIMATIONS.contains(&lname.as_str()) && attrs.iter().any(|a| a.name == "attributeName" && a.value.to_ascii_lowercase().contains("href"));
+    let foreign_ns = attrs.iter().any(|a| a.name == "xmlns" && a.value.trim() != SVG_NS);
     DROP.contains(&lname.as_str()) || name.contains(':') || animates_ref || foreign_ns
 }
 
@@ -181,13 +190,13 @@ fn kept_attr(a: &Attr) -> Option<Option<String>> {
     if name.starts_with("on") || a.name.eq_ignore_ascii_case("xml:base") {
         return None;
     }
-    let value = decode(a.value);
+    let value = &a.value;
     if name == "href" {
-        return is_safe_ref(&value).then_some(None);
+        return is_safe_ref(value).then_some(None);
     }
     if value.contains('(') || value.contains('@') || value.contains('\\') || value.to_ascii_lowercase().contains("script:") {
-        let cleaned = clean_css(&value)?;
-        return Some((cleaned != value).then(|| escape(&cleaned)));
+        let cleaned = clean_css(value)?;
+        return Some((&cleaned != value).then(|| escape(&cleaned)));
     }
     Some(None)
 }
@@ -253,20 +262,48 @@ fn doctype_end(s: &str) -> Option<usize> {
     None
 }
 
+/// The length of a text of `len` bytes once `count` references of `old` bytes are each written as `new` bytes; `None` on
+/// overflow.
+fn expanded_len(len: u64, count: u64, old: u64, new: u64) -> Option<u64> {
+    len.checked_sub(count.checked_mul(old)?)?.checked_add(count.checked_mul(new)?)
+}
+
+/// Where the DOCTYPE starts: in the prologue only (after a BOM, white space, processing instructions and comments), never
+/// a `<!DOCTYPE` written inside a comment, a CDATA section or text further on.
+fn doctype_at(text: &str) -> Option<usize> {
+    let mut i = usize::from(text.starts_with('\u{feff}')) * '\u{feff}'.len_utf8();
+    loop {
+        i += text[i..].len() - text[i..].trim_start().len();
+        let r = &text[i..];
+        if r.len() >= 9 && r[..9].eq_ignore_ascii_case("<!doctype") {
+            return Some(i);
+        }
+        let end = if r.starts_with("<?") {
+            r.find("?>").map(|e| e + 2)
+        } else {
+            r.strip_prefix("<!--").and_then(|body| body.find("-->")).map(|e| e + 7)
+        };
+        i += end?;
+    }
+}
+
 /// The text with its DOCTYPE gone and the DOCTYPE's entities written in, or `None` when it has one that can't be.
 fn without_doctype(text: &str) -> Option<String> {
-    // ASCII lowercasing keeps every byte where it was
-    let Some(at) = text.to_ascii_lowercase().find("<!doctype") else {
+    let Some(at) = doctype_at(text) else {
         return Some(text.to_string());
     };
     let len = doctype_end(&text[at..])?;
     let entities = doctype_entities(&text[at..at + len])?;
     let mut rest = text[at + len..].to_string();
     for (name, value) in &entities {
-        rest = rest.replace(&format!("&{name};"), &escape(value).replace('\'', "&apos;"));
-        if rest.len() as u64 > SVG_LIMIT {
+        let reference = format!("&{name};");
+        let written = escape(value).replace('\'', "&apos;");
+        // measured before it is made: the text never grows past the limit, however many references there are
+        let count = rest.matches(&reference).count() as u64;
+        if expanded_len(rest.len() as u64, count, reference.len() as u64, written.len() as u64)? > SVG_LIMIT {
             return None;
         }
+        rest = rest.replace(&reference, &written);
     }
     Some(format!("{}{}", &text[..at], rest))
 }
@@ -279,9 +316,8 @@ pub fn sanitize_svg(text: &str) -> Option<String> {
     let text = without_doctype(text)?;
     let s = text.as_str();
     let mut out = String::with_capacity(s.len());
-    // the depth inside a dropped element (0: keeping), and whether the text now is a <style>'s
+    // the depth inside a dropped element (0: keeping)
     let mut skip = 0usize;
-    let mut in_style = false;
     let mut i = 0;
     while i < s.len() {
         let r = &s[i..];
@@ -295,7 +331,7 @@ pub fn sanitize_svg(text: &str) -> Option<String> {
         } else if let Some(body) = r.strip_prefix("<![CDATA[") {
             let end = body.find("]]>").map(|e| e + 12)?;
             if keep {
-                push_text(&mut out, &r[..end], in_style, &r[9..end - 3])?;
+                out.push_str(&r[..end]);
             }
             i += end;
         } else if r.starts_with("<!") {
@@ -312,7 +348,6 @@ pub fn sanitize_svg(text: &str) -> Option<String> {
             if skip > 0 {
                 skip -= 1;
             } else {
-                in_style = false;
                 out.push_str(&r[..end]);
             }
             i += end;
@@ -338,13 +373,19 @@ pub fn sanitize_svg(text: &str) -> Option<String> {
                     }
                     out.push_str(if closed { "/>" } else { ">" });
                 }
-                in_style = !closed && local(name) == "style";
+                if !closed && local(name) == "style" {
+                    let (css, close) = style_text(&r[len..], name)?;
+                    out.push_str(&css);
+                    i += len + close;
+                    continue;
+                }
             }
             i += len;
         } else {
             let end = r.find('<').unwrap_or(r.len());
+            decode(&r[..end])?;
             if keep {
-                push_text(&mut out, &r[..end], in_style, &r[..end])?;
+                out.push_str(&r[..end]);
             }
             i += end;
         }
@@ -352,22 +393,39 @@ pub fn sanitize_svg(text: &str) -> Option<String> {
     (skip == 0 && out.len() as u64 <= SVG_LIMIT && is_svg_text(&out)).then_some(out)
 }
 
-/// Text (or a CDATA section, `raw`, whose content is `inner`) into the output; a `<style>`'s is cleaned as CSS first.
-fn push_text(out: &mut String, raw: &str, in_style: bool, inner: &str) -> Option<()> {
-    if !in_style {
-        out.push_str(raw);
-        return Some(());
+/// A `<style>`'s content (`s`, after its start tag) as it is kept, with its `</name>`, and the length up to and with that end
+/// tag. Its text and CDATA are joined as the browser joins them and cleaned once (`clean_css`): unchanged, they are written
+/// back as they came; changed, as one text node; loading something another way, not at all. A comment, an element or
+/// anything else inside refuses the file: its parts could join into CSS no check saw.
+fn style_text(s: &str, name: &str) -> Option<(String, usize)> {
+    let mut css = String::new();
+    let mut i = 0;
+    loop {
+        let r = &s[i..];
+        if let Some(body) = r.strip_prefix("<![CDATA[") {
+            let end = body.find("]]>")?;
+            css.push_str(&body[..end]);
+            i += 9 + end + 3;
+        } else if let Some(tail) = r.strip_prefix("</").and_then(|t| t.strip_prefix(name)) {
+            let gap = tail.len() - tail.trim_start().len();
+            if !tail[gap..].starts_with('>') {
+                return None;
+            }
+            let kept = match clean_css(&css) {
+                Some(clean) if clean == css => s[..i].to_string(),
+                Some(clean) => escape(&clean),
+                // a stylesheet that loads something some other way goes whole
+                None => String::new(),
+            };
+            return Some((format!("{kept}</{name}>"), i + 2 + name.len() + gap + 1));
+        } else if r.is_empty() || r.starts_with('<') {
+            return None;
+        } else {
+            let end = r.find('<').unwrap_or(r.len());
+            css.push_str(&decode(&r[..end])?);
+            i += end;
+        }
     }
-    let cdata = raw.len() != inner.len();
-    let css = if cdata { inner.to_string() } else { decode(inner) };
-    match clean_css(&css) {
-        Some(clean) if clean == css => out.push_str(raw),
-        Some(clean) if cdata && !clean.contains("]]>") => out.push_str(&format!("<![CDATA[{clean}]]>")),
-        Some(clean) => out.push_str(&escape(&clean)),
-        // a stylesheet that loads something some other way is dropped whole
-        None => {}
-    }
-    Some(())
 }
 
 #[cfg(test)]
@@ -423,7 +481,130 @@ mod tests {
         let svg = format!("<svg {NS}><style>.a {{ background: image-set(\"http://evil.example/x.png\" 1x) }}</style><rect fill=\"\\75 rl(http://evil.example/x)\" style=\"background: -webkit-image-set('x' 1x)\" r=\"1\"/><rect fill=\"&#117;rl(http://evil.example/)\"/></svg>");
         assert_eq!(clean(&svg), format!("<svg {NS}><style></style><rect r=\"1\"/><rect fill=\"none\"/></svg>"));
         let svg = format!("<svg {NS}><style><![CDATA[@import 'x.css'; .a {{}}]]></style></svg>");
-        assert_eq!(clean(&svg), format!("<svg {NS}><style><![CDATA[ .a {{}}]]></style></svg>"));
+        // a changed stylesheet is written back as one text node
+        assert_eq!(clean(&svg), format!("<svg {NS}><style> .a {{}}</style></svg>"));
+    }
+
+    // P-B5: a <style>'s parts were cleaned one by one, so CSS split across them rejoined unseen.
+    #[test]
+    fn cleans_a_style_as_one_stylesheet_its_parts_joined() {
+        let svg = format!("<svg {NS}><style>@im<![CDATA[port 'https://evil.example/a.css';]]> .a {{}}</style></svg>");
+        assert_eq!(clean(&svg), format!("<svg {NS}><style> .a {{}}</style></svg>"));
+        let svg = format!("<svg {NS}><style>.a {{ fill: url<![CDATA[(https://evil.example/x)]]> }}</style></svg>");
+        assert_eq!(clean(&svg), format!("<svg {NS}><style>.a {{ fill: none }}</style></svg>"));
+        let svg = format!("<svg {NS}><style>@im&#112;ort 'https://evil.example/a.css';</style></svg>");
+        assert_eq!(clean(&svg), format!("<svg {NS}><style></style></svg>"));
+        // a comment or an element inside a style refuses the file
+        for inner in ["@im<!---->port 'https://evil.example/a.css';", "u<!-- -->rl(https://evil.example/x)", ".a{}<g/>", ".a{}<?x?>"] {
+            assert_eq!(sanitize_svg(&format!("<svg {NS}><style>{inner}</style></svg>")), None, "{inner}");
+        }
+        // an unclosed style is refused, and a clean one with CDATA comes back as it came
+        assert_eq!(sanitize_svg(&format!("<svg {NS}><style>.a{{}}")), None);
+        let svg = format!("<svg {NS}><style>.a {{ fill: url(#g) }}<![CDATA[ .b {{}} ]]></style ></svg>");
+        assert_eq!(clean(&svg), svg.replace("</style >", "</style>"));
+    }
+
+    // P-B6: a reference longer than 12 characters stayed encoded here and was decoded by the browser.
+    #[test]
+    fn decodes_references_of_any_length_and_refuses_what_it_cannot() {
+        let svg = format!("<svg {NS}><rect fill=\"&#000000000000117;rl(http://evil.example/)\"/><a href=\"&#x000000000000023;ok\"/></svg>");
+        assert_eq!(clean(&svg), format!("<svg {NS}><rect fill=\"none\"/><a href=\"&#x000000000000023;ok\"/></svg>"));
+        let svg = format!("<svg {NS}><g style=\"&#0000000000106;avascript:x\"/></svg>");
+        assert_eq!(clean(&svg), format!("<svg {NS}><g/></svg>"));
+        for bad in ["&nbsp;", "&#x110000;", "&#99999999999999999999;", "&#;", "&#x;", "&#0;", "& ", "&#12a;", "&#x12"] {
+            assert_eq!(sanitize_svg(&format!("<svg {NS}><g id=\"{bad}\"/></svg>")), None, "attr {bad}");
+            assert_eq!(sanitize_svg(&format!("<svg {NS}><text>{bad}</text></svg>")), None, "text {bad}");
+        }
+        assert_eq!(reference("#x10FFFF"), char::from_u32(0x10_FFFF));
+        assert_eq!(reference("#106"), Some('j'));
+    }
+
+    // P-B7: each entity was written in before the size was checked, so a set of them could grow without bound first.
+    #[test]
+    fn measures_an_entity_before_writing_it_in() {
+        assert_eq!(expanded_len(100, 10, 4, 1000), Some(100 - 40 + 10_000));
+        assert_eq!(expanded_len(10, u64::MAX, 4, 1000), None);
+        assert_eq!(expanded_len(u64::MAX, 1, 0, 1), None);
+        // 140 references of 2000 bytes each: 280 000 bytes, refused before it is written
+        let big = "a".repeat(2000);
+        let refs = "&x;".repeat(140);
+        assert_eq!(sanitize_svg(&format!("<!DOCTYPE svg [<!ENTITY x \"{big}\">]><svg {NS}><text>{refs}</text></svg>")), None);
+        // within the limit it is written in
+        let small = format!("<!DOCTYPE svg [<!ENTITY x \"ab\">]><svg {NS}><text>&x;&x;</text></svg>");
+        assert_eq!(clean(&small), format!("<svg {NS}><text>abab</text></svg>"));
+    }
+
+    // P-B8 (found by the fuzz test): a `<!DOCTYPE` inside CDATA, a comment or text was taken for the DOCTYPE and cut out.
+    #[test]
+    fn reads_the_doctype_in_the_prologue_only() {
+        let svg = format!("<svg {NS}><text><![CDATA[<!DOCTYPE svg [<!ENTITY x \"y\">]>]]>&amp;</text><!-- <!DOCTYPE z> --></svg>");
+        assert_eq!(clean(&svg), svg);
+        let svg = format!("\u{feff}<?xml version=\"1.0\"?>\n<!-- c --> <!doctype svg [<!ENTITY x \"y\">]><svg {NS}>&x;</svg>");
+        assert_eq!(clean(&svg), format!("\u{feff}<?xml version=\"1.0\"?>\n<!-- c --> <svg {NS}>y</svg>"));
+    }
+
+    /// A small fixed-seed generator for the fuzz test.
+    struct Lcg(u64);
+    impl Lcg {
+        fn next(&mut self, n: usize) -> usize {
+            self.0 = self.0.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+            ((self.0 >> 33) as usize) % n
+        }
+    }
+
+    /// What the fuzz test asks of every output, read as markup (text outside a style is only text): no dropped element,
+    /// no handler, no link out, no script in a value, and no loading CSS in a style.
+    fn assert_markup_clean(out: &str, from: &str) {
+        let mut i = 0;
+        while let Some(at) = out[i..].find('<').map(|a| a + i) {
+            let r = &out[at..];
+            let skip = ["<!--", "<![CDATA[", "<?"].iter().find_map(|p| r.starts_with(p).then(|| if *p == "<!--" { "-->" } else if *p == "<?" { "?>" } else { "]]>" }));
+            if let Some(end) = skip {
+                i = at + r.find(end).unwrap() + end.len();
+                continue;
+            }
+            if r.starts_with("</") {
+                i = at + 2;
+                continue;
+            }
+            let (name, attrs, closed, len) = start_tag(r).unwrap_or_else(|| panic!("unreadable output {out}\nfrom {from}"));
+            assert!(!drops_element(name, &attrs), "<{name}> kept in {out}\nfrom {from}");
+            for a in &attrs {
+                let v = a.value.to_ascii_lowercase();
+                assert!(!local(a.name).starts_with("on") && !v.contains("javascript:") && !v.contains("url(http"), "{} kept in {out}\nfrom {from}", a.source);
+                assert!(local(a.name) != "href" || is_safe_ref(&a.value), "{} kept in {out}\nfrom {from}", a.source);
+            }
+            i = at + len;
+            if !closed && local(name) == "style" {
+                let end = out[i..].find("</style").unwrap() + i;
+                let css = decode(&out[i..end].replace("<![CDATA[", "").replace("]]>", "")).unwrap().to_ascii_lowercase();
+                assert!(!css.contains("@import") && !css.contains("url(http") && !css.contains("javascript:"), "style {css} in {out}\nfrom {from}");
+                i = end;
+            }
+        }
+    }
+
+    #[test]
+    fn fuzz_whatever_comes_out_is_clean_and_stays_the_same() {
+        const PIECES: [&str; 28] = [
+            "<script>alert(1)</script>", "<g>", "</g>", "<style>", "</style>", "<![CDATA[", "]]>", "<!--", "-->", "@import 'https://e.x/a';", "url(", "https://e.x/p)",
+            "javascript:", "&#106;", "&#0000000000106;", "&amp;", "&x;", " onload=\"a()\"", "<a href=\"", "\">", "<foreignObject>", "</foreignObject>", "<h:script>", "</h:script>",
+            "\\75 rl(", "<rect fill=\"url(#g)\"/>", "<!DOCTYPE svg [<!ENTITY x \"javascript:\">]>", "<set attributeName=\"href\" to=\"javascript:x\"/>",
+        ];
+        let mut rng = Lcg(0x5eed);
+        let mut kept = 0;
+        for _ in 0..20_000 {
+            let mut body = String::new();
+            for _ in 0..rng.next(10) {
+                body.push_str(PIECES[rng.next(PIECES.len())]);
+            }
+            let svg = format!("<svg {NS}>{body}</svg>");
+            let Some(out) = sanitize_svg(&svg) else { continue };
+            kept += 1;
+            assert_markup_clean(&out, &svg);
+            assert_eq!(sanitize_svg(&out).as_deref(), Some(out.as_str()), "not stable: {svg}");
+        }
+        assert!(kept > 1000, "{kept}");
     }
 
     #[test]
