@@ -49,6 +49,7 @@ import { NumberInput, type Typing, TypingContext } from "./fields";
 import type { History } from "./history";
 import { layerEntries } from "./layer-entries";
 import { type EditorFlag, type LayerCommand, Layers, type SelectHow } from "./layers";
+import { MultiInspector } from "./multi-inspector";
 import { OptionsTab } from "./options-tab";
 import { type PlainIssue, plainIssue, plainIssues, plainWarnings } from "./plain-issues";
 import { PresetsTab } from "./presets-tab";
@@ -1324,11 +1325,24 @@ export function Builder(p: BuilderProps) {
           />
           {tab === "block" && selected.length > 1 && (
             <p data-multi="" className="mx-4 mt-3 rounded-ui-md bg-ui-raised px-3 py-2 text-caption text-ui-2">
-              {selected.length} blocks selected: Delete, Duplicate, Copy, Cut, Paste style and Wrap act on all. The settings below are {layerName(recipe, blockAt(recipe, path) ?? recipe.root)}'s.
+              {selected.length} blocks selected: Delete, Duplicate, Copy, Cut, Paste style and Wrap act on all, and so do the shared fields below.
             </p>
           )}
           <TypingContext.Provider value={typing}>
-            {tab === "block" && <BlockTab recipe={recipe} path={path} header={header} onChange={onBlockEdit} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} drawnOpacity={drawn[path.join(".")]} />}
+            {/* several blocks (Phase 6): the fields they share, each one undo step for all of them */}
+            {tab === "block" && topLevel(selected).length > 1 && (
+              <MultiInspector
+                recipe={recipe}
+                paths={topLevel(selected)}
+                primary={path}
+                onChange={(r, text) => {
+                  edit(r);
+                  say(text);
+                }}
+                onWhy={refuse}
+              />
+            )}
+            {tab === "block" && topLevel(selected).length <= 1 && <BlockTab recipe={recipe} path={path} header={header} onChange={onBlockEdit} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} drawnOpacity={drawn[path.join(".")]} />}
             {tab === "options" && <OptionsTab recipe={recipe} onChange={(r) => edit(r)} data={{ ...sampleData, ...liveData }} onOpenSources={p.onOpenSources} />}
             {tab === "presets" && <PresetsTab recipe={recipe} onChange={(r) => edit(r)} current={preset} onPick={pickPreset} values={shownValues} size={size} data={{ ...sampleData, ...liveData }} devices={devices} onOpenSources={p.onOpenSources} />}
           </TypingContext.Provider>
