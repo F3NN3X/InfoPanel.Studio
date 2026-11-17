@@ -4,7 +4,7 @@
 // registry.generated.ts) and by tests/widgets/folders.test.ts; the app itself never imports it.
 export const WIDGET_ORDER: readonly string[] = [
   "SystemOverview", "MenuBar", "KpiTiles", "StatusTracker", "SystemStatus", "ServiceHealth", "ProcessList", "Uptime", "CpuMonitor", "CoreHeatmap", "GpuMonitor", "MemoryUsage", "Thermals", "PowerDraw", "Fans",
-  "DriveSpace", "StorageHealth", "DiskIO", "NetworkThroughput", "NetworkAdapters", "Clock", "Timer", "Countdown", "StatusBar", "CodingAgents", "Calendar", "Weather", "SensorValue", "SensorGroup", "CustomGauge",
+  "DriveSpace", "StorageHealth", "DiskIO", "NetworkThroughput", "NetworkAdapters", "Clock", "Timer", "Countdown", "StatusBar", "PageRail", "CodingAgents", "Calendar", "Weather", "SensorValue", "SensorGroup", "CustomGauge",
   "NowPlaying", "AudioMeter", "VolumeMixer", "MeterBridge", "Visualizer", "WaveLink",
   "FpsMonitor", "GameSpotlight", "OsdStrip", "PlaytimeShare", "SteamProfile", "SteamFriends", "SteamGame", "Achievements", "SteamLibrary", "SteamNews",
   "WebPage", "TextFile", "Notifications", "Departures", "Bluetooth",

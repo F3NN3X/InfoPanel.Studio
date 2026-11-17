@@ -423,6 +423,7 @@
         "src/lib/marquee.ts",
         "src/lib/timer.ts",
         "src/lib/swipe.ts",
+        "src/lib/gesture.ts",
         "src/lib/performance.ts",
         "src/lib/curves.ts",
         "src/lib/audio/**",
@@ -434,6 +435,8 @@
         "tests/lib/marquee.test.ts",
         "tests/lib/timer.test.ts",
         "tests/lib/performance.test.ts",
+        "tests/lib/swipe.test.ts",
+        "tests/lib/gesture.test.ts",
         "tests/lib/audio/**",
         "tests/widgets/shared/audio-data.test.ts"
       ],
@@ -477,6 +480,7 @@
         "tests/visual/look/**",
         "tests/widgets/stream-chat/**",
         "tests/widgets/status-bar/**",
+        "tests/widgets/page-rail/**",
         "tests/widgets/shared/**",
         "tests/widgets/weather/**",
         "tests/widgets/session-stats/**",
@@ -584,7 +588,10 @@
         "src/lib/name-list.ts",
         "src/lib/panel-starters.ts",
         "src/lib/pinned.ts",
+        "src/lib/rail.ts",
+        "src/lib/touch-actions.ts",
         "src/components/pinned-layer.tsx",
+        "src/components/rail-host.ts",
         "src/App.tsx",
         "src/main.tsx",
         "src/components/kiosk-strip.tsx",
@@ -596,6 +603,7 @@
       "tests": [
         "tests/lib/layout.test.ts",
         "tests/lib/pinned.test.ts",
+        "tests/lib/rail.test.ts",
         "tests/lib/widget-presets.test.ts",
         "tests/lib/layout-pages.test.ts",
         "tests/lib/pages.test.ts",
@@ -609,7 +617,8 @@
         "tests/e2e/kiosk-budget.spec.ts",
         "tests/e2e/config-live-update.spec.ts",
         "tests/e2e/control-page-switch.spec.ts",
-        "tests/e2e/pinned-layer.spec.ts"
+        "tests/e2e/pinned-layer.spec.ts",
+        "tests/e2e/pinned-rail.spec.ts"
       ],
       "checks": ["typecheck", "unit", "build", "budgets", "ui-usage", "e2e"]
     },

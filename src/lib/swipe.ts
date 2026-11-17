@@ -13,3 +13,26 @@ export function swipeDirection(g: { dx: number; dy: number; ms: number }): "next
   if (Math.abs(g.dx) < Math.abs(g.dy) * 2) return null;
   return g.dx < 0 ? "next" : "prev";
 }
+
+/* ───────── drag-follow: the page moves with the finger under a still pinned layer ───────── */
+
+/** A drag becomes a page drag (or a scroll) once it has moved this far, px. */
+export const DRAG_START_PX = 12;
+/** A released drag goes on to the next page past this share of the page's width; short of it, it springs back (unless flicked). */
+export const DRAG_COMMIT_SHARE = 0.25;
+/** The settle after a release, ms. */
+export const DRAG_SETTLE_MS = 220;
+
+/** Which way a drag goes once it has moved far enough: `x` (the page follows), `y` (a scroll, left to the browser), or undecided. */
+export function dragAxis(dx: number, dy: number): "x" | "y" | null {
+  if (Math.hypot(dx, dy) < DRAG_START_PX) return null;
+  return Math.abs(dx) >= Math.abs(dy) * 1.5 ? "x" : "y";
+}
+
+/** Where a released page drag settles: the next or previous page past a quarter of the width or on a quick flick, else back (null). */
+export function dragSettle(g: { dx: number; ms: number; width: number }): "next" | "prev" | null {
+  const flick = swipeDirection({ dx: g.dx, dy: 0, ms: g.ms });
+  if (flick) return flick;
+  if (g.width > 0 && Math.abs(g.dx) >= g.width * DRAG_COMMIT_SHARE) return g.dx < 0 ? "next" : "prev";
+  return null;
+}

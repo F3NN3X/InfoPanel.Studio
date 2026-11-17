@@ -45,8 +45,14 @@ const panel: InspectorContext = { kind: "panel", defs: PANEL_SETTINGS };
 
 describe("every setting is in exactly one section of exactly one tab", () => {
   // A widget without a header, or with a title-only one, has no Show title row (config v7 dropped a stored one).
+  // A widget with neither a header nor a small-zone view has no Title or Icon either (`withHeaderMode`; Page Rail).
   // A hidden row (CustomGauge `gauge`) is in the schema but never listed.
-  const shown = (m: DashboardModule) => (m.settings ?? []).filter((d) => !d.hidden).filter((d) => !(d.key === "showTitle" && (m.header === "none" || m.header === "title-only")));
+  const unnamed = (m: DashboardModule) => m.header === "none" && !(m.compact?.card || (m.compact?.dense ?? false) !== false);
+  const shown = (m: DashboardModule) =>
+    (m.settings ?? [])
+      .filter((d) => !d.hidden)
+      .filter((d) => !(d.key === "showTitle" && (m.header === "none" || m.header === "title-only")))
+      .filter((d) => !(unnamed(m) && d.section === "header"));
   const contexts: [string, InspectorContext, ModuleSetting[]][] = [
     ...modules.map((m): [string, InspectorContext, ModuleSetting[]] => [m.id, widgetContext(m), shown(m)]),
     ["cards", { kind: "widget", defs: CARD_SETTINGS }, CARD_SETTINGS],
@@ -193,7 +199,7 @@ describe("tabs of every widget", () => {
 });
 
 describe("header modes", () => {
-  const NO_HEADER = ["Calendar", "GameSpotlight", "KpiTiles", "MenuBar", "OsdStrip", "StatusBar", "SteamGame", "WebPage"];
+  const NO_HEADER = ["Calendar", "GameSpotlight", "KpiTiles", "MenuBar", "OsdStrip", "PageRail", "StatusBar", "SteamGame", "WebPage"];
   const TITLE_ONLY = ["Clock", "SystemOverview"];
 
   it("declares the header and small-zone shape of every widget", () => {
@@ -204,7 +210,7 @@ describe("header modes", () => {
     expect(modules.filter((m) => m.header === "none").map((m) => m.id).sort()).toEqual(NO_HEADER);
     expect(modules.filter((m) => m.header === "title-only").map((m) => m.id).sort()).toEqual(TITLE_ONLY);
     const noCard = modules.filter((m) => !m.compact?.card).map((m) => m.id).sort();
-    expect(noCard).toEqual(["AudioButton", "AudioFader", "Clock", "CoreHeatmap", "CustomGauge", "MeterBridge", "ObsButton", "OnAirBeacon", "StatusBar", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
+    expect(noCard).toEqual(["AudioButton", "AudioFader", "Clock", "CoreHeatmap", "CustomGauge", "MeterBridge", "ObsButton", "OnAirBeacon", "PageRail", "StatusBar", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
   });
 
   it("GpuMonitor's rings view (the GPU Rings widget) has a dense view and no summary card, the monitor view a card", () => {
@@ -233,7 +239,8 @@ describe("header modes", () => {
       expect(titles(show), id).not.toContain("Header");
       expect(keysOf(show), id).not.toContain("showTitle");
       expect(show[0].extras.map((e) => e.kind), id).toEqual(["widgetPicker"]);
-      if (id === "WebPage") continue;
+      // neither has a small-zone view, so neither has a Title or Icon to put there
+      if (id === "WebPage" || id === "PageRail") continue;
       expect(keysOf([find(show, "Fit")]).slice(-2), id).toEqual(["label", "icon"]);
     }
   });

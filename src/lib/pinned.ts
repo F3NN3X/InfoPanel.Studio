@@ -1,8 +1,8 @@
 /**
  * The pinned layer (config v20, _docs/redesign/pinned-layer INVESTIGATION §3): widgets a profile pins to an edge of the
  * screen, drawn the same on every page, which a page can hide (`ProfilePage.hidePinned`). "Make room" pads the page area
- * on the item's edge, as the Island's reserve pads the grid; "float" draws over the page. The rail (`rail` slots) and the
- * touch actions (`TouchMap`) are stored here and drawn from P2 on; P1 keeps and guards them.
+ * on the item's edge, as the Island's reserve pads the grid; "float" draws over the page. The rail (`rail` slots) is drawn
+ * by the PageRail widget (src/widgets/page-rail/, P2); per-widget touch actions (`TouchMap`) are run from P6 on.
  */
 import type { ModuleSettings } from "@/modules/types";
 import type { Placement } from "./layout";
@@ -88,6 +88,9 @@ export interface PinnedItem {
   /** The rail's slots, when the placement is the rail widget (P2). */
   rail?: RailSlot[];
 }
+
+/** An item's widget as a placement of one cell: what the kiosk draws in the item's box, and what feeds the Island. */
+export const pinnedPlacement = (it: Pick<PinnedItem, "placement">): Placement => ({ ...it.placement, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true });
 
 /** A profile's pinned layer, top first as in Layers. */
 export interface PinnedLayer {
