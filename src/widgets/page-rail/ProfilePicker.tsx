@@ -16,8 +16,6 @@ import { series } from "./series";
  * the switch and the lock 56 px. A tap outside or Escape closes it.
  */
 
-/** The text on a fill of `color`: black or white by its lightness (as Calendar's today). */
-const on = (color: string) => `oklch(from ${color} clamp(0, (0.7 - l) * 1000, 1) 0 0)`;
 const EDGE = "var(--w-track)";
 const GAP = 12;
 const FOCUS = "focus-visible:[outline:2px_solid_var(--w-accent)] focus-visible:[outline-offset:2px]";
@@ -80,7 +78,7 @@ export function ProfilePicker({ profiles: p, current, edge, rail, look, host }: 
   return createPortal(
     <div className="fixed inset-0 z-50" onKeyDown={onKey}>
       <button type="button" tabIndex={-1} aria-label="Close profiles" className="absolute inset-0 cursor-default" onClick={p.close} />
-      <div aria-hidden className="pointer-events-none absolute" style={{ ...box.page, background: "hsl(var(--background) / 0.7)" }} />
+      <div aria-hidden className="pointer-events-none absolute bg-background/70" style={box.page} />
       <section ref={sheet} role="dialog" aria-modal="true" aria-labelledby="profile-picker-title" data-profile-picker className="absolute flex flex-col" style={box.sheet}>
         <Widget {...shell(look)} radius={20} showHeader={false} bleed design={null}>
           <div className="flex h-full min-h-0 flex-col p-4" style={{ color: "var(--w-fg)" }}>
@@ -138,7 +136,7 @@ export function ProfilePicker({ profiles: p, current, edge, rail, look, host }: 
                 style={{ boxShadow: `inset 0 0 0 1px ${EDGE}` }}
               >
                 Switch with the app in front
-                <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={p.paused ? { boxShadow: "inset 0 0 0 1.5px var(--w-muted)" } : { background: "var(--w-accent)", color: on("var(--w-accent)") }}>
+                <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-background" style={p.paused ? { boxShadow: "inset 0 0 0 1.5px var(--w-muted)" } : { background: "var(--w-accent)" }}>
                   {!p.paused && <Tick />}
                 </span>
               </button>
@@ -146,8 +144,8 @@ export function ProfilePicker({ profiles: p, current, edge, rail, look, host }: 
                 type="button"
                 aria-pressed={locked}
                 onClick={() => (locked ? p.auto(true) : p.auto(false, current))}
-                className={`flex h-14 items-center justify-center gap-2 rounded-2xl px-2 text-[14px] font-semibold ${FOCUS}`}
-                style={{ background: "var(--w-fg)", color: on("var(--w-fg)") }}
+                className={`flex h-14 items-center justify-center gap-2 rounded-2xl px-2 text-[14px] font-semibold text-background ${FOCUS}`}
+                style={{ background: "var(--w-fg)" }}
               >
                 <Lock aria-hidden size={16} /> <span className="truncate">{locked ? `Locked to ${name}` : `Lock to ${name}`}</span>
               </button>
