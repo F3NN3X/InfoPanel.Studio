@@ -16,6 +16,12 @@ describe("describeChange", () => {
     expect(describeChange(a, b)?.text).toBe("Edit the pinned layer");
   });
 
+  it("names a change to a screen's auto-switch programs", () => {
+    const a = config([zone()]);
+    const b = { ...a, profiles: [{ ...a.profiles[0], autoSwitch: { exe: ["Code.exe"] } }] } as unknown as DashboardConfig;
+    expect(describeChange(a, b)?.text).toBe("Edit the apps that switch to this screen");
+  });
+
   it("is nothing for no step, or one that is not a screen's", () => {
     const a = config([zone()]);
     expect(describeChange(a, a)).toBeNull();

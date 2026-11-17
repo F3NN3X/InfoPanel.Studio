@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { AppWindow, Lock, RefreshCw } from "lucide-react";
 import { RailHostContext, RailItemContext, type RailHost } from "@/components/rail-host";
 import { pageIcon } from "@/components/studio/page-icons";
@@ -10,8 +10,10 @@ import { actionOn, chipSeries, RAIL_SIZES, railBadge, railDense, railGroups, rai
 import { createRecogniser, type GestureHandlers } from "@/lib/gesture";
 import type { ModuleSettings } from "@/modules/types";
 import Clock from "../clock/Clock";
-import { Widget, shell, hue, TONES, type ShellProps } from "../kit";
+import { Widget, shell, TONES, type ShellProps } from "../kit";
 import { meta } from "./meta";
+import { ProfilePicker } from "./ProfilePicker";
+import { series } from "./series";
 
 export { meta };
 
@@ -35,9 +37,6 @@ const SizeCtx = createContext(ROOMY);
 
 /** The rail's hairline: the track colour, the Look's quiet line. */
 const EDGE = "var(--w-track)";
-/** The Look's series colour `n` (1–6), as `hue()` turns the accent for a second series. */
-const SERIES_TURNS = [0, 60, 200, 290, 140, 30];
-const series = (n: number) => hue(SERIES_TURNS[(n - 1) % SERIES_TURNS.length]);
 /** Keyboard focus: a ring in the accent, outside the target. */
 const FOCUS = "focus-visible:[outline:2px_solid_var(--w-accent)] focus-visible:[outline-offset:2px]";
 
@@ -176,19 +175,33 @@ function SlotButton({ slot, name, active, edge, badge, on, run }: SlotProps) {
   );
 }
 
-/** The profile chip: the profile's colour mark and its name. The profile picker it opens comes with P4. */
-function ProfileChip({ profile }: { profile: RailHost["profile"] }) {
+/**
+ * The profile chip: the profile's colour mark and its name. A tap or a hold opens the profile picker (P4); where the
+ * screen has no picker (the studio, a preview, a kiosk whose link pins its profile) it is a label.
+ */
+function ProfileChip({ host }: { host: RailHost }) {
   const { top } = useContext(SizeCtx);
+  const open = () => host.run({ op: "profile-picker" });
+  const g = useGestures({ tap: open, hold: open });
+  const picker = host.profiles;
+  const face = (
+    <>
+      <span aria-hidden className="h-5 w-5 rounded-md" style={{ background: series(chipSeries(host.profile.index)) }} />
+      <span className="max-w-full truncate px-1 text-[12px] font-semibold leading-none">{host.profile.name}</span>
+    </>
+  );
+  const style: CSSProperties = { width: 68, minHeight: top - 4, background: "color-mix(in oklab, var(--w-fg) 6%, transparent)", boxShadow: picker?.open ? "inset 0 0 0 2px var(--w-accent)" : `inset 0 0 0 1px ${EDGE}` };
+  const box = "flex shrink-0 flex-col items-center justify-center gap-1 rounded-2xl py-2";
+  if (!picker)
+    return (
+      <div role="img" aria-label={`Profile: ${host.profile.name}`} className={box} style={style}>
+        {face}
+      </div>
+    );
   return (
-    <div
-      role="img"
-      aria-label={`Profile: ${profile.name}`}
-      className="flex shrink-0 flex-col items-center justify-center gap-1 rounded-2xl py-2"
-      style={{ width: 68, minHeight: top - 4, background: "color-mix(in oklab, var(--w-fg) 6%, transparent)", boxShadow: `inset 0 0 0 1px ${EDGE}` }}
-    >
-      <span aria-hidden className="h-5 w-5 rounded-md" style={{ background: series(chipSeries(profile.index)) }} />
-      <span className="max-w-full truncate px-1 text-[12px] font-semibold leading-none">{profile.name}</span>
-    </div>
+    <button type="button" {...g} data-rail-slot="profile" aria-haspopup="dialog" aria-expanded={picker.open} aria-label={`Profile: ${host.profile.name}`} className={`${box} touch-manipulation select-none ${FOCUS}`} style={style}>
+      {face}
+    </button>
   );
 }
 
@@ -258,14 +271,26 @@ interface RailBodyProps {
   pageLock: boolean;
   clock: boolean;
   data: ShellProps["data"];
+  /** The rail's shell, for the profile picker's card. */
+  look: ShellProps;
 }
 
-function RailBody({ host, slots, edge, dense, chip, pageLock, clock, data }: RailBodyProps) {
+/** The rail's box on screen while the profile picker is open (it is drawn beside it). */
+function useOpenRect(open: boolean) {
+  const ref = useRef<HTMLElement>(null);
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  useLayoutEffect(() => setRect(open ? (ref.current?.getBoundingClientRect() ?? null) : null), [open]);
+  return { ref, rect };
+}
+
+function RailBody({ host, slots, edge, dense, chip, pageLock, clock, data, look }: RailBodyProps) {
   const size = dense ? DENSE : ROOMY;
   const { head, foot } = railGroups(slots);
   const badgeState: BadgeState = { agents: useAgents(), obs: useObs(), alerts: host.alerts, profile: host.profile.id };
   const toggles = slots.some((s) => s.target.kind === "action" && actionOn(s.target.action, EMPTY_AUDIO) !== undefined);
   const audioState = useToggleAudio(toggles);
+  const picker = host.profiles;
+  const { ref: navRef, rect } = useOpenRect(!!picker?.open);
   const one = (s: RailSlot): ReactNode => {
     const name = slotName(s, host.pages);
     if (s.target.kind === "widget") return <SlotWidget key={s.id} id={s.id} module={s.target.module} settings={s.target.settings} host={host} style={{ width: 72, height: size.widget }} />;
@@ -286,8 +311,8 @@ function RailBody({ host, slots, edge, dense, chip, pageLock, clock, data }: Rai
   return (
     <SizeCtx.Provider value={size}>
       {/* more slots than the rail's height holds scroll, the foot with them (the editor warns of it, owner Q9) */}
-      <nav aria-label="Pages and actions" className="flex h-full w-full flex-col items-center overflow-y-auto py-3 [scrollbar-width:none]" style={{ gap: size.gap }}>
-        {chip && <ProfileChip profile={host.profile} />}
+      <nav ref={navRef} aria-label="Pages and actions" className="flex h-full w-full flex-col items-center overflow-y-auto py-3 [scrollbar-width:none]" style={{ gap: size.gap }}>
+        {chip && <ProfileChip host={host} />}
         {head.map((group, i) => (
           <div key={group[0].group} className="contents">
             {(i > 0 || chip) && <Rule />}
@@ -304,6 +329,7 @@ function RailBody({ host, slots, edge, dense, chip, pageLock, clock, data }: Rai
           </div>
         )}
       </nav>
+      {picker?.open && rect && <ProfilePicker profiles={picker} current={host.profile.id} edge={edge} rail={rect} look={look} host={navRef.current?.closest("main") ?? document.body} />}
     </SizeCtx.Provider>
   );
 }
@@ -315,7 +341,7 @@ export default function PageRail(p: PageRailProps) {
   const slots = useMemo(() => (host ? railSlots(item?.slots, host.pages) : SAMPLE_SLOTS), [host, item?.slots]);
   return (
     <Widget {...shell(p)} showHeader={false} bleed design={null}>
-      {({ outerH }) => <RailBody host={host ?? SAMPLE_HOST} slots={slots} edge={item?.edge ?? "left"} dense={railDense(outerH)} chip={p.chip !== false} pageLock={p.pageLock !== false} clock={p.clock !== false} data={p.data} />}
+      {({ outerH }) => <RailBody host={host ?? SAMPLE_HOST} slots={slots} edge={item?.edge ?? "left"} dense={railDense(outerH)} chip={p.chip !== false} pageLock={p.pageLock !== false} clock={p.clock !== false} data={p.data} look={p} />}
     </Widget>
   );
 }

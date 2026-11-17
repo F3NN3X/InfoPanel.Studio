@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { FPS_OPTIONS, MOTION_OPTIONS, ROTATE_DEFAULT_SECONDS, ROTATE_MAX_SECONDS, ROTATE_MIN_SECONDS, clampSeconds } from "./inspector/behaviour-model";
 import { InheritChip } from "./inherit-chip";
 import { LinkRow } from "./link-row";
+import { AutoSwitchField } from "./screens/auto-switch-field";
 import { ScreenThumb } from "./screens/screen-thumb";
 import { ShownOn } from "./screens/shown-on";
 import { GridSection, SizeFitSection } from "./screen-layout";
@@ -111,7 +112,8 @@ export function SecondsInput({ value, onCommit }: { value: number; onCommit: (va
 }
 
 /**
- * The right panel of Screens (SPEC §8) for the screen being edited: SIZE & FIT, GRID, ROTATION, PERFORMANCE (the
+ * The right panel of Screens (SPEC §8) for the screen being edited: SIZE & FIT, GRID, ROTATION, SWITCH WITH THE APP IN
+ * FRONT (its auto-switch rules, P4), PERFORMANCE (the
  * chip: this screen's own frame rate and animations, else Settings › Dashboard's), LINKED — EDITED ELSEWHERE, and
  * PAGES · ORDER & ROTATION.
  */
@@ -200,6 +202,13 @@ export function ScreenDetail({
           <SecondsInput value={rotate?.seconds ?? ROTATE_DEFAULT_SECONDS} onCommit={(seconds) => onRotate({ seconds })} />
         </InlineRow>
         <LinkRow note="Pause it for now from" link="Live" onNavigate={onOpenLive} />
+      </Group>
+
+      <Group id="auto-switch" label="Switch with the app in front">
+        <AutoSwitchField
+          value={stored.autoSwitch}
+          onCommit={(autoSwitch) => setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === stored.id ? { ...p, autoSwitch } : p)) }), "profile:autoSwitch")}
+        />
       </Group>
 
       <Group

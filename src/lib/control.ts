@@ -31,6 +31,10 @@ export interface ControlState {
   kiosks?: ControlKiosk[];
   /** The named displays the server knows, in the order first seen (absent while there are none). */
   displays?: ControlDisplay[];
+  /** The program in front (a file name), only while a profile has auto-switch rules and the server can read it (Windows). */
+  front?: string;
+  /** Auto-switch is paused (the lock, or "Switch with the app in front" off); absent = on. */
+  autoPaused?: boolean;
   /** Client only: which connection delivered this state (changes on every reconnect). */
   link?: number;
 }
@@ -80,7 +84,10 @@ export interface ControlProfile {
   reload: number;
 }
 
-export type ControlAction = "page" | "profile" | "rotate" | "touch" | "alert" | "kiosk" | "display";
+export type ControlAction = "page" | "profile" | "rotate" | "touch" | "alert" | "kiosk" | "display" | "auto";
+
+/** Auto-switch on or paused; paused with a profile is the lock (that profile, whatever is in front). */
+export type AutoAction = { state: "on" | "off" | "toggle"; profile?: string };
 
 /** Assign a named display a screen (`screen`: an id or "follow"), or forget it. */
 export type DisplayAction =
@@ -103,6 +110,7 @@ export async function postControl(
 ): Promise<{ alerts: ActiveAlert[]; mutedUntil: number | null } | null>;
 export async function postControl(action: "kiosk", body: KioskAction): Promise<ControlState | null>;
 export async function postControl(action: "display", body: DisplayAction): Promise<ControlState | null>;
+export async function postControl(action: "auto", body: AutoAction): Promise<ControlState | null>;
 export async function postControl(action: ControlAction, body: object): Promise<ControlState | null>;
 export async function postControl(action: ControlAction, body: object): Promise<unknown> {
   try {

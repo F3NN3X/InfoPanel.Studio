@@ -100,4 +100,11 @@ describe("what a slot does", () => {
     expect(runTouchAction({ op: "profile-picker" }, deps)).toBe(false);
     expect(calls).toEqual([["page", "next"], ["rotate"], ["audio", { target: "windows", op: "mute", kind: "input", id: "mic" }], ["obs", { op: "mic" }]]);
   });
+
+  it("opens the profile picker where the screen has one", () => {
+    let opened = 0;
+    const deps: TouchActionDeps = { page: () => {}, toggleRotate: () => {}, audio: () => {}, obs: () => {}, picker: () => opened++ };
+    expect(runTouchAction({ op: "profile-picker" }, deps)).toBe(true);
+    expect(opened).toBe(1);
+  });
 });
