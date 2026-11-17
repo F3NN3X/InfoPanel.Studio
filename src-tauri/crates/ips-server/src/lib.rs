@@ -21,11 +21,13 @@ pub mod config_guard;
 pub mod config_settings;
 pub mod chat_hub;
 pub mod control;
+pub mod control_auto;
 pub mod control_store;
 pub mod debug;
 pub mod env;
 pub mod extras;
 pub mod font_proxy;
+pub mod foreground;
 pub mod frame_check;
 pub mod frame_policy;
 pub mod guarded_net;
@@ -267,6 +269,7 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
         move || control.config_changed()
     });
     control_store::start_tick(Arc::clone(&control), shutdown.clone());
+    foreground::start(Arc::clone(&control), shutdown.clone());
     // The alert engine reads the Data API for the rules' sensors; re-reads the rules after control has on a save.
     let alerts = Alerts::new(AlertsOptions::live(cfg.data_dir.join("alerts.json"), Arc::clone(&control), shutdown.clone(), {
         let config = Arc::clone(&config);

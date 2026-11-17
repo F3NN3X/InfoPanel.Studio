@@ -662,6 +662,30 @@ async fn answers_the_control_routes_and_keeps_control_json() {
 }
 
 #[tokio::test]
+async fn locks_a_profile_and_resumes_auto_switch_through_the_guarded_control_route() {
+    let s = start().await;
+    assert_eq!(post_config(s.port, CONTROL_CONFIG, &[]).await.status, 200);
+    // The program in front is the server's own to report: no route takes it.
+    assert_eq!(post_control(s.port, "front", r#"{"exe":"Code.exe"}"#).await.status, 404);
+    let no_header = send(s.port, "POST", "/api/control/auto", &[("Content-Type", "application/json")], r#"{"state":"off"}"#).await;
+    assert_eq!((no_header.status, no_header.text().as_str()), (403, "missing X-Dashboard-Control header"));
+    assert_eq!(post_control(s.port, "auto", r#"{"state":"sideways"}"#).await.text(), "expected state on, off or toggle");
+    assert_eq!(post_control(s.port, "auto", r#"{"state":"off","profile":"nope"}"#).await.text(), "unknown profile");
+
+    let locked = json(&post_control(s.port, "auto", r#"{"state":"off","profile":"strip"}"#).await);
+    assert_eq!((locked["profile"].as_str(), locked["autoPaused"].as_bool()), (Some("strip"), Some(true)));
+    // Without rules the program in front is never published.
+    assert!(locked.get("front").is_none());
+    let saved = std::fs::read_to_string(s.data().join("control.json")).unwrap();
+    assert!(saved.contains(r#""autoPaused":true"#), "{saved}");
+
+    let resumed = json(&post_control(s.port, "auto", r#"{"state":"on"}"#).await);
+    assert!(resumed.get("autoPaused").is_none());
+    assert_eq!(resumed["profile"], "strip");
+    s.stop().await;
+}
+
+#[tokio::test]
 async fn streams_the_control_state_and_lists_kiosks() {
     let s = start().await;
     assert_eq!(post_config(s.port, CONTROL_CONFIG, &[]).await.status, 200);

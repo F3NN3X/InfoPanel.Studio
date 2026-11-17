@@ -26,7 +26,7 @@ use crate::{js, sse, store, supervisor, App};
 const TICK: Duration = Duration::from_secs(1);
 const MAX_CONTROL_BYTES: usize = 4096;
 /// The action types a POST may name (`alert` is the alerts module's).
-const CONTROL_ACTIONS: [&str; 7] = ["page", "profile", "rotate", "touch", "alert", "kiosk", "display"];
+const CONTROL_ACTIONS: [&str; 8] = ["page", "profile", "rotate", "touch", "alert", "kiosk", "display", "auto"];
 
 struct Inner {
     state: State,
@@ -79,6 +79,11 @@ impl Control {
     pub fn get(&self) -> Value {
         let inner = lock(&self.inner);
         public_state(&inner.state, &inner.config)
+    }
+
+    /// Whether a profile has auto-switch rules, so the program in front is worth reading (foreground.rs).
+    pub fn wants_front(&self) -> bool {
+        crate::control_auto::has_rules(&lock(&self.inner).config)
     }
 
     /// The alert mute deadline (epoch ms) or `None`.
@@ -343,6 +348,34 @@ mod tests {
         let after: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
         assert_eq!(after["displays"]["hall"]["screen"], "desk");
         assert_eq!(after["displays"]["hall"]["lastSeen"].as_f64().unwrap(), seen);
+    }
+
+    #[test]
+    fn the_program_in_front_switches_and_is_published_only_while_a_rule_exists() {
+        let dir = tempfile::tempdir().unwrap();
+        let rules = Arc::new(Mutex::new(true));
+        let read = Arc::clone(&rules);
+        let control = Control::new(dir.path().join("control.json"), 1000, move || {
+            let coding = if *lock(&read) { json!({ "exe": ["Code.exe"] }) } else { Value::Null };
+            Some(json!({ "profiles": [
+                { "id": "main", "width": 1024, "height": 600, "pages": [{ "id": "a" }] },
+                { "id": "coding", "width": 1024, "height": 600, "pages": [{ "id": "a" }], "autoSwitch": coding },
+            ] }))
+        });
+        assert!(control.wants_front());
+        control.dispatch(&json!({ "type": "shown", "profile": "main" })).unwrap();
+        let state = control.dispatch(&json!({ "type": "front", "exe": "Code.exe" })).unwrap();
+        assert_eq!((state["profile"].as_str(), state["front"].as_str()), (Some("coding"), Some("Code.exe")));
+        // The switch's override is durable, so a restart can still take it back; the program in front is not.
+        let saved = std::fs::read_to_string(dir.path().join("control.json")).unwrap();
+        assert!(saved.contains(r#""autoProfile":"coding""#) && !saved.contains("Code.exe"), "{saved}");
+        // The rule is gone: nothing is read or published, and the switch takes its override back.
+        *lock(&rules) = false;
+        control.config_changed();
+        assert!(!control.wants_front());
+        let state = control.get();
+        assert!(state.get("front").is_none(), "{state}");
+        assert_eq!(state["profile"], Value::Null);
     }
 
     #[test]
