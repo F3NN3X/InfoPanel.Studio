@@ -17,6 +17,9 @@ describe("a code widget's definition", () => {
       { type: "select", key: "d", label: "D", default: "x", options: [{ value: "x", label: "X" }] },
     ];
     expect("def" in checkDefinition({ ...good, settings, minSize: [1, 1], icon: "memory", description: "one line" })).toBe(true);
+    // offered for the page rail (P6), with values of its settings there
+    expect("def" in checkDefinition({ ...good, settings, rail: { settings: { a: false, b: 3, c: "x", d: "x" } } })).toBe(true);
+    expect("def" in checkDefinition({ ...good, rail: {} })).toBe(true);
   });
 
   it.each([
@@ -32,6 +35,11 @@ describe("a code widget's definition", () => {
     [{ ...good, settings: [{ type: "select", key: "a", label: "A", default: "z", options: [{ value: "x", label: "X" }] }] }, "settings[0] (a): a select lists 1 to 32 options and its default is one of them"],
     [{ ...good, settings: [{ type: "text", key: "Bad key", label: "A", default: "" }] }, "settings[0] needs a key (letters and digits, starting lowercase) and a label"],
     [{ ...good, settings: [{ type: "boolean", key: "a", label: "A", default: true }, { type: "boolean", key: "a", label: "B", default: false }] }, "two settings share a key"],
+    [{ ...good, rail: true }, "rail is an object with optional settings"],
+    [{ ...good, rail: { settings: [] } }, "rail is an object with optional settings"],
+    [{ ...good, rail: { settings: { a: 1 } } }, "rail sets a, which is not a setting"],
+    [{ ...good, settings: [{ type: "boolean", key: "a", label: "A", default: true }], rail: { settings: { a: "yes" } } }, "rail sets a to a value its boolean setting can't hold"],
+    [{ ...good, settings: [{ type: "select", key: "a", label: "A", default: "x", options: [{ value: "x", label: "X" }] }], rail: { settings: { a: "y" } } }, "rail sets a to a value its select setting can't hold"],
   ])("is refused: %j", (d, error) => {
     expect(checkDefinition(d)).toEqual({ error });
   });

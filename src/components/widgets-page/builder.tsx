@@ -210,6 +210,8 @@ export function Builder(p: BuilderProps) {
   const setPath = (at: number[]) => setSelection([at]);
   const [tab, setTab] = useState<Tab>("block");
   const [size, setSize] = useState<Cells>(recipe.size.default);
+  // the stage in a rail slot (a rail preset shown, or Rail picked in Size, P6)
+  const [inRail, setInRail] = useState(false);
   const [live, setLive] = useState(true);
   const [lookId, setLookId] = useState("classic");
   const [preset, setPreset] = useState<string | null>(recipe.presets.find((x) => x.default)?.id ?? null);
@@ -221,14 +223,20 @@ export function Builder(p: BuilderProps) {
   // the stage follows the size of the preset it shows when that changes
   const shownPreset = recipe.presets.find((x) => x.id === preset);
   const presetSize = shownPreset && shownPreset.size !== "rail" ? shownPreset.size.join("x") : undefined;
+  const hasRail = recipe.presets.some((x) => x.size === "rail");
+  const railShown = inRail && hasRail;
   useEffect(() => {
     if (presetSize) setSize(presetSize.split("x").map(Number) as Cells);
   }, [presetSize]);
+  // and goes into the rail slot when the preset it shows becomes a rail preset, out of it when it leaves
+  const presetRail = shownPreset?.size === "rail";
+  useEffect(() => setInRail(presetRail), [presetRail]);
 
   // a different recipe (a tab, a new one) starts at its own default
   useEffect(() => {
     setPath([]);
     setSize(recipe.size.default);
+    setInRail(false);
     const d = recipe.presets.find((x) => x.default);
     setPreset(d?.id ?? null);
   }, [p.active.key]);
@@ -570,6 +578,7 @@ export function Builder(p: BuilderProps) {
   const pickPreset = (id: string) => {
     const x = recipe.presets.find((q) => q.id === id);
     setPreset(id);
+    setInRail(x?.size === "rail");
     if (x && x.size !== "rail") setSize(x.size);
   };
   /** A picture picked for a new Image (G32): the block goes where the tile was clicked or dropped, with its picture. */
@@ -621,7 +630,10 @@ export function Builder(p: BuilderProps) {
   const fits = line.ok && crowds !== null && !warnings.length && recipe.root.children.length > 0;
   const shown = `${size[0]}×${size[1]}`;
   /** "Other" sizes (G17): a side typed in the stage's boxes, clamped to the recipe's range. */
-  const setSide = (k: 0 | 1, v: number | undefined) => setSize(clampCells(recipe, k === 0 ? [v ?? size[0], size[1]] : [size[0], v ?? size[1]]));
+  const setSide = (k: 0 | 1, v: number | undefined) => {
+    setInRail(false);
+    setSize(clampCells(recipe, k === 0 ? [v ?? size[0], size[1]] : [size[0], v ?? size[1]]));
+  };
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
@@ -810,7 +822,16 @@ export function Builder(p: BuilderProps) {
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-6">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-body text-ui-3">Size</span>
-            <Segmented label="Size" size="bar" value={`${size[0]}x${size[1]}`} options={sizes.map((c) => ({ value: `${c[0]}x${c[1]}`, label: `${c[0]}×${c[1]}` }))} onChange={(v) => setSize(v.split("x").map(Number) as Cells)} />
+            <Segmented
+              label="Size"
+              size="bar"
+              value={railShown ? "rail" : `${size[0]}x${size[1]}`}
+              options={[...sizes.map((c) => ({ value: `${c[0]}x${c[1]}`, label: `${c[0]}×${c[1]}` })), ...(hasRail ? [{ value: "rail", label: "Rail" }] : [])]}
+              onChange={(v) => {
+                setInRail(v === "rail");
+                if (v !== "rail") setSize(v.split("x").map(Number) as Cells);
+              }}
+            />
             <span className="flex items-center gap-1 text-body text-ui-3" title={`Any size from ${recipe.size.min.join("×")} to ${recipe.size.max.join("×")}`}>
               <NumberInput label="Stage columns" value={size[0]} min={recipe.size.min[0]} max={recipe.size.max[0]} onChange={(v) => setSide(0, v)} width={52} />
               ×
@@ -874,6 +895,7 @@ export function Builder(p: BuilderProps) {
                 images={p.active.images}
                 values={shownValues}
                 cells={size}
+                rail={railShown}
                 sample={!live}
                 appearance={p.appearance}
                 pageStyle={p.pageStyle}

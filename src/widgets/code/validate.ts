@@ -35,6 +35,19 @@ function settingError(s: unknown, i: number): string | undefined {
   }
 }
 
+/** Why a definition's rail offer is wrong: an object whose settings are values of declared settings, each of its type. */
+function railError(rail: unknown, settings: readonly SdkSetting[]): string | undefined {
+  if (rail === undefined) return undefined;
+  if (!isObject(rail) || (rail.settings !== undefined && !isObject(rail.settings))) return "rail is an object with optional settings";
+  for (const [key, value] of Object.entries(rail.settings ?? {})) {
+    const s = settings.find((x) => x.key === key);
+    if (!s) return `rail sets ${key}, which is not a setting`;
+    const ok = s.type === "boolean" ? typeof value === "boolean" : s.type === "number" ? typeof value === "number" && Number.isFinite(value) : s.type === "select" ? s.options.some((o) => o.value === value) : typeof value === "string" && value.length <= 200;
+    if (!ok) return `rail sets ${key} to a value its ${s.type} setting can't hold`;
+  }
+  return undefined;
+}
+
 /** A definition as the SDK types say, or why not. */
 export function checkDefinition(d: unknown): Checked {
   if (!isObject(d)) return { error: "the bundle returned no widget definition" };
@@ -52,6 +65,8 @@ export function checkDefinition(d: unknown): Checked {
   }
   const keys = settings.map((s: SdkSetting) => s.key);
   if (new Set(keys).size !== keys.length) return { error: "two settings share a key" };
+  const rail = railError(d.rail, settings as SdkSetting[]);
+  if (rail) return { error: rail };
   return { def: d as unknown as CodeWidgetDefinition };
 }
 

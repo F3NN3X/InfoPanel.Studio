@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, clampCells, devicesIn, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, setRepeatSource, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, updateBlock, validationLine, withDirection, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
+import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, clampCells, devicesIn, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, railPreset, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, setRepeatSource, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, updateBlock, validationLine, withDirection, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
 import { amend, commit, historyOf, HISTORY_LIMIT, redo, undo } from "@/components/widgets-page/history";
 import { NO_START, START, whyNoStart } from "@/components/widgets-page/start-points";
 import { WIDGET_ORDER } from "@/widgets/order";
@@ -134,6 +134,22 @@ describe("options and presets", () => {
     expect(r.presets.filter((p) => p.default).map((p) => p.id)).toEqual(["default"]);
     expect(removePreset(r, "default")).toBe(r);
     expect(errorsOf(r)).toEqual([]);
+  });
+
+  it("makes a rail preset (P6): never the default, said as a rail slot, and the recipe becomes format 2", () => {
+    let r = savePreset(withToggles(), "Mini", { showClock: false }, [2, 2]);
+    expect(railPreset(r, "default")).toBe(r);
+    r = railPreset(r, "mini");
+    expect(r.presets.at(-1)).toEqual({ id: "mini", name: "Mini", settings: { showClock: false }, size: "rail" });
+    expect(railPreset(r, "mini")).toBe(r);
+    expect(presetLine(r, r.presets.at(-1)!)).toBe("Show clock Off · rail slot");
+    // the default opens on the grid in Add
+    expect(setDefaultPreset(r, "mini")).toBe(r);
+    // format 1 can't say it (QUESTIONS P2 11): the builder writes 2, and back to 1 once it is on the grid again
+    expect(r.format).toBe(1);
+    expect(errorsOf(r)).toContain("$.presets[1].size: a rail preset needs recipe format 2");
+    expect(withFormat(r).format).toBe(2);
+    expect(withFormat(updatePreset(withFormat(r), "mini", { size: [2, 2] })).format).toBe(1);
   });
 
   it("a 1x1 Ring only preset passes the floor once the values leave one column", () => {

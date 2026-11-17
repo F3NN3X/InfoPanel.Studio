@@ -2,6 +2,7 @@
 // entry carries none of it.
 import { loadCode } from "@/widgets/code/loader";
 import { listUserWidgets, loadRecipe } from "@/widgets/recipe/store";
+import type { ModuleSettings } from "@/modules/types";
 import type { CodeWidgetDefinition } from "@/widgets/sdk";
 import type { Recipe } from "@/widgets/recipe/types";
 import { type AddItem, moduleItem } from "./add-catalog";
@@ -39,6 +40,40 @@ export async function recipeItems(): Promise<AddItem[]> {
       }
       const l = await loadRecipe(w.id);
       return l.recipe ? [recipeItem(l.recipe)] : [];
+    }),
+  );
+  return all.flat();
+}
+
+/** One of the user's widgets a page rail's slot can hold (decision 8, P6): its module, its name in the list, its settings there. */
+export interface UserRailWidget {
+  module: string;
+  name: string;
+  settings: ModuleSettings;
+}
+
+/** A recipe's rail presets as rail widgets, each storing the recipe's version as an add does. */
+export const recipeRailWidgets = (r: Recipe): UserRailWidget[] =>
+  r.presets.flatMap((p) => (p.size === "rail" ? [{ module: r.id, name: `${r.name} · ${p.name}`, settings: { recipeVersion: r.version, ...p.settings } }] : []));
+
+/** A code widget's rail offer (`CodeWidgetDefinition.rail`) as a rail widget. */
+export const codeRailWidget = (id: string, def: CodeWidgetDefinition): UserRailWidget[] =>
+  def.rail ? [{ module: id, name: def.name, settings: { ...def.rail.settings } }] : [];
+
+/**
+ * The user's widgets with a rail preset (P6): the recipes that pass the validator, and the code widgets that verified, loaded and
+ * offer themselves for the rail. None while the store is off.
+ */
+export async function userRailWidgets(): Promise<UserRailWidget[]> {
+  const { list } = await listUserWidgets();
+  const all = await Promise.all(
+    list.map(async (w): Promise<UserRailWidget[]> => {
+      if (w.kind === "code") {
+        const s = w.off ? undefined : await loadCode(w.id);
+        return s && "def" in s ? codeRailWidget(w.id, s.def) : [];
+      }
+      const l = await loadRecipe(w.id);
+      return l.recipe ? recipeRailWidgets(l.recipe) : [];
     }),
   );
   return all.flat();

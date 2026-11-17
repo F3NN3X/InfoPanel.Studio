@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addCatalog, widgetRows } from "@/components/studio/add-catalog";
-import { recipeItem } from "@/components/studio/recipe-item";
+import { codeRailWidget, recipeItem, recipeRailWidgets } from "@/components/studio/recipe-item";
 import { fixtureRecipe } from "../../widgets/recipe/fixture-files";
 
 // A recipe widget in the Add panel (Phase 5a): one row after the built-in widgets, its presets as further rows (Phase 4 style),
@@ -27,5 +27,23 @@ describe("recipes in the Add panel", () => {
       { kind: "module", id: "recipe:cpu-card", settings: { recipeVersion: "1.0.0", showValues: false, showHistory: false } },
       { kind: "module", id: "recipe:cpu-card", settings: { recipeVersion: "1.0.0", showHistory: false, showCores: true } },
     ]);
+  });
+});
+
+// The user's own widgets in a page rail (P6, decision 8): a recipe's rail presets and a code widget's rail offer.
+describe("your widgets in the rail", () => {
+  it("are a recipe's rail presets, kept out of Add, each storing the recipe's version", () => {
+    const r = fixtureRecipe("cpu-card");
+    const railed = { ...r, format: 2 as const, presets: r.presets.map((p) => (p.id === r.presets[1].id ? { ...p, size: "rail" as const } : p)) };
+    expect(recipeRailWidgets(r)).toEqual([]);
+    expect(recipeRailWidgets(railed)).toEqual([{ module: "recipe:cpu-card", name: `CPU card · ${r.presets[1].name}`, settings: { recipeVersion: "1.0.0", ...r.presets[1].settings } }]);
+    expect(recipeItem(railed).presets?.map((p) => p.name)).not.toContain(`CPU card · ${r.presets[1].name}`);
+  });
+
+  it("are a code widget that offers itself, with its rail settings", () => {
+    const def = { name: "Clock", reads: [], defaultSize: [2, 2] as [number, number], render: () => null };
+    expect(codeRailWidget("ext:me.clock", def)).toEqual([]);
+    expect(codeRailWidget("ext:me.clock", { ...def, rail: { settings: { compact: true } } })).toEqual([{ module: "ext:me.clock", name: "Clock", settings: { compact: true } }]);
+    expect(codeRailWidget("ext:me.clock", { ...def, rail: {} })).toEqual([{ module: "ext:me.clock", name: "Clock", settings: {} }]);
   });
 });

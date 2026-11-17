@@ -11,7 +11,7 @@ import { SAMPLE_LOOK_IDS } from "@/looks/ids";
 import { lookLayers } from "@/looks/sample-cards";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
-import { NOMINAL_CELL } from "@/widgets/recipe/metrics";
+import { NOMINAL_CELL, RAIL_SLOT } from "@/widgets/recipe/metrics";
 import { recipeReads } from "@/widgets/recipe/reads";
 import RecipeView, { type RecipeViewProps } from "@/widgets/recipe/RecipeView";
 import type { Cells, PackageFile, Recipe } from "@/widgets/recipe/types";
@@ -87,6 +87,8 @@ export interface RecipePreviewProps {
   overlay?: ReactNode;
   /** A draft's pictures (its package's `images/`), drawn before the server has them. */
   images?: readonly PackageFile[];
+  /** In a page rail's widget slot (a rail preset, P6): the slot's box (`RAIL_SLOT`, where the floor is checked), no header. */
+  rail?: boolean;
 }
 
 /**
@@ -99,14 +101,14 @@ function useReadings(sample: boolean, recipe: Recipe, own: ModuleSettings) {
   return useSensors(sample ? [] : null);
 }
 
-export function RecipePreview({ recipe, values, cells, sample, appearance, pageStyle, lookId, fit, maxScale = 1, overlay, images }: RecipePreviewProps) {
+export function RecipePreview({ recipe, values, cells, sample, appearance, pageStyle, lookId, fit, maxScale = 1, overlay, images, rail }: RecipePreviewProps) {
   const urls = useImageUrls(images);
   useSampleLayer(lookId);
-  const own: ModuleSettings = { ...storedValues(recipe, values ?? {}), ...(lookId ? { lookId } : {}) };
+  const own: ModuleSettings = { ...storedValues(recipe, values ?? {}), ...(lookId ? { lookId } : {}), ...(rail ? { showHeader: false } : {}) };
   const sensors = useReadings(sample, recipe, own);
   const settings = resolveWith(lookId ? wearing(appearance, lookId) : appearance, own, undefined, undefined, draftModule.settings) ?? own;
   const scope = tokenScope(chromeOf(settings)) as CSSProperties;
-  const { w, h } = zonePx(cells);
+  const { w, h } = rail ? RAIL_SLOT : zonePx(cells);
   const scale = Math.min(maxScale, fit.w / w, fit.h / h);
   return (
     <div className="relative shrink-0" style={{ width: w * scale, height: h * scale }}>
