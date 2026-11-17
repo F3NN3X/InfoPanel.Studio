@@ -34,6 +34,8 @@ export interface StudioTopBarProps {
   onRename: (name: string) => void;
   /** The page tabs, in the bar from 960 px; a narrow window keeps them in their own row. */
   tabs?: ReactNode;
+  /** Edit's Page / Pinned toggle (P3), after the tabs; unset where there is no pinned layer to edit. */
+  layerToggle?: ReactNode;
   /** A phone: the bar has no room for the file actions, and no sidebar holds Live. */
   phone: boolean;
   /** The Live popover, on a phone (the sidebar holds it elsewhere). */
@@ -138,6 +140,7 @@ export function StudioTopBar(props: StudioTopBarProps) {
     >
       <Breadcrumb {...props} />
       {tabs}
+      {props.layerToggle}
       <div data-tauri-drag-region className="flex min-w-8 flex-1 justify-center">
         <button
           type="button"

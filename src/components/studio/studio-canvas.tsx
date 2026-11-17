@@ -20,6 +20,7 @@ import { connectorZones } from "@/looks/connector-zones";
 import { DynamicIsland } from "@/components/island/dynamic-island";
 import { pageSkinOf } from "@/components/island/island-look";
 import { islandReserve, withPackEdge } from "@/components/island/island-model";
+import type { EdgeRoom } from "@/lib/pinned";
 import type { ActiveAlert } from "@/lib/alerts";
 import type { PageBackground as Background } from "@/lib/appearance";
 import type { Appearance } from "@/lib/style-resolve";
@@ -78,6 +79,8 @@ function ghostLabel(item: AddItem, ghost: Ghost): string {
   return ghost.ok ? `${item.name} · ${sizeText(ghost.rect.cols, ghost.rect.rows)}` : "No room here";
 }
 
+/** No pinned items making room. */
+const NO_ROOM: EdgeRoom = { left: 0, right: 0, top: 0, bottom: 0 };
 const NO_ALERTS: readonly ActiveAlert[] = [];
 
 interface StudioCanvasProps {
@@ -186,6 +189,12 @@ interface StudioCanvasProps {
     /** The selected page groups: their boxes, and their moves. */
     groups?: GroupMoves;
   };
+  /** The room the pinned layer's "make room" items take off each edge, px: the page lays out inside it, as on the kiosk. */
+  pinnedRoom?: EdgeRoom;
+  /** The pinned layer drawn over the page (P3's `PinnedCanvas`). */
+  pinnedLayer?: ReactNode;
+  /** Edit shows the pinned layer: the page is dimmed and takes no input. */
+  dimPage?: boolean;
 }
 
 /**
@@ -238,6 +247,9 @@ export function StudioCanvas({
   selectionChip,
   islandAlerts = NO_ALERTS,
   items,
+  pinnedRoom: room = NO_ROOM,
+  pinnedLayer,
+  dimPage,
 }: StudioCanvasProps) {
   /** The mode of the scoped screen theme: `lite:` styling on its theme cards follows it, as the kiosk page's `data-mode` does. */
   const scopeMode = themeScope ? cardMode(String((themeScope as Record<string, unknown>)["--card"] ?? "")) : undefined;
@@ -279,7 +291,7 @@ export function StudioCanvas({
   // zoom is reported in different units by different Chromium versions).
   useLayoutEffect(() => {
     if (gridEl && zoom > 0) setGridWidth(gridEl.getBoundingClientRect().width / zoom);
-  }, [gridEl, zoom, profile.id, profile.cols, profile.width, profile.padding, profile.fit]);
+  }, [gridEl, zoom, profile.id, profile.cols, profile.width, profile.padding, profile.fit, room.left, room.right]);
   useEffect(() => {
     const onResize = () => {
       if (gridEl && zoom > 0) setGridWidth(gridEl.getBoundingClientRect().width / zoom);
@@ -515,6 +527,8 @@ export function StudioCanvas({
   const pageIsland = useMemo(() => ({ island: profile.island?.enabled ? profile.island : undefined, page: { width: profile.width, height: profile.height } }), [profile.island, profile.width, profile.height]);
   /** "Reserve space": the zones start under the island, as on the kiosk. */
   const reserve = islandReserve(profile.island, islandPage);
+  /** The height the grid loses to the island and the pinned items above and below it. */
+  const vRoom = reserve + room.top + room.bottom;
   const packEdge = pack?.statusBar?.edge;
   const bottomIsland = (profile.island?.edge ?? packEdge) === "bottom";
   const fill = profile.fit === "fill" && profile.height > 0;
@@ -527,7 +541,7 @@ export function StudioCanvas({
   // Row geometry: fill mode → uniform rows over the profile height;
   // scroll mode → fixed SCROLL_ROW_H rows (the canvas scrolls).
   const rowH = fill
-    ? Math.max(24, trackSize(profile.height - 2 * padding - reserve, profile.rows, gap))
+    ? Math.max(24, trackSize(profile.height - 2 * padding - vRoom, profile.rows, gap))
     : SCROLL_ROW_H;
   const getGridRect = () => gridEl?.getBoundingClientRect() ?? null;
 
@@ -544,7 +558,7 @@ export function StudioCanvas({
     // The ghost sits inside the zoomed page, so its box is in design px
     // (CSS zoom scales it); display px here would apply the zoom twice.
     const rowHd = fill
-      ? trackSize(profile.height - 2 * padding - reserve, profile.rows, gap)
+      ? trackSize(profile.height - 2 * padding - vRoom, profile.rows, gap)
       : SCROLL_ROW_H;
     return zoneBox(r, { width: colW, height: rowHd }, gap);
   };
@@ -624,8 +638,10 @@ export function StudioCanvas({
                   ...themeScope,
                   padding,
                   // Always set: React warns when a longhand is removed from under the shorthand.
-                  paddingTop: padding + (bottomIsland ? 0 : reserve),
-                  paddingBottom: padding + (bottomIsland ? reserve : 0),
+                  paddingTop: padding + (bottomIsland ? 0 : reserve) + room.top,
+                  paddingBottom: padding + (bottomIsland ? reserve : 0) + room.bottom,
+                  paddingLeft: padding + room.left,
+                  paddingRight: padding + room.right,
                   fontFamily: font,
                   // The board's dashed outline, 6px off the page.
                   outline: "1px dashed #2a2a31",
@@ -663,7 +679,9 @@ export function StudioCanvas({
                 )}
                 <div
                   ref={setGridEl}
-                  className={cn("relative isolate grid", fill && "h-full")}
+                  // Pinned shown: the page is dimmed behind the layer and takes no input (`inert` keeps the keyboard out too).
+                  inert={dimPage}
+                  className={cn("relative isolate grid", fill && "h-full", dimPage && "opacity-40")}
                   style={{
                     gap,
                     gridTemplateColumns: `repeat(${profile.cols}, minmax(0, 1fr))`,
@@ -807,7 +825,8 @@ export function StudioCanvas({
                   ))}
 
                 </div>
-                {page && items && (
+                {pinnedLayer}
+                {page && items && !dimPage && (
                   <ItemParts
                     profile={profile}
                     page={page}
@@ -847,7 +866,8 @@ export function StudioCanvas({
                 profile.height,
                 gap,
                 padding,
-                reserve,
+                vRoom,
+                room.left,
                 gridWidth,
               ].join("|")}
             >

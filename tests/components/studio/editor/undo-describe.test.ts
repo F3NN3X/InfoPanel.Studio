@@ -9,6 +9,13 @@ const config = (placements: Placement[], name = "Desk", page = "Main") =>
   ({ profiles: [{ id: "s", name, pages: [{ id: "p", name: page, placements }] }] }) as unknown as DashboardConfig;
 
 describe("describeChange", () => {
+  it("names a change to the pinned layer", () => {
+    const a = config([zone()]);
+    const pinned = { items: [{ id: "rail", edge: "left", mode: "room", thickness: 84, show: "all", visible: true, placement: { id: "r", module: "PageRail" } }] };
+    const b = { ...a, profiles: [{ ...a.profiles[0], pinned }] } as unknown as DashboardConfig;
+    expect(describeChange(a, b)?.text).toBe("Edit the pinned layer");
+  });
+
   it("is nothing for no step, or one that is not a screen's", () => {
     const a = config([zone()]);
     expect(describeChange(a, a)).toBeNull();
