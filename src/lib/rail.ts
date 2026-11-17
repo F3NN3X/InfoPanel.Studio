@@ -20,6 +20,18 @@ export const RAIL_DENSE_BELOW = 580;
 /** Whether a rail `h` px tall draws its dense sizes. */
 export const railDense = (h: number): boolean => h < RAIL_DENSE_BELOW;
 
+/** The roomy sizes from 580 px of height, else dense (a 550 px bar): a slot never goes under 48. */
+export interface RailSize {
+  slot: number;
+  top: number;
+  widget: number;
+  gap: number;
+}
+export const RAIL_SIZES: { roomy: RailSize; dense: RailSize } = {
+  roomy: { slot: 56, top: 68, widget: 76, gap: 6 },
+  dense: { slot: 48, top: 56, widget: 64, gap: 4 },
+};
+
 /** A page as the rail knows it. */
 export interface RailPage {
   id: string;
@@ -127,3 +139,40 @@ export function actionOn(action: TouchAction, audio: Pick<AudioState, "windows">
 
 /** The series colour (1–6) of a profile's chip: by its place among the profiles, so each keeps its own. */
 export const chipSeries = (index: number): number => (Math.max(0, index) % 6) + 1;
+
+/** What the rail draws besides its slots (the widget's settings), and whether the profile rotates (the page lock shows only then). */
+export interface RailParts {
+  chip: boolean;
+  pageLock: boolean;
+  clock: boolean;
+  rotates: boolean;
+}
+
+/** The rail's padding top and bottom, a rule between groups (1 px and its margins), the page lock and the clock, px. */
+const RAIL_PAD = 24;
+const RULE_H = 9;
+const LOCK_H = 48;
+const CLOCK_H = 44;
+/** The chip's content (its mark and name) when that is taller than its minimum. */
+const CHIP_CONTENT_H = 52;
+
+/**
+ * The height a rail's slots and parts need, px, as `PageRail` lays them out at `h` px tall: its padding, the chip, each
+ * group's slots with a rule between groups, the spacer, the foot, the page lock and the clock, with the gap between each.
+ * More than `h` and the last ones scroll (owner Q9: the editor warns).
+ */
+export function railNeed(slots: readonly RailSlot[], parts: RailParts, h: number): number {
+  const size = railDense(h) ? RAIL_SIZES.dense : RAIL_SIZES.roomy;
+  const { head, foot } = railGroups(slots);
+  const one = (s: RailSlot) =>
+    s.target.kind === "widget" ? size.widget : s.target.kind === "profile" && s.icon && s.icon.from !== "set" && s.icon.from !== "text" ? size.top : size.slot;
+  const heights = [
+    ...(parts.chip ? [Math.max(size.top - 4, CHIP_CONTENT_H)] : []),
+    ...head.flatMap((group, i) => [...(i > 0 || parts.chip ? [RULE_H] : []), ...group.map(one)]),
+    0, // the spacer
+    ...foot.map(one),
+    ...(parts.pageLock && parts.rotates ? [LOCK_H] : []),
+    ...(parts.clock ? [CLOCK_H] : []),
+  ];
+  return RAIL_PAD + heights.reduce((n, x) => n + x, 0) + size.gap * (heights.length - 1);
+}

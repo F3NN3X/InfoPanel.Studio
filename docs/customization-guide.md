@@ -1436,8 +1436,9 @@ page.
 
 A screen can pin widgets to its edges (config format 20): the page rail on the left, a now-playing
 bar along the bottom, an agents panel on the right. They are the same on every page, and a page
-change or a swipe leaves them where they are. The editor for them comes in a later update; until
-then a pinned widget is set in the config, under the screen's `pinned`:
+change or a swipe leaves them where they are. Pin them in Edit: **Pinned** in the top bar shows the
+layer, **+** in its list pins a widget, and the inspector sets its pages, edge, size and whether it
+makes room; **Edit rail items** sets a rail's buttons. They are stored under the screen's `pinned`:
 
 ```json
 "pinned": {
@@ -1461,16 +1462,18 @@ then a pinned widget is set in the config, under the screen's `pinned`:
   its zones lay out in the space left, as with the Dynamic Island's **Reserve space**. `float`:
   the widget lies over the page, which keeps its whole size.
 - **thickness** - the widget's size across its edge, in px; **inset** its distance from the
-  screen's edge (unset: none). A widget on the left or right runs the full height; one on the top
-  or bottom runs between them, lined up with the zones.
+  screen's edge (unset: none). A widget on the left or right runs the full height, less its inset
+  at the top and bottom; one on the top or bottom runs between them, lined up with the zones.
 - **show** - `"all"`, or `{ "pages": ["<page id>", …] }` for some pages only. A page with
   `"hidePinned": true` shows none of them and gets its whole screen back.
 - **placement** - the widget, as a zone stores it but without its cells: its `module`, `settings`
   and so on.
 
-Several widgets on one edge stack outwards from it in the order listed. A widget can't be pinned
-from the studio yet, and the studio's canvas doesn't draw them; the kiosk and the dashboard page do.
-A pinned widget sent to the Dynamic Island feeds it as one on a page does.
+Several widgets on one edge stack outwards from it in the order listed. The studio's canvas draws
+them as the kiosk does, with the page laid out in the space they leave. **Use on every profile of
+this size** copies a screen's pinned layer to the other screens of its size, replacing theirs, a
+page it names going to the page in the same place there. A pinned widget sent to the Dynamic Island
+feeds it as one on a page does.
 
 ### The page rail
 
@@ -1482,7 +1485,7 @@ it uses smaller buttons, never under 48 px. Its options turn off the chip, the p
 clock.
 
 With no `rail` list it shows every page. A `rail` list beside `placement` picks and orders its
-buttons instead:
+buttons instead (Edit's **Edit rail items** writes it):
 
 ```json
 {

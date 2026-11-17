@@ -155,6 +155,21 @@ Each row has the part's icon, its name and what it is (*widget*, *item*, *elemen
 | `F2` | Rename |
 | `Ctrl+Shift+S` | Save the selection to the Library |
 
+## The pinned layer
+
+**Page** and **Pinned** in the top bar switch Edit between the page and the screen's pinned layer: the widgets pinned to its edges, the same on every page. With **Pinned** on, the page is dimmed under the layer and Layers lists the pinned widgets, top first. **+** pins a page rail, a now-playing bar, an agents panel or a status bar; the arrows change the order (several widgets on one edge stack outwards in that order) and the eye hides one. An agent prompt the Island shows is listed too, for reference: it comes and goes with the agent and is set in **Alerts & Island**.
+
+Select a pinned widget, on the canvas or in the list, to set it in the inspector:
+
+- **Show on**: this page, some pages or all of them.
+- **Edge**: left, right, top or bottom. A widget on the same edge as the Dynamic Island gets a warning: the Island draws over it.
+- **Page content**: **Make room** takes the widget's size off the page, which lays out in the space left; **Float on top** lays it over the page.
+- **Size** across the edge, and **Off the edge**: a gap to the screen's edge (and, for a side panel, to the top and bottom).
+- **Hide the pinned layer on** this page gives the page its whole screen back.
+- **Use on every profile of this size** copies the layer to the other profiles of the same size, replacing theirs; a page it shows on goes to the page in the same place there.
+
+**Edit rail items** opens a rail's items: its pages, actions, the profile and small widgets such as the clock, in groups. Pick one to set its page or action, its icon (from the icon set, an image, a program or text), its shape, tint and label, what a tap, a hold and a double tap do, and its badge. A rail warns when its items are taller than the screen, since the last ones would scroll. The pages under the canvas, and the page tabs' thumbnails, show the pinned layer until you turn **Show the pinned layer on thumbnails** off. Every change is one undo step.
+
 ## Inspector
 
 The settings for whatever is selected. Where it sits depends on the width of the window, and there is no setting for it:

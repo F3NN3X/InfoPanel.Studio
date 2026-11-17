@@ -44,6 +44,8 @@ interface PageTabsProps {
   imported?: boolean;
   /** The screen, to draw a page's thumbnail on hover or focus; unset: no thumbnails (an InfoPanel screen's pages are canvases). */
   thumbProfile?: MonitorProfile;
+  /** The thumbnails draw the screen's pinned layer too. */
+  thumbPinned?: boolean;
 }
 
 /** An interval for the chip: `30 s`, then minutes from 60 s (`1 min`, `1.5 min`). */
@@ -164,6 +166,7 @@ export function PageTabs({
   kioskPage,
   imported = false,
   thumbProfile,
+  thumbPinned,
 }: PageTabsProps) {
   const thumb = usePageThumb();
   const thumbPage = thumbProfile && thumb.anchor ? pages.find((p) => p.id === thumb.anchor?.id) : undefined;
@@ -334,7 +337,7 @@ export function PageTabs({
       {thumbProfile && thumbPage && thumb.anchor && (
         <ThumbBoundary key={thumb.anchor.id} onFail={resetThumb}>
           <Suspense fallback={null}>
-            <PageThumb profile={thumbProfile} page={thumbPage} left={thumb.anchor.left} top={thumb.anchor.top} />
+            <PageThumb profile={thumbProfile} page={thumbPage} left={thumb.anchor.left} top={thumb.anchor.top} pinned={thumbPinned} />
           </Suspense>
         </ThumbBoundary>
       )}

@@ -101,6 +101,12 @@ import { canvasItem } from "@/lib/my-library/canvas-link";
 import { findCanvasUse } from "@/lib/my-library/canvas-use";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { FixtureStart } from "@/dev/fixtures/types";
+import { pinnedOnPage, pinnedRoom } from "@/lib/pinned";
+import { profilePadding } from "@/lib/profile-grid";
+import { Segmented } from "@/components/ui/segmented";
+import { Pin } from "lucide-react";
+import { useStoredFlag } from "./use-stored-flag";
+import type { PinnedView } from "./pinned/pinned-workspace";
 
 /** The Export sheet's request while it is closed (a stable object, so its rows keep their state). */
 const NO_REQUEST: ExportRequest = {};
@@ -135,6 +141,12 @@ const ThemeEditor = lazy(() => import("./theme-editor").then((m) => ({ default: 
 const GaugesPage = lazy(() => import("@/components/gauges/gauges-page"));
 /** The Widgets page and its builder (Phase 5b), loaded when the rail first opens it. */
 const WidgetsPage = lazy(() => import("@/components/widgets-page/widgets-page"));
+/** Edit with Pinned on (P3), and the pinned layer on the canvas: one chunk, loaded by a profile that pins something or by Pinned. */
+const PinnedWorkspace = lazy(() => import("./pinned/pinned-workspace"));
+const PinnedCanvas = lazy(() => import("./pinned/pinned-canvas").then((m) => ({ default: m.PinnedCanvas })));
+/** The page tabs' and Pinned's thumbnails draw the pinned layer (a studio preference). */
+const PINNED_THUMBS_KEY = "studio.pinnedThumbs";
+const NO_PIN: PinnedView = { id: null, rail: false, slot: null };
 
 interface StudioViewProps {
   config: DashboardConfig;
@@ -408,6 +420,13 @@ function StudioViewBody({
   const [canvasSelection, setCanvasSelection] = useState<string[] | undefined>(fixture?.canvasSelection);
   /** The stored page on the canvas. */
   const storedPage = storedProfile.pages.find((p) => p.id === profile.pageId) ?? storedProfile.pages[0];
+  /** Edit shows the page or the profile's pinned layer (P3), and what is selected in the layer. */
+  const [pinnedOn, setPinnedOn] = useState(false);
+  const [pinView, setPinView] = useState<PinnedView>(NO_PIN);
+  const [thumbsPinned, setThumbsPinned] = useStoredFlag(PINNED_THUMBS_KEY, true);
+  useEffect(() => setPinView(NO_PIN), [storedProfile.id]);
+  /** The pinned items on the page on the canvas, and the room the "make room" ones take off it, as on the kiosk. */
+  const pinnedHere = useMemo(() => pinnedOnPage(storedProfile.pinned, storedPage.id, storedPage.hidePinned), [storedProfile.pinned, storedPage.id, storedPage.hidePinned]);
   /** The page's InfoPanel items and elements selected on the canvas (selecting one clears the zones, and back). */
   const items = useItemSelection({ profileId: storedProfile.id, page: storedPage, zoneId: sel.primaryId, clearZones: () => sel.select(null) });
   /** Layers on a screen's page: one selection of widgets, items and groups, and every layer action. */
@@ -451,6 +470,8 @@ function StudioViewBody({
   const freeZone = isFreePage(profile, storedPage) ? profile.placements[0] : null;
   /** What Edit's canvas editor shows: the page's canvas, when it is one filling the screen (an imported profile's). */
   const activeCanvas = freeZone?.canvas ? (freeZone as typeof freeZone & { canvas: NonNullable<typeof freeZone.canvas> }) : undefined;
+  /** Pinned is on and Edit shows a grid page (an imported profile's canvas has no pinned layer to edit). */
+  const pinnedShown = pinnedOn && !fullPage && !activeCanvas;
   /**
    * The New page (New screen, New InfoPanel profile): a page over Screens, for either kind. "New InfoPanel profile…"
    * makes a new screen (not made active) opened in Edit, a template's sensors not found on this machine listed there
@@ -907,6 +928,29 @@ function StudioViewBody({
       onNoRoom={() => toast("No free cells here.")}
       onUseSample={() => runCommand({ type: "sample-layout" })}
       islandAlerts={islandTestAlerts}
+      pinnedRoom={pinnedRoom(pinnedHere)}
+      dimPage={pinnedShown}
+      pinnedLayer={
+        pinnedHere.length > 0 && (
+          <Suspense fallback={null}>
+            <PinnedCanvas
+              stored={storedProfile}
+              profile={profile}
+              index={config.profiles.findIndex((p) => p.id === storedProfile.id)}
+              pageId={storedPage.id}
+              items={pinnedHere}
+              appearance={appearance}
+              padding={profilePadding(profile, true)}
+              editing={pinnedShown}
+              selectedId={pinView.id}
+              onSelect={(id) => {
+                setPinnedOn(true);
+                setPinView({ id, rail: false, slot: null });
+              }}
+            />
+          </Suspense>
+        )
+      }
       items={{
         selectedIds: items.ids,
         onSelect: (id, toggle) => {
@@ -984,6 +1028,7 @@ function StudioViewBody({
         kioskPage={control?.profiles[storedProfile.id]?.page}
         imported={importedFromInfoPanel(storedProfile)}
         thumbProfile={screenKind(storedProfile) === "infopanel" ? undefined : storedProfile}
+        thumbPinned={thumbsPinned}
       />
   );
   // What sits over the canvas's top: the tabs' row on a narrow window.
@@ -1296,6 +1341,29 @@ function StudioViewBody({
         onScreenSettings={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
         onRename={(name) => edit.updateStored((p) => ({ ...p, name }))}
         tabs={tabsInBar && !fullPage ? pageTabs : undefined}
+        layerToggle={
+          ui.mode === "design" && !fullPage && !activeCanvas && !phone ? (
+            <Segmented
+              size="bar"
+              label="Edit the page or the pinned layer"
+              className="shrink-0 flex-nowrap"
+              value={pinnedShown ? "pinned" : "page"}
+              onChange={(v) => setPinnedOn(v === "pinned")}
+              options={[
+                { value: "page", label: "Page" },
+                {
+                  value: "pinned",
+                  label: (
+                    <span className="flex items-center gap-1.5">
+                      <Pin aria-hidden size={14} />
+                      Pinned
+                    </span>
+                  ),
+                },
+              ]}
+            />
+          ) : undefined
+        }
         phone={phone}
         liveOpen={ui.liveOpen}
         onLiveOpenChange={ui.setLiveOpen}
@@ -1324,7 +1392,33 @@ function StudioViewBody({
       />}
       {/* The canvas editor brings its own shell (same slots and widths): in Edit on a Free page or a free area. */}
       {canvasEditor}
-      {!editorShown && (
+      {pinnedShown && (
+        <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+          <PinnedWorkspace
+            config={config}
+            stored={storedProfile}
+            profile={profile}
+            page={storedPage}
+            appearance={appearance}
+            themeScope={themeScope}
+            layout={studioLayout}
+            leftWidth={ui.leftWidth}
+            leftStrip={ui.leftOpen ? null : leftStripEl}
+            canvas={canvasEl}
+            pageTabs={pageTabsEl}
+            bar={bar}
+            view={pinView}
+            onView={setPinView}
+            updateStored={edit.updateStored}
+            setConfig={setConfig}
+            onPageChange={onPageChange}
+            thumbsPinned={thumbsPinned}
+            onThumbsPinned={setThumbsPinned}
+            toast={toast}
+          />
+        </Suspense>
+      )}
+      {!editorShown && !pinnedShown && (
         <StudioShell
           layout={studioLayout}
           drawer={!fullPage && (ui.leftOpen ? leftPanelEl : leftStripEl)}

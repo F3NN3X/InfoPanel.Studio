@@ -77,6 +77,7 @@ function pageStep(before: ProfilePage, after: ProfilePage, profileId: string): S
 
 function profileStep(before: MonitorProfile, after: MonitorProfile): StepName {
   if (before.name !== after.name) return { text: `Rename screen to ${after.name}` };
+  if (!same(before.pinned, after.pinned) && same(before.pages, after.pages)) return { text: "Edit the pinned layer" };
   const added = after.pages.filter((p) => !before.pages.some((x) => x.id === p.id));
   const removed = before.pages.filter((p) => !after.pages.some((x) => x.id === p.id));
   if (added.length === 1 && removed.length === 0) return { text: `Add page ${added[0].name}` };
