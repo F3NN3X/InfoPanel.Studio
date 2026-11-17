@@ -171,12 +171,14 @@ interface TouchRowsProps {
   onChange: (touch: TouchMap | undefined, g: TouchGesture) => void;
   /** What an unset tap does ("Nothing" on a widget, "What the item is" on a rail item). */
   tapNone?: string;
+  /** What an unset hold does where it is not nothing (the profile chip's hold opens the picker). */
+  holdNone?: string;
   /** The gestures listed; unset: all three (a folder key's tap opens it, so it lists two). */
   gestures?: readonly TouchGesture[];
 }
 
 /** The three gesture rows, each with its hint; a command or go live adds its own rows. */
-export function TouchRows({ touch, pages, onChange, tapNone = "Nothing", gestures }: TouchRowsProps) {
+export function TouchRows({ touch, pages, onChange, tapNone = "Nothing", holdNone = "Nothing", gestures }: TouchRowsProps) {
   const choices = touchChoices(pages, useTouchSources());
   const runner = useActionsState();
   // a gesture whose command is being typed: nothing is stored until it has one
@@ -194,7 +196,7 @@ export function TouchRows({ touch, pages, onChange, tapNone = "Nothing", gesture
             if (v === "run") return;
             onChange(withGesture(touch, g, v === "obs:stream" ? OBS_STREAM : pickAction(choices, v, stored)), g);
           }}
-          options={rowOptions(choices, g === "tap" ? tapNone : "Nothing", stored)}
+          options={rowOptions(choices, g === "tap" ? tapNone : g === "hold" ? holdNone : "Nothing", stored)}
         />
         <p className="text-caption text-ui-3">{hint}</p>
         {value === "run" && (

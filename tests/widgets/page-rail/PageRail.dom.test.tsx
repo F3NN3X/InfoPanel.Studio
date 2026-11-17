@@ -12,7 +12,10 @@ vi.mock("@/lib/extras", async (original) => {
   return { ...real, extras: { subscribe: () => () => {}, getState: () => mocks.extras ?? real.EMPTY_EXTRAS } };
 });
 
+import { templateModule } from "@/widgets/module";
 import PageRail from "@/widgets/page-rail/PageRail";
+import { meta } from "@/widgets/page-rail/meta";
+import railWidget from "@/widgets/page-rail/widget";
 
 const run = vi.fn<(a: TouchAction) => void>();
 const host = (over: Partial<RailHost> = {}): RailHost => ({
@@ -240,5 +243,33 @@ describe("the profile chip's own touch", () => {
     cleanup();
     const bad = render(<RailHostContext.Provider value={host()}><RailItemContext.Provider value={{ edge: "left" }}><PageRail data={{}} clock={false} chipItem={JSON.stringify({ shape: "star", icon: { from: "url" }, touch: { tap: { op: "format" } } })} /></RailItemContext.Provider></RailHostContext.Provider>).container.innerHTML;
     expect(bad).toBe(plain);
+  });
+});
+
+describe("the profile chip's overrides through the module the screen draws", () => {
+  const ID = `${"a".repeat(64)}.png`;
+  // the studio and the kiosk draw `mod.render(sensors, savedSettings)`, whose resolved settings hold only the keys the widget lists
+  const mod = templateModule({ meta, Component: PageRail, settings: railWidget.settings ?? [], toProps: railWidget.render.toProps });
+  const drawSaved = (saved: Record<string, string | boolean>) =>
+    render(
+      <RailHostContext.Provider value={host()}>
+        <RailItemContext.Provider value={{ edge: "left" }}>{mod.render({ x: { value: 1, unit: "" } }, saved)}</RailItemContext.Provider>
+      </RailHostContext.Provider>
+    );
+  const chipOf = (c: HTMLElement) => c.querySelector(`[data-rail-slot="chip"], [aria-label^="Profile:"]`);
+
+  it("an image icon in chipItem is drawn", () => {
+    const view = drawSaved({ clock: false, chipItem: JSON.stringify({ icon: { from: "image", asset: ID } }) });
+    expect(chipOf(view.container)?.querySelector("img")?.getAttribute("src")).toBe(`/api/assets/${ID}`);
+  });
+
+  it("label off hides the chip's text, and its own text replaces the profile's name", () => {
+    const off = drawSaved({ clock: false, chipItem: JSON.stringify({ label: false }) });
+    expect(chipOf(off.container)?.textContent).toBe("");
+    cleanup();
+    const own = drawSaved({ clock: false, chipItem: JSON.stringify({ name: "Studio PC" }) });
+    expect(chipOf(own.container)?.textContent).toBe("Studio PC");
+    cleanup();
+    expect(chipOf(drawSaved({ clock: false }).container)?.textContent).toBe("Main");
   });
 });

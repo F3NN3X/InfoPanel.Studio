@@ -16,7 +16,8 @@ export default defineWidget({
   ],
   render: {
     load: () => import("./PageRail"),
-    toProps: (s): Pick<PageRailProps, "chip" | "chipItem" | "pageLock" | "clock"> => ({ chip: s.chip !== false, ...(typeof s.chipItem === "string" ? { chipItem: s.chipItem } : {}), pageLock: s.pageLock !== false, clock: s.clock !== false }),
+    // `chipItem` is not a listed setting, so the resolved `s` has no such key: it is read from the saved values
+    toProps: (s, saved): Pick<PageRailProps, "chip" | "chipItem" | "pageLock" | "clock"> => ({ chip: s.chip !== false, ...(typeof saved?.chipItem === "string" ? { chipItem: saved.chipItem } : {}), pageLock: s.pageLock !== false, clock: s.clock !== false }),
   },
   // Migrations stay central; the sample is the central fixture data: without a screen around it (Widget QA, a preview) the
   // rail draws a sample profile's five pages.

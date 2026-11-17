@@ -156,7 +156,7 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
           slot={shownSlot}
           pages={stored.pages}
           widgets={widgets}
-          chip={chipOpen && item ? { shown: item.placement.settings?.chip !== false, onShown: (on) => update((it) => withChipShown(it, on)) } : undefined}
+          chip={chipOpen && item ? { shown: item.placement.settings?.chip !== false, onShown: (on) => update((it) => withChipShown(it, on)), profileName: stored.name } : undefined}
           onChange={(fn, key) => (chipOpen ? update((it) => withChipItem(it, fn), key) : changeSlots((all) => all.map((s) => (s.id === shownSlot.id ? fn(s) : s)), key))}
           onRemove={() => {
             changeSlots((all) => all.filter((s) => s.id !== shownSlot.id));

@@ -183,7 +183,7 @@ export function RailEditor({ stored, profile, index, pageId, item, appearance, t
                   return (
                     <li key={s.id} className={cn("flex min-h-14 items-center gap-2 rounded-ui-md border pr-2", selected ? "border-ui-blue bg-ui-blue-bg" : "border-ui-edge bg-ui-raised")}>
                       <button type="button" aria-pressed={selected} onClick={() => onSelectSlot(s.id)} className={cn("min-w-0 flex-1 self-stretch rounded-ui-md px-3 text-left", FOCUS_RING)}>
-                        <span className="block text-body">{isChip ? (s.name ?? "Profile chip") : slotName(s, stored.pages)}</span>
+                        <span className="block text-body">{isChip ? (s.name ?? stored.name) : slotName(s, stored.pages)}</span>
                         <span className="block truncate text-caption text-ui-3">{lineOf(s, stored.pages, chipHidden)}</span>
                       </button>
                       <StatusChip tone="neutral" dot={false}>
