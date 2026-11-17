@@ -26,6 +26,7 @@ select > button {
   cursor: inherit;
 }
 
+/* biome-ignore lint/correctness/noUnknownTypeSelector: selectedcontent is the customizable select's own element (Chromium base-select), newer than Biome's list */
 select selectedcontent {
   display: block;
   flex: 1 1 0;
