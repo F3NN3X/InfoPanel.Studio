@@ -23,6 +23,11 @@ pub fn hook_url(s: &Settings) -> String {
     crate::settings::server_origin(s)
 }
 
+/// The key file the permission hook checks the panel's answers with: the in-process server's (ips-server's hook_auth.rs).
+pub fn hook_key(paths: &Paths) -> String {
+    paths::display(&crate::native::server_data_dir(paths).join(ips_server::hook_auth::KEY_FILE))
+}
+
 /// The ips-agent the hook commands run, with forward slashes: the agents run hook commands through
 /// a shell, and a backslash in a quoted path can be an escape there.
 pub fn agent_path(paths: &Paths) -> String {
@@ -76,12 +81,14 @@ fn run_step(paths: &Paths, s: &Settings, home: &Path, install_hooks: bool) -> St
     }
     let agent = agent_path(paths);
     let url = hook_url(s);
+    let key = hook_key(paths);
     log::debug!("agents: {step} for {agent} -> {url}");
     let outcomes = install::run(&install::Options {
         apply: true,
         remove: !install_hooks,
         agent: &agent,
         url: Some(&url),
+        key: Some(&key),
         home,
     });
     let errors: Vec<&str> = outcomes
@@ -218,11 +225,13 @@ pub fn statuses(paths: &Paths, s: &Settings, version: &str, home: &Path) -> Vec<
     let any_folder = files.iter().any(|(_, _, dir)| dir.is_dir());
     let planned = (s.agents.enabled && !stale && any_folder).then(|| {
         let url = hook_url(s);
+        let key = hook_key(paths);
         let outcomes = install::run(&install::Options {
             apply: false,
             remove: false,
             agent: &agent,
             url: Some(&url),
+            key: Some(&key),
             home,
         });
         install::to_json(false, &outcomes)

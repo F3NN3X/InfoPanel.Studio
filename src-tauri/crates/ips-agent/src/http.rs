@@ -73,9 +73,9 @@ impl Base {
     }
 }
 
-fn request(base: &Base, path: &str, body: &str) -> Vec<u8> {
+fn request(base: &Base, path: &str, body: &str, extra: &str) -> Vec<u8> {
     let mut out = format!(
-        "POST {}{path} HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nX-Agent-Event: 1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        "POST {}{path} HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nX-Agent-Event: 1\r\n{extra}Content-Length: {}\r\nConnection: close\r\n\r\n",
         base.prefix,
         base.host_header(),
         body.len()
@@ -143,7 +143,7 @@ pub fn post(base: &Base, path: &str, body: &str, timeout: Duration) {
         return;
     };
     let _ = stream.set_write_timeout(Some(left()));
-    if stream.write_all(&request(base, path, body)).is_err() {
+    if stream.write_all(&request(base, path, body, "")).is_err() {
         return;
     }
     // Like fetch, finished once the response head is in; the body is never read.
@@ -186,9 +186,9 @@ fn parse_response(raw: &[u8]) -> Option<(u16, Vec<u8>)> {
     Some((status, out))
 }
 
-/// POST `body` to `path` under `base` and read the whole answer (the request asks the server to close after it), or None
-/// when there is no complete answer before the timeout. Every error is swallowed.
-pub fn exchange(base: &Base, path: &str, body: &str, timeout: Duration) -> Option<(u16, Vec<u8>)> {
+/// POST `body` to `path` under `base` with `nonce` (`X-Agent-Nonce`) and read the whole answer (the request asks the server
+/// to close after it), or None when there is no complete answer before the timeout. Every error is swallowed.
+pub fn exchange(base: &Base, path: &str, body: &str, nonce: &str, timeout: Duration) -> Option<(u16, Vec<u8>)> {
     let deadline = Instant::now() + timeout;
     let left = || {
         deadline
@@ -200,7 +200,7 @@ pub fn exchange(base: &Base, path: &str, body: &str, timeout: Duration) -> Optio
         .into_iter()
         .find_map(|a| connect(&a, left()).ok())?;
     let _ = stream.set_write_timeout(Some(left()));
-    stream.write_all(&request(base, path, body)).ok()?;
+    stream.write_all(&request(base, path, body, &format!("X-Agent-Nonce: {nonce}\r\n"))).ok()?;
     let mut raw = Vec::new();
     let mut buf = [0u8; 4096];
     loop {
@@ -250,7 +250,7 @@ mod tests {
     fn writes_the_headers_the_server_reads() {
         let b = Base::parse("http://127.0.0.1:3922/pre").unwrap();
         let req =
-            String::from_utf8(request(&b, "/api/agents/event?agent=codex", "{\"a\":1}")).unwrap();
+            String::from_utf8(request(&b, "/api/agents/event?agent=codex", "{\"a\":1}", "")).unwrap();
         assert!(req.starts_with(
             "POST /pre/api/agents/event?agent=codex HTTP/1.1\r\nHost: 127.0.0.1:3922\r\n"
         ));

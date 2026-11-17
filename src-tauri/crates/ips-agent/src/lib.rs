@@ -1,9 +1,10 @@
 // InfoPanel Studio's coding-agent forwarder: a native program (it replaced a Node script).
 //
 //   ips-agent hook claude|codex [--url=<base>]            posts its stdin JSON, prints nothing
-//   ips-agent permission claude|codex [--url=<base>]      a PermissionRequest: posts it and waits up to 28 s for the
-//                                                         panel's answer; prints the allow or deny decision, or nothing
-//                                                         (the agent then asks in its terminal)
+//   ips-agent permission claude|codex [--url=<base>]      a PermissionRequest: posts it with a fresh nonce and waits
+//             [--key=<base64url>]                         up to 28 s for the panel's answer; prints the allow or deny
+//                                                         decision only when the key file (hook_auth.rs) signed it, or
+//                                                         nothing (the agent then asks in its terminal)
 //   ips-agent statusline [--wrap=<base64url>] [--url=..]  posts the statusline JSON, runs the wrapped
 //                                                         statusline with the same input and passes its
 //                                                         output through
@@ -14,6 +15,7 @@
 // request after `PERMISSION_DEADLINE`), and the exit code is 0 (see main.rs). Silence never allows. The dashboard is at http://127.0.0.1:3922 unless --url=<base> or,
 // failing that, DASHBOARD_URL says otherwise.
 
+pub mod hook_auth;
 pub mod http;
 pub mod install;
 mod shell;
@@ -69,7 +71,9 @@ pub fn run(args: &[String], env_url: Option<&str>) {
         }
         "permission" => {
             if has_input {
-                if let Some(out) = permission(&base, agent_of(rest), &input, PERMISSION_DEADLINE) {
+                let var = |k: &str| std::env::var(k).ok();
+                let key = hook_auth::key_file(rest, var("DASHBOARD_DATA_DIR").as_deref(), var("LOCALAPPDATA").as_deref(), var("HOME").as_deref());
+                if let Some(out) = permission(&base, agent_of(rest), &input, &key, PERMISSION_DEADLINE) {
                     println!("{out}");
                 }
             }
@@ -100,26 +104,34 @@ fn agent_of(rest: &[String]) -> &'static str {
 }
 
 /// What the hook prints for the server's answer: the PermissionRequest decision in the shape Claude Code and Codex both
-/// read (`hookSpecificOutput.decision.behavior`), or None for anything but an explicit allow or deny.
-pub fn permission_output(answer: &[u8]) -> Option<String> {
+/// read (`hookSpecificOutput.decision.behavior`), or None for anything but an explicit allow or deny signed with the key
+/// over this request's `nonce` (hook_auth.rs). `key` is read only once there is a decision to check.
+pub fn permission_output(answer: &[u8], nonce: &str, key: impl FnOnce() -> Option<hook_auth::Key>) -> Option<String> {
     let v: serde_json::Value = serde_json::from_slice(answer).ok()?;
-    let decision = match v.get("behavior")?.as_str()? {
+    let behavior = v.get("behavior")?.as_str()?;
+    let decision = match behavior {
         "allow" => serde_json::json!({ "behavior": "allow" }),
         "deny" => serde_json::json!({ "behavior": "deny", "message": "Denied on the InfoPanel Studio panel." }),
         _ => return None,
     };
+    let (id, mac) = (v.get("id")?.as_str()?, v.get("mac")?.as_str()?);
+    if !hook_auth::verify(&key()?, nonce, id, behavior, mac) {
+        return None;
+    }
     let out = serde_json::json!({ "hookSpecificOutput": { "hookEventName": "PermissionRequest", "decision": decision } });
     Some(out.to_string())
 }
 
-/// Posts a permission request and waits for the panel; the decision to print, or None (no answer, an error, a refusal).
-pub fn permission(base: &str, agent: &str, input: &str, deadline: Duration) -> Option<String> {
+/// Posts a permission request with a fresh nonce and waits for the panel; the decision to print, or None (no answer, an
+/// error, a refusal, an answer the key in `key_file` did not sign).
+pub fn permission(base: &str, agent: &str, input: &str, key_file: &std::path::Path, deadline: Duration) -> Option<String> {
     let base = http::Base::parse(base)?;
-    let (status, body) = http::exchange(&base, &format!("/api/agents/permission?agent={agent}"), input, deadline)?;
+    let nonce = hook_auth::nonce()?;
+    let (status, body) = http::exchange(&base, &format!("/api/agents/permission?agent={agent}"), input, &nonce, deadline)?;
     if status != 200 {
         return None;
     }
-    permission_output(&body)
+    permission_output(&body, &nonce, || hook_auth::load(key_file))
 }
 
 fn remove_hooks() {
@@ -130,6 +142,7 @@ fn remove_hooks() {
             remove: true,
             agent: "",
             url: None,
+            key: None,
             home: &home,
         });
     }
@@ -143,14 +156,22 @@ mod tests {
         list.iter().map(|s| (*s).to_owned()).collect()
     }
 
+    const KEY: hook_auth::Key = [7u8; hook_auth::KEY_BYTES];
+    const NONCE: &str = "0123456789abcdef0123456789abcdef";
+
+    /// The server's answer, signed with `key` over `NONCE`, request r1 and `behavior`.
+    fn signed(behavior: &str, key: &hook_auth::Key) -> String {
+        serde_json::json!({ "behavior": behavior, "id": "r1", "mac": hook_auth::sign(key, NONCE, "r1", behavior) }).to_string()
+    }
+
     #[test]
     fn prints_an_allow_or_a_deny_and_nothing_else() {
-        let out = |s: &str| permission_output(s.as_bytes()).map(|o| serde_json::from_str::<serde_json::Value>(&o).unwrap());
+        let out = |s: &str| permission_output(s.as_bytes(), NONCE, || Some(KEY)).map(|o| serde_json::from_str::<serde_json::Value>(&o).unwrap());
         assert_eq!(
-            out(r#"{"behavior":"allow"}"#),
+            out(&signed("allow", &KEY)),
             Some(serde_json::json!({ "hookSpecificOutput": { "hookEventName": "PermissionRequest", "decision": { "behavior": "allow" } } }))
         );
-        let deny = out(r#"{"behavior":"deny"}"#).unwrap();
+        let deny = out(&signed("deny", &KEY)).unwrap();
         assert_eq!(deny["hookSpecificOutput"]["decision"]["behavior"], "deny");
         assert!(deny["hookSpecificOutput"]["decision"]["message"].is_string());
         // never `interrupt`: Codex fails closed on it, and Claude Code would stop the turn
@@ -158,6 +179,25 @@ mod tests {
         for silent in ["{}", r#"{"behavior":"ask"}"#, r#"{"behavior":true}"#, "", "not json"] {
             assert_eq!(out(silent), None, "{silent}");
         }
+    }
+
+    #[test]
+    fn a_forged_or_unsigned_answer_prints_nothing() {
+        let out = |s: &str| permission_output(s.as_bytes(), NONCE, || Some(KEY));
+        // another program on the port: no signature, a made-up one, one from another key, or a deny's signature on an allow
+        let deny_mac = hook_auth::sign(&KEY, NONCE, "r1", "deny");
+        for forged in [
+            r#"{"behavior":"allow"}"#.to_string(),
+            serde_json::json!({ "behavior": "allow", "id": "r1", "mac": "00".repeat(32) }).to_string(),
+            signed("allow", &[8u8; hook_auth::KEY_BYTES]),
+            serde_json::json!({ "behavior": "allow", "id": "r1", "mac": deny_mac }).to_string(),
+        ] {
+            assert_eq!(out(&forged), None, "{forged}");
+        }
+        // an answer signed over another request's nonce
+        assert_eq!(permission_output(signed("allow", &KEY).as_bytes(), "f123456789abcdef0123456789abcdef", || Some(KEY)), None);
+        // no key file: nothing is taken
+        assert_eq!(permission_output(signed("allow", &KEY).as_bytes(), NONCE, || None), None);
     }
 
     #[test]
@@ -172,7 +212,7 @@ mod tests {
             std::thread::sleep(Duration::from_millis(1500));
         });
         let started = std::time::Instant::now();
-        assert_eq!(permission(&base, "claude", "{}", Duration::from_millis(300)), None);
+        assert_eq!(permission(&base, "claude", "{}", std::path::Path::new("no-key"), Duration::from_millis(300)), None);
         assert!(started.elapsed() < Duration::from_millis(1200));
         held.join().unwrap();
     }

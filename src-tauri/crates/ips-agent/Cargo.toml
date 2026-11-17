@@ -15,6 +15,9 @@ path = "src/main.rs"
 
 [dependencies]
 base64 = "0.22"
+# the permission answer's signature (hook_auth.rs): the server's own MAC and RNG, already in the lock
+blake2 = "0.10"
+getrandom = "0.4"
 serde_json = { workspace = true, features = ["preserve_order"] }
 socket2 = { workspace = true }
 

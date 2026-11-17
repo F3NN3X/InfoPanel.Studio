@@ -34,6 +34,7 @@ pub mod foreground;
 pub mod frame_check;
 pub mod frame_policy;
 pub mod guarded_net;
+pub mod hook_auth;
 pub mod http;
 pub mod ical;
 pub mod infopanel_local;
@@ -126,7 +127,7 @@ pub struct ServerConfig {
     pub action_runner: bool,
     /// OBS's go live and stop (obs_control.rs `stream`): off unless OBS_STREAM_CONTROL=on (or the app's Settings switch).
     pub obs_stream: bool,
-    /// The agents whose permission requests the local kiosk may answer (approvals.rs): none unless AGENT_APPROVALS names them
+    /// The agents whose permission requests the app's prompt window may answer (approvals.rs): none unless AGENT_APPROVALS names them
     /// (or the app's Settings > Coding agents switches).
     pub agent_approvals: Vec<String>,
     pub dist: PathBuf,
@@ -374,6 +375,11 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
 impl Bound {
     pub fn port(&self) -> u16 {
         self.listener.local_addr().map_or(0, |a| a.port())
+    }
+
+    /// The agents' permission requests, read and answered in-process by the desktop app's prompt window (approvals.rs).
+    pub fn approvals(&self) -> approvals::Approvals {
+        self.app.approvals.clone()
     }
 
     /// Answers until `shutdown` resolves, then ends the event streams and lets open requests finish.

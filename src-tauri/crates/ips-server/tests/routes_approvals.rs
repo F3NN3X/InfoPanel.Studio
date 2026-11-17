@@ -1,13 +1,14 @@
-// Agent approvals over a real socket (pinned layer P8: /api/agents/permission, /requests, /answer, /requests/log): a server on
-// a free port with a temp data folder, with Claude Code's approvals on and Codex's off. The hook's post is held while the
-// panel answers; the server's 25 s wait itself is covered by approvals.rs's unit tests with a short wait. Requests from
-// another machine can't be made over loopback; `request-guard.spec.ts` sends them (VERIFY_LAN=1), and request_guard.rs's
-// unit tests cover the rule.
+// Agent approvals over a real socket (pinned layer P8: /api/agents/permission): a server on a free port with a temp data
+// folder, with Claude Code's approvals on and Codex's off. The hook's post is held while the prompt answers in-process
+// (`Bound::approvals`, as the desktop app's prompt window does); the old HTTP paths that read and answered requests refuse
+// everything, so no local process or page can answer. The server's 25 s wait itself is covered by approvals.rs's unit tests
+// with a short wait.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use ips_server::{bind_with_home, ServerConfig};
+use ips_server::approvals::{Approvals, Behavior, Request};
+use ips_server::{bind_with_home, hook_auth, ServerConfig};
 use serde_json::{json, Value};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -15,6 +16,8 @@ use tokio::sync::oneshot;
 
 struct Server {
     port: u16,
+    approvals: Approvals,
+    data: PathBuf,
     _dir: tempfile::TempDir,
     stop: Option<oneshot::Sender<()>>,
     done: tokio::task::JoinHandle<()>,
@@ -48,14 +51,16 @@ fn config(dir: &Path) -> ServerConfig {
 async fn start() -> Server {
     let dir = tempfile::tempdir().unwrap();
     let cfg = config(dir.path());
+    let data = cfg.data_dir.clone();
     let home = cfg.data_dir.with_file_name("home");
     let bound = bind_with_home(cfg, home).await.unwrap();
     let port = bound.port();
+    let approvals = bound.approvals();
     let (stop, stopped) = oneshot::channel::<()>();
     let done = tokio::spawn(bound.serve(async {
         let _ = stopped.await;
     }));
-    Server { port, _dir: dir, stop: Some(stop), done }
+    Server { port, approvals, data, _dir: dir, stop: Some(stop), done }
 }
 
 struct Reply {
@@ -99,89 +104,97 @@ fn json_of(r: &Reply) -> Value {
     serde_json::from_slice(&r.body).unwrap_or(Value::Null)
 }
 
-const HOOK: [(&str, &str); 2] = [("Content-Type", "application/json"), ("X-Agent-Event", "1")];
-const ANSWER: [(&str, &str); 2] = [("Content-Type", "application/json"), ("X-Agent-Answer", "1")];
-const READ: [(&str, &str); 1] = [("X-Agent-Answer", "1")];
+const NONCE: &str = "0123456789abcdef0123456789abcdef";
+const HOOK: [(&str, &str); 3] = [("Content-Type", "application/json"), ("X-Agent-Event", "1"), ("X-Agent-Nonce", NONCE)];
+/// What the kiosk page sent before the security review: the answer header, from loopback, and no credential.
+const OLD_ANSWER: [(&str, &str); 2] = [("Content-Type", "application/json"), ("X-Agent-Answer", "1")];
 const COMMAND: &str = "npm run build && npm run verify -- --feature dev-fixtures";
 
 fn permission() -> String {
-    json!({ "hook_event_name": "PermissionRequest", "session_id": "s1", "cwd": "E:\\work\\InfoPanel.Studio", "tool_name": "Bash", "tool_input": { "command": COMMAND } }).to_string()
+    json!({ "hook_event_name": "PermissionRequest", "session_id": "s1", "cwd": "E:\\work\\InfoPanel.Studio", "tool_name": "Bash", "tool_input": { "command": COMMAND, "description": "Build and verify" } }).to_string()
 }
 
-/// The hook's post, held in the background until the panel answers.
+/// The hook's post, held in the background until the prompt answers.
 fn hook(port: u16, agent: &'static str) -> tokio::task::JoinHandle<Reply> {
     let body = permission();
     tokio::spawn(async move { send(port, "POST", &format!("/api/agents/permission?agent={agent}"), &HOOK, &body).await })
 }
 
-/// The request the panel sees, once the hook's post has arrived.
-async fn waiting(port: u16) -> Value {
-    for _ in 0..200 {
-        let r = send(port, "GET", "/api/agents/requests", &READ, "").await;
-        assert_eq!(r.status, 200);
-        if let Some(first) = json_of(&r)["requests"].as_array().and_then(|l| l.first().cloned()) {
-            return first;
+/// The request the prompt sees, once the hook's post has arrived.
+async fn waiting(approvals: &Approvals) -> Request {
+    for _ in 0..500 {
+        if let Some(first) = approvals.requests().first() {
+            return first.clone();
         }
-        tokio::time::sleep(Duration::from_millis(20)).await;
+        tokio::time::sleep(Duration::from_millis(10)).await;
     }
     panic!("no request arrived");
 }
 
-async fn answer(port: u16, id: &str, behavior: &str) -> Reply {
-    send(port, "POST", "/api/agents/answer", &ANSWER, &json!({ "id": id, "behavior": behavior }).to_string()).await
-}
-
-async fn log(port: u16) -> Vec<Value> {
-    let r = send(port, "GET", "/api/agents/requests/log", &READ, "").await;
-    assert_eq!(r.status, 200);
-    json_of(&r)["entries"].as_array().unwrap().clone()
+fn key(data: &Path) -> hook_auth::Key {
+    std::fs::read(data.join(hook_auth::KEY_FILE)).unwrap().try_into().unwrap()
 }
 
 #[tokio::test]
-async fn the_panel_allows_and_denies_and_every_answer_is_logged() {
+async fn the_prompt_allows_and_denies_signed_for_the_hook_and_logged() {
     let server = start().await;
     let port = server.port;
-    for behavior in ["allow", "deny"] {
+    for (behavior, word) in [(Behavior::Allow, "allow"), (Behavior::Deny, "deny")] {
         let held = hook(port, "claude");
-        let request = waiting(port).await;
-        // the whole command, the project's name (never its path) and the time left of the wait
-        assert_eq!(request["text"], COMMAND);
-        assert_eq!(request["project"], "InfoPanel.Studio");
-        assert_eq!(request["tool"], "Bash");
-        assert!(request["left"].as_i64().unwrap() > 20_000);
+        let request = waiting(&server.approvals).await;
+        // every field of the input, the summary first; the project's name, never its path
+        assert_eq!(request.text, format!("{COMMAND}\n\ndescription: Build and verify"));
+        assert_eq!((request.project.as_str(), request.tool.as_str()), ("InfoPanel.Studio", "Bash"));
         // the session shows as waiting in the extras, under the same key, without the command
         let extras = send(port, "GET", "/api/extras", &[], "").await;
         let text = String::from_utf8_lossy(&extras.body).into_owned();
         assert!(!text.contains("npm run build"), "the command stays out of the extras");
         let session = &json_of(&extras)["agents"]["sessions"][0];
-        assert_eq!((session["state"].as_str(), session["key"].as_str()), (Some("waiting"), request["session"].as_str()));
+        assert_eq!((session["state"].as_str(), session["key"].as_str()), (Some("waiting"), Some(request.session.as_str())));
 
-        let id = request["id"].as_str().unwrap();
-        let r = answer(port, id, behavior).await;
-        assert_eq!(r.status, 200);
+        assert!(server.approvals.answer(&request.id, behavior, "prompt", 1));
         let hooked = held.await.unwrap();
-        assert_eq!((hooked.status, json_of(&hooked)), (200, json!({ "behavior": behavior })));
-        // answered: it is gone, and a second answer says so
-        assert_eq!(answer(port, id, "allow").await.status, 404);
-        assert_eq!(json_of(&send(port, "GET", "/api/agents/requests", &READ, "").await)["requests"], json!([]));
+        // signed with the key in the data folder, over the hook's nonce, this request and this decision
+        let mac = hook_auth::sign(&key(&server.data), NONCE, &request.id, word);
+        assert_eq!((hooked.status, json_of(&hooked)), (200, json!({ "behavior": word, "id": request.id, "mac": mac })));
+        assert!(!server.approvals.answer(&request.id, Behavior::Allow, "prompt", 2));
     }
-    let entries = log(port).await;
-    let answers: Vec<&str> = entries.iter().map(|e| e["answer"].as_str().unwrap()).collect();
+    let answers: Vec<String> = server.approvals.entries().iter().map(|e| e["answer"].as_str().unwrap().to_string()).collect();
     assert_eq!(answers, ["allow", "deny"]);
-    assert_eq!(entries[0]["text"], COMMAND);
-    assert_eq!(entries[0]["from"], "127.0.0.1");
     server.stop().await;
 }
 
 #[tokio::test]
-async fn an_agent_that_is_off_goes_straight_to_the_terminal() {
+async fn no_local_process_or_page_answers_over_http() {
+    let server = start().await;
+    let port = server.port;
+    let held = hook(port, "claude");
+    let request = waiting(&server.approvals).await;
+    let body = json!({ "id": request.id, "behavior": "allow" }).to_string();
+    // the agent itself, or a page on this server, with the old header from loopback: refused, and the request still waits
+    let r = send(port, "POST", "/api/agents/answer", &OLD_ANSWER, &body).await;
+    assert_eq!(r.status, 403);
+    assert!(String::from_utf8_lossy(&r.body).contains("prompt window"));
+    for path in ["/api/agents/requests", "/api/agents/requests/log"] {
+        let read = send(port, "GET", path, &OLD_ANSWER, "").await;
+        assert_eq!(read.status, 403, "{path}");
+        assert!(!String::from_utf8_lossy(&read.body).contains("npm run build"), "{path}");
+    }
+    assert_eq!(server.approvals.requests(), vec![request.clone()]);
+    assert!(server.approvals.answer(&request.id, Behavior::Deny, "prompt", 1));
+    assert_eq!(json_of(&held.await.unwrap())["behavior"], "deny");
+    server.stop().await;
+}
+
+#[tokio::test]
+async fn an_agent_that_is_off_or_a_hook_without_a_nonce_goes_straight_to_the_terminal() {
     let server = start().await;
     let r = send(server.port, "POST", "/api/agents/permission?agent=codex", &HOOK, &permission()).await;
     assert_eq!((r.status, json_of(&r)), (200, json!({})));
-    let listed = send(server.port, "GET", "/api/agents/requests", &READ, "").await;
-    assert_eq!(json_of(&listed)["agents"], json!(["claude"]));
-    assert_eq!(json_of(&listed)["requests"], json!([]));
-    assert!(log(server.port).await.is_empty());
+    let r = send(server.port, "POST", "/api/agents/permission?agent=claude", &HOOK[..2], &permission()).await;
+    assert_eq!((r.status, json_of(&r)), (200, json!({})));
+    assert!(server.approvals.requests().is_empty());
+    assert!(server.approvals.entries().is_empty());
     server.stop().await;
 }
 
@@ -190,30 +203,21 @@ async fn a_stopping_server_lets_the_hook_go_without_an_answer() {
     let server = start().await;
     let port = server.port;
     let held = hook(port, "claude");
-    waiting(port).await;
+    waiting(&server.approvals).await;
+    let approvals = server.approvals.clone();
     server.stop().await;
     let hooked = held.await.unwrap();
     assert_eq!((hooked.status, json_of(&hooked)), (200, json!({})));
+    assert!(approvals.requests().is_empty());
 }
 
 #[tokio::test]
-async fn the_routes_take_their_headers_and_bodies() {
+async fn the_hook_route_takes_its_headers_and_body() {
     let server = start().await;
     let port = server.port;
-    // the hook's post: the agent header, then JSON
     assert_eq!(send(port, "POST", "/api/agents/permission?agent=claude", &[("Content-Type", "application/json")], "{}").await.status, 403);
     assert_eq!(send(port, "POST", "/api/agents/permission?agent=claude", &[("Content-Type", "text/plain"), ("X-Agent-Event", "1")], "{}").await.status, 415);
     assert_eq!(send(port, "POST", "/api/agents/permission?agent=claude", &HOOK, "nope").await.status, 400);
     assert_eq!(send(port, "GET", "/api/agents/permission", &HOOK, "").await.status, 405);
-    // reading the requests or the log needs the answer header
-    assert_eq!(send(port, "GET", "/api/agents/requests", &[], "").await.status, 403);
-    assert_eq!(send(port, "GET", "/api/agents/requests/log", &[], "").await.status, 403);
-    // an answer: the header, then JSON, then a body naming a request and a behaviour
-    assert_eq!(send(port, "POST", "/api/agents/answer", &[("Content-Type", "application/json")], r#"{"id":"x","behavior":"allow"}"#).await.status, 403);
-    assert_eq!(send(port, "POST", "/api/agents/answer", &[("Content-Type", "text/plain"), ("X-Agent-Answer", "1")], r#"{"id":"x","behavior":"allow"}"#).await.status, 415);
-    assert_eq!(send(port, "POST", "/api/agents/answer", &ANSWER, r#"{"id":"x","behavior":"ask"}"#).await.status, 400);
-    assert_eq!(send(port, "POST", "/api/agents/answer", &ANSWER, r#"{"behavior":"allow"}"#).await.status, 400);
-    assert_eq!(answer(port, "no-such-request", "allow").await.status, 404);
-    assert_eq!(send(port, "GET", "/api/agents/answer", &READ, "").await.status, 405);
     server.stop().await;
 }
