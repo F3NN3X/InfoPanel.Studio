@@ -5,7 +5,8 @@
 // threshold's direction. Phase D: "Up to the size" beside "From the size" (G28), an image's alt text (G31), and the Header row's
 // title, sub-title and icon on their own (G37). Phase E: the style rows of `style-rows.tsx` (weight, case, opacity, a card's surface,
 // padding and spacing, a gauge's sweep, a bar's height). Phase F (G38): "Repeat over" a place list or a device source, and a grid's
-// columns and spacing. Every change is one edit of the recipe (one undo step).
+// columns and spacing. Builder plan Phase 5 and 6 (`layout-rows.tsx`): a grid's tracks, a block's area, its background layer, its part of
+// its column or row, a condition on a reading and its motion. Every change is one edit of the recipe (one undo step).
 import type { ReactNode } from "react";
 import { Ban, Copy, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
@@ -23,6 +24,7 @@ import { BLOCK_LABEL, blockAt, CELLS_MAX, followable, followOf, ITEM_NOUN, large
 import { BlockIcon } from "./block-icons";
 import { DataRow, type DataRowsProps, HeatmapCells, LabelText } from "./data-rows";
 import { Field, Heading, NumberInput, Select, Slider, TextArea, TextInput } from "./fields";
+import { AreaRows, BackgroundRows, FillRows, MotionRow, ReadingRows, TrackRows } from "./layout-rows";
 import { StyleRows } from "./style-rows";
 
 export interface BlockTabProps {
@@ -228,7 +230,7 @@ function WhenRows({ recipe, path, block, onChange }: { recipe: Recipe; path: Pat
   const choices = recipe.options.filter((o) => o.type === "boolean" || o.type === "select");
   const when = block.when;
   const option = choices.find((o) => o.key === when?.option);
-  const set = (next: Block["when"]) => onChange(updateBlock(recipe, path, { when: next && (next.option !== undefined || next.size) ? next : undefined }));
+  const set = (next: Block["when"]) => onChange(updateBlock(recipe, path, { when: next && (next.option !== undefined || next.size || next.reading) ? next : undefined }));
   const values = option?.type === "boolean" ? [true, false] : (option?.options ?? []).map((c) => c.value);
   /** One side of "From the size" (min) or "Up to the size" (max), as its select shows it: "" is any (1 for a min, 12 for a max). */
   const side = (end: "min" | "max", axis: 0 | 1): string => {
@@ -589,7 +591,8 @@ export function BlockTab(props: BlockTabProps) {
           </Field>
         </>
       )}
-      {block.type === "grid" && (
+      {block.type === "grid" && <TrackRows recipe={recipe} path={path} onChange={onChange} />}
+      {block.type === "grid" && !block.tracks && (
         <Field label="Columns" hint="Empty: as many as make the cells closest to square at the size shown. A Repeat in the grid gives a cell per item">
           <NumberInput label="Columns" value={block.columns} placeholder="Auto" min={1} max={GRID_COLUMNS_MAX} onChange={(v) => set({ columns: v })} />
         </Field>
@@ -641,10 +644,15 @@ export function BlockTab(props: BlockTabProps) {
       {block.type === "card" && path.length === 0 && <DetailRows recipe={recipe} next={props.nextVersion} onChange={onChange} />}
       {path.length > 0 && (
         <>
+          <AreaRows recipe={recipe} path={path} onChange={onChange} />
+          <BackgroundRows recipe={recipe} path={path} onChange={onChange} />
           <Heading>When it shows</Heading>
           <WhenRows recipe={recipe} path={path} block={block} onChange={onChange} />
-          {/* a grid's cells are all one size: no share there */}
-          {inGrid ? null : ownLine(recipe, path, block) ? (
+          <ReadingRows recipe={recipe} path={path} block={block} rows={rows} onChange={onChange} />
+          <MotionRow block={block} onPick={(v) => set({ motion: v })} onClear={() => set({ motion: undefined })} />
+          <FillRows recipe={recipe} path={path} onChange={onChange} />
+          {/* a grid's cells are all one size: no share there; a background fills its container */}
+          {inGrid || block.background ? null : ownLine(recipe, path, block) ? (
             <Field label="Share of its row" hint="In a column a line of text takes its own height; a share makes it take that part of the column instead">
               <NumberInput label="Share of its row" value={block.grow} placeholder="Own" min={0} max={12} step={0.1} onChange={(v) => set({ grow: v })} />
             </Field>

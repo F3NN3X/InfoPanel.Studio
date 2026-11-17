@@ -68,6 +68,16 @@ const FIELDS: Readonly<Record<string, string>> = {
   group: "Group",
   step: "Step",
   blurb: "Blurb",
+  tracks: "Layout",
+  area: "Area",
+  background: "Background of its container",
+  fill: "Part across",
+  place: "Sits",
+  motion: "Motion",
+  reading: "On a reading",
+  inset: "Inset",
+  position: "Position",
+  blur: "Blur",
 };
 
 type Schema = { minimum?: number; maximum?: number; pattern?: string; $ref?: string; properties?: Record<string, Schema> };

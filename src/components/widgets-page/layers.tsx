@@ -9,8 +9,10 @@
 // `editor-flags.ts`), also in the menu and on Ctrl+Shift+H and Ctrl+Shift+L; a "Header" pseudo-row under the card opens its title,
 // sub-title and icon (G37, Q12: no format change).
 // Builder plan Phase 4: a search over the Layers names (the matches with the rows holding them), and "Move to" and "Select" in the menu.
+// Phase 5: a container's background layers are its last rows, marked with the background icon; while a tile is dragged each open
+// container has a "Background" slot under its rows, and a tile dropped there (or by a background row) becomes a background layer.
 import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Eye, EyeOff, Heading, Link2, Lock, LockOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, EyeOff, Heading, Link2, Lock, LockOpen, Wallpaper } from "lucide-react";
 import { ContextMenu } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import type { Block, BlockType, Recipe } from "@/widgets/recipe/types";
@@ -62,8 +64,8 @@ export interface LayersProps {
   onMove: (from: number[][], toParent: number[], index: number) => void;
   /** "Move to" in the layer menu: the row (the selection, when the row is in it) to the end of the container at `toParent`. */
   onMoveTo: (at: number[], toParent: number[]) => void;
-  /** A tile dropped on a row. */
-  onAdd: (type: BlockType, toParent: number[], index: number) => void;
+  /** A tile dropped on a row; `background`: on a container's background slot, or by a background row. */
+  onAdd: (type: BlockType, toParent: number[], index: number, background?: boolean) => void;
   /** A refusal's reason, shown under Layers (null clears it). */
   onWhy: (why: string | null) => void;
   /** The blocks hidden and locked in the editor, by path (G25). */
@@ -227,6 +229,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
         canPaste,
         canPasteStyle,
         hasChildren: kidsOf(menuBlock).length > 0,
+        background: !!menuBlock.background,
         targets: moveTargets(recipe, menuList),
         onCommand,
         onMoveTo,
@@ -236,6 +239,14 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
     : [];
 
   const tabStop = header && headerShown ? HEADER : visible.includes(primaryKey) ? primaryKey : visible[0];
+  // while a tile is dragged: each open container's background slot, under its last row (the innermost first)
+  const slots = new Map<string, typeof rows>();
+  if (tile && tile !== "repeat")
+    for (const c of rows) {
+      if (!isContainer(c.block) || c.block.type === "repeat" || (!matches && collapsed.has(keyOf(c.path)))) continue;
+      const last = [...rows].reverse().find((r) => r === c || holds(keyOf(c.path), keyOf(r.path)))!;
+      slots.set(keyOf(last.path), [c, ...(slots.get(keyOf(last.path)) ?? [])].sort((a, b) => b.depth - a.depth));
+    }
   const active = !!dragging || !!tile;
   return (
     <>
@@ -321,13 +332,13 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
                 onDrop={(e) => {
                   if (!active) return;
                   e.preventDefault();
-                  const { place, why: refused } = placeOn(e, at, block);
+                  const { place, where, why: refused } = placeOn(e, at, block);
                   const from = dragging;
                   lastWhy.current = undefined;
                   end();
                   if (refused) return onWhy(refused);
                   if (from) onMove(from, place.toParent, place.index);
-                  else if (tile) onAdd(tile, place.toParent, place.index);
+                  else if (tile) onAdd(tile, place.toParent, place.index, !!block.background && where !== "inside");
                 }}
                 // Shift+click would extend a text selection over the rows
                 onMouseDown={(e) => e.shiftKey && e.preventDefault()}
@@ -405,6 +416,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
                   </>
                 )}
                 {issues && <span role="img" aria-label="Has a problem" title={issues.join("\n")} data-problem-dot="" className="h-2 w-2 shrink-0 rounded-full bg-ui-warn" />}
+                {block.background && <Wallpaper data-layer-background="" className="h-3.5 w-3.5 shrink-0 text-ui-3" strokeWidth={1.5} aria-label="Background layer" />}
                 {isBound(block) && <Link2 className="h-3.5 w-3.5 shrink-0 text-ui-hint" strokeWidth={1.5} aria-label="Bound to data" />}
               </div>
               {mark && mark.where !== "inside" && (
@@ -447,6 +459,9 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
                   <span className="min-w-0 flex-1 truncate">Header</span>
                 </div>
               )}
+              {tile && slots.get(key)?.map((c) => (
+                <BackgroundSlot key={`bg ${keyOf(c.path)}`} name={layerName(recipe, c.block)} depth={c.depth + 1} onDrop={() => onAdd(tile, c.path, kidsOf(c.block).length, true)} />
+              ))}
               {mark?.why && (
                 <span data-drop-why="" className={cn("pointer-events-none absolute right-1 z-20 max-w-[200px] rounded-[4px] border border-ui-warn bg-ui-panel px-1.5 py-0.5 text-micro leading-tight text-ui-warn", mark.where === "above" ? "bottom-full mb-0.5" : "top-full mt-0.5")}>
                   {mark.why}
@@ -458,6 +473,32 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
       </div>
       {menu && <ContextMenu x={menu.x} y={menu.y} width={230} testId="builder-layer-menu" entries={entries} onClose={() => setMenu(null)} />}
     </>
+  );
+}
+
+/** A container's background slot (Phase 5), shown while a tile is dragged: a tile dropped on it is the container's background layer. */
+function BackgroundSlot({ name, depth, onDrop }: { name: string; depth: number; onDrop: () => void }) {
+  const [over, setOver] = useState(false);
+  return (
+    <div
+      data-background-slot={name}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setOver(false);
+        onDrop();
+      }}
+      className={cn("mt-0.5 flex h-7 items-center gap-2 rounded-ui-md border border-dashed pr-2 text-micro", over ? "border-ui-accent text-ui-1" : "border-ui-subtle text-ui-3")}
+      style={{ paddingLeft: indentOf(depth) + ICON_AT - 18 }}
+    >
+      <Wallpaper className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+      <span className="truncate">Background of {name}</span>
+    </div>
   );
 }
 

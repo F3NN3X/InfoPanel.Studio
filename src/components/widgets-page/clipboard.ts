@@ -3,7 +3,7 @@
 // recipe brings what the blocks need along. Pure but for the one session slot; nothing is written to the system clipboard.
 // Builder plan Phase 2: Copy style and Paste style, a slot of its own holding one block's look keys (`STYLE_KEYS`).
 import { isFollow } from "@/widgets/recipe/follow";
-import type { Binding, Block, BlockType, LabelPart, PackageFile, Recipe, RecipeOption } from "@/widgets/recipe/types";
+import type { Binding, Block, BlockType, Condition, LabelPart, PackageFile, Recipe, RecipeOption } from "@/widgets/recipe/types";
 import { DEVICE_SLOT } from "@/widgets/recipe/validate";
 import { addOption, blockAt, bindingsOf, landing, layerName, placeRefusal, topLevel, updateBlock, withSampleItems, type Path } from "./builder-model";
 
@@ -144,6 +144,7 @@ export function renameOptionIn(b: Block, from: string, to: string): Block {
   if (b.type === "card" && b.subtitle) next.subtitle = bind(b.subtitle);
   if (b.type === "repeat" && b.over === from) next.over = to;
   if (b.when?.option === from) next.when = { ...b.when, option: to };
+  if (b.when?.reading) next.when = { ...(next.when as Condition), reading: { ...b.when.reading, bind: bind(b.when.reading.bind) } };
   for (const k of FOLLOWS) if (isFollow(next[k]) && (next[k] as { option: string }).option === from) next[k] = { ...(next[k] as object), option: to };
   if ("children" in b) next.children = b.children.map((c) => renameOptionIn(c, from, to));
   return next as unknown as Block;

@@ -15,6 +15,9 @@
 // Shift click add to the selection, and the focused stage takes the arrows (walk), Alt+arrows (move), Del, F2 and Esc.
 // Phase 2: the layer menu on the stage too (`layer-entries.tsx`), with Wrap in a card or a grid, Unwrap, and Copy and Paste style.
 // Phase 3: "Check every size" draws the recipe offscreen at each size in its range and lists what is crowded or under the floor (`size-check.tsx`).
+// Phase 5 (format 2): in a grid with tracks a block's body drags it a track at a time and its handles size its area (`area-handles.tsx`),
+// Alt+arrows nudge it a track and Alt+Shift+arrows size it; a block in a column or a row has handles on its other two sides for its
+// part of the room across; the layer menu's Layer flyout sets a background and the drawing order (`layout-model.ts`).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { pastDragThreshold, trackPointer } from "@/components/studio/pointer-drag";
 import { ChevronRight, CircleAlert, CircleCheck, MonitorUp, Pencil, Redo2, RotateCcw, Save, Undo2, Upload, X } from "lucide-react";
@@ -50,6 +53,8 @@ import { OptionsTab } from "./options-tab";
 import { type PlainIssue, plainIssue, plainIssues, plainWarnings } from "./plain-issues";
 import { PresetsTab } from "./presets-tab";
 import { RecipePreview, zonePx } from "./recipe-preview";
+import { AreaHandles, FillHandles, measureArea } from "./area-handles";
+import { areaGrid, areaNow, dragArea, fitLayout, nudgeArea, restack, setArea, setBackground, stepAreaSize, trackAt } from "./layout-model";
 import { ShareHandles } from "./share-handles";
 import { SizeCheckRun, type SpanResult, spansOf } from "./size-check";
 import { type Carry, dragTarget, dropAt, type StageDrop, stageStep } from "./stage-edit";
@@ -178,7 +183,8 @@ export function Builder(p: BuilderProps) {
   const previewing = useRef(false);
   /** Every edit of the recipe, with the format its keys need: one undo step, or while a field is typed its preview. */
   const edit = (r: Recipe, images?: PackageFile[], amend?: boolean) => {
-    const next = withFormat(r);
+    // the layout keys kept where they mean something after a move, a paste or a wrap (`fitLayout`), then the format they need
+    const next = withFormat(fitLayout(r));
     if (previewing.current) return setPreview(next);
     setPreview(null);
     p.onEdit(next, images, amend);
@@ -359,11 +365,11 @@ export function Builder(p: BuilderProps) {
 
   // a new Image asks for its picture first (G32): the place it goes waits for the file chooser
   const imageInput = useRef<HTMLInputElement>(null);
-  const imageAt = useRef<{ into: number[]; index: number; where: string } | null>(null);
+  const imageAt = useRef<{ into: number[]; index: number; where: string; background?: boolean } | null>(null);
   const latest = useRef(recipe);
   latest.current = recipe;
-  const chooseImage = (into: number[], index: number, where: string) => {
-    imageAt.current = { into, index, where };
+  const chooseImage = (into: number[], index: number, where: string, background?: boolean) => {
+    imageAt.current = { into, index, where, background };
     imageInput.current?.click();
   };
 
@@ -398,13 +404,18 @@ export function Builder(p: BuilderProps) {
     say(`Added ${SNIPPETS.find((s) => s.id === id)!.label}`);
     if (byKey) refocus();
   };
-  /** A tile dropped on Layers or the stage: the new block at that place, unless the validator would refuse it there. */
-  const addAt = (type: BlockType, toParent: number[], index: number, where: string) => {
-    const refused = addRefusal(recipe, type, toParent);
+  /**
+   * A tile dropped on Layers or the stage: the new block at that place, unless the validator would refuse it there. `background`: dropped
+   * on a container's background slot in Layers, it is that container's background layer (one undo step with the add).
+   */
+  const addAt = (type: BlockType, toParent: number[], index: number, where: string, background?: boolean) => {
+    const refused = addRefusal(recipe, type, toParent) ?? (background && type === "repeat" ? "A Repeat lists items; it can't be a background" : undefined);
     if (refused) return refuse(refused);
-    if (type === "image") return chooseImage(toParent, index, ` ${where}`);
+    if (type === "image") return chooseImage(toParent, index, ` ${where}`, background);
     const r = addBlockAt(recipe, toParent, index, type, firstSensor);
-    edit(r.recipe);
+    const layered = background ? setBackground(r.recipe, [r.path], true) : r.recipe;
+    if ("why" in layered) return refuse(layered.why);
+    edit(layered);
     setPath(r.path);
     setTab("block");
     say(`Added ${BLOCK_LABEL[type]} ${where}`);
@@ -515,6 +526,26 @@ export function Builder(p: BuilderProps) {
         if ("why" in r) return refuse(r.why);
         edit(r.recipe);
         return say(`Pasted the style of ${clip.name} onto ${what(list)}${r.skipped.length ? `; it can't take the ${r.skipped.join(", ")}` : ""}`);
+      }
+      case "background":
+      case "foreground": {
+        const r = setBackground(recipe, list, cmd === "background");
+        if ("why" in r) return refuse(r.why);
+        edit(r);
+        refocus();
+        return say(cmd === "background" ? `${what(list)} set as the background` : `${what(list)} taken out of the background`);
+      }
+      case "forward":
+      case "backward":
+      case "front":
+      case "back": {
+        if (list.length !== 1) return;
+        const r = restack(recipe, list[0], cmd);
+        if ("why" in r) return refuse(r.why);
+        edit(r.recipe);
+        setPath(r.path);
+        refocus();
+        return say(`${nameAt(list[0])} ${cmd === "forward" ? "brought forward" : cmd === "backward" ? "sent backward" : cmd === "front" ? "to the front" : "to the back"}`);
       }
       case "select-parent": {
         if (!at.length) return;
@@ -658,6 +689,9 @@ export function Builder(p: BuilderProps) {
     if (flagged(flags.locked, at)) return;
     const from = selected.some((x) => keyOf(x) === keyOf(at)) ? topLevel(selected) : [at];
     const [x0, y0] = [e.clientX, e.clientY];
+    // in a grid with tracks (Phase 5) the selected block, pressed in it, moves a track at a time: the block itself, or the one holding the press
+    const areaAt = areaGrid(recipe, at) ? at : path.length && areaGrid(recipe, path) && (keyOf(at) === keyOf(path) || keyOf(at).startsWith(`${keyOf(path)}.`)) && !flagged(flags.locked, path) ? [...path] : null;
+    if (areaAt && from.length <= 1) return pressArea(areaAt, x0, y0);
     let started = false;
     let last: StageDrop | null = null;
     stopDrag.current = trackPointer(
@@ -678,6 +712,36 @@ export function Builder(p: BuilderProps) {
         if (!last) return;
         if (last.why) return refuse(last.why);
         drop(from, last.toParent, last.index);
+      },
+    );
+  };
+
+  /** A block of a grid with tracks dragged by its body: its area follows the pointer's track, shown as it goes, one undo step on release. */
+  const pressArea = (at: number[], x0: number, y0: number) => {
+    const m = measureArea(zoneEl(), recipe, at);
+    if (!m) return;
+    const start = areaNow(recipe, at, m.drawn);
+    const from = { col: trackAt(x0, m.lines.cols), row: trackAt(y0, m.lines.rows) };
+    let started = false;
+    let last: ReturnType<typeof dragArea> | null = null;
+    stopDrag.current = trackPointer(
+      (p) => {
+        if (!started && !pastDragThreshold(p.clientX - x0, p.clientY - y0)) return;
+        if (!started && keyOf(at) !== keyOf(path)) setPath(at);
+        started = true;
+        last = dragArea(start, from, { col: trackAt(p.clientX, m.lines.cols), row: trackAt(p.clientY, m.lines.rows) }, m.cols, m.rows);
+        setPreview(setArea(recipe, at, last));
+      },
+      (cancelled) => {
+        stopDrag.current = null;
+        if (!started) return;
+        dragged.current = true;
+        if (cancelled || !last) {
+          setPreview(null);
+          return say("Move cancelled");
+        }
+        edit(setArea(recipe, at, last));
+        say(`Moved ${nameAt(at)} to column ${last.col}, row ${last.row}`);
       },
     );
   };
@@ -703,6 +767,7 @@ export function Builder(p: BuilderProps) {
       canPaste,
       canPasteStyle,
       hasChildren: !!b && "children" in b && b.children.length > 0,
+      background: !!b?.background,
       targets: moveTargets(recipe, list),
       onCommand: run,
       onMoveTo: moveTo,
@@ -721,6 +786,16 @@ export function Builder(p: BuilderProps) {
       return openStageMenu(path, r ? r.left + 12 : e.currentTarget.getBoundingClientRect().left + 24, r ? r.top + 12 : e.currentTarget.getBoundingClientRect().top + 24);
     }
     const move = ({ ArrowUp: "up", ArrowDown: "down", ArrowLeft: "out", ArrowRight: "in" } as const)[e.key as "ArrowUp"];
+    // a block of a grid with tracks (Phase 5): Alt+arrows move it a track, Alt+Shift+arrows size it by a track
+    if (e.altKey && move && areaGrid(recipe, path) && !flagged(flags.locked, path)) {
+      e.preventDefault();
+      const delta = { cols: e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0, rows: e.key === "ArrowUp" ? -1 : e.key === "ArrowDown" ? 1 : 0 };
+      const drawn = measureArea(zoneEl(), recipe, path)?.drawn;
+      const r = e.shiftKey ? stepAreaSize(recipe, path, delta, drawn) : nudgeArea(recipe, path, delta, drawn);
+      if ("why" in r) return refuse(r.why);
+      edit(r);
+      return say(`${nameAt(path)}: ${e.shiftKey ? "sized" : "moved"} a track`);
+    }
     if (e.altKey && move) {
       e.preventDefault();
       if (path.length) run(move, path);
@@ -761,7 +836,9 @@ export function Builder(p: BuilderProps) {
     void file.arrayBuffer().then((buf) => {
       const r = addImageAt(latest.current, p.active.images, at.into, at.index, { path: imagePath(file.name, file.type), bytes: new Uint8Array(buf) });
       if ("why" in r) return refuse(r.why);
-      edit(r.recipe, r.images);
+      const layered = at.background ? setBackground(r.recipe, [r.path], true) : r.recipe;
+      if ("why" in layered) return refuse(layered.why);
+      edit(layered, r.images);
       setPath(r.path);
       setTab("block");
       say(`Added Image${at.where}`);
@@ -906,7 +983,7 @@ export function Builder(p: BuilderProps) {
               onCommand={run}
               onMove={drop}
               onMoveTo={moveTo}
-              onAdd={(type, toParent, index) => addAt(type, toParent, index, `into ${nameAt(toParent)}`)}
+              onAdd={(type, toParent, index, background) => addAt(type, toParent, index, background ? `as the background of ${nameAt(toParent)}` : `into ${nameAt(toParent)}`, background)}
               onWhy={setWhy}
               hidden={flags.hidden}
               locked={flags.locked}
@@ -1133,6 +1210,18 @@ export function Builder(p: BuilderProps) {
                           edit(r);
                           say(text);
                         }} />}
+                    {!moving && !tile && selected.length === 1 && !header && (
+                      <>
+                        <AreaHandles zone={zoneEl()} recipe={recipe} path={path} locked={flags.locked} tick={[recipe, size, live, lookId, preset, stageBox, data]} onLive={setPreview} onDone={(r, text) => {
+                          edit(r);
+                          say(text);
+                        }} />
+                        <FillHandles zone={zoneEl()} recipe={recipe} path={path} locked={flags.locked} tick={[recipe, size, live, lookId, preset, stageBox, data]} onLive={setPreview} onDone={(r, text) => {
+                          edit(r);
+                          say(text);
+                        }} />
+                      </>
+                    )}
                     {(stageDrop ?? moving?.drop) && <DropMark zone={zoneEl()} drop={(stageDrop ?? moving?.drop)!} verb={moving ? "Move" : "Add"} tick={[recipe, size, stageBox]} />}
                   </>
                 }

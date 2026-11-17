@@ -1,8 +1,10 @@
 // The layer menu's rows (builder plan Phase 2), one list for Layers' right-click and the stage's: the same commands on the same
 // selection wherever the menu opens. Each row runs a `LayerCommand` on the row it opened on (the selection, when that row is in it).
 // Phase 4: "Move to" lists the containers (a refused one greyed, with its reason) and "Select" picks the parent or the children.
+// Phase 5: "Layer" sets a block as its container's background (or takes it out) and moves it in the drawing order, a flyout of its own
+// so the keyboard walk of the menu's rows stays as it was.
 import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpLeft, ClipboardPaste, Columns3, Copy, CopyPlus, Eye, EyeOff, FolderInput, Grid2x2, LayoutPanelTop, ListTree, Lock, LockOpen, MousePointer2, Paintbrush, Pencil, Scissors, SquareDashed, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpLeft, BringToFront, ChevronDown, ChevronUp, ClipboardPaste, Layers2, SendToBack, Wallpaper, Columns3, Copy, CopyPlus, Eye, EyeOff, FolderInput, Grid2x2, LayoutPanelTop, ListTree, Lock, LockOpen, MousePointer2, Paintbrush, Pencil, Scissors, SquareDashed, Trash2 } from "lucide-react";
 import type { ContextMenuEntry } from "@/components/ui/context-menu";
 
 /** What the layer menu and its keys do to a row (the selection, when the row is in it). */
@@ -23,6 +25,12 @@ export type LayerCommand =
   | "in"
   | "select-parent"
   | "select-children"
+  | "background"
+  | "foreground"
+  | "forward"
+  | "backward"
+  | "front"
+  | "back"
   | "delete";
 
 /** A container "Move to" offers (Phase 4): its path, its name with the ones holding it, and why the selection can't go in it. */
@@ -48,6 +56,8 @@ export interface LayerEntriesOf {
   canPasteStyle: boolean;
   /** The row's block holds blocks now (Select children). */
   hasChildren: boolean;
+  /** The row's block is its container's background (Phase 5). */
+  background?: boolean;
   /** The containers "Move to" lists (`moveTargets`). */
   targets: readonly MoveTarget[];
   onCommand: (cmd: LayerCommand, at: number[]) => void;
@@ -58,7 +68,7 @@ export interface LayerEntriesOf {
 }
 
 /** The layer menu's rows for the row `at`. The root card takes only Paste. */
-export function layerEntries({ at, many, container, hidden, locked, canPaste, canPasteStyle, hasChildren, targets, onCommand, onMoveTo, onRename, onFlag }: LayerEntriesOf): ContextMenuEntry[] {
+export function layerEntries({ at, many, container, hidden, locked, canPaste, canPasteStyle, hasChildren, background, targets, onCommand, onMoveTo, onRename, onFlag }: LayerEntriesOf): ContextMenuEntry[] {
   const root = at.length === 0;
   const entry = (cmd: LayerCommand, label: string, icon: ReactNode, hint: string | undefined, disabled = root, danger?: boolean): ContextMenuEntry => ({ id: cmd, label, icon, hint, disabled, danger, onSelect: () => onCommand(cmd, at) });
   return [
@@ -100,6 +110,20 @@ export function layerEntries({ at, many, container, hidden, locked, canPaste, ca
       icon: <MousePointer2 />,
       disabled: root,
       submenu: [entry("select-parent", "Select parent", <ArrowUpLeft />, undefined), entry("select-children", "Select children", <ListTree />, undefined, root || !hasChildren)],
+    },
+    {
+      id: "layer",
+      label: "Layer",
+      icon: <Layers2 />,
+      disabled: root,
+      submenu: [
+        background ? entry("foreground", "Remove from background", <Wallpaper />, undefined) : entry("background", "Set as background", <Wallpaper />, undefined),
+        "separator",
+        entry("forward", "Bring forward", <ChevronUp />, undefined, root || many > 1),
+        entry("backward", "Send backward", <ChevronDown />, undefined, root || many > 1),
+        entry("front", "To front", <BringToFront />, undefined, root || many > 1),
+        entry("back", "To back", <SendToBack />, undefined, root || many > 1),
+      ],
     },
     "separator",
     entry("delete", "Delete", <Trash2 />, "Del", root, true),

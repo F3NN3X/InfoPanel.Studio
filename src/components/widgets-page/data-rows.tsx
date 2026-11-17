@@ -164,7 +164,7 @@ function ReplaceSensor({ from, props }: { from: string; props: DataRowsProps }) 
  * What one reading of a label comes from: a sensor (the picker), an option people set (a text, a number, a choice, a toggle, a
  * sensor option), or inside a Repeat a field of each item (a place, a drive, a core …).
  */
-function SourceRows({ recipe, bind, label, props, onBind }: { recipe: Recipe; bind: Binding; label: string; props: DataRowsProps; onBind: (b: Binding) => void }) {
+export function SourceRows({ recipe, bind, label, props, onBind }: { recipe: Recipe; bind: Binding; label: string; props: DataRowsProps; onBind: (b: Binding) => void }) {
   const repeat = repeatAbove(recipe, props.path);
   const options = recipe.options.filter((o) => o.type !== "place-list" && o.type !== "device");
   const value = "sensor" in bind ? "sensor" : "option" in bind ? `option:${bind.option}` : `field:${bind.field}`;

@@ -429,12 +429,13 @@ export function rangeOf(keys: readonly string[], anchor: string, to: string): nu
   return keys.slice(Math.min(a, b), Math.max(a, b) + 1).map((k) => (k ? k.split(".").map(Number) : []));
 }
 
-/** Every block with its path, depth first (the root card first): Layers' rows. */
+/** Every block with its path, depth first (the root card first): Layers' rows. A container's background layers come after its other blocks, at the bottom of it. */
 export function flatten(recipe: Recipe): { block: Block; path: number[]; depth: number }[] {
   const out: { block: Block; path: number[]; depth: number }[] = [];
   const walk = (b: Block, path: number[]) => {
     out.push({ block: b, path, depth: path.length });
-    childrenOf(b).forEach((c, k) => walk(c, [...path, k]));
+    const kids = childrenOf(b).map((c, k) => [c, k] as const);
+    for (const [c, k] of [...kids.filter(([c]) => !c.background), ...kids.filter(([c]) => c.background)]) walk(c, [...path, k]);
   };
   walk(recipe.root, []);
   return out;
@@ -493,10 +494,10 @@ function bindingOf(b: Block): Binding | undefined {
   return "bind" in b ? b.bind : b.type === "card" ? b.subtitle : undefined;
 }
 
-/** Every binding a block reads through itself: its own, a heatmap's cells, a label's parts. */
+/** Every binding a block reads through itself: its own, a heatmap's cells, a label's parts, a condition's reading. */
 export function bindingsOf(b: Block): Binding[] {
   const own = bindingOf(b);
-  return [...(own ? [own] : []), ...("cells" in b ? (b.cells ?? []) : []), ...(b.type === "label" ? (b.parts ?? []).flatMap((p) => ("bind" in p ? [p.bind] : [])) : [])];
+  return [...(own ? [own] : []), ...("cells" in b ? (b.cells ?? []) : []), ...(b.type === "label" ? (b.parts ?? []).flatMap((p) => ("bind" in p ? [p.bind] : [])) : []), ...(b.when?.reading ? [b.when.reading.bind] : [])];
 }
 
 /** The option a binding is open to people through: a sensor option, or the device option its key names. */
@@ -540,6 +541,7 @@ function mapBindings(block: Block, fn: (b: Binding) => Binding): Block {
     if ("cells" in b && b.cells) next.cells = b.cells.map((c) => bind(c));
     if (b.type === "label" && b.parts) next.parts = b.parts.map((p) => ("bind" in p ? { ...p, bind: bind(p.bind) } : p));
     if (b.type === "card" && b.subtitle) next.subtitle = bind(b.subtitle);
+    if (b.when?.reading) next.when = { ...b.when, reading: { ...b.when.reading, bind: fn(b.when.reading.bind) } };
     if (isContainer(b)) next.children = b.children.map(go);
     return next as unknown as Block;
   };
