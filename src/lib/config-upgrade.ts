@@ -140,6 +140,7 @@ export function upgradeConfig(input: StoredConfig, log?: string[]): DashboardCon
       : undefined,
     panelPresets: normalizePanelPresets(parsed.panelPresets),
     widgetPresets: normalizeWidgetPresets(parsed.widgetPresets),
+    recipeSnippets: parsed.recipeSnippets,
     appearancePresets: normalizeAppearancePresets(parsed.appearancePresets),
     palettes: normalizePalettes(parsed.palettes),
     general: normalizeGeneral(clock ? { ...v7.general, clock } : v7.general),

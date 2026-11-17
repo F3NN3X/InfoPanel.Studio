@@ -420,6 +420,8 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
           appearance={appearance}
           pageStyle={pageStyle}
           onOpenSources={onOpenSources}
+          snippets={bridge.config.recipeSnippets}
+          onSnippets={(list) => bridge.setConfig((c) => ({ ...c, recipeSnippets: list.length ? list : undefined }))}
         />
       </Suspense>
     );

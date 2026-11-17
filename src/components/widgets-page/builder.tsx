@@ -30,6 +30,7 @@ import { BarFill, PageBar } from "@/components/studio/page-bar";
 import { ContextMenu } from "@/components/ui/context-menu";
 import { useSensors } from "@/hooks/useSensors";
 import { withHwinfoAliases } from "@/lib/hwinfo-aliases";
+import type { RecipeSnippet } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import { skinLabel } from "@/lib/theme-skins";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ import type { History } from "./history";
 import { layerEntries } from "./layer-entries";
 import { type EditorFlag, type LayerCommand, Layers, type SelectHow } from "./layers";
 import { MultiInspector } from "./multi-inspector";
+import { clipOf, savedSnippets, snippetOf, withoutSnippet, withSnippet } from "./user-snippets";
 import { OptionsTab } from "./options-tab";
 import { type PlainIssue, plainIssue, plainIssues, plainWarnings } from "./plain-issues";
 import { PresetsTab } from "./presets-tab";
@@ -93,6 +95,10 @@ export interface BuilderProps {
   appearance?: Appearance;
   pageStyle?: CSSProperties;
   onOpenSources: () => void;
+  /** The user's own snippets (`config.recipeSnippets`, Phase 6), as saved; guarded here. */
+  snippets?: unknown;
+  /** The list saved again (a snippet added or removed). */
+  onSnippets?: (list: RecipeSnippet[]) => void;
 }
 
 type Tab = "block" | "options" | "presets";
@@ -404,6 +410,27 @@ export function Builder(p: BuilderProps) {
     setTab("block");
     say(`Added ${SNIPPETS.find((s) => s.id === id)!.label}`);
     if (byKey) refocus();
+  };
+  // the user's own snippets (Phase 6): saved from the selection under a name, inserted where Add puts a block (as a paste is)
+  const mine = useMemo(() => savedSnippets(p.snippets), [p.snippets]);
+  const [naming, setNaming] = useState<string | null>(null);
+  const saveSnippet = (name: string) => {
+    setNaming(null);
+    const s = snippetOf(recipe, selected, name, `snippet-${Date.now().toString(36)}`, new Date().toISOString());
+    if ("why" in s) return refuse(s.why);
+    const list = withSnippet(mine, s);
+    if ("why" in list) return refuse(list.why);
+    p.onSnippets?.(list);
+    say(`Saved the snippet ${s.name}`);
+  };
+  const addMine = (s: RecipeSnippet) => {
+    const r = pasteBlocks(recipe, path, clipOf(s), p.active.images);
+    if ("why" in r) return refuse(r.why);
+    setWhy(null);
+    edit(r.recipe, r.images);
+    setSelection(r.paths);
+    setTab("block");
+    say(`Added ${s.name}${r.added.length ? `; added the option${r.added.length === 1 ? "" : "s"} ${r.added.join(", ")}` : ""}`);
   };
   /**
    * A tile dropped on Layers or the stage: the new block at that place, unless the validator would refuse it there. `background`: dropped
@@ -1076,6 +1103,54 @@ export function Builder(p: BuilderProps) {
                   {s.label}
                 </button>
               ))}
+              {mine.map((s) => (
+                <div key={s.id} className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => addMine(s)}
+                    data-add-user-snippet={s.name}
+                    title={`${s.blocks.length} block${s.blocks.length === 1 ? "" : "s"}, saved by you`}
+                    className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-ui-md border border-ui-subtle bg-ui-panel px-2.5 text-left text-micro text-ui-2 hover:border-ui-strong hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+                  >
+                    <BlockIcon type="card" />
+                    <span className="truncate">{s.name}</span>
+                  </button>
+                  <IconButton label={`Remove the snippet ${s.name}`} size={28} onClick={() => {
+                    p.onSnippets?.(withoutSnippet(mine, s.id));
+                    say(`Removed the snippet ${s.name}`);
+                  }}>
+                    <X className="h-3.5 w-3.5" />
+                  </IconButton>
+                </div>
+              ))}
+              {p.onSnippets &&
+                (naming === null ? (
+                  <Button small variant="ghost" disabled={!topLevel(selected).length || header} onClick={() => setNaming(layerName(recipe, blockAt(recipe, path) ?? recipe.root))} title="The selected blocks, with the options they read, to add to any recipe">
+                    Save selection as a snippet…
+                  </Button>
+                ) : (
+                  <form
+                    className="flex items-center gap-1"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      saveSnippet(naming);
+                    }}
+                  >
+                    <input
+                      // biome-ignore lint/a11y/noAutofocus: the name field opens on the button's press and takes the typing at once
+                      autoFocus
+                      aria-label="Snippet name"
+                      value={naming}
+                      maxLength={40}
+                      onChange={(e) => setNaming(e.target.value)}
+                      onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), setNaming(null))}
+                      className="h-8 min-w-0 flex-1 rounded-ui-md border border-ui-strong bg-ui-app px-2 text-body text-ui-1 outline-none focus:border-ui-accent"
+                    />
+                    <Button small type="submit">
+                      Save
+                    </Button>
+                  </form>
+                ))}
             </div>
           </div>
         </aside>

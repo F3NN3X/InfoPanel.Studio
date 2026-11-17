@@ -388,6 +388,11 @@ export interface DashboardConfig {
   panelPresets?: UserPanelPreset[];
   /** Presets the user saved for a widget: its view, settings and size (see widget-presets.ts). */
   widgetPresets?: UserWidgetPreset[];
+  /**
+   * Blocks the user saved from the widget builder as a snippet (builder plan Phase 6), an optional key of v21 as `widgetPresets` was of
+   * v19: guarded where the builder reads it (`widgets-page/user-snippets.ts`), kept as posted otherwise.
+   */
+  recipeSnippets?: RecipeSnippet[];
   /** Whole looks the user saved (saved Themes; see appearance-presets.ts). */
   appearancePresets?: AppearancePreset[];
   /** Palettes the user saved (Theme › Palette › Yours; see palettes.ts). */
@@ -405,6 +410,15 @@ export interface SavedPalette {
   tokens: ThemeTokens;
   /** The widgets' accent saved with it (`palettes.ts`). */
   accent?: string;
+}
+
+/** A snippet of the widget builder: its blocks and the options they name, as a recipe holds them (format 2 at most). */
+export interface RecipeSnippet {
+  id: string;
+  name: string;
+  blocks: unknown[];
+  options: unknown[];
+  created: string;
 }
 
 /** A named set of style values (the keys in `PROFILE_STYLE_KEYS`). */
@@ -676,6 +690,7 @@ export function mergeConfig(input: StoredConfig): DashboardConfig {
     stylePresets: Array.isArray(input.stylePresets) ? input.stylePresets : undefined,
     panelPresets: normalizePanelPresets(input.panelPresets),
     widgetPresets: input.widgetPresets,
+    recipeSnippets: input.recipeSnippets,
     appearancePresets: normalizeAppearancePresets(input.appearancePresets),
     palettes: normalizePalettes(input.palettes),
     general: normalizeGeneral(isSettings(input.general) ? input.general : undefined),
