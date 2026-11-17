@@ -32,6 +32,28 @@ export function setApiBase(raw: unknown): void {
   for (const listener of listeners) listener(next);
 }
 
+// The studio holds Data API requests until it has read the server's config, which carries the address: a request made before
+// then would go to the default address (127.0.0.1:3921), not the one set. Unheld (a kiosk, a test, a fixture) it is known at once.
+let settled: Promise<void> = Promise.resolve();
+let release: (() => void) | null = null;
+
+/** Hold Data API requests until `releaseApiBase` (the studio, from its first render until the server's config is read). */
+export function holdApiBase(): void {
+  if (release) return;
+  settled = new Promise((resolve) => {
+    release = resolve;
+  });
+}
+
+/** The address is known (the server's config was read, or can't be): held requests go ahead. */
+export function releaseApiBase(): void {
+  release?.();
+  release = null;
+}
+
+/** Resolves once the Data API's address is known: await it before a request to `getApiBase()`. */
+export const apiBaseSettled = (): Promise<void> => settled;
+
 export function subscribeApiBase(listener: (base: string) => void): () => void {
   listeners.add(listener);
   return () => {

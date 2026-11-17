@@ -118,6 +118,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-node-deps
       - run: npm run build
+      # the app's own pages (settings, the agent prompt window), which agent-prompt.spec.ts loads, as CI's typecheck-build builds them
+      - run: npm run desktop:settings
       - uses: ./.github/actions/e2e
         with:
           save-cache: "false"
