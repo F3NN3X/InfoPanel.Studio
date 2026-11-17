@@ -1512,11 +1512,18 @@ buttons instead (Edit's **Edit rail items** writes it):
   `widget` with `module` and `settings`, drawn 72 px wide (a widget whose preset is a rail preset,
   such as the Clock's **Rail**).
 - **icon** - `{ "from": "set", "name": … }` takes a page icon (the page icon picker's names, with
-  `key-grid`, `keyboard` and `mic-off`); `{ "from": "image", "asset": … }` an uploaded image, in
-  its own colours unless `"tint": true`; `{ "from": "text", "text": … }` a word. An app's own icon
-  comes in a later update. **shape** (`as-is`, `rounded`, `circle`) rounds an image, **label**
-  writes the name under the icon, and **name** is what a screen reader says (and an image's alt
-  text).
+  `key-grid`, `keyboard` and `mic-off`); `{ "from": "image", "asset": … }` an uploaded PNG, WebP,
+  GIF or SVG (an SVG is sanitised when it is uploaded, up to 256 KB), in its own colours unless
+  `"tint": true`; `{ "from": "app", "exe": "Chat.exe", "asset": … }` a program's own icon, which
+  the studio asks the server to read from the program (running, installed or on PATH, Windows only)
+  and stores as a PNG (with no `asset` it draws a window); `{ "from": "text", "text": … }` a word.
+  **shape** (`as-is`, `rounded`, `circle`) rounds an image, **label** writes the name under the
+  icon, and **name** is what a screen reader says. An image's alt text is the name and what a tap
+  on it does ("Hexmark logo, opens profiles").
+- **plate** - on a logo (a `profile` item with an image): `none`, `card` (the card colour) or
+  `contrast` (the text colour, which keeps a light logo seen on a light Look). Unset, the rail picks
+  one from the image: `none` for an image that fills its square, `contrast` for one whose marks
+  would fade into the rail, else `card`.
 - **badge** - `agents-waiting` (a dot while an agent needs you), `alerts` (a dot while an alert is
   shown; on a page button, one that goes to that page) or `obs-live` (**LIVE** while OBS streams).
 - **touch** - what a `tap`, `hold` (600 ms) or `doubleTap` does, each an action as above; a tap

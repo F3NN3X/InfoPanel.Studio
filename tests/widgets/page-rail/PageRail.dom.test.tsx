@@ -97,11 +97,35 @@ describe("the page rail", () => {
     expect(run).toHaveBeenLastCalledWith({ op: "page", to: "next" });
   });
 
-  it("names an image slot by its alt text, the item's name", () => {
+  it("names an image slot by its alt text, the item's name and what a tap does (owner Q10)", () => {
     draw(host(), [{ id: "i", group: "pages", target: { kind: "page", pageId: "keys" }, name: "Home", icon: { from: "image", asset: "abc.png" }, shape: "rounded" }]);
-    const img = screen.getByRole("img", { name: "Home" });
+    const img = screen.getByRole("img", { name: "Home, opens Keys" });
     expect(img.getAttribute("src")).toBe("/api/assets/abc.png");
-    expect(screen.getByRole("button", { name: "Home" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Home, opens Keys" })).toBeTruthy();
+  });
+
+  it("draws its clock in the rail's own text colours, so it shows on a light Look (P-B10)", () => {
+    const { container } = draw(host(), undefined, { clock: true });
+    const card = container.querySelector('[data-rail-slot="clock"] [data-part="card"]') as HTMLElement;
+    expect(card.style.getPropertyValue("--w-fg")).toBe("inherit");
+    expect(card.style.getPropertyValue("--w-muted")).toBe("inherit");
+  });
+
+  it("draws a logo on the plate the user chose, with its action in its alt text (P5)", () => {
+    const logo = (plate?: RailSlot["plate"]): RailSlot => ({ id: "logo", group: "top", target: { kind: "profile" }, name: "Hexmark logo", icon: { from: "image", asset: "logo.svg" }, ...(plate ? { plate } : {}) });
+    draw(host(), [logo("contrast")], { chip: false });
+    const button = screen.getByRole("button", { name: "Hexmark logo, opens profiles" });
+    expect(button.getAttribute("data-plate")).toBe("contrast");
+    expect(button.style.background).toBe("var(--w-fg)");
+    tap(button);
+    expect(run).toHaveBeenCalledWith({ op: "profile-picker" });
+    cleanup();
+    draw(host(), [logo("none")], { chip: false });
+    expect(screen.getByRole("button", { name: "Hexmark logo, opens profiles" }).style.background).toBe("");
+    cleanup();
+    // unset: the card plate until the image is read (no canvas here, so it stays)
+    draw(host(), [logo()], { chip: false });
+    expect(screen.getByRole("button", { name: "Hexmark logo, opens profiles" }).getAttribute("data-plate")).toBe("card");
   });
 });
 

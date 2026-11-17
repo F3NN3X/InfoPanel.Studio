@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, Hand, Image as ImageIcon, LayoutPanelLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconGrid, type IconGridItem } from "@/components/ui/icon-grid";
-import { assetIdOf, ASSETS_URL } from "@/lib/assets";
+import { appIcon, AssetError, assetIdOf, ASSETS_URL } from "@/lib/assets";
 import { RAIL_GROUP_NAMES, touchChoices, touchValue } from "@/lib/pinned-edit";
-import type { BadgeRule, RailGroup, RailIcon, RailShape, RailSlot, TouchAction, TouchGesture, TouchMap } from "@/lib/pinned";
+import type { BadgeRule, RailGroup, RailIcon, RailPlate, RailShape, RailSlot, TouchAction, TouchGesture, TouchMap } from "@/lib/pinned";
 import { slotName, type RailPage } from "@/lib/rail";
 import { MediaField } from "../media-field";
 import { PAGE_ICONS } from "../page-icons";
@@ -43,6 +43,53 @@ function iconFrom(from: "set" | "text" | "app", name: string, old: RailIcon | un
   return { from: "app", exe: "" };
 }
 
+/** A program name the server reads an icon for: a file name ending in .exe. */
+const EXE = /^[^\\/:]+\.exe$/i;
+/** How long typing rests before the icon is read, ms. */
+const READ_AFTER_MS = 600;
+
+type AppIconStatus = { state: "idle" } | { state: "reading" } | { state: "error"; message: string };
+
+/**
+ * An app icon's file: read by the server once the program's name rests (P5), and stored on the item with the same undo
+ * step as the name. A failure says why and offers another try (a program that was not running may be now).
+ */
+function useAppIcon(icon: RailIcon | undefined, onChange: RailSlotInspectorProps["onChange"], key: string): { status: AppIconStatus; retry: () => void } {
+  const [status, setStatus] = useState<AppIconStatus>({ state: "idle" });
+  const [tries, setTries] = useState(0);
+  const exe = icon?.from === "app" && !icon.asset && EXE.test(icon.exe.trim()) ? icon.exe.trim() : undefined;
+  useEffect(() => {
+    setStatus({ state: "idle" });
+    if (!exe) return;
+    let alive = true;
+    const timer = setTimeout(() => {
+      setStatus({ state: "reading" });
+      appIcon(exe).then(
+        (asset) => {
+          if (!alive) return;
+          setStatus({ state: "idle" });
+          onChange((s) => (s.icon?.from === "app" && s.icon.exe.trim() === exe ? { ...s, icon: { ...s.icon, asset: asset.id } } : s), key);
+        },
+        (e: unknown) => alive && setStatus({ state: "error", message: e instanceof AssetError ? e.message : "The icon could not be read." })
+      );
+    }, READ_AFTER_MS);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+    // onChange is the inspector's, new each render; the read follows the name and the tries only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exe, tries]);
+  return { status, retry: () => setTries((n) => n + 1) };
+}
+
+const PLATES: { value: RailPlate | ""; label: string }[] = [
+  { value: "", label: "Auto" },
+  { value: "none", label: "None" },
+  { value: "card", label: "Card" },
+  { value: "contrast", label: "Contrast" },
+];
+
 function withTouch(slot: RailSlot, g: TouchGesture, action: TouchAction | undefined): RailSlot {
   const touch: TouchMap = { ...slot.touch };
   if (action) touch[g] = action;
@@ -62,7 +109,8 @@ interface RailSlotInspectorProps {
 /**
  * A rail item's inspector (mockup 13): what it is (its page, action or widget, and its group), its icon (from the icon
  * set, an app, an image or text; shape, tint and label), what a tap, a hold and a double tap do, and its badge. The name is
- * the image's alt text and the button's name. An app's icon is extracted in a later update; until then it shows a window.
+ * the image's alt text and the button's name. An app's icon is read by the server from the program; a logo (the profile
+ * with an image) has a plate, automatic unless set.
  */
 export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: RailSlotInspectorProps) {
   const name = slotName(slot, pages);
@@ -73,6 +121,8 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
   const [pending, setPending] = useState(false);
   const from = pending ? "image" : (icon?.from ?? "set");
   const key = (field: string) => `rail:${slot.id}:${field}`;
+  const app = useAppIcon(icon, onChange, key("exe"));
+  const logo = t.kind === "profile" && (icon?.from === "image" || icon?.from === "app");
   const actionOptions = (none: string, stored: TouchAction | undefined) => [
     { value: "", label: none },
     ...choices.map((c) => ({ value: c.value, label: c.label })),
@@ -137,7 +187,18 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
           {from === "app" && icon?.from === "app" && (
             <>
               <TextRow label="Program" placeholder="Chat.exe" value={icon.exe} onChange={(exe) => onChange((s) => ({ ...s, icon: { from: "app", exe } }), key("exe"))} />
-              <p className="text-caption text-ui-3">The program's own icon comes in a later update; until then the rail shows a window.</p>
+              {app.status.state === "error" ? (
+                <div role="alert" className="flex items-center gap-2 text-caption text-ui-danger">
+                  <span className="min-w-0 flex-1">{app.status.message}</span>
+                  <Button small variant="ghost" onClick={app.retry}>
+                    Try again
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-caption text-ui-3" aria-live="polite">
+                  {app.status.state === "reading" ? `Reading the icon of ${icon.exe.trim()}…` : icon.asset ? "The program's own icon, read from it on this computer." : "The program's file name, such as Chat.exe. Its icon is read from it on this computer; until then the rail shows a window."}
+                </p>
+              )}
             </>
           )}
           {from === "image" && (
@@ -145,6 +206,7 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
               <MediaField
                 label="Image"
                 kind="image"
+                svg
                 preview="thumb"
                 value={icon?.from === "image" ? `${ASSETS_URL}/${encodeURIComponent(icon.asset)}` : undefined}
                 onChange={(src) => {
@@ -167,6 +229,20 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
               { value: "circle", label: "Circle" },
             ]}
           />
+          {logo && (
+            <>
+              <SegmentedRow
+                label="Plate"
+                value={slot.plate ?? ""}
+                onChange={(v) => onChange((s) => {
+                  const { plate: _old, ...rest } = s;
+                  return v ? { ...rest, plate: v as RailPlate } : rest;
+                })}
+                options={PLATES}
+              />
+              <p className="text-caption text-ui-3">What sits behind the logo. Auto picks one from the image: none for one that fills its square, the text colour for one that would fade into the rail.</p>
+            </>
+          )}
           <ToggleRow label="Tint with the theme colour" value={slot.tint === true} onChange={(on) => onChange((s) => ({ ...s, tint: on }))} />
           <ToggleRow label="Label under the icon" value={slot.label === true} onChange={(on) => onChange((s) => ({ ...s, label: on }))} />
         </PanelSection>

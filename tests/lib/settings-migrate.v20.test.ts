@@ -109,6 +109,16 @@ describe("v20: the pinned layer", () => {
     expect(mergeConfig(stored(20, [screen({ autoSwitch: { exe: ["", 4, " a.exe ", "a.exe"] } })])).profiles[0].autoSwitch).toEqual({ exe: ["a.exe"] });
   });
 
+  it("keeps a logo's plate through a save and a load, and drops one it does not know (P5)", async () => {
+    const logo = (plate: unknown) => ({ id: "logo", group: "top", target: { kind: "profile" }, icon: { from: "image", asset: `${"a".repeat(64)}.svg` }, ...(plate === undefined ? {} : { plate }) });
+    const read = (plate: unknown) => mergeConfig(stored(20, [screen({ pinned: { items: [{ ...PINNED.items[0], rail: [logo(plate)] }] } })])).profiles[0].pinned?.items[0].rail?.[0];
+    for (const plate of ["none", "card", "contrast"]) expect(read(plate)).toEqual(logo(plate));
+    expect(read("glass")).toEqual(logo(undefined));
+    expect(read(undefined)).toEqual(logo(undefined));
+    const once = mergeConfig(stored(20, [screen({ pinned: { items: [{ ...PINNED.items[0], rail: [logo("contrast")] }] } })]));
+    expect(JSON.parse(JSON.stringify(await readConfig(JSON.parse(JSON.stringify(once)))))).toEqual(JSON.parse(JSON.stringify(once)));
+  });
+
   it("a profile file carries the pinned layer, hidePinned and autoSwitch through export and import", async () => {
     const profile = mergeConfig(stored(20, [screen()])).profiles[0];
     const parsed = await parseProfileFile(profileFileText(profile));

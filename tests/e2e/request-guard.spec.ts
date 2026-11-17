@@ -28,6 +28,7 @@ const ROUTES = [
   "/api/config",
   "/api/control",
   "/api/assets",
+  "/api/assets/app-icon",
   "/api/canvases",
   "/api/library",
   "/api/integrations",
@@ -58,7 +59,7 @@ test("refuses cross-site writes", async ({ scratch }) => {
   const host = new URL(scratch.base).host;
   const foreign: Record<string, string>[] = [{ origin: "http://evil.example" }, { origin: "null" }, { "sec-fetch-site": "cross-site" }, { "sec-fetch-site": "same-site" }];
   for (const extra of foreign) {
-    for (const path of ["/api/config", "/api/control/page", "/api/integrations"]) {
+    for (const path of ["/api/config", "/api/control/page", "/api/integrations", "/api/assets/app-icon"]) {
       const method = path === "/api/integrations" ? "PUT" : "POST";
       expect((await request(scratch.base, { method, path, headers: { host, ...json, ...extra }, body: "{}" })).status, `${path} ${JSON.stringify(extra)}`).toBe(403);
     }
@@ -75,6 +76,10 @@ test("requires the write headers", async ({ scratch }) => {
   const control = (headers: Record<string, string>) => request(scratch.base, { method: "POST", path: "/api/control/page", headers: { host, ...headers }, body: "{}" });
   expect((await control({ "content-type": "application/json" })).status).toBe(403);
   expect((await control({ "content-type": "text/plain", "x-dashboard-control": "1" })).status).toBe(415);
+  // an app's icon (P5): the asset header, then JSON
+  const icon = (headers: Record<string, string>) => request(scratch.base, { method: "POST", path: "/api/assets/app-icon", headers: { host, ...headers }, body: '{"exe":"notepad.exe"}' });
+  expect((await icon({ "content-type": "application/json" })).status).toBe(403);
+  expect((await icon({ "content-type": "text/plain", "x-dashboard-asset": "1" })).status).toBe(415);
 });
 
 /** This machine's first non-internal IPv4 address, to reach the server as "another machine". */
@@ -92,7 +97,8 @@ test.describe("writes from another machine", () => {
   for (const remoteEdit of ["0", "1"]) {
     test(`ALLOW_REMOTE_EDIT=${remoteEdit}`, async () => {
       const { startScratch } = await import("../../tools/perf/scratch.mjs");
-      const scratch = await startScratch({ env: { HOST: "0.0.0.0", ALLOW_REMOTE_EDIT: remoteEdit } });
+      // uploads follow the same switch here, to show an app's icon is read for this machine whatever ALLOW_REMOTE_UPLOAD says
+      const scratch = await startScratch({ env: { HOST: "0.0.0.0", ALLOW_REMOTE_EDIT: remoteEdit, ALLOW_REMOTE_UPLOAD: remoteEdit } });
       try {
         const host = `${lanAddress}:${new URL(scratch.base).port}`;
         const at = (method: string, path: string, body?: string) => request(scratch.base, { method, path, address: lanAddress, headers: { host, ...json }, body });
@@ -112,6 +118,9 @@ test.describe("writes from another machine", () => {
         // Agent posts are this machine's only, whatever the switch.
         const agent = await request(scratch.base, { method: "POST", path: "/api/agents/event?agent=claude", address: lanAddress, headers: { host, "content-type": "application/json", "x-agent-event": "1" }, body: "{}" });
         expect(agent.status).toBe(403);
+        // An app's icon reads this machine's programs: this machine's only, whatever the switches.
+        const icon = await request(scratch.base, { method: "POST", path: "/api/assets/app-icon", address: lanAddress, headers: { host, "content-type": "application/json", "x-dashboard-asset": "1" }, body: '{"exe":"notepad.exe"}' });
+        expect(icon.status).toBe(403);
       } finally {
         scratch.stop();
       }

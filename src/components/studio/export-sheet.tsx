@@ -11,7 +11,7 @@ import { listLibrary, type LibraryItem } from "@/lib/library";
 import { cn } from "@/lib/utils";
 import { configPayload, copyPayload, saveFilePayload, type FilePayload } from "./config-file";
 import type { ExportRequest } from "./file-doors";
-import { screenPayload } from "./profile-file";
+import { bundledScreenPayload } from "./profile-file";
 
 type Row = NonNullable<ExportRequest["row"]>;
 
@@ -140,7 +140,19 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
 
   const target = config.profiles.find((p) => p.id === request.screenId) ?? screen;
   const backup = configPayload(config);
-  const screenFile = screenPayload(config, target);
+  // the screen's file carries its images (P5), read from the server while the sheet is open
+  const [bundled, setBundled] = useState<Awaited<ReturnType<typeof bundledScreenPayload>> | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    setBundled(null);
+    void bundledScreenPayload(config, target).then((b) => alive && setBundled(b));
+    return () => {
+      alive = false;
+    };
+  }, [open, config, target]);
+  const screenFile = bundled === null ? undefined : "error" in bundled ? bundled : bundled.payload;
+  const leftOut = bundled && !("error" in bundled) && bundled.left ? ` · ${bundled.left === 1 ? "an image" : `${bundled.left} images`} left out, too large for the file` : "";
   const gauge = chosen ? gaugePayload(chosen.name, chosen.gauge) : undefined;
   const save = (payload: FilePayload | { error: string }, done: string) => {
     if ("error" in payload) return toast(payload.error);
@@ -192,12 +204,12 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
               id="screen"
               icon={Monitor}
               title="Export this screen"
-              detail={`${target.name} with its pages and own theme · .json`}
+              detail={`${target.name} with its pages, images and own theme · .json`}
               picked={request.row === "screen"}
-              copy={keep(screenFile)}
+              copy={screenFile && keep(screenFile)}
               copied={copied === "screen"}
               actions={
-                <button type="button" className={OUTLINE} onClick={() => save(screenFile, `Exported ${target.name}`)}>
+                <button type="button" className={OUTLINE} disabled={!screenFile} onClick={() => screenFile && save(screenFile, `Exported ${target.name}${leftOut}`)}>
                   Export screen
                 </button>
               }

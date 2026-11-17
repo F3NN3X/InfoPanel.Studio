@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RailSlot } from "@/lib/pinned";
-import { actionOn, chipSeries, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState } from "@/lib/rail";
+import { actionOn, chipSeries, imageAlt, logoPlate, logoStats, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState } from "@/lib/rail";
 import { runTouchAction, type TouchActionDeps } from "@/lib/touch-actions";
 
 const PAGES = [
@@ -106,5 +106,50 @@ describe("what a slot does", () => {
     const deps: TouchActionDeps = { page: () => {}, toggleRotate: () => {}, audio: () => {}, obs: () => {}, picker: () => opened++ };
     expect(runTouchAction({ op: "profile-picker" }, deps)).toBe(true);
     expect(opened).toBe(1);
+  });
+});
+
+describe("a user image's alt text (owner Q10)", () => {
+  const img = { from: "image", asset: `${"a".repeat(64)}.png` } as const;
+  it("is the item's name, with what a tap does when the image acts", () => {
+    expect(imageAlt({ id: "l", group: "top", target: { kind: "profile" }, icon: img }, "Hexmark logo", PAGES)).toBe("Hexmark logo, opens profiles");
+    expect(imageAlt(page("mixer", { icon: img, name: "Sound" }), "Sound", PAGES)).toBe("Sound, opens Mixer");
+    // a page item named as its page doesn't say the name twice
+    expect(imageAlt(page("mixer", { icon: img }), "Mixer", PAGES)).toBe("Mixer, opens the page");
+    expect(imageAlt({ id: "n", group: "actions", target: { kind: "action", action: { op: "page", to: "next" } }, icon: img }, "Next", PAGES)).toBe("Next, opens the next page");
+    expect(imageAlt({ id: "m", group: "actions", target: { kind: "action", action: { op: "audio", body: { op: "mute" } } }, icon: img }, "Mic", PAGES)).toBe("Mic, changes the sound");
+    // its own tap wins over what the item is; a widget's image does nothing on its own
+    expect(imageAlt({ id: "l", group: "top", target: { kind: "profile" }, icon: img, touch: { tap: { op: "lock" } } }, "Logo", PAGES)).toBe("Logo, turns the page lock");
+    expect(imageAlt({ id: "w", group: "widgets", target: { kind: "widget", module: "Clock" } }, "Clock", PAGES)).toBe("Clock");
+  });
+});
+
+describe("a logo's automatic plate (owner Q8)", () => {
+  /** `n` pixels of one RGBA colour. */
+  const px = (n: number, rgba: number[]) => Array.from({ length: n }, () => rgba).flat();
+  const DARK_FG = 0.1; // a light Look's text
+  const LIGHT_FG = 0.93; // a dark Look's text
+
+  it("reads the opaque share and, of that, the share near the text's lightness", () => {
+    const pixels = [...px(2, [20, 22, 26, 255]), ...px(1, [244, 244, 241, 255]), ...px(1, [0, 0, 0, 0])];
+    const s = logoStats(pixels, LIGHT_FG);
+    expect(s.opaque).toBe(0.75);
+    expect(s.shows).toBeCloseTo(1 / 3);
+    expect(logoStats([], LIGHT_FG)).toEqual({ opaque: 0, shows: 0 });
+  });
+
+  it("gives a light logo on a light Look the contrast plate, and the card plate where its marks show", () => {
+    const light = [...px(3, [247, 247, 244, 255]), ...px(1, [220, 220, 214, 255]), ...px(4, [0, 0, 0, 0])];
+    expect(logoPlate(logoStats(light, DARK_FG))).toBe("contrast");
+    expect(logoPlate(logoStats(light, LIGHT_FG))).toBe("card");
+    // the fixtures' dark hexagon: a dark body with a light core shows on a dark Look through its core
+    const dark = [...px(7, [20, 22, 26, 255]), ...px(3, [244, 244, 241, 255]), ...px(10, [0, 0, 0, 0])];
+    expect(logoPlate(logoStats(dark, LIGHT_FG))).toBe("card");
+    expect(logoPlate(logoStats(dark, DARK_FG))).toBe("card");
+  });
+
+  it("gives an image that fills its square no plate: it brings its own ground", () => {
+    expect(logoPlate(logoStats([...px(19, [255, 255, 255, 255]), ...px(1, [0, 0, 0, 0])], DARK_FG))).toBe("none");
+    expect(logoPlate({ opaque: 0.89, shows: 1 })).toBe("card");
   });
 });

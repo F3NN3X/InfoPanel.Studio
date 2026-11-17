@@ -226,6 +226,18 @@ describe("the importer", () => {
     expect(sourceOf(folder("mine")).skipped).toEqual([]);
   });
 
+  it("a GIF asset is stored with the pack (P5), and an AVIF one is still left out", () => {
+    const gif = new Uint8Array([...enc("GIF89a"), 1, 0, 1, 0, 0, 0, 0]);
+    const files = folder("mine", (f, pack) => {
+      f.set("assets/spark.gif", gif);
+      f.set("assets/photo.avif", enc("x"));
+      pack.assets.push({ file: "spark.gif", bytes: gif.length });
+    });
+    const report = checkImport(files);
+    expect(report.issues.filter((i) => i.rule === "not-stored").map((i) => i.file)).toEqual(["assets/photo.avif"]);
+    expect(sourceOf(files).skipped).toEqual(["assets/photo.avif"]);
+  });
+
   it("a licence under another name is left out with the way to keep it", () => {
     const files = folder("mine").filter((f) => f.path !== "OFL.txt");
     const report = checkImport([...files, { path: "LICENSE.txt", bytes: enc("SIL OPEN FONT LICENSE Version 1.1") }]);

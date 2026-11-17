@@ -7,6 +7,7 @@ import type { HistorySetter } from "@/hooks/use-config-history";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import type { ImportKind, Sniffed } from "@/lib/import-sniff";
 import type { LibraryItem } from "@/lib/library";
+import { restoreAssets } from "@/lib/profile-assets";
 import { missingCanvases, readConfigText } from "./config-file";
 import { importToLibrary, LIBRARY_KINDS, type DoorGoto } from "./import-door-library";
 import { importedProfile, parseProfileFile } from "./profile-file";
@@ -120,12 +121,15 @@ export async function runImport(files: readonly DoorFile[], choices: DoorChoices
       result.failed.push(`${f.file.name}: ${parsed.error}`);
       continue;
     }
-    const screen = importedProfile(working, parsed.profile);
+    // the file's images go to this server first, so the screen names the ids they have here
+    const restored = await restoreAssets(parsed.profile, parsed.assets ?? []);
+    const screen = importedProfile(working, restored.profile);
     working = { ...working, profiles: [...working.profiles, screen] };
     ctx.addScreen(screen);
     result.done.push(
       `Added screen ${screen.name}${parsed.skippedCanvases ? ` · ${parsed.skippedCanvases} InfoPanel pages left out (their profile is not in the file)` : ""}${upgradedNote(parsed.upgradedFrom)}` +
-        (parsed.sharedLook ? " · it used the All screens theme, which the file doesn't hold, so it has the built-in theme: pick a theme in Theme" : ""),
+        (parsed.sharedLook ? " · it used the All screens theme, which the file doesn't hold, so it has the built-in theme: pick a theme in Theme" : "") +
+        (restored.failed ? ` · ${restored.failed === 1 ? "an image" : `${restored.failed} images`} could not be stored on this server` : ""),
     );
     result.go = { to: "screens" };
   }

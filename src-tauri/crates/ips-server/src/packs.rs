@@ -56,7 +56,7 @@ const UUID_LEN: usize = 36;
 /// The files at the top of a pack folder, by name.
 const ROOT_FILES: [&str; 7] = ["pack.json", "look.json", "icons.json", "OFL.txt", "thumb.png", "thumb.jpg", "thumb.webp"];
 /// The extensions an asset may have (`assets/<name>.<ext>`) and their types.
-const ASSET_EXTS: [&str; 5] = ["woff2", "png", "jpg", "webp", "svg"];
+const ASSET_EXTS: [&str; 6] = ["woff2", "png", "jpg", "webp", "gif", "svg"];
 const NO_PACK_CSS: &str = "an import carries no pack.css: a pack's CSS comes with its signature";
 /// A pack's CSS and its signature: in a pack folder, and outside the file set an import or a plain read may name.
 const CSS_FILE: &str = "pack.css";
@@ -98,6 +98,7 @@ fn mime_of(file: &str) -> Option<&'static str> {
         "png" => "image/png",
         "jpg" => "image/jpeg",
         "webp" => "image/webp",
+        "gif" => "image/gif",
         "svg" => "image/svg+xml",
         "txt" => "text/plain; charset=utf-8",
         _ => return None,
@@ -865,12 +866,12 @@ mod tests {
 
     #[test]
     fn files_are_a_fixed_set_or_an_asset_of_a_known_type() {
-        for ok in ["pack.json", "look.json", "icons.json", "OFL.txt", "thumb.png", "assets/hazard.svg", "assets/geist-400.woff2", "assets/a.png", "assets/a.jpg", "assets/a.webp"] {
+        for ok in ["pack.json", "look.json", "icons.json", "OFL.txt", "thumb.png", "assets/hazard.svg", "assets/geist-400.woff2", "assets/a.png", "assets/a.jpg", "assets/a.webp", "assets/a.gif"] {
             assert!(is_pack_file(ok), "{ok}");
         }
         for bad in [
             "", "pack.css", "pack.js", "Pack.json", "../pack.json", "assets/../pack.json", "assets/..", "assets//a.png", "/assets/a.png", "assets/", "assets/a", "assets/.png", "assets/a.PNG",
-            "assets/a.gif", "assets/a.exe", "assets/a.svg.png", "assets/a/b.png", "assets\\a.png", "assets/a%2epng", "assets/a.png ", "assets/a.png\0", "assets/é.png", "C:/x.png", "//x/y.png",
+            "assets/a.bmp", "assets/a.exe", "assets/a.svg.png", "assets/a/b.png", "assets\\a.png", "assets/a%2epng", "assets/a.png ", "assets/a.png\0", "assets/é.png", "C:/x.png", "//x/y.png",
             "assets/a b.png", "assets/-a.png", "assets/a:b.png", "assets/a.png:stream", "assets/CON.png", "pack.json.", "pack.json/", "./pack.json", "assets/./a.png", "LOOK.md",
         ] {
             assert!(!is_pack_file(bad), "{bad:?}");
@@ -882,7 +883,8 @@ mod tests {
         assert_eq!(mime_of("assets/a.woff2"), Some("font/woff2"));
         assert_eq!(mime_of("assets/a.svg"), Some("image/svg+xml"));
         assert_eq!(mime_of("OFL.txt"), Some("text/plain; charset=utf-8"));
-        assert_eq!(mime_of("assets/a.gif"), None);
+        assert_eq!(mime_of("assets/a.gif"), Some("image/gif"));
+        assert_eq!(mime_of("assets/a.bmp"), None);
     }
 
     fn pack(dir: &Path, id: &str) -> PathBuf {

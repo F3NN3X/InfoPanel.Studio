@@ -23,7 +23,7 @@ export interface ImportReport {
 }
 
 /** The files the server stores (`is_pack_file`, packs.rs): the fixed names and `assets/<name>.<ext>`. Everything else is left out. */
-const STORED = /^(pack\.json|look\.json|icons\.json|OFL\.txt|thumb\.(png|jpg|webp)|assets\/[a-z0-9][a-z0-9-]{0,63}\.(woff2|png|jpg|webp|svg))$/;
+const STORED = /^(pack\.json|look\.json|icons\.json|OFL\.txt|thumb\.(png|jpg|webp)|assets\/[a-z0-9][a-z0-9-]{0,63}\.(woff2|png|jpg|webp|gif|svg))$/;
 
 /** A licence file under another name than the one the server keeps (the validator accepts these names, the server stores `OFL.txt`). */
 const LICENCE_NAME = /^(LICEN[CS]E(\.txt)?|OFL)$/;

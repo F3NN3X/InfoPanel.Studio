@@ -48,16 +48,26 @@ const EXTENSION_TYPES: Record<string, string> = {
   mkv: "video/x-matroska",
 };
 
-/** The `accept` of a file input for a kind: its types and extensions. */
-export function acceptOf(kind: AssetKind): string {
+/**
+ * SVG, taken by an image field that asks for it (a rail icon or logo, P5) and not by the others: the server sanitises an
+ * SVG it stores (svg_sanitize.rs) and keeps it within its own, smaller limit.
+ */
+export const SVG_TYPE = "image/svg+xml";
+export const SVG_LIMIT = 256 * 1024;
+
+/** The `accept` of a file input for a kind: its types and extensions; `svg` adds SVG to an image's. */
+export function acceptOf(kind: AssetKind, svg = false): string {
   const exts = Object.keys(EXTENSION_TYPES).filter((e) => ASSET_TYPES[kind].includes(EXTENSION_TYPES[e]));
-  return [...ASSET_TYPES[kind], ...exts.map((e) => `.${e}`)].join(",");
+  const extra = svg && kind === "image" ? [SVG_TYPE, ".svg"] : [];
+  return [...ASSET_TYPES[kind], ...exts.map((e) => `.${e}`), ...extra].join(",");
 }
 
-/** A file's MIME type: the browser's, else guessed from its name. */
-export function fileType(file: Pick<File, "name" | "type">): string {
-  if (assetKind(file.type)) return file.type;
-  return EXTENSION_TYPES[/.([a-z0-9]+)$/i.exec(file.name)?.[1].toLowerCase() ?? ""] ?? file.type;
+/** A file's MIME type: the browser's, else guessed from its name (`.svg` too when `svg`). */
+export function fileType(file: Pick<File, "name" | "type">, svg = false): string {
+  if (assetKind(file.type) || (svg && file.type === SVG_TYPE)) return file.type;
+  const ext = /.([a-z0-9]+)$/i.exec(file.name)?.[1].toLowerCase() ?? "";
+  if (svg && ext === "svg") return SVG_TYPE;
+  return EXTENSION_TYPES[ext] ?? file.type;
 }
 
 /** An upload or library request that failed, with a message for the user. */
@@ -105,6 +115,9 @@ export function assetIdOf(url: string | undefined): string | undefined {
   return url ? /\/api\/assets\/([a-f0-9]{64}\.[a-z0-9]+)$/.exec(url)?.[1] : undefined;
 }
 
+// What the server says of an SVG it can't read, or sanitise (svg_sanitize.rs).
+const SVG_REFUSED = "This SVG could not be read as an image. Save it again as plain SVG, or use a PNG.";
+
 // A server started before uploads existed answers 404 to them.
 const OUTDATED = "This dashboard server can't take uploads yet: restart it (close it and run start-dashboard.bat again).";
 
@@ -126,12 +139,19 @@ const WRITE_HEADERS = { "X-Dashboard-Asset": "1" };
 /**
  * Upload a file; resolves with the stored asset (deduplicated by content).
  * With `expected`, a file of the other kind is refused before it is sent.
+ * With `svg`, an SVG is taken as an image, up to `SVG_LIMIT`.
  */
 export async function uploadAsset(
   file: File,
-  expected?: AssetKind
+  expected?: AssetKind,
+  svg = false
 ): Promise<Pick<Asset, "id" | "url" | "type" | "size">> {
-  const type = fileType(file);
+  const type = fileType(file, svg);
+  if (svg && type === SVG_TYPE) {
+    if (file.size > SVG_LIMIT) throw new AssetError(`Too large: SVG images up to ${formatBytes(SVG_LIMIT)}.`);
+    const res = await request(ASSETS_URL, { method: "POST", headers: { ...WRITE_HEADERS, "Content-Type": type }, body: file }, { 404: OUTDATED, 405: OUTDATED, 415: SVG_REFUSED });
+    return (await res.json()) as Pick<Asset, "id" | "url" | "type" | "size">;
+  }
   const kind = assetKind(type);
   if (!kind) throw new AssetError(UNSUPPORTED);
   if (expected && kind !== expected) {
@@ -200,6 +220,27 @@ export async function uploadBytes(
       return (await res.json()) as Pick<Asset, "id" | "url" | "type" | "size">;
     }
   });
+}
+
+/** Why the server found no icon for a program, by its answer. */
+const APP_ICON_MESSAGES: Record<number, string> = {
+  400: "Name the program by its file name, such as Chat.exe.",
+  403: "App icons are read on the computer that runs InfoPanel Studio.",
+  404: "No icon found: start the program once, then try again.",
+  501: "App icons are read on Windows only.",
+};
+
+/**
+ * A program's icon (`Chat.exe`), read by the server from the program and stored as a PNG asset (P5). The server finds it
+ * among the programs running now, the installed ones and those on PATH.
+ */
+export async function appIcon(exe: string): Promise<Pick<Asset, "id" | "url" | "type" | "size">> {
+  const res = await request(
+    `${ASSETS_URL}/app-icon`,
+    { method: "POST", headers: { ...WRITE_HEADERS, "Content-Type": "application/json" }, body: JSON.stringify({ exe }) },
+    APP_ICON_MESSAGES
+  );
+  return (await res.json()) as Pick<Asset, "id" | "url" | "type" | "size">;
 }
 
 /** Every uploaded asset, newest first. */

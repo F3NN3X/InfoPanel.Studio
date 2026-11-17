@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  appIcon,
   ASSET_LIMITS,
   acceptOf,
   AssetError,
@@ -12,6 +13,7 @@ import {
   unusedAssets,
   uploadAsset,
   uploadBytes,
+  SVG_LIMIT,
 } from "@/lib/assets";
 
 const ID = `${"a".repeat(64)}.png`;
@@ -184,5 +186,45 @@ describe("uploadBytes", () => {
     await Promise.allSettled([1, 2, 3].map(() => uploadBytes(new Uint8Array([1]), "image/png", async () => {})));
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ id: ID }), { status: 200 })));
     await expect(uploadBytes(new Uint8Array([1]), "image/png")).resolves.toEqual({ id: ID });
+  });
+});
+
+describe("SVG in a field that asks for it (P5: a rail icon or logo)", () => {
+  const SVG_ID = `${"b".repeat(64)}.svg`;
+
+  it("is taken only where asked, typed from its extension, and kept within the SVG limit", async () => {
+    expect(acceptOf("image")).not.toContain("svg");
+    expect(acceptOf("image", true).split(",")).toEqual(expect.arrayContaining(["image/svg+xml", ".svg", "image/png", "image/gif", "image/webp"]));
+    const fetch = respond(200, { id: SVG_ID });
+    await expect(uploadAsset(fileOf("", 10, "logo.svg"), "image", true)).resolves.toEqual({ id: SVG_ID });
+    expect(fetch.mock.calls[0][1]?.headers).toEqual({ "X-Dashboard-Asset": "1", "Content-Type": "image/svg+xml" });
+    await expect(uploadAsset(fileOf("image/svg+xml", SVG_LIMIT + 1), "image", true)).rejects.toThrow(/SVG images up to 256 KB/);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    // elsewhere an SVG stays unsupported
+    await expect(uploadAsset(fileOf("image/svg+xml"), "image")).rejects.toThrow(/Unsupported/);
+  });
+
+  it("says so when the server can't read or sanitise the SVG", async () => {
+    respond(415);
+    await expect(uploadAsset(fileOf("image/svg+xml"), "image", true)).rejects.toThrow(/could not be read as an image/);
+  });
+});
+
+describe("appIcon", () => {
+  it("asks the server for a program's icon with the asset header and JSON", async () => {
+    const fetch = respond(200, { id: ID, url: `/api/assets/${ID}`, type: "image/png", size: 10 });
+    await expect(appIcon("Chat.exe")).resolves.toMatchObject({ id: ID });
+    const [url, init] = fetch.mock.calls[0];
+    expect(url).toBe("/api/assets/app-icon");
+    expect(init).toMatchObject({ method: "POST", body: JSON.stringify({ exe: "Chat.exe" }), headers: { "X-Dashboard-Asset": "1", "Content-Type": "application/json" } });
+  });
+
+  it("says why there is no icon", async () => {
+    respond(404);
+    await expect(appIcon("Gone.exe")).rejects.toThrow(/start the program once/);
+    respond(403);
+    await expect(appIcon("Chat.exe")).rejects.toThrow(/on the computer that runs InfoPanel Studio/);
+    respond(501);
+    await expect(appIcon("Chat.exe")).rejects.toThrow(/Windows only/);
   });
 });

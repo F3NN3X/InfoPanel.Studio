@@ -8,6 +8,7 @@ pub mod agents;
 pub mod alerts;
 pub mod alerts_engine;
 pub mod alerts_rules;
+pub mod app_icon;
 pub mod asset_types;
 pub mod assets;
 pub mod pack_sign;
@@ -52,6 +53,7 @@ pub mod streaming;
 pub mod store;
 pub mod studio_prefs;
 pub mod supervisor;
+pub mod svg_sanitize;
 #[cfg(test)]
 mod test_net;
 pub mod touch_hub;

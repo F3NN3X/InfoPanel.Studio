@@ -82,6 +82,35 @@ security model, what was fixed, what was decided, and what is deferred.
   while a rule exists. No route accepts it from outside; `POST /api/control/auto` (pause, resume or lock) is a control
   write with its usual guards.
 - **Uploads**: per-type limits, magic-byte checks, a quota, two in flight; SVG assets are served with a sandbox CSP.
+- **SVG sanitising** (`crates/ips-server/src/svg_sanitize.rs`): every SVG the asset store keeps is sanitised before it is
+  stored, so a copy that leaves the server (a profile file's images, a Library export) carries nothing that runs or reaches
+  out when it is opened elsewhere. Dropped with everything inside them: `script`, `foreignObject`, `iframe`, `object`,
+  `embed`, `audio`, `video`, `canvas`, `handler`, `listener`, any element in another namespace (a prefix, or an `xmlns` other
+  than SVG's) and an animation of a link. Dropped attributes: event handlers, `xml:base`, and a link that is not `#…` or an
+  embedded PNG, JPEG, GIF or WebP. CSS is checked, never cut (cutting could stitch the text around a removed piece into a
+  new one): an attribute value or a `<style>` with `@import`, a `url(…)` that leaves the file, another loading function
+  (`image-set(`, `src(`, `element(`, …) or a CSS escape is dropped whole. A `<style>`'s text and CDATA are joined and
+  checked once, as the browser joins them, and a `<style>` holding a comment or an element is refused, so no CSS can be
+  split across parts to get past the check. Character references are decoded
+  before these checks, as the parser reads them, at any length; one that can't be resolved refuses the file. The DOCTYPE
+  is read in the prologue only and goes after its plain internal entities are written in (Illustrator declares its
+  namespaces that way), each write measured first so the text never passes 256 KB; an external, parameter or markup
+  entity is refused. Processing instructions other than the XML
+  declaration go. What can't be read is refused (415), never stored as it came. A clean file comes back byte for byte, so its
+  id never changes. It is still drawn only through `<img>` and served under the sandbox CSP: sanitising is the second line.
+  User packs keep their stricter allow-list (`src/looks/pack-safety.ts`), which refuses an unsafe SVG rather than cleaning it.
+- **App icons** (`POST /api/assets/app-icon`, `crates/ips-server/src/app_icon.rs`): a rail item's icon read from a
+  program's `.exe` and stored as a PNG asset. The studio names the program by its file name only (`Chat.exe`: letters,
+  digits and a few punctuation marks, no separator, drive or `%`); the server looks for it among the programs running now,
+  the App Paths Windows keeps for installed programs, and the PATH folders, and reads only a file on a local drive, so a
+  name can never make it open a network share (no outbound SMB). Windows draws the icon (`PrivateExtractIconsW`), and the
+  server keeps the pixels as a 96 px PNG; no code from the program runs. The route is answered for this machine only,
+  whatever `ALLOW_REMOTE_UPLOAD` says, since it tells which programs are installed; it needs `X-Dashboard-Asset: 1` and
+  JSON, and a cross-site request is refused before it (the request guard). A program's icon is read once per run, then
+  answered from a cache. Off Windows the route answers 501.
+- **Profile files with images**: an exported screen carries the images it names as base64, within the import's 5 MB. On
+  import each goes through the upload route above (magic bytes checked, an SVG sanitised) before the screen points at it;
+  an entry whose id, type or data does not have the expected shape is dropped unread.
 - **Path safety**: static and asset paths reject `..` and dot segments with prefix checks.
 
 ## Widget publisher keys
