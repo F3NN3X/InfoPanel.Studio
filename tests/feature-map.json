@@ -636,6 +636,7 @@
         "src/components/action-confirm.tsx",
         "src/lib/profile-switch.ts",
         "src/components/pinned-layer.tsx",
+        "src/components/pinned-grid.tsx",
         "src/components/rail-host.ts",
         "src/App.tsx",
         "src/main.tsx",
@@ -673,6 +674,7 @@
         "tests/e2e/control-page-switch.spec.ts",
         "tests/e2e/pinned-layer.spec.ts",
         "tests/e2e/pinned-rail.spec.ts",
+        "tests/e2e/pinned-editor.spec.ts",
         "tests/e2e/widget-touch.spec.ts",
         "tests/e2e/keys.spec.ts",
         "tests/e2e/profile-picker.spec.ts"
