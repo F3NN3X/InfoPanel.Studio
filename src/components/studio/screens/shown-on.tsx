@@ -3,9 +3,10 @@ import { ExternalLink, Link as LinkIcon } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DEFAULT_SERVER_PORT } from "@/lib/dashboard-server";
 import { isTauri } from "@/lib/desktop";
-import type { ControlDisplay, ControlKiosk } from "@/lib/control";
+import { postControl, type ControlDisplay, type ControlKiosk } from "@/lib/control";
 import { DISPLAY_NAME_MAX, isDisplayName } from "@/lib/screens/display-name";
 import { kioskLink } from "@/lib/screens/kiosk-link";
+import type { ShowOnTarget } from "./display-model";
 
 /** The address kiosks reach this dashboard at: this page's own in a browser, the local server from the desktop app. */
 export const serverOrigin = () => (isTauri() ? `http://127.0.0.1:${DEFAULT_SERVER_PORT}` : window.location.origin);
@@ -34,13 +35,15 @@ interface ShownOnProps {
   onChangeDefault: () => void;
   /** The named displays. */
   displays: readonly ControlDisplay[];
+  /** Where "Show on" can put it: the named displays and the touch panels (Use on touch panel). */
+  showOn?: readonly ShowOnTarget[];
 }
 
 /**
  * "Shown on": the default (what the app opens on) apart from the active (what kiosks show now), and the link that
- * pins a kiosk to this screen. A named display takes its screen from its card under Live on displays instead.
+ * pins a kiosk to this screen. A named display takes its screen from its card under Displays, or from Show on here.
  */
-export function ShownOn({ screenId, isDefault, isBestFit, kiosks, onChangeDefault, displays }: ShownOnProps) {
+export function ShownOn({ screenId, isDefault, isBestFit, kiosks, onChangeDefault, displays, showOn = [] }: ShownOnProps) {
   const copy = useCopyKioskLink();
   const [display, setDisplay] = useState("");
   const named = display !== "" && isDisplayName(display);
@@ -86,6 +89,22 @@ export function ShownOn({ screenId, isDefault, isBestFit, kiosks, onChangeDefaul
           </ul>
         )}
       </div>
+      {showOn.length > 0 && (
+        <select
+          aria-label="Show on a display"
+          value=""
+          onChange={(e) => e.target.value && void postControl("display", { action: "assign", display: e.target.value, screen: screenId })}
+          className="h-7 cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-caption text-ui-1"
+        >
+          <option value="">Show on…</option>
+          {showOn.map((t) => (
+            <option key={t.name} value={t.name} disabled={!t.known || t.screen === screenId}>
+              {t.label}
+              {t.screen === screenId ? " (shows it)" : !t.known ? " (its kiosk hasn't opened yet)" : ""}
+            </option>
+          ))}
+        </select>
+      )}
       <input
         type="text"
         aria-label="Display name (optional)"
@@ -107,7 +126,7 @@ export function ShownOn({ screenId, isDefault, isBestFit, kiosks, onChangeDefaul
       </button>
       <p className="text-pretty text-micro leading-[1.4] text-ui-4">
         {named
-          ? "Open the link on a kiosk. Choose its screen on its card under Live on displays."
+          ? "Open the link on a kiosk. Choose its screen on its card under Displays."
           : "Open the link on a kiosk to pin it to this screen."}{" "}
         From another device, use this PC's address in place of 127.0.0.1.
       </p>

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-// Screens' Live column (Q9) and the page's own controls: a card per kiosk, its switcher and rotation acting on the
-// screen, a named display's screen choice, the settings drawer, the search keys and the grid or list toggle.
+// Screens' Displays column (Q9) and the page's own controls: a card per display, online or not, its switcher and page
+// cycling acting on the screen, a named display's screen choice, its touch row, Show on from a screen, the settings
+// drawer, the search keys and the grid or list toggle.
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,6 +21,15 @@ vi.mock("@/components/studio/screen-detail", () => ({
   ),
 }));
 vi.mock("@/components/studio/screens/screen-thumb", () => ({ ScreenThumb: () => null }));
+/** The desktop app's touch state, when a test plays it; a browser studio otherwise. */
+const desktop = vi.hoisted(() => ({ on: false, view: null as unknown, openSettings: vi.fn(async () => {}) }));
+vi.mock("@/lib/desktop", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isTauri: () => desktop.on,
+  touchView: async () => desktop.view ?? undefined,
+  touchScreens: async () => [],
+  openSettings: desktop.openSettings,
+}));
 
 import { ScreensView } from "@/components/studio/screens-view";
 
@@ -27,7 +37,11 @@ beforeEach(() => {
   localStorage.clear();
   vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("[]", { status: 200 }))));
 });
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+  vi.clearAllMocks();
+  desktop.on = false;
+  desktop.view = null;
+});
 
 const page = (id: string, name: string) => ({ id, name, placements: [] });
 const main = { id: "p1", name: "Main", width: 1600, height: 900, cols: 12, rows: 8, fit: "fill", rotate: { enabled: true, seconds: 30 }, pages: [page("a", "Page A"), page("b", "Page B")] };
@@ -36,6 +50,12 @@ const config = { profiles: [main, desk] } as unknown as DashboardConfig;
 
 const kiosk = (over: Partial<ControlKiosk>): ControlKiosk => ({ id: "k1", profile: "p1", page: "a", address: "192.168.1.24", since: Date.now() - 2 * 3_600_000, ...over });
 const display: ControlDisplay = { name: "wall", screen: "p1", firstSeen: 0, lastSeen: Date.now(), online: true, address: null, shows: "p1" };
+
+/** touch_view with one panel, Left bar (panel-1), in the given state. */
+function touchView({ status, port = null }: { status: unknown; port?: string | null }) {
+  const entry = { id: "panel-1", name: "Left bar", device: { vid: null, pid: null, port }, monitor: null, panel: { width_px: 1920, height_px: 550, rotation: "0", flip_x: false, flip_y: false, calibration: null } };
+  return { enabled: true, file: {}, file_error: null, effective: { panels: [entry] }, defaults: {}, issues: [], panels: [{ id: "panel-1", name: "Left bar", is_virtual: false, status }], path: "" };
+}
 
 /** Renders the last `view()` again with other props. */
 let again: (over: Record<string, unknown>) => void;
@@ -79,9 +99,9 @@ function view(over: Record<string, unknown> = {}) {
   return props;
 }
 
-const live = () => screen.getByRole("region", { name: "Live on displays" });
+const live = () => screen.getByRole("region", { name: "Displays" });
 
-describe("Live on displays", () => {
+describe("Displays", () => {
   it("still offers the kiosk address when no display is connected", () => {
     view();
     expect(within(live()).getByRole("region", { name: "Add a display" }).textContent).toContain("?kiosk=1");
@@ -92,7 +112,7 @@ describe("Live on displays", () => {
     const cards = within(live()).getAllByRole("listitem");
     expect(cards).toHaveLength(2);
     expect(cards[0].textContent).toContain("Kiosk · 192.168.1.24");
-    expect(cards[0].textContent).toContain("connected 2 h");
+    expect(cards[0].textContent).toContain("Live · connected 2 h");
     expect(cards[1].textContent).toContain("wall");
     expect(live().textContent).not.toMatch(/browser|ethernet|wi-?fi/i);
   });
@@ -106,12 +126,12 @@ describe("Live on displays", () => {
     expect(api.postControl).toHaveBeenCalledWith("display", { action: "assign", display: "wall", screen: "p2" });
   });
 
-  it("pauses the screen's rotation from the card, and can't on a one-page screen", () => {
+  it("pauses the screen's page cycling from the card, and can't on a one-page screen", () => {
     const state = { profiles: { p1: { rotating: true } } } as unknown as ControlState;
     view({ kiosks: [kiosk({}), kiosk({ id: "k2", profile: "p2", page: "c" })], control: state });
-    fireEvent.click(screen.getByRole("button", { name: "Rotation for Main: 30 s" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cycling pages: every 30 s (Main)" }));
     expect(api.postControl).toHaveBeenCalledWith("rotate", { profile: "p1", state: "off" });
-    expect((screen.getByRole("button", { name: "Rotation for Desk: One page" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "One page (Desk)" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("opens the screen's settings on Rotation from the card menu, and keeps Forget display for a named one", () => {
@@ -124,10 +144,47 @@ describe("Live on displays", () => {
     expect(props.navigateTo).toHaveBeenCalledWith({ view: "screens", profileId: "p1", section: "rotation" });
   });
 
-  it("keeps an offline named display reachable to forget", () => {
-    view({ displays: [{ ...display, online: false }] });
-    fireEvent.click(screen.getByRole("button", { name: "Forget" }));
+  it("gives an offline named display a card of its own: when it was seen, its screen and Forget in its menu", () => {
+    view({ displays: [{ ...display, online: false, lastSeen: Date.now() - 3 * 3_600_000 }] });
+    const card = within(live()).getAllByRole("listitem")[0];
+    expect(card.textContent).toContain("Offline · seen 3 h ago");
+    fireEvent.change(screen.getByLabelText("Screen for wall"), { target: { value: "p2" } });
+    expect(api.postControl).toHaveBeenCalledWith("display", { action: "assign", display: "wall", screen: "p2" });
+    fireEvent.click(screen.getByRole("button", { name: "Display actions, wall" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Forget display" }));
     expect(api.postControl).toHaveBeenCalledWith("display", { action: "forget", display: "wall" });
+  });
+
+  it("calls the kiosk on this PC with no name This PC, and says touch needs the desktop app in a browser", () => {
+    view({ kiosks: [kiosk({ address: "127.0.0.1" })] });
+    const card = within(live()).getAllByRole("listitem")[0];
+    expect(card.textContent).toContain("This PC");
+    fireEvent.click(within(card).getByRole("button", { name: "Set up touch" }));
+    expect(card.textContent).toContain("Touch panels need the InfoPanel Studio desktop app");
+    expect(desktop.openSettings).not.toHaveBeenCalled();
+  });
+
+  it("shows a touch panel's display by the panel's name and state, and Set up touch opens the guided setup for it", async () => {
+    desktop.on = true;
+    desktop.view = touchView({ status: { status: "Disconnected" } });
+    view({ kiosks: [kiosk({ address: "127.0.0.1", display: "panel-1" })], displays: [{ ...display, name: "panel-1", address: "127.0.0.1" }] });
+    const card = within(live()).getAllByRole("listitem")[0];
+    await waitFor(() => expect(card.textContent).toContain("Panel not connected"));
+    expect(card.textContent).toContain("Left bar");
+    fireEvent.click(within(card).getByRole("button", { name: "Set up touch" }));
+    expect(desktop.openSettings).toHaveBeenCalledWith("touch/setup");
+    expect(JSON.parse(localStorage.getItem("infopanel.touch-intent") ?? "{}")).toMatchObject({ action: "setup", panel: "panel-1" });
+  });
+
+  it("offers Identify, Calibrate… and Remove for a ready panel", async () => {
+    desktop.on = true;
+    desktop.view = touchView({ status: { status: "Connected", interface: 0, report_len: 64, port: "USB-4.2" }, port: "USB-4.2" });
+    view({ kiosks: [kiosk({ address: "127.0.0.1", display: "panel-1" })], displays: [{ ...display, name: "panel-1", address: "127.0.0.1" }] });
+    const card = within(live()).getAllByRole("listitem")[0];
+    await waitFor(() => expect(card.textContent).toContain("Ready"));
+    fireEvent.click(within(card).getByRole("button", { name: "Touch panel actions, Left bar" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Calibrate…" }));
+    expect(desktop.openSettings).toHaveBeenCalledWith("touch/calibrate");
   });
 
   it("counts a named display once however many browser tabs it has open", () => {
@@ -146,6 +203,47 @@ describe("Live on displays", () => {
     view({ kiosks: [kiosk({}), kiosk({ id: "k2" })] });
     expect(screen.getByText("2 screens · 2 displays live")).toBeTruthy();
     expect(screen.getByText("On 2 displays")).toBeTruthy();
+  });
+});
+
+describe("Show on, from a screen", () => {
+  const rowOf = (name: string) => screen.getAllByRole("listitem").find((c) => c.textContent?.includes(name) && c.textContent.includes("1920"))!;
+
+  it("puts a screen on a named display from its row's menu", () => {
+    localStorage.setItem("screens.list", "1");
+    view({ kiosks: [kiosk({ display: "wall" })], displays: [display] });
+    fireEvent.contextMenu(rowOf("Desk"), { clientX: 5, clientY: 5 });
+    fireEvent.click(screen.getByRole("menuitem", { name: "Show on" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "wall" }));
+    expect(api.postControl).toHaveBeenCalledWith("display", { action: "assign", display: "wall", screen: "p2" });
+  });
+
+  it("uses a screen on a touch panel: the control override for the panel's kiosk, never its URL", async () => {
+    desktop.on = true;
+    desktop.view = touchView({ status: { status: "Disconnected" } });
+    view({ displays: [{ ...display, name: "panel-1", online: false, screen: "follow", shows: null }] });
+    await waitFor(() => expect(within(live()).getAllByRole("listitem")[0].textContent).toContain("Left bar"));
+    fireEvent.contextMenu(rowOf("Desk"), { clientX: 5, clientY: 5 });
+    fireEvent.click(screen.getByRole("menuitem", { name: "Use on touch panel" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Left bar (touch)" }));
+    expect(api.postControl).toHaveBeenCalledWith("display", { action: "assign", display: "panel-1", screen: "p2" });
+  });
+
+  it("can't use a touch panel whose kiosk never opened yet", async () => {
+    desktop.on = true;
+    desktop.view = touchView({ status: { status: "Disconnected" } });
+    view({ displays: [display] });
+    fireEvent.contextMenu(rowOf("Desk"), { clientX: 5, clientY: 5 });
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Use on touch panel" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("menuitem", { name: "Use on touch panel" }));
+    expect((screen.getByRole("menuitem", { name: "Left bar (touch)" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("leads from On 1 display to the display's card, and hints Show on for a screen on no display", () => {
+    view({ kiosks: [kiosk({ display: "wall" })], displays: [display] });
+    fireEvent.click(screen.getByRole("button", { name: "On 1 display" }));
+    expect(live().querySelector('[data-display="wall"]')?.className).toContain("border-ui-accent");
+    expect(screen.getByText("Not on a display · Show on…")).toBeTruthy();
   });
 });
 

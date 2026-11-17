@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Settings, Status, Touchscreen, TouchConfig, TouchView } from "@/settings/types";
@@ -89,15 +89,33 @@ const invoke = vi.fn(async (command: string, args?: Record<string, unknown>): Pr
     case "touch_screens":
       return screens;
     case "touch_setup":
-      return new Promise((resolve) => (finishSetup = () => resolve([{ port: "USBROOT(0)-4.2", monitor: "\\\\.\\DISPLAY4" }])));
+      return new Promise((resolve) => {
+        finishSetup = () => {
+          // As the backend writes it: the touched panel gets the port, its monitor and the monitor's size.
+          const [first, ...rest] = view.effective.panels;
+          view = { ...view, effective: { ...view.effective, panels: [{ ...first, device: { ...first.device, port: "USBROOT(0)-4.2" }, monitor: { name: "\\\\.\\DISPLAY4", position: null } }, ...rest] } };
+          resolve([{ port: "USBROOT(0)-4.2", monitor: "\\\\.\\DISPLAY4" }]);
+        };
+      });
     case "touch_cancel":
       finishSetup?.();
+      return undefined;
+    case "touch_identify":
       return undefined;
     default:
       throw new Error(`unexpected command ${command}`);
   }
 });
 
+/** The screen choice Settings › Touch posts on the control channel. */
+const control = vi.hoisted(() => ({ post: vi.fn(async () => null) }));
+vi.mock("@/lib/control", async (importOriginal) => ({ ...(await importOriginal<object>()), postControl: control.post }));
+
+/** The server as Settings › Touch reads it: the control state's named displays, and the config's screens. */
+function serve(displays: unknown[]) {
+  const body = (url: string) => (url.startsWith("/api/control") ? { displays } : { profiles: [{ id: "desk", name: "Desk" }, { id: "strip", name: "Strip" }] });
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(body(url)))));
+}
 vi.mock("@tauri-apps/api/core", () => ({ invoke: (c: string, a?: Record<string, unknown>) => invoke(c, a) }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 vi.mock("@tauri-apps/api/window", () => ({
@@ -131,7 +149,10 @@ describe("Settings › Touch", () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("Failed to fetch"))));
   });
 
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    control.post.mockClear();
+  });
 
   it("is off by default, shows no panels, and turns on with its switch", async () => {
     const user = await openTouchPage();
@@ -170,15 +191,82 @@ describe("Settings › Touch", () => {
     expect(await screen.findByText("Not saved: gestures: slop_px must be > 0")).toBeTruthy();
   });
 
-  it("runs Set up panels until it is finished, then says what it bound", async () => {
+  it("guides a panel's setup step by step, and opens again at the first step not done", async () => {
     saved.experimentalTouch = true;
+    screens = [{ vid: 0x222a, pid: 0x1, port: "USBROOT(0)-4.2", serial: null, product: "ILITEK-TP", driver: "WinUSB", ready: true }];
     const user = await openTouchPage();
-    await user.click(await screen.findByRole("button", { name: "Set up panels…" }));
-    expect(await screen.findByText(/Tap the circle on each touch display/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Pair…" }).hasAttribute("disabled")).toBe(true);
-    await user.click(screen.getByRole("button", { name: "Finish" }));
-    expect(await screen.findByText("Set up \\\\.\\DISPLAY4.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Set up panels…" })).toBeTruthy();
+    await user.click(await screen.findByRole("button", { name: "Set up a panel…" }));
+    const dialog = await screen.findByRole("dialog");
+    await waitFor(() => expect(within(dialog).getByRole("listitem", { current: "step" }).textContent).toContain("Pair it with its screen"));
+
+    await user.click(within(dialog).getByRole("button", { name: "Pair…" }));
+    expect(await within(dialog).findByText(/Tap the circle on the panel's screen/)).toBeTruthy();
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(within(dialog).getByRole("listitem", { current: "step" }).textContent).toContain("Size and rotation"), { timeout: 3000 });
+    expect((within(dialog).getByRole("spinbutton", { name: "Width" }) as HTMLInputElement).value).toBe("1920");
+
+    await user.click(within(dialog).getByRole("radio", { name: "90°" }));
+    await user.click(within(dialog).getByRole("button", { name: "Looks right" }));
+    await waitFor(() => expect(within(dialog).getByRole("listitem", { current: "step" }).textContent).toContain("Show its kiosk in InfoPanel"));
+    expect(touchSets()).toContainEqual({ key: "panels.0.panel.rotation", value: "90" });
+    expect(within(dialog).getByText("http://127.0.0.1:3922/?kiosk=1&touch=panel-1")).toBeTruthy();
+
+    // Closed and opened again: it resumes where it was.
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await user.click(screen.getAllByRole("button", { name: "Continue setup…" })[0]);
+    const again = await screen.findByRole("dialog");
+    expect(within(again).getByRole("listitem", { current: "step" }).textContent).toContain("Show its kiosk in InfoPanel");
+  });
+
+  it("starts at turning touch on, and at the driver while Windows owns the touchscreen", async () => {
+    screens = [{ vid: 0x222a, pid: 0x1, port: "USBROOT(0)-4.2", serial: null, product: "ILITEK-TP", driver: "HidUsb", ready: false }];
+    const user = await openTouchPage();
+    await user.click(screen.getByRole("button", { name: "Set up a panel…" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("listitem", { current: "step" }).textContent).toContain("Turn on touch panels");
+    await user.click(within(dialog).getByRole("button", { name: "Turn on touch panels" }));
+    expect(saved.experimentalTouch).toBe(true);
+    await waitFor(() => expect(within(dialog).getByRole("listitem", { current: "step" }).textContent).toContain("Pick the touchscreen"), { timeout: 3000 });
+    expect(within(dialog).getByText(/Windows owns it/)).toBeTruthy();
+    expect(within(dialog).getByText("222A")).toBeTruthy();
+  });
+
+  it("names a panel set up from a display after the display, so its kiosk is that display", async () => {
+    saved.experimentalTouch = true;
+    screens = [{ vid: 0x222a, pid: 0x1, port: "USBROOT(0)-4.2", serial: null, product: "ILITEK-TP", driver: "WinUSB", ready: true }];
+    localStorage.setItem("infopanel.touch-intent", JSON.stringify({ action: "setup", display: "hall", at: Date.now() }));
+    window.location.hash = "#touch/setup";
+    const user = userEvent.setup({ delay: null });
+    render(<SettingsApp />);
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Set up touch on hall")).toBeTruthy();
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Pair…" })).toBeTruthy());
+    await user.click(within(dialog).getByRole("button", { name: "Pair…" }));
+    await user.click(await within(dialog).findByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(touchSets()).toContainEqual({ key: "panels.0.id", value: "hall" }), { timeout: 3000 });
+    window.location.hash = "";
+  });
+
+  it("picks the screen a panel shows on the control channel, and says when its link pins one instead", async () => {
+    saved.experimentalTouch = true;
+    const shown = { name: "panel-1", screen: "follow", firstSeen: 0, lastSeen: 0, online: true, address: "127.0.0.1", shows: "desk" };
+    serve([shown]);
+    const user = await openTouchPage();
+    const pick = await screen.findByRole("combobox", { name: "Screen for Panel 1" });
+    await waitFor(() => expect(within(pick).getAllByRole("option")).toHaveLength(3));
+    await waitFor(() => expect((pick as HTMLSelectElement).disabled).toBe(false));
+    await user.selectOptions(pick, "strip");
+    expect(control.post).toHaveBeenCalledWith("display", { action: "assign", display: "panel-1", screen: "strip" });
+    expect(screen.queryByText(/Pinned by its link/)).toBeNull();
+    expect(screen.getByText("http://127.0.0.1:3922/?kiosk=1&touch=panel-1").textContent).not.toContain("profile=");
+  });
+
+  it("says a panel's link pins its screen when its address has &profile= in it", async () => {
+    saved.experimentalTouch = true;
+    serve([{ name: "panel-1", screen: "strip", firstSeen: 0, lastSeen: 0, online: true, address: "127.0.0.1", shows: "desk" }]);
+    await openTouchPage();
+    expect(await screen.findByText(/Pinned by its link to Desk/)).toBeTruthy();
   });
 
   it("shows the Zadig steps with the exact USB id for a touchscreen Windows still owns", async () => {

@@ -5,7 +5,7 @@
  */
 
 import { helpPageUrl, type HelpTarget } from "@/help/links";
-import type { AppInfo, Settings, Status, UpdateState } from "@/settings/types";
+import type { AppInfo, Settings, Status, Touchscreen, TouchView, UpdateState } from "@/settings/types";
 
 /** True inside the desktop app's webview. */
 export function isTauri(): boolean {
@@ -107,6 +107,9 @@ export const updateState = (): Promise<UpdateState | undefined> => tryCall<Updat
 export const appSettings = (): Promise<Settings | undefined> => tryCall<Settings>("get_settings");
 /** The app's version, channel, OS and WebView2 (and its folders, which a report must leave out). */
 export const appInfo = (): Promise<AppInfo | undefined> => tryCall<AppInfo>("app_info");
+/** Touch panels' state for Screens' display cards (read only: every touch change is made in Settings › Touch). */
+export const touchView = (): Promise<TouchView | undefined> => tryCall<TouchView>("touch_view");
+export const touchScreens = (): Promise<Touchscreen[] | undefined> => tryCall<Touchscreen[]>("touch_screens");
 
 /** Calls `handler` with each `server-status` / `update-state` / `studio-focus` event the shell emits; resolves to the unsubscribe. */
 export async function onShellEvent<T>(event: "server-status" | "update-state" | "studio-focus", handler: (payload: T) => void): Promise<() => void> {

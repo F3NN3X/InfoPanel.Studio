@@ -23,6 +23,8 @@ describe("a screen card's menus", () => {
       onCopyLink: vi.fn(),
       onExport: vi.fn(),
       onDelete: vi.fn(),
+      showOn: [],
+      touchPanels: [],
     });
     render(
       <ul>

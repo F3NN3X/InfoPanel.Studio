@@ -14,6 +14,8 @@ The local server hosts your dashboard. InfoPanel shows it through the kiosk URL.
 
 Copy it from Settings › App › Server with **Copy**, or open it with **Open**. In InfoPanel, set it as the URL of a Web Page profile that fills your display. The URL uses the network address of the PC running InfoPanel Studio when you choose Local network.
 
+Every kiosk that opens is a card under **Displays** on **Screens**, where you choose what it shows and set up its touch panel. See [Displays](profiles#displays) and [Touch panels](touch).
+
 :::open settings/server Settings › App › Server
 
 ## Starting and stopping

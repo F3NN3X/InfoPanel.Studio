@@ -4,7 +4,7 @@ import { Maximize, PanelsTopLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/ui/status-chip";
 import { useToast } from "@/components/ui/toast";
-import type { ControlState } from "@/lib/control";
+import { postControl, type ControlState } from "@/lib/control";
 import { deleteLines, deletePlan } from "@/lib/screens/delete-plan";
 import { FILTERS, filterEntries, KIND_LABEL, savedEntries, screenEntries, screenKind, sortEntries, type ListFilter, type ListSort } from "@/lib/screens/list";
 import { moveProfile } from "@/lib/screens/order";
@@ -15,20 +15,21 @@ import { RenameInput } from "./rename-input";
 import { ScreenDetail } from "./screen-detail";
 import { AddDisplayCard } from "./screens/add-display-card";
 import { DeleteDialog } from "./screens/delete-dialog";
-import { displaysText, distinctDisplays, liveDisplays, screensCountLine, screenSummary } from "./screens/display-model";
-import { DisplaysList } from "./screens/displays-list";
+import { DisplayCard } from "./screens/display-card";
+import { displayEntries, distinctDisplays, onNoDisplay, screenPlaces, screensCountLine, screenSummary, showOnTargets } from "./screens/display-model";
 import { CARD_GRID, ListEmpty, ListSection } from "./screens/list-frame";
-import { LiveDisplayCard } from "./screens/live-display-card";
 import { NewScreenCard } from "./screens/new-screen-card";
 import { aspectOf, Badge, ProfileCard } from "./screens/profile-card";
 import { SavedCard } from "./screens/saved-card";
 import { ScreenRow } from "./screens/screen-row";
-import { screenActions } from "./screens/screen-menu";
+import { screenActions, showOnRows } from "./screens/screen-menu";
+import { ShowOnHint } from "./screens/show-on-hint";
 import { PageStrip } from "./screens/page-strip";
 import { ScreenThumb } from "./screens/screen-thumb";
 import { ScreensBar, ScreensHeader } from "./screens/screens-toolbar";
 import { useCopyKioskLink } from "./screens/shown-on";
 import { useSavedProfiles } from "./screens/use-saved-profiles";
+import { useTouchPanels } from "./screens/use-touch-panels";
 import { launchTag, withLaunch } from "./screens-model";
 import { useStoredFlag } from "./use-stored-flag";
 import { hasOverlay } from "./use-studio-shortcuts";
@@ -88,11 +89,12 @@ const TAGS = {
 const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 
 /**
- * Screens (SPEC §8): the manager for every screen and InfoPanel profile, placed or saved in the Library. "Live on
- * displays" has a card for each kiosk connected now; "Your screens" is a grid or a list you can search, filter (Show),
+ * Screens (SPEC §8): the manager for every screen and InfoPanel profile, placed or saved in the Library. "Displays"
+ * has a card for each display, online or not, with its touch panel; "Your screens" is a grid or a list you can search, filter (Show),
  * sort and reorder, with a card to start a new one. A card opens its screen in Edit; its menu has Screen settings…
  * (a drawer with size and fit, rotation, performance and the pages), Rename, Duplicate, Always open this one,
- * Move earlier and later, Copy kiosk link, Export, Convert and Delete (a confirm that names what goes, then an Undo).
+ * Move earlier and later, Show on a display or touch panel, Copy kiosk link, Export, Convert and Delete (a confirm that
+ * names what goes, then an Undo).
  * The default screen is chosen in Settings › Dashboard.
  */
 export function ScreensView({
@@ -201,7 +203,25 @@ export function ScreensView({
     () => sortEntries(filterEntries(savedEntries(savedApi.saved), query, filter), sort).flatMap((e) => savedApi.saved.find((i) => i.id === e.id) ?? []),
     [savedApi.saved, query, filter, sort],
   );
-  const live = useMemo(() => liveDisplays(kiosks, displays, config.profiles), [kiosks, displays, config.profiles]);
+  const touch = useTouchPanels();
+  const panels = touch.view?.effective.panels;
+  const entries = useMemo(() => displayEntries(kiosks, displays, config.profiles, panels), [kiosks, displays, config.profiles, panels]);
+  const targets = useMemo(() => showOnTargets(displays, panels ?? []), [displays, panels]);
+  // A screen's "On 1 display" leads to the display's card and lights it for a moment.
+  const [lit, setLit] = useState<string | null>(null);
+  const litTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(litTimer.current), []);
+  const showDisplay = (key: string) => {
+    setLit(key);
+    document.querySelector(`[data-display="${CSS.escape(key)}"]`)?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    clearTimeout(litTimer.current);
+    litTimer.current = setTimeout(() => setLit(null), 1600);
+  };
+  const showOn = (screenId: string, name: string) => {
+    const target = targets.find((t) => t.name === name);
+    void postControl("display", { action: "assign", display: name, screen: screenId });
+    toast(`${target?.label ?? name} now shows ${config.profiles.find((p) => p.id === screenId)?.name ?? "it"}`);
+  };
   const hasInfoPanel = config.profiles.some((p) => screenKind(p) !== "dashboard") || savedApi.saved.length > 0;
 
   const rename = (id: string, name: string | null) => {
@@ -223,7 +243,8 @@ export function ScreensView({
   /** One screen's card (grid) or row (list): the same name, size, chip and actions. */
   const screenItem = (p: (typeof screens)[number]) => {
     const tag = launchTag(config, p.id, autoProfileId);
-    const showing = distinctDisplays(kiosks.filter((k) => k.profile === p.id));
+    const places = screenPlaces(p.id, entries);
+    const rows = showOnRows(targets, p.id, (name) => showOn(p.id, name));
     const kind = screenKind(p);
     const index = config.profiles.findIndex((x) => x.id === p.id);
     const common = {
@@ -249,12 +270,23 @@ export function ScreensView({
       meta: screenSummary(p),
       aspect: aspectOf(p.width, p.height),
       thumb: <ScreenThumb profile={p} />,
-      chip:
-        showing > 0 ? (
-          <StatusChip tone="ok" className="h-5 bg-ui-panel/80 text-micro">
-            On {displaysText(showing)}
+      chip: places ? (
+        <button
+          type="button"
+          title="Show its display"
+          onClick={(e) => {
+            e.stopPropagation();
+            showDisplay(places.key);
+          }}
+          className="pointer-events-auto rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+        >
+          <StatusChip tone="ok" className="h-5 bg-ui-panel/80 text-micro underline-offset-2 hover:underline">
+            {places.text}
           </StatusChip>
-        ) : undefined,
+        </button>
+      ) : !tag && onNoDisplay(p.id, entries) && targets.some((t) => t.known) ? (
+        <ShowOnHint rows={rows.showOn} />
+      ) : undefined,
       onClick: () => onOpenScreen(p.id),
       label: `Open ${p.name}`,
       actions: screenActions({
@@ -276,6 +308,8 @@ export function ScreensView({
         onCopyLink: () => copyLink(p.id),
         onExport: () => openExportSheet({ row: "screen", screenId: p.id }),
         onDelete: () => setDeletingId(p.id),
+        showOn: rows.showOn,
+        touchPanels: rows.touchPanels,
       }),
     };
     return list ? <ScreenRow key={p.id} {...common} pages={<PageStrip profile={p} onOpen={openPage} inline />} /> : <ProfileCard key={p.id} {...common} strip={<PageStrip profile={p} onOpen={openPage} />} actionsLabel="Screen actions" />;
@@ -296,23 +330,31 @@ export function ScreensView({
       <div ref={setViewEl} className="relative flex min-h-0 flex-1 flex-col bg-ui-app/40">
       {/* On a phone the two columns stack, and the view scrolls. */}
       <div className="flex min-h-0 flex-1 items-start gap-6 overflow-y-auto px-6 py-5 max-[899px]:flex-col max-[899px]:px-3">
-        <section aria-label="Live on displays" className="flex w-[400px] shrink-0 flex-col gap-3 max-[1199px]:w-[340px] max-[899px]:w-full">
+        <section aria-label="Displays" className="flex w-[400px] shrink-0 flex-col gap-3 max-[1199px]:w-[340px] max-[899px]:w-full">
           <div className="flex min-h-8 items-center gap-2">
-            <h2 className="m-0 text-body font-medium text-ui-1">Live on displays</h2>
-            <span className="text-caption text-ui-3">{live.length}</span>
+            <h2 className="m-0 text-body font-medium text-ui-1">Displays</h2>
+            <span className="text-caption text-ui-3">{entries.length}</span>
             <Button small variant="ghost" className="ml-auto" icon={<Maximize strokeWidth={1.5} />} title="Show the kiosk in this window" onClick={onOpenKioskView}>
               Open kiosk view
             </Button>
           </div>
-          {live.length === 0 && <ListEmpty>No display is connected.</ListEmpty>}
-          {live.length > 0 && (
-            <ul className="flex flex-col gap-3">
-              {live.map((d) => (
-                <LiveDisplayCard key={d.kiosk.id} live={d} profiles={config.profiles} control={control} now={now} onRotationSettings={(id) => openSettings(id, "rotation")} />
+          {entries.length === 0 && <ListEmpty>No display yet.</ListEmpty>}
+          {entries.length > 0 && (
+            <ul aria-label="Displays" className="flex flex-col gap-3">
+              {entries.map((d) => (
+                <DisplayCard
+                  key={d.key}
+                  entry={d}
+                  profiles={config.profiles}
+                  control={control}
+                  touch={touch}
+                  now={now}
+                  highlighted={lit === d.key}
+                  onRotationSettings={(id) => openSettings(id, "rotation")}
+                />
               ))}
             </ul>
           )}
-          <DisplaysList displays={displays} profiles={config.profiles} offlineOnly />
           <AddDisplayCard />
         </section>
 
@@ -367,7 +409,7 @@ export function ScreensView({
             finalFocus={() => (opener.current?.isConnected ? opener.current : true)}
             className="absolute inset-y-0 right-0 z-30 flex w-[400px] max-w-full flex-col border-l border-ui-subtle shadow-ui-drawer outline-none"
           >
-            <ScreenDetail config={config} profile={profile} stored={stored} windowSize={windowSize} kiosks={kiosks} displays={displays} autoProfileId={autoProfileId} onClose={closeSettings} {...detail} />
+            <ScreenDetail config={config} profile={profile} stored={stored} windowSize={windowSize} kiosks={kiosks} displays={displays} showOn={targets} autoProfileId={autoProfileId} onClose={closeSettings} {...detail} />
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
