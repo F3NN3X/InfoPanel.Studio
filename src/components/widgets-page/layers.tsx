@@ -8,14 +8,16 @@
 // Phase D: an eye and a lock on each row hide a block on the stage and keep a click there from picking it (G25, the editor's only:
 // `editor-flags.ts`), also in the menu and on Ctrl+Shift+H and Ctrl+Shift+L; a "Header" pseudo-row under the card opens its title,
 // sub-title and icon (G37, Q12: no format change).
+// Builder plan Phase 4: a search over the Layers names (the matches with the rows holding them), and "Move to" and "Select" in the menu.
 import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, Eye, EyeOff, Heading, Link2, Lock, LockOpen } from "lucide-react";
 import { ContextMenu } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import type { Block, BlockType, Recipe } from "@/widgets/recipe/types";
-import { addRefusal, flatten, isBound, layerName, moveRefusal, topLevel, type Path } from "./builder-model";
+import { addRefusal, flatten, isBound, layerName, moveRefusal, moveTargets, topLevel, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { flagged } from "./editor-flags";
+import { INPUT } from "./fields";
 import { type EditorFlag, type LayerCommand, layerEntries } from "./layer-entries";
 
 export type { EditorFlag, LayerCommand } from "./layer-entries";
@@ -58,6 +60,8 @@ export interface LayersProps {
   onCommand: (cmd: LayerCommand, at: number[]) => void;
   /** A drop of the dragged rows (`moveBlocks`). */
   onMove: (from: number[][], toParent: number[], index: number) => void;
+  /** "Move to" in the layer menu: the row (the selection, when the row is in it) to the end of the container at `toParent`. */
+  onMoveTo: (at: number[], toParent: number[]) => void;
   /** A tile dropped on a row. */
   onAdd: (type: BlockType, toParent: number[], index: number) => void;
   /** A refusal's reason, shown under Layers (null clears it). */
@@ -74,7 +78,7 @@ export interface LayersProps {
   renameAt?: { key: string } | null;
 }
 
-export function Layers({ recipe, path, selected, problems, tile, canPaste, canPasteStyle, onSelect, onRename, onCommand, onMove, onAdd, onWhy, hidden: hiddenKeys, locked, onFlag, header, onHeader, renameAt }: LayersProps) {
+export function Layers({ recipe, path, selected, problems, tile, canPaste, canPasteStyle, onSelect, onRename, onCommand, onMove, onMoveTo, onAdd, onWhy, hidden: hiddenKeys, locked, onFlag, header, onHeader, renameAt }: LayersProps) {
   const all = useMemo(() => flatten(recipe), [recipe]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   // a container closed by its path: a change to the tree's shape opens them all again (the paths moved)
@@ -91,9 +95,13 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
     [primaryKey],
   );
   const hidden = (p: number[]) => p.some((_, i) => collapsed.has(keyOf(p.slice(0, i))));
-  const rows = all.filter((r) => !hidden(r.path));
-  // the Header pseudo-row sits right under the card, while the card is open
-  const headerShown = !collapsed.has("");
+  // the search (Phase 4): the blocks whose Layers name has the words typed, with the rows holding them, every container open
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const matches = q ? new Set(all.filter((r) => layerName(recipe, r.block).toLowerCase().includes(q)).map((r) => keyOf(r.path))) : null;
+  const rows = matches ? all.filter((r) => [...matches].some((m) => m === keyOf(r.path) || holds(keyOf(r.path), m))) : all.filter((r) => !hidden(r.path));
+  // the Header pseudo-row sits right under the card, while the card is open (and no search is on)
+  const headerShown = !matches && !collapsed.has("");
   const visible = rows.flatMap((r) => (r.path.length === 0 && headerShown ? ["", HEADER] : [keyOf(r.path)]));
   const chosen = new Set(header ? [] : selected.map(keyOf));
   const nameOf = (key: string) => (key === HEADER ? "Header" : layerName(recipe, all.find((r) => keyOf(r.path) === key)!.block));
@@ -207,23 +215,54 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
   const onClick = (at: number[], e: MouseEvent) => onSelect(at, e.shiftKey ? "range" : e.ctrlKey || e.metaKey ? "toggle" : "only");
 
   const menuAt = menu?.at ?? [];
-  const entries = layerEntries({
-    at: menuAt,
-    many: topLevel(chosen.has(keyOf(menuAt)) ? selected : [menuAt]).length,
-    container: isContainer(all.find((r) => keyOf(r.path) === keyOf(menuAt))?.block ?? recipe.root),
-    hidden: hiddenKeys.includes(keyOf(menuAt)),
-    locked: locked.includes(keyOf(menuAt)),
-    canPaste,
-    canPasteStyle,
-    onCommand,
-    onRename: (at) => setRenaming(keyOf(at)),
-    onFlag,
-  });
+  const menuList = topLevel(chosen.has(keyOf(menuAt)) ? selected : [menuAt]);
+  const menuBlock = all.find((r) => keyOf(r.path) === keyOf(menuAt))?.block ?? recipe.root;
+  const entries = menu
+    ? layerEntries({
+        at: menuAt,
+        many: menuList.length,
+        container: isContainer(menuBlock),
+        hidden: hiddenKeys.includes(keyOf(menuAt)),
+        locked: locked.includes(keyOf(menuAt)),
+        canPaste,
+        canPasteStyle,
+        hasChildren: kidsOf(menuBlock).length > 0,
+        targets: moveTargets(recipe, menuList),
+        onCommand,
+        onMoveTo,
+        onRename: (at) => setRenaming(keyOf(at)),
+        onFlag,
+      })
+    : [];
 
   const tabStop = header && headerShown ? HEADER : visible.includes(primaryKey) ? primaryKey : visible[0];
   const active = !!dragging || !!tile;
   return (
     <>
+      <input
+        type="search"
+        aria-label="Search layers"
+        placeholder="Search layers"
+        data-layers-search=""
+        value={query}
+        onChange={(e) => setQuery(e.target.value.slice(0, 40))}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && query) {
+            e.preventDefault();
+            e.stopPropagation();
+            setQuery("");
+          } else if (e.key === "ArrowDown" && visible.length) {
+            e.preventDefault();
+            focusRow(visible[0]);
+          }
+        }}
+        className={cn(INPUT, "mb-1.5 w-full")}
+      />
+      {matches && !matches.size && (
+        <p role="status" data-layers-none="" className="px-2 py-1 text-micro text-ui-3">
+          No block is named like that
+        </p>
+      )}
       <div ref={listRef} role="tree" aria-label="Layers" aria-multiselectable className="flex flex-col gap-0.5" onDragLeave={(e) => {
           // left for good: to a place outside (a drag's leave often names no place: then only the box's own leave counts)
           if (e.relatedTarget ? e.currentTarget.contains(e.relatedTarget as Node) : e.target !== e.currentTarget) return;
@@ -238,7 +277,9 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
           const parent = kidsOf(block).length > 0 || !at.length;
           const isHidden = hiddenKeys.includes(key);
           const isLocked = locked.includes(key);
-          const open = parent && !collapsed.has(key);
+          const open = parent && (!!matches || !collapsed.has(key));
+          // a row shown only because it holds a match
+          const around = !!matches && !matches.has(key);
           const issues = problems.get(key);
           const name = layerName(recipe, block);
           return (
@@ -349,7 +390,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
                     className="h-[24px] min-w-0 flex-1 rounded-[5px] border border-ui-accent bg-ui-app px-1.5 text-body text-ui-1 outline-none"
                   />
                 ) : (
-                  <span className={cn("min-w-0 flex-1 truncate", flagged(hiddenKeys, at) && "opacity-50")} onDoubleClick={() => at.length && setRenaming(key)}>
+                  <span className={cn("min-w-0 flex-1 truncate", (flagged(hiddenKeys, at) || around) && "opacity-50")} onDoubleClick={() => at.length && setRenaming(key)}>
                     {name}
                   </span>
                 )}

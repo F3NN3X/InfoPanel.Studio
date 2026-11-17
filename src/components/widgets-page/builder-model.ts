@@ -440,6 +440,24 @@ export function flatten(recipe: Recipe): { block: Block; path: number[]; depth: 
   return out;
 }
 
+/**
+ * The containers the layer menu's "Move to" offers the blocks at `from` (Phase 4), in Layers' order, each named with the ones holding
+ * it ("Top row › Values"): every container but the one they are all in now and the ones inside them; one the validator would refuse
+ * carries its reason (the first block's that has one).
+ */
+export function moveTargets(recipe: Recipe, from: readonly Path[]): { path: number[]; label: string; why?: string }[] {
+  const top = topLevel(from);
+  if (!top.length) return [];
+  const home = top[0].slice(0, -1);
+  const allHome = top.every((p) => keyOf(p.slice(0, -1)) === keyOf(home));
+  return flatten(recipe).flatMap(({ block, path }) => {
+    if (!isContainer(block) || (allHome && keyOf(path) === keyOf(home)) || top.some((p) => keyOf(p) === keyOf(path) || isInside(path, p))) return [];
+    const label = path.map((_, k) => layerName(recipe, blockAt(recipe, path.slice(0, k + 1))!)).join(" › ") || layerName(recipe, recipe.root);
+    const why = top.map((p) => moveRefusal(recipe, p, path)).find(Boolean);
+    return [{ path, label, ...(why ? { why } : {}) }];
+  });
+}
+
 /** The block count the validation line says. */
 export const blockCount = (recipe: Recipe): number => flatten(recipe).length;
 

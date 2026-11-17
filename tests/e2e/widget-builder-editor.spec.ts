@@ -385,6 +385,69 @@ test("a warning dot marks each Layers row the problem list names, and leaves whe
   await expect(dots).toHaveCount(0);
 });
 
+// builder plan Phase 4: Layers' search, "Move to" and "Select" in the layer menu, and hide and lock kept across a reload (D Q3)
+test("Layers: search, Move to and Select from the menu, and hide and lock kept across a reload", async ({ page, scratch }) => {
+  const { errors } = watchErrors(page);
+  await newWidget(page, scratch.base);
+  await blocks(page, ["row", "value"]);
+  await layer(page, "0").click();
+  await add(page, "ring");
+  expect(await layers(page)).toEqual([" New widget", "0 Row", "0.0 Ring", "1 Value"]);
+  // the search: the matches with the rows holding them (dimmed), then none, then Escape brings every row back
+  const search = page.getByRole("searchbox", { name: "Search layers" });
+  await search.fill("ring");
+  expect(await layers(page)).toEqual([" New widget", "0 Row", "0.0 Ring"]);
+  await expect(page.locator("[data-layer-header]")).toHaveCount(0);
+  await search.press("ArrowDown");
+  await expect(layer(page, "")).toBeFocused();
+  await search.fill("nothing like it");
+  await expect(page.locator("[data-layers-none]")).toHaveText("No block is named like that");
+  expect(await layers(page)).toEqual([]);
+  await search.press("Escape");
+  await expect(search).toHaveValue("");
+  expect(await layers(page)).toEqual([" New widget", "0 Row", "0.0 Ring", "1 Value"]);
+  // Move to, by mouse: the Value into the Row (the card it is in is not offered)
+  await layer(page, "1").click({ button: "right" });
+  const menuEl = page.getByTestId("builder-layer-menu");
+  await menuEl.getByRole("menuitem", { name: "Move to" }).click();
+  await expect(menuEl.locator('[data-sub="move-to"]').getByRole("menuitem")).toHaveText(["Row"]);
+  await menuEl.locator('[data-sub="move-to"]').getByRole("menuitem", { name: "Row" }).click();
+  expect(await layers(page)).toEqual([" New widget", "0 Row", "0.0 Ring", "0.1 Value"]);
+  await expect(said(page)).toHaveText(/Moved Value into Row/);
+  // and by keyboard, back to the card: Shift+F10, down to Move to, Right opens it, Enter picks
+  await layer(page, "0.1").focus();
+  await page.keyboard.press("Shift+F10");
+  for (let n = 0; n < 16; n++) {
+    if ((await page.evaluate(() => document.activeElement?.textContent ?? "")).startsWith("Move to")) break;
+    await page.keyboard.press("ArrowDown");
+  }
+  await page.keyboard.press("ArrowRight");
+  await expect(menuEl.locator('[data-sub="move-to"] [role="menuitem"]').first()).toBeFocused();
+  await page.keyboard.press("Enter");
+  expect(await layers(page)).toEqual([" New widget", "0 Row", "0.0 Ring", "1 Value"]);
+  // Select children of the Row, then Select parent of its Ring
+  await layer(page, "0").click({ button: "right" });
+  await menuEl.getByRole("menuitem", { name: "Select", exact: true }).click();
+  await menuEl.getByRole("menuitem", { name: "Select children" }).click();
+  await expect(layer(page, "0.0")).toHaveAttribute("aria-selected", "true");
+  await expect(layer(page, "0")).toHaveAttribute("aria-selected", "false");
+  await layer(page, "0.0").click({ button: "right" });
+  await menuEl.getByRole("menuitem", { name: "Select", exact: true }).click();
+  await menuEl.getByRole("menuitem", { name: "Select parent" }).click();
+  await expect(layer(page, "0")).toHaveAttribute("aria-selected", "true");
+  await expect(layer(page, "0.0")).toHaveAttribute("aria-selected", "false");
+  // hide the Ring and lock the Value; after a reload the draft opens with both as they were
+  await page.getByRole("button", { name: "Hide Ring on the stage" }).click();
+  await page.getByRole("button", { name: "Lock Value" }).click();
+  await page.reload();
+  await widgetsPage(page);
+  await page.locator("[data-unsaved-recipes]").getByRole("button", { name: "New widget", exact: true }).click();
+  await expect(layer(page, "0.0")).toHaveAttribute("data-hidden", "");
+  await expect(layer(page, "1")).toHaveAttribute("data-locked", "");
+  await expect(page.locator('[data-builder-stage] [data-recipe-path="0.0"]')).toHaveCSS("visibility", "hidden");
+  expect(errors).toEqual([]);
+});
+
 test("B17: from the Widgets page the studio's keys leave the screen in Edit alone (Delete in browse, Ctrl+Z in the builder)", async ({ page, scratch }) => {
   const local = fs.readFileSync(path.join(scratch.dataDir, "config.json"), "utf8");
   await page.addInitScript((value) => localStorage.setItem("infopanel-dashboard:config:v1", value), local);

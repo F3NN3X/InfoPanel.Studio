@@ -1,7 +1,8 @@
 // The layer menu's rows (builder plan Phase 2), one list for Layers' right-click and the stage's: the same commands on the same
 // selection wherever the menu opens. Each row runs a `LayerCommand` on the row it opened on (the selection, when that row is in it).
+// Phase 4: "Move to" lists the containers (a refused one greyed, with its reason) and "Select" picks the parent or the children.
 import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpLeft, ClipboardPaste, Columns3, Copy, CopyPlus, Eye, EyeOff, Grid2x2, LayoutPanelTop, Lock, LockOpen, Paintbrush, Pencil, Scissors, SquareDashed, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpLeft, ClipboardPaste, Columns3, Copy, CopyPlus, Eye, EyeOff, FolderInput, Grid2x2, LayoutPanelTop, ListTree, Lock, LockOpen, MousePointer2, Paintbrush, Pencil, Scissors, SquareDashed, Trash2 } from "lucide-react";
 import type { ContextMenuEntry } from "@/components/ui/context-menu";
 
 /** What the layer menu and its keys do to a row (the selection, when the row is in it). */
@@ -20,7 +21,16 @@ export type LayerCommand =
   | "down"
   | "out"
   | "in"
+  | "select-parent"
+  | "select-children"
   | "delete";
+
+/** A container "Move to" offers (Phase 4): its path, its name with the ones holding it, and why the selection can't go in it. */
+export interface MoveTarget {
+  path: number[];
+  label: string;
+  why?: string;
+}
 
 /** What the editor alone keeps of a block (G25). */
 export type EditorFlag = "hidden" | "locked";
@@ -36,13 +46,19 @@ export interface LayerEntriesOf {
   locked: boolean;
   canPaste: boolean;
   canPasteStyle: boolean;
+  /** The row's block holds blocks now (Select children). */
+  hasChildren: boolean;
+  /** The containers "Move to" lists (`moveTargets`). */
+  targets: readonly MoveTarget[];
   onCommand: (cmd: LayerCommand, at: number[]) => void;
+  /** The row (the selection, when the row is in it) moved to the end of the container at `toParent`. */
+  onMoveTo: (at: number[], toParent: number[]) => void;
   onRename: (at: number[]) => void;
   onFlag: (flag: EditorFlag, at: number[], on: boolean) => void;
 }
 
 /** The layer menu's rows for the row `at`. The root card takes only Paste. */
-export function layerEntries({ at, many, container, hidden, locked, canPaste, canPasteStyle, onCommand, onRename, onFlag }: LayerEntriesOf): ContextMenuEntry[] {
+export function layerEntries({ at, many, container, hidden, locked, canPaste, canPasteStyle, hasChildren, targets, onCommand, onMoveTo, onRename, onFlag }: LayerEntriesOf): ContextMenuEntry[] {
   const root = at.length === 0;
   const entry = (cmd: LayerCommand, label: string, icon: ReactNode, hint: string | undefined, disabled = root, danger?: boolean): ContextMenuEntry => ({ id: cmd, label, icon, hint, disabled, danger, onSelect: () => onCommand(cmd, at) });
   return [
@@ -70,6 +86,21 @@ export function layerEntries({ at, many, container, hidden, locked, canPaste, ca
     entry("up", "Move up", <ArrowUp />, "Alt+↑", root || many > 1),
     entry("down", "Move down", <ArrowDown />, "Alt+↓", root || many > 1),
     entry("out", "Move out", <ArrowUpLeft />, "Alt+←", at.length < 2 || many > 1),
+    // flyouts (Phase 4), so the menu's own rows stay as many as the keyboard walks
+    {
+      id: "move-to",
+      label: "Move to",
+      icon: <FolderInput />,
+      disabled: root || !targets.length,
+      submenu: targets.map((t) => ({ id: `move-to:${t.path.join(".")}`, label: t.label, disabled: !!t.why, title: t.why, onSelect: () => onMoveTo(at, t.path) })),
+    },
+    {
+      id: "select",
+      label: "Select",
+      icon: <MousePointer2 />,
+      disabled: root,
+      submenu: [entry("select-parent", "Select parent", <ArrowUpLeft />, undefined), entry("select-children", "Select children", <ListTree />, undefined, root || !hasChildren)],
+    },
     "separator",
     entry("delete", "Delete", <Trash2 />, "Del", root, true),
   ];

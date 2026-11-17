@@ -36,12 +36,12 @@ import type { Data } from "@/widgets/core/types";
 import { gridPresets } from "@/widgets/define";
 import type { BlockType, Cells, PackageFile, Recipe, RecipeOption } from "@/widgets/recipe/types";
 import { toFlat, toNames } from "@/widgets/shared/data-adapter";
-import { ADD_ORDER, addBlock, addBlockAt, addImageAt, addRefusal, addSnippet, BLOCK_LABEL, blockAt, CELLS_MAX, cleanUp, devicesIn, draftSample, duplicateBlocks, flatten, imagePath, keyMove, landing, layerName, leftUnused, moveBlock, moveBlocks, nextVersion, outsideRange, packedImages, presetValues, rangeOf, recipeIssues, removeBlocks, SNIPPETS, type SnippetId, stageCells, stepBlock, topLevel, updateBlock, validationLine, unwrap, withFormat, wrapIn, type Path } from "./builder-model";
+import { ADD_ORDER, addBlock, addBlockAt, addImageAt, addRefusal, addSnippet, BLOCK_LABEL, blockAt, CELLS_MAX, cleanUp, devicesIn, draftSample, duplicateBlocks, flatten, imagePath, keyMove, landing, layerName, leftUnused, moveBlock, moveBlocks, moveTargets, nextVersion, outsideRange, packedImages, presetValues, rangeOf, recipeIssues, removeBlocks, SNIPPETS, type SnippetId, stageCells, stepBlock, topLevel, updateBlock, validationLine, unwrap, withFormat, wrapIn, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { BlockTab } from "./block-tab";
 import { clipboard, copyOf, copyStyle, pasteBlocks, pasteStyle, setClipboard, setStyleClipboard, styleClipboard } from "./clipboard";
 import { type Crowd, crowdIssues, crowding, measureInks } from "./crowding";
-import { type EditorFlags, flagged, followFlags, hiddenRule, setKeys, stagePick } from "./editor-flags";
+import { type EditorFlags, flagged, flagsOn, followFlags, hiddenRule, loadFlags, saveFlags, setKeys, stagePick } from "./editor-flags";
 import { NumberInput, type Typing, TypingContext } from "./fields";
 import type { History } from "./history";
 import { layerEntries } from "./layer-entries";
@@ -320,12 +320,16 @@ export function Builder(p: BuilderProps) {
   const [tile, setTile] = useState<BlockType | null>(null);
 
   // hide and lock (G25): the editor's own, per open recipe, following their blocks through each edit; never in the recipe
+  // (kept across a reload in this browser's storage, Phase 4: what was kept is read once, and each change is written back)
   const [allFlags, setAllFlags] = useState<Readonly<Record<string, EditorFlags>>>({});
-  const kept = allFlags[p.active.key];
+  const [keptBefore] = useState(loadFlags);
+  const kept = allFlags[p.active.key] ?? (keptBefore[p.active.key] && flagsOn(keptBefore[p.active.key], recipe));
   const flags = kept ? followFlags(kept, recipe) : { recipe, hidden: [], locked: [] };
   useEffect(() => {
-    if (kept && flags !== kept) setAllFlags((all) => ({ ...all, [p.active.key]: flags }));
+    // (flags read from storage join the state on first use, so they follow their blocks from then on)
+    if (kept && (flags !== kept || !allFlags[p.active.key])) setAllFlags((all) => ({ ...all, [p.active.key]: flags }));
   }, [flags]);
+  useEffect(() => saveFlags({ ...keptBefore, ...allFlags }), [allFlags]);
   /** The eye or the lock of a row: on the selection when the row is in it, else on that block. */
   const setFlag = (flag: EditorFlag, at: number[], on: boolean) => {
     const list = topLevel(selected.some((x) => keyOf(x) === keyOf(at)) ? selected : [at]);
@@ -512,6 +516,23 @@ export function Builder(p: BuilderProps) {
         edit(r.recipe);
         return say(`Pasted the style of ${clip.name} onto ${what(list)}${r.skipped.length ? `; it can't take the ${r.skipped.join(", ")}` : ""}`);
       }
+      case "select-parent": {
+        if (!at.length) return;
+        const up = at.slice(0, -1);
+        setPath(up);
+        setTab("block");
+        refocus();
+        return say(`${nameAt(up)} selected`);
+      }
+      case "select-children": {
+        const b = blockAt(recipe, at);
+        const kids = b && "children" in b ? b.children.map((_, k) => [...at, k]) : [];
+        if (!kids.length) return;
+        setSelection(kids, kids[0]);
+        setTab("block");
+        refocus();
+        return say(`${what(kids)} selected`);
+      }
       case "up":
       case "down":
         if (!at.length) return;
@@ -532,6 +553,13 @@ export function Builder(p: BuilderProps) {
     edit(r.recipe);
     setSelection(r.paths);
     say(`Moved ${what(from)} into ${nameAt(toParent)}`);
+  };
+  /** "Move to" in the layer menu (Phase 4): the row, or the selection when the row is in it, to the end of that container. */
+  const moveTo = (at: number[], toParent: number[]) => {
+    setWhy(null);
+    const target = blockAt(recipe, toParent);
+    drop(topLevel(selected.some((x) => keyOf(x) === keyOf(at)) ? selected : [at]), toParent, target && "children" in target ? target.children.length : 0);
+    refocus();
   };
   /** Renamed in Layers (F2, double-click, the menu): its name in Layers; emptied, the type's name again. */
   const rename = (at: number[], text: string) => {
@@ -665,15 +693,19 @@ export function Builder(p: BuilderProps) {
   };
   const stageEntries = (at: number[]) => {
     const b = blockAt(recipe, at);
+    const list = topLevel(selected.some((s) => keyOf(s) === keyOf(at)) ? selected : [at]);
     return layerEntries({
       at,
-      many: topLevel(selected.some((s) => keyOf(s) === keyOf(at)) ? selected : [at]).length,
+      many: list.length,
       container: !!b && "children" in b,
       hidden: flags.hidden.includes(keyOf(at)),
       locked: flags.locked.includes(keyOf(at)),
       canPaste,
       canPasteStyle,
+      hasChildren: !!b && "children" in b && b.children.length > 0,
+      targets: moveTargets(recipe, list),
       onCommand: run,
+      onMoveTo: moveTo,
       onRename: (x) => setRenameAt({ key: keyOf(x) }),
       onFlag: setFlag,
     });
@@ -873,6 +905,7 @@ export function Builder(p: BuilderProps) {
               onRename={rename}
               onCommand={run}
               onMove={drop}
+              onMoveTo={moveTo}
               onAdd={(type, toParent, index) => addAt(type, toParent, index, `into ${nameAt(toParent)}`)}
               onWhy={setWhy}
               hidden={flags.hidden}
