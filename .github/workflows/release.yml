@@ -109,9 +109,11 @@ jobs:
           path: release
           retention-days: 1
 
-  # The e2e specs PRs skip, against this commit's own build.
+  # The e2e specs PRs skip, against this commit's own build. A stable tag only: a beta (vX.Y.Z-beta.N) is published once the
+  # installer builds, since its commit already passed the gate and ship's local verify:full (which runs every e2e spec).
   e2e:
     needs: gate
+    if: ${{ !contains(github.ref_name, '-beta.') }}
     runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
@@ -132,6 +134,8 @@ jobs:
 
   publish:
     needs: [build, e2e]
+    # e2e is skipped for a beta; a stable tag still needs it green
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.e2e.result == 'success' || (needs.e2e.result == 'skipped' && contains(github.ref_name, '-beta.'))) }}
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
@@ -167,6 +171,8 @@ jobs:
   # the one the feed keeps; the dropped tag's GitHub release exists regardless.
   feed:
     needs: publish
+    # explicit: a skipped e2e upstream (a beta) would otherwise skip this job too
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
