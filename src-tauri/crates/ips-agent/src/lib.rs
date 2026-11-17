@@ -71,8 +71,7 @@ pub fn run(args: &[String], env_url: Option<&str>) {
         }
         "permission" => {
             if has_input {
-                let var = |k: &str| std::env::var(k).ok();
-                let key = hook_auth::key_file(rest, var("DASHBOARD_DATA_DIR").as_deref(), var("LOCALAPPDATA").as_deref(), var("HOME").as_deref());
+                let key = hook_auth::key_path(rest);
                 if let Some(out) = permission(&base, agent_of(rest), &input, &key, PERMISSION_DEADLINE) {
                     println!("{out}");
                 }

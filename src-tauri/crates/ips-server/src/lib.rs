@@ -42,6 +42,7 @@ pub mod integrations;
 pub mod js;
 pub mod js_date;
 pub mod json;
+pub mod key_file;
 pub mod library;
 pub mod locale;
 pub mod media;
@@ -130,6 +131,9 @@ pub struct ServerConfig {
     /// The agents whose permission requests the app's prompt window may answer (approvals.rs): none unless AGENT_APPROVALS names them
     /// (or the app's Settings > Coding agents switches).
     pub agent_approvals: Vec<String>,
+    /// The key the approvals' answers are signed with (hook_auth.rs); None: this user's own (`key_file::key_file`). Tests
+    /// give a scratch one.
+    pub agent_key_file: Option<PathBuf>,
     pub dist: PathBuf,
     pub data_dir: PathBuf,
     pub infopanel_dir: PathBuf,
@@ -152,6 +156,7 @@ impl ServerConfig {
             action_runner: switch("ACTION_RUNNER"),
             obs_stream: switch("OBS_STREAM_CONTROL"),
             agent_approvals: approvals::parse_agents(std::env::var("AGENT_APPROVALS").ok().as_deref()),
+            agent_key_file: None,
             dist: env::non_empty("DASHBOARD_DIST").map_or_else(|| env::resolve("dist"), |d| env::resolve(&d)),
             data_dir: env::non_empty("DASHBOARD_DATA_DIR").map_or_else(env::default_data_dir, |d| env::resolve(&d)),
             infopanel_dir: env::infopanel_dir(),
@@ -363,7 +368,12 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
     weather.start(&shutdown);
     let library = LibraryStore::new(cfg.data_dir.join("library"));
     let actions = actions::Actions::new(cfg.data_dir.clone());
-    let approvals = approvals::Approvals::new(cfg.agent_approvals.clone(), approvals::WAIT, cfg.data_dir.clone());
+    let approvals = approvals::Approvals::new(
+        cfg.agent_approvals.clone(),
+        approvals::WAIT,
+        cfg.data_dir.clone(),
+        cfg.agent_key_file.clone().unwrap_or_else(key_file::key_file),
+    );
     println!("InfoPanel Studio on http://{}:{port} (config: {})", cfg.host, cfg.config_file().display());
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");

@@ -40,6 +40,7 @@ fn config(dir: &Path) -> ServerConfig {
         action_runner: false,
         obs_stream: false,
         agent_approvals: vec!["claude".into()],
+        agent_key_file: Some(dir.join("config").join(hook_auth::KEY_FILE)),
         dist: dir.join("dist"),
         data_dir: dir.join("data"),
         infopanel_dir: dir.join("infopanel"),
@@ -132,7 +133,7 @@ async fn waiting(approvals: &Approvals) -> Request {
 }
 
 fn key(data: &Path) -> hook_auth::Key {
-    std::fs::read(data.join(hook_auth::KEY_FILE)).unwrap().try_into().unwrap()
+    std::fs::read(data.with_file_name("config").join(hook_auth::KEY_FILE)).unwrap().try_into().unwrap()
 }
 
 #[tokio::test]
@@ -154,7 +155,8 @@ async fn the_prompt_allows_and_denies_signed_for_the_hook_and_logged() {
 
         assert!(server.approvals.answer(&request.id, behavior, "prompt", 1));
         let hooked = held.await.unwrap();
-        // signed with the key in the data folder, over the hook's nonce, this request and this decision
+        // signed with this user's key (never in the data folder), over the hook's nonce, this request and this decision
+        assert!(!server.data.join(hook_auth::KEY_FILE).exists());
         let mac = hook_auth::sign(&key(&server.data), NONCE, &request.id, word);
         assert_eq!((hooked.status, json_of(&hooked)), (200, json!({ "behavior": word, "id": request.id, "mac": mac })));
         assert!(!server.approvals.answer(&request.id, Behavior::Allow, "prompt", 2));

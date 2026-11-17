@@ -474,11 +474,11 @@ fn permission_case(agent: &str, key: &std::path::Path) -> Case {
     Case::new(&["permission", agent, "--url={URL}", &key], PERMISSION)
 }
 
-/// A folder with the key the test server signs with.
+/// A folder with the key the test server signs with, owner-only as the server makes it.
 fn key_folder() -> (tempfile::TempDir, std::path::PathBuf) {
     let dir = tempfile::tempdir().unwrap();
     let file = dir.path().join(hook_auth::KEY_FILE);
-    std::fs::write(&file, KEY).unwrap();
+    hook_auth::key_file::create(&file, &KEY).unwrap();
     (dir, file)
 }
 
@@ -521,7 +521,15 @@ fn an_allow_from_whatever_took_the_port_is_ignored() {
         assert_eq!(seen.len(), 1);
     }
     // a signed answer, but this PC's key file says otherwise
-    std::fs::write(&key, [8u8; hook_auth::KEY_BYTES]).unwrap();
+    std::fs::remove_file(&key).unwrap();
+    hook_auth::key_file::create(&key, &[8u8; hook_auth::KEY_BYTES]).unwrap();
+    let (outcome, _) = run_case(&permission_case("claude", &key).reply(Reply::Signed("allow")));
+    assert_eq!((outcome.stdout, outcome.code), (vec![], Some(0)));
+    // the right key, but in a file others may read or write: not trusted
+    std::fs::remove_file(&key).unwrap();
+    std::fs::write(&key, KEY).unwrap();
+    #[cfg(unix)]
+    std::fs::set_permissions(&key, std::os::unix::fs::PermissionsExt::from_mode(0o644)).unwrap();
     let (outcome, _) = run_case(&permission_case("claude", &key).reply(Reply::Signed("allow")));
     assert_eq!((outcome.stdout, outcome.code), (vec![], Some(0)));
     // no key file at all

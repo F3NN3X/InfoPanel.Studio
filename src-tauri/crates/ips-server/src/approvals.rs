@@ -222,12 +222,12 @@ impl Drop for Waiting<'_> {
 }
 
 impl Approvals {
-    /// Approvals for `enabled` agents; with any on, the signing key is read from `log_dir` or made there.
-    pub fn new(enabled: Vec<String>, wait: Duration, log_dir: PathBuf) -> Self {
+    /// Approvals for `enabled` agents, logged in `log_dir`; with any on, the signing key is read from `key_file` or made there.
+    pub fn new(enabled: Vec<String>, wait: Duration, log_dir: PathBuf, key_file: PathBuf) -> Self {
         let key = if enabled.is_empty() {
             None
         } else {
-            match hook_auth::load_or_create(&log_dir.join(hook_auth::KEY_FILE)) {
+            match hook_auth::load_or_create(&key_file) {
                 Ok(key) => Some(key),
                 Err(err) => {
                     log::warn!(target: "server", "approvals: no agent hook key ({err}); requests go to the terminal");
@@ -401,7 +401,7 @@ mod tests {
     use super::*;
 
     fn approvals(dir: &std::path::Path, on: &[&str], wait_ms: u64) -> Approvals {
-        Approvals::new(on.iter().map(|s| (*s).to_string()).collect(), Duration::from_millis(wait_ms), dir.to_path_buf())
+        Approvals::new(on.iter().map(|s| (*s).to_string()).collect(), Duration::from_millis(wait_ms), dir.to_path_buf(), dir.join("config").join(hook_auth::KEY_FILE))
     }
 
     fn hook() -> Value {
@@ -458,7 +458,7 @@ mod tests {
         let (_keep, stop) = running();
         assert_eq!(a.wait("claude", &hook(), 0, stop).await.0, Outcome::Skipped);
         assert!(a.requests().is_empty());
-        assert!(!dir.path().join(hook_auth::KEY_FILE).exists());
+        assert!(!dir.path().join("config").join(hook_auth::KEY_FILE).exists());
         assert_eq!(a.sign("0123456789abcdef0123456789abcdef", "x", Behavior::Allow), None);
     }
 

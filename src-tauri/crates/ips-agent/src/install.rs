@@ -625,7 +625,7 @@ mod tests {
         assert!(codex["hooks"]["PermissionRequest"][0]["hooks"][0]["command"].as_str().unwrap().contains(" --key="));
         let arg = command.split(' ').find_map(|a| a.strip_prefix("--key=")).unwrap();
         // base64url: one shell word, whatever the path holds
-        assert_eq!(crate::hook_auth::key_file(&[format!("--key={arg}")], None, None, None), Path::new(key));
+        assert_eq!(crate::hook_auth::key_path(&[format!("--key={arg}")]), Path::new(key));
         assert_eq!(key_suffix(None), "");
         assert_eq!(key_suffix(Some("")), "");
     }

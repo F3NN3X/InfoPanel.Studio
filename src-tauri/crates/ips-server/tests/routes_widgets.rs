@@ -54,6 +54,7 @@ async fn start() -> Server {
         action_runner: false,
         obs_stream: false,
         agent_approvals: vec![],
+        agent_key_file: None,
         dist: dir.path().join("dist"),
         data_dir: dir.path().join("data"),
         infopanel_dir: dir.path().join("infopanel"),

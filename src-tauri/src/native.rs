@@ -29,6 +29,7 @@ pub fn server_config(s: &Settings, paths: &Paths, debug: bool, version: &str) ->
         action_runner: s.action_runner,
         obs_stream: s.obs_stream_control,
         agent_approvals: s.agent_approvals.clone(),
+        agent_key_file: None,
         dist: env::resolve(&paths::display(&paths.dist_dir())),
         data_dir: server_data_dir(paths),
         infopanel_dir: env::infopanel_dir(),
@@ -58,6 +59,8 @@ pub fn start_line(cfg: &ServerConfig, port: u16) -> String {
 /// A running ips-server. Dropping it stops the server too, without waiting.
 pub struct Native {
     pub port: u16,
+    /// The agents' permission requests, read and answered by the prompt window (agent_prompt.rs).
+    pub approvals: ips_server::approvals::Approvals,
     stop: Option<oneshot::Sender<()>>,
     /// Sent when `serve` returns; dropped unsent when the task panicked.
     done: mpsc::Receiver<()>,
@@ -82,7 +85,7 @@ pub fn start(cfg: ServerConfig, home: Option<PathBuf>) -> Result<Native, StartEr
                 return;
             }
         };
-        let _ = bound_tx.send(Ok(bound.port()));
+        let _ = bound_tx.send(Ok((bound.port(), bound.approvals())));
         bound
             .serve(async move {
                 let _ = stopped.await;
@@ -90,11 +93,12 @@ pub fn start(cfg: ServerConfig, home: Option<PathBuf>) -> Result<Native, StartEr
             .await;
         let _ = done_tx.send(());
     });
-    let port = bound_rx
+    let (port, approvals) = bound_rx
         .recv()
         .map_err(|_| StartError::Other("the server task ended while starting".into()))??;
     Ok(Native {
         port,
+        approvals,
         stop: Some(stop),
         done,
         task,

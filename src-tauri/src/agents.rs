@@ -23,9 +23,10 @@ pub fn hook_url(s: &Settings) -> String {
     crate::settings::server_origin(s)
 }
 
-/// The key file the permission hook checks the panel's answers with: the in-process server's (ips-server's hook_auth.rs).
-pub fn hook_key(paths: &Paths) -> String {
-    paths::display(&crate::native::server_data_dir(paths).join(ips_server::hook_auth::KEY_FILE))
+/// The key file the permission hook checks the panel's answers with: this user's, as the in-process server finds it
+/// (ips-server's key_file.rs).
+pub fn hook_key(_paths: &Paths) -> String {
+    paths::display(&ips_server::key_file::key_file())
 }
 
 /// The ips-agent the hook commands run, with forward slashes: the agents run hook commands through

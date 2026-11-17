@@ -1,26 +1,24 @@
-// The server's signature on a permission answer (pinned layer P8, security review 4): the agent's hook must not take an allow
-// from whatever listens on the port. The key is 32 random bytes in DATA_DIR/agent-hook.key, made by the server the first time
-// it starts with approvals on, owner-only where the platform has modes and under the user's own profile folder elsewhere (its
-// inherited ACL: the user, SYSTEM and Administrators). No route reads it. The hook reads the same file (ips-agent's
-// `hook_auth.rs`, which keeps this code's twin), sends a fresh nonce with each request, and prints a decision only when the
-// answer carries this keyed BLAKE2b over the nonce, the request's id and the decision.
+// The server's signature on a permission answer (pinned layer P8, security review 4 and 5): the agent's hook must not take an
+// allow from whatever listens on the port. The key is 32 random bytes in the user's own folder (key_file.rs: never the data
+// folder, owner-only, and refused when it isn't), made by the server the first time it starts with approvals on. No route
+// reads it. The hook reads the same file (ips-agent's `hook_auth.rs`, which keeps this code's twin), sends a fresh nonce
+// with each request, and prints a decision only when the answer carries this keyed BLAKE2b over the nonce, the request's id
+// and the decision.
 //
-// What it proves, and no more: the answer came from a process that can read the user's key file. Anything already running as
-// the user with file access can read it too (docs/security.md, "Agent approvals: threat model").
+// What it proves, and no more: the answer came from a process that can read this user's key file. Anything already running
+// as this user can read it too (docs/security.md, "Agent approvals: threat model").
 
-use std::io::Write;
 use std::path::Path;
 
 use blake2::digest::consts::U32;
 use blake2::digest::Mac;
 use blake2::Blake2bMac;
 
-pub const KEY_FILE: &str = "agent-hook.key";
-pub const KEY_BYTES: usize = 32;
+pub use crate::key_file::{key_file, Key, KEY_BYTES, KEY_FILE};
+use crate::key_file::{self, Refused};
+
 /// Parts this use of a key from any other.
 const DOMAIN: &[u8] = b"ips-agent-permission-v1\0";
-
-pub type Key = [u8; KEY_BYTES];
 
 /// A nonce as the hook sends it: 32 lowercase hex characters (16 random bytes).
 pub fn valid_nonce(nonce: &str) -> bool {
@@ -39,22 +37,21 @@ pub fn sign(key: &Key, nonce: &str, id: &str, behavior: &str) -> String {
     mac_of(key, nonce, id, behavior).finalize().into_bytes().iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// The key in `file`, or a new one written there (owner-only where the platform has modes). A file that is not a key is an
-/// error and is never overwritten, so an answer can't start to verify with a key nobody chose.
+/// The key in `file`, or a new one written there. A file someone else may read or write, or that is not a key, is replaced
+/// by a fresh one: a key that was planted or seen must never sign.
 pub fn load_or_create(file: &Path) -> std::io::Result<Key> {
-    if file.exists() {
-        return std::fs::read(file)?.try_into().map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "the agent hook key is damaged"));
+    match key_file::read(file) {
+        Ok(key) => return Ok(key),
+        Err(Refused::Missing) => {}
+        Err(Refused::Unreadable(e)) => return Err(std::io::Error::other(e)),
+        Err(refused) => {
+            log::warn!(target: "server", "approvals: the agent hook key is not owner-only or not a key ({refused:?}); making a new one");
+            std::fs::remove_file(file)?;
+        }
     }
     let mut key = [0u8; KEY_BYTES];
     getrandom::fill(&mut key).map_err(std::io::Error::other)?;
-    if let Some(dir) = file.parent() {
-        std::fs::create_dir_all(dir)?;
-    }
-    let mut options = std::fs::OpenOptions::new();
-    options.write(true).create_new(true);
-    #[cfg(unix)]
-    std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
-    options.open(file)?.write_all(&key)?;
+    key_file::create(file, &key)?;
     Ok(key)
 }
 
@@ -83,15 +80,25 @@ mod tests {
     }
 
     #[test]
-    fn makes_the_key_once_and_never_overwrites_a_damaged_one() {
+    fn makes_the_key_once_owner_only() {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("d").join(KEY_FILE);
         let key = load_or_create(&file).unwrap();
+        assert!(key_file::owner_only(&file));
         assert_eq!(load_or_create(&file).unwrap(), key);
+    }
+
+    #[test]
+    fn a_planted_loose_or_damaged_key_is_replaced_by_a_fresh_one() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join(KEY_FILE);
+        // planted with the folder's inherited entries (others may read it): never used
+        std::fs::write(&file, [7u8; KEY_BYTES]).unwrap();
         #[cfg(unix)]
-        assert_eq!(std::os::unix::fs::PermissionsExt::mode(&std::fs::metadata(&file).unwrap().permissions()) & 0o777, 0o600);
-        std::fs::write(&file, b"short").unwrap();
-        assert!(load_or_create(&file).is_err());
-        assert_eq!(std::fs::read(&file).unwrap(), b"short");
+        std::fs::set_permissions(&file, std::os::unix::fs::PermissionsExt::from_mode(0o644)).unwrap();
+        let key = load_or_create(&file).unwrap();
+        assert_ne!(key, [7u8; KEY_BYTES]);
+        assert!(key_file::owner_only(&file));
+        assert_eq!(key_file::read(&file), Ok(key));
     }
 }

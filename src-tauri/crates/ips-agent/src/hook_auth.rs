@@ -1,7 +1,8 @@
-// The check on the server's permission answer (pinned layer P8, security review 4): the twin of ips-server's
+// The check on the server's permission answer (pinned layer P8, security review 4 and 5): the twin of ips-server's
 // `hook_auth.rs`. Each request goes with a fresh nonce, and an answer counts only when it carries the keyed BLAKE2b, made
-// with the key in the server's data folder, over that nonce, the request's id and the decision. A program that took the port
-// can't make one, so its allow is ignored and the agent asks in its terminal.
+// with this user's key (in their own folder, owner-only: ips-server's key_file.rs, compiled here too), over that nonce, the
+// request's id and the decision. A program that took the port can't make one, so its allow is ignored and the agent asks in
+// its terminal; so is any answer while the key file is missing or others may read it.
 
 use std::path::{Path, PathBuf};
 
@@ -9,12 +10,13 @@ use blake2::digest::consts::U32;
 use blake2::digest::Mac;
 use blake2::Blake2bMac;
 
-pub const KEY_FILE: &str = "agent-hook.key";
-pub const KEY_BYTES: usize = 32;
+#[path = "../../ips-server/src/key_file.rs"]
+pub mod key_file;
+
+pub use key_file::{Key, KEY_BYTES, KEY_FILE};
+
 /// The same as the server's: parts this use of a key from any other.
 const DOMAIN: &[u8] = b"ips-agent-permission-v1\0";
-
-pub type Key = [u8; KEY_BYTES];
 
 /// A fresh nonce: 16 random bytes as 32 lowercase hex characters, or None if the OS gives no randomness.
 pub fn nonce() -> Option<String> {
@@ -49,22 +51,19 @@ fn from_hex(text: &str) -> Option<Vec<u8>> {
     (0..text.len()).step_by(2).map(|i| u8::from_str_radix(text.get(i..i + 2)?, 16).ok()).collect()
 }
 
-/// Where the key is: the `--key=` argument (a base64url path, written by the installer), else DASHBOARD_DATA_DIR's, else the
-/// server's default data folder's (ips-server's `env::default_data_dir`).
-pub fn key_file(args: &[String], data_dir: Option<&str>, local: Option<&str>, home: Option<&str>) -> PathBuf {
-    if let Some(path) = args.iter().find_map(|a| a.strip_prefix("--key=")).map(crate::wrap::decode).filter(|p| !p.is_empty()) {
-        return PathBuf::from(path);
+/// Where the key is: the `--key=` argument (a base64url path, written by the installer), else this user's own
+/// (`key_file::key_file`, as the server finds it).
+pub fn key_path(args: &[String]) -> PathBuf {
+    match args.iter().find_map(|a| a.strip_prefix("--key=")).map(crate::wrap::decode).filter(|p| !p.is_empty()) {
+        Some(path) => PathBuf::from(path),
+        None => key_file::key_file(),
     }
-    if let Some(dir) = data_dir.filter(|d| !d.is_empty()) {
-        return Path::new(dir).join(KEY_FILE);
-    }
-    let base = local.filter(|d| !d.is_empty()).map_or_else(|| Path::new(home.unwrap_or(".")).join(".local").join("share"), PathBuf::from);
-    base.join("InfoPanel").join("Dashboard").join(KEY_FILE)
 }
 
-/// The key in `file`; None when it is missing or not a key (the hook then takes no answer). It is never created here.
+/// The key in `file`; None when it is missing, not a key, or others may read or write it (the hook then takes no answer).
+/// It is never created here.
 pub fn load(file: &Path) -> Option<Key> {
-    std::fs::read(file).ok()?.try_into().ok()
+    key_file::read(file).ok()
 }
 
 #[cfg(test)]
@@ -100,23 +99,25 @@ mod tests {
     }
 
     #[test]
-    fn finds_the_key_from_the_argument_the_data_folder_or_the_default() {
+    fn finds_the_key_from_the_argument_or_this_users_folder() {
         let arg = vec![format!("--key={}", crate::wrap::encode("D:/Data/IPS/agent-hook.key"))];
-        assert_eq!(key_file(&arg, Some("E:/x"), None, None), PathBuf::from("D:/Data/IPS/agent-hook.key"));
-        assert_eq!(key_file(&[], Some("E:/x"), Some("C:/L"), None), Path::new("E:/x").join(KEY_FILE));
-        assert_eq!(key_file(&[], None, Some("C:/L"), None), Path::new("C:/L").join("InfoPanel").join("Dashboard").join(KEY_FILE));
-        assert_eq!(key_file(&[], Some(""), None, Some("/home/me")), Path::new("/home/me/.local/share/InfoPanel/Dashboard").join(KEY_FILE));
+        assert_eq!(key_path(&arg), PathBuf::from("D:/Data/IPS/agent-hook.key"));
+        assert_eq!(key_path(&[]), key_file::key_file());
     }
 
     #[test]
-    fn loads_only_a_whole_key_and_never_makes_one() {
+    fn loads_only_an_owner_only_key_and_never_makes_one() {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join(KEY_FILE);
         assert_eq!(load(&file), None);
         assert!(!file.exists());
-        std::fs::write(&file, b"short").unwrap();
-        assert_eq!(load(&file), None);
+        // a key others may read (the folder's inherited entries, or 0644): refused, so the terminal asks
         std::fs::write(&file, [9u8; KEY_BYTES]).unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(&file, std::os::unix::fs::PermissionsExt::from_mode(0o644)).unwrap();
+        assert_eq!(load(&file), None);
+        std::fs::remove_file(&file).unwrap();
+        key_file::create(&file, &[9u8; KEY_BYTES]).unwrap();
         assert_eq!(load(&file), Some([9u8; KEY_BYTES]));
     }
 
