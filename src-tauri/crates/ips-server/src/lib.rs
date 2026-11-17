@@ -41,6 +41,7 @@ pub mod js_date;
 pub mod json;
 pub mod library;
 pub mod locale;
+pub mod media;
 pub mod obs;
 pub mod obs_control;
 pub mod proxy;
@@ -452,6 +453,7 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/events/audio" => Ok(audio::handle_events(app)),
         "/api/audio/act" => audio::handle_act(app, req).await.map_err(io),
         "/api/obs/act" => obs_control::handle_act(app, req).await.map_err(io),
+        "/api/media/act" => media::handle_act(app, req).await.map_err(io),
         "/api/streamdeck" => Ok(streamdeck::routes::handle_state(app, &req)),
         "/events/streamdeck" => Ok(streamdeck::routes::handle_events(app)),
         "/api/streamdeck/icon" => Ok(streamdeck::routes::handle_icon(app, &req)),

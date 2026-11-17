@@ -423,6 +423,7 @@ export default function App({ fixture }: AppProps = {}) {
         // the write routes load with their first use, so the kiosk entry carries none of them
         audio: (body) => import("@/lib/audio-control").then((m) => m.audioAct(body)),
         obs: (body) => import("@/lib/obs-control").then((m) => m.obsAct(body)),
+        media: (key) => import("@/lib/media-control").then((m) => m.mediaKey(key)),
         picker: switchable ? () => setPickerOpen(true) : undefined,
       }),
     zone: (placement, style) => (

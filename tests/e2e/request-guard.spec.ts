@@ -29,6 +29,7 @@ const ROUTES = [
   "/api/control",
   "/api/assets",
   "/api/assets/app-icon",
+  "/api/media/act",
   "/api/canvases",
   "/api/library",
   "/api/integrations",
@@ -59,7 +60,7 @@ test("refuses cross-site writes", async ({ scratch }) => {
   const host = new URL(scratch.base).host;
   const foreign: Record<string, string>[] = [{ origin: "http://evil.example" }, { origin: "null" }, { "sec-fetch-site": "cross-site" }, { "sec-fetch-site": "same-site" }];
   for (const extra of foreign) {
-    for (const path of ["/api/config", "/api/control/page", "/api/integrations", "/api/assets/app-icon"]) {
+    for (const path of ["/api/config", "/api/control/page", "/api/integrations", "/api/assets/app-icon", "/api/media/act"]) {
       const method = path === "/api/integrations" ? "PUT" : "POST";
       expect((await request(scratch.base, { method, path, headers: { host, ...json, ...extra }, body: "{}" })).status, `${path} ${JSON.stringify(extra)}`).toBe(403);
     }
@@ -80,6 +81,11 @@ test("requires the write headers", async ({ scratch }) => {
   const icon = (headers: Record<string, string>) => request(scratch.base, { method: "POST", path: "/api/assets/app-icon", headers: { host, ...headers }, body: '{"exe":"notepad.exe"}' });
   expect((await icon({ "content-type": "application/json" })).status).toBe(403);
   expect((await icon({ "content-type": "text/plain", "x-dashboard-asset": "1" })).status).toBe(415);
+  // the media keys (P6): the control header, then JSON; a key it doesn't know is refused, so no key is pressed here
+  const media = (headers: Record<string, string>) => request(scratch.base, { method: "POST", path: "/api/media/act", headers: { host, ...headers }, body: '{"key":"volume-up"}' });
+  expect((await media({ "content-type": "application/json" })).status).toBe(403);
+  expect((await media({ "content-type": "text/plain", "x-dashboard-control": "1" })).status).toBe(415);
+  expect((await media({ "content-type": "application/json", "x-dashboard-control": "1" })).status).toBe(400);
 });
 
 /** This machine's first non-internal IPv4 address, to reach the server as "another machine". */
@@ -105,12 +111,16 @@ test.describe("writes from another machine", () => {
         const current = await (await fetch(`${scratch.base}/api/config`)).text();
         const configWrite = (await at("POST", "/api/config", current)).status;
         const integrationsWrite = (await at("PUT", "/api/integrations", "{}")).status;
+        // a media key (P6) follows the same switch; an unknown key, so passing the guard presses nothing (400)
+        const mediaWrite = (await at("POST", "/api/media/act", '{"key":"volume-up"}')).status;
         if (remoteEdit === "1") {
           expect(configWrite).toBe(200);
           expect(integrationsWrite).toBe(200);
+          expect(mediaWrite).toBe(400);
         } else {
           expect(configWrite).toBe(403);
           expect(integrationsWrite).toBe(403);
+          expect(mediaWrite).toBe(403);
         }
         // Reads and control stay open to the network either way.
         expect((await at("GET", "/api/config")).status).toBe(200);

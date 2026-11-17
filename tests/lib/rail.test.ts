@@ -88,22 +88,22 @@ describe("what a slot does", () => {
     expect(actionOn({ op: "lock" }, audio)).toBeUndefined();
   });
 
-  it("runs a page, the lock and the guarded audio and OBS routes; the rest waits for its phase", () => {
+  it("runs a page, the lock and the guarded audio, OBS and media routes; a command waits for P7", () => {
     const calls: unknown[][] = [];
-    const deps: TouchActionDeps = { page: (to) => calls.push(["page", to]), toggleRotate: () => calls.push(["rotate"]), audio: (b) => calls.push(["audio", b]), obs: (b) => calls.push(["obs", b]) };
+    const deps: TouchActionDeps = { page: (to) => calls.push(["page", to]), toggleRotate: () => calls.push(["rotate"]), audio: (b) => calls.push(["audio", b]), obs: (b) => calls.push(["obs", b]), media: (k) => calls.push(["media", k]) };
     expect(runTouchAction({ op: "page", to: "next" }, deps)).toBe(true);
     expect(runTouchAction({ op: "lock" }, deps)).toBe(true);
     expect(runTouchAction({ op: "audio", body: { target: "windows", op: "mute", kind: "input", id: "mic" } }, deps)).toBe(true);
     expect(runTouchAction({ op: "obs", body: { op: "mic" } }, deps)).toBe(true);
     expect(runTouchAction({ op: "run", command: "calc.exe" }, deps)).toBe(false);
-    expect(runTouchAction({ op: "media", key: "next" }, deps)).toBe(false);
+    expect(runTouchAction({ op: "media", key: "next" }, deps)).toBe(true);
     expect(runTouchAction({ op: "profile-picker" }, deps)).toBe(false);
-    expect(calls).toEqual([["page", "next"], ["rotate"], ["audio", { target: "windows", op: "mute", kind: "input", id: "mic" }], ["obs", { op: "mic" }]]);
+    expect(calls).toEqual([["page", "next"], ["rotate"], ["audio", { target: "windows", op: "mute", kind: "input", id: "mic" }], ["obs", { op: "mic" }], ["media", "next"]]);
   });
 
   it("opens the profile picker where the screen has one", () => {
     let opened = 0;
-    const deps: TouchActionDeps = { page: () => {}, toggleRotate: () => {}, audio: () => {}, obs: () => {}, picker: () => opened++ };
+    const deps: TouchActionDeps = { page: () => {}, toggleRotate: () => {}, audio: () => {}, obs: () => {}, media: () => {}, picker: () => opened++ };
     expect(runTouchAction({ op: "profile-picker" }, deps)).toBe(true);
     expect(opened).toBe(1);
   });
