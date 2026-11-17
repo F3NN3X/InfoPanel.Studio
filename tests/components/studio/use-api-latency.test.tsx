@@ -32,7 +32,7 @@ describe("pingApi", () => {
   });
 
   it("waits while the studio holds Data API requests, and a ping aborted meanwhile never goes out", async () => {
-    const fetcher = vi.fn(async () => new Response("{}", { status: 200 }));
+    const fetcher = vi.fn(async (_url: string) => new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetcher);
     holdApiBase();
     const stop = new AbortController();
