@@ -49,15 +49,18 @@ export const fractionOf = (b: Box, frame: { w: number; h: number }): FreeBox => 
 /** Fractions as a box in a frame's px. */
 export const pxOf = (b: readonly number[], frame: { w: number; h: number }): Box => ({ x: b[0] * frame.w, y: b[1] * frame.h, width: b[2] * frame.w, height: b[3] * frame.h });
 
-/** Where each block of the container at `path` is drawn now, as fractions of its content box, by child index: what Free starts from. */
-export function drawnBoxes(zone: HTMLElement | null, recipe: Recipe, path: Path): Record<number, FreeBox> {
+/**
+ * Where each block of the container at `path` is drawn now, as fractions of its content box, by child index: what Free starts from. Not
+ * clamped: a block drawn past the box's edge (a flow that overflowed it) reads past 0-1, and `setFree` grows the container to hold it.
+ */
+export function drawnBoxes(zone: HTMLElement | null, recipe: Recipe, path: Path): Record<number, number[]> {
   const b = blockAt(recipe, path);
   const frame = frameOf(zone, path);
   if (!frame || !b || !("children" in b)) return {};
   return Object.fromEntries(
     b.children.flatMap((_, k) => {
       const box = boxIn(zone, frame, [...path, k]);
-      return box ? [[k, fractionOf(box, frame)]] : [];
+      return box ? [[k, [box.x / (frame.w || 1), box.y / (frame.h || 1), box.width / (frame.w || 1), box.height / (frame.h || 1)]]] : [];
     }),
   );
 }

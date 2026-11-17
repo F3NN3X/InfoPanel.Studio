@@ -62,8 +62,8 @@ import { PresetsTab } from "./presets-tab";
 import { RecipePreview, zonePx } from "./recipe-preview";
 import { AreaHandles, areaText, FillHandles, measureArea } from "./area-handles";
 import { areaGrid, areaNow, dragArea, fitLayout, nudgeArea, rectOf, restack, setArea, setBackground, stepAreaSize, trackAt } from "./layout-model";
-import { ArrangeBar, Band, boxIn, FreeGuides, FreeHandles, type Frame, frameOf, fractionOf, type GuideView, padOf, pxOf, siblingBoxes } from "./free-handles";
-import { ARRANGE_LABEL, arrangeBoxes, boxAtPoint, boxText, type FreeArrange, fitFree, freeParent, isFree, moveGroup, nudgeBoxes, offsetCopies, setBoxes } from "./free-layout";
+import { ArrangeBar, Band, boxIn, drawnBoxes, FreeGuides, FreeHandles, type Frame, frameOf, fractionOf, type GuideView, padOf, pxOf, siblingBoxes } from "./free-handles";
+import { ARRANGE_LABEL, arrangeBoxes, boxAtPoint, boxText, type FreeArrange, fitFree, freeParent, freeRefusal, isFree, moveGroup, nudgeBoxes, offsetCopies, setBoxes, setFree } from "./free-layout";
 import { areaGuides, type Box, freeTargets, snapDistance, snapFreeMove } from "./free-snap";
 import { unionBox } from "@/lib/infopanel/editor/snap";
 import { ShareHandles } from "./share-handles";
@@ -758,6 +758,30 @@ export function Builder(p: BuilderProps) {
     if (flagged(flags.locked, at)) return;
     const from = selected.some((x) => keyOf(x) === keyOf(at)) ? topLevel(selected) : [at];
     const [x0, y0] = [e.clientX, e.clientY];
+    // the selected block of a group (a card, row or grid in flow) that is itself placed freely: the group goes free, each block where it
+    // is drawn, and the block moves freely in it; one undo step with the move (the owner: free-move items inside a group)
+    const holder = at.slice(0, -1);
+    if (from.length === 1 && at.length > 1 && keyOf(at) === keyOf(path) && !blockAt(recipe, at)?.background && !isFree(blockAt(recipe, holder)) && freeParent(recipe, holder) && !freeRefusal(recipe, holder) && !flagged(flags.locked, holder)) {
+      const r = setFree(recipe, holder, true, drawnBoxes(zoneEl(), recipe, holder));
+      if (!("why" in r)) {
+        // drawn free first (where a grown group changes its frame), then measured from the next frame
+        setPreview(r);
+        let released = false;
+        const hold = trackPointer(
+          () => {},
+          () => {
+            released = true;
+          },
+        );
+        requestAnimationFrame(() => {
+          // a press let go (or Esc) before then is a click: the group stays as it was
+          if (released) return setPreview(null);
+          hold();
+          pressFree([at], holder, x0, y0, r);
+        });
+        return;
+      }
+    }
     // a free block (format 2): the one pressed, or the selected free block holding the press, with the rest of the selection in its container
     const freeAt = freeParent(recipe, at) ? at : path.length && freeParent(recipe, path) && keyOf(at).startsWith(`${keyOf(path)}.`) && !flagged(flags.locked, path) ? [...path] : null;
     if (freeAt) {
@@ -798,15 +822,16 @@ export function Builder(p: BuilderProps) {
    * Free blocks dragged by their body (format 2): the group follows the pointer inside its container, snapped to the guides (Alt: free),
    * shown as it goes with the readout; one undo step on release. Out of a container inside the card, the flow's move rules take over.
    */
-  const pressFree = (paths: number[][], parent: number[], x0: number, y0: number) => {
+  /** `base`: the recipe the move starts from (a group just switched free on the press, else the open one). */
+  const pressFree = (paths: number[][], parent: number[], x0: number, y0: number, base: Recipe = recipe) => {
     const zone = zoneEl();
     const frame = frameOf(zone, parent);
     const starts = frame ? paths.map((p) => boxIn(zone, frame, p)) : [];
-    const own = paths.map((p) => blockAt(recipe, p)?.box);
-    if (!frame || starts.some((b) => !b) || own.some((b) => !b)) return;
+    const own = paths.map((p) => blockAt(base, p)?.box);
+    if (!frame || starts.some((b) => !b) || own.some((b) => !b)) return base !== recipe && setPreview(null);
     const group = unionBox(starts as Box[])!;
-    const others = siblingBoxes(zone, recipe, parent, frame, paths);
-    const targets = freeTargets(frame, padOf(recipe, parent), others);
+    const others = siblingBoxes(zone, base, parent, frame, paths);
+    const targets = freeTargets(frame, padOf(base, parent), others);
     let started = false;
     let last: ReturnType<typeof moveGroup> | null = null;
     let out: StageDrop | null = null;
@@ -830,19 +855,19 @@ export function Builder(p: BuilderProps) {
         last = moveGroup(own as number[][], (s.box.x - group.x) / frame.w, (s.box.y - group.y) / frame.h);
         const now = fractionOf(unionBox(last.map((b) => pxOf(b, frame)))!, frame);
         setGuides({ frame, guides: s.guides, gaps: s.gaps, box: pxOf(now, frame), text: boxText(now) });
-        setPreview(setBoxes(recipe, paths.map((p, i) => ({ path: p, box: last![i] }))));
+        setPreview(setBoxes(base, paths.map((p, i) => ({ path: p, box: last![i] }))));
       },
       (cancelled) => {
         stopDrag.current = null;
         setGuides(null);
         setMoving(null);
-        if (!started) return;
+        if (!started) return base !== recipe && setPreview(null);
         dragged.current = true;
         setPreview(null);
         if (cancelled) return say("Move cancelled");
         if (out) return out.why ? refuse(out.why) : drop(paths, out.toParent, out.index, point);
         if (!last) return;
-        edit(setBoxes(recipe, paths.map((p, i) => ({ path: p, box: last![i] }))));
+        edit(setBoxes(base, paths.map((p, i) => ({ path: p, box: last![i] }))));
         say(`Moved ${what(paths)}: ${boxText(paths.length === 1 ? last[0] : fractionOf(unionBox(last.map((b) => pxOf(b, frame)))!, frame))}`);
       },
     );
