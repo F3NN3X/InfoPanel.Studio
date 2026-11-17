@@ -86,7 +86,12 @@ interface RailSlotInspectorProps {
   onChange: (fn: (s: RailSlot) => RailSlot, key?: string) => void;
   onRemove: () => void;
   /** The profile chip, a rail setting and not a slot: it is shown or hidden (not removed), stays in Top and has no badge. */
-  chip?: { shown: boolean; onShown: (on: boolean) => void };
+  chip?: {
+    shown: boolean;
+    onShown: (on: boolean) => void;
+    /** The profile's name: the chip's text until it has one of its own. */
+    profileName: string;
+  };
 }
 
 /**
@@ -96,7 +101,7 @@ interface RailSlotInspectorProps {
  * with an image) has a plate, automatic unless set.
  */
 export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove, chip }: RailSlotInspectorProps) {
-  const name = chip ? (slot.name ?? "Profile chip") : slotName(slot, pages);
+  const name = chip ? (slot.name ?? chip.profileName) : slotName(slot, pages);
   const t = slot.target;
   const choices = touchChoices(pages, useTouchSources());
   const icon = slot.icon;
@@ -113,7 +118,13 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove, ch
         <p className="text-caption text-ui-3">{chip ? "Rail item · the profile chip" : KIND_LINES[t.kind]}</p>
       </div>
       <PanelSection id="rail-item" title="Item" icon={LayoutPanelLeft}>
-        <TextRow label="Name" hint="What a screen reader says, and an image's alt text." value={slot.name ?? ""} placeholder={name} onChange={(v) => onChange((s) => (v ? { ...s, name: v } : (({ name: _n, ...rest }) => rest)(s)), key("name"))} />
+        <TextRow
+          label={chip ? "Text" : "Name"}
+          hint={chip ? "What the chip says under its icon, and what a screen reader says. Empty is the profile's name." : "What a screen reader says, and an image's alt text."}
+          value={slot.name ?? ""}
+          placeholder={chip ? chip.profileName : name}
+          onChange={(v) => onChange((s) => (v ? { ...s, name: v } : (({ name: _n, ...rest }) => rest)(s)), key("name"))}
+        />
         {!chip && <SelectRow label="Group" value={slot.group} onChange={(g) => onChange((s) => ({ ...s, group: g as RailGroup }))} options={RAIL_GROUP_NAMES.map(([value, label]) => ({ value, label }))} />}
         {t.kind === "page" && (
           <SelectRow label="Page" value={t.pageId} onChange={(pageId) => onChange((s) => ({ ...s, target: { kind: "page", pageId } }))} options={pages.map((p) => ({ value: p.id, label: p.name }))} />
@@ -230,7 +241,8 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove, ch
         <TouchRows
           touch={slot.touch}
           pages={pages}
-          tapNone="What the item is"
+          tapNone={chip ? "Open profiles" : "What the item is"}
+          holdNone={chip ? "Open profiles" : undefined}
           onChange={(touch) =>
             onChange((s) => {
               const { touch: _old, ...rest } = s;

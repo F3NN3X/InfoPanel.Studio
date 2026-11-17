@@ -54,7 +54,7 @@ function Harness({ log }: { log: PinnedItem[] }) {
           widgets={[]}
           onChange={(fn) => set(withChipItem(item, fn))}
           onRemove={() => {}}
-          chip={{ shown: item.placement.settings?.chip !== false, onShown: (on) => set(withChipShown(item, on)) }}
+          chip={{ shown: item.placement.settings?.chip !== false, onShown: (on) => set(withChipShown(item, on)), profileName: stored.name }}
         />
       )}
       <output data-testid="settings">{JSON.stringify(item.placement.settings ?? null)}</output>
@@ -66,11 +66,11 @@ describe("the profile chip as a rail item", () => {
   it("is listed first in Top, selects, is edited into the rail's settings, and one undo restores the rail", () => {
     const log: PinnedItem[] = [];
     render(<Harness log={log} />);
-    const row = screen.getByRole("button", { name: /Profile chip/ });
+    const row = screen.getByRole("button", { name: /The profile chip/ });
     expect(screen.getByRole("heading", { name: "Top" })).toBeTruthy();
     fireEvent.click(row);
     expect(row.getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByRole("heading", { name: "Profile chip" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Stream" })).toBeTruthy();
 
     // hide its name: only that is stored, as text, beside the rail's own settings
     fireEvent.click(screen.getByRole("switch", { name: "Label under the icon" }));
@@ -81,9 +81,38 @@ describe("the profile chip as a rail item", () => {
     expect(screen.getByTestId("settings").textContent).toBe("null");
   });
 
+  it("shows the picker as its tap and hold, and stores no touch until one is chosen", () => {
+    render(<Harness log={[]} />);
+    fireEvent.click(screen.getByRole("button", { name: /The profile chip/ }));
+    for (const gesture of ["Tap", "Hold"]) {
+      const select = screen.getByRole("combobox", { name: gesture }) as HTMLSelectElement;
+      expect(select.value).toBe("");
+      expect(select.selectedOptions[0].textContent).toBe("Open profiles");
+    }
+    // other changes never store a page action
+    fireEvent.click(screen.getByRole("switch", { name: "Label under the icon" }));
+    expect(screen.getByTestId("settings").textContent).not.toContain("touch");
+    fireEvent.change(screen.getByRole("combobox", { name: "Tap" }), { target: { value: "page:a" } });
+    expect(chipSlot(JSON.parse(screen.getByTestId("settings").textContent!)).touch).toEqual({ tap: { op: "page", to: "a" } });
+  });
+
+  it("has one text field: the profile's name until it has its own, stored as the chip's name, empty again drops it", () => {
+    render(<Harness log={[]} />);
+    fireEvent.click(screen.getByRole("button", { name: /The profile chip/ }));
+    const text = screen.getByRole("textbox", { name: "Text" }) as HTMLInputElement;
+    expect(text.value).toBe("");
+    expect(text.placeholder).toBe("Stream");
+    expect(screen.queryByRole("textbox", { name: "Name" })).toBeNull();
+    fireEvent.change(text, { target: { value: "Studio PC" } });
+    expect(JSON.parse(screen.getByTestId("settings").textContent!)).toEqual({ chipItem: JSON.stringify({ name: "Studio PC" }) });
+    expect(screen.getByRole("heading", { name: "Studio PC" })).toBeTruthy();
+    fireEvent.change(text, { target: { value: "" } });
+    expect(screen.getByTestId("settings").textContent).toBe("null");
+  });
+
   it("is shown or hidden from its inspector, and the row says it is hidden", () => {
     render(<Harness log={[]} />);
-    fireEvent.click(screen.getByRole("button", { name: /Profile chip/ }));
+    fireEvent.click(screen.getByRole("button", { name: /The profile chip/ }));
     fireEvent.click(screen.getByRole("switch", { name: "Show the profile chip" }));
     expect(screen.getByTestId("settings").textContent).toBe('{"chip":false}');
     expect(screen.getByText(/hidden/)).toBeTruthy();

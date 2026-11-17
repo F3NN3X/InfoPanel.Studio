@@ -289,6 +289,13 @@ describe("the rail's profile chip overrides", () => {
     expect(withChipItem(edited, ({ icon: _i, label: _l, touch: _t, ...c }) => ({ ...c, label: true })).placement.settings).toEqual({ clock: false });
   });
 
+  it("an uploaded image, its own text and label off survive the guard and read back as chosen", () => {
+    const asset = `${"b".repeat(64)}.png`;
+    const edited = withChipItem(base, (c) => ({ ...c, icon: { from: "image", asset }, name: "Studio PC", label: false }));
+    const layer = normalizePinned({ items: [JSON.parse(JSON.stringify(edited))] }, ["a", "b", "c"]);
+    expect(chipSlot(layer!.items[0].placement.settings)).toMatchObject({ icon: { from: "image", asset }, name: "Studio PC", label: false });
+  });
+
   it("shows or hides the chip through its own setting, on by default", () => {
     const off = withChipShown(base, false);
     expect(off.placement.settings).toEqual({ chip: false });
