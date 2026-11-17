@@ -8,7 +8,7 @@ import type { ActiveAlert } from "./alerts";
 import type { Agents } from "./agents";
 import type { AudioState } from "./audio-control";
 import type { ObsState } from "./extras";
-import type { RailGroup, RailSlot, TouchAction, TouchGesture } from "./pinned";
+import type { RailGroup, RailPlate, RailSlot, TouchAction, TouchGesture } from "./pinned";
 
 /** The rail widget's module id. */
 export const RAIL_MODULE = "PageRail";
@@ -124,6 +124,73 @@ export function slotAction(slot: RailSlot, gesture: TouchGesture): TouchAction |
   if (t.kind === "action") return t.action;
   if (t.kind === "profile") return { op: "profile-picker" };
   return undefined;
+}
+
+/** What an action does, as the end of an image's alt text ("opens profiles"). */
+function actionPhrase(action: TouchAction, name: string, pages: readonly RailPage[]): string {
+  switch (action.op) {
+    case "page": {
+      if (action.to === "next" || action.to === "prev") return action.to === "next" ? "opens the next page" : "opens the previous page";
+      const page = pages.find((p) => p.id === action.to)?.name;
+      // a page item named as its page: the name already says which
+      return !page || page === name ? "opens the page" : `opens ${page}`;
+    }
+    case "profile-picker":
+      return "opens profiles";
+    case "lock":
+      return "turns the page lock";
+    case "audio":
+      return "changes the sound";
+    case "obs":
+      return "controls OBS";
+    case "media":
+      return "controls the media";
+    case "run":
+      return "runs a command";
+  }
+}
+
+/** A user image's alt text: the item's name, and what a tap on it does when it acts (owner Q10), "Hexmark logo, opens profiles". */
+export function imageAlt(slot: RailSlot, name: string, pages: readonly RailPage[]): string {
+  const action = slotAction(slot, "tap");
+  return action ? `${name}, ${actionPhrase(action, name, pages)}` : name;
+}
+
+/** How a logo reads against the rail: the share of its box that is opaque, and of that the share whose lightness is near the text's. */
+export interface LogoStats {
+  opaque: number;
+  /** Of the opaque pixels, the share that shows on the card (near the text colour's lightness, as text does). */
+  shows: number;
+}
+
+/** A colour's lightness, 0 to 1 (Rec. 709 luma of the sRGB values). */
+export const luma = (r: number, g: number, b: number): number => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+
+/** A pixel counts as opaque from this alpha, and shows on the card when its lightness is within this of the text's. */
+const OPAQUE_ALPHA = 128;
+const SHOWS_WITHIN = 0.5;
+
+/** The stats of an image's RGBA pixels against the text colour's lightness `fg`. */
+export function logoStats(rgba: ArrayLike<number>, fg: number): LogoStats {
+  let opaque = 0;
+  let shows = 0;
+  const n = Math.floor(rgba.length / 4);
+  for (let i = 0; i < n; i++) {
+    if (rgba[i * 4 + 3] < OPAQUE_ALPHA) continue;
+    opaque++;
+    if (Math.abs(luma(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]) - fg) <= SHOWS_WITHIN) shows++;
+  }
+  return { opaque: n ? opaque / n : 0, shows: opaque ? shows / opaque : 0 };
+}
+
+/**
+ * A logo's plate, chosen from its pixels (owner Q8): an image that fills its box brings its own ground (none); one whose
+ * marks mostly vanish on the card, as a light logo on a light Look does, gets the contrast plate in the text colour; else
+ * the card plate.
+ */
+export function logoPlate(stats: LogoStats): RailPlate {
+  if (stats.opaque >= 0.9) return "none";
+  return stats.shows < 0.2 ? "contrast" : "card";
 }
 
 const MUTE_KINDS = { output: "outputs", input: "inputs", app: "apps" } as const;

@@ -5,12 +5,13 @@ import { pageIcon } from "@/components/studio/page-icons";
 import { audio, EMPTY_AUDIO } from "@/lib/audio-control";
 import { extras } from "@/lib/extras";
 import type { Placement } from "@/lib/layout";
-import type { PinnedEdge, RailSlot, TouchAction } from "@/lib/pinned";
-import { actionOn, chipSeries, RAIL_SIZES, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState, type RailBadge, type RailPage } from "@/lib/rail";
+import type { PinnedEdge, RailPlate, RailSlot, TouchAction } from "@/lib/pinned";
+import { actionOn, chipSeries, imageAlt, RAIL_SIZES, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState, type RailBadge, type RailPage } from "@/lib/rail";
 import { createRecogniser, type GestureHandlers } from "@/lib/gesture";
 import type { ModuleSettings } from "@/modules/types";
 import Clock from "../clock/Clock";
 import { Widget, shell, TONES, type ShellProps } from "../kit";
+import { useLogoPlate } from "./logo-plate";
 import { meta } from "./meta";
 import { ProfilePicker } from "./ProfilePicker";
 import { series } from "./series";
@@ -111,8 +112,8 @@ function Badge({ badge }: { badge: RailBadge }) {
 /** An asset's URL (`ASSETS_URL` in src/lib/assets.ts, written out: importing it would split that module out of the studio's entry). */
 const assetUrl = (id: string) => `/api/assets/${encodeURIComponent(id)}`;
 
-/** A slot's glyph: a set icon (as page icons are), a user image or an app icon (their own colours unless tinted), or text. */
-function Glyph({ slot, name, size }: { slot: RailSlot; name: string; size: number }) {
+/** A slot's glyph: a set icon (as page icons are), a user image or an app icon (their own colours unless tinted), or text. `alt`: a user image's alt text. */
+function Glyph({ slot, name, alt = name, size }: { slot: RailSlot; name: string; alt?: string; size: number }) {
   const icon = slot.icon;
   if (!icon) return null;
   if (icon.from === "set") {
@@ -120,19 +121,21 @@ function Glyph({ slot, name, size }: { slot: RailSlot; name: string; size: numbe
     return Cmp ? <Cmp aria-hidden size={size * 0.5} strokeWidth={1.75} /> : null;
   }
   if (icon.from === "text") return <span className="text-[15px] font-bold">{icon.text}</span>;
-  // an app's icon is extracted with P5; until then (or with none) a generic window
+  // an app whose icon could not be read (not running, not installed) shows a generic window
   if (icon.from === "app" && !icon.asset) return <AppWindow aria-hidden size={size * 0.5} strokeWidth={1.75} />;
   const src = assetUrl(icon.from === "app" ? icon.asset! : icon.asset);
   const radius = slot.shape === "circle" ? "9999px" : slot.shape === "rounded" ? "28%" : 0;
   const img: CSSProperties = { width: size * 0.72, height: size * 0.72, borderRadius: radius, objectFit: "cover" };
   // "Tint with theme": the image as a mask filled with the accent, the one colour Studio may add to a user image
-  if (slot.tint) return <span role="img" aria-label={name} style={{ ...img, background: "var(--w-accent)", mask: `url("${src}") center / contain no-repeat` }} />;
-  return <img src={src} alt={name} draggable={false} style={img} />;
+  if (slot.tint) return <span role="img" aria-label={alt} style={{ ...img, background: "var(--w-accent)", mask: `url("${src}") center / contain no-repeat` }} />;
+  return <img src={src} alt={alt} draggable={false} style={img} />;
 }
 
 interface SlotProps {
   slot: RailSlot;
   name: string;
+  /** A user image's alt text: the name and what a tap does. */
+  alt: string;
   active: boolean;
   edge: PinnedEdge;
   badge?: RailBadge;
@@ -141,7 +144,7 @@ interface SlotProps {
   run: (a: TouchAction) => void;
 }
 
-function SlotButton({ slot, name, active, edge, badge, on, run }: SlotProps) {
+function SlotButton({ slot, name, alt, active, edge, badge, on, run }: SlotProps) {
   const { slot: SLOT } = useContext(SizeCtx);
   const g = useGestures(slotGestures(slot, run));
   const lit = on === true;
@@ -165,7 +168,7 @@ function SlotButton({ slot, name, active, edge, badge, on, run }: SlotProps) {
         boxShadow: lit ? "inset 0 0 0 1px color-mix(in oklab, var(--w-crit) 45%, transparent)" : undefined,
       }}
     >
-      <Glyph slot={slot} name={name} size={SLOT} />
+      <Glyph slot={slot} name={name} alt={alt} size={SLOT} />
       {slot.label && <span className="max-w-full truncate px-0.5 text-[11px] leading-none">{name}</span>}
       {badge && <Badge badge={badge} />}
       {named && badge && <span className="sr-only">{`, ${badge.say}`}</span>}
@@ -205,22 +208,35 @@ function ProfileChip({ host }: { host: RailHost }) {
   );
 }
 
-/** The logo slot (a profile slot with an image): the user's image on a card plate. The plate's choice is P5's. */
-function Logo({ slot, name, run }: { slot: RailSlot; name: string; run: (a: TouchAction) => void }) {
+/** A logo's plate: the card colour, the text colour (it keeps a light logo seen on a light Look), or none. */
+const PLATES: Record<RailPlate, CSSProperties> = {
+  none: {},
+  card: { background: "color-mix(in oklab, var(--w-fg) 6%, transparent)", boxShadow: `inset 0 0 0 1px ${EDGE}` },
+  contrast: { background: "var(--w-fg)", boxShadow: `inset 0 0 0 1px ${EDGE}` },
+};
+
+/**
+ * The logo slot (a profile slot with an image): the user's image on its plate, the user's choice or one read from the
+ * image (owner Q8). Its alt text is the item's name and what a tap does (owner Q10).
+ */
+function Logo({ slot, name, alt, run }: { slot: RailSlot; name: string; alt: string; run: (a: TouchAction) => void }) {
   const { top } = useContext(SizeCtx);
   const g = useGestures(slotGestures(slot, run));
   const icon = slot.icon;
   const src = icon?.from === "image" ? icon.asset : icon?.from === "app" ? icon.asset : undefined;
+  const url = src ? assetUrl(src) : undefined;
+  const plate = useLogoPlate(url, slot.plate, g.ref);
   return (
     <button
       type="button"
       {...g}
       data-rail-slot={slot.id}
-      aria-label={src ? undefined : name}
+      data-plate={plate}
+      aria-label={url ? undefined : name}
       className={`flex shrink-0 touch-manipulation select-none items-center justify-center rounded-2xl ${FOCUS}`}
-      style={{ width: top, height: top, background: "color-mix(in oklab, var(--w-fg) 6%, transparent)", boxShadow: `inset 0 0 0 1px ${EDGE}` }}
+      style={{ width: top, height: top, color: "var(--w-fg)", ...PLATES[plate] }}
     >
-      {src ? <img src={assetUrl(src)} alt={name} draggable={false} style={{ width: top * 0.65, height: top * 0.65 }} className="object-contain" /> : <Glyph slot={slot} name={name} size={top} />}
+      {url ? <img src={url} alt={alt} draggable={false} style={{ width: top * 0.65, height: top * 0.65 }} className="object-contain" /> : <Glyph slot={slot} name={name} size={top} />}
     </button>
   );
 }
@@ -293,13 +309,15 @@ function RailBody({ host, slots, edge, dense, chip, pageLock, clock, data, look 
   const { ref: navRef, rect } = useOpenRect(!!picker?.open);
   const one = (s: RailSlot): ReactNode => {
     const name = slotName(s, host.pages);
+    const alt = imageAlt(s, name, host.pages);
     if (s.target.kind === "widget") return <SlotWidget key={s.id} id={s.id} module={s.target.module} settings={s.target.settings} host={host} style={{ width: 72, height: size.widget }} />;
-    if (s.target.kind === "profile" && s.icon && s.icon.from !== "set" && s.icon.from !== "text") return <Logo key={s.id} slot={s} name={name} run={host.run} />;
+    if (s.target.kind === "profile" && s.icon && s.icon.from !== "set" && s.icon.from !== "text") return <Logo key={s.id} slot={s} name={name} alt={alt} run={host.run} />;
     return (
       <SlotButton
         key={s.id}
         slot={s}
         name={name}
+        alt={alt}
         edge={edge}
         active={s.target.kind === "page" && s.target.pageId === host.current}
         badge={railBadge(s, badgeState)}

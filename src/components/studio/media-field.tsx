@@ -23,6 +23,8 @@ interface MediaFieldProps {
   backgrounds?: boolean;
   /** Open the Library, from the picker's empty state. */
   onOpenLibrary?: () => void;
+  /** An image field that takes SVG too (sanitised by the server): a rail icon or logo. */
+  svg?: boolean;
 }
 
 type UploadStatus = { state: "idle" } | { state: "uploading"; name: string; size: number } | { state: "error"; message: string };
@@ -32,7 +34,7 @@ type UploadStatus = { state: "idle" } | { state: "uploading"; name: string; size
  * the dashboard server (Upload… or a file dropped on the field) or picked
  * from the uploaded files (the library).
  */
-export function MediaField({ label, kind, value, onChange, preview = "large", fill, backgrounds, onOpenLibrary }: MediaFieldProps) {
+export function MediaField({ label, kind, value, onChange, preview = "large", fill, backgrounds, onOpenLibrary, svg = false }: MediaFieldProps) {
   const [draft, setDraft] = useState(value ?? "");
   const [dragging, setDragging] = useState(false);
   const [status, setStatus] = useState<UploadStatus>({ state: "idle" });
@@ -52,7 +54,7 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
   const upload = async (file: File) => {
     setStatus({ state: "uploading", name: file.name, size: file.size });
     try {
-      const asset = await uploadAsset(file, kind);
+      const asset = await uploadAsset(file, kind, svg);
       // A background's upload joins My library, so the picker (Backgrounds only) offers it next time.
       if (backgrounds) await addUpload(file, asset.id);
       setStatus({ state: "idle" });
@@ -90,7 +92,7 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
         <input
           ref={fileInput}
           type="file"
-          accept={acceptOf(kind)}
+          accept={acceptOf(kind, svg)}
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];

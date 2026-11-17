@@ -50,6 +50,10 @@ export type RailIcon =
 export type RailShape = "as-is" | "rounded" | "circle";
 const RAIL_SHAPES: readonly RailShape[] = ["as-is", "rounded", "circle"];
 
+/** What sits behind a logo: nothing, the card colour, or the text colour (a light logo on a light Look). Unset: chosen from the image (P5). */
+export type RailPlate = "none" | "card" | "contrast";
+const RAIL_PLATES: readonly RailPlate[] = ["none", "card", "contrast"];
+
 export interface RailSlot {
   id: string;
   group: RailGroup;
@@ -64,6 +68,8 @@ export interface RailSlot {
   name?: string;
   badge?: { when: BadgeRule };
   touch?: TouchMap;
+  /** A logo's plate, set by the user; unset = automatic (owner Q8). */
+  plate?: RailPlate;
 }
 
 /** The widget a pinned item draws: a placement without a box on the grid (the item's edge and thickness are its box). */
@@ -186,6 +192,7 @@ function normalizeRail(raw: unknown, pages: ReadonlySet<string>): RailSlot[] | u
         ...(text(s.name) ? { name: s.name } : {}),
         ...(when ? { badge: { when } } : {}),
         ...(touch ? { touch } : {}),
+        ...(RAIL_PLATES.includes(s.plate as RailPlate) ? { plate: s.plate as RailPlate } : {}),
       },
     ];
   });
