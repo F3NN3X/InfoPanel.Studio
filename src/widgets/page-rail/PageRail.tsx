@@ -6,7 +6,7 @@ import { audio, EMPTY_AUDIO } from "@/lib/audio-control";
 import { extras } from "@/lib/extras";
 import type { Placement } from "@/lib/layout";
 import type { PinnedEdge, RailSlot, TouchAction } from "@/lib/pinned";
-import { actionOn, chipSeries, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState, type RailBadge, type RailPage } from "@/lib/rail";
+import { actionOn, chipSeries, RAIL_SIZES, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState, type RailBadge, type RailPage } from "@/lib/rail";
 import { createRecogniser, type GestureHandlers } from "@/lib/gesture";
 import type { ModuleSettings } from "@/modules/types";
 import Clock from "../clock/Clock";
@@ -30,9 +30,7 @@ export interface PageRailProps extends ShellProps {
   clock?: boolean;
 }
 
-/** The roomy sizes from 580 px of height, else dense (a 550 px bar): a slot never goes under 48. */
-const ROOMY = { slot: 56, top: 68, widget: 76, gap: 6 };
-const DENSE = { slot: 48, top: 56, widget: 64, gap: 4 };
+const { roomy: ROOMY, dense: DENSE } = RAIL_SIZES;
 const SizeCtx = createContext(ROOMY);
 
 /** The rail's hairline: the track colour, the Look's quiet line. */
