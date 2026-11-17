@@ -1,7 +1,8 @@
 /**
  * The OBS control the Stream Control tile and the OBS buttons use (ips-server's obs_control.rs): `POST /api/obs/act`
  * switches the scene, toggles the mic's mute and saves the replay. The state they read is the extras' `obs`
- * (`src/lib/extras.ts`). There is deliberately no start or stop stream action.
+ * (`src/lib/extras.ts`). Going live or stopping (`stream`) is a touch action only, refused unless the server's
+ * OBS_STREAM_CONTROL switch is on (Settings > Actions, pinned layer P7) and asked for with a hold.
  */
 
 import { createRefusal } from "@/lib/write-refusal";
@@ -12,7 +13,7 @@ export const OBS_ACT_URL = "/api/obs/act";
 export const obsRefusal = createRefusal();
 
 /** What `POST /api/obs/act` takes; a scene is addressed by the id the extras list. */
-export type ObsAction = { op: "scene"; id: string } | { op: "mic" } | { op: "replay" };
+export type ObsAction = { op: "scene"; id: string } | { op: "mic" } | { op: "replay" } | { op: "stream"; state: "start" | "stop" | "toggle" };
 
 /** Sends an action. Resolves to whether OBS took it; never throws. */
 export async function obsAct(body: ObsAction): Promise<boolean> {
@@ -24,7 +25,8 @@ export async function obsAct(body: ObsAction): Promise<boolean> {
       headers: { "Content-Type": "application/json", "X-Dashboard-Control": "1" },
       body: JSON.stringify(body),
     });
-    if (res.status === 403) obsRefusal.set(true);
+    // go live has a switch of its own: its refusal says nothing about the other OBS writes
+    if (res.status === 403 && body.op !== "stream") obsRefusal.set(true);
     return res.ok;
   } catch {
     return false;

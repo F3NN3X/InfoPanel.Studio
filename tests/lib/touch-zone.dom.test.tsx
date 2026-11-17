@@ -130,4 +130,29 @@ describe("useTouchZone", () => {
     press(document.querySelector("[data-testid=w]")!);
     expect(ran).toEqual([PAGE]);
   });
+
+  it("hears a widget the instant it mounts, as a page a tap just showed (P-B12), and says which gesture ran", async () => {
+    const ran: [TouchAction, string | undefined][] = [];
+    const host = { run: (a: TouchAction, g?: string) => ran.push([a, g]) } as unknown as RailHost;
+    // page one's widget loads the listeners
+    render(
+      <RailHostContext.Provider value={host}>
+        <Widget touch={{ tap: PAGE }} />
+      </RailHostContext.Provider>
+    );
+    await act(async () => {
+      await vi.dynamicImportSettled();
+    });
+    cleanup();
+    // page two's widget: a double tap sent before anything else settles lands
+    const { getByTestId } = render(
+      <RailHostContext.Provider value={host}>
+        <Widget touch={{ doubleTap: MEDIA }} />
+      </RailHostContext.Provider>
+    );
+    press(getByTestId("w"));
+    press(getByTestId("w"));
+    vi.advanceTimersByTime(DOUBLE_TAP_MS + 1);
+    expect(ran).toEqual([[MEDIA, "doubleTap"]]);
+  });
 });

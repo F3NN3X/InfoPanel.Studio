@@ -30,6 +30,17 @@ describe("restartItems", () => {
     expect(text).toBe("Restart to apply: local-only access, debug mode off.");
   });
 
+  it("lists the action runner and OBS's go live when they differ, an older app's absent ones reading as off (P7)", () => {
+    expect(restartItems({ ...saved, actionRunner: false, obsStreamControl: false }, running)).toEqual([]);
+    const items = restartItems({ ...saved, actionRunner: true, obsStreamControl: true }, running);
+    expect(items.map((i) => [i.key, i.running])).toEqual([
+      ["actionRunner", false],
+      ["obsStreamControl", false],
+    ]);
+    expect(restartText(items)).toBe("Restart to apply: commands from the panel on, OBS go live on.");
+    expect(restartText(restartItems({ ...saved, actionRunner: false }, { ...running, actionRunner: true }))).toBe("Restart to apply: commands from the panel off.");
+  });
+
   it("does not count a debug mode forced for the run as a change", () => {
     expect(restartItems(saved, { ...running, debug: true }, true)).toEqual([]);
     expect(restartItems(saved, { ...running, debug: true }, false).map((i) => i.key)).toEqual(["debug"]);

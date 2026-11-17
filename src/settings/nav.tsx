@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Activity, Bot, CircleArrowDown, Hand, History, Info, KeyRound, MonitorCog, PencilRuler, Plug, ScrollText, Server, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import { Activity, Bot, CircleArrowDown, Hand, History, Info, KeyRound, MonitorCog, PencilRuler, Plug, ScrollText, Server, SlidersHorizontal, SquareTerminal, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PAGE_NAMES, type PageId } from "./model/search";
 
@@ -9,6 +9,7 @@ export const PAGE_ICONS: Record<PageId, LucideIcon> = {
   server: Server,
   connections: Plug,
   agents: Bot,
+  actions: SquareTerminal,
   touch: Hand,
   updates: CircleArrowDown,
   publishers: KeyRound,

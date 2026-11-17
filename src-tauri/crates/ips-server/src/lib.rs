@@ -3,6 +3,7 @@
 // shutdown future resolves. Every request passes the request guard, then goes to the first route that matches its raw
 // pathname, in the Node server's order; anything that is not /api/ is the static build.
 
+pub mod actions;
 pub mod agent_usage;
 pub mod agents;
 pub mod alerts;
@@ -119,6 +120,11 @@ pub struct ServerConfig {
     pub allowed_hosts: Vec<String>,
     pub allow_remote_edit: bool,
     pub allow_remote_upload: bool,
+    /// The action runner (actions.rs): touch actions may run approved commands. Off unless ACTION_RUNNER=on (or the app's
+    /// Settings > Actions switch).
+    pub action_runner: bool,
+    /// OBS's go live and stop (obs_control.rs `stream`): off unless OBS_STREAM_CONTROL=on (or the app's Settings switch).
+    pub obs_stream: bool,
     pub dist: PathBuf,
     pub data_dir: PathBuf,
     pub infopanel_dir: PathBuf,
@@ -131,12 +137,15 @@ impl ServerConfig {
     /// The config from the environment, with its defaults. The build defaults to `./dist`.
     pub fn from_env() -> Result<Self, String> {
         let flag = |name: &str| std::env::var(name).is_ok_and(|v| v == "1");
+        let switch = |name: &str| std::env::var(name).is_ok_and(|v| v == "1" || v == "on");
         Ok(Self {
             host: env::non_empty("HOST").unwrap_or_else(|| "127.0.0.1".into()),
             port: env::parse_port(std::env::var("PORT").ok().as_deref())?,
             allowed_hosts: request_guard::parse_allowed_hosts(std::env::var("ALLOWED_HOSTS").ok().as_deref()),
             allow_remote_edit: flag("ALLOW_REMOTE_EDIT"),
             allow_remote_upload: flag("ALLOW_REMOTE_UPLOAD"),
+            action_runner: switch("ACTION_RUNNER"),
+            obs_stream: switch("OBS_STREAM_CONTROL"),
             dist: env::non_empty("DASHBOARD_DIST").map_or_else(|| env::resolve("dist"), |d| env::resolve(&d)),
             data_dir: env::non_empty("DASHBOARD_DATA_DIR").map_or_else(env::default_data_dir, |d| env::resolve(&d)),
             infopanel_dir: env::infopanel_dir(),
@@ -192,6 +201,8 @@ pub struct App {
     pub weather: Arc<Weather>,
     pub canvases: Arc<CanvasStore>,
     pub library: LibraryStore,
+    /// The action runner's approvals, test mode and log (actions.rs).
+    pub actions: actions::Actions,
     prefs: StudioPrefs,
     pub shutdown: watch::Receiver<bool>,
 }
@@ -343,11 +354,12 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
     });
     weather.start(&shutdown);
     let library = LibraryStore::new(cfg.data_dir.join("library"));
+    let actions = actions::Actions::new(cfg.data_dir.clone());
     println!("InfoPanel Studio on http://{}:{port} (config: {})", cfg.host, cfg.config_file().display());
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, streamdeck, agents, assets, packs, widgets, weather, canvases, library, prefs, shutdown };
+    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, streamdeck, agents, assets, packs, widgets, weather, canvases, library, actions, prefs, shutdown };
     Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
@@ -454,6 +466,7 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/api/audio/act" => audio::handle_act(app, req).await.map_err(io),
         "/api/obs/act" => obs_control::handle_act(app, req).await.map_err(io),
         "/api/media/act" => media::handle_act(app, req).await.map_err(io),
+        p if is_family(p, "/api/actions") => actions::handle(app, req).await.map_err(io),
         "/api/streamdeck" => Ok(streamdeck::routes::handle_state(app, &req)),
         "/events/streamdeck" => Ok(streamdeck::routes::handle_events(app)),
         "/api/streamdeck/icon" => Ok(streamdeck::routes::handle_icon(app, &req)),

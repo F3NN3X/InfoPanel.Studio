@@ -1,7 +1,8 @@
 import { createContext, type CSSProperties, type ReactNode } from "react";
 import type { ActiveAlert } from "@/lib/alerts";
+import type { KeySlot } from "@/lib/keys";
 import type { MonitorProfile, Placement } from "@/lib/layout";
-import type { PinnedEdge, RailSlot, TouchAction } from "@/lib/pinned";
+import type { PinnedEdge, RailSlot, TouchAction, TouchGesture } from "@/lib/pinned";
 import type { RailPage } from "@/lib/rail";
 
 /**
@@ -20,7 +21,8 @@ export interface RailHost {
   lock: "auto" | "locked" | null;
   /** The alerts shown on this kiosk (`visibleAlerts`), for the `alerts` badge. */
   alerts: readonly ActiveAlert[];
-  run: (action: TouchAction) => void;
+  /** Runs an action; `gesture` is what ran it (a hold confirms an action that asks for one). */
+  run: (action: TouchAction, gesture?: TouchGesture) => void;
   /** Draws a widget in a slot as a kiosk zone does, in a box of `style`; unset (a preview) leaves the box empty. */
   zone?: (placement: Placement, style: CSSProperties) => ReactNode;
   /**
@@ -56,3 +58,11 @@ export interface RailItem {
 }
 
 export const RailItemContext = createContext<RailItem | null>(null);
+
+/**
+ * The keys of the placement a widget is drawn for (`Placement.keys`, pinned layer P7): the Keys widget reads them here,
+ * since a widget's props come from its settings, which are scalars. Unset: none stored (the widget draws its sample). Kept
+ * beside the rail's context, in the one small chunk the kiosk entry and the widgets share, rather than a chunk (and a load
+ * request) of its own.
+ */
+export const PlacementKeysContext = createContext<readonly KeySlot[] | undefined>(undefined);

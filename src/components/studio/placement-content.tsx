@@ -4,6 +4,7 @@ import { isClaimed, modules } from "@/modules";
 import { chromeOf } from "@/modules/standard-settings";
 import { effectiveSettings, placementReads, type ModuleSettings, type SensorMap } from "@/modules/types";
 import { tokenScope } from "@/components/widget-style";
+import { PlacementKeysContext } from "@/components/rail-host";
 import type { SensorValue } from "@/hooks/useSensors";
 import { useSensors } from "@/hooks/useSensors";
 import { AUDIO_PREFIX } from "@/lib/sensor-stream";
@@ -208,7 +209,8 @@ export function placementContent(
   // Only the module's own keys (a stored color it has no option for stays inert).
   const cfg = effectiveSettings(mod, settings);
   return {
-    content: content ?? null,
+    // a Keys widget's keys live on the placement, not in its settings
+    content: content && p.keys ? <PlacementKeysContext.Provider value={p.keys}>{content}</PlacementKeysContext.Provider> : (content ?? null),
     hasData: content != null,
     title: mod.title,
     scope: frameScope(cfg),

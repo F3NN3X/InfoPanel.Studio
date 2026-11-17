@@ -212,7 +212,7 @@ describe("header modes", () => {
     expect(modules.filter((m) => m.header === "none").map((m) => m.id).sort()).toEqual(NO_HEADER);
     expect(modules.filter((m) => m.header === "title-only").map((m) => m.id).sort()).toEqual(TITLE_ONLY);
     const noCard = modules.filter((m) => !m.compact?.card).map((m) => m.id).sort();
-    expect(noCard).toEqual(["AudioButton", "AudioFader", "Clock", "CoreHeatmap", "CustomGauge", "MeterBridge", "ObsButton", "OnAirBeacon", "PageRail", "StatusBar", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
+    expect(noCard).toEqual(["AudioButton", "AudioFader", "Clock", "CoreHeatmap", "CustomGauge", "Keys", "MeterBridge", "ObsButton", "OnAirBeacon", "PageRail", "StatusBar", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
   });
 
   it("GpuMonitor's rings view (the GPU Rings widget) has a dense view and no summary card, the monitor view a card", () => {

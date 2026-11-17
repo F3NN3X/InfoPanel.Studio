@@ -5,6 +5,7 @@ import {
   Bluetooth,
   Bot,
   Bus,
+  Calculator,
   Calendar,
   Camera,
   ChartLine,
@@ -13,7 +14,9 @@ import {
   CloudSun,
   Cpu,
   Fan,
+  FileText,
   Flame,
+  Folder,
   Gamepad2,
   Gauge,
   Globe,
@@ -27,6 +30,7 @@ import {
   Layers,
   LayoutDashboard,
   List,
+  Lock,
   MemoryStick,
   MessageSquare,
   Mic,
@@ -40,6 +44,7 @@ import {
   Radio,
   Server,
   SlidersHorizontal,
+  SquareTerminal,
   Star,
   Sun,
   Terminal,
@@ -47,6 +52,7 @@ import {
   Timer,
   Tv,
   Video,
+  Volume1,
   Volume2,
   Wifi,
   Wrench,
@@ -55,7 +61,7 @@ import {
 } from "lucide-react";
 
 /**
- * The icons a page can wear, and the set a rail slot's icon comes from (tabs, the page rail; Stream Deck keys later):
+ * The icons a page can wear, and the set a rail slot's and a key's icon come from (tabs, the page rail, the Keys widget):
  * lucide names → components, so the config stores a plain string.
  */
 export const PAGE_ICONS: Record<string, LucideIcon> = {
@@ -94,6 +100,7 @@ export const PAGE_ICONS: Record<string, LucideIcon> = {
   server: Server,
   terminal: Terminal,
   headphones: Headphones,
+  "volume-1": Volume1,
   "volume-2": Volume2,
   bluetooth: Bluetooth,
   battery: Battery,
@@ -111,6 +118,12 @@ export const PAGE_ICONS: Record<string, LucideIcon> = {
   "sliders-horizontal": SlidersHorizontal,
   tv: Tv,
   wrench: Wrench,
+  // the Keys widget's (pinned layer P7, the `keys` fixture)
+  folder: Folder,
+  "square-terminal": SquareTerminal,
+  calculator: Calculator,
+  lock: Lock,
+  "file-text": FileText,
 };
 
 /** A page's icon name → component, or undefined for none / unknown. */

@@ -76,6 +76,8 @@ pub fn restart_required(
             || rc.port != saved.port
             || rc.allowed_hosts != saved.allowed_hosts
             || rc.allow_remote_edit != saved.allow_remote_edit
+            || rc.action_runner != saved.action_runner
+            || rc.obs_stream_control != saved.obs_stream_control
             || rc.debug != (saved.debug || debug_forced)
     })
 }
@@ -979,6 +981,8 @@ mod tests {
             debug: false,
             allowed_hosts: Vec::new(),
             allow_remote_edit: false,
+            action_runner: false,
+            obs_stream_control: false,
         };
         assert!(!restart_required(&saved, false, None));
         assert!(!restart_required(&saved, false, Some(&running)));
@@ -1001,6 +1005,14 @@ mod tests {
             },
             Settings {
                 allow_remote_edit: true,
+                ..saved.clone()
+            },
+            Settings {
+                action_runner: true,
+                ..saved.clone()
+            },
+            Settings {
+                obs_stream_control: true,
                 ..saved.clone()
             },
         ] {

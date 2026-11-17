@@ -97,6 +97,10 @@ pub struct Settings {
     pub allowed_hosts: Vec<String>,
     /// Let other devices on the network change the studio's data; off keeps writes to this computer.
     pub allow_remote_edit: bool,
+    /// Touch actions may run the commands approved in Settings > Actions (ips-server's actions.rs); off by default.
+    pub action_runner: bool,
+    /// OBS's go live and stop as a touch action (owner Q3); off by default.
+    pub obs_stream_control: bool,
     /// Restart the server after a crash (3 tries a minute).
     pub auto_restart: bool,
     pub start_at_login: bool,
@@ -154,6 +158,8 @@ impl Default for Settings {
             port: DEFAULT_PORT,
             allowed_hosts: Vec::new(),
             allow_remote_edit: false,
+            action_runner: false,
+            obs_stream_control: false,
             auto_restart: true,
             start_at_login: true,
             open_studio_on_launch: true,
@@ -262,6 +268,8 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
             next.allowed_hosts = hosts;
         }
         "allowRemoteEdit" => next.allow_remote_edit = parse(key, value)?,
+        "actionRunner" => next.action_runner = parse(key, value)?,
+        "obsStreamControl" => next.obs_stream_control = parse(key, value)?,
         "autoRestart" => next.auto_restart = parse(key, value)?,
         "startAtLogin" => next.start_at_login = parse(key, value)?,
         "openStudioOnLaunch" => next.open_studio_on_launch = parse(key, value)?,
@@ -414,6 +422,7 @@ mod tests {
         assert_eq!(s.port, 3922);
         assert!(s.allowed_hosts.is_empty());
         assert!(!s.allow_remote_edit);
+        assert!(!s.action_runner && !s.obs_stream_control);
         assert!(s.auto_restart);
         assert!(s.start_at_login);
         assert!(s.open_studio_on_launch);
@@ -643,6 +652,8 @@ mod tests {
         );
         for key in [
             "allowRemoteEdit",
+            "actionRunner",
+            "obsStreamControl",
             "autoRestart",
             "startAtLogin",
             "openStudioOnLaunch",
@@ -666,6 +677,7 @@ mod tests {
             ("listen", json!("wan")),
             ("allowedHosts", json!(["bad host"])),
             ("allowRemoteEdit", json!("yes")),
+            ("actionRunner", json!("on")),
             ("debug", json!("yes")),
             ("agents", json!({})),
             ("version", json!(3)),
@@ -684,6 +696,8 @@ mod tests {
         "port",
         "allowedHosts",
         "allowRemoteEdit",
+        "actionRunner",
+        "obsStreamControl",
         "autoRestart",
         "startAtLogin",
         "openStudioOnLaunch",

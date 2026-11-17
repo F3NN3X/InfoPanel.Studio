@@ -3175,6 +3175,82 @@
    "text": "ForecastTue8°4°42.5 mmWed14°7°1.0 mmThu15°10°Fri14°11°5.7 mmSat11°6°Sun10°2°",
    "view": "body"
   },
+  "Keys@1x1": {
+   "span": "1x1",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    110,
+    110
+   ],
+   "body": [
+    10,
+    10,
+    90,
+    90
+   ],
+   "n": 16,
+   "text": "ExplorerMore",
+   "view": "body"
+  },
+  "Keys@2x2": {
+   "span": "2x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    228,
+    228
+   ],
+   "body": [
+    12,
+    12,
+    204,
+    204
+   ],
+   "n": 62,
+   "text": "ExplorerTerminalCalculatorScreenshotShow desktopLock PC",
+   "view": "body"
+  },
+  "Keys@4x2": {
+   "span": "4x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    228
+   ],
+   "body": [
+    16,
+    16,
+    432,
+    196
+   ],
+   "n": 62,
+   "text": "ExplorerTerminalCalculatorScreenshotShow desktopLock PC",
+   "view": "body"
+  },
+  "Keys@4x4": {
+   "span": "4x4",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    464
+   ],
+   "body": [
+    16,
+    16,
+    432,
+    432
+   ],
+   "n": 62,
+   "text": "ExplorerTerminalCalculatorScreenshotShow desktopLock PC",
+   "view": "body"
+  },
   "Notifications@2x2": {
    "span": "2x2",
    "issues": [],

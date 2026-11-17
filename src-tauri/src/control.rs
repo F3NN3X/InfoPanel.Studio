@@ -461,6 +461,8 @@ fn spawn_and_wait(app: &AppHandle, generation: u64) {
                     debug,
                     allowed_hosts: s.allowed_hosts.clone(),
                     allow_remote_edit: s.allow_remote_edit,
+                    action_runner: s.action_runner,
+                    obs_stream_control: s.obs_stream_control,
                 });
             }) {
                 on_running(app);
@@ -605,6 +607,8 @@ pub fn use_foreign(app: &AppHandle) -> Result<(), String> {
             debug,
             allowed_hosts: s.allowed_hosts.clone(),
             allow_remote_edit: s.allow_remote_edit,
+            action_runner: s.action_runner,
+            obs_stream_control: s.obs_stream_control,
         });
     }) {
         on_running(app);
@@ -841,6 +845,8 @@ mod tests {
             debug: false,
             allowed_hosts: Vec::new(),
             allow_remote_edit: false,
+            action_runner: false,
+            obs_stream_control: false,
         };
         assert_eq!(status_address(Some(&running), &saved), ("127.0.0.1", 3922));
     }

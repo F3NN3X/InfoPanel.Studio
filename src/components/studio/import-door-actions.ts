@@ -4,6 +4,7 @@
  * collects the choices; everything that changes the dashboard happens here.
  */
 import type { HistorySetter } from "@/hooks/use-config-history";
+import { commandsIn, type CommandUse } from "@/lib/action-commands";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import type { ImportKind, Sniffed } from "@/lib/import-sniff";
 import type { LibraryItem } from "@/lib/library";
@@ -53,6 +54,8 @@ export interface RunResult {
   wizard: { file: File; dest: "new" | "zone" } | null;
   /** Library items were added: the Library page reloads. */
   libraryChanged: boolean;
+  /** The commands the imported screens name (pinned layer P7): each is listed for review and stays off until approved. */
+  commands: CommandUse[];
 }
 
 /**
@@ -87,7 +90,7 @@ const kindOf = (f: DoorFile): ImportKind => f.sniffed?.kind ?? "unknown";
 
 /** Carry out the door's import. A file that fails is reported and the others go on. */
 export async function runImport(files: readonly DoorFile[], choices: DoorChoices, ctx: DoorContext): Promise<RunResult> {
-  const result: RunResult = { done: [], failed: [], go: null, wizard: null, libraryChanged: false };
+  const result: RunResult = { done: [], failed: [], go: null, wizard: null, libraryChanged: false, commands: [] };
   let working = ctx.config;
 
   const configs = files.filter((f) => kindOf(f) === "config");
@@ -102,6 +105,9 @@ export async function runImport(files: readonly DoorFile[], choices: DoorChoices
     try {
       const r = await restoreConfig(await f.file.text(), { current: working, mode: choices.config, backupFirst: choices.backupFirst, backup: ctx.backup });
       ctx.setConfig(r.config);
+      // the screens the file brought: all of them on a replace, the added ones otherwise
+      const brought = choices.config === "add-screens" ? r.config.profiles.filter((p) => !working.profiles.some((o) => o.id === p.id)) : r.config.profiles;
+      result.commands.push(...brought.flatMap(commandsIn));
       working = r.config;
       const added = choices.config === "add-screens" ? "Added" : "Restored";
       result.done.push(
@@ -126,6 +132,7 @@ export async function runImport(files: readonly DoorFile[], choices: DoorChoices
     const screen = importedProfile(working, restored.profile);
     working = { ...working, profiles: [...working.profiles, screen] };
     ctx.addScreen(screen);
+    result.commands.push(...commandsIn(screen));
     result.done.push(
       `Added screen ${screen.name}${parsed.skippedCanvases ? ` · ${parsed.skippedCanvases} InfoPanel pages left out (their profile is not in the file)` : ""}${upgradedNote(parsed.upgradedFrom)}` +
         (parsed.sharedLook ? " · it used the All screens theme, which the file doesn't hold, so it has the built-in theme: pick a theme in Theme" : "") +

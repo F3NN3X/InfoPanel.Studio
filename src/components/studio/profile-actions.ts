@@ -1,5 +1,6 @@
 import type { AppliedTheme } from "@/lib/applied-theme";
 import { clonePlacement, uid, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
+import { remapKeyPages } from "@/lib/keys";
 import { remapPinnedPages, remapTouchPages } from "@/lib/pinned";
 
 /**
@@ -57,7 +58,11 @@ export function withFreshIds(profile: MonitorProfile): MonitorProfile {
       ...page,
       ...rezoned(page.appliedTheme),
       // a widget's page actions follow the pages too (config v20)
-      placements: page.placements.map((z) => (z.touch ? { ...z, touch: remapTouchPages(z.touch, pageIds) } : z)),
+      placements: page.placements.map((z) => ({
+        ...z,
+        ...(z.touch ? { touch: remapTouchPages(z.touch, pageIds) } : {}),
+        ...(z.keys ? { keys: remapKeyPages(z.keys, pageIds) } : {}),
+      })),
     }));
   const { rotate, pinned } = copy;
   return {

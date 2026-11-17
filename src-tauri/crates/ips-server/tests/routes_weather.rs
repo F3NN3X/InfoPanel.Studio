@@ -109,6 +109,8 @@ async fn start() -> Server {
         allowed_hosts: vec![],
         allow_remote_edit: false,
         allow_remote_upload: false,
+        action_runner: false,
+        obs_stream: false,
         dist: dir.path().join("dist"),
         data_dir: data,
         infopanel_dir: dir.path().join("infopanel"),

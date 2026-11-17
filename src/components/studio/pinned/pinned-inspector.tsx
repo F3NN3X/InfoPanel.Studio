@@ -1,4 +1,4 @@
-import { Hand, LayoutPanelLeft, Pin, TriangleAlert, Trash2 } from "lucide-react";
+import { Grid3x3, Hand, LayoutPanelLeft, Pin, TriangleAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SettingRow as UiSettingRow } from "@/components/ui/setting-row";
 import { Toggle } from "@/components/ui/toggle";
@@ -11,6 +11,7 @@ import type { ModuleSetting, ModuleSettingValue } from "@/modules/types";
 import { PanelSection } from "../panel-section";
 import { SettingRow } from "../setting-control";
 import { SegmentedRow, SliderRow, TextRow } from "../setting-rows";
+import { KeysEditor } from "../keys-editor";
 import { TouchRows } from "../touch-rows";
 
 /** A change to the item; `key` coalesces the steps of one field (a slider's drag is one undo step). */
@@ -147,6 +148,20 @@ export function PinnedInspector({ config, profile, page, item, update, onHidePin
           <TouchLine gesture="Tap Auto or Locked" action="Rotate pages, or stay" />
           <TouchLine gesture="Swipe on the page" action="Next or previous page" />
           <p className="text-caption text-ui-3">An item's own tap, hold and double tap are set in Edit rail items.</p>
+        </PanelSection>
+      )}
+      {item.placement.module === "Keys" && (
+        <PanelSection id="pinned-keys" title="Keys" icon={Grid3x3}>
+          <KeysEditor
+            keys={item.placement.keys}
+            pages={profile.pages}
+            onChange={(keys, key) =>
+              update((it) => {
+                const { keys: _old, ...placement } = it.placement;
+                return { ...it, placement: keys ? { ...placement, keys } : placement };
+              }, key && `pinned:${item.id}:${key}`)
+            }
+          />
         </PanelSection>
       )}
       {mod && !rail && (

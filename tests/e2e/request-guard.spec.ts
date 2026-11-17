@@ -30,6 +30,9 @@ const ROUTES = [
   "/api/assets",
   "/api/assets/app-icon",
   "/api/media/act",
+  "/api/actions",
+  "/api/actions/run",
+  "/api/actions/log",
   "/api/canvases",
   "/api/library",
   "/api/integrations",
@@ -60,8 +63,8 @@ test("refuses cross-site writes", async ({ scratch }) => {
   const host = new URL(scratch.base).host;
   const foreign: Record<string, string>[] = [{ origin: "http://evil.example" }, { origin: "null" }, { "sec-fetch-site": "cross-site" }, { "sec-fetch-site": "same-site" }];
   for (const extra of foreign) {
-    for (const path of ["/api/config", "/api/control/page", "/api/integrations", "/api/assets/app-icon", "/api/media/act"]) {
-      const method = path === "/api/integrations" ? "PUT" : "POST";
+    for (const path of ["/api/config", "/api/control/page", "/api/integrations", "/api/assets/app-icon", "/api/media/act", "/api/actions/run", "/api/actions"]) {
+      const method = path === "/api/integrations" || path === "/api/actions" ? "PUT" : "POST";
       expect((await request(scratch.base, { method, path, headers: { host, ...json, ...extra }, body: "{}" })).status, `${path} ${JSON.stringify(extra)}`).toBe(403);
     }
   }
@@ -86,6 +89,14 @@ test("requires the write headers", async ({ scratch }) => {
   expect((await media({ "content-type": "application/json" })).status).toBe(403);
   expect((await media({ "content-type": "text/plain", "x-dashboard-control": "1" })).status).toBe(415);
   expect((await media({ "content-type": "application/json", "x-dashboard-control": "1" })).status).toBe(400);
+  // the action runner (P7): the control header, then JSON; off by default, so even a good body runs nothing (403)
+  const run = (headers: Record<string, string>) => request(scratch.base, { method: "POST", path: "/api/actions/run", headers: { host, ...headers }, body: '{"command":"notepad.exe"}' });
+  expect((await run({ "content-type": "application/json" })).status).toBe(403);
+  expect((await run({ "content-type": "text/plain", "x-dashboard-control": "1" })).status).toBe(415);
+  expect((await run({ "content-type": "application/json", "x-dashboard-control": "1" })).status).toBe(403);
+  const approve = (headers: Record<string, string>) => request(scratch.base, { method: "PUT", path: "/api/actions", headers: { host, ...headers }, body: '{"approve":["notepad.exe"]}' });
+  expect((await approve({ "content-type": "application/json" })).status).toBe(403);
+  expect((await approve({ "content-type": "text/plain", "x-dashboard-control": "1" })).status).toBe(415);
 });
 
 /** This machine's first non-internal IPv4 address, to reach the server as "another machine". */
@@ -104,7 +115,8 @@ test.describe("writes from another machine", () => {
     test(`ALLOW_REMOTE_EDIT=${remoteEdit}`, async () => {
       const { startScratch } = await import("../../tools/perf/scratch.mjs");
       // uploads follow the same switch here, to show an app's icon is read for this machine whatever ALLOW_REMOTE_UPLOAD says
-      const scratch = await startScratch({ env: { HOST: "0.0.0.0", ALLOW_REMOTE_EDIT: remoteEdit, ALLOW_REMOTE_UPLOAD: remoteEdit } });
+      // the action runner is on, to show a command still needs this machine's approval (P7)
+      const scratch = await startScratch({ env: { HOST: "0.0.0.0", ALLOW_REMOTE_EDIT: remoteEdit, ALLOW_REMOTE_UPLOAD: remoteEdit, ACTION_RUNNER: "on" } });
       try {
         const host = `${lanAddress}:${new URL(scratch.base).port}`;
         const at = (method: string, path: string, body?: string) => request(scratch.base, { method, path, address: lanAddress, headers: { host, ...json }, body });
@@ -131,6 +143,16 @@ test.describe("writes from another machine", () => {
         // An app's icon reads this machine's programs: this machine's only, whatever the switches.
         const icon = await request(scratch.base, { method: "POST", path: "/api/assets/app-icon", address: lanAddress, headers: { host, "content-type": "application/json", "x-dashboard-asset": "1" }, body: '{"exe":"notepad.exe"}' });
         expect(icon.status).toBe(403);
+        // Commands (P7): approving is this machine's only, whatever the switch, so a command written into the config from
+        // another machine never runs; a run from another machine needs remote editing, and then still the approval.
+        expect((await at("PUT", "/api/actions", '{"approve":["notepad.exe"]}')).status).toBe(403);
+        expect((await at("PUT", "/api/actions", '{"testMode":true}')).status).toBe(403);
+        const run = await at("POST", "/api/actions/run", '{"command":"notepad.exe"}');
+        expect(run.status).toBe(403);
+        expect((await at("GET", "/api/actions")).status).toBe(remoteEdit === "1" ? 200 : 403);
+        expect((await at("GET", "/api/actions/log")).status).toBe(remoteEdit === "1" ? 200 : 403);
+        const log = (await (await fetch(`${scratch.base}/api/actions/log`)).json()) as { entries: { reason?: string; from: string }[] };
+        expect(log.entries.map((e) => e.reason)).toEqual([remoteEdit === "1" ? "unapproved" : "remote"]);
       } finally {
         scratch.stop();
       }

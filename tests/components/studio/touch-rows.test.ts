@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionOptions, pickAction, withGesture } from "@/components/studio/touch-rows";
+import { actionOptions, GUARDED_OPTIONS, OBS_STREAM, pickAction, rowOptions, rowValue, withGesture } from "@/components/studio/touch-rows";
 import { touchChoices } from "@/lib/pinned-edit";
 import type { TouchAction } from "@/lib/pinned";
 
@@ -30,5 +30,19 @@ describe("the touch rows", () => {
     expect(both).toEqual({ tap: { op: "page", to: "next" }, hold: { op: "lock" } });
     expect(withGesture(both, "tap", undefined)).toEqual({ hold: { op: "lock" } });
     expect(withGesture({ hold: { op: "lock" } }, "hold", undefined)).toBeUndefined();
+  });
+
+  it("list a command and OBS's go live after the safe set, read each back as itself, and keep a kept action last (P7)", () => {
+    const none = rowOptions(choices, "Nothing", undefined);
+    expect(none.slice(-2)).toEqual([...GUARDED_OPTIONS]);
+    expect(rowValue(RUN)).toBe("run");
+    expect(rowValue({ ...RUN, confirm: true })).toBe("run");
+    expect(rowValue(OBS_STREAM)).toBe("obs:stream");
+    expect(rowValue({ op: "page", to: "home" })).toBe("page:home");
+    // a command is no kept "other" any more: listed once, as Run a command
+    expect(rowOptions(choices, "Nothing", RUN).filter((o) => o.value === "other")).toEqual([]);
+    expect(rowOptions(choices, "Nothing", RUN)).toEqual(none);
+    // an action the list lacks still comes last, after the guarded two
+    expect(rowOptions(choices, "Nothing", GONE).slice(-3).map((o) => o.value)).toEqual(["run", "obs:stream", "mute:input:usb-mic"]);
   });
 });

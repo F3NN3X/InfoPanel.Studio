@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { SectionId } from "./model/search";
 import { AboutSection } from "./sections/about";
+import { ActionsSection } from "./sections/actions";
 import { AgentsSection } from "./sections/agents";
 import { ChangelogSection } from "./sections/changelog";
 import { ConnectionsSection } from "./sections/connections";
@@ -25,6 +26,7 @@ export const PAGES: Record<SectionId, Page> = {
   server: { subtitle: "The local server the kiosk and studio load from.", Section: ServerSection },
   connections: { subtitle: "Accounts and apps the dashboard talks to: OBS, Twitch, YouTube, calendars.", Section: ConnectionsSection },
   agents: { subtitle: "Claude Code and Codex on your dashboard.", Section: AgentsSection },
+  actions: { subtitle: "Commands and OBS's go live from the panel: off until you turn them on.", Section: ActionsSection },
   touch: { subtitle: "Experimental: touch panels that drive the kiosk, never Windows.", Section: TouchSection },
   updates: { subtitle: "Get new versions of InfoPanel Studio.", Section: UpdatesSection },
   publishers: { subtitle: "The keys a code widget must be signed with before it runs.", Section: PublishersSection },

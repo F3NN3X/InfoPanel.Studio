@@ -1537,7 +1537,8 @@ Any widget, on a page, pinned or in a rail's widget slot, can run an action when
 it (600 ms) or tap it twice: its placement's `touch`, set in the inspector's **Behaviour › Touch**
 (a pinned widget's **Touch**). The actions are the rail's above: a page, the next or previous
 page, the page lock, the profile picker, a media key, a mute of one of this PC's audio devices,
-an OBS scene or the OBS mic. Running a program is not one of them.
+an OBS scene or the OBS mic. Two more are listed after them, and run only once they are turned on in
+**Settings › Actions** (see [Keys and commands](#keys-and-commands)): **Run a command…** and **OBS: go live or stop**.
 
 ```json
 { "id": "cpu", "module": "CpuMonitor", "colStart": 1, "rowStart": 1, "colSpan": 2, "rowSpan": 2, "visible": true,
@@ -1555,6 +1556,52 @@ Your own widgets go in a rail too: in the Widgets page builder's **Presets** tab
 page rail** turns a preset into a rail preset (`"size": "rail"`, recipe format 2), which the stage
 then draws in a rail slot's box, and the rail editor lists it under **Widgets**. A code widget
 offers itself with `rail: { settings }` in its definition.
+
+### Keys and commands
+
+The **Keys** widget is a grid of keys built on the press-button tile: each key has a name, an icon
+(from the icon set, an image or text), a colour from the series, and a tap, a hold and a double
+tap, the same actions as above. One dot in a key's corner means it has a hold, two a double tap;
+**Legend** (Grid) says so in the header, and **Columns** fixes the grid (0 picks it from
+the widget's shape). A key with `keys` of its own is a folder, one level deep: a tap opens it and
+**Back** leaves it. When the widget is too small for every key at a finger's size (48 px), it shows
+the keys that fit and a **More** key that steps through the rest. The inspector's **Key list**
+adds, orders and edits them, at most 48 a level. Enter or Space on a focused key is pressed as a
+finger is: held for a hold, twice for a double tap.
+
+```json
+{ "id": "k", "module": "Keys", "colStart": 1, "rowStart": 1, "colSpan": 4, "rowSpan": 2, "visible": true,
+  "keys": [
+    { "id": "notes", "name": "Notes", "icon": { "from": "set", "name": "file-text" },
+      "touch": { "tap": { "op": "run", "command": "notepad.exe" } } },
+    { "id": "lock", "name": "Lock PC", "icon": { "from": "set", "name": "lock" },
+      "touch": { "hold": { "op": "run", "command": "rundll32.exe user32.dll,LockWorkStation", "confirm": true } } },
+    { "id": "apps", "name": "Apps", "keys": [ { "id": "calc", "name": "Calc", "touch": { "tap": { "op": "run", "command": "calc.exe" } } } ] }
+  ] }
+```
+
+A command (`{ "op": "run", "command": "…" }`) starts a program on the PC running InfoPanel Studio.
+It is off three ways until you say otherwise:
+
+- **Run commands from the panel** in **Settings › Actions** (`ACTION_RUNNER=on` for the server
+  alone) turns the runner on, after a restart.
+- Each command runs only once it is approved, word for word, on that PC: under the command in the
+  Touch rows, in **Settings › Actions › Commands**, or in the review the studio shows after you import
+  a screen that names commands. Approvals stay on the PC; a screen file never carries one.
+- A run comes from that PC's kiosk unless **Allow editing from other devices** is on.
+
+The command is not passed to a shell: spaces separate the program and its arguments, double quotes
+group (`"C:\Program Files\App\app.exe" --flag`), `""` inside quotes is a quote, and `&`, `|`, `>`
+or `%VAR%` are plain text. To use a shell, name it: `cmd.exe /c …` or `powershell.exe -Command …`.
+`"confirm": true` (**Hold to confirm**) makes the kiosk show the whole command and wait for a 0.6 s
+hold before it runs; a hold on the key itself counts as that hold. **Test mode** in Settings ›
+Actions, or **Test** under a command, checks everything and starts nothing, and the kiosk says what
+would have run. **Settings › Actions › Log** lists every run, refusal and failure.
+
+**OBS: go live or stop** (`{ "op": "obs", "body": { "op": "stream", "state": "toggle" } }`, or
+`start` or `stop`) needs **Go live and stop in OBS from the panel** in Settings › Actions
+(`OBS_STREAM_CONTROL=on`), and always asks for the hold. The security model has the details: see
+[security.md](security.md) under "Running a command".
 
 ### Profiles that follow the app in front
 

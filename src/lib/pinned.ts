@@ -2,15 +2,20 @@
  * The pinned layer (config v20, _docs/redesign/pinned-layer INVESTIGATION §3): widgets a profile pins to an edge of the
  * screen, drawn the same on every page, which a page can hide (`ProfilePage.hidePinned`). "Make room" pads the page area
  * on the item's edge, as the Island's reserve pads the grid; "float" draws over the page. The rail (`rail` slots) is drawn
- * by the PageRail widget (src/widgets/page-rail/, P2); per-widget touch actions (`TouchMap`) are run from P6 on.
+ * by the PageRail widget (src/widgets/page-rail/, P2); per-widget touch actions (`TouchMap`) are run from P6 on, and a
+ * command (`run`) through the action runner from P7 on (ips-server's actions.rs: off by default, approved commands only).
  */
 import type { ModuleSettings } from "@/modules/types";
+import { normalizeKeys, remapKeyPages } from "./keys";
 import type { Placement } from "./layout";
 
 export type PinnedEdge = "left" | "right" | "top" | "bottom";
 export const PINNED_EDGES: readonly PinnedEdge[] = ["left", "right", "top", "bottom"];
 
-/** What a touch does (decision 10): a page, the profile picker, the page lock, or an existing guarded route; `run` waits for P7's runner. */
+/**
+ * What a touch does (decision 10): a page, the profile picker, the page lock, an existing guarded route, or a command (P7's
+ * runner). `confirm` on a command asks for a hold before it runs, unless the gesture was a hold; OBS's go live always does.
+ */
 export type TouchAction =
   | { op: "page"; to: string }
   | { op: "profile-picker" }
@@ -18,7 +23,7 @@ export type TouchAction =
   | { op: "audio"; body: Record<string, unknown> }
   | { op: "obs"; body: Record<string, unknown> }
   | { op: "media"; key: MediaKey }
-  | { op: "run"; command: string };
+  | { op: "run"; command: string; confirm?: boolean };
 export type MediaKey = "play-pause" | "next" | "previous";
 const MEDIA_KEYS: readonly MediaKey[] = ["play-pause", "next", "previous"];
 
@@ -131,7 +136,7 @@ export function normalizeTouchAction(raw: unknown, pages?: ReadonlySet<string>):
     case "media":
       return MEDIA_KEYS.includes(raw.key as MediaKey) ? { op: "media", key: raw.key as MediaKey } : undefined;
     case "run":
-      return text(raw.command) ? { op: "run", command: raw.command } : undefined;
+      return text(raw.command) && raw.command.trim() ? { op: "run", command: raw.command, ...(raw.confirm === true ? { confirm: true } : {}) } : undefined;
     default:
       return undefined;
   }
@@ -159,7 +164,8 @@ function normalizeTarget(raw: unknown, pages: ReadonlySet<string>): RailTarget |
   return undefined;
 }
 
-function normalizeIcon(raw: unknown): RailIcon | undefined {
+/** A stored slot or key icon, or undefined for one that isn't (an unknown source, no name). */
+export function normalizeRailIcon(raw: unknown): RailIcon | undefined {
   if (!isRecord(raw)) return undefined;
   if (raw.from === "set" && text(raw.name)) return { from: "set", name: raw.name };
   if (raw.from === "image" && text(raw.asset)) return { from: "image", asset: raw.asset };
@@ -177,7 +183,7 @@ function normalizeRail(raw: unknown, pages: ReadonlySet<string>): RailSlot[] | u
     const target = normalizeTarget(s.target, pages);
     if (!target) return [];
     seen.add(s.id);
-    const icon = normalizeIcon(s.icon);
+    const icon = normalizeRailIcon(s.icon);
     const touch = normalizeTouchMap(s.touch, pages);
     const when = isRecord(s.badge) && BADGE_RULES.includes(s.badge.when as BadgeRule) ? (s.badge.when as BadgeRule) : undefined;
     return [
@@ -205,9 +211,15 @@ function normalizePinnedPlacement(raw: unknown, pages: ReadonlySet<string>): Pin
   if (!isRecord(raw) || !text(raw.id) || !text(raw.module)) return undefined;
   const rest: Record<string, unknown> = { ...raw };
   for (const key of OFF_GRID) delete rest[key];
-  const { touch, settings, ...kept } = rest;
+  const { touch, settings, keys, ...kept } = rest;
   const map = normalizeTouchMap(touch, pages);
-  return { ...(kept as unknown as PinnedPlacement), ...(isRecord(settings) ? { settings: settings as ModuleSettings } : {}), ...(map ? { touch: map } : {}) };
+  const keyList = normalizeKeys(keys, pages);
+  return {
+    ...(kept as unknown as PinnedPlacement),
+    ...(isRecord(settings) ? { settings: settings as ModuleSettings } : {}),
+    ...(map ? { touch: map } : {}),
+    ...(keyList ? { keys: keyList } : {}),
+  };
 }
 
 /**
@@ -309,7 +321,12 @@ export function remapPinnedPages(layer: PinnedLayer, ids: ReadonlyMap<string, st
     items: layer.items.map((it) => ({
       ...it,
       show: it.show === "all" ? it.show : { pages: it.show.pages.flatMap((id) => (ids.has(id) ? [ids.get(id)!] : [])) },
-      placement: { ...it.placement, id: freshId(it.placement.module), ...(it.placement.touch ? { touch: remapTouchPages(it.placement.touch, ids) } : {}) },
+      placement: {
+        ...it.placement,
+        id: freshId(it.placement.module),
+        ...(it.placement.touch ? { touch: remapTouchPages(it.placement.touch, ids) } : {}),
+        ...(it.placement.keys ? { keys: remapKeyPages(it.placement.keys, ids) } : {}),
+      },
       ...(it.rail ? { rail: it.rail.map((s) => ({ ...s, target: movedTarget(s.target, ids), ...(s.touch ? { touch: remapTouchPages(s.touch, ids) } : {}) })) } : {}),
     })),
   };

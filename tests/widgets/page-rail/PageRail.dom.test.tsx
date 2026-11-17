@@ -58,7 +58,7 @@ describe("the page rail", () => {
     expect(screen.getByRole("button", { name: "Agents" }).getAttribute("aria-current")).toBe("page");
     expect(keys.getAttribute("aria-current")).toBeNull();
     tap(keys);
-    expect(run).toHaveBeenCalledWith({ op: "page", to: "keys" });
+    expect(run).toHaveBeenCalledWith({ op: "page", to: "keys" }, "tap");
   });
 
   it("acts on a keyboard click once, and not again on a pointer's click", () => {
@@ -94,7 +94,7 @@ describe("the page rail", () => {
     expect(screen.getByRole("button", { name: "Stream, live on OBS" }).textContent).toContain("LIVE");
     expect(screen.queryByRole("button", { name: "Keys" })).toBeNull();
     tap(screen.getByRole("button", { name: "Next page" }));
-    expect(run).toHaveBeenLastCalledWith({ op: "page", to: "next" });
+    expect(run).toHaveBeenLastCalledWith({ op: "page", to: "next" }, "tap");
   });
 
   it("names an image slot by its alt text, the item's name and what a tap does (owner Q10)", () => {
@@ -118,7 +118,7 @@ describe("the page rail", () => {
     expect(button.getAttribute("data-plate")).toBe("contrast");
     expect(button.style.background).toBe("var(--w-fg)");
     tap(button);
-    expect(run).toHaveBeenCalledWith({ op: "profile-picker" });
+    expect(run).toHaveBeenCalledWith({ op: "profile-picker" }, "tap");
     cleanup();
     draw(host(), [logo("none")], { chip: false });
     expect(screen.getByRole("button", { name: "Hexmark logo, opens profiles" }).style.background).toBe("");

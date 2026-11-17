@@ -113,7 +113,37 @@ security model, what was fixed, what was decided, and what is deferred.
   named, and nothing is read back). Like the audio and OBS writes it needs `X-Dashboard-Control: 1` and JSON, a cross-site
   request is refused first, and another machine is refused unless `ALLOW_REMOTE_EDIT=1`. Touch actions run only routes
   that already exist with these guards (pages and the page lock through the control channel, audio, OBS scenes and mic,
-  media keys); running a program is not one of them. Off Windows the route answers 503.
+  media keys), and the two below, each behind its own switch. Off Windows the route answers 503.
+- **Running a command** (`POST /api/actions/run`, `crates/ips-server/src/actions.rs`): a key or a touch action `{ "op": "run",
+  "command": "…" }` asks the server to start a program on this PC. Every layer has to agree before anything starts, checked in
+  this order:
+  - the runner is off unless `ACTION_RUNNER=on` (the desktop app sets it from **Settings › Actions › Run commands from the
+    panel**), read when the server starts. While it is off a run answers 403 `off`;
+  - the request comes from this machine unless `ALLOW_REMOTE_EDIT=1`, and it carries `X-Dashboard-Control: 1` and JSON, so a
+    cross-site page or another device can't post one (403 `remote`);
+  - the command is approved word for word. Approvals live in `DATA_DIR/actions.json`, never in the config or a profile
+    file, and only this machine can give or remove one (`PUT /api/actions`), whatever `ALLOW_REMOTE_EDIT` says. A config
+    written from another device, or a screen imported from a file, can name a command but never approve it; the studio lists
+    an import's commands for review, and **Settings › Actions** lists every command the screens name (403 `unapproved`);
+  - the command is at most 2 048 bytes and cuts into a program (400);
+  - test mode (**Settings › Actions › Test mode**, kept in `actions.json`) or `"dry": true` stops here: the server answers
+    with the program and arguments it would start and starts nothing. The studio's **Test** button is a dry run.
+  - **No shell.** The command is cut into a program and its arguments: spaces separate, double quotes group (`"C:\Program
+    Files\App\app.exe" --flag`), `""` inside quotes is a literal quote, and nothing else is special: `&`, `|`, `>`, `^`, `;`
+    and `%VAR%` are plain text. `std::process::Command` starts the program with each argument separate, quoting it for the
+    Windows command line, with its input and output closed and the user's home folder as the working
+    folder; the server doesn't wait for it. A `.bat` or `.cmd` program is run by Windows through `cmd.exe`: Rust's standard
+    library escapes its arguments for that and refuses one it can't pass safely (CVE-2024-24576, fixed in Rust 1.77.2).
+  - **Hold to confirm** is the kiosk's: a command marked so, and OBS's go live, run only after a 0.6 s hold on a card that
+    shows the whole command (a hold on the key itself is that hold). The server can't see a finger and never relies on it.
+  - **The log**: every run that reaches a decision, run, tested, refused or failed, is a line of
+    `DATA_DIR/actions-log.jsonl` (time, the peer's address, the command, the outcome and why), cut back to its newer half
+    past 256 KB. `GET /api/actions/log` reads the last 200, and `GET /api/actions` the switch, test mode and the approved
+    commands; both answer this machine unless `ALLOW_REMOTE_EDIT=1`.
+- **OBS go live** (`POST /api/obs/act` with `{ "op": "stream", "state": "start" | "stop" | "toggle" }`): starts or stops
+  streaming in OBS. It answers 403 unless `OBS_STREAM_CONTROL=on` (**Settings › Actions › Go live and stop in OBS from the
+  panel**), and otherwise has the guards of the other OBS writes. The kiosk always asks for a hold first. The Stream Deck
+  plugin and its widget are unchanged and offer neither.
 - **Profile files with images**: an exported screen carries the images it names as base64, within the import's 5 MB. On
   import each goes through the upload route above (magic bytes checked, an SVG sanitised) before the screen points at it;
   an entry whose id, type or data does not have the expected shape is dropped unread.

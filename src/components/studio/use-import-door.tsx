@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import type { HistorySetter } from "@/hooks/use-config-history";
+import type { CommandUse } from "@/lib/action-commands";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
 import { sniffFile, UNKNOWN_FILE, type Sniffed } from "@/lib/import-sniff";
 import { DropOverlay, ImportDoorDialog } from "./import-door";
 import { DEFAULT_CHOICES, runImport, type DoorChoices, type DoorFile, type DoorGo } from "./import-door-actions";
 import { onFileDoor, type ImportRequest } from "./file-doors";
+
+const CommandReviewDialog = lazy(() => import("./command-review-dialog").then((m) => ({ default: m.CommandReviewDialog })));
 
 /** A file this big is sniffed from its first bytes only (a video, say); a zip or JSON that big is not recognised. */
 const SNIFF_WHOLE = 64 * 1024 * 1024;
@@ -49,6 +52,8 @@ export function useImportDoor(deps: ImportDoorDeps): ReactNode {
   const [choices, setChoices] = useState<DoorChoices>(DEFAULT_CHOICES);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
+  // the commands an import brought in, for review (P7)
+  const [review, setReview] = useState<CommandUse[]>([]);
   const nextId = useRef(0);
 
   const add = (list: File[]) => {
@@ -127,6 +132,7 @@ export function useImportDoor(deps: ImportDoorDeps): ReactNode {
     // Nothing went in: the door stays open on its rows, so the bad file can be removed and the rest go on.
     if (r.done.length === 0 && !r.wizard) return;
     setOpen(false);
+    if (r.commands.length > 0) setReview(r.commands);
     if (r.libraryChanged) deps.onLibraryChanged();
     if (r.go) deps.onGo(r.go);
     if (r.wizard) deps.onWizard(r.wizard.file, r.wizard.dest);
@@ -151,6 +157,11 @@ export function useImportDoor(deps: ImportDoorDeps): ReactNode {
         }}
       />
       {dragging && !open && <DropOverlay />}
+      {review.length > 0 && (
+        <Suspense fallback={null}>
+          <CommandReviewDialog uses={review} onClose={() => setReview([])} />
+        </Suspense>
+      )}
     </>
   );
 }
