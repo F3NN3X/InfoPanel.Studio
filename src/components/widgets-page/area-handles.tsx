@@ -253,7 +253,8 @@ export function FillHandles({ zone, recipe, path, locked, tick, onLive, onDone }
   return (
     <>
       {ends.map((end) => {
-        const at = end === "left" ? { left: box.x - 5, top: box.y, width: 10, height: box.h } : end === "right" ? { left: box.x + box.w - 5, top: box.y, width: 10, height: box.h } : end === "top" ? { left: box.x, top: box.y - 5, width: box.w, height: 10 } : { left: box.x, top: box.y + box.h - 5, width: box.w, height: 10 };
+        // just outside the block's edge, so a press or a right-click inside the block stays the block's
+        const at = end === "left" ? { left: box.x - 9, top: box.y, width: 8, height: box.h } : end === "right" ? { left: box.x + box.w + 1, top: box.y, width: 8, height: box.h } : end === "top" ? { left: box.x, top: box.y - 9, width: box.w, height: 8 } : { left: box.x, top: box.y + box.h + 1, width: box.w, height: 8 };
         const shown = drag?.id === end ? drag : null;
         return (
           <div

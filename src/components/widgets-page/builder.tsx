@@ -120,6 +120,9 @@ function savedChip(d: Draft): { text: string; tone: "neutral" | "warn" } {
 }
 
 
+/** The stage's handles (shares, areas, parts across): a press or the click a drag ends with is theirs, not a pick. */
+const HANDLES = "[data-share-handle], [data-area-handle], [data-fill-handle]";
+
 /** The room the selection's name tag takes beside its block, in the zone's px (11 px text, its padding and gap). */
 const TAG_ROOM = 24;
 
@@ -711,7 +714,7 @@ export function Builder(p: BuilderProps) {
     if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || tile) return;
     const t = e.target as HTMLElement;
     const hit = t.closest<HTMLElement>("[data-recipe-path]");
-    if (!hit || t.closest("[data-share-handle]")) return;
+    if (!hit || t.closest(HANDLES)) return;
     // a locked block (or one in it) stays where it is (G25)
     const at = dragTarget(recipe, pathOf(hit.dataset.recipePath!));
     if (flagged(flags.locked, at)) return;
@@ -1220,7 +1223,8 @@ export function Builder(p: BuilderProps) {
               const hit = t.closest<HTMLElement>("[data-recipe-path]");
               if (!hit && !t.closest("[data-recipe-zone]")) return;
               e.preventDefault();
-              // a locked block's menu is its container's, as its click picks that (G25)
+              // a handle is the selected block's; a locked block's menu is its container's, as its click picks that (G25)
+              if (t.closest(HANDLES)) return openStageMenu(path, e.clientX, e.clientY);
               openStageMenu(hit ? stagePick(flags.locked, pathOf(hit.dataset.recipePath!)) : [], e.clientX, e.clientY);
             }}
             onClick={(e) => {
@@ -1229,7 +1233,7 @@ export function Builder(p: BuilderProps) {
                 return;
               }
               const target = e.target as HTMLElement;
-              if (target.closest("[data-share-handle]")) return;
+              if (target.closest(HANDLES)) return;
               const hit = target.closest<HTMLElement>("[data-recipe-path]");
               if (hit) {
                 // a locked block is not picked here: the block holding it is (G25); Ctrl adds or takes away, Shift picks a range

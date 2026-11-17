@@ -60,37 +60,37 @@ test("a grid on tracks: a block dragged by its body moves a track at a time and 
   await drag(page, await centre(block(page, "0.0")), { x: grid.x + grid.width * (5 / 6), y: grid.y + grid.height / 4 });
   await page.mouse.up();
   await expect(said(page)).toHaveText("Moved Value to column 3, row 1");
-  await expect(page.getByLabel("Area column")).toHaveValue("3");
+  await expect(page.getByLabel("Area column", { exact: true })).toHaveValue("3");
 
   // the bottom handle to the grid's bottom edge: two rows
   const bottom = await centre(page.locator('[data-area-handle="bottom"]'));
   await drag(page, bottom, { x: bottom.x, y: grid.y + grid.height - 2 });
   await expect(page.locator("[data-area-text]")).toHaveText("Columns 3 to 3, rows 1 to 2");
   await page.mouse.up();
-  await expect(page.getByLabel("Area rows")).toHaveValue("2");
+  await expect(page.getByLabel("Area rows", { exact: true })).toHaveValue("2");
   await save(page, "Areas");
   r = await stored(scratch.base, "recipe.areas");
   expect(r.root.children[0].children[0].area).toEqual([3, 1, 1, 2]);
 
   // one undo step each: the size, then the move
   await page.getByRole("button", { name: "Undo (Ctrl+Z)" }).click();
-  await expect(page.getByLabel("Area rows")).toHaveValue("1");
+  await expect(page.getByLabel("Area rows", { exact: true })).toHaveValue("1");
   await page.getByRole("button", { name: "Undo (Ctrl+Z)" }).click();
-  await expect(page.getByLabel("Area column")).toHaveValue("1");
+  await expect(page.getByLabel("Area column", { exact: true })).toHaveValue("1");
 
   // Alt+arrows on the stage move it a track; at the edge they say why not
   await block(page, "0.0").click();
   await page.locator("[data-builder-stage]").focus();
   await page.keyboard.press("Alt+ArrowRight");
-  await expect(page.getByLabel("Area column")).toHaveValue("2");
+  await expect(page.getByLabel("Area column", { exact: true })).toHaveValue("2");
   await page.keyboard.press("Alt+ArrowUp");
   await expect(said(page)).toHaveText("It is at the grid's edge");
   // a corner handle by keyboard: a track wider and taller
   await page.locator('[data-area-handle="bottom-right"]').focus();
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowDown");
-  await expect(page.getByLabel("Area columns")).toHaveValue("2");
-  await expect(page.getByLabel("Area rows")).toHaveValue("2");
+  await expect(page.getByLabel("Area columns", { exact: true })).toHaveValue("2");
+  await expect(page.getByLabel("Area rows", { exact: true })).toHaveValue("2");
   expect(errors).toEqual([]);
 });
 
