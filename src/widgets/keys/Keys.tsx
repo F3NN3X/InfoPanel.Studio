@@ -6,7 +6,7 @@ import { pageIcon } from "@/components/studio/page-icons";
 import { audio, EMPTY_AUDIO } from "@/lib/audio-control";
 import { extras } from "@/lib/extras";
 import type { GestureHandlers } from "@/lib/gesture";
-import { keyGrid, keyMark, keyMore, keyTap, type KeySlot } from "@/lib/keys";
+import { keyGrid, keyMark, keyMore, keyRoom, keyTap, keyWindow, type KeySlot } from "@/lib/keys";
 import type { TouchAction, TouchGesture } from "@/lib/pinned";
 import { actionOn } from "@/lib/rail";
 import type { ModuleSettings } from "@/modules/types";
@@ -46,6 +46,8 @@ const SAMPLE: KeySlot[] = [
 ];
 
 const BACK: KeySlot = { id: "keys:back", name: "Back" };
+/** The last key while a level has more keys than fit: it shows the next ones, and after the last, the first again. */
+const MORE: KeySlot = { id: "keys:more", name: "More" };
 
 /** An asset's URL (`ASSETS_URL` in src/lib/assets.ts, written out as the rail does, so this chunk splits nothing out of an entry). */
 const assetUrl = (id: string) => `/api/assets/${encodeURIComponent(id)}`;
@@ -53,6 +55,7 @@ const assetUrl = (id: string) => `/api/assets/${encodeURIComponent(id)}`;
 /** A key's glyph at `size` px: a set icon, a user image or an app's icon (their own colours), or text. */
 function Glyph({ k, size }: { k: KeySlot; size: number }): ReactNode {
   if (k === BACK) return <ChevronLeft aria-hidden size={size} strokeWidth={1.75} />;
+  if (k === MORE) return <ChevronRight aria-hidden size={size} strokeWidth={1.75} />;
   const icon = k.icon;
   if (!icon) return null;
   if (icon.from === "set") {
@@ -161,10 +164,15 @@ export default function Keys(p: KeysProps) {
   const stored = useContext(PlacementKeysContext);
   const host = useContext(RailHostContext);
   const keys = stored ?? (host ? [] : SAMPLE);
-  const [folderId, setFolderId] = useState<string | null>(null);
+  const [folderId, setFolder] = useState<string | null>(null);
+  const [start, setStart] = useState(0);
+  const setFolderId = (id: string | null) => {
+    setFolder(id);
+    setStart(0);
+  };
   const folder = folderId ? keys.find((k) => k.id === folderId && k.keys) : undefined;
-  const level = folder ? [BACK, ...(folder.keys ?? [])] : keys;
-  const toggles = level.some((k) => k.touch?.tap?.op === "audio");
+  const items = folder?.keys ?? keys;
+  const toggles = items.some((k) => k.touch?.tap?.op === "audio");
   const audioState = useToggleAudio(toggles);
   const obsMuted = useObsMic();
   const run = (a: TouchAction, g: TouchGesture) => host?.run(a, g);
@@ -182,18 +190,22 @@ export default function Keys(p: KeysProps) {
   return (
     <Widget {...shell(p)} title={p.title ?? "Keys"} icon="grid_view" showHeader={p.showHeader ?? p.legend === true} right={p.legend ? <Legend /> : undefined} design={null}>
       {({ w, h }) => {
-        if (!level.length)
+        if (!folder && !items.length)
           return (
             <div className="flex h-full items-center justify-center p-3 text-center text-[13px]" style={{ color: "var(--w-muted)" }}>
               No keys yet. Add them in Edit, in this widget's Key list.
             </div>
           );
+        // a folder's Back stays first; what doesn't fit at a finger's size waits behind More
+        const lead = folder ? [BACK] : [];
+        const win = keyWindow(items, Math.max(2, keyRoom(w, h, GAP) - lead.length), start);
+        const level = [...lead, ...win.shown, ...(win.more ? [MORE] : [])];
         const { cols, rows } = keyGrid(level.length, w, h, p.columns);
         const side = Math.min((w - GAP * (cols - 1)) / cols, (h - GAP * (rows - 1)) / rows);
         return (
           <div role="group" aria-label={folder ? folder.name : (p.title ?? "Keys")} className="grid h-full w-full" style={{ gap: GAP, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
             {level.map((k) => (
-              <Key key={k.id} k={k} side={side} corner={corner} on={keyOn(k, toggles ? audioState : EMPTY_AUDIO, obsMuted)} gestures={gestures(k)} />
+              <Key key={k.id} k={k} side={side} corner={corner} on={keyOn(k, toggles ? audioState : EMPTY_AUDIO, obsMuted)} gestures={k === MORE ? { tap: () => setStart(win.next) } : gestures(k)} />
             ))}
           </div>
         );

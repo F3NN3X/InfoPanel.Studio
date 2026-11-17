@@ -59,6 +59,26 @@ export function keyGrid(count: number, w: number, h: number, cols?: number): { c
   return { cols: c, rows: Math.ceil(n / c) };
 }
 
+/** The smallest key a finger is offered, px: below it a level shows the keys that fit and a More key for the rest. */
+export const MIN_KEY = 48;
+
+/** How many keys fit at `MIN_KEY` in a `w` × `h` box with `gap` between them, never fewer than two (a key and More); a box not
+ * measured yet (0) holds them all. */
+export function keyRoom(w: number, h: number, gap: number): number {
+  if (w <= 0 || h <= 0) return Infinity;
+  const along = (len: number) => Math.max(1, Math.floor((len + gap) / (MIN_KEY + gap)));
+  return Math.max(2, along(w) * along(h));
+}
+
+/** The keys a level shows from `start` in room for `room` (at least 2): all when they fit, else `room - 1` of them, `more` set, and
+ * the start of the next run (back to 0 after the last). */
+export function keyWindow<T>(level: readonly T[], room: number, start: number): { shown: T[]; more: boolean; next: number } {
+  if (level.length <= room) return { shown: [...level], more: false, next: 0 };
+  const per = Math.max(1, room - 1);
+  const from = start > 0 && start < level.length ? start : 0;
+  return { shown: level.slice(from, from + per), more: true, next: from + per >= level.length ? 0 : from + per };
+}
+
 /** What a key's tap does: its folder opens, else its tap action (none: nothing). */
 export const keyTap = (k: KeySlot): TouchAction | "folder" | undefined => (k.keys ? "folder" : k.touch?.tap);
 
