@@ -8,7 +8,7 @@ import { schemaErrors } from "@/looks/schema-check";
 import { STANDARD_KEYS } from "@/modules/standard-settings";
 import manifestSchema from "./manifest.schema.json";
 import { isFollow } from "./follow";
-import { cellBasePx, TEXT_FLOOR } from "./metrics";
+import { basePx, cellBasePx, cellsOf, RAIL_SLOT, TEXT_FLOOR } from "./metrics";
 import recipeSchema from "./recipe.schema.json";
 import { DEVICE_ITEMS_MAX, isDeviceSource, SOURCE_FIELDS } from "./sources";
 import { BLOCK_TYPES, type Binding, type Block, type Cells, type Condition, DEVICE_ID, DEVICE_KINDS, type Manifest, OPTION_TYPES, type PackageFile, RECIPE_FORMAT, type Recipe, type RecipeOption, type RepeatBlock, type Thresholds, WEATHER_PLACE_FIELDS } from "./types";
@@ -247,7 +247,8 @@ function recipeRules(r: Recipe, files: readonly PackageFile[], add: Add): void {
   for (const p of r.presets) {
     if (ids.has(p.id)) add("preset", R, `preset ${p.id} is defined twice`);
     ids.add(p.id);
-    if (!within(p.size)) add("preset", R, `preset ${p.id}: size ${p.size.join("x")} is outside ${min.join("x")} to ${max.join("x")}`);
+    // a rail preset fills a rail slot (`RAIL_SLOT`), not cells: its text floor is checked at that box
+    if (p.size !== "rail" && !within(p.size)) add("preset", R, `preset ${p.id}: size ${p.size.join("x")} is outside ${min.join("x")} to ${max.join("x")}`);
     if (p.minSize && !within(p.minSize)) add("preset", R, `preset ${p.id}: minSize ${p.minSize.join("x")} is outside ${min.join("x")} to ${max.join("x")}`);
     for (const [key, value] of Object.entries(p.settings)) {
       const o = options.get(key);
@@ -586,10 +587,16 @@ function floorRules(r: Recipe, add: Add): void {
   const { min, max } = r.size;
   const sizes: [number, number][] = [];
   for (let c = min[0]; c <= max[0]; c++) for (let h = min[1]; h <= max[1]; h++) sizes.push([c, h]);
+  const rail = r.presets.some((p) => p.size === "rail");
+  const railCells = cellsOf(RAIL_SLOT.w, RAIL_SLOT.h)!;
+  const railPx = basePx(RAIL_SLOT.w, RAIL_SLOT.h);
   for (const t of textBlocks(r.root)) {
     // a text a size condition hides at a size is not drawn there
     const under = sizes.find(([c, h]) => t.when.every((w) => sizeHolds(w, [c, h])) && cellBasePx(c, h) * t.scale < TEXT_FLOOR);
     if (under) add("text-floor", "recipe.json", `${t.at}: text is ${(cellBasePx(...under) * t.scale).toFixed(1)} px at ${under.join("x")}, under ${TEXT_FLOOR} px (raise its scale or the recipe's smallest size)`);
+    // a rail preset draws the recipe in a rail slot, a box of its own: the floor holds there too
+    if (rail && t.when.every((w) => sizeHolds(w, railCells)) && railPx * t.scale < TEXT_FLOOR)
+      add("text-floor", "recipe.json", `${t.at}: text is ${(railPx * t.scale).toFixed(1)} px in a rail slot (${RAIL_SLOT.w} x ${RAIL_SLOT.h} px), under ${TEXT_FLOOR} px (raise its scale, or hide it there with a size condition)`);
   }
 }
 

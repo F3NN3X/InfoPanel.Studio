@@ -36,6 +36,7 @@ export const NO_START: Readonly<Record<string, keyof typeof WHY>> = {
   Timer: "controls",
   Countdown: "time",
   StatusBar: "runtime",
+  PageRail: "controls",
   CodingAgents: "lists",
   Calendar: "time",
   SensorGroup: "lists",

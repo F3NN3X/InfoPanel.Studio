@@ -33,6 +33,7 @@ import nowPlaying from "./now-playing/widget";
 import obsButton from "./obs-button/widget";
 import onAirBeacon from "./on-air-beacon/widget";
 import osdStrip from "./osd-strip/widget";
+import pageRail from "./page-rail/widget";
 import playtimeShare from "./playtime-share/widget";
 import powerDraw from "./power-draw/widget";
 import processList from "./process-list/widget";
@@ -66,6 +67,6 @@ import webPage from "./web-page/widget";
 
 /** The folder widgets in the order of src/widgets/order.ts. */
 // biome-ignore lint/suspicious/noExplicitAny: each definition keeps its own props type.
-export const FOLDER_WIDGETS: readonly WidgetDefinition<any>[] = [systemOverview, menuBar, kpiTiles, statusTracker, systemStatus, serviceHealth, processList, uptime, cpuMonitor, coreHeatmap, gpuMonitor, memoryUsage, thermals, powerDraw, fans, driveSpace, storageHealth, diskIo, networkThroughput, networkAdapters, clock, timer, countdown, statusBar, codingAgents, calendar, weather, sensorGroup, nowPlaying, audioMeter, volumeMixer, meterBridge, visualizer, waveLink, fpsMonitor, gameSpotlight, osdStrip, playtimeShare, steamProfile, steamFriends, steamGame, achievements, steamLibrary, steamNews, webPage, textFile, notifications, departures, bluetooth, dayPlanner, radialClockStack, onAirBeacon, bottleneckLens, frameHistogram, sessionStats, streamMixer, audioButton, audioFader, streamControl, obsButton, streamChat, streamDeck];
+export const FOLDER_WIDGETS: readonly WidgetDefinition<any>[] = [systemOverview, menuBar, kpiTiles, statusTracker, systemStatus, serviceHealth, processList, uptime, cpuMonitor, coreHeatmap, gpuMonitor, memoryUsage, thermals, powerDraw, fans, driveSpace, storageHealth, diskIo, networkThroughput, networkAdapters, clock, timer, countdown, statusBar, pageRail, codingAgents, calendar, weather, sensorGroup, nowPlaying, audioMeter, volumeMixer, meterBridge, visualizer, waveLink, fpsMonitor, gameSpotlight, osdStrip, playtimeShare, steamProfile, steamFriends, steamGame, achievements, steamLibrary, steamNews, webPage, textFile, notifications, departures, bluetooth, dayPlanner, radialClockStack, onAirBeacon, bottleneckLens, frameHistogram, sessionStats, streamMixer, audioButton, audioFader, streamControl, obsButton, streamChat, streamDeck];
 /** Each one's index in src/widgets/order.ts: its place among all the widgets. */
-export const FOLDER_SLOTS: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63];
+export const FOLDER_SLOTS: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64];

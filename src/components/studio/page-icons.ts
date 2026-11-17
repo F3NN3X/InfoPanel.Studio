@@ -17,17 +17,20 @@ import {
   Gamepad2,
   Gauge,
   Globe,
+  Grid3x3,
   HardDrive,
   Headphones,
   Heart,
   House,
   Image,
+  Keyboard,
   Layers,
   LayoutDashboard,
   List,
   MemoryStick,
   MessageSquare,
   Mic,
+  MicOff,
   Monitor,
   Moon,
   Music,
@@ -52,8 +55,8 @@ import {
 } from "lucide-react";
 
 /**
- * The icons a page can wear (tabs now, kiosk dots and Stream Deck keys
- * later): lucide names → components, so the config stores a plain string.
+ * The icons a page can wear, and the set a rail slot's icon comes from (tabs, the page rail; Stream Deck keys later):
+ * lucide names → components, so the config stores a plain string.
  */
 export const PAGE_ICONS: Record<string, LucideIcon> = {
   "layout-dashboard": LayoutDashboard,
@@ -65,6 +68,9 @@ export const PAGE_ICONS: Record<string, LucideIcon> = {
   radio: Radio,
   video: Video,
   mic: Mic,
+  "mic-off": MicOff,
+  keyboard: Keyboard,
+  "key-grid": Grid3x3,
   "cloud-sun": CloudSun,
   activity: Activity,
   thermometer: Thermometer,

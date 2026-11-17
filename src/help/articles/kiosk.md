@@ -45,7 +45,11 @@ Lower Max FPS to 30 or 15 if the display's GPU works hard while nothing seems to
 
 ## Pinned widgets
 
-A screen can pin widgets to its edges, such as a now-playing bar along the bottom. They stay where they are on every page while the pages change beside them. A pinned widget that makes room takes its space off the page, and the page's widgets fit in what is left; one that floats sits over the page. A page can hide them.
+A screen can pin widgets to its edges, such as the page rail on the left or a now-playing bar along the bottom. They stay where they are on every page while the pages change beside them. A pinned widget that makes room takes its space off the page, and the page's widgets fit in what is left; one that floats sits over the page. A page can hide them.
+
+The **page rail** lists your pages down one edge, with the page shown marked in the accent. Tap a page to show it. It can also hold actions, such as muting the microphone, and small widgets, such as the clock at its foot. A dot on a page tells you an agent is waiting or an alert is showing, and **LIVE** that OBS is streaming. **Auto** at the foot means the pages rotate; tap it to stay on the page you're on.
+
+With page dots and swipe on, drag a page and the next one slides in beside it under the rail. Let go past a quarter of the way to move on.
 
 Pinning is set in the config for now; the editor for it comes in a later update. The [customization guide](https://github.com/F3NN3X/InfoPanel.Studio/blob/main/docs/customization-guide.md#pinned-widgets) shows how.
 

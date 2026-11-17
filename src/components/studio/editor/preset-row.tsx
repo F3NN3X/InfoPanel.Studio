@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { UserWidgetPreset } from "@/lib/widget-presets";
 import type { DashboardModule, ModuleSettings } from "@/modules/types";
 import { iconFor } from "@/widgets/core/icons";
-import type { WidgetPreset } from "@/widgets/define";
+import { gridPresets, type WidgetPreset } from "@/widgets/define";
 import { userPreset } from "../widget-presets";
 import { matchingPreset, presetChange, presetFromZone } from "./preset-model";
 
@@ -81,13 +81,14 @@ export default function PresetRow({ mod, builtin, saved, settings, size, onPick,
   const [naming, setNaming] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [withSize, setWithSize] = useState(false);
-  const all = [...builtin, ...saved.map(userPreset)];
+  // a rail preset fills a rail slot, not this zone
+  const all = [...gridPresets(builtin), ...saved.map(userPreset)];
   const current = matchingPreset(mod, all, settings);
   const custom = all.length > 1 && !current;
   const Icon = iconFor(mod.icon);
   const pick = (p: WidgetPreset) => {
     const { patch, clear } = presetChange(mod, all, p, settings);
-    onPick(patch, clear, withSize ? p.size : undefined);
+    onPick(patch, clear, withSize && p.size !== "rail" ? p.size : undefined);
   };
   return (
     <section data-testid="inspector-presets" className="flex flex-col gap-2 border-b border-ui-subtle px-4 py-3">

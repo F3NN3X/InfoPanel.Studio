@@ -9,6 +9,7 @@ export const WIDGET_CONTROLS: Readonly<Record<string, () => Promise<{ default: C
 export const WIDGET_PRESETS: Readonly<Record<string, () => Promise<{ default: readonly WidgetPreset[] }>>> = {
   AudioMeter: () => import("./audio-meter/presets"),
   Bluetooth: () => import("./bluetooth/presets"),
+  Clock: () => import("./clock/presets"),
   CodingAgents: () => import("./coding-agents/presets"),
   Countdown: () => import("./countdown/presets"),
   DriveSpace: () => import("./drive-space/presets"),

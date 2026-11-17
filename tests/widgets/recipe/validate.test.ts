@@ -244,6 +244,27 @@ describe("validateRecipe", () => {
     expect(validateRecipe({ files }).find((i) => i.rule === "text-floor")?.message).toMatch(/at 1x1/);
   });
 
+  it("text-floor: a rail preset is checked in a rail slot's box, where a size condition can hide a text", async () => {
+    // a rail slot is 72 x 64 px: a base of 4.5 px, so a value at scale 1 is under the floor there however big its grid sizes are
+    const files = await cpu((r) => (r.presets[1].size = "rail"));
+    expect(errors(files)).toEqual(["text-floor"]);
+    expect(validateRecipe({ files }).find((i) => i.rule === "text-floor")?.message).toMatch(/in a rail slot \(72 x 64 px\)/);
+    // every text scaled to 2.5 (11.25 px in the slot) passes, and so does one only drawn from 2x2 up
+    const texts = (b: Block): Block[] => [b, ...("children" in b && Array.isArray(b.children) ? (b.children as Block[]).flatMap(texts) : [])];
+    const big = (r: Recipe) => texts(r.root).filter((b) => ["value", "label", "ring", "gauge"].includes(b.type)).forEach((b) => Object.assign(b, { scale: 2.5 }));
+    expect(errors(await cpu((r) => (big(r), (r.presets[1].size = "rail"))))).toEqual([]);
+    expect(
+      errors(
+        await cpu((r) => {
+          big(r);
+          r.presets[1].size = "rail";
+          Object.assign(topRow(r), { when: { size: { min: [2, 2] } } });
+          for (const b of texts(topRow(r))) if (b !== topRow(r)) Object.assign(b, { scale: 1 });
+        })
+      )
+    ).toEqual([]);
+  });
+
   it("sample: sensor keys, items for a place list with the source's fields", async () => {
     expect(errors(await cpu((r) => (r.sample.sensors["no-dot"] = 1)))).toEqual(["sample"]);
     expect(errors(await cpu((r) => (r.sample.items = { load: [] })))).toEqual(["sample"]);

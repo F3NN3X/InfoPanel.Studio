@@ -20,13 +20,15 @@ const REFILED = [
   "StreamMixer", "AudioButton", "AudioFader",
   // Stream OBS
   "StreamControl", "ObsButton", "StreamChat",
+  // The pinned layer
+  "PageRail",
   // History and analysis
   "BottleneckLens", "FrameHistogram", "SessionStats",
 ];
 
-it("covers all 64 widgets", () => {
-  expect(REFILED).toHaveLength(64);
-  expect(new Set(REFILED).size).toBe(64);
+it("covers all 65 widgets", () => {
+  expect(REFILED).toHaveLength(65);
+  expect(new Set(REFILED).size).toBe(65);
   expect([...REFILED].sort()).toEqual(modules.filter((m) => m.header).map((m) => m.id).sort());
 });
 

@@ -45,8 +45,11 @@ export interface WidgetPreset {
   /** The `meta.views` id it sets; absent for a widget without views. */
   view?: string;
   settings: ModuleSettings;
-  /** The size Add opens it at, in cells (never below the widget's, or the view's, minimum). */
-  size: [number, number];
+  /**
+   * The size Add opens it at, in cells (never below the widget's, or the view's, minimum); or `"rail"`, a slot of the page
+   * rail (decision 8, `src/widgets/page-rail/`), which is not a grid size: Add and the grid inspector leave such a preset out.
+   */
+  size: [number, number] | "rail";
   /** The view's own minimum when it differs from the widget's. */
   minSize?: [number, number];
   /** The Add row's line and its search words; absent = the widget's. */
@@ -105,6 +108,10 @@ export const NONE: CompactShape = { card: false, dense: false };
 
 /** A widget package's definition: it always states its migrations and its sample, where a built-in leaves them central. */
 export type PackageWidgetDefinition<P extends object = object> = WidgetDefinition<P> & Required<Pick<WidgetDefinition<P>, "migrations" | "sample">>;
+
+/** The preset sizes a grid zone can take: a rail preset is for a rail slot only. */
+export const gridPresets = <T extends Pick<WidgetPreset, "size">>(list: readonly T[]): (T & { size: [number, number] })[] =>
+  list.filter((p): p is T & { size: [number, number] } => p.size !== "rail");
 
 /** Identity at run time: the type is the point. */
 export const defineWidget = <P extends object>(def: WidgetDefinition<P>): WidgetDefinition<P> => def;

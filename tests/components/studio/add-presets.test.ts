@@ -5,6 +5,7 @@ import { addCatalog, firstSentence, widgetRows, type AddItem } from "@/component
 import { ALL_MODULES, type ModuleMeta } from "@/components/studio/studio-modules";
 import { addSettings, builtinPresets, loadWidgetPresets } from "@/components/studio/widget-presets";
 import { CARDS_ID } from "@/lib/layout";
+import { modules } from "@/modules";
 
 const presets = await loadWidgetPresets();
 
@@ -96,12 +97,34 @@ describe("a presets.ts", () => {
       expect(m, id).toBeDefined();
       expect(list.filter((p) => p.default).length, id).toBe(1);
       expect(new Set(list.map((p) => p.id)).size, id).toBe(list.length);
-      for (const p of list) {
-        const view = m.views?.find((v) => v.id === p.view);
+      // a rail preset (Clock's) is checked below: it fills a rail slot, not a view of the grid
+      for (const p of list.filter((x) => x.size !== "rail")) {
+        // a widget without views (Clock) has only its default on the grid, which sets nothing
+        if (!m.views) {
+          expect(p.view, `${id} ${p.id}`).toBeUndefined();
+          expect(p.default && p.settings, `${id} ${p.id}`).toEqual({});
+          continue;
+        }
+        const view = m.views.find((v) => v.id === p.view);
         expect(view, `${id} ${p.id}`).toBeDefined();
         expect(p.settings, `${id} ${p.id}`).toEqual(view?.applies ?? {});
       }
     }
+  });
+
+  it("gives a rail preset settings of the widget's own and keeps it out of Add (owner Q3: Clock's)", () => {
+    const rails = Object.entries(presets).flatMap(([id, list]) => list.filter((p) => p.size === "rail").map((p) => [id, p] as const));
+    expect(rails.map(([id, p]) => `${id}:${p.id}`)).toEqual(["Clock:rail"]);
+    const rows = widgetRows(addCatalog(undefined, presets).widget).map((r) => r.id);
+    for (const [id, p] of rails) {
+      const keys = new Set((modules.find((x) => x.id === id)!.settings ?? []).map((s) => s.key));
+      for (const key of Object.keys(p.settings)) expect(keys.has(key), `${id} ${p.id} ${key}`).toBe(true);
+      expect(rows, id).not.toContain(`${id}:${p.id}`);
+    }
+    // Clock's own default is the implicit one, so its Add row is as it was
+    const clock = ALL_MODULES.find((m) => m.id === "Clock")!;
+    expect(builtinPresets(clock, presets).filter((p) => p.size !== "rail")).toEqual(builtinPresets(clock, {}));
+    expect(addCatalog(undefined, presets).widget.find((w) => w.id === "Clock")).toEqual(addCatalog(undefined, {}).widget.find((w) => w.id === "Clock"));
   });
 
   it("adds the default preset with no settings and any other with its view and settings", () => {

@@ -22,7 +22,9 @@ import { modules } from "@/modules";
 import { useLoadedProfile, useWidgetPreload } from "@/widgets/preload";
 import { PageDots, pageDotsStripPx } from "@/components/page-dots";
 import { leadsPage, PinnedItems } from "@/components/pinned-layer";
-import { pinnedOnPage, pinnedRoom } from "@/lib/pinned";
+import { pinnedOnPage, pinnedPlacement, pinnedRoom, type TouchAction } from "@/lib/pinned";
+import { RailHostContext, type RailHost } from "@/components/rail-host";
+import { runTouchAction } from "@/lib/touch-actions";
 import { resolveBackground } from "@/lib/appearance";
 import { appearanceOf, zoneResolver } from "@/lib/style-resolve";
 import { applyTheme, resolveTheme } from "@/lib/theme";
@@ -79,7 +81,7 @@ import {
   withControlPage,
 } from "@/lib/control";
 import { isDisplayName } from "@/lib/screens/display-name";
-import { swipeDirection } from "@/lib/swipe";
+import { DRAG_SETTLE_MS, dragAxis, dragSettle, swipeDirection } from "@/lib/swipe";
 import { cn } from "@/lib/utils";
 
 /** ?profile=<id> pins a profile (kiosk shortcuts, testing). */
@@ -227,7 +229,13 @@ export default function App({ fixture }: AppProps = {}) {
   const islandLive = useMemo(
     () =>
       kiosk && island
-        ? { feeds: islandFeeds(stored.pages.flatMap((p) => p.placements), modules, zoneResolver(config, stored, (z) => modules.find((m) => m.id === z.module)?.settings)), quietHours, page: pageName, layoutVersion }
+        ? {
+            // every page's widgets and the pinned layer's: a pinned widget sent to the island feeds it too (QUESTIONS P1 6)
+            feeds: islandFeeds([...stored.pages.flatMap((p) => p.placements), ...(stored.pinned?.items ?? []).map(pinnedPlacement)], modules, zoneResolver(config, stored, (z) => modules.find((m) => m.id === z.module)?.settings)),
+            quietHours,
+            page: pageName,
+            layoutVersion,
+          }
         : undefined,
     [kiosk, island, stored, config, quietHours, pageName, layoutVersion]
   );
@@ -275,19 +283,103 @@ export default function App({ fixture }: AppProps = {}) {
   };
   const gesture = useRef<{ x: number; y: number; t: number } | null>(null);
   const lastTouch = useRef(0);
+  // Drag-follow (the `swipe` fixture): on a page that fills the screen, the page moves with the finger and its neighbour
+  // comes in beside it, under the still pinned layer; a release settles on the neighbour or springs back. With reduced
+  // motion, or a page that scrolls, a swipe switches at once as before.
+  const reducedMotion = useReducedMotion();
+  const dragFollow = pageNav && fill && !reducedMotion;
+  const mainEl = useRef<HTMLElement>(null);
+  const gridEl = useRef<HTMLDivElement>(null);
+  const peekEl = useRef<HTMLDivElement>(null);
+  // `area`: the page area's left and right edges (inside the pinned items' room); `step`: its width, one page along
+  const drag = useRef<{ axis: "x" | "y" | null; dx: number; side: 0 | 1 | -1; area: [number, number]; step: number; box?: DOMRect; peek?: string } | null>(null);
+  const [peek, setPeek] = useState<{ page: string; side: 1 | -1; box: DOMRect; step: number } | null>(null);
+  // the page a swipe brought in: it arrives in place, without the page fade
+  const [swiped, setSwiped] = useState<string>();
+  const peekView = useMemo(() => (peek ? profileWithPage(stored, peek.page) : undefined), [peek, stored]);
+  const peekDrawn = useMemo(() => (peekView ? withItemLayers(peekView, pageOf(stored, peekView.pageId), peekView.placements) : []), [peekView, stored]);
+  const slide = (dx: number, animate: boolean) => {
+    const d = drag.current;
+    if (!d?.box) return;
+    for (const [el, at] of [
+      [gridEl.current, dx],
+      [peekEl.current, dx + d.side * d.step],
+    ] as const) {
+      if (!el) continue;
+      const left = d.box.left + at;
+      el.style.transition = animate ? `transform ${DRAG_SETTLE_MS}ms ease-out, clip-path ${DRAG_SETTLE_MS}ms ease-out` : "";
+      el.style.transform = `translateX(${at}px)`;
+      // past the page area's edges a page goes under the pinned layer, out of sight (the cards' shadows keep their room above and below)
+      el.style.clipPath = `inset(-64px ${left + d.box.width - d.area[1]}px -64px ${d.area[0] - left}px)`;
+    }
+  };
+  const settle = (dir: "next" | "prev" | null) => {
+    const d = drag.current;
+    if (d?.axis !== "x") return;
+    const to = dir && d.peek && (dir === "next" ? 1 : -1) === d.side ? d.peek : undefined;
+    slide(to ? -d.side * d.step : 0, true);
+    window.setTimeout(() => {
+      drag.current = null;
+      if (gridEl.current) Object.assign(gridEl.current.style, { transform: "", transition: "", clipPath: "" });
+      if (mainEl.current) mainEl.current.style.userSelect = "";
+      setPeek(null);
+      if (to) {
+        setSwiped(to);
+        goToPage(to);
+      }
+    }, DRAG_SETTLE_MS);
+  };
   const onKioskPointerDown = (e: React.PointerEvent) => {
     if (!kiosk) return;
     gesture.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+    // a drag that starts on the pinned layer (the rail) is the rail's, never a page drag
+    if (dragFollow && !drag.current && !(e.target as Element).closest?.("[data-pinned-item]")) drag.current = { axis: null, dx: 0, side: 0, area: [room.left, windowSize.w - room.right], step: windowSize.w - room.left - room.right };
     const now = Date.now();
     if (control?.profiles[stored.id]?.rotating && now - lastTouch.current >= TOUCH_THROTTLE_MS) {
       lastTouch.current = now;
       void postControl("touch", { profile: stored.id });
     }
   };
+  const onKioskPointerMove = (e: React.PointerEvent) => {
+    const start = gesture.current;
+    const d = drag.current;
+    if (!start || !d || d.axis === "y") return;
+    const dx = e.clientX - start.x;
+    if (d.axis === null) {
+      d.axis = dragAxis(dx, e.clientY - start.y);
+      if (d.axis !== "x") return;
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      // a mouse drag selects no text on its way
+      if (mainEl.current) mainEl.current.style.userSelect = "none";
+      window.getSelection()?.removeAllRanges();
+      // the page's box before it moves: the neighbour takes the same one
+      d.box = gridEl.current?.getBoundingClientRect();
+    }
+    d.dx = dx;
+    const side = dx < 0 ? 1 : -1;
+    if (side !== d.side) {
+      d.side = side;
+      d.peek = neighbourPage(
+        stored.pages.map((p) => p.id),
+        profile.pageId ?? stored.pages[0].id,
+        side
+      );
+      setPeek(d.peek && d.box ? { page: d.peek, side, box: d.box, step: d.step } : null);
+    }
+    slide(dx, false);
+  };
   const onKioskPointerUp = (e: React.PointerEvent) => {
     const start = gesture.current;
     gesture.current = null;
     if (!pageNav || !start) return;
+    if (drag.current?.axis === "x") {
+      // the lift after a page drag is no click on what is under the finger
+      const swallow = (ev: Event) => ev.stopPropagation();
+      window.addEventListener("click", swallow, { capture: true, once: true });
+      window.setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), DRAG_SETTLE_MS);
+      return settle(dragSettle({ dx: e.clientX - start.x, ms: e.timeStamp - start.t, width: drag.current.step }));
+    }
+    drag.current = null;
     const dir = swipeDirection({ dx: e.clientX - start.x, dy: e.clientY - start.y, ms: e.timeStamp - start.t });
     if (!dir) return;
     const next = neighbourPage(
@@ -296,6 +388,11 @@ export default function App({ fixture }: AppProps = {}) {
       dir === "next" ? 1 : -1
     );
     if (next) goToPage(next);
+  };
+  const onKioskPointerCancel = () => {
+    gesture.current = null;
+    if (drag.current?.axis === "x") settle(null);
+    else drag.current = null;
   };
   // A touch gesture's page action: like a swipe, but not tied to the page dots setting; a ?page= pin still holds.
   const touchPage = (to: "next" | "prev") => {
@@ -306,6 +403,28 @@ export default function App({ fixture }: AppProps = {}) {
       to === "next" ? 1 : -1
     );
     if (next) goToPage(next);
+  };
+  // The page rail's screen (`rail-host.ts`): the pages, the page shown, the page lock, the alerts shown and the actions it runs.
+  const rotateSaved = stored.rotate?.enabled === true;
+  const railHost: RailHost = {
+    pages: stored.pages,
+    current: profile.pageId ?? stored.pages[0].id,
+    profile: { id: stored.id, name: stored.name, index: config.profiles.findIndex((p) => p.id === stored.id) },
+    lock: rotateSaved ? (control?.profiles[stored.id]?.rotating === false ? "locked" : "auto") : null,
+    alerts: kiosk ? shownAlerts : NO_ALERTS,
+    run: (a: TouchAction) =>
+      runTouchAction(a, {
+        page: (to) => (to === "next" || to === "prev" ? touchPage(to) : stored.pages.some((p) => p.id === to) && goToPage(to)),
+        toggleRotate: () => void postControl("rotate", { profile: stored.id, state: "toggle" }),
+        // the write routes load with their first use, so the kiosk entry carries none of them
+        audio: (body) => import("@/lib/audio-control").then((m) => m.audioAct(body)),
+        obs: (body) => import("@/lib/obs-control").then((m) => m.obsAct(body)),
+      }),
+    zone: (placement, style) => (
+      <LivePlacement placement={placement} appearance={appearance}>
+        {({ content, scope }) => <div style={{ ...style, ...scope }}>{content}</div>}
+      </LivePlacement>
+    ),
   };
 
   // Persist the config (layout, profiles, theme) on every change.
@@ -718,6 +837,34 @@ export default function App({ fixture }: AppProps = {}) {
     );
   }
 
+  // A page's row template: explicit uniform rows, mirroring the studio canvas (a bar's rows fitted on the kiosk).
+  const rowsOf = (view: typeof profile, list: typeof drawn) =>
+    fill
+      ? (kiosk && barRowTemplate(view, list, windowSize.h - profilePadding(view, kiosk) - (pageNav ? Math.max(profilePadding(view, kiosk), pageDotsStripPx()) : profilePadding(view, kiosk)) - reserve - room.top - room.bottom, windowSize.h)) ||
+        `repeat(${view.rows}, minmax(0, 1fr))`
+      : `repeat(${view.rows}, ${SCROLL_ROW_H}px)`;
+  // A page's zones, each drawn as the kiosk draws a widget.
+  const zonesOf = (view: typeof profile, list: typeof drawn, zoneId: boolean) =>
+    list
+      .filter((p) => p.visible)
+      .map((p) => (
+        <LivePlacement key={p.id} placement={p} appearance={appearance}>
+          {({ content, hasData, title, scope }) => (
+            <PlacementFrame
+              placement={p}
+              profile={view}
+              studio={false}
+              zoneId={zoneId}
+              hasData={hasData}
+              title={title}
+              scope={scope}
+            >
+              {content}
+            </PlacementFrame>
+          )}
+        </LivePlacement>
+      ));
+
   // Kiosk: nothing until the server's config has been read (or failed to), so the local copy's layout (the
   // defaults in a fresh browser) never mounts widgets that open sensor streams to its Data API.
   if (kiosk && !kioskPulled) return <KioskConnecting />;
@@ -726,7 +873,9 @@ export default function App({ fixture }: AppProps = {}) {
     <GeneralProvider value={general}>
       <PerformanceProvider value={perfOverride}>
       <PageIslandProvider value={pageIsland}>
+      <RailHostContext.Provider value={railHost}>
       <main
+        ref={mainEl}
         aria-label={pageName || undefined}
         className={cn(
           // A page background replaces the theme's page color (it sits
@@ -757,8 +906,9 @@ export default function App({ fixture }: AppProps = {}) {
           fontFamily: fontStack(resolveFont(profile)),
         }}
         onPointerDown={onKioskPointerDown}
+        onPointerMove={dragFollow ? onKioskPointerMove : undefined}
         onPointerUp={onKioskPointerUp}
-        onPointerCancel={() => (gesture.current = null)}
+        onPointerCancel={onKioskPointerCancel}
       >
         {background && <PageBackground background={background} className="fixed inset-0 -z-10" />}
         <PackStage pack={pack} page={islandPage} className="fixed inset-0 -z-10" overlayClassName="fixed inset-0 z-10" zones={zones} />
@@ -790,38 +940,47 @@ export default function App({ fixture }: AppProps = {}) {
         {/* Kiosk grid of zones (read-only) */}
         <PageGrid
           key={profile.pageId}
+          ref={gridEl}
+          fade={swiped !== profile.pageId}
           className={cn("grid", fill && "min-h-0 flex-1")}
           style={{
             gap: profileGap(profile),
             gridTemplateColumns: `repeat(${profile.cols}, minmax(0, 1fr))`,
             // Explicit uniform rows, mirroring the studio canvas.
-            gridTemplateRows: fill
-              ? (kiosk && barRowTemplate(profile, drawn, windowSize.h - profilePadding(profile, kiosk) - (pageNav ? Math.max(profilePadding(profile, kiosk), pageDotsStripPx()) : profilePadding(profile, kiosk)) - reserve - room.top - room.bottom, windowSize.h)) ||
-                `repeat(${profile.rows}, minmax(0, 1fr))`
-              : `repeat(${profile.rows}, ${SCROLL_ROW_H}px)`,
+            gridTemplateRows: rowsOf(profile, drawn),
           }}
         >
-          {drawn
-            .filter((p) => p.visible)
-            .map((p) => (
-              <LivePlacement key={p.id} placement={p} appearance={appearance}>
-                {({ content, hasData, title, scope }) => (
-                  <PlacementFrame
-                    placement={p}
-                    profile={profile}
-                    studio={false}
-                    zoneId={linked}
-                    hasData={hasData}
-                    title={title}
-                    scope={scope}
-                  >
-                    {content}
-                  </PlacementFrame>
-                )}
-              </LivePlacement>
-            ))}
+          {zonesOf(profile, drawn, linked)}
           {kiosk && <ZoneHighlights alerts={shownAlerts} profile={profile} />}
         </PageGrid>
+
+        {/* The neighbour page while a drag follows the finger: the same box, one page width along */}
+        {peek && peekView && (
+          <div
+            ref={peekEl}
+            aria-hidden
+            inert
+            className="fixed"
+            data-page-peek={peek.page}
+            style={{
+              left: peek.box.left,
+              top: peek.box.top,
+              width: peek.box.width,
+              height: peek.box.height,
+              display: "grid",
+              gap: profileGap(peekView),
+              gridTemplateColumns: `repeat(${peekView.cols}, minmax(0, 1fr))`,
+              gridTemplateRows: rowsOf(peekView, peekDrawn),
+              transform: `translateX(${(drag.current?.dx ?? 0) + peek.side * peek.step}px)`,
+              // it comes in under the pinned layer, clipped to the page area until the next move clips it again (`slide`)
+              clipPath: `inset(-64px ${peek.side > 0 ? 0 : peek.box.width}px -64px ${peek.side > 0 ? peek.box.width : 0}px)`,
+              // a shadow on the edge it leads with, as the `swipe` fixture draws it
+              boxShadow: `${-peek.side * 16}px 0 32px -16px hsl(var(--foreground) / 0.25)`,
+            }}
+          >
+            {zonesOf(peekView, peekDrawn, false)}
+          </div>
+        )}
 
         {/* The pinned items on the right and bottom edges, and the ones floating over the page (drawn over its zones) */}
         <PinnedItems all={pinned} items={pinned.filter((it) => !leadsPage(it))} profile={profile} appearance={appearance} padding={profilePadding(profile, kiosk)} />
@@ -880,6 +1039,7 @@ export default function App({ fixture }: AppProps = {}) {
           </button>
         )}
       </main>
+      </RailHostContext.Provider>
       </PageIslandProvider>
     </PerformanceProvider>
     </GeneralProvider>
@@ -906,11 +1066,11 @@ function DimOverlay({ level }: { level: number }) {
   );
 }
 
-/** The zone grid; a new page (the caller keys it by page id) fades in, instantly with reduced motion. */
-function PageGrid({ className, style, children }: { className: string; style: React.CSSProperties; children: React.ReactNode }) {
+/** The zone grid; a new page (the caller keys it by page id) fades in, instantly with reduced motion, and a page a swipe brought in is already in place. */
+function PageGrid({ className, style, children, ref, fade = true }: { className: string; style: React.CSSProperties; children: React.ReactNode; ref?: React.Ref<HTMLDivElement>; fade?: boolean }) {
   const reduced = useReducedMotion();
   return (
-    <div className={cn(className, !reduced && "page-fade-in")} style={style} data-page-grid="">
+    <div ref={ref} className={cn(className, fade && !reduced && "page-fade-in")} style={style} data-page-grid="">
       {children}
     </div>
   );

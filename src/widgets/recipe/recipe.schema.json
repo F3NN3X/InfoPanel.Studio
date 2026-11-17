@@ -148,7 +148,7 @@
         "id": { "$ref": "#/$defs/word" },
         "name": { "type": "string", "pattern": "^[^<>]{1,40}$" },
         "settings": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
-        "size": { "$ref": "#/$defs/cells" },
+        "size": { "oneOf": [{ "$ref": "#/$defs/cells" }, { "const": "rail" }] },
         "minSize": { "$ref": "#/$defs/cells" },
         "blurb": { "type": "string", "pattern": "^[^<>]{1,60}$" },
         "tags": { "type": "string", "pattern": "^[a-z0-9 ]{0,120}$" },

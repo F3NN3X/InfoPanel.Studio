@@ -1,4 +1,4 @@
-// Clock: the time and date as a digital, analog, line or figure face. What the registry needs; the component is its own
+// Clock: the time and date as a digital, analog, line, figure or stacked face (the stacked one is its rail preset's). What the registry needs; the component is its own
 // chunk.
 import { clockOf } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
@@ -12,7 +12,7 @@ export default defineWidget({
   // The title only, a dense view of its own; the clock format.
   inspector: { header: "title-only", compact: DENSE, fmt: ["clock"] },
   settings: [
-    enumSetting("face", "Face", "digital", [{ value: "digital", label: "Digital" }, { value: "analog", label: "Analog" }, { value: "line", label: "Line" }, { value: "figure", label: "Figure" }], { group: "Face" }),
+    enumSetting("face", "Face", "digital", [{ value: "digital", label: "Digital" }, { value: "analog", label: "Analog" }, { value: "line", label: "Line" }, { value: "figure", label: "Figure" }, { value: "stacked", label: "Stacked" }], { group: "Face" }),
     boolSetting("showSeconds", "Seconds", true, { group: "Time & date" }),
     boolSetting("showDate", "Date", true, { group: "Time & date" }),
     // Themed (config v7 moved the Clock's `format` here); 24 h stays this widget's own default.
