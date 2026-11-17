@@ -51,7 +51,11 @@ const propsOf = (p: unknown) => JSON.parse(JSON.stringify(p, (k, v) => (k === "d
 
 describe("v8 render parity", () => {
   const config = upgradeConfig(stored(7, PARITY_CASES.map((c) => zone(c.id, c.module, { ...(c.settings ? { settings: c.settings } : {}), ...(c.follow ? { follow: c.follow } : {}) }))));
+  // The frozen v7 markup was captured at the snapshot's own time (Mon 12 Oct 2026, 20:49:26); Clock now reads the device clock, so it is pinned there.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 9, 12, 20, 49, 26));
   const after = renders(config);
+  vi.useRealTimers();
   it("renders every case as it did under v7", () => {
     for (const { id } of PARITY_CASES) expect(after[id], id).toEqual(parity.renders[id as keyof typeof parity.renders]);
   });

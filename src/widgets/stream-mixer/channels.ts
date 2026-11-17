@@ -36,6 +36,7 @@ const GUESS: [RegExp, string][] = [
   [/system|sounds/i, "notifications"],
 ];
 
+
 /** A Material Symbols icon for a channel, guessed from its id and name. */
 export const guessIcon = (s: string): string => GUESS.find(([re]) => re.test(s))?.[1] ?? "graphic_eq";
 

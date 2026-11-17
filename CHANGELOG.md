@@ -57,6 +57,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Fixed
 
+- **Four widget fixes.** The Audio Fader's master channel now follows the card's text colour, so it shows on a light card such as Paper. The Timer's preset chips and Pause and Stop buttons, and the Stream Chat send button, are 44 px, a finger-sized target. The Clock reads this computer's clock instead of the sensor snapshot's date, so a frozen preview or a stale feed no longer shows an old day.
 - **A Value set to Accent draws in the accent colour.** It drew in the text colour. A Value with no colour is unchanged and is now labelled **Text**.
 - **A kiosk reading a widget while it was saved could show "Widget not available".** A save moves the old package aside before the new one is in; reads in between found nothing. They now wait for the save and get the whole package.
 - **Recipe builder fixes.** Removing a choice no longer leaves a preset that disables Save (it goes back to the default); a deleted Image's picture no longer stays in saves and exports; with five or more recipes open the switch scrolls sideways instead of wrapping; and on the Widgets page, Delete and `Ctrl+Z` no longer act on the screen hidden behind it.

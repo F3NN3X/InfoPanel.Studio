@@ -70,6 +70,13 @@ describe("StreamChat", () => {
     expect(screen.getByText("No messages yet")).toBeTruthy();
   });
 
+  it("makes the send button a 44 px touch target", () => {
+    render(<StreamChat data={{}} />);
+    const send = screen.getByLabelText("Send");
+    expect(send.className).toContain("h-11");
+    expect(send.className).toContain("w-11");
+  });
+
   it("has a send box only when sending can work", () => {
     const { rerender } = render(<StreamChat data={{}} />);
     expect(screen.getByLabelText("Chat message")).toBeTruthy();

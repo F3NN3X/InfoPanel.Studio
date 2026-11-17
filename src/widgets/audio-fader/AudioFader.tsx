@@ -2,6 +2,9 @@ import { audioRefusal, useAudio } from "@/lib/audio-control";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, fmt, clamp, roomy, Icon, Num, Empty, hue, type ShellProps } from "../kit";
 import { findChannel, iconOf } from "../stream-mixer/channels";
+
+/** The master channel's colour, as Stream Mixer draws it: near white on a dark card, `--w-master` on light and theme cards. */
+const MASTER_COLOR = "var(--w-master, #e4e4e7)";
 import { setVolume, toggleMute } from "../stream-mixer/control";
 import { MixFader, type FaderMode } from "../stream-mixer/Fader";
 import { ReadOnly } from "../shared/ReadOnly";
@@ -24,7 +27,7 @@ export default function AudioFader(p: AudioFaderProps) {
   const audio = useAudio();
   const readOnly = audioRefusal.use();
   const c = findChannel(audio, p.channel ?? "master", p.mix);
-  const color = !c || c.mute ? "#52525b" : c.master ? "#e4e4e7" : hue(95);
+  const color = !c || c.mute ? "#52525b" : c.master ? MASTER_COLOR : hue(95);
   const name = p.name || c?.name || "Audio";
   return (
     <Widget {...shell(p)} title={p.title ?? name} icon="tune" showHeader={p.showHeader ?? false}>

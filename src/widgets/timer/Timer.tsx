@@ -18,15 +18,19 @@ export interface TimerProps extends ShellProps {
 }
 
 const BTN =
-  "flex h-10 max-h-full min-w-0 shrink-0 items-center justify-center gap-1 rounded-full border border-[color:var(--w-track)] px-2.5 text-caption font-semibold tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
+  "flex h-11 max-h-full min-w-0 shrink-0 items-center justify-center gap-1 rounded-full border border-[color:var(--w-track)] px-2.5 text-caption font-semibold tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
+/** The same chip in a 1x1 box (under `NARROW` px wide): 44 px at least each way, with 2 px gaps, so two sit side by side in 90 px. */
+const BTN_NARROW =
+  "flex h-11 max-h-full min-w-11 shrink-0 items-center justify-center gap-1 rounded-full border border-[color:var(--w-track)] px-1.5 text-caption font-semibold tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
+const NARROW = 100;
 /** A preset tile at 4x4: a touch target, not a chip. */
 const TILE =
   "flex h-full min-h-[100px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[color:var(--w-track)] px-2 tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
 /** A preset button's width with its gap, px (a "25m" chip). */
 const CHIP_W = 52;
-/** The Pause / Stop buttons' height (`h-10`), px; a button row and its gap are `ROW_H`. */
-const BTN_H = 40;
-const ROW_H = 46;
+/** The preset chips' and the Pause / Stop buttons' height (`h-11`: a 44 px touch target), px; a button row and its gap are `ROW_H`. */
+export const BTN_H = 44;
+const ROW_H = 50;
 /** The idle hero's size, px, and the room it takes with the gap under it. */
 const IDLE_HERO_PX = 48;
 const IDLE_HERO_H = IDLE_HERO_PX + 8;
@@ -45,8 +49,10 @@ const useTimer = (): TimerState => useSyncExternalStore(timer.subscribe, timer.g
 /** The preset buttons that fit `w` × `h`: whole rows only, so none is cut off (all before the box is measured). */
 export function presetsThatFit(count: number, w: number, h: number): number {
   if (w <= 0 || h <= 0) return count;
-  const perRow = Math.max(1, Math.floor((w + 6) / CHIP_W));
-  const rows = Math.max(1, Math.floor((h + 6) / ROW_H));
+  const narrow = w < NARROW;
+  const gap = narrow ? 2 : 6;
+  const perRow = Math.max(1, Math.floor((w + gap) / ((narrow ? 44 : CHIP_W - 6) + gap)));
+  const rows = Math.max(1, Math.floor((h + gap) / ((narrow ? BTN_H : ROW_H - 6) + gap)));
   return Math.min(count, perRow * rows);
 }
 
@@ -105,9 +111,9 @@ export default function Timer(p: TimerProps) {
           const heroText = heroClock(t.durationMs > 0 ? t.durationMs : presets[0] * 60_000);
           const fit = presetsThatFit(buttons.length + (p.pomodoro ? 1 : 0), w, hero ? h - IDLE_HERO_H : h) - (p.pomodoro ? 1 : 0);
           const chips = (
-            <div className="flex flex-wrap content-center items-center justify-center gap-1.5">
+            <div className={`flex flex-wrap content-center items-center justify-center ${w > 0 && w < NARROW ? "gap-0.5" : "gap-1.5"}`}>
               {buttons.slice(0, Math.max(1, fit)).map((b) => (
-                <button key={b.key} type="button" aria-label={b.key === "pomo" ? "Start pomodoro" : `Start ${b.key.slice(1)} minute timer`} className={BTN} onClick={b.run}>
+                <button key={b.key} type="button" aria-label={b.key === "pomo" ? "Start pomodoro" : `Start ${b.key.slice(1)} minute timer`} className={w > 0 && w < NARROW ? BTN_NARROW : BTN} onClick={b.run}>
                   {b.label}
                 </button>
               ))}
