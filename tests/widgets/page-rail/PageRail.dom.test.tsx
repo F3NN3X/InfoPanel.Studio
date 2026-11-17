@@ -104,6 +104,13 @@ describe("the page rail", () => {
     expect(screen.getByRole("button", { name: "Home, opens Keys" })).toBeTruthy();
   });
 
+  it("draws its clock in the rail's own text colours, so it shows on a light Look (P-B10)", () => {
+    const { container } = draw(host(), undefined, { clock: true });
+    const card = container.querySelector('[data-rail-slot="clock"] [data-part="card"]') as HTMLElement;
+    expect(card.style.getPropertyValue("--w-fg")).toBe("inherit");
+    expect(card.style.getPropertyValue("--w-muted")).toBe("inherit");
+  });
+
   it("draws a logo on the plate the user chose, with its action in its alt text (P5)", () => {
     const logo = (plate?: RailSlot["plate"]): RailSlot => ({ id: "logo", group: "top", target: { kind: "profile" }, name: "Hexmark logo", icon: { from: "image", asset: "logo.svg" }, ...(plate ? { plate } : {}) });
     draw(host(), [logo("contrast")], { chip: false });

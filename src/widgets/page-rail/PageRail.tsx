@@ -241,6 +241,12 @@ function Logo({ slot, name, alt, run }: { slot: RailSlot; name: string; alt: str
   );
 }
 
+/**
+ * The clock's text in the rail's own colours: a flat Clock would set the dark surface's (near white), which vanished on a
+ * light Look (QUESTIONS P-B10). Its shell applies `style` last, so these take the rail's values.
+ */
+const RAIL_TEXT = { "--w-fg": "inherit", "--w-muted": "inherit", "--w-faint": "inherit", "--w-track": "inherit" } as CSSProperties;
+
 const Rule = () => <span aria-hidden className="my-1 h-px w-10 shrink-0" style={{ background: EDGE }} />;
 
 /** The page lock: Auto (pages rotate) or Locked (this page stays). A tap turns it. */
@@ -343,7 +349,7 @@ function RailBody({ host, slots, edge, dense, chip, pageLock, clock, data, look 
         {/* the Clock at its rail preset (Clock's presets.ts `rail`): the time over the short date, flat on the rail */}
         {clock && (
           <div data-rail-slot="clock" className="relative shrink-0" style={{ width: 72, height: 44 }}>
-            <Clock data={data} face="stacked" showSeconds={false} format="24h" surface="flat" radius={0} />
+            <Clock data={data} face="stacked" showSeconds={false} format="24h" surface="flat" radius={0} style={RAIL_TEXT} />
           </div>
         )}
       </nav>
