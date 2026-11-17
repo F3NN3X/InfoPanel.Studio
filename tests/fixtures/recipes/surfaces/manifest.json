@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "kind": "recipe",
+  "id": "recipe:surfaces",
+  "version": "1.0.0",
+  "author": "Made in Studio",
+  "name": "Surfaces",
+  "files": [
+    {
+      "path": "recipe.json",
+      "bytes": 1783,
+      "sha256": "c2131f1b0016676acc47a6bd2e8bd272c2b9a67872649d47b6a7d568139b146b"
+    }
+  ]
+}
