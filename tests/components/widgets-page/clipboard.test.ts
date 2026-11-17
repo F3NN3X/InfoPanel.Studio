@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { addBlock, addOption, blockAt, newRecipe, pickBinding, recipeIssues, updateBlock } from "@/components/widgets-page/builder-model";
-import { clipboard, copyOf, optionKeysIn, pasteBlocks, renameOptionIn, setClipboard } from "@/components/widgets-page/clipboard";
+import { addBlock, addOption, blockAt, newRecipe, pickBinding, recipeIssues, updateBlock, withFormat } from "@/components/widgets-page/builder-model";
+import { clipboard, copyOf, copyStyle, optionKeysIn, pasteBlocks, pasteStyle, renameOptionIn, setClipboard, setStyleClipboard, styleClipboard } from "@/components/widgets-page/clipboard";
 import type { Block, Recipe } from "@/widgets/recipe/types";
 
 // The builder's clipboard (Phase B1, G10): blocks copied with the options they name and the pictures they show, pasted where Add
@@ -100,5 +100,70 @@ describe("paste", () => {
     const pasted = pasteBlocks(newRecipe("Q", new Set()), [], pic, []);
     if ("why" in pasted) throw new Error(pasted.why);
     expect(pasted.images).toEqual([file]);
+  });
+});
+
+// builder plan Phase 2: Copy style and Paste style. A block's look keys go onto blocks of any type, each taking the keys its type holds
+// with values its type takes; the rest are named, and a paste that gives a block nothing is refused.
+describe("copy and paste style", () => {
+  afterEach(() => setStyleClipboard(null));
+  /** A Ring, a Bar, a Value and a Label at the root. */
+  function looks(): Recipe {
+    let r = newRecipe("Looks", new Set());
+    for (const type of ["ring", "bar", "value", "label"] as const) r = addBlock(r, [], type, "libre.cpu_total").recipe;
+    return r;
+  }
+
+  it("copies a block's style keys, unset ones too, and none of its data", () => {
+    const r = updateBlock(looks(), [0], { color: "series-2", thickness: 12, opacity: 60 });
+    const clip = copyStyle(r, [0])!;
+    expect(clip).toMatchObject({ type: "ring", name: "Ring" });
+    expect(clip.style).toEqual({ color: "series-2", thresholds: undefined, opacity: 60, center: undefined, scale: undefined, thickness: 12, tone: undefined });
+    expect(Object.keys(clip.style)).not.toContain("bind");
+  });
+
+  it("pastes the keys another type holds and names the ones it can't", () => {
+    const r = updateBlock(looks(), [0], { color: "series-2", thickness: 12, center: false, thresholds: { warn: 60, crit: 80 } });
+    const out = pasteStyle(r, [[1]], copyStyle(r, [0])!);
+    if ("why" in out) throw new Error(out.why);
+    expect(blockAt(out.recipe, [1])).toMatchObject({ type: "bar", color: "series-2", thresholds: { warn: 60, crit: 80 } });
+    expect(out.skipped).toEqual(["centre value", "thickness"]);
+    expect(errorsOf(out.recipe)).toEqual([]);
+    // an unset key of the copy unsets it on the block it goes onto
+    const plain = pasteStyle(out.recipe, [[1]], copyStyle(looks(), [0])!);
+    if ("why" in plain) throw new Error(plain.why);
+    expect(blockAt(plain.recipe, [1])).not.toHaveProperty("thresholds");
+    expect(blockAt(plain.recipe, [1])).toMatchObject({ color: "accent" });
+  });
+
+  it("leaves a value a type can't take: a Value's text colour on a Ring, a Row's stretch on a Label", () => {
+    let r = updateBlock(looks(), [2], { color: "muted", scale: 1.4 });
+    const out = pasteStyle(r, [[0]], copyStyle(r, [2])!);
+    if ("why" in out) throw new Error(out.why);
+    expect(blockAt(out.recipe, [0])).toMatchObject({ color: "accent", scale: 1.4 });
+    expect(out.skipped).toContain("colour");
+    r = addBlock(r, [], "row", "x.y").recipe;
+    r = updateBlock(r, [4], { align: "stretch", gap: 4 });
+    const label = pasteStyle(r, [[3]], copyStyle(r, [4])!);
+    expect(label).toEqual({ why: "Label can't take the style of Row" });
+  });
+
+  it("pastes onto every selected block, and a format 2 key makes the recipe format 2 through withFormat", () => {
+    const r = updateBlock(looks(), [3], { align: "center", weight: "semibold" });
+    expect(r.format).toBe(1);
+    const out = pasteStyle(r, [[2], [3]], copyStyle(r, [3])!);
+    if ("why" in out) throw new Error(out.why);
+    expect(blockAt(out.recipe, [2])).toMatchObject({ align: "center", weight: "semibold" });
+    expect(out.skipped).toEqual([]);
+    const saved = withFormat(out.recipe);
+    expect(saved.format).toBe(2);
+    expect(errorsOf(saved)).toEqual([]);
+  });
+
+  it("keeps the session's style slot apart from the blocks' clipboard", () => {
+    const r = looks();
+    setStyleClipboard(copyStyle(r, [0])!);
+    expect(styleClipboard()?.type).toBe("ring");
+    expect(clipboard()).toBeNull();
   });
 });

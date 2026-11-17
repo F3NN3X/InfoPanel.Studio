@@ -3,21 +3,22 @@
 // out, type-ahead, F2 renames). Click selects, Ctrl toggles, Shift a range, as Edit's Layers (`studio/layers-tree.tsx`). A row drags
 // (a 2 px line between rows, an outline on a container's middle) carrying the selection, and a tile from "Add a block" drops the same
 // way; a drop the validator would refuse is refused with its reason at the drop line. Right-click, Shift+F10 or the Menu key opens
-// the layer menu. A row whose block has a problem carries a warning dot.
+// the layer menu (its rows are `layer-entries.tsx`'s, which the stage's right-click opens too). A row whose block has a problem carries a
+// warning dot.
 // Phase D: an eye and a lock on each row hide a block on the stage and keep a click there from picking it (G25, the editor's only:
 // `editor-flags.ts`), also in the menu and on Ctrl+Shift+H and Ctrl+Shift+L; a "Header" pseudo-row under the card opens its title,
 // sub-title and icon (G37, Q12: no format change).
 import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPaste, Columns3, Copy, CopyPlus, Eye, EyeOff, Heading, Link2, Lock, LockOpen, Pencil, Scissors, Trash2 } from "lucide-react";
-import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
+import { ChevronDown, ChevronRight, Eye, EyeOff, Heading, Link2, Lock, LockOpen } from "lucide-react";
+import { ContextMenu } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import type { Block, BlockType, Recipe } from "@/widgets/recipe/types";
 import { addRefusal, flatten, isBound, layerName, moveRefusal, topLevel, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { flagged } from "./editor-flags";
+import { type EditorFlag, type LayerCommand, layerEntries } from "./layer-entries";
 
-/** What the layer menu and its keys do to a row (the selection, when the row is in it). */
-export type LayerCommand = "duplicate" | "copy" | "cut" | "paste" | "wrap" | "up" | "down" | "out" | "in" | "delete";
+export type { EditorFlag, LayerCommand } from "./layer-entries";
 
 /** How a click or key picks rows: that row only, added or taken away (Ctrl), or the rows from the last pick to it (Shift). */
 export type SelectHow = "only" | "toggle" | "range";
@@ -37,8 +38,6 @@ const kidsOf = (b: Block): readonly Block[] => ("children" in b ? b.children : [
 const holds = (k: string, p: string): boolean => (k === "" ? p !== "" : p.startsWith(`${k}.`));
 /** The Header pseudo-row's key in the rows' order (G37): never a block's path, and not a `data-layer` (it is no block). */
 const HEADER = "header";
-/** What the editor alone keeps of a block (G25). */
-export type EditorFlag = "hidden" | "locked";
 
 export interface LayersProps {
   recipe: Recipe;
@@ -52,6 +51,8 @@ export interface LayersProps {
   tile: BlockType | null;
   /** Something is on the clipboard. */
   canPaste: boolean;
+  /** Copy style has taken a block's look. */
+  canPasteStyle: boolean;
   onSelect: (at: number[], how: SelectHow) => void;
   onRename: (at: number[], name: string) => void;
   onCommand: (cmd: LayerCommand, at: number[]) => void;
@@ -73,7 +74,7 @@ export interface LayersProps {
   renameAt?: { key: string } | null;
 }
 
-export function Layers({ recipe, path, selected, problems, tile, canPaste, onSelect, onRename, onCommand, onMove, onAdd, onWhy, hidden: hiddenKeys, locked, onFlag, header, onHeader, renameAt }: LayersProps) {
+export function Layers({ recipe, path, selected, problems, tile, canPaste, canPasteStyle, onSelect, onRename, onCommand, onMove, onAdd, onWhy, hidden: hiddenKeys, locked, onFlag, header, onHeader, renameAt }: LayersProps) {
   const all = useMemo(() => flatten(recipe), [recipe]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   // a container closed by its path: a change to the tree's shape opens them all again (the paths moved)
@@ -206,28 +207,18 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
   const onClick = (at: number[], e: MouseEvent) => onSelect(at, e.shiftKey ? "range" : e.ctrlKey || e.metaKey ? "toggle" : "only");
 
   const menuAt = menu?.at ?? [];
-  const many = topLevel(chosen.has(keyOf(menuAt)) ? selected : [menuAt]).length;
-  const root = menuAt.length === 0;
-  const entry = (cmd: LayerCommand, label: string, icon: ReactNode, hint: string, disabled = root, danger?: boolean): ContextMenuEntry => ({ id: cmd, label, icon, hint, disabled, danger, onSelect: () => onCommand(cmd, menuAt) });
-  const menuHidden = hiddenKeys.includes(keyOf(menuAt));
-  const menuLocked = locked.includes(keyOf(menuAt));
-  const entries: ContextMenuEntry[] = [
-    { id: "rename", label: "Rename", icon: <Pencil />, hint: "F2", disabled: root || many > 1, onSelect: () => setRenaming(keyOf(menuAt)) },
-    entry("duplicate", "Duplicate", <CopyPlus />, "Ctrl+D"),
-    { id: "hide", label: menuHidden ? "Show on the stage" : "Hide on the stage", icon: menuHidden ? <Eye /> : <EyeOff />, hint: "Ctrl+Shift+H", disabled: root, onSelect: () => onFlag("hidden", menuAt, !menuHidden) },
-    { id: "lock", label: menuLocked ? "Unlock" : "Lock", icon: menuLocked ? <LockOpen /> : <Lock />, hint: "Ctrl+Shift+L", disabled: root, onSelect: () => onFlag("locked", menuAt, !menuLocked) },
-    "separator",
-    entry("copy", "Copy", <Copy />, "Ctrl+C"),
-    entry("cut", "Cut", <Scissors />, "Ctrl+X"),
-    entry("paste", "Paste", <ClipboardPaste />, "Ctrl+V", !canPaste),
-    "separator",
-    entry("wrap", "Wrap in a row", <Columns3 />, "Ctrl+G"),
-    entry("up", "Move up", <ArrowUp />, "Alt+↑", root || many > 1),
-    entry("down", "Move down", <ArrowDown />, "Alt+↓", root || many > 1),
-    entry("out", "Move out", <ArrowUpLeft />, "Alt+←", menuAt.length < 2 || many > 1),
-    "separator",
-    entry("delete", "Delete", <Trash2 />, "Del", root, true),
-  ];
+  const entries = layerEntries({
+    at: menuAt,
+    many: topLevel(chosen.has(keyOf(menuAt)) ? selected : [menuAt]).length,
+    container: isContainer(all.find((r) => keyOf(r.path) === keyOf(menuAt))?.block ?? recipe.root),
+    hidden: hiddenKeys.includes(keyOf(menuAt)),
+    locked: locked.includes(keyOf(menuAt)),
+    canPaste,
+    canPasteStyle,
+    onCommand,
+    onRename: (at) => setRenaming(keyOf(at)),
+    onFlag,
+  });
 
   const tabStop = header && headerShown ? HEADER : visible.includes(primaryKey) ? primaryKey : visible[0];
   const active = !!dragging || !!tile;

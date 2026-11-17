@@ -132,6 +132,11 @@ test("a share handle dragged to 2:1 sets the two shares in one undo step; its ar
   await expect.poll(async () => (await stored(scratch.base, "recipe.shares")).root.children[0].children.map((c: { grow?: number }) => c.grow)).toEqual([1.1, 0.9]);
   r = await stored(scratch.base, "recipe.shares");
   expect(r.format).toBe(1);
+  // the handle goes with the block on its other side (a delete from Layers while the first is selected on the stage)
+  await layer(page, "0.1").click();
+  await layer(page, "0.1").press("Delete");
+  await block(page, "0.0").click();
+  await expect(page.locator("[data-share-handle]")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -169,4 +174,70 @@ test("Ctrl and Shift click on the stage add to the selection; the focused stage 
   await page.getByLabel("Rename Value").fill("Temp");
   await page.keyboard.press("Enter");
   expect(await layers(page)).toEqual([" New widget", "0 Temp", "1 Label"]);
+});
+
+// Phase 2: the layer menu on the stage (right-click, Shift+F10), Wrap in a card or a grid and Unwrap, Copy and Paste style
+const stageMenu = (page: Page) => page.getByTestId("builder-stage-menu");
+async function onStage(page: Page, path: string, item: string, position?: { x: number; y: number }) {
+  await block(page, path).click({ button: "right", position });
+  await stageMenu(page).getByRole("menuitem", { name: item }).click();
+  await expect(stageMenu(page)).toHaveCount(0);
+}
+async function styleOnStage(page: Page, path: string, item: "Copy style" | "Paste style") {
+  await block(page, path).click({ button: "right" });
+  await stageMenu(page).getByRole("menuitem", { name: "Style", exact: true }).click();
+  await stageMenu(page).getByRole("menuitem", { name: item }).click();
+  await expect(stageMenu(page)).toHaveCount(0);
+}
+
+test("the stage's right-click menu duplicates, moves, wraps in a card or a grid, unwraps and deletes", async ({ page, scratch }) => {
+  const { errors } = watchErrors(page);
+  await newWidget(page, scratch.base);
+  await rename(page, "Stage menu");
+  await blocks(page, "", ["ring", "value"]);
+  await onStage(page, "1", "Duplicate");
+  expect(await layers(page)).toEqual([" Stage menu", "0 Ring", "1 Value", "2 Value"]);
+  await onStage(page, "1", "Move up");
+  expect(await layers(page)).toEqual([" Stage menu", "0 Value", "1 Ring", "2 Value"]);
+  await onStage(page, "1", "Wrap in a card");
+  expect(await layers(page)).toEqual([" Stage menu", "0 Value", "1 Card", "1.0 Ring", "2 Value"]);
+  await expect(said(page)).toHaveText("Wrapped Ring in a card");
+  // the Card's own edge (its middle is the Ring's)
+  await onStage(page, "1", "Unwrap", { x: 3, y: 3 });
+  expect(await layers(page)).toEqual([" Stage menu", "0 Value", "1 Ring", "2 Value"]);
+  // a selection of two (Ctrl click) wraps together in a grid, from Layers' menu as well
+  await block(page, "0").click();
+  await block(page, "1").click({ modifiers: ["Control"] });
+  await layer(page, "1").click({ button: "right" });
+  await page.getByTestId("builder-layer-menu").getByRole("menuitem", { name: "Wrap in a grid" }).click();
+  expect(await layers(page)).toEqual([" Stage menu", "0 Grid", "0.0 Value", "0.1 Ring", "1 Value"]);
+  // Shift+F10 on the focused stage opens the menu on the selection
+  await block(page, "1").click();
+  await page.keyboard.press("Shift+F10");
+  await expect(stageMenu(page)).toBeVisible();
+  await stageMenu(page).getByRole("menuitem", { name: "Delete" }).click();
+  expect(await layers(page)).toEqual([" Stage menu", "0 Grid", "0.0 Value", "0.1 Ring"]);
+  await save(page, "Stage menu");
+  const r = await stored(scratch.base, "recipe.stage-menu");
+  expect(r.format).toBe(2);
+  expect(r.root.children[0]).toMatchObject({ type: "grid", children: [{ type: "value" }, { type: "ring" }] });
+  expect(errors).toEqual([]);
+});
+
+test("Copy style and Paste style carry a block's look onto another type, in one undo step", async ({ page, scratch }) => {
+  await newWidget(page, scratch.base);
+  await rename(page, "Style paste");
+  await blocks(page, "", ["ring", "bar"]);
+  await block(page, "0").click();
+  await page.getByRole("radiogroup", { name: "Colour", exact: true }).getByRole("radio", { name: "Thresholds", exact: true }).click();
+  await styleOnStage(page, "0", "Copy style");
+  await expect(said(page)).toHaveText("Copied the style of Ring");
+  await styleOnStage(page, "1", "Paste style");
+  await expect(said(page)).toHaveText(/^Pasted the style of Ring onto Bar/);
+  await save(page, "Style paste");
+  const r = await stored(scratch.base, "recipe.style-paste");
+  expect(r.root.children[1]).toMatchObject({ type: "bar", color: "thresholds" });
+  await undo(page);
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect.poll(async () => (await stored(scratch.base, "recipe.style-paste")).root.children[1].color).toBe("accent");
 });

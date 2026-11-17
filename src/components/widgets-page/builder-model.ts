@@ -349,13 +349,23 @@ export function moveBlocks(recipe: Recipe, from: readonly Path[], toParent: Path
  * they are in different containers, or when the extra level would nest deeper than `DEPTH_MAX`. Returns the Row's path.
  */
 export function wrapInRow(recipe: Recipe, paths: readonly Path[]): { recipe: Recipe; path: number[] } | { why: string } {
+  return wrapIn(recipe, paths, "row");
+}
+
+/**
+ * Wrap in a row, a card or a grid (builder plan Phase 2): the selected blocks, side by side in one container, go into a new Row, Card
+ * (no caption) or Grid where the first was. Refused as `placeRefusal` refuses the new container there (too deep, a Grid in a Repeat).
+ */
+export function wrapIn(recipe: Recipe, paths: readonly Path[], type: "row" | "card" | "grid"): { recipe: Recipe; path: number[] } | { why: string } {
   const top = topLevel(paths);
-  if (!top.length) return { why: "The widget's card can't go into a Row" };
+  if (!top.length) return { why: `The widget's card can't go into a ${BLOCK_LABEL[type]}` };
   const parent = top[0].slice(0, -1);
   if (top.some((p) => keyOf(p.slice(0, -1)) !== keyOf(parent))) return { why: "Only blocks in the same container wrap together" };
   const blocks = top.map((p) => blockAt(recipe, p)!);
   if (parent.length + 2 + Math.max(...blocks.map(heightOf)) > DEPTH_MAX) return { why: `Blocks nest at most ${DEPTH_MAX} deep` };
-  const row: Block = { type: "row", name: "Row", children: blocks };
+  const row = { type, name: BLOCK_LABEL[type], children: blocks } as Block;
+  const why = placeRefusal(recipe, row, parent);
+  if (why) return { why };
   const k = top[0][top[0].length - 1];
   const drop = new Set(blocks);
   const next = mapAt(recipe, parent, (b) => {
@@ -363,6 +373,25 @@ export function wrapInRow(recipe: Recipe, paths: readonly Path[]): { recipe: Rec
     return { ...b, children: [...kids.slice(0, k).filter((c) => !drop.has(c)), row, ...kids.slice(k).filter((c) => !drop.has(c))] } as Block;
   });
   return { recipe: next, path: [...parent, k] };
+}
+
+/**
+ * Unwrap (Ctrl+Shift+G, builder plan Phase 2): a Row, Card, Grid or Repeat's blocks take its place in its container and it goes (a
+ * card's caption and a grid's columns with it). Refused, with the first reason, when one of its blocks may not stand there: an item's
+ * field out of its Repeat. Returns the blocks' paths (none for an empty one).
+ */
+export function unwrap(recipe: Recipe, path: Path): { recipe: Recipe; paths: number[][] } | { why: string } {
+  const b = blockAt(recipe, path);
+  if (!path.length || !b) return { why: "The widget's card holds every block: it stays" };
+  if (!isContainer(b)) return { why: "Only a Row, a Grid, a Card or a Repeat unwraps" };
+  const parent = path.slice(0, -1);
+  const k = path[path.length - 1];
+  for (const c of b.children) {
+    const why = placeRefusal(recipe, c, parent);
+    if (why) return { why };
+  }
+  const next = mapAt(recipe, parent, (p) => ({ ...p, children: [...childrenOf(p).slice(0, k), ...b.children, ...childrenOf(p).slice(k + 1)] }) as Block);
+  return { recipe: next, paths: b.children.map((_, i) => [...parent, k + i]) };
 }
 
 /**

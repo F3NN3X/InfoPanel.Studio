@@ -13,6 +13,7 @@
 // Builder plan Phase 1 (the flow model, D2 A): on the stage a block drags to another place or container (`stage-edit.ts`, a drop line
 // and the refusal's reason, Esc cancels, one undo step), share handles change two blocks' shares (`share-handles.tsx`), Ctrl and
 // Shift click add to the selection, and the focused stage takes the arrows (walk), Alt+arrows (move), Del, F2 and Esc.
+// Phase 2: the layer menu on the stage too (`layer-entries.tsx`), with Wrap in a card or a grid, Unwrap, and Copy and Paste style.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { pastDragThreshold, trackPointer } from "@/components/studio/pointer-drag";
 import { ChevronRight, CircleAlert, CircleCheck, MonitorUp, Pencil, Redo2, RotateCcw, Save, Undo2, Upload, X } from "lucide-react";
@@ -22,6 +23,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { StatusChip } from "@/components/ui/status-chip";
 import { Tabs } from "@/components/ui/tabs";
 import { BarFill, PageBar } from "@/components/studio/page-bar";
+import { ContextMenu } from "@/components/ui/context-menu";
 import { useSensors } from "@/hooks/useSensors";
 import { withHwinfoAliases } from "@/lib/hwinfo-aliases";
 import type { Appearance } from "@/lib/style-resolve";
@@ -33,14 +35,15 @@ import type { Data } from "@/widgets/core/types";
 import { gridPresets } from "@/widgets/define";
 import type { BlockType, Cells, PackageFile, Recipe, RecipeOption } from "@/widgets/recipe/types";
 import { toFlat, toNames } from "@/widgets/shared/data-adapter";
-import { ADD_ORDER, addBlock, addBlockAt, addImageAt, addRefusal, addSnippet, BLOCK_LABEL, blockAt, CELLS_MAX, cleanUp, devicesIn, draftSample, duplicateBlocks, flatten, imagePath, keyMove, landing, layerName, leftUnused, moveBlock, moveBlocks, nextVersion, outsideRange, packedImages, presetValues, rangeOf, recipeIssues, removeBlocks, SNIPPETS, type SnippetId, stageCells, stepBlock, topLevel, updateBlock, validationLine, withFormat, wrapInRow, type Path } from "./builder-model";
+import { ADD_ORDER, addBlock, addBlockAt, addImageAt, addRefusal, addSnippet, BLOCK_LABEL, blockAt, CELLS_MAX, cleanUp, devicesIn, draftSample, duplicateBlocks, flatten, imagePath, keyMove, landing, layerName, leftUnused, moveBlock, moveBlocks, nextVersion, outsideRange, packedImages, presetValues, rangeOf, recipeIssues, removeBlocks, SNIPPETS, type SnippetId, stageCells, stepBlock, topLevel, updateBlock, validationLine, unwrap, withFormat, wrapIn, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { BlockTab } from "./block-tab";
-import { clipboard, copyOf, pasteBlocks, setClipboard } from "./clipboard";
+import { clipboard, copyOf, copyStyle, pasteBlocks, pasteStyle, setClipboard, setStyleClipboard, styleClipboard } from "./clipboard";
 import { type Crowd, crowdIssues, crowding, measureInks } from "./crowding";
 import { type EditorFlags, flagged, followFlags, hiddenRule, setKeys, stagePick } from "./editor-flags";
 import { NumberInput, type Typing, TypingContext } from "./fields";
 import type { History } from "./history";
+import { layerEntries } from "./layer-entries";
 import { type EditorFlag, type LayerCommand, Layers, type SelectHow } from "./layers";
 import { OptionsTab } from "./options-tab";
 import { type PlainIssue, plainIssue, plainIssues, plainWarnings } from "./plain-issues";
@@ -311,6 +314,7 @@ export function Builder(p: BuilderProps) {
   const [why, setWhy] = useState<string | null>(null);
   useEffect(() => setWhy(null), [p.active.key]);
   const [canPaste, setCanPaste] = useState(() => clipboard() !== null);
+  const [canPasteStyle, setCanPasteStyle] = useState(() => styleClipboard() !== null);
   const [tile, setTile] = useState<BlockType | null>(null);
 
   // hide and lock (G25): the editor's own, per open recipe, following their blocks through each edit; never in the recipe
@@ -469,13 +473,42 @@ export function Builder(p: BuilderProps) {
         const added = r.added.length ? `; added the option${r.added.length === 1 ? "" : "s"} ${r.added.join(", ")}` : "";
         return say(`Pasted ${clip.blocks.length === 1 ? layerName(r.recipe, clip.blocks[0]) : `${clip.blocks.length} blocks`} into ${into ? layerName(r.recipe, into) : "the card"}${added}`);
       }
-      case "wrap": {
-        const r = wrapInRow(recipe, list);
+      case "wrap":
+      case "wrap-card":
+      case "wrap-grid": {
+        const type = cmd === "wrap" ? "row" : cmd === "wrap-card" ? "card" : "grid";
+        const r = wrapIn(recipe, list, type);
         if ("why" in r) return refuse(r.why);
         edit(r.recipe);
         setPath(r.path);
         refocus();
-        return say(`Wrapped ${what(list)} in a row`);
+        return say(`Wrapped ${what(list)} in a ${type}`);
+      }
+      case "unwrap": {
+        if (list.length !== 1) return;
+        const r = unwrap(recipe, list[0]);
+        if ("why" in r) return refuse(r.why);
+        const after = withFormat(r.recipe);
+        edit(after);
+        offerCleanUp(recipe, after);
+        setSelection(r.paths.length ? r.paths : [list[0].slice(0, -1)]);
+        refocus();
+        return say(`Unwrapped ${nameAt(list[0])}`);
+      }
+      case "copy-style": {
+        const clip = copyStyle(recipe, at);
+        if (!clip || !at.length) return;
+        setStyleClipboard(clip);
+        setCanPasteStyle(true);
+        return say(`Copied the style of ${clip.name}`);
+      }
+      case "paste-style": {
+        const clip = styleClipboard();
+        if (!clip) return refuse("No style to paste: copy a block's style first");
+        const r = pasteStyle(recipe, list, clip);
+        if ("why" in r) return refuse(r.why);
+        edit(r.recipe);
+        return say(`Pasted the style of ${clip.name} onto ${what(list)}${r.skipped.length ? `; it can't take the ${r.skipped.join(", ")}` : ""}`);
       }
       case "up":
       case "down":
@@ -542,7 +575,8 @@ export function Builder(p: BuilderProps) {
         // text selected on the page copies as the browser's
         if ((k === "c" || k === "x") && window.getSelection()?.toString()) return;
         keys.current.run(COMMAND[k], keys.current.path);
-      } else return;
+      } else if (k === "g" && e.shiftKey) keys.current.run("unwrap", keys.current.path);
+      else return;
       e.preventDefault();
     };
     window.addEventListener("keydown", onKey, true);
@@ -618,9 +652,38 @@ export function Builder(p: BuilderProps) {
 
   // F2 on the stage renames in Layers
   const [renameAt, setRenameAt] = useState<{ key: string } | null>(null);
+
+  // the layer menu on the stage (Phase 2): right-click, Shift+F10 or the Menu key, Layers' rows on the block it opened on
+  const [stageMenu, setStageMenu] = useState<{ x: number; y: number; at: number[] } | null>(null);
+  const openStageMenu = (at: number[], x: number, y: number) => {
+    if (!selected.some((s) => keyOf(s) === keyOf(at)) || header) select(at, "only");
+    setStageMenu({ x, y, at });
+  };
+  const stageEntries = (at: number[]) => {
+    const b = blockAt(recipe, at);
+    return layerEntries({
+      at,
+      many: topLevel(selected.some((s) => keyOf(s) === keyOf(at)) ? selected : [at]).length,
+      container: !!b && "children" in b,
+      hidden: flags.hidden.includes(keyOf(at)),
+      locked: flags.locked.includes(keyOf(at)),
+      canPaste,
+      canPasteStyle,
+      onCommand: run,
+      onRename: (x) => setRenameAt({ key: keyOf(x) }),
+      onFlag: setFlag,
+    });
+  };
+
   /** The focused stage's keys (Phase 1): the arrows walk the blocks as in Layers, Alt+arrows move the selection, Del, F2 and Esc. */
   const onStageKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.target !== e.currentTarget || e.ctrlKey || e.metaKey) return;
+    if ((e.shiftKey && e.key === "F10" && !e.altKey) || e.key === "ContextMenu") {
+      e.preventDefault();
+      const zone = zoneEl();
+      const r = (path.length ? zone?.querySelector<HTMLElement>(`[data-recipe-path="${keyOf(path)}"]`) : zone)?.getBoundingClientRect();
+      return openStageMenu(path, r ? r.left + 12 : e.currentTarget.getBoundingClientRect().left + 24, r ? r.top + 12 : e.currentTarget.getBoundingClientRect().top + 24);
+    }
     const move = ({ ArrowUp: "up", ArrowDown: "down", ArrowLeft: "out", ArrowRight: "in" } as const)[e.key as "ArrowUp"];
     if (e.altKey && move) {
       e.preventDefault();
@@ -795,6 +858,7 @@ export function Builder(p: BuilderProps) {
               problems={problemMap}
               tile={tile}
               canPaste={canPaste}
+              canPasteStyle={canPasteStyle}
               onSelect={select}
               onRename={rename}
               onCommand={run}
@@ -942,6 +1006,14 @@ export function Builder(p: BuilderProps) {
             data-moving={moving ? "" : undefined}
             onPointerDown={pressStage}
             onKeyDown={onStageKey}
+            onContextMenu={(e) => {
+              const t = e.target as HTMLElement;
+              const hit = t.closest<HTMLElement>("[data-recipe-path]");
+              if (!hit && !t.closest("[data-recipe-zone]")) return;
+              e.preventDefault();
+              // a locked block's menu is its container's, as its click picks that (G25)
+              openStageMenu(hit ? stagePick(flags.locked, pathOf(hit.dataset.recipePath!)) : [], e.clientX, e.clientY);
+            }}
             onClick={(e) => {
               if (dragged.current) {
                 dragged.current = false;
@@ -1053,7 +1125,7 @@ export function Builder(p: BuilderProps) {
           />
           {tab === "block" && selected.length > 1 && (
             <p data-multi="" className="mx-4 mt-3 rounded-ui-md bg-ui-raised px-3 py-2 text-caption text-ui-2">
-              {selected.length} blocks selected: Delete, Duplicate, Copy, Cut and Wrap in a row act on all. The settings below are {layerName(recipe, blockAt(recipe, path) ?? recipe.root)}'s.
+              {selected.length} blocks selected: Delete, Duplicate, Copy, Cut, Paste style and Wrap act on all. The settings below are {layerName(recipe, blockAt(recipe, path) ?? recipe.root)}'s.
             </p>
           )}
           <TypingContext.Provider value={typing}>
@@ -1063,6 +1135,7 @@ export function Builder(p: BuilderProps) {
           </TypingContext.Provider>
         </aside>
       </div>
+      {stageMenu && <ContextMenu x={stageMenu.x} y={stageMenu.y} width={230} testId="builder-stage-menu" entries={stageEntries(stageMenu.at)} onClose={() => setStageMenu(null)} />}
     </div>
   );
 }

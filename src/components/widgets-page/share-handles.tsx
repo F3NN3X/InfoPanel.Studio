@@ -104,10 +104,13 @@ export function ShareHandles({ zone, recipe, path, locked, tick, onLive, onDone 
     onDone(setShares(recipe, edge.a, edge.b, [r.a, r.b]), `Shares ${shareText(r.a, r.b)}`);
   };
 
+  // the boxes are measured after the draw: until then those of an edit's edges may name blocks that have moved or gone
+  const ids = new Set(shape.split(","));
   return (
     <>
       {placed.map(({ edge, x, y, w, h }) => {
         const id = `${keyOf(edge.a)}|${keyOf(edge.b)}`;
+        if (!ids.has(id)) return null;
         const [ga, gb] = [growOf(recipe, edge.a), growOf(recipe, edge.b)];
         const shown = drag?.key === id ? drag : null;
         const names = `${layerName(recipe, blockAt(recipe, edge.a)!)} and ${layerName(recipe, blockAt(recipe, edge.b)!)}`;
