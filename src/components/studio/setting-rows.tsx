@@ -241,6 +241,7 @@ export function SelectRow({
         onChange={(e) => onChange(e.target.value)}
         onFocus={previewFonts ? () => ensureAllFonts() : undefined}
         aria-label={label.label}
+        title={options.find((o) => o.value === value)?.label}
         className={cn(SELECT, "min-w-0 shrink")}
       >
         {options.map((o) => (

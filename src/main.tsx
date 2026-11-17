@@ -6,6 +6,7 @@ import "./select-scrollbar.css";
 import { startDesktopDebug } from "./lib/desktop-debug";
 import { isTauri } from "./lib/desktop";
 import { suppressNativeMenu } from "./lib/native-menu";
+import { installSelectFace } from "./select-face";
 
 // ?ui-preview: a gallery of the studio chrome primitives (a lazy chunk, never linked).
 const UiPreview = lazy(() => import("@/components/ui/ui-preview"));
@@ -35,7 +36,8 @@ const settings = new URLSearchParams(window.location.search).has("settings") && 
 const stopDesktopDebug = settings ? () => {} : startDesktopDebug();
 import.meta.hot?.dispose(stopDesktopDebug);
 // Desktop app: only the studio's own right-click menus (text fields keep the native one).
-const stopNativeMenu = isTauri() ? suppressNativeMenu() : undefined;
+installSelectFace();
+const stopNativeMenu =isTauri() ? suppressNativeMenu() : undefined;
 import.meta.hot?.dispose(() => stopNativeMenu?.());
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

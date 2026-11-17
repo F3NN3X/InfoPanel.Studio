@@ -1,5 +1,6 @@
 {
   "settings": [
+    "bg-highlight",
     "bg-app",
     "bg-panel",
     "bg-tile",
