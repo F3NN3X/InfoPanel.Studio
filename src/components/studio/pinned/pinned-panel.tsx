@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Eye, EyeOff, Pin, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, EyeOff, Pin, Plus, Trash2, Undo2 } from "lucide-react";
 import { ContextMenu } from "@/components/ui/context-menu";
 import { Menu } from "@base-ui/react/menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { FOCUS_RING } from "@/components/ui/button";
 import type { MonitorProfile, ProfilePage } from "@/lib/layout";
-import { cellsText, PIN_KINDS, type PinKind } from "@/lib/pinned-edit";
+import { cellsText, PIN_KINDS, type PinKind, unpinBlocked } from "@/lib/pinned-edit";
 import { clampCells, isGridPin, type PinnedItem } from "@/lib/pinned";
 import { cn } from "@/lib/utils";
 import { zoneName } from "../inspector/zone-meta";
@@ -22,7 +22,7 @@ interface PinnedPanelProps {
   onAdd: (kind: PinKind) => void;
   onToggleVisible: (id: string) => void;
   onMove: (id: string, by: -1 | 1) => void;
-  /** Unpin (the row's button), and the row's menu. */
+  /** Unpin back to the page or Delete (the row's button), and the row's menu. */
   actions: Pick<PinnedActions, "remove" | "moveToPage">;
 }
 
@@ -85,9 +85,16 @@ export function PinnedPanel({ profile, page, width, selectedId, onSelect, onAdd,
               <IconButton label={it.visible ? "Hide" : "Show"} size={26} onClick={() => onToggleVisible(it.id)}>
                 {it.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
               </IconButton>
-              <IconButton label="Unpin" size={26} onClick={() => actions.remove(it.id)}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </IconButton>
+              {/* Unpin puts the widget back on the page; the rail, which has no page form, is deleted instead (its menu says so). */}
+              {unpinBlocked(it) === null ? (
+                <IconButton label="Unpin" size={26} onClick={() => actions.moveToPage(it.id)}>
+                  <Undo2 className="h-3.5 w-3.5" />
+                </IconButton>
+              ) : (
+                <IconButton label="Delete" size={26} onClick={() => actions.remove(it.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </IconButton>
+              )}
             </li>
           ))}
           {agentPrompt && (
