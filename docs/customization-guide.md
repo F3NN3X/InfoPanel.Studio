@@ -1475,6 +1475,29 @@ this size** copies a screen's pinned layer to the other screens of its size, rep
 page it names going to the page in the same place there. A pinned widget sent to the Dynamic Island
 feeds it as one on a page does.
 
+### Pinned in place
+
+**Pin here** on a widget's right-click menu (config format 21) pins it on the cells it is on. It
+keeps them on every page it shows on, and the pages lay out around them: placing, moving and
+resizing a widget treat those cells as taken. Pin several side by side for a strip that stays put.
+Such a widget is stored with `at`, its cells in the screen's grid, instead of an edge:
+
+```json
+{
+  "id": "cpu-pin",
+  "at": { "colStart": 1, "rowStart": 1, "colSpan": 4, "rowSpan": 1 },
+  "show": "all",
+  "visible": true,
+  "placement": { "id": "cpu-w", "module": "SensorValue" }
+}
+```
+
+Every page of a screen shares its grid, so the cells mean the same place on each page; they count in
+the page area the edge widgets leave. Cells past the grid are moved back inside it when the screen
+loads, and changing the screen's columns or rows is refused while a pinned widget would fall
+outside. A widget already on those cells on a page is drawn under the pinned one and listed with
+**Move** in its inspector. A format 20 version can't open a format 21 screen.
+
 ### The page rail
 
 The **Page Rail** widget is a column of your pages and actions. Pinned to the left or right with
