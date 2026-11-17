@@ -75,7 +75,8 @@ test("free blocks: dragged onto one line by the guide snap, selected by a rubber
   await expect(page.locator("[data-selection-also]")).toHaveCount(1);
   await expect(page.getByRole("toolbar", { name: "Arrange" })).toContainText("Arrange 2");
 
-  // the first value locked from the stage's menu: a drag on it moves nothing, and its lock shows in Layers
+  // the first value alone locked from the stage's menu: a drag on it moves nothing, and its lock shows in Layers
+  await block(page, "0").click({ position: { x: 8, y: 8 } });
   await block(page, "0").click({ button: "right", position: { x: 8, y: 8 } });
   await page.getByTestId("builder-stage-menu").getByRole("menuitem", { name: "Lock" }).click();
   await expect(layer(page, "0")).toHaveAttribute("data-locked", "");
@@ -83,9 +84,9 @@ test("free blocks: dragged onto one line by the guide snap, selected by a rubber
   await drag(page, { x: locked.x + 8, y: locked.y + 8 }, { x: locked.x + 80, y: locked.y + 60 });
   await page.mouse.up();
   expect(await block(page, "0").boundingBox()).toEqual(locked);
-  await save(page, "Free");
-  r = await stored(scratch.base, "recipe.free");
-  expect(r.root.children[0].box).toEqual(a);
+  await expect(layer(page, "1")).not.toHaveAttribute("data-locked", "");
+  // nothing changed, so there is nothing to save
+  await expect(page.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
 
   // Ctrl+Shift+L on the stage locks the selection and unlocks it again
   await block(page, "1").click({ position: { x: frame.width * 0.3, y: 8 } });

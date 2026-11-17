@@ -72,7 +72,8 @@ export interface MultiInspectorProps {
 export function MultiInspector({ recipe, paths, primary, onChange, onWhy }: MultiInspectorProps) {
   const blocks = paths.map((p) => blockAt(recipe, p)).filter((b): b is Block => !!b);
   if (blocks.length < 2) return null;
-  const fields = sharedFields(blocks);
+  // free blocks (the free layout) have boxes, not shares of a row
+  const fields = sharedFields(blocks).filter((f) => f.key !== "grow" || !blocks.every((b) => b.box));
   const fills = paths.every((p) => fillAxis(recipe, p));
   // blocks with areas in one grid
   const areas = paths.every((p) => blockAt(recipe, p)?.area) && new Set(paths.map((p) => p.slice(0, -1).join("."))).size === 1;

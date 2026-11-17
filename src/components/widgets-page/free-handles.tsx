@@ -239,7 +239,7 @@ const ALIGNS: readonly FreeArrange[] = ["left", "centre", "right", "top", "middl
 export function ArrangeBar({ count, onArrange }: { count: number; onArrange: (op: FreeArrange) => void }) {
   return (
     <div role="toolbar" aria-label="Arrange" data-arrange-bar="" className="flex items-center gap-0.5 rounded-ui-md border border-ui-subtle bg-ui-panel px-1 py-0.5">
-      <span className="px-1.5 text-caption text-ui-3">Arrange {count}</span>
+      <span className="whitespace-nowrap px-1.5 text-caption text-ui-3">Arrange {count}</span>
       {ALIGNS.map((op) => (
         <IconButton key={op} label={ARRANGE_LABEL[op]} size={28} data-arrange={op} onClick={() => onArrange(op)}>
           {ARRANGE_ICONS[op]}
