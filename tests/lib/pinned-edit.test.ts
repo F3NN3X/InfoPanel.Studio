@@ -2,7 +2,7 @@
 // stores survives the v20 guard (`normalizePinned`), so a save keeps it.
 import { describe, expect, it } from "vitest";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
-import { normalizePinned, type PinnedItem, type RailSlot } from "@/lib/pinned";
+import { normalizePinned, normalizeTouchAction, type PinnedItem, type RailSlot } from "@/lib/pinned";
 import {
   addPinnedItem,
   copyPinnedToSameSize,
@@ -10,6 +10,8 @@ import {
   moveRailSlot,
   movePinnedItem,
   newPinnedItem,
+  touchChoices,
+  touchValue,
   newRailSlot,
   PIN_KINDS,
   railOverflow,
@@ -162,5 +164,15 @@ describe("railOverflow (owner Q9)", () => {
     // 480 px is dense: 7 slots need 505 there
     // fewer parts, more room
     expect(railOverflow(rail({ rail: many(9), placement: { id: "r", module: "PageRail", settings: { chip: false, clock: false } } }), p)).toBeNull();
+  });
+});
+
+describe("the touch actions the rail editor offers", () => {
+  it("include the profile picker (P4), read back as itself and stored as the guard keeps it", () => {
+    const picker = touchChoices([]).find((c) => c.value === "profile-picker");
+    expect(picker?.action).toEqual({ op: "profile-picker" });
+    expect(touchValue({ op: "profile-picker" })).toBe("profile-picker");
+    expect(normalizeTouchAction(picker?.action)).toEqual({ op: "profile-picker" });
+    expect(touchValue({ op: "run", command: "calc.exe" })).toBe("other");
   });
 });

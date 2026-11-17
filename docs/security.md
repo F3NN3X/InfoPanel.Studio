@@ -75,6 +75,12 @@ security model, what was fixed, what was decided, and what is deferred.
   switches) need the `X-Dashboard-Widget: 1` header and come from this computer unless `ALLOW_REMOTE_UPLOAD=1`.
   `USER_WIDGETS=off` turns the whole store off. A recipe holds no code; the studio's validator checks it on import and the
   kiosk checks it again on every load. A code widget needs a signature (below).
+- **The program in front** (`crates/ips-server/src/foreground.rs`, profile auto-switch): on Windows the server reads the
+  foreground window's program once a second (`GetForegroundWindow`, then `QueryFullProcessImageNameW` with limited query
+  rights), only while a profile has `autoSwitch` rules, and never its own windows. It keeps the file name only, never the
+  path or the window title, and publishes it in the control state (`front`, read by every kiosk the server serves) only
+  while a rule exists. No route accepts it from outside; `POST /api/control/auto` (pause, resume or lock) is a control
+  write with its usual guards.
 - **Uploads**: per-type limits, magic-byte checks, a quota, two in flight; SVG assets are served with a sandbox CSP.
 - **Path safety**: static and asset paths reject `..` and dot segments with prefix checks.
 

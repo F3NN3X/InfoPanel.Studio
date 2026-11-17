@@ -196,13 +196,14 @@ export const RAIL_GROUP_NAMES: readonly [RailGroup, string][] = [
   ["bottom", "Bottom"],
 ];
 
-/** The touch actions the editor offers (each runs through a guarded route the rail already calls): a page, next, previous, the page lock. */
+/** The touch actions the editor offers (each runs through a guarded route the rail already calls): a page, next, previous, the page lock, the profile picker. */
 export function touchChoices(pages: readonly RailPage[]): { value: string; label: string; action: TouchAction }[] {
   return [
     ...pages.map((p) => ({ value: `page:${p.id}`, label: `Open page: ${p.name}`, action: { op: "page", to: p.id } as TouchAction })),
     { value: "page:next", label: "Next page", action: { op: "page", to: "next" } },
     { value: "page:prev", label: "Previous page", action: { op: "page", to: "prev" } },
     { value: "lock", label: "Page lock: rotate or stay", action: { op: "lock" } },
+    { value: "profile-picker", label: "Profiles", action: { op: "profile-picker" } },
   ];
 }
 
@@ -210,6 +211,6 @@ export function touchChoices(pages: readonly RailPage[]): { value: string; label
 export function touchValue(action: TouchAction | undefined): string {
   if (!action) return "";
   if (action.op === "page") return `page:${action.to}`;
-  if (action.op === "lock") return "lock";
+  if (action.op === "lock" || action.op === "profile-picker") return action.op;
   return "other";
 }
