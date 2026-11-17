@@ -39,6 +39,9 @@ const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-setup-end",
     // The kiosk's page area, so the agent prompt window sits centred on it (agent_prompt.rs); never an answer.
     "allow-agent-prompt-room",
+    // Screens' display cards show each touch panel's state: reads only. Setting up, pairing and the driver stay in Settings.
+    "allow-touch-view",
+    "allow-touch-screens",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     // The studio's top bar is the window's title bar (the window has no native frame).
@@ -757,7 +760,11 @@ mod tests {
             assert!(!STUDIO_PERMISSIONS.contains(&command) && !SETUP_PERMISSIONS.contains(&command), "{command} is granted to the studio");
             assert!(SETTINGS_PERMISSIONS.contains(&command), "{command} is missing from the settings window");
         }
-        // The studio reads touch state; setting up, pairing, calibrating and the driver stay in the Settings window.
+        // The studio reads touch state (Screens' display cards: without these every card read "Touch Off"); setting up,
+        // pairing, calibrating and the driver stay in the Settings window.
+        for command in ["allow-touch-view", "allow-touch-screens"] {
+            assert!(STUDIO_PERMISSIONS.contains(&command), "{command} is missing from the studio");
+        }
         for command in ["allow-touch-set", "allow-touch-uninstall-driver", "allow-touch-setup", "allow-touch-pair", "allow-touch-calibrate", "allow-touch-identify", "allow-touch-cancel"] {
             assert!(!STUDIO_PERMISSIONS.contains(&command) && !SETUP_PERMISSIONS.contains(&command), "{command} is granted to the studio");
             assert!(SETTINGS_PERMISSIONS.contains(&command), "{command} is missing from the settings window");
