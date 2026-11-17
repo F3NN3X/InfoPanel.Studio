@@ -1,5 +1,6 @@
 import { useId, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { selectedLabel } from "@/components/studio/selected-label";
 import { useFound } from "./found";
 
 /*
@@ -240,6 +241,7 @@ export function SelectRow({ id, label, hint, options, value, onChange }: Omit<Ro
     <Row id={id} label={label} hint={hint}>
       <select
         aria-label={label}
+        title={selectedLabel(options, value)}
         className="h-[30px] max-w-full cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
         value={value}
         onChange={(e) => onChange(e.target.value)}
