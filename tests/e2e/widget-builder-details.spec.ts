@@ -104,20 +104,33 @@ test("Replace sensor swaps a key across the recipe, lists what it changed, and U
   expect(await binds()).toEqual([`libre.${CPU}_cpu_total`, `libre.${CPU}_cpu_total`, `libre.${CPU}_cpu_total`]);
 });
 
-test("the stage previews every span from the smallest size to the largest, and no other (G17)", async ({ page, scratch }) => {
+// B30 (D1): the stage shows any size 1 to 12 a side and warns outside the recipe's range, where it used to clamp to it
+test("the stage previews any span, and says when it is outside the recipe's range (G17, B30)", async ({ page, scratch }) => {
   await newWidget(page, scratch.base);
   await add(page, "value");
   const zone = page.locator("[data-recipe-zone]");
+  const outside = page.locator("[data-stage-outside]");
   for (const cols of [2, 3, 4])
     for (const rows of [2, 3]) {
       await stageSize(page, cols, rows);
       await expect(zone).toHaveCSS("width", `${cols * 120 + (cols - 1) * 8}px`);
       await expect(zone).toHaveCSS("height", `${rows * 100 + (rows - 1) * 8}px`);
     }
-  // outside the range (2×2 to 4×3): the nearest size in it
+  await expect(outside).toHaveCount(0);
+  // under the Smallest (2×2): shown as typed, with the warning
   await stageSize(page, 9, 1);
-  await expect(page.getByLabel("Stage columns")).toHaveValue("4");
-  await expect(page.getByLabel("Stage rows")).toHaveValue("2");
+  await expect(page.getByLabel("Stage columns")).toHaveValue("9");
+  await expect(page.getByLabel("Stage rows")).toHaveValue("1");
+  await expect(zone).toHaveCSS("height", "100px");
+  await expect(outside).toHaveAttribute("data-stage-outside", "under");
+  // past the Largest: lowered on the root card's Block tab to 4×3
+  await layer(page, "").click();
+  await type(page, "Largest columns", "4");
+  await type(page, "Largest rows", "3");
+  await stageSize(page, 6, 3);
+  await expect(outside).toHaveAttribute("data-stage-outside", "over");
+  await stageSize(page, 4, 3);
+  await expect(outside).toHaveCount(0);
 });
 
 test("an unsaved new recipe shows sample data on the stage (G18)", async ({ page, scratch }) => {

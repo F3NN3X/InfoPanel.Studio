@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, clampCells, devicesIn, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, railPreset, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, setRepeatSource, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, updateBlock, validationLine, withDirection, withFormat, withSample, wrapInRow } from "@/components/widgets-page/builder-model";
+import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, devicesIn, outsideRange, stageCells, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, railPreset, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, setRepeatSource, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, unwrap, updateBlock, validationLine, withDirection, withFormat, withSample, wrapIn, wrapInRow } from "@/components/widgets-page/builder-model";
 import { amend, commit, historyOf, HISTORY_LIMIT, redo, undo } from "@/components/widgets-page/history";
 import { NO_START, START, whyNoStart } from "@/components/widgets-page/start-points";
 import { WIDGET_ORDER } from "@/widgets/order";
@@ -160,7 +160,7 @@ describe("options and presets", () => {
     r = updateBlock(r, [0, 1], { when: { size: { min: [2, 1] } } });
     const line = validationLine(r, recipeIssues(r));
     expect(line).toMatchObject({ ok: true, floor: "Text stays above 11 px at every size" });
-    expect(line.summary).toBe("No code · 6 blocks · 3 options · sizes 1×1 to 4×3");
+    expect(line.summary).toBe("No code · 6 blocks · 3 options · sizes 1×1 to 12×12");
   });
 });
 
@@ -395,7 +395,7 @@ describe("lists inside a block", () => {
 describe("found in Phase A", () => {
   it("B14: the validation line counts in words that agree with the number (1 option, not 1 options)", () => {
     const r = addOption(newRecipe("W", new Set()), { key: "show", label: "Show", type: "boolean", default: true });
-    expect(validationLine(r, recipeIssues(r)).summary).toBe("No code · 1 block · 1 option · sizes 2×2 to 4×3");
+    expect(validationLine(r, recipeIssues(r)).summary).toBe("No code · 1 block · 1 option · sizes 2×2 to 12×12");
   });
 
   it("B15: a heatmap cell bound to a sensor option counts as a use, so the option can't be removed from under it", () => {
@@ -471,6 +471,51 @@ describe("a selection of blocks (Phase B1, G11)", () => {
     expect("why" in wrapInRow(addBlock(label.recipe, [], "label", "x.y").recipe, [[1]])).toBe(false);
   });
 
+  // builder plan Phase 2: Wrap in a card or a grid beside Wrap in a row, and Unwrap, refused where the validator would refuse the result
+  it("wraps blocks in a Card (no caption) or a Grid; a Grid in a Repeat and a level too deep are refused", () => {
+    const r = cpuCard();
+    const card = wrapIn(r, [[0], [1]], "card");
+    if ("why" in card) throw new Error(card.why);
+    expect(blockAt(card.recipe, [0])).toMatchObject({ type: "card", name: "Card" });
+    expect((blockAt(card.recipe, [0]) as { title?: string }).title).toBeUndefined();
+    expect(namesAt(card.recipe, [0])).toEqual(["Top row", "sparkline"]);
+    expect(errorsOf(card.recipe)).toEqual([]);
+    const grid = wrapIn(r, [[0, 0]], "grid");
+    if ("why" in grid) throw new Error(grid.why);
+    expect(blockAt(grid.recipe, [0, 0])?.type).toBe("grid");
+    // a Grid is format 2 (Phase F): the edit's format follows
+    expect(withFormat(grid.recipe).format).toBe(2);
+    expect(errorsOf(withFormat(grid.recipe))).toEqual([]);
+    const w = addBlock(addBlock(newRecipe("W", new Set()), [], "repeat", "x.y").recipe, [0], "value", "x.y").recipe;
+    expect(wrapIn(w, [[0, 0]], "grid")).toEqual({ why: "A Grid can't go inside a Repeat: a Repeat lays its items out as a grid itself (Direction: Grid)" });
+    const inRepeat = wrapIn(w, [[0, 0]], "card");
+    if ("why" in inRepeat) throw new Error(inRepeat.why);
+    expect(errorsOf(inRepeat.recipe)).toEqual([]);
+    expect(wrapIn(r, [[]], "grid")).toEqual({ why: "The widget's card can't go into a Grid" });
+  });
+
+  it("unwraps a container: its blocks take its place, in order; the root, a leaf and an item's field out of its Repeat are refused", () => {
+    const r = cpuCard();
+    const out = unwrap(r, [0]);
+    if ("why" in out) throw new Error(out.why);
+    expect(out.paths).toEqual([[0], [1]]);
+    expect(namesAt(out.recipe, [])).toEqual(["ring", "Values", "sparkline"]);
+    expect(errorsOf(out.recipe)).toEqual([]);
+    // wrap then unwrap is the recipe as it was
+    const wrapped = wrapIn(r, [[1]], "card");
+    if ("why" in wrapped) throw new Error(wrapped.why);
+    const back = unwrap(wrapped.recipe, [1]);
+    if ("why" in back) throw new Error(back.why);
+    expect(back.recipe.root).toEqual(r.root);
+    // an empty one just goes
+    const empty = addBlock(r, [], "row", "x.y");
+    expect(unwrap(empty.recipe, empty.path)).toMatchObject({ paths: [], recipe: { root: r.root } });
+    expect(unwrap(r, [])).toEqual({ why: "The widget's card holds every block: it stays" });
+    expect(unwrap(r, [1])).toEqual({ why: "Only a Row, a Grid, a Card or a Repeat unwraps" });
+    const w = addBlock(addBlock(newRecipe("W", new Set()), [], "repeat", "x.y").recipe, [0], "value", "x.y").recipe;
+    expect(unwrap(w, [0])).toEqual({ why: "Value reads each place's weather: it goes inside a Repeat only" });
+  });
+
   it("duplicates each selected block right after it, and selects the copies", () => {
     const r = cpuCard();
     const d = duplicateBlocks(r, [[1], [0, 0]]);
@@ -525,12 +570,20 @@ describe("Phase B2", () => {
     expect(errorsOf(t.recipe)).toEqual([]);
   });
 
-  it("the stage's size is clamped to the recipe's range, whole cells (G17)", () => {
+  // B30 (D1): the stage shows any size 1 to 12 a side, and says where it stands against the recipe's range rather than clamp to it
+  it("the stage shows any size from 1×1 to 12×12 in whole cells, and says when it is outside the recipe's range (G17, B30)", () => {
     const r = newRecipe("Any size", new Set());
-    expect(r.size).toMatchObject({ min: [2, 2], max: [4, 3] });
-    expect(clampCells(r, [3, 3])).toEqual([3, 3]);
-    expect(clampCells(r, [9, 1])).toEqual([4, 2]);
-    expect(clampCells(r, [2.6, Number.NaN])).toEqual([3, 2]);
+    expect(r.size).toMatchObject({ min: [2, 2], max: [12, 12] });
+    expect(stageCells([9, 1], [3, 2])).toEqual([9, 1]);
+    expect(stageCells([0, 14], [3, 2])).toEqual([1, 12]);
+    expect(stageCells([2.6, Number.NaN], [3, 2])).toEqual([3, 2]);
+    expect(outsideRange(r, [3, 3])).toBeUndefined();
+    expect(outsideRange(r, [12, 12])).toBeUndefined();
+    expect(outsideRange(r, [9, 1])).toBe("under");
+    const small = setRecipeSize(r, "max", [4, 3]);
+    expect(outsideRange(small, [5, 3])).toBe("over");
+    expect(outsideRange(small, [4, 4])).toBe("over");
+    expect(outsideRange(small, [4, 3])).toBeUndefined();
   });
 
   it("the Sample before a save fills the keys the sample lacks from the live readings, and keeps its own (G18)", () => {

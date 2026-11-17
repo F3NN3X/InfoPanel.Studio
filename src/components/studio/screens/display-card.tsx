@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { FOCUS_RING } from "@/components/ui/button";
 import { StatusChip } from "@/components/ui/status-chip";
 import { liveActions } from "../live-model";
+import { selectedLabel } from "../selected-label";
 import { CardMenu, type CardAction } from "./card-actions";
 import { displaySubtitle, displayTitle, offersTouch, pinnedScreen, rotationButton, type DisplayEntry } from "./display-model";
 import { aspectOf, previewBox } from "./profile-card";
@@ -145,6 +146,7 @@ function Shows({ entry, title, profiles, page }: { entry: DisplayEntry; title: s
             aria-label={`Screen for ${title}`}
             value={display.screen}
             onChange={(e) => void postControl("display", { action: "assign", display: display.name, screen: e.target.value })}
+            title={selectedLabel([{ value: DISPLAY_FOLLOW, label: "Follow default" }, ...profiles.map((p) => ({ value: p.id, label: p.name }))], display.screen)}
             className={cn(SELECT, "max-w-[55%] flex-1")}
           >
             <option value={DISPLAY_FOLLOW}>Follow default</option>
@@ -164,7 +166,7 @@ function Shows({ entry, title, profiles, page }: { entry: DisplayEntry; title: s
             <span aria-hidden className="text-ui-hint">
               /
             </span>
-            <select aria-label={`Page of ${screen.name}`} value={page ?? ""} onChange={(e) => void liveActions.showPage(screen.id, e.target.value)} className={cn(SELECT, "flex-1 text-ui-2")}>
+            <select aria-label={`Page of ${screen.name}`} value={page ?? ""} onChange={(e) => void liveActions.showPage(screen.id, e.target.value)} title={selectedLabel(screen.pages.map((p) => ({ value: p.id, label: p.name })), page ?? "")} className={cn(SELECT, "flex-1 text-ui-2")}>
               {screen.pages.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}

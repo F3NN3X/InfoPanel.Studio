@@ -81,6 +81,11 @@ describe("Pin here on a page widget's menu (config v21)", () => {
     expect(pinHere).toHaveBeenCalledWith(["a", "b", "c"]);
   });
 
+  it("Pin here and Pin to edge have different icons", () => {
+    const [here, edge] = pinEntries([widget("a")], vi.fn(), vi.fn()) as { icon: { type: unknown } }[];
+    expect(here.icon.type).not.toBe(edge.icon.type);
+  });
+
   it("is disabled, with the reason, when one of them can't be pinned or is placed freely", () => {
     expect(pinEntries([widget("a"), widget("b", { module: "blank" })], vi.fn(), vi.fn())[0]).toMatchObject({ disabled: true, title: expect.stringMatching(/Blank/) });
     expect(pinEntries([widget("a", { px: { x: 0, y: 0, w: 9, h: 9 } })], vi.fn(), vi.fn())[0]).toMatchObject({ disabled: true, title: expect.stringMatching(/placed freely/) });

@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { recipeModule } from "@/widgets/recipe/resolve";
+import { learnSize } from "@/widgets/recipe/settings";
+import type { Recipe } from "@/widgets/recipe/types";
 import {
   BLANK_MODULE,
   PANEL_ID,
@@ -15,6 +18,7 @@ import {
   followGlobalStyle,
   moveZonesToPage,
   ownStyle,
+  pastLargest,
   pasteStyleToZones,
   withSampleZones,
   addModuleAt,
@@ -30,6 +34,7 @@ import {
   removePlacement,
   toggleZonesVisible,
   updatePlacement,
+  zoneMinSize,
   } from "@/components/studio/studio-actions";
 
 const zone = (
@@ -523,4 +528,31 @@ describe("moveZonesToPage", () => {
     expect(out?.pages[0].placements.map((x) => x.id)).toEqual(["stay"]);
   });
 
+});
+
+// B28 (D1, D5): a placed recipe resizes in Edit down to its Smallest once it has loaded, and Edit says when it is past its Largest
+describe("a recipe zone's sizes", () => {
+  const id = "recipe:b28-sizes";
+  const recipe = { size: { min: [2, 2], max: [4, 3], default: [3, 2] } } as unknown as Recipe;
+  const mod = () => recipeModule(id)!;
+  afterEach(() => learnSize(mod()));
+
+  it("floors at 1×1 until the recipe has loaded, then at its Smallest", () => {
+    const z = zone("r", 1, 1, 3, 2, { module: id });
+    expect(zoneMinSize(z)).toEqual({ cols: 1, rows: 1 });
+    learnSize(mod(), recipe);
+    expect(zoneMinSize(z)).toEqual({ cols: 2, rows: 2 });
+    // forgotten (removed, or imported again): 1×1 until it loads again
+    learnSize(mod());
+    expect(zoneMinSize(z)).toEqual({ cols: 1, rows: 1 });
+  });
+
+  it("names the Largest only when the zone is past it on either side", () => {
+    learnSize(mod(), recipe);
+    expect(pastLargest(zone("r", 1, 1, 4, 3, { module: id }))).toBeUndefined();
+    expect(pastLargest(zone("r", 1, 1, 5, 3, { module: id }))).toEqual({ cols: 4, rows: 3 });
+    expect(pastLargest(zone("r", 1, 1, 2, 4, { module: id }))).toEqual({ cols: 4, rows: 3 });
+    // a built-in widget has no largest
+    expect(pastLargest(zone("b", 1, 1, 12, 6, { module: "SystemOverview" }))).toBeUndefined();
+  });
 });

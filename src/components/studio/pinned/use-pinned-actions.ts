@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import { uid, type MonitorProfile, type ProfilePage } from "@/lib/layout";
+import { uid, type MonitorProfile, type Placement, type ProfilePage } from "@/lib/layout";
 import { pinBlocked } from "@/lib/pin-blocked";
 import type { PinnedCells, PinnedEdge } from "@/lib/pinned";
 import { zoneName } from "../inspector/zone-meta";
@@ -26,6 +26,8 @@ interface PinnedActionsDeps {
 
 const edits = () => import("@/lib/pinned-edit");
 const placing = () => import("./pinned-placing");
+
+const joinNames = (placements: readonly Placement[], ids: readonly string[]): string => ids.map((id) => zoneName(placements.find((x) => x.id === id)!)).join(", ");
 
 const EDGE_WORDS = { top: "the top", bottom: "the bottom", left: "the left edge", right: "the right edge" } as const;
 
@@ -56,9 +58,16 @@ export function usePinnedActions({ stored, page, updateStored, view, setView, se
     if (!placements.length) return;
     const ids = placements.map(() => uid("pin"));
     const names = placements.map(zoneName);
-    void edits().then((m) => updateStored((p) => m.pinInPlace(p, page.id, placements.map((x) => x.id), { ids, names })));
-    onPinnedHere();
-    toast(placements.length === 1 ? `Pinned ${names[0]} in place; it keeps its cells on every page` : `Pinned ${placements.length} widgets in place; they keep their cells on every page`);
+    void edits().then((m) => {
+      const plan = m.planPinHere(stored, page.id, placements.map((x) => x.id));
+      if (!plan.fits.length) return toast(`${joinNames(placements, plan.blocked)} stays: its cells are pinned already`);
+      updateStored((p) => m.pinInPlace(p, page.id, placements.map((x) => x.id), { ids, names }));
+      onPinnedHere();
+      const pinned = plan.fits.length === 1 ? `Pinned ${names[placements.findIndex((x) => x.id === plan.fits[0])]} in place; it keeps its cells on every page` : `Pinned ${plan.fits.length} widgets in place; they keep their cells on every page`;
+      const left = plan.blocked.length ? `${plan.fits.length} pinned; ${joinNames(placements, plan.blocked)} ${plan.blocked.length === 1 ? "stays" : "stay"}: ${plan.blocked.length === 1 ? "its" : "their"} cells are pinned already` : pinned;
+      const hidden = plan.hide.length ? `. Hidden on ${plan.hide.map((id) => stored.pages.find((pg) => pg.id === id)?.name ?? id).join(", ")}: it's one canvas` : "";
+      toast(left + hidden);
+    });
   };
 
   const remove = (id: string) => {

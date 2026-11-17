@@ -5,7 +5,7 @@ import { gridPinCell } from "@/components/pinned-grid";
 import { PlacementFrame } from "@/components/studio/placement-frame";
 import { LivePlacement } from "@/components/studio/placement-content";
 import type { MonitorProfile, Placement, ProfileView } from "@/lib/layout";
-import { pinConflicts } from "@/lib/pinned-edit";
+import { pinConflicts, sharingPins } from "@/lib/pinned-edit";
 import { cellAt } from "@/lib/profile-grid";
 import { clampCells, type PinnedCells, type PinnedGridItem } from "@/lib/pinned";
 import type { Appearance } from "@/lib/style-resolve";
@@ -31,6 +31,8 @@ interface PinnedGridCanvasProps {
   /** A move or resize let go: the item's new cells, one undo step. */
   onCells: (id: string, at: PinnedCells) => void;
   actions: Pick<PinnedActions, "remove" | "moveToPage">;
+  /** The canvas zoom: the badge is drawn at 1/zoom, so it reads at any zoom. */
+  zoom: number;
 }
 
 const toRect = (at: PinnedCells): ZoneRect => ({ col: at.colStart, row: at.rowStart, cols: at.colSpan, rows: at.rowSpan });
@@ -41,7 +43,7 @@ const toCells = (r: ZoneRect): PinnedCells => ({ colStart: r.col, rowStart: r.ro
  * (a pin badge, a dashed edge) and a press shows the pinned layer with the item selected; with Pinned on a drag moves one
  * and its corner sizes it, kept off the other grid pins (a page widget under it is a conflict, listed in the inspector).
  */
-export function PinnedGridCanvas({ stored, profile, pageId, items, appearance, editing, selectedId, onSelect, onCells, actions }: PinnedGridCanvasProps) {
+export function PinnedGridCanvas({ stored, profile, pageId, items, appearance, editing, selectedId, onSelect, onCells, actions, zoom }: PinnedGridCanvasProps) {
   // the page widgets each item covers on this page (its conflicts, the badge's count)
   const covers = useMemo(() => new Map(items.map((it) => [it.id, pinConflicts(stored, it).filter((c) => c.pageId === pageId).length])), [stored, items, pageId]);
   const [menu, setMenu] = useState<{ x: number; y: number; item: PinnedGridItem } | null>(null);
@@ -58,7 +60,8 @@ export function PinnedGridCanvas({ stored, profile, pageId, items, appearance, e
     const cell = (x: number, y: number) => cellAt(Math.max(0, Math.min(grid.width - 1, x - grid.left)), Math.max(0, Math.min(grid.height - 1, y - grid.top)), grid, profile.cols, profile.rows, 0);
     const first = cell(e.clientX, e.clientY);
     if (!first) return;
-    const others: Placement[] = items.filter((o) => o.id !== it.id).map((o) => ({ id: o.id, module: o.placement.module, ...clampCells(o.at, profile.cols, profile.rows), visible: true }));
+    // every grid pin that shares a page with this one, not only the ones drawn on this page
+    const others: Placement[] = sharingPins(stored, it).map((o) => ({ id: o.id, module: o.placement.module, ...clampCells(o.at, profile.cols, profile.rows), visible: true }));
     const [x0, y0] = [e.clientX, e.clientY];
     let moved = false;
     let last = from;
@@ -135,6 +138,7 @@ export function PinnedGridCanvas({ stored, profile, pageId, items, appearance, e
                 "pointer-events-none absolute left-1 top-1 inline-flex h-5 items-center gap-1 rounded-ui-sm border px-1 font-ui text-micro",
                 covered ? "border-ui-warn bg-ui-raised text-ui-warn" : "border-ui-edge bg-ui-raised text-ui-2"
               )}
+              style={{ zoom: 1 / zoom }}
               title={covered ? `Covers ${covered === 1 ? "1 widget" : `${covered} widgets`} on this page` : undefined}
             >
               <Pin className="h-3 w-3" />

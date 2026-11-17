@@ -970,6 +970,7 @@ function StudioViewBody({
               }}
               onCells={pins.setCells}
               actions={pins}
+              zoom={ui.zoom}
             />
           </Suspense>
         )

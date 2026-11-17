@@ -1,4 +1,4 @@
-import { Pin } from "lucide-react";
+import { PanelLeftClose, Pin } from "lucide-react";
 import type { ContextMenuEntry } from "@/components/ui/context-menu";
 import type { Placement } from "@/lib/layout";
 import { pinBlocked } from "@/lib/pin-blocked";
@@ -17,7 +17,8 @@ export function pinToEdgeEntry(placement: Placement, pin: (placementId: string, 
   return {
     id: "pin-to-edge",
     label: "Pin to edge",
-    icon: <Pin />,
+    // a panel docked on a side, already in the studio entry (the page tabs use it), so the entry doesn't grow
+    icon: <PanelLeftClose />,
     disabled: why !== null,
     title: why ?? undefined,
     submenu: EDGES.map(([edge, label]): ContextMenuEntry => ({ id: `pin:${edge}`, label, onSelect: () => pin(placement.id, edge) })),

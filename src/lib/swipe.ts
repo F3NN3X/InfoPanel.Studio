@@ -36,3 +36,9 @@ export function dragSettle(g: { dx: number; ms: number; width: number }): "next"
   if (g.width > 0 && Math.abs(g.dx) >= g.width * DRAG_COMMIT_SHARE) return g.dx < 0 ? "next" : "prev";
   return null;
 }
+
+/**
+ * Whether a press at `target` is the pinned layer's own, never a page drag: an edge item (the rail) or a grid pin whose
+ * widget takes the touch. A grid pin that doesn't (`data-pinned-swipe`) lets the page follow the finger.
+ */
+export const startsOnPinned = (target: EventTarget | null): boolean => (target as Element | null)?.closest?.("[data-pinned-item]:not([data-pinned-swipe])") != null;

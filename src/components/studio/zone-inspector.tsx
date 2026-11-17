@@ -41,7 +41,7 @@ import { makeTheme, makeThemeSections } from "./inheritance-actions";
 import { LinkRow } from "./link-row";
 import { MakeThemeDialog, type MakeThemePending } from "./make-theme-dialog";
 import { sectionInherit } from "./section-inherit";
-import { ownStyle, withPastedStyle, zoneMinSize } from "./studio-actions";
+import { ownStyle, pastLargest, withPastedStyle, zoneMinSize } from "./studio-actions";
 import { StyleToolbar } from "./style-toolbar";
 import type { InheritanceContext } from "./use-inheritance";import { widgetName } from "./widget-kinds";
 import { ZoneFrameFields, zoneFrameSet } from "./zone-design-section";
@@ -496,8 +496,17 @@ export function ZoneInspector({
         />
     </>
   );
+  // a recipe past its Largest (B28, D5): said here, never clamped
+  const largest = pastLargest(zone);
   const placeRow = place ?? (
-    <PlaceRow cell={{ col: zone.colStart, row: zone.rowStart, cols: zone.colSpan, rows: zone.rowSpan }} onCells={(patch) => onZoneBox(patch)} />
+    <>
+      <PlaceRow cell={{ col: zone.colStart, row: zone.rowStart, cols: zone.colSpan, rows: zone.rowSpan }} onCells={(patch) => onZoneBox(patch)} />
+      {largest && (
+        <p role="status" data-past-largest="" className="border-b border-ui-subtle px-4 py-2 text-micro leading-snug text-ui-warn">
+          Past the largest size this widget is made for ({largest.cols}×{largest.rows}): it may look stretched or sparse
+        </p>
+      )}
+    </>
   );
   // The widget's views: tiles in place of the view select, which stays for the phone sheet's tools.
   const presetMod = !item && mod ? mod : undefined;

@@ -186,6 +186,9 @@ export interface DashboardModule {
   /** Minimum zone footprint this widget renders well in (grid cells). */
   minCols?: number;
   minRows?: number;
+  /** The largest footprint it is made for (a recipe's Largest, B28): Edit warns past it and never clamps; unset is any. */
+  maxCols?: number;
+  maxRows?: number;
   /**
    * Key prefixes this module owns: the generic fallback skips these keys,
    * and the placement re-renders when one of them changes.

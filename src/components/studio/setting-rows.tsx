@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { ColorButton, ColorSwatches } from "./inspector/color-swatches";
 import { ValueBox } from "./inspector/value-box";
 import { useInInspector, useInspectorChrome } from "./inspector-layout";
+import { selectedLabel } from "./selected-label";
 
 /**
  * The inspector's field rows: `[lead] [label ……] [control] [trail]`, one
@@ -241,7 +242,7 @@ export function SelectRow({
         onChange={(e) => onChange(e.target.value)}
         onFocus={previewFonts ? () => ensureAllFonts() : undefined}
         aria-label={label.label}
-        title={options.find((o) => o.value === value)?.label}
+        title={selectedLabel(options, value)}
         className={cn(SELECT, "min-w-0 shrink")}
       >
         {options.map((o) => (

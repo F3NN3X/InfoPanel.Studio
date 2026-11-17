@@ -6,6 +6,7 @@
 import type { ModuleSettings } from "@/modules/types";
 import type { IslandConfig } from "./island/config";
 import { ITEM_ID, SCROLL_ROW_H, uid, type DashboardConfig, type MonitorProfile, type Placement } from "./layout";
+import { canvasBacked } from "./page-model";
 import { pinBlocked } from "./pin-blocked";
 import { profileGap, profilePadding, trackSize } from "./profile-grid";
 import {
@@ -111,34 +112,88 @@ const cellsOf = (z: Pick<Placement, "colStart" | "rowStart" | "colSpan" | "rowSp
 const overlaps = (a: PinnedCells, b: PinnedCells): boolean =>
   a.colStart < b.colStart + b.colSpan && b.colStart < a.colStart + a.colSpan && a.rowStart < b.rowStart + b.rowSpan && b.rowStart < a.rowStart + a.rowSpan;
 
+/** The other grid pins that are drawn on a page `item` is drawn on (visible, shown there, the page not hiding the layer): the ones it must keep off. */
+export function sharingPins(p: MonitorProfile, item: PinnedGridItem): PinnedGridItem[] {
+  return (p.pinned?.items ?? []).filter(
+    (o): o is PinnedGridItem => o.id !== item.id && isGridPin(o) && p.pages.some((pg) => pinnedOnPage({ items: [item, o] }, pg.id, pg.hidePinned).length === 2)
+  );
+}
+
+/** Whether `item` on `at` would sit on cells another grid pin holds on a page they share. */
+const pinTaken = (p: MonitorProfile, item: PinnedGridItem, at: PinnedCells): boolean => {
+  const cells = clampCells(at, p.cols, p.rows);
+  return sharingPins(p, item).some((o) => overlaps(cells, clampCells(o.at, p.cols, p.rows)));
+};
+
+/** The grid pin a page widget would become, in place (null: it can't be pinned in place). */
+function inPlaceItem(p: MonitorProfile, placement: Placement, opts: { id?: string; name?: string }): PinnedGridItem | null {
+  if (pinBlocked(placement) || placement.px) return null;
+  const { colStart: _c, rowStart: _r, colSpan: _cs, rowSpan: _rs, px: _px, groupId: _g, item: _i, visible, locked, ...rest } = placement;
+  return {
+    id: opts.id ?? uid("pin"),
+    at: clampCells(cellsOf(placement), p.cols, p.rows),
+    show: "all",
+    visible,
+    ...(locked ? { locked: true } : {}),
+    name: opts.name ?? placement.name ?? placement.module,
+    placement: rest,
+  };
+}
+
+/** What Pin here does with a selection: the widgets that fit, the ones left on the page because their cells are pinned already, and the pages that turn the layer off. */
+export interface PinHerePlan {
+  fits: string[];
+  blocked: string[];
+  /** Pages that are one canvas (an InfoPanel import, a free page) and show no grid pin yet: the layer is hidden there, since a pin always covers the canvas. */
+  hide: string[];
+}
+
+export function planPinHere(p: MonitorProfile, pageId: string, placementIds: readonly string[]): PinHerePlan {
+  const page = p.pages.find((pg) => pg.id === pageId);
+  const plan: PinHerePlan = { fits: [], blocked: [], hide: [] };
+  if (!page) return plan;
+  let next = p;
+  for (const id of placementIds) {
+    const placement = page.placements.find((x) => x.id === id);
+    const item = placement && inPlaceItem(p, placement, {});
+    if (!item) continue;
+    if (pinTaken(next, item, item.at)) plan.blocked.push(id);
+    else {
+      plan.fits.push(id);
+      next = withPinnedItems(next, (list) => [...list, item]);
+    }
+  }
+  if (plan.fits.length)
+    plan.hide = p.pages.filter((pg) => !pg.hidePinned && canvasBacked(p, pg) && !pinnedOnPage(p.pinned, pg.id).some(isGridPin)).map((pg) => pg.id);
+  return plan;
+}
+
 /**
  * Pin here (owner feedback after P8, "Reserve the cells"): a page's widgets moved into the pinned layer in place, as one
  * change. Each keeps its module, settings and cells, is dropped from the page and goes last in the list, on all pages.
- * `opts.ids` and `opts.names` name each new item, in the order of `placementIds`. A widget that can't be pinned, or one
- * placed freely in px, stays on the page; the profile as it was when none can be pinned.
+ * `opts.ids` and `opts.names` name each new item, in the order of `placementIds`. A widget that can't be pinned, one
+ * placed freely in px, or one whose cells another grid pin holds stays on the page (`planPinHere`); the profile as it was
+ * when none can be pinned. A page that is one canvas hides the layer, as the plan says.
  */
 export function pinInPlace(p: MonitorProfile, pageId: string, placementIds: readonly string[], opts: { ids?: readonly string[]; names?: readonly string[] } = {}): MonitorProfile {
   const page = p.pages.find((pg) => pg.id === pageId);
   if (!page) return p;
-  const items = placementIds.flatMap((id, i): PinnedGridItem[] => {
-    const placement = page.placements.find((x) => x.id === id);
-    if (!placement || pinBlocked(placement) || placement.px) return [];
-    const { colStart: _c, rowStart: _r, colSpan: _cs, rowSpan: _rs, px: _px, groupId: _g, item: _i, visible, locked, ...rest } = placement;
-    return [
-      {
-        id: opts.ids?.[i] ?? uid("pin"),
-        at: clampCells(cellsOf(placement), p.cols, p.rows),
-        show: "all",
-        visible,
-        ...(locked ? { locked: true } : {}),
-        name: opts.names?.[i] ?? placement.name ?? placement.module,
-        placement: rest,
-      },
-    ];
+  const plan = planPinHere(p, pageId, placementIds);
+  const items = plan.fits.flatMap((id): PinnedGridItem[] => {
+    const i = placementIds.indexOf(id);
+    const item = inPlaceItem(p, page.placements.find((x) => x.id === id)!, { id: opts.ids?.[i], name: opts.names?.[i] });
+    return item ? [item] : [];
   });
   if (!items.length) return p;
   const gone = new Set(items.map((it) => it.placement.id));
-  const moved = { ...p, pages: p.pages.map((pg) => (pg === page ? { ...pg, placements: pg.placements.filter((x) => !gone.has(x.id)) } : pg)) };
+  const hide = new Set(plan.hide);
+  const moved = {
+    ...p,
+    pages: p.pages.map((pg) => {
+      const kept = pg === page ? { ...pg, placements: pg.placements.filter((x) => !gone.has(x.id)) } : pg;
+      return hide.has(pg.id) ? { ...kept, hidePinned: true } : kept;
+    }),
+  };
   return withPinnedItems(moved, (list) => [...list, ...items]);
 }
 
@@ -176,9 +231,9 @@ export function moveZoneTo(p: MonitorProfile, pageId: string, placementId: strin
   };
 }
 
-/** A grid pin moved or resized to `at`, kept inside the grid; an edge item stays as it is. */
+/** A grid pin moved or resized to `at`, kept inside the grid and off the cells another grid pin holds on a page they share; an edge item stays as it is. */
 export const withCells = (p: MonitorProfile, id: string, at: PinnedCells): MonitorProfile =>
-  updatePinnedItem(p, id, (it) => (isGridPin(it) ? { ...it, at: clampCells(at, p.cols, p.rows) } : it));
+  updatePinnedItem(p, id, (it) => (isGridPin(it) && !pinTaken(p, it, at) ? { ...it, at: clampCells(at, p.cols, p.rows) } : it));
 
 /** "cols 1–3, rows 2–2" as the pinned list and inspector say it. */
 export const cellsText = (at: PinnedCells): string => `cols ${at.colStart}–${at.colStart + at.colSpan - 1}, rows ${at.rowStart}–${at.rowStart + at.rowSpan - 1}`;

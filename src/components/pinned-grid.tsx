@@ -4,7 +4,7 @@ import { LivePlacement } from "@/components/studio/placement-content";
 import type { Placement, ProfileView } from "@/lib/layout";
 import { profileGap } from "@/lib/profile-grid";
 import type { Appearance } from "@/lib/style-resolve";
-import { clampCells, pinnedPlacement, type PinnedGridItem } from "@/lib/pinned";
+import { clampCells, gridPinTakesTouch, pinnedPlacement, type PinnedGridItem } from "@/lib/pinned";
 
 // Widgets pinned in place (config v21) on the kiosk, and their box for Edit's canvas: a chunk of its own, loaded by a screen
 // that has one, so a screen without grid pins carries none of it.
@@ -72,7 +72,7 @@ export default function PinnedGrid({ items, profile, appearance, grid, main, tra
       {items.map((it) => {
         const { box, zone } = gridPinCell(it, profile);
         return (
-          <div key={it.id} className="pointer-events-auto" style={box} data-pinned-item={it.id} data-pinned-mode="grid">
+          <div key={it.id} className="pointer-events-auto" style={box} data-pinned-item={it.id} data-pinned-mode="grid" data-pinned-swipe={gridPinTakesTouch(it) ? undefined : ""}>
             <LivePlacement placement={zone} appearance={appearance}>
               {({ content, hasData, title, scope }) => (
                 <PlacementFrame placement={zone} profile={profile} studio={false} hasData={hasData} title={title} scope={scope}>
