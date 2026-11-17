@@ -34,11 +34,11 @@ When an agent asks for permission to run something, you can answer on the panel 
 2. Under **Answer from the panel**, turn on **Answer Claude Code from the panel** or **Answer Codex from the panel**.
 3. Restart the server when the app asks.
 
-When a request comes in, the kiosk on this PC shows what the agent wants to run, in full; the command scrolls when it's long. Tap **Deny** to refuse it, or keep a finger on **Hold to allow** for 0.6 s to allow it. On a keyboard, Tab to a button: Enter denies, and holding Enter or Space allows. The panel waits 25 s, then the agent asks in its terminal as usual. Nothing is answered for you when the time runs out.
+When a request comes in, InfoPanel Studio opens a prompt over the panel on this PC with everything the agent wants to do: the command or file first, then every other detail, and for an edit the lines it takes out and puts in. Nothing is shortened; long lines scroll sideways. Tap **Deny** to refuse it, or keep a finger on **Hold to allow** for 0.6 s to allow it. On a keyboard, Tab to a button: Enter denies, and holding Enter or Space allows. The panel waits 25 s, then the agent asks in its terminal as usual. Nothing is answered for you when the time runs out, and if a new request takes the prompt while you hold, nothing is allowed.
 
-The prompt shows on screens that already show the agents: the Island's agent notices, a **Coding Agents** widget, or a rail badge for waiting agents. The **Sessions** view of the Coding Agents widget shows the same buttons on the waiting session's card.
+The prompt sits over the page area of a screen that shows the agents: the Island's agent notices, a **Coding Agents** widget, or a rail badge for waiting agents. The **Sessions** view of the Coding Agents widget shows which session waits, and says to answer in the prompt or the terminal; its cards have no buttons.
 
-Only the kiosk on the PC running InfoPanel Studio can see a request or answer it. A kiosk on another device doesn't get the command, even with editing from other devices on. Every answer is listed under **Answers** in Settings › Coding agents. Your agent's own deny rules still apply when you allow.
+Only InfoPanel Studio's own prompt on the PC running it can answer. A kiosk in a browser, or on another device, doesn't get the command and can't answer: answer in the prompt or the terminal. Every answer is listed under **Answers** in Settings › Coding agents. Your agent's own deny rules still apply when you allow.
 
 :::open settings/agents Settings › App › Coding agents
 

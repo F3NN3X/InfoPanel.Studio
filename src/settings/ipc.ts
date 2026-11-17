@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import type { AnswerLogEntry } from "@/lib/agent-requests";
 import type {
   AgentStatus,
   AppInfo,
@@ -42,6 +43,7 @@ export const ipc = {
   agentsStatus: () => invoke<AgentStatus[]>("agents_status"),
   repairAgents: () => invoke<AgentStatus[]>("repair_agents"),
   openAgentBackups: () => invoke<void>("open_agent_backups"),
+  agentAnswersLog: () => invoke<AnswerLogEntry[]>("agent_answers_log"),
   touchView: () => invoke<TouchView>("touch_view"),
   /** Writes one touch.json key (`null` = back to its default); rejects with the reasons when the file wouldn't apply. */
   touchSet: (key: string, value: unknown) => invoke<void>("touch_set", { key, value }),

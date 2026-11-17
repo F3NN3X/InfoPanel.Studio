@@ -7,8 +7,8 @@ Claude Code and Codex: sessions, plan use and tokens.
 Each session working, waiting for you or done (with its model and cost), the plan's 5-hour and weekly use as bars or
 rings, tokens per day as bars or a heatmap, and this week's split by model and project. Four views: Full, Summary (plan
 limits, today and sessions), Limits (the plan limit bars only) and Sessions, the roomy page view: a card per session with what
-it is doing, and, on the kiosk of the PC running InfoPanel Studio, **Deny** and **Hold to allow** for a permission request
-while answering from the panel is on (Settings › Coding agents). Small zones get a summary card and a dense view of their own.
+it is doing. A card never answers a permission request: a waiting one says to answer in InfoPanel Studio's prompt on this PC
+(Settings › Coding agents) or in the terminal. Small zones get a summary card and a dense view of their own.
 
 ## Data it needs
 

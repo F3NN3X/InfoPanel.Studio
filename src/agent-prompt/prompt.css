@@ -1,0 +1,27 @@
+@import "tailwindcss" source(none);
+@import "../settings/tokens.css";
+@source "./";
+@source "../components/hold-button.tsx";
+
+/* The agent prompt window (agent-prompt.html): the app's own colours; the hold button's shadcn names map onto them. */
+@theme {
+  --font-sans: "Geist Variable", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --color-primary: var(--color-s-accent);
+  --color-foreground: var(--color-s-t1);
+  --color-muted-foreground: var(--color-s-muted);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--color-s-card);
+  font-family: var(--font-sans);
+}
+
+body {
+  box-shadow: inset 0 0 0 1px var(--color-s-card-line);
+}

@@ -1,6 +1,7 @@
 // InfoPanel Studio: runs the bundled dashboard server and shows the studio from it.
 
 mod about;
+mod agent_prompt;
 mod agents;
 mod commands;
 mod control;
@@ -257,6 +258,10 @@ pub fn run() {
             touch::screens::touch_calibrate,
             touch::screens::touch_identify,
             touch::screens::touch_cancel,
+            agent_prompt::agent_requests,
+            agent_prompt::agent_answer,
+            agent_prompt::agent_answers_log,
+            agent_prompt::agent_prompt_room,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -298,6 +303,7 @@ pub fn run() {
             app.manage(st);
             app.manage(touch);
             app.manage(touch::screens::Busy::default());
+            app.manage(agent_prompt::Room::default());
             if experimental_touch {
                 handle.state::<touch::Touch>().set_enabled(true);
             }

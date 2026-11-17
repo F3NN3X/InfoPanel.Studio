@@ -1,20 +1,17 @@
 /**
  * Agent approvals from the panel (pinned layer P8, decision 5, owner Q4; ips-server's approvals.rs): a coding agent's
- * permission request, with the tool's input in full, read and answered by this PC's kiosk only. The server holds the
- * agent's hook for 25 s; with no answer the agent asks in its terminal. The requests are never in the extras stream: the
- * kiosk asks for them on their own route while a session waits, and another device is refused (403), so it stops asking.
- * Deny and Hold to allow are the only answers; nothing answers on a timeout.
+ * permission request, with the tool's input in full. The server holds the agent's hook for 25 s; with no answer the agent
+ * asks in its terminal. A request is read and answered only in InfoPanel Studio's own prompt window on this PC
+ * (src/agent-prompt/, src-tauri/src/agent_prompt.rs), by IPC: never over HTTP, where any local process or page could answer
+ * it, and never in the extras stream. This module holds what the prompt, the cards and Settings share.
  */
-import { useEffect, useState } from "react";
 import type { AgentId } from "./agents";
 
-export const REQUESTS_URL = "/api/agents/requests";
-export const ANSWER_URL = "/api/agents/answer";
-export const REQUESTS_LOG_URL = "/api/agents/requests/log";
 /** The agents by their full names, as the prompt and the cards say them. */
 export const AGENT_FULL_NAMES: Record<AgentId, string> = { claude: "Claude Code", codex: "Codex" };
-/** How often the kiosk asks while a session waits, ms. */
-export const POLL_MS = 1000;
+
+/** What a page that can't answer says about a waiting request. */
+export const ANSWER_ELSEWHERE = "Answer in InfoPanel Studio's prompt on this PC, or in the terminal.";
 
 export interface AgentRequest {
   id: string;
@@ -24,7 +21,7 @@ export interface AgentRequest {
   project: string;
   /** The tool's name ("Bash", "Edit"). */
   tool: string;
-  /** What it runs, in full: a command, a file, or the tool's whole input. */
+  /** Every field of the tool's input: the command, file or address first, then each other field; an edit as a diff. */
   text: string;
   /** When the panel's wait ends, ms on this page's clock. */
   until: number;
@@ -39,15 +36,12 @@ export interface AnswerLogEntry {
   project: string;
   tool: string;
   text: string;
-  answer: Behavior | "none" | "gone" | "refused";
+  answer: Behavior | "none" | "gone";
 }
-
-const READ_HEADERS = { "X-Agent-Answer": "1" };
-const WRITE_HEADERS = { "Content-Type": "application/json", "X-Agent-Answer": "1" };
 
 const text = (v: unknown) => (typeof v === "string" ? v : "");
 
-/** The requests in a server answer, stamped with when each one's wait ends on this page's clock. */
+/** The requests the app sent, stamped with when each one's wait ends on this page's clock. */
 export function parseRequests(raw: unknown, now: number): AgentRequest[] {
   const list = (raw as { requests?: unknown } | null)?.requests;
   if (!Array.isArray(list)) return [];
@@ -58,112 +52,10 @@ export function parseRequests(raw: unknown, now: number): AgentRequest[] {
   });
 }
 
-/** The requests waiting now; null when this device may not see them (it isn't the PC running the server). */
-export async function fetchRequests(): Promise<AgentRequest[] | null> {
-  try {
-    const res = await fetch(REQUESTS_URL, { headers: READ_HEADERS, cache: "no-store" });
-    if (res.status === 403) return null;
-    if (!res.ok) return [];
-    return parseRequests(await res.json(), Date.now());
-  } catch {
-    return [];
-  }
-}
-
-/** Answers a request. False when it is gone (answered, back in the terminal) or the answer was refused. Never throws. */
-export async function answerRequest(id: string, behavior: Behavior): Promise<boolean> {
-  try {
-    const res = await fetch(ANSWER_URL, { method: "POST", headers: WRITE_HEADERS, body: JSON.stringify({ id, behavior }) });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-/** The answers given so far, oldest first (Settings › Coding agents). */
-export async function answersLog(): Promise<AnswerLogEntry[]> {
-  try {
-    const res = await fetch(REQUESTS_LOG_URL, { headers: READ_HEADERS, cache: "no-store" });
-    if (!res.ok) return [];
-    const body = (await res.json()) as { entries?: AnswerLogEntry[] };
-    return Array.isArray(body.entries) ? body.entries : [];
-  } catch {
-    return [];
-  }
-}
-
 /** Whole seconds left of a request's wait. */
 export const secondsLeft = (r: AgentRequest, now: number) => Math.max(0, Math.ceil((r.until - now) / 1000));
 
 /** What a request's title says the agent wants. */
 export function requestTitle(agentName: string, r: Pick<AgentRequest, "tool">): string {
   return r.tool === "Bash" || r.tool === "PowerShell" || r.tool === "" ? `${agentName} wants to run a command` : `${agentName} wants to use ${r.tool}`;
-}
-
-/** The requests in a shared store, so the prompt and the Coding Agents cards read one poll. */
-type Listener = () => void;
-let current: AgentRequest[] = [];
-const listeners = new Set<Listener>();
-let users = 0;
-let timer = 0;
-/** This device was refused: it never asks again on this page. */
-let refused = false;
-
-function set(next: AgentRequest[]) {
-  const same = next.length === current.length && next.every((r, i) => r.id === current[i].id);
-  current = same ? current : next;
-  if (!same) for (const l of listeners) l();
-}
-
-async function poll() {
-  const got = await fetchRequests();
-  if (got === null) {
-    refused = true;
-    window.clearInterval(timer);
-    set([]);
-    return;
-  }
-  set(got);
-}
-
-/** Drops an answered request at once, before the next poll. */
-export function forget(id: string) {
-  set(current.filter((r) => r.id !== id));
-}
-
-/** The requests waiting for this kiosk, asked for every second while `active` (a session waits); empty otherwise. */
-export function useAgentRequests(active: boolean): AgentRequest[] {
-  const [list, setList] = useState(current);
-  useEffect(() => {
-    const l = () => setList(current);
-    listeners.add(l);
-    return () => {
-      listeners.delete(l);
-    };
-  }, []);
-  useEffect(() => {
-    if (!active || refused) {
-      if (!active) set([]);
-      return;
-    }
-    users++;
-    if (users === 1) {
-      void poll();
-      timer = window.setInterval(() => void poll(), POLL_MS);
-    }
-    return () => {
-      users--;
-      if (users === 0) window.clearInterval(timer);
-    };
-  }, [active]);
-  return active ? list : [];
-}
-
-/** For tests: forget the store's state. */
-export function resetAgentRequests() {
-  window.clearInterval(timer);
-  current = [];
-  users = 0;
-  refused = false;
-  listeners.clear();
 }

@@ -22,8 +22,8 @@ export function HoldButton({ label, onConfirm, className }: HoldButtonProps) {
   const [held, setHeld] = useState(0);
   const start = useRef<number | null>(null);
   const frame = useRef(0);
-  const confirm = useRef(onConfirm);
-  confirm.current = onConfirm;
+  // the action shown when the hold began is the one it confirms, even if the props change under the finger
+  const armed = useRef(onConfirm);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
   const tick = () => {
     if (start.current === null) return;
@@ -31,11 +31,12 @@ export function HoldButton({ label, onConfirm, className }: HoldButtonProps) {
     setHeld(t);
     if (t >= 1) {
       start.current = null;
-      confirm.current();
+      armed.current();
     } else frame.current = requestAnimationFrame(tick);
   };
   const begin = () => {
     if (start.current !== null) return;
+    armed.current = onConfirm;
     start.current = performance.now();
     frame.current = requestAnimationFrame(tick);
   };

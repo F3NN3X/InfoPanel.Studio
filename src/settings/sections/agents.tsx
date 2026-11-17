@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { answersLog, type AnswerLogEntry } from "@/lib/agent-requests";
+import type { AnswerLogEntry } from "@/lib/agent-requests";
 import { FolderOpen, Terminal, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
@@ -46,26 +46,29 @@ const ANSWERS: Record<AnswerLogEntry["answer"], { label: string; className: stri
   deny: { label: "Denied", className: "bg-s-red/14 text-s-red" },
   none: { label: "To the terminal", className: "bg-s-card-line text-s-muted" },
   gone: { label: "Ended", className: "bg-s-card-line text-s-muted" },
-  refused: { label: "Refused", className: "bg-s-amber/14 text-s-amber" },
 };
 
 /*
  * Answering from the panel (pinned layer P8, decision 5, owner Q4): per agent, off by default, read by the server at start
- * (a change asks for a restart). Only this PC's kiosk sees a request and may answer it; there is no pairing of other devices.
+ * (a change asks for a restart). A request is shown and answered only in InfoPanel Studio's own prompt window on this PC
+ * (src/agent-prompt/), never by a page or another device; there is no pairing. The log is read by IPC (`agent_answers_log`).
  */
 function Approvals({ connected }: { connected: boolean }) {
   const { settings, save } = useStore();
   const [log, setLog] = useState<AnswerLogEntry[]>([]);
   useEffect(() => {
     let alive = true;
-    void answersLog().then((l) => alive && setLog(l));
+    void ipc
+      .agentAnswersLog()
+      .then((l) => alive && setLog(l))
+      .catch(() => {});
     return () => {
       alive = false;
     };
   }, []);
   const on = settings.agentApprovals ?? [];
   const set = (agent: AgentName, v: boolean) => void save("agentApprovals", v ? [...on.filter((a) => a !== agent), agent] : on.filter((a) => a !== agent));
-  const hint = (name: string) => `Shows ${name}'s permission requests on this PC's kiosk with Deny and Hold to allow, for 25 seconds; then ${name} asks in its terminal as usual. Takes effect after a restart.`;
+  const hint = (name: string) => `Shows ${name}'s permission requests in a prompt over the panel on this PC, with Deny and Hold to allow, for 25 seconds; then ${name} asks in its terminal as usual. Takes effect after a restart.`;
   return (
     <>
       <Group title="Answer from the panel" navSection="agent-approvals">

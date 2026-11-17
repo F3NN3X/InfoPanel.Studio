@@ -119,11 +119,13 @@ async function startScratchOnce({ fixture = FIXTURE_DIR, env = {}, dataApiEnv = 
       WEATHER_BASE_URL: scratch.dataApi,
       ...env,
       DASHBOARD_DATA_DIR: scratch.dataDir,
+      // The agent hook key (ips-server's key_file.rs) lives in the user's own folder: a scratch one, never the real one.
+      INFOPANEL_STUDIO_CONFIG_DIR: path.join(scratch.home, "config"),
       PORT: "0",
     };
     const started = await launch(server.cmd, server.args, serverEnv, SERVER_LINE, "server");
     scratch.children.push(started.child);
-    return { base: `http://127.0.0.1:${started.port}`, dataApi: scratch.dataApi, dataDir: scratch.dataDir, pid: started.child.pid, output: started.output, stop: scratch.stop };
+    return { base: `http://127.0.0.1:${started.port}`, dataApi: scratch.dataApi, dataDir: scratch.dataDir, configDir: serverEnv.INFOPANEL_STUDIO_CONFIG_DIR, pid: started.child.pid, output: started.output, stop: scratch.stop };
   } catch (err) {
     scratch.stop();
     throw err;

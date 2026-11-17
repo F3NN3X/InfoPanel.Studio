@@ -100,14 +100,14 @@ test("requires the write headers", async ({ scratch }) => {
   const approve = (headers: Record<string, string>) => request(scratch.base, { method: "PUT", path: "/api/actions", headers: { host, ...headers }, body: '{"approve":["notepad.exe"]}' });
   expect((await approve({ "content-type": "application/json" })).status).toBe(403);
   expect((await approve({ "content-type": "text/plain", "x-dashboard-control": "1" })).status).toBe(415);
-  // agent approvals (P8): the requests and the log are read with the answer header; an answer takes it, then JSON
-  expect((await request(scratch.base, { path: "/api/agents/requests", headers: { host } })).status).toBe(403);
-  expect((await request(scratch.base, { path: "/api/agents/requests", headers: { host, "x-agent-answer": "1" } })).status).toBe(200);
-  expect((await request(scratch.base, { path: "/api/agents/requests/log", headers: { host } })).status).toBe(403);
-  const answer = (headers: Record<string, string>) => request(scratch.base, { method: "POST", path: "/api/agents/answer", headers: { host, ...headers }, body: '{"id":"x","behavior":"allow"}' });
-  expect((await answer({ "content-type": "application/json" })).status).toBe(403);
-  expect((await answer({ "content-type": "text/plain", "x-agent-answer": "1" })).status).toBe(415);
-  expect((await answer({ "content-type": "application/json", "x-agent-answer": "1" })).status).toBe(404);
+  // agent approvals (P8, security review): nothing reads or answers a request over HTTP, from this machine either, whatever
+  // the headers; the app's prompt window does both by IPC
+  for (const headers of [{}, { "x-agent-answer": "1" }] as Record<string, string>[]) {
+    expect((await request(scratch.base, { path: "/api/agents/requests", headers: { host, ...headers } })).status).toBe(403);
+    expect((await request(scratch.base, { path: "/api/agents/requests/log", headers: { host, ...headers } })).status).toBe(403);
+    const answer = await request(scratch.base, { method: "POST", path: "/api/agents/answer", headers: { host, "content-type": "application/json", ...headers }, body: '{"id":"x","behavior":"allow"}' });
+    expect(answer.status).toBe(403);
+  }
   const ask = (headers: Record<string, string>) => request(scratch.base, { method: "POST", path: "/api/agents/permission?agent=claude", headers: { host, ...headers }, body: "{}" });
   expect((await ask({ "content-type": "application/json" })).status).toBe(403);
 });
@@ -166,16 +166,13 @@ test.describe("writes from another machine", () => {
         expect((await at("GET", "/api/actions/log")).status).toBe(remoteEdit === "1" ? 200 : 403);
         const log = (await (await fetch(`${scratch.base}/api/actions/log`)).json()) as { entries: { reason?: string; from: string }[] };
         expect(log.entries.map((e) => e.reason)).toEqual([remoteEdit === "1" ? "unapproved" : "remote"]);
-        // Agent approvals (P8) are this machine's only, whatever the switch: another device never reads a request's command,
-        // never answers one, and never asks one; its answer is logged as refused.
+        // Agent approvals (P8): another device never reads a request's command, never answers one, and never asks one.
         const agentAnswer = { host, "content-type": "application/json", "x-agent-answer": "1" };
         expect((await request(scratch.base, { path: "/api/agents/requests", address: lanAddress, headers: agentAnswer })).status).toBe(403);
         expect((await request(scratch.base, { path: "/api/agents/requests/log", address: lanAddress, headers: agentAnswer })).status).toBe(403);
         expect((await request(scratch.base, { method: "POST", path: "/api/agents/answer", address: lanAddress, headers: agentAnswer, body: '{"id":"x","behavior":"allow"}' })).status).toBe(403);
         const ask = await request(scratch.base, { method: "POST", path: "/api/agents/permission?agent=claude", address: lanAddress, headers: { host, "content-type": "application/json", "x-agent-event": "1" }, body: "{}" });
         expect(ask.status).toBe(403);
-        const answers = (await (await fetch(`${scratch.base}/api/agents/requests/log`, { headers: { "X-Agent-Answer": "1" } })).json()) as { entries: { answer: string; from: string }[] };
-        expect(answers.entries.map((e) => [e.answer, e.from.endsWith(lanAddress ?? "")])).toEqual([["refused", true]]);
       } finally {
         scratch.stop();
       }

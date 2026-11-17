@@ -12,6 +12,7 @@ export const PAGES = {
   settings: [["src-tauri/pages/app", "settings.html"]],
   help: [["src-tauri/pages/app", "help.html"], ["dist", "help.html"]],
   touch: [["src-tauri/pages/app", "touch.html"]],
+  "agent-prompt": [["src-tauri/pages/app", "agent-prompt.html"]],
 };
 
 const REF = /--ui-[\w-]*/g;

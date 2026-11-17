@@ -68,6 +68,13 @@ export const kioskWindow = (size?: { width: number; height: number }): Promise<v
   call<void>("kiosk_window", size ? { size } : undefined);
 
 /**
+ * The kiosk's page area without its pinned rails (CSS pixels), so InfoPanel Studio's agent prompt window sits centred on it
+ * (src-tauri/src/agent_prompt.rs). The only thing the kiosk sends the prompt: it reads and answers nothing.
+ */
+export const agentPromptRoom = (room: { left: number; top: number; width: number; height: number }): Promise<void | undefined> =>
+  call<void>("agent_prompt_room", { room });
+
+/**
  * Kiosk view in a browser: the profile's kiosk in a popup the screen's size (Edge's app mode honours it; other
  * browsers may open a tab instead). False when the browser blocked it.
  */
