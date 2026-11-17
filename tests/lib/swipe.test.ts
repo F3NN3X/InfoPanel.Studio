@@ -1,5 +1,7 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
-import { dragAxis, dragSettle, swipeDirection } from "@/lib/swipe";
+import { gridPinTakesTouch, type PinnedGridItem } from "@/lib/pinned";
+import { dragAxis, dragSettle, startsOnPinned, swipeDirection } from "@/lib/swipe";
 
 describe("swipeDirection", () => {
   it("is the next page for a quick swipe left, the previous for one right", () => {
@@ -26,5 +28,24 @@ describe("drag-follow", () => {
     expect(dragSettle({ dx: 260, ms: 2000, width: 1000 })).toBe("prev");
     expect(dragSettle({ dx: -240, ms: 2000, width: 1000 })).toBeNull();
     expect(dragSettle({ dx: -90, ms: 150, width: 1000 })).toBe("next");
+  });
+});
+
+describe("a press on the pinned layer", () => {
+  const pin = (module: string, extra: object = {}): PinnedGridItem => ({ id: "p", at: { colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1 }, show: "all", visible: true, placement: { id: "w", module, ...extra } });
+  // the kiosk's markup: PinnedGrid marks a grid pin that doesn't take touch with data-pinned-swipe
+  const press = (item: PinnedGridItem | "edge") => {
+    const host = document.createElement("div");
+    const attrs = item === "edge" ? "" : gridPinTakesTouch(item) ? "" : "data-pinned-swipe";
+    host.innerHTML = `<div data-pinned-item="p" ${attrs}><span id="in"></span></div><i id="page"></i>`;
+    return { in: host.querySelector("#in"), page: host.querySelector("#page") };
+  };
+
+  it("is a page swipe on a plain grid pin, and the pin's own on one with a tap action, an interactive kind, or on the rail", () => {
+    expect(startsOnPinned(press(pin("Clock")).in)).toBe(false);
+    expect(startsOnPinned(press(pin("Clock", { touch: { tap: { op: "page", to: "next" } } })).in)).toBe(true);
+    expect(startsOnPinned(press(pin("AudioFader")).in)).toBe(true);
+    expect(startsOnPinned(press("edge").in)).toBe(true);
+    expect(startsOnPinned(press(pin("Clock")).page)).toBe(false);
   });
 });

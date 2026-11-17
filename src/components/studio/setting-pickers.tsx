@@ -12,6 +12,7 @@ import { shortName } from "@/widgets/shared/audio-data";
 import { allChannels } from "@/widgets/stream-mixer/channels";
 import type { DeviceKind, ModuleSetting, ModuleSettingValue } from "@/modules/types";
 import { ChipsField } from "./alerts-fields";
+import { selectedLabel } from "./selected-label";
 import { SELECT as SELECT_BASE, StackRow, type RowLabelProps } from "./setting-rows";
 
 /** A comma-separated list ("" = none) as its items. */
@@ -83,7 +84,7 @@ export function MediaDevicePicker({ def, value, onChange, lead, hint }: PickerPr
       {def.multiple ? (
         <MultiSelect value={value} onChange={onChange} options={options} label={def.label} />
       ) : (
-        <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} className={SELECT}>
+        <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} title={selectedLabel([{ value: "", label: "None (loudest live device)" }, ...options], value)} className={SELECT}>
           <option value="">None (loudest live device)</option>
           {options.map((o) => (
             <option key={o.value} value={o.value}>
@@ -120,7 +121,7 @@ export function WavelinkMeterPicker({ def, value, onChange, lead, hint, flow }: 
       {def.multiple ? (
         <MultiSelect value={value} onChange={onChange} options={options} label={def.label} />
       ) : (
-        <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} className={SELECT}>
+        <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} title={selectedLabel([{ value: "", label: "All meters" }, ...options], value)} className={SELECT}>
           <option value="">All meters</option>
           {options.map((o) => (
             <option key={o.value} value={o.value}>
@@ -168,7 +169,7 @@ export function AudioControlPicker({ def, value, onChange, lead, hint }: PickerP
       {def.multiple ? (
         <MultiSelect value={value} onChange={onChange} options={all} label={def.label} />
       ) : (
-        <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} className={SELECT}>
+        <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} title={selectedLabel([{ value: "", label: blank }, ...all], value)} className={SELECT}>
           <option value="">{blank}</option>
           {all.map((o) => (
             <option key={o.value} value={o.value}>
@@ -188,7 +189,7 @@ export function ObsScenePicker({ def, value, onChange, lead, hint }: PickerProps
   const all = value && !options.some((o) => o.value === value) ? [...options, { value, label: value }] : options;
   return (
     <StackRow label={def.label} lead={lead} hint={hint}>
-      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} className={SELECT}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} title={selectedLabel([{ value: "", label: "Choose a scene" }, ...all], value)} className={SELECT}>
         <option value="">Choose a scene</option>
         {all.map((o) => (
           <option key={o.value} value={o.value}>

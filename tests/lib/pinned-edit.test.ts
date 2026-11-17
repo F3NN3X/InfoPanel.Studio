@@ -2,7 +2,7 @@
 // stores survives the v20 guard (`normalizePinned`), so a save keeps it.
 import { describe, expect, it } from "vitest";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
-import { isEdgePin, normalizePinned, normalizeTouchAction, type PinnedEdgeItem, type RailSlot } from "@/lib/pinned";
+import { isEdgePin, normalizePinned, normalizeTouchAction, type PinnedEdgeItem, type PinnedGridItem, type RailSlot } from "@/lib/pinned";
 import {
   addPinnedItem,
   allPinConflicts,
@@ -11,6 +11,8 @@ import {
   moveZoneTo,
   pinConflicts,
   pinInPlace,
+  planPinHere,
+  sharingPins,
   unpinBlocked,
   withCells,
   islandClash,
@@ -38,6 +40,7 @@ import {
   withShownPage,
 } from "@/lib/pinned-edit";
 import { chipSlot, railNeed } from "@/lib/rail";
+import { CANVAS_ID } from "@/lib/layout";
 import type { IslandConfig } from "@/lib/island/config";
 
 const page = (id: string) => ({ id, name: id.toUpperCase(), placements: [] });
@@ -377,5 +380,57 @@ describe("pinning widgets in place (config v21) and moving them back", () => {
     expect(withCells(p, "p1", { colStart: 3, rowStart: 3, colSpan: 4, rowSpan: 2 }).pinned?.items[0].at).toEqual({ colStart: 1, rowStart: 2, colSpan: 4, rowSpan: 2 });
     expect(withCells(p, "rail", { colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1 }).pinned?.items[3]).toBe(p.pinned?.items[3]);
     expect(cellsText({ colStart: 1, rowStart: 2, colSpan: 3, rowSpan: 1 })).toBe("cols 1–3, rows 2–2");
+  });
+});
+
+describe("grid pins keep off each other's cells", () => {
+  const z = (id: string, col: number, extra: Record<string, unknown> = {}) => ({ id, module: "Clock", colStart: col, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, ...extra });
+  const gp = (id: string, col: number, show: "all" | { pages: string[] } = "all") =>
+    ({ id, at: { colStart: col, rowStart: 1, colSpan: 1, rowSpan: 1 }, show, visible: true, placement: { id: `${id}-w`, module: "Clock" } }) as PinnedGridItem;
+  const base = (pinned: PinnedGridItem[], placements: unknown[] = []): MonitorProfile =>
+    ({ ...profile("s"), pages: [{ id: "a", name: "A", placements }, page("b"), page("c")], ...(pinned.length ? { pinned: { items: pinned } } : {}) }) as unknown as MonitorProfile;
+
+  it("Pin here pins the widgets that fit and leaves the one on cells another pin holds", () => {
+    const p = base([gp("held", 2)], [z("w1", 1), z("w2", 2), z("w3", 3)]);
+    expect(planPinHere(p, "a", ["w1", "w2", "w3"])).toMatchObject({ fits: ["w1", "w3"], blocked: ["w2"] });
+    const next = pinInPlace(p, "a", ["w1", "w2", "w3"], { ids: ["n1", "n2", "n3"] });
+    expect(next.pinned?.items.map((it) => it.id)).toEqual(["held", "n1", "n3"]);
+    expect(next.pages[0].placements.map((x) => x.id)).toEqual(["w2"]);
+    // nothing fits: the profile as it was
+    expect(pinInPlace(p, "a", ["w2"])).toBe(p);
+  });
+
+  it("only pins on a page they share count: a pin shown elsewhere, or on a page that hides the layer, holds nothing", () => {
+    const elsewhere = { ...base([gp("held", 1, { pages: ["b"] })], [z("w1", 1)]) };
+    // the new pin shows on all pages, so it shares b with it
+    expect(planPinHere(elsewhere, "a", ["w1"]).blocked).toEqual(["w1"]);
+    const hides = { ...elsewhere, pages: elsewhere.pages.map((pg) => (pg.id === "b" ? { ...pg, hidePinned: true } : pg)) } as MonitorProfile;
+    expect(planPinHere(hides, "a", ["w1"]).fits).toEqual(["w1"]);
+    // two pins on different page sets that overlap (b and c shared with the all-pages one) are kept apart
+    const sets = base([gp("x", 1, { pages: ["a", "b"] }), gp("y", 1, { pages: ["b", "c"] }), gp("z", 1, { pages: ["c"] })]);
+    expect(sharingPins(sets, sets.pinned!.items[0] as PinnedGridItem).map((o) => o.id)).toEqual(["y"]);
+  });
+
+  it("refuses a move or size onto another pin's cells on a page they share, even one the canvas isn't showing", () => {
+    const p = base([gp("x", 1, { pages: ["a", "b"] }), gp("y", 2, { pages: ["b", "c"] })]);
+    // viewed on a, y isn't drawn, but x and y meet on b
+    expect((withCells(p, "x", { colStart: 2, rowStart: 1, colSpan: 1, rowSpan: 1 }).pinned!.items[0] as PinnedGridItem).at.colStart).toBe(1);
+    expect((withCells(p, "x", { colStart: 3, rowStart: 1, colSpan: 1, rowSpan: 1 }).pinned!.items[0] as PinnedGridItem).at.colStart).toBe(3);
+    // no page in common: free to overlap
+    const apart = base([gp("x", 1, { pages: ["a"] }), gp("y", 2, { pages: ["b"] })]);
+    expect((withCells(apart, "x", { colStart: 2, rowStart: 1, colSpan: 1, rowSpan: 1 }).pinned!.items[0] as PinnedGridItem).at.colStart).toBe(2);
+  });
+
+  it("hides the layer on a page that is one canvas when the first grid pins are shown, and not where one is shown already", () => {
+    const canvas = { id: "cv", module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: 4, rowSpan: 3, visible: true };
+    const p = { ...base([], [z("w1", 1)]), pages: [{ id: "a", name: "A", placements: [z("w1", 1)] }, { id: "b", name: "B", placements: [canvas] }, page("c")] } as unknown as MonitorProfile;
+    expect(planPinHere(p, "a", ["w1"]).hide).toEqual(["b"]);
+    const next = pinInPlace(p, "a", ["w1"]);
+    expect(next.pages.map((pg) => pg.hidePinned ?? false)).toEqual([false, true, false]);
+    // a page the user turned the layer back on for, with a grid pin shown there, is left alone
+    const shown = { ...p, pinned: { items: [gp("held", 4)] } } as MonitorProfile;
+    expect(planPinHere(shown, "a", ["w1"]).hide).toEqual([]);
+    // an edge item doesn't count as a grid pin; nothing pinned hides nothing
+    expect(planPinHere(p, "a", ["nope"]).hide).toEqual([]);
   });
 });

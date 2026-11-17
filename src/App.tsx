@@ -82,7 +82,7 @@ import {
   withControlPage,
 } from "@/lib/control";
 import { isDisplayName } from "@/lib/screens/display-name";
-import { DRAG_SETTLE_MS, dragAxis, dragSettle, swipeDirection } from "@/lib/swipe";
+import { DRAG_SETTLE_MS, dragAxis, dragSettle, startsOnPinned, swipeDirection } from "@/lib/swipe";
 import { cn } from "@/lib/utils";
 
 /** ?profile=<id> pins a profile (kiosk shortcuts, testing). */
@@ -344,8 +344,8 @@ export default function App({ fixture }: AppProps = {}) {
   const onKioskPointerDown = (e: React.PointerEvent) => {
     if (!kiosk) return;
     gesture.current = { x: e.clientX, y: e.clientY, t: e.timeStamp };
-    // a drag that starts on the pinned layer (the rail) is the rail's, never a page drag
-    if (dragFollow && !drag.current && !(e.target as Element).closest?.("[data-pinned-item]")) drag.current = { axis: null, dx: 0, side: 0, area: [room.left, windowSize.w - room.right], step: windowSize.w - room.left - room.right };
+    // a drag that starts on the pinned layer (the rail, a grid pin that takes touch) is its own, never a page drag
+    if (dragFollow && !drag.current && !startsOnPinned(e.target)) drag.current = { axis: null, dx: 0, side: 0, area: [room.left, windowSize.w - room.right], step: windowSize.w - room.left - room.right };
     const now = Date.now();
     if (control?.profiles[stored.id]?.rotating && now - lastTouch.current >= TOUCH_THROTTLE_MS) {
       lastTouch.current = now;

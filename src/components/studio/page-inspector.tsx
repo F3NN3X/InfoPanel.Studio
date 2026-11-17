@@ -13,6 +13,7 @@ import { ColsRows, NumberInput, PageHeader, PageRow, SnapSection } from "./page-
 import { pageIcon } from "./page-icons";
 import { cycleLabel } from "./page-tabs";
 import { sectionInherit } from "./section-inherit";
+import { selectedLabel } from "./selected-label";
 import { sectionTitle } from "./theme-editor-model";
 import { themeLabel } from "./theme-view-model";
 import type { InheritanceContext } from "./use-inheritance";
@@ -140,6 +141,7 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
                 const size = sizeOfChoice(e.target.value);
                 if (size) onSize(size.width, size.height);
               }}
+              title={selectedLabel(sizeOptions(profile.width, profile.height), sizeChoice(profile.width, profile.height))?.replace("×", " × ")}
               className={SELECT}
             >
               {sizeOptions(profile.width, profile.height).map((o) => (

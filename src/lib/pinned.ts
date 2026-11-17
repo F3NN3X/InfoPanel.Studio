@@ -134,6 +134,12 @@ export type PinnedItem = PinnedEdgeItem | PinnedGridItem;
 export const isGridPin = (it: PinnedItem): it is PinnedGridItem => it.at !== undefined;
 export const isEdgePin = (it: PinnedItem): it is PinnedEdgeItem => it.at === undefined;
 
+/** The widget kinds that take the touch themselves (buttons, faders, keys, taps): a swipe that starts on one is theirs. */
+const TOUCH_KINDS: ReadonlySet<string> = new Set(["AudioButton", "AudioFader", "ObsButton", "StreamControl", "StreamMixer", "StreamDeck", "Keys", "MenuBar", "Timer", "SessionStats"]);
+
+/** Whether a grid pin takes the touch: its widget has a touch map or is an interactive kind. Else a swipe over it changes the page. */
+export const gridPinTakesTouch = (it: PinnedGridItem): boolean => Object.keys(it.placement.touch ?? {}).length > 0 || TOUCH_KINDS.has(it.placement.module);
+
 /** An item's widget as a placement of one cell: what the kiosk draws in the item's box, and what feeds the Island. */
 export const pinnedPlacement = (it: Pick<PinnedItem, "placement">): Placement => ({ ...it.placement, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true });
 
