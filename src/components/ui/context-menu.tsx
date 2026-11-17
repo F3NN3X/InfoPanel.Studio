@@ -146,6 +146,12 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
               role="menu"
               data-sub={e.id}
               style={{ width }}
+              // Lift it by what would run past the viewport's bottom edge.
+              ref={(el) => {
+                if (!el) return;
+                const over = el.getBoundingClientRect().bottom - (window.innerHeight - 8);
+                if (over > 0) el.style.top = `${-over}px`;
+              }}
               // a long flyout ("Move to" over many containers) scrolls rather than run off the screen
               className={cn(
                 "absolute top-0 z-10 max-h-[min(20rem,60vh)] overflow-y-auto rounded-ui-menu border border-ui-menu bg-ui-raised p-1 shadow-ui-menu",
