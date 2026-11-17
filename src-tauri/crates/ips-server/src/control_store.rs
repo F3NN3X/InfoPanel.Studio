@@ -196,14 +196,27 @@ impl Control {
         }
     }
 
-    /// The config was saved: re-read it, drop stale overrides, publish.
+    /// The config was saved: re-read it, drop stale overrides, publish. A preview the studio applied (`applied: true`)
+    /// stays through the save that carries its theme (marked `saved`), so a kiosk that has not pulled that save yet still
+    /// draws it rather than the old theme; the next save takes it away.
     pub fn config_changed(&self) {
         let mut inner = lock(&self.inner);
         let previous = std::mem::replace(&mut inner.config, (self.read_config)().unwrap_or(Value::Null));
+        let flag = |p: &ThemePreview, key: &str| p.preview.get(key) == Some(&Value::Bool(true));
+        // `Some(saved)` for an applied preview.
+        match inner.preview.as_ref().filter(|p| flag(p, "applied")).map(|p| flag(p, "saved")) {
+            Some(true) => inner.preview = None,
+            Some(false) => {
+                if let Some(ThemePreview { preview: Value::Object(fields), .. }) = &mut inner.preview {
+                    fields.insert("saved".into(), Value::Bool(true));
+                }
+            }
+            None => {}
+        }
         match reduce_config(&inner.state, &previous, &inner.config) {
-            Some(next) => self.commit(&mut inner, next),
-            // Same state, but pages may have been added or removed: publish anyway.
-            None => Self::notify(&mut inner),
+            Some(next) if next != inner.state => self.commit(&mut inner, next),
+            // Same state, but pages may have been added or removed (or the applied preview went): publish anyway.
+            _ => Self::notify(&mut inner),
         }
     }
 
@@ -545,6 +558,29 @@ mod tests {
         drop(studio);
         assert!(control.get().get("themePreview").is_none());
         assert_eq!(control.set_preview_at("studio-one", Some(preview), 8_000.0), Err("no open studio session"));
+    }
+
+    #[test]
+    fn an_applied_preview_stays_through_its_save_and_goes_with_the_next_and_a_plain_one_stays() {
+        let dir = tempfile::tempdir().unwrap();
+        let control = Control::new(dir.path().join("control.json"), 1000, || Some(config()));
+        let (_rx, _studio) = control.open_stream(None, Some("studio-one".into()));
+        let (mut watcher, _guard) = control.subscribe();
+        control.set_preview_at("studio-one", Some(json!({ "preset": {} })), 0.0).unwrap();
+        control.config_changed();
+        control.config_changed();
+        assert!(control.get().get("themePreview").is_some());
+        control.set_preview_at("studio-one", Some(json!({ "preset": {}, "applied": true })), 0.0).unwrap();
+        assert_eq!(control.get()["themePreview"]["applied"], true);
+        // The save that carries the theme: still published, marked saved, so a kiosk that has not pulled it keeps it.
+        control.config_changed();
+        assert_eq!(control.get()["themePreview"]["saved"], true);
+        while watcher.try_recv().is_ok() {}
+        control.config_changed();
+        assert!(control.get().get("themePreview").is_none());
+        // The listeners hear it went.
+        let event = String::from_utf8(watcher.try_recv().unwrap().to_vec()).unwrap();
+        assert!(!event.contains("themePreview"), "{event}");
     }
 
     #[test]

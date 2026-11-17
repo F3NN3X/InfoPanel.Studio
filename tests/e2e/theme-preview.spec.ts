@@ -89,3 +89,41 @@ test("Show on the kiosks too: a kiosk draws the preview, with its countdown, unt
   expect((await storedScreen(scratch.base))?.widgetTheme?.values?.lookId).not.toBe("term");
   expect(errors).toEqual([]);
 });
+
+test("Apply with Show on the kiosks too: the kiosk goes from the preview to the saved theme without the old one in between", async ({ page, context, scratch }) => {
+  const { errors } = watchErrors(page);
+  const kiosk = await context.newPage();
+  await kiosk.goto(`${scratch.base}/?kiosk=1&profile=${light}`);
+  const kioskCard = kiosk.locator("[data-wp-tier]").first();
+  await expect(kioskCard).toBeVisible();
+
+  await page.goto(`${scratch.base}/?studio=1&profile=${light}`);
+  await page.getByRole("button", { name: "Theme", exact: true }).click();
+  await page.getByRole("tab", { name: /Browse themes/ }).click();
+  await page.locator('[data-look-card="term"]').click();
+  const bar = page.getByRole("region", { name: "Theme preview" });
+  await bar.getByRole("button", { name: "Preview options" }).click();
+  await page.getByRole("switch", { name: "Show on the kiosks too" }).click();
+  await page.keyboard.press("Escape");
+  await expect(kioskCard).toHaveAttribute("data-look", "term");
+
+  // From here on, every look the kiosk's first card draws is recorded, through every render.
+  await kiosk.evaluate(() => {
+    const seen: (string | null)[] = [];
+    (window as unknown as { __looks: typeof seen }).__looks = seen;
+    const note = () => {
+      const card = document.querySelector("[data-wp-tier]");
+      seen.push(card ? card.getAttribute("data-look") : "missing");
+    };
+    new MutationObserver(note).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-look"] });
+  });
+  await bar.getByRole("button", { name: "Apply" }).click();
+  await expect.poll(async () => (await storedScreen(scratch.base))?.widgetTheme?.values?.lookId).toBe("term");
+  // The server keeps the applied preview through that save (marked saved) for kiosks that have not pulled it yet.
+  await expect.poll(async () => (await (await fetch(`${scratch.base}/api/control`)).json()).themePreview?.saved).toBe(true);
+  await kiosk.waitForTimeout(1500);
+  const looks = await kiosk.evaluate(() => (window as unknown as { __looks: (string | null)[] }).__looks);
+  expect(looks.filter((l) => l !== "term")).toEqual([]);
+  await expect(kioskCard).toHaveAttribute("data-look", "term");
+  expect(errors).toEqual([]);
+});

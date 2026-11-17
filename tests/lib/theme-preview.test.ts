@@ -4,7 +4,7 @@ import type { DashboardConfig, MonitorProfile, Placement } from "@/lib/layout";
 import { mainPage } from "@/lib/pages";
 import { THEME_PRESETS } from "@/lib/theme";
 import { applyLookToLevel, applyThemeToLevel, applyThemeToScreens } from "@/lib/theme-apply";
-import { applyPreview, parsePreview, previewCovers } from "@/lib/theme-preview";
+import { applyPreview, parsePreview, previewCovers, wears } from "@/lib/theme-preview";
 import { lookPreset } from "@/components/studio/look-gallery-model";
 
 // A preview is the config as Apply would leave it: the same rule as Switch theme, and the config it starts from untouched.
@@ -68,6 +68,18 @@ describe("applyPreview", () => {
   });
 });
 
+describe("wears", () => {
+  it("is false before the theme is applied and true once the config holds it, for a theme and a Look at each scope", () => {
+    for (const [preset, look] of [[desk, false], [term, true]] as const) {
+      for (const scope of [P1, PAGE, { kind: "all" } as const]) {
+        const p = { preset, look, scope, keepBackground: false };
+        expect(wears(config(), p)).toBe(false);
+        expect(wears(applyPreview(config(), p), p)).toBe(true);
+      }
+    }
+  });
+});
+
 describe("previewCovers", () => {
   it("covers every screen on all screens, else its own screen", () => {
     expect(previewCovers({ kind: "all" }, "p2")).toBe(true);
@@ -82,6 +94,8 @@ describe("parsePreview", () => {
     expect(parsed).toEqual({ preset: { ...term, theme: expect.any(Object) }, look: true, scope: P1, keepBackground: true });
     expect(parsed?.preset.id).toBe("builtin:look-term");
     expect(parsePreview({ preset: desk, scope: { kind: "all" } })?.scope).toEqual({ kind: "all" });
+    expect(parsePreview({ preset: desk, scope: P1, applied: true })?.applied).toBe(true);
+    expect(parsePreview({ preset: desk, scope: P1, applied: "yes" })).not.toHaveProperty("applied");
   });
 
   it("drops style values that are not valid options, as for a stored theme", () => {

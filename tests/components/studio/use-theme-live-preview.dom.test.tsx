@@ -132,6 +132,19 @@ describe("useThemeLivePreview", () => {
     await vi.waitFor(() => expect(posted).toHaveBeenCalledWith(null));
   });
 
+  it("on Apply leaves the kiosks the preview, marked applied, and never takes it back", async () => {
+    const { result, unmount } = mount();
+    act(() => result.current.setKiosks(true));
+    await act(async () => result.current.preview(ORDER[0]));
+    await vi.waitFor(() => expect(posted).toHaveBeenCalledTimes(1));
+    await act(async () => result.current.apply());
+    unmount();
+    await vi.waitFor(() => expect(posted).toHaveBeenCalledTimes(2));
+    expect(posted).toHaveBeenLastCalledWith(expect.objectContaining({ applied: true, preset: expect.objectContaining({ id: ORDER[0].preset.id }) }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(posted).not.toHaveBeenCalledWith(null);
+  });
+
   it("never tells the kiosks when they are off", async () => {
     const { result, unmount } = mount();
     await act(async () => result.current.preview(ORDER[0]));

@@ -1,5 +1,5 @@
 import { normalizeAppearancePresets, type AppearancePreset } from "./appearance-presets";
-import type { DashboardConfig } from "./layout";
+import type { DashboardConfig, MonitorProfile } from "./layout";
 import { applyLookToLevel, applyThemeToLevel } from "./theme-apply";
 
 /**
@@ -17,6 +17,8 @@ export interface ThemePreview {
   look: boolean;
   scope: PreviewScope;
   keepBackground: boolean;
+  /** The studio applied it: a kiosk keeps drawing it once it goes, until its own config wears it (`wears`). */
+  applied?: boolean;
 }
 
 /**
@@ -28,6 +30,15 @@ export function applyPreview(config: DashboardConfig, p: ThemePreview): Dashboar
   const options = { keepBackground: p.keepBackground };
   if (p.scope.kind === "all") return config.profiles.reduce((c, profile) => apply(c, p.preset, { kind: "profile", profileId: profile.id }, options), config);
   return apply(config, p.preset, p.scope, options);
+}
+
+/** What a screen draws its theme from: its colours, corners, background and widget theme, and its pages' widget themes. */
+const themeOf = (p: MonitorProfile) => JSON.stringify([p.theme, p.radius, p.background, p.widgetTheme, p.pages.map((pg) => [pg.id, pg.widgetTheme])]);
+
+/** Whether `config` already wears the preview: applying it would change nothing a screen draws its theme from. */
+export function wears(config: DashboardConfig, p: ThemePreview): boolean {
+  const applied = applyPreview(config, p);
+  return config.profiles.every((profile, i) => themeOf(profile) === themeOf(applied.profiles[i]));
 }
 
 /** Whether a preview draws on a screen. */
@@ -54,5 +65,5 @@ export function parsePreview(v: unknown): ThemePreview | undefined {
   const preset = normalizeAppearancePresets([{ ...v.preset, id: "preview" }])?.[0];
   if (!scope || !preset) return undefined;
   const id = typeof v.preset.id === "string" && v.preset.id ? v.preset.id : preset.id;
-  return { preset: { ...preset, id }, look: v.look === true, scope, keepBackground: v.keepBackground === true };
+  return { preset: { ...preset, id }, look: v.look === true, scope, keepBackground: v.keepBackground === true, ...(v.applied === true ? { applied: true } : {}) };
 }

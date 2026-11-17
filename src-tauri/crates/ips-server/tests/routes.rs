@@ -832,11 +832,39 @@ async fn shows_a_studios_theme_preview_to_the_streams_until_the_studio_disconnec
     events(&mut kiosk, &mut seen, 3).await;
     assert!(last_state(&seen).get("themePreview").is_none());
 
+    // Applied: it stays through the config save that carries the theme (marked saved), and goes with the next.
+    let applied = preview.replace(r#""preset""#, r#""applied":true,"preset""#);
+    assert_eq!(json(&post_control(s.port, "preview", &applied).await)["themePreview"]["applied"], true);
+    events(&mut kiosk, &mut seen, 4).await;
+    let preview_now = || async { json(&get(s.port, "/api/control").await).get("themePreview").cloned() };
+    assert_eq!(post_config(s.port, CONTROL_CONFIG, &[]).await.status, 200);
+    for _ in 0..200 {
+        if preview_now().await.is_some_and(|p| p["saved"] == true) {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert_eq!(preview_now().await.unwrap()["saved"], true);
+    events(&mut kiosk, &mut seen, 5).await;
+    assert_eq!(last_state(&seen)["themePreview"]["saved"], true);
+    assert_eq!(post_config(s.port, CONTROL_CONFIG, &[]).await.status, 200);
+    for _ in 0..200 {
+        if preview_now().await.is_none() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert!(preview_now().await.is_none());
+    events(&mut kiosk, &mut seen, 6).await;
+    assert!(last_state(&seen).get("themePreview").is_none());
+
     // Shown again, then the studio goes away: the server drops the preview and tells the kiosk.
     assert_eq!(post_control(s.port, "preview", preview).await.status, 200);
-    events(&mut kiosk, &mut seen, 4).await;
+    seen.clear();
+    events(&mut kiosk, &mut seen, 1).await;
+    assert!(last_state(&seen).get("themePreview").is_some());
     drop(studio);
-    events(&mut kiosk, &mut seen, 5).await;
+    events(&mut kiosk, &mut seen, 2).await;
     assert!(last_state(&seen).get("themePreview").is_none());
     assert!(json(&get(s.port, "/api/control").await).get("themePreview").is_none());
     assert_eq!(post_control(s.port, "preview", preview).await.status, 409);

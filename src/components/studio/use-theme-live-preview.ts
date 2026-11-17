@@ -105,6 +105,12 @@ export function useThemeLivePreview({ config, at, keepBackground, order, onApply
   };
   const apply = () => {
     if (!shown) return;
+    // The kiosks keep it, marked applied, rather than being told to drop it: the server drops it with the config save that
+    // carries the theme, and each kiosk draws it until that config reaches it (theme-preview-kiosk.ts). No flash between.
+    if (kiosks && sent.current) {
+      sent.current = false;
+      void post({ ...kioskPreview(previewOf(shown)), applied: true });
+    }
     onApply(shown, previewOf(shown));
     cancel();
   };
