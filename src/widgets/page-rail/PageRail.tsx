@@ -170,9 +170,10 @@ function ProfileChip({ host, slot }: { host: RailHost; slot: RailSlot }) {
   );
   const style: CSSProperties = { width: 68, minHeight: top - 4, background: "color-mix(in oklab, var(--w-fg) 6%, transparent)", boxShadow: picker?.open ? "inset 0 0 0 2px var(--w-accent)" : `inset 0 0 0 1px ${EDGE}` };
   const box = "flex shrink-0 flex-col items-center justify-center gap-1 rounded-2xl py-2";
+  // a label has no `data-rail-slot` but where a screen draws the rail (the studio's preview selects the chip by it); bare, as the Widget QA page draws it
   if (!picker)
     return (
-      <div role="img" data-rail-slot={slot.id} aria-label={`Profile: ${name}`} className={box} style={style}>
+      <div role="img" data-rail-slot={host.zone ? slot.id : undefined} aria-label={`Profile: ${name}`} className={box} style={style}>
         {face}
       </div>
     );
