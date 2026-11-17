@@ -106,7 +106,9 @@ function Key({ k, side, corner, on, gestures }: KeyProps) {
   const g = useGestures(gestures, "press");
   const mark = keyMark(k);
   const more = keyMore(k);
-  const glyph = Math.round(Math.max(26, Math.min(120, side * 0.28)));
+  // the fixture's sizes: the glyph 30% of the key up to 44 px, the name 11% from 12 to 16 px
+  const glyph = Math.round(Math.min(44, side * 0.3));
+  const nameStyle = { fontSize: Math.round(Math.max(12, Math.min(16, side * 0.11))), fontWeight: 500 };
   const name = k.keys ? (
     <span className="inline-flex max-w-full items-center">
       <span className="truncate">{k.name}</span>
@@ -128,6 +130,8 @@ function Key({ k, side, corner, on, gestures }: KeyProps) {
         tint={STATE.crit}
         active={on === true}
         plain={on === undefined}
+        nameStyle={nameStyle}
+        gap={Math.round(Math.max(6, side * 0.06))}
         corner={corner}
         onPress={() => {}}
         overlay={mark ? <Marks mark={mark} /> : undefined}
@@ -173,9 +177,10 @@ export default function Keys(p: KeysProps) {
       ...(k.touch?.doubleTap ? { doubleTap: () => run(k.touch!.doubleTap!, "doubleTap") } : {}),
     };
   };
-  const corner = p.radius === undefined ? "calc(var(--radius, 1rem) * 0.62)" : `${p.radius * 0.62}px`;
+  // the fixture's 14 px key corner, inside the widget's card
+  const corner = "14px";
   return (
-    <Widget {...shell(p)} title={p.title ?? "Keys"} icon="grid_view" showHeader={p.showHeader ?? p.legend === true} right={p.legend ? <Legend /> : undefined} bleed>
+    <Widget {...shell(p)} title={p.title ?? "Keys"} icon="grid_view" showHeader={p.showHeader ?? p.legend === true} right={p.legend ? <Legend /> : undefined} design={null}>
       {({ w, h }) => {
         if (!level.length)
           return (
