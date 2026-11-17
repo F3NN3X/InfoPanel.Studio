@@ -37,6 +37,21 @@ describe("crowding", () => {
     expect(crowdIssues(newRecipe("Areas", new Set()), [2, 1], crowding(inks, CARD))[0].text).toBe("At 2×1, A block runs past its area");
   });
 
+  it("free boxes may overlap; a text past its own box is a finding, and blocks in one box still may not overlap (the free layout)", () => {
+    const [a, b] = [box(0, 0, 120, 50), box(100, 0, 200, 50)];
+    const inks: Ink[] = [
+      { path: "0", boxes: [box(0, 0, 110, 40)], free: { path: "0", box: a } },
+      { path: "1", boxes: [box(100, 10, 210, 30)], free: { path: "1", box: b } },
+      { path: "2.0", boxes: [box(0, 60, 80, 80)], free: { path: "2", box: box(0, 55, 100, 95) } },
+      { path: "2.1", boxes: [box(50, 60, 90, 80)], free: { path: "2", box: box(0, 55, 100, 95) } },
+    ];
+    expect(crowding(inks, box(0, 0, 220, 100))).toEqual([
+      { path: "1", kind: "past-box" },
+      { path: "2.1", kind: "overlaps", with: "2.0" },
+    ]);
+    expect(crowdIssues(newRecipe("Free", new Set()), [3, 2], [{ path: "1", kind: "past-box" }])[0].text).toBe("At 3×2, A block runs past its box");
+  });
+
   it("a cut text and a block past the card are findings of their own, once per block however many Repeat items draw it", () => {
     const inks: Ink[] = [
       { path: "0.1", boxes: [box(0, 0, 50, 20)], cut: true },

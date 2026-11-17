@@ -1,6 +1,7 @@
 // The Block tab's layout rows (builder plan Phase 5 and 6, recipe format 2): a grid's tracks, a block's area in them, its background
 // layer (fit, position, opacity, blur and inset), its part of its column's width or its row's height with where it sits, a condition on
-// a reading, and its motion. The same values the stage's handles set; each change is one edit (one undo step).
+// a reading, and its motion; the free layout's Place freely and a free block's box. The same values the stage's handles set; each change
+// is one edit (one undo step).
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import type { Binding, Block, Condition, Recipe } from "@/widgets/recipe/types";
@@ -8,6 +9,8 @@ import { blockAt, repeatAbove, updateBlock, type Path } from "./builder-model";
 import { type DataRowsProps, SourceRows } from "./data-rows";
 import { Field, Heading, NumberInput, Select, TextInput } from "./fields";
 import { areaGrid, areaNow, backgroundRefusal, fillAxis, parseTracks, setArea, setBackground, setFill, setTracks, tracksText } from "./layout-model";
+import { drawnBoxes } from "./free-handles";
+import { freeParent, freeRefusal, isFree, setBoxes, setFree } from "./free-layout";
 import { EnumRow } from "./style-rows";
 
 /** A grid's layout: equal cells (columns, or as many as fit), or tracks typed as shares ("1 2 1"). */
@@ -59,6 +62,52 @@ export function AreaRows({ recipe, path, onChange }: { recipe: Recipe; path: Pat
         <NumberInput label="Area columns" value={a.cols} min={1} max={cols} onChange={(v) => set({ cols: v ?? 1 })} width={56} />
         <span className="text-ui-3">×</span>
         <NumberInput label="Area rows" value={a.rows} min={1} max={rows} onChange={(v) => set({ rows: v ?? 1 })} width={56} />
+      </Field>
+    </>
+  );
+}
+
+/** The stage's zone, where Free reads where each block is drawn now. */
+const stageZone = (): HTMLElement | null => document.querySelector<HTMLElement>("[data-builder-stage] [data-recipe-zone]");
+
+/** A card's, a row's or a grid's layout: its blocks in a flow, or each placed freely at its own box (format 2). */
+export function FreeRows({ recipe, path, onChange }: { recipe: Recipe; path: Path; onChange: (r: Recipe) => void }) {
+  const b = blockAt(recipe, path);
+  if (!b || (b.type !== "card" && b.type !== "row" && b.type !== "grid")) return null;
+  const free = isFree(b);
+  const why = free ? undefined : freeRefusal(recipe, path);
+  return (
+    <Field label="Place freely" hint={why ?? "Each block at its own place and size, dragged anywhere on the stage; off puts them back in order"}>
+      <Toggle
+        label="Place freely"
+        checked={free}
+        disabled={!!why}
+        onChange={(on) => {
+          // each block starts where it is drawn now, so nothing jumps
+          const r = setFree(recipe, path, on, on ? drawnBoxes(stageZone(), recipe, path) : {});
+          if (!("why" in r)) onChange(r);
+        }}
+      />
+    </Field>
+  );
+}
+
+/** A free block's box in per cent of its container: x and y, width and height. */
+export function BoxRows({ recipe, path, onChange }: { recipe: Recipe; path: Path; onChange: (r: Recipe) => void }) {
+  const box = freeParent(recipe, path) ? blockAt(recipe, path)?.box : undefined;
+  if (!box) return null;
+  const pc = (f: number) => Math.round(f * 1000) / 10;
+  const set = (k: number, v: number | undefined) => onChange(setBoxes(recipe, [{ path, box: box.map((n, i) => (i === k ? (v ?? 0) / 100 : n)) }]));
+  return (
+    <>
+      <Heading>Box</Heading>
+      <Field label="X, Y" hint="Its place from the container's left and top edges, in per cent of its size">
+        <NumberInput label="Box x" value={pc(box[0])} min={0} max={100} step={0.1} unit="%" onChange={(v) => set(0, v)} width={64} />
+        <NumberInput label="Box y" value={pc(box[1])} min={0} max={100} step={0.1} unit="%" onChange={(v) => set(1, v)} width={64} />
+      </Field>
+      <Field label="Width, height" hint="Its size in per cent of the container's; its text keeps the card's size">
+        <NumberInput label="Box width" value={pc(box[2])} min={3} max={100} step={0.1} unit="%" onChange={(v) => set(2, v)} width={64} />
+        <NumberInput label="Box height" value={pc(box[3])} min={3} max={100} step={0.1} unit="%" onChange={(v) => set(3, v)} width={64} />
       </Field>
     </>
   );

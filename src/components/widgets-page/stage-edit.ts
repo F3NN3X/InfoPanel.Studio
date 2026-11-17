@@ -99,7 +99,8 @@ export function shareEdges(recipe: Recipe, path: Path): ShareEdge[] {
   if (!path.length || repeatAbove(recipe, path)) return [];
   const parentPath = path.slice(0, -1);
   const parent = blockAt(recipe, parentPath);
-  if (!parent || (parent.type !== "row" && parent.type !== "card")) return [];
+  // a free container's blocks have boxes, not shares
+  if (!parent || (parent.type !== "row" && parent.type !== "card") || parent.layout === "free") return [];
   const direction = parent.type === "row" ? (parent.direction ?? "row") : "column";
   const k = path[path.length - 1];
   const at = (i: number) => [...parentPath, i];

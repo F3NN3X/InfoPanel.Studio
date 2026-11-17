@@ -3,7 +3,8 @@
 // geometry is the overflow probe's (`qa-geometry.ts`, `widget-qa/probe.ts`); unlike the probe, an ellipsis counts, since a cut name
 // is what a person sees as "Brevi…". `crowding` is pure; `measureInks` reads the stage's DOM. Builder plan Phase 5: a block in a grid's
 // area is measured against its area too (a text past it runs into the next one), and background layers are not content: they are left
-// out, so a block over its container's background is no overlap.
+// out, so a block over its container's background is no overlap. The free layout: a block in a box is measured against its box ("runs
+// past its box"), and blocks in different boxes may overlap on purpose, so that is no finding.
 import { exceeds, overlaps, type Box } from "@/widgets/qa-geometry";
 import type { Cells, Recipe } from "@/widgets/recipe/types";
 import { blockAt, layerName } from "./builder-model";
@@ -19,12 +20,14 @@ export interface Ink {
   cramped?: boolean;
   /** The grid area it is drawn in (its own, or the one of the block holding it), when it is in one. */
   area?: Box;
+  /** The free box it is drawn in (its own, or the one of the block holding it): that block's path and the box's rect. */
+  free?: { path: string; box: Box };
 }
 
 /** One crowding finding: `with` is the other block an overlap is with (the same path: the next Repeat item's). */
 export interface Crowd {
   path: string;
-  kind: "cut" | "cramped" | "past" | "past-area" | "overlaps";
+  kind: "cut" | "cramped" | "past" | "past-area" | "past-box" | "overlaps";
   with?: string;
 }
 
@@ -41,10 +44,13 @@ export function crowding(inks: readonly Ink[], card: Box): Crowd[] {
     if (ink.cramped) put({ path: ink.path, kind: "cramped" });
     if (ink.boxes.some((b) => { const o = exceeds(b, card, EDGE_TOL); return o.dx > 0 || o.dy > 0; })) put({ path: ink.path, kind: "past" });
     else if (ink.area && ink.boxes.some((b) => { const o = exceeds(b, ink.area!, EDGE_TOL); return o.dx > 0 || o.dy > 0; })) put({ path: ink.path, kind: "past-area" });
+    else if (ink.free && ink.boxes.some((b) => { const o = exceeds(b, ink.free!.box, EDGE_TOL); return o.dx > 0 || o.dy > 0; })) put({ path: ink.path, kind: "past-box" });
   }
   for (let i = 0; i < inks.length; i++)
     for (let j = i + 1; j < inks.length; j++) {
       const [a, b] = [inks[i], inks[j]];
+      // two free boxes may overlap: a later one is drawn over an earlier one on purpose
+      if (a.free && b.free && a.free.path !== b.free.path) continue;
       if (a.boxes.some((x) => b.boxes.some((y) => overlaps(x, y, AREA_TOL) > 0))) put({ path: b.path, kind: "overlaps", with: a.path });
     }
   const order = (p: string) => p.split(".").map((k) => k.padStart(3, "0")).join(".");
@@ -61,7 +67,7 @@ export function crowdIssues(recipe: Recipe, cells: Cells, crowds: readonly Crowd
   };
   const at = `At ${cells[0]}×${cells[1]}`;
   return crowds.map((c) => ({
-    text: c.kind === "cut" ? `${at}, ${name(c.path)} is cut` : c.kind === "cramped" ? `${at}, ${name(c.path)} is too small for its value` : c.kind === "past" ? `${at}, ${name(c.path)} runs past the card` : c.kind === "past-area" ? `${at}, ${name(c.path)} runs past its area` : `${at}, ${name(c.path)} overlaps ${c.with === c.path ? "the next item's" : name(c.with!)}`,
+    text: c.kind === "cut" ? `${at}, ${name(c.path)} is cut` : c.kind === "cramped" ? `${at}, ${name(c.path)} is too small for its value` : c.kind === "past" ? `${at}, ${name(c.path)} runs past the card` : c.kind === "past-area" ? `${at}, ${name(c.path)} runs past its area` : c.kind === "past-box" ? `${at}, ${name(c.path)} runs past its box` : `${at}, ${name(c.path)} overlaps ${c.with === c.path ? "the next item's" : name(c.with!)}`,
     tab: "block",
     path: pathOf(c.path),
     warn: true,
@@ -137,7 +143,15 @@ export function measureInks(zone: HTMLElement): { inks: Ink[]; card: Box } | und
       if (r.width > 0 && r.height > 0) boxes.push(inZone(r, z, scale));
     }
     const area = block.closest("[data-recipe-area]");
-    return { path: block.dataset.recipePath ?? "", boxes, cut, cramped: tight, ...(area ? { area: inZone(area.getBoundingClientRect(), z, scale) } : {}) };
+    const free = block.closest<HTMLElement>("[data-recipe-box]");
+    return {
+      path: block.dataset.recipePath ?? "",
+      boxes,
+      cut,
+      cramped: tight,
+      ...(area ? { area: inZone(area.getBoundingClientRect(), z, scale) } : {}),
+      ...(free ? { free: { path: free.dataset.recipePath ?? "", box: inZone(free.getBoundingClientRect(), z, scale) } } : {}),
+    };
   });
   return { inks, card: inZone(body.getBoundingClientRect(), z, scale) };
 }
