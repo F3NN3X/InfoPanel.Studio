@@ -248,7 +248,7 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
                 }}
                 className={cn(
                   "flex cursor-pointer items-center gap-3 border-b border-ui-subtle px-3 py-2.5 outline-none hover:bg-ui-tile focus-visible:bg-ui-hover",
-                  selected && "bg-ui-hover shadow-[inset_2px_0_0_var(--ui-accent)]",
+                  selected && "bg-ui-highlight",
                 )}
               >
                 <span className={cn("h-2 w-2 shrink-0 rounded-full", STATE[r.state].dot)} />

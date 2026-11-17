@@ -44,7 +44,7 @@ const COLUMNS_MIN = 1180;
 const MENU_POPUP =
   "max-h-[60vh] min-w-52 overflow-y-auto rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui text-body text-ui-2 shadow-ui-menu outline-none";
 const MENU_ITEM =
-  "flex min-h-[32px] cursor-default flex-col justify-center rounded-md px-2 py-1 outline-none select-none data-highlighted:bg-ui-active data-highlighted:text-ui-1 data-highlighted:shadow-[inset_2px_0_0_var(--ui-accent)]";
+  "flex min-h-[32px] cursor-default flex-col justify-center rounded-md px-2 py-1 outline-none select-none data-highlighted:bg-ui-highlight data-highlighted:text-ui-1";
 
 /** The "New rule" menu (SPEC §10.3): blank rules and the presets. */
 export function NewRuleMenu({ onAdd, points }: { onAdd: (rule: AlertRule) => void; points: readonly DataPoint[] }) {
