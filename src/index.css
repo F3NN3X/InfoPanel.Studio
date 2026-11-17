@@ -313,6 +313,31 @@
   animation: page-fade-in 250ms ease-out;
 }
 
+/* A recipe block's motion (recipe format 2, `motion`): a fade in as it shows, a pulse while its reading is critical. The theme's
+   lite-motion rule and reduced motion turn both off (the block is drawn as it is). */
+@keyframes recipe-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.recipe-fade-in {
+  animation: recipe-fade-in 320ms ease-out;
+}
+@keyframes recipe-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+.recipe-pulse {
+  animation: recipe-pulse 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .recipe-fade-in,
+  .recipe-pulse {
+    animation: none;
+  }
+}
+
 /* Alerts (src/components/alerts): enter / exit slides (not applied with reduced motion). */
 @keyframes alert-in-top { from { opacity: 0; transform: translateY(-24px); } }
 @keyframes alert-in-bottom { from { opacity: 0; transform: translateY(24px); } }

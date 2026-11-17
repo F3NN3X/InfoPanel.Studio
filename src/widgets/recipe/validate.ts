@@ -265,14 +265,16 @@ function recipeRules(r: Recipe, files: readonly PackageFile[], add: Add): void {
   // the block tree
   if (r.root.type !== "card") add("block", R, "the root block is a card");
   let count = 0;
-  const walk = (b: Block, at: string, depth: number, repeat: RepeatBlock | undefined) => {
+  const walk = (b: Block, at: string, depth: number, repeat: RepeatBlock | undefined, parent?: Block) => {
     count++;
     if (depth > DEPTH_MAX) return void add("depth", R, `${at}: blocks nest ${depth} deep, at most ${DEPTH_MAX}`);
     blockRules(b, at, repeat, options, files, add);
+    layoutRules(b, at, parent, add);
+    if (b.when?.reading) readingRules(b.when.reading, `${at}.when.reading`, repeat, options, add);
     if (b.type === "repeat" && repeat) add("repeat", R, `${at}: a Repeat inside a Repeat`);
     // a Repeat's item is one row or tile, and a Repeat lays its items out in a grid itself (Direction: Grid)
     if (b.type === "grid" && repeat) add("grid", R, `${at}: a Grid inside a Repeat; a Repeat lays its items out as a grid itself`);
-    childrenOf(b).forEach((c, k) => walk(c, `${at}.children[${k}]`, depth + 1, b.type === "repeat" ? b : repeat));
+    childrenOf(b).forEach((c, k) => walk(c, `${at}.children[${k}]`, depth + 1, b.type === "repeat" ? b : repeat, b));
   };
   walk(r.root, "$.root", 1, undefined);
   if (count > BLOCKS_MAX) add("size", R, `${count} blocks, at most ${BLOCKS_MAX}`);
@@ -392,7 +394,7 @@ function blockRules(b: Block, at: string, repeat: RepeatBlock | undefined, optio
     if (option !== undefined && !options.has(option)) add("binding", R, `${at}.when: option ${option} is not one of the recipe's options`);
     if (option !== undefined && is === undefined && not === undefined) add("block", R, `${at}.when: says neither is nor not`);
     if (option === undefined && (is !== undefined || not !== undefined)) add("block", R, `${at}.when: says is or not of no option`);
-    if (option === undefined && !size) add("block", R, `${at}.when: names neither an option nor a size`);
+    if (option === undefined && !size && !b.when.reading) add("block", R, `${at}.when: names neither an option, a size nor a reading`);
     const cells = [size?.min, size?.max].filter((c): c is Cells => !!c);
     if (cells.some((c) => c.length !== 2 || !c.every(Number.isInteger))) add("block", R, `${at}.when.size: a size is two whole numbers of cells`);
     else if (size?.min && size.max && (size.min[0] > size.max[0] || size.min[1] > size.max[1])) add("block", R, `${at}.when.size: min ${size.min.join("x")} is larger than max ${size.max.join("x")}`);
@@ -548,6 +550,13 @@ const FORMAT2_WHAT: Readonly<Record<string, string>> = {
   height: "a bar's height needs",
   type: "a grid needs",
   source: "a Repeat over drives, cores, fans, adapters or GPUs needs",
+  tracks: "a grid's tracks need",
+  area: "an area in a grid's tracks needs",
+  background: "a background layer needs",
+  fill: "a part of its column or row needs",
+  place: "a place in its column or row needs",
+  motion: "a motion needs",
+  reading: "a condition on a reading needs",
 };
 
 /**
@@ -567,8 +576,81 @@ export function format2Keys(block: Block, at = "$.root", out: string[] = []): st
   for (const key of Object.keys(PHASE_E)) if (raw[key] !== undefined && block.type !== "grid") out.push(`${at}.${key}`);
   if (block.type === "grid") out.push(`${at}.type`);
   if (block.type === "repeat" && isDeviceSource(block.source)) out.push(`${at}.source`);
+  for (const key of LAYOUT_KEYS) if (raw[key] !== undefined) out.push(`${at}.${key}`);
+  if (block.when?.reading) out.push(`${at}.when.reading`);
   childrenOf(block).forEach((c, k) => format2Keys(c, `${at}.children[${k}]`, out));
   return out;
+}
+
+/** The builder plan's Phase 5 and 6 keys a block may carry (format 2); `format2Keys` lists each where it stands. */
+const LAYOUT_KEYS = ["tracks", "area", "background", "fill", "place", "motion"] as const;
+
+/** A grid's tracks at most per side, and a container's background layers at most. */
+export const TRACKS_MAX = 24;
+export const BACKGROUNDS_MAX = 4;
+/** The blocks whose reading has warning levels a pulse follows. */
+const LEVELLED = new Set(["value", "ring", "gauge", "bar", "sparkline"]);
+/** The containers whose blocks lie in a flow (a column or a row), where `fill` and `place` stand. */
+const FLOWS = new Set(["card", "row", "repeat"]);
+
+/** A block's area as `[column, row, columns, rows]`, or undefined when it is not four whole numbers with spans of at least 1. */
+const areaOf = (a: unknown): [number, number, number, number] | undefined =>
+  Array.isArray(a) && a.length === 4 && a.every((n) => Number.isInteger(n) && n >= 1) ? (a as [number, number, number, number]) : undefined;
+
+/**
+ * Builder plan Phase 5 and 6: a grid's `tracks` (instead of `columns`, at most 24 a side); an `area` on a block of a grid with tracks,
+ * inside them (areas may overlap: a later block is drawn over an earlier one); a `background` on a block inside the root (never the
+ * root, a Repeat, nor one with an area or a part of its row), a picture's fit, position and blur on an Image only, at most
+ * `BACKGROUNDS_MAX` in a container; `fill` and `place` on a block of a column or a row only; a pulse on a block with warning levels.
+ */
+function layoutRules(b: Block, at: string, parent: Block | undefined, add: Add): void {
+  const R = "recipe.json";
+  if (b.type === "grid" && b.tracks) {
+    if (b.columns !== undefined) add("grid", R, `${at}: columns and tracks; one of them (tracks set the columns)`);
+    for (const side of ["cols", "rows"] as const) if (b.tracks[side].length > TRACKS_MAX) add("grid", R, `${at}.tracks.${side}: ${b.tracks[side].length} tracks, at most ${TRACKS_MAX}`);
+  }
+  if ((b as { tracks?: unknown }).tracks !== undefined && b.type !== "grid") add("grid", R, `${at}: tracks are a grid's`);
+  if (b.area !== undefined) {
+    const area = areaOf(b.area);
+    const tracks = parent?.type === "grid" ? parent.tracks : undefined;
+    if (!area) add("area", R, `${at}.area: four whole numbers, [column, row, columns, rows], each at least 1`);
+    else if (!tracks) add("area", R, `${at}.area: an area places a block in its grid's tracks; ${parent?.type === "grid" ? "its grid has none" : `it is in a ${parent?.type ?? "nothing"}, not a grid`}`);
+    else if (area[0] + area[2] - 1 > tracks.cols.length || area[1] + area[3] - 1 > tracks.rows.length)
+      add("area", R, `${at}.area: columns ${area[0]} to ${area[0] + area[2] - 1}, rows ${area[1]} to ${area[1] + area[3] - 1} are outside the grid's ${tracks.cols.length} x ${tracks.rows.length} tracks`);
+    if (b.type === "repeat") add("area", R, `${at}: a Repeat's items are cells of their own, so a Repeat has no area`);
+  }
+  if (b.background !== undefined) {
+    if (at === "$.root") add("background", R, `${at}: the root card is the widget; it can't be a background`);
+    if (b.type === "repeat") add("background", R, `${at}: a Repeat lists items; it can't be a background`);
+    if (b.area !== undefined || b.fill !== undefined || b.place !== undefined) add("background", R, `${at}: a background fills its container; it has no area or part of its row`);
+    if (b.type !== "image") for (const key of ["fit", "position", "blur"] as const) if (b.background[key] !== undefined) add("background", R, `${at}.background.${key}: a picture's; this is a ${b.type}`);
+  }
+  if ((b.fill !== undefined || b.place !== undefined) && b.background === undefined && !FLOWS.has(parent?.type ?? ""))
+    add("fill", R, `${at}: a part of its column or row is a block's in a card, a row or a Repeat${parent?.type === "grid" ? "; in a grid its area sets its size" : ""}`);
+  if (b.place !== undefined && b.fill === undefined) add("fill", R, `${at}: place puts a block in what its fill leaves; it has no fill`);
+  if (b.motion === "pulse" && !(LEVELLED.has(b.type) && (b as { thresholds?: unknown }).thresholds)) add("motion", R, `${at}: a pulse follows a reading's warning levels; this block has none`);
+  const layers = childrenOf(b).filter((c) => c.background !== undefined).length;
+  if (layers > BACKGROUNDS_MAX) add("background", R, `${at}: ${layers} background layers, at most ${BACKGROUNDS_MAX}`);
+  // a background never makes text unreadable: its picture can't be read here, so over text it is drawn faded (a scrim) or it is said
+  if (layers && childrenOf(b).some((c) => c.background === undefined && hasText(c)))
+    childrenOf(b).forEach((c, k) => {
+      if (c.background && (c.background.opacity ?? 100) > 60)
+        add("background", R, `${at}.children[${k}]: a background under text at ${c.background.opacity ?? 100} %; text over it may be hard to read: set its opacity to 60 % or lower (a scrim)`, "warn");
+    });
+}
+
+/** Whether a block draws text, itself or in a block it holds (not in its backgrounds). */
+const hasText = (b: Block): boolean =>
+  b.type === "value" || b.type === "label" || ((b.type === "ring" || b.type === "gauge") && b.center !== false) || childrenOf(b).some((c) => c.background === undefined && hasText(c));
+
+/** A condition on a reading: a binding there, and levels that can hold (equals alone, or above and below with room between). */
+function readingRules(r: NonNullable<Condition["reading"]>, at: string, repeat: RepeatBlock | undefined, options: Map<string, RecipeOption>, add: Add): void {
+  const R = "recipe.json";
+  const why = bindingIssue(r.bind, repeat, options);
+  if (why) add("binding", R, `${at}.bind: ${why}`);
+  if (r.above === undefined && r.below === undefined && r.equals === undefined) add("block", R, `${at}: says none of above, below or equals`);
+  if (r.equals !== undefined && (r.above !== undefined || r.below !== undefined)) add("block", R, `${at}: equals, or above and below; not both`);
+  if (r.above !== undefined && r.below !== undefined && r.above >= r.below) add("block", R, `${at}: above ${r.above} and below ${r.below} never both hold`);
 }
 
 /** Where a recipe has a rail preset (`$.presets[i].size`), which format 1 has not got (QUESTIONS P2 11, P6). */
@@ -586,7 +668,8 @@ function textBlocks(root: Block, out: { at: string; scale: number; when: Conditi
   const text = root.type === "value" || root.type === "label" || ((root.type === "ring" || root.type === "gauge") && root.center !== false);
   const path = root.when?.size ? [...when, root.when] : when;
   if (text && own !== undefined) out.push({ at, scale: own, when: path });
-  childrenOf(root).forEach((c, k) => textBlocks(c, out, `${at}.children[${k}]`, path));
+  // a background is drawn under the blocks, not read as one of them: the floor and crowding check the content only
+  childrenOf(root).forEach((c, k) => c.background === undefined && textBlocks(c, out, `${at}.children[${k}]`, path));
   return out;
 }
 

@@ -10,7 +10,9 @@ import type { RepeatSource } from "./sources";
  * The newest recipe format this build reads (`recipe.json`'s `format`); it reads every one before it too. Format 2 adds keys format 1
  * has not got (a label's `parts`; Phase C: text alignment, the text colours, a centre value's colour, `convert` and thresholds' `low`;
  * Phase E: text weight and case, opacity, a card's surface and padding, the root's spacing, a gauge's sweep and a bar's height;
- * Phase F: a Repeat over drives, cores, fans, adapters or GPUs and the grid container); a recipe that uses none of them is written as format 1, so an older build still draws it.
+ * Phase F: a Repeat over drives, cores, fans, adapters or GPUs and the grid container; builder plan Phase 5 and 6: a grid's tracks and
+ * a block's area in them, a background layer, a block's part of its column's width or its row's height, a condition on a reading and
+ * a motion); a recipe that uses none of them is written as format 1, so an older build still draws it.
  */
 export const RECIPE_FORMAT = 2;
 export type RecipeFormat = 1 | 2;
@@ -74,7 +76,35 @@ export interface Condition {
   is?: string | number | boolean;
   not?: string | number | boolean;
   size?: { min?: Cells; max?: Cells };
+  /** Shown only while a reading holds (format 2, builder plan Phase 6): over `above`, under `below` (both: between), or at `equals`. */
+  reading?: ReadingCondition;
 }
+
+/** A condition on a reading: its number compared with fixed levels; no reading (no number) never holds. */
+export interface ReadingCondition {
+  bind: Binding;
+  above?: number;
+  below?: number;
+  equals?: number;
+}
+
+/** A block's place in its grid's tracks (format 2, builder plan Phase 5): `[column, row, columns, rows]`, 1-based, the spans at least 1. */
+export type GridArea = [number, number, number, number];
+
+/**
+ * A block drawn as its container's background (format 2, builder plan Phase 5 A): it fills the container, `inset` px in from each side,
+ * under the container's other blocks. A picture's `fit` (unset cover), `position` (unset centre) and `blur` (px); any block's `opacity`.
+ */
+export interface BackgroundLayer {
+  fit?: "cover" | "contain" | "stretch" | "center";
+  position?: "center" | "top" | "bottom" | "left" | "right";
+  opacity?: 80 | 60 | 40 | 20;
+  blur?: 2 | 4 | 8;
+  inset?: number;
+}
+
+/** A theme-governed motion (format 2, builder plan Phase 6): fades in as it shows, or pulses while its reading is critical. Off with reduced motion. */
+export type BlockMotion = "fade-in" | "pulse";
 
 interface BlockBase {
   /** The Layers name ("Top row"); not drawn. */
@@ -82,6 +112,17 @@ interface BlockBase {
   when?: Condition;
   /** The share of its row it takes (default 1). */
   grow?: number;
+  /** Its place in its grid's tracks (format 2); a child of a grid with `tracks` only. Unset: the next free cell. */
+  area?: GridArea;
+  /** Drawn as its container's background, not one of its blocks (format 2). */
+  background?: BackgroundLayer;
+  /**
+   * The part of its column's width (a column, a card) or its row's height (a row) it takes, 0.1-1 (format 2); unset fills it. `place`
+   * puts it at the start, centre or end of what is left (unset: start).
+   */
+  fill?: number;
+  place?: "start" | "center" | "end";
+  motion?: BlockMotion;
 }
 
 export interface Ranged {
@@ -124,8 +165,15 @@ export interface RowBlock extends BlockBase {
 export interface GridBlock extends BlockBase {
   type: "grid";
   columns?: number;
+  /** Its tracks (format 2, builder plan Phase 5): each column's and row's share as a fraction (`fr`), 1-24 of each; its blocks take `area`s in them. */
+  tracks?: GridTracks;
   spacing?: "tight" | "roomy";
   children: Block[];
+}
+/** A grid's columns and rows, each a share (0.1-12) of the grid's width or height. */
+export interface GridTracks {
+  cols: number[];
+  rows: number[];
 }
 export interface RepeatBlock extends BlockBase {
   type: "repeat";

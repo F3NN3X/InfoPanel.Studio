@@ -23,6 +23,8 @@ export function boundSensors(recipe: Recipe): string[] {
     if ("bind" in b) add(b.bind);
     if ("cells" in b) for (const c of b.cells ?? []) add(c);
     if (b.type === "label") for (const p of b.parts ?? []) if ("bind" in p) add(p.bind);
+    // a condition on a reading reads it as well (format 2)
+    add(b.when?.reading?.bind);
     if ("children" in b) for (const c of b.children) walk(c);
   };
   add(recipe.root.subtitle);

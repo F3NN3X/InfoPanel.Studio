@@ -6,7 +6,10 @@
 // draws the recipe's sample items and says so instead. Format 2's style keys (Phase E) are enums on the theme's own tokens: a text's
 // weight and case, an opacity step (a text never under 4.5:1 on its card, `opacity.ts`), a nested card's surface and padding, the root's
 // spacing, a gauge's sweep and a bar's height; each unset draws as before. Phase F: a Repeat over the drives, cores, fans, adapters
-// or GPUs the readings name (`sources.ts`), and a grid whose cells are its blocks and its Repeat's items.
+// or GPUs the readings name (`sources.ts`), and a grid whose cells are its blocks and its Repeat's items. Builder plan Phase 5 and 6
+// (format 2): a grid's tracks and its blocks' areas in them (a later block over an earlier one), background layers under a container's
+// blocks, a block's part of its column's width or its row's height, a condition on a reading, and a motion (a fade in, a pulse while
+// critical), which the app's reduced-motion rules turn off.
 import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { useElementSize } from "@/hooks/use-element-size";
 import { weatherKind } from "@/lib/weather-icons";
@@ -19,7 +22,7 @@ import { drawnStep } from "./opacity";
 import { expandKey } from "./reads";
 import { DEVICE_ITEMS_MAX, deviceItems, isDeviceSource } from "./sources";
 import { keyOf } from "./store";
-import type { Binding, Block, CardBlock, Cells, Condition, GridBlock, OpacityStep, Place, Recipe, RecipeColour, RepeatBlock, RepeatDirection, TextColour, TextWeight, Thresholds, WeatherUnits } from "./types";
+import type { BackgroundLayer, Binding, Block, CardBlock, Cells, Condition, GridBlock, OpacityStep, Place, Recipe, RecipeColour, RepeatBlock, RepeatDirection, TextColour, TextWeight, Thresholds, WeatherUnits } from "./types";
 import { placesOf, sizeHolds } from "./validate";
 import { ATTRIBUTION, HOURS_DEFAULT, HOURS_MAX, inUnits, type Item, LICENCE, liveItem, placeState } from "./weather";
 
@@ -98,11 +101,19 @@ function inUnit(r: Reading, to: ConvertUnit | undefined): Reading {
   return v === undefined ? r : { ...r, raw: v, value: v, unit: to! };
 }
 
-/** Whether a block shows: its option part holds for the placement's values, and its size part for the card's size. */
-export const holds = (when: Condition | undefined, values: Record<string, unknown>, cells: Cells | undefined): boolean =>
+/**
+ * Whether a block shows: its option part holds for the placement's values, its size part for the card's size, and its reading part
+ * (`number`: what a binding reads now) for the reading; a reading with no number never holds. Without `number` the reading part holds.
+ */
+export const holds = (when: Condition | undefined, values: Record<string, unknown>, cells: Cells | undefined, number?: (b: Binding) => number): boolean =>
   !when ||
   ((when.option === undefined || ((when.is === undefined || values[when.option] === when.is) && (when.not === undefined || values[when.option] !== when.not))) &&
-    (!cells || sizeHolds(when, cells)));
+    (!cells || sizeHolds(when, cells)) &&
+    (!when.reading || !number || readingHolds(when.reading, number(when.reading.bind))));
+
+/** A reading condition against the number read: over `above`, under `below`, at `equals`; never without a number. */
+export const readingHolds = (r: NonNullable<Condition["reading"]>, v: number): boolean =>
+  Number.isFinite(v) && (r.equals === undefined || v === r.equals) && (r.above === undefined || v > r.above) && (r.below === undefined || v < r.below);
 
 /** A series colour: the pack's `series-n`, else the theme's palette role (`s<n>`), else the accent turned round the wheel. */
 function seriesInk(n: number, ctx: Ctx): string {
@@ -198,21 +209,72 @@ export const ownLine = (b: Block, direction: "row" | "column"): boolean => direc
 /** A block's place in the tree, its child indices from the root card's ("0.1"): the builder finds a block's box by it. */
 const at = (path: string, k: number): string => (path ? `${path}.${k}` : String(k));
 
+/** A block's part of its column's width or its row's height (`fill`), at the start, centre or end of what is left (`place`). */
+const PLACE = { start: "flex-start", center: "center", end: "flex-end" } as const;
+const fillOf = (b: Block, direction: "row" | "column"): CSSProperties | undefined =>
+  b.fill === undefined ? undefined : { [direction === "column" ? "width" : "height"]: `${Math.round(b.fill * 1000) / 10}%`, alignSelf: PLACE[b.place ?? "start"] };
+
+/** The blocks whose reading has warning levels (a pulse follows them). */
+const LEVELLED = new Set<Block["type"]>(["value", "ring", "gauge", "bar", "sparkline"]);
+
+/** A block's motion as a class: a fade in as it shows, a pulse while its reading is critical (both `index.css`, off with reduced motion). */
+function motionOf(b: Block, ctx: Ctx): string {
+  if (b.motion === "fade-in") return "recipe-fade-in";
+  if (b.motion !== "pulse" || !LEVELLED.has(b.type) || !("bind" in b)) return "";
+  const t = (b as { thresholds?: Thresholds }).thresholds;
+  const r = inUnit(read(b.bind, ctx), (b as { convert?: ConvertUnit }).convert);
+  return t && level(r.value, t) === "crit" ? "recipe-pulse" : "";
+}
+
+/** A container's blocks that show now, by kind: its background layers and its content, each with its index. */
+function shownOf(blocks: Block[], ctx: Ctx): { layers: (readonly [Block, number])[]; content: (readonly [Block, number])[] } {
+  const shown = blocks.map((b, k) => [b, k] as const).filter(([b]) => holds(b.when, ctx.values, ctx.cells, (bind) => read(bind, ctx).value));
+  return { layers: shown.filter(([b]) => b.background), content: shown.filter(([b]) => !b.background) };
+}
+
+/** A picture background's fit as an image's `object-fit`. */
+const OBJECT_FIT: Record<NonNullable<BackgroundLayer["fit"]>, CSSProperties["objectFit"]> = { cover: "cover", contain: "contain", stretch: "fill", center: "none" };
+
+/**
+ * A container's content over its background layers (builder plan Phase 5 A): each layer fills the container less its inset, at its
+ * opacity (and a picture's blur), in its order, under every block of the content. With no layer the content is drawn as before.
+ */
+function Layered({ layers, path, children }: { layers: (readonly [Block, number])[]; path: string; children: ReactNode }) {
+  const ctx = useCtx();
+  if (!layers.length) return children;
+  return (
+    <div className="relative h-full w-full min-h-0 min-w-0">
+      {layers.map(([b, k]) => {
+        const bg = b.background!;
+        return (
+          <div key={k} data-recipe-block={b.type} data-recipe-path={at(path, k)} data-recipe-layer="background" className={`absolute flex min-h-0 min-w-0 overflow-hidden ${motionOf(b, ctx)}`.trim()} style={{ inset: bg.inset ?? 0, opacity: bg.opacity ? bg.opacity / 100 : undefined, filter: bg.blur ? `blur(${bg.blur}px)` : undefined }}>
+            <BlockView b={b} path={at(path, k)} />
+          </div>
+        );
+      })}
+      {/* the content stays clickable where it draws; between its blocks a click reaches the layers under it */}
+      <div className="pointer-events-none relative h-full w-full min-h-0 min-w-0 [&_[data-recipe-path]]:pointer-events-auto">{children}</div>
+    </div>
+  );
+}
+
 function Blocks({ blocks, path, direction = "column", gap = 6, align }: { blocks: Block[]; path: string; direction?: "row" | "column"; gap?: number; align?: string }) {
   const ctx = useCtx();
-  const shownBlocks = blocks.map((b, k) => [b, k] as const).filter(([b]) => holds(b.when, ctx.values, ctx.cells));
+  const { layers, content: shownBlocks } = shownOf(blocks, ctx);
   // Each block's cell stretches across the row, so a block that fills its cell (a column of labels, a sparkline) has a definite
   // size; `align` places the block inside its cell instead.
   const place = align === "center" ? "center" : align === "end" ? "flex-end" : align === "start" ? "flex-start" : undefined;
   const cell: CSSProperties | undefined = place && (direction === "row" ? { alignItems: place } : { justifyContent: place });
   return (
-    <div className="flex h-full w-full min-h-0 min-w-0" style={{ flexDirection: direction, gap, justifyContent: direction === "column" ? "safe center" : undefined }}>
-      {shownBlocks.map(([b, k]) => (
-        <div key={k} data-recipe-block={b.type} data-recipe-path={at(path, k)} className="flex min-h-0 min-w-0" style={{ ...grow(b, direction), ...cell }}>
-          <BlockView b={b} path={at(path, k)} />
-        </div>
-      ))}
-    </div>
+    <Layered layers={layers} path={path}>
+      <div className="flex h-full w-full min-h-0 min-w-0" style={{ flexDirection: direction, gap, justifyContent: direction === "column" ? "safe center" : undefined }}>
+        {shownBlocks.map(([b, k]) => (
+          <div key={k} data-recipe-block={b.type} data-recipe-path={at(path, k)} className={`flex min-h-0 min-w-0 ${motionOf(b, ctx)}`.trim()} style={{ ...grow(b, direction), ...cell, ...fillOf(b, direction) }}>
+            <BlockView b={b} path={at(path, k)} />
+          </div>
+        ))}
+      </div>
+    </Layered>
   );
 }
 
@@ -392,7 +454,9 @@ function WeatherView({ b }: { b: Extract<Block, { type: "weather-icon" }> }) {
 
 function ImageView({ b }: { b: Extract<Block, { type: "image" }> }) {
   const ctx = useCtx();
-  return <img src={ctx.images?.[b.file] ?? `/api/widgets/${keyOf(ctx.recipe.id)}/${b.file}`} alt={b.alt ?? ""} className="h-full w-full min-h-0" style={{ objectFit: b.fit ?? "contain" }} />;
+  // as a background, its layer's fit (unset: cover) and position (unset: centre)
+  const bg = b.background;
+  return <img src={ctx.images?.[b.file] ?? `/api/widgets/${keyOf(ctx.recipe.id)}/${b.file}`} alt={b.alt ?? ""} className="h-full w-full min-h-0" style={{ objectFit: bg ? OBJECT_FIT[bg.fit ?? "cover"] : (b.fit ?? "contain"), objectPosition: bg?.position }} />;
 }
 
 function HeatmapView({ b }: { b: Extract<Block, { type: "heatmap" }> }) {
@@ -487,12 +551,17 @@ export const autoColumns = (n: number, w: number, h: number): number => (n < 1 ?
 function GridView({ b, path }: { b: GridBlock; path: string }) {
   const ctx = useCtx();
   const box = useElementSize();
-  const kids = b.children.map((c, k) => [c, k] as const).filter(([c]) => holds(c.when, ctx.values, ctx.cells));
+  const { layers, content: kids } = shownOf(b.children, ctx);
   const cells = kids.map(([c]) => (c.type === "repeat" ? repeatItems(c, ctx) : undefined));
   const n = cells.reduce((sum, items) => sum + (items ? items.length : 1), 0);
   const cols = b.columns ?? autoColumns(n, box.w || ctx.w, box.h || ctx.h);
+  // tracks (Phase 5): each column and row its share; a block with an area spans its tracks, one without takes the next free cell
+  const t = b.tracks;
+  const tracks = (list: number[]) => list.map((f) => `minmax(0, ${f}fr)`).join(" ");
+  const areaOf = (c: Block): CSSProperties | undefined => (t && c.area ? { gridColumn: `${c.area[0]} / span ${c.area[2]}`, gridRow: `${c.area[1]} / span ${c.area[3]}` } : undefined);
   return (
-    <div ref={box.ref} className="grid h-full w-full min-h-0 min-w-0" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: "minmax(0, 1fr)", gap: SPACING[b.spacing ?? "normal"] }}>
+    <Layered layers={layers} path={path}>
+    <div ref={box.ref} data-recipe-grid={path} className="grid h-full w-full min-h-0 min-w-0" style={{ gridTemplateColumns: t ? tracks(t.cols) : `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: t ? tracks(t.rows) : undefined, gridAutoRows: "minmax(0, 1fr)", gap: SPACING[b.spacing ?? "normal"] }}>
       {kids.map(([c, k], i) => {
         const items = cells[i];
         return items ? (
@@ -504,12 +573,13 @@ function GridView({ b, path }: { b: GridBlock; path: string }) {
             ))}
           </div>
         ) : (
-          <div key={k} data-recipe-block={c.type} data-recipe-path={at(path, k)} className="flex min-h-0 min-w-0">
+          <div key={k} data-recipe-block={c.type} data-recipe-path={at(path, k)} data-recipe-area={t && c.area ? c.area.join(" ") : undefined} className={`flex min-h-0 min-w-0 ${motionOf(c, ctx)}`.trim()} style={areaOf(c)}>
             <BlockView b={c} path={at(path, k)} />
           </div>
         );
       })}
     </div>
+    </Layered>
   );
 }
 
