@@ -31,8 +31,12 @@ describe("the chrome tokens' contrast", () => {
     for (const fg of ["text-1", "text-2", "text-hint"]) for (const bg of HIGHLIGHTS) expect(ratio(fg, bg), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("the keyboard-highlighted menu row's fill is 3:1 on the menu and keeps text-1 at 4.5:1 (it has no edge)", () => {
-    expect(ratio("bg-highlight", "bg-raised")).toBeGreaterThanOrEqual(3);
+  // The owner's call (design guide: the accent is for selection and focus): a highlighted row is a neutral step, as the
+  // sidebar's selected row is, and its text turns text-1, so the fill is not the only cue.
+  it("the highlighted menu row is a neutral step that shows on the menu and keeps text-1 at 4.5:1", () => {
+    const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(ui["bg-highlight"].slice(i, i + 2), 16));
+    expect(Math.max(r, g, b) - Math.min(r, g, b), "no hue").toBeLessThanOrEqual(12);
+    expect(ratio("bg-highlight", "bg-raised")).toBeGreaterThanOrEqual(1.4);
     expect(ratio("text-1", "bg-highlight")).toBeGreaterThanOrEqual(4.5);
   });
 });

@@ -5,7 +5,7 @@ export const ICON_BUTTON =
   "flex h-6 w-6 items-center justify-center rounded-md border border-ui-strong text-ui-3 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40 data-popup-open:bg-ui-hover data-popup-open:text-ui-1";
 export const POPUP =
   "min-w-40 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui text-body text-ui-2 shadow-ui-menu outline-none";
-/** The keyboard-highlighted row of a Base UI menu: the bg-highlight fill (3.1:1 on the popup; bg-active alone is invisible), no edge. */
+/** The keyboard-highlighted row of a Base UI menu: the neutral bg-highlight step and text-1, no edge and no accent (the accent is for selection and focus). */
 export const HIGHLIGHT =
   "data-highlighted:bg-ui-highlight data-highlighted:text-ui-1";
 export const ITEM =
