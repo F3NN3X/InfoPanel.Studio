@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, devicesIn, outsideRange, stageCells, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, railPreset, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, setRepeatSource, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, unwrap, updateBlock, validationLine, withDirection, withFormat, withSample, wrapIn, wrapInRow } from "@/components/widgets-page/builder-model";
+import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, devicesIn, outsideRange, stageCells, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, largestAny, layerName, setLargestAny, moveBlock, moveBlocks, moveItem, moveTargets, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, railPreset, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, setRepeatSource, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, unwrap, updateBlock, validationLine, withDirection, withFormat, withSample, wrapIn, wrapInRow } from "@/components/widgets-page/builder-model";
 import { amend, commit, historyOf, HISTORY_LIMIT, redo, undo } from "@/components/widgets-page/history";
 import { NO_START, START, whyNoStart } from "@/components/widgets-page/start-points";
 import { WIDGET_ORDER } from "@/widgets/order";
@@ -257,6 +257,34 @@ function weatherCard(): Recipe {
   return addBlock(updateBlock(col.recipe, col.path, { name: "City" }), col.path, "label", "x.y").recipe;
 }
 const namesAt = (r: Recipe, path: number[]) => (blockAt(r, path) as Extract<Block, { children: Block[] }>).children.map((b) => b.name ?? b.type);
+
+// builder plan Phase 4: the layer menu's "Move to" lists the containers by their place in the tree
+describe("Move to", () => {
+  it("lists every container but the one the blocks are in and the ones inside them, named with the ones holding it", () => {
+    const r = cpuCard(); // card[ Top row[ ring, Values[ value ] ], sparkline ]
+    expect(moveTargets(r, [[1]])).toEqual([
+      { path: [0], label: "Top row" },
+      { path: [0, 1], label: "Top row › Values" },
+    ]);
+    expect(moveTargets(r, [[0, 1, 0]])).toEqual([
+      { path: [], label: layerName(r, r.root) },
+      { path: [0], label: "Top row" },
+    ]);
+    // a container is never offered itself or a container inside it; from its own parent nothing is left
+    expect(moveTargets(r, [[0]])).toEqual([]);
+    // blocks from two places: every container they are not inside is offered, their parents too
+    expect(moveTargets(r, [[0, 0], [1]]).map((t) => t.path)).toEqual([[], [0], [0, 1]]);
+    expect(moveTargets(r, [])).toEqual([]);
+  });
+
+  it("offers a container the validator would refuse with its reason", () => {
+    const two = addBlock(weatherCard(), [], "repeat", "x.y");
+    expect(moveTargets(two.recipe, [two.path])).toEqual([
+      { path: [0], label: expect.stringMatching(/^Repeat/), why: "A Repeat can't go inside another Repeat" },
+      { path: [0, 1], label: expect.stringMatching(/ › City$/), why: "A Repeat can't go inside another Repeat" },
+    ]);
+  });
+});
 
 describe("moving a block between containers (G1)", () => {
   it("moves into a Row, out of it, and between Rows and Cards, keeping what it holds", () => {
@@ -584,6 +612,18 @@ describe("Phase B2", () => {
     expect(outsideRange(small, [5, 3])).toBe("over");
     expect(outsideRange(small, [4, 4])).toBe("over");
     expect(outsideRange(small, [4, 3])).toBeUndefined();
+  });
+
+  // Phase 3 (D1 (a)): Largest "Any" is the format's 12×12, so a recipe saved with it stays format 1; off, it falls back to Opens at
+  it("Largest Any is 12×12, and turned off it is the size the recipe opens at", () => {
+    const r = newRecipe("Any size", new Set());
+    expect(largestAny(r)).toBe(true);
+    const own = setLargestAny(r, false);
+    expect(own.size.max).toEqual([3, 2]);
+    expect(largestAny(own)).toBe(false);
+    expect(largestAny(setRecipeSize(own, "max", [12, 6]))).toBe(false);
+    expect(setLargestAny(own, true).size.max).toEqual([12, 12]);
+    expect(withFormat(setLargestAny(own, true)).format).toBe(1);
   });
 
   it("the Sample before a save fills the keys the sample lacks from the live readings, and keeps its own (G18)", () => {

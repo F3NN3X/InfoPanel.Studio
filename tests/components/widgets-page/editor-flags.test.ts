@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addBlock, moveBlock, newRecipe, removeBlock, updateBlock } from "@/components/widgets-page/builder-model";
-import { flagged, followFlags, followPaths, hiddenRule, setKeys, stagePick } from "@/components/widgets-page/editor-flags";
+import { FLAGS_KEPT_MAX, FLAGS_KEY, flagged, flagsOf, flagsOn, flagsText, followFlags, followPaths, hiddenRule, loadFlags, saveFlags, setKeys, stagePick } from "@/components/widgets-page/editor-flags";
 import { recipeBytes } from "@/widgets/recipe/package";
 import type { Recipe } from "@/widgets/recipe/types";
 
@@ -60,5 +60,50 @@ describe("hide and lock in the editor (G25)", () => {
     const before = recipeBytes(r);
     followFlags({ recipe: r, hidden: ["0"], locked: ["1"] }, moveBlock(r, [1], [0], 0).recipe);
     expect(recipeBytes(r)).toEqual(before);
+  });
+});
+
+// D Q3 (builder plan Phase 4): hide and lock kept across a reload in this browser's storage, by open recipe, never in the recipe
+describe("hide and lock across a reload", () => {
+  /** A storage in memory. */
+  const memory = () => {
+    const items = new Map<string, string>();
+    return { getItem: (k: string) => items.get(k) ?? null, setItem: (k: string, v: string) => void items.set(k, v), removeItem: (k: string) => void items.delete(k), items };
+  };
+
+  it("writes the flags and reads them back; with none on, the key goes", () => {
+    const s = memory();
+    saveFlags({ "recipe:a": { hidden: ["0.1"], locked: ["1"] }, "recipe:b": { hidden: [], locked: [] } }, s);
+    expect(JSON.parse(s.items.get(FLAGS_KEY)!)).toEqual({ "recipe:a": { hidden: ["0.1"], locked: ["1"] } });
+    expect(loadFlags(s)).toEqual({ "recipe:a": { hidden: ["0.1"], locked: ["1"] } });
+    saveFlags({ "recipe:a": { hidden: [], locked: [] } }, s);
+    expect(s.items.has(FLAGS_KEY)).toBe(false);
+    expect(loadFlags(s)).toEqual({});
+  });
+
+  it("reads only block paths from what is kept, and nothing from a text that is not JSON", () => {
+    expect(flagsOf('{"recipe:a":{"hidden":["0.1","", "x", 3, "1.2"],"locked":"0"},"recipe:b":null}')).toEqual({ "recipe:a": { hidden: ["0.1", "1.2"], locked: [] }, "recipe:b": { hidden: [], locked: [] } });
+    expect(flagsOf("not json")).toEqual({});
+    expect(flagsOf("[1]")).toEqual({});
+    expect(flagsOf(null)).toEqual({});
+  });
+
+  it("keeps at most the last FLAGS_KEPT_MAX recipes", () => {
+    const many = Object.fromEntries(Array.from({ length: FLAGS_KEPT_MAX + 5 }, (_, k) => [`recipe:${k}`, { hidden: ["0"], locked: [] }]));
+    const kept = Object.keys(JSON.parse(flagsText(many)));
+    expect(kept).toHaveLength(FLAGS_KEPT_MAX);
+    expect(kept[0]).toBe("recipe:5");
+  });
+
+  it("puts kept flags on a recipe only where it has a block now", () => {
+    const r = card();
+    expect(flagsOn({ hidden: ["0.1", "5", "0.9"], locked: ["1"] }, r)).toEqual({ recipe: r, hidden: ["0.1"], locked: ["1"] });
+  });
+
+  it("a write the storage refuses (full) keeps what it had", () => {
+    const s = memory();
+    saveFlags({ "recipe:a": { hidden: ["0"], locked: [] } }, s);
+    saveFlags({ "recipe:a": { hidden: ["1"], locked: [] } }, { ...s, setItem: () => { throw new Error("QuotaExceededError"); } });
+    expect(loadFlags(s)).toEqual({ "recipe:a": { hidden: ["0"], locked: [] } });
   });
 });

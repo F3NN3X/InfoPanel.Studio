@@ -149,6 +149,8 @@ test("Weather · places, one Repeat with its List, Grid and One place presets, b
   await page.getByRole("button", { name: "New widget" }).click();
   await type(page, "Widget name", "Weather · places");
   await type(page, "Title", "Weather");
+  // a new recipe's Largest is Any (Phase 3): a size of its own first
+  await page.getByRole("switch", { name: "Largest: any size" }).click();
   await type(page, "Largest columns", "6");
   await type(page, "Largest rows", "4");
   await type(page, "Opens at columns", "4");

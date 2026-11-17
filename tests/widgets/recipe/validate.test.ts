@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { packageOf } from "@/widgets/recipe/package";
 import type { Block, CardBlock, PackageFile, Recipe, RingBlock } from "@/widgets/recipe/types";
-import { BLOCKS_MAX, checkPackage, DEPTH_MAX, FILE_COUNT_MAX, hashIssues, OPTIONS_MAX, PACKAGE_MAX_BYTES, PRESETS_MAX, RECIPE_MAX_BYTES, validateRecipe } from "@/widgets/recipe/validate";
+import { BLOCKS_MAX, checkPackage, DEPTH_MAX, FILE_COUNT_MAX, floorAt, hashIssues, OPTIONS_MAX, PACKAGE_MAX_BYTES, PRESETS_MAX, RECIPE_MAX_BYTES, validateRecipe } from "@/widgets/recipe/validate";
 import { fixtureFiles, fixtureImages, fixtureRecipe, manifestOfFiles, variant, withFile } from "./fixture-files";
 
 // The recipe validator: one case per rule, plus its boundaries. Each case starts from a fixture package that passes and changes
@@ -242,6 +242,30 @@ describe("validateRecipe", () => {
       r.size.min = [1, 1];
     });
     expect(validateRecipe({ files }).find((i) => i.rule === "text-floor")?.message).toMatch(/at 1x1/);
+  });
+
+  // builder plan Phase 3: "Check every size" lists the floor at each size; the rule over the range is its oracle
+  it("floorAt: the texts under the floor at one size, by path, agreeing with the rule at every size", async () => {
+    const r = fixtureRecipe("cpu-card");
+    r.size.min = [1, 1];
+    const values = topRow(r).children[1] as Extract<Block, { type: "row" }>;
+    // a 1x1 base is 7.5 px: every text at scale 1 is under 11 px there; at 2x2 (15 px) a scale of 0.73 is alone under it
+    expect(floorAt(r, [1, 1]).length).toBeGreaterThan(0);
+    expect(floorAt(r, [2, 2])).toEqual([]);
+    Object.assign(values.children[0], { scale: 0.73 });
+    expect(floorAt(r, [2, 2]).map((f) => f.path)).toEqual([[0, 1, 0]]);
+    expect(floorAt(r, [2, 2])[0].px).toBeCloseTo(10.95);
+    // a text a size condition hides at a size is not under the floor there
+    Object.assign(values.children[0], { when: { size: { min: [3, 3] } } });
+    expect(floorAt(r, [2, 2])).toEqual([]);
+    for (let c = 1; c <= 4; c++)
+      for (let h = 1; h <= 4; h++) {
+        // the recipe made for that one size, so the rule checks it alone
+        const at = [c, h] as [number, number];
+        const one: Recipe = { ...r, size: { min: at, max: at, default: at }, presets: r.presets.map((p) => ({ ...p, size: at })) };
+        const rule = validateRecipe({ files: await packageOf(one, fixtureImages("cpu-card")) }).some((i) => i.rule === "text-floor");
+        expect(floorAt(r, [c, h]).length > 0, `${c}x${h}`).toBe(rule);
+      }
   });
 
   it("text-floor: a rail preset is checked in a rail slot's box, where a size condition can hide a text", async () => {

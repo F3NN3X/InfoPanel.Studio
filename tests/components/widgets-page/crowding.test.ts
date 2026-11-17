@@ -27,6 +27,16 @@ describe("crowding", () => {
     expect(crowding(inks, CARD)).toEqual([{ path: "1", kind: "overlaps", with: "0" }]);
   });
 
+  it("a block of a grid area that paints past its area is a finding of its own, at every size it is checked (Phase 5)", () => {
+    const area = box(0, 0, 100, 50);
+    const inks: Ink[] = [
+      { path: "0.0", boxes: [box(0, 0, 50, 40)], area },
+      { path: "0.1", boxes: [box(60, 10, 130, 30)], area },
+    ];
+    expect(crowding(inks, CARD)).toEqual([{ path: "0.1", kind: "past-area" }]);
+    expect(crowdIssues(newRecipe("Areas", new Set()), [2, 1], crowding(inks, CARD))[0].text).toBe("At 2×1, A block runs past its area");
+  });
+
   it("a cut text and a block past the card are findings of their own, once per block however many Repeat items draw it", () => {
     const inks: Ink[] = [
       { path: "0.1", boxes: [box(0, 0, 50, 20)], cut: true },

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { SettingRow as UiSettingRow } from "@/components/ui/setting-row";
 import { Toggle } from "@/components/ui/toggle";
 import type { DashboardConfig, MonitorProfile, ProfilePage } from "@/lib/layout";
-import { cellsText, islandClash, PIN_MIN_THICKNESS, pinnedThicknessMax, railOverflow, sameSizeProfiles, showChoice, withShow, withShownPage, type ShowChoice } from "@/lib/pinned-edit";
+import { cellsText, islandClash, PIN_MIN_THICKNESS, pinnedThicknessMax, railOverflow, sameSizeProfiles, showChoice, withShow, withShownPage, type ShowChoice, unpinBlocked } from "@/lib/pinned-edit";
 import { clampCells, isEdgePin, PINNED_EDGES, type PinnedEdge, type PinnedEdgeItem, type PinnedItem } from "@/lib/pinned";
 import { RAIL_MODULE } from "@/lib/rail";
 import { modules } from "@/modules";
@@ -128,13 +128,12 @@ export function PinnedInspector({ config, profile, page, item, update, onHidePin
           <Button small disabled={others === 0} title={others === 0 ? `No other profile is ${profile.width} × ${profile.height}` : undefined} onClick={onCopy}>
             Use on every profile of this size
           </Button>
-          {!isEdgePin(item) && (
-            <Button small variant="ghost" icon={<Undo2 />} onClick={onMoveToPage}>
-              Move to page
-            </Button>
-          )}
-          <Button small variant="ghost" icon={<Trash2 />} onClick={onRemove}>
+          {/* Unpin puts the widget back on the page; only Delete removes it (the owner: an unpinned widget must not vanish). */}
+          <Button small variant="ghost" icon={<Undo2 />} disabled={unpinBlocked(item) !== null} title={unpinBlocked(item) ?? "Back on this page, where it fits"} onClick={onMoveToPage}>
             Unpin
+          </Button>
+          <Button small variant="ghost" icon={<Trash2 />} onClick={onRemove}>
+            Delete
           </Button>
         </div>
       </PanelSection>

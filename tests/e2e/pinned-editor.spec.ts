@@ -99,16 +99,16 @@ test("pin a page widget from its right-click menu, take it off with Delete, undo
   await expect(list.getByRole("button", { name: "Unpin" })).toHaveCount(1);
   await expect(page.getByRole("complementary", { name: "Inspector" }).getByRole("button", { name: "Unpin" })).toBeVisible();
 
-  // Delete on the selected item unpins it; one Undo brings it back
+  // Delete on the selected item deletes it; one Undo brings it back
   await canvasPage.locator("[data-pinned-item] button").click();
   await page.keyboard.press("Delete");
   await expect(canvasPage.locator("[data-pinned-item]")).toHaveCount(0);
   await page.keyboard.press("Control+z");
   await expect(canvasPage.locator("[data-pinned-item]")).toHaveCount(1);
 
-  // its row's menu moves it back onto the page, where Edit shows it selected
+  // Unpin puts it back onto the page (never deletes it), where Edit shows it selected
   await list.getByText("Clock").first().click({ button: "right" });
-  await page.getByRole("menuitem", { name: "Move to page" }).click();
+  await page.getByRole("menuitem", { name: "Unpin" }).click();
   await expect(canvasPage.locator("[data-pinned-item]")).toHaveCount(0);
   await expect(page.locator("[data-zone-id]")).toHaveCount(2);
   expect(errors).toEqual([]);

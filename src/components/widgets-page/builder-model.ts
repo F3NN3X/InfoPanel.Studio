@@ -429,15 +429,34 @@ export function rangeOf(keys: readonly string[], anchor: string, to: string): nu
   return keys.slice(Math.min(a, b), Math.max(a, b) + 1).map((k) => (k ? k.split(".").map(Number) : []));
 }
 
-/** Every block with its path, depth first (the root card first): Layers' rows. */
+/** Every block with its path, depth first (the root card first): Layers' rows. A container's background layers come after its other blocks, at the bottom of it. */
 export function flatten(recipe: Recipe): { block: Block; path: number[]; depth: number }[] {
   const out: { block: Block; path: number[]; depth: number }[] = [];
   const walk = (b: Block, path: number[]) => {
     out.push({ block: b, path, depth: path.length });
-    childrenOf(b).forEach((c, k) => walk(c, [...path, k]));
+    const kids = childrenOf(b).map((c, k) => [c, k] as const);
+    for (const [c, k] of [...kids.filter(([c]) => !c.background), ...kids.filter(([c]) => c.background)]) walk(c, [...path, k]);
   };
   walk(recipe.root, []);
   return out;
+}
+
+/**
+ * The containers the layer menu's "Move to" offers the blocks at `from` (Phase 4), in Layers' order, each named with the ones holding
+ * it ("Top row › Values"): every container but the one they are all in now and the ones inside them; one the validator would refuse
+ * carries its reason (the first block's that has one).
+ */
+export function moveTargets(recipe: Recipe, from: readonly Path[]): { path: number[]; label: string; why?: string }[] {
+  const top = topLevel(from);
+  if (!top.length) return [];
+  const home = top[0].slice(0, -1);
+  const allHome = top.every((p) => keyOf(p.slice(0, -1)) === keyOf(home));
+  return flatten(recipe).flatMap(({ block, path }) => {
+    if (!isContainer(block) || (allHome && keyOf(path) === keyOf(home)) || top.some((p) => keyOf(p) === keyOf(path) || isInside(path, p))) return [];
+    const label = path.map((_, k) => layerName(recipe, blockAt(recipe, path.slice(0, k + 1))!)).join(" › ") || layerName(recipe, recipe.root);
+    const why = top.map((p) => moveRefusal(recipe, p, path)).find(Boolean);
+    return [{ path, label, ...(why ? { why } : {}) }];
+  });
 }
 
 /** The block count the validation line says. */
@@ -475,10 +494,10 @@ function bindingOf(b: Block): Binding | undefined {
   return "bind" in b ? b.bind : b.type === "card" ? b.subtitle : undefined;
 }
 
-/** Every binding a block reads through itself: its own, a heatmap's cells, a label's parts. */
+/** Every binding a block reads through itself: its own, a heatmap's cells, a label's parts, a condition's reading. */
 export function bindingsOf(b: Block): Binding[] {
   const own = bindingOf(b);
-  return [...(own ? [own] : []), ...("cells" in b ? (b.cells ?? []) : []), ...(b.type === "label" ? (b.parts ?? []).flatMap((p) => ("bind" in p ? [p.bind] : [])) : [])];
+  return [...(own ? [own] : []), ...("cells" in b ? (b.cells ?? []) : []), ...(b.type === "label" ? (b.parts ?? []).flatMap((p) => ("bind" in p ? [p.bind] : [])) : []), ...(b.when?.reading ? [b.when.reading.bind] : [])];
 }
 
 /** The option a binding is open to people through: a sensor option, or the device option its key names. */
@@ -522,6 +541,7 @@ function mapBindings(block: Block, fn: (b: Binding) => Binding): Block {
     if ("cells" in b && b.cells) next.cells = b.cells.map((c) => bind(c));
     if (b.type === "label" && b.parts) next.parts = b.parts.map((p) => ("bind" in p ? { ...p, bind: bind(p.bind) } : p));
     if (b.type === "card" && b.subtitle) next.subtitle = bind(b.subtitle);
+    if (b.when?.reading) next.when = { ...b.when, reading: { ...b.when.reading, bind: fn(b.when.reading.bind) } };
     if (isContainer(b)) next.children = b.children.map(go);
     return next as unknown as Block;
   };
@@ -1021,6 +1041,12 @@ export function setRecipeSize(recipe: Recipe, key: "min" | "max" | "default", ce
 
 /** The largest side a recipe's size may take, in cells (`recipe.schema.json`). */
 export const CELLS_MAX = 12;
+
+/** Whether the recipe's Largest is "Any" (D1 (a)): written as the format's largest, 12×12, so no format change. */
+export const largestAny = (recipe: Recipe): boolean => recipe.size.max[0] === CELLS_MAX && recipe.size.max[1] === CELLS_MAX;
+
+/** Largest set to "Any" (12×12), or back to a size of its own: the size it opens at, which is within its range. */
+export const setLargestAny = (recipe: Recipe, any: boolean): Recipe => setRecipeSize(recipe, "max", any ? [CELLS_MAX, CELLS_MAX] : [...recipe.size.default]);
 
 /**
  * A size the stage may show (G17, B30): any whole number of cells from 1 to 12 a side, inside the recipe's range or not (a side that

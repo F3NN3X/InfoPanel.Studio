@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-// Removing a pinned widget from the pinned layer's list: the row's Unpin button and its right-click menu unpin it (one
-// call each), a rail has no Move to page, and a page widget that can't be pinned has Pin to edge disabled with the reason.
+// Unpinning from the pinned layer's list puts the widget back on the page (the owner: an unpinned widget must not vanish);
+// only Delete removes it. A rail, which has no page form, can only be deleted, and a page widget that can't be pinned has
+// Pin to edge disabled with the reason.
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PinnedPanel } from "@/components/studio/pinned/pinned-panel";
@@ -23,31 +24,34 @@ function mount() {
 }
 
 describe("unpinning from the list", () => {
-  it("a row's Unpin button removes that item alone", () => {
+  it("a row's Unpin button puts that widget back on the page and deletes nothing", () => {
     const actions = mount();
-    fireEvent.click(screen.getAllByRole("button", { name: "Unpin" })[0]);
-    expect(actions.remove).toHaveBeenCalledExactlyOnceWith("pin-status");
-    expect(actions.moveToPage).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Unpin" }));
+    expect(actions.moveToPage).toHaveBeenCalledExactlyOnceWith("pin-status");
+    expect(actions.remove).not.toHaveBeenCalled();
   });
 
-  it("the row's right-click menu has Unpin and Move to page", () => {
+  it("the row's right-click menu: Unpin goes back to the page, Delete removes", () => {
     const actions = mount();
     fireEvent.contextMenu(screen.getByText("Status bar"));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Move to page/ }));
-    expect(actions.moveToPage).toHaveBeenCalledWith("pin-status");
-    fireEvent.contextMenu(screen.getByText("Status bar"));
     fireEvent.click(screen.getByRole("menuitem", { name: /Unpin/ }));
+    expect(actions.moveToPage).toHaveBeenCalledWith("pin-status");
+    expect(actions.remove).not.toHaveBeenCalled();
+    fireEvent.contextMenu(screen.getByText("Status bar"));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Delete/ }));
     expect(actions.remove).toHaveBeenCalledWith("pin-status");
   });
 
-  it("a rail can be unpinned but not moved to a page, and says why", () => {
+  it("a rail can't be unpinned to a page, says why, and can be deleted", () => {
     const actions = mount();
     fireEvent.contextMenu(screen.getByText("Page rail"));
-    const move = screen.getByRole("menuitem", { name: /Move to page/ });
-    expect((move as HTMLButtonElement).disabled).toBe(true);
-    expect(move.closest("[title]")?.getAttribute("title")).toMatch(/rail stays/);
-    fireEvent.click(move);
+    const unpin = screen.getByRole("menuitem", { name: /Unpin/ });
+    expect((unpin as HTMLButtonElement).disabled).toBe(true);
+    expect(unpin.closest("[title]")?.getAttribute("title")).toMatch(/rail stays/);
+    fireEvent.click(unpin);
     expect(actions.moveToPage).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(actions.remove).toHaveBeenCalledExactlyOnceWith("pin-rail");
   });
 });
 

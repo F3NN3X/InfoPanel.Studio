@@ -14,6 +14,10 @@
 // and the refusal's reason, Esc cancels, one undo step), share handles change two blocks' shares (`share-handles.tsx`), Ctrl and
 // Shift click add to the selection, and the focused stage takes the arrows (walk), Alt+arrows (move), Del, F2 and Esc.
 // Phase 2: the layer menu on the stage too (`layer-entries.tsx`), with Wrap in a card or a grid, Unwrap, and Copy and Paste style.
+// Phase 3: "Check every size" draws the recipe offscreen at each size in its range and lists what is crowded or under the floor (`size-check.tsx`).
+// Phase 5 (format 2): in a grid with tracks a block's body drags it a track at a time and its handles size its area (`area-handles.tsx`),
+// Alt+arrows nudge it a track and Alt+Shift+arrows size it; a block in a column or a row has handles on its other two sides for its
+// part of the room across; the layer menu's Layer flyout sets a background and the drawing order (`layout-model.ts`).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { pastDragThreshold, trackPointer } from "@/components/studio/pointer-drag";
 import { ChevronRight, CircleAlert, CircleCheck, MonitorUp, Pencil, Redo2, RotateCcw, Save, Undo2, Upload, X } from "lucide-react";
@@ -26,6 +30,7 @@ import { BarFill, PageBar } from "@/components/studio/page-bar";
 import { ContextMenu } from "@/components/ui/context-menu";
 import { useSensors } from "@/hooks/useSensors";
 import { withHwinfoAliases } from "@/lib/hwinfo-aliases";
+import type { RecipeSnippet } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import { skinLabel } from "@/lib/theme-skins";
 import { cn } from "@/lib/utils";
@@ -35,21 +40,26 @@ import type { Data } from "@/widgets/core/types";
 import { gridPresets } from "@/widgets/define";
 import type { BlockType, Cells, PackageFile, Recipe, RecipeOption } from "@/widgets/recipe/types";
 import { toFlat, toNames } from "@/widgets/shared/data-adapter";
-import { ADD_ORDER, addBlock, addBlockAt, addImageAt, addRefusal, addSnippet, BLOCK_LABEL, blockAt, CELLS_MAX, cleanUp, devicesIn, draftSample, duplicateBlocks, flatten, imagePath, keyMove, landing, layerName, leftUnused, moveBlock, moveBlocks, nextVersion, outsideRange, packedImages, presetValues, rangeOf, recipeIssues, removeBlocks, SNIPPETS, type SnippetId, stageCells, stepBlock, topLevel, updateBlock, validationLine, unwrap, withFormat, wrapIn, type Path } from "./builder-model";
+import { ADD_ORDER, addBlock, addBlockAt, addImageAt, addRefusal, addSnippet, BLOCK_LABEL, blockAt, CELLS_MAX, cleanUp, devicesIn, draftSample, duplicateBlocks, flatten, imagePath, keyMove, landing, layerName, leftUnused, moveBlock, moveBlocks, moveTargets, nextVersion, outsideRange, packedImages, presetValues, rangeOf, recipeIssues, removeBlocks, SNIPPETS, type SnippetId, stageCells, stepBlock, topLevel, updateBlock, validationLine, unwrap, withFormat, wrapIn, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { BlockTab } from "./block-tab";
 import { clipboard, copyOf, copyStyle, pasteBlocks, pasteStyle, setClipboard, setStyleClipboard, styleClipboard } from "./clipboard";
 import { type Crowd, crowdIssues, crowding, measureInks } from "./crowding";
-import { type EditorFlags, flagged, followFlags, hiddenRule, setKeys, stagePick } from "./editor-flags";
+import { type EditorFlags, flagged, flagsOn, followFlags, hiddenRule, loadFlags, saveFlags, setKeys, stagePick } from "./editor-flags";
 import { NumberInput, type Typing, TypingContext } from "./fields";
 import type { History } from "./history";
 import { layerEntries } from "./layer-entries";
 import { type EditorFlag, type LayerCommand, Layers, type SelectHow } from "./layers";
+import { MultiInspector } from "./multi-inspector";
+import { clipOf, savedSnippets, snippetOf, withoutSnippet, withSnippet } from "./user-snippets";
 import { OptionsTab } from "./options-tab";
 import { type PlainIssue, plainIssue, plainIssues, plainWarnings } from "./plain-issues";
 import { PresetsTab } from "./presets-tab";
 import { RecipePreview, zonePx } from "./recipe-preview";
+import { AreaHandles, FillHandles, measureArea } from "./area-handles";
+import { areaGrid, areaNow, dragArea, fitLayout, nudgeArea, restack, setArea, setBackground, stepAreaSize, trackAt } from "./layout-model";
 import { ShareHandles } from "./share-handles";
+import { SizeCheckRun, type SpanResult, spansOf } from "./size-check";
 import { type Carry, dragTarget, dropAt, type StageDrop, stageStep } from "./stage-edit";
 import { isUnsaved } from "./widgets-model";
 
@@ -85,6 +95,10 @@ export interface BuilderProps {
   appearance?: Appearance;
   pageStyle?: CSSProperties;
   onOpenSources: () => void;
+  /** The user's own snippets (`config.recipeSnippets`, Phase 6), as saved; guarded here. */
+  snippets?: unknown;
+  /** The list saved again (a snippet added or removed). */
+  onSnippets?: (list: RecipeSnippet[]) => void;
 }
 
 type Tab = "block" | "options" | "presets";
@@ -105,6 +119,9 @@ function savedChip(d: Draft): { text: string; tone: "neutral" | "warn" } {
   return isUnsaved(d) ? { text: "Unsaved changes", tone: "warn" } : { text: "Recipe · saved", tone: "neutral" };
 }
 
+
+/** The stage's handles (shares, areas, parts across): a press or the click a drag ends with is theirs, not a pick. */
+const HANDLES = "[data-share-handle], [data-area-handle], [data-fill-handle]";
 
 /** The room the selection's name tag takes beside its block, in the zone's px (11 px text, its padding and gap). */
 const TAG_ROOM = 24;
@@ -176,7 +193,8 @@ export function Builder(p: BuilderProps) {
   const previewing = useRef(false);
   /** Every edit of the recipe, with the format its keys need: one undo step, or while a field is typed its preview. */
   const edit = (r: Recipe, images?: PackageFile[], amend?: boolean) => {
-    const next = withFormat(r);
+    // the layout keys kept where they mean something after a move, a paste or a wrap (`fitLayout`), then the format they need
+    const next = withFormat(fitLayout(r));
     if (previewing.current) return setPreview(next);
     setPreview(null);
     p.onEdit(next, images, amend);
@@ -318,12 +336,16 @@ export function Builder(p: BuilderProps) {
   const [tile, setTile] = useState<BlockType | null>(null);
 
   // hide and lock (G25): the editor's own, per open recipe, following their blocks through each edit; never in the recipe
+  // (kept across a reload in this browser's storage, Phase 4: what was kept is read once, and each change is written back)
   const [allFlags, setAllFlags] = useState<Readonly<Record<string, EditorFlags>>>({});
-  const kept = allFlags[p.active.key];
+  const [keptBefore] = useState(loadFlags);
+  const kept = allFlags[p.active.key] ?? (keptBefore[p.active.key] && flagsOn(keptBefore[p.active.key], recipe));
   const flags = kept ? followFlags(kept, recipe) : { recipe, hidden: [], locked: [] };
   useEffect(() => {
-    if (kept && flags !== kept) setAllFlags((all) => ({ ...all, [p.active.key]: flags }));
+    // (flags read from storage join the state on first use, so they follow their blocks from then on)
+    if (kept && (flags !== kept || !allFlags[p.active.key])) setAllFlags((all) => ({ ...all, [p.active.key]: flags }));
   }, [flags]);
+  useEffect(() => saveFlags({ ...keptBefore, ...allFlags }), [allFlags]);
   /** The eye or the lock of a row: on the selection when the row is in it, else on that block. */
   const setFlag = (flag: EditorFlag, at: number[], on: boolean) => {
     const list = topLevel(selected.some((x) => keyOf(x) === keyOf(at)) ? selected : [at]);
@@ -353,11 +375,11 @@ export function Builder(p: BuilderProps) {
 
   // a new Image asks for its picture first (G32): the place it goes waits for the file chooser
   const imageInput = useRef<HTMLInputElement>(null);
-  const imageAt = useRef<{ into: number[]; index: number; where: string } | null>(null);
+  const imageAt = useRef<{ into: number[]; index: number; where: string; background?: boolean } | null>(null);
   const latest = useRef(recipe);
   latest.current = recipe;
-  const chooseImage = (into: number[], index: number, where: string) => {
-    imageAt.current = { into, index, where };
+  const chooseImage = (into: number[], index: number, where: string, background?: boolean) => {
+    imageAt.current = { into, index, where, background };
     imageInput.current?.click();
   };
 
@@ -392,13 +414,39 @@ export function Builder(p: BuilderProps) {
     say(`Added ${SNIPPETS.find((s) => s.id === id)!.label}`);
     if (byKey) refocus();
   };
-  /** A tile dropped on Layers or the stage: the new block at that place, unless the validator would refuse it there. */
-  const addAt = (type: BlockType, toParent: number[], index: number, where: string) => {
-    const refused = addRefusal(recipe, type, toParent);
+  // the user's own snippets (Phase 6): saved from the selection under a name, inserted where Add puts a block (as a paste is)
+  const mine = useMemo(() => savedSnippets(p.snippets), [p.snippets]);
+  const [naming, setNaming] = useState<string | null>(null);
+  const saveSnippet = (name: string) => {
+    setNaming(null);
+    const s = snippetOf(recipe, selected, name, `snippet-${Date.now().toString(36)}`, new Date().toISOString());
+    if ("why" in s) return refuse(s.why);
+    const list = withSnippet(mine, s);
+    if ("why" in list) return refuse(list.why);
+    p.onSnippets?.(list);
+    say(`Saved the snippet ${s.name}`);
+  };
+  const addMine = (s: RecipeSnippet) => {
+    const r = pasteBlocks(recipe, path, clipOf(s), p.active.images);
+    if ("why" in r) return refuse(r.why);
+    setWhy(null);
+    edit(r.recipe, r.images);
+    setSelection(r.paths);
+    setTab("block");
+    say(`Added ${s.name}${r.added.length ? `; added the option${r.added.length === 1 ? "" : "s"} ${r.added.join(", ")}` : ""}`);
+  };
+  /**
+   * A tile dropped on Layers or the stage: the new block at that place, unless the validator would refuse it there. `background`: dropped
+   * on a container's background slot in Layers, it is that container's background layer (one undo step with the add).
+   */
+  const addAt = (type: BlockType, toParent: number[], index: number, where: string, background?: boolean) => {
+    const refused = addRefusal(recipe, type, toParent) ?? (background && type === "repeat" ? "A Repeat lists items; it can't be a background" : undefined);
     if (refused) return refuse(refused);
-    if (type === "image") return chooseImage(toParent, index, ` ${where}`);
+    if (type === "image") return chooseImage(toParent, index, ` ${where}`, background);
     const r = addBlockAt(recipe, toParent, index, type, firstSensor);
-    edit(r.recipe);
+    const layered = background ? setBackground(r.recipe, [r.path], true) : r.recipe;
+    if ("why" in layered) return refuse(layered.why);
+    edit(layered);
     setPath(r.path);
     setTab("block");
     say(`Added ${BLOCK_LABEL[type]} ${where}`);
@@ -510,6 +558,43 @@ export function Builder(p: BuilderProps) {
         edit(r.recipe);
         return say(`Pasted the style of ${clip.name} onto ${what(list)}${r.skipped.length ? `; it can't take the ${r.skipped.join(", ")}` : ""}`);
       }
+      case "background":
+      case "foreground": {
+        const r = setBackground(recipe, list, cmd === "background");
+        if ("why" in r) return refuse(r.why);
+        edit(r);
+        refocus();
+        return say(cmd === "background" ? `${what(list)} set as the background` : `${what(list)} taken out of the background`);
+      }
+      case "forward":
+      case "backward":
+      case "front":
+      case "back": {
+        if (list.length !== 1) return;
+        const r = restack(recipe, list[0], cmd);
+        if ("why" in r) return refuse(r.why);
+        edit(r.recipe);
+        setPath(r.path);
+        refocus();
+        return say(`${nameAt(list[0])} ${cmd === "forward" ? "brought forward" : cmd === "backward" ? "sent backward" : cmd === "front" ? "to the front" : "to the back"}`);
+      }
+      case "select-parent": {
+        if (!at.length) return;
+        const up = at.slice(0, -1);
+        setPath(up);
+        setTab("block");
+        refocus();
+        return say(`${nameAt(up)} selected`);
+      }
+      case "select-children": {
+        const b = blockAt(recipe, at);
+        const kids = b && "children" in b ? b.children.map((_, k) => [...at, k]) : [];
+        if (!kids.length) return;
+        setSelection(kids, kids[0]);
+        setTab("block");
+        refocus();
+        return say(`${what(kids)} selected`);
+      }
       case "up":
       case "down":
         if (!at.length) return;
@@ -530,6 +615,13 @@ export function Builder(p: BuilderProps) {
     edit(r.recipe);
     setSelection(r.paths);
     say(`Moved ${what(from)} into ${nameAt(toParent)}`);
+  };
+  /** "Move to" in the layer menu (Phase 4): the row, or the selection when the row is in it, to the end of that container. */
+  const moveTo = (at: number[], toParent: number[]) => {
+    setWhy(null);
+    const target = blockAt(recipe, toParent);
+    drop(topLevel(selected.some((x) => keyOf(x) === keyOf(at)) ? selected : [at]), toParent, target && "children" in target ? target.children.length : 0);
+    refocus();
   };
   /** Renamed in Layers (F2, double-click, the menu): its name in Layers; emptied, the type's name again. */
   const rename = (at: number[], text: string) => {
@@ -622,12 +714,15 @@ export function Builder(p: BuilderProps) {
     if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || tile) return;
     const t = e.target as HTMLElement;
     const hit = t.closest<HTMLElement>("[data-recipe-path]");
-    if (!hit || t.closest("[data-share-handle]")) return;
+    if (!hit || t.closest(HANDLES)) return;
     // a locked block (or one in it) stays where it is (G25)
     const at = dragTarget(recipe, pathOf(hit.dataset.recipePath!));
     if (flagged(flags.locked, at)) return;
     const from = selected.some((x) => keyOf(x) === keyOf(at)) ? topLevel(selected) : [at];
     const [x0, y0] = [e.clientX, e.clientY];
+    // in a grid with tracks (Phase 5) the selected block, pressed in it, moves a track at a time: the block itself, or the one holding the press
+    const areaAt = areaGrid(recipe, at) ? at : path.length && areaGrid(recipe, path) && (keyOf(at) === keyOf(path) || keyOf(at).startsWith(`${keyOf(path)}.`)) && !flagged(flags.locked, path) ? [...path] : null;
+    if (areaAt && from.length <= 1) return pressArea(areaAt, x0, y0);
     let started = false;
     let last: StageDrop | null = null;
     stopDrag.current = trackPointer(
@@ -652,6 +747,36 @@ export function Builder(p: BuilderProps) {
     );
   };
 
+  /** A block of a grid with tracks dragged by its body: its area follows the pointer's track, shown as it goes, one undo step on release. */
+  const pressArea = (at: number[], x0: number, y0: number) => {
+    const m = measureArea(zoneEl(), recipe, at);
+    if (!m) return;
+    const start = areaNow(recipe, at, m.drawn);
+    const from = { col: trackAt(x0, m.lines.cols), row: trackAt(y0, m.lines.rows) };
+    let started = false;
+    let last: ReturnType<typeof dragArea> | null = null;
+    stopDrag.current = trackPointer(
+      (p) => {
+        if (!started && !pastDragThreshold(p.clientX - x0, p.clientY - y0)) return;
+        if (!started && keyOf(at) !== keyOf(path)) setPath(at);
+        started = true;
+        last = dragArea(start, from, { col: trackAt(p.clientX, m.lines.cols), row: trackAt(p.clientY, m.lines.rows) }, m.cols, m.rows);
+        setPreview(setArea(recipe, at, last));
+      },
+      (cancelled) => {
+        stopDrag.current = null;
+        if (!started) return;
+        dragged.current = true;
+        if (cancelled || !last) {
+          setPreview(null);
+          return say("Move cancelled");
+        }
+        edit(setArea(recipe, at, last));
+        say(`Moved ${nameAt(at)} to column ${last.col}, row ${last.row}`);
+      },
+    );
+  };
+
   // F2 on the stage renames in Layers
   const [renameAt, setRenameAt] = useState<{ key: string } | null>(null);
 
@@ -663,15 +788,20 @@ export function Builder(p: BuilderProps) {
   };
   const stageEntries = (at: number[]) => {
     const b = blockAt(recipe, at);
+    const list = topLevel(selected.some((s) => keyOf(s) === keyOf(at)) ? selected : [at]);
     return layerEntries({
       at,
-      many: topLevel(selected.some((s) => keyOf(s) === keyOf(at)) ? selected : [at]).length,
+      many: list.length,
       container: !!b && "children" in b,
       hidden: flags.hidden.includes(keyOf(at)),
       locked: flags.locked.includes(keyOf(at)),
       canPaste,
       canPasteStyle,
+      hasChildren: !!b && "children" in b && b.children.length > 0,
+      background: !!b?.background,
+      targets: moveTargets(recipe, list),
       onCommand: run,
+      onMoveTo: moveTo,
       onRename: (x) => setRenameAt({ key: keyOf(x) }),
       onFlag: setFlag,
     });
@@ -687,6 +817,16 @@ export function Builder(p: BuilderProps) {
       return openStageMenu(path, r ? r.left + 12 : e.currentTarget.getBoundingClientRect().left + 24, r ? r.top + 12 : e.currentTarget.getBoundingClientRect().top + 24);
     }
     const move = ({ ArrowUp: "up", ArrowDown: "down", ArrowLeft: "out", ArrowRight: "in" } as const)[e.key as "ArrowUp"];
+    // a block of a grid with tracks (Phase 5): Alt+arrows move it a track, Alt+Shift+arrows size it by a track
+    if (e.altKey && move && areaGrid(recipe, path) && !flagged(flags.locked, path)) {
+      e.preventDefault();
+      const delta = { cols: e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0, rows: e.key === "ArrowUp" ? -1 : e.key === "ArrowDown" ? 1 : 0 };
+      const drawn = measureArea(zoneEl(), recipe, path)?.drawn;
+      const r = e.shiftKey ? stepAreaSize(recipe, path, delta, drawn) : nudgeArea(recipe, path, delta, drawn);
+      if ("why" in r) return refuse(r.why);
+      edit(r);
+      return say(`${nameAt(path)}: ${e.shiftKey ? "sized" : "moved"} a track`);
+    }
     if (e.altKey && move) {
       e.preventDefault();
       if (path.length) run(move, path);
@@ -727,7 +867,9 @@ export function Builder(p: BuilderProps) {
     void file.arrayBuffer().then((buf) => {
       const r = addImageAt(latest.current, p.active.images, at.into, at.index, { path: imagePath(file.name, file.type), bytes: new Uint8Array(buf) });
       if ("why" in r) return refuse(r.why);
-      edit(r.recipe, r.images);
+      const layered = at.background ? setBackground(r.recipe, [r.path], true) : r.recipe;
+      if ("why" in layered) return refuse(layered.why);
+      edit(layered, r.images);
       setPath(r.path);
       setTab("block");
       say(`Added Image${at.where}`);
@@ -773,6 +915,12 @@ export function Builder(p: BuilderProps) {
     setSize(stageCells(k === 0 ? [v ?? size[0], size[1]] : [size[0], v ?? size[1]], size));
   };
   const outside = railShown ? undefined : outsideRange(recipe, size);
+  // "Check every size" (Phase 3): its findings hold for the recipe and the view they were measured on; an edit or another view drops them
+  const view = [recipe, live, lookId, preset] as const;
+  const [check, setCheck] = useState<{ view: typeof view; spans: Cells[]; done: number; found?: SpanResult[] } | null>(null);
+  const checkNow = check?.view.every((x, k) => x === view[k]) ? check : null;
+  const checking = !!checkNow && !checkNow.found;
+  const sizeFindings = checkNow?.found?.flatMap((s) => s.issues.map((issue) => ({ cells: s.cells, issue })));
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
@@ -865,7 +1013,8 @@ export function Builder(p: BuilderProps) {
               onRename={rename}
               onCommand={run}
               onMove={drop}
-              onAdd={(type, toParent, index) => addAt(type, toParent, index, `into ${nameAt(toParent)}`)}
+              onMoveTo={moveTo}
+              onAdd={(type, toParent, index, background) => addAt(type, toParent, index, background ? `as the background of ${nameAt(toParent)}` : `into ${nameAt(toParent)}`, background)}
               onWhy={setWhy}
               hidden={flags.hidden}
               locked={flags.locked}
@@ -957,6 +1106,53 @@ export function Builder(p: BuilderProps) {
                   {s.label}
                 </button>
               ))}
+              {mine.map((s) => (
+                <div key={s.id} className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => addMine(s)}
+                    data-add-user-snippet={s.name}
+                    title={`${s.blocks.length} block${s.blocks.length === 1 ? "" : "s"}, saved by you`}
+                    className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-ui-md border border-ui-subtle bg-ui-panel px-2.5 text-left text-micro text-ui-2 hover:border-ui-strong hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+                  >
+                    <BlockIcon type="card" />
+                    <span className="truncate">{s.name}</span>
+                  </button>
+                  <IconButton label={`Remove the snippet ${s.name}`} size={28} onClick={() => {
+                    p.onSnippets?.(withoutSnippet(mine, s.id));
+                    say(`Removed the snippet ${s.name}`);
+                  }}>
+                    <X className="h-3.5 w-3.5" />
+                  </IconButton>
+                </div>
+              ))}
+              {p.onSnippets &&
+                (naming === null ? (
+                  <Button small variant="ghost" disabled={!topLevel(selected).length || header} onClick={() => setNaming(layerName(recipe, blockAt(recipe, path) ?? recipe.root))} title="The selected blocks, with the options they read, to add to any recipe">
+                    Save selection as a snippet…
+                  </Button>
+                ) : (
+                  <form
+                    className="flex items-center gap-1"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      saveSnippet(naming);
+                    }}
+                  >
+                    <input
+                      autoFocus
+                      aria-label="Snippet name"
+                      value={naming}
+                      maxLength={40}
+                      onChange={(e) => setNaming(e.target.value)}
+                      onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), setNaming(null))}
+                      className="h-8 min-w-0 flex-1 rounded-ui-md border border-ui-strong bg-ui-app px-2 text-body text-ui-1 outline-none focus:border-ui-accent"
+                    />
+                    <Button small type="submit">
+                      Save
+                    </Button>
+                  </form>
+                ))}
             </div>
           </div>
         </aside>
@@ -984,6 +1180,19 @@ export function Builder(p: BuilderProps) {
                 {outside === "under" ? `Under its Smallest (${recipe.size.min.join("×")}): Edit won't size it this small` : `Past its Largest (${recipe.size.max.join("×")}): Edit warns at this size`}
               </span>
             )}
+            <Button
+              small
+              variant="ghost"
+              disabled={checking}
+              onClick={() => {
+                const spans = spansOf(recipe);
+                setCheck({ view, spans, done: 0 });
+                say(`Checking ${spans.length} sizes`);
+              }}
+              title={`Draws it at every size from ${recipe.size.min.join("×")} to ${recipe.size.max.join("×")} and lists what is cut, crowded or under the text floor`}
+            >
+              {checkNow && checking ? `Checking ${checkNow.done} of ${checkNow.spans.length}…` : "Check every size"}
+            </Button>
             <span className="ml-3 text-body text-ui-3">Preview in</span>
             <select aria-label="Preview in" value={lookId} onChange={(e) => setLookId(e.target.value)} className="h-8 rounded-ui-md border border-ui-strong bg-ui-raised px-2.5 text-body font-medium text-ui-1 outline-none focus:border-ui-accent">
               {LOOKS.map((l) => (
@@ -1013,7 +1222,8 @@ export function Builder(p: BuilderProps) {
               const hit = t.closest<HTMLElement>("[data-recipe-path]");
               if (!hit && !t.closest("[data-recipe-zone]")) return;
               e.preventDefault();
-              // a locked block's menu is its container's, as its click picks that (G25)
+              // a handle is the selected block's; a locked block's menu is its container's, as its click picks that (G25)
+              if (t.closest(HANDLES)) return openStageMenu(path, e.clientX, e.clientY);
               openStageMenu(hit ? stagePick(flags.locked, pathOf(hit.dataset.recipePath!)) : [], e.clientX, e.clientY);
             }}
             onClick={(e) => {
@@ -1022,7 +1232,7 @@ export function Builder(p: BuilderProps) {
                 return;
               }
               const target = e.target as HTMLElement;
-              if (target.closest("[data-share-handle]")) return;
+              if (target.closest(HANDLES)) return;
               const hit = target.closest<HTMLElement>("[data-recipe-path]");
               if (hit) {
                 // a locked block is not picked here: the block holding it is (G25); Ctrl adds or takes away, Shift picks a range
@@ -1079,6 +1289,18 @@ export function Builder(p: BuilderProps) {
                           edit(r);
                           say(text);
                         }} />}
+                    {!moving && !tile && selected.length === 1 && !header && (
+                      <>
+                        <AreaHandles zone={zoneEl()} recipe={recipe} path={path} locked={flags.locked} tick={[recipe, size, live, lookId, preset, stageBox, data]} onLive={setPreview} onDone={(r, text) => {
+                          edit(r);
+                          say(text);
+                        }} />
+                        <FillHandles zone={zoneEl()} recipe={recipe} path={path} locked={flags.locked} tick={[recipe, size, live, lookId, preset, stageBox, data]} onLive={setPreview} onDone={(r, text) => {
+                          edit(r);
+                          say(text);
+                        }} />
+                      </>
+                    )}
                     {(stageDrop ?? moving?.drop) && <DropMark zone={zoneEl()} drop={(stageDrop ?? moving?.drop)!} verb={moving ? "Move" : "Add"} tick={[recipe, size, stageBox]} />}
                   </>
                 }
@@ -1112,6 +1334,60 @@ export function Builder(p: BuilderProps) {
               ))}
             </ul>
           )}
+          {checkNow?.found && sizeFindings && (
+            <section aria-label="Every size" data-size-check="" className="-mt-1 flex max-h-[30%] shrink-0 flex-col gap-0.5 text-caption">
+              <div className="flex items-center gap-2">
+                {sizeFindings.length ? <CircleAlert className="h-4 w-4 shrink-0 text-ui-warn" strokeWidth={1.5} aria-hidden /> : <CircleCheck className="h-4 w-4 shrink-0 text-ui-ok" strokeWidth={1.5} aria-hidden />}
+                <span role="status" data-size-check-summary="" className="text-ui-2">
+                  {sizeFindings.length
+                    ? `${checkNow.found.length} of ${checkNow.spans.length} sizes have problems`
+                    : `Checked ${checkNow.spans.length} size${checkNow.spans.length === 1 ? "" : "s"}, from ${recipe.size.min.join("×")} to ${recipe.size.max.join("×")}: all fit`}
+                </span>
+                <IconButton label="Close the size check" size={26} className="ml-auto" onClick={() => setCheck(null)}>
+                  <X className="h-3.5 w-3.5" />
+                </IconButton>
+              </div>
+              {sizeFindings.length > 0 && (
+                <ul aria-label="Problems at every size" className="flex flex-col gap-0.5 overflow-y-auto">
+                  {sizeFindings.map((x, k) => (
+                    <li key={`${k} ${x.issue.text}`}>
+                      <button
+                        type="button"
+                        data-size-problem={x.cells.join("x")}
+                        onClick={() => {
+                          // the stage at that size, the block picked
+                          setInRail(false);
+                          setSize(x.cells);
+                          goTo(x.issue);
+                        }}
+                        className="w-full truncate rounded-ui-sm px-6 py-0.5 text-left text-ui-2 hover:bg-ui-raised hover:text-ui-1"
+                      >
+                        {x.issue.text}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+          {checkNow && checking && (
+            <SizeCheckRun
+              recipe={live ? recipe : sampled}
+              named={recipe}
+              spans={checkNow.spans}
+              values={shownValues}
+              sample={!live}
+              appearance={p.appearance}
+              pageStyle={p.pageStyle}
+              lookId={lookId}
+              images={p.active.images}
+              onProgress={(done) => setCheck((c) => c && { ...c, done })}
+              onDone={(found) => {
+                setCheck((c) => c && { ...c, found });
+                say(found.length ? `${found.length} of ${checkNow.spans.length} sizes have problems` : `Every size fits`);
+              }}
+            />
+          )}
         </main>
         <aside aria-label="Inspector" className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-chrome">
           <Tabs
@@ -1127,11 +1403,24 @@ export function Builder(p: BuilderProps) {
           />
           {tab === "block" && selected.length > 1 && (
             <p data-multi="" className="mx-4 mt-3 rounded-ui-md bg-ui-raised px-3 py-2 text-caption text-ui-2">
-              {selected.length} blocks selected: Delete, Duplicate, Copy, Cut, Paste style and Wrap act on all. The settings below are {layerName(recipe, blockAt(recipe, path) ?? recipe.root)}'s.
+              {selected.length} blocks selected: Delete, Duplicate, Copy, Cut, Paste style and Wrap act on all, and so do the shared fields below.
             </p>
           )}
           <TypingContext.Provider value={typing}>
-            {tab === "block" && <BlockTab recipe={recipe} path={path} header={header} onChange={onBlockEdit} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} drawnOpacity={drawn[path.join(".")]} />}
+            {/* several blocks (Phase 6): the fields they share, each one undo step for all of them */}
+            {tab === "block" && topLevel(selected).length > 1 && (
+              <MultiInspector
+                recipe={recipe}
+                paths={topLevel(selected)}
+                primary={path}
+                onChange={(r, text) => {
+                  edit(r);
+                  say(text);
+                }}
+                onWhy={refuse}
+              />
+            )}
+            {tab === "block" && topLevel(selected).length <= 1 && <BlockTab recipe={recipe} path={path} header={header} onChange={onBlockEdit} onRemove={() => run("delete", path)} onDuplicate={() => run("duplicate", path)} data={data} names={live ? names : undefined} devices={devices} onOpenSources={p.onOpenSources} onImage={onImage} nextVersion={p.active.stored?.version === recipe.version ? nextVersion(recipe.version) : recipe.version} drawnOpacity={drawn[path.join(".")]} />}
             {tab === "options" && <OptionsTab recipe={recipe} onChange={(r) => edit(r)} data={{ ...sampleData, ...liveData }} onOpenSources={p.onOpenSources} />}
             {tab === "presets" && <PresetsTab recipe={recipe} onChange={(r) => edit(r)} current={preset} onPick={pickPreset} values={shownValues} size={size} data={{ ...sampleData, ...liveData }} devices={devices} onOpenSources={p.onOpenSources} />}
           </TypingContext.Provider>

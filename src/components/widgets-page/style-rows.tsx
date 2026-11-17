@@ -66,7 +66,7 @@ export interface StyleRowsProps {
 /**
  * A segmented row whose "" choice is unset: picking it removes the key. `number` writes the value as a number (an opacity, a sweep).
  */
-function EnumRow({ label, hint, value, options, number, onPick }: { label: string; hint?: string; value: unknown; options: { value: string; label: string }[]; number?: boolean; onPick: (v: string | number | undefined) => void }) {
+export function EnumRow({ label, hint, value, options, number, onPick }: { label: string; hint?: string; value: unknown; options: { value: string; label: string }[]; number?: boolean; onPick: (v: string | number | undefined) => void }) {
   return (
     <Field label={label} hint={hint}>
       <Segmented label={label} value={value === undefined ? "" : String(value)} options={options} onChange={(v) => onPick(v === "" ? undefined : number ? Number(v) : v)} />

@@ -2,6 +2,7 @@ import { modules } from "@/modules";
 import { canvasTitle, CARDS_ID, type Placement } from "@/lib/layout";
 import type { WidgetView } from "@/widgets/core/types";
 import type { ModuleSettings } from "@/modules/types";
+import { recipeModule } from "@/widgets/recipe/resolve";
 
 /** A placeable widget: its minimum zone footprint and the Library fields it declares. */
 export interface ModuleMeta {
@@ -63,13 +64,14 @@ export function panelTitle(p: Placement): string {
   return label !== "" ? label : (p.panel?.title ?? "");
 }
 
-/** Display title of a placement: the name it was given in Layers, panel title, module title, or its id. */
+/** Display title of a placement: the name it was given in Layers, panel title, module title (a recipe's name once it has loaded), or its id. */
 export function placementTitle(p: Placement): string {
   return (
     p.name ||
     ((p.panel ? panelTitle(p) : undefined) ??
       canvasTitle(p) ??
       ALL_MODULES.find((m) => m.id === p.module)?.title ??
+      recipeModule(p.module)?.title ??
       p.module)
   );
 }
