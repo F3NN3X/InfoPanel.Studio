@@ -96,5 +96,25 @@ test("free blocks: dragged onto one line by the guide snap, selected by a rubber
   await page.locator("[data-builder-stage]").focus();
   await page.keyboard.press("Control+Shift+L");
   await expect(layer(page, "1")).not.toHaveAttribute("data-locked", "");
+
+  // a Label tile dropped low in the card lands centred at the pointer at its default size; Ctrl+D puts its copy 2 % down and right
+  const tile = (await page.locator('[data-add-block="label"]').boundingBox())!;
+  const drop = { x: frame.x + frame.width / 2, y: frame.y + frame.height * 0.8 };
+  await page.mouse.move(tile.x + tile.width / 2, tile.y + tile.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(drop.x, drop.y, { steps: 10 });
+  // the browser sends the drag's dragover to where it rests only after a further move
+  await page.mouse.move(drop.x + 1, drop.y);
+  await page.mouse.move(drop.x, drop.y);
+  await page.mouse.up();
+  await expect(said(page)).toContainText("Added Label");
+  await page.keyboard.press("Control+d");
+  await expect(said(page)).toHaveText("Duplicated Label");
+  await save(page, "Free");
+  r = await stored(scratch.base, "recipe.free");
+  const [added, copy] = [r.root.children[2].box, r.root.children[3].box];
+  expect(added[0]).toBeCloseTo(0.25, 2);
+  expect(added[1]).toBeCloseTo(0.8 - added[3] / 2, 2);
+  expect(copy).toEqual([added[0] + 0.02, added[1] + 0.02, added[2], added[3]].map((n) => Math.round(n * 10000) / 10000));
   expect(errors).toEqual([]);
 });

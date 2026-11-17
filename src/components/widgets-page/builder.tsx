@@ -63,7 +63,7 @@ import { RecipePreview, zonePx } from "./recipe-preview";
 import { AreaHandles, areaText, FillHandles, measureArea } from "./area-handles";
 import { areaGrid, areaNow, dragArea, fitLayout, nudgeArea, rectOf, restack, setArea, setBackground, stepAreaSize, trackAt } from "./layout-model";
 import { ArrangeBar, Band, boxIn, FreeGuides, FreeHandles, type Frame, frameOf, fractionOf, type GuideView, padOf, pxOf, siblingBoxes } from "./free-handles";
-import { ARRANGE_LABEL, arrangeBoxes, boxText, type FreeArrange, fitFree, freeParent, isFree, moveGroup, nudgeBoxes, setBoxes } from "./free-layout";
+import { ARRANGE_LABEL, arrangeBoxes, boxAtPoint, boxText, type FreeArrange, fitFree, freeParent, isFree, moveGroup, nudgeBoxes, offsetCopies, setBoxes } from "./free-layout";
 import { areaGuides, type Box, freeTargets, snapDistance, snapFreeMove } from "./free-snap";
 import { unionBox } from "@/lib/infopanel/editor/snap";
 import { ShareHandles } from "./share-handles";
@@ -445,14 +445,17 @@ export function Builder(p: BuilderProps) {
   };
   /**
    * A tile dropped on Layers or the stage: the new block at that place, unless the validator would refuse it there. `background`: dropped
-   * on a container's background slot in Layers, it is that container's background layer (one undo step with the add).
+   * on a container's background slot in Layers, it is that container's background layer (one undo step with the add). `at`: dropped on the
+   * stage into a free container, it lands centred at the pointer at its default size, kept inside the container.
    */
-  const addAt = (type: BlockType, toParent: number[], index: number, where: string, background?: boolean) => {
+  const addAt = (type: BlockType, toParent: number[], index: number, where: string, background?: boolean, at?: { x: number; y: number }) => {
     const refused = addRefusal(recipe, type, toParent) ?? (background && type === "repeat" ? "A Repeat lists items; it can't be a background" : undefined);
     if (refused) return refuse(refused);
     if (type === "image") return chooseImage(toParent, index, ` ${where}`, background);
     const r = addBlockAt(recipe, toParent, index, type, firstSensor);
-    const layered = background ? setBackground(r.recipe, [r.path], true) : r.recipe;
+    const frame = at && !background && isFree(blockAt(recipe, toParent)) ? frameOf(zoneEl(), toParent) : undefined;
+    const placed = frame ? setBoxes(r.recipe, [{ path: r.path, box: boxAtPoint({ x: (at!.x - frame.left) / frame.scale / (frame.w || 1), y: (at!.y - frame.top) / frame.scale / (frame.h || 1) }) }]) : r.recipe;
+    const layered = background ? setBackground(placed, [r.path], true) : placed;
     if ("why" in layered) return refuse(layered.why);
     edit(layered);
     setPath(r.path);
@@ -492,7 +495,8 @@ export function Builder(p: BuilderProps) {
       case "duplicate": {
         if (!list.length) return;
         const r = duplicateBlocks(recipe, list);
-        edit(r.recipe);
+        // a copy in a free container sits a step off its original, so it shows
+        edit(offsetCopies(r.recipe, r.paths));
         setSelection(r.paths);
         refocus();
         return say(`Duplicated ${what(list)}`);
@@ -1443,7 +1447,7 @@ export function Builder(p: BuilderProps) {
               setStageDrop(null);
               if (!d || !tile) return;
               e.preventDefault();
-              addAt(tile, d.toParent, d.index, d.text);
+              addAt(tile, d.toParent, d.index, d.text, false, { x: e.clientX, y: e.clientY });
             }}
             className="relative flex min-h-0 flex-1 select-none items-center justify-center overflow-hidden rounded-ui-lg border border-ui-subtle outline-none focus-visible:border-ui-accent"
             style={{ backgroundImage: "radial-gradient(color-mix(in oklab, var(--ui-text-hint) 30%, transparent) 1px, transparent 1px)", backgroundSize: "16px 16px" }}

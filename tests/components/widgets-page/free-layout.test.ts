@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { blockAt, moveBlocks, recipeIssues, withFormat } from "@/components/widgets-page/builder-model";
-import { arrangeBoxes, boxText, clampBox, defaultBox, fitFree, freeParent, freeRefusal, moveGroup, nudgeBoxes, setBoxes, setFree } from "@/components/widgets-page/free-layout";
+import { blockAt, duplicateBlocks, moveBlocks, recipeIssues, withFormat } from "@/components/widgets-page/builder-model";
+import { arrangeBoxes, boxAtPoint, boxText, clampBox, defaultBox, fitFree, freeParent, freeRefusal, moveGroup, nudgeBoxes, offsetCopies, setBoxes, setFree } from "@/components/widgets-page/free-layout";
 import { fitLayout } from "@/components/widgets-page/layout-model";
 import type { Block, Recipe } from "@/widgets/recipe/types";
 import { fixtureRecipe } from "../../widgets/recipe/fixture-files";
@@ -102,6 +102,32 @@ describe("boxes", () => {
     const r = recipeWith([value("A", { box: [0, 0, 0.5, 0.5] })], "free");
     expect(boxAt(setBoxes(r, [{ path: [0], box: [0.9, 0, 0.5, 0.5] }]), [0])).toEqual([0.5, 0, 0.5, 0.5]);
     expect(boxText([0.125, 0, 0.5, 0.25])).toBe("x 12.5 %  y 0 %  w 50 %  h 25 %");
+  });
+});
+
+describe("new blocks in a free container", () => {
+  it("a duplicate sits 2 % down and right of its original; where that leaves the container, up or left instead", () => {
+    const r = recipeWith([value("A", { box: [0.1, 0.2, 0.3, 0.3] }), value("B", { box: [0.7, 0.1, 0.3, 0.5] }), value("C", { box: [0, 0, 1, 1] })], "free");
+    const dup = duplicateBlocks(r, [[0], [1], [2]]);
+    const moved = offsetCopies(dup.recipe, dup.paths);
+    expect(dup.paths.map((p) => boxAt(moved, p))).toEqual([
+      [0.12, 0.22, 0.3, 0.3],
+      // at the right edge: left instead, down as usual
+      [0.68, 0.12, 0.3, 0.5],
+      // filling it: up and left would leave it too, so it is kept inside
+      [0, 0, 1, 1],
+    ]);
+    expect(boxAt(moved, [0])).toEqual([0.1, 0.2, 0.3, 0.3]);
+    // a copy in a flow is left as it is
+    const flow = recipeWith([value("A")]);
+    const flowDup = duplicateBlocks(flow, [[0]]);
+    expect(offsetCopies(flowDup.recipe, flowDup.paths)).toBe(flowDup.recipe);
+  });
+
+  it("a tile dropped at a point lands centred there at the default size, kept inside the container", () => {
+    const [, , w, h] = defaultBox(0);
+    expect(boxAtPoint({ x: 0.5, y: 0.5 })).toEqual([0.5 - w / 2, 0.5 - h / 2, w, h]);
+    expect(boxAtPoint({ x: 0.98, y: 0.02 })).toEqual([1 - w, 0, w, h]);
   });
 });
 

@@ -106,6 +106,30 @@ export function moveGroup(boxes: readonly (readonly number[])[], dx: number, dy:
   return boxes.map((b) => clampBox([b[0] + mx, b[1] + my, b[2], b[3]]));
 }
 
+/** How far a duplicate in a free container sits from its original, each way. */
+export const COPY_STEP = 0.02;
+
+/**
+ * Duplicates in a free container (`paths`, the copies) moved `COPY_STEP` down and right of their originals, so they show; on an axis
+ * where that would leave the container, up or left instead. Copies in a flow are left as they are.
+ */
+export function offsetCopies(recipe: Recipe, paths: readonly Path[]): Recipe {
+  const step = (at: number, size: number) => (at + size + COPY_STEP <= 1 + 1e-9 ? at + COPY_STEP : at - COPY_STEP);
+  return setBoxes(
+    recipe,
+    paths.flatMap((p) => {
+      const box = freeParent(recipe, p) ? blockAt(recipe, p)?.box : undefined;
+      return box ? [{ path: p, box: [step(box[0], box[2]), step(box[1], box[3]), box[2], box[3]] }] : [];
+    }),
+  );
+}
+
+/** A new block's box in a free container: `defaultBox`'s size centred at `at` (fractions of the container), kept inside it. */
+export const boxAtPoint = (at: { x: number; y: number }): FreeBox => {
+  const [, , w, h] = defaultBox(0);
+  return clampBox([at.x - w / 2, at.y - h / 2, w, h]);
+};
+
 /** The blocks of `paths` with boxes, all in one free container, or why not. */
 function freeSet(recipe: Recipe, paths: readonly Path[]): { parent: number[]; list: { path: number[]; box: FreeBox }[] } | { why: string } {
   const parent = paths.length ? freeParent(recipe, paths[0]) : undefined;
