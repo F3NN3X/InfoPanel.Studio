@@ -247,13 +247,13 @@ function Layered({ layers, path, children }: { layers: (readonly [Block, number]
       {layers.map(([b, k]) => {
         const bg = b.background!;
         return (
-          <div key={k} data-recipe-block={b.type} data-recipe-path={at(path, k)} data-recipe-layer="background" className={`absolute flex min-h-0 min-w-0 overflow-hidden ${motionOf(b, ctx)}`.trim()} style={{ inset: bg.inset ?? 0, opacity: bg.opacity ? bg.opacity / 100 : undefined, filter: bg.blur ? `blur(${bg.blur}px)` : undefined }}>
+          <div key={k} data-recipe-block={b.type} data-recipe-path={at(path, k)} data-recipe-layer="background" className={`absolute isolate flex min-h-0 min-w-0 overflow-hidden ${motionOf(b, ctx)}`.trim()} style={{ inset: bg.inset ?? 0, opacity: bg.opacity ? bg.opacity / 100 : undefined, filter: bg.blur ? `blur(${bg.blur}px)` : undefined }}>
             <BlockView b={b} path={at(path, k)} />
           </div>
         );
       })}
       {/* the content stays clickable where it draws; between its blocks a click reaches the layers under it */}
-      <div className="pointer-events-none relative h-full w-full min-h-0 min-w-0 [&_[data-recipe-path]]:pointer-events-auto">{children}</div>
+      <div className="pointer-events-none relative isolate h-full w-full min-h-0 min-w-0 [&_[data-recipe-path]]:pointer-events-auto">{children}</div>
     </div>
   );
 }
@@ -558,7 +558,10 @@ function GridView({ b, path }: { b: GridBlock; path: string }) {
   // tracks (Phase 5): each column and row its share; a block with an area spans its tracks, one without takes the next free cell
   const t = b.tracks;
   const tracks = (list: number[]) => list.map((f) => `minmax(0, ${f}fr)`).join(" ");
-  const areaOf = (c: Block): CSSProperties | undefined => (t && c.area ? { gridColumn: `${c.area[0]} / span ${c.area[2]}`, gridRow: `${c.area[1]} / span ${c.area[3]}` } : undefined);
+  // each cell its own stacking context in the cells' order, so a later area is drawn over an earlier one whole (a ring's centre
+  // value, which is positioned, would otherwise paint over a later cell)
+  const areaOf = (c: Block): CSSProperties | undefined =>
+    t ? { position: "relative", isolation: "isolate", ...(c.area ? { gridColumn: `${c.area[0]} / span ${c.area[2]}`, gridRow: `${c.area[1]} / span ${c.area[3]}` } : null) } : undefined;
   return (
     <Layered layers={layers} path={path}>
     <div ref={box.ref} data-recipe-grid={path} className="grid h-full w-full min-h-0 min-w-0" style={{ gridTemplateColumns: t ? tracks(t.cols) : `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: t ? tracks(t.rows) : undefined, gridAutoRows: "minmax(0, 1fr)", gap: SPACING[b.spacing ?? "normal"] }}>

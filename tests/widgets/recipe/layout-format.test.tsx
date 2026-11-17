@@ -48,7 +48,8 @@ describe("grid tracks and areas", () => {
     const html = draw(r);
     expect(html.indexOf('data-recipe-area="1 1 2 2"')).toBeLessThan(html.indexOf('data-recipe-area="2 1 1 1"'));
     expect(html).toContain("grid-template-columns:minmax(0, 1fr) minmax(0, 2fr)");
-    expect(html).toContain("grid-column:1 / span 2;grid-row:1 / span 2");
+    // each cell a stacking context of its own, so the later one is drawn over the earlier whole
+    expect(html).toContain("position:relative;isolation:isolate;grid-column:1 / span 2;grid-row:1 / span 2");
   });
 
   it("refuses an area outside the tracks, on a grid without tracks, out of a grid, on a Repeat, or not four whole numbers", async () => {
