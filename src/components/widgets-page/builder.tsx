@@ -633,6 +633,8 @@ export function Builder(p: BuilderProps) {
     stopDrag.current = trackPointer(
       (m) => {
         if (!started && !pastDragThreshold(m.clientX - x0, m.clientY - y0)) return;
+        // a block dragged that was not selected is the selection, as a row dragged in Layers
+        if (!started && from.length === 1 && keyOf(from[0]) !== keyOf(path)) setPath(from[0]);
         started = true;
         last = dropUnder(m.clientX, m.clientY, { from });
         setMoving({ from, drop: last });
