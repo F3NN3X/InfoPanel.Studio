@@ -616,7 +616,6 @@
         "src/lib/action-runner.ts",
         "src/lib/action-commands.ts",
         "src/components/use-touch-zone.ts",
-        "src/components/placement-keys.ts",
         "src/components/hold-button.tsx",
         "src/components/action-confirm.tsx",
         "src/lib/profile-switch.ts",

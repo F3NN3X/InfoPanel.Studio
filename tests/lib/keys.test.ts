@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allKeys, keyGrid, keyMark, keyMore, keyRoom, keyTap, keyWindow, MIN_KEY, normalizeKeys, type KeySlot } from "@/lib/keys";
+import { allKeys, keyGrid, keyMark, keyMore, keyRoom, keySide, keyTap, keyWindow, MIN_KEY, normalizeKeys, type KeySlot } from "@/lib/keys";
 
 // The Keys widget's keys (pinned layer P7): how a level is laid out, what a key's marks and name say, and what a load keeps.
 
@@ -47,6 +47,10 @@ describe("the keys", () => {
     expect(keyWindow(six, 6, 0)).toEqual({ shown: six, more: false, next: 0 });
     expect(keyWindow(six, 4, 0)).toEqual({ shown: ["a", "b", "c"], more: true, next: 3 });
     expect(keyWindow(six, 4, 3)).toEqual({ shown: ["d", "e", "f"], more: true, next: 0 });
+    // a key's side: the smaller share of the box, and 0, never less, before the box is measured
+    expect(keySide(450, 210, 4, 2, 10)).toBe(100);
+    expect(keySide(0, 0, 4, 2, 10)).toBe(0);
+    expect(keySide(12, 300, 2, 1, 10)).toBe(1);
     // a start past the end (keys removed meanwhile) starts over
     expect(keyWindow(six, 4, 9).shown).toEqual(["a", "b", "c"]);
   });

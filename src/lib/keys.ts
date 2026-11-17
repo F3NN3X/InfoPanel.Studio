@@ -59,6 +59,11 @@ export function keyGrid(count: number, w: number, h: number, cols?: number): { c
   return { cols: c, rows: Math.ceil(n / c) };
 }
 
+/** A key's side on a `cols` x `rows` grid in a `w` x `h` box with `gap` between keys, px; 0 until the box is measured (the gaps
+ * alone would make it negative, and a glyph sized from it -1 px). */
+export const keySide = (w: number, h: number, cols: number, rows: number, gap: number): number =>
+  Math.max(0, Math.min((w - gap * (cols - 1)) / cols, (h - gap * (rows - 1)) / rows));
+
 /** The smallest key a finger is offered, px: below it a level shows the keys that fit and a More key for the rest. */
 export const MIN_KEY = 48;
 

@@ -1,12 +1,11 @@
 import { useContext, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { AppWindow, ChevronLeft, ChevronRight } from "lucide-react";
-import { PlacementKeysContext } from "@/components/placement-keys";
-import { RailHostContext } from "@/components/rail-host";
+import { PlacementKeysContext, RailHostContext } from "@/components/rail-host";
 import { pageIcon } from "@/components/studio/page-icons";
 import { audio, EMPTY_AUDIO } from "@/lib/audio-control";
 import { extras } from "@/lib/extras";
 import type { GestureHandlers } from "@/lib/gesture";
-import { keyGrid, keyMark, keyMore, keyRoom, keyTap, keyWindow, type KeySlot } from "@/lib/keys";
+import { keyGrid, keyMark, keyMore, keyRoom, keySide, keyTap, keyWindow, type KeySlot } from "@/lib/keys";
 import type { TouchAction, TouchGesture } from "@/lib/pinned";
 import { actionOn } from "@/lib/rail";
 import type { ModuleSettings } from "@/modules/types";
@@ -201,7 +200,7 @@ export default function Keys(p: KeysProps) {
         const win = keyWindow(items, Math.max(2, keyRoom(w, h, GAP) - lead.length), start);
         const level = [...lead, ...win.shown, ...(win.more ? [MORE] : [])];
         const { cols, rows } = keyGrid(level.length, w, h, p.columns);
-        const side = Math.min((w - GAP * (cols - 1)) / cols, (h - GAP * (rows - 1)) / rows);
+        const side = keySide(w, h, cols, rows, GAP);
         return (
           <div role="group" aria-label={folder ? folder.name : (p.title ?? "Keys")} className="grid h-full w-full" style={{ gap: GAP, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
             {level.map((k) => (

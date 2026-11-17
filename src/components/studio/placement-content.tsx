@@ -4,7 +4,7 @@ import { isClaimed, modules } from "@/modules";
 import { chromeOf } from "@/modules/standard-settings";
 import { effectiveSettings, placementReads, type ModuleSettings, type SensorMap } from "@/modules/types";
 import { tokenScope } from "@/components/widget-style";
-import { PlacementKeysContext } from "@/components/placement-keys";
+import { PlacementKeysContext } from "@/components/rail-host";
 import type { SensorValue } from "@/hooks/useSensors";
 import { useSensors } from "@/hooks/useSensors";
 import { AUDIO_PREFIX } from "@/lib/sensor-stream";

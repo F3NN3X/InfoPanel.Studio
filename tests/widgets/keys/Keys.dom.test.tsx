@@ -1,8 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PlacementKeysContext } from "@/components/placement-keys";
-import { RailHostContext, type RailHost } from "@/components/rail-host";
+import { PlacementKeysContext, RailHostContext, type RailHost } from "@/components/rail-host";
 import { EMPTY_EXTRAS, type Extras } from "@/lib/extras";
 import { DOUBLE_TAP_MS, HOLD_MS } from "@/lib/gesture";
 import type { KeySlot } from "@/lib/keys";
