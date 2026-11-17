@@ -216,6 +216,66 @@ async fn serves_svg_with_its_sandbox_and_an_empty_file_whole() {
 }
 
 #[tokio::test]
+async fn stores_an_svg_sanitised_and_a_clean_one_as_it_came() {
+    let s = start().await;
+    let svg_upload = [("Content-Type", "image/svg+xml"), ("X-Dashboard-Asset", "1")];
+    // clean: the id is the hash of the bytes sent, so a URL to it never changes
+    let clean = br##"<svg xmlns="http://www.w3.org/2000/svg"><path fill="url(#g)" d="M0 0h1v1z"/></svg>"##;
+    let saved = upload(s.port, &svg_upload, clean).await;
+    assert_eq!(saved.json()["id"].as_str().unwrap(), format!("{}.svg", sha256_hex(clean)));
+    // a script, a handler and a link out are gone from the stored copy, whose id is its own hash
+    let dirty = br#"<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><script>alert(2)</script><image href="https://evil.example/x.png"/><circle r="1"/></svg>"#;
+    let saved = upload(s.port, &svg_upload, dirty).await;
+    assert_eq!(saved.status, 200);
+    let id = saved.json()["id"].as_str().unwrap().to_string();
+    let stored = std::fs::read(s.data().join("assets").join(&id)).unwrap();
+    assert_eq!(String::from_utf8(stored.clone()).unwrap(), r#"<svg xmlns="http://www.w3.org/2000/svg"><image/><circle r="1"/></svg>"#);
+    assert_eq!((id, saved.json()["size"].as_u64()), (format!("{}.svg", sha256_hex(&stored)), Some(stored.len() as u64)));
+    // one it can't read is refused and leaves nothing behind
+    let unreadable = upload(s.port, &svg_upload, br#"<svg xmlns="http://www.w3.org/2000/svg"><!ENTITY x "y"><g/></svg>"#).await;
+    assert_eq!(unreadable.status, 415);
+    let names: Vec<String> = std::fs::read_dir(s.data().join("assets")).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+    assert_eq!(names.len(), 2, "{names:?}");
+    s.stop().await;
+}
+
+const ICON: &str = "/api/assets/app-icon";
+const ICON_HEADERS: [(&str, &str); 2] = [("Content-Type", "application/json"), ("X-Dashboard-Asset", "1")];
+
+#[tokio::test]
+async fn reads_an_app_icon_behind_its_guards() {
+    let s = start().await;
+    let p = s.port;
+    let body = br#"{"exe":"notepad.exe"}"#;
+    assert_eq!(get(p, ICON).await.status, 405);
+    assert_eq!(send(p, "POST", ICON, &[("Content-Type", "application/json")], body).await.status, 403);
+    assert_eq!(send(p, "POST", ICON, &[("X-Dashboard-Asset", "1"), ("Content-Type", "text/plain")], body).await.status, 415);
+    // a cross-site write is refused by the request guard before the route
+    assert_eq!(send(p, "POST", ICON, &[ICON_HEADERS[0], ICON_HEADERS[1], ("Origin", "http://evil.example")], body).await.status, 403);
+    // a program is named by its file name only: never a path, a share or a device
+    for exe in ["..\\\\notepad.exe", "C:\\\\Windows\\\\notepad.exe", "\\\\\\\\server\\\\share\\\\x.exe", "notepad", "con.txt", ""] {
+        let named = send(p, "POST", ICON, &ICON_HEADERS, format!(r#"{{"exe":"{exe}"}}"#).as_bytes()).await;
+        assert_eq!(named.status, 400, "{exe}");
+    }
+    assert_eq!(send(p, "POST", ICON, &ICON_HEADERS, b"not json").await.status, 400);
+    if cfg!(windows) {
+        // notepad.exe is on PATH (System32): its icon is stored as a PNG asset, then answered from the cache
+        let read = send(p, "POST", ICON, &ICON_HEADERS, body).await;
+        assert_eq!(read.status, 200, "{}", read.text());
+        let id = read.json()["id"].as_str().unwrap().to_string();
+        assert!(id.ends_with(".png"));
+        let png = get(p, &format!("/api/assets/{id}")).await;
+        assert_eq!((png.status, png.header("content-type")), (200, Some("image/png")));
+        assert_eq!(sha256_hex(&png.body), id[..64]);
+        assert_eq!(send(p, "POST", ICON, &ICON_HEADERS, br#"{"exe":"NOTEPAD.EXE"}"#).await.json()["id"].as_str(), Some(id.as_str()));
+        assert_eq!(send(p, "POST", ICON, &ICON_HEADERS, br#"{"exe":"no-such-program-here.exe"}"#).await.status, 404);
+    } else {
+        assert_eq!(send(p, "POST", ICON, &ICON_HEADERS, body).await.status, 501);
+    }
+    s.stop().await;
+}
+
+#[tokio::test]
 async fn refuses_uploads_the_way_node_does() {
     let s = start().await;
     let p = s.port;

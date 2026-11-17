@@ -137,6 +137,8 @@
       "exclude": [
         "src-tauri/crates/ips-server/src/assets.rs",
         "src-tauri/crates/ips-server/src/asset_types.rs",
+        "src-tauri/crates/ips-server/src/svg_sanitize.rs",
+        "src-tauri/crates/ips-server/src/app_icon.rs",
         "src-tauri/crates/ips-server/src/canvases.rs",
         "src-tauri/crates/ips-server/src/library.rs",
         "src-tauri/crates/ips-server/tests/*_media.rs",
@@ -191,10 +193,12 @@
     {
       "id": "server-stores",
       "critical": true,
-      "summary": "Content-addressed assets, the canvas store and its sweep, the user's library (never delete a used file).",
+      "summary": "Content-addressed assets (SVG sanitised on upload, app icons read from a program), the canvas store and its sweep, the user's library (never delete a used file).",
       "paths": [
         "src-tauri/crates/ips-server/src/assets.rs",
         "src-tauri/crates/ips-server/src/asset_types.rs",
+        "src-tauri/crates/ips-server/src/svg_sanitize.rs",
+        "src-tauri/crates/ips-server/src/app_icon.rs",
         "src-tauri/crates/ips-server/src/canvases.rs",
         "src-tauri/crates/ips-server/src/library.rs",
         "src-tauri/crates/ips-server/tests/*_media.rs",

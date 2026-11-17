@@ -2,13 +2,20 @@
 // DATA_DIR/assets, named by content (the SHA-256 of the bytes plus the extension of the sniffed type), so the same file
 // uploaded twice is stored once and a URL never changes meaning. A path is only ever built from an id matching the id
 // pattern. Uploads and deletes need `X-Dashboard-Asset: 1` and come from this computer unless ALLOW_REMOTE_UPLOAD=1.
+// An SVG is sanitised before it is stored (svg_sanitize.rs), so its id is the hash of the clean copy.
 //
-// GET/POST /api/assets, GET/HEAD/DELETE /api/assets/<id>.
+// POST /api/assets/app-icon `{ "exe": "Chat.exe" }` stores a program's icon as a PNG asset (app_icon.rs) and answers as an
+// upload does. It reads this computer's programs, so it is answered for this computer only, whatever ALLOW_REMOTE_UPLOAD
+// says; it needs `X-Dashboard-Asset: 1` and JSON. A program's icon is read once per run, then answered from the cache.
+//
+// GET/POST /api/assets, GET/HEAD/DELETE /api/assets/<id>, POST /api/assets/app-icon.
 
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Mutex;
 
 use axum::body::{Body, Bytes};
 use axum::http::{Method, Response};
@@ -22,7 +29,9 @@ use crate::asset_types::{
     DEFAULT_MAX_BYTES, HEAD_BYTES, MAX_IN_FLIGHT, SVG_CSP,
 };
 use crate::http::{self, Req};
-use crate::{js, App};
+use crate::request_guard::Refusal;
+use crate::svg_sanitize::sanitize_svg;
+use crate::{app_icon, js, App};
 
 const TEMP_PREFIX: &str = ".upload-";
 const CHUNK: usize = 64 * 1024;
@@ -34,6 +43,8 @@ pub struct Assets {
     max_bytes: f64,
     allow_remote: bool,
     in_flight: AtomicUsize,
+    /// A program's name (lowercase) to the id of its icon, for this run.
+    app_icons: Mutex<HashMap<String, String>>,
 }
 
 /// An upload that ended in a refusal: sent with the connection closed.
@@ -61,7 +72,7 @@ impl Assets {
         for name in names(&dir).into_iter().filter(|n| n.starts_with(TEMP_PREFIX)) {
             let _ = std::fs::remove_file(dir.join(name));
         }
-        Self { dir, max_bytes, allow_remote, in_flight: AtomicUsize::new(0) }
+        Self { dir, max_bytes, allow_remote, in_flight: AtomicUsize::new(0), app_icons: Mutex::new(HashMap::new()) }
     }
 
     /// The file of an asset id, or `None` for anything not an id.
@@ -75,6 +86,28 @@ impl Assets {
             return Some("missing X-Dashboard-Asset header");
         }
         (!self.allow_remote && !req.is_loopback()).then_some("uploads are accepted from this computer only")
+    }
+
+    /// Bytes the server made itself (an app's icon) stored under their content id, within the quota. Returns the id.
+    fn store_bytes(&self, bytes: &[u8], ext: &str) -> std::io::Result<Result<String, Refusal>> {
+        if self.dir_bytes() as f64 + bytes.len() as f64 > self.max_bytes {
+            return Ok(Err(Refusal::new(507, "media storage is full")));
+        }
+        std::fs::create_dir_all(&self.dir)?;
+        let id = format!("{}.{ext}", hex_digest(bytes));
+        let file = self.dir.join(&id);
+        if !file.exists() {
+            let tmp = self.dir.join(format!("{TEMP_PREFIX}{}.tmp", uuid::Uuid::new_v4()));
+            std::fs::write(&tmp, bytes)?;
+            if let Err(e) = std::fs::rename(&tmp, &file) {
+                let _ = std::fs::remove_file(&tmp);
+                // a request for the same icon got there first
+                if !file.exists() {
+                    return Err(e);
+                }
+            }
+        }
+        Ok(Ok(id))
     }
 
     /// The total size of the entries in the folder (temp files of running uploads included).
@@ -188,13 +221,20 @@ async fn handle_upload(app: &App, req: Req) -> std::io::Result<Response<Body>> {
     let tmp = assets.dir.join(format!("{TEMP_PREFIX}{}.tmp", uuid::Uuid::new_v4()));
     let received = receive(req, &tmp, limit, declared.ext).await;
     drop(slot);
-    let (size, digest) = match received {
+    let (mut size, mut digest) = match received {
         Ok(done) => done,
         Err(Refused(status, message)) => {
             let _ = std::fs::remove_file(&tmp);
             return Ok(http::closing(http::text(status, message)));
         }
     };
+    if declared.ext == "svg" {
+        let Some(clean) = clean_svg(&tmp) else {
+            let _ = std::fs::remove_file(&tmp);
+            return Ok(http::text(415, "the SVG could not be read, or holds what an image may not"));
+        };
+        (size, digest) = clean;
+    }
     let id = format!("{digest}.{}", declared.ext);
     let file = assets.dir.join(&id);
     let stored = if file.exists() { std::fs::remove_file(&tmp) } else { std::fs::rename(&tmp, &file) };
@@ -206,6 +246,72 @@ async fn handle_upload(app: &App, req: Req) -> std::io::Result<Response<Body>> {
         }
     }
     Ok(http::json(200, &json_of(&id, declared, size, None)))
+}
+
+/// The SHA-256 of `bytes` in hex.
+fn hex_digest(bytes: &[u8]) -> String {
+    Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// Sanitises the SVG at `tmp` in place (svg_sanitize.rs): its new size and hash, or `None` when it cannot be kept.
+fn clean_svg(tmp: &Path) -> Option<(u64, String)> {
+    let text = String::from_utf8(std::fs::read(tmp).ok()?).ok()?;
+    let clean = sanitize_svg(&text)?;
+    if clean != text {
+        std::fs::write(tmp, &clean).ok()?;
+    }
+    Some((clean.len() as u64, hex_digest(clean.as_bytes())))
+}
+
+/// Why an app icon request is refused: this computer only, then the asset header, then JSON.
+pub fn app_icon_refusal(loopback: bool, marker: Option<&str>, content_type: Option<&str>) -> Option<Refusal> {
+    if !loopback {
+        return Some(Refusal::new(403, "app icons are read for this computer only"));
+    }
+    if marker != Some("1") {
+        return Some(Refusal::new(403, "missing X-Dashboard-Asset header"));
+    }
+    let json = js::trim(content_type.unwrap_or("").split(';').next().unwrap_or("")).eq_ignore_ascii_case("application/json");
+    (!json).then(|| Refusal::new(415, "expected application/json"))
+}
+
+/// POST /api/assets/app-icon: a program's icon as a PNG asset.
+async fn handle_app_icon(app: &App, mut req: Req) -> std::io::Result<Response<Body>> {
+    if req.method != Method::POST {
+        return Ok(http::empty(405));
+    }
+    if let Some(Refusal { status, message }) = app_icon_refusal(req.is_loopback(), req.header("x-dashboard-asset").as_deref(), req.header("content-type").as_deref()) {
+        return Ok(http::text(status, message));
+    }
+    let Ok(text) = req.read_body(1024).await else {
+        return Ok(http::closing(http::text(413, "the request is too large")));
+    };
+    let exe = serde_json::from_str::<Value>(&text).ok().and_then(|v| v["exe"].as_str().map(str::to_string)).unwrap_or_default();
+    if !app_icon::is_exe_name(&exe) {
+        return Ok(http::text(400, "name a program by its file name, such as Chat.exe"));
+    }
+    if !app_icon::supported() {
+        return Ok(http::text(501, "app icons are read on Windows only"));
+    }
+    let assets = &app.assets;
+    let png_type = by_ext("png").unwrap_or(&crate::asset_types::TYPES[0]);
+    let key = exe.to_lowercase();
+    let cached = assets.app_icons.lock().ok().and_then(|m| m.get(&key).cloned());
+    if let Some((id, meta)) = cached.and_then(|id| std::fs::metadata(assets.dir.join(&id)).ok().map(|m| (id, m))) {
+        return Ok(http::json(200, &json_of(&id, png_type, meta.len(), None)));
+    }
+    let png = tokio::task::spawn_blocking(move || app_icon::resolve(&exe).and_then(|path| app_icon::icon_png(&path))).await.ok().flatten();
+    let Some(png) = png else {
+        return Ok(http::text(404, "no icon found: the program is not running, installed or on PATH"));
+    };
+    let id = match assets.store_bytes(&png, "png")? {
+        Ok(id) => id,
+        Err(Refusal { status, message }) => return Ok(http::text(status, message)),
+    };
+    if let Ok(mut map) = assets.app_icons.lock() {
+        map.insert(key, id.clone());
+    }
+    Ok(http::json(200, &json_of(&id, png_type, png.len() as u64, None)))
 }
 
 fn handle_delete(app: &App, req: &Req, file: &Path) -> std::io::Result<Response<Body>> {
@@ -299,6 +405,9 @@ pub async fn handle(app: &App, req: Req) -> std::io::Result<Response<Body>> {
             _ => Ok(http::empty(405)),
         };
     }
+    if req.path == "/api/assets/app-icon" {
+        return handle_app_icon(app, req).await;
+    }
     let Some(file) = app.assets.path_of(&req.path["/api/assets/".len()..]) else {
         return Ok(http::empty(404));
     };
@@ -322,5 +431,24 @@ mod tests {
         std::fs::write(assets.dir.join("a"), [0u8; 10]).unwrap();
         std::fs::write(assets.dir.join(format!("{TEMP_PREFIX}b.tmp")), [0u8; 5]).unwrap();
         assert_eq!(assets.dir_bytes(), 15);
+    }
+
+    #[test]
+    fn an_app_icon_is_read_for_this_computer_only_whatever_uploads_allow() {
+        let json = Some("application/json; charset=utf-8");
+        assert_eq!(app_icon_refusal(false, Some("1"), json).map(|r| r.status), Some(403));
+        assert_eq!(app_icon_refusal(true, None, json).map(|r| r.status), Some(403));
+        assert_eq!(app_icon_refusal(true, Some("1"), Some("text/plain")).map(|r| r.status), Some(415));
+        assert_eq!(app_icon_refusal(true, Some("1"), json), None);
+    }
+
+    #[test]
+    fn stores_bytes_by_content_within_the_quota() {
+        let dir = tempfile::tempdir().unwrap();
+        let assets = Assets::with_max_bytes(dir.path().join("assets"), false, 10.0);
+        let id = assets.store_bytes(b"abc", "png").unwrap().unwrap();
+        assert_eq!(id, format!("{}.png", hex_digest(b"abc")));
+        assert_eq!(assets.store_bytes(b"abc", "png").unwrap().unwrap(), id);
+        assert_eq!(assets.store_bytes(&[0u8; 8], "png").unwrap().map_err(|r| r.status), Err(507));
     }
 }
