@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, devicesIn, outsideRange, stageCells, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, layerName, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, railPreset, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, setRepeatSource, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, unwrap, updateBlock, validationLine, withDirection, withFormat, withSample, wrapIn, wrapInRow } from "@/components/widgets-page/builder-model";
+import { addBlock, addBlockAt, addImageAt, addOption, addRefusal, addSnippet, bindingsOf, blockAt, blockCount, blurbOf, choiceUses, cleanUp, DEFAULT_PLACES, imagePath, leftUnused, newSnippet, packedImages, pickerPoints, presetOptions, removeChoice, SNIPPETS, updateOption, updatePreset, withSampleItems, withWhenSize, devicesIn, outsideRange, stageCells, draftSample, duplicateBlock, duplicateBlocks, flatten, followable, followOf, isBound, keyMove, labelParts, largestAny, layerName, setLargestAny, moveBlock, moveBlocks, moveItem, moveOption, moveRefusal, newRecipe, optionUses, pickBinding, pickWhat, pathsOf, presetLine, presetValues, railPreset, rangeOf, recipeIssues, removeBlock, removeBlocks, removeOption, removePreset, replaceSensor, savePreset, setDefaultPreset, setLabelParts, setLabelSource, setPresetValue, setRecipeSize, setRepeatSource, stepBlock, thresholdLine, topLevel, unitOfBinding, unpickBinding, unwrap, updateBlock, validationLine, withDirection, withFormat, withSample, wrapIn, wrapInRow } from "@/components/widgets-page/builder-model";
 import { amend, commit, historyOf, HISTORY_LIMIT, redo, undo } from "@/components/widgets-page/history";
 import { NO_START, START, whyNoStart } from "@/components/widgets-page/start-points";
 import { WIDGET_ORDER } from "@/widgets/order";
@@ -584,6 +584,18 @@ describe("Phase B2", () => {
     expect(outsideRange(small, [5, 3])).toBe("over");
     expect(outsideRange(small, [4, 4])).toBe("over");
     expect(outsideRange(small, [4, 3])).toBeUndefined();
+  });
+
+  // Phase 3 (D1 (a)): Largest "Any" is the format's 12×12, so a recipe saved with it stays format 1; off, it falls back to Opens at
+  it("Largest Any is 12×12, and turned off it is the size the recipe opens at", () => {
+    const r = newRecipe("Any size", new Set());
+    expect(largestAny(r)).toBe(true);
+    const own = setLargestAny(r, false);
+    expect(own.size.max).toEqual([3, 2]);
+    expect(largestAny(own)).toBe(false);
+    expect(largestAny(setRecipeSize(own, "max", [12, 6]))).toBe(false);
+    expect(setLargestAny(own, true).size.max).toEqual([12, 12]);
+    expect(withFormat(setLargestAny(own, true)).format).toBe(1);
   });
 
   it("the Sample before a save fills the keys the sample lacks from the live readings, and keeps its own (G18)", () => {

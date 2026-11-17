@@ -1022,6 +1022,12 @@ export function setRecipeSize(recipe: Recipe, key: "min" | "max" | "default", ce
 /** The largest side a recipe's size may take, in cells (`recipe.schema.json`). */
 export const CELLS_MAX = 12;
 
+/** Whether the recipe's Largest is "Any" (D1 (a)): written as the format's largest, 12×12, so no format change. */
+export const largestAny = (recipe: Recipe): boolean => recipe.size.max[0] === CELLS_MAX && recipe.size.max[1] === CELLS_MAX;
+
+/** Largest set to "Any" (12×12), or back to a size of its own: the size it opens at, which is within its range. */
+export const setLargestAny = (recipe: Recipe, any: boolean): Recipe => setRecipeSize(recipe, "max", any ? [CELLS_MAX, CELLS_MAX] : [...recipe.size.default]);
+
 /**
  * A size the stage may show (G17, B30): any whole number of cells from 1 to 12 a side, inside the recipe's range or not (a side that
  * is not a number keeps `was`'s).

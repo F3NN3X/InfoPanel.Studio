@@ -14,6 +14,7 @@
 // and the refusal's reason, Esc cancels, one undo step), share handles change two blocks' shares (`share-handles.tsx`), Ctrl and
 // Shift click add to the selection, and the focused stage takes the arrows (walk), Alt+arrows (move), Del, F2 and Esc.
 // Phase 2: the layer menu on the stage too (`layer-entries.tsx`), with Wrap in a card or a grid, Unwrap, and Copy and Paste style.
+// Phase 3: "Check every size" draws the recipe offscreen at each size in its range and lists what is crowded or under the floor (`size-check.tsx`).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { pastDragThreshold, trackPointer } from "@/components/studio/pointer-drag";
 import { ChevronRight, CircleAlert, CircleCheck, MonitorUp, Pencil, Redo2, RotateCcw, Save, Undo2, Upload, X } from "lucide-react";
@@ -50,6 +51,7 @@ import { type PlainIssue, plainIssue, plainIssues, plainWarnings } from "./plain
 import { PresetsTab } from "./presets-tab";
 import { RecipePreview, zonePx } from "./recipe-preview";
 import { ShareHandles } from "./share-handles";
+import { SizeCheckRun, type SpanResult, spansOf } from "./size-check";
 import { type Carry, dragTarget, dropAt, type StageDrop, stageStep } from "./stage-edit";
 import { isUnsaved } from "./widgets-model";
 
@@ -773,6 +775,12 @@ export function Builder(p: BuilderProps) {
     setSize(stageCells(k === 0 ? [v ?? size[0], size[1]] : [size[0], v ?? size[1]], size));
   };
   const outside = railShown ? undefined : outsideRange(recipe, size);
+  // "Check every size" (Phase 3): its findings hold for the recipe and the view they were measured on; an edit or another view drops them
+  const view = [recipe, live, lookId, preset] as const;
+  const [check, setCheck] = useState<{ view: typeof view; spans: Cells[]; done: number; found?: SpanResult[] } | null>(null);
+  const checkNow = check?.view.every((x, k) => x === view[k]) ? check : null;
+  const checking = !!checkNow && !checkNow.found;
+  const sizeFindings = checkNow?.found?.flatMap((s) => s.issues.map((issue) => ({ cells: s.cells, issue })));
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
@@ -984,6 +992,19 @@ export function Builder(p: BuilderProps) {
                 {outside === "under" ? `Under its Smallest (${recipe.size.min.join("×")}): Edit won't size it this small` : `Past its Largest (${recipe.size.max.join("×")}): Edit warns at this size`}
               </span>
             )}
+            <Button
+              small
+              variant="ghost"
+              disabled={checking}
+              onClick={() => {
+                const spans = spansOf(recipe);
+                setCheck({ view, spans, done: 0 });
+                say(`Checking ${spans.length} sizes`);
+              }}
+              title={`Draws it at every size from ${recipe.size.min.join("×")} to ${recipe.size.max.join("×")} and lists what is cut, crowded or under the text floor`}
+            >
+              {checkNow && checking ? `Checking ${checkNow.done} of ${checkNow.spans.length}…` : "Check every size"}
+            </Button>
             <span className="ml-3 text-body text-ui-3">Preview in</span>
             <select aria-label="Preview in" value={lookId} onChange={(e) => setLookId(e.target.value)} className="h-8 rounded-ui-md border border-ui-strong bg-ui-raised px-2.5 text-body font-medium text-ui-1 outline-none focus:border-ui-accent">
               {LOOKS.map((l) => (
@@ -1111,6 +1132,60 @@ export function Builder(p: BuilderProps) {
                 </li>
               ))}
             </ul>
+          )}
+          {checkNow?.found && sizeFindings && (
+            <section aria-label="Every size" data-size-check="" className="-mt-1 flex max-h-[30%] shrink-0 flex-col gap-0.5 text-caption">
+              <div className="flex items-center gap-2">
+                {sizeFindings.length ? <CircleAlert className="h-4 w-4 shrink-0 text-ui-warn" strokeWidth={1.5} aria-hidden /> : <CircleCheck className="h-4 w-4 shrink-0 text-ui-ok" strokeWidth={1.5} aria-hidden />}
+                <span role="status" data-size-check-summary="" className="text-ui-2">
+                  {sizeFindings.length
+                    ? `${checkNow.found.length} of ${checkNow.spans.length} sizes have problems`
+                    : `Checked ${checkNow.spans.length} size${checkNow.spans.length === 1 ? "" : "s"}, from ${recipe.size.min.join("×")} to ${recipe.size.max.join("×")}: all fit`}
+                </span>
+                <IconButton label="Close the size check" size={26} className="ml-auto" onClick={() => setCheck(null)}>
+                  <X className="h-3.5 w-3.5" />
+                </IconButton>
+              </div>
+              {sizeFindings.length > 0 && (
+                <ul aria-label="Problems at every size" className="flex flex-col gap-0.5 overflow-y-auto">
+                  {sizeFindings.map((x, k) => (
+                    <li key={`${k} ${x.issue.text}`}>
+                      <button
+                        type="button"
+                        data-size-problem={x.cells.join("x")}
+                        onClick={() => {
+                          // the stage at that size, the block picked
+                          setInRail(false);
+                          setSize(x.cells);
+                          goTo(x.issue);
+                        }}
+                        className="w-full truncate rounded-ui-sm px-6 py-0.5 text-left text-ui-2 hover:bg-ui-raised hover:text-ui-1"
+                      >
+                        {x.issue.text}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+          {checkNow && checking && (
+            <SizeCheckRun
+              recipe={live ? recipe : sampled}
+              named={recipe}
+              spans={checkNow.spans}
+              values={shownValues}
+              sample={!live}
+              appearance={p.appearance}
+              pageStyle={p.pageStyle}
+              lookId={lookId}
+              images={p.active.images}
+              onProgress={(done) => setCheck((c) => c && { ...c, done })}
+              onDone={(found) => {
+                setCheck((c) => c && { ...c, found });
+                say(found.length ? `${found.length} of ${checkNow.spans.length} sizes have problems` : `Every size fits`);
+              }}
+            />
           )}
         </main>
         <aside aria-label="Inspector" className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-chrome">

@@ -607,6 +607,15 @@ function floorRules(r: Recipe, add: Add): void {
   }
 }
 
+/**
+ * The texts under the floor at one zone size, each with its block's path (`[0, 1]`) and its px there: the floor rule at that size alone,
+ * for the builder's "Check every size" (it lists each size, where the rule names the first).
+ */
+export function floorAt(r: Recipe, cells: Cells): { path: number[]; px: number }[] {
+  const px = cellBasePx(...cells);
+  return textBlocks(r.root).flatMap((t) => (t.when.every((w) => sizeHolds(w, cells)) && px * t.scale < TEXT_FLOOR ? [{ path: [...t.at.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1])), px: px * t.scale }] : []));
+}
+
 /** Errors first; the same rule on the same file and message once. */
 function finish(issues: RecipeIssue[]): RecipeIssue[] {
   const seen = new Set<string>();

@@ -19,7 +19,7 @@ import { isFollow, oneOf, wholeIn } from "@/widgets/recipe/follow";
 import { DEVICE_ITEMS_MAX, DEVICE_SOURCES, type DeviceSource, isDeviceSource } from "@/widgets/recipe/sources";
 import { DEFAULT_SCALE, GRID_COLUMNS_MAX, ITEMS_MAX } from "@/widgets/recipe/validate";
 import type { Binding, Block, BlockType, Follows, Recipe, RecipeColour, RecipeDeviceKind, TextColour, Thresholds } from "@/widgets/recipe/types";
-import { BLOCK_LABEL, blockAt, followable, followOf, ITEM_NOUN, layerName, setRecipeSize, setRepeatSource, SOURCE_LABEL, thresholdLine, unitOfBinding, updateBlock, valueText, withDirection, withWhenSize, type Path } from "./builder-model";
+import { BLOCK_LABEL, blockAt, CELLS_MAX, followable, followOf, ITEM_NOUN, largestAny, layerName, setLargestAny, setRecipeSize, setRepeatSource, SOURCE_LABEL, thresholdLine, unitOfBinding, updateBlock, valueText, withDirection, withWhenSize, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { DataRow, type DataRowsProps, HeatmapCells, LabelText } from "./data-rows";
 import { Field, Heading, NumberInput, Select, Slider, TextArea, TextInput } from "./fields";
@@ -358,11 +358,26 @@ function SizeRows({ recipe, onChange }: { recipe: Recipe; onChange: (r: Recipe) 
       <NumberInput label={`${label} rows`} value={recipe.size[key][1]} min={1} max={12} onChange={(v) => onChange(setRecipeSize(recipe, key, [recipe.size[key][0], v ?? 1]))} width={56} />
     </Field>
   );
+  const any = largestAny(recipe);
   return (
     <>
       <Heading>Sizes</Heading>
       {row("Smallest", "min")}
-      {row("Largest", "max")}
+      {/* Largest "Any" (D1 (a)): any size up to the format's 12×12, which is what it writes */}
+      <Field label="Largest">
+        <Toggle label="Largest: any size" checked={any} onChange={(v) => onChange(setLargestAny(recipe, v))} />
+        {any ? (
+          <span data-largest-any="" className="text-body text-ui-3">
+            Any, up to {CELLS_MAX}×{CELLS_MAX}
+          </span>
+        ) : (
+          <>
+            <NumberInput label="Largest columns" value={recipe.size.max[0]} min={1} max={CELLS_MAX} onChange={(v) => onChange(setRecipeSize(recipe, "max", [v ?? 1, recipe.size.max[1]]))} width={56} />
+            <span className="text-ui-3">×</span>
+            <NumberInput label="Largest rows" value={recipe.size.max[1]} min={1} max={CELLS_MAX} onChange={(v) => onChange(setRecipeSize(recipe, "max", [recipe.size.max[0], v ?? 1]))} width={56} />
+          </>
+        )}
+      </Field>
       {row("Opens at", "default")}
     </>
   );

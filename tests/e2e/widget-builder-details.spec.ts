@@ -125,6 +125,7 @@ test("the stage previews any span, and says when it is outside the recipe's rang
   await expect(outside).toHaveAttribute("data-stage-outside", "under");
   // past the Largest: lowered on the root card's Block tab to 4×3
   await layer(page, "").click();
+  await page.getByRole("switch", { name: "Largest: any size" }).click();
   await type(page, "Largest columns", "4");
   await type(page, "Largest rows", "3");
   await stageSize(page, 6, 3);
@@ -170,6 +171,38 @@ test("crowding: at a crowded size a warning names the block, as a Layers dot; it
   await expect(warnings.filter({ hasText: /is too small for its value|overlaps/ }).first()).toBeVisible();
   await warnings.filter({ hasText: "Ring is too small for its value" }).click();
   await expect(layer(page, "1")).toHaveAttribute("aria-selected", "true");
+  expect(errors).toEqual([]);
+});
+
+// builder plan Phase 3: crowding and the text floor at every size in the range, on demand, not only at the size the stage shows
+test("Check every size lists the sizes where a block is crowded or under the floor, and a click shows that size", async ({ page, scratch }) => {
+  const { errors } = watchErrors(page);
+  await newWidget(page, scratch.base);
+  await add(page, "value");
+  await layer(page, "").click();
+  await expect(page.locator("[data-largest-any]")).toHaveText("Any, up to 12×12");
+  await page.getByRole("switch", { name: "Largest: any size" }).click();
+  await type(page, "Largest columns", "3");
+  await type(page, "Largest rows", "2");
+  await type(page, "Smallest columns", "1");
+  await type(page, "Smallest rows", "1");
+  // six sizes, 1×1 to 3×2: one column wide (a 7.5 px base) the Value's text is under 11 px
+  await page.getByRole("button", { name: "Check every size" }).click();
+  const check = page.locator("[data-size-check]");
+  await expect(check.locator("[data-size-check-summary]")).toHaveText("2 of 6 sizes have problems");
+  expect(new Set(await check.locator("[data-size-problem]").evaluateAll((els) => els.map((e) => e.getAttribute("data-size-problem"))))).toEqual(new Set(["1x1", "1x2"]));
+  await expect(check.locator('[data-size-problem="1x2"]').filter({ hasText: "At 1×2, Value's text is 7.5 px, under 11 px" })).toHaveCount(1);
+  // a finding shows its size on the stage and selects its block
+  await check.locator('[data-size-problem="1x2"]').first().click();
+  await expect(page.getByLabel("Stage columns")).toHaveValue("1");
+  await expect(page.getByLabel("Stage rows")).toHaveValue("2");
+  await expect(layer(page, "0")).toHaveAttribute("aria-selected", "true");
+  // an edit drops the findings; from 2×1 every size fits
+  await layer(page, "").click();
+  await type(page, "Smallest columns", "2");
+  await expect(check).toHaveCount(0);
+  await page.getByRole("button", { name: "Check every size" }).click();
+  await expect(check.locator("[data-size-check-summary]")).toHaveText("Checked 4 sizes, from 2×1 to 3×2: all fit");
   expect(errors).toEqual([]);
 });
 
