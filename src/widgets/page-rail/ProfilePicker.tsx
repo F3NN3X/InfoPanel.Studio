@@ -1,6 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { Check, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import type { RailProfiles } from "@/components/rail-host";
 import type { PinnedEdge } from "@/lib/pinned";
 import { pickerRows } from "@/lib/profile-switch";
@@ -32,6 +32,13 @@ export function pickerBox(rail: DOMRect, edge: PinnedEdge, vw: number, vh: numbe
   const sheet: CSSProperties = { width, maxHeight, ...(edge === "right" ? { right: vw - rail.left + GAP } : { left: edge === "left" ? rail.right + GAP : GAP }), ...(edge === "bottom" ? { bottom: vh - rail.top + GAP } : { top: edge === "top" ? rail.bottom + GAP : GAP }) };
   return { sheet, page };
 }
+
+/** Lucide's check, drawn here: importing the icon would split it into a chunk of its own in the studio's entry. */
+const Tick = () => (
+  <svg aria-hidden width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
 
 interface PickerProps {
   profiles: RailProfiles;
@@ -132,7 +139,7 @@ export function ProfilePicker({ profiles: p, current, edge, rail, look, host }: 
               >
                 Switch with the app in front
                 <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={p.paused ? { boxShadow: "inset 0 0 0 1.5px var(--w-muted)" } : { background: "var(--w-accent)", color: on("var(--w-accent)") }}>
-                  {!p.paused && <Check size={16} strokeWidth={3} />}
+                  {!p.paused && <Tick />}
                 </span>
               </button>
               <button
