@@ -7,7 +7,10 @@ import type { MixerLook } from "../core/mixer-look";
 import { useDeviceLevel } from "../core/level-source";
 import { MixerViewBody, PERCENT, fitMixer, toneOf, type StripChannel } from "../core/mixer-views";
 import { audioIds } from "../shared/audio-data";
-import { allChannels, iconOf, MASTER_COLOR, pickChannels, type AudioSource, type MixChannel } from "./channels";
+import { allChannels, iconOf, pickChannels, type AudioSource, type MixChannel } from "./channels";
+
+/** The master channel's colour: near white on a dark card, `--w-master` (light and theme cards) otherwise. */
+const MASTER_COLOR = "var(--w-master, #e4e4e7)";
 import { setVolume, toggleMute } from "./control";
 import { MixFader, type FaderMode } from "./Fader";
 import { OutputPicker } from "./OutputPicker";

@@ -36,8 +36,6 @@ const GUESS: [RegExp, string][] = [
   [/system|sounds/i, "notifications"],
 ];
 
-/** The master channel's colour: near white on a dark card, `--w-master` (light and theme cards) otherwise. */
-export const MASTER_COLOR = "var(--w-master, #e4e4e7)";
 
 /** A Material Symbols icon for a channel, guessed from its id and name. */
 export const guessIcon = (s: string): string => GUESS.find(([re]) => re.test(s))?.[1] ?? "graphic_eq";

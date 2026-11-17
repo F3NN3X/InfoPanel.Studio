@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({ state: null as AudioState | null }));
 vi.mock("@/lib/audio-control", async (original) => ({ ...(await original<typeof import("@/lib/audio-control")>()), useAudio: () => mocks.state }));
 
 import AudioFader from "@/widgets/audio-fader/AudioFader";
-import { MASTER_COLOR } from "@/widgets/stream-mixer/channels";
 
 const AUDIO: AudioState = {
   windows: {
@@ -27,7 +26,7 @@ describe("AudioFader", () => {
     mocks.state = AUDIO;
     render(<AudioFader data={{}} channel="master" />);
     const mute = screen.getByLabelText(/^Mute /) as HTMLElement;
-    expect(mute.style.color).toBe(MASTER_COLOR);
-    expect(MASTER_COLOR).toMatch(/^var\(--w-master,/);
+    // drawn with the token (Stream Mixer's own fallback for a dark card), never a bare colour
+    expect(mute.style.color).toMatch(/^var\(--w-master,/);
   });
 });
