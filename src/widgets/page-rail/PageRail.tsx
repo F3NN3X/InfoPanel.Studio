@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { AppWindow, Lock, RefreshCw } from "lucide-react";
 import { RailHostContext, RailItemContext, type RailHost } from "@/components/rail-host";
+import { useTouchZone } from "@/components/use-touch-zone";
 import { pageIcon } from "@/components/studio/page-icons";
 import { audio, EMPTY_AUDIO } from "@/lib/audio-control";
 import { extras } from "@/lib/extras";
 import type { Placement } from "@/lib/layout";
-import type { PinnedEdge, RailPlate, RailSlot, TouchAction } from "@/lib/pinned";
+import type { PinnedEdge, RailPlate, RailSlot, TouchAction, TouchMap } from "@/lib/pinned";
 import { actionOn, chipSeries, imageAlt, RAIL_SIZES, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState, type RailBadge, type RailPage } from "@/lib/rail";
 import { createRecogniser, type GestureHandlers } from "@/lib/gesture";
 import type { ModuleSettings } from "@/modules/types";
@@ -268,11 +269,16 @@ function PageLock({ lock, run }: { lock: "auto" | "locked"; run: (a: TouchAction
   );
 }
 
-/** A widget in a slot (one with a rail preset): drawn by the screen as a kiosk zone, in a box of the slot's size. */
-function SlotWidget({ id, module, settings, host, style }: { id: string; module: string; settings?: ModuleSettings; host: RailHost; style: CSSProperties }) {
+/**
+ * A widget in a slot (one with a rail preset): drawn by the screen as a kiosk zone, in a box of the slot's size. The slot's
+ * touch map runs on it as on a widget on a page (P6), its own controls keeping their presses.
+ */
+function SlotWidget({ id, module, settings, touch, host, style }: { id: string; module: string; settings?: ModuleSettings; touch?: TouchMap; host: RailHost; style: CSSProperties }) {
   const placement: Placement = useMemo(() => ({ id, module, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, settings: { showHeader: false, ...settings } }), [id, module, settings]);
+  const [box, setBox] = useState<HTMLDivElement | null>(null);
+  useTouchZone(box, touch);
   return (
-    <div data-rail-slot={id} className="relative shrink-0" style={style}>
+    <div ref={setBox} data-rail-slot={id} data-touch={touch ? "" : undefined} tabIndex={touch?.tap ? 0 : undefined} className={`relative shrink-0 rounded-xl ${FOCUS}`} style={style}>
       {host.zone?.(placement, { position: "absolute", inset: 0 })}
     </div>
   );
@@ -316,7 +322,7 @@ function RailBody({ host, slots, edge, dense, chip, pageLock, clock, data, look 
   const one = (s: RailSlot): ReactNode => {
     const name = slotName(s, host.pages);
     const alt = imageAlt(s, name, host.pages);
-    if (s.target.kind === "widget") return <SlotWidget key={s.id} id={s.id} module={s.target.module} settings={s.target.settings} host={host} style={{ width: 72, height: size.widget }} />;
+    if (s.target.kind === "widget") return <SlotWidget key={s.id} id={s.id} module={s.target.module} settings={s.target.settings} touch={s.touch} host={host} style={{ width: 72, height: size.widget }} />;
     if (s.target.kind === "profile" && s.icon && s.icon.from !== "set" && s.icon.from !== "text") return <Logo key={s.id} slot={s} name={name} alt={alt} run={host.run} />;
     return (
       <SlotButton

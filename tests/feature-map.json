@@ -609,6 +609,8 @@
         "src/lib/pinned-edit.ts",
         "src/lib/rail.ts",
         "src/lib/touch-actions.ts",
+        "src/lib/touch-zone.ts",
+        "src/components/use-touch-zone.ts",
         "src/lib/profile-switch.ts",
         "src/components/pinned-layer.tsx",
         "src/components/rail-host.ts",
@@ -625,6 +627,7 @@
         "tests/lib/pinned.test.ts",
         "tests/lib/pinned-edit.test.ts",
         "tests/lib/rail.test.ts",
+        "tests/lib/touch-zone.dom.test.tsx",
         "tests/lib/profile-switch.test.ts",
         "tests/lib/widget-presets.test.ts",
         "tests/lib/layout-pages.test.ts",
@@ -641,6 +644,7 @@
         "tests/e2e/control-page-switch.spec.ts",
         "tests/e2e/pinned-layer.spec.ts",
         "tests/e2e/pinned-rail.spec.ts",
+        "tests/e2e/widget-touch.spec.ts",
         "tests/e2e/profile-picker.spec.ts"
       ],
       "checks": ["typecheck", "unit", "build", "budgets", "ui-usage", "e2e"]

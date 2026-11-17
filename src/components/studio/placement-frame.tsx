@@ -1,6 +1,7 @@
 import {
   useEffect,
   useRef,
+  useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -10,6 +11,7 @@ import { BLANK_MODULE, CANVAS_ID, canvasNotLoaded, type ProfileView, type Placem
 import { profileGap, trackPitch } from "@/lib/profile-grid";
 import { hexToHsl } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { useTouchZone } from "@/components/use-touch-zone";
 import { ZoneErrorBoundary } from "@/components/zone-error-boundary";
 import { IpTagCtx } from "@/widgets/core/primitives";
 import { pastDragThreshold, trackPointer } from "./pointer-drag";
@@ -170,6 +172,11 @@ export function PlacementFrame({
   const stopDrag = useRef<(() => void) | null>(null);
   useEffect(() => () => stopDrag.current?.(), []);
 
+  // The widget's own touch actions (P6): on the kiosk only; nothing on it runs in the studio.
+  const [frame, setFrame] = useState<HTMLDivElement | null>(null);
+  const touch = studio ? undefined : placement.touch;
+  useTouchZone(frame, touch);
+
   const body = (
     <ZoneErrorBoundary title={title} resetKey={placement}>
       <IpTagCtx.Provider value={!!studio}>{children}</IpTagCtx.Provider>
@@ -323,8 +330,12 @@ export function PlacementFrame({
           ? ({ "--accent": hexToHsl(design.accent) } as CSSProperties)
           : {}),
       }}
+      ref={setFrame}
       data-zone-id={studio || zoneId ? placement.id : undefined}
       data-testid={studio ? "canvas-part" : undefined}
+      data-touch={touch ? "" : undefined}
+      // a tap the keyboard can give (Enter or Space): the widget takes focus
+      tabIndex={touch?.tap ? 0 : undefined}
       data-kind={studio && placement.module !== CANVAS_ID ? "widget" : undefined}
       // Clicks the press doesn't handle (a control in the zone, a handle).
       onClick={(e) => {
