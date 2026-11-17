@@ -1,10 +1,10 @@
-import { Grid3x3, Hand, LayoutPanelLeft, Pin, TriangleAlert, Trash2 } from "lucide-react";
+import { Grid3x3, Hand, LayoutPanelLeft, Pin, TriangleAlert, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SettingRow as UiSettingRow } from "@/components/ui/setting-row";
 import { Toggle } from "@/components/ui/toggle";
 import type { DashboardConfig, MonitorProfile, ProfilePage } from "@/lib/layout";
-import { islandClash, PIN_MIN_THICKNESS, pinnedThicknessMax, railOverflow, sameSizeProfiles, showChoice, withShow, withShownPage, type ShowChoice } from "@/lib/pinned-edit";
-import { PINNED_EDGES, type PinnedEdge, type PinnedItem } from "@/lib/pinned";
+import { cellsText, islandClash, PIN_MIN_THICKNESS, pinnedThicknessMax, railOverflow, sameSizeProfiles, showChoice, withShow, withShownPage, type ShowChoice } from "@/lib/pinned-edit";
+import { clampCells, isEdgePin, PINNED_EDGES, type PinnedEdge, type PinnedEdgeItem, type PinnedItem } from "@/lib/pinned";
 import { RAIL_MODULE } from "@/lib/rail";
 import { modules } from "@/modules";
 import type { ModuleSetting, ModuleSettingValue } from "@/modules/types";
@@ -27,6 +27,19 @@ interface PinnedInspectorProps {
   onCopy: () => void;
   onRemove: () => void;
   onEditRail: () => void;
+  /** A grid pin's conflicts: the page widgets under its cells, each with its Move fix. */
+  conflicts: readonly PinConflictRow[];
+  onFix: (c: PinConflictRow) => void;
+  /** A grid pin back to the page as a widget, at its cells when they are free. */
+  onMoveToPage: () => void;
+}
+
+/** A conflict as the inspector lists it. */
+export interface PinConflictRow {
+  pageId: string;
+  placementId: string;
+  pageName: string;
+  name: string;
 }
 
 const EDGE_LABELS: Record<PinnedEdge, string> = { left: "Left", right: "Right", top: "Top", bottom: "Bottom" };
@@ -40,16 +53,14 @@ const listed = (def: ModuleSetting, values: Record<string, ModuleSettingValue>) 
  * float, its size and inset, the page's own "hide", the copy to the other profiles of its size), the widget's settings,
  * and for a rail its items and what a touch does. Every change is one undo step and saves into the profile's `pinned`.
  */
-export function PinnedInspector({ config, profile, page, item, update, onHidePinned, onCopy, onRemove, onEditRail }: PinnedInspectorProps) {
+export function PinnedInspector({ config, profile, page, item, update, onHidePinned, onCopy, onRemove, onEditRail, conflicts, onFix, onMoveToPage }: PinnedInspectorProps) {
   const mod = modules.find((m) => m.id === item.placement.module);
   const values: Record<string, ModuleSettingValue> = Object.fromEntries((mod?.settings ?? []).map((d) => [d.key, item.placement.settings?.[d.key] ?? d.default]));
-  const rail = item.placement.module === RAIL_MODULE;
+  const rail = item.placement.module === RAIL_MODULE && isEdgePin(item);
   const choice = showChoice(item, page.id);
   const order = profile.pages.map((p) => p.id);
-  const clash = islandClash(profile.island, item);
-  const overflow = rail ? railOverflow(item, profile) : null;
+  const overflow = rail && isEdgePin(item) ? railOverflow(item, profile) : null;
   const others = sameSizeProfiles(config, profile).length;
-  const side = item.edge === "left" || item.edge === "right";
   const setSetting = (key: string, value: ModuleSettingValue) =>
     update((it) => ({ ...it, placement: { ...it.placement, settings: { ...it.placement.settings, [key]: value } } }), `pinned:${item.id}:${key}`);
   return (
@@ -57,7 +68,7 @@ export function PinnedInspector({ config, profile, page, item, update, onHidePin
       <div className="px-4 py-3">
         <h2 className="truncate text-title font-semibold text-ui-1">{item.name ?? mod?.title ?? item.placement.module}</h2>
         <p className="text-caption text-ui-3">
-          {mod?.title ?? item.placement.module} · {item.thickness} px {side ? "wide" : "high"}
+          {mod?.title ?? item.placement.module} · {isEdgePin(item) ? `${item.thickness} px ${item.edge === "left" || item.edge === "right" ? "wide" : "high"}` : `in place · ${cellsText(clampCells(item.at, profile.cols, profile.rows))}`}
         </p>
       </div>
       <PanelSection id="pinned-pin" title="Pin" icon={Pin}>
@@ -82,34 +93,34 @@ export function PinnedInspector({ config, profile, page, item, update, onHidePin
             ))}
           </fieldset>
         )}
-        <SegmentedRow label="Edge" value={item.edge} onChange={(v) => update((it) => ({ ...it, edge: v as PinnedEdge }))} options={PINNED_EDGES.map((e) => ({ value: e, label: EDGE_LABELS[e] }))} />
-        {clash && (
-          <p role="note" className="flex gap-1.5 text-caption text-ui-warn">
-            <TriangleAlert aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            The Island is on this edge too and draws over this widget. Move one of them, or turn off Reserve space so the page starts under the Island alone.
-          </p>
+        {isEdgePin(item) ? (
+          <EdgeRows item={item} profile={profile} update={(fn, key) => update((it) => (isEdgePin(it) ? fn(it) : it), key)} />
+        ) : (
+          <>
+            <UiSettingRow label="Cells">
+              <span className="text-body text-ui-1">{cellsText(clampCells(item.at, profile.cols, profile.rows))}</span>
+            </UiSettingRow>
+            <p className="text-caption text-ui-3">It keeps these cells on every page it shows on; widgets on those pages go around it. Move or size it on the canvas.</p>
+            {conflicts.length > 0 && (
+              <div role="note" aria-label="Conflicts" className="space-y-1">
+                <p className="flex gap-1.5 text-caption text-ui-warn">
+                  <TriangleAlert aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {`It covers ${conflicts.length === 1 ? "a widget" : `${conflicts.length} widgets`} on ${conflicts.length === 1 ? "a page" : "its pages"}, drawn under it until moved.`}
+                </p>
+                <ul className="space-y-1">
+                  {conflicts.map((c) => (
+                    <li key={`${c.pageId}:${c.placementId}`} className="flex items-center justify-between gap-2 text-body">
+                      <span className="min-w-0 truncate text-ui-2">{`${c.name} · ${c.pageName}`}</span>
+                      <Button small aria-label={`Move ${c.name} on ${c.pageName}`} onClick={() => onFix(c)}>
+                        Move
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
         )}
-        <SegmentedRow
-          label="Page content"
-          value={item.mode}
-          onChange={(v) => update((it) => ({ ...it, mode: v === "float" ? "float" : "room" }))}
-          options={[
-            { value: "room", label: "Make room" },
-            { value: "float", label: "Float on top" },
-          ]}
-        />
-        <p className="text-caption text-ui-3">{item.mode === "room" ? "Pages lay out in the space it leaves." : "It lies over the page, which keeps its whole space."}</p>
-        <SliderRow label="Size" value={item.thickness} min={PIN_MIN_THICKNESS} max={pinnedThicknessMax(item.edge, profile)} unit="px" fallback={item.thickness} onChange={(n) => update((it) => ({ ...it, thickness: Math.max(1, Math.round(n)) }), `pinned:${item.id}:size`)} />
-        <SliderRow
-          label="Off the edge"
-          hint={side ? "Its distance from the screen's edge, and from the top and bottom." : "Its distance from the screen's edge."}
-          value={item.inset ?? 0}
-          min={0}
-          max={48}
-          unit="px"
-          fallback={0}
-          onChange={(n) => update((it) => (n > 0 ? { ...it, inset: Math.round(n) } : withoutInset(it)), `pinned:${item.id}:inset`)}
-        />
         <UiSettingRow label={`Hide the pinned layer on ${page.name}`}>
           <Toggle checked={page.hidePinned === true} onChange={onHidePinned} label={`Hide the pinned layer on ${page.name}`} />
         </UiSettingRow>
@@ -117,6 +128,11 @@ export function PinnedInspector({ config, profile, page, item, update, onHidePin
           <Button small disabled={others === 0} title={others === 0 ? `No other profile is ${profile.width} × ${profile.height}` : undefined} onClick={onCopy}>
             Use on every profile of this size
           </Button>
+          {!isEdgePin(item) && (
+            <Button small variant="ghost" icon={<Undo2 />} onClick={onMoveToPage}>
+              Move to page
+            </Button>
+          )}
           <Button small variant="ghost" icon={<Trash2 />} onClick={onRemove}>
             Unpin
           </Button>
@@ -182,12 +198,50 @@ export function PinnedInspector({ config, profile, page, item, update, onHidePin
   );
 }
 
+/** An edge item's rows: its edge (and the Island on it), make room or float, its size and its distance off the edge. */
+function EdgeRows({ item, profile, update }: { item: PinnedEdgeItem; profile: MonitorProfile; update: (fn: (it: PinnedEdgeItem) => PinnedEdgeItem, key?: string) => void }) {
+  const clash = islandClash(profile.island, item);
+  const side = item.edge === "left" || item.edge === "right";
+  return (
+    <>
+      <SegmentedRow label="Edge" value={item.edge} onChange={(v) => update((it) => ({ ...it, edge: v as PinnedEdge }))} options={PINNED_EDGES.map((e) => ({ value: e, label: EDGE_LABELS[e] }))} />
+      {clash && (
+        <p role="note" className="flex gap-1.5 text-caption text-ui-warn">
+          <TriangleAlert aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          The Island is on this edge too and draws over this widget. Move one of them, or turn off Reserve space so the page starts under the Island alone.
+        </p>
+      )}
+      <SegmentedRow
+        label="Page content"
+        value={item.mode}
+        onChange={(v) => update((it) => ({ ...it, mode: v === "float" ? "float" : "room" }))}
+        options={[
+          { value: "room", label: "Make room" },
+          { value: "float", label: "Float on top" },
+        ]}
+      />
+      <p className="text-caption text-ui-3">{item.mode === "room" ? "Pages lay out in the space it leaves." : "It lies over the page, which keeps its whole space."}</p>
+      <SliderRow label="Size" value={item.thickness} min={PIN_MIN_THICKNESS} max={pinnedThicknessMax(item.edge, profile)} unit="px" fallback={item.thickness} onChange={(n) => update((it) => ({ ...it, thickness: Math.max(1, Math.round(n)) }), `pinned:${item.id}:size`)} />
+      <SliderRow
+        label="Off the edge"
+        hint={side ? "Its distance from the screen's edge, and from the top and bottom." : "Its distance from the screen's edge."}
+        value={item.inset ?? 0}
+        min={0}
+        max={48}
+        unit="px"
+        fallback={0}
+        onChange={(n) => update((it) => (n > 0 ? { ...it, inset: Math.round(n) } : withoutInset(it)), `pinned:${item.id}:inset`)}
+      />
+    </>
+  );
+}
+
 function withoutName(it: PinnedItem): PinnedItem {
   const { name: _gone, ...rest } = it;
   return rest;
 }
 
-function withoutInset(it: PinnedItem): PinnedItem {
+function withoutInset(it: PinnedEdgeItem): PinnedEdgeItem {
   const { inset: _gone, ...rest } = it;
   return rest;
 }

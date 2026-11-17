@@ -266,7 +266,7 @@ export interface MonitorProfile {
   madeFor?: MadeFor;
   /** What the theme last applied to this screen wrote (`lib/applied-theme.ts`); unset = none. */
   appliedTheme?: AppliedTheme;
-  /** Widgets pinned to the screen's edges on every page (`lib/pinned.ts`, config v20); unset = none. */
+  /** Widgets pinned to the screen's edges (config v20) or in place on the grid (config v21) on every page (`lib/pinned.ts`); unset = none. */
   pinned?: PinnedLayer;
   /** The programs that bring this profile up while they are in front (config v20, used from P4); unset = none. */
   autoSwitch?: AutoSwitch;
@@ -281,6 +281,8 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
   pageId?: string;
   /** That page's widget theme (`ProfilePage.widgetTheme`). */
   pageTheme?: WidgetTheme;
+  /** That page hides the pinned layer (`ProfilePage.hidePinned`): its grid pins take no cells there. */
+  hidePinned?: true;
 };
 
 /**
@@ -356,8 +358,15 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  *     A v19 build would draw no pinned layer, but its save is refused as any older one's is (`config_guard.rs`), so a newer
  *     config is never quietly half kept; before the first v20 save the server keeps the v19 file as
  *     `config.backup-before-v20.json` (once: an existing backup is never overwritten).
+ * v21: a widget pinned in place (`pinned.ts` `PinnedGridItem`, owner feedback after P8): a pinned item with `at`, the cells
+ *     of the profile's grid it keeps on every page it shows on, instead of an edge. Pages lay out around them; a page widget
+ *     already on those cells is listed as a conflict, drawn under the pin. Every page shares the profile's grid, so the cells
+ *     mean the same place on each; `normalizePinned` keeps them inside it. The field is optional, so the step is the
+ *     identity and only stamps the version, and a config without grid pins draws as before. A v20 build would drop the item
+ *     (it has no edge), so its save is refused as any older one's is (`config_guard.rs`); before the first v21 save the
+ *     server keeps the v20 file as `config.backup-before-v21.json` (once: an existing backup is never overwritten).
  */
-export const CONFIG_VERSION = 20;
+export const CONFIG_VERSION = 21;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -613,7 +622,7 @@ export function normalizeProfile(input: StoredProfile): MonitorProfile & LegacyP
     pages,
     rotate: normalizeRotate(p.rotate, pages.map((pg) => pg.id)),
     ...profileExtras(p),
-    pinned: normalizePinned(p.pinned, pages.map((pg) => pg.id)),
+    pinned: normalizePinned(p.pinned, pages.map((pg) => pg.id), { cols, rows }),
   };
 }
 

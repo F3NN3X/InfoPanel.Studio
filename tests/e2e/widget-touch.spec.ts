@@ -8,7 +8,7 @@ const H = 600;
 const clock = (id: string, touch?: object) => ({ id, module: "Clock", colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 2, visible: true, ...(touch ? { touch } : {}) });
 const plain = (id: string) => ({ ...clock(id), colStart: 2 });
 const config = {
-  version: 20,
+  version: 21,
   activeProfile: "desk",
   profiles: [
     {

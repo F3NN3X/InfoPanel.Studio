@@ -5,10 +5,26 @@
  */
 import type { ModuleSettings } from "@/modules/types";
 import type { IslandConfig } from "./island/config";
-import { SCROLL_ROW_H, uid, type DashboardConfig, type MonitorProfile, type Placement } from "./layout";
+import { ITEM_ID, SCROLL_ROW_H, uid, type DashboardConfig, type MonitorProfile, type Placement } from "./layout";
 import { pinBlocked } from "./pin-blocked";
 import { profileGap, profilePadding, trackSize } from "./profile-grid";
-import { normalizePinned, remapPinnedPages, type MediaKey, type PinnedEdge, type PinnedItem, type RailGroup, type RailSlot, type TouchAction } from "./pinned";
+import {
+  clampCells,
+  isEdgePin,
+  isGridPin,
+  normalizePinned,
+  pinnedOnPage,
+  remapPinnedPages,
+  type MediaKey,
+  type PinnedCells,
+  type PinnedEdge,
+  type PinnedEdgeItem,
+  type PinnedGridItem,
+  type PinnedItem,
+  type RailGroup,
+  type RailSlot,
+  type TouchAction,
+} from "./pinned";
 import { CHIP_FIELDS, chipSlot, RAIL_MODULE, RAIL_THICKNESS, railNeed, railSlots, type RailPage, type RailParts } from "./rail";
 
 /** What Add offers for the pinned layer: the rail and the widgets the fixtures pin, each on its usual edge and size. */
@@ -30,7 +46,7 @@ export const PIN_KINDS: readonly PinKind[] = [
 ];
 
 /** A new item of `kind`: on all pages, making room, visible. */
-export function newPinnedItem(kind: PinKind): PinnedItem {
+export function newPinnedItem(kind: PinKind): PinnedEdgeItem {
   return {
     id: uid("pin"),
     edge: kind.edge,
@@ -51,8 +67,8 @@ export const pinnedThicknessMax = (edge: PinnedEdge, profile: Pick<MonitorProfil
 
 export { pinBlocked };
 
-/** Why a pinned item can't go back to a page (null: it can). */
-export const unpinBlocked = (it: Pick<PinnedItem, "placement">): string | null => (it.placement.module === RAIL_MODULE ? "The page rail stays in the pinned layer" : null);
+/** Why a pinned item can't go back to a page (null: it can): a rail on an edge stays; one pinned in place came from a page. */
+export const unpinBlocked = (it: PinnedItem): string | null => (isEdgePin(it) && it.placement.module === RAIL_MODULE ? "The page rail stays in the pinned layer" : null);
 
 /** A page widget's size on the profile's grid, px: its cells and the gaps between them. */
 function pageSpanPx(length: number, count: number, span: number, gap: number): number {
@@ -74,7 +90,7 @@ export function pinPlacement(p: MonitorProfile, pageId: string, placementId: str
   const gap = profileGap(p);
   const rowH = p.fit === "fill" ? trackSize(p.height - 2 * pad, p.rows, gap) : SCROLL_ROW_H;
   const size = side ? pageSpanPx(p.width - 2 * pad, p.cols, colSpan, gap) : Math.round(rowSpan * rowH + (rowSpan - 1) * gap);
-  const item: PinnedItem = {
+  const item: PinnedEdgeItem = {
     id: opts.id ?? uid("pin"),
     edge,
     mode: "room",
@@ -88,6 +104,84 @@ export function pinPlacement(p: MonitorProfile, pageId: string, placementId: str
   const moved = { ...p, pages: p.pages.map((pg) => (pg === page ? { ...pg, placements: pg.placements.filter((x) => x.id !== placementId) } : pg)) };
   return addPinnedItem(moved, item);
 }
+
+/** A placement's cells. */
+const cellsOf = (z: Pick<Placement, "colStart" | "rowStart" | "colSpan" | "rowSpan">): PinnedCells => ({ colStart: z.colStart, rowStart: z.rowStart, colSpan: z.colSpan, rowSpan: z.rowSpan });
+
+const overlaps = (a: PinnedCells, b: PinnedCells): boolean =>
+  a.colStart < b.colStart + b.colSpan && b.colStart < a.colStart + a.colSpan && a.rowStart < b.rowStart + b.rowSpan && b.rowStart < a.rowStart + a.rowSpan;
+
+/**
+ * Pin here (owner feedback after P8, "Reserve the cells"): a page's widgets moved into the pinned layer in place, as one
+ * change. Each keeps its module, settings and cells, is dropped from the page and goes last in the list, on all pages.
+ * `opts.ids` and `opts.names` name each new item, in the order of `placementIds`. A widget that can't be pinned, or one
+ * placed freely in px, stays on the page; the profile as it was when none can be pinned.
+ */
+export function pinInPlace(p: MonitorProfile, pageId: string, placementIds: readonly string[], opts: { ids?: readonly string[]; names?: readonly string[] } = {}): MonitorProfile {
+  const page = p.pages.find((pg) => pg.id === pageId);
+  if (!page) return p;
+  const items = placementIds.flatMap((id, i): PinnedGridItem[] => {
+    const placement = page.placements.find((x) => x.id === id);
+    if (!placement || pinBlocked(placement) || placement.px) return [];
+    const { colStart: _c, rowStart: _r, colSpan: _cs, rowSpan: _rs, px: _px, groupId: _g, item: _i, visible, locked, ...rest } = placement;
+    return [
+      {
+        id: opts.ids?.[i] ?? uid("pin"),
+        at: clampCells(cellsOf(placement), p.cols, p.rows),
+        show: "all",
+        visible,
+        ...(locked ? { locked: true } : {}),
+        name: opts.names?.[i] ?? placement.name ?? placement.module,
+        placement: rest,
+      },
+    ];
+  });
+  if (!items.length) return p;
+  const gone = new Set(items.map((it) => it.placement.id));
+  const moved = { ...p, pages: p.pages.map((pg) => (pg === page ? { ...pg, placements: pg.placements.filter((x) => !gone.has(x.id)) } : pg)) };
+  return withPinnedItems(moved, (list) => [...list, ...items]);
+}
+
+/** A page widget an item pinned in place covers: on a page it shows on, under its cells. */
+export interface PinConflict {
+  pageId: string;
+  placementId: string;
+}
+
+/**
+ * The page widgets a grid pin covers (owner: "never hidden silently"): on each page it is drawn on (visible, shown there,
+ * the page not hiding the layer), the visible widgets on the grid whose cells meet its own. None for an edge item.
+ */
+export function pinConflicts(p: MonitorProfile, item: PinnedItem): PinConflict[] {
+  if (!isGridPin(item)) return [];
+  const at = clampCells(item.at, p.cols, p.rows);
+  return p.pages.flatMap((pg) =>
+    pinnedOnPage({ items: [item] }, pg.id, pg.hidePinned).length
+      ? pg.placements.filter((z) => z.visible && z.module !== ITEM_ID && !z.px && overlaps(at, cellsOf(z))).map((z) => ({ pageId: pg.id, placementId: z.id }))
+      : []
+  );
+}
+
+/** Every conflict of the profile's grid pins, with the pin that makes it. */
+export const allPinConflicts = (p: MonitorProfile): (PinConflict & { pinId: string })[] =>
+  (p.pinned?.items ?? []).flatMap((it) => pinConflicts(p, it).map((c) => ({ ...c, pinId: it.id })));
+
+/** A page widget moved to `rect` (a free spot the caller found): a conflict's Move fix. */
+export function moveZoneTo(p: MonitorProfile, pageId: string, placementId: string, rect: { col: number; row: number; cols: number; rows: number }): MonitorProfile {
+  return {
+    ...p,
+    pages: p.pages.map((pg) =>
+      pg.id === pageId ? { ...pg, placements: pg.placements.map((z) => (z.id === placementId ? { ...z, colStart: rect.col, rowStart: rect.row, colSpan: rect.cols, rowSpan: rect.rows } : z)) } : pg
+    ),
+  };
+}
+
+/** A grid pin moved or resized to `at`, kept inside the grid; an edge item stays as it is. */
+export const withCells = (p: MonitorProfile, id: string, at: PinnedCells): MonitorProfile =>
+  updatePinnedItem(p, id, (it) => (isGridPin(it) ? { ...it, at: clampCells(at, p.cols, p.rows) } : it));
+
+/** "cols 1–3, rows 2–2" as the pinned list and inspector say it. */
+export const cellsText = (at: PinnedCells): string => `cols ${at.colStart}–${at.colStart + at.colSpan - 1}, rows ${at.rowStart}–${at.rowStart + at.rowSpan - 1}`;
 
 /** A pinned item moved onto a page's grid at `rect` (a free spot the caller found), as one change; the profile as it was when it can't go. */
 export function unpinToPage(p: MonitorProfile, itemId: string, pageId: string, rect: { col: number; row: number; cols: number; rows: number }): MonitorProfile {
@@ -189,14 +283,14 @@ export function copyPinnedToSameSize(config: DashboardConfig, fromId: string): {
   const profiles = config.profiles.map((p) => {
     if (!targets.has(p.id)) return p;
     const ids = new Map(from.pages.flatMap((pg, i) => (p.pages[i] ? [[pg.id, p.pages[i].id] as const] : [])));
-    const layer = normalizePinned(remapPinnedPages(from.pinned!, ids, (module) => uid(module)), p.pages.map((pg) => pg.id));
+    const layer = normalizePinned(remapPinnedPages(from.pinned!, ids, (module) => uid(module)), p.pages.map((pg) => pg.id), { cols: p.cols, rows: p.rows });
     return withPinnedItems(p, () => layer?.items ?? []);
   });
   return { config: { ...config, profiles }, count: targets.size };
 }
 
 /** A pinned item's height on a profile, px: a side item runs the height less its inset at each end. */
-export const pinnedHeight = (item: Pick<PinnedItem, "edge" | "thickness" | "inset">, profileHeight: number): number =>
+export const pinnedHeight = (item: Pick<PinnedEdgeItem, "edge" | "thickness" | "inset">, profileHeight: number): number =>
   item.edge === "left" || item.edge === "right" ? profileHeight - 2 * (item.inset ?? 0) : item.thickness;
 
 /** The rail's parts as its settings say (each on unless set off). */
@@ -208,7 +302,7 @@ export const railParts = (settings: ModuleSettings | undefined, rotates: boolean
 });
 
 /** Owner Q9: the height the rail's items need against the height it has, when they don't fit; null when they do. */
-export function railOverflow(item: PinnedItem, profile: Pick<MonitorProfile, "height" | "pages" | "rotate">): { need: number; have: number } | null {
+export function railOverflow(item: PinnedEdgeItem, profile: Pick<MonitorProfile, "height" | "pages" | "rotate">): { need: number; have: number } | null {
   const have = pinnedHeight(item, profile.height);
   const need = railNeed(railSlots(item.rail, profile.pages), railParts(item.placement.settings, profile.rotate?.enabled === true && profile.pages.length > 1), have);
   return need > have ? { need: Math.round(need), have } : null;

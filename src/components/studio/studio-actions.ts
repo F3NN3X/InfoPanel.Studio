@@ -18,7 +18,7 @@ import { makePreset, type PanelPreset } from "@/lib/panelPresets";
 import type { ModuleSettings } from "@/modules/types";
 import { ALL_MODULES, moduleMinSize } from "./studio-modules";
 import { dropKeys } from "./settings-model";
-import { firstFreeRect, zoneFits, type ZoneRect } from "./zone-geometry";
+import { firstFreeRect, pinnedTaken, takenOn, zoneFits, type ZoneRect } from "./zone-geometry";
 
 /*
  * Pure profile mutations behind the studio's controls. Each takes the
@@ -51,7 +51,7 @@ function appendAtFreeSlot(
     rows: Math.max(1, Math.min(size.rows, profile.rows)),
   };
   const pos =
-    firstFreeRect(profile.cols, profile.rows, clamped, profile.placements) ?? {
+    firstFreeRect(profile.cols, profile.rows, clamped, takenOn(profile)) ?? {
       col: 1,
       row: 1,
       cols: clamped.cols,
@@ -265,7 +265,7 @@ export function canToggleZonesVisible(profile: ProfileView, ids: readonly string
     .every((p) =>
       zoneFits(
         { col: p.colStart, row: p.rowStart, cols: p.colSpan, rows: p.rowSpan },
-        next.placements,
+        takenOn(next),
         profile.cols,
         profile.rows,
         p.id
@@ -287,7 +287,7 @@ export function duplicateZones(
   for (const id of ids) {
     const p = profile.placements.find((x) => x.id === id);
     if (!p) continue;
-    const pos = firstFreeRect(profile.cols, profile.rows, { cols: p.colSpan, rows: p.rowSpan }, placements);
+    const pos = firstFreeRect(profile.cols, profile.rows, { cols: p.colSpan, rows: p.rowSpan }, [...placements, ...pinnedTaken(profile)]);
     if (!pos) continue;
     const copy = { ...clonePlacement(p), colStart: pos.col, rowStart: pos.row };
     placements = [...placements, copy];
@@ -314,13 +314,15 @@ export function moveZonesToPage(
   const moving = src?.placements.filter((p) => ids.includes(p.id)) ?? [];
   if (!src || !dst || from === to || moving.length === 0) return profile;
   let landed = dst.placements;
+  // the target page's cells pinned in place are taken (config v21)
+  const pins = pinnedTaken({ ...profile, pageId: to, hidePinned: dst.hidePinned });
   for (const zone of moving) {
     const box: ZoneRect = { col: zone.colStart, row: zone.rowStart, cols: zone.colSpan, rows: zone.rowSpan };
     const min = minSizeOf(zone);
     const size = { cols: Math.max(zone.colSpan, min.cols), rows: Math.max(zone.rowSpan, min.rows) };
-    const rect = zoneFits(box, landed, profile.cols, profile.rows)
+    const rect = zoneFits(box, [...landed, ...pins], profile.cols, profile.rows)
       ? box
-      : firstFreeRect(profile.cols, profile.rows, size, landed);
+      : firstFreeRect(profile.cols, profile.rows, size, [...landed, ...pins]);
     if (!rect) return null;
     landed = [...landed, { ...zone, colStart: rect.col, rowStart: rect.row, colSpan: rect.cols, rowSpan: rect.rows }];
   }
@@ -368,7 +370,7 @@ export function canGrowTo(profile: ProfileView, id: string, min: Size): boolean 
   const p = profile.placements.find((x) => x.id === id);
   return (
     p !== undefined &&
-    zoneFits(grownRect(profile, p, min), profile.placements, profile.cols, profile.rows, id)
+    zoneFits(grownRect(profile, p, min), takenOn(profile), profile.cols, profile.rows, id)
   );
 }
 
@@ -378,7 +380,7 @@ export function canGrowTo(profile: ProfileView, id: string, min: Size): boolean 
  */
 function growTo(profile: ProfileView, p: Placement, min: Size) {
   const grown = grownRect(profile, p, min);
-  const r = zoneFits(grown, profile.placements, profile.cols, profile.rows, p.id)
+  const r = zoneFits(grown, takenOn(profile), profile.cols, profile.rows, p.id)
     ? grown
     : { col: p.colStart, row: p.rowStart, cols: p.colSpan, rows: p.rowSpan };
   return { colStart: r.col, rowStart: r.row, colSpan: r.cols, rowSpan: r.rows };

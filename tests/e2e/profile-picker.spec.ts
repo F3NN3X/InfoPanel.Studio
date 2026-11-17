@@ -23,7 +23,7 @@ const screen = (id: string, name: string, width: number, extra: object = {}) => 
   ...extra,
 });
 const config = {
-  version: 20,
+  version: 21,
   activeProfile: "desk",
   profiles: [
     screen("desk", "Desk", W),

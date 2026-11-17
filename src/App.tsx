@@ -23,7 +23,7 @@ import { modules } from "@/modules";
 import { useLoadedProfile, useWidgetPreload } from "@/widgets/preload";
 import { PageDots, pageDotsStripPx } from "@/components/page-dots";
 import { leadsPage, PinnedItems } from "@/components/pinned-layer";
-import { pinnedOnPage, pinnedPlacement, pinnedRoom, type TouchAction, type TouchGesture } from "@/lib/pinned";
+import { isEdgePin, isGridPin, pinnedOnPage, pinnedPlacement, pinnedRoom, type TouchAction, type TouchGesture } from "@/lib/pinned";
 import { RailHostContext, type RailHost } from "@/components/rail-host";
 import { runTouchAction } from "@/lib/touch-actions";
 import { resolveBackground } from "@/lib/appearance";
@@ -119,6 +119,8 @@ const TOUCH_THROTTLE_MS = 5000;
 const StudioView = lazy(() =>
   import("@/components/studio/studio-view").then((m) => ({ default: m.StudioView }))
 );
+/** Widgets pinned in place (config v21): loaded by a screen that has one. */
+const PinnedGrid = lazy(() => import("@/components/pinned-grid"));
 const ConfigUpdateDialog = lazy(() => import("@/components/studio/config-update-dialog").then((m) => ({ default: m.ConfigUpdateDialog })));
 // Experimental touch: only a kiosk with ?touch= loads it.
 const TouchLayer = lazy(() => import("@/components/touch-layer").then((m) => ({ default: m.TouchLayer })));
@@ -255,6 +257,9 @@ export default function App({ fixture }: AppProps = {}) {
   // The pinned layer (config v20): its items on this page, and the room the "make room" ones take off the page's edges.
   const pinned = useMemo(() => pinnedOnPage(stored.pinned, profile.pageId, pageOf(stored, profile.pageId).hidePinned), [stored, profile.pageId]);
   const room = pinnedRoom(pinned);
+  const edgePins = useMemo(() => pinned.filter(isEdgePin), [pinned]);
+  // Widgets pinned in place (config v21): on the page grid's cells, over it, outside it so a page change keeps them mounted.
+  const gridPins = useMemo(() => pinned.filter(isGridPin), [pinned]);
   const pageIsland = useMemo(() => ({ island, page: islandPage }), [island, islandPage]);
   const fill = profile.fit === "fill";
   const background = resolveBackground(profile);
@@ -923,6 +928,8 @@ export default function App({ fixture }: AppProps = {}) {
           kiosk && "kiosk",
           kiosk && !fill && "kiosk-scroll",
           kiosk && general.hideCursor && "kiosk-hide-cursor",
+          // the grid pins' grid is placed in it (absolute); a page without grid pins is as it was
+          gridPins.length > 0 && "relative",
           fill
             ? kiosk
               ? "h-screen overflow-hidden"
@@ -973,7 +980,7 @@ export default function App({ fixture }: AppProps = {}) {
           </div>
         )}
 
-        <PinnedItems all={pinned} items={pinned.filter(leadsPage)} profile={profile} appearance={appearance} padding={profilePadding(profile, kiosk)} />
+        <PinnedItems all={pinned} items={edgePins.filter(leadsPage)} profile={profile} appearance={appearance} padding={profilePadding(profile, kiosk)} />
 
         {/* Kiosk grid of zones (read-only) */}
         <PageGrid
@@ -1020,8 +1027,22 @@ export default function App({ fixture }: AppProps = {}) {
           </div>
         )}
 
+        {/* The widgets pinned in place, on the page grid's cells over its zones */}
+        {gridPins.length > 0 && (
+          <Suspense fallback={null}>
+            <PinnedGrid
+              items={gridPins}
+              profile={profile}
+              appearance={appearance}
+              grid={gridEl}
+              main={mainEl}
+              tracks={{ gap: profileGap(profile), gridTemplateColumns: `repeat(${profile.cols}, minmax(0, 1fr))`, gridTemplateRows: rowsOf(profile, drawn) }}
+            />
+          </Suspense>
+        )}
+
         {/* The pinned items on the right and bottom edges, and the ones floating over the page (drawn over its zones) */}
-        <PinnedItems all={pinned} items={pinned.filter((it) => !leadsPage(it))} profile={profile} appearance={appearance} padding={profilePadding(profile, kiosk)} />
+        <PinnedItems all={pinned} items={edgePins.filter((it) => !leadsPage(it))} profile={profile} appearance={appearance} padding={profilePadding(profile, kiosk)} />
 
         {kiosk && <KioskWaitingForData />}
 

@@ -5,8 +5,8 @@ import { Menu } from "@base-ui/react/menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { FOCUS_RING } from "@/components/ui/button";
 import type { MonitorProfile, ProfilePage } from "@/lib/layout";
-import { PIN_KINDS, type PinKind } from "@/lib/pinned-edit";
-import type { PinnedItem } from "@/lib/pinned";
+import { cellsText, PIN_KINDS, type PinKind } from "@/lib/pinned-edit";
+import { clampCells, isGridPin, type PinnedItem } from "@/lib/pinned";
 import { cn } from "@/lib/utils";
 import { zoneName } from "../inspector/zone-meta";
 import { ITEM, POPUP } from "../menu-styles";
@@ -28,9 +28,10 @@ interface PinnedPanelProps {
 
 const EDGE_NAMES = { left: "Left edge", right: "Right edge", top: "Top", bottom: "Bottom" } as const;
 
-/** A row's line: its edge, and the pages it shows on. */
-function lineOf(it: PinnedItem, pages: readonly ProfilePage[]): string {
-  const on = it.show === "all" ? "all pages" : it.show.pages.map((id) => pages.find((p) => p.id === id)?.name).filter(Boolean).join(", ") || "no page";
+/** A row's line: its edge (or its cells, pinned in place), and the pages it shows on. */
+function lineOf(it: PinnedItem, profile: MonitorProfile): string {
+  const on = it.show === "all" ? "all pages" : it.show.pages.map((id) => profile.pages.find((p) => p.id === id)?.name).filter(Boolean).join(", ") || "no page";
+  if (isGridPin(it)) return `In place · ${cellsText(clampCells(it.at, profile.cols, profile.rows))} · ${on}`;
   return `${EDGE_NAMES[it.edge]} · ${it.mode === "float" ? "floats · " : ""}${on}`;
 }
 
@@ -73,7 +74,7 @@ export function PinnedPanel({ profile, page, width, selectedId, onSelect, onAdd,
             <li key={it.id} onContextMenu={(e) => { e.preventDefault(); onSelect(it.id); setMenu({ x: e.clientX, y: e.clientY, item: it }); }} className={cn("group flex items-center gap-1 rounded-ui-md pr-1", it.id === selectedId ? "bg-ui-blue-bg outline outline-1 outline-ui-accent" : "hover:bg-ui-hover")}>
               <button type="button" aria-pressed={it.id === selectedId} onClick={() => onSelect(it.id)} className={cn("min-w-0 flex-1 rounded-ui-md px-2 py-1.5 text-left", FOCUS_RING, !it.visible && "text-ui-3")}>
                 <span className="block truncate text-body">{it.name ?? zoneName({ ...it.placement, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true })}</span>
-                <span className="block truncate text-caption text-ui-3">{lineOf(it, profile.pages)}</span>
+                <span className="block truncate text-caption text-ui-3">{lineOf(it, profile)}</span>
               </button>
               <IconButton label={i === 0 ? "Already first" : "Move up"} size={26} disabled={i === 0} onClick={() => onMove(it.id, -1)}>
                 <ArrowUp className="h-3.5 w-3.5" />

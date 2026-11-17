@@ -1,4 +1,5 @@
-import type { Placement } from "@/lib/layout";
+import type { Placement, ProfileView } from "@/lib/layout";
+import { clampCells, isGridPin, pinnedOnPage, type PinnedLayer } from "@/lib/pinned";
 
 /** A zone box in 1-based grid cells. */
 export interface ZoneRect {
@@ -14,6 +15,28 @@ interface ZoneLike {
   rowStart: number;
   colSpan: number;
   rowSpan: number;
+}
+
+/** The module of the stand-ins `pinnedTaken` makes, never a stored placement's. */
+export const PINNED_CELLS = "pinned-cells";
+
+/**
+ * The cells the grid pins shown on a page take there (config v21), as stand-in placements of no widget (`PINNED_CELLS`):
+ * what Edit's placing, moving and sizing treat as taken. Never stored; `view` is the page's (`profileWithPage`).
+ */
+export function pinnedTaken(view: { pinned?: PinnedLayer; pageId?: string; hidePinned?: boolean; cols: number; rows: number }): Placement[] {
+  return pinnedOnPage(view.pinned, view.pageId, view.hidePinned)
+    .filter(isGridPin)
+    .map((it) => ({ id: `${PINNED_CELLS}:${it.id}`, module: PINNED_CELLS, ...clampCells(it.at, view.cols, view.rows), visible: true }));
+}
+
+/**
+ * The page's zones and the cells its widgets pinned in place take (config v21): what placing, moving and sizing a zone on
+ * the page keeps off. Collision only: the stand-ins are never stored.
+ */
+export function takenOn(view: ProfileView): Placement[] {
+  const pins = pinnedTaken(view);
+  return pins.length ? [...view.placements, ...pins] : view.placements;
 }
 
 export function rectsOverlap(r: ZoneRect, o: ZoneLike): boolean {

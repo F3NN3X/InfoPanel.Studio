@@ -18,7 +18,7 @@ const item = (id: string, edge: string, mode: string, thickness: number, extra: 
   ...extra,
 });
 const config = {
-  version: 20,
+  version: 21,
   activeProfile: "desk",
   profiles: [
     {

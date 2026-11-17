@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { BLANK_MODULE, type Placement } from "@/lib/layout";
+import { BLANK_MODULE, type Placement, type ProfileView } from "@/lib/layout";
 import { addGhost, autoPlace, shrinkSizes } from "@/components/studio/add-place";
+import { fitZoneRect, takenOn } from "@/components/studio/zone-geometry";
 
 const zone = (id: string, colStart: number, rowStart: number, colSpan: number, rowSpan: number, module = "m"): Placement => ({
   id,
@@ -50,6 +51,20 @@ describe("autoPlace", () => {
   it("counts blank zones as taken, and finds no room on a full page", () => {
     const full = [zone("a", 1, 1, 8, 2), zone("blank", 1, 3, 8, 1, BLANK_MODULE)];
     expect(autoPlace(grid, full, cpu.def, cpu.min)).toBeNull();
+  });
+
+  it("treats the cells of widgets pinned in place as taken on the pages they are drawn on (config v21)", () => {
+    // three widgets pinned in a row across the top: a new one goes under them, never on them
+    const pin = (id: string, col: number) => ({ id, at: { colStart: col, rowStart: 1, colSpan: 2, rowSpan: 1 }, show: "all" as const, visible: true, placement: { id: `${id}-w`, module: "Clock" } });
+    const view = { ...grid, pageId: "a", placements: [], pinned: { items: [pin("p1", 1), pin("p2", 3), pin("p3", 5)] } } as unknown as ProfileView;
+    expect(autoPlace(grid, takenOn(view), { cols: 2, rows: 1 }, { cols: 1, rows: 1 })).toEqual({ col: 7, row: 1, cols: 2, rows: 1 });
+    expect(autoPlace(grid, takenOn(view), { cols: 3, rows: 1 }, { cols: 3, rows: 1 })).toEqual({ col: 1, row: 2, cols: 3, rows: 1 });
+    // a move or a drawn box onto them is pushed off them
+    expect(fitZoneRect({ col: 3, row: 1, cols: 2, rows: 1 }, takenOn(view), grid.cols, grid.rows)).toEqual({ col: 3, row: 2, cols: 2, rows: 1 });
+    // a page that hides the pinned layer has its whole grid
+    expect(autoPlace(grid, takenOn({ ...view, hidePinned: true }), { cols: 2, rows: 1 }, { cols: 1, rows: 1 })).toEqual({ col: 1, row: 1, cols: 2, rows: 1 });
+    // and the stand-ins are never added to the page's own zones
+    expect(view.placements).toEqual([]);
   });
 
   it("never goes below the min size", () => {

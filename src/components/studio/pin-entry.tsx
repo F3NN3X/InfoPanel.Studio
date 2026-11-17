@@ -23,3 +23,24 @@ export function pinToEdgeEntry(placement: Placement, pin: (placementId: string, 
     submenu: EDGES.map(([edge, label]): ContextMenuEntry => ({ id: `pin:${edge}`, label, onSelect: () => pin(placement.id, edge) })),
   };
 }
+
+/**
+ * The page widget menu's Pin here (config v21): the selected widgets pinned in place, each keeping its cells on every
+ * page; disabled, with the first reason as its title, when one of them can't be pinned (or is placed freely in px).
+ */
+export function pinHereEntry(placements: readonly Placement[], pinHere: (placementIds: string[]) => void): ContextMenuEntry {
+  const why = placements.map((p) => pinBlocked(p) ?? (p.px ? "A part placed freely can't be pinned in place" : null)).find((w) => w !== null) ?? null;
+  return {
+    id: "pin-here",
+    label: "Pin here",
+    icon: <Pin />,
+    disabled: why !== null,
+    title: why ?? undefined,
+    onSelect: () => pinHere(placements.map((p) => p.id)),
+  };
+}
+
+/** Pin here, then Pin to edge for a selection of one: the layer menu's pin rows for the selected page placements. */
+export function pinEntries(placements: readonly Placement[], pin: (placementId: string, edge: PinnedEdge) => void, pinHere: (placementIds: string[]) => void): ContextMenuEntry[] {
+  return [pinHereEntry(placements, pinHere), ...(placements.length === 1 ? [pinToEdgeEntry(placements[0], pin)] : [])];
+}

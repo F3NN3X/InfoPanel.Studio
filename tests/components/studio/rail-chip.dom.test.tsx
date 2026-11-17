@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { RailEditor } from "@/components/studio/pinned/rail-editor";
 import { RailSlotInspector } from "@/components/studio/pinned/rail-slot-inspector";
 import type { MonitorProfile, ProfileView } from "@/lib/layout";
-import type { PinnedItem } from "@/lib/pinned";
+import type { PinnedEdgeItem, PinnedItem } from "@/lib/pinned";
 import { newPinnedItem, PIN_KINDS, withChipItem, withChipShown } from "@/lib/pinned-edit";
 import { CHIP_SLOT_ID, chipSlot } from "@/lib/rail";
 
@@ -18,15 +18,16 @@ afterEach(cleanup);
 
 const pages = [{ id: "a", name: "A", placements: [] }, { id: "b", name: "B", placements: [] }];
 const stored = { id: "s", name: "Stream", width: 1024, height: 600, cols: 4, rows: 3, fit: "fill", pages } as unknown as MonitorProfile;
-const rail0: PinnedItem = { ...newPinnedItem(PIN_KINDS.find((k) => k.id === "rail")!), id: "rail" };
+const rail0: PinnedEdgeItem = { ...newPinnedItem(PIN_KINDS.find((k) => k.id === "rail")!), id: "rail" };
 
 /** The editor and the inspector of the selected item over one rail item, with an undo stack as the studio's history is. */
-function Harness({ log }: { log: PinnedItem[] }) {
+function Harness({ log }: { log: PinnedEdgeItem[] }) {
   const [item, setItem] = useState(rail0);
   const [slot, setSlot] = useState<string | null>(null);
   const set = (next: PinnedItem) => {
     log.push(item);
-    setItem(next);
+    // the rail editor's changes keep the rail on its edge
+    setItem(next as PinnedEdgeItem);
   };
   return (
     <>
@@ -64,7 +65,7 @@ function Harness({ log }: { log: PinnedItem[] }) {
 
 describe("the profile chip as a rail item", () => {
   it("is listed first in Top, selects, is edited into the rail's settings, and one undo restores the rail", () => {
-    const log: PinnedItem[] = [];
+    const log: PinnedEdgeItem[] = [];
     render(<Harness log={log} />);
     const row = screen.getByRole("button", { name: /The profile chip/ });
     expect(screen.getByRole("heading", { name: "Top" })).toBeTruthy();

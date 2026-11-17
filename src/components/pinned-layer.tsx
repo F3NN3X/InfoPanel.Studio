@@ -3,17 +3,17 @@ import { PlacementFrame } from "@/components/studio/placement-frame";
 import { LivePlacement } from "@/components/studio/placement-content";
 import type { ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
-import { pinnedBox, pinnedPlacement, type PinnedItem } from "@/lib/pinned";
+import { pinnedBox, pinnedPlacement, type PinnedEdgeItem, type PinnedItem } from "@/lib/pinned";
 import { RailItemContext } from "./rail-host";
 
 /** The pinned items on the left or top edge come before the page in the reading and focus order, the rest after it. */
-export const leadsPage = (it: PinnedItem): boolean => it.mode === "room" && (it.edge === "left" || it.edge === "top");
+export const leadsPage = (it: PinnedEdgeItem): boolean => it.mode === "room" && (it.edge === "left" || it.edge === "top");
 
 interface PinnedItemsProps {
   /** Every pinned item on this page (`pinnedOnPage`): their boxes stack against each other. */
   all: readonly PinnedItem[];
   /** The ones to draw here. */
-  items: readonly PinnedItem[];
+  items: readonly PinnedEdgeItem[];
   profile: ProfileView;
   appearance: Appearance;
   /** The page's padding, px: a top or bottom item keeps it off the side items, so it lines up with the zones. */

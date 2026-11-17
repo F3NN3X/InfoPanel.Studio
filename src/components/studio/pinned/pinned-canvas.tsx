@@ -5,7 +5,7 @@ import { LivePlacement } from "@/components/studio/placement-content";
 import { RailHostContext, RailItemContext, type RailHost } from "@/components/rail-host";
 import type { MonitorProfile, ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
-import { pinnedBox, pinnedPlacement, type PinnedItem } from "@/lib/pinned";
+import { isEdgePin, pinnedBox, pinnedPlacement, type PinnedItem } from "@/lib/pinned";
 import { cn } from "@/lib/utils";
 import { pinnedItemMenu } from "./pinned-menu";
 import type { PinnedActions } from "./use-pinned-actions";
@@ -18,7 +18,7 @@ interface PinnedCanvasProps {
   index: number;
   /** The page on the canvas. */
   pageId: string;
-  /** The pinned items drawn on this page (`pinnedOnPage`). */
+  /** The pinned items drawn on this page (`pinnedOnPage`); the ones on an edge are drawn here (grid pins: `PinnedGridCanvas`). */
   items: readonly PinnedItem[];
   appearance: Appearance;
   /** The page's padding, px (a top or bottom item keeps it off the side items, as on the kiosk). */
@@ -58,7 +58,7 @@ export function PinnedCanvas({ stored, profile, index, pageId, items, appearance
   );
   return (
     <RailHostContext.Provider value={host}>
-      {items.map((it) => {
+      {items.filter(isEdgePin).map((it) => {
         const zone = pinnedPlacement(it);
         const selected = editing && it.id === selectedId;
         return (

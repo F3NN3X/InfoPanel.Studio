@@ -1,3 +1,4 @@
+import { TriangleAlert } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { FOCUS_RING } from "@/components/ui/button";
 import type { MonitorProfile } from "@/lib/layout";
@@ -12,10 +13,12 @@ interface PinnedPagesProps {
   /** Draw the pinned layer on the thumbnails (a studio preference, the page tabs' thumbnails follow it too). */
   showPinned: boolean;
   onShowPinned: (on: boolean) => void;
+  /** The pages where a widget pinned in place covers a page widget: their thumbnails carry a marker. */
+  conflicted?: ReadonlySet<string>;
 }
 
 /** Under the canvas while Edit shows the pinned layer: the profile's pages as thumbnails, with the layer on them or not. */
-export function PinnedPages({ profile, current, onSelect, showPinned, onShowPinned }: PinnedPagesProps) {
+export function PinnedPages({ profile, current, onSelect, showPinned, onShowPinned, conflicted }: PinnedPagesProps) {
   return (
     <section aria-label={`Pages in ${profile.name}`} className="shrink-0 border-t border-ui-subtle bg-ui-chrome px-4 py-3 font-ui">
       <div className="mb-2 flex items-center justify-between gap-3">
@@ -31,7 +34,15 @@ export function PinnedPages({ profile, current, onSelect, showPinned, onShowPinn
             <span className={cn("block overflow-hidden rounded-ui-md border", p.id === current ? "border-ui-blue" : "border-ui-edge")} style={{ width: 150, aspectRatio: aspectOf(profile.width, profile.height) }}>
               <PageMap profile={profile} page={p} pinned={showPinned} />
             </span>
-            <span className={cn("text-caption", p.id === current ? "text-ui-1" : "text-ui-3")}>{p.name}</span>
+            <span className={cn("flex items-center gap-1 text-caption", p.id === current ? "text-ui-1" : "text-ui-3")}>
+              {p.name}
+              {conflicted?.has(p.id) && (
+                <span className="inline-flex items-center gap-0.5 text-ui-warn" title="A widget pinned in place covers a widget on this page">
+                  <TriangleAlert aria-hidden className="h-3 w-3" />
+                  <span className="sr-only">, a pinned widget covers a widget here</span>
+                </span>
+              )}
+            </span>
           </button>
         ))}
       </div>

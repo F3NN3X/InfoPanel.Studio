@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Placement } from "@/lib/layout";
+import type { PinnedGridItem } from "@/lib/pinned";
 import {
   clampZoneRect,
   enforceMinSize,
@@ -7,6 +8,7 @@ import {
   fitZoneRect,
   moveZoneSet,
   nudgeZone,
+  pinnedTaken,
   rectsOverlap,
   resizeZone,
   sortZones,
@@ -205,5 +207,20 @@ describe("resizeZone with a minimum", () => {
       cols: 3,
       rows: 2,
     });
+  });
+});
+
+describe("pinnedTaken: widgets pinned in place (config v21)", () => {
+  const grid = (id: string, extra: Partial<PinnedGridItem> = {}): PinnedGridItem => ({ id, at: { colStart: 2, rowStart: 1, colSpan: 2, rowSpan: 1 }, show: "all", visible: true, placement: { id: `${id}-w`, module: "Clock" }, ...extra });
+
+  it("take their cells on the pages they are drawn on, kept inside the grid; not where hidden, off or not shown", () => {
+    const layer = { items: [grid("g"), grid("off", { visible: false }), grid("b", { show: { pages: ["b"] }, at: { colStart: 4, rowStart: 1, colSpan: 3, rowSpan: 1 } }), { id: "rail", edge: "left" as const, mode: "room" as const, thickness: 84, show: "all" as const, visible: true, placement: { id: "rail-w", module: "PageRail" } }] };
+    expect(pinnedTaken({ pinned: layer, pageId: "a", cols: 4, rows: 3 })).toEqual([{ id: "pinned-cells:g", module: "pinned-cells", colStart: 2, rowStart: 1, colSpan: 2, rowSpan: 1, visible: true }]);
+    expect(pinnedTaken({ pinned: layer, pageId: "b", cols: 4, rows: 3 }).map((p) => [p.id, p.colStart, p.colSpan])).toEqual([
+      ["pinned-cells:g", 2, 2],
+      ["pinned-cells:b", 2, 3],
+    ]);
+    expect(pinnedTaken({ pinned: layer, pageId: "b", hidePinned: true, cols: 4, rows: 3 })).toEqual([]);
+    expect(pinnedTaken({ pinned: undefined, pageId: "a", cols: 4, rows: 3 })).toEqual([]);
   });
 });

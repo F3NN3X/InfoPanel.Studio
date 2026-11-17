@@ -4,9 +4,11 @@ import type { HistorySetter } from "@/hooks/use-config-history";
 import type { DashboardConfig, MonitorProfile, ProfilePage, ProfileView } from "@/lib/layout";
 import {
   addPinnedItem,
+  allPinConflicts,
   copyPinnedToSameSize,
   movePinnedItem,
   newPinnedItem,
+  pinConflicts,
   sameSizeProfiles,
   updatePinnedItem,
   withChipItem,
@@ -14,9 +16,10 @@ import {
   withHidePinned,
   withRailSlots,
 } from "@/lib/pinned-edit";
-import { pinnedOnPage, pinnedRoom, type RailSlot } from "@/lib/pinned";
+import { isEdgePin, pinnedOnPage, pinnedRoom, type RailSlot } from "@/lib/pinned";
 import { CHIP_SLOT_ID, chipSlot, RAIL_MODULE, railSlots } from "@/lib/rail";
 import type { Appearance } from "@/lib/style-resolve";
+import { zoneName } from "../inspector/zone-meta";
 import { StudioShell } from "../studio-shell";
 import type { useStudioLayout } from "../use-studio-layout";
 import { PinnedInspector, type ItemUpdate } from "./pinned-inspector";
@@ -57,8 +60,8 @@ interface PinnedWorkspaceProps {
   thumbsPinned: boolean;
   onThumbsPinned: (on: boolean) => void;
   toast: (text: string) => void;
-  /** Unpin, and move to the page (the list's buttons and menus). */
-  actions: Pick<PinnedActions, "remove" | "moveToPage">;
+  /** Unpin, move to the page (the list's buttons and menus) and a grid pin's conflict fixes. */
+  actions: Pick<PinnedActions, "remove" | "moveToPage" | "fixConflict">;
 }
 
 /**
@@ -91,10 +94,21 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
   };
   const room = pinnedRoom(pinnedOnPage(stored.pinned, page.id, page.hidePinned));
   const area = { width: stored.width - room.left - room.right, height: stored.height - room.top - room.bottom };
-  const railOpen = view.rail && item?.placement.module === RAIL_MODULE;
+  // the rail editor edits a rail on an edge; one pinned in place draws one slot per page, as on a page
+  const railItem = view.rail && item && isEdgePin(item) && item.placement.module === RAIL_MODULE ? item : undefined;
+  const railOpen = railItem !== undefined;
+  // a grid pin's conflicts (the page widgets under its cells), and the pages that have any (their thumbnails' marker)
+  const conflicts = item
+    ? pinConflicts(stored, item).flatMap((c) => {
+        const pg = stored.pages.find((x) => x.id === c.pageId);
+        const z = pg?.placements.find((x) => x.id === c.placementId);
+        return pg && z ? [{ ...c, pageName: pg.name, name: zoneName(z) }] : [];
+      })
+    : [];
+  const conflicted = new Set(allPinConflicts(stored).map((c) => c.pageId));
   // a rail with no items stored lists one per page (`railSlots`); they are stored with the first change
-  const chipOpen = railOpen && item && view.slot === CHIP_SLOT_ID;
-  const shownSlot = railOpen && item && view.slot ? (chipOpen ? chipSlot(item.placement.settings) : railSlots(item.rail, stored.pages).find((s) => s.id === view.slot)) : undefined;
+  const chipOpen = railItem !== undefined && view.slot === CHIP_SLOT_ID;
+  const shownSlot = railItem && view.slot ? (chipOpen ? chipSlot(railItem.placement.settings) : railSlots(railItem.rail, stored.pages).find((s) => s.id === view.slot)) : undefined;
   const changeSlots = (fn: (s: RailSlot[]) => RailSlot[], key?: string) => update((it) => withRailSlots(it, stored.pages, fn), key);
 
   // the rail editor brings its own preview column where the list was (the `rail-editor` fixture)
@@ -111,13 +125,13 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
       actions={p.actions}
     />
   ));
-  const main = railOpen && item ? (
+  const main = railItem ? (
     <RailEditor
       stored={stored}
       profile={p.profile}
       index={index}
       pageId={page.id}
-      item={item}
+      item={railItem}
       appearance={p.appearance}
       themeScope={p.themeScope}
       selectedSlot={shownSlot?.id ?? null}
@@ -132,7 +146,7 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
     <>
       {p.pageTabs}
       <div className="flex shrink-0 gap-2 border-b border-ui-subtle bg-ui-app px-4 py-2 font-ui text-caption">
-        {item && <span className="inline-flex h-6 items-center rounded-ui-sm border border-ui-blue bg-ui-blue-bg px-2 text-ui-blue-text">{`${item.name ?? "Pinned widget"} · pinned ${item.edge}`}</span>}
+        {item && <span className="inline-flex h-6 items-center rounded-ui-sm border border-ui-blue bg-ui-blue-bg px-2 text-ui-blue-text">{`${item.name ?? "Pinned widget"} · ${isEdgePin(item) ? `pinned ${item.edge}` : "pinned in place"}`}</span>}
         <span className="inline-flex h-6 items-center rounded-ui-sm border border-dashed border-ui-strong px-2 text-ui-3">{`Page area · ${page.name} · ${area.width}×${area.height} after pins`}</span>
       </div>
       {/* the zoom bar sits over the canvas, above the pages */}
@@ -140,7 +154,7 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
         {p.canvas}
         {p.bar}
       </div>
-      <PinnedPages profile={stored} current={page.id} onSelect={p.onPageChange} showPinned={p.thumbsPinned} onShowPinned={p.onThumbsPinned} />
+      <PinnedPages profile={stored} current={page.id} onSelect={p.onPageChange} showPinned={p.thumbsPinned} onShowPinned={p.onThumbsPinned} conflicted={conflicted} />
     </>
   );
   const aside = (children: ReactNode) => (
@@ -148,7 +162,7 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
       {children}
     </aside>
   );
-  const inspector = railOpen && item ? (
+  const inspector = railItem ? (
     aside(
       shownSlot ? (
         <RailSlotInspector
@@ -156,7 +170,7 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
           slot={shownSlot}
           pages={stored.pages}
           widgets={widgets}
-          chip={chipOpen && item ? { shown: item.placement.settings?.chip !== false, onShown: (on) => update((it) => withChipShown(it, on)), profileName: stored.name } : undefined}
+          chip={chipOpen ? { shown: railItem.placement.settings?.chip !== false, onShown: (on) => update((it) => withChipShown(it, on)), profileName: stored.name } : undefined}
           onChange={(fn, key) => (chipOpen ? update((it) => withChipItem(it, fn), key) : changeSlots((all) => all.map((s) => (s.id === shownSlot.id ? fn(s) : s)), key))}
           onRemove={() => {
             changeSlots((all) => all.filter((s) => s.id !== shownSlot.id));
@@ -179,6 +193,9 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
         onCopy={copy}
         onRemove={() => p.actions.remove(item.id)}
         onEditRail={() => onView({ id: item.id, rail: true, slot: null })}
+        conflicts={conflicts}
+        onFix={(c) => p.actions.fixConflict(c.pageId, c.placementId)}
+        onMoveToPage={() => p.actions.moveToPage(item.id)}
       />
     )
   ) : (
@@ -191,7 +208,7 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
         <p className="mt-1 text-body text-ui-3">
           {items.length
             ? "Select a pinned widget, on the canvas or in the list, to set its edge, size and pages."
-            : "Widgets pinned to an edge stay put on every page while the pages change beside them. Pin one with + in the list."}
+            : "Widgets pinned to an edge stay put on every page while the pages change beside them. Pin one with + in the list, or right-click a page widget: Pin here keeps it on its cells on every page."}
         </p>
       </div>
     )

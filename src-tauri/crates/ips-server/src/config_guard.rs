@@ -101,6 +101,16 @@ mod tests {
         assert!(needs_update(r#"{"version":19,"profiles":[]}"#));
     }
 
+    // v21 (a widget pinned in place, a pinned item with `at` and no edge): a v20 build would drop the item, so its save is refused as any older one's is.
+    #[test]
+    fn refuses_a_v20_save_over_a_v21_config() {
+        assert!(version_refusal(r#"{"version":21}"#, &serde_json::json!({ "version": 20 })).is_some());
+        assert!(version_refusal(r#"{"version":21}"#, &serde_json::json!({ "version": 19 })).is_some());
+        assert!(version_refusal(r#"{"version":20}"#, &serde_json::json!({ "version": 21 })).is_none());
+        assert!(version_refusal(r#"{"version":21}"#, &serde_json::json!({ "version": 21 })).is_none());
+        assert!(needs_update(r#"{"version":20,"profiles":[]}"#));
+    }
+
     #[test]
     fn a_saved_config_needs_an_update_below_this_builds_version_only() {
         let below = format!(r#"{{"version":{},"profiles":[]}}"#, crate::CONFIG_VERSION - 1);
@@ -131,5 +141,7 @@ mod tests {
         assert_eq!(version_backup_name(r#"{"version":18}"#, &v19).as_deref(), Some("config.backup-before-v19.json"));
         let v20 = serde_json::json!({ "version": 20 });
         assert_eq!(version_backup_name(r#"{"version":19}"#, &v20).as_deref(), Some("config.backup-before-v20.json"));
+        let v21 = serde_json::json!({ "version": 21 });
+        assert_eq!(version_backup_name(r#"{"version":20}"#, &v21).as_deref(), Some("config.backup-before-v21.json"));
     }
 }

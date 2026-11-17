@@ -35,8 +35,8 @@ export interface LayerMenuHost {
   moveOut?: { enabled: boolean; run: () => void };
   /** Rename the selected node inline (one node selected). */
   rename?: () => void;
-  /** Pin to edge, for a selection of one page widget (`pinToEdgeEntry`); unset otherwise. */
-  pin?: ContextMenuEntry;
+  /** Pin here for a selection of page widgets, and Pin to edge for one (`pinEntries`); unset otherwise. */
+  pin?: ContextMenuEntry[];
   /** Save the selection to the Library (any selection, on every page); unset with nothing selected. */
   saveToLibrary?: () => void;
 }
@@ -79,7 +79,7 @@ export function layerMenuEntries(host: LayerMenuHost): ContextMenuEntry[] {
     row("snap", "Snap to grid", <Grid3x3 />),
     row("lock", "Lock", <Lock />, "Ctrl+L"),
     row("hide", "Hide", <EyeOff />, "Ctrl+H"),
-    ...(host.pin ? [host.pin] : []),
+    ...(host.pin ?? []),
     "separator",
     { id: "rename", label: "Rename", icon: <Pencil />, hint: "F2", disabled: !host.rename, onSelect: () => host.rename?.() },
     row("duplicate", "Duplicate", <Copy />, "Ctrl+D"),

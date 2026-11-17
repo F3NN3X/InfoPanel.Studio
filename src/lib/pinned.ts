@@ -1,7 +1,8 @@
 /**
  * The pinned layer (config v20, _docs/redesign/pinned-layer INVESTIGATION §3): widgets a profile pins to an edge of the
  * screen, drawn the same on every page, which a page can hide (`ProfilePage.hidePinned`). "Make room" pads the page area
- * on the item's edge, as the Island's reserve pads the grid; "float" draws over the page. The rail (`rail` slots) is drawn
+ * on the item's edge, as the Island's reserve pads the grid; "float" draws over the page. A widget pinned in place
+ * (config v21, `at`) keeps its cells of the page grid on every page it shows on, and pages lay out around them. The rail (`rail` slots) is drawn
  * by the PageRail widget (src/widgets/page-rail/, P2); per-widget touch actions (`TouchMap`) are run from P6 on, and a
  * command (`run`) through the action runner from P7 on (ips-server's actions.rs: off by default, approved commands only).
  */
@@ -80,15 +81,9 @@ export interface RailSlot {
 /** The widget a pinned item draws: a placement without a box on the grid (the item's edge and thickness are its box). */
 export type PinnedPlacement = Omit<Placement, "colStart" | "rowStart" | "colSpan" | "rowSpan" | "px" | "groupId" | "item" | "visible">;
 
-export interface PinnedItem {
+/** The fields every pinned item has, on an edge or in place. */
+interface PinnedBase {
   id: string;
-  edge: PinnedEdge;
-  /** "room": the page lays out in the space left; "float": drawn over the page. */
-  mode: "room" | "float";
-  /** Its size across the edge, design px (a rail 84). */
-  thickness: number;
-  /** Its distance from the screen's edge, design px; unset = 0 (flush). */
-  inset?: number;
   /** The pages it shows on: all, or those listed. */
   show: "all" | { pages: string[] };
   /** False: hidden (Layers' eye), not drawn and makes no room; kept on save. */
@@ -100,8 +95,54 @@ export interface PinnedItem {
   rail?: RailSlot[];
 }
 
+/** A widget pinned to an edge of the screen. */
+export interface PinnedEdgeItem extends PinnedBase {
+  edge: PinnedEdge;
+  /** "room": the page lays out in the space left; "float": drawn over the page. */
+  mode: "room" | "float";
+  /** Its size across the edge, design px (a rail 84). */
+  thickness: number;
+  /** Its distance from the screen's edge, design px; unset = 0 (flush). */
+  inset?: number;
+  at?: never;
+}
+
+/**
+ * Cells of the profile's grid, 1-based as a placement's box. Every page of a profile shares its grid (`cols` and `rows`
+ * are the profile's), so the same cells mean the same place on each page; they count in the page area the edge items
+ * leave.
+ */
+export interface PinnedCells {
+  colStart: number;
+  rowStart: number;
+  colSpan: number;
+  rowSpan: number;
+}
+
+/** A widget pinned in place (config v21): it keeps its cells on every page it shows on, and pages lay out around them. */
+export interface PinnedGridItem extends PinnedBase {
+  at: PinnedCells;
+  edge?: never;
+  mode?: never;
+  thickness?: never;
+  inset?: never;
+}
+
+/** A pinned item: on an edge, or in place on the grid (`at`). */
+export type PinnedItem = PinnedEdgeItem | PinnedGridItem;
+
+export const isGridPin = (it: PinnedItem): it is PinnedGridItem => it.at !== undefined;
+export const isEdgePin = (it: PinnedItem): it is PinnedEdgeItem => it.at === undefined;
+
 /** An item's widget as a placement of one cell: what the kiosk draws in the item's box, and what feeds the Island. */
 export const pinnedPlacement = (it: Pick<PinnedItem, "placement">): Placement => ({ ...it.placement, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true });
+
+/** Cells kept inside a grid of `cols` x `rows`: a span no larger than the grid, its start moved back so it ends inside. */
+export function clampCells(at: PinnedCells, cols: number, rows: number): PinnedCells {
+  const colSpan = Math.max(1, Math.min(at.colSpan, cols));
+  const rowSpan = Math.max(1, Math.min(at.rowSpan, rows));
+  return { colStart: Math.max(1, Math.min(at.colStart, cols - colSpan + 1)), rowStart: Math.max(1, Math.min(at.rowStart, rows - rowSpan + 1)), colSpan, rowSpan };
+}
 
 /** A profile's pinned layer, top first as in Layers. */
 export interface PinnedLayer {
@@ -259,24 +300,50 @@ function normalizePinnedPlacement(raw: unknown, pages: ReadonlySet<string>): Pin
   };
 }
 
+/** A stored grid pin's cells: whole numbers from 1, kept inside the grid when it is given; undefined for cells that aren't. */
+function normalizeCells(raw: unknown, grid?: { cols: number; rows: number }): PinnedCells | undefined {
+  if (!isRecord(raw)) return undefined;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 1 ? Math.round(v) : undefined);
+  const [colStart, rowStart, colSpan, rowSpan] = [n(raw.colStart), n(raw.rowStart), n(raw.colSpan), n(raw.rowSpan)];
+  if (colStart === undefined || rowStart === undefined || colSpan === undefined || rowSpan === undefined) return undefined;
+  const at = { colStart, rowStart, colSpan, rowSpan };
+  return grid ? clampCells(at, grid.cols, grid.rows) : at;
+}
+
 /**
  * A profile's stored pinned layer, guarded against its pages (`pageIds`): an item with no id, a repeated id, an unknown
  * edge, no thickness or no widget is dropped; a page it names that is gone leaves its list, and so does a rail slot or
- * touch action that points at one. No items left = undefined (no pinned layer).
+ * touch action that points at one. An item pinned in place (`at`) is dropped when its cells aren't whole numbers from 1,
+ * and kept inside the profile's grid (`grid`) when they run past it. No items left = undefined (no pinned layer).
  */
-export function normalizePinned(raw: unknown, pageIds: readonly string[]): PinnedLayer | undefined {
+export function normalizePinned(raw: unknown, pageIds: readonly string[], grid?: { cols: number; rows: number }): PinnedLayer | undefined {
   if (!isRecord(raw) || !Array.isArray(raw.items)) return undefined;
   const pages = new Set(pageIds);
   const seen = new Set<string>();
   const items = raw.items.flatMap((it): PinnedItem[] => {
-    if (!isRecord(it) || !text(it.id) || seen.has(it.id) || !PINNED_EDGES.includes(it.edge as PinnedEdge)) return [];
-    const thickness = px(it.thickness, 1);
+    if (!isRecord(it) || !text(it.id) || seen.has(it.id)) return [];
     const placement = normalizePinnedPlacement(it.placement, pages);
-    if (thickness === undefined || !placement) return [];
-    seen.add(it.id);
-    const inset = px(it.inset, 0);
+    if (!placement) return [];
     const listed = isRecord(it.show) && Array.isArray(it.show.pages) ? it.show.pages.filter((id): id is string => typeof id === "string" && pages.has(id)) : undefined;
     const rail = normalizeRail(it.rail, pages);
+    const common = {
+      show: listed ? { pages: [...new Set(listed)] } : ("all" as const),
+      visible: it.visible !== false,
+      ...(it.locked === true ? { locked: true } : {}),
+      ...(text(it.name) ? { name: it.name } : {}),
+      placement,
+      ...(rail ? { rail } : {}),
+    };
+    if (it.at !== undefined) {
+      const at = normalizeCells(it.at, grid);
+      if (!at) return [];
+      seen.add(it.id);
+      return [{ id: it.id, at, ...common }];
+    }
+    const thickness = px(it.thickness, 1);
+    if (!PINNED_EDGES.includes(it.edge as PinnedEdge) || thickness === undefined) return [];
+    seen.add(it.id);
+    const inset = px(it.inset, 0);
     return [
       {
         id: it.id,
@@ -284,12 +351,7 @@ export function normalizePinned(raw: unknown, pageIds: readonly string[]): Pinne
         mode: it.mode === "float" ? "float" : "room",
         thickness,
         ...(inset ? { inset } : {}),
-        show: listed ? { pages: [...new Set(listed)] } : "all",
-        visible: it.visible !== false,
-        ...(it.locked === true ? { locked: true } : {}),
-        ...(text(it.name) ? { name: it.name } : {}),
-        placement,
-        ...(rail ? { rail } : {}),
+        ...common,
       },
     ];
   });
@@ -311,12 +373,13 @@ export function pinnedOnPage(layer: PinnedLayer | undefined, pageId: string | un
 
 export type EdgeRoom = Record<PinnedEdge, number>;
 
-/** The room the "make room" items take on each edge, px: their thickness and inset, summed per edge. */
+/** The room the "make room" items take on each edge, px: their thickness and inset, summed per edge. A grid pin takes none. */
 export function pinnedRoom(items: readonly PinnedItem[]): EdgeRoom {
   const room: EdgeRoom = { left: 0, right: 0, top: 0, bottom: 0 };
-  for (const it of items) if (it.mode === "room") room[it.edge] += it.thickness + (it.inset ?? 0);
+  for (const it of items) if (isEdgePin(it) && it.mode === "room") room[it.edge] += it.thickness + (it.inset ?? 0);
   return room;
 }
+
 
 /** An item's box, px from the screen's edges (`left` / `right` / `top` / `bottom`) and its thickness. */
 export type PinnedBox = Partial<Record<PinnedEdge, number>> & { width?: number; height?: number };
@@ -327,9 +390,9 @@ export type PinnedBox = Partial<Record<PinnedEdge, number>> & { width?: number; 
  * the top and bottom too, so a panel off the edge sits like a card: QUESTIONS P3), and between the side items' room plus
  * the page's `padding` for a top or bottom one, so a bar lines up with the zones.
  */
-export function pinnedBox(items: readonly PinnedItem[], item: PinnedItem, padding: number): PinnedBox {
+export function pinnedBox(items: readonly PinnedItem[], item: PinnedEdgeItem, padding: number): PinnedBox {
   const room = pinnedRoom(items);
-  const same = items.filter((o) => o.mode === item.mode);
+  const same = items.filter(isEdgePin).filter((o) => o.mode === item.mode);
   const before = same.slice(0, same.indexOf(item)).filter((o) => o.edge === item.edge);
   const at = (item.mode === "float" ? room[item.edge] : 0) + before.reduce((n, o) => n + o.thickness + (o.inset ?? 0), 0) + (item.inset ?? 0);
   if (item.edge === "left" || item.edge === "right") return { [item.edge]: at, top: item.inset ?? 0, bottom: item.inset ?? 0, width: item.thickness };

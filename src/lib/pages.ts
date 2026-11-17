@@ -40,7 +40,7 @@ export function profileWithPage(profile: MonitorProfile, pageId?: string): Profi
   const { pages: _pages, ...rest } = profile;
   const page = pageOf(profile, pageId);
   const zones = page.placements.some(isItem) ? page.placements.filter((p) => !isItem(p)) : page.placements;
-  return { ...rest, placements: zones, pageId: page.id, ...(page.widgetTheme ? { pageTheme: page.widgetTheme } : {}) };
+  return { ...rest, placements: zones, pageId: page.id, ...(page.widgetTheme ? { pageTheme: page.widgetTheme } : {}), ...(page.hidePinned ? { hidePinned: true as const } : {}) };
 }
 
 const isItem = (p: Placement) => p.module === ITEM_ID;
@@ -69,7 +69,7 @@ export function withZones(stored: readonly Placement[], zones: Placement[]): Pla
  * `withZones`). A change to the screen's size or grid carries over to its Free pages (`fitFreePages`), so they stay Free.
  */
 export function applyView(profile: MonitorProfile, view: ProfileView): MonitorProfile {
-  const { placements, pageId, pageTheme, ...rest } = view;
+  const { placements, pageId, pageTheme, hidePinned: _page, ...rest } = view;
   const target = pageOf(profile, pageId).id;
   const onto = (p: ProfilePage): ProfilePage => {
     const { widgetTheme: _old, ...page } = p;

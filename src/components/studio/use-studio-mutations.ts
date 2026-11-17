@@ -45,6 +45,7 @@ import {
   fitZoneRect,
   moveZoneSet,
   resizeZone,
+  takenOn,
   type ZoneRect,
 } from "./zone-geometry";
 
@@ -169,7 +170,7 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
   const placeItem = (item: LibraryItem) => {
     const info = libraryInfo(item);
     if (!info) return;
-    const pos = firstFreeRect(profile.cols, profile.rows, info.size, profile.placements);
+    const pos = firstFreeRect(profile.cols, profile.rows, info.size, takenOn(profile));
     if (!pos) return void toast("No free space — resize or remove a widget first");
     createAt(item, pos);
     toast(`Placed ${info.title}`);
@@ -194,7 +195,7 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
       sel.select(zone.id);
       return { added: true, zoneId: zone.id, message: `${item.name} fills the blank zone · ${sizeText(zone.colSpan, zone.rowSpan)}` };
     }
-    const rect = spot?.rect ?? autoPlace(profile, profile.placements, { cols: item.w, rows: item.h }, { cols: item.mw, rows: item.mh });
+    const rect = spot?.rect ?? autoPlace(profile, takenOn(profile), { cols: item.w, rows: item.h }, { cols: item.mw, rows: item.mh });
     if (!rect) return { added: false, message: `No room on this page for ${item.name}` };
     const id = createAt(item.drop, rect);
     if (!id) return null;
@@ -321,7 +322,7 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
   /** The primary zone at a new size (toolbar steps); null = blocked. */
   const resizeSelected = (size: { cols: number; rows: number }) =>
     selected
-      ? resizeZone(selected, size, profile.placements, profile.cols, profile.rows, actions.zoneMinSize(selected))
+      ? resizeZone(selected, size, takenOn(profile), profile.cols, profile.rows, actions.zoneMinSize(selected))
       : null;
 
   /** Shift+arrows: resize the primary zone one cell. */
@@ -343,7 +344,7 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
       selected,
       actions.zoneMinSize(selected)
     );
-    const clamped = fitZoneRect(next, profile.placements, profile.cols, profile.rows, selected.id);
+    const clamped = fitZoneRect(next, takenOn(profile), profile.cols, profile.rows, selected.id);
     if (clamped) setZoneRect(selected.id, clamped, `zone-box:${selected.id}`);
     return clamped !== null && (["col", "row", "cols", "rows"] as const).every((k) => patch[k] === undefined || patch[k] === clamped[k]);
   };

@@ -1,10 +1,11 @@
 /**
  * A screen's Columns × rows changed from the page inspector (Edit v3 SPEC §10.1, decision Q5). Widgets keep their cells
  * and never get squeezed: when one would fall outside the new grid the change is refused with one message naming
- * them. Parts on cells reflow with the grid (an imported profile's widget items and items on `$.cell` get their new
+ * them, a widget pinned in place among them. Parts on cells reflow with the grid (an imported profile's widget items and items on `$.cell` get their new
  * box); parts placed freely keep their pixels, so an imported profile's own items never move. Pure.
  */
 import { CANVAS_ID, ITEM_ID, type MonitorProfile, type Placement, type ProfilePage } from "../layout.ts";
+import { isGridPin, pinnedPlacement } from "../pinned.ts";
 import { freeCanvasOf } from "../screens/list.ts";
 import type { StoredCanvas, StoredItem, WidgetItem } from "../infopanel/import/stored.ts";
 import { canvasGrid } from "./canvas-adapter.ts";
@@ -101,6 +102,9 @@ export function regrid(profile: MonitorProfile, cols: number, rows: number, name
     if (whole) return whole.canvas ? canvasMisfits(whole.canvas.items, c, r) : [];
     return page.placements.filter((p) => p.module !== ITEM_ID && outside(zoneCells(p), c, r)).map((p) => (p.module === CANVAS_ID ? p.canvas?.source.name || nameOf(p) : nameOf(p)));
   });
+  // a widget pinned in place keeps its cells on every page too (config v21)
+  const pins = (profile.pinned?.items ?? []).filter(isGridPin).filter((it) => outside({ col: it.at.colStart, row: it.at.rowStart, cols: it.at.colSpan, rows: it.at.rowSpan }, c, r));
+  misfits.push(...pins.map((it) => it.name ?? nameOf(pinnedPlacement(it))));
   if (misfits.length) return { refused: refusal([...new Set(misfits)], c, r) };
   const after = { ...profile, cols: c, rows: r };
   return { profile: { ...after, pages: profile.pages.map((pg) => pageOn(profile, after, pg)) } };
