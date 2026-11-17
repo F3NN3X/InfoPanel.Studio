@@ -7,7 +7,7 @@ import type { MixerLook } from "../core/mixer-look";
 import { useDeviceLevel } from "../core/level-source";
 import { MixerViewBody, PERCENT, fitMixer, toneOf, type StripChannel } from "../core/mixer-views";
 import { audioIds } from "../shared/audio-data";
-import { allChannels, iconOf, pickChannels, type AudioSource, type MixChannel } from "./channels";
+import { allChannels, iconOf, MASTER_COLOR, pickChannels, type AudioSource, type MixChannel } from "./channels";
 import { setVolume, toggleMute } from "./control";
 import { MixFader, type FaderMode } from "./Fader";
 import { OutputPicker } from "./OutputPicker";
@@ -35,8 +35,6 @@ export interface StreamMixerProps extends ShellProps {
 
 /** The other channels' colours: the accent turned by these degrees, in order. */
 const MIX_HUES = [95, -115, -75, 40, 140, -150];
-/** The master channel's colour: near white on a dark card, `--w-master` (light and theme cards) otherwise. */
-const MASTER_COLOR = "var(--w-master, #e4e4e7)";
 const MUTED_COLOR = "#52525b";
 
 const btn = "flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:bg-white/[0.07] hover:text-zinc-100 lite:text-[color:var(--w-muted)] lite:hover:bg-[color:var(--w-track)] lite:hover:text-[color:var(--w-fg)]";
