@@ -144,6 +144,27 @@ security model, what was fixed, what was decided, and what is deferred.
   streaming in OBS. It answers 403 unless `OBS_STREAM_CONTROL=on` (**Settings › Actions › Go live and stop in OBS from the
   panel**), and otherwise has the guards of the other OBS writes. The kiosk always asks for a hold first. The Stream Deck
   plugin and its widget are unchanged and offer neither.
+- **Agent approvals from the panel** (`crates/ips-server/src/approvals.rs`, the hook in `crates/ips-agent`): allowing a
+  Claude Code or Codex tool call from the kiosk approves running code on this PC, so:
+  - it is off unless the agent is named in `AGENT_APPROVALS` (`claude`, `codex`; the desktop app sets it from
+    **Settings › Coding agents › Answer … from the panel**, one switch per agent), read at start only. While an agent is off
+    its requests are only recorded as the "waiting" state the kiosks already show, and answered at once with no decision;
+  - the `PermissionRequest` hook (`ips-agent permission <agent>`, the only hook that runs in the foreground, with a 30 s
+    timeout and `onFailure: continue`) posts the request from this machine with the agent header
+    (`POST /api/agents/permission`, loopback-only like every agent post) and waits up to 25 s. It prints a decision only for
+    an explicit allow or deny, in the documented `hookSpecificOutput.decision.behavior` shape (deny with a message, never
+    `interrupt`). No answer, a refusal, an error or a server that isn't running prints nothing, and the agent shows its own
+    prompt in the terminal: silence never allows and never denies. The agent's own deny and ask rules still apply to an allow;
+  - the request, with the tool's input in full, is read only by this machine (`GET /api/agents/requests`, loopback and the
+    `X-Agent-Answer` header). It is never in the extras stream, which every kiosk gets; that still carries only the session's
+    state and tool name. A kiosk asks for requests only while a session waits, on a screen that already shows the agents;
+  - only this machine may answer (`POST /api/agents/answer`, loopback, JSON and `X-Agent-Answer`), whatever
+    `ALLOW_REMOTE_EDIT` says. There is no pairing of other devices, so a kiosk on another device never sees a command and
+    can't answer one. On the kiosk, Deny is a tap and Allow is a 0.6 s hold; nothing answers by itself;
+  - every outcome is logged to `DATA_DIR/agent-approvals-log.jsonl` (time, who answered, the agent, project, tool, the
+    request in full, and allow, deny, `none` for a wait that ran out, `gone` for a hook that went away, or `refused` for an
+    answer from another device), cut back to its newer half past 256 KB. `GET /api/agents/requests/log` (this machine, the
+    same header) reads the last 200; **Settings › Coding agents** shows them.
 - **Profile files with images**: an exported screen carries the images it names as base64, within the import's 5 MB. On
   import each goes through the upload route above (magic bytes checked, an SVG sanitised) before the screen points at it;
   an entry whose id, type or data does not have the expected shape is dropped unread.
