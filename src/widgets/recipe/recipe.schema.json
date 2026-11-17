@@ -234,7 +234,9 @@
         "background": { "$ref": "#/$defs/background" },
         "fill": { "type": "number", "minimum": 0.1, "maximum": 1 },
         "place": { "enum": ["start", "center", "end"] },
-        "motion": { "enum": ["fade-in", "pulse"] }
+        "motion": { "enum": ["fade-in", "pulse"] },
+        "layout": { "enum": ["free"] },
+        "box": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number", "minimum": 0, "maximum": 1 } }
       }
     }
   }
