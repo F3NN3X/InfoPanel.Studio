@@ -53,6 +53,16 @@ With page dots and swipe on, drag a page and the next one slides in beside it un
 
 You pin widgets in Edit: see [The pinned layer](studio#the-pinned-layer).
 
+## Keys and commands
+
+The **Keys** widget is a grid of keys, like a Stream Deck on the panel. Tap a key to run what it does. One dot in its corner means a hold does something else, two dots a double tap. A key with an arrow after its name is a folder: tap it to open its keys, and **Back** to leave. When the widget is too small for all its keys, the last one is **More**, which shows the next ones. Enter or Space on a focused key works as a finger does: hold it down for a hold, press it twice for a double tap.
+
+A key or a touch action can run a command, a program on this PC. That is off until you turn on **Run commands from the panel** in Settings › Actions and restart the server. Even then a command runs only once you approve it, word for word, on this PC, and only from this PC's kiosk unless **Allow editing from other devices** is on. A screen you import never brings its approvals: its commands are listed for review, off until you approve them.
+
+A command set to **Hold to confirm**, and OBS's go live or stop, asks first: a card shows the whole command, and it runs only after you hold **Hold to run** for a moment. Holding the key itself is that confirmation. **Test mode** checks each command and logs it but starts nothing; the panel says what would have run. Every command the panel asks for, run or not, is in the **Log**.
+
+:::open settings/actions Settings › Actions
+
 ## Profiles that follow the app in front
 
 Tap or hold the **profile chip** at the top of the rail to open **Profiles**: the screens of this display's size, the one shown marked **Current**. Tap one to show it. A screen can list programs in **Screens › Switch with the app in front**; while one of them is in front on this PC, the display switches to that screen, and back to its usual one when another program comes to the front. **Matches now** marks a screen whose program is in front while it is not shown.
