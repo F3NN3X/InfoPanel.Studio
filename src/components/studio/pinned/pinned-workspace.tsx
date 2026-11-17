@@ -7,14 +7,15 @@ import {
   copyPinnedToSameSize,
   movePinnedItem,
   newPinnedItem,
-  removePinnedItem,
   sameSizeProfiles,
   updatePinnedItem,
+  withChipItem,
+  withChipShown,
   withHidePinned,
   withRailSlots,
 } from "@/lib/pinned-edit";
 import { pinnedOnPage, pinnedRoom, type RailSlot } from "@/lib/pinned";
-import { RAIL_MODULE, railSlots } from "@/lib/rail";
+import { CHIP_SLOT_ID, chipSlot, RAIL_MODULE, railSlots } from "@/lib/rail";
 import type { Appearance } from "@/lib/style-resolve";
 import { StudioShell } from "../studio-shell";
 import type { useStudioLayout } from "../use-studio-layout";
@@ -23,6 +24,7 @@ import { PinnedPages } from "./pinned-pages";
 import { PinnedPanel } from "./pinned-panel";
 import { RailEditor, useRailWidgets } from "./rail-editor";
 import { RailSlotInspector } from "./rail-slot-inspector";
+import type { PinnedActions } from "./use-pinned-actions";
 
 /** What Edit shows of the pinned layer: the item selected, and the rail editor open on it (with its item selected). */
 export interface PinnedView {
@@ -55,6 +57,8 @@ interface PinnedWorkspaceProps {
   thumbsPinned: boolean;
   onThumbsPinned: (on: boolean) => void;
   toast: (text: string) => void;
+  /** Unpin, and move to the page (the list's buttons and menus). */
+  actions: Pick<PinnedActions, "remove" | "moveToPage">;
 }
 
 /**
@@ -89,7 +93,8 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
   const area = { width: stored.width - room.left - room.right, height: stored.height - room.top - room.bottom };
   const railOpen = view.rail && item?.placement.module === RAIL_MODULE;
   // a rail with no items stored lists one per page (`railSlots`); they are stored with the first change
-  const shownSlot = railOpen && item && view.slot ? railSlots(item.rail, stored.pages).find((s) => s.id === view.slot) : undefined;
+  const chipOpen = railOpen && item && view.slot === CHIP_SLOT_ID;
+  const shownSlot = railOpen && item && view.slot ? (chipOpen ? chipSlot(item.placement.settings) : railSlots(item.rail, stored.pages).find((s) => s.id === view.slot)) : undefined;
   const changeSlots = (fn: (s: RailSlot[]) => RailSlot[], key?: string) => update((it) => withRailSlots(it, stored.pages, fn), key);
 
   // the rail editor brings its own preview column where the list was (the `rail-editor` fixture)
@@ -103,6 +108,7 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
       onAdd={add}
       onToggleVisible={(id) => updateStored((s) => updatePinnedItem(s, id, (it) => ({ ...it, visible: !it.visible })))}
       onMove={(id, by) => updateStored((s) => movePinnedItem(s, id, by))}
+      actions={p.actions}
     />
   ));
   const main = railOpen && item ? (
@@ -150,7 +156,8 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
           slot={shownSlot}
           pages={stored.pages}
           widgets={widgets}
-          onChange={(fn, key) => changeSlots((all) => all.map((s) => (s.id === shownSlot.id ? fn(s) : s)), key)}
+          chip={chipOpen && item ? { shown: item.placement.settings?.chip !== false, onShown: (on) => update((it) => withChipShown(it, on)) } : undefined}
+          onChange={(fn, key) => (chipOpen ? update((it) => withChipItem(it, fn), key) : changeSlots((all) => all.map((s) => (s.id === shownSlot.id ? fn(s) : s)), key))}
           onRemove={() => {
             changeSlots((all) => all.filter((s) => s.id !== shownSlot.id));
             onView({ ...view, slot: null });
@@ -170,10 +177,7 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
         update={update}
         onHidePinned={(hide) => updateStored((s) => withHidePinned(s, page.id, hide))}
         onCopy={copy}
-        onRemove={() => {
-          updateStored((s) => removePinnedItem(s, item.id));
-          onView({ id: null, rail: false, slot: null });
-        }}
+        onRemove={() => p.actions.remove(item.id)}
         onEditRail={() => onView({ id: item.id, rail: true, slot: null })}
       />
     )

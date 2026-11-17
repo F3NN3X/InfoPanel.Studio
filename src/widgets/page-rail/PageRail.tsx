@@ -6,7 +6,7 @@ import { audio, EMPTY_AUDIO } from "@/lib/audio-control";
 import { extras } from "@/lib/extras";
 import type { Placement } from "@/lib/layout";
 import type { PinnedEdge, RailPlate, RailSlot, TouchAction, TouchGesture, TouchMap } from "@/lib/pinned";
-import { actionOn, chipSeries, imageAlt, RAIL_SIZES, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState, type RailBadge, type RailPage } from "@/lib/rail";
+import { actionOn, chipSeries, chipSlot, imageAlt, RAIL_SIZES, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState, type RailBadge, type RailPage } from "@/lib/rail";
 import type { GestureHandlers } from "@/lib/gesture";
 import { attachTouch, touchHandlers } from "@/lib/touch-zone";
 import type { ModuleSettings } from "@/modules/types";
@@ -31,6 +31,8 @@ export { meta };
 export interface PageRailProps extends ShellProps {
   look?: ModuleSettings;
   chip?: boolean;
+  /** The profile chip's overrides as JSON text (`chipSlot`): an icon, shape, tint, label, name, touch or plate of its own. */
+  chipItem?: string;
   pageLock?: boolean;
   clock?: boolean;
 }
@@ -149,29 +151,33 @@ function SlotButton({ slot, name, alt, active, edge, badge, on, run }: SlotProps
 
 /**
  * The profile chip: the profile's colour mark and its name. A tap or a hold opens the profile picker (P4); where the
- * screen has no picker (the studio, a preview, a kiosk whose link pins its profile) it is a label.
+ * screen has no picker (the studio, a preview, a kiosk whose link pins its profile) it is a label. The rail may give it a
+ * touch map, a shape, a tint, no name or its own name (`chipSlot`); with an icon of its own it is drawn as a slot (below).
  */
-function ProfileChip({ host }: { host: RailHost }) {
+function ProfileChip({ host, slot }: { host: RailHost; slot: RailSlot }) {
   const { top } = useContext(SizeCtx);
   const open = () => host.run({ op: "profile-picker" });
-  const g = useGestures({ tap: open, hold: open });
+  // a tap and a hold open the picker, unless the chip has a touch map of its own for that gesture
+  const g = useGestures({ tap: open, hold: open, ...Object.fromEntries((Object.entries(slot.touch ?? {}) as [TouchGesture, TouchAction][]).map(([gesture, a]) => [gesture, () => host.run(a, gesture)])) });
   const picker = host.profiles;
+  const name = slot.name ?? host.profile.name;
+  const mark = slot.tint ? "var(--w-accent)" : series(chipSeries(host.profile.index));
   const face = (
     <>
-      <span aria-hidden className="h-5 w-5 rounded-md" style={{ background: series(chipSeries(host.profile.index)) }} />
-      <span className="max-w-full truncate px-1 text-[12px] font-semibold leading-none">{host.profile.name}</span>
+      <span aria-hidden className={slot.shape === "circle" ? "h-5 w-5 rounded-full" : "h-5 w-5 rounded-md"} style={{ background: mark }} />
+      {slot.label && <span className="max-w-full truncate px-1 text-[12px] font-semibold leading-none">{name}</span>}
     </>
   );
   const style: CSSProperties = { width: 68, minHeight: top - 4, background: "color-mix(in oklab, var(--w-fg) 6%, transparent)", boxShadow: picker?.open ? "inset 0 0 0 2px var(--w-accent)" : `inset 0 0 0 1px ${EDGE}` };
   const box = "flex shrink-0 flex-col items-center justify-center gap-1 rounded-2xl py-2";
   if (!picker)
     return (
-      <div role="img" aria-label={`Profile: ${host.profile.name}`} className={box} style={style}>
+      <div role="img" data-rail-slot={slot.id} aria-label={`Profile: ${name}`} className={box} style={style}>
         {face}
       </div>
     );
   return (
-    <button type="button" {...g} data-rail-slot="profile" aria-haspopup="dialog" aria-expanded={picker.open} aria-label={`Profile: ${host.profile.name}`} className={`${box} touch-manipulation select-none ${FOCUS}`} style={style}>
+    <button type="button" {...g} data-rail-slot={slot.id} aria-haspopup="dialog" aria-expanded={picker.open} aria-label={`Profile: ${name}`} className={`${box} touch-manipulation select-none ${FOCUS}`} style={style}>
       {face}
     </button>
   );
@@ -268,6 +274,7 @@ interface RailBodyProps {
   edge: PinnedEdge;
   dense: boolean;
   chip: boolean;
+  chipItem?: string;
   pageLock: boolean;
   clock: boolean;
   data: ShellProps["data"];
@@ -283,7 +290,7 @@ function useOpenRect(open: boolean) {
   return { ref, rect };
 }
 
-function RailBody({ host, slots, edge, dense, chip, pageLock, clock, data, look }: RailBodyProps) {
+function RailBody({ host, slots, edge, dense, chip, chipItem, pageLock, clock, data, look }: RailBodyProps) {
   const size = dense ? DENSE : ROOMY;
   const { head, foot } = railGroups(slots);
   const badgeState: BadgeState = { agents: useAgents(), obs: useObs(), alerts: host.alerts, profile: host.profile.id };
@@ -310,11 +317,19 @@ function RailBody({ host, slots, edge, dense, chip, pageLock, clock, data, look 
       />
     );
   };
+  /** The chip: its own face, or, with an icon of its own, a button or a logo as any profile slot is. */
+  const chipNode = (): ReactNode => {
+    const s = chipSlot({ chipItem });
+    if (!s.icon) return <ProfileChip host={host} slot={s} />;
+    const name = s.name ?? host.profile.name;
+    const alt = imageAlt(s, name, host.pages);
+    return s.icon.from === "set" || s.icon.from === "text" ? <SlotButton slot={s} name={name} alt={alt} edge={edge} active={false} run={host.run} /> : <Logo slot={s} name={name} alt={alt} run={host.run} />;
+  };
   return (
     <SizeCtx.Provider value={size}>
       {/* more slots than the rail's height holds scroll, the foot with them (the editor warns of it, owner Q9) */}
       <nav ref={navRef} aria-label="Pages and actions" className="flex h-full w-full flex-col items-center overflow-y-auto py-3 [scrollbar-width:none]" style={{ gap: size.gap }}>
-        {chip && <ProfileChip host={host} />}
+        {chip && chipNode()}
         {head.map((group, i) => (
           <div key={group[0].group} className="contents">
             {(i > 0 || chip) && <Rule />}
@@ -343,7 +358,7 @@ export default function PageRail(p: PageRailProps) {
   const slots = useMemo(() => (host ? railSlots(item?.slots, host.pages) : SAMPLE_SLOTS), [host, item?.slots]);
   return (
     <Widget {...shell(p)} showHeader={false} bleed design={null}>
-      {({ outerH }) => <RailBody host={host ?? SAMPLE_HOST} slots={slots} edge={item?.edge ?? "left"} dense={railDense(outerH)} chip={p.chip !== false} pageLock={p.pageLock !== false} clock={p.clock !== false} data={p.data} look={p} />}
+      {({ outerH }) => <RailBody host={host ?? SAMPLE_HOST} slots={slots} edge={item?.edge ?? "left"} dense={railDense(outerH)} chip={p.chip !== false} chipItem={p.chipItem} pageLock={p.pageLock !== false} clock={p.clock !== false} data={p.data} look={p} />}
     </Widget>
   );
 }

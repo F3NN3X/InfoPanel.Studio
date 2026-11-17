@@ -73,6 +73,33 @@ export function slotName(slot: RailSlot, pages: readonly RailPage[]): string {
   return t.module;
 }
 
+/** The profile chip's id as an item of the rail editor (and its `data-rail-slot`): a rail setting, not a stored slot. */
+export const CHIP_SLOT_ID = "chip";
+/** What the chip keeps of a slot: the fields its overrides may set (`settings.chipItem`). */
+export const CHIP_FIELDS = ["icon", "shape", "tint", "label", "name", "touch", "plate"] as const;
+
+/**
+ * The overrides stored beside the chip in the rail's settings, by field; none when the chip is as drawn by default. A
+ * setting holds a string, a number or a boolean (config v20), so `chipItem` is these fields as JSON text.
+ */
+export function chipOverrides(settings: Record<string, unknown> | undefined): Partial<Pick<RailSlot, (typeof CHIP_FIELDS)[number]>> {
+  const raw = settings?.chipItem;
+  if (typeof raw !== "string") return {};
+  try {
+    const own: unknown = JSON.parse(raw);
+    if (!own || typeof own !== "object") return {};
+    return Object.fromEntries(CHIP_FIELDS.flatMap((k) => ((own as Record<string, unknown>)[k] !== undefined ? [[k, (own as Record<string, unknown>)[k]]] : [])));
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * The profile chip as a slot, so the editor lists it in the Top group and the slot inspector edits it: the profile, its
+ * name under the mark (`label`), and the rail's overrides over that. With no overrides it draws as it always did.
+ */
+export const chipSlot = (settings: Record<string, unknown> | undefined): RailSlot => ({ id: CHIP_SLOT_ID, group: "top", target: { kind: "profile" }, label: true, ...chipOverrides(settings) });
+
 /** What a badge reads: the state the Island is fed from. */
 export interface BadgeState {
   agents: Pick<Agents, "sessions">;

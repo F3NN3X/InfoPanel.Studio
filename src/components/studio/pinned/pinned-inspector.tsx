@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { SettingRow as UiSettingRow } from "@/components/ui/setting-row";
 import { Toggle } from "@/components/ui/toggle";
 import type { DashboardConfig, MonitorProfile, ProfilePage } from "@/lib/layout";
-import { islandClash, railOverflow, sameSizeProfiles, showChoice, withShow, withShownPage, type ShowChoice } from "@/lib/pinned-edit";
+import { islandClash, PIN_MIN_THICKNESS, pinnedThicknessMax, railOverflow, sameSizeProfiles, showChoice, withShow, withShownPage, type ShowChoice } from "@/lib/pinned-edit";
 import { PINNED_EDGES, type PinnedEdge, type PinnedItem } from "@/lib/pinned";
 import { RAIL_MODULE } from "@/lib/rail";
 import { modules } from "@/modules";
@@ -99,7 +99,7 @@ export function PinnedInspector({ config, profile, page, item, update, onHidePin
           ]}
         />
         <p className="text-caption text-ui-3">{item.mode === "room" ? "Pages lay out in the space it leaves." : "It lies over the page, which keeps its whole space."}</p>
-        <SliderRow label="Size" value={item.thickness} min={24} max={side ? Math.max(24, Math.round(profile.width / 2)) : Math.max(24, Math.round(profile.height / 2))} unit="px" fallback={item.thickness} onChange={(n) => update((it) => ({ ...it, thickness: Math.max(1, Math.round(n)) }), `pinned:${item.id}:size`)} />
+        <SliderRow label="Size" value={item.thickness} min={PIN_MIN_THICKNESS} max={pinnedThicknessMax(item.edge, profile)} unit="px" fallback={item.thickness} onChange={(n) => update((it) => ({ ...it, thickness: Math.max(1, Math.round(n)) }), `pinned:${item.id}:size`)} />
         <SliderRow
           label="Off the edge"
           hint={side ? "Its distance from the screen's edge, and from the top and bottom." : "Its distance from the screen's edge."}

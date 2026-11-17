@@ -1,5 +1,5 @@
 // Page Rail: the pinned layer's rail (decision 8). What the registry needs; the component is its own chunk. Its slots are
-// stored on the pinned item (`PinnedItem.rail`, src/lib/pinned.ts), not in its settings; the screen it is on gives it the
+// stored on the pinned item (`PinnedItem.rail`, src/lib/pinned.ts), not in its settings (but for the chip's overrides, `chipItem`); the screen it is on gives it the
 // pages, the page shown and the actions (`src/components/rail-host.ts`).
 import { defineWidget, NONE } from "../define";
 import { boolSetting } from "../shared/settings-kit";
@@ -16,7 +16,7 @@ export default defineWidget({
   ],
   render: {
     load: () => import("./PageRail"),
-    toProps: (s): Pick<PageRailProps, "chip" | "pageLock" | "clock"> => ({ chip: s.chip !== false, pageLock: s.pageLock !== false, clock: s.clock !== false }),
+    toProps: (s): Pick<PageRailProps, "chip" | "chipItem" | "pageLock" | "clock"> => ({ chip: s.chip !== false, ...(typeof s.chipItem === "string" ? { chipItem: s.chipItem } : {}), pageLock: s.pageLock !== false, clock: s.clock !== false }),
   },
   // Migrations stay central; the sample is the central fixture data: without a screen around it (Widget QA, a preview) the
   // rail draws a sample profile's five pages.

@@ -78,3 +78,36 @@ test("pin a rail in Edit, move it, undo, save it into v20", async ({ page, scrat
   expect(Math.round((grid!.x - p!.x) / (p!.width / W))).toBe(84 + 12);
   expect(errors).toEqual([]);
 });
+
+test("pin a page widget from its right-click menu, take it off with Delete, undo, move it back to the page", async ({ page, scratch }) => {
+  const { errors } = watchErrors(page);
+  expect((await saveConfig(scratch.base, { ...config, dataApiUrl: scratch.dataApi })).status).toBe(200);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${scratch.base}/?studio=1`);
+  await page.getByRole("navigation", { name: "Studio views" }).getByRole("button", { name: /^Edit / }).click();
+  await expect(page.locator("[data-zone-id]")).toHaveCount(2);
+
+  // right-click a widget: Pin to edge > Top moves it into the pinned layer, which Edit then shows with it selected
+  await page.locator('[data-zone-id="a"]').click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Pin to edge" }).click();
+  await page.getByRole("menuitem", { name: "Top" }).click();
+  const canvasPage = page.locator("[data-studio-page]");
+  await expect(canvasPage.locator("[data-pinned-item]")).toHaveCount(1);
+  const list = page.getByRole("complementary", { name: "Pinned layer" });
+  await expect(list.getByRole("button", { name: "Unpin" })).toHaveCount(1);
+  await expect(page.getByRole("complementary", { name: "Inspector" }).getByRole("button", { name: "Unpin" })).toBeVisible();
+
+  // Delete on the selected item unpins it; one Undo brings it back
+  await canvasPage.locator("[data-pinned-item] button").click();
+  await page.keyboard.press("Delete");
+  await expect(canvasPage.locator("[data-pinned-item]")).toHaveCount(0);
+  await page.keyboard.press("Control+z");
+  await expect(canvasPage.locator("[data-pinned-item]")).toHaveCount(1);
+
+  // its row's menu moves it back onto the page, where Edit shows it selected
+  await list.getByText("Clock").first().click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Move to page" }).click();
+  await expect(canvasPage.locator("[data-pinned-item]")).toHaveCount(0);
+  await expect(page.locator("[data-zone-id]")).toHaveCount(2);
+  expect(errors).toEqual([]);
+});

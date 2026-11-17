@@ -46,6 +46,8 @@ interface CommandDeps {
   onSelectProfile: (id: string) => void;
   /** Open Help at the article for where the user is. */
   onHelp: () => void;
+  /** Delete with a pinned item selected in Edit's pinned layer: unpins it, true when it did. */
+  removePinned: () => boolean;
 }
 
 /**
@@ -67,6 +69,7 @@ export function useStudioCommands({
   onPageChange,
   onSelectProfile,
   onHelp,
+  removePinned,
 }: CommandDeps) {
   const { selected, selectedWidget } = sel;
   const toast = useToast();
@@ -222,6 +225,10 @@ export function useStudioCommands({
       case "page-go":
         ui.setMode("design");
         return onPageChange(action.id);
+      case "remove":
+        // with a pinned item selected in the pinned layer, Delete unpins it; else the selection goes below
+        if (removePinned()) return;
+        break;
       case "page-next":
         return edit.stepPage(1);
       case "page-prev":
