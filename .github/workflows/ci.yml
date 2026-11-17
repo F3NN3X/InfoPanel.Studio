@@ -226,6 +226,8 @@ jobs:
         with:
           name: e2e-report
           path: .cache/playwright
+          # .cache is a hidden folder, which upload-artifact leaves out by default: the report was never uploaded
+          include-hidden-files: true
           retention-days: 7
 
   # Advisory, never in ci-ok: the tests in tests/quarantine.json keep running here (_docs/TESTING.md, "Quarantine"). It only
@@ -267,6 +269,8 @@ jobs:
         with:
           name: flake-e2e-report
           path: .cache/playwright
+          # .cache is a hidden folder, which upload-artifact leaves out by default: the report was never uploaded
+          include-hidden-files: true
           retention-days: 7
 
   # Windows: the Rust tests and clippy of ips-server and ips-agent (the server leg that used to be a matrix entry), and

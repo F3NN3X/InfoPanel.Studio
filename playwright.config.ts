@@ -20,6 +20,8 @@ export default defineConfig({
   projects: [
     {
       name: "e2e",
+      // its own folder: a later run (CI runs test:e2e, then test:one-editor) empties only the folders of the projects it runs
+      outputDir: ".cache/playwright/e2e",
       testDir: "tests/e2e",
       testMatch: "*.spec.ts",
       ...playwrightScope(quarantined, "tests/e2e", quarantineOnly),
@@ -29,12 +31,16 @@ export default defineConfig({
     {
       // Builds the fixtures build the one-editor specs serve.
       name: "one-editor-build",
+      // its own folder: a later run (CI runs test:e2e, then test:one-editor) empties only the folders of the projects it runs
+      outputDir: ".cache/playwright/one-editor",
       testDir: "tests/visual/one-editor",
       testMatch: "build.setup.ts",
     },
     {
       // The Edit v3 fixtures (src/dev/fixtures) on the fixtures build: npm run test:one-editor.
       name: "one-editor",
+      // its own folder: a later run (CI runs test:e2e, then test:one-editor) empties only the folders of the projects it runs
+      outputDir: ".cache/playwright/one-editor",
       testDir: "tests/visual/one-editor",
       testMatch: "*.spec.ts",
       ...playwrightScope(quarantined, "tests/visual/one-editor", quarantineOnly),

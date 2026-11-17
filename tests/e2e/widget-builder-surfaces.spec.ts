@@ -32,7 +32,7 @@ async function deskAndNewWidget(page: Page, base: string) {
   await page.getByRole("button", { name: "New widget" }).click();
 }
 
-test("every Phase E key by clicks: stored as format 2, exported and imported byte for byte, drawn on the kiosk under Classic and Paper (G21, G22, G26, G36)", async ({ page, scratch }) => {
+test("every Phase E key by clicks: stored as format 2, exported and imported byte for byte (G21, G26, G36)", async ({ page, scratch }) => {
   const { errors } = watchErrors(page);
   await deskAndNewWidget(page, scratch.base);
   await type(page, "Widget name", "Surfaces");
@@ -84,6 +84,23 @@ test("every Phase E key by clicks: stored as format 2, exported and imported byt
   await page.getByLabel("Import a widget package").setInputFiles(zip);
   await expect(page.getByText("Imported Surfaces").first()).toBeVisible();
   expect(await storedText(scratch.base, "recipe.surfaces")).toBe(text);
+  // the kiosk test below draws this recipe from its fixture: the builder still makes that one (its sample is the live reading)
+  const withoutSample = (json: string) => ({ ...JSON.parse(json), sample: undefined });
+  expect(withoutSample(text)).toEqual(withoutSample(fs.readFileSync("tests/fixtures/recipes/surfaces/recipe.json", "utf8")));
+  expect(errors).toEqual([]);
+});
+
+// The recipe the test above builds by clicks (tests/fixtures/recipes/surfaces, its export), drawn on the kiosk. A test of its own so
+// each fits its time on a slow runner (#366).
+test("the Phase E keys drawn on the kiosk under Classic, Paper, Liquid Glass and Holo (G21, G22, G26, G36)", async ({ page, scratch }) => {
+  const { errors } = watchErrors(page);
+  const files = ["manifest.json", "recipe.json"].map((p) => ({ path: p, data: fs.readFileSync(`tests/fixtures/recipes/surfaces/${p}`).toString("base64") }));
+  expect((await fetch(`${scratch.base}/api/widgets`, { method: "POST", headers: { "Content-Type": "application/json", "X-Dashboard-Widget": "1" }, body: JSON.stringify({ files }) })).ok).toBe(true);
+  const config0 = await (await fetch(`${scratch.base}/api/config`)).json();
+  const desk = { ...config0.profiles[0], id: "desk", name: "Desk", pages: [{ id: "main", name: "Main", placements: [] }] };
+  expect((await saveConfig(scratch.base, { ...config0, profiles: [desk, ...config0.profiles] })).ok).toBe(true);
+  await page.goto(`${scratch.base}/?studio=1&profile=desk`);
+  await widgetsPage(page);
 
   // on the kiosk, under Classic
   await page.locator('[data-widget-card="recipe:surfaces"]').dblclick();

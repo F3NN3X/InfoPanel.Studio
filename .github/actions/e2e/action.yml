@@ -23,6 +23,10 @@ runs:
       run: cargo build -p ips-server
       working-directory: src-tauri
     - uses: ./.github/actions/playwright-install
+    # The app's own pages (settings, the agent prompt window) in src-tauri/pages/app, which agent-prompt.spec.ts loads: dist/
+    # (the caller's) doesn't hold them. About 5 s.
+    - shell: bash
+      run: npm run desktop:settings
     # Default: the e2e specs, then the Edit v3 fixtures (src/dev/fixtures; the project builds its own fixtures build).
     - shell: bash
       env:

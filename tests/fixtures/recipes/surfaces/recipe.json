@@ -1,0 +1,96 @@
+{
+  "format": 2,
+  "id": "recipe:surfaces",
+  "name": "Surfaces",
+  "version": "1.0.0",
+  "author": "Made in Studio",
+  "category": "Recipes",
+  "icon": "dashboard",
+  "size": {
+    "min": [
+      2,
+      2
+    ],
+    "max": [
+      12,
+      12
+    ],
+    "default": [
+      3,
+      2
+    ]
+  },
+  "options": [],
+  "presets": [
+    {
+      "id": "default",
+      "name": "Default",
+      "settings": {},
+      "size": [
+        3,
+        2
+      ],
+      "default": true
+    }
+  ],
+  "root": {
+    "type": "card",
+    "title": "Surfaces",
+    "children": [
+      {
+        "type": "card",
+        "name": "Card",
+        "title": "Card",
+        "children": [
+          {
+            "type": "label",
+            "text": "Label",
+            "weight": "semibold",
+            "case": "upper",
+            "opacity": 40
+          },
+          {
+            "type": "value",
+            "bind": {
+              "sensor": "libre.amd_ryzen_9_9950x3d_cpu_total"
+            },
+            "label": "Load",
+            "weight": "medium",
+            "case": "upper",
+            "opacity": 60
+          }
+        ],
+        "surface": "raised",
+        "padding": "l"
+      },
+      {
+        "type": "gauge",
+        "bind": {
+          "sensor": "libre.amd_ryzen_9_9950x3d_cpu_total"
+        },
+        "min": 0,
+        "max": 100,
+        "color": "accent",
+        "sweep": 180,
+        "opacity": 80
+      },
+      {
+        "type": "bar",
+        "bind": {
+          "sensor": "libre.amd_ryzen_9_9950x3d_cpu_total"
+        },
+        "min": 0,
+        "max": 100,
+        "color": "accent",
+        "height": "l",
+        "opacity": 60
+      }
+    ],
+    "spacing": "roomy"
+  },
+  "sample": {
+    "sensors": {
+      "libre.amd_ryzen_9_9950x3d_cpu_total": "53.51 %"
+    }
+  }
+}

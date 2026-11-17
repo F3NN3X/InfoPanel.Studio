@@ -1098,24 +1098,46 @@ export function Builder(p: BuilderProps) {
   const zoneEl = () => zoneHost.current?.querySelector<HTMLElement>("[data-recipe-zone]") ?? null;
   useEffect(() => {
     let frame = 0;
-    // after the card has measured itself (its blocks are sized from its box) and its labels have fitted their text
-    const timer = setTimeout(() => {
-      frame = requestAnimationFrame(() => {
-        const zone = zoneEl();
-        const m = zone && measureInks(zone);
-        const next = m ? crowding(m.inks, m.card) : [];
-        setCrowds((old) => (old && JSON.stringify(old) === JSON.stringify(next) ? old : next));
-        const steps: Record<string, number> = {};
-        for (const el of zone?.querySelectorAll<HTMLElement>("[data-recipe-opacity]") ?? []) {
-          const key = el.closest<HTMLElement>("[data-recipe-path]")?.dataset.recipePath;
-          if (key !== undefined) steps[key] = Math.max(steps[key] ?? 0, Number(el.dataset.recipeOpacity));
-        }
-        setDrawn((old) => (JSON.stringify(old) === JSON.stringify(steps) ? old : steps));
-      });
-    }, 120);
-    return () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let alive = true;
+    const measure = () => {
+      const zone = zoneEl();
+      const m = zone && measureInks(zone);
+      const next = m ? crowding(m.inks, m.card) : [];
+      setCrowds((old) => (old && JSON.stringify(old) === JSON.stringify(next) ? old : next));
+      const steps: Record<string, number> = {};
+      for (const el of zone?.querySelectorAll<HTMLElement>("[data-recipe-opacity]") ?? []) {
+        const key = el.closest<HTMLElement>("[data-recipe-path]")?.dataset.recipePath;
+        if (key !== undefined) steps[key] = Math.max(steps[key] ?? 0, Number(el.dataset.recipeOpacity));
+      }
+      setDrawn((old) => (JSON.stringify(old) === JSON.stringify(steps) ? old : steps));
+    };
+    // Measured once the card has settled: 120 ms after the last change to its boxes, text or styles (its blocks size from its box
+    // and its labels fit their text after it draws, which on a busy machine is later than any fixed delay), and again when the
+    // fonts have loaded. A measure that finds the same crowding changes nothing, so it settles.
+    const settle = () => {
       clearTimeout(timer);
       cancelAnimationFrame(frame);
+      timer = setTimeout(() => {
+        frame = requestAnimationFrame(measure);
+      }, 120);
+    };
+    settle();
+    const zone = zoneEl();
+    const resized = new ResizeObserver(settle);
+    const changed = new MutationObserver(settle);
+    if (zone) {
+      resized.observe(zone);
+      for (const el of zone.querySelectorAll("[data-recipe-path]")) resized.observe(el);
+      changed.observe(zone, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["style"] });
+    }
+    void document.fonts?.ready.then(() => alive && settle());
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+      cancelAnimationFrame(frame);
+      resized.disconnect();
+      changed.disconnect();
     };
   }, [recipe, size.join("x"), live, lookId, preset, stageBox, data]);
   const fits = line.ok && crowds !== null && !warnings.length && recipe.root.children.length > 0;
