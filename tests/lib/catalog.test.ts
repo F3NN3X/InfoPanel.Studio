@@ -56,4 +56,22 @@ describe("catalog", () => {
     setApiBase("http://elsewhere:2");
     expect(getCatalog()).toMatchObject({ sources: null, sensors: {}, status: "idle" });
   });
+
+  it("waits while the studio holds Data API requests, then fetches from the address the config set, never the default", async () => {
+    const fetch = api({ "libre.x": { value: 1, unit: "" } });
+    vi.stubGlobal("fetch", fetch);
+    const { holdApiBase, releaseApiBase } = await import("@/lib/data-api");
+    const { setApiBase, refreshCatalog, getCatalog } = await load();
+    holdApiBase();
+    const done = refreshCatalog();
+    await Promise.resolve();
+    expect(fetch).not.toHaveBeenCalled();
+    // the server's config arrives with its address, then the hold ends
+    setApiBase("http://fake:9");
+    releaseApiBase();
+    await done;
+    await refreshCatalog();
+    expect(fetch.mock.calls.map(([url]) => url).every((url) => String(url).startsWith("http://fake:9/"))).toBe(true);
+    expect(getCatalog().status).toBe("ready");
+  });
 });

@@ -37,7 +37,7 @@ import { PageIslandProvider } from "@/hooks/use-page-island";
 import { PerformanceProvider } from "@/hooks/use-performance";
 import { performanceFromSearch } from "@/lib/performance";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { setApiBase } from "@/lib/data-api";
+import { holdApiBase, releaseApiBase, setApiBase } from "@/lib/data-api";
 import { useStudioFocusThrottle } from "@/lib/studio-focus";
 import { wakeTicker } from "@/lib/ticker";
 import { closeWindow, flushDone, isTauri, kioskWindow, logFrontend, onKioskLeft, onStudioFlush, openKioskPopup } from "@/lib/desktop";
@@ -146,6 +146,8 @@ export default function App({ fixture }: AppProps = {}) {
   const [config, setConfig] = useState<DashboardConfig>(() => {
     const loaded = fixture?.config ?? loadConfig();
     setApiBase(loaded.dataApiUrl); // before the first sensor connection
+    // A studio reads its Data API address from the server's config: requests wait for it (released below, read or not).
+    if (!fixture && !kiosk) holdApiBase();
     return withPinnedProfile(loaded);
   });
   // An animation that settled under the old settings moves again (src/lib/ticker.ts).
@@ -510,7 +512,9 @@ export default function App({ fixture }: AppProps = {}) {
       })
       .catch(() => {
         // Server offline — keep the local copy and don't auto-push.
-      });
+      })
+      // (a cleaned-up run leaves it to the run that replaced it)
+      .finally(() => alive && releaseApiBase());
     return () => {
       alive = false;
     };

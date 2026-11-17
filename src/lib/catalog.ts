@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { getApiBase, subscribeApiBase } from "@/lib/data-api";
+import { apiBaseSettled, getApiBase, subscribeApiBase } from "@/lib/data-api";
 import type { SensorMap } from "@/modules/types";
 
 /**
@@ -68,8 +68,11 @@ function set(next: SensorCatalog): void {
   for (const listener of listeners) listener();
 }
 
-async function load(base: string): Promise<void> {
+async function load(): Promise<void> {
   set({ ...catalog, status: "loading" });
+  // the address the config sets, not the default a studio starts with
+  await apiBaseSettled();
+  const base = getApiBase();
   try {
     const [sourcesRes, sensorsRes] = await Promise.all([
       fetch(`${base}/api/sources`, { cache: "no-store" }),
@@ -93,7 +96,7 @@ async function load(base: string): Promise<void> {
 /** Re-fetch the catalog (deduplicated while a fetch is running). */
 export function refreshCatalog(): Promise<void> {
   if (!inflight) {
-    const run: Promise<void> = load(getApiBase()).finally(() => {
+    const run: Promise<void> = load().finally(() => {
       if (inflight === run) inflight = null;
     });
     inflight = run;

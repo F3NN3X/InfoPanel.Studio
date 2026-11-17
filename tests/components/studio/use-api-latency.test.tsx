@@ -4,6 +4,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { pingApi, PING_TIMEOUT_MS } from "@/components/studio/ping-api";
 import { useApiLatency } from "@/components/studio/use-status-bar";
+import { holdApiBase, releaseApiBase } from "@/lib/data-api";
 
 /** A fetch that never answers on its own, only when its signal aborts. */
 const hanging = () =>
@@ -28,6 +29,23 @@ describe("pingApi", () => {
     expect(await pingApi("http://x")).toBeNull();
     vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200 })));
     expect(typeof (await pingApi("http://x"))).toBe("number");
+  });
+
+  it("waits while the studio holds Data API requests, and a ping aborted meanwhile never goes out", async () => {
+    const fetcher = vi.fn(async (_url: string) => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetcher);
+    holdApiBase();
+    const stop = new AbortController();
+    const stale = pingApi("http://127.0.0.1:3921", stop.signal);
+    const fresh = pingApi("http://fake:9");
+    await Promise.resolve();
+    expect(fetcher).not.toHaveBeenCalled();
+    // the config's address replaces the default one: that ping is aborted, then the hold ends
+    stop.abort();
+    releaseApiBase();
+    expect(await stale).toBeNull();
+    expect(typeof (await fresh)).toBe("number");
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual(["http://fake:9/api"]);
   });
 });
 
