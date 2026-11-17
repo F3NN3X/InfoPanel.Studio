@@ -40,6 +40,7 @@ async fn off_the_folder_is_not_read_nothing_is_written_and_every_answer_says_so(
         allow_remote_upload: false,
         action_runner: false,
         obs_stream: false,
+        agent_approvals: vec![],
         dist: dir.path().join("dist"),
         data_dir: dir.path().join("data"),
         infopanel_dir: dir.path().join("infopanel"),

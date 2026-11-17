@@ -179,3 +179,51 @@ pub fn agent_write_refusal(content_type: Option<&str>, marker: Option<&str>, add
     }
     json_write_refusal(content_type, marker, "missing X-Agent-Event header")
 }
+
+pub const AGENT_ANSWER_MESSAGE: &str = "agent requests are answered on this machine only";
+
+/// Why a read of the agents' permission requests (GET /api/agents/requests) is refused: this machine only, then the
+/// `X-Agent-Answer` header, so the command text never reaches another device or a page that can't set the header.
+pub fn agent_requests_refusal(marker: Option<&str>, address: Option<&str>) -> Option<Refusal> {
+    if !is_loopback(address) {
+        return Some(Refusal::new(403, AGENT_ANSWER_MESSAGE));
+    }
+    if marker != Some("1") {
+        return Some(Refusal::new(403, "missing X-Agent-Answer header"));
+    }
+    None
+}
+
+/// Why an answer to a permission request (POST /api/agents/answer) is refused: this machine only (the local kiosk), whatever
+/// remote editing allows, then Content-Type and `X-Agent-Answer`.
+pub fn agent_answer_refusal(content_type: Option<&str>, marker: Option<&str>, address: Option<&str>) -> Option<Refusal> {
+    if !is_loopback(address) {
+        return Some(Refusal::new(403, AGENT_ANSWER_MESSAGE));
+    }
+    json_write_refusal(content_type, marker, "missing X-Agent-Answer header")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn agent_requests_are_read_on_this_machine_with_the_header_only() {
+        assert_eq!(agent_requests_refusal(Some("1"), Some("127.0.0.1")), None);
+        assert_eq!(agent_requests_refusal(Some("1"), Some("::ffff:127.0.0.1")), None);
+        assert_eq!(agent_requests_refusal(Some("1"), Some("192.168.1.20")).map(|r| r.status), Some(403));
+        assert_eq!(agent_requests_refusal(None, Some("::1")).map(|r| r.status), Some(403));
+    }
+
+    #[test]
+    fn agent_answers_come_from_this_machine_as_json_with_the_header() {
+        let json = Some("application/json; charset=utf-8");
+        assert_eq!(agent_answer_refusal(json, Some("1"), Some("127.0.0.1")), None);
+        // another device is refused before anything else, whatever it sends
+        let lan = agent_answer_refusal(json, Some("1"), Some("10.0.0.5")).unwrap();
+        assert_eq!((lan.status, lan.message.as_str()), (403, AGENT_ANSWER_MESSAGE));
+        assert_eq!(agent_answer_refusal(Some("text/plain"), Some("1"), Some("127.0.0.1")).map(|r| r.status), Some(415));
+        assert_eq!(agent_answer_refusal(json, None, Some("127.0.0.1")).map(|r| r.status), Some(403));
+        assert_eq!(agent_answer_refusal(json, Some("1"), None).map(|r| r.status), Some(403));
+    }
+}

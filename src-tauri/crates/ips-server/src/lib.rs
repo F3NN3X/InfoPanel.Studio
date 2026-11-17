@@ -10,6 +10,7 @@ pub mod alerts;
 pub mod alerts_engine;
 pub mod alerts_rules;
 pub mod app_icon;
+pub mod approvals;
 pub mod asset_types;
 pub mod assets;
 pub mod pack_sign;
@@ -125,6 +126,9 @@ pub struct ServerConfig {
     pub action_runner: bool,
     /// OBS's go live and stop (obs_control.rs `stream`): off unless OBS_STREAM_CONTROL=on (or the app's Settings switch).
     pub obs_stream: bool,
+    /// The agents whose permission requests the local kiosk may answer (approvals.rs): none unless AGENT_APPROVALS names them
+    /// (or the app's Settings > Coding agents switches).
+    pub agent_approvals: Vec<String>,
     pub dist: PathBuf,
     pub data_dir: PathBuf,
     pub infopanel_dir: PathBuf,
@@ -146,6 +150,7 @@ impl ServerConfig {
             allow_remote_upload: flag("ALLOW_REMOTE_UPLOAD"),
             action_runner: switch("ACTION_RUNNER"),
             obs_stream: switch("OBS_STREAM_CONTROL"),
+            agent_approvals: approvals::parse_agents(std::env::var("AGENT_APPROVALS").ok().as_deref()),
             dist: env::non_empty("DASHBOARD_DIST").map_or_else(|| env::resolve("dist"), |d| env::resolve(&d)),
             data_dir: env::non_empty("DASHBOARD_DATA_DIR").map_or_else(env::default_data_dir, |d| env::resolve(&d)),
             infopanel_dir: env::infopanel_dir(),
@@ -203,6 +208,8 @@ pub struct App {
     pub library: LibraryStore,
     /// The action runner's approvals, test mode and log (actions.rs).
     pub actions: actions::Actions,
+    /// The agents' permission requests waiting for the panel (approvals.rs).
+    pub approvals: approvals::Approvals,
     prefs: StudioPrefs,
     pub shutdown: watch::Receiver<bool>,
 }
@@ -355,11 +362,12 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
     weather.start(&shutdown);
     let library = LibraryStore::new(cfg.data_dir.join("library"));
     let actions = actions::Actions::new(cfg.data_dir.clone());
+    let approvals = approvals::Approvals::new(cfg.agent_approvals.clone(), approvals::WAIT, cfg.data_dir.clone());
     println!("InfoPanel Studio on http://{}:{port} (config: {})", cfg.host, cfg.config_file().display());
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, streamdeck, agents, assets, packs, widgets, weather, canvases, library, actions, prefs, shutdown };
+    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, streamdeck, agents, assets, packs, widgets, weather, canvases, library, actions, approvals, prefs, shutdown };
     Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
@@ -483,6 +491,7 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/events/weather" => Ok(weather::handle_events(app, &req)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),
+        "/api/agents/permission" | "/api/agents/requests" | "/api/agents/requests/log" | "/api/agents/answer" => approvals::handle(app, req).await.map_err(io),
         "/api/image-proxy" => proxy::handle(req).await,
         "/api/font-proxy" => font_proxy::handle(app, req).await,
         "/api/frame-check" => frame_check::handle(req).await,

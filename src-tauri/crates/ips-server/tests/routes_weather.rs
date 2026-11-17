@@ -111,6 +111,7 @@ async fn start() -> Server {
         allow_remote_upload: false,
         action_runner: false,
         obs_stream: false,
+        agent_approvals: vec![],
         dist: dir.path().join("dist"),
         data_dir: data,
         infopanel_dir: dir.path().join("infopanel"),

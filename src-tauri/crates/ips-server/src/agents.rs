@@ -5,7 +5,8 @@
 // Only metadata reaches the kiosks: the agent, the project folder's name, the state, the tool's name, times and numbers.
 // Prompts, replies, tool inputs and paths stay here. `reduce_agents`, `merge_claude_sessions` and `public_agents` are pure.
 //
-// POST /api/agents/event?agent=claude|codex and POST /api/agents/statusline: this machine only, always 204.
+// POST /api/agents/event?agent=claude|codex and POST /api/agents/statusline: this machine only, always 204. A permission
+// request with its tool input is approvals.rs's, and never reaches the kiosks through this state.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
@@ -449,6 +450,11 @@ pub fn codex_plan(state: &AgentsState, limits: &Value, now: f64) -> Option<Agent
     Some(AgentsState { plan, ..state.clone() })
 }
 
+/// A session's key as the kiosks see it: a short hash of `<agent>:<id>`, never the agent's session id.
+pub fn public_key(key: &str) -> String {
+    Sha256::digest(key.as_bytes()).iter().take(6).map(|b| format!("{b:02x}")).collect()
+}
+
 /// What the kiosks get: sessions newest first, each keyed by a short hash (not the agent's session id).
 pub fn public_agents(state: &AgentsState) -> Value {
     let mut sorted: Vec<&(String, Session)> = state.sessions.iter().collect();
@@ -456,9 +462,8 @@ pub fn public_agents(state: &AgentsState) -> Value {
     let sessions: Vec<Value> = sorted
         .into_iter()
         .map(|(key, s)| {
-            let digest = Sha256::digest(key.as_bytes());
             let mut out = Map::new();
-            out.insert("key".into(), Value::String(digest.iter().take(6).map(|b| format!("{b:02x}")).collect()));
+            out.insert("key".into(), Value::String(public_key(key)));
             out.insert("agent".into(), s.agent.clone().into());
             out.insert("project".into(), s.project.clone().into());
             out.insert("state".into(), s.state.clone().into());
