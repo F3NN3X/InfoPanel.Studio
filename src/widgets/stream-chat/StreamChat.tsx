@@ -101,7 +101,7 @@ export default function StreamChat(p: StreamChatProps) {
               </div>
             )}
             {sending && (
-              <form onSubmit={(e) => void send(e)} className="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-white/[0.05] pl-3 pr-1">
+              <form onSubmit={(e) => void send(e)} className="flex h-11 shrink-0 items-center gap-2 rounded-lg bg-white/[0.05] pl-3 pr-1">
                 <input
                   value={draft}
                   maxLength={target === "youtube" ? 200 : 500}
@@ -110,7 +110,7 @@ export default function StreamChat(p: StreamChatProps) {
                   placeholder={error || (source === "both" ? `Send to ${target === "youtube" ? "YouTube" : "Twitch"}` : "Send a message")}
                   className="min-w-0 flex-1 bg-transparent text-body text-zinc-100 outline-none placeholder:text-zinc-500"
                 />
-                <button type="submit" aria-label="Send" disabled={!draft.trim()} className="flex h-7 w-7 items-center justify-center rounded-md disabled:opacity-40" style={{ color: "var(--w-accent)" }}>
+                <button type="submit" aria-label="Send" disabled={!draft.trim()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md disabled:opacity-40" style={{ color: "var(--w-accent)" }}>
                   <Icon name="send" className="text-[18px]" />
                 </button>
               </form>
