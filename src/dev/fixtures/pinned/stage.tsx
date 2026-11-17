@@ -125,7 +125,7 @@ export interface Pinned {
   edge: Edge;
   size: number;
   zone: Zone;
-  /** Its margin from the panel's edge, px (a bar or panel sits off the edge like a zone, the page's padding then parts it from the page; the rail is flush). */
+  /** Its margin from the panel's edge, px (a bar or panel sits off the edge like a zone, the page's padding then parts it from the page; the rail is flush). A side panel keeps it off the top and bottom too. */
   inset?: number;
 }
 
@@ -170,7 +170,7 @@ export function PanelStage({ w, h, pinned, children, overlay, label, modal }: St
     const across = p.edge === "left" || p.edge === "right";
     const at = pinnedOffset(pinned, p);
     const box: CSSProperties = across
-      ? { [p.edge]: at, top: 0, bottom: 0, width: p.size }
+      ? { [p.edge]: at, top: p.inset ?? 0, bottom: p.inset ?? 0, width: p.size }
       : { [p.edge]: at, left: room.left + 12, right: room.right + 12, height: p.size };
     return <ZoneView key={p.id} zone={p.zone} style={{ position: "absolute", ...box }} />;
   };

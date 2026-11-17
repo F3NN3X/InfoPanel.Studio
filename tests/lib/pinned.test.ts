@@ -46,3 +46,10 @@ describe("pinnedRoom and pinnedBox", () => {
     expect(pinnedBox(all, float, 12)).toEqual({ left: 144, top: 0, bottom: 0, width: 200 });
   });
 });
+
+describe("pinnedBox with an inset on a side item", () => {
+  it("keeps a side panel its inset off the top and bottom as well as its edge (QUESTIONS P3 1)", () => {
+    const panel = item("panel", "right", 300, { inset: 12 });
+    expect(pinnedBox([panel], panel, 12)).toEqual({ right: 12, top: 12, bottom: 12, width: 300 });
+  });
+});

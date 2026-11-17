@@ -267,15 +267,16 @@ export type PinnedBox = Partial<Record<PinnedEdge, number>> & { width?: number; 
 
 /**
  * Where an item sits: on its edge after the items of its mode before it there (a float item past the room the others
- * make, so it lies over the page and not over a rail), along the whole edge for a left or right one, and between the
- * side items' room plus the page's `padding` for a top or bottom one, so a bar lines up with the zones.
+ * make, so it lies over the page and not over a rail), along the whole edge for a left or right one (kept its inset off
+ * the top and bottom too, so a panel off the edge sits like a card: QUESTIONS P3), and between the side items' room plus
+ * the page's `padding` for a top or bottom one, so a bar lines up with the zones.
  */
 export function pinnedBox(items: readonly PinnedItem[], item: PinnedItem, padding: number): PinnedBox {
   const room = pinnedRoom(items);
   const same = items.filter((o) => o.mode === item.mode);
   const before = same.slice(0, same.indexOf(item)).filter((o) => o.edge === item.edge);
   const at = (item.mode === "float" ? room[item.edge] : 0) + before.reduce((n, o) => n + o.thickness + (o.inset ?? 0), 0) + (item.inset ?? 0);
-  if (item.edge === "left" || item.edge === "right") return { [item.edge]: at, top: 0, bottom: 0, width: item.thickness };
+  if (item.edge === "left" || item.edge === "right") return { [item.edge]: at, top: item.inset ?? 0, bottom: item.inset ?? 0, width: item.thickness };
   return { [item.edge]: at, left: room.left + padding, right: room.right + padding, height: item.thickness };
 }
 
