@@ -354,7 +354,12 @@
         "src-tauri/crates/ips-agent/**",
         "src-tauri/src/agents.rs",
         "src/lib/agents.ts",
-        "src/widgets/coding-agents/*.tsx"
+        "src/widgets/coding-agents/*.tsx",
+        "src-tauri/crates/ips-server/src/approvals.rs",
+        "src-tauri/crates/ips-server/tests/routes_approvals.rs",
+        "src/lib/agent-requests.ts",
+        "src/components/agent-prompt.tsx",
+        "src/components/agent-prompt-host.tsx"
       ],
       "tests": [
         "tests/server/server.test.mjs",
@@ -362,9 +367,14 @@
         "tests/lib/agents.test.ts",
         "tests/widgets/coding-agents/**",
         "tests/fixtures/parity/agent*.json",
-        "tests/fixtures/parity/claude-sessions.json"
+        "tests/fixtures/parity/claude-sessions.json",
+        "tests/lib/agent-requests.dom.test.tsx",
+        "tests/components/agent-prompt.dom.test.tsx",
+        "tests/components/agent-prompt-host.test.ts",
+        "tests/e2e/agent-prompt.spec.ts",
+        "tests/e2e/request-guard.spec.ts"
       ],
-      "checks": ["typecheck", "unit", "server-suite", "cargo-server", "cargo-app", "ui-usage"]
+      "checks": ["typecheck", "unit", "build", "budgets", "server-suite", "e2e", "cargo-server", "cargo-app", "ui-usage"]
     },
     {
       "id": "infopanel-installed",

@@ -13,6 +13,7 @@ import { KioskOfflinePill } from "@/components/ui/kiosk-offline";
 import { KioskWaitingForData } from "@/components/ui/kiosk-waiting";
 import { AlertLayer, useShownAlerts, ZoneHighlights } from "@/components/alerts/alert-layer";
 import { DynamicIsland } from "@/components/island/dynamic-island";
+import { AgentPromptHost } from "@/components/agent-prompt-host";
 import { pageSkinOf } from "@/components/island/island-look";
 import { islandReserve, withPackEdge } from "@/components/island/island-model";
 import { splitIslandAlerts } from "@/lib/island/from-alerts";
@@ -1031,6 +1032,9 @@ export default function App({ fixture }: AppProps = {}) {
             <ActionLayer confirm={confirming} note={actionNote} room={room} onCancel={() => setConfirming(null)} onNoteDone={() => setActionNote(null)} />
           </Suspense>
         )}
+
+        {/* An agent's permission request, answered here (P8): this PC's kiosk only, which the server decides */}
+        {kiosk && <AgentPromptHost stored={stored} room={room} />}
 
         {/* Alerts reach the island on the kiosk only; the plain page shows its idle pill. */}
         {shownIsland && (

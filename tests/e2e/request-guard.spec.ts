@@ -33,6 +33,9 @@ const ROUTES = [
   "/api/actions",
   "/api/actions/run",
   "/api/actions/log",
+  "/api/agents/permission",
+  "/api/agents/requests",
+  "/api/agents/answer",
   "/api/canvases",
   "/api/library",
   "/api/integrations",
@@ -63,7 +66,7 @@ test("refuses cross-site writes", async ({ scratch }) => {
   const host = new URL(scratch.base).host;
   const foreign: Record<string, string>[] = [{ origin: "http://evil.example" }, { origin: "null" }, { "sec-fetch-site": "cross-site" }, { "sec-fetch-site": "same-site" }];
   for (const extra of foreign) {
-    for (const path of ["/api/config", "/api/control/page", "/api/integrations", "/api/assets/app-icon", "/api/media/act", "/api/actions/run", "/api/actions"]) {
+    for (const path of ["/api/config", "/api/control/page", "/api/integrations", "/api/assets/app-icon", "/api/media/act", "/api/actions/run", "/api/actions", "/api/agents/answer"]) {
       const method = path === "/api/integrations" || path === "/api/actions" ? "PUT" : "POST";
       expect((await request(scratch.base, { method, path, headers: { host, ...json, ...extra }, body: "{}" })).status, `${path} ${JSON.stringify(extra)}`).toBe(403);
     }
@@ -97,6 +100,16 @@ test("requires the write headers", async ({ scratch }) => {
   const approve = (headers: Record<string, string>) => request(scratch.base, { method: "PUT", path: "/api/actions", headers: { host, ...headers }, body: '{"approve":["notepad.exe"]}' });
   expect((await approve({ "content-type": "application/json" })).status).toBe(403);
   expect((await approve({ "content-type": "text/plain", "x-dashboard-control": "1" })).status).toBe(415);
+  // agent approvals (P8): the requests and the log are read with the answer header; an answer takes it, then JSON
+  expect((await request(scratch.base, { path: "/api/agents/requests", headers: { host } })).status).toBe(403);
+  expect((await request(scratch.base, { path: "/api/agents/requests", headers: { host, "x-agent-answer": "1" } })).status).toBe(200);
+  expect((await request(scratch.base, { path: "/api/agents/requests/log", headers: { host } })).status).toBe(403);
+  const answer = (headers: Record<string, string>) => request(scratch.base, { method: "POST", path: "/api/agents/answer", headers: { host, ...headers }, body: '{"id":"x","behavior":"allow"}' });
+  expect((await answer({ "content-type": "application/json" })).status).toBe(403);
+  expect((await answer({ "content-type": "text/plain", "x-agent-answer": "1" })).status).toBe(415);
+  expect((await answer({ "content-type": "application/json", "x-agent-answer": "1" })).status).toBe(404);
+  const ask = (headers: Record<string, string>) => request(scratch.base, { method: "POST", path: "/api/agents/permission?agent=claude", headers: { host, ...headers }, body: "{}" });
+  expect((await ask({ "content-type": "application/json" })).status).toBe(403);
 });
 
 /** This machine's first non-internal IPv4 address, to reach the server as "another machine". */
@@ -116,7 +129,7 @@ test.describe("writes from another machine", () => {
       const { startScratch } = await import("../../tools/perf/scratch.mjs");
       // uploads follow the same switch here, to show an app's icon is read for this machine whatever ALLOW_REMOTE_UPLOAD says
       // the action runner is on, to show a command still needs this machine's approval (P7)
-      const scratch = await startScratch({ env: { HOST: "0.0.0.0", ALLOW_REMOTE_EDIT: remoteEdit, ALLOW_REMOTE_UPLOAD: remoteEdit, ACTION_RUNNER: "on" } });
+      const scratch = await startScratch({ env: { HOST: "0.0.0.0", ALLOW_REMOTE_EDIT: remoteEdit, ALLOW_REMOTE_UPLOAD: remoteEdit, ACTION_RUNNER: "on", AGENT_APPROVALS: "claude" } });
       try {
         const host = `${lanAddress}:${new URL(scratch.base).port}`;
         const at = (method: string, path: string, body?: string) => request(scratch.base, { method, path, address: lanAddress, headers: { host, ...json }, body });
@@ -153,6 +166,16 @@ test.describe("writes from another machine", () => {
         expect((await at("GET", "/api/actions/log")).status).toBe(remoteEdit === "1" ? 200 : 403);
         const log = (await (await fetch(`${scratch.base}/api/actions/log`)).json()) as { entries: { reason?: string; from: string }[] };
         expect(log.entries.map((e) => e.reason)).toEqual([remoteEdit === "1" ? "unapproved" : "remote"]);
+        // Agent approvals (P8) are this machine's only, whatever the switch: another device never reads a request's command,
+        // never answers one, and never asks one; its answer is logged as refused.
+        const agentAnswer = { host, "content-type": "application/json", "x-agent-answer": "1" };
+        expect((await request(scratch.base, { path: "/api/agents/requests", address: lanAddress, headers: agentAnswer })).status).toBe(403);
+        expect((await request(scratch.base, { path: "/api/agents/requests/log", address: lanAddress, headers: agentAnswer })).status).toBe(403);
+        expect((await request(scratch.base, { method: "POST", path: "/api/agents/answer", address: lanAddress, headers: agentAnswer, body: '{"id":"x","behavior":"allow"}' })).status).toBe(403);
+        const ask = await request(scratch.base, { method: "POST", path: "/api/agents/permission?agent=claude", address: lanAddress, headers: { host, "content-type": "application/json", "x-agent-event": "1" }, body: "{}" });
+        expect(ask.status).toBe(403);
+        const answers = (await (await fetch(`${scratch.base}/api/agents/requests/log`, { headers: { "X-Agent-Answer": "1" } })).json()) as { entries: { answer: string; from: string }[] };
+        expect(answers.entries.map((e) => [e.answer, e.from.endsWith(lanAddress ?? "")])).toEqual([["refused", true]]);
       } finally {
         scratch.stop();
       }

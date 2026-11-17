@@ -5,9 +5,10 @@ Claude Code and Codex: sessions, plan use and tokens.
 ## What it shows
 
 Each session working, waiting for you or done (with its model and cost), the plan's 5-hour and weekly use as bars or
-rings, tokens per day as bars or a heatmap, and this week's split by model and project. Three views: Full, Summary (plan
-limits, today and sessions) and Limits (the plan limit bars only). Small zones get a summary card and a dense view of their
-own.
+rings, tokens per day as bars or a heatmap, and this week's split by model and project. Four views: Full, Summary (plan
+limits, today and sessions), Limits (the plan limit bars only) and Sessions, the roomy page view: a card per session with what
+it is doing, and, on the kiosk of the PC running InfoPanel Studio, **Deny** and **Hold to allow** for a permission request
+while answering from the panel is on (Settings › Coding agents). Small zones get a summary card and a dense view of their own.
 
 ## Data it needs
 
@@ -17,7 +18,7 @@ with `node tools/agent-install.mjs`.
 
 ## Options
 
-- **View**: Full, Summary or Limits; **Agents**: Claude and Codex, Claude Code, or Codex.
+- **View**: Full, Summary, Limits or Sessions; **Agents**: Claude and Codex, Claude Code, or Codex.
 - Full only: **Plan use** with its **Limit style**, **Sessions**, **Tokens per day** with its **History** style, and
   **Breakdown**.
 - **Show limits as**: Used or Left.
@@ -35,5 +36,6 @@ fresh widget is: Add writes no settings for it. Saved presets of your own are li
 | **Full** (default) | `full` | 3×3 | the widget's own defaults |
 | **Summary** | `summary` | 3×3 | the widget's own defaults |
 | **Limits** | `limits` | 3×3 | the widget's own defaults |
+| **Sessions** | `sessions` | 4×3 | the widget's own defaults |
 
 <!-- @generated:end presets -->
