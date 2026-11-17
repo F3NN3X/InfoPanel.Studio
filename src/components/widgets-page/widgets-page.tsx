@@ -29,6 +29,7 @@ import { STANDARD_KEYS } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
 import { forgetCode, loadCode } from "@/widgets/code/loader";
 import type { Data } from "@/widgets/core/types";
+import { gridPresets } from "@/widgets/define";
 import { exportPackage, importPackage, packageOf } from "@/widgets/recipe/package";
 import { isRecipeId, recipeModule } from "@/widgets/recipe/resolve";
 import { listUserWidgets, loadRecipe, readPackage, removeWidget, storePackage } from "@/widgets/recipe/store";
@@ -239,7 +240,7 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
   const addRecipe = (r: Recipe, presetId?: string | null) => {
     const preset = r.presets.find((p) => p.id === presetId) ?? r.presets.find((p) => p.default);
     const values = preset?.default ? {} : storedValues(r, Object.fromEntries(Object.entries(presetValues(r, preset)).filter(([k]) => preset?.settings[k] !== undefined)));
-    addZone(r.id, r.name, preset?.size ?? r.size.default, { recipeVersion: r.version, ...values });
+    addZone(r.id, r.name, preset && preset.size !== "rail" ? preset.size : r.size.default, { recipeVersion: r.version, ...values });
   };
 
   /* ───────── import and export ───────── */
@@ -482,7 +483,7 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
     const presets = builtinPresets(m, presetMap);
     const make = START[m.id];
     const settings = settingsOf(m.id).filter((s) => !STANDARD_KEYS.has(s.key) && s.type !== "status").slice(0, 5);
-    const def = presets.find((p) => p.default)?.size ?? m.defaultSize ?? [3, 2];
+    const def = gridPresets(presets).find((p) => p.default)?.size ?? m.defaultSize ?? [3, 2];
     return {
       name: m.title,
       kind: `Built in · ${m.category ?? "Generic"} · ${presets.length} preset${presets.length === 1 ? "" : "s"}`,

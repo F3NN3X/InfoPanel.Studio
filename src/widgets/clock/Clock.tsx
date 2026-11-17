@@ -77,7 +77,16 @@ export interface ClockProps extends ShellProps {
   format?: "24h" | "12h" | "auto";
   showSeconds?: boolean;
   showDate?: boolean;
-  face?: "digital" | "analog" | "line" | "figure";
+  face?: "digital" | "analog" | "line" | "figure" | "stacked";
+}
+
+/**
+ * The stacked face's time, px, for the widget's whole box (a rail slot is too small for the card's padding): as wide as the
+ * box allows for HH:MM, held under the height; its short date at 0.6 of it, never under 11 px.
+ */
+export function stackedPx(w: number, h: number, date: boolean): { time: number; date: number } {
+  const time = Math.round(Math.max(14, Math.min(w / 3.6, date ? h / 2.2 : h * 0.8)));
+  return { time, date: Math.max(11, Math.round(time * 0.6)) };
 }
 
 export default function Clock(p: ClockProps) {
@@ -100,6 +109,21 @@ export default function Clock(p: ClockProps) {
       {({ size, w, h, outerW, outerH }) => {
         const big = roomy(outerW, outerH);
         const px = big ? roomyTimePx(w, h, secs, h12, p.showDate !== false) : timePx(size, w, h, secs && size !== "xs", h12, p.showDate !== false);
+        if (p.face === "stacked") {
+          const sp = stackedPx(outerW, outerH, p.showDate !== false);
+          return (
+            <div className="flex h-full flex-col items-center justify-center whitespace-nowrap leading-tight">
+              <Num ip={tag("time", { kind: "clock", format: h12 ? "hh:mm" : "HH:mm" })} className="font-semibold" style={{ fontSize: sp.time }}>
+                {pad(hh)}:{pad(M)}
+              </Num>
+              {p.showDate !== false && (
+                <span {...tag("date", { kind: "clock", format: "ddd d" })} className="text-[color:var(--w-muted)]" style={{ fontSize: sp.date }}>
+                  {DAYS[date.getDay()].slice(0, 3)} {day}
+                </span>
+              )}
+            </div>
+          );
+        }
         return p.face === "figure" ? (
           <Figure label={p.showDate !== false ? "Date" : "Time"} text={p.showDate !== false ? `${day} ${MONTHS[mon - 1]}` : `${pad(hh)}:${pad(M)}${secs ? `:${pad(S)}` : ""}`} w={w} h={h} />
         ) : p.face === "line" ? (

@@ -19,7 +19,7 @@ describe("a README's Presets section", () => {
     let checked = 0;
     for (const folder of widgetFolders()) {
       const file = `src/widgets/${folder}/presets.ts`;
-      let list: { name: string; view?: string; size: number[]; default?: boolean }[];
+      let list: { name: string; view?: string; size: number[] | "rail"; default?: boolean }[];
       try {
         list = (await import(/* @vite-ignore */ `../../${file}`)).default;
       } catch {
@@ -28,10 +28,10 @@ describe("a README's Presets section", () => {
       const readme = generated.get(`src/widgets/${folder}/README.md`)!;
       for (const p of list) {
         expect(readme, `${folder}: ${p.name}`).toContain(`**${p.name}**${p.default ? " (default)" : ""}`);
-        expect(readme, `${folder}: ${p.name} size`).toContain(`${p.size[0]}×${p.size[1]}`);
+        expect(readme, `${folder}: ${p.name} size`).toContain(p.size === "rail" ? "| a rail slot |" : `${p.size[0]}×${p.size[1]}`);
       }
       checked++;
     }
-    expect(checked).toBe(21);
+    expect(checked).toBe(22);
   });
 });

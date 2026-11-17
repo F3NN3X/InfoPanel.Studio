@@ -7,6 +7,12 @@ export const TEXT_FLOOR = 11;
 /** A grid cell as the validator measures it: a 12 x 8 grid on a 1600 x 900 screen, less the gaps. */
 export const NOMINAL_CELL = { w: 120, h: 100 } as const;
 
+/**
+ * A rail slot's widget box, px: the page rail's dense size (under 580 px of height), the smaller of its two, which a recipe's
+ * rail preset is checked at (`src/widgets/page-rail/`, decision 8).
+ */
+export const RAIL_SLOT = { w: 72, h: 64 } as const;
+
 /** The card's base text size, px, for a content box of `w` x `h`: the smaller of a sixteenth of its width and a sixth of its height. */
 export const basePx = (w: number, h: number): number => Math.min(w / 16, h / 6);
 

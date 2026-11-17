@@ -79,11 +79,12 @@ const settingsCell = (settings) => {
 /** The Presets section of a README, from the folder's presets.ts: a table of each preset, its view, size and settings. */
 function presetsBlock(presets) {
   const rows = presets.map(
-    (p) => `| **${p.name}**${p.default ? " (default)" : ""} | ${p.view ? `\`${p.view}\`` : ""} | ${p.size[0]}×${p.size[1]} | ${settingsCell(p.settings)} |`,
+    (p) => `| **${p.name}**${p.default ? " (default)" : ""} | ${p.view ? `\`${p.view}\`` : ""} | ${p.size === "rail" ? "a rail slot" : `${p.size[0]}×${p.size[1]}`} | ${settingsCell(p.settings)} |`,
   );
   return [
     "Add offers each of these (the Add panel's \"N presets\"); the inspector's Preset row picks one for a placed widget. The default is what a",
     "fresh widget is: Add writes no settings for it. Saved presets of your own are listed after these.",
+    ...(presets.some((p) => p.size === "rail") ? ["A rail preset fills a slot of the page rail instead, so Add and the grid's Preset row leave it out."] : []),
     "",
     "| Preset | View | Size | Sets |",
     "|---|---|---|---|",

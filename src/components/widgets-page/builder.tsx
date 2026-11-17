@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { GALLERY_IDS } from "@/components/studio/look-gallery-model";
 import { SAMPLE_THEMES } from "@/looks/sample-themes";
 import type { Data } from "@/widgets/core/types";
+import { gridPresets } from "@/widgets/define";
 import type { BlockType, Cells, PackageFile, Recipe, RecipeOption } from "@/widgets/recipe/types";
 import { toFlat, toNames } from "@/widgets/shared/data-adapter";
 import { ADD_ORDER, addBlock, addBlockAt, addImageAt, addRefusal, addSnippet, BLOCK_LABEL, blockAt, clampCells, cleanUp, devicesIn, draftSample, duplicateBlocks, flatten, imagePath, keyMove, landing, layerName, leftUnused, moveBlock, moveBlocks, nextVersion, packedImages, presetValues, rangeOf, recipeIssues, removeBlocks, SNIPPETS, type SnippetId, stepBlock, topLevel, updateBlock, validationLine, withFormat, wrapInRow, type Path } from "./builder-model";
@@ -84,7 +85,7 @@ const LOOKS = GALLERY_IDS.map((id) => ({ value: id, label: id === "classic" ? "C
 
 /** The sizes the stage offers: the smallest, each preset's, the largest and the one it shows, smallest first (at most six). */
 export function stageSizes(recipe: Recipe, shown?: Cells): Cells[] {
-  const all = [recipe.size.min, recipe.size.default, ...recipe.presets.map((p) => p.size), recipe.size.max, ...(shown ? [shown] : [])];
+  const all = [recipe.size.min, recipe.size.default, ...gridPresets(recipe.presets).map((p) => p.size), recipe.size.max, ...(shown ? [shown] : [])];
   const seen = new Map(all.map((c) => [`${c[0]}x${c[1]}`, c] as const));
   return [...seen.values()].sort((a, b) => a[0] * a[1] - b[0] * b[1] || a[0] - b[0]).slice(0, 6);
 }
@@ -218,7 +219,8 @@ export function Builder(p: BuilderProps) {
   const stageRef = useRef<HTMLDivElement>(null);
 
   // the stage follows the size of the preset it shows when that changes
-  const presetSize = recipe.presets.find((x) => x.id === preset)?.size.join("x");
+  const shownPreset = recipe.presets.find((x) => x.id === preset);
+  const presetSize = shownPreset && shownPreset.size !== "rail" ? shownPreset.size.join("x") : undefined;
   useEffect(() => {
     if (presetSize) setSize(presetSize.split("x").map(Number) as Cells);
   }, [presetSize]);
@@ -568,7 +570,7 @@ export function Builder(p: BuilderProps) {
   const pickPreset = (id: string) => {
     const x = recipe.presets.find((q) => q.id === id);
     setPreset(id);
-    if (x) setSize(x.size);
+    if (x && x.size !== "rail") setSize(x.size);
   };
   /** A picture picked for a new Image (G32): the block goes where the tile was clicked or dropped, with its picture. */
   const onNewImage = (file: File) => {

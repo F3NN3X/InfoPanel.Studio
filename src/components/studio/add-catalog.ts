@@ -5,7 +5,7 @@ import type { LibraryItem } from "./drop-ghost";
 import { ALL_MODULES, type ModuleMeta } from "./studio-modules";
 import { addSettings, defaultSize, presetsFor, type PresetMap } from "./widget-presets";
 import type { UserWidgetPreset } from "@/lib/widget-presets";
-import type { WidgetPreset } from "@/widgets/define";
+import { gridPresets, type WidgetPreset } from "@/widgets/define";
 
 /**
  * The Add panel's catalog (handoff SPEC §3): every widget, panel and layout as one row shape, with search
@@ -76,7 +76,9 @@ function partsOf(panel: PanelDef): AddPart[] {
 }
 
 /** A widget's one row (D-5): its further presets are its `presets` rows, found by search through the row's tags. */
-export function moduleItem(m: ModuleMeta, presets: readonly WidgetPreset[]): AddItem {
+export function moduleItem(m: ModuleMeta, all: readonly WidgetPreset[]): AddItem {
+  // a rail preset fills a rail slot, not a zone on the grid
+  const presets = gridPresets(all);
   const base = presets.find((p) => p.default);
   const [w, h] = base?.size ?? defaultSize(m.defaultSize, m.minCols, m.minRows);
   const description = m.description ?? (m.id === CARDS_ID ? "Every sensor no other widget shows, as cards." : "");

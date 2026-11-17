@@ -125,17 +125,24 @@ function PresetValues({ recipe, id, onChange, data, devices, onOpenSources }: { 
   // a place list's default places are the sample's items, so the default preset's list remakes them
   const set = (key: string, v: unknown) => onChange(withSampleItems(setPresetValue(recipe, id, key, v)));
   const setSize = (axis: 0 | 1, v: number | undefined) => {
+    if (size === "rail") return;
     const next = [...size] as Cells;
     next[axis] = Math.max(1, Math.min(12, Math.round(v ?? 1)));
     onChange(updatePreset(recipe, id, { size: next }));
   };
   return (
     <div data-preset-values={id} className="mb-1 flex flex-col gap-1 rounded-ui-md border border-ui-subtle px-3 py-1.5">
-      <Field label="Size">
-        <NumberInput label="Preset columns" value={size[0]} min={1} max={12} onChange={(v) => setSize(0, v)} width={56} />
-        <span className="text-ui-3">×</span>
-        <NumberInput label="Preset rows" value={size[1]} min={1} max={12} onChange={(v) => setSize(1, v)} width={56} />
-      </Field>
+      {size === "rail" ? (
+        <Field label="Size">
+          <span className="text-ui-2">A rail slot</span>
+        </Field>
+      ) : (
+        <Field label="Size">
+          <NumberInput label="Preset columns" value={size[0]} min={1} max={12} onChange={(v) => setSize(0, v)} width={56} />
+          <span className="text-ui-3">×</span>
+          <NumberInput label="Preset rows" value={size[1]} min={1} max={12} onChange={(v) => setSize(1, v)} width={56} />
+        </Field>
+      )}
       <Field label="Blurb" hint="The line under its name in Add; empty says what it sets">
         <TextInput label="Blurb" value={preset.blurb ?? ""} placeholder="What it sets" onChange={(v) => onChange(updatePreset(recipe, id, { blurb: blurbOf(v) }))} />
       </Field>
