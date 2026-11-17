@@ -43,6 +43,19 @@ export function clampBox(b: readonly number[]): FreeBox {
 /** The box a block put into a free container without one takes: half its width, a quarter of its height, each next one a step on. */
 export const defaultBox = (k: number): FreeBox => clampBox([0.05 + (k % 6) * 0.05, 0.05 + (k % 6) * 0.1, 0.5, 0.25]);
 
+/**
+ * The default box for `b` in particular: a container's is sized to hold its blocks (a column a fifth of the height each, a row a quarter
+ * of the width each, a grid 60 % square), so a group dropped into a free container doesn't squeeze its blocks over each other.
+ */
+export function defaultBoxOf(b: Block, k: number): FreeBox {
+  const [x, y, w, h] = defaultBox(k);
+  if (!("children" in b) || b.type === "repeat") return defaultBox(k);
+  const n = Math.max(1, b.children.filter((c) => !c.background).length);
+  if (b.type === "grid") return clampBox([x, y, 0.6, 0.6]);
+  const across = b.type === "row" && b.direction !== "column";
+  return clampBox(across ? [x, y, Math.min(0.9, 0.25 * n), h] : [x, y, w, Math.min(0.9, 0.2 * n)]);
+}
+
 /** A block without the keys a box replaces (an area, a part of its row) and, when `box` is undefined, without its box. */
 function placed(b: Block, box: FreeBox | undefined): Block {
   const o: Record<string, unknown> = { ...b, box };
@@ -61,8 +74,18 @@ export function setFree(recipe: Recipe, path: Path, on: boolean, drawn: Readonly
   if (!on) return isFree(b) ? updateBlock(recipe, path, { layout: undefined, children: b.children.map((c) => (c.box ? placed(c, undefined) : c)) }) : recipe;
   const why = freeRefusal(recipe, path);
   if (why) return { why };
-  const children = b.children.map((c, k) => (c.background ? c : placed(c, clampBox(drawn[k] ?? defaultBox(k)))));
-  return updateBlock(recipe, path, { layout: "free", children, ...(b.type === "grid" ? { columns: undefined, tracks: undefined } : {}) });
+  // A container that is itself placed freely grows to hold blocks drawn past its edges (a flow that overflowed its box), so each keeps
+  // where it is drawn instead of being pushed inside and over the others.
+  const own = freeParent(recipe, path) ? b.box : undefined;
+  const shown = Object.values(drawn);
+  const [x0, y0] = [Math.min(0, ...shown.map((d) => d[0])), Math.min(0, ...shown.map((d) => d[1]))];
+  const [x1, y1] = [Math.max(1, ...shown.map((d) => d[0] + d[2])), Math.max(1, ...shown.map((d) => d[1] + d[3]))];
+  const grow = own && (x0 < 0 || y0 < 0 || x1 > 1 || y1 > 1);
+  const [sw, sh] = grow ? [x1 - x0, y1 - y0] : [1, 1];
+  const at = (d: readonly number[]): FreeBox => clampBox(grow ? [(d[0] - x0) / sw, (d[1] - y0) / sh, d[2] / sw, d[3] / sh] : d);
+  const children = b.children.map((c, k) => (c.background ? c : placed(c, drawn[k] ? at(drawn[k]) : defaultBox(k))));
+  const box = grow && own ? { box: clampBox([own[0] + x0 * own[2], own[1] + y0 * own[3], own[2] * sw, own[3] * sh]) } : {};
+  return updateBlock(recipe, path, { layout: "free", children, ...box, ...(b.type === "grid" ? { columns: undefined, tracks: undefined } : {}) });
 }
 
 /**
@@ -75,7 +98,7 @@ export function fitFree(recipe: Recipe): Recipe {
     let next = b;
     const free = isFree(parent);
     if (b.box && (!free || b.background)) next = placed(next, undefined);
-    else if (free && !b.background && !b.box) next = placed(next, defaultBox(k));
+    else if (free && !b.background && !b.box) next = placed(next, defaultBoxOf(b, k));
     else if (b.box && (b.area !== undefined || b.fill !== undefined || b.place !== undefined)) next = placed(next, b.box);
     if (inRepeat && isFree(next)) {
       const o: Record<string, unknown> = { ...next };

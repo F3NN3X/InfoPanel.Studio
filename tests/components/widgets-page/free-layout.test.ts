@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { blockAt, duplicateBlocks, moveBlocks, recipeIssues, withFormat } from "@/components/widgets-page/builder-model";
-import { arrangeBoxes, boxAtPoint, boxText, clampBox, defaultBox, fitFree, freeParent, freeRefusal, moveGroup, nudgeBoxes, offsetCopies, setBoxes, setFree } from "@/components/widgets-page/free-layout";
+import { arrangeBoxes, boxAtPoint, boxText, clampBox, defaultBox, defaultBoxOf, fitFree, freeParent, freeRefusal, moveGroup, nudgeBoxes, offsetCopies, setBoxes, setFree } from "@/components/widgets-page/free-layout";
 import { fitLayout } from "@/components/widgets-page/layout-model";
 import type { Block, Recipe } from "@/widgets/recipe/types";
 import { fixtureRecipe } from "../../widgets/recipe/fixture-files";
@@ -153,5 +153,36 @@ describe("the tidy-up after any edit", () => {
     const r = recipeWith([{ type: "repeat", source: "cores", children: [{ type: "card", layout: "free", children: [{ type: "value", bind: { field: "load" }, box: [0, 0, 1, 1] }] }] } as unknown as Block]);
     const fitted = fitFree(r);
     expect(blockAt(fitted, [0, 0])).toEqual({ type: "card", children: [{ type: "value", bind: { field: "load" } }] });
+  });
+});
+
+describe("a group in a free container (the owner: free-move items inside a group)", () => {
+  const group = (n: number, direction?: "row" | "column"): Block => ({ type: "row", name: "G", ...(direction ? { direction } : {}), children: Array.from({ length: n }, (_, i) => value(`V${i}`)) }) as Block;
+
+  it("added to a free container, gets a box that holds its blocks: a column taller, a row wider, a grid square", () => {
+    expect(defaultBoxOf(group(3, "column"), 0)).toEqual(clampBox([0.05, 0.05, 0.5, 0.6]));
+    expect(defaultBoxOf(group(3), 0)).toEqual(clampBox([0.05, 0.05, 0.75, 0.25]));
+    expect(defaultBoxOf({ type: "grid", children: [value("A")] } as Block, 0)).toEqual(clampBox([0.05, 0.05, 0.6, 0.6]));
+    expect(defaultBoxOf(value("A"), 2)).toEqual(defaultBox(2));
+    const fitted = fitFree(recipeWith([group(3, "column")], "free"));
+    expect(boxAt(fitted, [0])).toEqual(defaultBoxOf(group(3, "column"), 0));
+  });
+
+  it("switched to Free when its blocks overflow its box, grows to hold them, each kept where it is drawn and none over another", () => {
+    const r = recipeWith([{ ...group(3, "column"), box: [0.1, 0.1, 0.5, 0.25] } as Block], "free");
+    // drawn in a column past the bottom of the group's box: 0-0.5, 0.6-1.1, 1.2-1.6 of its height
+    const on = done(setFree(r, [0], true, { 0: [0, 0, 1, 0.5], 1: [0, 0.6, 1, 0.5], 2: [0, 1.2, 1, 0.4] }));
+    expect(boxAt(on, [0])).toEqual(clampBox([0.1, 0.1, 0.5, 0.4]));
+    const kids = [0, 1, 2].map((k) => boxAt(on, [0, k])!);
+    expect(kids).toEqual([clampBox([0, 0, 1, 0.3125]), clampBox([0, 0.375, 1, 0.3125]), clampBox([0, 0.75, 1, 0.25])]);
+    for (let k = 1; k < 3; k++) expect(kids[k][1]).toBeGreaterThanOrEqual(kids[k - 1][1] + kids[k - 1][3]);
+    expect(errorsOf(on)).toEqual([]);
+  });
+
+  it("a container not itself placed freely keeps its size: the blocks are kept inside it", () => {
+    const r = recipeWith([group(2, "column")]);
+    const on = done(setFree(r, [0], true, { 0: [0, 0, 1, 0.6], 1: [0, 0.7, 1, 0.6] }));
+    expect(boxAt(on, [0])).toBeUndefined();
+    expect(boxAt(on, [0, 1])).toEqual(clampBox([0, 0.7, 1, 0.6]));
   });
 });

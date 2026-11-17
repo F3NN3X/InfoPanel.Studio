@@ -135,3 +135,40 @@ test("a picture on the stage never starts the browser's own drag, which would ta
   expect(cancelled).toBe(true);
   await expect(page.getByText("Drop to import")).toHaveCount(0);
 });
+
+test("a block in a group on a free card moves freely inside the group: the group goes free in the same undo step", async ({ page, scratch }) => {
+  const { errors } = watchErrors(page);
+  await newWidget(page, scratch.base, "Group");
+  await layer(page, "").click();
+  await page.getByRole("switch", { name: "Place freely" }).click();
+  await layer(page, "").click();
+  await page.locator('[data-add-snippet="label-value-bar"]').click();
+  // the group's box holds its three blocks, so none is drawn over another
+  const rect = async (p: string) => (await block(page, p).boundingBox())!;
+  const [l, v, b] = [await rect("0.0"), await rect("0.1"), await rect("0.2")];
+  expect(l.y + l.height).toBeLessThanOrEqual(v.y + 1);
+  expect(v.y + v.height).toBeLessThanOrEqual(b.y + 1);
+
+  // the Label selected and dragged down, inside the group (a column's blocks fill its width): it moves there, still in the group, and
+  // the group is placed freely
+  await layer(page, "0.0").click();
+  const g = await rect("0");
+  const from = await centre(block(page, "0.0"));
+  await drag(page, from, { x: from.x, y: from.y + g.height * 0.25 });
+  await page.mouse.up();
+  await expect(said(page)).toContainText("Moved Label:");
+  await expect(layer(page, "0.0")).toBeVisible();
+  await expect(layer(page, "1")).toHaveCount(0);
+  expect((await rect("0.0")).y).toBeGreaterThan(l.y + g.height * 0.15);
+  await save(page, "Group");
+  const r = await stored(scratch.base, "recipe.group");
+  expect(r.root.children[0].layout).toBe("free");
+  expect(r.root.children[0].children.map((c: { box?: number[] }) => !!c.box)).toEqual([true, true, true]);
+
+  // one undo: the group back in its flow, the Label where it was
+  await page.getByRole("button", { name: "Undo (Ctrl+Z)" }).click();
+  await layer(page, "0").click();
+  await expect(page.getByRole("switch", { name: "Place freely" })).not.toBeChecked();
+  expect((await rect("0.0")).y).toBeCloseTo(l.y, 0);
+  expect(errors).toEqual([]);
+});
