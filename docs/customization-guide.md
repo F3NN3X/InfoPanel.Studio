@@ -1538,7 +1538,8 @@ list, and picks the first screen of the shown one's size whose list names it (by
 case, `.exe` optional). It shows it through the same override the Stream Deck's profile switch
 uses, and takes it back when no list names the program in front. The program in front is published
 to kiosks as `front` in `/api/control`, as a file name, while a list exists. The desktop app's own
-windows never count, so touching a kiosk on this PC doesn't switch it.
+windows never count, so touching its kiosk on this PC doesn't switch it; a kiosk in a browser on
+this PC is that browser, which takes back an automatic switch unless a list names it.
 
 **Lock to** sends `POST /api/control/auto` with `{ "state": "off", "profile": "<id>" }`: the
 override, with switching paused, whatever is in front. `{ "state": "on" }` resumes it (and applies
