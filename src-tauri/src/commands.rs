@@ -78,6 +78,7 @@ pub fn restart_required(
             || rc.allow_remote_edit != saved.allow_remote_edit
             || rc.action_runner != saved.action_runner
             || rc.obs_stream_control != saved.obs_stream_control
+            || rc.agent_approvals != saved.agent_approvals
             || rc.debug != (saved.debug || debug_forced)
     })
 }
@@ -983,6 +984,7 @@ mod tests {
             allow_remote_edit: false,
             action_runner: false,
             obs_stream_control: false,
+            agent_approvals: Vec::new(),
         };
         assert!(!restart_required(&saved, false, None));
         assert!(!restart_required(&saved, false, Some(&running)));
@@ -1013,6 +1015,10 @@ mod tests {
             },
             Settings {
                 obs_stream_control: true,
+                ..saved.clone()
+            },
+            Settings {
+                agent_approvals: vec!["claude".into()],
                 ..saved.clone()
             },
         ] {

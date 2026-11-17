@@ -87,6 +87,9 @@ pub enum OpenStudioIn {
     DefaultBrowser,
 }
 
+/// The coding agents `agent_approvals` may name.
+pub const AGENT_IDS: [&str; 2] = ["claude", "codex"];
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -101,6 +104,8 @@ pub struct Settings {
     pub action_runner: bool,
     /// OBS's go live and stop as a touch action (owner Q3); off by default.
     pub obs_stream_control: bool,
+    /// The coding agents whose permission requests the local kiosk may answer (ips-server's approvals.rs); none by default.
+    pub agent_approvals: Vec<String>,
     /// Restart the server after a crash (3 tries a minute).
     pub auto_restart: bool,
     pub start_at_login: bool,
@@ -160,6 +165,7 @@ impl Default for Settings {
             allow_remote_edit: false,
             action_runner: false,
             obs_stream_control: false,
+            agent_approvals: Vec::new(),
             auto_restart: true,
             start_at_login: true,
             open_studio_on_launch: true,
@@ -270,6 +276,19 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
         "allowRemoteEdit" => next.allow_remote_edit = parse(key, value)?,
         "actionRunner" => next.action_runner = parse(key, value)?,
         "obsStreamControl" => next.obs_stream_control = parse(key, value)?,
+        "agentApprovals" => {
+            let raw: Vec<String> = parse(key, value)?;
+            let mut agents: Vec<String> = Vec::new();
+            for a in raw {
+                if !AGENT_IDS.contains(&a.as_str()) {
+                    return Err(format!("\"{a}\" is not a coding agent."));
+                }
+                if !agents.contains(&a) {
+                    agents.push(a);
+                }
+            }
+            next.agent_approvals = agents;
+        }
         "autoRestart" => next.auto_restart = parse(key, value)?,
         "startAtLogin" => next.start_at_login = parse(key, value)?,
         "openStudioOnLaunch" => next.open_studio_on_launch = parse(key, value)?,
@@ -423,6 +442,7 @@ mod tests {
         assert!(s.allowed_hosts.is_empty());
         assert!(!s.allow_remote_edit);
         assert!(!s.action_runner && !s.obs_stream_control);
+        assert!(s.agent_approvals.is_empty());
         assert!(s.auto_restart);
         assert!(s.start_at_login);
         assert!(s.open_studio_on_launch);
@@ -678,6 +698,8 @@ mod tests {
             ("allowedHosts", json!(["bad host"])),
             ("allowRemoteEdit", json!("yes")),
             ("actionRunner", json!("on")),
+            ("agentApprovals", json!(["gemini"])),
+            ("agentApprovals", json!("claude")),
             ("debug", json!("yes")),
             ("agents", json!({})),
             ("version", json!(3)),
@@ -698,6 +720,7 @@ mod tests {
         "allowRemoteEdit",
         "actionRunner",
         "obsStreamControl",
+        "agentApprovals",
         "autoRestart",
         "startAtLogin",
         "openStudioOnLaunch",

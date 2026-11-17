@@ -28,6 +28,7 @@ pub fn server_config(s: &Settings, paths: &Paths, debug: bool, version: &str) ->
         allow_remote_upload: s.allow_remote_edit,
         action_runner: s.action_runner,
         obs_stream: s.obs_stream_control,
+        agent_approvals: s.agent_approvals.clone(),
         dist: env::resolve(&paths::display(&paths.dist_dir())),
         data_dir: server_data_dir(paths),
         infopanel_dir: env::infopanel_dir(),
@@ -152,6 +153,7 @@ mod tests {
             allowed_hosts: vec!["Panel.lan".into(), "kiosk".into()],
             allow_remote_edit: true,
             action_runner: true,
+            agent_approvals: vec!["claude".into()],
             ..Settings::default()
         };
         let cfg = server_config(&s, &paths(&root), true, "9.9.9");
@@ -163,12 +165,13 @@ mod tests {
         );
         assert!(cfg.allow_remote_edit && cfg.allow_remote_upload && cfg.debug);
         assert!(cfg.action_runner && !cfg.obs_stream);
+        assert_eq!(cfg.agent_approvals, vec!["claude"]);
         assert_eq!(cfg.dist, root.join("resources").join("app").join("dist"));
         assert_eq!(cfg.data_dir, root.join("data"));
         assert_eq!(cfg.version, "9.9.9");
         let off = server_config(&Settings::default(), &paths(&root), false, "9.9.9");
         assert!(!off.allow_remote_edit && !off.allow_remote_upload && !off.debug);
-        assert!(!off.action_runner && !off.obs_stream);
+        assert!(!off.action_runner && !off.obs_stream && off.agent_approvals.is_empty());
         assert_eq!(off.host, "127.0.0.1");
         let _ = std::fs::remove_dir_all(&root);
     }

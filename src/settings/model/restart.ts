@@ -16,14 +16,14 @@ export function parseHosts(text: string): string[] {
 }
 
 export interface RestartItem {
-  key: "port" | "listen" | "debug" | "allowedHosts" | "allowRemoteEdit" | "actionRunner" | "obsStreamControl";
+  key: "port" | "listen" | "debug" | "allowedHosts" | "allowRemoteEdit" | "actionRunner" | "obsStreamControl" | "agentApprovals";
   /** What the restart bar lists. */
   label: string;
   /** The value the running server uses: Undo puts it back. */
   running: number | string | boolean | string[];
 }
 
-type Saved = Pick<Settings, "port" | "listen" | "debug" | "allowedHosts" | "allowRemoteEdit" | "actionRunner" | "obsStreamControl">;
+type Saved = Pick<Settings, "port" | "listen" | "debug" | "allowedHosts" | "allowRemoteEdit" | "actionRunner" | "obsStreamControl" | "agentApprovals">;
 
 /**
  * The saved settings the running server hasn't picked up. Nothing is pending while no server runs
@@ -60,6 +60,10 @@ export function restartItems(saved: Saved, running: RunningConfig | null, debugF
   }
   if ((running.obsStreamControl ?? false) !== (saved.obsStreamControl ?? false)) {
     items.push({ key: "obsStreamControl", label: saved.obsStreamControl ? "OBS go live on" : "OBS go live off", running: running.obsStreamControl ?? false });
+  }
+  const approvals = (list: readonly string[] | undefined) => [...(list ?? [])].sort().join(",");
+  if (approvals(running.agentApprovals) !== approvals(saved.agentApprovals)) {
+    items.push({ key: "agentApprovals", label: "agent approvals from the panel", running: running.agentApprovals ?? [] });
   }
   return items;
 }

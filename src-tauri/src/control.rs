@@ -463,6 +463,7 @@ fn spawn_and_wait(app: &AppHandle, generation: u64) {
                     allow_remote_edit: s.allow_remote_edit,
                     action_runner: s.action_runner,
                     obs_stream_control: s.obs_stream_control,
+                    agent_approvals: s.agent_approvals.clone(),
                 });
             }) {
                 on_running(app);
@@ -609,6 +610,7 @@ pub fn use_foreign(app: &AppHandle) -> Result<(), String> {
             allow_remote_edit: s.allow_remote_edit,
             action_runner: s.action_runner,
             obs_stream_control: s.obs_stream_control,
+            agent_approvals: s.agent_approvals.clone(),
         });
     }) {
         on_running(app);
@@ -847,6 +849,7 @@ mod tests {
             allow_remote_edit: false,
             action_runner: false,
             obs_stream_control: false,
+            agent_approvals: Vec::new(),
         };
         assert_eq!(status_address(Some(&running), &saved), ("127.0.0.1", 3922));
     }

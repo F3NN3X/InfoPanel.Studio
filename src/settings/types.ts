@@ -22,6 +22,8 @@ export interface Settings {
   actionRunner?: boolean;
   /** OBS's go live and stop as a touch action (owner Q3); absent: off. */
   obsStreamControl?: boolean;
+  /** The coding agents whose permission requests this PC's kiosk may answer (pinned layer P8); absent: none. */
+  agentApprovals?: AgentName[];
   autoRestart: boolean;
   startAtLogin: boolean;
   openStudioOnLaunch: boolean;
@@ -73,6 +75,7 @@ export interface RunningConfig {
   /** Absent (an older app): off. */
   actionRunner?: boolean;
   obsStreamControl?: boolean;
+  agentApprovals?: AgentName[];
 }
 
 export interface Status {
