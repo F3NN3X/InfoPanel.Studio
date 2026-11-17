@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Monitor } from "lucide-react";
 import type { MonitorProfile, ProfilePage } from "@/lib/layout";
-import { pinnedBox, pinnedOnPage, pinnedRoom } from "@/lib/pinned";
+import { clampCells, isEdgePin, isGridPin, pinnedBox, pinnedOnPage, pinnedRoom } from "@/lib/pinned";
 import { resolveTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
  * A page drawn as a schematic: its visible placements as rounded boxes on the screen's own background, scaled from the
  * grid's cells into the screen's size and letterboxed at its aspect. Synchronous, so a card has an identity before any
  * screenshot exists (Screens' cards and their page strip). A page with nothing visible keeps the monitor glyph.
- * `pinned`: the profile's pinned layer drawn too, as strips on their edges, with the page in the room they leave.
+ * `pinned`: the profile's pinned layer drawn too, as strips on their edges, with the page in the room they leave, and the
+ * widgets pinned in place on their cells, over the page's.
  */
 export const PageMap = memo(function PageMap({ profile, page, className, pinned }: { profile: MonitorProfile; page: ProfilePage | undefined; className?: string; pinned?: boolean }) {
   const placements = page?.placements.filter((z) => z.visible) ?? [];
@@ -34,7 +35,22 @@ export const PageMap = memo(function PageMap({ profile, page, className, pinned 
               vectorEffect="non-scaling-stroke"
             />
           ))}
-          {items.map((it) => {
+          {items.filter(isGridPin).map((it) => {
+            const at = clampCells(it.at, profile.cols, profile.rows);
+            return (
+              <rect
+                key={it.id}
+                data-pinned-cells=""
+                x={room.left + (at.colStart - 1) * cw + 2}
+                y={room.top + (at.rowStart - 1) * ch + 2}
+                width={Math.max(at.colSpan * cw - 4, 1)}
+                height={Math.max(at.rowSpan * ch - 4, 1)}
+                rx={Math.min(cw, ch) * 0.08}
+                className="fill-ui-control"
+              />
+            );
+          })}
+          {items.filter(isEdgePin).map((it) => {
             const b = pinnedBox(items, it, 0);
             const w = b.width ?? profile.width - (b.left ?? 0) - (b.right ?? 0);
             const h = b.height ?? profile.height - (b.top ?? 0) - (b.bottom ?? 0);

@@ -17,7 +17,7 @@ const keys = [
   { id: "apps", name: "Apps", icon: { from: "set", name: "folder" }, keys: [{ id: "calc", name: "Calc", touch: { tap: { op: "run", command: CALC } } }] },
 ];
 const config = {
-  version: 20,
+  version: 21,
   activeProfile: "desk",
   profiles: [
     {

@@ -2,7 +2,7 @@ import { onPage } from "@/lib/pages";
 import { BLANK_MODULE, CANVAS_ID, ITEM_ID, SCROLL_ROW_H, newProfile, uid, type DashboardConfig, type Placement, type ProfileView } from "@/lib/layout";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { withProfile } from "./profile-actions";
-import { firstFreeRect, type ZoneRect } from "./zone-geometry";
+import { firstFreeRect, takenOn, type ZoneRect } from "./zone-geometry";
 import { canvasAsGroup } from "@/lib/page-model/canvas-group";
 import { cellCount } from "@/lib/page-model/migrate";
 import { cellsOverlap } from "@/lib/page-model/model";
@@ -50,7 +50,7 @@ export function canvasRect(view: ProfileView, width: number, height: number): Zo
   let best: { rect: ZoneRect; scale: number; area: number } | null = null;
   for (let cols = 1; cols <= view.cols; cols++) {
     for (let rows = 1; rows <= view.rows; rows++) {
-      const rect = firstFreeRect(view.cols, view.rows, { cols, rows }, view.placements);
+      const rect = firstFreeRect(view.cols, view.rows, { cols, rows }, takenOn(view));
       if (!rect) continue;
       const scale = Math.min((cols * cellW) / Math.max(1, width), (rows * cellH) / Math.max(1, height));
       const area = cols * rows;

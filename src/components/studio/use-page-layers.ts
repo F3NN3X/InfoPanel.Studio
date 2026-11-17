@@ -20,7 +20,7 @@ import type { LayersHost, SelectHow, TreeNode } from "./layers-tree";
 import type { ItemSelection } from "./use-item-selection";
 import type { StudioSelection } from "./use-studio-selection";
 import { zoneName } from "./inspector/zone-meta";
-import { pinToEdgeEntry } from "./pin-entry";
+import { pinEntries } from "./pin-entry";
 import type { PinnedEdge } from "@/lib/pinned";
 import { hasOverlay, isTyping, treeKey } from "./use-studio-shortcuts";
 import { moduleIcon } from "./zone-icons";
@@ -43,6 +43,8 @@ interface PageLayersDeps {
   toast: (message: string) => void;
   /** Pin a page widget to an edge: the layer menu's Pin to edge. */
   pin: (placementId: string, edge: PinnedEdge) => void;
+  /** Pin page widgets in place, keeping their cells: the layer menu's Pin here. */
+  pinHere: (placementIds: string[]) => void;
 }
 
 /** Whether any two visible widgets share a cell. */
@@ -62,7 +64,7 @@ const treeOf = (nodes: readonly LayerNode[]): TreeNode[] =>
       : { id: n.id, type: "part", kind: n.kind, name: n.name, free: "px" in n.place, size: sizeOf(n.place), locked: n.locked, hidden: n.hidden },
   );
 
-export function usePageLayers({ profile, page, zones, items, focusZone, applyPageOps, dragging, showLayers, toast, pin }: PageLayersDeps) {
+export function usePageLayers({ profile, page, zones, items, focusZone, applyPageOps, dragging, showLayers, toast, pin, pinHere }: PageLayersDeps) {
   const model = useMemo(() => readPlacements(profile, page, zoneName), [profile, page]);
   const nodes = useMemo(() => treeOf(model.root), [model]);
   const byId = useMemo(() => new Map(page.placements.map((p) => [p.id, p])), [page]);
@@ -158,6 +160,10 @@ export function usePageLayers({ profile, page, zones, items, focusZone, applyPag
     return out;
   }, [model]);
 
+  /** The selection's page placements, when it is nothing else (no group): what the pin rows act on. */
+  const placed = selection.flatMap((id) => byId.get(id) ?? []);
+  const pinnable = placed.length > 0 && placed.length === selection.length;
+
   const iconOf = (node: TreeNode) => {
     const p: Placement | undefined = byId.get(node.id);
     if (node.kind === "widget") return moduleIcon(p?.module ?? "");
@@ -188,7 +194,7 @@ export function usePageLayers({ profile, page, zones, items, focusZone, applyPag
       const ops = dropOps(model, ids, parentId, index);
       if (ops) apply(ops);
     },
-    menu: { available: layerActionsFor(model, selection), groups: groupList, run, moveToGroup: (id) => moveInto(id ?? "new"), moveOut: { enabled: grouped.length > 0, run: moveOut }, saveToLibrary: save.open, pin: selection.length === 1 && byId.has(selection[0]) ? pinToEdgeEntry(byId.get(selection[0])!, pin) : undefined },
+    menu: { available: layerActionsFor(model, selection), groups: groupList, run, moveToGroup: (id) => moveInto(id ?? "new"), moveOut: { enabled: grouped.length > 0, run: moveOut }, saveToLibrary: save.open, pin: pinnable ? pinEntries(placed, pin, pinHere) : undefined },
     iconOf,
     renameRequest,
   };

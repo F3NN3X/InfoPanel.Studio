@@ -6,7 +6,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { StatusChip } from "@/components/ui/status-chip";
 import type { MonitorProfile, ProfileView } from "@/lib/layout";
 import { moveRailSlot, newRailSlot, pinnedHeight, RAIL_GROUP_NAMES, railOverflow, withRailSlots, type NewSlotKind } from "@/lib/pinned-edit";
-import type { PinnedItem, RailSlot } from "@/lib/pinned";
+import type { PinnedEdgeItem, RailSlot } from "@/lib/pinned";
 import { CHIP_SLOT_ID, chipSlot, railSlots, slotName, type RailPage } from "@/lib/rail";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
@@ -71,7 +71,8 @@ interface RailEditorProps {
   profile: ProfileView;
   index: number;
   pageId: string;
-  item: PinnedItem;
+  /** A rail on an edge (a rail pinned in place draws one slot per page, as on a page). */
+  item: PinnedEdgeItem;
   appearance: Appearance;
   /** The screen's theme variables, so the preview wears the Look. */
   themeScope: CSSProperties;
@@ -104,7 +105,7 @@ export function RailEditor({ stored, profile, index, pageId, item, appearance, t
   };
   const side = item.edge === "left" || item.edge === "right";
   // the rail drawn alone, as the canvas draws it, in a box of its own size
-  const alone: PinnedItem = { ...item, edge: side ? item.edge : "left", inset: 0, mode: "room", show: "all", visible: true };
+  const alone: PinnedEdgeItem = { ...item, edge: side ? item.edge : "left", inset: 0, mode: "room", show: "all", visible: true };
   return (
     <div className="flex min-h-0 flex-1 bg-ui-app font-ui text-ui-1">
       <aside aria-label="Preview" className="flex w-[180px] shrink-0 flex-col items-center gap-2 overflow-hidden border-r border-ui-subtle py-4">

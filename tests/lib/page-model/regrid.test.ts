@@ -39,6 +39,11 @@ describe("regrid on a screen", () => {
     expect(regrid(screen, 4, 2, nameOf)).toEqual({ refused: "Weather doesn't fit in 4 × 2. Make room first." });
   });
 
+  it("names a widget pinned in place that wouldn't fit, as a page's widget (config v21)", () => {
+    const pinned = { items: [{ id: "p", at: { colStart: 4, rowStart: 1, colSpan: 1, rowSpan: 1 }, show: "all" as const, visible: true, name: "Pinned CPU", placement: { id: "pw", module: "Clock" } }] };
+    expect(regrid({ ...screen, pinned }, 3, 3, nameOf)).toEqual({ refused: "Weather and Pinned CPU don't fit in 3 × 3. Make room first." });
+  });
+
   it("grows or shrinks around the widgets: widgets keep their cells, items on cells stay inside, items placed freely keep their pixels", () => {
     const r = regrid(screen, 6, 4, nameOf);
     if (!("profile" in r)) throw new Error(r.refused);

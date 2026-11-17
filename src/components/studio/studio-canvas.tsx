@@ -58,7 +58,7 @@ import { zoneMinSize } from "./studio-actions";
 import type { CanvasInset } from "./studio-layout";
 import { pageSize } from "./use-studio-layout";
 import { zonesInRect } from "./zone-arrange";
-import { enforceMinSize, fitZoneRect, moveZoneSet, type ZoneRect } from "./zone-geometry";
+import { enforceMinSize, fitZoneRect, moveZoneSet, takenOn, type ZoneRect } from "./zone-geometry";
 
 /** The canvas' dot grid, at a fixed pitch on the scroll area (not scaled by the zoom). */
 const DOTS = "radial-gradient(#1f1f25 1px, transparent 1px)";
@@ -193,6 +193,8 @@ interface StudioCanvasProps {
   pinnedRoom?: EdgeRoom;
   /** The pinned layer drawn over the page (P3's `PinnedCanvas`). */
   pinnedLayer?: ReactNode;
+  /** The widgets pinned in place (config v21), placed on a grid of the page grid's tracks over its box, never dimmed. */
+  pinnedGrid?: ReactNode;
   /** Edit shows the pinned layer: the page is dimmed and takes no input. */
   dimPage?: boolean;
 }
@@ -249,6 +251,7 @@ export function StudioCanvas({
   items,
   pinnedRoom: room = NO_ROOM,
   pinnedLayer,
+  pinnedGrid,
   dimPage,
 }: StudioCanvasProps) {
   /** The mode of the scoped screen theme: `lite:` styling on its theme cards follows it, as the kiosk page's `data-mode` does. */
@@ -346,7 +349,8 @@ export function StudioCanvas({
     pointer: { x: number; y: number },
     kind: "move" | "resize"
   ) => {
-    const origin = (dragOrigin.current ??= profile.placements);
+    // the cells pinned in place are taken too, as any other zone's (config v21)
+    const origin = (dragOrigin.current ??= takenOn(profile));
     const zone = origin.find((p) => p.id === id);
     if (!zone) return;
     const current = { col: zone.colStart, row: zone.rowStart, cols: zone.colSpan, rows: zone.rowSpan };
@@ -423,7 +427,7 @@ export function StudioCanvas({
         setTimeout(() => (drewRef.current = false), 0);
         if (marquee) return onSelectMany(zonesInRect(profile.placements, rect));
         // No room for the drawn box (the grid is full there): nothing is added.
-        const fitted = fitZoneRect(rect, profile.placements, profile.cols, profile.rows);
+        const fitted = fitZoneRect(rect, takenOn(profile), profile.cols, profile.rows);
         if (fitted) onDrawZone(fitted);
       }
     );
@@ -465,7 +469,7 @@ export function StudioCanvas({
       : added
         ? addPreview(added, cell)
         : !canvasTakesDrop(dragged, canvasPointAt(e.clientX, e.clientY))
-          ? dropGhost(cell, size, profile, profile.placements)
+          ? dropGhost(cell, size, profile, takenOn(profile))
           : null;
     // Re-rendered only when its cell, size, validity or label changes.
     setDropPreview((prev) =>
@@ -482,7 +486,7 @@ export function StudioCanvas({
 
   /** An Add panel row's ghost at a cell, with its label; Blank zone over a blank zone has nothing to do. */
   const addPreview = (item: AddItem, cell: { col: number; row: number }) => {
-    const ghost = addGhost(cell, profile, profile.placements, { cols: item.w, rows: item.h }, { cols: item.mw, rows: item.mh });
+    const ghost = addGhost(cell, profile, takenOn(profile), { cols: item.w, rows: item.h }, { cols: item.mw, rows: item.mh });
     const blankOnBlank = ghost.kind === "fill" && item.id === BLANK_MODULE;
     return { rect: ghost.rect, ok: ghost.ok && !blankOnBlank, label: blankOnBlank ? "Already blank" : ghostLabel(item, ghost), ghost };
   };
@@ -512,7 +516,7 @@ export function StudioCanvas({
       return;
     }
     const size = dropSizeOf(item) ?? (item.kind === "mylib" ? dropSize({ cols: 1, rows: 1 }, profile) : null);
-    const ghost = cell && size ? dropGhost(cell, size, profile, profile.placements) : null;
+    const ghost = cell && size ? dropGhost(cell, size, profile, takenOn(profile)) : null;
     onDropItem(item, ghost?.ok ? ghost.rect : null, cell, canvasPointAt(e.clientX, e.clientY));
   };
 
@@ -826,6 +830,25 @@ export function StudioCanvas({
 
                 </div>
                 {pinnedLayer}
+                {pinnedGrid && (
+                  // the page grid's box (inside the padding and the room the island and edge items take) and its tracks
+                  <div
+                    data-pinned-grid=""
+                    className="pointer-events-none absolute z-[13]"
+                    style={{
+                      display: "grid",
+                      top: padding + (bottomIsland ? 0 : reserve) + room.top,
+                      left: padding + room.left,
+                      right: padding + room.right,
+                      ...(fill ? { bottom: padding + (bottomIsland ? reserve : 0) + room.bottom } : {}),
+                      gap,
+                      gridTemplateColumns: `repeat(${profile.cols}, minmax(0, 1fr))`,
+                      gridTemplateRows: fill ? `repeat(${profile.rows}, minmax(0, 1fr))` : `repeat(${profile.rows}, ${SCROLL_ROW_H}px)`,
+                    }}
+                  >
+                    {pinnedGrid}
+                  </div>
+                )}
                 {page && items && !dimPage && (
                   <ItemParts
                     profile={profile}

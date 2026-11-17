@@ -330,6 +330,25 @@ async fn keeps_the_v19_config_before_the_first_v20_save() {
     s.stop().await;
 }
 
+// v21 (a widget pinned in place): the first v21 save keeps the v20 file, a v20 save over it is refused, and the grid pin is
+// stored as posted.
+#[tokio::test]
+async fn keeps_the_v20_config_before_the_first_v21_save() {
+    let s = start().await;
+    let backup = s.data().join("config.backup-before-v21.json");
+    let v20 = r#"{"version":20,"profiles":[{"id":"s","pages":[{"id":"main","placements":[]}]}]}"#;
+    assert_eq!(post_config(s.port, v20, &[]).await.status, 200);
+    let v21 = r#"{"version":21,"profiles":[{"id":"s","pages":[{"id":"main","placements":[]}],"pinned":{"items":[{"id":"cpu","at":{"colStart":1,"rowStart":1,"colSpan":2,"rowSpan":1},"show":"all","visible":true,"placement":{"id":"c","module":"Clock"}}]}}]}"#;
+    let raised = post_config(s.port, v21, &[]).await;
+    assert_eq!(raised.status, 200);
+    assert_eq!(json(&raised)["backup"], backup.display().to_string());
+    assert_eq!(std::fs::read_to_string(&backup).unwrap(), v20);
+    assert_eq!(post_config(s.port, v20, &[]).await.status, 409);
+    let read = get(s.port, "/api/config").await;
+    assert_eq!(json(&read)["profiles"][0]["pinned"]["items"][0]["at"]["colSpan"], 2);
+    s.stop().await;
+}
+
 // Widget presets (`widgetPresets`, an optional key of config v19): the server keeps the config as posted, so the list a user saved
 // comes back from GET as it went in, and a save without the key (an older studio) takes it out with the rest, as for every key.
 #[tokio::test]

@@ -8,7 +8,7 @@ const W = 1024;
 const H = 600;
 const zone = (id: string) => ({ id, module: "Clock", colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 2, visible: true });
 const config = {
-  version: 20,
+  version: 21,
   activeProfile: "desk",
   general: { kioskPageNav: true },
   profiles: [

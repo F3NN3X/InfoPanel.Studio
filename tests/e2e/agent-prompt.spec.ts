@@ -94,7 +94,7 @@ test("the prompt window shows everything exactly, and each answer goes to the re
 });
 
 const config = {
-  version: 20,
+  version: 21,
   activeProfile: "desk",
   profiles: [
     {

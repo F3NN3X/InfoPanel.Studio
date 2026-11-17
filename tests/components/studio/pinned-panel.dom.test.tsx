@@ -4,7 +4,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PinnedPanel } from "@/components/studio/pinned/pinned-panel";
-import { pinToEdgeEntry } from "@/components/studio/pin-entry";
+import { pinEntries, pinToEdgeEntry } from "@/components/studio/pin-entry";
 import type { MonitorProfile } from "@/lib/layout";
 import { addPinnedItem, newPinnedItem, PIN_KINDS } from "@/lib/pinned-edit";
 
@@ -66,5 +66,23 @@ describe("Pin to edge on a page widget's menu", () => {
 
   it("is disabled, with the reason as its title, for blank space", () => {
     expect(pinToEdgeEntry({ ...widget, module: "blank" }, vi.fn())).toMatchObject({ disabled: true, title: expect.stringMatching(/Blank/) });
+  });
+});
+
+describe("Pin here on a page widget's menu (config v21)", () => {
+  const widget = (id: string, extra: object = {}) => ({ id, module: "Clock", colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, ...extra });
+
+  it("comes first, then Pin to edge for one widget; a selection of several has Pin here alone, pinning them all", () => {
+    const pinHere = vi.fn();
+    expect(pinEntries([widget("a")], vi.fn(), pinHere).map((e) => (e as { id: string }).id)).toEqual(["pin-here", "pin-to-edge"]);
+    const many = pinEntries([widget("a"), widget("b"), widget("c")], vi.fn(), pinHere);
+    expect(many.map((e) => (e as { id: string }).id)).toEqual(["pin-here"]);
+    (many[0] as { onSelect: () => void }).onSelect();
+    expect(pinHere).toHaveBeenCalledWith(["a", "b", "c"]);
+  });
+
+  it("is disabled, with the reason, when one of them can't be pinned or is placed freely", () => {
+    expect(pinEntries([widget("a"), widget("b", { module: "blank" })], vi.fn(), vi.fn())[0]).toMatchObject({ disabled: true, title: expect.stringMatching(/Blank/) });
+    expect(pinEntries([widget("a", { px: { x: 0, y: 0, w: 9, h: 9 } })], vi.fn(), vi.fn())[0]).toMatchObject({ disabled: true, title: expect.stringMatching(/placed freely/) });
   });
 });

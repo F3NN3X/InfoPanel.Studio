@@ -101,7 +101,7 @@ import { canvasItem } from "@/lib/my-library/canvas-link";
 import { findCanvasUse } from "@/lib/my-library/canvas-use";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { FixtureStart } from "@/dev/fixtures/types";
-import { pinnedOnPage, pinnedRoom } from "@/lib/pinned";
+import { isEdgePin, isGridPin, pinnedOnPage, pinnedRoom } from "@/lib/pinned";
 import { profilePadding } from "@/lib/profile-grid";
 import { Segmented } from "@/components/ui/segmented";
 import { Pin } from "lucide-react";
@@ -145,6 +145,7 @@ const WidgetsPage = lazy(() => import("@/components/widgets-page/widgets-page"))
 /** Edit with Pinned on (P3), and the pinned layer on the canvas: one chunk, loaded by a profile that pins something or by Pinned. */
 const PinnedWorkspace = lazy(() => import("./pinned/pinned-workspace"));
 const PinnedCanvas = lazy(() => import("./pinned/pinned-canvas").then((m) => ({ default: m.PinnedCanvas })));
+const PinnedGridCanvas = lazy(() => import("./pinned/pinned-grid-canvas").then((m) => ({ default: m.PinnedGridCanvas })));
 /** The page tabs' and Pinned's thumbnails draw the pinned layer (a studio preference). */
 const PINNED_THUMBS_KEY = "studio.pinnedThumbs";
 
@@ -436,6 +437,7 @@ function StudioViewBody({
     setView: setPinView,
     setPinnedOn,
     onPlaced: (id) => sel.select(id),
+    onPinnedHere: () => sel.select(null),
     toast,
   });
   const pinnedHere = useMemo(() => pinnedOnPage(storedProfile.pinned, storedPage.id, storedPage.hidePinned), [storedProfile.pinned, storedPage.id, storedPage.hidePinned]);
@@ -453,6 +455,7 @@ function StudioViewBody({
     showLayers: () => ui.setLeftTab("layers"),
     toast,
     pin: pins.pin,
+    pinHere: pins.pinHere,
   });
   // The fixture's selection, through Layers so a page group or an item placement is selected as a click on its row
   // would; after Layers' own effects, which clear its group selection on mount.
@@ -950,8 +953,29 @@ function StudioViewBody({
       islandAlerts={islandTestAlerts}
       pinnedRoom={pinnedRoom(pinnedHere)}
       dimPage={pinnedShown}
+      pinnedGrid={
+        pinnedHere.some(isGridPin) && (
+          <Suspense fallback={null}>
+            <PinnedGridCanvas
+              stored={storedProfile}
+              profile={profile}
+              pageId={storedPage.id}
+              items={pinnedHere.filter(isGridPin)}
+              appearance={appearance}
+              editing={pinnedShown}
+              selectedId={pinView.id}
+              onSelect={(id) => {
+                setPinnedOn(true);
+                setPinView({ id, rail: false, slot: null });
+              }}
+              onCells={pins.setCells}
+              actions={pins}
+            />
+          </Suspense>
+        )
+      }
       pinnedLayer={
-        pinnedHere.length > 0 && (
+        pinnedHere.some(isEdgePin) && (
           <Suspense fallback={null}>
             <PinnedCanvas
               stored={storedProfile}

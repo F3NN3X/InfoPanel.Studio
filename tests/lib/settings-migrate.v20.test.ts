@@ -50,8 +50,9 @@ describe("v20: the pinned layer", () => {
   it("a v19 config upgrades to v20 unchanged in meaning: the same profiles a v20 one with the same fields reads as", async () => {
     const plain = screen({ pinned: undefined, autoSwitch: undefined });
     const up = upgradeConfig(stored(19, [plain]));
-    expect(up.version).toBe(20);
-    expect(CONFIG_VERSION).toBe(20);
+    // a later format (v21's grid pins) stamps its own version over v20's, as the older steps' tests read it
+    expect(CONFIG_VERSION).toBeGreaterThanOrEqual(20);
+    expect(up.version).toBe(CONFIG_VERSION);
     expect(up.profiles).toEqual(mergeConfig(stored(20, [plain])).profiles);
     expect(up.profiles[0].pinned).toBeUndefined();
     // a v19 dev build's fields the format now names come through the upgrade as stored
@@ -62,7 +63,7 @@ describe("v20: the pinned layer", () => {
 
   it("an older version's config (v16) upgrades to v20 with no pinned layer, and its pages draw as they did", () => {
     const v16 = upgradeConfig(stored(16, [screen({ pinned: undefined, autoSwitch: undefined, pages: [{ id: "main", name: "Main", placements: [zone("a")] }] })]));
-    expect(v16.version).toBe(20);
+    expect(v16.version).toBe(CONFIG_VERSION);
     expect(v16.profiles[0].pinned).toBeUndefined();
     expect(v16.profiles[0].pages[0]).toEqual({ id: "main", name: "Main", placements: [zone("a")] });
   });

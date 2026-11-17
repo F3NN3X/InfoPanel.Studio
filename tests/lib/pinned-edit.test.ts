@@ -2,10 +2,17 @@
 // stores survives the v20 guard (`normalizePinned`), so a save keeps it.
 import { describe, expect, it } from "vitest";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
-import { normalizePinned, normalizeTouchAction, type PinnedItem, type RailSlot } from "@/lib/pinned";
+import { isEdgePin, normalizePinned, normalizeTouchAction, type PinnedEdgeItem, type RailSlot } from "@/lib/pinned";
 import {
   addPinnedItem,
+  allPinConflicts,
+  cellsText,
   copyPinnedToSameSize,
+  moveZoneTo,
+  pinConflicts,
+  pinInPlace,
+  unpinBlocked,
+  withCells,
   islandClash,
   moveRailSlot,
   movePinnedItem,
@@ -37,7 +44,7 @@ const page = (id: string) => ({ id, name: id.toUpperCase(), placements: [] });
 const profile = (id: string, w = 1024, h = 600, pages = ["a", "b", "c"]): MonitorProfile =>
   ({ id, name: id, width: w, height: h, cols: 4, rows: 3, pages: pages.map(page) }) as unknown as MonitorProfile;
 const kind = (id: string) => PIN_KINDS.find((k) => k.id === id)!;
-const rail = (extra: Partial<PinnedItem> = {}): PinnedItem => ({ ...newPinnedItem(kind("rail")), id: "rail", ...extra });
+const rail = (extra: Partial<PinnedEdgeItem> = {}): PinnedEdgeItem => ({ ...newPinnedItem(kind("rail")), id: "rail", ...extra });
 
 describe("adding, changing, ordering and removing items", () => {
   it("adds a rail on the left, 84 px, making room on every page; the guard keeps it as made", () => {
@@ -49,7 +56,7 @@ describe("adding, changing, ordering and removing items", () => {
   it("changes one item, moves it in the list and drops the layer with its last item", () => {
     const bar = { ...newPinnedItem(kind("now-playing")), id: "bar" };
     let p = addPinnedItem(addPinnedItem(profile("s"), rail()), bar);
-    p = updatePinnedItem(p, "bar", (it) => ({ ...it, edge: "top", mode: "float" }));
+    p = updatePinnedItem(p, "bar", (it) => (isEdgePin(it) ? { ...it, edge: "top", mode: "float" } : it));
     expect(p.pinned?.items[1]).toMatchObject({ edge: "top", mode: "float", inset: 12 });
     p = movePinnedItem(p, "bar", -1);
     expect(p.pinned?.items.map((i) => i.id)).toEqual(["bar", "rail"]);
@@ -304,5 +311,71 @@ describe("the rail's profile chip overrides", () => {
 
   it("ignores a stored chipItem that is not JSON", () => {
     expect(chipSlot({ chipItem: "{nope" })).toEqual(chipSlot(undefined));
+  });
+});
+
+describe("pinning widgets in place (config v21) and moving them back", () => {
+  const z = (id: string, col: number, extra: Record<string, unknown> = {}) => ({ id, module: "Clock", colStart: col, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, ...extra });
+  const row = (): MonitorProfile => {
+    const p = profile("s");
+    return { ...p, pages: [{ id: "a", name: "A", placements: [z("w1", 1, { settings: { face: "digital" } }), z("w2", 2, { locked: true }), z("w3", 3), z("w4", 4, { rowStart: 2 })] }, page("b")] } as unknown as MonitorProfile;
+  };
+  const three = () => pinInPlace(row(), "a", ["w1", "w2", "w3"], { ids: ["p1", "p2", "p3"], names: ["One", "Two", "Three"] });
+
+  it("moves three widgets into the layer as one change, each on its cells, on all pages, in the selection's order", () => {
+    const next = three();
+    expect(next.pages[0].placements.map((x) => x.id)).toEqual(["w4"]);
+    expect(next.pinned?.items).toEqual([
+      { id: "p1", at: { colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1 }, show: "all", visible: true, name: "One", placement: { id: "w1", module: "Clock", settings: { face: "digital" } } },
+      { id: "p2", at: { colStart: 2, rowStart: 1, colSpan: 1, rowSpan: 1 }, show: "all", visible: true, locked: true, name: "Two", placement: { id: "w2", module: "Clock" } },
+      { id: "p3", at: { colStart: 3, rowStart: 1, colSpan: 1, rowSpan: 1 }, show: "all", visible: true, name: "Three", placement: { id: "w3", module: "Clock" } },
+    ]);
+    // what it writes is what the guard keeps
+    expect(normalizePinned(next.pinned, ["a", "b"], { cols: 4, rows: 3 })).toEqual(next.pinned);
+  });
+
+  it("leaves a widget that can't be pinned, or one placed freely, on the page; nothing pinnable leaves the profile as it was", () => {
+    const p = { ...row(), pages: [{ id: "a", name: "A", placements: [z("w1", 1), z("blank", 2, { module: "blank" }), z("free", 3, { px: { x: 1, y: 1, w: 9, h: 9 } })] }] } as unknown as MonitorProfile;
+    const next = pinInPlace(p, "a", ["w1", "blank", "free"]);
+    expect(next.pages[0].placements.map((x) => x.id)).toEqual(["blank", "free"]);
+    expect(next.pinned?.items.map((it) => it.placement.id)).toEqual(["w1"]);
+    expect(pinInPlace(p, "a", ["blank", "free", "nope"])).toBe(p);
+    expect(pinInPlace(p, "gone", ["w1"])).toBe(p);
+  });
+
+  it("moves a grid pin back to the page at the cells the caller found; a rail pinned in place may go back too", () => {
+    const back = unpinToPage(three(), "p2", "a", { col: 2, row: 1, cols: 1, rows: 1 });
+    expect(back.pinned?.items.map((it) => it.id)).toEqual(["p1", "p3"]);
+    expect(back.pages[0].placements.at(-1)).toEqual({ id: "w2", module: "Clock", colStart: 2, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, locked: true });
+    expect(unpinBlocked({ id: "r", at: { colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 3 }, show: "all", visible: true, placement: { id: "r", module: "PageRail" } })).toBeNull();
+    expect(unpinBlocked(rail())).toMatch(/rail stays/);
+  });
+
+  it("lists the page widgets under a grid pin on the pages it is drawn on, never on a page that hides it or one it isn't shown on", () => {
+    const base = three();
+    const covered = { ...base, pages: [base.pages[0], { id: "b", name: "B", placements: [z("under", 2, { colSpan: 2 }), z("beside", 4), z("hidden", 1, { visible: false })] }] } as MonitorProfile;
+    const p2 = covered.pinned!.items[1];
+    expect(pinConflicts(covered, p2)).toEqual([{ pageId: "b", placementId: "under" }]);
+    expect(allPinConflicts(covered)).toEqual([
+      { pageId: "b", placementId: "under", pinId: "p2" },
+      { pageId: "b", placementId: "under", pinId: "p3" },
+    ]);
+    const hides = { ...covered, pages: [covered.pages[0], { ...covered.pages[1], hidePinned: true }] };
+    expect(allPinConflicts(hides)).toEqual([]);
+    const elsewhere = { ...covered, pinned: { items: covered.pinned!.items.map((it) => ({ ...it, show: { pages: ["a"] } })) } };
+    expect(allPinConflicts(elsewhere)).toEqual([]);
+    // an edge item has no cells to cover
+    expect(pinConflicts(covered, rail())).toEqual([]);
+    // the Move fix puts the widget at the spot the caller found, which clears the conflict
+    const moved = moveZoneTo(covered, "b", "under", { col: 1, row: 2, cols: 2, rows: 1 });
+    expect(moved.pages[1].placements[0]).toMatchObject({ colStart: 1, rowStart: 2, colSpan: 2, rowSpan: 1 });
+    expect(allPinConflicts(moved)).toEqual([]);
+  });
+
+  it("moves or sizes a grid pin kept inside the grid, never an edge item, and says its cells", () => {
+    const p = addPinnedItem(three(), rail());
+    expect(withCells(p, "p1", { colStart: 3, rowStart: 3, colSpan: 4, rowSpan: 2 }).pinned?.items[0].at).toEqual({ colStart: 1, rowStart: 2, colSpan: 4, rowSpan: 2 });
+    expect(withCells(p, "rail", { colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1 }).pinned?.items[3]).toBe(p.pinned?.items[3]);
+    expect(cellsText({ colStart: 1, rowStart: 2, colSpan: 3, rowSpan: 1 })).toBe("cols 1–3, rows 2–2");
   });
 });
