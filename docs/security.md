@@ -87,10 +87,11 @@ security model, what was fixed, what was decided, and what is deferred.
   out when it is opened elsewhere. Dropped with everything inside them: `script`, `foreignObject`, `iframe`, `object`,
   `embed`, `audio`, `video`, `canvas`, `handler`, `listener`, any element in another namespace (a prefix, or an `xmlns` other
   than SVG's) and an animation of a link. Dropped attributes: event handlers, `xml:base`, and a link that is not `#…` or an
-  embedded PNG, JPEG, GIF or WebP. In styles, `@import` goes and an outside `url(…)` becomes `none`; a style that loads
-  anything another way (`image-set(`, `src(`, `element(`, …) or hides its words behind a CSS escape goes whole. A
-  `<style>`'s text and CDATA are joined and cleaned once, as the browser joins them, and a `<style>` holding a comment or
-  an element is refused, so no CSS can be split across parts to get past the check. Character references are decoded
+  embedded PNG, JPEG, GIF or WebP. CSS is checked, never cut (cutting could stitch the text around a removed piece into a
+  new one): an attribute value or a `<style>` with `@import`, a `url(…)` that leaves the file, another loading function
+  (`image-set(`, `src(`, `element(`, …) or a CSS escape is dropped whole. A `<style>`'s text and CDATA are joined and
+  checked once, as the browser joins them, and a `<style>` holding a comment or an element is refused, so no CSS can be
+  split across parts to get past the check. Character references are decoded
   before these checks, as the parser reads them, at any length; one that can't be resolved refuses the file. The DOCTYPE
   is read in the prologue only and goes after its plain internal entities are written in (Illustrator declares its
   namespaces that way), each write measured first so the text never passes 256 KB; an external, parameter or markup

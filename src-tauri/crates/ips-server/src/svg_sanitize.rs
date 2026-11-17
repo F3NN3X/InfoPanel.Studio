@@ -7,11 +7,12 @@
 // - elements dropped with everything inside them: script, foreignObject, iframe, object, embed, audio, video, canvas,
 //   handler, listener; any element with a prefix (another namespace) or an `xmlns` other than SVG's; an animation of a link;
 // - attributes dropped: event handlers (`on…`), `xml:base`, a link (`href`, `xlink:href`) that is not `#…` or an embedded
-//   raster image, and a style value that loads anything (`image-set(`, `src(`, `element(`, …) or hides its words behind a
-//   CSS escape;
-// - in a style attribute or a `<style>`, `@import` is removed and an outside `url(…)` becomes `none`. A `<style>`'s text
-//   and CDATA are joined and cleaned as one stylesheet, as the browser reads them, and written back as one text node; a
-//   `<style>` holding a comment or an element is refused, since its parts could join into CSS no check saw;
+//   raster image, and a value that loads anything as CSS: `@import`, a `url(…)` that leaves the file, `image-set(`,
+//   `src(`, `element(` and the like, or a CSS escape that could hide those words;
+// - a `<style>` whose CSS does any of that keeps no CSS at all. CSS is only ever checked, never cut: removing a piece could
+//   stitch the text around it into a new one (`@im@importport`). A `<style>`'s text and CDATA are joined and checked as
+//   one stylesheet, as the browser reads them; a `<style>` holding a comment or an element is refused, since its parts
+//   could join into CSS no check saw;
 // - a character reference is decoded as the parser decodes it, any length; one it can't resolve (an unknown name, past
 //   U+10FFFF) refuses the file;
 // - processing instructions other than the XML declaration go (`<?xml-stylesheet?>` links out), and so does the DOCTYPE,
@@ -87,34 +88,26 @@ fn escape(text: &str) -> String {
     text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
 }
 
-/// `cleanCss`: `@import` removed and an outside `url(…)` made `none`. `None`: the CSS loads something some other way, or
-/// uses an escape (`\75 rl(` is `url(`), so it cannot be kept at all.
-fn clean_css(css: &str) -> Option<String> {
+/// Whether CSS (a style attribute, a presentation value, a `<style>`) loads nothing from outside the file: no `@import`, no
+/// `url(…)` but an in-file or embedded raster one, no other loading function, no script, and no CSS escape (`\75 rl(` is
+/// `url(`). It is a check only: CSS that fails it is dropped whole, never cut, so nothing can be stitched back together.
+fn css_is_safe(css: &str) -> bool {
     let lower = css.to_ascii_lowercase();
-    if css.contains('\\') || LOADERS.iter().any(|f| lower.contains(f)) {
-        return None;
+    if css.contains('\\') || lower.contains("@import") || LOADERS.iter().any(|f| lower.contains(f)) {
+        return false;
     }
-    let mut out = String::with_capacity(css.len());
-    let mut i = 0;
-    while i < css.len() {
-        if lower[i..].starts_with("@import") {
-            let end = lower[i..].find(';').map_or(css.len(), |e| i + e + 1);
-            i = end;
-            continue;
+    let mut rest = lower.as_str();
+    while let Some(at) = rest.find("url(") {
+        let inner = &rest[at + 4..];
+        let Some(close) = inner.find(')') else {
+            return false;
+        };
+        if !is_safe_ref(inner[..close].trim().trim_matches(|c| c == '"' || c == '\'')) {
+            return false;
         }
-        if lower[i..].starts_with("url(") {
-            let inner = i + 4;
-            let close = css[inner..].find(')').map(|e| inner + e)?;
-            let target = css[inner..close].trim().trim_matches(|c| c == '"' || c == '\'');
-            out.push_str(if is_safe_ref(target) { &css[i..=close] } else { "none" });
-            i = close + 1;
-            continue;
-        }
-        let ch = css[i..].chars().next().unwrap_or(' ');
-        out.push(ch);
-        i += ch.len_utf8();
+        rest = &inner[close + 1..];
     }
-    Some(out)
+    true
 }
 
 /// One attribute of a start tag: its name, its value as the parser reads it (references decoded) and its whole source text.
@@ -184,21 +177,16 @@ fn drops_element(name: &str, attrs: &[Attr]) -> bool {
     DROP.contains(&lname.as_str()) || name.contains(':') || animates_ref || foreign_ns
 }
 
-/// An attribute as it is kept: unchanged (`Some(None)`), rewritten (`Some(Some(value))`), or dropped (`None`).
-fn kept_attr(a: &Attr) -> Option<Option<String>> {
+/// Whether an attribute is kept as it came; one that isn't is dropped, never rewritten.
+fn keeps_attr(a: &Attr) -> bool {
     let name = local(a.name);
     if name.starts_with("on") || a.name.eq_ignore_ascii_case("xml:base") {
-        return None;
+        return false;
     }
-    let value = &a.value;
     if name == "href" {
-        return is_safe_ref(value).then_some(None);
+        return is_safe_ref(&a.value);
     }
-    if value.contains('(') || value.contains('@') || value.contains('\\') || value.to_ascii_lowercase().contains("script:") {
-        let cleaned = clean_css(value)?;
-        return Some((&cleaned != value).then(|| escape(&cleaned)));
-    }
-    Some(None)
+    css_is_safe(&a.value)
 }
 
 /// The plain internal entities of a DOCTYPE (`<!ENTITY name "value">`), or `None` for one that cannot be kept that way.
@@ -358,18 +346,15 @@ pub fn sanitize_svg(text: &str) -> Option<String> {
                     skip += 1;
                 }
             } else {
-                let kept: Vec<(&Attr, Option<String>)> = attrs.iter().filter_map(|a| kept_attr(a).map(|v| (a, v))).collect();
-                if kept.len() == attrs.len() && kept.iter().all(|(_, v)| v.is_none()) {
+                let kept: Vec<&Attr> = attrs.iter().filter(|a| keeps_attr(a)).collect();
+                if kept.len() == attrs.len() {
                     out.push_str(&r[..len]);
                 } else {
                     out.push('<');
                     out.push_str(name);
-                    for (a, v) in &kept {
+                    for a in &kept {
                         out.push(' ');
-                        match v {
-                            Some(value) => out.push_str(&format!("{}=\"{value}\"", a.name)),
-                            None => out.push_str(a.source),
-                        }
+                        out.push_str(a.source);
                     }
                     out.push_str(if closed { "/>" } else { ">" });
                 }
@@ -394,9 +379,9 @@ pub fn sanitize_svg(text: &str) -> Option<String> {
 }
 
 /// A `<style>`'s content (`s`, after its start tag) as it is kept, with its `</name>`, and the length up to and with that end
-/// tag. Its text and CDATA are joined as the browser joins them and cleaned once (`clean_css`): unchanged, they are written
-/// back as they came; changed, as one text node; loading something another way, not at all. A comment, an element or
-/// anything else inside refuses the file: its parts could join into CSS no check saw.
+/// tag. Its text and CDATA are joined as the browser joins them and checked once (`css_is_safe`): safe, they are written
+/// back as they came; not, the style keeps no CSS. A comment, an element or anything else inside refuses the file: its
+/// parts could join into CSS no check saw.
 fn style_text(s: &str, name: &str) -> Option<(String, usize)> {
     let mut css = String::new();
     let mut i = 0;
@@ -411,12 +396,7 @@ fn style_text(s: &str, name: &str) -> Option<(String, usize)> {
             if !tail[gap..].starts_with('>') {
                 return None;
             }
-            let kept = match clean_css(&css) {
-                Some(clean) if clean == css => s[..i].to_string(),
-                Some(clean) => escape(&clean),
-                // a stylesheet that loads something some other way goes whole
-                None => String::new(),
-            };
+            let kept = if css_is_safe(&css) { &s[..i] } else { "" };
             return Some((format!("{kept}</{name}>"), i + 2 + name.len() + gap + 1));
         } else if r.is_empty() || r.starts_with('<') {
             return None;
@@ -474,24 +454,26 @@ mod tests {
     }
 
     #[test]
-    fn cleans_css_in_styles_and_attributes() {
+    fn drops_css_that_loads_anything() {
         let svg = format!("<svg {NS}><style>@import url(https://evil.example/a.css); .a {{ fill: url(https://evil.example/p.png) }} .b {{ fill: url(#g) }}</style><rect style=\"fill: url('http://evil.example/x')\" fill=\"url(#g)\"/></svg>");
-        assert_eq!(clean(&svg), format!("<svg {NS}><style> .a {{ fill: none }} .b {{ fill: url(#g) }}</style><rect style=\"fill: none\" fill=\"url(#g)\"/></svg>"));
+        // CSS that imports or links out keeps nothing; an in-file url( stays
+        assert_eq!(clean(&svg), format!("<svg {NS}><style></style><rect fill=\"url(#g)\"/></svg>"));
+        let svg = format!("<svg {NS}><style>.b {{ fill: url(#g) }} .c {{ fill: url('data:image/png;base64,AA') }}</style></svg>");
+        assert_eq!(clean(&svg), svg);
         // what loads some other way, or hides behind an escape, is dropped whole
         let svg = format!("<svg {NS}><style>.a {{ background: image-set(\"http://evil.example/x.png\" 1x) }}</style><rect fill=\"\\75 rl(http://evil.example/x)\" style=\"background: -webkit-image-set('x' 1x)\" r=\"1\"/><rect fill=\"&#117;rl(http://evil.example/)\"/></svg>");
-        assert_eq!(clean(&svg), format!("<svg {NS}><style></style><rect r=\"1\"/><rect fill=\"none\"/></svg>"));
+        assert_eq!(clean(&svg), format!("<svg {NS}><style></style><rect r=\"1\"/><rect/></svg>"));
         let svg = format!("<svg {NS}><style><![CDATA[@import 'x.css'; .a {{}}]]></style></svg>");
-        // a changed stylesheet is written back as one text node
-        assert_eq!(clean(&svg), format!("<svg {NS}><style> .a {{}}</style></svg>"));
+        assert_eq!(clean(&svg), format!("<svg {NS}><style></style></svg>"));
     }
 
     // P-B5: a <style>'s parts were cleaned one by one, so CSS split across them rejoined unseen.
     #[test]
     fn cleans_a_style_as_one_stylesheet_its_parts_joined() {
         let svg = format!("<svg {NS}><style>@im<![CDATA[port 'https://evil.example/a.css';]]> .a {{}}</style></svg>");
-        assert_eq!(clean(&svg), format!("<svg {NS}><style> .a {{}}</style></svg>"));
+        assert_eq!(clean(&svg), format!("<svg {NS}><style></style></svg>"));
         let svg = format!("<svg {NS}><style>.a {{ fill: url<![CDATA[(https://evil.example/x)]]> }}</style></svg>");
-        assert_eq!(clean(&svg), format!("<svg {NS}><style>.a {{ fill: none }}</style></svg>"));
+        assert_eq!(clean(&svg), format!("<svg {NS}><style></style></svg>"));
         let svg = format!("<svg {NS}><style>@im&#112;ort 'https://evil.example/a.css';</style></svg>");
         assert_eq!(clean(&svg), format!("<svg {NS}><style></style></svg>"));
         // a comment or an element inside a style refuses the file
@@ -504,11 +486,30 @@ mod tests {
         assert_eq!(clean(&svg), svg.replace("</style >", "</style>"));
     }
 
+    // P-B9: cutting an @import or url( out could stitch the text around it into a new one, written out unchecked.
+    #[test]
+    fn never_cuts_css_so_nothing_is_stitched_back_together() {
+        for css in [
+            "@im@importport 'https://evil.example/a.css';",
+            "@im@import x;port 'https://evil.example/a.css';",
+            ".a {{ fill: uurl(https://evil.example/p)rl(https://evil.example/x) }}",
+            ".a {{ fill: url(url(#a)https://evil.example/x) }}",
+            "@IMPORT 'x.css';",
+            ".a {{ fill: url(\"https://evil.example/x\") }}",
+        ] {
+            let css = css.replace("{{", "{").replace("}}", "}");
+            let svg = format!("<svg {NS}><style>{css}</style><rect style=\"{}\"/></svg>", css.replace('"', "&quot;"));
+            let out = clean(&svg);
+            assert_eq!(out, format!("<svg {NS}><style></style><rect/></svg>"), "{css}");
+            assert_eq!(sanitize_svg(&out).as_deref(), Some(out.as_str()));
+        }
+    }
+
     // P-B6: a reference longer than 12 characters stayed encoded here and was decoded by the browser.
     #[test]
     fn decodes_references_of_any_length_and_refuses_what_it_cannot() {
         let svg = format!("<svg {NS}><rect fill=\"&#000000000000117;rl(http://evil.example/)\"/><a href=\"&#x000000000000023;ok\"/></svg>");
-        assert_eq!(clean(&svg), format!("<svg {NS}><rect fill=\"none\"/><a href=\"&#x000000000000023;ok\"/></svg>"));
+        assert_eq!(clean(&svg), format!("<svg {NS}><rect/><a href=\"&#x000000000000023;ok\"/></svg>"));
         let svg = format!("<svg {NS}><g style=\"&#0000000000106;avascript:x\"/></svg>");
         assert_eq!(clean(&svg), format!("<svg {NS}><g/></svg>"));
         for bad in ["&nbsp;", "&#x110000;", "&#99999999999999999999;", "&#;", "&#x;", "&#0;", "& ", "&#12a;", "&#x12"] {
