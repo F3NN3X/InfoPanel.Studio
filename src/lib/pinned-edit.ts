@@ -5,9 +5,11 @@
  */
 import type { ModuleSettings } from "@/modules/types";
 import type { IslandConfig } from "./island/config";
-import { uid, type DashboardConfig, type MonitorProfile } from "./layout";
+import { SCROLL_ROW_H, uid, type DashboardConfig, type MonitorProfile, type Placement } from "./layout";
+import { pinBlocked } from "./pin-blocked";
+import { profileGap, profilePadding, trackSize } from "./profile-grid";
 import { normalizePinned, remapPinnedPages, type MediaKey, type PinnedEdge, type PinnedItem, type RailGroup, type RailSlot, type TouchAction } from "./pinned";
-import { RAIL_MODULE, RAIL_THICKNESS, railNeed, railSlots, type RailPage, type RailParts } from "./rail";
+import { CHIP_FIELDS, chipSlot, RAIL_MODULE, RAIL_THICKNESS, railNeed, railSlots, type RailPage, type RailParts } from "./rail";
 
 /** What Add offers for the pinned layer: the rail and the widgets the fixtures pin, each on its usual edge and size. */
 export interface PinKind {
@@ -40,6 +42,60 @@ export function newPinnedItem(kind: PinKind): PinnedItem {
     name: kind.name,
     placement: { id: uid(kind.module), module: kind.module, ...(kind.settings ? { settings: kind.settings } : {}) },
   };
+}
+
+/** The size the pinned inspector's control allows across the edge, px: 24 up to half the screen's width (a side) or height. */
+export const PIN_MIN_THICKNESS = 24;
+export const pinnedThicknessMax = (edge: PinnedEdge, profile: Pick<MonitorProfile, "width" | "height">): number =>
+  Math.max(PIN_MIN_THICKNESS, Math.round((edge === "left" || edge === "right" ? profile.width : profile.height) / 2));
+
+export { pinBlocked };
+
+/** Why a pinned item can't go back to a page (null: it can). */
+export const unpinBlocked = (it: Pick<PinnedItem, "placement">): string | null => (it.placement.module === RAIL_MODULE ? "The page rail stays in the pinned layer" : null);
+
+/** A page widget's size on the profile's grid, px: its cells and the gaps between them. */
+function pageSpanPx(length: number, count: number, span: number, gap: number): number {
+  return Math.round(span * trackSize(length, count, gap) + (span - 1) * gap);
+}
+
+/**
+ * A page's widget moved to the pinned layer on `edge`, as one change: it keeps its module and settings, is dropped from
+ * the page and goes last in the list on all pages, making room. Its thickness is its height (top, bottom) or width (left,
+ * right) on the grid, clamped to what the inspector's size allows. The profile as it was when nothing can be pinned.
+ */
+export function pinPlacement(p: MonitorProfile, pageId: string, placementId: string, edge: PinnedEdge, opts: { id?: string; name?: string } = {}): MonitorProfile {
+  const page = p.pages.find((pg) => pg.id === pageId);
+  const placement = page?.placements.find((x) => x.id === placementId);
+  if (!page || !placement || pinBlocked(placement)) return p;
+  const { colStart: _c, rowStart: _r, colSpan, rowSpan, px: _px, groupId: _g, item: _i, visible: _v, locked, ...rest } = placement;
+  const side = edge === "left" || edge === "right";
+  const pad = profilePadding(p, true);
+  const gap = profileGap(p);
+  const rowH = p.fit === "fill" ? trackSize(p.height - 2 * pad, p.rows, gap) : SCROLL_ROW_H;
+  const size = side ? pageSpanPx(p.width - 2 * pad, p.cols, colSpan, gap) : Math.round(rowSpan * rowH + (rowSpan - 1) * gap);
+  const item: PinnedItem = {
+    id: opts.id ?? uid("pin"),
+    edge,
+    mode: "room",
+    thickness: Math.min(pinnedThicknessMax(edge, p), Math.max(PIN_MIN_THICKNESS, size)),
+    show: "all",
+    visible: true,
+    ...(locked ? { locked: true } : {}),
+    name: opts.name ?? placement.name ?? placement.module,
+    placement: rest,
+  };
+  const moved = { ...p, pages: p.pages.map((pg) => (pg === page ? { ...pg, placements: pg.placements.filter((x) => x.id !== placementId) } : pg)) };
+  return addPinnedItem(moved, item);
+}
+
+/** A pinned item moved onto a page's grid at `rect` (a free spot the caller found), as one change; the profile as it was when it can't go. */
+export function unpinToPage(p: MonitorProfile, itemId: string, pageId: string, rect: { col: number; row: number; cols: number; rows: number }): MonitorProfile {
+  const item = p.pinned?.items.find((it) => it.id === itemId);
+  if (!item || unpinBlocked(item) || !p.pages.some((pg) => pg.id === pageId)) return p;
+  const placement: Placement = { ...item.placement, colStart: rect.col, rowStart: rect.row, colSpan: rect.cols, rowSpan: rect.rows, visible: true, ...(item.locked ? { locked: true } : {}) };
+  const placed = { ...p, pages: p.pages.map((pg) => (pg.id === pageId ? { ...pg, placements: [...pg.placements, placement] } : pg)) };
+  return removePinnedItem(placed, itemId);
 }
 
 /** The profile with its pinned items changed by `fn`; none left drops the layer (unset = no pinned layer). */
@@ -156,6 +212,29 @@ export function railOverflow(item: PinnedItem, profile: Pick<MonitorProfile, "he
   const have = pinnedHeight(item, profile.height);
   const need = railNeed(railSlots(item.rail, profile.pages), railParts(item.placement.settings, profile.rotate?.enabled === true && profile.pages.length > 1), have);
   return need > have ? { need: Math.round(need), have } : null;
+}
+
+/**
+ * The rail's profile chip changed by `fn`, as the slot inspector edits it: what differs from the chip as drawn by default is
+ * stored beside it in the rail's settings (`chipItem`), and none left drops the key, so a rail with no overrides is as it was.
+ */
+export function withChipItem(item: PinnedItem, fn: (s: RailSlot) => RailSlot): PinnedItem {
+  const settings = item.placement.settings;
+  const next = fn(chipSlot(settings));
+  const base = chipSlot(undefined);
+  const own = Object.fromEntries(CHIP_FIELDS.flatMap((k) => (next[k] !== undefined && JSON.stringify(next[k]) !== JSON.stringify(base[k]) ? [[k, next[k]]] : [])));
+  const { chipItem: _old, ...rest } = settings ?? {};
+  const kept = Object.keys(own).length ? { ...rest, chipItem: JSON.stringify(own) } : rest;
+  const { settings: _s, ...placement } = item.placement;
+  return { ...item, placement: Object.keys(kept).length ? { ...placement, settings: kept } : placement };
+}
+
+/** The chip shown on the rail or not (its setting, on unless set off). */
+export function withChipShown(item: PinnedItem, on: boolean): PinnedItem {
+  const { chip: _old, ...rest } = item.placement.settings ?? {};
+  const kept = on ? rest : { ...rest, chip: false };
+  const { settings: _s, ...placement } = item.placement;
+  return { ...item, placement: Object.keys(kept).length ? { ...placement, settings: kept } : placement };
 }
 
 /** The rail's slots changed by `fn`, from the ones it draws: with none stored, its one slot per page are stored first. */

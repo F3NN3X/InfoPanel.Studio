@@ -1,4 +1,6 @@
-import { ArrowDown, ArrowUp, Eye, EyeOff, Pin, Plus } from "lucide-react";
+import { useState } from "react";
+import { ArrowDown, ArrowUp, Eye, EyeOff, Pin, Plus, Trash2 } from "lucide-react";
+import { ContextMenu } from "@/components/ui/context-menu";
 import { Menu } from "@base-ui/react/menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { FOCUS_RING } from "@/components/ui/button";
@@ -8,6 +10,8 @@ import type { PinnedItem } from "@/lib/pinned";
 import { cn } from "@/lib/utils";
 import { zoneName } from "../inspector/zone-meta";
 import { ITEM, POPUP } from "../menu-styles";
+import { pinnedItemMenu } from "./pinned-menu";
+import type { PinnedActions } from "./use-pinned-actions";
 
 interface PinnedPanelProps {
   profile: MonitorProfile;
@@ -18,6 +22,8 @@ interface PinnedPanelProps {
   onAdd: (kind: PinKind) => void;
   onToggleVisible: (id: string) => void;
   onMove: (id: string, by: -1 | 1) => void;
+  /** Unpin (the row's button), and the row's menu. */
+  actions: Pick<PinnedActions, "remove" | "moveToPage">;
 }
 
 const EDGE_NAMES = { left: "Left edge", right: "Right edge", top: "Top", bottom: "Bottom" } as const;
@@ -33,7 +39,8 @@ function lineOf(it: PinnedItem, pages: readonly ProfilePage[]): string {
  * with its edge and pages, its eye and its place in the list; Add pins another; the Island's agent prompt is listed
  * read-only (decision 1: it is the Island's, not stored here); the page's widgets under it, dimmed as on the canvas.
  */
-export function PinnedPanel({ profile, page, width, selectedId, onSelect, onAdd, onToggleVisible, onMove }: PinnedPanelProps) {
+export function PinnedPanel({ profile, page, width, selectedId, onSelect, onAdd, onToggleVisible, onMove, actions }: PinnedPanelProps) {
+  const [menu, setMenu] = useState<{ x: number; y: number; item: PinnedItem } | null>(null);
   const items = profile.pinned?.items ?? [];
   const agentPrompt = profile.island?.enabled === true && profile.island.notices.agents;
   return (
@@ -63,7 +70,7 @@ export function PinnedPanel({ profile, page, width, selectedId, onSelect, onAdd,
         {items.length === 0 && <p className="px-1 text-caption text-ui-3">Nothing is pinned. Pin a page rail or a widget to an edge with +; it stays put on every page.</p>}
         <ul className="flex flex-col gap-0.5">
           {items.map((it, i) => (
-            <li key={it.id} className={cn("group flex items-center gap-1 rounded-ui-md pr-1", it.id === selectedId ? "bg-ui-blue-bg outline outline-1 outline-ui-accent" : "hover:bg-ui-hover")}>
+            <li key={it.id} onContextMenu={(e) => { e.preventDefault(); onSelect(it.id); setMenu({ x: e.clientX, y: e.clientY, item: it }); }} className={cn("group flex items-center gap-1 rounded-ui-md pr-1", it.id === selectedId ? "bg-ui-blue-bg outline outline-1 outline-ui-accent" : "hover:bg-ui-hover")}>
               <button type="button" aria-pressed={it.id === selectedId} onClick={() => onSelect(it.id)} className={cn("min-w-0 flex-1 rounded-ui-md px-2 py-1.5 text-left", FOCUS_RING, !it.visible && "text-ui-3")}>
                 <span className="block truncate text-body">{it.name ?? zoneName({ ...it.placement, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true })}</span>
                 <span className="block truncate text-caption text-ui-3">{lineOf(it, profile.pages)}</span>
@@ -76,6 +83,9 @@ export function PinnedPanel({ profile, page, width, selectedId, onSelect, onAdd,
               </IconButton>
               <IconButton label={it.visible ? "Hide" : "Show"} size={26} onClick={() => onToggleVisible(it.id)}>
                 {it.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              </IconButton>
+              <IconButton label="Unpin" size={26} onClick={() => actions.remove(it.id)}>
+                <Trash2 className="h-3.5 w-3.5" />
               </IconButton>
             </li>
           ))}
@@ -100,6 +110,7 @@ export function PinnedPanel({ profile, page, width, selectedId, onSelect, onAdd,
           ))}
         </ul>
       </section>
+      {menu && <ContextMenu x={menu.x} y={menu.y} testId="pinned-row-menu" entries={pinnedItemMenu(menu.item, actions)} onClose={() => setMenu(null)} />}
     </aside>
   );
 }

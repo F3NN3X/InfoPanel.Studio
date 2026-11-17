@@ -1,4 +1,5 @@
-import { useMemo, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
+import { ContextMenu } from "@/components/ui/context-menu";
 import { PlacementFrame } from "@/components/studio/placement-frame";
 import { LivePlacement } from "@/components/studio/placement-content";
 import { RailHostContext, RailItemContext, type RailHost } from "@/components/rail-host";
@@ -6,6 +7,8 @@ import type { MonitorProfile, ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import { pinnedBox, pinnedPlacement, type PinnedItem } from "@/lib/pinned";
 import { cn } from "@/lib/utils";
+import { pinnedItemMenu } from "./pinned-menu";
+import type { PinnedActions } from "./use-pinned-actions";
 
 interface PinnedCanvasProps {
   /** The stored profile: its pages for the rail, its place for the chip. */
@@ -24,6 +27,8 @@ interface PinnedCanvasProps {
   editing: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** What the right-click menu of an item does; unset (the rail editor's preview): none. */
+  actions?: Pick<PinnedActions, "remove" | "moveToPage">;
 }
 
 const NO_ALERTS: RailHost["alerts"] = [];
@@ -33,7 +38,8 @@ const NO_ALERTS: RailHost["alerts"] = [];
  * with the screen's real pages in a rail. Nothing on it runs: a press selects the item, so the rail's buttons never switch
  * pages in the studio. Selected, it wears the studio's selection ring.
  */
-export function PinnedCanvas({ stored, profile, index, pageId, items, appearance, padding, editing, selectedId, onSelect }: PinnedCanvasProps) {
+export function PinnedCanvas({ stored, profile, index, pageId, items, appearance, padding, editing, selectedId, onSelect, actions }: PinnedCanvasProps) {
+  const [menu, setMenu] = useState<{ x: number; y: number; item: PinnedItem } | null>(null);
   const host = useMemo<RailHost>(
     () => ({
       pages: stored.pages,
@@ -81,6 +87,13 @@ export function PinnedCanvas({ stored, profile, index, pageId, items, appearance
                 e.stopPropagation();
                 onSelect(it.id);
               }}
+              onContextMenu={(e) => {
+                if (!actions) return;
+                e.preventDefault();
+                e.stopPropagation();
+                onSelect(it.id);
+                setMenu({ x: e.clientX, y: e.clientY, item: it });
+              }}
               className={cn(
                 "absolute inset-0 rounded-[3px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
                 selected ? "outline outline-2 outline-ui-accent" : editing ? "hover:outline hover:outline-1 hover:outline-ui-accent" : "cursor-pointer"
@@ -89,6 +102,7 @@ export function PinnedCanvas({ stored, profile, index, pageId, items, appearance
           </div>
         );
       })}
+      {menu && actions && <ContextMenu x={menu.x} y={menu.y} testId="pinned-item-menu" entries={pinnedItemMenu(menu.item, actions)} onClose={() => setMenu(null)} />}
     </RailHostContext.Provider>
   );
 }

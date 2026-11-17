@@ -174,6 +174,40 @@ export function normalizeRailIcon(raw: unknown): RailIcon | undefined {
   return undefined;
 }
 
+/** A stored shape, or undefined for one that isn't. */
+export const normalizeRailShape = (raw: unknown): RailShape | undefined => (RAIL_SHAPES.includes(raw as RailShape) ? (raw as RailShape) : undefined);
+
+/** A stored logo plate, or undefined for one that isn't. */
+export const normalizeRailPlate = (raw: unknown): RailPlate | undefined => (RAIL_PLATES.includes(raw as RailPlate) ? (raw as RailPlate) : undefined);
+
+/** The fields of a slot the rail's profile chip may override: each guarded as a slot's is (a bad one is dropped, a touch map keeps only its known actions). */
+export function normalizeChipFields(raw: unknown, pages?: ReadonlySet<string>): Pick<RailSlot, "icon" | "shape" | "tint" | "label" | "name" | "touch" | "plate"> {
+  if (!isRecord(raw)) return {};
+  const icon = normalizeRailIcon(raw.icon);
+  const shape = normalizeRailShape(raw.shape);
+  const plate = normalizeRailPlate(raw.plate);
+  const touch = normalizeTouchMap(raw.touch, pages);
+  return {
+    ...(icon ? { icon } : {}),
+    ...(shape ? { shape } : {}),
+    ...(typeof raw.tint === "boolean" ? { tint: raw.tint } : {}),
+    ...(typeof raw.label === "boolean" ? { label: raw.label } : {}),
+    ...(text(raw.name) ? { name: raw.name } : {}),
+    ...(touch ? { touch } : {}),
+    ...(plate ? { plate } : {}),
+  };
+}
+
+/** The chip's overrides as a rail's settings hold them (`chipItem`, JSON text), guarded as above; none for text that isn't JSON. */
+export function parseChipItem(raw: unknown, pages?: ReadonlySet<string>): ReturnType<typeof normalizeChipFields> {
+  if (typeof raw !== "string") return {};
+  try {
+    return normalizeChipFields(JSON.parse(raw), pages);
+  } catch {
+    return {};
+  }
+}
+
 /** A rail's slots: one with no id, a repeated id, an unknown group or a target that is gone (a deleted page, an unknown action) is dropped. */
 function normalizeRail(raw: unknown, pages: ReadonlySet<string>): RailSlot[] | undefined {
   if (!Array.isArray(raw)) return undefined;
@@ -192,13 +226,13 @@ function normalizeRail(raw: unknown, pages: ReadonlySet<string>): RailSlot[] | u
         group: s.group as RailGroup,
         target,
         ...(icon ? { icon } : {}),
-        ...(RAIL_SHAPES.includes(s.shape as RailShape) ? { shape: s.shape as RailShape } : {}),
+        ...(normalizeRailShape(s.shape) ? { shape: normalizeRailShape(s.shape) } : {}),
         ...(typeof s.tint === "boolean" ? { tint: s.tint } : {}),
         ...(typeof s.label === "boolean" ? { label: s.label } : {}),
         ...(text(s.name) ? { name: s.name } : {}),
         ...(when ? { badge: { when } } : {}),
         ...(touch ? { touch } : {}),
-        ...(RAIL_PLATES.includes(s.plate as RailPlate) ? { plate: s.plate as RailPlate } : {}),
+        ...(normalizeRailPlate(s.plate) ? { plate: normalizeRailPlate(s.plate) } : {}),
       },
     ];
   });
@@ -212,11 +246,14 @@ function normalizePinnedPlacement(raw: unknown, pages: ReadonlySet<string>): Pin
   const rest: Record<string, unknown> = { ...raw };
   for (const key of OFF_GRID) delete rest[key];
   const { touch, settings, keys, ...kept } = rest;
+  // the rail's chip overrides are guarded like a slot's, so a command or a page that is gone never reaches the rail
+  const chip = isRecord(settings) && typeof settings.chipItem === "string" ? parseChipItem(settings.chipItem, pages) : undefined;
+  const cleaned = isRecord(settings) && chip ? Object.fromEntries(Object.entries(settings).flatMap(([k, v]) => (k !== "chipItem" ? [[k, v]] : Object.keys(chip).length ? [[k, JSON.stringify(chip)]] : []))) : settings;
   const map = normalizeTouchMap(touch, pages);
   const keyList = normalizeKeys(keys, pages);
   return {
     ...(kept as unknown as PinnedPlacement),
-    ...(isRecord(settings) ? { settings: settings as ModuleSettings } : {}),
+    ...(isRecord(cleaned) ? { settings: cleaned as ModuleSettings } : {}),
     ...(map ? { touch: map } : {}),
     ...(keyList ? { keys: keyList } : {}),
   };

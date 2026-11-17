@@ -30,4 +30,9 @@ describe("the chrome tokens' contrast", () => {
   it("every text step is 4.5:1 on the hover and active fills a highlighted row has", () => {
     for (const fg of ["text-1", "text-2", "text-hint"]) for (const bg of HIGHLIGHTS) expect(ratio(fg, bg), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
   });
+
+  it("the keyboard-highlighted menu row's fill is 3:1 on the menu and keeps text-1 at 4.5:1 (it has no edge)", () => {
+    expect(ratio("bg-highlight", "bg-raised")).toBeGreaterThanOrEqual(3);
+    expect(ratio("text-1", "bg-highlight")).toBeGreaterThanOrEqual(4.5);
+  });
 });

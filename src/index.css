@@ -119,6 +119,7 @@
   --ui-dur-fast: 150ms;
   --ui-dur-menu: 200ms;
   --ui-bg-active: #23232a;
+  --ui-bg-highlight: #476798;
   --ui-border-strong: #2a2a31;
   --ui-text-4: #8a8a95;
   --ui-glyph-off: #4a4a52;
@@ -162,6 +163,7 @@
   --color-ui-tile: var(--ui-bg-tile);
   --color-ui-hover: var(--ui-bg-hover);
   --color-ui-active: var(--ui-bg-active);
+  --color-ui-highlight: var(--ui-bg-highlight);
   --color-ui-subtle: var(--ui-border-subtle);
   --color-ui-default: var(--ui-border-default);
   --color-ui-strong: var(--ui-border-strong);

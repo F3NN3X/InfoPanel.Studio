@@ -85,6 +85,8 @@ interface RailSlotInspectorProps {
   widgets: readonly RailWidget[];
   onChange: (fn: (s: RailSlot) => RailSlot, key?: string) => void;
   onRemove: () => void;
+  /** The profile chip, a rail setting and not a slot: it is shown or hidden (not removed), stays in Top and has no badge. */
+  chip?: { shown: boolean; onShown: (on: boolean) => void };
 }
 
 /**
@@ -93,14 +95,14 @@ interface RailSlotInspectorProps {
  * the image's alt text and the button's name. An app's icon is read by the server from the program; a logo (the profile
  * with an image) has a plate, automatic unless set.
  */
-export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: RailSlotInspectorProps) {
-  const name = slotName(slot, pages);
+export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove, chip }: RailSlotInspectorProps) {
+  const name = chip ? (slot.name ?? "Profile chip") : slotName(slot, pages);
   const t = slot.target;
   const choices = touchChoices(pages, useTouchSources());
   const icon = slot.icon;
   // "Image" picked: the slot keeps its icon until a file is chosen (an image with no file draws nothing)
   const [pending, setPending] = useState(false);
-  const from = pending ? "image" : (icon?.from ?? "set");
+  const from = pending ? "image" : (icon?.from ?? (chip ? "default" : "set"));
   const key = (field: string) => `rail:${slot.id}:${field}`;
   const app = useAppIcon(icon, onChange, key("exe"));
   const logo = t.kind === "profile" && (icon?.from === "image" || icon?.from === "app");
@@ -108,11 +110,11 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
     <div className="flex flex-col">
       <div className="px-4 py-3">
         <h2 className="truncate text-title font-semibold text-ui-1">{name}</h2>
-        <p className="text-caption text-ui-3">{KIND_LINES[t.kind]}</p>
+        <p className="text-caption text-ui-3">{chip ? "Rail item · the profile chip" : KIND_LINES[t.kind]}</p>
       </div>
       <PanelSection id="rail-item" title="Item" icon={LayoutPanelLeft}>
         <TextRow label="Name" hint="What a screen reader says, and an image's alt text." value={slot.name ?? ""} placeholder={name} onChange={(v) => onChange((s) => (v ? { ...s, name: v } : (({ name: _n, ...rest }) => rest)(s)), key("name"))} />
-        <SelectRow label="Group" value={slot.group} onChange={(g) => onChange((s) => ({ ...s, group: g as RailGroup }))} options={RAIL_GROUP_NAMES.map(([value, label]) => ({ value, label }))} />
+        {!chip && <SelectRow label="Group" value={slot.group} onChange={(g) => onChange((s) => ({ ...s, group: g as RailGroup }))} options={RAIL_GROUP_NAMES.map(([value, label]) => ({ value, label }))} />}
         {t.kind === "page" && (
           <SelectRow label="Page" value={t.pageId} onChange={(pageId) => onChange((s) => ({ ...s, target: { kind: "page", pageId } }))} options={pages.map((p) => ({ value: p.id, label: p.name }))} />
         )}
@@ -146,9 +148,11 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
             value={from}
             onChange={(v) => {
               setPending(v === "image" && icon?.from !== "image");
-              if (v !== "image") onChange((s) => ({ ...s, icon: iconFrom(v as "set" | "text" | "app", name, s.icon) }));
+              if (v === "default") onChange(({ icon: _gone, ...s }) => s);
+              else if (v !== "image") onChange((s) => ({ ...s, icon: iconFrom(v as "set" | "text" | "app", name, s.icon) }));
             }}
             options={[
+              ...(chip ? [{ value: "default", label: "Colour mark" }] : []),
               { value: "set", label: "Icon set" },
               { value: "app", label: "App" },
               { value: "image", label: "Image" },
@@ -235,7 +239,7 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
           }
         />
       </PanelSection>
-      <PanelSection id="rail-badge" title="Badge" icon={Bell}>
+      {!chip && <PanelSection id="rail-badge" title="Badge" icon={Bell}>
         <SelectRow
           label="Show when"
           value={slot.badge?.when ?? ""}
@@ -245,11 +249,15 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
           })}
           options={BADGES}
         />
-      </PanelSection>
+      </PanelSection>}
       <div className="px-4 py-3">
-        <Button small variant="ghost" icon={<Trash2 />} onClick={onRemove}>
-          Remove from the rail
-        </Button>
+        {chip ? (
+          <ToggleRow label="Show the profile chip" value={chip.shown} onChange={chip.onShown} />
+        ) : (
+          <Button small variant="ghost" icon={<Trash2 />} onClick={onRemove}>
+            Remove from the rail
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { StatusChip } from "@/components/ui/status-chip";
 import type { MonitorProfile, ProfileView } from "@/lib/layout";
 import { moveRailSlot, newRailSlot, pinnedHeight, RAIL_GROUP_NAMES, railOverflow, withRailSlots, type NewSlotKind } from "@/lib/pinned-edit";
 import type { PinnedItem, RailSlot } from "@/lib/pinned";
-import { railSlots, slotName, type RailPage } from "@/lib/rail";
+import { CHIP_SLOT_ID, chipSlot, railSlots, slotName, type RailPage } from "@/lib/rail";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { modules } from "@/modules";
@@ -55,9 +55,10 @@ export function useRailWidgets(): readonly RailWidget[] {
 const SOURCE = { set: "Icon set", image: "Image", app: "App icon", text: "Text" } as const;
 
 /** What a slot does, for its row's line. */
-function lineOf(slot: RailSlot, pages: readonly RailPage[]): string {
+function lineOf(slot: RailSlot, pages: readonly RailPage[], hidden = false): string {
   const t = slot.target;
   const own = slot.touch && Object.keys(slot.touch).length > 0 ? " · own touch" : "";
+  if (slot.id === CHIP_SLOT_ID) return `The profile chip${hidden ? " · hidden" : ""}${own}`;
   const badge = slot.badge ? " · badge" : "";
   if (t.kind === "page") return `Opens ${pages.find((p) => p.id === t.pageId)?.name ?? "a page"}${badge}${own}`;
   if (t.kind === "profile") return `The profile${own}`;
@@ -90,6 +91,8 @@ interface RailEditorProps {
  */
 export function RailEditor({ stored, profile, index, pageId, item, appearance, themeScope, selectedSlot, onSelectSlot, update, onBack, onCopy, canCopy, widgets }: RailEditorProps) {
   const slots = railSlots(item.rail, stored.pages);
+  const chip = chipSlot(item.placement.settings);
+  const chipHidden = item.placement.settings?.chip === false;
   const h = pinnedHeight(item, stored.height);
   const overflow = railOverflow(item, stored);
   const scale = Math.min(1, 640 / Math.max(1, h));
@@ -116,7 +119,7 @@ export function RailEditor({ stored, profile, index, pageId, item, appearance, t
               const id = (e.target as Element).closest?.("[data-rail-slot]")?.getAttribute("data-rail-slot");
               e.preventDefault();
               e.stopPropagation();
-              if (id && slots.some((s) => s.id === id)) onSelectSlot(id);
+              if (id && (id === CHIP_SLOT_ID || slots.some((s) => s.id === id))) onSelectSlot(id);
             }}
           >
             <PinnedCanvas stored={{ ...stored, height: h }} profile={profile} index={index} pageId={pageId} items={[alone]} appearance={appearance} padding={0} editing={false} selectedId={null} onSelect={() => {}} />
@@ -165,27 +168,31 @@ export function RailEditor({ stored, profile, index, pageId, item, appearance, t
         )}
         {RAIL_GROUP_NAMES.map(([group, title]) => {
           const inGroup = slots.filter((s) => s.group === group);
-          if (!inGroup.length) return null;
+          // the profile chip heads Top, ahead of a logo; it is a setting of the rail, so it has no place to move to
+          const rows = group === "top" ? [chip, ...inGroup] : inGroup;
+          if (!rows.length) return null;
           return (
             <section key={group} className="mt-4">
               <h2 className="mb-1.5 text-caption font-semibold text-ui-3">{title}</h2>
               <ul className="flex flex-col gap-1.5">
-                {inGroup.map((s, i) => {
+                {rows.map((s) => {
                   const selected = s.id === selectedSlot;
-                  const source = s.target.kind === "widget" ? "Widget" : SOURCE[s.icon?.from ?? "set"];
+                  const isChip = s.id === CHIP_SLOT_ID;
+                  const i = inGroup.indexOf(s);
+                  const source = s.target.kind === "widget" ? "Widget" : isChip && !s.icon ? "Colour mark" : SOURCE[s.icon?.from ?? "set"];
                   return (
                     <li key={s.id} className={cn("flex min-h-14 items-center gap-2 rounded-ui-md border pr-2", selected ? "border-ui-blue bg-ui-blue-bg" : "border-ui-edge bg-ui-raised")}>
                       <button type="button" aria-pressed={selected} onClick={() => onSelectSlot(s.id)} className={cn("min-w-0 flex-1 self-stretch rounded-ui-md px-3 text-left", FOCUS_RING)}>
-                        <span className="block text-body">{slotName(s, stored.pages)}</span>
-                        <span className="block truncate text-caption text-ui-3">{lineOf(s, stored.pages)}</span>
+                        <span className="block text-body">{isChip ? (s.name ?? "Profile chip") : slotName(s, stored.pages)}</span>
+                        <span className="block truncate text-caption text-ui-3">{lineOf(s, stored.pages, chipHidden)}</span>
                       </button>
                       <StatusChip tone="neutral" dot={false}>
                         {source}
                       </StatusChip>
-                      <IconButton label="Move up" size={26} disabled={i === 0} onClick={() => change((all) => moveRailSlot(all, s.id, -1))}>
+                      <IconButton label="Move up" size={26} disabled={isChip || i === 0} onClick={() => change((all) => moveRailSlot(all, s.id, -1))}>
                         <ArrowUp className="h-3.5 w-3.5" />
                       </IconButton>
-                      <IconButton label="Move down" size={26} disabled={i === inGroup.length - 1} onClick={() => change((all) => moveRailSlot(all, s.id, 1))}>
+                      <IconButton label="Move down" size={26} disabled={isChip || i === inGroup.length - 1} onClick={() => change((all) => moveRailSlot(all, s.id, 1))}>
                         <ArrowDown className="h-3.5 w-3.5" />
                       </IconButton>
                     </li>

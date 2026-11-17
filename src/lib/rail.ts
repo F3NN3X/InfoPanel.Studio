@@ -8,7 +8,7 @@ import type { ActiveAlert } from "./alerts";
 import type { Agents } from "./agents";
 import type { AudioState } from "./audio-control";
 import type { ObsState } from "./extras";
-import type { RailGroup, RailPlate, RailSlot, TouchAction, TouchGesture } from "./pinned";
+import { parseChipItem, type RailGroup, type RailPlate, type RailSlot, type TouchAction, type TouchGesture } from "./pinned";
 
 /** The rail widget's module id. */
 export const RAIL_MODULE = "PageRail";
@@ -72,6 +72,25 @@ export function slotName(slot: RailSlot, pages: readonly RailPage[]): string {
   if (t.kind === "action") return ACTION_NAMES[t.action.op];
   return t.module;
 }
+
+/** The profile chip's id as an item of the rail editor (and its `data-rail-slot`): a rail setting, not a stored slot. */
+export const CHIP_SLOT_ID = "chip";
+/** What the chip keeps of a slot: the fields its overrides may set (`settings.chipItem`). */
+export const CHIP_FIELDS = ["icon", "shape", "tint", "label", "name", "touch", "plate"] as const;
+
+/**
+ * The overrides stored beside the chip in the rail's settings, by field, guarded as a slot's are (`normalizeChipFields`:
+ * a touch map keeps only its known actions, an icon, shape and plate only known ones); none when the chip is as drawn by
+ * default or the text isn't JSON. A setting holds a string, a number or a boolean (config v20), so `chipItem` is these
+ * fields as JSON text. `pages`: the profile's page ids, to drop a touch that opens one that is gone.
+ */
+export const chipOverrides = (settings: Record<string, unknown> | undefined, pages?: ReadonlySet<string>): ReturnType<typeof parseChipItem> => parseChipItem(settings?.chipItem, pages);
+
+/**
+ * The profile chip as a slot, so the editor lists it in the Top group and the slot inspector edits it: the profile, its
+ * name under the mark (`label`), and the rail's overrides over that. With no overrides it draws as it always did.
+ */
+export const chipSlot = (settings: Record<string, unknown> | undefined): RailSlot => ({ id: CHIP_SLOT_ID, group: "top", target: { kind: "profile" }, label: true, ...chipOverrides(settings) });
 
 /** What a badge reads: the state the Island is fed from. */
 export interface BadgeState {

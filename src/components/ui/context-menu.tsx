@@ -130,7 +130,7 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
               e.onSelect?.();
             }}
             className={cn(
-              "group flex h-8 w-full items-center gap-2 rounded-ui-md px-2 text-left text-body outline-none focus-visible:bg-ui-active focus-visible:shadow-[inset_2px_0_0_var(--ui-accent)] disabled:text-ui-disabled",
+              "group flex h-8 w-full items-center gap-2 rounded-ui-md px-2 text-left text-body outline-none focus-visible:bg-ui-highlight disabled:text-ui-disabled",
               e.danger ? "text-ui-danger hover:bg-ui-danger/15" : "text-ui-1 hover:bg-ui-active disabled:hover:bg-transparent"
             )}
           >

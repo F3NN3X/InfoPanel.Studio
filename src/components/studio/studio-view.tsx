@@ -107,6 +107,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Pin } from "lucide-react";
 import { useStoredFlag } from "./use-stored-flag";
 import type { PinnedView } from "./pinned/pinned-workspace";
+import { NO_PIN, usePinnedActions } from "./pinned/use-pinned-actions";
 
 /** The Export sheet's request while it is closed (a stable object, so its rows keep their state). */
 const NO_REQUEST: ExportRequest = {};
@@ -146,7 +147,6 @@ const PinnedWorkspace = lazy(() => import("./pinned/pinned-workspace"));
 const PinnedCanvas = lazy(() => import("./pinned/pinned-canvas").then((m) => ({ default: m.PinnedCanvas })));
 /** The page tabs' and Pinned's thumbnails draw the pinned layer (a studio preference). */
 const PINNED_THUMBS_KEY = "studio.pinnedThumbs";
-const NO_PIN: PinnedView = { id: null, rail: false, slot: null };
 
 interface StudioViewProps {
   config: DashboardConfig;
@@ -314,6 +314,7 @@ function StudioViewBody({
     onPageChange,
     onSelectProfile: selectProfile,
     onHelp: () => void openHelp(helpTarget()).catch(() => {}),
+    removePinned: () => pinnedShown && pins.removeSelected(),
   });
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
@@ -426,6 +427,17 @@ function StudioViewBody({
   const [thumbsPinned, setThumbsPinned] = useStoredFlag(PINNED_THUMBS_KEY, true);
   useEffect(() => setPinView(NO_PIN), [storedProfile.id]);
   /** The pinned items on the page on the canvas, and the room the "make room" ones take off it, as on the kiosk. */
+  /** Pin a page widget, unpin an item, move one back to the page (the menus, Delete and the inspector). */
+  const pins = usePinnedActions({
+    stored: storedProfile,
+    page: storedPage,
+    updateStored: edit.updateStored,
+    view: pinView,
+    setView: setPinView,
+    setPinnedOn,
+    onPlaced: (id) => sel.select(id),
+    toast,
+  });
   const pinnedHere = useMemo(() => pinnedOnPage(storedProfile.pinned, storedPage.id, storedPage.hidePinned), [storedProfile.pinned, storedPage.id, storedPage.hidePinned]);
   /** The page's InfoPanel items and elements selected on the canvas (selecting one clears the zones, and back). */
   const items = useItemSelection({ profileId: storedProfile.id, page: storedPage, zoneId: sel.primaryId, clearZones: () => sel.select(null) });
@@ -440,6 +452,7 @@ function StudioViewBody({
     dragging: history.dragging,
     showLayers: () => ui.setLeftTab("layers"),
     toast,
+    pin: pins.pin,
   });
   // The fixture's selection, through Layers so a page group or an item placement is selected as a click on its row
   // would; after Layers' own effects, which clear its group selection on mount.
@@ -472,6 +485,13 @@ function StudioViewBody({
   const activeCanvas = freeZone?.canvas ? (freeZone as typeof freeZone & { canvas: NonNullable<typeof freeZone.canvas> }) : undefined;
   /** Pinned is on and Edit shows a grid page (an imported profile's canvas has no pinned layer to edit). */
   const pinnedShown = pinnedOn && !fullPage && !activeCanvas;
+  // A pinned item selected shows the inspector (it holds Unpin, size and pages) whatever its mode: a collapsed column, a closed card, a sheet at its peek
+  useEffect(() => {
+    if (!pinnedShown) return studioLayout.setHasSelection(sel.primaryId !== null);
+    studioLayout.setHasSelection(pinView.id !== null);
+    if (pinView.id !== null) studioLayout.showInspector();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinnedShown, pinView.id]);
   /**
    * The New page (New screen, New InfoPanel profile): a page over Screens, for either kind. "New InfoPanel profile…"
    * makes a new screen (not made active) opened in Edit, a template's sensors not found on this machine listed there
@@ -942,6 +962,7 @@ function StudioViewBody({
               appearance={appearance}
               padding={profilePadding(profile, true)}
               editing={pinnedShown}
+              actions={pins}
               selectedId={pinView.id}
               onSelect={(id) => {
                 setPinnedOn(true);
@@ -1415,6 +1436,7 @@ function StudioViewBody({
             thumbsPinned={thumbsPinned}
             onThumbsPinned={setThumbsPinned}
             toast={toast}
+            actions={pins}
           />
         </Suspense>
       )}

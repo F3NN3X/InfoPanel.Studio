@@ -280,6 +280,10 @@
       "bg-active": {
         "value": "#23232a"
       },
+      "bg-highlight": {
+        "value": "#476798",
+        "usage": "The keyboard-highlighted row of a menu, with no edge: 3.1:1 against the menu's bg-raised, and text-1 keeps 4.9:1 on it."
+      },
       "border-strong": {
         "value": "#2a2a31"
       },

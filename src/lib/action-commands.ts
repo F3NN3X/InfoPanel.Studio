@@ -5,7 +5,7 @@
  */
 import type { DashboardConfig, MonitorProfile, Placement } from "./layout";
 import { allKeys } from "./keys";
-import type { PinnedPlacement, TouchAction, TouchMap } from "./pinned";
+import { parseChipItem, type PinnedPlacement, type TouchAction, type TouchMap } from "./pinned";
 
 /** A command a profile names, and where: the profile, the page or the pinned layer, and the widget or key. */
 export interface CommandUse {
@@ -25,12 +25,13 @@ function placementCommands(p: Placement | PinnedPlacement, where: string): { com
   return [...mapCommands(p.touch, `${where} › ${name}`), ...allKeys(p.keys ?? []).flatMap((k) => mapCommands(k.touch, `${where} › ${name} › ${k.name || "Key"}`))];
 }
 
-/** Every command a profile names: its pages' widgets and keys, its pinned widgets, keys and rail slots. */
+/** Every command a profile names: its pages' widgets and keys, its pinned widgets, keys, rail slots and the rail's profile chip. */
 export function commandsIn(profile: MonitorProfile): CommandUse[] {
   const uses = [
     ...profile.pages.flatMap((page) => page.placements.flatMap((p) => placementCommands(p, page.name))),
     ...(profile.pinned?.items ?? []).flatMap((it) => [
       ...placementCommands(it.placement, "Pinned"),
+      ...mapCommands(parseChipItem(it.placement.settings?.chipItem).touch, "Pinned › Profile chip"),
       ...(it.rail ?? []).flatMap((s) => [
         ...(s.target.kind === "action" && s.target.action.op === "run" ? [{ command: s.target.action.command, where: `Pinned › ${s.name ?? "Rail item"}` }] : []),
         ...mapCommands(s.touch, `Pinned › ${s.name ?? "Rail item"}`),
