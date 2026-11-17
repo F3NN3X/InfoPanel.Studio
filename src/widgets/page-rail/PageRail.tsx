@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { AppWindow, Lock, RefreshCw } from "lucide-react";
 import { RailHostContext, RailItemContext, type RailHost } from "@/components/rail-host";
-import { useTouchZone } from "@/components/use-touch-zone";
 import { pageIcon } from "@/components/studio/page-icons";
 import { audio, EMPTY_AUDIO } from "@/lib/audio-control";
 import { extras } from "@/lib/extras";
@@ -9,6 +8,7 @@ import type { Placement } from "@/lib/layout";
 import type { PinnedEdge, RailPlate, RailSlot, TouchAction, TouchMap } from "@/lib/pinned";
 import { actionOn, chipSeries, imageAlt, RAIL_SIZES, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState, type RailBadge, type RailPage } from "@/lib/rail";
 import { createRecogniser, type GestureHandlers } from "@/lib/gesture";
+import { attachTouch, touchHandlers } from "@/lib/touch-zone";
 import type { ModuleSettings } from "@/modules/types";
 import Clock from "../clock/Clock";
 import { Widget, shell, TONES, type ShellProps } from "../kit";
@@ -275,8 +275,12 @@ function PageLock({ lock, run }: { lock: "auto" | "locked"; run: (a: TouchAction
  */
 function SlotWidget({ id, module, settings, touch, host, style }: { id: string; module: string; settings?: ModuleSettings; touch?: TouchMap; host: RailHost; style: CSSProperties }) {
   const placement: Placement = useMemo(() => ({ id, module, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, settings: { showHeader: false, ...settings } }), [id, module, settings]);
+  // the touch listeners straight from the rail's chunk (the kiosk entry's hook would make a chunk of its own)
   const [box, setBox] = useState<HTMLDivElement | null>(null);
-  useTouchZone(box, touch);
+  const latest = useRef({ touch, run: host.run });
+  latest.current = { touch, run: host.run };
+  const on = !!touch;
+  useEffect(() => (on && box ? attachTouch(box, () => touchHandlers(latest.current.touch, (a) => latest.current.run(a))) : undefined), [on, box]);
   return (
     <div ref={setBox} data-rail-slot={id} data-touch={touch ? "" : undefined} tabIndex={touch?.tap ? 0 : undefined} className={`relative shrink-0 rounded-xl ${FOCUS}`} style={style}>
       {host.zone?.(placement, { position: "absolute", inset: 0 })}

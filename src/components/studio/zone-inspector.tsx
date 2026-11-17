@@ -47,7 +47,6 @@ import type { InheritanceContext } from "./use-inheritance";import { widgetName 
 import { ZoneFrameFields, zoneFrameSet } from "./zone-design-section";
 import type { ZoneRect } from "./zone-geometry";
 import { moduleIcon } from "./zone-icons";
-import { TouchRows } from "./touch-rows";
 import { WidgetPicker, ZoneHeader, changedLabel } from "./zone-inspector-parts";
 import { PlaceRow } from "./place-row";
 import { pinsOf, useQuickPins } from "./inspector/inspector-prefs";
@@ -120,6 +119,9 @@ interface ZoneInspectorProps {
 
 // The Look knobs are the Theme view's chunk's, loaded with the Style tab.
 const WidgetLookKnobs = lazy(() => import("./look-knobs"));
+
+// the Touch rows (P6) and the action list they read load with the section, not with the studio
+const TouchRows = lazy(() => import("./touch-rows").then((m) => ({ default: m.TouchRows })));
 /** The widget's views as tiles (D-5), loaded with the first widget that has a choice of them. */
 const PresetRow = lazy(() => import("./editor/preset-row"));
 
@@ -362,11 +364,13 @@ export function ZoneInspector({
           changed: Object.keys(zone.touch ?? {}).length,
           onReset: () => update(({ touch: _t, ...p }) => p),
           body: (
-            <TouchRows
-              touch={zone.touch}
-              pages={config.profiles.find((p) => p.id === profile.id)?.pages ?? []}
-              onChange={(touch, g) => update(({ touch: _t, ...p }) => (touch ? { ...p, touch } : p), `touch:${g}`)}
-            />
+            <Suspense fallback={null}>
+              <TouchRows
+                touch={zone.touch}
+                pages={config.profiles.find((p) => p.id === profile.id)?.pages ?? []}
+                onChange={(touch, g) => update(({ touch: _t, ...p }) => (touch ? { ...p, touch } : p), `touch:${g}`)}
+              />
+            </Suspense>
           ),
         };
       case undefined:
