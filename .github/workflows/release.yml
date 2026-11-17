@@ -67,8 +67,9 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
-          # Restores the Rust cache CI saved on main (merged code only; PR runs save to their own scope).
-          shared-key: tauri
+          # The release-profile cache the nightly's installer build saves on main (nightly.yml), so the dependencies come
+          # prebuilt; CI's `tauri` cache holds debug builds only, which left this build compiling every crate (11.5 min).
+          shared-key: tauri-release
           save-if: false
       - run: npm ci
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2

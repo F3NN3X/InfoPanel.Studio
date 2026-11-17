@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { assetFor, downloadFirst, fetchRetried, sourcesFor } from "../../tools/ci/actionlint.mjs";
 import { planOutputs } from "../../tools/ci/plan-outputs.mjs";
-import { decideRelease, retried } from "../../tools/ci/release-gate.mjs";
+import { decideRelease, reachableFromMain, retried } from "../../tools/ci/release-gate.mjs";
 import { DEFAULT_COMMANDS, parseCommands } from "../../tools/ci/run-commands.mjs";
 
 const plan = (mode, ...ids) => ({ mode, steps: ids.map((id) => (id.startsWith("-") ? { id: id.slice(1), cmd: null } : { id, cmd: `run ${id}` })) });
@@ -53,7 +53,7 @@ describe("plan outputs", () => {
 describe("release gate", () => {
   const sha = "abcdef0123456789";
   const ok = [{ name: "ci-ok", conclusion: "success" }];
-  const base = { sha, check: "ci-ok", commitChecks: [], pulls: [], nightlyShas: [] };
+  const base = { sha, check: "ci-ok", onMain: true, commitChecks: [], pulls: [], nightlyShas: [] };
 
   it("passes on a successful ci-ok on the commit", () => {
     expect(decideRelease({ ...base, commitChecks: ok }).ok).toBe(true);
@@ -69,6 +69,22 @@ describe("release gate", () => {
     expect(decideRelease({ ...base, nightlyShas: [sha] }).ok).toBe(true);
     expect(decideRelease({ ...base, commitChecks: [{ name: "ci-ok", conclusion: "failure" }] }).ok).toBe(false);
     expect(decideRelease(base).reason).toContain("no successful ci-ok");
+  });
+
+  it("fails for a commit main doesn't hold, however green it is", () => {
+    for (const onMain of [false, undefined]) {
+      const r = decideRelease({ ...base, onMain, commitChecks: ok, nightlyShas: [sha] });
+      expect(r.ok).toBe(false);
+      expect(r.reason).toContain("not on main");
+    }
+  });
+
+  it("reads main as holding the commit only when main is ahead of it or is it", () => {
+    expect(reachableFromMain("ahead")).toBe(true);
+    expect(reachableFromMain("identical")).toBe(true);
+    expect(reachableFromMain("behind")).toBe(false);
+    expect(reachableFromMain("diverged")).toBe(false);
+    expect(reachableFromMain(undefined)).toBe(false);
   });
 });
 
