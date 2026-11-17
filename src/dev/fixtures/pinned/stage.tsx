@@ -151,8 +151,8 @@ interface StageProps {
 }
 
 /**
- * The stage's own rules, in this dev chunk: Tailwind scans every file under src/, so a utility class only the fixtures used
- * would join the release build's CSS (and the kiosk entry). The focus ring is the Look's `focus-ring`; a key dips on press,
+ * The stage's own rules, in this dev chunk: the release CSS leaves src/dev out (`@source not "./dev"` in index.css), so a
+ * utility class only the fixtures used would not exist. The focus ring is the Look's `focus-ring`; a key dips on press,
  * unless motion is reduced.
  */
 const STAGE_CSS = `

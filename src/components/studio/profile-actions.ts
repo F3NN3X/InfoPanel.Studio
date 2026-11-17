@@ -1,5 +1,6 @@
 import type { AppliedTheme } from "@/lib/applied-theme";
 import { clonePlacement, uid, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
+import { remapPinnedPages, remapTouchPages } from "@/lib/pinned";
 
 /**
  * The config with `profile` added. `activate` makes it the one displays show; the studio passes
@@ -29,7 +30,7 @@ export function withoutProfile(config: DashboardConfig, id: string): DashboardCo
 /**
  * A deep copy of `profile` with fresh ids throughout: the profile, its pages, their zones and the
  * panels and widgets in them. `rotate.pages` follows the pages to their new ids, and so do the zone writes an applied
- * theme keeps (`appliedTheme.zones`) to their zones'. Nothing is shared with the source, by id or by reference.
+ * theme keeps (`appliedTheme.zones`) to their zones', and the pinned layer's and the widgets' page references. Nothing is shared with the source, by id or by reference.
  */
 export function withFreshIds(profile: MonitorProfile): MonitorProfile {
   const copy = structuredClone(profile);
@@ -52,8 +53,13 @@ export function withFreshIds(profile: MonitorProfile): MonitorProfile {
       });
       return { ...page, id, placements };
     })
-    .map((page) => ({ ...page, ...rezoned(page.appliedTheme) }));
-  const { rotate } = copy;
+    .map((page) => ({
+      ...page,
+      ...rezoned(page.appliedTheme),
+      // a widget's page actions follow the pages too (config v20)
+      placements: page.placements.map((z) => (z.touch ? { ...z, touch: remapTouchPages(z.touch, pageIds) } : z)),
+    }));
+  const { rotate, pinned } = copy;
   return {
     ...copy,
     ...rezoned(copy.appliedTheme),
@@ -63,6 +69,7 @@ export function withFreshIds(profile: MonitorProfile): MonitorProfile {
       ...rotate,
       pages: rotate.pages?.flatMap((id) => pageIds.get(id) ?? []),
     },
+    ...(pinned ? { pinned: remapPinnedPages(pinned, pageIds, uid) } : {}),
   };
 }
 

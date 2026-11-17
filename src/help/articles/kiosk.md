@@ -43,6 +43,12 @@ The kiosk redraws its animations at most **Max FPS** times a second (**Frame-rat
 
 Lower Max FPS to 30 or 15 if the display's GPU works hard while nothing seems to change. See [Frame rate and motion](performance) for what each setting changes and what it saves.
 
+## Pinned widgets
+
+A screen can pin widgets to its edges, such as a now-playing bar along the bottom. They stay where they are on every page while the pages change beside them. A pinned widget that makes room takes its space off the page, and the page's widgets fit in what is left; one that floats sits over the page. A page can hide them.
+
+Pinning is set in the config for now; the editor for it comes in a later update. The [customization guide](https://github.com/F3NN3X/InfoPanel.Studio/blob/main/docs/customization-guide.md#pinned-widgets) shows how.
+
 ## Remote control
 
 A Stream Deck or another remote on your network can control a kiosk without changing your saved dashboard:

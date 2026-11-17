@@ -26,6 +26,7 @@ import {
 } from "./panel-model";
 import type { StoredCanvas, StoredItem } from "./infopanel/import/stored.ts";
 import type { UserWidgetPreset } from "./widget-presets";
+import { normalizeAutoSwitch, normalizePinned, normalizeTouchMap, type AutoSwitch, type PinnedLayer, type TouchMap } from "./pinned";
 
 /**
  * Layout engine — the dashboard is a grid of *placements*. Each placement
@@ -137,6 +138,8 @@ export interface Placement {
   locked?: boolean;
   /** A widget's own name (Layers' rename); unset = its widget's name. Studio-only: an older build ignores it. */
   name?: string;
+  /** What a tap, hold or double tap on the widget does (config v20, decision 10); unset = nothing. Drawn from P6 on. */
+  touch?: TouchMap;
 }
 
 /** A box in design px. */
@@ -183,6 +186,8 @@ export interface ProfilePage {
   appliedTheme?: AppliedTheme;
   /** The page's groups (§3.5); a canvas-backed page keeps its groups as the canvas's Group items. */
   groups?: PageGroup[];
+  /** The profile's pinned layer is not drawn on this page, and makes no room on it (config v20); unset = drawn. */
+  hidePinned?: boolean;
 }
 
 /**
@@ -258,6 +263,10 @@ export interface MonitorProfile {
   madeFor?: MadeFor;
   /** What the theme last applied to this screen wrote (`lib/applied-theme.ts`); unset = none. */
   appliedTheme?: AppliedTheme;
+  /** Widgets pinned to the screen's edges on every page (`lib/pinned.ts`, config v20); unset = none. */
+  pinned?: PinnedLayer;
+  /** The programs that bring this profile up while they are in front (config v20, used from P4); unset = none. */
+  autoSwitch?: AutoSwitch;
 }
 
 /**
@@ -337,8 +346,15 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  *     (once: an existing backup is never overwritten).
  *     Widget presets (`widget-presets.ts`) are an optional key of v19 too, `widgetPresets`: the presets a user saved for a widget.
  *     v19 has no release yet (no tag carries it), so it takes the key without a version of its own, as the merges did.
+ * v20: the pinned layer (`pinned.ts`, _docs/redesign/pinned-layer INVESTIGATION §3, decision 12): a profile's `pinned` items
+ *     (a widget on an edge that makes room for itself or floats over the page, on all pages or some, and a rail's slots), a
+ *     page's `hidePinned`, a placement's `touch` actions and a profile's `autoSwitch` rules. Every field is optional, so the
+ *     step is the identity and only stamps the version; `normalizePinned` guards what is stored. Nothing draws differently.
+ *     A v19 build would draw no pinned layer, but its save is refused as any older one's is (`config_guard.rs`), so a newer
+ *     config is never quietly half kept; before the first v20 save the server keeps the v19 file as
+ *     `config.backup-before-v20.json` (once: an existing backup is never overwritten).
  */
-export const CONFIG_VERSION = 19;
+export const CONFIG_VERSION = 20;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -502,7 +518,7 @@ function normalizePages(p: StoredProfile, cols: number, rows: number): ProfilePa
       typeof page.id === "string" && page.id && !seen.has(page.id) ? page.id : uid("page");
     seen.add(id);
     // v15 stores no page layout (it reads from the page's shape); a v14 flag goes.
-    const { layout: _layout, groups: rawGroups, snapItems, appliedTheme, widgetTheme, ...rest } = page as ProfilePage & { layout?: unknown };
+    const { layout: _layout, groups: rawGroups, snapItems, appliedTheme, widgetTheme, hidePinned, ...rest } = page as ProfilePage & { layout?: unknown };
     const groups = normalizeGroups(rawGroups);
     const known = new Set(groups.map((g) => g.id));
     const placements = normalizePlacements(page.placements ?? [], cols, rows).map((pl) => {
@@ -517,6 +533,7 @@ function normalizePages(p: StoredProfile, cols: number, rows: number): ProfilePa
       placements,
       ...(groups.length ? { groups } : {}),
       ...(snapItems === false ? { snapItems } : {}),
+      ...(hidePinned === true ? { hidePinned } : {}),
       ...(widgetTheme !== undefined ? { widgetTheme: withKnownLook(widgetTheme) } : {}),
       ...(normalizeAppliedTheme(appliedTheme) ? { appliedTheme: normalizeAppliedTheme(appliedTheme) } : {}),
     };
@@ -564,7 +581,8 @@ const finite = (v: unknown): v is number => typeof v === "number" && Number.isFi
 
 /** v15's fields on a placement, guarded: a bad one is dropped (the placement stays). */
 function normalizePartFields(pl: Placement): Placement {
-  const { px, groupId, locked, item, ...rest } = pl;
+  const { px, groupId, locked, item, touch, ...rest } = pl;
+  const map = normalizeTouchMap(touch);
   const box = px && typeof px === "object" && finite(px.x) && finite(px.y) && finite(px.w) && finite(px.h) && px.w > 0 && px.h > 0 ? px : undefined;
   const stored = item && typeof item === "object" && !Array.isArray(item) && typeof item.kind === "string" ? item : undefined;
   return {
@@ -573,6 +591,7 @@ function normalizePartFields(pl: Placement): Placement {
     ...(typeof groupId === "string" && groupId ? { groupId } : {}),
     ...(locked === true ? { locked } : {}),
     ...(stored ? { item: stored } : {}),
+    ...(map ? { touch: map } : {}),
   };
 }
 
@@ -589,6 +608,7 @@ export function normalizeProfile(input: StoredProfile): MonitorProfile & LegacyP
     pages,
     rotate: normalizeRotate(p.rotate, pages.map((pg) => pg.id)),
     ...profileExtras(p),
+    pinned: normalizePinned(p.pinned, pages.map((pg) => pg.id)),
   };
 }
 
@@ -608,6 +628,7 @@ function profileExtras(p: StoredProfile): Partial<MonitorProfile> {
     appliedTheme: normalizeAppliedTheme(p.appliedTheme),
     widgetTheme: withKnownLook(p.widgetTheme),
     updatedAt: typeof p.updatedAt === "string" && !Number.isNaN(Date.parse(p.updatedAt)) ? p.updatedAt : undefined,
+    autoSwitch: normalizeAutoSwitch(p.autoSwitch),
   };
 }
 

@@ -5,17 +5,20 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MonitorProfile } from "@/lib/layout";
 import type { DashboardModule } from "@/modules/types";
 
-type Pages = Pick<MonitorProfile, "pages">;
+type Pages = Pick<MonitorProfile, "pages" | "pinned">;
 
-/** The widget kinds (module ids) on the zones of `page` (else the first page), each once. */
+/** The widget kinds of the profile's pinned items (config v20), drawn with every page. */
+const pinnedKinds = (profile: Pages): string[] => profile.pinned?.items.map((it) => it.placement.module) ?? [];
+
+/** The widget kinds (module ids) on the zones of `page` (else the first page) and the pinned items, each once. */
 export function pageKinds(profile: Pages, page?: string): string[] {
   const shown = profile.pages.find((p) => p.id === page) ?? profile.pages[0];
-  return [...new Set(shown?.placements.map((z) => z.module) ?? [])];
+  return [...new Set([...(shown?.placements.map((z) => z.module) ?? []), ...pinnedKinds(profile)])];
 }
 
-/** The widget kinds on every page of the profiles, each once. */
+/** The widget kinds on every page of the profiles and their pinned items, each once. */
 export function profileKinds(profiles: readonly Pages[]): string[] {
-  return [...new Set(profiles.flatMap((p) => p.pages.flatMap((g) => g.placements.map((z) => z.module))))];
+  return [...new Set(profiles.flatMap((p) => [...p.pages.flatMap((g) => g.placements.map((z) => z.module)), ...pinnedKinds(p)]))];
 }
 
 /** Fetches the chunks of `kinds` at once. Kinds without one (in the entry, a canvas, a panel, unknown) are skipped. */

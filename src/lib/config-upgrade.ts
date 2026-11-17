@@ -10,7 +10,7 @@
  * it makes), v15→v16 gives each screen the look it inherited (`migrateScreensV16`), v17→v18 clears the card a level stores as its own sample Look's (`clearOwnCardsV18`), v16→v17 folds the skins into
  * Looks: every stored skin becomes a `lookId` before the other steps (`renameSkinsV17`), and the levels that applied a
  * sample theme name its Look after them (`migrateLooksV17`), v18→v19 makes each merged-away widget its survivor's view
- * (`migrateMergedWidgetsV19`, keyed on the id, last of the profile steps so the older id-keyed steps still see the old id). The `widgetPresets` list is guarded here (`normalizeWidgetPresets`). A config at this build's version comes out as
+ * (`migrateMergedWidgetsV19`, keyed on the id, last of the profile steps so the older id-keyed steps still see the old id), v19→v20 only stamps the version (the pinned layer's fields are optional; `normalizeProfile` guards them). The `widgetPresets` list is guarded here (`normalizeWidgetPresets`). A config at this build's version comes out as
  * `mergeConfig` makes it.
  */
 import type { ModuleSettings } from "@/modules/types";

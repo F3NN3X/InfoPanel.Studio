@@ -4,6 +4,8 @@
 @import "./settings/ui/studio.css";
 /* Dropdown lists in the studio menus' look. */
 @import "./select.css";
+/* Dev-only files (src/dev: the fixtures) never add to the release CSS; a rule only they need goes in their own <style>. */
+@source not "./dev";
 
 /* The studio's phone width (SPEC §3.5, `PHONE_MAX`): `sm:` and `max-sm:` switch at 600 px, not Tailwind's 640. */
 @theme {

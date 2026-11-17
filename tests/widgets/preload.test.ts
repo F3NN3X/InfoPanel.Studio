@@ -19,6 +19,13 @@ describe("pageKinds and profileKinds", () => {
     const other = { pages: [{ id: "p", name: "P", placements: [zone("Weather"), zone("Clock")] }] };
     expect(profileKinds([profile, other])).toEqual(["Clock", "SystemOverview", "NowPlaying", "__canvas__", "Weather"]);
   });
+
+  it("adds the pinned items' kinds (config v20), drawn with every page", () => {
+    const pinned = { items: [{ id: "bar", edge: "bottom", mode: "room", thickness: 84, show: "all", visible: true, placement: { id: "np", module: "CodingAgents" } }] } as const;
+    const withBar = { ...profile, pinned } as unknown as Pick<MonitorProfile, "pages" | "pinned">;
+    expect(pageKinds(withBar, "main")).toEqual(["Clock", "SystemOverview", "CodingAgents"]);
+    expect(profileKinds([withBar])).toEqual(["Clock", "SystemOverview", "NowPlaying", "__canvas__", "CodingAgents"]);
+  });
 });
 
 describe("preloadKinds", () => {
