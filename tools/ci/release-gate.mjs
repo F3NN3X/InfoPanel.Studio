@@ -55,8 +55,10 @@ function gather({ repo, sha }) {
   try {
     nightly = gh(`repos/${repo}/actions/workflows/nightly.yml/runs?status=success&branch=main&per_page=1`).workflow_runs.filter((run) => run.head_branch === "main");
   } catch {}
-  // A tag can point at any commit: only one main holds may be released.
-  const onMain = reachableFromMain(gh(`repos/${repo}/compare/${sha}...main`).status);
+  // A tag can point at any commit: only one main holds may be released. The branch is resolved to its commit first, so
+  // a tag (or any other ref) named "main" can't stand in for it in the compare.
+  const mainSha = gh(`repos/${repo}/git/ref/heads/main`).object.sha;
+  const onMain = reachableFromMain(gh(`repos/${repo}/compare/${sha}...${mainSha}`).status);
   return { onMain, commitChecks: checksOf(sha), pulls, nightlyShas: nightly.map((run) => run.head_sha) };
 }
 
