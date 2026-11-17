@@ -12,7 +12,7 @@ import { PREVIEW_COMPARE_KEY, PREVIEW_HOVER_KEY, PREVIEW_KIOSKS_KEY, type Previe
 import { useThemeLivePreview } from "@/components/studio/use-theme-live-preview";
 
 const posted = vi.fn(async (_body: object | null) => true);
-vi.mock("@/lib/control", () => ({ postThemePreview: (body: object | null) => posted(body) }));
+vi.mock("@/lib/theme-preview-post", () => ({ postThemePreview: (body: object | null) => posted(body) }));
 
 const screen = (id: string): MonitorProfile => ({ id, name: id, width: 800, height: 480, cols: 4, rows: 2, fit: "fill", pages: [mainPage([])] });
 const CONFIG: DashboardConfig = { version: 21, activeProfile: "auto", profiles: [screen("p1"), screen("p2")] };

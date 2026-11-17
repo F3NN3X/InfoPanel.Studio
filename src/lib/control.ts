@@ -133,26 +133,7 @@ export async function postControl(action: ControlAction, body: object): Promise<
 }
 
 /** This studio page's control session: its stream holds it open, and a theme preview it shows on the kiosks lasts no longer. */
-export const STUDIO_SESSION: string =
-  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-
-/**
- * Show a theme preview on the kiosks (the body `theme-preview.ts` describes), or take this studio's back (`null`).
- * Resolves to whether the server took it; never throws.
- */
-export async function postThemePreview(preview: object | null): Promise<boolean> {
-  try {
-    const res = await fetch(`${CONTROL_URL}/preview`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Dashboard-Control": "1" },
-      body: JSON.stringify({ session: STUDIO_SESSION, preview }),
-      keepalive: preview === null,
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
+export const STUDIO_SESSION = `s${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
 
 let connections = 0;
 

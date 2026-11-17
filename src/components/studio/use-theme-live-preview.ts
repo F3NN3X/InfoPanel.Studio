@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { postThemePreview } from "@/lib/control";
 import type { DashboardConfig } from "@/lib/layout";
 import { applyPreview, type ThemePreview } from "@/lib/theme-preview";
+import { postThemePreview } from "@/lib/theme-preview-post";
 import type { ThemeAt } from "./theme-cards";
 import {
   choiceOf,
