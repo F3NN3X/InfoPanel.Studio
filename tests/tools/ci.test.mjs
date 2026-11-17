@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assetFor, downloadFirst, fetchRetried, sourcesFor } from "../../tools/ci/actionlint.mjs";
 import { planOutputs } from "../../tools/ci/plan-outputs.mjs";
 import { decideRelease, reachableFromMain, retried } from "../../tools/ci/release-gate.mjs";
-import { DEFAULT_COMMANDS, parseCommands } from "../../tools/ci/run-commands.mjs";
+import { DEFAULT_COMMANDS, parseCommands, shardCommands } from "../../tools/ci/run-commands.mjs";
 
 const plan = (mode, ...ids) => ({ mode, steps: ids.map((id) => (id.startsWith("-") ? { id: id.slice(1), cmd: null } : { id, cmd: `run ${id}` })) });
 
@@ -121,6 +121,17 @@ describe("run-commands", () => {
     expect(parseCommands("[]")).toEqual([]);
     expect(parseCommands("  ")).toEqual(DEFAULT_COMMANDS);
     expect(() => parseCommands('{"a":1}')).toThrow("JSON array");
+  });
+
+  it("splits the e2e specs across a matrix's parts and runs the other commands in part 1 only", () => {
+    const plan = ["npx playwright test --project=e2e tests/e2e/a.spec.ts", "npx playwright test --project=one-editor", "node tools/qa/overflow.mjs"];
+    expect(shardCommands(plan, "1/3")).toEqual(["npx playwright test --project=e2e tests/e2e/a.spec.ts --shard=1/3", "npx playwright test --project=one-editor", "node tools/qa/overflow.mjs"]);
+    expect(shardCommands(plan, "3/3")).toEqual(["npx playwright test --project=e2e tests/e2e/a.spec.ts --shard=3/3"]);
+    expect(shardCommands(DEFAULT_COMMANDS, "2/3")).toEqual(["npm run test:e2e -- --shard=2/3"]);
+    expect(shardCommands(plan, "")).toEqual(plan);
+    // a project whose name starts like e2e's is not split
+    expect(shardCommands(["npx playwright test --project=e2e-perf"], "2/2")).toEqual([]);
+    expect(() => shardCommands(plan, "4/3")).toThrow("i/n");
   });
 });
 

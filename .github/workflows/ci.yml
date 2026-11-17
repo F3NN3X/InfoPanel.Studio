@@ -209,8 +209,14 @@ jobs:
     if: needs.plan.outputs.e2e == 'true'
     runs-on: ubuntu-26.04
     # A full plan (tooling change, ci:full) measured in run 42460790140: 12.8 min of specs + 1.6 min one-editor, then overflow
-    # (about 2 min) and about 3 min of setup, so about 20 min; 40 is twice that, for a slower runner. The gate has its own job.
+    # (about 2 min) and about 3 min of setup, so about 20 min in one job. The specs are split three ways
+    # (tools/ci/run-commands.mjs, $SHARD); one-editor and overflow run in part 1, so the longest part is about 4 + 4 + 3 min.
+    # 40 stays, for a slower runner. The gate has its own job.
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-node-deps
@@ -221,10 +227,11 @@ jobs:
       - uses: ./.github/actions/e2e
         with:
           commands: ${{ needs.plan.outputs.e2e_cmds }}
+          shard: ${{ matrix.shard }}/3
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: e2e-report
+          name: e2e-report-${{ matrix.shard }}
           path: .cache/playwright
           # .cache is a hidden folder, which upload-artifact leaves out by default: the report was never uploaded
           include-hidden-files: true

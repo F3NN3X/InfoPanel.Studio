@@ -63,6 +63,19 @@ describe("TwitchBlock", () => {
     expect(p.onSignout).toHaveBeenCalled();
   });
 
+  it("keeps what was typed until the server's channel changes, then shows the new one", () => {
+    const signedIn = { ...EMPTY_TWITCH, signedIn: true, login: "me" };
+    const { rerender } = render(<TwitchBlock {...props({ state: signedIn, channel: "" })} />);
+    const field = screen.getByLabelText<HTMLInputElement>("Twitch chat channel");
+    fireEvent.change(field, { target: { value: "other" } });
+    rerender(<TwitchBlock {...props({ state: signedIn, channel: "" })} />);
+    expect(field.value).toBe("other");
+    expect(screen.getByText("Save", { selector: "button" }).hasAttribute("disabled")).toBe(false);
+    rerender(<TwitchBlock {...props({ state: signedIn, channel: "saved" })} />);
+    expect(field.value).toBe("saved");
+    expect(screen.getByText("Save", { selector: "button" }).hasAttribute("disabled")).toBe(true);
+  });
+
   it("shows the server's error, such as a sign-in that ran out", () => {
     render(<TwitchBlock {...props({ state: { ...EMPTY_TWITCH, error: "Your Twitch sign-in ran out. Sign in again." } })} />);
     expect(screen.getByText("Your Twitch sign-in ran out. Sign in again.")).toBeTruthy();
