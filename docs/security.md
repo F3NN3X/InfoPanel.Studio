@@ -27,8 +27,10 @@ security model, what was fixed, what was decided, and what is deferred.
 
 - **Capabilities.** App pages (`tauri.localhost`) use `src-tauri/capabilities/default.json`. The Studio and Settings
   windows load the server origin (`http://127.0.0.1:<port>`) and get runtime capabilities per window label and origin
-  (`control.rs`): the Studio 13 app commands, Settings its own set (`SETTINGS_PERMISSIONS`). Tests assert dangerous
-  commands stay out of the Studio set. The origin is always loopback, even in LAN mode, so LAN pages never reach IPC.
+  (`control.rs`): the Studio the app commands it calls (`STUDIO_PERMISSIONS`), Settings its own set (`SETTINGS_PERMISSIONS`).
+  Tests assert dangerous commands stay out of the Studio set. Of touch, the Studio only reads the panels' state and the
+  touchscreens (`touch_view`, `touch_screens`) for Screens' display cards; setting up, pairing, calibrating and the driver
+  stay in the Settings window. The origin is always loopback, even in LAN mode, so LAN pages never reach IPC.
 - **Navigation.** `nav::is_allowed_nav` allows only app pages, `about:blank`, same-origin http outside `/api/*` and
   same-origin `blob:`. New windows are denied; http/https/mailto links open in the system browser (rate-limited).
 - **Links.** The opener plugin's injected link handler is off (`open_js_links_on_click(false)`); `target=_blank`

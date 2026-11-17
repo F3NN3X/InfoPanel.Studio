@@ -757,6 +757,11 @@ mod tests {
             assert!(!STUDIO_PERMISSIONS.contains(&command) && !SETUP_PERMISSIONS.contains(&command), "{command} is granted to the studio");
             assert!(SETTINGS_PERMISSIONS.contains(&command), "{command} is missing from the settings window");
         }
+        // The studio reads touch state; setting up, pairing, calibrating and the driver stay in the Settings window.
+        for command in ["allow-touch-set", "allow-touch-uninstall-driver", "allow-touch-setup", "allow-touch-pair", "allow-touch-calibrate", "allow-touch-identify", "allow-touch-cancel"] {
+            assert!(!STUDIO_PERMISSIONS.contains(&command) && !SETUP_PERMISSIONS.contains(&command), "{command} is granted to the studio");
+            assert!(SETTINGS_PERMISSIONS.contains(&command), "{command} is missing from the settings window");
+        }
         // An agent's request is read and answered in the prompt window only (capabilities/agent-prompt.json), never on
         // the server's origin, where any page or code widget runs.
         for command in ["allow-agent-requests", "allow-agent-answer"] {

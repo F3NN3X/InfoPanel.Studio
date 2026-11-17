@@ -41,7 +41,7 @@ export function ScreenRow({ name, nameField, badges, meta, aspect, thumb, chip, 
       {/* On a phone the badges and the chip drop to a second line under the name, so the Default marker stays. */}
       <div className="flex shrink-0 flex-wrap items-center gap-1 max-md:order-last max-md:basis-full">{badges}</div>
       <span className="hidden shrink-0 font-ui-mono text-micro text-ui-3 sm:block">{meta}</span>
-      <div className="flex w-[110px] shrink-0 justify-end max-md:order-last max-md:w-auto empty:max-md:hidden">{chip}</div>
+      <div className="flex min-w-[110px] shrink-0 justify-end max-md:order-last max-md:min-w-0 empty:max-md:hidden">{chip}</div>
       <div onClick={(e) => e.stopPropagation()}>
         <CardMenu actions={actions} label="Screen actions" />
       </div>

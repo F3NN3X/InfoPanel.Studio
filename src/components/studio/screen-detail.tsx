@@ -15,6 +15,7 @@ import { InheritChip } from "./inherit-chip";
 import { LinkRow } from "./link-row";
 import { AutoSwitchField } from "./screens/auto-switch-field";
 import { ScreenThumb } from "./screens/screen-thumb";
+import type { ShowOnTarget } from "./screens/display-model";
 import { ShownOn } from "./screens/shown-on";
 import { GridSection, SizeFitSection } from "./screen-layout";
 import { ScreenPages } from "./screen-pages";
@@ -49,6 +50,8 @@ interface ScreenDetailProps {
   kiosks: readonly ControlKiosk[];
   /** The named displays (Shown on). */
   displays: readonly ControlDisplay[];
+  /** Where Shown on's "Show on" can put the screen: the named displays and the touch panels. */
+  showOn?: readonly ShowOnTarget[];
   /** The screen "Best fit" resolves to for the studio window. */
   autoProfileId: string;
   /** Close the drawer this opens in (Screens' "Screen settings"). */
@@ -133,6 +136,7 @@ export function ScreenDetail({
   navigateTo,
   kiosks,
   displays,
+  showOn,
   autoProfileId,
   onClose,
 }: ScreenDetailProps) {
@@ -167,6 +171,7 @@ export function ScreenDetail({
           kiosks={kiosks}
           onChangeDefault={() => navigateTo({ view: "settings", tab: "dashboard", section: "startup" })}
           displays={displays}
+          showOn={showOn}
         />
       </Group>
 

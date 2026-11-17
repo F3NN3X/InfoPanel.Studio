@@ -99,12 +99,16 @@ const pagePin = new URLSearchParams(window.location.search).get("page") ?? undef
 /** The ?profile= pin, if any: it wins over the control channel's profile. */
 const profilePin = new URLSearchParams(window.location.search).get("profile");
 
-/** The ?display= name, if valid: the studio can assign this kiosk a screen by it. */
-const displayParam = new URLSearchParams(window.location.search).get("display");
-const displayName = isDisplayName(displayParam) ? displayParam : undefined;
-
 /** ?touch=<panel id> (experimental touch): this kiosk shows that touch panel and takes its touches from Studio. */
 const touchPanel = new URLSearchParams(window.location.search).get("touch");
+
+/**
+ * The ?display= name, if valid: the studio can assign this kiosk a screen by it. A touch panel's kiosk without one is
+ * the display named after the panel (`panelDisplayName`, not imported: it would pull the touch words into the entry), so
+ * the studio picks its screen and its link never needs a `&profile=`.
+ */
+const displayParam = new URLSearchParams(window.location.search).get("display");
+const displayName = isDisplayName(displayParam) ? displayParam : isDisplayName(touchPanel) ? touchPanel : undefined;
 
 const NO_ALERTS: readonly never[] = [];
 

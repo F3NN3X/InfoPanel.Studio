@@ -15,7 +15,7 @@ Open **Screens** from the sidebar, from **Manage screens…** or **Screen settin
 - Each screen is a card: a small picture of it, its name, a kind badge and a line such as `1920×550 · 3 pages · grid 12 × 6`. The badge says **Studio**, **InfoPanel** (the screen is one InfoPanel profile) or **Mixed** (both). An InfoPanel screen is drawn live; the others show a screenshot of the first page. The screenshot of the screen you are editing updates a couple of seconds after you stop editing and when you save. The others are drawn in the background the first time. Screenshots are kept in this browser only, so a new browser draws them again.
 - Click a card to select it; its details open on the right. Clicking a card doesn't change which screen your displays show. **Open** on a card (or in the panel) opens the screen in Edit, whether it is a grid or one InfoPanel profile.
 - **Search** finds a screen by name, kind or size (`1920x480` works). **All**, **Studio** and **InfoPanel** narrow the list; a Mixed screen shows under both, and the profiles saved in your Library show under InfoPanel. **Sort** by last edited (the default), name, size or your own order. Last edited starts counting from the first edit you make in this version, so older screens come last until you change them.
-- Badges: **Default** marks the screen the app opens on and **Default · best fit** the one the window picks when no screen is chosen (see [Which screen opens](profiles#which-screen-opens)). **Live on 2 kiosks** means kiosks show that screen right now. Default is what you chose; live is what is on the displays at this moment.
+- Badges: **Default** marks the screen the app opens on and **Default · best fit** the one the window picks when no screen is chosen (see [Which screen opens](profiles#which-screen-opens)). **On 2 displays** means displays show that screen right now, and leads to their card. Default is what you chose; On is what is on the displays at this moment.
 - **New** opens the **New screen** page in place of the cards: the screen templates beside a panel with the preview, size, variant and name (see [Screen templates](profiles#screen-templates)), and above them **Blank grid**, **The sample layout**, **An InfoPanel profile** and **Import a file**.
 - **Import .infopanel** brings in an InfoPanel profile file as a new screen and opens it.
 - **Import…** opens the Import door (see [Importing and exporting](import)); a `.json` file saved with **Export screen** becomes a new screen with a name of its own if one is already taken.
@@ -110,16 +110,26 @@ Give a display a name and you can choose its screen from the studio, with no new
 
 To set up a display on InfoPanel, add a web page profile and paste the link as its URL. Each web page profile needs its own name in the link, since InfoPanel's web pages share one browser storage and the address is the only thing that tells them apart.
 
-The display shows up in **Displays** on **Screens** the first time its link opens. Each row has the name, whether it's online, when it was last seen, its address while online, and a picker:
+## Displays
 
-- **Follow “When the app opens”** is the default. The display shows what that setting says.
-- A screen from the list always shows that screen on the display. If you delete the screen, the display goes back to following.
+**Displays**, on the left of **Screens**, has one card per display, online or not. A named display shows up the first time its link opens. Each card has:
 
-**Forget** removes a row; it returns the next time its link opens. A screen's **Shown on** panel lists the displays set to it. Only a kiosk on this PC shows its address.
+- Its name. The kiosk on this PC with no display name is **This PC**; another one without a name is **Kiosk · its address**. A touch panel's display has the panel's name.
+- Its state: **Live** with its address and how long it has been connected, or **Offline · seen 3 h ago**.
+- **Shows**: the screen, and while it's live the page. **Follow default** shows what **When the app opens** says; a screen from the list always shows that screen. If you delete the screen, the display goes back to following. Only a named display can be given a screen here.
+- **Cycling pages: every 30 s** or **Cycling pages: paused**: the screen's page cycling, on every display showing it.
+- **Touch**: its touch panel's state (**Off**, **Needs driver**, **Not paired**, **Panel not connected** or **Ready**) and **Set up touch**. See [Touch panels](touch). Displays on another device have no touch row.
+- **⋯**: the screen's rotation settings, dim, Dynamic Island, reload, and **Forget display**, which removes the card until its link opens again.
+
+**Add a display** at the end has the kiosk address to open on a new display.
+
+## Show a screen on a display
+
+A screen's **⋯** menu has **Show on**, with every named display, and **Use on touch panel** in the desktop app. **On 1 display** on a screen's card leads to that display's card and lights it. A screen no display shows says **Not on a display · Show on…**. A screen's **Shown on** panel lists the displays set to it and has **Show on…** too. Only a kiosk on this PC shows its address.
 
 A `?profile=` pin in a link still wins over everything else, then the display's screen, then a screen switched from **Live**, then **When the app opens**.
 
-A display can still show another screen when its kiosk URL has `?profile=`, or when the screen is switched from **Live**.
+A display can still show another screen when its kiosk URL has `?profile=`, or when the screen is switched from **Live**. Its card then says **Pinned by its link**.
 
 Which screen you're editing belongs to this studio only. It isn't saved in the config, and it doesn't change what your displays show. **New**, **Duplicate**, **Import…** and importing an InfoPanel profile all switch the studio to the new screen.
 

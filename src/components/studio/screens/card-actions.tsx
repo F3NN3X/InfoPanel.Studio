@@ -4,7 +4,7 @@
  */
 import { Fragment, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { Menu } from "@base-ui/react/menu";
-import { MoreHorizontal, type LucideIcon } from "lucide-react";
+import { ChevronRight, MoreHorizontal, type LucideIcon } from "lucide-react";
 import { FOCUS_RING } from "@/components/ui/button";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
@@ -20,12 +20,16 @@ export interface CardAction {
   danger?: boolean;
   /** It hands the cursor to the card's name field (Rename): the ⋯ menu must not take it back on close. */
   focusesField?: boolean;
+  /** A disabled row's reason. */
+  title?: string;
+  /** Rows of a flyout beside this one ("Show on ▸"); the row itself then runs nothing. */
+  submenu?: readonly CardAction[];
 }
 
 /** The right-click menu's rows: the same actions, the danger ones after a separator. */
 export function contextEntries(actions: readonly CardAction[]): ContextMenuEntry[] {
   return actions.flatMap((a, i): ContextMenuEntry[] => {
-    const row: ContextMenuEntry = { id: a.id, label: a.label, icon: <a.icon />, disabled: a.disabled, danger: a.danger, onSelect: a.run };
+    const row: ContextMenuEntry = { id: a.id, label: a.label, icon: <a.icon />, disabled: a.disabled, danger: a.danger, title: a.title, onSelect: a.run, submenu: a.submenu && contextEntries(a.submenu) };
     return a.danger && i > 0 && !actions[i - 1].danger ? ["separator", row] : [row];
   });
 }
@@ -79,24 +83,52 @@ export function CardMenu({ actions, label }: { actions: readonly CardAction[]; l
             {actions.map((a, i) => (
               <Fragment key={a.id}>
                 {a.danger && i > 0 && !actions[i - 1].danger && <Menu.Separator className={SEPARATOR} />}
-                <Menu.Item
-                  className={cn(ITEM, a.danger && "text-ui-danger data-disabled:text-ui-hint")}
-                  disabled={a.disabled}
-                  onClick={() => {
-                    toField.current = Boolean(a.focusesField);
-                    a.run();
-                  }}
-                >
-                  <span className="flex items-center gap-2">
-                    <a.icon className={cn("h-3.5 w-3.5", !a.danger && "text-ui-3")} />
-                    {a.label}
-                  </span>
-                </Menu.Item>
+                {a.submenu ? (
+                  <Menu.SubmenuRoot>
+                    <Menu.SubmenuTrigger className={ITEM} disabled={a.disabled} title={a.title}>
+                      <ActionLabel action={a} />
+                      <ChevronRight className="h-3 w-3 text-ui-4" />
+                    </Menu.SubmenuTrigger>
+                    <Menu.Portal>
+                      <Menu.Positioner className="z-[80]" sideOffset={4} alignOffset={-4}>
+                        <Menu.Popup className={POPUP} onClick={(e) => e.stopPropagation()}>
+                          {a.submenu.map((sub) => (
+                            <Menu.Item key={sub.id} className={ITEM} disabled={sub.disabled} title={sub.title} onClick={sub.run}>
+                              <ActionLabel action={sub} />
+                            </Menu.Item>
+                          ))}
+                        </Menu.Popup>
+                      </Menu.Positioner>
+                    </Menu.Portal>
+                  </Menu.SubmenuRoot>
+                ) : (
+                  <Menu.Item
+                    className={cn(ITEM, a.danger && "text-ui-danger data-disabled:text-ui-hint")}
+                    disabled={a.disabled}
+                    title={a.title}
+                    onClick={() => {
+                      toField.current = Boolean(a.focusesField);
+                      a.run();
+                    }}
+                  >
+                    <ActionLabel action={a} />
+                  </Menu.Item>
+                )}
               </Fragment>
             ))}
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>
     </Menu.Root>
+  );
+}
+
+/** A menu row's icon and words. */
+function ActionLabel({ action: a }: { action: CardAction }) {
+  return (
+    <span className="flex items-center gap-2">
+      <a.icon className={cn("h-3.5 w-3.5", !a.danger && "text-ui-3")} />
+      {a.label}
+    </span>
   );
 }
