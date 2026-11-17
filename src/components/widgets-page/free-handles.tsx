@@ -88,7 +88,7 @@ export interface GuideView {
 }
 
 /** The InfoPanel editor's guide colour, so a guide reads the same in both editors. */
-const GUIDE = "oklch(0.72 0.24 340)";
+const GUIDE = "var(--ui-guide)";
 
 /** The smart guides across the container, a marker for each equal gap, and the readout under the moving box. */
 export function FreeGuides({ view }: { view: GuideView }) {

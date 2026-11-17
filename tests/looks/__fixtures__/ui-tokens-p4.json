@@ -47,6 +47,7 @@
   "bg-panel": "#111114",
   "bg-tile": "#17171b",
   "bg-highlight": "#34343d",
+  "guide": "#ff56d3",
   "bg-hover": "#1d1d22",
   "border-subtle": "#1f1f24",
   "border-menu": "#2a2a31",
