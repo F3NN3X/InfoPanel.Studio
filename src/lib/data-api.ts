@@ -51,6 +51,9 @@ export function releaseApiBase(): void {
   release = null;
 }
 
+/** Whether Data API requests are held (the studio before its config is read). */
+export const apiBaseHeld = (): boolean => release !== null;
+
 /** Resolves once the Data API's address is known: await it before a request to `getApiBase()`. */
 export const apiBaseSettled = (): Promise<void> => settled;
 
