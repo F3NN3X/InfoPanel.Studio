@@ -1140,7 +1140,6 @@ export function Builder(p: BuilderProps) {
                     }}
                   >
                     <input
-                      // biome-ignore lint/a11y/noAutofocus: the name field opens on the button's press and takes the typing at once
                       autoFocus
                       aria-label="Snippet name"
                       value={naming}
