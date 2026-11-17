@@ -12,6 +12,10 @@ runs:
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+    # The runner's own apt-get can still hold the dpkg lock when a job starts, and apt then fails at once ("Could not get lock
+    # /var/lib/dpkg/lock-frontend", exit 100; run 44196588297): wait for the lock instead, inside each try's bound below.
+    - shell: bash
+      run: echo 'DPkg::Lock::Timeout "100";' | sudo tee /etc/apt/apt.conf.d/90-lock-timeout > /dev/null
     # apt can hang (run 40234176716 sat 8+ min): bound each try and retry once. Infrastructure only, never the tests.
     - if: steps.browsers.outputs.cache-hit != 'true'
       shell: bash

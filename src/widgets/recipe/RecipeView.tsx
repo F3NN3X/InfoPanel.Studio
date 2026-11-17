@@ -163,9 +163,11 @@ function useReadable(ref: RefObject<HTMLElement | null>, want: OpacityStep | und
     const el = inside ? ref.current?.querySelector<HTMLElement>(inside) : ref.current;
     if (!el) return;
     const step = want ? drawnStep(el, want) : 100;
-    el.style.opacity = step === 100 ? "" : String(step / 100);
-    if (want) el.dataset.recipeOpacity = String(step);
-    else delete el.dataset.recipeOpacity;
+    // written only when it changes: it runs after every render, and a write invalidates the card's style for the next one
+    const opacity = step === 100 ? "" : String(step / 100);
+    if (el.style.opacity !== opacity) el.style.opacity = opacity;
+    if (want && el.dataset.recipeOpacity !== String(step)) el.dataset.recipeOpacity = String(step);
+    else if (!want && el.dataset.recipeOpacity !== undefined) delete el.dataset.recipeOpacity;
   });
 }
 
