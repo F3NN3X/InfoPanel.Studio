@@ -77,7 +77,7 @@ test("the CPU card, built by clicks, and the GPU card made from it through the d
   await layer(page, "").click();
   await add(page, "sparkline");
   await pickData(page, `libre.${CPU}_cpu_total`);
-  await expect(page.locator("[data-validation]")).toContainText("No code · 8 blocks · 1 option · sizes 2×2 to 4×3");
+  await expect(page.locator("[data-validation]")).toContainText("No code · 8 blocks · 1 option · sizes 2×2 to 12×12");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Saved CPU card").first()).toBeVisible();
 

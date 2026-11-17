@@ -741,7 +741,7 @@ export function recipeIdFor(name: string, taken: ReadonlySet<string>): string {
   for (let n = 2; ; n++) if (!taken.has(`${base}-${n}`)) return `${base}-${n}`;
 }
 
-/** A new, empty recipe: a card at 3×2, from 2×2 to 4×3, one default preset. */
+/** A new, empty recipe: a card at 3×2, from 2×2 to any size (12×12, the format's largest, D1), one default preset. */
 export function newRecipe(name: string, taken: ReadonlySet<string>): Recipe {
   return {
     format: 1,
@@ -751,7 +751,7 @@ export function newRecipe(name: string, taken: ReadonlySet<string>): Recipe {
     author: "Made in Studio",
     category: "Recipes",
     icon: "dashboard",
-    size: { min: [2, 2], max: [4, 3], default: [3, 2] },
+    size: { min: [2, 2], max: [12, 12], default: [3, 2] },
     options: [],
     presets: [{ id: "default", name: "Default", settings: {}, size: [3, 2], default: true }],
     root: { type: "card", title: name, children: [] },
@@ -978,11 +978,24 @@ export function setRecipeSize(recipe: Recipe, key: "min" | "max" | "default", ce
   return key === "default" ? { ...recipe, size, presets: recipe.presets.map((p) => (p.default ? { ...p, size: [...cells] as Cells } : p)) } : { ...recipe, size };
 }
 
-/** A size the stage may show (G17): each side clamped to the recipe's smallest and largest, in whole cells. */
-export function clampCells(recipe: Recipe, cells: readonly number[]): Cells {
-  const { min, max } = recipe.size;
-  const side = (k: 0 | 1) => Math.max(min[k], Math.min(max[k], Math.round(cells[k]) || min[k]));
+/** The largest side a recipe's size may take, in cells (`recipe.schema.json`). */
+export const CELLS_MAX = 12;
+
+/**
+ * A size the stage may show (G17, B30): any whole number of cells from 1 to 12 a side, inside the recipe's range or not (a side that
+ * is not a number keeps `was`'s).
+ */
+export function stageCells(cells: readonly number[], was: Cells): Cells {
+  const side = (k: 0 | 1) => Math.max(1, Math.min(CELLS_MAX, Number.isFinite(cells[k]) ? Math.round(cells[k]) : was[k]));
   return [side(0), side(1)];
+}
+
+/** Where a size the stage shows stands against the recipe's range (B30): under its Smallest, past its Largest, or in it (undefined). */
+export function outsideRange(recipe: Recipe, cells: Cells): "under" | "over" | undefined {
+  const { min, max } = recipe.size;
+  if (cells[0] < min[0] || cells[1] < min[1]) return "under";
+  if (cells[0] > max[0] || cells[1] > max[1]) return "over";
+  return undefined;
 }
 
 /** The base text size at a zone size (the stage's hint). */

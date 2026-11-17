@@ -29,7 +29,7 @@ import type { Data } from "@/widgets/core/types";
 import { gridPresets } from "@/widgets/define";
 import type { BlockType, Cells, PackageFile, Recipe, RecipeOption } from "@/widgets/recipe/types";
 import { toFlat, toNames } from "@/widgets/shared/data-adapter";
-import { ADD_ORDER, addBlock, addBlockAt, addImageAt, addRefusal, addSnippet, BLOCK_LABEL, blockAt, clampCells, cleanUp, devicesIn, draftSample, duplicateBlocks, flatten, imagePath, keyMove, landing, layerName, leftUnused, moveBlock, moveBlocks, nextVersion, packedImages, presetValues, rangeOf, recipeIssues, removeBlocks, SNIPPETS, type SnippetId, stepBlock, topLevel, updateBlock, validationLine, withFormat, wrapInRow, type Path } from "./builder-model";
+import { ADD_ORDER, addBlock, addBlockAt, addImageAt, addRefusal, addSnippet, BLOCK_LABEL, blockAt, CELLS_MAX, cleanUp, devicesIn, draftSample, duplicateBlocks, flatten, imagePath, keyMove, landing, layerName, leftUnused, moveBlock, moveBlocks, nextVersion, outsideRange, packedImages, presetValues, rangeOf, recipeIssues, removeBlocks, SNIPPETS, type SnippetId, stageCells, stepBlock, topLevel, updateBlock, validationLine, withFormat, wrapInRow, type Path } from "./builder-model";
 import { BlockIcon } from "./block-icons";
 import { BlockTab } from "./block-tab";
 import { clipboard, copyOf, pasteBlocks, setClipboard } from "./clipboard";
@@ -629,11 +629,12 @@ export function Builder(p: BuilderProps) {
   }, [recipe, size.join("x"), live, lookId, preset, stageBox, data]);
   const fits = line.ok && crowds !== null && !warnings.length && recipe.root.children.length > 0;
   const shown = `${size[0]}×${size[1]}`;
-  /** "Other" sizes (G17): a side typed in the stage's boxes, clamped to the recipe's range. */
+  /** "Other" sizes (G17): a side typed in the stage's boxes, 1 to 12 whatever the recipe's range (B30: outside it, a warning says so). */
   const setSide = (k: 0 | 1, v: number | undefined) => {
     setInRail(false);
-    setSize(clampCells(recipe, k === 0 ? [v ?? size[0], size[1]] : [size[0], v ?? size[1]]));
+    setSize(stageCells(k === 0 ? [v ?? size[0], size[1]] : [size[0], v ?? size[1]], size));
   };
+  const outside = railShown ? undefined : outsideRange(recipe, size);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
@@ -832,11 +833,17 @@ export function Builder(p: BuilderProps) {
                 if (v !== "rail") setSize(v.split("x").map(Number) as Cells);
               }}
             />
-            <span className="flex items-center gap-1 text-body text-ui-3" title={`Any size from ${recipe.size.min.join("×")} to ${recipe.size.max.join("×")}`}>
-              <NumberInput label="Stage columns" value={size[0]} min={recipe.size.min[0]} max={recipe.size.max[0]} onChange={(v) => setSide(0, v)} width={52} />
+            <span className="flex items-center gap-1 text-body text-ui-3" title={`Any size from 1×1 to ${CELLS_MAX}×${CELLS_MAX}; the recipe allows ${recipe.size.min.join("×")} to ${recipe.size.max.join("×")}`}>
+              <NumberInput label="Stage columns" value={size[0]} min={1} max={CELLS_MAX} onChange={(v) => setSide(0, v)} width={52} />
               ×
-              <NumberInput label="Stage rows" value={size[1]} min={recipe.size.min[1]} max={recipe.size.max[1]} onChange={(v) => setSide(1, v)} width={52} />
+              <NumberInput label="Stage rows" value={size[1]} min={1} max={CELLS_MAX} onChange={(v) => setSide(1, v)} width={52} />
             </span>
+            {outside && (
+              <span role="status" data-stage-outside={outside} className="flex items-center gap-1 text-caption text-ui-warn">
+                <CircleAlert className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+                {outside === "under" ? `Under its Smallest (${recipe.size.min.join("×")}): Edit won't size it this small` : `Past its Largest (${recipe.size.max.join("×")}): Edit warns at this size`}
+              </span>
+            )}
             <span className="ml-3 text-body text-ui-3">Preview in</span>
             <select aria-label="Preview in" value={lookId} onChange={(e) => setLookId(e.target.value)} className="h-8 rounded-ui-md border border-ui-strong bg-ui-raised px-2.5 text-body font-medium text-ui-1 outline-none focus:border-ui-accent">
               {LOOKS.map((l) => (

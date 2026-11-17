@@ -69,7 +69,8 @@ export function colourKinds(type: BlockType): readonly { value: ColourKind; labe
 }
 
 const RANGED = new Set(["ring", "gauge", "bar", "sparkline", "heatmap"]);
-const SIZE_OPTIONS = ["", "1", "2", "3", "4", "5", "6"];
+/** A side of "From the size" and "Up to the size" (B29): Any, then every cell count up to the recipe's Largest on that side. */
+export const whenSizeOptions = (largest: number): string[] => ["", ...Array.from({ length: largest }, (_, k) => String(k + 1))];
 
 const DIRECTIONS = [
   { value: "rows", label: "Rows" },
@@ -236,7 +237,7 @@ function WhenRows({ recipe, path, block, onChange }: { recipe: Recipe; path: Pat
   };
   const sizeSelect = (end: "min" | "max", axis: 0 | 1, label: string) => {
     const v = side(end, axis);
-    const options = [...new Set([...SIZE_OPTIONS, v])].map((n) => ({ value: n, label: n || "Any" }));
+    const options = [...new Set([...whenSizeOptions(recipe.size.max[axis]), v])].map((n) => ({ value: n, label: n || "Any" }));
     return <Select label={label} value={v} options={options} onChange={(x) => set(withWhenSize(when, end, axis, x ? Number(x) : undefined))} width={64} />;
   };
   return (

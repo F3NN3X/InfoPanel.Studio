@@ -2,10 +2,10 @@
 // per package, `<key>` the id with its namespace's colon as a dot (`recipe:cpu-card` is `recipe.cpu-card`, safe in a route and a
 // folder name). Read here, checked by the validator every time (the bytes on disk are never trusted), and cached per id. The
 // kiosk reaches this only through the recipe chunk; the studio through the Add panel's list and the import. A loaded recipe gives
-// its module what its placements read (`reads.ts`) and its options as Content tab rows (`settings.ts`).
+// its module what its placements read (`reads.ts`), its options as Content tab rows and its sizes as Edit's floor (`settings.ts`).
 import { recipeReads } from "./reads";
 import { isCodeId, isRecipeId, learnReads, recipeModule } from "./resolve";
-import { learnSettings } from "./settings";
+import { learnSettings, learnSize } from "./settings";
 import type { Manifest, PackageFile, Recipe } from "./types";
 import { checkPackage, jsonOf, type RecipeIssue } from "./validate";
 
@@ -92,7 +92,10 @@ export function loadRecipe(id: string): Promise<LoadedRecipe> {
       .then((loaded) => {
         if (!loaded.off) learnReads(id, loaded.recipe ? recipeReads(loaded.recipe) : () => []);
         const mod = recipeModule(id);
-        if (mod) learnSettings(mod, loaded.recipe);
+        if (mod) {
+          learnSettings(mod, loaded.recipe);
+          learnSize(mod, loaded.recipe);
+        }
         return loaded;
       });
     cache.set(id, hit);
@@ -105,7 +108,10 @@ export const forgetRecipe = (id: string): void => {
   cache.delete(id);
   learnReads(id);
   const mod = recipeModule(id);
-  if (mod) learnSettings(mod);
+  if (mod) {
+    learnSettings(mod);
+    learnSize(mod);
+  }
 };
 
 const base64 = (bytes: Uint8Array): string => {

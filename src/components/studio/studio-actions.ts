@@ -16,6 +16,7 @@ import { CARD_SETTINGS, PANEL_SETTINGS, replaceStyle, styleOf } from "@/modules/
 import { settingKeys } from "@/modules/types";
 import { makePreset, type PanelPreset } from "@/lib/panelPresets";
 import type { ModuleSettings } from "@/modules/types";
+import { isRecipeId, recipeModule } from "@/widgets/recipe/resolve";
 import { ALL_MODULES, moduleMinSize } from "./studio-modules";
 import { dropKeys } from "./settings-model";
 import { firstFreeRect, pinnedTaken, takenOn, zoneFits, type ZoneRect } from "./zone-geometry";
@@ -335,9 +336,24 @@ export function moveZonesToPage(
   };
 }
 
-/** A zone's minimum size: its widget's, or its stored view's own (`moduleMinSize`); blank zones and panels 1×1. */
+/**
+ * A zone's minimum size: its widget's, or its stored view's own (`moduleMinSize`); a recipe's Smallest once it has loaded (B28); blank
+ * zones and panels 1×1.
+ */
 export function zoneMinSize(p: Placement): Size {
-  return ALL_MODULES.some((m) => m.id === p.module) ? moduleMinSize(p.module, p.settings) : { cols: 1, rows: 1 };
+  if (ALL_MODULES.some((m) => m.id === p.module)) return moduleMinSize(p.module, p.settings);
+  const recipe = isRecipeId(p.module) ? recipeModule(p.module) : undefined;
+  return { cols: recipe?.minCols ?? 1, rows: recipe?.minRows ?? 1 };
+}
+
+/**
+ * The largest size a zone's widget is made for (a recipe's Largest, B28) when the zone is past it, else undefined: Edit warns, never
+ * clamps (D5), since a zone being resized is expected to follow the pointer.
+ */
+export function pastLargest(p: Placement): Size | undefined {
+  const recipe = isRecipeId(p.module) ? recipeModule(p.module) : undefined;
+  if (!recipe?.maxCols || !recipe.maxRows) return undefined;
+  return p.colSpan > recipe.maxCols || p.rowSpan > recipe.maxRows ? { cols: recipe.maxCols, rows: recipe.maxRows } : undefined;
 }
 
 /** Make a zone blank: drop its widget, panel and settings. */
