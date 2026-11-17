@@ -18,15 +18,15 @@ export interface TimerProps extends ShellProps {
 }
 
 const BTN =
-  "flex h-10 max-h-full min-w-0 shrink-0 items-center justify-center gap-1 rounded-full border border-[color:var(--w-track)] px-2.5 text-caption font-semibold tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
+  "flex h-11 max-h-full min-w-0 shrink-0 items-center justify-center gap-1 rounded-full border border-[color:var(--w-track)] px-2.5 text-caption font-semibold tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
 /** A preset tile at 4x4: a touch target, not a chip. */
 const TILE =
   "flex h-full min-h-[100px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[color:var(--w-track)] px-2 tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
 /** A preset button's width with its gap, px (a "25m" chip). */
 const CHIP_W = 52;
-/** The Pause / Stop buttons' height (`h-10`), px; a button row and its gap are `ROW_H`. */
-const BTN_H = 40;
-const ROW_H = 46;
+/** The preset chips' and the Pause / Stop buttons' height (`h-11`: a 44 px touch target), px; a button row and its gap are `ROW_H`. */
+export const BTN_H = 44;
+const ROW_H = 50;
 /** The idle hero's size, px, and the room it takes with the gap under it. */
 const IDLE_HERO_PX = 48;
 const IDLE_HERO_H = IDLE_HERO_PX + 8;
