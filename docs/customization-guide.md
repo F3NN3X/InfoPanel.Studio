@@ -1506,8 +1506,8 @@ buttons instead (Edit's **Edit rail items** writes it):
 
 - **group** - `top`, `pages`, `actions` and `widgets` are drawn in that order with a line between
   groups; `bottom` sits at the foot, above the page lock.
-- **target** - a `page`; the `profile` (a logo slot; the profile picker comes in a later update);
-  an `action`: `page` (an id, `next` or `prev`), `lock` (the page lock), `audio` or `obs` (the same
+- **target** - a `page`; the `profile` (a logo slot, which opens the profile picker);
+  an `action`: `page` (an id, `next` or `prev`), `lock` (the page lock), `profile-picker`, `audio` or `obs` (the same
   requests the Audio and OBS buttons send, refused from another computer as theirs are); or a
   `widget` with `module` and `settings`, drawn 72 px wide (a widget whose preset is a rail preset,
   such as the Clock's **Rail**).
@@ -1521,6 +1521,31 @@ buttons instead (Edit's **Edit rail items** writes it):
   shown; on a page button, one that goes to that page) or `obs-live` (**LIVE** while OBS streams).
 - **touch** - what a `tap`, `hold` (600 ms) or `doubleTap` does, each an action as above; a tap
   does what the target is unless it says otherwise.
+
+### Profiles that follow the app in front
+
+Tap or hold the rail's profile chip to open the profile picker: the screens of the display's size,
+the current one, and **Matches now** on one whose program is in front. A screen's programs are its
+`autoSwitch` list (Screens › **Switch with the app in front** writes it); unset, the screen is
+never chosen by itself:
+
+```json
+"autoSwitch": { "exe": ["Code.exe", "WindowsTerminal.exe"] }
+```
+
+On Windows the server reads the program in front once a second, only while some screen has such a
+list, and picks the first screen of the shown one's size whose list names it (by file name, any
+case, `.exe` optional). It shows it through the same override the Stream Deck's profile switch
+uses, and takes it back when no list names the program in front. The program in front is published
+to kiosks as `front` in `/api/control`, as a file name, while a list exists. The desktop app's own
+windows never count, so touching its kiosk on this PC doesn't switch it; a kiosk in a browser on
+this PC is that browser, which takes back an automatic switch unless a list names it.
+
+**Lock to** sends `POST /api/control/auto` with `{ "state": "off", "profile": "<id>" }`: the
+override, with switching paused, whatever is in front. `{ "state": "on" }` resumes it (and applies
+the program in front at once), `"off"` pauses it and `"toggle"` flips it; `autoPaused` in the state
+says it is paused. The route takes the same `X-Dashboard-Control` header as the other control
+routes. A kiosk link with `?profile=`, or a display assigned a screen, keeps its screen.
 
 ### Swiping beside pinned widgets
 

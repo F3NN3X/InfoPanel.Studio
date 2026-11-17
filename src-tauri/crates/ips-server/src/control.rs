@@ -11,7 +11,7 @@
 use serde_json::{json, Map, Number, Value};
 
 use crate::json::{parse as parse_json, stringify};
-use crate::js;
+use crate::{control_auto, js};
 
 /// A touch or a remote page switch holds rotation at least this long.
 pub const ROTATE_PAUSE_MS: f64 = 30_000.0;
@@ -64,7 +64,8 @@ pub fn valid_display(name: &str) -> bool {
 /// reported), `next_at`, `alerts`, `kiosks` (by connection id, oldest first) and the reload counters (`reload` starts at
 /// the server start time; `reload_at` is when the last bump was taken). `displays` (by name, in the order first seen)
 /// is durable and is left out of the JSON forms while empty, so a server without named displays reads and writes
-/// what it always did.
+/// what it always did. Auto-switch (control_auto.rs) adds `front` (the program in front, runtime), `auto_paused` and
+/// `auto_profile` (the override the switch set), both durable; each is left out while unset, for the same reason.
 #[derive(Clone, Debug, PartialEq)]
 pub struct State {
     pub profile: Value,
@@ -82,6 +83,9 @@ pub struct State {
     pub reload_at: Option<f64>,
     pub kiosks: Vec<(String, Kiosk)>,
     pub displays: Vec<(String, Display)>,
+    pub front: Option<String>,
+    pub auto_paused: bool,
+    pub auto_profile: Value,
 }
 
 impl Default for State {
@@ -102,6 +106,9 @@ impl Default for State {
             reload_at: None,
             kiosks: Vec::new(),
             displays: Vec::new(),
+            front: None,
+            auto_paused: false,
+            auto_profile: Value::Null,
         }
     }
 }
@@ -146,6 +153,10 @@ impl State {
         if !self.displays.is_empty() {
             value["displays"] = durable_displays(&self.displays);
         }
+        if let Some(front) = &self.front {
+            value["front"] = json!(front);
+        }
+        add_auto(&mut value, self);
         value
     }
 
@@ -176,7 +187,20 @@ impl State {
             reload_at: v.get("reloadAt").and_then(Value::as_f64),
             kiosks: dict("kiosks").iter().map(|(id, k)| (id.clone(), kiosk(k))).collect(),
             displays: read_displays(v),
+            front: v.get("front").and_then(Value::as_str).map(String::from),
+            auto_paused: v.get("autoPaused") == Some(&Value::Bool(true)),
+            auto_profile: v.get("autoProfile").filter(|p| p.is_string()).cloned().unwrap_or(Value::Null),
         }
+    }
+}
+
+/// Auto-switch's durable fields, only while set: `autoPaused` (the lock or the switch off) and `autoProfile`.
+fn add_auto(value: &mut Value, state: &State) {
+    if state.auto_paused {
+        value["autoPaused"] = json!(true);
+    }
+    if !state.auto_profile.is_null() {
+        value["autoProfile"] = state.auto_profile.clone();
     }
 }
 
@@ -208,7 +232,7 @@ fn read_displays(v: &Value) -> Vec<(String, Display)> {
 
 /* ---------------- reading the config and the actions as JavaScript does ---------------- */
 
-fn truthy(v: &Value) -> bool {
+pub(crate) fn truthy(v: &Value) -> bool {
     match v {
         Value::Null => false,
         Value::Bool(b) => *b,
@@ -219,7 +243,7 @@ fn truthy(v: &Value) -> bool {
 }
 
 /// `a === b` for the values a profile id can be (an object or array is never equal to anything here).
-fn id_eq(a: &Value, b: &Value) -> bool {
+pub(crate) fn id_eq(a: &Value, b: &Value) -> bool {
     match (a, b) {
         (Value::String(x), Value::String(y)) => x == y,
         (Value::Number(x), Value::Number(y)) => x.as_f64() == y.as_f64(),
@@ -234,11 +258,11 @@ fn key_of(id: &Value) -> String {
     js::to_property_key(Some(id))
 }
 
-fn profiles_of(config: &Value) -> &[Value] {
+pub(crate) fn profiles_of(config: &Value) -> &[Value] {
     config.get("profiles").and_then(Value::as_array).map_or(&[], Vec::as_slice)
 }
 
-fn find_profile<'a>(config: &'a Value, id: &Value) -> Option<&'a Value> {
+pub(crate) fn find_profile<'a>(config: &'a Value, id: &Value) -> Option<&'a Value> {
     profiles_of(config).iter().find(|p| truthy(p) && p.get("id").is_some_and(|pid| id_eq(pid, id)))
 }
 
@@ -362,8 +386,9 @@ pub type Reduced = Result<Option<State>, &'static str>;
 /// `{ type: "shown", profile }`, `{ type: "tick" }`, `{ type: "config", previous }`, `{ type: "mute", minutes }` (0 unmutes),
 /// `{ type: "kiosk", action: "reload" | "dim" | "island", profile?, state?, level? }`,
 /// `{ type: "display", action: "assign" | "forget", display, screen? }` (`screen`: a profile id or "follow");
+/// `{ type: "auto", state: "on" | "off" | "toggle", profile? }` (control_auto.rs);
 /// internal only (never a POST): `{ type: "connect", id, profile, page?, address?, display?, pinned? }` and
-/// `{ type: "disconnect", id }` for a kiosk stream.
+/// `{ type: "disconnect", id }` for a kiosk stream, and `{ type: "front", exe }` for the program in front.
 pub fn reduce(state: &State, action: &Value, config: &Value, now: f64) -> Reduced {
     match action.get("type").and_then(Value::as_str) {
         Some("page") => reduce_page(state, action, config, now),
@@ -383,6 +408,8 @@ pub fn reduce(state: &State, action: &Value, config: &Value, now: f64) -> Reduce
         Some("mute") => reduce_mute(state, action, now),
         Some("kiosk") => reduce_kiosk(state, action, config, now),
         Some("display") => reduce_display(state, action, config),
+        Some("auto") => control_auto::reduce_auto(state, action, config),
+        Some("front") => control_auto::reduce_front(state, action, config),
         Some("connect") => reduce_connect(state, action, now),
         Some("disconnect") => {
             let id = key_of(action.get("id").unwrap_or(&Value::Null));
@@ -421,12 +448,15 @@ fn reduce_page(state: &State, action: &Value, config: &Value, now: f64) -> Reduc
 fn reduce_profile(state: &State, action: &Value, config: &Value) -> Reduced {
     let profile = action.get("profile");
     if matches!(profile, Some(Value::Null)) || profile.and_then(Value::as_str) == Some("auto") {
-        return Ok((!state.profile.is_null()).then(|| State { profile: Value::Null, ..state.clone() }));
+        let next = State { profile: Value::Null, auto_profile: Value::Null, ..state.clone() };
+        return Ok((next != *state).then_some(next));
     }
     let Some(profile) = profile.filter(|p| find_profile(config, p).is_some()) else {
         return Err("unknown profile");
     };
-    Ok((!id_eq(&state.profile, profile)).then(|| State { profile: profile.clone(), ..state.clone() }))
+    // a profile chosen by hand is not auto-switch's to take back
+    let next = State { profile: profile.clone(), auto_profile: Value::Null, ..state.clone() };
+    Ok((next != *state).then_some(next))
 }
 
 fn reduce_rotate(state: &State, action: &Value, config: &Value, now: f64) -> Reduced {
@@ -644,7 +674,7 @@ fn field_changed(previous: &Value, config: &Value, id: &str, field: &str) -> boo
 }
 
 /// A saved config change: a profile's rotate or island option replaces its runtime override, a deleted profile's
-/// dim goes with it, and a display assigned to a deleted profile goes back to following. `pages`, `profile` and `shown` keep stale ids (reads tolerate them).
+/// dim goes with it, a display assigned to a deleted profile goes back to following, and auto-switch reads its rules again. `pages`, `profile` and `shown` keep stale ids (reads tolerate them).
 pub(crate) fn reduce_config(state: &State, previous: &Value, config: &Value) -> Option<State> {
     let mut next = state.clone();
     for id in state.override_.keys().filter(|id| field_changed(previous, config, id, "rotate")) {
@@ -664,6 +694,8 @@ pub(crate) fn reduce_config(state: &State, previous: &Value, config: &Value) -> 
             next.displays = with_screen(&next.displays, name, DISPLAY_FOLLOW);
         }
     }
+    // edited rules apply to the program in front at once
+    let next = control_auto::switched(next, config);
     (next != *state).then_some(next)
 }
 
@@ -698,6 +730,13 @@ pub fn public_state(state: &State, config: &Value) -> Value {
     });
     if !state.displays.is_empty() {
         view["displays"] = Value::Array(state.displays.iter().map(|(name, d)| public_display(state, config, name, d)).collect());
+    }
+    // the program in front (its file name, foreground.rs), only while a rule can use it
+    if let Some(front) = state.front.as_deref().filter(|_| control_auto::has_rules(config)) {
+        view["front"] = json!(front);
+    }
+    if state.auto_paused {
+        view["autoPaused"] = json!(true);
     }
     view
 }
@@ -755,6 +794,7 @@ pub(crate) fn durable(state: &State) -> Value {
     if !state.displays.is_empty() {
         saved["displays"] = durable_displays(&state.displays);
     }
+    add_auto(&mut saved, state);
     saved
 }
 
@@ -785,6 +825,8 @@ pub fn load(text: Option<&str>, now: f64) -> State {
         dim_level: pick("dimLevel", &valid_dim),
         island_override: pick("islandOverride", &|v| matches!(v.as_str(), Some("on" | "off"))),
         displays: read_displays(&raw),
+        auto_paused: raw.get("autoPaused") == Some(&Value::Bool(true)),
+        auto_profile: raw.get("autoProfile").filter(|p| p.is_string()).cloned().unwrap_or(Value::Null),
         ..State::default()
     }
 }

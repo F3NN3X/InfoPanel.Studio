@@ -81,6 +81,7 @@ Select a screen's card in **Screens**. The panel on the right holds the settings
 | **Grid** | 2 to 24 columns and 1 to 24 rows. A change that would push a widget off the grid is refused. The preview draws the grid with its gap and padding. **Gap** (default 12 px) and **Edge padding** go to 64 px on the sliders, and the boxes accept up to 200. |
 | **Shown on** | Whether the app opens on this screen, with a **Settings ↗** link to where that is chosen, which kiosks show it now, and **Copy kiosk link**. |
 | **Rotation** | **Rotate pages** and **Every** (3 to 3600 seconds) step the kiosk through the pages. |
+| **Switch with the app in front** | **Programs**, such as `Code.exe, obs64.exe`: while one of them is in front on this PC, a display of this screen's size switches to it. Empty is off. See [Profiles that follow the app in front](kiosk#profiles-that-follow-the-app-in-front). |
 | **Performance** | The frame-rate cap, **Animations** and the rendering switches (**Ring glides**, **Limit blur**, **Blur inside widgets**, **Live graph glow**) for this screen. The chip says whether they are the built-in values or changed here. |
 | **Pages · order & rotation** | **Add page**, drag a page's handle to reorder it (the page tabs follow), switch it in or out of the rotation, or **Open** it in Edit. |
 

@@ -406,6 +406,10 @@ export default function App({ fixture }: AppProps = {}) {
   };
   // The page rail's screen (`rail-host.ts`): the pages, the page shown, the page lock, the alerts shown and the actions it runs.
   const rotateSaved = stored.rotate?.enabled === true;
+  // The profile picker (P4): a kiosk only, and not one whose link or display pins its profile (the override can't move it).
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const assignedScreen = control?.displays?.find((d) => d.name === displayName)?.screen;
+  const switchable = kiosk && ![profilePin, assignedScreen].some((id) => id && config.profiles.some((p) => p.id === id));
   const railHost: RailHost = {
     pages: stored.pages,
     current: profile.pageId ?? stored.pages[0].id,
@@ -419,12 +423,25 @@ export default function App({ fixture }: AppProps = {}) {
         // the write routes load with their first use, so the kiosk entry carries none of them
         audio: (body) => import("@/lib/audio-control").then((m) => m.audioAct(body)),
         obs: (body) => import("@/lib/obs-control").then((m) => m.obsAct(body)),
+        picker: switchable ? () => setPickerOpen(true) : undefined,
       }),
     zone: (placement, style) => (
       <LivePlacement placement={placement} appearance={appearance}>
         {({ content, scope }) => <div style={{ ...style, ...scope }}>{content}</div>}
       </LivePlacement>
     ),
+    profiles: switchable
+      ? {
+          open: pickerOpen,
+          close: () => setPickerOpen(false),
+          all: config.profiles,
+          defaultId: resolveProfile(config, windowSize.w, windowSize.h).id,
+          front: control?.front,
+          paused: control?.autoPaused === true,
+          pick: (id) => void postControl("profile", { profile: id }),
+          auto: (on, lock) => void postControl("auto", { state: on ? "on" : "off", ...(lock ? { profile: lock } : {}) }),
+        }
+      : undefined,
   };
 
   // Persist the config (layout, profiles, theme) on every change.

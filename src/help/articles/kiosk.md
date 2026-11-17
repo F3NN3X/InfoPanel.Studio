@@ -53,6 +53,12 @@ With page dots and swipe on, drag a page and the next one slides in beside it un
 
 You pin widgets in Edit: see [The pinned layer](studio#the-pinned-layer).
 
+## Profiles that follow the app in front
+
+Tap or hold the **profile chip** at the top of the rail to open **Profiles**: the screens of this display's size, the one shown marked **Current**. Tap one to show it. A screen can list programs in **Screens › Switch with the app in front**; while one of them is in front on this PC, the display switches to that screen, and back to its usual one when another program comes to the front. **Matches now** marks a screen whose program is in front while it is not shown.
+
+**Switch with the app in front** turns switching on or off, and it stays so after a restart. **Lock to** keeps the screen shown whatever is in front, until you unlock it or turn switching back on. Switching only reads the program in front on Windows, and only while a screen lists programs. A kiosk link with `?profile=`, or a display given a screen in Screens, keeps its screen, and its chip only shows the name.
+
 ## Remote control
 
 A Stream Deck or another remote on your network can control a kiosk without changing your saved dashboard:

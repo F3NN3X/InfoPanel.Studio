@@ -1,6 +1,6 @@
 import { createContext, type CSSProperties, type ReactNode } from "react";
 import type { ActiveAlert } from "@/lib/alerts";
-import type { Placement } from "@/lib/layout";
+import type { MonitorProfile, Placement } from "@/lib/layout";
 import type { PinnedEdge, RailSlot, TouchAction } from "@/lib/pinned";
 import type { RailPage } from "@/lib/rail";
 
@@ -23,6 +23,28 @@ export interface RailHost {
   run: (action: TouchAction) => void;
   /** Draws a widget in a slot as a kiosk zone does, in a box of `style`; unset (a preview) leaves the box empty. */
   zone?: (placement: Placement, style: CSSProperties) => ReactNode;
+  /**
+   * The profile picker (P4): unset where the chip cannot switch the profile (the studio, a preview, a kiosk whose link or
+   * display pins its profile), and the chip is then a label.
+   */
+  profiles?: RailProfiles;
+}
+
+/** What the profile picker shows and does: the control channel's override and auto-switch (`control_auto.rs`). */
+export interface RailProfiles {
+  open: boolean;
+  close: () => void;
+  all: readonly MonitorProfile[];
+  /** The profile the panel shows when nothing overrides it ("Default"). */
+  defaultId: string;
+  /** The program in front, when the server reads one. */
+  front?: string;
+  /** Auto-switch is paused (the lock). */
+  paused: boolean;
+  /** Show a profile (the override). */
+  pick: (id: string) => void;
+  /** Turn auto-switch on or off; off with `lock` locks the panel to that profile. */
+  auto: (on: boolean, lock?: string) => void;
 }
 
 export const RailHostContext = createContext<RailHost | null>(null);
