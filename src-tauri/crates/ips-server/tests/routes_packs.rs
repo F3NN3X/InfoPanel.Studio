@@ -198,7 +198,7 @@ async fn a_missing_pack_a_missing_file_and_a_wrong_type_are_404() {
         "/api/packs/mine",
         "/api/packs/mine/",
         "/api/packs/",
-        "/api/packs/mine/assets/hex.gif",
+        "/api/packs/mine/assets/hex.bmp",
         "/api/packs/mine/assets/hex.exe",
         "/api/packs/mine/pack.css",
         "/api/packs/mine/LOOK.md",
@@ -405,7 +405,7 @@ async fn an_import_refuses_pack_css_a_bad_path_a_bad_id_and_the_wrong_caller() {
         list.push(extra);
         import_body("mine", &list)
     };
-    for extra in [("pack.css", "a{}"), ("../x.json", "{}"), ("assets/../x.json", "{}"), ("assets/a.gif", "x"), ("assets/a.exe", "x"), ("/pack.json", "{}"), ("C:/x.json", "{}"), ("assets/a.svg\0", "x"), ("assets/CON.png", "x")] {
+    for extra in [("pack.css", "a{}"), ("../x.json", "{}"), ("assets/../x.json", "{}"), ("assets/a.bmp", "x"), ("assets/a.exe", "x"), ("/pack.json", "{}"), ("C:/x.json", "{}"), ("assets/a.svg\0", "x"), ("assets/CON.png", "x")] {
         let reply = send(s.port, "POST", "/api/packs", &WRITE, &with(extra)).await;
         assert_eq!(reply.status, 400, "{extra:?}: {}", reply.text());
     }
