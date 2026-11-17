@@ -1096,9 +1096,13 @@ export function Builder(p: BuilderProps) {
   };
   const { w, h } = zonePx(size);
   const zoneEl = () => zoneHost.current?.querySelector<HTMLElement>("[data-recipe-zone]") ?? null;
+  // the measure waiting to run: kept across the effect's runs, which live data repeats on every tick
+  const pendingMeasure = useRef<{ timer?: ReturnType<typeof setTimeout>; frame: number; run: () => void }>({ frame: 0, run: () => {} });
+  useEffect(() => () => {
+    clearTimeout(pendingMeasure.current.timer);
+    cancelAnimationFrame(pendingMeasure.current.frame);
+  }, []);
   useEffect(() => {
-    let frame = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     let alive = true;
     const measure = () => {
       const zone = zoneEl();
@@ -1112,14 +1116,20 @@ export function Builder(p: BuilderProps) {
       }
       setDrawn((old) => (JSON.stringify(old) === JSON.stringify(steps) ? old : steps));
     };
-    // Measured once the card has settled: 120 ms after the last change to its boxes, text or styles (its blocks size from its box
-    // and its labels fit their text after it draws, which on a busy machine is later than any fixed delay), and again when the
-    // fonts have loaded. A measure that finds the same crowding changes nothing, so it settles.
+    // Measured 120 ms after a change to the card's boxes, text or styles (its blocks size from its box and its labels fit their text
+    // after it draws), and again when the fonts have loaded. A change while a measure waits joins it rather than putting it off: live
+    // data ticks about as often as the delay, so restarting the wait on each change starved the measure for as long as the data
+    // streamed, and the stage said "fits" over a cut label. A change after the measure reads the card waits for the next one, so the
+    // last change is always measured. A measure that finds the same crowding changes nothing, so it settles.
+    const pending = pendingMeasure.current;
+    pending.run = measure;
     const settle = () => {
-      clearTimeout(timer);
-      cancelAnimationFrame(frame);
-      timer = setTimeout(() => {
-        frame = requestAnimationFrame(measure);
+      if (pending.timer !== undefined) return;
+      pending.timer = setTimeout(() => {
+        pending.frame = requestAnimationFrame(() => {
+          pending.timer = undefined;
+          pending.run();
+        });
       }, 120);
     };
     settle();
@@ -1134,8 +1144,6 @@ export function Builder(p: BuilderProps) {
     void document.fonts?.ready.then(() => alive && settle());
     return () => {
       alive = false;
-      clearTimeout(timer);
-      cancelAnimationFrame(frame);
       resized.disconnect();
       changed.disconnect();
     };
@@ -1555,10 +1563,14 @@ export function Builder(p: BuilderProps) {
               />
             </div>
           </div>
+          {/* the problem list opens upward over the stage's foot, not under it: in the column it took the stage's height, so a warning
+              appearing rescaled the preview and moved every block under the pointer (a drop then landed on the wrong side) */}
+          <div className="relative shrink-0">
           <div role="status" data-validation="" className="flex items-center gap-2 text-caption">
             {line.ok && !warnings.length && !cautions.length ? <CircleCheck className="h-4 w-4 shrink-0 text-ui-ok" strokeWidth={1.5} aria-hidden /> : <CircleAlert className="h-4 w-4 shrink-0 text-ui-warn" strokeWidth={1.5} aria-hidden />}
             {!listed.length ? (
-              <span className="text-ui-2">
+              // one line whatever it says: a wrap when "fits at" arrives would take a line from the stage and move the preview
+              <span className="min-w-0 truncate text-ui-2">
                 {line.summary}
                 {fits && <span data-fits=""> · fits at {shown}</span>}
               </span>
@@ -1567,12 +1579,12 @@ export function Builder(p: BuilderProps) {
                 {listed[0].text}
               </button>
             ) : (
-              <span className="text-ui-2">{[problems.length && `${problems.length} problem${problems.length === 1 ? "" : "s"}`, cautions.length && `${cautions.length} warning${cautions.length === 1 ? "" : "s"}`, warnings.length && `${warnings.length} warning${warnings.length === 1 ? "" : "s"} at ${shown}`].filter(Boolean).join(", ")}</span>
+              <span className="min-w-0 truncate text-ui-2">{[problems.length && `${problems.length} problem${problems.length === 1 ? "" : "s"}`, cautions.length && `${cautions.length} warning${cautions.length === 1 ? "" : "s"}`, warnings.length && `${warnings.length} warning${warnings.length === 1 ? "" : "s"} at ${shown}`].filter(Boolean).join(", ")}</span>
             )}
             <span className={cn("ml-auto shrink-0", floorIssue ? "text-ui-warn" : "text-ui-3")}>{floorIssue ? plainIssue(recipe, floorIssue).text : line.floor}</span>
           </div>
           {listed.length > 1 && (
-            <ul aria-label="Problems" data-problems="" className="-mt-1 flex max-h-[30%] shrink-0 flex-col gap-0.5 overflow-y-auto text-caption">
+            <ul aria-label="Problems" data-problems="" className="absolute inset-x-0 bottom-full z-30 mb-1 flex max-h-40 flex-col gap-0.5 overflow-y-auto rounded-ui-sm border border-ui-subtle bg-ui-panel py-1 text-caption shadow-sm">
               {listed.map((x, k) => (
                 <li key={`${k} ${x.text}`}>
                   <button type="button" data-problem={k} data-warning={x.warn ? "" : undefined} onClick={() => goTo(x)} className={cn("w-full truncate rounded-ui-sm px-6 py-0.5 text-left hover:bg-ui-raised hover:text-ui-1", x.warn ? "text-ui-3" : "text-ui-2")}>
@@ -1582,6 +1594,7 @@ export function Builder(p: BuilderProps) {
               ))}
             </ul>
           )}
+          </div>
           {checkNow?.found && sizeFindings && (
             <section aria-label="Every size" data-size-check="" className="-mt-1 flex max-h-[30%] shrink-0 flex-col gap-0.5 text-caption">
               <div className="flex items-center gap-2">
