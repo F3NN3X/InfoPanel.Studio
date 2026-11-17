@@ -10,6 +10,9 @@ let loaded: readonly AddItem[] = [];
 /** The Add rows of the recipes the server holds that pass the validator, loaded once (again after `reloadRecipes`). */
 export const loadRecipeItems = (): Promise<readonly AddItem[]> => (pending ??= import("@/components/studio/recipe-item").then((m) => m.recipeItems()));
 
+/** The user's widgets a page rail's slot can hold (P6), from the same chunk; read afresh each time (the rail editor opens). */
+export const loadUserRailWidgets = () => import("@/components/studio/recipe-item").then((m) => m.userRailWidgets());
+
 /** Reads the list again on the next load (a package was imported or removed). */
 export const reloadRecipes = (): void => {
   pending = undefined;

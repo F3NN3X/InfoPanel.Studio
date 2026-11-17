@@ -4,29 +4,18 @@ import { Button } from "@/components/ui/button";
 import { IconGrid, type IconGridItem } from "@/components/ui/icon-grid";
 import { appIcon, AssetError, assetIdOf, ASSETS_URL } from "@/lib/assets";
 import { RAIL_GROUP_NAMES, touchChoices, touchValue } from "@/lib/pinned-edit";
-import type { BadgeRule, RailGroup, RailIcon, RailPlate, RailShape, RailSlot, TouchAction, TouchGesture, TouchMap } from "@/lib/pinned";
+import type { BadgeRule, RailGroup, RailIcon, RailPlate, RailShape, RailSlot } from "@/lib/pinned";
 import { slotName, type RailPage } from "@/lib/rail";
 import { MediaField } from "../media-field";
 import { PAGE_ICONS } from "../page-icons";
 import { PanelSection } from "../panel-section";
 import { SegmentedRow, SelectRow, TextRow, ToggleRow } from "../setting-rows";
+import { actionOptions, pickAction, TouchRows, useTouchSources } from "../touch-rows";
 import type { RailWidget } from "./rail-editor";
-
-/*
- * The touch rows' hints are taken from Tessera Deck's editor (host/editor/app.js, `hints`, commit efca233, MIT,
- * Copyright (c) 2026 catorendal-a11y; licences/tessera-deck-MIT.txt), reworded from a key to a rail item, as the
- * `rail-editor` fixture has them (INVESTIGATION §10).
- */
 
 const ICONS: IconGridItem[] = Object.entries(PAGE_ICONS).map(([name, Icon]) => ({ id: name, label: name, icon: <Icon /> }));
 
 const KIND_LINES = { page: "Rail item · opens a page", profile: "Rail item · the profile", action: "Rail item · runs an action", widget: "Rail item · a widget" } as const;
-
-const GESTURES: { g: TouchGesture; label: string; hint: string }[] = [
-  { g: "tap", label: "Tap", hint: "Runs when you tap the item." },
-  { g: "hold", label: "Hold", hint: "Runs when you hold the item for about half a second instead of the tap." },
-  { g: "doubleTap", label: "Double tap", hint: "Runs when you tap twice quickly. An item with a double tap waits a moment before its tap runs." },
-];
 
 const BADGES: { value: BadgeRule | ""; label: string }[] = [
   { value: "", label: "No badge" },
@@ -90,14 +79,6 @@ const PLATES: { value: RailPlate | ""; label: string }[] = [
   { value: "contrast", label: "Contrast" },
 ];
 
-function withTouch(slot: RailSlot, g: TouchGesture, action: TouchAction | undefined): RailSlot {
-  const touch: TouchMap = { ...slot.touch };
-  if (action) touch[g] = action;
-  else delete touch[g];
-  const { touch: _old, ...rest } = slot;
-  return Object.keys(touch).length ? { ...rest, touch } : rest;
-}
-
 interface RailSlotInspectorProps {
   slot: RailSlot;
   pages: readonly RailPage[];
@@ -115,7 +96,7 @@ interface RailSlotInspectorProps {
 export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: RailSlotInspectorProps) {
   const name = slotName(slot, pages);
   const t = slot.target;
-  const choices = touchChoices(pages);
+  const choices = touchChoices(pages, useTouchSources());
   const icon = slot.icon;
   // "Image" picked: the slot keeps its icon until a file is chosen (an image with no file draws nothing)
   const [pending, setPending] = useState(false);
@@ -123,12 +104,6 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
   const key = (field: string) => `rail:${slot.id}:${field}`;
   const app = useAppIcon(icon, onChange, key("exe"));
   const logo = t.kind === "profile" && (icon?.from === "image" || icon?.from === "app");
-  const actionOptions = (none: string, stored: TouchAction | undefined) => [
-    { value: "", label: none },
-    ...choices.map((c) => ({ value: c.value, label: c.label })),
-    ...(touchValue(stored) === "other" ? [{ value: "other", label: "Set in the config (kept)" }] : []),
-  ];
-  const pick = (value: string, stored: TouchAction | undefined): TouchAction | undefined => (value === "other" ? stored : choices.find((c) => c.value === value)?.action);
   return (
     <div className="flex flex-col">
       <div className="px-4 py-3">
@@ -146,10 +121,10 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
             label="Action"
             value={touchValue(t.action)}
             onChange={(v) => {
-              const action = pick(v, t.action);
+              const action = pickAction(choices, v, t.action);
               if (action) onChange((s) => ({ ...s, target: { kind: "action", action } }));
             }}
-            options={actionOptions("Choose an action", t.action).slice(1)}
+            options={actionOptions(choices, "Choose an action", t.action).slice(1)}
           />
         )}
         {t.kind === "widget" && widgets.length > 0 && (
@@ -248,12 +223,17 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove }: 
         </PanelSection>
       )}
       <PanelSection id="rail-touch" title="Touch" icon={Hand}>
-        {GESTURES.map(({ g, label, hint }) => (
-          <div key={g}>
-            <SelectRow label={label} value={touchValue(slot.touch?.[g])} onChange={(v) => onChange((s) => withTouch(s, g, pick(v, s.touch?.[g])))} options={actionOptions(g === "tap" ? "What the item is" : "Nothing", slot.touch?.[g])} />
-            <p className="text-caption text-ui-3">{hint}</p>
-          </div>
-        ))}
+        <TouchRows
+          touch={slot.touch}
+          pages={pages}
+          tapNone="What the item is"
+          onChange={(touch) =>
+            onChange((s) => {
+              const { touch: _old, ...rest } = s;
+              return touch ? { ...rest, touch } : rest;
+            })
+          }
+        />
       </PanelSection>
       <PanelSection id="rail-badge" title="Badge" icon={Bell}>
         <SelectRow

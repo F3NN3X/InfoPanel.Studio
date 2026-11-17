@@ -12,7 +12,7 @@ import { recipeBytes } from "@/widgets/recipe/package";
 import { boundSensors, deviceSources, expandKey } from "@/widgets/recipe/reads";
 import { type DeviceSource, isDeviceSource, type RepeatSource, SOURCE_FIELDS, SOURCE_MAIN, sourceKeys } from "@/widgets/recipe/sources";
 import { BLOCK_TYPES, type Binding, type Block, type BlockType, type CardBlock, type Cells, type Condition, type Container, type FollowOption, type LabelPart, type PackageFile, type Place, type Recipe, type RecipeDeviceKind, type RecipeOption, type Thresholds, WEATHER_PLACE_FIELDS } from "@/widgets/recipe/types";
-import { DEPTH_MAX, DEVICE_SLOT, format2Keys, ITEMS_MAX, type RecipeIssue, validateRecipe } from "@/widgets/recipe/validate";
+import { DEPTH_MAX, DEVICE_SLOT, format2Keys, ITEMS_MAX, railPresetKeys, type RecipeIssue, validateRecipe } from "@/widgets/recipe/validate";
 import type { WidgetPreset } from "@/widgets/define";
 
 /** A block's place: its child indices from the root card's. */
@@ -699,9 +699,20 @@ export const blurbOf = (typed: string): string | undefined => typed.replace(/[<>
  */
 export const presetOptions = (recipe: Recipe): RecipeOption[] => recipe.options.filter((o) => o.type !== "color" && o.type !== "date" && o.type !== "time");
 
-/** Makes a preset the default (what a fresh add is). */
+/** Makes a preset the default (what a fresh add is). A rail preset can't be: Add opens the default on the grid. */
 export function setDefaultPreset(recipe: Recipe, id: string): Recipe {
+  if (recipe.presets.find((p) => p.id === id)?.size === "rail") return recipe;
   return { ...recipe, presets: recipe.presets.map(({ default: _d, ...p }) => (p.id === id ? { ...p, default: true as const } : p)) };
+}
+
+/**
+ * Makes a preset a rail preset (decision 8, P6): it fills a slot of the page rail, 72 px wide, instead of cells, and the rail
+ * editor lists it. Not the default (Add opens that on the grid). "Use the stage's size" puts it back on the grid. A rail preset
+ * makes the recipe format 2 (`withFormat`).
+ */
+export function railPreset(recipe: Recipe, id: string): Recipe {
+  const p = recipe.presets.find((x) => x.id === id);
+  return !p || p.default || p.size === "rail" ? recipe : updatePreset(recipe, id, { size: "rail" });
 }
 
 /** Takes a preset out; the last one stays (a recipe has one), and a removed default passes to the first left. */
@@ -717,7 +728,8 @@ export function presetLine(recipe: Recipe, p: WidgetPreset): string {
     const o = recipe.options.find((x) => x.key === k);
     return o ? `${o.label} ${valueText(o, o.type === "place-list" && typeof v === "string" ? JSON.parse(v) : v)}` : k;
   });
-  return `${p.blurb ?? (set.join(", ") || "Every option at its default")} · ${p.size[0]}×${p.size[1]}`;
+  // a rail preset has no cells (it said "r×a" before: QUESTIONS P-B11)
+  return `${p.blurb ?? (set.join(", ") || "Every option at its default")} · ${p.size === "rail" ? "rail slot" : `${p.size[0]}×${p.size[1]}`}`;
 }
 
 /* ───────── recipes ───────── */
@@ -876,10 +888,11 @@ export function validationLine(recipe: Recipe, issues: readonly RecipeIssue[]): 
 
 /**
  * The recipe with the format its keys need: 2 where it uses a key format 1 has not got (a label's parts; Phase C's text alignment,
- * text colours, a ring's centre colour, Show in and low is bad: `format2Keys`), else 1, byte for byte.
+ * text colours, a ring's centre colour, Show in and low is bad: `format2Keys`; a rail preset, P6: `railPresetKeys`), else 1, byte
+ * for byte.
  */
 export function withFormat(recipe: Recipe): Recipe {
-  const format = format2Keys(recipe.root).length ? 2 : 1;
+  const format = format2Keys(recipe.root).length || railPresetKeys(recipe).length ? 2 : 1;
   return recipe.format === format ? recipe : { ...recipe, format };
 }
 

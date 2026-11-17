@@ -13,7 +13,7 @@ import { PlaceListEditor } from "@/components/studio/place-list/place-list-edito
 import { placeList } from "@/components/studio/place-list/place-search";
 import type { Data } from "@/widgets/core/types";
 import type { Cells, Recipe, RecipeDeviceKind } from "@/widgets/recipe/types";
-import { blurbOf, presetLine, presetOptions, presetValues, removePreset, savePreset, setDefaultPreset, setPresetValue, updatePreset, withSampleItems } from "./builder-model";
+import { blurbOf, presetLine, presetOptions, presetValues, railPreset, removePreset, savePreset, setDefaultPreset, setPresetValue, updatePreset, withSampleItems } from "./builder-model";
 import { Field, INPUT, NumberInput, Select, TextInput } from "./fields";
 import { SensorDefault } from "./options-tab";
 
@@ -73,11 +73,15 @@ export function PresetsTab({ recipe, onChange, current, onPick, values, size, da
                   <Menu.Item className={ITEM} onClick={() => setRenaming(p.id)}>
                     Rename
                   </Menu.Item>
-                  <Menu.Item className={ITEM} disabled={!!p.default} onClick={() => onChange(setDefaultPreset(recipe, p.id))}>
+                  <Menu.Item className={ITEM} disabled={!!p.default || p.size === "rail"} onClick={() => onChange(setDefaultPreset(recipe, p.id))}>
                     Make it the default
                   </Menu.Item>
                   <Menu.Item className={ITEM} onClick={() => onChange(updatePreset(recipe, p.id, { size: [...size] as Cells }))}>
                     Use the stage's size ({size[0]}×{size[1]})
+                  </Menu.Item>
+                  {/* a slot of the page rail (P6); the default stays on the grid, where Add opens it */}
+                  <Menu.Item className={ITEM} disabled={!!p.default || p.size === "rail"} onClick={() => (onChange(railPreset(recipe, p.id)), onPick(p.id))}>
+                    Use in the page rail
                   </Menu.Item>
                   <Menu.Item className={`${ITEM} text-ui-danger`} disabled={recipe.presets.length < 2} onClick={() => onChange(removePreset(recipe, p.id))}>
                     Remove
@@ -133,7 +137,7 @@ function PresetValues({ recipe, id, onChange, data, devices, onOpenSources }: { 
   return (
     <div data-preset-values={id} className="mb-1 flex flex-col gap-1 rounded-ui-md border border-ui-subtle px-3 py-1.5">
       {size === "rail" ? (
-        <Field label="Size">
+        <Field label="Size" hint="A widget slot of the page rail, 72 px wide. Use the stage's size to put it back on the grid">
           <span className="text-ui-2">A rail slot</span>
         </Field>
       ) : (

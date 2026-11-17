@@ -182,6 +182,8 @@ The settings for whatever is selected. Where it sits depends on the width of the
 
 A selected widget's inspector starts with **Widget** and where it sits under its name, then its column (**C**), row (**R**), width and height in cells. Type a value and press Enter; a box turns red when the widget can't go there because another widget is in the way. The tabs **Content**, **Style**, **Data** and **Behaviour** follow.
 
+**Behaviour › Touch** sets what a tap, a hold (about half a second) and a double tap on the widget do on the kiosk: open a page, the next or previous page, the page lock, profiles, play or pause, the next or previous track, mute or unmute one of this computer's audio devices, an OBS scene or the OBS mic. A press on the widget's own buttons and sliders still does what they do, and a drag still swipes the page. With a double tap set, a tap waits a moment before it runs. Nothing runs in the studio. A pinned widget has the same **Touch** rows, and a rail item has them in **Edit rail items**.
+
 ## Saving
 
 The studio pushes every change to the local server automatically. The saved state in the top bar says **Unsaved changes** while some edits haven't reached the server yet; press it (or `Ctrl+S`) to push them now.

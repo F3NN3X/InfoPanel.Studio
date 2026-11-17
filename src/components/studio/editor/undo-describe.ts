@@ -55,6 +55,8 @@ function zoneStep(before: Placement, after: Placement, profileId: string, pageId
     }
   }
   if (keys.length > 1) return { text: `${keys.length} settings`, on, target };
+  // a widget's tap, hold or double tap (P6)
+  if (JSON.stringify(before.touch) !== JSON.stringify(after.touch)) return { text: "Touch actions", on, target };
   if (before.visible !== after.visible) return { text: after.visible ? `Show ${on}` : `Hide ${on}`, target };
   if (before.colSpan !== after.colSpan || before.rowSpan !== after.rowSpan) return { text: `Resize ${on}`, target };
   if (before.colStart !== after.colStart || before.rowStart !== after.rowStart) return { text: `Move ${on}`, target };

@@ -245,24 +245,32 @@ describe("validateRecipe", () => {
   });
 
   it("text-floor: a rail preset is checked in a rail slot's box, where a size condition can hide a text", async () => {
-    // a rail slot is 72 x 64 px: a base of 4.5 px, so a value at scale 1 is under the floor there however big its grid sizes are
-    const files = await cpu((r) => (r.presets[1].size = "rail"));
+    // (a rail preset is format 2: QUESTIONS P2 11, P6) a rail slot is 72 x 64 px: a base of 4.5 px, so a value at scale 1 is under the floor there however big its grid sizes are
+    const files = await cpu((r) => ((r.format = 2), (r.presets[1].size = "rail")));
     expect(errors(files)).toEqual(["text-floor"]);
     expect(validateRecipe({ files }).find((i) => i.rule === "text-floor")?.message).toMatch(/in a rail slot \(72 x 64 px\)/);
     // every text scaled to 2.5 (11.25 px in the slot) passes, and so does one only drawn from 2x2 up
     const texts = (b: Block): Block[] => [b, ...("children" in b && Array.isArray(b.children) ? (b.children as Block[]).flatMap(texts) : [])];
     const big = (r: Recipe) => texts(r.root).filter((b) => ["value", "label", "ring", "gauge"].includes(b.type)).forEach((b) => Object.assign(b, { scale: 2.5 }));
-    expect(errors(await cpu((r) => (big(r), (r.presets[1].size = "rail"))))).toEqual([]);
+    expect(errors(await cpu((r) => (big(r), (r.format = 2), (r.presets[1].size = "rail"))))).toEqual([]);
     expect(
       errors(
         await cpu((r) => {
           big(r);
+          r.format = 2;
           r.presets[1].size = "rail";
           Object.assign(topRow(r), { when: { size: { min: [2, 2] } } });
           for (const b of texts(topRow(r))) if (b !== topRow(r)) Object.assign(b, { scale: 1 });
         })
       )
     ).toEqual([]);
+  });
+
+  it("format and preset: a rail preset needs format 2 and is never the default", async () => {
+    const one = validateRecipe({ files: await cpu((r) => (r.presets[1].size = "rail")) });
+    expect(one.filter((i) => i.rule === "format").map((i) => i.message)).toEqual(["$.presets[1].size: a rail preset needs recipe format 2"]);
+    const def = validateRecipe({ files: await cpu((r) => ((r.format = 2), (r.presets.find((p) => p.default)!.size = "rail"))) });
+    expect(def.filter((i) => i.rule === "preset").map((i) => i.message)).toEqual([expect.stringMatching(/the default preset opens on the grid, so it can't be a rail preset$/)]);
   });
 
   it("sample: sensor keys, items for a place list with the source's fields", async () => {

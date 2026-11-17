@@ -47,6 +47,11 @@ export interface CodeWidgetDefinition {
   minSize?: [number, number];
   /** The options people can change; at most 16. */
   settings?: SdkSetting[];
+  /**
+   * Offers the widget for a page rail's widget slot (72 px wide, 64 to 76 high; pinned layer P6), with these option values
+   * there (each a `settings` key and a value of its type). Unset: the widget is not offered in the rail. Older builds ignore it.
+   */
+  rail?: { settings?: Record<string, string | number | boolean> };
   /** The widget's body. A component: hooks from `sdk.React` work in it. */
   render: (props: CodeWidgetProps) => ReactNode;
 }

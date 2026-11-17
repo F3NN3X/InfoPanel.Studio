@@ -6,7 +6,7 @@
 import type { ModuleSettings } from "@/modules/types";
 import type { IslandConfig } from "./island/config";
 import { uid, type DashboardConfig, type MonitorProfile } from "./layout";
-import { normalizePinned, remapPinnedPages, type PinnedEdge, type PinnedItem, type RailGroup, type RailSlot, type TouchAction } from "./pinned";
+import { normalizePinned, remapPinnedPages, type MediaKey, type PinnedEdge, type PinnedItem, type RailGroup, type RailSlot, type TouchAction } from "./pinned";
 import { RAIL_MODULE, RAIL_THICKNESS, railNeed, railSlots, type RailPage, type RailParts } from "./rail";
 
 /** What Add offers for the pinned layer: the rail and the widgets the fixtures pin, each on its usual edge and size. */
@@ -196,21 +196,83 @@ export const RAIL_GROUP_NAMES: readonly [RailGroup, string][] = [
   ["bottom", "Bottom"],
 ];
 
-/** The touch actions the editor offers (each runs through a guarded route the rail already calls): a page, next, previous, the page lock, the profile picker. */
-export function touchChoices(pages: readonly RailPage[]): { value: string; label: string; action: TouchAction }[] {
+/** What the audio and OBS actions can name now: this PC's devices (the audio stream) and OBS's scenes (the extras). */
+export interface TouchSources {
+  outputs: readonly { id: string; name: string }[];
+  inputs: readonly { id: string; name: string }[];
+  scenes: readonly { id: string; name: string }[];
+}
+
+export const NO_TOUCH_SOURCES: TouchSources = { outputs: [], inputs: [], scenes: [] };
+
+/** A touch action as the editor lists it: its value in the list, its label and the group it is listed under. */
+export interface TouchChoice {
+  value: string;
+  label: string;
+  group: "Panel" | "Media" | "Audio" | "OBS";
+  action: TouchAction;
+}
+
+const MEDIA_CHOICES: readonly [MediaKey, string][] = [
+  ["play-pause", "Play or pause"],
+  ["next", "Next track"],
+  ["previous", "Previous track"],
+];
+
+const mute = (kind: "output" | "input", id: string): TouchAction => ({ op: "audio", body: { target: "windows", op: "mute", kind, id } });
+
+/**
+ * The touch actions the editor offers, P6's safe set, each through a route the kiosk already guards: a page, next,
+ * previous, the page lock and the profile picker; the media keys; muting one of this PC's devices; an OBS scene and the
+ * OBS mic. Running a command is P7's.
+ */
+export function touchChoices(pages: readonly RailPage[], sources: TouchSources = NO_TOUCH_SOURCES): TouchChoice[] {
   return [
-    ...pages.map((p) => ({ value: `page:${p.id}`, label: `Open page: ${p.name}`, action: { op: "page", to: p.id } as TouchAction })),
-    { value: "page:next", label: "Next page", action: { op: "page", to: "next" } },
-    { value: "page:prev", label: "Previous page", action: { op: "page", to: "prev" } },
-    { value: "lock", label: "Page lock: rotate or stay", action: { op: "lock" } },
-    { value: "profile-picker", label: "Profiles", action: { op: "profile-picker" } },
+    ...pages.map((p): TouchChoice => ({ value: `page:${p.id}`, label: `Open page: ${p.name}`, group: "Panel", action: { op: "page", to: p.id } })),
+    { value: "page:next", label: "Next page", group: "Panel", action: { op: "page", to: "next" } },
+    { value: "page:prev", label: "Previous page", group: "Panel", action: { op: "page", to: "prev" } },
+    { value: "lock", label: "Page lock: rotate or stay", group: "Panel", action: { op: "lock" } },
+    { value: "profile-picker", label: "Profiles", group: "Panel", action: { op: "profile-picker" } },
+    ...MEDIA_CHOICES.map(([key, label]): TouchChoice => ({ value: `media:${key}`, label: `Media: ${label.toLowerCase()}`, group: "Media", action: { op: "media", key } })),
+    ...sources.inputs.map((d): TouchChoice => ({ value: `mute:input:${d.id}`, label: `Mute or unmute: ${d.name}`, group: "Audio", action: mute("input", d.id) })),
+    ...sources.outputs.map((d): TouchChoice => ({ value: `mute:output:${d.id}`, label: `Mute or unmute: ${d.name}`, group: "Audio", action: mute("output", d.id) })),
+    ...sources.scenes.map((sc): TouchChoice => ({ value: `obs:scene:${sc.id}`, label: `OBS scene: ${sc.name}`, group: "OBS", action: { op: "obs", body: { op: "scene", id: sc.id } } })),
+    { value: "obs:mic", label: "OBS: mute or unmute the mic", group: "OBS", action: { op: "obs", body: { op: "mic" } } },
   ];
 }
 
-/** The value a stored action reads as in `touchChoices` ("" for none; `other` for one the editor doesn't offer, kept as stored). */
+/**
+ * The value a stored action reads as in `touchChoices` ("" for none). One the editor doesn't offer (a command, an audio
+ * or OBS action of another shape) is `other` and kept as stored.
+ */
 export function touchValue(action: TouchAction | undefined): string {
   if (!action) return "";
-  if (action.op === "page") return `page:${action.to}`;
-  if (action.op === "lock" || action.op === "profile-picker") return action.op;
-  return "other";
+  switch (action.op) {
+    case "page":
+      return `page:${action.to}`;
+    case "lock":
+    case "profile-picker":
+      return action.op;
+    case "media":
+      return `media:${action.key}`;
+    case "audio": {
+      const b = action.body;
+      const plain = b.target === "windows" && b.op === "mute" && (b.kind === "input" || b.kind === "output") && typeof b.id === "string" && b.muted === undefined;
+      return plain ? `mute:${String(b.kind)}:${String(b.id)}` : "other";
+    }
+    case "obs": {
+      const b = action.body;
+      if (b.op === "mic") return "obs:mic";
+      return b.op === "scene" && typeof b.id === "string" ? `obs:scene:${b.id}` : "other";
+    }
+    default:
+      return "other";
+  }
+}
+
+/** The name of a stored action the list doesn't hold now (a device not connected, a scene OBS doesn't list, a command). */
+export function keptLabel(action: TouchAction): string {
+  if (action.op === "audio" && touchValue(action) !== "other") return "Mute or unmute a device not connected now";
+  if (action.op === "obs" && touchValue(action) !== "other") return "An OBS scene OBS doesn't list now";
+  return "Set in the config (kept)";
 }

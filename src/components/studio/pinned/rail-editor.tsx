@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { modules } from "@/modules";
 import type { ModuleSettings } from "@/modules/types";
 import { ITEM, POPUP } from "../menu-styles";
+import { isCodeId, isRecipeId } from "@/widgets/recipe/resolve";
+import { loadUserRailWidgets } from "@/widgets/recipe/use-recipes";
 import { loadWidgetPresets } from "../widget-presets";
 import type { ItemUpdate } from "./pinned-inspector";
 import { PinnedCanvas } from "./pinned-canvas";
@@ -24,18 +26,24 @@ export interface RailWidget {
   settings: ModuleSettings;
 }
 
-/** The widgets with a rail preset, loaded with the presets (their own chunk). */
+/**
+ * The widgets with a rail preset: the built-in ones, loaded with the presets (their own chunk), then the user's recipes with a
+ * rail preset and code widgets that offer themselves for the rail (P6), from the recipes' chunk. A user widget list that can't be
+ * read leaves the built-in ones.
+ */
 export function useRailWidgets(): readonly RailWidget[] {
   const [list, setList] = useState<readonly RailWidget[]>([]);
   useEffect(() => {
     let alive = true;
-    void loadWidgetPresets().then((map) => {
+    const own = loadUserRailWidgets().catch((): RailWidget[] => []);
+    void Promise.all([loadWidgetPresets(), own]).then(([map, user]) => {
       if (!alive) return;
-      setList(
-        Object.entries(map).flatMap(([module, presets]) =>
+      setList([
+        ...Object.entries(map).flatMap(([module, presets]) =>
           presets.filter((p) => p.size === "rail").map((p) => ({ module, name: `${modules.find((m) => m.id === module)?.title ?? module} · ${p.name}`, settings: p.settings }))
-        )
-      );
+        ),
+        ...user,
+      ]);
     });
     return () => {
       alive = false;
@@ -53,7 +61,7 @@ function lineOf(slot: RailSlot, pages: readonly RailPage[]): string {
   const badge = slot.badge ? " · badge" : "";
   if (t.kind === "page") return `Opens ${pages.find((p) => p.id === t.pageId)?.name ?? "a page"}${badge}${own}`;
   if (t.kind === "profile") return `The profile${own}`;
-  if (t.kind === "widget") return `${modules.find((m) => m.id === t.module)?.title ?? t.module} widget${own}`;
+  if (t.kind === "widget") return `${modules.find((m) => m.id === t.module)?.title ?? (isRecipeId(t.module) || isCodeId(t.module) ? "Your" : t.module)} widget${own}`;
   return `Action${badge}${own}`;
 }
 

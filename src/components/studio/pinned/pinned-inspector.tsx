@@ -11,6 +11,7 @@ import type { ModuleSetting, ModuleSettingValue } from "@/modules/types";
 import { PanelSection } from "../panel-section";
 import { SettingRow } from "../setting-control";
 import { SegmentedRow, SliderRow, TextRow } from "../setting-rows";
+import { TouchRows } from "../touch-rows";
 
 /** A change to the item; `key` coalesces the steps of one field (a slider's drag is one undo step). */
 export type ItemUpdate = (fn: (it: PinnedItem) => PinnedItem, key?: string) => void;
@@ -146,6 +147,20 @@ export function PinnedInspector({ config, profile, page, item, update, onHidePin
           <TouchLine gesture="Tap Auto or Locked" action="Rotate pages, or stay" />
           <TouchLine gesture="Swipe on the page" action="Next or previous page" />
           <p className="text-caption text-ui-3">An item's own tap, hold and double tap are set in Edit rail items.</p>
+        </PanelSection>
+      )}
+      {mod && !rail && (
+        <PanelSection id="pinned-touch" title="Touch" icon={Hand}>
+          <TouchRows
+            touch={item.placement.touch}
+            pages={profile.pages}
+            onChange={(touch, g) =>
+              update((it) => {
+                const { touch: _old, ...placement } = it.placement;
+                return { ...it, placement: touch ? { ...placement, touch } : placement };
+              }, `pinned:${item.id}:touch:${g}`)
+            }
+          />
         </PanelSection>
       )}
     </div>

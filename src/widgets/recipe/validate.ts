@@ -249,6 +249,8 @@ function recipeRules(r: Recipe, files: readonly PackageFile[], add: Add): void {
     ids.add(p.id);
     // a rail preset fills a rail slot (`RAIL_SLOT`), not cells: its text floor is checked at that box
     if (p.size !== "rail" && !within(p.size)) add("preset", R, `preset ${p.id}: size ${p.size.join("x")} is outside ${min.join("x")} to ${max.join("x")}`);
+    // the default is what Add opens on the grid, so it has a grid size
+    if (p.size === "rail" && p.default) add("preset", R, `preset ${p.id}: the default preset opens on the grid, so it can't be a rail preset`);
     if (p.minSize && !within(p.minSize)) add("preset", R, `preset ${p.id}: minSize ${p.minSize.join("x")} is outside ${min.join("x")} to ${max.join("x")}`);
     for (const [key, value] of Object.entries(p.settings)) {
       const o = options.get(key);
@@ -276,6 +278,8 @@ function recipeRules(r: Recipe, files: readonly PackageFile[], add: Add): void {
   if (count > BLOCKS_MAX) add("size", R, `${count} blocks, at most ${BLOCKS_MAX}`);
   // format 1 is what an older build reads: a recipe using a key it has not got says format 2, so that build can say why it won't draw it
   if (r.format === 1) for (const at of format2Keys(r.root)) add("format", R, `${at}: ${FORMAT2_WHAT[at.split(".").pop()!]} recipe format 2`);
+  // a rail preset (pinned layer P6) is format 2 as well: a build before it refuses `"size": "rail"` in its schema
+  if (r.format === 1) for (const at of railPresetKeys(r)) add("format", R, `${at}: a rail preset needs recipe format 2`);
 
   // the text floor at every size the recipe allows
   floorRules(r, add);
@@ -566,6 +570,9 @@ export function format2Keys(block: Block, at = "$.root", out: string[] = []): st
   childrenOf(block).forEach((c, k) => format2Keys(c, `${at}.children[${k}]`, out));
   return out;
 }
+
+/** Where a recipe has a rail preset (`$.presets[i].size`), which format 1 has not got (QUESTIONS P2 11, P6). */
+export const railPresetKeys = (r: Pick<Recipe, "presets">): string[] => r.presets.flatMap((p, i) => (p.size === "rail" ? [`$.presets[${i}].size`] : []));
 
 /** Whether a condition's size part lets a block show in a zone of `cells` (its option part is a person's choice, so it does not count). */
 export const sizeHolds = (when: Condition | undefined, cells: Cells): boolean => {

@@ -152,6 +152,7 @@ export type SpecialSection =
   | "panelData"
   | "blankPick"
   | "zoneFrame"
+  | "touch"
   | "ipMode"
   | "ipPosition"
   | "ipSensor"
@@ -282,12 +283,17 @@ function ordered(sections: InspectorSection[], tab: InspectorTab, lead: Inspecto
   ];
 }
 
-/** A zone's sections tab by tab, its Bound data card (if any) leading the Data tab. */
+/** What a tap, a hold and a double tap on the widget run (`Placement.touch`, decision 10): the last of Behaviour. */
+const touchSection = (): InspectorSection =>
+  section({ id: "touch", title: "Touch", tab: "behaviour", special: "touch", hint: "What a tap, a hold and a double tap on the panel run", terms: ["Tap", "Hold", "Double tap", "Gesture", "Action"] });
+
+/** A zone's sections tab by tab, its Bound data card (if any) leading the Data tab, Touch closing Behaviour. */
 const zoneTabs = (sections: InspectorSection[], bound?: InspectorSection) => [
   ...ordered(sections, "show"),
   ...ordered(sections, "style"),
   ...ordered(sections, "data", bound ? [bound] : []),
   ...ordered(sections, "behaviour"),
+  touchSection(),
 ];
 
 /**

@@ -108,6 +108,12 @@ security model, what was fixed, what was decided, and what is deferred.
   whatever `ALLOW_REMOTE_UPLOAD` says, since it tells which programs are installed; it needs `X-Dashboard-Asset: 1` and
   JSON, and a cross-site request is refused before it (the request guard). A program's icon is read once per run, then
   answered from a cache. Off Windows the route answers 501.
+- **Media keys and touch actions** (`POST /api/media/act`, `crates/ips-server/src/media.rs`): a widget's or rail item's
+  touch action may press play/pause, next or previous on the PC (`SendInput` of the three media keys; no other key can be
+  named, and nothing is read back). Like the audio and OBS writes it needs `X-Dashboard-Control: 1` and JSON, a cross-site
+  request is refused first, and another machine is refused unless `ALLOW_REMOTE_EDIT=1`. Touch actions run only routes
+  that already exist with these guards (pages and the page lock through the control channel, audio, OBS scenes and mic,
+  media keys); running a program is not one of them. Off Windows the route answers 503.
 - **Profile files with images**: an exported screen carries the images it names as base64, within the import's 5 MB. On
   import each goes through the upload route above (magic bytes checked, an SVG sanitised) before the screen points at it;
   an entry whose id, type or data does not have the expected shape is dropped unread.

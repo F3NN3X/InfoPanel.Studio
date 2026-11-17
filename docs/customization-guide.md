@@ -1508,9 +1508,11 @@ buttons instead (Edit's **Edit rail items** writes it):
   groups; `bottom` sits at the foot, above the page lock.
 - **target** - a `page`; the `profile` (a logo slot, which opens the profile picker);
   an `action`: `page` (an id, `next` or `prev`), `lock` (the page lock), `profile-picker`, `audio` or `obs` (the same
-  requests the Audio and OBS buttons send, refused from another computer as theirs are); or a
+  requests the Audio and OBS buttons send, refused from another computer as theirs are), or `media` with a `key` of
+  `play-pause`, `next` or `previous` (the PC's media keys, guarded the same way); or a
   `widget` with `module` and `settings`, drawn 72 px wide (a widget whose preset is a rail preset,
-  such as the Clock's **Rail**).
+  such as the Clock's **Rail**, one of your recipes with a rail preset, or a code widget that offers itself for the
+  rail).
 - **icon** - `{ "from": "set", "name": … }` takes a page icon (the page icon picker's names, with
   `key-grid`, `keyboard` and `mic-off`); `{ "from": "image", "asset": … }` an uploaded PNG, WebP,
   GIF or SVG (an SVG is sanitised when it is uploaded, up to 256 KB), in its own colours unless
@@ -1528,6 +1530,31 @@ buttons instead (Edit's **Edit rail items** writes it):
   shown; on a page button, one that goes to that page) or `obs-live` (**LIVE** while OBS streams).
 - **touch** - what a `tap`, `hold` (600 ms) or `doubleTap` does, each an action as above; a tap
   does what the target is unless it says otherwise.
+
+### Touch actions on any widget
+
+Any widget, on a page, pinned or in a rail's widget slot, can run an action when you tap it, hold
+it (600 ms) or tap it twice: its placement's `touch`, set in the inspector's **Behaviour › Touch**
+(a pinned widget's **Touch**). The actions are the rail's above: a page, the next or previous
+page, the page lock, the profile picker, a media key, a mute of one of this PC's audio devices,
+an OBS scene or the OBS mic. Running a program is not one of them.
+
+```json
+{ "id": "cpu", "module": "CpuMonitor", "colStart": 1, "rowStart": 1, "colSpan": 2, "rowSpan": 2, "visible": true,
+  "touch": { "tap": { "op": "page", "to": "next" }, "hold": { "op": "media", "key": "play-pause" } } }
+```
+
+A press that starts on the widget's own controls (a button, a slider, a link) stays theirs, so an
+Audio Button with a hold action still mutes on a tap, and a drag is still the page's swipe. With a
+double tap set, a tap waits a moment to tell the two apart. Enter or Space on a focused widget is a
+tap. Actions run on the kiosk only; nothing runs in the studio's canvas. `POST /api/media/act`
+(`{ "key": "next" }`, the `X-Dashboard-Control` header) presses a media key on the PC; like the audio
+and OBS requests it is refused from another computer unless remote editing is on.
+
+Your own widgets go in a rail too: in the Widgets page builder's **Presets** tab, **Use in the
+page rail** turns a preset into a rail preset (`"size": "rail"`, recipe format 2), which the stage
+then draws in a rail slot's box, and the rail editor lists it under **Widgets**. A code widget
+offers itself with `rail: { settings }` in its definition.
 
 ### Profiles that follow the app in front
 

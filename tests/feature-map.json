@@ -303,6 +303,18 @@
       "note": "Every test talks to a fake obs-websocket server; none connects to a real OBS, so the scene order OBS really returns and its replay-buffer errors are checked only against the protocol as documented."
     },
     {
+      "id": "media-keys",
+      "summary": "The media keys a touch action presses (pinned layer P6): POST /api/media/act on the server (SendInput of play/pause, next and previous) and its client.",
+      "paths": [
+        "src-tauri/crates/ips-server/src/media.rs",
+        "src-tauri/crates/ips-server/tests/routes_media_keys.rs",
+        "src/lib/media-control.ts"
+      ],
+      "tests": ["tests/lib/media-control.test.ts", "tests/e2e/request-guard.spec.ts"],
+      "checks": ["typecheck", "unit", "e2e", "cargo-server", "cargo-app"],
+      "note": "No test presses a real key: the route tests send a good key only off Windows (503 there), and the e2e guard cases send an unknown key."
+    },
+    {
       "id": "twitch-chat",
       "summary": "Twitch (device-code sign-in, chat over IRC, viewers) and YouTube (the user's own Google client, loopback OAuth with PKCE, live chat and viewers within the daily quota) on the server, the merged chat stream and send route, their clients and the sign-in blocks of the Connections settings.",
       "paths": [
@@ -597,6 +609,8 @@
         "src/lib/pinned-edit.ts",
         "src/lib/rail.ts",
         "src/lib/touch-actions.ts",
+        "src/lib/touch-zone.ts",
+        "src/components/use-touch-zone.ts",
         "src/lib/profile-switch.ts",
         "src/components/pinned-layer.tsx",
         "src/components/rail-host.ts",
@@ -613,6 +627,7 @@
         "tests/lib/pinned.test.ts",
         "tests/lib/pinned-edit.test.ts",
         "tests/lib/rail.test.ts",
+        "tests/lib/touch-zone.dom.test.tsx",
         "tests/lib/profile-switch.test.ts",
         "tests/lib/widget-presets.test.ts",
         "tests/lib/layout-pages.test.ts",
@@ -629,6 +644,7 @@
         "tests/e2e/control-page-switch.spec.ts",
         "tests/e2e/pinned-layer.spec.ts",
         "tests/e2e/pinned-rail.spec.ts",
+        "tests/e2e/widget-touch.spec.ts",
         "tests/e2e/profile-picker.spec.ts"
       ],
       "checks": ["typecheck", "unit", "build", "budgets", "ui-usage", "e2e"]

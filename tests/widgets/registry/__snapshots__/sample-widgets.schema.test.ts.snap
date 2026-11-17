@@ -14,6 +14,9 @@ exports[`AudioMeter > files its rows as drawn 1`] = `
         "meterBallistics",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -133,6 +136,9 @@ exports[`CpuMonitor > files its rows as drawn 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -257,6 +263,9 @@ exports[`NowPlaying > files its rows as drawn 1`] = `
       "Send to island": [
         "island",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -401,6 +410,9 @@ exports[`SensorGroup > files its rows as drawn 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -518,6 +530,9 @@ exports[`SteamProfile > files its rows as drawn 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -625,6 +640,9 @@ exports[`SystemOverview > files its rows as drawn 1`] = `
       "Motion": [
         "smoothing",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -790,6 +808,9 @@ exports[`Uptime > files its rows as drawn 1`] = `
         "smoothing",
       ],
     },
+    {
+      "Touch [touch]": [],
+    },
   ],
   "Content": [
     {
@@ -885,6 +906,9 @@ exports[`Weather > files its rows as drawn 1`] = `
       "Send to island": [
         "island",
       ],
+    },
+    {
+      "Touch [touch]": [],
     },
   ],
   "Content": [
@@ -1012,7 +1036,11 @@ exports[`Weather > files its rows as drawn 1`] = `
 
 exports[`WebPage > files its rows as drawn 1`] = `
 {
-  "Behaviour (disabled)": [],
+  "Behaviour": [
+    {
+      "Touch [touch]": [],
+    },
+  ],
   "Content": [
     {
       "Page": [

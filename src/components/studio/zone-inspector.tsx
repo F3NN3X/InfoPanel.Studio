@@ -119,6 +119,9 @@ interface ZoneInspectorProps {
 
 // The Look knobs are the Theme view's chunk's, loaded with the Style tab.
 const WidgetLookKnobs = lazy(() => import("./look-knobs"));
+
+// the Touch rows (P6) and the action list they read load with the section, not with the studio
+const TouchRows = lazy(() => import("./touch-rows").then((m) => ({ default: m.TouchRows })));
 /** The widget's views as tiles (D-5), loaded with the first widget that has a choice of them. */
 const PresetRow = lazy(() => import("./editor/preset-row"));
 
@@ -356,6 +359,20 @@ export function ZoneInspector({
         return { body: <WidgetPicker placement={zone} onPickWidget={onPickWidget} /> };
       case "zoneFrame":
         return { ...zoneFrame(true), body: frameFields(true) };
+      case "touch":
+        return {
+          changed: Object.keys(zone.touch ?? {}).length,
+          onReset: () => update(({ touch: _t, ...p }) => p),
+          body: (
+            <Suspense fallback={null}>
+              <TouchRows
+                touch={zone.touch}
+                pages={config.profiles.find((p) => p.id === profile.id)?.pages ?? []}
+                onChange={(touch, g) => update(({ touch: _t, ...p }) => (touch ? { ...p, touch } : p), `touch:${g}`)}
+              />
+            </Suspense>
+          ),
+        };
       case undefined:
         break;
       default:
@@ -396,7 +413,7 @@ export function ZoneInspector({
 
   const present = (s: InspectorSection) =>
     s.special === undefined ||
-    ["boundData", "panelData", "blankPick", "zoneFrame"].includes(s.special) ||
+    ["boundData", "panelData", "blankPick", "zoneFrame", "touch"].includes(s.special) ||
     (cards.get(s.special)?.length ?? 0) > 0;
 
   const gaugeNote = zone.module === CUSTOM_GAUGE_ID && onEditGauge && <GaugeNote key="gauge" zone={zone} onEdit={onEditGauge} />;
