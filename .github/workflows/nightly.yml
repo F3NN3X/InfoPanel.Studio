@@ -139,6 +139,8 @@ jobs:
         with:
           name: perf-nightly
           path: .cache/perf/nightly
+          # .cache is a hidden folder, which upload-artifact leaves out by default: the report was never uploaded
+          include-hidden-files: true
           retention-days: 30
       # The newest earlier run that measured: a skipped night has no perf artifact.
       - name: Compare with the previous nightly
@@ -154,6 +156,8 @@ jobs:
         with:
           name: perf-compare
           path: .cache/perf/compare.md
+          # .cache is a hidden folder, which upload-artifact leaves out by default: the report was never uploaded
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
 

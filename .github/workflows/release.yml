@@ -131,6 +131,8 @@ jobs:
         with:
           name: e2e-report
           path: .cache/playwright
+          # .cache is a hidden folder, which upload-artifact leaves out by default: the report was never uploaded
+          include-hidden-files: true
           retention-days: 7
 
   publish:
