@@ -778,6 +778,73 @@ Host: localhost:{port}
 }
 
 #[tokio::test]
+async fn shows_a_studios_theme_preview_to_the_streams_until_the_studio_disconnects() {
+    let s = start().await;
+    assert_eq!(post_config(s.port, CONTROL_CONFIG, &[]).await.status, 200);
+    let config_before = get(s.port, "/api/config").await.text();
+    let preview = r#"{"session":"studio-abc123","preview":{"preset":{"id":"builtin:look-term","name":"Term"},"scope":{"kind":"profile","profileId":"desk"}}}"#;
+    let last_state = |seen: &str| -> serde_json::Value {
+        let line = seen.lines().rfind(|l| l.starts_with("data: ")).unwrap();
+        serde_json::from_str(line.trim_start_matches("data: ")).unwrap()
+    };
+
+    // The control write guards, then the body's own checks.
+    let no_header = send(s.port, "POST", "/api/control/preview", &[("Content-Type", "application/json")], preview).await;
+    assert_eq!((no_header.status, no_header.text().as_str()), (403, "missing X-Dashboard-Control header"));
+    assert_eq!(send(s.port, "POST", "/api/control/preview", &[("Content-Type", "text/plain"), ("X-Dashboard-Control", "1")], preview).await.status, 415);
+    assert_eq!(get(s.port, "/api/control/preview").await.status, 405);
+    let cross = send(s.port, "POST", "/api/control/preview", &[CONTROL_WRITE[0], CONTROL_WRITE[1], ("Origin", "http://evil.example")], preview).await;
+    assert_eq!(cross.status, 403);
+    assert_eq!(post_control(s.port, "preview", r#"{"session":"no","preview":null}"#).await.text(), "bad session");
+    assert_eq!(post_control(s.port, "preview", r#"{"session":"studio-abc123","preview":{"name":"x"}}"#).await.text(), "expected a preview with a preset, or null");
+    let big = format!(r#"{{"session":"studio-abc123","preview":{{"preset":{{"pad":"{}"}}}}}}"#, "x".repeat(40_000));
+    assert_eq!(post_control(s.port, "preview", &big).await.status, 400);
+    // No studio stream holds the session: refused.
+    let orphan = post_control(s.port, "preview", preview).await;
+    assert_eq!((orphan.status, orphan.text().as_str()), (409, "no open studio session"));
+
+    // The studio's stream holds its session; a kiosk sees the preview arrive.
+    let open = |query: &'static str, port: u16| async move {
+        let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+        stream.write_all(format!("GET /events/control{query} HTTP/1.1\r\nHost: localhost:{port}\r\n\r\n").as_bytes()).await.unwrap();
+        stream
+    };
+    let mut studio = open("?client=studio&session=studio-abc123", s.port).await;
+    let mut studio_seen = String::new();
+    events(&mut studio, &mut studio_seen, 1).await;
+    let mut kiosk = open("?profile=desk", s.port).await;
+    let mut seen = String::new();
+    events(&mut kiosk, &mut seen, 1).await;
+    assert!(last_state(&seen).get("themePreview").is_none());
+
+    let shown = post_control(s.port, "preview", preview).await;
+    assert_eq!(shown.status, 200);
+    assert_eq!(json(&shown)["themePreview"]["preset"]["name"], "Term");
+    assert!(json(&shown)["themePreview"]["until"].as_f64().unwrap() > 0.0);
+    events(&mut kiosk, &mut seen, 2).await;
+    assert_eq!(last_state(&seen)["themePreview"]["scope"]["profileId"], "desk");
+    // Never written: not to the config, not to control.json.
+    assert_eq!(get(s.port, "/api/config").await.text(), config_before);
+    assert!(!std::fs::read_to_string(s.data().join("control.json")).unwrap_or_default().contains("themePreview"));
+
+    // Taken back by its studio.
+    assert!(json(&post_control(s.port, "preview", r#"{"session":"studio-abc123","preview":null}"#).await).get("themePreview").is_none());
+    events(&mut kiosk, &mut seen, 3).await;
+    assert!(last_state(&seen).get("themePreview").is_none());
+
+    // Shown again, then the studio goes away: the server drops the preview and tells the kiosk.
+    assert_eq!(post_control(s.port, "preview", preview).await.status, 200);
+    events(&mut kiosk, &mut seen, 4).await;
+    drop(studio);
+    events(&mut kiosk, &mut seen, 5).await;
+    assert!(last_state(&seen).get("themePreview").is_none());
+    assert!(json(&get(s.port, "/api/control").await).get("themePreview").is_none());
+    assert_eq!(post_control(s.port, "preview", preview).await.status, 409);
+    drop(kiosk);
+    s.stop().await;
+}
+
+#[tokio::test]
 async fn lists_a_named_display_online_and_pushes_its_assigned_screen() {
     let s = start().await;
     assert_eq!(post_config(s.port, CONTROL_CONFIG, &[]).await.status, 200);
