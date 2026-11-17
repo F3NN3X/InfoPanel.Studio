@@ -4,7 +4,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PinnedPanel } from "@/components/studio/pinned/pinned-panel";
-import { pinToEdgeEntry } from "@/components/studio/pinned/pinned-menu";
+import { pinToEdgeEntry } from "@/components/studio/pin-entry";
 import type { MonitorProfile } from "@/lib/layout";
 import { addPinnedItem, newPinnedItem, PIN_KINDS } from "@/lib/pinned-edit";
 

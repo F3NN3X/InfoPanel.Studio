@@ -5,7 +5,8 @@
  */
 import type { ModuleSettings } from "@/modules/types";
 import type { IslandConfig } from "./island/config";
-import { BLANK_MODULE, CANVAS_ID, SCROLL_ROW_H, uid, type DashboardConfig, type MonitorProfile, type Placement } from "./layout";
+import { SCROLL_ROW_H, uid, type DashboardConfig, type MonitorProfile, type Placement } from "./layout";
+import { pinBlocked } from "./pin-blocked";
 import { profileGap, profilePadding, trackSize } from "./profile-grid";
 import { normalizePinned, remapPinnedPages, type MediaKey, type PinnedEdge, type PinnedItem, type RailGroup, type RailSlot, type TouchAction } from "./pinned";
 import { CHIP_FIELDS, chipSlot, RAIL_MODULE, RAIL_THICKNESS, railNeed, railSlots, type RailPage, type RailParts } from "./rail";
@@ -48,13 +49,7 @@ export const PIN_MIN_THICKNESS = 24;
 export const pinnedThicknessMax = (edge: PinnedEdge, profile: Pick<MonitorProfile, "width" | "height">): number =>
   Math.max(PIN_MIN_THICKNESS, Math.round((edge === "left" || edge === "right" ? profile.width : profile.height) / 2));
 
-/** Why a page widget can't go to the pinned layer (null: it can). */
-export function pinBlocked(p: Pick<Placement, "module" | "item" | "canvas" | "canvasRef">): string | null {
-  if (p.module === BLANK_MODULE) return "Blank space can't be pinned";
-  if (p.item) return "An InfoPanel item can't be pinned";
-  if (p.module === CANVAS_ID || p.canvas || p.canvasRef) return "An InfoPanel canvas can't be pinned";
-  return null;
-}
+export { pinBlocked };
 
 /** Why a pinned item can't go back to a page (null: it can). */
 export const unpinBlocked = (it: Pick<PinnedItem, "placement">): string | null => (it.placement.module === RAIL_MODULE ? "The page rail stays in the pinned layer" : null);

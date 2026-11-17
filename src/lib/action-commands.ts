@@ -5,8 +5,7 @@
  */
 import type { DashboardConfig, MonitorProfile, Placement } from "./layout";
 import { allKeys } from "./keys";
-import type { PinnedPlacement, TouchAction, TouchMap } from "./pinned";
-import { chipOverrides } from "./rail";
+import { parseChipItem, type PinnedPlacement, type TouchAction, type TouchMap } from "./pinned";
 
 /** A command a profile names, and where: the profile, the page or the pinned layer, and the widget or key. */
 export interface CommandUse {
@@ -32,7 +31,7 @@ export function commandsIn(profile: MonitorProfile): CommandUse[] {
     ...profile.pages.flatMap((page) => page.placements.flatMap((p) => placementCommands(p, page.name))),
     ...(profile.pinned?.items ?? []).flatMap((it) => [
       ...placementCommands(it.placement, "Pinned"),
-      ...mapCommands(chipOverrides(it.placement.settings).touch, "Pinned › Profile chip"),
+      ...mapCommands(parseChipItem(it.placement.settings?.chipItem).touch, "Pinned › Profile chip"),
       ...(it.rail ?? []).flatMap((s) => [
         ...(s.target.kind === "action" && s.target.action.op === "run" ? [{ command: s.target.action.command, where: `Pinned › ${s.name ?? "Rail item"}` }] : []),
         ...mapCommands(s.touch, `Pinned › ${s.name ?? "Rail item"}`),

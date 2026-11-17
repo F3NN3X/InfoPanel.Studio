@@ -20,7 +20,7 @@ import type { LayersHost, SelectHow, TreeNode } from "./layers-tree";
 import type { ItemSelection } from "./use-item-selection";
 import type { StudioSelection } from "./use-studio-selection";
 import { zoneName } from "./inspector/zone-meta";
-import { pinToEdgeEntry } from "./pinned/pinned-menu";
+import { pinToEdgeEntry } from "./pin-entry";
 import type { PinnedEdge } from "@/lib/pinned";
 import { hasOverlay, isTyping, treeKey } from "./use-studio-shortcuts";
 import { moduleIcon } from "./zone-icons";

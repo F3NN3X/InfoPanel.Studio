@@ -623,6 +623,7 @@
         "src/lib/panel-starters.ts",
         "src/lib/pinned.ts",
         "src/lib/pinned-edit.ts",
+        "src/lib/pin-blocked.ts",
         "src/lib/rail.ts",
         "src/lib/touch-actions.ts",
         "src/lib/touch-zone.ts",

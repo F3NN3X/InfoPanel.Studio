@@ -1,6 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
 import { uid, type MonitorProfile, type ProfilePage } from "@/lib/layout";
-import { pinPlacement, removePinnedItem, unpinToPage } from "@/lib/pinned-edit";
 import type { PinnedEdge } from "@/lib/pinned";
 import { autoPlace } from "../add-place";
 import { moduleDropSize } from "../drop-ghost";
@@ -25,6 +24,8 @@ interface PinnedActionsDeps {
   toast: (text: string) => void;
 }
 
+const edits = () => import("@/lib/pinned-edit");
+
 const EDGE_WORDS = { top: "the top", bottom: "the bottom", left: "the left edge", right: "the right edge" } as const;
 
 /**
@@ -37,14 +38,17 @@ export function usePinnedActions({ stored, page, updateStored, view, setView, se
     if (!placement) return;
     const id = uid("pin");
     const name = zoneName(placement);
-    updateStored((p) => pinPlacement(p, page.id, placementId, edge, { id, name }));
-    setPinnedOn(true);
-    setView({ id, rail: false, slot: null });
+    // the edit helpers are the pinned editor's chunk: loaded when one is chosen, not with the studio
+    void edits().then((m) => {
+      updateStored((p) => m.pinPlacement(p, page.id, placementId, edge, { id, name }));
+      setPinnedOn(true);
+      setView({ id, rail: false, slot: null });
+    });
     toast(`Pinned ${name} to ${EDGE_WORDS[edge]}; it stays on every page`);
   };
 
   const remove = (id: string) => {
-    updateStored((p) => removePinnedItem(p, id));
+    void edits().then((m) => updateStored((p) => m.removePinnedItem(p, id)));
     setView((v) => (v.id === id ? NO_PIN : v));
   };
 
@@ -61,10 +65,12 @@ export function usePinnedActions({ stored, page, updateStored, view, setView, se
     const { module, settings } = item.placement;
     const rect = autoPlace(stored, page.placements, moduleDropSize(module, stored, settings), moduleMinSize(module, settings));
     if (!rect) return void toast("No free space on this page; make room or remove a widget first");
-    updateStored((p) => unpinToPage(p, id, page.id, rect));
-    setView(NO_PIN);
-    setPinnedOn(false);
-    onPlaced(item.placement.id);
+    void edits().then((m) => {
+      updateStored((p) => m.unpinToPage(p, id, page.id, rect));
+      setView(NO_PIN);
+      setPinnedOn(false);
+      onPlaced(item.placement.id);
+    });
     toast(`Moved ${item.name ?? "the widget"} to ${page.name}`);
   };
 
