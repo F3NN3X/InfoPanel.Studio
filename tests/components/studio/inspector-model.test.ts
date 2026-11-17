@@ -164,13 +164,15 @@ describe("widget sections", () => {
     expect(titles(sectionsFor(spotify, "show"))).not.toContain("Visualizer audio");
   });
 
-  it("files thresholds, the widget's behaviour, the island and graph updates in Behaviour", () => {
-    expect(titles(sectionsFor(system, "behaviour"))).toEqual(["Thresholds", "Trends", "Motion"]);
+  it("files thresholds, the widget's behaviour, the island and graph updates in Behaviour, and Touch last (P6)", () => {
+    expect(titles(sectionsFor(system, "behaviour"))).toEqual(["Thresholds", "Trends", "Motion", "Touch"]);
     expect(keysOf([find(sectionsFor(system, "behaviour"), "Thresholds")])).toEqual(["warn.load", "warn.temp", "warn.full"]);
-    expect(titles(sectionsFor(spotify, "behaviour"))).toEqual(["Visualizer dynamics", "Motion", "Send to island"]);
+    expect(titles(sectionsFor(spotify, "behaviour"))).toEqual(["Visualizer dynamics", "Motion", "Send to island", "Touch"]);
     expect(keysOf([find(sectionsFor(spotify, "behaviour"), "Motion")])).toEqual(["smoothing"]);
     expect(keysOf(sectionsFor(widgetContext(mod("GpuMonitor")), "behaviour"))).toEqual(["warn.temp", "smoothing"]);
-    expect(sectionsFor(webpage, "behaviour")).toEqual([]);
+    // a widget with nothing else in Behaviour still has its touch actions
+    expect(titles(sectionsFor(webpage, "behaviour"))).toEqual(["Touch"]);
+    expect(sectionsFor(webpage, "behaviour")[0].special).toBe("touch");
   });
 
   it("files every island setting in Behaviour › Send to island", () => {
@@ -192,8 +194,8 @@ describe("tabs of every widget", () => {
       const tabs = tabStates(inspectorTabs(context), sections);
       expect(tabs.map((t) => t.id), id).toEqual(["show", "style", "data", "behaviour"]);
       for (const t of tabs) expect(t.disabled, `${id} ${t.id}`).toBe(!sections.some((s) => s.tab === t.id));
-      // Only the Web Page has nothing to do in Behaviour (no graph updates, island or thresholds); it and Uptime bind nothing (Data).
-      expect(tabs.filter((t) => t.disabled).map((t) => t.id), id).toEqual(id === "WebPage" ? ["data", "behaviour"] : id === "Uptime" ? ["data"] : []);
+      // Behaviour always has Touch (P6); the Web Page and Uptime bind nothing (Data).
+      expect(tabs.filter((t) => t.disabled).map((t) => t.id), id).toEqual(id === "WebPage" || id === "Uptime" ? ["data"] : []);
     }
   });
 });
@@ -286,7 +288,7 @@ describe("panel sections", () => {
     ]);
     expect(sectionsFor(panel, "data")).toHaveLength(1);
     expect(sectionsFor(panel, "data")[0].special).toBe("panelData");
-    expect(titles(sectionsFor(panel, "behaviour"))).toEqual(["Motion"]);
+    expect(titles(sectionsFor(panel, "behaviour"))).toEqual(["Motion", "Touch"]);
   });
 });
 

@@ -10,6 +10,7 @@ import {
   moveRailSlot,
   movePinnedItem,
   newPinnedItem,
+  keptLabel,
   touchChoices,
   touchValue,
   newRailSlot,
@@ -174,5 +175,42 @@ describe("the touch actions the rail editor offers", () => {
     expect(touchValue({ op: "profile-picker" })).toBe("profile-picker");
     expect(normalizeTouchAction(picker?.action)).toEqual({ op: "profile-picker" });
     expect(touchValue({ op: "run", command: "calc.exe" })).toBe("other");
+  });
+
+  it("offer P6's safe set: media keys, a device's mute and OBS scenes, each read back as itself and kept by the guard", () => {
+    const sources = { outputs: [{ id: "spk", name: "Speakers" }], inputs: [{ id: "mic", name: "Mic" }], scenes: [{ id: "u1", name: "Game" }] };
+    const choices = touchChoices([{ id: "home", name: "Home" }], sources);
+    expect(choices.map((c) => c.value)).toEqual([
+      "page:home",
+      "page:next",
+      "page:prev",
+      "lock",
+      "profile-picker",
+      "media:play-pause",
+      "media:next",
+      "media:previous",
+      "mute:input:mic",
+      "mute:output:spk",
+      "obs:scene:u1",
+      "obs:mic",
+    ]);
+    for (const c of choices) {
+      expect(touchValue(c.action), c.value).toBe(c.value);
+      expect(normalizeTouchAction(c.action), c.value).toEqual(c.action);
+    }
+    expect(choices.find((c) => c.value === "mute:input:mic")?.label).toBe("Mute or unmute: Mic");
+    // no command is ever offered (P7)
+    expect(choices.some((c) => c.action.op === "run")).toBe(false);
+    // with nothing connected, the media keys and the OBS mic are still there
+    expect(touchChoices([]).filter((c) => c.group !== "Panel").map((c) => c.value)).toEqual(["media:play-pause", "media:next", "media:previous", "obs:mic"]);
+  });
+
+  it("read an action of a shape the editor doesn't make as other, and name a kept one", () => {
+    expect(touchValue({ op: "audio", body: { target: "windows", op: "volume", kind: "input", id: "mic", value: 3 } })).toBe("other");
+    expect(touchValue({ op: "audio", body: { target: "windows", op: "mute", kind: "input", id: "mic", muted: true } })).toBe("other");
+    expect(touchValue({ op: "obs", body: { op: "replay" } })).toBe("other");
+    expect(keptLabel({ op: "audio", body: { target: "windows", op: "mute", kind: "output", id: "gone" } })).toBe("Mute or unmute a device not connected now");
+    expect(keptLabel({ op: "obs", body: { op: "scene", id: "gone" } })).toBe("An OBS scene OBS doesn't list now");
+    expect(keptLabel({ op: "run", command: "calc.exe" })).toBe("Set in the config (kept)");
   });
 });
