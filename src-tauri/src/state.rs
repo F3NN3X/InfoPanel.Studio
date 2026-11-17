@@ -51,6 +51,10 @@ pub struct RunningConfig {
     pub allowed_hosts: Vec<String>,
     /// Whether the server takes writes from other devices; read at start only.
     pub allow_remote_edit: bool,
+    /// Whether touch actions may run approved commands; read at start only.
+    pub action_runner: bool,
+    /// Whether OBS's go live and stop are on; read at start only.
+    pub obs_stream_control: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -293,10 +297,12 @@ mod tests {
             debug: true,
             allowed_hosts: vec!["panel.lan".into()],
             allow_remote_edit: true,
+            action_runner: true,
+            obs_stream_control: false,
         };
         assert_eq!(
             serde_json::to_value(rc).unwrap(),
-            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"], "allowRemoteEdit": true })
+            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"], "allowRemoteEdit": true, "actionRunner": true, "obsStreamControl": false })
         );
     }
 

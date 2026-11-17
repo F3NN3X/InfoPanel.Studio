@@ -53,6 +53,8 @@ async fn off_fetches_nothing_streams_an_empty_set_and_refuses_search() {
         allowed_hosts: vec![],
         allow_remote_edit: false,
         allow_remote_upload: false,
+        action_runner: false,
+        obs_stream: false,
         dist: dir.path().join("dist"),
         data_dir: data,
         infopanel_dir: dir.path().join("infopanel"),

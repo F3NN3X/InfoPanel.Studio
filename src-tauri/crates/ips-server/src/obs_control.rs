@@ -1,6 +1,7 @@
 // OBS beyond the on-air dot (obs.rs keeps that): the scenes, the mic, the replay buffer and the stream's numbers kept from the
 // same obs-websocket connection, and POST /api/obs/act, which switches the scene, toggles the mic's mute and saves the replay.
-// There is deliberately no start or stop stream action. The pure parts live here: `ObsLive::step` reads one message from
+// Going live or stopping (`stream`) is refused unless OBS_STREAM_CONTROL=on (the app's Settings > Actions switch, owner Q3 of
+// the pinned layer); the kiosk asks for a hold to confirm it. The pure parts live here: `ObsLive::step` reads one message from
 // OBS into the next state and the requests to send, `parse_act` reads a request body, `Pending` pairs OBS's replies with
 // the requests that wait for them. The socket and the session are in obs.rs.
 
@@ -386,7 +387,20 @@ pub enum ObsAct {
     Mic,
     /// Save the replay buffer.
     Replay,
+    /// Go live, stop, or whichever is the other (only with OBS_STREAM_CONTROL=on).
+    Stream(StreamState),
 }
+
+/// What a `stream` action asks of the stream.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StreamState {
+    Start,
+    Stop,
+    Toggle,
+}
+
+pub const STREAM_OFF_MESSAGE: &str =
+    "Going live from the panel is off. Turn it on in Settings > Actions on the PC running InfoPanel Studio.";
 
 /// The action a request body asks for, or why it isn't one.
 pub fn parse_act(body: &str) -> Result<ObsAct, String> {
@@ -404,7 +418,13 @@ pub fn parse_act(body: &str) -> Result<ObsAct, String> {
         },
         Some("mic") => Ok(ObsAct::Mic),
         Some("replay") => Ok(ObsAct::Replay),
-        _ => Err("\"op\" must be scene, mic or replay".into()),
+        Some("stream") => match body.get("state").and_then(Value::as_str) {
+            Some("start") => Ok(ObsAct::Stream(StreamState::Start)),
+            Some("stop") => Ok(ObsAct::Stream(StreamState::Stop)),
+            Some("toggle") => Ok(ObsAct::Stream(StreamState::Toggle)),
+            _ => Err("\"state\" must be start, stop or toggle".into()),
+        },
+        _ => Err("\"op\" must be scene, mic, replay or stream".into()),
     }
 }
 
@@ -443,6 +463,9 @@ pub fn act_request(
         ObsAct::Mic if mic.is_empty() => Err("no mic is set".into()),
         ObsAct::Mic => Ok(("ToggleInputMute", Some(json!({ "inputName": mic })))),
         ObsAct::Replay => Ok(("SaveReplayBuffer", None)),
+        ObsAct::Stream(StreamState::Start) => Ok(("StartStream", None)),
+        ObsAct::Stream(StreamState::Stop) => Ok(("StopStream", None)),
+        ObsAct::Stream(StreamState::Toggle) => Ok(("ToggleStream", None)),
     }
 }
 
@@ -539,6 +562,9 @@ pub async fn handle_act(app: &App, mut req: Req) -> std::io::Result<Response<Bod
         Ok(act) => act,
         Err(message) => return Ok(http::text(400, message)),
     };
+    if matches!(act, ObsAct::Stream(_)) && !app.cfg.obs_stream {
+        return Ok(http::text(403, STREAM_OFF_MESSAGE));
+    }
     Ok(match app.extras.obs().act(act).await {
         Ok(()) => http::empty(204),
         Err(ActError::NotConnected) => http::text(503, "OBS isn't connected"),
@@ -832,6 +858,12 @@ mod tests {
         );
         assert_eq!(parse_act(r#"{"op":"mic"}"#), Ok(ObsAct::Mic));
         assert_eq!(parse_act(r#"{"op":"replay"}"#), Ok(ObsAct::Replay));
+        assert_eq!(parse_act(r#"{"op":"stream","state":"toggle"}"#), Ok(ObsAct::Stream(StreamState::Toggle)));
+        assert_eq!(parse_act(r#"{"op":"stream","state":"start"}"#), Ok(ObsAct::Stream(StreamState::Start)));
+        assert_eq!(parse_act(r#"{"op":"stream","state":"stop"}"#), Ok(ObsAct::Stream(StreamState::Stop)));
+        for bad in [r#"{"op":"stream","state":"live"}"#, r#"{"op":"stream","state":1}"#] {
+            assert!(parse_act(bad).is_err(), "{bad}");
+        }
         for bad in [
             "",
             "nope",
@@ -885,6 +917,9 @@ mod tests {
             act_request(&ObsAct::Replay, &live, "").unwrap(),
             ("SaveReplayBuffer", None)
         );
+        assert_eq!(act_request(&ObsAct::Stream(StreamState::Toggle), &live, "").unwrap(), ("ToggleStream", None));
+        assert_eq!(act_request(&ObsAct::Stream(StreamState::Start), &live, "").unwrap(), ("StartStream", None));
+        assert_eq!(act_request(&ObsAct::Stream(StreamState::Stop), &live, "").unwrap(), ("StopStream", None));
     }
 
     #[test]
