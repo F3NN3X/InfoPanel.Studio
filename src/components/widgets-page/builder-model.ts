@@ -9,6 +9,7 @@ import type { Data } from "@/widgets/core/types";
 import { readingUnit } from "@/widgets/recipe/convert";
 import { cellBasePx, TEXT_FLOOR } from "@/widgets/recipe/metrics";
 import { recipeBytes } from "@/widgets/recipe/package";
+import { ownLine } from "@/widgets/recipe/RecipeView";
 import { boundSensors, deviceSources, expandKey } from "@/widgets/recipe/reads";
 import { type DeviceSource, isDeviceSource, type RepeatSource, SOURCE_FIELDS, SOURCE_MAIN, sourceKeys } from "@/widgets/recipe/sources";
 import { BLOCK_TYPES, type Binding, type Block, type BlockType, type CardBlock, type Cells, type Condition, type Container, type FollowOption, type LabelPart, type PackageFile, type Place, type Recipe, type RecipeDeviceKind, type RecipeOption, type Thresholds, WEATHER_PLACE_FIELDS } from "@/widgets/recipe/types";
@@ -362,6 +363,17 @@ export function wrapInRow(recipe: Recipe, paths: readonly Path[]): { recipe: Rec
     return { ...b, children: [...kids.slice(0, k).filter((c) => !drop.has(c)), row, ...kids.slice(k).filter((c) => !drop.has(c))] } as Block;
   });
   return { recipe: next, path: [...parent, k] };
+}
+
+/**
+ * The shares of two blocks of a row set by a share handle (builder plan Phase 1): `grow` on each, a share of 1 written as unset (the
+ * default) unless the block is a line of text in a column, where unset means its own height (B16), not a share.
+ */
+export function setShares(recipe: Recipe, a: Path, b: Path, shares: readonly [number, number]): Recipe {
+  const parent = blockAt(recipe, a.slice(0, -1));
+  const direction = parent?.type === "card" || (parent?.type === "row" && parent.direction === "column") ? "column" : "row";
+  const grow = (at: Path, v: number) => (v === 1 && !ownLine({ ...blockAt(recipe, at)!, grow: undefined }, direction) ? undefined : v);
+  return updateBlock(updateBlock(recipe, a, { grow: grow(a, shares[0]) }), b, { grow: grow(b, shares[1]) });
 }
 
 /** A copy of each selected block (and what it holds) right after it. Returns the copies' paths. */

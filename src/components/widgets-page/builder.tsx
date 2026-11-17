@@ -10,7 +10,11 @@
 // problem list and as a Layers dot), and the line says "fits" only when that measure backs it.
 // Phase D: hide and lock in the editor (G25), a new Image asks for its picture first (G32), the offer to remove what a delete left
 // unused (G34), snippets (G35) and the Header row (G37).
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
+// Builder plan Phase 1 (the flow model, D2 A): on the stage a block drags to another place or container (`stage-edit.ts`, a drop line
+// and the refusal's reason, Esc cancels, one undo step), share handles change two blocks' shares (`share-handles.tsx`), Ctrl and
+// Shift click add to the selection, and the focused stage takes the arrows (walk), Alt+arrows (move), Del, F2 and Esc.
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { pastDragThreshold, trackPointer } from "@/components/studio/pointer-drag";
 import { ChevronRight, CircleAlert, CircleCheck, MonitorUp, Pencil, Redo2, RotateCcw, Save, Undo2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -34,7 +38,7 @@ import { BlockIcon } from "./block-icons";
 import { BlockTab } from "./block-tab";
 import { clipboard, copyOf, pasteBlocks, setClipboard } from "./clipboard";
 import { type Crowd, crowdIssues, crowding, measureInks } from "./crowding";
-import { type EditorFlags, followFlags, hiddenRule, setKeys, stagePick } from "./editor-flags";
+import { type EditorFlags, flagged, followFlags, hiddenRule, setKeys, stagePick } from "./editor-flags";
 import { NumberInput, type Typing, TypingContext } from "./fields";
 import type { History } from "./history";
 import { type EditorFlag, type LayerCommand, Layers, type SelectHow } from "./layers";
@@ -42,6 +46,8 @@ import { OptionsTab } from "./options-tab";
 import { type PlainIssue, plainIssue, plainIssues, plainWarnings } from "./plain-issues";
 import { PresetsTab } from "./presets-tab";
 import { RecipePreview, zonePx } from "./recipe-preview";
+import { ShareHandles } from "./share-handles";
+import { type Carry, dragTarget, dropAt, type StageDrop, stageStep } from "./stage-edit";
 import { isUnsaved } from "./widgets-model";
 
 /** An open recipe: its history, its images and what is stored (undefined: never saved). */
@@ -96,7 +102,7 @@ function savedChip(d: Draft): { text: string; tone: "neutral" | "warn" } {
   return isUnsaved(d) ? { text: "Unsaved changes", tone: "warn" } : { text: "Recipe · saved", tone: "neutral" };
 }
 
-/** The selected block's box on the stage, in the zone's own px, with its name over it. */
+
 /** The room the selection's name tag takes beside its block, in the zone's px (11 px text, its padding and gap). */
 const TAG_ROOM = 24;
 
@@ -108,7 +114,8 @@ const TAG_ROOM = 24;
 export const tagPlace = (box: { y: number; h: number }, floor: number): "under" | "over" | "inside" => (floor - (box.y + box.h) >= TAG_ROOM ? "under" : box.y >= TAG_ROOM ? "over" : "inside");
 const TAG_CLASS = { under: "left-0 top-full mt-1", over: "left-0 bottom-full mb-1", inside: "left-1 top-1" } as const;
 
-function Selection({ zone, path, recipe, tick }: { zone: HTMLElement | null; path: Path; recipe: Recipe; tick: unknown }) {
+/** The selection's outline and name tag; `also` one of the other blocks picked with Ctrl or Shift: a thinner outline, no tag. */
+function Selection({ zone, path, recipe, tick, also }: { zone: HTMLElement | null; path: Path; recipe: Recipe; tick: unknown; also?: boolean }) {
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number; floor: number } | null>(null);
   useLayoutEffect(() => {
     const at = path.join(".");
@@ -123,6 +130,10 @@ function Selection({ zone, path, recipe, tick }: { zone: HTMLElement | null; pat
   const b = blockAt(recipe, path);
   if (!box || !b || !path.length) return null;
   const tag = TAG_CLASS[tagPlace(box, box.floor)];
+  if (also)
+    return (
+      <div aria-hidden data-selection-also="" className="pointer-events-none absolute z-10 rounded-[6px] border border-dashed border-ui-accent" style={{ left: box.x - 2, top: box.y - 2, width: box.w + 4, height: box.h + 4 }} />
+    );
   return (
     <div aria-hidden className="pointer-events-none absolute z-10" style={{ left: box.x - 3, top: box.y - 3, width: box.w + 6, height: box.h + 6 }}>
       <div className="h-full w-full rounded-[6px] border-2 border-ui-accent" />
@@ -131,21 +142,8 @@ function Selection({ zone, path, recipe, tick }: { zone: HTMLElement | null; pat
   );
 }
 
-/** Where a tile dragged over the stage lands (G12): into a container at its end, or before or after a block in its parent. */
-interface StageDrop {
-  key: string;
-  where: "inside" | "before" | "after";
-  /** The block's parent lays its blocks out side by side (the mark is a line at its left or right). */
-  across: boolean;
-  toParent: number[];
-  index: number;
-  /** "into Row", "after Ring". */
-  text: string;
-  why?: string;
-}
-
-/** The stage's drop mark: an outline on the container a tile goes into, else a line on the side of the block it goes by. */
-function DropMark({ zone, drop, tick }: { zone: HTMLElement | null; drop: StageDrop; tick: unknown }) {
+/** The stage's drop mark: an outline on the container a tile or a dragged block goes into, else a line on the side of the block it goes by. */
+function DropMark({ zone, drop, verb, tick }: { zone: HTMLElement | null; drop: StageDrop; verb: "Add" | "Move"; tick: unknown }) {
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   useLayoutEffect(() => {
     const el = drop.key ? zone?.querySelector<HTMLElement>(`[data-recipe-path="${drop.key}"]`) : zone?.querySelector<HTMLElement>("[data-part='card']");
@@ -161,7 +159,7 @@ function DropMark({ zone, drop, tick }: { zone: HTMLElement | null; drop: StageD
   return (
     <div data-stage-drop={drop.why ? "refused" : drop.where} className="pointer-events-none absolute z-20" style={{ left: box.x, top: box.y, width: box.w, height: box.h }}>
       {line ? <div className={cn("absolute", drop.why ? "bg-ui-warn" : "bg-ui-accent")} style={line} /> : <div className={cn("h-full w-full rounded-[6px] border-2 border-dashed", tone)} />}
-      <span className={cn("absolute left-0 top-full mt-1 whitespace-nowrap rounded-[4px] px-1.5 py-0.5 font-ui text-[11px] font-medium", drop.why ? "border border-ui-warn bg-ui-panel text-ui-warn" : "bg-ui-accent text-white")}>{drop.why ?? `Add ${drop.text}`}</span>
+      <span className={cn("absolute left-0 top-full mt-1 whitespace-nowrap rounded-[4px] px-1.5 py-0.5 font-ui text-[11px] font-medium", drop.why ? "border border-ui-warn bg-ui-panel text-ui-warn" : "bg-ui-accent text-white")}>{drop.why ?? `${verb} ${drop.text}`}</span>
     </div>
   );
 }
@@ -287,6 +285,7 @@ export function Builder(p: BuilderProps) {
 
   const selected = [...also.filter((x) => blockAt(recipe, x)), path];
   const keyOf = (x: Path) => x.join(".");
+  const pathOf = (key: string): number[] => (key ? key.split(".").map(Number) : []);
   /** A pick in Layers: that row only, added or taken away (Ctrl), or a range from the last pick (Shift). */
   const select = (at: number[], how: SelectHow) => {
     setTab("block");
@@ -358,10 +357,10 @@ export function Builder(p: BuilderProps) {
     imageInput.current?.click();
   };
 
-  // after a command by keyboard the block it left selected keeps the focus in Layers, at its new place
+  // after a command by keyboard the block it left selected keeps the focus in Layers, at its new place (the stage keeps its own)
   const [focusTick, setFocusTick] = useState(0);
   useEffect(() => {
-    if (focusTick) document.querySelector<HTMLElement>(`[data-layer="${keyOf(path)}"]`)?.focus();
+    if (focusTick && document.activeElement !== stageRef.current) document.querySelector<HTMLElement>(`[data-layer="${keyOf(path)}"]`)?.focus();
   }, [focusTick]);
   const refocus = () => setFocusTick((n) => n + 1);
 
@@ -559,20 +558,94 @@ export function Builder(p: BuilderProps) {
     stageWhy.current = undefined;
     setStageDrop(null);
   }, [tile]);
-  const stageTarget = (e: DragEvent): StageDrop | null => {
-    const el = (e.target as HTMLElement).closest<HTMLElement>("[data-recipe-path]");
-    if (!tile || (!el && !(e.target as HTMLElement).closest("[data-recipe-zone]"))) return null;
-    const at = el ? el.dataset.recipePath!.split(".").map(Number) : [];
-    const b = blockAt(recipe, at);
-    if (!b) return null;
-    const across = !!el?.parentElement && getComputedStyle(el.parentElement).flexDirection === "row";
-    const r = el?.getBoundingClientRect();
-    const f = r ? (across ? (e.clientX - r.left) / (r.width || 1) : (e.clientY - r.top) / (r.height || 1)) : 1;
-    const where = "children" in b ? "inside" : f < 0.5 ? "before" : "after";
-    const toParent = where === "inside" ? at : at.slice(0, -1);
-    const index = "children" in b ? b.children.length : at[at.length - 1] + (where === "after" ? 1 : 0);
-    const name = layerName(recipe, b);
-    return { key: keyOf(at), where, across, toParent, index, text: where === "inside" ? `into ${name}` : `${where} ${name}`, why: addRefusal(recipe, tile, toParent) };
+  /**
+   * Where a tile or the dragged blocks would land at a point on the stage (`dropAt`): the block under it (a Repeat's item is its
+   * Repeat for a move), its box and its parent's direction.
+   */
+  const dropUnder = (x: number, y: number, carry: Carry): StageDrop | null => {
+    const zone = zoneEl();
+    const el = document.elementFromPoint(x, y);
+    if (!zone || !el || !zone.contains(el)) return null;
+    const hit = el.closest<HTMLElement>("[data-recipe-path]");
+    const raw = hit ? pathOf(hit.dataset.recipePath!) : [];
+    const at = "from" in carry ? dragTarget(recipe, raw) : raw;
+    const box = at.length ? zone.querySelector<HTMLElement>(`[data-recipe-path="${keyOf(at)}"]`) : null;
+    const across = !!box?.parentElement && getComputedStyle(box.parentElement).flexDirection === "row";
+    const r = box?.getBoundingClientRect();
+    const f = r ? (across ? (x - r.left) / (r.width || 1) : (y - r.top) / (r.height || 1)) : 1;
+    return dropAt(recipe, at, f, across, carry);
+  };
+  const stageTarget = (e: { clientX: number; clientY: number }): StageDrop | null => (tile ? dropUnder(e.clientX, e.clientY, { tile }) : null);
+
+  // a block dragged on the stage (Phase 1): the blocks it carries and where they would land; one undo step on release, none on Esc
+  const [moving, setMoving] = useState<{ from: number[][]; drop: StageDrop | null } | null>(null);
+  // a drag just ended on the stage: the click its release makes is no pick
+  const dragged = useRef(false);
+  const stopDrag = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopDrag.current?.(), []);
+  const pressStage = (e: ReactPointerEvent<HTMLDivElement>) => {
+    dragged.current = false;
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || tile) return;
+    const t = e.target as HTMLElement;
+    const hit = t.closest<HTMLElement>("[data-recipe-path]");
+    if (!hit || t.closest("[data-share-handle]")) return;
+    // a locked block (or one in it) stays where it is (G25)
+    const at = dragTarget(recipe, pathOf(hit.dataset.recipePath!));
+    if (flagged(flags.locked, at)) return;
+    const from = selected.some((x) => keyOf(x) === keyOf(at)) ? topLevel(selected) : [at];
+    const [x0, y0] = [e.clientX, e.clientY];
+    let started = false;
+    let last: StageDrop | null = null;
+    stopDrag.current = trackPointer(
+      (m) => {
+        if (!started && !pastDragThreshold(m.clientX - x0, m.clientY - y0)) return;
+        started = true;
+        last = dropUnder(m.clientX, m.clientY, { from });
+        setMoving({ from, drop: last });
+      },
+      (cancelled) => {
+        stopDrag.current = null;
+        if (!started) return;
+        dragged.current = true;
+        setMoving(null);
+        if (cancelled) return say("Move cancelled");
+        if (!last) return;
+        if (last.why) return refuse(last.why);
+        drop(from, last.toParent, last.index);
+      },
+    );
+  };
+
+  // F2 on the stage renames in Layers
+  const [renameAt, setRenameAt] = useState<{ key: string } | null>(null);
+  /** The focused stage's keys (Phase 1): the arrows walk the blocks as in Layers, Alt+arrows move the selection, Del, F2 and Esc. */
+  const onStageKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget || e.ctrlKey || e.metaKey) return;
+    const move = ({ ArrowUp: "up", ArrowDown: "down", ArrowLeft: "out", ArrowRight: "in" } as const)[e.key as "ArrowUp"];
+    if (e.altKey && move) {
+      e.preventDefault();
+      if (path.length) run(move, path);
+      return;
+    }
+    if (e.altKey || e.shiftKey) return;
+    if (move) {
+      e.preventDefault();
+      const next = stageStep(recipe, path, e.key);
+      if (!next) return;
+      setPath(next);
+      setTab("block");
+      say(`${nameAt(next)} selected`);
+    } else if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      if (path.length) run("delete", path);
+    } else if (e.key === "F2" && path.length) {
+      e.preventDefault();
+      setRenameAt({ key: keyOf(path) });
+    } else if (e.key === "Escape" && (path.length || header)) {
+      // up one level: the block holding the selection
+      e.preventDefault();
+      setPath(header ? [] : path.slice(0, -1));
+    }
   };
 
   const pickPreset = (id: string) => {
@@ -733,6 +806,7 @@ export function Builder(p: BuilderProps) {
               onFlag={setFlag}
               header={header}
               onHeader={pickHeader}
+              renameAt={renameAt}
             />
             {why && (
               <p role="status" data-move-why="" className="mt-1 px-2 text-micro leading-snug text-ui-warn">
@@ -855,17 +929,30 @@ export function Builder(p: BuilderProps) {
             <span className="ml-auto" />
             <Segmented label="Data" size="bar" value={live ? "live" : "sample"} options={[{ value: "live", label: <span className="flex items-center gap-1.5"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ui-ok" />Live data</span> }, { value: "sample", label: "Sample" }]} onChange={(v) => setLive(v === "live")} />
           </div>
+          {/* a group with a roving outline (the selection), not an application (B1 Q4): the arrows walk, Alt+arrows move */}
           <div
             ref={stageRef}
-            role="presentation"
+            role="group"
+            aria-label="Widget preview"
+            aria-roledescription="stage"
+            aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight Delete F2 Escape"
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: the stage takes focus so its keys (walk, move, Del, F2, Esc) reach it
+            tabIndex={0}
             data-builder-stage=""
+            data-moving={moving ? "" : undefined}
+            onPointerDown={pressStage}
+            onKeyDown={onStageKey}
             onClick={(e) => {
+              if (dragged.current) {
+                dragged.current = false;
+                return;
+              }
               const target = e.target as HTMLElement;
+              if (target.closest("[data-share-handle]")) return;
               const hit = target.closest<HTMLElement>("[data-recipe-path]");
               if (hit) {
-                // a locked block is not picked here: the block holding it is (G25)
-                setPath(stagePick(flags.locked, hit.dataset.recipePath!.split(".").map(Number)));
-                setTab("block");
+                // a locked block is not picked here: the block holding it is (G25); Ctrl adds or takes away, Shift picks a range
+                select(stagePick(flags.locked, pathOf(hit.dataset.recipePath!)), e.shiftKey ? "range" : e.ctrlKey || e.metaKey ? "toggle" : "only");
               } else if (target.closest("[data-recipe-zone] [data-part='header']")) pickHeader();
               else if (target.closest("[data-recipe-zone]")) setPath([]);
             }}
@@ -892,10 +979,11 @@ export function Builder(p: BuilderProps) {
               e.preventDefault();
               addAt(tile, d.toParent, d.index, d.text);
             }}
-            className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-ui-lg border border-ui-subtle"
+            className="relative flex min-h-0 flex-1 select-none items-center justify-center overflow-hidden rounded-ui-lg border border-ui-subtle outline-none focus-visible:border-ui-accent"
             style={{ backgroundImage: "radial-gradient(color-mix(in oklab, var(--ui-text-hint) 30%, transparent) 1px, transparent 1px)", backgroundSize: "16px 16px" }}
           >
             {flags.hidden.length > 0 && <style data-hidden-blocks="">{hiddenRule(flags.hidden)}</style>}
+            {moving && <style data-moving-blocks="">{moving.from.map((x) => `[data-builder-stage] [data-recipe-path="${keyOf(x)}"]{opacity:.45}`).join("\n")}</style>}
             <div ref={zoneHost}>
               <RecipePreview
                 recipe={live ? recipe : sampled}
@@ -911,8 +999,13 @@ export function Builder(p: BuilderProps) {
                 maxScale={Math.min(1.6, 560 / w, 420 / h) > 1 ? Math.min(1.6, 560 / w, 420 / h) : 1}
                 overlay={
                   <>
-                    <Selection zone={zoneHost.current?.querySelector<HTMLElement>("[data-recipe-zone]") ?? null} path={path} recipe={recipe} tick={[recipe, size, live, lookId, preset, stageBox, data]} />
-                    {stageDrop && <DropMark zone={zoneHost.current?.querySelector<HTMLElement>("[data-recipe-zone]") ?? null} drop={stageDrop} tick={[recipe, size, stageBox]} />}
+                    {also.map((x) => blockAt(recipe, x) && <Selection key={keyOf(x)} zone={zoneEl()} path={x} recipe={recipe} tick={[recipe, size, live, lookId, preset, stageBox, data]} also />)}
+                    <Selection zone={zoneEl()} path={path} recipe={recipe} tick={[recipe, size, live, lookId, preset, stageBox, data]} />
+                    {!moving && !tile && selected.length === 1 && !header && <ShareHandles zone={zoneEl()} recipe={recipe} path={path} locked={flags.locked} tick={[recipe, size, live, lookId, preset, stageBox, data]} onLive={setPreview} onDone={(r, text) => {
+                          edit(r);
+                          say(text);
+                        }} />}
+                    {(stageDrop ?? moving?.drop) && <DropMark zone={zoneEl()} drop={(stageDrop ?? moving?.drop)!} verb={moving ? "Move" : "Add"} tick={[recipe, size, stageBox]} />}
                   </>
                 }
               />

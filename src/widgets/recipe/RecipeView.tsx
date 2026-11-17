@@ -190,7 +190,10 @@ const ONE_LINE = new Set<Block["type"]>(["label", "value", "weather-icon"]);
  * the top of an equal share); the column centres the lines in the room they leave.
  */
 const grow = (b: Block, direction: "row" | "column"): CSSProperties =>
-  direction === "column" && b.grow === undefined && ONE_LINE.has(b.type) ? { flex: "0 0 auto", minWidth: 0 } : { flex: `${b.grow ?? 1} 1 0`, minWidth: b.type === "weather-icon" ? "auto" : 0, minHeight: 0 };
+  ownLine(b, direction) ? { flex: "0 0 auto", minWidth: 0 } : { flex: `${b.grow ?? 1} 1 0`, minWidth: b.type === "weather-icon" ? "auto" : 0, minHeight: 0 };
+
+/** A line of text in a column with no share given: it takes its own height, not a share (B16; the builder's share handles skip it). */
+export const ownLine = (b: Block, direction: "row" | "column"): boolean => direction === "column" && b.grow === undefined && ONE_LINE.has(b.type);
 
 /** A block's place in the tree, its child indices from the root card's ("0.1"): the builder finds a block's box by it. */
 const at = (path: string, k: number): string => (path ? `${path}.${k}` : String(k));

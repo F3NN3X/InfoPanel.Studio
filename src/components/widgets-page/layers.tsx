@@ -69,9 +69,11 @@ export interface LayersProps {
   /** The Header pseudo-row is the selection (G37). */
   header: boolean;
   onHeader: () => void;
+  /** F2 or Rename on the stage: that row's name field opens (a new object each time it is asked). */
+  renameAt?: { key: string } | null;
 }
 
-export function Layers({ recipe, path, selected, problems, tile, canPaste, onSelect, onRename, onCommand, onMove, onAdd, onWhy, hidden: hiddenKeys, locked, onFlag, header, onHeader }: LayersProps) {
+export function Layers({ recipe, path, selected, problems, tile, canPaste, onSelect, onRename, onCommand, onMove, onAdd, onWhy, hidden: hiddenKeys, locked, onFlag, header, onHeader, renameAt }: LayersProps) {
   const all = useMemo(() => flatten(recipe), [recipe]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   // a container closed by its path: a change to the tree's shape opens them all again (the paths moved)
@@ -102,6 +104,9 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, onSel
   const [menu, setMenu] = useState<{ x: number; y: number; at: number[] } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const typed = useRef({ text: "", at: 0 });
+  useEffect(() => {
+    if (renameAt?.key) setRenaming(renameAt.key);
+  }, [renameAt]);
 
   // a tile's drag ends where no drop fired (a refused one): its reason stays under Layers
   useEffect(() => {
