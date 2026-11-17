@@ -10,6 +10,30 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* The closed box shows its value on one line and cuts it with an ellipsis, so a long one never pushes the picker icon
+   or the row wider. The button and selectedcontent are added to each select by src/select-face.ts. */
+select > button {
+  all: unset;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  cursor: inherit;
+}
+
+/* biome-ignore lint/correctness/noUnknownTypeSelector: selectedcontent is the customizable select's own element (Chromium base-select), newer than Biome's list */
+select selectedcontent {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 select::picker-icon {
@@ -24,6 +48,7 @@ select:open::picker-icon {
 ::picker(select) {
   margin-block: 4px;
   max-height: min(360px, 60vh);
+  max-width: calc(100vw - 16px);
   padding: 4px;
   border: 1px solid var(--color-s-edge);
   border-radius: 9px;
@@ -38,19 +63,20 @@ select option {
   align-items: center;
   gap: 8px;
   min-height: 28px;
-  padding: 0 8px;
+  padding: 4px 8px;
   border-radius: 6px;
   background: transparent;
   color: inherit;
   cursor: default;
   outline: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 select option:hover,
 select option:focus-visible {
-  background: var(--color-s-hover);
+  background: var(--ui-bg-highlight);
   color: var(--color-s-t1);
-  box-shadow: inset 2px 0 0 var(--color-s-accent, currentColor);
 }
 
 select option:checked {

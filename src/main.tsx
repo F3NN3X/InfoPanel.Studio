@@ -37,6 +37,10 @@ import.meta.hot?.dispose(stopDesktopDebug);
 // Desktop app: only the studio's own right-click menus (text fields keep the native one).
 const stopNativeMenu = isTauri() ? suppressNativeMenu() : undefined;
 import.meta.hot?.dispose(() => stopNativeMenu?.());
+// A dropdown's closed box (select-face.ts) loads on its own and never on a kiosk (?kiosk=1): it has no dropdowns to fix, and
+// the kiosk keeps its request budget. Only engines with base-select need it.
+if (typeof CSS !== "undefined" && CSS.supports("appearance", "base-select") && new URLSearchParams(location.search).get("kiosk") !== "1")
+  void import("./select-face").then((m) => m.installSelectFace());
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

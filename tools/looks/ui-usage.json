@@ -21,6 +21,7 @@
     "bg-chrome",
     "accent-text",
     "text-warn",
+    "bg-highlight",
     "ok",
     "warn",
     "danger"
@@ -51,6 +52,7 @@
     "text-warn",
     "dot-profile",
     "text-soft",
+    "bg-highlight",
     "ok",
     "warn",
     "danger"
