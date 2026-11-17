@@ -2,13 +2,9 @@
  * The action runner's client (pinned layer P7, decision 4; ips-server's actions.rs): a touch action's command goes to
  * `POST /api/actions/run`, which runs it only while the runner is on (ACTION_RUNNER, Settings > Actions), from this PC unless
  * remote editing is on, and only once the command is approved word for word on this PC. Test mode, or a dry run, checks all
- * of that and starts nothing. `commandsIn` lists the commands a profile or a config names, for the review on import and in
- * Settings. Loaded with the first command a kiosk runs, and by the studio's editors.
+ * of that and starts nothing. Loaded with the first command a kiosk runs, and by the studio's editors; the commands a profile
+ * names are listed in action-commands.ts, which the import reads without this.
  */
-import type { DashboardConfig, MonitorProfile, Placement } from "./layout";
-import { allKeys } from "./keys";
-import type { PinnedPlacement, TouchAction, TouchMap } from "./pinned";
-
 export const ACTIONS_URL = "/api/actions";
 export const ACTIONS_RUN_URL = "/api/actions/run";
 export const ACTIONS_LOG_URL = "/api/actions/log";
@@ -133,42 +129,3 @@ export async function actionsLog(): Promise<LogEntry[]> {
     return [];
   }
 }
-
-/** A command a profile names, and where: the profile, the page or the pinned layer, and the widget or key. */
-export interface CommandUse {
-  command: string;
-  profile: string;
-  where: string;
-}
-
-const GESTURE_WORDS = { tap: "tap", hold: "hold", doubleTap: "double tap" } as const;
-
-function mapCommands(touch: TouchMap | undefined, where: string): { command: string; where: string }[] {
-  return Object.entries(touch ?? {}).flatMap(([g, a]: [string, TouchAction]) => (a.op === "run" ? [{ command: a.command, where: `${where}, ${GESTURE_WORDS[g as keyof typeof GESTURE_WORDS] ?? g}` }] : []));
-}
-
-function placementCommands(p: Placement | PinnedPlacement, where: string): { command: string; where: string }[] {
-  const name = p.name ?? p.module;
-  return [...mapCommands(p.touch, `${where} › ${name}`), ...allKeys(p.keys ?? []).flatMap((k) => mapCommands(k.touch, `${where} › ${name} › ${k.name || "Key"}`))];
-}
-
-/** Every command a profile names: its pages' widgets and keys, its pinned widgets, keys and rail slots. */
-export function commandsIn(profile: MonitorProfile): CommandUse[] {
-  const uses = [
-    ...profile.pages.flatMap((page) => page.placements.flatMap((p) => placementCommands(p, page.name))),
-    ...(profile.pinned?.items ?? []).flatMap((it) => [
-      ...placementCommands(it.placement, "Pinned"),
-      ...(it.rail ?? []).flatMap((s) => [
-        ...(s.target.kind === "action" && s.target.action.op === "run" ? [{ command: s.target.action.command, where: `Pinned › ${s.name ?? "Rail item"}` }] : []),
-        ...mapCommands(s.touch, `Pinned › ${s.name ?? "Rail item"}`),
-      ]),
-    ]),
-  ];
-  return uses.map((u) => ({ ...u, profile: profile.name }));
-}
-
-/** Every command a config names, across its profiles. */
-export const configCommands = (config: Pick<DashboardConfig, "profiles">): CommandUse[] => config.profiles.flatMap(commandsIn);
-
-/** The distinct commands of `uses`, in the order first named. */
-export const distinctCommands = (uses: readonly CommandUse[]): string[] => [...new Set(uses.map((u) => u.command))];

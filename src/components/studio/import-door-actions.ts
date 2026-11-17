@@ -4,7 +4,7 @@
  * collects the choices; everything that changes the dashboard happens here.
  */
 import type { HistorySetter } from "@/hooks/use-config-history";
-import { commandsIn, type CommandUse } from "@/lib/action-runner";
+import { commandsIn, type CommandUse } from "@/lib/action-commands";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import type { ImportKind, Sniffed } from "@/lib/import-sniff";
 import type { LibraryItem } from "@/lib/library";

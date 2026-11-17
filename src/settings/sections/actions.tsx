@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CONFIG_URL } from "@/lib/dashboard-server";
-import { actionsLog, actionsState, changeActions, configCommands, distinctCommands, type ActionsState, type CommandUse, type LogEntry } from "@/lib/action-runner";
+import { configCommands, distinctCommands, type CommandUse } from "@/lib/action-commands";
+import { actionsLog, actionsState, changeActions, type ActionsState, type LogEntry } from "@/lib/action-runner";
 import { readConfig, type StoredConfig } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useStore } from "../store";

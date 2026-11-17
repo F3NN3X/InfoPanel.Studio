@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import type { HistorySetter } from "@/hooks/use-config-history";
-import type { CommandUse } from "@/lib/action-runner";
+import type { CommandUse } from "@/lib/action-commands";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
 import { sniffFile, UNKNOWN_FILE, type Sniffed } from "@/lib/import-sniff";

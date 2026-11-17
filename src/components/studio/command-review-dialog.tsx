@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { actionsState, changeActions, distinctCommands, type ActionsState, type CommandUse } from "@/lib/action-runner";
+import { distinctCommands, type CommandUse } from "@/lib/action-commands";
+import { actionsState, changeActions, type ActionsState } from "@/lib/action-runner";
 import { Toggle } from "@/components/ui/toggle";
 
 const BUTTON =
