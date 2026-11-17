@@ -7,6 +7,7 @@ import type { HistorySetter } from "@/hooks/use-config-history";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import type { ImportKind, Sniffed } from "@/lib/import-sniff";
 import type { LibraryItem } from "@/lib/library";
+import { restoreAssets } from "@/lib/profile-assets";
 import { missingCanvases, readConfigText } from "./config-file";
 import { importToLibrary, LIBRARY_KINDS, type DoorGoto } from "./import-door-library";
 import { importedProfile, parseProfileFile } from "./profile-file";
@@ -121,7 +122,7 @@ export async function runImport(files: readonly DoorFile[], choices: DoorChoices
       continue;
     }
     // the file's images go to this server first, so the screen names the ids they have here
-    const restored = parsed.assets ? await (await import("@/lib/profile-assets")).restoreAssets(parsed.profile, parsed.assets) : { profile: parsed.profile, failed: 0 };
+    const restored = await restoreAssets(parsed.profile, parsed.assets ?? []);
     const screen = importedProfile(working, restored.profile);
     working = { ...working, profiles: [...working.profiles, screen] };
     ctx.addScreen(screen);
