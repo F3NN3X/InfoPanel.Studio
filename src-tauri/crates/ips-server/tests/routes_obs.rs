@@ -40,6 +40,8 @@ fn config(dir: &Path) -> ServerConfig {
         allow_remote_upload: false,
         action_runner: false,
         obs_stream: false,
+        agent_approvals: vec![],
+        agent_key_file: None,
         dist: dir.join("dist"),
         data_dir: dir.join("data"),
         infopanel_dir: dir.join("infopanel"),

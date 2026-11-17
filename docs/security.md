@@ -144,10 +144,61 @@ security model, what was fixed, what was decided, and what is deferred.
   streaming in OBS. It answers 403 unless `OBS_STREAM_CONTROL=on` (**Settings › Actions › Go live and stop in OBS from the
   panel**), and otherwise has the guards of the other OBS writes. The kiosk always asks for a hold first. The Stream Deck
   plugin and its widget are unchanged and offer neither.
+- **Agent approvals from the panel** (`crates/ips-server/src/approvals.rs`, `hook_auth.rs` and `key_file.rs`, the hook in
+  `crates/ips-agent`, the prompt window in `src-tauri/src/agent_prompt.rs` and `src/agent-prompt/`): allowing a Claude Code
+  or Codex tool call from the panel approves running code on this PC, so:
+  - it is off unless the agent is named in `AGENT_APPROVALS` (`claude`, `codex`; the desktop app sets it from
+    **Settings › Coding agents › Answer … from the panel**, one switch per agent), read at start only. While an agent is off
+    its requests are only recorded as the "waiting" state the kiosks already show, and answered at once with no decision;
+  - the `PermissionRequest` hook (`ips-agent permission <agent>`, the only hook that runs in the foreground, with a 30 s
+    timeout and `onFailure: continue`) posts the request from this machine with the agent header and a fresh nonce
+    (`POST /api/agents/permission`, loopback-only like every agent post) and waits up to 25 s. It prints a decision only for
+    an explicit allow or deny that carries the server's signature (below), in the documented
+    `hookSpecificOutput.decision.behavior` shape (deny with a message, never `interrupt`). No answer, a refusal, an error, an
+    unsigned or wrongly signed answer, or a server that isn't running prints nothing, and the agent shows its own prompt in
+    the terminal: silence never allows and never denies. The agent's own deny and ask rules still apply to an allow;
+  - a request is read and answered only in InfoPanel Studio's own prompt window on this PC, by IPC, never over HTTP:
+    `GET /api/agents/requests`, `GET /api/agents/requests/log` and `POST /api/agents/answer` answer 403 to everyone,
+    loopback included. The window is one of the app's local pages (`app/agent-prompt.html`), which never navigates to the
+    server's pages; `agent_requests` and `agent_answer` are granted to that window alone (`capabilities/agent-prompt.json`)
+    and check its label too. The studio and kiosk window, which runs the server's pages and any code widget, can only tell
+    the app its page area (`agent_prompt_room`), so the window sits over the panel. A kiosk in a browser can't answer: the
+    prompt still opens on the PC running the app, else the agent asks in its terminal. A server run without the desktop app
+    has no prompt at all. There is no pairing of other devices;
+  - the window shows every field of the tool's input, the command or file first, an edit as a diff and a file's new content
+    in full, newlines and runs of spaces kept and lines never wrapped or cut, in a box that scrolls. An answer names the
+    request it was given for, and the server takes it only while exactly that request waits: a hold in progress is dropped
+    when another request takes the screen. Deny is a tap and Allow is a 0.6 s hold; nothing answers by itself. The Coding
+    Agents cards never answer: they say to answer in the prompt or the terminal;
+  - an answer is signed for the hook: keyed BLAKE2b-256 (as `pack_sign.rs` uses) over the hook's nonce, the request's id and
+    the decision, with a 32-byte key the server makes on first use. The key lives in this user's own folder, never the data
+    folder: `INFOPANEL_STUDIO_CONFIG_DIR` when set (test runs), else `%LOCALAPPDATA%\dev.f3nn3x.infopanel-studio` on Windows
+    and `$XDG_CONFIG_HOME/infopanel-studio` (or `~/.config/infopanel-studio`) elsewhere. It is created owner-only (mode 0600;
+    on Windows a protected DACL for this user and SYSTEM, nothing inherited, owned by this user), and both the server and the
+    hook check that on every read: a key owned by someone else or open to another user or group is refused. The server then
+    makes a fresh one; the hook takes no answer;
+  - every outcome is logged to `DATA_DIR/agent-approvals-log.jsonl` (time, who answered, the agent, project, tool, the
+    request in full, and allow, deny, `none` for a wait that ran out or `gone` for a hook that went away), cut back to its
+    newer half past 256 KB. **Settings › Coding agents** reads the last 200 by IPC (`agent_answers_log`).
+
 - **Profile files with images**: an exported screen carries the images it names as base64, within the import's 5 MB. On
   import each goes through the upload route above (magic bytes checked, an SVG sanitised) before the screen points at it;
   an entry whose id, type or data does not have the expected shape is dropped unread.
 - **Path safety**: static and asset paths reject `..` and dot segments with prefix checks.
+
+### Agent approvals: threat model
+
+What answers a request has to be InfoPanel Studio's prompt window, driven by a person at this PC.
+
+- **It protects against** the agent asking, or any other program on this PC, approving a request over HTTP (it can reach
+  loopback, and could copy any static header); pages and code widgets on the server's origin, which share the studio and
+  kiosk window but get none of the prompt's commands; other devices on the network, which can't post a request, read one
+  or answer one; a program that takes the server's port before it starts, or answers in its place, which can't sign an
+  answer, so the hook ignores it; another user of this PC planting or reading the key (it is owner-only and checked); and an
+  answer meant for one request landing on another (each answer names its request and is taken only while that one waits).
+- **It does not protect against** a program already running as this user. Such a program can read the key and sign its
+  own answers, drive the prompt window's input, or simply edit the agent's settings and hooks; nothing in a user's session
+  can tell it apart from the user. Keep the switches off for an agent you don't watch.
 
 ## Widget publisher keys
 

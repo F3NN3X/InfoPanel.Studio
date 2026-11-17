@@ -235,7 +235,7 @@ impl Actions {
 }
 
 /// Keeps the newest whole lines of `file` that fit in `budget` bytes.
-fn trim(file: &Path, budget: usize) {
+pub(crate) fn trim(file: &Path, budget: usize) {
     let Ok(text) = crate::store::read_text(file) else { return };
     let mut size = 0;
     let newest: Vec<&str> = text

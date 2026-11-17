@@ -15,6 +15,7 @@ export const meta: WidgetMeta = {
     { id: "full", name: "Full" },
     { id: "summary", name: "Summary", blurb: "Plan limits, today and sessions" },
     { id: "limits", name: "Limits", blurb: "Plan limit bars only" },
+    { id: "sessions", name: "Sessions", blurb: "A card per session: what it is doing, and which one needs you", defaultSize: [4, 3] },
   ],
   description:
     "Claude Code and Codex: each session working, waiting for you or done (with its model and cost), the plan's 5-hour and weekly use, tokens per day, and this week's split by model and project. Connect them once with node tools/agent-install.mjs.",

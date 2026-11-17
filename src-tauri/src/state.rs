@@ -55,6 +55,8 @@ pub struct RunningConfig {
     pub action_runner: bool,
     /// Whether OBS's go live and stop are on; read at start only.
     pub obs_stream_control: bool,
+    /// The agents whose permission requests the kiosk may answer; read at start only.
+    pub agent_approvals: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -299,10 +301,11 @@ mod tests {
             allow_remote_edit: true,
             action_runner: true,
             obs_stream_control: false,
+            agent_approvals: vec!["claude".into()],
         };
         assert_eq!(
             serde_json::to_value(rc).unwrap(),
-            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"], "allowRemoteEdit": true, "actionRunner": true, "obsStreamControl": false })
+            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"], "allowRemoteEdit": true, "actionRunner": true, "obsStreamControl": false, "agentApprovals": ["claude"] })
         );
     }
 

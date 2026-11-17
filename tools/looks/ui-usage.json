@@ -57,5 +57,14 @@
   ],
   "touch": [
     "bg-app"
+  ],
+  "agent-prompt": [
+    "bg-panel",
+    "border-subtle",
+    "text-1",
+    "text-hint",
+    "accent",
+    "warn",
+    "danger"
   ]
 }

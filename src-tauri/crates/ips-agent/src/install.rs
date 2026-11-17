@@ -103,14 +103,32 @@ fn without_hooks(hooks: &Object, test: fn(&Value) -> bool) -> Object {
     next
 }
 
-/// `hooks` with one group running `command` added to each event, unless it is there already; old
-/// Node hooks are dropped first.
-fn with_hooks(
-    hooks: Option<&Value>,
-    events: &[&str],
-    command: &str,
-    extra: Option<(&str, Value)>,
-) -> Object {
+/// A permission request waits for the panel (lib.rs `PERMISSION_DEADLINE`, 28 s), so its hook's timeout is above that.
+pub const PERMISSION_TIMEOUT: u64 = 30;
+
+/// The hook for one event: `<forward> hook <agent><suffix>` with a 5 s timeout, except PermissionRequest, which runs
+/// `<forward> permission <agent><suffix>` in the foreground (its answer is read) with `PERMISSION_TIMEOUT`, and goes on to
+/// the terminal prompt if it ever fails (`onFailure: continue`). `background` marks the others async (Claude Code).
+fn hook_for(event: &str, forward: &str, agent: &str, suffix: &str, key: &str, background: bool) -> Object {
+    let mut hook = Object::new();
+    hook.insert("type".into(), json!("command"));
+    if event == "PermissionRequest" {
+        hook.insert("command".into(), json!(format!("{forward} permission {agent}{suffix}{key}")));
+        hook.insert("timeout".into(), json!(PERMISSION_TIMEOUT));
+        hook.insert("onFailure".into(), json!("continue"));
+        return hook;
+    }
+    hook.insert("command".into(), json!(format!("{forward} hook {agent}{suffix}")));
+    hook.insert("timeout".into(), json!(5));
+    if background {
+        hook.insert("async".into(), json!(true));
+    }
+    hook
+}
+
+/// `hooks` with one group running our hook (`hook` gives it per event) added to each event, unless it is there already;
+/// old Node hooks are dropped first.
+fn with_hooks(hooks: Option<&Value>, events: &[&str], hook: impl Fn(&str) -> Object) -> Object {
     let base = hooks
         .and_then(Value::as_object)
         .cloned()
@@ -133,14 +151,7 @@ fn with_hooks(
         if present {
             continue;
         }
-        let mut hook = Object::new();
-        hook.insert("type".into(), json!("command"));
-        hook.insert("command".into(), json!(command));
-        hook.insert("timeout".into(), json!(5));
-        if let Some((key, value)) = &extra {
-            hook.insert((*key).into(), value.clone());
-        }
-        groups.push(json!({ "hooks": [Value::Object(hook)] }));
+        groups.push(json!({ "hooks": [Value::Object(hook(event))] }));
         next.insert((*event).into(), Value::Array(groups));
     }
     next
@@ -173,6 +184,14 @@ pub fn url_suffix(url: Option<&str>) -> String {
         .unwrap_or_default()
 }
 
+/// The ` --key=<base64url>` that ends the permission hook's command ("" without a key file), base64url so a path with
+/// spaces survives the shell.
+pub fn key_suffix(key: Option<&str>) -> String {
+    key.filter(|k| !k.is_empty())
+        .map(|k| format!(" --key={}", wrap::encode(k)))
+        .unwrap_or_default()
+}
+
 fn statusline_with(line: Option<&Value>, command: String) -> Value {
     match line.and_then(Value::as_object) {
         Some(obj) => {
@@ -187,12 +206,14 @@ fn statusline_with(line: Option<&Value>, command: String) -> Value {
 /// Claude Code settings with the hooks added and the statusline wrapped (`forward` runs the
 /// forwarder, `suffix` ends each command).
 pub fn install_claude(settings: &Object, forward: &str, suffix: &str) -> Object {
-    let hooks = with_hooks(
-        settings.get("hooks"),
-        &CLAUDE_EVENTS,
-        &format!("{forward} hook claude{suffix}"),
-        Some(("async", json!(true))),
-    );
+    install_claude_keyed(settings, forward, suffix, "")
+}
+
+/// `install_claude`, with `key` (`key_suffix`) ending the permission hook's command.
+fn install_claude_keyed(settings: &Object, forward: &str, suffix: &str, key: &str) -> Object {
+    let hooks = with_hooks(settings.get("hooks"), &CLAUDE_EVENTS, |e| {
+        hook_for(e, forward, "claude", suffix, key, true)
+    });
     let line = settings.get("statusLine");
     let plain = format!("{forward} statusline{suffix}");
     let wrapped = |original: &str| {
@@ -251,12 +272,14 @@ pub fn remove_claude(settings: &Object) -> Object {
 }
 
 pub fn install_codex(file: &Object, forward: &str, suffix: &str) -> Object {
-    let hooks = with_hooks(
-        file.get("hooks"),
-        &CODEX_EVENTS,
-        &format!("{forward} hook codex{suffix}"),
-        None,
-    );
+    install_codex_keyed(file, forward, suffix, "")
+}
+
+/// `install_codex`, with `key` ending the permission hook's command.
+fn install_codex_keyed(file: &Object, forward: &str, suffix: &str, key: &str) -> Object {
+    let hooks = with_hooks(file.get("hooks"), &CODEX_EVENTS, |e| {
+        hook_for(e, forward, "codex", suffix, key, false)
+    });
     let mut next = file.clone();
     next.insert("hooks".into(), Value::Object(hooks));
     next
@@ -329,6 +352,9 @@ pub struct Options<'a> {
     pub agent: &'a str,
     /// The dashboard the hooks post to, appended to each hook command as `--url=<base>`.
     pub url: Option<&'a str>,
+    /// The server's agent hook key (its data folder's `agent-hook.key`), appended to the permission hook's command as
+    /// `--key=<base64url>`; it checks the panel's answer with it (hook_auth.rs).
+    pub key: Option<&'a str>,
     pub home: &'a Path,
 }
 
@@ -429,6 +455,7 @@ struct Target<'a> {
 pub fn run(opts: &Options) -> Vec<Outcome> {
     let forward = forward_command(opts.agent);
     let suffix = url_suffix(opts.url);
+    let key = key_suffix(opts.key);
     let claude_dir = opts.home.join(".claude");
     let codex_dir = opts.home.join(".codex");
     let targets = [
@@ -439,7 +466,7 @@ pub fn run(opts: &Options) -> Vec<Outcome> {
             change: if opts.remove {
                 Box::new(remove_claude)
             } else {
-                Box::new(|o| install_claude(o, &forward, &suffix))
+                Box::new(|o| install_claude_keyed(o, &forward, &suffix, &key))
             },
         },
         Target {
@@ -449,7 +476,7 @@ pub fn run(opts: &Options) -> Vec<Outcome> {
             change: if opts.remove {
                 Box::new(remove_codex)
             } else {
-                Box::new(|o| install_codex(o, &forward, &suffix))
+                Box::new(|o| install_codex_keyed(o, &forward, &suffix, &key))
             },
         },
     ];
@@ -565,6 +592,42 @@ mod tests {
             mine()["statusLine"]["command"].as_str().unwrap()
         );
         assert_eq!(next["model"], "opus");
+    }
+
+    #[test]
+    fn the_permission_hook_waits_in_the_foreground_and_never_blocks_on_failure() {
+        let url = url_suffix(Some("http://127.0.0.1:3999"));
+        let claude = install_claude(&Object::new(), FWD, &url);
+        assert_eq!(
+            claude["hooks"]["PermissionRequest"][0]["hooks"][0],
+            json!({ "type": "command", "command": format!("{FWD} permission claude --url=http://127.0.0.1:3999"), "timeout": PERMISSION_TIMEOUT, "onFailure": "continue" })
+        );
+        let codex = install_codex(&Object::new(), FWD, "");
+        assert_eq!(
+            codex["hooks"]["PermissionRequest"][0]["hooks"][0],
+            json!({ "type": "command", "command": format!("{FWD} permission codex"), "timeout": PERMISSION_TIMEOUT, "onFailure": "continue" })
+        );
+        // above the hook's own deadline, so the agent never kills it mid-wait
+        assert!(PERMISSION_TIMEOUT > crate::PERMISSION_DEADLINE.as_secs());
+        assert_eq!(remove_claude(&claude), Object::new());
+    }
+
+    #[test]
+    fn the_hooks_name_the_servers_key_file() {
+        let key = "C:/Users/Me Too/AppData/Local/InfoPanel/Dashboard/agent-hook.key";
+        let url = url_suffix(Some("http://127.0.0.1:3999"));
+        let claude = install_claude_keyed(&Object::new(), FWD, &url, &key_suffix(Some(key)));
+        let command = claude["hooks"]["PermissionRequest"][0]["hooks"][0]["command"].as_str().unwrap();
+        // only the permission hook reads the key
+        assert_eq!(claude["hooks"]["Stop"][0]["hooks"][0]["command"], format!("{FWD} hook claude --url=http://127.0.0.1:3999"));
+        assert_eq!(claude["statusLine"]["command"], format!("{FWD} statusline --url=http://127.0.0.1:3999"));
+        let codex = install_codex_keyed(&Object::new(), FWD, "", &key_suffix(Some(key)));
+        assert!(codex["hooks"]["PermissionRequest"][0]["hooks"][0]["command"].as_str().unwrap().contains(" --key="));
+        let arg = command.split(' ').find_map(|a| a.strip_prefix("--key=")).unwrap();
+        // base64url: one shell word, whatever the path holds
+        assert_eq!(crate::hook_auth::key_path(&[format!("--key={arg}")]), Path::new(key));
+        assert_eq!(key_suffix(None), "");
+        assert_eq!(key_suffix(Some("")), "");
     }
 
     #[test]
@@ -767,6 +830,7 @@ mod tests {
             remove,
             agent: "C:/app/ips-agent.exe",
             url: Some("http://127.0.0.1:3999"),
+            key: None,
             home,
         }
     }

@@ -2088,6 +2088,9 @@ name = "ips-agent"
 version = "1.3.1-beta.8"
 dependencies = [
  "base64 0.22.1",
+ "blake2",
+ "getrandom 0.4.3",
+ "libc",
  "serde_json",
  "socket2",
  "tempfile",

@@ -49,7 +49,7 @@ export default defineWidget({
   render: {
     load: () => import("./CodingAgents"),
     toProps: (s: ModuleSettings): Partial<CodingAgentsProps> => ({
-      view: oneOf(s.view, ["full", "summary", "limits"] as const),
+      view: oneOf(s.view, ["full", "summary", "limits", "sessions"] as const),
       agents: oneOf(String(s.agents), ["both", "claude", "codex"] as const),
       showPlan: boolOf(s.showPlan),
       showSessions: boolOf(s.showSessions),

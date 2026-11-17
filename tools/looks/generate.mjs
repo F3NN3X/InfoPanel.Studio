@@ -81,7 +81,7 @@ export async function generate() {
     ]),
   );
   // The tokens the twins and the status set name are declared in a stylesheet per page: the studio takes all of them, the
-  // settings, help and touch pages only those their built files read (ui-usage.json, from tools/looks/ui-usage.mjs; L13).
+  // settings, help, touch and agent prompt pages only those their built files read (ui-usage.json, from tools/looks/ui-usage.mjs; L13).
   const usage = JSON.parse(read("tools/looks/ui-usage.json"));
   const tokenSet = [...ui("shared"), ...ui("status")];
   // One block over the whole file, so the D9 scans (tools/looks/scan.mjs) read it as generated.

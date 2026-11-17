@@ -46,8 +46,8 @@
       "fullCmd": "npm run test:e2e",
       "tests": ["tests/e2e/*.spec.ts"],
       "emptyMeansAll": true,
-      "needs": ["build", "server-bin"],
-      "when": "the Playwright specs: real browser, real server, scratch data"
+      "needs": ["build", "settings-build", "server-bin"],
+      "when": "the Playwright specs: real browser, real server, scratch data (agent-prompt.spec also opens the app's own built prompt page)"
     },
     "one-editor": {
       "cmd": "npx playwright test --project=one-editor {tests}",
@@ -354,7 +354,17 @@
         "src-tauri/crates/ips-agent/**",
         "src-tauri/src/agents.rs",
         "src/lib/agents.ts",
-        "src/widgets/coding-agents/*.tsx"
+        "src/widgets/coding-agents/*.tsx",
+        "src-tauri/crates/ips-server/src/approvals.rs",
+        "src-tauri/crates/ips-server/tests/routes_approvals.rs",
+        "src/lib/agent-requests.ts",
+        "src/components/agent-prompt-host.tsx",
+        "src-tauri/crates/ips-server/src/hook_auth.rs",
+        "src-tauri/crates/ips-server/src/key_file.rs",
+        "src-tauri/src/agent_prompt.rs",
+        "src-tauri/capabilities/agent-prompt.json",
+        "agent-prompt.html",
+        "src/agent-prompt/**"
       ],
       "tests": [
         "tests/server/server.test.mjs",
@@ -362,9 +372,14 @@
         "tests/lib/agents.test.ts",
         "tests/widgets/coding-agents/**",
         "tests/fixtures/parity/agent*.json",
-        "tests/fixtures/parity/claude-sessions.json"
+        "tests/fixtures/parity/claude-sessions.json",
+        "tests/lib/agent-requests.test.ts",
+        "tests/agent-prompt/**",
+        "tests/components/agent-prompt-host.test.ts",
+        "tests/e2e/agent-prompt.spec.ts",
+        "tests/e2e/request-guard.spec.ts"
       ],
-      "checks": ["typecheck", "unit", "server-suite", "cargo-server", "cargo-app", "ui-usage"]
+      "checks": ["typecheck", "unit", "build", "budgets", "settings-build", "server-suite", "e2e", "cargo-server", "cargo-app", "ui-usage"]
     },
     {
       "id": "infopanel-installed",

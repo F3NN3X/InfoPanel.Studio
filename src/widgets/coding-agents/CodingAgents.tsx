@@ -7,6 +7,7 @@ import { Empty, Widget, fitRows, shell, type ShellProps } from "../kit";
 import { BarLimits, RingLimits, barDensity, densityH, ringLayout, type Density, type LimitStyle, type Percent, type PlanEntry, type RingLayout } from "./limits";
 import { Breakdown, breakdownH, breakdownOf, tokensToday } from "./breakdown";
 import { LimitsView, SummaryView } from "./summary";
+import { CARD_GAP, CARD_H, SessionCards } from "./cards";
 import { BARS_H, DailyBars, HEADER_H, Heatmap, HistoryHeader, dayKey, heatmapFit, heatmapWeeks, type HeatFit, type HistoryStyle } from "./history";
 import { meta } from "./meta";
 
@@ -19,8 +20,8 @@ export { resetText } from "./limits";
 export type AgentFilter = "both" | AgentId;
 
 export interface CodingAgentsProps extends ShellProps {
-  /** The layout: everything, the summary (limits, today, sessions) or the limits alone. */
-  view?: "full" | "summary" | "limits";
+  /** The layout: everything, the summary (limits, today, sessions), the limits alone, or a card per session (P8). */
+  view?: "full" | "summary" | "limits" | "sessions";
   /** Which agents to show; default both. */
   agents?: AgentFilter;
   /** The plan's 5-hour and weekly use; default on. */
@@ -163,6 +164,8 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
         const h = h0 || 300;
         if (ids.length === 0) return <Empty icon="smart_toy" label="No agent connected yet" />;
         if (p.view === "summary") return <SummaryView plans={plans} ids={ids} usage={all.usage} sessions={sessions} percent={percent} now={now} todayKey={todayKey} h={h} dot={dotColor} />;
+        if (p.view === "sessions")
+          return sessions.length ? <SessionCards sessions={sessions} rows={Math.max(1, Math.floor((h - 20) / (CARD_H + CARD_GAP)))} /> : <Empty icon="smart_toy" label="No sessions running" />;
         if (p.view === "limits") return plans.length ? <LimitsView plans={plans} percent={percent} now={now} h={h} /> : <Empty icon="smart_toy" label="No plan limits yet" />;
         const hasHistory = showUsage && byDay.size > 0;
         const n = showPlan ? plans.length : 0;

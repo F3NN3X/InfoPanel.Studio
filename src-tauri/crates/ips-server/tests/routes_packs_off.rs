@@ -46,6 +46,8 @@ async fn off_the_folder_is_not_read_and_nothing_is_written() {
         allow_remote_upload: false,
         action_runner: false,
         obs_stream: false,
+        agent_approvals: vec![],
+        agent_key_file: None,
         dist: dir.path().join("dist"),
         data_dir: dir.path().join("data"),
         infopanel_dir: dir.path().join("infopanel"),

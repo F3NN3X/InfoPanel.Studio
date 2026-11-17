@@ -41,6 +41,14 @@ describe("restartItems", () => {
     expect(restartText(restartItems({ ...saved, actionRunner: false }, { ...running, actionRunner: true }))).toBe("Restart to apply: commands from the panel off.");
   });
 
+  it("lists the agents' approvals from the panel when the saved set differs, in any order (P8)", () => {
+    expect(restartItems({ ...saved, agentApprovals: [] }, running)).toEqual([]);
+    expect(restartItems({ ...saved, agentApprovals: ["codex", "claude"] }, { ...running, agentApprovals: ["claude", "codex"] })).toEqual([]);
+    const items = restartItems({ ...saved, agentApprovals: ["claude"] }, running);
+    expect(items.map((i) => [i.key, i.running])).toEqual([["agentApprovals", []]]);
+    expect(restartText(items)).toBe("Restart to apply: agent approvals from the panel.");
+  });
+
   it("does not count a debug mode forced for the run as a change", () => {
     expect(restartItems(saved, { ...running, debug: true }, true)).toEqual([]);
     expect(restartItems(saved, { ...running, debug: true }, false).map((i) => i.key)).toEqual(["debug"]);

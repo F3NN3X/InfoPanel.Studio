@@ -37,6 +37,8 @@ const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-port-owner",
     "allow-list-local-addresses",
     "allow-setup-end",
+    // The kiosk's page area, so the agent prompt window sits centred on it (agent_prompt.rs); never an answer.
+    "allow-agent-prompt-room",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     // The studio's top bar is the window's title bar (the window has no native frame).
@@ -108,6 +110,8 @@ const SETTINGS_PERMISSIONS: &[&str] = &[
     "allow-trust-widget-key",
     "allow-remove-widget-key",
     "allow-restore-widget-key",
+    // Coding agents › Answers from the panel: the log only; answers are given in the prompt window alone.
+    "allow-agent-answers-log",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "core:window:allow-minimize",
@@ -425,6 +429,7 @@ fn start_native(app: &AppHandle, generation: u64, s: &Settings, debug: bool) -> 
         server.stop();
         return false;
     }
+    crate::agent_prompt::watch(app, &server.approvals);
     guard.native = Some(server);
     log::info!("in-app server started on {}:{}", s.host(), s.port);
     true
@@ -463,6 +468,7 @@ fn spawn_and_wait(app: &AppHandle, generation: u64) {
                     allow_remote_edit: s.allow_remote_edit,
                     action_runner: s.action_runner,
                     obs_stream_control: s.obs_stream_control,
+                    agent_approvals: s.agent_approvals.clone(),
                 });
             }) {
                 on_running(app);
@@ -609,6 +615,7 @@ pub fn use_foreign(app: &AppHandle) -> Result<(), String> {
             allow_remote_edit: s.allow_remote_edit,
             action_runner: s.action_runner,
             obs_stream_control: s.obs_stream_control,
+            agent_approvals: s.agent_approvals.clone(),
         });
     }) {
         on_running(app);
@@ -750,6 +757,13 @@ mod tests {
             assert!(!STUDIO_PERMISSIONS.contains(&command) && !SETUP_PERMISSIONS.contains(&command), "{command} is granted to the studio");
             assert!(SETTINGS_PERMISSIONS.contains(&command), "{command} is missing from the settings window");
         }
+        // An agent's request is read and answered in the prompt window only (capabilities/agent-prompt.json), never on
+        // the server's origin, where any page or code widget runs.
+        for command in ["allow-agent-requests", "allow-agent-answer"] {
+            for set in [STUDIO_PERMISSIONS, SETTINGS_PERMISSIONS, SETUP_PERMISSIONS] {
+                assert!(!set.contains(&command), "{command} is granted on the server's origin");
+            }
+        }
         // Starting or restarting InfoPanel and writing settings come only with a setup session the shell opens.
         assert_unique(SETUP_PERMISSIONS);
         for command in ["allow-infopanel-start", "allow-infopanel-restart", "allow-setup-options", "allow-run-setup"] {
@@ -847,6 +861,7 @@ mod tests {
             allow_remote_edit: false,
             action_runner: false,
             obs_stream_control: false,
+            agent_approvals: Vec::new(),
         };
         assert_eq!(status_address(Some(&running), &saved), ("127.0.0.1", 3922));
     }

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-agent-prompt-room"
+description = "Enables the agent_prompt_room command without any pre-configured scope."
+commands.allow = ["agent_prompt_room"]
+
+[[permission]]
+identifier = "deny-agent-prompt-room"
+description = "Denies the agent_prompt_room command without any pre-configured scope."
+commands.deny = ["agent_prompt_room"]

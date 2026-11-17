@@ -57,6 +57,8 @@ async fn off_a_code_widget_is_not_listed_served_or_imported_and_recipes_are_unto
         allow_remote_upload: false,
         action_runner: false,
         obs_stream: false,
+        agent_approvals: vec![],
+        agent_key_file: None,
         dist: dir.path().join("dist"),
         data_dir: data.clone(),
         infopanel_dir: dir.path().join("infopanel"),

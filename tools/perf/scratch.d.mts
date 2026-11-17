@@ -6,6 +6,8 @@ export interface Scratch {
   base: string;
   dataApi: string;
   dataDir: string;
+  /** The scratch user folder (INFOPANEL_STUDIO_CONFIG_DIR), where the agent hook key goes. */
+  configDir: string;
   pid: number;
   output(): string;
   stop(): void;

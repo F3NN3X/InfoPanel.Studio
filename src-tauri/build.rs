@@ -69,6 +69,10 @@ fn main() {
         "trust_widget_key",
         "remove_widget_key",
         "restore_widget_key",
+        "agent_requests",
+        "agent_answer",
+        "agent_answers_log",
+        "agent_prompt_room",
     ]);
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))
         .expect("failed to run the Tauri build script");
