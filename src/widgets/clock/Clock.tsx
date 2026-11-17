@@ -3,7 +3,8 @@ import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { localeHour12 } from "@/lib/general";
 import type { ModuleSettings } from "@/modules/types";
 import { Figure } from "../SensorValue";
-import { Widget, shell, roomy, get, num, Num, useIpTag, type ShellProps } from "../kit";
+import { Widget, shell, roomy, Num, useIpTag, type ShellProps } from "../kit";
+import { useNow } from "../time-hooks";
 import { meta } from "./meta";
 
 export { meta };
@@ -61,6 +62,15 @@ export function roomyTimePx(w: number, h: number, secs: boolean, h12: boolean, d
   return Math.round(Math.max(24, Math.min(byW, byH * 0.62)));
 }
 
+/**
+ * The time's parts from the device's own clock. The plugin's readings are a sensor snapshot: a frozen preview, a fixture or a
+ * stale feed shows its capture date, and the clock plugin only mirrors this machine's time.
+ */
+export function clockParts(now: Date) {
+  const h = now.getHours();
+  return { H: h, h12h: h % 12 || 12, M: now.getMinutes(), S: now.getSeconds(), day: now.getDate(), mon: now.getMonth() + 1, yr: now.getFullYear(), pm: h >= 12 };
+}
+
 export interface ClockProps extends ShellProps {
   look?: ModuleSettings;
   /** `auto`: the date & time locale's choice (General › Date locale). */
@@ -71,18 +81,11 @@ export interface ClockProps extends ShellProps {
 }
 
 export default function Clock(p: ClockProps) {
-  const d = p.data;
-  const k = (s: string) => num(get(d, `plugins.clock-plugin.clock.${s}`));
-  const H = k("24-hour"),
-    M = k("minute"),
-    S = k("second"),
-    day = k("day"),
-    mon = k("month"),
-    yr = k("year");
+  const { H, h12h, M, S, day, mon, yr, pm } = clockParts(new Date(useNow(1000)));
   const { locale } = useGeneral();
   const reduced = useReducedMotion();
   const h12 = p.format === "12h" || (p.format === "auto" && localeHour12(locale));
-  const hh = h12 ? k("12-hour") : H;
+  const hh = h12 ? h12h : H;
   const pad = (v: number) => String(Number.isFinite(v) ? v : 0).padStart(2, "0");
   const date = new Date(yr, mon - 1, day);
   const secs = p.showSeconds ?? true;
@@ -92,7 +95,7 @@ export default function Clock(p: ClockProps) {
       {...shell(p)}
       title={p.title}
       showHeader={!!p.title}
-      studio={{ label: `${DAYS[date.getDay()]} · ${day} ${MONTHS[mon - 1]}`, value: `${pad(hh)}:${pad(M)}`, unit: h12 ? (k("pm") ? "PM" : "AM") : secs ? pad(S) : "", kind: "value" }}
+      studio={{ label: `${DAYS[date.getDay()]} · ${day} ${MONTHS[mon - 1]}`, value: `${pad(hh)}:${pad(M)}`, unit: h12 ? (pm ? "PM" : "AM") : secs ? pad(S) : "", kind: "value" }}
     >
       {({ size, w, h, outerW, outerH }) => {
         const big = roomy(outerW, outerH);
@@ -130,7 +133,7 @@ export default function Clock(p: ClockProps) {
                     {pad(M)}
                   </Num>
                   {secs && size !== "xs" && <span {...tag("time", { kind: "clock", format: "ss" })} className={`font-mono tabular-nums ${big ? "text-[color:var(--w-muted)]" : "text-[color:var(--w-faint)]"}`} style={{ fontSize: `max(18px, ${big ? ROOMY_SECS_EM : SECS_EM}em)` }}>{pad(S)}</span>}
-                  {h12 && <span {...tag("time", { kind: "clock", format: "tt" })} className="font-medium text-[color:var(--w-muted)]" style={{ fontSize: `max(14px, ${AMPM_EM}em)` }}>{k("pm") ? "PM" : "AM"}</span>}
+                  {h12 && <span {...tag("time", { kind: "clock", format: "tt" })} className="font-medium text-[color:var(--w-muted)]" style={{ fontSize: `max(14px, ${AMPM_EM}em)` }}>{pm ? "PM" : "AM"}</span>}
                 </div>
                 {p.showDate !== false && (
                   <span {...tag("date", { kind: "clock", format: size === "lg" ? "dddd, d MMM yyyy" : "dddd, d MMM" })} className="text-[color:var(--w-muted)]" style={{ fontSize: big ? Math.max(14, Math.min(Math.round(w * 0.05), Math.round(px * 0.2))) : datePx(size, px), marginTop: Math.round(px * 0.08) }}>
