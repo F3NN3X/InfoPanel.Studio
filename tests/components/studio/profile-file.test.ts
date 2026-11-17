@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { newStored } from "@/lib/infopanel/import/stored";
 import { defaultConfig, newProfile, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
-import { importedProfile, parseProfileFile, PROFILE_FILE_TYPE, profileFileText, screenPayload } from "@/components/studio/profile-file";
+import { bundledScreenPayload, importedProfile, parseProfileFile, PROFILE_FILE_TYPE, profileFileText, screenPayload } from "@/components/studio/profile-file";
 
 function profile(): MonitorProfile {
   const base = newProfile("Wide", 1920, 550);
@@ -207,5 +207,55 @@ describe("screenPayload", () => {
     const withRef = { ...base, pages: [{ ...base.pages[0], placements: [{ id: "c", module: "infopanel-canvas", colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, canvasRef: "cnv_x" }] }, base.pages[1]] } as MonitorProfile;
     const payload = screenPayload({ ...defaultConfig(), profiles: [withRef] }, withRef);
     expect(payload).toEqual({ error: "Not exported: a canvas in this profile is not loaded" });
+  });
+});
+
+describe("bundledScreenPayload (P5: the screen's images travel in its file)", () => {
+  const PNG = `${"a".repeat(64)}.png`;
+  const SVG = `${"b".repeat(64)}.svg`;
+  const withImages = (): MonitorProfile => ({
+    ...profile(),
+    background: { type: "image", src: `/api/assets/${PNG}` },
+    pinned: {
+      items: [
+        {
+          id: "rail",
+          edge: "left",
+          mode: "room",
+          thickness: 84,
+          show: "all",
+          visible: true,
+          placement: { id: "r", module: "PageRail" },
+          rail: [{ id: "logo", group: "top", target: { kind: "profile" }, name: "Logo", icon: { from: "image", asset: SVG }, plate: "contrast" }],
+        },
+      ],
+    },
+  } as MonitorProfile);
+  const bytes: Record<string, Uint8Array> = { [PNG]: new Uint8Array([137, 80, 78, 71]), [SVG]: new TextEncoder().encode("<svg/>") };
+
+  it("writes the images the screen names into its file, and the import reads them back with the profile", async () => {
+    const wide = withImages();
+    const out = await bundledScreenPayload({ ...defaultConfig(), profiles: [wide] }, wide, async (id) => bytes[id]);
+    if ("error" in out) throw new Error(out.error);
+    expect(out.left).toBe(0);
+    const parsed = await parseProfileFile(out.payload.text);
+    if ("error" in parsed) throw new Error(parsed.error);
+    expect(parsed.assets?.map((a) => [a.id, a.type])).toEqual([
+      [PNG, "image/png"],
+      [SVG, "image/svg+xml"],
+    ]);
+    expect(parsed.profile.pinned?.items[0].rail?.[0]).toMatchObject({ icon: { from: "image", asset: SVG }, plate: "contrast" });
+  });
+
+  it("is the plain file for a screen with no images, and leaves out what would pass the 5 MB", async () => {
+    const plain = profile();
+    const out = await bundledScreenPayload({ ...defaultConfig(), profiles: [plain] }, plain, async () => undefined);
+    expect(out).toEqual({ payload: screenPayload({ ...defaultConfig(), profiles: [plain] }, plain), left: 0 });
+    const wide = withImages();
+    const huge = await bundledScreenPayload({ ...defaultConfig(), profiles: [wide] }, wide, async (id) => (id === PNG ? new Uint8Array(4 * 1024 * 1024) : bytes[id]));
+    if ("error" in huge) throw new Error(huge.error);
+    expect(huge.left).toBe(1);
+    expect(huge.payload.text.length).toBeLessThan(5 * 1024 * 1024);
+    expect((await parseProfileFile(huge.payload.text)) as { assets: unknown[] }).toMatchObject({ assets: [{ id: SVG }] });
   });
 });

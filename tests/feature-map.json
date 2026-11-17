@@ -193,7 +193,7 @@
     {
       "id": "server-stores",
       "critical": true,
-      "summary": "Content-addressed assets (SVG sanitised on upload, app icons read from a program), the canvas store and its sweep, the user's library (never delete a used file).",
+      "summary": "Content-addressed assets (SVG sanitised on upload, app icons read from a program), the images a profile file carries, the canvas store and its sweep, the user's library (never delete a used file).",
       "paths": [
         "src-tauri/crates/ips-server/src/assets.rs",
         "src-tauri/crates/ips-server/src/asset_types.rs",
@@ -203,6 +203,7 @@
         "src-tauri/crates/ips-server/src/library.rs",
         "src-tauri/crates/ips-server/tests/*_media.rs",
         "src/lib/assets.ts",
+        "src/lib/profile-assets.ts",
         "src/lib/canvas-store.ts",
         "src/lib/library.ts"
       ],
@@ -212,6 +213,7 @@
         "tests/server/server.test.mjs",
         "tests/server/harness.mjs",
         "tests/lib/assets.test.ts",
+        "tests/lib/profile-assets.test.ts",
         "tests/lib/canvas-store.test.ts",
         "tests/fixtures/parity/assets.json",
         "tests/fixtures/parity/canvases.json",

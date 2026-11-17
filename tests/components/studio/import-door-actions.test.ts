@@ -147,6 +147,23 @@ describe("runImport", () => {
     expect({ ...added, id: "", name: "", pages: [] }).toEqual({ ...parsed.profile, id: "", name: "", pages: [] });
   });
 
+  it("stores a profile file's images on this server first, and adds the screen naming the ids they got (P5)", async () => {
+    const old = `${"a".repeat(64)}.svg`;
+    const clean = `${"c".repeat(64)}.svg`;
+    const original: MonitorProfile = { ...newProfile("Logo", 1024, 600), background: { type: "image", src: `/api/assets/${old}` } } as MonitorProfile;
+    const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify({ id: clean, url: `/api/assets/${clean}`, type: "image/svg+xml", size: 6 })));
+    vi.stubGlobal("fetch", fetch);
+    try {
+      const { ctx } = context(configOf("Mine"));
+      const r = await runImport([await door("logo.json", profileFileText(original, [{ id: old, type: "image/svg+xml", data: btoa("<svg/>") }]))], replace, ctx);
+      expect(fetch).toHaveBeenCalledExactlyOnceWith("/api/assets", expect.objectContaining({ method: "POST" }));
+      expect(vi.mocked(ctx.addScreen).mock.calls[0][0].background).toEqual({ type: "image", src: `/api/assets/${clean}` });
+      expect(r.done[0]).not.toMatch(/could not be stored/);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("gives two screens of one batch names of their own", async () => {
     const { ctx } = context(configOf("Wide"));
     await runImport([await door("a.json", profileFileText(newProfile("Wide", 1920, 550)), 0), await door("b.json", profileFileText(newProfile("Wide", 1920, 550)), 1)], replace, ctx);

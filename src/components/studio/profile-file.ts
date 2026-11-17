@@ -1,6 +1,7 @@
 import { unresolvedCanvases } from "@/lib/canvas-store";
 import { CONFIG_VERSION, readImportedConfig, type DashboardConfig, type MonitorProfile, type Placement, type StoredProfile } from "@/lib/layout";
 import { PROFILE_FILE_TYPE } from "@/lib/import-sniff";
+import { bundleAssets, profileAssetIds, readBundled, type BundledAsset } from "@/lib/profile-assets";
 import { saveFilePayload, type FilePayload, type ReportError } from "./config-file";
 import { uniqueProfileName, withFreshIds } from "./profile-actions";
 
@@ -8,17 +9,21 @@ import { uniqueProfileName, withFreshIds } from "./profile-actions";
 export { PROFILE_FILE_TYPE };
 const PROFILE_FILE_VERSION = 1;
 
-/** A profile file: one profile with the config version it was saved under, so an old one migrates on import. */
+/**
+ * A profile file: one profile with the config version it was saved under, so an old one migrates on import, and the
+ * images it names (P5; an older build ignores them and imports the profile without its images).
+ */
 interface ProfileFile {
   type: typeof PROFILE_FILE_TYPE;
   version: typeof PROFILE_FILE_VERSION;
   configVersion: number;
   profile: MonitorProfile;
+  assets?: BundledAsset[];
 }
 
-/** The profile as the text of a profile file. */
-export function profileFileText(profile: MonitorProfile): string {
-  const file: ProfileFile = { type: PROFILE_FILE_TYPE, version: PROFILE_FILE_VERSION, configVersion: CONFIG_VERSION, profile };
+/** The profile as the text of a profile file, with the images it carries. */
+export function profileFileText(profile: MonitorProfile, assets: readonly BundledAsset[] = []): string {
+  const file: ProfileFile = { type: PROFILE_FILE_TYPE, version: PROFILE_FILE_VERSION, configVersion: CONFIG_VERSION, profile, ...(assets.length ? { assets: [...assets] } : {}) };
   return JSON.stringify(file, null, 2);
 }
 
@@ -70,7 +75,7 @@ const hasOnlyCanvasRef = (p: unknown): boolean => isRecord(p) && p.canvas === un
  */
 export async function parseProfileFile(
   text: string,
-): Promise<{ profile: MonitorProfile; skippedCanvases: number; upgradedFrom?: number; sharedLook?: boolean } | { error: string }> {
+): Promise<{ profile: MonitorProfile; skippedCanvases: number; upgradedFrom?: number; sharedLook?: boolean; assets?: BundledAsset[] } | { error: string }> {
   if (text.length > MAX_PROFILE_FILE_BYTES) return { error: TOO_BIG };
   let json: unknown;
   try {
@@ -118,7 +123,14 @@ export async function parseProfileFile(
     const steps = enveloped ? version : Math.min(version, 16);
     const [profile] = (await readImportedConfig({ version: steps, profiles: [picked as unknown as StoredProfile] })).profiles;
     // One way only: an older file is upgraded, and the import says so.
-    return { profile, skippedCanvases, ...(version < CONFIG_VERSION ? { upgradedFrom: version } : {}), ...(tookSharedLook(raw, version) ? { sharedLook: true } : {}) };
+    const assets = enveloped ? readBundled(json.assets) : [];
+    return {
+      profile,
+      skippedCanvases,
+      ...(version < CONFIG_VERSION ? { upgradedFrom: version } : {}),
+      ...(tookSharedLook(raw, version) ? { sharedLook: true } : {}),
+      ...(assets.length ? { assets } : {}),
+    };
   } catch {
     return { error: "Not a profile file: it could not be read" };
   }
@@ -138,6 +150,24 @@ const fileName = (name: string) => `${name.replace(/[\\/:*?"<>|]/g, "_").trim() 
 export function screenPayload(config: DashboardConfig, profile: MonitorProfile): FilePayload | { error: string } {
   if (unresolvedCanvases({ ...config, profiles: [profile] }).length > 0) return { error: "Not exported: a canvas in this profile is not loaded" };
   return { name: fileName(profile.name), text: profileFileText(profile) };
+}
+
+/**
+ * `screenPayload` with the images the profile names written in (P5), within the import's 5 MB: `left` counts the images
+ * left out (too big for the file, or gone from the server).
+ */
+export async function bundledScreenPayload(
+  config: DashboardConfig,
+  profile: MonitorProfile,
+  read?: (id: string) => Promise<Uint8Array | undefined>,
+): Promise<{ payload: FilePayload; left: number } | { error: string }> {
+  const bare = screenPayload(config, profile);
+  if ("error" in bare) return bare;
+  const ids = profileAssetIds(profile);
+  if (!ids.length) return { payload: bare, left: 0 };
+  // the file's pretty-printing indents each image entry a little: a margin of a kilobyte covers it
+  const { assets, left } = await bundleAssets(ids, MAX_PROFILE_FILE_BYTES - bare.text.length - 1024, read);
+  return { payload: { name: bare.name, text: profileFileText(profile, assets) }, left };
 }
 
 /** Save one profile as `‹name›.json`; `onError` says why when it cannot be written. */

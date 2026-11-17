@@ -71,7 +71,7 @@ Fix sensors that didn't match the PC running InfoPanel Studio (see [Sensor remap
 Press **Export & back up** in the title bar. The sheet has a row for each thing you can take out, and every row has **Copy JSON**, which copies exactly what the file holds:
 
 - **Back up everything**: **Save backup** writes `infopanel-studio-config.json`, which the Import door restores.
-- **Export this screen**: one screen as a `.json` file.
+- **Export this screen**: one screen as a `.json` file, with the images it uses (its background, rail icons and logo) inside, so they come back when the file is imported on another PC. Videos and fonts stay out, and so does an image that would take the file over 5 MB; the export says how many.
 - **Export a page**: **Export…** writes an imported page as its stored form, below. It is off, with its reason, when the page has no InfoPanel profile on it.
 - **Export a gauge**: **Choose…** lists Library › Gauges.
 
