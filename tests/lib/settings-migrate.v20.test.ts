@@ -147,3 +147,51 @@ describe("v20: the pinned layer", () => {
     expect(withFreshIds({ ...config.profiles[0], pinned: undefined }).pinned).toBeUndefined();
   });
 });
+
+// P7 folds the Keys widget's keys (`Placement.keys`) and a command's `confirm` into v20: no release carries v20 yet.
+describe("v20: keys and commands (P7)", () => {
+  const KEYS = [
+    { id: "k1", name: "Notes", icon: { from: "set", name: "file-text" }, series: 3, touch: { tap: { op: "run", command: 'notepad.exe "a b.txt"', confirm: true }, hold: { op: "page", to: "two" } } },
+    { id: "f", name: "Apps", icon: { from: "image", asset: "abc.png" }, keys: [{ id: "k2", name: "Calc", touch: { doubleTap: { op: "obs", body: { op: "stream", state: "toggle" } } } }] },
+  ];
+  const keysScreen = () => screen({ pages: [{ id: "main", name: "Main", placements: [zone("k", { module: "Keys", keys: KEYS })] }, { id: "two", name: "Two", placements: [] }] });
+
+  it("round-trips a page's keys, their folders and a command's confirm through a save and a load, and a profile file", async () => {
+    const once = mergeConfig(stored(20, [keysScreen()]));
+    expect(once.profiles[0].pages[0].placements[0].keys).toEqual(KEYS);
+    const twice = await readConfig(JSON.parse(JSON.stringify(once)));
+    expect(JSON.parse(JSON.stringify(twice))).toEqual(JSON.parse(JSON.stringify(once)));
+    const parsed = await parseProfileFile(profileFileText(once.profiles[0]));
+    if ("error" in parsed) throw new Error(parsed.error);
+    expect(parsed.profile.pages[0].placements[0].keys).toEqual(KEYS);
+    // a pinned Keys widget keeps its keys too
+    const pinned = mergeConfig(stored(20, [screen({ pinned: { items: [{ ...PINNED.items[1], visible: true, placement: { id: "kw", module: "Keys", keys: KEYS } }] } })]));
+    expect(pinned.profiles[0].pinned?.items[0].placement.keys).toEqual(KEYS);
+  });
+
+  it("drops a key it cannot read, a folder in a folder, an empty command and a confirm that isn't true", () => {
+    const keys = [
+      { id: "", name: "No id" },
+      { id: "a", name: "A", series: 9, icon: { from: "nowhere" }, touch: { tap: { op: "run", command: "   " }, hold: { op: "run", command: "calc.exe", confirm: "yes" } } },
+      { id: "a", name: "Again" },
+      { id: "b" },
+      { id: "f", name: "F", keys: [{ id: "g", name: "G", keys: [{ id: "h", name: "H" }] }, "x"] },
+    ];
+    const read = mergeConfig(stored(20, [screen({ pages: [{ id: "main", name: "Main", placements: [zone("k", { module: "Keys", keys })] }] })])).profiles[0].pages[0].placements[0].keys;
+    expect(read).toEqual([
+      { id: "a", name: "A", touch: { hold: { op: "run", command: "calc.exe" } } },
+      { id: "f", name: "F", keys: [{ id: "g", name: "G" }] },
+    ]);
+    // not a list: no keys
+    expect(mergeConfig(stored(20, [screen({ pages: [{ id: "main", name: "Main", placements: [zone("k", { keys: "x" })] }] })])).profiles[0].pages[0].placements[0].keys).toBeUndefined();
+  });
+
+  it("an imported profile's keys follow its pages to their fresh ids, a folder's included", () => {
+    const config = mergeConfig(stored(20, [screen({ pages: [{ id: "main", name: "Main", placements: [zone("k", { module: "Keys", keys: [{ id: "f", name: "F", keys: [{ id: "g", name: "G", touch: { tap: { op: "page", to: "two" } } }] }, { id: "h", name: "H", touch: { hold: { op: "page", to: "main" } } }] })] }, { id: "two", name: "Two", placements: [] }] })]));
+    const copy = importedProfile(config, config.profiles[0]);
+    const [main, two] = copy.pages.map((p) => p.id);
+    const keys = copy.pages[0].placements[0].keys!;
+    expect(keys[0].keys?.[0].touch).toEqual({ tap: { op: "page", to: two } });
+    expect(keys[1].touch).toEqual({ hold: { op: "page", to: main } });
+  });
+});

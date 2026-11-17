@@ -63,12 +63,10 @@ test("a widget's tap, hold and double tap run their actions on the kiosk", async
   await page.mouse.up();
   await expect(main).toHaveAttribute("aria-label", "One");
 
-  // back on Two, a double tap goes to Three
+  // back on Two, a double tap sent the instant the page shows goes to Three (QUESTIONS P-B12: its widget was deaf until a
+  // promise settled, so this needed a 400 ms wait)
   await page.locator("[data-touch]").click();
   await expect(main).toHaveAttribute("aria-label", "Two");
-  // the page's fade-in is over (its widgets take presses from then)
-  await expect(page.locator("[data-touch]")).toHaveCount(1);
-  await page.waitForTimeout(400);
   const d = await center("[data-touch]");
   await page.mouse.dblclick(d.x, d.y);
   await expect(main).toHaveAttribute("aria-label", "Three");

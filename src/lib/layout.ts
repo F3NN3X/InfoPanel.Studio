@@ -26,6 +26,7 @@ import {
 } from "./panel-model";
 import type { StoredCanvas, StoredItem } from "./infopanel/import/stored.ts";
 import type { UserWidgetPreset } from "./widget-presets";
+import { normalizeKeys, type KeySlot } from "./keys";
 import { normalizeAutoSwitch, normalizePinned, normalizeTouchMap, type AutoSwitch, type PinnedLayer, type TouchMap } from "./pinned";
 
 /**
@@ -140,6 +141,8 @@ export interface Placement {
   name?: string;
   /** What a tap, hold or double tap on the widget does (config v20, decision 10); unset = nothing. Drawn from P6 on. */
   touch?: TouchMap;
+  /** The Keys widget's keys (config v20, pinned layer P7); unset on any other widget. */
+  keys?: KeySlot[];
 }
 
 /** A box in design px. */
@@ -581,8 +584,9 @@ const finite = (v: unknown): v is number => typeof v === "number" && Number.isFi
 
 /** v15's fields on a placement, guarded: a bad one is dropped (the placement stays). */
 function normalizePartFields(pl: Placement): Placement {
-  const { px, groupId, locked, item, touch, ...rest } = pl;
+  const { px, groupId, locked, item, touch, keys, ...rest } = pl;
   const map = normalizeTouchMap(touch);
+  const keyList = normalizeKeys(keys);
   const box = px && typeof px === "object" && finite(px.x) && finite(px.y) && finite(px.w) && finite(px.h) && px.w > 0 && px.h > 0 ? px : undefined;
   const stored = item && typeof item === "object" && !Array.isArray(item) && typeof item.kind === "string" ? item : undefined;
   return {
@@ -592,6 +596,7 @@ function normalizePartFields(pl: Placement): Placement {
     ...(locked === true ? { locked } : {}),
     ...(stored ? { item: stored } : {}),
     ...(map ? { touch: map } : {}),
+    ...(keyList ? { keys: keyList } : {}),
   };
 }
 

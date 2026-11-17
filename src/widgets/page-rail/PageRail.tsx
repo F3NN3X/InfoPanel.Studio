@@ -5,13 +5,14 @@ import { pageIcon } from "@/components/studio/page-icons";
 import { audio, EMPTY_AUDIO } from "@/lib/audio-control";
 import { extras } from "@/lib/extras";
 import type { Placement } from "@/lib/layout";
-import type { PinnedEdge, RailPlate, RailSlot, TouchAction, TouchMap } from "@/lib/pinned";
+import type { PinnedEdge, RailPlate, RailSlot, TouchAction, TouchGesture, TouchMap } from "@/lib/pinned";
 import { actionOn, chipSeries, imageAlt, RAIL_SIZES, railBadge, railDense, railGroups, railSlots, slotAction, slotName, type BadgeState, type RailBadge, type RailPage } from "@/lib/rail";
-import { createRecogniser, type GestureHandlers } from "@/lib/gesture";
+import type { GestureHandlers } from "@/lib/gesture";
 import { attachTouch, touchHandlers } from "@/lib/touch-zone";
 import type { ModuleSettings } from "@/modules/types";
 import Clock from "../clock/Clock";
 import { Widget, shell, TONES, type ShellProps } from "../kit";
+import { useGestures } from "../shared/use-gestures";
 import { useLogoPlate } from "./logo-plate";
 import { meta } from "./meta";
 import { ProfilePicker } from "./ProfilePicker";
@@ -59,44 +60,11 @@ const SAMPLE_SLOTS: RailSlot[] = railSlots(undefined, SAMPLE_PAGES).map((s) => (
 const useAgents = () => useSyncExternalStore(extras.subscribe, () => extras.getState().agents, () => extras.getState().agents);
 const useObs = () => useSyncExternalStore(extras.subscribe, () => extras.getState().obs, () => extras.getState().obs);
 
-/** The gestures of one target, from the recogniser: pointer events, a keyboard click and the raw-USB `tp-gesture`. */
-function useGestures(handlers: GestureHandlers) {
-  const latest = useRef(handlers);
-  latest.current = handlers;
-  const rec = useMemo(() => createRecogniser(() => latest.current), []);
-  const ref = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    const onRaw = (e: Event) => {
-      const g = (e as CustomEvent<{ gesture: { type: string } }>).detail?.gesture;
-      if (g) rec.gesture(g.type);
-    };
-    el?.addEventListener("tp-gesture", onRaw);
-    return () => {
-      el?.removeEventListener("tp-gesture", onRaw);
-      rec.dispose();
-    };
-  }, [rec]);
-  return {
-    ref,
-    onPointerDown: (e: React.PointerEvent) => rec.down(e.clientX, e.clientY),
-    onPointerMove: (e: React.PointerEvent) => rec.move(e.clientX, e.clientY),
-    onPointerUp: () => rec.up(),
-    onPointerCancel: () => rec.cancel(),
-    onPointerLeave: () => rec.cancel(),
-    // a click the keyboard made (Enter, Space) is a tap; a pointer's click was the recogniser's
-    onClick: (e: React.MouseEvent) => {
-      if (e.detail === 0) latest.current.tap?.();
-    },
-    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
-  };
-}
-
 /** A slot's gestures: its touch map's, a tap doing what the slot is. */
-const slotGestures = (slot: RailSlot, run: (a: TouchAction) => void): GestureHandlers =>
+const slotGestures = (slot: RailSlot, run: (a: TouchAction, g: TouchGesture) => void): GestureHandlers =>
   Object.fromEntries((["tap", "hold", "doubleTap"] as const).flatMap((g) => {
     const action = slotAction(slot, g);
-    return action ? [[g, () => run(action)]] : [];
+    return action ? [[g, () => run(action, g)]] : [];
   }));
 
 /** A badge in its status tone: a dot, or a word on a tint of the tone (the widget's card shows through, on any Look). */
@@ -142,7 +110,7 @@ interface SlotProps {
   badge?: RailBadge;
   /** A toggle action's state (a mute: on = muted, in `--w-crit`). */
   on?: boolean;
-  run: (a: TouchAction) => void;
+  run: (a: TouchAction, g?: TouchGesture) => void;
 }
 
 function SlotButton({ slot, name, alt, active, edge, badge, on, run }: SlotProps) {
@@ -220,7 +188,7 @@ const PLATES: Record<RailPlate, CSSProperties> = {
  * The logo slot (a profile slot with an image): the user's image on its plate, the user's choice or one read from the
  * image (owner Q8). Its alt text is the item's name and what a tap does (owner Q10).
  */
-function Logo({ slot, name, alt, run }: { slot: RailSlot; name: string; alt: string; run: (a: TouchAction) => void }) {
+function Logo({ slot, name, alt, run }: { slot: RailSlot; name: string; alt: string; run: (a: TouchAction, g?: TouchGesture) => void }) {
   const { top } = useContext(SizeCtx);
   const g = useGestures(slotGestures(slot, run));
   const icon = slot.icon;
@@ -280,7 +248,7 @@ function SlotWidget({ id, module, settings, touch, host, style }: { id: string; 
   const latest = useRef({ touch, run: host.run });
   latest.current = { touch, run: host.run };
   const on = !!touch;
-  useEffect(() => (on && box ? attachTouch(box, () => touchHandlers(latest.current.touch, (a) => latest.current.run(a))) : undefined), [on, box]);
+  useEffect(() => (on && box ? attachTouch(box, () => touchHandlers(latest.current.touch, (a, g) => latest.current.run(a, g))) : undefined), [on, box]);
   return (
     <div ref={setBox} data-rail-slot={id} data-touch={touch ? "" : undefined} tabIndex={touch?.tap ? 0 : undefined} className={`relative shrink-0 rounded-xl ${FOCUS}`} style={style}>
       {host.zone?.(placement, { position: "absolute", inset: 0 })}

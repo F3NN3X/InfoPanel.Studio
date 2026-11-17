@@ -22,7 +22,7 @@ import { modules } from "@/modules";
 import { useLoadedProfile, useWidgetPreload } from "@/widgets/preload";
 import { PageDots, pageDotsStripPx } from "@/components/page-dots";
 import { leadsPage, PinnedItems } from "@/components/pinned-layer";
-import { pinnedOnPage, pinnedPlacement, pinnedRoom, type TouchAction } from "@/lib/pinned";
+import { pinnedOnPage, pinnedPlacement, pinnedRoom, type TouchAction, type TouchGesture } from "@/lib/pinned";
 import { RailHostContext, type RailHost } from "@/components/rail-host";
 import { runTouchAction } from "@/lib/touch-actions";
 import { resolveBackground } from "@/lib/appearance";
@@ -117,6 +117,8 @@ const StudioView = lazy(() =>
 const ConfigUpdateDialog = lazy(() => import("@/components/studio/config-update-dialog").then((m) => ({ default: m.ConfigUpdateDialog })));
 // Experimental touch: only a kiosk with ?touch= loads it.
 const TouchLayer = lazy(() => import("@/components/touch-layer").then((m) => ({ default: m.TouchLayer })));
+// The hold-to-confirm card and the run notes (pinned layer P7): loaded with the first action that needs one.
+const ActionLayer = lazy(() => import("@/components/action-confirm"));
 
 interface AppProps {
   /** A dev fixture (`?fixture=`, src/dev/fixtures): its config replaces the saved one, nothing is read from or saved to the server. */
@@ -408,6 +410,9 @@ export default function App({ fixture }: AppProps = {}) {
   const rotateSaved = stored.rotate?.enabled === true;
   // The profile picker (P4): a kiosk only, and not one whose link or display pins its profile (the override can't move it).
   const [pickerOpen, setPickerOpen] = useState(false);
+  // P7: an action waiting for its hold to confirm, and what the last command came to when it did not start
+  const [confirming, setConfirming] = useState<{ action: TouchAction; go: () => void } | null>(null);
+  const [actionNote, setActionNote] = useState<string | null>(null);
   const assignedScreen = control?.displays?.find((d) => d.name === displayName)?.screen;
   const switchable = kiosk && ![profilePin, assignedScreen].some((id) => id && config.profiles.some((p) => p.id === id));
   const railHost: RailHost = {
@@ -416,16 +421,26 @@ export default function App({ fixture }: AppProps = {}) {
     profile: { id: stored.id, name: stored.name, index: config.profiles.findIndex((p) => p.id === stored.id) },
     lock: rotateSaved ? (control?.profiles[stored.id]?.rotating === false ? "locked" : "auto") : null,
     alerts: kiosk ? shownAlerts : NO_ALERTS,
-    run: (a: TouchAction) =>
-      runTouchAction(a, {
+    run: (a: TouchAction, g?: TouchGesture) =>
+      runTouchAction(
+        a,
+        {
         page: (to) => (to === "next" || to === "prev" ? touchPage(to) : stored.pages.some((p) => p.id === to) && goToPage(to)),
         toggleRotate: () => void postControl("rotate", { profile: stored.id, state: "toggle" }),
         // the write routes load with their first use, so the kiosk entry carries none of them
         audio: (body) => import("@/lib/audio-control").then((m) => m.audioAct(body)),
-        obs: (body) => import("@/lib/obs-control").then((m) => m.obsAct(body)),
+        obs: (body) =>
+          body.op === "stream"
+            ? import("@/lib/action-runner").then((m) => m.obsStream(body.state).then((r) => setActionNote(m.resultNote(r))))
+            : import("@/lib/obs-control").then((m) => m.obsAct(body)),
         media: (key) => import("@/lib/media-control").then((m) => m.mediaKey(key)),
         picker: switchable ? () => setPickerOpen(true) : undefined,
-      }),
+        // the action runner (ips-server's actions.rs): off by default, approved commands only, this PC unless remote editing is on
+        run: (command) => import("@/lib/action-runner").then((m) => m.runCommand(command).then((r) => setActionNote(m.resultNote(r)))),
+        confirm: (action, go) => setConfirming({ action, go }),
+        },
+        g === "hold"
+      ),
     zone: (placement, style) => (
       <LivePlacement placement={placement} appearance={appearance}>
         {({ content, scope }) => <div style={{ ...style, ...scope }}>{content}</div>}
@@ -1010,6 +1025,12 @@ export default function App({ fixture }: AppProps = {}) {
         {kiosk && <DimOverlay level={control?.profiles[stored.id]?.dim ?? 0} />}
 
         {kiosk && <AlertLayer alerts={splitAlerts.layer} onAck={ackAlert} lookId={pageSkin.lookId} />}
+
+        {(confirming || actionNote) && (
+          <Suspense fallback={null}>
+            <ActionLayer confirm={confirming} note={actionNote} room={room} onCancel={() => setConfirming(null)} onNoteDone={() => setActionNote(null)} />
+          </Suspense>
+        )}
 
         {/* Alerts reach the island on the kiosk only; the plain page shows its idle pill. */}
         {shownIsland && (

@@ -6,7 +6,7 @@
  * Loaded only by a screen with a widget that has a touch map (`use-touch-zone.ts`), so the kiosk entry carries none of it.
  */
 import { createRecogniser, type GestureHandlers, type GestureTimers } from "./gesture";
-import type { TouchAction, TouchMap } from "./pinned";
+import type { TouchAction, TouchGesture, TouchMap } from "./pinned";
 
 /** What counts as a widget's own control: a press on one is left to it. */
 export const CONTROL = "button, a[href], input, select, textarea, [role=button], [role=slider], [role=switch], [role=checkbox], [role=link], [contenteditable=true], [data-no-touch]";
@@ -18,11 +18,11 @@ export function onControl(target: EventTarget | null, root: Element): boolean {
 }
 
 /** A touch map's gestures as the recogniser's handlers: an unset gesture does nothing. */
-export const touchHandlers = (touch: TouchMap | undefined, run: (a: TouchAction) => void): GestureHandlers =>
+export const touchHandlers = (touch: TouchMap | undefined, run: (a: TouchAction, g: TouchGesture) => void): GestureHandlers =>
   Object.fromEntries(
     (["tap", "hold", "doubleTap"] as const).flatMap((g) => {
       const action = touch?.[g];
-      return action ? [[g, () => run(action)]] : [];
+      return action ? [[g, () => run(action, g)]] : [];
     })
   );
 

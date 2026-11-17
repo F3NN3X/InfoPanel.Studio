@@ -1,7 +1,7 @@
 import { createContext, type CSSProperties, type ReactNode } from "react";
 import type { ActiveAlert } from "@/lib/alerts";
 import type { MonitorProfile, Placement } from "@/lib/layout";
-import type { PinnedEdge, RailSlot, TouchAction } from "@/lib/pinned";
+import type { PinnedEdge, RailSlot, TouchAction, TouchGesture } from "@/lib/pinned";
 import type { RailPage } from "@/lib/rail";
 
 /**
@@ -20,7 +20,8 @@ export interface RailHost {
   lock: "auto" | "locked" | null;
   /** The alerts shown on this kiosk (`visibleAlerts`), for the `alerts` badge. */
   alerts: readonly ActiveAlert[];
-  run: (action: TouchAction) => void;
+  /** Runs an action; `gesture` is what ran it (a hold confirms an action that asks for one). */
+  run: (action: TouchAction, gesture?: TouchGesture) => void;
   /** Draws a widget in a slot as a kiosk zone does, in a box of `style`; unset (a preview) leaves the box empty. */
   zone?: (placement: Placement, style: CSSProperties) => ReactNode;
   /**
