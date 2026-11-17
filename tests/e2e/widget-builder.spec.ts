@@ -164,7 +164,8 @@ test("the validation list names each block by its Layers name, lists every probl
   await page.getByLabel("Decimals", { exact: true }).press("Enter");
   await expect(page.locator("[data-validation]")).toContainText("2 problems");
   const list = page.locator("[data-problems] button");
-  await expect(list).toHaveText(["Big ring · Decimals: from 0 to 4", "Value · Decimals: from 0 to 4"]);
+  // the errors first, then what the stage measures at its size: a 9-decimal value is too long for a ring at 3×2
+  await expect(list).toHaveText(["Big ring · Decimals: from 0 to 4", "Value · Decimals: from 0 to 4", "At 3×2, Big ring is too small for its value"]);
   for (const text of await list.allTextContents()) expect(text).not.toMatch(/\$\.|children\[/);
   await list.nth(0).click();
   await expect(layer(page, "0")).toHaveAttribute("aria-current", "true");

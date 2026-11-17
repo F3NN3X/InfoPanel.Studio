@@ -20,6 +20,7 @@
     "verify": "node tools/verify.mjs",
     "verify:full": "node tools/verify.mjs --full",
     "verify:plan": "node tools/verify.mjs --plan",
+    "verify:linux": "node tools/remote-linux.mjs",
     "ship": "node tools/ship.mjs",
     "start": "node tools/start.mjs",
     "serve": "npm run build && node tools/start.mjs",

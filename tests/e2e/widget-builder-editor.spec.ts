@@ -372,13 +372,15 @@ test("a warning dot marks each Layers row the problem list names, and leaves whe
   await layer(page, "0").click();
   await decimals.fill("8");
   await decimals.press("Enter");
-  await expect(page.locator("[data-problems] button")).toHaveText(["Ring · Decimals: from 0 to 4", "Value · Decimals: from 0 to 4"]);
+  // the errors, then what the stage measures at its size: a 9-decimal value is too long for a ring at 3×2
+  await expect(page.locator("[data-problems] button")).toHaveText(["Ring · Decimals: from 0 to 4", "Value · Decimals: from 0 to 4", "At 3×2, Ring is too small for its value"]);
   const dots = page.locator("[data-layer]:has([data-problem-dot])");
   expect(await dots.evaluateAll((els) => els.map((e) => e.getAttribute("data-layer")))).toEqual(["0", "1"]);
-  await expect(layer(page, "0").getByRole("img", { name: "Has a problem" })).toHaveAttribute("title", "Ring · Decimals: from 0 to 4");
+  await expect(layer(page, "0").getByRole("img", { name: "Has a problem" })).toHaveAttribute("title", "Ring · Decimals: from 0 to 4\nAt 3×2, Ring is too small for its value");
   await decimals.fill("1");
   await decimals.press("Enter");
-  expect(await dots.evaluateAll((els) => els.map((e) => e.getAttribute("data-layer")))).toEqual(["1"]);
+  // the stage measures its crowding after it redraws, so the Ring's dot leaves a moment after its error does
+  await expect.poll(() => dots.evaluateAll((els) => els.map((e) => e.getAttribute("data-layer")))).toEqual(["1"]);
   await layer(page, "1").click();
   await decimals.fill("2");
   await decimals.press("Enter");
