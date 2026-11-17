@@ -51,7 +51,7 @@ The **page rail** lists your pages down one edge, with the page shown marked in 
 
 With page dots and swipe on, drag a page and the next one slides in beside it under the rail. Let go past a quarter of the way to move on.
 
-Pinning is set in the config for now; the editor for it comes in a later update. The [customization guide](https://github.com/F3NN3X/InfoPanel.Studio/blob/main/docs/customization-guide.md#pinned-widgets) shows how.
+You pin widgets in Edit: see [The pinned layer](studio#the-pinned-layer).
 
 ## Remote control
 
