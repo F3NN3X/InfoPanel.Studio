@@ -208,3 +208,37 @@ describe("the profile chip and picker (P4)", () => {
     expect(close).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("the profile chip's own touch", () => {
+  it("a run command on it goes to the host's runner, which holds it unless it is approved, as a slot's does; the rail starts nothing itself", () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    vi.useFakeTimers();
+    try {
+      run.mockReset();
+      const picker = { open: false, close: vi.fn(), all: [], defaultId: "main", front: "", paused: false, pick: vi.fn(), auto: vi.fn() } as unknown as RailProfiles;
+      render(
+        <RailHostContext.Provider value={host({ profiles: picker })}>
+          <RailItemContext.Provider value={{ edge: "left" }}>
+            <PageRail data={{}} clock={false} chipItem={JSON.stringify({ touch: { hold: { op: "run", command: "calc.exe" } } })} />
+          </RailItemContext.Provider>
+        </RailHostContext.Provider>
+      );
+      fireEvent.pointerDown(screen.getByLabelText("Profile: Main"), { clientX: 5, clientY: 5 });
+      vi.advanceTimersByTime(650);
+      expect(run).toHaveBeenCalledWith({ op: "run", command: "calc.exe" }, "hold");
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+      cleanup();
+    }
+  });
+
+  it("an invalid or unknown override is not drawn: a chip with a bad shape and icon looks as it does by default", () => {
+    const plain = render(<RailHostContext.Provider value={host()}><RailItemContext.Provider value={{ edge: "left" }}><PageRail data={{}} clock={false} /></RailItemContext.Provider></RailHostContext.Provider>).container.innerHTML;
+    cleanup();
+    const bad = render(<RailHostContext.Provider value={host()}><RailItemContext.Provider value={{ edge: "left" }}><PageRail data={{}} clock={false} chipItem={JSON.stringify({ shape: "star", icon: { from: "url" }, touch: { tap: { op: "format" } } })} /></RailItemContext.Provider></RailHostContext.Provider>).container.innerHTML;
+    expect(bad).toBe(plain);
+  });
+});

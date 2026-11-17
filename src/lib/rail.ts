@@ -8,7 +8,7 @@ import type { ActiveAlert } from "./alerts";
 import type { Agents } from "./agents";
 import type { AudioState } from "./audio-control";
 import type { ObsState } from "./extras";
-import type { RailGroup, RailPlate, RailSlot, TouchAction, TouchGesture } from "./pinned";
+import { parseChipItem, type RailGroup, type RailPlate, type RailSlot, type TouchAction, type TouchGesture } from "./pinned";
 
 /** The rail widget's module id. */
 export const RAIL_MODULE = "PageRail";
@@ -79,20 +79,12 @@ export const CHIP_SLOT_ID = "chip";
 export const CHIP_FIELDS = ["icon", "shape", "tint", "label", "name", "touch", "plate"] as const;
 
 /**
- * The overrides stored beside the chip in the rail's settings, by field; none when the chip is as drawn by default. A
- * setting holds a string, a number or a boolean (config v20), so `chipItem` is these fields as JSON text.
+ * The overrides stored beside the chip in the rail's settings, by field, guarded as a slot's are (`normalizeChipFields`:
+ * a touch map keeps only its known actions, an icon, shape and plate only known ones); none when the chip is as drawn by
+ * default or the text isn't JSON. A setting holds a string, a number or a boolean (config v20), so `chipItem` is these
+ * fields as JSON text. `pages`: the profile's page ids, to drop a touch that opens one that is gone.
  */
-export function chipOverrides(settings: Record<string, unknown> | undefined): Partial<Pick<RailSlot, (typeof CHIP_FIELDS)[number]>> {
-  const raw = settings?.chipItem;
-  if (typeof raw !== "string") return {};
-  try {
-    const own: unknown = JSON.parse(raw);
-    if (!own || typeof own !== "object") return {};
-    return Object.fromEntries(CHIP_FIELDS.flatMap((k) => ((own as Record<string, unknown>)[k] !== undefined ? [[k, (own as Record<string, unknown>)[k]]] : [])));
-  } catch {
-    return {};
-  }
-}
+export const chipOverrides = (settings: Record<string, unknown> | undefined, pages?: ReadonlySet<string>): ReturnType<typeof parseChipItem> => parseChipItem(settings?.chipItem, pages);
 
 /**
  * The profile chip as a slot, so the editor lists it in the Top group and the slot inspector edits it: the profile, its

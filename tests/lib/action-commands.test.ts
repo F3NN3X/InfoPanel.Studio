@@ -52,3 +52,18 @@ describe("the commands a profile names", () => {
     expect(commandsIn({ ...PROFILE, pinned: undefined, pages: [] })).toEqual([]);
   });
 });
+
+describe("the profile chip's touch", () => {
+  const chipItem = JSON.stringify({ touch: { hold: run("calc.exe"), tap: { op: "page", to: "next" } } });
+  const withChip = { ...PROFILE, pinned: { items: [{ ...PROFILE.pinned!.items[0], placement: { id: "r", module: "PageRail", settings: { chipItem } }, rail: [] }] } } as unknown as MonitorProfile;
+
+  it("lists a command on it, as Pinned > Profile chip, for the import's review", () => {
+    expect(commandsIn(withChip).filter((u) => u.where.includes("Profile chip"))).toEqual([{ command: "calc.exe", profile: "Desk", where: "Pinned › Profile chip, hold" }]);
+  });
+
+  it("lists nothing for a chip whose touch is not a valid action or not JSON", () => {
+    const bad = (settings: Record<string, unknown>) => ({ ...withChip, pinned: { items: [{ ...withChip.pinned!.items[0], placement: { id: "r", module: "PageRail", settings } }] } }) as unknown as MonitorProfile;
+    expect(commandsIn(bad({ chipItem: JSON.stringify({ touch: { hold: { op: "run", command: "  " } } }) })).filter((u) => u.where.includes("chip"))).toEqual([]);
+    expect(commandsIn(bad({ chipItem: "{nope" })).filter((u) => u.where.includes("chip"))).toEqual([]);
+  });
+});
