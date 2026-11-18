@@ -43,9 +43,26 @@ export function inkOf(value: string): Ink | undefined {
   return { rgb: [1, 2, 3].map((k) => Number(m[k]) * (srgb ? 255 : 1)) as [number, number, number], alpha };
 }
 
+/**
+ * The colours `computed` has read, by value and the card's colour scheme. Reading one adds a probe to the card and forces a style
+ * pass, and `drawnStep` runs after every render: with live data re-rendering the stage on each reading, the probes cost more than a
+ * slow machine has between readings, the readings queued up and a click waited behind them for seconds (seen on CI, run 44196588297).
+ * A card's colour values change with the Look, not the reading, so each is read once. A value that names `currentColor` is read
+ * each time: it depends on the card's own text colour.
+ */
+const seen = new Map<string, Ink | undefined>();
+
 /** A CSS colour (a custom property's value: hex, an hsl function, a `color-mix`) as the browser computes it, read in the card. */
-function computed(card: HTMLElement, value: string): Ink | undefined {
+function computed(card: HTMLElement, value: string, scheme: string): Ink | undefined {
   if (!value.trim()) return undefined;
+  const key = /currentcolor/i.test(value) ? undefined : `${value}|${scheme}`;
+  if (key !== undefined && seen.has(key)) return seen.get(key);
+  const ink = probed(card, value);
+  if (key !== undefined) seen.set(key, ink);
+  return ink;
+}
+
+function probed(card: HTMLElement, value: string): Ink | undefined {
   const probe = document.createElement("span");
   probe.style.display = "none";
   probe.style.color = value;
@@ -65,7 +82,7 @@ export function drawnStep(el: HTMLElement, want: DrawnStep): DrawnStep {
   const card = el.closest<HTMLElement>("[data-part='card']");
   if (!card || want === 100) return 100;
   const cs = getComputedStyle(card);
-  const face = ["--w-mat-export", "--w-fill"].map((name) => computed(card, cs.getPropertyValue(name))).find((c) => c && c.alpha >= 0.5);
+  const face = ["--w-mat-export", "--w-fill"].map((name) => computed(card, cs.getPropertyValue(name), cs.colorScheme)).find((c) => c && c.alpha >= 0.5);
   if (!face) return 100;
   let ground = face.rgb;
   const between: HTMLElement[] = [];

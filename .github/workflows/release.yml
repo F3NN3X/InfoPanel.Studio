@@ -117,6 +117,11 @@ jobs:
     if: ${{ !contains(github.ref_name, '-beta.') }}
     runs-on: ubuntu-26.04
     timeout-minutes: 25
+    # the specs split three ways, one-editor in part 1 (tools/ci/run-commands.mjs); publish needs every part
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-node-deps
@@ -124,10 +129,11 @@ jobs:
       - uses: ./.github/actions/e2e
         with:
           save-cache: "false"
+          shard: ${{ matrix.shard }}/3
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: e2e-report
+          name: e2e-report-${{ matrix.shard }}
           path: .cache/playwright
           # .cache is a hidden folder, which upload-artifact leaves out by default: the report was never uploaded
           include-hidden-files: true

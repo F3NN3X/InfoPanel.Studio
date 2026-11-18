@@ -44,7 +44,13 @@ export function TwitchBlock({ state, pending, channel, onSignin, onCancel, onSig
     const t = setInterval(() => setTick(now()), 1000);
     return () => clearInterval(t);
   }, [pending, now]);
-  useEffect(() => setDraft(channel), [channel]);
+  // the draft follows a channel the server changes, set while rendering: an effect also ran on mount, after the field was drawn, so
+  // what was typed before it ran was put back to the stored channel and Save stayed disabled
+  const [shownChannel, setShownChannel] = useState(channel);
+  if (channel !== shownChannel) {
+    setShownChannel(channel);
+    setDraft(channel);
+  }
   const status = state.signedIn ? (state.connected ? "Chat connected" : "Connecting chat") : pending || state.pending ? "Waiting for approval" : "Signed out";
   const tone: StatusTone = state.signedIn && state.connected ? "ok" : state.signedIn || pending || state.pending ? "warn" : "idle";
   const shown = error || state.error;

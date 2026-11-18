@@ -5,6 +5,9 @@ inputs:
   commands:
     description: 'The commands to run, a JSON array (the CI plan chooses them). Empty: the whole e2e and one-editor suites'
     default: ""
+  shard:
+    description: 'This job''s part of a split run ("i/n", tools/ci/run-commands.mjs). Empty: everything in one job'
+    default: ""
   save-cache:
     description: Save the Rust cache ("false" where nothing else can restore it, as under a release tag)
     default: "true"
@@ -31,4 +34,5 @@ runs:
     - shell: bash
       env:
         COMMANDS: ${{ inputs.commands }}
+        SHARD: ${{ inputs.shard }}
       run: node tools/ci/run-commands.mjs
