@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CI: runs the commands the plan chose for the e2e job (`e2e_cmds`, a JSON array in $COMMANDS), each one even when an
+// CI: runs the browser commands an e2e job was given (a JSON array in $COMMANDS), each one even when an
 // earlier one failed, and exits 1 if any did. Without $COMMANDS (the release): the whole e2e and one-editor suites.
 // $SHARD ("i/n", a matrix job's part): the e2e specs split n ways, this job's i-th; the other commands run in part 1 only.
 // Node built-ins only.
