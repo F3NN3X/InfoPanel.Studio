@@ -1,0 +1,114 @@
+name: zz compare runners (no e2e)
+# Temporary (debug/win-e2e only): CI's non-browser jobs, every check on, each on GitHub's runner and on Avrea's (4 vCPU both).
+# Caches are read, never saved, so neither side warms the other's.
+on:
+  push:
+    branches: [debug/win-e2e]
+permissions:
+  contents: read
+jobs:
+  lint:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-26.04, avrea-ubuntu-latest-4-vcpu]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - run: npx biome ci
+      - run: node tools/ci/actionlint.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  typecheck-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-26.04, avrea-ubuntu-latest-4-vcpu]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - run: npm run build
+      - run: npm run desktop:settings
+      - run: npm run perf:budgets
+      - run: node tools/perf/check-budgets.mjs --packs
+      - run: node tools/looks/generate.mjs --check-usage
+
+  unit:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-26.04, avrea-ubuntu-latest-4-vcpu]
+        shard: [1, 2]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - run: npm test -- --shard=${{ matrix.shard }}/2
+
+  lab:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-26.04, avrea-ubuntu-latest-4-vcpu]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - run: npm run lab:typecheck
+      - run: npm run lab:test
+
+  server:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-26.04, avrea-ubuntu-latest-4-vcpu]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+          shared-key: native
+          save-if: false
+      - run: npm run test:server
+      - run: cargo test -p ips-server -p ips-agent
+        working-directory: src-tauri
+      - run: cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings
+        working-directory: src-tauri
+
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-latest, avrea-windows-2025-4-vcpu]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+          shared-key: tauri
+          save-if: false
+      - run: cargo test -p ips-server -p ips-agent
+        working-directory: src-tauri
+      - run: node tools/ci-stub-desktop.mjs
+      - run: cargo test
+        working-directory: src-tauri
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+        working-directory: src-tauri

@@ -2,6 +2,7 @@ name: zz debug windows e2e (avrea)
 on:
   push:
     branches: [debug/win-e2e]
+    paths: [.github/workflows/zz-debug-win-avrea.yml]
 permissions:
   contents: read
 jobs:
