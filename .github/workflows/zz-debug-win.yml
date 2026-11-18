@@ -25,7 +25,8 @@ jobs:
       - name: Count sockets in the background
         shell: pwsh
         run: |
-          Start-Job -ScriptBlock { while ($true) { $c = Get-NetTCPConnection -ErrorAction SilentlyContinue; $g = $c | Group-Object State | ForEach-Object { "$($_.Name)=$($_.Count)" }; Add-Content -Path "$env:RUNNER_TEMP/sockets.log" -Value "$(Get-Date -Format HH:mm:ss) $($g -join ' ')"; Start-Sleep 20 } } | Out-Null
+          $loop = 'while ($true) { $c = Get-NetTCPConnection -ErrorAction SilentlyContinue; $g = $c | Group-Object State | ForEach-Object { "$($_.Name)=$($_.Count)" }; Add-Content -Path "' + $env:RUNNER_TEMP + '/sockets.log" -Value "$(Get-Date -Format HH:mm:ss) $($g -join '' '')"; Start-Sleep 20 }'
+          Start-Process pwsh -ArgumentList '-NoProfile', '-Command', $loop -WindowStyle Hidden
       - run: npx playwright test --project=e2e --trace retain-on-failure --reporter=list
         env:
           CI: "1"
