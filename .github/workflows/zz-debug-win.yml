@@ -22,9 +22,16 @@ jobs:
       - run: npm run build
       - run: npm run desktop:settings
       - run: npx playwright install chromium
-      - run: npx playwright test tests/e2e/widget-builder-surfaces.spec.ts tests/e2e/pack-selectors.spec.ts --project=e2e --repeat-each 4 --trace on --reporter=list
+      - name: Count sockets in the background
+        shell: pwsh
+        run: |
+          Start-Job -ScriptBlock { while ($true) { $c = Get-NetTCPConnection -ErrorAction SilentlyContinue; $g = $c | Group-Object State | ForEach-Object { "$($_.Name)=$($_.Count)" }; Add-Content -Path "$env:RUNNER_TEMP/sockets.log" -Value "$(Get-Date -Format HH:mm:ss) $($g -join ' ')"; Start-Sleep 20 } } | Out-Null
+      - run: npx playwright test --project=e2e --trace retain-on-failure --reporter=list
         env:
           CI: "1"
+      - if: always()
+        shell: pwsh
+        run: Get-Content "$env:RUNNER_TEMP/sockets.log"
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
