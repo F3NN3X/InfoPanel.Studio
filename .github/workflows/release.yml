@@ -1,7 +1,7 @@
 name: Release
 
 # A tag vX.Y.Z publishes the installer. `gate` checks the tag and that CI vouches for the commit; then the installer
-# build (Windows) and the e2e specs (Linux), which PRs leave to the ci:e2e label, run side by side, and `publish` needs
+# build (Windows) and the e2e specs (Linux), which regular CI leaves out (e2e.yml, by hand), run side by side, and `publish` needs
 # both. The unit and Rust tests are not run again: the commit's own CI (release-gate.mjs) already passed them. Nothing
 # here saves a cache: one saved under a tag is restored by no other ref.
 on:

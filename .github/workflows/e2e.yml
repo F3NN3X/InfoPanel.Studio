@@ -1,0 +1,97 @@
+name: E2E
+
+# The browser checks, started by hand only (Actions › E2E › Run workflow, or `gh workflow run e2e.yml --ref <branch>`):
+# regular CI leaves them out, since ship runs them locally before every merge. The release runs them again for a stable
+# tag (release.yml) and the nightly every night. The specs are split three ways (tools/ci/run-commands.mjs, $SHARD);
+# one-editor and the overflow probe run in part 1. `gate` repeats the specs the branch adds or changes (flake-gate.mjs).
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Branch the spec gate diffs against (the specs this branch adds or changes)
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-26.04
+    # About 12.8 min of specs on one runner (run 42460790140) split three ways, one-editor and overflow in part 1: about
+    # 9 min for that part (run 44201752898). 40 is for a slow runner.
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - run: npm run build
+      # the whole e2e and one-editor suites, and the overflow probe as tests/feature-map.json runs it
+      - id: commands
+        shell: bash
+        run: echo "list=$(node -p 'JSON.stringify(["npm run test:e2e", "npm run test:one-editor", require("./tests/feature-map.json").checks.overflow.cmd])')" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/e2e
+        with:
+          commands: ${{ steps.commands.outputs.list }}
+          shard: ${{ matrix.shard }}/3
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-report-${{ matrix.shard }}
+          path: .cache/playwright
+          # .cache is a hidden folder, which upload-artifact leaves out by default
+          include-hidden-files: true
+          retention-days: 7
+
+  # The new-test gate for Playwright specs: the specs this branch adds or changes against `base`, repeated (flake-gate.mjs).
+  # Its own job, so it never shares the specs' CPU (4 workers on 4 vCPUs starved the whole-page measures, run 42460790140).
+  gate:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-node-deps
+      - id: plan
+        env:
+          BASE: ${{ inputs.base }}
+        run: node tools/verify.mjs --plan --json --base "origin/$BASE" | node tools/ci/plan-outputs.mjs --e2e
+      - if: steps.plan.outputs.flake_e2e == 'true'
+        run: npm run build
+      - if: steps.plan.outputs.flake_e2e == 'true'
+        uses: ./.github/actions/e2e
+        with:
+          commands: ${{ steps.plan.outputs.flake_e2e_cmds }}
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-report
+          path: .cache/playwright
+          include-hidden-files: true
+          retention-days: 7
+
+  # Advisory: the tests in tests/quarantine.json keep running here (_docs/TESTING.md, "Quarantine"), only while any are.
+  quarantine:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: any
+        shell: bash
+        run: echo "found=$(node --input-type=module -e 'import { quarantinedFiles } from "./tools/ci/quarantine.mjs"; console.log(quarantinedFiles().length > 0)')" >> "$GITHUB_OUTPUT"
+      - if: steps.any.outputs.found == 'true'
+        uses: ./.github/actions/setup-node-deps
+      - if: steps.any.outputs.found == 'true'
+        run: npm run build
+      - if: steps.any.outputs.found == 'true'
+        uses: ./.github/actions/e2e
+        with:
+          commands: '["node tools/ci/quarantine.mjs run"]'
