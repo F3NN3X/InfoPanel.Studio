@@ -3,3 +3,5 @@
 self-hosted-runner:
   labels:
     - ubuntu-26.04
+    # Avrea's hosted runners (avrea.com), on trial
+    - avrea-windows-2025-4-vcpu

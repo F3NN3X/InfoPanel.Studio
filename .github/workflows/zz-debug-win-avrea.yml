@@ -1,0 +1,42 @@
+name: zz debug windows e2e (avrea)
+on:
+  push:
+    branches: [debug/win-e2e]
+permissions:
+  contents: read
+jobs:
+  win-avrea:
+    runs-on: avrea-windows-2025-4-vcpu
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+          shared-key: native
+          save-if: false
+      - run: cargo build -p ips-server
+        working-directory: src-tauri
+      - run: npm run build
+      - run: npm run desktop:settings
+      - run: npx playwright install chromium
+      - name: Count sockets in the background
+        shell: pwsh
+        run: |
+          $loop = 'while ($true) { $c = Get-NetTCPConnection -ErrorAction SilentlyContinue; $g = $c | Group-Object State | ForEach-Object { "$($_.Name)=$($_.Count)" }; Add-Content -Path "' + $env:RUNNER_TEMP + '/sockets.log" -Value "$(Get-Date -Format HH:mm:ss) $($g -join '' '')"; Start-Sleep 20 }'
+          Start-Process pwsh -ArgumentList '-NoProfile', '-Command', $loop -WindowStyle Hidden
+      - run: npx playwright test --project=e2e --trace retain-on-failure --reporter=list
+        env:
+          CI: "1"
+      - if: always()
+        shell: pwsh
+        run: Get-Content "$env:RUNNER_TEMP/sockets.log"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: win-report-avrea
+          path: .cache/playwright
+          include-hidden-files: true
+          retention-days: 3
