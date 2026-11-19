@@ -406,6 +406,17 @@ export function newRailSlot(kind: NewSlotKind, slots: readonly RailSlot[], pages
   return { id, group: "widgets", target: { kind: "widget", module: widget?.module ?? "Clock", ...(widget?.settings ? { settings: widget.settings } : {}) }, ...(widget?.name ? { name: widget.name } : {}) };
 }
 
+/**
+ * The rail widget a slot is: of its module's, the one whose settings (its view and options) the slot stores, the one with the
+ * most keys when several fit; the module's only one when it has just one; none (a custom mix) otherwise.
+ */
+export function railWidgetOf<W extends { module: string; settings?: ModuleSettings }>(widgets: readonly W[], target: { module: string; settings?: ModuleSettings }): W | undefined {
+  const own = widgets.filter((w) => w.module === target.module);
+  const fits = own.filter((w) => Object.entries(w.settings ?? {}).every(([k, v]) => target.settings?.[k] === v));
+  const best = fits.reduce<W | undefined>((a, w) => (!a || Object.keys(w.settings ?? {}).length > Object.keys(a.settings ?? {}).length ? w : a), undefined);
+  return best ?? (own.length === 1 ? own[0] : undefined);
+}
+
 /** A rail slot one step up or down among the slots of its group (the other groups' slots keep their places). */
 export function moveRailSlot(all: readonly RailSlot[], id: string, by: -1 | 1): RailSlot[] {
   const slot = all.find((s) => s.id === id);

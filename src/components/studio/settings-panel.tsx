@@ -66,6 +66,7 @@ function bundleOf(def: ModuleSetting, fields: FieldsApi): ModuleSettings {
 
 /** The audio widgets' Show filter row, read for the device pickers. */
 const DEVICE_ROW: ModuleSetting = { key: "device", label: "Device", type: "select", default: "" };
+const DEVICES_ROW: ModuleSetting = { key: "devices", label: "Devices", type: "select", default: "" };
 const FLOW_ROW: ModuleSetting = { key: "flow", label: "Show", type: "select", default: "all" };
 
 /**
@@ -106,6 +107,7 @@ export function SettingField({
         hint={def.hint}
         tempUnit={def.quantity === "temp" ? tempUnitOf({ tempUnit: fields.shown("tempUnit", TEMP_UNIT) }) : undefined}
         roleLabel={readOnly && def.role ? ROLE_LABELS[def.role] : undefined}
+        scope={def.optionsFrom === "battery-devices" ? { devices: String(fields.shown("devices", DEVICES_ROW)), devicesMode: String(fields.shown("devicesMode", DEVICES_ROW)) } : undefined}
         flow={
           def.optionsFrom === "audio" || def.optionsFrom === "wavelink"
             ? String(fields.shown("flow", FLOW_ROW))

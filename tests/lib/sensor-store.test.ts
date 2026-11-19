@@ -205,6 +205,21 @@ describe("SensorStore", () => {
     expect(fetchImpl).toHaveBeenCalledWith(`${BASE}/api/sensors`, { cache: "no-store" });
     expect(live().map(prefixOf).sort()).toEqual(["libre.", "plugins.", "spotify.", "system."]);
   });
+  it("never opens the dashboard server's own streams for null, even when the Data API lists their namespaces", async () => {
+    // A page holds few connections to its server: weather and batteries stream only to a widget that asks for them.
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        sensors: { "battery.1.percent": sensor(70), "weather.place.a.temp": sensor(4), "spotify.track": sensor(2) },
+      }),
+    })) as unknown as typeof fetch;
+    const { store, live, prefixOf } = setup(fetchImpl);
+    store.retain(null);
+    await flush();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchImpl).toHaveBeenCalledWith(`${BASE}/api/sensors`, { cache: "no-store" });
+    expect(live().map(prefixOf).sort()).toEqual(["libre.", "plugins.", "spotify.", "system."]);
+  });
   it("re-arms the grace delay on every release", async () => {
     const { store, live, prefixOf } = setup();
     const releaseA = store.retain(["a."]);

@@ -45,7 +45,10 @@ select:open::picker-icon {
   rotate: 180deg;
 }
 
+/* At least the select's own width and 160 px: near the window's right edge the list then overflows the room beside the
+   select and flips to open leftward, instead of shrinking to a letter per line. */
 ::picker(select) {
+  min-inline-size: max(anchor-size(self-inline), 160px);
   margin-block: 4px;
   max-height: min(360px, 60vh);
   max-width: calc(100vw - 16px);
@@ -70,7 +73,8 @@ select option {
   cursor: default;
   outline: none;
   white-space: normal;
-  overflow-wrap: anywhere;
+  /* break-word, not anywhere: anywhere lets a label's min-content shrink to one letter, so the list never overflows */
+  overflow-wrap: break-word;
 }
 
 select option:hover,

@@ -5,10 +5,14 @@ The charge of the wireless devices the server polls.
 ## What it shows
 
 Every device the Device batteries source finds — mice, keyboards, headsets, controllers and phones — with its charge,
-whether it is charging (a bolt), asleep (a muted row with its last charge) or low (the Critical colour). Four views: List
-(a row and a bar per device), Tiles (a ring per device), Single device (one device as a ring, picked in the options) and
-Lowest first (the devices ranked by charge). Small zones get a summary card with the lowest charge, and the page rail has
-a ring slot and a three-row one.
+whether it is charging (a bolt), asleep (a muted row with its last charge) or low (the Critical colour). Five views: List
+(a row and a bar per device), Tiles (a ring per device), Pills (a chip per device with its icon, a battery glyph and the
+charge), Single device (one device as a ring, picked in the options) and Lowest first (the devices ranked by charge). A
+small zone (a 1x1, or one under 110 px tall) draws the one device (the lowest charge, or the single view's pick) as its
+body, unless it is set to the summary card. The page rail has three slots:
+a ring of the lowest charge, one device stacked (icon over battery glyph and charge), and the list: up to three rows of
+icon, charge and charge bar, or, with **Charge as** set to Bar, every device as its icon and a battery glyph (two columns
+past five).
 
 ## Data it needs
 
@@ -20,8 +24,12 @@ device hidden there publishes no keys, and `DEVICE_BATTERIES=off` turns the sour
 
 ## Options
 
-- **View**: List, Tiles, Single device or Lowest first.
+- **View**: List, Tiles, Pills, Single device or Lowest first.
+- **Charge as**: Bar and percent, Percent, or Bar. A hidden percent stays in the device's tooltip.
+- **Kind icon**: the mouse, keyboard or headset glyph before a device (on by default).
 - **Charging bolt**: mark a device that is charging.
+- **Devices**: tick the devices to draw (none ticked draws every one); **Exclude the ticked devices instead** draws all the others.
+  It filters every view and the rail; the single view's dropdown lists only the devices it lets through.
 - **Disconnected devices**: list a device that is out of range too (an asleep device always keeps its row).
 - **Device** (single view): the device id to draw; empty picks the lowest charge. A picked device is drawn even when it is
   out of range, marked "Not connected".
@@ -41,9 +49,11 @@ A rail preset fills a slot of the page rail instead, so Add and the grid's Prese
 |---|---|---|---|
 | **List** (default) | `list` | 3×2 | the widget's own defaults |
 | **Tiles** | `tiles` | 3×2 | the widget's own defaults |
+| **Pills** | `pills` | 3×2 | the widget's own defaults |
 | **Single device** | `single` | 3×2 | the widget's own defaults |
 | **Lowest first** | `lowest` | 3×2 | the widget's own defaults |
 | **Rail: lowest charge** | `lowest` | a rail slot | `compact: "full"` |
 | **Rail: three devices** | `list` | a rail slot | `compact: "full"` |
+| **Rail: one device** | `single` | a rail slot | `compact: "full"` |
 
 <!-- @generated:end presets -->

@@ -59,8 +59,37 @@ const BASE_NAMESPACES = ["plugins.", "libre.", "system."];
 
 /** The namespaces the dashboard server serves itself (Weather by place, Device batteries; ips-server weather.rs/devices.rs): its own origin and stream, never folded. */
 const SERVER_NS = ["weather.", "battery."];
+/** The server-owned namespace a key or prefix sits in (`weather.`, `battery.`), or undefined for the Data API's. */
+export const serverNamespaceOf = (key: string): string | undefined => SERVER_NS.find((ns) => key.startsWith(ns));
+/** Whether a key or prefix sits in a namespace the dashboard server streams itself: "every sensor" never opens those. */
+export const isServerOwned = (key: string): boolean => serverNamespaceOf(key) !== undefined;
 /** The server route that streams each server-owned namespace (`/events/<route>?prefix=`). */
 const SERVER_ROUTES: Record<string, string> = { "weather.": "weather", "battery.": "devices" };
+/** The dashboard server's stream for a server-owned namespace (it sends the full set first). */
+export const serverStreamUrl = (ns: string): string => `/events/${SERVER_ROUTES[ns]}?prefix=${encodeURIComponent(ns)}`;
+/** The namespaces the dashboard server streams itself, for lists that would otherwise show only the Data API's. */
+export const SERVER_NAMESPACES: readonly string[] = SERVER_NS;
+
+/** A server-owned namespace's full set, read once: the first message of its stream, which then closes (null: none in time). */
+export function readServerNamespace(ns: string, timeoutMs: number): Promise<SensorMap | null> {
+  return new Promise((resolve) => {
+    if (typeof EventSource === "undefined") return resolve(null);
+    const source = new EventSource(serverStreamUrl(ns));
+    const done = (values: SensorMap | null) => {
+      clearTimeout(timer);
+      source.close();
+      resolve(values);
+    };
+    const timer = setTimeout(() => done(null), timeoutMs);
+    source.onmessage = (event) => {
+      try {
+        done((JSON.parse(event.data) as { sensors?: SensorMap }).sensors ?? null);
+      } catch {
+        done(null);
+      }
+    };
+  });
+}
 
 /** Map-key marker of a fast stream (a prefix never starts with it). */
 const FAST = "fast:";
@@ -286,7 +315,7 @@ export class SensorStore {
     const unfiltered = prefix === "";
     const url =
       SERVER_ROUTES[prefix]
-        ? `/events/${SERVER_ROUTES[prefix]}?prefix=${encodeURIComponent(prefix)}`
+        ? serverStreamUrl(prefix)
         : unfiltered
           ? `${this.base}/events`
           : `${this.base}/events?prefix=${encodeURIComponent(prefix)}&interval=${interval}`;
@@ -351,13 +380,14 @@ export class SensorStore {
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { sensors?: SensorMap };
       if (base !== this.base) return;
+      // the Data API's namespaces only: the server's own stream to a widget that asks (a page holds few connections to its server)
       this.discovered = [
         ...new Set(
           Object.keys(data.sensors ?? {}).map((key) =>
             key.startsWith("plugins.") ? "plugins." : namespaceOf(key)
           )
         ),
-      ];
+      ].filter((ns) => !SERVER_NS.includes(ns));
       if (this.allRefs === 0) return;
       this.sync();
       this.discoverTimer = setTimeout(() => void this.discover(), REDISCOVER_MS);

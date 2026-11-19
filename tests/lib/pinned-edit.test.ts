@@ -29,6 +29,7 @@ import {
   newRailSlot,
   PIN_KINDS,
   railOverflow,
+  railWidgetOf,
   removePinnedItem,
   showChoice,
   updatePinnedItem,
@@ -42,6 +43,7 @@ import {
 import { chipSlot, railNeed } from "@/lib/rail";
 import { CANVAS_ID } from "@/lib/layout";
 import type { IslandConfig } from "@/lib/island/config";
+import type { ModuleSettings } from "@/modules/types";
 
 const page = (id: string) => ({ id, name: id.toUpperCase(), placements: [] });
 const profile = (id: string, w = 1024, h = 600, pages = ["a", "b", "c"]): MonitorProfile =>
@@ -432,5 +434,29 @@ describe("grid pins keep off each other's cells", () => {
     expect(planPinHere(shown, "a", ["w1"]).hide).toEqual([]);
     // an edge item doesn't count as a grid pin; nothing pinned hides nothing
     expect(planPinHere(p, "a", ["nope"]).hide).toEqual([]);
+  });
+});
+
+describe("which rail widget a slot holds", () => {
+  const widgets: { module: string; name: string; settings: ModuleSettings }[] = [
+    { module: "DeviceBatteries", name: "Rail: lowest charge", settings: { view: "lowest", compact: "full" } },
+    { module: "DeviceBatteries", name: "Rail: three devices", settings: { view: "list", compact: "full" } },
+    { module: "DeviceBatteries", name: "Rail: one device", settings: { view: "single", compact: "full" } },
+    { module: "Clock", name: "Rail", settings: {} },
+  ];
+
+  it("tells presets that share their options apart by the view they store", () => {
+    expect(railWidgetOf(widgets, { module: "DeviceBatteries", settings: { view: "list", compact: "full" } })?.name).toBe("Rail: three devices");
+    expect(railWidgetOf(widgets, { module: "DeviceBatteries", settings: { view: "single", compact: "full" } })?.name).toBe("Rail: one device");
+  });
+
+  it("still finds the preset when the slot has options of its own on top", () => {
+    expect(railWidgetOf(widgets, { module: "DeviceBatteries", settings: { view: "lowest", compact: "full", showIcon: false } })?.name).toBe("Rail: lowest charge");
+  });
+
+  it("reads a module with one rail widget as it, whatever the slot stores, and a custom mix of several as none", () => {
+    expect(railWidgetOf(widgets, { module: "Clock" })?.name).toBe("Rail");
+    expect(railWidgetOf(widgets, { module: "DeviceBatteries", settings: { view: "tiles" } })).toBeUndefined();
+    expect(railWidgetOf(widgets, { module: "Weather" })).toBeUndefined();
   });
 });

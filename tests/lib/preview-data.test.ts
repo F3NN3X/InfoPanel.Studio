@@ -56,6 +56,24 @@ describe("PreviewSnapshot", () => {
     expect(snap.getState().values["cpu.load"]).toEqual(reading(90));
   });
 
+  it("reads the dashboard server's own namespaces from its stream, not the Data API, and again on each refresh", async () => {
+    // The Data API never carries battery.*: Device Batteries on a frozen canvas drew "no live data yet".
+    let pct = 60;
+    const fetchServer = vi.fn(async (ns: string): Promise<SensorMap | null> => (ns === "battery." ? { "battery.1.percent": reading(pct) } : null));
+    const fetchAll = vi.fn(async () => ({ "cpu.load": reading(10) }) as SensorMap);
+    const { snap } = snapshot({ fetchAll, fetchServer });
+    await snap.take();
+    expect(fetchServer).not.toHaveBeenCalled();
+    snap.ensure(["battery."]);
+    await vi.waitFor(() => expect(snap.getState().values["battery.1.percent"]).toEqual(reading(60)));
+    expect(fetchServer).toHaveBeenCalledWith("battery.");
+    // the server's namespace alone asks the Data API nothing more
+    expect(fetchAll).toHaveBeenCalledTimes(1);
+    pct = 55;
+    await snap.take();
+    expect(snap.getState().values).toEqual({ "cpu.load": reading(10), "battery.1.percent": reading(55) });
+  });
+
   it("adds a sensor a new zone binds, once, without moving the others", async () => {
     let calls = 0;
     const { snap } = snapshot({

@@ -40,7 +40,11 @@ export function useRailWidgets(): readonly RailWidget[] {
       if (!alive) return;
       setList([
         ...Object.entries(map).flatMap(([module, presets]) =>
-          presets.filter((p) => p.size === "rail").map((p) => ({ module, name: `${modules.find((m) => m.id === module)?.title ?? module} · ${p.name}`, settings: p.settings }))
+          presets.filter((p) => p.size === "rail").map((p) => {
+            const mod = modules.find((m) => m.id === module);
+            // the preset's view is stored with its settings, as Add writes them: it is what tells presets of one widget apart
+            return { module, name: `${mod?.title ?? module} · ${p.name}`, settings: { ...(p.view ? { [mod?.viewKey ?? "view"]: p.view } : {}), ...p.settings } };
+          })
         ),
         ...user,
       ]);

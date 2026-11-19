@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { cleanup, render } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fixtureSensors } from "@/widgets/__fixtures__";
 import DeviceBatteries, { batteryDevices, type DeviceBatteriesProps } from "@/widgets/device-batteries/DeviceBatteries";
 import { STATE } from "@/widgets/kit";
@@ -25,7 +25,19 @@ const kept = (colour: string) => {
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
+
+/** A box of `w` × `h` once the widget measures itself (an unmeasured one reads its `size` tier only). */
+const box = (w: number, h: number) =>
+  class {
+    constructor(private cb: ResizeObserverCallback) {}
+    observe(el: Element) {
+      this.cb([{ target: el, contentRect: { width: w, height: h } } as ResizeObserverEntry], this as unknown as ResizeObserver);
+    }
+    unobserve() {}
+    disconnect() {}
+  };
 
 describe("the battery keys", () => {
   it("group into one device each, and battery.status is the source's line, not a device", () => {
@@ -135,7 +147,19 @@ describe("the lowest view", () => {
 });
 
 describe("the rail presets", () => {
+  it("a short card under 360 px gives the rows its width, without the side summary", () => {
+    // The summary repeats the lowest row; beside it the names cut to a letter.
+    vi.stubGlobal("ResizeObserver", box(270, 110));
+    const { container } = draw({ view: "list", size: "xs" });
+    expect(container.querySelectorAll("[data-device]")).toHaveLength(2);
+    expect(container.textContent).not.toContain("Lowest of 2 devices");
+  });
+
+  // The rail's slot as the PageRail draws it (72 px wide, the widget row's height).
+  const RAIL = box(72, 76);
+
   it("the list preset draws up to three icon-and-charge rows, without the names", () => {
+    vi.stubGlobal("ResizeObserver", RAIL);
     const { container } = draw({ view: "list", size: "xs" });
     const rows = [...container.querySelectorAll("[data-device]")];
     expect(rows.map((el) => el.getAttribute("data-device"))).toEqual([MOUSE, KEYBOARD]);
@@ -144,10 +168,77 @@ describe("the rail presets", () => {
     expect(container.querySelectorAll('[data-part="icon"]').length).toBeGreaterThan(0);
   });
 
+  it("the list preset gives each row a charge bar in the charge's colour", () => {
+    vi.stubGlobal("ResizeObserver", RAIL);
+    const { container } = draw({ view: "list", size: "xs" });
+    const barOf = (id: string) => rowOf(container, id)?.querySelector('[data-part="charge-bar"]') as HTMLElement | null;
+    expect(barOf(MOUSE)?.style.background).toBe(kept("var(--w-accent)"));
+    expect(barOf(KEYBOARD)?.style.background).toBe(kept(STATE.crit));
+  });
+
+  it("the list preset with the charge hidden draws every device as icon and glyph, two columns past five", () => {
+    // Three rows of charge and bar left the fourth device off the rail; icon and glyph alone fit them all.
+    const extra = Object.fromEntries(
+      [1, 2, 3, 4, 5].flatMap((i) => [
+        [`battery.90${i}.name`, `Pad ${i}`],
+        [`battery.90${i}.percent`, `${i * 15} %`],
+        [`battery.90${i}.kind`, "controller"],
+      ]),
+    );
+    vi.stubGlobal("ResizeObserver", RAIL);
+    const { container } = render(<DeviceBatteries data={{ ...DATA, ...extra }} view="list" size="xs" show="bar" />);
+    const rows = [...container.querySelectorAll("[data-device]")];
+    expect(rows).toHaveLength(7);
+    for (const row of rows) expect(row.querySelector('[data-part="battery-glyph"]')).not.toBeNull();
+    expect(container.textContent).not.toContain("%");
+    expect(rowOf(container, MOUSE)?.getAttribute("title")).toContain("93%");
+    expect((rows[0].parentElement as HTMLElement).style.gridTemplateColumns).toBe("repeat(2, auto)");
+  });
+
+  it("a short, wide card keeps its device names: only a narrow slot is the rail's", () => {
+    // 4x2 is under the xs height tier, but has the width for names; the rail body there drew bare icons and charges.
+    vi.stubGlobal("ResizeObserver", box(460, 110));
+    const { container } = draw({ view: "list", size: "xs" });
+    expect(container.textContent).toContain("MX Master 3S");
+    expect(container.textContent).toContain("Keychron K3");
+  });
+
   it("the lowest preset draws one ring of the lowest charge", () => {
+    vi.stubGlobal("ResizeObserver", RAIL);
     const { container } = draw({ view: "lowest", size: "xs" });
     expect(container.querySelectorAll('[data-part="ring"]')).toHaveLength(1);
     expect(container.textContent).toContain("12");
     expect(container.querySelectorAll("[data-device]")).toHaveLength(0);
+  });
+});
+
+describe("the device filter", () => {
+  it("draws only the ticked devices", () => {
+    const { container } = draw({ devices: MOUSE });
+    expect(rowOf(container, MOUSE)).not.toBeNull();
+    expect(rowOf(container, KEYBOARD)).toBeNull();
+  });
+
+  it("drops the ticked devices in exclude mode", () => {
+    const { container } = draw({ devices: MOUSE, devicesMode: "exclude", showDisconnected: true });
+    expect(rowOf(container, MOUSE)).toBeNull();
+    expect(rowOf(container, KEYBOARD)).not.toBeNull();
+  });
+
+  it("draws every device when none is ticked, and says so when the filter leaves none", () => {
+    expect(draw({ devices: "", devicesMode: "exclude" }).container.querySelectorAll("[data-device]")).toHaveLength(2);
+    cleanup();
+    expect(draw({ devices: "gone" }).container.textContent).toContain("No device matches");
+  });
+});
+
+describe("the kind icon", () => {
+  it("starts a row with the kind glyph, and with it off a row starts with the name", () => {
+    const glyphs = (c: HTMLElement) => rowOf(c, MOUSE)?.querySelectorAll('[data-part="icon"]').length;
+    expect(glyphs(draw({ showCharging: false }).container)).toBe(1);
+    cleanup();
+    const off = draw({ showCharging: false, showIcon: false }).container;
+    expect(glyphs(off)).toBe(0);
+    expect(rowOf(off, MOUSE)?.textContent).toContain("MX Master 3S");
   });
 });

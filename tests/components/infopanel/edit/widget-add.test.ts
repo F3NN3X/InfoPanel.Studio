@@ -4,7 +4,7 @@ import { addCatalog, widgetRows } from "@/components/studio/add-catalog";
 import { loadWidgetPresets } from "@/components/studio/widget-presets";
 import { freeSize } from "@/components/studio/add-place";
 import { parseAddFilter } from "@/components/studio/add-prefs";
-import { mergePrefixes, placementPrefixes, widgetPlacement } from "@/components/studio/placement-content";
+import { mergePrefixes, placementPrefixes, placementServerReads, widgetPlacement } from "@/components/studio/placement-content";
 import { widgetFromZone, widgetRecordFor, zoneOfWidget } from "@/components/infopanel/edit/widget-add";
 import { newStored, readStored, toStored } from "@/lib/infopanel/import/stored";
 import { newWidgetItem } from "@/lib/infopanel/native/widget-item";
@@ -69,5 +69,20 @@ describe("the canvas zone's subscription", () => {
     expect(placementPrefixes(zone(store(["Weather"])))).toEqual([...new Set(weather)].sort());
     expect(mergePrefixes([["b", "a"], ["a"]])).toEqual(["a", "b"]);
     expect(mergePrefixes([["a"], null])).toBeNull();
+  });
+
+  it("asks for the dashboard server's own namespaces besides, when one item reads every sensor", () => {
+    // "every sensor" never opens the server's streams (batteries, weather by place), so a canvas holding Device
+    // Batteries beside a widget that reads all drew "no live data" until they were asked for by name.
+    const base = newStored({ name: "Arc", width: 800, height: 480 });
+    const { profile } = readStored(base);
+    const zone = (canvas: unknown): Placement => ({ id: "z", module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 1, visible: true, canvas: canvas as Placement["canvas"] });
+    const store = (modules: string[]) =>
+      toStored({ name: "Arc", origin: "file", dataApi: null, defaultMode: "infopanel", profile, items: modules.map((m) => newWidgetItem({ module: m }, { x: 0, y: 0, w: 10, h: 10 }, m)), assets: new Map(), keyOf: () => null, fonts: [] });
+    const both = zone(store(["DeviceBatteries", "SystemOverview"]));
+    expect(placementPrefixes(both)).toBeNull();
+    expect(placementServerReads(both)).toEqual(["battery."]);
+    expect(placementServerReads(widgetPlacement({ module: "DeviceBatteries" }))).toEqual(["battery."]);
+    expect(placementServerReads(widgetPlacement({ module: "SystemOverview" }))).toEqual([]);
   });
 });

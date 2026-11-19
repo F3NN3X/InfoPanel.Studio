@@ -58,3 +58,16 @@ export function batteryDeviceOptions(devices: readonly BatteryDevice[], stored: 
   const listed = devices.map((d) => ({ value: d.id, label: d.via ? `${d.name} · ${d.via}` : d.name }));
   return [{ value: "", label: "Lowest charge" }, ...listed, ...(stored && !devices.some((d) => d.id === stored) ? [{ value: stored, label: `${stored} (not connected)` }] : [])];
 }
+
+/** How the `devices` list filters: `include` keeps the ticked devices, `exclude` drops them. */
+export type DevicesMode = "include" | "exclude";
+
+/** The ids of a comma-separated list ("" = none). */
+export const splitIds = (list: string | undefined): string[] => (list ? list.split(",").map((s) => s.trim()).filter(Boolean) : []);
+
+/** The devices the `devices` setting lets through: all of them when nothing is ticked, else the ticked ones, or all but them. */
+export function filterDevices(devices: readonly BatteryDevice[], ticked: string | undefined, mode: DevicesMode = "include"): BatteryDevice[] {
+  const ids = splitIds(ticked);
+  if (!ids.length) return [...devices];
+  return devices.filter((d) => ids.includes(d.id) === (mode !== "exclude"));
+}

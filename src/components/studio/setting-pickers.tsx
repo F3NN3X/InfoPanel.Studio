@@ -8,12 +8,14 @@ import { parseNameList } from "@/lib/name-list";
 import { AUTO_RULES, autoDevice, deviceOptions, deviceReading } from "@/lib/device-options";
 import { cn } from "@/lib/utils";
 import { meterKey, useWavelinkState } from "@/lib/wavelink";
+import { batteryDevices, batteryDeviceOptions, filterDevices, splitIds } from "@/widgets/device-batteries/devices";
+import { toFlat } from "@/widgets/shared/data-adapter";
 import { shortName } from "@/widgets/shared/audio-data";
 import { allChannels } from "@/widgets/stream-mixer/channels";
-import type { DeviceKind, ModuleSetting, ModuleSettingValue } from "@/modules/types";
+import type { DeviceKind, ModuleSetting, ModuleSettings, ModuleSettingValue } from "@/modules/types";
 import { ChipsField } from "./alerts-fields";
 import { selectedLabel } from "./selected-label";
-import { SELECT as SELECT_BASE, StackRow, type RowLabelProps } from "./setting-rows";
+import { SELECT as SELECT_BASE, StackRow, ToggleRow, type RowLabelProps } from "./setting-rows";
 
 /** A comma-separated list ("" = none) as its items. */
 const splitList = (value: string): string[] => (value ? value.split(",").map((s) => s.trim()).filter(Boolean) : []);
@@ -192,6 +194,52 @@ export function ObsScenePicker({ def, value, onChange, lead, hint }: PickerProps
       <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} title={selectedLabel([{ value: "", label: "Choose a scene" }, ...all], value)} className={SELECT}>
         <option value="">Choose a scene</option>
         {all.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </StackRow>
+  );
+}
+
+/** The device filter a Device Batteries picker reads from the widget's settings (`devices`, `devicesMode`). */
+export interface BatteryScope {
+  devices?: string;
+  devicesMode?: string;
+}
+
+/**
+ * Picker for Device Batteries' devices (`optionsFrom: "battery-devices"`), over the wireless devices the server polls now (it
+ * opens their stream while the picker is mounted). One device (the single view): a dropdown of Lowest charge and the devices
+ * the `scope` filter lets through. `def.multiple` (`devices`, comma-separated, none = all): a checklist, with a toggle that
+ * drops the ticked ones instead (`devicesMode`, the row's `keyY`). A stored id that is not listed stays listed.
+ */
+export function BatteryDevicePicker({ def, value, valueY, scope, onChange, onPatch, lead, hint }: PickerProps & { valueY?: string; scope?: BatteryScope; onPatch?: (patch: ModuleSettings) => void }) {
+  const devices = batteryDevices(toFlat(useSensors(["battery."])));
+  if (def.multiple) {
+    const ticked = splitIds(value);
+    const toggle = (id: string) => onChange((ticked.includes(id) ? ticked.filter((v) => v !== id) : [...ticked, id]).join(","));
+    const rows = [...devices.map((d) => ({ id: d.id, label: d.via ? `${d.name} · ${d.via}` : d.name })), ...ticked.filter((id) => !devices.some((d) => d.id === id)).map((id) => ({ id, label: `${id} (not connected)` }))];
+    return (
+      <StackRow label={def.label} lead={lead} hint={hint}>
+        <div role="group" aria-label={def.label} className="flex flex-col">
+          <DeviceRow on={ticked.length === 0} multi label="All devices" detail="None ticked = every device" onClick={() => onChange("")} />
+          {rows.map((r) => (
+            <DeviceRow key={r.id} on={ticked.includes(r.id)} multi label={r.label} onClick={() => toggle(r.id)} />
+          ))}
+        </div>
+        {def.keyY && onPatch && (
+          <ToggleRow label="Exclude the ticked devices instead" value={valueY === "exclude"} onChange={(on) => onPatch({ [def.keyY!]: on ? "exclude" : "include" })} />
+        )}
+      </StackRow>
+    );
+  }
+  const options = batteryDeviceOptions(filterDevices(devices, scope?.devices, scope?.devicesMode === "exclude" ? "exclude" : "include"), value);
+  return (
+    <StackRow label={def.label} lead={lead} hint={hint}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={def.label} title={selectedLabel(options, value)} className={SELECT}>
+        {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>

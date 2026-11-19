@@ -163,3 +163,47 @@ describe("a 1x1 zone", () => {
     expect(container.querySelector('[data-wp-view="compact"]')).not.toBeNull();
   });
 });
+
+describe("a wide, short 1x1 zone", () => {
+  // 165 x 58: the grid's 1x1 on a wide, short row. Its content is the box here (the stub measures both alike).
+  const WIDE = () => vi.stubGlobal("ResizeObserver", box(165, 58, true));
+  /** The nodes of the row in document order: the kind icon, the glyph's svg and the charge number. */
+  const order = (c: HTMLElement) => [...c.querySelectorAll('[data-part="icon"], [data-part="battery-glyph"], [data-part="num"]')].map((el) => el.getAttribute("data-part"));
+
+  it("draws the one device on one line, icon then glyph then charge, not the summary card", () => {
+    WIDE();
+    const { container } = draw({ view: "list", showCharging: false });
+    expect(container.querySelector('[data-wp-view="body"]')).not.toBeNull();
+    expect(container.querySelectorAll("[data-device]")).toHaveLength(1);
+    expect(rowOf(container, KEYBOARD)).not.toBeNull();
+    expect(order(container)).toEqual(["icon", "battery-glyph", "num"]);
+    expect(container.textContent).toContain("12%");
+    expect(container.textContent).not.toContain("Batteries");
+  });
+
+  it("puts the bolt after the glyph while the device charges", () => {
+    WIDE();
+    const { container } = draw({ view: "single", singleDevice: MOUSE });
+    expect(order(container)).toEqual(["icon", "battery-glyph", "icon", "num"]);
+  });
+
+  it("follows Charge as and the kind icon option", () => {
+    WIDE();
+    const bar = draw({ show: "bar" });
+    expect(bar.container.textContent).not.toContain("%");
+    expect(fillOf(bar.container)).not.toBeNull();
+    cleanup();
+    WIDE();
+    const bare = draw({ showIcon: false, showCharging: false });
+    expect(order(bare.container)).toEqual(["battery-glyph", "num"]);
+  });
+
+  it("keeps the stack in a squarer zone and the summary card when set to Summary card", () => {
+    vi.stubGlobal("ResizeObserver", box(110, 110, true));
+    const { container } = draw({ showCharging: false });
+    expect(container.querySelector("[data-device]")?.className).toContain("flex-col");
+    cleanup();
+    WIDE();
+    expect(draw({ compactView: "on" }).container.querySelector('[data-wp-view="compact"]')).not.toBeNull();
+  });
+});

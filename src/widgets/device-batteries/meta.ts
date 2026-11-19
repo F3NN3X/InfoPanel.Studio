@@ -11,7 +11,7 @@ export const meta: WidgetMeta = {
   icon: "battery_full",
   prefixes: [P],
   defaultSize: [3, 2],
-  minSize: [2, 1],
+  minSize: [1, 1],
   blurb: "Wireless device batteries and charging",
   tags: "battery batteries mouse keyboard headset controller phone charge low wireless",
   description:
@@ -19,6 +19,7 @@ export const meta: WidgetMeta = {
   views: [
     { id: "list", name: "List", blurb: "One row per device with its charge bar", tags: "rows bars" },
     { id: "tiles", name: "Tiles", blurb: "A ring per device", tags: "rings grid" },
+    { id: "pills", name: "Pills", blurb: "A chip per device with its icon, battery and charge", tags: "chips compact" },
     { id: "single", name: "Single device", blurb: "One device's charge, picked in the options", tags: "one ring" },
     { id: "lowest", name: "Lowest first", blurb: "The devices ranked by charge, lowest first", tags: "ranked order" },
   ],

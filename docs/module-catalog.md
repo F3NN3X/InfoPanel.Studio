@@ -40,7 +40,7 @@ inspector's Show, Data and Behaviour tabs.
 | Category | Widgets (id · minimum) |
 |---|---|
 | System | `SystemOverview` 1×1, `MenuBar` 2×1, `KpiTiles` 1×1, `StatusTracker` 2×1, `SystemStatus` 1×1, `ServiceHealth` 1×1, `ProcessList` 1×1, `Uptime` 1×1, `StatusBar` 3×1, `CodingAgents` 1×1 |
-| Hardware | `CpuMonitor` 1×1, `CoreHeatmap` 1×1, `GpuMonitor` 1×1, `MemoryUsage` 1×1, `Thermals` 1×1, `PowerDraw` 1×1, `Fans` 1×1, `DeviceBatteries` 2×1 |
+| Hardware | `CpuMonitor` 1×1, `CoreHeatmap` 1×1, `GpuMonitor` 1×1, `MemoryUsage` 1×1, `Thermals` 1×1, `PowerDraw` 1×1, `Fans` 1×1, `DeviceBatteries` 1×1 |
 | Storage | `DriveSpace` 1×1, `StorageHealth` 1×1, `DiskIO` 1×1 |
 | Network | `NetworkThroughput` 1×1, `NetworkAdapters` 1×1 |
 | Media | `NowPlaying` 1×1 |

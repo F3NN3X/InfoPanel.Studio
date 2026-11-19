@@ -541,6 +541,7 @@
         "tests/widgets/recipe/**",
         "tests/widgets/code/**",
         "tests/widgets/device-batteries/**",
+        "tests/e2e/device-batteries-rail.spec.ts",
         "tests/fixtures/recipes/**",
         "tests/fixtures/widgets/**",
         "tests/tools/widgets/**",

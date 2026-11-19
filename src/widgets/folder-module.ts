@@ -8,5 +8,6 @@ import type { InspectorMeta } from "./registry/inspector-meta";
 
 export const folderModule = <P extends object>(d: WidgetDefinition<P>): DashboardModule & { inspectorMeta: InspectorMeta } => ({
   ...templateModule({ meta: d.meta, Component: lazyWidget(d.render.load), settings: d.settings, toProps: d.render.toProps, prefixes: d.render.reads, title: d.render.title, base: d.render.base, island: d.island }),
+  ...(d.railSettings ? { railSettings: d.railSettings } : {}),
   inspectorMeta: d.inspector,
 });

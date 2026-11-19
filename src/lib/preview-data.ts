@@ -3,7 +3,7 @@
 // its own; the store's reference counting closes the page's streams once nothing live (the Data view, a sensor
 // picker, an alert preview) is open. Kiosks, and the studio's Kiosk view, are always live.
 import { getApiBase } from "@/lib/data-api";
-import { sensorStore } from "@/lib/sensor-store";
+import { readServerNamespace, sensorStore, serverNamespaceOf } from "@/lib/sensor-store";
 import type { SensorMap } from "@/modules/types";
 
 import type { SessionOverride } from "@/lib/preview-data-pref";
@@ -26,8 +26,12 @@ export interface SnapshotDeps {
   current: () => SensorMap;
   /** The Data API's complete map (`GET /api/sensors`), or null when it can't be read in time. */
   fetchAll: () => Promise<SensorMap | null>;
+  /** One server-owned namespace's full set (`weather.`, `battery.`: the Data API never carries them), or null. */
+  fetchServer?: (ns: string) => Promise<SensorMap | null>;
   now: () => number;
 }
+
+const fetchServerNamespace = (ns: string): Promise<SensorMap | null> => readServerNamespace(ns, SNAPSHOT_TIMEOUT_MS);
 
 async function fetchAllSensors(): Promise<SensorMap | null> {
   const ctl = new AbortController();
@@ -44,7 +48,7 @@ async function fetchAllSensors(): Promise<SensorMap | null> {
   }
 }
 
-const DEFAULT_DEPS: SnapshotDeps = { current: () => sensorStore.getValues(), fetchAll: fetchAllSensors, now: () => Date.now() };
+const DEFAULT_DEPS: SnapshotDeps = { current: () => sensorStore.getValues(), fetchAll: fetchAllSensors, fetchServer: fetchServerNamespace, now: () => Date.now() };
 
 /**
  * The frozen canvas's values. `take()` snapshots the page's current values merged over one complete read of the
@@ -57,8 +61,18 @@ export class PreviewSnapshot {
   private taking: Promise<void> | null = null;
   private readonly asked = new Set<string>();
   private filling: Promise<void> | null = null;
+  /** The server-owned namespaces the canvas reads: read again on each snapshot (zones ask only when they mount). */
+  private readonly serverNs = new Set<string>();
 
   constructor(private readonly deps: SnapshotDeps = DEFAULT_DEPS) {}
+
+  /** The full sets of server-owned namespaces, merged. */
+  private async readServer(namespaces: readonly string[]): Promise<SensorMap> {
+    const fetch = this.deps.fetchServer;
+    if (!fetch || namespaces.length === 0) return {};
+    const sets = await Promise.all(namespaces.map((ns) => fetch(ns)));
+    return Object.assign({}, ...sets.map((s) => s ?? {}));
+  }
 
   getState = (): SnapshotState => this.state;
 
@@ -77,8 +91,8 @@ export class PreviewSnapshot {
     if (this.taking) return this.taking;
     this.set({ ...this.state, status: "loading" });
     this.taking = (async () => {
-      const fetched = await this.deps.fetchAll();
-      const values = { ...(fetched ?? {}), ...this.deps.current() };
+      const [fetched, own] = await Promise.all([this.deps.fetchAll(), this.readServer([...this.serverNs])]);
+      const values = { ...(fetched ?? {}), ...own, ...this.deps.current() };
       this.asked.clear();
       this.set({ values, takenAt: this.deps.now(), status: Object.keys(values).length > 0 ? "ready" : "empty" });
     })().finally(() => {
@@ -100,11 +114,16 @@ export class PreviewSnapshot {
     const missing = prefixes.filter((p) => !this.asked.has(p) && !this.has(p));
     if (missing.length === 0 || this.state.takenAt === null) return;
     for (const k of missing) this.asked.add(k);
+    // a server-owned namespace comes from the server's own stream; the Data API never has it
+    const own = [...new Set(missing.map(serverNamespaceOf).filter((ns): ns is string => !!ns && !this.serverNs.has(ns)))];
+    for (const ns of own) this.serverNs.add(ns);
+    const fromApi = missing.some((k) => !serverNamespaceOf(k));
     if (this.filling) return;
     this.filling = (async () => {
       // Let a batch of zones mounting together ask in one read.
       await Promise.resolve();
-      const fetched = await this.deps.fetchAll();
+      const [api, server] = await Promise.all([fromApi ? this.deps.fetchAll() : Promise.resolve(null), this.readServer(own)]);
+      const fetched = { ...(api ?? {}), ...server };
       const add: SensorMap = {};
       for (const [k, v] of Object.entries(fetched ?? {})) if (!(k in this.state.values)) add[k] = v;
       if (Object.keys(add).length > 0) this.set({ ...this.state, values: { ...this.state.values, ...add }, status: "ready" });
