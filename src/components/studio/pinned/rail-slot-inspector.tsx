@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
-import { Bell, Hand, Image as ImageIcon, LayoutPanelLeft, Trash2 } from "lucide-react";
+import { Bell, Hand, Image as ImageIcon, LayoutPanelLeft, SlidersHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconGrid, type IconGridItem } from "@/components/ui/icon-grid";
 import { appIcon, AssetError, assetIdOf, ASSETS_URL } from "@/lib/assets";
-import { RAIL_GROUP_NAMES, touchChoices, touchValue } from "@/lib/pinned-edit";
+import { RAIL_GROUP_NAMES, railWidgetOf, touchChoices, touchValue } from "@/lib/pinned-edit";
 import type { BadgeRule, RailGroup, RailIcon, RailPlate, RailShape, RailSlot } from "@/lib/pinned";
 import { slotName, type RailPage } from "@/lib/rail";
+import { modules } from "@/modules";
+import type { ModuleSettings, ModuleSettingValue } from "@/modules/types";
 import { MediaField } from "../media-field";
 import { PAGE_ICONS } from "../page-icons";
 import { PanelSection } from "../panel-section";
+import { SettingRow } from "../setting-control";
 import { SegmentedRow, SelectRow, TextRow, ToggleRow } from "../setting-rows";
 import { actionOptions, pickAction, TouchRows, useTouchSources } from "../touch-rows";
 import type { RailWidget } from "./rail-editor";
@@ -72,6 +75,9 @@ function useAppIcon(icon: RailIcon | undefined, onChange: RailSlotInspectorProps
   return { status, retry: () => setTries((n) => n + 1) };
 }
 
+/** The Widget select's value for a slot that matches none of the rail widgets (a view or mix of its own). */
+const CUSTOM = "custom";
+
 const PLATES: { value: RailPlate | ""; label: string }[] = [
   { value: "", label: "Auto" },
   { value: "none", label: "None" },
@@ -110,6 +116,14 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove, ch
   const from = pending ? "image" : (icon?.from ?? (chip ? "default" : "set"));
   const key = (field: string) => `rail:${slot.id}:${field}`;
   const app = useAppIcon(icon, onChange, key("exe"));
+  const widget = t.kind === "widget" ? railWidgetOf(widgets, t) : undefined;
+  // the widget's own options a 72 px slot offers (`railSettings`), shown while they apply to the view
+  const mod = t.kind === "widget" ? modules.find((m) => m.id === t.module) : undefined;
+  const values: Record<string, ModuleSettingValue> = Object.fromEntries((mod?.settings ?? []).flatMap((d) => [[d.key, d.default], ...(d.keyY ? [[d.keyY, d.defaultY ?? d.default]] : [])]));
+  if (t.kind === "widget") Object.assign(values, t.settings);
+  const options = (mod?.railSettings ?? []).flatMap((k) => mod?.settings?.find((d) => d.key === k) ?? []).filter((d) => d.visibleIf?.(values) ?? true);
+  const setOption = (patch: ModuleSettings, editKey: string) =>
+    onChange((s) => (s.target.kind === "widget" ? { ...s, target: { ...s.target, settings: { ...s.target.settings, ...patch } } } : s), editKey);
   const logo = t.kind === "profile" && (icon?.from === "image" || icon?.from === "app");
   return (
     <div className="flex flex-col">
@@ -143,15 +157,38 @@ export function RailSlotInspector({ slot, pages, widgets, onChange, onRemove, ch
         {t.kind === "widget" && widgets.length > 0 && (
           <SelectRow
             label="Widget"
-            value={widgets.find((w) => w.module === t.module)?.name ?? ""}
+            value={widget?.name ?? CUSTOM}
             onChange={(v) => {
               const w = widgets.find((x) => x.name === v);
-              if (w) onChange((s) => ({ ...s, target: { kind: "widget", module: w.module, settings: w.settings } }));
+              if (!w) return;
+              // a preset of the same widget changes its view and what the preset sets; the options set on top stay
+              onChange((s) => ({
+                ...s,
+                ...(widget && s.name === widget.name ? { name: w.name } : {}),
+                target: { kind: "widget", module: w.module, settings: w.module === t.module ? { ...t.settings, ...w.settings } : w.settings },
+              }));
             }}
-            options={widgets.map((w) => ({ value: w.name, label: w.name }))}
+            options={[...(widget ? [] : [{ value: CUSTOM, label: "Custom" }]), ...widgets.map((w) => ({ value: w.name, label: w.name }))]}
           />
         )}
       </PanelSection>
+      {t.kind === "widget" && options.length > 0 && (
+        <PanelSection id="rail-widget" title="Widget options" icon={SlidersHorizontal}>
+          {options.map((def) => (
+            <SettingRow
+              key={def.key}
+              def={def}
+              value={values[def.key]}
+              valueY={def.keyY ? values[def.keyY] : undefined}
+              scope={{ devices: String(values.devices ?? ""), devicesMode: String(values.devicesMode ?? "") }}
+              onChange={(v) => setOption({ [def.key]: v }, key(`opt:${def.key}`))}
+              onPatch={(patch) => setOption(patch, key(`opt:${def.key}`))}
+              sources={null}
+              hint={def.hint}
+            />
+          ))}
+        </PanelSection>
+      )}
       {t.kind !== "widget" && (
         <PanelSection id="rail-icon" title="Icon" icon={ImageIcon}>
           <SegmentedRow

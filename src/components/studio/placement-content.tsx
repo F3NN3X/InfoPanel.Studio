@@ -8,6 +8,7 @@ import { PlacementKeysContext } from "@/components/rail-host";
 import type { SensorValue } from "@/hooks/useSensors";
 import { useSensors } from "@/hooks/useSensors";
 import { AUDIO_PREFIX } from "@/lib/sensor-stream";
+import { isServerOwned } from "@/lib/sensor-store";
 import { PanelView } from "@/components/widgets/PanelView";
 import type { PanelSelection } from "@/components/widgets/panel-parts";
 import { YR_FORECAST_KEY, YR_FORECAST_PREFIX } from "@/lib/sensors";
@@ -82,6 +83,15 @@ export function quietPrefix(p: Placement): string | undefined {
   const mod = moduleOf(p.module);
   if (!mod || placementReads(mod, p.settings) !== null) return undefined;
   return boundKeys(p).some((k) => k.startsWith(AUDIO_PREFIX) || AUDIO_PREFIX.startsWith(k)) ? undefined : AUDIO_PREFIX;
+}
+
+/**
+ * The dashboard server's own namespaces a placement reads (Device Batteries, Weather by place). "Every sensor" leaves
+ * their streams closed, so a subscription that merged to `null` asks for these besides, or their widgets never get data.
+ */
+export function placementServerReads(p: Placement): string[] {
+  if (p.module === CANVAS_ID) return [...new Set(storedCanvasWidgets(p.canvas).flatMap((w) => placementServerReads(widgetPlacement(w))))].sort();
+  return (placementPrefixes(p) ?? []).filter(isServerOwned);
 }
 
 /** Several placements' prefixes as one subscription: `null` (every sensor) when any reads all. */
@@ -239,6 +249,8 @@ export function LivePlacement({ placement, appearance, studio, selection, childr
   useRecipeReads(placement.module);
   const prefixes = placementPrefixes(placement);
   const sensors = useSensors(prefixes, quietPrefix(placement));
+  // a canvas zone merged to every sensor still asks for the server's own streams its widgets read
+  useSensors(prefixes === null ? placementServerReads(placement) : []);
   const isCards = placement.module === CARDS_ID;
   const unclaimed = useMemo(
     () => (isCards ? Object.entries(sensors).filter(([key]) => !isClaimed(key)) : []),

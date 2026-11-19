@@ -45,10 +45,14 @@ function seeded(seed) {
   };
 }
 
-/** The captured sensors plus the synthetic extras (extra wins), as src/widgets/__fixtures__/index.ts does. */
+/** The dashboard server's own namespaces (src/lib/sensor-store.ts SERVER_NS): the real Data API never carries them. */
+const SERVER_NS = ["weather.", "battery."];
+
+/** The captured sensors plus the synthetic extras (extra wins), as src/widgets/__fixtures__/index.ts does, less the server's own. */
 export function loadSensors(dir = FIXTURES) {
   const read = (name) => JSON.parse(fs.readFileSync(path.join(dir, name), "utf8")).sensors ?? {};
-  return { ...read("snapshot.json"), ...read("extra.json") };
+  const all = { ...read("snapshot.json"), ...read("extra.json") };
+  return Object.fromEntries(Object.entries(all).filter(([key]) => !SERVER_NS.some((ns) => key.startsWith(ns))));
 }
 
 /**

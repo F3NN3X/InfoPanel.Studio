@@ -55,6 +55,12 @@ describe("mergeEvent", () => {
     expect(changed).toEqual(["a.y"]);
   });
 
+  it("on a reset keeps the keys under every namespace in a spare list", () => {
+    const { values, changed } = mergeEvent(prev, { timestamp: 1, sensors: { "a.x": v(1) } }, "", ["b.", "weather."]);
+    expect(Object.keys(values).sort()).toEqual(["a.x", "b.z"]);
+    expect(changed).toEqual(["a.y"]);
+  });
+
   it("tolerates a message without sensors", () => {
     expect(mergeEvent(prev, { timestamp: 1 }, null).values).toBe(prev);
   });

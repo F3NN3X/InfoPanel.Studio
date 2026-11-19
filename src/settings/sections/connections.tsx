@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { CalendarBlock } from "@/components/connections/calendar-block";
 import { ObsBlock } from "@/components/connections/obs-block";
+import { PeripheralsBlock } from "@/components/connections/peripherals-block";
 import { StreamDeckBlock } from "@/components/connections/streamdeck-block";
 import { TwitchBlock } from "@/components/connections/twitch-block";
 import { YoutubeBlock } from "@/components/connections/youtube-block";
@@ -109,6 +110,11 @@ export function ConnectionsSection() {
       <Group title="Calendar">
         <ConnectionCard id="calendar">
           <CalendarBlock stored={stored.calendar.links} onSave={(links) => save({ calendar: { links } })} />
+        </ConnectionCard>
+      </Group>
+      <Group title="Peripherals">
+        <ConnectionCard id="peripherals">
+          <PeripheralsBlock stored={stored.peripherals} onSave={save} />
         </ConnectionCard>
       </Group>
       {error && <p role="alert" className="m-0 text-caption text-s-red">{error}</p>}

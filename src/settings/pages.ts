@@ -24,7 +24,7 @@ export interface Page {
 export const PAGES: Record<SectionId, Page> = {
   general: { subtitle: "How the app starts, closes and scales.", Section: GeneralSection },
   server: { subtitle: "The local server the kiosk and studio load from.", Section: ServerSection },
-  connections: { subtitle: "Accounts and apps the dashboard talks to: OBS, Twitch, YouTube, calendars.", Section: ConnectionsSection },
+  connections: { subtitle: "Accounts and apps the dashboard talks to: OBS, Twitch, YouTube, calendars, device batteries.", Section: ConnectionsSection },
   agents: { subtitle: "Claude Code and Codex on your dashboard.", Section: AgentsSection },
   actions: { subtitle: "Commands and OBS's go live from the panel: off until you turn them on.", Section: ActionsSection },
   touch: { subtitle: "Experimental: touch panels that drive the kiosk, never Windows.", Section: TouchSection },

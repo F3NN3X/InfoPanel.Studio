@@ -10,7 +10,7 @@ name = "infopanel_studio_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [workspace]
-members = [".", "crates/ips-server", "crates/ips-agent"]
+members = [".", "crates/ips-server", "crates/ips-agent", "crates/ips-battery"]
 resolver = "2"
 
 [workspace.dependencies]

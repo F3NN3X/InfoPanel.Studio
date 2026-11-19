@@ -7,7 +7,7 @@ export const WIDGET_ORDER: readonly string[] = [
   "DriveSpace", "StorageHealth", "DiskIO", "NetworkThroughput", "NetworkAdapters", "Clock", "Timer", "Countdown", "StatusBar", "PageRail", "Keys", "CodingAgents", "Calendar", "Weather", "SensorValue", "SensorGroup", "CustomGauge",
   "NowPlaying", "AudioMeter", "VolumeMixer", "MeterBridge", "Visualizer", "WaveLink",
   "FpsMonitor", "GameSpotlight", "OsdStrip", "PlaytimeShare", "SteamProfile", "SteamFriends", "SteamGame", "Achievements", "SteamLibrary", "SteamNews",
-  "WebPage", "TextFile", "Notifications", "Departures", "Bluetooth",
+  "WebPage", "TextFile", "Notifications", "Departures", "Bluetooth", "DeviceBatteries",
   "DayPlanner", "RadialClockStack", "OnAirBeacon",
   "BottleneckLens", "FrameHistogram", "SessionStats",
   "StreamMixer", "AudioButton", "AudioFader",

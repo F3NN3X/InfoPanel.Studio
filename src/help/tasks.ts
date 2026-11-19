@@ -14,4 +14,5 @@ export const HELP_TASKS: HelpTask[] = [
   { title: "Make it faster", article: "performance", heading: "choosing-a-setting" },
   { title: "Back up my settings", article: "import", heading: "export-back-up" },
   { title: "Connect OBS", article: "connections", heading: "obs" },
+  { title: "Connect device batteries", article: "connections", heading: "peripherals" },
 ];

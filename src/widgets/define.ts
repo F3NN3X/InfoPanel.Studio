@@ -81,6 +81,8 @@ export interface WidgetDefinition<P extends object = object> {
   inspector: InspectorMeta;
   /** The widget's own settings, after the standard block. */
   settings: ModuleSetting[];
+  /** The keys of `settings` a page rail slot of this widget offers in its inspector (a 72 px slot); absent = none. */
+  railSettings?: string[];
   render: WidgetRender<P>;
   /** "Send to island": for built-ins, a def from the central island files. */
   island?: IslandSourceDef;

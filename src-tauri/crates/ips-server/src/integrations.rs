@@ -9,6 +9,7 @@ use std::sync::Mutex;
 
 use serde_json::{json, Value};
 
+use crate::peripherals::{self, Peripherals};
 use crate::streamdeck::settings::{ensure_key, StreamdeckSettings};
 use crate::streaming::{self, Streaming, TwitchAuth, YoutubeAuth};
 use crate::{js, store};
@@ -38,10 +39,17 @@ pub struct Integrations {
     pub links: Vec<Link>,
     /// The Streaming widgets' settings (`streaming.rs`); not in the Node server's file, so written only when set.
     pub streaming: Streaming,
+    /// The device batteries' switch and read-out options (`peripherals.rs`); written only when set.
+    pub peripherals: Peripherals,
 }
 
 pub fn empty_integrations() -> Integrations {
-    Integrations { obs: ObsSettings { host: String::new(), port: OBS_DEFAULT_PORT, password: String::new() }, links: vec![], streaming: Streaming::default() }
+    Integrations {
+        obs: ObsSettings { host: String::new(), port: OBS_DEFAULT_PORT, password: String::new() },
+        links: vec![],
+        streaming: Streaming::default(),
+        peripherals: Peripherals::default(),
+    }
 }
 
 /// `s.slice(0, max)`: `max` is in UTF-16 units; a pair cut in half is dropped (JSON can't hold half of one).
@@ -117,6 +125,7 @@ pub fn normalize_integrations(raw: &Value) -> Integrations {
         .take(MAX_LINKS)
         .collect();
     state.streaming = streaming::normalize(raw.get("streaming"));
+    state.peripherals = peripherals::normalize(raw.get("peripherals"));
     state
 }
 
@@ -136,6 +145,9 @@ pub fn public_view(s: &Integrations) -> Value {
     if let Some(section) = streaming::to_json(&s.streaming) {
         view["streaming"] = section;
     }
+    if let Some(section) = peripherals::to_json(&s.peripherals) {
+        view["peripherals"] = section;
+    }
     view
 }
 
@@ -147,6 +159,9 @@ pub fn stored_form(s: &Integrations) -> Value {
     });
     if let Some(section) = streaming::to_stored_json(&s.streaming) {
         form["streaming"] = section;
+    }
+    if let Some(section) = peripherals::to_stored_json(&s.peripherals) {
+        form["peripherals"] = section;
     }
     form
 }
@@ -194,6 +209,7 @@ fn apply_links(s: &Integrations, calendar: &Value, new_id: &mut dyn FnMut() -> S
 /// - `obs`: { host?, port?, password? }: a password string replaces it, "" clears it, absent keeps it.
 /// - `calendar.links`: the full list in order; { id, label? } keeps a stored link, { url, label? } adds one.
 /// - `streaming`: see `streaming::apply`.
+/// - `peripherals`: see `peripherals::apply` (the device batteries' switch and read-out options).
 pub fn apply_integrations(s: &Integrations, patch: &Value, new_id: &mut dyn FnMut() -> String) -> Result<Integrations, String> {
     let Some(patch) = patch.as_object() else { return Err("expected a JSON object".into()) };
     let mut next = s.clone();
@@ -205,6 +221,9 @@ pub fn apply_integrations(s: &Integrations, patch: &Value, new_id: &mut dyn FnMu
     }
     if let Some(section) = patch.get("streaming") {
         next.streaming = streaming::apply(&s.streaming, section)?;
+    }
+    if let Some(section) = patch.get("peripherals") {
+        next.peripherals = peripherals::apply(&s.peripherals, section)?;
     }
     Ok(next)
 }

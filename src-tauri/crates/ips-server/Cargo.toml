@@ -45,6 +45,9 @@ url = { workspace = true }
 uuid = { version = "1", default-features = false, features = ["v4"] }
 
 [target.'cfg(windows)'.dependencies]
+# The ported battery poll core (devices.rs): 55 vendor drivers plus the Bluetooth, HID and
+# XInput fallbacks, read-only, no admin rights. Windows-only, like the crate itself.
+ips-battery = { path = "../ips-battery" }
 # Gdi: an app's icon read out as pixels (app_icon.rs). KeyboardAndMouse: the media keys (media.rs). Security: the agent hook
 # key's owner-only DACL (key_file.rs).
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_Threading", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }

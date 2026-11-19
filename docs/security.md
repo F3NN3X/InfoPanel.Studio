@@ -202,6 +202,32 @@ What answers a request has to be InfoPanel Studio's prompt window, driven by a p
   own answers, drive the prompt window's input, or simply edit the agent's settings and hooks; nothing in a user's session
   can tell it apart from the user. Keep the switches off for an agent you don't watch.
 
+## Device batteries
+
+The **Device Batteries** source (1.4.0-beta, Connections › Peripherals) reads the battery level
+of your wireless devices on this PC — mice, keyboards, headsets, controllers, phones. Its rules:
+
+- **Opt-in and local.** The master switch is off; turning it on (Connections › Peripherals) is a
+  local setting. `DEVICE_BATTERIES=off` (or `0`) is a hard override that forces the source off
+  regardless of the switch.
+- **Read-only device I/O.** The poll core (the ported batterymon-proto drivers, in
+  `crates/ips-battery`) opens HID collections and sends only the vendors' documented read-only
+  battery queries; unknown devices are never written to. It needs no admin rights and installs no
+  driver. A device that misbehaves can be hidden per device in Settings: it is then still opened
+  by the poll but contributes no readings (a "never open at all" block-list is not exposed; the
+  prototype's `IgnoreDevices` registry value had that role and is not carried over).
+- **One optional external program.** The HeadsetControl fallback runs `headsetcontrol.exe -b -o
+  json` on a background thread **only when that exe is found next to the server or on `PATH`**;
+  nothing else leaves the process (AirPods and Galaxy Buds are read through WinRT/Winsock on this
+  PC, Phone Link through the file Windows already writes).
+- **What is stored.** Device renames and hidden devices live in `integrations.json`
+  (`peripherals`, no secrets). The readings themselves are in memory only, streamed to kiosks
+  like any other sensor reading — they leave the PC only as far as your own kiosks do.
+- **Routes and guards.** `GET /api/devices/battery` and `GET /events/devices` are reads, served
+  like any sensor data. Writing the settings goes through the existing integrations guard
+  (`X-Dashboard-Config: 1`, JSON, size caps, refused from other machines unless remote editing is
+  on). The poll never runs in a request path; the stream reads a watch channel.
+
 ## Widget publisher keys
 
 Code widgets (`ext:<publisher>.<id>`) are taken only with a publisher signature: minisign (Ed25519, pre-hashed) over a

@@ -32,6 +32,6 @@ describe("a README's Presets section", () => {
       }
       checked++;
     }
-    expect(checked).toBe(22);
+    expect(checked).toBe(23);
   });
 });

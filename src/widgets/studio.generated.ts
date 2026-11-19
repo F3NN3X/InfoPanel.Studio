@@ -12,6 +12,7 @@ export const WIDGET_PRESETS: Readonly<Record<string, () => Promise<{ default: re
   Clock: () => import("./clock/presets"),
   CodingAgents: () => import("./coding-agents/presets"),
   Countdown: () => import("./countdown/presets"),
+  DeviceBatteries: () => import("./device-batteries/presets"),
   DriveSpace: () => import("./drive-space/presets"),
   FpsMonitor: () => import("./fps-monitor/presets"),
   GameSpotlight: () => import("./game-spotlight/presets"),

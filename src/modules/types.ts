@@ -122,7 +122,7 @@ export interface ModuleSetting {
    * - `"cpu" | "gpu" | "disk" | "adapter" | "audio" | "drive"` — the devices
    *   found in the live keys (`deviceOptions`), "" = Auto first. Data tab by default.
    */
-  optionsFrom?: "sources" | "media" | "wavelink" | "audio-control" | "obs-scenes" | "streamdeck-devices" | "streamdeck-grid" | DeviceKind;
+  optionsFrom?: "sources" | "media" | "wavelink" | "audio-control" | "obs-scenes" | "streamdeck-devices" | "streamdeck-grid" | "battery-devices" | DeviceKind;
   /** Key prefix whose containers become the dynamic select's options (type "status": whose containers it lists). */
   sourcePlugin?: string;
   /**
@@ -220,6 +220,8 @@ export interface DashboardModule {
   tags?: string;
   /** Footprint (cols, rows) a drop gets when larger than the minimum; unset: 3×2 or the minimum. */
   defaultSize?: [number, number];
+  /** The keys of `settings` a page rail slot offers in its inspector (`WidgetDefinition.railSettings`); unset: none. */
+  railSettings?: string[];
   /** The layouts it offers and the key they are stored under (`WidgetMeta.views`, `.viewKey`). */
   views?: WidgetView[];
   viewKey?: string;

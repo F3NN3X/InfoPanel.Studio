@@ -21,7 +21,7 @@ import {
   type RowLabelProps,
 } from "./setting-rows";
 import { DriveIconsField } from "./drive-icons-field";
-import { AudioControlPicker, DevicePicker, MediaDevicePicker, MultiSelect, NameListField, ObsScenePicker, WavelinkMeterPicker } from "./setting-pickers";
+import { AudioControlPicker, BatteryDevicePicker, type BatteryScope, DevicePicker, MediaDevicePicker, MultiSelect, NameListField, ObsScenePicker, WavelinkMeterPicker } from "./setting-pickers";
 import { SensorField } from "./widget-editor/sensor-field";
 import { SensorListField } from "./widget-editor/sensor-list-field";
 import { StreamDeckDevicePicker, StreamDeckGridPicker } from "./streamdeck-pickers";
@@ -78,6 +78,7 @@ export function SettingRow({
   tempUnit,
   roleLabel,
   flow,
+  scope,
 }: {
   def: ModuleSetting;
   value: ModuleSettingValue;
@@ -107,6 +108,8 @@ export function SettingRow({
   roleLabel?: string;
   /** Types "select" listing audio devices or Wave Link meters: the widget's Show filter (all / output / input); the Stream Deck grid row: the Device row's value. */
   flow?: string;
+  /** The Device Batteries pickers: the widget's device filter, which the single device's dropdown follows. */
+  scope?: BatteryScope;
 }) {
   const label: RowLabelProps = { label: def.label, lead, trail, changed, hint };
   switch (def.type) {
@@ -241,6 +244,10 @@ export function SettingRow({
       // The Elgato Stream Deck widget's device (the server's virtual decks) and its grid (read from the device, not stored).
       if (def.optionsFrom === "streamdeck-devices") {
         return <StreamDeckDevicePicker def={def} value={String(value)} onChange={onChange} lead={lead} hint={hint} />;
+      }
+      // The wireless devices the server polls, for Device Batteries' single view.
+      if (def.optionsFrom === "battery-devices") {
+        return <BatteryDevicePicker def={def} value={String(value)} valueY={valueY === undefined ? undefined : String(valueY)} scope={scope} onChange={onChange} onPatch={onPatch} lead={lead} hint={hint} />;
       }
       if (def.optionsFrom === "streamdeck-grid") {
         return <StreamDeckGridPicker def={def} deviceId={flow ?? ""} lead={lead} hint={hint} />;

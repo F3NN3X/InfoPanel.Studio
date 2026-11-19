@@ -49,7 +49,7 @@ import { useAddListDensity, useAddPreviewOnHover, type AddFilter } from "@/compo
 import { useRecentAdds } from "@/components/studio/add-recent";
 import { ELEMENT_TILES, ITEM_TILES, partKey } from "@/components/studio/add-tiles";
 import { deletePanelPreset, renamePanelPreset } from "@/components/studio/panel-preset-actions";
-import { mergePrefixes, placementPrefixes, widgetPlacement } from "@/components/studio/placement-content";
+import { mergePrefixes, placementPrefixes, placementServerReads, widgetPlacement } from "@/components/studio/placement-content";
 import { isWidgetItem, newWidgetItem, widgetOf, widgetPaths } from "@/lib/infopanel/native/widget-item";
 import { cellOfWidget, holdsWidget, itemCells, itemOnCells, moveOnCells, resizeOnCells, settleCells } from "@/lib/infopanel/editor/cells";
 import { canvasGrid } from "@/lib/page-model/canvas-adapter";
@@ -267,6 +267,12 @@ export default function CanvasEditorView({ zone, setConfig, shell, hidden = fals
     [editor.committed],
   );
   const widgetSensors = useSensors(widgetKeys);
+  // every sensor leaves the server's own streams closed: the widgets that read them (Device Batteries) ask by name
+  const serverKeys = useMemo(
+    () => (widgetKeys === null ? [...new Set(widgetPaths(editor.committed).flatMap((p) => placementServerReads(widgetPlacement(widgetOf(itemAt(editor.committed, p))!))))] : []),
+    [widgetKeys, editor.committed],
+  );
+  useSensors(serverKeys);
   const libraryLink = useLibraryLink(zone.id, zone.canvas, editor.open.profile.Name || zone.canvas.source.name);
   const single = editor.selection.length === 1 ? itemAt(editor.committed, editor.selection[0]) : undefined;
   const pickTarget = pickFor ? itemAt(editor.committed, pickFor.path) : undefined;

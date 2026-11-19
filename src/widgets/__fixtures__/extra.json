@@ -118,6 +118,98 @@
       "unit": "%",
       "name": "Battery Level"
     },
+    "battery.1837410529.name": {
+      "text": "MX Master 3S",
+      "unit": ""
+    },
+    "battery.1837410529.percent": {
+      "value": 93,
+      "unit": "%"
+    },
+    "battery.1837410529.charging": {
+      "text": "yes",
+      "unit": ""
+    },
+    "battery.1837410529.kind": {
+      "text": "mouse",
+      "unit": ""
+    },
+    "battery.1837410529.via": {
+      "text": "Bluetooth LE",
+      "unit": ""
+    },
+    "battery.1837410529.low": {
+      "text": "no",
+      "unit": ""
+    },
+    "battery.1837410529.connected": {
+      "text": "yes",
+      "unit": ""
+    },
+    "battery.1837410529.asleep": {
+      "text": "no",
+      "unit": ""
+    },
+    "battery.1837410529.detail": {
+      "text": "Logi Bolt receiver",
+      "unit": ""
+    },
+    "battery.1837410529.source": {
+      "text": "hid",
+      "unit": ""
+    },
+    "battery.1837410529.updated": {
+      "value": 1760000000,
+      "unit": ""
+    },
+    "battery.2078156601.name": {
+      "text": "Keychron K3",
+      "unit": ""
+    },
+    "battery.2078156601.percent": {
+      "value": 12,
+      "unit": "%"
+    },
+    "battery.2078156601.charging": {
+      "text": "no",
+      "unit": ""
+    },
+    "battery.2078156601.kind": {
+      "text": "keyboard",
+      "unit": ""
+    },
+    "battery.2078156601.via": {
+      "text": "Bluetooth",
+      "unit": ""
+    },
+    "battery.2078156601.low": {
+      "text": "yes",
+      "unit": ""
+    },
+    "battery.2078156601.connected": {
+      "text": "no",
+      "unit": ""
+    },
+    "battery.2078156601.asleep": {
+      "text": "yes",
+      "unit": ""
+    },
+    "battery.2078156601.detail": {
+      "text": "Keychron K3 Pro",
+      "unit": ""
+    },
+    "battery.2078156601.source": {
+      "text": "bt",
+      "unit": ""
+    },
+    "battery.2078156601.updated": {
+      "value": 1760000000,
+      "unit": ""
+    },
+    "battery.status": {
+      "text": "2 devices · updated 12:04",
+      "unit": ""
+    },
     "plugins.InfoPanel.Notifications.notifications.notification-count": {
       "value": 3,
       "unit": ""
