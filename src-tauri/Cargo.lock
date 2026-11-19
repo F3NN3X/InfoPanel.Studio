@@ -2028,7 +2028,7 @@ dependencies = [
 
 [[package]]
 name = "infopanel-studio"
-version = "1.4.0-beta.1"
+version = "1.4.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "if-addrs",
@@ -2085,7 +2085,7 @@ checksum = "791930b43c0d5973160d90a8f3894509f2b273430f5c5c73b668636d0287c5c0"
 
 [[package]]
 name = "ips-agent"
-version = "1.4.0-beta.1"
+version = "1.4.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "blake2",
@@ -2106,7 +2106,7 @@ dependencies = [
 
 [[package]]
 name = "ips-server"
-version = "1.4.0-beta.1"
+version = "1.4.0-beta.2"
 dependencies = [
  "axum",
  "base64 0.22.1",

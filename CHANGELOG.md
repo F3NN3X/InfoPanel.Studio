@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.4.0-beta.2] - 2026-11-19
+
 ### Added
 
 - **Device Batteries: your wireless devices' charge, right on the dashboard.** The new **Device Batteries** widget (Hardware) lists every device the server polls — mice, keyboards, headsets, controllers and phones — with its charge, whether it is charging, asleep or low: one row per device with a charge bar, a ring per device (Tiles), a chip per device with a battery glyph (Pills), one chosen device (Single device), or the devices ranked lowest first. **Charge as** draws the bar, the percent or both. Asleep devices keep their last charge, drawn faded, the way a receiver keeps a sleeping mouse; a device at or below the low threshold (default 15 %) is drawn in the theme's critical colour, never a fixed red. Three presets fill the page rail: the lowest charge as one ring, one device with its icon over a battery glyph, or up to three devices, each with its icon, charge and a charge bar; with **Charge as** set to Bar, that slot fits every device as its icon and a battery glyph.
