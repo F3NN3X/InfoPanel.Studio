@@ -914,6 +914,63 @@
    "text": "Ryzen 9 9950X3D62°C54%Total loadMax core80%Package136.4WAvg clock1.46GHz1000",
    "view": "body"
   },
+  "DeviceBatteries@2x2": {
+   "span": "2x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    228,
+    228
+   ],
+   "body": [
+    12,
+    12,
+    204,
+    204
+   ],
+   "n": 18,
+   "text": "Batteries2devicesKeychron K3 12%",
+   "view": "compact"
+  },
+  "DeviceBatteries@4x2": {
+   "span": "4x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    228
+   ],
+   "body": [
+    16,
+    44.5,
+    432,
+    167.5
+   ],
+   "n": 58,
+   "text": "Batteries2 devicesKeychron K312%Lowest of 2 devicesMX Master 3S93%Keychron K312%",
+   "view": "body"
+  },
+  "DeviceBatteries@4x4": {
+   "span": "4x4",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    464
+   ],
+   "body": [
+    16,
+    48.63,
+    432,
+    399.38
+   ],
+   "n": 57,
+   "text": "Batteries2 devicesKeychron K312%Lowest of 2 devicesMX Master 3S93%Keychron K312%",
+   "view": "body"
+  },
   "Fans@1x1": {
    "span": "1x1",
    "issues": [],

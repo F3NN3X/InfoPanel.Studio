@@ -40,7 +40,7 @@ inspector's Show, Data and Behaviour tabs.
 | Category | Widgets (id · minimum) |
 |---|---|
 | System | `SystemOverview` 1×1, `MenuBar` 2×1, `KpiTiles` 1×1, `StatusTracker` 2×1, `SystemStatus` 1×1, `ServiceHealth` 1×1, `ProcessList` 1×1, `Uptime` 1×1, `StatusBar` 3×1, `CodingAgents` 1×1 |
-| Hardware | `CpuMonitor` 1×1, `CoreHeatmap` 1×1, `GpuMonitor` 1×1, `MemoryUsage` 1×1, `Thermals` 1×1, `PowerDraw` 1×1, `Fans` 1×1 |
+| Hardware | `CpuMonitor` 1×1, `CoreHeatmap` 1×1, `GpuMonitor` 1×1, `MemoryUsage` 1×1, `Thermals` 1×1, `PowerDraw` 1×1, `Fans` 1×1, `DeviceBatteries` 2×1 |
 | Storage | `DriveSpace` 1×1, `StorageHealth` 1×1, `DiskIO` 1×1 |
 | Network | `NetworkThroughput` 1×1, `NetworkAdapters` 1×1 |
 | Media | `NowPlaying` 1×1 |
@@ -232,6 +232,7 @@ The whole library shares one design system, in `src/widgets/core/`:
 - **Notifications** ([README](../src/widgets/notifications/README.md)) — The Notifications plugin, `plugins.InfoPanel.Notifications.*`: `notification-count`, `last-notification`, `notification-history` and `status`.
 - **Departures** ([README](../src/widgets/departures/README.md)) — The VBZ plugin, `plugins.InfoPanel.VBZ.*`: `station_name`, `status`, and per departure `dep_<n>_line`, `dep_<n>_dest` and `dep_<n>_time`.
 - **Bluetooth** ([README](../src/widgets/bluetooth/README.md)) — The BTData plugin, `plugins.bluetooth-battery-plugin.*`: a `bt_status` entry, and one entry per device with its name, status and battery level.
+- **DeviceBatteries** ([README](../src/widgets/device-batteries/README.md)) — The dashboard server's own source, `battery.<id>.*` (`ips-server devices.rs`, streamed on `/events/devices`): per device its `name`, `percent` (a number, absent until it reports a level), `charging`, `kind`, `via`, `low`, `connected`, `asleep`, `detail`, `source` and `updated`, plus the source's `battery.status` line. Nothing to install: turn on **Device batteries** in Connections › Peripherals (Settings), and pick the poll interval and low threshold there. A device hidden there publishes no keys, and `DEVICE_BATTERIES=off` turns the source off.
 - **DayPlanner** ([README](../src/widgets/day-planner/README.md)) — The calendar links set under Settings › Connections (served by the server, not sensor keys), and the Yr weather plugin, `plugins.yr-weather-plugin.*` (read for the weather band). It draws without sensor keys too.
 - **RadialClockStack** ([README](../src/widgets/radial-clock-stack/README.md)) — The clock only, plus the calendar links set under Settings › Connections (served by the server) for the event ring, and any one sensor key the user picks for the sensor ring. It draws without sensor keys too.
 - **OnAirBeacon** ([README](../src/widgets/on-air-beacon/README.md)) — The OBS connection under Settings › Connections (served by the server, not sensor keys). It draws without sensor keys.

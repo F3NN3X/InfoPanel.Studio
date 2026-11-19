@@ -27,6 +27,7 @@ pub mod control;
 pub mod control_auto;
 pub mod control_store;
 pub mod debug;
+pub mod devices;
 pub mod env;
 pub mod extras;
 pub mod font_proxy;
@@ -48,6 +49,7 @@ pub mod locale;
 pub mod media;
 pub mod obs;
 pub mod obs_control;
+pub mod peripherals;
 pub mod proxy;
 pub mod request_guard;
 pub mod security_headers;
@@ -92,6 +94,7 @@ use crate::canvases::{CanvasStore, Sweeper};
 use crate::config::ConfigStore;
 use crate::control_store::Control;
 use crate::debug::Debug;
+use crate::devices::Devices;
 use crate::extras::Extras;
 use crate::http::Req;
 use crate::library::LibraryStore;
@@ -210,6 +213,8 @@ pub struct App {
     pub packs: Packs,
     pub widgets: Arc<Widgets>,
     pub weather: Arc<Weather>,
+    /// Device batteries (the ported batterymon core; Windows-only, off by default).
+    pub devices: Arc<Devices>,
     pub canvases: Arc<CanvasStore>,
     pub library: LibraryStore,
     /// The action runner's approvals, test mode and log (actions.rs).
@@ -366,6 +371,24 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
         move || weather.reconfigure()
     });
     weather.start(&shutdown);
+    // Device batteries: the ported batterymon core polls wireless peripherals. The task always runs; it polls while
+    // the integrations' `peripherals.enabled` is on (read live, so a save takes effect without a restart) and
+    // DEVICE_BATTERIES does not force the source off. A server bound with `bind_with_home` (a test) never polls this
+    // PC's devices, like it never starts the audio backends.
+    let devices = Devices::new(Devices::enabled_from_env(), live_audio, {
+        let integrations = Arc::clone(&extras.integrations);
+        move || integrations.get().peripherals.opts()
+    });
+    devices.start(&shutdown);
+    // A saved peripherals section (the master switch included) is polled with at once.
+    extras.integrations.subscribe({
+        let devices = Arc::clone(&devices);
+        move |next, prev| {
+            if next.peripherals != prev.peripherals {
+                devices.reconfigure();
+            }
+        }
+    });
     let library = LibraryStore::new(cfg.data_dir.join("library"));
     let actions = actions::Actions::new(cfg.data_dir.clone());
     let approvals = approvals::Approvals::new(
@@ -378,7 +401,7 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, streamdeck, agents, assets, packs, widgets, weather, canvases, library, actions, approvals, prefs, shutdown };
+    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, streamdeck, agents, assets, packs, widgets, weather, devices, canvases, library, actions, approvals, prefs, shutdown };
     Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
@@ -505,6 +528,7 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/events/chat" => Ok(twitch::routes::handle_chat_events(app)),
         "/events/touch" => Ok(touch_hub::handle_events(app, &req)),
         "/events/weather" => Ok(weather::handle_events(app, &req)),
+        "/events/devices" => Ok(devices::handle_events(app, &req)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),
         "/api/agents/permission" | "/api/agents/requests" | "/api/agents/requests/log" | "/api/agents/answer" => approvals::handle(app, req).await.map_err(io),
@@ -517,6 +541,7 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         p if is_family(p, "/api/widgets") => widgets::handle(app, req).await.map_err(io),
         "/api/widget-keys" => Ok(widgets::handle_keys(app, &req)),
         p if is_family(p, "/api/weather") => weather::handle(app, req).await.map_err(io),
+        p if is_family(p, "/api/devices") => devices::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/library") => library::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/canvases") => canvases::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/infopanel/installed") => infopanel_local::handle(app, &req).map_err(io),

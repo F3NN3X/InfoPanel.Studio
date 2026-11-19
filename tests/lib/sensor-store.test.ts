@@ -240,6 +240,24 @@ describe("SensorStore", () => {
     expect(store.getValues()["weather.place.n5991e1075.temp"]).toEqual(sensor(4));
   });
 
+  it("reads Device batteries from the dashboard server's own stream, outside the Data API's budget", async () => {
+    const { store, live } = setup();
+    store.retain(["battery.274001.m1.", "a.", "b.", "c.", "d."]);
+    await flush();
+    expect(live().map((s) => s.url).sort()).toEqual(["/events/devices?prefix=battery.", `${BASE}/events?prefix=a.&interval=1000`, `${BASE}/events?prefix=b.&interval=1000`, `${BASE}/events?prefix=c.&interval=1000`, `${BASE}/events?prefix=d.&interval=1000`]);
+    const devices = live().find((s) => s.url.startsWith("/events/devices"))!;
+    devices.send({ timestamp: 1, sensors: { "battery.274001.m1.percent": sensor(70) } });
+    expect(store.getValues()["battery.274001.m1.percent"]).toEqual(sensor(70));
+    // past the budget the Data API's namespaces fold into the unfiltered stream; the devices stream stays its own
+    store.retain(["e."]);
+    await flush();
+    vi.advanceTimersByTime(2000);
+    expect(live().map((s) => s.url).sort()).toEqual(["/events/devices?prefix=battery.", `${BASE}/events`]);
+    // the unfiltered stream's snapshots never carry the server's own namespaces, and do not drop them
+    live().find((s) => s.url === `${BASE}/events`)!.send({ timestamp: 2, sensors: { "a.x": sensor(1) } });
+    expect(store.getValues()["battery.274001.m1.percent"]).toEqual(sensor(70));
+  });
+
   it("uses one unfiltered stream past the budget, each message a full snapshot", async () => {
     const { store, live } = setup();
     store.retain(["a.", "b.", "c.", "d.", "e."]);

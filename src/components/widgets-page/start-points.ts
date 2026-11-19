@@ -63,6 +63,7 @@ export const NO_START: Readonly<Record<string, keyof typeof WHY>> = {
   Notifications: "lists",
   Departures: "lists",
   Bluetooth: "lists",
+  DeviceBatteries: "runtime",
   DayPlanner: "time",
   RadialClockStack: "time",
   OnAirBeacon: "stream",

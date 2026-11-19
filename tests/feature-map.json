@@ -77,9 +77,9 @@
       "when": "verify:full only (on no feature), Windows only, never in CI (localOnly: not run where CI is set): the Classic look per widget kind, span and material against the images in tests/visual/look/baselines (this platform's text rendering), and one sheet per sample theme (samples.spec.ts: the six mockup widgets)"
     },
     "cargo-server": {
-      "lane": "cargo", "cmd": "cargo test -p ips-server -p ips-agent && cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings",
+      "lane": "cargo", "cmd": "cargo test -p ips-server -p ips-agent -p ips-battery && cargo clippy -p ips-server -p ips-agent -p ips-battery --all-targets -- -D warnings",
       "cwd": "src-tauri",
-      "when": "the dashboard server and the agent hooks (runs on every platform); includes the parity tests over tests/fixtures/parity"
+      "when": "the dashboard server, the agent hooks and the ported battery core (runs on every platform); includes the parity tests over tests/fixtures/parity"
     },
     "stub-desktop": { "lane": "cargo", "cmd": "node tools/ci-stub-desktop.mjs", "platform": "win32", "when": "creates src-tauri/resources only where it is missing (a clean CI runner); needs the built ips-agent" },
     "cargo-app": {
@@ -220,6 +220,22 @@
         "tests/fixtures/parity/library.json"
       ],
       "checks": ["typecheck", "unit", "server-suite", "cargo-server"]
+    },
+    {
+      "id": "devices",
+      "summary": "Device batteries: the poll core ported verbatim from the batterymon-proto prototype (crates/ips-battery) and the server module that drives it.",
+      "paths": [
+        "src-tauri/crates/ips-battery/**",
+        "src-tauri/crates/ips-server/src/devices.rs",
+        "src-tauri/crates/ips-server/src/devices_tests.rs",
+        "src-tauri/crates/ips-server/src/peripherals.rs",
+        "src/components/connections/peripherals-block.tsx"
+      ],
+      "tests": [
+        "tests/components/connections/peripherals-block.test.tsx"
+      ],
+      "checks": ["typecheck", "unit", "cargo-server", "cargo-app"],
+      "note": "The ported driver modules carry their own in-module tests (16, against the scripted HID mock); cargo-server runs them with ips-server and ips-agent. Windows-gated: non-Windows builds take the stubs. The sensor-store routing that reads the devices stream is under data-pipeline; the widget and its tests under widgets; the settings page wiring under twitch-chat (all connection blocks live there). Overlaps with server-core and twitch-chat are deliberate, as with weather.rs."
     },
     {
       "id": "control-alerts",
@@ -524,6 +540,7 @@
         "tests/widgets/weather-fx/**",
         "tests/widgets/recipe/**",
         "tests/widgets/code/**",
+        "tests/widgets/device-batteries/**",
         "tests/fixtures/recipes/**",
         "tests/fixtures/widgets/**",
         "tests/tools/widgets/**",

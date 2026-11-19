@@ -3,10 +3,10 @@ id: connections
 title: Connections
 icon: cable
 related: [widgets, island-alerts, problems]
-verified: 1.3.1-beta.3
+verified: 1.4.0-beta.1
 ---
 
-Connect OBS, Twitch, YouTube, the Stream Deck app and your calendars so the Streaming widgets, the island's On air notice and the calendar widgets have something to show. Everything is set in one place, and it all runs on the dashboard server, so every kiosk shares one connection.
+Connect OBS, Twitch, YouTube, the Stream Deck app and your calendars so the Streaming widgets, the island's On air notice and the calendar widgets have something to show. The same page reads the battery of your wireless devices. Everything is set in one place, and it all runs on the dashboard server, so every kiosk shares one connection.
 
 :::open settings/connections Settings › Connections
 
@@ -42,6 +42,27 @@ Turn on **Connect to the Stream Deck app**. Studio then adds virtual decks to th
 ## Calendar links
 
 Paste an ICS link and press **Add**: Google Calendar's **Secret address in iCal format**, Outlook's published ICS link, or an iCloud public calendar. The server fetches each one every 10 minutes. Remove a link with the bin next to it.
+
+## Peripherals
+
+Turn on **Poll device batteries** and the dashboard server reads the battery of the wireless mice, keyboards, headsets, controllers and phones this PC is connected to. It is off until you turn it on, the reading stays on your PC, and no device is written to.
+
+- **Poll every** sets how often the devices are asked: 30 seconds, 1, 2 or 5 minutes. A device that doesn't answer keeps its last reading.
+- **Low battery at** sets the level the widgets draw as low, 5–50 % (15 % by default).
+- **Detected devices** lists what the server found. The dot and the word say whether a device is connected or asleep, the bar is its level, and a bolt means it is charging. A greyed row is asleep or hidden.
+- Rename a device by typing over its name. **Hide** keeps a device out of the widgets while it is still read; **Show** puts it back, and both wait for **Save peripherals**.
+- **Refresh now** asks the server to look again; otherwise it rereads after every save and every poll.
+
+If a device isn't listed, its maker's software may be holding it:
+
+| Device | What to do |
+|---|---|
+| Samsung Galaxy Buds | Close the Galaxy Buds app (or GalaxyBudsClient): it holds the connection the server asks on |
+| ATK and VXE mice and headsets | Close the ATK desktop app: it holds the port |
+| Other headsets | Optional: put `headsetcontrol.exe` next to the dashboard server to read headsets the built-in drivers don't know |
+| Phone | Connect it in **Phone Link**; the server reads the level Phone Link shows |
+
+Batteries are read on Windows only.
 
 ## What stays on this PC
 

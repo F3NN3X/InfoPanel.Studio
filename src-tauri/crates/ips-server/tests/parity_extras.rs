@@ -1,6 +1,11 @@
 // The parity fixtures for the extras (ical, ical-rules, integrations, obs, calendar; tests/fixtures/parity/*.json,
 // written once from the Node server (removed; tests/fixtures/parity/README.md)): each case's input through the native function must
 // give the Node output exactly. Floating times are read in Europe/Oslo, the zone the fixtures were built in.
+//
+// The `normalizePeripherals` / `publicPeripherals` / `applyPeripherals` cases in integrations.json are the one group
+// no Node server wrote: device batteries arrived with the ported core, after the Node server was gone. They freeze the
+// shape and the caps of the native `peripherals` section the way the other cases freeze Node's behaviour; they were
+// written by hand with the section (PERIPHERALS-CONTRACT.md), and hold no Node output.
 
 use std::path::PathBuf;
 
@@ -10,6 +15,7 @@ use ips_server::ical::{occurrences, parse_ics, parse_time, to_instant, zone_of, 
 use ips_server::integrations::{apply_integrations, clean_calendar_url, clean_host, normalize_integrations, public_view, stored_form};
 use ips_server::json;
 use ips_server::obs::{obs_auth, obs_step, ObsState};
+use ips_server::peripherals;
 use serde_json::{json, Value};
 
 const LOCAL: LocalZone = LocalZone::Pinned(chrono_tz::Europe::Oslo);
@@ -85,6 +91,12 @@ fn integrations() {
                     Err(error) => json!({ "error": error }),
                 }
             }
+            "normalizePeripherals" => peripherals::to_stored_json(&peripherals::normalize(input.get("raw"))).unwrap_or(Value::Null),
+            "publicPeripherals" => peripherals::to_json(&peripherals::normalize(input.get("state"))).unwrap_or(Value::Null),
+            "applyPeripherals" => match peripherals::apply(&peripherals::normalize(input.get("state")), &input["patch"]) {
+                Ok(state) => json!({ "state": peripherals::to_stored_json(&state).unwrap_or(Value::Null) }),
+                Err(error) => json!({ "error": error }),
+            },
             other => panic!("unknown fn {other}"),
         };
         same("integrations", &input, &got, &want);

@@ -114,7 +114,7 @@ describe("a presets.ts", () => {
 
   it("gives a rail preset settings of the widget's own and keeps it out of Add (owner Q3: Clock's)", () => {
     const rails = Object.entries(presets).flatMap(([id, list]) => list.filter((p) => p.size === "rail").map((p) => [id, p] as const));
-    expect(rails.map(([id, p]) => `${id}:${p.id}`)).toEqual(["Clock:rail"]);
+    expect(rails.map(([id, p]) => `${id}:${p.id}`)).toEqual(["Clock:rail", "DeviceBatteries:rail-lowest", "DeviceBatteries:rail-list"]);
     const rows = widgetRows(addCatalog(undefined, presets).widget).map((r) => r.id);
     for (const [id, p] of rails) {
       const keys = new Set((modules.find((x) => x.id === id)!.settings ?? []).map((s) => s.key));

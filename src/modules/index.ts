@@ -28,6 +28,8 @@ const claimedPrefixes = [
   "plugins.bluetooth-battery-plugin.",
   "plugins.InfoPanel.Notifications.",
   "plugins.InfoPanel.TextFile.",
+  // The dashboard server's own Device batteries source (ips-server devices.rs), as weather's is.
+  "battery.",
 ];
 
 /** True when a built-in widget covers the key. */

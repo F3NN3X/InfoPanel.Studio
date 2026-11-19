@@ -34,7 +34,7 @@ export function mergeEvent(
   prev: SensorMap,
   event: StreamEvent,
   resetPrefix: string | null,
-  spare?: string
+  spare?: string | readonly string[]
 ): { values: SensorMap; changed: string[] } {
   let next: SensorMap | null = null;
   const changed: string[] = [];
@@ -52,8 +52,10 @@ export function mergeEvent(
     changed.push(key);
   }
   if (resetPrefix !== null) {
+    const spared = (key: string) =>
+      typeof spare === "string" ? key.startsWith(spare) : spare?.some((s) => key.startsWith(s)) ?? false;
     for (const key of Object.keys(prev)) {
-      if (key.startsWith(resetPrefix) && !(key in incoming) && !(spare && key.startsWith(spare))) {
+      if (key.startsWith(resetPrefix) && !(key in incoming) && !spared(key)) {
         delete write()[key];
         changed.push(key);
       }
