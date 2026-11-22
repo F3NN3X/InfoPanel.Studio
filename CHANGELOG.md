@@ -9,6 +9,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ### Added
 
 - **Theme packs can cut, fade and decorate.** A pack's CSS may now cut corners and chamfer cards (`clip-path`), fade edges with gradient masks, round corners, and add `::before`/`::after` decoration (labels up to 64 characters, scanlines, brackets) that sits inside the card and never takes a click. Packs you import can also use gradients, `color-mix()`, their own `@keyframes` and images from their own folder. Widgets still can't be moved, resized or hidden: the import check now also refuses a clip, mask or decoration that hides or covers a widget's text.
+- **More pack CSS.** Packs can use the `border-image` shorthand, give cards and parts a border style and colour (never a width), and mask real elements with their own images: the import check reads the image and refuses one that fades text below half, or that it cannot load. Imported packs can also define px or % lengths (`--pack-cut: 12px`) and use them wherever a length is allowed, held to the same limits.
 
 ## [1.4.0-beta.2] - 2026-11-19
 

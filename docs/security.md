@@ -103,9 +103,12 @@ security model, what was fixed, what was decided, and what is deferred.
   User packs keep their stricter allow-list (`src/looks/pack-safety.ts`), which refuses an unsafe SVG rather than cleaning it.
 - **User pack CSS** (`src/looks/user-css.ts`, `crates/ips-server/src/packs.rs`): read by an allow-list grammar on every load,
   checked by a render check at import and signed by the server only after it. It paints the documented `data-part` slots
-  and never moves, sizes or hides a real element: shapes (`clip-path` of `inset()`/`polygon()`, gradient masks, radii) and
-  `::before`/`::after` decoration, whose box the app pins as `position: absolute` with `pointer-events: none` and must stay
-  inside its element. The render check refuses a clip, mask or pseudo-element that hides or covers text. A `url()` may name
+  and never moves, sizes or hides a real element: shapes (`clip-path` of `inset()`/`polygon()`, gradient and pack-file masks,
+  radii, `border-image`), a border style and colour with no width, `--pack-*` lengths held to the cap of every property that
+  reads them, and `::before`/`::after` decoration, whose box the app pins as `position: absolute` with `pointer-events: none`
+  and must stay inside its element. The render check refuses a clip, mask or pseudo-element that hides or covers text (a
+  pack-file mask is decoded and its alpha sampled over each text box; one that cannot be loaded or read is refused), and any
+  border whose width differs from the page without the pack's CSS. A `url()` may name
   only one of the pack's own files (no scheme, root path, `..`, backslash, query or fragment, also after percent-decoding);
   the app rewrites it to the pack's route, `/api/packs/<id>/<file>`, which serves it under the sandbox CSP. The server
   refuses to sign CSS holding a backslash, `<`, an at-rule other than `@keyframes`, `image-set(`, `src(` or a `url()` that
