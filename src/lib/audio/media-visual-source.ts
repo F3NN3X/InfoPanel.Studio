@@ -60,8 +60,8 @@ export function createMediaVisualSource(
   const bands = new Float32Array(bandCount);
   const history = new Float32Array(historyLength);
   const edges = logBandEdges(bandCount, minHz, maxHz);
-  let spectrumDb: Float32Array | null = null;
-  let timeDomain: Float32Array | null = null;
+  let spectrumDb: Float32Array<ArrayBuffer> | null = null;
+  let timeDomain: Float32Array<ArrayBuffer> | null = null;
 
   let historyStart = 0;
   let historyFilled = 0;

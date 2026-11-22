@@ -66,6 +66,7 @@ class StubResizeObserver implements ResizeObserver {
 class StubIntersectionObserver implements IntersectionObserver {
   readonly root = null;
   readonly rootMargin = "";
+  readonly scrollMargin = "";
   readonly thresholds = [];
   observe() {}
   unobserve() {}

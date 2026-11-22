@@ -96,7 +96,7 @@ export function GetFont({ initialFamily, needed, onAdd, onClose }: GetFontProps)
     let stop = false;
     (async () => {
       const alias = `get-font-${previews++}`;
-      const font = new FontFace(alias, await face.load());
+      const font = new FontFace(alias, (await face.load()) as Uint8Array<ArrayBuffer>);
       document.fonts.add(await font.load());
       if (!stop) setPreview(alias);
     })().catch(() => undefined);
