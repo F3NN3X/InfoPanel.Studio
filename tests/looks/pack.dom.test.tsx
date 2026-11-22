@@ -2,7 +2,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { PackStage, usePack } from "@/looks/pack";
-import { mountPackCss, registerPack, unregisterPack } from "@/looks/pack-load";
+import { mountPackCss, registerPack, registerUserPack, unregisterPack, unregisterUserPack } from "@/looks/pack-load";
 import type { Pack } from "@/looks/pack";
 import { badPack, TEST_PACK } from "./__fixtures__/test-pack";
 
@@ -102,5 +102,18 @@ describe("usePack and PackStage", () => {
     expect(root.hasAttribute("data-pack-worn")).toBe(true);
     styled();
     expect(root.hasAttribute("data-pack-worn")).toBe(false);
+  });
+
+  it("serves a user pack's CSS URLs from its route and a built-in pack's as written, whatever the pack says it is", () => {
+    const css = '[data-part="card"]::after{content:"";mask-image:url(assets/m.svg)}';
+    registerUserPack("mine-u", async () => ({ default: badPack({ id: "mine-u", css }) }));
+    const offUser = mountPackCss(badPack({ id: "mine-u", css }));
+    const offBuiltin = mountPackCss(badPack({ id: "built-u", css }));
+    const sheet = (id: string) => document.head.querySelector(`style[data-pack="${id}"]`)?.textContent ?? "";
+    expect(sheet("mine-u")).toContain("mask-image:url(/api/packs/mine-u/assets/m.svg);position:absolute;pointer-events:none;z-index:0;");
+    expect(sheet("built-u")).toContain("mask-image:url(assets/m.svg);position:absolute;");
+    offUser();
+    offBuiltin();
+    unregisterUserPack("mine-u");
   });
 });

@@ -59,9 +59,9 @@ describe("lintPackCss keeps widgets on screen and in place (M4)", () => {
     expect(lintPackCss(":scope{backdrop-filter:blur(24px)}")).toEqual([]);
     expect(lintPackCss(":scope{backdrop-filter:blur(200px)}")).toEqual(["rule :scope: backdrop-filter blur(200px) hides or blurs content"]);
   });
-  it("refuses content, border styles, masks, dashes and custom properties outside --pack-*", () => {
-    expect(lintPackCss(':scope::before{content:"xxxxxxxx"}')).toEqual(["rule :scope::before: property content is not a paint property"]);
-    for (const p of ["border-style:solid", "mask-image:none", "stroke-dashoffset:0", "--wp-pad:90px"]) {
+  it("refuses content off a pseudo-element, border styles, mask modes, dashes and custom properties outside --pack-*", () => {
+    expect(lintPackCss(':scope{content:"xxxxxxxx"}')).toEqual(["rule :scope: property content is not a paint property of a real element (only a ::before or ::after sets it)"]);
+    for (const p of ["border-style:solid", "mask-composite:add", "stroke-dashoffset:0", "--wp-pad:90px"]) {
       expect(lintPackCss(`:scope{${p}}`)).toEqual([`rule :scope: property ${p.split(":")[0]} is not a paint property`]);
     }
   });
@@ -74,5 +74,72 @@ describe("lintPackCss keeps widgets on screen and in place (M4)", () => {
   it("names an @font-face family pack-*, so it cannot replace a font the app uses", () => {
     expect(lintPackCss('@font-face{font-family:"pack-body";src:url(f.woff2)}')).toEqual([]);
     expect(lintPackCss('@font-face{font-family:"Segoe UI";src:url(f.woff2)}')).toEqual(['@font-face: font-family "Segoe UI" must start with pack-']);
+  });
+});
+
+// Phase 2 (gate 0 §6 and its decisions): one rule at a time, each row of the values table passing and refused.
+const P = ":scope::before";
+const R = ":scope";
+const clean = (css: string) => expect(lintPackCss(css), css).toEqual([]);
+const dirty = (css: string) => expect(lintPackCss(css).length, css).toBeGreaterThan(0);
+
+describe("lintPackCss: the Phase 2 values", () => {
+  it.each([
+    ["clip-path", [`${R}{clip-path:polygon(evenodd, 0 0, 100% 0, calc(100% - 8px) 100%)}`, `${R}{clip-path:inset(4px 0 round 8px)}`, `${P}{clip-path:none}`], [`${R}{clip-path:circle(50%)}`, `${R}{clip-path:polygon(0 0, 100% 0, var(--pack-x) 100%)}`, `${R}{clip-path:inset(1em)}`, `${R}{clip-path:inset(0) border-box}`, `${R}{clip-path:polygon(0 0, 100% 0)}`, `${R}{clip-path:inset(calc(2px * 2))}`]],
+    ["mask-image", [`${R}{mask-image:linear-gradient(#000, transparent)}`, `${R}{-webkit-mask-image:repeating-radial-gradient(circle at 50% 0, #000 0 2px, transparent 2px 4px)}`, `${P}{mask-image:url(assets/m.svg)}`], [`${R}{mask-image:url(assets/m.svg)}`, `${R}{mask-image:image(#000)}`, `${P}{mask-image:cross-fade(url(a.svg), url(b.svg))}`, `${R}{mask-image:conic-gradient(#000, #fff)}`]],
+    ["mask-size, -repeat, -position", [`${R}{mask-size:100% 8px;mask-repeat:no-repeat;-webkit-mask-position:center 4px}`], [`${R}{mask-size:5000px}`, `${R}{mask-repeat:repeat-x repeat}`, `${R}{mask-position:1em}`]],
+    ["mask", [`${R}{mask:linear-gradient(#000, transparent) center / 100% 50% no-repeat}`, `${P}{-webkit-mask:url(assets/m.svg) no-repeat}`], [`${R}{mask:linear-gradient(#000, #000) luminance}`, `${R}{mask:linear-gradient(#000, #000), linear-gradient(#000, #000)}`, `${P}{mask:url(assets/m.svg) content-box}`, `${R}{mask:url(assets/m.svg)}`]],
+    ["mask-composite, mask-mode", [], [`${R}{mask-composite:add}`, `${P}{mask-mode:alpha}`, `${P}{-webkit-mask-composite:xor}`]],
+    ["transform", [`${P}{transform:translateY(-100%) rotate(45deg) scale(0.9) skewX(10deg)}`, `${P}{transform:translate(4px, calc(50% - 2px)) rotate(0.5turn)}`], [`${R}{transform:translateY(-100%)}`, `${P}{transform:matrix(1, 0, 0, 1, 0, 0)}`, `${P}{transform:scale(2)}`, `${P}{transform:translateZ(1px)}`, `${P}{transform:skew(21deg)}`, `${P}{transform:rotate(var(--pack-r))}`]],
+    ["translate, rotate, scale", [`${P}{translate:4px 50%;rotate:0.25turn;scale:1.1}`], [`${R}{rotate:2deg}`, `${P}{scale:0.4}`, `${P}{translate:1px 2px 3px}`, `${P}{rotate:x 10deg}`]],
+    ["transform-origin", [`${P}{transform-origin:left 50%}`], [`${R}{transform-origin:center}`, `${P}{transform-origin:1em}`]],
+    ["content", [`${P}{content:"// "}`, `${P}{content:counter(pack-n)}`, `${P}{content:attr(data-pack-label)}`, `${P}{content:none}`], [`${R}{content:""}`, `${P}{content:url(a.svg)}`, `${P}{content:attr(title)}`, `${P}{content:"a" "b"}`, `${P}{content:"${"x".repeat(65)}"}`, `${P}{content:linear-gradient(#000, #fff)}`]],
+    ["inset, top, right, bottom, left, width, height", [`${P}{content:"";inset:0 auto;width:calc(100% - 8px);height:2px;top:50%}`], [`${R}{width:10px}`, `${P}{left:-1px}`, `${P}{width:10vw}`, `${P}{height:calc(0% - 4px)}`, `${P}{inset:1em}`]],
+    ["border-radius", [`${R}{border-radius:8px 50% / 4px;border-top-left-radius:64px}`], [`${R}{border-radius:65px}`, `${R}{border-radius:51%}`, `${R}{border-bottom-right-radius:1em}`]],
+    ["border-image-width, -outset", [`${R}{border-image-width:1 8px;border-image-outset:0}`], [`${R}{border-image-outset:1px}`, `${R}{border-image-width:9px}`, `${R}{border-image-width:2}`]],
+    ["outline-offset", [`${R}{outline-offset:-8px}`, `${R}{outline-offset:0}`], [`${R}{outline-offset:9px}`, `${R}{outline-offset:1em}`]],
+    ["transition", [`${R}{transition:color 200ms ease-out, opacity 2s linear 100ms}`, `${R}{transition-property:box-shadow;transition-duration:1s;transition-timing-function:steps(4, jump-end)}`], [`${R}{transition:all 1s}`, `${R}{transition:1s}`, `${R}{transition:color 3s}`, `${R}{transition:width 1s}`, `${P}{transition:content 1s}`, `${R}{transition:color 1s -1s}`, `${R}{transition:--pack-a 1s}`]],
+    ["border", [`${P}{border:1px solid #0ff}`], [`${R}{border:1px solid #0ff}`, `${P}{border:5px solid #0ff}`, `${P}{border:1px groove #0ff}`, `${P}{border:1px solid url(a.svg)}`]],
+    ["@keyframes run by a pseudo-element", [`@keyframes pack-s{to{transform:translateX(10px);opacity:0.6}} ${P}{animation:pack-s 2s}`], [`@keyframes pack-s{to{transform:translateX(10px)}} ${R}{animation:pack-s 2s}`, `@keyframes pack-s{to{width:10px}} ${P}{animation:pack-s 2s} ${R}{animation:pack-s 2s}`, `@keyframes pack-s{to{content:"x"}} ${P}{animation:pack-s 2s}`, `@keyframes pack-s{to{transform:translateX(10px)}}`, `@keyframes pack-s{to{transition:color 1s}} ${P}{animation:pack-s 2s}`]],
+  ])("%s", (_row, passes, refusals) => {
+    for (const css of passes) clean(css);
+    for (const css of refusals) dirty(css);
+  });
+
+  it("reads the pseudo lane from every selector of the rule, and refuses any other pseudo-element", () => {
+    clean(`${P}, :scope::after{content:""}`);
+    dirty(`${P}, ${R}{content:""}`);
+    for (const selector of [":scope:before", ":scope::marker", ":scope::before:hover", ":scope::before .a", ":scope:first-line"]) {
+      expect(lintPackCss(`${selector}{color:red}`), selector).toContain(`selector ${selector} names a pseudo-element other than a final ::before or ::after`);
+    }
+  });
+
+  it("never lets a pack write the box the mount pins, on a pseudo-element or anywhere", () => {
+    for (const decl of ["position:static", "pointer-events:auto", "z-index:9"]) {
+      dirty(`${P}{${decl}}`);
+      dirty(`${R}{${decl}}`);
+    }
+  });
+});
+
+describe("scopePackCss: the mount's own declarations and URLs", () => {
+  const css = `${P}{content:"";mask-image:url(./assets//m.svg)} @media (min-width: 1px){:scope::after{content:""}} ${R}{background:url("assets/a b.png")}`;
+
+  it("ends every pseudo-lane rule, at any depth, in position, pointer-events and z-index, after the pack's own; other rules get none", () => {
+    expect(scopePackCss("p", css)).toBe(
+      '@layer look{@scope ([data-look="p"]){:scope::before{content:"";mask-image:url(./assets//m.svg);position:absolute;pointer-events:none;z-index:0;}@media (min-width: 1px){:scope::after{content:"";position:absolute;pointer-events:none;z-index:0;}}:scope{background:url("assets/a b.png");}}}'
+    );
+  });
+
+  it("rewrites a user pack's URLs to its route from the tokens, each step encoded, and leaves a built-in pack's as written", () => {
+    const user = scopePackCss("mine", css, { user: true });
+    expect(user).toContain("mask-image:url(/api/packs/mine/assets/m.svg)");
+    expect(user).toContain('background:url("/api/packs/mine/assets/a%20b.png")');
+    expect(scopePackCss("mine", css)).toContain("url(./assets//m.svg)");
+  });
+
+  it("mounts nothing for a user pack that names a URL outside its folder", () => {
+    expect(scopePackCss("mine", `${R}{background:url(https://x.test/a.png)}`, { user: true })).toBe("");
+    expect(scopePackCss("mine", `${P}{content:"";mask-image:url(../a.svg)}`, { user: true })).toBe("");
   });
 });

@@ -181,7 +181,8 @@ export function mountPackCss(pack: Pack): () => void {
   if (!entry) {
     const el = document.createElement("style");
     el.dataset.pack = pack.id;
-    el.textContent = scopePackCss(pack.id, pack.css ?? "") + plates;
+    // a user pack's URLs are rewritten to its route; which it is comes from where the loader read it, never from the pack
+    el.textContent = scopePackCss(pack.id, pack.css ?? "", { user: Object.hasOwn(USER, pack.id) }) + plates;
     document.head.append(el);
     entry = { el, users: 0 };
     mounted.set(pack.id, entry);
