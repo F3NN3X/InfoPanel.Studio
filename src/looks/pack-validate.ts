@@ -73,7 +73,7 @@ export interface PackIssue {
 export const BUILTIN_FONT_FAMILIES: ReadonlySet<string> = new Set(PACK_FONT_FAMILIES);
 
 /** The size cap of a pack folder: `packCeilingBytes` of the `packs` block in tools/perf/budgets.json (a test pins them equal). */
-export const PACK_CEILING_BYTES = 512_000;
+export const PACK_CEILING_BYTES = 1_024_000;
 /** An ornament is at most this many px and stays inside the card's padding (spec 03, rules for every slot). */
 export { ORNAMENT_MAX } from "./pack-json";
 /** A pack folder holds at most this many files, and no file is over `FILE_MAX_BYTES`. */

@@ -1,5 +1,6 @@
 // The pack validator (P12a, src/looks/pack-validate.ts): the twelve built-in packs pass with no error, and each rule fails a
 // pack built to break it, by its rule id. Bad packs are Field Kit (cream card, fonts, SVG assets, CSS) with one thing changed.
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PACK_IDS, type Pack } from "@/looks/pack";
 import { packIssues } from "@/looks/pack-load";
@@ -43,6 +44,13 @@ describe("the built-in packs", () => {
 
   it("the size cap is the packs block's ceiling in budgets.json", () => {
     expect(PACK_CEILING_BYTES).toBe(budgets.packs.packCeilingBytes);
+  });
+
+  // the server refuses at import what the validator refuses (Phase 4): the two sets of caps never drift apart
+  it("the size caps are the server's, constant for constant", () => {
+    const rust = readFileSync("src-tauri/crates/ips-server/src/packs.rs", "utf8");
+    const rs = (name: string) => Number(new RegExp(`pub const ${name}: [a-z0-9]+ = ([0-9_]+);`).exec(rust)?.[1].replaceAll("_", ""));
+    expect({ PACK_CEILING_BYTES, FILE_MAX_BYTES, FILE_COUNT_MAX }).toEqual({ PACK_CEILING_BYTES: rs("PACK_CEILING_BYTES"), FILE_MAX_BYTES: rs("FILE_MAX_BYTES"), FILE_COUNT_MAX: rs("FILE_COUNT_MAX") });
   });
 });
 
@@ -469,7 +477,11 @@ describe("H4: sizes come from the bytes", () => {
     expect(rules(bad({ files: [pngFile("assets/a.png", FILE_MAX_BYTES + 1)] }))).toContain("size");
     expect(rules(bad({ files: Array.from({ length: FILE_COUNT_MAX + 1 }, (_, k) => file(`extra${k}.md`, "")) }))).toContain("size");
     const used = BASE.files.reduce((n, f) => n + f.size, 0);
-    const fits = (n: number) => rules(bad({ files: [pngFile("assets/a.png", Math.floor(n / 2)), pngFile("assets/b.png", n - Math.floor(n / 2))] })).includes("size");
+    // n bytes over as few files as the per-file cap allows, so only the total can be what trips
+    const fits = (n: number) => {
+      const k = Math.ceil(n / FILE_MAX_BYTES);
+      return rules(bad({ files: Array.from({ length: k }, (_, i) => pngFile(`assets/fill${i}.png`, Math.floor(n / k) + (i < n % k ? 1 : 0))) })).includes("size");
+    };
     expect(fits(PACK_CEILING_BYTES - used)).toBe(false);
     expect(fits(PACK_CEILING_BYTES - used + 1)).toBe(true);
   });

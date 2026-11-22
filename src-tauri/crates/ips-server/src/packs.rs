@@ -35,7 +35,7 @@ use crate::{js, store, App};
 
 /// A pack folder is at most this many bytes, a file at most `FILE_MAX_BYTES`, a pack at most `FILE_COUNT_MAX` files
 /// (the validator's `PACK_CEILING_BYTES`, `FILE_MAX_BYTES` and `FILE_COUNT_MAX`).
-pub const PACK_CEILING_BYTES: u64 = 512_000;
+pub const PACK_CEILING_BYTES: u64 = 1_024_000;
 pub const FILE_MAX_BYTES: u64 = 256_000;
 pub const FILE_COUNT_MAX: usize = 64;
 /// An import body: the pack as base64 in JSON, with room for the paths.
@@ -1112,8 +1112,9 @@ mod tests {
         std::fs::write(root.join("assets/big.png"), vec![0u8; FILE_MAX_BYTES as usize + 1]).unwrap();
         assert!(measure(&root).is_none(), "a file over its cap");
         std::fs::remove_file(root.join("assets/big.png")).unwrap();
-        for k in 0..3 {
-            std::fs::write(root.join(format!("assets/f{k}.png")), vec![0u8; 200_000]).unwrap();
+        // files at the per-file cap, one more than the pack's cap holds
+        for k in 0..=PACK_CEILING_BYTES / FILE_MAX_BYTES {
+            std::fs::write(root.join(format!("assets/f{k}.png")), vec![0u8; FILE_MAX_BYTES as usize]).unwrap();
         }
         assert!(measure(&root).is_none(), "over the pack's cap");
         std::fs::remove_dir_all(root.join("assets")).unwrap();

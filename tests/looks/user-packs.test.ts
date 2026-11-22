@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isLookId, LOOK_IDS } from "@/looks/ids";
 import { cssColour } from "@/looks/colour";
+import { PACK_CEILING_BYTES } from "@/looks/pack-validate";
 import { resolveMaterial } from "@/looks/materials";
 import { loadPack, sharedPack, unregisterUserPack } from "@/looks/pack-load";
 import { PACK_IDS } from "@/looks/pack";
@@ -281,7 +282,8 @@ describe("a picked folder with files that are not part of a pack", () => {
   });
 
   it("files the server stores that are far over a pack are still refused in words", async () => {
-    const list = [picked("mine/pack.json", 10), ...Array.from({ length: 5 }, (_, k) => picked(`mine/assets/a${k}.png`, 500_000))];
+    // past four packs' worth (`filesOfInput`'s cut-off), in files the server would take one by one
+    const list = [picked("mine/pack.json", 10), ...Array.from({ length: Math.ceil((PACK_CEILING_BYTES * 4) / 500_000) + 1 }, (_, k) => picked(`mine/assets/a${k}.png`, 500_000))];
     await expect(filesOfInput(list as unknown as FileList)).rejects.toThrow("far more than a pack holds");
   });
 });

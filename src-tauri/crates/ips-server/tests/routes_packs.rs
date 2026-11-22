@@ -366,11 +366,11 @@ async fn a_pack_over_a_cap_is_not_served_or_listed() {
     assert_eq!(get(s.port, "/api/packs/fat/assets/big.png").await.status, 413, "a file over 256,000");
     assert_eq!(get(s.port, "/api/packs/fat/pack.json").await.status, 413, "the pack goes with it");
     std::fs::remove_file(root.join("assets/big.png")).unwrap();
-    for k in 0..3 {
-        std::fs::write(root.join(format!("assets/f{k}.png")), vec![0u8; 200_000]).unwrap();
+    for k in 0..5 {
+        std::fs::write(root.join(format!("assets/f{k}.png")), vec![0u8; 205_000]).unwrap();
     }
-    assert_eq!(get(s.port, "/api/packs/fat/pack.json").await.status, 413, "a pack over 512,000");
-    for k in 0..3 {
+    assert_eq!(get(s.port, "/api/packs/fat/pack.json").await.status, 413, "a pack over 1,024,000");
+    for k in 0..5 {
         std::fs::remove_file(root.join(format!("assets/f{k}.png"))).unwrap();
     }
     for k in 0..65 {
@@ -484,14 +484,16 @@ async fn more_packs_than_the_count_cap_are_413_but_a_replace_is_not() {
 async fn an_import_over_the_caps_is_413() {
     let s = start().await;
     let big = "a".repeat(256_001);
-    let half = "a".repeat(180_000);
+    // five files under the per-file cap, 1,025,000 in all: over the pack's cap, under the import body's
+    let fifth = "a".repeat(205_000);
     let ok = [("pack.json", pack_json("mine")), ("look.json", json!({ "id": "mine" }).to_string())];
     let mut list = pairs(&ok);
     list.push(("OFL.txt", &big));
     assert_eq!(send(s.port, "POST", "/api/packs", &WRITE, &import_body("mine", &list)).await.status, 413);
     let mut list = pairs(&ok);
-    list.extend([("OFL.txt", half.as_str()), ("thumb.png", half.as_str()), ("thumb.jpg", half.as_str())]);
-    assert_eq!(send(s.port, "POST", "/api/packs", &WRITE, &import_body("mine", &list)).await.status, 413, "over 512,000 in all");
+    let parts: Vec<String> = (0..5).map(|k| format!("assets/f{k}.png")).collect();
+    list.extend(parts.iter().map(|n| (n.as_str(), fifth.as_str())));
+    assert_eq!(send(s.port, "POST", "/api/packs", &WRITE, &import_body("mine", &list)).await.status, 413, "over 1,024,000 in all");
     let names: Vec<String> = (0..65).map(|k| format!("assets/f{k}.png")).collect();
     let mut list = pairs(&ok);
     list.extend(names.iter().map(|n| (n.as_str(), "x")));
