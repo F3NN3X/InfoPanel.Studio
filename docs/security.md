@@ -120,6 +120,8 @@ security model, what was fixed, what was decided, and what is deferred.
   render check treats these elements as app chrome. The animated kinds are overlays that never filter, move or clip a widget;
   the validator and the loader both refuse more than 3 flashes a second or more than two animated effects. `oklch()` colours
   are converted to sRGB, clamped to the gamut and written as the hex that the contrast checks read.
+  The server signs a pack's stylesheet only: a pack with no `pack.css` carries no signature, since its pack.json and look.json
+  are validated again every time it loads.
 - **App icons** (`POST /api/assets/app-icon`, `crates/ips-server/src/app_icon.rs`): a rail item's icon read from a
   program's `.exe` and stored as a PNG asset. The studio names the program by its file name only (`Chat.exe`: letters,
   digits and a few punctuation marks, no separator, drive or `%`); the server looks for it among the programs running now,
