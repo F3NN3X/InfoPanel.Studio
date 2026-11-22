@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **Theme packs can cut, fade and decorate.** A pack's CSS may now cut corners and chamfer cards (`clip-path`), fade edges with gradient masks, round corners, and add `::before`/`::after` decoration (labels up to 64 characters, scanlines, brackets) that sits inside the card and never takes a click. Packs you import can also use gradients, `color-mix()`, their own `@keyframes` and images from their own folder. Widgets still can't be moved, resized or hidden: the import check now also refuses a clip, mask or decoration that hides or covers a widget's text.
+
 ## [1.4.0-beta.2] - 2026-11-19
 
 ### Added
