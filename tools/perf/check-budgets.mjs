@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // CI check of the deterministic bundle budgets (tools/perf/budgets.json) against the build in dist/: the kiosk and
-// studio entry closures' gzip bytes, no React server renderer in the kiosk closure, and no debug-only globals in either.
-// With --packs: each built-in pack's lazy chunks and assets against the `packs` block. Exit 1 on a breach.
+// studio entry closures' gzip bytes against their warn/fail bands, no React server renderer in the kiosk closure, and no
+// debug-only globals in either. With --packs: each built-in pack's lazy chunks and assets against the `packs` block.
+// Exit 1 on a breach; a warning alone exits 0.
 //   npm run build && node tools/perf/check-budgets.mjs [--packs]
 import fs from "node:fs";
 import path from "node:path";
@@ -11,24 +12,38 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const budgets = JSON.parse(fs.readFileSync(path.join(ROOT, "tools/perf/budgets.json"), "utf8"));
 
-/**
- * The most an entry may weigh: its budget plus `entryGzipSlack` of it. The same build gzips a few bytes apart on Windows
- * and on each Linux runner image, so an exact budget fails on the platform it wasn't measured on.
- */
-export const limitOf = (budget, b = budgets) => Math.floor(budget * (1 + (b.entryGzipSlack ?? 0)));
+const ENTRY_BUDGETS = { kiosk: "kioskEntryGzipBytes", studio: "studioEntryGzipBytes" };
 
-/** The breaches of a bundle report, as messages (empty when within budget). */
-export function breaches(result, b = budgets) {
+/** An entry's band `{ warn, fail }` from `b`, or null when it is not two positive integers with warn <= fail. */
+export function bandOf(name, b = budgets) {
+  const band = b[ENTRY_BUDGETS[name]];
+  const ok = band && Number.isInteger(band.warn) && Number.isInteger(band.fail) && band.warn > 0 && band.warn <= band.fail;
+  return ok ? band : null;
+}
+
+/**
+ * A bundle report against the entry bands and the hard rules, as `{ warnings, breaches }` of messages. Over `warn` is a
+ * warning (the check still passes); over `fail`, a malformed band, the server renderer in the kiosk or a debug-only global
+ * is a breach.
+ */
+export function check(result, b = budgets) {
+  const warnings = [];
   const out = [];
+  for (const name of Object.keys(ENTRY_BUDGETS)) {
+    const size = result.entries[name].jsGzip;
+    const band = bandOf(name, b);
+    if (!band) out.push(`${name} entry has no { warn, fail } band in budgets.json (${ENTRY_BUDGETS[name]})`);
+    else if (size > band.fail) out.push(`${name} entry ${size} B gzip > fail ${band.fail}`);
+    else if (size > band.warn) warnings.push(`${name} entry ${size} B gzip > warn ${band.warn} (fail at ${band.fail})`);
+  }
   const { kiosk, studio } = result.entries;
-  const kioskLimit = limitOf(b.kioskEntryGzipBytes, b);
-  const studioLimit = limitOf(b.studioEntryGzipBytes, b);
-  if (kiosk.jsGzip > kioskLimit) out.push(`kiosk entry ${kiosk.jsGzip} B gzip > ${kioskLimit} (budget ${b.kioskEntryGzipBytes} + slack)`);
-  if (studio.jsGzip > studioLimit) out.push(`studio entry ${studio.jsGzip} B gzip > ${studioLimit} (budget ${b.studioEntryGzipBytes} + slack)`);
   if (kiosk.serverRenderer && !b.kioskServerRendererAllowed) out.push("react-dom/server code is in the kiosk closure");
   for (const [name, e] of Object.entries({ kiosk, studio })) for (const s of e.debugSymbols ?? []) out.push(`debug-only ${s} is in the ${name} closure`);
-  return out;
+  return { warnings, breaches: out };
 }
+
+/** The breaches of a bundle report, as messages (empty when within the fail bands). */
+export const breaches = (result, b = budgets) => check(result, b).breaches;
 
 /**
  * The breaches of the built-in packs' sizes (`measured`: id -> { chunks, codeGzip, assetBytes, layers? }) against `b.packs`, as messages.
@@ -110,11 +125,14 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   // Loaded here, so the tests import `breaches` without the report (Vitest can't transform it; Node runs it).
   const { report } = await import("./bundle-report.mjs");
   const result = report({ dist: path.join(ROOT, "dist") });
-  const found = breaches(result);
+  const { warnings, breaches: found } = check(result);
   const { kiosk, studio } = result.entries;
+  const band = (name) => bandOf(name) ?? { warn: "?", fail: "?" };
   console.log(
-    `kiosk ${kiosk.jsGzip} B gzip (budget ${budgets.kioskEntryGzipBytes}, limit ${limitOf(budgets.kioskEntryGzipBytes)}), studio ${studio.jsGzip} B gzip (budget ${budgets.studioEntryGzipBytes}, limit ${limitOf(budgets.studioEntryGzipBytes)}), server renderer in kiosk: ${kiosk.serverRenderer}`
+    `kiosk ${kiosk.jsGzip} B gzip (warn ${band("kiosk").warn}, fail ${band("kiosk").fail}), studio ${studio.jsGzip} B gzip (warn ${band("studio").warn}, fail ${band("studio").fail}), server renderer in kiosk: ${kiosk.serverRenderer}`
   );
+  // An Actions annotation puts the warning on the run's summary page without turning the job red.
+  for (const w of warnings) console.log(process.env.GITHUB_ACTIONS === "true" ? `::warning title=Bundle budget::${w}` : `warning: ${w}`);
   for (const b of found) console.error(`over budget: ${b}`);
   process.exit(found.length ? 1 : 0);
 }

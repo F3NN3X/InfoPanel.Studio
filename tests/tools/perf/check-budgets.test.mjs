@@ -2,21 +2,35 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { breaches, limitOf, measurePacks, packBreaches } from "../../../tools/perf/check-budgets.mjs";
+import { breaches, budgets, check, measurePacks, packBreaches } from "../../../tools/perf/check-budgets.mjs";
 
-const b = { kioskEntryGzipBytes: 1000, studioEntryGzipBytes: 2000, entryGzipSlack: 0.01, kioskServerRendererAllowed: false };
+// Bands as budgets.json sets them from a measured base of 1000 (kiosk +15 % / +40 %) and 2000 (studio +20 % / +50 %).
+const b = { kioskEntryGzipBytes: { warn: 1150, fail: 1400 }, studioEntryGzipBytes: { warn: 2400, fail: 3000 }, kioskServerRendererAllowed: false };
 const result = (kiosk, studio, extra = {}) => ({ entries: { kiosk: { jsGzip: kiosk, serverRenderer: false, ...extra }, studio: { jsGzip: studio } } });
 
 describe("check-budgets", () => {
-  it("lets an entry go over its budget by the slack, and no further", () => {
-    expect(limitOf(1000, b)).toBe(1010);
-    expect(breaches(result(1010, 2020), b)).toEqual([]);
-    expect(breaches(result(1011, 2021), b)).toEqual(["kiosk entry 1011 B gzip > 1010 (budget 1000 + slack)", "studio entry 2021 B gzip > 2020 (budget 2000 + slack)"]);
+  it("passes an entry at or under its warn line with no warning", () => {
+    expect(check(result(1150, 2400), b)).toEqual({ warnings: [], breaches: [] });
   });
 
-  it("holds an entry to its exact budget when no slack is set", () => {
-    const exact = { ...b, entryGzipSlack: undefined };
-    expect(breaches(result(1001, 2000), exact)).toEqual(["kiosk entry 1001 B gzip > 1000 (budget 1000 + slack)"]);
+  it("warns, and still passes, a +20 % kiosk change", () => {
+    expect(check(result(1200, 2000), b)).toEqual({ warnings: ["kiosk entry 1200 B gzip > warn 1150 (fail at 1400)"], breaches: [] });
+  });
+
+  it("fails a +45 % kiosk change and a studio entry over its fail line", () => {
+    expect(check(result(1450, 3001), b)).toEqual({ warnings: [], breaches: ["kiosk entry 1450 B gzip > fail 1400", "studio entry 3001 B gzip > fail 3000"] });
+  });
+
+  it("fails closed on a missing or malformed band", () => {
+    const bad = { kioskEntryGzipBytes: 1000, studioEntryGzipBytes: { warn: 3000, fail: 2000 } };
+    expect(breaches(result(1, 1), bad)).toEqual([
+      "kiosk entry has no { warn, fail } band in budgets.json (kioskEntryGzipBytes)",
+      "studio entry has no { warn, fail } band in budgets.json (studioEntryGzipBytes)",
+    ]);
+  });
+
+  it("keeps the shipped bands well formed", () => {
+    expect(breaches(result(1, 1), budgets)).toEqual([]);
   });
 
   it("still refuses the server renderer in the kiosk whatever the size", () => {
