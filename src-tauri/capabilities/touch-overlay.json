@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "touch-overlay",
+  "description": "The touch setup overlays (app/touch.html, src/touch/screens.rs): they only draw and hear `touch-overlay` progress events, so they get events and no commands. Local pages only.",
+  "windows": [
+    "touch-overlay-*"
+  ],
+  "local": true,
+  "permissions": [
+    "core:event:default"
+  ]
+}
