@@ -64,6 +64,7 @@
     "esbuild": true
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@biomejs/biome": "2.6.8",
     "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "^4.3.5",

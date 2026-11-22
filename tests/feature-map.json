@@ -748,6 +748,7 @@
         "tests/e2e/screens-manager.spec.ts",
         "tests/e2e/browser-studio.spec.ts",
         "tests/e2e/studio-basics.spec.ts",
+        "tests/e2e/a11y-smoke.spec.ts",
         "tests/e2e/pinned-editor.spec.ts",
         "tests/e2e/widget-presets.spec.ts",
         "tests/e2e/frozen-preview.spec.ts",
