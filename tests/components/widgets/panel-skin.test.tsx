@@ -130,7 +130,8 @@ describe("a panel on a pack Look (L67)", () => {
     expect(v["--card"]).toBe("0 0% 100%");
     const withMuted = (value: string) => packChromeOf({ ...pack.look, t1: { ...pack.look.t1, light: { ...pack.look.t1.light, muted: { value } } } } as Look).panel.vars;
     expect(withMuted("rgb(1 2 3)")).toHaveProperty("--muted-foreground", "210 50% 1%");
-    expect(withMuted("oklch(50% 0 0)")).not.toHaveProperty("--muted-foreground");
+    expect(withMuted("oklch(50% 0 0)")).toHaveProperty("--muted-foreground", withMuted("#636363")["--muted-foreground" as never]);
+    expect(withMuted("color-mix(in srgb, #202020, #000)")).not.toHaveProperty("--muted-foreground");
   });
   it("drops an item's own colour that vanishes on the pack's card (a white item on Paper), and nothing else", () => {
     const panel = kinds("stat", "bar", "value");

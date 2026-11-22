@@ -149,6 +149,83 @@ describe("bad packs, one per rule", () => {
     expect(rules(bad({ pack: { edge: { kind: "chamfer", cut: 20 } } }))).toEqual([]);
   });
 
+  it("a frame: each corner style passes; a size, stroke or corner list out of range is refused", () => {
+    for (const corners of ["square", "cut", "bracket", "notch"]) expect(rules(bad({ pack: { frame: { corners, size: 12, which: ["tl", "br"], stroke: 1 } } }))).toEqual([]);
+    expect(rules(bad({ pack: { frame: { corners: "cut", size: 20, stroke: 2 } } }))).toEqual([]);
+    expect(rules(bad({ pack: { frame: { corners: "cut", size: 21 } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { corners: "cut", size: -1 } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, stroke: 3 } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { corners: "round", size: 8 } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, which: [] } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, which: ["top"] } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, which: ["tl", "tl"] } } }))).toContain("frame");
+    expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, colour: "#f00" } } }))).toContain("schema");
+  });
+
+  it("a pack that sets both edge and frame is refused; an edge alone still passes, a distressed one with a warning", () => {
+    expect(rules(bad({ pack: { frame: { corners: "cut", size: 8 }, edge: { kind: "chamfer", cut: 8 } } }))).toContain("frame");
+    expect(rules(bad({ pack: { edge: { kind: "none" } } }))).toEqual([]);
+    const warned = validatePack(bad({ pack: { edge: { kind: "distressed" } } }), { source: "builtin" });
+    expect(warned.filter((i) => i.severity === "error")).toEqual([]);
+    expect(warned.map((i) => i.message).join()).toContain("draws nothing");
+  });
+
+  it("ornaments: up to four of the four kinds at the six places pass; five, an unknown kind or place, or both ornament and ornaments are refused", () => {
+    const o = (kind: string, at: string, extra: object = {}) => ({ kind, at, ...extra });
+    const four = [o("micro-print", "bl", { text: "SYS.07 // NODE-A", minSizeClass: "md" }), o("ticks", "top"), o("reticle", "tr"), o("label", "bottom", { text: "A" })];
+    expect(rules(bad({ pack: { ornaments: four } }))).toEqual([]);
+    expect(rules(bad({ pack: { ornaments: [...four, o("ticks", "tl")] } }))).toContain("ornament");
+    expect(rules(bad({ pack: { ornaments: [o("stripes", "tl")] } }))).toContain("schema");
+    expect(rules(bad({ pack: { ornaments: [o("ticks", "centre")] } }))).toContain("schema");
+    expect(rules(bad({ pack: { ornaments: [o("ticks", "tl")], ornament: { size: 8 } } }))).toContain("ornament");
+  });
+
+  it("ornament text: required for micro-print and label, refused on ticks and reticle, 1 to 64 printable characters, no markup", () => {
+    const one = (o: object) => rules(bad({ pack: { ornaments: [o] } }));
+    expect(one({ kind: "label", at: "tl", text: "x".repeat(64) })).toEqual([]);
+    expect(one({ kind: "label", at: "tl", text: "x".repeat(65) })).toContain("ornament");
+    expect(one({ kind: "label", at: "tl", text: "" })).toContain("schema");
+    expect(one({ kind: "label", at: "tl" })).toContain("ornament");
+    expect(one({ kind: "micro-print", at: "tl" })).toContain("ornament");
+    expect(one({ kind: "ticks", at: "top", text: "no" })).toContain("ornament");
+    expect(one({ kind: "reticle", at: "tr", text: "no" })).toContain("ornament");
+    expect(one({ kind: "label", at: "tl", text: "<b>x</b>" })).toContain("injection");
+    expect(one({ kind: "label", at: "tl", text: "a url(x.png) b" })).toContain("injection");
+    expect(one({ kind: "label", at: "tl", text: "a > b" })).toContain("ornament");
+    expect(one({ kind: "label", at: "tl", text: "line\nbreak" })).toContain("ornament");
+    expect(one({ kind: "label", at: "tl", text: "a‮b" })).toContain("ornament");
+  });
+
+  it("the flashing kinds: each must declare cost animated, a rate above 0 up to 3, and a rate only on them", () => {
+    const fx = (e: object) => validatePack(bad({ pack: stage((BASE.pack as Json).stage.layers, { effects: [e] }) }), { source: "builtin" }).filter((i) => i.severity === "error").map((i) => i.rule);
+    for (const kind of ["glitch", "flicker", "rgb-split", "interference"]) {
+      expect(fx({ kind, cost: "animated", rate: 3 }), kind).not.toContain("fx-rate");
+      expect(fx({ kind, cost: "animated" }), kind).not.toContain("fx-cost");
+      expect(fx({ kind, cost: "composited" }), kind).toContain("fx-cost");
+    }
+    expect(fx({ kind: "glitch", cost: "animated", rate: 3.5 })).toContain("fx-rate");
+    expect(fx({ kind: "glitch", cost: "animated", rate: 0 })).toContain("fx-rate");
+    expect(fx({ kind: "glitch", cost: "animated", rate: -1 })).toContain("fx-rate");
+    expect(fx({ kind: "vignette", cost: "static", rate: 1 })).toContain("fx-rate");
+    expect(fx({ kind: "glitch", cost: "animated", calm: "static" })).not.toContain("schema");
+    expect(fx({ kind: "glitch", cost: "animated", calm: "dim" })).toContain("schema");
+  });
+
+  it("at most two animated effects: two pass, three are refused", () => {
+    const fx = (n: number) => validatePack(bad({ pack: stage((BASE.pack as Json).stage.layers, { effects: ["grain", "scanlines", "glitch"].slice(0, n).map((kind) => ({ kind, cost: "animated" })) }) }), { source: "builtin" }).filter((i) => i.severity === "error").map((i) => i.rule);
+    expect(fx(2)).not.toContain("fx-animated");
+    expect(fx(3)).toContain("fx-animated");
+  });
+
+  it("oklch() tokens: read in a Look and checked at 4.5:1 as the clamped hex; refused where the app writes no hex", () => {
+    expect(rules(bad({ look: (l) => (l.t1.light.accent.value = "oklch(0.45 0.15 30)") }))).toEqual([]);
+    expect(rules(bad({ look: (l) => (l.t1.light.muted.value = "oklch(0.9 0.02 90)") }))).toContain("contrast");
+    expect(rules(bad({ look: (l) => (l.t1.light.surface.value = "oklch(0.95 0.02 90)") }))).toContain("chrome-surface");
+    expect(rules(bad({ look: (l) => (l.t1.light.ok.value = "oklch(0.5 0.1)") }))).toContain("contrast");
+    expect(rules(bad({ look: (l) => (l.t3 = { ...l.t3, "num-color": "oklch(0.4 0.1 30)" }) }))).toContain("t3");
+    expect(rules(bad({ css: "[data-part='num'] { color: oklch(0.2 0.1 30); }" }))).toContain("hidden-text");
+  });
+
   it("!important, on a fill or anywhere", () => {
     expect(rules(bad({ css: '[data-part="num"] { color: #1A1C21 !important; }' }))).toContain("no-important");
     expect(rules(bad({ css: '[data-part="card"] { background-color: #EFE8D8 ! important; }' }))).toContain("no-important");
@@ -964,6 +1041,6 @@ describe("L98 L-8: T1 text is read as drawn, rgb() and an alpha over the card", 
     expect(mine(fg("rgba(26, 28, 33, 0.3)"))).toContain("contrast");
   });
   it("still refuses a colour it cannot read", () => {
-    expect(mine(fg("oklch(20% 0 0)"))).toContain("contrast");
+    expect(mine(fg("color-mix(in srgb, #202020, #000)"))).toContain("contrast");
   });
 });

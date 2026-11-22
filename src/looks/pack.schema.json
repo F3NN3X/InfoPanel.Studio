@@ -56,11 +56,13 @@
             "required": ["kind", "cost"],
             "additionalProperties": false,
             "properties": {
-              "kind": { "enum": ["grain", "scanlines", "vignette", "glow", "blur"] },
+              "kind": { "enum": ["grain", "scanlines", "vignette", "glow", "blur", "glitch", "flicker", "rgb-split", "interference"] },
               "cost": { "enum": ["static", "composited", "filter", "mask", "animated"] },
               "opacity": { "type": "number" },
               "px": { "type": "number" },
               "fallback": { "enum": ["off", "static"] },
+              "calm": { "enum": ["off", "static"] },
+              "rate": { "type": "number" },
               "minSizeClass": { "enum": ["xs", "sm", "md", "lg"] }
             }
           }
@@ -83,6 +85,31 @@
         "required": ["file", "bytes"],
         "additionalProperties": false,
         "properties": { "file": { "type": "string", "minLength": 1 }, "bytes": { "type": "number", "minimum": 0 } }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "required": ["corners", "size"],
+      "additionalProperties": false,
+      "properties": {
+        "corners": { "enum": ["square", "cut", "bracket", "notch"] },
+        "size": { "type": "number", "minimum": 0, "maximum": 20 },
+        "which": { "type": "array", "minItems": 1, "items": { "enum": ["tl", "tr", "br", "bl"] } },
+        "stroke": { "type": "number", "minimum": 0, "maximum": 2 }
+      }
+    },
+    "ornaments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "at"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["micro-print", "ticks", "reticle", "label"] },
+          "at": { "enum": ["tl", "tr", "br", "bl", "top", "bottom"] },
+          "text": { "type": "string", "minLength": 1 },
+          "minSizeClass": { "enum": ["xs", "sm", "md", "lg"] }
+        }
       }
     },
     "ornament": {
