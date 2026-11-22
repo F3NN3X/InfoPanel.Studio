@@ -1,0 +1,20 @@
+# cargo-deny (CI: .github/actions/audit). Advisories, bans and sources; licenses are not checked yet.
+# Run locally from src-tauri/: cargo deny check advisories bans sources
+
+[advisories]
+ignore = [
+  # chrono and chrono-tz are unmaintained with no safe upgrade. ips-server uses them for dates and time zones (calendar,
+  # iCal, alert rules, agent usage, YouTube quota); moving to jiff is its own change.
+  { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained, no replacement chosen yet" },
+  { id = "RUSTSEC-2026-0555", reason = "chrono-tz unmaintained, no replacement chosen yet" },
+]
+
+[bans]
+# Tauri and windows-rs pull several majors of the same crates; reported, not gating.
+multiple-versions = "warn"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+# Our own touch driver crates, pinned by tag in Cargo.toml.
+allow-git = ["https://github.com/F3NN3X/touch-kit"]

@@ -227,12 +227,23 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
         working-directory: src-tauri
 
+  # Known advisories in the dependencies (.github/actions/audit, src-tauri/deny.toml). The nightly runs it too, since
+  # advisories appear without a code change.
+  audit:
+    needs: plan
+    if: needs.plan.outputs.docs_only != 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/audit
+
   # The one required status check. Skipped jobs (not needed for this change) pass; a failed or cancelled one fails it.
   # A run cancelled as a whole (a newer push or label superseded it) reports nothing, so its stale failure can't block
   # the PR next to the newer run's result.
   ci-ok:
     if: ${{ !cancelled() }}
-    needs: [plan, lint, typecheck-build, unit, flake-unit, lab, server, rust]
+    needs: [plan, lint, typecheck-build, unit, flake-unit, lab, server, rust, audit]
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:

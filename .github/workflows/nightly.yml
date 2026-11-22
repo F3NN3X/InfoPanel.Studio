@@ -161,10 +161,18 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+  # Advisories appear without a code change, so this runs every night, even when main has not moved.
+  audit:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/audit
+
   # One issue, "Nightly failing": opened (or commented on) when a run fails, commented on and closed when one passes.
   # Only the schedule or an explicit `issues` input touches issues; the job holds no other permission.
   report:
-    needs: [linux, windows, perf]
+    needs: [linux, windows, perf, audit]
     if: always() && (github.event_name == 'schedule' || inputs.issues)
     runs-on: ubuntu-26.04
     timeout-minutes: 5
@@ -174,7 +182,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      RESULTS: ${{ needs.linux.result }} ${{ needs.windows.result }}
+      RESULTS: ${{ needs.linux.result }} ${{ needs.windows.result }} ${{ needs.audit.result }}
     steps:
       - run: |
           # A failed night is the one that must reach the issue: an API error is tried again.
