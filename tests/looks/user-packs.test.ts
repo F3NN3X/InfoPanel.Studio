@@ -2,6 +2,7 @@
 // A fake `fetch` serves a folder of files the way `GET /api/packs/<id>/<file>` does.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isLookId, LOOK_IDS } from "@/looks/ids";
+import { cssColour } from "@/looks/colour";
 import { resolveMaterial } from "@/looks/materials";
 import { loadPack, sharedPack, unregisterUserPack } from "@/looks/pack-load";
 import { PACK_IDS } from "@/looks/pack";
@@ -58,6 +59,13 @@ describe("reading a user pack from the route", () => {
     expect(await listUserPacks()).toEqual([]);
     vi.stubGlobal("fetch", async () => Promise.reject(new Error("offline")));
     expect(await listUserPacks()).toEqual([]);
+  });
+
+  it("an oklch token reaches the Look layer as the clamped hex the validator checked", async () => {
+    serve({ mine: folder("mine", (_f, _p, look) => (look.t1[look.modes.supported[0]].accent.value = "oklch(0.45 0.15 30)")) });
+    expect(await registerUserPacks(["mine"])).toEqual(["mine"]);
+    expect(lookLayers.mine?.accent).toBe(cssColour("oklch(0.45 0.15 30)"));
+    expect(lookLayers.mine?.accent).toMatch(/^#[\da-f]{6}$/);
   });
 
   it("a valid pack becomes a Look id, a card, a Look layer and a pack the loader accepts", async () => {

@@ -37,6 +37,14 @@ describe("usePack and PackStage", () => {
     expect(document.head.querySelector('style[data-pack="test-pack"]')).toBeNull();
   });
 
+  it("loads a pack registered after the page first asked for its Look (a user pack read after a cached config drew)", async () => {
+    render(<Page lookId="test-pack" />);
+    expect(screen.getByTestId("page").dataset.pack).toBe("");
+    registerPack("test-pack", async () => ({ default: TEST_PACK }));
+    await waitFor(() => expect(screen.getByTestId("page").dataset.pack).toBe("test-pack"));
+    await waitFor(() => expect(document.querySelectorAll("[data-pack-layer]").length).toBe(4));
+  });
+
   it("shows nothing for Classic, an unregistered id, or a pack the loader refused", async () => {
     registerPack("bad-pack", async () => ({ default: badPack({ id: "bad-pack", css: '@import "x.css";' }) }));
     for (const lookId of [undefined, "classic", "unknown", "bad-pack"]) {

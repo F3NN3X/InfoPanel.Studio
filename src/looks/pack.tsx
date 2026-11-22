@@ -1,7 +1,7 @@
 // The theme pack entry (P9): what the kiosk and studio entries carry of the pack system. A pack is code and assets in a chunk
 // of its own, loaded with import() the first time a screen wears its Look (pack-load.ts, where G4 is enforced); Classic, the
 // skins and the sample Looks are not packs and load nothing. This file holds the types, the id list and the two thin readers.
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
 import type { IconGlyph } from "@/widgets/core/types";
 import type { ScreenTemplate } from "@/lib/screen-templates/kit";
 import type { PackEffect, SizeClass } from "./effects";
@@ -111,15 +111,25 @@ const ids = new Set<string>(["field-kit", "tape-86", "term", "neon-stripe", "ove
 export const PACK_IDS: ReadonlySet<string> = ids;
 /** Adds or removes a pack id (`registerPack` and `unregisterPack`, pack-load.ts). */
 export function setPackId(id: string, on: boolean): void {
+  if (on === ids.has(id)) return;
   if (on) ids.add(id);
   else ids.delete(id);
+  for (const fn of watchers) fn();
 }
+const watchers = new Set<() => void>();
+const watchIds = (fn: () => void) => {
+  watchers.add(fn);
+  return () => void watchers.delete(fn);
+};
 
 /** The pack a Look is (undefined for Classic, a skin, a sample Look, or while it loads or when the loader refused it). */
 export function usePack(lookId: string | undefined): Pack | undefined {
   const [loaded, setLoaded] = useState<{ id: string; pack?: Pack }>();
+  // a user pack can be registered after a screen first draws its Look (a cached config, then the server's): load it then
+  const isKnown = () => !!lookId && ids.has(lookId);
+  const known = useSyncExternalStore(watchIds, isKnown, isKnown);
   useEffect(() => {
-    if (!lookId || !PACK_IDS.has(lookId)) return;
+    if (!lookId || !known) return;
     let live = true;
     let off = () => {};
     // A result lands only while this is still the Look asked for, and with its CSS in the page (one shared load per pack).
@@ -137,7 +147,7 @@ export function usePack(lookId: string | undefined): Pack | undefined {
       // its CSS is out: a later switch back to this Look must not return the old result before the CSS is mounted again
       setLoaded((now) => (now?.id === lookId ? undefined : now));
     };
-  }, [lookId]);
+  }, [lookId, known]);
   return loaded?.id === lookId ? loaded?.pack : undefined;
 }
 

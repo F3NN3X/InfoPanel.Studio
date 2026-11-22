@@ -185,11 +185,12 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
         )}
         {backdrop}
         {ctx.frame && <CardFrame kind={ctx.frame} fill={ctx.borderFill} />}
-        {ctx.decor && <PackDecor decor={ctx.decor} />}
         {decor && (
           <>
             {ctx.ornament && <CardLayer part="ornament" Slot={ctx.ornament} />}
             {ctx.tabBand && <CardLayer part="tab-band" Slot={ctx.tabBand} />}
+            {/* inside this fragment, so a card without pack decor keeps its children's places (and their useId values) */}
+            {ctx.decor && <PackDecor decor={ctx.decor} />}
           </>
         )}
         <div className={`relative flex min-h-0 min-w-0 flex-1 flex-col ${pad.className}`} style={{ ...pad.style, ...(zoom !== 1 ? { zoom } : null) }}>

@@ -14,6 +14,7 @@ import { registerUserPack, unregisterUserPack } from "./pack-load";
 import type { Pack } from "./pack";
 import { type PackJson, packDecor } from "./pack-json";
 import { FILE_COUNT_MAX, type PackFile, type PackIssue, type PackSource, parseColour, validatePack } from "./pack-validate";
+import { cssColour } from "./colour";
 import { lookLayers, sampleCards } from "./sample-cards";
 
 /** What `GET /api/packs` says of a pack: its id, name and size, nothing else. */
@@ -148,7 +149,7 @@ function layerOf(id: string, look: Look): Record<string, string> {
   const v = (name: string) => {
     const raw = t1[name]?.value ?? "";
     const alias = /^\{([\w-]+)\}$/.exec(raw)?.[1];
-    return alias ? (t1[alias]?.value ?? raw) : raw;
+    return cssColour(alias ? (t1[alias]?.value ?? raw) : raw);
   };
   return { surface: `look-${id}`, accent: v("accent"), textColor: v("fg"), mutedColor: v("muted"), ok: v("ok"), warn: v("warn"), crit: v("crit") };
 }

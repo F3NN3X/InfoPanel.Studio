@@ -8,18 +8,10 @@ import { expect, makePack, manifest, saveConfig, settled, test } from "./fixture
 
 // Phase 3 (L108): a pack's `frame` and `ornaments` are drawn by the app in the card chrome (`data-pack-decor`), and the Gate 3 shots of
 // a CyberSpec-style user pack. The render measures treat the app's frame and ornaments as chrome, not as the widget's text or the pack's paint.
-//
-// Parts that need the other Phase 3 lanes, run on the merged branch (P3_MERGED=1):
-//  - lane A: the validator and schema accept oklch tokens, `frame`, `ornaments`, `glitch` and `calm`/`rate`. Before it the whole pack is refused at import.
-//  - lane B: the screen's `performance.fx` level changes which effects are drawn. Before it every level draws the same.
-// P3_LEGACY=1 imports the same pack as the fields accepted before Phase 3 (hex tokens, no frame or ornaments, scanlines and vignette):
-// the import road, the wear and the six shots, with no assertion about decor or levels.
 
 const { light } = manifest.profiles;
-const LEGACY = process.env.P3_LEGACY === "1";
-const MERGED = process.env.P3_MERGED === "1";
 const FIXTURE = path.join("tests", "fixtures", "packs", "cyberspec");
-const OUT = path.join("test-results", "gate-3");
+const OUT = path.join(".cache", "gate-3");
 const SIZES = [{ width: 1024, height: 600 }, { width: 1920, height: 550 }];
 const LEVELS = ["full", "calm", "off"] as const;
 
@@ -27,15 +19,8 @@ const LEVELS = ["full", "calm", "off"] as const;
 function cyberspec(dir: string): void {
   const read = (name: string) => JSON.parse(fs.readFileSync(path.join(FIXTURE, name), "utf8"));
   const pack = read("pack.json");
-  let look = JSON.stringify(read("look.json"));
-  if (LEGACY) {
-    delete pack.frame;
-    delete pack.ornaments;
-    pack.stage.effects = [{ kind: "scanlines", cost: "animated", opacity: 0.12 }, { kind: "vignette", cost: "static", opacity: 0.3 }];
-    look = look.replace("oklch(0.55 0.2 25)", "#C8323A").replace("oklch(0.85 0.13 200)", "#4FD8E8").replace("oklch(0.8 0.15 155)", "#4ADE80").replace("oklch(0.88 0.17 95)", "#F2D83A").replace("oklch(0.7 0.2 25)", "#F26A5E");
-  }
   fs.writeFileSync(path.join(dir, "pack.json"), JSON.stringify(pack));
-  fs.writeFileSync(path.join(dir, "look.json"), look);
+  fs.writeFileSync(path.join(dir, "look.json"), JSON.stringify(read("look.json")));
 }
 
 const bytesOf = (dir: string): { files: number; bytes: number } => {
@@ -79,7 +64,7 @@ test.describe("a CyberSpec-style user pack", () => {
     const pages: unknown[] = [];
     for (const size of SIZES) {
       for (const fx of LEVELS) {
-        // the screen's FX level (lane B's `performance.fx`), set where the app keeps a screen's performance
+        // the screen's FX level (`performance.fx`), set where the app keeps a screen's performance
         const config = await (await fetch(`${scratch.base}/api/config`)).json();
         config.profiles = config.profiles.map((p: { id: string; performance?: object }) => (p.id === light ? { ...p, performance: { ...p.performance, fx } } : p));
         expect((await saveConfig(scratch.base, config)).ok).toBe(true);
@@ -116,12 +101,12 @@ test.describe("a CyberSpec-style user pack", () => {
             overlaps: overlaps.length,
           };
         });
-        const name = `cyberspec${LEGACY ? "-legacy" : ""}-${size.width}x${size.height}-${fx}`;
+        const name = `cyberspec-${size.width}x${size.height}-${fx}`;
         await kiosk.screenshot({ path: path.join(OUT, `${name}.png`) });
         pages.push({ ...size, fx, ...read, ...bytesOf(root) });
         expect(read.cards).toBeGreaterThan(0);
-        if (!LEGACY) {
-          // lane A's pack: cut corners clip every card; the frame and the ornaments are click-through, in a band of at most 10 px, over no widget text
+        {
+          // cut corners clip every card; the frame and the ornaments are click-through, in a band of at most 10 px, over no widget text
           expect(read.frames).toBe(read.cards);
           expect(read.clip.every((c) => c.includes("calc(100% - 12px)"))).toBe(true);
           expect(read.pointer).toBe(true);
@@ -131,8 +116,8 @@ test.describe("a CyberSpec-style user pack", () => {
           expect(read.ornaments.some((o) => o.kind === "label" && o.text === "SPEC")).toBe(true);
           expect(read.ornaments.some((o) => o.kind === "micro-print" && o.text === "SYS.07 // NODE-A")).toBe(size.width === 1024);
         }
-        if (MERGED) {
-          // lane B's levels: `full` draws all three effects, `calm` the still scanlines and the vignette, `off` none
+        {
+          // the FX levels: `full` draws all three effects, `calm` the still scanlines and the vignette, `off` none
           const expected = { full: ["scanlines", "glitch", "vignette"], calm: ["scanlines", "vignette"], off: [] }[fx];
           expect([...read.effects].sort()).toEqual([...expected].sort());
           expect(read.layers.length).toBeGreaterThan(0);
@@ -140,7 +125,7 @@ test.describe("a CyberSpec-style user pack", () => {
         await kiosk.close();
       }
     }
-    fs.writeFileSync(path.join(OUT, `cyberspec${LEGACY ? "-legacy" : ""}.json`), JSON.stringify({ pack: "cyberspec", legacy: LEGACY, pages }, null, 2));
+    fs.writeFileSync(path.join(OUT, "cyberspec.json"), JSON.stringify({ pack: "cyberspec", pages }, null, 2));
   });
 });
 
@@ -179,9 +164,13 @@ test.describe("the render measures and the app's pack decoration", () => {
     const plain = await page.evaluate(measurePack, measures);
     await decorate(page, "none");
     const decorated = await page.evaluate(measurePack, measures);
-    expect(decorated.worn.texts.map((t) => t.text)).toEqual(plain.worn.texts.map((t) => t.text));
+    // the same texts, none of them the decor's (live widgets, a clock, change their words between the two reads, not their number)
+    expect(decorated.worn.texts.map((t) => t.text)).not.toContain("SYS.07");
+    expect(decorated.worn.texts.length).toBe(plain.worn.texts.length);
     expect(renderRefusals(decorated)).toEqual([]);
-    expect(decorated.worn.problems).toEqual(plain.worn.problems);
+    // the decor adds no problem (the clock's colon blinks, so it is dimmed in one read and not the other)
+    const blink = (p: string) => /^text ":" is at opacity .*\[Clock@/.test(p);
+    expect(decorated.worn.problems.filter((p) => !blink(p) && !plain.worn.problems.includes(p))).toEqual([]);
   });
 
   test("a decoration that takes pointer events is named", async ({ page }) => {
