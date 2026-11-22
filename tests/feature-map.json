@@ -42,6 +42,7 @@
     },
     "lab": { "cmd": "npm run lab:typecheck && npm run lab:test", "when": "the import lab or the InfoPanel parsers it shares" },
     "e2e": {
+      "browser": true,
       "cmd": "npx playwright test --project=e2e {tests}",
       "fullCmd": "npm run test:e2e",
       "tests": ["tests/e2e/*.spec.ts"],
@@ -50,6 +51,7 @@
       "when": "the Playwright specs: real browser, real server, scratch data (agent-prompt.spec also opens the app's own built prompt page)"
     },
     "one-editor": {
+      "browser": true,
       "cmd": "npx playwright test --project=one-editor {tests}",
       "fullCmd": "npm run test:one-editor",
       "tests": ["tests/visual/one-editor/*.spec.ts"],
@@ -58,11 +60,13 @@
       "when": "the Edit v3 reference states (?fixture=one-editor/<name>, a fixtures build the project makes itself); their checklists run as the phases enable them"
     },
     "overflow": {
+      "browser": true,
       "cmd": "node tools/qa/overflow.mjs --baseline tests/qa/overflow-baseline.json --looks field-kit,tape-86,term,neon-stripe,overdrive,swiss-mono,holo,night-glow,paper,classy-black,liquid-glass,black-and-gold --markup-baseline tests/qa/pack-markup-baseline.json --same-boxes look-field-kit,look-tape-86,look-neon-stripe,look-overdrive,look-swiss-mono,look-term,look-holo,look-night-glow,look-paper,look-classy-black,look-liquid-glass,look-black-and-gold",
       "needs": ["build", "server-bin"],
       "when": "the Widget QA overflow probe at 1x1, 2x2, 4x2 and 4x4 on fixture data, diffed against tests/qa/overflow-baseline.json (each pack's markup too, tests/qa/pack-markup-baseline.json, refreshed with --save-markup): a new issue or any change at a non-roomy span fails (refresh with --save when intended); and once per sample theme card (looks/sample-materials.ts) the same frames must keep the default card and body rects (G2); and once per built-in pack (tools/qa/pack-styles.mjs) the frames must show no issue, and no card or body rect, that the same style without the pack does not (G2)"
     },
     "flake-e2e": {
+      "browser": true,
       "cmd": "node tools/ci/flake-gate.mjs --e2e {files}",
       "fullCmd": "node tools/ci/flake-gate.mjs --e2e",
       "files": ["tests/e2e/*.spec.ts", "tests/visual/one-editor/*.spec.ts"],
@@ -70,6 +74,7 @@
       "when": "the new-test gate: a Playwright spec added or changed on this branch passes --repeat-each 3 on half the cores, 1 to 4 workers (_docs/TESTING.md); it has no `needs`: a changed spec's feature already plans the build and the server, and the full run has both; skipped when none changed"
     },
     "look-visual": {
+      "browser": true,
       "cmd": "npx playwright test --project=look-visual",
       "platform": "win32",
       "localOnly": true,

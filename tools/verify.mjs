@@ -184,6 +184,7 @@ async function main() {
     exists: (file) => fs.existsSync(path.join(ROOT, file)),
     platform: process.platform,
     ci: Boolean(process.env.CI),
+    browser: process.env.VERIFY_BROWSER === "1",
   });
   const overheadMs = Date.now() - started;
   if (flags.has("--plan")) {
@@ -233,7 +234,7 @@ async function main() {
   console.error("\nverify summary");
   for (const r of results) console.error(`  ${r.status.padEnd(8)} ${r.id.padEnd(13)} ${(r.ms / 1000).toFixed(1)} s`);
   console.error(`  features: ${[...selected.keys()].join(", ") || "(none)"}\n  exit ${exit}, overhead ${overheadMs} ms, total ${((Date.now() - started) / 1000).toFixed(1)} s`);
-  const record = { ...current, mode: plan.mode, features: [...selected.keys()], checks: results, exit, at: new Date().toISOString() };
+  const record = { ...current, mode: plan.mode, browser: process.env.VERIFY_BROWSER === "1" || Boolean(process.env.CI), features: [...selected.keys()], checks: results, exit, at: new Date().toISOString() };
   if (!options.feature) writeRecord(ROOT, record);
   if (json) console.log(JSON.stringify(record, null, 2));
   return exit;

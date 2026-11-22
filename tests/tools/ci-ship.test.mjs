@@ -5,6 +5,7 @@ const current = { head: "abc123", tree: "t1" };
 const record = (over = {}) => ({
   ...current,
   mode: "full",
+  browser: true,
   exit: 0,
   checks: [
     { id: "lint", status: "passed", ms: 1000 },
@@ -24,6 +25,8 @@ describe("ship gate", () => {
     expect(gateFor(record({ tree: "dirty" }), current).reason).toContain("stale");
     expect(gateFor(record({ exit: 1 }), current).reason).toContain("fresh-fail");
     expect(gateFor(record({ mode: "default" }), current).reason).toContain("not full");
+    expect(gateFor(record({ browser: false }), current).reason).toContain("skipped the browser checks");
+    expect(gateFor(record({ browser: undefined }), current).ok).toBe(false);
     const notRun = record({ checks: [{ id: "cargo-app", status: "not-run", ms: 0 }] });
     expect(gateFor(notRun, current).reason).toBe("not run here: cargo-app");
     expect(gateFor(null, current).ok).toBe(false);

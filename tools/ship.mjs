@@ -17,6 +17,7 @@ export function gateFor(record, current) {
   const state = freshness(record, current);
   if (state !== "fresh-pass") return { ok: false, reason: `the last verify run is ${state} for this tree` };
   if (record.mode !== "full") return { ok: false, reason: `the last verify run was ${record.mode}, not full` };
+  if (!record.browser) return { ok: false, reason: "the last verify run skipped the browser checks (VERIFY_BROWSER=1)" };
   const notRun = record.checks.filter((check) => check.status === "not-run").map((check) => check.id);
   if (notRun.length) return { ok: false, reason: `not run here: ${notRun.join(", ")}` };
   return { ok: true };
@@ -48,7 +49,7 @@ function ship(options) {
   if (!branch || branch === "main") throw new Error("ship runs on a feature branch, not main");
   if (run("git", ["status", "--porcelain"])) throw new Error("commit or remove your changes first: the status attests HEAD");
 
-  const verify = spawnSync(process.execPath, [path.join(ROOT, "tools", "verify.mjs"), "--full"], { cwd: ROOT, stdio: "inherit" });
+  const verify = spawnSync(process.execPath, [path.join(ROOT, "tools", "verify.mjs"), "--full"], { cwd: ROOT, stdio: "inherit", env: { ...process.env, VERIFY_BROWSER: "1" } });
   if (verify.status !== 0) return verify.status ?? 1;
   const record = readRecord(ROOT);
   const gate = gateFor(record, { head: head(ROOT), tree: treeHash(ROOT) });

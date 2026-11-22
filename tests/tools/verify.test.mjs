@@ -109,6 +109,14 @@ describe("the plan", () => {
     expect(run(false).status).toBeUndefined();
   });
 
+  it("skips a browser check locally, in --full too, unless asked for; CI always runs it", () => {
+    const pw = { ...map, checks: { ...map.checks, e2e: { ...map.checks.e2e, browser: true } } };
+    const run = (extra) => plan(["src/a/x.ts"], { map: pw, ...extra }).steps.find((s) => s.id === "e2e");
+    for (const mode of ["default", "full"]) expect(run({ mode })).toMatchObject({ cmd: null, status: "skipped" });
+    expect(run({ browser: true }).cmd).toBe("pw tests/e2e/a.spec.ts");
+    expect(run({ ci: true }).cmd).toBe("pw tests/e2e/a.spec.ts");
+  });
+
   it("falls back to the whole suite when the file list outgrows a command line", () => {
     const many = Array.from({ length: 400 }, (_, i) => `tests/a/long-name-number-${i}.test.ts`);
     expect(unitCmd(plan(["src/a/x.ts"], { tracked: many }))).toBe("vt all");
