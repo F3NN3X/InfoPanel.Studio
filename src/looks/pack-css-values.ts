@@ -2,7 +2,7 @@
 // packs' lint (`pack-css`) and the user-pack grammar (`user-css`). Each reader takes a value's tokens and gives what is wrong with
 // it, or undefined; a shape it cannot read is wrong (fail closed). A colour is the lane's to read: `user-css` passes its grammar,
 // the built-in lint passes `looseColour`.
-import type { Token } from "./css-syntax";
+import { type Rule, type Token, writeTokens } from "./css-syntax";
 
 /** The comma-separated parts of a value, commas inside a function left alone. */
 export function commaParts(value: Token[]): Token[][] {
@@ -57,7 +57,9 @@ const LOOSE_COLOUR = /^(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|var|
 /** The built-in lane's colours: a hash, a keyword or a colour function, with nothing inside it but numbers, names and colour functions. */
 export const looseColour: ColourCheck = (w) => {
   const ok = w.every((t) => t.t === "hash" || t.t === "ident" || t.t === "number" || t.t === "percentage" || t.t === "dimension" || t.t === "ws" || t.t === "," || t.t === ")" || t.t === "delim" || (t.t === "function" && LOOSE_COLOUR.test(t.v)));
-  return ok && w.length > 0 ? undefined : "is not a colour";
+  // a length alone (a `var()` that was a length, once read) is no colour
+  const length = w.length === 1 && (w[0].t === "number" || w[0].t === "percentage" || w[0].t === "dimension");
+  return ok && w.length > 0 && !length ? undefined : "is not a colour";
 };
 
 /** A length's px and % parts. */
@@ -92,6 +94,65 @@ export function lengthOf(w: Token[] | undefined): Length | undefined {
     sign = op.v === "-" ? -1 : 1;
   }
 }
+/** The token of a px or % literal or a bare 0 held alone (what a `--pack-*` may hold as a length), or undefined. */
+export const lengthLiteral = (value: Token[]): Token | undefined => (value.length === 1 && literalLength(value[0]) ? value[0] : undefined);
+
+const PACK_VAR = /^--pack-(?!chrome-)[a-z0-9][a-z0-9-]*$/;
+/** Every length a `--pack-*` is given anywhere in the rules (`@media` and keyframes included), each distinct literal once, by name. */
+export function lengthDefinitions(rules: Rule[], out = new Map<string, Token[]>()): Map<string, Token[]> {
+  for (const r of rules) {
+    for (const d of r.declarations ?? []) {
+      const tok = PACK_VAR.test(d.name) ? lengthLiteral(d.value) : undefined;
+      const known = out.get(d.name) ?? [];
+      if (tok && !known.some((t) => writeTokens([t]) === writeTokens([tok]))) out.set(d.name, [...known, tok]);
+    }
+    lengthDefinitions(r.rules ?? [], out);
+  }
+  return out;
+}
+
+/** The most combinations of definitions a value's length `var()`s are checked in. */
+const LENGTH_COMBOS = 64;
+/** The name a bare `var(--pack-x)` starting at `at` reads, or undefined (a fallback, a chrome name or a nested call is no bare var). */
+const varNameAt = (value: Token[], at: number): string | undefined => {
+  const [head, name, close] = value.slice(at, at + 3);
+  return head?.t === "function" && head.v.toLowerCase() === "var" && name?.t === "ident" && close?.t === ")" && PACK_VAR.test(name.v) ? name.v : undefined;
+};
+/**
+ * Reads a value with each bare `var(--pack-x)` that names a length of this file replaced by every combination of that name's
+ * definitions: it passes only when `read` passes every one (more than 64 combinations are refused). The substituted tokens are for
+ * checking; the mounted CSS keeps the `var()`. A var with no length definition is left in the value for `read` to refuse (or, as a colour, to read).
+ */
+export function viaLengths(value: Token[], lengths: Map<string, Token[]>, read: (value: Token[]) => string | undefined): string | undefined {
+  const names = [...new Set(value.flatMap((_, k) => varNameAt(value, k) ?? []))].filter((n) => lengths.has(n));
+  if (!names.length) return read(value);
+  const combos = names.reduce((n, name) => n * (lengths.get(name) as Token[]).length, 1);
+  if (combos > LENGTH_COMBOS) return `has var()s of more than ${LENGTH_COMBOS} combinations of lengths`;
+  for (let c = 0; c < combos; c++) {
+    let rest = c;
+    const chosen = new Map(
+      names.map((name) => {
+        const defs = lengths.get(name) as Token[];
+        const pick = defs[rest % defs.length];
+        rest = Math.floor(rest / defs.length);
+        return [name, pick] as const;
+      })
+    );
+    const swapped: Token[] = [];
+    for (let k = 0; k < value.length; k++) {
+      const name = varNameAt(value, k);
+      const pick = name === undefined ? undefined : chosen.get(name);
+      if (pick) {
+        swapped.push(pick);
+        k += 2;
+      } else swapped.push(value[k]);
+    }
+    const why = read(swapped);
+    if (why) return why;
+  }
+  return undefined;
+}
+
 /** A px literal or a bare 0, as px. */
 function pxOf(w: Token[] | undefined): number | undefined {
   const l = w?.length === 1 ? literalLength(w[0]) : undefined;
@@ -174,12 +235,12 @@ export const urlOf = (w: Token[] | undefined): string | undefined => {
   return a.length === 1 && a[0].t === "string" ? a[0].v : undefined;
 };
 
-/** `mask-image` (+ `-webkit-`), and the image of a `mask`: `none`, a gradient, or on a pseudo-element only a pack file's `url()` (its alpha over text cannot be measured on a real element). */
-export function maskImageIssue(value: Token[], pseudo: boolean, colour: ColourCheck): string | undefined {
+/** `mask-image` (+ `-webkit-`), and the image of a `mask`: `none`, a gradient, or a pack file's `url()` (the render check samples its alpha over the text). */
+export function maskImageIssue(value: Token[], colour: ColourCheck): string | undefined {
   const [w, ...rest] = words(value);
   if (rest.length || commaParts(value).length > 1) return "is more than one mask image";
   if (isWord(w, "none")) return undefined;
-  if (urlOf(w) !== undefined) return pseudo ? undefined : "is a url() on a real element (only a ::before or ::after may mask with a file)";
+  if (urlOf(w) !== undefined) return undefined;
   return gradientIssue(w, colour);
 }
 
@@ -204,11 +265,11 @@ export function maskPartIssue(name: string, value: Token[]): string | undefined 
 }
 
 /** The `mask` shorthand (+ `-webkit-`): `<image> [<position> [/ <size>]] [<repeat>]`, one layer, each part as its longhand; no mode, composite or box keyword. */
-export function maskIssue(value: Token[], pseudo: boolean, colour: ColourCheck): string | undefined {
+export function maskIssue(value: Token[], colour: ColourCheck): string | undefined {
   if (commaParts(value).length > 1) return "is more than one mask layer";
   const [image, ...rest] = words(value);
   if (!image) return "is empty";
-  const imageWhy = maskImageIssue(image, pseudo, colour);
+  const imageWhy = maskImageIssue(image, colour);
   if (imageWhy) return imageWhy;
   const slash = rest.findIndex((p) => p.length === 1 && p[0].t === "delim" && p[0].v === "/");
   const firstRepeat = rest.findIndex((p) => isWord(p, ...REPEATS));
@@ -318,6 +379,58 @@ export function borderImageIssue(name: string, value: Token[]): string | undefin
   return ok ? undefined : `is not a number up to 1 or px up to ${BORDER_IMAGE_PX_MAX}`;
 }
 
+const REPEAT_KEYWORDS = ["stretch", "repeat", "round", "space"];
+const sliceWord = (w: Token[]) => (w.length === 1 && (w[0].t === "number" || w[0].t === "percentage")) || isWord(w, "fill");
+const sizeWord = (w: Token[]) => (w.length === 1 && (w[0].t === "number" || w[0].t === "dimension" || w[0].t === "percentage")) || isWord(w, "auto");
+const spaced = (ws: Token[][]): Token[] => ws.flatMap((w, k) => (k ? [{ t: "ws", v: " " } as Token, ...w] : w));
+/**
+ * The `border-image` shorthand: `<source> || <slice> [/ <width> [/ <outset>]] || <repeat>`, read into its parts and each held to its
+ * longhand: the source `none`, a url or a gradient of the lane's colours, a slice of one to four non-negative numbers or percentages
+ * (a `fill` only where the lane's longhand takes it), the width as `border-image-width`, the outset `0`, one or two repeat keywords.
+ */
+export function borderImageShorthandIssue(value: Token[], lane: Lane): string | undefined {
+  const bad = "is not <source> <slice> [/ <width> [/ <outset>]] <repeat>, each part as its longhand";
+  const segments: Token[][] = [[]];
+  let depth = 0;
+  for (const tok of value) {
+    if (tok.t === "function" || tok.t === "(") depth++;
+    else if (tok.t === ")") depth--;
+    if (depth === 0 && tok.t === "delim" && tok.v === "/") segments.push([]);
+    else segments[segments.length - 1].push(tok);
+  }
+  if (segments.length > 3) return bad;
+  const [head, ...tail] = segments.map(words);
+  const at = head.flatMap((w, k) => (sliceWord(w) ? [k] : []));
+  if (!at.every((k, i) => i === 0 || k === at[i - 1] + 1) || (tail.length && at.at(-1) !== head.length - 1)) return bad;
+  const slice = at.map((k) => head[k]);
+  const rest = head.filter((_, k) => !at.includes(k));
+  const sizes: Token[][][] = [];
+  for (const [s, ws] of tail.entries()) {
+    const lead = ws.findIndex((w) => !sizeWord(w));
+    const size = lead < 0 ? ws : ws.slice(0, lead);
+    if (!size.length || (s < tail.length - 1 && size.length !== ws.length)) return bad;
+    sizes.push(size);
+    if (s === tail.length - 1) rest.push(...ws.slice(size.length));
+  }
+  const fills = slice.filter((w) => isWord(w, "fill"));
+  const numbers = slice.filter((w) => !isWord(w, "fill"));
+  if (slice.length && (numbers.length < 1 || numbers.length > 4 || fills.length > 1 || (fills.length > 0 && !lane.fill) || numbers.some((w) => (w[0].n as number) < 0))) {
+    return `has a slice that is not one to four non-negative numbers or percentages${lane.fill ? "" : " (no fill)"}`;
+  }
+  const repeats = rest.filter((w) => isWord(w, ...REPEAT_KEYWORDS));
+  const sources = rest.filter((w) => !repeats.includes(w));
+  if (sources.length > 1 || repeats.length > 2 || (!slice.length && !rest.length)) return bad;
+  const [source] = sources;
+  if (source && !isWord(source, "none") && urlOf(source) === undefined) {
+    const why = gradientIssue(source, lane.colour);
+    if (why) return `has a source that ${why}`;
+  }
+  const width = sizes[0] && borderImageIssue("border-image-width", spaced(sizes[0]));
+  if (width) return `has a width that ${width}`;
+  const outset = sizes[1] && borderImageIssue("border-image-outset", spaced(sizes[1]));
+  return outset && `has an outset that ${outset}`;
+}
+
 /** How far an outline may sit from its box, either way. */
 const OUTLINE_OFFSET_MAX = 8;
 /** `outline-offset`: px from -8 to 8. */
@@ -330,13 +443,34 @@ export function outlineOffsetIssue(value: Token[]): string | undefined {
 /** The widest border a pseudo-element may draw. */
 const BORDER_PX_MAX = 4;
 const BORDER_STYLES = ["solid", "dashed", "dotted", "double"];
-/** The `border` shorthand (pseudo-elements only; on a real element its width would move the card, G2): `<px up to 4> <style> <colour>`. */
-export function borderIssue(value: Token[], colour: ColourCheck): string | undefined {
+/** The styles a real element's border may take; `none` is the bare default. */
+const REAL_BORDER_STYLES = ["none", ...BORDER_STYLES];
+/** A word that gives a border its width: a length or number, `thin`, `medium`, `thick` or a `calc()`. */
+const widthWord = (w: Token[]) => (w.length === 1 && (w[0].t === "number" || w[0].t === "dimension" || w[0].t === "percentage")) || isWord(w, "thin", "medium", "thick") || isCall(w, "calc");
+/**
+ * The `border` shorthand. On a pseudo-element: `<px up to 4> <style> <colour>`. On a real element a width would move the card (G2),
+ * and a style alone gives a `medium` border its 3 px (the render check compares the widths with bare): a style and an optional
+ * colour, either order, no width token.
+ */
+export function borderIssue(value: Token[], lane: Lane): string | undefined {
   const parts = words(value);
+  if (!lane.pseudo) {
+    const styles = parts.filter((p) => isWord(p, ...REAL_BORDER_STYLES));
+    const [other, ...more] = parts.filter((p) => !styles.includes(p));
+    const bad = `is not one of ${REAL_BORDER_STYLES.join("|")} and an optional <colour>, with no width token`;
+    if (styles.length !== 1 || more.length || (other && widthWord(other))) return bad;
+    const why = other && lane.colour(other);
+    return why && `colour ${why}`;
+  }
   const px = pxOf(parts[0]);
   if (parts.length !== 3 || px === undefined || px < 0 || px > BORDER_PX_MAX || !isWord(parts[1], ...BORDER_STYLES)) return `is not <px up to ${BORDER_PX_MAX}> <${BORDER_STYLES.join("|")}> <colour>`;
-  const why = colour(parts[2]);
+  const why = lane.colour(parts[2]);
   return why && `colour ${why}`;
+}
+/** `border-style`: one to four of the styles (the render check refuses a style that adds a width). */
+export function borderStyleIssue(value: Token[]): string | undefined {
+  const parts = words(value);
+  return parts.length >= 1 && parts.length <= 4 && parts.every((p) => isWord(p, ...REAL_BORDER_STYLES)) ? undefined : `is not one to four of ${REAL_BORDER_STYLES.join("|")}`;
 }
 
 /** The keywords a timing function may be, and the functions. */
@@ -387,7 +521,7 @@ export function transitionIssue(name: string, value: Token[], paints: (property:
 }
 
 /** Properties only a `::before`/`::after` may set: they move, size or fill a box, which on a real element would move the widget (G2). */
-export const PSEUDO_ONLY = /^(transform(-origin)?|translate|rotate|scale|content|inset|top|right|bottom|left|width|height|border)$/;
+export const PSEUDO_ONLY = /^(transform(-origin)?|translate|rotate|scale|content|inset|top|right|bottom|left|width|height)$/;
 
 /** How a selector's comma parts end: each in `::before` or `::after` ("pseudo"), none ("real"), some ("mixed"); undefined for any other pseudo-element, one not at the end, or the single-colon spelling. */
 export function pseudoLane(selector: Token[]): "pseudo" | "real" | "mixed" | undefined {
@@ -416,21 +550,31 @@ export interface Lane {
   colour: ColourCheck;
   /** The properties a transition may name. */
   paints: (property: string) => boolean;
+  /** The lengths each `--pack-*` is given in this file (`lengthDefinitions`). */
+  lengths: Map<string, Token[]>;
+  /** Whether `border-image-slice` takes `fill` in this lane. */
+  fill: boolean;
 }
 
 /** What is wrong with the value of a Phase 2 property (`clip-path`, masks, transforms, `content`, a pseudo box, radii, border images, outline offset, `border`, transitions); undefined for any other property. Which element may set it is the lane's to say. */
 export function shapeIssue(name: string, value: Token[], lane: Lane): string | undefined {
+  return viaLengths(value, lane.lengths, (v) => shapeRead(name, v, lane));
+}
+
+function shapeRead(name: string, value: Token[], lane: Lane): string | undefined {
   if (name === "clip-path") return clipPathIssue(value);
-  if (/^(-webkit-)?mask-image$/.test(name)) return maskImageIssue(value, lane.pseudo, lane.colour);
+  if (/^(-webkit-)?mask-image$/.test(name)) return maskImageIssue(value, lane.colour);
   if (/^(-webkit-)?mask-(size|repeat|position)$/.test(name)) return maskPartIssue(name, value);
-  if (/^(-webkit-)?mask$/.test(name)) return maskIssue(value, lane.pseudo, lane.colour);
+  if (/^(-webkit-)?mask$/.test(name)) return maskIssue(value, lane.colour);
   if (/^(transform(-origin)?|translate|rotate|scale)$/.test(name)) return transformIssue(name, value);
   if (name === "content") return contentIssue(value);
   if (/^(inset|top|right|bottom|left|width|height)$/.test(name)) return boxIssue(name, value);
   if (/^border(-(top|bottom)-(left|right))?-radius$/.test(name)) return radiusIssue(name, value);
   if (/^border-image-(width|outset)$/.test(name)) return borderImageIssue(name, value);
+  if (name === "border-image") return borderImageShorthandIssue(value, lane);
   if (name === "outline-offset") return outlineOffsetIssue(value);
-  if (name === "border") return borderIssue(value, lane.colour);
+  if (name === "border") return borderIssue(value, lane);
+  if (name === "border-style") return borderStyleIssue(value);
   if (/^transition(-(property|duration|delay|timing-function))?$/.test(name)) return transitionIssue(name, value, lane.paints);
   return undefined;
 }

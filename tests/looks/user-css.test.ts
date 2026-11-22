@@ -112,7 +112,7 @@ describe("colours: hex, rgb() or a var(--pack-*) that resolves here", () => {
     ["a var of the chrome's own", `${PART} { --pack-chrome-fill: #fff; color: var(--pack-chrome-fill); }`],
     ["setting the chrome's own", `${PART} { --pack-chrome-ink: #000; }`],
     ["another custom name", `${PART} { --wp-pad: #fff; }`],
-    ["a custom property that is not a colour", `${PART} { --pack-a: 1px; }`],
+    ["a custom property that is not a colour or a length", `${PART} { --pack-a: 1em; }`],
     ["a custom property holding a function", `${PART} { --pack-a: url(x.png); }`],
     ["a custom property with no value", `${PART} { --pack-a: ; color: var(--pack-a); }`],
     ["a loop of one", `${PART} { --pack-a: var(--pack-a); color: var(--pack-a); }`],
@@ -252,9 +252,9 @@ const PSEUDO = '[data-part="num"]::before';
 describe("the Phase 2 values in the grammar", () => {
   it.each([
     ["clip-path", [`${CARD} { clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%); }`, `[data-part="label"]::after { clip-path: inset(2px round 4px); }`], [`${PART} { clip-path: inset(2px); }`, `${CARD} { clip-path: circle(50%); }`, `${CARD} { clip-path: path("M0 0"); }`]],
-    ["mask-image", [`${PART} { mask-image: linear-gradient(#000, transparent); }`, `${CARD} { --pack-a: #000; -webkit-mask-image: radial-gradient(circle, var(--pack-a), transparent); }`, `${PSEUDO} { mask-image: url(assets/m.svg); }`], [`${CARD} { mask-image: url(assets/m.svg); }`, `${PART} { mask-image: linear-gradient(red, #000); }`, `${PART} { mask-image: element(#x); }`, `${PART} { mask-image: linear-gradient(var(--w-fg), #000); }`]],
+    ["mask-image", [`${PART} { mask-image: linear-gradient(#000, transparent); }`, `${CARD} { --pack-a: #000; -webkit-mask-image: radial-gradient(circle, var(--pack-a), transparent); }`, `${PSEUDO} { mask-image: url(assets/m.svg); }`, `${CARD} { mask-image: url(assets/m.svg); }`, `${PART} { -webkit-mask-image: url("assets/m.svg"); }`], [`${CARD} { mask-image: url(https://x.test/m.svg); }`, `${CARD} { mask-image: url(assets/m.svg?x); }`, `${CARD} { mask-image: url(assets/m.svg), url(assets/n.svg); }`, `[data-part="ring"] { mask-image: url(assets/m.svg); }`, `${PART} { mask-image: linear-gradient(red, #000); }`, `${PART} { mask-image: element(#x); }`, `${PART} { mask-image: linear-gradient(var(--w-fg), #000); }`]],
     ["mask-size, -repeat, -position", [`${PART} { mask-size: 100% 8px; mask-repeat: no-repeat; -webkit-mask-position: center; }`], [`${PART} { mask-size: 5000px; }`, `${PART} { mask-position: 1vh; }`]],
-    ["mask", [`${CARD} { mask: linear-gradient(#000, transparent) center / 100% 50% no-repeat; }`], [`${CARD} { mask: linear-gradient(#000, #000) alpha; }`, `${CARD} { mask: url(assets/m.svg); }`]],
+    ["mask", [`${CARD} { mask: linear-gradient(#000, transparent) center / 100% 50% no-repeat; }`, `${CARD} { mask: url(assets/m.svg); }`, `${PART} { -webkit-mask: url(assets/m.svg) center / contain no-repeat; }`], [`${CARD} { mask: linear-gradient(#000, #000) alpha; }`, `${CARD} { mask: url(assets/m.svg) alpha; }`, `[data-part="bar"] { mask: url(assets/m.svg); }`]],
     ["mask-composite, mask-mode", [], [`${CARD} { mask-composite: add; }`, `${PSEUDO} { mask-mode: luminance; }`]],
     ["transform", [`${PSEUDO} { transform: translateY(-100%) rotate(45deg); }`], [`${CARD} { transform: rotate(1deg); }`, `${PSEUDO} { transform: perspective(10px); }`, `${PSEUDO} { transform: rotate3d(1, 0, 0, 10deg); }`]],
     ["translate, rotate, scale", [`${PSEUDO} { translate: 4px; rotate: 10deg; scale: 0.9; }`], [`${PART} { scale: 1; }`, `${PSEUDO} { scale: 1.2; }`]],
@@ -268,12 +268,26 @@ describe("the Phase 2 values in the grammar", () => {
     ["background gradients and files", [`${CARD} { background: linear-gradient(90deg, #000 0%, rgb(0 0 0 / 50%) 100%); }`, `${PSEUDO} { background-image: repeating-linear-gradient(to bottom, #fff1 0 1px, transparent 1px 3px); }`, `${CARD} { background-image: url("assets/bg.png"); }`], [`${PART} { background: linear-gradient(#000, #fff); }`, `${CARD} { background: conic-gradient(#000, #fff); }`, `${PART} { background-image: url(assets/bg.png); }`, `${CARD} { background-image: url(assets/bg.png?x); }`, `${CARD} { background-image: linear-gradient(#000, #fff), url(assets/bg.png); }`]],
     ["color-mix", [`${PART} { color: color-mix(in oklch, #fff 80%, #000); }`, `${CARD} { --pack-a: #0ff; background-color: color-mix(in srgb, var(--pack-a) 20%, transparent); }`, `${PART} { --pack-m: color-mix(in hsl, #fff, #000); color: var(--pack-m); }`], [`${PART} { color: color-mix(in srgb, #fff, transparent); }`, `${PART} { color: color-mix(in lab, #fff, #000); }`, `${PART} { color: color-mix(in srgb, var(--w-fg), #000); }`, `${PART} { color: color-mix(in srgb, color-mix(in srgb, #fff, #000), #000); }`, `${PART} { color: color-mix(in srgb, #fff 120%, #000); }`]],
     ["transition", [`${PART} { transition: color 200ms ease-in-out, opacity 1s; }`, `${CARD} { transition-property: box-shadow; transition-duration: 2s; }`], [`${PSEUDO} { transition: width 1s; }`, `${PART} { transition: color 2.5s; }`, `${PART} { transition-delay: -1s; }`, `${PART} { transition: --pack-a 1s; }`]],
-    ["border", [`${PSEUDO} { border: 1px dashed #0ff; }`], [`${CARD} { border: 1px solid #0ff; }`, `[data-part="ring"]::before { border: 1px solid #0ff; }`, `${PSEUDO} { border: 1px solid red; }`, `${PSEUDO} { border: 6px solid #0ff; }`]],
+    ["border", [`${PSEUDO} { border: 1px dashed #0ff; }`, `${CARD} { border: solid #0ff; }`, `${PART} { border: dashed; }`, `${CARD} { border: rgb(1, 2, 3) double; }`, `${CARD} { --pack-e: #0ff; border: dotted var(--pack-e); }`, `${CARD} { border-style: solid dotted; }`, `${PART} { border-style: none; }`], [`${CARD} { border: 1px solid #0ff; }`, `[data-part="ring"]::before { border: 1px solid #0ff; }`, `${PSEUDO} { border: 1px solid red; }`, `${PSEUDO} { border: 6px solid #0ff; }`, `${CARD} { border: 0 solid; }`, `${CARD} { border: thin solid #0ff; }`, `${CARD} { border: medium solid; }`, `${CARD} { border: calc(1px + 1px) solid; }`, `${CARD} { border: solid red; }`, `${CARD} { border: solid dashed; }`, `${CARD} { border: #0ff; }`, `${PSEUDO} { border: solid #0ff; }`, `${CARD} { border-width: 1px; }`, `${CARD} { border-style: groove; }`, `${CARD} { --pack-w: 2px; border: solid var(--pack-w); }`, `[data-part="ring"] { border: solid #0ff; }`, `[data-part="bar"] { border-style: solid; }`]],
+    ["border-image shorthand", [`${CARD} { border-image: linear-gradient(#0ff, transparent) 1; }`, `${PSEUDO} { border-image: url(assets/e.svg) 30 / 2px round; }`, `${CARD} { --pack-e: #0ff; border-image: linear-gradient(var(--pack-e), #000) 1 / 1 / 0 stretch; }`, `${CARD} { border-image: round 10% 20% / 1 linear-gradient(#000, #fff); }`], [`${PART} { border-image: linear-gradient(#000, #fff) 1; }`, `${CARD} { border-image: linear-gradient(#000, #fff) 1 fill; }`, `${CARD} { border-image: linear-gradient(red, #fff) 1; }`, `${CARD} { border-image: linear-gradient(#000, #fff) 1 / 9px; }`, `${CARD} { border-image: linear-gradient(#000, #fff) 1 / 1 / 1px; }`, `${CARD} { border-image: url(https://x.test/a.svg) 1; }`, `${CARD} { border-image: url(assets/a.svg?x) 1; }`, `${CARD} { border-image: conic-gradient(#000, #fff) 1; }`, `${CARD} { border-image: url(assets/a.svg) 1 tile; }`, `${CARD} { border-image: url(assets/a.svg) -1; }`, `${CARD} { border-image: url(assets/a.svg) 1 / 2 / 0 / 0; }`, `${CARD} { --pack-w: 2px; border-image: linear-gradient(var(--pack-w), #fff) 1; }`]],
+    ["length custom properties", [`${CARD} { --pack-cut: 12px; clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, var(--pack-cut) 100%); }`, `${PSEUDO} { --pack-w: 40%; content: ""; width: var(--pack-w); }`, `${CARD} { --pack-s: 30%; background: linear-gradient(#000 var(--pack-s), #fff); }`, `${CARD} { --pack-z: 0; --pack-z: 4px; border-radius: var(--pack-z); }`, `${CARD} { --pack-b: 2px; border-image-width: var(--pack-b); }`, `${CARD} { --pack-m: 8px; -webkit-mask-size: var(--pack-m) 100%; } ${PART} { --pack-m: 4px; }`, `@keyframes pack-k { to { --pack-w: 2px; } } ${CARD} { --pack-w: 4px; border-radius: var(--pack-w); }`], [`${PART} { --pack-a: 1px; --pack-a: #fff; }`, `${PART} { --pack-a: #fff; } ${CARD} { --pack-a: 1px; }`, `${PART} { --pack-a: 1em; }`, `${PART} { --pack-a: calc(1px + 2px); }`, `${PART} { --pack-a: 1px 2px; }`, `${PART} { --pack-a: 5vh; }`, `${PART} { --pack-a: -; }`, `${PART} { --pack-chrome-w: 1px; }`, `${CARD} { clip-path: polygon(0 0, 100% 0, var(--pack-none) 100%); }`, `${CARD} { --pack-w: 99px; border-radius: var(--pack-w); }`, `${CARD} { --pack-w: 2px; --pack-w: 99px; border-radius: var(--pack-w); }`, `${CARD} { --pack-w: 9px; border-image-width: var(--pack-w); }`, `${PART} { --pack-w: 2px; color: var(--pack-w); }`, `${PART} { --pack-w: 2px; opacity: var(--pack-w); }`, `${PART} { --pack-w: 2px; border-color: var(--pack-w); }`, `${CARD} { --pack-w: 2px; background: linear-gradient(var(--pack-w), #fff); }`, `${CARD} { --pack-w: 2px; clip-path: polygon(0 0, 100% 0, var(--pack-w, 1px) 100%); }`, `${CARD} { --pack-c: #fff; clip-path: inset(var(--pack-c)); }`, `${CARD} { --pack-a: var(--pack-w); --pack-w: 2px; border-radius: var(--pack-a); }`]],
     ["@keyframes pack-*", [`@keyframes pack-scan { from { transform: translateY(0); } to { transform: translateY(100%); } } ${PSEUDO} { content: ""; animation: pack-scan 4s linear infinite; }`, `@keyframes pack-glow { from { opacity: 0.6; } to { opacity: 1; } } ${CARD} { animation: pack-glow 2s infinite alternate; }`], [`@keyframes pack-scan { to { transform: translateY(100%); } } ${CARD} { animation: pack-scan 4s; }`, `@keyframes pack-x { to { content: "a"; } } ${PSEUDO} { animation: pack-x 2s; }`, `@keyframes pack-x { to { animation: pack-y 1s; } } ${PSEUDO} { animation: pack-x 2s; }`, `@keyframes pack-x { to { width: 4px; } } ${PSEUDO} { animation: pack-x 2s; } ${CARD} { animation: pack-x 2s; }`, `@keyframes pack-x { to { clip-path: inset(2px); } } ${PART} { animation: pack-x 2s; }`]],
     ["animation", [`@keyframes pack-glow { to { opacity: 0.8; } } ${CARD} { animation-name: pack-glow; animation-duration: 2s; animation-iteration-count: 3; }`], [`@keyframes pack-glow { to { opacity: 0.8; } } ${CARD} { animation: pack-glow 0.5s infinite; }`, `${CARD} { animation: spin 2s; }`, `@keyframes pack-glow { to { opacity: 0.8; } } ${CARD} { animation: pack-glow 2s var(--pack-t); }`]],
   ])("%s", (_row, passing, refusals) => {
     for (const css of passing) passes(css);
     for (const css of refusals) refused(css);
+  });
+
+  it("keeps the var() in the mounted CSS: the lengths it stands for are only checked", () => {
+    const css = `${CARD} { --pack-cut: 12px; clip-path: polygon(0 0, 100% 0, var(--pack-cut) 100%); }`;
+    passes(css);
+    expect(scopePackCss("mine", css, { user: true })).toContain("var(--pack-cut)");
+  });
+
+  it("refuses a value whose length vars take more than 64 combinations of definitions", () => {
+    const defs = (name: string) => Array.from({ length: 9 }, (_, i) => `--pack-${name}: ${i + 1}px;`).join(" ");
+    passes(`${CARD} { ${defs("a")} border-radius: var(--pack-a); }`);
+    refused(`${CARD} { ${defs("a")} ${defs("b")} clip-path: polygon(0 0, var(--pack-a) var(--pack-b), 100% 100%); }`);
   });
 
   it("a pseudo-element is a slot selector followed directly by ::before or ::after", () => {
@@ -299,6 +313,9 @@ describe("the Phase 2 values in the grammar", () => {
     for (const slot of ["ring", "bar", "spark", "icon"]) refused(`[data-part="${slot}"] { ${mask}; }`);
     passes(`${CARD} { ${mask}; }`);
     passes(`[data-part="ring"]::after { content: ""; ${mask}; }`);
+    for (const slot of ["ring", "bar", "spark", "icon"]) refused(`[data-part="${slot}"] { mask-image: url(assets/m.svg); }`);
+    passes(`${CARD} { mask-image: url(assets/m.svg); }`);
+    passes(`[data-part="ring"]::after { content: ""; mask-image: url(assets/m.svg); }`);
   });
 });
 
@@ -317,13 +334,14 @@ describe("the CyberSpec sample (MIT) through both gates", () => {
   };
   const failing = (lint: (css: string) => string[], css: string) => one(css).filter((rule) => lint(rule).length > 0);
 
-  it("passes the built-in lint whole but for one declaration: the border-image shorthand, which the table does not list", () => {
+  it("passes the built-in lint whole: all 40 declarations, the border-image shorthand and the length var among them", () => {
     expect(one(sample)).toHaveLength(40);
-    expect(failing(lintPackCss, sample)).toEqual([".sample-23{border-image:linear-gradient(transparent, transparent) 1;}"]);
+    expect(failing(lintPackCss, sample)).toEqual([]);
+    expect(lintPackCss(sample)).toEqual([]);
   });
 
-  it("passes the grammar on the card but for that one and a custom property that is not a colour", () => {
+  it("passes the grammar on the card whole: all 40 declarations", () => {
     const onCard = sample.replace(/\.sample-[\w-]+/g, CARD);
-    expect(failing(userCssIssues, onCard)).toEqual([`${CARD}{border-image:linear-gradient(transparent, transparent) 1;}`, `${CARD}{--pack-cut:12px;}`]);
+    expect(failing(userCssIssues, onCard)).toEqual([]);
   });
 });

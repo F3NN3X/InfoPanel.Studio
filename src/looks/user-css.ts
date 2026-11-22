@@ -3,7 +3,8 @@
 // log, P12a fix round 1), so they are not what guards a user pack. This one is an allow-list: a selector is the documented `data-part`
 // slots and the two plain combinators, optionally ending in `::before` or `::after` (the pseudo lane); a declaration is a property of
 // the short lists below, each value its own shape (Phase 2's in `pack-css-values`); a colour is a hex or `rgb()` literal, a
-// `color-mix()` of those, or a `var(--pack-*)` that resolves to one in the same file. The only at-rule is `@keyframes pack-*`. A
+// `color-mix()` of those, or a `var(--pack-*)` that resolves to one in the same file; a `--pack-*` may instead hold one px or %
+// literal (or a bare 0), which a bare `var(--pack-*)` stands for wherever a shape reads a length (checked in every value it can take). The only at-rule is `@keyframes pack-*`. A
 // `url()` names a file of the pack and only on the card or a pseudo-element (decision Q3: the mount rewrites it to the pack's route,
 // `scopePackCss`); no `!important`, no fallback, no function beyond those. Passing this says only that the file is plain: whether the
 // pack keeps content readable is the render check's (`pack-render-check`), and whether the check ran is what the server's signature
@@ -11,7 +12,7 @@
 import { parseColour } from "./colour";
 import { parseCss, type Declaration, type Rule, type Token, tokenize, writeTokens } from "./css-syntax";
 import { ANIMATION_WORDS, lintPackCss, OPACITY_FLOOR } from "./pack-css";
-import { type ColourCheck, commaParts, gradientIssue, isWord, msOf, PSEUDO_ONLY, shapeIssue, timingOk, urlOf, words } from "./pack-css-values";
+import { type ColourCheck, commaParts, gradientIssue, isWord, lengthDefinitions, lengthLiteral, msOf, PSEUDO_ONLY, shapeIssue, timingOk, urlOf, viaLengths, words } from "./pack-css-values";
 import { isPackRelativeUrl, packCssIssues } from "./pack-urls";
 
 /** The hooks a pack may paint (spec 03, Level 3 hooks, and the three later ones the built-ins use). */
@@ -48,9 +49,9 @@ const NUMBERS: Record<string, readonly [number, number]> = { opacity: [OPACITY_F
 const SHADOW_OFFSET_MAX = 4;
 const SHADOW_BLUR_MAX = 12;
 /** Phase 2's properties (gate 0 §6), each read by its shape; the `PSEUDO_ONLY` ones on a `::before`/`::after` alone. */
-const SHAPED = /^(clip-path|(-webkit-)?mask(-image|-size|-repeat|-position)?|border(-(top|bottom)-(left|right))?-radius|border-image-(width|outset)|outline-offset|transition(-(property|duration|delay|timing-function))?|transform(-origin)?|translate|rotate|scale|content|inset|top|right|bottom|left|width|height|border)$/;
+const SHAPED = /^(clip-path|(-webkit-)?mask(-image|-size|-repeat|-position)?|border(-(top|bottom)-(left|right))?-radius|border-image(-(width|outset))?|outline-offset|transition(-(property|duration|delay|timing-function))?|transform(-origin)?|translate|rotate|scale|content|inset|top|right|bottom|left|width|height|border(-style)?)$/;
 /** What only the card or a pseudo-element may set on top of that: a clip, rounded corners, a border image. */
-const CARD_OR_PSEUDO = /^(clip-path|border(-(top|bottom)-(left|right))?-radius|border-image-.*)$/;
+const CARD_OR_PSEUDO = /^(clip-path|border(-(top|bottom)-(left|right))?-radius|border-image(-.*)?)$/;
 const ANIMATIONS = /^animation(-(name|duration|delay|iteration-count|direction|fill-mode|play-state|timing-function))?$/;
 /** What a transition may name: the paint this grammar reads, never geometry, `content` or a custom property. */
 const TRANSITIONS = /^(color|fill|stroke|text-decoration-color|caret-color|accent-color|background-color|border(-(top|right|bottom|left))?-color|outline-color|opacity|stroke-width|box-shadow|text-shadow|clip-path|outline-offset|(-webkit-)?mask-(size|position)|border(-(top|bottom)-(left|right))?-radius)$/;
@@ -100,8 +101,8 @@ function mixOf(args: Token[]): Read | undefined {
 const MAX_DEFINITIONS = 8;
 const MAX_DECLARATIONS = 2000;
 
-/** The custom properties the file defines, each with every value it was given, and what each resolved to (an alpha, or the reason it did not). */
-type Defined = { names: Map<string, Read[]>; done: Map<string, number | string> };
+/** The custom properties the file defines, each with every colour it was given, and what each resolved to (an alpha, or the reason it did not); and the lengths it gave each. */
+type Defined = { names: Map<string, Read[]>; done: Map<string, number | string>; lengths: Map<string, Token[]> };
 
 /** The lowest alpha a colour can resolve to, or a reason it does not resolve in this file: every definition is followed, and a loop is no colour.
  * A name is walked once, refusals included (a name that reaches a refusal is refused whichever way it got there), so a walk costs one step per definition.
@@ -183,13 +184,13 @@ const merged = (a: Lane, b: Lane): Lane => ({ slots: [...a.slots, ...b.slots], p
 const fileIssue = (url: string) => (isPackRelativeUrl(url) && !/[?#]/.test(url) ? undefined : `url ${url.slice(0, 40)} is not a file of the pack (a relative path, no query or fragment)`);
 
 /** A background or border image: `none`, one gradient, or one url() of a pack file, on the card or a pseudo-element only. */
-function imageIssue(text: string, value: Token[], lane: Lane, colour: ColourCheck): string | undefined {
+function imageIssue(text: string, value: Token[], lane: Lane, colour: ColourCheck, lengths: Map<string, Token[]>): string | undefined {
   if (!lane.cardOrPseudo) return `${text}: only the card or a ::before or ::after paints an image`;
   const [w, ...rest] = words(value);
   if (rest.length || !w) return `${text} is not one gradient or url()`;
   if (isWord(w, "none")) return undefined;
   if (urlOf(w) !== undefined) return undefined;
-  const why = gradientIssue(w, colour);
+  const why = viaLengths(w, lengths, (v) => gradientIssue(v, colour));
   return why && `${text} ${why}`;
 }
 
@@ -206,7 +207,9 @@ function declarationIssue({ name, value }: Declaration, lane: Lane, defined: Def
   const text = `${name}: ${writeTokens(value).slice(0, 40)}`;
   if (name.startsWith("--")) {
     if (!CUSTOM.test(name) || RESERVED.test(name)) return `${name} is not a custom property of the pack`;
-    if (!readColour(value)) return `${text} is not a hex or rgb() colour or a var(--pack-*)`;
+    if (lengthLiteral(value)) return defined.names.has(name) ? `${text}: ${name} is given a colour as well as a length in this file` : undefined;
+    if (!readColour(value)) return `${text} is not a hex or rgb() colour, a var(--pack-*) or one px or % length`;
+    if (defined.lengths.has(name)) return `${text}: ${name} is given a length as well as a colour in this file`;
     const alpha = resolve({ ref: name }, defined);
     return typeof alpha === "string" ? `${text}: ${alpha}` : undefined;
   }
@@ -223,7 +226,7 @@ function declarationIssue({ name, value }: Declaration, lane: Lane, defined: Def
   if (colour) {
     if (colour.box && marked) return `${name} paints the box of ${marked}, which would hide the mark it draws`;
     const read = readColour(value);
-    if (!read && name === "background") return imageIssue(text, value, lane, stopColour(defined));
+    if (!read && name === "background") return imageIssue(text, value, lane, stopColour(defined), defined.lengths);
     if (!read) return `${text} is not a hex or rgb() colour or a var(--pack-*)`;
     const alpha = resolve(read, defined);
     if (typeof alpha === "string") return `${text}: ${alpha}`;
@@ -238,9 +241,9 @@ function declarationIssue({ name, value }: Declaration, lane: Lane, defined: Def
   }
   if (name === "background-image" || name === "border-image-source" || CARD_OR_PSEUDO.test(name)) {
     if (!lane.cardOrPseudo) return `property ${name} is set only on the card or a ::before or ::after`;
-    if (name === "background-image" || name === "border-image-source") return imageIssue(text, value, lane, stopColour(defined));
+    if (name === "background-image" || name === "border-image-source") return imageIssue(text, value, lane, stopColour(defined), defined.lengths);
   }
-  if (name === "border" && marked) return `border paints the box of ${marked}, which would hide the mark it draws`;
+  if ((name === "border" || name === "border-style") && marked) return `${name} paints the box of ${marked}, which would hide the mark it draws`;
   if (name === "border-image-slice") {
     const ws = words(value);
     return ws.length >= 1 && ws.length <= 4 && ws.every((w) => w.length === 1 && (w[0].t === "number" || w[0].t === "percentage") && (w[0].n as number) >= 0) ? undefined : `${text} is not one to four numbers or percentages (no fill)`;
@@ -250,7 +253,7 @@ function declarationIssue({ name, value }: Declaration, lane: Lane, defined: Def
     return ws.length >= 1 && ws.length <= 2 && ws.every((w) => isWord(w, "stretch", "repeat", "round", "space")) ? undefined : `${text} is not stretch, repeat, round or space`;
   }
   if (SHAPED.test(name)) {
-    const why = shapeIssue(name, value, { pseudo: lane.pseudo, colour: stopColour(defined), paints: (p) => TRANSITIONS.test(p) });
+    const why = shapeIssue(name, value, { pseudo: lane.pseudo, colour: stopColour(defined), paints: (p) => TRANSITIONS.test(p), lengths: defined.lengths, fill: false });
     return why && `${text} ${why}`;
   }
   if (ANIMATIONS.test(name)) return animationOk(value, keyframes) ? undefined : `${text} is not the file's own keyframes, times and timing`;
@@ -335,7 +338,7 @@ export function userCssIssues(css: string): string[] {
   if (!rules.some((r) => r.declarations?.length)) return ["the file holds no rule"];
   const declarations = rules.reduce((n, r) => n + (r.declarations?.length ?? 0) + (r.rules ?? []).reduce((m, f) => m + (f.declarations?.length ?? 0), 0), 0);
   if (declarations > MAX_DECLARATIONS) return [`the file holds ${declarations} declarations, more than the ${MAX_DECLARATIONS} a pack may have`];
-  const defined: Defined = { names: new Map(), done: new Map() };
+  const defined: Defined = { names: new Map(), done: new Map(), lengths: lengthDefinitions(rules) };
   for (const rule of rules) {
     for (const d of rule.declarations ?? []) {
       if (!d.name.startsWith("--")) continue;

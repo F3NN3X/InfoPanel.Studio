@@ -7,21 +7,21 @@
 // the lint cannot read is refused. A rule whose every selector ends in `::before` or `::after` is in the pseudo lane: it may also
 // set what moves, sizes or fills its own box (`PSEUDO_ONLY`), and the mount pins that box out of the way (`PSEUDO_BOX`).
 import { type Declaration, parseCss, type Rule, type Token, writeRules, writeString, writeTokens } from "./css-syntax";
-import { commaParts, type Lane, looseColour, PSEUDO_ONLY, pseudoLane, shapeIssue } from "./pack-css-values";
+import { commaParts, type Lane, lengthDefinitions, looseColour, PSEUDO_ONLY, pseudoLane, shapeIssue } from "./pack-css-values";
 import { packCssIssues, packPath, URL_FUNCS } from "./pack-urls";
 
 export { commaParts };
 
 /**
  * Paint properties, and custom properties named `--pack-*` (an app one such as `--wp-pad` would move the card); a property
- * that is not here, in `SHAPED` or (on a pseudo-element) in `PSEUDO_ONLY` is refused. Left out on purpose: border styles (a
- * style on a `medium` border adds width), `mask-mode` and `mask-composite` (they turn a mask inside out) and stroke dashes
+ * that is not here, in `SHAPED` or (on a pseudo-element) in `PSEUDO_ONLY` is refused. Left out on purpose: border widths (`SHAPED`
+ * reads a border without one; a style on a `medium` border adds width, which the render check compares), `mask-mode` and `mask-composite` (they turn a mask inside out) and stroke dashes
  * (they draw a gauge's value).
  */
 const PAINT =
   /^(--pack-[\w-]+|color|(fill-|stroke-)?opacity|filter|backdrop-filter|-webkit-backdrop-filter|box-shadow|text-shadow|fill|stroke(-width|-linecap|-linejoin)?|mix-blend-mode|accent-color|caret-color|font-family|font-feature-settings|-webkit-text-fill-color|-webkit-text-stroke-color|-webkit-background-clip|background(-color|-image|-position(-x|-y)?|-size|-repeat|-attachment|-clip|-origin|-blend-mode)?|border(-(top|right|bottom|left|block|inline)(-(start|end))?)?-color|border-image-(source|slice|repeat)|outline-(color|style)|text-decoration(-color|-style)?|animation(-(name|duration|delay|iteration-count|direction|fill-mode|play-state|timing-function))?)$/;
 /** Phase 2's paint (gate 0 §6), on any element, each value read by its shape (`pack-css-values`). */
-const SHAPED = /^(clip-path|(-webkit-)?mask(-image|-size|-repeat|-position)?|border(-(top|bottom)-(left|right))?-radius|border-image-(width|outset)|outline-offset|transition(-(property|duration|delay|timing-function))?)$/;
+const SHAPED = /^(clip-path|(-webkit-)?mask(-image|-size|-repeat|-position)?|border(-(top|bottom)-(left|right))?-radius|border-image(-(width|outset))?|border(-style)?|outline-offset|transition(-(property|duration|delay|timing-function))?)$/;
 /** What the mount writes after a pseudo-lane rule's own declarations: the box is out of the flow, never hit and under the content (a pack never writes these). */
 const PSEUDO_BOX: Declaration[] = [
   { name: "position", value: [{ t: "ident", v: "absolute" }] },
@@ -120,13 +120,13 @@ function readableFilter(value: Token[], backdrop: boolean): boolean {
 
 /** A transition may name what a rule paints: never a custom property, an animation, or what only a pseudo-element sets (geometry, `content`). */
 const transitionable = (p: string) => (PAINT.test(p) || SHAPED.test(p)) && !p.startsWith("--") && !/^(animation|transition)/.test(p);
-const laneOf = (pseudo: boolean): Lane => ({ pseudo, colour: looseColour, paints: transitionable });
+const laneOf = (pseudo: boolean, lengths: Map<string, Token[]>): Lane => ({ pseudo, colour: looseColour, paints: transitionable, lengths, fill: true });
 
 /** What is wrong with one declaration's value (the property is allowed); `pseudo` when the rule is in the pseudo lane. */
-function valueIssue(name: string, value: Token[], keyframes: Set<string>, pseudo: boolean): string | undefined {
+function valueIssue(name: string, value: Token[], keyframes: Set<string>, lengths: Map<string, Token[]>, pseudo: boolean): string | undefined {
   const text = writeTokens(value);
   if (value.some((t) => t.t === "delim" && t.v === "!")) return "!important";
-  const shaped = shapeIssue(name, value, laneOf(pseudo));
+  const shaped = shapeIssue(name, value, laneOf(pseudo, lengths));
   if (shaped) return `${name} ${text.slice(0, 40)} ${shaped}`;
   if (/^(fill-|stroke-)?opacity$/.test(name)) {
     const a = amount(value);
@@ -166,11 +166,11 @@ function firstTimeMs(value: Token[]): number | undefined {
   return t ? (t.n as number) * (t.unit?.toLowerCase() === "s" ? 1000 : 1) : undefined;
 }
 
-function lintDeclarations(where: string, rule: Rule, allowed: (name: string) => boolean, keyframes: Set<string>, issues: string[], pseudo = false): void {
+function lintDeclarations(where: string, rule: Rule, allowed: (name: string) => boolean, keyframes: Set<string>, lengths: Map<string, Token[]>, issues: string[], pseudo = false): void {
   for (const { name, value } of rule.declarations ?? []) {
     if (!allowed(name)) issues.push(`${where}: property ${name} is not a paint property${PSEUDO_ONLY.test(name) && !pseudo ? " of a real element (only a ::before or ::after sets it)" : ""}`);
     else {
-      const issue = valueIssue(name, value, keyframes, pseudo);
+      const issue = valueIssue(name, value, keyframes, lengths, pseudo);
       if (issue) issues.push(`${where}: ${issue}`);
     }
   }
@@ -200,10 +200,10 @@ function namingLanes(rules: Rule[], keyframes: Set<string>, out = new Map<string
 
 const paints = (p: string) => PAINT.test(p) || SHAPED.test(p);
 
-function lintRules(rules: Rule[], top: boolean, keyframes: Set<string>, named: Map<string, boolean>, issues: string[]): void {
+function lintRules(rules: Rule[], top: boolean, keyframes: Set<string>, lengths: Map<string, Token[]>, named: Map<string, boolean>, issues: string[]): void {
   for (const rule of rules) {
     const prelude = writeTokens(rule.prelude);
-    if (rule.at === "media" || rule.at === "supports") lintRules(rule.rules ?? [], false, keyframes, named, issues);
+    if (rule.at === "media" || rule.at === "supports") lintRules(rule.rules ?? [], false, keyframes, lengths, named, issues);
     else if (top && rule.at === "keyframes") {
       if (!(rule.prelude.length === 1 && rule.prelude[0].t === "ident" && OWN.test(rule.prelude[0].v))) issues.push(`@keyframes ${prelude}: name must start with pack-`);
       // a frame paints what the rules that run it may paint; `content` never animates, and a frame starts no animation or transition
@@ -212,10 +212,10 @@ function lintRules(rules: Rule[], top: boolean, keyframes: Set<string>, named: M
       for (const frame of rule.rules ?? []) {
         const selector = writeTokens(frame.prelude.filter((t) => t.t !== "ws"));
         if (frame.at !== undefined || !KEYFRAME_SELECTOR.test(selector)) issues.push(`keyframe ${selector.slice(0, 24)}`);
-        else lintDeclarations(`keyframe ${selector}`, frame, allowed, keyframes, issues, pseudo);
+        else lintDeclarations(`keyframe ${selector}`, frame, allowed, keyframes, lengths, issues, pseudo);
       }
     } else if (top && rule.at === "font-face") {
-      lintDeclarations("@font-face", rule, (p) => FONT_FACE.test(p), keyframes, issues);
+      lintDeclarations("@font-face", rule, (p) => FONT_FACE.test(p), keyframes, lengths, issues);
       for (const d of rule.declarations ?? []) {
         const family = d.value.map((t) => (t.t === "ws" ? " " : t.v)).join("");
         if (d.name === "font-family" && !(d.value.every((t) => t.t === "string" || t.t === "ident" || t.t === "ws") && OWN.test(family))) {
@@ -228,7 +228,7 @@ function lintRules(rules: Rule[], top: boolean, keyframes: Set<string>, named: M
       const lane = pseudoLane(rule.prelude);
       if (lane === undefined) issues.push(`selector ${prelude.slice(0, 40)} names a pseudo-element other than a final ::before or ::after`);
       const pseudo = lane === "pseudo";
-      lintDeclarations(`rule ${prelude.slice(0, 24)}`, rule, (p) => paints(p) || (pseudo && PSEUDO_ONLY.test(p)), keyframes, issues, pseudo);
+      lintDeclarations(`rule ${prelude.slice(0, 24)}`, rule, (p) => paints(p) || (pseudo && PSEUDO_ONLY.test(p)), keyframes, lengths, issues, pseudo);
     }
   }
 }
@@ -239,7 +239,7 @@ export function lintPackCss(css: string): string[] {
   const rules = parseCss(css, issues);
   if (issues.length) return issues;
   const keyframes = new Set(rules.filter((r) => r.at === "keyframes" && r.prelude.length === 1).map((r) => r.prelude[0].v));
-  lintRules(rules, true, keyframes, namingLanes(rules, keyframes), issues);
+  lintRules(rules, true, keyframes, lengthDefinitions(rules), namingLanes(rules, keyframes), issues);
   // what the page gets must parse to the same rules, or the browser and the lint could read it differently
   const text = writeRules(rules);
   if (writeRules(parseCss(text, issues)) !== text) issues.push("css does not read back as written");
