@@ -17,6 +17,7 @@ import { PACK_FONT_FAMILIES } from "./pack-fonts";
 import { resolveT1, type Look, type T1Name, T1_NAMES } from "./look";
 import lookSchema from "./look.schema.json";
 import { MAX_LAYERS, NUMERAL_MIN, numeralIssues, stageIssues } from "./pack-checks";
+import { FRAME_SIZE_MAX, ORNAMENT_MAX, type PackJson } from "./pack-json";
 import { commaParts, lintPackCss, OPACITY_FLOOR } from "./pack-css";
 import { INJECTION, jsonShapeIssues, jsonStrings, PROSE_PATHS, rasterMatches, STYLE_BREAKERS, svgIssue, svgPaints, TOKEN_KEY, withoutAliases } from "./pack-safety";
 import packSchema from "./pack.schema.json";
@@ -72,12 +73,12 @@ export const BUILTIN_FONT_FAMILIES: ReadonlySet<string> = new Set(PACK_FONT_FAMI
 /** The size cap of a pack folder: `packCeilingBytes` of the `packs` block in tools/perf/budgets.json (a test pins them equal). */
 export const PACK_CEILING_BYTES = 512_000;
 /** An ornament is at most this many px and stays inside the card's padding (spec 03, rules for every slot). */
-export const ORNAMENT_MAX = 10;
+export { ORNAMENT_MAX } from "./pack-json";
 /** A pack folder holds at most this many files, and no file is over `FILE_MAX_BYTES`. */
 export const FILE_COUNT_MAX = 64;
 export const FILE_MAX_BYTES = 256_000;
 /** A chamfer cuts at most this many px (twice the smallest card padding). */
-export const CHAMFER_MAX = 20;
+export const CHAMFER_MAX = FRAME_SIZE_MAX;
 /** Body text, muted text and status text hold this on the card (D13); gradient numerals hold 3:1 (`NUMERAL_MIN`). */
 export const TEXT_MIN = 4.5;
 /** A layer this bright (relative luminance, times its opacity) is not `static-safe` on an always-on panel. */
@@ -557,16 +558,6 @@ function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: 
 
 // ---- the folder -------------------------------------------------------------------------------------------------------
 
-type Pack = {
-  id: string;
-  modes: string[];
-  fonts: { family: string; file: string; weight: string; licence: string }[];
-  stage: Parameters<typeof stageIssues>[0] & object;
-  burnIn: string;
-  assets?: { file: string; bytes: number }[];
-  ornament?: { size: number; bleed?: boolean };
-  edge?: { kind: string; cut?: number };
-};
 
 /** What is wrong with a pack, one issue each, errors before warnings (empty: it may load). A crash inside a rule is an issue, never an exception. */
 export function validatePack(src: PackSource, options: PackOptions = {}): PackIssue[] {
@@ -626,7 +617,7 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
   if (total > PACK_CEILING_BYTES) add("size", "", `the pack is ${total} bytes, over the ${PACK_CEILING_BYTES} cap`);
 
   if (packErrors.length || lookErrors.length) return finish(out);
-  const pack = src.pack as Pack;
+  const pack = src.pack as PackJson;
   const look = src.look as Look;
   if (look.id !== pack.id) add("id", "look.json", `look.id ${look.id} is not the pack id ${pack.id}`);
   if (pack.modes.join() !== look.modes.supported.join()) add("modes", "pack.json", "modes differ from look.json modes.supported");

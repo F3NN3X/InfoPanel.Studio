@@ -11,8 +11,8 @@ import type { Look } from "./look";
 import { m, type Material, type MaterialKind } from "./materials";
 import { addPackFonts } from "./pack-assets";
 import { registerUserPack, unregisterUserPack } from "./pack-load";
-import type { BurnIn, Pack, PackConnectors, PackStatusBar, StageLayer } from "./pack";
-import type { PackEffect, SizeClass } from "./effects";
+import type { Pack } from "./pack";
+import type { PackJson } from "./pack-json";
 import { FILE_COUNT_MAX, type PackFile, type PackIssue, type PackSource, parseColour, validatePack } from "./pack-validate";
 import { lookLayers, sampleCards } from "./sample-cards";
 
@@ -107,21 +107,6 @@ export async function readUserPack(id: string): Promise<PackSource> {
 
 /** What is wrong with a pack's files, as a user pack: the validator in `user` mode, always. */
 export const userPackIssues = (src: PackSource): PackIssue[] => validatePack(src, { source: "user" });
-
-interface StageSpec {
-  layers: StageLayer[];
-  effects?: PackEffect[];
-  overlayMinSizeClass?: SizeClass;
-}
-interface PackJson {
-  id: string;
-  fonts: { family: string; file: string; weight: string; source?: string; licence?: string }[];
-  stage: StageSpec;
-  burnIn: BurnIn;
-  statusBar?: PackStatusBar;
-  connectors?: PackConnectors;
-  assets?: { file: string }[];
-}
 
 /** The font-family rules the loader writes from the families the validator passed (`pack-` names, plain characters): the only CSS a user pack has. */
 export function fontCss(fonts: Look["fonts"]): string {
