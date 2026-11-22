@@ -6,7 +6,7 @@ import { renderRefusals, unlit, type Measured } from "@/looks/pack-render-measur
 import { CHECK_URL, runRenderCheck } from "@/looks/pack-render-check";
 import type { PackSource } from "@/looks/pack-validate";
 
-const page = (over: Partial<Measured> = {}): Measured => ({ problems: [], cards: 2, gradients: 0, gauges: [{ key: "a", lit: true }], texts: [{ key: "0:0", ratio: 7, text: "CPU" }], marks: [{ key: "0:0", part: "spark", ratio: 5 }], bars: 1, barIssues: [], ...over });
+const page = (over: Partial<Measured> = {}): Measured => ({ clips: [], cardClips: [], masks: [], problems: [], cards: 2, gradients: 0, gauges: [{ key: "a", lit: true }], texts: [{ key: "0:0", ratio: 7, text: "CPU" }], marks: [{ key: "0:0", part: "spark", ratio: 5 }], bars: 1, barIssues: [], ...over });
 
 describe("what the pack's CSS changed, and only that", () => {
   it("a page the CSS leaves alone passes", () => {
@@ -39,6 +39,35 @@ describe("what the pack's CSS changed, and only that", () => {
     expect(renderRefusals({ worn: at(1.4), bare: at(5) })).toEqual([]);
     expect(renderRefusals({ worn: at(1.1), bare: at(1.1) })).toEqual([]);
     expect(renderRefusals({ worn: at(null), bare: at(null) })).toEqual([]);
+  });
+
+  it("a clip-path keeps 90% of a text, against what it kept without the pack", () => {
+    const seen = (v: number | null) => page({ clips: [{ key: "0:0", text: "CPU", seen: v }] });
+    expect(renderRefusals({ worn: seen(0.9), bare: page() })).toEqual([]);
+    expect(renderRefusals({ worn: seen(0.89), bare: page() })[0]).toContain("cut by a clip-path");
+    expect(renderRefusals({ worn: seen(0.5), bare: seen(0.5) })).toEqual([]);
+    expect(renderRefusals({ worn: seen(0.4), bare: seen(0.5) })[0]).toContain("cut by a clip-path");
+    expect(renderRefusals({ worn: seen(null), bare: page() })[0]).toContain("an unreadable share");
+    expect(renderRefusals({ worn: seen(null), bare: seen(null) })).toEqual([]);
+  });
+
+  it("a card's clip-path takes at most 10% of it and none of its content's corners", () => {
+    const card = (removed: number | null, corners: number | null) => page({ cardClips: [{ key: "0", place: "CPU@1x1", removed, corners }] });
+    expect(renderRefusals({ worn: card(0.1, 0), bare: page() })).toEqual([]);
+    expect(renderRefusals({ worn: card(0.11, 0), bare: page() })[0]).toContain("removes 11% of a card");
+    expect(renderRefusals({ worn: card(0.02, 1), bare: page() })[0]).toContain("cuts 1 of the corners");
+    expect(renderRefusals({ worn: card(null, null), bare: page() })[0]).toContain("cannot be read");
+    expect(renderRefusals({ worn: card(0.3, 2), bare: card(0.3, 2) })).toEqual([]);
+  });
+
+  it("a mask leaves a text at 0.5 or more, against what it left without the pack; one that cannot be read refuses", () => {
+    const alpha = (v: number | null) => page({ masks: [{ key: "0:0", text: "CPU", alpha: v }] });
+    expect(renderRefusals({ worn: alpha(0.5), bare: page() })).toEqual([]);
+    expect(renderRefusals({ worn: alpha(0.49), bare: page() })[0]).toContain("at 0.49");
+    expect(renderRefusals({ worn: alpha(0.2), bare: alpha(0.1) })).toEqual([]);
+    expect(renderRefusals({ worn: alpha(0.2), bare: alpha(0.9) })[0]).toContain("under a mask");
+    expect(renderRefusals({ worn: alpha(null), bare: page() })[0]).toContain("cannot be read");
+    expect(renderRefusals({ worn: alpha(null), bare: alpha(null) })).toEqual([]);
   });
 
   it("nothing drawn is no pass", () => {
