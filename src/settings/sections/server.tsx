@@ -59,12 +59,12 @@ function StatusCard() {
   const start = () => run(async () => setStatus(await ipc.startServer()));
   const stop = () => run(async () => setStatus(await ipc.stopServer()));
   const restart = () => run(async () => setStatus(await ipc.restartServer()));
-  const useForeign = () =>
+  const adoptForeign = () =>
     run(async () => {
       const r = await ipc.useForeignServer();
       if (!r.ok) toast(r.message, true);
     });
-  const usePort = (port: number) =>
+  const restartOnPort = (port: number) =>
     run(async () => {
       if ((await save("port", port)).ok) setStatus(await ipc.startServer());
     });
@@ -72,11 +72,11 @@ function StatusCard() {
   const act = (a: CalloutAction) => {
     switch (a.kind) {
       case "use-port":
-        return <CalloutButton key={a.kind} onClick={() => void usePort(a.port)} disabled={busy}>{`Use ${a.port}`}</CalloutButton>;
+        return <CalloutButton key={a.kind} onClick={() => void restartOnPort(a.port)} disabled={busy}>{`Use ${a.port}`}</CalloutButton>;
       case "logs":
         return <CalloutButton key={a.kind} onClick={() => go("logs")}>View logs</CalloutButton>;
       case "use-foreign":
-        return foreign?.adoptable ? <CalloutButton key={a.kind} onClick={() => void useForeign()} disabled={busy}>Use it</CalloutButton> : null;
+        return foreign?.adoptable ? <CalloutButton key={a.kind} onClick={() => void adoptForeign()} disabled={busy}>Use it</CalloutButton> : null;
     }
   };
 

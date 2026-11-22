@@ -23,6 +23,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+const Overlay = () => <i />;
+
 describe("the pack stage: effects, burn-in and size classes", () => {
   it("marks layers for the drift only on a needs-shift pack with Pixel shift on", () => {
     view({ pixelShift: true }, { burnIn: "needs-shift" });
@@ -107,7 +109,6 @@ describe("the pack stage: effects, burn-in and size classes", () => {
 
     it("dims the overlay and the connectors with the layers", () => {
       vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
-      const Overlay = () => <i />;
       faintView({ idleDim: 5 }, { burnIn: "needs-dim", stage: { ...faint, overlay: Overlay }, connectors: { style: "line" }, links: [["a", "b"]] });
       act(() => vi.advanceTimersByTime(5 * 60_000 + 10));
       expect(document.querySelector<HTMLElement>("[data-pack-layer='overlay']")!.style.opacity).toBe("0.35");

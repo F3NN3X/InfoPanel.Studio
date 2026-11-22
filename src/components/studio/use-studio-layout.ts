@@ -30,7 +30,7 @@ export function pageSize(profile: ProfileView): PageSize {
   const gap = profileGap(profile);
   return {
     width: profile.width,
-    height: profile.height > 0 ? profile.height : 0,
+    height: Math.max(profile.height, 0),
     naturalHeight: fill
       ? undefined
       : 2 * profilePadding(profile, true) + profile.rows * SCROLL_ROW_H + (profile.rows - 1) * gap,

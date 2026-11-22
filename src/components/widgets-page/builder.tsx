@@ -1528,7 +1528,7 @@ export function Builder(p: BuilderProps) {
                 pageStyle={p.pageStyle}
                 lookId={lookId}
                 fit={{ w: Math.max(100, stageBox.w - 96), h: Math.max(80, stageBox.h - 96) }}
-                maxScale={Math.min(1.6, 560 / w, 420 / h) > 1 ? Math.min(1.6, 560 / w, 420 / h) : 1}
+                maxScale={Math.max(1, Math.min(1.6, 560 / w, 420 / h))}
                 overlay={
                   <>
                     {also.map((x) => blockAt(recipe, x) && <Selection key={keyOf(x)} zone={zoneEl()} path={x} recipe={recipe} tick={[recipe, size, live, lookId, preset, stageBox, data]} also />)}

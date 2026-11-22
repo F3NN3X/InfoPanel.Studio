@@ -69,17 +69,17 @@ export function fitLayout(chosen: NonNullable<GameSpotlightProps["layout"]>, w: 
 
 export default function GameSpotlight(p: GameSpotlightProps) {
   const d = p.data;
-  const P = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Profile.${s}`);
-  const S = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Session.${s}`);
-  const A = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Achievements.${s}`);
-  const game = S("current-game"),
-    banner = widgetImage(P("current_game_banner_url")),
-    logo = widgetImage(P("game_logo_url")),
-    poster = widgetImage(P("game_grid_url")),
-    icon = widgetImage(P("game_icon_url"));
+  const profOf = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Profile.${s}`);
+  const sessOf = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Session.${s}`);
+  const achOf = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Achievements.${s}`);
+  const game = sessOf("current-game"),
+    banner = widgetImage(profOf("current_game_banner_url")),
+    logo = widgetImage(profOf("game_logo_url")),
+    poster = widgetImage(profOf("game_grid_url")),
+    icon = widgetImage(profOf("game_icon_url"));
   const fps = num(get(d, "plugins.InfoPanel.RTSS.rtss.fps"));
-  const un = num(A("achievements-unlocked")),
-    tot = num(A("achievements-total")),
+  const un = num(achOf("achievements-unlocked")),
+    tot = num(achOf("achievements-total")),
     ach = (un / tot) * 100;
   const inGame = num(get(d, "plugins.InfoPanel.SteamAPI.SteamAPI-Social.friends-ingame"));
   const ms = p.music === "spotify" ? "plugins.spotify-plugin.spotify" : "plugins.media-plugin.media";
@@ -88,11 +88,11 @@ export default function GameSpotlight(p: GameSpotlightProps) {
     prog = num(get(d, `${ms}.track-progress`));
   const motion = p.motion !== false,
     scrim = p.scrim ?? 0.6;
-  const statusText = P("game-status-text") || "Now playing";
+  const statusText = profOf("game-status-text") || "Now playing";
   const stats: [string, string, string][] = [
-    ["Session", S("current-session-time"), "SteamAPI-Session.current-session-time"],
-    ["Playtime", hoursText(S("current-game-playtime")), "SteamAPI-Session.current-game-playtime"],
-    ["Avg session", S("avg-session-time"), "SteamAPI-Session.avg-session-time"],
+    ["Session", sessOf("current-session-time"), "SteamAPI-Session.current-session-time"],
+    ["Playtime", hoursText(sessOf("current-game-playtime")), "SteamAPI-Session.current-game-playtime"],
+    ["Avg session", sessOf("avg-session-time"), "SteamAPI-Session.avg-session-time"],
     ...(fps > 0 ? [["FPS", fmt(fps), ""] as [string, string, string]] : []),
   ];
   const tag = useIpTag();
@@ -103,8 +103,8 @@ export default function GameSpotlight(p: GameSpotlightProps) {
       {...shell(p)}
       bleed
       showHeader={false}
-      studio={{ label: statusText, live: true, value: game, sub: `${S("current-session-time")} session · ${hoursText(S("current-game-playtime"))}`, img: poster || banner, kind: "text", progress: { a: "Achievements", pct: ach, b: `${fmt(ach)}%` } }}
-      compact={(box) => (box.shape === "tile" && p.layout !== "composite" ? { label: statusText, value: game, kind: "text", sub: `${S("current-session-time")} session`, img: box.w < 132 ? banner || poster : poster || banner, pct: ach, icon: "stadia_controller" } : undefined)}
+      studio={{ label: statusText, live: true, value: game, sub: `${sessOf("current-session-time")} session · ${hoursText(sessOf("current-game-playtime"))}`, img: poster || banner, kind: "text", progress: { a: "Achievements", pct: ach, b: `${fmt(ach)}%` } }}
+      compact={(box) => (box.shape === "tile" && p.layout !== "composite" ? { label: statusText, value: game, kind: "text", sub: `${sessOf("current-session-time")} session`, img: box.w < 132 ? banner || poster : poster || banner, pct: ach, icon: "stadia_controller" } : undefined)}
     >
       {({ w, h, shape, packed }) => {
         if (p.layout === "composite") {
@@ -115,21 +115,21 @@ export default function GameSpotlight(p: GameSpotlightProps) {
               h={h}
               forced={p.look && sizeTierOf(p.look)}
               accent={p.accent}
-              name={P("player-name")}
-              status={P("online-status")}
-              level={num(P("steam-level"))}
-              avatar={widgetImage(P("profile_image_url"))}
+              name={profOf("player-name")}
+              status={profOf("online-status")}
+              level={num(profOf("steam-level"))}
+              avatar={widgetImage(profOf("profile_image_url"))}
               game={game}
-              playtime={num(S("current-game-playtime"))}
-              sessionTime={S("current-session-time")}
-              sessionStart={S("session-start-time")}
+              playtime={num(sessOf("current-game-playtime"))}
+              sessionTime={sessOf("current-session-time")}
+              sessionStart={sessOf("session-start-time")}
               banner={banner}
               logo={logo}
               icon={icon}
               totalGames={num(N("Library", "total-games"))}
-              achPct={num(A("current-achievements"))}
-              latestAch={A("latest-achievement")}
-              achIcon={widgetImage(A("latest-achievement-icon"))}
+              achPct={num(achOf("current-achievements"))}
+              latestAch={achOf("latest-achievement")}
+              achIcon={widgetImage(achOf("latest-achievement-icon"))}
               friendsOnline={num(N("Social", "friends-online"))}
               totalFriends={num(N("Social", "total-friends"))}
               news={N("News", "current_game_news_title")}
@@ -164,7 +164,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
                 )}
                 <GlassPill>
                   <Icon name="timer" className="text-sm" />
-                  {S("current-session-time")}
+                  {sessOf("current-session-time")}
                 </GlassPill>
                 {w > 420 && Number.isFinite(ach) && (
                   <div className="h-9 w-9">
@@ -222,7 +222,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
               {h >= 56 && (
                 <span className="relative flex max-w-full items-center gap-1.5 text-micro text-[color:var(--w-fg)]">
                   <Dot ok />
-                  <span className="truncate tabular-nums">{S("current-session-time")}</span>
+                  <span className="truncate tabular-nums">{sessOf("current-session-time")}</span>
                 </span>
               )}
             </div>
@@ -235,7 +235,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
               <Logo src={logo} name={game} size={big} className="relative mx-auto max-h-[45%] max-w-[80%] !object-center text-center" />
               <span className="relative flex items-center gap-2 text-xs text-[color:var(--w-fg)]">
                 <Dot ok />
-                {S("current-session-time")} this session · {hoursText(S("current-game-playtime"))}
+                {sessOf("current-session-time")} this session · {hoursText(sessOf("current-game-playtime"))}
               </span>
             </div>
           );
@@ -257,7 +257,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
                 )}
                 <GlassPill className="ml-auto">
                   <Icon name="timer" className="text-sm" />
-                  {S("current-session-time")}
+                  {sessOf("current-session-time")}
                 </GlassPill>
               </div>
               <div className="mt-auto flex flex-col gap-3">
@@ -293,7 +293,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
                           <div className="flex justify-between text-micro">
                             <span className="flex items-center gap-1 text-[color:var(--w-faint)]">
                               <Icon name="trophy" className="text-sm text-amber-300" />
-                              {A("latest-achievement")}
+                              {achOf("latest-achievement")}
                             </span>
                             <span {...tag(steam("SteamAPI-Achievements.current-achievements"), { decimals: 0, unit: "%" })} className="shrink-0 tabular-nums text-[color:var(--w-fg)]">{fmt(ach)}%</span>
                           </div>

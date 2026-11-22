@@ -94,27 +94,28 @@ describe("builder fields", () => {
   });
 });
 
+function Host({ commits }: { commits: string[] }) {
+  const [shown, setShown] = useState("Ring");
+  const previewing = useRef(false);
+  const typing = {
+    preview: (run: () => void) => {
+      previewing.current = true;
+      run();
+      previewing.current = false;
+    },
+    cancel: () => setShown("Ring"),
+  };
+  return (
+    <TypingContext.Provider value={typing}>
+      <TextInput label="Name" value={shown} onChange={(v) => (previewing.current ? setShown(v) : commits.push(v))} />
+    </TypingContext.Provider>
+  );
+}
+
 describe("builder fields over a preview", () => {
   it("commits what was typed even though the value shown meanwhile is the preview's (the builder's case)", () => {
     const commits: string[] = [];
-    function Host() {
-      const [shown, setShown] = useState("Ring");
-      const previewing = useRef(false);
-      const typing = {
-        preview: (run: () => void) => {
-          previewing.current = true;
-          run();
-          previewing.current = false;
-        },
-        cancel: () => setShown("Ring"),
-      };
-      return (
-        <TypingContext.Provider value={typing}>
-          <TextInput label="Name" value={shown} onChange={(v) => (previewing.current ? setShown(v) : commits.push(v))} />
-        </TypingContext.Provider>
-      );
-    }
-    render(<Host />);
+    render(<Host commits={commits} />);
     const input = screen.getByLabelText("Name");
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: "Top row" } });

@@ -104,6 +104,8 @@ describe("panel colors", () => {
   });
 });
 
+const Probe = () => <i data-fill={usePanelSkin()?.numFill} />;
+
 describe("a panel on a pack Look (L67)", () => {
   let pack: Pack;
   beforeAll(async () => {
@@ -118,7 +120,6 @@ describe("a panel on a pack Look (L67)", () => {
     expect(panelSkinOf({ lookId: "classic" })).toBeUndefined();
   });
   it("gives its widgets the pack's T3 values", () => {
-    const Probe = () => <i data-fill={usePanelSkin()?.numFill} />;
     const out = (p?: Pack) => renderToString(<PanelSkin skin={p ? "default" : undefined} chrome={chrome} pack={p}><Probe /></PanelSkin>);
     expect(out(pack)).toContain("linear-gradient(90deg");
     expect(out(undefined)).not.toContain("data-fill");

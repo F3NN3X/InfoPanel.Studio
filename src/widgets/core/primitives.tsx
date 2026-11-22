@@ -762,7 +762,7 @@ function SparkGraph({ values = [], min, max, className = "h-10", fill = true, co
   const showFill = fill && (mode === "area" || step);
   if (scrollsSmooth(sk.smooth, reduced, mode, values.length))
     return <SmoothGraph values={values} min={min} max={max} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} glow={glow} curve={curve} flat={roomyBox} grid={gridOn && roomyBox} className={className} />;
-  const Y = (v: number) => sparkY(v, lo, hi);
+  const yOf = (v: number) => sparkY(v, lo, hi);
   const svg = (kids: ReactNode) => (
     <svg data-part="spark" viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-visible ${className}`} data-wp-glow={glow ? "" : undefined}>
       {gridOn && roomyBox && GRID}
@@ -774,9 +774,9 @@ function SparkGraph({ values = [], min, max, className = "h-10", fill = true, co
     return svg(
       values.map((v, i) =>
         mode === "bars" ? (
-          <rect key={i} x={i * w + w * 0.15} y={Y(v)} width={w * 0.7} height={100 - Y(v)} fill={color} opacity={0.35 + 0.65 * (i / values.length)} />
+          <rect key={i} x={i * w + w * 0.15} y={yOf(v)} width={w * 0.7} height={100 - yOf(v)} fill={color} opacity={0.35 + 0.65 * (i / values.length)} />
         ) : (
-          <rect key={i} x={i * w + w * 0.2} y={Y(v) - 2} width={w * 0.6} height="4" rx="1" fill={color} opacity={0.3 + 0.7 * (i / values.length)} />
+          <rect key={i} x={i * w + w * 0.2} y={yOf(v) - 2} width={w * 0.6} height="4" rx="1" fill={color} opacity={0.3 + 0.7 * (i / values.length)} />
         )
       )
     );

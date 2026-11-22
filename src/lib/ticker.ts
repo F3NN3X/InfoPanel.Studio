@@ -208,7 +208,7 @@ function capped(cb: Tick, fps: number): Tick {
  * subscriber in the stats.
  */
 export function subscribeTick(cb: Tick, capFps = 0, label?: string): TickSubscription {
-  const s: Subscriber = { cb, cap: capFps > 0 ? capFps : 0, at: -Infinity, sleepUntil: -Infinity };
+  const s: Subscriber = { cb, cap: Math.max(capFps || 0, 0), at: -Infinity, sleepUntil: -Infinity };
   subscribers.add(s);
   const untrack = STATS ? trackTick(capTick(cb, capFps, label)) : undefined;
   // A new subscriber is due now: ask at once rather than wait out a sleeping loop's timer.

@@ -171,9 +171,9 @@ export default function SystemOverview(p: SystemOverviewProps) {
   const tag = useIpTag();
   const has = (k: string) => (get(d, k) !== "" ? k : undefined);
   const adapters = readAdaptersFlat(d, p.names);
-  const L = (k: string) => num(get(d, `libre.${k}`));
-  const C = (k: string) => L(`${cpu}_${k}`),
-    G = (k: string) => L(`${gpu}_${k}`);
+  const libreOf = (k: string) => num(get(d, `libre.${k}`));
+  const cpuNumOf = (k: string) => libreOf(`${cpu}_${k}`),
+    gpuNumOf = (k: string) => libreOf(`${gpu}_${k}`);
   const dec = p.decimals === 1 ? 1 : 0;
   const on = (k: Detail) => p.show?.[k] !== false;
   const warn = p.warn ?? 80,
@@ -218,7 +218,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
         ...(on("temps") ? temp("Temp", r.cpu.temp, true, rk.cpuTemp) : []),
         ...stat(on("power"), r.cpu.power, (v) => ({ l: "Power", v: `${fmt(v, 0)} W`, bare: true, k: rk.cpuPower })),
         ...stat(true, r.cpu.clock, (v) => ({ l: "Clock", v: `${fmt(v / 1000, 2)} GHz`, k: rk.cpuClock, mul: 0.001 })),
-        ...stat(true, C("cpu_core_max"), (v) => ({ l: "Max core", v: `${fmt(v, 0)}%`, k: `libre.${cpu}_cpu_core_max` })),
+        ...stat(true, cpuNumOf("cpu_core_max"), (v) => ({ l: "Max core", v: `${fmt(v, 0)}%`, k: `libre.${cpu}_cpu_core_max` })),
       ],
       present: r.cpu.load !== undefined,
       key: has("system.cpu.load") ?? rk.cpuLoad,
@@ -243,7 +243,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
       v: r.ram.load ?? NaN,
       name: on("memory") && r.ram.used !== undefined && r.ram.total !== undefined ? `${gb(r.ram.used)} / ${gb(r.ram.total)} GB` : "",
       stats: [
-        ...stat(on("memory"), L("total_memory_memory_available"), (v) => ({ l: "Free", v: `${fmt(v, 1)} GB`, k: "libre.total_memory_memory_available" })),
+        ...stat(on("memory"), libreOf("total_memory_memory_available"), (v) => ({ l: "Free", v: `${fmt(v, 1)} GB`, k: "libre.total_memory_memory_available" })),
         ...(on("pageFile") && page?.used !== undefined && page.total !== undefined ? [{ l: "Page", v: `${gb(page.used)} / ${gb(page.total)} GB` }] : []),
         ...stat(on("pageFile"), page?.load, (v) => ({ l: "Page load", v: pct(v), k: rk.pageLoad })),
       ],
@@ -254,15 +254,15 @@ export default function SystemOverview(p: SystemOverviewProps) {
       v: vr.load ?? NaN,
       name: on("memory") && vr.used !== undefined && vr.total !== undefined ? `${gb(vr.used)} / ${gb(vr.total)} GB` : "",
       stats: [
-        ...stat(on("memory"), G("gpu_memory_free"), (v) => ({ l: "Free", v: `${fmt(v / 1024, 1)} GB`, k: `libre.${gpu}_gpu_memory_free`, mul: 1 / 1024 })),
-        ...stat(true, G("gpu_memory_controller"), (v) => ({ l: "Ctrl", v: `${fmt(v, 0)}%`, k: `libre.${gpu}_gpu_memory_controller` })),
+        ...stat(on("memory"), gpuNumOf("gpu_memory_free"), (v) => ({ l: "Free", v: `${fmt(v / 1024, 1)} GB`, k: `libre.${gpu}_gpu_memory_free`, mul: 1 / 1024 })),
+        ...stat(true, gpuNumOf("gpu_memory_controller"), (v) => ({ l: "Ctrl", v: `${fmt(v, 0)}%`, k: `libre.${gpu}_gpu_memory_controller` })),
       ],
       capacity: true,
       key: rk.vramLoad,
       present: vr.load !== undefined,
     },
     disk: { v: fullest?.used ?? NaN, name: fullest?.name ?? "", stats: [], capacity: true, present: drives.length > 0 },
-    net: { v: Number.isFinite(L(`${net}_network_utilization`)) ? L(`${net}_network_utilization`) : (L(`${net}_download_speed`) / 312.5e6) * 100, name: pretty(net ?? ""), big: fmtRate(L(`${net}_download_speed`)), stats: [{ l: "Down", v: fmtRate(L(`${net}_download_speed`)) }, { l: "Up", v: fmtRate(L(`${net}_upload_speed`)) }, { l: "Total ↓", v: `${fmt(L(`${net}_data_downloaded`), 1)} GB` }], present: !!net },
+    net: { v: Number.isFinite(libreOf(`${net}_network_utilization`)) ? libreOf(`${net}_network_utilization`) : (libreOf(`${net}_download_speed`) / 312.5e6) * 100, name: pretty(net ?? ""), big: fmtRate(libreOf(`${net}_download_speed`)), stats: [{ l: "Down", v: fmtRate(libreOf(`${net}_download_speed`)) }, { l: "Up", v: fmtRate(libreOf(`${net}_upload_speed`)) }, { l: "Total ↓", v: `${fmt(libreOf(`${net}_data_downloaded`), 1)} GB` }], present: !!net },
   };
   const len = Math.max(12, Math.round(p.historyLength ?? 60));
   const H: Record<Section, number[]> = { cpu: useHistory(ALL.cpu.v, len), gpu: useHistory(ALL.gpu.v, len), ram: useHistory(ALL.ram.v, len), vram: useHistory(ALL.vram.v, len), disk: useHistory(ALL.disk.v, len), net: useHistory(ALL.net.v, len) };

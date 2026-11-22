@@ -20,6 +20,12 @@ afterEach(() => {
   for (const id of ["test-pack", "bad-pack", "pack-b"]) unregisterPack(id);
 });
 
+function Probe({ lookId, seen }: { lookId: string; seen: [string, boolean][] }) {
+  const pack = usePack(lookId);
+  if (pack) seen.push([pack.id, !!document.head.querySelector(`style[data-pack="${pack.id}"]`)]);
+  return <i data-testid="probe" data-pack={pack?.id ?? ""} />;
+}
+
 describe("usePack and PackStage", () => {
   it("loads a registered pack, mounts its stage and CSS, and takes the CSS out again", async () => {
     registerPack("test-pack", async () => ({ default: TEST_PACK }));
@@ -73,15 +79,10 @@ describe("usePack and PackStage", () => {
     registerPack("test-pack", async () => ({ default: TEST_PACK }));
     registerPack("pack-b", () => new Promise((resolve) => (releaseB = (pack) => resolve({ default: pack }))));
     const seen: [string, boolean][] = [];
-    function Probe({ lookId }: { lookId: string }) {
-      const pack = usePack(lookId);
-      if (pack) seen.push([pack.id, !!document.head.querySelector(`style[data-pack="${pack.id}"]`)]);
-      return <i data-testid="probe" data-pack={pack?.id ?? ""} />;
-    }
-    const { rerender } = render(<Probe lookId="test-pack" />);
+    const { rerender } = render(<Probe lookId="test-pack" seen={seen} />);
     await waitFor(() => expect(screen.getByTestId("probe").dataset.pack).toBe("test-pack"));
-    rerender(<Probe lookId="pack-b" />);
-    rerender(<Probe lookId="test-pack" />);
+    rerender(<Probe lookId="pack-b" seen={seen} />);
+    rerender(<Probe lookId="test-pack" seen={seen} />);
     await waitFor(() => expect(screen.getByTestId("probe").dataset.pack).toBe("test-pack"));
     releaseB(badPack({ id: "pack-b", look: { ...TEST_PACK.look, id: "pack-b" } }));
     await new Promise((r) => setTimeout(r, 20));

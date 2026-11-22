@@ -211,18 +211,21 @@ describe("Widget slots", () => {
   });
 });
 
+const ornamentSlot = () => h("i");
+
 describe("shell layers", () => {
   it("renders an ornament in a click-through, hidden layer", () => {
-    const html = renderToString(h(CardLayer, { part: "ornament", Slot: () => h("i") }));
+    const html = renderToString(h(CardLayer, { part: "ornament", Slot: ornamentSlot }));
     expect(html).toContain('data-wp-layer="ornament"');
     expect(html).toContain("pointer-events-none");
     expect(html).toContain('aria-hidden="true"');
   });
 });
 
+const Orn = () => h("i", { "data-t": "orn" });
+const Band = () => h("i", { "data-t": "band" });
+
 describe("Widget slot layout", () => {
-  const Orn = () => h("i", { "data-t": "orn" });
-  const Band = () => h("i", { "data-t": "band" });
   const values = [1, 5, 2, 8, 3, 9];
   // biome-ignore lint/correctness/noChildrenProp: the Widget takes a render function as children.
   const render = (skin: string, extra: Record<string, unknown> = {}) => renderToString(h(Widget, { skin, size: "lg", title: "T", icon: "memory", children: () => h(Spark, { values, graph: "area" }), ...extra }));

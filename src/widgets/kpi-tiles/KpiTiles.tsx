@@ -41,18 +41,18 @@ function Tiles(p: KpiTilesProps) {
   const cpu = hw(d).cpu,
     gpu = hw(d).gpu;
   const sys = readSystemFlat(d ?? {}, p.names);
-  const L = (k: string) => num(get(d, `libre.${k}`));
+  const libreOf = (k: string) => num(get(d, `libre.${k}`));
   // the busiest adapter, as Network Traffic picks it
   const net = adapterOf(d);
-  const down = net ? L(`${net}_download_speed`) : NaN;
+  const down = net ? libreOf(`${net}_download_speed`) : NaN;
   const rate = rateParts(down);
   const ALL: Record<Metric, Kpi> = {
-    cpu: { l: "CPU", v: L(`${cpu}_cpu_total`), u: "%", sub: (sys.cpu.name ?? pretty(cpu ?? "")).replace(/^AMD Ryzen/, "Ryzen"), max: 100 },
-    gpu: { l: "GPU", v: L(`${gpu}_gpu_core_load`), u: "%", sub: (sys.gpu.name ?? pretty(gpu ?? "")).replace(/^NVIDIA /, ""), max: 100 },
-    ram: { l: "Memory", v: L("total_memory_memory_used"), u: "GB", d: 1, sub: `of ${fmt(L("total_memory_memory_used") + L("total_memory_memory_available"), 0)} GB` },
+    cpu: { l: "CPU", v: libreOf(`${cpu}_cpu_total`), u: "%", sub: (sys.cpu.name ?? pretty(cpu ?? "")).replace(/^AMD Ryzen/, "Ryzen"), max: 100 },
+    gpu: { l: "GPU", v: libreOf(`${gpu}_gpu_core_load`), u: "%", sub: (sys.gpu.name ?? pretty(gpu ?? "")).replace(/^NVIDIA /, ""), max: 100 },
+    ram: { l: "Memory", v: libreOf("total_memory_memory_used"), u: "GB", d: 1, sub: `of ${fmt(libreOf("total_memory_memory_used") + libreOf("total_memory_memory_available"), 0)} GB` },
     net: { l: "Download", v: toMBps(down), text: rate.text, u: rate.unit, sub: net ? pretty(net) : "Network" },
-    vram: { l: "VRAM", v: L(`${gpu}_gpu_memory_used`) / 1024, u: "GB", d: 1, sub: `of ${fmt(L(`${gpu}_gpu_memory_total`) / 1024, 0)} GB` },
-    power: { l: "Power", v: (sys.cpu.power ?? NaN) + L(`${gpu}_gpu_package`), u: "W", sub: "CPU + GPU" },
+    vram: { l: "VRAM", v: libreOf(`${gpu}_gpu_memory_used`) / 1024, u: "GB", d: 1, sub: `of ${fmt(libreOf(`${gpu}_gpu_memory_total`) / 1024, 0)} GB` },
+    power: { l: "Power", v: (sys.cpu.power ?? NaN) + libreOf(`${gpu}_gpu_package`), u: "W", sub: "CPU + GPU" },
   };
   const keys = p.metrics ?? (["cpu", "gpu", "ram", "net"] as Metric[]);
   const H: Record<Metric, number[]> = {

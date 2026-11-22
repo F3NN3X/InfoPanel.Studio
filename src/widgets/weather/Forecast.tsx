@@ -30,10 +30,10 @@ export default function Forecast(p: ForecastProps) {
   const d = p.data;
   const loc = p.location ?? Object.keys(d || {}).map((k) => k.match(/^plugins\.yr-weather-plugin\.([^.]+)\.forecast$/)?.[1]).find(Boolean);
   const F = p.units === "F";
-  const T = (c: number) => (F ? (c * 9) / 5 + 32 : c);
+  const toUnitOf = (c: number) => (F ? (c * 9) / 5 + 32 : c);
   const fc: Day[] = rows(get(d, `plugins.yr-weather-plugin.${loc}.forecast`)).map(([date, cond, range, rain, wind]) => {
     const [hi, lo] = String(range).split("/").map(num);
-    return { day: date?.split(" ")[0], date: date?.split(" ").slice(1).join(" "), cond, hi: T(hi), lo: T(lo), rain: num(rain), wind };
+    return { day: date?.split(" ")[0], date: date?.split(" ").slice(1).join(" "), cond, hi: toUnitOf(hi), lo: toUnitOf(lo), rain: num(rain), wind };
   });
   const lo = Math.min(...fc.map((f) => f.lo)),
     hi = Math.max(...fc.map((f) => f.hi)),

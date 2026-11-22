@@ -31,26 +31,26 @@ const OSD_TEXT = { color: "#f4f4f5", "--w-fg": "#f4f4f5", "--w-muted": "#d4d4d8"
 export default function OsdStrip(p: OsdStripProps) {
   const d = p.data;
   const sk = useSkin();
-  const R = (s: string) => get(d, `plugins.InfoPanel.RTSS.rtss.${s}`);
+  const rtssOf = (s: string) => get(d, `plugins.InfoPanel.RTSS.rtss.${s}`);
   const cpu = hw(d).cpu,
     gpu = hw(d).gpu;
-  const L = (k: string) => num(get(d, `libre.${k}`));
-  const fps = num(R("fps")),
-    low = num(R("1% low fps")),
-    ft = num(R("current frame time")),
-    hz = num(R("refreshrate"));
+  const libreOf = (k: string) => num(get(d, `libre.${k}`));
+  const fps = num(rtssOf("fps")),
+    low = num(rtssOf("1% low fps")),
+    ft = num(rtssOf("current frame time")),
+    hz = num(rtssOf("refreshrate"));
   const idle = !(fps > 0);
   const target = p.target ?? hz;
   const drop = (v: number): string | null => (idle || !Number.isFinite(v) ? null : v < target * 0.5 ? DROP_CRIT : v < target * 0.75 ? DROP_WARN : null);
-  const res = String(R("resolution")).replace(/\s/g, ""),
+  const res = String(rtssOf("resolution")).replace(/\s/g, ""),
     resL = /3840x2160/.test(res) ? "4K" : /2560x1440/.test(res) ? "1440p" : /1920x1080/.test(res) ? "1080p" : res;
   const ALL: Record<OsdCell, [string, string, string | null]> = {
     fps: ["FPS", idle ? "—" : fmt(fps), drop(fps)],
     low: ["1% low", idle ? "—" : fmt(low), drop(low)],
     ft: ["Frame time", idle ? "—" : `${fmt(ft, 1)} ms`, null],
-    gpu: ["GPU", `${fmt(L(`${gpu}_gpu_core_load`), 0)}% · ${fmt(L(`${gpu}_gpu_core`), 0)}°`, null],
-    cpu: ["CPU", `${fmt(L(`${cpu}_cpu_total`), 0)}%`, null],
-    vram: ["VRAM", `${fmt(L(`${gpu}_gpu_memory_used`) / 1024, 1)} GB`, null],
+    gpu: ["GPU", `${fmt(libreOf(`${gpu}_gpu_core_load`), 0)}% · ${fmt(libreOf(`${gpu}_gpu_core`), 0)}°`, null],
+    cpu: ["CPU", `${fmt(libreOf(`${cpu}_cpu_total`), 0)}%`, null],
+    vram: ["VRAM", `${fmt(libreOf(`${gpu}_gpu_memory_used`) / 1024, 1)} GB`, null],
     display: ["Display", `${resL} · ${fmt(hz)} Hz`, null],
   };
   const keys = (p.cells ?? (Object.keys(ALL) as OsdCell[])).filter((k) => k in ALL);
@@ -111,8 +111,8 @@ export default function OsdStrip(p: OsdStripProps) {
                 })}
               </div>
               <span className="truncate text-micro text-[color:var(--w-faint)]">
-                RTSS: {has(R("windowtitle")) ? R("windowtitle") : "—"}
-                {/✓|enabled/i.test(R("benchmark-mode")) ? " · benchmark mode on" : ""}
+                RTSS: {has(rtssOf("windowtitle")) ? rtssOf("windowtitle") : "—"}
+                {/✓|enabled/i.test(rtssOf("benchmark-mode")) ? " · benchmark mode on" : ""}
               </span>
             </div>
           );
@@ -141,8 +141,8 @@ export default function OsdStrip(p: OsdStripProps) {
             </div>
             {h > 90 && (
               <span className="truncate text-micro text-[color:var(--w-faint)]">
-                RTSS: {has(R("windowtitle")) ? R("windowtitle") : "—"}
-                {/✓|enabled/i.test(R("benchmark-mode")) ? " · benchmark mode on" : ""}
+                RTSS: {has(rtssOf("windowtitle")) ? rtssOf("windowtitle") : "—"}
+                {/✓|enabled/i.test(rtssOf("benchmark-mode")) ? " · benchmark mode on" : ""}
               </span>
             )}
           </div>

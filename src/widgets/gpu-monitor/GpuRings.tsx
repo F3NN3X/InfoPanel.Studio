@@ -17,17 +17,17 @@ export default function GpuRings(p: GpuRingsProps) {
   const d = p.data;
   const sk = useSkin();
   const gpu = p.gpu ?? hw(d).gpu;
-  const G = (k: string) => num(get(d, `libre.${gpu}_${k}`));
+  const gpuNumOf = (k: string) => num(get(d, `libre.${gpu}_${k}`));
   const key = (k: string) => `libre.${gpu}_${k}`;
   const tag = useIpTag();
-  const vram = (G("gpu_memory_used") / G("gpu_memory_total")) * 100;
-  const fans = [1, 2, 3].map((i) => G(`gpu_fan_${i}`)).filter((v) => v > 0),
-    duty = G("gpu_fan_1_control");
+  const vram = (gpuNumOf("gpu_memory_used") / gpuNumOf("gpu_memory_total")) * 100;
+  const fans = [1, 2, 3].map((i) => gpuNumOf(`gpu_fan_${i}`)).filter((v) => v > 0),
+    duty = gpuNumOf("gpu_fan_1_control");
   // `k`: the Data API key of the ring's value (VRAM is a share of two, so it has none), for the InfoPanel conversion's tags.
   const M: Record<Ring, { l: string; v: number; txt: string; k?: string }> = {
-    vram: { l: "VRAM", v: vram, txt: `${fmt(G("gpu_memory_used") / 1024, 1)} / ${fmt(G("gpu_memory_total") / 1024, 1)} GB`, k: get(d, key("gpu_memory")) !== "" ? key("gpu_memory") : undefined },
-    load: { l: "Core load", v: G("gpu_core_load"), txt: `${fmt(G("gpu_core_load"), 0)}%`, k: key("gpu_core_load") },
-    power: { l: "Board power", v: G("gpu_board_power"), txt: `${fmt(G("gpu_board_power"), 1)}%`, k: key("gpu_board_power") },
+    vram: { l: "VRAM", v: vram, txt: `${fmt(gpuNumOf("gpu_memory_used") / 1024, 1)} / ${fmt(gpuNumOf("gpu_memory_total") / 1024, 1)} GB`, k: get(d, key("gpu_memory")) !== "" ? key("gpu_memory") : undefined },
+    load: { l: "Core load", v: gpuNumOf("gpu_core_load"), txt: `${fmt(gpuNumOf("gpu_core_load"), 0)}%`, k: key("gpu_core_load") },
+    power: { l: "Board power", v: gpuNumOf("gpu_board_power"), txt: `${fmt(gpuNumOf("gpu_board_power"), 1)}%`, k: key("gpu_board_power") },
     fan: { l: "Fan duty", v: duty, txt: `${fmt(duty, 0)}%`, k: key("gpu_fan_1_control") },
   };
   const outer = M[p.outer ?? "vram"],
@@ -37,16 +37,16 @@ export default function GpuRings(p: GpuRingsProps) {
   const legend: [string | null, string, string, string?][] = [
     [cO, outer.l, outer.txt, outer === M.vram ? undefined : outer.k],
     [cI, inner.l, inner.txt, inner === M.vram ? undefined : inner.k],
-    [null, "Clock", `${fmt(G("gpu_core_clock"), 0)} MHz`, key("gpu_core_clock")],
-    [null, "Power", `${fmt(G("gpu_package"), 1)} W`, key("gpu_package")],
+    [null, "Clock", `${fmt(gpuNumOf("gpu_core_clock"), 0)} MHz`, key("gpu_core_clock")],
+    [null, "Power", `${fmt(gpuNumOf("gpu_package"), 1)} W`, key("gpu_package")],
     [null, "Fans", fans.length ? `${fmt(fans.reduce((a, b) => a + b, 0) / fans.length, 0)} RPM · ${fmt(duty, 0)}%` : "idle"],
-    [null, "Mem junction", `${fmt(G("gpu_memory_junction"), 0)}°C`, key("gpu_memory_junction")],
+    [null, "Mem junction", `${fmt(gpuNumOf("gpu_memory_junction"), 0)}°C`, key("gpu_memory_junction")],
   ];
   const name = (get(d, "plugins.InfoPanel.RTSS.rtss.gpu-name") || pretty(gpu ?? "")).replace(/^NVIDIA GeForce /, "");
   const rings = (size: number) => (
     <RingStack rings={[{ v: outer.v, color: cO, ipKey: outer.k }, { v: inner.v, color: cI, ipKey: inner.k }]} className="shrink-0" style={{ width: size, height: size }}>
       <b {...tag(key("gpu_core"))} className="font-bold leading-none tabular-nums" style={{ fontSize: "19cqw", ...numFont(sk) }}>
-        {fmt(G("gpu_core"), 0)}°C
+        {fmt(gpuNumOf("gpu_core"), 0)}°C
       </b>
       {size > 100 && <span className="text-[color:var(--w-muted)]" style={RING_TEXT.sub}>Core</span>}
     </RingStack>
@@ -56,7 +56,7 @@ export default function GpuRings(p: GpuRingsProps) {
       {...shell(p)}
       title={p.title ?? name}
       icon="donut_large"
-      studio={{ label: name, value: inner.v, unit: "%", sub: `${fmt(G("gpu_core"), 0)}°C · ${outer.l} ${outer.txt}`, pct: outer.v, rows: legend.map(([, l, v]) => ({ n: l, v })) }}
+      studio={{ label: name, value: inner.v, unit: "%", sub: `${fmt(gpuNumOf("gpu_core"), 0)}°C · ${outer.l} ${outer.txt}`, pct: outer.v, rows: legend.map(([, l, v]) => ({ n: l, v })) }}
     >
       {({ w, h }) => {
         const side = w > h * 1.35;

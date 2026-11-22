@@ -25,6 +25,7 @@ export const isLinkCopy = (c: LibraryCopy, link: GaugeLink): boolean => c.profil
 
 /** When the latest copy of `item` at `link` was recorded (else the item's own update time). */
 const linkedAt = (item: LibraryItem, link: GaugeLink): string =>
+  // biome-ignore lint/complexity/useMathMinMax: compares ISO timestamp strings, which Math.max cannot take
   item.copies.filter((c) => isLinkCopy(c, link)).reduce((latest, c) => ((c.at ?? "") > latest ? (c.at ?? "") : latest), "") || item.updatedAt || item.createdAt;
 
 /**

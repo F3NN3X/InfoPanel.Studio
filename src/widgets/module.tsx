@@ -129,6 +129,7 @@ export function templateModule<P extends object>({ meta, Component, settings, to
         <TemplateZone sensors={sensors} saved={saved} />
       ),
   };
+  // biome-ignore lint/correctness/noComponentHookFactories: runs once per widget kind at module load, never per render; the component is stable and closes over that kind's options.
   function TemplateZone({ sensors, saved }: { sensors: SensorMap; saved?: ModuleSettings }) {
     // HWiNFO readings also under the LibreHardwareMonitor keys the widgets read (`hwinfo-aliases.ts`)
     const aliased = useMemo(() => withHwinfoAliases(sensors), [sensors]);

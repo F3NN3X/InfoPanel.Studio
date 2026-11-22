@@ -11,10 +11,10 @@ export interface FramePacingProps extends ShellProps {
 
 export default function FramePacing(p: FramePacingProps) {
   const d = p.data;
-  const R = (s: string) => get(d, `plugins.InfoPanel.RTSS.rtss.${s}`);
-  const fps = num(R("fps")),
-    ft = num(R("current frame time")),
-    hz = num(R("refreshrate"));
+  const rtssOf = (s: string) => get(d, `plugins.InfoPanel.RTSS.rtss.${s}`);
+  const fps = num(rtssOf("fps")),
+    ft = num(rtssOf("current frame time")),
+    hz = num(rtssOf("refreshrate"));
   const idle = !(fps > 0);
   // One reading a second, checked against the frame rate (`frameSample`); raw, so a stutter isn't eased away.
   const frame = frameSample(ft, fps);
@@ -25,9 +25,9 @@ export default function FramePacing(p: FramePacingProps) {
   const top = frameTimeTop(hist, budgets.map((b) => b.ms));
   const graph = hist;
   const stats = [
-    ["Average", fmt(num(R("avg-fps"))), "fps"],
-    ["1% low", fmt(num(R("1% low fps"))), "fps"],
-    ["Min / max", `${fmt(num(R("min-fps")))} / ${fmt(num(R("max-fps")))}`, ""],
+    ["Average", fmt(num(rtssOf("avg-fps"))), "fps"],
+    ["1% low", fmt(num(rtssOf("1% low fps"))), "fps"],
+    ["Min / max", `${fmt(num(rtssOf("min-fps")))} / ${fmt(num(rtssOf("max-fps")))}`, ""],
     ["Frame time", fmt(frame, 1), "ms"],
   ];
   const cell = ([l, v, u]: string[]) => (
@@ -64,7 +64,7 @@ export default function FramePacing(p: FramePacingProps) {
           ? { label: "Frame time", value: idle ? "—" : frame, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps`, idle: idle ? "No game running" : undefined, hist: idle ? undefined : graph, min: 0, max: top, kind: idle ? "value" : "spark" }
           : undefined
       }
-      studio={{ label: "Frame pacing", live: !idle, value: idle ? "—" : frame, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps · 1% ${fmt(num(R("1% low fps")))}`, hist: idle ? undefined : graph, min: 0, max: top }}
+      studio={{ label: "Frame pacing", live: !idle, value: idle ? "—" : frame, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps · 1% ${fmt(num(rtssOf("1% low fps")))}`, hist: idle ? undefined : graph, min: 0, max: top }}
     >
       {({ w, h }) =>
         idle ? (
@@ -78,7 +78,7 @@ export default function FramePacing(p: FramePacingProps) {
             {h > 140 && <p className="m-0 max-w-[34ch] text-body text-[color:var(--w-muted)]">RivaTuner has nothing to capture. FPS and frame time show here when a game starts.</p>}
             {h > 180 && (
               <span className="text-micro text-[color:var(--w-faint)]">
-                {R("gpu-name")} · {R("resolution")} · {fmt(hz)} Hz
+                {rtssOf("gpu-name")} · {rtssOf("resolution")} · {fmt(hz)} Hz
               </span>
             )}
           </div>

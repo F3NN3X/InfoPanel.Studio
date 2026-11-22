@@ -63,7 +63,7 @@ export default function CpuMonitor(p: CpuMonitorProps) {
   // a core without a clock reading (NaN) must not poison the scale, nor draw a NaN bar
   const maxMhz = Math.max(1, ...cores.map((c) => c.mhz).filter(Number.isFinite));
   const cv = (c: Core) => (metric === "clock" ? (Number.isFinite(c.mhz) ? (c.mhz / maxMhz) * 100 : 0) : c.load);
-  const cols = cores.length > 8 ? 8 : cores.length;
+  const cols = Math.min(cores.length, 8);
   const sq = SKINS[p.skin ?? "default"]?.cellSquare ? "rounded-none" : "rounded-[5px]";
   const warn = p.warn ?? 75,
     crit = p.crit ?? 90;

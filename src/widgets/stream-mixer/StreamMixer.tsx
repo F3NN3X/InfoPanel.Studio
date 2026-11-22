@@ -65,7 +65,7 @@ export default function StreamMixer(p: StreamMixerProps) {
   // stays at silence).
   const look = p.mixerLook;
   const deviceOf = (container: string) => () => useDeviceLevel((d) => (audioIds(d).includes(container) ? container : undefined));
-  const useLevelOf = (c: MixChannel): StripChannel["useLevel"] => {
+  const levelHookOf = (c: MixChannel): StripChannel["useLevel"] => {
     const r = c.route;
     if (r.t === "wl-channel") return () => useWavelinkMeter(meterKey.channel(r.id));
     if (r.t === "wl-mix") return () => useWavelinkMeter(meterKey.mix(r.id));
@@ -81,7 +81,7 @@ export default function StreamMixer(p: StreamMixerProps) {
     master: c.master,
     value: clamp(num(c.vol)),
     readout: `${fmt(c.vol)}%`,
-    useLevel: useLevelOf(c),
+    useLevel: levelHookOf(c),
     onChange: readOnly ? undefined : (v) => setVolume(c, Math.round(v)),
     onMute: () => toggleMute(c),
     locked: readOnly,

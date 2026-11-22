@@ -78,7 +78,7 @@ function cardIcon(item: Insertable) {
 }
 
 /** The card's second line: widgets end it with "· min W×H". */
-export function describe(item: Insertable): string {
+export function describeItem(item: Insertable): string {
   if (item.kind !== "module") return item.description ?? "";
   return `${item.description ?? "Widget"} · min ${item.cols}×${item.rows}`;
 }
@@ -145,7 +145,7 @@ export function InsertRow({
       ) : (
         <span className="break-words text-xs font-medium text-ui-1">{item.title}</span>
       )}
-      <span className="text-micro leading-[1.35] text-ui-hint">{describe(item)}</span>
+      <span className="text-micro leading-[1.35] text-ui-hint">{describeItem(item)}</span>
     </div>
   );
 }

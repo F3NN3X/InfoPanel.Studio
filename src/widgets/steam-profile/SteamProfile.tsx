@@ -8,19 +8,19 @@ export type SteamProfileProps = ShellProps;
 
 export default function SteamProfile(p: SteamProfileProps) {
   const d = p.data;
-  const P = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Profile.${s}`);
-  const S = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Social.${s}`);
-  const online = /online|in-game/i.test(P("online-status"));
-  const friends = rows(S("friends-activity")).map(([name, state, game, when]) => ({ name, state, game, when }));
-  const avatar = widgetImage(P("profile_image_url"));
+  const profOf = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Profile.${s}`);
+  const socialOf = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Social.${s}`);
+  const online = /online|in-game/i.test(profOf("online-status"));
+  const friends = rows(socialOf("friends-activity")).map(([name, state, game, when]) => ({ name, state, game, when }));
+  const avatar = widgetImage(profOf("profile_image_url"));
   return (
     <Widget
       {...shell(p)}
       title={p.title ?? "Steam"}
       icon="sports_esports"
       // a 2x2 or 2x1 draws the avatar and the name itself; only a 1x1 is the summary
-      compact={(box) => (box.shape === "tile" && box.w >= 200 ? undefined : { label: "Steam", value: P("player-name"), kind: "text", sub: `${P("online-status")} · Lv ${P("steam-level")}`, img: avatar, icon: "person" })}
-      right={<Chip>Lv {P("steam-level")}</Chip>}
+      compact={(box) => (box.shape === "tile" && box.w >= 200 ? undefined : { label: "Steam", value: profOf("player-name"), kind: "text", sub: `${profOf("online-status")} · Lv ${profOf("steam-level")}`, img: avatar, icon: "person" })}
+      right={<Chip>Lv {profOf("steam-level")}</Chip>}
     >
       {({ size, w, h }) => {
         const head = (
@@ -32,10 +32,10 @@ export default function SteamProfile(p: SteamProfileProps) {
               </span>
             </div>
             <div className="flex min-w-0 flex-col">
-              <span className={`${size === "lg" || size === "sm" ? "text-[22px] leading-tight" : "text-base"} truncate font-semibold`}>{P("player-name")}</span>
+              <span className={`${size === "lg" || size === "sm" ? "text-[22px] leading-tight" : "text-base"} truncate font-semibold`}>{profOf("player-name")}</span>
               <span className="truncate text-caption" style={{ color: online ? "#4ade80" : "var(--w-muted)" }}>
-                {P("online-status")}
-                {size === "sm" && ` · Lv ${P("steam-level")}`}
+                {profOf("online-status")}
+                {size === "sm" && ` · Lv ${profOf("steam-level")}`}
               </span>
             </div>
           </div>
@@ -46,7 +46,7 @@ export default function SteamProfile(p: SteamProfileProps) {
               {head}
               {size === "sm" && (
                 <div className="text-xs text-[color:var(--w-muted)]">
-                  <span className="font-semibold text-[color:var(--w-fg)]">{S("friends-online")}</span> friends online · {S("friends-ingame")} in-game
+                  <span className="font-semibold text-[color:var(--w-fg)]">{socialOf("friends-online")}</span> friends online · {socialOf("friends-ingame")} in-game
                 </div>
               )}
             </div>
@@ -59,9 +59,9 @@ export default function SteamProfile(p: SteamProfileProps) {
           <div className="flex h-full flex-col gap-4">
             {head}
             <div className="grid grid-cols-3 gap-3 rounded-xl bg-[color:var(--w-track)] p-3">
-              <Stat label="Online" value={S("friends-online")} />
-              <Stat label="In-game" value={S("friends-ingame")} />
-              <Stat label="Friends" value={S("total-friends")} />
+              <Stat label="Online" value={socialOf("friends-online")} />
+              <Stat label="In-game" value={socialOf("friends-ingame")} />
+              <Stat label="Friends" value={socialOf("total-friends")} />
             </div>
             {n > 0 && friends.length > 0 && (
               <ul className="flex min-h-0 flex-col gap-2.5 overflow-hidden">

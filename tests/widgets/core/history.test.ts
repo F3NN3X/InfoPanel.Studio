@@ -57,15 +57,24 @@ describe("SeriesStore", () => {
   });
 });
 
+const SeriesProbe = ({ data, v, onStore }: { data: Parameters<typeof useSeries>[0]; v: number; onStore: (s: SeriesStore) => void }) => {
+  onStore(useSeries(data, { a: v }, { ...limits, minGapMs: 0 }));
+  return null;
+};
+
 describe("useSeries", () => {
   it("records the readings of the data it is given", () => {
     let store!: SeriesStore;
     const data = {};
-    const Probe = ({ v }: { v: number }) => {
-      store = useSeries(data, { a: v }, { ...limits, minGapMs: 0 });
-      return null;
-    };
-    renderToString(createElement(Probe, { v: 1 }));
+    renderToString(
+      createElement(SeriesProbe, {
+        data,
+        v: 1,
+        onStore: (s) => {
+          store = s;
+        },
+      })
+    );
     expect(store.read("a")).toHaveLength(1);
   });
 });

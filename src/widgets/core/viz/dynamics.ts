@@ -42,7 +42,7 @@ export const bandCentreHz = (i: number, n: number): number => BAND_MIN_HZ * (BAN
 /** The tilt added to band `i` of `n`, in dB. */
 export const tiltOf = (tiltDb: number, i: number, n: number): number => tiltDb * Math.log2(bandCentreHz(i, n) / 1000);
 
-const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const clamp01 = (v: number) => Math.min(Math.max(v, 0), 1);
 const alphaOf = (dtMs: number, tauMs: number) => (tauMs <= 0 ? 1 : 1 - Math.exp(-dtMs / tauMs));
 
 /**
