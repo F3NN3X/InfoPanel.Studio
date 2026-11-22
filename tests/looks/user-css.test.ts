@@ -1,5 +1,7 @@
 // The user-CSS grammar (L94): what it accepts is listed, so every case here is an attempt to get something else past it.
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { type Declaration, parseCss, writeRules } from "@/looks/css-syntax";
 import { lintPackCss, scopePackCss } from "@/looks/pack-css";
 import { userCssIssues } from "@/looks/user-css";
 
@@ -24,6 +26,7 @@ describe("what the grammar accepts", () => {
     `${PART} { --pack-a: #fff; color: var(--pack-a); }`,
     `${PART} { --pack-a: var(--pack-b); --pack-b: rgb(0, 0, 0); color: var(--pack-a); }`,
     `[data-part="label"] { color: var(--pack-a); } ${PART} { --pack-a: #fff; }`,
+    `${PART} { color: color-mix(in srgb, #fff, #000); }`,
   ])("%s", (css) => {
     passes(css);
     // and the loader, which reads the same file, mounts what it accepted
@@ -55,7 +58,7 @@ describe("selectors: the slot allow-list and nothing else", () => {
     [":is", `:is([data-part="num"], *) { color: #fff; }`],
     [":where", `:where(*) { color: #fff; }`],
     ["a state", `${PART}:hover { color: #fff; }`],
-    ["a pseudo-element", `${PART}::before { background: #000; }`],
+    ["a pseudo-element other than ::before and ::after", `${PART}::marker { color: #000; }`],
     ["the old pseudo-element spelling", `${PART}:after { background: #000; }`],
     ["a sibling combinator", `${PART} + [data-part="label"] { color: #fff; }`],
     ["a general sibling combinator", `${PART} ~ [data-part="label"] { color: #fff; }`],
@@ -81,7 +84,7 @@ describe("colours: hex, rgb() or a var(--pack-*) that resolves here", () => {
     ["hsl", `${PART} { color: hsl(0 0% 100%); }`],
     ["oklch", `${PART} { color: oklch(1 0 0); }`],
     ["color()", `${PART} { color: color(srgb 1 1 1); }`],
-    ["color-mix", `${PART} { color: color-mix(in srgb, #fff, #000); }`],
+    ["color-mix in a space it does not read", `${PART} { color: color-mix(in hwb, #fff, #000); }`],
     ["color-mix over a var", `${PART} { --pack-a: #fff; color: color-mix(in srgb, var(--pack-a) 1%, transparent); }`],
     ["light-dark", `${PART} { color: light-dark(#fff, #000); }`],
     ["five hex digits", `${PART} { color: #12345; }`],
@@ -133,7 +136,7 @@ describe("properties and values: a short list, each its own shape", () => {
     ["a text fill", `${PART} { -webkit-text-fill-color: #fff; }`],
     ["a clip", `${PART} { -webkit-background-clip: text; }`],
     ["an animation", `${PART} { animation: spin 1s; }`],
-    ["a transition", `${PART} { transition: color 1s; }`],
+    ["a transition of everything", `${PART} { transition: all 1s; }`],
     ["a font", `${PART} { font-family: Arial; }`],
     ["a background image", `${PART} { background-image: none; }`],
     ["a gradient", `${PART} { background: linear-gradient(#000, #fff); }`],
@@ -163,7 +166,7 @@ describe("properties and values: a short list, each its own shape", () => {
 
 describe("at-rules, urls and syntax: refused, each spelling", () => {
   it.each([
-    ["@keyframes", `@keyframes pack-x { from { color: #fff; } }`],
+    ["@keyframes not named pack-*", `@keyframes x { from { color: #fff; } } ${PART} { animation: x 2s; }`],
     ["@keyframes with a prefix", `@-webkit-keyframes pack-x { from { color: #fff; } }`],
     ["@import", `@import "x.css";`],
     ["@import with a url", `@import url(x.css);`],
@@ -234,5 +237,81 @@ describe("a crafted file cannot make the reader slow", () => {
   it("refuses more declarations than the cap", () => {
     const many = Array.from({ length: 2001 }, () => "color: #fff;").join(" ");
     expect(userCssIssues(`${PART} { ${many} }`).join()).toContain("2001 declarations");
+  });
+
+  it("counts a keyframe's declarations toward the cap", () => {
+    const many = Array.from({ length: 2001 }, () => "opacity: 1;").join(" ");
+    expect(userCssIssues(`@keyframes pack-a { to { ${many} } } ${PART} { animation: pack-a 2s; }`).join()).toContain("2002 declarations");
+  });
+});
+
+// Phase 2 (gate 0 §6 and its decisions): each row of the values table, passing and refused in the grammar.
+const CARD = '[data-part="card"]';
+const PSEUDO = '[data-part="num"]::before';
+
+describe("the Phase 2 values in the grammar", () => {
+  it.each([
+    ["clip-path", [`${CARD} { clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%); }`, `[data-part="label"]::after { clip-path: inset(2px round 4px); }`], [`${PART} { clip-path: inset(2px); }`, `${CARD} { clip-path: circle(50%); }`, `${CARD} { clip-path: path("M0 0"); }`]],
+    ["mask-image", [`${PART} { mask-image: linear-gradient(#000, transparent); }`, `${CARD} { --pack-a: #000; -webkit-mask-image: radial-gradient(circle, var(--pack-a), transparent); }`, `${PSEUDO} { mask-image: url(assets/m.svg); }`], [`${CARD} { mask-image: url(assets/m.svg); }`, `${PART} { mask-image: linear-gradient(red, #000); }`, `${PART} { mask-image: element(#x); }`, `${PART} { mask-image: linear-gradient(var(--w-fg), #000); }`]],
+    ["mask-size, -repeat, -position", [`${PART} { mask-size: 100% 8px; mask-repeat: no-repeat; -webkit-mask-position: center; }`], [`${PART} { mask-size: 5000px; }`, `${PART} { mask-position: 1vh; }`]],
+    ["mask", [`${CARD} { mask: linear-gradient(#000, transparent) center / 100% 50% no-repeat; }`], [`${CARD} { mask: linear-gradient(#000, #000) alpha; }`, `${CARD} { mask: url(assets/m.svg); }`]],
+    ["mask-composite, mask-mode", [], [`${CARD} { mask-composite: add; }`, `${PSEUDO} { mask-mode: luminance; }`]],
+    ["transform", [`${PSEUDO} { transform: translateY(-100%) rotate(45deg); }`], [`${CARD} { transform: rotate(1deg); }`, `${PSEUDO} { transform: perspective(10px); }`, `${PSEUDO} { transform: rotate3d(1, 0, 0, 10deg); }`]],
+    ["translate, rotate, scale", [`${PSEUDO} { translate: 4px; rotate: 10deg; scale: 0.9; }`], [`${PART} { scale: 1; }`, `${PSEUDO} { scale: 1.2; }`]],
+    ["transform-origin", [`${PSEUDO} { transform-origin: right bottom; }`], [`${CARD} { transform-origin: 0 0; }`]],
+    ["content", [`${PSEUDO} { content: "// "; }`, `${PSEUDO} { content: attr(data-pack-x); }`, `${PSEUDO} { content: counter(pack-n); }`], [`${PART} { content: ""; }`, `${PSEUDO} { content: attr(data-part); }`, `${PSEUDO} { content: url(assets/a.svg); }`, `${PSEUDO} { content: "a" counter(pack-n); }`]],
+    ["inset, top, right, bottom, left, width, height", [`${PSEUDO} { content: ""; inset: 0; width: 12px; height: calc(100% - 4px); left: auto; }`], [`${CARD} { height: 10px; }`, `${PSEUDO} { top: -2px; }`, `${PSEUDO} { width: 1rem; }`]],
+    ["border-radius", [`${CARD} { border-radius: 8px; }`, `${PSEUDO} { border-top-right-radius: 50%; }`], [`${CARD} { border-radius: 65px; }`, `${PART} { border-radius: 4px; }`]],
+    ["border-image-source", [`${CARD} { border-image-source: linear-gradient(#0ff, transparent); }`, `${PSEUDO} { border-image-source: url(assets/edge.svg); }`], [`${CARD} { border-image-source: conic-gradient(#000, #fff); }`, `${PART} { border-image-source: linear-gradient(#000, #fff); }`, `${CARD} { border-image-source: url(https://x.test/a.svg); }`]],
+    ["border-image-width, -outset, -slice, -repeat", [`${CARD} { border-image-width: 1px; border-image-outset: 0; border-image-slice: 1 10%; border-image-repeat: round stretch; }`], [`${CARD} { border-image-outset: 2px; }`, `${CARD} { border-image-slice: 1 fill; }`, `${CARD} { border-image-width: 9px; }`, `${CARD} { border-image-repeat: tile; }`]],
+    ["outline-offset", [`${PART} { outline-offset: -2px; }`], [`${PART} { outline-offset: 12px; }`]],
+    ["background gradients and files", [`${CARD} { background: linear-gradient(90deg, #000 0%, rgb(0 0 0 / 50%) 100%); }`, `${PSEUDO} { background-image: repeating-linear-gradient(to bottom, #fff1 0 1px, transparent 1px 3px); }`, `${CARD} { background-image: url("assets/bg.png"); }`], [`${PART} { background: linear-gradient(#000, #fff); }`, `${CARD} { background: conic-gradient(#000, #fff); }`, `${PART} { background-image: url(assets/bg.png); }`, `${CARD} { background-image: url(assets/bg.png?x); }`, `${CARD} { background-image: linear-gradient(#000, #fff), url(assets/bg.png); }`]],
+    ["color-mix", [`${PART} { color: color-mix(in oklch, #fff 80%, #000); }`, `${CARD} { --pack-a: #0ff; background-color: color-mix(in srgb, var(--pack-a) 20%, transparent); }`, `${PART} { --pack-m: color-mix(in hsl, #fff, #000); color: var(--pack-m); }`], [`${PART} { color: color-mix(in srgb, #fff, transparent); }`, `${PART} { color: color-mix(in lab, #fff, #000); }`, `${PART} { color: color-mix(in srgb, var(--w-fg), #000); }`, `${PART} { color: color-mix(in srgb, color-mix(in srgb, #fff, #000), #000); }`, `${PART} { color: color-mix(in srgb, #fff 120%, #000); }`]],
+    ["transition", [`${PART} { transition: color 200ms ease-in-out, opacity 1s; }`, `${CARD} { transition-property: box-shadow; transition-duration: 2s; }`], [`${PSEUDO} { transition: width 1s; }`, `${PART} { transition: color 2.5s; }`, `${PART} { transition-delay: -1s; }`, `${PART} { transition: --pack-a 1s; }`]],
+    ["border", [`${PSEUDO} { border: 1px dashed #0ff; }`], [`${CARD} { border: 1px solid #0ff; }`, `[data-part="ring"]::before { border: 1px solid #0ff; }`, `${PSEUDO} { border: 1px solid red; }`, `${PSEUDO} { border: 6px solid #0ff; }`]],
+    ["@keyframes pack-*", [`@keyframes pack-scan { from { transform: translateY(0); } to { transform: translateY(100%); } } ${PSEUDO} { content: ""; animation: pack-scan 4s linear infinite; }`, `@keyframes pack-glow { from { opacity: 0.6; } to { opacity: 1; } } ${CARD} { animation: pack-glow 2s infinite alternate; }`], [`@keyframes pack-scan { to { transform: translateY(100%); } } ${CARD} { animation: pack-scan 4s; }`, `@keyframes pack-x { to { content: "a"; } } ${PSEUDO} { animation: pack-x 2s; }`, `@keyframes pack-x { to { animation: pack-y 1s; } } ${PSEUDO} { animation: pack-x 2s; }`, `@keyframes pack-x { to { width: 4px; } } ${PSEUDO} { animation: pack-x 2s; } ${CARD} { animation: pack-x 2s; }`, `@keyframes pack-x { to { clip-path: inset(2px); } } ${PART} { animation: pack-x 2s; }`]],
+    ["animation", [`@keyframes pack-glow { to { opacity: 0.8; } } ${CARD} { animation-name: pack-glow; animation-duration: 2s; animation-iteration-count: 3; }`], [`@keyframes pack-glow { to { opacity: 0.8; } } ${CARD} { animation: pack-glow 0.5s infinite; }`, `${CARD} { animation: spin 2s; }`, `@keyframes pack-glow { to { opacity: 0.8; } } ${CARD} { animation: pack-glow 2s var(--pack-t); }`]],
+  ])("%s", (_row, passing, refusals) => {
+    for (const css of passing) passes(css);
+    for (const css of refusals) refused(css);
+  });
+
+  it("a pseudo-element is a slot selector followed directly by ::before or ::after", () => {
+    passes(`[data-part="header"] > [data-part="label"]::after { content: "x"; }`);
+    passes(`${PSEUDO}, [data-part="unit"]::after { content: ""; }`);
+    for (const selector of [`${PSEUDO}:hover`, `${PSEUDO} [data-part="label"]`, '[data-part="num"]::BEFORE', '[data-part="num"] ::before', '[data-part="num"]::first-line', `${PSEUDO}, ${PART}`]) refused(`${selector} { content: ""; }`);
+  });
+
+  it("a pack never writes the box the mount pins, on a pseudo-element or anywhere", () => {
+    for (const decl of ["position: absolute", "pointer-events: auto", "z-index: 1"]) {
+      refused(`${PSEUDO} { ${decl}; }`);
+      refused(`${CARD} { ${decl}; }`);
+    }
+  });
+});
+
+describe("the CyberSpec sample (MIT) through both gates", () => {
+  const sample = readFileSync(new URL("../fixtures/looks/cyberspec-phase2-sample.css", import.meta.url), "utf8");
+  /** Each declaration of the sample on its own, in its own rule, with the custom properties it names defined beside it. */
+  const one = (css: string) => {
+    const rules = parseCss(css, []);
+    const custom = new Map(rules.flatMap((r) => (r.declarations ?? []).filter((d) => d.name.startsWith("--")).map((d) => [d.name, d] as const)));
+    return rules.flatMap((r) =>
+      (r.declarations ?? []).map((d) => {
+        const named = d.value.filter((t) => t.t === "ident" && custom.has(t.v) && t.v !== d.name).map((t) => custom.get(t.v) as Declaration);
+        return writeRules([{ prelude: r.prelude, declarations: [...named, d] }]);
+      })
+    );
+  };
+  const failing = (lint: (css: string) => string[], css: string) => one(css).filter((rule) => lint(rule).length > 0);
+
+  it("passes the built-in lint whole but for one declaration: the border-image shorthand, which the table does not list", () => {
+    expect(one(sample)).toHaveLength(40);
+    expect(failing(lintPackCss, sample)).toEqual([".sample-23{border-image:linear-gradient(transparent, transparent) 1;}"]);
+  });
+
+  it("passes the grammar on the card but for that one and a custom property that is not a colour", () => {
+    const onCard = sample.replace(/\.sample-[\w-]+/g, CARD);
+    expect(failing(userCssIssues, onCard)).toEqual([`${CARD}{border-image:linear-gradient(transparent, transparent) 1;}`, `${CARD}{--pack-cut:12px;}`]);
   });
 });

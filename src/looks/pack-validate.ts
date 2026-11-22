@@ -20,7 +20,7 @@ import { MAX_LAYERS, NUMERAL_MIN, numeralIssues, stageIssues } from "./pack-chec
 import { commaParts, lintPackCss, OPACITY_FLOOR } from "./pack-css";
 import { INJECTION, jsonShapeIssues, jsonStrings, PROSE_PATHS, rasterMatches, STYLE_BREAKERS, svgIssue, svgPaints, TOKEN_KEY, withoutAliases } from "./pack-safety";
 import packSchema from "./pack.schema.json";
-import { cssUrls, isPackRelativeUrl, packCssIssues } from "./pack-urls";
+import { cssUrls, isPackRelativeUrl, packCssIssues, packPath } from "./pack-urls";
 import { schemaErrors } from "./schema-check";
 import { userCssIssues } from "./user-css";
 import { type Colour, flatOver, over, parseColour } from "./colour";
@@ -179,7 +179,7 @@ function cssRule(message: string): string {
   if (prop) return ROTATION.test(prop) ? "no-rotation" : "paint-only";
   if (/reaches over|recolours|is over \d+ px|repeats runs/.test(message)) return "paint-cap";
   if (/hides or blurs|opacity|stroke-width/.test(message)) return "hides-content";
-  if (message.includes("reaches outside")) return "selector";
+  if (message.includes("reaches outside") || message.includes("names a pseudo-element")) return "selector";
   if (message.includes("must start with pack-")) return "font-face";
   if (message.includes("nested too deep")) return "css-syntax";
   if (/^(at-rule|keyframe|@keyframes)/.test(message)) return "paint-only";
@@ -647,15 +647,16 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
     const path = name.replace(/[?#].*$/, "").replace(/^\.\//, "");
     return [base + path, path, `assets/${path}`].find((p) => files.has(p));
   };
-  const refer = (from: string, name: string, base: string) => {
+  const refer = (from: string, name: string, base: string, exact = false) => {
     if (!isPackRelativeUrl(name) || /["']/.test(name)) return void add(urlRule(name), from, `${name} is not a path inside the pack`);
-    const found = resolve(name, base);
+    // a user pack's CSS url is served as written (`scopePackCss` rewrites it to the route), so it names its file exactly
+    const found = exact ? [packPath(name)].find((p) => files.has(p)) : resolve(name, base);
     if (!found) add("asset-missing", from, `${name} is not in the pack's files`);
     else referenced.set(found, from);
   };
   pack.stage.layers.forEach((l) => l.image !== undefined && refer("pack.json", l.image, "assets/"));
   pack.fonts.forEach((f) => refer("pack.json", f.file, "assets/"));
-  if (!user && src.css !== undefined) for (const u of cssUrls(src.css)) refer("pack.css", u, "");
+  if (src.css !== undefined) for (const u of cssUrls(src.css)) refer("pack.css", u, "", user);
 
   // the asset list matches the files (a user pack must list every asset)
   const assets = [...files.keys()].filter((p) => p.startsWith("assets/"));

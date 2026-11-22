@@ -322,6 +322,18 @@ describe("a user pack carries no pack.css (the controller decision)", () => {
   });
 });
 
+describe("a user pack's CSS names its own files, exactly as the route serves them (decision Q3)", () => {
+  const masked = (url: string) => ({ ...userPack(), css: `[data-part="card"]::after { content: ""; mask-image: url(${url}); }` });
+  it("a file of the pack passes, and counts as used", () => {
+    expect(validatePack(masked("assets/hazard.svg")).filter((i) => i.file === "assets/hazard.svg")).toEqual([]);
+    expect(userRules(masked("assets/hazard.svg"))).toEqual([]);
+  });
+  it("a path the route would not find is refused: no assets/ step, or no such file", () => {
+    expect(userRules(masked("hazard.svg"))).toContain("asset-missing");
+    expect(userRules(masked("assets/gone.svg"))).toContain("asset-missing");
+  });
+});
+
 describe("H1: hidden text, whatever the spelling", () => {
   const num = (decl: string) => `[data-part="num"] { ${decl}; }`;
   it.each(["color: white", "-webkit-text-fill-color: white", "color: hsl(0 0% 100%)", "color: var(--w-surface)", "color: transparent"])("%s", (decl) => {
