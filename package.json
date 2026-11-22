@@ -13,7 +13,7 @@
     "test:one-editor": "playwright test --project=one-editor",
     "perf:kiosk": "playwright test --project=perf-kiosk --workers=1",
     "perf:studio": "playwright test --project=perf-studio --workers=1",
-    "perf:all": "npm run build && npm run desktop:settings && playwright test --project=perf-kiosk --project=perf-studio --workers=1 && node tools/perf/bundle-report.mjs && node tools/perf/disk-report.mjs",
+    "perf:all": "npm run build && npm run desktop:settings && playwright test --project=perf-kiosk --project=perf-studio --workers=1 && node tools/perf/bundle-report.mjs && node tools/perf/disk-report.mjs && node tools/perf/check-budgets.mjs --idle",
     "perf:compare": "node tools/perf/compare.mjs",
     "perf:budgets": "node tools/perf/check-budgets.mjs",
     "lint": "biome lint",
