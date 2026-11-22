@@ -127,7 +127,6 @@ async fn get(port: u16, path: &str) -> Reply {
     send(port, "GET", path, &[], "").await
 }
 
-
 fn json(reply: &Reply) -> serde_json::Value {
     serde_json::from_slice(&reply.body).unwrap()
 }
@@ -201,7 +200,10 @@ async fn refuses_a_write_without_the_config_headers_or_with_a_bad_body() {
     assert_eq!((big.status, big.header("connection")), (400, Some("close")));
     // Nothing was saved by any of it.
     assert!(!s.data().join("integrations.json").exists());
-    assert_eq!(get(s.port, "/api/integrations").await.text(), r#"{"obs":{"host":"","port":4455,"hasPassword":false},"calendar":{"links":[]}}"#);
+    assert_eq!(
+        get(s.port, "/api/integrations").await.text(),
+        r#"{"obs":{"host":"","port":4455,"hasPassword":false},"calendar":{"links":[]}}"#
+    );
     // An empty body is an empty patch.
     assert_eq!(put(s.port, "").await.status, 200);
     s.stop().await;
@@ -215,7 +217,9 @@ async fn saves_secrets_to_their_own_file_and_shows_the_studio_only_the_public_fo
     assert_eq!(saved.status, 200);
     let id = json(&saved)["calendar"]["links"][0]["id"].as_str().unwrap().to_string();
     assert_eq!(id.len(), 36);
-    let public = format!(r#"{{"obs":{{"host":"127.0.0.1","port":1,"hasPassword":true}},"calendar":{{"links":[{{"id":"{id}","label":"Work","host":"calendar.example.com"}}]}}}}"#);
+    let public = format!(
+        r#"{{"obs":{{"host":"127.0.0.1","port":1,"hasPassword":true}},"calendar":{{"links":[{{"id":"{id}","label":"Work","host":"calendar.example.com"}}]}}}}"#
+    );
     assert_eq!(saved.text(), public);
     assert_eq!(get(s.port, "/api/integrations").await.text(), public);
     for secret in ["hunter2", "private"] {
@@ -230,8 +234,13 @@ async fn saves_secrets_to_their_own_file_and_shows_the_studio_only_the_public_fo
     assert_eq!(file, expected);
     assert!(!s.data().join("integrations.json.tmp").exists());
     // A password is kept unless one is sent; a stored link is kept by its id, whatever url the patch names.
-    let kept = put(s.port, &format!(r#"{{"obs":{{"port":4456}},"calendar":{{"links":[{{"id":"{id}","url":"https://other.example/x"}}]}}}}"#)).await;
-    assert!(kept.text().contains(r#""port":4456,"hasPassword":true"#) && kept.text().contains(r#""label":"Work","host":"calendar.example.com""#));
+    let kept =
+        put(s.port, &format!(r#"{{"obs":{{"port":4456}},"calendar":{{"links":[{{"id":"{id}","url":"https://other.example/x"}}]}}}}"#))
+            .await;
+    assert!(
+        kept.text().contains(r#""port":4456,"hasPassword":true"#)
+            && kept.text().contains(r#""label":"Work","host":"calendar.example.com""#)
+    );
     let cleared = put(s.port, r#"{"obs":{"password":""},"calendar":{"links":[]}}"#).await;
     assert_eq!(cleared.text(), r#"{"obs":{"host":"127.0.0.1","port":4456,"hasPassword":false},"calendar":{"links":[]}}"#);
     s.stop().await;
@@ -282,11 +291,17 @@ async fn will_not_fetch_a_calendar_from_this_machine_and_says_so_without_the_lin
     let link = r#"{"calendar":{"links":[{"url":"http://127.0.0.1:9/secret-token.ics","label":"Local"},{"url":"http://localhost:9/secret-token.ics"}]}}"#;
     assert_eq!(put(s.port, link).await.status, 200);
     let state = extras_until(s.port, |state| state["calendar"]["configured"] == true).await;
-    assert_eq!(state["calendar"], serde_json::json!({ "configured": true, "events": [], "error": "Local: address not allowed; localhost:9: address not allowed" }));
+    assert_eq!(
+        state["calendar"],
+        serde_json::json!({ "configured": true, "events": [], "error": "Local: address not allowed; localhost:9: address not allowed" })
+    );
     assert!(!state.to_string().contains("secret-token"));
     // Removing the links turns the calendar off again.
     assert_eq!(put(s.port, r#"{"calendar":{"links":[]}}"#).await.status, 200);
-    assert_eq!(extras_until(s.port, |state| state["calendar"]["configured"] == false).await["calendar"], serde_json::json!({ "configured": false, "events": [] }));
+    assert_eq!(
+        extras_until(s.port, |state| state["calendar"]["configured"] == false).await["calendar"],
+        serde_json::json!({ "configured": false, "events": [] })
+    );
     s.stop().await;
 }
 

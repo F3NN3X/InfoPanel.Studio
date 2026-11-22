@@ -236,7 +236,9 @@ mod windows_impl {
             let (attached, detached, paused) = (Rc::clone(&frames), Rc::clone(&frames), Rc::clone(&frames));
             let target = core.clone();
             let watched = on_event(&core, "Page.frameAttached", move |p| {
-                if let (Some(frame), Some(parent)) = (p.get("frameId").and_then(Value::as_str), p.get("parentFrameId").and_then(Value::as_str)) {
+                if let (Some(frame), Some(parent)) =
+                    (p.get("frameId").and_then(Value::as_str), p.get("parentFrameId").and_then(Value::as_str))
+                {
                     attached.borrow_mut().attached(frame, parent);
                 }
             })
@@ -350,17 +352,17 @@ mod tests {
             ("Content-Length", "123"),
             ("Set-Cookie", "a=1"),
         ]);
-        let expected = entries(&[
-            ("Content-Type", "text/html"),
-            ("Content-Security-Policy", "default-src 'self'; img-src *"),
-            ("Set-Cookie", "a=1"),
-        ]);
+        let expected =
+            entries(&[("Content-Type", "text/html"), ("Content-Security-Policy", "default-src 'self'; img-src *"), ("Set-Cookie", "a=1")]);
         assert_eq!(unframed_headers(&headers), Some(expected));
     }
 
     #[test]
     fn drops_a_policy_left_empty_and_keeps_every_other_policy() {
-        let headers = entries(&[("content-security-policy", "frame-ancestors 'none'"), ("content-security-policy", "script-src 'self', frame-ancestors 'self'; base-uri 'none'")]);
+        let headers = entries(&[
+            ("content-security-policy", "frame-ancestors 'none'"),
+            ("content-security-policy", "script-src 'self', frame-ancestors 'self'; base-uri 'none'"),
+        ]);
         assert_eq!(unframed_headers(&headers), Some(entries(&[("content-security-policy", "script-src 'self', base-uri 'none'")])));
     }
 

@@ -126,7 +126,10 @@ pub fn apply_settings_patch(stored: &Value, patch: &Value) -> Result<Value, Refu
 
     if let Some(launch) = patch.get("activeProfile") {
         let known = |id: &str| {
-            config.get("profiles").and_then(Value::as_array).is_some_and(|ps| ps.iter().any(|p| p.get("id").and_then(Value::as_str) == Some(id)))
+            config
+                .get("profiles")
+                .and_then(Value::as_array)
+                .is_some_and(|ps| ps.iter().any(|p| p.get("id").and_then(Value::as_str) == Some(id)))
         };
         let id = match launch {
             Value::Null => "auto",
@@ -221,7 +224,8 @@ mod tests {
 
     #[test]
     fn refuses_a_bad_clock_or_switch() {
-        for bad in [json!({ "general": { "clock": "auto" } }), json!({ "profiles": { "desk": { "performance": { "ringGlide": "yes" } } } })] {
+        for bad in [json!({ "general": { "clock": "auto" } }), json!({ "profiles": { "desk": { "performance": { "ringGlide": "yes" } } } })]
+        {
             assert_eq!(apply_settings_patch(&stored(), &bad).unwrap_err().status, 400);
         }
     }
@@ -229,7 +233,8 @@ mod tests {
     // A Settings window built before v16 still writes `style.clock` and the dashboard performance keys.
     #[test]
     fn still_accepts_a_pre_v16_settings_patch() {
-        let out = apply_settings_patch(&stored(), &json!({ "style": { "clock": "24" }, "general": { "maxFps": 15, "liveGlow": true } })).unwrap();
+        let out =
+            apply_settings_patch(&stored(), &json!({ "style": { "clock": "24" }, "general": { "maxFps": 15, "liveGlow": true } })).unwrap();
         assert_eq!(out["style"], json!({ "clock": "24" }));
         assert_eq!(out["general"], json!({ "locale": "de-DE", "maxFps": 15, "liveGlow": true }));
     }

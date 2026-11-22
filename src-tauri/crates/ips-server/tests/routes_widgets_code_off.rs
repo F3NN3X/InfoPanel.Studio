@@ -16,7 +16,10 @@ use tokio::sync::oneshot;
 /// The status, whether the answer says code widgets are off, and the body (enough for these short answers).
 async fn ask(port: u16, method: &str, path: &str, headers: &str, body: &str) -> (u16, bool, String) {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
-    let request = format!("{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n{headers}Content-Length: {}\r\n\r\n{body}", body.len());
+    let request = format!(
+        "{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n{headers}Content-Length: {}\r\n\r\n{body}",
+        body.len()
+    );
     stream.write_all(request.as_bytes()).await.unwrap();
     let mut raw = Vec::new();
     tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw)).await.unwrap().unwrap();
@@ -24,7 +27,11 @@ async fn ask(port: u16, method: &str, path: &str, headers: &str, body: &str) -> 
     let status = text.split(' ').nth(1).unwrap().parse().unwrap();
     let off = text.to_ascii_lowercase().contains("x-user-code-widgets: off");
     let rest = text.split("\r\n\r\n").nth(1).unwrap_or("");
-    let body = if text.to_ascii_lowercase().contains("transfer-encoding: chunked") { rest.lines().nth(1).unwrap_or("").to_string() } else { rest.to_string() };
+    let body = if text.to_ascii_lowercase().contains("transfer-encoding: chunked") {
+        rest.lines().nth(1).unwrap_or("").to_string()
+    } else {
+        rest.to_string()
+    };
     (status, off, body)
 }
 
@@ -48,7 +55,9 @@ async fn off_a_code_widget_is_not_listed_served_or_imported_and_recipes_are_unto
     let data = dir.path().join("data");
     copy(&fixtures().join("ext.test.clock"), &data.join("widgets").join("ext.test.clock"));
     copy(&fixtures().join("recipe.signed"), &data.join("widgets").join("recipe.signed"));
-    KeyStore::new(&data).add_user("Test", &std::fs::read_to_string(fixtures().join("TEST-ONLY-publisher.pub")).unwrap(), &["test".into()]).unwrap();
+    KeyStore::new(&data)
+        .add_user("Test", &std::fs::read_to_string(fixtures().join("TEST-ONLY-publisher.pub")).unwrap(), &["test".into()])
+        .unwrap();
     let cfg = ServerConfig {
         host: "127.0.0.1".into(),
         port: 0,
@@ -73,7 +82,8 @@ async fn off_a_code_widget_is_not_listed_served_or_imported_and_recipes_are_unto
         let _ = stopped.await;
     }));
     let (status, off, body) = ask(port, "GET", "/api/widgets", "", "").await;
-    let ids: Vec<String> = serde_json::from_str::<Value>(&body).unwrap().as_array().unwrap().iter().map(|i| i["id"].as_str().unwrap().to_string()).collect();
+    let ids: Vec<String> =
+        serde_json::from_str::<Value>(&body).unwrap().as_array().unwrap().iter().map(|i| i["id"].as_str().unwrap().to_string()).collect();
     assert_eq!((status, off, ids), (200, true, vec!["recipe:signed".to_string()]), "the signed recipe stays; the code widget is hidden");
     assert_eq!(ask(port, "GET", "/api/widgets/ext.test.clock/widget.js", "", "").await.0, 404);
     assert_eq!(ask(port, "GET", "/api/widgets/recipe.signed/recipe.json", "", "").await.0, 200);

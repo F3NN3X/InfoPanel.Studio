@@ -6,10 +6,7 @@ use std::process::{Command, Stdio};
 #[cfg(windows)]
 fn shell(command: &str) -> Command {
     use std::os::windows::process::CommandExt;
-    let comspec = std::env::var("COMSPEC")
-        .ok()
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "cmd.exe".into());
+    let comspec = std::env::var("COMSPEC").ok().filter(|s| !s.is_empty()).unwrap_or_else(|| "cmd.exe".into());
     let mut cmd = Command::new(comspec);
     cmd.raw_arg(format!("/d /s /c \"{command}\""));
     cmd
@@ -25,12 +22,7 @@ fn shell(command: &str) -> Command {
 /// Runs `command` with `input` on its stdin and its stdout and stderr passed straight through;
 /// waits for it (no timeout) and ignores its exit code and every failure.
 pub fn run_wrapped(command: &str, input: &str) {
-    let Ok(mut child) = shell(command)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-    else {
+    let Ok(mut child) = shell(command).stdin(Stdio::piped()).stdout(Stdio::inherit()).stderr(Stdio::inherit()).spawn() else {
         return;
     };
     let stdin = child.stdin.take();

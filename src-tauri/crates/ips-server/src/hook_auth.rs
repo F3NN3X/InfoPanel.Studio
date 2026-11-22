@@ -14,8 +14,8 @@ use blake2::digest::consts::U32;
 use blake2::digest::Mac;
 use blake2::Blake2bMac;
 
-pub use crate::key_file::{key_file, Key, KEY_BYTES, KEY_FILE};
 use crate::key_file::{self, Refused};
+pub use crate::key_file::{key_file, Key, KEY_BYTES, KEY_FILE};
 
 /// Parts this use of a key from any other.
 const DOMAIN: &[u8] = b"ips-agent-permission-v1\0";
@@ -66,7 +66,12 @@ mod tests {
         let allow = sign(&key, n, "r1", "allow");
         // pinned: ips-agent's hook_auth.rs `checks_the_same_signature_the_server_makes` asserts the same value
         assert_eq!(allow, "36058a4188146a2c22ae478e7b4451e8c3842080a363813a237487012382ff7b");
-        for other in [sign(&key, n, "r1", "deny"), sign(&key, n, "r2", "allow"), sign(&key, "f123456789abcdef0123456789abcdef", "r1", "allow"), sign(&[8u8; KEY_BYTES], n, "r1", "allow")] {
+        for other in [
+            sign(&key, n, "r1", "deny"),
+            sign(&key, n, "r2", "allow"),
+            sign(&key, "f123456789abcdef0123456789abcdef", "r1", "allow"),
+            sign(&[8u8; KEY_BYTES], n, "r1", "allow"),
+        ] {
             assert_ne!(allow, other);
         }
     }

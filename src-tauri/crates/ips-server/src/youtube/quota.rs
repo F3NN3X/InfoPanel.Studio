@@ -32,11 +32,7 @@ impl Quota {
     /// Starts the day's count over once its midnight has passed, and lifts a block.
     fn roll(&mut self, now_ms: i64) {
         if self.reset_at == 0 || now_ms >= self.reset_at {
-            *self = Self {
-                used: 0,
-                reset_at: next_reset(now_ms),
-                blocked: false,
-            };
+            *self = Self { used: 0, reset_at: next_reset(now_ms), blocked: false };
         }
     }
 
@@ -90,10 +86,7 @@ mod tests {
         let mut q = Quota::default();
         q.spend(NOON_UTC, 5);
         q.spend(NOON_UTC + HOUR, 50);
-        assert_eq!(
-            (q.used(NOON_UTC + HOUR), q.blocked_until(NOON_UTC + HOUR)),
-            (55, None)
-        );
+        assert_eq!((q.used(NOON_UTC + HOUR), q.blocked_until(NOON_UTC + HOUR)), (55, None));
         let reset = q.exhaust(NOON_UTC + 2 * HOUR);
         assert_eq!(reset, NOON_UTC + 19 * HOUR);
         assert_eq!(q.blocked_until(NOON_UTC + 18 * HOUR), Some(reset));

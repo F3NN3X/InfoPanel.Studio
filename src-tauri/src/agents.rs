@@ -36,11 +36,7 @@ pub fn agent_path(paths: &Paths) -> String {
 }
 
 pub fn install_record(s: &Settings, version: &str, agent: &str) -> AgentInstall {
-    AgentInstall {
-        version: version.into(),
-        url: hook_url(s),
-        agent: agent.into(),
-    }
+    AgentInstall { version: version.into(), url: hook_url(s), agent: agent.into() }
 }
 
 /// True when the hooks are on but were written for another app version, URL or ips-agent path
@@ -74,29 +70,16 @@ fn run_step(paths: &Paths, s: &Settings, home: &Path, install_hooks: bool) -> St
             step,
             ok: false,
             output: None,
-            error: Some(format!(
-                "{} is missing from the app folder",
-                paths::display(&paths.agent_exe())
-            )),
+            error: Some(format!("{} is missing from the app folder", paths::display(&paths.agent_exe()))),
         };
     }
     let agent = agent_path(paths);
     let url = hook_url(s);
     let key = hook_key(paths);
     log::debug!("agents: {step} for {agent} -> {url}");
-    let outcomes = install::run(&install::Options {
-        apply: true,
-        remove: !install_hooks,
-        agent: &agent,
-        url: Some(&url),
-        key: Some(&key),
-        home,
-    });
-    let errors: Vec<&str> = outcomes
-        .iter()
-        .filter(|o| o.status == install::Status::Error)
-        .map(|o| o.message.as_str())
-        .collect();
+    let outcomes =
+        install::run(&install::Options { apply: true, remove: !install_hooks, agent: &agent, url: Some(&url), key: Some(&key), home });
+    let errors: Vec<&str> = outcomes.iter().filter(|o| o.status == install::Status::Error).map(|o| o.message.as_str()).collect();
     StepResult {
         step,
         ok: errors.is_empty(),
@@ -119,18 +102,10 @@ pub fn apply(paths: &Paths, s: &Settings, home: &Path, enable: bool) -> AgentRes
     let ok = steps.iter().all(|r| r.ok);
     if ok {
         let marker = paths.agents_marker();
-        let _ = if enable {
-            std::fs::write(&marker, agent_path(paths))
-        } else {
-            std::fs::remove_file(&marker).or(Ok(()))
-        };
+        let _ = if enable { std::fs::write(&marker, agent_path(paths)) } else { std::fs::remove_file(&marker).or(Ok(())) };
     }
     log::info!("agents: {} -> ok={ok}", if enable { "on" } else { "off" });
-    AgentResult {
-        ok,
-        enabled: enable,
-        steps,
-    }
+    AgentResult { ok, enabled: enable, steps }
 }
 
 /// The result when the hooks could not even be attempted (no home folder).
@@ -138,12 +113,7 @@ pub fn failed(enable: bool, error: String) -> AgentResult {
     AgentResult {
         ok: false,
         enabled: enable,
-        steps: vec![StepResult {
-            step: if enable { "install" } else { "remove" },
-            ok: false,
-            output: None,
-            error: Some(error),
-        }],
+        steps: vec![StepResult { step: if enable { "install" } else { "remove" }, ok: false, output: None, error: Some(error) }],
     }
 }
 
@@ -186,10 +156,7 @@ pub struct AgentStatus {
 pub fn agent_files(home: &Path) -> [(Agent, PathBuf, PathBuf); 2] {
     let claude = home.join(".claude");
     let codex = home.join(".codex");
-    [
-        (Agent::Claude, claude.join("settings.json"), claude),
-        (Agent::Codex, codex.join("hooks.json"), codex),
-    ]
+    [(Agent::Claude, claude.join("settings.json"), claude), (Agent::Codex, codex.join("hooks.json"), codex)]
 }
 
 /// `planned` is what a dry run of the install would do to the file (the installer's status:
@@ -227,14 +194,8 @@ pub fn statuses(paths: &Paths, s: &Settings, version: &str, home: &Path) -> Vec<
     let planned = (s.agents.enabled && !stale && any_folder).then(|| {
         let url = hook_url(s);
         let key = hook_key(paths);
-        let outcomes = install::run(&install::Options {
-            apply: false,
-            remove: false,
-            agent: &agent,
-            url: Some(&url),
-            key: Some(&key),
-            home,
-        });
+        let outcomes =
+            install::run(&install::Options { apply: false, remove: false, agent: &agent, url: Some(&url), key: Some(&key), home });
         install::to_json(false, &outcomes)
     });
     files
@@ -242,12 +203,7 @@ pub fn statuses(paths: &Paths, s: &Settings, version: &str, home: &Path) -> Vec<
         .map(|(kind, file, dir)| AgentStatus {
             agent: kind,
             path: paths::display(&file),
-            status: hook_state(
-                dir.is_dir(),
-                s.agents.enabled,
-                stale,
-                planned.as_ref().and_then(|p| planned_status(p, kind)),
-            ),
+            status: hook_state(dir.is_dir(), s.agents.enabled, stale, planned.as_ref().and_then(|p| planned_status(p, kind))),
         })
         .collect()
 }
@@ -285,17 +241,9 @@ mod tests {
         let resources = root.join("res");
         std::fs::create_dir_all(&resources).unwrap();
         std::fs::write(resources.join("ips-agent.exe"), "x").unwrap();
-        let paths = Paths {
-            config_dir: root.join("config"),
-            log_dir: root.join("logs"),
-            resource_dir: resources,
-            data_dir: None,
-        };
+        let paths = Paths { config_dir: root.join("config"), log_dir: root.join("logs"), resource_dir: resources, data_dir: None };
         std::fs::create_dir_all(&paths.config_dir).unwrap();
-        let settings = Settings {
-            port: 3942,
-            ..Settings::default()
-        };
+        let settings = Settings { port: 3942, ..Settings::default() };
         (root, paths, settings)
     }
 
@@ -311,22 +259,14 @@ mod tests {
 
     #[test]
     fn hook_url_follows_the_connect_host() {
-        let s = Settings {
-            listen: crate::settings::Listen::Lan,
-            port: 3942,
-            ..Settings::default()
-        };
+        let s = Settings { listen: crate::settings::Listen::Lan, port: 3942, ..Settings::default() };
         assert_eq!(hook_url(&s), "http://127.0.0.1:3942");
     }
 
     #[test]
     fn the_agent_path_uses_forward_slashes() {
-        let paths = Paths {
-            config_dir: "c".into(),
-            log_dir: "l".into(),
-            resource_dir: PathBuf::from(r"C:\Apps\InfoPanel Studio"),
-            data_dir: None,
-        };
+        let paths =
+            Paths { config_dir: "c".into(), log_dir: "l".into(), resource_dir: PathBuf::from(r"C:\Apps\InfoPanel Studio"), data_dir: None };
         let path = agent_path(&paths);
         assert!(!path.contains('\\') && path.ends_with("InfoPanel Studio/ips-agent.exe"));
     }
@@ -360,31 +300,13 @@ mod tests {
 
     #[test]
     fn hook_states() {
-        assert_eq!(
-            hook_state(false, true, false, Some("unchanged")),
-            HookState::NotFound
-        );
-        assert_eq!(
-            hook_state(true, false, false, None),
-            HookState::NotConnected
-        );
-        assert_eq!(
-            hook_state(true, true, false, Some("unchanged")),
-            HookState::Installed
-        );
-        assert_eq!(
-            hook_state(true, true, false, Some("installed")),
-            HookState::NeedsRepair
-        );
-        assert_eq!(
-            hook_state(true, true, true, Some("unchanged")),
-            HookState::NeedsRepair
-        );
+        assert_eq!(hook_state(false, true, false, Some("unchanged")), HookState::NotFound);
+        assert_eq!(hook_state(true, false, false, None), HookState::NotConnected);
+        assert_eq!(hook_state(true, true, false, Some("unchanged")), HookState::Installed);
+        assert_eq!(hook_state(true, true, false, Some("installed")), HookState::NeedsRepair);
+        assert_eq!(hook_state(true, true, true, Some("unchanged")), HookState::NeedsRepair);
         assert_eq!(hook_state(true, true, false, None), HookState::NeedsRepair);
-        assert_eq!(
-            serde_json::to_value(HookState::NotConnected).unwrap(),
-            "not_connected"
-        );
+        assert_eq!(serde_json::to_value(HookState::NotConnected).unwrap(), "not_connected");
     }
 
     #[test]
@@ -419,16 +341,10 @@ mod tests {
         assert!(on.ok, "{on:?}");
         assert_eq!(on.steps.len(), 2);
         let agent = agent_path(&paths);
-        assert_eq!(
-            std::fs::read_to_string(paths.agents_marker()).unwrap(),
-            agent
-        );
+        assert_eq!(std::fs::read_to_string(paths.agents_marker()).unwrap(), agent);
         let saved = read(&claude);
         assert_eq!(saved["hooks"]["Stop"][0]["hooks"][0]["command"], "mine.sh");
-        assert_eq!(
-            saved["hooks"]["Stop"][1]["hooks"][0]["command"],
-            format!("\"{agent}\" hook claude --url=http://127.0.0.1:3942")
-        );
+        assert_eq!(saved["hooks"]["Stop"][1]["hooks"][0]["command"], format!("\"{agent}\" hook claude --url=http://127.0.0.1:3942"));
 
         // Recorded as current, the dry run finds nothing to do; a new port makes it stale.
         s.agents.enabled = true;
@@ -437,10 +353,7 @@ mod tests {
         assert_eq!(st[0].status, HookState::Installed);
         assert_eq!(st[1].status, HookState::NotFound);
         s.port = 3943;
-        assert_eq!(
-            statuses(&paths, &s, "1.0.0", &home)[0].status,
-            HookState::NeedsRepair
-        );
+        assert_eq!(statuses(&paths, &s, "1.0.0", &home)[0].status, HookState::NeedsRepair);
 
         let off = apply(&paths, &s, &home, false);
         assert!(off.ok);
@@ -486,28 +399,14 @@ mod tests {
         std::fs::write(home.join(".claude").join("settings.json"), "{ nope").unwrap();
         let bad = apply(&paths, &s, &home, true);
         assert!(!bad.ok);
-        assert!(bad
-            .steps
-            .last()
-            .unwrap()
-            .error
-            .as_deref()
-            .unwrap()
-            .contains("not valid JSON"));
+        assert!(bad.steps.last().unwrap().error.as_deref().unwrap().contains("not valid JSON"));
         assert!(!paths.agents_marker().exists());
 
         std::fs::remove_file(home.join(".claude").join("settings.json")).unwrap();
         std::fs::remove_file(paths.agent_exe()).unwrap();
         let missing = apply(&paths, &s, &home, true);
         assert!(!missing.ok);
-        assert!(missing
-            .steps
-            .last()
-            .unwrap()
-            .error
-            .as_deref()
-            .unwrap()
-            .contains("ips-agent.exe is missing"));
+        assert!(missing.steps.last().unwrap().error.as_deref().unwrap().contains("ips-agent.exe is missing"));
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -521,10 +420,7 @@ mod tests {
         std::fs::write(dir.join("settings.json.dashboard-1.bak"), "{}").unwrap();
         std::thread::sleep(std::time::Duration::from_millis(30));
         std::fs::write(dir.join("settings.json.dashboard-2.bak"), "{}").unwrap();
-        assert_eq!(
-            newest_backup(&[dir.clone(), dir.join("missing")]),
-            Some(dir.join("settings.json.dashboard-2.bak"))
-        );
+        assert_eq!(newest_backup(&[dir.clone(), dir.join("missing")]), Some(dir.join("settings.json.dashboard-2.bak")));
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

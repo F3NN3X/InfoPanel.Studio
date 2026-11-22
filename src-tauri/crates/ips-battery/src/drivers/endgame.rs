@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 use std::sync::Mutex;
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4};
 use crate::win::sleep_ms;
 
 const K_VID: u16 = 0x3367;
@@ -38,11 +38,17 @@ fn command(d: &mut dyn HidIo, cmd: u8, target: u8, r: &mut Vec<u8>) -> i32 {
     req[0] = 0xA1;
     req[1] = cmd;
     req[2] = target;
-    if !d.set_feature(&req) { return -1; }
+    if !d.set_feature(&req) {
+        return -1;
+    }
     for attempt in 0..3 {
         sleep_ms(150 + attempt * 100);
-        if !d.get_feature(0xA1, r) || r.len() < 20 || r[0] != 0xA1 { return -1; }
-        if r[1] != 0x03 { return r[1] as i32; }  // 03 = busy, read again
+        if !d.get_feature(0xA1, r) || r.len() < 20 || r[0] != 0xA1 {
+            return -1;
+        }
+        if r[1] != 0x03 {
+            return r[1] as i32;
+        } // 03 = busy, read again
     }
     0x03
 }
@@ -52,9 +58,10 @@ fn command(d: &mut dyn HidIo, cmd: u8, target: u8, r: &mut Vec<u8>) -> i32 {
 static LAST_NAME: Mutex<BTreeMap<String, String>> = Mutex::new(BTreeMap::new());
 
 pub fn poll_endgame(ctx: &mut PollContext) {
-    if ctx.is_claimed(K_VID, K_DONGLE_4K) { return; }
-    for c in ctx.find(K_VID, K_DONGLE_4K,
-                      |c| c.page() == 0xFF01 && c.usage() == 0x0002 && c.feat_len() >= 64) {
+    if ctx.is_claimed(K_VID, K_DONGLE_4K) {
+        return;
+    }
+    for c in ctx.find(K_VID, K_DONGLE_4K, |c| c.page() == 0xFF01 && c.usage() == 0x0002 && c.feat_len() >= 64) {
         let Some(mut d) = ctx.open_feature_only(&c) else { continue };
         let mut r = Vec::new();
         let mut st = command(&mut *d, 0xB4, 0x00, &mut r);
@@ -67,7 +74,9 @@ pub fn poll_endgame(ctx: &mut PollContext) {
         }
         let awake = st == 0x01 && r[16] <= 100;
         let asleep = st == 0x08 || st == 0x11;
-        if !awake && !asleep { continue; }
+        if !awake && !asleep {
+            continue;
+        }
 
         let mut s = DeviceStatus {
             key: format!("endgame:{}", hex4(K_DONGLE_4K)),
@@ -87,12 +96,7 @@ pub fn poll_endgame(ctx: &mut PollContext) {
                 }
             }
         }
-        s.name = LAST_NAME
-            .lock()
-            .unwrap()
-            .get(&c.path)
-            .cloned()
-            .unwrap_or_else(|| "Endgame Gear 4k wireless mouse".into());
+        s.name = LAST_NAME.lock().unwrap().get(&c.path).cloned().unwrap_or_else(|| "Endgame Gear 4k wireless mouse".into());
         ctx.add(s, K_VID, K_DONGLE_4K);
         break;
     }

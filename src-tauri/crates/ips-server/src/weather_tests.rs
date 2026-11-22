@@ -65,7 +65,10 @@ async fn fake() -> Fake {
                 } else {
                     ("200 OK", forecast_body())
                 };
-                let answer = format!("HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+                let answer = format!(
+                    "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
                 let _ = stream.write_all(answer.as_bytes()).await;
             });
         }
@@ -219,7 +222,11 @@ async fn backs_off_on_errors_keeps_the_last_answer_and_says_so() {
     f.fail.store(true, Ordering::SeqCst);
     w.poll_once(45 * MIN).await;
     let r = w.readings();
-    assert_eq!((r[&key(&oslo(), "status")]["text"].as_str(), r[&key(&oslo(), "temp")]["value"].as_f64()), (Some("stale"), Some(3.4)), "the last good answer stays");
+    assert_eq!(
+        (r[&key(&oslo(), "status")]["text"].as_str(), r[&key(&oslo(), "temp")]["value"].as_f64()),
+        (Some("stale"), Some(3.4)),
+        "the last good answer stays"
+    );
     w.poll_once(80 * MIN).await;
     assert_eq!(w.readings()[&key(&oslo(), "age")]["value"], 50, "the age keeps counting");
 }
@@ -232,7 +239,10 @@ async fn one_cap_holds_every_provider_call() {
     w.poll_once(0).await;
     assert_eq!(f.count("/v1/forecast"), 2, "two of three in the hour");
     assert_eq!(w.readings()[&format!("{PREFIX}n5905e970.status")]["text"], "waiting");
-    assert_eq!(w.search("brevik", "en", MIN).await, Err((429, "the weather source has used its calls for this hour; try again later".into())));
+    assert_eq!(
+        w.search("brevik", "en", MIN).await,
+        Err((429, "the weather source has used its calls for this hour; try again later".into()))
+    );
     w.poll_once(60 * MIN).await;
     assert_eq!(f.count("latitude=59.05"), 1, "the one held back goes first once the window frees the slots");
     assert_eq!(w.status(60 * MIN)["calls"]["today"], 4, "and one of the two due again takes the other slot");
@@ -243,7 +253,11 @@ async fn place_search_is_cached_and_capped_per_minute() {
     let f = fake().await;
     let w = source(&f, Limits { searches_per_minute: 2, ..Limits::default() }, Arc::new(Mutex::new(vec![])));
     let found = w.search("Brevik", "en", 0).await.unwrap();
-    assert_eq!(found, json!([{ "name": "Brevik", "admin1": "Vestfold", "country": "Norway", "lat": 59.0533, "lon": 9.7007 }]), "a place off the globe is left out");
+    assert_eq!(
+        found,
+        json!([{ "name": "Brevik", "admin1": "Vestfold", "country": "Norway", "lat": 59.0533, "lon": 9.7007 }]),
+        "a place off the globe is left out"
+    );
     assert!(f.hits()[0].contains("name=Brevik&count=20&language=en"));
     assert_eq!(w.search("brevik", "en", 1).await.unwrap(), found, "the same query from the cache");
     assert_eq!(f.count("/v1/search"), 1);

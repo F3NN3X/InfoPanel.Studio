@@ -4,10 +4,10 @@
 
 use crate::nav;
 use crate::state::{lock, AppState, Phase, FLUSH_TIMEOUT};
+use serde::Serialize;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
-use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tauri_plugin_opener::OpenerExt;
@@ -63,10 +63,7 @@ fn with_webview_data_dir<'a, R: tauri::Runtime, M: Manager<R>>(builder: WebviewW
 /// arguments and data folder, the pages' background, and local pages only.
 pub fn local_overlay<'a, R: tauri::Runtime, M: Manager<R>>(builder: WebviewWindowBuilder<'a, R, M>) -> WebviewWindowBuilder<'a, R, M> {
     with_webview_data_dir(
-        builder
-            .additional_browser_args(browser_args())
-            .background_color(PAGE_BACKGROUND)
-            .on_navigation(nav::is_local_page),
+        builder.additional_browser_args(browser_args()).background_color(PAGE_BACKGROUND).on_navigation(nav::is_local_page),
     )
 }
 
@@ -125,8 +122,7 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         },
         _ => WebviewUrl::App("start.html".into()),
     };
-    st.studio_page
-        .store(matches!(url, WebviewUrl::External(_)), Ordering::SeqCst);
+    st.studio_page.store(matches!(url, WebviewUrl::External(_)), Ordering::SeqCst);
     let origin = st.origin.clone();
     let nav_app = app.clone();
     let popup_app = app.clone();
@@ -148,10 +144,7 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         .min_inner_size(960.0, 600.0)
         .additional_browser_args(browser_args())
         .on_navigation(move |url| {
-            let allowed = origin
-                .read()
-                .map(|o| nav::is_allowed_nav(url, &o))
-                .unwrap_or(false);
+            let allowed = origin.read().map(|o| nav::is_allowed_nav(url, &o)).unwrap_or(false);
             if !allowed {
                 open_external(&nav_app, url);
             }
@@ -299,11 +292,7 @@ pub fn rebuild_main(app: &AppHandle) {
 
 /// The start page, at the local pages' origin (`http://tauri.localhost` on Windows).
 fn start_page_url() -> Url {
-    let base = if cfg!(windows) {
-        "http://tauri.localhost/start.html"
-    } else {
-        "tauri://localhost/start.html"
-    };
+    let base = if cfg!(windows) { "http://tauri.localhost/start.html" } else { "tauri://localhost/start.html" };
     Url::parse(base).expect("a valid start page URL")
 }
 
@@ -313,11 +302,7 @@ pub fn load_start_page(app: &AppHandle) {
     let Some(window) = app.get_webview_window(MAIN) else {
         return;
     };
-    if !app
-        .state::<AppState>()
-        .studio_page
-        .swap(false, Ordering::SeqCst)
-    {
+    if !app.state::<AppState>().studio_page.swap(false, Ordering::SeqCst) {
         return;
     }
     log::debug!("loading the start page");
@@ -330,9 +315,7 @@ pub fn load_studio(app: &AppHandle, url: &str) {
         return;
     };
     log::debug!("loading {url}");
-    app.state::<AppState>()
-        .studio_page
-        .store(true, Ordering::SeqCst);
+    app.state::<AppState>().studio_page.store(true, Ordering::SeqCst);
     let _ = window.navigate(url);
 }
 
@@ -342,18 +325,8 @@ pub const SETTINGS_EVENT: &str = "settings-section";
 pub const HELP_EVENT: &str = "help-open";
 
 /// The App sections, all the rescue page has (`SectionId` in src/settings/model/search.ts).
-const SETTINGS_SECTIONS: [&str; 10] = [
-    "general",
-    "server",
-    "agents",
-    "touch",
-    "updates",
-    "publishers",
-    "diagnostics",
-    "logs",
-    "about",
-    "changelog",
-];
+const SETTINGS_SECTIONS: [&str; 10] =
+    ["general", "server", "agents", "touch", "updates", "publishers", "diagnostics", "logs", "about", "changelog"];
 
 /// The pages only the Settings window on the studio's server has (`PageId`): Connections talks to the server's own
 /// API, which the rescue page cannot reach.
@@ -378,10 +351,7 @@ fn settings_target(section: Option<&str>) -> Option<&str> {
 
 /// An article id or heading slug: lowercase letters, digits and dashes.
 fn is_slug(s: &str) -> bool {
-    !s.is_empty()
-        && s.len() <= 80
-        && s.bytes()
-            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+    !s.is_empty() && s.len() <= 80 && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
 /// Where Help opens: an article, and a heading of it. Either is dropped unless it is a slug, and a
@@ -398,10 +368,7 @@ impl HelpTarget {
     pub fn new(article: Option<&str>, heading: Option<&str>) -> Self {
         let article = article.filter(|a| is_slug(a));
         let heading = article.and(heading).filter(|h| is_slug(h));
-        HelpTarget {
-            article: article.map(str::to_owned),
-            heading: heading.map(str::to_owned),
-        }
+        HelpTarget { article: article.map(str::to_owned), heading: heading.map(str::to_owned) }
     }
 
     /// The deep-link hash (`#kiosk` or `#kiosk/the-kiosk-url`), empty for Help's start.
@@ -438,9 +405,7 @@ fn server_settings_url(origin: &str, section: Option<&str>) -> String {
 /// Where the settings window loads: the studio's server while it runs, else the rescue page.
 fn settings_url(app: &AppHandle, section: Option<&str>) -> WebviewUrl {
     let status = app.state::<AppState>().status();
-    let server = (status.state == Phase::Running)
-        .then(|| Url::parse(&server_settings_url(&status.origin, section)).ok())
-        .flatten();
+    let server = (status.state == Phase::Running).then(|| Url::parse(&server_settings_url(&status.origin, section)).ok()).flatten();
     match server {
         Some(url) => WebviewUrl::External(url),
         None => WebviewUrl::App(settings_page(section).into()),
@@ -472,11 +437,8 @@ fn show_page(app: &AppHandle, label: &str, title: &str, url: WebviewUrl, server:
         .min_inner_size(760.0, 520.0)
         .additional_browser_args(browser_args())
         .on_navigation(move |url| {
-            let allowed = if server {
-                origin.read().map(|o| nav::is_allowed_nav(url, &o)).unwrap_or(false)
-            } else {
-                nav::is_local_page(url)
-            };
+            let allowed =
+                if server { origin.read().map(|o| nav::is_allowed_nav(url, &o)).unwrap_or(false) } else { nav::is_local_page(url) };
             if !allowed {
                 open_external(&nav_app, url);
             }
@@ -548,9 +510,7 @@ pub fn flush_studio(app: &AppHandle) {
     let Some(window) = app.get_webview_window(MAIN) else {
         return;
     };
-    let on_studio = window
-        .url()
-        .is_ok_and(|u| u.origin().ascii_serialization() == st.origin());
+    let on_studio = window.url().is_ok_and(|u| u.origin().ascii_serialization() == st.origin());
     if !on_studio {
         return;
     }
@@ -596,10 +556,7 @@ To keep the server running with the \
                  window closed, turn on \"Close to tray\" in the settings.",
             )
             .title("Quit InfoPanel Studio?")
-            .buttons(MessageDialogButtons::OkCancelCustom(
-                "Quit".into(),
-                "Cancel".into(),
-            ))
+            .buttons(MessageDialogButtons::OkCancelCustom("Quit".into(), "Cancel".into()))
             .blocking_show();
         {
             let mut current = lock(&st.settings);

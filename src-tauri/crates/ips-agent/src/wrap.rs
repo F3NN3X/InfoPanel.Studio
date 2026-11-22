@@ -9,9 +9,7 @@ use base64::Engine;
 /// none, stray characters skipped, decoding stops at the first `=`.
 const LENIENT: GeneralPurpose = GeneralPurpose::new(
     &alphabet::STANDARD,
-    GeneralPurposeConfig::new()
-        .with_decode_padding_mode(DecodePaddingMode::Indifferent)
-        .with_decode_allow_trailing_bits(true),
+    GeneralPurposeConfig::new().with_decode_padding_mode(DecodePaddingMode::Indifferent).with_decode_allow_trailing_bits(true),
 );
 
 pub fn encode(command: &str) -> String {
@@ -39,10 +37,7 @@ pub fn decode(text: &str) -> String {
 
 /// The `--wrap=` value among the arguments (the first such argument).
 pub fn wrapped_command(args: &[String]) -> String {
-    args.iter()
-        .find_map(|a| a.strip_prefix("--wrap="))
-        .map(decode)
-        .unwrap_or_default()
+    args.iter().find_map(|a| a.strip_prefix("--wrap=")).map(decode).unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -53,9 +48,7 @@ mod tests {
     fn round_trips_quotes_and_unicode() {
         let cmd = r#"node "C:/Users/me/.claude/statusline.mjs" --x='y' æøå"#;
         assert_eq!(decode(&encode(cmd)), cmd);
-        assert!(encode(cmd)
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
+        assert!(encode(cmd).chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
     }
 
     #[test]

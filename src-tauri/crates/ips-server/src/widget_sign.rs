@@ -159,7 +159,14 @@ pub struct Verified {
 
 /// The key id a manifest's signature names (bytes 2..10 of its second line; minisign-verify keeps it private), when it has one.
 pub fn signature_key_id(manifest: &Value) -> Option<[u8; 8]> {
-    manifest.get("signature")?.get("minisign")?.as_str()?.lines().nth(1).and_then(|line| STANDARD.decode(line.trim()).ok()).and_then(|bin| bin.get(2..10)?.try_into().ok())
+    manifest
+        .get("signature")?
+        .get("minisign")?
+        .as_str()?
+        .lines()
+        .nth(1)
+        .and_then(|line| STANDARD.decode(line.trim()).ok())
+        .and_then(|bin| bin.get(2..10)?.try_into().ok())
 }
 
 /// The publisher a code widget's id names (`ext:<publisher>.<id>`), or `None` for any other id.
@@ -217,7 +224,10 @@ mod tests {
     fn the_canonical_form_sorts_keys_drops_the_signature_and_refuses_what_has_no_form() {
         let a = canonical(&json!({ "b": 1, "a": ["x", { "d": true, "c": null }], "signature": { "minisign": "s" } })).unwrap();
         assert_eq!(a, [DOMAIN, br#"{"a":["x",{"c":null,"d":true}],"b":1}"#].concat());
-        assert_eq!(canonical(&json!({ "name": "\u{1}\"\\\n é" })).unwrap(), [DOMAIN, "{\"name\":\"\\u0001\\\"\\\\\\n é\"}".as_bytes()].concat());
+        assert_eq!(
+            canonical(&json!({ "name": "\u{1}\"\\\n é" })).unwrap(),
+            [DOMAIN, "{\"name\":\"\\u0001\\\"\\\\\\n é\"}".as_bytes()].concat()
+        );
         assert!(canonical(&json!({ "a": 1.5 })).is_err());
         assert!(canonical(&json!({ "a": -1 })).is_err());
         assert!(canonical(&json!({ "é": 1 })).is_err());
@@ -264,7 +274,11 @@ mod tests {
         let ring = Keyring { trusted: vec![trusted(&other, &["test"])], revoked: vec![] };
         assert!(verify(&moved, &ring).is_ok(), "the re-labelled signature verifies: the id is not signed");
         let ring = Keyring { trusted: vec![trusted(&other, &["test"])], revoked: vec![key.clone()] };
-        assert_eq!(verify(&moved, &ring).unwrap_err(), "signed with a revoked key (0909090909090909)", "the revoked key's bytes under another id");
+        assert_eq!(
+            verify(&moved, &ring).unwrap_err(),
+            "signed with a revoked key (0909090909090909)",
+            "the revoked key's bytes under another id"
+        );
         let ring = Keyring { trusted: vec![trusted(&key, &["test"])], revoked: vec![key] };
         assert!(verify(&manifest, &ring).unwrap_err().starts_with("signed with a revoked key"), "by its own id");
     }
@@ -275,7 +289,10 @@ mod tests {
         let ok = Keyring { trusted: vec![trusted(&key, &["other", "test"])], revoked: vec![] };
         assert_eq!(verify(&manifest, &ok).unwrap().unwrap().signer, Signer::User("Test".into()));
         let wrong = Keyring { trusted: vec![trusted(&key, &["infopanel"])], revoked: vec![] };
-        assert_eq!(verify(&manifest, &wrong).unwrap_err(), "signed with a key (FD89B8C08B250DF6) that does not sign for the publisher test");
+        assert_eq!(
+            verify(&manifest, &wrong).unwrap_err(),
+            "signed with a key (FD89B8C08B250DF6) that does not sign for the publisher test"
+        );
         let none = Keyring { trusted: vec![trusted(&key, &[])], revoked: vec![] };
         assert!(verify(&manifest, &none).is_err(), "a key with no publisher signs no code widget");
     }

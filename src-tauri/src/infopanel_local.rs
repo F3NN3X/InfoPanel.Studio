@@ -17,7 +17,8 @@ use std::time::{Duration, Instant, UNIX_EPOCH};
 
 /// What InfoPanel's installer registers itself as (InnoSetup/setup.iss `AppId`, with Inno's `_is1`).
 const UNINSTALL_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{761BE813-4A06-4646-B930-3E647446A307}_is1";
-const UNINSTALL_KEY_32: &str = r"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{761BE813-4A06-4646-B930-3E647446A307}_is1";
+const UNINSTALL_KEY_32: &str =
+    r"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{761BE813-4A06-4646-B930-3E647446A307}_is1";
 const EXE_NAME: &str = "InfoPanel.exe";
 /// How long Restart waits for InfoPanel to close before it gives up.
 const CLOSE_WAIT: Duration = Duration::from_secs(10);
@@ -80,9 +81,7 @@ fn env_exe() -> Option<PathBuf> {
 
 /// The image name the process check looks for.
 fn exe_name() -> String {
-    env_exe()
-        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
-        .unwrap_or_else(|| EXE_NAME.into())
+    env_exe().and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned())).unwrap_or_else(|| EXE_NAME.into())
 }
 
 /// The text of `<name>…</name>`; "" for `<name />`; None when there is no such element.
@@ -166,7 +165,8 @@ fn installed_exe() -> Option<PathBuf> {
 }
 
 fn start_menu_shortcut() -> Vec<Option<PathBuf>> {
-    let under = |var: &str| std::env::var_os(var).map(|d| PathBuf::from(d).join(r"Microsoft\Windows\Start Menu\Programs\InfoPanel\InfoPanel.lnk"));
+    let under =
+        |var: &str| std::env::var_os(var).map(|d| PathBuf::from(d).join(r"Microsoft\Windows\Start Menu\Programs\InfoPanel\InfoPanel.lnk"));
     vec![under("APPDATA"), under("ProgramData")]
 }
 
@@ -320,7 +320,11 @@ mod tests {
     fn lists_the_profiles_with_their_files() {
         let dir = scratch("profiles");
         let g = "70538526-f13f-4074-bb42-f6892d6e42d4";
-        std::fs::write(dir.join("profiles.xml"), format!("<ArrayOfProfile><Profile><Guid>{g}</Guid><Name>Desk</Name></Profile></ArrayOfProfile>")).unwrap();
+        std::fs::write(
+            dir.join("profiles.xml"),
+            format!("<ArrayOfProfile><Profile><Guid>{g}</Guid><Name>Desk</Name></Profile></ArrayOfProfile>"),
+        )
+        .unwrap();
         std::fs::create_dir(dir.join("profiles")).unwrap();
         std::fs::write(dir.join("profiles").join(format!("{g}.xml")), "<ArrayOfDisplayItem/>").unwrap();
         let found = profiles(&dir);

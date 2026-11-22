@@ -167,7 +167,10 @@ async fn a_saved_peripherals_section_is_the_switch_the_state_route_reads() {
     assert_eq!(state.status, 200);
     assert_eq!(state.header("x-devices"), None);
     let body = json(&state);
-    assert_eq!((body["enabled"].clone(), body["intervalSec"].clone(), body["lowPercent"].clone()), (serde_json::json!(true), serde_json::json!(90), serde_json::json!(20)));
+    assert_eq!(
+        (body["enabled"].clone(), body["intervalSec"].clone(), body["lowPercent"].clone()),
+        (serde_json::json!(true), serde_json::json!(90), serde_json::json!(20))
+    );
     assert_eq!(body["devices"], serde_json::json!([]));
     // Absent fields keep their value; a list is replaced whole.
     assert_eq!(put(s.port, r#"{"peripherals":{"enabled":false}}"#).await.status, 200);
@@ -183,7 +186,8 @@ async fn a_saved_peripherals_section_is_the_switch_the_state_route_reads() {
 #[tokio::test]
 async fn refuses_a_peripherals_write_without_the_config_header_or_with_a_bad_patch() {
     let s = start().await;
-    let no_header = send(s.port, "PUT", "/api/integrations", &[("Content-Type", "application/json")], r#"{"peripherals":{"enabled":true}}"#).await;
+    let no_header =
+        send(s.port, "PUT", "/api/integrations", &[("Content-Type", "application/json")], r#"{"peripherals":{"enabled":true}}"#).await;
     assert_eq!((no_header.status, no_header.text().as_str()), (403, "missing X-Dashboard-Config header"));
     let refusals = [
         (r#"{"peripherals":null}"#, "peripherals: expected an object"),

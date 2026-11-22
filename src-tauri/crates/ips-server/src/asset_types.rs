@@ -78,7 +78,8 @@ fn bytes(buf: &[u8], start: usize, end: usize) -> &[u8] {
 }
 
 const AVIF_BRANDS: [&[u8]; 2] = [b"avif", b"avis"];
-const MP4_BRANDS: [&[u8]; 12] = [b"isom", b"iso2", b"iso4", b"iso5", b"iso6", b"mp41", b"mp42", b"avc1", b"dash", b"M4V ", b"mmp4", b"MSNV"];
+const MP4_BRANDS: [&[u8]; 12] =
+    [b"isom", b"iso2", b"iso4", b"iso5", b"iso6", b"mp41", b"mp42", b"avc1", b"dash", b"M4V ", b"mmp4", b"MSNV"];
 
 /// ISO-BMFF brands (the `ftyp` box) of MP4 video and of AVIF.
 fn sniff_ftyp(buf: &[u8]) -> Option<&'static str> {
@@ -106,7 +107,9 @@ fn prologue_end(c: &[char], i: usize) -> Option<usize> {
     if at(i, "<!--") {
         return find(i + 4, "-->").map(|j| j + 3);
     }
-    let doctype = c.len() > i + 9 && c[i..i + 2] == ['<', '!'] && c[i + 2..i + 9].iter().zip("doctype".chars()).all(|(a, b)| a.eq_ignore_ascii_case(&b));
+    let doctype = c.len() > i + 9
+        && c[i..i + 2] == ['<', '!']
+        && c[i + 2..i + 9].iter().zip("doctype".chars()).all(|(a, b)| a.eq_ignore_ascii_case(&b));
     if !doctype || !js::is_js_space(c[i + 9]) {
         return None;
     }
@@ -201,11 +204,8 @@ const MIME_ALIASES: [(&str, &str); 9] = [
 /// The accepted type a Content-Type header declares, or `None`.
 pub fn declared_type(header: Option<&str>) -> Option<&'static AssetType> {
     let mime = js::trim(header.unwrap_or("").split(';').next().unwrap_or("")).to_lowercase();
-    let ext = MIME_ALIASES
-        .iter()
-        .find(|(m, _)| *m == mime)
-        .map(|(_, e)| *e)
-        .or_else(|| TYPES.iter().find(|t| t.mime == mime).map(|t| t.ext))?;
+    let ext =
+        MIME_ALIASES.iter().find(|(m, _)| *m == mime).map(|(_, e)| *e).or_else(|| TYPES.iter().find(|t| t.mime == mime).map(|t| t.ext))?;
     by_ext(ext)
 }
 
@@ -277,7 +277,13 @@ pub fn parse_range(header: Option<&str>, size: u64) -> Range {
 
 /// The refusal `(status, message)` for a new upload: 429 when `max_in_flight` uploads are already running, 507 when
 /// `used + incoming` would pass `max_bytes`.
-pub fn upload_quota_refusal(in_flight: usize, max_in_flight: usize, used: f64, incoming: f64, max_bytes: f64) -> Option<(u16, &'static str)> {
+pub fn upload_quota_refusal(
+    in_flight: usize,
+    max_in_flight: usize,
+    used: f64,
+    incoming: f64,
+    max_bytes: f64,
+) -> Option<(u16, &'static str)> {
     if in_flight >= max_in_flight {
         return Some((429, "too many uploads in progress"));
     }

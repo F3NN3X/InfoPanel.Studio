@@ -41,6 +41,10 @@ describe("plan outputs", () => {
     expect(planOutputs(plan("default", "typecheck", "cargo-app"))).toMatchObject({ rust: true, windows: true, server: false });
   });
 
+  it("sends a Rust format check to the windows job, which runs cargo fmt", () => {
+    expect(planOutputs(plan("default", "rust-fmt"))).toMatchObject({ windows: true, rust: false, server: false, docs_only: false });
+  });
+
   it("is everything on --all (the ci:full label), and `full` follows an escalated plan", () => {
     const all = planOutputs(plan("default", "-lint"), { all: true });
     const gates = ["docs_only", "flake_unit", "flake_e2e", "quarantine"]; // the gate needs the changed files; quarantine follows its list

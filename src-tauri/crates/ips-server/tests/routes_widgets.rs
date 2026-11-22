@@ -119,7 +119,8 @@ async fn send(port: u16, method: &str, path: &str, headers: &[(&str, &str)], bod
     let head = String::from_utf8_lossy(&raw[..split]).into_owned();
     let mut lines = head.split("\r\n");
     let status = lines.next().unwrap().split(' ').nth(1).unwrap().parse().unwrap();
-    let headers: Vec<(String, String)> = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_string(), v.trim().to_string())).collect();
+    let headers: Vec<(String, String)> =
+        lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_string(), v.trim().to_string())).collect();
     let rest = &raw[split + 4..];
     let chunked = headers.iter().any(|(k, v)| k.eq_ignore_ascii_case("transfer-encoding") && v == "chunked");
     Reply { status, body: if chunked { dechunk(rest) } else { rest.to_vec() }, headers }
@@ -139,7 +140,11 @@ fn package_with(id: &str, version: &str, images: &[(&str, &[u8])]) -> Vec<(Strin
     let mut files: Vec<(String, Vec<u8>)> = vec![("recipe.json".into(), recipe)];
     files.extend(images.iter().map(|(p, b)| (p.to_string(), b.to_vec())));
     let listed: Vec<Value> = files.iter().map(|(p, b)| json!({ "path": p, "bytes": b.len(), "sha256": sha256_hex(b) })).collect();
-    let manifest = format!("{}\n", json!({ "format": 1, "kind": "recipe", "id": id, "version": version, "author": "me", "name": "Mine", "files": listed })).into_bytes();
+    let manifest = format!(
+        "{}\n",
+        json!({ "format": 1, "kind": "recipe", "id": id, "version": version, "author": "me", "name": "Mine", "files": listed })
+    )
+    .into_bytes();
     files.insert(0, ("manifest.json".into(), manifest));
     files
 }
@@ -192,7 +197,10 @@ async fn an_import_is_stored_listed_and_served_byte_for_byte() {
     assert_eq!(items[0]["origin"], "import", "a file import is the default");
     assert_eq!(items[0]["trust"], "unsigned", "a recipe without a signature");
     assert_eq!(items[0].as_object().unwrap().len(), 7, "id, kind, name, version, size, origin and trust only");
-    assert!(s.widgets().read_dir().unwrap().all(|e| !e.unwrap().file_name().to_string_lossy().starts_with(".import-")), "no temp folder left");
+    assert!(
+        s.widgets().read_dir().unwrap().all(|e| !e.unwrap().file_name().to_string_lossy().starts_with(".import-")),
+        "no temp folder left"
+    );
     // a second import replaces the package whole
     let next = package_with("recipe:mine", "1.1.0", &[]);
     assert_eq!(send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&next)).await.status, 200);
@@ -250,8 +258,22 @@ async fn the_server_records_where_a_package_came_from_outside_the_package() {
 #[tokio::test]
 async fn serves_a_file_with_its_type_nosniff_and_a_csp_that_allows_nothing() {
     let s = start().await;
-    write_package(&s, "recipe.mine", &package_with("recipe:mine", "1.0.0", &[("images/a.png", PNG), ("images/b.jpg", &[0xff, 0xd8, 0xff, 0]), ("images/c.webp", b"RIFF0000WEBP")]));
-    for (file, mime) in [("manifest.json", "application/json; charset=utf-8"), ("recipe.json", "application/json; charset=utf-8"), ("images/a.png", "image/png"), ("images/b.jpg", "image/jpeg"), ("images/c.webp", "image/webp")] {
+    write_package(
+        &s,
+        "recipe.mine",
+        &package_with(
+            "recipe:mine",
+            "1.0.0",
+            &[("images/a.png", PNG), ("images/b.jpg", &[0xff, 0xd8, 0xff, 0]), ("images/c.webp", b"RIFF0000WEBP")],
+        ),
+    );
+    for (file, mime) in [
+        ("manifest.json", "application/json; charset=utf-8"),
+        ("recipe.json", "application/json; charset=utf-8"),
+        ("images/a.png", "image/png"),
+        ("images/b.jpg", "image/jpeg"),
+        ("images/c.webp", "image/webp"),
+    ] {
         let reply = get(s.port, &format!("/api/widgets/recipe.mine/{file}")).await;
         assert_eq!(reply.status, 200, "{file}");
         assert_eq!(reply.header("content-type"), Some(mime), "{file}");
@@ -295,14 +317,55 @@ async fn no_spelling_of_a_way_out_reaches_a_file_outside_the_package() {
     std::fs::write(s.widgets().join("secret.json"), "SECRET").unwrap();
     std::fs::write(s.dir.path().join("data").join("config.json"), "SECRET").unwrap();
     std::fs::write(s.dir.path().join("secret.json"), "SECRET").unwrap();
-    let own: Vec<Vec<u8>> = [package("recipe:mine"), package("recipe:other")].concat().into_iter().map(|(_, b)| b).chain([b"<p>index</p>".to_vec()]).collect();
+    let own: Vec<Vec<u8>> =
+        [package("recipe:mine"), package("recipe:other")].concat().into_iter().map(|(_, b)| b).chain([b"<p>index</p>".to_vec()]).collect();
     let spellings = [
-        "..", "../secret.json", "../../secret.json", "../../../secret.json", "..%2fsecret.json", "..%2Fsecret.json", "%2e%2e/secret.json", "%2e%2e%2fsecret.json", ".%2e/secret.json",
-        "..%5csecret.json", "..\\secret.json", "%5c..%5csecret.json", "..%c0%afsecret.json", "%c0%ae%c0%ae/secret.json", "%252e%252e/secret.json", "images/../../secret.json",
-        "images/../recipe.json/../../secret.json", "images/%2e%2e/%2e%2e/secret.json", "./recipe.json", "%2e/recipe.json", "recipe.json%00.png", "recipe.json%00", "images/a%00.png",
-        "/etc/passwd", "%2fetc%2fpasswd", "//etc/passwd", "C:/Windows/win.ini", "C%3a/Windows/win.ini", "C:\\Windows\\win.ini", "\\\\server\\share\\x", "recipe.json::$DATA",
-        "recipe.json:stream", "recipe.json.", "recipe.json%20", "RECIPE.JSON", "recipe%2ejson", "images%2flogo.png", "images/logo.png/", "images//logo.png", "%ef%bc%8e%ef%bc%8e/secret.json",
-        "\u{ff0e}\u{ff0e}/secret.json", "\u{2025}/secret.json", "CON", "images/con.png", "../recipe.other/recipe.json", "..%2frecipe.other%2frecipe.json",
+        "..",
+        "../secret.json",
+        "../../secret.json",
+        "../../../secret.json",
+        "..%2fsecret.json",
+        "..%2Fsecret.json",
+        "%2e%2e/secret.json",
+        "%2e%2e%2fsecret.json",
+        ".%2e/secret.json",
+        "..%5csecret.json",
+        "..\\secret.json",
+        "%5c..%5csecret.json",
+        "..%c0%afsecret.json",
+        "%c0%ae%c0%ae/secret.json",
+        "%252e%252e/secret.json",
+        "images/../../secret.json",
+        "images/../recipe.json/../../secret.json",
+        "images/%2e%2e/%2e%2e/secret.json",
+        "./recipe.json",
+        "%2e/recipe.json",
+        "recipe.json%00.png",
+        "recipe.json%00",
+        "images/a%00.png",
+        "/etc/passwd",
+        "%2fetc%2fpasswd",
+        "//etc/passwd",
+        "C:/Windows/win.ini",
+        "C%3a/Windows/win.ini",
+        "C:\\Windows\\win.ini",
+        "\\\\server\\share\\x",
+        "recipe.json::$DATA",
+        "recipe.json:stream",
+        "recipe.json.",
+        "recipe.json%20",
+        "RECIPE.JSON",
+        "recipe%2ejson",
+        "images%2flogo.png",
+        "images/logo.png/",
+        "images//logo.png",
+        "%ef%bc%8e%ef%bc%8e/secret.json",
+        "\u{ff0e}\u{ff0e}/secret.json",
+        "\u{2025}/secret.json",
+        "CON",
+        "images/con.png",
+        "../recipe.other/recipe.json",
+        "..%2frecipe.other%2frecipe.json",
     ];
     for spelling in spellings {
         for key in ["recipe.mine", "..", "%2e%2e", "recipe.mine%2f..%2frecipe.other", "RECIPE.MINE", "recipe:mine", ".", ""] {
@@ -350,7 +413,12 @@ async fn a_junction_out_of_the_widgets_folder_is_not_followed() {
         std::fs::write(outside.join(&path), bytes).unwrap();
     }
     std::fs::create_dir_all(s.widgets()).unwrap();
-    let done = std::process::Command::new("cmd").args(["/C", "mklink", "/J"]).arg(s.widgets().join("recipe.linked")).arg(&outside).output().unwrap();
+    let done = std::process::Command::new("cmd")
+        .args(["/C", "mklink", "/J"])
+        .arg(s.widgets().join("recipe.linked"))
+        .arg(&outside)
+        .output()
+        .unwrap();
     assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
     assert_eq!(get(s.port, "/api/widgets").await.text(), "[]");
     assert_ne!(get(s.port, "/api/widgets/recipe.linked/recipe.json").await.status, 200);
@@ -428,11 +496,24 @@ async fn an_import_refuses_what_is_not_its_manifest() {
     refused(extra, "a file not listed").await;
     refused(ok.iter().filter(|(p, _)| p != "images/logo.png").cloned().collect(), "a listed file missing").await;
     refused(ok.iter().filter(|(p, _)| p != "manifest.json").cloned().collect(), "no manifest").await;
-    refused(package_with("recipe:mine", "1.0.0", &[]).into_iter().map(|(p, b)| if p == "recipe.json" { (p, b"not json".to_vec()) } else { (p, b) }).collect(), "recipe.json not JSON").await;
+    refused(
+        package_with("recipe:mine", "1.0.0", &[])
+            .into_iter()
+            .map(|(p, b)| if p == "recipe.json" { (p, b"not json".to_vec()) } else { (p, b) })
+            .collect(),
+        "recipe.json not JSON",
+    )
+    .await;
     let mut twice = ok.clone();
     twice.push(ok[1].clone());
     refused(twice, "a file given twice").await;
-    for (field, value) in [("kind", json!("code")), ("id", json!("recipe:Bad")), ("id", json!("ext:me.card")), ("id", json!("recipe:nul")), ("signature", json!({ "alg": "ed25519" }))] {
+    for (field, value) in [
+        ("kind", json!("code")),
+        ("id", json!("recipe:Bad")),
+        ("id", json!("ext:me.card")),
+        ("id", json!("recipe:nul")),
+        ("signature", json!({ "alg": "ed25519" })),
+    ] {
         let mut files = package_with("recipe:mine", "1.0.0", &[]);
         let mut manifest: Value = serde_json::from_slice(&files[0].1).unwrap();
         manifest[field] = value;
@@ -445,7 +526,18 @@ async fn an_import_refuses_what_is_not_its_manifest() {
     manifest["version"] = json!("2.0.0");
     files[0].1 = manifest.to_string().into_bytes();
     refused(files, "another version").await;
-    for path in ["../x.json", "images/../recipe.json", "images/a.svg", "images/a.gif", "bundle.js", "/recipe.json", "C:/x.json", "images/a.png\0", "images/CON.png", "pack.json"] {
+    for path in [
+        "../x.json",
+        "images/../recipe.json",
+        "images/a.svg",
+        "images/a.gif",
+        "bundle.js",
+        "/recipe.json",
+        "C:/x.json",
+        "images/a.png\0",
+        "images/CON.png",
+        "pack.json",
+    ] {
         let mut files = ok.clone();
         files.push((path.to_string(), PNG.to_vec()));
         let reply = send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&files)).await;
@@ -462,12 +554,20 @@ async fn an_import_from_the_wrong_caller_is_refused() {
     let s = start().await;
     let body = import_body(&package("recipe:mine"));
     assert_eq!(send(s.port, "POST", "/api/widgets", &[("Content-Type", "application/json")], &body).await.status, 403, "no header");
-    assert_eq!(send(s.port, "POST", "/api/widgets", &[("Content-Type", "application/json"), ("X-Dashboard-Pack", "1")], &body).await.status, 403, "the packs' header");
+    assert_eq!(
+        send(s.port, "POST", "/api/widgets", &[("Content-Type", "application/json"), ("X-Dashboard-Pack", "1")], &body).await.status,
+        403,
+        "the packs' header"
+    );
     let foreign = [("Content-Type", "application/json"), ("X-Dashboard-Widget", "1"), ("Origin", "http://evil.example")];
     assert_eq!(send(s.port, "POST", "/api/widgets", &foreign, &body).await.status, 403, "another origin");
     let cross = [("Content-Type", "application/json"), ("X-Dashboard-Widget", "1"), ("Sec-Fetch-Site", "cross-site")];
     assert_eq!(send(s.port, "POST", "/api/widgets", &cross, &body).await.status, 403, "cross-site");
-    assert_eq!(send(s.port, "POST", "/api/widgets", &[("Host", "evil.example"), ("X-Dashboard-Widget", "1")], &body).await.status, 421, "a rebound host");
+    assert_eq!(
+        send(s.port, "POST", "/api/widgets", &[("Host", "evil.example"), ("X-Dashboard-Widget", "1")], &body).await.status,
+        421,
+        "a rebound host"
+    );
     assert_eq!(get(s.port, "/api/widgets").await.text(), "[]");
     s.stop().await;
 }
@@ -476,13 +576,27 @@ async fn an_import_from_the_wrong_caller_is_refused() {
 async fn an_import_over_the_caps_is_413() {
     let s = start().await;
     let big = vec![0u8; 256_001];
-    assert_eq!(send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&package_with("recipe:mine", "1.0.0", &[("images/big.png", &big)]))).await.status, 413, "a file");
+    assert_eq!(
+        send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&package_with("recipe:mine", "1.0.0", &[("images/big.png", &big)])))
+            .await
+            .status,
+        413,
+        "a file"
+    );
     let parts: Vec<(String, Vec<u8>)> = (0..3).map(|k| (format!("images/f{k}.png"), vec![0u8; 180_000])).collect();
     let refs: Vec<(&str, &[u8])> = parts.iter().map(|(p, b)| (p.as_str(), b.as_slice())).collect();
-    assert_eq!(send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&package_with("recipe:mine", "1.0.0", &refs))).await.status, 413, "over 512,000 in all");
+    assert_eq!(
+        send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&package_with("recipe:mine", "1.0.0", &refs))).await.status,
+        413,
+        "over 512,000 in all"
+    );
     let many: Vec<(String, Vec<u8>)> = (0..32).map(|k| (format!("images/g{k}.png"), PNG.to_vec())).collect();
     let refs: Vec<(&str, &[u8])> = many.iter().map(|(p, b)| (p.as_str(), b.as_slice())).collect();
-    assert_eq!(send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&package_with("recipe:mine", "1.0.0", &refs))).await.status, 413, "over 32 files");
+    assert_eq!(
+        send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&package_with("recipe:mine", "1.0.0", &refs))).await.status,
+        413,
+        "over 32 files"
+    );
     s.stop().await;
 }
 
@@ -494,7 +608,11 @@ async fn more_widgets_than_the_count_cap_are_413_but_a_replace_is_not() {
     }
     let reply = send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&package("recipe:extra"))).await;
     assert_eq!(reply.status, 413, "{}", reply.text());
-    assert_eq!(send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&package_with("recipe:p3", "1.0.1", &[]))).await.status, 200, "a replace");
+    assert_eq!(
+        send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&package_with("recipe:p3", "1.0.1", &[]))).await.status,
+        200,
+        "a replace"
+    );
     s.stop().await;
 }
 
@@ -520,7 +638,11 @@ fn fixtures() -> PathBuf {
 /// A fixture package's files (signed with the TEST-ONLY publisher key), the manifest first.
 fn fixture(name: &str) -> Vec<(String, Vec<u8>)> {
     let root = fixtures().join(name);
-    let mut files: Vec<(String, Vec<u8>)> = std::fs::read_dir(&root).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).map(|p| (p.clone(), std::fs::read(root.join(&p)).unwrap())).collect();
+    let mut files: Vec<(String, Vec<u8>)> = std::fs::read_dir(&root)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .map(|p| (p.clone(), std::fs::read(root.join(&p)).unwrap()))
+        .collect();
     files.sort_by_key(|(p, _)| p != "manifest.json");
     files
 }
@@ -546,50 +668,81 @@ async fn a_signed_code_widget_is_taken_only_with_a_trusted_key_and_checked_on_ev
         async move { send(port, "POST", "/api/widgets", &WRITE, &import_body(&files)).await }
     };
     let unknown = import(clock.clone()).await;
-    assert_eq!((unknown.status, unknown.text()), (400, "refused: signed with a key this app does not trust (FD89B8C08B250DF6)".into()), "an unknown key");
+    assert_eq!(
+        (unknown.status, unknown.text()),
+        (400, "refused: signed with a key this app does not trust (FD89B8C08B250DF6)".into()),
+        "an unknown key"
+    );
     assert_eq!(get(s.port, "/api/widgets").await.text(), "[]");
 
     // The Settings window's path: the app's command writes the store (src-tauri/src/commands.rs `trust_widget_key`).
     // A key that holds another publisher's name signs nothing for `test`.
     s.keys().add_user("Elsewhere", &test_key(), &["acme".into()]).unwrap();
     let elsewhere = import(clock.clone()).await;
-    assert_eq!((elsewhere.status, elsewhere.text()), (400, "refused: signed with a key (FD89B8C08B250DF6) that does not sign for the publisher test".into()), "the signer does not hold the publisher");
+    assert_eq!(
+        (elsewhere.status, elsewhere.text()),
+        (400, "refused: signed with a key (FD89B8C08B250DF6) that does not sign for the publisher test".into()),
+        "the signer does not hold the publisher"
+    );
     s.keys().remove("FD89B8C08B250DF6").unwrap();
     s.keys().add_user("Test publisher", &test_key(), &["test".into()]).unwrap();
     let good = import(clock.clone()).await;
     assert_eq!(good.status, 200, "{}", good.text());
     let stored: Value = serde_json::from_slice(&good.body).unwrap();
-    assert_eq!((stored["id"].as_str(), stored["kind"].as_str(), stored["trust"].as_str()), (Some("ext:test.clock"), Some("code"), Some("user:Test publisher")));
+    assert_eq!(
+        (stored["id"].as_str(), stored["kind"].as_str(), stored["trust"].as_str()),
+        (Some("ext:test.clock"), Some("code"), Some("user:Test publisher"))
+    );
     assert!(s.widgets().join("ext.test.clock").is_dir());
     let items = list(&get(s.port, "/api/widgets").await);
     assert_eq!((items[0]["id"].as_str(), items[0]["trust"].as_str()), (Some("ext:test.clock"), Some("user:Test publisher")));
     let bundle = get(s.port, "/api/widgets/ext.test.clock/widget.js").await;
     assert_eq!((bundle.status, bundle.header("content-type")), (200, Some("text/javascript; charset=utf-8")));
-    assert_eq!(bundle.header("content-security-policy"), Some("default-src 'none'; sandbox"), "stored and served as data only: 6a runs nothing");
+    assert_eq!(
+        bundle.header("content-security-policy"),
+        Some("default-src 'none'; sandbox"),
+        "stored and served as data only: 6a runs nothing"
+    );
     assert_eq!(bundle.body, clock[1].1);
 
     let mut tampered = clock.clone();
     tampered[1].1.extend_from_slice(b"\nfetch('https://evil.example')");
     let reply = import(tampered).await;
-    assert_eq!((reply.status, reply.text()), (400, "widget.js is not the file the manifest lists (size or SHA-256)".into()), "a tampered file");
+    assert_eq!(
+        (reply.status, reply.text()),
+        (400, "widget.js is not the file the manifest lists (size or SHA-256)".into()),
+        "a tampered file"
+    );
     let reply = import(edit_manifest(&clock, |m| m["name"] = json!("Another clock"))).await;
     assert_eq!((reply.status, reply.text()), (400, "refused: the signature does not match the package".into()), "a changed manifest field");
     let reply = import(edit_manifest(&clock, |m| {
         m.as_object_mut().unwrap().remove("signature");
     }))
     .await;
-    assert_eq!((reply.status, reply.text()), (400, "refused: a code widget must be signed, and this one is not".into()), "a missing signature");
-    let reply = import(edit_manifest(&clock, |m| m["signature"] = json!({ "minisign": "untrusted comment: x\nAAAA\ntrusted comment: y\nAAAA" }))).await;
+    assert_eq!(
+        (reply.status, reply.text()),
+        (400, "refused: a code widget must be signed, and this one is not".into()),
+        "a missing signature"
+    );
+    let reply =
+        import(edit_manifest(&clock, |m| m["signature"] = json!({ "minisign": "untrusted comment: x\nAAAA\ntrusted comment: y\nAAAA" })))
+            .await;
     assert_eq!((reply.status, reply.text()), (400, "refused: the signature is not a minisign signature".into()), "a bad signature");
     // a signed recipe is taken like any recipe once its key is trusted
     let recipe = import(fixture("recipe.signed")).await;
-    assert_eq!((recipe.status, serde_json::from_slice::<Value>(&recipe.body).unwrap()["trust"].as_str().map(str::to_string)), (200, Some("user:Test publisher".into())));
+    assert_eq!(
+        (recipe.status, serde_json::from_slice::<Value>(&recipe.body).unwrap()["trust"].as_str().map(str::to_string)),
+        (200, Some("user:Test publisher".into()))
+    );
 
     // A file on disk changed after the import is refused on the next read; so is everything the key signed once it is removed.
     let fp = s.keys().list()[2].id.clone();
     s.keys().remove(&fp).unwrap();
     let items = list(&get(s.port, "/api/widgets").await);
-    assert!(items.iter().all(|i| i["trust"].as_str().unwrap().starts_with("refused:signed with a key this app does not trust")), "{items:?}");
+    assert!(
+        items.iter().all(|i| i["trust"].as_str().unwrap().starts_with("refused:signed with a key this app does not trust")),
+        "{items:?}"
+    );
     let refused = get(s.port, "/api/widgets/ext.test.clock/widget.js").await;
     assert_eq!(refused.status, 403);
     assert!(refused.text().starts_with("refused:"));
@@ -623,7 +776,11 @@ async fn the_example_code_widget_verifies_for_its_publisher_only() {
     let good = send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&fixture("ext.test.example"))).await;
     assert_eq!(good.status, 200, "{}", good.text());
     let wrong = send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&fixture("wrong-publisher/ext.acme.example"))).await;
-    assert_eq!((wrong.status, wrong.text()), (400, "refused: signed with a key (345BEEA66DE248DB) that does not sign for the publisher acme".into()), "a wrong publisher");
+    assert_eq!(
+        (wrong.status, wrong.text()),
+        (400, "refused: signed with a key (345BEEA66DE248DB) that does not sign for the publisher acme".into()),
+        "a wrong publisher"
+    );
     s.stop().await;
 }
 
@@ -647,7 +804,10 @@ async fn the_widgets_page_switches_hide_and_refuse_code_widgets_for_every_page()
     assert_eq!(put(r#"{"off":["ext:test.clock","recipe:mine","nonsense"]}"#, &WRITE).await.status, 200);
     assert_eq!(switches().await["off"], json!(["ext:test.clock"]), "only code widget ids are kept");
     let items = list(&get(s.port, "/api/widgets").await);
-    assert_eq!(items.iter().map(|i| (i["id"].as_str().unwrap(), i["off"].as_bool())).collect::<Vec<_>>(), [("ext:test.clock", Some(true)), ("recipe:mine", None)]);
+    assert_eq!(
+        items.iter().map(|i| (i["id"].as_str().unwrap(), i["off"].as_bool())).collect::<Vec<_>>(),
+        [("ext:test.clock", Some(true)), ("recipe:mine", None)]
+    );
     assert_eq!(get(s.port, "/api/widgets/ext.test.clock/widget.js").await.status, 404);
     assert_eq!(get(s.port, "/api/widgets/ext.test.clock/manifest.json").await.status, 404);
 
@@ -673,7 +833,11 @@ async fn a_signed_package_is_replaced_only_by_the_same_key() {
     let clock = fixture("ext.test.clock");
     s.keys().add_user("Test", &test_key(), &["test".into()]).unwrap();
     assert_eq!(send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&clock)).await.status, 200);
-    assert_eq!(send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&clock)).await.status, 200, "the same key replaces its own package");
+    assert_eq!(
+        send(s.port, "POST", "/api/widgets", &WRITE, &import_body(&clock)).await.status,
+        200,
+        "the same key replaces its own package"
+    );
     // Another key that now holds `test` (the first one removed in Settings, this one added for the name) cannot take it over.
     let fp = s.keys().list()[2].id.clone();
     s.keys().remove(&fp).unwrap();
@@ -728,7 +892,11 @@ async fn publisher_keys_are_read_over_http_and_never_written() {
     let before = keys().await;
     assert_eq!((before[0]["id"].as_str(), before[0]["state"].as_str()), (Some("owner"), Some("trusted")), "the owner's key is built in");
     assert!(before[0]["fingerprint"].as_str().is_some_and(|f| !f.is_empty()));
-    assert_eq!((before[1]["id"].as_str(), before[1]["state"].as_str()), (Some("themely"), Some("not-available")), "the Themely slot is disabled");
+    assert_eq!(
+        (before[1]["id"].as_str(), before[1]["state"].as_str()),
+        (Some("themely"), Some("not-available")),
+        "the Themely slot is disabled"
+    );
     assert_eq!(before.as_array().unwrap().len(), 2);
     let body = json!({ "name": "Mine", "key": test_key() }).to_string();
     let port = format!("127.0.0.1:{}", s.port);
@@ -736,7 +904,16 @@ async fn publisher_keys_are_read_over_http_and_never_written() {
     // The studio page (same origin, every write marker), the kiosk (a plain request), a rebound host. The refusal does not look at
     // the caller at all, so another device (which this socket test cannot be) gets it too.
     let callers: [(&str, Vec<(&str, &str)>); 3] = [
-        ("the studio page", vec![("Content-Type", "application/json"), ("Origin", origin.as_str()), ("Sec-Fetch-Site", "same-origin"), ("X-Dashboard-Config", "1"), ("X-Dashboard-Widget", "1")]),
+        (
+            "the studio page",
+            vec![
+                ("Content-Type", "application/json"),
+                ("Origin", origin.as_str()),
+                ("Sec-Fetch-Site", "same-origin"),
+                ("X-Dashboard-Config", "1"),
+                ("X-Dashboard-Widget", "1"),
+            ],
+        ),
         ("the kiosk", vec![("Content-Type", "application/json")]),
         ("a rebound host", vec![("Host", "evil.example"), ("Content-Type", "application/json")]),
     ];
@@ -746,13 +923,19 @@ async fn publisher_keys_are_read_over_http_and_never_written() {
             assert!(matches!(reply.status, 403 | 421), "{who} {method}: {} {}", reply.status, reply.text());
         }
     }
-    assert_eq!(send(s.port, "POST", "/api/widget-keys", &callers[0].1, &body).await.text(), "publisher keys are added and removed in the app's Settings window only");
+    assert_eq!(
+        send(s.port, "POST", "/api/widget-keys", &callers[0].1, &body).await.text(),
+        "publisher keys are added and removed in the app's Settings window only"
+    );
     assert_eq!(keys().await, before, "no key was added");
     assert!(!s.dir.path().join("data").join("widget-keys.json").exists(), "nothing was written");
     // the settings path adds and removes one, and the read shows it
     s.keys().add_user("Mine", &test_key(), &["test".into()]).unwrap();
     let after = keys().await;
-    assert_eq!((after[2]["name"].as_str(), after[2]["kind"].as_str(), after[2]["fingerprint"].as_str()), (Some("Mine"), Some("user"), Some("FD89B8C08B250DF6")));
+    assert_eq!(
+        (after[2]["name"].as_str(), after[2]["kind"].as_str(), after[2]["fingerprint"].as_str()),
+        (Some("Mine"), Some("user"), Some("FD89B8C08B250DF6"))
+    );
     assert_eq!(after[2]["publishers"], json!(["test"]));
     assert_eq!(before[0]["publishers"], json!(["infopanel", "infopanel-studio"]), "the owner's publisher names are fixed");
     s.keys().remove("FD89B8C08B250DF6").unwrap();

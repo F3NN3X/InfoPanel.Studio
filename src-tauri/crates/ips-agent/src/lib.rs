@@ -33,14 +33,8 @@ pub const PERMISSION_DEADLINE: Duration = Duration::from_millis(28_000);
 
 /// The dashboard URL: the first `--url=` argument, else `DASHBOARD_URL`, else the default; no trailing `/`.
 pub fn base_url(args: &[String], env_url: Option<&str>) -> String {
-    let from_arg = args
-        .iter()
-        .find(|a| a.starts_with("--url="))
-        .map(|a| &a[6..])
-        .filter(|s| !s.is_empty());
-    let url = from_arg
-        .or(env_url.filter(|s| !s.is_empty()))
-        .unwrap_or(DEFAULT_BASE);
+    let from_arg = args.iter().find(|a| a.starts_with("--url=")).map(|a| &a[6..]).filter(|s| !s.is_empty());
+    let url = from_arg.or(env_url.filter(|s| !s.is_empty())).unwrap_or(DEFAULT_BASE);
     url.trim_end_matches('/').to_owned()
 }
 
@@ -136,14 +130,7 @@ pub fn permission(base: &str, agent: &str, input: &str, key_file: &std::path::Pa
 fn remove_hooks() {
     let var = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
     if let Some(home) = std::env::var_os(var).map(std::path::PathBuf::from) {
-        install::run(&install::Options {
-            apply: true,
-            remove: true,
-            agent: "",
-            url: None,
-            key: None,
-            home: &home,
-        });
+        install::run(&install::Options { apply: true, remove: true, agent: "", url: None, key: None, home: &home });
     }
 }
 
@@ -165,10 +152,13 @@ mod tests {
 
     #[test]
     fn prints_an_allow_or_a_deny_and_nothing_else() {
-        let out = |s: &str| permission_output(s.as_bytes(), NONCE, || Some(KEY)).map(|o| serde_json::from_str::<serde_json::Value>(&o).unwrap());
+        let out =
+            |s: &str| permission_output(s.as_bytes(), NONCE, || Some(KEY)).map(|o| serde_json::from_str::<serde_json::Value>(&o).unwrap());
         assert_eq!(
             out(&signed("allow", &KEY)),
-            Some(serde_json::json!({ "hookSpecificOutput": { "hookEventName": "PermissionRequest", "decision": { "behavior": "allow" } } }))
+            Some(
+                serde_json::json!({ "hookSpecificOutput": { "hookEventName": "PermissionRequest", "decision": { "behavior": "allow" } } })
+            )
         );
         let deny = out(&signed("deny", &KEY)).unwrap();
         assert_eq!(deny["hookSpecificOutput"]["decision"]["behavior"], "deny");
@@ -218,26 +208,11 @@ mod tests {
 
     #[test]
     fn url_precedence_and_trailing_slashes() {
-        assert_eq!(
-            base_url(&args(&["hook", "claude"]), None),
-            "http://127.0.0.1:3922"
-        );
-        assert_eq!(
-            base_url(&args(&["hook"]), Some("http://e:1//")),
-            "http://e:1"
-        );
-        assert_eq!(
-            base_url(&args(&["--url=http://a:2/", "hook"]), Some("http://e:1")),
-            "http://a:2"
-        );
+        assert_eq!(base_url(&args(&["hook", "claude"]), None), "http://127.0.0.1:3922");
+        assert_eq!(base_url(&args(&["hook"]), Some("http://e:1//")), "http://e:1");
+        assert_eq!(base_url(&args(&["--url=http://a:2/", "hook"]), Some("http://e:1")), "http://a:2");
         // An empty --url= is falsy in the script: the environment, then the default, apply.
-        assert_eq!(
-            base_url(&args(&["hook", "--url="]), Some("http://e:1")),
-            "http://e:1"
-        );
-        assert_eq!(
-            base_url(&args(&["hook", "--url="]), Some("")),
-            "http://127.0.0.1:3922"
-        );
+        assert_eq!(base_url(&args(&["hook", "--url="]), Some("http://e:1")), "http://e:1");
+        assert_eq!(base_url(&args(&["hook", "--url="]), Some("")), "http://127.0.0.1:3922");
     }
 }

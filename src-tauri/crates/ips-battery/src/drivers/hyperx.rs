@@ -7,17 +7,23 @@
 use std::sync::Mutex;
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{clamp100, hex4, interpolate, HidColl, HidIo, PollContext};
+use crate::hid::{HidColl, HidIo, PollContext, clamp100, hex4, interpolate};
 use crate::win::{now_ms, sleep_ms};
 
 // Writes `req` and returns the first input report accepted by `is_reply` within `timeout_ms`.
 fn query(d: &mut dyn HidIo, req: &[u8], resp: &mut Vec<u8>, timeout_ms: u64, is_reply: impl Fn(&[u8]) -> bool) -> bool {
-    if !d.write(req, 500) { return false; }  // the C++ Query relied on HidDev::Write's default timeout
+    if !d.write(req, 500) {
+        return false;
+    } // the C++ Query relied on HidDev::Write's default timeout
     let end = now_ms() + timeout_ms;
     loop {
         let left = (end as i64 - now_ms() as i64) as i32;
-        if left <= 0 || d.read(resp, left as u32) < 0 { return false; }
-        if is_reply(resp) { return true; }
+        if left <= 0 || d.read(resp, left as u32) < 0 {
+            return false;
+        }
+        if is_reply(resp) {
+            return true;
+        }
     }
 }
 
@@ -38,12 +44,16 @@ fn cloud3(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> bool {
         query(d, &[0x66, cmd], r, 800, |r| r.len() >= 5 && r[0] == 0x66 && r[1] == cmd)
     }
     let mut r: Vec<u8> = Vec::new();
-    if !q(&mut *d, 0x82, &mut r) { return false; }
+    if !q(&mut *d, 0x82, &mut r) {
+        return false;
+    }
     let name = if c.pid == 0x069F || c.pid == 0x0995 { "HyperX Cloud II Core Wireless" } else { "HyperX Cloud III Wireless" };
     *s = base(c.pid, name);
     s.connected = r[2] != 0;
     if s.connected {
-        if q(&mut *d, 0x8A, &mut r) { s.charging = r[2] == 1; }
+        if q(&mut *d, 0x8A, &mut r) {
+            s.charging = r[2] == 1;
+        }
         if q(&mut *d, 0x89, &mut r) && r[4] <= 100 {
             s.percent = r[4] as i32;
             s.millivolts = ((r[2] as i32) << 8) | r[3] as i32;
@@ -56,15 +66,18 @@ fn cloud3(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> bool {
 fn cloud2(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> bool {
     let Some(mut d) = ctx.open(c) else { return false };
     fn q(d: &mut dyn HidIo, cmd: u8, r: &mut Vec<u8>) -> bool {
-        query(d, &[0x06, 0xFF, 0xBB, cmd], r, 1000,
-              |r| r.len() >= 8 && r[0] == 0x06 && r[1] == 0xFF && r[2] == 0xBB && r[3] == cmd)
+        query(d, &[0x06, 0xFF, 0xBB, cmd], r, 1000, |r| r.len() >= 8 && r[0] == 0x06 && r[1] == 0xFF && r[2] == 0xBB && r[3] == cmd)
     }
     let mut r: Vec<u8> = Vec::new();
-    if !q(&mut *d, 0x02, &mut r) || r[7] > 100 { return false; }
+    if !q(&mut *d, 0x02, &mut r) || r[7] > 100 {
+        return false;
+    }
     *s = base(c.pid, "HyperX Cloud II Wireless");
     s.percent = r[7] as i32;
     s.millivolts = ((r[5] as i32) << 8) | r[6] as i32;
-    if q(&mut *d, 0x03, &mut r) { s.charging = r[4] == 1; }
+    if q(&mut *d, 0x03, &mut r) {
+        s.charging = r[4] == 1;
+    }
     true
 }
 
@@ -76,10 +89,14 @@ fn cloud2_kingston(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> 
         query(d, &req, r, 1000, |r| r.len() >= 8 && r[0] == 0x0B && r[2] == 0xBB && r[3] == cmd)
     }
     let mut r: Vec<u8> = Vec::new();
-    if !q(&mut *d, 0x02, &mut r) || r[7] > 100 { return false; }
+    if !q(&mut *d, 0x02, &mut r) || r[7] > 100 {
+        return false;
+    }
     *s = base(c.pid, "HyperX Cloud II Wireless");
     s.percent = r[7] as i32;
-    if q(&mut *d, 0x03, &mut r) { s.charging = r[4] == 1; }
+    if q(&mut *d, 0x03, &mut r) {
+        s.charging = r[4] == 1;
+    }
     true
 }
 
@@ -90,12 +107,20 @@ fn cloud_alpha(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> bool
         query(d, &[0x21, 0xBB, cmd], r, 1000, |r| r.len() >= 4 && r[0] == 0x21 && r[2] == cmd)
     }
     let mut r: Vec<u8> = Vec::new();
-    if !q(&mut *d, 0x03, &mut r) { return false; }
+    if !q(&mut *d, 0x03, &mut r) {
+        return false;
+    }
     *s = base(c.pid, "HyperX Cloud Alpha Wireless");
     s.connected = r[3] != 0x01;
-    if !s.connected { return true; }
-    if q(&mut *d, 0x0C, &mut r) { s.charging = r[3] == 0x01; }
-    if q(&mut *d, 0x0B, &mut r) && r[3] <= 100 { s.percent = r[3] as i32; }
+    if !s.connected {
+        return true;
+    }
+    if q(&mut *d, 0x0C, &mut r) {
+        s.charging = r[3] == 0x01;
+    }
+    if q(&mut *d, 0x0B, &mut r) && r[3] <= 100 {
+        s.percent = r[3] as i32;
+    }
     true
 }
 
@@ -106,7 +131,9 @@ fn cloud_alpha2(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> boo
         query(d, &[cmd, sub], r, 1000, |r| r.len() >= 8 && r[0] == cmd + 1 && r[1] == sub)
     }
     let mut r: Vec<u8> = Vec::new();
-    if !q(&mut *d, 0x52, 0x01, &mut r) { return false; }
+    if !q(&mut *d, 0x52, 0x01, &mut r) {
+        return false;
+    }
     *s = base(c.pid, "HyperX Cloud Alpha 2 Wireless");
     s.connected = r[2] != 0;
     if s.connected && q(&mut *d, 0x50, 0x02, &mut r) && r[2] <= 100 {
@@ -140,7 +167,9 @@ fn haste_wireless(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> b
     let link_known = q(&mut *d, 0x52, 0x01, &mut r);
     let linked = !link_known || r[2] != 0;
     let got_battery = linked && q(&mut *d, 0x50, 0x02, &mut r) && r[2] <= 100;
-    if !link_known && !got_battery { return false; }
+    if !link_known && !got_battery {
+        return false;
+    }
 
     // For about 5 s after it powers on the mouse reports 40% instead of its real level (measured 2026-11-17
     // on a Core Wireless: 40% for 2-5 s, then 70%). A reading inside that settle window is not trusted. The
@@ -161,7 +190,8 @@ fn haste_wireless(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> b
     *s = base(c.pid, name);
     s.kind = DeviceKind::Mouse;
     s.connected = linked;
-    if got_battery && settled {  // an unsettled reading stays unknown, so the tray keeps the last value dimmed
+    if got_battery && settled {
+        // an unsettled reading stays unknown, so the tray keeps the last value dimmed
         s.percent = r[2] as i32;
         s.charging = r[3] == 0x01 || r[3] == 0x02;
         s.millivolts = (r[6] as i32) | ((r[7] as i32) << 8);
@@ -173,7 +203,9 @@ fn haste_wireless(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> b
 fn cloud_flight(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> bool {
     let Some(mut d) = ctx.open(c) else { return false };
     let mut r: Vec<u8> = Vec::new();
-    if !query(&mut *d, &[0x21, 0xFF, 0x05], &mut r, 1000, |r| r.len() >= 5) { return false; }
+    if !query(&mut *d, &[0x21, 0xFF, 0x05], &mut r, 1000, |r| r.len() >= 5) {
+        return false;
+    }
     let mv = ((r[3] as i32) << 8) | r[4] as i32;
     *s = base(c.pid, "HyperX Cloud Flight");
     s.millivolts = mv;
@@ -185,8 +217,9 @@ fn cloud_flight(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> boo
         s.percent = 100;
     } else {
         let v = mv as f64;
-        s.percent = clamp100((0.00000002547505 * v.powi(4) - 0.0003900299 * v.powi(3) +
-                              2.238321 * v * v - 5706.256 * v + 5452299.0).round() as i32);
+        s.percent = clamp100(
+            (0.00000002547505 * v.powi(4) - 0.0003900299 * v.powi(3) + 2.238321 * v * v - 5706.256 * v + 5452299.0).round() as i32,
+        );
     }
     true
 }
@@ -197,16 +230,23 @@ fn cloud_flight(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> boo
 fn cloud3_s(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> bool {
     let Some(mut d) = ctx.open(c) else { return false };
     fn q(d: &mut dyn HidIo, cmd: u8, r: &mut Vec<u8>) -> bool {
-        query(d, &[0x0C, 0x02, 0x03, 0x01, 0x00, cmd], r, 1000,
-              |r| r.len() >= 7 && r[0] == 0x0C && r[5] == cmd && r[6] != 0xFF)
+        query(d, &[0x0C, 0x02, 0x03, 0x01, 0x00, cmd], r, 1000, |r| r.len() >= 7 && r[0] == 0x0C && r[5] == cmd && r[6] != 0xFF)
     }
     let mut r: Vec<u8> = Vec::new();
-    if !q(&mut *d, 0x02, &mut r) { return false; }
+    if !q(&mut *d, 0x02, &mut r) {
+        return false;
+    }
     *s = base(c.pid, "HyperX Cloud III S Wireless");
     s.connected = r[6] == 2;
-    if !s.connected { return true; }
-    if q(&mut *d, 0x06, &mut r) && r[6] <= 100 { s.percent = r[6] as i32; }
-    if q(&mut *d, 0x48, &mut r) { s.charging = r[6] == 1 || r[6] == 2; }
+    if !s.connected {
+        return true;
+    }
+    if q(&mut *d, 0x06, &mut r) && r[6] <= 100 {
+        s.percent = r[6] as i32;
+    }
+    if q(&mut *d, 0x48, &mut r) {
+        s.charging = r[6] == 1 || r[6] == 2;
+    }
     true
 }
 
@@ -220,8 +260,8 @@ fn cloud3_s(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> bool {
 // their battery reply is FF 12 05, so on them the reply is read again (up to 10 x 20 ms) until it looks right.
 // 0951:1713 (Kingston PlayStation receiver, same MI_03 layout as 0A93) was verified on hardware.
 fn stinger_core(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> bool {
-    const CONNECTION: [u8; 20] = [0xFF, 0x07, 0x00, 0xFD, 0x04, 0x00, 0x00, 0x02, 0x82, 0x03,
-                                  0x05, 0x29, 0x0F, 0x00, 0x00, 0x03, 0x68, 0x10, 0x00, 0x00];
+    const CONNECTION: [u8; 20] =
+        [0xFF, 0x07, 0x00, 0xFD, 0x04, 0x00, 0x00, 0x02, 0x82, 0x03, 0x05, 0x29, 0x0F, 0x00, 0x00, 0x03, 0x68, 0x10, 0x00, 0x00];
     const BATTERY: [u8; 12] = [0xFF, 0x07, 0x00, 0xFD, 0x04, 0x0C, 0xF1, 0x02, 0x01, 0x04, 0xF0, 0x0C];
     // mV -> % in 10% steps, from the same source (separate curves while charging and on battery).
     const PCT: [i32; 11] = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0];
@@ -231,53 +271,83 @@ fn stinger_core(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> boo
     let Some(mut d) = ctx.open(c) else { return false };
     let ps = c.pid == 0x0A93 || c.pid == 0x1713;
     fn exchange(d: &mut dyn HidIo, ps: bool, cmd: &[u8], r: &mut Vec<u8>, good: fn(&[u8]) -> bool) -> bool {
-        if !d.set_feature(cmd) { return false; }
+        if !d.set_feature(cmd) {
+            return false;
+        }
         let attempts = if ps { 10 } else { 1 };
         for _ in 0..attempts {
             sleep_ms(20);
-            if !d.get_feature(0xFF, r) || r.len() < 13 { return false; }
-            if !ps || good(r) { return true; }
+            if !d.get_feature(0xFF, r) || r.len() < 13 {
+                return false;
+            }
+            if !ps || good(r) {
+                return true;
+            }
         }
         false
     }
-    fn fresh(r: &[u8]) -> bool { !(r[1] == 0x01 && r[2] == 0x00) }
-    fn battery(r: &[u8]) -> bool { r[0] == 0xFF && r[1] == 0x12 && r[2] == 0x05 }
+    fn fresh(r: &[u8]) -> bool {
+        !(r[1] == 0x01 && r[2] == 0x00)
+    }
+    fn battery(r: &[u8]) -> bool {
+        r[0] == 0xFF && r[1] == 0x12 && r[2] == 0x05
+    }
 
     let mut r: Vec<u8> = Vec::new();
     // The connection reply's header isn't documented, so after 10 stale-looking reads the last one is used.
-    if !exchange(&mut *d, ps, &CONNECTION, &mut r, fresh) && !(ps && r.len() >= 13 && !fresh(&r)) { return false; }
+    if !exchange(&mut *d, ps, &CONNECTION, &mut r, fresh) && !(ps && r.len() >= 13 && !fresh(&r)) {
+        return false;
+    }
     *s = base(c.pid, "HyperX Cloud Stinger Core Wireless");
     s.connected = r[11] == 0x01;
-    if !s.connected || !exchange(&mut *d, ps, &BATTERY, &mut r, battery) { return true; }
+    if !s.connected || !exchange(&mut *d, ps, &BATTERY, &mut r, battery) {
+        return true;
+    }
     let code = r[9];
-    if code != 0x03 && code != 0x05 && code != 0x06 { return true; }
+    if code != 0x03 && code != 0x05 && code != 0x06 {
+        return true;
+    }
     s.millivolts = (r[11] as i32) | ((r[12] as i32) << 8);
     s.charging = code == 0x05;
-    s.percent = if code == 0x06 {
-        100
-    } else {
-        interpolate(s.millivolts, if code == 0x05 { &CHARGING_MV } else { &DISCHARGING_MV }, &PCT)
-    };
+    s.percent = if code == 0x06 { 100 } else { interpolate(s.millivolts, if code == 0x05 { &CHARGING_MV } else { &DISCHARGING_MV }, &PCT) };
     true
 }
 
 struct Model {
     vid: u16,
     pids: &'static [u16],
-    accept: fn(&HidColl) -> bool,  // which collection carries the protocol
+    accept: fn(&HidColl) -> bool, // which collection carries the protocol
     poll: for<'io> fn(&mut PollContext<'io>, &HidColl, &mut DeviceStatus) -> bool,
 }
 
 // The kModels table's lambdas, as named functions.
-fn accept_len_62_62(c: &HidColl) -> bool { c.out_len() == 62 && c.in_len() == 62 }
-fn accept_vendor_len_62_62(c: &HidColl) -> bool { c.page() >= 0xFF00 && c.out_len() >= 62 && c.in_len() >= 62 }
-fn accept_len_64_64(c: &HidColl) -> bool { c.out_len() == 64 && c.in_len() == 64 }
-fn accept_ff90_0303(c: &HidColl) -> bool { c.page() == 0xFF90 && c.usage() == 0x0303 }
-fn accept_out_62(c: &HidColl) -> bool { c.out_len() == 62 }
-fn accept_vendor_out_3(c: &HidColl) -> bool { c.page() >= 0xFF00 && c.out_len() >= 3 }
-fn accept_ff13_ff00(c: &HidColl) -> bool { c.page() == 0xFF13 && c.usage() == 0xFF00 }
-fn accept_vendor_out_2_in_8(c: &HidColl) -> bool { c.page() >= 0xFF00 && c.out_len() >= 2 && c.in_len() >= 8 }
-fn accept_ff00_0001_feat_32(c: &HidColl) -> bool { c.page() == 0xFF00 && c.usage() == 0x0001 && c.feat_len() >= 32 }
+fn accept_len_62_62(c: &HidColl) -> bool {
+    c.out_len() == 62 && c.in_len() == 62
+}
+fn accept_vendor_len_62_62(c: &HidColl) -> bool {
+    c.page() >= 0xFF00 && c.out_len() >= 62 && c.in_len() >= 62
+}
+fn accept_len_64_64(c: &HidColl) -> bool {
+    c.out_len() == 64 && c.in_len() == 64
+}
+fn accept_ff90_0303(c: &HidColl) -> bool {
+    c.page() == 0xFF90 && c.usage() == 0x0303
+}
+fn accept_out_62(c: &HidColl) -> bool {
+    c.out_len() == 62
+}
+fn accept_vendor_out_3(c: &HidColl) -> bool {
+    c.page() >= 0xFF00 && c.out_len() >= 3
+}
+fn accept_ff13_ff00(c: &HidColl) -> bool {
+    c.page() == 0xFF13 && c.usage() == 0xFF00
+}
+fn accept_vendor_out_2_in_8(c: &HidColl) -> bool {
+    c.page() >= 0xFF00 && c.out_len() >= 2 && c.in_len() >= 8
+}
+fn accept_ff00_0001_feat_32(c: &HidColl) -> bool {
+    c.page() == 0xFF00 && c.usage() == 0x0001 && c.feat_len() >= 32
+}
 
 const MODELS: &[Model] = &[
     Model { vid: 0x03F0, pids: &[0x05B7, 0x0C9D], accept: accept_len_62_62, poll: cloud3 },
@@ -293,7 +363,7 @@ const MODELS: &[Model] = &[
     // Pulsefire Haste 2 Wireless (0D97, 0F98) and Haste 2 Core Wireless (0AB5) dongles.
     Model { vid: 0x03F0, pids: &[0x0AB5, 0x0D97, 0x0F98], accept: accept_vendor_out_2_in_8, poll: haste_wireless },
     Model { vid: 0x0951, pids: &[0x16C4, 0x1723, 0x1749], accept: accept_vendor_out_3, poll: cloud_flight },
-    Model { vid: 0x03F0, pids: &[0x0E90], accept: accept_vendor_out_3, poll: cloud_flight },  // Cloud Flight (HP)
+    Model { vid: 0x03F0, pids: &[0x0E90], accept: accept_vendor_out_3, poll: cloud_flight }, // Cloud Flight (HP)
     // Cloud Stinger Core Wireless: PlayStation receivers (HP 0A93, Kingston 1713) and the original Kingston receiver.
     Model { vid: 0x03F0, pids: &[0x0A93], accept: accept_ff00_0001_feat_32, poll: stinger_core },
     Model { vid: 0x0951, pids: &[0x170B, 0x1713], accept: accept_ff00_0001_feat_32, poll: stinger_core },
@@ -302,7 +372,9 @@ const MODELS: &[Model] = &[
 pub fn poll_hyperx(ctx: &mut PollContext) {
     for m in MODELS {
         for &pid in m.pids {
-            if ctx.is_claimed(m.vid, pid) { continue; }
+            if ctx.is_claimed(m.vid, pid) {
+                continue;
+            }
             for c in ctx.find(m.vid, pid, m.accept) {
                 let mut s = DeviceStatus::default();
                 if (m.poll)(ctx, &c, &mut s) {
@@ -317,8 +389,8 @@ pub fn poll_hyperx(ctx: &mut PollContext) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hid::mock::{test_ctx, MockFactory};
     use crate::hid::HidCaps;
+    use crate::hid::mock::{MockFactory, test_ctx};
     use std::collections::{BTreeSet, HashMap};
 
     fn collection(pid: u16, page: u16, in_len: u16, out_len: u16) -> HidColl {
@@ -343,29 +415,42 @@ mod tests {
         let mut r = vec![0u8; 64];
         r[0] = id;
         r[1] = sub;
-        for &(i, v) in bytes { r[i] = v; }
+        for &(i, v) in bytes {
+            r[i] = v;
+        }
         r
     }
 
-    fn link(linked: u8) -> Vec<u8> { report(0x53, 0x01, &[(2, linked)]) }
-    fn battery(percent: u8, charge: u8) -> Vec<u8> { report(0x51, 0x02, &[(2, percent), (3, charge)]) }
+    fn link(linked: u8) -> Vec<u8> {
+        report(0x53, 0x01, &[(2, linked)])
+    }
+    fn battery(percent: u8, charge: u8) -> Vec<u8> {
+        report(0x51, 0x02, &[(2, percent), (3, charge)])
+    }
 
     // Reports the dongle sends on its own after a reconnect; the driver must skip them.
-    fn noise1() -> Vec<u8> { report(0x44, 0x01, &[]) }
-    fn noise2() -> Vec<u8> { report(0x45, 0x02, &[]) }
-    fn noise3() -> Vec<u8> { report(0xFB, 0x01, &[(2, 1)]) }
+    fn noise1() -> Vec<u8> {
+        report(0x44, 0x01, &[])
+    }
+    fn noise2() -> Vec<u8> {
+        report(0x45, 0x02, &[])
+    }
+    fn noise3() -> Vec<u8> {
+        report(0xFB, 0x01, &[(2, 1)])
+    }
 
-    fn ask_link() -> Vec<u8> { vec![0x52, 0x01] }
-    fn ask_battery() -> Vec<u8> { vec![0x50, 0x02] }
+    fn ask_link() -> Vec<u8> {
+        vec![0x52, 0x01]
+    }
+    fn ask_battery() -> Vec<u8> {
+        vec![0x50, 0x02]
+    }
 
     /// The scripted dongle: reports queued when a request (command, sub) is written.
     type Script = HashMap<(u8, u8), Vec<Vec<u8>>>;
 
     fn dongle(link_reply: Vec<u8>, battery_reply: Vec<u8>) -> Script {
-        HashMap::from([
-            ((0x52, 0x01), vec![noise1(), noise2(), link_reply]),
-            ((0x50, 0x02), vec![noise3(), battery_reply]),
-        ])
+        HashMap::from([((0x52, 0x01), vec![noise1(), noise2(), link_reply]), ((0x50, 0x02), vec![noise3(), battery_reply])])
     }
 
     struct PollResult {
@@ -454,9 +539,7 @@ mod tests {
         assert_eq!(r.writes, vec![ask_link(), ask_battery()]);
 
         // Collections that are not vendor-page, or have short reports, are never opened.
-        for c in [collection(0x0AB5, 0x0001, 64, 64),
-                  collection(0x0AB5, 0xFF00, 4, 64),
-                  collection(0x0AB5, 0xFF00, 64, 1)] {
+        for c in [collection(0x0AB5, 0x0001, 64, 64), collection(0x0AB5, 0xFF00, 4, 64), collection(0x0AB5, 0xFF00, 64, 1)] {
             let r = poll(&c, dongle(link(1), battery(70, 0)));
             assert!(r.out.is_empty());
             assert!(r.writes.is_empty());

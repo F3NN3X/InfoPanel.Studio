@@ -27,19 +27,12 @@ const MAX_PENDING: usize = 256;
 
 /// Where Wave Link leaves its port, under the user's local app data.
 pub fn ws_info_path(local_app_data: &Path) -> PathBuf {
-    local_app_data
-        .join("Packages")
-        .join("Elgato.WaveLink_g54w8ztgkx496")
-        .join("LocalState")
-        .join("ws-info.json")
+    local_app_data.join("Packages").join("Elgato.WaveLink_g54w8ztgkx496").join("LocalState").join("ws-info.json")
 }
 
 /// The port in `ws-info.json` (`{"port":N}`).
 pub fn parse_port(text: &str) -> Option<u16> {
-    let port = serde_json::from_str::<Value>(text)
-        .ok()?
-        .get("port")?
-        .as_u64()?;
+    let port = serde_json::from_str::<Value>(text).ok()?.get("port")?.as_u64()?;
     u16::try_from(port).ok().filter(|p| *p != 0)
 }
 
@@ -55,10 +48,7 @@ pub fn request(id: u64, method: &str, params: Option<Value>) -> String {
 /// A frame from Wave Link.
 #[derive(Debug, PartialEq)]
 pub enum Incoming {
-    Response {
-        id: u64,
-        result: Result<Value, String>,
-    },
+    Response { id: u64, result: Result<Value, String> },
     Notification(String),
     Other,
 }
@@ -74,11 +64,7 @@ pub fn classify(text: &str) -> Incoming {
         return Incoming::Other;
     };
     let result = match frame.get("error") {
-        Some(error) if !error.is_null() => Err(error
-            .get("message")
-            .and_then(Value::as_str)
-            .unwrap_or("error")
-            .to_string()),
+        Some(error) if !error.is_null() => Err(error.get("message").and_then(Value::as_str).unwrap_or("error").to_string()),
         _ => Ok(frame.get("result").cloned().unwrap_or(Value::Null)),
     };
     Incoming::Response { id, result }
@@ -86,24 +72,16 @@ pub fn classify(text: &str) -> Incoming {
 
 /// A 0..1 level as a whole percent.
 fn percent(v: Option<&Value>) -> u8 {
-    (v.and_then(Value::as_f64).unwrap_or(0.0) * 100.0)
-        .round()
-        .clamp(0.0, 100.0) as u8
+    (v.and_then(Value::as_f64).unwrap_or(0.0) * 100.0).round().clamp(0.0, 100.0) as u8
 }
 
 fn text(v: &Value, key: &str) -> String {
-    v.get(key)
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_string()
+    v.get(key).and_then(Value::as_str).unwrap_or_default().to_string()
 }
 
 /// The channels in a `getChannels` result; one without an id is skipped.
 pub fn channels_of(result: &Value) -> Vec<WlChannel> {
-    let list = result
-        .get("channels")
-        .and_then(Value::as_array)
-        .map_or(&[][..], Vec::as_slice);
+    let list = result.get("channels").and_then(Value::as_array).map_or(&[][..], Vec::as_slice);
     list.iter()
         .filter(|c| !text(c, "id").is_empty())
         .map(|c| WlChannel {
@@ -130,10 +108,7 @@ pub fn channels_of(result: &Value) -> Vec<WlChannel> {
 
 /// The mixes in a `getMixes` result.
 pub fn mixes_of(result: &Value) -> Vec<WlMix> {
-    let list = result
-        .get("mixes")
-        .and_then(Value::as_array)
-        .map_or(&[][..], Vec::as_slice);
+    let list = result.get("mixes").and_then(Value::as_array).map_or(&[][..], Vec::as_slice);
     list.iter()
         .filter(|m| !text(m, "id").is_empty())
         .map(|m| WlMix {
@@ -150,12 +125,7 @@ pub fn writes_of(act: &WlAct) -> Vec<(&'static str, Value)> {
     let level = |l: u8| f64::from(l) / 100.0;
     let mut out = Vec::new();
     match act {
-        WlAct::Channel {
-            id,
-            mix: None,
-            level: l,
-            muted,
-        } => {
+        WlAct::Channel { id, mix: None, level: l, muted } => {
             if let Some(l) = l {
                 out.push(("setChannel", json!({ "id": id, "level": level(*l) })));
             }
@@ -163,30 +133,15 @@ pub fn writes_of(act: &WlAct) -> Vec<(&'static str, Value)> {
                 out.push(("setChannel", json!({ "id": id, "isMuted": m })));
             }
         }
-        WlAct::Channel {
-            id,
-            mix: Some(mix),
-            level: l,
-            muted,
-        } => {
+        WlAct::Channel { id, mix: Some(mix), level: l, muted } => {
             if let Some(l) = l {
-                out.push((
-                    "setChannel",
-                    json!({ "id": id, "mixes": [{ "id": mix, "level": level(*l) }] }),
-                ));
+                out.push(("setChannel", json!({ "id": id, "mixes": [{ "id": mix, "level": level(*l) }] })));
             }
             if let Some(m) = muted {
-                out.push((
-                    "setChannel",
-                    json!({ "id": id, "mixes": [{ "id": mix, "isMuted": m }] }),
-                ));
+                out.push(("setChannel", json!({ "id": id, "mixes": [{ "id": mix, "isMuted": m }] })));
             }
         }
-        WlAct::Mix {
-            id,
-            level: l,
-            muted,
-        } => {
+        WlAct::Mix { id, level: l, muted } => {
             if let Some(l) = l {
                 out.push(("setMix", json!({ "id": id, "level": level(*l) })));
             }
@@ -261,10 +216,7 @@ impl WaveLink {
     }
 
     pub fn state(&self) -> WaveLinkState {
-        self.state
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .clone()
+        self.state.lock().unwrap_or_else(PoisonError::into_inner).clone()
     }
 
     /// Queues a write; false when Wave Link isn't connected.
@@ -314,16 +266,9 @@ impl WaveLink {
             return;
         };
         // Wave Link answers only the Stream Deck plugin's origin.
-        upgrade
-            .headers_mut()
-            .insert("Origin", HeaderValue::from_static("streamdeck://"));
+        upgrade.headers_mut().insert("Origin", HeaderValue::from_static("streamdeck://"));
         // A port that takes the connection but never finishes the handshake must not hold this up.
-        let Ok(Ok((mut socket, _))) = timeout(
-            self.timing.connect,
-            tokio_tungstenite::connect_async(upgrade),
-        )
-        .await
-        else {
+        let Ok(Ok((mut socket, _))) = timeout(self.timing.connect, tokio_tungstenite::connect_async(upgrade)).await else {
             return;
         };
         let mut inbox = self.inbox.lock().await;
@@ -428,14 +373,7 @@ mod tests {
     fn reads_the_port_from_ws_info() {
         assert_eq!(parse_port(r#"{"port":1884}"#), Some(1884));
         assert_eq!(parse_port(r#"{"port":1884,"other":true}"#), Some(1884));
-        for bad in [
-            "",
-            "{}",
-            r#"{"port":"1884"}"#,
-            r#"{"port":0}"#,
-            r#"{"port":70000}"#,
-            "1884",
-        ] {
+        for bad in ["", "{}", r#"{"port":"1884"}"#, r#"{"port":0}"#, r#"{"port":70000}"#, "1884"] {
             assert_eq!(parse_port(bad), None, "{bad}");
         }
     }
@@ -443,31 +381,18 @@ mod tests {
     #[test]
     fn builds_requests_and_reads_frames() {
         let frame: Value = serde_json::from_str(&request(7, "getMixes", None)).unwrap();
-        assert_eq!(
-            frame,
-            json!({ "jsonrpc": "2.0", "method": "getMixes", "id": 7 })
-        );
-        let frame: Value =
-            serde_json::from_str(&request(8, "setMix", Some(json!({ "id": "m" })))).unwrap();
+        assert_eq!(frame, json!({ "jsonrpc": "2.0", "method": "getMixes", "id": 7 }));
+        let frame: Value = serde_json::from_str(&request(8, "setMix", Some(json!({ "id": "m" })))).unwrap();
         assert_eq!(frame["params"], json!({ "id": "m" }));
 
-        assert_eq!(
-            classify(r#"{"jsonrpc":"2.0","method":"channelChanged","params":{}}"#),
-            Incoming::Notification("channelChanged".into())
-        );
+        assert_eq!(classify(r#"{"jsonrpc":"2.0","method":"channelChanged","params":{}}"#), Incoming::Notification("channelChanged".into()));
         assert_eq!(
             classify(r#"{"jsonrpc":"2.0","id":3,"result":{"mixes":[]}}"#),
-            Incoming::Response {
-                id: 3,
-                result: Ok(json!({ "mixes": [] }))
-            }
+            Incoming::Response { id: 3, result: Ok(json!({ "mixes": [] })) }
         );
         assert_eq!(
             classify(r#"{"jsonrpc":"2.0","id":4,"error":{"code":-1,"message":"nope"}}"#),
-            Incoming::Response {
-                id: 4,
-                result: Err("nope".into())
-            }
+            Incoming::Response { id: 4, result: Err("nope".into()) }
         );
         assert_eq!(classify("not json"), Incoming::Other);
         assert_eq!(classify(r#"{"jsonrpc":"2.0"}"#), Incoming::Other);
@@ -489,79 +414,33 @@ mod tests {
                 kind: "Channel".into(),
                 level: 50,
                 muted: true,
-                mixes: vec![WlRoute {
-                    id: "m1".into(),
-                    level: 100,
-                    muted: false
-                }]
+                mixes: vec![WlRoute { id: "m1".into(), level: 100, muted: false }]
             }
         );
-        assert_eq!(
-            (
-                channels[1].level,
-                channels[1].muted,
-                channels[1].mixes.len()
-            ),
-            (0, false, 0)
-        );
-        let mixes = mixes_of(
-            &json!({ "mixes": [{ "id": "m1", "name": "Stream", "level": 0.25, "isMuted": true }, { "name": "x" }] }),
-        );
-        assert_eq!(
-            mixes,
-            vec![WlMix {
-                id: "m1".into(),
-                name: "Stream".into(),
-                level: 25,
-                muted: true
-            }]
-        );
+        assert_eq!((channels[1].level, channels[1].muted, channels[1].mixes.len()), (0, false, 0));
+        let mixes = mixes_of(&json!({ "mixes": [{ "id": "m1", "name": "Stream", "level": 0.25, "isMuted": true }, { "name": "x" }] }));
+        assert_eq!(mixes, vec![WlMix { id: "m1".into(), name: "Stream".into(), level: 25, muted: true }]);
         assert!(channels_of(&json!({})).is_empty() && mixes_of(&Value::Null).is_empty());
     }
 
     #[test]
     fn builds_the_writes_elgatos_plugin_sends() {
-        let channel = |mix: Option<&str>, level, muted| WlAct::Channel {
-            id: "c".into(),
-            mix: mix.map(String::from),
-            level,
-            muted,
-        };
-        assert_eq!(
-            writes_of(&channel(None, Some(50), None)),
-            vec![("setChannel", json!({ "id": "c", "level": 0.5 }))]
-        );
-        assert_eq!(
-            writes_of(&channel(None, None, Some(true))),
-            vec![("setChannel", json!({ "id": "c", "isMuted": true }))]
-        );
+        let channel = |mix: Option<&str>, level, muted| WlAct::Channel { id: "c".into(), mix: mix.map(String::from), level, muted };
+        assert_eq!(writes_of(&channel(None, Some(50), None)), vec![("setChannel", json!({ "id": "c", "level": 0.5 }))]);
+        assert_eq!(writes_of(&channel(None, None, Some(true))), vec![("setChannel", json!({ "id": "c", "isMuted": true }))]);
         assert_eq!(
             writes_of(&channel(Some("m"), Some(100), Some(false))),
             vec![
-                (
-                    "setChannel",
-                    json!({ "id": "c", "mixes": [{ "id": "m", "level": 1.0 }] })
-                ),
-                (
-                    "setChannel",
-                    json!({ "id": "c", "mixes": [{ "id": "m", "isMuted": false }] })
-                ),
+                ("setChannel", json!({ "id": "c", "mixes": [{ "id": "m", "level": 1.0 }] })),
+                ("setChannel", json!({ "id": "c", "mixes": [{ "id": "m", "isMuted": false }] })),
             ]
         );
         assert_eq!(
-            writes_of(&WlAct::Mix {
-                id: "m".into(),
-                level: Some(0),
-                muted: None
-            }),
+            writes_of(&WlAct::Mix { id: "m".into(), level: Some(0), muted: None }),
             vec![("setMix", json!({ "id": "m", "level": 0.0 }))]
         );
         assert_eq!(
-            writes_of(&WlAct::Mix {
-                id: "m".into(),
-                level: None,
-                muted: Some(true)
-            }),
+            writes_of(&WlAct::Mix { id: "m".into(), level: None, muted: Some(true) }),
             vec![("setMix", json!({ "id": "m", "isMuted": true }))]
         );
     }
@@ -594,28 +473,15 @@ mod tests {
                 _ => {
                     level = frame["params"]["level"].as_f64().unwrap();
                     writes.send(frame).unwrap();
+                    socket.send(Message::text(json!({ "jsonrpc": "2.0", "id": id, "result": {} }).to_string())).await.unwrap();
                     socket
-                        .send(Message::text(
-                            json!({ "jsonrpc": "2.0", "id": id, "result": {} }).to_string(),
-                        ))
-                        .await
-                        .unwrap();
-                    socket
-                        .send(Message::text(
-                            json!({ "jsonrpc": "2.0", "method": "channelChanged", "params": {} })
-                                .to_string(),
-                        ))
+                        .send(Message::text(json!({ "jsonrpc": "2.0", "method": "channelChanged", "params": {} }).to_string()))
                         .await
                         .unwrap();
                     continue;
                 }
             };
-            socket
-                .send(Message::text(
-                    json!({ "jsonrpc": "2.0", "id": id, "result": result }).to_string(),
-                ))
-                .await
-                .unwrap();
+            socket.send(Message::text(json!({ "jsonrpc": "2.0", "id": id, "result": result }).to_string())).await.unwrap();
         }
     }
 
@@ -637,11 +503,7 @@ mod tests {
         }));
         // No ws-info.json: Wave Link is absent, and a write has nowhere to go.
         assert_eq!(link.state().status, WlStatus::Absent);
-        assert!(!link.send(WlAct::Mix {
-            id: "m1".into(),
-            level: Some(10),
-            muted: None
-        }));
+        assert!(!link.send(WlAct::Mix { id: "m1".into(), level: Some(10), muted: None }));
         std::fs::write(&info, format!(r#"{{"port":{port}}}"#)).unwrap();
         let task = tokio::spawn({
             let link = Arc::clone(&link);
@@ -660,49 +522,23 @@ mod tests {
                 panic!("not reached: {:?}", link.state());
             }
         };
-        tokio::time::timeout(
-            Duration::from_secs(5),
-            wait(|s| s.status == WlStatus::Up && !s.channels.is_empty() && !s.mixes.is_empty()),
-        )
-        .await
-        .expect("connects");
-        let state = link.state();
-        assert_eq!(
-            (
-                state.channels[0].name.as_str(),
-                state.channels[0].level,
-                state.mixes[0].name.as_str()
-            ),
-            ("Music", 50, "Stream")
-        );
-
-        assert!(link.send(WlAct::Channel {
-            id: "c1".into(),
-            mix: None,
-            level: Some(80),
-            muted: None
-        }));
-        let frame = tokio::time::timeout(Duration::from_secs(5), written.recv())
+        tokio::time::timeout(Duration::from_secs(5), wait(|s| s.status == WlStatus::Up && !s.channels.is_empty() && !s.mixes.is_empty()))
             .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            (frame["method"].as_str(), frame["params"]["id"].as_str()),
-            (Some("setChannel"), Some("c1"))
-        );
+            .expect("connects");
+        let state = link.state();
+        assert_eq!((state.channels[0].name.as_str(), state.channels[0].level, state.mixes[0].name.as_str()), ("Music", 50, "Stream"));
+
+        assert!(link.send(WlAct::Channel { id: "c1".into(), mix: None, level: Some(80), muted: None }));
+        let frame = tokio::time::timeout(Duration::from_secs(5), written.recv()).await.unwrap().unwrap();
+        assert_eq!((frame["method"].as_str(), frame["params"]["id"].as_str()), (Some("setChannel"), Some("c1")));
         // The channelChanged that follows makes it read the channels again.
-        tokio::time::timeout(
-            Duration::from_secs(5),
-            wait(|s| s.channels.first().is_some_and(|c| c.level == 80)),
-        )
-        .await
-        .expect("follows the change");
+        tokio::time::timeout(Duration::from_secs(5), wait(|s| s.channels.first().is_some_and(|c| c.level == 80)))
+            .await
+            .expect("follows the change");
         assert!(changes.load(Ordering::SeqCst) >= 3);
 
         server.abort();
-        tokio::time::timeout(Duration::from_secs(5), wait(|s| s.status == WlStatus::Down))
-            .await
-            .expect("down once the socket closes");
+        tokio::time::timeout(Duration::from_secs(5), wait(|s| s.status == WlStatus::Down)).await.expect("down once the socket closes");
         task.abort();
     }
 
@@ -748,9 +584,7 @@ mod tests {
             async move { link.run().await }
         });
         // Reaching Up means the third connection was made: the first two were given up on.
-        tokio::time::timeout(Duration::from_secs(5), until_up(&link))
-            .await
-            .expect("retries past both");
+        tokio::time::timeout(Duration::from_secs(5), until_up(&link)).await.expect("retries past both");
         task.abort();
         server.abort();
     }
@@ -764,11 +598,7 @@ mod tests {
         let (writes, _written) = mpsc::unbounded_channel();
         let server = tokio::spawn(fake_wave_link(listener, writes));
         // The delay between attempts at a port is long here; looking for the file must not use it.
-        let timing = Timing {
-            reconnect_min: Duration::from_secs(30),
-            reconnect_max: Duration::from_secs(60),
-            ..fast()
-        };
+        let timing = Timing { reconnect_min: Duration::from_secs(30), reconnect_max: Duration::from_secs(60), ..fast() };
         let link = Arc::new(WaveLink::new(Some(info.clone()), || {}).with_timing(timing));
         let task = tokio::spawn({
             let link = Arc::clone(&link);
@@ -777,9 +607,7 @@ mod tests {
         tokio::time::sleep(Duration::from_millis(300)).await;
         assert_eq!(link.state().status, WlStatus::Absent);
         std::fs::write(&info, format!(r#"{{"port":{port}}}"#)).unwrap();
-        tokio::time::timeout(Duration::from_secs(5), until_up(&link))
-            .await
-            .expect("up soon after the file appears");
+        tokio::time::timeout(Duration::from_secs(5), until_up(&link)).await.expect("up soon after the file appears");
         task.abort();
         server.abort();
     }
@@ -795,25 +623,14 @@ mod tests {
         let server = tokio::spawn(fake_wave_link(listener, writes));
         let link = Arc::new(WaveLink::new(Some(info), || {}).with_timing(fast()));
         // A write that got in the queue before this connection existed.
-        link.commands
-            .send(WlAct::Mix {
-                id: "m1".into(),
-                level: Some(5),
-                muted: None,
-            })
-            .unwrap();
+        link.commands.send(WlAct::Mix { id: "m1".into(), level: Some(5), muted: None }).unwrap();
         let task = tokio::spawn({
             let link = Arc::clone(&link);
             async move { link.run().await }
         });
-        tokio::time::timeout(Duration::from_secs(5), until_up(&link))
-            .await
-            .expect("connects");
+        tokio::time::timeout(Duration::from_secs(5), until_up(&link)).await.expect("connects");
         tokio::time::sleep(Duration::from_millis(150)).await;
-        assert!(
-            written.try_recv().is_err(),
-            "the stale write was not replayed"
-        );
+        assert!(written.try_recv().is_err(), "the stale write was not replayed");
         task.abort();
         server.abort();
     }

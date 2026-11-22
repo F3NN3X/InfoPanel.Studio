@@ -4,9 +4,7 @@
 use crate::state::{lock, AppState};
 use crate::windows;
 use serde::Deserialize;
-use tauri::{
-    AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewWindow,
-};
+use tauri::{AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 
 /// The studio window's least size (`create_main`'s).
 const MIN_WIDTH: f64 = 960.0;
@@ -35,9 +33,7 @@ pub fn validate(size: KioskSize) -> Result<(f64, f64), String> {
     if ok(size.width) && ok(size.height) {
         Ok((size.width, size.height))
     } else {
-        Err(format!(
-            "The Kiosk view size must be 1 to {MAX_SIDE} pixels a side."
-        ))
+        Err(format!("The Kiosk view size must be 1 to {MAX_SIDE} pixels a side."))
     }
 }
 
@@ -74,9 +70,7 @@ pub fn leave(app: &AppHandle) -> Result<(), String> {
         return Ok(());
     };
     let err = |e: tauri::Error| e.to_string();
-    window
-        .set_min_size(Some(LogicalSize::new(MIN_WIDTH, MIN_HEIGHT)))
-        .map_err(err)?;
+    window.set_min_size(Some(LogicalSize::new(MIN_WIDTH, MIN_HEIGHT))).map_err(err)?;
     // Position first: a move to another monitor can change the DPI scale, which would rescale a size set before it.
     window.set_position(saved.position).map_err(err)?;
     window.set_size(saved.size).map_err(err)?;
@@ -89,25 +83,18 @@ pub fn leave(app: &AppHandle) -> Result<(), String> {
 /// Takes the exact `size`, remembering the studio's geometry the first time.
 pub fn enter(app: &AppHandle, size: KioskSize) -> Result<(), String> {
     let (width, height) = validate(size)?;
-    let window = app
-        .get_webview_window(windows::MAIN)
-        .ok_or("The studio window is not open.")?;
+    let window = app.get_webview_window(windows::MAIN).ok_or("The studio window is not open.")?;
     let err = |e: tauri::Error| e.to_string();
     // Unmaximize before reading the geometry, so what is remembered is the normal one.
     let maximized = window.is_maximized().map_err(err)?;
     if maximized {
         window.unmaximize().map_err(err)?;
     }
-    let saved = Saved {
-        maximized,
-        ..current(&window)?
-    };
+    let saved = Saved { maximized, ..current(&window)? };
     remember_once(&mut *lock(&app.state::<AppState>().kiosk), || saved);
     window.set_min_size(None::<LogicalSize<f64>>).map_err(err)?;
     let (width, height) = scaled((width, height), windows::zoom_factor(app));
-    window
-        .set_size(LogicalSize::new(width, height))
-        .map_err(err)
+    window.set_size(LogicalSize::new(width, height)).map_err(err)
 }
 
 #[cfg(test)]
@@ -124,15 +111,9 @@ mod tests {
         assert_eq!(validate(size(1.0, 16384.0)), Ok((1.0, 16384.0)));
         // Larger than any screen is allowed; it is the owner's choice.
         assert!(validate(size(8000.0, 4000.0)).is_ok());
-        for (w, h) in [
-            (0.0, 600.0),
-            (800.0, 0.0),
-            (-5.0, 600.0),
-            (16385.0, 600.0),
-            (800.0, 16385.0),
-            (f64::NAN, 600.0),
-            (800.0, f64::INFINITY),
-        ] {
+        for (w, h) in
+            [(0.0, 600.0), (800.0, 0.0), (-5.0, 600.0), (16385.0, 600.0), (800.0, 16385.0), (f64::NAN, 600.0), (800.0, f64::INFINITY)]
+        {
             assert!(validate(size(w, h)).is_err(), "{w}x{h}");
         }
     }

@@ -13,7 +13,7 @@
 //! reverse engineered from Fantech's OemDrv.exe.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4};
 use crate::win::now_ms;
 
 const K_VID: u16 = 0x25A7;
@@ -28,7 +28,9 @@ fn make_packet(cmd: u8) -> Vec<u8> {
     p[0] = K_REPORT_ID;
     p[1] = cmd;
     let mut sum: u32 = 0;
-    for i in 0..K_PACKET_LEN - 1 { sum += p[i] as u32; }
+    for i in 0..K_PACKET_LEN - 1 {
+        sum += p[i] as u32;
+    }
     p[16] = 0x55u32.wrapping_sub(sum) as u8;
     p
 }
@@ -41,7 +43,9 @@ struct BatteryReply {
 }
 
 impl Default for BatteryReply {
-    fn default() -> Self { BatteryReply { pct: -1, charging: false, checksum_ok: false } }
+    fn default() -> Self {
+        BatteryReply { pct: -1, charging: false, checksum_ok: false }
+    }
 }
 
 /// The reply comes back as an input report. Whether the HID stack keeps the report id in the
@@ -49,43 +53,53 @@ impl Default for BatteryReply {
 /// the WebHID layouts documented by the project we took the protocol from.
 fn parse_battery(r: &[u8]) -> Option<BatteryReply> {
     let mut sum: u32 = 0;
-    for i in 0..r.len().min(K_PACKET_LEN) { sum += r[i] as u32; }
+    for i in 0..r.len().min(K_PACKET_LEN) {
+        sum += r[i] as u32;
+    }
     let chk = r.len() >= K_PACKET_LEN && (sum & 0xFF) == 0x55;
 
     // r[power] = percent, r[charge] = charging flag; both must be plausible.
     let plausible = |power: usize, charge: usize| -> Option<BatteryReply> {
-        if r.len() <= charge { return None; }
+        if r.len() <= charge {
+            return None;
+        }
         let p = r[power] as i32;
         let c = r[charge];
-        if p < 1 || p > 100 || c > 1 { return None; }
+        if p < 1 || p > 100 || c > 1 {
+            return None;
+        }
         Some(BatteryReply { pct: p, charging: c != 0, checksum_ok: chk })
     };
 
     if r.len() >= 7 && r[0] == 0x04 {
-        if let Some(b) = plausible(5, 6) { return Some(b); }
-        if let Some(b) = plausible(4, 5) { return Some(b); }
+        if let Some(b) = plausible(5, 6) {
+            return Some(b);
+        }
+        if let Some(b) = plausible(4, 5) {
+            return Some(b);
+        }
     }
-    if r.len() >= 8 && r[1] == 0x04 { return plausible(6, 7); }
+    if r.len() >= 8 && r[1] == 0x04 {
+        return plausible(6, 7);
+    }
     None
 }
 
 fn remember(c: &BatteryReply, found: &mut BatteryReply) {
-    if found.pct < 0 || (c.checksum_ok && !found.checksum_ok) { *found = *c; }
+    if found.pct < 0 || (c.checksum_ok && !found.checksum_ok) {
+        *found = *c;
+    }
 }
 
 /// Sends the read-only cmd 0x04 on `cmd`, then watches `readers` for the reply. `cmd` itself is
 /// one of the watched collections when it carries input reports (the C++ code pushed `&cmd` into
 /// the readers vector first); each pass reads every collection once with a 40 ms timeout.
-fn query_battery(
-    cmd: &mut dyn HidIo,
-    readers: &mut [Box<dyn HidIo>],
-    cmd_reads: bool,
-    pct: &mut i32,
-    charging: &mut bool,
-) -> bool {
+fn query_battery(cmd: &mut dyn HidIo, readers: &mut [Box<dyn HidIo>], cmd_reads: bool, pct: &mut i32, charging: &mut bool) -> bool {
     let req = make_packet(0x04);
     cmd.flush();
-    if !cmd.set_feature(&req) { return false; }
+    if !cmd.set_feature(&req) {
+        return false;
+    }
 
     let mut found = BatteryReply::default();
     let mut r: Vec<u8> = Vec::new();
@@ -94,24 +108,36 @@ fn query_battery(
         if cmd_reads {
             let left = (end as i64 - now_ms() as i64) as i32;
             if left > 0 && cmd.read(&mut r, left.min(40) as u32) >= 6 {
-                if let Some(c) = parse_battery(&r) { remember(&c, &mut found); }
+                if let Some(c) = parse_battery(&r) {
+                    remember(&c, &mut found);
+                }
             }
         }
         for d in readers.iter_mut() {
             let left = (end as i64 - now_ms() as i64) as i32;
-            if left <= 0 || d.read(&mut r, left.min(40) as u32) < 6 { continue; }
-            if let Some(c) = parse_battery(&r) { remember(&c, &mut found); }
+            if left <= 0 || d.read(&mut r, left.min(40) as u32) < 6 {
+                continue;
+            }
+            if let Some(c) = parse_battery(&r) {
+                remember(&c, &mut found);
+            }
         }
-        if found.checksum_ok { break; }
+        if found.checksum_ok {
+            break;
+        }
     }
 
     // Some firmware answers with the feature report instead of an input report.
     let mut f: Vec<u8> = Vec::new();
     if cmd.get_feature(K_REPORT_ID, &mut f) {
-        if let Some(c) = parse_battery(&f) { remember(&c, &mut found); }
+        if let Some(c) = parse_battery(&f) {
+            remember(&c, &mut found);
+        }
     }
 
-    if found.pct < 0 { return false; }
+    if found.pct < 0 {
+        return false;
+    }
     *pct = found.pct;
     *charging = found.charging;
     true
@@ -119,7 +145,9 @@ fn query_battery(
 
 pub fn poll_fantech(ctx: &mut PollContext) {
     for &(vid, pid) in &ctx.products(K_VID) {
-        if pid != K_PID_WIRED && pid != K_PID_DONGLE { continue; }
+        if pid != K_PID_WIRED && pid != K_PID_DONGLE {
+            continue;
+        }
 
         let all = ctx.find(vid, pid, |_| true);
         let Some(feat_idx) = all.iter().position(|c| c.feat_len() >= K_PACKET_LEN as u16) else { continue };
@@ -132,13 +160,19 @@ pub fn poll_fantech(ctx: &mut PollContext) {
         let cmd_reads = feat.in_len() >= 6;
         let mut readers: Vec<Box<dyn HidIo>> = Vec::new();
         for (idx, c) in all.iter().enumerate() {
-            if idx == feat_idx || c.in_len() < 6 { continue; }
-            if let Some(d) = ctx.open(c) { readers.push(d); }
+            if idx == feat_idx || c.in_len() < 6 {
+                continue;
+            }
+            if let Some(d) = ctx.open(c) {
+                readers.push(d);
+            }
         }
 
         let mut pct = -1;
         let mut charging = false;
-        if !query_battery(&mut cmd, &mut readers, cmd_reads, &mut pct, &mut charging) { continue; }
+        if !query_battery(&mut cmd, &mut readers, cmd_reads, &mut pct, &mut charging) {
+            continue;
+        }
 
         let mut s = DeviceStatus::default();
         s.key = format!("fantech:{}", hex4(pid));

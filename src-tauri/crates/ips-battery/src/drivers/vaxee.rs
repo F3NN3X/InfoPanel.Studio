@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::sync::Mutex;
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4};
 use crate::win::sleep_ms;
 
 const K_VID: u16 = 0x3057;
@@ -13,25 +13,23 @@ const K_RECEIVER: u16 = 0x1002;
 const K_RECEIVER_8K: u16 = 0x2002;
 const K_CABLE: u16 = 0x1011;
 
-fn supported(pid: u16) -> bool { pid == K_RECEIVER || pid == K_RECEIVER_8K || pid == K_CABLE }
+fn supported(pid: u16) -> bool {
+    pid == K_RECEIVER || pid == K_RECEIVER_8K || pid == K_CABLE
+}
 
 fn query(d: &mut dyn HidIo, command: u8, value: &mut u8) -> bool {
     let mut request = vec![0u8; 64];
     request[0] = 0x0E;
     request[1] = 0xA5;
     request[2] = command;
-    request[3] = 0x01;  // READ, not WRITE (02)
+    request[3] = 0x01; // READ, not WRITE (02)
     request[4] = 0x01;
-    if !d.set_feature(&request) { return false; }
+    if !d.set_feature(&request) {
+        return false;
+    }
     sleep_ms(100);
     let mut reply = Vec::new();
-    if !d.get_feature(0x0E, &mut reply)
-        || reply.len() < 6
-        || reply[0] != 0x0E
-        || reply[1] != 0xA5
-        || reply[2] != command
-        || reply[4] != 1
-    {
+    if !d.get_feature(0x0E, &mut reply) || reply.len() < 6 || reply[0] != 0x0E || reply[1] != 0xA5 || reply[2] != command || reply[4] != 1 {
         return false;
     }
     *value = reply[5];
@@ -48,7 +46,9 @@ pub fn poll_vaxee(ctx: &mut PollContext) {
         let mut last_good = LAST_GOOD.lock().unwrap();
         let mut gone: Vec<String> = Vec::new();
         for (path, st) in last_good.iter() {
-            if ctx.colls.iter().any(|c| c.path == *path) { continue; }
+            if ctx.colls.iter().any(|c| c.path == *path) {
+                continue;
+            }
             let mut gone_status = st.clone();
             gone_status.connected = false;
             gone_status.percent = -1;
@@ -61,16 +61,22 @@ pub fn poll_vaxee(ctx: &mut PollContext) {
         }
     }
     for &(_vid, pid) in &ctx.products(K_VID) {
-        if !supported(pid) { continue; }
+        if !supported(pid) {
+            continue;
+        }
         for c in ctx.find(K_VID, pid, |c| c.page() == 0xFF05 && c.usage() == 1 && c.feat_len() == 64) {
             let Some(mut d) = ctx.open_feature_only(&c) else { continue };
             let mut battery = 0u8;
             let mut valid = false;
             for _attempt in 0..2 {
                 valid = query(&mut *d, 0x0B, &mut battery) && battery <= 20;
-                if valid { break; }
+                if valid {
+                    break;
+                }
             }
-            if !valid { continue; }  // UI keeps the last reading dimmed during the grace period.
+            if !valid {
+                continue;
+            } // UI keeps the last reading dimmed during the grace period.
             let mut s = DeviceStatus {
                 key: format!("vaxee:{}:{}:{}", hex4(c.vid), hex4(c.pid), c.iface),
                 name: if pid == K_CABLE {
@@ -88,7 +94,9 @@ pub fn poll_vaxee(ctx: &mut PollContext) {
                 ..Default::default()
             };
             let mut charging = 0u8;
-            if query(&mut *d, 0x10, &mut charging) { s.charging = charging != 0; }
+            if query(&mut *d, 0x10, &mut charging) {
+                s.charging = charging != 0;
+            }
             LAST_GOOD.lock().unwrap().insert(c.path.clone(), s.clone());
             ctx.add(s, K_VID, pid);
             break;
@@ -111,12 +119,7 @@ mod tests {
             path: "test-receiver".into(),
             vid: 0x3057,
             pid: 0x1002,
-            caps: HidCaps {
-                usage_page: 0xFF05,
-                usage: 1,
-                feature_report_byte_length: 64,
-                ..Default::default()
-            },
+            caps: HidCaps { usage_page: 0xFF05, usage: 1, feature_report_byte_length: 64, ..Default::default() },
             ..Default::default()
         }
     }
@@ -158,10 +161,7 @@ mod tests {
 
     fn poll_colls(colls: Vec<HidColl>, replies: Vec<Vec<u8>>, write_ok: bool, open_ok: bool) -> Polled {
         reset_cache();
-        let mut io = MockFactory::new()
-            .with_feature_reads(replies)
-            .with_write_ok(write_ok)
-            .with_open_ok(open_ok);
+        let mut io = MockFactory::new().with_feature_reads(replies).with_write_ok(write_ok).with_open_ok(open_ok);
         let probe = io.clone();
         let (out, claimed) = {
             let mut ctx = PollContext::new(&mut io);
@@ -176,7 +176,9 @@ mod tests {
     fn poll(replies: Vec<Vec<u8>>, pid: u16) -> Polled {
         let mut coll = collection();
         coll.pid = pid;
-        if pid == K_CABLE { coll.path = "test-cable".into(); }
+        if pid == K_CABLE {
+            coll.path = "test-cable".into();
+        }
         poll_colls(vec![coll], replies, true, true)
     }
 
@@ -292,12 +294,7 @@ mod tests {
         wrong_page.caps.usage_page = 1;
         wrong_usage.caps.usage = 2;
         wrong_length.caps.feature_report_byte_length = 63;
-        let p = poll_colls(
-            vec![wrong_vendor, wrong_pid, wrong_page, wrong_usage, wrong_length],
-            vec![],
-            true,
-            true,
-        );
+        let p = poll_colls(vec![wrong_vendor, wrong_pid, wrong_page, wrong_usage, wrong_length], vec![], true, true);
         assert!(p.out.is_empty());
         assert_eq!(p.probe.opens(), 0);
     }

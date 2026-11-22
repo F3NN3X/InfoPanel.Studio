@@ -38,7 +38,9 @@ pub fn is_guid(s: &str) -> bool {
 
 /// An asset file name as InfoPanel stores it: one plain name, no folders, no dot-only names.
 pub fn is_asset_name(s: &str) -> bool {
-    !s.is_empty() && !s.chars().any(|c| matches!(c, '\\' | '/' | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '\0')) && !s.chars().all(|c| c == '.')
+    !s.is_empty()
+        && !s.chars().any(|c| matches!(c, '\\' | '/' | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '\0'))
+        && !s.chars().all(|c| c == '.')
 }
 
 fn unescape(s: &str) -> String {
@@ -47,7 +49,9 @@ fn unescape(s: &str) -> String {
     while let Some(at) = rest.find('&') {
         out.push_str(&rest[..at]);
         rest = &rest[at..];
-        let known = [("&lt;", '<'), ("&gt;", '>'), ("&amp;", '&'), ("&quot;", '"'), ("&apos;", '\'')].into_iter().find(|(e, _)| rest.starts_with(e));
+        let known = [("&lt;", '<'), ("&gt;", '>'), ("&amp;", '&'), ("&quot;", '"'), ("&apos;", '\'')]
+            .into_iter()
+            .find(|(e, _)| rest.starts_with(e));
         match known {
             Some((entity, c)) => {
                 out.push(c);
@@ -113,7 +117,9 @@ fn list(dir: &Path) -> std::io::Result<Value> {
     for p in profiles(dir)?.unwrap_or_default() {
         let bytes = std::fs::metadata(dir.join("profiles").join(format!("{}.xml", p.guid))).map_or(0, |m| m.len());
         let mut assets: Vec<String> = std::fs::read_dir(dir.join("assets").join(&p.guid))
-            .map(|entries| entries.filter_map(Result::ok).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| is_asset_name(n)).collect())
+            .map(|entries| {
+                entries.filter_map(Result::ok).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| is_asset_name(n)).collect()
+            })
             .unwrap_or_default();
         // The default sort compares UTF-16 code units.
         assets.sort_by(|a, b| a.encode_utf16().cmp(b.encode_utf16()));

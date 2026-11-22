@@ -20,7 +20,7 @@ use std::collections::BTreeMap;
 use std::sync::Mutex;
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, hid_product, interpolate, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4, hid_product, interpolate};
 use crate::win::now_ms;
 
 // Voltage -> % anchored on the mouse's own LED thresholds (10 / 25 / 50 %).
@@ -41,7 +41,7 @@ impl ChargeTrend {
     fn update(&mut self, mv: i32) -> bool {
         if !self.has {
             self.has = true;
-            self.charging = mv >= 4250;  // a resting Li-ion cell never sits above ~4.2 V
+            self.charging = mv >= 4250; // a resting Li-ion cell never sits above ~4.2 V
             self.peak = mv;
             self.trough = mv;
         } else if self.charging {
@@ -66,17 +66,19 @@ fn poll_cw(ctx: &mut PollContext, pid: u16) -> bool {
     for c in ctx.find(0x04A5, pid, |c| (c.page() >= 0xFF00 || c.page() == 0x00FF) && c.out_len() == 65) {
         let Some(mut d) = ctx.open(&c) else { continue };
         d.flush();
-        if !d.write(&[0x00, 0xA5, 0x03], 500) { continue; }
+        if !d.write(&[0x00, 0xA5, 0x03], 500) {
+            continue;
+        }
         let mut r = Vec::new();
-        if d.read(&mut r, 1000) < 3 { continue; }
+        if d.read(&mut r, 1000) < 3 {
+            continue;
+        }
         let mv = r[0] as i32 | ((r[1] as i32) << 8);
-        if mv != 0 && (mv < 3000 || mv > 4500) { continue; }  // not a battery reply
-        let mut s = DeviceStatus {
-            key: format!("zowie:{}", hex4(pid)),
-            name: "ZOWIE EC-CW".into(),
-            kind: DeviceKind::Mouse,
-            ..Default::default()
-        };
+        if mv != 0 && (mv < 3000 || mv > 4500) {
+            continue;
+        } // not a battery reply
+        let mut s =
+            DeviceStatus { key: format!("zowie:{}", hex4(pid)), name: "ZOWIE EC-CW".into(), kind: DeviceKind::Mouse, ..Default::default() };
         s.via = if pid == 0x8005 { "USB cable" } else { "2.4 GHz receiver" }.into();
         s.charging = pid == 0x8005;
         if mv == 0 {
@@ -94,31 +96,38 @@ fn poll_cw(ctx: &mut PollContext, pid: u16) -> bool {
 fn poll_dw(ctx: &mut PollContext, pid: u16) -> bool {
     let cmd_colls = ctx.find(0x04A5, pid, |c| c.page() == 0xFF03 && c.out_len() == 16);
     let rep_colls = ctx.find(0x04A5, pid, |c| c.page() == 0xFF04 && c.in_len() == 16);
-    if cmd_colls.is_empty() || rep_colls.is_empty() { return false; }
+    if cmd_colls.is_empty() || rep_colls.is_empty() {
+        return false;
+    }
     // open the reply channel first
     let Some(mut reply_dev) = ctx.open(&rep_colls[0]) else { return false };
     let Some(mut command_dev) = ctx.open(&cmd_colls[0]) else { return false };
     reply_dev.flush();
-    if !command_dev.write(&[0x08, 0xB4, 0x15], 500) { return false; }
+    if !command_dev.write(&[0x08, 0xB4, 0x15], 500) {
+        return false;
+    }
     let mut r = Vec::new();
     let end = now_ms() + 1500;
     let mut ok = false;
     while (end as i64 - now_ms() as i64) > 0 {
         let left = (end as i64 - now_ms() as i64) as u32;
-        if reply_dev.read(&mut r, left) < 5 { break; }
-        if r[0] == 0x09 { ok = true; break; }
+        if reply_dev.read(&mut r, left) < 5 {
+            break;
+        }
+        if r[0] == 0x09 {
+            ok = true;
+            break;
+        }
     }
-    if !ok || r[1] == 0xE6 || r[4] != 0xC8 { return false; }
+    if !ok || r[1] == 0xE6 || r[4] != 0xC8 {
+        return false;
+    }
     let mv = (r[1] as i32 * 256 + r[2] as i32) * 10;
-    let cable = pid != 0x800A && pid != 0x8008;  // 800A: DW receiver, 8008: U2 receiver
-    let mut s = DeviceStatus {
-        key: format!("zowie:{}", hex4(pid)),
-        kind: DeviceKind::Mouse,
-        ..Default::default()
-    };
+    let cable = pid != 0x800A && pid != 0x8008; // 800A: DW receiver, 8008: U2 receiver
+    let mut s = DeviceStatus { key: format!("zowie:{}", hex4(pid)), kind: DeviceKind::Mouse, ..Default::default() };
     s.name = hid_product(&cmd_colls[0]);
     if pid == 0x8008 {
-        s.name = "ZOWIE U2".into();  // its receiver only reports "BenQ ZOWIE Gaming Mouse"
+        s.name = "ZOWIE U2".into(); // its receiver only reports "BenQ ZOWIE Gaming Mouse"
     } else if s.name.is_empty() || s.name.contains("Receiver") {
         s.name = "ZOWIE DW mouse".into();
     }
@@ -142,7 +151,7 @@ pub fn poll_zowie(ctx: &mut PollContext) {
         if pid == 0x8005 || pid == 0x8006 {
             poll_cw(ctx, pid);
         } else {
-            poll_dw(ctx, pid);  // only acts on devices with the DW command/reply collections
+            poll_dw(ctx, pid); // only acts on devices with the DW command/reply collections
         }
     }
 }

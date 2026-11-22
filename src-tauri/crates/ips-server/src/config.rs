@@ -207,8 +207,12 @@ pub async fn handle_settings(app: &App, mut req: Req) -> std::io::Result<Respons
             return Ok(http::text(400, "expected ?since=<revision>"));
         }
         let state = config.state.lock().unwrap();
-        let patches: Vec<Value> =
-            state.settings_log.iter().filter(|e| e.rev as f64 > since).map(|e| serde_json::json!({ "rev": e.rev, "patch": e.patch })).collect();
+        let patches: Vec<Value> = state
+            .settings_log
+            .iter()
+            .filter(|e| e.rev as f64 > since)
+            .map(|e| serde_json::json!({ "rev": e.rev, "patch": e.patch }))
+            .collect();
         return Ok(http::json(200, &serde_json::json!({ "settingsRev": state.settings_rev, "patches": patches })));
     }
     if req.method.as_str() != "PATCH" {

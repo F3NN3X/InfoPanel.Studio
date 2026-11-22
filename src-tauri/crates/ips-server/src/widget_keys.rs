@@ -120,13 +120,20 @@ impl KeyStore {
             return Stored::default();
         };
         let text = |v: &Value, k: &str| v.get(k).and_then(Value::as_str).map(str::to_string);
-        let texts = |v: Option<&Value>| v.and_then(Value::as_array).into_iter().flatten().filter_map(|v| v.as_str().map(str::to_string)).collect::<Vec<_>>();
+        let texts = |v: Option<&Value>| {
+            v.and_then(Value::as_array).into_iter().flatten().filter_map(|v| v.as_str().map(str::to_string)).collect::<Vec<_>>()
+        };
         let keys = file.get("keys").and_then(Value::as_array).into_iter().flatten();
         Stored {
             keys: keys
                 .filter_map(|k| {
                     let publishers = texts(k.get("publishers")).into_iter().filter(|p| is_publisher(p) && !is_reserved(p)).collect();
-                    Some(UserKey { name: text(k, "name")?, key: text(k, "key")?, added: k.get("added").and_then(Value::as_u64).unwrap_or(0), publishers })
+                    Some(UserKey {
+                        name: text(k, "name")?,
+                        key: text(k, "key")?,
+                        added: k.get("added").and_then(Value::as_u64).unwrap_or(0),
+                        publishers,
+                    })
                 })
                 .collect(),
             removed: texts(file.get("removed")),
@@ -135,8 +142,10 @@ impl KeyStore {
 
     /// Writes the file: beside it first, then moved over it, so a crash leaves the old file or the new one.
     fn write(&self, stored: &Stored) -> Result<(), String> {
-        let keys: Vec<Value> = stored.keys.iter().map(|k| json!({ "name": k.name, "key": k.key, "added": k.added, "publishers": k.publishers })).collect();
-        let text = serde_json::to_string_pretty(&json!({ "format": 1, "keys": keys, "removed": stored.removed })).map_err(|e| e.to_string())?;
+        let keys: Vec<Value> =
+            stored.keys.iter().map(|k| json!({ "name": k.name, "key": k.key, "added": k.added, "publishers": k.publishers })).collect();
+        let text =
+            serde_json::to_string_pretty(&json!({ "format": 1, "keys": keys, "removed": stored.removed })).map_err(|e| e.to_string())?;
         let io = |e: std::io::Error| format!("the key file could not be written: {e}");
         if let Some(parent) = self.path.parent() {
             std::fs::create_dir_all(parent).map_err(io)?;
@@ -162,7 +171,11 @@ impl KeyStore {
         if let Some(owner) = self.owner.and_then(|k| Key::parse(k).ok()).filter(|_| !stored.removed.iter().any(|r| r == OWNER)) {
             trusted.push(Trusted { signer: Signer::Owner, key: owner, publishers: owned(&OWNER_PUBLISHERS) });
         }
-        if let Some(themely) = THEMELY_KEY.filter(|_| THEMELY_ENABLED).and_then(|k| Key::parse(k).ok()).filter(|_| !stored.removed.iter().any(|r| r == THEMELY)) {
+        if let Some(themely) = THEMELY_KEY
+            .filter(|_| THEMELY_ENABLED)
+            .and_then(|k| Key::parse(k).ok())
+            .filter(|_| !stored.removed.iter().any(|r| r == THEMELY))
+        {
             trusted.push(Trusted { signer: Signer::Themely, key: themely, publishers: owned(&THEMELY_PUBLISHERS) });
         }
         for k in &stored.keys {
@@ -209,7 +222,14 @@ impl KeyStore {
         for k in &stored.keys {
             if let Ok(key) = Key::parse(&k.key) {
                 let state = if self.is_revoked(&key) { "revoked" } else { "trusted" };
-                out.push(KeyView { id: key.fingerprint(), kind: "user", name: k.name.clone(), fingerprint: Some(key.fingerprint()), publishers: k.publishers.clone(), state });
+                out.push(KeyView {
+                    id: key.fingerprint(),
+                    kind: "user",
+                    name: k.name.clone(),
+                    fingerprint: Some(key.fingerprint()),
+                    publishers: k.publishers.clone(),
+                    state,
+                });
             }
         }
         out
@@ -310,7 +330,8 @@ mod tests {
     }
 
     fn test_key() -> String {
-        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../tests/fixtures/widgets/TEST-ONLY-publisher.pub")).unwrap()
+        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../tests/fixtures/widgets/TEST-ONLY-publisher.pub"))
+            .unwrap()
     }
 
     #[test]
@@ -343,8 +364,21 @@ mod tests {
         let store = KeyStore::with(dir.path(), None, r#"{"revoked":[]}"#);
         let list = store.add_user("My key", &test_key(), &names(&["test", "test"])).unwrap();
         let fp = Key::parse(&test_key()).unwrap().fingerprint();
-        assert_eq!(list[2], KeyView { id: fp.clone(), kind: "user", name: "My key".into(), fingerprint: Some(fp.clone()), publishers: names(&["test"]), state: "trusted" });
-        assert_eq!((store.keyring().trusted[0].signer.clone(), store.keyring().trusted[0].publishers.clone()), (Signer::User("My key".into()), names(&["test"])));
+        assert_eq!(
+            list[2],
+            KeyView {
+                id: fp.clone(),
+                kind: "user",
+                name: "My key".into(),
+                fingerprint: Some(fp.clone()),
+                publishers: names(&["test"]),
+                state: "trusted"
+            }
+        );
+        assert_eq!(
+            (store.keyring().trusted[0].signer.clone(), store.keyring().trusted[0].publishers.clone()),
+            (Signer::User("My key".into()), names(&["test"]))
+        );
         assert!(store.add_user("Other", &test_key(), &names(&["other"])).unwrap_err().contains("already trusted"), "the same key twice");
         assert!(store.add_user("my KEY", KEY_A, &names(&["other"])).unwrap_err().contains("already trusted"), "the same name twice");
         for bad in ["", " ", "<b>", &"n".repeat(NAME_MAX + 1)] {
@@ -369,7 +403,14 @@ mod tests {
     fn a_user_key_holds_its_own_publisher_names_never_a_reserved_or_taken_one() {
         let dir = tempfile::tempdir().unwrap();
         let store = KeyStore::with(dir.path(), None, r#"{"revoked":[]}"#);
-        for bad in [vec![], names(&["Bad"]), names(&["-a"]), names(&["a.b"]), names(&[&"p".repeat(33)]), (0..=PUBLISHERS_MAX).map(|k| format!("p{k}")).collect()] {
+        for bad in [
+            vec![],
+            names(&["Bad"]),
+            names(&["-a"]),
+            names(&["a.b"]),
+            names(&[&"p".repeat(33)]),
+            (0..=PUBLISHERS_MAX).map(|k| format!("p{k}")).collect(),
+        ] {
             assert!(store.add_user("Mine", &test_key(), &bad).is_err(), "{bad:?}");
         }
         for reserved in OWNER_PUBLISHERS.iter().chain(THEMELY_PUBLISHERS.iter()) {
@@ -386,7 +427,8 @@ mod tests {
         let other = Key::parse(KEY_A).unwrap();
         let relabelled = base64::engine::general_purpose::STANDARD.encode([b"Ed".as_slice(), &[7u8; 8], &other.bytes].concat());
         // A file written before the key was revoked, or by hand: the store holds the key's bytes under another id.
-        std::fs::write(dir.path().join(FILE), json!({ "keys": [{ "name": "Old", "key": relabelled, "publishers": ["old"] }] }).to_string()).unwrap();
+        std::fs::write(dir.path().join(FILE), json!({ "keys": [{ "name": "Old", "key": relabelled, "publishers": ["old"] }] }).to_string())
+            .unwrap();
         let revoked = json!({ "revoked": [{ "key": KEY_A }] }).to_string();
         let store = KeyStore::with(dir.path(), None, &revoked);
         assert!(store.keyring().trusted.is_empty());

@@ -122,7 +122,8 @@ async fn send(port: u16, method: &str, path: &str, headers: &[(&str, &str)], bod
     let head = String::from_utf8_lossy(&raw[..split]).into_owned();
     let mut lines = head.split("\r\n");
     let status = lines.next().unwrap().split(' ').nth(1).unwrap().parse().unwrap();
-    let headers: Vec<(String, String)> = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_string(), v.trim().to_string())).collect();
+    let headers: Vec<(String, String)> =
+        lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_string(), v.trim().to_string())).collect();
     let rest = &raw[split + 4..];
     let chunked = headers.iter().any(|(k, v)| k.eq_ignore_ascii_case("transfer-encoding") && v == "chunked");
     Reply { status, body: if chunked { dechunk(rest) } else { rest.to_vec() }, headers }
@@ -157,9 +158,14 @@ async fn answers_204_to_a_hook_and_a_statusline_and_shows_them_to_the_kiosks() {
     assert_eq!(reply.header("cache-control"), Some("no-store"));
     let status = r#"{"session_id":"abc","version":"2.1.0","rate_limits":{"five_hour":{"used_percentage":12,"resets_at":1760000000}},"context_window":{"used_percentage":30},"cost":{"total_cost_usd":0.5},"model":{"display_name":"Opus"}}"#;
     assert_eq!(post(s.port, "/api/agents/statusline", &HOOK, status).await.status, 204);
-    let state = agents_until(s.port, |a| a["sessions"].as_array().is_some_and(|l| l.iter().any(|x| x["tool"] == "Bash" && x["context"] == 30))).await;
+    let state =
+        agents_until(s.port, |a| a["sessions"].as_array().is_some_and(|l| l.iter().any(|x| x["tool"] == "Bash" && x["context"] == 30)))
+            .await;
     let mine = state["sessions"].as_array().unwrap().iter().find(|x| x["tool"] == "Bash").unwrap();
-    assert_eq!((&mine["agent"], &mine["project"], &mine["state"], &mine["cost"], &mine["model"]), (&json!("claude"), &json!("repo"), &json!("working"), &json!(0.5), &json!("Opus")));
+    assert_eq!(
+        (&mine["agent"], &mine["project"], &mine["state"], &mine["cost"], &mine["model"]),
+        (&json!("claude"), &json!("repo"), &json!("working"), &json!(0.5), &json!("Opus"))
+    );
     assert_eq!(state["plan"]["claude"]["fiveHour"], json!({ "used": 12, "resetsAt": 1_760_000_000_000_i64 }));
     for secret in ["secret", "abc", "transcript", "GitHub"] {
         assert!(!state.to_string().contains(secret), "{secret}");
@@ -175,7 +181,10 @@ async fn shows_the_live_session_file_not_the_dead_one_and_the_transcripts_tokens
     assert_eq!(state["usage"]["claude"]["breakdown"]["today"]["projects"], json!([{ "name": "filed", "total": 7 }]));
     let sessions = state["sessions"].as_array().unwrap();
     assert_eq!(sessions.len(), 1, "{state}");
-    assert_eq!((&sessions[0]["project"], &sessions[0]["state"], &sessions[0]["since"]), (&json!("filed"), &json!("working"), &json!(1_760_000_000_000_i64)));
+    assert_eq!(
+        (&sessions[0]["project"], &sessions[0]["state"], &sessions[0]["since"]),
+        (&json!("filed"), &json!("working"), &json!(1_760_000_000_000_i64))
+    );
     s.stop().await;
 }
 

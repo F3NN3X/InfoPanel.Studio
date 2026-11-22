@@ -177,7 +177,11 @@ impl Obs {
     }
 
     /// Like `new`, with the Streaming settings as they are saved now.
-    pub fn with_streaming(settings: impl Fn() -> ObsSettings + Send + Sync + 'static, streaming: ObsStreaming, on_change: impl Fn() + Send + Sync + 'static) -> Arc<Self> {
+    pub fn with_streaming(
+        settings: impl Fn() -> ObsSettings + Send + Sync + 'static,
+        streaming: ObsStreaming,
+        on_change: impl Fn() + Send + Sync + 'static,
+    ) -> Arc<Self> {
         let state = empty_obs(!settings().host.is_empty());
         Arc::new(Self {
             state: Mutex::new(state),
@@ -430,7 +434,10 @@ mod tests {
     fn answers_hello_with_identify_authenticated_when_obs_asks() {
         let hello = json!({ "op": 0, "d": { "rpcVersion": 1, "authentication": { "salt": "s", "challenge": "c" } } });
         let (_, send) = obs_step(empty_obs(true), &hello, "pw");
-        assert_eq!(send, [json!({ "op": 1, "d": { "rpcVersion": 1, "eventSubscriptions": 64, "authentication": obs_auth("pw", "s", "c") } })]);
+        assert_eq!(
+            send,
+            [json!({ "op": 1, "d": { "rpcVersion": 1, "eventSubscriptions": 64, "authentication": obs_auth("pw", "s", "c") } })]
+        );
         let (_, send) = obs_step(empty_obs(true), &json!({ "op": 0, "d": { "rpcVersion": 1 } }), "");
         assert!(send[0]["d"].get("authentication").is_none());
     }
@@ -438,7 +445,8 @@ mod tests {
     #[test]
     fn computes_the_documented_authentication_string() {
         // obs-websocket 5 protocol: base64(sha256(base64(sha256(password + salt)) + challenge)).
-        let auth = obs_auth("supersecretpassword", "lM1GncleQOaCu9lT1yeUZhFYnqhsLLP1G5lAGo3ixaI=", "+IxH4CnCiqpX1rM9scsNynZzbOe4KhDeYcTNS3PDaeY=");
+        let auth =
+            obs_auth("supersecretpassword", "lM1GncleQOaCu9lT1yeUZhFYnqhsLLP1G5lAGo3ixaI=", "+IxH4CnCiqpX1rM9scsNynZzbOe4KhDeYcTNS3PDaeY=");
         assert_eq!(auth, "1Ct943GAT+6YQUUX47Ia/ncufilbe6+oD6lY+5kaCu4=");
     }
 
@@ -446,7 +454,10 @@ mod tests {
     fn asks_the_status_once_identified_and_follows_the_output_events() {
         let (identified, send) = obs_step(empty_obs(true), &json!({ "op": 2, "d": {} }), "");
         assert!(identified.connected);
-        assert_eq!(send.iter().map(|m| m["d"]["requestType"].as_str().unwrap()).collect::<Vec<_>>(), ["GetStreamStatus", "GetRecordStatus"]);
+        assert_eq!(
+            send.iter().map(|m| m["d"]["requestType"].as_str().unwrap()).collect::<Vec<_>>(),
+            ["GetStreamStatus", "GetRecordStatus"]
+        );
         let reply = json!({ "op": 7, "d": { "requestId": "stream", "requestStatus": { "result": true }, "responseData": { "outputActive": true } } });
         let (streaming, _) = obs_step(identified, &reply, "");
         assert!(streaming.streaming);
@@ -466,20 +477,34 @@ mod tests {
     #[allow(clippy::result_large_err)]
     async fn fake_obs(listener: TcpListener) {
         let (stream, _) = listener.accept().await.unwrap();
-        let mut socket = tokio_tungstenite::accept_hdr_async(stream, |request: &tokio_tungstenite::tungstenite::handshake::server::Request, mut response: tokio_tungstenite::tungstenite::handshake::server::Response| {
-            assert_eq!(request.headers().get("sec-websocket-protocol").unwrap(), "obswebsocket.json");
-            response.headers_mut().insert("Sec-WebSocket-Protocol", "obswebsocket.json".parse().unwrap());
-            Ok(response)
-        })
+        let mut socket = tokio_tungstenite::accept_hdr_async(
+            stream,
+            |request: &tokio_tungstenite::tungstenite::handshake::server::Request,
+             mut response: tokio_tungstenite::tungstenite::handshake::server::Response| {
+                assert_eq!(request.headers().get("sec-websocket-protocol").unwrap(), "obswebsocket.json");
+                response.headers_mut().insert("Sec-WebSocket-Protocol", "obswebsocket.json".parse().unwrap());
+                Ok(response)
+            },
+        )
         .await
         .unwrap();
-        socket.send(Message::text(json!({ "op": 0, "d": { "rpcVersion": 1, "authentication": { "salt": "s", "challenge": "c" } } }).to_string())).await.unwrap();
+        socket
+            .send(Message::text(
+                json!({ "op": 0, "d": { "rpcVersion": 1, "authentication": { "salt": "s", "challenge": "c" } } }).to_string(),
+            ))
+            .await
+            .unwrap();
         let identify: Value = serde_json::from_str(socket.next().await.unwrap().unwrap().to_text().unwrap()).unwrap();
         assert_eq!(identify["d"]["authentication"], obs_auth("pw", "s", "c"));
         socket.send(Message::text(json!({ "op": 2, "d": { "negotiatedRpcVersion": 1 } }).to_string())).await.unwrap();
         socket.next().await.unwrap().unwrap();
         socket.next().await.unwrap().unwrap();
-        socket.send(Message::text(json!({ "op": 5, "d": { "eventType": "StreamStateChanged", "eventData": { "outputActive": true } } }).to_string())).await.unwrap();
+        socket
+            .send(Message::text(
+                json!({ "op": 5, "d": { "eventType": "StreamStateChanged", "eventData": { "outputActive": true } } }).to_string(),
+            ))
+            .await
+            .unwrap();
         // Hold the connection open until the test is done with it (the client sends more than the two status requests).
         while socket.next().await.is_some() {}
     }

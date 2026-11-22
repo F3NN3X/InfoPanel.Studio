@@ -209,11 +209,7 @@ fn list_or_csv<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<String>, D::Error>
         Some(Raw::Csv(s)) => s.split(',').map(str::to_owned).collect(),
         None => Vec::new(),
     };
-    Ok(items
-        .into_iter()
-        .map(|h| h.trim().to_owned())
-        .filter(|h| !h.is_empty())
-        .collect())
+    Ok(items.into_iter().map(|h| h.trim().to_owned()).filter(|h| !h.is_empty()).collect())
 }
 
 pub fn validate_port(port: u16) -> Result<(), String> {
@@ -235,9 +231,7 @@ pub fn validate_zoom(zoom: u16) -> Result<(), String> {
 pub fn validate_allowed_host(name: &str) -> Result<(), String> {
     let ok = !name.is_empty()
         && name.len() <= 253
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | ':' | '[' | ']'));
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | ':' | '[' | ']'));
     if ok {
         Ok(())
     } else {
@@ -263,11 +257,7 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
         }
         "allowedHosts" => {
             let raw: Vec<String> = parse(key, value)?;
-            let hosts: Vec<String> = raw
-                .iter()
-                .map(|h| h.trim().to_owned())
-                .filter(|h| !h.is_empty())
-                .collect();
+            let hosts: Vec<String> = raw.iter().map(|h| h.trim().to_owned()).filter(|h| !h.is_empty()).collect();
             if let Some(message) = hosts.iter().find_map(|h| validate_allowed_host(h).err()) {
                 return Err(message);
             }
@@ -345,10 +335,7 @@ fn migrate(raw: &mut Value) {
         if let Some(host) = map.remove("host") {
             if !map.contains_key("listen") {
                 let listen = Listen::from_host(host.as_str().unwrap_or_default().trim());
-                map.insert(
-                    "listen".into(),
-                    serde_json::to_value(listen).unwrap_or_default(),
-                );
+                map.insert("listen".into(), serde_json::to_value(listen).unwrap_or_default());
             }
         }
     }
@@ -567,10 +554,7 @@ mod tests {
 
     #[test]
     fn invalid_values_reset_on_load() {
-        let s = load_from_str(
-            r#"{ "listen": "everywhere", "port": 80, "zoom": 333, "allowedHosts": ["ok.lan", "bad host"] }"#,
-        )
-        .unwrap();
+        let s = load_from_str(r#"{ "listen": "everywhere", "port": 80, "zoom": 333, "allowedHosts": ["ok.lan", "bad host"] }"#).unwrap();
         assert_eq!(s.listen, Listen::Local);
         assert_eq!(s.port, DEFAULT_PORT);
         assert_eq!(s.zoom, DEFAULT_ZOOM);
@@ -620,12 +604,8 @@ mod tests {
             assert_eq!(s.version, SETTINGS_VERSION);
         }
         // Version 0 had no version key at all.
-        assert_eq!(
-            load_from_str(r#"{ "host": "0.0.0.0" }"#).unwrap().listen,
-            Listen::Lan
-        );
-        let saved =
-            serde_json::to_value(load_from_str(r#"{ "host": "0.0.0.0" }"#).unwrap()).unwrap();
+        assert_eq!(load_from_str(r#"{ "host": "0.0.0.0" }"#).unwrap().listen, Listen::Lan);
+        let saved = serde_json::to_value(load_from_str(r#"{ "host": "0.0.0.0" }"#).unwrap()).unwrap();
         assert!(saved.get("host").is_none());
         assert_eq!(saved["listen"], "lan");
     }
@@ -652,24 +632,11 @@ mod tests {
     #[test]
     fn with_setting_sets_and_validates_each_key() {
         let s = Settings::default();
-        assert_eq!(
-            with_setting(&s, "listen", json!("lan")).unwrap().listen,
-            Listen::Lan
-        );
+        assert_eq!(with_setting(&s, "listen", json!("lan")).unwrap().listen, Listen::Lan);
         assert_eq!(with_setting(&s, "port", json!(3943)).unwrap().port, 3943);
         assert_eq!(with_setting(&s, "zoom", json!(125)).unwrap().zoom, 125);
-        assert_eq!(
-            with_setting(&s, "updateChannel", json!("beta"))
-                .unwrap()
-                .update_channel,
-            Channel::Beta
-        );
-        assert_eq!(
-            with_setting(&s, "allowedHosts", json!([" panel.lan ", ""]))
-                .unwrap()
-                .allowed_hosts,
-            vec!["panel.lan"]
-        );
+        assert_eq!(with_setting(&s, "updateChannel", json!("beta")).unwrap().update_channel, Channel::Beta);
+        assert_eq!(with_setting(&s, "allowedHosts", json!([" panel.lan ", ""])).unwrap().allowed_hosts, vec!["panel.lan"]);
         for key in [
             "allowRemoteEdit",
             "actionRunner",
@@ -705,10 +672,7 @@ mod tests {
             ("version", json!(3)),
             ("closeWarningShown", json!(true)),
         ] {
-            assert!(
-                with_setting(&s, key, value.clone()).is_err(),
-                "{key} = {value}"
-            );
+            assert!(with_setting(&s, key, value.clone()).is_err(), "{key} = {value}");
         }
     }
 
@@ -761,13 +725,7 @@ mod tests {
     fn save_and_load_round_trip() {
         let dir = std::env::temp_dir().join(format!("ips-settings-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        let s = Settings {
-            port: 3942,
-            listen: Listen::Lan,
-            start_at_login: false,
-            zoom: 125,
-            ..Settings::default()
-        };
+        let s = Settings { port: 3942, listen: Listen::Lan, start_at_login: false, zoom: 125, ..Settings::default() };
         save(&dir, &s).unwrap();
         assert_eq!(load(&dir), s);
         std::fs::write(settings_file(&dir), "not json").unwrap();

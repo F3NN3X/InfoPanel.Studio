@@ -113,15 +113,8 @@ pub fn same_secret(a: &str, b: &str) -> bool {
 }
 
 /// The page Google asks the user to approve us on.
-pub fn authorize_url(
-    ep: &Endpoints,
-    client_id: &str,
-    redirect_uri: &str,
-    state: &str,
-    challenge: &str,
-) -> Result<String, String> {
-    let mut url = Url::parse(&format!("{}/o/oauth2/v2/auth", ep.accounts))
-        .map_err(|_| "bad Google address".to_string())?;
+pub fn authorize_url(ep: &Endpoints, client_id: &str, redirect_uri: &str, state: &str, challenge: &str) -> Result<String, String> {
+    let mut url = Url::parse(&format!("{}/o/oauth2/v2/auth", ep.accounts)).map_err(|_| "bad Google address".to_string())?;
     url.query_pairs_mut()
         .append_pair("client_id", client_id)
         .append_pair("redirect_uri", redirect_uri)
@@ -140,37 +133,24 @@ fn url_of(base: &str, path: &str) -> Result<Url, String> {
 }
 
 async fn reach(client: &GuardedClient, url: &Url) -> Result<(), String> {
-    client
-        .check_target(url)
-        .await
-        .map_err(|e| format!("couldn't reach Google ({e})"))
+    client.check_target(url).await.map_err(|e| format!("couldn't reach Google ({e})"))
 }
 
 fn text<'a>(v: &'a Value, key: &str) -> &'a str {
     v.get(key).and_then(Value::as_str).unwrap_or("")
 }
 
-async fn form(
-    client: &GuardedClient,
-    url: &Url,
-    fields: &[(&str, &str)],
-) -> Result<(u16, Value), String> {
+async fn form(client: &GuardedClient, url: &Url, fields: &[(&str, &str)]) -> Result<(u16, Value), String> {
     reach(client, url).await?;
     let reply = client
         .post_form(url, &[("Accept", "application/json")], fields, MAX_REPLY)
         .await
         .map_err(|e| format!("couldn't reach Google ({e})"))?;
-    Ok((
-        reply.status,
-        serde_json::from_slice(&reply.body).unwrap_or(Value::Null),
-    ))
+    Ok((reply.status, serde_json::from_slice(&reply.body).unwrap_or(Value::Null)))
 }
 
 fn tokens_of(body: &Value, now_ms: i64) -> Tokens {
-    let seconds = body
-        .get("expires_in")
-        .and_then(Value::as_i64)
-        .unwrap_or(3600);
+    let seconds = body.get("expires_in").and_then(Value::as_i64).unwrap_or(3600);
     Tokens {
         access_token: text(body, "access_token").to_string(),
         refresh_token: text(body, "refresh_token").to_string(),
@@ -188,12 +168,7 @@ pub struct Exchange<'a> {
 }
 
 /// Trades the approval code for tokens.
-pub async fn exchange_code(
-    client: &GuardedClient,
-    ep: &Endpoints,
-    x: &Exchange<'_>,
-    now_ms: i64,
-) -> Result<Tokens, String> {
+pub async fn exchange_code(client: &GuardedClient, ep: &Endpoints, x: &Exchange<'_>, now_ms: i64) -> Result<Tokens, String> {
     let url = url_of(&ep.token, "/token")?;
     let fields = [
         ("code", x.code),
@@ -229,15 +204,9 @@ pub async fn refresh(
     now_ms: i64,
 ) -> Result<Tokens, RefreshError> {
     let url = url_of(&ep.token, "/token").map_err(RefreshError::Unreachable)?;
-    let fields = [
-        ("grant_type", "refresh_token"),
-        ("refresh_token", refresh_token),
-        ("client_id", client_id),
-        ("client_secret", client_secret),
-    ];
-    let (status, body) = form(client, &url, &fields)
-        .await
-        .map_err(RefreshError::Unreachable)?;
+    let fields =
+        [("grant_type", "refresh_token"), ("refresh_token", refresh_token), ("client_id", client_id), ("client_secret", client_secret)];
+    let (status, body) = form(client, &url, &fields).await.map_err(RefreshError::Unreachable)?;
     if status == 200 && !text(&body, "access_token").is_empty() {
         let mut tokens = tokens_of(&body, now_ms);
         // Google does not send the refresh token again.
@@ -248,9 +217,7 @@ pub async fn refresh(
     }
     match status {
         400 | 401 => Err(RefreshError::Rejected(text(&body, "error").to_string())),
-        _ => Err(RefreshError::Unreachable(format!(
-            "Google answered {status}"
-        ))),
+        _ => Err(RefreshError::Unreachable(format!("Google answered {status}"))),
     }
 }
 
@@ -265,11 +232,7 @@ pub async fn revoke(client: &GuardedClient, ep: &Endpoints, token: &str) {
 fn classify(status: u16, body: &[u8]) -> Result<Value, ApiError> {
     let json: Value = serde_json::from_slice(body).unwrap_or(Value::Null);
     if status == 200 {
-        return if json.is_null() {
-            Err(ApiError::Failed("YouTube sent something unreadable".into()))
-        } else {
-            Ok(json)
-        };
+        return if json.is_null() { Err(ApiError::Failed("YouTube sent something unreadable".into())) } else { Ok(json) };
     }
     if status == 401 {
         return Err(ApiError::Unauthorized);
@@ -288,78 +251,37 @@ fn classify(status: u16, body: &[u8]) -> Result<Value, ApiError> {
 }
 
 /// A Data API GET as JSON.
-pub async fn api_get(
-    client: &GuardedClient,
-    ep: &Endpoints,
-    path_and_query: &str,
-    token: &str,
-) -> Result<Value, ApiError> {
+pub async fn api_get(client: &GuardedClient, ep: &Endpoints, path_and_query: &str, token: &str) -> Result<Value, ApiError> {
     let url = url_of(&ep.api, path_and_query).map_err(ApiError::Failed)?;
     reach(client, &url).await.map_err(ApiError::Failed)?;
     let bearer = format!("Bearer {token}");
     let reply = client
-        .get(
-            &url,
-            &[
-                ("Authorization", bearer.as_str()),
-                ("Accept", "application/json"),
-            ],
-            MAX_REPLY,
-        )
+        .get(&url, &[("Authorization", bearer.as_str()), ("Accept", "application/json")], MAX_REPLY)
         .await
         .map_err(|e| ApiError::Failed(format!("couldn't reach Google ({e})")))?;
     classify(reply.status, &reply.body)
 }
 
 /// A Data API POST of a JSON body, answered as JSON.
-pub async fn api_post(
-    client: &GuardedClient,
-    ep: &Endpoints,
-    path_and_query: &str,
-    token: &str,
-    body: &Value,
-) -> Result<Value, ApiError> {
+pub async fn api_post(client: &GuardedClient, ep: &Endpoints, path_and_query: &str, token: &str, body: &Value) -> Result<Value, ApiError> {
     let url = url_of(&ep.api, path_and_query).map_err(ApiError::Failed)?;
     reach(client, &url).await.map_err(ApiError::Failed)?;
     let bearer = format!("Bearer {token}");
     let reply = client
-        .post_json(
-            &url,
-            &[
-                ("Authorization", bearer.as_str()),
-                ("Accept", "application/json"),
-            ],
-            &body.to_string(),
-            MAX_REPLY,
-        )
+        .post_json(&url, &[("Authorization", bearer.as_str()), ("Accept", "application/json")], &body.to_string(), MAX_REPLY)
         .await
         .map_err(|e| ApiError::Failed(format!("couldn't reach Google ({e})")))?;
     classify(reply.status, &reply.body)
 }
 
 /// Who a token belongs to: (channel title, channel id).
-pub async fn identity(
-    client: &GuardedClient,
-    ep: &Endpoints,
-    token: &str,
-) -> Result<(String, String), ApiError> {
-    let body = api_get(
-        client,
-        ep,
-        "/youtube/v3/channels?part=snippet&mine=true",
-        token,
-    )
-    .await?;
+pub async fn identity(client: &GuardedClient, ep: &Endpoints, token: &str) -> Result<(String, String), ApiError> {
+    let body = api_get(client, ep, "/youtube/v3/channels?part=snippet&mine=true", token).await?;
     let channel = body.pointer("/items/0");
-    let title = channel
-        .and_then(|c| c.pointer("/snippet/title"))
-        .and_then(Value::as_str)
-        .unwrap_or("");
+    let title = channel.and_then(|c| c.pointer("/snippet/title")).and_then(Value::as_str).unwrap_or("");
     let id = channel.map_or("", |c| text(c, "id"));
     if title.is_empty() || id.is_empty() {
-        return Err(ApiError::Failed(
-            "this Google account has no YouTube channel".into(),
-        ));
+        return Err(ApiError::Failed("this Google account has no YouTube channel".into()));
     }
     Ok((title.to_string(), id.to_string()))
 }
@@ -374,14 +296,9 @@ mod tests {
         let (a, b) = (random_token(32), random_token(32));
         assert_eq!((a.len(), b.len()), (43, 43));
         assert_ne!(a, b);
-        assert!(a
-            .bytes()
-            .all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_'));
+        assert!(a.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_'));
         // RFC 7636 appendix B.
-        assert_eq!(
-            challenge_of("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"),
-            "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
-        );
+        assert_eq!(challenge_of("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"), "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
     }
 
     #[test]
@@ -395,19 +312,9 @@ mod tests {
 
     #[test]
     fn builds_the_sign_in_address_with_pkce_and_offline_access() {
-        let url = authorize_url(
-            &Endpoints::google(),
-            "cid.apps",
-            "http://127.0.0.1:3922/api/youtube/callback",
-            "st",
-            "ch",
-        )
-        .unwrap();
+        let url = authorize_url(&Endpoints::google(), "cid.apps", "http://127.0.0.1:3922/api/youtube/callback", "st", "ch").unwrap();
         let url = Url::parse(&url).unwrap();
-        assert_eq!(
-            (url.host_str(), url.path()),
-            (Some("accounts.google.com"), "/o/oauth2/v2/auth")
-        );
+        assert_eq!((url.host_str(), url.path()), (Some("accounts.google.com"), "/o/oauth2/v2/auth"));
         let q: std::collections::HashMap<_, _> = url.query_pairs().into_owned().collect();
         for (k, v) in [
             ("client_id", "cid.apps"),
@@ -426,37 +333,15 @@ mod tests {
 
     #[test]
     fn classifies_what_the_api_answers() {
-        let body = |reason: &str| {
-            json!({ "error": { "errors": [{ "reason": reason }] } })
-                .to_string()
-                .into_bytes()
-        };
-        assert_eq!(
-            classify(200, br#"{"items":[]}"#),
-            Ok(json!({ "items": [] }))
-        );
+        let body = |reason: &str| json!({ "error": { "errors": [{ "reason": reason }] } }).to_string().into_bytes();
+        assert_eq!(classify(200, br#"{"items":[]}"#), Ok(json!({ "items": [] })));
         assert_eq!(classify(401, b"{}"), Err(ApiError::Unauthorized));
         assert_eq!(classify(403, &body("quotaExceeded")), Err(ApiError::Quota));
-        assert_eq!(
-            classify(403, &body("dailyLimitExceeded")),
-            Err(ApiError::Quota)
-        );
-        assert_eq!(
-            classify(403, &body("liveChatEnded")),
-            Err(ApiError::ChatGone)
-        );
-        assert_eq!(
-            classify(404, &body("liveChatNotFound")),
-            Err(ApiError::ChatGone)
-        );
-        assert_eq!(
-            classify(403, &body("forbidden")),
-            Err(ApiError::Failed("YouTube answered 403 (forbidden)".into()))
-        );
-        assert_eq!(
-            classify(500, b"oops"),
-            Err(ApiError::Failed("YouTube answered 500".into()))
-        );
+        assert_eq!(classify(403, &body("dailyLimitExceeded")), Err(ApiError::Quota));
+        assert_eq!(classify(403, &body("liveChatEnded")), Err(ApiError::ChatGone));
+        assert_eq!(classify(404, &body("liveChatNotFound")), Err(ApiError::ChatGone));
+        assert_eq!(classify(403, &body("forbidden")), Err(ApiError::Failed("YouTube answered 403 (forbidden)".into())));
+        assert_eq!(classify(500, b"oops"), Err(ApiError::Failed("YouTube answered 500".into())));
         assert!(matches!(classify(200, b"oops"), Err(ApiError::Failed(_))));
     }
 }

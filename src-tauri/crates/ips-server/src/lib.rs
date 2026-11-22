@@ -13,16 +13,14 @@ pub mod app_icon;
 pub mod approvals;
 pub mod asset_types;
 pub mod assets;
-pub mod pack_sign;
-pub mod packs;
 pub mod audio;
 pub mod calendar;
 pub mod canvases;
+pub mod chat_hub;
 pub mod claude_sessions;
 pub mod config;
 pub mod config_guard;
 pub mod config_settings;
-pub mod chat_hub;
 pub mod control;
 pub mod control_auto;
 pub mod control_store;
@@ -49,15 +47,17 @@ pub mod locale;
 pub mod media;
 pub mod obs;
 pub mod obs_control;
+pub mod pack_sign;
+pub mod packs;
 pub mod peripherals;
 pub mod proxy;
 pub mod request_guard;
 pub mod security_headers;
 pub mod sse;
 pub mod static_files;
+pub mod store;
 pub mod streamdeck;
 pub mod streaming;
-pub mod store;
 pub mod studio_prefs;
 pub mod supervisor;
 pub mod svg_sanitize;
@@ -88,7 +88,6 @@ use crate::agent_usage::AgentUsage;
 use crate::agents::{Agents, Sources};
 use crate::alerts::{Alerts, Options as AlertsOptions};
 use crate::assets::Assets;
-use crate::packs::Packs;
 use crate::audio::Audio;
 use crate::canvases::{CanvasStore, Sweeper};
 use crate::config::ConfigStore;
@@ -98,6 +97,7 @@ use crate::devices::Devices;
 use crate::extras::Extras;
 use crate::http::Req;
 use crate::library::LibraryStore;
+use crate::packs::Packs;
 use crate::request_guard::{config_write_refusal, remote_edit_refusal, RequestGuard};
 use crate::streamdeck::StreamDeck;
 use crate::studio_prefs::StudioPrefs;
@@ -277,13 +277,11 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
         .ok()
         .and_then(|mut addrs| addrs.next())
         .ok_or_else(|| StartError::Other(format!("getaddrinfo ENOTFOUND {}", cfg.host)))?;
-    let listener = listen_socket(addr)
-        .and_then(tokio::net::TcpListener::from_std)
-        .map_err(|e| match e.kind() {
-            std::io::ErrorKind::AddrInUse => StartError::AddrInUse(at.clone()),
-            std::io::ErrorKind::PermissionDenied => StartError::Access(at.clone()),
-            _ => StartError::Other(format!("listen {e} {at}")),
-        })?;
+    let listener = listen_socket(addr).and_then(tokio::net::TcpListener::from_std).map_err(|e| match e.kind() {
+        std::io::ErrorKind::AddrInUse => StartError::AddrInUse(at.clone()),
+        std::io::ErrorKind::PermissionDenied => StartError::Access(at.clone()),
+        _ => StartError::Other(format!("listen {e} {at}")),
+    })?;
     let port = listener.local_addr().map_err(|e| StartError::Other(e.to_string()))?.port();
 
     let machine_name = sysinfo::System::host_name().unwrap_or_default();
@@ -364,7 +362,12 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
     let endpoints = weather::Endpoints::from_env(live_audio).map_err(StartError::Other)?;
     let weather = Weather::new(Weather::enabled_from_env(), endpoints, weather::Limits::default(), {
         let (config, widgets) = (Arc::clone(&config), Arc::clone(&widgets));
-        move || config.read().map(|c| weather::referenced_places(&c, &|id| widgets.recipe_json(id), weather::Limits::default().places_max)).unwrap_or_default()
+        move || {
+            config
+                .read()
+                .map(|c| weather::referenced_places(&c, &|id| widgets.recipe_json(id), weather::Limits::default().places_max))
+                .unwrap_or_default()
+        }
     });
     config.on_saved({
         let weather = Arc::clone(&weather);
@@ -401,7 +404,31 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, port, audio, streamdeck, agents, assets, packs, widgets, weather, devices, canvases, library, actions, approvals, prefs, shutdown };
+    let app = App {
+        cfg,
+        guard,
+        started: Instant::now(),
+        debug,
+        config,
+        control,
+        alerts,
+        extras,
+        port,
+        audio,
+        streamdeck,
+        agents,
+        assets,
+        packs,
+        widgets,
+        weather,
+        devices,
+        canvases,
+        library,
+        actions,
+        approvals,
+        prefs,
+        shutdown,
+    };
     Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
@@ -451,7 +478,9 @@ async fn dispatch(State(app): State<Arc<App>>, ConnectInfo(peer): ConnectInfo<So
         return response;
     }
     let header = |name: &str| http::header(&parts.headers, name);
-    if let Some(refusal) = app.guard.check(parts.method.as_str(), header("host").as_deref(), header("sec-fetch-site").as_deref(), header("origin").as_deref()) {
+    if let Some(refusal) =
+        app.guard.check(parts.method.as_str(), header("host").as_deref(), header("sec-fetch-site").as_deref(), header("origin").as_deref())
+    {
         let mut response = http::text(refusal.status, refusal.message);
         response.headers_mut().insert("Connection", HeaderValue::from_static("close"));
         return response;
@@ -531,7 +560,9 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/events/devices" => Ok(devices::handle_events(app, &req)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),
-        "/api/agents/permission" | "/api/agents/requests" | "/api/agents/requests/log" | "/api/agents/answer" => approvals::handle(app, req).await.map_err(io),
+        "/api/agents/permission" | "/api/agents/requests" | "/api/agents/requests/log" | "/api/agents/answer" => {
+            approvals::handle(app, req).await.map_err(io)
+        }
         "/api/image-proxy" => proxy::handle(req).await,
         "/api/font-proxy" => font_proxy::handle(app, req).await,
         "/api/frame-check" => frame_check::handle(req).await,

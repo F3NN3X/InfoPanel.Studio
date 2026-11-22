@@ -6,20 +6,20 @@
 //! Reply: [09][04][status=0]...[6=percent][7=charging]. No reply checksum rule is established.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4};
 use crate::win::now_ms;
 
 pub fn poll_dareu(ctx: &mut PollContext) {
     let (vid, pid) = (0x260Du16, 0x1074u16);
-    if ctx.is_claimed(vid, pid) { return; }
-    let inputs = ctx.find(vid, pid, |c| {
-        c.iface == 1 && c.page() == 0xFF01 && c.usage() == 0 && c.in_len() == 17
-    });
-    let features = ctx.find(vid, pid, |c| {
-        c.iface == 1 && c.page() == 0xFF02 && c.usage() == 2 && c.feat_len() == 17
-    });
+    if ctx.is_claimed(vid, pid) {
+        return;
+    }
+    let inputs = ctx.find(vid, pid, |c| c.iface == 1 && c.page() == 0xFF01 && c.usage() == 0 && c.in_len() == 17);
+    let features = ctx.find(vid, pid, |c| c.iface == 1 && c.page() == 0xFF02 && c.usage() == 2 && c.feat_len() == 17);
     // Do not pair arbitrary collections when multiple receivers are present.
-    if inputs.len() != 1 || features.len() != 1 { return; }
+    if inputs.len() != 1 || features.len() != 1 {
+        return;
+    }
 
     let Some(mut input) = ctx.open(&inputs[0]) else { return };
     let Some(mut feature) = ctx.open_feature_only(&features[0]) else { return };
@@ -27,14 +27,20 @@ pub fn poll_dareu(ctx: &mut PollContext) {
     let mut r: Vec<u8> = Vec::new();
     req[0] = 0x08;
     req[1] = 0x04;
-    req[16] = 0x49;  // 0x55 minus the sum of bytes 0..15
+    req[16] = 0x49; // 0x55 minus the sum of bytes 0..15
     input.flush();
-    if !feature.set_feature(&req) { return; }
+    if !feature.set_feature(&req) {
+        return;
+    }
     let end = now_ms() + 1000;
     for _reports in 0..32 {
         let left = (end as i64 - now_ms() as i64) as i32;
-        if left <= 0 || input.read(&mut r, left as u32) < 0 { return; }
-        if r.len() != 17 || r[0] != 0x09 || r[1] != 0x04 || r[2] != 0 || r[6] > 100 { continue; }
+        if left <= 0 || input.read(&mut r, left as u32) < 0 {
+            return;
+        }
+        if r.len() != 17 || r[0] != 0x09 || r[1] != 0x04 || r[2] != 0 || r[6] > 100 {
+            continue;
+        }
         let s = DeviceStatus {
             key: format!("dareu:{}:{}", hex4(vid), hex4(pid)),
             name: "DAREU EM901X".into(),
@@ -97,7 +103,9 @@ mod tests {
     }
 
     impl HidIo for Dev {
-        fn write(&mut self, _data: &[u8], _timeout_ms: u32) -> bool { false }
+        fn write(&mut self, _data: &[u8], _timeout_ms: u32) -> bool {
+            false
+        }
         fn read(&mut self, buf: &mut Vec<u8>, timeout_ms: u32) -> i32 {
             assert_eq!(self.path, "input");
             {
@@ -114,14 +122,20 @@ mod tests {
                 std::thread::sleep(Duration::from_millis((timeout_ms as u64).min(delay)));
             }
             let mut sh = self.sh.borrow_mut();
-            if sh.replies.is_empty() { return -1; }
+            if sh.replies.is_empty() {
+                return -1;
+            }
             let r = sh.replies.remove(0);
             buf.clear();
             buf.extend_from_slice(&r);
             r.len() as i32
         }
-        fn set_output_and_read(&mut self, _data: &[u8], _buf: &mut Vec<u8>, _timeout_ms: u32) -> i32 { -1 }
-        fn flush(&mut self) { assert_eq!(self.path, "input"); }
+        fn set_output_and_read(&mut self, _data: &[u8], _buf: &mut Vec<u8>, _timeout_ms: u32) -> i32 {
+            -1
+        }
+        fn flush(&mut self) {
+            assert_eq!(self.path, "input");
+        }
         fn set_feature(&mut self, data: &[u8]) -> bool {
             assert_eq!(self.path, "feature");
             let mut expected = vec![0u8; 17];
@@ -133,8 +147,12 @@ mod tests {
             sh.sends += 1;
             sh.send_ok
         }
-        fn get_feature(&mut self, _id: u8, _out: &mut Vec<u8>) -> bool { false }
-        fn get_input_report(&mut self, _id: u8, _out: &mut Vec<u8>) -> bool { false }
+        fn get_feature(&mut self, _id: u8, _out: &mut Vec<u8>) -> bool {
+            false
+        }
+        fn get_input_report(&mut self, _id: u8, _out: &mut Vec<u8>) -> bool {
+            false
+        }
     }
 
     struct Factory {
@@ -142,9 +160,15 @@ mod tests {
     }
 
     impl Factory {
-        fn opens(&self) -> u32 { self.sh.borrow().opens }
-        fn sends(&self) -> u32 { self.sh.borrow().sends }
-        fn reads(&self) -> u32 { self.sh.borrow().reads }
+        fn opens(&self) -> u32 {
+            self.sh.borrow().opens
+        }
+        fn sends(&self) -> u32 {
+            self.sh.borrow().sends
+        }
+        fn reads(&self) -> u32 {
+            self.sh.borrow().reads
+        }
     }
 
     impl HidFactory for Factory {
@@ -155,10 +179,14 @@ mod tests {
                 sh.opens += 1;
                 sh.open_ok
             };
-            if !ok { return None; }
+            if !ok {
+                return None;
+            }
             Some(Box::new(Dev { sh: self.sh.clone(), path: coll.path.clone() }))
         }
-        fn open_read_only(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> { self.open(coll) }
+        fn open_read_only(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> {
+            self.open(coll)
+        }
         fn open_feature_only(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> {
             assert_eq!(coll.path, "feature");
             let ok = {
@@ -166,7 +194,9 @@ mod tests {
                 sh.opens += 1;
                 sh.feature_open_ok
             };
-            if !ok { return None; }
+            if !ok {
+                return None;
+            }
             Some(Box::new(Dev { sh: self.sh.clone(), path: coll.path.clone() }))
         }
     }
@@ -237,7 +267,9 @@ mod tests {
         {
             let mut ctx = PollContext::new(&mut io);
             ctx.colls = colls();
-            for &(vid, pid) in &claimed { ctx.claim(vid, pid); }
+            for &(vid, pid) in &claimed {
+                ctx.claim(vid, pid);
+            }
             poll_dareu(&mut ctx);
         }
         assert_eq!(io.sends(), 1); // already claimed
@@ -260,23 +292,28 @@ mod tests {
         short_reply.resize(7, 0);
         let mut long_reply = reply(85, 0);
         long_reply.push(0);
-        let (io, out, _) = run(colls(), Cfg {
-            replies: vec![
-                wrong_id.clone(), wrong_command.clone(), failed.clone(), short_reply, long_reply,
-                reply(101, 0), reply(42, 1),
-            ],
-            ..Default::default()
-        });
+        let (io, out, _) = run(
+            colls(),
+            Cfg {
+                replies: vec![
+                    wrong_id.clone(),
+                    wrong_command.clone(),
+                    failed.clone(),
+                    short_reply,
+                    long_reply,
+                    reply(101, 0),
+                    reply(42, 1),
+                ],
+                ..Default::default()
+            },
+        );
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].percent, 42);
         assert!(out[0].charging);
         assert_eq!(io.sends(), 1);
         assert_eq!(io.reads(), 7);
 
-        let (io, out, claimed) = run(colls(), Cfg {
-            replies: vec![wrong_id.clone(), failed.clone(), reply(255, 0)],
-            ..Default::default()
-        });
+        let (io, out, claimed) = run(colls(), Cfg { replies: vec![wrong_id.clone(), failed.clone(), reply(255, 0)], ..Default::default() });
         assert!(out.is_empty());
         assert!(claimed.is_empty());
         assert_eq!(io.sends(), 1);
@@ -287,20 +324,13 @@ mod tests {
         assert_eq!(io.sends(), 1);
 
         let started = now_ms();
-        let (io, out, claimed) = run(colls(), Cfg {
-            replies: vec![wrong_command.clone(); 32],
-            read_delay_ms: 80,
-            ..Default::default()
-        });
+        let (io, out, claimed) = run(colls(), Cfg { replies: vec![wrong_command.clone(); 32], read_delay_ms: 80, ..Default::default() });
         let elapsed = now_ms() - started;
         assert!(out.is_empty());
         assert!(claimed.is_empty());
         assert_eq!(io.sends(), 1);
         assert!(io.reads() < 32);
-        assert!(
-            elapsed >= 900 && elapsed < 1500,
-            "unrelated reports must not restart the one-second deadline (elapsed {elapsed} ms)"
-        );
+        assert!(elapsed >= 900 && elapsed < 1500, "unrelated reports must not restart the one-second deadline (elapsed {elapsed} ms)");
 
         let (io, out, claimed) = run(colls(), Cfg::default());
         assert!(out.is_empty());
@@ -332,9 +362,17 @@ mod tests {
                 4 => c[0].caps.input_report_byte_length = 8,
                 5 => c[1].caps.feature_report_byte_length = 65,
                 6 => c[0].iface = 2,
-                7 => { let extra = c[0].clone(); c.push(extra); }
-                8 => { let extra = c[1].clone(); c.push(extra); }
-                _ => { c.pop(); }
+                7 => {
+                    let extra = c[0].clone();
+                    c.push(extra);
+                }
+                8 => {
+                    let extra = c[1].clone();
+                    c.push(extra);
+                }
+                _ => {
+                    c.pop();
+                }
             }
             let (io, out, claimed) = run(c, Cfg::default());
             assert!(out.is_empty());

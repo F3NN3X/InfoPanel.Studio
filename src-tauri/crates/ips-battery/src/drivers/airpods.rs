@@ -18,31 +18,32 @@
 //! with random addresses, so only messages whose model matches the PID of a paired device are
 //! used, and the strongest recent signal wins.
 #![allow(dead_code)]
-#![allow(non_snake_case)]  // the WinRT ABI structs keep the Windows SDK vtable member names
-#![allow(non_upper_case_globals)]  // ... and the C++ IID constant names
+#![allow(non_snake_case)] // the WinRT ABI structs keep the Windows SDK vtable member names
+#![allow(non_upper_case_globals)] // ... and the C++ IID constant names
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::c_void;
 use std::sync::Mutex;
 
-use windows_sys::core::{GUID, HSTRING, HRESULT, IInspectable_Vtbl, IUnknown_Vtbl, IID_IUnknown};
 use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
-    SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo, SetupDiGetClassDevsW,
-    SetupDiGetDeviceInstanceIdW, SetupDiGetDevicePropertyW, DIGCF_ALLCLASSES, DIGCF_PRESENT,
-    SP_DEVINFO_DATA,
+    DIGCF_ALLCLASSES, DIGCF_PRESENT, SP_DEVINFO_DATA, SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo, SetupDiGetClassDevsW,
+    SetupDiGetDeviceInstanceIdW, SetupDiGetDevicePropertyW,
 };
-use windows_sys::Win32::Devices::Properties::{
-    DEVPKEY_Device_ContainerId, DEVPKEY_Device_FriendlyName, DEVPROP_TYPE_BOOLEAN,
-};
+use windows_sys::Win32::Devices::Properties::{DEVPKEY_Device_ContainerId, DEVPKEY_Device_FriendlyName, DEVPROP_TYPE_BOOLEAN};
 use windows_sys::Win32::Foundation::{DEVPROPKEY, E_NOINTERFACE, S_OK};
 use windows_sys::Win32::System::Com::StringFromGUID2;
+use windows_sys::core::{GUID, HRESULT, HSTRING, IID_IUnknown, IInspectable_Vtbl, IUnknown_Vtbl};
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, PollContext};
+use crate::hid::{PollContext, hex4};
 use crate::win::{now_ms, sleep_ms, to_wide, wide_to_string};
 
-fn succeeded(hr: HRESULT) -> bool { hr >= 0 }
-fn failed(hr: HRESULT) -> bool { hr < 0 }
+fn succeeded(hr: HRESULT) -> bool {
+    hr >= 0
+}
+fn failed(hr: HRESULT) -> bool {
+    hr < 0
+}
 
 // ---- minimal WinRT ABI declarations (windows-sys ships no BluetoothLEAdvertisementWatcher) ----
 // Vtable order from the Windows SDK header windows.devices.bluetooth.advertisement.h. The C++
@@ -63,10 +64,12 @@ fn guid_eq(a: &GUID, b: &GUID) -> bool {
 }
 
 #[repr(C)]
-struct EventRegistrationToken { value: i64 }
+struct EventRegistrationToken {
+    value: i64,
+}
 
 // WinRT activation from combase.dll (the C++ pulled these in from roapi.h / winstring.h).
-#[link(name = "runtimeobject")]  // SDK import lib for combase.dll's Ro* exports (the C++ -lruntimeobject)
+#[link(name = "runtimeobject")] // SDK import lib for combase.dll's Ro* exports (the C++ -lruntimeobject)
 unsafe extern "system" {
     fn RoInitialize(init_type: u32) -> HRESULT;
     fn RoActivateInstance(activatable_class_id: HSTRING, instance: *mut *mut c_void) -> HRESULT;
@@ -76,7 +79,9 @@ unsafe extern "system" {
 const RO_INIT_MULTITHREADED: u32 = 0;
 
 #[repr(C)]
-struct IBufferAbi { vtbl: *const IBufferAbi_Vtbl }
+struct IBufferAbi {
+    vtbl: *const IBufferAbi_Vtbl,
+}
 #[repr(C)]
 struct IBufferAbi_Vtbl {
     base: IInspectable_Vtbl,
@@ -91,7 +96,9 @@ impl IBufferAbi {
 }
 
 #[repr(C)]
-struct IBufferByteAccessAbi { vtbl: *const IBufferByteAccessAbi_Vtbl }
+struct IBufferByteAccessAbi {
+    vtbl: *const IBufferByteAccessAbi_Vtbl,
+}
 #[repr(C)]
 struct IBufferByteAccessAbi_Vtbl {
     base: IUnknown_Vtbl,
@@ -104,7 +111,9 @@ impl IBufferByteAccessAbi {
 }
 
 #[repr(C)]
-struct IManufacturerData { vtbl: *const IManufacturerData_Vtbl }
+struct IManufacturerData {
+    vtbl: *const IManufacturerData_Vtbl,
+}
 #[repr(C)]
 struct IManufacturerData_Vtbl {
     base: IInspectable_Vtbl,
@@ -120,9 +129,12 @@ impl IManufacturerData {
 }
 
 #[repr(C)]
-struct IManufacturerDataView { vtbl: *const IManufacturerDataView_Vtbl }
+struct IManufacturerDataView {
+    vtbl: *const IManufacturerDataView_Vtbl,
+}
 #[repr(C)]
-struct IManufacturerDataView_Vtbl {  // IVectorView<BluetoothLEManufacturerData>
+struct IManufacturerDataView_Vtbl {
+    // IVectorView<BluetoothLEManufacturerData>
     base: IInspectable_Vtbl,
     GetAt: unsafe extern "system" fn(this: *mut c_void, i: u32, v: *mut *mut IManufacturerData) -> HRESULT,
     get_Size: unsafe extern "system" fn(this: *mut c_void, v: *mut u32) -> HRESULT,
@@ -137,7 +149,9 @@ impl IManufacturerDataView {
 }
 
 #[repr(C)]
-struct IAdvertisement { vtbl: *const IAdvertisement_Vtbl }
+struct IAdvertisement {
+    vtbl: *const IAdvertisement_Vtbl,
+}
 #[repr(C)]
 struct IAdvertisement_Vtbl {
     base: IInspectable_Vtbl,
@@ -159,7 +173,9 @@ impl IAdvertisement {
 }
 
 #[repr(C)]
-struct IReceivedArgs { vtbl: *const IReceivedArgs_Vtbl }
+struct IReceivedArgs {
+    vtbl: *const IReceivedArgs_Vtbl,
+}
 #[repr(C)]
 struct IReceivedArgs_Vtbl {
     base: IInspectable_Vtbl,
@@ -182,7 +198,9 @@ impl IReceivedArgs {
 }
 
 #[repr(C)]
-struct IWatcher { vtbl: *const IWatcher_Vtbl }
+struct IWatcher {
+    vtbl: *const IWatcher_Vtbl,
+}
 #[repr(C)]
 struct IWatcher_Vtbl {
     base: IInspectable_Vtbl,
@@ -199,8 +217,7 @@ struct IWatcher_Vtbl {
     put_AdvertisementFilter: unsafe extern "system" fn(this: *mut c_void, v: *mut c_void) -> HRESULT,
     Start: unsafe extern "system" fn(this: *mut c_void) -> HRESULT,
     Stop: unsafe extern "system" fn(this: *mut c_void) -> HRESULT,
-    add_Received: unsafe extern "system" fn(
-        this: *mut c_void, handler: *mut c_void, token: *mut EventRegistrationToken) -> HRESULT,
+    add_Received: unsafe extern "system" fn(this: *mut c_void, handler: *mut c_void, token: *mut EventRegistrationToken) -> HRESULT,
     remove_Received: unsafe extern "system" fn(this: *mut c_void, token: EventRegistrationToken) -> HRESULT,
 }
 impl IWatcher {
@@ -227,7 +244,9 @@ unsafe fn qi<T>(obj: *mut c_void, iid: *const GUID, out: *mut *mut T) -> HRESULT
 /// is a no-op on null.
 unsafe fn release(p: *mut c_void) -> u32 {
     unsafe {
-        if p.is_null() { return 0; }
+        if p.is_null() {
+            return 0;
+        }
         let vtbl = *(p as *mut *const IUnknown_Vtbl);
         ((*vtbl).Release)(p)
     }
@@ -240,21 +259,38 @@ struct Advert {
     model: u16,
     single: bool,
     leftBroadcasts: bool,
-    left: i32, right: i32, caseLevel: i32,  // percent, -1 unknown (single-battery models use `left`; `caseLevel` is the C++ `box`)
-    leftChg: bool, rightChg: bool, caseChg: bool,
+    left: i32,
+    right: i32,
+    caseLevel: i32, // percent, -1 unknown (single-battery models use `left`; `caseLevel` is the C++ `box`)
+    leftChg: bool,
+    rightChg: bool,
+    caseChg: bool,
     rssi: i32,
     tick: u64,
 }
 impl Default for Advert {
     fn default() -> Self {
-        Advert { model: 0, single: false, leftBroadcasts: false, left: -1, right: -1, caseLevel: -1,
-                 leftChg: false, rightChg: false, caseChg: false, rssi: -127, tick: 0 }
+        Advert {
+            model: 0,
+            single: false,
+            leftBroadcasts: false,
+            left: -1,
+            right: -1,
+            caseLevel: -1,
+            leftChg: false,
+            rightChg: false,
+            caseChg: false,
+            rssi: -127,
+            tick: 0,
+        }
     }
 }
 
-static G_ADVERTS: Mutex<BTreeMap<u64, Advert>> = Mutex::new(BTreeMap::new());  // by (random, rotating) BLE address
+static G_ADVERTS: Mutex<BTreeMap<u64, Advert>> = Mutex::new(BTreeMap::new()); // by (random, rotating) BLE address
 
-fn Level(nibble: i32) -> i32 { if nibble <= 10 { nibble * 10 } else { -1 } }
+fn Level(nibble: i32) -> i32 {
+    if nibble <= 10 { nibble * 10 } else { -1 }
+}
 
 // Single-battery headphones and neckbands (AirPods Max, Beats Solo/Studio/X/Flex/Powerbeats) put
 // their battery in the low nibble of byte 6 and leave the upper nibble and case nibble as 0 (not
@@ -281,9 +317,13 @@ fn IsSingleBatteryModel(model: u16) -> bool {
 fn ParseProximityTlv(d: &[u8], a: &mut Advert) -> bool {
     // d[1] == 0x19 (25 bytes following) and d[2] == 0x01 (paired status mode; 0x00 is pairing mode).
     let n = d.len();
-    if n < 27 || d[0] != 0x07 || d[1] != 0x19 || d[2] != 0x01 { return false; }
+    if n < 27 || d[0] != 0x07 || d[1] != 0x19 || d[2] != 0x01 {
+        return false;
+    }
     a.model = (d[3] as u16) | ((d[4] as u16) << 8);
-    if (a.model & 0xFF00) != 0x2000 { return false; }
+    if (a.model & 0xFF00) != 0x2000 {
+        return false;
+    }
     a.single = IsSingleBatteryModel(a.model);
     a.leftBroadcasts = (d[5] & 0x20) != 0;
     let cur = (d[6] & 0x0F) as i32;
@@ -296,7 +336,9 @@ fn ParseProximityTlv(d: &[u8], a: &mut Advert) -> bool {
             pct = Level(other);
             charging = (chg & 0x02) != 0;
         }
-        if pct < 0 { return false; }
+        if pct < 0 {
+            return false;
+        }
         a.left = pct;
         a.leftChg = charging;
         a.right = -1;
@@ -319,8 +361,12 @@ fn Parse(buf: &[u8], a: &mut Advert) -> bool {
     while i + 1 < n {
         let ty = buf[i as usize];
         let len = buf[i as usize + 1] as u32;
-        if i + 2 + len > n { break; }
-        if ty == 0x07 && ParseProximityTlv(&buf[i as usize .. (i + 2 + len) as usize], a) { return true; }
+        if i + 2 + len > n {
+            break;
+        }
+        if ty == 0x07 && ParseProximityTlv(&buf[i as usize..(i + 2 + len) as usize], a) {
+            return true;
+        }
         i += 2 + len;
     }
     false
@@ -329,7 +375,9 @@ fn Parse(buf: &[u8], a: &mut Advert) -> bool {
 fn OnReceived(args: *mut IReceivedArgs) {
     unsafe {
         let mut adv: *mut IAdvertisement = std::ptr::null_mut();
-        if failed((*args).get_Advertisement(&mut adv)) || adv.is_null() { return; }
+        if failed((*args).get_Advertisement(&mut adv)) || adv.is_null() {
+            return;
+        }
         let mut view: *mut IManufacturerDataView = std::ptr::null_mut();
         if succeeded((*adv).GetManufacturerDataByCompanyId(0x004C, &mut view)) && !view.is_null() {
             let mut count: u32 = 0;
@@ -341,11 +389,15 @@ fn OnReceived(args: *mut IReceivedArgs) {
                 let mut p: *mut u8 = std::ptr::null_mut();
                 let mut len: u32 = 0;
                 let mut a = Advert::default();
-                if succeeded((*view).GetAt(i, &mut md)) && !md.is_null()
-                    && succeeded((*md).get_Data(&mut buf)) && !buf.is_null()
+                if succeeded((*view).GetAt(i, &mut md))
+                    && !md.is_null()
+                    && succeeded((*md).get_Data(&mut buf))
+                    && !buf.is_null()
                     && succeeded((*buf).get_Length(&mut len))
-                    && succeeded(qi(buf as *mut c_void, &IID_BufferByteAccess, &mut bytes)) && !bytes.is_null()
-                    && succeeded((*bytes).Buffer(&mut p)) && !p.is_null()
+                    && succeeded(qi(buf as *mut c_void, &IID_BufferByteAccess, &mut bytes))
+                    && !bytes.is_null()
+                    && succeeded((*bytes).Buffer(&mut p))
+                    && !p.is_null()
                     && Parse(std::slice::from_raw_parts(p, len as usize), &mut a)
                 {
                     let mut addr: u64 = 0;
@@ -371,7 +423,9 @@ fn OnReceived(args: *mut IReceivedArgs) {
 
 // Static delegate object: lives as long as the process.
 #[repr(C)]
-struct ReceivedHandler { vtbl: *const ReceivedHandlerVtbl }
+struct ReceivedHandler {
+    vtbl: *const ReceivedHandlerVtbl,
+}
 unsafe impl Send for ReceivedHandler {}
 unsafe impl Sync for ReceivedHandler {}
 
@@ -392,8 +446,12 @@ unsafe extern "system" fn handler_QueryInterface(this: *mut c_void, iid: *const 
         E_NOINTERFACE
     }
 }
-unsafe extern "system" fn handler_AddRef(_this: *mut c_void) -> u32 { 2 }
-unsafe extern "system" fn handler_Release(_this: *mut c_void) -> u32 { 1 }
+unsafe extern "system" fn handler_AddRef(_this: *mut c_void) -> u32 {
+    2
+}
+unsafe extern "system" fn handler_Release(_this: *mut c_void) -> u32 {
+    1
+}
 
 unsafe extern "system" fn handler_Invoke(_this: *mut c_void, _sender: *mut c_void, argsObj: *mut c_void) -> HRESULT {
     unsafe {
@@ -409,11 +467,7 @@ unsafe extern "system" fn handler_Invoke(_this: *mut c_void, _sender: *mut c_voi
 }
 
 static HANDLER_VTBL: ReceivedHandlerVtbl = ReceivedHandlerVtbl {
-    base: IUnknown_Vtbl {
-        QueryInterface: handler_QueryInterface,
-        AddRef: handler_AddRef,
-        Release: handler_Release,
-    },
+    base: IUnknown_Vtbl { QueryInterface: handler_QueryInterface, AddRef: handler_AddRef, Release: handler_Release },
     Invoke: handler_Invoke,
 };
 static G_HANDLER: ReceivedHandler = ReceivedHandler { vtbl: &HANDLER_VTBL };
@@ -437,23 +491,34 @@ fn EnsureWatcher() -> bool {
         }
         return false;
     }
-    unsafe { RoInitialize(RO_INIT_MULTITHREADED); }  // our poll thread; harmless if already initialised
+    unsafe {
+        RoInitialize(RO_INIT_MULTITHREADED);
+    } // our poll thread; harmless if already initialised
     let cls = to_wide("Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementWatcher");
     let mut name: HSTRING = std::ptr::null_mut();
     let mut obj: *mut c_void = std::ptr::null_mut();
     if succeeded(unsafe { WindowsCreateString(cls.as_ptr(), (cls.len() - 1) as u32, &mut name) }) {
-        unsafe { RoActivateInstance(name, &mut obj); WindowsDeleteString(name); }
+        unsafe {
+            RoActivateInstance(name, &mut obj);
+            WindowsDeleteString(name);
+        }
     }
-    if obj.is_null() { return false; }
+    if obj.is_null() {
+        return false;
+    }
     let mut watcher: *mut IWatcher = std::ptr::null_mut();
     unsafe {
         qi(obj, &IID_Watcher, &mut watcher);
         release(obj);
     }
-    if watcher.is_null() { return false; }
+    if watcher.is_null() {
+        return false;
+    }
     let mut tok = EventRegistrationToken { value: 0 };
     if failed(unsafe { (*watcher).add_Received(&G_HANDLER as *const ReceivedHandler as *mut c_void, &mut tok) }) {
-        unsafe { release(watcher as *mut c_void); }
+        unsafe {
+            release(watcher as *mut c_void);
+        }
         return false;
     }
     *guard = Some(Watcher(watcher));
@@ -467,15 +532,12 @@ const WATCHER_ABORTED: i32 = 4;
 // ---- paired Apple audio devices ----------------------------------------------------------------
 
 // DEVPKEY_Device_IsConnected ({83da6326-97a6-4088-9453-a1923f573b29}, pid 15)
-const K_IS_CONNECTED: DEVPROPKEY = DEVPROPKEY {
-    fmtid: GUID::from_u128(0x83da6326_97a6_4088_9453_a1923f573b29),
-    pid: 15,
-};
+const K_IS_CONNECTED: DEVPROPKEY = DEVPROPKEY { fmtid: GUID::from_u128(0x83da6326_97a6_4088_9453_a1923f573b29), pid: 15 };
 
 #[derive(Default)]
 struct AppleDevice {
     name: String,
-    pid: u16,          // Apple model id, from the "_VID&0001004C_PID&xxxx" service nodes
+    pid: u16, // Apple model id, from the "_VID&0001004C_PID&xxxx" service nodes
     connected: bool,
     apple: bool,
 }
@@ -483,22 +545,34 @@ struct AppleDevice {
 fn PairedAppleAudio() -> Vec<AppleDevice> {
     let mut byContainer: BTreeMap<String, AppleDevice> = BTreeMap::new();
     unsafe {
-        let di = SetupDiGetClassDevsW(std::ptr::null(), to_wide("BTHENUM").as_ptr(), std::ptr::null_mut(),
-                                      DIGCF_ALLCLASSES | DIGCF_PRESENT);
-        if di == -1 { return Vec::new(); }  // INVALID_HANDLE_VALUE (HDEVINFO is isize)
+        let di =
+            SetupDiGetClassDevsW(std::ptr::null(), to_wide("BTHENUM").as_ptr(), std::ptr::null_mut(), DIGCF_ALLCLASSES | DIGCF_PRESENT);
+        if di == -1 {
+            return Vec::new();
+        } // INVALID_HANDLE_VALUE (HDEVINFO is isize)
         let mut dd: SP_DEVINFO_DATA = std::mem::zeroed();
         dd.cbSize = std::mem::size_of::<SP_DEVINFO_DATA>() as u32;
         let mut i = 0u32;
         while SetupDiEnumDeviceInfo(di, i, &mut dd) != 0 {
             i += 1;
             let mut inst = [0u16; 512];
-            if SetupDiGetDeviceInstanceIdW(di, &dd, inst.as_mut_ptr(), 512, std::ptr::null_mut()) == 0 { continue; }
+            if SetupDiGetDeviceInstanceIdW(di, &dd, inst.as_mut_ptr(), 512, std::ptr::null_mut()) == 0 {
+                continue;
+            }
             let inst_s = wide_to_string(&inst);
             let mut container: GUID = std::mem::zeroed();
             let mut t: u32 = 0;
-            if SetupDiGetDevicePropertyW(di, &dd, &DEVPKEY_Device_ContainerId, &mut t,
-                                         &mut container as *mut GUID as *mut u8,
-                                         std::mem::size_of::<GUID>() as u32, std::ptr::null_mut(), 0) == 0 {
+            if SetupDiGetDevicePropertyW(
+                di,
+                &dd,
+                &DEVPKEY_Device_ContainerId,
+                &mut t,
+                &mut container as *mut GUID as *mut u8,
+                std::mem::size_of::<GUID>() as u32,
+                std::ptr::null_mut(),
+                0,
+            ) == 0
+            {
                 continue;
             }
             let mut g = [0u16; 64];
@@ -515,16 +589,24 @@ fn PairedAppleAudio() -> Vec<AppleDevice> {
             }
             if inst_s.starts_with("BTHENUM\\DEV_") {
                 let mut name = [0u16; 256];
-                if SetupDiGetDevicePropertyW(di, &dd, &DEVPKEY_Device_FriendlyName, &mut t,
-                                             name.as_mut_ptr() as *mut u8, ((name.len() - 1) * 2) as u32,
-                                             std::ptr::null_mut(), 0) != 0 {
+                if SetupDiGetDevicePropertyW(
+                    di,
+                    &dd,
+                    &DEVPKEY_Device_FriendlyName,
+                    &mut t,
+                    name.as_mut_ptr() as *mut u8,
+                    ((name.len() - 1) * 2) as u32,
+                    std::ptr::null_mut(),
+                    0,
+                ) != 0
+                {
                     d.name = wide_to_string(&name);
                 }
-                let mut conn: u8 = 0;  // DEVPROP_BOOLEAN
-                if SetupDiGetDevicePropertyW(di, &dd, &K_IS_CONNECTED, &mut t, &mut conn, 1,
-                                             std::ptr::null_mut(), 0) != 0
-                        && t == DEVPROP_TYPE_BOOLEAN {
-                    d.connected = conn != 0;  // conn != DEVPROP_FALSE
+                let mut conn: u8 = 0; // DEVPROP_BOOLEAN
+                if SetupDiGetDevicePropertyW(di, &dd, &K_IS_CONNECTED, &mut t, &mut conn, 1, std::ptr::null_mut(), 0) != 0
+                    && t == DEVPROP_TYPE_BOOLEAN
+                {
+                    d.connected = conn != 0; // conn != DEVPROP_FALSE
                 }
             }
         }
@@ -539,7 +621,9 @@ fn PairedAppleAudio() -> Vec<AppleDevice> {
         // are kept even when Classic Bluetooth is disconnected so headsets charging on the desk
         // can still report via BLE.
         let appleAudio = d.apple && (d.pid & 0xFF00) == 0x2000;
-        if appleAudio || (d.connected && looksApple && d.pid == 0) { out.push(d); }
+        if appleAudio || (d.connected && looksApple && d.pid == 0) {
+            out.push(d);
+        }
     }
     // std::sort: connected devices first (Rust's stable sort keeps the container-id order).
     out.sort_by(|a, b| b.connected.cmp(&a.connected));
@@ -557,50 +641,80 @@ fn Pick(dev: &AppleDevice, best: &mut Advert) -> bool {
     let mut found = false;
     let g = G_ADVERTS.lock().unwrap();
     for a in g.values() {
-        if dev.pid != 0 && a.model != dev.pid { continue; }
-        let age = now.wrapping_sub(a.tick);  // ULONGLONG arithmetic in the C++
-        if age > maxAge || a.rssi < minRssi { continue; }
+        if dev.pid != 0 && a.model != dev.pid {
+            continue;
+        }
+        let age = now.wrapping_sub(a.tick); // ULONGLONG arithmetic in the C++
+        if age > maxAge || a.rssi < minRssi {
+            continue;
+        }
         let fresh = age < 90 * 1000;
         let bestFresh = found && now.wrapping_sub(best.tick) < 90 * 1000;
-        if !found || (fresh && !bestFresh) || (fresh && bestFresh && a.rssi > best.rssi)
-            || (!fresh && !bestFresh && a.tick > best.tick) {
+        if !found || (fresh && !bestFresh) || (fresh && bestFresh && a.rssi > best.rssi) || (!fresh && !bestFresh && a.tick > best.tick) {
             *best = *a;
             found = true;
         }
     }
     if found && !best.single {
         for a in g.values() {
-            if a.model != best.model || a.single { continue; }
-            if if best.tick > a.tick { best.tick - a.tick > 15 * 1000 } else { a.tick - best.tick > 15 * 1000 } { continue; }
-            if best.left < 0 && a.left >= 0 { best.left = a.left; best.leftChg = a.leftChg; }
-            if best.right < 0 && a.right >= 0 { best.right = a.right; best.rightChg = a.rightChg; }
-            if best.caseLevel < 0 && a.caseLevel >= 0 { best.caseLevel = a.caseLevel; best.caseChg = a.caseChg; }
+            if a.model != best.model || a.single {
+                continue;
+            }
+            if if best.tick > a.tick { best.tick - a.tick > 15 * 1000 } else { a.tick - best.tick > 15 * 1000 } {
+                continue;
+            }
+            if best.left < 0 && a.left >= 0 {
+                best.left = a.left;
+                best.leftChg = a.leftChg;
+            }
+            if best.right < 0 && a.right >= 0 {
+                best.right = a.right;
+                best.rightChg = a.rightChg;
+            }
+            if best.caseLevel < 0 && a.caseLevel >= 0 {
+                best.caseLevel = a.caseLevel;
+                best.caseChg = a.caseChg;
+            }
         }
     }
     found
 }
 
-fn Pct(v: i32) -> String { if v < 0 { "?".into() } else { format!("{v}%") } }
+fn Pct(v: i32) -> String {
+    if v < 0 { "?".into() } else { format!("{v}%") }
+}
 
 pub fn poll_airpods(ctx: &mut PollContext) {
     let devices = PairedAppleAudio();
-    if devices.is_empty() { return; }
+    if devices.is_empty() {
+        return;
+    }
     if EnsureWatcher() {
         // Just started: give the headphones a moment to broadcast (about once every 1-2 s).
         for _ in 0..15 {
             let mut a = Advert::default();
             let mut any = false;
-            for d in &devices { any |= Pick(d, &mut a); }
-            if any { break; }
+            for d in &devices {
+                any |= Pick(d, &mut a);
+            }
+            if any {
+                break;
+            }
             sleep_ms(200);
         }
     }
     let mut usedPid: BTreeSet<u16> = BTreeSet::new();
     for d in &devices {
-        if d.pid != 0 && !d.connected && usedPid.contains(&d.pid) { continue; }
+        if d.pid != 0 && !d.connected && usedPid.contains(&d.pid) {
+            continue;
+        }
         let mut a = Advert::default();
-        if !Pick(d, &mut a) { continue; }
-        if d.pid != 0 { usedPid.insert(d.pid); }
+        if !Pick(d, &mut a) {
+            continue;
+        }
+        if d.pid != 0 {
+            usedPid.insert(d.pid);
+        }
         let mut s = DeviceStatus::default();
         s.name = if d.name.is_empty() { "AirPods".into() } else { d.name.clone() };
         s.key = format!("airpods:{}:{}", hex4(d.pid), s.name);
@@ -616,11 +730,15 @@ pub fn poll_airpods(ctx: &mut PollContext) {
             let mut chgLo: i32 = -1;
             if a.left >= 0 {
                 let dst: &mut i32 = if a.leftChg { &mut chgLo } else { &mut disLo };
-                if *dst < 0 || a.left < *dst { *dst = a.left; }
+                if *dst < 0 || a.left < *dst {
+                    *dst = a.left;
+                }
             }
             if a.right >= 0 {
                 let dst: &mut i32 = if a.rightChg { &mut chgLo } else { &mut disLo };
-                if *dst < 0 || a.right < *dst { *dst = a.right; }
+                if *dst < 0 || a.right < *dst {
+                    *dst = a.right;
+                }
             }
             if disLo >= 0 {
                 s.percent = disLo;
@@ -633,9 +751,15 @@ pub fn poll_airpods(ctx: &mut PollContext) {
                 s.charging = a.caseChg;
             }
             let bolt = |on: bool| if on { "\u{26A1}" } else { "" };
-            s.via = format!("Bluetooth \u{00B7} L {}{}  R {}{}  case {}{}",
-                            Pct(a.left), bolt(a.leftChg), Pct(a.right), bolt(a.rightChg),
-                            Pct(a.caseLevel), bolt(a.caseChg));
+            s.via = format!(
+                "Bluetooth \u{00B7} L {}{}  R {}{}  case {}{}",
+                Pct(a.left),
+                bolt(a.leftChg),
+                Pct(a.right),
+                bolt(a.rightChg),
+                Pct(a.caseLevel),
+                bolt(a.caseChg)
+            );
         }
         s.grace_sec = if d.connected { 300 } else { 0 };
         ctx.out.push(s);

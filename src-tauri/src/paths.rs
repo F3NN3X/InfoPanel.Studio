@@ -17,9 +17,7 @@ pub struct Paths {
 }
 
 fn env_path(name: &str) -> Option<PathBuf> {
-    std::env::var_os(name)
-        .filter(|v| !v.is_empty())
-        .map(PathBuf::from)
+    std::env::var_os(name).filter(|v| !v.is_empty()).map(PathBuf::from)
 }
 
 /// The WebView2 user data folder for test runs: `EBWebView` under INFOPANEL_STUDIO_CONFIG_DIR when that is
@@ -38,18 +36,10 @@ impl Paths {
             None => {
                 let roaming = env_path("APPDATA").unwrap_or_else(std::env::temp_dir);
                 let local = env_path("LOCALAPPDATA").unwrap_or_else(std::env::temp_dir);
-                (
-                    roaming.join(IDENTIFIER),
-                    local.join(IDENTIFIER).join("logs"),
-                )
+                (roaming.join(IDENTIFIER), local.join(IDENTIFIER).join("logs"))
             }
         };
-        Self {
-            config_dir,
-            log_dir,
-            resource_dir,
-            data_dir: env_path("INFOPANEL_STUDIO_DATA_DIR"),
-        }
+        Self { config_dir, log_dir, resource_dir, data_dir: env_path("INFOPANEL_STUDIO_DATA_DIR") }
     }
 
     pub fn app_dir(&self) -> PathBuf {
@@ -77,21 +67,14 @@ impl Paths {
     /// The server's data folder (dashboards, themes, assets): DASHBOARD_DATA_DIR as the app passes
     /// it, else the default `%LOCALAPPDATA%\InfoPanel\Dashboard`.
     pub fn server_data_dir(&self) -> PathBuf {
-        self.data_dir.clone().unwrap_or_else(|| {
-            env_path("LOCALAPPDATA")
-                .unwrap_or_else(std::env::temp_dir)
-                .join("InfoPanel")
-                .join("Dashboard")
-        })
+        self.data_dir
+            .clone()
+            .unwrap_or_else(|| env_path("LOCALAPPDATA").unwrap_or_else(std::env::temp_dir).join("InfoPanel").join("Dashboard"))
     }
 
     /// The folders (and the settings file) the settings page may show in Explorer.
     pub fn revealable_roots(&self) -> Vec<PathBuf> {
-        vec![
-            self.config_dir.clone(),
-            self.log_dir.clone(),
-            self.server_data_dir(),
-        ]
+        vec![self.config_dir.clone(), self.log_dir.clone(), self.server_data_dir()]
     }
 }
 
@@ -100,10 +83,7 @@ pub fn is_inside(path: &Path, roots: &[PathBuf]) -> bool {
     let Ok(path) = path.canonicalize() else {
         return false;
     };
-    roots
-        .iter()
-        .filter_map(|r| r.canonicalize().ok())
-        .any(|root| path.starts_with(root))
+    roots.iter().filter_map(|r| r.canonicalize().ok()).any(|root| path.starts_with(root))
 }
 
 /// A path as Windows tools want it: without the `\\?\` prefix Tauri's resource dir can carry.
@@ -118,10 +98,7 @@ mod tests {
 
     #[test]
     fn display_strips_the_verbatim_prefix() {
-        assert_eq!(
-            display(Path::new(r"\\?\C:\Apps\node.exe")),
-            r"C:\Apps\node.exe"
-        );
+        assert_eq!(display(Path::new(r"\\?\C:\Apps\node.exe")), r"C:\Apps\node.exe");
         assert_eq!(display(Path::new(r"C:\x")), r"C:\x");
     }
 
@@ -139,29 +116,18 @@ mod tests {
         assert!(is_inside(&root.join("app.log"), &roots));
         assert!(is_inside(&root, &roots));
         assert!(!is_inside(&other.join("x.txt"), &roots));
-        assert!(!is_inside(
-            &root.join("..").join("other").join("x.txt"),
-            &roots
-        ));
+        assert!(!is_inside(&root.join("..").join("other").join("x.txt"), &roots));
         assert!(!is_inside(&root.join("missing.log"), &roots));
         let _ = std::fs::remove_dir_all(&base);
     }
 
     #[test]
     fn resource_layout() {
-        let p = Paths {
-            config_dir: "c".into(),
-            log_dir: "l".into(),
-            resource_dir: PathBuf::from("r"),
-            data_dir: None,
-        };
+        let p = Paths { config_dir: "c".into(), log_dir: "l".into(), resource_dir: PathBuf::from("r"), data_dir: None };
         assert_eq!(p.dist_dir(), Path::new("r/app/dist"));
         assert_eq!(p.agent_exe(), Path::new("r/ips-agent.exe"));
         assert_eq!(p.changelog(), Path::new("r/CHANGELOG.md"));
-        let test_run = Paths {
-            data_dir: Some("d".into()),
-            ..p
-        };
+        let test_run = Paths { data_dir: Some("d".into()), ..p };
         assert_eq!(test_run.server_data_dir(), Path::new("d"));
     }
 }

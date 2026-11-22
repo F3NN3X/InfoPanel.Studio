@@ -67,14 +67,7 @@ impl Audio {
     }
 
     pub fn state(&self) -> AudioState {
-        AudioState {
-            windows: self
-                .windows
-                .lock()
-                .unwrap_or_else(PoisonError::into_inner)
-                .clone(),
-            wavelink: self.wavelink.state(),
-        }
+        AudioState { windows: self.windows.lock().unwrap_or_else(PoisonError::into_inner).clone(), wavelink: self.wavelink.state() }
     }
 
     fn json(&self) -> String {
@@ -84,8 +77,7 @@ impl Audio {
     /// Makes the full state the one every open stream sends next. The state is read inside the channel's lock, so of two
     /// publishes the later reader wins.
     pub fn publish(&self) {
-        self.latest
-            .send_modify(|event| *event = sse::event(&self.json()));
+        self.latest.send_modify(|event| *event = sse::event(&self.json()));
     }
 
     /// A stream's receiver, holding the state as of now.
@@ -129,16 +121,9 @@ impl Audio {
     fn send_windows(&self, act: WinAct) -> bool {
         if act == WinAct::Settings {
             return self.started.load(Ordering::SeqCst)
-                && std::process::Command::new("explorer.exe")
-                    .arg("ms-settings:sound")
-                    .spawn()
-                    .is_ok();
+                && std::process::Command::new("explorer.exe").arg("ms-settings:sound").spawn().is_ok();
         }
-        self.windows
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .available
-            && self.core.send(act)
+        self.windows.lock().unwrap_or_else(PoisonError::into_inner).available && self.core.send(act)
     }
 
     #[cfg(not(windows))]
@@ -172,17 +157,12 @@ pub async fn handle_act(app: &App, mut req: Req) -> std::io::Result<Response<Bod
     if let Some(response) = app.refuse_remote_edit(&req) {
         return Ok(response);
     }
-    if let Some(refusal) = control_write_refusal(
-        req.header("content-type").as_deref(),
-        req.header("x-dashboard-control").as_deref(),
-    ) {
+    if let Some(refusal) = control_write_refusal(req.header("content-type").as_deref(), req.header("x-dashboard-control").as_deref()) {
         return Ok(http::text(refusal.status, refusal.message));
     }
     let body = match req.read_body(MAX_BODY_BYTES).await {
         Ok(body) => body,
-        Err(http::BodyRefused) => {
-            return Ok(http::closing(http::text(400, "expected a JSON object")))
-        }
+        Err(http::BodyRefused) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
     };
     let act = match act::parse(&body) {
         Ok(act) => act,
@@ -193,9 +173,5 @@ pub async fn handle_act(app: &App, mut req: Req) -> std::io::Result<Response<Bod
         Act::Windows(act) => (audio.send_windows(act), "Windows audio"),
         Act::WaveLink(act) => (audio.wavelink.send(act), "Wave Link"),
     };
-    Ok(if sent {
-        http::empty(204)
-    } else {
-        http::text(503, format!("{backend} isn't available"))
-    })
+    Ok(if sent { http::empty(204) } else { http::text(503, format!("{backend} isn't available")) })
 }

@@ -18,12 +18,12 @@ use crate::chat_hub::ChatHub;
 use crate::guarded_net::GuardedClient;
 use crate::http::{self, Req};
 use crate::integrations::IntegrationsStore;
+use crate::json::{parse as parse_json, stringify};
 use crate::obs::Obs;
 use crate::request_guard::config_write_refusal;
 use crate::streaming;
 use crate::twitch::{auth::Endpoints, Twitch};
 use crate::youtube::{self, Youtube};
-use crate::json::{parse as parse_json, stringify};
 use crate::{sse, supervisor, App};
 
 const MAX_INTEGRATIONS_BYTES: usize = 16 * 1024;
@@ -64,7 +64,12 @@ impl Drop for Listener {
 impl Extras {
     /// The extras over the integrations in `file`, with Twitch at `twitch` and Google at `google`. `agents` returns the
     /// agents' public state (`{ sessions, plan, usage }`).
-    pub fn new(file: &Path, twitch: Endpoints, google: youtube::auth::Endpoints, agents: impl Fn() -> Value + Send + Sync + 'static) -> Result<Arc<Self>, String> {
+    pub fn new(
+        file: &Path,
+        twitch: Endpoints,
+        google: youtube::auth::Endpoints,
+        agents: impl Fn() -> Value + Send + Sync + 'static,
+    ) -> Result<Arc<Self>, String> {
         let integrations = Arc::new(IntegrationsStore::load(file));
         let client = GuardedClient::new(false)?;
         let twitch_client = client.clone();
@@ -78,35 +83,51 @@ impl Extras {
                     }
                 })
             };
-            let obs = Obs::with_streaming({
-                let integrations = Arc::clone(&integrations);
-                move || integrations.get().obs
-            }, integrations.get().streaming.obs, {
-                let publish = Arc::clone(&publish);
-                move || publish()
-            });
-            let twitch = Twitch::new(twitch, twitch_client, integrations.get().streaming.twitch, {
-                let integrations = Arc::clone(&integrations);
-                move |auth| {
-                    if let Err(e) = integrations.set_twitch_auth(auth) {
-                        log::error!(target: "server", "saving the Twitch sign-in failed: {e}");
+            let obs = Obs::with_streaming(
+                {
+                    let integrations = Arc::clone(&integrations);
+                    move || integrations.get().obs
+                },
+                integrations.get().streaming.obs,
+                {
+                    let publish = Arc::clone(&publish);
+                    move || publish()
+                },
+            );
+            let twitch = Twitch::new(
+                twitch,
+                twitch_client,
+                integrations.get().streaming.twitch,
+                {
+                    let integrations = Arc::clone(&integrations);
+                    move |auth| {
+                        if let Err(e) = integrations.set_twitch_auth(auth) {
+                            log::error!(target: "server", "saving the Twitch sign-in failed: {e}");
+                        }
                     }
-                }
-            }, {
-                let publish = Arc::clone(&publish);
-                move || publish()
-            });
-            let youtube = Youtube::new(google, youtube_client, integrations.get().streaming.youtube, {
-                let integrations = Arc::clone(&integrations);
-                move |client_id, auth| {
-                    if let Err(e) = integrations.set_youtube_auth(client_id, auth) {
-                        log::error!(target: "server", "saving the YouTube sign-in failed: {e}");
+                },
+                {
+                    let publish = Arc::clone(&publish);
+                    move || publish()
+                },
+            );
+            let youtube = Youtube::new(
+                google,
+                youtube_client,
+                integrations.get().streaming.youtube,
+                {
+                    let integrations = Arc::clone(&integrations);
+                    move |client_id, auth| {
+                        if let Err(e) = integrations.set_youtube_auth(client_id, auth) {
+                            log::error!(target: "server", "saving the YouTube sign-in failed: {e}");
+                        }
                     }
-                }
-            }, {
-                let publish = Arc::clone(&publish);
-                move || publish()
-            });
+                },
+                {
+                    let publish = Arc::clone(&publish);
+                    move || publish()
+                },
+            );
             // Either platform's chat window changing makes the hub publish the merged chat.
             let publish_chat: Arc<dyn Fn() + Send + Sync> = {
                 let weak = weak.clone();
@@ -121,15 +142,29 @@ impl Extras {
                 move || publish_chat()
             });
             youtube.set_chat_hook(move || publish_chat());
-            let calendar = Calendar::new(client, {
-                let integrations = Arc::clone(&integrations);
-                move || integrations.get().links
-            }, move || publish());
+            let calendar = Calendar::new(
+                client,
+                {
+                    let integrations = Arc::clone(&integrations);
+                    move || integrations.get().links
+                },
+                move || publish(),
+            );
             let chat = ChatHub::new(Arc::clone(&twitch), Arc::clone(&youtube));
-            Self { integrations: Arc::clone(&integrations), obs, calendar, twitch, youtube, chat, agents: Box::new(agents), listeners: Mutex::new(Listeners::default()) }
+            Self {
+                integrations: Arc::clone(&integrations),
+                obs,
+                calendar,
+                twitch,
+                youtube,
+                chat,
+                agents: Box::new(agents),
+                listeners: Mutex::new(Listeners::default()),
+            }
         });
         integrations.subscribe({
-            let (obs, calendar, twitch, youtube) = (Arc::clone(&extras.obs), Arc::clone(&extras.calendar), Arc::clone(&extras.twitch), Arc::clone(&extras.youtube));
+            let (obs, calendar, twitch, youtube) =
+                (Arc::clone(&extras.obs), Arc::clone(&extras.calendar), Arc::clone(&extras.twitch), Arc::clone(&extras.youtube));
             move |next, prev| {
                 let (y, py) = (&next.streaming.youtube, &prev.streaming.youtube);
                 if (&y.client_id, &y.client_secret, y.chat_interval) != (&py.client_id, &py.client_secret, py.chat_interval) {

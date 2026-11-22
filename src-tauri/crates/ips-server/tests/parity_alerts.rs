@@ -210,7 +210,8 @@ fn run_live(input: &Value) -> Value {
             result.insert("result".into(), done);
         }
         let state = control.get();
-        let pages: Map<String, Value> = state["profiles"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v["page"].clone())).collect();
+        let pages: Map<String, Value> =
+            state["profiles"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v["page"].clone())).collect();
         result.insert("pages".into(), Value::Object(pages));
         result.insert("active".into(), Value::Array(alerts.alerts().as_array().unwrap().iter().map(|a| a["id"].clone()).collect()));
         result.insert("controlAlerts".into(), json!(state["alerts"].as_array().unwrap().len()));

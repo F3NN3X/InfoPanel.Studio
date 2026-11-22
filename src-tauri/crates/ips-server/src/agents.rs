@@ -21,8 +21,8 @@ use tokio::task::JoinHandle;
 
 use crate::agent_usage::AgentUsage;
 use crate::http::{self, Req};
-use crate::request_guard::agent_write_refusal;
 use crate::json::{parse as parse_json, stringify};
+use crate::request_guard::agent_write_refusal;
 use crate::{supervisor, App};
 
 pub const AGENTS: [&str; 2] = ["claude", "codex"];
@@ -190,7 +190,8 @@ pub fn reduce_agents(state: &AgentsState, agent: &str, event: &Value, now: f64) 
         model: String::new(),
     });
     let project = project_of(event.get("cwd"));
-    let mut next = Session { project: if project.is_empty() { prev.project.clone() } else { project }, last_seen: now, hooked: true, ..prev.clone() };
+    let mut next =
+        Session { project: if project.is_empty() { prev.project.clone() } else { project }, last_seen: now, hooked: true, ..prev.clone() };
     let tool = tool_of(event.get("tool_name"));
     match name.as_str() {
         "SessionStart" => {
@@ -309,7 +310,11 @@ pub fn expire_agents(state: &AgentsState, now: f64) -> Option<AgentsState> {
         .iter()
         .filter(|(_, s)| {
             let quiet = now - s.last_seen;
-            if s.state == "working" || s.state == "waiting" { quiet < STALE_MS } else { quiet < DONE_KEEP_MS }
+            if s.state == "working" || s.state == "waiting" {
+                quiet < STALE_MS
+            } else {
+                quiet < DONE_KEEP_MS
+            }
         })
         .cloned()
         .collect();
@@ -426,7 +431,8 @@ pub fn codex_plan(state: &AgentsState, limits: &Value, now: f64) -> Option<Agent
     if !(limits.is_object() || limits.is_array()) {
         return None;
     }
-    let windows: Vec<&Value> = ["primary", "secondary"].iter().filter_map(|k| limits.get(k)).filter(|w| w.is_object() || w.is_array()).collect();
+    let windows: Vec<&Value> =
+        ["primary", "secondary"].iter().filter_map(|k| limits.get(k)).filter(|w| w.is_object() || w.is_array()).collect();
     let short = windows.iter().position(|w| w.get("window_minutes").and_then(Value::as_f64).is_none_or(|m| m <= 360.0));
     let long = windows.iter().enumerate().find(|(i, _)| Some(*i) != short).map(|(i, _)| i);
     let as_window = |i: Option<usize>| {
@@ -554,8 +560,16 @@ impl AgentsState {
     }
 
     pub fn from_json(v: &Value) -> Self {
-        let sessions = v.get("sessions").and_then(Value::as_object).map(|m| m.iter().map(|(k, s)| (k.clone(), Session::from_json(s))).collect()).unwrap_or_default();
-        Self { sessions, plan: v.get("plan").and_then(Value::as_object).cloned().unwrap_or_default(), usage: v.get("usage").cloned().unwrap_or_else(|| json!({})) }
+        let sessions = v
+            .get("sessions")
+            .and_then(Value::as_object)
+            .map(|m| m.iter().map(|(k, s)| (k.clone(), Session::from_json(s))).collect())
+            .unwrap_or_default();
+        Self {
+            sessions,
+            plan: v.get("plan").and_then(Value::as_object).cloned().unwrap_or_default(),
+            usage: v.get("usage").cloned().unwrap_or_else(|| json!({})),
+        }
     }
 }
 
@@ -582,7 +596,13 @@ pub struct Agents(Arc<Inner>);
 
 impl Agents {
     pub fn new(sources: Sources, throttle: Duration) -> Self {
-        let agents = Self(Arc::new(Inner { state: Mutex::new(AgentsState { usage: json!({}), ..AgentsState::default() }), sources, throttle, pending: AtomicBool::new(false), on_change: OnceLock::new() }));
+        let agents = Self(Arc::new(Inner {
+            state: Mutex::new(AgentsState { usage: json!({}), ..AgentsState::default() }),
+            sources,
+            throttle,
+            pending: AtomicBool::new(false),
+            on_change: OnceLock::new(),
+        }));
         agents.refresh();
         agents
     }
@@ -709,7 +729,9 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
     if req.method != Method::POST {
         return Ok(http::empty(405));
     }
-    if let Some(refusal) = agent_write_refusal(req.header("content-type").as_deref(), req.header("x-agent-event").as_deref(), Some(&req.peer)) {
+    if let Some(refusal) =
+        agent_write_refusal(req.header("content-type").as_deref(), req.header("x-agent-event").as_deref(), Some(&req.peer))
+    {
         return Ok(http::text(refusal.status, refusal.message));
     }
     let payload = match req.read_body(MAX_AGENT_BYTES).await {

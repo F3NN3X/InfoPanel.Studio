@@ -45,11 +45,7 @@ pub struct StreamdeckSettings {
 /// Without the key: a debug print never shows it.
 impl std::fmt::Debug for StreamdeckSettings {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let key = if self.secret_key.is_empty() {
-            ""
-        } else {
-            "<redacted>"
-        };
+        let key = if self.secret_key.is_empty() { "" } else { "<redacted>" };
         f.debug_struct("StreamdeckSettings")
             .field("enabled", &self.enabled)
             .field("secret_key", &key)
@@ -73,10 +69,7 @@ impl StreamdeckSettings {
         if !taken(DEFAULT_NAME) {
             return DEFAULT_NAME.into();
         }
-        (2..)
-            .map(|n| format!("{DEFAULT_NAME} {n}"))
-            .find(|name| !taken(name))
-            .unwrap_or_default()
+        (2..).map(|n| format!("{DEFAULT_NAME} {n}")).find(|name| !taken(name)).unwrap_or_default()
     }
 }
 
@@ -88,8 +81,7 @@ pub fn clamp_grid(n: u64) -> u32 {
 /// A device name: text of 1 to 40 characters once trimmed, without control characters.
 pub fn clean_name(v: Option<&Value>) -> Option<String> {
     let name = js::trim(v?.as_str()?);
-    let fits =
-        !name.is_empty() && name.chars().count() <= MAX_NAME && !name.chars().any(char::is_control);
+    let fits = !name.is_empty() && name.chars().count() <= MAX_NAME && !name.chars().any(char::is_control);
     fits.then(|| name.to_string())
 }
 
@@ -98,11 +90,7 @@ fn device_of(raw: &Value) -> Option<Device> {
     if id.is_empty() || id.len() > MAX_ID {
         return None;
     }
-    let side = |key: &str, default: u32| {
-        raw.get(key)
-            .and_then(Value::as_u64)
-            .map_or(default, clamp_grid)
-    };
+    let side = |key: &str, default: u32| raw.get(key).and_then(Value::as_u64).map_or(default, clamp_grid);
     Some(Device {
         id,
         name: clean_name(raw.get("name")).unwrap_or_else(|| DEFAULT_NAME.into()),
@@ -120,41 +108,28 @@ pub fn normalize(raw: Option<&Value>) -> StreamdeckSettings {
     };
     let secret_key = text(raw.get("secret_key"), MAX_SECRET);
     let mut devices: Vec<Device> = Vec::new();
-    for device in raw
-        .get("devices")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(device_of)
-    {
+    for device in raw.get("devices").and_then(Value::as_array).into_iter().flatten().filter_map(device_of) {
         if devices.len() < MAX_DEVICES && !devices.iter().any(|d| d.id == device.id) {
             devices.push(device);
         }
     }
     StreamdeckSettings {
         enabled: raw.get("enabled").and_then(Value::as_bool).unwrap_or(false),
-        secret_key: if crypto::secret_key(&secret_key).is_some() {
-            secret_key
-        } else {
-            String::new()
-        },
+        secret_key: if crypto::secret_key(&secret_key).is_some() { secret_key } else { String::new() },
         devices,
     }
 }
 
 /// The studio's view: on or off, the pairing code and the devices, never the key.
 pub fn to_json(s: &StreamdeckSettings) -> Value {
-    let devices: Vec<Value> = s
-        .devices
-        .iter()
-        .map(|d| json!({ "id": d.id, "name": d.name, "cols": d.cols, "rows": d.rows }))
-        .collect();
+    let devices: Vec<Value> = s.devices.iter().map(|d| json!({ "id": d.id, "name": d.name, "cols": d.cols, "rows": d.rows })).collect();
     json!({ "enabled": s.enabled, "pairingCode": crypto::pairing_code_of(&s.secret_key), "devices": devices })
 }
 
 /// The stored form, the key included.
 pub fn to_stored_json(s: &StreamdeckSettings) -> Value {
-    let devices: Vec<Value> = s.devices.iter().map(|d| json!({ "id": d.id, "name": d.name, "cols": d.cols, "rows": d.rows, "app_id": d.app_id })).collect();
+    let devices: Vec<Value> =
+        s.devices.iter().map(|d| json!({ "id": d.id, "name": d.name, "cols": d.cols, "rows": d.rows, "app_id": d.app_id })).collect();
     json!({ "enabled": s.enabled, "secret_key": s.secret_key, "devices": devices })
 }
 
@@ -206,33 +181,15 @@ mod tests {
         assert_eq!(
             s.devices,
             [
-                Device {
-                    id: "a".into(),
-                    name: "Deck".into(),
-                    cols: 8,
-                    rows: 1,
-                    app_id: "app-a".into()
-                },
-                Device {
-                    id: "b".into(),
-                    name: DEFAULT_NAME.into(),
-                    cols: 5,
-                    rows: 3,
-                    app_id: String::new()
-                },
+                Device { id: "a".into(), name: "Deck".into(), cols: 8, rows: 1, app_id: "app-a".into() },
+                Device { id: "b".into(), name: DEFAULT_NAME.into(), cols: 5, rows: 3, app_id: String::new() },
             ]
         );
         assert_eq!(normalize(Some(&to_stored_json(&s))), s, "round-trips");
         // A damaged key is dropped; too many devices are cut to the cap.
-        assert_eq!(
-            normalize(Some(&json!({ "secret_key": "abc" }))).secret_key,
-            ""
-        );
+        assert_eq!(normalize(Some(&json!({ "secret_key": "abc" }))).secret_key, "");
         let many: Vec<Value> = (0..20).map(|i| json!({ "id": format!("d{i}") })).collect();
-        assert_eq!(
-            normalize(Some(&json!({ "devices": many }))).devices.len(),
-            MAX_DEVICES
-        );
+        assert_eq!(normalize(Some(&json!({ "devices": many }))).devices.len(), MAX_DEVICES);
     }
 
     #[test]
@@ -247,40 +204,19 @@ mod tests {
         );
         assert!(!public.to_string().contains(KEY) && !public.to_string().contains("app-a"));
         assert_eq!(to_stored_json(&s)["secret_key"], KEY);
-        assert!(
-            !format!("{s:?}").contains(KEY),
-            "a debug print redacts the key"
-        );
+        assert!(!format!("{s:?}").contains(KEY), "a debug print redacts the key");
         assert_eq!(to_json(&StreamdeckSettings::default())["pairingCode"], "");
     }
 
     #[test]
     fn a_patch_turns_it_on_or_off_and_nothing_else() {
-        let s = normalize(Some(
-            &json!({ "secret_key": KEY, "devices": [{ "id": "a" }] }),
-        ));
-        let on = apply(
-            &s,
-            &json!({ "enabled": true, "secret_key": "evil", "devices": [] }),
-        )
-        .unwrap();
-        assert_eq!(
-            on,
-            StreamdeckSettings {
-                enabled: true,
-                ..s.clone()
-            }
-        );
+        let s = normalize(Some(&json!({ "secret_key": KEY, "devices": [{ "id": "a" }] })));
+        let on = apply(&s, &json!({ "enabled": true, "secret_key": "evil", "devices": [] })).unwrap();
+        assert_eq!(on, StreamdeckSettings { enabled: true, ..s.clone() });
         assert_eq!(apply(&on, &json!({})).unwrap(), on);
         assert!(!apply(&on, &json!({ "enabled": false })).unwrap().enabled);
-        assert_eq!(
-            apply(&s, &json!(1)).unwrap_err(),
-            "streaming.streamdeck: expected an object"
-        );
-        assert_eq!(
-            apply(&s, &json!({ "enabled": "yes" })).unwrap_err(),
-            "streaming.streamdeck.enabled: expected true or false"
-        );
+        assert_eq!(apply(&s, &json!(1)).unwrap_err(), "streaming.streamdeck: expected an object");
+        assert_eq!(apply(&s, &json!({ "enabled": "yes" })).unwrap_err(), "streaming.streamdeck.enabled: expected true or false");
     }
 
     #[test]
@@ -288,10 +224,7 @@ mod tests {
         let mut off = StreamdeckSettings::default();
         ensure_key(&mut off);
         assert_eq!(off.secret_key, "");
-        let mut on = StreamdeckSettings {
-            enabled: true,
-            ..Default::default()
-        };
+        let mut on = StreamdeckSettings { enabled: true, ..Default::default() };
         ensure_key(&mut on);
         assert!(crypto::secret_key(&on.secret_key).is_some());
         let kept = on.secret_key.clone();
@@ -304,30 +237,12 @@ mod tests {
         let mut s = StreamdeckSettings::default();
         assert_eq!(s.next_name(), "IPStudio");
         for (id, name) in [("a", "IPStudio"), ("b", "IPStudio 3")] {
-            s.devices.push(Device {
-                id: id.into(),
-                name: name.into(),
-                cols: 5,
-                rows: 3,
-                app_id: String::new(),
-            });
+            s.devices.push(Device { id: id.into(), name: name.into(), cols: 5, rows: 3, app_id: String::new() });
         }
         assert_eq!(s.next_name(), "IPStudio 2");
-        assert_eq!(
-            clean_name(Some(&json!("  Desk  "))).as_deref(),
-            Some("Desk")
-        );
-        assert_eq!(
-            clean_name(Some(&json!("é".repeat(40)))).map(|n| n.chars().count()),
-            Some(40)
-        );
-        for bad in [
-            json!(""),
-            json!("   "),
-            json!("x".repeat(41)),
-            json!("a\nb"),
-            json!(5),
-        ] {
+        assert_eq!(clean_name(Some(&json!("  Desk  "))).as_deref(), Some("Desk"));
+        assert_eq!(clean_name(Some(&json!("é".repeat(40)))).map(|n| n.chars().count()), Some(40));
+        for bad in [json!(""), json!("   "), json!("x".repeat(41)), json!("a\nb"), json!(5)] {
             assert_eq!(clean_name(Some(&bad)), None, "{bad}");
         }
         assert_eq!((clamp_grid(0), clamp_grid(3), clamp_grid(99)), (1, 3, 8));

@@ -24,10 +24,7 @@ impl Server {
 
     async fn stop(mut self) {
         let _ = self.stop.take().unwrap().send(());
-        tokio::time::timeout(Duration::from_secs(5), &mut self.done)
-            .await
-            .expect("graceful stop")
-            .unwrap();
+        tokio::time::timeout(Duration::from_secs(5), &mut self.done).await.expect("graceful stop").unwrap();
     }
 }
 
@@ -60,12 +57,7 @@ async fn start() -> Server {
     let done = tokio::spawn(bound.serve(async {
         let _ = stopped.await;
     }));
-    Server {
-        port,
-        dir,
-        stop: Some(stop),
-        done,
-    }
+    Server { port, dir, stop: Some(stop), done }
 }
 
 struct Reply {
@@ -76,8 +68,7 @@ struct Reply {
 fn dechunk(mut raw: &[u8]) -> Vec<u8> {
     let mut out = Vec::new();
     while let Some(end) = raw.windows(2).position(|w| w == b"\r\n") {
-        let size =
-            usize::from_str_radix(std::str::from_utf8(&raw[..end]).unwrap().trim(), 16).unwrap();
+        let size = usize::from_str_radix(std::str::from_utf8(&raw[..end]).unwrap().trim(), 16).unwrap();
         if size == 0 {
             break;
         }
@@ -90,39 +81,23 @@ fn dechunk(mut raw: &[u8]) -> Vec<u8> {
 /// Sends `method path` with `headers` and reads the whole answer.
 async fn send(port: u16, method: &str, path: &str, headers: &[(&str, &str)], body: &str) -> Reply {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
-    let mut request =
-        format!("{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n");
+    let mut request = format!("{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n");
     for (k, v) in headers {
         request.push_str(&format!("{k}: {v}\r\n"));
     }
     request.push_str(&format!("Content-Length: {}\r\n\r\n{body}", body.len()));
     stream.write_all(request.as_bytes()).await.unwrap();
     let mut raw = Vec::new();
-    tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw))
-        .await
-        .unwrap()
-        .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw)).await.unwrap().unwrap();
     let split = raw.windows(4).position(|w| w == b"\r\n\r\n").unwrap();
     let head = String::from_utf8_lossy(&raw[..split]).into_owned();
     let status = head.split(' ').nth(1).unwrap().parse().unwrap();
-    let chunked = head
-        .to_ascii_lowercase()
-        .contains("transfer-encoding: chunked");
+    let chunked = head.to_ascii_lowercase().contains("transfer-encoding: chunked");
     let rest = &raw[split + 4..];
-    Reply {
-        status,
-        body: if chunked {
-            dechunk(rest)
-        } else {
-            rest.to_vec()
-        },
-    }
+    Reply { status, body: if chunked { dechunk(rest) } else { rest.to_vec() } }
 }
 
-const WRITE: [(&str, &str); 2] = [
-    ("Content-Type", "application/json"),
-    ("X-Dashboard-Control", "1"),
-];
+const WRITE: [(&str, &str); 2] = [("Content-Type", "application/json"), ("X-Dashboard-Control", "1")];
 
 async fn act(port: u16, body: &str) -> Reply {
     send(port, "POST", "/api/obs/act", &WRITE, body).await
@@ -133,84 +108,24 @@ async fn guards_and_validates_a_write_before_asking_obs() {
     let s = start().await;
     let ok = r#"{"op":"scene","id":"abc"}"#;
     // Only POST.
-    assert_eq!(
-        send(s.port, "GET", "/api/obs/act", &[], "").await.status,
-        405
-    );
-    assert_eq!(
-        send(s.port, "PUT", "/api/obs/act", &WRITE, ok).await.status,
-        405
-    );
+    assert_eq!(send(s.port, "GET", "/api/obs/act", &[], "").await.status, 405);
+    assert_eq!(send(s.port, "PUT", "/api/obs/act", &WRITE, ok).await.status, 405);
     // The JSON type and the marker header.
+    assert_eq!(send(s.port, "POST", "/api/obs/act", &[("X-Dashboard-Control", "1")], ok).await.status, 415);
+    assert_eq!(send(s.port, "POST", "/api/obs/act", &[("Content-Type", "application/json")], ok).await.status, 403);
     assert_eq!(
-        send(
-            s.port,
-            "POST",
-            "/api/obs/act",
-            &[("X-Dashboard-Control", "1")],
-            ok
-        )
-        .await
-        .status,
-        415
-    );
-    assert_eq!(
-        send(
-            s.port,
-            "POST",
-            "/api/obs/act",
-            &[("Content-Type", "application/json")],
-            ok
-        )
-        .await
-        .status,
-        403
-    );
-    assert_eq!(
-        send(
-            s.port,
-            "POST",
-            "/api/obs/act",
-            &[
-                ("Content-Type", "application/json"),
-                ("X-Dashboard-Control", "0")
-            ],
-            ok
-        )
-        .await
-        .status,
+        send(s.port, "POST", "/api/obs/act", &[("Content-Type", "application/json"), ("X-Dashboard-Control", "0")], ok).await.status,
         403
     );
     // A body that is not an action (there is no start or stop stream), or is too large.
-    for bad in [
-        "",
-        "nope",
-        "[]",
-        "{}",
-        r#"{"op":"stream"}"#,
-        r#"{"op":"scene"}"#,
-        r#"{"op":"scene","id":5}"#,
-        r#"{"op":"start"}"#,
-    ] {
+    for bad in ["", "nope", "[]", "{}", r#"{"op":"stream"}"#, r#"{"op":"scene"}"#, r#"{"op":"scene","id":5}"#, r#"{"op":"start"}"#] {
         assert_eq!(act(s.port, bad).await.status, 400, "{bad}");
     }
-    assert_eq!(
-        act(
-            s.port,
-            &format!(r#"{{"op":"scene","id":"{}"}}"#, "x".repeat(8000))
-        )
-        .await
-        .status,
-        400
-    );
+    assert_eq!(act(s.port, &format!(r#"{{"op":"scene","id":"{}"}}"#, "x".repeat(8000))).await.status, 400);
     // A good one finds no OBS connected.
     for good in [ok, r#"{"op":"mic"}"#, r#"{"op":"replay"}"#] {
         let reply = act(s.port, good).await;
-        assert_eq!(
-            (reply.status, String::from_utf8_lossy(&reply.body).as_ref()),
-            (503, "OBS isn't connected"),
-            "{good}"
-        );
+        assert_eq!((reply.status, String::from_utf8_lossy(&reply.body).as_ref()), (503, "OBS isn't connected"), "{good}");
     }
     s.stop().await;
 }
@@ -234,16 +149,7 @@ async fn takes_64_scenes_looks_at_their_longest_in_one_save() {
 async fn saves_the_streaming_settings_beside_the_obs_ones() {
     let s = start().await;
     let put = |body: &'static str| {
-        send(
-            s.port,
-            "PUT",
-            "/api/integrations",
-            &[
-                ("Content-Type", "application/json"),
-                ("X-Dashboard-Config", "1"),
-            ],
-            body,
-        )
+        send(s.port, "PUT", "/api/integrations", &[("Content-Type", "application/json"), ("X-Dashboard-Config", "1")], body)
     };
     let stored = put(r#"{"streaming":{"obs":{"mic":"Mic/Aux","scenes":{"u1":{"sub":"Cam","icon":"videocam"}}}}}"#).await;
     assert_eq!(stored.status, 200);
@@ -252,15 +158,9 @@ async fn saves_the_streaming_settings_beside_the_obs_ones() {
         view["streaming"],
         serde_json::json!({ "obs": { "mic": "Mic/Aux", "scenes": { "u1": { "sub": "Cam", "icon": "videocam" } } } })
     );
-    assert_eq!(
-        view["obs"],
-        serde_json::json!({ "host": "", "port": 4455, "hasPassword": false })
-    );
+    assert_eq!(view["obs"], serde_json::json!({ "host": "", "port": 4455, "hasPassword": false }));
     let again = send(s.port, "GET", "/api/integrations", &[], "").await;
-    assert_eq!(
-        serde_json::from_slice::<serde_json::Value>(&again.body).unwrap(),
-        view
-    );
+    assert_eq!(serde_json::from_slice::<serde_json::Value>(&again.body).unwrap(), view);
     let file = std::fs::read_to_string(s.data().join("integrations.json")).unwrap();
     assert!(file.contains("\"streaming\"") && file.contains("Mic/Aux"));
     // A bad section is refused whole.

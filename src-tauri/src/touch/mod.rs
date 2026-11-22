@@ -82,11 +82,7 @@ pub struct Touch {
 
 impl Touch {
     pub fn new(config_dir: &Path, hub: Arc<TouchHub>) -> Self {
-        Self {
-            path: config_dir.join("touch.json"),
-            hub,
-            inner: Mutex::default(),
-        }
+        Self { path: config_dir.join("touch.json"), hub, inner: Mutex::default() }
     }
 
     pub fn path(&self) -> &Path {
@@ -129,8 +125,7 @@ impl Touch {
         if let Some(r) = inner.running.iter().find(|r| r.index == Some(index)) {
             *lock(&r.taps) = None;
             if let Some(entry) = inner.config.panels.get(index) {
-                r.device
-                    .reconfigure(entry.panel.clone(), inner.config.gestures.clone());
+                r.device.reconfigure(entry.panel.clone(), inner.config.gestures.clone());
             }
         }
     }
@@ -198,8 +193,7 @@ impl Touch {
                         (None, Some(p)) => (r.name.as_str(), p),
                         (None, None) => continue,
                     };
-                    self.hub
-                        .publish(&r.id, &setup(&next, name, panel), Some(Keep::Setup));
+                    self.hub.publish(&r.id, &setup(&next, name, panel), Some(Keep::Setup));
                 }
                 Vec::new()
             };
@@ -214,11 +208,7 @@ impl Touch {
     fn stop(&self, running: Vec<Running>) {
         let ids: Vec<String> = running.iter().map(|r| r.id.clone()).collect();
         drop(running);
-        let live: Vec<String> = lock(&self.inner)
-            .running
-            .iter()
-            .map(|r| r.id.clone())
-            .collect();
+        let live: Vec<String> = lock(&self.inner).running.iter().map(|r| r.id.clone()).collect();
         for id in ids.iter().filter(|id| !live.contains(id)) {
             self.hub.publish(id, STOPPED, Some(Keep::Status));
         }
@@ -251,11 +241,7 @@ fn modified(path: &Path) -> Option<SystemTime> {
 fn log_issues(path: &Path, issues: &[Issue]) {
     for i in issues {
         match i.level {
-            Level::Error => log::error!(
-                "touch: {}: {}; keeping the config in effect",
-                path.display(),
-                i.message
-            ),
+            Level::Error => log::error!("touch: {}: {}; keeping the config in effect", path.display(), i.message),
             Level::Warning => log::warn!("touch: {}: {}", path.display(), i.message),
         }
     }
@@ -265,11 +251,7 @@ fn log_issues(path: &Path, issues: &[Issue]) {
 fn restarts(old: &TouchConfig, new: &TouchConfig) -> bool {
     let identity = |p: &config::PanelEntry| (p.id.clone(), p.name.clone(), p.device.clone());
     old.panels.len() != new.panels.len()
-        || old
-            .panels
-            .iter()
-            .map(identity)
-            .ne(new.panels.iter().map(identity))
+        || old.panels.iter().map(identity).ne(new.panels.iter().map(identity))
         || old.testing != new.testing
 }
 
@@ -278,8 +260,7 @@ fn reconfigure(running: &[Running], old: &TouchConfig, new: &TouchConfig) {
     for r in running {
         match (r.index, &r.virtual_panel) {
             (Some(i), _) if gestures || old.panels[i].panel != new.panels[i].panel => {
-                r.device
-                    .reconfigure(new.panels[i].panel.clone(), new.gestures.clone());
+                r.device.reconfigure(new.panels[i].panel.clone(), new.gestures.clone());
             }
             (None, Some(p)) if gestures => r.device.reconfigure(p.clone(), new.gestures.clone()),
             _ => {}
@@ -291,47 +272,20 @@ fn start_all(cfg: &TouchConfig, hub: &Arc<TouchHub>) -> Vec<Running> {
     let mut running = Vec::new();
     for (i, entry) in cfg.panels.iter().enumerate() {
         // Ports other panels name: this panel's device thread never opens those.
-        let taken: Vec<String> = cfg
-            .panels
-            .iter()
-            .enumerate()
-            .filter(|(j, _)| *j != i)
-            .filter_map(|(_, p)| p.device.port.clone())
-            .collect();
-        hub.publish(
-            &entry.id,
-            &setup(cfg, &entry.name, &entry.panel),
-            Some(Keep::Setup),
-        );
+        let taken: Vec<String> =
+            cfg.panels.iter().enumerate().filter(|(j, _)| *j != i).filter_map(|(_, p)| p.device.port.clone()).collect();
+        hub.publish(&entry.id, &setup(cfg, &entry.name, &entry.panel), Some(Keep::Setup));
         let (tx, rx) = std::sync::mpsc::channel();
         let (status, taps) = (Arc::default(), Taps::default());
-        forward(
-            &entry.id,
-            rx,
-            hub.clone(),
-            Arc::clone(&status),
-            Arc::clone(&taps),
-        );
+        forward(&entry.id, rx, hub.clone(), Arc::clone(&status), Arc::clone(&taps));
         let device = TouchDevice::spawn(entry.touch(&cfg.gestures), taken, tx);
-        running.push(Running {
-            id: entry.id.clone(),
-            name: entry.name.clone(),
-            index: Some(i),
-            virtual_panel: None,
-            status,
-            taps,
-            device,
-        });
+        running.push(Running { id: entry.id.clone(), name: entry.name.clone(), index: Some(i), virtual_panel: None, status, taps, device });
     }
     if cfg.testing.enabled {
         match testing::recording(&cfg.testing.replay) {
             Ok(rec) => {
                 let [width_px, height_px] = cfg.testing.size;
-                let panel = PanelConfig {
-                    width_px,
-                    height_px,
-                    ..Default::default()
-                };
+                let panel = PanelConfig { width_px, height_px, ..Default::default() };
                 for k in 1..=cfg.testing.virtual_panels {
                     let id = format!("virtual-{k}");
                     let name = format!("Virtual {k}");
@@ -339,23 +293,9 @@ fn start_all(cfg: &TouchConfig, hub: &Arc<TouchHub>) -> Vec<Running> {
                     let (tx, rx) = std::sync::mpsc::channel();
                     let (status, taps) = (Arc::default(), Taps::default());
                     forward(&id, rx, hub.clone(), Arc::clone(&status), Arc::clone(&taps));
-                    let device = TouchDevice::replay(
-                        copy(&rec),
-                        format!("virtual:{k}"),
-                        panel.clone(),
-                        cfg.gestures.clone(),
-                        tx,
-                    );
+                    let device = TouchDevice::replay(copy(&rec), format!("virtual:{k}"), panel.clone(), cfg.gestures.clone(), tx);
                     log::info!("touch: {id} plays {}", cfg.testing.replay);
-                    running.push(Running {
-                        id,
-                        name,
-                        index: None,
-                        virtual_panel: Some(panel.clone()),
-                        status,
-                        taps,
-                        device,
-                    });
+                    running.push(Running { id, name, index: None, virtual_panel: Some(panel.clone()), status, taps, device });
                 }
             }
             Err(e) => log::error!("touch: testing.replay: {e}"),
@@ -366,20 +306,11 @@ fn start_all(cfg: &TouchConfig, hub: &Arc<TouchHub>) -> Vec<Running> {
 
 /// A copy of `rec` for one more virtual panel (`Recording` isn't `Clone`).
 fn copy(rec: &touch_core::Recording) -> touch_core::Recording {
-    touch_core::Recording {
-        descriptor: rec.descriptor.clone(),
-        reports: rec.reports.clone(),
-    }
+    touch_core::Recording { descriptor: rec.descriptor.clone(), reports: rec.reports.clone() }
 }
 
 /// Hands a panel's device messages to the hub until its device stops.
-fn forward(
-    id: &str,
-    rx: Receiver<DeviceMsg>,
-    hub: Arc<TouchHub>,
-    status: Arc<Mutex<Option<Status>>>,
-    taps: Taps,
-) {
+fn forward(id: &str, rx: Receiver<DeviceMsg>, hub: Arc<TouchHub>, status: Arc<Mutex<Option<Status>>>, taps: Taps) {
     let id = id.to_owned();
     std::thread::Builder::new()
         .name("touch-forward".into())
@@ -428,9 +359,7 @@ fn setup(cfg: &TouchConfig, name: &str, panel: &PanelConfig) -> String {
 }
 
 fn wall_ms() -> f64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0.0, |d| d.as_secs_f64() * 1000.0)
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64() * 1000.0)
 }
 
 /// A message as the kiosk reads it: touch-kit's wire format plus `sent_ms`, the wall-clock time it left the app, for
@@ -456,25 +385,13 @@ mod tests {
 
     #[test]
     fn wire_messages_are_touch_kits_with_the_send_time() {
-        let p = PointerEvent {
-            kind: PointerKind::Move,
-            id: 0,
-            x: 1.0,
-            y: 2.0,
-            t_ms: 3,
-        };
+        let p = PointerEvent { kind: PointerKind::Move, id: 0, x: 1.0, y: 2.0, t_ms: 3 };
         assert_eq!(
             parse(wire(&DeviceMsg::Output(Output::Pointer(p)), 4.5)),
             json!({"type": "Pointer", "kind": "Move", "id": 0, "x": 1.0, "y": 2.0, "t_ms": 3, "sent_ms": 4.5})
         );
-        assert_eq!(
-            parse(wire(&DeviceMsg::Status(Status::Disconnected), 1.0)),
-            json!({"status": "Disconnected", "sent_ms": 1.0})
-        );
-        assert_eq!(
-            wire(&DeviceMsg::Output(Output::Ignored { report_id: 2 }), 1.0),
-            None
-        );
+        assert_eq!(parse(wire(&DeviceMsg::Status(Status::Disconnected), 1.0)), json!({"status": "Disconnected", "sent_ms": 1.0}));
+        assert_eq!(wire(&DeviceMsg::Output(Output::Ignored { report_id: 2 }), 1.0), None);
     }
 
     #[test]
@@ -486,20 +403,11 @@ mod tests {
             c
         };
         assert!(!restarts(&base, &with(&|c| c.gestures.slop_px = 20.0)));
-        assert!(!restarts(
-            &base,
-            &with(&|c| c.panels[0].panel.flip_x = true)
-        ));
+        assert!(!restarts(&base, &with(&|c| c.panels[0].panel.flip_x = true)));
         assert!(!restarts(&base, &with(&|c| c.touch_dots = true)));
         assert!(restarts(&base, &with(&|c| c.panels[0].id = "left".into())));
-        assert!(restarts(
-            &base,
-            &with(&|c| c.panels[0].device.port = Some("1-2".into()))
-        ));
-        assert!(restarts(
-            &base,
-            &with(&|c| c.panels.push(Default::default()))
-        ));
+        assert!(restarts(&base, &with(&|c| c.panels[0].device.port = Some("1-2".into()))));
+        assert!(restarts(&base, &with(&|c| c.panels.push(Default::default()))));
         assert!(restarts(&base, &with(&|c| c.testing.enabled = true)));
     }
 
@@ -510,51 +418,33 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         // No real panel: a USB device is never opened in a test.
-        std::fs::write(
-            dir.join("touch.json"),
-            r#"{"panels": [], "testing": {"enabled": true, "replay": "tap"}}"#,
-        )
-        .unwrap();
+        std::fs::write(dir.join("touch.json"), r#"{"panels": [], "testing": {"enabled": true, "replay": "tap"}}"#).unwrap();
         let hub = Arc::new(TouchHub::default());
         let mut rx = hub.subscribe("virtual-1");
         let touch = Touch::new(&dir, hub.clone());
         touch.set_enabled(true);
 
-        fn next<B: AsRef<[u8]>>(
-            rx: &mut tokio::sync::mpsc::UnboundedReceiver<B>,
-        ) -> serde_json::Value {
+        fn next<B: AsRef<[u8]>>(rx: &mut tokio::sync::mpsc::UnboundedReceiver<B>) -> serde_json::Value {
             let deadline = std::time::Instant::now() + Duration::from_secs(10);
             loop {
                 if let Ok(b) = rx.try_recv() {
                     let text = std::str::from_utf8(b.as_ref()).unwrap();
                     return serde_json::from_str(text.trim_start_matches("data: ").trim()).unwrap();
                 }
-                assert!(
-                    std::time::Instant::now() < deadline,
-                    "no message from the virtual panel"
-                );
+                assert!(std::time::Instant::now() < deadline, "no message from the virtual panel");
                 std::thread::sleep(Duration::from_millis(10));
             }
         }
         let first = next(&mut rx);
-        assert_eq!(
-            first["setup"]["name"], "Virtual 1",
-            "the setup comes before the device starts"
-        );
+        assert_eq!(first["setup"]["name"], "Virtual 1", "the setup comes before the device starts");
         assert_eq!(first["setup"]["width_px"], 1920);
-        assert_eq!(
-            first["setup"]["actions"]["ThreeFingerTap"]["action"],
-            "toggle_debug"
-        );
+        assert_eq!(first["setup"]["actions"]["ThreeFingerTap"]["action"], "toggle_debug");
         assert_eq!(next(&mut rx)["status"], "Connected");
         assert_eq!(next(&mut rx)["type"], "Pointer", "the recording plays");
 
         // A settings change that doesn't restart the panel sends a new setup.
-        std::fs::write(
-            dir.join("touch.json"),
-            r#"{"panels": [], "touch_dots": true, "testing": {"enabled": true, "replay": "tap"}}"#,
-        )
-        .unwrap();
+        std::fs::write(dir.join("touch.json"), r#"{"panels": [], "touch_dots": true, "testing": {"enabled": true, "replay": "tap"}}"#)
+            .unwrap();
         touch.reload();
         let setup = loop {
             let m = next(&mut rx);

@@ -74,7 +74,11 @@ impl Opts {
     }
 
     pub fn low(&self) -> u32 {
-        if self.low_percent == 0 { LOW_DEFAULT } else { self.low_percent.min(100) }
+        if self.low_percent == 0 {
+            LOW_DEFAULT
+        } else {
+            self.low_percent.min(100)
+        }
     }
 }
 
@@ -118,7 +122,20 @@ pub struct Entry {
 
 impl Default for Sample {
     fn default() -> Self {
-        Self { key: String::new(), name: String::new(), via: String::new(), kind: "other".into(), percent: -1, detail: String::new(), level_text: String::new(), charging: false, asleep: false, connected: true, millivolts: 0, grace_sec: 0 }
+        Self {
+            key: String::new(),
+            name: String::new(),
+            via: String::new(),
+            kind: "other".into(),
+            percent: -1,
+            detail: String::new(),
+            level_text: String::new(),
+            charging: false,
+            asleep: false,
+            connected: true,
+            millivolts: 0,
+            grace_sec: 0,
+        }
     }
 }
 
@@ -147,7 +164,14 @@ pub struct Devices {
 
 impl Devices {
     pub fn new(env_ok: bool, live: bool, opts: impl Fn() -> Opts + Send + Sync + 'static) -> Arc<Self> {
-        Arc::new(Self { env_ok, live, opts: Box::new(opts), state: Mutex::new(State::default()), map: watch::channel(Arc::new(Readings::new())).0, wake: Notify::new() })
+        Arc::new(Self {
+            env_ok,
+            live,
+            opts: Box::new(opts),
+            state: Mutex::new(State::default()),
+            map: watch::channel(Arc::new(Readings::new())).0,
+            wake: Notify::new(),
+        })
     }
 
     /// `DEVICE_BATTERIES=off` (or `0`) forces the source off for good: the privacy kill switch, `WEATHER=off` style.
@@ -299,9 +323,13 @@ impl Devices {
 /// The word for how much of the source this platform can run.
 fn platform_support() -> &'static str {
     #[cfg(windows)]
-    { "full" }
+    {
+        "full"
+    }
     #[cfg(not(windows))]
-    { "none" }
+    {
+        "none"
+    }
 }
 
 /// The device id the sensor keys use: the prototype's own FNV-1a of the stable key.
@@ -329,12 +357,7 @@ fn ips_battery_hash(key: &str) -> u32 {
 /// - A device that stopped answering keeps its last value, marked asleep, for its `grace_sec`
 ///   (some receivers drop sleeping devices from the link); after that it is gone.
 /// - A hidden device is polled and tracked but contributes no readings.
-pub fn aggregate(
-    prev: &BTreeMap<String, Entry>,
-    results: &[Sample],
-    now: i64,
-    opts: &Opts,
-) -> (BTreeMap<String, Entry>, Readings) {
+pub fn aggregate(prev: &BTreeMap<String, Entry>, results: &[Sample], now: i64, opts: &Opts) -> (BTreeMap<String, Entry>, Readings) {
     let mut entries: BTreeMap<String, Entry> = BTreeMap::new();
     let mut readings = Readings::new();
     let low = opts.low() as i32;
@@ -354,8 +377,7 @@ pub fn aggregate(
             continue;
         }
         // Some receivers drop sleeping devices from the link; keep the last value for a while.
-        let in_grace = e.sample.connected && e.sample.grace_sec > 0
-            && now.saturating_sub(e.last_seen) < (e.sample.grace_sec as i64) * 1000;
+        let in_grace = e.sample.connected && e.sample.grace_sec > 0 && now.saturating_sub(e.last_seen) < (e.sample.grace_sec as i64) * 1000;
         if in_grace {
             let mut kept = e.clone();
             kept.sample.percent = -1;
@@ -419,28 +441,31 @@ fn text(t: &str) -> Value {
 #[cfg(windows)]
 fn poll_now() -> Result<Vec<Sample>, String> {
     let results = ips_battery::devices::poll_all_devices_blocked(&[]);
-    Ok(results.iter().map(|s| Sample {
-        key: s.key.clone(),
-        name: s.name.clone(),
-        via: s.via.clone(),
-        kind: match s.kind {
-            ips_battery::devices::DeviceKind::Mouse => "mouse",
-            ips_battery::devices::DeviceKind::Keyboard => "keyboard",
-            ips_battery::devices::DeviceKind::Headset => "headset",
-            ips_battery::devices::DeviceKind::Gamepad => "controller",
-            ips_battery::devices::DeviceKind::Phone => "phone",
-            ips_battery::devices::DeviceKind::Other => "other",
-        }
-        .to_string(),
-        percent: s.percent,
-        detail: s.detail.clone(),
-        level_text: s.level_text.clone(),
-        charging: s.charging,
-        asleep: s.asleep,
-        connected: s.connected,
-        millivolts: s.millivolts,
-        grace_sec: s.grace_sec,
-    }).collect())
+    Ok(results
+        .iter()
+        .map(|s| Sample {
+            key: s.key.clone(),
+            name: s.name.clone(),
+            via: s.via.clone(),
+            kind: match s.kind {
+                ips_battery::devices::DeviceKind::Mouse => "mouse",
+                ips_battery::devices::DeviceKind::Keyboard => "keyboard",
+                ips_battery::devices::DeviceKind::Headset => "headset",
+                ips_battery::devices::DeviceKind::Gamepad => "controller",
+                ips_battery::devices::DeviceKind::Phone => "phone",
+                ips_battery::devices::DeviceKind::Other => "other",
+            }
+            .to_string(),
+            percent: s.percent,
+            detail: s.detail.clone(),
+            level_text: s.level_text.clone(),
+            charging: s.charging,
+            asleep: s.asleep,
+            connected: s.connected,
+            millivolts: s.millivolts,
+            grace_sec: s.grace_sec,
+        })
+        .collect())
 }
 
 #[cfg(not(windows))]
@@ -470,9 +495,8 @@ fn spawn_watcher() {
 unsafe fn watcher_thread() {
     use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW, RegisterClassExW,
-        TranslateMessage, CW_USEDEFAULT, MSG, PBT_APMRESUMEAUTOMATIC, WNDCLASSEXW, WM_DEVICECHANGE,
-        WM_POWERBROADCAST, WM_TIMER,
+        CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW, RegisterClassExW, TranslateMessage, CW_USEDEFAULT,
+        MSG, PBT_APMRESUMEAUTOMATIC, WM_DEVICECHANGE, WM_POWERBROADCAST, WM_TIMER, WNDCLASSEXW,
     };
     // Debounce windows, in seconds: the prototype's refresh_soon delays.
     const ARRIVAL_DELAY_MS: u64 = 2500;
@@ -523,7 +547,20 @@ unsafe fn watcher_thread() {
     }
     // A hidden top-level window (never shown): broadcast WM_DEVICECHANGE reaches top-level
     // windows, not message-only ones.
-    let hwnd = CreateWindowExW(0, class.as_ptr(), title.as_ptr(), 0, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, std::ptr::null_mut(), std::ptr::null_mut(), wc.hInstance, std::ptr::null());
+    let hwnd = CreateWindowExW(
+        0,
+        class.as_ptr(),
+        title.as_ptr(),
+        0,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        std::ptr::null_mut(),
+        std::ptr::null_mut(),
+        wc.hInstance,
+        std::ptr::null(),
+    );
     if hwnd.is_null() {
         log::warn!(target: "server", "Devices: the device watcher window failed to create");
         return;
@@ -600,7 +637,14 @@ struct Feed {
 pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
     let prefix = req.query("prefix").filter(|p| p.starts_with(NAMESPACE)).unwrap_or_else(|| NAMESPACE.into());
     let keep = Duration::from_secs(15);
-    let feed = Feed { rx: app.devices.map.subscribe(), prefix, last: None, keep_alive: interval_at(tokio::time::Instant::now() + keep, keep), shutdown: app.shutdown.clone(), _client: Box::new(app.debug.sse_open("devices")) };
+    let feed = Feed {
+        rx: app.devices.map.subscribe(),
+        prefix,
+        last: None,
+        keep_alive: interval_at(tokio::time::Instant::now() + keep, keep),
+        shutdown: app.shutdown.clone(),
+        _client: Box::new(app.debug.sse_open("devices")),
+    };
     let body = futures_util::stream::unfold(feed, |mut f| async move {
         loop {
             if f.last.is_none() {
@@ -640,7 +684,11 @@ pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
         .header("Connection", "keep-alive")
         .body(Body::from_stream(body))
         .unwrap_or_default();
-    if app.devices.enabled() { reply } else { off(reply) }
+    if app.devices.enabled() {
+        reply
+    } else {
+        off(reply)
+    }
 }
 
 /// /api/devices/battery.

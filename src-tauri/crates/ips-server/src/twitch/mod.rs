@@ -137,11 +137,7 @@ impl Twitch {
         Arc::new(Self {
             ep,
             client,
-            inner: Mutex::new(Inner {
-                channel: settings.channel,
-                auth: settings.auth,
-                ..Inner::default()
-            }),
+            inner: Mutex::new(Inner { channel: settings.channel, auth: settings.auth, ..Inner::default() }),
             persist: Box::new(persist),
             on_change: Box::new(on_change),
             refresh_lock: tokio::sync::Mutex::new(()),
@@ -248,11 +244,8 @@ impl Twitch {
             }
         };
         let id = self.next_flow.fetch_add(1, Ordering::SeqCst);
-        let code = Code {
-            user_code: device.user_code.clone(),
-            verification_uri: device.verification_uri.clone(),
-            expires_in: device.expires_in,
-        };
+        let code =
+            Code { user_code: device.user_code.clone(), verification_uri: device.verification_uri.clone(), expires_in: device.expires_in };
         {
             let mut i = locked(&self.inner);
             if i.generation != generation {
@@ -268,8 +261,7 @@ impl Twitch {
             });
         }
         let this = Arc::clone(self);
-        *locked(&self.flow) =
-            Some(tokio::spawn(async move { this.flow(id, device).await }).abort_handle());
+        *locked(&self.flow) = Some(tokio::spawn(async move { this.flow(id, device).await }).abort_handle());
         self.publish_status();
         Ok(code)
     }
@@ -294,13 +286,12 @@ impl Twitch {
             }
         };
         let result = match outcome {
-            Ok(tokens) => auth::identity(&self.client, &self.ep, &tokens.access_token)
-                .await
-                .map(|who| (tokens, who))
-                .map_err(|e| match e {
+            Ok(tokens) => {
+                auth::identity(&self.client, &self.ep, &tokens.access_token).await.map(|who| (tokens, who)).map_err(|e| match e {
                     ApiError::Unauthorized => "Twitch didn't accept the new sign-in.".to_string(),
                     ApiError::Failed(message) => format!("Signed in, but {message}."),
-                }),
+                })
+            }
             Err(message) => Err(message),
         };
         match result {
@@ -352,9 +343,7 @@ impl Twitch {
         let old = self.clear(None);
         if !old.access_token.is_empty() {
             let this = Arc::clone(self);
-            tokio::spawn(
-                async move { auth::revoke(&this.client, &this.ep, &old.access_token).await },
-            );
+            tokio::spawn(async move { auth::revoke(&this.client, &this.ep, &old.access_token).await });
         }
     }
 
@@ -405,9 +394,7 @@ impl Twitch {
         }
         match self.refresh_stale(&token).await {
             // Twitch could not be asked and the token still works; a refused refresh has signed the user out instead.
-            Err(_) if expires_at > now_ms() && locked(&self.inner).auth.access_token == token => {
-                Ok(token)
-            }
+            Err(_) if expires_at > now_ms() && locked(&self.inner).auth.access_token == token => Ok(token),
             other => other,
         }
     }
@@ -443,9 +430,7 @@ impl Twitch {
                 };
                 let Some(next) = next else {
                     let (client, ep) = (self.client.clone(), self.ep.clone());
-                    tokio::spawn(
-                        async move { auth::revoke(&client, &ep, &tokens.access_token).await },
-                    );
+                    tokio::spawn(async move { auth::revoke(&client, &ep, &tokens.access_token).await });
                     return Err("signed out".into());
                 };
                 (self.persist)(next);
@@ -466,10 +451,7 @@ impl Twitch {
     /// Logs a failure that repeats: the first time, then at most once a minute while it goes on.
     fn warn_throttled(&self, key: &'static str, message: &str) {
         let mut warned = locked(&self.warned);
-        if warned
-            .get(key)
-            .is_some_and(|at| at.elapsed() < Duration::from_secs(60))
-        {
+        if warned.get(key).is_some_and(|at| at.elapsed() < Duration::from_secs(60)) {
             return;
         }
         warned.insert(key, Instant::now());
@@ -484,7 +466,10 @@ impl Twitch {
     /// The sign-in under way, for the Settings page: the code to approve and when it runs out.
     pub fn pending_json(&self) -> Value {
         let i = locked(&self.inner);
-        let pending = i.pending.as_ref().map(|p| json!({ "user_code": p.user_code, "verification_uri": p.verification_uri, "expires_at": p.expires_at }));
+        let pending = i
+            .pending
+            .as_ref()
+            .map(|p| json!({ "user_code": p.user_code, "verification_uri": p.verification_uri, "expires_at": p.expires_at }));
         json!({ "pending": pending, "error": i.error })
     }
 
@@ -494,9 +479,7 @@ impl Twitch {
         for attempt in 0..2 {
             match auth::stream_info(&self.client, &self.ep, &token, channel).await {
                 Ok(found) => return Ok(found),
-                Err(ApiError::Unauthorized) if attempt == 0 => {
-                    token = self.refresh_stale(&token).await?
-                }
+                Err(ApiError::Unauthorized) if attempt == 0 => token = self.refresh_stale(&token).await?,
                 Err(ApiError::Unauthorized) => break,
                 Err(ApiError::Failed(message)) => return Err(message),
             }
@@ -509,9 +492,7 @@ impl Twitch {
     /// Sends a chat message as the signed-in user.
     pub fn send(&self, text: &str) -> Result<(), SendError> {
         let text = chat::validate_send(text).map_err(SendError::Invalid)?;
-        let outgoing = locked(&self.outgoing)
-            .clone()
-            .ok_or(SendError::NotConnected)?;
+        let outgoing = locked(&self.outgoing).clone().ok_or(SendError::NotConnected)?;
         {
             let mut i = locked(&self.inner);
             if !i.connected {
@@ -534,11 +515,7 @@ impl Twitch {
     fn echo(&self, text: &str) {
         let entry = {
             let i = locked(&self.inner);
-            let user = if i.me.display.is_empty() {
-                i.auth.login.clone()
-            } else {
-                i.me.display.clone()
-            };
+            let user = if i.me.display.is_empty() { i.auth.login.clone() } else { i.me.display.clone() };
             let ts = now_ms();
             Entry {
                 message: Message {

@@ -5,12 +5,17 @@
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
-use ips_server::asset_types::{declared_type, is_asset_id, is_svg_text, limit_of, parse_range, referenced_hashes, sniff_type, upload_quota_refusal, Range, AssetType, SVG_LIMIT};
-use ips_server::canvases::{canvas_id_of, canvas_refusal, canvas_write_refusal, referenced_canvas_ids, CanvasStore, MAX_CANVAS_BYTES, SWEEP_GRACE_MS};
+use ips_server::asset_types::{
+    declared_type, is_asset_id, is_svg_text, limit_of, parse_range, referenced_hashes, sniff_type, upload_quota_refusal, AssetType, Range,
+    SVG_LIMIT,
+};
+use ips_server::canvases::{
+    canvas_id_of, canvas_refusal, canvas_write_refusal, referenced_canvas_ids, CanvasStore, MAX_CANVAS_BYTES, SWEEP_GRACE_MS,
+};
 use ips_server::infopanel_local::{is_asset_name, is_guid, profiles_from_xml};
+use ips_server::json;
 use ips_server::library::{library_write_refusal, normalize_item, summary_of};
 use ips_server::request_guard::Refusal;
-use ips_server::json;
 use serde_json::{json, Map, Value};
 
 fn cases(module: &str) -> Vec<(Value, Value)> {
@@ -27,7 +32,12 @@ fn str_of<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
 
 /// Compares as JSON text, so key order counts.
 fn same(module: &str, input: &Value, got: &Value, want: &Value) {
-    assert_eq!(json::stringify(got), json::stringify(want), "{module}: {}", &json::stringify(input)[..json::stringify(input).len().min(300)]);
+    assert_eq!(
+        json::stringify(got),
+        json::stringify(want),
+        "{module}: {}",
+        &json::stringify(input)[..json::stringify(input).len().min(300)]
+    );
 }
 
 fn refusal(r: Option<Refusal>) -> Value {
@@ -124,7 +134,12 @@ fn canvases() {
             "referencedCanvasIds" => referenced_canvas_ids(str_of(&input, "configText").unwrap()).map_or(Value::Null, |ids| json!(ids)),
             "canvasWriteRefusal" => {
                 let h = &input["headers"];
-                refusal(canvas_write_refusal(str_of(h, "content-type"), str_of(h, "x-dashboard-canvas"), str_of(&input, "remote"), input["allowRemote"].as_bool().unwrap()))
+                refusal(canvas_write_refusal(
+                    str_of(h, "content-type"),
+                    str_of(h, "x-dashboard-canvas"),
+                    str_of(&input, "remote"),
+                    input["allowRemote"].as_bool().unwrap(),
+                ))
             }
             "sweep" => sweep(&input),
             other => panic!("unknown fn {other}"),
@@ -138,7 +153,9 @@ fn canvases() {
 fn expand(v: &Value) -> Value {
     match v {
         Value::Array(items) => Value::Array(items.iter().map(expand).collect()),
-        Value::Object(map) if map.contains_key("$repeat") => json!(map["$repeat"].as_str().unwrap().repeat(map["n"].as_u64().unwrap() as usize)),
+        Value::Object(map) if map.contains_key("$repeat") => {
+            json!(map["$repeat"].as_str().unwrap().repeat(map["n"].as_u64().unwrap() as usize))
+        }
         Value::Object(map) if map.contains_key("$fill") => Value::Array(vec![expand(&map["$fill"]); map["n"].as_u64().unwrap() as usize]),
         Value::Object(map) => Value::Object(map.iter().map(|(k, x)| (k.clone(), expand(x))).collect()),
         other => other.clone(),
@@ -210,7 +227,10 @@ fn infopanel_local() {
     for (input, want) in cases("infopanel-local") {
         let got = match str_of(&input, "fn").unwrap() {
             "profilesFromXml" => Value::Array(
-                profiles_from_xml(str_of(&input, "text").unwrap()).into_iter().map(|p| json!({ "guid": p.guid, "name": p.name, "xml": p.xml })).collect(),
+                profiles_from_xml(str_of(&input, "text").unwrap())
+                    .into_iter()
+                    .map(|p| json!({ "guid": p.guid, "name": p.name, "xml": p.xml }))
+                    .collect(),
             ),
             "isGuid" => json!(is_guid(str_of(&input, "value").unwrap())),
             "isAssetName" => json!(is_asset_name(str_of(&input, "value").unwrap())),

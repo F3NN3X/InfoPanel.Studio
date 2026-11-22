@@ -29,39 +29,54 @@ const GET_DEVICE_STATE: u8 = 0x21;
 // Sends GET_DEVICE_STATE to `dev_type` and waits for its reply (one absolute 1 s deadline).
 fn get_state(d: &mut dyn HidIo, dev_type: u8, r: &mut Vec<u8>) -> bool {
     d.flush();
-    if !d.write(&[REPORT_ID, dev_type, GET_DEVICE_STATE], 500) { return false; }
+    if !d.write(&[REPORT_ID, dev_type, GET_DEVICE_STATE], 500) {
+        return false;
+    }
     let end = now_ms() + 1000;
     loop {
         let left = (end as i64 - now_ms() as i64) as i32;
-        if left <= 0 { return false; }
+        if left <= 0 {
+            return false;
+        }
         let n = d.read(r, left as u32);
-        if n < 0 { return false; }
-        if n >= 24 && r[0] == REPORT_ID && r[1] == dev_type && r[2] == GET_DEVICE_STATE { return true; }
+        if n < 0 {
+            return false;
+        }
+        if n >= 24 && r[0] == REPORT_ID && r[1] == dev_type && r[2] == GET_DEVICE_STATE {
+            return true;
+        }
     }
 }
 
 pub fn poll_fractal(ctx: &mut PollContext) {
     for &(vid, pid) in &ctx.products(0x36BC) {
-        if pid != 0x0001 && pid != 0x2001 { continue; }
+        if pid != 0x0001 && pid != 0x2001 {
+            continue;
+        }
         let cable = pid == 0x2001;
         for c in ctx.find(vid, pid, |c| c.page() == 0xFF00 && c.usage() == 0x0001 && c.out_len() >= 4 && c.in_len() >= 24) {
             let Some(mut d) = ctx.open(&c) else { continue };
             let mut s = DeviceStatus::default();
-            s.key = "fractal:scape".into();  // same entry on the dongle and on the cable
+            s.key = "fractal:scape".into(); // same entry on the dongle and on the cable
             s.name = "Fractal Scape".into();
             s.kind = DeviceKind::Headset;
             let via = if cable { "USB cable" } else { "2.4 GHz dongle" };
             s.via = via.into();
             let mut r: Vec<u8> = Vec::new();
             if !cable {
-                if !get_state(&mut *d, TYPE_DONGLE, &mut r) { continue; }
-                if r[4] != 1 {  // dongle answers, headset off, out of range or on its stand
+                if !get_state(&mut *d, TYPE_DONGLE, &mut r) {
+                    continue;
+                }
+                if r[4] != 1 {
+                    // dongle answers, headset off, out of range or on its stand
                     s.connected = false;
                     ctx.add(s, vid, pid);
                     break;
                 }
             }
-            if !get_state(&mut *d, TYPE_HEADSET, &mut r) || r[15] > 100 { continue; }
+            if !get_state(&mut *d, TYPE_HEADSET, &mut r) || r[15] > 100 {
+                continue;
+            }
             s.percent = r[15] as i32;
             s.charging = r[23] == 1;
             ctx.add(s, vid, pid);

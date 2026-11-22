@@ -10,8 +10,8 @@ mod http;
 mod infopanel_local;
 mod kiosk;
 mod logs;
-mod nav;
 mod native;
+mod nav;
 mod paths;
 mod probe;
 mod refresh;
@@ -44,18 +44,11 @@ pub fn debug_forced(args: &[String], env: Option<&str>) -> bool {
 
 /// Debug level for the app's own log lines in debug mode; Info otherwise.
 pub fn apply_log_level(debug: bool) {
-    log::set_max_level(if debug {
-        log::LevelFilter::Debug
-    } else {
-        log::LevelFilter::Info
-    });
+    log::set_max_level(if debug { log::LevelFilter::Debug } else { log::LevelFilter::Info });
 }
 
 fn now_secs() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0)
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
 }
 
 /// Every 30 s in debug mode: process numbers, server stats and the studio's sample.
@@ -71,12 +64,7 @@ fn run_sampler(app: tauri::AppHandle) {
         let mut sample = sampler.sample();
         if status.state == Phase::Running {
             let host = settings::connect_host(&status.host);
-            if let Ok(r) = http::get(
-                &host,
-                status.port,
-                "/api/debug/stats",
-                Duration::from_secs(2),
-            ) {
+            if let Ok(r) = http::get(&host, status.port, "/api/debug/stats", Duration::from_secs(2)) {
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&r.body) {
                     if r.status == 200 {
                         sample.extend(debug::server_series(&v));
@@ -99,21 +87,14 @@ fn run_sampler(app: tauri::AppHandle) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let args: Vec<String> = std::env::args().collect();
-    let forced = debug_forced(
-        &args,
-        std::env::var("INFOPANEL_STUDIO_DEBUG").ok().as_deref(),
-    );
+    let forced = debug_forced(&args, std::env::var("INFOPANEL_STUDIO_DEBUG").ok().as_deref());
     let hidden = args.iter().any(|a| a == HIDDEN_ARG);
     // The settings and log folders are known before Tauri starts; resources only once it has.
     let early = paths::Paths::from_env(Default::default());
     let log_dir = early.log_dir;
     // server.log: the in-app server's log lines (target `server`).
-    let server_log = Arc::new(Mutex::new(server_log::RotatingLog::new(
-        &log_dir,
-        "server",
-        server_log::SERVER_LOG_MAX,
-        server_log::SERVER_LOG_FILES,
-    )));
+    let server_log =
+        Arc::new(Mutex::new(server_log::RotatingLog::new(&log_dir, "server", server_log::SERVER_LOG_MAX, server_log::SERVER_LOG_FILES)));
     let server_lines = server_log.clone();
     // Only a peek: `setup` loads (and logs about) the file once the log is up.
     let remember_bounds = std::fs::read_to_string(settings::settings_file(&early.config_dir))
@@ -131,33 +112,21 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::new()
                 .clear_targets()
+                .target(Target::new(TargetKind::Folder { path: log_dir, file_name: Some("app".into()) }).filter(|m| m.target() != "server"))
                 .target(
-                    Target::new(TargetKind::Folder {
-                        path: log_dir,
-                        file_name: Some("app".into()),
-                    })
-                    .filter(|m| m.target() != "server"),
-                )
-                .target(
-                    Target::new(TargetKind::Dispatch(
-                        tauri_plugin_log::fern::Dispatch::new().chain(
-                            tauri_plugin_log::fern::Output::call(move |record| {
-                                if let Ok(mut l) = server_lines.lock() {
-                                    let _ = l.write_line(&record.args().to_string());
-                                }
-                            }),
-                        ),
-                    ))
+                    Target::new(TargetKind::Dispatch(tauri_plugin_log::fern::Dispatch::new().chain(tauri_plugin_log::fern::Output::call(
+                        move |record| {
+                            if let Ok(mut l) = server_lines.lock() {
+                                let _ = l.write_line(&record.args().to_string());
+                            }
+                        },
+                    ))))
                     .filter(|m| m.target() == "server"),
                 )
                 .max_file_size(APP_LOG_MAX)
                 .rotation_strategy(RotationStrategy::KeepSome(3))
                 .level(log::LevelFilter::Debug)
-                .filter(|m| {
-                    m.level() <= log::Level::Info
-                        || m.target().starts_with("infopanel_studio")
-                        || m.target() == "studio"
-                })
+                .filter(|m| m.level() <= log::Level::Info || m.target().starts_with("infopanel_studio") || m.target() == "studio")
                 .build(),
         );
     // Remember window size and position off: no window state is restored or saved this run.
@@ -178,18 +147,10 @@ pub fn run() {
         builder
     };
     let app = builder
-        .plugin(
-            tauri_plugin_autostart::Builder::new()
-                .args([HIDDEN_ARG])
-                .build(),
-        )
+        .plugin(tauri_plugin_autostart::Builder::new().args([HIDDEN_ARG]).build())
         // Links go to `on_new_window` (windows.rs), which opens them with a rate limit; the plugin's own
         // click handler calls a command no capability grants.
-        .plugin(
-            tauri_plugin_opener::Builder::new()
-                .open_js_links_on_click(false)
-                .build(),
-        )
+        .plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
@@ -278,10 +239,7 @@ pub fn run() {
             let start_server = s.start_server;
             let experimental_touch = s.experimental_touch;
             app.manage(updater::Updates::new(&version));
-            let st = AppState {
-                server_log,
-                ..AppState::new(paths, version, s, forced, hidden)
-            };
+            let st = AppState { server_log, ..AppState::new(paths, version, s, forced, hidden) };
             apply_log_level(st.debug());
             // A first launch (no dashboard config yet) opens a setup session: the studio's first-run setup may start
             // InfoPanel and set its switches until it ends.
@@ -296,10 +254,7 @@ pub fn run() {
                 log::info!("the saved config is older than this version; opening the studio to update it");
             }
             let open_window = open_window || outdated;
-            let touch = touch::Touch::new(
-                &st.paths.config_dir,
-                ips_server::touch_hub::HUB.clone(),
-            );
+            let touch = touch::Touch::new(&st.paths.config_dir, ips_server::touch_hub::HUB.clone());
             app.manage(st);
             app.manage(touch);
             app.manage(touch::screens::Busy::default());
@@ -334,9 +289,7 @@ pub fn run() {
 
     app.run(|app, event| match event {
         // Closing the last window keeps the app (and the server) in the tray.
-        RunEvent::ExitRequested {
-            code: None, api, ..
-        } if !app.state::<AppState>().is_quitting() => api.prevent_exit(),
+        RunEvent::ExitRequested { code: None, api, .. } if !app.state::<AppState>().is_quitting() => api.prevent_exit(),
         RunEvent::Exit => control::stop_owned(app),
         _ => {}
     });

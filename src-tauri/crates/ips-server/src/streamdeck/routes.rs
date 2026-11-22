@@ -80,11 +80,7 @@ pub async fn handle_act(app: &App, mut req: Req) -> std::io::Result<Response<Bod
     };
     let deck = &app.streamdeck;
     let done = match act {
-        Act::Press {
-            device,
-            index,
-            down,
-        } => deck.press(&device, index, down).await,
+        Act::Press { device, index, down } => deck.press(&device, index, down).await,
         Act::Page { device, to } => deck.page(&device, to),
         Act::Pair => deck.pair(),
         Act::Create { name, cols, rows } => {

@@ -241,7 +241,13 @@ pub fn parse_forecast(v: &Value) -> Result<BTreeMap<String, Value>, String> {
     let temp = num(current, "temperature_2m").ok_or("the answer has no temperature")?;
     let mut out = BTreeMap::new();
     out.insert("temp".to_string(), reading(temp, "°C"));
-    for (key, field, unit) in [("feels", "apparent_temperature", "°C"), ("humidity", "relative_humidity_2m", "%"), ("wind", "wind_speed_10m", "km/h"), ("precip", "precipitation", "mm"), ("is_day", "is_day", "")] {
+    for (key, field, unit) in [
+        ("feels", "apparent_temperature", "°C"),
+        ("humidity", "relative_humidity_2m", "%"),
+        ("wind", "wind_speed_10m", "km/h"),
+        ("precip", "precipitation", "mm"),
+        ("is_day", "is_day", ""),
+    ] {
         if let Some(x) = num(current, field) {
             out.insert(key.to_string(), reading(x, unit));
         }
@@ -250,9 +256,16 @@ pub fn parse_forecast(v: &Value) -> Result<BTreeMap<String, Value>, String> {
         out.insert("code".to_string(), reading(code, ""));
         out.insert("condition".to_string(), text(condition_of(code as i64)));
     }
-    let series = |block: &str, field: &str| -> Vec<Option<f64>> { v.get(block).and_then(|b| b.get(field)).and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().map(Value::as_f64).collect()) };
+    let series = |block: &str, field: &str| -> Vec<Option<f64>> {
+        v.get(block).and_then(|b| b.get(field)).and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().map(Value::as_f64).collect())
+    };
     let offset = num(v, "utc_offset_seconds").unwrap_or(0.0) as i64;
-    let (times, temps, codes, chances) = (series("hourly", "time"), series("hourly", "temperature_2m"), series("hourly", "weather_code"), series("hourly", "precipitation_probability"));
+    let (times, temps, codes, chances) = (
+        series("hourly", "time"),
+        series("hourly", "temperature_2m"),
+        series("hourly", "weather_code"),
+        series("hourly", "precipitation_probability"),
+    );
     for n in 0..temps.len().min(HOURS) {
         let at = |list: &[Option<f64>]| list.get(n).copied().flatten();
         if let Some(t) = at(&temps) {
@@ -268,7 +281,8 @@ pub fn parse_forecast(v: &Value) -> Result<BTreeMap<String, Value>, String> {
             out.insert(format!("hourly.{n}.time"), text(&format!("{:02}:00", ((t as i64 + offset).rem_euclid(86_400)) / 3600)));
         }
     }
-    let (highs, lows, day_codes) = (series("daily", "temperature_2m_max"), series("daily", "temperature_2m_min"), series("daily", "weather_code"));
+    let (highs, lows, day_codes) =
+        (series("daily", "temperature_2m_max"), series("daily", "temperature_2m_min"), series("daily", "weather_code"));
     for n in 0..highs.len().min(DAYS) {
         let at = |list: &[Option<f64>]| list.get(n).copied().flatten();
         for (key, value, unit) in [("high", at(&highs), "°C"), ("low", at(&lows), "°C"), ("code", at(&day_codes), "")] {
@@ -393,7 +407,15 @@ impl Weather {
             total: 0,
             today: (0, 0),
         };
-        Arc::new(Self { enabled, endpoints, limits, places: Box::new(places), state: Mutex::new(state), map: watch::channel(Arc::new(Readings::new())).0, wake: Notify::new() })
+        Arc::new(Self {
+            enabled,
+            endpoints,
+            limits,
+            places: Box::new(places),
+            state: Mutex::new(state),
+            map: watch::channel(Arc::new(Readings::new())).0,
+            wake: Notify::new(),
+        })
     }
 
     /// `WEATHER=off` (or `0`) is the switch.
@@ -441,14 +463,23 @@ impl Weather {
         let due: Vec<Place> = {
             let mut st = self.lock();
             for place in &wanted {
-                let entry = st.cache.entry(place.id.clone()).or_insert_with(|| Entry { place: place.clone(), readings: None, fetched: None, error: None, failures: 0, next_at: 0, wanted_at: now });
+                let entry = st.cache.entry(place.id.clone()).or_insert_with(|| Entry {
+                    place: place.clone(),
+                    readings: None,
+                    fetched: None,
+                    error: None,
+                    failures: 0,
+                    next_at: 0,
+                    wanted_at: now,
+                });
                 entry.wanted_at = now;
             }
             let keep = CACHE_KEEP.as_millis() as i64;
             st.cache.retain(|id, e| wanted.iter().any(|p| &p.id == id) || now - e.wanted_at < keep);
             st.wanted = wanted;
             // the longest-waiting first, so a place the cap held back is not passed over again
-            let mut due: Vec<(i64, Place)> = st.wanted.iter().filter_map(|p| st.cache.get(&p.id).filter(|e| e.next_at <= now).map(|e| (e.next_at, p.clone()))).collect();
+            let mut due: Vec<(i64, Place)> =
+                st.wanted.iter().filter_map(|p| st.cache.get(&p.id).filter(|e| e.next_at <= now).map(|e| (e.next_at, p.clone()))).collect();
             due.sort_by_key(|(at, _)| *at);
             due.into_iter().map(|(_, p)| p).collect()
         };
@@ -521,7 +552,10 @@ impl Weather {
         url.query_pairs_mut()
             .append_pair("latitude", &format!("{:.2}", place.lat))
             .append_pair("longitude", &format!("{:.2}", place.lon))
-            .append_pair("current", "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day,precipitation")
+            .append_pair(
+                "current",
+                "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day,precipitation",
+            )
             .append_pair("hourly", "temperature_2m,weather_code,precipitation_probability")
             .append_pair("daily", "temperature_2m_max,temperature_2m_min,weather_code")
             .append_pair("timezone", "auto")
@@ -565,7 +599,11 @@ impl Weather {
             return Err((429, "the weather source has used its calls for this hour; try again later".into()));
         }
         let mut url = self.endpoints.search.clone();
-        url.query_pairs_mut().append_pair("name", query).append_pair("count", &SEARCH_RESULTS.to_string()).append_pair("language", lang).append_pair("format", "json");
+        url.query_pairs_mut()
+            .append_pair("name", query)
+            .append_pair("count", &SEARCH_RESULTS.to_string())
+            .append_pair("language", lang)
+            .append_pair("format", "json");
         let body = self.get(&url, SEARCH_MAX_BYTES).await.map_err(|e| (502, format!("place search failed: {e}")))?;
         let four = |x: f64| (x * 10_000.0).round() / 10_000.0;
         let results: Vec<Value> = body
@@ -627,10 +665,12 @@ impl Weather {
     /// Starts the supervised task (none when the source is off).
     pub fn start(self: &Arc<Self>, shutdown: &watch::Receiver<bool>) -> Option<JoinHandle<()>> {
         let me = Arc::clone(self);
-        self.enabled.then(|| supervisor::spawn("weather", shutdown.clone(), move || {
-            let me = Arc::clone(&me);
-            async move { me.run().await }
-        }))
+        self.enabled.then(|| {
+            supervisor::spawn("weather", shutdown.clone(), move || {
+                let me = Arc::clone(&me);
+                async move { me.run().await }
+            })
+        })
     }
 }
 
@@ -675,7 +715,14 @@ struct Feed {
 pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
     let prefix = req.query("prefix").filter(|p| p.starts_with(NAMESPACE)).unwrap_or_else(|| NAMESPACE.into());
     let keep = Duration::from_secs(15);
-    let feed = Feed { rx: app.weather.map.subscribe(), prefix, last: None, keep_alive: interval_at(Instant::now() + keep, keep), shutdown: app.shutdown.clone(), _client: Box::new(app.debug.sse_open("weather")) };
+    let feed = Feed {
+        rx: app.weather.map.subscribe(),
+        prefix,
+        last: None,
+        keep_alive: interval_at(Instant::now() + keep, keep),
+        shutdown: app.shutdown.clone(),
+        _client: Box::new(app.debug.sse_open("weather")),
+    };
     let body = futures_util::stream::unfold(feed, |mut f| async move {
         loop {
             if f.last.is_none() {
@@ -696,9 +743,16 @@ pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
             };
             match next {
                 Next::Stop => return None,
-                Next::KeepAlive => return Some((Ok(Bytes::from_static(b": keep-alive
+                Next::KeepAlive => {
+                    return Some((
+                        Ok(Bytes::from_static(
+                            b": keep-alive
 
-")), f)),
+",
+                        )),
+                        f,
+                    ))
+                }
                 Next::Changed => {
                     let now = under(&f.rx.borrow_and_update(), &f.prefix);
                     let (changed, removed) = diff(f.last.as_ref().unwrap_or(&Readings::new()), &now);
@@ -717,12 +771,23 @@ pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
         .header("Connection", "keep-alive")
         .body(Body::from_stream(body))
         .unwrap_or_default();
-    if app.weather.enabled { reply } else { off(reply) }
+    if app.weather.enabled {
+        reply
+    } else {
+        off(reply)
+    }
 }
 
 /// Why a place search is refused before it reaches the provider, or `None`: GET, the source on, this computer (or remote editing
 /// on), a query of 2 to 60 characters without control characters, a two-letter language.
-pub fn search_refusal(method: &Method, enabled: bool, loopback: bool, allow_remote: bool, query: &str, lang: &str) -> Option<(u16, &'static str)> {
+pub fn search_refusal(
+    method: &Method,
+    enabled: bool,
+    loopback: bool,
+    allow_remote: bool,
+    query: &str,
+    lang: &str,
+) -> Option<(u16, &'static str)> {
     if method != Method::GET {
         return Some((405, ""));
     }

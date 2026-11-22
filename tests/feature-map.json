@@ -76,6 +76,13 @@
       "needs": ["build", "server-bin"],
       "when": "verify:full only (on no feature), Windows only, never in CI (localOnly: not run where CI is set): the Classic look per widget kind, span and material against the images in tests/visual/look/baselines (this platform's text rendering), and one sheet per sample theme (samples.spec.ts: the six mockup widgets)"
     },
+    "rust-fmt": {
+      "cmd": "cargo fmt --all --check",
+      "cwd": "src-tauri",
+      "files": ["src-tauri/**/*.rs", "src-tauri/rustfmt.toml"],
+      "always": true,
+      "when": "every change to Rust code or src-tauri/rustfmt.toml: the whole workspace against rustfmt (skipped when none changed)"
+    },
     "cargo-server": {
       "lane": "cargo", "cmd": "cargo test -p ips-server -p ips-agent -p ips-battery && cargo clippy -p ips-server -p ips-agent -p ips-battery --all-targets -- -D warnings",
       "cwd": "src-tauri",

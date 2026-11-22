@@ -46,12 +46,7 @@ impl Endpoints {
 
     /// Endpoints nothing answers on (a refused address, which the guard blocks): for a server that must never reach Twitch.
     pub fn offline() -> Self {
-        Self {
-            id: "http://127.0.0.1:9".into(),
-            api: "http://127.0.0.1:9".into(),
-            irc: "ws://127.0.0.1:9".into(),
-            ..Self::twitch()
-        }
+        Self { id: "http://127.0.0.1:9".into(), api: "http://127.0.0.1:9".into(), irc: "ws://127.0.0.1:9".into(), ..Self::twitch() }
     }
 }
 
@@ -107,26 +102,16 @@ fn url_of(base: &str, path: &str) -> Result<Url, String> {
 }
 
 async fn reach(client: &GuardedClient, url: &Url) -> Result<(), String> {
-    client
-        .check_target(url)
-        .await
-        .map_err(|e| format!("couldn't reach Twitch ({e})"))
+    client.check_target(url).await.map_err(|e| format!("couldn't reach Twitch ({e})"))
 }
 
-async fn form(
-    client: &GuardedClient,
-    url: &Url,
-    fields: &[(&str, &str)],
-) -> Result<(u16, Value), String> {
+async fn form(client: &GuardedClient, url: &Url, fields: &[(&str, &str)]) -> Result<(u16, Value), String> {
     reach(client, url).await?;
     let reply = client
         .post_form(url, &[("Accept", "application/json")], fields, MAX_REPLY)
         .await
         .map_err(|e| format!("couldn't reach Twitch ({e})"))?;
-    Ok((
-        reply.status,
-        serde_json::from_slice(&reply.body).unwrap_or(Value::Null),
-    ))
+    Ok((reply.status, serde_json::from_slice(&reply.body).unwrap_or(Value::Null)))
 }
 
 fn text<'a>(v: &'a Value, key: &str) -> &'a str {
@@ -136,12 +121,7 @@ fn text<'a>(v: &'a Value, key: &str) -> &'a str {
 /// Asks Twitch for a code to approve.
 pub async fn start_device(client: &GuardedClient, ep: &Endpoints) -> Result<Device, String> {
     let url = url_of(&ep.id, "/oauth2/device")?;
-    let (status, body) = form(
-        client,
-        &url,
-        &[("client_id", &ep.client_id), ("scopes", SCOPES)],
-    )
-    .await?;
+    let (status, body) = form(client, &url, &[("client_id", &ep.client_id), ("scopes", SCOPES)]).await?;
     let device = Device {
         device_code: text(&body, "device_code").to_string(),
         user_code: text(&body, "user_code").to_string(),
@@ -168,9 +148,7 @@ pub fn classify_poll(status: u16, body: &Value, now_ms: i64) -> Poll {
     if status >= 500 {
         return Poll::Retry;
     }
-    let message = [text(body, "message"), text(body, "error")]
-        .join(" ")
-        .to_ascii_lowercase();
+    let message = [text(body, "message"), text(body, "error")].join(" ").to_ascii_lowercase();
     if message.contains("authorization_pending") {
         Poll::Pending
     } else if message.contains("slow_down") {
@@ -185,10 +163,7 @@ pub fn classify_poll(status: u16, body: &Value, now_ms: i64) -> Poll {
 }
 
 fn tokens_of(body: &Value, now_ms: i64) -> Tokens {
-    let seconds = body
-        .get("expires_in")
-        .and_then(Value::as_i64)
-        .unwrap_or(3600);
+    let seconds = body.get("expires_in").and_then(Value::as_i64).unwrap_or(3600);
     Tokens {
         access_token: text(body, "access_token").to_string(),
         refresh_token: text(body, "refresh_token").to_string(),
@@ -197,12 +172,7 @@ fn tokens_of(body: &Value, now_ms: i64) -> Tokens {
 }
 
 /// One poll of the token endpoint; `Err` when Twitch could not be asked (the caller tries again).
-pub async fn poll_device(
-    client: &GuardedClient,
-    ep: &Endpoints,
-    device: &Device,
-    now_ms: i64,
-) -> Result<Poll, String> {
+pub async fn poll_device(client: &GuardedClient, ep: &Endpoints, device: &Device, now_ms: i64) -> Result<Poll, String> {
     let url = url_of(&ep.id, "/oauth2/token")?;
     let fields = [
         ("client_id", ep.client_id.as_str()),
@@ -215,21 +185,10 @@ pub async fn poll_device(
 }
 
 /// New tokens for a refresh token (a public client needs no secret).
-pub async fn refresh(
-    client: &GuardedClient,
-    ep: &Endpoints,
-    refresh_token: &str,
-    now_ms: i64,
-) -> Result<Tokens, RefreshError> {
+pub async fn refresh(client: &GuardedClient, ep: &Endpoints, refresh_token: &str, now_ms: i64) -> Result<Tokens, RefreshError> {
     let url = url_of(&ep.id, "/oauth2/token").map_err(RefreshError::Unreachable)?;
-    let fields = [
-        ("grant_type", "refresh_token"),
-        ("refresh_token", refresh_token),
-        ("client_id", ep.client_id.as_str()),
-    ];
-    let (status, body) = form(client, &url, &fields)
-        .await
-        .map_err(RefreshError::Unreachable)?;
+    let fields = [("grant_type", "refresh_token"), ("refresh_token", refresh_token), ("client_id", ep.client_id.as_str())];
+    let (status, body) = form(client, &url, &fields).await.map_err(RefreshError::Unreachable)?;
     if status == 200 && !text(&body, "access_token").is_empty() {
         let mut tokens = tokens_of(&body, now_ms);
         if tokens.refresh_token.is_empty() {
@@ -239,63 +198,36 @@ pub async fn refresh(
     }
     match status {
         400 | 401 => Err(RefreshError::Rejected(text(&body, "message").to_string())),
-        _ => Err(RefreshError::Unreachable(format!(
-            "Twitch answered {status}"
-        ))),
+        _ => Err(RefreshError::Unreachable(format!("Twitch answered {status}"))),
     }
 }
 
 /// Tells Twitch the token is no longer wanted; the answer is not looked at.
 pub async fn revoke(client: &GuardedClient, ep: &Endpoints, token: &str) {
     if let Ok(url) = url_of(&ep.id, "/oauth2/revoke") {
-        let _ = form(
-            client,
-            &url,
-            &[("client_id", &ep.client_id), ("token", token)],
-        )
-        .await;
+        let _ = form(client, &url, &[("client_id", &ep.client_id), ("token", token)]).await;
     }
 }
 
 /// A Helix GET as JSON.
-pub async fn helix(
-    client: &GuardedClient,
-    ep: &Endpoints,
-    path_and_query: &str,
-    token: &str,
-) -> Result<Value, ApiError> {
+pub async fn helix(client: &GuardedClient, ep: &Endpoints, path_and_query: &str, token: &str) -> Result<Value, ApiError> {
     let url = url_of(&ep.api, path_and_query).map_err(ApiError::Failed)?;
     reach(client, &url).await.map_err(ApiError::Failed)?;
     let bearer = format!("Bearer {token}");
-    let headers = [
-        ("Client-Id", ep.client_id.as_str()),
-        ("Authorization", bearer.as_str()),
-        ("Accept", "application/json"),
-    ];
-    let reply = client
-        .get(&url, &headers, MAX_REPLY)
-        .await
-        .map_err(|e| ApiError::Failed(format!("couldn't reach Twitch ({e})")))?;
+    let headers = [("Client-Id", ep.client_id.as_str()), ("Authorization", bearer.as_str()), ("Accept", "application/json")];
+    let reply = client.get(&url, &headers, MAX_REPLY).await.map_err(|e| ApiError::Failed(format!("couldn't reach Twitch ({e})")))?;
     match reply.status {
-        200 => serde_json::from_slice(&reply.body)
-            .map_err(|_| ApiError::Failed("Twitch sent something unreadable".into())),
+        200 => serde_json::from_slice(&reply.body).map_err(|_| ApiError::Failed("Twitch sent something unreadable".into())),
         401 => Err(ApiError::Unauthorized),
         status => Err(ApiError::Failed(format!("Twitch answered {status}"))),
     }
 }
 
 /// Who a token belongs to: (login, user id).
-pub async fn identity(
-    client: &GuardedClient,
-    ep: &Endpoints,
-    token: &str,
-) -> Result<(String, String), ApiError> {
+pub async fn identity(client: &GuardedClient, ep: &Endpoints, token: &str) -> Result<(String, String), ApiError> {
     let body = helix(client, ep, "/helix/users", token).await?;
     let user = body.get("data").and_then(|d| d.get(0));
-    let (login, id) = (
-        user.map_or("", |u| text(u, "login")),
-        user.map_or("", |u| text(u, "id")),
-    );
+    let (login, id) = (user.map_or("", |u| text(u, "login")), user.map_or("", |u| text(u, "id")));
     if login.is_empty() || id.is_empty() {
         return Err(ApiError::Failed("Twitch didn't say who you are".into()));
     }
@@ -303,24 +235,11 @@ pub async fn identity(
 }
 
 /// Whether a channel is live, and its viewers.
-pub async fn stream_info(
-    client: &GuardedClient,
-    ep: &Endpoints,
-    token: &str,
-    channel: &str,
-) -> Result<(bool, u64), ApiError> {
-    let query: String = url::form_urlencoded::Serializer::new(String::new())
-        .append_pair("user_login", channel)
-        .finish();
+pub async fn stream_info(client: &GuardedClient, ep: &Endpoints, token: &str, channel: &str) -> Result<(bool, u64), ApiError> {
+    let query: String = url::form_urlencoded::Serializer::new(String::new()).append_pair("user_login", channel).finish();
     let body = helix(client, ep, &format!("/helix/streams?{query}"), token).await?;
     let stream = body.get("data").and_then(|d| d.get(0));
-    Ok((
-        stream.is_some(),
-        stream
-            .and_then(|s| s.get("viewer_count"))
-            .and_then(Value::as_u64)
-            .unwrap_or(0),
-    ))
+    Ok((stream.is_some(), stream.and_then(|s| s.get("viewer_count")).and_then(Value::as_u64).unwrap_or(0)))
 }
 
 #[cfg(test)]
@@ -332,25 +251,14 @@ mod tests {
     fn classifies_the_token_endpoints_answers() {
         let pending = json!({ "status": 400, "message": "authorization_pending" });
         assert_eq!(classify_poll(400, &pending, 0), Poll::Pending);
-        assert_eq!(
-            classify_poll(400, &json!({ "message": "slow_down" }), 0),
-            Poll::SlowDown
-        );
-        assert!(
-            matches!(classify_poll(400, &json!({ "message": "access_denied" }), 0), Poll::Failed(m) if m.contains("declined"))
-        );
-        assert!(
-            matches!(classify_poll(400, &json!({ "message": "invalid device code" }), 0), Poll::Failed(m) if m.contains("expired"))
-        );
+        assert_eq!(classify_poll(400, &json!({ "message": "slow_down" }), 0), Poll::SlowDown);
+        assert!(matches!(classify_poll(400, &json!({ "message": "access_denied" }), 0), Poll::Failed(m) if m.contains("declined")));
+        assert!(matches!(classify_poll(400, &json!({ "message": "invalid device code" }), 0), Poll::Failed(m) if m.contains("expired")));
         assert!(classify_poll(500, &Value::Null, 0) == Poll::Retry);
         let done = json!({ "access_token": "a", "refresh_token": "r", "expires_in": 100, "scope": ["chat:read"] });
         assert_eq!(
             classify_poll(200, &done, 5000),
-            Poll::Done(Tokens {
-                access_token: "a".into(),
-                refresh_token: "r".into(),
-                expires_at: 105_000
-            })
+            Poll::Done(Tokens { access_token: "a".into(), refresh_token: "r".into(), expires_at: 105_000 })
         );
     }
 }

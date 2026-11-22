@@ -105,7 +105,11 @@ pub fn request_text(input: Option<&Value>) -> String {
                 .enumerate()
                 .map(|(i, e)| match e.as_object() {
                     Some(e) => {
-                        let rest: Map<String, Value> = e.iter().filter(|(k, _)| *k != "old_string" && *k != "new_string").map(|(k, v)| (k.clone(), v.clone())).collect();
+                        let rest: Map<String, Value> = e
+                            .iter()
+                            .filter(|(k, _)| *k != "old_string" && *k != "new_string")
+                            .map(|(k, v)| (k.clone(), v.clone()))
+                            .collect();
                         let extra = if rest.is_empty() { String::new() } else { format!("\n{}", value_text(&Value::Object(rest))) };
                         format!("edit {}:\n{}{extra}", i + 1, diff(e))
                     }
@@ -235,7 +239,15 @@ impl Approvals {
                 }
             }
         };
-        Self(Arc::new(Inner { enabled, wait, log_dir, key, pending: Mutex::new(Vec::new()), write: Mutex::new(()), on_change: OnceLock::new() }))
+        Self(Arc::new(Inner {
+            enabled,
+            wait,
+            log_dir,
+            key,
+            pending: Mutex::new(Vec::new()),
+            write: Mutex::new(()),
+            on_change: OnceLock::new(),
+        }))
     }
 
     pub fn enabled(&self, agent: &str) -> bool {
@@ -335,7 +347,8 @@ impl Approvals {
         line.insert("answer".into(), json!(answer));
         let file = self.0.log_dir.join(LOG);
         let _ = std::fs::create_dir_all(&self.0.log_dir);
-        let written = std::fs::OpenOptions::new().create(true).append(true).open(&file).and_then(|mut f| writeln!(f, "{}", Value::Object(line)));
+        let written =
+            std::fs::OpenOptions::new().create(true).append(true).open(&file).and_then(|mut f| writeln!(f, "{}", Value::Object(line)));
         if let Err(err) = written {
             log::warn!(target: "server", "approvals: could not write the log: {err}");
         }
@@ -369,7 +382,9 @@ async fn handle_permission(app: &App, mut req: Req) -> std::io::Result<Response<
     if req.method != Method::POST {
         return Ok(http::empty(405));
     }
-    if let Some(refusal) = agent_write_refusal(req.header("content-type").as_deref(), req.header("x-agent-event").as_deref(), Some(&req.peer)) {
+    if let Some(refusal) =
+        agent_write_refusal(req.header("content-type").as_deref(), req.header("x-agent-event").as_deref(), Some(&req.peer))
+    {
         return Ok(http::text(refusal.status, refusal.message));
     }
     let payload = match req.read_body(MAX_HOOK_BYTES).await {
@@ -401,7 +416,12 @@ mod tests {
     use super::*;
 
     fn approvals(dir: &std::path::Path, on: &[&str], wait_ms: u64) -> Approvals {
-        Approvals::new(on.iter().map(|s| (*s).to_string()).collect(), Duration::from_millis(wait_ms), dir.to_path_buf(), dir.join("config").join(hook_auth::KEY_FILE))
+        Approvals::new(
+            on.iter().map(|s| (*s).to_string()).collect(),
+            Duration::from_millis(wait_ms),
+            dir.to_path_buf(),
+            dir.join("config").join(hook_auth::KEY_FILE),
+        )
     }
 
     fn hook() -> Value {
@@ -435,16 +455,21 @@ mod tests {
     #[test]
     fn shows_every_field_with_the_command_first_and_nothing_cut() {
         let long = "x".repeat(10_000);
-        let bash = request_text(Some(&json!({ "command": format!("ls\nrm -rf /tmp/a {long}"), "description": "List, then clean up", "timeout": 120000, "run_in_background": true })));
+        let bash = request_text(Some(
+            &json!({ "command": format!("ls\nrm -rf /tmp/a {long}"), "description": "List, then clean up", "timeout": 120000, "run_in_background": true }),
+        ));
         assert!(bash.starts_with(&format!("ls\nrm -rf /tmp/a {long}")));
         for field in ["description: List, then clean up", "timeout: 120000", "run_in_background: true"] {
             assert!(bash.contains(field), "{field} in {bash:.80}");
         }
-        let edit = request_text(Some(&json!({ "file_path": "src/a.ts", "old_string": "let a = 1;\nlet b = 2;", "new_string": "let a = 3;", "replace_all": false })));
+        let edit = request_text(Some(
+            &json!({ "file_path": "src/a.ts", "old_string": "let a = 1;\nlet b = 2;", "new_string": "let a = 3;", "replace_all": false }),
+        ));
         assert_eq!(edit, "src/a.ts\n\nchange:\n- let a = 1;\n- let b = 2;\n+ let a = 3;\n\nreplace_all: false");
         let write = request_text(Some(&json!({ "file_path": "run.ps1", "content": "Remove-Item -Recurse C:\\\nWrite-Host done" })));
         assert_eq!(write, "run.ps1\n\ncontent:\nRemove-Item -Recurse C:\\\nWrite-Host done");
-        let multi = request_text(Some(&json!({ "file_path": "b.rs", "edits": [{ "old_string": "a", "new_string": "b", "replace_all": true }] })));
+        let multi =
+            request_text(Some(&json!({ "file_path": "b.rs", "edits": [{ "old_string": "a", "new_string": "b", "replace_all": true }] })));
         assert_eq!(multi, "b.rs\n\nedit 1:\n- a\n+ b\n{\n  \"replace_all\": true\n}");
         // no summary field: every field still shows
         assert_eq!(request_text(Some(&json!({ "a": 1, "b": "two" }))), "a: 1\n\nb: two");
@@ -475,7 +500,10 @@ mod tests {
         });
         for behavior in [Behavior::Allow, Behavior::Deny] {
             let (_keep, stop) = running();
-            let waiter = { let a = a.clone(); tokio::spawn(async move { a.wait("claude", &hook(), 0, stop).await }) };
+            let waiter = {
+                let a = a.clone();
+                tokio::spawn(async move { a.wait("claude", &hook(), 0, stop).await })
+            };
             let r = first(&a).await;
             assert_eq!((r.agent.as_str(), r.project.as_str(), r.tool.as_str()), ("claude", "InfoPanel.Studio", "Bash"));
             assert_eq!(r.text, "npm run build && npm run verify\n\ndescription: Build");
@@ -494,12 +522,18 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let a = approvals(dir.path(), &["claude"], 60_000);
         let (_keep, stop) = running();
-        let one = { let (a, stop) = (a.clone(), stop.clone()); tokio::spawn(async move { a.wait("claude", &hook(), 0, stop).await }) };
+        let one = {
+            let (a, stop) = (a.clone(), stop.clone());
+            tokio::spawn(async move { a.wait("claude", &hook(), 0, stop).await })
+        };
         let old = first(&a).await;
         assert!(a.answer(&old.id, Behavior::Deny, "prompt", 1));
         assert_eq!(one.await.unwrap().0, Outcome::Answered(Behavior::Deny));
         // the same session asks again: an answer that names the earlier request takes nothing
-        let two = { let a = a.clone(); tokio::spawn(async move { a.wait("claude", &hook(), 0, stop).await }) };
+        let two = {
+            let a = a.clone();
+            tokio::spawn(async move { a.wait("claude", &hook(), 0, stop).await })
+        };
         let new = first(&a).await;
         assert_ne!(new.id, old.id);
         assert!(!a.answer(&old.id, Behavior::Allow, "prompt", 2));
@@ -523,12 +557,18 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let a = approvals(dir.path(), &["claude"], 60_000);
         let (tx, stop) = running();
-        let waiter = { let a = a.clone(); tokio::spawn(async move { a.wait("claude", &hook(), 0, stop).await }) };
+        let waiter = {
+            let a = a.clone();
+            tokio::spawn(async move { a.wait("claude", &hook(), 0, stop).await })
+        };
         first(&a).await;
         tx.send(true).unwrap();
         assert_eq!(waiter.await.unwrap().0, Outcome::None);
         let (_keep, stop) = running();
-        let waiter = { let a = a.clone(); tokio::spawn(async move { a.wait("claude", &hook(), 0, stop).await }) };
+        let waiter = {
+            let a = a.clone();
+            tokio::spawn(async move { a.wait("claude", &hook(), 0, stop).await })
+        };
         first(&a).await;
         waiter.abort();
         let _ = waiter.await;

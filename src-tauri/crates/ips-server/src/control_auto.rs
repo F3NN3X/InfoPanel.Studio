@@ -146,7 +146,8 @@ mod tests {
 
     #[test]
     fn the_lock_wins_until_auto_switch_is_on_again() {
-        let locked = reduce_auto(&shown("main"), &json!({ "type": "auto", "state": "off", "profile": "main" }), &config()).unwrap().unwrap();
+        let locked =
+            reduce_auto(&shown("main"), &json!({ "type": "auto", "state": "off", "profile": "main" }), &config()).unwrap().unwrap();
         assert!(locked.auto_paused);
         assert_eq!(locked.profile, json!("main"));
         let still = front(&locked, "Code.exe");

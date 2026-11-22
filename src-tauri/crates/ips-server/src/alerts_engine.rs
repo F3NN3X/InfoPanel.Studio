@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use serde_json::{json, Map, Number, Value};
 
 use crate::alerts_rules::{
-    change_key, clears, conditions_of, fill, finite, fmt_number, get, get_in, holds, is_object, is_quiet, is_sensor_rule, numeric, readout, rules_of,
-    sensor_name, text_of, Last, Vars, NOTIFICATION_KEY,
+    change_key, clears, conditions_of, fill, finite, fmt_number, get, get_in, holds, is_object, is_quiet, is_sensor_rule, numeric, readout,
+    rules_of, sensor_name, text_of, Last, Vars, NOTIFICATION_KEY,
 };
 use crate::ical::LocalZone;
 use crate::js;
@@ -172,7 +172,8 @@ fn display_of(rule: &Value, alerts: Option<&Value>) -> Value {
 
 /// The text template; `None` for a rule with several conditions, whose text names the sensors that fired.
 fn template_of(rule: &Value, hits: &[Hit]) -> Option<String> {
-    let custom = get_in(get_in(Some(rule), "outputs"), "display").and_then(|d| get(d, "text")).and_then(Value::as_str).filter(|t| !t.is_empty());
+    let custom =
+        get_in(get_in(Some(rule), "outputs"), "display").and_then(|d| get(d, "text")).and_then(Value::as_str).filter(|t| !t.is_empty());
     if let Some(custom) = custom {
         return Some(custom.to_string());
     }
@@ -240,7 +241,8 @@ fn start(s: &mut AlertsState, events: &mut Vec<Event>, p: Start) -> String {
     if s.live {
         // A test takes the place of whatever its rule shows; a real alert takes the place of a test.
         let rule_id = rule["id"].as_str().unwrap_or_default();
-        let replaced: Vec<String> = s.active.iter().filter(|e| e.rule_id() == rule_id && (test || e.is_test())).map(|e| e.id().to_string()).collect();
+        let replaced: Vec<String> =
+            s.active.iter().filter(|e| e.rule_id() == rule_id && (test || e.is_test())).map(|e| e.id().to_string()).collect();
         for old in &replaced {
             end(s, events, old, now, false, "replaced");
         }
@@ -254,7 +256,9 @@ fn start(s: &mut AlertsState, events: &mut Vec<Event>, p: Start) -> String {
         ["info", "warning", "critical"].into_iter().find(|s| get(rule, "severity").and_then(Value::as_str) == Some(s)).unwrap_or("warning");
     let text = match template_of(rule, hits) {
         Some(template) => fill(&template, &vars),
-        None => hits.iter().map(|h| format!("{} {}", sensor_name(h.cond, h.reading), readout(h.cond, h.reading))).collect::<Vec<_>>().join(", "),
+        None => {
+            hits.iter().map(|h| format!("{} {}", sensor_name(h.cond, h.reading), readout(h.cond, h.reading))).collect::<Vec<_>>().join(", ")
+        }
     };
     let text = js::trim(&text).to_string();
     let mut alert = Map::new();
@@ -464,7 +468,8 @@ pub fn evaluate(s: &mut AlertsState, alerts: Option<&Value>, readings: &Readings
     for id in gone {
         end(s, &mut events, &id, env.now, false, "cleared");
     }
-    let expired: Vec<String> = s.active.iter().filter(|e| e.expires_at.is_some_and(|at| env.now >= at)).map(|e| e.id().to_string()).collect();
+    let expired: Vec<String> =
+        s.active.iter().filter(|e| e.expires_at.is_some_and(|at| env.now >= at)).map(|e| e.id().to_string()).collect();
     for id in expired {
         end(s, &mut events, &id, env.now, false, "expired");
     }
@@ -595,7 +600,8 @@ fn sensor_pass(s: &mut AlertsState, events: &mut Vec<Event>, alerts: Option<&Val
 
 /// A test shows the conditions with a reading (the first one when none has).
 fn test_hits<'a>(rule: &'a Value, readings: &'a Readings) -> Vec<Hit<'a>> {
-    let all: Vec<Hit> = conditions_of(&rule["source"]).into_iter().map(|cond| Hit { cond, reading: readings.get(cond_key(cond)) }).collect();
+    let all: Vec<Hit> =
+        conditions_of(&rule["source"]).into_iter().map(|cond| Hit { cond, reading: readings.get(cond_key(cond)) }).collect();
     let live: Vec<Hit> = all.iter().copied().filter(|h| h.reading.is_some()).collect();
     if live.is_empty() {
         all.into_iter().take(1).collect()
@@ -620,7 +626,11 @@ pub fn act(s: &mut AlertsState, action: &Value, alerts: Option<&Value>, readings
         let sensor = is_sensor_rule(rule);
         let hits = if sensor { test_hits(rule, readings) } else { vec![] };
         let notification = (!sensor).then(test_notification);
-        let started = start(s, &mut events, Start { rule, alerts, env, hits: &hits, notification: notification.as_ref(), one_shot: true, test: true });
+        let started = start(
+            s,
+            &mut events,
+            Start { rule, alerts, env, hits: &hits, notification: notification.as_ref(), one_shot: true, test: true },
+        );
         if s.live {
             s.patch(rule["id"].as_str().unwrap_or_default(), |r| r.active = Some(started));
         }

@@ -23,10 +23,7 @@ struct Server {
 impl Server {
     async fn stop(mut self) {
         let _ = self.stop.take().unwrap().send(());
-        tokio::time::timeout(Duration::from_secs(5), &mut self.done)
-            .await
-            .expect("graceful stop")
-            .unwrap();
+        tokio::time::timeout(Duration::from_secs(5), &mut self.done).await.expect("graceful stop").unwrap();
     }
 }
 
@@ -59,12 +56,7 @@ async fn start(on: bool) -> Server {
     let done = tokio::spawn(bound.serve(async {
         let _ = stopped.await;
     }));
-    Server {
-        port,
-        _dir: dir,
-        stop: Some(stop),
-        done,
-    }
+    Server { port, _dir: dir, stop: Some(stop), done }
 }
 
 struct Reply {
@@ -75,8 +67,7 @@ struct Reply {
 fn dechunk(mut raw: &[u8]) -> Vec<u8> {
     let mut out = Vec::new();
     while let Some(end) = raw.windows(2).position(|w| w == b"\r\n") {
-        let size =
-            usize::from_str_radix(std::str::from_utf8(&raw[..end]).unwrap().trim(), 16).unwrap();
+        let size = usize::from_str_radix(std::str::from_utf8(&raw[..end]).unwrap().trim(), 16).unwrap();
         if size == 0 {
             break;
         }
@@ -89,33 +80,20 @@ fn dechunk(mut raw: &[u8]) -> Vec<u8> {
 /// Sends `method path` with `headers` and reads the whole answer.
 async fn send(port: u16, method: &str, path: &str, headers: &[(&str, &str)], body: &str) -> Reply {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
-    let mut request =
-        format!("{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n");
+    let mut request = format!("{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n");
     for (k, v) in headers {
         request.push_str(&format!("{k}: {v}\r\n"));
     }
     request.push_str(&format!("Content-Length: {}\r\n\r\n{body}", body.len()));
     stream.write_all(request.as_bytes()).await.unwrap();
     let mut raw = Vec::new();
-    tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw))
-        .await
-        .unwrap()
-        .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw)).await.unwrap().unwrap();
     let split = raw.windows(4).position(|w| w == b"\r\n\r\n").unwrap();
     let head = String::from_utf8_lossy(&raw[..split]).into_owned();
     let status = head.split(' ').nth(1).unwrap().parse().unwrap();
-    let chunked = head
-        .to_ascii_lowercase()
-        .contains("transfer-encoding: chunked");
+    let chunked = head.to_ascii_lowercase().contains("transfer-encoding: chunked");
     let rest = &raw[split + 4..];
-    Reply {
-        status,
-        body: if chunked {
-            dechunk(rest)
-        } else {
-            rest.to_vec()
-        },
-    }
+    Reply { status, body: if chunked { dechunk(rest) } else { rest.to_vec() } }
 }
 
 const WRITE: [(&str, &str); 2] = [("Content-Type", "application/json"), ("X-Dashboard-Control", "1")];
@@ -152,11 +130,15 @@ async fn the_runner_is_off_by_default_and_refuses_even_an_approved_command() {
         let r = run(s.port, json!({ "command": MISSING, "dry": dry })).await;
         assert_eq!((r.status, json_of(&r)["reason"].clone()), (403, json!("off")), "dry {dry}");
     }
-    let lines: Vec<(Value, Value, Value)> = log(s.port).await.iter().map(|e| (e["outcome"].clone(), e["reason"].clone(), e["command"].clone())).collect();
+    let lines: Vec<(Value, Value, Value)> =
+        log(s.port).await.iter().map(|e| (e["outcome"].clone(), e["reason"].clone(), e["command"].clone())).collect();
     assert_eq!(lines, vec![(json!("refused"), json!("off"), json!(MISSING)); 2]);
     // OBS's go live is refused while its switch is off; the other OBS actions are not (OBS isn't connected here)
     let off = send(s.port, "POST", "/api/obs/act", &WRITE, r#"{"op":"stream","state":"toggle"}"#).await;
-    assert_eq!((off.status, String::from_utf8_lossy(&off.body).into_owned()), (403, ips_server::obs_control::STREAM_OFF_MESSAGE.to_string()));
+    assert_eq!(
+        (off.status, String::from_utf8_lossy(&off.body).into_owned()),
+        (403, ips_server::obs_control::STREAM_OFF_MESSAGE.to_string())
+    );
     assert_eq!(send(s.port, "POST", "/api/obs/act", &WRITE, r#"{"op":"replay"}"#).await.status, 503);
     s.stop().await;
 }
@@ -218,7 +200,11 @@ async fn guards_the_routes_and_their_bodies() {
     for (method, path) in [("POST", "/api/actions/run"), ("PUT", "/api/actions")] {
         assert_eq!(send(s.port, method, path, &[("X-Dashboard-Control", "1")], &good).await.status, 415, "{path}");
         assert_eq!(send(s.port, method, path, &[("Content-Type", "application/json")], &good).await.status, 403, "{path}");
-        assert_eq!(send(s.port, method, path, &[("Content-Type", "application/json"), ("X-Dashboard-Control", "0")], &good).await.status, 403, "{path}");
+        assert_eq!(
+            send(s.port, method, path, &[("Content-Type", "application/json"), ("X-Dashboard-Control", "0")], &good).await.status,
+            403,
+            "{path}"
+        );
     }
     // a cross-site write is refused before any route
     let cross = [("Content-Type", "application/json"), ("X-Dashboard-Control", "1"), ("Origin", "https://evil.example")];

@@ -35,8 +35,7 @@ use quota::Quota;
 const REFRESH_AHEAD_MS: i64 = 5 * 60 * 1000;
 /// How long the sign-in page Google was asked for stays good.
 const PENDING_MS: i64 = 10 * 60 * 1000;
-pub const QUOTA_MESSAGE: &str =
-    "YouTube's daily API quota is used up; it resets at midnight Pacific.";
+pub const QUOTA_MESSAGE: &str = "YouTube's daily API quota is used up; it resets at midnight Pacific.";
 /// Units each call costs.
 const COST_LIST: u64 = 1;
 const COST_CHAT_LIST: u64 = 5;
@@ -193,10 +192,7 @@ impl Youtube {
             ep,
             client,
             now: Box::new(now),
-            inner: Mutex::new(Inner {
-                settings,
-                ..Inner::default()
-            }),
+            inner: Mutex::new(Inner { settings, ..Inner::default() }),
             persist: Box::new(persist),
             persist_lock: Mutex::new(()),
             on_change: Box::new(on_change),
@@ -230,9 +226,7 @@ impl Youtube {
 
     /// The wait the user chose between two reads of the chat.
     fn chat_every(&self, i: &Inner) -> Duration {
-        self.ep
-            .chat_every
-            .unwrap_or(Duration::from_secs(i.settings.chat_interval))
+        self.ep.chat_every.unwrap_or(Duration::from_secs(i.settings.chat_interval))
     }
 
     /// The status in the extras. It carries no secret.
@@ -257,9 +251,7 @@ impl Youtube {
     /// The chat window, oldest first, and this platform's connection (null until signed in).
     pub fn chat_parts(&self) -> (Vec<Message>, Option<Value>) {
         let i = locked(&self.inner);
-        let platform = i
-            .signed_in()
-            .then(|| json!({ "connected": i.connected, "channel": i.settings.auth.channel }));
+        let platform = i.signed_in().then(|| json!({ "connected": i.connected, "channel": i.settings.auth.channel }));
         (i.window.messages(), platform)
     }
 
@@ -297,14 +289,8 @@ impl Youtube {
             }
             let (state, verifier) = (auth::random_token(32), auth::random_token(32));
             let redirect_uri = format!("http://127.0.0.1:{port}/api/youtube/callback");
-            let auth_url = auth::authorize_url(
-                &self.ep,
-                &i.settings.client_id,
-                &redirect_uri,
-                &state,
-                &auth::challenge_of(&verifier),
-            )
-            .map_err(SigninError::Failed)?;
+            let auth_url = auth::authorize_url(&self.ep, &i.settings.client_id, &redirect_uri, &state, &auth::challenge_of(&verifier))
+                .map_err(SigninError::Failed)?;
             i.error = None;
             i.pending = Some(Pending {
                 id: self.next_id.fetch_add(1, Ordering::SeqCst),
@@ -322,37 +308,21 @@ impl Youtube {
     }
 
     /// Google sent the user back: checks it is the sign-in asked for, trades the code for tokens and finishes.
-    pub async fn callback(
-        &self,
-        code: Option<&str>,
-        state: Option<&str>,
-        error: Option<&str>,
-    ) -> Result<(), CallbackError> {
+    pub async fn callback(&self, code: Option<&str>, state: Option<&str>, error: Option<&str>) -> Result<(), CallbackError> {
         let now = self.now();
         let (id, verifier, redirect_uri, generation, client_id, client_secret) = {
             let mut i = locked(&self.inner);
-            let (client_id, client_secret, generation) = (
-                i.settings.client_id.clone(),
-                i.settings.client_secret.clone(),
-                i.generation,
-            );
+            let (client_id, client_secret, generation) = (i.settings.client_id.clone(), i.settings.client_secret.clone(), i.generation);
             // A stray or stale request leaves a real sign-in alone.
-            let Some(p) = i.pending.as_mut().filter(|p| {
-                !p.used
-                    && p.expires_at > now
-                    && state.is_some_and(|s| auth::same_secret(&p.state, s))
-            }) else {
+            let Some(p) =
+                i.pending.as_mut().filter(|p| !p.used && p.expires_at > now && state.is_some_and(|s| auth::same_secret(&p.state, s)))
+            else {
                 return Err(CallbackError::Invalid);
             };
             p.used = true;
             let (id, verifier, redirect_uri) = (p.id, p.verifier.clone(), p.redirect_uri.clone());
-            let refused = match (
-                error.filter(|e| !e.is_empty()),
-                code.filter(|c| !c.is_empty()),
-            ) {
-                (Some(why), _) => {
-                    Some((format!("Google sign-in was not completed ({why})."), true))
-                }
+            let refused = match (error.filter(|e| !e.is_empty()), code.filter(|c| !c.is_empty())) {
+                (Some(why), _) => Some((format!("Google sign-in was not completed ({why})."), true)),
                 (None, None) => Some(("Google sent no code.".to_string(), false)),
                 (None, Some(_)) => None,
             };
@@ -361,20 +331,9 @@ impl Youtube {
                 i.pending = None;
                 drop(i);
                 self.publish_status();
-                return Err(if declined {
-                    CallbackError::Declined(message)
-                } else {
-                    CallbackError::Failed(message)
-                });
+                return Err(if declined { CallbackError::Declined(message) } else { CallbackError::Failed(message) });
             }
-            (
-                id,
-                verifier,
-                redirect_uri,
-                generation,
-                client_id,
-                client_secret,
-            )
+            (id, verifier, redirect_uri, generation, client_id, client_secret)
         };
         let code = code.unwrap_or_default();
         let tokens = auth::exchange_code(
@@ -399,9 +358,7 @@ impl Youtube {
                         // Google granted the sign-in but it can't be used: the grant is not left standing.
                         self.revoke_later(tokens.refresh_token);
                         Err(match e {
-                            ApiError::Unauthorized => {
-                                "Google didn't accept the new sign-in.".to_string()
-                            }
+                            ApiError::Unauthorized => "Google didn't accept the new sign-in.".to_string(),
                             ApiError::Quota => QUOTA_MESSAGE.to_string(),
                             ApiError::ChatGone => "YouTube didn't say who you are.".to_string(),
                             ApiError::Failed(message) => format!("Signed in, but {message}."),
@@ -481,21 +438,14 @@ impl Youtube {
             self.publish_status();
         }
         let i = locked(&self.inner);
-        let pending = i
-            .pending
-            .as_ref()
-            .map(|p| json!({ "auth_url": p.auth_url, "expires_at": p.expires_at }));
+        let pending = i.pending.as_ref().map(|p| json!({ "auth_url": p.auth_url, "expires_at": p.expires_at }));
         json!({ "pending": pending, "error": i.error })
     }
 
     /// Ends a sign-in under way, or signs out: the tokens are forgotten here and in the file, and Google is told (best effort).
     pub fn signout(&self) {
         let old = self.clear(None, true);
-        let token = if old.refresh_token.is_empty() {
-            old.access_token
-        } else {
-            old.refresh_token
-        };
+        let token = if old.refresh_token.is_empty() { old.access_token } else { old.refresh_token };
         if !token.is_empty() {
             self.revoke_later(token);
         }
@@ -544,8 +494,7 @@ impl Youtube {
     pub fn sync(&self, next: &YoutubeSettings) {
         let client_changed = {
             let mut i = locked(&self.inner);
-            let changed = i.settings.client_id != next.client_id
-                || i.settings.client_secret != next.client_secret;
+            let changed = i.settings.client_id != next.client_id || i.settings.client_secret != next.client_secret;
             i.settings.client_id = next.client_id.clone();
             i.settings.client_secret = next.client_secret.clone();
             i.settings.chat_interval = next.chat_interval;
@@ -564,10 +513,7 @@ impl Youtube {
     async fn access_token(&self) -> Result<String, String> {
         let (token, expires_at) = {
             let i = locked(&self.inner);
-            (
-                i.settings.auth.access_token.clone(),
-                i.settings.auth.expires_at,
-            )
+            (i.settings.auth.access_token.clone(), i.settings.auth.expires_at)
         };
         if token.is_empty() {
             return Err("not signed in".into());
@@ -577,12 +523,7 @@ impl Youtube {
         }
         match self.refresh_stale(&token).await {
             // Google could not be asked and the token still works; a refused refresh has signed the user out instead.
-            Err(_)
-                if expires_at > self.now()
-                    && locked(&self.inner).settings.auth.access_token == token =>
-            {
-                Ok(token)
-            }
+            Err(_) if expires_at > self.now() && locked(&self.inner).settings.auth.access_token == token => Ok(token),
             other => other,
         }
     }
@@ -598,32 +539,16 @@ impl Youtube {
             if i.settings.auth.access_token != stale {
                 return Ok(i.settings.auth.access_token.clone());
             }
-            (
-                i.settings.auth.refresh_token.clone(),
-                i.settings.client_id.clone(),
-                i.settings.client_secret.clone(),
-            )
+            (i.settings.auth.refresh_token.clone(), i.settings.client_id.clone(), i.settings.client_secret.clone())
         };
-        match auth::refresh(
-            &self.client,
-            &self.ep,
-            &client_id,
-            &client_secret,
-            &refresh_token,
-            self.now(),
-        )
-        .await
-        {
+        match auth::refresh(&self.client, &self.ep, &client_id, &client_secret, &refresh_token, self.now()).await {
             Ok(tokens) => {
                 // A sign-out or a newer sign-in may have come while Google was answering; then these tokens are not wanted.
                 // The check and the store happen under one lock, so a sign-out cannot be followed by this write.
                 let stored = locked(&self.persist_lock);
                 let next = {
                     let mut i = locked(&self.inner);
-                    if !i.signed_in()
-                        || i.settings.auth.refresh_token != refresh_token
-                        || i.settings.client_id != client_id
-                    {
+                    if !i.signed_in() || i.settings.auth.refresh_token != refresh_token || i.settings.client_id != client_id {
                         None
                     } else {
                         i.settings.auth.access_token = tokens.access_token.clone();
@@ -689,14 +614,10 @@ impl Youtube {
             self.spend(cost);
             let answer = match call {
                 Call::Get(path) => auth::api_get(&self.client, &self.ep, path, &token).await,
-                Call::Post(path, body) => {
-                    auth::api_post(&self.client, &self.ep, path, &token, body).await
-                }
+                Call::Post(path, body) => auth::api_post(&self.client, &self.ep, path, &token, body).await,
             };
             match answer {
-                Err(ApiError::Unauthorized) if attempt == 0 => {
-                    token = self.refresh_stale(&token).await.map_err(ApiError::Failed)?
-                }
+                Err(ApiError::Unauthorized) if attempt == 0 => token = self.refresh_stale(&token).await.map_err(ApiError::Failed)?,
                 Err(ApiError::Unauthorized) => {
                     // A token just refreshed is refused too: the sign-in is no use. (Only the one that was refused is ended.)
                     if locked(&self.inner).settings.auth.access_token == token {
@@ -717,10 +638,7 @@ impl Youtube {
     /// Logs a failure that repeats: the first time, then at most once a minute while it goes on.
     fn warn_throttled(&self, key: &'static str, message: &str) {
         let mut warned = locked(&self.warned);
-        if warned
-            .get(key)
-            .is_some_and(|at| at.elapsed() < Duration::from_secs(60))
-        {
+        if warned.get(key).is_some_and(|at| at.elapsed() < Duration::from_secs(60)) {
             return;
         }
         warned.insert(key, Instant::now());
@@ -739,27 +657,15 @@ impl Youtube {
         let text = messages::validate_send(text).map_err(SendError::Invalid)?;
         let (chat_id, name, channel_id) = {
             let i = locked(&self.inner);
-            let chat_id = i
-                .live
-                .as_ref()
-                .map(|l| l.chat_id.clone())
-                .filter(|c| !c.is_empty());
+            let chat_id = i.live.as_ref().map(|l| l.chat_id.clone()).filter(|c| !c.is_empty());
             match chat_id {
-                Some(chat_id) if i.signed_in() => (
-                    chat_id,
-                    i.settings.auth.channel.clone(),
-                    i.settings.auth.channel_id.clone(),
-                ),
+                Some(chat_id) if i.signed_in() => (chat_id, i.settings.auth.channel.clone(), i.settings.auth.channel_id.clone()),
                 _ => return Err(SendError::NotLive),
             }
         };
-        let body = json!({ "snippet": { "liveChatId": chat_id, "type": "textMessageEvent", "textMessageDetails": { "messageText": text } } });
-        let sent = self
-            .call(
-                Call::Post("/youtube/v3/liveChat/messages?part=snippet", &body),
-                COST_CHAT_INSERT,
-            )
-            .await;
+        let body =
+            json!({ "snippet": { "liveChatId": chat_id, "type": "textMessageEvent", "textMessageDetails": { "messageText": text } } });
+        let sent = self.call(Call::Post("/youtube/v3/liveChat/messages?part=snippet", &body), COST_CHAT_INSERT).await;
         match sent {
             Ok(reply) => {
                 // YouTube lists our message in the next page too: the same id keeps it from showing twice.
@@ -784,9 +690,7 @@ impl Youtube {
             }
             Err(ApiError::Quota) => Err(SendError::Failed(QUOTA_MESSAGE.into())),
             Err(ApiError::ChatGone) => Err(SendError::NotLive),
-            Err(ApiError::Unauthorized) => Err(SendError::Failed(
-                "YouTube didn't accept the sign-in.".into(),
-            )),
+            Err(ApiError::Unauthorized) => Err(SendError::Failed("YouTube didn't accept the sign-in.".into())),
             Err(ApiError::Failed(message)) => Err(SendError::Failed(message)),
         }
     }
@@ -922,8 +826,7 @@ impl Youtube {
                 Stage::Blocked(until) => {
                     self.go_offline();
                     // The reset is looked for at least as often as a broadcast is.
-                    let left = Duration::from_millis((until - self.now()).max(50) as u64)
-                        .min(self.ep.find_every);
+                    let left = Duration::from_millis((until - self.now()).max(50) as u64).min(self.ep.find_every);
                     nap(&mut kick, left).await;
                 }
                 Stage::Searching => {
@@ -942,37 +845,19 @@ impl Youtube {
 
     /// Looks for the user's live broadcast; the time to wait before looking again.
     async fn find(&self) -> Duration {
-        match self
-            .call(
-                Call::Get("/youtube/v3/liveBroadcasts?part=snippet&broadcastStatus=active"),
-                COST_LIST,
-            )
-            .await
-        {
+        match self.call(Call::Get("/youtube/v3/liveBroadcasts?part=snippet&broadcastStatus=active"), COST_LIST).await {
             Ok(body) => {
                 self.recovered("find");
                 let ended = locked(&self.inner).ended.clone();
-                let listed = body
-                    .get("items")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten();
+                let listed = body.get("items").and_then(Value::as_array).into_iter().flatten();
                 let found = listed.into_iter().find(|item| {
                     let id = item.get("id").and_then(Value::as_str).unwrap_or("");
                     !ended.iter().any(|e| e == id)
                 });
                 match found {
                     Some(item) => {
-                        let text = |p: &str| {
-                            item.pointer(p)
-                                .and_then(Value::as_str)
-                                .unwrap_or("")
-                                .to_string()
-                        };
-                        self.set_live(Some(Live {
-                            video_id: text("/id"),
-                            chat_id: text("/snippet/liveChatId"),
-                        }));
+                        let text = |p: &str| item.pointer(p).and_then(Value::as_str).unwrap_or("").to_string();
+                        self.set_live(Some(Live { video_id: text("/id"), chat_id: text("/snippet/liveChatId") }));
                         Duration::ZERO
                     }
                     None => self.ep.find_every,
@@ -994,11 +879,7 @@ impl Youtube {
         let mut chat_on = !live.chat_id.is_empty();
         let (mut next_chat, mut next_viewers) = (Tick::now(), Tick::now());
         loop {
-            let due = if chat_on {
-                next_chat.min(next_viewers)
-            } else {
-                next_viewers
-            };
+            let due = if chat_on { next_chat.min(next_viewers) } else { next_viewers };
             tokio::select! {
                 _ = tokio::time::sleep_until(due) => {}
                 _ = kick.changed() => return false,
@@ -1019,8 +900,7 @@ impl Youtube {
                         self.warn_throttled("chat", &format!("{e:?}"));
                         self.set_connected(false);
                         // The next page starts from the latest again; what is seen twice is dropped by its id.
-                        (page_token, next_chat) =
-                            (String::new(), Tick::now() + self.ep.retry_every);
+                        (page_token, next_chat) = (String::new(), Tick::now() + self.ep.retry_every);
                     }
                 }
             }
@@ -1064,33 +944,20 @@ impl Youtube {
 
     /// One page of the chat: the token for the next and how long to wait for it.
     async fn read_chat(&self, chat_id: &str, token: &str) -> Result<(String, Duration), ApiError> {
-        let mut path = format!(
-            "/youtube/v3/liveChat/messages?part=snippet,authorDetails&maxResults=200&liveChatId={}",
-            enc(chat_id)
-        );
+        let mut path = format!("/youtube/v3/liveChat/messages?part=snippet,authorDetails&maxResults=200&liveChatId={}", enc(chat_id));
         if !token.is_empty() {
             path.push_str(&format!("&pageToken={}", enc(token)));
         }
         let body = self.call(Call::Get(&path), COST_CHAT_LIST).await?;
         let page = messages::parse_page(&body, self.now());
-        let wait = self
-            .chat_every(&locked(&self.inner))
-            .max(Duration::from_millis(page.polling_ms));
+        let wait = self.chat_every(&locked(&self.inner)).max(Duration::from_millis(page.polling_ms));
         self.apply(page.events);
         Ok((page.next_token, wait))
     }
 
     /// The broadcast's viewers, or `None` once it has ended.
     async fn read_viewers(&self, video_id: &str) -> Result<Option<u64>, ApiError> {
-        let body = self
-            .call(
-                Call::Get(&format!(
-                    "/youtube/v3/videos?part=liveStreamingDetails&id={}",
-                    enc(video_id)
-                )),
-                COST_LIST,
-            )
-            .await?;
+        let body = self.call(Call::Get(&format!("/youtube/v3/videos?part=liveStreamingDetails&id={}", enc(video_id))), COST_LIST).await?;
         let Some(details) = body.pointer("/items/0/liveStreamingDetails") else {
             return Ok(None);
         };

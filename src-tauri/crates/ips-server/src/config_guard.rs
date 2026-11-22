@@ -24,7 +24,8 @@ pub fn version_refusal(stored_text: &str, incoming: &Value) -> Option<Refusal> {
 /// Whether a saved config is older than this build's (`CONFIG_VERSION`) and so needs the studio to update it. A config
 /// that doesn't parse, or holds no screens, has nothing to update.
 pub fn needs_update(stored_text: &str) -> bool {
-    json::parse(stored_text).is_some_and(|stored| stored.get("profiles").is_some_and(Value::is_array) && version_of(&stored) < f64::from(crate::CONFIG_VERSION))
+    json::parse(stored_text)
+        .is_some_and(|stored| stored.get("profiles").is_some_and(Value::is_array) && version_of(&stored) < f64::from(crate::CONFIG_VERSION))
 }
 
 /// The backup file the stored config is copied to before `incoming` raises its version: `config.backup-before-v<N>.json`

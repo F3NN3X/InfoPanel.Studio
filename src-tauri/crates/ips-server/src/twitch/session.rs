@@ -98,17 +98,8 @@ impl Twitch {
     }
 
     /// One connection. The flag says whether Twitch accepted the login.
-    async fn session(
-        &self,
-        kick: &mut watch::Receiver<u64>,
-        token: &str,
-        login: &str,
-        channel: &str,
-    ) -> (End, bool) {
-        let connect = tokio::time::timeout(
-            CONNECT_TIMEOUT,
-            tokio_tungstenite::connect_async(self.ep.irc.as_str()),
-        );
+    async fn session(&self, kick: &mut watch::Receiver<u64>, token: &str, login: &str, channel: &str) -> (End, bool) {
+        let connect = tokio::time::timeout(CONNECT_TIMEOUT, tokio_tungstenite::connect_async(self.ep.irc.as_str()));
         let mut socket = match connect.await {
             Ok(Ok((socket, _))) => socket,
             Ok(Err(e)) => return (End::Closed(format!("couldn't connect: {e}")), false),
@@ -122,10 +113,7 @@ impl Twitch {
         ];
         for line in hello {
             if socket.send(Ws::text(line)).await.is_err() {
-                return (
-                    End::Closed("the connection closed while logging in".into()),
-                    false,
-                );
+                return (End::Closed("the connection closed while logging in".into()), false);
             }
         }
         let (tx, mut sends) = mpsc::channel::<String>(QUEUED_SENDS);

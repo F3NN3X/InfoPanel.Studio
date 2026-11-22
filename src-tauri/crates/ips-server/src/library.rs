@@ -38,7 +38,12 @@ pub fn new_item_id() -> String {
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;
     use base64::Engine;
     let random = uuid::Uuid::new_v4();
-    let text: String = URL_SAFE_NO_PAD.encode(&random.as_bytes()[..9]).to_lowercase().chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '0' }).collect();
+    let text: String = URL_SAFE_NO_PAD
+        .encode(&random.as_bytes()[..9])
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '0' })
+        .collect();
     format!("lib_{}", &text[..12])
 }
 
@@ -166,7 +171,13 @@ pub fn summary_of(item: &Value) -> Value {
 
 /// The reason a library write is refused, or `None` (`body`: the write sends JSON): the header, then this computer,
 /// then the type.
-pub fn library_write_refusal(content_type: Option<&str>, header: Option<&str>, peer: Option<&str>, allow_remote: bool, body: bool) -> Option<Refusal> {
+pub fn library_write_refusal(
+    content_type: Option<&str>,
+    header: Option<&str>,
+    peer: Option<&str>,
+    allow_remote: bool,
+    body: bool,
+) -> Option<Refusal> {
     if header != Some("1") {
         return Some(Refusal::new(403, "missing X-Dashboard-Library header"));
     }
@@ -193,7 +204,9 @@ impl LibraryStore {
 
     fn read(file: &Path) -> Option<Value> {
         let item = crate::store::read_json(file)?;
-        let valid = item.is_object() && is_item_id(&js::to_property_key(item.get("id"))) && item.get("kind").and_then(Value::as_str).is_some_and(|k| KINDS.contains(&k));
+        let valid = item.is_object()
+            && is_item_id(&js::to_property_key(item.get("id")))
+            && item.get("kind").and_then(Value::as_str).is_some_and(|k| KINDS.contains(&k));
         valid.then_some(item)
     }
 
@@ -271,7 +284,8 @@ async fn body(app: &App, req: &mut Req) -> Result<Value, Box<Response<Body>>> {
     if let Some(refusal) = guard {
         return Err(Box::new(http::text(refusal.status, refusal.message)));
     }
-    let text = req.read_body(MAX_ITEM_BYTES + 1024).await.map_err(|http::BodyRefused| Box::new(http::closing(http::text(400, BODY_REFUSED))))?;
+    let text =
+        req.read_body(MAX_ITEM_BYTES + 1024).await.map_err(|http::BodyRefused| Box::new(http::closing(http::text(400, BODY_REFUSED))))?;
     json::parse(&text).ok_or_else(|| Box::new(http::text(400, BODY_REFUSED)))
 }
 
@@ -361,7 +375,9 @@ mod tests {
     fn updates_over_an_existing_item_keeping_its_id_kind_and_creation() {
         let first = normalize_item(&json!({ "kind": "gauge", "name": "Arc", "data": { "shape": "arc" } }), None, NOW).unwrap();
         let later = NOW + 86_400_000;
-        let item = normalize_item(&json!({ "name": "Arc copy", "copies": [{ "profileId": "p" }], "id": "lib_other000000" }), Some(&first), later).unwrap();
+        let item =
+            normalize_item(&json!({ "name": "Arc copy", "copies": [{ "profileId": "p" }], "id": "lib_other000000" }), Some(&first), later)
+                .unwrap();
         assert_eq!(item["id"], first["id"]);
         assert_eq!(item["createdAt"], first["createdAt"]);
         assert_eq!(item["updatedAt"], js::iso_string(later));
@@ -371,7 +387,8 @@ mod tests {
 
     #[test]
     fn leaves_large_data_out_of_the_list() {
-        let big = normalize_item(&json!({ "kind": "canvas", "name": "c", "data": { "s": "x".repeat(LIST_DATA_BYTES) } }), None, NOW).unwrap();
+        let big =
+            normalize_item(&json!({ "kind": "canvas", "name": "c", "data": { "s": "x".repeat(LIST_DATA_BYTES) } }), None, NOW).unwrap();
         let summary = summary_of(&big);
         assert!(summary.get("data").is_none());
         assert!(summary["dataSize"].as_u64().unwrap() > LIST_DATA_BYTES as u64);
@@ -390,7 +407,10 @@ mod tests {
         assert_eq!(store.list()[0]["id"], b["id"]);
         assert_eq!(store.get(a["id"].as_str().unwrap()).unwrap()["name"], "a");
         assert!(store.update("lib_missing0000", &json!({}), NOW).unwrap().is_none());
-        assert_eq!(store.update(a["id"].as_str().unwrap(), &json!({ "name": " " }), NOW).unwrap().unwrap().unwrap_err(), "name is required");
+        assert_eq!(
+            store.update(a["id"].as_str().unwrap(), &json!({ "name": " " }), NOW).unwrap().unwrap().unwrap_err(),
+            "name is required"
+        );
         assert!(store.remove(a["id"].as_str().unwrap()).unwrap());
         assert!(!store.remove(a["id"].as_str().unwrap()).unwrap());
         assert_eq!(store.texts().len(), 2);

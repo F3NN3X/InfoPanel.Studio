@@ -112,12 +112,7 @@ pub fn parse_line(raw: &str) -> Option<Line> {
         params.push(param.to_string());
         args = after.trim_start();
     }
-    Some(Line {
-        tags,
-        prefix,
-        command: command.to_string(),
-        params,
-    })
+    Some(Line { tags, prefix, command: command.to_string(), params })
 }
 
 /// The badge to show for a `badges` tag (`broadcaster/1,subscriber/12`): the highest of broadcaster, moderator, vip, subscriber.
@@ -148,25 +143,13 @@ fn tag<'a>(line: &'a Line, name: &str) -> &'a str {
 /// What a line means. `now_ms` stands in for a message that carries no timestamp.
 pub fn event(line: &Line, now_ms: i64) -> Event {
     match line.command.as_str() {
-        "PING" => Event::Ping(
-            line.params
-                .last()
-                .cloned()
-                .unwrap_or_else(|| "tmi.twitch.tv".into()),
-        ),
+        "PING" => Event::Ping(line.params.last().cloned().unwrap_or_else(|| "tmi.twitch.tv".into())),
         "RECONNECT" => Event::Reconnect,
         "001" => Event::Welcome,
         "NOTICE" => {
-            let text = line
-                .params
-                .last()
-                .map_or("", String::as_str)
-                .to_ascii_lowercase();
+            let text = line.params.last().map_or("", String::as_str).to_ascii_lowercase();
             let on_login = line.params.first().is_some_and(|p| p == "*");
-            if on_login
-                && (text.contains("authentication failed")
-                    || text.contains("improperly formatted auth"))
-            {
+            if on_login && (text.contains("authentication failed") || text.contains("improperly formatted auth")) {
                 Event::AuthFailed
             } else {
                 Event::Other
@@ -190,28 +173,15 @@ pub fn event(line: &Line, now_ms: i64) -> Event {
 fn message(line: &Line, now_ms: i64) -> Option<Entry> {
     let body = line.params.get(1)?;
     // `/me` arrives as CTCP ACTION; it is shown as the text.
-    let text = body
-        .strip_prefix("\u{1}ACTION ")
-        .map_or(body.as_str(), |action| {
-            action.strip_suffix('\u{1}').unwrap_or(action)
-        })
-        .to_string();
+    let text = body.strip_prefix("\u{1}ACTION ").map_or(body.as_str(), |action| action.strip_suffix('\u{1}').unwrap_or(action)).to_string();
     let login = nick_of(&line.prefix).to_ascii_lowercase();
     let display = tag(line, "display-name");
     let id = tag(line, "id");
     Some(Entry {
         message: Message {
-            id: if id.is_empty() {
-                format!("{login}-{now_ms}")
-            } else {
-                id.to_string()
-            },
+            id: if id.is_empty() { format!("{login}-{now_ms}") } else { id.to_string() },
             platform: "twitch",
-            user: if display.is_empty() {
-                nick_of(&line.prefix).to_string()
-            } else {
-                display.to_string()
-            },
+            user: if display.is_empty() { nick_of(&line.prefix).to_string() } else { display.to_string() },
             text,
             color: tag(line, "color").to_string(),
             badge: badge_of(tag(line, "badges")),
@@ -231,10 +201,7 @@ mod tests {
 
     #[test]
     fn splits_tags_prefix_command_and_trailing_text() {
-        let line = parse_line(
-            "@a=1;b=x\\sy;c :nick!nick@nick.tmi.twitch.tv PRIVMSG #chan :hello there: you\r\n",
-        )
-        .unwrap();
+        let line = parse_line("@a=1;b=x\\sy;c :nick!nick@nick.tmi.twitch.tv PRIVMSG #chan :hello there: you\r\n").unwrap();
         assert_eq!(line.tags["a"], "1");
         assert_eq!(line.tags["b"], "x y");
         assert_eq!(line.tags["c"], "");
@@ -242,10 +209,7 @@ mod tests {
         assert_eq!(line.command, "PRIVMSG");
         assert_eq!(line.params, ["#chan", "hello there: you"]);
         let bare = parse_line("PING :tmi.twitch.tv").unwrap();
-        assert_eq!(
-            (bare.command.as_str(), bare.params),
-            ("PING", vec!["tmi.twitch.tv".to_string()])
-        );
+        assert_eq!((bare.command.as_str(), bare.params), ("PING", vec!["tmi.twitch.tv".to_string()]));
         assert!(parse_line("").is_none() && parse_line("@only=tags").is_none());
     }
 
@@ -259,9 +223,7 @@ mod tests {
     #[test]
     fn reads_a_message_with_its_tags() {
         let raw = "@badge-info=subscriber/8;badges=moderator/1,subscriber/6;color=#FF4500;display-name=Some\\sOne;id=abc-1;tmi-sent-ts=1700000000123 :someone!someone@someone.tmi.twitch.tv PRIVMSG #chan :Kappa hi";
-        let Event::Message(entry) = ev(raw) else {
-            panic!("not a message")
-        };
+        let Event::Message(entry) = ev(raw) else { panic!("not a message") };
         assert_eq!(entry.login, "someone");
         assert_eq!(
             entry.message,
@@ -279,17 +241,12 @@ mod tests {
 
     #[test]
     fn falls_back_to_the_nick_and_the_clock_and_reads_actions_as_text() {
-        let Event::Message(entry) = ev(":Nick!n@n PRIVMSG #c :\u{1}ACTION waves\u{1}") else {
-            panic!("not a message")
-        };
+        let Event::Message(entry) = ev(":Nick!n@n PRIVMSG #c :\u{1}ACTION waves\u{1}") else { panic!("not a message") };
         assert_eq!(entry.message.user, "Nick");
         assert_eq!(entry.message.text, "waves");
         assert_eq!(entry.message.ts, 1000);
         assert_eq!(entry.message.id, "nick-1000");
-        assert_eq!(
-            (entry.message.badge, entry.message.color.as_str()),
-            ("", "")
-        );
+        assert_eq!((entry.message.badge, entry.message.color.as_str()), ("", ""));
     }
 
     #[test]
@@ -304,32 +261,14 @@ mod tests {
 
     #[test]
     fn reads_clears_pings_reconnects_and_auth_failures() {
-        assert_eq!(
-            ev(":tmi.twitch.tv CLEARCHAT #chan :BadUser"),
-            Event::ClearChat(Some("baduser".into()))
-        );
+        assert_eq!(ev(":tmi.twitch.tv CLEARCHAT #chan :BadUser"), Event::ClearChat(Some("baduser".into())));
         assert_eq!(ev(":tmi.twitch.tv CLEARCHAT #chan"), Event::ClearChat(None));
-        assert_eq!(
-            ev("@login=x;target-msg-id=m-9 :tmi.twitch.tv CLEARMSG #chan :gone"),
-            Event::ClearMsg("m-9".into())
-        );
-        assert_eq!(
-            ev("@login=x :tmi.twitch.tv CLEARMSG #chan :gone"),
-            Event::Other
-        );
-        assert_eq!(
-            ev("PING :tmi.twitch.tv"),
-            Event::Ping("tmi.twitch.tv".into())
-        );
+        assert_eq!(ev("@login=x;target-msg-id=m-9 :tmi.twitch.tv CLEARMSG #chan :gone"), Event::ClearMsg("m-9".into()));
+        assert_eq!(ev("@login=x :tmi.twitch.tv CLEARMSG #chan :gone"), Event::Other);
+        assert_eq!(ev("PING :tmi.twitch.tv"), Event::Ping("tmi.twitch.tv".into()));
         assert_eq!(ev(":tmi.twitch.tv RECONNECT"), Event::Reconnect);
-        assert_eq!(
-            ev(":tmi.twitch.tv NOTICE * :Login authentication failed"),
-            Event::AuthFailed
-        );
-        assert_eq!(
-            ev(":tmi.twitch.tv NOTICE * :Improperly formatted auth"),
-            Event::AuthFailed
-        );
+        assert_eq!(ev(":tmi.twitch.tv NOTICE * :Login authentication failed"), Event::AuthFailed);
+        assert_eq!(ev(":tmi.twitch.tv NOTICE * :Improperly formatted auth"), Event::AuthFailed);
         assert_eq!(ev(":tmi.twitch.tv NOTICE #chan :Slow mode"), Event::Other);
         assert_eq!(ev(":tmi.twitch.tv 001 me :Welcome, GLHF!"), Event::Welcome);
         assert_eq!(

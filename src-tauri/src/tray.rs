@@ -55,13 +55,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         app,
         &[
             &MenuItem::with_id(app, "open_studio", "Open studio", true, None::<&str>)?,
-            &MenuItem::with_id(
-                app,
-                "open_kiosk",
-                "Open kiosk in browser",
-                true,
-                None::<&str>,
-            )?,
+            &MenuItem::with_id(app, "open_kiosk", "Open kiosk in browser", true, None::<&str>)?,
             &MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?,
             &MenuItem::with_id(app, "help", "Help", true, None::<&str>)?,
             &update,
@@ -111,12 +105,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
             }
         })
         .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
+            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
                 studio_target::open(tray.app_handle());
             }
         });
@@ -148,10 +137,7 @@ pub fn tooltip(status: &Status) -> String {
         Phase::Running => format!("InfoPanel Studio: using another server on {address}"),
         Phase::Stopped => "InfoPanel Studio: server stopped".to_owned(),
         Phase::Restarting => format!("InfoPanel Studio: restarting on {address}"),
-        _ => format!(
-            "InfoPanel Studio: {}",
-            status.message.as_deref().unwrap_or("server not running")
-        ),
+        _ => format!("InfoPanel Studio: {}", status.message.as_deref().unwrap_or("server not running")),
     }
 }
 
@@ -162,12 +148,8 @@ pub fn update(app: &AppHandle, status: &Status) {
         let _ = tray.set_tooltip(Some(text));
     }
     if let Some(item) = app.try_state::<ServerItem>() {
-        let _ = item
-            .0
-            .set_text(server_toggle_label(status.state, status.owned));
-        let _ = item
-            .0
-            .set_enabled(server_toggle_enabled(status.state, status.owned));
+        let _ = item.0.set_text(server_toggle_label(status.state, status.owned));
+        let _ = item.0.set_enabled(server_toggle_enabled(status.state, status.owned));
     }
 }
 
@@ -213,30 +195,16 @@ mod tests {
         assert!(!server_toggle_enabled(Phase::Running, false));
         assert!(server_toggle_enabled(Phase::Running, true));
         assert!(server_toggle_enabled(Phase::Failed, false));
-        for down in [
-            Phase::Stopped,
-            Phase::Failed,
-            Phase::PortInUse,
-            Phase::ForeignDashboard,
-        ] {
+        for down in [Phase::Stopped, Phase::Failed, Phase::PortInUse, Phase::ForeignDashboard] {
             assert_eq!(server_toggle_label(down, true), "Start server");
         }
     }
 
     #[test]
     fn tooltip_names_the_state() {
-        assert_eq!(
-            tooltip(&status(Phase::Running, true, None)),
-            "InfoPanel Studio: running on 127.0.0.1:3942"
-        );
+        assert_eq!(tooltip(&status(Phase::Running, true, None)), "InfoPanel Studio: running on 127.0.0.1:3942");
         assert!(tooltip(&status(Phase::Running, false, None)).contains("another server"));
-        assert_eq!(
-            tooltip(&status(Phase::Failed, false, Some("crashed"))),
-            "InfoPanel Studio: crashed"
-        );
-        assert_eq!(
-            tooltip(&status(Phase::Stopped, false, None)),
-            "InfoPanel Studio: server stopped"
-        );
+        assert_eq!(tooltip(&status(Phase::Failed, false, Some("crashed"))), "InfoPanel Studio: crashed");
+        assert_eq!(tooltip(&status(Phase::Stopped, false, None)), "InfoPanel Studio: server stopped");
     }
 }

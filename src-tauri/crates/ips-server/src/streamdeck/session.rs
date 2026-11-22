@@ -21,17 +21,9 @@ const BACKOFF_MIN: Duration = Duration::from_secs(1);
 const BACKOFF_MAX: Duration = Duration::from_secs(30);
 const ABSENT_POLL: Duration = Duration::from_secs(5);
 /// How long an open or create may go unanswered.
-const PENDING_TIMEOUT: Duration = if cfg!(test) {
-    Duration::from_millis(500)
-} else {
-    Duration::from_secs(10)
-};
+const PENDING_TIMEOUT: Duration = if cfg!(test) { Duration::from_millis(500) } else { Duration::from_secs(10) };
 /// How long a delete waits for the app to close the connection.
-const DELETE_SETTLE: Duration = if cfg!(test) {
-    Duration::from_millis(200)
-} else {
-    Duration::from_secs(3)
-};
+const DELETE_SETTLE: Duration = if cfg!(test) { Duration::from_millis(200) } else { Duration::from_secs(3) };
 
 /// What the routes ask a session to do.
 pub(super) enum Cmd {
@@ -67,11 +59,7 @@ enum End {
 }
 
 /// Keeps a connection for the device `id` until the task is stopped.
-pub(super) async fn run(
-    deck: Arc<StreamDeck>,
-    id: String,
-    cmds: Arc<AsyncMutex<mpsc::Receiver<Cmd>>>,
-) {
+pub(super) async fn run(deck: Arc<StreamDeck>, id: String, cmds: Arc<AsyncMutex<mpsc::Receiver<Cmd>>>) {
     let mut cmds = cmds.lock().await;
     let mut backoff = BACKOFF_MIN;
     // The app devices renames left behind, deleted on the next connection that sees them.
@@ -107,13 +95,7 @@ pub(super) async fn run(
 
 /// Waits `wait` between connections. A forget meanwhile is answered at once (no device can be deleted now); a rename's
 /// old device is kept for the next connection to delete.
-async fn pause(
-    deck: &StreamDeck,
-    id: &str,
-    wait: Duration,
-    cmds: &mut mpsc::Receiver<Cmd>,
-    purge: &mut Vec<String>,
-) {
+async fn pause(deck: &StreamDeck, id: &str, wait: Duration, cmds: &mut mpsc::Receiver<Cmd>, purge: &mut Vec<String>) {
     let until = tokio::time::sleep(wait);
     tokio::pin!(until);
     loop {
@@ -137,17 +119,11 @@ async fn pause(
 
 /// A device's grid, brought into 1 to 8 per side before it is sent (the app drops the connection otherwise).
 fn grid_of(device: &Device) -> (u32, u32) {
-    (
-        clamp_grid(device.cols.into()),
-        clamp_grid(device.rows.into()),
-    )
+    (clamp_grid(device.cols.into()), clamp_grid(device.rows.into()))
 }
 
 fn failed(message: impl Into<String>, opened: bool) -> End {
-    End::Failed {
-        message: message.into(),
-        opened,
-    }
+    End::Failed { message: message.into(), opened }
 }
 
 /// Gives up the pairing ask of a connection that ends any way at all, an aborted task included.
@@ -203,13 +179,7 @@ struct Session<'a> {
     was_opened: bool,
 }
 
-async fn connection(
-    deck: &Arc<StreamDeck>,
-    id: &str,
-    port: u16,
-    cmds: &mut mpsc::Receiver<Cmd>,
-    purge: &mut Vec<String>,
-) -> End {
+async fn connection(deck: &Arc<StreamDeck>, id: &str, port: u16, cmds: &mut mpsc::Receiver<Cmd>, purge: &mut Vec<String>) -> End {
     let _pair = PairGuard { deck, id };
     let Some((secret, public)) = deck.keys() else {
         return failed("The Stream Deck connection has no key yet.", false);
@@ -262,10 +232,7 @@ async fn sleep_until(deadline: Option<Instant>) {
 impl Session<'_> {
     async fn send(&mut self, payload: C) -> Result<(), End> {
         let opened = self.was_opened;
-        self.conn
-            .send(&proto::client(payload))
-            .await
-            .map_err(|message| failed(message, opened))
+        self.conn.send(&proto::client(payload)).await.map_err(|message| failed(message, opened))
     }
 
     fn next_request(&mut self) -> u32 {
@@ -276,10 +243,7 @@ impl Session<'_> {
     async fn drive(&mut self, cmds: &mut mpsc::Receiver<Cmd>) -> Result<(), End> {
         let mut pair_kick = self.deck.pair_kick.subscribe();
         if self.paired {
-            self.send(C::ClientCapabilities(proto::ClientCapabilities {
-                is_user_pro: false,
-            }))
-            .await?;
+            self.send(C::ClientCapabilities(proto::ClientCapabilities { is_user_pro: false })).await?;
         } else {
             self.deck.set_status(self.id, Status::Pairing, None);
             self.try_authenticate().await?;
@@ -315,8 +279,7 @@ impl Session<'_> {
             return Ok(());
         }
         self.auth_sent = true;
-        self.send(C::Authenticate(proto::Authenticate { request_id: 0 }))
-            .await
+        self.send(C::Authenticate(proto::Authenticate { request_id: 0 })).await
     }
 
     /// Ends the connection for a forget, saying what became of the app's device.
@@ -331,8 +294,7 @@ impl Session<'_> {
     /// Closing first, or sending more, loses the delete (seen with the real app); the connection is over either way.
     async fn delete_open_device(&mut self) -> Result<(), End> {
         self.opened = false;
-        self.send(C::DeleteVirtualDevice(proto::DeleteVirtualDevice {}))
-            .await?;
+        self.send(C::DeleteVirtualDevice(proto::DeleteVirtualDevice {})).await?;
         let until = Instant::now() + DELETE_SETTLE;
         while let Ok(Ok(_)) = tokio::time::timeout_at(until, self.conn.recv()).await {}
         Ok(())
@@ -347,17 +309,11 @@ impl Session<'_> {
                 if !self.opened {
                     self.deck.set_status(self.id, Status::Connecting, None);
                 }
-                self.send(C::ClientCapabilities(proto::ClientCapabilities {
-                    is_user_pro: false,
-                }))
-                .await?;
+                self.send(C::ClientCapabilities(proto::ClientCapabilities { is_user_pro: false })).await?;
             }
             S::Error(e) if e.request_id == 0 && self.auth_sent && !self.paired => {
                 self.deck.pair_answered(self.id, false);
-                return Err(failed(
-                    "The Stream Deck app didn't trust InfoPanel Studio. Press Pair to ask again.",
-                    false,
-                ));
+                return Err(failed("The Stream Deck app didn't trust InfoPanel Studio. Press Pair to ask again.", false));
             }
             S::VirtualDeviceList(list) => {
                 self.list = list.devices;
@@ -396,8 +352,7 @@ impl Session<'_> {
                 if let Some(device) = device {
                     let grid = grid_of(&device);
                     if pending.purpose == Purpose::Open || grid != pending.grid {
-                        self.send(C::UpdateKeypadConfig(proto::keypad_update(grid.0, grid.1)))
-                            .await?;
+                        self.send(C::UpdateKeypadConfig(proto::keypad_update(grid.0, grid.1))).await?;
                     }
                 }
                 self.deck.set_status(self.id, Status::Ready, None);
@@ -411,12 +366,7 @@ impl Session<'_> {
                     // The device the app had is gone: make a new one, or there is nothing left to delete.
                     Some(Purpose::Open) => self.create().await?,
                     Some(Purpose::Purge) => self.next_step().await?,
-                    _ => {
-                        return Err(failed(
-                            format!("The Stream Deck app refused the device: {}", e.reason),
-                            false,
-                        ))
-                    }
+                    _ => return Err(failed(format!("The Stream Deck app refused the device: {}", e.reason), false)),
                 }
             }
             S::Context(context) => self.deck.context(self.id, &context),
@@ -431,11 +381,7 @@ impl Session<'_> {
     async fn next_step(&mut self) -> Result<(), End> {
         while let Some(app_id) = self.purge.pop() {
             if self.list.iter().any(|d| d.id == app_id) {
-                let name = self
-                    .deck
-                    .device(self.id)
-                    .map(|d| d.name)
-                    .unwrap_or_default();
+                let name = self.deck.device(self.id).map(|d| d.name).unwrap_or_default();
                 return self.open(app_id, Purpose::Purge, name).await;
             }
         }
@@ -445,10 +391,7 @@ impl Session<'_> {
     /// A forget of a device that isn't open: opened by its app id to be deleted, when the app lists it.
     async fn forget_unopened(&mut self) -> Result<(), End> {
         let device = self.deck.device(self.id);
-        let app_id = device
-            .as_ref()
-            .map(|d| d.app_id.clone())
-            .unwrap_or_default();
+        let app_id = device.as_ref().map(|d| d.app_id.clone()).unwrap_or_default();
         if app_id.is_empty() || !self.list.iter().any(|d| d.id == app_id) {
             return self.forgotten(Forgot::Nothing);
         }
@@ -461,10 +404,7 @@ impl Session<'_> {
         let Some(device) = self.deck.device(self.id) else {
             return Ok(());
         };
-        let by_id = self
-            .list
-            .iter()
-            .find(|d| !device.app_id.is_empty() && d.id == device.app_id);
+        let by_id = self.list.iter().find(|d| !device.app_id.is_empty() && d.id == device.app_id);
         let Some(found) = by_id.or_else(|| self.list.iter().find(|d| d.name == device.name)) else {
             return self.create().await;
         };
@@ -475,20 +415,9 @@ impl Session<'_> {
     async fn open(&mut self, device_id: String, purpose: Purpose, name: String) -> Result<(), End> {
         let grid = self.deck.device(self.id).map_or((1, 1), |d| grid_of(&d));
         let request = self.next_request();
-        self.pending = Some(Pending {
-            request,
-            purpose,
-            name,
-            grid,
-            deadline: Instant::now() + PENDING_TIMEOUT,
-        });
+        self.pending = Some(Pending { request, purpose, name, grid, deadline: Instant::now() + PENDING_TIMEOUT });
         let keypad = proto::keypad_config(grid.0, grid.1);
-        self.send(C::OpenVirtualDevice(proto::OpenVirtualDevice {
-            request_id: request,
-            device_id,
-            keypad_config: Some(keypad),
-        }))
-        .await
+        self.send(C::OpenVirtualDevice(proto::OpenVirtualDevice { request_id: request, device_id, keypad_config: Some(keypad) })).await
     }
 
     async fn create(&mut self) -> Result<(), End> {
@@ -516,13 +445,7 @@ impl Session<'_> {
 
     async fn command(&mut self, cmd: Cmd) -> Result<(), End> {
         match cmd {
-            Cmd::Press { index, down } if self.opened => {
-                self.send(C::KeyPress(proto::KeyPress {
-                    index,
-                    pressed: down,
-                }))
-                .await
-            }
+            Cmd::Press { index, down } if self.opened => self.send(C::KeyPress(proto::KeyPress { index, pressed: down })).await,
             Cmd::Page(to) if self.opened => {
                 let payload = match to {
                     PageTo::Next => C::NextPage(proto::NextPage {}),
@@ -532,11 +455,7 @@ impl Session<'_> {
                 self.send(payload).await
             }
             Cmd::Grid { cols, rows } if self.opened => {
-                self.send(C::UpdateKeypadConfig(proto::keypad_update(
-                    clamp_grid(cols.into()),
-                    clamp_grid(rows.into()),
-                )))
-                .await
+                self.send(C::UpdateKeypadConfig(proto::keypad_update(clamp_grid(cols.into()), clamp_grid(rows.into())))).await
             }
             // DeleteVirtualDevice deletes the device the session has open, so the old one goes first; the next
             // connection adopts the new name from the app's list or creates it.

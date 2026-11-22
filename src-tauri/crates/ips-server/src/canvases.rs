@@ -161,7 +161,8 @@ impl CanvasStore {
             }
             let file = self.dir.join(&name);
             // Gone or locked: the next sweep tries again.
-            let Some(mtime) = std::fs::metadata(&file).ok().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(UNIX_EPOCH).ok()) else {
+            let Some(mtime) = std::fs::metadata(&file).ok().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            else {
                 continue;
             };
             if now - mtime.as_secs_f64() * 1000.0 <= grace_ms || std::fs::remove_file(&file).is_err() {

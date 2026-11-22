@@ -75,7 +75,10 @@ pub(crate) fn text(v: Option<&Value>, max: usize) -> String {
 pub fn clean_host(v: Option<&Value>) -> String {
     let h = text(v, 253);
     let name = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'));
-    let bracketed = h.strip_prefix('[').and_then(|r| r.strip_suffix(']')).is_some_and(|inner| !inner.is_empty() && inner.bytes().all(|b| b.is_ascii_hexdigit() || b == b':' || b == b'.'));
+    let bracketed = h
+        .strip_prefix('[')
+        .and_then(|r| r.strip_suffix(']'))
+        .is_some_and(|inner| !inner.is_empty() && inner.bytes().all(|b| b.is_ascii_hexdigit() || b == b':' || b == b'.'));
     if bracketed || name(&h) {
         h
     } else {
@@ -97,7 +100,8 @@ fn clean_port(v: Option<&Value>) -> u16 {
 pub fn clean_calendar_url(v: Option<&Value>) -> Option<String> {
     let raw = text(v, 2048);
     let lower = raw.to_ascii_lowercase();
-    let raw = ["webcals://", "webcal://"].iter().find(|p| lower.starts_with(**p)).map_or(raw.clone(), |p| format!("https://{}", &raw[p.len()..]));
+    let raw =
+        ["webcals://", "webcal://"].iter().find(|p| lower.starts_with(**p)).map_or(raw.clone(), |p| format!("https://{}", &raw[p.len()..]));
     let url = url::Url::parse(&raw).ok()?;
     (url.scheme() == "https" || url.scheme() == "http").then(|| url.to_string())
 }
@@ -380,14 +384,20 @@ mod tests {
         let s = applied(&empty_integrations(), patch, &mut ids());
         let public = public_view(&s);
         assert!(!public.to_string().contains("hunter2") && !public.to_string().contains("private"));
-        assert_eq!(public, json!({ "obs": { "host": "127.0.0.1", "port": 4455, "hasPassword": true }, "calendar": { "links": [{ "id": "id1", "label": "Work", "host": "calendar.example.com" }] } }));
+        assert_eq!(
+            public,
+            json!({ "obs": { "host": "127.0.0.1", "port": 4455, "hasPassword": true }, "calendar": { "links": [{ "id": "id1", "label": "Work", "host": "calendar.example.com" }] } })
+        );
         assert_eq!(s.links[0].url, "https://calendar.example.com/private/abc/basic.ics");
     }
 
     #[test]
     fn keeps_a_password_unless_one_is_sent_and_clears_it_with_an_empty_one() {
         let set = applied(&empty_integrations(), json!({ "obs": { "host": "obs-pc", "password": "pw" } }), &mut ids());
-        assert_eq!(applied(&set, json!({ "obs": { "port": 4456 } }), &mut ids()).obs, ObsSettings { host: "obs-pc".into(), port: 4456, password: "pw".into() });
+        assert_eq!(
+            applied(&set, json!({ "obs": { "port": 4456 } }), &mut ids()).obs,
+            ObsSettings { host: "obs-pc".into(), port: 4456, password: "pw".into() }
+        );
         assert_eq!(applied(&set, json!({ "obs": { "password": "" } }), &mut ids()).obs.password, "");
         assert_eq!(applied(&set, json!({ "obs": { "password": 5 } }), &mut ids()).obs.password, "pw");
     }
@@ -395,8 +405,16 @@ mod tests {
     #[test]
     fn keeps_stored_links_by_id_adds_new_ones_and_drops_the_rest() {
         let mut next = ids();
-        let two = applied(&empty_integrations(), json!({ "calendar": { "links": [{ "url": "https://a.example/a.ics" }, { "url": "https://b.example/b.ics" }] } }), &mut next);
-        let after = applied(&two, json!({ "calendar": { "links": [{ "id": "id2", "label": "B", "url": "https://other.example/x" }, { "url": "https://c.example/c.ics" }] } }), &mut next);
+        let two = applied(
+            &empty_integrations(),
+            json!({ "calendar": { "links": [{ "url": "https://a.example/a.ics" }, { "url": "https://b.example/b.ics" }] } }),
+            &mut next,
+        );
+        let after = applied(
+            &two,
+            json!({ "calendar": { "links": [{ "id": "id2", "label": "B", "url": "https://other.example/x" }, { "url": "https://c.example/c.ics" }] } }),
+            &mut next,
+        );
         let seen: Vec<_> = after.links.iter().map(|l| (l.id.as_str(), l.label.as_str(), l.url.as_str())).collect();
         assert_eq!(seen, [("id2", "B", "https://b.example/b.ics"), ("id3", "", "https://c.example/c.ics")]);
     }
@@ -406,7 +424,10 @@ mod tests {
         let e = empty_integrations();
         let refusal = |patch: Value| apply_integrations(&e, &patch, &mut ids()).unwrap_err();
         assert_eq!(refusal(json!({ "obs": { "host": "ws://x/y" } })), "obs.host: a host name or IP address");
-        assert_eq!(refusal(json!({ "calendar": { "links": [{ "url": "file:///c:/x.ics" }] } })), "calendar.links: an http(s) or webcal link");
+        assert_eq!(
+            refusal(json!({ "calendar": { "links": [{ "url": "file:///c:/x.ics" }] } })),
+            "calendar.links: an http(s) or webcal link"
+        );
         assert_eq!(refusal(json!([])), "expected a JSON object");
         assert_eq!(refusal(json!({ "obs": null })), "obs: expected an object");
         assert_eq!(refusal(json!({ "calendar": {} })), "calendar.links: expected a list");
@@ -465,7 +486,10 @@ mod tests {
         let seen = std::sync::Arc::new(Mutex::new(Vec::new()));
         let log = std::sync::Arc::clone(&seen);
         store.subscribe(move |next, prev| log.lock().unwrap().push((next.streaming.obs.mic.clone(), prev.obs == next.obs)));
-        store.apply(&json!({ "streaming": { "obs": { "mic": "Mic/Aux", "scenes": { "u1": { "sub": "Cam", "icon": "videocam" } } } } })).unwrap().unwrap();
+        store
+            .apply(&json!({ "streaming": { "obs": { "mic": "Mic/Aux", "scenes": { "u1": { "sub": "Cam", "icon": "videocam" } } } } }))
+            .unwrap()
+            .unwrap();
         assert_eq!(*seen.lock().unwrap(), [("Mic/Aux".to_string(), true)]);
         let reloaded = IntegrationsStore::load(&file).get();
         assert_eq!(reloaded.streaming.obs.mic, "Mic/Aux");
@@ -488,8 +512,18 @@ mod tests {
         store.apply(&json!({ "streaming": { "twitch": { "channel": "friend" } } })).unwrap().unwrap();
         let seen = std::sync::Arc::new(Mutex::new(Vec::new()));
         let log = std::sync::Arc::clone(&seen);
-        store.subscribe(move |next, prev| log.lock().unwrap().push((next.streaming.twitch.auth.login.clone(), prev.streaming.twitch.channel == next.streaming.twitch.channel)));
-        let auth = TwitchAuth { access_token: "secret-access".into(), refresh_token: "secret-refresh".into(), expires_at: 99, login: "me".into(), user_id: "1".into() };
+        store.subscribe(move |next, prev| {
+            log.lock()
+                .unwrap()
+                .push((next.streaming.twitch.auth.login.clone(), prev.streaming.twitch.channel == next.streaming.twitch.channel))
+        });
+        let auth = TwitchAuth {
+            access_token: "secret-access".into(),
+            refresh_token: "secret-refresh".into(),
+            expires_at: 99,
+            login: "me".into(),
+            user_id: "1".into(),
+        };
         store.set_twitch_auth(auth.clone()).unwrap();
         assert_eq!(*seen.lock().unwrap(), [("me".to_string(), true)]);
         let file_text = std::fs::read_to_string(&file).unwrap();
@@ -513,7 +547,13 @@ mod tests {
         let file = dir.path().join("integrations.json");
         let store = IntegrationsStore::load(&file);
         store.apply(&json!({ "streaming": { "youtube": { "client_id": "cid", "client_secret": "secret-cs" } } })).unwrap().unwrap();
-        let auth = YoutubeAuth { access_token: "secret-access".into(), refresh_token: "secret-refresh".into(), expires_at: 99, channel: "Me".into(), channel_id: "UC1".into() };
+        let auth = YoutubeAuth {
+            access_token: "secret-access".into(),
+            refresh_token: "secret-refresh".into(),
+            expires_at: 99,
+            channel: "Me".into(),
+            channel_id: "UC1".into(),
+        };
         store.set_youtube_auth("cid", auth.clone()).unwrap();
         // A write from a client that has since been replaced is not stored.
         store.set_youtube_auth("old-client", YoutubeAuth::default()).unwrap();

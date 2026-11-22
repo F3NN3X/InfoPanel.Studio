@@ -65,17 +65,24 @@ const SIG_FILE: &str = "pack.sig";
 /// A name Windows keeps for a device (`con`, `nul`, `com1`, ... with or without an extension): never a pack id or a file's stem.
 fn is_device_name(s: &str) -> bool {
     let stem = s.split('.').next().unwrap_or("");
-    matches!(stem, "con" | "prn" | "aux" | "nul") || (stem.len() == 4 && (stem.starts_with("com") || stem.starts_with("lpt")) && matches!(stem.as_bytes()[3], b'1'..=b'9'))
+    matches!(stem, "con" | "prn" | "aux" | "nul")
+        || (stem.len() == 4 && (stem.starts_with("com") || stem.starts_with("lpt")) && matches!(stem.as_bytes()[3], b'1'..=b'9'))
 }
 
 /// A pack id: lowercase letters, digits and hyphens, 1 to 48 characters, not starting with a hyphen, not a Windows device name.
 pub fn is_pack_id(s: &str) -> bool {
-    (1..=48).contains(&s.len()) && !is_device_name(s) && !s.starts_with('-') && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+    (1..=48).contains(&s.len())
+        && !is_device_name(s)
+        && !s.starts_with('-')
+        && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
 /// An asset's own name (before the extension): the same characters as an id, up to 64.
 fn is_asset_name(s: &str) -> bool {
-    (1..=64).contains(&s.len()) && !is_device_name(s) && !s.starts_with('-') && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+    (1..=64).contains(&s.len())
+        && !is_device_name(s)
+        && !s.starts_with('-')
+        && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
 /// A file of a pack by its path from the pack folder: one of the fixed names, or `assets/<name>.<ext>`. Nothing else is a
@@ -144,7 +151,9 @@ impl Packs {
                 None => temps.push(entry.path()),
             }
         }
-        asides.sort_by_key(|(_, path)| std::cmp::Reverse((std::fs::metadata(path.join("pack.json")).and_then(|m| m.modified()).ok(), path.clone())));
+        asides.sort_by_key(|(_, path)| {
+            std::cmp::Reverse((std::fs::metadata(path.join("pack.json")).and_then(|m| m.modified()).ok(), path.clone()))
+        });
         let mut kept = false;
         for (id, path) in asides {
             let dest = id.map(|id| self.dir.join(id));
@@ -265,7 +274,9 @@ impl Packs {
     }
 
     fn signed(&self, id: &str, root: &Path) -> bool {
-        let (Some(key), Some(files), Ok(signature)) = (pack_sign::load_key(&self.key_file()), stored_files(root), std::fs::read(root.join(SIG_FILE))) else {
+        let (Some(key), Some(files), Ok(signature)) =
+            (pack_sign::load_key(&self.key_file()), stored_files(root), std::fs::read(root.join(SIG_FILE)))
+        else {
             return false;
         };
         pack_sign::verify(&key, id, &pack_sign::content_hash(&files), &signature)
@@ -307,7 +318,10 @@ impl Packs {
         let size: u64 = files.iter().map(|(_, b)| b.len() as u64).sum();
         let others: u64 = listed(self).into_iter().filter(|(other, _)| other != id).map(|(_, bytes)| bytes).sum();
         if size > PACK_CEILING_BYTES || others + size > PACKS_TOTAL_BYTES {
-            return Ok(Err(refuse(413, format!("the pack is over {PACK_CEILING_BYTES} bytes, or the packs over {PACKS_TOTAL_BYTES} in all"))));
+            return Ok(Err(refuse(
+                413,
+                format!("the pack is over {PACK_CEILING_BYTES} bytes, or the packs over {PACKS_TOTAL_BYTES} in all"),
+            )));
         }
         let hash = pack_sign::content_hash(&files);
         if hash != claimed {
@@ -344,7 +358,7 @@ fn css_deny(css: &[u8]) -> Option<&'static str> {
         return Some("is not UTF-8");
     };
     let plain = strip_comments(text).to_ascii_lowercase();
-    if plain.contains('\\') ||plain.contains('@') || plain.contains('<') {
+    if plain.contains('\\') || plain.contains('@') || plain.contains('<') {
         return Some("holds a backslash, an at-rule or markup");
     }
     ["url(", "image-set(", "src("].iter().any(|f| plain.contains(f)).then_some("holds a url-like function")
@@ -485,7 +499,10 @@ fn listed(packs: &Packs) -> Vec<(String, u64)> {
 
 /// The `name` of a pack's `pack.json` (80 characters at most), else its id.
 fn name_of(root: &Path, id: &str) -> String {
-    let name = std::fs::read_to_string(root.join("pack.json")).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).and_then(|v| v.get("name")?.as_str().map(str::to_string));
+    let name = std::fs::read_to_string(root.join("pack.json"))
+        .ok()
+        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+        .and_then(|v| v.get("name")?.as_str().map(str::to_string));
     name.map_or_else(|| id.to_string(), |n| n.chars().take(80).collect())
 }
 
@@ -539,7 +556,9 @@ fn checked_import(body: &Value) -> Result<(String, Files), Refused> {
         if files.iter().any(|(p, _)| p == path) {
             return Err(refuse(400, format!("{path} is given twice")));
         }
-        let bytes = STANDARD.decode(f.get("data").and_then(Value::as_str).unwrap_or("")).map_err(|_| refuse(400, format!("{path} is not base64")))?;
+        let bytes = STANDARD
+            .decode(f.get("data").and_then(Value::as_str).unwrap_or(""))
+            .map_err(|_| refuse(400, format!("{path} is not base64")))?;
         if bytes.len() as u64 > FILE_MAX_BYTES {
             return Err(refuse(413, format!("{path} is over {FILE_MAX_BYTES} bytes")));
         }
@@ -703,7 +722,30 @@ mod tests {
         for ok in ["a", "my-pack", "0x", &"a".repeat(48)] {
             assert!(is_pack_id(ok), "{ok}");
         }
-        for bad in ["nul", "con", "aux", "prn", "com1", "lpt9", "com1.x", "", "-a", "A", "a_b", "a.b", "a/b", "a\\b", "..", ".", "a%2eb", "a b", "é", "a\0", "C:", &"a".repeat(49)] {
+        for bad in [
+            "nul",
+            "con",
+            "aux",
+            "prn",
+            "com1",
+            "lpt9",
+            "com1.x",
+            "",
+            "-a",
+            "A",
+            "a_b",
+            "a.b",
+            "a/b",
+            "a\\b",
+            "..",
+            ".",
+            "a%2eb",
+            "a b",
+            "é",
+            "a\0",
+            "C:",
+            &"a".repeat(49),
+        ] {
             assert!(!is_pack_id(bad), "{bad:?}");
         }
     }
@@ -722,7 +764,8 @@ mod tests {
     }
 
     fn names(dir: &Path) -> Vec<String> {
-        let mut left: Vec<String> = std::fs::read_dir(dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+        let mut left: Vec<String> =
+            std::fs::read_dir(dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
         left.sort();
         left
     }
@@ -802,11 +845,13 @@ mod tests {
         };
         let dir = tempfile::tempdir().unwrap();
         // whichever way the folder is read, one of these two pairs has its older copy first
-        let (older, newer) = (pack(dir.path(), &format!(".import-old-first-{UUID}")), pack(dir.path(), &format!(".import-old-first-{LATER}")));
+        let (older, newer) =
+            (pack(dir.path(), &format!(".import-old-first-{UUID}")), pack(dir.path(), &format!(".import-old-first-{LATER}")));
         marked(&older, "old");
         marked(&newer, "new");
         aged(&older);
-        let (newer, older) = (pack(dir.path(), &format!(".import-old-second-{UUID}")), pack(dir.path(), &format!(".import-old-second-{LATER}")));
+        let (newer, older) =
+            (pack(dir.path(), &format!(".import-old-second-{UUID}")), pack(dir.path(), &format!(".import-old-second-{LATER}")));
         marked(&older, "old");
         marked(&newer, "new");
         aged(&older);
@@ -866,13 +911,56 @@ mod tests {
 
     #[test]
     fn files_are_a_fixed_set_or_an_asset_of_a_known_type() {
-        for ok in ["pack.json", "look.json", "icons.json", "OFL.txt", "thumb.png", "assets/hazard.svg", "assets/geist-400.woff2", "assets/a.png", "assets/a.jpg", "assets/a.webp", "assets/a.gif"] {
+        for ok in [
+            "pack.json",
+            "look.json",
+            "icons.json",
+            "OFL.txt",
+            "thumb.png",
+            "assets/hazard.svg",
+            "assets/geist-400.woff2",
+            "assets/a.png",
+            "assets/a.jpg",
+            "assets/a.webp",
+            "assets/a.gif",
+        ] {
             assert!(is_pack_file(ok), "{ok}");
         }
         for bad in [
-            "", "pack.css", "pack.js", "Pack.json", "../pack.json", "assets/../pack.json", "assets/..", "assets//a.png", "/assets/a.png", "assets/", "assets/a", "assets/.png", "assets/a.PNG",
-            "assets/a.bmp", "assets/a.exe", "assets/a.svg.png", "assets/a/b.png", "assets\\a.png", "assets/a%2epng", "assets/a.png ", "assets/a.png\0", "assets/é.png", "C:/x.png", "//x/y.png",
-            "assets/a b.png", "assets/-a.png", "assets/a:b.png", "assets/a.png:stream", "assets/CON.png", "pack.json.", "pack.json/", "./pack.json", "assets/./a.png", "LOOK.md",
+            "",
+            "pack.css",
+            "pack.js",
+            "Pack.json",
+            "../pack.json",
+            "assets/../pack.json",
+            "assets/..",
+            "assets//a.png",
+            "/assets/a.png",
+            "assets/",
+            "assets/a",
+            "assets/.png",
+            "assets/a.PNG",
+            "assets/a.bmp",
+            "assets/a.exe",
+            "assets/a.svg.png",
+            "assets/a/b.png",
+            "assets\\a.png",
+            "assets/a%2epng",
+            "assets/a.png ",
+            "assets/a.png\0",
+            "assets/é.png",
+            "C:/x.png",
+            "//x/y.png",
+            "assets/a b.png",
+            "assets/-a.png",
+            "assets/a:b.png",
+            "assets/a.png:stream",
+            "assets/CON.png",
+            "pack.json.",
+            "pack.json/",
+            "./pack.json",
+            "assets/./a.png",
+            "LOOK.md",
         ] {
             assert!(!is_pack_file(bad), "{bad:?}");
         }

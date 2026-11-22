@@ -19,30 +19,16 @@ const GAP_MS: u64 = 1500;
 /// The recording `replay` names. `none` is the panel's descriptor without reports: connected, idle.
 pub fn recording(replay: &str) -> Result<Recording, String> {
     let built_in = |name: &str| {
-        let (_, text) = CAPTURES
-            .iter()
-            .find(|(n, _)| *n == name)
-            .expect("a known capture");
+        let (_, text) = CAPTURES.iter().find(|(n, _)| *n == name).expect("a known capture");
         Recording::parse(text, name).map_err(|e| e.to_string())
     };
     match replay {
-        "none" => Ok(Recording {
-            reports: Vec::new(),
-            ..built_in("tap")?
-        }),
+        "none" => Ok(Recording { reports: Vec::new(), ..built_in("tap")? }),
         "all" => {
-            let mut all = Recording {
-                reports: Vec::new(),
-                ..built_in("tap")?
-            };
+            let mut all = Recording { reports: Vec::new(), ..built_in("tap")? };
             for (name, _) in CAPTURES {
                 let offset = all.reports.last().map_or(0, |(t, _)| t + GAP_MS);
-                all.reports.extend(
-                    built_in(name)?
-                        .reports
-                        .into_iter()
-                        .map(|(t, r)| (t + offset, r)),
-                );
+                all.reports.extend(built_in(name)?.reports.into_iter().map(|(t, r)| (t + offset, r)));
             }
             Ok(all)
         }
@@ -61,10 +47,7 @@ mod tests {
             recording(name).unwrap_or_else(|e| panic!("{name}: {e}"));
         }
         let all = recording("all").unwrap();
-        assert!(
-            all.reports.windows(2).all(|w| w[0].0 <= w[1].0),
-            "`all` keeps time order"
-        );
+        assert!(all.reports.windows(2).all(|w| w[0].0 <= w[1].0), "`all` keeps time order");
         assert!(recording("none").unwrap().reports.is_empty());
         assert!(recording("no/such/file.jsonl").is_err());
     }

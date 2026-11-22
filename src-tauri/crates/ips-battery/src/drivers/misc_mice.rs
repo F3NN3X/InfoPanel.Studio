@@ -69,22 +69,28 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Mutex;
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{clamp100, hex4, hid_product, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, clamp100, hex4, hid_product};
 use crate::win::{now_ms, sleep_ms};
 
 fn read_until(d: &mut dyn HidIo, r: &mut Vec<u8>, timeout_ms: u32, mut matched: impl FnMut(&[u8]) -> bool) -> bool {
     let end = now_ms() + timeout_ms as u64;
     while (end as i64 - now_ms() as i64) > 0 {
         let left = (end as i64 - now_ms() as i64) as u32;
-        if d.read(r, left) < 0 { return false; }
-        if matched(r) { return true; }
+        if d.read(r, left) < 0 {
+            return false;
+        }
+        if matched(r) {
+            return true;
+        }
     }
     false
 }
 
 fn poll_motospeed(ctx: &mut PollContext) {
     for pid in [0xFFE0u16, 0xFFF2, 0xFFF1] {
-        if ctx.is_claimed(0x0BDA, pid) { continue; }
+        if ctx.is_claimed(0x0BDA, pid) {
+            continue;
+        }
         for c in ctx.find(0x0BDA, pid, |c| c.iface == 4 && c.out_len() >= 21) {
             let mut s = DeviceStatus {
                 key: format!("motospeed:{}", hex4(pid)),
@@ -101,9 +107,13 @@ fn poll_motospeed(ctx: &mut PollContext) {
             }
             let Some(mut d) = ctx.open(&c) else { continue };
             d.flush();
-            if !d.write(&[0xB5, 0x06], 500) { continue; }
+            if !d.write(&[0xB5, 0x06], 500) {
+                continue;
+            }
             let mut r = Vec::new();
-            if !read_until(d.as_mut(), &mut r, 1500, |r| r.len() > 20 && r[0] == 0xB4) { continue; }
+            if !read_until(d.as_mut(), &mut r, 1500, |r| r.len() > 20 && r[0] == 0xB4) {
+                continue;
+            }
             let raw = r[20] as i32;
             s.via = "2.4 GHz receiver".into();
             s.charging = raw >= 128;
@@ -118,7 +128,11 @@ fn poll_motospeed(ctx: &mut PollContext) {
 // The receiver broadcasts [03][model][40 or 41][state][level] every ~2 s; nothing is sent to it. The
 // handle stays open between polls so these frames queue up. A reading counts once two frames agree,
 // because every link-up starts with a false 100% (github.com/qu1ncky/BatteryTray, XentaReceiverProvider).
-struct XentaModel { code: u8, name: &'static str, tens: bool }
+struct XentaModel {
+    code: u8,
+    name: &'static str,
+    tens: bool,
+}
 
 const XENTA_MODELS: [XentaModel; 6] = [
     XentaModel { code: 0x3D, name: "Delux M900 Pro", tens: false },
@@ -126,7 +140,7 @@ const XENTA_MODELS: [XentaModel; 6] = [
     XentaModel { code: 0x4E, name: "Attack Shark X3 Max", tens: false },
     XentaModel { code: 0xE5, name: "Attack Shark V3 Pro", tens: false },
     XentaModel { code: 0x24, name: "Attack Shark V6", tens: false },
-    XentaModel { code: 0x10, name: "Attack Shark X6 / R1", tens: true },  // level reported in tens (0-10)
+    XentaModel { code: 0x10, name: "Attack Shark X6 / R1", tens: true }, // level reported in tens (0-10)
 ];
 
 /// The C++ XentaListener keeps its open `HidDev` in a global map. `Box<dyn HidIo>` wraps a Win32
@@ -138,25 +152,25 @@ unsafe impl Send for SendHidIo {}
 struct XentaListener {
     dev: SendHidIo,
     last: Vec<u8>,
-    prev: Vec<u8>,  // the two most recent battery frames
+    prev: Vec<u8>, // the two most recent battery frames
     last_frame_at: u64,
 }
-static G_XENTA: Mutex<BTreeMap<String, XentaListener>> = Mutex::new(BTreeMap::new());  // by collection path
+static G_XENTA: Mutex<BTreeMap<String, XentaListener>> = Mutex::new(BTreeMap::new()); // by collection path
 
 fn poll_xenta(ctx: &mut PollContext) {
     let pids = [0xFA60u16, 0xFA65, 0xFA55, 0x2155];
     let mut present: BTreeSet<String> = BTreeSet::new();
     for pid in pids {
-        if ctx.is_claimed(0x1D57, pid) { continue; }
+        if ctx.is_claimed(0x1D57, pid) {
+            continue;
+        }
         for c in ctx.find(0x1D57, pid, |c| c.page() == 0x000A && c.in_len() >= 5) {
             present.insert(c.path.clone());
             let mut g = G_XENTA.lock().unwrap();
             let fresh = !g.contains_key(&c.path);
             if fresh {
                 let Some(dev) = ctx.open_read_only(&c) else { continue };
-                g.insert(c.path.clone(), XentaListener {
-                    dev: SendHidIo(dev), last: Vec::new(), prev: Vec::new(), last_frame_at: 0,
-                });
+                g.insert(c.path.clone(), XentaListener { dev: SendHidIo(dev), last: Vec::new(), prev: Vec::new(), last_frame_at: 0 });
             }
             let Some(l) = g.get_mut(&c.path) else { continue };
             // Take everything queued since the last poll; a new listener waits for two frames.
@@ -165,42 +179,54 @@ fn poll_xenta(ctx: &mut PollContext) {
             let mut got = 0;
             loop {
                 let wait = if fresh && got < 2 { 1.max(until as i64 - now_ms() as i64) as u32 } else { 30 };
-                if fresh && got < 2 && (until as i64 - now_ms() as i64) <= 0 { break; }
-                if l.dev.0.read(&mut r, wait) < 5 { break; }
-                if r[0] != 0x03 || (r[2] != 0x40 && r[2] != 0x41) { continue; }
+                if fresh && got < 2 && (until as i64 - now_ms() as i64) <= 0 {
+                    break;
+                }
+                if l.dev.0.read(&mut r, wait) < 5 {
+                    break;
+                }
+                if r[0] != 0x03 || (r[2] != 0x40 && r[2] != 0x41) {
+                    continue;
+                }
                 l.prev = l.last.clone();
                 l.last = r[..5].to_vec();
                 l.last_frame_at = now_ms();
                 got += 1;
             }
-            if l.last.is_empty() || now_ms() - l.last_frame_at > 15000 { continue; }  // silent receiver: try the next one
+            if l.last.is_empty() || now_ms() - l.last_frame_at > 15000 {
+                continue;
+            } // silent receiver: try the next one
             let cable = pid == 0xFA55 || pid == 0x2155;
             let code = l.last[1];
             let st = l.last[3];
             let level = l.last[4];
             let model = XENTA_MODELS.iter().find(|m| m.code == code);
-            let mut s = DeviceStatus {
-                key: format!("xenta:{}", hex4(pid)),
-                kind: DeviceKind::Mouse,
-                ..Default::default()
-            };
+            let mut s = DeviceStatus { key: format!("xenta:{}", hex4(pid)), kind: DeviceKind::Mouse, ..Default::default() };
             s.name = model.map(|m| m.name).unwrap_or("Wireless mouse").into();
             s.via = if cable { "USB cable" } else { "2.4 GHz receiver" }.into();
             let agreed = l.prev == l.last;
             if cable || st == 0x02 || st == 0x03 {
-                s.charging = true;  // the level is frozen on external power
-                if st == 0x02 && !cable { s.percent = 100; }
+                s.charging = true; // the level is frozen on external power
+                if st == 0x02 && !cable {
+                    s.percent = 100;
+                }
             } else if agreed {
                 match model {
                     Some(m) if m.tens => {
-                        if level >= 1 && level <= 10 { s.percent = level as i32 * 10; }
+                        if level >= 1 && level <= 10 {
+                            s.percent = level as i32 * 10;
+                        }
                     }
                     _ => {
-                        if st == 0x01 && level >= 1 && level <= 100 { s.percent = level as i32; }
+                        if st == 0x01 && level >= 1 && level <= 100 {
+                            s.percent = level as i32;
+                        }
                     }
                 }
             }
-            if s.percent < 0 && !s.charging { s.asleep = true; }  // shown with the last known value
+            if s.percent < 0 && !s.charging {
+                s.asleep = true;
+            } // shown with the last known value
             ctx.add(s, 0x1D57, pid);
             break;
         }
@@ -215,35 +241,36 @@ fn poll_ajazz(ctx: &mut PollContext) {
             for c in ctx.find(vid, pid, |c| c.iface == 2 && c.out_len() == 33 && c.in_len() == 33) {
                 let Some(mut d) = ctx.open(&c) else { continue };
                 d.flush();
-                if !d.write(&[0x00, 0x10], 500) { continue; }  // report id 0, command 10, zero payload (checksum 0)
+                if !d.write(&[0x00, 0x10], 500) {
+                    continue;
+                } // report id 0, command 10, zero payload (checksum 0)
                 let mut r = Vec::new();
                 let ok = read_until(d.as_mut(), &mut r, 1500, |r| {
-                    if r.len() < 32 || r[0] != 0x10 || r[1] != 0x00 { return false; }
+                    if r.len() < 32 || r[0] != 0x10 || r[1] != 0x00 {
+                        return false;
+                    }
                     let sum: u32 = r[4..=30].iter().map(|&b| b as u32).sum();
                     (sum as u8) == r[31]
                 });
-                if !ok || r[13] > 100 { continue; }
-                let mut s = DeviceStatus {
-                    key: format!("ajazz:{}:{}", hex4(vid), hex4(pid)),
-                    kind: DeviceKind::Mouse,
-                    ..Default::default()
-                };
+                if !ok || r[13] > 100 {
+                    continue;
+                }
+                let mut s =
+                    DeviceStatus { key: format!("ajazz:{}:{}", hex4(vid), hex4(pid)), kind: DeviceKind::Mouse, ..Default::default() };
                 let mut model = String::new();
                 let mut i = 4;
                 while i < 8 && r[i] >= 0x20 && r[i] < 0x7F {
                     model.push(r[i] as char);
                     i += 1;
                 }
-                s.name = if model.len() == 4 && model.starts_with('M') {
-                    format!("Ajazz AJ{}", &model[1..])
-                } else {
-                    "Ajazz mouse".into()
-                };
+                s.name = if model.len() == 4 && model.starts_with('M') { format!("Ajazz AJ{}", &model[1..]) } else { "Ajazz mouse".into() };
                 let receiver = vid == 0x249A;
                 s.via = if receiver { "2.4 GHz receiver" } else { "USB cable" }.into();
                 s.connected = !receiver || r[14] != 0;
                 s.charging = r[12] != 0;
-                if s.connected { s.percent = r[13] as i32; }
+                if s.connected {
+                    s.percent = r[13] as i32;
+                }
                 ctx.add(s, vid, pid);
                 break;
             }
@@ -256,25 +283,33 @@ fn poll_ajazz_aj_series(ctx: &mut PollContext) {
         for c in ctx.find(vid, pid, |c| c.page() == 0xFFFF && c.usage() == 0x02 && c.feat_len() >= 65) {
             let Some(mut d) = ctx.open_feature_only(&c) else { continue };
             let mut req = vec![0u8; c.feat_len() as usize];
-            req[0] = 0x00;  // unnumbered report
-            req[1] = 0xF7;  // status poll: brings the 2.4 GHz telemetry link up
-            if !d.set_feature(&req) { continue; }
+            req[0] = 0x00; // unnumbered report
+            req[1] = 0xF7; // status poll: brings the 2.4 GHz telemetry link up
+            if !d.set_feature(&req) {
+                continue;
+            }
             sleep_ms(30);
             let mut r = Vec::new();
-            if !d.get_feature(0x05, &mut r) || r.len() < 4 { continue; }
-            if r[0] != 0x05 || r[1] != 0 || r[2] != 0 { continue; }  // malformed / reconnect frame
+            if !d.get_feature(0x05, &mut r) || r.len() < 4 {
+                continue;
+            }
+            if r[0] != 0x05 || r[1] != 0 || r[2] != 0 {
+                continue;
+            } // malformed / reconnect frame
             let pct = r[3] as i32;
-            if pct > 100 { continue; }
-            let mut s = DeviceStatus {
-                key: format!("ajazzaj:{}:{}", hex4(vid), hex4(pid)),
-                kind: DeviceKind::Mouse,
-                ..Default::default()
-            };
+            if pct > 100 {
+                continue;
+            }
+            let mut s = DeviceStatus { key: format!("ajazzaj:{}:{}", hex4(vid), hex4(pid)), kind: DeviceKind::Mouse, ..Default::default() };
             s.name = hid_product(&c);
-            if s.name.is_empty() { s.name = "AJAZZ mouse".into(); }
+            if s.name.is_empty() {
+                s.name = "AJAZZ mouse".into();
+            }
             s.via = "2.4 GHz receiver".into();
-            s.connected = pct > 0;  // 0 means the link is up but the mouse is off
-            if s.connected { s.percent = pct; }
+            s.connected = pct > 0; // 0 means the link is up but the mouse is off
+            if s.connected {
+                s.percent = pct;
+            }
             ctx.add(s, vid, pid);
             break;
         }
@@ -282,24 +317,28 @@ fn poll_ajazz_aj_series(ctx: &mut PollContext) {
 }
 
 // Unrelated AA FA / AA ED reports are skipped.
-fn is_battery(r: &[u8]) -> bool { r.len() > 9 && r[0] == 0xAA && r[1] == 0x30 }
+fn is_battery(r: &[u8]) -> bool {
+    r.len() > 9 && r[0] == 0xAA && r[1] == 0x30
+}
 
 fn poll_ajazz_aj139(ctx: &mut PollContext) {
     for vendor in [0xA8A5u16, 0xA8A4] {
         let pid = 0x2255u16;
-        if ctx.is_claimed(vendor, pid) { continue; }
+        if ctx.is_claimed(vendor, pid) {
+            continue;
+        }
         for c in ctx.find(vendor, pid, |c| c.page() == 0xFF01 && c.usage() == 0x0010 && c.out_len() >= 65 && c.in_len() >= 65) {
             let Some(mut d) = ctx.open(&c) else { continue };
             let mut r = Vec::new();
             d.flush();
             // The two sources disagree on request byte 3: both variants are tried.
-            let mut ok = d.write(&[0x00, 0x55, 0x30, 0xA5, 0x2E, 0x2E], 500)
-                && read_until(d.as_mut(), &mut r, 700, is_battery);
+            let mut ok = d.write(&[0x00, 0x55, 0x30, 0xA5, 0x2E, 0x2E], 500) && read_until(d.as_mut(), &mut r, 700, is_battery);
             if !ok {
-                ok = d.write(&[0x00, 0x55, 0x30, 0xA5, 0x0B, 0x2E, 0x01, 0x01], 500)
-                    && read_until(d.as_mut(), &mut r, 800, is_battery);
+                ok = d.write(&[0x00, 0x55, 0x30, 0xA5, 0x0B, 0x2E, 0x01, 0x01], 500) && read_until(d.as_mut(), &mut r, 800, is_battery);
             }
-            if !ok || r[8] > 100 { continue; }
+            if !ok || r[8] > 100 {
+                continue;
+            }
             let cable = vendor == 0xA8A4;
             let mut s = DeviceStatus {
                 key: format!("ajazz139:{}:{}", hex4(vendor), hex4(pid)),
@@ -309,8 +348,10 @@ fn poll_ajazz_aj139(ctx: &mut PollContext) {
             };
             s.via = if cable { "USB cable" } else { "2.4 GHz receiver" }.into();
             s.charging = r[9] != 0;
-            s.connected = cable || r[8] > 0;  // 0 from the dongle: the mouse is off or out of range
-            if s.connected { s.percent = r[8] as i32; }
+            s.connected = cable || r[8] > 0; // 0 from the dongle: the mouse is off or out of range
+            if s.connected {
+                s.percent = r[8] as i32;
+            }
             ctx.add(s, vendor, pid);
             break;
         }
@@ -326,12 +367,18 @@ static KNOWN_MODEL: Mutex<[i32; 2]> = Mutex::new([0, 0]);
 // and a second GET 20 ms later if the reply is still empty. Input reports that arrive meanwhile
 // stay queued by Windows and are read afterwards.
 fn read_button(d: &mut dyn HidIo, button: u8) -> bool {
-    if !d.set_feature(&[0x09, 0x86, button]) { return false; }
+    if !d.set_feature(&[0x09, 0x86, button]) {
+        return false;
+    }
     let mut f = Vec::new();
     for t in 0..2 {
         sleep_ms(if t == 0 { 150 } else { 20 });
-        if !d.get_feature(0x09, &mut f) { return true; }
-        if f.len() >= 4 && f[1] == 0x86 { break; }
+        if !d.get_feature(0x09, &mut f) {
+            return true;
+        }
+        if f.len() >= 4 && f[1] == 0x86 {
+            break;
+        }
     }
     true
 }
@@ -350,42 +397,54 @@ fn listen(ins: &mut [Box<dyn HidIo>], got: &mut bool, r: &mut Vec<u8>, ms: u32) 
 
 fn poll_wraith_w1(ctx: &mut PollContext) {
     for pid in [0x522Cu16, 0x622C] {
-        if ctx.is_claimed(0x093A, pid) { continue; }
+        if ctx.is_claimed(0x093A, pid) {
+            continue;
+        }
         let idx = usize::from(pid == 0x622C);
         let mut colls = ctx.find(0x093A, pid, |c| c.page() == 0xFF05 && c.feat_len() >= 9);
-        if colls.is_empty() { continue; }
-        colls.reverse();  // on the cable the first FF05 collection rejects SET_FEATURE
+        if colls.is_empty() {
+            continue;
+        }
+        colls.reverse(); // on the cable the first FF05 collection rejects SET_FEATURE
         let mut d: Option<Box<dyn HidIo>> = None;
-        let mut replied = 0i32;  // model code from the device-info read, -1 = answered but not a W1
+        let mut replied = 0i32; // model code from the device-info read, -1 = answered but not a W1
         for c in &colls {
             d = ctx.open_feature_only(c);
             let Some(dev) = d.as_deref_mut() else { continue };
             if !dev.set_feature(&[0x09, 0x8F]) {
-                d = None;  // Close()
+                d = None; // Close()
                 continue;
             }
             let mut r = Vec::new();
             let mut i = 0;
             while i < 10 && replied == 0 {
                 sleep_ms(50);
-                if !dev.get_feature(0x09, &mut r) { break; }
+                if !dev.get_feature(0x09, &mut r) {
+                    break;
+                }
                 if r.len() >= 4 && r[0] == 0x09 && r[1] == 0x8F {
                     replied = if r[3] == 18 || r[3] == 20 { r[3] as i32 } else { -1 };
                 }
                 i += 1;
             }
-            if replied != 0 { break; }
-            d = None;  // Close()
+            if replied != 0 {
+                break;
+            }
+            d = None; // Close()
         }
         let model;
         {
             let mut km = KNOWN_MODEL.lock().unwrap();
             if replied < 0 {
-                km[idx] = 0;  // another PixArt mouse (Incott): leave it to poll_incott
+                km[idx] = 0; // another PixArt mouse (Incott): leave it to poll_incott
                 continue;
             }
-            if replied != 0 { km[idx] = replied; }
-            if km[idx] == 0 { continue; }  // no answer and never seen as a W1
+            if replied != 0 {
+                km[idx] = replied;
+            }
+            if km[idx] == 0 {
+                continue;
+            } // no answer and never seen as a W1
             model = km[idx];
         }
 
@@ -397,7 +456,9 @@ fn poll_wraith_w1(ctx: &mut PollContext) {
             ..Default::default()
         };
         s.via = if cable { "USB cable" } else { "2.4 GHz receiver" }.into();
-        if !cable { s.grace_sec = 1800; }  // keep the last value if a sleeping mouse stops answering
+        if !cable {
+            s.grace_sec = 1800;
+        } // keep the last value if a sleeping mouse stops answering
         s.connected = false;
 
         if let Some(mut dev) = d {
@@ -411,65 +472,87 @@ fn poll_wraith_w1(ctx: &mut PollContext) {
             let mut r = Vec::new();
             let mut got = false;
             if !ins.is_empty() {
-                sleep_ms(200);  // the W1 Service waits 200 ms after 8F before its next request
+                sleep_ms(200); // the W1 Service waits 200 ms after 8F before its next request
                 // Read-only sweep of 86 over buttons 0, 1, 2, 4, 3 (the web driver's Ri()), then its
                 // 700 ms keep-alive Bi() (86 for button 0, read back) while waiting for the status input report.
                 let mut sent = false;
                 for b in [0u8, 1, 2, 4, 3] {
-                    if read_button(&mut dev, b) { sent = true; }
+                    if read_button(&mut dev, b) {
+                        sent = true;
+                    }
                 }
                 if sent {
                     listen(&mut ins, &mut got, &mut r, 400);
                     for _beat in 0..4 {
-                        if got { break; }
-                        if !read_button(&mut dev, 0) { break; }
-                        listen(&mut ins, &mut got, &mut r, 550);  // ~700 ms per beat including the 150 ms read
+                        if got {
+                            break;
+                        }
+                        if !read_button(&mut dev, 0) {
+                            break;
+                        }
+                        listen(&mut ins, &mut got, &mut r, 550); // ~700 ms per beat including the 150 ms read
                     }
                 }
             }
             if got {
                 let pct = (r[1] & 0x7F) as i32;
                 s.charging = (r[1] & 0x80) != 0;
-                s.connected = cable || pct > 0 || s.charging;  // 0 from the dongle: the mouse is off
-                if s.connected { s.percent = pct; }
+                s.connected = cable || pct > 0 || s.charging; // 0 from the dongle: the mouse is off
+                if s.connected {
+                    s.percent = pct;
+                }
             }
         }
-        ctx.add(s, 0x093A, pid);  // claimed even when asleep, so poll_incott never queries a W1
+        ctx.add(s, 0x093A, pid); // claimed even when asleep, so poll_incott never queries a W1
     }
 }
 
 fn poll_incott(ctx: &mut PollContext) {
     for pid in [0x522Cu16, 0x622C] {
-        if ctx.is_claimed(0x093A, pid) { continue; }
+        if ctx.is_claimed(0x093A, pid) {
+            continue;
+        }
         let mut colls = ctx.find(0x093A, pid, |c| c.page() == 0xFF05 && c.feat_len() >= 9);
-        colls.reverse();  // on the cable the first FF05 collection rejects SET_FEATURE
+        colls.reverse(); // on the cable the first FF05 collection rejects SET_FEATURE
         for c in &colls {
             let Some(mut d) = ctx.open_feature_only(c) else { continue };
-            if !d.set_feature(&[0x09, 0x89]) { continue; }
+            if !d.set_feature(&[0x09, 0x89]) {
+                continue;
+            }
             let mut r = Vec::new();
             let mut ok = false;
             let mut i = 0;
             while !ok && i < 10 {
                 sleep_ms(50);
-                if !d.get_feature(0x09, &mut r) { break; }
+                if !d.get_feature(0x09, &mut r) {
+                    break;
+                }
                 ok = r.len() >= 4 && r[0] == 0x09 && r[1] == 0x89 && (r[2] | r[3]) != 0;
                 i += 1;
             }
-            if !ok { continue; }
+            if !ok {
+                continue;
+            }
             let pct = (r[2] & 0x7F) as i32;
-            if pct > 100 { continue; }
+            if pct > 100 {
+                continue;
+            }
             let cable = pid == 0x622C;
             let mut s = DeviceStatus {
                 key: format!("incott:{}", hex4(pid)),
-                name: "Incott mouse".into(),  // the ids are shared by the G23 V2 and the G24
+                name: "Incott mouse".into(), // the ids are shared by the G23 V2 and the G24
                 kind: DeviceKind::Mouse,
                 ..Default::default()
             };
             s.via = if cable { "USB cable" } else { "2.4 GHz receiver" }.into();
             s.charging = (r[2] & 0x80) != 0;
-            s.connected = cable || pct > 0;  // 0 from the dongle: the mouse is off or out of range
-            if s.connected { s.percent = pct; }
-            if !cable { s.grace_sec = 1800; }  // keep the last value if a sleeping mouse stops answering
+            s.connected = cable || pct > 0; // 0 from the dongle: the mouse is off or out of range
+            if s.connected {
+                s.percent = pct;
+            }
+            if !cable {
+                s.grace_sec = 1800;
+            } // keep the last value if a sleeping mouse stops answering
             ctx.add(s, 0x093A, pid);
             break;
         }
@@ -487,7 +570,9 @@ fn next_delux_seq() -> u8 {
 
 fn poll_delux_m800(ctx: &mut PollContext) {
     for pid in [0x5B2Eu16, 0x5B2F] {
-        if ctx.is_claimed(0x248A, pid) { continue; }
+        if ctx.is_claimed(0x248A, pid) {
+            continue;
+        }
         for c in ctx.find(0x248A, pid, |c| c.page() == 0xFF00 && c.usage() == 0x0001 && c.feat_len() >= 33) {
             let Some(mut d) = ctx.open_feature_only(&c) else { continue };
             let receiver = pid == 0x5B2F;
@@ -496,11 +581,17 @@ fn poll_delux_m800(ctx: &mut PollContext) {
             req[1] = 0x01;
             req[2] = 0x20;
             req[4] = next_delux_seq();
-            if !d.set_feature(&req) { continue; }
+            if !d.set_feature(&req) {
+                continue;
+            }
             sleep_ms(20);
             let mut r = Vec::new();
-            if !d.get_feature(0x0C, &mut r) || r.len() < 20 { continue; }
-            if r[0] != 0x0C || r[2] != 0x20 { continue; }
+            if !d.get_feature(0x0C, &mut r) || r.len() < 20 {
+                continue;
+            }
+            if r[0] != 0x0C || r[2] != 0x20 {
+                continue;
+            }
 
             if receiver && r[6] == 0 {
                 req[4] = next_delux_seq();
@@ -514,14 +605,12 @@ fn poll_delux_m800(ctx: &mut PollContext) {
             }
 
             let pct = r[18] as i32;
-            if pct > 100 { continue; }
+            if pct > 100 {
+                continue;
+            }
             let st = r[19];
-            let mut s = DeviceStatus {
-                key: "delux:m800".into(),
-                name: "Delux M800 Pro".into(),
-                kind: DeviceKind::Mouse,
-                ..Default::default()
-            };
+            let mut s =
+                DeviceStatus { key: "delux:m800".into(), name: "Delux M800 Pro".into(), kind: DeviceKind::Mouse, ..Default::default() };
             s.via = if receiver { "2.4 GHz receiver" } else { "USB cable" }.into();
             s.connected = r[6] != 0 || pct > 0;
             if st == 2 {
@@ -529,7 +618,9 @@ fn poll_delux_m800(ctx: &mut PollContext) {
                 s.charging = true;
             } else if st == 1 {
                 s.charging = true;
-                if s.connected && pct > 0 { s.percent = clamp100(pct); }
+                if s.connected && pct > 0 {
+                    s.percent = clamp100(pct);
+                }
             } else if s.connected && pct > 0 {
                 s.percent = clamp100(pct);
             }
@@ -549,6 +640,6 @@ pub fn poll_misc_mice(ctx: &mut PollContext) {
     poll_ajazz(ctx);
     poll_ajazz_aj_series(ctx);
     poll_ajazz_aj139(ctx);
-    poll_wraith_w1(ctx);  // before poll_incott: same ids, different commands
+    poll_wraith_w1(ctx); // before poll_incott: same ids, different commands
     poll_incott(ctx);
 }

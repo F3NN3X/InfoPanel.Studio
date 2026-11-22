@@ -28,11 +28,7 @@ fn merge(mut twitch: Vec<Message>, youtube: Vec<Message>) -> Vec<Message> {
 
 impl ChatHub {
     pub fn new(twitch: Arc<Twitch>, youtube: Arc<Youtube>) -> Self {
-        Self {
-            twitch,
-            youtube,
-            latest: watch::channel(Bytes::new()).0,
-        }
+        Self { twitch, youtube, latest: watch::channel(Bytes::new()).0 }
     }
 
     /// The event data: both windows by time, oldest first (a tie keeps Twitch's first), and each connected platform's state.
@@ -51,8 +47,7 @@ impl ChatHub {
     /// Makes the chat the one every open stream sends next. It is read inside the channel's lock, so of two publishes the
     /// later reader wins.
     pub fn publish(&self) {
-        self.latest
-            .send_modify(|event| *event = sse::event(&stringify(&self.json())));
+        self.latest.send_modify(|event| *event = sse::event(&stringify(&self.json())));
     }
 
     /// A chat stream's receiver, holding the chat as of now.
@@ -69,15 +64,7 @@ mod tests {
     use crate::streaming::{TwitchSettings, YoutubeAuth, YoutubeSettings};
 
     fn message(id: &str, platform: &'static str, ts: i64) -> Message {
-        Message {
-            id: id.into(),
-            platform,
-            user: "u".into(),
-            text: id.into(),
-            color: String::new(),
-            badge: "",
-            ts,
-        }
+        Message { id: id.into(), platform, user: "u".into(), text: id.into(), color: String::new(), badge: "", ts }
     }
 
     #[test]
@@ -89,30 +76,16 @@ mod tests {
     }
 
     fn hub(youtube: YoutubeSettings) -> ChatHub {
-        let twitch = Twitch::new(
-            crate::twitch::auth::Endpoints::offline(),
-            GuardedClient::open(),
-            TwitchSettings::default(),
-            |_| {},
-            || {},
-        );
-        let youtube = Youtube::new(
-            crate::youtube::auth::Endpoints::offline(),
-            GuardedClient::open(),
-            youtube,
-            |_, _| {},
-            || {},
-        );
+        let twitch =
+            Twitch::new(crate::twitch::auth::Endpoints::offline(), GuardedClient::open(), TwitchSettings::default(), |_| {}, || {});
+        let youtube = Youtube::new(crate::youtube::auth::Endpoints::offline(), GuardedClient::open(), youtube, |_, _| {}, || {});
         ChatHub::new(twitch, youtube)
     }
 
     #[test]
     fn lists_youtube_among_the_platforms_only_once_signed_in() {
         let signed_out = hub(YoutubeSettings::default()).json();
-        assert_eq!(
-            signed_out,
-            json!({ "messages": [], "platforms": { "twitch": { "connected": false, "channel": "" } } })
-        );
+        assert_eq!(signed_out, json!({ "messages": [], "platforms": { "twitch": { "connected": false, "channel": "" } } }));
         let auth = YoutubeAuth {
             access_token: "a".into(),
             refresh_token: "r".into(),
@@ -120,14 +93,8 @@ mod tests {
             channel: "Me".into(),
             channel_id: "UC1".into(),
         };
-        let signed_in = hub(YoutubeSettings {
-            auth,
-            ..YoutubeSettings::default()
-        });
-        assert_eq!(
-            signed_in.json()["platforms"]["youtube"],
-            json!({ "connected": false, "channel": "Me" })
-        );
+        let signed_in = hub(YoutubeSettings { auth, ..YoutubeSettings::default() });
+        assert_eq!(signed_in.json()["platforms"]["youtube"], json!({ "connected": false, "channel": "Me" }));
         // The stream starts with the merged chat as of now.
         let rx = signed_in.listen();
         assert!(String::from_utf8_lossy(&rx.borrow()).contains("\"youtube\""));

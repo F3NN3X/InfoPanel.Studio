@@ -81,11 +81,7 @@ pub struct WaveLinkState {
 
 impl WaveLinkState {
     pub const fn new(status: WlStatus) -> Self {
-        Self {
-            status,
-            channels: Vec::new(),
-            mixes: Vec::new(),
-        }
+        Self { status, channels: Vec::new(), mixes: Vec::new() }
     }
 }
 

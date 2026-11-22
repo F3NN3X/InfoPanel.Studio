@@ -125,23 +125,15 @@ mod windows_impl {
     use std::sync::atomic::{AtomicBool, Ordering};
     use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
     use webview2_com::Microsoft::Web::WebView2::Win32::{
-        ICoreWebView2, ICoreWebView2Controller, ICoreWebView2_19, ICoreWebView2_2, ICoreWebView2_3,
-        ICoreWebView2_6, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL,
-        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
+        ICoreWebView2, ICoreWebView2Controller, ICoreWebView2_19, ICoreWebView2_2, ICoreWebView2_3, ICoreWebView2_6,
+        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
         COREWEBVIEW2_PROCESS_FAILED_KIND, COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED,
-        COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED,
-        COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE,
+        COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED, COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE,
     };
-    use webview2_com::{
-        take_pwstr, NewBrowserVersionAvailableEventHandler, ProcessFailedEventHandler,
-        TrySuspendCompletedHandler,
-    };
+    use webview2_com::{take_pwstr, NewBrowserVersionAvailableEventHandler, ProcessFailedEventHandler, TrySuspendCompletedHandler};
     use windows_core::Interface;
 
-    fn set_memory_level(
-        webview: &ICoreWebView2,
-        level: COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL,
-    ) -> windows_core::Result<()> {
+    fn set_memory_level(webview: &ICoreWebView2, level: COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL) -> windows_core::Result<()> {
         unsafe { webview.cast::<ICoreWebView2_19>()?.SetMemoryUsageTargetLevel(level) }
     }
 
@@ -204,9 +196,7 @@ mod windows_impl {
         let target = window.clone();
         let sent = window.with_webview(move |webview| {
             // Shown again (or about to be) since the suspend was asked for: leave it running.
-            if suspending
-                && (stale(shows) || !wants_suspend(target.is_minimized().unwrap_or(false), target.is_visible().unwrap_or(true)))
-            {
+            if suspending && (stale(shows) || !wants_suspend(target.is_minimized().unwrap_or(false), target.is_visible().unwrap_or(true))) {
                 return;
             }
             if !flip(&SUSPENDED, suspending) {
@@ -241,8 +231,7 @@ mod windows_impl {
             } else {
                 return;
             };
-            let set = unsafe { webview.controller().CoreWebView2() }
-                .and_then(|w| set_memory_level(&w, level));
+            let set = unsafe { webview.controller().CoreWebView2() }.and_then(|w| set_memory_level(&w, level));
             match set {
                 Ok(()) => MEMORY_LOWERED.store(unfocused, Ordering::SeqCst),
                 Err(e) => log::warn!("could not change the webview's memory use: {e}"),
@@ -344,11 +333,7 @@ mod windows_impl {
         window
             .with_webview(|webview| {
                 let opened = unsafe {
-                    webview
-                        .controller()
-                        .CoreWebView2()
-                        .and_then(|w| w.cast::<ICoreWebView2_6>())
-                        .and_then(|w| w.OpenTaskManagerWindow())
+                    webview.controller().CoreWebView2().and_then(|w| w.cast::<ICoreWebView2_6>()).and_then(|w| w.OpenTaskManagerWindow())
                 };
                 if let Err(e) = opened {
                     log::warn!("could not open the WebView2 task manager: {e}");

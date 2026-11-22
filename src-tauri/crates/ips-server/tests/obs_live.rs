@@ -41,20 +41,13 @@ fn refused(id: &str, kind: &str, code: u32, comment: &str) -> Message {
 #[allow(clippy::result_large_err)]
 async fn fake_obs(listener: TcpListener, seen: mpsc::UnboundedSender<Value>) {
     let (stream, _) = listener.accept().await.unwrap();
-    let mut socket =
-        tokio_tungstenite::accept_hdr_async(stream, |_: &Request, mut response: Response| {
-            response.headers_mut().insert(
-                "Sec-WebSocket-Protocol",
-                "obswebsocket.json".parse().unwrap(),
-            );
-            Ok(response)
-        })
-        .await
-        .unwrap();
-    socket
-        .send(text(json!({ "op": 0, "d": { "rpcVersion": 1 } })))
-        .await
-        .unwrap();
+    let mut socket = tokio_tungstenite::accept_hdr_async(stream, |_: &Request, mut response: Response| {
+        response.headers_mut().insert("Sec-WebSocket-Protocol", "obswebsocket.json".parse().unwrap());
+        Ok(response)
+    })
+    .await
+    .unwrap();
+    socket.send(text(json!({ "op": 0, "d": { "rpcVersion": 1 } }))).await.unwrap();
     while let Some(Ok(frame)) = socket.next().await {
         let Ok(message) = serde_json::from_str::<Value>(frame.to_text().unwrap_or("")) else {
             continue;
@@ -62,15 +55,9 @@ async fn fake_obs(listener: TcpListener, seen: mpsc::UnboundedSender<Value>) {
         let _ = seen.send(message.clone());
         let d = &message["d"];
         match message["op"].as_u64() {
-            Some(1) => socket
-                .send(text(json!({ "op": 2, "d": { "negotiatedRpcVersion": 1 } })))
-                .await
-                .unwrap(),
+            Some(1) => socket.send(text(json!({ "op": 2, "d": { "negotiatedRpcVersion": 1 } }))).await.unwrap(),
             Some(6) => {
-                let (kind, id) = (
-                    d["requestType"].as_str().unwrap(),
-                    d["requestId"].as_str().unwrap(),
-                );
+                let (kind, id) = (d["requestType"].as_str().unwrap(), d["requestId"].as_str().unwrap());
                 let reply = match kind {
                     "GetStreamStatus" => ok(id, kind, json!({ "outputActive": false })),
                     "GetRecordStatus" => ok(id, kind, json!({ "outputActive": false })),
@@ -88,9 +75,7 @@ async fn fake_obs(listener: TcpListener, seen: mpsc::UnboundedSender<Value>) {
                         json!({ "inputs": [{ "inputName": "Mic/Aux", "inputKind": "wasapi_input_capture" }, { "inputName": "Cam", "inputKind": "dshow_input" }] }),
                     ),
                     "GetInputMute" => ok(id, kind, json!({ "inputMuted": false })),
-                    "GetReplayBufferStatus" => {
-                        refused(id, kind, 604, "replay buffer is not configured")
-                    }
+                    "GetReplayBufferStatus" => refused(id, kind, 604, "replay buffer is not configured"),
                     "GetStats" => ok(id, kind, json!({ "activeFps": 29.97 })),
                     "SetCurrentProgramScene" => {
                         let uuid = d["requestData"]["sceneUuid"].as_str().unwrap().to_string();
@@ -134,20 +119,10 @@ async fn follows_scenes_mic_and_replay_and_takes_actions() {
     let port = listener.local_addr().unwrap().port();
     let (seen_tx, mut seen) = mpsc::unbounded_channel();
     let server = tokio::spawn(fake_obs(listener, seen_tx));
-    let settings = Arc::new(Mutex::new(ObsSettings {
-        host: "127.0.0.1".into(),
-        port,
-        password: String::new(),
-    }));
+    let settings = Arc::new(Mutex::new(ObsSettings { host: "127.0.0.1".into(), port, password: String::new() }));
     let streaming = ObsStreaming {
         mic: "Mic/Aux".into(),
-        scenes: BTreeMap::from([(
-            U1.to_string(),
-            SceneLook {
-                sub: "Be right back".into(),
-                icon: "coffee".into(),
-            },
-        )]),
+        scenes: BTreeMap::from([(U1.to_string(), SceneLook { sub: "Be right back".into(), icon: "coffee".into() })]),
     };
     let obs = Obs::with_streaming(
         {
@@ -164,28 +139,13 @@ async fn follows_scenes_mic_and_replay_and_takes_actions() {
 
     // Not connected yet: nothing to act on.
     assert_eq!(obs.act(ObsAct::Replay).await, Err(ActError::NotConnected));
-    until("the scenes", || {
-        obs.json()["scenes"]
-            .as_array()
-            .is_some_and(|s| s.len() == 2)
-            && obs.json()["mic"]["level"] == 67
-    })
-    .await;
+    until("the scenes", || obs.json()["scenes"].as_array().is_some_and(|s| s.len() == 2) && obs.json()["mic"]["level"] == 67).await;
     let json = obs.json();
     assert_eq!(json["connected"], true);
-    assert_eq!(
-        json["scenes"][0],
-        json!({ "id": U2, "name": "Game", "sub": "", "icon": "" })
-    );
-    assert_eq!(
-        json["scenes"][1],
-        json!({ "id": U1, "name": "BRB", "sub": "Be right back", "icon": "coffee" })
-    );
+    assert_eq!(json["scenes"][0], json!({ "id": U2, "name": "Game", "sub": "", "icon": "" }));
+    assert_eq!(json["scenes"][1], json!({ "id": U1, "name": "BRB", "sub": "Be right back", "icon": "coffee" }));
     assert_eq!(json["currentScene"], U2);
-    assert_eq!(
-        json["mic"],
-        json!({ "name": "Mic/Aux", "muted": false, "level": 67 })
-    );
+    assert_eq!(json["mic"], json!({ "name": "Mic/Aux", "muted": false, "level": 67 }));
     assert_eq!(json["replay"], Value::Null);
     assert_eq!(json["inputs"], json!(["Mic/Aux"]));
     assert_eq!(json["fps"], 30);
@@ -203,26 +163,13 @@ async fn follows_scenes_mic_and_replay_and_takes_actions() {
     while let Ok(message) = seen.try_recv() {
         requests.push(message);
     }
-    let set = requests
-        .iter()
-        .find(|m| m["d"]["requestType"] == "SetCurrentProgramScene")
-        .expect("the scene request");
+    let set = requests.iter().find(|m| m["d"]["requestType"] == "SetCurrentProgramScene").expect("the scene request");
     assert_eq!(set["d"]["requestData"], json!({ "sceneUuid": U1 }));
-    assert_eq!(
-        obs.act(ObsAct::Scene("nope".into())).await,
-        Err(ActError::Refused("no such scene".into()))
-    );
+    assert_eq!(obs.act(ObsAct::Scene("nope".into())).await, Err(ActError::Refused("no such scene".into())));
 
     // OBS's refusal comes back as its comment; a request it never answers times out.
-    assert_eq!(
-        obs.act(ObsAct::Replay).await,
-        Err(ActError::Failed("replay buffer is not active".into()))
-    );
-    assert_eq!(
-        obs.act_within(ObsAct::Mic, Duration::from_millis(200))
-            .await,
-        Err(ActError::Failed("OBS didn't answer".into()))
-    );
+    assert_eq!(obs.act(ObsAct::Replay).await, Err(ActError::Failed("replay buffer is not active".into())));
+    assert_eq!(obs.act_within(ObsAct::Mic, Duration::from_millis(200)).await, Err(ActError::Failed("OBS didn't answer".into())));
 
     // A new mic subscribes again on the open socket (Reidentify) and reads its mute; nobody sees OBS drop.
     let other = ObsStreaming { mic: "Desk mic".into(), scenes: BTreeMap::new() };
@@ -256,31 +203,16 @@ async fn leaves_the_meters_alone_and_refuses_a_mic_action_while_no_mic_is_set() 
     let port = listener.local_addr().unwrap().port();
     let (seen_tx, mut seen) = mpsc::unbounded_channel();
     let server = tokio::spawn(fake_obs(listener, seen_tx));
-    let obs = Obs::new(
-        move || ObsSettings {
-            host: "127.0.0.1".into(),
-            port,
-            password: String::new(),
-        },
-        || {},
-    );
+    let obs = Obs::new(move || ObsSettings { host: "127.0.0.1".into(), port, password: String::new() }, || {});
     let task = tokio::spawn({
         let obs = Arc::clone(&obs);
         async move { obs.run().await }
     });
-    until("the scenes", || {
-        obs.json()["scenes"]
-            .as_array()
-            .is_some_and(|s| s.len() == 2)
-    })
-    .await;
+    until("the scenes", || obs.json()["scenes"].as_array().is_some_and(|s| s.len() == 2)).await;
     let identify = seen.recv().await.unwrap();
     assert_eq!(identify["d"]["eventSubscriptions"], 1 | 4 | 8 | 64);
     assert_eq!(obs.json()["mic"], Value::Null);
-    assert_eq!(
-        obs.act(ObsAct::Mic).await,
-        Err(ActError::Refused("no mic is set".into()))
-    );
+    assert_eq!(obs.act(ObsAct::Mic).await, Err(ActError::Refused("no mic is set".into())));
     task.abort();
     server.abort();
 }

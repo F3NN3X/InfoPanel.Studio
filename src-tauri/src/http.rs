@@ -35,28 +35,22 @@ pub fn get(host: &str, port: u16, path: &str, timeout: Duration) -> Result<Respo
         .map_err(|e| HttpError::Other(e.to_string()))?
         .next()
         .ok_or_else(|| HttpError::Other(format!("no address for {authority}")))?;
-    let mut stream =
-        TcpStream::connect_timeout(&addr, timeout + CONNECT_GRACE).map_err(|e| match e.kind() {
-            ErrorKind::ConnectionRefused => HttpError::Refused,
-            ErrorKind::TimedOut | ErrorKind::WouldBlock => HttpError::Timeout,
-            _ => HttpError::Other(e.to_string()),
-        })?;
+    let mut stream = TcpStream::connect_timeout(&addr, timeout + CONNECT_GRACE).map_err(|e| match e.kind() {
+        ErrorKind::ConnectionRefused => HttpError::Refused,
+        ErrorKind::TimedOut | ErrorKind::WouldBlock => HttpError::Timeout,
+        _ => HttpError::Other(e.to_string()),
+    })?;
     let io = |e: std::io::Error| match e.kind() {
         ErrorKind::TimedOut | ErrorKind::WouldBlock => HttpError::Timeout,
         _ => HttpError::Other(e.to_string()),
     };
     stream.set_read_timeout(Some(timeout)).map_err(io)?;
     stream.set_write_timeout(Some(timeout)).map_err(io)?;
-    let request = format!(
-        "GET {path} HTTP/1.1\r\nHost: {authority}\r\nAccept: application/json\r\nConnection: close\r\n\r\n"
-    );
+    let request = format!("GET {path} HTTP/1.1\r\nHost: {authority}\r\nAccept: application/json\r\nConnection: close\r\n\r\n");
     stream.write_all(request.as_bytes()).map_err(io)?;
     // A health answer is tiny; never buffer an endless body from whatever holds the port.
     let mut raw = Vec::new();
-    stream
-        .take(MAX_RESPONSE)
-        .read_to_end(&mut raw)
-        .map_err(io)?;
+    stream.take(MAX_RESPONSE).read_to_end(&mut raw).map_err(io)?;
     parse_response(&raw).ok_or_else(|| HttpError::Other("malformed HTTP response".into()))
 }
 
@@ -69,18 +63,10 @@ pub fn parse_response(raw: &[u8]) -> Option<Response> {
     let status = lines.next()?.split_whitespace().nth(1)?.parse().ok()?;
     let chunked = lines.any(|l| {
         let (name, value) = l.split_once(':').unwrap_or((l, ""));
-        name.trim().eq_ignore_ascii_case("transfer-encoding")
-            && value.to_ascii_lowercase().contains("chunked")
+        name.trim().eq_ignore_ascii_case("transfer-encoding") && value.to_ascii_lowercase().contains("chunked")
     });
-    let body = if chunked {
-        decode_chunked(body)?
-    } else {
-        body.to_vec()
-    };
-    Some(Response {
-        status,
-        body: String::from_utf8_lossy(&body).into_owned(),
-    })
+    let body = if chunked { decode_chunked(body)? } else { body.to_vec() };
+    Some(Response { status, body: String::from_utf8_lossy(&body).into_owned() })
 }
 
 fn decode_chunked(mut data: &[u8]) -> Option<Vec<u8>> {
@@ -105,13 +91,7 @@ mod tests {
     #[test]
     fn parses_a_plain_response() {
         let r = parse_response(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}").unwrap();
-        assert_eq!(
-            r,
-            Response {
-                status: 200,
-                body: "{}".into()
-            }
-        );
+        assert_eq!(r, Response { status: 200, body: "{}".into() });
     }
 
     #[test]
@@ -132,9 +112,7 @@ mod tests {
         // Bound but never listening, held until the end: a port bound and dropped can be handed to another
         // test's listener (the tests run in parallel) before the connection lands.
         let socket = socket2::Socket::new(socket2::Domain::IPV4, socket2::Type::STREAM, None).unwrap();
-        socket
-            .bind(&std::net::SocketAddr::from(([127, 0, 0, 1], 0)).into())
-            .unwrap();
+        socket.bind(&std::net::SocketAddr::from(([127, 0, 0, 1], 0)).into()).unwrap();
         let port = socket.local_addr().unwrap().as_socket().unwrap().port();
         let r = get("127.0.0.1", port, "/", Duration::from_millis(500));
         assert_eq!(r, Err(HttpError::Refused));

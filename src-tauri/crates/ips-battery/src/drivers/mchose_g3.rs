@@ -7,7 +7,7 @@
 //!     [0] = AA, [1] = 30, [8] = percent (1..100), [9] = charging (1 = charging)
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hid_product, HidColl, PollContext};
+use crate::hid::{HidColl, PollContext, hid_product};
 use crate::win::now_ms;
 
 const MCHOSE_VID: u16 = 0x3837;
@@ -27,9 +27,13 @@ fn query_g3v2(ctx: &mut PollContext, c: &HidColl, percent: &mut i32, charging: &
     while (end as i64 - now_ms() as i64) > 0 {
         let left = (end as i64 - now_ms() as i64) as i32;
         let n = d.read(&mut r, left as u32);
-        if n < 0 { break; }
+        if n < 0 {
+            break;
+        }
         if n >= 10 && r[0] == 0xAA && r[1] == 0x30 {
-            if r[8] < 1 || r[8] > 100 { return false; }
+            if r[8] < 1 || r[8] > 100 {
+                return false;
+            }
             *percent = r[8] as i32;
             *charging = r[9] == 1;
             return true;
@@ -42,17 +46,19 @@ pub fn poll_mchose_g3(ctx: &mut PollContext) {
     // Prefer wired over 2.4 GHz when both are connected at the same time.
     let mut found = false;
     for &pid in &[G3V2_WIRED_PID, G3V2_WIRELESS_PID] {
-        if ctx.is_claimed(MCHOSE_VID, pid) { continue; }
-        for c in ctx.find(MCHOSE_VID, pid, |c| {
-            c.page() == 0xFF01 && c.usage() == 0x0010 && c.out_len() >= 65 && c.in_len() >= 65
-        }) {
+        if ctx.is_claimed(MCHOSE_VID, pid) {
+            continue;
+        }
+        for c in ctx.find(MCHOSE_VID, pid, |c| c.page() == 0xFF01 && c.usage() == 0x0010 && c.out_len() >= 65 && c.in_len() >= 65) {
             if found {
                 ctx.claim(MCHOSE_VID, pid);
                 break;
             }
             let mut pct = -1;
             let mut chg = false;
-            if !query_g3v2(ctx, &c, &mut pct, &mut chg) { continue; }
+            if !query_g3v2(ctx, &c, &mut pct, &mut chg) {
+                continue;
+            }
 
             let mut s = DeviceStatus {
                 key: "mchose:g3v2".into(),
@@ -63,9 +69,10 @@ pub fn poll_mchose_g3(ctx: &mut PollContext) {
                 ..Default::default()
             };
             s.name = hid_product(&c);
-            if s.name.is_empty() { s.name = "MCHOSE G3 V2".into(); }
-            s.via = if pid == G3V2_WIRED_PID { "USB cable".into() }
-                    else { "2.4 GHz receiver".into() };
+            if s.name.is_empty() {
+                s.name = "MCHOSE G3 V2".into();
+            }
+            s.via = if pid == G3V2_WIRED_PID { "USB cable".into() } else { "2.4 GHz receiver".into() };
             ctx.add(s, MCHOSE_VID, pid);
             found = true;
             break;

@@ -11,9 +11,7 @@ use tokio_tungstenite::tungstenite::{self, Message as Ws};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::crypto::Channel;
-use super::proto::{
-    self, client_message::Payload as C, server_message::Payload as S, ClientMessage, ServerMessage,
-};
+use super::proto::{self, client_message::Payload as C, server_message::Payload as S, ClientMessage, ServerMessage};
 use crypto_box::SecretKey;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -45,18 +43,9 @@ impl Conn {
     /// Connects to the app on `port` and sends our hello with `public_key`.
     pub async fn connect(port: u16, public_key: &[u8]) -> Result<Self, ConnectError> {
         let url = format!("ws://127.0.0.1:{port}/");
-        let ws = match tokio::time::timeout(
-            CONNECT_TIMEOUT,
-            tokio_tungstenite::connect_async(url.as_str()),
-        )
-        .await
-        {
+        let ws = match tokio::time::timeout(CONNECT_TIMEOUT, tokio_tungstenite::connect_async(url.as_str())).await {
             Ok(Ok((ws, _))) => ws,
-            Ok(Err(tungstenite::Error::Io(e)))
-                if e.kind() == std::io::ErrorKind::ConnectionRefused =>
-            {
-                return Err(ConnectError::Refused)
-            }
+            Ok(Err(tungstenite::Error::Io(e))) if e.kind() == std::io::ErrorKind::ConnectionRefused => return Err(ConnectError::Refused),
             Ok(Err(e)) => return Err(ConnectError::Failed(format!("couldn't connect: {e}"))),
             Err(_) => return Err(ConnectError::Failed("connecting timed out".into())),
         };
@@ -79,16 +68,12 @@ impl Conn {
     /// Reads the server's hello and keys the box from its public key and our `secret`.
     pub async fn server_hello(&mut self, secret: &SecretKey) -> Result<Hello, String> {
         let frame = self.recv_frame().await?;
-        let message =
-            ServerMessage::decode(&frame[..]).map_err(|e| format!("unreadable hello: {e}"))?;
+        let message = ServerMessage::decode(&frame[..]).map_err(|e| format!("unreadable hello: {e}"))?;
         let Some(S::Hello(hello)) = message.payload else {
             return Err("the first message wasn't a hello".into());
         };
-        self.channel =
-            Some(Channel::new(&hello.public_key, secret).ok_or("the app's public key isn't one")?);
-        Ok(Hello {
-            needs_auth: hello.client_needs_authentication,
-        })
+        self.channel = Some(Channel::new(&hello.public_key, secret).ok_or("the app's public key isn't one")?);
+        Ok(Hello { needs_auth: hello.client_needs_authentication })
     }
 
     pub async fn send(&mut self, message: &ClientMessage) -> Result<(), String> {
@@ -97,10 +82,7 @@ impl Conn {
             Some(channel) => channel.seal(&plain)?,
             None => plain,
         };
-        self.ws
-            .send(Ws::binary(frame))
-            .await
-            .map_err(|e| format!("the connection failed: {e}"))
+        self.ws.send(Ws::binary(frame)).await.map_err(|e| format!("the connection failed: {e}"))
     }
 
     /// The next message; `Ok(None)` for one this client doesn't read.
@@ -110,8 +92,7 @@ impl Conn {
             Some(channel) => channel.open(&frame).ok_or("a frame that doesn't open")?,
             None => frame,
         };
-        let message =
-            ServerMessage::decode(&plain[..]).map_err(|e| format!("an unreadable message: {e}"))?;
+        let message = ServerMessage::decode(&plain[..]).map_err(|e| format!("an unreadable message: {e}"))?;
         Ok(message.payload)
     }
 
@@ -120,9 +101,7 @@ impl Conn {
             let next = tokio::time::timeout(IDLE, self.ws.next()).await;
             match next {
                 Err(_) => return Err("the connection went quiet".into()),
-                Ok(None) | Ok(Some(Ok(Ws::Close(_)))) => {
-                    return Err("the Stream Deck app closed the connection".into())
-                }
+                Ok(None) | Ok(Some(Ok(Ws::Close(_)))) => return Err("the Stream Deck app closed the connection".into()),
                 Ok(Some(Err(e))) => return Err(format!("the connection failed: {e}")),
                 Ok(Some(Ok(Ws::Binary(frame)))) => return Ok(frame.to_vec()),
                 // Pings are answered by tungstenite; nothing else carries meaning.

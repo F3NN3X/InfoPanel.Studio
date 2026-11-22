@@ -20,10 +20,7 @@ pub struct Base {
 impl Base {
     /// None for anything but a plain http URL (the forwarder has no TLS).
     pub fn parse(url: &str) -> Option<Base> {
-        let rest = url
-            .get(..7)
-            .filter(|s| s.eq_ignore_ascii_case("http://"))
-            .map(|_| &url[7..])?;
+        let rest = url.get(..7).filter(|s| s.eq_ignore_ascii_case("http://")).map(|_| &url[7..])?;
         let end = rest.find(['/', '?', '#']).unwrap_or(rest.len());
         let (authority, prefix) = rest.split_at(end);
         let authority = authority.rsplit('@').next().unwrap_or(authority);
@@ -37,25 +34,13 @@ impl Base {
         if host.is_empty() {
             return None;
         }
-        let port = if port.is_empty() {
-            80
-        } else {
-            port.parse().ok()?
-        };
-        Some(Base {
-            host: host.to_owned(),
-            port,
-            prefix: prefix.to_owned(),
-        })
+        let port = if port.is_empty() { 80 } else { port.parse().ok()? };
+        Some(Base { host: host.to_owned(), port, prefix: prefix.to_owned() })
     }
 
     /// The Host header: the port only when it is not the default.
     fn host_header(&self) -> String {
-        let host = if self.host.contains(':') {
-            format!("[{}]", self.host)
-        } else {
-            self.host.clone()
-        };
+        let host = if self.host.contains(':') { format!("[{}]", self.host) } else { self.host.clone() };
         if self.port == 80 {
             host
         } else {
@@ -64,10 +49,7 @@ impl Base {
     }
 
     fn addresses(&self) -> Vec<SocketAddr> {
-        let mut addrs: Vec<SocketAddr> = (self.host.as_str(), self.port)
-            .to_socket_addrs()
-            .map(Iterator::collect)
-            .unwrap_or_default();
+        let mut addrs: Vec<SocketAddr> = (self.host.as_str(), self.port).to_socket_addrs().map(Iterator::collect).unwrap_or_default();
         addrs.sort_by_key(SocketAddr::is_ipv6);
         addrs
     }
@@ -91,8 +73,7 @@ fn request(base: &Base, path: &str, body: &str, extra: &str) -> Vec<u8> {
 fn no_syn_retries(socket: &Socket) {
     use std::os::windows::io::AsRawSocket;
     use windows_sys::Win32::Networking::WinSock::{
-        WSAIoctl, SIO_TCP_INITIAL_RTO, TCP_INITIAL_RTO_DEFAULT_RTT,
-        TCP_INITIAL_RTO_NO_SYN_RETRANSMISSIONS, TCP_INITIAL_RTO_PARAMETERS,
+        WSAIoctl, SIO_TCP_INITIAL_RTO, TCP_INITIAL_RTO_DEFAULT_RTT, TCP_INITIAL_RTO_NO_SYN_RETRANSMISSIONS, TCP_INITIAL_RTO_PARAMETERS,
     };
     let params = TCP_INITIAL_RTO_PARAMETERS {
         Rtt: TCP_INITIAL_RTO_DEFAULT_RTT as u16,
@@ -116,11 +97,7 @@ fn no_syn_retries(socket: &Socket) {
 }
 
 fn connect(addr: &SocketAddr, timeout: Duration) -> std::io::Result<TcpStream> {
-    let socket = Socket::new(
-        Domain::for_address(*addr),
-        Type::STREAM,
-        Some(Protocol::TCP),
-    )?;
+    let socket = Socket::new(Domain::for_address(*addr), Type::STREAM, Some(Protocol::TCP))?;
     #[cfg(windows)]
     no_syn_retries(&socket);
     socket.connect_timeout(&(*addr).into(), timeout)?;
@@ -130,16 +107,8 @@ fn connect(addr: &SocketAddr, timeout: Duration) -> std::io::Result<TcpStream> {
 /// POST `body` to `path` under `base`; every error is swallowed.
 pub fn post(base: &Base, path: &str, body: &str, timeout: Duration) {
     let deadline = Instant::now() + timeout;
-    let left = || {
-        deadline
-            .saturating_duration_since(Instant::now())
-            .max(Duration::from_millis(1))
-    };
-    let Some(mut stream) = base
-        .addresses()
-        .into_iter()
-        .find_map(|a| connect(&a, left()).ok())
-    else {
+    let left = || deadline.saturating_duration_since(Instant::now()).max(Duration::from_millis(1));
+    let Some(mut stream) = base.addresses().into_iter().find_map(|a| connect(&a, left()).ok()) else {
         return;
     };
     let _ = stream.set_write_timeout(Some(left()));
@@ -164,9 +133,8 @@ fn parse_response(raw: &[u8]) -> Option<(u16, Vec<u8>)> {
     let head = String::from_utf8_lossy(&raw[..end]);
     let status = head.split(' ').nth(1)?.parse().ok()?;
     let chunked = head.lines().skip(1).any(|l| {
-        l.split_once(':').is_some_and(|(k, v)| {
-            k.trim().eq_ignore_ascii_case("transfer-encoding") && v.to_ascii_lowercase().contains("chunked")
-        })
+        l.split_once(':')
+            .is_some_and(|(k, v)| k.trim().eq_ignore_ascii_case("transfer-encoding") && v.to_ascii_lowercase().contains("chunked"))
     });
     let mut body = &raw[end + 4..];
     if !chunked {
@@ -190,15 +158,8 @@ fn parse_response(raw: &[u8]) -> Option<(u16, Vec<u8>)> {
 /// to close after it), or None when there is no complete answer before the timeout. Every error is swallowed.
 pub fn exchange(base: &Base, path: &str, body: &str, nonce: &str, timeout: Duration) -> Option<(u16, Vec<u8>)> {
     let deadline = Instant::now() + timeout;
-    let left = || {
-        deadline
-            .saturating_duration_since(Instant::now())
-            .max(Duration::from_millis(1))
-    };
-    let mut stream = base
-        .addresses()
-        .into_iter()
-        .find_map(|a| connect(&a, left()).ok())?;
+    let left = || deadline.saturating_duration_since(Instant::now()).max(Duration::from_millis(1));
+    let mut stream = base.addresses().into_iter().find_map(|a| connect(&a, left()).ok())?;
     let _ = stream.set_write_timeout(Some(left()));
     stream.write_all(&request(base, path, body, &format!("X-Agent-Nonce: {nonce}\r\n"))).ok()?;
     let mut raw = Vec::new();
@@ -227,18 +188,9 @@ mod tests {
 
     #[test]
     fn parses_the_base_url() {
-        assert_eq!(
-            base("http://127.0.0.1:3922"),
-            Some(("127.0.0.1".into(), 3922, "".into()))
-        );
-        assert_eq!(
-            base("HTTP://localhost"),
-            Some(("localhost".into(), 80, "".into()))
-        );
-        assert_eq!(
-            base("http://[::1]:9/p/q"),
-            Some(("::1".into(), 9, "/p/q".into()))
-        );
+        assert_eq!(base("http://127.0.0.1:3922"), Some(("127.0.0.1".into(), 3922, "".into())));
+        assert_eq!(base("HTTP://localhost"), Some(("localhost".into(), 80, "".into())));
+        assert_eq!(base("http://[::1]:9/p/q"), Some(("::1".into(), 9, "/p/q".into())));
         assert_eq!(base("http://u:p@h:5/x"), Some(("h".into(), 5, "/x".into())));
         assert_eq!(base("https://h"), None);
         assert_eq!(base("h:1"), None);
@@ -249,11 +201,8 @@ mod tests {
     #[test]
     fn writes_the_headers_the_server_reads() {
         let b = Base::parse("http://127.0.0.1:3922/pre").unwrap();
-        let req =
-            String::from_utf8(request(&b, "/api/agents/event?agent=codex", "{\"a\":1}", "")).unwrap();
-        assert!(req.starts_with(
-            "POST /pre/api/agents/event?agent=codex HTTP/1.1\r\nHost: 127.0.0.1:3922\r\n"
-        ));
+        let req = String::from_utf8(request(&b, "/api/agents/event?agent=codex", "{\"a\":1}", "")).unwrap();
+        assert!(req.starts_with("POST /pre/api/agents/event?agent=codex HTTP/1.1\r\nHost: 127.0.0.1:3922\r\n"));
         assert!(req.contains("\r\nContent-Type: application/json\r\n"));
         assert!(req.contains("\r\nX-Agent-Event: 1\r\n"));
         assert!(req.contains("\r\nContent-Length: 7\r\n"));

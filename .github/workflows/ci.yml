@@ -201,7 +201,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
-          components: clippy
+          components: clippy, rustfmt
+      # The whole workspace against src-tauri/rustfmt.toml; cheap, so it runs whenever this job does.
+      - name: cargo fmt --check
+        run: cargo fmt --all --check
+        working-directory: src-tauri
       # shared-key: the release job reuses this cache (its key would otherwise include the job name).
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:

@@ -66,12 +66,7 @@ fn hooks_of(group: &Value) -> Option<&Vec<Value>> {
 }
 
 fn any_hook(hooks: &Object, test: fn(&Value) -> bool) -> bool {
-    hooks.values().filter_map(Value::as_array).any(|groups| {
-        groups
-            .iter()
-            .filter_map(hooks_of)
-            .any(|hs| hs.iter().any(test))
-    })
+    hooks.values().filter_map(Value::as_array).any(|groups| groups.iter().filter_map(hooks_of).any(|hs| hs.iter().any(test)))
 }
 
 /// `hooks` without the entries `test` matches (and without groups or events left empty by that).
@@ -129,25 +124,11 @@ fn hook_for(event: &str, forward: &str, agent: &str, suffix: &str, key: &str, ba
 /// `hooks` with one group running our hook (`hook` gives it per event) added to each event, unless it is there already;
 /// old Node hooks are dropped first.
 fn with_hooks(hooks: Option<&Value>, events: &[&str], hook: impl Fn(&str) -> Object) -> Object {
-    let base = hooks
-        .and_then(Value::as_object)
-        .cloned()
-        .unwrap_or_default();
-    let mut next = if any_hook(&base, is_legacy) {
-        without_hooks(&base, is_legacy)
-    } else {
-        base
-    };
+    let base = hooks.and_then(Value::as_object).cloned().unwrap_or_default();
+    let mut next = if any_hook(&base, is_legacy) { without_hooks(&base, is_legacy) } else { base };
     for event in events {
-        let mut groups = next
-            .get(*event)
-            .and_then(Value::as_array)
-            .cloned()
-            .unwrap_or_default();
-        let present = groups
-            .iter()
-            .filter_map(hooks_of)
-            .any(|hs| hs.iter().any(is_current));
+        let mut groups = next.get(*event).and_then(Value::as_array).cloned().unwrap_or_default();
+        let present = groups.iter().filter_map(hooks_of).any(|hs| hs.iter().any(is_current));
         if present {
             continue;
         }
@@ -163,10 +144,7 @@ pub fn unwrap_statusline(command: &str) -> Option<String> {
         return None;
     }
     let found = command.match_indices("--wrap=").find_map(|(i, _)| {
-        let run: String = command[i + 7..]
-            .chars()
-            .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-')
-            .collect();
+        let run: String = command[i + 7..].chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-').collect();
         (!run.is_empty()).then_some(run)
     });
     Some(found.map(|run| wrap::decode(&run)).unwrap_or_default())
@@ -179,17 +157,13 @@ pub fn forward_command(exe: &str) -> String {
 
 /// The ` --url=<base>` that ends a hook command ("" without a base).
 pub fn url_suffix(url: Option<&str>) -> String {
-    url.filter(|u| !u.is_empty())
-        .map(|u| format!(" --url={u}"))
-        .unwrap_or_default()
+    url.filter(|u| !u.is_empty()).map(|u| format!(" --url={u}")).unwrap_or_default()
 }
 
 /// The ` --key=<base64url>` that ends the permission hook's command ("" without a key file), base64url so a path with
 /// spaces survives the shell.
 pub fn key_suffix(key: Option<&str>) -> String {
-    key.filter(|k| !k.is_empty())
-        .map(|k| format!(" --key={}", wrap::encode(k)))
-        .unwrap_or_default()
+    key.filter(|k| !k.is_empty()).map(|k| format!(" --key={}", wrap::encode(k))).unwrap_or_default()
 }
 
 fn statusline_with(line: Option<&Value>, command: String) -> Value {
@@ -211,28 +185,17 @@ pub fn install_claude(settings: &Object, forward: &str, suffix: &str) -> Object 
 
 /// `install_claude`, with `key` (`key_suffix`) ending the permission hook's command.
 fn install_claude_keyed(settings: &Object, forward: &str, suffix: &str, key: &str) -> Object {
-    let hooks = with_hooks(settings.get("hooks"), &CLAUDE_EVENTS, |e| {
-        hook_for(e, forward, "claude", suffix, key, true)
-    });
+    let hooks = with_hooks(settings.get("hooks"), &CLAUDE_EVENTS, |e| hook_for(e, forward, "claude", suffix, key, true));
     let line = settings.get("statusLine");
     let plain = format!("{forward} statusline{suffix}");
-    let wrapped = |original: &str| {
-        format!(
-            "{forward} statusline --wrap={}{suffix}",
-            wrap::encode(original)
-        )
-    };
+    let wrapped = |original: &str| format!("{forward} statusline --wrap={}{suffix}", wrap::encode(original));
     let status_line = match line.and_then(|l| l.get("command")).and_then(Value::as_str) {
         None => json!({ "type": "command", "command": plain }),
         Some(c) if c.contains(MARK) => line.cloned().unwrap_or_default(),
         // The old forwarder's statusline: keep what it wrapped, point it at the new one.
         Some(c) if c.contains(LEGACY_MARK) => {
             let original = unwrap_statusline(c).unwrap_or_default();
-            let command = if original.is_empty() {
-                plain
-            } else {
-                wrapped(&original)
-            };
+            let command = if original.is_empty() { plain } else { wrapped(&original) };
             statusline_with(line, command)
         }
         Some(c) => statusline_with(line, wrapped(c)),
@@ -255,10 +218,7 @@ pub fn remove_claude(settings: &Object) -> Object {
         }
     }
     let line = settings.get("statusLine");
-    let before = line
-        .and_then(|l| l.get("command"))
-        .and_then(Value::as_str)
-        .and_then(unwrap_statusline);
+    let before = line.and_then(|l| l.get("command")).and_then(Value::as_str).and_then(unwrap_statusline);
     match before {
         Some(original) if original.is_empty() => {
             next.shift_remove("statusLine");
@@ -277,9 +237,7 @@ pub fn install_codex(file: &Object, forward: &str, suffix: &str) -> Object {
 
 /// `install_codex`, with `key` ending the permission hook's command.
 fn install_codex_keyed(file: &Object, forward: &str, suffix: &str, key: &str) -> Object {
-    let hooks = with_hooks(file.get("hooks"), &CODEX_EVENTS, |e| {
-        hook_for(e, forward, "codex", suffix, key, false)
-    });
+    let hooks = with_hooks(file.get("hooks"), &CODEX_EVENTS, |e| hook_for(e, forward, "codex", suffix, key, false));
     let mut next = file.clone();
     next.insert("hooks".into(), Value::Object(hooks));
     next
@@ -303,15 +261,9 @@ pub fn remove_codex(file: &Object) -> Object {
 
 /// Whether two settings objects differ in a hook event or the statusline (all the installer touches).
 fn changed(before: &Object, after: &Object) -> bool {
-    let hooks = |o: &Object| {
-        o.get("hooks")
-            .and_then(Value::as_object)
-            .cloned()
-            .unwrap_or_default()
-    };
+    let hooks = |o: &Object| o.get("hooks").and_then(Value::as_object).cloned().unwrap_or_default();
     let (a, b) = (hooks(before), hooks(after));
-    a.keys().chain(b.keys()).any(|e| a.get(e) != b.get(e))
-        || before.get("statusLine") != after.get("statusLine")
+    a.keys().chain(b.keys()).any(|e| a.get(e) != b.get(e)) || before.get("statusLine") != after.get("statusLine")
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -390,9 +342,7 @@ fn read_object(file: &Path) -> Result<(bool, Object), String> {
 
 /// `2026-10-23T08-15-30-123Z`, JavaScript's ISO time with ":" and "." replaced by "-".
 fn stamp(now: SystemTime) -> String {
-    let ms = now
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .map_or(0, |d| d.as_millis() as i64);
+    let ms = now.duration_since(SystemTime::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64);
     let (secs, millis) = (ms.div_euclid(1000), ms.rem_euclid(1000));
     // Howard Hinnant's days-to-civil.
     let z = secs.div_euclid(86_400) + 719_468;
@@ -405,12 +355,7 @@ fn stamp(now: SystemTime) -> String {
     let month = if mp < 10 { mp + 3 } else { mp - 9 };
     let year = yoe + era * 400 + i64::from(month <= 2);
     let rem = secs.rem_euclid(86_400);
-    format!(
-        "{year:04}-{month:02}-{day:02}T{:02}-{:02}-{:02}-{millis:03}Z",
-        rem / 3600,
-        rem % 3600 / 60,
-        rem % 60
-    )
+    format!("{year:04}-{month:02}-{day:02}T{:02}-{:02}-{:02}-{millis:03}Z", rem / 3600, rem % 3600 / 60, rem % 60)
 }
 
 fn with_suffix(file: &Path, suffix: &str) -> PathBuf {
@@ -423,10 +368,7 @@ fn with_suffix(file: &Path, suffix: &str) -> PathBuf {
 /// must never be left cut off by a crash.
 fn write(file: &Path, found: bool, next: &Object) -> std::io::Result<Option<PathBuf>> {
     let backup = if found {
-        let backup = with_suffix(
-            file,
-            &format!(".dashboard-{}.bak", stamp(SystemTime::now())),
-        );
+        let backup = with_suffix(file, &format!(".dashboard-{}.bak", stamp(SystemTime::now())));
         std::fs::copy(file, &backup)?;
         Some(backup)
     } else {
@@ -463,78 +405,47 @@ pub fn run(opts: &Options) -> Vec<Outcome> {
             name: "Claude Code",
             file: claude_dir.join("settings.json"),
             needs_folder: None,
-            change: if opts.remove {
-                Box::new(remove_claude)
-            } else {
-                Box::new(|o| install_claude_keyed(o, &forward, &suffix, &key))
-            },
+            change: if opts.remove { Box::new(remove_claude) } else { Box::new(|o| install_claude_keyed(o, &forward, &suffix, &key)) },
         },
         Target {
             name: "Codex",
             file: codex_dir.join("hooks.json"),
             needs_folder: Some(codex_dir),
-            change: if opts.remove {
-                Box::new(remove_codex)
-            } else {
-                Box::new(|o| install_codex_keyed(o, &forward, &suffix, &key))
-            },
+            change: if opts.remove { Box::new(remove_codex) } else { Box::new(|o| install_codex_keyed(o, &forward, &suffix, &key)) },
         },
     ];
     targets
         .into_iter()
-        .map(
-            |Target {
-                 name,
-                 file,
-                 needs_folder,
-                 change,
-             }| {
-                let outcome = |status, message: String, backup| Outcome {
-                    agent: name,
-                    status,
-                    file: file.clone(),
-                    backup,
-                    message,
-                };
-                if let Some(folder) = needs_folder.filter(|f| !f.exists()) {
-                    let message = format!(
-                        "{name}: not installed ({} missing), skipped.",
-                        folder.display()
-                    );
-                    return outcome(Status::Skipped, message, None);
+        .map(|Target { name, file, needs_folder, change }| {
+            let outcome = |status, message: String, backup| Outcome { agent: name, status, file: file.clone(), backup, message };
+            if let Some(folder) = needs_folder.filter(|f| !f.exists()) {
+                let message = format!("{name}: not installed ({} missing), skipped.", folder.display());
+                return outcome(Status::Skipped, message, None);
+            }
+            let (found, data) = match read_object(&file) {
+                Ok(read) => read,
+                Err(e) => {
+                    let message = format!("{name}: {} is not valid JSON ({e}); left alone.", file.display());
+                    return outcome(Status::Error, message, None);
                 }
-                let (found, data) = match read_object(&file) {
-                    Ok(read) => read,
-                    Err(e) => {
-                        let message = format!(
-                            "{name}: {} is not valid JSON ({e}); left alone.",
-                            file.display()
-                        );
-                        return outcome(Status::Error, message, None);
-                    }
-                };
-                let next = change(&data);
-                if !changed(&data, &next) {
-                    let message = format!("{name}: nothing to change in {}.", file.display());
-                    return outcome(Status::Unchanged, message, None);
+            };
+            let next = change(&data);
+            if !changed(&data, &next) {
+                let message = format!("{name}: nothing to change in {}.", file.display());
+                return outcome(Status::Unchanged, message, None);
+            }
+            let status = if opts.remove { Status::Removed } else { Status::Installed };
+            if !opts.apply {
+                return outcome(status, String::new(), None);
+            }
+            match write(&file, found, &next) {
+                Ok(backup) => outcome(status, String::new(), backup),
+                Err(e) => {
+                    let message = format!("{name}: could not write {} ({e}).", file.display());
+                    outcome(Status::Error, message, None)
                 }
-                let status = if opts.remove {
-                    Status::Removed
-                } else {
-                    Status::Installed
-                };
-                if !opts.apply {
-                    return outcome(status, String::new(), None);
-                }
-                match write(&file, found, &next) {
-                    Ok(backup) => outcome(status, String::new(), backup),
-                    Err(e) => {
-                        let message = format!("{name}: could not write {} ({e}).", file.display());
-                        outcome(Status::Error, message, None)
-                    }
-                }
-            },
-        )
+            }
+        })
         .collect()
 }
 
@@ -559,21 +470,13 @@ mod tests {
     }
 
     fn command_at(settings: &Object, event: &str, group: usize) -> String {
-        settings["hooks"][event][group]["hooks"][0]["command"]
-            .as_str()
-            .unwrap()
-            .to_owned()
+        settings["hooks"][event][group]["hooks"][0]["command"].as_str().unwrap().to_owned()
     }
 
     #[test]
     fn adds_a_hook_per_event_beside_the_users_own_and_wraps_the_statusline() {
         let next = install_claude(&mine(), FWD, "");
-        let mut events: Vec<&str> = next["hooks"]
-            .as_object()
-            .unwrap()
-            .keys()
-            .map(String::as_str)
-            .collect();
+        let mut events: Vec<&str> = next["hooks"].as_object().unwrap().keys().map(String::as_str).collect();
         events.sort_unstable();
         let mut expected = CLAUDE_EVENTS.to_vec();
         expected.sort_unstable();
@@ -587,10 +490,7 @@ mod tests {
         assert_eq!(next["statusLine"]["padding"], 1);
         let line = next["statusLine"]["command"].as_str().unwrap();
         assert!(line.starts_with(&format!("{FWD} statusline --wrap=")));
-        assert_eq!(
-            unwrap_statusline(line).unwrap(),
-            mine()["statusLine"]["command"].as_str().unwrap()
-        );
+        assert_eq!(unwrap_statusline(line).unwrap(), mine()["statusLine"]["command"].as_str().unwrap());
         assert_eq!(next["model"], "opus");
     }
 
@@ -647,61 +547,33 @@ mod tests {
         let next = install_claude(&obj(serde_json::from_str(text).unwrap()), FWD, "");
         let keys: Vec<&str> = next.keys().map(String::as_str).collect();
         assert_eq!(keys, ["zeta", "alpha", "hooks", "model", "statusLine"]);
-        let inner: Vec<&str> = next["alpha"]
-            .as_object()
-            .unwrap()
-            .keys()
-            .map(String::as_str)
-            .collect();
+        let inner: Vec<&str> = next["alpha"].as_object().unwrap().keys().map(String::as_str).collect();
         assert_eq!(inner, ["b", "a"]);
     }
 
     #[test]
     fn does_the_same_for_codex() {
-        let file = obj(
-            json!({ "hooks": { "Stop": [{ "hooks": [{ "type": "command", "command": "x" }] }] } }),
-        );
+        let file = obj(json!({ "hooks": { "Stop": [{ "hooks": [{ "type": "command", "command": "x" }] }] } }));
         let next = install_codex(&file, FWD, "");
         assert_eq!(next["hooks"].as_object().unwrap().len(), CODEX_EVENTS.len());
-        assert_eq!(
-            command_at(&next, "Interrupt", 0),
-            format!("{FWD} hook codex")
-        );
-        assert!(next["hooks"]["Interrupt"][0]["hooks"][0]
-            .get("async")
-            .is_none());
+        assert_eq!(command_at(&next, "Interrupt", 0), format!("{FWD} hook codex"));
+        assert!(next["hooks"]["Interrupt"][0]["hooks"][0].get("async").is_none());
         assert_eq!(remove_codex(&next), file);
-        assert_eq!(
-            remove_codex(&install_codex(&Object::new(), FWD, "")),
-            Object::new()
-        );
+        assert_eq!(remove_codex(&install_codex(&Object::new(), FWD, "")), Object::new());
     }
 
     #[test]
     fn ends_each_command_with_the_url() {
         let url = url_suffix(Some("http://127.0.0.1:3999"));
         assert_eq!(url_suffix(None), "");
-        let claude = install_claude(
-            &obj(json!({ "statusLine": { "type": "command", "command": "mine" } })),
-            FWD,
-            &url,
-        );
-        assert_eq!(
-            command_at(&claude, "Stop", 0),
-            format!("{FWD} hook claude --url=http://127.0.0.1:3999")
-        );
+        let claude = install_claude(&obj(json!({ "statusLine": { "type": "command", "command": "mine" } })), FWD, &url);
+        assert_eq!(command_at(&claude, "Stop", 0), format!("{FWD} hook claude --url=http://127.0.0.1:3999"));
         let line = claude["statusLine"]["command"].as_str().unwrap();
         assert!(line.ends_with(" --url=http://127.0.0.1:3999"));
         assert_eq!(unwrap_statusline(line).unwrap(), "mine");
         let bare = install_claude(&Object::new(), FWD, &url);
-        assert_eq!(
-            bare["statusLine"]["command"],
-            format!("{FWD} statusline --url=http://127.0.0.1:3999")
-        );
-        assert_eq!(
-            remove_claude(&claude),
-            obj(json!({ "statusLine": { "type": "command", "command": "mine" } }))
-        );
+        assert_eq!(bare["statusLine"]["command"], format!("{FWD} statusline --url=http://127.0.0.1:3999"));
+        assert_eq!(remove_claude(&claude), obj(json!({ "statusLine": { "type": "command", "command": "mine" } })));
     }
 
     #[test]
@@ -725,10 +597,7 @@ mod tests {
         // The same group that holds a user hook and ours loses only ours.
         let mut shared = next.clone();
         let ours = shared["hooks"]["Stop"][2]["hooks"][0].clone();
-        shared["hooks"]["Stop"][0]["hooks"]
-            .as_array_mut()
-            .unwrap()
-            .push(ours);
+        shared["hooks"]["Stop"][0]["hooks"].as_array_mut().unwrap().push(ours);
         let cleaned = remove_claude(&shared);
         assert_eq!(cleaned["hooks"]["Stop"][0], others["hooks"]["Stop"][0]);
         assert_eq!(cleaned["hooks"]["Stop"][1], others["hooks"]["Stop"][1]);
@@ -753,68 +622,33 @@ mod tests {
         assert!(!text.contains(LEGACY_MARK));
         assert_eq!(next["hooks"]["Stop"].as_array().unwrap().len(), 2);
         assert_eq!(next["hooks"]["Stop"][0], old["hooks"]["Stop"][0]);
-        assert_eq!(
-            command_at(&next, "Stop", 1),
-            format!("{FWD} hook claude --url=http://127.0.0.1:3922")
-        );
-        assert_eq!(
-            next["hooks"].as_object().unwrap().len(),
-            CLAUDE_EVENTS.len()
-        );
+        assert_eq!(command_at(&next, "Stop", 1), format!("{FWD} hook claude --url=http://127.0.0.1:3922"));
+        assert_eq!(next["hooks"].as_object().unwrap().len(), CLAUDE_EVENTS.len());
         let line = &next["statusLine"];
         assert_eq!(line["padding"], 2);
-        assert!(line["command"]
-            .as_str()
-            .unwrap()
-            .starts_with(&format!("{FWD} statusline --wrap=")));
-        assert_eq!(
-            unwrap_statusline(line["command"].as_str().unwrap()).unwrap(),
-            "my line"
-        );
-        assert_eq!(
-            install_claude(&next, FWD, " --url=http://127.0.0.1:3922"),
-            next
-        );
+        assert!(line["command"].as_str().unwrap().starts_with(&format!("{FWD} statusline --wrap=")));
+        assert_eq!(unwrap_statusline(line["command"].as_str().unwrap()).unwrap(), "my line");
+        assert_eq!(install_claude(&next, FWD, " --url=http://127.0.0.1:3922"), next);
         // A bare old statusline (it wrapped none) becomes a bare new one.
-        let bare = install_claude(
-            &obj(
-                json!({ "statusLine": { "type": "command", "command": format!("{OLD_FWD} statusline") } }),
-            ),
-            FWD,
-            "",
-        );
+        let bare =
+            install_claude(&obj(json!({ "statusLine": { "type": "command", "command": format!("{OLD_FWD} statusline") } })), FWD, "");
         assert_eq!(bare["statusLine"]["command"], format!("{FWD} statusline"));
         // Removing also takes the old ones out.
-        assert_eq!(
-            remove_claude(&old)["hooks"]["Stop"],
-            json!([old["hooks"]["Stop"][0]])
-        );
+        assert_eq!(remove_claude(&old)["hooks"]["Stop"], json!([old["hooks"]["Stop"][0]]));
         assert_eq!(remove_claude(&old)["statusLine"]["command"], "my line");
-        let old_codex = obj(
-            json!({ "hooks": { "Stop": [{ "hooks": [{ "type": "command", "command": format!("{OLD_FWD} hook codex") }] }] } }),
-        );
+        let old_codex =
+            obj(json!({ "hooks": { "Stop": [{ "hooks": [{ "type": "command", "command": format!("{OLD_FWD} hook codex") }] }] } }));
         assert_eq!(remove_codex(&old_codex), Object::new());
         let migrated = install_codex(&old_codex, FWD, "");
-        assert!(!serde_json::to_string(&migrated)
-            .unwrap()
-            .contains(LEGACY_MARK));
-        assert_eq!(
-            command_at(&migrated, "Stop", 0),
-            format!("{FWD} hook codex")
-        );
+        assert!(!serde_json::to_string(&migrated).unwrap().contains(LEGACY_MARK));
+        assert_eq!(command_at(&migrated, "Stop", 0), format!("{FWD} hook codex"));
     }
 
     #[test]
     fn unwraps_only_our_statuslines() {
         assert_eq!(unwrap_statusline("mine --wrap=YQ"), None);
-        assert_eq!(
-            unwrap_statusline("\"ips-agent.exe\" statusline").as_deref(),
-            Some("")
-        );
-        assert_eq!(
-            unwrap_statusline("\"ips-agent.exe\" statusline --wrap= --wrap=YQ").as_deref(),
-            Some("a")
-        );
+        assert_eq!(unwrap_statusline("\"ips-agent.exe\" statusline").as_deref(), Some(""));
+        assert_eq!(unwrap_statusline("\"ips-agent.exe\" statusline --wrap= --wrap=YQ").as_deref(), Some("a"));
     }
 
     #[test]
@@ -825,14 +659,7 @@ mod tests {
     }
 
     fn opts<'a>(home: &'a Path, apply: bool, remove: bool) -> Options<'a> {
-        Options {
-            apply,
-            remove,
-            agent: "C:/app/ips-agent.exe",
-            url: Some("http://127.0.0.1:3999"),
-            key: None,
-            home,
-        }
+        Options { apply, remove, agent: "C:/app/ips-agent.exe", url: Some("http://127.0.0.1:3999"), key: None, home }
     }
 
     fn summary(out: &[Outcome]) -> Vec<(&'static str, &'static str)> {
@@ -847,19 +674,13 @@ mod tests {
         fs::write(&file, r#"{"model":"opus"}"#).unwrap();
 
         let dry = run(&opts(home.path(), false, false));
-        assert_eq!(
-            summary(&dry),
-            [("Claude Code", "installed"), ("Codex", "skipped")]
-        );
+        assert_eq!(summary(&dry), [("Claude Code", "installed"), ("Codex", "skipped")]);
         assert_eq!(fs::read_to_string(&file).unwrap(), r#"{"model":"opus"}"#);
 
         let done = run(&opts(home.path(), true, false));
         assert_eq!(done[0].file, file);
         let backup = done[0].backup.clone().unwrap();
-        assert!(
-            backup.to_string_lossy().contains(".dashboard-")
-                && backup.to_string_lossy().ends_with(".bak")
-        );
+        assert!(backup.to_string_lossy().contains(".dashboard-") && backup.to_string_lossy().ends_with(".bak"));
         assert_eq!(fs::read_to_string(backup).unwrap(), r#"{"model":"opus"}"#);
         let text = fs::read_to_string(&file).unwrap();
         // Pretty, two spaces, trailing newline; the temp file is gone.
@@ -867,10 +688,7 @@ mod tests {
         assert!(text.ends_with("}\n"));
         assert!(!file.with_file_name("settings.json.dashboard.tmp").exists());
         let saved: Value = serde_json::from_str(&text).unwrap();
-        assert_eq!(
-            saved["hooks"]["Stop"][0]["hooks"][0]["command"],
-            "\"C:/app/ips-agent.exe\" hook claude --url=http://127.0.0.1:3999"
-        );
+        assert_eq!(saved["hooks"]["Stop"][0]["hooks"][0]["command"], "\"C:/app/ips-agent.exe\" hook claude --url=http://127.0.0.1:3999");
 
         // Again: nothing to do, no new backup.
         let again = run(&opts(home.path(), true, false));
@@ -878,10 +696,7 @@ mod tests {
         assert!(again[0].backup.is_none());
         let removed = run(&opts(home.path(), true, true));
         assert_eq!(removed[0].status, Status::Removed);
-        assert_eq!(
-            serde_json::from_str::<Value>(&fs::read_to_string(&file).unwrap()).unwrap(),
-            json!({ "model": "opus" })
-        );
+        assert_eq!(serde_json::from_str::<Value>(&fs::read_to_string(&file).unwrap()).unwrap(), json!({ "model": "opus" }));
     }
 
     #[test]
@@ -927,12 +742,7 @@ mod tests {
         assert!(!text.contains(LEGACY_MARK) && text.contains("ips-agent.exe"));
         let json = to_json(true, &out);
         assert_eq!(json["apply"], true);
-        let mut keys: Vec<&str> = json["results"][0]
-            .as_object()
-            .unwrap()
-            .keys()
-            .map(String::as_str)
-            .collect();
+        let mut keys: Vec<&str> = json["results"][0].as_object().unwrap().keys().map(String::as_str).collect();
         keys.sort_unstable();
         assert_eq!(keys, ["agent", "backup", "file", "message", "status"]);
     }
@@ -942,13 +752,15 @@ mod tests {
         let mut next = base.clone();
         let hooks: Object = CLAUDE_EVENTS
             .iter()
-            .map(|e| ((*e).to_owned(), json!([{ "hooks": [{ "type": "command", "command": format!("{OLD_FWD} hook claude"), "timeout": 5, "async": true }] }])))
+            .map(|e| {
+                (
+                    (*e).to_owned(),
+                    json!([{ "hooks": [{ "type": "command", "command": format!("{OLD_FWD} hook claude"), "timeout": 5, "async": true }] }]),
+                )
+            })
             .collect();
         next.insert("hooks".into(), Value::Object(hooks));
-        next.insert(
-            "statusLine".into(),
-            json!({ "type": "command", "command": format!("{OLD_FWD} statusline") }),
-        );
+        next.insert("statusLine".into(), json!({ "type": "command", "command": format!("{OLD_FWD} statusline") }));
         next
     }
 }

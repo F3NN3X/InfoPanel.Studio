@@ -74,16 +74,12 @@ fn main() {
         "agent_answers_log",
         "agent_prompt_room",
     ]);
-    tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))
-        .expect("failed to run the Tauri build script");
+    tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest)).expect("failed to run the Tauri build script");
 }
 
 /// Today (UTC) as YYYY-MM-DD, for the About page's "built" date.
 fn build_date() -> String {
-    let secs = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
+    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
     // Howard Hinnant's days-to-civil.
     let z = (secs / 86_400) as i64 + 719_468;
     let era = z.div_euclid(146_097);

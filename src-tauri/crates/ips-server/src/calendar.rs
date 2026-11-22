@@ -30,7 +30,8 @@ pub fn empty_calendar(configured: bool) -> Value {
 
 /// The occurrences of the feeds (ICS texts) between an hour ago and 36 hours on, soonest first.
 pub fn upcoming(feeds: &[String], now: i64, local: LocalZone) -> Vec<ical::Occurrence> {
-    let mut all: Vec<ical::Occurrence> = feeds.iter().flat_map(|text| ical::occurrences(&ical::parse_ics(text), now - BEHIND_MS, now + AHEAD_MS, local)).collect();
+    let mut all: Vec<ical::Occurrence> =
+        feeds.iter().flat_map(|text| ical::occurrences(&ical::parse_ics(text), now - BEHIND_MS, now + AHEAD_MS, local)).collect();
     all.sort_by_key(|o| o.start);
     all.truncate(MAX_EVENTS);
     all
@@ -67,7 +68,9 @@ pub async fn fetch_feed(client: &GuardedClient, url: &str) -> Result<String, Str
 
 /// The host of a link for the log and error text: never the path or query, which hold the secret.
 fn host_of(url: &str) -> String {
-    url::Url::parse(url).map(|u| u.host_str().unwrap_or_default().to_string() + &u.port().map_or(String::new(), |p| format!(":{p}"))).unwrap_or_default()
+    url::Url::parse(url)
+        .map(|u| u.host_str().unwrap_or_default().to_string() + &u.port().map_or(String::new(), |p| format!(":{p}")))
+        .unwrap_or_default()
 }
 
 /// The live calendar: `run` is the supervised task, `reconfigure` fetches now (after the links change), and `on_change`
@@ -83,7 +86,11 @@ pub struct Calendar {
 }
 
 impl Calendar {
-    pub fn new(client: GuardedClient, links: impl Fn() -> Vec<Link> + Send + Sync + 'static, on_change: impl Fn() + Send + Sync + 'static) -> Arc<Self> {
+    pub fn new(
+        client: GuardedClient,
+        links: impl Fn() -> Vec<Link> + Send + Sync + 'static,
+        on_change: impl Fn() + Send + Sync + 'static,
+    ) -> Arc<Self> {
         Arc::new(Self {
             state: Mutex::new(empty_calendar(false)),
             last_good: Mutex::new(HashMap::new()),
@@ -194,7 +201,12 @@ mod tests {
     #[test]
     fn merges_the_feeds_occurrences_soonest_first_and_skips_a_broken_feed() {
         let now = chrono::DateTime::parse_from_rfc3339("2026-10-15T08:00:00Z").unwrap().timestamp_millis();
-        let feeds = vec![ics("b", "20261015T120000Z", "Lunch"), "garbage".to_string(), ics("a", "20261015T090000Z", "Standup"), ics("c", "20261020T090000Z", "Far")];
+        let feeds = vec![
+            ics("b", "20261015T120000Z", "Lunch"),
+            "garbage".to_string(),
+            ics("a", "20261015T090000Z", "Standup"),
+            ics("c", "20261020T090000Z", "Far"),
+        ];
         let events = upcoming(&feeds, now, LocalZone::System);
         assert_eq!(events.iter().map(|e| e.title.as_str()).collect::<Vec<_>>(), ["Standup", "Lunch"]);
     }
@@ -227,7 +239,8 @@ mod tests {
         let feed = ics("a", "20261015T090000Z", "Standup");
         let port = serve(vec![ok(&feed), "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".into()]).await;
         let url = format!("http://127.0.0.1:{port}/a.ics");
-        let cal = Calendar::new(GuardedClient::open(), move || vec![Link { id: "x".into(), label: "Work".into(), url: url.clone() }], || {});
+        let cal =
+            Calendar::new(GuardedClient::open(), move || vec![Link { id: "x".into(), label: "Work".into(), url: url.clone() }], || {});
         cal.refresh().await;
         assert_eq!(cal.state()["configured"], true);
         assert!(cal.state().get("error").is_none());

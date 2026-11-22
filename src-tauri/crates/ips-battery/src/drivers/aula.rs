@@ -42,7 +42,7 @@
 //! From a USB capture of AULA Hub (batterymon-proto issue #201); read-only.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, hid_product, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4, hid_product};
 use crate::win::now_ms;
 
 const RECEIVERS: [(u16, u16); 3] = [(0x3554, 0xFA09), (0x3554, 0xFB40), (0x41E4, 0x2001)];
@@ -77,7 +77,9 @@ const MODELS: [Model; 18] = [
 /// Sum of the first `n` bytes.
 fn sum(b: &[u8], n: usize) -> u8 {
     let mut s: u32 = 0;
-    for i in 0..n { s += b[i] as u32; }
+    for i in 0..n {
+        s += b[i] as u32;
+    }
     (s & 0xFF) as u8
 }
 
@@ -93,32 +95,50 @@ fn send_request(d: &mut dyn HidIo, cmd: u8, packets: u8) -> bool {
 /// Sends 13 <cmd> ... and waits for the matching reply, resending every 1.3 s within `total_ms`.
 fn exchange(d: &mut dyn HidIo, cmd: u8, r: &mut Vec<u8>, total_ms: i32) -> bool {
     let start = now_ms();
-    let end = start + total_ms as u64;  // single absolute deadline
+    let end = start + total_ms as u64; // single absolute deadline
     let (start_i, end_i) = (start as i64, end as i64);
     const RESEND_MS: i64 = 1300;
     let mut sent: i64 = 0;
     d.flush();
     loop {
         let now = now_ms() as i64;
-        if now >= end_i { return false; }
+        if now >= end_i {
+            return false;
+        }
         if now >= start_i + sent * RESEND_MS {
-            if !send_request(d, cmd, (sent & 1) as u8) { return false; }
+            if !send_request(d, cmd, (sent & 1) as u8) {
+                return false;
+            }
             sent += 1;
         }
         let next_send = start_i + sent * RESEND_MS;
         let mut wait = (next_send.min(end_i) - now) as i32;
-        if wait < 1 { wait = 1; }
+        if wait < 1 {
+            wait = 1;
+        }
         let before = now_ms();
         let n = d.read(r, wait as u32);
         // A read that fails at once is an I/O error (receiver unplugged), not a timeout: stop.
-        if n < 0 && (now_ms() - before) as i32 + 20 < wait { return false; }
-        if n < 20 { continue; }  // timeout (resend or give up above) or a short unrelated report
-        if r[0] != 0x13 { continue; }
-        if (r[1] & 0x7F) != cmd { continue; }  // the receiver also pushes unrelated 0x13 frames
-        if r[4..19].iter().all(|&b| b == 0) { continue; }  // echo of a request
+        if n < 0 && (now_ms() - before) as i32 + 20 < wait {
+            return false;
+        }
+        if n < 20 {
+            continue;
+        } // timeout (resend or give up above) or a short unrelated report
+        if r[0] != 0x13 {
+            continue;
+        }
+        if (r[1] & 0x7F) != cmd {
+            continue;
+        } // the receiver also pushes unrelated 0x13 frames
+        if r[4..19].iter().all(|&b| b == 0) {
+            continue;
+        } // echo of a request
         let checksum = r[19] == sum(r, 19);
-        let mchose = r[19] == 0 && r[2] == 1 && r[3] == 0;  // MCHOSE leaves the trailer at 0
-        if !checksum && !mchose { continue; }
+        let mchose = r[19] == 0 && r[2] == 1 && r[3] == 0; // MCHOSE leaves the trailer at 0
+        if !checksum && !mchose {
+            continue;
+        }
         return true;
     }
 }
@@ -127,11 +147,15 @@ fn exchange(d: &mut dyn HidIo, cmd: u8, r: &mut Vec<u8>, total_ms: i32) -> bool 
 /// had it one byte earlier, so byte 4 is tried too. A code that matches neither leaves the model unknown.
 fn identify_model(d: &mut dyn HidIo) -> Option<&'static str> {
     let mut r: Vec<u8> = Vec::new();
-    if !exchange(d, 0x05, &mut r, 1300) { return None; }
+    if !exchange(d, 0x05, &mut r, 1300) {
+        return None;
+    }
     for off in [5usize, 4usize] {
         for m in &MODELS {
             let code: &[u8] = &m.code;
-            if code == &r[off..off + 6] { return Some(m.name); }
+            if code == &r[off..off + 6] {
+                return Some(m.name);
+            }
         }
     }
     None
@@ -145,13 +169,15 @@ const HERO_DATA: u8 = 0x0E;
 const HERO_ACK: u8 = 0x00;
 const HERO_TRAILER_HOST: u8 = 0x08;
 const HERO_TRAILER_DEV: u8 = 0x07;
-const HERO_DEADLINE_MS: u64 = 1000;  // the whole exchange takes ~30 ms when the keyboard is awake
-const HERO_RESEND_MS: u64 = 150;     // resend a frame the keyboard has not acknowledged yet
+const HERO_DEADLINE_MS: u64 = 1000; // the whole exchange takes ~30 ms when the keyboard is awake
+const HERO_RESEND_MS: u64 = 150; // resend a frame the keyboard has not acknowledged yet
 
 /// Sum of bytes `from..to` (to exclusive).
 fn sum_range(b: &[u8], from: usize, to: usize) -> u8 {
     let mut s: u32 = 0;
-    for i in from..to { s += b[i] as u32; }
+    for i in from..to {
+        s += b[i] as u32;
+    }
     (s & 0xFF) as u8
 }
 
@@ -168,7 +194,9 @@ fn hero_header(counter: i32, index: u8, typ: u8) -> Vec<u8> {
 
 fn hero_data_frame(counter: i32, index: u8, msg: &[u8]) -> Vec<u8> {
     let mut f = hero_header(counter, index, HERO_DATA);
-    for i in 0..14usize { f[5 + i] = msg[(index as usize - 1) * 14 + i]; }
+    for i in 0..14usize {
+        f[5 + i] = msg[(index as usize - 1) * 14 + i];
+    }
     f[19] = sum_range(&f, 1, 19);
     f
 }
@@ -192,15 +220,14 @@ fn hero_ack(r: &[u8]) -> Vec<u8> {
 }
 
 fn is_ack_for(r: &[u8], f: &[u8]) -> bool {
-    (r[4] & 0x7F) == HERO_ACK && r[2] == f[2] && r[3] == f[3] && (r[4] & 0x80) == (f[4] & 0x80)
-        && r[5] == sum_range(r, 1, 5)
+    (r[4] & 0x7F) == HERO_ACK && r[2] == f[2] && r[3] == f[3] && (r[4] & 0x80) == (f[4] & 0x80) && r[5] == sum_range(r, 1, 5)
 }
 
 struct HeroLink<'a> {
     d: &'a mut dyn HidIo,
     end: u64,
     level: i32,
-    flags: i32,  // the byte after the level, 0x10 while charging
+    flags: i32, // the byte after the level, 0x10 while charging
     in_reply: bool,
     reply_done: bool,
     io_error: bool,
@@ -208,15 +235,16 @@ struct HeroLink<'a> {
 
 impl<'a> HeroLink<'a> {
     fn new(d: &'a mut dyn HidIo) -> Self {
-        HeroLink { d, end: now_ms() + HERO_DEADLINE_MS, level: -1, flags: -1,
-                   in_reply: false, reply_done: false, io_error: false }
+        HeroLink { d, end: now_ms() + HERO_DEADLINE_MS, level: -1, flags: -1, in_reply: false, reply_done: false, io_error: false }
     }
 
     /// Sends the 4 data frames and the trailer, each one only after the previous was acknowledged.
     fn send_message(&mut self, msg: &[u8]) -> bool {
-        let mut counter: i32 = 1;  // AULA Hub starts a session at 1 as well
+        let mut counter: i32 = 1; // AULA Hub starts a session at 1 as well
         for i in 1u8..=4 {
-            if !self.send_frame(&hero_data_frame(counter, i, msg)) { return false; }
+            if !self.send_frame(&hero_data_frame(counter, i, msg)) {
+                return false;
+            }
             counter = (counter + 1) & 7;
         }
         self.send_frame(&hero_trailer(counter, msg))
@@ -227,13 +255,19 @@ impl<'a> HeroLink<'a> {
         let mut r: Vec<u8> = Vec::new();
         while !(self.level >= 0 && self.reply_done) {
             let rem = self.remaining();
-            if !self.read_frame(&mut r, rem) { break; }
+            if !self.read_frame(&mut r, rem) {
+                break;
+            }
         }
         self.level >= 0
     }
 
-    fn level(&self) -> i32 { self.level }
-    fn charging(&self) -> bool { self.flags >= 0 && (self.flags & 0x10) != 0 }
+    fn level(&self) -> i32 {
+        self.level
+    }
+    fn charging(&self) -> bool {
+        self.flags >= 0 && (self.flags & 0x10) != 0
+    }
 
     fn remaining(&self) -> i32 {
         let left = self.end as i64 - now_ms() as i64;
@@ -243,16 +277,24 @@ impl<'a> HeroLink<'a> {
     fn send_frame(&mut self, f: &[u8]) -> bool {
         let mut r: Vec<u8> = Vec::new();
         while self.remaining() > 0 {
-            if !self.d.write(f, 500) { return false; }
+            if !self.d.write(f, 500) {
+                return false;
+            }
             let resend_at = now_ms() + HERO_RESEND_MS;
             loop {
                 let wait = ((resend_at as i64 - now_ms() as i64).min(self.remaining() as i64)) as i32;
-                if wait <= 0 { break; }
-                if !self.read_frame(&mut r, wait) {
-                    if self.io_error { return false; }
+                if wait <= 0 {
                     break;
                 }
-                if is_ack_for(&r, f) { return true; }
+                if !self.read_frame(&mut r, wait) {
+                    if self.io_error {
+                        return false;
+                    }
+                    break;
+                }
+                if is_ack_for(&r, f) {
+                    return true;
+                }
             }
         }
         false
@@ -262,7 +304,9 @@ impl<'a> HeroLink<'a> {
     /// Returns false on timeout or I/O error.
     fn read_frame(&mut self, r: &mut Vec<u8>, mut wait_ms: i32) -> bool {
         loop {
-            if wait_ms <= 0 { return false; }
+            if wait_ms <= 0 {
+                return false;
+            }
             let before = now_ms();
             let n = self.d.read(r, wait_ms as u32);
             let took = (now_ms() - before) as i32;
@@ -271,19 +315,29 @@ impl<'a> HeroLink<'a> {
                 self.io_error = true;
                 return false;
             }
-            if n < 0 { return false; }
+            if n < 0 {
+                return false;
+            }
             wait_ms -= took;
-            if n < 20 || r[0] != HERO_ID || r[1] != HERO_MAGIC { continue; }  // unrelated report
+            if n < 20 || r[0] != HERO_ID || r[1] != HERO_MAGIC {
+                continue;
+            } // unrelated report
             let typ = r[4] & 0x7F;
             if typ == HERO_DATA {
-                if r[19] != sum_range(r, 1, 19) { continue; }  // damaged: no ACK, the keyboard resends
+                if r[19] != sum_range(r, 1, 19) {
+                    continue;
+                } // damaged: no ACK, the keyboard resends
                 let ack = hero_ack(r);
                 self.d.write(&ack, 500);
-                if (r[3] & 0x7F) == 1 { self.inspect(r); }
+                if (r[3] & 0x7F) == 1 {
+                    self.inspect(r);
+                }
             } else if typ == HERO_TRAILER_DEV {
                 let ack = hero_ack(r);
                 self.d.write(&ack, 500);
-                if self.in_reply { self.reply_done = true; }
+                if self.in_reply {
+                    self.reply_done = true;
+                }
                 self.in_reply = false;
             }
             return true;
@@ -293,12 +347,13 @@ impl<'a> HeroLink<'a> {
     /// First data frame of a keyboard message: payload starts at byte 5.
     fn inspect(&mut self, r: &[u8]) {
         self.in_reply = false;
-        if r[5] == 0x87 && r[11] >= 1 && r[11] <= 100 {  // reply to our request
+        if r[5] == 0x87 && r[11] >= 1 && r[11] <= 100 {
+            // reply to our request
             self.level = r[11] as i32;
             self.flags = r[12] as i32;
             self.in_reply = true;
         } else if r[5] == 0xFE && r[6] == 0x05 && r[7] >= 1 && r[7] <= 100 && self.level < 0 {
-            self.level = r[7] as i32;  // pushed by the keyboard on its own; keep waiting for the real reply
+            self.level = r[7] as i32; // pushed by the keyboard on its own; keep waiting for the real reply
             self.flags = r[8] as i32;
         }
     }
@@ -307,12 +362,16 @@ impl<'a> HeroLink<'a> {
 fn query_hero_battery(d: &mut dyn HidIo, level: &mut i32, charging: &mut bool) -> bool {
     let mut msg = vec![0u8; 56];
     msg[0] = 0x09;
-    msg[1] = 0x87;  // battery
+    msg[1] = 0x87; // battery
     msg[4] = 0x01;
     d.flush();
     let mut link = HeroLink::new(d);
-    if !link.send_message(&msg) { return false; }
-    if !link.wait_for_battery() { return false; }
+    if !link.send_message(&msg) {
+        return false;
+    }
+    if !link.wait_for_battery() {
+        return false;
+    }
     *level = link.level();
     *charging = link.charging();
     true
@@ -320,33 +379,41 @@ fn query_hero_battery(d: &mut dyn HidIo, level: &mut i32, charging: &mut bool) -
 
 pub fn poll_aula(ctx: &mut PollContext) {
     for &(vid, pid) in &RECEIVERS {
-        if ctx.is_claimed(vid, pid) { continue; }
-        for c in ctx.find(vid, pid, |c| {
-            (c.page() == 0xFF02 || c.page() == 0xFF04) && c.usage() == 0x0002
-                && c.out_len() >= 20 && c.in_len() >= 20
-        }) {
+        if ctx.is_claimed(vid, pid) {
+            continue;
+        }
+        for c in ctx
+            .find(vid, pid, |c| (c.page() == 0xFF02 || c.page() == 0xFF04) && c.usage() == 0x0002 && c.out_len() >= 20 && c.in_len() >= 20)
+        {
             let Some(mut d) = ctx.open(&c) else { continue };
             // Only the generic receiver names carry a model code (M HUB asks no other device).
             let product = hid_product(&c);
-            let generic = product.contains("2.4G Wireless Receiver")
-                || product.contains("MCHOSE 2.4G Wireless");
+            let generic = product.contains("2.4G Wireless Receiver") || product.contains("MCHOSE 2.4G Wireless");
             let model = if generic { identify_model(d.as_mut()) } else { None };
             let mchose = vid == 0x41E4 || model.is_some();
             let mut r: Vec<u8> = Vec::new();
             // Byte 2 alternates 00 / 01 on resends; M HUB sends 01, the AULA references 00.
-            if !exchange(d.as_mut(), 0x4A, &mut r, 4000) { continue; }
+            if !exchange(d.as_mut(), 0x4A, &mut r, 4000) {
+                continue;
+            }
             let level = r[5] as i32;
-            if level < 1 || level > 100 { continue; }
-            let name = if let Some(m) = model { m }
-                       else if mchose { "MCHOSE wireless keyboard" }
-                       else { "AULA wireless keyboard" };
+            if level < 1 || level > 100 {
+                continue;
+            }
+            let name = if let Some(m) = model {
+                m
+            } else if mchose {
+                "MCHOSE wireless keyboard"
+            } else {
+                "AULA wireless keyboard"
+            };
             let s = DeviceStatus {
                 key: format!("aula:{}:{}", hex4(vid), hex4(pid)),
                 name: name.into(),
                 kind: DeviceKind::Keyboard,
                 via: "2.4 GHz receiver".into(),
                 percent: level,
-                charging: (r[6] >> 4) == 1,  // high nibble: AULA's 0x10 cable flag, M HUB's chargeStatus
+                charging: (r[6] >> 4) == 1, // high nibble: AULA's 0x10 cable flag, M HUB's chargeStatus
                 ..Default::default()
             };
             ctx.add(s, vid, pid);
@@ -355,14 +422,16 @@ pub fn poll_aula(ctx: &mut PollContext) {
     }
 
     for &(vid, pid) in &ctx.products(0x372E) {
-        if pid != 0x106C { continue; }  // HERO 68 Air "8K Wireless Receiver"; other 372E products are unknown
-        for c in ctx.find(vid, pid, |c| {
-            c.page() == 0xFF60 && c.usage() == 0x0061 && c.out_len() >= 20 && c.in_len() >= 20
-        }) {
+        if pid != 0x106C {
+            continue;
+        } // HERO 68 Air "8K Wireless Receiver"; other 372E products are unknown
+        for c in ctx.find(vid, pid, |c| c.page() == 0xFF60 && c.usage() == 0x0061 && c.out_len() >= 20 && c.in_len() >= 20) {
             let Some(mut d) = ctx.open(&c) else { continue };
             let mut level = -1;
             let mut charging = false;
-            if !query_hero_battery(d.as_mut(), &mut level, &mut charging) { continue; }
+            if !query_hero_battery(d.as_mut(), &mut level, &mut charging) {
+                continue;
+            }
             let s = DeviceStatus {
                 key: format!("aula:{}:{}", hex4(vid), hex4(pid)),
                 name: "AULA wireless keyboard".into(),

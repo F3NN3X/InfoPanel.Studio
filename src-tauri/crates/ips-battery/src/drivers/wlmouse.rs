@@ -15,7 +15,7 @@
 //! (an output report 04 query, or a different CRC framing) and one reports they never answer this
 //! query.
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4};
 use crate::win::sleep_ms;
 
 const K_VID: u16 = 0x36A7;
@@ -45,23 +45,39 @@ const K_MODELS: [Model; 12] = [
 ];
 
 #[derive(PartialEq, Eq, Clone, Copy)]
-enum Reply { Battery, Asleep, None }
+enum Reply {
+    Battery,
+    Asleep,
+    None,
+}
 
 fn query(d: &mut dyn HidIo, pct: &mut i32, charging: &mut bool) -> Reply {
-    let mut req = vec![0u8; 65];  // [0] = report id 0
+    let mut req = vec![0u8; 65]; // [0] = report id 0
     req[3] = 0x02;
     req[4] = 0x02;
     req[6] = 0x83;
     for _attempt in 0..2 {
-        if !d.set_feature(&req) { return Reply::None; }
+        if !d.set_feature(&req) {
+            return Reply::None;
+        }
         for _read in 0..6 {
             sleep_ms(60);
             let mut r = Vec::new();
-            if !d.get_feature(0x00, &mut r) || r.len() < 9 { return Reply::None; }
-            if r[3] != 0x02 || r[4] != 0x02 || r[6] != 0x83 { continue; }  // not the reply (yet)
-            if r[1] == 0xA0 { return Reply::Asleep; }
-            if r[1] != 0xA1 && r[1] != 0xA2 { continue; }  // still our own request echoed back
-            if r[8] > 100 { return Reply::None; }
+            if !d.get_feature(0x00, &mut r) || r.len() < 9 {
+                return Reply::None;
+            }
+            if r[3] != 0x02 || r[4] != 0x02 || r[6] != 0x83 {
+                continue;
+            } // not the reply (yet)
+            if r[1] == 0xA0 {
+                return Reply::Asleep;
+            }
+            if r[1] != 0xA1 && r[1] != 0xA2 {
+                continue;
+            } // still our own request echoed back
+            if r[8] > 100 {
+                return Reply::None;
+            }
             *pct = r[8] as i32;
             *charging = r[7] == 0x01;
             return Reply::Battery;
@@ -72,7 +88,9 @@ fn query(d: &mut dyn HidIo, pct: &mut i32, charging: &mut bool) -> Reply {
 
 pub fn poll_wlmouse(ctx: &mut PollContext) {
     for m in &K_MODELS {
-        if ctx.is_claimed(K_VID, m.pid) { continue; }
+        if ctx.is_claimed(K_VID, m.pid) {
+            continue;
+        }
         let mut colls = ctx.find(K_VID, m.pid, |c| c.page() == 0xFFFF && c.feat_len() >= 65);
         // Usage 0 is the collection that answers in both sources; try it first (stable sort).
         colls.sort_by_key(|c| c.usage() != 0);
@@ -80,7 +98,9 @@ pub fn poll_wlmouse(ctx: &mut PollContext) {
             let Some(mut d) = ctx.open_feature_only(&c) else { continue };
             let (mut pct, mut charging) = (-1i32, false);
             let rep = query(&mut *d, &mut pct, &mut charging);
-            if rep == Reply::None { continue; }
+            if rep == Reply::None {
+                continue;
+            }
             let mut s = DeviceStatus {
                 key: format!("wlmouse:{}", hex4(m.pid)),
                 name: m.name.into(),
@@ -88,16 +108,20 @@ pub fn poll_wlmouse(ctx: &mut PollContext) {
                 via: if m.receiver { "2.4 GHz receiver" } else { "USB cable" }.into(),
                 ..Default::default()
             };
-            if m.receiver { s.grace_sec = 1800; }  // a sleeping mouse can leave the receiver silent
+            if m.receiver {
+                s.grace_sec = 1800;
+            } // a sleeping mouse can leave the receiver silent
             if rep == Reply::Asleep {
-                s.asleep = true;  // shown with the last known value
+                s.asleep = true; // shown with the last known value
             } else {
                 s.percent = pct;
                 s.charging = charging;
             }
             ctx.add(s, K_VID, m.pid);
             // same mouse, already listed via its cable
-            if m.receiver_pid != 0 { ctx.claim(K_VID, m.receiver_pid); }
+            if m.receiver_pid != 0 {
+                ctx.claim(K_VID, m.receiver_pid);
+            }
             break;
         }
     }

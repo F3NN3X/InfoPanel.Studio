@@ -4,7 +4,7 @@
 //! Feature report 51, command 06, 21 bytes: [10] mode/link, [11] %, [12] charging.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hid_product, HidColl, HidIo, PollContext};
+use crate::hid::{HidColl, HidIo, PollContext, hid_product};
 use crate::win::{now_ms, sleep_ms};
 
 const VENDOR: u16 = 0x248A;
@@ -13,21 +13,33 @@ const CABLE: u16 = 0xFF4E;
 const STATUS_LENGTH: u16 = 21;
 
 fn is_status_collection(c: &HidColl, cable: bool) -> bool {
-    c.iface == (if cable { 2 } else { 1 }) && c.page() == 0x008C && c.usage() == 1
-        && c.in_len() == 33 && c.out_len() == 33 && c.feat_len() == 1001
+    c.iface == (if cable { 2 } else { 1 })
+        && c.page() == 0x008C
+        && c.usage() == 1
+        && c.in_len() == 33
+        && c.out_len() == 33
+        && c.feat_len() == 1001
 }
 
 fn decode_status(r: &[u8], cable: bool, s: &mut DeviceStatus) -> bool {
-    if r.len() != STATUS_LENGTH as usize || r[0] != 0x51 || r[1] != 0x06
-        || r[4] != 0x8A || r[5] != 0x24 || r[6] != 0x4E || r[7] != 0xFF
-        || (r[10] & 7) != (if cable { 0 } else { 1 }) {
+    if r.len() != STATUS_LENGTH as usize
+        || r[0] != 0x51
+        || r[1] != 0x06
+        || r[4] != 0x8A
+        || r[5] != 0x24
+        || r[6] != 0x4E
+        || r[7] != 0xFF
+        || (r[10] & 7) != (if cable { 0 } else { 1 })
+    {
         return false;
     }
     // The wireless link bit is clear on the cable too; the USB connection itself is authoritative there.
     let connected = cable || (r[10] & 8) != 0;
-    if connected && (r[11] > 100 || r[12] > 1) { return false; }
+    if connected && (r[11] > 100 || r[12] > 1) {
+        return false;
+    }
     s.connected = connected;
-    s.percent = if connected { r[11] as i32 } else { -1 };  // 0% is valid, not an offline sentinel
+    s.percent = if connected { r[11] as i32 } else { -1 }; // 0% is valid, not an offline sentinel
     s.charging = connected && r[12] == 1;
     true
 }
@@ -37,14 +49,20 @@ fn query_status(d: &mut dyn HidIo, cable: bool, s: &mut DeviceStatus) -> bool {
     request[0] = 0x51;
     request[1] = 0x06;
     let deadline = now_ms() + 200;
-    if !d.set_feature(&request) { return false; }
+    if !d.set_feature(&request) {
+        return false;
+    }
     // Allow the reply to replace the receiver's previous feature response. An open vendor app
     // can leave unrelated replies here, so accept only this command's validated status frame.
     loop {
         sleep_ms(10);
         let mut r = Vec::new();
-        if d.get_feature(0x51, &mut r) && decode_status(&r, cable, s) { return true; }
-        if now_ms() >= deadline { break; }
+        if d.get_feature(0x51, &mut r) && decode_status(&r, cable, s) {
+            return true;
+        }
+        if now_ms() >= deadline {
+            break;
+        }
     }
     false
 }
@@ -53,29 +71,37 @@ pub fn poll_machenike(ctx: &mut PollContext) {
     let mut have_cable = false;
     // A live cable reading takes precedence over the dongle's cached/disconnected mouse state.
     for &pid in &[CABLE, RECEIVER] {
-        if ctx.is_claimed(VENDOR, pid) { continue; }
+        if ctx.is_claimed(VENDOR, pid) {
+            continue;
+        }
         let cable = pid == CABLE;
         for c in ctx.find(VENDOR, pid, |c| is_status_collection(c, cable)) {
-            if hid_product(&c) != "L7 Mix" { continue; }
+            if hid_product(&c) != "L7 Mix" {
+                continue;
+            }
             // Reserve even on I/O failure: the later Ajazz poller shares VID 248A and would
             // otherwise send its different command to the L7's cable collection.
             ctx.claim(VENDOR, pid);
-            if have_cable { break; }
+            if have_cable {
+                break;
+            }
             let mut status = c.clone();
             // 1001 is the largest report on this collection (macro data). Report 51 is 21 bytes;
             // use its exact length in the common HID layer, as the official application does.
             status.caps.feature_report_byte_length = STATUS_LENGTH;
             let Some(mut d) = ctx.open_feature_only(&status) else { break };
             let mut s = DeviceStatus::default();
-            if !query_status(&mut *d, cable, &mut s) { break; }
-            s.key = "machenike:l7".into();  // keep the same tray entry when switching cable/receiver
+            if !query_status(&mut *d, cable, &mut s) {
+                break;
+            }
+            s.key = "machenike:l7".into(); // keep the same tray entry when switching cable/receiver
             s.name = "Machenike L7 Arctic / L7 Mix".into();
             s.kind = DeviceKind::Mouse;
             s.via = if cable { "USB cable".into() } else { "2.4 GHz receiver".into() };
             s.grace_sec = if cable { 0 } else { 1800 };
             have_cable = cable;
             ctx.add(s, VENDOR, pid);
-            break;  // one exact status collection and one bounded query per product
+            break; // one exact status collection and one bounded query per product
         }
     }
 }
@@ -117,8 +143,13 @@ mod tests {
             pid: if cable { 0xFF4E } else { 0xFF4C },
             iface: if cable { 2 } else { 1 },
             path: if cable { "cable" } else { "receiver" }.into(),
-            caps: HidCaps { usage_page: 0x008C, usage: 1, input_report_byte_length: 33,
-                            output_report_byte_length: 33, feature_report_byte_length: 1001 },
+            caps: HidCaps {
+                usage_page: 0x008C,
+                usage: 1,
+                input_report_byte_length: 33,
+                output_report_byte_length: 33,
+                feature_report_byte_length: 1001,
+            },
             ..Default::default()
         }
     }
@@ -144,9 +175,15 @@ mod tests {
     }
 
     impl HidIo for TestIo {
-        fn write(&mut self, _data: &[u8], _timeout_ms: u32) -> bool { false }
-        fn read(&mut self, _buf: &mut Vec<u8>, _timeout_ms: u32) -> i32 { -1 }
-        fn set_output_and_read(&mut self, _data: &[u8], _buf: &mut Vec<u8>, _timeout_ms: u32) -> i32 { -1 }
+        fn write(&mut self, _data: &[u8], _timeout_ms: u32) -> bool {
+            false
+        }
+        fn read(&mut self, _buf: &mut Vec<u8>, _timeout_ms: u32) -> i32 {
+            -1
+        }
+        fn set_output_and_read(&mut self, _data: &[u8], _buf: &mut Vec<u8>, _timeout_ms: u32) -> i32 {
+            -1
+        }
         fn flush(&mut self) {}
 
         fn set_feature(&mut self, data: &[u8]) -> bool {
@@ -154,8 +191,7 @@ mod tests {
             let mut expected = vec![0u8; STATUS_LENGTH as usize];
             expected[0] = 0x51;
             expected[1] = 0x06;
-            assert_eq!(self.coll.caps.feature_report_byte_length, STATUS_LENGTH,
-                       "the status must be opened with its exact 21-byte report");
+            assert_eq!(self.coll.caps.feature_report_byte_length, STATUS_LENGTH, "the status must be opened with its exact 21-byte report");
             assert_eq!(data, &expected[..], "only the documented status query can be sent");
             let mut sh = self.sh.borrow_mut();
             sh.sends += 1;
@@ -170,12 +206,17 @@ mod tests {
             sh.reads += 1;
             let r = if sh.repeat { sh.replies.front().cloned() } else { sh.replies.pop_front() };
             match r {
-                Some(r) => { *out = r; true }
+                Some(r) => {
+                    *out = r;
+                    true
+                }
                 None => false,
             }
         }
 
-        fn get_input_report(&mut self, _report_id: u8, _out: &mut Vec<u8>) -> bool { false }
+        fn get_input_report(&mut self, _report_id: u8, _out: &mut Vec<u8>) -> bool {
+            false
+        }
     }
 
     struct TestFactory {
@@ -183,16 +224,21 @@ mod tests {
     }
 
     impl HidFactory for TestFactory {
-        fn open(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> { self.open_feature_only(coll) }
-        fn open_read_only(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> { self.open_feature_only(coll) }
+        fn open(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> {
+            self.open_feature_only(coll)
+        }
+        fn open_read_only(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> {
+            self.open_feature_only(coll)
+        }
         fn open_feature_only(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> {
             // C++ OpenFeatureOnly: count the open, then assert the driver narrowed the report —
             // 1001 is the collection's largest report, 21 is the status report.
             let mut sh = self.sh.borrow_mut();
             sh.opens += 1;
-            assert_eq!(coll.caps.feature_report_byte_length, STATUS_LENGTH,
-                       "status report must be opened with its exact 21-byte length");
-            if !sh.open_ok { return None; }
+            assert_eq!(coll.caps.feature_report_byte_length, STATUS_LENGTH, "status report must be opened with its exact 21-byte length");
+            if !sh.open_ok {
+                return None;
+            }
             Some(Box::new(TestIo { sh: self.sh.clone(), coll: coll.clone() }))
         }
     }
@@ -207,7 +253,9 @@ mod tests {
     }
 
     impl Outcome {
-        fn is_claimed(&self, vid: u16, pid: u16) -> bool { self.claimed.contains(&(vid, pid)) }
+        fn is_claimed(&self, vid: u16, pid: u16) -> bool {
+            self.claimed.contains(&(vid, pid))
+        }
     }
 
     struct Fixture {
@@ -232,10 +280,18 @@ mod tests {
             sh.reads = 0;
         }
 
-        fn set_replies(&self, replies: Vec<Vec<u8>>) { self.sh.borrow_mut().replies = replies.into(); }
-        fn set_repeat(&self, repeat: bool) { self.sh.borrow_mut().repeat = repeat; }
-        fn set_open_ok(&self, ok: bool) { self.sh.borrow_mut().open_ok = ok; }
-        fn set_send_ok(&self, ok: bool) { self.sh.borrow_mut().send_ok = ok; }
+        fn set_replies(&self, replies: Vec<Vec<u8>>) {
+            self.sh.borrow_mut().replies = replies.into();
+        }
+        fn set_repeat(&self, repeat: bool) {
+            self.sh.borrow_mut().repeat = repeat;
+        }
+        fn set_open_ok(&self, ok: bool) {
+            self.sh.borrow_mut().open_ok = ok;
+        }
+        fn set_send_ok(&self, ok: bool) {
+            self.sh.borrow_mut().send_ok = ok;
+        }
 
         /// One C++ `PollMachenike(ctx)` over `colls`, with the mock state read while the poll is
         /// done (the C++ globals lived outside the context).
@@ -325,7 +381,9 @@ mod tests {
             fx.context();
             fx.set_replies(vec![wireless()]);
             let o = fx.run(vec![collection(false)]);
-            if o.out.len() == 1 { assert_eq!(o.out[0].key, cable_key); }
+            if o.out.len() == 1 {
+                assert_eq!(o.out[0].key, cable_key);
+            }
 
             // ---- strict identity and collection, no device commands ----
             for field in 0..8 {
@@ -344,8 +402,10 @@ mod tests {
                 }
                 fx.set_replies(vec![wireless()]);
                 let o = fx.run(vec![c]);
-                assert!(o.out.is_empty() && o.claimed.is_empty() && o.opens == 0 && o.sends == 0,
-                        "field {field} must be rejected without touching the device");
+                assert!(
+                    o.out.is_empty() && o.claimed.is_empty() && o.opens == 0 && o.sends == 0,
+                    "field {field} must be rejected without touching the device"
+                );
             }
 
             // ---- a non-"L7 Mix" product lists, claims and opens nothing ----
@@ -367,12 +427,21 @@ mod tests {
             bad_percent[11] = 101;
             bad_charge[12] = 0xFF;
             fx.context();
-            fx.set_replies(vec![wrong_report.clone(), wrong_command.clone(), wrong_device.clone(),
-                                 wrong_mode.clone(), bad_percent.clone(), bad_charge.clone(),
-                                 vec![0u8; 12], wireless()]);
+            fx.set_replies(vec![
+                wrong_report.clone(),
+                wrong_command.clone(),
+                wrong_device.clone(),
+                wrong_mode.clone(),
+                bad_percent.clone(),
+                bad_charge.clone(),
+                vec![0u8; 12],
+                wireless(),
+            ]);
             let o = fx.run(vec![collection(false)]);
             assert!(o.out.len() == 1 && o.reads >= 8);
-            if o.out.len() == 1 { assert_eq!(o.out[0].percent, 64); }
+            if o.out.len() == 1 {
+                assert_eq!(o.out[0].percent, 64);
+            }
             // One bounded query, matching the single SetFeature the C++ mock counted.
             assert_eq!(o.sends, 1);
 
@@ -418,8 +487,7 @@ mod tests {
             // pair are extra coverage the C++ program did not assert.
             let mut wrong_cable_mode = cable_reply();
             wrong_cable_mode[10] = 0x09; // the wireless link mode on the cable collection
-            for bad in [&wrong_report, &wrong_command, &wrong_device, &wrong_mode,
-                        &bad_percent, &bad_charge] {
+            for bad in [&wrong_report, &wrong_command, &wrong_device, &wrong_mode, &bad_percent, &bad_charge] {
                 assert!(decode(bad, false).is_none(), "malformed frame {bad:02X?} must be rejected");
             }
             assert!(decode(&wrong_cable_mode, true).is_none());

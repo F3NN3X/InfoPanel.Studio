@@ -173,10 +173,8 @@ fn set_status(app: &AppHandle, generation: u64, f: impl FnOnce(&mut Status)) -> 
     if shows_start_page(status.state) {
         windows::load_start_page(app);
     }
-    if !matches!(
-        status.state,
-        Phase::Starting | Phase::Running | Phase::Stopped | Phase::Restarting
-    ) && st.show_on_problem.swap(false, Ordering::SeqCst)
+    if !matches!(status.state, Phase::Starting | Phase::Running | Phase::Stopped | Phase::Restarting)
+        && st.show_on_problem.swap(false, Ordering::SeqCst)
     {
         windows::show_main(app);
     }
@@ -187,14 +185,7 @@ fn set_status(app: &AppHandle, generation: u64, f: impl FnOnce(&mut Status)) -> 
 /// `on_running`). Starting does not: after a crash the studio stays loaded, keeps its unsaved
 /// edits and reconnects when the server is back.
 pub fn shows_start_page(state: Phase) -> bool {
-    matches!(
-        state,
-        Phase::Stopped
-            | Phase::Failed
-            | Phase::PortInUse
-            | Phase::ForeignDashboard
-            | Phase::Restarting
-    )
+    matches!(state, Phase::Stopped | Phase::Failed | Phase::PortInUse | Phase::ForeignDashboard | Phase::Restarting)
 }
 
 fn current_generation(app: &AppHandle) -> u64 {
@@ -258,10 +249,7 @@ pub fn start_blocking(app: &AppHandle) -> Status {
     let st = app.state::<AppState>();
     let status = st.status();
     // Running includes a server the app did not start: starting would take its port over.
-    let busy = matches!(
-        status.state,
-        Phase::Starting | Phase::Restarting | Phase::Running
-    );
+    let busy = matches!(status.state, Phase::Starting | Phase::Restarting | Phase::Running);
     if busy {
         return status;
     }
@@ -284,8 +272,7 @@ pub fn stop(app: &AppHandle) -> Result<Status, String> {
     Ok(app.state::<AppState>().status())
 }
 
-pub const FOREIGN_STOP: &str =
-    "This server was not started by InfoPanel Studio, so the app can't stop it. Close the program that runs it.";
+pub const FOREIGN_STOP: &str = "This server was not started by InfoPanel Studio, so the app can't stop it. Close the program that runs it.";
 
 /// Shows "restarting", stops the server, then starts it with the saved settings. Blocks.
 pub fn restart_blocking(app: &AppHandle) -> Status {
@@ -320,27 +307,16 @@ pub fn find_free_port(host: &str, from: u16) -> Option<u16> {
 
 /// The port the error callout offers instead of the one in use.
 fn suggest_port(s: &Settings) -> Option<u16> {
-    s.port
-        .checked_add(1)
-        .and_then(|p| find_free_port(s.host(), p))
+    s.port.checked_add(1).and_then(|p| find_free_port(s.host(), p))
 }
 
 /// The error code and message for a server that exited before it answered; `code` is the bind
 /// failure its output reported.
 pub fn start_failure(code: Option<ErrorCode>, port: u16, exit: &str) -> (ErrorCode, String) {
     match code {
-        Some(ErrorCode::AddrInUse) => (
-            ErrorCode::AddrInUse,
-            format!("Port {port} is already in use by another app."),
-        ),
-        Some(ErrorCode::Access) => (
-            ErrorCode::Access,
-            format!("Windows blocked port {port} ({exit})."),
-        ),
-        _ => (
-            ErrorCode::Other,
-            format!("The server stopped while starting ({exit})."),
-        ),
+        Some(ErrorCode::AddrInUse) => (ErrorCode::AddrInUse, format!("Port {port} is already in use by another app.")),
+        Some(ErrorCode::Access) => (ErrorCode::Access, format!("Windows blocked port {port} ({exit}).")),
+        _ => (ErrorCode::Other, format!("The server stopped while starting ({exit}).")),
     }
 }
 
@@ -361,20 +337,14 @@ fn run_start(app: &AppHandle) {
             set_status(app, generation, |status| {
                 status.state = Phase::ForeignDashboard;
                 status.foreign_version = version;
-                status.message = Some(format!(
-                    "Another InfoPanel Studio server is running on port {}.",
-                    s.port
-                ));
+                status.message = Some(format!("Another InfoPanel Studio server is running on port {}.", s.port));
             });
         }
         Probe::Other { detail } => {
             let suggested = suggest_port(&s);
             set_status(app, generation, |status| {
                 status.state = Phase::PortInUse;
-                status.message = Some(format!(
-                    "Port {} is used by another program ({detail}).",
-                    s.port
-                ));
+                status.message = Some(format!("Port {} is used by another program ({detail}).", s.port));
                 status.error_code = Some(ErrorCode::AddrInUse);
                 status.failed_at = Some(now_ms());
                 status.suggested_port = suggested;
@@ -385,11 +355,7 @@ fn run_start(app: &AppHandle) {
 
 fn fail(app: &AppHandle, generation: u64, code: ErrorCode, message: String) {
     log::warn!("server: {message}");
-    let suggested = if code == ErrorCode::AddrInUse {
-        suggest_port(&app.state::<AppState>().settings())
-    } else {
-        None
-    };
+    let suggested = if code == ErrorCode::AddrInUse { suggest_port(&app.state::<AppState>().settings()) } else { None };
     set_status(app, generation, |status| {
         clear_run(status);
         status.state = Phase::Failed;
@@ -410,12 +376,7 @@ fn start_native(app: &AppHandle, generation: u64, s: &Settings, debug: bool) -> 
             let _ = l.write_line(line);
         }
     };
-    write(&format!(
-        "[{}] --- starting the in-app server on {}:{} ---",
-        server_log::timestamp(),
-        s.host(),
-        s.port
-    ));
+    write(&format!("[{}] --- starting the in-app server on {}:{} ---", server_log::timestamp(), s.host(), s.port));
     let server = match native::start(cfg.clone(), None) {
         Err(e) => {
             write(&e.to_string());
@@ -490,15 +451,7 @@ fn spawn_and_wait(app: &AppHandle, generation: u64) {
     if let Some(server) = native {
         server.stop();
     }
-    fail(
-        app,
-        generation,
-        ErrorCode::Other,
-        format!(
-            "The server did not answer within {} seconds.",
-            HEALTH_DEADLINE.as_secs()
-        ),
-    );
+    fail(app, generation, ErrorCode::Other, format!("The server did not answer within {} seconds.", HEALTH_DEADLINE.as_secs()));
 }
 
 /// What happens after the running server exits on its own.
@@ -537,10 +490,7 @@ fn watch(app: &AppHandle, generation: u64) {
                 continue;
             }
             server.native = None;
-            (
-                "the in-app server ended".to_string(),
-                server.status.state == Phase::Running,
-            )
+            ("the in-app server ended".to_string(), server.status.state == Phase::Running)
         };
         if st.is_quitting() {
             return;
@@ -550,8 +500,7 @@ fn watch(app: &AppHandle, generation: u64) {
             let (code, message) = start_failure(None, s.port, &exit);
             return fail(app, generation, code, message);
         }
-        let budget_left =
-            s.auto_restart && allow_restart(&mut lock(&st.server).restarts, Instant::now());
+        let budget_left = s.auto_restart && allow_restart(&mut lock(&st.server).restarts, Instant::now());
         match after_crash(s.auto_restart, budget_left) {
             AfterCrash::Restart => {
                 if lock(&st.server).generation != generation {
@@ -560,20 +509,14 @@ fn watch(app: &AppHandle, generation: u64) {
                 log::warn!("server crashed ({exit}); restarting");
                 run_start(app);
             }
-            AfterCrash::Off => fail(
-                app,
-                generation,
-                ErrorCode::Other,
-                format!("The server crashed ({exit}); restarting after a crash is off."),
-            ),
+            AfterCrash::Off => {
+                fail(app, generation, ErrorCode::Other, format!("The server crashed ({exit}); restarting after a crash is off."))
+            }
             AfterCrash::Exhausted => fail(
                 app,
                 generation,
                 ErrorCode::Other,
-                format!(
-                    "The server crashed {} times within a minute ({exit}).",
-                    server_log::MAX_RESTARTS + 1
-                ),
+                format!("The server crashed {} times within a minute ({exit}).", server_log::MAX_RESTARTS + 1),
             ),
         }
         return;
@@ -585,22 +528,14 @@ fn watch(app: &AppHandle, generation: u64) {
 pub fn use_foreign(app: &AppHandle) -> Result<(), String> {
     let st = app.state::<AppState>();
     let port = st.settings().port;
-    let pid = probe::listener_pid(port)
-        .ok_or_else(|| format!("Could not find the process that holds port {port}."))?;
+    let pid = probe::listener_pid(port).ok_or_else(|| format!("Could not find the process that holds port {port}."))?;
     let info = probe::process_info(pid).ok_or_else(|| format!("Process {pid} has gone."))?;
     if is_own_server(pid) {
         return Err("That is the app's own server.".into());
     }
     if !probe::may_adopt(&info) {
-        let why = if probe::is_ips_server(&info) {
-            "running as another user"
-        } else {
-            "which is not an ips-server"
-        };
-        return Err(format!(
-            "Port {port} is held by {} (PID {pid}), {why}; it was not used.",
-            info.name
-        ));
+        let why = if probe::is_ips_server(&info) { "running as another user" } else { "which is not an ips-server" };
+        return Err(format!("Port {port} is held by {} (PID {pid}), {why}; it was not used.", info.name));
     }
     let generation = lock(&st.server).generation;
     let s = st.settings();
@@ -679,17 +614,14 @@ fn add_setup_capability(app: &AppHandle, origin: &str) {
 fn add_studio_capability(app: &AppHandle, origin: &str) {
     let st = app.state::<AppState>();
     let slug = origin.replace(|c: char| !c.is_ascii_alphanumeric(), "-");
-    for (prefix, window, permissions) in [
-        ("studio", windows::MAIN, STUDIO_PERMISSIONS),
-        ("settings", windows::SETTINGS, SETTINGS_PERMISSIONS),
-    ] {
+    for (prefix, window, permissions) in
+        [("studio", windows::MAIN, STUDIO_PERMISSIONS), ("settings", windows::SETTINGS, SETTINGS_PERMISSIONS)]
+    {
         let id = format!("{prefix}-{slug}");
         if !lock(&st.capabilities).insert(id.clone()) {
             continue;
         }
-        let mut cap = tauri::ipc::CapabilityBuilder::new(id)
-            .remote(format!("{origin}/*"))
-            .window(window);
+        let mut cap = tauri::ipc::CapabilityBuilder::new(id).remote(format!("{origin}/*")).window(window);
         for p in permissions {
             cap = cap.permission(*p);
         }
@@ -712,11 +644,7 @@ pub fn refresh_agents(app: &AppHandle) {
     };
     if result.ok {
         let mut current = lock(&st.settings);
-        current.agents.installed = Some(agents::install_record(
-            &s,
-            &st.version,
-            &agents::agent_path(&st.paths),
-        ));
+        current.agents.installed = Some(agents::install_record(&s, &st.version, &agents::agent_path(&st.paths)));
         let _ = settings::save(&st.paths.config_dir, &current);
     } else {
         log::warn!("agents: refresh failed: {:?}", result.steps);
@@ -749,10 +677,25 @@ mod tests {
     fn the_studio_keeps_only_what_it_calls() {
         assert_unique(STUDIO_PERMISSIONS);
         // The studio opens the Settings window and reads the status bar's state; it changes nothing in the shell.
-        for command in ["allow-open-settings", "allow-get-settings", "allow-server-status", "allow-update-state", "allow-flush-done", "allow-infopanel-local"] {
+        for command in [
+            "allow-open-settings",
+            "allow-get-settings",
+            "allow-server-status",
+            "allow-update-state",
+            "allow-flush-done",
+            "allow-infopanel-local",
+        ] {
             assert!(STUDIO_PERMISSIONS.contains(&command), "{command} is missing");
         }
-        for command in ["allow-set-setting", "allow-stop-server", "allow-install-update", "allow-set-agents", "allow-read-log", "allow-reveal-path", "allow-show-studio"] {
+        for command in [
+            "allow-set-setting",
+            "allow-stop-server",
+            "allow-install-update",
+            "allow-set-agents",
+            "allow-read-log",
+            "allow-reveal-path",
+            "allow-show-studio",
+        ] {
             assert!(!STUDIO_PERMISSIONS.contains(&command), "{command} is granted to the studio");
         }
         // A widget publisher key is trusted or removed in the Settings window only (Phase 6a), never from the studio.
@@ -765,7 +708,15 @@ mod tests {
         for command in ["allow-touch-view", "allow-touch-screens"] {
             assert!(STUDIO_PERMISSIONS.contains(&command), "{command} is missing from the studio");
         }
-        for command in ["allow-touch-set", "allow-touch-uninstall-driver", "allow-touch-setup", "allow-touch-pair", "allow-touch-calibrate", "allow-touch-identify", "allow-touch-cancel"] {
+        for command in [
+            "allow-touch-set",
+            "allow-touch-uninstall-driver",
+            "allow-touch-setup",
+            "allow-touch-pair",
+            "allow-touch-calibrate",
+            "allow-touch-identify",
+            "allow-touch-cancel",
+        ] {
             assert!(!STUDIO_PERMISSIONS.contains(&command) && !SETUP_PERMISSIONS.contains(&command), "{command} is granted to the studio");
             assert!(SETTINGS_PERMISSIONS.contains(&command), "{command} is missing from the settings window");
         }
@@ -795,7 +746,8 @@ mod tests {
             assert!(SETTINGS_PERMISSIONS.contains(&command), "{command} is missing");
         }
         // Nothing the studio window alone does: Kiosk view, its files, its health samples.
-        for command in ["allow-kiosk-window", "allow-open-text-file", "allow-save-binary-file", "allow-report-metrics", "allow-flush-done"] {
+        for command in ["allow-kiosk-window", "allow-open-text-file", "allow-save-binary-file", "allow-report-metrics", "allow-flush-done"]
+        {
             assert!(!SETTINGS_PERMISSIONS.contains(&command), "{command} is granted to the settings window");
         }
     }
@@ -824,10 +776,7 @@ mod tests {
         let (code, message) = start_failure(Some(ErrorCode::AddrInUse), 3922, "exit code: 1");
         assert_eq!(code, ErrorCode::AddrInUse);
         assert!(message.contains("3922"));
-        assert_eq!(
-            start_failure(Some(ErrorCode::Access), 80, "exit code: 1").0,
-            ErrorCode::Access
-        );
+        assert_eq!(start_failure(Some(ErrorCode::Access), 80, "exit code: 1").0, ErrorCode::Access);
         let (code, message) = start_failure(None, 3922, "exit code: 7");
         assert_eq!(code, ErrorCode::Other);
         assert!(message.contains("exit code: 7"));
@@ -846,24 +795,14 @@ mod tests {
         assert!(!shows_start_page(Phase::Running));
         // A crash restart goes through starting: the studio stays.
         assert!(!shows_start_page(Phase::Starting));
-        for state in [
-            Phase::Stopped,
-            Phase::Restarting,
-            Phase::Failed,
-            Phase::PortInUse,
-            Phase::ForeignDashboard,
-        ] {
+        for state in [Phase::Stopped, Phase::Restarting, Phase::Failed, Phase::PortInUse, Phase::ForeignDashboard] {
             assert!(shows_start_page(state), "{state:?}");
         }
     }
 
     #[test]
     fn the_address_is_the_running_one_until_it_stops() {
-        let saved = Settings {
-            port: 3950,
-            listen: Listen::Lan,
-            ..Settings::default()
-        };
+        let saved = Settings { port: 3950, listen: Listen::Lan, ..Settings::default() };
         assert_eq!(status_address(None, &saved), ("0.0.0.0", 3950));
         let running = RunningConfig {
             listen: Listen::Local,

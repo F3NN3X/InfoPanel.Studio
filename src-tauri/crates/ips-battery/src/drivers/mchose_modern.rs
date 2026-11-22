@@ -22,7 +22,7 @@
 //! and report 0x4D, which the 0x1014 receiver does not expose through the feature-report path.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{clamp100, hex4, hid_product, PollContext};
+use crate::hid::{PollContext, clamp100, hex4, hid_product};
 use crate::win::{now_ms, sleep_ms};
 
 const VID: u16 = 0x3837;
@@ -31,9 +31,10 @@ const RECEIVERS: [u16; 5] = [0x1014, 0x1018, 0x1016, 0x102C, 0x102D];
 
 const REPORT: u8 = 0x4D;
 const CMD_DEVICE_INFO: u16 = 0x0900;
-const DATA: usize = 8;  // first byte of the data block in both the request and the reply
+const DATA: usize = 8; // first byte of the data block in both the request and the reply
 
-fn xor(b: &[u8], from: usize, to: usize) -> u8 {  // both ends inclusive
+fn xor(b: &[u8], from: usize, to: usize) -> u8 {
+    // both ends inclusive
     let mut x = 0u8;
     let mut i = from;
     while i <= to && i < b.len() {
@@ -45,18 +46,34 @@ fn xor(b: &[u8], from: usize, to: usize) -> u8 {  // both ends inclusive
 
 /// Returns 1 for a status frame, 0 for a valid frame that says the mouse is not linked, -1 otherwise.
 fn parse_info(r: &[u8], percent: &mut i32, charging: &mut bool) -> i32 {
-    if r.len() < DATA + 2 || r[0] != REPORT { return -1; }
-    if (r[4] as u16 | (r[5] as u16) << 8) != CMD_DEVICE_INFO { return -1; }
+    if r.len() < DATA + 2 || r[0] != REPORT {
+        return -1;
+    }
+    if (r[4] as u16 | (r[5] as u16) << 8) != CMD_DEVICE_INFO {
+        return -1;
+    }
     let len = r[3] as usize;
-    if DATA + len >= r.len() { return -1; }
+    if DATA + len >= r.len() {
+        return -1;
+    }
     // While the mouse is off or asleep the receiver answers with the header only, a single 0xFF in
     // place of the model id and a zeroed data area (4D 01 01 01 00 09 00 00 FF 00 ...), so anything
     // shorter than the 14-byte device-info payload means "not linked" rather than "bad checksum".
-    if len < 14 { return 0; }
-    if r[DATA + len] != xor(r, 2, 7 + len) { return -1; }
-    if (r[DATA] as u16 | (r[DATA + 1] as u16) << 8) != VID { return -1; }
-    if r[DATA + 10] == 0 { return 0; }  // not linked: the mouse is off or asleep
-    if r[DATA + 12] > 100 { return -1; }
+    if len < 14 {
+        return 0;
+    }
+    if r[DATA + len] != xor(r, 2, 7 + len) {
+        return -1;
+    }
+    if (r[DATA] as u16 | (r[DATA + 1] as u16) << 8) != VID {
+        return -1;
+    }
+    if r[DATA + 10] == 0 {
+        return 0;
+    } // not linked: the mouse is off or asleep
+    if r[DATA + 12] > 100 {
+        return -1;
+    }
     *percent = r[DATA + 12] as i32;
     *charging = r[DATA + 11] == 1;
     1
@@ -64,9 +81,7 @@ fn parse_info(r: &[u8], percent: &mut i32, charging: &mut bool) -> i32 {
 
 pub fn poll_mchose_modern(ctx: &mut PollContext) {
     for &pid in &RECEIVERS {
-        for c in ctx.find(VID, pid, |c| {
-            (c.page() == 0xFF01 || c.page() == 0xFF0B) && c.out_len() >= 64 && c.in_len() >= 21
-        }) {
+        for c in ctx.find(VID, pid, |c| (c.page() == 0xFF01 || c.page() == 0xFF0B) && c.out_len() >= 64 && c.in_len() >= 21) {
             let Some(mut d) = ctx.open(&c) else { continue };
             d.flush();
             let mut state = -1;
@@ -74,22 +89,28 @@ pub fn poll_mchose_modern(ctx: &mut PollContext) {
             let mut charging = false;
             let mut attempt = 0;
             while attempt < 3 && state < 0 {
-                if attempt > 0 { sleep_ms(150); }
+                if attempt > 0 {
+                    sleep_ms(150);
+                }
                 attempt += 1;
                 let mut req = vec![0u8; c.out_len() as usize];
                 req[0] = REPORT;
                 req[1] = 0x01;
-                req[2] = 0x01;  // read
+                req[2] = 0x01; // read
                 req[4] = (CMD_DEVICE_INFO & 0xFF) as u8;
                 req[5] = (CMD_DEVICE_INFO >> 8) as u8;
                 req[DATA] = xor(&req, 2, 7);
-                if !d.write(&req, 500) { continue; }
+                if !d.write(&req, 500) {
+                    continue;
+                }
                 let end = now_ms() + 1000;
                 let mut r = Vec::new();
                 while (end as i64 - now_ms() as i64) > 0 {
                     let left = (end as i64 - now_ms() as i64) as i32;
                     let n = d.read(&mut r, left as u32);
-                    if n < 0 { break; }
+                    if n < 0 {
+                        break;
+                    }
                     let st = parse_info(&r, &mut percent, &mut charging);
                     if st >= 0 {
                         state = st;
@@ -97,7 +118,9 @@ pub fn poll_mchose_modern(ctx: &mut PollContext) {
                     }
                 }
             }
-            if state < 0 { continue; }
+            if state < 0 {
+                continue;
+            }
             let mut s = DeviceStatus {
                 key: format!("mchose:{}:{}", hex4(VID), hex4(pid)),
                 kind: DeviceKind::Mouse,
@@ -106,7 +129,9 @@ pub fn poll_mchose_modern(ctx: &mut PollContext) {
                 ..Default::default()
             };
             s.name = hid_product(&c);
-            if s.name.is_empty() { s.name = "MCHOSE mouse".into(); }
+            if s.name.is_empty() {
+                s.name = "MCHOSE mouse".into();
+            }
             if state == 1 {
                 s.percent = clamp100(percent);
                 s.charging = charging;
@@ -136,13 +161,20 @@ mod tests {
             path: "mchose".into(),
             vid: 0x3837,
             pid,
-            caps: HidCaps { usage_page: page, usage: 0x01, input_report_byte_length: in_len,
-                            output_report_byte_length: out_len, ..Default::default() },
+            caps: HidCaps {
+                usage_page: page,
+                usage: 0x01,
+                input_report_byte_length: in_len,
+                output_report_byte_length: out_len,
+                ..Default::default()
+            },
             ..Default::default()
         }
     }
 
-    fn default_collection() -> HidColl { collection(0x1014, 0xFF01, 64, 64) }
+    fn default_collection() -> HidColl {
+        collection(0x1014, 0xFF01, 64, 64)
+    }
 
     /// Device-info reply, laid out the way the receiver sends it: header, 16 data bytes, checksum.
     fn reply(link: u8, charge: u8, percent: u8) -> Vec<u8> {
@@ -150,7 +182,7 @@ mod tests {
         r[0] = 0x4D;
         r[1] = 0x01;
         r[2] = 0x01; // read
-        r[3] = 16;   // data length
+        r[3] = 16; // data length
         r[5] = 0x09; // command 0x0900, device info
         r[8] = 0x37;
         r[9] = 0x38; // vendor id 3837
@@ -159,7 +191,9 @@ mod tests {
         r[18] = link;
         r[19] = charge;
         r[20] = percent;
-        for i in 2..=7 + 16 { r[8 + 16] ^= r[i]; }
+        for i in 2..=7 + 16 {
+            r[8 + 16] ^= r[i];
+        }
         r
     }
 
@@ -177,7 +211,9 @@ mod tests {
 
     fn fix_checksum(r: &mut [u8]) {
         r[8 + 16] = 0;
-        for i in 2..=7 + 16 { r[8 + 16] ^= r[i]; }
+        for i in 2..=7 + 16 {
+            r[8 + 16] ^= r[i];
+        }
     }
 
     /// The only frame this driver may send: the read-only device-info request. The C++ mock
@@ -200,7 +236,9 @@ mod tests {
     }
 
     impl Outcome {
-        fn is_claimed(&self, vid: u16, pid: u16) -> bool { self.claimed.contains(&(vid, pid)) }
+        fn is_claimed(&self, vid: u16, pid: u16) -> bool {
+            self.claimed.contains(&(vid, pid))
+        }
     }
 
     /// One C++ `Poll(...)`: replies scripted, one collection, everything else fresh.
@@ -272,10 +310,13 @@ mod tests {
         assert!(o.out.len() == 1 && o.out[0].asleep && o.out[0].percent == -1);
 
         // Only the vendor collections of the documented receivers are opened.
-        for rejected in [collection(0x1012, 0xFF00, 64, 64),   // MagDock: a different product
-                         collection(0x1014, 0x0001, 64, 64),   // mouse collection, not the vendor one
-                         collection(0x1014, 0xFF01, 63, 64),   // too short to hold the frame
-                         collection(0x1014, 0xFF01, 64, 20)] { // reply cannot be read
+        for rejected in [
+            collection(0x1012, 0xFF00, 64, 64), // MagDock: a different product
+            collection(0x1014, 0x0001, 64, 64), // mouse collection, not the vendor one
+            collection(0x1014, 0xFF01, 63, 64), // too short to hold the frame
+            collection(0x1014, 0xFF01, 64, 20),
+        ] {
+            // reply cannot be read
             let o = poll(Vec::new(), &rejected);
             assert!(o.out.is_empty() && o.opens == 0 && o.writes.is_empty());
         }

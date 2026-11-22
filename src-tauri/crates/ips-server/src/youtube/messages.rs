@@ -50,8 +50,7 @@ fn badge_of(author: Option<&Value>) -> &'static str {
 
 /// A `publishedAt` (RFC 3339) in ms since the epoch, or `fallback`.
 pub fn published_ms(snippet: Option<&Value>, fallback: i64) -> i64 {
-    chrono::DateTime::parse_from_rfc3339(text(snippet.and_then(|s| s.get("publishedAt"))))
-        .map_or(fallback, |t| t.timestamp_millis())
+    chrono::DateTime::parse_from_rfc3339(text(snippet.and_then(|s| s.get("publishedAt")))).map_or(fallback, |t| t.timestamp_millis())
 }
 
 /// The line a snippet shows: its display text, else the typed text.
@@ -79,11 +78,7 @@ fn event_of(item: &Value, now: i64) -> Option<Event> {
                 message: Message {
                     id: id.to_string(),
                     platform: "youtube",
-                    user: if name.is_empty() {
-                        "?".to_string()
-                    } else {
-                        name.to_string()
-                    },
+                    user: if name.is_empty() { "?".to_string() } else { name.to_string() },
                     text: line.to_string(),
                     color: String::new(),
                     badge: badge_of(author),
@@ -106,21 +101,11 @@ fn event_of(item: &Value, now: i64) -> Option<Event> {
 
 /// A list answer as events in order, with the token for the next page and the wait YouTube asks for.
 pub fn parse_page(body: &Value, now: i64) -> Page {
-    let items = body
-        .get("items")
-        .and_then(Value::as_array)
-        .map(Vec::as_slice)
-        .unwrap_or_default();
+    let items = body.get("items").and_then(Value::as_array).map(Vec::as_slice).unwrap_or_default();
     Page {
-        events: items
-            .iter()
-            .filter_map(|item| event_of(item, now))
-            .collect(),
+        events: items.iter().filter_map(|item| event_of(item, now)).collect(),
         next_token: text(body.get("nextPageToken")).to_string(),
-        polling_ms: body
-            .get("pollingIntervalMillis")
-            .and_then(Value::as_u64)
-            .unwrap_or(0),
+        polling_ms: body.get("pollingIntervalMillis").and_then(Value::as_u64).unwrap_or(0),
     }
 }
 
@@ -172,38 +157,18 @@ mod tests {
                 other => panic!("{other:?}"),
             })
             .collect();
-        let badges: Vec<_> = messages
-            .iter()
-            .map(|m| (m.message.id.as_str(), m.message.badge))
-            .collect();
-        assert_eq!(
-            badges,
-            [
-                ("a", "broadcaster"),
-                ("b", "mod"),
-                ("c", "sub"),
-                ("d", ""),
-                ("e", "")
-            ]
-        );
+        let badges: Vec<_> = messages.iter().map(|m| (m.message.id.as_str(), m.message.badge)).collect();
+        assert_eq!(badges, [("a", "broadcaster"), ("b", "mod"), ("c", "sub"), ("d", ""), ("e", "")]);
         assert_eq!(messages[0].message.ts, 1_784_116_800_250);
         assert_eq!(messages[2].message.ts, 1_784_116_802_000);
         // A bad time reads as now; no name reads as "?"; the display text wins over the typed one.
         assert_eq!(
-            (
-                messages[3].message.ts,
-                messages[4].message.user.as_str(),
-                messages[4].message.text.as_str()
-            ),
+            (messages[3].message.ts, messages[4].message.user.as_str(), messages[4].message.text.as_str()),
             (777, "?", "only typed")
         );
         assert_eq!(messages[0].message.text, "hi from Owner");
         assert_eq!(
-            (
-                messages[0].message.platform,
-                messages[0].message.color.as_str(),
-                messages[0].login.as_str()
-            ),
+            (messages[0].message.platform, messages[0].message.color.as_str(), messages[0].login.as_str()),
             ("youtube", "", "UC-Owner")
         );
     }
@@ -215,18 +180,8 @@ mod tests {
             { "id": "y", "snippet": { "type": "userBannedEvent", "userBannedDetails": { "bannedUserDetails": { "channelId": "UC-Bad" }, "banType": "permanent" } } },
             { "id": "z", "snippet": { "type": "messageDeletedEvent", "messageDeletedDetails": {} } },
         ] });
-        assert_eq!(
-            parse_page(&body, 0).events,
-            [Event::Deleted("a".into()), Event::Banned("UC-Bad".into())]
-        );
-        assert_eq!(
-            parse_page(&json!({}), 0),
-            Page {
-                events: vec![],
-                next_token: String::new(),
-                polling_ms: 0
-            }
-        );
+        assert_eq!(parse_page(&body, 0).events, [Event::Deleted("a".into()), Event::Banned("UC-Bad".into())]);
+        assert_eq!(parse_page(&json!({}), 0), Page { events: vec![], next_token: String::new(), polling_ms: 0 });
         assert_eq!(parse_page(&Value::Null, 0).events, []);
     }
 
