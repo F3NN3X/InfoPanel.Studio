@@ -6,7 +6,7 @@ import { renderRefusals, unlit, type Measured } from "@/looks/pack-render-measur
 import { CHECK_URL, runRenderCheck } from "@/looks/pack-render-check";
 import type { PackSource } from "@/looks/pack-validate";
 
-const page = (over: Partial<Measured> = {}): Measured => ({ clips: [], cardClips: [], masks: [], problems: [], cards: 2, gradients: 0, gauges: [{ key: "a", lit: true }], texts: [{ key: "0:0", ratio: 7, text: "CPU" }], marks: [{ key: "0:0", part: "spark", ratio: 5 }], bars: 1, barIssues: [], ...over });
+const page = (over: Partial<Measured> = {}): Measured => ({ clips: [], cardClips: [], masks: [], borders: [], problems: [], cards: 2, gradients: 0, gauges: [{ key: "a", lit: true }], texts: [{ key: "0:0", ratio: 7, text: "CPU" }], marks: [{ key: "0:0", part: "spark", ratio: 5 }], bars: 1, barIssues: [], ...over });
 
 describe("what the pack's CSS changed, and only that", () => {
   it("a page the CSS leaves alone passes", () => {
@@ -68,6 +68,15 @@ describe("what the pack's CSS changed, and only that", () => {
     expect(renderRefusals({ worn: alpha(0.2), bare: alpha(0.9) })[0]).toContain("under a mask");
     expect(renderRefusals({ worn: alpha(null), bare: page() })[0]).toContain("cannot be read");
     expect(renderRefusals({ worn: alpha(null), bare: alpha(null) })).toEqual([]);
+  });
+
+  it("a border keeps every width it had without the pack, whatever its style or colour", () => {
+    const edge = (widths?: string) => page({ borders: widths ? [{ key: "0:3", name: "div num [CPU@1x1]", widths }] : [] });
+    expect(renderRefusals({ worn: edge("2px 2px 2px 2px"), bare: edge("2px 2px 2px 2px") })).toEqual([]);
+    expect(renderRefusals({ worn: edge("3px 3px 3px 3px"), bare: edge() })[0]).toContain("div num [CPU@1x1] is 3px 3px 3px 3px, not 0px 0px 0px 0px");
+    expect(renderRefusals({ worn: edge("2px 4px 2px 2px"), bare: edge("2px 2px 2px 2px") })[0]).toContain("not as wide as without the pack");
+    // a border the pack takes away moves what the element holds as much as one it adds
+    expect(renderRefusals({ worn: edge(), bare: edge("2px 2px 2px 2px") })[0]).toContain("is 0px 0px 0px 0px, not 2px 2px 2px 2px");
   });
 
   it("nothing drawn is no pass", () => {

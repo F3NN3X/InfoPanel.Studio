@@ -2,9 +2,21 @@
 // specs hand `measurePack` to `page.evaluate` for the built-in packs, the studio's render check runs it in its hidden frame on a
 // user pack, so a rule added here holds for both. `measurePack` therefore names nothing outside its own body: it is sent to the
 // browser as source text. Everything here is read in one task, with no await, so the demo streams cannot change the page between
-// a pack's page and its twin.
+// a pack's page and its twin. It cannot load an image, so `readMaskImages` decodes the url() masks first, in its own async step,
+// and hands them in; it is sent the same way and names nothing outside its own body either.
 
 import { OPACITY_FLOOR } from "./pack-css";
+import { packPath } from "./pack-urls";
+import type { PackFile } from "./pack-validate";
+
+/** A mask image read as alpha: `w` by `h` its intrinsic size in CSS px, `a` its alpha (0..1) on a `cols` by `rows` grid, row by row. */
+export interface MaskGrid {
+  w: number;
+  h: number;
+  cols: number;
+  rows: number;
+  a: number[];
+}
 
 export interface MeasureOptions {
   /** The pack's Look id. */
@@ -13,6 +25,8 @@ export interface MeasureOptions {
   alphaMax: number;
   /** The least effective opacity of text and marks. */
   minOpacity: number;
+  /** The url() masks `readMaskImages` decoded, by the url the computed style names; one missing or null cannot be read. */
+  maskImages?: Record<string, MaskGrid | null>;
 }
 
 export interface GaugeInk {
@@ -49,15 +63,24 @@ export interface CardClipInk {
   corners: number | null;
 }
 
-/** The lowest alpha the masks above a text leave over its box (null: a mask that cannot be read, a url() one included). Only texts under a mask are listed. */
+/** The lowest alpha the masks above a text leave over its box (null: a mask that cannot be read, a url() one `readMaskImages` did not decode included). Only texts under a mask are listed. */
 export interface MaskInk {
   key: string;
   text: string;
   alpha: number | null;
 }
 
+/** An element of a card whose computed border widths are not all 0 (`widths`: top right bottom left). */
+export interface BorderInk {
+  key: string;
+  name: string;
+  widths: string;
+}
+
 export interface Measured {
   masks: MaskInk[];
+  /** The elements of the cards that draw a border width: a pack may restyle a border, never widen one. */
+  borders: BorderInk[];
   /** The texts a clip-path cuts into, and the cards that clip themselves. */
   clips: ClipInk[];
   cardClips: CardClipInk[];
@@ -82,7 +105,7 @@ export interface Twin {
 }
 
 /** Reads the page with the pack's stylesheet on, and off. Sent to the browser as source: see the file's head. */
-export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twin {
+export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: MeasureOptions): Twin {
   const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
   const seen = new Map<string, number[]>();
   // a colour string of any syntax as [r, g, b, a]: the canvas parses color-mix and the rest
@@ -320,7 +343,7 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
       return stops[stops.length - 1].a;
     };
   };
-  /** An element's mask (one gradient layer, tiled by its mask-size, -position and -repeat): the alpha it leaves at a point. */
+  /** An element's mask (one gradient or decoded url() layer, tiled by its mask-size, -position and -repeat): the alpha it leaves at a point. */
   const maskOf = (cs: CSSStyleDeclaration, box: DOMRect, z: number): Alpha | null => {
     const prop = (name: string) => cs.getPropertyValue(name).trim() || cs.getPropertyValue(`-webkit-${name}`).trim();
     const layers = parts(prop("mask-image"), ",");
@@ -328,13 +351,31 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
     const [w, h] = [box.width, box.height];
     const size = parts(prop("mask-size") || "auto", " ");
     const side = (v: string | undefined, whole: number) => (v === undefined || v === "auto" || v === "cover" || v === "contain" ? whole : length(v, whole, z));
-    const [tw, th] = [side(size[0], w), side(size[1] ?? size[0], h)];
-    if (tw === null || th === null || tw <= 0 || th <= 0) return null;
+    let [sw, sh] = [side(size[0], w), side(size[1] ?? size[0], h)];
+    // an image's tile is its intrinsic size (`auto`), scaled to the box (`cover`, `contain`) or to a given side, the other keeping the ratio
+    const url = /^url\(\s*(["']?)(.*)\1\s*\)$/.exec(layers[0]);
+    const grid = url ? maskImages[url[2]] : undefined;
+    if (url) {
+      if (!grid || grid.w <= 0 || grid.h <= 0 || grid.cols <= 0 || grid.rows <= 0 || (prop("mask-mode") || "match-source") !== "match-source") return null;
+      const [iw, ih] = [grid.w * z, grid.h * z];
+      const [x, y] = [size[0] ?? "auto", size[1] ?? "auto"];
+      if (x === "cover" || x === "contain") {
+        const s = (x === "cover" ? Math.max : Math.min)(w / iw, h / ih);
+        [sw, sh] = [iw * s, ih * s];
+      } else {
+        const [gx, gy] = [x === "auto" ? null : length(x, w, z), y === "auto" ? null : length(y, h, z)];
+        if ((x !== "auto" && gx === null) || (y !== "auto" && gy === null)) return null;
+        [sw, sh] = [gx ?? (gy === null ? iw : (gy * iw) / ih), gy ?? (gx === null ? ih : (gx * ih) / iw)];
+      }
+    }
+    if (sw === null || sh === null || sw <= 0 || sh <= 0) return null;
+    const [tw, th] = [sw, sh];
     const pos = parts(prop("mask-position") || "0% 0%", " ");
     const [ox, oy] = [length(pos[0] ?? "", w - tw, z), length(pos[1] ?? "", h - th, z)];
     const rep = parts(prop("mask-repeat") || "repeat", " ").flatMap((r) => (r === "repeat-x" ? ["repeat", "no-repeat"] : r === "repeat-y" ? ["no-repeat", "repeat"] : [r]));
     const [rx, ry] = [rep[0], rep[1] ?? rep[0]];
-    const g = gradient(layers[0], tw, th, z);
+    // a decoded image is sampled at the nearest cell of its grid
+    const g = grid ? (u: number, v: number) => grid.a[Math.min(grid.rows - 1, Math.floor((v / th) * grid.rows)) * grid.cols + Math.min(grid.cols - 1, Math.floor((u / tw) * grid.cols))] ?? 0 : gradient(layers[0], tw, th, z);
     if (!g || pos.length !== 2 || ox === null || oy === null || !/^(no-)?repeat$/.test(rx) || !/^(no-)?repeat$/.test(ry)) return null;
     const tile = (n: number, whole: number, repeat: string) => (repeat === "repeat" ? ((n % whole) + whole) % whole : n);
     return (x, y) => {
@@ -392,6 +433,7 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
     const clips: ClipInk[] = [];
     const cardClips: CardClipInk[] = [];
     const dimmed: MaskInk[] = [];
+    const borders: BorderInk[] = [];
     // per element, the clips and masks on it and above it (null: one cannot be read); read once per page
     const clipped = new Map<Element, Inside[] | null>();
     const maskOfEl = new Map<Element, Alpha[] | null>();
@@ -425,6 +467,9 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
     };
     /** A card's text, clips, masks and the pseudo-elements a pack adds, measured in one go so that nothing scrolls between the boxes. */
     const shapes = (card: Element, c: number, place: string) => {
+      // the boxes the clips and masks were read at: a card read before may have scrolled the page since (or hold this one)
+      clipped.clear();
+      maskOfEl.clear();
       const boxes: { rect: DOMRect; words: string }[] = [];
       const face = card.getBoundingClientRect();
       const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
@@ -515,6 +560,12 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
       const place = fig ? `${fig.getAttribute("data-qa-module")}@${fig.getAttribute("data-qa-span")}` : `card ${c}`;
       faded.clear();
       shapes(card, c, place);
+      // every element's border widths, against the twin's: a style on a `medium` border gives it 3 px, which moves what it holds
+      [card, ...card.querySelectorAll("*")].forEach((el, i) => {
+        const cs = getComputedStyle(el);
+        const widths = ["top", "right", "bottom", "left"].map((s) => cs.getPropertyValue(`border-${s}-width`));
+        if (widths.some((v) => parseFloat(v) !== 0)) borders.push({ key: `${c}:${i}`, name: `${[el.tagName.toLowerCase(), el.getAttribute("data-part")].filter(Boolean).join(" ")} [${place}]`, widths: widths.join(" ") });
+      });
       const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
       let k = 0;
       for (let t = walker.nextNode(); t; t = walker.nextNode()) {
@@ -666,7 +717,7 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
         if (r < 4.5) barIssues.push(`header ${header.textContent?.slice(0, 20)} ${getComputedStyle(header).color} on ${getComputedStyle(card).getPropertyValue("--w-mat-export")} is ${r.toFixed(2)}:1`);
       }
     }
-    return { clips, cardClips, masks: dimmed, problems, cards: cards.length, gradients: marks.gradient ?? 0, gauges, texts, marks: inks, bars, barIssues: [...new Set(barIssues)] };
+    return { clips, cardClips, masks: dimmed, borders, problems, cards: cards.length, gradients: marks.gradient ?? 0, gauges, texts, marks: inks, bars, barIssues: [...new Set(barIssues)] };
   };
 
   const worn = read();
@@ -675,6 +726,62 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
   const bare = read();
   for (const sheet of sheets) (sheet as HTMLStyleElement & { disabled: boolean }).disabled = false;
   return { worn, bare };
+}
+
+/**
+ * The url() masks under `[data-look="<look>"]`, pseudo-elements included, each decoded into a `MaskGrid` (null: it would not load or
+ * decode), by the url the computed style names: what `measurePack` reads them from, as it cannot load an image. Without `files` each
+ * url is fetched; with them only their bytes are read, by absolute URL (`maskFiles`), and a url that names none is null. Run in the
+ * page just before `measurePack`, and sent to the browser as source like it: it names nothing outside its own body.
+ */
+export async function readMaskImages({ look, files }: { look: string; files?: Record<string, Blob> }): Promise<Record<string, MaskGrid | null>> {
+  // the grid is sampled down to this many cells a side at most
+  const most = 256;
+  const urls = new Set<string>();
+  for (const el of document.querySelectorAll(`[data-look="${look}"], [data-look="${look}"] *`)) {
+    for (const which of [null, "::before", "::after"]) {
+      const cs = getComputedStyle(el, which);
+      for (const value of [cs.getPropertyValue("mask-image"), cs.getPropertyValue("-webkit-mask-image")]) for (const m of value.matchAll(/url\(\s*(["']?)(.*?)\1\s*\)/g)) urls.add(m[2]);
+    }
+  }
+  const decode = async (url: string): Promise<MaskGrid | null> => {
+    try {
+      const href = new URL(url, document.baseURI).href;
+      const blob = files ? files[href] : await fetch(href).then((r) => (r.ok ? r.blob() : undefined));
+      if (!blob) return null;
+      const src = URL.createObjectURL(blob);
+      try {
+        const img = new Image();
+        img.src = src;
+        await img.decode();
+        const [w, h] = [img.naturalWidth, img.naturalHeight];
+        if (!(w > 0 && h > 0)) return null;
+        const [cols, rows] = [Math.min(most, Math.ceil(w)), Math.min(most, Math.ceil(h))];
+        const canvas = document.createElement("canvas");
+        canvas.width = cols;
+        canvas.height = rows;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return null;
+        ctx.drawImage(img, 0, 0, cols, rows);
+        const data = ctx.getImageData(0, 0, cols, rows).data;
+        const a: number[] = [];
+        for (let i = 3; i < data.length; i += 4) a.push(data[i] / 255);
+        return { w, h, cols, rows, a };
+      } finally {
+        URL.revokeObjectURL(src);
+      }
+    } catch {
+      return null;
+    }
+  };
+  return Object.fromEntries(await Promise.all([...urls].map(async (u) => [u, await decode(u)] as const)));
+}
+
+/** A candidate pack's files by the absolute URL its mounted CSS names them by (`/api/packs/<id>/<path>`, as `scopePackCss` writes them): the render check's frame reads its masks from these, as the pack is not stored and the route would answer 404. A file without its bytes is left out. */
+export function maskFiles(id: string, files: readonly PackFile[], origin: string): Record<string, Blob> {
+  return Object.fromEntries(
+    files.flatMap((f) => (f.bytes ? [[new URL(`/api/packs/${encodeURIComponent(id)}/${packPath(f.path)}`, origin).href, new Blob([f.bytes.slice()], { type: /\.svg$/i.test(f.path) ? "image/svg+xml" : "" })]] : [])),
+  );
 }
 
 /** Text this far under its card is not read (the validator's `HIDDEN_TEXT_MIN`). */
@@ -713,6 +820,15 @@ export function renderRefusals({ worn, bare }: Twin): string[] {
     return t.alpha === null ? was !== null : was !== null && was !== undefined && t.alpha < OPACITY_FLOOR && t.alpha < was;
   });
   if (dim.length) out.push(`${dim.length} text${dim.length === 1 ? " is" : "s are"} under a mask that leaves less than ${OPACITY_FLOOR} of ${dim.length === 1 ? "it" : "them"} ("${dim[0].text}" is ${dim[0].alpha === null ? "under one that cannot be read" : `at ${dim[0].alpha.toFixed(2)}`})`);
+  // a border the pack widens (or narrows) moves what the element holds: any width that is not the bare page's refuses
+  const none = "0px 0px 0px 0px";
+  const widthBare = new Map(bare.borders.map((b) => [b.key, b.widths]));
+  const widthWorn = new Map(worn.borders.map((b) => [b.key, b.widths]));
+  const widened = [
+    ...worn.borders.filter((b) => b.widths !== (widthBare.get(b.key) ?? none)).map((b) => ({ ...b, was: widthBare.get(b.key) ?? none })),
+    ...bare.borders.filter((b) => !widthWorn.has(b.key)).map((b) => ({ ...b, was: b.widths, widths: none })),
+  ];
+  if (widened.length) out.push(`${widened.length} element${widened.length === 1 ? "'s border is" : "s' borders are"} not as wide as without the pack (${widened[0].name} is ${widened[0].widths}, not ${widened[0].was})`);
   const cardBare = new Map(bare.cardClips.map((k) => [k.key, k]));
   for (const k of worn.cardClips) {
     const was = cardBare.get(k.key);

@@ -3,13 +3,15 @@ import path from "node:path";
 import { startScratch, type Scratch } from "../../tools/perf/scratch.mjs";
 import { PACK_STYLES } from "../../tools/qa/pack-styles.mjs";
 import { parseCss, writeTokens, type Rule } from "../../src/looks/css-syntax";
-import { measurePack, renderRefusals, unlit } from "../../src/looks/pack-render-measures";
+import { type MeasureOptions, measurePack, readMaskImages, renderRefusals, unlit } from "../../src/looks/pack-render-measures";
 import { expect, test } from "./fixtures";
 
 // A pack.css rule that matches nothing paints nothing (the P10 review's M4: the dark header and chip bars were written and never drawn).
 // Every selector of every pack rule must match an element on the Widget QA page wearing the pack, so a dead selector fails here.
 
 const measures = (look: string) => ({ look, alphaMax: 0.4, minOpacity: 0.5 });
+/** `measurePack` after `readMaskImages` decoded the page's url() masks, as the studio's render check runs them. */
+const measured = async (page: import("@playwright/test").Page, options: MeasureOptions) => page.evaluate(measurePack, { ...options, maskImages: await page.evaluate(readMaskImages, { look: options.look }) });
 
 // Read-only against the scratch server, so its tests spread over the workers (one server per worker, from beforeAll).
 test.describe.configure({ mode: "parallel" });
@@ -60,7 +62,7 @@ for (const id of Object.keys(PACK_STYLES)) {
     await page.waitForFunction(() => window.__qaMountAll);
     await page.evaluate(() => window.__qaMountAll?.());
     await expect(page.locator(`[data-wp-tier][data-look="${id}"]`).first()).toBeAttached({ timeout: 10_000 });
-    const { worn: report } = await page.evaluate(measurePack, measures(id));
+    const { worn: report } = await measured(page, measures(id));
     expect(report.bars).toBeGreaterThan(0);
     expect(report.barIssues).toEqual([]);
   });
@@ -83,7 +85,7 @@ for (const id of Object.keys(PACK_STYLES)) {
   test(`every gauge lit without the ${id} pack's css is lit with it`, async ({ page }) => {
   test.setTimeout(90_000); // whole-page measures: slow, not wrong, when workers share a 4 vCPU runner (the flake gate, run 42460790140)
     await wornPage(page, PACK_STYLES[id as keyof typeof PACK_STYLES], id);
-    const twin = await page.evaluate(measurePack, measures(id));
+    const twin = await measured(page, measures(id));
     expect(twin.bare.gauges.filter((g) => g.lit).length).toBeGreaterThan(10);
     expect(twin.worn.gauges.map((g) => g.key)).toEqual(twin.bare.gauges.map((g) => g.key));
     expect(unlit(twin.bare.gauges, twin.worn.gauges)).toEqual([]);
@@ -95,10 +97,10 @@ for (const id of Object.keys(PACK_STYLES)) {
 test("the gauge-ink check catches a pack that hides some of its gauges and not all", async ({ page }) => {
   test.setTimeout(90_000); // whole-page measures: slow, not wrong, when workers share a 4 vCPU runner (the flake gate, run 42460790140)
   await wornPage(page, PACK_STYLES.term, "term");
-  const { worn: ref } = await page.evaluate(measurePack, measures("term"));
+  const { worn: ref } = await measured(page, measures("term"));
   // what a bad pack could do: no ink on every other bar, meter and ring
   await page.addStyleTag({ content: '[data-part="bar"]:nth-of-type(odd) *, [data-part="meter"]:nth-of-type(odd) *, [data-part="ring"]:nth-of-type(odd) circle { background: none !important; stroke: none !important; }' });
-  const { worn: now } = await page.evaluate(measurePack, measures("term"));
+  const { worn: now } = await measured(page, measures("term"));
   expect(now.gauges.some((g) => g.lit)).toBe(true);
   expect(unlit(ref.gauges, now.gauges).length).toBeGreaterThan(0);
 });
@@ -111,7 +113,7 @@ const keyed = /\[(\w+@\d+x\d+|card \d+) #\d+\]$/;
 test("the render measures find no label covered on the clean Term pack", async ({ page }) => {
   test.setTimeout(90_000);
   await wornPage(page, PACK_STYLES.term, "term");
-  const { worn: clean } = await page.evaluate(measurePack, measures("term"));
+  const { worn: clean } = await measured(page, measures("term"));
   // (the Term card's own header already overlaps the body at the smallest tier: that is the page, and a pack is judged against its twin)
   expect(byLabel(clean.problems)).toEqual([]);
 });
@@ -121,7 +123,7 @@ test("the render measures catch an opaque box laid over other text", async ({ pa
   test.setTimeout(90_000);
   await wornPage(page, PACK_STYLES.term, "term");
   await page.addStyleTag({ content: '[data-part="label"] { position: absolute !important; inset: 0 !important; background: #123456 !important; opacity: 1 !important; }' });
-  const { worn } = await page.evaluate(measurePack, measures("term"));
+  const { worn } = await measured(page, measures("term"));
   expect(byLabel(worn.problems).length).toBeGreaterThan(0);
   expect(byLabel(worn.problems).every((p) => keyed.test(p))).toBe(true);
   expect(new Set(byLabel(worn.problems).map((p) => p.match(/@(\d+x\d+) #/)?.[1])).size).toBeGreaterThan(1);
@@ -132,7 +134,7 @@ test("the render measures catch a faded label, keyed like a covered one", async 
   test.setTimeout(90_000);
   await wornPage(page, PACK_STYLES.term, "term");
   await page.addStyleTag({ content: '[data-part="label"] { opacity: 0.2 !important; }' });
-  const { worn: faded } = await page.evaluate(measurePack, measures("term"));
+  const { worn: faded } = await measured(page, measures("term"));
   const fadedText = faded.problems.filter((p) => p.includes("is at opacity"));
   expect(fadedText.length).toBeGreaterThan(0);
   expect(fadedText.every((p) => keyed.test(p))).toBe(true);
@@ -142,11 +144,11 @@ test("the render measures catch a faded label, keyed like a covered one", async 
 test("the render measures do not pass a text that sits outside the viewport", async ({ page }) => {
   test.setTimeout(90_000); // whole-page measures: slow, not wrong, when workers share a 4 vCPU runner (the flake gate, run 42460790140)
   await wornPage(page, PACK_STYLES.term, "term");
-  const { worn: clean } = await page.evaluate(measurePack, measures("term"));
+  const { worn: clean } = await measured(page, measures("term"));
   const outside = (problems: string[]) => problems.filter((p) => p.includes("could not be checked"));
   expect(outside(clean.problems)).toEqual([]);
   await page.addStyleTag({ content: '[data-part="label"] { transform: translateX(-5000px) !important; }' });
-  const twin = await page.evaluate(measurePack, measures("term"));
+  const twin = await measured(page, measures("term"));
   expect(outside(twin.worn.problems).length).toBeGreaterThan(0);
   expect(renderRefusals({ worn: twin.worn, bare: clean }).some((r) => r.includes("could not be checked"))).toBe(true);
 });
