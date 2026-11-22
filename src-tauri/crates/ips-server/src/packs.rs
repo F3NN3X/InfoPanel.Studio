@@ -351,17 +351,99 @@ impl Packs {
 }
 
 /// Why the server will not sign `css`, or `None`: a deny-list behind the loader's allow-list (`user-css.ts`), so a signing request that
-/// skipped the studio still cannot carry an escape, an at-rule, markup or a url-like function. Comments are dropped first, as the
-/// grammar drops them, so a note that mentions one of these is no reason to refuse.
+/// skipped the studio still cannot carry an escape, an at-rule other than `@keyframes`, markup, a url-like function or a url that leaves
+/// the pack. Comments are dropped first, as the grammar drops them, so a note that mentions one of these is no reason to refuse.
 fn css_deny(css: &[u8]) -> Option<&'static str> {
     let Ok(text) = std::str::from_utf8(css) else {
         return Some("is not UTF-8");
     };
     let plain = strip_comments(text).to_ascii_lowercase();
-    if plain.contains('\\') || plain.contains('@') || plain.contains('<') {
-        return Some("holds a backslash, an at-rule or markup");
+    if plain.contains('\\') || plain.contains('<') {
+        return Some("holds a backslash or markup");
     }
-    ["url(", "image-set(", "src("].iter().any(|f| plain.contains(f)).then_some("holds a url-like function")
+    if plain.match_indices('@').any(|(at, _)| !is_keyframes_at(&plain[at + 1..])) {
+        return Some("holds an at-rule other than @keyframes");
+    }
+    if ["image-set(", "src("].iter().any(|f| plain.contains(f)) {
+        return Some("holds a url-like function");
+    }
+    plain
+        .match_indices("url(")
+        .any(|(at, _)| !url_arg(&plain[at + 4..]).is_some_and(is_pack_relative_url))
+        .then_some("holds a url that is not a file of the pack")
+}
+
+/// Whether what follows an `@` is `keyframes`, white space and the start of a name.
+fn is_keyframes_at(rest: &str) -> bool {
+    let Some(after) = rest.strip_prefix("keyframes") else {
+        return false;
+    };
+    let name = after.trim_start_matches([' ', '\t', '\n', '\r', '\x0c']);
+    name.len() < after.len() && name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_' || c == '-')
+}
+
+/// The argument of a `url(` (`rest` starts after the parenthesis): a quoted string up to its closing quote, or the bare text up to
+/// the `)`, white space at either end dropped. `None` when it never closes, or a bare one holds white space or a quote inside.
+fn url_arg(rest: &str) -> Option<&str> {
+    let ws = [' ', '\t', '\n', '\r', '\x0c'];
+    let open = rest.trim_start_matches(ws);
+    if let Some(quote) = open.chars().next().filter(|c| *c == '"' || *c == '\'') {
+        let body = &open[1..];
+        let end = body.find(quote)?;
+        return body[end + 1..].trim_start_matches(ws).starts_with(')').then_some(&body[..end]);
+    }
+    let end = open.find(')')?;
+    let arg = open[..end].trim_end_matches(ws);
+    (!arg.contains(ws) && !arg.contains(['"', '\'', '('])).then_some(arg)
+}
+
+/// One spelling of a url: no control character or backslash, no scheme (a drive letter is one) or root path, no `..` step.
+fn plain_relative(u: &str) -> bool {
+    if u.is_empty() || u.chars().any(|c| c.is_control() || c == '\\') || u.starts_with('/') {
+        return false;
+    }
+    let scheme = u.find(':').is_some_and(|colon| {
+        let s = &u[..colon];
+        s.starts_with(|c: char| c.is_ascii_alphabetic()) && s.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '.' | '-'))
+    });
+    !scheme && !u.split(['/', '?', '#']).any(|step| step == "..")
+}
+
+/// `u` with its percent escapes decoded, or `None` for an escape that is not two hex digits or bytes that are not UTF-8.
+fn percent_decoded(u: &str) -> Option<String> {
+    let bytes = u.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut k = 0;
+    while k < bytes.len() {
+        if bytes[k] == b'%' {
+            let hex = u.get(k + 1..k + 3).filter(|h| h.bytes().all(|b| b.is_ascii_hexdigit()))?;
+            out.push(u8::from_str_radix(hex, 16).ok()?);
+            k += 3;
+        } else {
+            out.push(bytes[k]);
+            k += 1;
+        }
+    }
+    String::from_utf8(out).ok()
+}
+
+/// A url inside the pack, as `isPackRelativeUrl` (`pack-urls.ts`) reads it: relative as written and after each round of
+/// percent-decoding, stable within 5 rounds (a server that decodes before it joins the path finds no way out).
+fn is_pack_relative_url(url: &str) -> bool {
+    let mut u = url.trim().to_string();
+    for _ in 0..5 {
+        if !plain_relative(&u) {
+            return false;
+        }
+        let Some(next) = percent_decoded(&u) else {
+            return false;
+        };
+        if next == u {
+            return true;
+        }
+        u = next;
+    }
+    false
 }
 
 /// `text` without its comments, read as the CSS tokenizer reads it: a quote opens a string that runs to its closing quote (or the line's
@@ -1043,6 +1125,67 @@ mod tests {
     fn files(list: &[(&str, &str)]) -> Value {
         let files: Vec<Value> = list.iter().map(|(p, c)| json!({ "path": p, "data": STANDARD.encode(c) })).collect();
         json!({ "id": "mine", "files": files })
+    }
+
+    #[test]
+    fn the_css_deny_list_lets_keyframes_through_and_no_other_at_rule() {
+        let deny = |css: &str| css_deny(css.as_bytes());
+        for ok in [
+            "@keyframes pack-x { to { opacity: 1; } }",
+            "@KEYFRAMES\n\tpack-x { to { opacity: 1; } }",
+            "@keyframes _x{}",
+            "/* @import url(https://x.test/a.css) */ [data-part=\"num\"] { color: #fff; }",
+        ] {
+            assert_eq!(deny(ok), None, "{ok}");
+        }
+        for bad in [
+            "@import \"a.css\";",
+            "@font-face { font-family: pack-x; }",
+            "@media screen { a { color: red; } }",
+            "@-webkit-keyframes pack-x {}",
+            "@keyframes{}",
+            "@keyframes 1x {}",
+            "@keyframespack-x {}",
+            "a { content: \"@\"; }",
+            "a { color: \\72 ed; }",
+            "<style>",
+        ] {
+            assert!(deny(bad).is_some(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn the_css_deny_list_lets_a_url_through_only_when_it_names_a_file_of_the_pack() {
+        let deny = |css: &str| css_deny(css.as_bytes());
+        for ok in [
+            "a { mask-image: url(a.svg); }",
+            "a { background: url(\"img/b.png\"); }",
+            "a { background: URL( 'assets/c.png' ); }",
+            "a { background: url(assets/a%20b.png); }",
+        ] {
+            assert_eq!(deny(ok), None, "{ok}");
+        }
+        for bad in [
+            "a { background: url(http://x.test/a.png); }",
+            "a { background: url(/x); }",
+            "a { background: url(../x); }",
+            "a { background: url(%2e%2e/x); }",
+            "a { background: url(%252e%252e/x); }",
+            "a { background: url(c:x); }",
+            "a { background: url(//x.test/a.png); }",
+            "a { background: url(assets/../../x); }",
+            "a { background: url(\"javascript:alert(1)\"); }",
+            "a { background: url(a%zz.png); }",
+            "a { background: url(a%ff.png); }",
+            "a { background: url(\"a.png\" x); }",
+            "a { background: url(a b.png); }",
+            "a { background: url(); }",
+            "a { background: url(a.png; }",
+            "a { background: image-set(\"a.png\" 1x); }",
+            "@font-face { src(\"a.woff2\"); }",
+        ] {
+            assert!(deny(bad).is_some(), "{bad}");
+        }
     }
 
     #[test]
