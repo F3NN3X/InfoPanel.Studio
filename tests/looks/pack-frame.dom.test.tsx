@@ -32,6 +32,23 @@ describe("the card clip of a frame", () => {
   });
 });
 
+describe("ornaments on a tight card (L110 Q4)", () => {
+  const ornaments: PackOrnament[] = [{ kind: "label", at: "tl", text: "SPEC" }];
+  const at = (pad?: number) => render(<PackDecor decor={{ frame: { corners: "cut", size: 8 }, ornaments }} screen={md} pad={pad} />).container;
+
+  it("draws none where the card's padding is under the ornament band, and keeps the frame", () => {
+    const root = at(6);
+    expect(root.querySelector("[data-ornament]")).toBeNull();
+    expect(root.querySelector("[data-pack-decor=frame]")).not.toBeNull();
+  });
+
+  it("draws them where the padding holds the band, or when the padding is not known", () => {
+    expect(at(10).querySelector('[data-ornament="label"]')?.textContent).toBe("SPEC");
+    cleanup();
+    expect(at(undefined).querySelector('[data-ornament="label"]')).not.toBeNull();
+  });
+});
+
 describe("the frame the app draws", () => {
   it("is a click-through layer marked as the app's, with a stroke in the Look's accent at each named corner", () => {
     const root = view({ frame: { corners: "bracket", size: 10, which: ["tl", "bl"], stroke: 2 } });

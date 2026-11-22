@@ -119,12 +119,13 @@ function Ornaments({ items, frame, screen }: { items: readonly PackOrnament[]; f
   );
 }
 
-/** A pack's frame and ornaments on one card: two click-through layers in the card chrome. `screen` is the page's size, for `minSizeClass` (the window's when unset). */
-export function PackDecor({ decor, screen = typeof window === "undefined" ? undefined : { width: window.innerWidth, height: window.innerHeight } }: { decor: PackDecorSpec; screen?: { width: number; height: number } }) {
+/** A pack's frame and ornaments on one card: two click-through layers in the card chrome; no ornaments where the padding is under the band. `screen` is the page's size, for `minSizeClass` (the window's when unset). */
+export function PackDecor({ decor, pad, screen = typeof window === "undefined" ? undefined : { width: window.innerWidth, height: window.innerHeight } }: { decor: PackDecorSpec; /** The card's padding, px; a card tighter than the ornament band draws no ornaments (L110 Q4). Unset: unknown, drawn. */ pad?: number; screen?: { width: number; height: number } }) {
+  const roomy = pad === undefined || pad >= ORNAMENT_MAX;
   return (
     <>
       {decor.frame && <Frame frame={decor.frame} />}
-      {decor.ornaments?.length ? <Ornaments items={decor.ornaments} frame={decor.frame} screen={screen} /> : null}
+      {roomy && decor.ornaments?.length ? <Ornaments items={decor.ornaments} frame={decor.frame} screen={screen} /> : null}
     </>
   );
 }
