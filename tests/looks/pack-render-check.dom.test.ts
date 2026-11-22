@@ -106,20 +106,23 @@ describe("the studio's half fails closed", () => {
     expect(document.querySelector("iframe")).toBeNull();
   });
 
-  it("opens the one page the server opens for it, on the layout and off the screen", () => {
-    void runRenderCheck(src, 1);
+  it("opens the one page the server opens for it, on the layout and off the screen", async () => {
+    const run = runRenderCheck(src, 1);
     expect(frame().getAttribute("src")).toBe(CHECK_URL);
     expect(frame().style.display).toBe("");
     expect(frame().style.left).toBe("-20000px");
+    // its timer runs out inside the test: one that fires after the environment is gone throws there
+    await run;
   });
 
-  it("sends the candidate only to its own frame, and only after it says it is ready", () => {
-    void runRenderCheck(src, 5);
+  it("sends the candidate only to its own frame, and only after it says it is ready", async () => {
+    const run = runRenderCheck(src, 5);
     answer(frame(), { kind: "pack-check-ready" }, "http://evil.test");
     answer(frame(), { kind: "pack-check-ready" }, window.location.origin, window);
     expect(inner.postMessage).not.toHaveBeenCalled();
     answer(frame(), { kind: "pack-check-ready" });
     expect(inner.postMessage).toHaveBeenCalledWith({ kind: "pack-check-run", src }, window.location.origin);
+    await run;
   });
 
   it("a clean answer passes, a refusal is passed on, and an answer of the wrong shape refuses", async () => {
