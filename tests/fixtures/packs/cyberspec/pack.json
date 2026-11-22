@@ -1,0 +1,32 @@
+{
+  "id": "cyberspec",
+  "name": "CyberSpec",
+  "version": "1.0.0",
+  "tags": ["dark", "cyber", "mono"],
+  "description": "A dark spec sheet: red at rest, cyan values and yellow for attention, cut corners with micro-print, scanlines and a rare glitch.",
+  "modes": ["dark"],
+  "fonts": [
+    {
+      "family": "pack-field-kit",
+      "source": "Barlow Condensed",
+      "file": "barlow-condensed-600.woff2",
+      "weight": "600",
+      "licence": "OFL-1.1",
+      "copyright": "Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow)"
+    }
+  ],
+  "stage": {
+    "layers": [{ "fill": "linear-gradient(160deg, #0B0B10 0%, #14080C 100%)" }],
+    "effects": [
+      { "kind": "scanlines", "cost": "animated", "opacity": 0.12, "calm": "static" },
+      { "kind": "glitch", "cost": "animated", "opacity": 0.2, "rate": 1, "calm": "off" },
+      { "kind": "vignette", "cost": "static", "opacity": 0.3 }
+    ]
+  },
+  "burnIn": "needs-shift",
+  "frame": { "corners": "cut", "size": 12, "which": ["tl", "br"], "stroke": 1 },
+  "ornaments": [
+    { "kind": "micro-print", "at": "bl", "text": "SYS.07 // NODE-A", "minSizeClass": "md" },
+    { "kind": "label", "at": "tr", "text": "SPEC" }
+  ]
+}
