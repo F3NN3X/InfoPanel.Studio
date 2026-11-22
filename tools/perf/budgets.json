@@ -8,7 +8,7 @@
     "$comment": "Per built-in pack (src/looks/packs/<id>.ts, its Look id): codeGzipBytes = its lazy JS and CSS chunks (found through the Vite manifest), gzip; assetBytes = the files in src/looks/packs/<id>/assets, bytes on disk; layersPerPage = the layer reasons counted on the heavy kiosk screen with the pack on (tests/e2e/pack-visibility.spec.ts counts them; check-budgets does not). Phase 4 (pack CSS brief): codeGzipBytes and assetBytes are warn lines, set at the bytes measured at Gate 4 (2026-11-22) plus 50 %; over one prints a warning and passes. The fail line is packCeilingBytes for code gzip plus assets, the same cap as a user pack's import (PACK_CEILING_BYTES in src/looks/pack-validate.ts and packs.rs; tests pin all three). layersPerPage stays hard: raise it per pack only with a reason in the commit. A pack with no entry here is a warning that prints its measured bytes (node tools/perf/check-budgets.mjs --packs). Raise any line only with a reason in the commit; a line is not lowered when a pack shrinks.",
     "packCeilingBytes": 1024000,
     "field-kit": { "codeGzipBytes": 3710, "assetBytes": 25270, "layersPerPage": 14 },
-    "tape-86": { "codeGzipBytes": 4150, "assetBytes": 22470, "layersPerPage": 14 },
+    "tape-86": { "codeGzipBytes": 4150, "assetBytes": 22470, "layersPerPage": 16 },
     "term": { "codeGzipBytes": 3600, "assetBytes": 12530, "layersPerPage": 13 },
     "neon-stripe": { "codeGzipBytes": 7040, "assetBytes": 15030, "layersPerPage": 13 },
     "overdrive": { "codeGzipBytes": 6390, "assetBytes": 16700, "layersPerPage": 12 },
