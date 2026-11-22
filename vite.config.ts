@@ -1,6 +1,6 @@
 /// <reference types="vitest/config" />
 import { defineConfig, configDefaults } from "vitest/config";
-import type { Plugin } from "vite";
+import type { Plugin, Rolldown } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { readdirSync, readFileSync } from "node:fs";
@@ -63,6 +63,51 @@ const qaWebPage = (mode: string): Plugin => ({
   },
 });
 
+// Forward slashes: Rolldown's module ids use them on Windows too.
+const KIOSK_ENTRY = path.resolve(__dirname, "index.html").replace(/\\/g, "/");
+const HELP_ENTRY = path.resolve(__dirname, "help.html").replace(/\\/g, "/");
+
+/** The modules `entry` loads statically (with `lazy`, also those it may load later), by id. */
+const closureOf = (ctx: Rolldown.ChunkingContext, entry: string, lazy = false): Set<string> => {
+  const seen = new Set<string>();
+  const walk = (id: string) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    const info = ctx.getModuleInfo(id);
+    for (const dep of [...(info?.importedIds ?? []), ...(lazy ? (info?.dynamicallyImportedIds ?? []) : [])]) walk(dep);
+  };
+  walk(entry);
+  return seen;
+};
+/** Stylesheets stay with the entry: in `kiosk` the page's CSS would come along with a lazy chunk the Help page loads. */
+const CSS = /\.css($|\?)/;
+const closures = new WeakMap<Rolldown.ChunkingContext, { kiosk: Set<string>; help: Set<string>; helpLazy: Set<string> }>();
+
+/**
+ * The kiosk page's static modules in two chunks: `shared` with what the Help page loads too, `kiosk` with what the Help page
+ * never loads, not even lazily (it imports `shared`, so `shared` goes first: a captured module brings its dependencies
+ * along), and Rolldown's own chunks for what the Help page loads only lazily: in `kiosk` they would bring the Help page the
+ * kiosk's lazy chunks too (tools/looks/ui-usage.json reads the tokens of all of them). The entries and their direct imports
+ * stay in the entry chunks, which keeps index.html an entry in the manifest. Left to itself Rolldown splits the code the
+ * entry shares with its lazy chunks into a chunk per set of importers: 56 kiosk requests against a budget of 34
+ * (tests/e2e/kiosk-budget.spec.ts). See https://rolldown.rs/in-depth/manual-code-splitting.
+ */
+const initialChunk =
+  (chunk: "shared" | "kiosk") =>
+  (id: string, ctx: Rolldown.ChunkingContext): string | null => {
+    let sets = closures.get(ctx);
+    if (!sets) {
+      sets = { kiosk: closureOf(ctx, KIOSK_ENTRY), help: closureOf(ctx, HELP_ENTRY), helpLazy: closureOf(ctx, HELP_ENTRY, true) };
+      closures.set(ctx, sets);
+    }
+    const { kiosk, help, helpLazy } = sets;
+    const info = ctx.getModuleInfo(id);
+    if (!info || info.isEntry || info.importers.some((i) => i === KIOSK_ENTRY || i === HELP_ENTRY) || !kiosk.has(id) || CSS.test(id)) return null;
+    if (chunk === "shared") return help.has(id) ? chunk : null;
+    // Its dependencies come along, so none of them may be one the Help page loads lazily either.
+    return [...closureOf(ctx, id)].every((dep) => help.has(dep) || !helpLazy.has(dep)) ? chunk : null;
+  };
+
 // Which files a project runs: `include` is every test file (or just the quarantined ones with QUARANTINE=only), `exclude`
 // leaves out tests/server (`npm run test:server`), agent worktrees under .claude/, lab/ (its own config) and the quarantine.
 const scope = (kind: "node" | "mocking" | "dom") => {
@@ -98,7 +143,17 @@ export default defineConfig(({ mode }) => ({
     // tools/perf/budgets.json, so this only catches a chunk that grows well past today's.
     chunkSizeWarningLimit: 700,
     // The studio, and the Help page its rail opens in a browser tab (served as /help.html).
-    rollupOptions: { input: [path.resolve(__dirname, "index.html"), path.resolve(__dirname, "help.html")] },
+    rolldownOptions: {
+      input: [KIOSK_ENTRY, HELP_ENTRY],
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: initialChunk("shared"), tags: ["$initial"], priority: 2 },
+            { name: initialChunk("kiosk"), tags: ["$initial"], priority: 1 },
+          ],
+        },
+      },
+    },
   },
   // Agent worktrees live under .claude/; their copies of the tests are not ours.
   // lab/ has its own Vitest config (npm run lab:test).

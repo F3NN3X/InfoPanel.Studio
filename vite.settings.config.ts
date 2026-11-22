@@ -24,7 +24,7 @@ export default defineConfig({
     manifest: true,
     // The CSP has no data: fonts; every asset stays a file.
     assetsInlineLimit: 0,
-    rollupOptions: {
+    rolldownOptions: {
       input: [path.resolve(__dirname, "settings.html"), path.resolve(__dirname, "help.html"), path.resolve(__dirname, "touch.html"), path.resolve(__dirname, "agent-prompt.html")],
     },
   },
