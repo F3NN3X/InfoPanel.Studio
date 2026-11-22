@@ -8,6 +8,7 @@ import { usePerformance } from "@/hooks/use-performance";
 import { liteOf } from "@/lib/performance";
 import { safeFill } from "@/widgets/core/t3-tokens";
 import ConnectorLayer, { hubLinks } from "./connector-layer";
+import { FX_KINDS } from "./pack-json";
 import { planEffects, showsAt, sizeClassOf, type PlannedEffect } from "./effects";
 import type { StageLayer, StageViewProps } from "./pack";
 import { useIdle } from "./use-idle";
@@ -26,8 +27,17 @@ function overlayStyle(e: PlannedEffect): CSSProperties | undefined {
   if (e.kind === "scanlines") return { backgroundImage: "repeating-linear-gradient(0deg, #000 0 1px, transparent 1px 3px)" };
   if (e.kind === "vignette") return { backgroundImage: "radial-gradient(ellipse at center, transparent 55%, #000 130%)" };
   if (e.kind === "grain") return { backgroundImage: GRAIN, backgroundSize: "160px" };
+  // The flashing kinds: each paints only itself, over the page; the pulse is index.css's.
+  if (e.kind === "glitch") return { backgroundImage: "repeating-linear-gradient(0deg, transparent 0 14px, var(--w-accent, #0ff) 14px 17px, transparent 17px 41px)" };
+  if (e.kind === "flicker") return { backgroundColor: "#000" };
+  if (e.kind === "rgb-split") return { backgroundImage: "linear-gradient(90deg, #f00 0 3px, transparent 3px calc(100% - 3px), #0ff calc(100% - 3px))" };
+  if (e.kind === "interference") return { backgroundImage: "linear-gradient(180deg, transparent, #fff 50%, transparent)", backgroundSize: "100% 30%", backgroundRepeat: "no-repeat" };
   return undefined;
 }
+
+/** The flashing kinds' pulse height and speed for index.css (`--wp-fx-op`, `--wp-fx-rate`). */
+const flashVars = (e: PlannedEffect, dim: number): CSSProperties | undefined =>
+  (FX_KINDS as readonly string[]).includes(e.kind) ? ({ "--wp-fx-op": e.opacity * dim, "--wp-fx-rate": e.rate } as CSSProperties) : undefined;
 
 function useShiftStep(on: boolean): number {
   const [step, setStep] = useState(0);
@@ -47,7 +57,7 @@ export default function PackStageLayers({ stage, packId, base = "", className = 
   // `data-pack-layer` is the layer's place in the pack's list, whatever the size class hides.
   const layers = stage.layers.slice(0, 3).map((layer, index) => ({ layer, index })).filter(({ layer }) => showsAt(layer.minSizeClass, sizeClass));
   const solidPage = !layers.some(({ layer: l }) => l.image || /gradient\(/i.test(l.fill ?? ""));
-  const effects = planEffects(stage.effects, { lite, reduceMotion: perf.reduceMotion, limitBlur: general.blurLimit, solidPage, sizeClass });
+  const effects = planEffects(stage.effects, { level: perf.fx, lite, reduceMotion: perf.reduceMotion, limitBlur: general.blurLimit, solidPage, sizeClass });
   const idle = useIdle(burnIn === "needs-dim" ? general.idleDim : 0);
   const Overlay = showsAt(stage.overlayMinSizeClass, sizeClass) ? stage.overlay : undefined;
   const deco = burnIn === "needs-shift" && general.pixelShift ? "shift" : burnIn === "needs-dim" && general.idleDim > 0 ? "dim" : "";
@@ -89,7 +99,7 @@ export default function PackStageLayers({ stage, packId, base = "", className = 
       )}
       {connectors && pairs && pairs.length > 0 && showsAt(stage.overlayMinSizeClass, sizeClass) && <ConnectorLayer links={pairs} connectors={connectors} className={className} deco={deco} style={{ ...place, ...(deco === "dim" ? { opacity: dim } : null) }} />}
       {effects.map((e, i) =>
-        overlayStyle(e) ? <div key={`fx${i}`} aria-hidden data-look={packId} data-pack-deco={deco} data-pack-effect={e.kind} data-pack-animate={e.animate ? "" : undefined} className={`pointer-events-none ${overlayClassName}`} style={{ ...overlayStyle(e), ...place, opacity: (e.opacity ?? 1) * dim }} /> : null
+        overlayStyle(e) ? <div key={`fx${i}`} aria-hidden data-look={packId} data-pack-deco={deco} data-pack-effect={e.kind} data-pack-animate={e.animate ? "" : undefined} className={`pointer-events-none ${overlayClassName}`} style={{ ...overlayStyle(e), ...place, ...flashVars(e, dim), opacity: (e.opacity ?? 1) * dim }} /> : null
       )}
     </>
   );

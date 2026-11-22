@@ -9,6 +9,7 @@ import { valueText } from "@/lib/inheritance";
 import type { DashboardConfig, MonitorProfile, PageRotate, ProfileView } from "@/lib/layout";
 import { isFreePage } from "@/lib/free-pages";
 import { IDLE_DIM_MINUTES, type ScreenPerformance } from "@/lib/performance";
+import { FX_LEVELS, type FxLevel } from "@/looks/pack-json";
 import { cn } from "@/lib/utils";
 import { FPS_OPTIONS, MOTION_OPTIONS, ROTATE_DEFAULT_SECONDS, ROTATE_MAX_SECONDS, ROTATE_MIN_SECONDS, clampSeconds } from "./inspector/behaviour-model";
 import { InheritChip } from "./inherit-chip";
@@ -25,6 +26,7 @@ import type { NavTarget } from "./studio-nav";
 import { ownCount } from "./theme-cards";
 import { inheritanceApi } from "./use-inheritance";
 
+const FX_OPTIONS = [{ value: "system", label: "Follow system" }, ...FX_LEVELS.map((l) => ({ value: l, label: l === "full" ? "Full" : l === "calm" ? "Calm" : "Off" }))];
 const IDLE_DIM_OPTIONS = [{ value: "0", label: "Off" }, ...IDLE_DIM_MINUTES.map((m) => ({ value: String(m), label: `${m} min` }))];
 
 interface ScreenDetailProps {
@@ -283,6 +285,13 @@ export function ScreenDetail({
           options={IDLE_DIM_OPTIONS}
           value={String(perf.idleDim)}
           onChange={(v) => onPerformance({ idleDim: v === "0" ? undefined : Number(v) })}
+        />
+        <SegmentedRow
+          label="Effects"
+          hint="How much of a theme pack's scanlines, glitch and flicker it draws. Calm keeps them still or drops them; Off draws none. Follow system is Off with reduced animations, else Full; below 60 fps Full draws as Calm. Widgets are never touched."
+          options={FX_OPTIONS}
+          value={perf.fx ?? "system"}
+          onChange={(v) => onPerformance({ fx: v === "system" ? undefined : (v as FxLevel) })}
         />
       </Group>
 

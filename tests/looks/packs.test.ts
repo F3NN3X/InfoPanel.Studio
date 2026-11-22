@@ -150,7 +150,7 @@ describe("what the second-wave packs teach the contract (P11)", () => {
     expect(glow).toHaveLength(1);
     expect(effectIssues(pack.stage!.effects!)).toEqual([]);
     expect(glow[0].px).toBeLessThanOrEqual(GLOW_MAX);
-    const env = { lite: false, reduceMotion: false, limitBlur: false, solidPage: false };
+    const env = { level: "full" as const, lite: false, reduceMotion: false, limitBlur: false, solidPage: false };
     expect(planEffects(glow, env)[0].px).toBe(10);
     expect(planEffects(glow, { ...env, lite: true })[0].px).toBe(5);
     expect(planEffects(glow, env)[0].animate).toBe(false);

@@ -23,23 +23,24 @@ describe("performanceFromSearch", () => {
 
 describe("resolvePerformance", () => {
   it("defaults to 60 fps and follows the OS", () => {
-    expect(resolvePerformance({ general: {}, system: false })).toEqual({ maxFps: 60, reduceMotion: false });
+    expect(resolvePerformance({ general: {}, system: false })).toEqual({ maxFps: 60, reduceMotion: false, fx: "full" });
     expect(resolvePerformance({ general, system: true }).reduceMotion).toBe(true);
   });
 
   it("applies URL > profile > general", () => {
     const g = { maxFps: 15, motion: "reduce" as const };
-    expect(resolvePerformance({ general: g, system: false })).toEqual({ maxFps: 15, reduceMotion: true });
+    expect(resolvePerformance({ general: g, system: false })).toEqual({ maxFps: 15, reduceMotion: true, fx: "off" });
     const profile = { maxFps: 30, motion: "full" as const };
-    expect(resolvePerformance({ general: g, profile, system: true })).toEqual({ maxFps: 30, reduceMotion: false });
+    expect(resolvePerformance({ general: g, profile, system: true })).toEqual({ maxFps: 30, reduceMotion: false, fx: "full" });
     const url = { maxFps: 0, motion: "reduce" as const };
-    expect(resolvePerformance({ general: g, profile, url, system: false })).toEqual({ maxFps: 0, reduceMotion: true });
+    expect(resolvePerformance({ general: g, profile, url, system: false })).toEqual({ maxFps: 0, reduceMotion: true, fx: "off" });
   });
 
   it("falls through a layer that sets only the other key", () => {
     expect(resolvePerformance({ general: { maxFps: 5 }, profile: { motion: "reduce" }, url: { maxFps: 30 }, system: false })).toEqual({
       maxFps: 30,
       reduceMotion: true,
+      fx: "off",
     });
   });
 
@@ -49,7 +50,30 @@ describe("resolvePerformance", () => {
   });
 });
 
+describe("resolvePerformance: the FX level", () => {
+  it("is off under reduced motion and full otherwise when the screen sets none", () => {
+    expect(resolvePerformance({ general: {}, system: false }).fx).toBe("full");
+    expect(resolvePerformance({ general: {}, system: true }).fx).toBe("off");
+    expect(resolvePerformance({ general: { motion: "reduce" }, system: false }).fx).toBe("off");
+  });
+
+  it("lets an explicit level win over reduced motion", () => {
+    expect(resolvePerformance({ general: { fx: "full", motion: "reduce" }, system: false }).fx).toBe("full");
+    expect(resolvePerformance({ general: { fx: "calm" }, system: true }).fx).toBe("calm");
+    expect(resolvePerformance({ general: { fx: "off" }, system: false }).fx).toBe("off");
+  });
+
+  it("ignores a level that is not one", () => {
+    expect(resolvePerformance({ general: { fx: "loud" as never }, system: false }).fx).toBe("full");
+  });
+});
+
 describe("profile performance", () => {
+  it("keeps fx only as one of full, calm or off", () => {
+    for (const fx of ["full", "calm", "off"]) expect(normalizePerformance({ fx })).toEqual({ fx });
+    for (const bad of ["loud", "", 1, null, true]) expect(normalizePerformance({ fx: bad })).toBeUndefined();
+  });
+
   it("keeps valid keys only", () => {
     expect(normalizePerformance({ maxFps: 30, motion: "reduce", extra: 1 })).toEqual({ maxFps: 30, motion: "reduce" });
     expect(normalizePerformance({ maxFps: 24, motion: "lots" })).toBeUndefined();

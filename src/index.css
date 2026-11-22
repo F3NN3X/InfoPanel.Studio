@@ -689,6 +689,16 @@
 @keyframes wp-fx-grain { 0% { background-position: 0 0; } 25% { background-position: -40px 20px; } 50% { background-position: 30px -50px; } 75% { background-position: -20px -30px; } 100% { background-position: 0 0; } }
 [data-pack-effect="scanlines"][data-pack-animate] { animation: wp-fx-roll 6s linear infinite; }
 [data-pack-effect="grain"][data-pack-animate] { animation: wp-fx-grain 1s steps(4) infinite; }
+/* The flashing kinds (glitch, flicker, rgb-split, interference): each cycle holds one pulse, a cycle lasts 1 / rate seconds, and the app caps rate at 3 (FLASH_MAX), so none flashes more than 3 times a second.
+   The pulse is the overlay's own opacity (--wp-fx-op, the plan's strength); the overlay never filters, moves or clips anything under it. tests/looks/pack-fx-css.test.ts reads these rules. */
+@keyframes wp-fx-glitch { 0%, 80%, 100% { opacity: 0; background-position: 0 0; } 82%, 88% { opacity: var(--wp-fx-op); background-position: 0 13px; } 90% { opacity: 0; } }
+@keyframes wp-fx-flicker { 0%, 70%, 100% { opacity: 0; } 72%, 78% { opacity: var(--wp-fx-op); } }
+@keyframes wp-fx-rgb-split { 0%, 85%, 100% { opacity: 0; } 87%, 93% { opacity: var(--wp-fx-op); } }
+@keyframes wp-fx-interference { 0% { opacity: 0; background-position: 0 -30%; } 10%, 40% { opacity: var(--wp-fx-op); } 50%, 100% { opacity: 0; background-position: 0 130%; } }
+[data-pack-effect="glitch"][data-pack-animate] { animation: wp-fx-glitch calc(1s / var(--wp-fx-rate, 1)) linear infinite; }
+[data-pack-effect="flicker"][data-pack-animate] { animation: wp-fx-flicker calc(1s / var(--wp-fx-rate, 1)) linear infinite; }
+[data-pack-effect="rgb-split"][data-pack-animate] { animation: wp-fx-rgb-split calc(1s / var(--wp-fx-rate, 1)) linear infinite; }
+[data-pack-effect="interference"][data-pack-animate] { animation: wp-fx-interference calc(1s / var(--wp-fx-rate, 1)) linear infinite; }
 /* Lite mode with a pack worn (any pack, stage or not): widget blur is off (cap 0, section 9.3), and a blurred card fills to its fallback alpha instead, over any page. */
 :root[data-lite-motion][data-pack-worn] { --wp-blur-cap: 0px !important; }
 :root[data-lite-motion][data-pack-worn] [data-wp-tier][data-mat-blur] {

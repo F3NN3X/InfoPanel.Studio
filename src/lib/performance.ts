@@ -6,6 +6,7 @@
 
 import { FPS_CHOICES, type MaxFps } from "@/lib/ticker";
 import type { MotionChoice } from "@/lib/general";
+import { FX_LEVELS, type FxLevel } from "@/looks/pack-json";
 
 /** The URL's layer: Max FPS and motion. */
 export interface PerformanceOverride {
@@ -27,11 +28,15 @@ export interface ScreenPerformance extends PerformanceOverride {
   pixelShift?: boolean;
   /** Minutes without input before a pack's page art dims (one of `IDLE_DIM_MINUTES`; default off). */
   idleDim?: number;
+  /** How much of a pack's effects it draws: full, the calm variants or none. Unset: off under reduced motion, else full; lite mode still caps it at calm. */
+  fx?: FxLevel;
 }
 
 export interface ResolvedPerformance {
   maxFps: MaxFps;
   reduceMotion: boolean;
+  /** The FX level: the screen's own, else off under reduced motion and full otherwise. Not yet capped by lite mode (`planEffects` does). */
+  fx: FxLevel;
 }
 
 export const DEFAULT_MAX_FPS: MaxFps = 60;
@@ -48,6 +53,7 @@ export const IDLE_DIM_MINUTES: readonly number[] = [5, 15, 30, 60];
 export const liteOf = ({ maxFps, reduceMotion }: { maxFps: number; reduceMotion: boolean }): boolean => reduceMotion || (maxFps > 0 && maxFps < 60);
 
 export const isMaxFps = (v: unknown): v is MaxFps => FPS_CHOICES.includes(v as MaxFps);
+export const isFxLevel = (v: unknown): v is FxLevel => FX_LEVELS.includes(v as FxLevel);
 export const isMotionChoice = (v: unknown): v is MotionChoice => MOTIONS.includes(v as MotionChoice);
 
 /** A stored screen performance, keeping only valid keys; undefined when nothing is left. */
@@ -59,6 +65,7 @@ export function normalizePerformance(input: unknown): ScreenPerformance | undefi
   if (isMotionChoice(v.motion)) out.motion = v.motion;
   for (const key of RENDERING_KEYS) if (typeof v[key] === "boolean") out[key] = v[key];
   if (IDLE_DIM_MINUTES.includes(v.idleDim as number)) out.idleDim = v.idleDim as number;
+  if (isFxLevel(v.fx)) out.fx = v.fx;
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
@@ -82,12 +89,13 @@ export function performanceFromSearch(search: string): PerformanceOverride {
 export function resolvePerformance(layers: {
   url?: PerformanceOverride;
   profile?: PerformanceOverride;
-  general: { maxFps?: number; motion?: MotionChoice };
+  general: { maxFps?: number; motion?: MotionChoice; fx?: FxLevel };
   /** The OS's prefers-reduced-motion. */
   system: boolean;
 }): ResolvedPerformance {
   const { url, profile, general, system } = layers;
   const maxFps = [url?.maxFps, profile?.maxFps, general.maxFps].find(isMaxFps) ?? DEFAULT_MAX_FPS;
   const motion = [url?.motion, profile?.motion, general.motion].find(isMotionChoice) ?? "system";
-  return { maxFps, reduceMotion: motion === "system" ? system : motion === "reduce" };
+  const reduceMotion = motion === "system" ? system : motion === "reduce";
+  return { maxFps, reduceMotion, fx: isFxLevel(general.fx) ? general.fx : reduceMotion ? "off" : "full" };
 }
