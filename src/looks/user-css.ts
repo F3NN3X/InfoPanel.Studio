@@ -217,6 +217,8 @@ function declarationIssue({ name, value }: Declaration, lane: Lane, defined: Def
   }
   const marked = lane.slots.find((s) => MARKS.has(s));
   if (PSEUDO_ONLY.test(name) && !lane.pseudo) return `property ${name} is set only on a ::before or ::after`;
+  // the render check reads a mask's alpha over text, not over a mark's stroke, so a mark is never masked
+  if (/^(-webkit-)?mask/.test(name) && marked && !lane.pseudo) return `${name} would fade the mark ${marked} draws`;
   const colour = Object.hasOwn(COLOURS, name) ? COLOURS[name] : undefined;
   if (colour) {
     if (colour.box && marked) return `${name} paints the box of ${marked}, which would hide the mark it draws`;
@@ -327,6 +329,9 @@ export function userCssIssues(css: string): string[] {
   // the parser reads `@-webkit-keyframes` as `@keyframes`; the server's deny-list and this grammar take the plain name only
   const prefixed = tokenize(css).find((t) => t.t === "at" && t.v.startsWith("-"));
   if (prefixed) return [`at-rule @${prefixed.v}: a user pack's CSS has style rules and @keyframes pack-* only`];
+  // the server's deny-list (`css_deny`) reads the text, not the tokens: a string holding `@`, `<` or `\` passes here but is never signed
+  const unsignable = tokenize(css).find((t) => t.t === "string" && /[@<\\]/.test(t.v));
+  if (unsignable) return [`string ${writeTokens([unsignable]).slice(0, 40)}: a user pack's strings may not hold @, < or \\ (the server refuses them)`];
   if (!rules.some((r) => r.declarations?.length)) return ["the file holds no rule"];
   const declarations = rules.reduce((n, r) => n + (r.declarations?.length ?? 0) + (r.rules ?? []).reduce((m, f) => m + (f.declarations?.length ?? 0), 0), 0);
   if (declarations > MAX_DECLARATIONS) return [`the file holds ${declarations} declarations, more than the ${MAX_DECLARATIONS} a pack may have`];

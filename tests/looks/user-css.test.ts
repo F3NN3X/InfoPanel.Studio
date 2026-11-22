@@ -288,6 +288,18 @@ describe("the Phase 2 values in the grammar", () => {
       refused(`${CARD} { ${decl}; }`);
     }
   });
+
+  it("refuses a string the server would not sign: @, < or \\ inside it", () => {
+    for (const s of ['"@"', '"a<b"', '"\\\\"', '"\\40"']) refused(`${PSEUDO} { content: ${s}; }`);
+    passes(`${PSEUDO} { content: "// 01"; }`);
+  });
+
+  it("never masks a mark, only the card, text slots and pseudo-elements", () => {
+    const mask = "mask-image: linear-gradient(#000, #0000)";
+    for (const slot of ["ring", "bar", "spark", "icon"]) refused(`[data-part="${slot}"] { ${mask}; }`);
+    passes(`${CARD} { ${mask}; }`);
+    passes(`[data-part="ring"]::after { content: ""; ${mask}; }`);
+  });
 });
 
 describe("the CyberSpec sample (MIT) through both gates", () => {
