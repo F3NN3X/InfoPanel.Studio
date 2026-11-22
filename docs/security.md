@@ -113,6 +113,13 @@ security model, what was fixed, what was decided, and what is deferred.
   the app rewrites it to the pack's route, `/api/packs/<id>/<file>`, which serves it under the sandbox CSP. The server
   refuses to sign CSS holding a backslash, `<`, an at-rule other than `@keyframes`, `image-set(`, `src(` or a `url()` that
   leaves the pack.
+- **Pack frames, ornaments and effects** (`src/looks/pack-validate.ts`, `src/looks/pack-frame.tsx`, `src/looks/effects.ts`):
+  declarations in pack.json that the app draws with its own code; a pack supplies no markup or style for them. A frame's
+  corners are at most 20 px and its stroke 2 px, in the Look's accent. Ornament text is at most 64 characters, passes the same
+  injection scan as every pack.json string, and is drawn as a text node in a band of at most 10 px that takes no clicks. The
+  render check treats these elements as app chrome. The animated kinds are overlays that never filter, move or clip a widget;
+  the validator and the loader both refuse more than 3 flashes a second or more than two animated effects. `oklch()` colours
+  are converted to sRGB, clamped to the gamut and written as the hex that the contrast checks read.
 - **App icons** (`POST /api/assets/app-icon`, `crates/ips-server/src/app_icon.rs`): a rail item's icon read from a
   program's `.exe` and stored as a PNG asset. The studio names the program by its file name only (`Chat.exe`: letters,
   digits and a few punctuation marks, no separator, drive or `%`); the server looks for it among the programs running now,
