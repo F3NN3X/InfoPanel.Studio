@@ -73,4 +73,44 @@ describe("viz engine under reduced motion", () => {
     engine.dispose();
     host.remove();
   });
+
+  it("paints the still frame again on screen when its repaint frame came while off screen", () => {
+    let report: (entries: { isIntersecting: boolean }[]) => void = () => {};
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(cb: typeof report) {
+          report = cb;
+        }
+        observe() {}
+        disconnect() {}
+      }
+    );
+    const host = document.createElement("div");
+    const canvas = document.createElement("canvas");
+    host.append(canvas);
+    document.body.append(host);
+    const input: VizInput = { bands: new Float32Array(32), wave: null, history: { buf: new Float32Array(4), start: 0, length: 0 }, level: 0, source: "none" };
+    let reading = false;
+    const getter = () => {
+      if (!reading) {
+        reading = true;
+        loop.update.add(() => input.bands.fill(1));
+      }
+      return input;
+    };
+    const engine = createVizEngine(canvas);
+    engine.setLook({ style: "bars", look: { ...DEFAULT_LOOK, peaks: false, fade: 0 }, skin: { meter: "bars", glow: false } as never, reduced: true });
+    engine.setInput(getter);
+    expect(drawn.first).toEqual([0]);
+
+    // Scrolled away before the next frame (a long page mounting every widget at once).
+    report([{ isIntersecting: false }]);
+    tick(100);
+    expect(drawn.first).toEqual([0]);
+    report([{ isIntersecting: true }]);
+    expect(drawn.first).toEqual([0, 1]);
+    engine.dispose();
+    host.remove();
+  });
 });

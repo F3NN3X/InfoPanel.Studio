@@ -116,7 +116,10 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
     settle = null;
   };
 
-  /** One more still paint on the next frame, after the input's update has stepped; then the loop sleeps again. */
+  /**
+   * One more still paint on the next frame, after the input's update has stepped; then the loop sleeps again. Off
+   * screen by then, the still frame is left unpainted, so it paints again when the canvas comes on screen.
+   */
   const settleStill = () => {
     cancelSettle();
     settle = subscribeFrame(
@@ -125,7 +128,7 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
         if (spec?.reduced && getter && onScreen) {
           lastMs = 0;
           paint(nowMs);
-        }
+        } else stilled = false;
       },
       "paint",
       "viz:still",

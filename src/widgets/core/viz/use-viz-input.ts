@@ -84,6 +84,11 @@ export function useVizInput({ data, device, captureDeviceId, look, muted }: VizI
     let unsubscribe: (() => void) | null = null;
     let lastMs = 0;
     let readAt = 0;
+    const step = (dt: number, nowMs: number) => {
+      const f = live.current.ready ? frame.current : null;
+      const r = f ? { ...raw.current, capture: { bands: f.bands, wave: f.timeDomain ?? null } } : raw.current;
+      stepInput(st, r, live.current.look, dt, nowMs, live.current.reduced);
+    };
     const update = (nowMs: number) => {
       if (nowMs - readAt > IDLE_MS) {
         unsubscribe?.();
@@ -92,14 +97,15 @@ export function useVizInput({ data, device, captureDeviceId, look, muted }: VizI
       }
       const dt = lastMs ? Math.min(MAX_FRAME_GAP_MS, nowMs - lastMs) : 16;
       lastMs = nowMs;
-      const f = live.current.ready ? frame.current : null;
-      const r = f ? { ...raw.current, capture: { bands: f.bands, wave: f.timeDomain ?? null } } : raw.current;
-      stepInput(st, r, live.current.look, dt, nowMs, live.current.reduced);
+      step(dt, nowMs);
     };
     handle.current = {
       get: () => {
         readAt = performance.now();
         if (!unsubscribe) {
+          // The first read steps the input itself: the loop's first frame can come late on a busy page (past IDLE_MS,
+          // so it stops without a step), and a reduced-motion still frame painted from this read must show the input.
+          step(16, readAt);
           lastMs = 0;
           unsubscribe = subscribeFrame(update, "update", "viz:input", AMBIENT_FPS);
         }
