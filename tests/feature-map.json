@@ -74,7 +74,6 @@
       "when": "the new-test gate: a Playwright spec added or changed on this branch passes --repeat-each 3 on half the cores, 1 to 4 workers (_docs/TESTING.md); it has no `needs`: a changed spec's feature already plans the build and the server, and the full run has both; skipped when none changed"
     },
     "look-visual": {
-      "browser": true,
       "cmd": "npx playwright test --project=look-visual",
       "platform": "win32",
       "localOnly": true,
