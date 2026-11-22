@@ -5,6 +5,7 @@ import { compactOf } from "@/modules/setting-readers";
 import { STANDARD_SETTINGS } from "@/modules/standard-settings";
 import { withHwinfoAliases } from "@/lib/hwinfo-aliases";
 import { usePack } from "@/looks/pack";
+import { slotsWithDecor } from "@/looks/pack-frame";
 import { islandSettings, type IslandSourceDef } from "@/lib/island/sources";
 import { effectiveSettings, placementReads, type DashboardModule, type ModuleSetting, type ModuleSettings, type SensorMap } from "@/modules/types";
 import { ensureSkinFonts } from "./core/fonts";
@@ -138,7 +139,8 @@ export function templateModule<P extends object>({ meta, Component, settings, to
     const look = useZoneLook(all, saved, surfaceDefault);
     // A pack Look's T3 values and slots (none for Classic, the skins and the sample Looks).
     const pack = usePack(typeof look.lookId === "string" ? look.lookId : undefined);
-    return <Component data={data} names={names} {...shellProps(look)} {...toProps(look, saved)} t3={pack?.look.t3} slots={saved?.decoration === false && pack?.slots ? { icons: pack.slots.icons } : pack?.slots} packId={pack?.id} look={look} />;
+    const slots = useMemo(() => (saved?.decoration === false && pack?.slots ? { icons: pack.slots.icons } : slotsWithDecor(pack)), [pack, saved?.decoration]);
+    return <Component data={data} names={names} {...shellProps(look)} {...toProps(look, saved)} t3={pack?.look.t3} slots={slots} packId={pack?.id} look={look} />;
   }
   return mod;
 }

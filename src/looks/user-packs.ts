@@ -12,7 +12,7 @@ import { m, type Material, type MaterialKind } from "./materials";
 import { addPackFonts } from "./pack-assets";
 import { registerUserPack, unregisterUserPack } from "./pack-load";
 import type { Pack } from "./pack";
-import type { PackJson } from "./pack-json";
+import { type PackJson, packDecor } from "./pack-json";
 import { FILE_COUNT_MAX, type PackFile, type PackIssue, type PackSource, parseColour, validatePack } from "./pack-validate";
 import { lookLayers, sampleCards } from "./sample-cards";
 
@@ -161,6 +161,7 @@ export function userPackOf(src: PackSource, candidate = false): Pack {
   const meta = src.pack as PackJson;
   const look = src.look as Look;
   const base = `${ROUTE}/${meta.id}/assets/`;
+  const { frame, ornaments } = packDecor(meta);
   if (!candidate) faces.set(meta.id, addPackFonts({ base, names: Object.fromEntries(meta.fonts.map((f) => [f.file, f.file])) }, meta.fonts));
   return {
     id: meta.id,
@@ -174,6 +175,8 @@ export function userPackOf(src: PackSource, candidate = false): Pack {
     fonts: meta.fonts.map((f) => ({ source: f.source, licence: f.licence })),
     statusBar: meta.statusBar,
     connectors: meta.connectors,
+    ...(frame ? { frame } : null),
+    ...(ornaments.length ? { ornaments } : null),
   };
 }
 

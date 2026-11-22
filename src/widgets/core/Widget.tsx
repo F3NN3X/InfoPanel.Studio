@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { chromeVars, numGlowAttr, scopedCss, zoomFor, type DesignSizeSpec } from "@/components/widget-style";
 import type { PackSlots } from "@/looks/pack";
+import { PackDecor, frameClip } from "@/looks/pack-frame";
 import { materialVars, resolveMaterial } from "@/looks/materials";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
@@ -142,19 +143,22 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
   const useCompact = !!cObj;
   const tui = !!sk.boxed;
   // A Look's ornament or tab band keeps inside the padding, so the shell hands it the padding as `--wp-pad`.
-  const decor = !!(ctx.ornament || ctx.tabBand || sk.header === "box-legend");
+  const decor = !!(ctx.ornament || ctx.tabBand || ctx.decor || sk.header === "box-legend");
   const pad = shellPad({ box, studio: isStudio, compact: useCompact, bleed, tui, decor, padding: chrome?.padding !== undefined ? Math.round((chrome.padding / zoom) * 100) / 100 : undefined });
   const header = !isStudio && showHeader && titled && heading && (tui || (!useCompact && box.size !== "xs"));
   const css = chrome?.customCss ? scopedCss(scope, chrome.customCss) : "";
   const background = chrome?.backgroundOn && chrome.background ? chrome.background : "";
   const mat = resolveMaterial(surf, chrome);
   const surfBox = mat.box;
+  const clip = frameClip(ctx.decor?.frame);
   const big = roomy(box.w, box.h);
   const rootStyle = {
     // The look's Corner radius, else the theme's (Theme › Shape & spacing, `--radius`), like panels.
     borderRadius: chrome?.radius ?? radius ?? "var(--radius, 1rem)",
     fontFamily: ctx.font,
     ...materialVars(mat),
+    // a pack frame that cuts or notches its corners clips the card's paint, over the material's own
+    ...(clip ? { clipPath: clip } : null),
     ...(pad.pad !== undefined ? { "--wp-pad": `${pad.pad * zoom}px`, ...(zoom !== 1 ? { "--wp-zoom": zoom } : null) } : null),
     ...textVars(surf.tone, chrome),
     ...chromeVars(chrome),
@@ -181,6 +185,7 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
         )}
         {backdrop}
         {ctx.frame && <CardFrame kind={ctx.frame} fill={ctx.borderFill} />}
+        {ctx.decor && <PackDecor decor={ctx.decor} />}
         {decor && (
           <>
             {ctx.ornament && <CardLayer part="ornament" Slot={ctx.ornament} />}

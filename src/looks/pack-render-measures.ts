@@ -477,6 +477,8 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
       for (let t = walker.nextNode(); t; t = walker.nextNode()) {
         if (!t.textContent?.trim() || !t.parentElement) continue;
         const el = t.parentElement;
+        // the frame and ornaments the app draws on the card (`data-pack-decor`) are app chrome, not the widget's text or the pack's paint
+        if (el.closest("[data-pack-decor]")) continue;
         const cs = getComputedStyle(el);
         if (cs.visibility === "hidden" || cs.display === "none") continue;
         const words = t.textContent.trim().slice(0, 20);
@@ -538,6 +540,8 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
       if (el.hasAttribute("data-pack-effect") && Number(cs.opacity) > alphaMax) problems.push(`effect ${el.getAttribute("data-pack-effect")} opacity ${cs.opacity} is over ${alphaMax}`);
       if (el.getAttribute("data-pack-layer") === "overlay" && alphaOf(cs.backgroundColor) > alphaMax) problems.push(`overlay background alpha ${cs.backgroundColor}`);
     }
+    // the app's frame and ornaments never take a click: one that does is a bug of the app's, and the page refuses it
+    for (const el of document.querySelectorAll("[data-pack-decor]")) if (getComputedStyle(el).pointerEvents !== "none") problems.push(`${el.getAttribute("data-pack-decor")} decoration takes pointer events`);
     const marks: Record<string, number> = {};
     const cards = [...document.querySelectorAll("[data-wp-tier]")];
     const texts: TextInk[] = [];
@@ -571,6 +575,7 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
       for (let t = walker.nextNode(); t; t = walker.nextNode()) {
         if (!t.textContent?.trim() || !t.parentElement) continue;
         const el = t.parentElement;
+        if (el.closest("[data-pack-decor]")) continue;
         const cs = getComputedStyle(el);
         if (cs.visibility === "hidden" || cs.display === "none") continue;
         const words = t.textContent.trim().slice(0, 20);
@@ -605,6 +610,7 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
           // down the stack from the top to the element or one related to it: the first that paints a background, at a strength that hides, is what covers it (a transparent wrapper does not)
           for (const n of at ? document.elementsFromPoint(at[0], at[1]) : []) {
             if (n === el || n.contains(el) || el.contains(n)) break;
+            if (n.closest("[data-pack-decor]")) continue;
             const ns = getComputedStyle(n);
             if (Number(ns.opacity) >= minOpacity && (rgba(ns.backgroundColor)[3] >= 0.5 || ns.backgroundImage !== "none")) {
               problems.push(`text "${words}" is covered by a ${n.tagName.toLowerCase()}${n.getAttribute("data-part") ? ` (${n.getAttribute("data-part")})` : ""} ${where}`);

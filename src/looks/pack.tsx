@@ -7,6 +7,8 @@ import type { ScreenTemplate } from "@/lib/screen-templates/kit";
 import type { PackEffect, SizeClass } from "./effects";
 import type { PackChrome } from "./chrome";
 import type { Look } from "./look";
+import type { PackDecorSpec } from "./pack-frame";
+import type { PackFrame, PackOrnament } from "./pack-json";
 
 /** One page layer under the grid: a fill (a colour or gradient) and/or an image from the pack's own folder (`base` + `image`). */
 export interface StageLayer {
@@ -46,6 +48,8 @@ export interface PackConnectors {
 export interface PackSlots {
   ornament?: ComponentType;
   tabBand?: ComponentType;
+  /** The frame and ornaments the app draws on the card (a user pack's `frame` and `ornaments`; Decoration off drops them). */
+  decor?: PackDecorSpec;
   icons?: Record<string, IconGlyph>;
 }
 
@@ -90,6 +94,10 @@ export interface Pack {
   fonts?: { source?: string; licence?: string }[];
   statusBar?: PackStatusBar;
   connectors?: PackConnectors;
+  /** The frame the app draws on each card (pack.json `frame`, or the old `edge` read as one). */
+  frame?: PackFrame;
+  /** The ornaments the app draws on each card (pack.json `ornaments`). */
+  ornaments?: PackOrnament[];
   /** Page templates the New screen flow offers (opt-in; applying a pack never moves a widget). Each wears this pack's Look (`look.style.lookId`). */
   templates?: ScreenTemplate[];
   /** Set by the loader. */
