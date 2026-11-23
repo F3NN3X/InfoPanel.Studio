@@ -1,37 +1,20 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
-import { CircleCheck, X } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, type ComponentType, type ReactNode } from "react";
+import { useToast } from "@/components/ui/toast";
 import { SettingsDashboard } from "@/components/studio/settings-dashboard";
 import { SettingsStudio } from "@/components/studio/settings-studio";
 import { focusNavTarget } from "@/components/studio/studio-nav";
 import { isTauri, showStudio } from "@/lib/desktop";
 import { postStudioMessage } from "@/lib/studio-channel";
-import { PageColumn } from "./kit";
+import { PageColumn } from "./parts";
 import { useDashboardSettings, type SaveNote } from "./use-dashboard-settings";
 
-/** How long "Saved" stays up, and an error. */
-const SAVED_MS = 1400;
-const ERROR_MS = 4500;
-
-/** "Saved", or why not, bottom right (the App pages' toast, for the Dashboard page's changes). */
+/** "Saved", or why not, for the Dashboard page's changes (the App pages' toast). */
 function NoteToast({ note }: { note?: SaveNote }) {
-  const [shown, setShown] = useState<SaveNote>();
+  const toast = useToast();
   useEffect(() => {
-    if (!note) return;
-    setShown(note);
-    const timer = setTimeout(() => setShown(undefined), note.error ? ERROR_MS : SAVED_MS);
-    return () => clearTimeout(timer);
-  }, [note]);
-  if (!shown) return null;
-  return (
-    <div
-      key={shown.id}
-      role="status"
-      className="fixed bottom-5 right-6 z-10 flex h-(--ui-h-field) items-center gap-2 rounded-ui-menu border border-s-input-line bg-s-divider px-3.5 text-caption text-s-t1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
-    >
-      {shown.error ? <X className="h-4 w-4 text-s-red" /> : <CircleCheck className="h-4 w-4 text-s-green" />}
-      {shown.error ?? "Saved"}
-    </div>
-  );
+    if (note) toast(note.error ?? "Saved", { error: !!note.error });
+  }, [note, toast]);
+  return null;
 }
 
 /** Screens at a screen, in the Studio window (which the desktop app brings to the front). */

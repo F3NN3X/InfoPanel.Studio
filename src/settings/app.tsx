@@ -1,12 +1,13 @@
 import { useLayoutEffect, useRef } from "react";
+import { ToastProvider } from "@/components/ui/toast-provider";
 import { useZoomKeys } from "@/app-window/zoom";
 import { useHelpKey } from "@/help/use-help-key";
 import { settingsHelpTarget } from "@/help/context";
 import { isSectionId, SECTION_NAMES } from "./model/search";
-import { PageColumn } from "./kit";
+import { PageColumn } from "./parts";
 import { PAGES } from "./pages";
 import { errorText, ipc } from "./ipc";
-import { RestartBar, Sidebar, TitleBar, ToastView } from "./shell";
+import { RestartBar, Sidebar, TitleBar } from "./shell";
 import { StoreProvider, useStore } from "./store";
 
 function Content() {
@@ -28,21 +29,22 @@ function Content() {
       <PageColumn title={SECTION_NAMES[section]} subtitle={subtitle} wide={wide}>
         <Section />
       </PageColumn>
-      <ToastView />
     </main>
   );
 }
 
 export function SettingsApp() {
   return (
-    <StoreProvider>
-      <div className="flex h-screen flex-col overflow-hidden bg-s-win">
-        <TitleBar />
-        <div className="flex min-h-0 flex-1">
-          <Sidebar />
-          <Content />
+    <ToastProvider>
+      <StoreProvider>
+        <div className="flex h-screen flex-col overflow-hidden bg-s-win">
+          <TitleBar />
+          <div className="flex min-h-0 flex-1">
+            <Sidebar />
+            <Content />
+          </div>
         </div>
-      </div>
-    </StoreProvider>
+      </StoreProvider>
+    </ToastProvider>
   );
 }

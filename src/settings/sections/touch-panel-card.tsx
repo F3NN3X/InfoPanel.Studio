@@ -8,7 +8,8 @@ import { useFound } from "../found";
 import { ipc } from "../ipc";
 import { useStore } from "../store";
 import type { Json, Touchscreen, TouchPanelEntry, TouchView } from "../types";
-import { Button, Card, Row, Segmented, SwitchRow, useFlag } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Row, Segmented, SwitchRow, useFlag } from "../ui";
 import { Field, ROTATIONS, shortPort, type ScreenName, type SetKey, type Steps } from "./touch-parts";
 
 const LINE_TONE: Record<PanelState, string> = {
@@ -31,7 +32,7 @@ export function ShowSteps({ url }: { url: string }) {
         <span>Set its URL to this address:</span>
         <span className="mt-1.5 flex flex-wrap gap-2">
           <span className="flex h-9 min-w-0 basis-40 flex-1 items-center truncate rounded-lg border border-s-track-line bg-s-win px-3 font-mono text-body text-s-t1">{url}</span>
-          <Button size="md" className="h-9" onClick={copy}>
+          <Button className="h-9" onClick={copy}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copied" : "Copy"}
           </Button>
@@ -89,19 +90,19 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
             {trouble && <span className="text-caption text-s-muted">{trouble}</span>}
           </div>
           {!ready && (
-            <Button kind="accent" onClick={onSetup}>
+            <Button variant="primary" onClick={onSetup}>
               Continue setup…
             </Button>
           )}
           {confirm ? (
             <>
               <Button onClick={() => setConfirm(false)}>Keep</Button>
-              <Button kind="danger" onClick={onRemove}>
+              <Button variant="danger" onClick={onRemove}>
                 Remove {entry.name}
               </Button>
             </>
           ) : (
-            <Button kind="quiet" onClick={() => setConfirm(true)} title="Remove this panel">
+            <Button variant="ghost" onClick={() => setConfirm(true)} title="Remove this panel">
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
@@ -190,7 +191,7 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
               </span>
             </Row>
             <Row label="Rotation" hint="Mounted sideways? Turn touches to match, clockwise.">
-              <Segmented size="sm" label="Rotation" options={[...ROTATIONS]} value={entry.panel.rotation} onChange={(v) => set("panel.rotation", v)} />
+              <Segmented label="Rotation" options={[...ROTATIONS]} value={entry.panel.rotation} onChange={(v) => set("panel.rotation", v)} />
             </Row>
             <SwitchRow label="Mirror horizontally" hint="Touches land on the wrong side? Flip them left to right." checked={entry.panel.flip_x} onChange={(v) => set("panel.flip_x", v)} />
             <SwitchRow label="Mirror vertically" hint="Touches land upside down? Flip them top to bottom." checked={entry.panel.flip_y} onChange={(v) => set("panel.flip_y", v)} />

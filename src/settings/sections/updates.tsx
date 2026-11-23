@@ -5,7 +5,8 @@ import { errorText, ipc } from "../ipc";
 import { betaNotice, updateCard, type UpdateAction, type UpdateIcon } from "../model/cards";
 import { useStore } from "../store";
 import type { Channel } from "../types";
-import { Button, Card, HeroCard, Row, Segmented, StateTile, SwitchRow } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, HeroCard, Row, Segmented, StateTile, SwitchRow } from "../ui";
 
 const ICONS: Record<UpdateIcon, LucideIcon> = {
   verified: BadgeCheck,
@@ -61,10 +62,10 @@ export function UpdatesSection() {
           )}
         </div>
         <div className="flex gap-2">
-          <Button size="md" onClick={() => go("changelog")}>
+          <Button onClick={() => go("changelog")}>
             What's new
           </Button>
-          <Button kind={card.primary.kind} size="md" disabled={card.primary.disabled} onClick={() => void run(card.primary.action)}>
+          <Button variant={card.primary.kind === "neutral" ? "secondary" : "primary"} disabled={card.primary.disabled} onClick={() => void run(card.primary.action)}>
             {card.primary.label}
           </Button>
         </div>

@@ -6,14 +6,13 @@ import { describe, expect, it } from "vitest";
 import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
 import { NavItem } from "@/settings/nav";
-import { Segmented as SettingsSegmented, Switch } from "@/settings/ui";
+import { Segmented as SettingsSegmented } from "@/settings/ui";
 
 const noop = () => {};
 
 describe("forced colors", () => {
   it.each([
     ["studio Toggle", (on: boolean) => <Toggle checked={on} onChange={noop} label="t" />],
-    ["settings Switch", (on: boolean) => <Switch checked={on} onChange={noop} label="t" />],
   ])("%s has a border and an on state of its own", (_name, make) => {
     const { unmount } = render(make(true));
     const on = screen.getByRole("switch");
@@ -28,7 +27,7 @@ describe("forced colors", () => {
     expect(off.firstElementChild?.className).toContain("forced-colors:bg-[color:ButtonText]");
   });
 
-  it("marks only the selected segment, in both Segmented controls", () => {
+  it("marks only the selected segment, in the studio Segmented and the Settings adapter over it", () => {
     const options = [
       { value: "a", label: "A" },
       { value: "b", label: "B" },

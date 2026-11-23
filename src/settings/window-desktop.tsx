@@ -1,3 +1,4 @@
+import { ToastProvider } from "@/components/ui/toast-provider";
 import { useZoomKeys } from "@/app-window/zoom";
 import { settingsHelpTarget } from "@/help/context";
 import { useHelpKey } from "@/help/use-help-key";
@@ -5,7 +6,7 @@ import { errorText, ipc } from "./ipc";
 import { isSectionId, PAGE_NAMES, PREFERENCES_INDEX, SEARCH_INDEX } from "./model/search";
 import type { NavGroup } from "./nav";
 import { PAGES } from "./pages";
-import { RestartBar, Sidebar, TitleBar, ToastView } from "./shell";
+import { RestartBar, Sidebar, TitleBar } from "./shell";
 import { StoreProvider, useStore } from "./store";
 import { PREFERENCE_PAGES, WindowMain } from "./window-pages";
 
@@ -29,7 +30,6 @@ function Content() {
   return (
     <WindowMain title={PAGE_NAMES[section]} subtitle={subtitle} wide={wide} focus={app ? null : found} top={<RestartBar />}>
       <Section />
-      <ToastView />
     </WindowMain>
   );
 }
@@ -41,14 +41,16 @@ function Content() {
  */
 export default function DesktopSettingsWindow() {
   return (
-    <StoreProvider pages={PAGE_IDS}>
-      <div className="s-scope flex h-screen flex-col overflow-hidden bg-s-win text-s-t1">
-        <TitleBar />
-        <div className="flex min-h-0 flex-1">
-          <Sidebar groups={GROUPS} index={INDEX} />
-          <Content />
+    <ToastProvider>
+      <StoreProvider pages={PAGE_IDS}>
+        <div className="s-scope flex h-screen flex-col overflow-hidden bg-s-win text-s-t1">
+          <TitleBar />
+          <div className="flex min-h-0 flex-1">
+            <Sidebar groups={GROUPS} index={INDEX} />
+            <Content />
+          </div>
         </div>
-      </div>
-    </StoreProvider>
+      </StoreProvider>
+    </ToastProvider>
   );
 }

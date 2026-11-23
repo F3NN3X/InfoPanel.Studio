@@ -5,7 +5,8 @@ import { errorText, ipc } from "../ipc";
 import { deltaTone, diagnosticsSummary, fmt, fmtDelta, groupSeries, isNotable, sampleSummary, type DeltaTone } from "../model/diagnostics";
 import { useFound, useStore } from "../store";
 import type { Diagnostics, Growth, Series } from "../types";
-import { Button, Card, Group, Row, Segmented, SwitchRow, useFlag } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Group, Row, Segmented, SwitchRow, useFlag } from "../ui";
 
 /** Samples arrive every 30 s. */
 const REFRESH_MS = 30_000;
@@ -172,7 +173,6 @@ export function DiagnosticsSection() {
             </div>
             <Segmented
               label="Series filter"
-              size="sm"
               options={[
                 { value: "notable", label: `Notable (${notable})` },
                 { value: "all", label: `All ${diag.series.length}` },

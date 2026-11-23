@@ -7,7 +7,8 @@ import { displayAddress, formatUptime, megabytes, serverCard, type CalloutAction
 import { parseHosts, parsePort } from "../model/restart";
 import { useFound, useStore } from "../store";
 import type { ForeignInfo, Listen, ServerStats } from "../types";
-import { Button, Card, Group, HeroCard, radioProps, Row, StateTile, SwitchRow, useFlag } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Group, HeroCard, radioProps, Row, StateTile, SwitchRow, useFlag } from "../ui";
 
 const SERVER_ICONS: Record<ServerIcon, LucideIcon> = { running: CircleCheck, stopped: CirclePause, error: CircleAlert, restarting: RefreshCw };
 
@@ -103,19 +104,19 @@ function StatusCard() {
         </div>
         <div className="flex gap-2">
           {card.canStop && (
-            <Button size="md" disabled={busy} onClick={() => void stop()}>
+            <Button disabled={busy} onClick={() => void stop()}>
               <CircleStop className="h-4.25 w-4.25" />
               Stop
             </Button>
           )}
           {card.canRestart && (
-            <Button size="md" disabled={busy} onClick={() => void restart()}>
+            <Button disabled={busy} onClick={() => void restart()}>
               <RotateCcw className="h-4.25 w-4.25" />
               Restart
             </Button>
           )}
           {card.canStart && (
-            <Button kind="accent" size="md" disabled={busy} onClick={() => void start()}>
+            <Button variant="primary" disabled={busy} onClick={() => void start()}>
               <Play className="h-4.25 w-4.25" />
               Start server
             </Button>
@@ -318,11 +319,11 @@ function KioskCard() {
         <span className="text-caption leading-[1.45] text-s-muted">Paste this into InfoPanel. It has to use the same port as the server.</span>
         <div className="flex flex-wrap gap-2">
           <div className="flex h-9 min-w-0 basis-40 flex-1 items-center truncate rounded-lg border border-s-track-line bg-s-win px-3 font-mono text-body">{url}</div>
-          <Button size="md" className="h-9" onClick={copy}>
+          <Button className="h-9" onClick={copy}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copied" : "Copy"}
           </Button>
-          <Button size="md" className="h-9" onClick={() => void ipc.openExternal(url).catch((e) => toast(errorText(e), true))}>
+          <Button className="h-9" onClick={() => void ipc.openExternal(url).catch((e) => toast(errorText(e), true))}>
             <ExternalLink className="h-4 w-4" />
             Open
           </Button>

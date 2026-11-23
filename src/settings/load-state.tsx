@@ -1,5 +1,5 @@
 import { TitleBar } from "@/app-window/title-bar";
-import { Button } from "./ui";
+import { Button } from "@/components/ui/button";
 
 interface LoadStateProps {
   /** Why the first load failed; null while it is still running. */
@@ -18,7 +18,7 @@ export function LoadState({ error, onRetry }: LoadStateProps) {
             <h1 className="m-0 text-display font-medium">Couldn't load settings</h1>
             <p className="m-0 text-pretty text-body leading-normal text-s-muted">{error}</p>
             <p className="m-0 text-pretty text-body leading-normal text-s-muted">If Retry keeps failing, restart InfoPanel Studio.</p>
-            <Button kind="accent" size="md" onClick={onRetry}>
+            <Button variant="primary" onClick={onRetry}>
               Retry
             </Button>
           </div>

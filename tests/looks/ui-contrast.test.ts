@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { contrastOf } from "@/looks/status";
 
 const ui: Record<string, string> = {};
-for (const file of ["../../src/index.css", "../../src/settings/tokens.css", "../../src/settings/ui/studio.css"]) {
+for (const file of ["../../src/index.css", "../../src/components/ui/tokens.css", "../../src/settings/ui/studio.css"]) {
   for (const m of readFileSync(new URL(file, import.meta.url), "utf8").matchAll(/^\s*--ui-([\w-]+):\s*([^;]+);/gm)) ui[m[1]] = m[2].trim();
 }
 const SURFACES = ["bg-app", "bg-panel", "bg-tile", "bg-raised"] as const;

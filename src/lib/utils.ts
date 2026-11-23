@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
 
-// The type-scale tokens in settings/tokens.css (--text-*) are font sizes, not colours, the --radius-* steps are radii and the --shadow-ui-* steps shadows.
+// The type-scale tokens in components/ui/tokens.css (--text-*) are font sizes, not colours, the --radius-* steps are radii and the --shadow-ui-* steps shadows.
 const twMerge = extendTailwindMerge({
   extend: {
     theme: { radius: ["2", "3", "4", "5", "6", "7", "8", "10", "12", "14", "ui-sm", "ui-md", "ui-lg", "ui-menu"], shadow: ["ui-float", "ui-menu", "ui-modal", "ui-drawer"] },

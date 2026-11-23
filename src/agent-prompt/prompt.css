@@ -1,5 +1,5 @@
 @import "tailwindcss" source(none);
-@import "../settings/tokens.css";
+@import "../components/ui/tokens.css";
 @source "./";
 @source "../components/hold-button.tsx";
 

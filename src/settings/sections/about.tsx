@@ -8,7 +8,8 @@ import { shortDate } from "../model/changelog";
 import { PageState } from "../page-state";
 import { useFound, useStore } from "../store";
 import type { AppInfo } from "../types";
-import { Button, Group, HeroCard, useFlag } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Group, HeroCard, useFlag } from "../ui";
 
 const ISSUES_URL = "https://github.com/F3NN3X/InfoPanel.Studio/issues/new";
 
@@ -72,7 +73,7 @@ export function AboutSection() {
             Version {info.version} · {capitalize(info.channel)} · built {shortDate(info.buildDate)}
           </span>
         </div>
-        <Button size="md" onClick={() => void copy()}>
+        <Button onClick={() => void copy()}>
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           {copied ? "Copied" : "Copy system info"}
         </Button>
@@ -107,11 +108,11 @@ export function AboutSection() {
       </Group>
 
       <div className="flex flex-wrap gap-2">
-        <Button size="md" onClick={() => go("changelog")}>
+        <Button onClick={() => go("changelog")}>
           <History className="h-4 w-4" />
           Changelog
         </Button>
-        <Button size="md" onClick={() => void ipc.openExternal(`${ISSUES_URL}?body=${encodeURIComponent(systemText(info))}`).catch(fail)}>
+        <Button onClick={() => void ipc.openExternal(`${ISSUES_URL}?body=${encodeURIComponent(systemText(info))}`).catch(fail)}>
           <Bug className="h-4 w-4" />
           Report an issue
         </Button>

@@ -5,7 +5,8 @@ import { PREVIEW_DATA_HINT, PREVIEW_DATA_OPTIONS, parsePreviewData } from "@/lib
 import { errorText, ipc } from "../ipc";
 import { useStore } from "../store";
 import type { BrowserKind } from "../types";
-import { Button, Card, Group, Kbd, Row, Segmented, SwitchRow } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Group, Kbd, Row, Segmented, SwitchRow } from "../ui";
 
 export function GeneralSection() {
   const { settings, save, setZoom, toast } = useStore();

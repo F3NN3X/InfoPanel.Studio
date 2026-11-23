@@ -26,10 +26,10 @@ function replaceBlock(text, name, from, body, indent = "") {
 const load = (rel) => import(pathToFileURL(join(root, rel)).href);
 const read = (rel) => lf(readFileSync(join(root, rel), "utf8"));
 
-/** The tokens of the generated status and shared sets each page's built files read now, by page (from the build; see ui-usage.mjs). */
+/** The tokens of the generated status, shared and chrome sets each page's built files read now, by page (from the build; see ui-usage.mjs). */
 export async function usageNow() {
   const studio = JSON.parse(read("src/looks/studio/look.json"));
-  const names = [...Object.keys(studio.studio.shared), ...Object.keys(studio.studio.status)];
+  const names = [...Object.keys(studio.studio.shared), ...Object.keys(studio.studio.status), ...Object.keys(studio.studio.chrome)];
   return Object.fromEntries(Object.entries(scanUsage()).map(([page, reads]) => [page, neededOf(reads, names)]));
 }
 
@@ -71,7 +71,7 @@ export async function generate() {
   // The chrome tokens only the studio's bundle uses; the shared ones and the status set are in tokens.css.
   out.set(css, replaceBlock(out.get(css), "studio-chrome", STUDIO, [":root {", ...ui("chrome").map((t) => `  --ui-${t.name}: ${t.value};`), "}"]));
 
-  const tokens = "src/settings/tokens.css";
+  const tokens = "src/components/ui/tokens.css";
   out.set(
     tokens,
     replaceBlock(read(tokens), "studio-twins", STUDIO, [
@@ -97,7 +97,9 @@ export async function generate() {
       "",
     ].join("\n");
   out.set("src/settings/ui/studio.css", pageCss("studio", tokenSet));
-  for (const page of Object.keys(usage)) out.set(`src/settings/ui/${page}.css`, pageCss(page, tokenSet.filter((t) => usage[page].includes(t.name))));
+  // A page also declares the chrome tokens its built files read (the ui/ primitives name some); the studio's are in index.css.
+  const pageSet = [...tokenSet, ...ui("chrome")];
+  for (const page of Object.keys(usage)) out.set(`src/settings/ui/${page}.css`, pageCss(page, pageSet.filter((t) => usage[page].includes(t.name))));
 
   const mixer = "src/widgets/core/mixer-views.css";
   const t3 = (name) => cssOf(CLASSIC_T3[name]).toLowerCase();

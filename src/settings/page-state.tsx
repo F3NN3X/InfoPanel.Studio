@@ -1,4 +1,4 @@
-import { Button } from "./ui";
+import { Button } from "@/components/ui/button";
 
 interface PageStateProps {
   /** What the page shows, for the failure line: "the changelog". */

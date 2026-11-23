@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import "./window.css";
+import { ToastProvider } from "@/components/ui/toast-provider";
 import { settingsHelpTarget } from "@/help/context";
 import { useHelpKey } from "@/help/use-help-key";
 import { isTauri, openHelp } from "@/lib/desktop";
@@ -89,7 +90,13 @@ export default function SettingsWindow() {
   useEffect(() => {
     document.title = "InfoPanel Studio settings";
   }, []);
-  if (!isTauri()) return <BrowserSettings />;
+  if (!isTauri()) {
+    return (
+      <ToastProvider>
+        <BrowserSettings />
+      </ToastProvider>
+    );
+  }
   return (
     <Suspense fallback={null}>
       <DesktopSettingsWindow />

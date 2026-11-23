@@ -5,7 +5,9 @@ import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { useFound, useStore } from "../store";
 import type { AgentName, AgentStatus, HookState, SetAgentsResult } from "../types";
-import { Button, Card, Group, Row, Switch, SwitchRow } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
+import { Card, Group, Row, SwitchRow } from "../ui";
 
 const AGENT_NAMES: Record<AgentName, string> = { claude: "Claude Code", codex: "Codex" };
 
@@ -162,7 +164,7 @@ export function AgentsSection() {
             <span className="text-lead font-medium">Connect coding agents</span>
             <span className="text-caption leading-[1.45] text-s-muted">Shows Claude Code and Codex sessions on the dashboard</span>
           </div>
-          <Switch checked={enabled} onChange={(v) => void toggle(v)} label="Connect coding agents" disabled={busy} />
+          <Toggle checked={enabled} onChange={(v) => void toggle(v)} label="Connect coding agents" disabled={busy} />
         </div>
         <div className="flex flex-col gap-2.5 border-t border-s-divider px-4.5 py-3.5">
           <span className="text-caption text-s-dim">{enabled ? "Edited files" : "Files that will be edited"}</span>

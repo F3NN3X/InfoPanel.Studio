@@ -5,7 +5,8 @@ import { errorText, ipc } from "../ipc";
 import { countLevels, filterLines, lineText, pushLines, type LevelFilter, type LogLevel, type LogLine } from "../model/logs";
 import { useFound, useStore } from "../store";
 import type { LogSource } from "../types";
-import { Button, radioProps, Segmented, useFlag } from "../ui";
+import { Button } from "@/components/ui/button";
+import { radioProps, Segmented, useFlag } from "../ui";
 
 /** How often the open page asks for new lines. */
 const POLL_MS = 1000;

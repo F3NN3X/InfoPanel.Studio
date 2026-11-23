@@ -8,7 +8,9 @@ import { FoundContext } from "../found";
 import { errorText, ipc } from "../ipc";
 import { useFound, useStore } from "../store";
 import type { Json, Touchscreen, TouchStatus, TouchView } from "../types";
-import { Button, Card, Group, Row, Segmented, Switch, SwitchRow } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
+import { Card, Group, Row, Segmented, SwitchRow } from "../ui";
 import { PanelCard } from "./touch-panel-card";
 import { Field, hex, shortPort, useDashboardLinks, useSteps, ZadigSteps, type ScreenName, type SetKey, type Steps } from "./touch-parts";
 import type { SetupTarget } from "./touch-setup-dialog";
@@ -144,7 +146,7 @@ function PanelsGroup({ view, keys, steps, screens, displays, dashboardScreens, p
           {onDisplays ? (
             <Button onClick={() => void ipc.touchCancel()}>Cancel</Button>
           ) : (
-            <Button kind="accent" disabled={steps.running !== null} onClick={() => onSetup({})}>
+            <Button variant="primary" disabled={steps.running !== null} onClick={() => onSetup({})}>
               Set up a panel…
             </Button>
           )}
@@ -302,10 +304,10 @@ function TestingGroup({ view, setKey }: { view: TouchView; setKey: SetKey }) {
           {t.enabled && (
             <>
               <Row label="Count">
-                <Segmented size="sm" label="Virtual panels" options={[1, 2, 3, 4].map((n) => ({ value: n, label: String(n) }))} value={t.virtual_panels} onChange={(v) => void setKey("testing.virtual_panels", v)} />
+                <Segmented label="Virtual panels" options={[1, 2, 3, 4].map((n) => ({ value: n, label: String(n) }))} value={t.virtual_panels} onChange={(v) => void setKey("testing.virtual_panels", v)} />
               </Row>
               <Row label="Plays">
-                <Segmented size="sm" label="Recording" options={replays} value={t.replay} onChange={(v) => void setKey("testing.replay", v)} />
+                <Segmented label="Recording" options={replays} value={t.replay} onChange={(v) => void setKey("testing.replay", v)} />
               </Row>
               {virtuals.map((p) => (
                 <VirtualRow key={p.id} id={p.id} name={p.name} status={p.status} />
@@ -439,7 +441,7 @@ export function TouchSection() {
               <span>Keep Interactive off in InfoPanel, or Windows gets the touches too and moves the mouse.</span>
             </span>
           </div>
-          <Switch checked={enabled} onChange={(v) => void toggle(v)} label="Touch panels" disabled={busy} />
+          <Toggle checked={enabled} onChange={(v) => void toggle(v)} label="Touch panels" disabled={busy} />
         </div>
       </div>
       {!enabled && (

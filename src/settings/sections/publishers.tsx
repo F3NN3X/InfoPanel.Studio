@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { useFound, useStore } from "../store";
 import type { WidgetKey } from "../types";
-import { Button, Card, Group } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Group } from "../ui";
 
 /** What each state says beside a key. */
 const STATES: Record<WidgetKey["state"], { label: string; className: string }> = {
@@ -38,7 +39,7 @@ function KeyRow({ item, busy, onRemove, onRestore }: { item: WidgetKey; busy: bo
       </div>
       <span className={cn("rounded-ui-lg px-2 py-0.5 text-caption", state.className)}>{state.label}</span>
       {item.state === "trusted" && (
-        <Button kind="danger" disabled={busy} onClick={onRemove}>
+        <Button variant="danger" disabled={busy} onClick={onRemove}>
           <Trash2 className="h-4 w-4" />
           Remove key
         </Button>
@@ -149,7 +150,7 @@ export function PublishersSection() {
             />
           </label>
           <div className="flex">
-            <Button kind="accent" disabled={busy || !name.trim() || !key.trim() || !publisherNames(publishers).length} onClick={() => void add()}>
+            <Button variant="primary" disabled={busy || !name.trim() || !key.trim() || !publisherNames(publishers).length} onClick={() => void add()}>
               <Plus className="h-4 w-4" />
               Add key
             </Button>

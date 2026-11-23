@@ -127,7 +127,7 @@ describe("the Studio Look (D1)", () => {
   /** Every `--ui-*` declaration the app's CSS holds now. */
   const uiNow = (): Record<string, string> => {
     const out: Record<string, string> = {};
-    for (const file of ["../../src/index.css", "../../src/settings/tokens.css", "../../src/settings/ui/studio.css"]) {
+    for (const file of ["../../src/index.css", "../../src/components/ui/tokens.css", "../../src/settings/ui/studio.css"]) {
       for (const m of readFileSync(new URL(file, import.meta.url), "utf8").matchAll(/^\s*--ui-([\w-]+):\s*([^;]+);/gm)) out[m[1]] = m[2].trim();
     }
     return out;

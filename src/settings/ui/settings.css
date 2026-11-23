@@ -23,9 +23,21 @@
   --ui-bg-chrome: #0c0c0e;
   --ui-accent-text: #6ea8ff;
   --ui-text-warn: #f2b23a;
+  --ui-text-soft: #a1a1aa;
   --ui-bg-highlight: #34343d;
   --ui-ok: #3fcf8e;
   --ui-warn: #f2b23a;
   --ui-danger: #f07070;
+  --ui-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ui-dur-fast: 150ms;
+  --ui-bg-active: #23232a;
+  --ui-border-strong: #2a2a31;
+  --ui-text-4: #8a8a95;
+  --ui-border-hover: #52525b;
+  --ui-accent-soft: rgb(110 168 255 / 0.14);
+  --ui-inverse-bg: #ededf0;
+  --ui-inverse-fg: #0c0c0e;
+  --ui-shadow-float: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --ui-shadow-menu: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 /* @generated:end ui-tokens */

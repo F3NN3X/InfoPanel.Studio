@@ -3,7 +3,7 @@ import { usePreviewDataSetting } from "@/hooks/use-preview-data-setting";
 import { PREVIEW_DATA_HINT, PREVIEW_DATA_OPTIONS, parsePreviewData } from "@/lib/preview-data-pref";
 import { useAccordionPref, useAdvancedPref } from "./inspector/inspector-prefs";
 import { useAddListDensity, useAddPreviewOnHover, useLeftPanelWidth } from "./add-prefs";
-import { Card, Group, Row, Segmented, SelectRow, SwitchRow } from "@/settings/kit";
+import { Card, Group, Row, Segmented, SelectRow, SwitchRow } from "@/settings/parts";
 import { ZOOM_STEPS } from "./studio-layout";
 import { GRID_KEY, RULERS_KEY, useStorageKey, useStoredFlag } from "./use-stored-flag";
 import { loadZoomPref, parseZoomPref, saveZoomPref, ZOOM_KEY, type ZoomPref } from "./zoom-pref";

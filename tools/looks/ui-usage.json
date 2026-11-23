@@ -21,10 +21,22 @@
     "bg-chrome",
     "accent-text",
     "text-warn",
+    "text-soft",
     "bg-highlight",
     "ok",
     "warn",
-    "danger"
+    "danger",
+    "ease",
+    "dur-fast",
+    "bg-active",
+    "border-strong",
+    "text-4",
+    "border-hover",
+    "accent-soft",
+    "inverse-bg",
+    "inverse-fg",
+    "shadow-float",
+    "shadow-menu"
   ],
   "help": [
     "bg-app",
@@ -55,7 +67,18 @@
     "bg-highlight",
     "ok",
     "warn",
-    "danger"
+    "danger",
+    "ease",
+    "dur-fast",
+    "bg-active",
+    "border-strong",
+    "text-4",
+    "border-hover",
+    "accent-soft",
+    "inverse-bg",
+    "inverse-fg",
+    "shadow-float",
+    "shadow-menu"
   ],
   "touch": [
     "bg-app"

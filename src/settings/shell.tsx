@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { CircleCheck, CircleHelp, ExternalLink, RotateCcw, X } from "lucide-react";
+import { CircleHelp, ExternalLink, RotateCcw } from "lucide-react";
 import { SearchBox, useSearchShortcut } from "@/app-window/search-box";
 import { TitleBar as WindowTitleBar } from "@/app-window/title-bar";
 import { cn } from "@/lib/utils";
@@ -184,22 +184,6 @@ export function RestartBar() {
         <span className="[@media(width<=800px)]:hidden">Restart server</span>
         <span className="[@media(width>800px)]:hidden">Restart</span>
       </button>
-    </div>
-  );
-}
-
-/** The "Saved" toast, bottom right. */
-export function ToastView() {
-  const { toastState } = useStore();
-  if (!toastState) return null;
-  return (
-    <div
-      key={toastState.id}
-      role="status"
-      className="fixed bottom-5 right-6 z-10 flex h-(--ui-h-field) items-center gap-2 rounded-ui-menu border border-s-input-line bg-s-divider px-3.5 text-caption text-s-t1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
-    >
-      {toastState.error ? <X className="h-4 w-4 text-s-red" /> : <CircleCheck className="h-4 w-4 text-s-green" />}
-      {toastState.message}
     </div>
   );
 }
