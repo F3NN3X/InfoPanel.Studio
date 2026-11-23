@@ -1826,6 +1826,82 @@
    "text": "Ethernet0.3%Download920 KB/sUpload27.6 KB/sDownloaded193GBUploaded13.0GBUtilisation0.30%",
    "view": "body"
   },
+  "Ping@1x1": {
+   "span": "1x1",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    110,
+    110
+   ],
+   "body": [
+    10,
+    10,
+    90,
+    90
+   ],
+   "n": 18,
+   "text": "23ms",
+   "view": "compact"
+  },
+  "Ping@2x2": {
+   "span": "2x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    228,
+    228
+   ],
+   "body": [
+    12,
+    12,
+    204,
+    204
+   ],
+   "n": 20,
+   "text": "example.net23msUp",
+   "view": "compact"
+  },
+  "Ping@4x2": {
+   "span": "4x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    228
+   ],
+   "body": [
+    16,
+    44.5,
+    432,
+    167.5
+   ],
+   "n": 22,
+   "text": "example.netUpRound trip23ms",
+   "view": "body"
+  },
+  "Ping@4x4": {
+   "span": "4x4",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    464
+   ],
+   "body": [
+    16,
+    48.63,
+    432,
+    399.38
+   ],
+   "n": 39,
+   "text": "example.netUpRound trip23msAverage25msJitter3.2msLoss0%",
+   "view": "body"
+  },
   "NowPlaying@1x1": {
    "span": "1x1",
    "issues": [],
@@ -2204,6 +2280,82 @@
    ],
    "n": 484,
    "text": "LevelsLiveVoice50%L-∞R-∞System40%L-0.3R-0.3Headphones43%L-8.2R-8.2Browser23%L-0.5R-0.5Speakers100%L-∞R-∞",
+   "view": "body"
+  },
+  "MixerSolo@1x1": {
+   "span": "1x1",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    110,
+    110
+   ],
+   "body": [
+    0,
+    0,
+    110,
+    110
+   ],
+   "n": 9,
+   "text": "MasterTap to solo",
+   "view": "body"
+  },
+  "MixerSolo@2x2": {
+   "span": "2x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    228,
+    228
+   ],
+   "body": [
+    0,
+    0,
+    228,
+    228
+   ],
+   "n": 9,
+   "text": "MasterTap to solo",
+   "view": "body"
+  },
+  "MixerSolo@4x2": {
+   "span": "4x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    228
+   ],
+   "body": [
+    0,
+    0,
+    464,
+    228
+   ],
+   "n": 9,
+   "text": "MasterTap to solo",
+   "view": "body"
+  },
+  "MixerSolo@4x4": {
+   "span": "4x4",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    464
+   ],
+   "body": [
+    0,
+    0,
+    464,
+    464
+   ],
+   "n": 9,
+   "text": "MasterTap to solo",
    "view": "body"
   },
   "StreamMixer@2x2": {
@@ -2833,6 +2985,82 @@
    "text": "OBS Studio6,000 kbps · 60 fpsGameplayOn airJust ChattingLiveTW 1,243 · YT 3121:26:36Starting SoonBe Right BackInterviewEndingMicReplay",
    "view": "body"
   },
+  "StreamStats@1x1": {
+   "span": "1x1",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    110,
+    110
+   ],
+   "body": [
+    10,
+    10,
+    90,
+    90
+   ],
+   "n": 20,
+   "text": "Live6,000kbps",
+   "view": "compact"
+  },
+  "StreamStats@2x2": {
+   "span": "2x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    228,
+    228
+   ],
+   "body": [
+    12,
+    12,
+    204,
+    204
+   ],
+   "n": 21,
+   "text": "Live6,000kbps60 fps · 1:26:36",
+   "view": "compact"
+  },
+  "StreamStats@4x2": {
+   "span": "4x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    228
+   ],
+   "body": [
+    16,
+    44.5,
+    432,
+    167.5
+   ],
+   "n": 35,
+   "text": "Stream statsLiveBitrate6,000kbpsFrame rate60fpsUptime1:26:36Viewers1,555",
+   "view": "body"
+  },
+  "StreamStats@4x4": {
+   "span": "4x4",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    464
+   ],
+   "body": [
+    16,
+    48.63,
+    432,
+    399.38
+   ],
+   "n": 39,
+   "text": "Stream statsLiveBitrate6,000kbpsFrame rate60fpsUptime1:26:36Viewers1,555",
+   "view": "body"
+  },
   "Calendar@1x1": {
    "span": "1x1",
    "issues": [],
@@ -3249,6 +3477,82 @@
    ],
    "n": 101,
    "text": "ForecastTue8°4°42.5 mmWed14°7°1.0 mmThu15°10°Fri14°11°5.7 mmSat11°6°Sun10°2°",
+   "view": "body"
+  },
+  "HourlyWeather@1x1": {
+   "span": "1x1",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    110,
+    110
+   ],
+   "body": [
+    10,
+    10,
+    90,
+    90
+   ],
+   "n": 17,
+   "text": "Oslo7°CPartly cloudy · Open-Meteo",
+   "view": "compact"
+  },
+  "HourlyWeather@2x2": {
+   "span": "2x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    228,
+    228
+   ],
+   "body": [
+    12,
+    12,
+    204,
+    204
+   ],
+   "n": 17,
+   "text": "Oslo7°CPartly cloudy · Open-Meteo",
+   "view": "compact"
+  },
+  "HourlyWeather@4x2": {
+   "span": "4x2",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    228
+   ],
+   "body": [
+    16,
+    40.5,
+    432,
+    171.5
+   ],
+   "n": 88,
+   "text": "OsloOpen-Meteo14:008°10%15:008°10%16:008°20%17:008°35%18:007°60%19:007°80%20:007°75%Weather data by Open-Meteo.com · CC BY 4.0",
+   "view": "body"
+  },
+  "HourlyWeather@4x4": {
+   "span": "4x4",
+   "issues": [],
+   "card": [
+    0,
+    0,
+    464,
+    464
+   ],
+   "body": [
+    16,
+    44.63,
+    432,
+    403.38
+   ],
+   "n": 88,
+   "text": "OsloOpen-Meteo14:008°10%15:008°10%16:008°20%17:008°35%18:007°60%19:007°80%20:007°75%Weather data by Open-Meteo.com · CC BY 4.0",
    "view": "body"
   },
   "Keys@1x1": {
