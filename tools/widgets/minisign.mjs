@@ -7,8 +7,8 @@ import crypto from "node:crypto";
 /** What the signed bytes start with (`widget_sign::DOMAIN`). */
 export const DOMAIN = "infopanel-studio widget package 1\n";
 
-/** The canonical JSON of a manifest value: keys sorted (ASCII only), no whitespace, whole non-negative numbers. */
-function canonicalJson(value) {
+/** The canonical JSON of a manifest value: keys sorted (ASCII only), no whitespace, whole non-negative numbers (`widget_sign::canonical_json`; theme packs sign it too, tools/packs/sign.mjs). */
+export function canonicalJson(value) {
   if (value === null || typeof value === "boolean") return JSON.stringify(value);
   if (typeof value === "number") {
     if (!Number.isSafeInteger(value) || value < 0) throw new Error("a number in the manifest is not a whole number of at least 0");
