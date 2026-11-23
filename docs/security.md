@@ -411,4 +411,4 @@ never shown as verified.
   signed lists in tests, never over the network.
 - Pack scripts: that Tauri IPC is refused from the pack-script worker in WebView2 (the guest has no host function at all, so
   this is the worker's own reach), and that every kiosk browser gives a URL worker its own response's policy rather than the
-  page's. The worker's script and the runtime's `.wasm` are served like any app asset, without a policy of their own.
+  page's. The worker's script is served with a policy of its own (`default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'`, `nosniff`) and the runtime's `.wasm` as `application/wasm`; that a browser applies that policy to the worker is tested in Chromium only.
