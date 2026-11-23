@@ -4,6 +4,7 @@ import { Cast, Maximize, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FOCUS_RING } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
+import { Select } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider-field";
 import { Toggle } from "@/components/ui/toggle";
 import { islandEffective, type ControlKiosk, type ControlState } from "@/lib/control";
@@ -90,6 +91,9 @@ function DimSlider({ level, disabled, onSet }: { level: number; disabled: boolea
   );
 }
 
+/** Most pages the page choice shows as one segment each; more than this it is a dropdown. */
+export const PAGE_SEGMENTS_MAX = 7;
+
 /**
  * The title bar's "Live · N" button and its popover (SPEC §3.3): the kiosks connected, and the runtime controls
  * for the edited screen's kiosks over the control API. Not modal, and nothing in it is saved to the dashboard.
@@ -149,12 +153,21 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
           {offline && <p className="border-t border-ui-subtle pt-2.5 text-micro text-ui-warn">Not connected to the server: nothing here can reach a kiosk</p>}
           <div className="flex flex-col gap-1.5 border-t border-ui-subtle py-2.5">
             <span className="text-body text-ui-1">Show on {screen.name} kiosks</span>
-            <Segmented
-              label={`Show on ${screen.name} kiosks`}
-              value={shownPage ?? ""}
-              options={screen.pages.map((p) => ({ value: p.id, label: p.name }))}
-              onChange={(page) => void liveActions.showPage(screen.id, page)}
-            />
+            {screen.pages.length > PAGE_SEGMENTS_MAX ? (
+              <Select
+                label={`Show on ${screen.name} kiosks`}
+                value={shownPage ?? null}
+                options={screen.pages.map((p) => ({ value: p.id, label: p.name }))}
+                onChange={(page) => void liveActions.showPage(screen.id, page)}
+              />
+            ) : (
+              <Segmented
+                label={`Show on ${screen.name} kiosks`}
+                value={shownPage ?? ""}
+                options={screen.pages.map((p) => ({ value: p.id, label: p.name }))}
+                onChange={(page) => void liveActions.showPage(screen.id, page)}
+              />
+            )}
           </div>
           <Control
             label="Rotation"

@@ -16,6 +16,7 @@ import {
 import { SquareDashedMousePointer } from "lucide-react";
 import { PageBackground } from "@/components/page-background";
 import { PackStage, packBackground, usePack } from "@/looks/pack";
+import { PageSizeCtx } from "@/looks/pack-frame";
 import { connectorZones } from "@/looks/connector-zones";
 import { DynamicIsland } from "@/components/island/dynamic-island";
 import { pageSkinOf } from "@/components/island/island-look";
@@ -618,6 +619,7 @@ export function StudioCanvas({
             {/* The page: exactly the profile's design size (the kiosk
                 window renders the same profile 1:1), its padding around
                 the grid, and its own theme / font / radius scoped here. */}
+            <PageSizeCtx.Provider value={islandPage}>
             <div
               ref={setPageEl}
               data-studio-page=""
@@ -867,6 +869,7 @@ export function StudioCanvas({
                   />
                 )}
               </div>
+            </PageSizeCtx.Provider>
             </div>
           </div>
 

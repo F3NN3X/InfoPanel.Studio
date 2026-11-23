@@ -30,7 +30,7 @@ Inside, `:scope` is the widget's or the cell's root.
 
 `--panel-gap`, `--panel-pad`, `--panel-direction`, `--w-accent`, `--w-fg`, `--w-muted` and `--wp-radius`. Setting a variable is safer than overriding the property, because it survives theme changes.
 
-The older names still work: `--wp-accent` and `--wp-radius` stay, and `--wp-fg` and `--wp-muted` are aliases of `--w-fg` and `--w-muted`. Inside a widget, `--accent` is also set to the accent colour for now; use `--w-accent`, because `--accent` is the theme's own token and will go.
+The older names `--wp-accent` and `--wp-radius` still work. `--wp-fg` and `--wp-muted` are gone: use `--w-fg` and `--w-muted`. `--accent` is the theme's own token, not the widget's colour: use `--w-accent`.
 
 :::tip
 Example: `:scope .wp-value { font-variant-numeric: tabular-nums; }` stops numbers jittering as they change.

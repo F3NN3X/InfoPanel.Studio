@@ -47,8 +47,8 @@ const THEME_SURFACE: Surface = {
   ring: "hsl(var(--border))",
 };
 
-/** Text colours as `var(--wp-fg, …)` / `var(--wp-muted, …)`, so the look's text colours override every material. */
-const withTextOverrides = (s: Surface): Surface => ({ ...s, fg: `var(--wp-fg, ${s.fg})`, muted: `var(--wp-muted, ${s.muted})` });
+/** Text colours as `var(--w-fg, …)` / `var(--w-muted, …)`, so the look's text colours override every material. */
+const withTextOverrides = (s: Surface): Surface => ({ ...s, fg: `var(--w-fg, ${s.fg})`, muted: `var(--w-muted, ${s.muted})` });
 
 /** The colours of one of the app's materials, tinted by one colour (or not). */
 export function makeSurface(style: ModernStyle, tint: RGB | null): Surface {

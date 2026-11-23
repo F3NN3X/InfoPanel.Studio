@@ -2,7 +2,7 @@
 // Both are absolute, click-through layers marked `data-pack-decor`, drawn from the numbers pack.json gives (px, a corner, a name) and
 // the Look's own accent, muted text and mono font; the text an ornament carries is a text node, never markup. The only thing that
 // reaches the card itself is the clip-path of a `cut` or `notch` frame (`frameClip`), which the render check measures like any card clip.
-import type { CSSProperties } from "react";
+import { createContext, useContext, type CSSProperties } from "react";
 import { showsAt, sizeClassOf } from "./effects";
 import type { Pack, PackSlots } from "./pack";
 import { CORNERS, ORNAMENT_MAX, type Corner, type OrnamentAt, type PackFrame, type PackOrnament } from "./pack-json";
@@ -119,8 +119,13 @@ function Ornaments({ items, frame, screen }: { items: readonly PackOrnament[]; f
   );
 }
 
-/** A pack's frame and ornaments on one card: two click-through layers in the card chrome; no ornaments where the padding is under the band. `screen` is the page's size, for `minSizeClass` (the window's when unset). */
-export function PackDecor({ decor, pad, screen = typeof window === "undefined" ? undefined : { width: window.innerWidth, height: window.innerHeight } }: { decor: PackDecorSpec; /** The card's padding, px; a card tighter than the ornament band draws no ornaments (L110 Q4). Unset: unknown, drawn. */ pad?: number; screen?: { width: number; height: number } }) {
+/** The size of the page a card sits on, where that is not the window's (the studio canvas draws a page at its own size); unset: the window is the page, as in the kiosk. */
+export const PageSizeCtx = createContext<{ width: number; height: number } | undefined>(undefined);
+
+/** A pack's frame and ornaments on one card: two click-through layers in the card chrome; no ornaments where the padding is under the band. `screen` is the page's size, for `minSizeClass` (else the page context's, else the window's). */
+export function PackDecor({ decor, pad, screen: given }: { decor: PackDecorSpec; /** The card's padding, px; a card tighter than the ornament band draws no ornaments (L110 Q4). Unset: unknown, drawn. */ pad?: number; screen?: { width: number; height: number } }) {
+  const page = useContext(PageSizeCtx);
+  const screen = given ?? page ?? (typeof window === "undefined" ? undefined : { width: window.innerWidth, height: window.innerHeight });
   const roomy = pad === undefined || pad >= ORNAMENT_MAX;
   return (
     <>

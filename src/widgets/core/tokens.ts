@@ -6,4 +6,4 @@ export const mix = (p: number, to = "transparent"): string => `color-mix(in okla
 export const hue = (deg: number): string => (deg ? `oklch(from var(--w-accent) l c calc(h + ${deg}))` : "var(--w-accent)");
 // The colour accent as a widget variable. `--accent` stays beside `--w-accent` for one release: custom CSS reads it inside a widget,
 // but it is also the shadcn HSL triplet, so only widget roots and widget-like scopes set it as a colour.
-export const accentVars = (color: string, tone?: string): Record<string, string> => ({ "--w-accent": tone === "light" ? accentInk(color) : color, "--accent": color });
+export const accentVars = (color: string, tone?: string): Record<string, string> => ({ "--w-accent": tone === "light" ? accentInk(color) : color });

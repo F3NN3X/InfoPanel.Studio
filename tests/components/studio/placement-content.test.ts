@@ -171,8 +171,8 @@ describe("Other sensors zone", () => {
   });
 
   it("honours the zone's card settings (accent) and defaults to the theme surface", () => {
-    expect(html({ settings: { accent: "#ff0000" } })).toContain("--accent:#ff0000");
-    expect(html()).not.toContain("--accent:#ff0000");
+    expect(html({ settings: { accent: "#ff0000" } })).toContain("--w-accent:#ff0000");
+    expect(html()).not.toContain("--w-accent:#ff0000");
     expect(html()).toContain("var(--card)");
     expect(html({ settings: { surface: "glass" } })).not.toContain("var(--card)");
   });
