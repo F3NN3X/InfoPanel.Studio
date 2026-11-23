@@ -18,7 +18,7 @@ export type SoloMemory = Map<string, string[]>;
 const STORAGE_KEY = "dashboard.mixer-solo";
 
 /** The record a reload left (what each solo muted); empty when there is none or it cannot be read. */
-export function loadMemory(storage: Pick<Storage, "getItem"> = localStorage): SoloMemory {
+export function loadMemory(storage: Pick<Storage, "getItem"> = globalThis.localStorage): SoloMemory {
   try {
     const raw: unknown = JSON.parse(storage.getItem(STORAGE_KEY) ?? "null");
     const entries = raw && typeof raw === "object" ? Object.entries(raw) : [];
@@ -29,7 +29,7 @@ export function loadMemory(storage: Pick<Storage, "getItem"> = localStorage): So
 }
 
 /** Writes the record so the second tap still knows what the solo muted after a reload. */
-export function saveMemory(memory: SoloMemory, storage: Pick<Storage, "setItem"> = localStorage): void {
+export function saveMemory(memory: SoloMemory, storage: Pick<Storage, "setItem"> = globalThis.localStorage): void {
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(memory)));
   } catch {
