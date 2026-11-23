@@ -75,7 +75,7 @@ describe("packBreaches", () => {
   });
 
   it("measures only the built-in packs (an unbuilt tree measures none)", () => {
-    expect(Object.keys(measurePacks()).filter((id) => !["field-kit", "tape-86", "term", "neon-stripe", "overdrive", "swiss-mono", "holo", "night-glow", "paper", "classy-black", "liquid-glass", "black-and-gold"].includes(id))).toEqual([]);
+    expect(Object.keys(measurePacks()).filter((id) => !["field-kit", "tape-86", "term", "neon-stripe", "overdrive", "swiss-mono", "holo", "night-glow", "paper", "classy-black", "liquid-glass", "black-and-gold", "cyberspec"].includes(id))).toEqual([]);
   });
 
   it("fails a pack with no chunk of its own, no layersPerPage, or too many layers", () => {

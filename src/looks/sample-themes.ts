@@ -3,6 +3,7 @@
 // loads it on demand), the kiosk reads the values the applied theme saved into the config. Names are working titles (G5).
 import type { PageBackground } from "@/lib/appearance";
 import type { Colours } from "@/lib/screen-templates/designs/ports";
+import type { LookVariant } from "./look";
 
 export interface SampleTheme {
   /** The id; the card is `look-<id>` (`sample-materials.ts`) and the built-in preset `builtin:look-<id>`. */
@@ -28,6 +29,8 @@ export interface SampleTheme {
   /** The mockup this follows; what it shows that level 1 cannot (the owner phase is in the progress ledger). */
   mockup: string;
   missing: string;
+  /** The Look's variants (the Variant knob draws for a Look that has some). */
+  variants?: LookVariant[];
 }
 
 const gradient = (from: string, to: string, angle: number): PageBackground => ({ type: "gradient", gradient: { from, to, angle } });
@@ -123,6 +126,24 @@ export const SAMPLE_THEMES: readonly SampleTheme[] = [
     accent: "#D4AF37", font: "auto", radius: 0.5,
     page: color("#060503"),
     mockup: "(no board: the Hyprtile reference in 03-theme-packs-spec.md)", missing: "gold gradient on the gauge arcs (a ring gradient fill: the border and numerals carry the gold sheen)",
+  },
+  {
+    // After Cyberspec by Agnel Nieves (MIT, github.com/agnelnieves/cyberspec): its tokens.css values. The accent is the kit's Crimson theme,
+    // the text its cyan signal (values), the muted text its accent ink (labels); the variants are the kit's other five themes.
+    id: "cyberspec", name: "Cyberspec", blurb: "Blue-black panels with a cut corner, hot red lines, cyan readouts, yellow warnings",
+    colours: { bg: "#0E0E17", fg: "#FFE4E1", card: "#0E0E17", sub: "#C26864", line: "#151523" },
+    text: "#5EF6FF", muted: "#FF5B5B",
+    accent: "#FF3B45", font: "auto", radius: 0,
+    status: { ok: "#2BF59A", warn: "#FFD23F", crit: "#FF3B45" },
+    page: color("#07070C"),
+    mockup: "(no board: the Cyberspec kit, cyberspec.dev/components)", missing: "the kit's one-shot glitch as a panel arrives and the channel slip on a changed value (no widget animates its own arrival; the page glitch overlay stands in)",
+    variants: [
+      { id: "voltage", name: "Voltage", values: { accent: "#F4CE23" } },
+      { id: "toxin", name: "Toxin", values: { accent: "#40EF7C" } },
+      { id: "ice", name: "Ice", values: { accent: "#41D9F8" } },
+      { id: "ultraviolet", name: "Ultraviolet", values: { accent: "#B96AFF" } },
+      { id: "monochrome", name: "Monochrome", values: { accent: "#C6C6C6" } },
+    ],
   },
 ];
 

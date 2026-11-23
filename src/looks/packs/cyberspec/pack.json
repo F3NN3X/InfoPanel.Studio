@@ -1,0 +1,106 @@
+{
+  "id": "cyberspec",
+  "name": "Cyberspec",
+  "version": "1.0.0",
+  "tags": [
+    "dark",
+    "cyberpunk",
+    "angular",
+    "crt"
+  ],
+  "description": "Blue-black panels cut at one corner, hot red lines and a solid label bar, cyan readouts, yellow warnings and micro-print in the margins, under a faint CRT raster. After Cyberspec by Agnel Nieves (MIT), github.com/agnelnieves/cyberspec.",
+  "modes": [
+    "dark"
+  ],
+  "fonts": [
+    {
+      "family": "pack-cyberspec",
+      "source": "Rajdhani",
+      "file": "rajdhani-500.woff2",
+      "weight": "100 500",
+      "licence": "OFL-1.1",
+      "copyright": "Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com)"
+    },
+    {
+      "family": "pack-cyberspec",
+      "source": "Rajdhani",
+      "file": "rajdhani-600.woff2",
+      "weight": "600 900",
+      "licence": "OFL-1.1",
+      "copyright": "Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com)"
+    },
+    {
+      "family": "pack-cyberspec-mono",
+      "source": "JetBrains Mono",
+      "file": "jetbrains-mono-400.woff2",
+      "weight": "100 500",
+      "licence": "OFL-1.1",
+      "copyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)"
+    },
+    {
+      "family": "pack-cyberspec-mono",
+      "source": "JetBrains Mono",
+      "file": "jetbrains-mono-600.woff2",
+      "weight": "600 900",
+      "licence": "OFL-1.1",
+      "copyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)"
+    }
+  ],
+  "stage": {
+    "layers": [
+      {
+        "fill": "#07070C"
+      },
+      {
+        "image": "marks.svg",
+        "minSizeClass": "sm"
+      }
+    ],
+    "effects": [
+      {
+        "kind": "scanlines",
+        "cost": "static",
+        "opacity": 0.14,
+        "calm": "off"
+      },
+      {
+        "kind": "vignette",
+        "cost": "static",
+        "opacity": 0.25,
+        "calm": "off"
+      },
+      {
+        "kind": "glitch",
+        "cost": "animated",
+        "opacity": 0.12,
+        "rate": 0.25,
+        "calm": "off",
+        "minSizeClass": "sm"
+      }
+    ]
+  },
+  "burnIn": "needs-shift",
+  "statusBar": {
+    "edge": "top"
+  },
+  "frame": {
+    "corners": "cut",
+    "size": 10,
+    "which": [
+      "br"
+    ],
+    "stroke": 1
+  },
+  "ornaments": [
+    {
+      "kind": "reticle",
+      "at": "tl",
+      "minSizeClass": "md"
+    },
+    {
+      "kind": "ticks",
+      "at": "bottom",
+      "minSizeClass": "md"
+    }
+  ]
+}

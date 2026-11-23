@@ -19,10 +19,11 @@ import { SAMPLE_LOOK_IDS } from "@/looks/ids";
 import { SAMPLE_THEMES } from "@/looks/sample-themes";
 import { resolveSurface } from "@/widgets/core/theme";
 import { contrastOf } from "@/looks/status";
+import { slotsWithDecor } from "@/looks/pack-frame";
 
-const IDS = ["field-kit", "tape-86", "term", "neon-stripe", "overdrive", "swiss-mono", "holo", "night-glow", "paper", "classy-black", "liquid-glass", "black-and-gold"];
+const IDS = ["field-kit", "tape-86", "term", "neon-stripe", "overdrive", "swiss-mono", "holo", "night-glow", "paper", "classy-black", "liquid-glass", "black-and-gold", "cyberspec"];
 /** What each pack's header draws, as the shell writes it. */
-const HEADER: Record<string, string> = { "field-kit": 'data-part="tab"', "tape-86": 'data-part="tab"', term: 'data-part="legend"', "swiss-mono": 'data-hdr="index"', "neon-stripe": '<span aria-hidden="true">[</span>', overdrive: 'data-part="tab"', holo: 'data-part="header"', "night-glow": 'data-part="header"', paper: 'data-part="header"', "classy-black": 'data-part="header"', "liquid-glass": 'data-part="header"', "black-and-gold": 'data-part="header"' };
+const HEADER: Record<string, string> = { "field-kit": 'data-part="tab"', "tape-86": 'data-part="tab"', term: 'data-part="legend"', "swiss-mono": 'data-hdr="index"', "neon-stripe": '<span aria-hidden="true">[</span>', overdrive: 'data-part="tab"', holo: 'data-part="header"', "night-glow": 'data-part="header"', paper: 'data-part="header"', "classy-black": 'data-part="header"', "liquid-glass": 'data-part="header"', "black-and-gold": 'data-part="header"', cyberspec: 'data-part="tab"' };
 /** The packs that carry a component slot (an ornament or a tab band); the others paint with their material, CSS and stage. */
 const SLOTTED = ["field-kit", "tape-86"];
 
@@ -288,5 +289,47 @@ describe("what the five Looks teach the contract (P11b)", () => {
   it("every sample card starts a data-viz ramp from an opaque colour, translucent glass included (L31)", () => {
     registerSampleCards();
     for (const [name, card] of Object.entries(SAMPLE_MATERIALS)) expect(resolveMaterial(card).fill, name).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+});
+
+describe("what Cyberspec teaches the contract", () => {
+  it("a built-in pack carries the frame and ornaments of its pack.json to the card, as a user pack does", async () => {
+    const pack = (await loadPack("cyberspec"))!;
+    expect(pack.frame).toEqual({ corners: "cut", size: 10, which: ["br"], stroke: 1 });
+    expect(pack.ornaments?.map((o) => o.kind)).toEqual(["reticle", "ticks"]);
+    for (const o of pack.ornaments ?? []) expect(o.minSizeClass, o.kind).toBeDefined();
+    expect(slotsWithDecor(pack)?.decor).toEqual({ frame: pack.frame, ornaments: pack.ornaments });
+    // a pack without either keeps its slots as they were
+    const overdrive = (await loadPack("overdrive"))!;
+    expect(overdrive.frame).toBeUndefined();
+    expect(slotsWithDecor(overdrive)).toBe(overdrive.slots);
+  });
+
+  it("its variants reach the Variant knob through the sample Look, each an accent that reads on the card and under the label bar", async () => {
+    const pack = (await loadPack("cyberspec"))!;
+    const sample = (await loadLook("cyberspec"))!;
+    expect(sample.variants).toEqual(pack.look.variants);
+    expect(sample.variants?.map((v) => v.id)).toEqual(["voltage", "toxin", "ice", "ultraviolet", "monochrome"]);
+    const t1 = resolveT1(pack.look, "dark");
+    for (const v of sample.variants ?? []) {
+      expect(Object.keys(v.values), v.id).toEqual(["accent"]);
+      expect(contrastOf(v.values.accent, t1.surface), v.id).toBeGreaterThanOrEqual(4.5);
+      // the label bar is the accent with the page colour on it
+      expect(contrastOf(t1.bg, v.values.accent), v.id).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("its CRT treatment draws at Full only: Calm, reduced motion and lite mode draw none, and the glitch flashes at most once in 3 s", async () => {
+    const effects = (await loadPack("cyberspec"))!.stage!.effects!;
+    expect(effectIssues(effects)).toEqual([]);
+    const env = { level: "full" as const, lite: false, reduceMotion: false, limitBlur: false, solidPage: false, sizeClass: "md" as const };
+    const full = planEffects(effects, env);
+    expect(full.map((e) => e.kind)).toEqual(["scanlines", "vignette", "glitch"]);
+    expect(full.filter((e) => e.animate).map((e) => e.kind)).toEqual(["glitch"]);
+    expect(full.find((e) => e.kind === "glitch")!.rate).toBeLessThanOrEqual(1 / 3);
+    expect(planEffects(effects, { ...env, level: "calm" })).toEqual([]);
+    expect(planEffects(effects, { ...env, reduceMotion: true })).toEqual([]);
+    expect(planEffects(effects, { ...env, lite: true })).toEqual([]);
+    expect(planEffects(effects, { ...env, sizeClass: "xs" }).map((e) => e.kind)).toEqual(["scanlines", "vignette"]);
   });
 });

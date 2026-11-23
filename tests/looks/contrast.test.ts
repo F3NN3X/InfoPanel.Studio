@@ -82,7 +82,7 @@ describe("Look contrast (D13)", () => {
 // P10 (L59): the pack Looks again, this time from what the shell renders (`--w-*` on a card of the pack's own surface), on
 // the pack's card colour, so a change to the shell's colour logic or to a pack's text colours shows here and not only in the table above.
 describe("pack Looks, from the rendered card (L59)", () => {
-  const PACKS = ["field-kit", "tape-86", "term", "neon-stripe", "overdrive", "swiss-mono", "holo", "night-glow", "paper", "classy-black", "liquid-glass", "black-and-gold"];
+  const PACKS = ["field-kit", "tape-86", "term", "neon-stripe", "overdrive", "swiss-mono", "holo", "night-glow", "paper", "classy-black", "liquid-glass", "black-and-gold", "cyberspec"];
   const vars = (id: string): Record<string, string> => {
     registerSampleCards();
     const theme = SAMPLE_THEMES.find((t) => t.id === id)!;

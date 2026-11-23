@@ -26,6 +26,7 @@ export const BUILTIN: Record<string, () => Promise<{ default: Pack }>> = {
   "classy-black": () => import("./packs/classy-black"),
   "liquid-glass": () => import("./packs/liquid-glass"),
   "black-and-gold": () => import("./packs/black-and-gold"),
+  cyberspec: () => import("./packs/cyberspec"),
 };
 
 /** Registers a pack source: how tests and the dev fixtures bring a pack that does not ship. Never called by the app. */

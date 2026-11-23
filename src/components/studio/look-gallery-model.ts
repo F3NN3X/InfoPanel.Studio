@@ -44,6 +44,7 @@ export const LOOK_TAGS: Readonly<Record<string, readonly string[]>> = {
   "classy-black": ["minimal"],
   "liquid-glass": ["glass"],
   "black-and-gold": ["minimal"],
+  cyberspec: ["gaming", "neon"],
 };
 
 /** The filter chips, in order ("all" first). */

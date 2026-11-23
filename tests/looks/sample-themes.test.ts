@@ -48,8 +48,8 @@ describe("sample themes: the cards", () => {
   it("has one card and one preset per theme, under a name no stored surface uses", () => {
     expect(Object.keys(SAMPLE_MATERIALS)).toEqual(SAMPLE_THEMES.map((t) => `look-${t.id}`));
     expect(Object.keys(SAMPLE_MATERIALS).filter((id) => id in MATERIALS)).toEqual([]);
-    expect(SAMPLE_THEMES).toHaveLength(12);
-    expect(new Set(SAMPLE_THEMES.map((t) => t.id)).size).toBe(12);
+    expect(SAMPLE_THEMES).toHaveLength(13);
+    expect(new Set(SAMPLE_THEMES.map((t) => t.id)).size).toBe(13);
   });
 
   it("resolves by its stored name and is not the default card", () => {
@@ -141,9 +141,9 @@ describe("sample themes: presets", () => {
   const presets = SAMPLE_PRESET_GROUPS.flatMap((g) => g.presets);
 
   it("are built-in, listed after the template looks, and hold valid look values", () => {
-    expect(presets).toHaveLength(12);
+    expect(presets).toHaveLength(13);
     expect(presets.every((p) => isBuiltinPreset(p.id))).toBe(true);
-    expect(THEME_LIST_GROUPS.slice(-12)).toEqual(SAMPLE_PRESET_GROUPS);
+    expect(THEME_LIST_GROUPS.slice(-13)).toEqual(SAMPLE_PRESET_GROUPS);
     expect(new Set(THEME_LIST_GROUPS.flatMap((g) => g.presets.map((p) => p.id))).size).toBe(THEME_LIST_GROUPS.flatMap((g) => g.presets).length);
     for (const p of presets) expect(invalidStyleKeys(p.style), p.id).toEqual([]);
   });

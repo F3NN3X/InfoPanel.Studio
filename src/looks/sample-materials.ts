@@ -35,6 +35,8 @@ export const SAMPLE_MATERIALS: Record<string, Material> = Object.fromEntries([
   sample("classy-black", "solid", "dark", "#050505", { background: "#050505", boxShadow: ring("rgba(255,255,255,.14)") }),
   sample("liquid-glass", "glass", "dark", "#0F0B1A", { background: "linear-gradient(145deg, rgba(12,8,24,.55), rgba(6,6,14,.5))", boxShadow: `inset 0 1px 0 rgba(255,255,255,.28), ${ring("rgba(255,255,255,.12)")}`, ...blur(24) }),
   sample("black-and-gold", "gradient", "dark", "#12100A", { background: "linear-gradient(160deg,#17130b,#0a0906)", boxShadow: `${ring("rgba(212,175,55,.5)")}, inset 0 0 12px -6px rgba(212,175,55,.5)` }),
+  // Cyberspec's panel: the kit's panel fill and a frame line of 55 % accent over it, mixed from the card's accent so a variant recolours it; the cut corner is the pack's frame.
+  sample("cyberspec", "solid", "dark", "#0E0E17", { background: "#0E0E17", boxShadow: ring("color-mix(in srgb, var(--w-accent) 55%, #0E0E17)") }),
 ]);
 
 /**
