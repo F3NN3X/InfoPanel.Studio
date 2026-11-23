@@ -64,7 +64,7 @@ export function BlankPreview({ size, grid }: { size: Size; grid: boolean }) {
   return (
     <div className="absolute inset-[3%] grid gap-[2%]" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
       {Array.from({ length: cols * rows }, (_, i) => (
-        <span key={i} className="rounded-3 border border-dashed border-ui-strong" />
+        <span key={i} className="rounded-4 border border-dashed border-ui-strong" />
       ))}
     </div>
   );

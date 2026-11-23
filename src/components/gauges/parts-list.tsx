@@ -24,13 +24,13 @@ export function PartsList({ g, selected, onSelect, set }: PartsListProps) {
             return (
               <div
                 key={p.id}
-                className={cn("mx-2 flex h-8 items-center gap-2 rounded-7 pl-2 pr-1.5 hover:bg-ui-hover", selected === p.id && "bg-ui-active")}
+                className={cn("mx-2 flex h-8 items-center gap-2 rounded-8 pl-2 pr-1.5 hover:bg-ui-hover", selected === p.id && "bg-ui-active")}
               >
                 <button
                   type="button"
                   aria-current={selected === p.id}
                   onClick={() => onSelect(p.id)}
-                  className={cn("min-w-0 flex-1 truncate text-left text-small", on ? "text-ui-1" : "text-ui-3")}
+                  className={cn("min-w-0 flex-1 truncate text-left text-body", on ? "text-ui-1" : "text-ui-3")}
                 >
                   {p.label}
                 </button>

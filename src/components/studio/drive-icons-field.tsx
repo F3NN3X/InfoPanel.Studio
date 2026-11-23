@@ -52,12 +52,12 @@ export function DriveIconsField({ def, value, onChange, ...label }: RowLabelProp
                   aria-label={`${d.label}: pick an icon from the set`}
                   aria-expanded={listFor === d.value}
                   onClick={() => setListFor(listFor === d.value ? null : d.value)}
-                  className="flex h-7 items-center rounded-7 border border-ui-default bg-ui-raised px-2.5 text-caption text-ui-1 hover:border-ui-strong"
+                  className="flex h-7 items-center rounded-8 border border-ui-default bg-ui-raised px-2.5 text-caption text-ui-1 hover:border-ui-strong"
                 >
                   Icon set{own && "lucide" in own ? `: ${own.lucide}` : ""}
                 </button>
                 {own && (
-                  <button type="button" aria-label={`${d.label}: back to the default`} onClick={() => set(d.value, null)} className="flex h-7 items-center rounded-7 border border-ui-default bg-ui-raised px-2.5 text-caption text-ui-3 hover:border-ui-strong">
+                  <button type="button" aria-label={`${d.label}: back to the default`} onClick={() => set(d.value, null)} className="flex h-7 items-center rounded-8 border border-ui-default bg-ui-raised px-2.5 text-caption text-ui-3 hover:border-ui-strong">
                     Reset
                   </button>
                 )}

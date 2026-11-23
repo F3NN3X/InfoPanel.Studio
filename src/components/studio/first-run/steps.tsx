@@ -153,7 +153,7 @@ function Preview({ size, source }: { size: Size; source: SizeSource }) {
   return (
     <>
       <div className="grid h-41.5 w-49 shrink-0 place-items-center">
-        <div className="grid place-items-center rounded-3 border-[1.5px] border-ui-accent bg-ui-accent/[0.08]" style={{ width: w, height: h }}>
+        <div className="grid place-items-center rounded-4 border-[1.5px] border-ui-accent bg-ui-accent/[0.08]" style={{ width: w, height: h }}>
           {w > 56 && h > 22 && <span className="font-ui-mono text-micro text-ui-2">{(size.width / size.height).toFixed(2)}:1</span>}
         </div>
       </div>

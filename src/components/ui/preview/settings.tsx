@@ -14,7 +14,7 @@ export function SettingsSection() {
   const [channel, setChannel] = useState("stable");
   return (
     <section className="space-y-2 border-b border-ui-subtle py-4">
-      <h2 className="text-small font-medium text-ui-1">Settings rows and cards</h2>
+      <h2 className="text-body font-medium text-ui-1">Settings rows and cards</h2>
       <div className="flex flex-wrap items-start gap-6">
         <div className="w-120 max-w-full space-y-2">
           <p className="m-0 text-caption text-ui-hint">A card of rows: a hint, a select, a disabled switch, a rejection.</p>

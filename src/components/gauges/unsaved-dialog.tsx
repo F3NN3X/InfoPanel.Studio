@@ -22,13 +22,13 @@ export function UnsavedDialog({ open, name, saving, onSave, onDiscard, onCancel 
           “{name}” has changes that are not in your library. Save them, or discard them and go back.
         </DialogParts.Description>
         <div className="flex justify-end gap-2 pt-1">
-          <button ref={cancel} type="button" onClick={onCancel} className="h-8 rounded-ui-md border border-ui-default px-3 text-small text-ui-1 hover:bg-ui-hover">
+          <button ref={cancel} type="button" onClick={onCancel} className="h-8 rounded-ui-md border border-ui-default px-3 text-body text-ui-1 hover:bg-ui-hover">
             Cancel
           </button>
-          <button type="button" onClick={onDiscard} className="h-8 rounded-ui-md border border-ui-danger/40 px-3 text-small text-ui-danger hover:bg-ui-danger/15">
+          <button type="button" onClick={onDiscard} className="h-8 rounded-ui-md border border-ui-danger/40 px-3 text-body text-ui-danger hover:bg-ui-danger/15">
             Discard
           </button>
-          <button type="button" onClick={onSave} disabled={saving} className="h-8 rounded-ui-md bg-ui-inverse px-3 text-small font-medium text-ui-inverse-fg hover:opacity-90 disabled:opacity-50">
+          <button type="button" onClick={onSave} disabled={saving} className="h-8 rounded-ui-md bg-ui-inverse px-3 text-body font-medium text-ui-inverse-fg hover:opacity-90 disabled:opacity-50">
             Save to library
           </button>
         </div>

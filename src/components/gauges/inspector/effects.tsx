@@ -34,7 +34,7 @@ export function WaveInspector(p: InspectorProps) {
       <NumRow label="Height" value={Math.max(1, liquid.amplitude)} min={1} max={64} unit="px" onChange={(amplitude) => patch({ amplitude }, "amplitude")} />
       <NumRow label="Waves across" value={liquid.waves} min={0.5} max={8} step={0.5} onChange={(waves) => patch({ waves }, "waves")} />
       <NumRow label="One wave every" value={liquid.speed} min={0} max={30} step={0.5} unit="s" onChange={(speed) => patch({ speed }, "speed")} />
-      <p className="text-label leading-snug text-ui-4">0 s keeps it still. Image frames are still.</p>
+      <p className="text-caption leading-snug text-ui-4">0 s keeps it still. Image frames are still.</p>
     </div>
   );
 }

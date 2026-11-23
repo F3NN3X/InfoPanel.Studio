@@ -98,7 +98,7 @@ export function AlignGrid({ x, y, onChange, only, spread, stretch, label = "Alig
       <div
         role="radiogroup"
         aria-label={label}
-        className="grid shrink-0 grid-cols-3 gap-0.75 rounded-7 border border-ui-default bg-ui-app p-1"
+        className="grid shrink-0 grid-cols-3 gap-0.75 rounded-8 border border-ui-default bg-ui-app p-1"
       >
         {POS.flatMap((cy, r) =>
           POS.map((cx, c) => {

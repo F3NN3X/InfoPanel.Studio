@@ -214,7 +214,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
         <div className={box}>
           <div className="grid h-[62%] w-[72%] gap-1" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
             {Array.from({ length: cols * rows }, (_, i) => (
-              <span key={i} className="rounded-3 border border-white/10 bg-white/[.06]" />
+              <span key={i} className="rounded-4 border border-white/10 bg-white/[.06]" />
             ))}
           </div>
         </div>

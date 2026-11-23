@@ -254,7 +254,7 @@ export function InsertFilters({
 }) {
   return (
     <div className="space-y-2.5">
-      <label className="flex h-7.5 items-center gap-1.5 rounded-7 border border-ui-default bg-ui-app px-2">
+      <label className="flex h-7.5 items-center gap-1.5 rounded-8 border border-ui-default bg-ui-app px-2">
         <Search className="h-4 w-4 shrink-0 text-ui-4" />
         <input
           aria-label="Search the library"

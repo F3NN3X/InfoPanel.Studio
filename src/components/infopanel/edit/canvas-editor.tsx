@@ -555,10 +555,10 @@ export default function CanvasEditorView({ zone, setConfig, shell, hidden = fals
             <span className="min-w-0 flex-1">
               Not found on this PC, so left unbound: {unbound.join(", ")}.
             </span>
-            <button type="button" onClick={() => setRemapOpen(true)} className="h-7 rounded-7 border border-ui-default px-2.5 text-ui-1 hover:bg-ui-hover">
+            <button type="button" onClick={() => setRemapOpen(true)} className="h-7 rounded-8 border border-ui-default px-2.5 text-ui-1 hover:bg-ui-hover">
               Remap
             </button>
-            <button type="button" aria-label="Dismiss" onClick={onDismissUnbound} className="grid h-7 w-7 place-items-center rounded-7 text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+            <button type="button" aria-label="Dismiss" onClick={onDismissUnbound} className="grid h-7 w-7 place-items-center rounded-8 text-ui-4 hover:bg-ui-hover hover:text-ui-1">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -583,7 +583,7 @@ export default function CanvasEditorView({ zone, setConfig, shell, hidden = fals
             snapItems={snapItems}
           />
         </div>
-        <p className="shrink-0 truncate border-t border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-label text-ui-4">
+        <p className="shrink-0 truncate border-t border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-caption text-ui-4">
           {grid ? "Arrows move a cell · Alt+Arrows nudge items 1 px · Ctrl+G group · Ctrl+] forward" : "Drag to move. Arrows nudge 1 px, Shift+arrows 10 px. Hold Alt to stop snapping, Shift to keep one axis or the shape."}
         </p>
       </div>

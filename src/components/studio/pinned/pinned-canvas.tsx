@@ -95,7 +95,7 @@ export function PinnedCanvas({ stored, profile, index, pageId, items, appearance
                 setMenu({ x: e.clientX, y: e.clientY, item: it });
               }}
               className={cn(
-                "absolute inset-0 rounded-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+                "absolute inset-0 rounded-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
                 selected ? "outline outline-2 outline-ui-accent" : editing ? "hover:outline hover:outline-1 hover:outline-ui-accent" : "cursor-pointer"
               )}
             />

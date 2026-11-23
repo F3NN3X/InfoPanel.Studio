@@ -25,7 +25,7 @@ export function FramesStage({ tools, playback, filter }: FramesStageProps) {
           <FramesPreview frames={tools.frames} p={playback.p} speed={tools.animationSpeed} size={360} filter={filter} />
         </div>
         <PlayControls playback={playback} className="mt-4 w-full max-w-115" />
-        <p className="mt-3 text-label text-ui-4">
+        <p className="mt-3 text-caption text-ui-4">
           Frame {n === 0 ? 0 : current + 1} of {n}
           {tools.animationSpeed > 0 ? ` · eases at ${tools.animationSpeed} frames a second` : " · jumps to the frame"}
         </p>

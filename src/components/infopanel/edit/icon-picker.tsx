@@ -58,7 +58,7 @@ export function IconPicker({ value, onPick }: { value: string; onPick: (name: st
             />
           </button>
         ))}
-        {names.length === 0 && <p className="col-span-8 py-1 text-label text-ui-4">{ready ? "No icon matches." : "Loading icons…"}</p>}
+        {names.length === 0 && <p className="col-span-8 py-1 text-caption text-ui-4">{ready ? "No icon matches." : "Loading icons…"}</p>}
       </div>
     </div>
   );

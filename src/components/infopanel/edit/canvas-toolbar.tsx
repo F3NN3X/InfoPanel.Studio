@@ -61,7 +61,7 @@ export function CanvasViewSection({ editor, showModes, onShowModes, compareOn, o
           onClick={library.run}
           disabled={library.busy}
           title="Keep this profile in your Library, to start new profiles from"
-          className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-7 border border-ui-strong bg-ui-raised text-caption text-ui-1 hover:bg-ui-hover disabled:opacity-50"
+          className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-8 border border-ui-strong bg-ui-raised text-caption text-ui-1 hover:bg-ui-hover disabled:opacity-50"
         >
           <Library className="h-3.5 w-3.5" />
           {library.label}
@@ -76,13 +76,13 @@ function ModesLegend({ editor }: { editor: CanvasEditor }) {
   const t = modeTally(editor.modes);
   const row = (dot: string, label: string, n: number) => (
     <span className="flex items-center gap-1.5">
-      <span className={cn("h-2.5 w-2.5 rounded-3", dot)} />
+      <span className={cn("h-2.5 w-2.5 rounded-4", dot)} />
       {label}
       <span className="font-ui-mono text-ui-4">{n}</span>
     </span>
   );
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-label text-ui-2">
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-ui-2">
       {row("bg-ui-accent/60", "Native widget", t.native)}
       {row("bg-ui-warn/60", "InfoPanel", t.infopanel)}
       {row("bg-ui-danger/60", "Can’t convert yet", t.stuck)}
@@ -98,7 +98,7 @@ function CompareControls({ compare, onCompare }: { compare: Compare | null; onCo
       <button
         type="button"
         onClick={() => file.current?.click()}
-        className="h-7 w-full rounded-7 border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover"
+        className="h-7 w-full rounded-8 border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover"
       >
         {compare ? "Change screenshot…" : "Choose InfoPanel screenshot…"}
       </button>

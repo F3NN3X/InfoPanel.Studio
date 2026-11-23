@@ -68,7 +68,7 @@ export function ScreenTemplateThumb({ template, variant, width, height, first }:
             <div
               key={z.id}
               title={titleOf(z.module)}
-              className="grid min-h-0 min-w-0 place-items-center rounded-3 border"
+              className="grid min-h-0 min-w-0 place-items-center rounded-4 border"
               style={{ gridColumn: `${z.colStart} / span ${z.colSpan}`, gridRow: `${z.rowStart} / span ${z.rowSpan}`, borderColor: `${accent}55`, background: `${accent}14` }}
             >
               <Icon className="h-[min(14px,60%)] w-[min(14px,60%)]" style={{ color: accent }} strokeWidth={1.75} />

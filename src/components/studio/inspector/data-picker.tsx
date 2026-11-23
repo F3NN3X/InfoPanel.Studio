@@ -23,7 +23,7 @@ interface DataPickerProps {
   onOpenExplorer: () => void;
 }
 
-const FOOT_BUTTON = "h-7.5 rounded-7 px-3 text-caption";
+const FOOT_BUTTON = "h-7.5 rounded-8 px-3 text-caption";
 
 /** The data point picker (README §4.9). */
 export function DataPicker({ open, onOpenChange, title, points, mode, bound, onToggle, onOpenExplorer }: DataPickerProps) {
@@ -74,7 +74,7 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
                   title={p.key}
                   onClick={() => pick(p)}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-7 px-2.5 py-2 text-left hover:bg-s-divider",
+                    "flex w-full items-center gap-2.5 rounded-8 px-2.5 py-2 text-left hover:bg-s-divider",
                     on && "bg-ui-accent/10"
                   )}
                 >

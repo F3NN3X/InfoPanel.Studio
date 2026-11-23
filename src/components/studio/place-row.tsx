@@ -79,7 +79,7 @@ export function PlaceRow({ cell, px, onCells, onPx, onSnap, disabled }: PlaceRow
       {!onGrid && (
         <div className="flex items-center justify-between gap-2">
           <span className={SECTION_LABEL}>Position and size (px)</span>
-          <span className="inline-flex h-5 items-center gap-1 rounded-5 bg-ui-accent/14 px-1.75 text-micro text-ui-accent">
+          <span className="inline-flex h-5 items-center gap-1 rounded-6 bg-ui-accent/14 px-1.75 text-micro text-ui-accent">
             <Move className="h-3 w-3" />
             Placed freely
           </span>
@@ -110,7 +110,7 @@ export function PlaceRow({ cell, px, onCells, onPx, onSnap, disabled }: PlaceRow
           data-testid="snap-to-grid"
           disabled={disabled}
           onClick={onSnap}
-          className="flex h-7 items-center justify-center gap-1.25 rounded-7 border border-ui-strong bg-ui-raised text-caption text-ui-1 transition-colors hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
+          className="flex h-7 items-center justify-center gap-1.25 rounded-8 border border-ui-strong bg-ui-raised text-caption text-ui-1 transition-colors hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
         >
           <Grid3x3 className="h-3.75 w-3.75" />
           Snap to grid

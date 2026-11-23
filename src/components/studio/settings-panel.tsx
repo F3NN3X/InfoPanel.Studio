@@ -121,7 +121,7 @@ export function SettingField({
           mixed ? (
             <span
               title="The selected widgets differ here: the value shown is the primary widget's, and a change sets it on all of them"
-              className="shrink-0 rounded-5 bg-s-nav-on px-1.5 py-px text-nano font-medium text-ui-3"
+              className="shrink-0 rounded-6 bg-s-nav-on px-1.5 py-px text-nano font-medium text-ui-3"
             >
               Mixed
             </span>

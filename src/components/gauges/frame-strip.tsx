@@ -12,7 +12,7 @@ import { FRAME_ACCEPT } from "./frame-files";
 import type { FramesTools } from "./frames-tools";
 import { useFrameKeys } from "./use-gauge-keys";
 
-const TOOL = "flex h-8 items-center gap-1.5 rounded-7 border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
+const TOOL = "flex h-8 items-center gap-1.5 rounded-8 border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
 
 export interface FrameStripProps {
   tools: FramesTools;
@@ -122,10 +122,10 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
             />
             frames
           </label>
-          <button type="submit" className="h-7 rounded-7 bg-ui-inverse px-2.5 text-caption font-medium text-ui-inverse-fg hover:opacity-90">
+          <button type="submit" className="h-7 rounded-8 bg-ui-inverse px-2.5 text-caption font-medium text-ui-inverse-fg hover:opacity-90">
             Resample
           </button>
-          <button type="button" onClick={() => setResampling(null)} className="h-7 rounded-7 border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover">
+          <button type="button" onClick={() => setResampling(null)} className="h-7 rounded-8 border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover">
             Cancel
           </button>
         </form>
@@ -140,7 +140,7 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
               title={i === current ? `Frame ${i + 1}: shown at this value` : `Frame ${i + 1}`}
               onClick={(e) => onSelect(selectFrame(picked, i, e.shiftKey))}
               className={cn(
-                "relative block h-17 w-19 overflow-hidden rounded-7 border bg-ui-app focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+                "relative block h-17 w-19 overflow-hidden rounded-8 border bg-ui-app focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
                 isSelected(picked, i) ? "border-ui-accent shadow-[0_0_0_1px_var(--ui-accent)]" : "border-ui-subtle hover:border-ui-menu",
               )}
             >
@@ -149,7 +149,7 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
               ) : (
                 <span className="grid h-full place-items-center text-nano text-ui-danger">missing</span>
               )}
-              <span className="absolute bottom-0 left-0 rounded-tr-5 bg-black/60 px-1 font-ui-mono text-nano text-ui-2">{i + 1}</span>
+              <span className="absolute bottom-0 left-0 rounded-tr-6 bg-black/60 px-1 font-ui-mono text-nano text-ui-2">{i + 1}</span>
               {i === current && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-ui-accent shadow-[0_0_0_1.5px_#0b0b0e]" />}
             </button>
           </li>

@@ -82,7 +82,7 @@ export function Popover({
       <PopoverParts.Trigger aria-label={triggerLabel} className={triggerClassName}>
         {trigger}
       </PopoverParts.Trigger>
-      <PopoverParts.Content side={side} align={align} anchor={anchor} className={cn("text-small", className)}>
+      <PopoverParts.Content side={side} align={align} anchor={anchor} className={cn("text-body", className)}>
         {children}
       </PopoverParts.Content>
     </PopoverParts.Root>

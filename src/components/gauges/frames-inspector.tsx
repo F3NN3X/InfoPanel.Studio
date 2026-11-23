@@ -4,7 +4,7 @@ import { NO_RECOLOUR, type Recolour } from "@/lib/infopanel/gauges/raster";
 import type { FramesTools } from "./frames-tools";
 import { NumRow } from "./inspector/rows";
 
-const BUTTON = "h-8 rounded-ui-md border border-ui-default px-3 text-small text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
+const BUTTON = "h-8 rounded-ui-md border border-ui-default px-3 text-body text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
 
 export interface FramesInspectorProps {
   tools: FramesTools;

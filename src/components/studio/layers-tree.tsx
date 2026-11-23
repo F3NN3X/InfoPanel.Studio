@@ -353,7 +353,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
               ) : (
                 <span className="w-3.5 shrink-0" />
               )}
-              <span title={group ? "group" : KIND_WORD[node.kind ?? "item"]} className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-5", widget ? "bg-ui-accent/14 text-ui-accent" : "bg-ui-hover text-ui-3", node.hidden && "opacity-45")}>
+              <span title={group ? "group" : KIND_WORD[node.kind ?? "item"]} className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-6", widget ? "bg-ui-accent/14 text-ui-accent" : "bg-ui-hover text-ui-3", node.hidden && "opacity-45")}>
                 <Icon className="h-3.25 w-3.25" strokeWidth={1.75} />
               </span>
               {renaming === node.id ? (
@@ -376,7 +376,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
                       e.currentTarget.blur();
                     }
                   }}
-                  className="h-5.5 min-w-0 flex-1 rounded-5 border border-ui-accent bg-ui-app px-1.5 text-caption text-ui-1 outline-none"
+                  className="h-5.5 min-w-0 flex-1 rounded-6 border border-ui-accent bg-ui-app px-1.5 text-caption text-ui-1 outline-none"
                 />
               ) : (
                 <span onDoubleClick={() => setRenaming(node.id)} title={label} className={cn("min-w-0 flex-1 truncate text-caption", isSelected ? "text-white" : node.hidden ? "text-ui-4" : "text-ui-2")}>

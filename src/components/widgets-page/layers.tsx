@@ -399,7 +399,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
                         e.currentTarget.blur();
                       }
                     }}
-                    className="h-6 min-w-0 flex-1 rounded-5 border border-ui-accent bg-ui-app px-1.5 text-body text-ui-1 outline-none"
+                    className="h-6 min-w-0 flex-1 rounded-6 border border-ui-accent bg-ui-app px-1.5 text-body text-ui-1 outline-none"
                   />
                 ) : (
                   <span className={cn("min-w-0 flex-1 truncate", (flagged(hiddenKeys, at) || around) && "opacity-50")} onDoubleClick={() => at.length && setRenaming(key)}>
