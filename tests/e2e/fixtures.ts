@@ -72,7 +72,7 @@ export async function saveConfig(base: string, config: unknown): Promise<Respons
 
 /**
  * Waits until the page has stopped moving: the fonts are loaded and the rects of `selector` and of the island, and the count of rings, numbers, bars and meters, have not changed for 8
- * frames in a row. A pack spec reads geometry, text and layers after it, in place of a fixed wait that a slow run could beat (L77).
+ * frames in a row and no pack motion (a text decoding, `data-mo-on`) is running, which would leave a text's ink transparent. A pack spec reads geometry, text and layers after it, in place of a fixed wait that a slow run could beat (L77).
  */
 export async function settled(page: Page, selector: string): Promise<void> {
   await page.evaluate(() => document.fonts.ready);
@@ -86,7 +86,7 @@ export async function settled(page: Page, selector: string): Promise<void> {
       // a lazy widget that swaps its skeleton for its rings, numbers and bars without moving its card changes these counts (L87)
       const marks = document.querySelectorAll('[data-part="ring"], [data-part="num"], [data-part="bar"], [data-part="meter"]').length;
       const snap = `${rects.join("|")}#${document.fonts.size}#${marks}`;
-      w.__still = [...document.fonts].every((f) => f.status !== "loading") && snap === w.__snap ? (w.__still ?? 0) + 1 : 0;
+      w.__still = [...document.fonts].every((f) => f.status !== "loading") && !document.querySelector("[data-mo-on]") && snap === w.__snap ? (w.__still ?? 0) + 1 : 0;
       w.__snap = snap;
       return w.__still >= 8;
     },

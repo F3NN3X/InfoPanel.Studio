@@ -4,7 +4,7 @@
 /* Values are the kit's signal cyan with a faint glow in their own colour, so a warning (an inline tone colour) glows yellow. */
 [data-part="num"] { color: #5EF6FF; text-shadow: 0 0 10px color-mix(in srgb, currentColor 35%, transparent); }
 /* Labels, titles and units are upper case and tracked .06em (badges .08em). */
-[data-part="label"], [data-part="header"], [data-part="legend"], [data-part="unit"] { text-transform: uppercase; letter-spacing: 0.06em; }
+[data-part="label"], [data-part="header"], [data-part="unit"] { text-transform: uppercase; letter-spacing: 0.06em; }
 /* The panel head's rule: 24 % of the accent under the title row (panel.css --panel-rule). */
 [data-part="header"] { background-image: linear-gradient(color-mix(in srgb, var(--w-accent) 24%, transparent), color-mix(in srgb, var(--w-accent) 24%, transparent)); background-size: 100% 1px; background-position: 0 100%; background-repeat: no-repeat; }
 /* Badges: square, the bottom right cut 5 px, a line of their own colour on their tint (badge.css). */
