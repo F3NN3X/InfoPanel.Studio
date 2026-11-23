@@ -1,5 +1,7 @@
 {
   "format": 1,
   "about": "Revoked widget publisher keys (the owner's and Themely's). Ships with app updates only; never fetched. A key here refuses every package it signed. Entry: { \"key\": \"<minisign public key line>\", \"reason\": \"...\", \"date\": \"YYYY-MM-DD\" }.",
-  "revoked": []
+  "revoked": [],
+  "packsAbout": "Withdrawn theme packs: by id (and version) for a signed pack, or by manifest SHA-256 for any. Entry: { \"id\": \"...\", \"version\": \"x.y.z\", \"manifestSha256\": \"...\", \"reason\": \"...\" }. A key in revoked refuses the packs it signed too.",
+  "packs": []
 }

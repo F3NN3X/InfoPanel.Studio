@@ -59,6 +59,14 @@ fn write_canonical(value: &Value, out: &mut String) -> Result<(), String> {
     Ok(())
 }
 
+/// The canonical JSON of `value` (`write_canonical`): also what a theme pack's manifest and Themely's statements are signed as
+/// (pack_trust.rs), each after a domain of its own.
+pub fn canonical_json(value: &Value) -> Result<String, String> {
+    let mut json = String::new();
+    write_canonical(value, &mut json)?;
+    Ok(json)
+}
+
 /// The bytes a package's signature is over: `DOMAIN`, then the canonical JSON of its manifest without `signature`.
 pub fn canonical(manifest: &Value) -> Result<Vec<u8>, String> {
     let mut unsigned = manifest.as_object().ok_or("the manifest is not an object")?.clone();
@@ -102,6 +110,19 @@ impl Key {
     pub fn fingerprint(&self) -> String {
         fingerprint(&self.id)
     }
+
+    /// Whether `minisig` (a `.minisig` file's text) is this key's signature of `message`: the key id it names is this key's,
+    /// and minisign's checks pass (the pre-hashed `ED` algorithm only).
+    pub fn verifies(&self, message: &[u8], minisig: &str) -> bool {
+        sig_key_id(minisig) == Some(self.id)
+            && Signature::decode(minisig).is_ok_and(|sig| self.verifier.verify(message, &sig, false).is_ok())
+    }
+}
+
+/// The key id a `.minisig` text names (bytes 2..10 of its second line), when it has one.
+pub fn sig_key_id(minisig: &str) -> Option<[u8; 8]> {
+    let bin = STANDARD.decode(minisig.lines().nth(1)?.trim()).ok()?;
+    bin.get(2..10)?.try_into().ok()
 }
 
 /// A key id as minisign prints it.
@@ -159,14 +180,7 @@ pub struct Verified {
 
 /// The key id a manifest's signature names (bytes 2..10 of its second line; minisign-verify keeps it private), when it has one.
 pub fn signature_key_id(manifest: &Value) -> Option<[u8; 8]> {
-    manifest
-        .get("signature")?
-        .get("minisign")?
-        .as_str()?
-        .lines()
-        .nth(1)
-        .and_then(|line| STANDARD.decode(line.trim()).ok())
-        .and_then(|bin| bin.get(2..10)?.try_into().ok())
+    sig_key_id(manifest.get("signature")?.get("minisign")?.as_str()?)
 }
 
 /// The publisher a code widget's id names (`ext:<publisher>.<id>`), or `None` for any other id.

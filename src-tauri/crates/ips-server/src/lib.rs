@@ -47,7 +47,10 @@ pub mod locale;
 pub mod media;
 pub mod obs;
 pub mod obs_control;
+pub mod pack_revocation;
+pub mod pack_scripts;
 pub mod pack_sign;
+pub mod pack_trust;
 pub mod packs;
 pub mod peripherals;
 pub mod ping;
@@ -358,7 +361,8 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
     });
     sweeper.trigger();
     let assets = Assets::new(cfg.data_dir.join("assets"), cfg.allow_remote_upload);
-    let packs = Packs::new(cfg.data_dir.join("packs"), cfg.allow_remote_upload);
+    let packs = Packs::new(cfg.data_dir.join("packs"), cfg.allow_remote_upload, widget_keys::KeyStore::new(&cfg.data_dir));
+    packs.revocations.start(&shutdown, live_audio);
     let widgets = Arc::new(Widgets::new(cfg.data_dir.join("widgets"), widget_keys::KeyStore::new(&cfg.data_dir), cfg.allow_remote_upload));
     // Weather by place: the places the stored recipe placements reference, read again after every save. A server that does not
     // run its backends (a test) is given a provider it cannot reach, unless a debug build names a fake one (WEATHER_BASE_URL).
@@ -584,6 +588,7 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         p if p == "/api/control" || p.starts_with("/api/control/") => Ok(control_store::handle(app, req).await),
         p if is_family(p, "/api/assets") => assets::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/packs") => packs::handle(app, req).await.map_err(io),
+        "/api/pack-scripts" => pack_scripts::handle_switch(app, req).await.map_err(io),
         p if is_family(p, "/api/widgets") => widgets::handle(app, req).await.map_err(io),
         "/api/widget-keys" => Ok(widgets::handle_keys(app, &req)),
         p if is_family(p, "/api/weather") => weather::handle(app, req).await.map_err(io),
