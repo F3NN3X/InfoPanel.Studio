@@ -17,6 +17,8 @@ updates:
     open-pull-requests-limit: 5
     groups:
       tauri: { patterns: ["tauri", "tauri-*"] }
+      # windows-rs releases windows and windows-core in step; bumped apart, their COM types stop matching (#392).
+      windows-rs: { patterns: ["windows", "windows-*"] }
       rust-minor: { update-types: [minor, patch] }
   # Bumps the SHA pins and their `# vX.Y.Z` comments, in the workflows and the composite actions.
   # dtolnay/rust-toolchain is pinned to its `stable` branch, which has no releases to move to.
