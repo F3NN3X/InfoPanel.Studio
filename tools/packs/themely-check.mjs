@@ -190,7 +190,7 @@ async function bundleGuest() {
  * at Full (30 a second) and at Calm (15), with the fixture signals refreshed 4 times a second (tools/packs/perf-guest.mjs). It runs in a
  * child process, so a script that stalls the runtime's native code is ended by a timeout rather than hanging the check. Node cannot
  * throttle the CPU, so the report gives the guest's time per frame at 1x and what the 95th percentile would be on a CPU 4 and 6 times
- * slower; the run fails when a frame is cut off or the guest faults at 1x; a 95th percentile that passes the guest's 2 ms budget at 6x
+ * slower; the run fails when the guest faults, or when enough frames are cut off close together that the kiosk's watchdog would stop the script (fewer cut frames are a warning); a 95th percentile that passes the guest's 2 ms budget at 6x
  * (a slow kiosk would drop frames) is a warning for the reviewer.
  */
 export async function perfRun(source, { seconds = 60 } = {}) {
