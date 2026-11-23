@@ -886,9 +886,9 @@ export function LegendRow({ color, label, value, className = "text-small", tag }
     </div>
   );
 }
-/** A dark frosted pill for overlays on artwork. */
+/** A dark frosted pill for overlays on artwork: a chip, so a pack's badge style reaches it (`data-part="chip"`). */
 export const GlassPill = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
-  <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-micro font-medium text-zinc-100 ring-1 ring-white/10 backdrop-blur-[min(12px,var(--wp-blur-cap,12px))] ${className}`} data-wp-inner-blur="">{children}</span>
+  <span data-part="chip" className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-micro font-medium text-zinc-100 ring-1 ring-white/10 backdrop-blur-[min(12px,var(--wp-blur-cap,12px))] ${className}`} data-wp-inner-blur="">{children}</span>
 );
 /** Set by the QA page (`widget-qa/Frame.tsx`): `Empty` then marks itself `data-wp-empty`, so its parity check can tell an empty state from content. Elsewhere the markup stays as it is. */
 export const MarkEmptyCtx = createContext(false);

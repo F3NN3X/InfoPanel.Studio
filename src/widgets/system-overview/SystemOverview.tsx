@@ -4,7 +4,8 @@ import type { ModuleSettings } from "@/modules/types";
 import { diskMetric, filterDisks, formatTemp, netMetric, pickAdapter, pickDisk, rateTop, readAdaptersFlat, readSystemFlat, systemKeysFlat, type DiskReading, type DiskValue, type NetDirection } from "@/lib/system-metrics";
 import { MetricGauges, MetricGraphs, type MetricRow } from "./SystemOverviewViews";
 import { SKINS } from "../core/theme";
-import { accentVars, useFitRows, Widget, shell, get, num, fmt, fmtRate, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, useIpTag, ToneCue, type ShellProps, type Tone } from "../kit";
+import { accentVars, useFitRows, Widget, shell, get, num, fmt, fmtRate, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, useIpTag, ToneCue, seriesColour, type ShellProps, type Tone } from "../kit";
+import { t3Tokens } from "../core/t3-tokens";
 import { meta } from "./meta";
 
 export { meta };
@@ -14,6 +15,8 @@ const DEF: Record<Section, string> = { cpu: "#38bdf8", gpu: "#a78bfa", ram: "#2d
 // Under a non-default skin, sections derive from the skin's accent by hue rotation, so the palette follows the skin.
 const SHIFT: Record<Section, number> = { cpu: 0, gpu: 55, ram: -45, vram: -80, disk: 160, net: 120 };
 const sectionColor = (k: Section) => (SHIFT[k] ? `oklch(from var(--sys-base) l c calc(h + ${SHIFT[k]}))` : "var(--sys-base)");
+/** The Look's series colour each section's own colour gives way to (the order of its colour rows' theme roles, settings.ts). */
+const SERIES: Record<Section, 1 | 2 | 3 | 4 | 5 | 6> = { cpu: 1, gpu: 2, ram: 3, vram: 4, disk: 5, net: 6 };
 const LABEL: Record<Section, string> = { cpu: "CPU", gpu: "GPU", ram: "RAM", vram: "VRAM", disk: "Disks", net: "NET" };
 
 /** The details each switch shows; an unset switch is on. */
@@ -270,7 +273,9 @@ export default function SystemOverview(p: SystemOverviewProps) {
   const keys = (p.sections ?? (["cpu", "gpu", "ram"] as Section[])).filter((k) => ALL[k]?.present);
   const label = (k: Section) => p.labels?.[k] || LABEL[k];
   const skinned = p.skin && p.skin !== "default";
-  const col = (k: Section): string | undefined => (p.unifiedColor ? undefined : p.colors?.[k] || (skinned ? (SKINS[p.skin!]?.plainSections ? undefined : sectionColor(k)) : DEF[k]));
+  // outside the card's skin context: the Look's series from its T3 values
+  const marks = t3Tokens(p.t3);
+  const col = (k: Section): string | undefined => (p.unifiedColor ? undefined : p.colors?.[k] || (skinned ? (SKINS[p.skin!]?.plainSections ? undefined : seriesColour(marks, SERIES[k], sectionColor(k))) : seriesColour(marks, SERIES[k], DEF[k])));
   const vars = (k: Section) => {
     const c = col(k);
     return c ? (accentVars(c) as CSSProperties) : undefined;

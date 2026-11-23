@@ -37,6 +37,8 @@ export interface WeatherProps extends ShellProps {
   iconSet?: WeatherIconProps["set"];
   iconStyle?: WeatherIconProps["style"];
   iconAnimated?: boolean;
+  /** The widget stores no icon style of its own (`WeatherGlyphProps.themed`). */
+  iconThemed?: boolean;
   /** Take the accent from the current condition (an explicit accent still wins). */
   tint?: boolean;
   /** The wind / humidity / pressure / precipitation stats (default on). */
@@ -81,7 +83,7 @@ function Current(p: WeatherProps) {
     hi = Math.max(...fc.map((f) => f.hi));
   const icon = weatherIcon(`${k("weather_icon")} ${k("weather_desc")}`);
   const cond = weatherKind(k("weather_icon"), k("weather_desc"));
-  const icons: WeatherIconProps = { set: p.iconSet, style: p.iconStyle, animated: p.iconAnimated };
+  const icons: WeatherIconProps = { set: p.iconSet, style: p.iconStyle, animated: p.iconAnimated, themed: p.iconThemed };
   const place = has(k("name")) ? String(k("name")) : "";
   const minimal = p.view === "minimal";
   const showStats = p.showStats ?? !minimal;

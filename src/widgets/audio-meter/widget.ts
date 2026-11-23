@@ -2,7 +2,7 @@
 import { deviceOf, thresholdsOf } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
 import { BOTH, defineWidget } from "../define";
-import { audioFlowSetting, audioSettings, autoCount, ballisticsOf, flowOfSettings, opts, pickedDevicesOf } from "../shared/audio-settings";
+import { audioFlowSetting, audioSettings, autoCount, ballisticsOf, flowOfSettings, levelOwnOf, opts, pickedDevicesOf } from "../shared/audio-settings";
 import { colorSetting, deviceSetting, devicesSetting, enumSetting, numberSetting, oneOf, pick, thresholdSetting, viewOnly, viewSetting } from "../shared/settings-kit";
 import type { AudioMeterProps } from "./AudioMeter";
 import { AUDIO_HOT_DB, AUDIO_WARN_DB, meta } from "./meta";
@@ -43,8 +43,9 @@ export default defineWidget({
   ],
   render: {
     load: () => import("./AudioMeter"),
-    toProps: (s: ModuleSettings): Partial<AudioMeterProps> => ({
+    toProps: (s: ModuleSettings, saved?: ModuleSettings): Partial<AudioMeterProps> => ({
       ...pick<AudioMeterProps>(["showDevice", "showDetails", "showVolume", "showMute", "levelColor", "hotColor"])(s),
+      levelOwn: levelOwnOf(s, saved),
       ...hotLevels(s),
       device: deviceOf(s),
       devices: pickedDevicesOf(s, "devices"),

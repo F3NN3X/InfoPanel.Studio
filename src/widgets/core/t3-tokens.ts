@@ -1,6 +1,8 @@
 // A Look's T3 values (src/looks/t3.ts) as the SkinTokens the drawing code reads. Only a value that differs from Classic's
 // maps to a token, so Classic (and a skin Look, which carries Classic's T3) draws exactly as before. Free-form CSS values
 // (fills) pass `safeFill` / `safeGradient` first: a pack is untrusted, and a fill goes into a style.
+import type { CSSProperties } from "react";
+import { STATUS } from "@/looks/status";
 import type { SkinTokens } from "./types";
 
 const COLOUR_FNS = ["rgb", "rgba", "hsl", "hsla", "hwb", "lab", "lch", "oklab", "oklch", "color", "color-mix"];
@@ -92,6 +94,24 @@ const labelColour = (value: unknown): string | undefined => {
   return fill && !safeGradient(fill) && !fill.startsWith("var(") ? fill : undefined;
 };
 const off = (value: unknown) => value === undefined || value === "none";
+/** The roles a mark colour (a series, a meter zone, an icon) may name, as the card's variables: a variant that recolours the role recolours the mark. */
+const MARK_ALIAS: Readonly<Record<string, string>> = { ...LABEL_ALIAS, "{faint}": "var(--w-faint)", "{ok}": `var(--w-ok, ${STATUS.ok})`, "{warn}": `var(--w-warn, ${STATUS.warn})`, "{crit}": `var(--w-crit, ${STATUS.crit})` };
+/**
+ * A mark colour as CSS: a role's variable, a lone colour, or an alias of another T3 colour the Look sets read through it (as the validator
+ * reads it: `"meter-ok": "{accent-ink}"` is the accent even where the theme hands the meters its OK); Classic's value (and anything else) is none.
+ */
+const markColour = (value: unknown, classic: string, t3: Readonly<Record<string, string | number>>, depth = 0): string | undefined => {
+  const v = typeof value === "string" ? value.trim() : "";
+  if (v === classic && depth === 0) return undefined;
+  if (Object.hasOwn(MARK_ALIAS, v)) return MARK_ALIAS[v];
+  const alias = /^\{([\w-]+)\}$/.exec(v)?.[1];
+  if (alias) return depth < 4 && Object.hasOwn(t3, alias) ? markColour(t3[alias], classic, t3, depth + 1) : undefined;
+  const fill = safeFill(v);
+  return fill && !safeGradient(fill) && !fill.startsWith("var(") ? fill : undefined;
+};
+/** The meter colour and the icon colour a Look may set, with Classic's value (src/looks/t3.ts): token, SkinTokens key, Classic. */
+const MARKS = [["meter-ok", "meterOk", "{accent}"], ["icon-color", "iconColor", "{fg}"]] as const;
+const SERIES = 6;
 
 /** The tokens a Look's T3 values set; `{}` for Classic's. */
 export function t3Tokens(t3: Readonly<Record<string, string | number>> | undefined): Partial<SkinTokens> {
@@ -147,5 +167,17 @@ export function t3Tokens(t3: Readonly<Record<string, string | number>> | undefin
   }
   const knob = oneOf(t3["fader-knob-shape"], ["bar", "square", "notch"]);
   if (knob) out.knob = knob;
+  const series = Array.from({ length: SERIES }, (_, i) => markColour(t3[`series-${i + 1}`], "", t3) ?? "");
+  if (series.some(Boolean)) out.series = series;
+  for (const [key, token, classic] of MARKS) {
+    const c = markColour(t3[key], classic, t3);
+    if (c) out[token] = c;
+  }
   return out;
+}
+
+/** The card's `--w-s1` to `--w-s6` for the series a Look sets (`seriesColour` reads them); none for a Look that sets none. */
+export function seriesVars(series: readonly string[] | undefined): CSSProperties | undefined {
+  const v = Object.fromEntries((series ?? []).flatMap((c, i) => (c ? [[`--w-s${i + 1}`, c]] : [])));
+  return Object.keys(v).length > 0 ? (v as CSSProperties) : undefined;
 }

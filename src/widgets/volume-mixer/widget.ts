@@ -1,7 +1,7 @@
 // Volume Mixer: volume and mute per device. What the registry needs; the component is its own chunk.
 import { BOTH, defineWidget } from "../define";
 import { volumeMixerIsland } from "../island/audio";
-import { audioFlowSetting, audioSettings, flowOfSettings, mixerLookOf, mixerViewSettings, pickedDevicesOf } from "../shared/audio-settings";
+import { audioFlowSetting, audioSettings, flowOfSettings, levelOwnOf, mixerLookOf, mixerViewSettings, pickedDevicesOf } from "../shared/audio-settings";
 import { colorSetting, devicesSetting, pick } from "../shared/settings-kit";
 import type { VolumeMixerProps } from "./VolumeMixer";
 import { meta } from "./meta";
@@ -22,7 +22,7 @@ export default defineWidget({
   render: {
     load: () => import("./VolumeMixer"),
     // read-only: the volume plugin has no write path
-    toProps: (s) => ({ ...pick<VolumeMixerProps>(["showDevice", "showMute", "levelColor"])(s), devices: pickedDevicesOf(s, "devices"), flow: flowOfSettings(s), mixerLook: mixerLookOf(s, "orientation") }),
+    toProps: (s, saved) => ({ ...pick<VolumeMixerProps>(["showDevice", "showMute", "levelColor"])(s), levelOwn: levelOwnOf(s, saved), devices: pickedDevicesOf(s, "devices"), flow: flowOfSettings(s), mixerLook: mixerLookOf(s, "orientation") }),
   },
   island: volumeMixerIsland,
 });

@@ -2,7 +2,8 @@ import { useRef } from "react";
 import { useFastSensors } from "@/hooks/useSensors";
 import { AUDIO } from "../shared/audio-device";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, fmt, Dot, Icon, LedLadder, HoldMark, scaleX, scaleY, slideX, STATE, useMeterBallistics, type BallisticsPreset, type ShellProps } from "../kit";
+import { useFitRows, Widget, shell, fmt, Dot, Icon, LedLadder, HoldMark, scaleX, scaleY, slideX, STATE, meterColour, useMeterBallistics, type BallisticsPreset, type ShellProps } from "../kit";
+import { t3Tokens } from "../core/t3-tokens";
 import { audioIdsIn, pickedIds, readDevice, type FlowFilter } from "../shared/audio-data";
 import { meta } from "./meta";
 
@@ -59,6 +60,8 @@ export interface MeterBridgeProps extends ShellProps {
   ballistics?: BallisticsPreset;
   /** Colour of the safe zone, default the accent. */
   levelColor?: string;
+  /** The level colour is the widget's own (`levelOwnOf`): it does not give way to the Look's meter colour. */
+  levelOwn?: boolean;
   /** Colour of the clip zone, default red. */
   hotColor?: string;
 }
@@ -95,7 +98,7 @@ export default function MeterBridge(p: MeterBridgeProps) {
       r = side(c.id, "r", pr);
     return { ...c, l: l.db, r: r.db, lh: l.held ?? holdOf(c.id + "l", l.db), rh: r.held ?? holdOf(c.id + "r", r.db) };
   });
-  const lc = p.levelColor || "var(--w-accent)",
+  const lc = meterColour(t3Tokens(p.t3), p.levelColor, p.levelOwn),
     hc = p.hotColor || STATE.crit;
   const showName = p.showName !== false,
     showDetails = p.showDetails !== false,

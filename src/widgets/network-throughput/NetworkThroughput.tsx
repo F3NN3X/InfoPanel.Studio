@@ -1,5 +1,6 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, gbStat, fmtRate, rateUnitOf, adapterOf, pretty, hue, Spark, Stat, Icon, Num, roomy, useHistory, useIpTag, Empty, type RateUnit, type ShellProps } from "../kit";
+import { Widget, shell, get, num, fmt, gbStat, fmtRate, rateUnitOf, adapterOf, pretty, hue, seriesColour, Spark, Stat, Icon, Num, roomy, useHistory, useIpTag, Empty, type RateUnit, type ShellProps } from "../kit";
+import { t3Tokens } from "../core/t3-tokens";
 import { meta } from "./meta";
 
 export { meta };
@@ -52,8 +53,10 @@ export default function NetworkThroughput(p: NetworkThroughputProps) {
         <Empty />
       </Widget>
     );
-  const dlColor = p.downloadColor || "var(--w-accent)";
-  const ulColor = p.uploadColor || hue(70);
+  // outside the card's skin context: the Look's series from its T3 values
+  const marks = t3Tokens(p.t3);
+  const dlColor = p.downloadColor || seriesColour(marks, 1, "var(--w-accent)");
+  const ulColor = p.uploadColor || seriesColour(marks, 2, hue(70));
   const showTotals = p.showTotals !== false;
   const showChart = p.sparkline === true;
   const name = p.title ?? pretty(id).replace(/ {2,}/g, " ");
@@ -88,7 +91,7 @@ export default function NetworkThroughput(p: NetworkThroughputProps) {
             {!chart ? null : mirrored ? (
               <div className={`relative flex-1 ${big ? "min-h-16" : "min-h-6"}`}>
                 <Spark values={dH} min={0} max={Math.max(1, ...dH, ...uH)} color={dlColor} className="absolute inset-x-0 top-0 h-1/2" />
-                <Spark values={uH} min={0} max={Math.max(1, ...dH, ...uH)} color={p.uploadColor || hue(70)} className="absolute inset-x-0 bottom-0 h-1/2 -scale-y-100" />
+                <Spark values={uH} min={0} max={Math.max(1, ...dH, ...uH)} color={ulColor} className="absolute inset-x-0 bottom-0 h-1/2 -scale-y-100" />
                 <div className="absolute inset-x-0 top-1/2 h-px bg-[color:var(--w-track)]" />
               </div>
             ) : (

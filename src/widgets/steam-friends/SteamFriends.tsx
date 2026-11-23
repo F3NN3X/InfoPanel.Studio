@@ -1,4 +1,5 @@
-import { Empty, fillRows, fitRows, roomy, Widget, shell, get, has, useIpTag, type ShellProps } from "../kit";
+import { Empty, fillRows, fitRows, roomy, Widget, shell, get, has, useIpTag, seriesColour, type ShellProps } from "../kit";
+import { t3Tokens } from "../core/t3-tokens";
 import { meta } from "./meta";
 import { FRIEND_COLORS, friendsOf, friendStatus, type Friend, type FriendSort, type FriendStatus } from "../shared/friends-data";
 
@@ -26,7 +27,9 @@ const stateText = (f: Friend) => (f.status === "ingame" && !f.idle ? LABEL.ingam
 export default function SteamFriends(p: SteamFriendsProps) {
   const d = p.data;
   const socialOf = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Social.${s}`);
-  const colors = { ...FRIEND_COLORS, ...p.colors };
+  // in-game and offline are the theme's Series 1 and 2 (widget.ts): the Look's series colours come before Steam's own
+  const marks = t3Tokens(p.t3);
+  const colors = { ...FRIEND_COLORS, ingame: seriesColour(marks, 1, FRIEND_COLORS.ingame), offline: seriesColour(marks, 2, FRIEND_COLORS.offline), ...p.colors };
   const colorOf = (f: Friend) => (f.idle ? `color-mix(in srgb, ${colors.ingame} 60%, transparent)` : colors[f.status]);
   const friends = friendsOf(socialOf("friends-activity"), p.sort ?? "status", p.ingameOnly ?? false);
   const showTime = p.showTime ?? true;

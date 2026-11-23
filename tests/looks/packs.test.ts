@@ -332,17 +332,23 @@ describe("what Cyberspec teaches the contract", () => {
     expect(toOklch(toxin.textColor)!.l).toBeGreaterThan(0.9);
   });
 
-  it("its CRT treatment draws at Full only: Calm, reduced motion and lite mode draw none, and the glitch flashes at most once in 3 s", async () => {
-    const effects = (await loadPack("cyberspec"))!.stage!.effects!;
+  it("its CRT treatment is the kit's static raster at Full only, with no glitch bars across the page (v3): the kit's glitch is the motion block's, on text", async () => {
+    const pack = (await loadPack("cyberspec"))!;
+    const effects = pack.stage!.effects!;
     expect(effectIssues(effects)).toEqual([]);
     const env = { level: "full" as const, lite: false, reduceMotion: false, limitBlur: false, solidPage: false, sizeClass: "md" as const };
     const full = planEffects(effects, env);
-    expect(full.map((e) => e.kind)).toEqual(["scanlines", "vignette", "glitch"]);
-    expect(full.filter((e) => e.animate).map((e) => e.kind)).toEqual(["glitch"]);
-    expect(full.find((e) => e.kind === "glitch")!.rate).toBeLessThanOrEqual(1 / 3);
+    expect(full.map((e) => e.kind)).toEqual(["scanlines", "vignette"]);
+    expect(full.filter((e) => e.animate)).toEqual([]);
+    expect(pack.motion?.glitch).toBeDefined();
     expect(planEffects(effects, { ...env, level: "calm" })).toEqual([]);
     expect(planEffects(effects, { ...env, reduceMotion: true })).toEqual([]);
     expect(planEffects(effects, { ...env, lite: true })).toEqual([]);
-    expect(planEffects(effects, { ...env, sizeClass: "xs" }).map((e) => e.kind)).toEqual(["scanlines", "vignette"]);
+  });
+
+  it("drives every widget's series, its meters and its icons from the variant's accent and inks (v3)", async () => {
+    const sk = t3Tokens((await loadPack("cyberspec"))!.look.t3);
+    expect(sk.series?.every((c) => /^var\(--w-(accent|muted|fg)\)$/.test(c))).toBe(true);
+    expect([sk.meterOk, sk.iconColor]).toEqual(["var(--w-accent)", "var(--w-accent)"]);
   });
 });

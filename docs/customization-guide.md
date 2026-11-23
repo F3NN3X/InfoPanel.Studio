@@ -1304,7 +1304,7 @@ one widget you apply it to.
 
 ### What a theme pack can set
 
-A pack's `look.json` may list **variants** (the Variant chips under Quick changes). A variant sets `accent`, and also `textColor`,
+A pack's `look.json` may list **variants** (the Variant row under Quick changes: chips, or a dropdown for more than two). A variant sets `accent`, and also `textColor`,
 `mutedColor`, `ok`, `warn`, `crit`, `borderColor`, `glowColor` and `numGlowColor`, as colours (`#rrggbb`, `rgb()`, `hsl()`,
 `oklch()` or an alias such as `{cyan}`), so a variant can restyle its labels and secondary text and not only the accent. A colour
 may instead be **derived from the variant's accent** in OKLCH, so one rule serves every accent:
@@ -1315,6 +1315,25 @@ reads it like any other colour: a variant that sets such a colour is refused whe
 The labels (the small names over a value, in the tone's grey by default) take the Look's `label-color` in `look.json`'s `t3`:
 `{accent}`, `{fg}` or `{muted}` follow that colour, so a variant that changes it recolours them too, or a `#rrggbb`; it is held to
 4.5:1 like the text.
+
+The same `t3` block can colour the widgets' **data**, so charts, rings and meters follow the variant too:
+
+- `series-1` to `series-6`: the series colours. A widget whose colour rows follow the theme's Series 1 to 6 (System Overview's
+  CPU, GPU, RAM and VRAM, Network Traffic's download and upload, Steam Friends' in-game and offline, Coding Agents' Claude Code
+  and Codex, with its heat grid) draws them instead of its own palette.
+- `meter-ok`, `meter-warn`, `meter-clip`: a level meter's safe, warning and clip zones. `meter-ok` replaces the theme's **OK**
+  on the meters (Audio Meter, Meter Bridge, Volume Mixer, Wave Link), so a pack can keep a green OK for its status lamps and
+  draw its meters in the accent.
+- `icon-color`: the icons' colour. The app's weather icons take it, and Meteocons are drawn in it as one colour while the
+  widget keeps the default icon style.
+
+Each is `{accent}`, `{fg}`, `{muted}`, `{faint}`, `{ok}`, `{warn}` or `{crit}` (the card's own colours, so a variant that changes
+one recolours the marks), a `#rrggbb`, or an alias of another T3 colour the Look sets (`"meter-ok": "{accent-ink}"` with
+`"accent-ink": "{accent}"` is the accent). A series is held to 3:1 on the cards. A colour you set on a widget, or under **Status &
+series colors** in the theme editor, still wins; a Look that sets none draws as before.
+
+A pack's page effects (the `glitch`, `flicker`, `rgb-split` and `interference` overlays, and a layer's `glow`) are drawn in the
+screen's accent, so they follow the variant and an accent you pick; the pack's own accent is used only where the screen sets none.
 
 In `pack.css`, real elements may also set `letter-spacing` (`normal` or up to `0.15em`, or the same in px), `text-transform`
 (`none` or `uppercase`) and `font-variant-numeric` (`tabular-nums`, `lining-nums`, `slashed-zero` and the like). They are not

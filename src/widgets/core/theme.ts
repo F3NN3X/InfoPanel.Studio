@@ -130,6 +130,17 @@ export const STATE = STATUS;
 // Tone → colour: ok follows the accent; warn / crit are the semantic STATE colours.
 // On light / theme surfaces the shell's --w-warn / --w-crit darken them for contrast.
 export const TONES: Record<Tone | "muted", string> = { ok: "var(--w-accent)", warn: `var(--w-warn, ${STATE.warn})`, crit: `var(--w-crit, ${STATE.crit})`, muted: "var(--w-faint, #8a8a94)" };
+/**
+ * A series colour: the Look's `series-<n>` (T3, in the skin context `sk`) as the card's `--w-s<n>`, else the widget's own `own`, so a Look
+ * that sets none draws (and writes its markup) as before. The card resolves the variable, so a scope that sets its own `--w-accent` from it
+ * (System Overview's sections) does not read itself. A colour a widget or the theme's palette row sets is passed instead of this.
+ */
+export const seriesColour = (sk: Pick<SkinContext, "series">, n: 1 | 2 | 3 | 4 | 5 | 6, own: string): string => (sk.series?.[n - 1] ? `var(--w-s${n})` : own);
+/**
+ * A level meter's colour: one set on the widget (`own`) stays; the theme's (its OK, which the level rows follow) gives way to the
+ * Look's meter colour (T3 `meter-ok`, in the skin context `sk`); none is the accent.
+ */
+export const meterColour = (sk: Pick<SkinContext, "meterOk">, colour: string | undefined, own?: boolean): string => (own && colour ? colour : sk.meterOk || colour || "var(--w-accent)");
 // 0-100 → colour for heatmaps. ramp 'accent' (accent intensity) or 'thermal' (blue → green → amber → red)
 export const heat = (v: number, ramp = "accent"): string => {
   const t = clamp(v) / 100;

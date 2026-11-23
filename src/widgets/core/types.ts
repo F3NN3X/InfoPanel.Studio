@@ -183,6 +183,12 @@ export interface SkinTokens {
   spike: "tick" | "bar";
   /** `fader-knob-shape`: the mixer fader's knob (the pill is the default). */
   knob: "bar" | "square" | "notch";
+  /** `series-1` to `series-6` as CSS colours ("" for one the Look leaves to the widget): what `seriesColour` draws over a widget's own. */
+  series: readonly string[];
+  /** `meter-ok`: a level meter's colour when the Look's is not Classic's (`meterColour`), over the theme's OK the level rows follow. */
+  meterOk: string;
+  /** `icon-color`: the icons' colour when the Look's is not Classic's text colour (the weather glyphs). */
+  iconColor: string;
 }
 
 /** One icon of a Look's icon set: a single path in a viewBox, painted in `currentColor`. */

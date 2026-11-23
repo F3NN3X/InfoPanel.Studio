@@ -1,15 +1,17 @@
 import { useSyncExternalStore } from "react";
-import { AGENT_COLORS, AGENT_IDS, AGENT_NAMES, bySalience, modelLabel, planView, sessionStatus, shortTokens, type AgentId, type AgentSession, type Agents } from "@/lib/agents";
+import { AGENT_IDS, AGENT_NAMES, bySalience, modelLabel, planView, sessionStatus, shortTokens, type AgentId, type AgentSession, type Agents } from "@/lib/agents";
 import { extras } from "@/lib/extras";
 import { useNow } from "@/components/widgets/hooks";
 import { PulseDot } from "@/components/pulse-dot";
-import { Empty, Widget, fitRows, shell, type ShellProps } from "../kit";
+import { Empty, Widget, fitRows, shell, useSkin, type ShellProps, type SkinContext } from "../kit";
+import { t3Tokens } from "../core/t3-tokens";
 import { BarLimits, RingLimits, barDensity, densityH, ringLayout, type Density, type LimitStyle, type Percent, type PlanEntry, type RingLayout } from "./limits";
 import { Breakdown, breakdownH, breakdownOf, tokensToday } from "./breakdown";
 import { LimitsView, SummaryView } from "./summary";
 import { CARD_GAP, CARD_H, SessionCards } from "./cards";
 import { BARS_H, DailyBars, HEADER_H, Heatmap, HistoryHeader, dayKey, heatmapFit, heatmapWeeks, type HeatFit, type HistoryStyle } from "./history";
 import { meta } from "./meta";
+import { agentColour } from "./colours";
 
 export { meta };
 
@@ -42,7 +44,7 @@ export interface CodingAgentsProps extends ShellProps {
 
 /** The state's dot colour: the agent's own while it works or is done, amber while it waits, red on an error. */
 const STATE_COLOR = { waiting: "#f59e0b", error: "#ef4444", idle: "var(--w-faint)" } as const;
-const dotColor = (s: AgentSession) => (s.state === "waiting" || s.state === "error" || s.state === "idle" ? STATE_COLOR[s.state] : AGENT_COLORS[s.agent]);
+const dotColor = (sk: Pick<SkinContext, "series">, s: AgentSession) => (s.state === "waiting" || s.state === "error" || s.state === "idle" ? STATE_COLOR[s.state] : agentColour(sk, s.agent));
 
 const useAgents = (): Agents => useSyncExternalStore(extras.subscribe, () => extras.getState().agents, () => extras.getState().agents);
 
@@ -64,7 +66,8 @@ const MODEL_W = 420;
 const COST_W = 260;
 
 export function SessionRow({ s, now, width }: { s: AgentSession; now: number; width: number }) {
-  const color = dotColor(s);
+  const sk = useSkin();
+  const color = dotColor(sk, s);
   const wide = width >= 220;
   const cost = width >= COST_W ? costText(s.cost) : "";
   return (
@@ -140,7 +143,9 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
   const weeks = heatmapWeeks(byDay, new Date(now));
   const week = weeks[weeks.length - 1].reduce((sum, c) => sum + c.v, 0);
   const todayKey = dayKey(new Date(now));
-  const color = AGENT_COLORS[ids[0] ?? "claude"];
+  // outside the card's skin context: the Look's series from its T3 values
+  const marks = t3Tokens(p.t3);
+  const color = agentColour(marks, ids[0] ?? "claude");
   const waiting = sessions.filter((s) => s.state === "waiting").length;
   const headline = waiting ? `${waiting} waiting` : active.length ? `${active.length} working` : "idle";
   const topPlan = plans[0]?.[1];
@@ -163,7 +168,7 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
         const w = w0 || 400;
         const h = h0 || 300;
         if (ids.length === 0) return <Empty icon="smart_toy" label="No agent connected yet" />;
-        if (p.view === "summary") return <SummaryView plans={plans} ids={ids} usage={all.usage} sessions={sessions} percent={percent} now={now} todayKey={todayKey} h={h} dot={dotColor} />;
+        if (p.view === "summary") return <SummaryView plans={plans} ids={ids} usage={all.usage} sessions={sessions} percent={percent} now={now} todayKey={todayKey} h={h} dot={(s) => dotColor(marks, s)} />;
         if (p.view === "sessions")
           return sessions.length ? <SessionCards sessions={sessions} rows={Math.max(1, Math.floor((h - 20) / (CARD_H + CARD_GAP)))} /> : <Empty icon="smart_toy" label="No sessions running" />;
         if (p.view === "limits") return plans.length ? <LimitsView plans={plans} percent={percent} now={now} h={h} /> : <Empty icon="smart_toy" label="No plan limits yet" />;

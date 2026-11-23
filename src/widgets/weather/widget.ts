@@ -146,7 +146,7 @@ export default defineWidget({
   render: {
     load: () => import("./Weather"),
     // `units` is the themed Temperature unit (config v7 moved `units` → `tempUnit`).
-    toProps: (s: ModuleSettings): Partial<WeatherProps> => ({
+    toProps: (s: ModuleSettings, saved?: ModuleSettings): Partial<WeatherProps> => ({
       ...pass<Partial<WeatherProps>>("location")(s),
       units: tempUnitOf(s) === "f" ? "F" : "C",
       provider: oneOf(s.provider, ["yr", "owm"]),
@@ -157,6 +157,7 @@ export default defineWidget({
       showForecast: Boolean(s.showForecast),
       days: daysOf(s),
       ...iconsOf(s),
+      iconThemed: saved?.iconStyle === undefined,
       ...fxOf(s),
     }),
   },

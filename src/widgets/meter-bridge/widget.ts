@@ -3,7 +3,7 @@ import { BALLISTICS } from "@/lib/audio/ballistics";
 import { devicesOf, thresholdsOf } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
 import { DENSE, defineWidget } from "../define";
-import { audioFlowSetting, audioSettings, autoCount, ballisticsOf, flowOfSettings } from "../shared/audio-settings";
+import { audioFlowSetting, audioSettings, autoCount, ballisticsOf, flowOfSettings, levelOwnOf } from "../shared/audio-settings";
 import { boolSetting, colorSetting, devicesSetting, enumSetting, numberOf, numberSetting, oneOf, pick, thresholdSetting } from "../shared/settings-kit";
 import type { MeterBridgeProps } from "./MeterBridge";
 import { meta } from "./meta";
@@ -42,6 +42,7 @@ export default defineWidget({
     reads: ["plugins.audio-level-meter.", "plugins.volume-plugin."],
     toProps: (s: ModuleSettings, saved?: ModuleSettings): Partial<MeterBridgeProps> => ({
       ...pick<MeterBridgeProps>(["includeDefault", "showScale", "showVolume", "showDetails", "showMute", "levelColor", "hotColor"])(s),
+      levelOwn: levelOwnOf(s, saved),
       channels: devicesOf(s, "channels"),
       flow: flowOfSettings(s),
       orientation: oneOf(s.orientation, ["vertical", "horizontal"]),

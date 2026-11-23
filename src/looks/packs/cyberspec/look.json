@@ -99,7 +99,16 @@
     "meter-segments": 20,
     "meter-gap": 2,
     "grid-line": "{accent} / 24%",
-    "label-color": "{accent}"
+    "label-color": "{accent}",
+    "series-1": "{accent}",
+    "series-2": "{muted}",
+    "series-3": "{fg}",
+    "series-4": "{accent}",
+    "series-5": "{muted}",
+    "series-6": "{fg}",
+    "accent-ink": "{accent}",
+    "meter-ok": "{accent-ink}",
+    "icon-color": "{accent}"
   },
   "ext": {},
   "variants": [

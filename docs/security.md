@@ -125,7 +125,9 @@ security model, what was fixed, what was decided, and what is deferred.
 - **Variant colours** (`src/looks/look.ts`, `src/looks/pack-validate.ts`): a variant in look.json sets colours as data. A colour
   derived from the accent is a few bounded numbers the app turns into `#rrggbb` itself; no pack-supplied code or CSS runs, and
   the contrast check reads the result. A Look's T3 `label-color` reaches the labels only as `{accent}`, `{fg}`, `{muted}` (the
-  card's own variables) or one colour that `safeFill` passes, held to 4.5:1 like any text colour.
+  card's own variables) or one colour that `safeFill` passes, held to 4.5:1 like any text colour. Its `series-1` to `series-6`,
+  `meter-ok`, `meter-warn`, `meter-clip` and `icon-color` reach the card the same way, as fixed variables (`--w-s1`, `--w-meter-ok`,
+  `--w-icon`): an alias of the card's own colours or of another T3 colour, or one colour `safeFill` passes; anything else is dropped.
 - **Pack frames, ornaments and effects** (`src/looks/pack-validate.ts`, `src/looks/pack-frame.tsx`, `src/looks/effects.ts`):
   declarations in pack.json that the app draws with its own code; a pack supplies no markup or style for them. A frame's
   corners are at most 20 px and its stroke 2 px, in the Look's accent (at an `alpha` of 0.2 to 1); its spine is at most 6 px thick, its tab 64 by 8 px, its

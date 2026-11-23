@@ -47,6 +47,8 @@ function collect() {
     const copy = box.cloneNode(true);
     for (const el of copy.querySelectorAll("[data-qa-bleed] > div[style*='scale(']")) el.setAttribute("style", el.getAttribute("style").replace(/transform: [^;]*/, "transform: ~"));
     for (const el of copy.querySelectorAll("span[style*='box-shadow: color-mix(']")) el.setAttribute("style", el.getAttribute("style").replace(/box-shadow: color-mix\([^;]*;/, "box-shadow: ~;"));
+    // the same ring in a colour the browser cannot resolve on its own (a var(), a Look's series colour) keeps it as written, its size first
+    for (const el of copy.querySelectorAll("span[style*='box-shadow: 0 0 0 ']")) el.setAttribute("style", el.getAttribute("style").replace(/box-shadow: 0 0 0 [\d.]+em color-mix\([^;]*;/, "box-shadow: ~;"));
     for (const el of copy.querySelectorAll("[style='']")) el.removeAttribute("style");
     // An inline style's and an element's order is the order React first wrote them, which moves with when a measure or a pack's part lands: the same properties and attributes are the same markup.
     for (const el of copy.querySelectorAll("[style]")) el.setAttribute("style", el.getAttribute("style").split(";").map((p) => p.trim()).filter(Boolean).sort().join("; "));

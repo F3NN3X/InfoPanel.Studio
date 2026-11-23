@@ -68,14 +68,6 @@
         "cost": "static",
         "opacity": 0.15,
         "calm": "off"
-      },
-      {
-        "kind": "glitch",
-        "cost": "animated",
-        "opacity": 0.12,
-        "rate": 0.25,
-        "calm": "off",
-        "minSizeClass": "sm"
       }
     ]
   },
