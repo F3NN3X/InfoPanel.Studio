@@ -49,7 +49,7 @@ const NUMBERS: Record<string, readonly [number, number]> = { opacity: [OPACITY_F
 const SHADOW_OFFSET_MAX = 4;
 const SHADOW_BLUR_MAX = 12;
 /** Phase 2's properties (gate 0 §6), each read by its shape; the `PSEUDO_ONLY` ones on a `::before`/`::after` alone. */
-const SHAPED = /^(clip-path|(-webkit-)?mask(-image|-size|-repeat|-position)?|border(-(top|bottom)-(left|right))?-radius|border-image(-(width|outset))?|outline-offset|transition(-(property|duration|delay|timing-function))?|transform(-origin)?|translate|rotate|scale|content|inset|top|right|bottom|left|width|height|border(-style)?)$/;
+const SHAPED = /^(clip-path|(-webkit-)?mask(-image|-size|-repeat|-position)?|border(-(top|bottom)-(left|right))?-radius|border-image(-(width|outset))?|outline-offset|letter-spacing|text-transform|font-variant-numeric|transition(-(property|duration|delay|timing-function))?|transform(-origin)?|translate|rotate|scale|content|inset|top|right|bottom|left|width|height|border(-style)?)$/;
 /** What only the card or a pseudo-element may set on top of that: a clip, rounded corners, a border image. */
 const CARD_OR_PSEUDO = /^(clip-path|border(-(top|bottom)-(left|right))?-radius|border-image(-.*)?)$/;
 const ANIMATIONS = /^animation(-(name|duration|delay|iteration-count|direction|fill-mode|play-state|timing-function))?$/;
@@ -309,7 +309,7 @@ function ruleIssues(rule: Rule, defined: Defined, keyframes: Set<string>, lanes:
     // a frame paints what the rules that run it may paint; `content` never animates, and a frame starts no animation or transition
     return (rule.rules ?? []).flatMap((frame) =>
       (frame.declarations ?? []).flatMap((d) => {
-        const issue = /^(content|animation|transition)/.test(d.name) ? `property ${d.name} is not one a keyframe may set` : declarationIssue(d, lane, defined, keyframes);
+        const issue = /^(content|animation|transition|letter-spacing|text-transform|font-variant)/.test(d.name) ? `property ${d.name} is not one a keyframe may set` : declarationIssue(d, lane, defined, keyframes);
         return issue ? [`@keyframes ${name}: ${issue}`] : [];
       })
     );

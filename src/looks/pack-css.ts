@@ -21,7 +21,7 @@ export { commaParts };
 const PAINT =
   /^(--pack-[\w-]+|color|(fill-|stroke-)?opacity|filter|backdrop-filter|-webkit-backdrop-filter|box-shadow|text-shadow|fill|stroke(-width|-linecap|-linejoin)?|mix-blend-mode|accent-color|caret-color|font-family|font-feature-settings|-webkit-text-fill-color|-webkit-text-stroke-color|-webkit-background-clip|background(-color|-image|-position(-x|-y)?|-size|-repeat|-attachment|-clip|-origin|-blend-mode)?|border(-(top|right|bottom|left|block|inline)(-(start|end))?)?-color|border-image-(source|slice|repeat)|outline-(color|style)|text-decoration(-color|-style)?|animation(-(name|duration|delay|iteration-count|direction|fill-mode|play-state|timing-function))?)$/;
 /** Phase 2's paint (gate 0 §6), on any element, each value read by its shape (`pack-css-values`). */
-const SHAPED = /^(clip-path|(-webkit-)?mask(-image|-size|-repeat|-position)?|border(-(top|bottom)-(left|right))?-radius|border-image(-(width|outset))?|border(-style)?|outline-offset|transition(-(property|duration|delay|timing-function))?)$/;
+const SHAPED = /^(clip-path|(-webkit-)?mask(-image|-size|-repeat|-position)?|border(-(top|bottom)-(left|right))?-radius|border-image(-(width|outset))?|border(-style)?|outline-offset|letter-spacing|text-transform|font-variant-numeric|transition(-(property|duration|delay|timing-function))?)$/;
 /** What the mount writes after a pseudo-lane rule's own declarations: the box is out of the flow, never hit and under the content (a pack never writes these). */
 const PSEUDO_BOX: Declaration[] = [
   { name: "position", value: [{ t: "ident", v: "absolute" }] },
@@ -119,7 +119,7 @@ function readableFilter(value: Token[], backdrop: boolean): boolean {
 }
 
 /** A transition may name what a rule paints: never a custom property, an animation, or what only a pseudo-element sets (geometry, `content`). */
-const transitionable = (p: string) => (PAINT.test(p) || SHAPED.test(p)) && !p.startsWith("--") && !/^(animation|transition)/.test(p);
+const transitionable = (p: string) => (PAINT.test(p) || SHAPED.test(p)) && !p.startsWith("--") && !/^(animation|transition|letter-spacing|text-transform|font-variant)/.test(p);
 const laneOf = (pseudo: boolean, lengths: Map<string, Token[]>): Lane => ({ pseudo, colour: looseColour, paints: transitionable, lengths, fill: true });
 
 /** What is wrong with one declaration's value (the property is allowed); `pseudo` when the rule is in the pseudo lane. */
@@ -208,7 +208,7 @@ function lintRules(rules: Rule[], top: boolean, keyframes: Set<string>, lengths:
       if (!(rule.prelude.length === 1 && rule.prelude[0].t === "ident" && OWN.test(rule.prelude[0].v))) issues.push(`@keyframes ${prelude}: name must start with pack-`);
       // a frame paints what the rules that run it may paint; `content` never animates, and a frame starts no animation or transition
       const pseudo = named.get(rule.prelude[0]?.v ?? "") === true;
-      const allowed = (p: string) => (paints(p) && !/^(animation|transition)/.test(p)) || (pseudo && PSEUDO_ONLY.test(p) && p !== "content");
+      const allowed = (p: string) => (paints(p) && !/^(animation|transition|letter-spacing|text-transform|font-variant)/.test(p)) || (pseudo && PSEUDO_ONLY.test(p) && p !== "content");
       for (const frame of rule.rules ?? []) {
         const selector = writeTokens(frame.prelude.filter((t) => t.t !== "ws"));
         if (frame.at !== undefined || !KEYFRAME_SELECTOR.test(selector)) issues.push(`keyframe ${selector.slice(0, 24)}`);
