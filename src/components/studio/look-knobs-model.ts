@@ -1,7 +1,7 @@
-import type { LookVariant } from "@/looks/look";
+import type { ResolvedVariant } from "@/looks/look";
 import { MATERIALS } from "@/looks/materials";
 import { sampleCards } from "@/looks/sample-cards";
-import { isLocked, type SectionId, type ThemeLevels } from "@/lib/theme-model";
+import { isLocked, sectionOfKey, type SectionId, type ThemeLevels } from "@/lib/theme-model";
 import { SURFACE_OPTIONS } from "@/modules/standard-settings";
 import type { ModuleSettings, ModuleSettingValue } from "@/modules/types";
 import type { LookValues } from "./inspector-model";
@@ -144,28 +144,30 @@ export function densityOf(values: LookValues): Density | "custom" {
 }
 
 /** The keys a Look's variants set, once each: what the Variant knob's Reset clears. */
-export const variantKeys = (variants: readonly LookVariant[]): string[] => [...new Set(variants.flatMap((v) => Object.keys(v.values)))];
+export const variantKeys = (variants: readonly ResolvedVariant[]): string[] => [...new Set(variants.flatMap((v) => Object.keys(v.values)))];
 
 /**
  * The variant the values show: the first whose every value they show; "" (the Look's own) while the level holds none of
  * the variants' keys of its own; undefined (Custom) when it holds some that match no variant.
  */
-export function variantOf(values: LookValues, variants: readonly LookVariant[]): string | undefined {
-  const shows = (v: LookVariant) => Object.entries(v.values).every(([key, value]) => String(knobValue(values, key) ?? "").toLowerCase() === value.toLowerCase());
+export function variantOf(values: LookValues, variants: readonly ResolvedVariant[]): string | undefined {
+  const shows = (v: ResolvedVariant) => Object.entries(v.values).every(([key, value]) => String(knobValue(values, key) ?? "").toLowerCase() === value.toLowerCase());
   const hit = variants.find((v) => Object.keys(v.values).length > 0 && shows(v));
   if (hit) return hit.id;
   return variantKeys(variants).some((key) => ownValue(values, key) !== undefined) ? undefined : "";
 }
 
 /** Whether Variant is Custom: a key of the variants holds an own value that differs from what the level inherits. */
-export const variantCustom = (values: LookValues, variants: readonly LookVariant[]): boolean =>
+export const variantCustom = (values: LookValues, variants: readonly ResolvedVariant[]): boolean =>
   variantKeys(variants).some((key) => {
     const own = ownValue(values, key);
     return own !== undefined && own !== values.inherited?.[key];
   });
 
 /** The knobs whose keys a variant writes: Variant is read-only while the screen locks any of them. */
-export const variantKnobs = (variants: readonly LookVariant[]): KnobId[] => {
+export const variantKnobs = (variants: readonly ResolvedVariant[]): KnobId[] => {
   const keys = variantKeys(variants);
-  return KNOBS.filter((k) => k.id !== "mode" && KNOB_KEYS[k.id].some((key) => keys.includes(key))).map((k) => k.id);
+  // a text or secondary text colour is in the Colours section, which the Accent knob's lock holds
+  const colours = keys.some((key) => sectionOfKey(key) === "colors");
+  return KNOBS.filter((k) => k.id !== "mode" && (KNOB_KEYS[k.id].some((key) => keys.includes(key)) || (k.id === "accent" && colours))).map((k) => k.id);
 };

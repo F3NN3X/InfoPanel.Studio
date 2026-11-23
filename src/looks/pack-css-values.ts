@@ -431,6 +431,31 @@ export function borderImageShorthandIssue(value: Token[], lane: Lane): string | 
   return outset && `has an outset that ${outset}`;
 }
 
+/** The most a pack may open or close text by (`letter-spacing`), in em; the kit's labels are .06 to .08. Wider text would overflow the box the app sized. */
+export const LETTER_SPACING_MAX_EM = 0.15;
+/** `letter-spacing`: `normal`, or 0 to `LETTER_SPACING_MAX_EM` in em (or the px that is, at 16 px an em, and 0 at least). */
+export function letterSpacingIssue(value: Token[]): string | undefined {
+  const bad = `is not normal or 0 to ${LETTER_SPACING_MAX_EM}em`;
+  const parts = words(value);
+  const w = parts.length === 1 && parts[0].length === 1 ? parts[0][0] : undefined;
+  if (!w) return bad;
+  if (w.t === "ident") return w.v.toLowerCase() === "normal" ? undefined : bad;
+  const unit = w.unit?.toLowerCase();
+  const em = w.t === "number" ? (w.n === 0 ? 0 : undefined) : w.t === "dimension" && (unit === "em" || unit === "px") ? (w.n as number) / (unit === "px" ? 16 : 1) : undefined;
+  return em !== undefined && em >= 0 && em <= LETTER_SPACING_MAX_EM ? undefined : bad;
+}
+/** `text-transform`: `none` or `uppercase` (lower case or capitalised text changes what a label says). */
+export function textTransformIssue(value: Token[]): string | undefined {
+  const parts = words(value);
+  return parts.length === 1 && isWord(parts[0], "none", "uppercase") ? undefined : "is not none or uppercase";
+}
+/** `font-variant-numeric`: figure styles that keep a numeral's size (no fractions or ordinals, which swap glyphs). */
+const NUMERIC_VARIANTS = ["normal", "tabular-nums", "proportional-nums", "lining-nums", "oldstyle-nums", "slashed-zero"];
+export function fontVariantNumericIssue(value: Token[]): string | undefined {
+  const parts = words(value);
+  return parts.length >= 1 && parts.length <= 3 && parts.every((p) => isWord(p, ...NUMERIC_VARIANTS)) ? undefined : `is not ${NUMERIC_VARIANTS.join("|")}`;
+}
+
 /** How far an outline may sit from its box, either way. */
 const OUTLINE_OFFSET_MAX = 8;
 /** `outline-offset`: px from -8 to 8. */
@@ -573,6 +598,9 @@ function shapeRead(name: string, value: Token[], lane: Lane): string | undefined
   if (/^border-image-(width|outset)$/.test(name)) return borderImageIssue(name, value);
   if (name === "border-image") return borderImageShorthandIssue(value, lane);
   if (name === "outline-offset") return outlineOffsetIssue(value);
+  if (name === "letter-spacing") return letterSpacingIssue(value);
+  if (name === "text-transform") return textTransformIssue(value);
+  if (name === "font-variant-numeric") return fontVariantNumericIssue(value);
   if (name === "border") return borderIssue(value, lane);
   if (name === "border-style") return borderStyleIssue(value);
   if (/^transition(-(property|duration|delay|timing-function))?$/.test(name)) return transitionIssue(name, value, lane.paints);
