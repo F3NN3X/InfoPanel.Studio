@@ -1298,6 +1298,71 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
   `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000 and `every` 4-120. Anything else,
   or a value out of range, refuses the pack at import.
 
+- **Effect script**: a theme pack may carry one small script that draws an effect over the cards (particles, a scan line,
+  a pulse that follows a reading). It runs in a sandbox of its own and draws only shapes in the theme's colours on a layer
+  over the cards that takes no clicks and that screen readers skip. It never sees text or exact readings and cannot reach
+  the network, your files, settings or other apps. Like Motion it follows **Effects**: **Full** at 30 frames a second,
+  **Calm** at 15, **Off**, lite mode, reduced animations and a hidden screen run none of it. A script that is too slow
+  three times in ten seconds gives way to the pack's other effects, and one that runs past its time, uses too much memory
+  or breaks is stopped; the rest of the pack stays either way.
+
+  Whether a pack's script runs depends on its signature (see [Pack scripts](security.md#pack-scripts)). For an
+  **Unverified** pack the studio asks once, when you first wear or preview it: **Allow for this pack** or **Don't allow**.
+  The answer is kept with the pack and asked again when the pack is updated. A kiosk never asks: there an unanswered pack's
+  script just does not run. A pack that changed since it was signed, or that was withdrawn, never runs its script.
+
+#### Writing an effect script
+
+In `pack.json`, `"script": { "file": "fx.js" }` names the script, a file in the pack's `assets` folder listed in `assets` like
+the others: a plain name ending in `.js` (lowercase letters, digits and hyphens), at most 64 KB of UTF-8 text. It is the only
+`.js` file a pack may hold. The script is plain JavaScript run by QuickJS: the language's own objects (`Math`, `JSON`, `Array`,
+`Map`, typed arrays and so on) and one more, `fx`. There is no `Date`, `Promise`, `Math.random`, timer, `fetch` or any other web
+API: use `fx.now()` and `fx.rand()`.
+
+| Call | What it does |
+|---|---|
+| `fx.onFrame(fn)` | `fn(t)` runs once a frame (`t` is the frame's time in ms). The app draws the frame from what `fn` hands to `fx.draw`; the last `fx.onFrame` wins. |
+| `fx.draw(list)` | Adds commands to this frame: an array of objects, below. At most 2,000 a frame; the rest are dropped. |
+| `fx.signals()` | What the script may read of the screen, updated at most 4 times a second: `{ level, width, height, cards }`. |
+| `fx.rand()` | A number from 0 to 1, from a seed of the pack's id, so a pack draws the same way each time. |
+| `fx.now()` | The frame's time in ms. |
+
+`level` is `"full"` or `"calm"`; `width` and `height` are the overlay's size in px. Each card is `{ x, y, w, h, value, state, texts }`:
+its box in px, `value` the card's lead bar or ring as 0 to 1 in hundredths (or `null`), `state` `"ok"`, `"warn"`, `"crit"` or
+`null`, and `texts` the boxes of its title, labels and numbers as `{ x, y, w, h, n }`, where `n` is how many letters it has. Cards
+that blur a value for privacy, and coding-agent and chat cards, are not in the list, and nothing is drawn over them.
+
+Every command paints with `fill` and/or `stroke`, an index into the theme's palette, plus `alpha` (0 to 1, default 1) and
+`width` (the line width, 0 to 8 px, default 1). The palette is the theme's own colours, in this order: 0 accent, 1 text,
+2 muted, 3 ok, 4 warn, 5 crit, 6 info, 7 page background, 8 card surface, 9 secondary text.
+
+| Command | Fields |
+|---|---|
+| `rect` | `x`, `y`, `w`, `h` |
+| `arc` | `x`, `y`, `r`, `start` and `end` in radians (default a full circle) |
+| `path` | `points`: `[x0, y0, x1, y1, …]`, 2 to 512 points (8,000 in a frame), `close` true to close it |
+| `glyph` | `card` and `text`, indices into `fx.signals().cards` and its `texts`: paints that text's box |
+| `transform` | `m`: `[a, b, c, d, e, f]` for the commands after it; scale and skew at most 4, moves within the screen |
+| `reset` | back to no transform |
+
+A command out of shape, or a colour that is not a palette index, is skipped; numbers out of range are held to it. A frame has
+2 ms of the script's own time: past that it is cut off and draws nothing, and three such frames in ten seconds hand over to the
+pack's other effects. The script's top level has 50 ms, and the script has 8 MB of memory. The app also holds the overlay to
+at most three flashes a second. For example:
+
+```js
+fx.onFrame(function (t) {
+  var cards = fx.signals().cards;
+  var list = [];
+  for (var i = 0; i < cards.length; i++) {
+    var c = cards[i];
+    var y = c.y + ((t / 3000 + i / 7) % 1) * c.h;
+    list.push({ op: "rect", x: c.x, y: y, w: c.w, h: 2, fill: c.state === "warn" ? 4 : 0, alpha: 0.2 + 0.3 * (c.value || 0) });
+  }
+  fx.draw(list);
+});
+```
+
 Saved themes are not the same as a widget's Styles (see [Styles, Copy, Paste and Make this the
 theme](#styles-copy-paste-and-make-this-the-theme)): a saved theme sets a screen's (or page's) look; a Style restyles the
 one widget you apply it to.
@@ -1355,6 +1420,29 @@ largest cut is 18) and a `stroke` up to 2 px, and now also:
 A spine, a tab or a second line is drawn only where the card's padding is at least as wide as it is, so it never covers text. For
 the same reason a card's ornaments (the small marks and labels in a corner) are drawn only where the padding is more than 10 px,
 and a corner ornament keeps clear of a cut corner and of a spine on its side.
+
+### Signing a pack you share
+
+Browse themes shows each imported pack's badge: **Verified by Themely** (Themely ran its checks and a person reviewed these
+exact files; it does not mean the pack is safe), **Signed by <publisher>, not reviewed**, **Unverified** (amber), or, in red,
+**Changed since it was signed** or **Withdrawn: <reason>**. A changed or withdrawn pack is not used. How the signatures work:
+[security.md](security.md#pack-signatures).
+
+To sign a pack you made, so people who trust your key see your name instead of Unverified:
+
+1. Make a minisign key once: `minisign -G -p acme.pub -s acme.key` (or, to try it out, `node tools/packs/sign.mjs --generate acme`,
+   which leaves the secret key unencrypted). Keep `acme.key` to yourself.
+2. Finish the pack, `version` in `pack.json` included, then sign the folder:
+   `node tools/packs/sign.mjs my-pack --key acme.key --password-env MINISIGN_PASSWORD`. This writes `pack.minisig` beside the
+   files: a signature over every file's SHA-256, so change nothing after it (sign again after any change, with a higher
+   `version`).
+3. Share the folder or a zip of it with `pack.minisig` in it, and your `acme.pub`. Whoever imports it adds `acme.pub` in
+   Settings › Widget publishers; until they do, the pack shows as Unverified.
+
+An update must be signed with the same key and have a higher version: the app refuses an older version, or another key's, over
+a pack it has. A pack's effect script runs only when the pack is verified, signed by a key whose **Allow pack scripts** is on in
+Settings › Widget publishers, or when you allow it for that pack; **Pack effect scripts** in Browse themes, or `PACK_SCRIPTS=off`
+on the server, turns them all off.
 
 ## Widget theme
 

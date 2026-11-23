@@ -69,6 +69,7 @@ fn main() {
         "trust_widget_key",
         "remove_widget_key",
         "restore_widget_key",
+        "set_widget_key_pack_scripts",
         "agent_requests",
         "agent_answer",
         "agent_answers_log",

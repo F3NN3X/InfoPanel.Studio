@@ -17,6 +17,7 @@ import { PACK_FONT_FAMILIES } from "./pack-fonts";
 import { resolveT1, resolveVariant, VARIANT_ALPHA, VARIANT_COLOURS, type Look, type T1Name, T1_NAMES, type VariantDerive } from "./look";
 import lookSchema from "./look.schema.json";
 import { motionIssues } from "./motion";
+import { SCRIPT_MAX_BYTES } from "./pack-script/limits";
 import { MAX_LAYERS, NUMERAL_MIN, numeralIssues, stageIssues } from "./pack-checks";
 import { FLASH_MAX, FRAME_ALPHA_MIN, FRAME_SIZE_MAX, FRAME_SPINE_MAX, FRAME_STROKE_MAX, FRAME_TAB_HEIGHT_MAX, FRAME_TAB_WIDTH_MAX, FX_KINDS, ORNAMENT_MAX, ORNAMENT_TEXT_MAX, ORNAMENTS_MAX, TEXT_ORNAMENTS, type PackJson } from "./pack-json";
 import { commaParts, lintPackCss, OPACITY_FLOOR } from "./pack-css";
@@ -60,6 +61,12 @@ export interface PackOptions {
    * browser (`pack-visibility`, `pack-selectors`, `pack-faces`).
    */
   source?: "builtin" | "user";
+  /**
+   * Where a pack's `script` file is: `files` (the default) among the files given, its bytes checked here (an import); `route` with the
+   * server, which serves it only by the pack's trust (`GET /api/packs/<id>/fx.js`), so a pack read back from the route lists it and
+   * holds no bytes for it.
+   */
+  script?: "files" | "route";
 }
 
 export interface PackIssue {
@@ -623,14 +630,17 @@ function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: 
 /** What is wrong with a pack, one issue each, errors before warnings (empty: it may load). A crash inside a rule is an issue, never an exception. */
 export function validatePack(src: PackSource, options: PackOptions = {}): PackIssue[] {
   try {
-    return validate(src, options.source ?? "user");
+    return validate(src, options.source ?? "user", options.script ?? "files");
   } catch (e) {
     return [issue("internal", "", `the pack could not be read to the end (${(e as Error).name}: ${(e as Error).message.slice(0, 80)}): refused`)];
   }
 }
 
-function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
+function validate(src: PackSource, source: "builtin" | "user", scriptAt: "files" | "route"): PackIssue[] {
   const user = source === "user";
+  // the one `.js` a pack may hold is the file its `script` names (read loosely here: the schema checks the key below)
+  const named = (src.pack as { script?: { file?: unknown } } | undefined)?.script?.file;
+  const scriptPath = typeof named === "string" ? `assets/${named}` : undefined;
   const out: PackIssue[] = [];
   const add = (rule: string, file: string, message: string, severity: PackIssue["severity"] = "error") => void out.push(issue(rule, file, message, severity));
 
@@ -671,7 +681,7 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
     if (!isPackRelativeUrl(f.path)) add(urlRule(f.path), f.path, `file path ${f.path} leaves the pack folder`);
     else if (f.path.length > 120 || ODD_PATH.test(f.path) || lower.has(f.path.toLowerCase()) || (f.path.startsWith("assets/") && f.path.slice(7).includes("/"))) add("path", f.path, "a path that is too long, hidden, a device name, repeated, or in a folder of assets/");
     else if (f.path.startsWith("assets/")) {
-      if (!ASSET_TYPES.test(f.path)) add("asset-type", f.path, "an asset is an image (png, jpg, webp, avif, gif, svg) or a woff2 font");
+      if (!ASSET_TYPES.test(f.path) && f.path !== scriptPath) add("asset-type", f.path, "an asset is an image (png, jpg, webp, avif, gif, svg) or a woff2 font");
     } else if (!ROOT_FILES.test(f.path)) add("asset-extra", f.path, "not a file a pack has");
     lower.add(f.path.toLowerCase());
   }
@@ -718,11 +728,14 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
     for (const a of pack.assets) {
       const f = files.get(`assets/${a.file}`);
       listed.add(`assets/${a.file}`);
-      if (!f) add("asset-listed", "pack.json", `${a.file} is listed and not in the pack's files`);
+      if (!f) {
+        if (!(scriptAt === "route" && `assets/${a.file}` === scriptPath)) add("asset-listed", "pack.json", `${a.file} is listed and not in the pack's files`);
+      }
       else if (f.size !== a.bytes) add("asset-listed", "pack.json", `${a.file} is listed as ${a.bytes} bytes and is ${f.size}`);
     }
     for (const p of assets) if (!listed.has(p)) add("asset-listed", p, "not in pack.json's asset list: anything not listed is refused");
   }
+  if (scriptPath && files.has(scriptPath)) referenced.set(scriptPath, "pack.json");
   for (const p of assets) if (!referenced.has(p)) add("asset-unused", p, "nothing in the pack uses this file", "warn");
 
   // what each image and font file is, from its bytes (the extension is only a claim)
@@ -793,6 +806,7 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
   else if (pack.edge?.kind !== "chamfer" && pack.edge?.cut !== undefined && pack.edge.cut > CHAMFER_MAX) add("chamfer", "pack.json", `edge cut ${pack.edge.cut}: at most ${CHAMFER_MAX} px`);
 
   out.push(...motionPackIssues(pack));
+  out.push(...scriptIssues(pack, files, scriptAt));
 
   // icons
   if (src.icons !== undefined) {
@@ -852,6 +866,32 @@ function layerBrightness(l: { fill?: string; image?: string }, files: Map<string
 /** The motion block (L117): each effect's strength and timing inside its range (`MOTION_RULES`); the schema has already refused an unknown effect or key. Inert data, the same for a user pack. */
 function motionPackIssues(pack: PackJson): PackIssue[] {
   return motionIssues(pack.motion).map((m) => issue("motion", "pack.json", m));
+}
+
+/**
+ * The script key (G4 as changed 2026-11-23): one `.js` file of the pack's assets, listed in `assets` like any other, at most
+ * `SCRIPT_MAX_BYTES`, UTF-8 text. It is never run here or by the loader: only the pack-script sandbox runs it, and only when the
+ * server's trust answer says so. A pack read back from the route (`script: "route"`) has no bytes for it to check: the server keeps them.
+ */
+export function scriptIssues(pack: Pick<PackJson, "script" | "assets">, files: ReadonlyMap<string, PackFile>, scriptAt: "files" | "route" = "files"): PackIssue[] {
+  if (!pack.script) return [];
+  const { file } = pack.script;
+  const out: PackIssue[] = [];
+  if (!pack.assets?.some((a) => a.file === file)) out.push(issue("script", "pack.json", `the script ${file} is not in pack.json's asset list`));
+  const f = files.get(`assets/${file}`);
+  if (!f) {
+    if (scriptAt === "files") out.push(issue("script", "pack.json", `the script ${file} is not in the pack's files`));
+    return out;
+  }
+  if (f.size > SCRIPT_MAX_BYTES) out.push(issue("script", f.path, `the script is ${f.size} bytes, at most ${SCRIPT_MAX_BYTES}`));
+  let source: string | undefined;
+  try {
+    source = f.bytes && new TextDecoder("utf-8", { fatal: true }).decode(f.bytes);
+  } catch {
+    source = undefined;
+  }
+  if (source === undefined || source.includes("\u0000")) out.push(issue("script", f.path, "the script is not UTF-8 text"));
+  return out;
 }
 
 /** Errors first; the same rule on the same file and message once. */

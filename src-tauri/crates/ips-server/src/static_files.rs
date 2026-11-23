@@ -12,7 +12,7 @@ use tokio::io::AsyncReadExt;
 use crate::http::{self, Req};
 use crate::security_headers::security_headers;
 
-const TYPES: [(&str, &str); 18] = [
+const TYPES: [(&str, &str); 19] = [
     (".html", "text/html; charset=utf-8"),
     (".js", "text/javascript; charset=utf-8"),
     (".css", "text/css; charset=utf-8"),
@@ -31,7 +31,12 @@ const TYPES: [(&str, &str); 18] = [
     (".woff", "font/woff"),
     (".woff2", "font/woff2"),
     (".txt", "text/plain; charset=utf-8"),
+    (".wasm", "application/wasm"),
 ];
+
+/// The policy of the pack-script worker's own response (a worker takes the policy of its script's response, not the page's): it
+/// loads its chunks and the QuickJS `.wasm` from this origin and may compile that wasm, and nothing else (no `eval`, no network).
+const PACK_SCRIPT_WORKER_CSP: &str = "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'";
 
 const CHUNK: usize = 64 * 1024;
 
@@ -132,6 +137,12 @@ fn file_body(file: PathBuf) -> Body {
     Body::from_stream(stream)
 }
 
+/// Whether `name` is the pack-script worker's built script (`assets/fx-worker-<hash>.js`, from `src/looks/pack-script/fx-worker.ts`).
+fn is_pack_script_worker(name: &str) -> bool {
+    let base = name.rsplit(is_separator).next().unwrap_or(name);
+    base.starts_with("fx-worker-") && base.ends_with(".js")
+}
+
 pub fn serve(dist: &Path, req: &Req) -> Result<Response<Body>, String> {
     if req.method != Method::GET && req.method != Method::HEAD {
         return Ok(http::empty(405));
@@ -157,6 +168,9 @@ pub fn serve(dist: &Path, req: &Req) -> Result<Response<Body>, String> {
         .header("Cache-Control", if is_html { "no-store" } else { "no-cache" });
     for (key, value) in security_headers(is_html, &req.search) {
         response = response.header(key, value);
+    }
+    if is_pack_script_worker(&name) {
+        response = response.header("Content-Security-Policy", PACK_SCRIPT_WORKER_CSP);
     }
     let body = if req.method == Method::HEAD {
         Body::from_stream(futures_util::stream::empty::<Result<Bytes, Infallible>>())

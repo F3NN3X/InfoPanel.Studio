@@ -145,6 +145,34 @@ security model, what was fixed, what was decided, and what is deferred.
   aria-hidden copy over the real text, which stays in the page for assistive technology, privacy blur and export. The page
   runs at most one repeat a second; nothing runs while the page is hidden, at the Effects level Off, in lite mode or under
   reduced motion.
+- <a id="pack-scripts"></a>**Pack scripts** (`src/looks/pack-script/`): a pack may carry one effect script (`pack.json`
+  `script`, one listed `.js` asset of at most 64 KB; the validator refuses any other `.js`). It is the only pack-supplied code
+  the app runs, and it runs only in the pack-script sandbox: a dedicated module worker loaded from the app's own bundle (never
+  a `blob:` worker, which would take the page's policy), hosting a QuickJS runtime (quickjs-emscripten, its release build as a
+  separate `.wasm`). The guest's globals are the language's own, without `Date`, `Promise`, `Proxy` and `Math.random`, plus
+  a frozen `fx` (`onFrame`, `draw`, `signals`, `rand`, `now`); no host function is installed in it, so it has no web API, no
+  network, storage, `BroadcastChannel`, Tauri IPC, timer or navigation: a frame is one call into the guest and one JSON
+  string back. The worker checks every command against an allow-list (rect, arc, path, a card's text box, a capped transform,
+  reset; colours only as indices into the Look's palette, numbers clamped) and draws it on an `OffscreenCanvas` overlay that
+  is `aria-hidden`, takes no pointer events and never filters, moves or clips a widget.
+  - **Caps**: 2 ms of guest time a frame (an interrupt handler), 50 ms for the top level, 2,000 commands and 8,000 path points a
+    frame, an 8 MB heap and a 256 KB stack, 30 frames a second at Full and 15 at Calm, driven by the page's animation frames
+    (the guest has no timer). A frame cut off by the interrupt at 2 ms is dropped (it draws nothing) and counts toward the fallback; three such frames in 10 s end the script
+    and the pack's declarative effects stay (`fallback`); a memory or stack hit, an error, a top level past its time, or a
+    frame the worker does not answer within 0.5 s (the interrupt is not polled inside the runtime's own native work, such as a large
+    allocation near the heap limit) terminate the worker (`stopped`). The host samples each frame at 16 by 9 and
+    shows at most three flashes a second (a change of 0.1 relative luminance in a cell is half a flash); a frame past that is
+    not shown.
+  - **Data**: per card its box, the lead bar's or ring's value as 0 to 1 rounded to hundredths, its threshold state, and its
+    texts as boxes with a glyph count, never a character; read at most 4 times a second. A card that blurs a value for privacy,
+    and coding-agent and chat cards (`data-fx-quiet`), send nothing and are erased from the overlay after every frame.
+  - **When it runs**: only while the server's switch is on (`GET /api/pack-scripts` `on: true`), the trust answer for the pack
+    says so (`GET /api/packs/<id>/trust` `scriptRuns` with its `scriptSha256`), and the script comes by that hash from
+    `GET /api/packs/<id>/fx.js?sha256=<hash>` as `text/javascript` (in a secure context the client checks the hash itself too);
+    the client reads any other answer as "no script". The server keeps no trust for a built-in pack, and none carries a script.
+    It starts only when the motion rules allow it (not at Effects Off, in lite mode, under reduced motion) on a visible page,
+    and any change of these ends the worker. An unverified pack's script runs only after the user allowed it in the studio,
+    asked once per pack; the kiosk never asks. Modified and revoked packs never run one.
 - **App icons** (`POST /api/assets/app-icon`, `crates/ips-server/src/app_icon.rs`): a rail item's icon read from a
   program's `.exe` and stored as a PNG asset. The studio names the program by its file name only (`Chat.exe`: letters,
   digits and a few punctuation marks, no separator, drive or `%`); the server looks for it among the programs running now,
@@ -314,6 +342,49 @@ Keep `infopanel-widgets.key` and its password offline (never in the repo, CI or 
 `infopanel-widgets.pub` into `OWNER_KEY` in `crates/ips-server/src/widget_keys.rs` (`Some("RW...")`), and sign a package
 with `node tools/widgets/sign.mjs <package-folder> --key infopanel-widgets.key --password-env MINISIGN_PASSWORD`.
 
+## Pack signatures
+
+A theme pack may carry its publisher's signature and Themely's countersignature
+(`crates/ips-server/src/pack_trust.rs`). They say who made a pack's files and whether someone reviewed exactly those files;
+they never make a pack safe. A pack's script is contained by the pack-script sandbox, whatever its signature says. This is
+not the local `pack.sig` (`pack_sign.rs`), which only marks that the studio's render check passed on this machine and is
+never shown as verified.
+
+- **What is signed.** The server makes the pack's manifest itself, from the files it holds, on every read: each file's path,
+  size and SHA-256, every file but the two signature files and `pack.sig`, as canonical JSON after a domain of its own
+  (`tests/fixtures/packs/canonical-vector.json` pins it for the server and `tools/packs/sign.mjs`). The publisher signs it
+  with minisign (`pack.minisig`), the code widgets' scheme. Themely countersigns a statement
+  `{ manifestSha256, packId, version, publisherKeyId, checksVersion, reviewLevel, sourceHash, issuedAt }` (`themely.json`).
+- **Keys.** Themely's pack key is pinned in the app, a slot of its own (`THEMELY_PACK_KEY`), never the code widgets'
+  Themely key or the updater's key; it is empty and off until the owner sets it up. A debug build takes a test key from
+  `PACK_THEMELY_TEST_KEY`; a release build never reads it. Other publishers are the keys the user added in Settings ›
+  Widget publishers (never from an import prompt), each with an "Allow pack scripts" switch that is off when the key is added.
+- **States and badges.** Built-in (the app's own); **Verified by Themely** (Themely's countersignature with
+  `reviewLevel: "reviewed"` and the publisher's signature, both over these bytes: "Themely ran its automated checks and a
+  person reviewed these exact files"); **Signed by <publisher>, not reviewed** (a key the user added); amber **Unverified**
+  (no signature, or one from a key this app does not know); red **Changed since it was signed** (a signature this app can
+  check no longer matches the files: refused); red **Withdrawn: <reason>** (on a revoke list: refused, its files kept).
+  A refused pack is still listed, with the reason, so the studio can say why; its files answer 403 and it is not worn.
+- **Updates.** An import that replaces a signed pack needs the same publisher key, a reviewed pack a reviewed update, and a
+  higher version (the same version only with the same files). The server remembers the last signed version of each id
+  (`packs/.installed.json`) after the pack is removed, so an older signed version cannot come back. A signed pack stored is
+  never replaced by an unsigned one.
+- **Revocation.** The update-shipped list (`widget-keys-revoked.json`) now also holds withdrawn packs, by id (and version)
+  for a signed pack or by manifest hash for any; a key on it refuses the packs it signed. Themely's `revoked.json` adds to it:
+  signed by the pinned pack key, with a `version` that only rises (an older list is refused as a rollback) and an
+  `expires` date (an expired list is refused, so a frozen copy cannot be replayed). The server fetches it once a day through
+  the guarded, host-pinned client (as the weather source), sending only the request (`crates/ips-server/src/pack_revocation.rs`).
+  The URL is a constant that stays unset, so nothing is fetched, until the owner sets it up; `PACK_REVOCATION=off` turns the
+  fetch off. While the fetch is on and no list has been confirmed for 30 days, the scripts of packs that are not built in
+  stop; their declarative parts are not affected.
+- **Scripts.** `GET /api/packs/<id>/trust` says whether a pack's script runs (`scriptRuns`): it has one, `PACK_SCRIPTS` is not
+  off, the studio's switch (`/api/pack-scripts`, stored server-side) is on, the pack is neither changed nor withdrawn, the
+  revoke list is not stale, and it is verified, signed by a key whose "Allow pack scripts" is on, or the user said yes to
+  these files (`PUT /api/packs/<id>/script-consent`, under the import's guards, bound to the manifest's hash so an update
+  asks again). `GET /api/packs/<id>/fx.js` serves the script only then, by hash, as `text/javascript` with `nosniff`,
+  `no-store` and a CSP that allows nothing; the file route never serves a pack's `.js`. Every kiosk asks, so the switches
+  hold on every device.
+
 ## Review findings (2026-10-22) and what happened
 
 | Severity | Finding | Outcome |
@@ -339,3 +410,8 @@ with `node tools/widgets/sign.mjs <package-folder> --key infopanel-widgets.key -
 - The desktop app's IPC under the new server CSP, and a Web Page widget under it (both reasoned from the policy).
 - A real write from another LAN device (unit tests cover `remoteEditRefusal`; route tests bind 127.0.0.1).
 - The proxy's connect-time pinning against a real public host.
+- The pack revoke list fetch against themely.dev: its URL and Themely's pack key are not set up, so it has run only against
+  signed lists in tests, never over the network.
+- Pack scripts: that Tauri IPC is refused from the pack-script worker in WebView2 (the guest has no host function at all, so
+  this is the worker's own reach), and that every kiosk browser gives a URL worker its own response's policy rather than the
+  page's. The worker's script is served with a policy of its own (`default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'`, `nosniff`) and the runtime's `.wasm` as `application/wasm`; that a browser applies that policy to the worker is tested in Chromium only.

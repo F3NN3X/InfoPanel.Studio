@@ -16,6 +16,7 @@ import {
 import { SquareDashedMousePointer } from "lucide-react";
 import { PageBackground } from "@/components/page-background";
 import { PackStage, packBackground, usePack } from "@/looks/pack";
+import { PackScript } from "@/looks/pack-script/mount";
 import { PageSizeCtx } from "@/looks/pack-frame";
 import { connectorZones } from "@/looks/connector-zones";
 import { DynamicIsland } from "@/components/island/dynamic-island";
@@ -680,6 +681,8 @@ export function StudioCanvas({
                 {/* Page background (as in the kiosk) behind the tiles */}
                 {background && <PageBackground background={background} className="absolute inset-0 -z-20" />}
                 <PackStage pack={pack} page={islandPage} className="absolute inset-0 -z-20" overlayClassName="absolute inset-0 z-10" zones={linkZones} accent={pageSkin.accent} />
+                {/* the pack's script, in the same sandbox as the kiosk's; an unverified pack's asks first */}
+                <PackScript pack={pack} studio className="absolute inset-0 z-10" />
                 {/* A scroll page longer than its screen: the design size stays the frame. */}
                 {!fill && profile.height > 0 && (pageSize(profile).naturalHeight ?? 0) > profile.height && (
                   <ScreenFold height={profile.height} zoom={zoom} />

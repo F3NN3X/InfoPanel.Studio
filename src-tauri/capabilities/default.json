@@ -58,6 +58,7 @@
     "allow-trust-widget-key",
     "allow-remove-widget-key",
     "allow-restore-widget-key",
+    "allow-set-widget-key-pack-scripts",
     "allow-agent-answers-log",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",

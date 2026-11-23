@@ -1,0 +1,25 @@
+{
+  "about": "A theme pack's manifest (pack_trust.rs `manifest_bytes`, tools/packs/sign.mjs `manifestBytes`): the files, the canonical bytes signed and their SHA-256. Both sides are tested against it.",
+  "id": "vector",
+  "version": "2.1.0",
+  "files": [
+    {
+      "path": "pack.json",
+      "text": "{\"id\":\"vector\",\"version\":\"2.1.0\"}"
+    },
+    {
+      "path": "assets/a.png",
+      "text": "png bytes"
+    },
+    {
+      "path": "assets/fx.js",
+      "text": "fx.onFrame(() => {});\n"
+    },
+    {
+      "path": "look.json",
+      "text": "{\"id\":\"vector\",\"name\":\"é\"}"
+    }
+  ],
+  "canonical": "infopanel-studio theme pack 1\n{\"files\":[{\"path\":\"assets/a.png\",\"sha256\":\"d013614dc14a37ee20fe92005737ab7d3427e7e93580ad56ef8a42205e7f7a4e\",\"size\":9},{\"path\":\"assets/fx.js\",\"sha256\":\"a14f9e16cf376ed9f5a50dc6b2c4291c4a0273c4bae4b2c19f216b8b819f0dc6\",\"size\":22},{\"path\":\"look.json\",\"sha256\":\"3ba28008b6b1d7d1f62386e94dc01264e8ab13c124f1b0996b00fb000f99739d\",\"size\":27},{\"path\":\"pack.json\",\"sha256\":\"08bebc598e92e18c7067e6ab0a114ff0024417ba98279560cda12cc1439b8fe8\",\"size\":33}],\"format\":1,\"id\":\"vector\",\"version\":\"2.1.0\"}",
+  "sha256": "bebb4e1130c88fdee4e8a48d484e7ea4e9a60b4650f5e9e60cb0d131ac3b26a6"
+}

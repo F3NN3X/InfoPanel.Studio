@@ -19,6 +19,7 @@ import { bringsRows, kindText } from "./theme-pack-model";
 import type { PackImporterHandle } from "./user-packs";
 import type { ImportedPack } from "./use-imported-packs";
 import { usePackWithFonts } from "./use-pack-fonts";
+import { PackTrustNote } from "./pack-trust-badge";
 
 const UserPacks = lazy(() => import("./user-packs"));
 
@@ -87,11 +88,13 @@ interface DetailProps {
   look: Look | undefined;
   applied: boolean;
   warnings: readonly string[];
+  /** An imported pack's trust; a built-in pack is Built-in. */
+  trust?: ImportedPack["trust"];
   p: ThemeBrowseProps;
 }
 
 /** The detail pane: the theme's preview, kind line, actions and what it brings. */
-function Detail({ item, look, applied, warnings, p }: DetailProps) {
+function Detail({ item, look, applied, warnings, trust, p }: DetailProps) {
   const pack = usePackWithFonts(item.kind === "pack" || item.kind === "yours" ? item.lookId : undefined);
   const shownLook = look ?? pack?.look;
   const [renaming, setRenaming] = useState(false);
@@ -116,6 +119,8 @@ function Detail({ item, look, applied, warnings, p }: DetailProps) {
         <p className="text-caption text-ui-3">{kindText(item.kind, shownLook)}</p>
       </div>
       {item.description && <p className="text-body text-ui-2">{item.description}</p>}
+      {item.kind === "pack" && <PackTrustNote trust={{ state: "builtin" }} />}
+      {item.kind === "yours" && trust && <PackTrustNote trust={trust} />}
       <div className="flex flex-col gap-2">
         {applied ? (
           <Button variant="secondary" className="w-full" onClick={p.onCustomise}>
@@ -156,7 +161,7 @@ function Detail({ item, look, applied, warnings, p }: DetailProps) {
               {w}
             </span>
           ))}
-          <span className="text-ui-3">It is checked again every time it loads. No code or web links are allowed.</span>
+          <span className="text-ui-3">It is checked again every time it loads. No web links are allowed, and code runs only as an effect script in a sandbox.</span>
           <Button variant="danger" small className="self-start" aria-label={`Remove ${item.name}`} onClick={() => void p.importer.current?.remove({ id: item.id, name: item.name })}>
             Remove this pack
           </Button>
@@ -222,6 +227,7 @@ export function ThemeBrowse(p: ThemeBrowseProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleKey]);
   const warningsOf = (id: string) => p.packs.find((k) => k.id === id)?.warnings ?? [];
+  const trustOf = (id: string) => p.packs.find((k) => k.id === id)?.trust;
   const card = (i: BrowseItem) => (
     <ThemeCard
       key={i.id}
@@ -233,6 +239,7 @@ export function ThemeBrowse(p: ThemeBrowseProps) {
       applied={i.id === appliedId}
       selected={i.id === selected?.id}
       warnings={i.kind === "yours" ? warningsOf(i.id).length : 0}
+      trust={i.kind === "yours" ? trustOf(i.id) : undefined}
       tabStop={i.id === selected?.id}
       previewing={i.id === p.previewId}
       onSelect={() => {
@@ -326,7 +333,7 @@ export function ThemeBrowse(p: ThemeBrowseProps) {
           <ChevronRight className="h-4 w-4 shrink-0 text-ui-hint" aria-hidden />
         </button>
       </div>
-      {selected && <Detail item={selected} look={loaded[selected.lookId ?? ""]} applied={selected.id === appliedId} warnings={warningsOf(selected.id)} p={p} />}
+      {selected && <Detail item={selected} look={loaded[selected.lookId ?? ""]} applied={selected.id === appliedId} warnings={warningsOf(selected.id)} trust={trustOf(selected.id)} p={p} />}
     </div>
   );
 }

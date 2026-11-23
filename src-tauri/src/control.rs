@@ -113,6 +113,7 @@ const SETTINGS_PERMISSIONS: &[&str] = &[
     "allow-trust-widget-key",
     "allow-remove-widget-key",
     "allow-restore-widget-key",
+    "allow-set-widget-key-pack-scripts",
     // Coding agents › Answers from the panel: the log only; answers are given in the prompt window alone.
     "allow-agent-answers-log",
     "core:event:allow-listen",
@@ -699,7 +700,13 @@ mod tests {
             assert!(!STUDIO_PERMISSIONS.contains(&command), "{command} is granted to the studio");
         }
         // A widget publisher key is trusted or removed in the Settings window only (Phase 6a), never from the studio.
-        for command in ["allow-widget-keys", "allow-trust-widget-key", "allow-remove-widget-key", "allow-restore-widget-key"] {
+        for command in [
+            "allow-widget-keys",
+            "allow-trust-widget-key",
+            "allow-remove-widget-key",
+            "allow-restore-widget-key",
+            "allow-set-widget-key-pack-scripts",
+        ] {
             assert!(!STUDIO_PERMISSIONS.contains(&command) && !SETUP_PERMISSIONS.contains(&command), "{command} is granted to the studio");
             assert!(SETTINGS_PERMISSIONS.contains(&command), "{command} is missing from the settings window");
         }

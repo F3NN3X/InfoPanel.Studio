@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
+import type { PackTrust } from "@/looks/pack-trust";
 
-/** A pack the user imported, with the warnings the validator gives it each time it loads (Q44: nothing is stored). */
+/** A pack the user imported, with the warnings the validator gives it each time it loads (Q44: nothing is stored), and the server's word on its signatures. */
 export interface ImportedPack {
   id: string;
   name: string;
   size: number;
   warnings: string[];
+  trust?: PackTrust;
 }
 
 /** The imported packs the server lists, each checked again without its style sheet (cheap), and whether packs are off on this server. The code loads with the first call. */
@@ -22,7 +24,7 @@ export function useImportedPacks(): { packs: ImportedPack[]; off: boolean; refre
         await Promise.all(
           list.map(async (p) => {
             try {
-              return { ...p, warnings: store.userPackIssues(await store.readUserPack(p.id)).filter((i) => i.severity === "warn").map(imp.describeIssue) };
+              return { ...p, warnings: store.userPackIssues(await store.readUserPack(p.id), "route").filter((i) => i.severity === "warn").map(imp.describeIssue) };
             } catch {
               return { ...p, warnings: [] };
             }

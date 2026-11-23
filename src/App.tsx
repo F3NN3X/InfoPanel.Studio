@@ -6,6 +6,7 @@ import { PlacementFrame } from "@/components/studio/placement-frame";
 import { LivePlacement } from "@/components/studio/placement-content";
 import { PageBackground } from "@/components/page-background";
 import { PackStage, packBackground, usePack } from "@/looks/pack";
+import { PackScript } from "@/looks/pack-script/mount";
 import { connectorZones } from "@/looks/connector-zones";
 import { startKioskPull } from "@/lib/kiosk-config-pull";
 import { KioskConnecting } from "@/components/ui/kiosk-connecting";
@@ -964,6 +965,7 @@ export default function App({ fixture }: AppProps = {}) {
       >
         {background && <PageBackground background={background} className="fixed inset-0 -z-10" />}
         <PackStage pack={pack} page={islandPage} className="fixed inset-0 -z-10" overlayClassName="fixed inset-0 z-10" zones={zones} accent={pageSkin.accent} />
+        <PackScript pack={pack} className="fixed inset-0 z-10" />
 
         {/* Header (hidden in kiosk mode) */}
         {!kiosk && (

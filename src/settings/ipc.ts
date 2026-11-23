@@ -79,6 +79,8 @@ export const ipc = {
   trustWidgetKey: (name: string, key: string, publishers: string[]) => invoke<WidgetKey[]>("trust_widget_key", { name, key, publishers }),
   removeWidgetKey: (id: string) => invoke<WidgetKey[]>("remove_widget_key", { id }),
   restoreWidgetKey: (id: string) => invoke<WidgetKey[]>("restore_widget_key", { id }),
+  /** A user key's "Allow pack scripts" (theme packs it signed). */
+  setWidgetKeyPackScripts: (id: string, allowed: boolean) => invoke<WidgetKey[]>("set_widget_key_pack_scripts", { id, allowed }),
 };
 
 /** Calls `handler` with the payload of each `event`; resolves to the unsubscribe. */

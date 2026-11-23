@@ -1114,3 +1114,39 @@ describe("L98 L-8: T1 text is read as drawn, rgb() and an alpha over the card", 
     expect(mine(fg("color-mix(in srgb, #202020, #000)"))).toContain("contrast");
   });
 });
+
+describe("a pack's script (G4 as changed 2026-11-23)", () => {
+  const FX = "fx.onFrame(function () { fx.draw([]); });";
+  // Field Kit lists no assets; a pack that lists one lists them all
+  const assets = BASE.files.filter((f) => f.path.startsWith("assets/")).map((f) => ({ file: f.path.slice(7), bytes: f.size }));
+  const scripted = (opts: { content?: string; bytes?: Uint8Array; list?: boolean; file?: string; drop?: boolean } = {}): PackSource => {
+    const name = opts.file ?? "fx.js";
+    const f: PackFile = opts.bytes ? { path: `assets/${name}`, size: opts.bytes.length, bytes: opts.bytes } : file(`assets/${name}`, opts.content ?? FX);
+    return bad({ pack: { script: { file: name }, assets: opts.list === false ? assets : [...assets, { file: name, bytes: f.size }] }, files: opts.drop ? [] : [f] });
+  };
+  /** The rules a script can break, read as a user pack (`script` where it is) and as one of ours. */
+  const scriptRules = (src: PackSource, script: "files" | "route" = "files") =>
+    validatePack(src, { script }).filter((i) => i.severity === "error" && ["script", "asset-type", "asset-listed", "schema"].includes(i.rule)).map((i) => i.rule);
+
+  it("passes one listed .js asset the script key names, and an old pack without the key is read as before", () => {
+    expect(scriptRules(scripted())).toEqual([]);
+    expect(rules(scripted())).toEqual(rules(BASE));
+    expect(rules(BASE)).toEqual([]);
+  });
+
+  it("refuses a .js the key does not name, an unlisted script, a missing one, one over 64 KB and one that is not UTF-8", () => {
+    expect(scriptRules(bad({ files: [file("assets/other.js", FX)] }))).toContain("asset-type");
+    expect(scriptRules(scripted({ list: false }))).toContain("script");
+    expect(scriptRules(scripted({ drop: true }))).toContain("script");
+    expect(scriptRules(scripted({ content: "x".repeat(65_537) }))).toContain("script");
+    expect(scriptRules(scripted({ bytes: Uint8Array.from([0xff, 0xfe, 0x00]) }))).toContain("script");
+  });
+
+  it("refuses a script name that is not a plain .js file name", () => {
+    for (const name of ["../fx.js", "fx.mjs", "FX.js", "fx.js?x", "a/fx.js"]) expect(scriptRules(scripted({ file: name })), name).toContain("schema");
+  });
+
+  it("reads a pack from the route without the script's bytes: the server keeps them", () => {
+    expect(scriptRules(scripted({ drop: true }), "route")).toEqual([]);
+  });
+});
