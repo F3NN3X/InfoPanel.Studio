@@ -257,11 +257,27 @@ function servedFrom(value: Token[], base: string): Token[] {
   });
 }
 
-/** The rules as mounted: a pseudo-lane rule ends in `PSEUDO_BOX`, and with `base` every URL is the route's. */
+/** The custom property the page root sets to `none` while a pack's own animations may not run (the screen's Effects at Calm or Off, lite mode): no pack may set a `--wp-*`. */
+export const PACK_MOTION_VAR = "--wp-pack-motion";
+
+/**
+ * What a rule that runs an animation gets after its own declarations: `animation-name: var(--wp-pack-motion, <its names>)`, so the
+ * page root turns every pack animation off by one variable and a running one stops where it rests. Undefined for a rule that runs none.
+ */
+function motionGate(declarations: Declaration[]): Declaration | undefined {
+  const last = [...declarations].reverse().find((d) => d.name === "animation" || d.name === "animation-name");
+  if (!last) return undefined;
+  const names = commaParts(last.value).map((part) => part.find((t) => (t.t === "ident" || t.t === "string") && !ANIMATION_WORDS.has(t.v.toLowerCase()))?.v ?? "none");
+  return parseCss(`x{animation-name:var(${PACK_MOTION_VAR}, ${names.join(", ")})}`, [])[0]?.declarations?.[0];
+}
+
+/** The rules as mounted: a rule that animates ends in its `motionGate`, a pseudo-lane rule in `PSEUDO_BOX`, and with `base` every URL is the route's. */
 function mounted(rules: Rule[], base: string | undefined): Rule[] {
   return rules.map((r) => {
     if (r.rules) return { ...r, rules: mounted(r.rules, base) };
-    const declarations = (r.declarations ?? []).map((d) => (base ? { ...d, value: servedFrom(d.value, base) } : d));
+    const own = (r.declarations ?? []).map((d) => (base ? { ...d, value: servedFrom(d.value, base) } : d));
+    const gate = r.at === undefined ? motionGate(own) : undefined;
+    const declarations = gate ? [...own, gate] : own;
     return { ...r, declarations: r.at === undefined && pseudoLane(r.prelude) === "pseudo" ? [...declarations, ...PSEUDO_BOX] : declarations };
   });
 }
