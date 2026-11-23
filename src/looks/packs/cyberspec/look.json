@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "cyberspec",
   "name": "Cyberspec",
-  "description": "Blue-black panels cut at one corner, hot red lines and a solid label bar, cyan readouts, yellow warnings and micro-print in the margins, under a faint CRT raster. After Cyberspec by Agnel Nieves (MIT), github.com/agnelnieves/cyberspec.",
+  "description": "Blue-black panels with a cut corner and a spine, labels in the accent ink, cyan readouts that glow, yellow warnings and micro-print in the margins, under a faint CRT raster. After Cyberspec by Agnel Nieves (MIT), github.com/agnelnieves/cyberspec.",
   "tags": [
     "pack",
     "dark",
@@ -34,13 +34,13 @@
         "value": "#151523"
       },
       "fg": {
-        "value": "#5EF6FF"
+        "value": "#FFE4E1"
       },
       "fg-2": {
         "value": "{fg}"
       },
       "muted": {
-        "value": "#FF5B5B"
+        "value": "#D67A75"
       },
       "border": {
         "value": "#151523"
@@ -95,43 +95,137 @@
     "graph-style": "line",
     "series-stroke": 1.5,
     "spike-shape": "tick",
-    "fader-knob-shape": "square"
+    "fader-knob-shape": "square",
+    "meter-segments": 20,
+    "meter-gap": 2,
+    "grid-line": "{accent} / 24%",
+    "label-color": "{accent}",
+    "series-1": "{accent}",
+    "series-2": "{muted}",
+    "series-3": "{fg}",
+    "series-4": "{accent}",
+    "series-5": "{muted}",
+    "series-6": "{fg}",
+    "accent-ink": "{accent}",
+    "meter-ok": "{accent-ink}",
+    "icon-color": "{accent}"
   },
   "ext": {},
   "variants": [
     {
+      "id": "crimson",
+      "name": "Crimson",
+      "values": {
+        "accent": "#FF3B45",
+        "textColor": {
+          "from": "accent",
+          "l": 0.94,
+          "c": 0.03
+        },
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#2BF59A",
+        "warn": "#FFD23F",
+        "crit": "#FF3B45"
+      }
+    },
+    {
       "id": "voltage",
       "name": "Voltage",
       "values": {
-        "accent": "#F4CE23"
+        "accent": "#F4CE23",
+        "textColor": {
+          "from": "accent",
+          "l": 0.94,
+          "c": 0.03
+        },
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#2BF59A",
+        "warn": "#FFD23F",
+        "crit": "#FF3B45"
       }
     },
     {
       "id": "toxin",
       "name": "Toxin",
       "values": {
-        "accent": "#40EF7C"
+        "accent": "#40EF7C",
+        "textColor": {
+          "from": "accent",
+          "l": 0.94,
+          "c": 0.03
+        },
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#2BF59A",
+        "warn": "#FFD23F",
+        "crit": "#FF3B45"
       }
     },
     {
       "id": "ice",
       "name": "Ice",
       "values": {
-        "accent": "#41D9F8"
+        "accent": "#41D9F8",
+        "textColor": {
+          "from": "accent",
+          "l": 0.94,
+          "c": 0.03
+        },
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#2BF59A",
+        "warn": "#FFD23F",
+        "crit": "#FF3B45"
       }
     },
     {
       "id": "ultraviolet",
       "name": "Ultraviolet",
       "values": {
-        "accent": "#B96AFF"
+        "accent": "#B96AFF",
+        "textColor": {
+          "from": "accent",
+          "l": 0.94,
+          "c": 0.03
+        },
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#2BF59A",
+        "warn": "#FFD23F",
+        "crit": "#FF3B45"
       }
     },
     {
       "id": "monochrome",
       "name": "Monochrome",
       "values": {
-        "accent": "#C6C6C6"
+        "accent": "#C6C6C6",
+        "textColor": "#F2F2F2",
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#B5B5B5",
+        "warn": "#E3E3E3",
+        "crit": "#DDDDDD"
       }
     }
   ]

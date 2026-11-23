@@ -13,6 +13,8 @@
 // - Publishers: a key signs code widgets (`ext:<publisher>.<id>`) only for the publishers it holds. The owner's key holds
 //   `OWNER_PUBLISHERS`, Themely's `THEMELY_PUBLISHERS`; a user key holds the publisher names given when it is added in Settings,
 //   none of them reserved and none held by another key. So no key can sign for another's namespace.
+// - Theme packs (pack_trust.rs): a pack signed by a key here is "Signed by <name>, not reviewed". Its effect script runs only when
+//   the key's "Allow pack scripts" is on (`packScripts`, a user key's, set in Settings only); off when a key is added.
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -42,8 +44,8 @@ pub const OWNER_PUBLISHERS: [&str; 2] = ["infopanel", "infopanel-studio"];
 pub const THEMELY_PUBLISHERS: [&str; 1] = ["themely"];
 /// A user key holds 1 to this many publisher names.
 pub const PUBLISHERS_MAX: usize = 8;
-/// The revoke list for the owner's and Themely's keys, shipped with the app.
-const REVOKED: &str = include_str!("widget-keys-revoked.json");
+/// The revoke list for the owner's and Themely's keys, and for theme packs (`packs`: pack_trust.rs), shipped with the app.
+pub(crate) const REVOKED: &str = include_str!("widget-keys-revoked.json");
 
 /// The store's file in the data folder.
 pub const FILE: &str = "widget-keys.json";
@@ -71,6 +73,9 @@ pub struct KeyView {
     /// `trusted`, `not-set-up` (the owner's empty slot), `not-available` (Themely's), `removed` (a built-in key the user removed)
     /// or `revoked`.
     pub state: &'static str,
+    /// Whether a theme pack this key signed may run its effect script (a user key's switch; a built-in key's is off).
+    #[serde(rename = "packScripts")]
+    pub pack_scripts: bool,
 }
 
 /// The revoked keys in a revoke list's JSON (`{ "revoked": [{ "key", "reason"? }] }`); an entry that is not a key is skipped.
@@ -94,6 +99,8 @@ struct UserKey {
     /// Ms since the epoch.
     added: u64,
     publishers: Vec<String>,
+    /// Settings' "Allow pack scripts".
+    pack_scripts: bool,
 }
 
 /// What the file holds.
@@ -133,6 +140,7 @@ impl KeyStore {
                         key: text(k, "key")?,
                         added: k.get("added").and_then(Value::as_u64).unwrap_or(0),
                         publishers,
+                        pack_scripts: k.get("packScripts").and_then(Value::as_bool).unwrap_or(false),
                     })
                 })
                 .collect(),
@@ -142,8 +150,11 @@ impl KeyStore {
 
     /// Writes the file: beside it first, then moved over it, so a crash leaves the old file or the new one.
     fn write(&self, stored: &Stored) -> Result<(), String> {
-        let keys: Vec<Value> =
-            stored.keys.iter().map(|k| json!({ "name": k.name, "key": k.key, "added": k.added, "publishers": k.publishers })).collect();
+        let keys: Vec<Value> = stored
+            .keys
+            .iter()
+            .map(|k| json!({ "name": k.name, "key": k.key, "added": k.added, "publishers": k.publishers, "packScripts": k.pack_scripts }))
+            .collect();
         let text =
             serde_json::to_string_pretty(&json!({ "format": 1, "keys": keys, "removed": stored.removed })).map_err(|e| e.to_string())?;
         let io = |e: std::io::Error| format!("the key file could not be written: {e}");
@@ -204,6 +215,7 @@ impl KeyStore {
                 Some(_) if removed(OWNER) => "removed",
                 Some(_) => "trusted",
             },
+            pack_scripts: false,
         }];
         let themely = THEMELY_KEY.and_then(|k| Key::parse(k).ok()).filter(|_| THEMELY_ENABLED);
         out.push(KeyView {
@@ -218,6 +230,7 @@ impl KeyStore {
                 Some(_) if removed(THEMELY) => "removed",
                 Some(_) => "trusted",
             },
+            pack_scripts: false,
         });
         for k in &stored.keys {
             if let Ok(key) = Key::parse(&k.key) {
@@ -229,6 +242,7 @@ impl KeyStore {
                     fingerprint: Some(key.fingerprint()),
                     publishers: k.publishers.clone(),
                     state,
+                    pack_scripts: k.pack_scripts,
                 });
             }
         }
@@ -277,7 +291,7 @@ impl KeyStore {
             return Err(format!("{USER_KEYS_MAX} keys are trusted; remove one first"));
         }
         let added = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64);
-        stored.keys.push(UserKey { name: name.to_string(), key: parsed.line.clone(), added, publishers });
+        stored.keys.push(UserKey { name: name.to_string(), key: parsed.line.clone(), added, publishers, pack_scripts: false });
         self.write(&stored)?;
         Ok(self.list())
     }
@@ -299,6 +313,22 @@ impl KeyStore {
                 return Err("no such key".into());
             }
         }
+        self.write(&stored)?;
+        Ok(self.list())
+    }
+
+    /// Whether a theme pack signed by `key` may run its effect script: a user key's own switch, on, and the key not revoked.
+    pub fn allows_pack_scripts(&self, key: &Key) -> bool {
+        !self.is_revoked(key)
+            && self.read().keys.iter().any(|k| k.pack_scripts && Key::parse(&k.key).is_ok_and(|u| u.id == key.id && u.bytes == key.bytes))
+    }
+
+    /// Turns "Allow pack scripts" on or off for a user key, by its fingerprint (Settings only). `Err` when there is no such key.
+    pub fn set_pack_scripts(&self, id: &str, allowed: bool) -> Result<Vec<KeyView>, String> {
+        let _held = WRITE.lock().unwrap_or_else(|e| e.into_inner());
+        let mut stored = self.read();
+        let key = stored.keys.iter_mut().find(|k| Key::parse(&k.key).is_ok_and(|k| k.fingerprint() == id)).ok_or("no such key")?;
+        key.pack_scripts = allowed;
         self.write(&stored)?;
         Ok(self.list())
     }
@@ -372,7 +402,8 @@ mod tests {
                 name: "My key".into(),
                 fingerprint: Some(fp.clone()),
                 publishers: names(&["test"]),
-                state: "trusted"
+                state: "trusted",
+                pack_scripts: false,
             }
         );
         assert_eq!(
@@ -388,6 +419,26 @@ mod tests {
         assert_eq!(store.remove(&fp).unwrap().len(), 2);
         assert!(store.keyring().trusted.is_empty());
         assert!(store.remove(&fp).is_err(), "gone");
+    }
+
+    #[test]
+    fn a_user_keys_pack_scripts_switch_is_off_until_set_and_kept_in_the_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = KeyStore::with(dir.path(), Some(KEY_A), r#"{"revoked":[]}"#);
+        let key = Key::parse(&test_key()).unwrap();
+        store.add_user("Mine", &test_key(), &names(&["mine"])).unwrap();
+        assert!(!store.allows_pack_scripts(&key), "off when added");
+        assert!(store.list().iter().all(|k| !k.pack_scripts));
+        let list = store.set_pack_scripts(&key.fingerprint(), true).unwrap();
+        assert!(list[2].pack_scripts);
+        assert!(store.allows_pack_scripts(&key));
+        assert!(!store.allows_pack_scripts(&Key::parse(KEY_A).unwrap()), "a built-in key has no switch");
+        assert!(store.set_pack_scripts("owner", true).is_err());
+        assert!(store.set_pack_scripts("0000000000000000", true).is_err());
+        let revoked = json!({ "revoked": [{ "key": test_key() }] }).to_string();
+        assert!(!KeyStore::with(dir.path(), None, &revoked).allows_pack_scripts(&key), "never a revoked key");
+        store.set_pack_scripts(&key.fingerprint(), false).unwrap();
+        assert!(!store.allows_pack_scripts(&key));
     }
 
     #[test]

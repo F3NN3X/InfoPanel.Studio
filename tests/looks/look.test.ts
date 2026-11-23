@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CLASSIC, CLASSIC_LOOK, isLookId, LOOK_IDS, loadLook, SAMPLE_LOOK_IDS, SKIN_LOOK_IDS } from "@/looks";
-import { resolveT1, T1_NAMES, type Look } from "@/looks/look";
+import { deriveColour, resolveT1, resolveVariant, resolveVariants, T1_NAMES, type Look } from "@/looks/look";
+import { toOklch } from "@/looks/colour";
 import { MATERIALS } from "@/looks/materials";
 import { DEFAULT_ACCENT, DARK_TEXT } from "@/looks/palette";
 import { SAMPLE_MATERIALS } from "@/looks/sample-materials";
@@ -141,5 +142,53 @@ describe("the Studio Look (D1)", () => {
     const t1 = resolveT1(studio as Look);
     expect(CLASSIC.studio).toBeUndefined();
     expect([t1.bg, t1.fg, t1.accent]).toEqual([UI_TOKENS_P4["bg-app"], UI_TOKENS_P4["text-1"], UI_TOKENS_P4.accent]);
+  });
+});
+
+describe("variants that derive their colours from the accent", () => {
+  const look = {
+    modes: { supported: ["dark"] },
+    t0: { cyan: "#5EF6FF" },
+    t1: { dark: { ...Object.fromEntries(T1_NAMES.map((n) => [n, { value: "#808080" }])), accent: { value: "#ff3b45" } } },
+    variants: [
+      { id: "ice", name: "Ice", values: { accent: "#41D9F8", textColor: { from: "accent", l: 0.94, c: 0.03 }, mutedColor: { from: "accent", l: 0.62, cMul: 0.5 }, borderColor: { from: "accent", alpha: 0.5 }, glowColor: "{cyan}" } },
+      { id: "own", name: "Own", values: { textColor: { from: "accent", lMin: 0.69, cMax: 0.1 } } },
+    ],
+  } as unknown as Look;
+
+  it("works out a colour from the accent's hue: lightness set, chroma set or scaled or capped, an alpha", () => {
+    const lit = deriveColour("#41d9f8", { from: "accent", l: 0.94, c: 0.03 })!;
+    expect(lit).toMatch(/^#[\da-f]{6}$/);
+    const own = toOklch("#41d9f8")!;
+    const got = toOklch(lit)!;
+    expect(got.l).toBeCloseTo(0.94, 1);
+    expect(Math.abs(got.h - own.h)).toBeLessThan(15);
+    expect(deriveColour("#41d9f8", { from: "accent", alpha: 0.5 })).toMatch(/^#[\da-f]{6}80$/);
+    // lMin raises a dark accent and leaves a light one; cMax caps and cMul scales
+    expect(toOklch(deriveColour("#202020", { from: "accent", lMin: 0.7 })!)!.l).toBeCloseTo(0.7, 1);
+    expect(toOklch(deriveColour("#e0e0e0", { from: "accent", lMin: 0.1 })!)!.l).toBeCloseTo(toOklch("#e0e0e0")!.l, 1);
+    expect(toOklch(deriveColour("#ff0000", { from: "accent", cMax: 0.05 })!)!.c).toBeLessThan(0.06);
+    expect(toOklch(deriveColour("#ff0000", { from: "accent", cMul: 0.5 })!)!.c).toBeLessThan(0.14);
+    expect(deriveColour("red", { from: "accent", l: 0.5 })).toBeUndefined();
+  });
+
+  it("resolves a variant to colour strings: derived from its own accent, else the Look's, with aliases read", () => {
+    const [ice, own] = resolveVariants(look);
+    expect(Object.keys(ice.values)).toEqual(["accent", "textColor", "mutedColor", "borderColor", "glowColor"]);
+    expect(ice.values.accent).toBe("#41D9F8");
+    expect(ice.values.glowColor).toBe("#5EF6FF");
+    expect(toOklch(ice.values.textColor)!.l).toBeCloseTo(0.94, 1);
+    expect(ice.values.borderColor).toMatch(/^#[\da-f]{6}80$/);
+    // no accent of its own: the Look's
+    const base = toOklch("#ff3b45")!;
+    expect(Math.abs(toOklch(own.values.textColor)!.h - base.h)).toBeLessThan(15);
+    expect(toOklch(own.values.textColor)!.l).toBeGreaterThanOrEqual(0.69 - 0.01);
+  });
+
+  it("leaves a derive out when there is no accent to work from, and a plain variant as written", () => {
+    const none = { ...look, t1: { dark: {} } } as unknown as Look;
+    expect(resolveVariant(none, look.variants![1]).values).toEqual({});
+    const plain = { id: "p", name: "P", values: { accent: "#123456", radius: "8" } };
+    expect(resolveVariant(look, plain).values).toEqual({ accent: "#123456", radius: "8" });
   });
 });

@@ -66,6 +66,21 @@ describe("ThemeBrowse", () => {
     expect(screen.getByRole("button", { name: "Remove My Paper" })).toBeTruthy();
   });
 
+  it("an imported pack's card and detail say its trust, a withdrawn one with the reason", async () => {
+    loadLook.mockImplementation((id: string) => Promise.resolve(id === "classic" ? CLASSIC : undefined));
+    vi.stubGlobal("fetch", async () => new Response("", { status: 404 }));
+    mount({ packs: [{ id: "mine", name: "Mine", size: 10, warnings: [], trust: { state: "revoked", reason: "copies a logo" } }] });
+    await act(async () => {});
+    const card = screen.getByRole("button", { name: /^Mine, theme pack.*Withdrawn: copies a logo/ });
+    expect(card.querySelector("[data-pack-trust]")?.getAttribute("data-pack-trust")).toBe("revoked");
+    fireEvent.click(card);
+    await act(async () => {});
+    const note = document.querySelector("[data-pack-trust-note]");
+    expect(note?.textContent).toContain("Withdrawn: copies a logo");
+    expect(note?.textContent).toContain("not used");
+    vi.unstubAllGlobals();
+  });
+
   it("with packs off on the server shows no import, and says so", async () => {
     loadLook.mockImplementation((id: string) => Promise.resolve(id === "classic" ? CLASSIC : undefined));
     mount({ packsOff: true });

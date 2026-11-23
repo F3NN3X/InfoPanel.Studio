@@ -35,7 +35,7 @@ const OverrideContext = createContext<PerformanceOverride | undefined>(undefined
  * below; also points the shared ticker at the resolved Max FPS. Inside a General provider.
  */
 export function PerformanceProvider({ value, children }: { value: PerformanceOverride | undefined; children: ReactNode }) {
-  const { maxFps, reduceMotion } = usePerformance(value);
+  const { maxFps, reduceMotion, fx } = usePerformance(value);
   useEffect(() => {
     setTickerMaxFps(maxFps);
   }, [maxFps]);
@@ -46,6 +46,15 @@ export function PerformanceProvider({ value, children }: { value: PerformanceOve
     document.documentElement.toggleAttribute("data-lite-motion", lite);
     return () => document.documentElement.removeAttribute("data-lite-motion");
   }, [lite]);
+  // A theme pack's own CSS animations run only at Full Effects and out of lite mode: the pack sheet reads every animation name
+  // through this variable (`PACK_MOTION_VAR`, looks/pack-css.ts), which no pack may set.
+  const packStill = lite || fx !== "full";
+  useEffect(() => {
+    const root = document.documentElement;
+    if (packStill) root.style.setProperty("--wp-pack-motion", "none");
+    else root.style.removeProperty("--wp-pack-motion");
+    return () => void root.style.removeProperty("--wp-pack-motion");
+  }, [packStill]);
   // The Rendering options reach the CSS the same way (see the flags next to `data-lite-motion` in index.css).
   const { ringGlide, blurLimit, innerBlur, liveGlow } = useGeneral();
   useEffect(() => {

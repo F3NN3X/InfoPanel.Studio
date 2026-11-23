@@ -5,6 +5,7 @@ import { compactOf } from "@/modules/setting-readers";
 import { STANDARD_SETTINGS } from "@/modules/standard-settings";
 import { withHwinfoAliases } from "@/lib/hwinfo-aliases";
 import { usePack } from "@/looks/pack";
+import { motionKnobsOf } from "@/looks/motion";
 import { slotsWithDecor } from "@/looks/pack-frame";
 import { islandSettings, type IslandSourceDef } from "@/lib/island/sources";
 import { effectiveSettings, placementReads, type DashboardModule, type ModuleSetting, type ModuleSettings, type SensorMap } from "@/modules/types";
@@ -13,6 +14,7 @@ import { SKINS, skinOfLook } from "./core/theme";
 import type { ShellProps, WidgetMeta } from "./core/types";
 import { toFlat, toNames } from "./shared/data-adapter";
 import { preloadOf } from "./lazy-widget";
+import { ScriptSignalsCtx } from "@/looks/pack-script/signal-ctx";
 
 export interface TemplateOptions<P extends object> {
   meta: WidgetMeta;
@@ -139,8 +141,16 @@ export function templateModule<P extends object>({ meta, Component, settings, to
     const look = useZoneLook(all, saved, surfaceDefault);
     // A pack Look's T3 values and slots (none for Classic, the skins and the sample Looks).
     const pack = usePack(typeof look.lookId === "string" ? look.lookId : undefined);
-    const slots = useMemo(() => (saved?.decoration === false && pack?.slots ? { icons: pack.slots.icons } : slotsWithDecor(pack)), [pack, saved?.decoration]);
-    return <Component data={data} names={names} {...shellProps(look)} {...toProps(look, saved)} t3={pack?.look.t3} slots={slots} packId={pack?.id} look={look} />;
+    // A pack's motion goes with its decoration (Decoration off drops both), with the knobs the zone's level sets (L117).
+    const { motionIntensity, motionSpeed, motionEffects } = saved ?? {};
+    const slots = useMemo(() => {
+      if (saved?.decoration === false && pack?.slots) return { icons: pack.slots.icons };
+      const decor = slotsWithDecor(pack);
+      return pack?.motion && saved?.decoration !== false ? { ...decor, motion: { spec: pack.motion, knobs: motionKnobsOf({ motionIntensity, motionSpeed, motionEffects }) } } : decor;
+    }, [pack, saved?.decoration, motionIntensity, motionSpeed, motionEffects]);
+    const card = <Component data={data} names={names} {...shellProps(look)} {...toProps(look, saved)} t3={pack?.look.t3} slots={slots} packId={pack?.id} look={look} />;
+    // a card wearing a scripted pack writes the rounded values its script may read (pack-script/signals.ts)
+    return pack?.script ? <ScriptSignalsCtx.Provider value>{card}</ScriptSignalsCtx.Provider> : card;
   }
   return mod;
 }

@@ -17,7 +17,7 @@ import type { TemplatePresetGroup } from "@/lib/screen-templates/template-preset
 import { templateThemeRows } from "@/lib/screen-templates/template-rows";
 import { DEFAULT_RADIUS, hexToHsl, hslToHex, resolveTheme } from "@/lib/theme";
 import { applyThemeToLevel, themeState, themeUses } from "@/lib/theme-apply";
-import { allLocked, SECTION_KEYS, themedOf } from "@/lib/theme-model";
+import { allLocked, isLocked, SECTION_KEYS, themedOf } from "@/lib/theme-model";
 import { lookIdOf } from "@/lib/theme-model";
 import type { ModuleSettings } from "@/modules/types";
 import { ColorPill } from "./inspector/color-pill";
@@ -28,7 +28,7 @@ import { allSections, isVisible, rowSection, splitMore, visibleSections, type In
 import { loadLook } from "@/looks";
 import type { Look } from "@/looks/look";
 import { PACK_IDS } from "@/looks/pack";
-import { smoothOffScreens } from "./screens-model";
+import { smoothOffScreens, withScreenPerformance } from "./screens-model";
 import { InlineRow, SelectRow } from "./setting-rows";
 import { dropKeys } from "./settings-model";
 import { SettingField, type FieldsApi } from "./settings-panel";
@@ -64,6 +64,7 @@ import { fineTuneChip, fineTuneSummary, resetFineTune } from "./theme-fine-tune-
 import { lookUses, withoutLookId } from "@/looks/user-pack-config";
 import { GALLERY_IDS, lookName as lookNameOf, lookPreset, lookPresetId } from "./look-gallery-model";
 import { LookKnobs } from "./look-knobs";
+import { MotionKnobs } from "./motion-knobs";
 import { useStablePreset } from "./look-thumb";
 import { knobCustom, knobValue, lockedKnobs, modeOf } from "./look-knobs-model";
 import { ThemeActions, ThemeApplyScreens, ThemeLookCard, ThemeSave } from "./theme-look-card";
@@ -670,6 +671,19 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
                 )
               }
             />
+            {pack?.motion && (
+              <MotionKnobs
+                motion={pack.motion}
+                values={values}
+                from={fromName}
+                fx={profile.performance?.fx}
+                screen={profile.name}
+                locked={at.level === "page" && isLocked(appearance, "motion") ? `Locked by ${profile.name}` : undefined}
+                onSet={(patch) => setConfig((c) => withLookAt(c, at, patch), key(`knob:${Object.keys(patch).join()}`))}
+                onClear={(keys) => setConfig((c) => withKnobReset(c, at, keys), key(`knob-reset:${keys.join()}`))}
+                onLevel={(fx) => setConfig((c) => withScreenPerformance(c, profile.id, { fx }), key("motion-level"))}
+              />
+            )}
             <ThemeParts
               summary={isPack ? `Theme pack · ${parts.length} parts` : "Plain theme"}
               parts={isPack ? parts : parts.filter((p) => p.id === "font")}

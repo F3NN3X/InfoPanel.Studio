@@ -16,12 +16,14 @@ import { type PackJson, packDecor } from "./pack-json";
 import { FILE_COUNT_MAX, type PackFile, type PackIssue, type PackSource, parseColour, validatePack } from "./pack-validate";
 import { cssColour } from "./colour";
 import { lookLayers, sampleCards } from "./sample-cards";
+import { type PackTrust, parseTrust } from "./pack-trust";
 
-/** What `GET /api/packs` says of a pack: its id, name and size, nothing else. */
+/** What `GET /api/packs` says of a pack: its id, name, size and trust (the server's word on its signatures, pack-trust.ts). */
 export interface UserPackInfo {
   id: string;
   name: string;
   size: number;
+  trust?: PackTrust;
 }
 
 /** The route's own id pattern (`is_pack_id`, packs.rs). */
@@ -35,7 +37,11 @@ export async function listUserPacks(): Promise<UserPackInfo[]> {
     const res = await fetch(ROUTE, { cache: "no-store" });
     const list: unknown = res.ok ? await res.json() : [];
     if (!Array.isArray(list)) return [];
-    return list.flatMap((p): UserPackInfo[] => (p && typeof p.id === "string" && USER_PACK_ID.test(p.id) ? [{ id: p.id, name: typeof p.name === "string" ? p.name : p.id, size: Number(p.size) || 0 }] : []));
+    return list.flatMap((p): UserPackInfo[] => {
+      if (!p || typeof p.id !== "string" || !USER_PACK_ID.test(p.id)) return [];
+      const trust = parseTrust(p.trust);
+      return [{ id: p.id, name: typeof p.name === "string" ? p.name : p.id, size: Number(p.size) || 0, ...(trust ? { trust } : null) }];
+    });
   } catch {
     return [];
   }
@@ -94,11 +100,12 @@ const parsed = (bytes: Uint8Array | undefined): unknown => {
   }
 };
 
-/** The files of a pack as the route holds them: pack.json, look.json, icons.json, the licence and each asset pack.json lists (the route has no folder listing). */
+/** The files of a pack as the route holds them: pack.json, look.json, icons.json, the licence and each asset pack.json lists (the route has no folder listing), but its script, which the server serves only by the pack's trust (pack-script/trust.ts). */
 export async function readUserPack(id: string): Promise<PackSource> {
   const [{ bytes: pack, styled }, look, icons] = await Promise.all([fileOf(id, "pack.json"), bytesOf(id, "look.json"), bytesOf(id, "icons.json")]);
   const css = styled ? await cssFile(id) : undefined;
-  const listed = ((parsed(pack) as { assets?: { file?: unknown }[] } | undefined)?.assets ?? []).flatMap((a) => (typeof a?.file === "string" ? [`assets/${a.file}`] : [])).slice(0, FILE_COUNT_MAX);
+  const meta = parsed(pack) as { assets?: { file?: unknown }[]; script?: { file?: unknown } } | undefined;
+  const listed = (meta?.assets ?? []).flatMap((a) => (typeof a?.file === "string" && a.file !== meta?.script?.file ? [`assets/${a.file}`] : [])).slice(0, FILE_COUNT_MAX);
   const names = [...LICENCES, ...listed];
   const rest = await Promise.all(names.map((f) => bytesOf(id, f)));
   const found: [string, Uint8Array | undefined][] = [["pack.json", pack], ["look.json", look], ["icons.json", icons], ...names.map((n, k): [string, Uint8Array | undefined] => [n, rest[k]])];
@@ -106,8 +113,8 @@ export async function readUserPack(id: string): Promise<PackSource> {
   return { pack: parsed(pack), look: parsed(look), icons: parsed(icons), css: cssText(css?.bytes), files };
 }
 
-/** What is wrong with a pack's files, as a user pack: the validator in `user` mode, always. */
-export const userPackIssues = (src: PackSource): PackIssue[] => validatePack(src, { source: "user" });
+/** What is wrong with a pack's files, as a user pack: the validator in `user` mode, always; `script` says where its script is (`route`: read back from the server, which keeps it). */
+export const userPackIssues = (src: PackSource, script: "files" | "route" = "files"): PackIssue[] => validatePack(src, { source: "user", script });
 
 /** The font-family rules the loader writes from the families the validator passed (`pack-` names, plain characters): the only CSS a user pack has. */
 export function fontCss(fonts: Look["fonts"]): string {
@@ -178,6 +185,10 @@ export function userPackOf(src: PackSource, candidate = false): Pack {
     connectors: meta.connectors,
     ...(frame ? { frame } : null),
     ...(ornaments.length ? { ornaments } : null),
+    // the render check measures the pack's own paint at rest: the app's motion is checked as numbers, and a run mid-measure would make the check flake
+    ...(meta.motion && !candidate ? { motion: meta.motion } : null),
+    // a candidate is the render check's: its script never runs there
+    ...(meta.script && !candidate ? { script: meta.script } : null),
   };
 }
 
@@ -214,7 +225,7 @@ export async function registerUserPacks(only?: readonly string[]): Promise<strin
   const ids = (only ?? (await listUserPacks()).map((p) => p.id)).filter((id) => USER_PACK_ID.test(id) && !registered.has(id) && !LOOK_IDS.includes(id));
   const done = await Promise.all(ids.map(async (id) => {
     const src = await readUserPack(id);
-    if (userPackIssues(src).some((i) => i.severity === "error")) return undefined;
+    if (userPackIssues(src, "route").some((i) => i.severity === "error")) return undefined;
     const pack = userPackOf(src);
     if (!register(id, pack)) return undefined;
     registered.add(id);

@@ -1,6 +1,7 @@
 // The Look file (investigation 9.6, D5): a Look is T0 to T3 values with modes, tags, fonts and corners, written as
 // `src/looks/<id>/look.json` against `look.schema.json`. The built-in Studio Look also carries the `studio` block its
 // `ui-*` chrome tokens are generated from (D1). Types and the alias resolver only: nothing here reads the DOM.
+import { cssColour, toOklch } from "./colour";
 
 /** The T1 semantic names (investigation 9.2): every Look defines or aliases each one, per mode it supports. */
 export const T1_NAMES = [
@@ -44,6 +45,33 @@ export interface StudioEntry {
  * variant of a Look should set the same keys, so one replaces the other.
  */
 export interface LookVariant {
+  id: string;
+  name: string;
+  values: Record<string, string | VariantDerive>;
+}
+
+/** The keys a variant may set besides the card's: the colours the Look's roles reach (text, secondary text, status, line and glow). */
+export const VARIANT_COLOURS = ["accent", "textColor", "mutedColor", "ok", "warn", "crit", "borderColor", "glowColor", "numGlowColor"] as const;
+/** The colour keys whose value may carry an alpha (lines and glows are laid over the card, text is not). */
+export const VARIANT_ALPHA: readonly string[] = ["borderColor", "glowColor", "numGlowColor"];
+
+/**
+ * A colour a variant derives from its accent in OKLCH, so one rule serves every accent (the kit's ink, mute and line colours):
+ * the accent with its lightness set (`l`) or raised to at least `lMin`, its chroma set (`c`), scaled (`cMul`) or capped (`cMax`),
+ * and an `alpha`. App code resolves it to a real colour before anything reads it, so contrast stays checkable.
+ */
+export interface VariantDerive {
+  from: "accent";
+  l?: number;
+  lMin?: number;
+  c?: number;
+  cMul?: number;
+  cMax?: number;
+  alpha?: number;
+}
+
+/** A variant as the knob stores it: every value a colour or number string. */
+export interface ResolvedVariant {
   id: string;
   name: string;
   values: Record<string, string>;
@@ -96,3 +124,41 @@ export function resolveT1(look: Pick<Look, "t0" | "t1">, mode: LookMode = "dark"
 /** A Studio Look token's CSS value: a `{t1}` alias resolved, a literal as written. */
 export const studioValue = (entry: StudioEntry, t1: Record<T1Name, string>): string =>
   entry.value.replace(/^\{([\w-]+)\}$/, (whole, name: string) => (name in t1 ? t1[name as T1Name] : whole));
+
+/** The colour a derive gives from `base` (`#rrggbb`): `#rrggbb`, or `#rrggbbaa` with an alpha; undefined when `base` is not a literal. */
+export function deriveColour(base: string, d: VariantDerive): string | undefined {
+  const own = toOklch(base);
+  if (!own) return undefined;
+  const l = Math.max(d.l ?? own.l, d.lMin ?? 0);
+  const c = Math.min(d.c ?? own.c * (d.cMul ?? 1), d.cMax ?? Number.POSITIVE_INFINITY);
+  const alpha = d.alpha !== undefined && d.alpha < 1 ? ` / ${d.alpha}` : "";
+  return cssColour(`oklch(${l.toFixed(4)} ${c.toFixed(4)} ${own.h.toFixed(2)}${alpha})`);
+}
+
+/**
+ * A variant's values as the Variant knob writes them: an alias read through the Look, an `oklch()` as its `#rrggbb`, and a derived
+ * colour worked out from the variant's own accent (else the Look's, in `mode`). A derive that cannot be worked out is left out.
+ */
+export function resolveVariant(look: Pick<Look, "t0" | "t1" | "modes">, variant: LookVariant, mode: LookMode = look.modes.supported[0]): ResolvedVariant {
+  let t1: Partial<Record<string, string>> = {};
+  try {
+    t1 = resolveT1(look, mode);
+  } catch {
+    t1 = {};
+  }
+  const plain = (value: string, depth = 0): string => {
+    const name = ALIAS.exec(value)?.[1];
+    const next = name === undefined ? undefined : (t1[name] ?? look.t0?.[name]);
+    return next === undefined || depth > 4 ? cssColour(value) : plain(next, depth + 1);
+  };
+  const values: Record<string, string> = {};
+  const accent = typeof variant.values.accent === "string" ? plain(variant.values.accent) : t1.accent;
+  for (const [key, value] of Object.entries(variant.values)) {
+    const out = typeof value === "string" ? plain(value) : accent === undefined ? undefined : deriveColour(accent, value);
+    if (out !== undefined) values[key] = out;
+  }
+  return { id: variant.id, name: variant.name, values };
+}
+
+/** A Look's variants as the knob writes them, resolved in its first mode. */
+export const resolveVariants = (look: Pick<Look, "t0" | "t1" | "modes" | "variants">): ResolvedVariant[] => (look.variants ?? []).map((v) => resolveVariant(look, v));

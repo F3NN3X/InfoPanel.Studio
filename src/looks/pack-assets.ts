@@ -7,6 +7,7 @@ import type { ScreenTemplate } from "@/lib/screen-templates/kit";
 import type { PackEffect, SizeClass } from "./effects";
 import type { Look } from "./look";
 import type { BurnIn, Pack, PackConnectors, PackSlots, PackStatusBar, StageLayer } from "./pack";
+import type { PackMotion } from "./motion";
 import type { PackFrame, PackOrnament } from "./pack-json";
 
 /** A pack's served folder (a root path of this origin, ending in `/`) and its files by source name. */
@@ -66,6 +67,10 @@ export interface PackMeta {
   /** The frame and ornaments the app draws on each card (spec 03, L108), as a user pack's pack.json gives them. */
   frame?: PackFrame;
   ornaments?: PackOrnament[];
+  /** The text and card effects the app draws (L117). */
+  motion?: PackMotion;
+  /** The effect script, a `.js` file of the pack's assets: it ships in the app bundle (pack-script/builtin.ts), never as a served file. */
+  script?: { file: string };
 }
 
 /** A built-in pack from its files: `look.json` and `pack.json` as data, the bundler's urls for its assets, and the parts that are code. */
@@ -86,5 +91,7 @@ export function builtPack(meta: PackMeta, look: Look, files: PackFiles, parts: {
     templates: parts.templates,
     ...(meta.frame ? { frame: meta.frame } : null),
     ...(meta.ornaments?.length ? { ornaments: meta.ornaments } : null),
+    ...(meta.motion ? { motion: meta.motion } : null),
+    ...(meta.script ? { script: meta.script } : null),
   };
 }

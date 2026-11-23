@@ -1,7 +1,8 @@
 import type { ModuleSettings } from "@/modules/types";
 import { useFastSensors } from "@/hooks/useSensors";
 import { AUDIO } from "../shared/audio-device";
-import { Metric, Stat, Widget, roomy, useFitRows, shell, fmt, Num, Spark, LedLadder, slideX, STATE, hue, useHistory, useMeterBallistics, clamp, type BallisticsPreset, type ShellProps } from "../kit";
+import { Metric, Stat, Widget, roomy, useFitRows, shell, fmt, Num, Spark, LedLadder, slideX, STATE, meterColour, hue, useHistory, useMeterBallistics, clamp, type BallisticsPreset, type ShellProps } from "../kit";
+import { t3Tokens } from "../core/t3-tokens";
 import { audioIdsIn, pickedIds, readDevice, type AudioDevice, type FlowFilter } from "../shared/audio-data";
 import { meta, AUDIO_WARN_DB, AUDIO_HOT_DB } from "./meta";
 
@@ -61,6 +62,8 @@ export interface AudioMeterProps extends ShellProps {
   ballistics?: BallisticsPreset;
   /** Colour of the level, default the accent. */
   levelColor?: string;
+  /** The level colour is the widget's own (`levelOwnOf`): it does not give way to the Look's meter colour. */
+  levelOwn?: boolean;
   /** Colour of the hot zone (clip / above 85 %), default red. */
   hotColor?: string;
   /**
@@ -84,7 +87,7 @@ export default function AudioMeter(p: AudioMeterProps) {
   const rH = useHistory(one.r, 72, 0.6);
   const step = useMeterBallistics(p.ballistics ?? "peak");
   const st = p.meterStyle ?? "led";
-  const lc = p.levelColor || "var(--w-accent)";
+  const lc = meterColour(t3Tokens(p.t3), p.levelColor, p.levelOwn);
   const hc = p.hotColor || STATE.crit;
   const warnAt = pctOf(p.warnDb ?? AUDIO_WARN_DB),
     hotAt = pctOf(p.hotDb ?? AUDIO_HOT_DB);

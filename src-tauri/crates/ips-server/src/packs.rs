@@ -14,6 +14,13 @@
 // POST /api/packs/<id>/sign     `{ "css" (base64), "hash" }`: stores the CSS and signs the pack when `hash` is the pack's with that CSS
 // GET/HEAD /api/packs/<id>/<file>   one file, typed by its extension, `nosniff`, a CSP that allows nothing (`pack.css` adds `X-Pack-Signature: valid`, and `pack.json` `X-Pack-Css: 1` when it has one)
 // DELETE /api/packs/<id>        remove a pack
+// .../trust, .../script-consent, .../fx.js and /api/pack-scripts: a pack's effect script (pack_scripts.rs)
+//
+// Pack signatures (pack_trust.rs): a pack may carry its publisher's signature (`pack.minisig`) and Themely's countersignature
+// (`themely.json`). Its trust is worked out from the files as they are now on every read; the list says it (`trust`), and a pack
+// that is Modified or Revoked is refused: still listed with the reason, its files 403. An import of one is refused, and an
+// import that replaces a signed pack keeps its key and a rising version (`pack_trust::update_refusal`). A script (`assets/*.js`,
+// `SCRIPT_MAX_BYTES`, one per pack) is stored like an asset and served only by the script route.
 //
 // Writes need `X-Dashboard-Pack: 1` and come from this computer unless ALLOW_REMOTE_UPLOAD=1 (the asset store's rule).
 // The rollback switch: `USER_PACKS=off` turns the folder read and every route off (the list is empty, a file is 404, a write
@@ -30,7 +37,12 @@ use serde_json::{json, Value};
 
 use crate::asset_types::SVG_CSP;
 use crate::http::{self, Req};
+use crate::pack_revocation::Revocations;
+use crate::pack_scripts::{self, SCRIPT_MAX_BYTES};
 use crate::pack_sign::{self, KEY_FILE};
+use crate::pack_trust::{self, Entry, Installed, Publisher, Ring, Trust, Withdrawn};
+use crate::widget_keys::KeyStore;
+use crate::widget_sign::{Key, Signer};
 use crate::{js, store, App};
 
 /// A pack folder is at most this many bytes, a file at most `FILE_MAX_BYTES`, a pack at most `FILE_COUNT_MAX` files
@@ -54,9 +66,19 @@ const ASIDE_PREFIX: &str = ".import-old-";
 /// The length of the uuid that ends a set-aside name.
 const UUID_LEN: usize = 36;
 /// The files at the top of a pack folder, by name.
-const ROOT_FILES: [&str; 7] = ["pack.json", "look.json", "icons.json", "OFL.txt", "thumb.png", "thumb.jpg", "thumb.webp"];
-/// The extensions an asset may have (`assets/<name>.<ext>`) and their types.
-const ASSET_EXTS: [&str; 6] = ["woff2", "png", "jpg", "webp", "gif", "svg"];
+const ROOT_FILES: [&str; 9] = [
+    "pack.json",
+    "look.json",
+    "icons.json",
+    "OFL.txt",
+    "thumb.png",
+    "thumb.jpg",
+    "thumb.webp",
+    pack_trust::PUBLISHER_SIG,
+    pack_trust::COUNTERSIG,
+];
+/// The extensions an asset may have (`assets/<name>.<ext>`) and their types. A `.js` is a pack's script: stored, never served here.
+const ASSET_EXTS: [&str; 7] = ["woff2", "png", "jpg", "webp", "gif", "svg", "js"];
 const NO_PACK_CSS: &str = "an import carries no pack.css: a pack's CSS comes with its signature";
 /// A pack's CSS and its signature: in a pack folder, and outside the file set an import or a plain read may name.
 const CSS_FILE: &str = "pack.css";
@@ -107,25 +129,36 @@ fn mime_of(file: &str) -> Option<&'static str> {
         "webp" => "image/webp",
         "gif" => "image/gif",
         "svg" => "image/svg+xml",
-        "txt" => "text/plain; charset=utf-8",
+        "txt" | "minisig" => "text/plain; charset=utf-8",
         _ => return None,
     })
 }
 
-/// The user-pack store: its folder, whether the folder is read at all, and who may write.
+/// The user-pack store: its folder, whether the folder is read at all, who may write, and what signatures are checked against.
 pub struct Packs {
     dir: PathBuf,
     enabled: bool,
     allow_remote: bool,
     /// Held across an import's cap checks and write, and a remove, so two at once cannot both pass the caps.
     write: Mutex<()>,
+    /// The publisher keys the user added (Settings › Widget publishers) and the revoke list that ships with the app.
+    keys: KeyStore,
+    /// Themely's pinned pack key (pack_trust.rs).
+    themely: Option<Key>,
+    /// Themely's revoke list, fetched (pack_revocation.rs).
+    pub revocations: std::sync::Arc<Revocations>,
+    /// `PACK_SCRIPTS=off` turns every pack script off.
+    scripts_env: bool,
 }
 
 impl Packs {
-    /// The store in `dir`. `USER_PACKS=off` (or `0`) is the rollback switch.
-    pub fn new(dir: PathBuf, allow_remote: bool) -> Self {
-        let enabled = !matches!(std::env::var("USER_PACKS").ok().as_deref(), Some("off" | "0"));
-        let packs = Self { dir, enabled, allow_remote, write: Mutex::new(()) };
+    /// The store in `dir` (DATA_DIR/packs), its signatures checked against `keys`. `USER_PACKS=off` (or `0`) is the rollback switch.
+    pub fn new(dir: PathBuf, allow_remote: bool, keys: KeyStore) -> Self {
+        let off = |name: &str| matches!(std::env::var(name).ok().as_deref(), Some("off" | "0"));
+        let themely = pack_trust::themely_key();
+        let revocations = std::sync::Arc::new(Revocations::new(dir.parent().unwrap_or(&dir), themely.clone()));
+        let (enabled, scripts_env) = (!off("USER_PACKS"), !off("PACK_SCRIPTS"));
+        let packs = Self { dir, enabled, allow_remote, write: Mutex::new(()), keys, themely, revocations, scripts_env };
         packs.sweep();
         packs
     }
@@ -174,8 +207,18 @@ impl Packs {
     /// Stores a checked import: the caps are checked and the pack written under the write lock. The pack is written beside
     /// its place under a name no id has, then moved in, so a half-written pack is never a pack; a replaced pack is set aside
     /// (`.import-old-<id>-<uuid>`, which the sweep puts back after a crash) until the new one is in place.
+    #[cfg(test)]
     fn store(&self, id: &str, files: &Files) -> std::io::Result<Result<(), Refused>> {
+        self.store_checked(id, files, || None)
+    }
+
+    /// `store`, with `check` run under the lock first: it refuses the write when it says why (the update rule, which reads the
+    /// pack stored now).
+    fn store_checked(&self, id: &str, files: &Files, check: impl FnOnce() -> Option<Refused>) -> std::io::Result<Result<(), Refused>> {
         let _held = self.write.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(refused) = check() {
+            return Ok(Err(refused));
+        }
         let others: Vec<u64> = listed(self).into_iter().filter(|(other, _)| other != id).map(|(_, bytes)| bytes).collect();
         if others.len() + 1 > PACKS_MAX {
             return Ok(Err(refuse(413, format!("{PACKS_MAX} packs are stored; remove one first"))));
@@ -219,7 +262,83 @@ impl Packs {
 
     #[cfg(test)]
     fn with(dir: PathBuf, enabled: bool) -> Self {
-        Self { dir, enabled, allow_remote: false, write: Mutex::new(()) }
+        let keys = KeyStore::with(&dir, None, "{}");
+        let revocations = std::sync::Arc::new(Revocations::with(&dir, None, None));
+        Self { dir, enabled, allow_remote: false, write: Mutex::new(()), keys, themely: None, revocations, scripts_env: true }
+    }
+
+    /// The packs folder (the scripts' files sit in it, under names no pack id has).
+    pub(crate) fn dir(&self) -> &Path {
+        &self.dir
+    }
+
+    /// The write lock, for a write beside the packs (a consent, the switch).
+    pub(crate) fn lock(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.write.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// Whether `PACK_SCRIPTS` leaves scripts on.
+    pub(crate) fn scripts_env(&self) -> bool {
+        self.scripts_env
+    }
+
+    /// What a pack's signatures are checked against now: Themely's key, the keys the user trusts (the owner's included), each
+    /// with its "Allow pack scripts", and the revoke lists (the one that ships with the app and Themely's, fetched).
+    fn ring(&self) -> Ring {
+        let keyring = self.keys.keyring();
+        let fetched = self.revocations.list();
+        let publishers = keyring
+            .trusted
+            .iter()
+            .filter_map(|t| {
+                let name = match &t.signer {
+                    Signer::Owner => "InfoPanel Studio".to_string(),
+                    Signer::User(name) => name.clone(),
+                    Signer::Themely => return None,
+                };
+                Some(Publisher { name, key: t.key.clone(), scripts: self.keys.allows_pack_scripts(&t.key) })
+            })
+            .collect();
+        let shipped = serde_json::from_str::<Value>(crate::widget_keys::REVOKED).unwrap_or(Value::Null);
+        Ring {
+            themely: self.themely.clone(),
+            publishers,
+            revoked_keys: keyring.revoked.into_iter().map(|k| (k, "on the app's revoke list".to_string())).chain(fetched.keys).collect(),
+            revoked_packs: Withdrawn::list(shipped.get("packs")).into_iter().chain(fetched.packs).collect(),
+        }
+    }
+
+    /// The trust of pack `id` as stored now, every file hashed again, with its files; `None` for no such pack.
+    pub(crate) fn trust_now(&self, id: &str) -> Option<(Trust, Files)> {
+        if !self.enabled || !is_pack_id(id) {
+            return None;
+        }
+        let root = self.pack_dir(id)?;
+        self.measured(id, &root)?;
+        let files = stored_files(&root)?;
+        Some((pack_trust::evaluate(id, &files, &[], &self.ring()), files))
+    }
+
+    /// The trust of a stored pack for the list and the file route: an unsigned pack is Unverified without being read, unless a
+    /// revoke list names manifests.
+    fn trust_of(&self, id: &str, root: &Path) -> Trust {
+        let signed = [pack_trust::PUBLISHER_SIG, pack_trust::COUNTERSIG].iter().any(|f| root.join(f).is_file());
+        let ring = self.ring();
+        let files = (signed || ring.names_manifests()).then(|| stored_files(root)).flatten().unwrap_or_default();
+        pack_trust::evaluate(id, &files, &[], &ring)
+    }
+
+    /// Why a stored pack is refused (Modified or Revoked), or `None`.
+    fn refusal(&self, id: &str, root: &Path) -> Option<String> {
+        let trust = self.trust_of(id, root);
+        trust.state.refused().then(|| {
+            let why = trust.reason.unwrap_or_default();
+            if trust.state == pack_trust::State::Revoked {
+                format!("withdrawn: {why}")
+            } else {
+                format!("changed since it was signed: {why}")
+            }
+        })
     }
 
     /// The file of `file` in pack `id`, or `None` for anything not a pack file inside its pack folder: the names are
@@ -339,7 +458,7 @@ impl Packs {
     }
 
     /// The reason a write is refused, or `None`.
-    fn write_refusal(&self, req: &Req) -> Option<&'static str> {
+    pub(crate) fn write_refusal(&self, req: &Req) -> Option<&'static str> {
         if !self.enabled {
             return Some("user packs are off");
         }
@@ -540,7 +659,7 @@ fn is_writer_tmp(name: &str) -> bool {
 }
 
 /// Every file of a pack folder but its signature, as the hash reads them: `None` for a folder `measure_files` refuses.
-fn stored_files(root: &Path) -> Option<Files> {
+pub(crate) fn stored_files(root: &Path) -> Option<Files> {
     measure_files(root, true)?;
     let mut files = Vec::new();
     for (dir, prefix) in [(root.to_path_buf(), ""), (root.join("assets"), "assets/")] {
@@ -593,8 +712,10 @@ fn handle_list(app: &App) -> Response<Body> {
     let items: Vec<Value> = listed(packs)
         .into_iter()
         .map(|(id, size)| {
-            let name = packs.pack_dir(&id).map_or_else(|| id.clone(), |root| name_of(&root, &id));
-            json!({ "id": id, "name": name, "size": size })
+            let root = packs.pack_dir(&id);
+            let name = root.as_deref().map_or_else(|| id.clone(), |root| name_of(root, &id));
+            let trust = root.as_deref().map(|root| packs.trust_of(&id, root).view());
+            json!({ "id": id, "name": name, "size": size, "trust": trust })
         })
         .collect();
     let mut reply = http::json(200, &Value::Array(items));
@@ -605,7 +726,7 @@ fn handle_list(app: &App) -> Response<Body> {
 }
 
 /// The decoded files of an import: path and bytes.
-type Files = Vec<(String, Vec<u8>)>;
+pub(crate) type Files = Vec<(String, Vec<u8>)>;
 
 /// A refused import: its status and message.
 struct Refused(u16, String);
@@ -643,6 +764,12 @@ fn checked_import(body: &Value) -> Result<(String, Files), Refused> {
             .map_err(|_| refuse(400, format!("{path} is not base64")))?;
         if bytes.len() as u64 > FILE_MAX_BYTES {
             return Err(refuse(413, format!("{path} is over {FILE_MAX_BYTES} bytes")));
+        }
+        if path.ends_with(".js") && bytes.len() as u64 > SCRIPT_MAX_BYTES {
+            return Err(refuse(413, format!("{path} is over {SCRIPT_MAX_BYTES} bytes, a script's cap")));
+        }
+        if path.ends_with(".js") && files.iter().any(|(p, _)| p.ends_with(".js")) {
+            return Err(refuse(400, "a pack has one script"));
         }
         total += bytes.len() as u64;
         files.push((path.to_string(), bytes));
@@ -684,12 +811,27 @@ async fn handle_import(app: &App, mut req: Req) -> std::io::Result<Response<Body
         Ok(done) => done,
         Err(Refused(status, message)) => return Ok(http::text(status, message)),
     };
-    if let Err(Refused(status, message)) = packs.store(&id, &files)? {
+    // the CSS the signing route stores next, by its size and hash: the publisher's signature covers it
+    let css = body.get("css").and_then(|c| {
+        let sha256 = c.get("sha256")?.as_str().filter(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()))?;
+        Some(Entry { path: CSS_FILE.into(), size: c.get("size")?.as_u64()?, sha256: sha256.to_ascii_lowercase() })
+    });
+    let next = pack_trust::evaluate(&id, &files, css.as_slice(), &packs.ring());
+    let check = || {
+        let stored = packs.trust_now(&id).map(|(t, _)| t);
+        let why = pack_trust::update_refusal(&next, stored.as_ref(), pack_scripts::installed(packs, &id).as_ref())?;
+        Some(refuse(409, why))
+    };
+    if let Err(Refused(status, message)) = packs.store_checked(&id, &files, check)? {
         return Ok(http::text(status, message));
+    }
+    if let Some(done) = Installed::after(&next) {
+        let _held = packs.lock();
+        pack_scripts::record(packs, &id, &done)?;
     }
     let size: u64 = files.iter().map(|(_, b)| b.len() as u64).sum();
     let name = packs.pack_dir(&id).map_or_else(|| id.clone(), |root| name_of(&root, &id));
-    Ok(http::json(200, &json!({ "id": id, "name": name, "size": size })))
+    Ok(http::json(200, &json!({ "id": id, "name": name, "size": size, "trust": next.view() })))
 }
 
 async fn handle_sign(app: &App, mut req: Req, id: &str) -> std::io::Result<Response<Body>> {
@@ -730,11 +872,14 @@ fn handle_delete(app: &App, req: &Req, id: &str) -> std::io::Result<Response<Bod
 /// One file of a pack: refused whole (413) when the pack is over the caps, typed by its extension.
 fn serve_file(app: &App, req: &Req, id: &str, file: &str) -> Response<Body> {
     let packs = &app.packs;
-    let Some(path) = packs.path_of(id, file) else {
+    let Some(path) = packs.path_of(id, file).filter(|_| !file.ends_with(".js")) else {
         return http::empty(404);
     };
-    if packs.pack_dir(id).and_then(|root| packs.measured(id, &root)).is_none() {
+    let Some(root) = packs.pack_dir(id).filter(|root| packs.measured(id, root).is_some()) else {
         return http::empty(413);
+    };
+    if let Some(why) = packs.refusal(id, &root) {
+        return http::text(403, why);
     }
     let (Some(mime), Ok(bytes)) = (mime_of(file), std::fs::read(&path)) else {
         return http::empty(404);
@@ -766,6 +911,9 @@ fn serve_css(app: &App, req: &Req, id: &str) -> Response<Body> {
     let Some(bytes) = app.packs.signed_css(id) else {
         return http::empty(404);
     };
+    if let Some(why) = app.packs.pack_dir(id).and_then(|root| app.packs.refusal(id, &root)) {
+        return http::text(403, why);
+    }
     let mut reply = file_response(req, "text/css; charset=utf-8", "default-src 'none'; sandbox", bytes);
     reply.headers_mut().insert("X-Pack-Signature", HeaderValue::from_static("valid"));
     reply
@@ -788,6 +936,12 @@ pub async fn handle(app: &App, req: Req) -> std::io::Result<Response<Body>> {
             let id = id.to_string();
             handle_sign(app, req, &id).await
         }
+        (&Method::GET, Some("trust")) => Ok(pack_scripts::handle_trust(app, id)),
+        (&Method::PUT, Some("script-consent")) => {
+            let id = id.to_string();
+            pack_scripts::handle_consent(app, req, &id).await
+        }
+        (&Method::GET | &Method::HEAD, Some("fx.js")) => Ok(pack_scripts::handle_script(app, &req, id)),
         (&Method::GET | &Method::HEAD, Some(CSS_FILE)) => Ok(serve_css(app, &req, id)),
         (&Method::GET | &Method::HEAD, Some(file)) => Ok(serve_file(app, &req, id, file)),
         (&Method::GET | &Method::HEAD | &Method::DELETE, _) => Ok(http::empty(404)),
@@ -1005,6 +1159,9 @@ mod tests {
             "assets/a.jpg",
             "assets/a.webp",
             "assets/a.gif",
+            "assets/fx.js",
+            "pack.minisig",
+            "themely.json",
         ] {
             assert!(is_pack_file(ok), "{ok}");
         }

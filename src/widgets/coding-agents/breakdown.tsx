@@ -1,5 +1,6 @@
-import { AGENT_COLORS, modelLabel, shortTokens, type AgentUsage } from "@/lib/agents";
-import { Bar } from "../kit";
+import { modelLabel, shortTokens, type AgentUsage } from "@/lib/agents";
+import { Bar, seriesColour, useSkin, type SkinContext } from "../kit";
+import { agentColour } from "./colours";
 import { HEADER_H } from "./history";
 
 export interface Slice {
@@ -27,8 +28,8 @@ export interface TokenTypes {
 
 /** Most model segments before the rest merge into "Other". */
 const MAX_MODELS = 4;
-/** Segment colours, fixed so a model keeps its colour; "Other" is the faint one. */
-const PALETTE = [AGENT_COLORS.claude, AGENT_COLORS.codex, "#6366f1", "#eab308"];
+/** Segment colours, fixed so a model keeps its colour (the Look's series first); "Other" is the faint one. */
+const paletteOf = (sk: Pick<SkinContext, "series">) => [agentColour(sk, "claude"), agentColour(sk, "codex"), seriesColour(sk, 3, "#6366f1"), seriesColour(sk, 4, "#eab308")];
 const OTHER = "var(--w-faint)";
 /** The model bar with its legend, and the space above it. */
 const MODEL_H = 24;
@@ -70,12 +71,13 @@ export function tokensToday(usages: readonly (AgentUsage | undefined)[], todayKe
   return sum.input + sum.output + sum.cache > 0 ? sum : null;
 }
 
-const colorOf = (s: Slice, i: number) => (s.name === "Other" ? OTHER : PALETTE[i % PALETTE.length]);
+const colorOf = (palette: readonly string[], s: Slice, i: number) => (s.name === "Other" ? OTHER : palette[i % palette.length]);
 const pct = (share: number) => `${Math.round(share * 100)}%`;
 
 /** This week's tokens by model (one stacked bar and its legend) and by project, and today's by type when `tokens` is given. */
 export function Breakdown({ data, rows, tokens }: { data: BreakdownData; rows: number; tokens?: TokenTypes | null }) {
   const projects = data.projects.slice(0, rows);
+  const palette = paletteOf(useSkin());
   return (
     <div className="flex shrink-0 flex-col" style={{ height: breakdownH(rows, !!tokens, data.models.length > 0) }}>
       <div className="flex items-baseline justify-between gap-2 text-micro text-[color:var(--w-muted)]" style={{ height: HEADER_H }}>
@@ -86,14 +88,14 @@ export function Breakdown({ data, rows, tokens }: { data: BreakdownData; rows: n
         <div className="flex min-w-0 flex-col justify-between" style={{ height: MODEL_H, marginTop: MODEL_GAP }}>
           <div className="flex h-1.5 w-full gap-px overflow-hidden rounded-full bg-[color:var(--w-track)]" role="img" aria-label="Tokens by model">
             {data.models.map((m, i) => (
-              <span key={m.name} title={`${m.name} ${pct(m.share)}`} style={{ width: `${m.share * 100}%`, background: colorOf(m, i) }} />
+              <span key={m.name} title={`${m.name} ${pct(m.share)}`} style={{ width: `${m.share * 100}%`, background: colorOf(palette, m, i) }} />
             ))}
           </div>
           <div className="truncate text-micro tabular-nums leading-3.5 text-[color:var(--w-muted)]">
             {data.models.map((m, i) => (
               <span key={m.name}>
                 {i > 0 && <span className="text-[color:var(--w-faint)]"> · </span>}
-                <span style={{ color: colorOf(m, i) }}>●</span> {m.name} {pct(m.share)}
+                <span style={{ color: colorOf(palette, m, i) }}>●</span> {m.name} {pct(m.share)}
               </span>
             ))}
           </div>

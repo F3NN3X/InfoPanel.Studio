@@ -1,6 +1,6 @@
 // The colour reader a pack's contrast is judged on (L-8): an alpha is laid over the colour it is drawn on, whatever syntax that colour has.
 import { describe, expect, it } from "vitest";
-import { cssColour, flatOver, parseColour } from "@/looks/colour";
+import { cssColour, flatOver, parseColour, toOklch } from "@/looks/colour";
 
 describe("flatOver", () => {
   it("lays an alpha over a short hex, an rgb() or an hsl() colour underneath, as it does over #rrggbb", () => {
@@ -75,5 +75,24 @@ describe("cssColour", () => {
     expect(cssColour("#abc")).toBe("#abc");
     expect(cssColour("rgb(1, 2, 3)")).toBe("rgb(1, 2, 3)");
     expect(cssColour("oklch(0.7 0.1)")).toBe("oklch(0.7 0.1)");
+  });
+});
+
+describe("toOklch", () => {
+  it("reads a hex as the OKLCH its oklch() form is read back from", () => {
+    const grey = toOklch("#808080")!;
+    expect(grey.l).toBeCloseTo(0.6, 1);
+    expect(grey.c).toBeLessThan(0.001);
+    const red = toOklch("#ff0000")!;
+    expect([red.l, red.c, red.h].map((n) => Math.round(n * 100) / 100)).toEqual([0.63, 0.26, 29.23]);
+    for (const hex of ["#41d9f8", "#b96aff", "#f4ce23", "#0e0e17"]) {
+      const c = toOklch(hex)!;
+      expect(cssColour(`oklch(${c.l} ${c.c} ${c.h})`), hex).toBe(hex);
+    }
+  });
+
+  it("reads only #rrggbb", () => {
+    expect(toOklch("#fff")).toBeUndefined();
+    expect(toOklch("red")).toBeUndefined();
   });
 });

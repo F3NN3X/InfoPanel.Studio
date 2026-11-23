@@ -3,7 +3,8 @@ import { SILENCE_DB, formatDb } from "@/lib/audio/decibels";
 import { meterKey, useWavelinkMeter, useWavelinkState, type WlChannel, type WlDevice, type WlGain, type WlMix, type WlState } from "@/lib/wavelink";
 import type { ModuleSettings } from "@/modules/types";
 import { useElementSize } from "@/hooks/use-element-size";
-import { useFitRows, ChannelRow, Widget, shell, Icon, Chip, Empty, STATE, type BallisticsPreset, type ShellProps, type Tier } from "../kit";
+import { useFitRows, ChannelRow, Widget, shell, Icon, Chip, Empty, STATE, meterColour, type BallisticsPreset, type ShellProps, type Tier } from "../kit";
+import { t3Tokens } from "../core/t3-tokens";
 import { MeterPair, dbPos, fmtDb, levelBar, useWlLevels, type MeterVariant } from "./meters";
 import type { MixerLook } from "../core/mixer-look";
 import { MixerViewBody, PERCENT, fitMixer, toneOf, type FaderUnit, type StripChannel } from "../core/mixer-views";
@@ -30,6 +31,8 @@ export interface WaveLinkProps extends ShellProps {
   ballistics?: BallisticsPreset;
   /** Colour of the meters' safe zone; default the accent. */
   levelColor?: string;
+  /** The level colour is the widget's own (`levelOwnOf`): it does not give way to the Look's meter colour. */
+  levelOwn?: boolean;
   /** Colour of the live dots; default green. */
   liveColor?: string;
   /** Colour of the muted markers and the not-running dot; default red. */
@@ -401,7 +404,7 @@ export default function WaveLink(p: WaveLinkProps) {
   const devices = !inputs ? [] : picked ? state.devices.filter((d) => picked.includes(meterKey.device(d.id))) : state.devices;
   const pickedMixes = picked?.some((k) => k.startsWith("mix:"));
   const mixes = !outputs ? [] : pickedMixes ? state.mixes.filter((m) => picked!.includes(meterKey.mix(m.id))) : state.mixes;
-  const o: Opts = { readout: p.showReadout !== false, fader: p.showFader !== false, mixes: p.showMixes !== false, variant: p.meterVariant ?? "solid", preset: p.ballistics ?? "peak", color: p.levelColor || undefined };
+  const o: Opts = { readout: p.showReadout !== false, fader: p.showFader !== false, mixes: p.showMixes !== false, variant: p.meterVariant ?? "solid", preset: p.ballistics ?? "peak", color: meterColour(t3Tokens(p.t3), p.levelColor, p.levelOwn) };
   const first = channels[0];
   const vars = { "--wl-live": p.liveColor || STATE.ok, "--wl-mute": p.muteColor || STATE.crit } as CSSProperties;
   return (

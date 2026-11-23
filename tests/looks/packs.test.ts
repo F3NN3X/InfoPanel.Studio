@@ -4,7 +4,8 @@ import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { loadLook } from "@/looks";
-import { resolveT1 } from "@/looks/look";
+import { resolveT1, resolveVariants } from "@/looks/look";
+import { toOklch } from "@/looks/colour";
 import { PACK_IDS } from "@/looks/pack";
 import { effectIssues, GLOW_MAX, planEffects } from "@/looks/effects";
 import { materialVars, resolveMaterial } from "@/looks/materials";
@@ -295,8 +296,9 @@ describe("what the five Looks teach the contract (P11b)", () => {
 describe("what Cyberspec teaches the contract", () => {
   it("a built-in pack carries the frame and ornaments of its pack.json to the card, as a user pack does", async () => {
     const pack = (await loadPack("cyberspec"))!;
-    expect(pack.frame).toEqual({ corners: "cut", size: 10, which: ["br"], stroke: 1 });
-    expect(pack.ornaments?.map((o) => o.kind)).toEqual(["reticle", "ticks"]);
+    // the kit's panel: the bottom right cut 10 px, a 5 px spine down the leading edge, both in the panel line (55 % of the accent)
+    expect(pack.frame).toEqual({ corners: "cut", size: 10, which: ["br"], stroke: 1, spine: { edge: "left", width: 5 }, alpha: 0.55 });
+    expect(pack.ornaments?.map((o) => o.kind)).toEqual(["reticle", "micro-print", "ticks"]);
     for (const o of pack.ornaments ?? []) expect(o.minSizeClass, o.kind).toBeDefined();
     expect(slotsWithDecor(pack)?.decor).toEqual({ frame: pack.frame, ornaments: pack.ornaments });
     // a pack without either keeps its slots as they were
@@ -305,31 +307,48 @@ describe("what Cyberspec teaches the contract", () => {
     expect(slotsWithDecor(overdrive)).toBe(overdrive.slots);
   });
 
-  it("its variants reach the Variant knob through the sample Look, each an accent that reads on the card and under the label bar", async () => {
+  it("its variants are the kit's six themes, each recolouring every text role, reaching the Variant knob through the sample Look", async () => {
     const pack = (await loadPack("cyberspec"))!;
     const sample = (await loadLook("cyberspec"))!;
     expect(sample.variants).toEqual(pack.look.variants);
-    expect(sample.variants?.map((v) => v.id)).toEqual(["voltage", "toxin", "ice", "ultraviolet", "monochrome"]);
+    expect(sample.variants?.map((v) => v.id)).toEqual(["crimson", "voltage", "toxin", "ice", "ultraviolet", "monochrome"]);
     const t1 = resolveT1(pack.look, "dark");
-    for (const v of sample.variants ?? []) {
-      expect(Object.keys(v.values), v.id).toEqual(["accent"]);
-      expect(contrastOf(v.values.accent, t1.surface), v.id).toBeGreaterThanOrEqual(4.5);
+    const resolved = resolveVariants(pack.look);
+    for (const v of resolved) {
+      // every variant sets the same keys, so one replaces the other
+      expect(Object.keys(v.values), v.id).toEqual(["accent", "textColor", "mutedColor", "ok", "warn", "crit"]);
+      for (const [key, colour] of Object.entries(v.values)) expect(contrastOf(colour, t1.surface), `${v.id} ${key}`).toBeGreaterThanOrEqual(4.5);
       // the label bar is the accent with the page colour on it
       expect(contrastOf(t1.bg, v.values.accent), v.id).toBeGreaterThanOrEqual(4.5);
     }
+    // Crimson is the Look's own colours, so picking it after another theme puts them back
+    const crimson = resolved[0].values;
+    expect([crimson.accent, crimson.textColor, crimson.mutedColor].map((c) => c.toUpperCase())).toEqual([t1.accent, t1.fg, t1.muted].map((c) => c.toUpperCase()));
+    // Toxin's secondary text is green and its text green-white, not Crimson's red and cyan (the v1 bug); its labels are its accent
+    expect(pack.look.t3?.["label-color"]).toBe("{accent}");
+    const toxin = resolved.find((v) => v.id === "toxin")!.values;
+    expect(toxin.mutedColor).not.toBe(crimson.mutedColor);
+    expect(toOklch(toxin.mutedColor)!.h).toBeGreaterThan(130);
+    expect(toOklch(toxin.textColor)!.l).toBeGreaterThan(0.9);
   });
 
-  it("its CRT treatment draws at Full only: Calm, reduced motion and lite mode draw none, and the glitch flashes at most once in 3 s", async () => {
-    const effects = (await loadPack("cyberspec"))!.stage!.effects!;
+  it("its CRT treatment is the kit's static raster at Full only, with no glitch bars across the page (v3): the kit's glitch is the motion block's, on text", async () => {
+    const pack = (await loadPack("cyberspec"))!;
+    const effects = pack.stage!.effects!;
     expect(effectIssues(effects)).toEqual([]);
     const env = { level: "full" as const, lite: false, reduceMotion: false, limitBlur: false, solidPage: false, sizeClass: "md" as const };
     const full = planEffects(effects, env);
-    expect(full.map((e) => e.kind)).toEqual(["scanlines", "vignette", "glitch"]);
-    expect(full.filter((e) => e.animate).map((e) => e.kind)).toEqual(["glitch"]);
-    expect(full.find((e) => e.kind === "glitch")!.rate).toBeLessThanOrEqual(1 / 3);
+    expect(full.map((e) => e.kind)).toEqual(["scanlines", "vignette"]);
+    expect(full.filter((e) => e.animate)).toEqual([]);
+    expect(pack.motion?.glitch).toBeDefined();
     expect(planEffects(effects, { ...env, level: "calm" })).toEqual([]);
     expect(planEffects(effects, { ...env, reduceMotion: true })).toEqual([]);
     expect(planEffects(effects, { ...env, lite: true })).toEqual([]);
-    expect(planEffects(effects, { ...env, sizeClass: "xs" }).map((e) => e.kind)).toEqual(["scanlines", "vignette"]);
+  });
+
+  it("drives every widget's series, its meters and its icons from the variant's accent and inks (v3)", async () => {
+    const sk = t3Tokens((await loadPack("cyberspec"))!.look.t3);
+    expect(sk.series?.every((c) => /^var\(--w-(accent|muted|fg)\)$/.test(c))).toBe(true);
+    expect([sk.meterOk, sk.iconColor]).toEqual(["var(--w-accent)", "var(--w-accent)"]);
   });
 });

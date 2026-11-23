@@ -278,4 +278,6 @@ export interface WidgetKey {
   /** The publishers (`ext:<publisher>.<id>`) whose code widgets the key may sign. */
   publishers: string[];
   state: "trusted" | "not-set-up" | "not-available" | "removed" | "revoked";
+  /** Whether a theme pack this key signed may run its effect script (a user key's switch; off when it is added). */
+  packScripts?: boolean;
 }

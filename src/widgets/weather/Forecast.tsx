@@ -24,6 +24,8 @@ export interface ForecastProps extends ShellProps {
   iconSet?: WeatherIconProps["set"];
   iconStyle?: WeatherIconProps["style"];
   iconAnimated?: boolean;
+  /** The widget stores no icon style of its own (`WeatherGlyphProps.themed`). */
+  iconThemed?: boolean;
 }
 
 export default function Forecast(p: ForecastProps) {
@@ -39,7 +41,7 @@ export default function Forecast(p: ForecastProps) {
     hi = Math.max(...fc.map((f) => f.hi)),
     span = hi - lo || 1;
   const first = fc[0];
-  const glyph = (cond: string, className: string) => <WeatherGlyph {...weatherKind("", cond)} set={p.iconSet} style={p.iconStyle} animated={p.iconAnimated} className={className} />;
+  const glyph = (cond: string, className: string) => <WeatherGlyph {...weatherKind("", cond)} set={p.iconSet} style={p.iconStyle} animated={p.iconAnimated} themed={p.iconThemed} className={className} />;
   // The hi/lo range bar; called as a function so nothing is defined during render.
   const range = (f: Day, horizontal?: boolean) => <RangeBar from={((f.lo - lo) / span) * 100} to={((f.hi - lo) / span) * 100} horizontal={horizontal} />;
   return (

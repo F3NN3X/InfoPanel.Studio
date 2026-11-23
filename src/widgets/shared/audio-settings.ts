@@ -273,6 +273,16 @@ export const WAVELINK_SETTINGS: ModuleSetting[] = [
   ...mixerViewSettings(waveLinkMeta, { orientationKey: "meterOrientation", db: true, ownMeter: true }),
 ];
 
+/**
+ * Whether the level colour is the widget's own rather than the theme's OK, which the level row follows (`role: "ok"`): only the theme's
+ * gives way to the Look's meter colour (`meterColour`). `saved` is the zone's settings as the theme resolves them, where the OK is (the
+ * widget's own settings hold no OK); a colour of the widget's that is the OK itself reads as the theme's.
+ */
+export const levelOwnOf = (s: ModuleSettings, saved?: ModuleSettings): boolean => {
+  const v = String(s.levelColor ?? "").trim().toLowerCase();
+  return v !== "" && v !== String(saved?.ok ?? s.ok ?? "").trim().toLowerCase();
+};
+
 export const wavelinkToProps = (s: ModuleSettings): Partial<WaveLinkProps> => ({
   source: String(s.source ?? ""),
   flow: flowOfSettings(s),

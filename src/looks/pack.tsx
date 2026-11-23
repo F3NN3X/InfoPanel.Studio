@@ -8,7 +8,9 @@ import type { PackEffect, SizeClass } from "./effects";
 import type { PackChrome } from "./chrome";
 import type { Look } from "./look";
 import type { PackDecorSpec } from "./pack-frame";
-import type { PackFrame, PackOrnament } from "./pack-json";
+import type { PackMotion } from "./motion";
+import type { MotionSlot } from "./motion-render";
+import type { PackFrame, PackJson, PackOrnament } from "./pack-json";
 
 /** One page layer under the grid: a fill (a colour or gradient) and/or an image from the pack's own folder (`base` + `image`). */
 export interface StageLayer {
@@ -51,6 +53,8 @@ export interface PackSlots {
   /** The frame and ornaments the app draws on the card (a user pack's `frame` and `ornaments`; Decoration off drops them). */
   decor?: PackDecorSpec;
   icons?: Record<string, IconGlyph>;
+  /** The pack's motion block and the knobs the zone's level sets (`MotionText`, `MotionLayer`; Decoration off drops it). */
+  motion?: MotionSlot;
 }
 
 /** The component that draws a stage (`PackStageLayers`, pack-stage.tsx); the loader puts it on the pack, so the entry holds no lazy boundary for it. */
@@ -68,6 +72,8 @@ export interface StageViewProps {
   links?: readonly (readonly [string, string])[];
   /** The page's zones: with connectors and no `links`, the hub rule makes the pairs (`hubLinks`). */
   zones?: readonly ZoneSize[];
+  /** The screen's accent (a variant's, the user's): what the effects and a layer's glow are drawn in; unset, the pack's own. */
+  accent?: string;
 }
 /** What the hub rule reads of a zone: its id and how many cells it spans. */
 export interface ZoneSize {
@@ -98,6 +104,10 @@ export interface Pack {
   frame?: PackFrame;
   /** The ornaments the app draws on each card (pack.json `ornaments`). */
   ornaments?: PackOrnament[];
+  /** The text and card effects the app draws for the pack (pack.json `motion`, L117). */
+  motion?: PackMotion;
+  /** The pack's effect script (pack.json `script`): run only in the sandbox and only when the server says it runs (pack-script/). */
+  script?: PackJson["script"];
   /** Page templates the New screen flow offers (opt-in; applying a pack never moves a widget). Each wears this pack's Look (`look.style.lookId`). */
   templates?: ScreenTemplate[];
   /** Set by the loader. */
@@ -155,7 +165,7 @@ export function usePack(lookId: string | undefined): Pack | undefined {
 export const packBackground = (pack: Pack | undefined): boolean => !!pack?.stage?.layers.length;
 
 /** The pack's page layers (`className` places them, as `PageBackground`'s; `overlayClassName` the overlay); nothing without a pack stage. */
-export function PackStage({ pack, className, overlayClassName, page, links, zones }: { pack: Pack | undefined; className?: string; overlayClassName?: string; page?: { width: number; height: number }; links?: StageViewProps["links"]; zones?: StageViewProps["zones"] }) {
+export function PackStage({ pack, className, overlayClassName, page, links, zones, accent }: { pack: Pack | undefined; className?: string; overlayClassName?: string; page?: { width: number; height: number }; links?: StageViewProps["links"]; zones?: StageViewProps["zones"]; accent?: string }) {
   const View = pack?.Stage;
-  return pack?.stage && View ? <View stage={pack.stage} packId={pack.id} base={pack.base} className={className} overlayClassName={overlayClassName} burnIn={pack.burnIn} page={page} connectors={pack.connectors} links={links} zones={zones} /> : null;
+  return pack?.stage && View ? <View stage={pack.stage} packId={pack.id} base={pack.base} className={className} overlayClassName={overlayClassName} burnIn={pack.burnIn} page={page} connectors={pack.connectors} links={links} zones={zones} accent={accent} /> : null;
 }

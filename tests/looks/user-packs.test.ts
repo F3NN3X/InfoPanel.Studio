@@ -62,6 +62,27 @@ describe("reading a user pack from the route", () => {
     expect(await listUserPacks()).toEqual([]);
   });
 
+  it("keeps the server's word on a pack's signatures, and drops a state it does not know", async () => {
+    const list = [
+      { id: "mine", name: "Mine", size: 1, trust: { state: "signed", publisher: "Acme" } },
+      { id: "gone", name: "Gone", size: 1, trust: { state: "revoked", reason: "copies a logo" } },
+      { id: "odd", name: "Odd", size: 1, trust: { state: "safe" } },
+    ];
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify(list)));
+    expect(await listUserPacks()).toEqual([
+      { id: "mine", name: "Mine", size: 1, trust: { state: "signed", publisher: "Acme" } },
+      { id: "gone", name: "Gone", size: 1, trust: { state: "revoked", reason: "copies a logo" } },
+      { id: "odd", name: "Odd", size: 1 },
+    ]);
+  });
+
+  it("an import keeps the pack's signatures and its script, which the server stores", () => {
+    const picked: PickedFile[] = ["pack.json", "pack.minisig", "themely.json", "assets/fx.js", "assets/fx.ts"].map((path) => ({ path, bytes: new Uint8Array([1]) }));
+    const { src, skipped } = sourceOf(picked);
+    expect(src.files.map((f) => f.path)).toEqual(["pack.json", "pack.minisig", "themely.json", "assets/fx.js"]);
+    expect(skipped).toEqual(["assets/fx.ts"]);
+  });
+
   it("an oklch token reaches the Look layer as the clamped hex the validator checked", async () => {
     serve({ mine: folder("mine", (_f, _p, look) => (look.t1[look.modes.supported[0]].accent.value = "oklch(0.45 0.15 30)")) });
     expect(await registerUserPacks(["mine"])).toEqual(["mine"]);

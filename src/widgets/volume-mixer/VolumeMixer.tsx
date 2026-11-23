@@ -1,6 +1,7 @@
 import type { ModuleSettings } from "@/modules/types";
 import { alignOf } from "@/modules/setting-readers";
-import { bodyGap, fillRows, roomy, clamp, ChannelBar, ChannelRow, useFitRows, Widget, shell, get, num, fmt, Num, Ring, Icon, Dot, Chip, STATE, type ShellProps } from "../kit";
+import { bodyGap, fillRows, roomy, clamp, ChannelBar, ChannelRow, useFitRows, Widget, shell, get, num, fmt, Num, Ring, Icon, Dot, Chip, STATE, meterColour, type ShellProps } from "../kit";
+import { t3Tokens } from "../core/t3-tokens";
 import { inFlow, levelContainerOf, volumeFlowOf, volumePicked, type FlowFilter } from "../shared/audio-data";
 import type { MixerLook } from "../core/mixer-look";
 import { useDeviceLevel } from "../core/level-source";
@@ -21,6 +22,8 @@ export interface VolumeMixerProps extends ShellProps {
   showMute?: boolean;
   /** Fader fill colour, default the accent. */
   levelColor?: string;
+  /** The level colour is the widget's own (`levelOwnOf`): it does not give way to the Look's meter colour. */
+  levelOwn?: boolean;
   /** The view (rows, strips or LCD) and its options; unset = the rows view. */
   mixerLook?: MixerLook;
 }
@@ -37,7 +40,7 @@ export default function VolumeMixer(p: VolumeMixerProps) {
   const def = ch.find((c) => c.id === "default") ?? ch[0];
   const flow = p.flow ?? "all";
   const list = ch.filter((c) => (p.devices ? volumePicked(c.id, p.devices) : c.id !== "default") && inFlow(c.id === "default" ? "output" : volumeFlowOf(d, c.id), flow));
-  const fill = p.levelColor || "var(--w-accent)";
+  const fill = meterColour(t3Tokens(p.t3), p.levelColor, p.levelOwn);
   const wl = get(d, "plugins.wavelink-plugin.wavelink.status") === "up";
   // The audiocn views: read-only (the plugin has no write path), a knobless fader beside the device's level meter. A device the
   // level-meter plugin doesn't report draws its meter at silence.

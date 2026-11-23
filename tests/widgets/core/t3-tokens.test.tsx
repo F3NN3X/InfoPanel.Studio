@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import classic from "@/looks/classic/look.json";
 import paper from "@/looks/packs/paper/look.json";
 import tape from "@/looks/packs/tape-86/look.json";
+import cyberspec from "@/looks/packs/cyberspec/look.json";
 import { CardFrame } from "@/widgets/core/card-frame";
 import { Bar, HoldMark, Metric, Ring, RingStack, Spark } from "@/widgets/core/primitives";
 import { SkinCtx } from "@/widgets/core/theme";
@@ -149,6 +150,15 @@ describe("a Look's T3 through Widget", () => {
     expect(draw({ "label-glow": "accent" }, () => null)).toContain("text-shadow:0 0 6px");
     expect(draw({}, () => null)).not.toContain("text-shadow");
   });
+  it("label-color recolours the labels (the card's faint text) by a text role, so a variant's colours reach them, or by a colour", () => {
+    expect(t3Tokens({ "label-color": "{muted}" })).toEqual({ labelColor: "var(--w-muted)" });
+    expect(t3Tokens({ "label-color": "{accent}" })).toEqual({ labelColor: "var(--w-accent)" });
+    expect(t3Tokens({ "label-color": "#FF5B5B" })).toEqual({ labelColor: "#FF5B5B" });
+    // Classic's {faint}, another alias, a gradient, a var and anything that could end the declaration draw the tone's own
+    for (const v of ["{faint}", "{border}", GRAD, "var(--w-accent)", "red;background:url(x)"]) expect(t3Tokens({ "label-color": v }), v).toEqual({});
+    expect(draw({ "label-color": "{muted}" }, () => null)).toContain("--w-faint:var(--w-muted)");
+    expect(draw({}, () => null)).toContain("--w-faint:#8a8a94");
+  });
 });
 
 describe("gradient digits", () => {
@@ -252,5 +262,28 @@ describe("L58: a pack that sets its own ok has the ok tone draw it", () => {
     expect(pack.match(/var\(--w-ok\)/g)).toHaveLength(1);
     expect(bar({})).not.toContain("--w-ok");
     expect(bar({})).toContain("background:var(--w-accent)");
+  });
+});
+
+describe("a Look's series, meter and icon colours (v3): its roles' variables, so a variant recolours the marks", () => {
+  const T3 = { "series-1": "{accent}", "series-2": "{muted}", "series-4": "#5EF6FF" };
+  it("maps each series to the card's role variable or its literal, the unset ones to the widget's own", () => {
+    expect(t3Tokens(T3).series).toEqual(["var(--w-accent)", "var(--w-muted)", "", "#5EF6FF", "", ""]);
+    expect(t3Tokens({ "series-1": "{ok}", "series-2": "{warn}" }).series?.slice(0, 2)).toEqual(["var(--w-ok, #3CC97F)", "var(--w-warn, #EDB232)"]);
+  });
+  it("a meter or icon colour that is Classic's maps to nothing; one written through another T3 colour reads through it", () => {
+    expect(t3Tokens({ "meter-ok": "{accent}", "icon-color": "{fg}" })).toEqual({});
+    expect(t3Tokens({ "accent-ink": "{accent}", "meter-ok": "{accent-ink}" })).toEqual({ meterOk: "var(--w-accent)" });
+    expect(t3Tokens({ "meter-ok": "#FFD23F", "icon-color": "{accent}" })).toEqual({ meterOk: "#FFD23F", iconColor: "var(--w-accent)" });
+  });
+  it("refuses what is not a colour: a variable written out, a gradient, an escape, an alias the Look does not set, a loop", () => {
+    for (const v of ["var(--w-accent)", GRAD, "red;background:url(x)", "{border}", "{series-2}"]) expect(t3Tokens({ "series-1": v }).series, v).toBeUndefined();
+    expect(t3Tokens({ "series-1": "{series-2}", "series-2": "{series-1}" }).series).toBeUndefined();
+  });
+  it("Cyberspec sets every series, the meters and the icons from its accent and inks", () => {
+    const sk = t3Tokens(cyberspec.t3);
+    expect(sk.series).toEqual(["var(--w-accent)", "var(--w-muted)", "var(--w-fg)", "var(--w-accent)", "var(--w-muted)", "var(--w-fg)"]);
+    expect(sk.meterOk).toBe("var(--w-accent)");
+    expect(sk.iconColor).toBe("var(--w-accent)");
   });
 });

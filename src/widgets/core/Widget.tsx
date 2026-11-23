@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, 
 import { chromeVars, numGlowAttr, scopedCss, zoomFor, type DesignSizeSpec } from "@/components/widget-style";
 import type { PackSlots } from "@/looks/pack";
 import { PackDecor, frameClip } from "@/looks/pack-frame";
+import { MotionCtx, MotionLayer, motionVars, useMotionCard, useMotionPlan } from "@/looks/motion-render";
 import { materialVars, resolveMaterial } from "@/looks/materials";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
@@ -13,6 +14,7 @@ import { SkinCtx, resolveSurface, textVars } from "./theme";
 import { bodyFlags, forcedTier, resolveAccent, shellPad, skinContext, untitled, withUserLook } from "./look";
 import { ensureSkinFonts } from "./fonts";
 import { CardFrame, CardLayer } from "./card-frame";
+import { seriesVars } from "./t3-tokens";
 import { usePageLight } from "./page-mode";
 import { CompactView, StudioView, SkinHeader } from "./views";
 import type { Compact, ShellProps, Studio, Tier } from "./types";
@@ -127,6 +129,9 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
     const shellStatus = surf.tone === "light" || onLightPage;
     return shellStatus || packOk ? { ...ctx, ...(shellStatus ? { shellStatus } : null), ...(packOk ? { packOk } : null) } : ctx;
   }, [ctx, surf.tone, onLightPage, packOk]);
+  // A pack's motion as this screen draws it (L117): its texts read the plan, its repeats join the page's one timer.
+  const motion = useMotionPlan(slots?.motion);
+  useMotionCard(ref, motion);
   const heading = chrome?.label || title;
   const headIcon = iconOverride || chrome?.icon || icon;
   // Show title off hides the header and the title line of the summary views (`untitled`).
@@ -166,13 +171,19 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
     ...accentVars(resolveAccent(chrome?.accent || accent, sk, surf.tone), chrome?.accent || accent ? undefined : surf.tone),
     color: "var(--w-fg)",
     ...(ctx.focusOutline ? { "--w-focus-outline": ctx.focusOutline } : null),
+    // the Look's label colour (T3 `label-color`) over the tone's faint grey
+    ...(ctx.labelColor ? { "--w-faint": ctx.labelColor } : null),
+    // the Look's series colours, resolved here on the card (`seriesColour`)
+    ...seriesVars(ctx.series),
     ...(ctx.labelGlow ? { textShadow: "0 0 6px color-mix(in oklab, var(--w-accent) 55%, transparent)" } : null),
     // A roomy box (4x4) grows the body type: the theme's type tokens, so every text-micro / caption / body / title follows; and sets the hero size `Metric` reads.
     ...(big ? { ...(fixedType ? null : typeVars(ROOMY_SCALE)), "--w-hero": `${heroPx(box.w, box.h)}px` } : null),
+    ...motionVars(motion),
     ...style,
   } as CSSProperties;
   return (
     <SkinCtx.Provider value={skinCtx}>
+      <MotionCtx.Provider value={motion}>
       <RoomyCtx.Provider value={big}>
       <PaneCtx.Provider value={{ className: mat.className, style: surfBox }}>
       <div ref={ref} style={rootStyle} data-part="card" data-look={packId} data-mat={mat.id} data-tone={mat.tone} data-mode={mat.tone === "light" ? "light" : undefined} data-mat-blur={mat.fallback ? "" : undefined} data-focus-outline={ctx.focusOutline ? "" : undefined} data-wp-scope={css ? scope : undefined} {...numGlowAttr(chrome)} data-wp-tier={box.size} data-wp-roomy={big ? "" : undefined} data-wp-shape={box.shape} data-wp-view={isStudio ? "studio" : useCompact ? "compact" : "body"} className={`relative flex h-full w-full min-w-0 flex-col overflow-hidden antialiased ${mat.className} ${className}`}>
@@ -185,15 +196,16 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
         )}
         {backdrop}
         {ctx.frame && <CardFrame kind={ctx.frame} fill={ctx.borderFill} />}
-        {decor && (
+        {(decor || motion) && (
           <>
             {ctx.ornament && <CardLayer part="ornament" Slot={ctx.ornament} />}
             {ctx.tabBand && <CardLayer part="tab-band" Slot={ctx.tabBand} />}
             {/* inside this fragment, so a card without pack decor keeps its children's places (and their useId values) */}
             {ctx.decor && <PackDecor decor={ctx.decor} pad={pad.pad === undefined ? undefined : pad.pad * zoom} />}
+            <MotionLayer plan={motion} />
           </>
         )}
-        <div className={`relative flex min-h-0 min-w-0 flex-1 flex-col ${pad.className}`} style={{ ...pad.style, ...(zoom !== 1 ? { zoom } : null) }}>
+        <div data-mo-arrive={motion?.arrival && motion.arrival.style !== "line" ? motion.arrival.style : undefined} className={`relative flex min-h-0 min-w-0 flex-1 flex-col ${pad.className}`} style={{ ...pad.style, ...(zoom !== 1 ? { zoom } : null) }}>
           {header && <SkinHeader kind={sk.header} title={heading} icon={headIcon} right={useCompact ? undefined : right} bleed={bleed} bg={mat.patch} w={box.w} />}
           <div ref={cref} data-wp-body="" {...bodyFlags(chrome)} className="relative min-h-0 flex-1">
             {isStudio ? (
@@ -210,6 +222,7 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
       </div>
       </PaneCtx.Provider>
       </RoomyCtx.Provider>
+      </MotionCtx.Provider>
     </SkinCtx.Provider>
   );
 }

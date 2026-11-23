@@ -210,6 +210,7 @@ pub fn run() {
             commands::trust_widget_key,
             commands::remove_widget_key,
             commands::restore_widget_key,
+            commands::set_widget_key_pack_scripts,
             touch::commands::touch_view,
             touch::commands::touch_set,
             touch::commands::touch_screens,

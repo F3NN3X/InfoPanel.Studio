@@ -71,7 +71,7 @@ Known problems and fixes are in the Help article Common problems. Report bugs an
 
 - [Releases](https://github.com/F3NN3X/InfoPanel.Studio/releases) and the [changelog](CHANGELOG.md)
 - [Issues](https://github.com/F3NN3X/InfoPanel.Studio/issues)
-- Help is inside the app. [docs/](docs/README.md) has the customization guide (including the Widgets page and builder), the widget catalog, how to write a code widget and the security model.
+- Help is inside the app. [docs/](docs/README.md) has the customization guide (including the Widgets page and builder), a walkthrough of building a theme pack, the widget catalog, how to write a code widget and the security model.
 
 ## For developers
 

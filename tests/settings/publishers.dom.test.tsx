@@ -57,6 +57,11 @@ const invoke = vi.fn(async (command: string, args?: Record<string, unknown>): Pr
       keys = [...keys, { id: "FD89B8C08B250DF6", kind: "user", name, fingerprint: "FD89B8C08B250DF6", publishers, state: "trusted" }];
       return keys;
     }
+    case "set_widget_key_pack_scripts": {
+      const { id, allowed } = args as { id: string; allowed: boolean };
+      keys = keys.map((k) => (k.id === id ? { ...k, packScripts: allowed } : k));
+      return keys;
+    }
     case "remove_widget_key":
       keys = keys.filter((k) => k.id !== (args as { id: string }).id);
       return keys;
@@ -112,6 +117,17 @@ describe("Settings › Widget publishers", () => {
     await user.click(within(row).getByRole("button", { name: "Remove key" }));
     expect(calls("remove_widget_key")).toEqual([{ id: "FD89B8C08B250DF6" }]);
     expect(await screen.findByText("None yet.")).toBeTruthy();
+  });
+
+  it("a key you added allows pack scripts only once switched on here; a built-in key has no switch", async () => {
+    keys = [...BUILT_IN, { id: "FD89B8C08B250DF6", kind: "user", name: "Acme", fingerprint: "FD89B8C08B250DF6", publishers: ["acme"], state: "trusted", packScripts: false }];
+    const user = await openPage();
+    expect(screen.getAllByRole("switch")).toHaveLength(1);
+    const toggle = screen.getByRole("switch", { name: "Allow pack scripts for Acme" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    await user.click(toggle);
+    expect(calls("set_widget_key_pack_scripts")).toEqual([{ id: "FD89B8C08B250DF6", allowed: true }]);
+    expect((await screen.findByRole("switch", { name: "Allow pack scripts for Acme" })).getAttribute("aria-checked")).toBe("true");
   });
 
   it("says why the store refused a key, and keeps what was typed", async () => {

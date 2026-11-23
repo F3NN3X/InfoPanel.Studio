@@ -21,7 +21,7 @@ export { commaParts };
 const PAINT =
   /^(--pack-[\w-]+|color|(fill-|stroke-)?opacity|filter|backdrop-filter|-webkit-backdrop-filter|box-shadow|text-shadow|fill|stroke(-width|-linecap|-linejoin)?|mix-blend-mode|accent-color|caret-color|font-family|font-feature-settings|-webkit-text-fill-color|-webkit-text-stroke-color|-webkit-background-clip|background(-color|-image|-position(-x|-y)?|-size|-repeat|-attachment|-clip|-origin|-blend-mode)?|border(-(top|right|bottom|left|block|inline)(-(start|end))?)?-color|border-image-(source|slice|repeat)|outline-(color|style)|text-decoration(-color|-style)?|animation(-(name|duration|delay|iteration-count|direction|fill-mode|play-state|timing-function))?)$/;
 /** Phase 2's paint (gate 0 §6), on any element, each value read by its shape (`pack-css-values`). */
-const SHAPED = /^(clip-path|(-webkit-)?mask(-image|-size|-repeat|-position)?|border(-(top|bottom)-(left|right))?-radius|border-image(-(width|outset))?|border(-style)?|outline-offset|transition(-(property|duration|delay|timing-function))?)$/;
+const SHAPED = /^(clip-path|(-webkit-)?mask(-image|-size|-repeat|-position)?|border(-(top|bottom)-(left|right))?-radius|border-image(-(width|outset))?|border(-style)?|outline-offset|letter-spacing|text-transform|font-variant-numeric|transition(-(property|duration|delay|timing-function))?)$/;
 /** What the mount writes after a pseudo-lane rule's own declarations: the box is out of the flow, never hit and under the content (a pack never writes these). */
 const PSEUDO_BOX: Declaration[] = [
   { name: "position", value: [{ t: "ident", v: "absolute" }] },
@@ -119,7 +119,7 @@ function readableFilter(value: Token[], backdrop: boolean): boolean {
 }
 
 /** A transition may name what a rule paints: never a custom property, an animation, or what only a pseudo-element sets (geometry, `content`). */
-const transitionable = (p: string) => (PAINT.test(p) || SHAPED.test(p)) && !p.startsWith("--") && !/^(animation|transition)/.test(p);
+const transitionable = (p: string) => (PAINT.test(p) || SHAPED.test(p)) && !p.startsWith("--") && !/^(animation|transition|letter-spacing|text-transform|font-variant)/.test(p);
 const laneOf = (pseudo: boolean, lengths: Map<string, Token[]>): Lane => ({ pseudo, colour: looseColour, paints: transitionable, lengths, fill: true });
 
 /** What is wrong with one declaration's value (the property is allowed); `pseudo` when the rule is in the pseudo lane. */
@@ -208,7 +208,7 @@ function lintRules(rules: Rule[], top: boolean, keyframes: Set<string>, lengths:
       if (!(rule.prelude.length === 1 && rule.prelude[0].t === "ident" && OWN.test(rule.prelude[0].v))) issues.push(`@keyframes ${prelude}: name must start with pack-`);
       // a frame paints what the rules that run it may paint; `content` never animates, and a frame starts no animation or transition
       const pseudo = named.get(rule.prelude[0]?.v ?? "") === true;
-      const allowed = (p: string) => (paints(p) && !/^(animation|transition)/.test(p)) || (pseudo && PSEUDO_ONLY.test(p) && p !== "content");
+      const allowed = (p: string) => (paints(p) && !/^(animation|transition|letter-spacing|text-transform|font-variant)/.test(p)) || (pseudo && PSEUDO_ONLY.test(p) && p !== "content");
       for (const frame of rule.rules ?? []) {
         const selector = writeTokens(frame.prelude.filter((t) => t.t !== "ws"));
         if (frame.at !== undefined || !KEYFRAME_SELECTOR.test(selector)) issues.push(`keyframe ${selector.slice(0, 24)}`);
@@ -257,11 +257,27 @@ function servedFrom(value: Token[], base: string): Token[] {
   });
 }
 
-/** The rules as mounted: a pseudo-lane rule ends in `PSEUDO_BOX`, and with `base` every URL is the route's. */
+/** The custom property the page root sets to `none` while a pack's own animations may not run (the screen's Effects at Calm or Off, lite mode): no pack may set a `--wp-*`. */
+export const PACK_MOTION_VAR = "--wp-pack-motion";
+
+/**
+ * What a rule that runs an animation gets after its own declarations: `animation-name: var(--wp-pack-motion, <its names>)`, so the
+ * page root turns every pack animation off by one variable and a running one stops where it rests. Undefined for a rule that runs none.
+ */
+function motionGate(declarations: Declaration[]): Declaration | undefined {
+  const last = [...declarations].reverse().find((d) => d.name === "animation" || d.name === "animation-name");
+  if (!last) return undefined;
+  const names = commaParts(last.value).map((part) => part.find((t) => (t.t === "ident" || t.t === "string") && !ANIMATION_WORDS.has(t.v.toLowerCase()))?.v ?? "none");
+  return parseCss(`x{animation-name:var(${PACK_MOTION_VAR}, ${names.join(", ")})}`, [])[0]?.declarations?.[0];
+}
+
+/** The rules as mounted: a rule that animates ends in its `motionGate`, a pseudo-lane rule in `PSEUDO_BOX`, and with `base` every URL is the route's. */
 function mounted(rules: Rule[], base: string | undefined): Rule[] {
   return rules.map((r) => {
     if (r.rules) return { ...r, rules: mounted(r.rules, base) };
-    const declarations = (r.declarations ?? []).map((d) => (base ? { ...d, value: servedFrom(d.value, base) } : d));
+    const own = (r.declarations ?? []).map((d) => (base ? { ...d, value: servedFrom(d.value, base) } : d));
+    const gate = r.at === undefined ? motionGate(own) : undefined;
+    const declarations = gate ? [...own, gate] : own;
     return { ...r, declarations: r.at === undefined && pseudoLane(r.prelude) === "pseudo" ? [...declarations, ...PSEUDO_BOX] : declarations };
   });
 }

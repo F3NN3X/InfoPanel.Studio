@@ -568,6 +568,13 @@ pub fn restore_widget_key(app: AppHandle, id: String) -> CmdResult<Vec<ips_serve
     widget_key_store(&app).restore(&id)
 }
 
+/// A user key's "Allow pack scripts": whether a theme pack it signed may run its effect script (pack_scripts.rs in the server).
+#[tauri::command]
+pub fn set_widget_key_pack_scripts(app: AppHandle, id: String, allowed: bool) -> CmdResult<Vec<ips_server::widget_keys::KeyView>> {
+    log::info!("ipc: set_widget_key_pack_scripts {id:?} {allowed}");
+    widget_key_store(&app).set_pack_scripts(&id, allowed)
+}
+
 // ---- Studio (and local pages) ----
 
 #[tauri::command]

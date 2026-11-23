@@ -1,5 +1,6 @@
-import { AGENT_COLORS, AGENT_NAMES, FIVE_HOUR_MS, SEVEN_DAY_MS, paceHit, planView, shortDuration, type AgentId, type AgentPlan, type PlanWindow } from "@/lib/agents";
-import { Bar, Icon, Num, Ring, TONES, fmtDate } from "../kit";
+import { AGENT_NAMES, FIVE_HOUR_MS, SEVEN_DAY_MS, paceHit, planView, shortDuration, type AgentId, type AgentPlan, type PlanWindow } from "@/lib/agents";
+import { Bar, Icon, Num, Ring, TONES, fmtDate, useSkin } from "../kit";
+import { agentColour } from "./colours";
 
 export type LimitStyle = "bars" | "rings";
 export type Percent = "used" | "left";
@@ -121,9 +122,10 @@ export function ringLayout(n: number, w: number, room: number): RingLayout | nul
 }
 
 function AgentName({ id }: { id: AgentId }) {
+  const sk = useSkin();
   return (
     <div className="flex h-4.5 min-w-0 items-center gap-1.5 text-body font-semibold text-[color:var(--w-fg)]">
-      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: AGENT_COLORS[id] }} />
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: agentColour(sk, id) }} />
       <span className="truncate">{id === "claude" ? "Claude Code" : AGENT_NAMES[id]}</span>
     </div>
   );
@@ -190,9 +192,10 @@ function FullBars({ id, plan, percent, now, wide }: { id: AgentId; plan: AgentPl
 
 /** One agent on one line: its name and a short bar per window. */
 function RowBars({ id, plan, percent, now, wide }: { id: AgentId; plan: AgentPlan; percent: Percent; now: number; wide: boolean }) {
+  const sk = useSkin();
   return (
     <div className="flex min-w-0 items-center gap-2 text-xs">
-      <span className="shrink-0 font-semibold" style={{ color: AGENT_COLORS[id] }}>
+      <span className="shrink-0 font-semibold" style={{ color: agentColour(sk, id) }}>
         {AGENT_NAMES[id]}
       </span>
       {windowsOf(plan, now).map(({ k, short, view }) => (
@@ -214,9 +217,10 @@ function RowBars({ id, plan, percent, now, wide }: { id: AgentId; plan: AgentPla
 
 /** One agent as a line of numbers: "● Claude   32%  70%". */
 function ListLine({ id, plan, percent, now }: { id: AgentId; plan: AgentPlan; percent: Percent; now: number }) {
+  const sk = useSkin();
   return (
     <div className="flex h-4 min-w-0 items-center gap-2 text-xs">
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: AGENT_COLORS[id] }} />
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: agentColour(sk, id) }} />
       <span className="min-w-0 flex-1 truncate text-[color:var(--w-fg)]">{AGENT_NAMES[id]}</span>
       {windowsOf(plan, now).map(({ k, view }) => (
         <Pct key={k} view={view} percent={percent} />

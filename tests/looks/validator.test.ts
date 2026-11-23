@@ -167,6 +167,20 @@ describe("bad packs, one per rule", () => {
     expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, which: [] } } }))).toContain("schema");
     expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, which: ["top"] } } }))).toContain("schema");
     expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, which: ["tl", "tl"] } } }))).toContain("frame");
+  });
+
+  it("a frame's spine, tab, double line and kind per corner pass; one past the caps or off the vocabulary is refused", () => {
+    const ok = { corners: "square", size: 18, byCorner: { tl: "cut", br: "notch" }, spine: { edge: "left", width: 5 }, tab: { at: "tl", width: 56, height: 5 }, double: true, stroke: 1 };
+    expect(rules(bad({ pack: { frame: ok } }))).toEqual([]);
+    expect(rules(bad({ pack: { frame: { ...ok, spine: { edge: "left", width: 7 } } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { ...ok, spine: { edge: "middle", width: 5 } } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { ...ok, tab: { at: "tl", width: 65, height: 5 } } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { ...ok, tab: { at: "tl", width: 56, height: 9 } } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { ...ok, byCorner: { tl: "round" } } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { ...ok, double: "yes" } } }))).toContain("schema");
+    // a line strength from the faintest edge that still reads to solid
+    for (const alpha of [0.2, 0.55, 1]) expect(rules(bad({ pack: { frame: { ...ok, alpha } } })), String(alpha)).toEqual([]);
+    for (const alpha of [0.1, 1.5, "55%"]) expect(rules(bad({ pack: { frame: { ...ok, alpha } } })), String(alpha)).toContain("schema");
     expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, colour: "#f00" } } }))).toContain("schema");
   });
 
@@ -605,6 +619,41 @@ describe("M5: every string of a Look is read", () => {
     expect(rules(bad({ look: (l) => (l.variants = [{ ...night, values: { radius: "999" } }]) }))).toContain("variant");
     expect(rules(bad({ look: (l) => (l.variants = [{ ...night, values: { colour: "#fff" } }]) }))).toContain("variant");
     expect(rules(bad({ look: (l) => (l.variants = [{ id: "night", values: {} }]) }))).toContain("schema");
+  });
+
+  it("a variant may set the text, secondary text, status and line colours, and derive them from its accent", () => {
+    const set = (values: Json) => bad({ look: (l) => (l.variants = [{ id: "ice", name: "Ice", values }]) });
+    // Field Kit's card is cream, so the colours that read on it are dark
+    expect(rules(set({ accent: "#8a3b12", textColor: "#1a1a1a", mutedColor: "#4a4a4a", ok: "#1a6b3a", borderColor: "#8a3b12", glowColor: "#8a3b12" }))).toEqual([]);
+    expect(rules(set({ accent: "#8a3b12", textColor: { from: "accent", l: 0.25, c: 0.03 }, mutedColor: { from: "accent", l: 0.4, cMul: 0.5 }, borderColor: { from: "accent", alpha: 0.5 } }))).toEqual([]);
+    // an alpha on a text role, a derive of the accent, a bad field or range, a colour that is not one
+    expect(rules(set({ textColor: "#ffffff80" }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent", l: 0.9, alpha: 0.5 } }))).toContain("variant");
+    expect(rules(set({ accent: { from: "accent", l: 0.9 } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "fg", l: 0.9 } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent" } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent", l: 1.2 } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent", l: 0.9, lMin: 0.5 } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent", c: 0.1, cMul: 1 } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent", hue: 20 } }))).toContain("variant");
+    expect(rules(set({ textColor: "red" }))).toContain("variant");
+    expect(rules(set({ radius: { from: "accent", l: 0.9 } }))).toContain("variant");
+  });
+
+  it("the contrast checks run per variant: a variant whose own text colour fails on the card is refused", () => {
+    const set = (values: Json) => bad({ look: (l) => (l.variants = [{ id: "dim", name: "Dim", values }]) });
+    expect(rules(set({ textColor: "#e0e0e0" }))).toContain("contrast");
+    expect(rules(set({ mutedColor: "#d8d8d8" }))).toContain("contrast");
+    // derived: the accent at a lightness too close to the card's reads too low; the accent itself is read too
+    expect(rules(set({ accent: "#8a3b12", textColor: { from: "accent", l: 0.9 } }))).toContain("contrast");
+    expect(rules(set({ accent: "#f0f0f0", textColor: "#1a1a1a" }))).toContain("contrast");
+    // an accent swap alone is what variants always were: not held to a ratio it was never checked for
+    expect(rules(set({ accent: "#f0f0f0" }))).toEqual([]);
+  });
+
+  it("a derive from an accent that cannot be read is refused", () => {
+    const set = (values: Json) => bad({ look: (l) => (l.variants = [{ id: "x", name: "X", values }]) });
+    expect(rules(set({ accent: "{nope}", textColor: { from: "accent", l: 0.25 } }))).toContain("variant");
   });
 });
 
@@ -1063,5 +1112,48 @@ describe("L98 L-8: T1 text is read as drawn, rgb() and an alpha over the card", 
   });
   it("still refuses a colour it cannot read", () => {
     expect(mine(fg("color-mix(in srgb, #202020, #000)"))).toContain("contrast");
+  });
+});
+
+describe("a pack's script (G4 as changed 2026-11-23)", () => {
+  const FX = "fx.onFrame(function () { fx.draw([]); });";
+  // Field Kit lists no assets; a pack that lists one lists them all
+  const assets = BASE.files.filter((f) => f.path.startsWith("assets/")).map((f) => ({ file: f.path.slice(7), bytes: f.size }));
+  const scripted = (opts: { content?: string; bytes?: Uint8Array; list?: boolean; file?: string; drop?: boolean } = {}): PackSource => {
+    const name = opts.file ?? "fx.js";
+    const f: PackFile = opts.bytes ? { path: `assets/${name}`, size: opts.bytes.length, bytes: opts.bytes } : file(`assets/${name}`, opts.content ?? FX);
+    return bad({ pack: { script: { file: name }, assets: opts.list === false ? assets : [...assets, { file: name, bytes: f.size }] }, files: opts.drop ? [] : [f] });
+  };
+  /** The rules a script can break, read as a user pack (`script` where it is) and as one of ours. */
+  const scriptRules = (src: PackSource, script: "files" | "route" = "files") =>
+    validatePack(src, { script }).filter((i) => i.severity === "error" && ["script", "asset-type", "asset-listed", "schema"].includes(i.rule)).map((i) => i.rule);
+
+  it("passes one listed .js asset the script key names, and an old pack without the key is read as before", () => {
+    expect(scriptRules(scripted())).toEqual([]);
+    expect(rules(scripted())).toEqual(rules(BASE));
+    expect(rules(BASE)).toEqual([]);
+  });
+
+  it("refuses a .js the key does not name, an unlisted script, a missing one, one over 64 KB and one that is not UTF-8", () => {
+    expect(scriptRules(bad({ files: [file("assets/other.js", FX)] }))).toContain("asset-type");
+    expect(scriptRules(scripted({ list: false }))).toContain("script");
+    expect(scriptRules(scripted({ drop: true }))).toContain("script");
+    expect(scriptRules(scripted({ content: "x".repeat(65_537) }))).toContain("script");
+    expect(scriptRules(scripted({ bytes: Uint8Array.from([0xff, 0xfe, 0x00]) }))).toContain("script");
+  });
+
+  it("refuses a script name that is not a plain .js file name", () => {
+    for (const name of ["../fx.js", "fx.mjs", "FX.js", "fx.js?x", "a/fx.js"]) expect(scriptRules(scripted({ file: name })), name).toContain("schema");
+  });
+
+  it("reads a pack from the route without the script's bytes: the server keeps them", () => {
+    expect(scriptRules(scripted({ drop: true }), "route")).toEqual([]);
+  });
+
+  it("takes one of ours naming its script with no asset list (the bundle carries it); a user pack still lists it", () => {
+    const unlisted = bad({ pack: { script: { file: "fx.js" } }, files: [file("assets/fx.js", FX)] });
+    expect(validatePack(unlisted, { source: "builtin" }).filter((i) => i.severity === "error")).toEqual([]);
+    expect(scriptRules(unlisted)).toContain("script");
+    expect(validatePack(bad({ pack: { script: { file: "fx.js" } } }), { source: "builtin" }).map((i) => i.rule)).toContain("script");
   });
 });

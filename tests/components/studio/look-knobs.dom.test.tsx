@@ -34,6 +34,38 @@ describe("the Variant knob", () => {
     expect(group).toBeTruthy();
   });
 
+  it("is a dropdown once the choices outgrow a segmented row (v3: Cyberspec's six cut the row off), and it writes the same", async () => {
+    const SIX: Look = { ...NIGHT, id: "six-test", variants: ["Crimson", "Voltage", "Toxin", "Ice", "Ultraviolet", "Monochrome"].map((name, i) => ({ id: name.toLowerCase(), name, values: { accent: `#00000${i}` } })) };
+    loadLook.mockResolvedValue(SIX);
+    const onSet = vi.fn();
+    const onClear = vi.fn();
+    const { rerender } = render(<LookKnobs values={{ own: { accent: "#000004" }, inherited: { lookId: "six-test" } }} from="Desk" onSet={onSet} onClear={onClear} />);
+    const select = await screen.findByRole("combobox", { name: "Variant" });
+    expect(screen.queryByRole("radiogroup", { name: "Variant" })).toBeNull();
+    expect(select.textContent).toContain("Ultraviolet");
+    await act(async () => {
+      fireEvent.click(select);
+    });
+    const toxin = await screen.findByRole("option", { name: "Toxin" });
+    await act(async () => {
+      fireEvent.pointerDown(toxin);
+      fireEvent.click(toxin);
+    });
+    expect(onSet).toHaveBeenLastCalledWith({ accent: "#000002" });
+    // a value that matches no variant is Custom: the dropdown names none
+    rerender(<LookKnobs values={{ own: { accent: "#123456" }, inherited: { lookId: "six-test" } }} from="Desk" onSet={onSet} onClear={onClear} />);
+    expect(screen.getByRole("combobox", { name: "Variant" }).textContent).toContain("Custom");
+  });
+
+  it("a row too narrow for its name and its control puts the control under the name instead of over it", async () => {
+    loadLook.mockResolvedValue(NIGHT);
+    render(<LookKnobs values={{ own: {}, inherited: { lookId: "night-test" } }} from="Desk" onSet={() => {}} onClear={() => {}} />);
+    const row = screen.getByRole("group", { name: "Cards" }).firstElementChild!;
+    expect(row.className).toContain("flex-wrap");
+    expect(row.lastElementChild!.className).toContain("ml-auto");
+    await screen.findByRole("radiogroup", { name: "Variant" });
+  });
+
   it("is not drawn for a theme without variants", async () => {
     loadLook.mockResolvedValue({ ...CLASSIC, modes: { supported: ["dark", "light"] } });
     render(<LookKnobs values={{ own: {}, inherited: { lookId: "classic" } }} from="Desk" onSet={() => {}} onClear={() => {}} />);

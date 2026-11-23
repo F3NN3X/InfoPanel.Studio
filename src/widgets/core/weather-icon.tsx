@@ -4,6 +4,7 @@ import { useTick } from "@/hooks/use-tick";
 import { AMBIENT_FPS } from "@/lib/ticker";
 import { type CSSProperties, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "./primitives";
+import { useSkin } from "./theme";
 
 export type MeteoconStyle = "fill" | "flat" | "line" | "monochrome";
 
@@ -22,13 +23,19 @@ export interface WeatherGlyphProps extends WeatherCondition {
   className?: string;
   size?: number;
   fill?: boolean;
+  /** The widget leaves the Meteocons style at its default: a Look's icon colour (T3 `icon-color`) then draws them in one colour, as Monochrome. */
+  themed?: boolean;
 }
 
 /** The icon-set choice every weather view passes down. */
-export type WeatherIconProps = Pick<WeatherGlyphProps, "set" | "style" | "animated">;
+export type WeatherIconProps = Pick<WeatherGlyphProps, "set" | "style" | "animated" | "themed">;
 
-export function WeatherGlyph({ kind, night, set = "app", style = "line", animated = false, className = "", size: px, fill }: WeatherGlyphProps) {
+export function WeatherGlyph({ kind, night, set = "app", style: chosen = "line", animated = false, className = "", size: px, fill, themed }: WeatherGlyphProps) {
   const { maxFps, reduceMotion } = usePerformance();
+  // a Look's icon colour (T3 `icon-color`): the app icons and the one-colour Meteocons take it, a colour style the widget leaves at its default turns one-colour
+  const tint = useSkin().iconColor;
+  const style: MeteoconStyle = tint && themed ? "monochrome" : chosen;
+  const ink: CSSProperties | undefined = tint ? { color: tint } : undefined;
   const lite = reduceMotion || (maxFps > 0 && maxFps < 60);
   const format = animated && !lite ? "animated" : "static";
   const name = meteoconName({ kind, night });
@@ -44,8 +51,8 @@ export function WeatherGlyph({ kind, night, set = "app", style = "line", animate
   }, [meteocons, style, format, name]);
   if (!meteocons) {
     const icon = <Icon name={appIconName({ kind, night })} fill={fill} className={className} />;
-    return px ? (
-      <span className="inline-flex shrink-0 leading-none" style={{ fontSize: px }}>
+    return px || ink ? (
+      <span className="inline-flex shrink-0 leading-none" style={{ ...(px ? { fontSize: px } : null), ...ink }}>
         {icon}
       </span>
     ) : (
@@ -53,7 +60,7 @@ export function WeatherGlyph({ kind, night, set = "app", style = "line", animate
     );
   }
   const box = `inline-block shrink-0 select-none ${className}`;
-  const size = { width: "1em", height: "1em", ...(px ? { fontSize: px } : null) };
+  const size = { width: "1em", height: "1em", ...(px ? { fontSize: px } : null), ...(style === "monochrome" ? ink : null) };
   if (!url) return <span aria-hidden className={box} style={size} />;
   // The monochrome set is drawn in black: masked, it takes the text colour instead.
   if (format === "animated") return <SteppedSvg url={url} mono={style === "monochrome"} className={box} style={size} />;

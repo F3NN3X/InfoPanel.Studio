@@ -14,10 +14,12 @@ import { BLUR_MAX as STAGE_BLUR_MAX, OVERLAY_MAX } from "./effects";
 import { iconSetIssues } from "./icon-set";
 import { LOOK_IDS } from "./ids";
 import { PACK_FONT_FAMILIES } from "./pack-fonts";
-import { resolveT1, type Look, type T1Name, T1_NAMES } from "./look";
+import { resolveT1, resolveVariant, VARIANT_ALPHA, VARIANT_COLOURS, type Look, type T1Name, T1_NAMES, type VariantDerive } from "./look";
 import lookSchema from "./look.schema.json";
+import { motionIssues } from "./motion";
+import { SCRIPT_MAX_BYTES } from "./pack-script/limits";
 import { MAX_LAYERS, NUMERAL_MIN, numeralIssues, stageIssues } from "./pack-checks";
-import { FLASH_MAX, FRAME_SIZE_MAX, FRAME_STROKE_MAX, FX_KINDS, ORNAMENT_MAX, ORNAMENT_TEXT_MAX, ORNAMENTS_MAX, TEXT_ORNAMENTS, type PackJson } from "./pack-json";
+import { FLASH_MAX, FRAME_ALPHA_MIN, FRAME_SIZE_MAX, FRAME_SPINE_MAX, FRAME_STROKE_MAX, FRAME_TAB_HEIGHT_MAX, FRAME_TAB_WIDTH_MAX, FX_KINDS, ORNAMENT_MAX, ORNAMENT_TEXT_MAX, ORNAMENTS_MAX, TEXT_ORNAMENTS, type PackJson } from "./pack-json";
 import { commaParts, lintPackCss, OPACITY_FLOOR } from "./pack-css";
 import { INJECTION, jsonShapeIssues, jsonStrings, PROSE_PATHS, rasterMatches, STYLE_BREAKERS, svgIssue, svgPaints, TOKEN_KEY, withoutAliases } from "./pack-safety";
 import packSchema from "./pack.schema.json";
@@ -59,6 +61,12 @@ export interface PackOptions {
    * browser (`pack-visibility`, `pack-selectors`, `pack-faces`).
    */
   source?: "builtin" | "user";
+  /**
+   * Where a pack's `script` file is: `files` (the default) among the files given, its bytes checked here (an import); `route` with the
+   * server, which serves it only by the pack's trust (`GET /api/packs/<id>/fx.js`), so a pack read back from the route lists it and
+   * holds no bytes for it.
+   */
+  script?: "files" | "route";
 }
 
 export interface PackIssue {
@@ -520,16 +528,44 @@ function toneIssues(name: string, tone: string | undefined, mode: string, cards:
   }
 }
 
-/** A variant sets the Variant knob's keys (`KNOB_KEYS`), each with the value the knob stores: why a value is refused, or undefined. */
+/** A variant sets the Variant knob's keys (`KNOB_KEYS`) and the colours the Look's roles reach (`VARIANT_COLOURS`), each with the value the knob stores: why a value is refused, or undefined. */
 const VARIANT_NUMBER: Record<string, readonly [number, number]> = { surfaceOpacity: [0, 100], blur: [0, BLUR_MAX], radius: [0, 64], padding: [0, 64], gap: [0, 64] };
-function variantValueIssue(key: string, value: string): string | undefined {
-  if (key === "accent") return colourOrAlias(value) ? undefined : "a colour (#rgb, #rrggbb, rgb(), hsl(), oklch() or an alias)";
+/** What a derived colour's fields may hold (lightness and chroma as OKLCH reads them). */
+const DERIVE_RANGE: Record<string, readonly [number, number]> = { l: [0, 1], lMin: [0, 1], c: [0, 0.4], cMul: [0, 2], cMax: [0, 0.4], alpha: [0, 1] };
+const VARIANT_KEYS = `accent, surface, surfaceOpacity, blur, radius, padding, gap, ${VARIANT_COLOURS.slice(1).join(", ")}`;
+const isVariantColour = (key: string) => (VARIANT_COLOURS as readonly string[]).includes(key);
+
+function deriveIssue(key: string, d: VariantDerive): string | undefined {
+  if (!isVariantColour(key) || key === "accent") return "a colour other than the accent derives (it is derived from the accent)";
+  if (d === null || typeof d !== "object" || Array.isArray(d) || d.from !== "accent") return 'a derive is {"from": "accent", ...} with l, lMin, c, cMul, cMax or alpha';
+  const fields = Object.entries(d).filter(([k]) => k !== "from");
+  for (const [k, v] of fields) {
+    const range = Object.hasOwn(DERIVE_RANGE, k) ? DERIVE_RANGE[k] : undefined;
+    if (!range) return `derive ${k} is not a field (from, l, lMin, c, cMul, cMax, alpha)`;
+    if (!(typeof v === "number" && v >= range[0] && v <= range[1])) return `derive ${k} is a number from ${range[0]} to ${range[1]}`;
+  }
+  if (fields.length === 0) return "a derive sets at least one of l, lMin, c, cMul, cMax, alpha";
+  if (d.l !== undefined && d.lMin !== undefined) return "derive l and lMin are both set: use one";
+  if (d.c !== undefined && d.cMul !== undefined) return "derive c and cMul are both set: use one";
+  if (d.alpha !== undefined && d.alpha < 1 && !VARIANT_ALPHA.includes(key)) return `${key} takes no alpha (only ${VARIANT_ALPHA.join(", ")})`;
+  return undefined;
+}
+
+function variantValueIssue(key: string, value: string | VariantDerive): string | undefined {
+  if (typeof value !== "string") return deriveIssue(key, value);
+  if (isVariantColour(key)) {
+    if (!colourOrAlias(value)) return "a colour (#rgb, #rrggbb, rgb(), hsl(), oklch() or an alias)";
+    return !VARIANT_ALPHA.includes(key) && key !== "accent" && (parseColour(value)?.alpha ?? 1) < 1 ? `${key} takes no alpha (only ${VARIANT_ALPHA.join(", ")})` : undefined;
+  }
   if (key === "surface") return value === "theme" || TOKEN_KEY.test(value) ? undefined : "a material name";
   const range = Object.hasOwn(VARIANT_NUMBER, key) ? VARIANT_NUMBER[key] : undefined;
-  if (!range) return "not a key a variant sets (accent, surface, surfaceOpacity, blur, radius, padding, gap)";
+  if (!range) return `not a key a variant sets (${VARIANT_KEYS})`;
   const n = /^\d+(\.\d+)?$/.test(value) ? Number(value) : Number.NaN;
   return n >= range[0] && n <= range[1] ? undefined : `a number from ${range[0]} to ${range[1]}`;
 }
+
+/** The roles a variant sets that are read as text on the card: each is held to the same ratio as the Look's own. */
+const VARIANT_TEXTS = ["accent", "textColor", "mutedColor", "ok", "warn", "crit"] as const;
 
 function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: PackIssue[]; cards: string[]; texts: string[] } {
   const issues: PackIssue[] = [];
@@ -539,7 +575,7 @@ function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: 
   if (!RADIUS.test(look.radius) || parseFloat(look.radius) * (look.radius.endsWith("px") ? 1 : 16) > 64) issues.push(issue("colour", "look.json", `radius ${look.radius}: a length up to 64 px`));
   for (const v of look.variants ?? []) for (const [k, value] of Object.entries(v.values)) {
     const m = variantValueIssue(k, value);
-    if (m) issues.push(issue("variant", "look.json", `variant ${v.id} ${k} ${value.slice(0, 40)}: ${m}`));
+    if (m) issues.push(issue("variant", "look.json", `variant ${v.id} ${k} ${(typeof value === "string" ? value : JSON.stringify(value)).slice(0, 40)}: ${m}`));
   }
   for (const mode of look.modes.supported) {
     let t1: Record<string, string>;
@@ -568,6 +604,19 @@ function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: 
     const onAccent = contrastOf(flatOver(t1["accent-on"], accentHex), accentHex);
     if (onAccent === undefined) issues.push(issue("contrast", "look.json", `${mode} accent-on ${t1["accent-on"]} on the accent ${t1.accent} cannot be checked: use #rgb or #rrggbb`));
     else if (onAccent < TEXT_MIN) issues.push(issue("contrast", "look.json", `${mode} accent-on ${t1["accent-on"]} is ${onAccent.toFixed(2)}:1 on the accent ${t1.accent}, under ${TEXT_MIN}:1`));
+    // a variant is applied in the first mode: the colours it sets are read on that mode's cards, derived ones from its own accent
+    if (mode === look.modes.supported[0]) for (const v of look.variants ?? []) {
+      const set = resolveVariant(look, v, mode).values;
+      for (const [key, value] of Object.entries(v.values)) if (typeof value !== "string" && isVariantColour(key) && key !== "accent" && set[key] === undefined) issues.push(issue("variant", "look.json", `variant ${v.id} ${key} cannot be derived: the accent is not a colour that can be read`));
+      // a variant that sets none of the new colour roles is an accent swap as packs have always had them, and is not held to a ratio it was never checked for
+      const roles = Object.keys(v.values).some((key) => isVariantColour(key) && key !== "accent");
+      for (const key of roles ? VARIANT_TEXTS : []) for (const card of modeCards) {
+        if (set[key] === undefined) continue;
+        const ratio = contrastOf(flatOver(set[key], card), card);
+        if (ratio === undefined) issues.push(issue("contrast", "look.json", `variant ${v.id} ${key} ${set[key]} on ${card} cannot be checked: use #rgb or #rrggbb`));
+        else if (ratio < TEXT_MIN) issues.push(issue("contrast", "look.json", `variant ${v.id} ${key} ${set[key]} is ${ratio.toFixed(2)}:1 on the card ${card}, under ${TEXT_MIN}:1`));
+      }
+    }
     for (const name of ["fg", "fg-2", "muted"] as const) for (const card of modeCards) if (parseColour(t1[name])?.hex) texts.push(flatOver(t1[name], card));
     issues.push(...t3Issues(look, t1 as Record<T1Name, string>, mode, modeCards));
   }
@@ -581,14 +630,17 @@ function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: 
 /** What is wrong with a pack, one issue each, errors before warnings (empty: it may load). A crash inside a rule is an issue, never an exception. */
 export function validatePack(src: PackSource, options: PackOptions = {}): PackIssue[] {
   try {
-    return validate(src, options.source ?? "user");
+    return validate(src, options.source ?? "user", options.script ?? "files");
   } catch (e) {
     return [issue("internal", "", `the pack could not be read to the end (${(e as Error).name}: ${(e as Error).message.slice(0, 80)}): refused`)];
   }
 }
 
-function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
+function validate(src: PackSource, source: "builtin" | "user", scriptAt: "files" | "route"): PackIssue[] {
   const user = source === "user";
+  // the one `.js` a pack may hold is the file its `script` names (read loosely here: the schema checks the key below)
+  const named = (src.pack as { script?: { file?: unknown } } | undefined)?.script?.file;
+  const scriptPath = typeof named === "string" ? `assets/${named}` : undefined;
   const out: PackIssue[] = [];
   const add = (rule: string, file: string, message: string, severity: PackIssue["severity"] = "error") => void out.push(issue(rule, file, message, severity));
 
@@ -629,7 +681,7 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
     if (!isPackRelativeUrl(f.path)) add(urlRule(f.path), f.path, `file path ${f.path} leaves the pack folder`);
     else if (f.path.length > 120 || ODD_PATH.test(f.path) || lower.has(f.path.toLowerCase()) || (f.path.startsWith("assets/") && f.path.slice(7).includes("/"))) add("path", f.path, "a path that is too long, hidden, a device name, repeated, or in a folder of assets/");
     else if (f.path.startsWith("assets/")) {
-      if (!ASSET_TYPES.test(f.path)) add("asset-type", f.path, "an asset is an image (png, jpg, webp, avif, gif, svg) or a woff2 font");
+      if (!ASSET_TYPES.test(f.path) && f.path !== scriptPath) add("asset-type", f.path, "an asset is an image (png, jpg, webp, avif, gif, svg) or a woff2 font");
     } else if (!ROOT_FILES.test(f.path)) add("asset-extra", f.path, "not a file a pack has");
     lower.add(f.path.toLowerCase());
   }
@@ -676,11 +728,14 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
     for (const a of pack.assets) {
       const f = files.get(`assets/${a.file}`);
       listed.add(`assets/${a.file}`);
-      if (!f) add("asset-listed", "pack.json", `${a.file} is listed and not in the pack's files`);
+      if (!f) {
+        if (!(scriptAt === "route" && `assets/${a.file}` === scriptPath)) add("asset-listed", "pack.json", `${a.file} is listed and not in the pack's files`);
+      }
       else if (f.size !== a.bytes) add("asset-listed", "pack.json", `${a.file} is listed as ${a.bytes} bytes and is ${f.size}`);
     }
     for (const p of assets) if (!listed.has(p)) add("asset-listed", p, "not in pack.json's asset list: anything not listed is refused");
   }
+  if (scriptPath && files.has(scriptPath)) referenced.set(scriptPath, "pack.json");
   for (const p of assets) if (!referenced.has(p)) add("asset-unused", p, "nothing in the pack uses this file", "warn");
 
   // what each image and font file is, from its bytes (the extension is only a claim)
@@ -741,10 +796,17 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
     if (!(size >= 0 && size <= FRAME_SIZE_MAX)) add("frame", "pack.json", `frame size ${size}: 0 to ${FRAME_SIZE_MAX} px`);
     if (stroke !== undefined && !(stroke >= 0 && stroke <= FRAME_STROKE_MAX)) add("frame", "pack.json", `frame stroke ${stroke}: 0 to ${FRAME_STROKE_MAX} px`);
     if (which && (which.length === 0 || new Set(which).size !== which.length)) add("frame", "pack.json", "frame which: at least one corner, none twice");
+    const { spine, tab, alpha } = pack.frame;
+    if (alpha !== undefined && !(alpha >= FRAME_ALPHA_MIN && alpha <= 1)) add("frame", "pack.json", `frame alpha ${alpha}: ${FRAME_ALPHA_MIN} to 1`);
+    if (spine && !(spine.width >= 1 && spine.width <= FRAME_SPINE_MAX)) add("frame", "pack.json", `frame spine width ${spine.width}: 1 to ${FRAME_SPINE_MAX} px`);
+    if (tab && !(tab.width >= 1 && tab.width <= FRAME_TAB_WIDTH_MAX && tab.height >= 1 && tab.height <= FRAME_TAB_HEIGHT_MAX)) add("frame", "pack.json", `frame tab ${tab.width} by ${tab.height}: at most ${FRAME_TAB_WIDTH_MAX} by ${FRAME_TAB_HEIGHT_MAX} px`);
   }
   if (pack.edge?.kind === "distressed") add("chamfer", "pack.json", "edge distressed draws nothing: the app has no such mask", "warn");
   if (pack.edge?.kind === "chamfer" && !(pack.edge.cut !== undefined && pack.edge.cut <= CHAMFER_MAX)) add("chamfer", "pack.json", `chamfer cut ${pack.edge.cut ?? "missing"}: at most ${CHAMFER_MAX} px`);
   else if (pack.edge?.kind !== "chamfer" && pack.edge?.cut !== undefined && pack.edge.cut > CHAMFER_MAX) add("chamfer", "pack.json", `edge cut ${pack.edge.cut}: at most ${CHAMFER_MAX} px`);
+
+  out.push(...motionPackIssues(pack));
+  out.push(...scriptIssues(pack, files, scriptAt, source));
 
   // icons
   if (src.icons !== undefined) {
@@ -799,6 +861,38 @@ function layerBrightness(l: { fill?: string; image?: string }, files: Map<string
   const path = isPackRelativeUrl(l.image) ? resolve(l.image, "assets/") : undefined;
   const f = path ? files.get(path) : undefined;
   return f?.bytes && /\.svg$/i.test(f.path) ? svgBrightness(text(f.bytes)) : undefined;
+}
+
+/** The motion block (L117): each effect's strength and timing inside its range (`MOTION_RULES`); the schema has already refused an unknown effect or key. Inert data, the same for a user pack. */
+function motionPackIssues(pack: PackJson): PackIssue[] {
+  return motionIssues(pack.motion).map((m) => issue("motion", "pack.json", m));
+}
+
+/**
+ * The script key (G4 as changed 2026-11-23): one `.js` file of the pack's assets, listed in `assets` like any other, at most
+ * `SCRIPT_MAX_BYTES`, UTF-8 text. It is never run here or by the loader: only the pack-script sandbox runs it, and only when the
+ * server's trust answer says so. A pack read back from the route (`script: "route"`) has no bytes for it to check: the server keeps them.
+ * A built-in pack lists no assets (the bundler serves them, and its script ships in the bundle, pack-script/builtin.ts).
+ */
+export function scriptIssues(pack: Pick<PackJson, "script" | "assets">, files: ReadonlyMap<string, PackFile>, scriptAt: "files" | "route" = "files", origin: "builtin" | "user" = "user"): PackIssue[] {
+  if (!pack.script) return [];
+  const { file } = pack.script;
+  const out: PackIssue[] = [];
+  if (origin === "user" && !pack.assets?.some((a) => a.file === file)) out.push(issue("script", "pack.json", `the script ${file} is not in pack.json's asset list`));
+  const f = files.get(`assets/${file}`);
+  if (!f) {
+    if (scriptAt === "files") out.push(issue("script", "pack.json", `the script ${file} is not in the pack's files`));
+    return out;
+  }
+  if (f.size > SCRIPT_MAX_BYTES) out.push(issue("script", f.path, `the script is ${f.size} bytes, at most ${SCRIPT_MAX_BYTES}`));
+  let source: string | undefined;
+  try {
+    source = f.bytes && new TextDecoder("utf-8", { fatal: true }).decode(f.bytes);
+  } catch {
+    source = undefined;
+  }
+  if (source === undefined || source.includes("\u0000")) out.push(issue("script", f.path, "the script is not UTF-8 text"));
+  return out;
 }
 
 /** Errors first; the same rule on the same file and message once. */

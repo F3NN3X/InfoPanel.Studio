@@ -35,6 +35,12 @@ export interface SampleTheme {
 
 const gradient = (from: string, to: string, angle: number): PageBackground => ({ type: "gradient", gradient: { from, to, angle } });
 const color = (c: string): PageBackground => ({ type: "color", color: c });
+/** A Cyberspec theme: its accent, ink-hi (L .94, C .03: text) and ink-mute (L .68, half the chroma: secondary text, the kit's value under a CRT raster) derived from it, and the kit's fixed signal and status colours. */
+const cyberTheme = (id: string, name: string, accent: string): LookVariant => ({
+  id,
+  name,
+  values: { accent, textColor: { from: "accent", l: 0.94, c: 0.03 }, mutedColor: { from: "accent", l: 0.68, cMul: 0.5 }, ok: "#2BF59A", warn: "#FFD23F", crit: "#FF3B45" },
+});
 
 export const SAMPLE_THEMES: readonly SampleTheme[] = [
   {
@@ -129,20 +135,23 @@ export const SAMPLE_THEMES: readonly SampleTheme[] = [
   },
   {
     // After Cyberspec by Agnel Nieves (MIT, github.com/agnelnieves/cyberspec): its tokens.css values. The accent is the kit's Crimson theme,
-    // the text its cyan signal (values), the muted text its accent ink (labels); the variants are the kit's other five themes.
-    id: "cyberspec", name: "Cyberspec", blurb: "Blue-black panels with a cut corner, hot red lines, cyan readouts, yellow warnings",
+    // the text its near-white ink-hi, the muted text its ink-mute and the labels (T3 label-color) the accent; its cyan signal is the pack CSS's numeral colour (a
+    // literal, so Monochrome keeps it); the variants are the kit's six themes, each deriving its inks from its accent as tokens.css does.
+    id: "cyberspec", name: "Cyberspec", blurb: "Blue-black panels with a cut corner and a spine, labels in the accent ink, cyan readouts, yellow warnings",
     colours: { bg: "#0E0E17", fg: "#FFE4E1", card: "#0E0E17", sub: "#C26864", line: "#151523" },
-    text: "#5EF6FF", muted: "#FF5B5B",
+    text: "#FFE4E1", muted: "#D67A75",
     accent: "#FF3B45", font: "auto", radius: 0,
     status: { ok: "#2BF59A", warn: "#FFD23F", crit: "#FF3B45" },
     page: color("#07070C"),
-    mockup: "(no board: the Cyberspec kit, cyberspec.dev/components)", missing: "the kit's one-shot glitch as a panel arrives and the channel slip on a changed value (no widget animates its own arrival; the page glitch overlay stands in)",
+    mockup: "(no board: the Cyberspec kit, cyberspec.dev/components)", missing: "the hollow 18 px spine band, the hexagon gauge, a meter's LOW/HIGH chip and the decimals set smaller than the whole (a pack sets no font size)",
     variants: [
-      { id: "voltage", name: "Voltage", values: { accent: "#F4CE23" } },
-      { id: "toxin", name: "Toxin", values: { accent: "#40EF7C" } },
-      { id: "ice", name: "Ice", values: { accent: "#41D9F8" } },
-      { id: "ultraviolet", name: "Ultraviolet", values: { accent: "#B96AFF" } },
-      { id: "monochrome", name: "Monochrome", values: { accent: "#C6C6C6" } },
+      cyberTheme("crimson", "Crimson", "#FF3B45"),
+      cyberTheme("voltage", "Voltage", "#F4CE23"),
+      cyberTheme("toxin", "Toxin", "#40EF7C"),
+      cyberTheme("ice", "Ice", "#41D9F8"),
+      cyberTheme("ultraviolet", "Ultraviolet", "#B96AFF"),
+      // tokens.css swaps the whole palette for Monochrome rather than deriving it
+      { id: "monochrome", name: "Monochrome", values: { accent: "#C6C6C6", textColor: "#F2F2F2", mutedColor: { from: "accent", l: 0.68, cMul: 0.5 }, ok: "#B5B5B5", warn: "#E3E3E3", crit: "#DDDDDD" } },
     ],
   },
 ];

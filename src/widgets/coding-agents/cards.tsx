@@ -1,7 +1,8 @@
 import { Bot, Folder, MinusCircle, Sparkles } from "lucide-react";
-import { AGENT_COLORS, type AgentSession } from "@/lib/agents";
+import type { AgentSession } from "@/lib/agents";
 import { AGENT_FULL_NAMES, ANSWER_ELSEWHERE } from "@/lib/agent-requests";
-import { TONES } from "../kit";
+import { TONES, useSkin, type SkinContext } from "../kit";
+import { agentColour } from "./colours";
 
 /*
  * Coding Agents' Sessions view (pinned layer P8, owner Q7, mockup 02): the roomy page view, a card per session with what it is
@@ -28,9 +29,10 @@ export function doingLine(s: AgentSession): string {
   return s.state === "error" ? "Stopped with an error" : "Nothing running";
 }
 
-const tone = (s: AgentSession) => (s.state === "waiting" ? TONES.warn : s.state === "error" ? TONES.crit : s.state === "working" ? AGENT_COLORS[s.agent] : "var(--w-faint)");
+const tone = (sk: Pick<SkinContext, "series">, s: AgentSession) => (s.state === "waiting" ? TONES.warn : s.state === "error" ? TONES.crit : s.state === "working" ? agentColour(sk, s.agent) : "var(--w-faint)");
 
 function Card({ s }: { s: AgentSession }) {
+  const sk = useSkin();
   const Icon = s.state === "idle" || s.state === "done" ? MinusCircle : s.agent === "claude" ? Sparkles : Bot;
   return (
     <li
@@ -38,12 +40,12 @@ function Card({ s }: { s: AgentSession }) {
       className="relative flex min-h-0 items-center gap-4 overflow-hidden rounded-2xl py-4 pl-6 pr-4"
       style={{ background: "color-mix(in oklab, var(--w-fg) 4%, transparent)", boxShadow: `inset 0 0 0 1px ${s.state === "waiting" ? `color-mix(in oklab, ${TONES.warn} 35%, transparent)` : "var(--w-track)"}` }}
     >
-      <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: tone(s) }} />
+      <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: tone(sk, s) }} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-3">
-          <Icon aria-hidden size={20} className="shrink-0 self-center" style={{ color: tone(s) }} />
+          <Icon aria-hidden size={20} className="shrink-0 self-center" style={{ color: tone(sk, s) }} />
           <span className="min-w-0 truncate text-stat font-semibold leading-tight">{AGENT_FULL_NAMES[s.agent]}</span>
-          <span className="shrink-0 truncate text-lead" style={{ color: s.state === "waiting" || s.state === "working" ? tone(s) : "var(--w-muted)" }}>
+          <span className="shrink-0 truncate text-lead" style={{ color: s.state === "waiting" || s.state === "working" ? tone(sk, s) : "var(--w-muted)" }}>
             {stateLine(s)}
           </span>
         </div>

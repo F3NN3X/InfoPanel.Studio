@@ -155,6 +155,9 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
+  // The pack-script worker (src/looks/pack-script/fx-worker.ts) is a module worker that loads the QuickJS runtime with import():
+  // an IIFE worker cannot split, so it is built as ES modules, and its .wasm is an asset of its own (never inlined).
+  worker: { format: "es" as const },
   // Agent worktrees live under .claude/; their copies of the tests are not ours.
   // lab/ has its own Vitest config (npm run lab:test).
   test: {

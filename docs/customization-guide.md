@@ -1269,7 +1269,7 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
   **Reset to ‹name›** and **Undo**.
 - **Customise** draws the screen as the kiosk draws it (**Show as** Full or Lite mode) with, on the right, the **theme
   card** (**Change** opens Browse themes), **Quick changes** (**Accent**, **Mode**, **Cards**, **Corners**, **Density**),
-  **In this theme** (Scenery, Effects, Card details, Icons, Font, Background and **Keep my background**, Burn-in care) and
+  **Motion** (only for a theme pack that brings motion, see below), **In this theme** (Scenery, Effects, Card details, Icons, Font, Background and **Keep my background**, Burn-in care) and
   **Fine-tune**.
 - **Fine-tune** holds the sections that sit on top of the theme: **Colors**, **Text**, **Shape & spacing**, **Surface &
   border**, **Units & format**, **Thresholds**, **Motion** and **Custom CSS**. Each has a dot saying whether the value is
@@ -1282,10 +1282,177 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
 - The preview draws the page at its real shape and tags each widget that differs from the level; click one for **Use
   theme's value** and **Open in Edit ↗**, or **Make all follow** with nothing selected.
 - The command palette has **Apply theme: ‹name›** and **Apply theme, keep background: ‹name›**.
+- **Motion** shows for a theme pack whose `pack.json` has a `motion` block: labels and titles that decode as a card arrives,
+  numbers that scramble for a moment when their reading changes (at most once every few seconds each), a short glitch on
+  the titles, a card that fades, wipes or draws a line in as it arrives, and an occasional flicker or scan line across a
+  card. **Level** is the screen's **Effects** setting (Screens › Performance): **Full** draws all of it, **Calm** only what
+  plays as a card or reading arrives, **Off** none; reduced animations and lite mode draw none either. **Intensity** and
+  **Speed** (Low or Slow, the theme's own, High or Fast) and a switch per effect are stored like the other quick changes,
+  at the screen or page. The real text stays on the page throughout (the noise is a copy screen readers skip), nothing
+  changes size, and nothing flashes more than three times a second.
+
+  In `pack.json`, `motion` takes any of `glitch`, `decode`, `scramble`, `arrival`, `flicker` and `sweep`, each an object
+  with `on` (default true; false leaves it for the switch), `intensity` (0.1 to 1) and its own timing: `glitch` `ms`
+  80-300 and `every` 0 (on arrival only) or 4-120 seconds; `decode` `ms` 150-900; `scramble` `ms` 60-300 and `every`
+  1-60 (the least seconds between two scrambles of one number); `arrival` `ms` 120-300 and `style` `fade`, `clip` or
+  `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000 and `every` 4-120. Anything else,
+  or a value out of range, refuses the pack at import.
+
+- **Effect script**: a theme pack may carry one small script that draws an effect over the cards (particles, a scan line,
+  a pulse that follows a reading). It runs in a sandbox of its own and draws only shapes in the theme's colours on a layer
+  over the cards that takes no clicks and that screen readers skip. It never sees text or exact readings and cannot reach
+  the network, your files, settings or other apps. Like Motion it follows **Effects**: **Full** at 30 frames a second,
+  **Calm** at 15, **Off**, lite mode, reduced animations and a hidden screen run none of it. A script that is too slow
+  three times in ten seconds gives way to the pack's other effects, and one that runs past its time, uses too much memory
+  or breaks is stopped; the rest of the pack stays either way.
+
+  The built-in **Cyberspec** pack has one: corner brackets that trace in round a card as it arrives, a slow scan band down
+  each card, and a pulse round a card in warning. A built-in pack's script comes with the app and asks nothing; **Pack effect
+  scripts** in Browse themes, or `PACK_SCRIPTS=off`, turns it off with the others.
+
+  Whether an imported pack's script runs depends on its signature (see [Pack scripts](security.md#pack-scripts)). For an
+  **Unverified** pack the studio asks once, when you first wear or preview it: **Allow for this pack** or **Don't allow**.
+  The answer is kept with the pack and asked again when the pack is updated. A kiosk never asks: there an unanswered pack's
+  script just does not run. A pack that changed since it was signed, or that was withdrawn, never runs its script.
+
+#### Writing an effect script
+
+[Building an advanced theme pack](building-an-advanced-theme-pack.md) walks through a whole pack, script included, with
+Cyberspec as the example.
+
+In `pack.json`, `"script": { "file": "fx.js" }` names the script, a file in the pack's `assets` folder listed in `assets` like
+the others: a plain name ending in `.js` (lowercase letters, digits and hyphens), at most 64 KB of UTF-8 text. It is the only
+`.js` file a pack may hold. The script is plain JavaScript run by QuickJS: the language's own objects (`Math`, `JSON`, `Array`,
+`Map`, typed arrays and so on) and one more, `fx`. There is no `Date`, `Promise`, `Math.random`, timer, `fetch` or any other web
+API: use `fx.now()` and `fx.rand()`.
+
+| Call | What it does |
+|---|---|
+| `fx.onFrame(fn)` | `fn(t)` runs once a frame (`t` is the frame's time in ms). The app draws the frame from what `fn` hands to `fx.draw`; the last `fx.onFrame` wins. |
+| `fx.draw(list)` | Adds commands to this frame: an array of objects, below. At most 2,000 a frame; the rest are dropped. |
+| `fx.signals()` | What the script may read of the screen, updated at most 4 times a second: `{ level, width, height, cards }`. |
+| `fx.rand()` | A number from 0 to 1, from a seed of the pack's id, so a pack draws the same way each time. |
+| `fx.now()` | The frame's time in ms. |
+
+`level` is `"full"` or `"calm"`; `width` and `height` are the overlay's size in px. Each card is `{ x, y, w, h, value, state, texts }`:
+its box in px, `value` the card's lead bar or ring as 0 to 1 in hundredths (or `null`), `state` `"ok"`, `"warn"`, `"crit"` or
+`null`, and `texts` the boxes of its title, labels and numbers as `{ x, y, w, h, n }`, where `n` is how many letters it has. Cards
+that blur a value for privacy, and coding-agent and chat cards, are not in the list, and nothing is drawn over them.
+
+Every command paints with `fill` and/or `stroke`, an index into the theme's palette, plus `alpha` (0 to 1, default 1) and
+`width` (the line width, 0 to 8 px, default 1). The palette is the theme's own colours, in this order: 0 accent, 1 text,
+2 muted, 3 ok, 4 warn, 5 crit, 6 info, 7 page background, 8 card surface, 9 secondary text.
+
+| Command | Fields |
+|---|---|
+| `rect` | `x`, `y`, `w`, `h` |
+| `arc` | `x`, `y`, `r`, `start` and `end` in radians (default a full circle) |
+| `path` | `points`: `[x0, y0, x1, y1, …]`, 2 to 512 points (8,000 in a frame), `close` true to close it |
+| `glyph` | `card` and `text`, indices into `fx.signals().cards` and its `texts`: paints that text's box |
+| `transform` | `m`: `[a, b, c, d, e, f]` for the commands after it; scale and skew at most 4, moves within the screen |
+| `reset` | back to no transform |
+
+A command out of shape, or a colour that is not a palette index, is skipped; numbers out of range are held to it. A frame has
+2 ms of the script's own time: past that it is cut off and draws nothing, and three such frames in ten seconds hand over to the
+pack's other effects. The script's top level has 50 ms, and the script has 8 MB of memory. The app also holds the overlay to
+at most three flashes a second. For example:
+
+```js
+fx.onFrame(function (t) {
+  var cards = fx.signals().cards;
+  var list = [];
+  for (var i = 0; i < cards.length; i++) {
+    var c = cards[i];
+    var y = c.y + ((t / 3000 + i / 7) % 1) * c.h;
+    list.push({ op: "rect", x: c.x, y: y, w: c.w, h: 2, fill: c.state === "warn" ? 4 : 0, alpha: 0.2 + 0.3 * (c.value || 0) });
+  }
+  fx.draw(list);
+});
+```
 
 Saved themes are not the same as a widget's Styles (see [Styles, Copy, Paste and Make this the
 theme](#styles-copy-paste-and-make-this-the-theme)): a saved theme sets a screen's (or page's) look; a Style restyles the
 one widget you apply it to.
+
+### What a theme pack can set
+
+For a worked example of every part below, in the order you would build them, see [Building an advanced theme
+pack](building-an-advanced-theme-pack.md).
+
+A pack's `look.json` may list **variants** (the Variant row under Quick changes: chips, or a dropdown for more than two). A variant sets `accent`, and also `textColor`,
+`mutedColor`, `ok`, `warn`, `crit`, `borderColor`, `glowColor` and `numGlowColor`, as colours (`#rrggbb`, `rgb()`, `hsl()`,
+`oklch()` or an alias such as `{cyan}`), so a variant can restyle its labels and secondary text and not only the accent. A colour
+may instead be **derived from the variant's accent** in OKLCH, so one rule serves every accent:
+`"textColor": {"from": "accent", "l": 0.94, "c": 0.03}` takes the accent's hue at that lightness and chroma. The fields are `l`
+(lightness 0 to 1) or `lMin` (at least that light), `c` (chroma 0 to 0.4), `cMul` (0 to 2) or `cMax`, and `alpha` (only for
+`borderColor`, `glowColor` and `numGlowColor`). The app works the colour out when the variant is picked, so the contrast check
+reads it like any other colour: a variant that sets such a colour is refused when its text is under 4.5:1 on the pack's cards.
+The labels (the small names over a value, in the tone's grey by default) take the Look's `label-color` in `look.json`'s `t3`:
+`{accent}`, `{fg}` or `{muted}` follow that colour, so a variant that changes it recolours them too, or a `#rrggbb`; it is held to
+4.5:1 like the text.
+
+The same `t3` block can colour the widgets' **data**, so charts, rings and meters follow the variant too:
+
+- `series-1` to `series-6`: the series colours. A widget whose colour rows follow the theme's Series 1 to 6 (System Overview's
+  CPU, GPU, RAM and VRAM, Network Traffic's download and upload, Steam Friends' in-game and offline, Coding Agents' Claude Code
+  and Codex, with its heat grid) draws them instead of its own palette.
+- `meter-ok`, `meter-warn`, `meter-clip`: a level meter's safe, warning and clip zones. `meter-ok` replaces the theme's **OK**
+  on the meters (Audio Meter, Meter Bridge, Volume Mixer, Wave Link), so a pack can keep a green OK for its status lamps and
+  draw its meters in the accent.
+- `icon-color`: the icons' colour. The app's weather icons take it, and Meteocons are drawn in it as one colour while the
+  widget keeps the default icon style.
+
+Each is `{accent}`, `{fg}`, `{muted}`, `{faint}`, `{ok}`, `{warn}` or `{crit}` (the card's own colours, so a variant that changes
+one recolours the marks), a `#rrggbb`, or an alias of another T3 colour the Look sets (`"meter-ok": "{accent-ink}"` with
+`"accent-ink": "{accent}"` is the accent). A series is held to 3:1 on the cards. A colour you set on a widget, or under **Status &
+series colors** in the theme editor, still wins; a Look that sets none draws as before.
+
+A pack's page effects (the `glitch`, `flicker`, `rgb-split` and `interference` overlays, and a layer's `glow`) are drawn in the
+screen's accent, so they follow the variant and an accent you pick; the pack's own accent is used only where the screen sets none.
+
+In `pack.css`, real elements may also set `letter-spacing` (`normal` or up to `0.15em`, or the same in px), `text-transform`
+(`none` or `uppercase`) and `font-variant-numeric` (`tabular-nums`, `lining-nums`, `slashed-zero` and the like). They are not
+animated or transitioned, and font sizes stay the app's. A pack's own CSS animations (`@keyframes pack-*`) run only while the
+screen's **Effects** level is **Full**: at Calm and Off, in lite mode and with reduced animations every one of them stops, so a
+lamp that pulses in `pack.css` needs no switch of its own.
+
+A pack's `frame` in `pack.json` has `corners` (`square`, `cut`, `bracket` or `notch`) with a `size` up to 20 px (the Cyberspec kit's
+largest cut is 18) and a `stroke` up to 2 px, and now also:
+
+- `byCorner`: a kind for one corner, over `corners` and `which`, for example `{"tl": "cut", "br": "notch"}` (`square` leaves
+  that corner plain);
+- `spine`: `{"edge": "left", "width": 5}`, an accent bar along one edge, 1 to 6 px thick;
+- `tab`: `{"at": "tl", "width": 56, "height": 5}`, a solid accent tab on the top or bottom edge at a corner, up to 64 by 8 px;
+- `double`: `true` draws a second line 2 px inside the first;
+- `alpha`: how strong the lines and the spine are over the card, 0.2 to 1 (the Cyberspec kit's panel line is 0.55); the tab
+  stays solid.
+
+A spine, a tab or a second line is drawn only where the card's padding is at least as wide as it is, so it never covers text. For
+the same reason a card's ornaments (the small marks and labels in a corner) are drawn only where the padding is more than 10 px,
+and a corner ornament keeps clear of a cut corner and of a spine on its side.
+
+### Signing a pack you share
+
+Browse themes shows each imported pack's badge: **Verified by Themely** (Themely ran its checks and a person reviewed these
+exact files; it does not mean the pack is safe), **Signed by <publisher>, not reviewed**, **Unverified** (amber), or, in red,
+**Changed since it was signed** or **Withdrawn: <reason>**. A changed or withdrawn pack is not used. How the signatures work:
+[security.md](security.md#pack-signatures).
+
+To sign a pack you made, so people who trust your key see your name instead of Unverified:
+
+1. Make a minisign key once: `minisign -G -p acme.pub -s acme.key` (or, to try it out, `node tools/packs/sign.mjs --generate acme`,
+   which leaves the secret key unencrypted). Keep `acme.key` to yourself.
+2. Finish the pack, `version` in `pack.json` included, then sign the folder:
+   `node tools/packs/sign.mjs my-pack --key acme.key --password-env MINISIGN_PASSWORD`. This writes `pack.minisig` beside the
+   files: a signature over every file's SHA-256, so change nothing after it (sign again after any change, with a higher
+   `version`).
+3. Share the folder or a zip of it with `pack.minisig` in it, and your `acme.pub`. Whoever imports it adds `acme.pub` in
+   Settings › Widget publishers; until they do, the pack shows as Unverified.
+
+An update must be signed with the same key and have a higher version: the app refuses an older version, or another key's, over
+a pack it has. A pack's effect script runs only when the pack is verified, signed by a key whose **Allow pack scripts** is on in
+Settings › Widget publishers, or when you allow it for that pack; **Pack effect scripts** in Browse themes, or `PACK_SCRIPTS=off`
+on the server, turns them all off.
 
 ## Widget theme
 

@@ -637,6 +637,37 @@
 [data-pack-effect="flicker"][data-pack-animate] { animation: wp-fx-flicker calc(1s / var(--wp-fx-rate, 1)) linear infinite; }
 [data-pack-effect="rgb-split"][data-pack-animate] { animation: wp-fx-rgb-split calc(1s / var(--wp-fx-rate, 1)) linear infinite; }
 [data-pack-effect="interference"][data-pack-animate] { animation: wp-fx-interference calc(1s / var(--wp-fx-rate, 1)) linear infinite; }
+/* A pack's motion block (L117, src/looks/motion-render.tsx and motion-runtime.ts): every rule runs once per attribute the runtime sets for one run, never in a loop,
+   so an idle card is still. Timing and strength are the card's --mo-* values from the plan (each inside motion.ts's ranges). Lite mode stops them with every widget
+   animation (the rule above); Off and reduced motion set no attribute. A scramble keeps the real text in its place, ink hidden, with the noise copy over it. */
+[data-mo-text] { position: relative; }
+[data-mo-copy] { display: none; }
+[data-mo-text][data-mo-on] { -webkit-text-fill-color: transparent; }
+[data-mo-on] > [data-mo-copy] { display: block; position: absolute; top: 0; left: 0; white-space: pre; pointer-events: none; -webkit-text-fill-color: currentColor; }
+@keyframes app-mo-glitch {
+  0%, 100% { text-shadow: none; translate: none; clip-path: none; }
+  20% { text-shadow: calc(-1 * var(--mo-gx, 2px)) 0 var(--w-accent), var(--mo-gx, 2px) 0 var(--w-fg); translate: 1px 0; animation-timing-function: step-end; }
+  45% { text-shadow: var(--mo-gx, 2px) 0 var(--w-accent), calc(-0.5 * var(--mo-gx, 2px)) 0 var(--w-fg); translate: -1px 0; clip-path: inset(0 0 var(--mo-slice, 20%) 0); animation-timing-function: step-end; }
+  70% { text-shadow: calc(-0.5 * var(--mo-gx, 2px)) 0 var(--w-accent); translate: none; clip-path: none; animation-timing-function: step-end; }
+}
+@keyframes app-mo-flicker {
+  0%, 100% { opacity: 1; }
+  20% { opacity: var(--mo-dip, 0.75); animation-timing-function: step-end; }
+  30% { opacity: 1; animation-timing-function: step-end; }
+  70% { opacity: calc((1 + var(--mo-dip, 0.75)) / 2); animation-timing-function: step-end; }
+  78% { opacity: 1; }
+}
+@keyframes app-mo-sweep { from { transform: translateY(-60%); } to { transform: translateY(60%); } }
+@keyframes app-mo-fade { from { opacity: 0; } }
+@keyframes app-mo-clip { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes app-mo-line { 0% { transform: scaleX(0); opacity: 1; } 70% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+[data-mo-glitch] { animation: app-mo-glitch var(--mo-glitch-ms, 240ms) 1; }
+[data-mo-flicker] { animation: app-mo-flicker 600ms 1; }
+[data-mo-layer]::after { content: ""; position: absolute; inset: 0; opacity: 0; background: linear-gradient(to bottom, transparent 44%, var(--w-accent) 50%, transparent 56%); }
+[data-mo-layer][data-mo-sweep]::after { opacity: var(--mo-sweep-op, 0.2); animation: app-mo-sweep var(--mo-sweep-ms, 1200ms) linear 1 both; }
+[data-mo-arrive="fade"] { animation: app-mo-fade var(--mo-arrive-ms, 240ms) ease-out 1; }
+[data-mo-arrive="clip"] { animation: app-mo-clip var(--mo-arrive-ms, 240ms) steps(6, end) 1; }
+[data-mo-arrive="line"]::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: var(--w-accent); transform-origin: left; opacity: 0; animation: app-mo-line var(--mo-arrive-ms, 240ms) ease-out 1; }
 /* Lite mode with a pack worn (any pack, stage or not): widget blur is off (cap 0, section 9.3), and a blurred card fills to its fallback alpha instead, over any page. */
 :root[data-lite-motion][data-pack-worn] { --wp-blur-cap: 0px !important; }
 :root[data-lite-motion][data-pack-worn] [data-wp-tier][data-mat-blur] {

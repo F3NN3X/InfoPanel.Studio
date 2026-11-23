@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lintPackCss, scopePackCss } from "@/looks/pack-css";
+import { lintPackCss, PACK_MOTION_VAR, scopePackCss } from "@/looks/pack-css";
 
 describe("scopePackCss", () => {
   it("writes the parsed rules in @scope inside @layer look, and keyframes and font faces beside the scope", () => {
@@ -99,6 +99,9 @@ describe("lintPackCss: the Phase 2 values", () => {
     ["border-image-width, -outset", [`${R}{border-image-width:1 8px;border-image-outset:0}`], [`${R}{border-image-outset:1px}`, `${R}{border-image-width:9px}`, `${R}{border-image-width:2}`]],
     ["border-image shorthand", [`${R}{border-image:linear-gradient(#0ff, transparent) 1}`, `${R}{border-image:url(assets/e.svg) 30% 10 / 1px / 0 round stretch}`, `${R}{border-image:round 1 / 4px linear-gradient(#000, #fff)}`, `${R}{border-image:linear-gradient(#000, #fff) 1 fill}`, `${P}{border-image:none 2}`], [`${R}{border-image:conic-gradient(#000, #fff) 1}`, `${R}{border-image:linear-gradient(#000, #fff) 1 / 9px}`, `${R}{border-image:linear-gradient(#000, #fff) 1 / 1 / 2px}`, `${R}{border-image:linear-gradient(#000, #fff) -1}`, `${R}{border-image:linear-gradient(#000, #fff) 1 tile}`, `${R}{border-image:1 / 2 / 0 / 0}`, `${R}{border-image:url(a.svg) url(b.svg) 1}`, `${R}{border-image:url(a.svg) 1 2 3 4 5}`, `${R}{border-image:url(a.svg) 1 round 2}`, `${R}{border-image:url(a.svg) / 1}`, `${R}{border-image:round round round}`, `${R}{border-image:image(#000) 1}`]],
     ["outline-offset", [`${R}{outline-offset:-8px}`, `${R}{outline-offset:0}`], [`${R}{outline-offset:9px}`, `${R}{outline-offset:1em}`]],
+    ["letter-spacing", [`${R}{letter-spacing:0.06em}`, `${R}{letter-spacing:0.15em}`, `${R}{letter-spacing:1px}`, `${R}{letter-spacing:normal}`, `${R}{letter-spacing:0}`, `${P}{letter-spacing:0.1em}`], [`${R}{letter-spacing:0.16em}`, `${R}{letter-spacing:-0.02em}`, `${R}{letter-spacing:4px}`, `${R}{letter-spacing:1rem}`, `${R}{letter-spacing:5%}`, `${R}{letter-spacing:inherit}`, `${R}{letter-spacing:0.1em 0.1em}`, `${R}{transition:letter-spacing 1s}`, `@keyframes pack-t{to{letter-spacing:0.1em}} ${R}{animation:pack-t 2s}`]],
+    ["text-transform", [`${R}{text-transform:uppercase}`, `${R}{text-transform:none}`], [`${R}{text-transform:lowercase}`, `${R}{text-transform:capitalize}`, `${R}{text-transform:uppercase none}`, `@keyframes pack-t{to{text-transform:none}} ${R}{animation:pack-t 2s}`]],
+    ["font-variant-numeric", [`${R}{font-variant-numeric:tabular-nums}`, `${R}{font-variant-numeric:lining-nums slashed-zero}`], [`${R}{font-variant-numeric:diagonal-fractions}`, `${R}{font-variant-numeric:ordinal}`, `${R}{font-variant-numeric:tabular-nums lining-nums slashed-zero normal}`]],
     ["transition", [`${R}{transition:color 200ms ease-out, opacity 2s linear 100ms}`, `${R}{transition-property:box-shadow;transition-duration:1s;transition-timing-function:steps(4, jump-end)}`], [`${R}{transition:all 1s}`, `${R}{transition:1s}`, `${R}{transition:color 3s}`, `${R}{transition:width 1s}`, `${P}{transition:content 1s}`, `${R}{transition:color 1s -1s}`, `${R}{transition:--pack-a 1s}`]],
     ["border", [`${P}{border:1px solid #0ff}`, `${R}{border:solid}`, `${R}{border:#0ff dashed}`, `${R}{border:double rgb(1 2 3)}`, `${R}{border:none}`, `${R}{border:dotted var(--w-accent)}`, `${R}{border-style:solid dashed}`], [`${R}{border:1px solid #0ff}`, `${R}{border:0 solid}`, `${R}{border:thin solid}`, `${R}{border:medium dashed #0ff}`, `${R}{border:calc(1px + 1px) solid}`, `${R}{border:solid #0ff 1px}`, `${P}{border:5px solid #0ff}`, `${P}{border:1px groove #0ff}`, `${P}{border:1px solid url(a.svg)}`, `${P}{border:solid #0ff}`, `${R}{border:groove}`, `${R}{border:solid dashed}`, `${R}{border:#0ff}`, `${R}{border:solid url(a.svg)}`, `${R}{border-width:1px}`, `${R}{border-style:groove}`, `${R}{border-style:solid solid solid solid solid}`, `${R}{--pack-w:2px;border:solid var(--pack-w)}`]],
     ["length custom properties", [`${R}{--pack-w:12px;clip-path:polygon(0 0, 100% 0, var(--pack-w) 100%)}`, `${P}{--pack-w:8px;content:"";width:var(--pack-w);transform:translateX(var(--pack-w))}`, `@media (min-width: 1px){${R}{--pack-w:6px}} ${R}{border-radius:var(--pack-w)}`, `${R}{--pack-s:40%;mask-image:linear-gradient(#000 var(--pack-s), transparent)}`, `${R}{--pack-b:2px;border-image-width:var(--pack-b);border-image:linear-gradient(#000, #fff) 1 / var(--pack-b)}`, `${R}{--pack-w:0;--pack-w:4px;mask-size:var(--pack-w) 100%}`, `${R}{--pack-c:#0ff;mask-image:linear-gradient(var(--pack-c), transparent)}`], [`${R}{clip-path:polygon(0 0, 100% 0, var(--pack-x) 100%)}`, `${R}{--pack-w:12px;--pack-w:99px;border-radius:var(--pack-w)}`, `${R}{--pack-w:12px;border-image-width:var(--pack-w)}`, `${R}{--pack-w:12px;clip-path:polygon(0 0, 100% 0, var(--pack-w, 1px) 100%)}`, `${R}{--pack-chrome-w:12px;clip-path:polygon(0 0, 100% 0, var(--pack-chrome-w) 100%)}`, `${R}{--pack-w:12px;mask-image:linear-gradient(var(--pack-w), transparent)}`, `${R}{--pack-w:calc(1px + 2px);clip-path:polygon(0 0, 100% 0, var(--pack-w) 100%)}`, `${R}{--pack-w:2em;border-radius:var(--pack-w)}`, `${R}{--pack-w:1px 2px;mask-size:var(--pack-w)}`, `${R}{--pack-c:#0ff;clip-path:polygon(0 0, 100% 0, var(--pack-c) 100%)}`, `${P}{--pack-w:-2px;width:var(--pack-w)}`, `${R}{--pack-w:2px;border-image:linear-gradient(var(--pack-w), #fff) 1}`]],
@@ -144,6 +147,22 @@ describe("scopePackCss: the mount's own declarations and URLs", () => {
     expect(user).toContain("mask-image:url(/api/packs/mine/assets/m.svg)");
     expect(user).toContain('background:url("/api/packs/mine/assets/a%20b.png")');
     expect(scopePackCss("mine", css)).toContain("url(./assets//m.svg)");
+  });
+
+  it("reads every animation's names through the page's motion variable, after the pack's own, so Calm and Off stop them all", () => {
+    const anim = "@keyframes pack-a{to{opacity:.6}} @keyframes pack-b{to{opacity:.7}}";
+    const one = scopePackCss("p", `${anim} ${R}{animation:pack-a 2s steps(2) infinite}`);
+    expect(one).toContain(`:scope{animation:pack-a 2s steps(2) infinite;animation-name:var(${PACK_MOTION_VAR}, pack-a);}`);
+    // a list keeps its order, a longhand after the shorthand wins, and a part with no name stays none
+    expect(scopePackCss("p", `${anim} ${R}{animation:pack-a 2s,none;animation-name:pack-b,pack-a}`)).toContain(`animation-name:var(${PACK_MOTION_VAR}, pack-b, pack-a);}`);
+    expect(scopePackCss("p", `${anim} ${R}{animation:2s infinite,pack-b 1s}`)).toContain(`animation-name:var(${PACK_MOTION_VAR}, none, pack-b);}`);
+    // the pseudo lane keeps its box after the gate; a rule that animates nothing, and the keyframes, get no gate
+    expect(scopePackCss("p", `${anim} ${P}{content:"";animation:pack-b 3s infinite}`)).toContain(`animation-name:var(${PACK_MOTION_VAR}, pack-b);position:absolute;`);
+    expect(scopePackCss("p", `${anim} ${R}{color:red}`).match(/--wp-pack-motion/g)).toBeNull();
+  });
+
+  it("refuses a pack that sets the motion variable itself", () => {
+    expect(lintPackCss(`${R}{${PACK_MOTION_VAR}:pack-a}`).join()).toMatch(/not a paint property/);
   });
 
   it("mounts nothing for a user pack that names a URL outside its folder", () => {

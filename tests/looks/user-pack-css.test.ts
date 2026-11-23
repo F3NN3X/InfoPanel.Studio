@@ -166,6 +166,10 @@ describe("the importer", () => {
     expect(sign.url).toBe("/api/packs/mine/sign");
     expect(atob(sign.body.css)).toBe(CSS);
     expect(sign.body.hash).toBe(await packContentHash(checked.src.files as (PackFile & { bytes: Uint8Array })[]));
+    // the CSS still to come, by size and SHA-256: a publisher's signature covers it, so the server checks it at the import
+    const bytes = new TextEncoder().encode(CSS);
+    const sha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    expect(store.body.css).toEqual({ size: bytes.length, sha256 });
   });
 
   it("a signature the server will not give takes the pack off again, and says so", async () => {

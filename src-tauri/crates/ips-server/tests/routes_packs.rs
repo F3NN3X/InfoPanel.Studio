@@ -168,7 +168,8 @@ async fn lists_ids_names_and_sizes_and_nothing_else() {
     assert_eq!(list[0]["id"], "mine");
     assert_eq!(list[0]["name"], "Mine");
     assert!(list[0]["size"].as_u64().unwrap() > 0);
-    assert_eq!(list[0].as_object().unwrap().len(), 3, "ids, names and sizes only");
+    assert_eq!(list[0]["trust"], json!({ "state": "unverified" }), "an unsigned pack (pack signatures: routes_pack_trust.rs)");
+    assert_eq!(list[0].as_object().unwrap().len(), 4, "ids, names, sizes and trust only");
     s.stop().await;
 }
 
