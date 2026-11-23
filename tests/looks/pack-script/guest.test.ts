@@ -10,8 +10,8 @@ beforeAll(async () => {
   quickjs = await loadQuickJS();
 });
 
-const guest = (source: string, seed = 1): Guest => {
-  const g = createGuest(quickjs, source, { seed, level: "full" });
+const guest = (source: string, seed = 1, clock?: () => number): Guest => {
+  const g = createGuest(quickjs, source, { seed, level: "full", clock });
   if ("fault" in g) throw new Error(`guest refused: ${g.fault}`);
   return g;
 };
@@ -68,8 +68,10 @@ describe("a frame", () => {
   });
 
   it("keeps at most COMMANDS_MAX commands and says it was capped", () => {
-    const g = guest(`fx.onFrame(function () { var l = []; for (var i = 0; i < ${COMMANDS_MAX + 5}; i++) l.push({ op: "reset" }); fx.draw(l); });`);
+    // a frozen clock: this is about the command cap, not the time cap, and building 2,005 commands can pass GUEST_MS on a slow runner
+    const g = guest(`fx.onFrame(function () { var l = []; for (var i = 0; i < ${COMMANDS_MAX + 5}; i++) l.push({ op: "reset" }); fx.draw(l); });`, 1, () => 0);
     const f = g.frame(0);
+    expect(f.interrupted).toBeFalsy();
     expect((f.commands as unknown[]).length).toBe(COMMANDS_MAX);
     expect(f.capped).toBe(true);
     g.dispose();
