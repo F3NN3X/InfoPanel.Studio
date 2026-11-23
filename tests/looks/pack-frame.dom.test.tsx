@@ -42,8 +42,10 @@ describe("ornaments on a tight card (L110 Q4)", () => {
     expect(root.querySelector("[data-pack-decor=frame]")).not.toBeNull();
   });
 
-  it("draws them where the padding holds the band, or when the padding is not known", () => {
-    expect(at(10).querySelector('[data-ornament="label"]')?.textContent).toBe("SPEC");
+  it("draws them where the padding is over the band (the band is 1 px in and 10 tall, so 10 px of padding would be overlapped), or when it is not known", () => {
+    expect(at(10).querySelector("[data-ornament]")).toBeNull();
+    cleanup();
+    expect(at(11).querySelector('[data-ornament="label"]')?.textContent).toBe("SPEC");
     cleanup();
     expect(at(undefined).querySelector('[data-ornament="label"]')).not.toBeNull();
   });
@@ -68,6 +70,52 @@ describe("ornaments follow the page's size on the page context (L73)", () => {
     expect(inPage({ width: 3840, height: 2160 }).querySelector("[data-ornament]")).not.toBeNull();
     cleanup();
     expect(inPage(sm, { width: 3840, height: 2160 }).querySelector("[data-ornament]")).not.toBeNull();
+  });
+});
+
+describe("frame shapes the kit has (spine, tab, double line, a kind per corner)", () => {
+  it("clips each corner by its own kind", () => {
+    expect(frameClip({ corners: "square", size: 10, byCorner: { tl: "cut", br: "notch" } })).toBe("polygon(0 10px, 10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) calc(100% - 10px), calc(100% - 10px) 100%, 0 100%)");
+    // a kind of its own beats `which`
+    expect(frameClip({ corners: "cut", size: 6, which: ["tl"], byCorner: { tl: "square" } })).toBeUndefined();
+  });
+
+  it("draws a spine along the named edge and a tab at the named corner, in the accent, never over the content", () => {
+    const frame: PackFrame = { corners: "square", size: 0, stroke: 0, spine: { edge: "left", width: 5 }, tab: { at: "tr", width: 56, height: 5 } };
+    const root = render(<PackDecor decor={{ frame }} screen={md} pad={12} />).container;
+    const spine = root.querySelector("[data-frame-part=spine]") as HTMLElement;
+    expect(spine.style.width).toBe("5px");
+    expect(spine.style.left).toBe("0px");
+    expect(spine.style.background).toContain("--w-accent");
+    const tab = root.querySelector("[data-frame-part=tab]") as HTMLElement;
+    expect([tab.style.width, tab.style.height, tab.style.top, tab.style.right]).toEqual(["56px", "5px", "0px", "0px"]);
+    cleanup();
+    // the padding is under the bar: it is left out, and so is the frame when that was all it drew
+    expect(render(<PackDecor decor={{ frame }} screen={md} pad={4} />).container.querySelector("[data-pack-decor=frame]")).toBeNull();
+  });
+
+  it("keeps a tab clear of a cut corner it sits at", () => {
+    const root = render(<PackDecor decor={{ frame: { corners: "cut", size: 10, which: ["tl"], stroke: 0, tab: { at: "tl", width: 40, height: 4 } } }} screen={md} />).container;
+    expect((root.querySelector("[data-frame-part=tab]") as HTMLElement).style.left).toBe("10px");
+  });
+
+  it("draws a second line inside the first: a second path at each corner, a second ring on a square frame", () => {
+    const corners = view({ frame: { corners: "bracket", size: 10, which: ["tl"], stroke: 1, double: true } });
+    expect(corners.querySelectorAll("path")).toHaveLength(2);
+    cleanup();
+    expect(view({ frame: { corners: "bracket", size: 10, which: ["tl"], stroke: 1 } }).querySelectorAll("path")).toHaveLength(1);
+    cleanup();
+    const square = view({ frame: { corners: "square", size: 0, stroke: 1, double: true } }).querySelector("[data-pack-decor=frame]") as HTMLElement;
+    expect(square.children).toHaveLength(1);
+    cleanup();
+    // no room for the second line (two strokes and the gap): one line
+    const tight = render(<PackDecor decor={{ frame: { corners: "square", size: 0, stroke: 1, double: true } }} screen={md} pad={3} />).container;
+    expect((tight.querySelector("[data-pack-decor=frame]") as HTMLElement).children).toHaveLength(0);
+  });
+
+  it("strokes the corners of a per-corner frame by their kind and leaves the others plain", () => {
+    const root = view({ frame: { corners: "square", size: 10, stroke: 1, byCorner: { tl: "cut", br: "bracket" } } });
+    expect(root.querySelectorAll("svg")).toHaveLength(2);
   });
 });
 

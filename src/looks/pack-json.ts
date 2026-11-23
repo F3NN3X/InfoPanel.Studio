@@ -6,10 +6,17 @@ import type { PackEffect, SizeClass } from "./effects";
 
 /** A card ornament stays in a band at most this many px (G2); the slot component's `ornament.size` is held to it unless it bleeds. */
 export const ORNAMENT_MAX = 10;
-/** A cut, notch or bracket is at most this many px (the old chamfer cap). */
+/** A cut, notch or bracket is at most this many px (the old chamfer cap; the kit's largest cut is 18). */
 export const FRAME_SIZE_MAX = 20;
 /** A frame's stroke, px. */
 export const FRAME_STROKE_MAX = 2;
+/** A frame's spine (an accent bar along one edge) is at most this many px thick (the kit's is 5). */
+export const FRAME_SPINE_MAX = 6;
+/** A frame's tab (a solid accent tab on an edge) is at most this wide and this high, px (the kit's is 56 by 5). */
+export const FRAME_TAB_WIDTH_MAX = 64;
+export const FRAME_TAB_HEIGHT_MAX = 8;
+/** The gap between the two lines of a `double` frame, px. */
+export const FRAME_DOUBLE_GAP = 2;
 /** At most this many ornaments on a card. */
 export const ORNAMENTS_MAX = 4;
 /** An ornament's text, characters. */
@@ -21,6 +28,8 @@ export const FRAME_CORNERS = ["square", "cut", "bracket", "notch"] as const;
 export type FrameCorners = (typeof FRAME_CORNERS)[number];
 export const CORNERS = ["tl", "tr", "br", "bl"] as const;
 export type Corner = (typeof CORNERS)[number];
+export const FRAME_EDGES = ["left", "right", "top", "bottom"] as const;
+export type FrameEdge = (typeof FRAME_EDGES)[number];
 export const ORNAMENT_KINDS = ["micro-print", "ticks", "reticle", "label"] as const;
 export type OrnamentKind = (typeof ORNAMENT_KINDS)[number];
 /** The ornament kinds that carry `text` (the others refuse it). */
@@ -44,6 +53,14 @@ export interface PackFrame {
   which?: Corner[];
   /** px, 0 to `FRAME_STROKE_MAX`, in the Look's accent; unset = 1. */
   stroke?: number;
+  /** A corner's own kind, over `corners` and `which` (`square` leaves it plain). */
+  byCorner?: Partial<Record<Corner, FrameCorners>>;
+  /** A solid accent bar along one edge, `width` px thick, 1 to `FRAME_SPINE_MAX`. */
+  spine?: { edge: FrameEdge; width: number };
+  /** A solid accent tab on the edge at a corner: `width` 1 to `FRAME_TAB_WIDTH_MAX`, `height` 1 to `FRAME_TAB_HEIGHT_MAX`, px. */
+  tab?: { at: Corner; width: number; height: number };
+  /** A second line `FRAME_DOUBLE_GAP` px inside the first. */
+  double?: boolean;
 }
 
 /** One ornament the app draws on the card. */

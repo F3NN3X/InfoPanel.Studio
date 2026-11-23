@@ -95,7 +95,34 @@
         "corners": { "enum": ["square", "cut", "bracket", "notch"] },
         "size": { "type": "number", "minimum": 0, "maximum": 20 },
         "which": { "type": "array", "minItems": 1, "items": { "enum": ["tl", "tr", "br", "bl"] } },
-        "stroke": { "type": "number", "minimum": 0, "maximum": 2 }
+        "stroke": { "type": "number", "minimum": 0, "maximum": 2 },
+        "byCorner": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tl": { "enum": ["square", "cut", "bracket", "notch"] },
+            "tr": { "enum": ["square", "cut", "bracket", "notch"] },
+            "br": { "enum": ["square", "cut", "bracket", "notch"] },
+            "bl": { "enum": ["square", "cut", "bracket", "notch"] }
+          }
+        },
+        "spine": {
+          "type": "object",
+          "required": ["edge", "width"],
+          "additionalProperties": false,
+          "properties": { "edge": { "enum": ["left", "right", "top", "bottom"] }, "width": { "type": "number", "minimum": 1, "maximum": 6 } }
+        },
+        "tab": {
+          "type": "object",
+          "required": ["at", "width", "height"],
+          "additionalProperties": false,
+          "properties": {
+            "at": { "enum": ["tl", "tr", "br", "bl"] },
+            "width": { "type": "number", "minimum": 1, "maximum": 64 },
+            "height": { "type": "number", "minimum": 1, "maximum": 8 }
+          }
+        },
+        "double": { "type": "boolean" }
       }
     },
     "ornaments": {

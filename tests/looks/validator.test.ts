@@ -167,6 +167,17 @@ describe("bad packs, one per rule", () => {
     expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, which: [] } } }))).toContain("schema");
     expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, which: ["top"] } } }))).toContain("schema");
     expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, which: ["tl", "tl"] } } }))).toContain("frame");
+  });
+
+  it("a frame's spine, tab, double line and kind per corner pass; one past the caps or off the vocabulary is refused", () => {
+    const ok = { corners: "square", size: 18, byCorner: { tl: "cut", br: "notch" }, spine: { edge: "left", width: 5 }, tab: { at: "tl", width: 56, height: 5 }, double: true, stroke: 1 };
+    expect(rules(bad({ pack: { frame: ok } }))).toEqual([]);
+    expect(rules(bad({ pack: { frame: { ...ok, spine: { edge: "left", width: 7 } } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { ...ok, spine: { edge: "middle", width: 5 } } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { ...ok, tab: { at: "tl", width: 65, height: 5 } } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { ...ok, tab: { at: "tl", width: 56, height: 9 } } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { ...ok, byCorner: { tl: "round" } } } }))).toContain("schema");
+    expect(rules(bad({ pack: { frame: { ...ok, double: "yes" } } }))).toContain("schema");
     expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, colour: "#f00" } } }))).toContain("schema");
   });
 
@@ -605,6 +616,41 @@ describe("M5: every string of a Look is read", () => {
     expect(rules(bad({ look: (l) => (l.variants = [{ ...night, values: { radius: "999" } }]) }))).toContain("variant");
     expect(rules(bad({ look: (l) => (l.variants = [{ ...night, values: { colour: "#fff" } }]) }))).toContain("variant");
     expect(rules(bad({ look: (l) => (l.variants = [{ id: "night", values: {} }]) }))).toContain("schema");
+  });
+
+  it("a variant may set the text, secondary text, status and line colours, and derive them from its accent", () => {
+    const set = (values: Json) => bad({ look: (l) => (l.variants = [{ id: "ice", name: "Ice", values }]) });
+    // Field Kit's card is cream, so the colours that read on it are dark
+    expect(rules(set({ accent: "#8a3b12", textColor: "#1a1a1a", mutedColor: "#4a4a4a", ok: "#1a6b3a", borderColor: "#8a3b12", glowColor: "#8a3b12" }))).toEqual([]);
+    expect(rules(set({ accent: "#8a3b12", textColor: { from: "accent", l: 0.25, c: 0.03 }, mutedColor: { from: "accent", l: 0.4, cMul: 0.5 }, borderColor: { from: "accent", alpha: 0.5 } }))).toEqual([]);
+    // an alpha on a text role, a derive of the accent, a bad field or range, a colour that is not one
+    expect(rules(set({ textColor: "#ffffff80" }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent", l: 0.9, alpha: 0.5 } }))).toContain("variant");
+    expect(rules(set({ accent: { from: "accent", l: 0.9 } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "fg", l: 0.9 } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent" } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent", l: 1.2 } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent", l: 0.9, lMin: 0.5 } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent", c: 0.1, cMul: 1 } }))).toContain("variant");
+    expect(rules(set({ textColor: { from: "accent", hue: 20 } }))).toContain("variant");
+    expect(rules(set({ textColor: "red" }))).toContain("variant");
+    expect(rules(set({ radius: { from: "accent", l: 0.9 } }))).toContain("variant");
+  });
+
+  it("the contrast checks run per variant: a variant whose own text colour fails on the card is refused", () => {
+    const set = (values: Json) => bad({ look: (l) => (l.variants = [{ id: "dim", name: "Dim", values }]) });
+    expect(rules(set({ textColor: "#e0e0e0" }))).toContain("contrast");
+    expect(rules(set({ mutedColor: "#d8d8d8" }))).toContain("contrast");
+    // derived: the accent at a lightness too close to the card's reads too low; the accent itself is read too
+    expect(rules(set({ accent: "#8a3b12", textColor: { from: "accent", l: 0.9 } }))).toContain("contrast");
+    expect(rules(set({ accent: "#f0f0f0", textColor: "#1a1a1a" }))).toContain("contrast");
+    // an accent swap alone is what variants always were: not held to a ratio it was never checked for
+    expect(rules(set({ accent: "#f0f0f0" }))).toEqual([]);
+  });
+
+  it("a derive from an accent that cannot be read is refused", () => {
+    const set = (values: Json) => bad({ look: (l) => (l.variants = [{ id: "x", name: "X", values }]) });
+    expect(rules(set({ accent: "{nope}", textColor: { from: "accent", l: 0.25 } }))).toContain("variant");
   });
 });
 
