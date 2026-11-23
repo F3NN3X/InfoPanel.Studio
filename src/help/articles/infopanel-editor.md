@@ -30,7 +30,7 @@ The search, the shape chips, the color dots on the cards, **Recently used** and 
 
 **Blank canvas**, in the row above the templates, is an empty profile at 800 × 480 with a near black background and white Segoe UI text. A template comes at the size its card shows, Meters at 1600 × 300 and Deck at 1920 × 1080, until you set a size yourself; after that, picking another template keeps your size.
 
-**Your Library** lists your own saved profiles after Recently used, and **From your Library** in the row above jumps to them. A Library profile is copied as it is, at its own size, so **Size** goes away. Tick **Also save to Library** to keep the new profile there too; it's off unless you tick it.
+**Your library** lists your own saved profiles after Recently used, and **From your Library** in the row above jumps to them. A Library profile is copied as it is, at its own size, so **Size** goes away. Tick **Also save to Library** to keep the new profile there too; it's off unless you tick it.
 
 When you pick a template, **Sensors** says how many of the sensors it reads were found on your PC. **Review** opens one row for each, with the sensor found. Open a row to pick another, or choose **Leave unbound**. A row that found nothing says **Not found · left unbound**; open it to choose one. Whatever is still unbound when you press **Create profile** is listed over the canvas afterwards.
 
