@@ -27,6 +27,13 @@ export function chartRange(samples: readonly Sample[], lines: readonly number[])
   return [low - pad, high + pad];
 }
 
+/** The fill under a line: the line's points closed along the bottom edge. */
+export function areaPoints(points: string, height: number): string {
+  if (!points) return "";
+  const xs = points.split(" ").map((p) => p.split(",")[0]);
+  return `${xs[0]},${height} ${points} ${xs[xs.length - 1]},${height}`;
+}
+
 /** The polyline's points: time runs to `now` at the right edge. */
 export function chartPoints(samples: readonly Sample[], now: number, width: number, height: number, low: number, high: number): string {
   if (samples.length < 2) return "";

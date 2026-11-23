@@ -3,7 +3,6 @@ import { Button, FOCUS_RING } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { IconButton } from "@/components/ui/icon-button";
 import { Popover } from "@/components/ui/popover";
-import { sparkSummary } from "@/components/ui/sensor-row";
 import { StatusChip } from "@/components/ui/status-chip";
 import type { HistoryRecorder } from "@/lib/data-history";
 import { formatReading, type DataPoint } from "@/lib/data-points";
@@ -144,7 +143,7 @@ export function PointInspector({
         </div>
         {point.type === "number" && live && (
           <>
-            <AreaChart samples={samples} label={sparkSummary(point.name, samples, unit)} />
+            <AreaChart samples={samples} name={point.name} unit={unit} />
             <dl className="m-0 grid grid-cols-3 gap-2">
               {(
                 [
