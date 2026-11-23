@@ -14,7 +14,7 @@ name = "ips-agent"
 path = "src/main.rs"
 
 [dependencies]
-base64 = "0.22"
+base64 = "0.23"
 # the permission answer's signature (hook_auth.rs): the server's own MAC and RNG, already in the lock
 blake2 = "0.11"
 getrandom = "0.4"
