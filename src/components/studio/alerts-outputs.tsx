@@ -112,7 +112,7 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
           value={highlight}
           onChange={(next) => setHighlight(next as Highlight)}
           options={[
-            { value: "none", label: autoRings ? "From Auto" : "None" },
+            { value: "none", label: autoRings ? "From auto" : "None" },
             { value: "sensor", label: "Those showing the sensor" },
             { value: "chosen", label: "Chosen widgets" },
           ]}

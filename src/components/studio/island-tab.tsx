@@ -123,7 +123,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
             link={font}
             linkText="Theme"
             onNavigate={() => navigateTo({ view: "theme", themeScope: { kind: "profile" }, profileId: profile.id, section: "type" })}
-            followText="Follow Theme"
+            followText="Follow the theme"
             onFollow={() => patchIsland(FOLLOW_THEME)}
           />
         ),
@@ -133,7 +133,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
             link={clock}
             linkText="Settings"
             onNavigate={() => navigateTo({ view: "settings", tab: "dashboard", section: "clock" })}
-            followText="Follow the Dashboard"
+            followText="Follow the dashboard"
             onFollow={() => patchIsland(FOLLOW_DASHBOARD)}
           />
         ),
