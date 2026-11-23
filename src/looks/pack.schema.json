@@ -139,6 +139,19 @@
         }
       }
     },
+    "motion": {
+      "description": "Text and card effects the app draws (L117, src/looks/motion.ts): each effect's ranges are the validator's (rule motion).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "glitch": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
+        "decode": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" } } },
+        "scramble": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
+        "arrival": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "style": { "enum": ["fade", "clip", "line"] } } },
+        "flicker": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "every": { "type": "number" }, "target": { "enum": ["card", "label"] } } },
+        "sweep": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } }
+      }
+    },
     "ornament": {
       "type": "object",
       "required": ["size"],

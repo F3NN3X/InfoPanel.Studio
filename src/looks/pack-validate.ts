@@ -16,6 +16,7 @@ import { LOOK_IDS } from "./ids";
 import { PACK_FONT_FAMILIES } from "./pack-fonts";
 import { resolveT1, resolveVariant, VARIANT_ALPHA, VARIANT_COLOURS, type Look, type T1Name, T1_NAMES, type VariantDerive } from "./look";
 import lookSchema from "./look.schema.json";
+import { motionIssues } from "./motion";
 import { MAX_LAYERS, NUMERAL_MIN, numeralIssues, stageIssues } from "./pack-checks";
 import { FLASH_MAX, FRAME_SIZE_MAX, FRAME_SPINE_MAX, FRAME_STROKE_MAX, FRAME_TAB_HEIGHT_MAX, FRAME_TAB_WIDTH_MAX, FX_KINDS, ORNAMENT_MAX, ORNAMENT_TEXT_MAX, ORNAMENTS_MAX, TEXT_ORNAMENTS, type PackJson } from "./pack-json";
 import { commaParts, lintPackCss, OPACITY_FLOOR } from "./pack-css";
@@ -790,6 +791,8 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
   if (pack.edge?.kind === "chamfer" && !(pack.edge.cut !== undefined && pack.edge.cut <= CHAMFER_MAX)) add("chamfer", "pack.json", `chamfer cut ${pack.edge.cut ?? "missing"}: at most ${CHAMFER_MAX} px`);
   else if (pack.edge?.kind !== "chamfer" && pack.edge?.cut !== undefined && pack.edge.cut > CHAMFER_MAX) add("chamfer", "pack.json", `edge cut ${pack.edge.cut}: at most ${CHAMFER_MAX} px`);
 
+  out.push(...motionPackIssues(pack));
+
   // icons
   if (src.icons !== undefined) {
     for (const m of iconSetIssues(src.icons)) add(m.includes("icon name list") ? "icon-key" : "icons", "icons.json", m);
@@ -843,6 +846,11 @@ function layerBrightness(l: { fill?: string; image?: string }, files: Map<string
   const path = isPackRelativeUrl(l.image) ? resolve(l.image, "assets/") : undefined;
   const f = path ? files.get(path) : undefined;
   return f?.bytes && /\.svg$/i.test(f.path) ? svgBrightness(text(f.bytes)) : undefined;
+}
+
+/** The motion block (L117): each effect's strength and timing inside its range (`MOTION_RULES`); the schema has already refused an unknown effect or key. Inert data, the same for a user pack. */
+function motionPackIssues(pack: PackJson): PackIssue[] {
+  return motionIssues(pack.motion).map((m) => issue("motion", "pack.json", m));
 }
 
 /** Errors first; the same rule on the same file and message once. */

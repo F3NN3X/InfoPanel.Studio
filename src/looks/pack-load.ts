@@ -8,6 +8,7 @@ import { LOOK_IDS } from "./ids";
 import { iconSetIssues } from "./icon-set";
 import { setPackId, type Pack } from "./pack";
 import { lintPackCss, scopePackCss } from "./pack-css";
+import { motionIssues } from "./motion";
 import { MAX_LAYERS, numeralIssues, stageIssues } from "./pack-checks";
 import PackStageLayers from "./pack-stage";
 import { isPackRelativeUrl, packCssIssues } from "./pack-urls";
@@ -127,6 +128,7 @@ export function packIssues(pack: Pack): string[] {
   if (pack.slots?.icons) issues.push(...iconSetIssues(pack.slots.icons));
   issues.push(...templateIssues(pack));
   issues.push(...numeralIssues(pack.look));
+  issues.push(...motionIssues(pack.motion));
   return issues;
 }
 

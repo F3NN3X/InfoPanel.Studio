@@ -65,8 +65,8 @@ export interface LookKnobsProps {
 }
 
 /** The inline controls' height: 32 px (rules §3). */
-const SEGMENT = cn("h-8 flex-1 whitespace-nowrap rounded-ui-sm px-2 text-caption text-ui-3 hover:text-ui-1 disabled:opacity-50", FOCUS_RING);
-const SEGMENT_ON = "bg-ui-active text-ui-1";
+export const SEGMENT = cn("h-8 flex-1 whitespace-nowrap rounded-ui-sm px-2 text-caption text-ui-3 hover:text-ui-1 disabled:opacity-50", FOCUS_RING);
+export const SEGMENT_ON = "bg-ui-active text-ui-1";
 const RING = "shadow-[0_0_0_2px_var(--ui-bg-chrome),0_0_0_4px_#ededf0]";
 
 const same = (a: unknown, b: string) => typeof a === "string" && a.trim().toLowerCase() === b.toLowerCase();
@@ -75,7 +75,7 @@ const same = (a: unknown, b: string) => typeof a === "string" && a.trim().toLowe
 const RESET_FOCUS = ["[aria-pressed=true]", "[role=radio][tabindex='0']", "button", "input"];
 
 /** One knob as a setting row: the inheritance dot (filled and a Reset when set here, hollow when it follows), the name, the control on the right. */
-function Knob({ label, custom, from, onReset, locked, children, note }: { label: string; custom: boolean; from: string; onReset: () => void; locked?: string; children: ReactNode; note?: ReactNode }) {
+export function Knob({ label, custom, from, onReset, locked, children, note }: { label: string; custom: boolean; from: string; onReset: () => void; locked?: string; children: ReactNode; note?: ReactNode }) {
   const controls = useRef<HTMLDivElement>(null);
   // Reset goes away with the dot's fill: focus moves to the knob's control, not the page.
   const reset = () => {
@@ -102,7 +102,7 @@ function Knob({ label, custom, from, onReset, locked, children, note }: { label:
 }
 
 /** A segmented choice on the row's right: a radiogroup with a roving tab stop. */
-function Choice({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+export function Choice({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
     <div role="radiogroup" aria-label={label} onKeyDown={(e) => onRovingKeyDown(e, "[role=radio]:not(:disabled)")} className={cn("flex gap-0.5 rounded-ui-md border border-ui-strong bg-ui-chrome p-0.5", className)}>
       {children}

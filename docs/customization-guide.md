@@ -1269,7 +1269,7 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
   **Reset to ‹name›** and **Undo**.
 - **Customise** draws the screen as the kiosk draws it (**Show as** Full or Lite mode) with, on the right, the **theme
   card** (**Change** opens Browse themes), **Quick changes** (**Accent**, **Mode**, **Cards**, **Corners**, **Density**),
-  **In this theme** (Scenery, Effects, Card details, Icons, Font, Background and **Keep my background**, Burn-in care) and
+  **Motion** (only for a theme pack that brings motion, see below), **In this theme** (Scenery, Effects, Card details, Icons, Font, Background and **Keep my background**, Burn-in care) and
   **Fine-tune**.
 - **Fine-tune** holds the sections that sit on top of the theme: **Colors**, **Text**, **Shape & spacing**, **Surface &
   border**, **Units & format**, **Thresholds**, **Motion** and **Custom CSS**. Each has a dot saying whether the value is
@@ -1282,6 +1282,21 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
 - The preview draws the page at its real shape and tags each widget that differs from the level; click one for **Use
   theme's value** and **Open in Edit ↗**, or **Make all follow** with nothing selected.
 - The command palette has **Apply theme: ‹name›** and **Apply theme, keep background: ‹name›**.
+- **Motion** shows for a theme pack whose `pack.json` has a `motion` block: labels and titles that decode as a card arrives,
+  numbers that scramble for a moment when their reading changes (at most once every few seconds each), a short glitch on
+  the titles, a card that fades, wipes or draws a line in as it arrives, and an occasional flicker or scan line across a
+  card. **Level** is the screen's **Effects** setting (Screens › Performance): **Full** draws all of it, **Calm** only what
+  plays as a card or reading arrives, **Off** none; reduced animations and lite mode draw none either. **Intensity** and
+  **Speed** (Low or Slow, the theme's own, High or Fast) and a switch per effect are stored like the other quick changes,
+  at the screen or page. The real text stays on the page throughout (the noise is a copy screen readers skip), nothing
+  changes size, and nothing flashes more than three times a second.
+
+  In `pack.json`, `motion` takes any of `glitch`, `decode`, `scramble`, `arrival`, `flicker` and `sweep`, each an object
+  with `on` (default true; false leaves it for the switch), `intensity` (0.1 to 1) and its own timing: `glitch` `ms`
+  80-300 and `every` 0 (on arrival only) or 4-120 seconds; `decode` `ms` 150-900; `scramble` `ms` 60-300 and `every`
+  1-60 (the least seconds between two scrambles of one number); `arrival` `ms` 120-300 and `style` `fade`, `clip` or
+  `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000 and `every` 4-120. Anything else,
+  or a value out of range, refuses the pack at import.
 
 Saved themes are not the same as a widget's Styles (see [Styles, Copy, Paste and Make this the
 theme](#styles-copy-paste-and-make-this-the-theme)): a saved theme sets a screen's (or page's) look; a Style restyles the
