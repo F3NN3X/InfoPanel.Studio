@@ -142,6 +142,32 @@ security model, what was fixed, what was decided, and what is deferred.
   aria-hidden copy over the real text, which stays in the page for assistive technology, privacy blur and export. The page
   runs at most one repeat a second; nothing runs while the page is hidden, at the Effects level Off, in lite mode or under
   reduced motion.
+- <a id="pack-scripts"></a>**Pack scripts** (`src/looks/pack-script/`): a pack may carry one effect script (`pack.json`
+  `script`, one listed `.js` asset of at most 64 KB; the validator refuses any other `.js`). It is the only pack-supplied code
+  the app runs, and it runs only in the pack-script sandbox: a dedicated module worker loaded from the app's own bundle (never
+  a `blob:` worker, which would take the page's policy), hosting a QuickJS runtime (quickjs-emscripten, its release build as a
+  separate `.wasm`). The guest's globals are the language's own, without `Date`, `Promise`, `Proxy` and `Math.random`, plus
+  a frozen `fx` (`onFrame`, `draw`, `signals`, `rand`, `now`); no host function is installed in it, so it has no web API, no
+  network, storage, `BroadcastChannel`, Tauri IPC, timer or navigation: a frame is one call into the guest and one JSON
+  string back. The worker checks every command against an allow-list (rect, arc, path, a card's text box, a capped transform,
+  reset; colours only as indices into the Look's palette, numbers clamped) and draws it on an `OffscreenCanvas` overlay that
+  is `aria-hidden`, takes no pointer events and never filters, moves or clips a widget.
+  - **Caps**: 2 ms of guest time a frame (an interrupt handler), 50 ms for the top level, 2,000 commands and 8,000 path points a
+    frame, an 8 MB heap and a 256 KB stack, 30 frames a second at Full and 15 at Calm, driven by the page's animation frames
+    (the guest has no timer). A frame cut off by the interrupt draws nothing; three frames over budget in 10 s end the script
+    and the pack's declarative effects stay (`fallback`); a memory or stack hit, an error, a top level past its time, or a
+    frame the worker does not answer within 0.5 s (the interrupt is not polled inside the runtime's own native work, such as a large
+    allocation near the heap limit) terminate the worker (`stopped`). The host samples each frame at 16 by 9 and
+    shows at most three flashes a second (a change of 0.1 relative luminance in a cell is half a flash); a frame past that is
+    not shown.
+  - **Data**: per card its box, the lead bar's or ring's value as 0 to 1 rounded to hundredths, its threshold state, and its
+    texts as boxes with a glyph count, never a character; read at most 4 times a second. A card that blurs a value for privacy,
+    and coding-agent and chat cards (`data-fx-quiet`), send nothing and are erased from the overlay after every frame.
+  - **When it runs**: only when the server's trust answer for the pack says so (`GET /api/packs/<id>/trust` `scriptRuns`) and
+    the script comes from `GET /api/packs/<id>/fx.js` as `text/javascript`; the client reads any other answer as "no script".
+    It starts only when the motion rules allow it (not at Effects Off, in lite mode, under reduced motion) on a visible page,
+    and any change of these ends the worker. An unverified pack's script runs only after the user allowed it in the studio,
+    asked once per pack; the kiosk never asks. Modified and revoked packs never run one.
 - **App icons** (`POST /api/assets/app-icon`, `crates/ips-server/src/app_icon.rs`): a rail item's icon read from a
   program's `.exe` and stored as a PNG asset. The studio names the program by its file name only (`Chat.exe`: letters,
   digits and a few punctuation marks, no separator, drive or `%`); the server looks for it among the programs running now,
@@ -336,3 +362,6 @@ with `node tools/widgets/sign.mjs <package-folder> --key infopanel-widgets.key -
 - The desktop app's IPC under the new server CSP, and a Web Page widget under it (both reasoned from the policy).
 - A real write from another LAN device (unit tests cover `remoteEditRefusal`; route tests bind 127.0.0.1).
 - The proxy's connect-time pinning against a real public host.
+- Pack scripts: that Tauri IPC is refused from the pack-script worker in WebView2 (the guest has no host function at all, so
+  this is the worker's own reach), and that every kiosk browser gives a URL worker its own response's policy rather than the
+  page's. The worker's script and the runtime's `.wasm` are served like any app asset, without a policy of their own.

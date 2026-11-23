@@ -37,8 +37,8 @@ export function startScript(run: ScriptRun): () => void {
   const worker = new Worker(new URL("./fx-worker.ts", import.meta.url), { type: "module", name: "pack-fx" });
   const dog = watchdog();
   let raf = 0;
+  let wait: ReturnType<typeof setTimeout> | undefined;
   let reply: ReturnType<typeof setTimeout> | undefined;
-  let busy = true;
   let last = -Infinity;
   let lastSignals = -Infinity;
   let sent = "";
@@ -49,6 +49,7 @@ export function startScript(run: ScriptRun): () => void {
     if (done) return;
     done = true;
     cancelAnimationFrame(raf);
+    clearTimeout(wait);
     clearTimeout(reply);
     resize.disconnect();
     worker.terminate();
@@ -61,9 +62,12 @@ export function startScript(run: ScriptRun): () => void {
   const send = (m: ToWorker, transfer: Transferable[] = []) => worker.postMessage(m, transfer);
   const resize = new ResizeObserver(() => send({ type: "size", width: run.canvas.offsetWidth, height: run.canvas.offsetHeight, scale: pixels() }));
 
+  // one animation frame a slot, not one a display frame: the page asks for a frame only when the next one is due
+  const next = () => {
+    const due = last + 1000 / run.plan.fps - performance.now();
+    wait = setTimeout(() => (raf = requestAnimationFrame(tick)), Math.max(0, due - 8));
+  };
   const tick = (now: number) => {
-    raf = requestAnimationFrame(tick);
-    if (busy || now - last < 1000 / run.plan.fps - 1) return;
     last = now;
     let signals: ReturnType<typeof readSignals> | undefined;
     if (now - lastSignals >= SIGNAL_MS) {
@@ -75,7 +79,6 @@ export function startScript(run: ScriptRun): () => void {
         signals = read;
       }
     }
-    busy = true;
     send({ type: "frame", t: now, ...(signals ? { signals: signals.signals, quiet: signals.quiet } : null) });
     reply = setTimeout(() => end("stopped", "no answer"), REPLY_MS);
   };
@@ -84,11 +87,15 @@ export function startScript(run: ScriptRun): () => void {
     const m = e.data;
     clearTimeout(reply);
     if (m.type === "end") return end("stopped", m.reason);
-    busy = false;
     if (m.type === "ready") {
+      // the first frame goes now: the watchdog's and the tests' clock starts here
+      run.canvas.setAttribute("data-fx-ready", "");
       resize.observe(run.canvas);
       raf = requestAnimationFrame(tick);
-    } else if (m.type === "frame" && m.over && dog.over(performance.now())) end("fallback", "over budget");
+    } else if (m.type === "frame") {
+      if (m.over && dog.over(performance.now())) end("fallback", "over budget");
+      else next();
+    }
   };
   worker.onerror = () => end("stopped", "worker");
 

@@ -24,8 +24,11 @@ export const SCRIPT_FPS = { full: 30, calm: 15 } as const;
 export const SIGNAL_MS = 250;
 /** The watchdog: this many frames over budget inside `windowMs` and the script gives way to the pack's declarative effects. */
 export const WATCHDOG = { over: 3, windowMs: 10_000 } as const;
-/** A frame the worker has not answered in this many ms ends the script (the worker is terminated). */
-export const REPLY_MS = 1000;
+/**
+ * A frame the worker has not answered in this many ms ends the script (the worker is terminated). The interrupt handler is not
+ * polled inside the runtime's own native work: a guest that fills its heap with large strings spent seconds in one call in Node.
+ */
+export const REPLY_MS = 500;
 /** The worker has this long to load the runtime and run the script's top level, ms. */
 export const START_MS = 10_000;
 /** A coordinate or length is held to ±this many px; a line is at most `LINE_MAX` px wide; a transform scales at most `SCALE_MAX` times. */
