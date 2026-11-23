@@ -205,7 +205,7 @@ export function RailEditor({ stored, profile, index, pageId, item, appearance, t
         <section className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-ui-md border border-ui-edge bg-ui-raised px-4 py-3">
           <h2 className="text-body font-semibold">Rail look</h2>
           <span className="text-body text-ui-3">
-            Colours <span className="text-ui-1">Follow the Look</span>
+            Colours <span className="text-ui-1">Follow the look</span>
           </span>
           <span className="text-body text-ui-3">
             Width <span className="text-ui-1">{`${item.thickness} px`}</span>
