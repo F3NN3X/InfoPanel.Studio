@@ -4,6 +4,7 @@ import type { ThemeState, ThemeUse } from "@/lib/theme-apply";
 import { isSectionId } from "@/lib/theme-model";
 import { isLightTheme, type TemplateThemeRow } from "@/lib/screen-templates/template-rows";
 import { cardOfSection, THEME_CARDS, type ThemeAt, type ThemeCardId } from "./theme-cards";
+import type { ModuleSettingValue } from "@/modules/types";
 import type { ThemeScope } from "./theme-editor-model";
 
 /**
@@ -138,6 +139,17 @@ export function backgroundLabel(bg: PageBackground | undefined): string {
 /** Corners: the slider's px (0–24) from the stored rem, and back (rem = px / 16). */
 export const radiusPx = (rem: number): number => Math.round(rem * 16);
 export const pxRadius = (px: number): number => px / 16;
+
+/**
+ * The px the one Corners control shows (L48): the widget `radius` the level shows (its own, else what it inherits, the
+ * theme's included) where it is a number, because that is what its widgets draw; else the screen's corners (rem), which
+ * a widget's "auto" corners follow. So a config saved with the two stores apart shows what its widgets draw.
+ */
+export function cornersPx(radius: ModuleSettingValue | undefined, rem: number): number {
+  const px = Number(radius);
+  const own = radius !== undefined && radius !== "" && radius !== "auto" && Number.isFinite(px);
+  return Math.min(24, Math.max(0, Math.round(own ? px : radiusPx(rem))));
+}
 
 /** "0.63 rem". */
 export const remText = (rem: number): string => `${Number(rem.toFixed(2))} rem`;
