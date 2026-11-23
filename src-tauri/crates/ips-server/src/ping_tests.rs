@@ -18,7 +18,19 @@ fn only_a_host_a_person_could_mean_is_a_target() {
     assert_eq!(of("Example.COM").unwrap().host, "example.com", "case is folded");
     assert_eq!(of(" 192.168.1.1 ").unwrap().host, "192.168.1.1", "a router is a fair target");
     assert!(of("::1").is_some());
-    for bad in ["", "http://example.com", "example.com/path", "example.com:80", "user@example.com", "exa mple.com", "-a.com", "a..com", "a.com.", "fe80::zz", "a;b"] {
+    for bad in [
+        "",
+        "http://example.com",
+        "example.com/path",
+        "example.com:80",
+        "user@example.com",
+        "exa mple.com",
+        "-a.com",
+        "a..com",
+        "a.com.",
+        "fe80::zz",
+        "a;b",
+    ] {
         assert!(of(bad).is_none(), "{bad:?}");
     }
     assert!(of(&"a".repeat(64)).is_none(), "a label over 63");

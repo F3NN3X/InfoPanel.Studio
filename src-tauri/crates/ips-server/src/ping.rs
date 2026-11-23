@@ -85,7 +85,13 @@ fn host_ok(host: &str) -> bool {
     if host.contains(':') {
         return host.parse::<std::net::Ipv6Addr>().is_ok();
     }
-    host.split('.').all(|label| !label.is_empty() && label.len() <= 63 && !label.starts_with('-') && !label.ends_with('-') && label.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-'))
+    host.split('.').all(|label| {
+        !label.is_empty()
+            && label.len() <= 63
+            && !label.starts_with('-')
+            && !label.ends_with('-')
+            && label.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+    })
 }
 
 /// A number from a stored setting, which is a number or numeric text.
@@ -104,7 +110,9 @@ pub fn target_of(settings: &Value) -> Option<Target> {
         return None;
     }
     let port = number(settings.get("port")).filter(|p| p.fract() == 0.0 && (1.0..=65535.0).contains(p)).map_or(PORT_DEFAULT, |p| p as u16);
-    let interval = number(settings.get("interval")).filter(|i| i.is_finite()).map_or(INTERVAL_DEFAULT, |i| (i.round() as i64).clamp(INTERVAL_MIN as i64, INTERVAL_MAX as i64) as u64);
+    let interval = number(settings.get("interval"))
+        .filter(|i| i.is_finite())
+        .map_or(INTERVAL_DEFAULT, |i| (i.round() as i64).clamp(INTERVAL_MIN as i64, INTERVAL_MAX as i64) as u64);
     Some(Target { id: target_id(&host, port), host, port, interval })
 }
 
@@ -117,7 +125,9 @@ pub fn referenced_targets(config: &Value, max: usize) -> Vec<Target> {
             Value::Array(items) => stack.extend(items.iter().rev()),
             Value::Object(o) => {
                 if o.get("module").and_then(Value::as_str) == Some(MODULE) {
-                    if let Some(t) = o.get("settings").and_then(target_of).filter(|t| found.len() < max && !found.iter().any(|f| f.id == t.id)) {
+                    if let Some(t) =
+                        o.get("settings").and_then(target_of).filter(|t| found.len() < max && !found.iter().any(|f| f.id == t.id))
+                    {
                         found.push(t);
                     }
                 }
@@ -183,7 +193,13 @@ async fn probe(host: &str, port: u16) -> Option<f64> {
 impl Ping {
     pub fn new(enabled: bool, targets: impl Fn() -> Vec<Target> + Send + Sync + 'static) -> Arc<Self> {
         let state = State { entries: HashMap::new(), wanted: Vec::new(), probes: RateCap::new(Duration::from_secs(60), PROBES_PER_MINUTE) };
-        Arc::new(Self { enabled, targets: Box::new(targets), state: Mutex::new(state), map: watch::channel(Arc::new(Readings::new())).0, wake: Notify::new() })
+        Arc::new(Self {
+            enabled,
+            targets: Box::new(targets),
+            state: Mutex::new(state),
+            map: watch::channel(Arc::new(Readings::new())).0,
+            wake: Notify::new(),
+        })
     }
 
     /// `PING=off` (or `0`) is the switch.
@@ -211,7 +227,12 @@ impl Ping {
         let mut st = self.lock();
         st.entries.retain(|id, _| wanted.iter().any(|t| &t.id == id));
         for t in &wanted {
-            let entry = st.entries.entry(t.id.clone()).or_insert_with(|| Entry { target: t.clone(), window: VecDeque::new(), next_at: now, updated: None });
+            let entry = st.entries.entry(t.id.clone()).or_insert_with(|| Entry {
+                target: t.clone(),
+                window: VecDeque::new(),
+                next_at: now,
+                updated: None,
+            });
             entry.target = t.clone();
         }
         st.wanted = wanted;

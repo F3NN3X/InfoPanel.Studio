@@ -157,7 +157,8 @@ pub fn referenced_places(config: &Value, recipe_of: &dyn Fn(&str) -> Option<Valu
                 }
                 // Hourly Weather shows one place: the first of its `places` list.
                 if o.get("module").and_then(Value::as_str) == Some(HOURLY_MODULE) {
-                    let first = o.get("settings").and_then(|s| s.get("places")).and_then(places_in).and_then(|list| list.into_iter().next());
+                    let first =
+                        o.get("settings").and_then(|s| s.get("places")).and_then(places_in).and_then(|list| list.into_iter().next());
                     if let Some(place) = first.filter(|p| found.len() < max && !found.iter().any(|f| f.id == p.id)) {
                         found.push(place);
                     }

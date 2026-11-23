@@ -27,7 +27,11 @@ async fn off_probes_nothing_and_streams_an_empty_set() {
     std::fs::create_dir_all(dir.path().join("dist")).unwrap();
     let data = dir.path().join("data");
     std::fs::create_dir_all(&data).unwrap();
-    std::fs::write(data.join("config.json"), json!({ "profiles": [{ "placements": [{ "module": "Ping", "settings": { "host": "127.0.0.1", "port": open } }] }] }).to_string()).unwrap();
+    std::fs::write(
+        data.join("config.json"),
+        json!({ "profiles": [{ "placements": [{ "module": "Ping", "settings": { "host": "127.0.0.1", "port": open } }] }] }).to_string(),
+    )
+    .unwrap();
     let cfg = ServerConfig {
         host: "127.0.0.1".into(),
         port: 0,
