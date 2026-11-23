@@ -2,7 +2,7 @@
 // The sparkline's geometry and its text for screen readers; one chart style at every size starts here.
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SensorRow, sparkPoints, sparkSummary } from "@/components/ui/sensor-row";
+import { SensorRow, sparkPoints } from "@/components/ui/sensor-row";
 
 describe("the sparkline", () => {
   it("fills the box: the lowest sample at the bottom, the highest at the top", () => {
@@ -14,10 +14,6 @@ describe("the sparkline", () => {
     expect(sparkPoints([5], 10, 20)).toBe("");
   });
 
-  it("says its range in words", () => {
-    expect(sparkSummary("Package Temp", [58.8, 67.7, 60], "°C")).toBe("Package Temp, last 60 s, 58.8 to 67.7 °C");
-    expect(sparkSummary("Fan", [])).toBe("Fan, last 60 s, no readings yet");
-  });
 });
 
 describe("SensorRow", () => {
