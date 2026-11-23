@@ -72,6 +72,8 @@ export interface StageViewProps {
   links?: readonly (readonly [string, string])[];
   /** The page's zones: with connectors and no `links`, the hub rule makes the pairs (`hubLinks`). */
   zones?: readonly ZoneSize[];
+  /** The screen's accent (a variant's, the user's): what the effects and a layer's glow are drawn in; unset, the pack's own. */
+  accent?: string;
 }
 /** What the hub rule reads of a zone: its id and how many cells it spans. */
 export interface ZoneSize {
@@ -161,7 +163,7 @@ export function usePack(lookId: string | undefined): Pack | undefined {
 export const packBackground = (pack: Pack | undefined): boolean => !!pack?.stage?.layers.length;
 
 /** The pack's page layers (`className` places them, as `PageBackground`'s; `overlayClassName` the overlay); nothing without a pack stage. */
-export function PackStage({ pack, className, overlayClassName, page, links, zones }: { pack: Pack | undefined; className?: string; overlayClassName?: string; page?: { width: number; height: number }; links?: StageViewProps["links"]; zones?: StageViewProps["zones"] }) {
+export function PackStage({ pack, className, overlayClassName, page, links, zones, accent }: { pack: Pack | undefined; className?: string; overlayClassName?: string; page?: { width: number; height: number }; links?: StageViewProps["links"]; zones?: StageViewProps["zones"]; accent?: string }) {
   const View = pack?.Stage;
-  return pack?.stage && View ? <View stage={pack.stage} packId={pack.id} base={pack.base} className={className} overlayClassName={overlayClassName} burnIn={pack.burnIn} page={page} connectors={pack.connectors} links={links} zones={zones} /> : null;
+  return pack?.stage && View ? <View stage={pack.stage} packId={pack.id} base={pack.base} className={className} overlayClassName={overlayClassName} burnIn={pack.burnIn} page={page} connectors={pack.connectors} links={links} zones={zones} accent={accent} /> : null;
 }

@@ -175,3 +175,20 @@ describe("the pack stage: effects, burn-in and size classes", () => {
     });
   });
 });
+
+describe("the effects' colour (v3): the screen's accent, a variant's, not the pack's own", () => {
+  const flashing: StageViewProps["stage"] = { layers: [{ image: "art.svg" }], effects: [{ kind: "glitch", cost: "animated", rate: 0.25 }, { kind: "glow", cost: "filter", px: 10 }], accent: "#FF3B45" };
+  const accentOf = (sel: string) => document.querySelector<HTMLElement>(sel)!.style.getPropertyValue("--w-accent");
+  it("an overlay and a layer's glow take the screen's accent, the pack's own where the screen sets none", () => {
+    view({}, { stage: flashing, accent: "#B96AFF" });
+    expect(accentOf("[data-pack-effect='glitch']")).toBe("#B96AFF");
+    expect(accentOf("[data-pack-layer='0']")).toBe("#B96AFF");
+    cleanup();
+    view({}, { stage: flashing });
+    expect(accentOf("[data-pack-effect='glitch']")).toBe("#FF3B45");
+    cleanup();
+    // a stage with no accent at all sets none: the overlay's own fallback colour stays
+    view({}, { stage: { ...flashing, accent: undefined } });
+    expect(accentOf("[data-pack-effect='glitch']")).toBe("");
+  });
+});

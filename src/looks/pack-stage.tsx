@@ -49,7 +49,7 @@ function useShiftStep(on: boolean): number {
   return step;
 }
 
-export default function PackStageLayers({ stage, packId, base = "", className = "", overlayClassName = "", burnIn, page, connectors, links, zones }: StageViewProps) {
+export default function PackStageLayers({ stage, packId, base = "", className = "", overlayClassName = "", burnIn, page, connectors, links, zones, accent }: StageViewProps) {
   const general = useGeneral();
   const perf = usePerformance();
   const lite = liteOf(perf);
@@ -69,6 +69,8 @@ export default function PackStageLayers({ stage, packId, base = "", className = 
   const blur = effects.find((e) => e.kind === "blur")?.px ?? 0;
   // A glow is the halo of a layer's art: a plain fill or gradient covers the screen, its shadow would fall off it, so only a layer with an image takes it (L81).
   const fxOf = (layer: StageLayer) => (layer.image ? glow : 0) > 0 || blur > 0;
+  // The effects and glows are the screen's accent (a variant's), not the pack's own: the overlays sit outside every card, where no `--w-accent` is set.
+  const tint = (accent ?? stage.accent) ? ({ "--w-accent": accent ?? stage.accent } as CSSProperties) : undefined;
   const pairs = useMemo(() => links ?? (connectors && zones ? hubLinks(zones) : undefined), [links, connectors, zones]);
   return (
     <>
@@ -84,7 +86,7 @@ export default function PackStageLayers({ stage, packId, base = "", className = 
           data-idle={deco === "dim" && idle ? "" : undefined}
           className={`pointer-events-none ${fx ? "wp-pack-fx " : ""}${className}`}
           style={{
-            ...(fx ? ({ "--wp-fx-glow": `${layer.image ? glow : 0}px`, "--wp-fx-blur": `${blur}px`, ...(stage.accent ? { "--w-accent": stage.accent } : null) } as CSSProperties) : null),
+            ...(fx ? ({ "--wp-fx-glow": `${layer.image ? glow : 0}px`, "--wp-fx-blur": `${blur}px`, ...tint } as CSSProperties) : null),
             ...(layer.image ? { backgroundImage: `url("${base}${encodeURI(layer.image)}")`, backgroundSize: "cover" } : { background: safeFill(layer.fill) }),
             ...place,
             opacity: deco === "dim" ? (layer.opacity ?? 1) * dim : layer.opacity,
@@ -99,7 +101,7 @@ export default function PackStageLayers({ stage, packId, base = "", className = 
       )}
       {connectors && pairs && pairs.length > 0 && showsAt(stage.overlayMinSizeClass, sizeClass) && <ConnectorLayer links={pairs} connectors={connectors} className={className} deco={deco} style={{ ...place, ...(deco === "dim" ? { opacity: dim } : null) }} />}
       {effects.map((e, i) =>
-        overlayStyle(e) ? <div key={`fx${i}`} aria-hidden data-look={packId} data-pack-deco={deco} data-pack-effect={e.kind} data-pack-animate={e.animate ? "" : undefined} className={`pointer-events-none ${overlayClassName}`} style={{ ...overlayStyle(e), ...place, ...flashVars(e, dim), opacity: (e.opacity ?? 1) * dim }} /> : null
+        overlayStyle(e) ? <div key={`fx${i}`} aria-hidden data-look={packId} data-pack-deco={deco} data-pack-effect={e.kind} data-pack-animate={e.animate ? "" : undefined} className={`pointer-events-none ${overlayClassName}`} style={{ ...tint, ...overlayStyle(e), ...place, ...flashVars(e, dim), opacity: (e.opacity ?? 1) * dim }} /> : null
       )}
     </>
   );
