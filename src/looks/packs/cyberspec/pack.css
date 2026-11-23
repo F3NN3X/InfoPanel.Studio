@@ -1,3 +1,17 @@
+/* Type: Rajdhani for what people read, JetBrains Mono with tabular figures for values and micro-print (kit tokens.css). */
 * { font-family: pack-cyberspec, Rajdhani, system-ui, sans-serif; }
-[data-part="num"] { font-family: pack-cyberspec-mono, "JetBrains Mono", ui-monospace, monospace; }
-[data-part="tab"], [data-part="chip"], [data-part="status"], [data-part="bar"] { border-radius: 0; }
+[data-part="num"], [data-part="mono"] { font-family: pack-cyberspec-mono, "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+/* Values are the kit's signal cyan with a faint glow in their own colour, so a warning (an inline tone colour) glows yellow. */
+[data-part="num"] { color: #5EF6FF; text-shadow: 0 0 10px color-mix(in srgb, currentColor 35%, transparent); }
+/* Labels, titles and units are upper case and tracked .06em (badges .08em). */
+[data-part="label"], [data-part="header"], [data-part="legend"], [data-part="unit"] { text-transform: uppercase; letter-spacing: 0.06em; }
+/* The panel head's rule: 24 % of the accent under the title row (panel.css --panel-rule). */
+[data-part="header"] { background-image: linear-gradient(color-mix(in srgb, var(--w-accent) 24%, transparent), color-mix(in srgb, var(--w-accent) 24%, transparent)); background-size: 100% 1px; background-position: 0 100%; background-repeat: no-repeat; }
+/* Badges: square, the bottom right cut 5 px, a line of their own colour on their tint (badge.css). */
+[data-part="chip"] { border-radius: 0; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%); box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 55%, transparent); text-transform: uppercase; letter-spacing: 0.08em; }
+/* Bars sit on the kit's hatch (base.css disabled fill: a 1 px line every 6 px at 135deg, 30 % accent). */
+[data-part="bar"] { background-image: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--w-accent) 30%, transparent) 5px 6px); }
+[data-part="tab"], [data-part="bar"], [data-part="status"] { border-radius: 0; }
+/* A status lamp is a square that pulses (badge.css, 1.8 s); like every pack animation it runs at Full effects only. */
+span[data-part="status"] { animation: pack-lamp 1.8s ease-in-out infinite; }
+@keyframes pack-lamp { 50% { opacity: 0.5; } }

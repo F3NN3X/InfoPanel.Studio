@@ -8,7 +8,7 @@
     "angular",
     "crt"
   ],
-  "description": "Blue-black panels cut at one corner, hot red lines and a solid label bar, cyan readouts, yellow warnings and micro-print in the margins, under a faint CRT raster. After Cyberspec by Agnel Nieves (MIT), github.com/agnelnieves/cyberspec.",
+  "description": "Blue-black panels with a cut corner and a spine, labels in the accent ink, cyan readouts that glow, yellow warnings and micro-print in the margins, under a faint CRT raster. After Cyberspec by Agnel Nieves (MIT), github.com/agnelnieves/cyberspec.",
   "modes": [
     "dark"
   ],
@@ -60,13 +60,13 @@
       {
         "kind": "scanlines",
         "cost": "static",
-        "opacity": 0.14,
+        "opacity": 0.1,
         "calm": "off"
       },
       {
         "kind": "vignette",
         "cost": "static",
-        "opacity": 0.25,
+        "opacity": 0.15,
         "calm": "off"
       },
       {
@@ -89,7 +89,12 @@
     "which": [
       "br"
     ],
-    "stroke": 1
+    "stroke": 1,
+    "spine": {
+      "edge": "left",
+      "width": 5
+    },
+    "alpha": 0.55
   },
   "ornaments": [
     {
@@ -98,9 +103,33 @@
       "minSizeClass": "md"
     },
     {
+      "kind": "micro-print",
+      "at": "tr",
+      "text": "CS-07 // LINK",
+      "minSizeClass": "md"
+    },
+    {
       "kind": "ticks",
       "at": "bottom",
       "minSizeClass": "md"
     }
-  ]
+  ],
+  "motion": {
+    "arrival": {
+      "style": "clip"
+    },
+    "decode": {},
+    "glitch": {},
+    "scramble": {
+      "every": 6
+    },
+    "flicker": {
+      "on": false,
+      "target": "label",
+      "every": 12
+    },
+    "sweep": {
+      "on": false
+    }
+  }
 }
