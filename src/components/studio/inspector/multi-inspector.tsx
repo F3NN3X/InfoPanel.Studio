@@ -1,5 +1,6 @@
+import { lazy, Suspense } from "react";
 import { BoxSelect } from "lucide-react";
-import type { ProfileView, Placement } from "@/lib/layout";
+import { BLANK_MODULE, type ProfileView, type Placement } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import { settingKeys, type ModuleSetting, type ModuleSettings } from "@/modules/types";
 import { chipSections, isVisible, sharedDefs, type InspectorContext, type InspectorSection } from "../inspector-model";
@@ -10,7 +11,7 @@ import { MultiHeader } from "../zone-inspector-parts";
 import { quickDefsFor } from "../quick-sets";
 import { useQuickPins } from "./inspector-prefs";
 import { InspectorView } from "./inspector-view";
-import { readOnlyFields, shownValue, shownValues, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./zone-fields";
+import { readOnlyFields, shownValue, shownValues, withKnob, withKnobReset, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./zone-fields";
 import { zoneName } from "./zone-meta";
 
 interface MultiInspectorProps {
@@ -32,8 +33,11 @@ interface MultiInspectorProps {
   jumpTo?: { id: string; key?: string; seq: number };
 }
 
+// The knob row is the Theme view's chunk's, as on one widget.
+const WidgetLookKnobs = lazy(() => import("../look-knobs"));
+
 /**
- * Several zones selected: no tabs, only the Style sections of the look
+ * Several zones selected: no tabs, the knob row (L46), then only the Style sections of the look
  * they share. The rows and inheritance chips show the primary zone's state; every
  * edit (Customise and Reset too) applies to each selected zone in one undo step.
  */
@@ -84,6 +88,19 @@ export function MultiInspector({
     ...readOnlyFields(primary, appearance),
   };
   const effective = shownValues(values, defs);
+  // A knob edits each zone as on its own: that knob detached, Reset following again (L46). Blank space has none.
+  const knobs = zones.every((z) => z.module !== BLANK_MODULE) && (
+    <Suspense key="look-knobs" fallback={null}>
+      <div className="pt-3">
+        <WidgetLookKnobs
+          values={values}
+          appearance={appearance}
+          onSet={(patch) => each((z) => withKnob(z, appearance, zoneDefs(z), patch), `multi-knob:${Object.keys(patch).join()}`)}
+          onClear={(keys) => each((z) => withKnobReset(z, appearance, zoneDefs(z), keys))}
+        />
+      </div>
+    </Suspense>
+  );
   const scopeOf = (z: Placement) => ({ level: "widget", profileId, pageId, zoneId: z.id }) as const;
   const inheritOf = (s: InspectorSection) => {
     const sections = chipSections(s);
@@ -108,6 +125,7 @@ export function MultiInspector({
       fields={fields}
       visible={(def) => isVisible(def, effective)}
       parts={() => ({})}
+      notes={() => knobs}
       inherit={inheritOf}
       query={query}
       onQuery={onQuery}

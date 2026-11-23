@@ -22,7 +22,7 @@ import { InspectorNote, InspectorView, type SectionParts } from "./inspector/ins
 import { ItemInspector } from "./item-inspector";
 import { cardsBySection, panelState } from "./inspector/panel-cards";
 import { useZoneData } from "./inspector/use-zone-data";
-import { customised, shownValue, shownValues, withKnobReset, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./inspector/zone-fields";
+import { customised, shownValue, shownValues, withKnob, withKnobReset, withoutOwnLookCard, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./inspector/zone-fields";
 import { zoneMeta, zoneName } from "./inspector/zone-meta";
 import {
   chipSections,
@@ -283,11 +283,16 @@ export function ZoneInspector({
   const pinned = pinsOf(allPins, pinType, quickDefaults);
 
   const values = zoneLookValues(zone, appearance);
+  /** A row's edit: its sections custom, and the zone's own Look's card left to the Look (L49). */
+  const edited = (p: Placement, patch: ModuleSettings) => {
+    const next = customised(withSettings(p, patch), appearance, defs, Object.keys(patch));
+    return "surface" in patch ? withoutOwnLookCard(next, appearance) : next;
+  };
   const fields: FieldsApi = {
     values,
     shown: (key, def) => shownValue(values, key, def),
-    onChange: (key, v, editKey) => update((p) => customised(withSettings(p, { [key]: v }), appearance, defs, [key]), `setting:${editKey ?? key}`),
-    onPatch: (patch) => update((p) => customised(withSettings(p, patch), appearance, defs, Object.keys(patch)), `setting:${Object.keys(patch).join()}`),
+    onChange: (key, v, editKey) => update((p) => edited(p, { [key]: v }), `setting:${editKey ?? key}`),
+    onPatch: (patch) => update((p) => edited(p, patch), `setting:${Object.keys(patch).join()}`),
     onClear: (keys) => update((p) => withoutSettings(p, keys)),
     // A section the screen locks shows its value read-only.
     readOnly: (def) => {
@@ -452,7 +457,7 @@ export function ZoneInspector({
         <WidgetLookKnobs
           values={values}
           appearance={appearance}
-          onSet={fields.onPatch}
+          onSet={(patch) => update((p) => withKnob(p, appearance, defs, patch), `knob:${Object.keys(patch).join()}`)}
           onClear={(keys) => update((p) => withKnobReset(p, appearance, defs, keys))}
         />
       </div>

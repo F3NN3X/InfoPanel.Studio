@@ -7,14 +7,19 @@ import { allSections, changedCount, type InspectorSection, type PanelLayoutKind,
 import {
   itemFields,
   itemFollow,
+  itemHasKnobs,
+  itemKnobValues,
   itemLookValues,
   itemOwn,
   itemSections,
   kindChoices,
+  withItemKnob,
+  withItemKnobReset,
   withItemValues,
   withoutItemValues,
   type ItemFieldsInput,
 } from "@/components/studio/inspector/item-model";
+import { knobCustom, knobValue } from "@/components/studio/look-knobs-model";
 
 const widget = (kind: WidgetKind, extra: Partial<Widget> = {}): Widget => ({ id: "w", kind, visible: true, ...extra });
 
@@ -219,5 +224,35 @@ describe("following the panel", () => {
     expect(edits[0].thr).toEqual({ warn: 60 });
     fields.onClear(["thr.warn"]);
     expect(edits[1]).not.toHaveProperty("thr");
+  });
+});
+
+describe("the knob row of a panel widget (L46)", () => {
+  const look = resolveWith({ profile: { values: { accent: "#00ff00", lookId: "hud" } } }, undefined, undefined) ?? {};
+
+  it("is Accent over the panel's, for a kind that reads a colour", () => {
+    expect(itemHasKnobs(widget("stat"))).toBe(true);
+    expect(itemHasKnobs(widget("table"))).toBe(false);
+    const values = itemKnobValues({ widget: widget("stat"), look });
+    expect(knobValue(values, "accent")).toBe("#00ff00");
+    expect(knobValue(values, "lookId")).toBe("hud");
+  });
+
+  it("writes the widget's colour with Color its own, and Reset follows the panel again", () => {
+    const set = withItemKnob(widget("stat"), { accent: "#ff0000" });
+    expect(set).toMatchObject({ color: "#ff0000", follow: { colors: false } });
+    expect(knobValue(itemKnobValues({ widget: set, look }), "accent")).toBe("#ff0000");
+    expect(knobCustom(itemKnobValues({ widget: set, look }), "accent")).toBe(true);
+    const back = withItemKnobReset(set);
+    expect(back.color).toBeUndefined();
+    expect(back.follow).toEqual({ colors: true });
+    expect(knobValue(itemKnobValues({ widget: back, look }), "accent")).toBe("#00ff00");
+  });
+
+  it("shows the panel's accent while Color follows, or the screen locks it", () => {
+    const own = widget("stat", { color: "#ff0000", follow: { colors: true } });
+    expect(knobValue(itemKnobValues({ widget: own, look }), "accent")).toBe("#00ff00");
+    const locked = itemKnobValues({ widget: widget("stat", { color: "#ff0000" }), look, locks: { colors: true } });
+    expect(knobValue(locked, "accent")).toBe("#00ff00");
   });
 });

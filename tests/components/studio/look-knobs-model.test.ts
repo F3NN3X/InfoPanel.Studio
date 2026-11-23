@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { cornerStep, densityOf, knobCustom, knobValue, lockedKnobs, modeCustom, modeOf, modePatch, surfaceChip } from "@/components/studio/look-knobs-model";
+import {
+  cornerStep,
+  densityOf,
+  knobCustom,
+  knobValue,
+  lockedKnobs,
+  modeCustom,
+  modeOf,
+  modePatch,
+  surfaceChip,
+  variantCustom,
+  variantKeys,
+  variantKnobs,
+  variantOf,
+} from "@/components/studio/look-knobs-model";
 import { scopeLookValues } from "@/components/studio/theme-editor-model";
 import { lookLayers } from "@/looks/sample-cards";
 import { registerSampleCards } from "@/looks/sample-materials";
@@ -71,5 +85,32 @@ describe("the Mode knob (D3)", () => {
     expect(modeCustom({ own: { surface: "matte-light" } }, "dark")).toBe(true);
     expect(modeCustom({ own: { surface: "matte-light" } }, "light")).toBe(false);
     expect([modePatch("light", "dark"), modePatch("dark", "dark"), modePatch("dark", "light")]).toEqual([{ surface: "matte-light" }, {}, { surface: "matte-dark" }]);
+  });
+});
+
+describe("the Variant knob", () => {
+  const variants = [
+    { id: "night", name: "Night", values: { accent: "#5fa7ff", surface: "matte-dark" } },
+    { id: "dusk", name: "Dusk", values: { accent: "#da950b", surface: "matte-dark" } },
+  ];
+
+  it("shows the variant whose every value the level shows, else the theme's own or Custom", () => {
+    expect(variantOf({ own: {}, inherited: { accent: "#ff0000" } }, variants)).toBe("");
+    expect(variantOf({ own: { accent: "#DA950B", surface: "matte-dark" } }, variants)).toBe("dusk");
+    // One value of its own that matches no variant: Custom, none checked.
+    expect(variantOf({ own: { accent: "#da950b" }, inherited: { surface: "glass" } }, variants)).toBeUndefined();
+    // A widget's own values while its sections follow are not its.
+    expect(variantOf({ own: { accent: "#da950b" }, applies: () => false }, variants)).toBe("");
+  });
+
+  it("is Custom for an own value of its keys that differs from what the level inherits, and Reset clears them all", () => {
+    expect(variantCustom({ own: { accent: "#5fa7ff" }, inherited: { accent: "#5fa7ff" } }, variants)).toBe(false);
+    expect(variantCustom({ own: { surface: "matte-dark" } }, variants)).toBe(true);
+    expect(variantKeys(variants)).toEqual(["accent", "surface"]);
+  });
+
+  it("is held by the screen's lock of any knob it writes", () => {
+    expect(variantKnobs(variants)).toEqual(["accent", "surface"]);
+    expect(variantKnobs([{ id: "roomy", name: "Roomy", values: { padding: "16" } }])).toEqual(["density"]);
   });
 });
