@@ -119,7 +119,9 @@ security model, what was fixed, what was decided, and what is deferred.
   the app rewrites it to the pack's route, `/api/packs/<id>/<file>`, which serves it under the sandbox CSP. The server
   refuses to sign CSS holding a backslash, `<`, an at-rule other than `@keyframes`, `image-set(`, `src(` or a `url()` that
   leaves the pack. `letter-spacing` (up to 0.15em), `text-transform` (`none` or `uppercase`) and `font-variant-numeric` are
-  the only type properties it allows; none can be animated or transitioned, and a pack cannot set a font size.
+  the only type properties it allows; none can be animated or transitioned, and a pack cannot set a font size. Every
+  animation a pack's CSS runs (built-in or user) is mounted reading its names through `--wp-pack-motion`, a variable no pack
+  may set: the page root sets it to `none` at the Effects levels Calm and Off, in lite mode and under reduced motion.
 - **Variant colours** (`src/looks/look.ts`, `src/looks/pack-validate.ts`): a variant in look.json sets colours as data. A colour
   derived from the accent is a few bounded numbers the app turns into `#rrggbb` itself; no pack-supplied code or CSS runs, and
   the contrast check reads the result.

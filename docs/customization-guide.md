@@ -1315,7 +1315,9 @@ reads it like any other colour: a variant that sets such a colour is refused whe
 
 In `pack.css`, real elements may also set `letter-spacing` (`normal` or up to `0.15em`, or the same in px), `text-transform`
 (`none` or `uppercase`) and `font-variant-numeric` (`tabular-nums`, `lining-nums`, `slashed-zero` and the like). They are not
-animated or transitioned, and font sizes stay the app's.
+animated or transitioned, and font sizes stay the app's. A pack's own CSS animations (`@keyframes pack-*`) run only while the
+screen's **Effects** level is **Full**: at Calm and Off, in lite mode and with reduced animations every one of them stops, so a
+lamp that pulses in `pack.css` needs no switch of its own.
 
 A pack's `frame` in `pack.json` has `corners` (`square`, `cut`, `bracket` or `notch`) with a `size` up to 20 px (the Cyberspec kit's
 largest cut is 18) and a `stroke` up to 2 px, and now also:

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lintPackCss, scopePackCss } from "@/looks/pack-css";
+import { lintPackCss, PACK_MOTION_VAR, scopePackCss } from "@/looks/pack-css";
 
 describe("scopePackCss", () => {
   it("writes the parsed rules in @scope inside @layer look, and keyframes and font faces beside the scope", () => {
@@ -147,6 +147,22 @@ describe("scopePackCss: the mount's own declarations and URLs", () => {
     expect(user).toContain("mask-image:url(/api/packs/mine/assets/m.svg)");
     expect(user).toContain('background:url("/api/packs/mine/assets/a%20b.png")');
     expect(scopePackCss("mine", css)).toContain("url(./assets//m.svg)");
+  });
+
+  it("reads every animation's names through the page's motion variable, after the pack's own, so Calm and Off stop them all", () => {
+    const anim = "@keyframes pack-a{to{opacity:.6}} @keyframes pack-b{to{opacity:.7}}";
+    const one = scopePackCss("p", `${anim} ${R}{animation:pack-a 2s steps(2) infinite}`);
+    expect(one).toContain(`:scope{animation:pack-a 2s steps(2) infinite;animation-name:var(${PACK_MOTION_VAR}, pack-a);}`);
+    // a list keeps its order, a longhand after the shorthand wins, and a part with no name stays none
+    expect(scopePackCss("p", `${anim} ${R}{animation:pack-a 2s,none;animation-name:pack-b,pack-a}`)).toContain(`animation-name:var(${PACK_MOTION_VAR}, pack-b, pack-a);}`);
+    expect(scopePackCss("p", `${anim} ${R}{animation:2s infinite,pack-b 1s}`)).toContain(`animation-name:var(${PACK_MOTION_VAR}, none, pack-b);}`);
+    // the pseudo lane keeps its box after the gate; a rule that animates nothing, and the keyframes, get no gate
+    expect(scopePackCss("p", `${anim} ${P}{content:"";animation:pack-b 3s infinite}`)).toContain(`animation-name:var(${PACK_MOTION_VAR}, pack-b);position:absolute;`);
+    expect(scopePackCss("p", `${anim} ${R}{color:red}`).match(/--wp-pack-motion/g)).toBeNull();
+  });
+
+  it("refuses a pack that sets the motion variable itself", () => {
+    expect(lintPackCss(`${R}{${PACK_MOTION_VAR}:pack-a}`).join()).toMatch(/not a paint property/);
   });
 
   it("mounts nothing for a user pack that names a URL outside its folder", () => {
