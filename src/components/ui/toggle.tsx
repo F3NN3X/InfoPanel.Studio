@@ -23,9 +23,9 @@ export function Toggle({ checked, onChange, label, disabled, className }: Toggle
       className={cn(
         "relative h-4.5 w-7.5 shrink-0 rounded-full transition-colors duration-(--ui-dur-fast) ease-ui after:absolute after:-inset-1 after:content-['']",
         FOCUS_RING,
-        "disabled:opacity-40",
+        "disabled:cursor-not-allowed disabled:opacity-40",
         "forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas] disabled:forced-colors:border-[color:GrayText]",
-        checked ? "bg-ui-strong-text forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-ui-control",
+        checked ? "bg-ui-strong-text forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-ui-control enabled:hover:bg-ui-hover-edge",
         className
       )}
     >
