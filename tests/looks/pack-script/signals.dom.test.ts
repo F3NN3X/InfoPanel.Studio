@@ -1,6 +1,10 @@
 // @vitest-environment happy-dom
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
+import { ScriptSignalsCtx } from "@/looks/pack-script/signal-ctx";
 import { readSignals, round01 } from "@/looks/pack-script/signals";
+import { Bar, Ring } from "@/widgets/core/primitives";
 
 // The privacy boundary: a script reads boxes, a value in hundredths, a threshold state and glyph counts, never a character, and nothing of a quiet card.
 
@@ -66,5 +70,17 @@ describe("readSignals", () => {
     const { signals } = readSignals(root, { rect: { left: 100, top: 50, width: 400, height: 240 } as DOMRect, scale: 0.5 }, "full");
     expect(signals.width).toBe(800);
     expect(signals.cards[0]).toMatchObject({ x: 20, y: 20, w: 100, h: 100 });
+  });
+});
+
+describe("the bound value a bar or ring writes", () => {
+  it("is written only on a card that wears a scripted pack, in hundredths with its tone", () => {
+    const bar = createElement(Bar, { value: 42.4, t: "warn" });
+    const ring = createElement(Ring, { value: 3, max: 4 });
+    expect(renderToStaticMarkup(bar)).not.toContain("data-fx");
+    expect(renderToStaticMarkup(ring)).not.toContain("data-fx");
+    const on = (el: ReturnType<typeof createElement>) => renderToStaticMarkup(createElement(ScriptSignalsCtx.Provider, { value: true }, el));
+    expect(on(bar)).toContain('data-fx-value="0.42" data-fx-state="warn"');
+    expect(on(ring)).toContain('data-fx-value="0.75" data-fx-state="ok"');
   });
 });

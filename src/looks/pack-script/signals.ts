@@ -1,6 +1,6 @@
 // What a pack script may read of the page (the privacy boundary of pack-scripts-and-signing.md, "Data rules"): each card's box,
 // its bound value as 0 to 1 in hundredths and its threshold state (the first bar or ring that says them, `data-fx-value` and
-// `data-fx-state`, primitives.tsx), and its texts as boxes with a glyph count, never a character. A card that blurs a value for
+// `data-fx-state`, primitives.tsx, written only on a card that wears a scripted pack), and its texts as boxes with a glyph count, never a character. A card that blurs a value for
 // privacy, or sits in a zone marked quiet (agent and chat widgets, `data-fx-quiet`), sends nothing: its box is one the host
 // erases from the overlay instead. The host reads this at most `SIGNAL_MS` apart.
 import { CARDS_MAX, TEXTS_MAX, type Box, type CardSignal, type Signals } from "./limits";

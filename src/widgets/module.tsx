@@ -14,6 +14,7 @@ import { SKINS, skinOfLook } from "./core/theme";
 import type { ShellProps, WidgetMeta } from "./core/types";
 import { toFlat, toNames } from "./shared/data-adapter";
 import { preloadOf } from "./lazy-widget";
+import { ScriptSignalsCtx } from "@/looks/pack-script/signal-ctx";
 
 export interface TemplateOptions<P extends object> {
   meta: WidgetMeta;
@@ -147,7 +148,9 @@ export function templateModule<P extends object>({ meta, Component, settings, to
       const decor = slotsWithDecor(pack);
       return pack?.motion && saved?.decoration !== false ? { ...decor, motion: { spec: pack.motion, knobs: motionKnobsOf({ motionIntensity, motionSpeed, motionEffects }) } } : decor;
     }, [pack, saved?.decoration, motionIntensity, motionSpeed, motionEffects]);
-    return <Component data={data} names={names} {...shellProps(look)} {...toProps(look, saved)} t3={pack?.look.t3} slots={slots} packId={pack?.id} look={look} />;
+    const card = <Component data={data} names={names} {...shellProps(look)} {...toProps(look, saved)} t3={pack?.look.t3} slots={slots} packId={pack?.id} look={look} />;
+    // a card wearing a scripted pack writes the rounded values its script may read (pack-script/signals.ts)
+    return pack?.script ? <ScriptSignalsCtx.Provider value>{card}</ScriptSignalsCtx.Provider> : card;
   }
   return mod;
 }
