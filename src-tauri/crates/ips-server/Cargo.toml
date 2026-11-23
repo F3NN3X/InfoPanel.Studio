@@ -20,7 +20,7 @@ crypto_box = { version = "0.9", default-features = false, features = ["alloc", "
 getrandom = "0.4"
 # Publisher signatures on widget packages (widget_sign.rs): minisign's verifier, already in the lock through Tauri's updater.
 minisign-verify = "0.3"
-lz4_flex = { version = "0.11", default-features = false, features = ["safe-decode", "std"] }
+lz4_flex = { version = "0.14", default-features = false, features = ["safe-decode", "std"] }
 png = "0.18"
 prost = { version = "0.14", default-features = false, features = ["derive", "std"] }
 # Wipes the key's temporary buffers (already in the lock through crypto_box).
