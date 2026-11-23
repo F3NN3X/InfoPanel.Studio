@@ -11,7 +11,7 @@ use std::io::Write;
 use std::path::Path;
 
 use blake2::digest::consts::U32;
-use blake2::digest::Mac;
+use blake2::digest::{KeyInit, Mac};
 use blake2::Blake2bMac;
 use sha2::{Digest, Sha256};
 
@@ -35,7 +35,7 @@ pub fn content_hash(files: &[(String, Vec<u8>)]) -> String {
 }
 
 fn mac(key: &Key, id: &str, hash: &str) -> Blake2bMac<U32> {
-    let mut mac = <Blake2bMac<U32> as Mac>::new_from_slice(key).expect("32 bytes is a BLAKE2b key");
+    let mut mac = <Blake2bMac<U32> as KeyInit>::new_from_slice(key).expect("32 bytes is a BLAKE2b key");
     Mac::update(&mut mac, DOMAIN);
     Mac::update(&mut mac, format!("{id}\0{hash}").as_bytes());
     mac
