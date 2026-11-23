@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { Menu } from "@base-ui/react/menu";
-import { Popover } from "@base-ui/react/popover";
+import { Menu } from "@/components/ui/menu";
+import { PopoverParts } from "@/components/ui/popover";
 import { Check, ChevronDown, X } from "lucide-react";
 import { BUILTIN_STYLES } from "@/lib/builtin-styles";
 import type { StylePreset } from "@/lib/layout";
 import type { ModuleSettings } from "@/modules/types";
 import type { MakeThemeTarget } from "./inherit-chip";
 import { cn } from "@/lib/utils";
-import { ICON_BUTTON, ITEM, POPUP } from "./menu-styles";
+import { ICON_BUTTON } from "./menu-styles";
 
 interface StyleToolbarProps {
   /** The Styles saved in the Library (`config.stylePresets`). */
@@ -114,37 +114,33 @@ export function StyleToolbar({ saved, hasStyle, canMakeTheme, onApply, onSave, m
 
   return (
     <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-4 pb-1 pt-3">
-      <Popover.Root open={gallery} onOpenChange={setGallery}>
-        <Popover.Trigger className={BUTTON}>
+      <PopoverParts.Root open={gallery} onOpenChange={setGallery}>
+        <PopoverParts.Trigger className={BUTTON}>
           Start from a saved style <ChevronDown className="h-3 w-3 shrink-0" />
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Positioner side="bottom" align="start" sideOffset={6} className="z-[80]">
-            <Popover.Popup className="w-66 space-y-2 rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui shadow-ui-menu outline-none">
-              <div>
-                <p className="px-0.5 pb-1 text-micro text-ui-4">Built-in</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {BUILTIN_STYLES.map((s) => (
-                    <StyleCard key={s.id} name={s.name} settings={s.settings} onPick={() => apply(s.settings)} />
-                  ))}
-                </div>
+        </PopoverParts.Trigger>
+        <PopoverParts.Content side="bottom" align="start" sideOffset={6} className="w-66 space-y-2">
+          <div>
+            <p className="px-0.5 pb-1 text-micro text-ui-4">Built-in</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {BUILTIN_STYLES.map((s) => (
+                <StyleCard key={s.id} name={s.name} settings={s.settings} onPick={() => apply(s.settings)} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="px-0.5 pb-1 text-micro text-ui-4">Saved</p>
+            {saved.length === 0 ? (
+              <p className="px-0.5 pb-0.5 text-micro text-ui-4">Styles you save appear here and in Library</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-1.5">
+                {saved.map((s) => (
+                  <StyleCard key={s.id} name={s.name} settings={s.settings} onPick={() => apply(s.settings)} />
+                ))}
               </div>
-              <div>
-                <p className="px-0.5 pb-1 text-micro text-ui-4">Saved</p>
-                {saved.length === 0 ? (
-                  <p className="px-0.5 pb-0.5 text-micro text-ui-4">Styles you save appear here and in Library</p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {saved.map((s) => (
-                      <StyleCard key={s.id} name={s.name} settings={s.settings} onPick={() => apply(s.settings)} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Popover.Popup>
-          </Popover.Positioner>
-        </Popover.Portal>
-      </Popover.Root>
+            )}
+          </div>
+        </PopoverParts.Content>
+      </PopoverParts.Root>
       <button
         type="button"
         className={BUTTON}
@@ -167,17 +163,13 @@ export function StyleToolbar({ saved, hasStyle, canMakeTheme, onApply, onSave, m
         >
           Make this the theme for… <ChevronDown className="h-3 w-3 shrink-0" />
         </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-            <Menu.Popup className={POPUP}>
-              {MAKE_THEME.map((m) => (
-                <Menu.Item key={m.target} className={ITEM} onClick={() => onMakeTheme(m.target)}>
-                  {m.label}
-                </Menu.Item>
-              ))}
-            </Menu.Popup>
-          </Menu.Positioner>
-        </Menu.Portal>
+        <Menu.Content sideOffset={4} align="end">
+          {MAKE_THEME.map((m) => (
+            <Menu.Item key={m.target} onClick={() => onMakeTheme(m.target)}>
+              {m.label}
+            </Menu.Item>
+          ))}
+        </Menu.Content>
       </Menu.Root>
     </div>
   );

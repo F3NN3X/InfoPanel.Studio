@@ -3,12 +3,11 @@
 // Repeat the field of numbers it draws. Every change is one edit of the recipe. Phase D (G33): a weather icon outside a Repeat picks
 // from text readings only, with no "Let people pick".
 import { useState } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { GripVertical, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
-import { ITEM, POPUP } from "@/components/studio/menu-styles";
 import { DataPicker } from "@/components/studio/inspector/data-picker";
 import { useDataModel } from "@/lib/use-data-model";
 import { cn } from "@/lib/utils";
@@ -265,18 +264,14 @@ export function LabelText({ block, props }: { block: Extract<Block, { type: "lab
                 <Menu.Trigger className="flex h-7 items-center gap-1 rounded-ui-md px-2 text-caption text-ui-accent-text hover:bg-ui-raised focus-visible:outline-2 focus-visible:outline-ui-accent">
                   <Plus className="h-3.5 w-3.5" aria-hidden /> Add a part
                 </Menu.Trigger>
-                <Menu.Portal>
-                  <Menu.Positioner className="z-[80]" sideOffset={6} align="start">
-                    <Menu.Popup className={POPUP}>
-                      <Menu.Item className={ITEM} onClick={() => add("text")}>
-                        Text
-                      </Menu.Item>
-                      <Menu.Item className={ITEM} onClick={() => add("data")}>
-                        Data
-                      </Menu.Item>
-                    </Menu.Popup>
-                  </Menu.Positioner>
-                </Menu.Portal>
+                <Menu.Content sideOffset={6} align="start">
+                  <Menu.Item onClick={() => add("text")}>
+                    Text
+                  </Menu.Item>
+                  <Menu.Item onClick={() => add("data")}>
+                    Data
+                  </Menu.Item>
+                </Menu.Content>
               </Menu.Root>
             </li>
           </ul>

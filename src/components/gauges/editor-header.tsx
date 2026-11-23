@@ -5,11 +5,10 @@
  */
 import { ArrowLeft, ChevronRight, Download, MoreHorizontal, Pencil, Redo2, Save, Undo2, Upload } from "lucide-react";
 import { useState } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { StatusChip, type StatusTone } from "@/components/ui/status-chip";
-import { ITEM, POPUP, SEPARATOR } from "@/components/studio/menu-styles";
 import { BarFill, PageBar } from "@/components/studio/page-bar";
 import { KIND_LABEL, kindOf } from "@/lib/gauge-studio/model";
 import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
@@ -124,32 +123,28 @@ export function EditorHeader({ edit, gauge, saving, history, onBack, onImport, o
           <Menu.Trigger aria-label="More gauge actions" className="grid h-8 w-8 place-items-center rounded-ui-md text-ui-3 hover:bg-ui-raised hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent data-popup-open:bg-ui-raised">
             <MoreHorizontal className="h-4 w-4" />
           </Menu.Trigger>
-          <Menu.Portal>
-            <Menu.Positioner className="z-[80]" sideOffset={6} align="end">
-              <Menu.Popup className={POPUP}>
-                {onImport && (
-                  <Menu.Item className={ITEM} onClick={onImport}>
-                    <span className="flex items-center gap-2">
-                      <Download className="h-4 w-4 text-ui-3" aria-hidden /> Import a gauge
-                    </span>
-                  </Menu.Item>
-                )}
-                {onSaveAsNew && (
-                  <Menu.Item className={ITEM} disabled={saving} onClick={onSaveAsNew}>
-                    Save as new
-                  </Menu.Item>
-                )}
-                {onDiscardDraft && (
-                  <>
-                    <div role="separator" className={SEPARATOR} />
-                    <Menu.Item className={`${ITEM} text-ui-danger`} onClick={onDiscardDraft}>
-                      Discard draft
-                    </Menu.Item>
-                  </>
-                )}
-              </Menu.Popup>
-            </Menu.Positioner>
-          </Menu.Portal>
+          <Menu.Content sideOffset={6} align="end">
+            {onImport && (
+              <Menu.Item onClick={onImport}>
+                <span className="flex items-center gap-2">
+                  <Download className="h-4 w-4 text-ui-3" aria-hidden /> Import a gauge
+                </span>
+              </Menu.Item>
+            )}
+            {onSaveAsNew && (
+              <Menu.Item disabled={saving} onClick={onSaveAsNew}>
+                Save as new
+              </Menu.Item>
+            )}
+            {onDiscardDraft && (
+              <>
+                <div role="separator" />
+                <Menu.Item danger onClick={onDiscardDraft}>
+                  Discard draft
+                </Menu.Item>
+              </>
+            )}
+          </Menu.Content>
         </Menu.Root>
       )}
     </PageBar>

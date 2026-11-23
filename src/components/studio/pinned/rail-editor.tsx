@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { ArrowDown, ArrowLeft, ArrowUp, Plus, TriangleAlert } from "lucide-react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Button, FOCUS_RING } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { StatusChip } from "@/components/ui/status-chip";
@@ -12,7 +12,6 @@ import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { modules } from "@/modules";
 import type { ModuleSettings } from "@/modules/types";
-import { ITEM, POPUP } from "../menu-styles";
 import { isCodeId, isRecipeId } from "@/widgets/recipe/resolve";
 import { loadUserRailWidgets } from "@/widgets/recipe/use-recipes";
 import { loadWidgetPresets } from "../widget-presets";
@@ -143,26 +142,22 @@ export function RailEditor({ stored, profile, index, pageId, item, appearance, t
           </div>
           <Menu.Root>
             <Menu.Trigger render={<Button icon={<Plus />} />}>Add item</Menu.Trigger>
-            <Menu.Portal>
-              <Menu.Positioner side="bottom" align="end" sideOffset={4} className="z-[80]">
-                <Menu.Popup className={POPUP}>
-                  <Menu.Item className={ITEM} onClick={() => add("page")}>
-                    A page
-                  </Menu.Item>
-                  <Menu.Item className={ITEM} onClick={() => add("action")}>
-                    An action
-                  </Menu.Item>
-                  <Menu.Item className={ITEM} onClick={() => add("profile")}>
-                    The profile or a logo
-                  </Menu.Item>
-                  {widgets.map((w) => (
-                    <Menu.Item key={`${w.module}:${w.name}`} className={ITEM} onClick={() => add("widget", w)}>
-                      {w.name}
-                    </Menu.Item>
-                  ))}
-                </Menu.Popup>
-              </Menu.Positioner>
-            </Menu.Portal>
+            <Menu.Content side="bottom" align="end" sideOffset={4}>
+              <Menu.Item onClick={() => add("page")}>
+                A page
+              </Menu.Item>
+              <Menu.Item onClick={() => add("action")}>
+                An action
+              </Menu.Item>
+              <Menu.Item onClick={() => add("profile")}>
+                The profile or a logo
+              </Menu.Item>
+              {widgets.map((w) => (
+                <Menu.Item key={`${w.module}:${w.name}`} onClick={() => add("widget", w)}>
+                  {w.name}
+                </Menu.Item>
+              ))}
+            </Menu.Content>
           </Menu.Root>
         </div>
         {overflow && (

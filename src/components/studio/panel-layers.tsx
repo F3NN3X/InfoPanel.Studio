@@ -1,10 +1,9 @@
 import { useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { ArrowUp, Copy, Eye, EyeOff, GripVertical, MoreHorizontal, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import type { Widget, WidgetKind } from "@/lib/panel-model";
 import { cn } from "@/lib/utils";
-import { ITEM, POPUP } from "./menu-styles";
 import { ChangeKindSubmenu } from "./widget-kind-menu";
 import { KIND_INFO, sensorName, widgetName } from "./widget-kinds";
 
@@ -154,19 +153,15 @@ export function PanelLayers({
               >
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </Menu.Trigger>
-              <Menu.Portal>
-                <Menu.Positioner className="z-50" sideOffset={4} align="end">
-                  <Menu.Popup className={POPUP}>
-                    <Menu.Item className={ITEM} onClick={() => onCopy(w.id)}>
-                      Copy
-                    </Menu.Item>
-                    <Menu.Item className={ITEM} disabled={!onPasteAfter} onClick={() => onPasteAfter?.(w.id)}>
-                      Paste after
-                    </Menu.Item>
-                    <ChangeKindSubmenu kind={w.kind} onChange={(kind) => onChangeKind(w.id, kind)} />
-                  </Menu.Popup>
-                </Menu.Positioner>
-              </Menu.Portal>
+              <Menu.Content sideOffset={4} align="end">
+                <Menu.Item onClick={() => onCopy(w.id)}>
+                  Copy
+                </Menu.Item>
+                <Menu.Item disabled={!onPasteAfter} onClick={() => onPasteAfter?.(w.id)}>
+                  Paste after
+                </Menu.Item>
+                <ChangeKindSubmenu kind={w.kind} onChange={(kind) => onChangeKind(w.id, kind)} />
+              </Menu.Content>
             </Menu.Root>
           </div>
         );

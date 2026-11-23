@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Popover } from "@base-ui/react/popover";
+import { PopoverParts } from "@/components/ui/popover";
 import { Film, Library, Trash2 } from "lucide-react";
 import {
   AssetError,
@@ -70,55 +70,51 @@ export function MediaLibrary({ kind, value, onPick }: MediaLibraryProps) {
   const unusedIds = state ? state.assets.filter((a) => state.unused.has(a.id)).map((a) => a.id) : [];
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger className={ICON_BUTTON} title="Uploaded files">
+    <PopoverParts.Root open={open} onOpenChange={setOpen}>
+      <PopoverParts.Trigger className={ICON_BUTTON} title="Uploaded files">
         <Library className="h-3 w-3" />
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Popover.Popup className="w-72 space-y-2 rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui text-caption text-ui-2 shadow-ui-menu outline-none">
-            <div className="flex items-center justify-between">
-              <Popover.Title className="font-medium text-ui-1">Uploaded {kind === "image" ? "images" : "videos"}</Popover.Title>
-              <span className="text-micro text-ui-4">{state ? `${shown.length} files` : "Loading…"}</span>
-            </div>
-            {error && (
-              <div role="alert" className="text-micro text-ui-danger">
-                {error}
-              </div>
-            )}
-            {state && shown.length === 0 && (
-              <p className="py-4 text-center text-micro text-ui-4">
-                Nothing uploaded yet. Use Upload… or drop a file on the field.
-              </p>
-            )}
-            {shown.length > 0 && (
-              <div className="grid max-h-64 grid-cols-3 gap-1.5 overflow-y-auto">
-                {shown.map((a) => (
-                  <AssetTile
-                    key={a.id}
-                    asset={a}
-                    selected={a.id === current}
-                    unused={state?.unused.has(a.id) ?? false}
-                    onPick={() => {
-                      onPick(a.url);
-                      setOpen(false);
-                    }}
-                    onDelete={() => void remove([a.id])}
-                  />
-                ))}
-              </div>
-            )}
-            <CleanupRow
-              count={unusedIds.length}
-              confirming={confirmCleanup}
-              onAsk={() => setConfirmCleanup(true)}
-              onCancel={() => setConfirmCleanup(false)}
-              onConfirm={() => void remove(unusedIds)}
-            />
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+      </PopoverParts.Trigger>
+      <PopoverParts.Content sideOffset={4} align="end" className="w-72 space-y-2 text-caption">
+        <div className="flex items-center justify-between">
+          <PopoverParts.Title className="font-medium text-ui-1">Uploaded {kind === "image" ? "images" : "videos"}</PopoverParts.Title>
+          <span className="text-micro text-ui-4">{state ? `${shown.length} files` : "Loading…"}</span>
+        </div>
+        {error && (
+          <div role="alert" className="text-micro text-ui-danger">
+            {error}
+          </div>
+        )}
+        {state && shown.length === 0 && (
+          <p className="py-4 text-center text-micro text-ui-4">
+            Nothing uploaded yet. Use Upload… or drop a file on the field.
+          </p>
+        )}
+        {shown.length > 0 && (
+          <div className="grid max-h-64 grid-cols-3 gap-1.5 overflow-y-auto">
+            {shown.map((a) => (
+              <AssetTile
+                key={a.id}
+                asset={a}
+                selected={a.id === current}
+                unused={state?.unused.has(a.id) ?? false}
+                onPick={() => {
+                  onPick(a.url);
+                  setOpen(false);
+                }}
+                onDelete={() => void remove([a.id])}
+              />
+            ))}
+          </div>
+        )}
+        <CleanupRow
+          count={unusedIds.length}
+          confirming={confirmCleanup}
+          onAsk={() => setConfirmCleanup(true)}
+          onCancel={() => setConfirmCleanup(false)}
+          onConfirm={() => void remove(unusedIds)}
+        />
+      </PopoverParts.Content>
+    </PopoverParts.Root>
   );
 }
 

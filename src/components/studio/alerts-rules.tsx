@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Bell, BellRing, Copy, Maximize, PanelTop, Plus, RectangleHorizontal, Sparkles, Trash2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -41,35 +41,29 @@ export interface AlertRulesProps {
 /** Under this width the three columns don't fit: the list, then a rule on its own with Back. */
 const COLUMNS_MIN = 1180;
 
-const MENU_POPUP =
-  "max-h-[60vh] min-w-52 overflow-y-auto rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui text-body text-ui-2 shadow-ui-menu outline-none";
-const MENU_ITEM =
-  "flex min-h-8 cursor-default flex-col justify-center rounded-md px-2 py-1 outline-none select-none data-highlighted:bg-ui-highlight data-highlighted:text-ui-1";
+
+const ITEM_TWO_LINE = "h-auto min-h-8 flex-col items-stretch justify-center py-1";
 
 /** The "New rule" menu (SPEC §10.3): blank rules and the presets. */
 export function NewRuleMenu({ onAdd, points }: { onAdd: (rule: AlertRule) => void; points: readonly DataPoint[] }) {
   return (
     <Menu.Root>
       <Menu.Trigger render={<Button variant="primary" icon={<Plus aria-hidden />} />}>New rule</Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Menu.Popup className={MENU_POPUP}>
-            <Menu.Item className={MENU_ITEM} onClick={() => onAdd(blankSensorRule())}>
-              Blank sensor rule
-            </Menu.Item>
-            <Menu.Item className={MENU_ITEM} onClick={() => onAdd(blankNotificationRule())}>
-              Blank notification rule
-            </Menu.Item>
-            <div className="my-1 border-t border-ui-subtle px-2 pt-1.5 text-caption text-ui-3">Presets</div>
-            {ALERT_PRESETS.map((preset) => (
-              <Menu.Item key={preset.id} className={MENU_ITEM} onClick={() => onAdd(presetRule(preset, points))}>
-                <span className="text-ui-1">{preset.label}</span>
-                <span className="text-micro text-ui-3">{preset.hint}</span>
-              </Menu.Item>
-            ))}
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
+      <Menu.Content align="end" className="max-h-[60vh] min-w-52 overflow-y-auto">
+        <Menu.Item className={ITEM_TWO_LINE} onClick={() => onAdd(blankSensorRule())}>
+          Blank sensor rule
+        </Menu.Item>
+        <Menu.Item className={ITEM_TWO_LINE} onClick={() => onAdd(blankNotificationRule())}>
+          Blank notification rule
+        </Menu.Item>
+        <div className="my-1 border-t border-ui-subtle px-2 pt-1.5 text-caption text-ui-3">Presets</div>
+        {ALERT_PRESETS.map((preset) => (
+          <Menu.Item key={preset.id} className={ITEM_TWO_LINE} onClick={() => onAdd(presetRule(preset, points))}>
+            <span className="text-ui-1">{preset.label}</span>
+            <span className="text-micro text-ui-3">{preset.hint}</span>
+          </Menu.Item>
+        ))}
+      </Menu.Content>
     </Menu.Root>
   );
 }

@@ -1,6 +1,5 @@
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { ChevronDown } from "lucide-react";
-import { ITEM, POPUP } from "@/components/studio/menu-styles";
 import { openImportDoor, openNewInfoPanel } from "@/components/studio/file-doors";
 
 const SEGMENT =
@@ -17,15 +16,11 @@ export function AddFilesButton() {
         <Menu.Trigger aria-label="More ways to add" className={`${SEGMENT} w-7 justify-center border-l border-ui-inverse-fg/20`}>
           <ChevronDown className="h-3.5 w-3.5" aria-hidden />
         </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-            <Menu.Popup className={POPUP}>
-              <Menu.Item className={ITEM} onClick={() => openNewInfoPanel()}>
-                New InfoPanel profile…
-              </Menu.Item>
-            </Menu.Popup>
-          </Menu.Positioner>
-        </Menu.Portal>
+        <Menu.Content sideOffset={4} align="end">
+          <Menu.Item onClick={() => openNewInfoPanel()}>
+            New InfoPanel profile…
+          </Menu.Item>
+        </Menu.Content>
       </Menu.Root>
     </div>
   );

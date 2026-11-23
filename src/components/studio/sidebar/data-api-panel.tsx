@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Popover } from "@base-ui/react/popover";
+import { PopoverParts } from "@/components/ui/popover";
 import { ArrowRight, ClipboardCopy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FIELD_BOX } from "@/components/ui/field";
@@ -73,8 +73,8 @@ export default function DataApiPanel({ status, config, onAddress, onOpenData }: 
   return (
     <>
       <div className="flex items-center justify-between">
-        <Popover.Title className="text-lead font-medium text-ui-1">Data API</Popover.Title>
-        <Popover.Close
+        <PopoverParts.Title className="text-lead font-medium text-ui-1">Data API</PopoverParts.Title>
+        <PopoverParts.Close
           render={
             <IconButton label="Close" size={26}>
               <X className="h-4 w-4" />

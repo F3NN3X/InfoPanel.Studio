@@ -1,7 +1,7 @@
 import { scrollBehavior } from "@/lib/scroll-behavior";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Download, FileArchive, FolderOpen, Info } from "lucide-react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Tabs } from "@/components/ui/tabs";
@@ -68,7 +68,6 @@ import { useStablePreset } from "./look-thumb";
 import { cornerStep, knobCustom, knobValue, lockedKnobs, modeOf } from "./look-knobs-model";
 import { ThemeActions, ThemeLookCard, ThemeSave } from "./theme-look-card";
 import { SAMPLE_PRESET_GROUPS } from "@/lib/screen-templates/sample-presets";
-import { HIGHLIGHT, ITEM, POPUP } from "./menu-styles";
 import { ThemeBrowse } from "./theme-browse";
 import type { BrowseItem } from "./theme-browse-model";
 import { previewOrder, type PreviewItem } from "./theme-live-preview-model";
@@ -703,24 +702,20 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
       <Menu.Trigger render={<Button icon={<Download aria-hidden />} />} disabled={imported.off}>
         Import a pack
       </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Menu.Popup className={cn(POPUP, "w-52")}>
-            <Menu.Item className={cn(ITEM, HIGHLIGHT)} onClick={() => pickPack("folder")}>
-              <span className="flex items-center gap-2">
-                <FolderOpen className="h-4 w-4 text-ui-hint" aria-hidden />
-                Import a folder
-              </span>
-            </Menu.Item>
-            <Menu.Item className={cn(ITEM, HIGHLIGHT)} onClick={() => pickPack("zip")}>
-              <span className="flex items-center gap-2">
-                <FileArchive className="h-4 w-4 text-ui-hint" aria-hidden />
-                Import a zip
-              </span>
-            </Menu.Item>
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
+      <Menu.Content sideOffset={4} align="end" className="w-52">
+        <Menu.Item onClick={() => pickPack("folder")}>
+          <span className="flex items-center gap-2">
+            <FolderOpen className="h-4 w-4 text-ui-hint" aria-hidden />
+            Import a folder
+          </span>
+        </Menu.Item>
+        <Menu.Item onClick={() => pickPack("zip")}>
+          <span className="flex items-center gap-2">
+            <FileArchive className="h-4 w-4 text-ui-hint" aria-hidden />
+            Import a zip
+          </span>
+        </Menu.Item>
+      </Menu.Content>
     </Menu.Root>
   );
 

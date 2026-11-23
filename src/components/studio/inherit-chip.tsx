@@ -1,8 +1,7 @@
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Box, ChevronRight, Link2, Lock, Palette, Pencil, type LucideIcon } from "lucide-react";
 import { LEVEL_LABELS, type InheritLevel, type InheritState } from "@/lib/inheritance";
 import { cn } from "@/lib/utils";
-import { ITEM, POPUP, SEPARATOR } from "./menu-styles";
 
 /** Where "Make this the theme for… ▸" writes a widget's custom sections. */
 export type MakeThemeTarget = "screen" | "page";
@@ -138,78 +137,70 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
           </>
         )}
       </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-(--z-menu)" sideOffset={4} align="start">
-          <Menu.Popup className={cn(POPUP, "w-55 bg-ui-hover border-ui-menu")}>
-            {line && <div className="px-2 pb-1 pt-1.5 text-micro leading-snug text-ui-4">{line}</div>}
-            {state === "custom" && (
-              <>
-                {line && <div className={SEPARATOR} />}
-                {onReset && (
-                  <Menu.Item className={ITEM} onClick={onReset}>
-                    Reset to inherited <span className="text-micro text-ui-4">⌫</span>
-                  </Menu.Item>
-                )}
-                {onJump && (
-                  <Menu.Item className={ITEM} onClick={onJump}>
-                    Edit {level} ↗
-                  </Menu.Item>
-                )}
-                {onMakeTheme && (
-                  <Menu.SubmenuRoot>
-                    <Menu.SubmenuTrigger className={ITEM}>
-                      Make this the theme for… <ChevronRight className="h-3 w-3" />
-                    </Menu.SubmenuTrigger>
-                    <Menu.Portal>
-                      <Menu.Positioner className="z-(--z-menu)" sideOffset={4} alignOffset={-4}>
-                        <Menu.Popup className={POPUP}>
-                          {MAKE_THEME.map((m) => (
-                            <Menu.Item key={m.target} className={ITEM} onClick={() => onMakeTheme(m.target)}>
-                              {m.label}
-                            </Menu.Item>
-                          ))}
-                        </Menu.Popup>
-                      </Menu.Positioner>
-                    </Menu.Portal>
-                  </Menu.SubmenuRoot>
-                )}
-              </>
+      <Menu.Content sideOffset={4} align="start" className="w-55 bg-ui-hover border-ui-menu">
+        {line && <div className="px-2 pb-1 pt-1.5 text-micro leading-snug text-ui-4">{line}</div>}
+        {state === "custom" && (
+          <>
+            {line && <div />}
+            {onReset && (
+              <Menu.Item onClick={onReset}>
+                Reset to inherited <span className="text-micro text-ui-4">⌫</span>
+              </Menu.Item>
             )}
-            {state === "inherited" && (
-              <>
-                {line && <div className={SEPARATOR} />}
-                {onCustomise && (
-                  <Menu.Item className={ITEM} onClick={onCustomise}>
-                    Change here
-                  </Menu.Item>
-                )}
-                {onJump && (
-                  <Menu.Item className={ITEM} onClick={onJump}>
-                    Edit {level} ↗
-                  </Menu.Item>
-                )}
-              </>
+            {onJump && (
+              <Menu.Item onClick={onJump}>
+                Edit {level} ↗
+              </Menu.Item>
             )}
-            {state === "theme" && <div className="px-2 py-1.5 text-micro leading-snug text-ui-4">{look.tip(name)}</div>}
-            {state === "locked" && onJump && (
-              <>
-                {line && <div className={SEPARATOR} />}
-                <Menu.Item className={ITEM} onClick={onJump}>
-                  Edit lock in Theme ↗
-                </Menu.Item>
-              </>
+            {onMakeTheme && (
+              <Menu.SubmenuRoot>
+                <Menu.SubmenuTrigger>
+                  Make this the theme for… <ChevronRight className="h-3 w-3" />
+                </Menu.SubmenuTrigger>
+                <Menu.Content alignOffset={-4}>
+                  {MAKE_THEME.map((m) => (
+                    <Menu.Item key={m.target} onClick={() => onMakeTheme(m.target)}>
+                      {m.label}
+                    </Menu.Item>
+                  ))}
+                </Menu.Content>
+              </Menu.SubmenuRoot>
             )}
-            {state === "base" && onReset && (
-              <>
-                {line && <div className={SEPARATOR} />}
-                <Menu.Item className={ITEM} onClick={onReset}>
-                  Reset to built-in
-                </Menu.Item>
-              </>
+          </>
+        )}
+        {state === "inherited" && (
+          <>
+            {line && <div />}
+            {onCustomise && (
+              <Menu.Item onClick={onCustomise}>
+                Change here
+              </Menu.Item>
             )}
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
+            {onJump && (
+              <Menu.Item onClick={onJump}>
+                Edit {level} ↗
+              </Menu.Item>
+            )}
+          </>
+        )}
+        {state === "theme" && <div className="px-2 py-1.5 text-micro leading-snug text-ui-4">{look.tip(name)}</div>}
+        {state === "locked" && onJump && (
+          <>
+            {line && <div />}
+            <Menu.Item onClick={onJump}>
+              Edit lock in Theme ↗
+            </Menu.Item>
+          </>
+        )}
+        {state === "base" && onReset && (
+          <>
+            {line && <div />}
+            <Menu.Item onClick={onReset}>
+              Reset to built-in
+            </Menu.Item>
+          </>
+        )}
+      </Menu.Content>
     </Menu.Root>
   );
 }

@@ -1,11 +1,10 @@
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { ChevronUp, Grid3x3, Hand, Maximize, Minus, MousePointer2, PanelRight, Plus, RefreshCw, Snowflake } from "lucide-react";
 import type { PreviewDataState } from "@/hooks/use-preview-data";
 import { openSettings } from "@/lib/desktop";
 import { IconButton } from "@/components/ui/icon-button";
 import type { ProfileView } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import { ITEM, POPUP } from "./menu-styles";
 import { KEYS } from "./use-studio-shortcuts";
 
 interface ZoomToolbarProps {
@@ -135,31 +134,27 @@ export function ZoomToolbar({
           <Menu.Trigger aria-label="View options" title="View options" className="grid h-7 w-5 place-items-center rounded-ui-md text-ui-3 transition-colors hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover">
             <ChevronUp className="h-3.5 w-3.5" aria-hidden />
           </Menu.Trigger>
-          <Menu.Portal>
-            <Menu.Positioner className="z-[80]" side="top" sideOffset={8} align="end">
-              <Menu.Popup className={POPUP}>
-                <Menu.Item className={ITEM} onClick={onToggleRulers}>
-                  {showRulers ? "Hide rulers" : "Show rulers"}
-                </Menu.Item>
-                {onActualSize && (
-                  <Menu.Item className={ITEM} disabled={actual} onClick={onActualSize}>
-                    Show at 100%
-                  </Menu.Item>
-                )}
-                {onZoomSelection && (
-                  <Menu.Item className={ITEM} disabled={!hasSelection} onClick={onZoomSelection}>
-                    Zoom to selection <span className="text-micro text-ui-hint">{KEYS.zoomSelection}</span>
-                  </Menu.Item>
-                )}
-                <Menu.Item className={ITEM} onClick={onOpenProfile} title={sizeTitle}>
-                  <span className="font-ui-mono">
-                    {profile.width} × {profile.height}
-                  </span>{" "}
-                  ↗
-                </Menu.Item>
-              </Menu.Popup>
-            </Menu.Positioner>
-          </Menu.Portal>
+          <Menu.Content side="top" sideOffset={8} align="end">
+            <Menu.Item onClick={onToggleRulers}>
+              {showRulers ? "Hide rulers" : "Show rulers"}
+            </Menu.Item>
+            {onActualSize && (
+              <Menu.Item disabled={actual} onClick={onActualSize}>
+                Show at 100%
+              </Menu.Item>
+            )}
+            {onZoomSelection && (
+              <Menu.Item disabled={!hasSelection} onClick={onZoomSelection}>
+                Zoom to selection <span className="text-micro text-ui-hint">{KEYS.zoomSelection}</span>
+              </Menu.Item>
+            )}
+            <Menu.Item onClick={onOpenProfile} title={sizeTitle}>
+              <span className="font-ui-mono">
+                {profile.width} × {profile.height}
+              </span>{" "}
+              ↗
+            </Menu.Item>
+          </Menu.Content>
         </Menu.Root>
         {snapItems !== undefined && (
           <>

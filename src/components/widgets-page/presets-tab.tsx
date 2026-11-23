@@ -3,11 +3,10 @@
 // One is the default (what a fresh add is): its values are the options' defaults. Phase D (G30): a preset's blurb (the Add panel's line)
 // and its values of text, sensor, place list and device options too.
 import { useState } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
-import { ITEM, POPUP } from "@/components/studio/menu-styles";
 import { cn } from "@/lib/utils";
 import { PlaceListEditor } from "@/components/studio/place-list/place-list-editor";
 import { placeList } from "@/components/studio/place-list/place-search";
@@ -67,28 +66,24 @@ export function PresetsTab({ recipe, onChange, current, onPick, values, size, da
             <Menu.Trigger aria-label={`More for ${p.name}`} className="grid h-7 w-7 shrink-0 place-items-center rounded-ui-md text-ui-3 hover:bg-ui-raised hover:text-ui-1 data-popup-open:bg-ui-raised">
               <MoreHorizontal className="h-4 w-4" />
             </Menu.Trigger>
-            <Menu.Portal>
-              <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-                <Menu.Popup className={POPUP}>
-                  <Menu.Item className={ITEM} onClick={() => setRenaming(p.id)}>
-                    Rename
-                  </Menu.Item>
-                  <Menu.Item className={ITEM} disabled={!!p.default || p.size === "rail"} onClick={() => onChange(setDefaultPreset(recipe, p.id))}>
-                    Make it the default
-                  </Menu.Item>
-                  <Menu.Item className={ITEM} onClick={() => onChange(updatePreset(recipe, p.id, { size: [...size] as Cells }))}>
-                    Use the stage's size ({size[0]}×{size[1]})
-                  </Menu.Item>
-                  {/* a slot of the page rail (P6); the default stays on the grid, where Add opens it */}
-                  <Menu.Item className={ITEM} disabled={!!p.default || p.size === "rail"} onClick={() => (onChange(railPreset(recipe, p.id)), onPick(p.id))}>
-                    Use in the page rail
-                  </Menu.Item>
-                  <Menu.Item className={`${ITEM} text-ui-danger`} disabled={recipe.presets.length < 2} onClick={() => onChange(removePreset(recipe, p.id))}>
-                    Remove
-                  </Menu.Item>
-                </Menu.Popup>
-              </Menu.Positioner>
-            </Menu.Portal>
+            <Menu.Content sideOffset={4} align="end">
+              <Menu.Item onClick={() => setRenaming(p.id)}>
+                Rename
+              </Menu.Item>
+              <Menu.Item disabled={!!p.default || p.size === "rail"} onClick={() => onChange(setDefaultPreset(recipe, p.id))}>
+                Make it the default
+              </Menu.Item>
+              <Menu.Item onClick={() => onChange(updatePreset(recipe, p.id, { size: [...size] as Cells }))}>
+                Use the stage's size ({size[0]}×{size[1]})
+              </Menu.Item>
+              {/* a slot of the page rail (P6); the default stays on the grid, where Add opens it */}
+              <Menu.Item disabled={!!p.default || p.size === "rail"} onClick={() => (onChange(railPreset(recipe, p.id)), onPick(p.id))}>
+                Use in the page rail
+              </Menu.Item>
+              <Menu.Item danger disabled={recipe.presets.length < 2} onClick={() => onChange(removePreset(recipe, p.id))}>
+                Remove
+              </Menu.Item>
+            </Menu.Content>
           </Menu.Root>
         </div>
         {current === p.id && <PresetValues recipe={recipe} id={p.id} onChange={onChange} data={data} devices={devices} onOpenSources={onOpenSources} />}

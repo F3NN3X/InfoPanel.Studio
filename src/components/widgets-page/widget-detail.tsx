@@ -2,12 +2,10 @@
 // trust box), Add to a screen, Edit or About, Export and the menu, then its presets, the options people can change and the screens
 // it is on. A built-in shows the same, with "Duplicate as a recipe" (or why it can't be one).
 import type { CSSProperties, ReactNode } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { CircleCheck, Copy, Info, MoreHorizontal, Pencil, Puzzle, ShieldAlert, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ITEM, POPUP, SEPARATOR } from "@/components/studio/menu-styles";
 import type { Appearance } from "@/lib/style-resolve";
-import { cn } from "@/lib/utils";
 import type { Recipe } from "@/widgets/recipe/types";
 import { RecipePreview } from "./recipe-preview";
 import type { Trust } from "./widgets-model";
@@ -170,23 +168,19 @@ export function WidgetDetail(p: WidgetDetailProps) {
               <Menu.Trigger aria-label="More widget actions" className="grid h-8 w-8 shrink-0 place-items-center rounded-ui-md text-ui-3 hover:bg-ui-raised hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent data-popup-open:bg-ui-raised">
                 <MoreHorizontal className="h-4 w-4" />
               </Menu.Trigger>
-              <Menu.Portal>
-                <Menu.Positioner className="z-[80]" sideOffset={6} align="end">
-                  <Menu.Popup className={POPUP}>
-                    {p.menu.map((a, k) => (
-                      <div key={a.label}>
-                        {k > 0 && a.label.startsWith("Remove") && <div role="separator" className={SEPARATOR} />}
-                        <Menu.Item className={cn(ITEM, a.label.startsWith("Remove") && "text-ui-danger")} disabled={a.disabled} onClick={a.run}>
-                          <span className="flex items-center gap-2">
-                            {a.label.startsWith("Remove") && <Trash2 className="h-4 w-4" aria-hidden />}
-                            {a.label}
-                          </span>
-                        </Menu.Item>
-                      </div>
-                    ))}
-                  </Menu.Popup>
-                </Menu.Positioner>
-              </Menu.Portal>
+              <Menu.Content sideOffset={6} align="end">
+                {p.menu.map((a, k) => (
+                  <div key={a.label}>
+                    {k > 0 && a.label.startsWith("Remove") && <div role="separator" />}
+                    <Menu.Item danger={a.label.startsWith("Remove")} disabled={a.disabled} onClick={a.run}>
+                      <span className="flex items-center gap-2">
+                        {a.label.startsWith("Remove") && <Trash2 className="h-4 w-4" aria-hidden />}
+                        {a.label}
+                      </span>
+                    </Menu.Item>
+                  </div>
+                ))}
+              </Menu.Content>
             </Menu.Root>
           )}
         </div>

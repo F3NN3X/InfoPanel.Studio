@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Popover } from "@base-ui/react/popover";
+import { PopoverParts } from "@/components/ui/popover";
 import { Film, Library } from "lucide-react";
 import type { AssetKind } from "@/lib/assets";
 import { listLibrary, type LibraryItem } from "@/lib/library";
@@ -42,64 +42,60 @@ export function BackgroundLibrary({ kind, value, onPick, onOpenLibrary }: Backgr
   }, [open, kind, attempt]);
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger className={ICON_BUTTON} title="Backgrounds from My library">
+    <PopoverParts.Root open={open} onOpenChange={setOpen}>
+      <PopoverParts.Trigger className={ICON_BUTTON} title="Backgrounds from My library">
         <Library className="h-3 w-3" />
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Popover.Popup className="w-72 space-y-2 rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui text-caption text-ui-2 shadow-ui-menu outline-none">
-            <div className="flex items-center justify-between">
-              <Popover.Title className="font-medium text-ui-1">Background {noun}</Popover.Title>
-              <span className="text-micro text-ui-4">{items ? `${items.length} in My library` : "Loading…"}</span>
-            </div>
-            {error && (
-              <div role="alert" className="flex items-center justify-between gap-2 text-micro text-ui-danger">
-                Could not load My library.
-                <button type="button" onClick={() => setAttempt((n) => n + 1)} className="rounded-md px-1.5 py-0.5 text-ui-2 hover:bg-ui-hover hover:text-ui-1">
-                  Try again
-                </button>
-              </div>
+      </PopoverParts.Trigger>
+      <PopoverParts.Content sideOffset={4} align="end" className="w-72 space-y-2 text-caption">
+        <div className="flex items-center justify-between">
+          <PopoverParts.Title className="font-medium text-ui-1">Background {noun}</PopoverParts.Title>
+          <span className="text-micro text-ui-4">{items ? `${items.length} in My library` : "Loading…"}</span>
+        </div>
+        {error && (
+          <div role="alert" className="flex items-center justify-between gap-2 text-micro text-ui-danger">
+            Could not load My library.
+            <button type="button" onClick={() => setAttempt((n) => n + 1)} className="rounded-md px-1.5 py-0.5 text-ui-2 hover:bg-ui-hover hover:text-ui-1">
+              Try again
+            </button>
+          </div>
+        )}
+        {items && items.length === 0 && (
+          <div className="space-y-2 py-3 text-center text-micro text-ui-4">
+            <p>
+              No background {noun} yet. Add a wide {kind} to My library, or tag one Background.
+            </p>
+            {onOpenLibrary && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenLibrary();
+                }}
+                className="rounded-md border border-ui-default px-2 py-1 text-ui-2 hover:bg-ui-hover"
+              >
+                Open Library
+              </button>
             )}
-            {items && items.length === 0 && (
-              <div className="space-y-2 py-3 text-center text-micro text-ui-4">
-                <p>
-                  No background {noun} yet. Add a wide {kind} to My library, or tag one Background.
-                </p>
-                {onOpenLibrary && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpen(false);
-                      onOpenLibrary();
-                    }}
-                    className="rounded-md border border-ui-default px-2 py-1 text-ui-2 hover:bg-ui-hover"
-                  >
-                    Open Library
-                  </button>
-                )}
-              </div>
-            )}
-            {items && items.length > 0 && (
-              <div className="grid max-h-64 grid-cols-3 gap-1.5 overflow-y-auto">
-                {items.map((item) => (
-                  <BackgroundTile
-                    key={item.id}
-                    item={item}
-                    selected={fileUrl(item) === value}
-                    onPick={() => {
-                      const url = fileUrl(item);
-                      if (url) onPick(url);
-                      setOpen(false);
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+          </div>
+        )}
+        {items && items.length > 0 && (
+          <div className="grid max-h-64 grid-cols-3 gap-1.5 overflow-y-auto">
+            {items.map((item) => (
+              <BackgroundTile
+                key={item.id}
+                item={item}
+                selected={fileUrl(item) === value}
+                onPick={() => {
+                  const url = fileUrl(item);
+                  if (url) onPick(url);
+                  setOpen(false);
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </PopoverParts.Content>
+    </PopoverParts.Root>
   );
 }
 

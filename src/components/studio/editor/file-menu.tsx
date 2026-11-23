@@ -1,8 +1,7 @@
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { ChevronDown, MoreHorizontal, FileInput, FileOutput } from "lucide-react";
 import { FOCUS_RING } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ITEM, POPUP } from "../menu-styles";
 
 interface FileMenuProps {
   onImport: () => void;
@@ -25,22 +24,18 @@ export default function FileMenu({ onImport, onExportSheet }: FileMenuProps) {
         <span className="max-xl:sr-only">File</span> <ChevronDown className="h-4 w-4 text-ui-3 max-xl:hidden" aria-hidden />
         <MoreHorizontal className="hidden h-4 w-4 text-ui-3 max-xl:block" aria-hidden />
       </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-[80]" sideOffset={6} align="end">
-          <Menu.Popup className={cn(POPUP, "w-68")}>
-            <Menu.Item className={ITEM} onClick={onImport}>
-              <span className="flex items-center gap-2">
-                <FileInput className="h-4 w-4 text-ui-3" aria-hidden /> Import…
-              </span>
-            </Menu.Item>
-            <Menu.Item className={ITEM} onClick={onExportSheet}>
-              <span className="flex items-center gap-2">
-                <FileOutput className="h-4 w-4 text-ui-3" aria-hidden /> Export &amp; back up…
-              </span>
-            </Menu.Item>
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
+      <Menu.Content sideOffset={6} align="end" className="w-68">
+        <Menu.Item onClick={onImport}>
+          <span className="flex items-center gap-2">
+            <FileInput className="h-4 w-4 text-ui-3" aria-hidden /> Import…
+          </span>
+        </Menu.Item>
+        <Menu.Item onClick={onExportSheet}>
+          <span className="flex items-center gap-2">
+            <FileOutput className="h-4 w-4 text-ui-3" aria-hidden /> Export &amp; back up…
+          </span>
+        </Menu.Item>
+      </Menu.Content>
     </Menu.Root>
   );
 }

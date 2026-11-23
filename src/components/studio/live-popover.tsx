@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
-import { Popover } from "@base-ui/react/popover";
+import { PopoverParts } from "@/components/ui/popover";
 import { Cast, Maximize, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FOCUS_RING } from "@/components/ui/button";
@@ -106,89 +106,89 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
   const savedIsland = screen.island?.enabled === true;
   const name = `Live control, ${kiosks.length} ${kiosks.length === 1 ? "kiosk" : "kiosks"}`;
   const trigger = (
-    <Popover.Trigger title={tip ? undefined : "Live control"} aria-label={name} className={cn("flex items-center transition-colors", place !== "bar" && FOCUS_RING, TRIGGER[place])}>
+    <PopoverParts.Trigger title={tip ? undefined : "Live control"} aria-label={name} className={cn("flex items-center transition-colors", place !== "bar" && FOCUS_RING, TRIGGER[place])}>
       <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", place === "bar" || kiosks.length > 0 ? "bg-ui-live" : "border border-ui-hint")} />
       {place !== "rail" && <span className="max-sm:sr-only">Live · {kiosks.length}</span>}
-    </Popover.Trigger>
+    </PopoverParts.Trigger>
   );
   return (
-    <Popover.Root open={open} onOpenChange={onOpenChange}>
+    <PopoverParts.Root open={open} onOpenChange={onOpenChange}>
       {tip ? tip(trigger, name) : trigger}
-      <Popover.Portal>
-        <Popover.Positioner side={place === "bar" ? "bottom" : "right"} align="end" sideOffset={place === "bar" ? 6 : 25} className="z-[80]">
-          <Popover.Popup data-help-article="kiosk" className="w-85 rounded-ui-menu border border-ui-menu bg-ui-raised p-3 font-ui text-body text-ui-2 shadow-ui-menu outline-none">
-            <div className="flex items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <Popover.Title className="text-body font-medium text-ui-1">Live control</Popover.Title>
-                <p className="mt-0.5 text-micro leading-snug text-ui-3">
-                  Acts on the kiosks right now. None of it is part of your design, so saving doesn't change it.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenChange(false);
-                  onOpenKioskView();
-                }}
-                title={isTauri() ? undefined : "Opens the kiosk in a separate window"}
-                className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-7 border border-ui-strong px-2 text-caption font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1"
-              >
-                <Maximize className="h-3.5 w-3.5" strokeWidth={1.75} /> Open kiosk view
-              </button>
-            </div>
-            {kiosks.length === 0 ? (
-              <p className="mt-3 text-caption text-ui-4">No kiosks are connected</p>
-            ) : (
-              <ul className="mt-2 divide-y divide-ui-subtle border-t border-ui-subtle">
-                {kiosks.map((k) => (
-                  <KioskRow key={k.id} kiosk={k} profiles={profiles} />
-                ))}
-              </ul>
-            )}
-            <div className="mt-2">
-              {offline && <p className="border-t border-ui-subtle pt-2.5 text-micro text-ui-warn">Not connected to the server: nothing here can reach a kiosk</p>}
-              <div className="flex flex-col gap-1.5 border-t border-ui-subtle py-2.5">
-                <span className="text-body text-ui-1">Show on {screen.name} kiosks</span>
-                <Segmented
-                  label={`Show on ${screen.name} kiosks`}
-                  value={shownPage ?? ""}
-                  options={screen.pages.map((p) => ({ value: p.id, label: p.name }))}
-                  onChange={(page) => void liveActions.showPage(screen.id, page)}
-                />
-              </div>
-              <Control
-                label="Rotation"
-                note={
-                  canRotate
-                    ? rotationNote({ rotating, override: entry?.override ?? null, savedEnabled: savedRotation, seconds: screen.rotate?.seconds ?? 0 })
-                    : `${screen.name} has one page: there is nothing to rotate.`
-                }
-              >
-                <Toggle label="Rotation" checked={rotating} disabled={offline || !canRotate} onChange={(next) => void liveActions.setRotation(screen.id, next, savedRotation)} />
-              </Control>
-              <DimSlider level={entry?.dim ?? 0} disabled={offline} onSet={(level) => void liveActions.setDim(screen.id, level)} />
-              <Control label="Dynamic Island">
-                <Toggle
-                  label="Dynamic Island"
-                  checked={islandEffective(control, screen)}
-                  disabled={offline}
-                  onChange={(next) => void liveActions.setIsland(screen.id, next, savedIsland)}
-                />
-              </Control>
-              <div className="border-t border-ui-subtle pt-2.5">
-                <button
-                  type="button"
-                  disabled={offline}
-                  onClick={() => void liveActions.reload()}
-                  className="flex h-8 w-full items-center justify-center gap-1.5 rounded-7 border border-ui-strong text-body font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.75} /> Reload all kiosks
-                </button>
-              </div>
-            </div>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+      <PopoverParts.Content
+        side={place === "bar" ? "bottom" : "right"} align="end" sideOffset={place === "bar" ? 6 : 25}
+        className="w-85 p-3 text-body"
+        data-help-article="kiosk"
+      >
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <PopoverParts.Title className="text-body font-medium text-ui-1">Live control</PopoverParts.Title>
+            <p className="mt-0.5 text-micro leading-snug text-ui-3">
+              Acts on the kiosks right now. None of it is part of your design, so saving doesn't change it.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              onOpenChange(false);
+              onOpenKioskView();
+            }}
+            title={isTauri() ? undefined : "Opens the kiosk in a separate window"}
+            className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-7 border border-ui-strong px-2 text-caption font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1"
+          >
+            <Maximize className="h-3.5 w-3.5" strokeWidth={1.75} /> Open kiosk view
+          </button>
+        </div>
+        {kiosks.length === 0 ? (
+          <p className="mt-3 text-caption text-ui-4">No kiosks are connected</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-ui-subtle border-t border-ui-subtle">
+            {kiosks.map((k) => (
+              <KioskRow key={k.id} kiosk={k} profiles={profiles} />
+            ))}
+          </ul>
+        )}
+        <div className="mt-2">
+          {offline && <p className="border-t border-ui-subtle pt-2.5 text-micro text-ui-warn">Not connected to the server: nothing here can reach a kiosk</p>}
+          <div className="flex flex-col gap-1.5 border-t border-ui-subtle py-2.5">
+            <span className="text-body text-ui-1">Show on {screen.name} kiosks</span>
+            <Segmented
+              label={`Show on ${screen.name} kiosks`}
+              value={shownPage ?? ""}
+              options={screen.pages.map((p) => ({ value: p.id, label: p.name }))}
+              onChange={(page) => void liveActions.showPage(screen.id, page)}
+            />
+          </div>
+          <Control
+            label="Rotation"
+            note={
+              canRotate
+                ? rotationNote({ rotating, override: entry?.override ?? null, savedEnabled: savedRotation, seconds: screen.rotate?.seconds ?? 0 })
+                : `${screen.name} has one page: there is nothing to rotate.`
+            }
+          >
+            <Toggle label="Rotation" checked={rotating} disabled={offline || !canRotate} onChange={(next) => void liveActions.setRotation(screen.id, next, savedRotation)} />
+          </Control>
+          <DimSlider level={entry?.dim ?? 0} disabled={offline} onSet={(level) => void liveActions.setDim(screen.id, level)} />
+          <Control label="Dynamic Island">
+            <Toggle
+              label="Dynamic Island"
+              checked={islandEffective(control, screen)}
+              disabled={offline}
+              onChange={(next) => void liveActions.setIsland(screen.id, next, savedIsland)}
+            />
+          </Control>
+          <div className="border-t border-ui-subtle pt-2.5">
+            <button
+              type="button"
+              disabled={offline}
+              onClick={() => void liveActions.reload()}
+              className="flex h-8 w-full items-center justify-center gap-1.5 rounded-7 border border-ui-strong text-body font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.75} /> Reload all kiosks
+            </button>
+          </div>
+        </div>
+      </PopoverParts.Content>
+    </PopoverParts.Root>
   );
 }

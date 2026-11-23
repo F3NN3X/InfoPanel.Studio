@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { LayoutDashboard, MoreHorizontal, PanelsTopLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FOCUS } from "./menu-styles";
@@ -16,10 +16,6 @@ export interface SavedPanelActions {
   onDelete: () => void;
 }
 
-const MENU_POPUP =
-  "min-w-36 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui text-body text-ui-2 shadow-ui-menu outline-none";
-const MENU_ITEM =
-  "flex h-7.5 cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-highlighted:bg-ui-highlight data-highlighted:text-ui-1";
 
 /** The inline name input of a saved panel being renamed. */
 export function RenameInput({ initial, onDone }: { initial: string; onDone: (name: string | null) => void }) {
@@ -55,18 +51,14 @@ export function SavedPanelMenu({ onRename, onDelete }: { onRename: () => void; o
       >
         <MoreHorizontal className="h-3.5 w-3.5" />
       </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Menu.Popup className={MENU_POPUP} onClick={(e) => e.stopPropagation()}>
-            <Menu.Item className={MENU_ITEM} onClick={onRename}>
-              Rename…
-            </Menu.Item>
-            <Menu.Item className={cn(MENU_ITEM, "text-ui-danger")} onClick={onDelete}>
-              Delete
-            </Menu.Item>
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
+      <Menu.Content align="end" className="min-w-36" onClick={(e) => e.stopPropagation()}>
+        <Menu.Item className="h-7.5 justify-start gap-2" onClick={onRename}>
+          Rename…
+        </Menu.Item>
+        <Menu.Item danger className="h-7.5 justify-start gap-2" onClick={onDelete}>
+          Delete
+        </Menu.Item>
+      </Menu.Content>
     </Menu.Root>
   );
 }
