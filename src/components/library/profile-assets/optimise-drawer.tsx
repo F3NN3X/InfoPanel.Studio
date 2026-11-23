@@ -4,6 +4,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { Segmented } from "@/components/ui/segmented";
+import { Slider } from "@/components/ui/slider-field";
 import { cn } from "@/lib/utils";
 import { formatBytes } from "@/lib/assets";
 import { replace, usesOf, type AssetFile, type Doc } from "@/lib/infopanel/assets/assets";
@@ -100,7 +101,7 @@ export function OptimiseDrawer({ doc, onClose, onApply }: { doc: Doc; onClose: (
           <span className="flex justify-between">
             Quality <span className="font-ui-mono text-ui-4">{quality}</span>
           </span>
-          <input type="range" aria-label="Quality" min={1} max={100} value={quality} onChange={(e) => setQuality(Number(e.target.value))} className="mt-1 w-full accent-[var(--ui-accent)]" />
+          <Slider label="Quality" min={1} value={quality} onChange={setQuality} className="mt-1 w-full" />
         </label>
         <label className="block text-caption text-ui-3">
           <span className="mb-1.5 block">Size cap</span>

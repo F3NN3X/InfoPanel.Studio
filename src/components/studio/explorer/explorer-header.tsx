@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Copy, Download, ExternalLink, FileText, Link2, Plus, Search, Trash2, Waypoints, X } from "lucide-react";
 import { CONTROL_MOTION, FOCUS_RING } from "@/components/ui/button";
 import { FIELD_BOX } from "@/components/ui/field";
+import { Menu } from "@/components/ui/menu";
 import { Popover } from "@/components/ui/popover";
 import { useToast } from "@/components/ui/toast";
 import { refreshCatalog } from "@/lib/catalog";
@@ -38,6 +39,8 @@ const MENU_ITEM = cn(
   FOCUS_RING,
   "[&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0 [&_svg]:text-ui-hint"
 );
+
+const ROW = "justify-start gap-2 [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0 [&_svg]:text-ui-hint";
 
 /** The Data sources page's bar: the title and count line, search, Endpoints, Report and Add source (the one primary). */
 export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount, query, onQuery, apiBase, config }: ExplorerHeaderProps) {
@@ -151,30 +154,26 @@ export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount
           </button>
         </Popover>
 
-        <Popover
-          align="end"
-          className="w-70"
-          triggerClassName={PRIMARY}
-          trigger={
-            <>
-              <Plus strokeWidth={1.75} />
-              Add source
-            </>
-          }
-        >
-          <button type="button" className={MENU_ITEM} onClick={() => copy(`${apiBase}/api/push`)}>
-            <Link2 strokeWidth={1.5} />
-            Copy the push URL (POST /api/push)
-          </button>
-          <button type="button" className={MENU_ITEM} onClick={clearPushed}>
-            <Trash2 strokeWidth={1.5} />
-            Clear pushed values
-          </button>
-          <a href={`${apiBase}/`} target="_blank" rel="noreferrer" className={MENU_ITEM}>
-            <ExternalLink strokeWidth={1.5} />
-            Open the Data API index
-          </a>
-        </Popover>
+        <Menu.Root>
+          <Menu.Trigger className={PRIMARY}>
+            <Plus strokeWidth={1.75} />
+            Add source
+          </Menu.Trigger>
+          <Menu.Content className="w-70">
+            <Menu.Item className={ROW} onClick={() => copy(`${apiBase}/api/push`)}>
+              <Link2 strokeWidth={1.5} />
+              Copy the push URL (POST /api/push)
+            </Menu.Item>
+            <Menu.Item className={ROW} onClick={clearPushed}>
+              <Trash2 strokeWidth={1.5} />
+              Clear pushed values
+            </Menu.Item>
+            <Menu.Item className={ROW} render={<a href={`${apiBase}/`} target="_blank" rel="noreferrer" />}>
+              <ExternalLink strokeWidth={1.5} />
+              Open the Data API index
+            </Menu.Item>
+          </Menu.Content>
+        </Menu.Root>
       </div>
     </PageBar>
   );

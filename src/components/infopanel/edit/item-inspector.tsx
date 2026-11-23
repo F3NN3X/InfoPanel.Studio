@@ -6,6 +6,7 @@
  */
 import { useState, type ReactNode } from "react";
 import { Copy, Eye, EyeOff, Lock, Trash2 } from "lucide-react";
+import { Slider } from "@/components/ui/slider-field";
 import { cn } from "@/lib/utils";
 import { badgeText, checkGeometry, editKeyOf, importOf, MOCK_DEFAULT, type GeoField } from "@/lib/infopanel/canvas-edit";
 import type { ChosenSensor } from "@/lib/infopanel/editor/bind";
@@ -502,15 +503,7 @@ function SensorCard({
           <span className="mb-1 flex justify-between text-micro text-ui-4">
             Mock value <span className="font-ui-mono text-ui-2">{mock}</span>
           </span>
-          <input
-            type="range"
-            aria-label="Mock value"
-            min={min}
-            max={max}
-            value={mock}
-            onChange={(e) => editor.setMock(id, Number(e.target.value))}
-            className="w-full accent-[var(--ui-accent)]"
-          />
+          <Slider label="Mock value" min={min} max={max} value={mock} onChange={(v) => editor.setMock(id, v)} className="w-full" />
         </label>
       )}
     </div>

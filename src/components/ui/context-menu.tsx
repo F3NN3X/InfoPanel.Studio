@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { Menu } from "./menu";
 
@@ -75,8 +75,9 @@ function Rows({ entries, width, onPick }: { entries: ContextMenuEntry[]; width: 
  * items, Enter / Space pick, Right opens a flyout and Left closes it, and focus returns to where it was when the menu closes.
  */
 export function ContextMenu({ x, y, entries, onClose, width = DEFAULT_WIDTH, testId }: ContextMenuProps) {
-  const popup = useRef<HTMLDivElement>(null);
-  const anchor = { getBoundingClientRect: () => new DOMRect(x, y, 0, 0) };
+  const popup = useRef<HTMLDivElement | null>(null);
+  const primed = useRef(false);
+  const anchor = useMemo(() => ({ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }), [x, y]);
 
   useEffect(() => {
     window.addEventListener("blur", onClose);
@@ -93,7 +94,14 @@ export function ContextMenu({ x, y, entries, onClose, width = DEFAULT_WIDTH, tes
       <Menu.Content
         ref={(el) => {
           popup.current = el;
-          el?.querySelector<HTMLElement>('[role="menuitem"]:not([data-disabled])')?.focus();
+          // Base UI highlights and focuses the first row on an ArrowDown, as a keyboard open does; once, as the menu mounts.
+          if (el && !primed.current) {
+            primed.current = true;
+            // Not when the pointer got there first (a row highlighted or a flyout open).
+            requestAnimationFrame(() => {
+              if (!el.querySelector('[data-highlighted], [aria-expanded="true"]')) el.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+            });
+          }
         }}
         anchor={anchor}
         side="bottom"

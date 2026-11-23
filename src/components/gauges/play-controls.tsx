@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 import { Pause, Play } from "lucide-react";
 import { FOCUS_RING } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider-field";
 import { cn } from "@/lib/utils";
 import type { Playback } from "./use-playback";
 
@@ -26,17 +27,7 @@ export function PlayControls({ playback, className, readout, trail }: PlayContro
       >
         {playback.playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
       </button>
-      <input
-        type="range"
-        aria-label="Value"
-        aria-valuetext={readout}
-        min={0}
-        max={100}
-        step={1}
-        value={Math.round(playback.p * 100)}
-        onChange={(e) => playback.scrub(e.currentTarget.valueAsNumber / 100)}
-        className="m-0 h-4 min-w-0 flex-1 cursor-pointer accent-[var(--ui-accent)]"
-      />
+      <Slider label="Value" valueText={readout} value={Math.round(playback.p * 100)} onChange={(v) => playback.scrub(v / 100)} className="flex-1" />
       <span className={cn("shrink-0 text-right font-ui-mono tabular-nums text-caption text-ui-2", readout ? "min-w-18" : "w-9")}>{readout ?? `${Math.round(playback.p * 100)}%`}</span>
       {trail}
     </div>

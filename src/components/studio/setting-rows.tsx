@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Info } from "lucide-react";
 import { Popover } from "@/components/ui/popover";
 import { Segmented } from "@/components/ui/segmented";
+import { Slider } from "@/components/ui/slider-field";
 import { Toggle } from "@/components/ui/toggle";
 import { ensureAllFonts, fontById } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
@@ -132,16 +133,7 @@ export function SliderRow({
   const inline = useInInspector();
   if (min !== undefined && max !== undefined) {
     const range = (
-      <input
-        type="range"
-        aria-label={label.label}
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(e.currentTarget.valueAsNumber)}
-        className={cn("m-0 block h-4 cursor-pointer accent-[var(--ui-accent)]", inline ? "w-22.5 shrink-0" : "w-full")}
-      />
+      <Slider label={label.label} min={min} max={max} step={step} value={value} onChange={onChange} className={inline ? "w-22.5 shrink-0" : "w-full"} />
     );
     const box = (
       <ValueBox value={value} min={min} max={max} step={step} unit={unit} label={label.label} onChange={onChange} compact={inline} />

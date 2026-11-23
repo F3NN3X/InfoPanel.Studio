@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowUpRight, Copy, RefreshCw, Sparkles, Trash2, type LucideIcon } from "lucide-react";
+import { Slider } from "@/components/ui/slider-field";
 import { cn } from "@/lib/utils";
 import { formatBytes } from "@/lib/assets";
 import type { LibraryCopy, LibraryItem } from "@/lib/library";
@@ -173,16 +174,7 @@ export function LibraryDetail(p: DetailProps) {
             <span className="flex justify-between">
               Poster frame <span className="font-ui-mono text-ui-4">{(m.poster ?? 1).toFixed(1)} s</span>
             </span>
-            <input
-              type="range"
-              aria-label="Poster frame"
-              min={0}
-              max={Math.max(0.1, m.duration ?? 10)}
-              step={0.1}
-              value={m.poster ?? 1}
-              onChange={(e) => p.onVideo({ poster: Number(e.target.value) })}
-              className="mt-1 w-full accent-[var(--ui-accent)]"
-            />
+            <Slider label="Poster frame" max={Math.max(0.1, m.duration ?? 10)} step={0.1} value={m.poster ?? 1} onChange={(v) => p.onVideo({ poster: v })} className="mt-1 w-full" />
           </label>
         </div>
       )}

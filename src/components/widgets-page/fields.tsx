@@ -4,6 +4,7 @@
 // Escape puts the value back. A slider commits when the drag ends, one step for the whole drag.
 import { createContext, useContext, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { FOCUS_RING } from "@/components/ui/button";
+import { Slider as RangeSlider } from "@/components/ui/slider-field";
 import { cn } from "@/lib/utils";
 
 export const INPUT = cn("h-8 min-w-0 rounded-ui-md border border-ui-strong bg-ui-app px-2.5 text-body text-ui-1 outline-none hover:border-ui-hover-edge focus:border-ui-accent", FOCUS_RING);
@@ -143,7 +144,7 @@ export function TextArea({ label, value, onChange, placeholder }: { label: strin
 /** A range slider: the stage follows the drag, and the drag is one step, committed when it ends (pointer up, a key let go, blur). */
 export function Slider({ label, value, min, max, onChange, className }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void; className?: string }) {
   const draft = useDraft(value, String, (s) => (Number.isFinite(Number(s)) ? Number(s) : null), onChange);
-  return <input aria-label={label} type="range" min={min} max={max} value={draft.text} onPointerDown={draft.begin} onFocus={draft.begin} onChange={(e) => draft.type(e.target.value)} onPointerUp={draft.done} onKeyUp={draft.done} onBlur={draft.done} className={className} />;
+  return <RangeSlider label={label} min={min} max={max} value={Number(draft.text)} onChange={(v) => draft.type(String(v))} onPointerDown={draft.begin} onFocus={draft.begin} onPointerUp={draft.done} onKeyUp={draft.done} onBlur={draft.done} className={className} />;
 }
 
 export function Select<T extends string>({ label, value, options, onChange, width = 160 }: { label: string; value: T; options: readonly { value: T; label: string }[]; onChange: (v: T) => void; width?: number }) {

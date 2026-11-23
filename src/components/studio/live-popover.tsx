@@ -4,6 +4,7 @@ import { Cast, Maximize, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FOCUS_RING } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
+import { Slider } from "@/components/ui/slider-field";
 import { Toggle } from "@/components/ui/toggle";
 import { islandEffective, type ControlKiosk, type ControlState } from "@/lib/control";
 import { isTauri } from "@/lib/desktop";
@@ -72,21 +73,18 @@ function DimSlider({ level, disabled, onSet }: { level: number; disabled: boolea
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
   return (
     <Control label="Dim screens" value={local === 0 ? "Off" : `${Math.round(local * 100)}%`}>
-      <input
-        type="range"
-        aria-label="Dim screens"
-        min={0}
+      <Slider
+        label="Dim screens"
         max={DIM_MAX}
         step={DIM_STEP}
         value={local}
         disabled={disabled}
-        onChange={(e) => {
-          const next = Number(e.currentTarget.value);
+        onChange={(next) => {
           setLocal(next);
           if (timer.current) clearTimeout(timer.current);
           timer.current = setTimeout(() => onSet(next), 150);
         }}
-        className="h-4 w-37.5 cursor-pointer accent-ui-strong-text disabled:opacity-40"
+        className="w-37.5"
       />
     </Control>
   );

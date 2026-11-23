@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Minus, Plus, ScanLine } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { Slider } from "@/components/ui/slider-field";
 import { SCROLL_ROW_H, type Placement, type ProfileView } from "@/lib/layout";
 import { KIOSK_EDGE_INSET, MAX_SPACING, normalizeSpacing, profileGap, profilePadding } from "@/lib/profile-grid";
 import { cn } from "@/lib/utils";
@@ -187,15 +188,7 @@ function SpacingField({
           className={cn(FIELD, "h-6.5 w-16 shrink-0 px-1.5 text-right font-ui-mono text-micro")}
         />
       </InlineRow>
-      <input
-        type="range"
-        aria-label={label}
-        min={0}
-        max={Math.max(SPACING_SLIDER_MAX, value ?? 0)}
-        value={value ?? placeholder}
-        onChange={(e) => onChange(normalizeSpacing(e.currentTarget.valueAsNumber))}
-        className="m-0 block h-4 w-full cursor-pointer accent-[var(--ui-accent)]"
-      />
+      <Slider label={label} max={Math.max(SPACING_SLIDER_MAX, value ?? 0)} value={value ?? placeholder} onChange={(v) => onChange(normalizeSpacing(v))} className="w-full" />
     </div>
   );
 }

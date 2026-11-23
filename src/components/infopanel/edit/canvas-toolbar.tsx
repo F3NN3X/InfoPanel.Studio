@@ -9,6 +9,7 @@ import { Library } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { modeTally, type SensorMode } from "@/lib/infopanel/canvas-edit";
 import { Toggle } from "@/components/ui/toggle";
+import { Slider } from "@/components/ui/slider-field";
 import type { Compare } from "./edit-canvas";
 import type { CanvasEditor } from "./use-canvas-editor";
 import type { LibraryLink } from "./use-library-link";
@@ -151,15 +152,7 @@ function CompareControls({ compare, onCompare }: { compare: Compare | null; onCo
       {compare ? (
         <>
           <span className="text-ui-4">Opacity</span>
-          <input
-            type="range"
-            aria-label="Screenshot opacity"
-            min={0}
-            max={100}
-            value={Math.round(compare.opacity * 100)}
-            onChange={(e) => onCompare({ ...compare, opacity: Number(e.target.value) / 100 })}
-            className="min-w-0 flex-1 accent-[var(--ui-accent)]"
-          />
+          <Slider label="Screenshot opacity" value={Math.round(compare.opacity * 100)} onChange={(v) => onCompare({ ...compare, opacity: v / 100 })} className="flex-1" />
           <span className="font-ui-mono">{Math.round(compare.opacity * 100)} %</span>
           <span className="w-full text-micro text-ui-4">Difference blend</span>
         </>
