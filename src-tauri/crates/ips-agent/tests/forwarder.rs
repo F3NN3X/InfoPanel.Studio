@@ -190,14 +190,15 @@ fn run(mut command: Command, case: &Case, url: &str) -> Outcome {
     Outcome { stdout: out.stdout, stderr: out.stderr, code: out.status.code() }
 }
 
+/// Nothing listens here (the discard port), so a request to it is refused.
+const DEAD: &str = "http://127.0.0.1:9";
+
 /// Runs the case and returns what the program printed and the requests the test server saw.
 fn run_case(case: &Case) -> (Outcome, Vec<Recorded>) {
-    let dead = {
-        let l = TcpListener::bind("127.0.0.1:0").unwrap();
-        format!("http://127.0.0.1:{}", l.local_addr().unwrap().port())
-    };
     let server = Server::start(case.reply);
-    let url = if case.down { dead } else { server.url() };
+    // A down server is port 9, below the ephemeral range: a port bound to 0 and released could be handed straight to a
+    // test running alongside, whose server would then record this case's requests.
+    let url = if case.down { DEAD.to_owned() } else { server.url() };
     let outcome = run(Command::new(env!("CARGO_BIN_EXE_ips-agent")), case, &url);
     (outcome, server.requests())
 }
@@ -286,10 +287,10 @@ fn the_url_comes_from_the_flag_then_the_environment() {
     assert_eq!(prefixed[0].path, "/pre/api/agents/event?agent=claude");
     assert_eq!(post(Case::new(&hook(&[]), "{}").env("{URL}")).len(), 1);
     // The flag wins over a dead environment URL; an empty one falls through to it.
-    assert_eq!(post(Case::new(&hook(&["--url={URL}"]), "{}").env("http://127.0.0.1:9")).len(), 1);
+    assert_eq!(post(Case::new(&hook(&["--url={URL}"]), "{}").env(DEAD)).len(), 1);
     assert_eq!(post(Case::new(&hook(&["--url="]), "{}").env("{URL}")).len(), 1);
     // The first --url= is the one that counts.
-    assert_eq!(post(Case::new(&hook(&["--url={URL}", "--url=http://127.0.0.1:9"]), "{}")).len(), 1);
+    assert_eq!(post(Case::new(&hook(&["--url={URL}", &format!("--url={DEAD}")]), "{}")).len(), 1);
 }
 
 #[test]
