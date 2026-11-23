@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { ChartSummary, chartSummary } from "@/components/ui/chart-summary";
 import { cn } from "@/lib/utils";
-import { addSample, chartPoints, chartRange, TRAIL_MS, type Sample } from "./alerts-chart-model";
+import { addSample, areaPoints, chartPoints, chartRange, TRAIL_MS, type Sample } from "./alerts-chart-model";
 
 /** The trails read so far this session, by sensor: going back to a rule keeps what was already drawn. */
 const trails = new Map<string, Sample[]>();
@@ -54,14 +55,12 @@ export function AlertChart({ sensorKey, name, unit, value, limit, clear, above }
   const points = chartPoints(samples, now, W, H, low, high);
   const reads = samples.map((s) => s.value);
   const suffix = unit ? ` ${unit}` : "";
-  const label = reads.length === 0
-    ? `${name}, last 5 min, no readings yet`
-    : `${name}, last 5 min, ${Math.min(...reads).toFixed(1)} to ${Math.max(...reads).toFixed(1)}${suffix}`;
+  const summaryId = useId();
   const firing = limit === undefined ? null : above ? { y: 0, height: Math.max(0, y(limit)) } : { y: y(limit), height: Math.max(0, H - y(limit)) };
   return (
     <div className="flex flex-col gap-1">
       <div className="relative">
-        <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-30 w-full overflow-visible">
+        <svg role="img" aria-label={`${name}, last 5 min`} aria-describedby={summaryId} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-30 w-full overflow-visible">
           {firing && (
             <defs>
               <clipPath id={clipId}>
@@ -75,9 +74,11 @@ export function AlertChart({ sensorKey, name, unit, value, limit, clear, above }
           {lines.map((line) => (
             <line key={line} x1={0} x2={W} y1={y(line)} y2={y(line)} strokeDasharray="4 4" vectorEffect="non-scaling-stroke" className="stroke-ui-3" />
           ))}
+          <polygon points={areaPoints(points, H)} className="fill-ui-accent/12" />
           <polyline points={points} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke" className="stroke-ui-accent" />
           {firing && <polyline points={points} fill="none" clipPath={`url(#${clipId})`} strokeWidth={1.5} vectorEffect="non-scaling-stroke" className="stroke-ui-danger" />}
         </svg>
+        <ChartSummary id={summaryId} text={chartSummary({ name, span: "last 5 min", samples: reads, unit })} />
         {limit !== undefined && (
           <span aria-hidden className="absolute right-0 -translate-y-full pb-0.5 font-ui-mono text-micro text-ui-danger" style={{ top: `${(y(limit) / H) * 100}%` }}>
             {limit}{suffix}
