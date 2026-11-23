@@ -178,7 +178,8 @@ export function userPackOf(src: PackSource, candidate = false): Pack {
     connectors: meta.connectors,
     ...(frame ? { frame } : null),
     ...(ornaments.length ? { ornaments } : null),
-    ...(meta.motion ? { motion: meta.motion } : null),
+    // the render check measures the pack's own paint at rest: the app's motion is checked as numbers, and a run mid-measure would make the check flake
+    ...(meta.motion && !candidate ? { motion: meta.motion } : null),
   };
 }
 

@@ -54,14 +54,21 @@ test.describe("a pack's motion", () => {
   test("runs at Full with the text in place, keeps the one-shots at Calm, and draws nothing at Off or under reduced motion", async ({ page, scratch }) => {
     await wear(scratch.base, scratch.dataDir, "full");
     const full = await kiosk(page, scratch.base);
-    // the labels' real text is in the page: the noise copy beside it is aria-hidden and empty between runs
-    const label = await full.evaluate(() => {
-      const t = document.querySelector('[data-wp-tier] [data-part="label"] [data-mo-text]');
-      const copy = t?.querySelector("[data-mo-copy]");
-      return { text: t?.firstChild?.textContent ?? "", hidden: copy?.getAttribute("aria-hidden"), noise: copy?.textContent };
-    });
-    expect(label.text.length).toBeGreaterThan(0);
-    expect(label).toMatchObject({ hidden: "true", noise: "" });
+    // the titles' real text is in the page (this screen's cards have titles and numbers): the noise copy beside it is aria-hidden and empty between runs
+    const title = () =>
+      full.evaluate(() => {
+        const t = document.querySelector('[data-wp-tier] [data-part="header"] [data-mo-text]');
+        const copy = t?.querySelector("[data-mo-copy]");
+        return { text: t?.firstChild?.textContent ?? "", hidden: copy?.getAttribute("aria-hidden"), noise: copy?.textContent ?? "" };
+      });
+    const first = await title();
+    expect(first.text.length).toBeGreaterThan(0);
+    expect(first.hidden).toBe("true");
+    // a decode still running has noise of the text's length; once it has run, none
+    if (first.noise) expect(first.noise.length).toBe(first.text.length);
+    await expect.poll(async () => (await title()).noise, { timeout: 5000 }).toBe("");
+    expect((await title()).text).toBe(first.text);
+    expect(await full.locator('[data-wp-tier] [data-part="num"] [data-mo-text]').count()).toBeGreaterThan(0);
     expect(await full.locator("[data-mo-layer]").count()).toBeGreaterThan(0);
     // the repeats: flicker every 2 s, sweep every 4 s (a glitch also tears on arrival, so only these two are repeats alone), never two runs closer than a second
     const repeats = async () => (await runs(full)).filter((r) => r.name !== "data-mo-glitch");

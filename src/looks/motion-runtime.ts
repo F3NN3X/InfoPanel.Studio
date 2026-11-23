@@ -8,9 +8,11 @@ import { MOTION_GAP_MS, type MotionPlan } from "./motion";
 const GLYPHS = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#%&/<>[]{}=+*";
 const DIGITS = "0123456789";
 /** At most this many texts scramble at once; past it a text simply shows (a page switch on a full screen). */
-export const TEXT_JOBS_MAX = 24;
-/** The noise changes at most this often, ms (about 30 a second). */
-const FRAME_MS = 33;
+export const TEXT_JOBS_MAX = 12;
+/** At most this many numbers start a scramble in any second, over the whole page: a screen of readings that change each tick stays mostly still (measured on a 20-card page, L117). */
+export const NUMBER_STARTS_PER_S = 3;
+/** The noise changes at most this often, ms (20 a second). */
+const FRAME_MS = 80;
 /** A flicker run: two dips in this many ms. */
 export const FLICKER_MS = 600;
 
@@ -31,6 +33,8 @@ interface Job {
 
 const jobs = new Set<Job>();
 let frame = 0;
+/** When the last numbers started, newest last (at most `NUMBER_STARTS_PER_S`). */
+const starts: number[] = [];
 
 const end = (job: Job) => {
   jobs.delete(job);
@@ -72,13 +76,19 @@ function step(now: number) {
 
 /**
  * Scrambles `text` in `copy` over `host` for `ms`: a label (`from` unset) decodes, a number's characters that differ from `from`
- * churn. Returns what stops it. Nothing runs on a hidden page, for an empty text, past `TEXT_JOBS_MAX`, or for a number that did not change.
+ * churn. Returns what stops it. Nothing runs on a hidden page, for an empty text, past `TEXT_JOBS_MAX`, for a number that did not change,
+ * or for a number past `NUMBER_STARTS_PER_S`.
  */
 export function scrambleText(host: HTMLElement, copy: HTMLElement, text: string, opts: { ms: number; intensity: number; from?: string }): () => void {
   const number = opts.from !== undefined;
   const churn = [...text].map((ch, i) => (number ? /\d/.test(ch) && (opts.from!.length !== text.length || opts.from![i] !== ch) : true));
   if (hidden() || !text || jobs.size >= TEXT_JOBS_MAX || typeof requestAnimationFrame === "undefined" || !churn.some(Boolean)) return () => {};
   const now = performance.now();
+  if (number) {
+    while (starts.length && !(now - starts[0] < 1000 && now >= starts[0])) starts.shift();
+    if (starts.length >= NUMBER_STARTS_PER_S) return () => {};
+    starts.push(now);
+  }
   const job: Job = { host, copy, text: [...text].join(""), churn, number, start: now, ms: opts.ms, intensity: opts.intensity, last: now };
   jobs.add(job);
   host.setAttribute("data-mo-on", "");

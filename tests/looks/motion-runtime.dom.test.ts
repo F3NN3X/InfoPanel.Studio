@@ -4,12 +4,14 @@
 // and stop when the page is hidden or no card is left.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MOTION_GAP_MS, planMotion } from "@/looks/motion";
-import { addMotionCard, motionState, scrambleText, TEXT_JOBS_MAX } from "@/looks/motion-runtime";
+import { addMotionCard, motionState, NUMBER_STARTS_PER_S, scrambleText, TEXT_JOBS_MAX } from "@/looks/motion-runtime";
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "requestAnimationFrame", "cancelAnimationFrame", "performance"] });
 });
 afterEach(() => {
+  // every run ends on the fake clock, so the runtime's one loop is idle for the next test (the order is shuffled)
+  vi.advanceTimersByTime(5000);
   vi.useRealTimers();
   document.body.innerHTML = "";
 });
@@ -63,6 +65,15 @@ describe("a scramble", () => {
     expect(many.filter((t) => t.host.hasAttribute("data-mo-on"))).toHaveLength(TEXT_JOBS_MAX);
     vi.advanceTimersByTime(400);
     expect(motionState().texts).toBe(0);
+  });
+
+  it("starts at most a few numbers a second over the page, so readings that change each tick stay mostly still", () => {
+    // a second past what another test may have started on its own fake clock
+    vi.advanceTimersByTime(1000);
+    const run = () => Array.from({ length: NUMBER_STARTS_PER_S + 2 }, () => text("12")).filter((t) => (scrambleText(t.host, t.copy, "13", { ms: 100, intensity: 1, from: "12" }), t.host.hasAttribute("data-mo-on"))).length;
+    expect(run()).toBe(NUMBER_STARTS_PER_S);
+    vi.advanceTimersByTime(1000);
+    expect(run()).toBe(NUMBER_STARTS_PER_S);
   });
 
   it("stops at once when asked", () => {

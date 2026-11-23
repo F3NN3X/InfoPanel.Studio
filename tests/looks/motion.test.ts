@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { MOTION_EFFECTS, MOTION_RULES, motionIssues, motionKnobsOf, ONE_SHOT_MAX_MS, planMotion, type MotionEnv, type PackMotion } from "@/looks/motion";
 import { packIssues } from "@/looks/pack-load";
 import { type PackSource, validatePack } from "@/looks/pack-validate";
+import { userPackOf } from "@/looks/user-packs";
 import { THEME_DEFAULTS } from "@/lib/theme-model";
 import fixture from "../fixtures/packs/motion/motion.json";
 import { readPackDir } from "../../tools/validate-pack.mjs";
@@ -68,6 +69,11 @@ describe("the motion block in a pack", () => {
     expect(packIssues({ ...TEST_PACK, motion: ALL })).toEqual([]);
     expect(packIssues({ ...TEST_PACK, motion: { scramble: { ms: 900 } } }).join()).toMatch(/motion scramble ms/);
     expect(motionIssues({ shake: {} })).toHaveLength(1);
+  });
+
+  it("a stored user pack carries it; the render check's candidate does not (it measures the pack's paint at rest)", () => {
+    expect(userPackOf(withMotion(ALL)).motion).toEqual(ALL);
+    expect(userPackOf(withMotion(ALL), true).motion).toBeUndefined();
   });
 });
 

@@ -24,7 +24,8 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "requestAnimationFrame", "cancelAnimationFrame", "performance"] });
 });
 afterEach(() => {
-  vi.runOnlyPendingTimers();
+  // every run ends on the fake clock, so the runtime's one loop is idle for the next test (the order is shuffled)
+  act(() => void vi.advanceTimersByTime(5000));
   vi.useRealTimers();
 });
 
