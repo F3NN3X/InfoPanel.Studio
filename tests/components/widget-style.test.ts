@@ -92,9 +92,7 @@ describe("chromeVars", () => {
       "--wp-gap": "0px",
       "--wp-radius": "999px",
       "--w-fg": "#fff",
-      "--wp-fg": "var(--w-fg)",
       "--w-muted": "#aaa",
-      "--wp-muted": "var(--w-muted)",
       "--wp-weight": "500",
       "--wp-label-case": "none",
       "--wp-x": "space-between",
@@ -129,7 +127,6 @@ describe("tokenScope", () => {
       "--wp-accent": "#ff0000",
       "--accent": "0 100% 50%",
       "--w-fg": "#00ff00",
-      "--wp-fg": "var(--w-fg)",
       "--foreground": "120 100% 50%",
     });
   });

@@ -1087,14 +1087,14 @@
       "c": "",
       "s": {
         "background": "linear-gradient(155deg, rgba(24, 24, 27, 0.85) 0%, rgba(24, 24, 27, 0.55) 100%)",
-        "color": "var(--wp-fg, rgb(250, 250, 250))",
+        "color": "var(--w-fg, rgb(250, 250, 250))",
         "boxShadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.1)"
       },
       "tone": "dark",
       "colors": {
         "background": "linear-gradient(155deg, rgba(24, 24, 27, 0.85) 0%, rgba(24, 24, 27, 0.55) 100%)",
-        "fg": "var(--wp-fg, rgb(250, 250, 250))",
-        "muted": "var(--wp-muted, rgba(250, 250, 250, 0.6))",
+        "fg": "var(--w-fg, rgb(250, 250, 250))",
+        "muted": "var(--w-muted, rgba(250, 250, 250, 0.6))",
         "track": "rgba(255, 255, 255, 0.14)",
         "fill": "rgb(52, 211, 153)",
         "ring": "rgba(255, 255, 255, 0.1)"
@@ -1139,14 +1139,14 @@
       "c": "",
       "s": {
         "background": "rgb(244, 244, 245)",
-        "color": "var(--wp-fg, rgb(24, 24, 27))",
+        "color": "var(--w-fg, rgb(24, 24, 27))",
         "boxShadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.4)"
       },
       "tone": "light",
       "colors": {
         "background": "rgb(244, 244, 245)",
-        "fg": "var(--wp-fg, rgb(24, 24, 27))",
-        "muted": "var(--wp-muted, rgba(24, 24, 27, 0.72))",
+        "fg": "var(--w-fg, rgb(24, 24, 27))",
+        "muted": "var(--w-muted, rgba(24, 24, 27, 0.72))",
         "track": "rgba(24, 24, 27, 0.16)",
         "fill": "rgb(113, 113, 122)",
         "ring": "rgba(255, 255, 255, 0.4)"
@@ -1194,14 +1194,14 @@
       "c": "",
       "s": {
         "background": "rgb(24, 24, 27)",
-        "color": "var(--wp-fg, rgb(250, 250, 250))",
+        "color": "var(--w-fg, rgb(250, 250, 250))",
         "boxShadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.1)"
       },
       "tone": "dark",
       "colors": {
         "background": "rgb(24, 24, 27)",
-        "fg": "var(--wp-fg, rgb(250, 250, 250))",
-        "muted": "var(--wp-muted, rgba(250, 250, 250, 0.6))",
+        "fg": "var(--w-fg, rgb(250, 250, 250))",
+        "muted": "var(--w-muted, rgba(250, 250, 250, 0.6))",
         "track": "rgba(255, 255, 255, 0.14)",
         "fill": "rgb(161, 161, 170)",
         "ring": "rgba(255, 255, 255, 0.1)"
@@ -1246,14 +1246,14 @@
       "c": "",
       "s": {
         "background": "hsl(var(--card) / 0.85)",
-        "color": "var(--wp-fg, hsl(var(--card-foreground)))",
+        "color": "var(--w-fg, hsl(var(--card-foreground)))",
         "boxShadow": "inset 0 0 0 1px hsl(var(--border))"
       },
       "tone": "theme",
       "colors": {
         "background": "hsl(var(--card) / 0.85)",
-        "fg": "var(--wp-fg, hsl(var(--card-foreground)))",
-        "muted": "var(--wp-muted, hsl(var(--muted-foreground)))",
+        "fg": "var(--w-fg, hsl(var(--card-foreground)))",
+        "muted": "var(--w-muted, hsl(var(--muted-foreground)))",
         "track": "hsl(var(--muted))",
         "fill": "hsl(var(--primary))",
         "ring": "hsl(var(--border))"
@@ -1302,24 +1302,24 @@
     "glass": {
       "plain": {
         "background": "linear-gradient(155deg, rgba(24, 24, 27, 0.85) 0%, rgba(24, 24, 27, 0.55) 100%)",
-        "fg": "var(--wp-fg, rgb(250, 250, 250))",
-        "muted": "var(--wp-muted, rgba(250, 250, 250, 0.6))",
+        "fg": "var(--w-fg, rgb(250, 250, 250))",
+        "muted": "var(--w-muted, rgba(250, 250, 250, 0.6))",
         "track": "rgba(255, 255, 255, 0.14)",
         "fill": "rgb(52, 211, 153)",
         "ring": "rgba(255, 255, 255, 0.1)"
       },
       "tint": {
         "background": "linear-gradient(155deg, rgba(208, 89, 115, 0.45) 0%, rgba(80, 24, 36, 0.8) 100%)",
-        "fg": "var(--wp-fg, rgb(250, 250, 250))",
-        "muted": "var(--wp-muted, rgba(250, 250, 250, 0.65))",
+        "fg": "var(--w-fg, rgb(250, 250, 250))",
+        "muted": "var(--w-muted, rgba(250, 250, 250, 0.65))",
         "track": "rgba(255, 255, 255, 0.16)",
         "fill": "rgb(217, 119, 140)",
         "ring": "rgba(255, 255, 255, 0.12)"
       },
       "palette": {
         "background": "linear-gradient(155deg, rgba(225, 72, 106, 0.45) 0%, rgba(40, 10, 20, 0.8) 100%)",
-        "fg": "var(--wp-fg, rgb(250, 250, 250))",
-        "muted": "var(--wp-muted, rgba(250, 250, 250, 0.65))",
+        "fg": "var(--w-fg, rgb(250, 250, 250))",
+        "muted": "var(--w-muted, rgba(250, 250, 250, 0.65))",
         "track": "rgba(255, 255, 255, 0.16)",
         "fill": "rgb(231, 105, 133)",
         "ring": "rgba(255, 255, 255, 0.12)"
@@ -1328,24 +1328,24 @@
     "matte-light": {
       "plain": {
         "background": "rgb(244, 244, 245)",
-        "fg": "var(--wp-fg, rgb(24, 24, 27))",
-        "muted": "var(--wp-muted, rgba(24, 24, 27, 0.72))",
+        "fg": "var(--w-fg, rgb(24, 24, 27))",
+        "muted": "var(--w-muted, rgba(24, 24, 27, 0.72))",
         "track": "rgba(24, 24, 27, 0.16)",
         "fill": "rgb(113, 113, 122)",
         "ring": "rgba(255, 255, 255, 0.4)"
       },
       "tint": {
         "background": "rgb(241, 204, 212)",
-        "fg": "var(--wp-fg, rgb(24, 24, 27))",
-        "muted": "var(--wp-muted, rgba(24, 24, 27, 0.72))",
+        "fg": "var(--w-fg, rgb(24, 24, 27))",
+        "muted": "var(--w-muted, rgba(24, 24, 27, 0.72))",
         "track": "rgba(24, 24, 27, 0.16)",
         "fill": "rgb(176, 53, 79)",
         "ring": "rgba(255, 255, 255, 0.4)"
       },
       "palette": {
         "background": "rgb(250, 220, 230)",
-        "fg": "var(--wp-fg, rgb(24, 24, 27))",
-        "muted": "var(--wp-muted, rgba(24, 24, 27, 0.72))",
+        "fg": "var(--w-fg, rgb(24, 24, 27))",
+        "muted": "var(--w-muted, rgba(24, 24, 27, 0.72))",
         "track": "rgba(24, 24, 27, 0.16)",
         "fill": "rgb(194, 35, 70)",
         "ring": "rgba(255, 255, 255, 0.4)"
@@ -1354,24 +1354,24 @@
     "matte-dark": {
       "plain": {
         "background": "rgb(24, 24, 27)",
-        "fg": "var(--wp-fg, rgb(250, 250, 250))",
-        "muted": "var(--wp-muted, rgba(250, 250, 250, 0.6))",
+        "fg": "var(--w-fg, rgb(250, 250, 250))",
+        "muted": "var(--w-muted, rgba(250, 250, 250, 0.6))",
         "track": "rgba(255, 255, 255, 0.14)",
         "fill": "rgb(161, 161, 170)",
         "ring": "rgba(255, 255, 255, 0.1)"
       },
       "tint": {
         "background": "rgb(56, 17, 25)",
-        "fg": "var(--wp-fg, rgb(250, 250, 250))",
-        "muted": "var(--wp-muted, rgba(250, 250, 250, 0.6))",
+        "fg": "var(--w-fg, rgb(250, 250, 250))",
+        "muted": "var(--w-muted, rgba(250, 250, 250, 0.6))",
         "track": "rgba(255, 255, 255, 0.14)",
         "fill": "rgb(222, 138, 156)",
         "ring": "rgba(255, 255, 255, 0.1)"
       },
       "palette": {
         "background": "rgb(40, 10, 20)",
-        "fg": "var(--wp-fg, rgb(250, 250, 250))",
-        "muted": "var(--wp-muted, rgba(250, 250, 250, 0.6))",
+        "fg": "var(--w-fg, rgb(250, 250, 250))",
+        "muted": "var(--w-muted, rgba(250, 250, 250, 0.6))",
         "track": "rgba(255, 255, 255, 0.14)",
         "fill": "rgb(234, 126, 150)",
         "ring": "rgba(255, 255, 255, 0.1)"
@@ -1380,24 +1380,24 @@
     "theme": {
       "plain": {
         "background": "hsl(var(--card) / 0.85)",
-        "fg": "var(--wp-fg, hsl(var(--card-foreground)))",
-        "muted": "var(--wp-muted, hsl(var(--muted-foreground)))",
+        "fg": "var(--w-fg, hsl(var(--card-foreground)))",
+        "muted": "var(--w-muted, hsl(var(--muted-foreground)))",
         "track": "hsl(var(--muted))",
         "fill": "hsl(var(--primary))",
         "ring": "hsl(var(--border))"
       },
       "tint": {
         "background": "hsl(var(--card) / 0.85)",
-        "fg": "var(--wp-fg, hsl(var(--card-foreground)))",
-        "muted": "var(--wp-muted, hsl(var(--muted-foreground)))",
+        "fg": "var(--w-fg, hsl(var(--card-foreground)))",
+        "muted": "var(--w-muted, hsl(var(--muted-foreground)))",
         "track": "hsl(var(--muted))",
         "fill": "hsl(var(--primary))",
         "ring": "hsl(var(--border))"
       },
       "palette": {
         "background": "hsl(var(--card) / 0.85)",
-        "fg": "var(--wp-fg, hsl(var(--card-foreground)))",
-        "muted": "var(--wp-muted, hsl(var(--muted-foreground)))",
+        "fg": "var(--w-fg, hsl(var(--card-foreground)))",
+        "muted": "var(--w-muted, hsl(var(--muted-foreground)))",
         "track": "hsl(var(--muted))",
         "fill": "hsl(var(--primary))",
         "ring": "hsl(var(--border))"

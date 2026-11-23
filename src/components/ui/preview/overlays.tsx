@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ContextMenu } from "@/components/ui/context-menu";
 import { Menu } from "@/components/ui/menu";
 import { Popover } from "@/components/ui/popover";
+import { Select } from "@/components/ui/select";
 import { Slider, SliderField } from "@/components/ui/slider-field";
 import { Tabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
@@ -22,6 +23,7 @@ export default function Overlays({ Section }: { Section: ComponentType<{ title: 
   const [tab, setTab] = useState("rules");
   const [pill, setPill] = useState("rules");
   const [level, setLevel] = useState(40);
+  const [page, setPage] = useState("p3");
   const [corners, setCorners] = useState(8);
   const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
   return (
@@ -71,6 +73,16 @@ export default function Overlays({ Section }: { Section: ComponentType<{ title: 
             </Tooltip>
           </div>
         </TooltipProvider>
+      </Section>
+      <Section title="Select: closed, open, chosen row, disabled row">
+        <div className="w-56">
+          <Select
+            label="Page"
+            value={page}
+            onChange={setPage}
+            options={[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ value: `p${n}`, label: `Page ${n}`, disabled: n === 5 }))}
+          />
+        </div>
       </Section>
       <Section title="Tabs: underline, pill, disabled">
         <Tabs label="Underline" value={tab} onChange={setTab} tabs={TABS} />

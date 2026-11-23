@@ -45,12 +45,12 @@ describe("Widget look", () => {
     expect(render({ radius: "12" }, { skin: "macos" })).toContain("border-radius:12px");
   });
 
-  it("carries the text colour override on a legacy surface: the shell's text variables and the --wp-* ones its surface colours read", () => {
+  it("carries the text colour override on a legacy surface: the shell's text variables", () => {
     const html = render({ surface: "matte-light", textColor: "#ff0000", mutedColor: "#00ff00" });
     expect(html).toContain("--w-fg:#ff0000");
     expect(html).toContain("--w-muted:#00ff00");
-    expect(html).toContain("--wp-fg:var(--w-fg)");
-    expect(html).toContain("--wp-muted:var(--w-muted)");
+    expect(html).not.toContain("--wp-fg");
+    expect(html).not.toContain("--wp-muted");
     expect(html).toContain("color:var(--w-fg)");
   });
 
@@ -100,7 +100,7 @@ describe("Widget look", () => {
     expect(light).toContain('data-mode="light"');
     expect(light).toContain("--w-ok:#15803d");
     expect(light).toContain("--w-accent:#27795d");
-    expect(light).toContain("--accent:#34d399");
+    expect(light).not.toContain("--accent:#34d399");
     expect(render({ surface: "matte-light", accent: "#ac8ff8" })).toContain("--w-accent:#ac8ff8");
     const dark = render({ surface: "glass" });
     expect(dark).not.toContain("data-mode");

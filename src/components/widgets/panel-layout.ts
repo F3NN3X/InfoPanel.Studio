@@ -119,7 +119,7 @@ export function widgetBoxStyle(w: Widget, panel: PanelDef): CSSProperties {
 }
 
 const round = (v: number) => Math.round(v * 100) / 100;
-const FG = "var(--wp-fg, hsl(var(--foreground)))";
+const FG = "var(--w-fg, hsl(var(--foreground)))";
 
 /** Colors of the theme cards (opacity baked in: their background is a theme token). */
 function themeCard(surface: "none" | "panel" | "bordered", opacity: number): SurfaceColors {
