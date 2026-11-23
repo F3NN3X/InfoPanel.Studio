@@ -16,15 +16,14 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-/** Create the missing stubs under `root`; returns what it created. */
-export function stubDesktop(root = ROOT) {
+/** Create the missing stubs under `root`, copying the agent from `target` (cargo's target dir); returns what it created. */
+export function stubDesktop(root = ROOT, target = path.join(root, "src-tauri", "target")) {
   const resources = path.join(root, "src-tauri", "resources");
   const made = [];
   const agent = path.join(resources, "ips-agent.exe");
   const app = path.join(resources, "app");
   if (!fs.existsSync(agent)) {
-    // verify's cargo lane builds into its own CARGO_TARGET_DIR (tools/verify/lane.mjs).
-    const built = path.join(process.env.CARGO_TARGET_DIR ?? path.join(root, "src-tauri", "target"), "debug", "ips-agent.exe");
+    const built = path.join(target, "debug", "ips-agent.exe");
     if (!fs.existsSync(built) || fs.statSync(built).size === 0) throw new Error("no built ips-agent.exe to stub from: run `cargo build -p ips-agent` in src-tauri first");
     fs.mkdirSync(resources, { recursive: true });
     fs.copyFileSync(built, agent);
@@ -36,7 +35,8 @@ export function stubDesktop(root = ROOT) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    const made = stubDesktop();
+    // verify's cargo lane builds into its own CARGO_TARGET_DIR (tools/verify/lane.mjs); only the command reads it.
+    const made = stubDesktop(ROOT, process.env.CARGO_TARGET_DIR || undefined);
     console.log(made.length ? `Stubbed ${made.join(", ")}` : "src-tauri/resources already in place");
   } catch (error) {
     console.error(error.message);
