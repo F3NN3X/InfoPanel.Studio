@@ -4,7 +4,7 @@
  * the way a Library drop does (`withNewFileItem`).
  */
 import { useEffect, useRef, useState } from "react";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogParts } from "@/components/ui/dialog";
 import { FileUp, X } from "lucide-react";
 import { ASSETS_URL } from "@/lib/assets";
 import type { DroppedFile } from "@/lib/infopanel/canvas-edit";
@@ -43,57 +43,54 @@ export function ImagePicker({ open, onOpenChange, title, onPick }: ImagePickerPr
     pick(r.item);
   };
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/55" />
-        <Dialog.Popup className="fixed left-1/2 top-[10vh] z-50 flex max-h-[72vh] w-[min(560px,calc(100vw-32px))] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-ui-strong bg-ui-tile font-ui text-ui-1 shadow-ui-modal outline-none">
-          <div className="flex shrink-0 items-center justify-between border-b border-ui-subtle px-4 py-3">
-            <Dialog.Title className="text-lead font-medium">{title}</Dialog.Title>
-            <Dialog.Close aria-label="Close" className="text-ui-3 hover:text-ui-1">
-              <X className="h-4.5 w-4.5" />
-            </Dialog.Close>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
-            <button
-              type="button"
-              onClick={() => input.current?.click()}
-              className="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-ui-strong px-3 py-2.5 text-left text-small text-ui-1 hover:bg-ui-hover"
-            >
-              <FileUp className="h-4 w-4 text-ui-3" />
-              Choose a file… <span className="text-ui-4">It goes into My library too</span>
-            </button>
-            <input
-              ref={input}
-              type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml,.ico"
-              aria-label="Choose an image file"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (f) void upload(f);
-              }}
-            />
-            {error && <p className="mb-2 text-caption text-ui-danger">{error}</p>}
-            {items === null ? (
-              <p className="py-6 text-center text-caption text-ui-4">Loading My library…</p>
-            ) : usable.length === 0 ? (
-              <p className="py-6 text-center text-caption text-ui-4">No images in My library yet</p>
-            ) : (
-              <ul className="grid grid-cols-4 gap-2">
-                {usable.map((i) => (
-                  <li key={i.id}>
-                    <button type="button" onClick={() => pick(i)} title={i.name} className="flex w-full flex-col gap-1 rounded-lg border border-ui-default p-1.5 text-left hover:border-ui-strong">
-                      <img src={`${ASSETS_URL}/${i.files[0]}`} alt="" className="aspect-square w-full rounded object-contain" />
-                      <span className="truncate text-micro text-ui-3">{i.name}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <DialogParts.Root open={open} onOpenChange={onOpenChange}>
+      <DialogParts.Content layout="panel" className="top-[10vh] translate-y-0 flex max-h-[72vh] w-[min(560px,calc(100vw-32px))] flex-col overflow-hidden rounded-xl bg-ui-tile">
+        <div className="flex shrink-0 items-center justify-between border-b border-ui-subtle px-4 py-3">
+          <DialogParts.Title className="text-lead font-medium">{title}</DialogParts.Title>
+          <DialogParts.Close aria-label="Close" className="text-ui-3 hover:text-ui-1">
+            <X className="h-4.5 w-4.5" />
+          </DialogParts.Close>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <button
+            type="button"
+            onClick={() => input.current?.click()}
+            className="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-ui-strong px-3 py-2.5 text-left text-small text-ui-1 hover:bg-ui-hover"
+          >
+            <FileUp className="h-4 w-4 text-ui-3" />
+            Choose a file… <span className="text-ui-4">It goes into My library too</span>
+          </button>
+          <input
+            ref={input}
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml,.ico"
+            aria-label="Choose an image file"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void upload(f);
+            }}
+          />
+          {error && <p className="mb-2 text-caption text-ui-danger">{error}</p>}
+          {items === null ? (
+            <p className="py-6 text-center text-caption text-ui-4">Loading My library…</p>
+          ) : usable.length === 0 ? (
+            <p className="py-6 text-center text-caption text-ui-4">No images in My library yet</p>
+          ) : (
+            <ul className="grid grid-cols-4 gap-2">
+              {usable.map((i) => (
+                <li key={i.id}>
+                  <button type="button" onClick={() => pick(i)} title={i.name} className="flex w-full flex-col gap-1 rounded-lg border border-ui-default p-1.5 text-left hover:border-ui-strong">
+                    <img src={`${ASSETS_URL}/${i.files[0]}`} alt="" className="aspect-square w-full rounded object-contain" />
+                    <span className="truncate text-micro text-ui-3">{i.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </DialogParts.Content>
+    </DialogParts.Root>
   );
 }

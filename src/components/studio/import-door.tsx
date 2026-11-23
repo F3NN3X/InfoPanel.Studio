@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogParts } from "@/components/ui/dialog";
 import { FileArchive, FileJson, FileQuestion, Film, Gauge, ImageIcon, Monitor, Type, Upload, X, type LucideIcon } from "lucide-react";
 import { destinationsOf, type Destination, type DestinationId, type ImportKind } from "@/lib/import-sniff";
 import { cn } from "@/lib/utils";
@@ -143,122 +143,120 @@ export function ImportDoorDialog({ open, files, choices, onChoices, busy, curren
   const valueOf = (g: Group): DestinationId => (g.choice === "config" ? choices.config : g.choice === "canvas" ? choices.canvas : g.destinations[0].id);
 
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
-        <Dialog.Popup
-          data-help-article="import"
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(560px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-ui-lg border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
-        >
-          <div className="flex flex-col gap-1 border-b border-ui-subtle px-5 pb-3.5 pt-4">
-            <Dialog.Title className="text-head font-medium text-ui-1">Import</Dialog.Title>
-            <Dialog.Description className="text-pretty text-body text-ui-3">
-              One door for every file. Drop it anywhere in Studio, or choose a file — we work out what it is.
-            </Dialog.Description>
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-5 py-4">
-            {files.length === 0 ? (
-              <button
-                type="button"
-                onClick={() => input.current?.click()}
-                className="flex min-h-35 flex-col items-center justify-center gap-2 rounded-ui-lg border border-dashed border-ui-strong text-center text-ui-3 hover:border-ui-accent hover:text-ui-1"
-              >
-                <Upload className="h-6 w-6" strokeWidth={1.5} />
-                <span className="text-body">Drop files here, or choose them</span>
-                <span className="text-micro text-ui-4">Config backups, screens, .infopanel, gauges, images, videos, fonts</span>
-              </button>
-            ) : null}
-            {files.length === 0 && (
-              <div className="-mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                <button type="button" onClick={onInstalled} className="text-caption text-ui-accent-text hover:underline">
-                  From InfoPanel on this PC…
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    openNewInfoPanel();
-                  }}
-                  className="text-caption text-ui-accent-text hover:underline"
-                >
-                  No file? New InfoPanel profile…
-                </button>
-              </div>
-            )}
-            {files.length === 0 ? null : (
-              <section aria-label="Detected" className="rounded-ui-lg border border-ui-default bg-ui-chrome px-3.5 py-1.5">
-                <ul className="divide-y divide-ui-subtle">
-                  {files.map((f) => (
-                    <FileRow key={f.id} file={f} onRemove={() => onRemove(f.id)} />
-                  ))}
-                </ul>
-                <button type="button" onClick={() => input.current?.click()} className="mb-1 mt-0.5 text-caption text-ui-accent-text hover:underline">
-                  Add more files…
-                </button>
-              </section>
-            )}
-            {groups.map((g) => (
-              <section key={g.key} className="flex flex-col gap-2">
-                <span className="text-caption text-ui-3">
-                  Destination{groups.length > 1 ? ` · ${g.files.length === 1 ? g.files[0].file.name : `${g.files.length} files`}` : ""}
-                </span>
-                <DestinationCards group={g} value={valueOf(g)} onPick={(id) => pick(g, id)} />
-              </section>
-            ))}
-            {replacing && (
-              <label className="flex cursor-pointer items-center gap-2.5 text-body text-ui-2">
-                <input
-                  type="checkbox"
-                  checked={choices.backupFirst}
-                  onChange={(e) => onChoices({ ...choices, backupFirst: e.target.checked })}
-                  className="h-4 w-4 accent-[var(--ui-accent)]"
-                />
-                Back up the current dashboard first (recommended)
-              </label>
-            )}
-            {media && (
-              <label className="flex cursor-pointer items-center gap-2.5 text-body text-ui-2">
-                <input
-                  type="checkbox"
-                  checked={choices.asBackground}
-                  onChange={(e) => onChoices({ ...choices, asBackground: e.target.checked })}
-                  className="h-4 w-4 accent-[var(--ui-accent)]"
-                />
-                <span className="min-w-0 truncate">
-                  Also use {media.file.name} as the background for {current.screen}
-                </span>
-              </label>
-            )}
-          </div>
-          <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-5 py-3">
-            <span className="min-w-0 flex-1 text-pretty text-micro text-ui-3">{hint}</span>
-            <button type="button" onClick={onClose} className="h-8 rounded-ui-md px-3 text-body text-ui-3 hover:text-ui-1">
-              Cancel
-            </button>
+    <DialogParts.Root open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogParts.Content
+        layout="panel"
+        data-help-article="import"
+        className="flex max-h-[calc(100vh-48px)] w-[min(560px,calc(100vw-24px))] flex-col overflow-hidden rounded-ui-lg bg-ui-panel"
+      >
+        <div className="flex flex-col gap-1 border-b border-ui-subtle px-5 pb-3.5 pt-4">
+          <DialogParts.Title className="text-head font-medium text-ui-1">Import</DialogParts.Title>
+          <DialogParts.Description className="text-pretty text-body text-ui-3">
+            One door for every file. Drop it anywhere in Studio, or choose a file — we work out what it is.
+          </DialogParts.Description>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-5 py-4">
+          {files.length === 0 ? (
             <button
               type="button"
-              disabled={!ready}
-              onClick={onRun}
-              className="h-8 rounded-ui-md bg-ui-inverse px-4 text-body font-medium text-ui-inverse-fg disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-hint"
+              onClick={() => input.current?.click()}
+              className="flex min-h-35 flex-col items-center justify-center gap-2 rounded-ui-lg border border-dashed border-ui-strong text-center text-ui-3 hover:border-ui-accent hover:text-ui-1"
             >
-              {busy ? "Importing…" : onlyConfig && replacing ? "Restore" : "Import"}
+              <Upload className="h-6 w-6" strokeWidth={1.5} />
+              <span className="text-body">Drop files here, or choose them</span>
+              <span className="text-micro text-ui-4">Config backups, screens, .infopanel, gauges, images, videos, fonts</span>
             </button>
-          </div>
-          <input
-            ref={input}
-            type="file"
-            multiple
-            aria-label="Choose files to import"
-            className="hidden"
-            onChange={(e) => {
-              const picked = [...(e.target.files ?? [])];
-              e.target.value = "";
-              if (picked.length) onAdd(picked);
-            }}
-          />
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+          ) : null}
+          {files.length === 0 && (
+            <div className="-mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              <button type="button" onClick={onInstalled} className="text-caption text-ui-accent-text hover:underline">
+                From InfoPanel on this PC…
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  openNewInfoPanel();
+                }}
+                className="text-caption text-ui-accent-text hover:underline"
+              >
+                No file? New InfoPanel profile…
+              </button>
+            </div>
+          )}
+          {files.length === 0 ? null : (
+            <section aria-label="Detected" className="rounded-ui-lg border border-ui-default bg-ui-chrome px-3.5 py-1.5">
+              <ul className="divide-y divide-ui-subtle">
+                {files.map((f) => (
+                  <FileRow key={f.id} file={f} onRemove={() => onRemove(f.id)} />
+                ))}
+              </ul>
+              <button type="button" onClick={() => input.current?.click()} className="mb-1 mt-0.5 text-caption text-ui-accent-text hover:underline">
+                Add more files…
+              </button>
+            </section>
+          )}
+          {groups.map((g) => (
+            <section key={g.key} className="flex flex-col gap-2">
+              <span className="text-caption text-ui-3">
+                Destination{groups.length > 1 ? ` · ${g.files.length === 1 ? g.files[0].file.name : `${g.files.length} files`}` : ""}
+              </span>
+              <DestinationCards group={g} value={valueOf(g)} onPick={(id) => pick(g, id)} />
+            </section>
+          ))}
+          {replacing && (
+            <label className="flex cursor-pointer items-center gap-2.5 text-body text-ui-2">
+              <input
+                type="checkbox"
+                checked={choices.backupFirst}
+                onChange={(e) => onChoices({ ...choices, backupFirst: e.target.checked })}
+                className="h-4 w-4 accent-[var(--ui-accent)]"
+              />
+              Back up the current dashboard first (recommended)
+            </label>
+          )}
+          {media && (
+            <label className="flex cursor-pointer items-center gap-2.5 text-body text-ui-2">
+              <input
+                type="checkbox"
+                checked={choices.asBackground}
+                onChange={(e) => onChoices({ ...choices, asBackground: e.target.checked })}
+                className="h-4 w-4 accent-[var(--ui-accent)]"
+              />
+              <span className="min-w-0 truncate">
+                Also use {media.file.name} as the background for {current.screen}
+              </span>
+            </label>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-5 py-3">
+          <span className="min-w-0 flex-1 text-pretty text-micro text-ui-3">{hint}</span>
+          <button type="button" onClick={onClose} className="h-8 rounded-ui-md px-3 text-body text-ui-3 hover:text-ui-1">
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!ready}
+            onClick={onRun}
+            className="h-8 rounded-ui-md bg-ui-inverse px-4 text-body font-medium text-ui-inverse-fg disabled:cursor-not-allowed disabled:bg-ui-active disabled:text-ui-hint"
+          >
+            {busy ? "Importing…" : onlyConfig && replacing ? "Restore" : "Import"}
+          </button>
+        </div>
+        <input
+          ref={input}
+          type="file"
+          multiple
+          aria-label="Choose files to import"
+          className="hidden"
+          onChange={(e) => {
+            const picked = [...(e.target.files ?? [])];
+            e.target.value = "";
+            if (picked.length) onAdd(picked);
+          }}
+        />
+      </DialogParts.Content>
+    </DialogParts.Root>
   );
 }
 

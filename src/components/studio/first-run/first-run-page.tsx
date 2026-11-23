@@ -6,7 +6,7 @@
  * never with the studio.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { AlertDialogParts } from "@/components/ui/dialog";
 import { Check, RefreshCw, X } from "lucide-react";
 import { DEFAULT_API_BASE, normalizeApiBase } from "@/lib/data-api";
 import { appSettings, isTauri, openHelp } from "@/lib/desktop";
@@ -541,30 +541,29 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
           {server?.state === "running" ? `Server · :${server.port}` : "Server · starting"}
         </span>
       </div>
-      <AlertDialog.Root open={askSkip} onOpenChange={setAskSkip}>
-        <AlertDialog.Portal>
-          <AlertDialog.Backdrop className="fixed inset-0 z-(--z-dialog) bg-black/60" />
-          <AlertDialog.Popup
-            initialFocus={keepButton}
-            className="fixed left-1/2 top-1/2 z-(--z-dialog) flex w-105 max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-ui-lg border border-ui-strong bg-ui-panel p-5 shadow-ui-modal outline-none"
-          >
-            <AlertDialog.Title className="m-0 text-lead font-medium text-ui-1">{rerun ? "Close setup?" : "Skip setup?"}</AlertDialog.Title>
-            <AlertDialog.Description className="m-0 text-body leading-[1.5] text-ui-2">
-              {rerun
-                ? "Nothing has changed. Your data address, screens and options stay as they were."
-                : `Studio opens with a blank screen${answered ? "" : " and no live data"}. You can run setup again from Settings → General → Run setup.`}
-            </AlertDialog.Description>
-            <div className="flex justify-end gap-2">
-              <Button ref={keepButton} onClick={() => setAskSkip(false)} className="px-3.5">
-                {rerun ? "Keep going" : "Keep setting up"}
-              </Button>
-              <Button variant="primary" onClick={skip} className="px-3.5">
-                {rerun ? "Close" : "Skip setup"}
-              </Button>
-            </div>
-          </AlertDialog.Popup>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
+      <AlertDialogParts.Root open={askSkip} onOpenChange={setAskSkip}>
+        <AlertDialogParts.Content
+          layout="panel"
+          backdropClassName="z-(--z-dialog)"
+          initialFocus={keepButton}
+          className="z-(--z-dialog) flex w-105 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-ui-lg bg-ui-panel p-5"
+        >
+          <AlertDialogParts.Title className="m-0 text-lead font-medium text-ui-1">{rerun ? "Close setup?" : "Skip setup?"}</AlertDialogParts.Title>
+          <AlertDialogParts.Description className="m-0 text-body leading-[1.5] text-ui-2">
+            {rerun
+              ? "Nothing has changed. Your data address, screens and options stay as they were."
+              : `Studio opens with a blank screen${answered ? "" : " and no live data"}. You can run setup again from Settings → General → Run setup.`}
+          </AlertDialogParts.Description>
+          <div className="flex justify-end gap-2">
+            <Button ref={keepButton} onClick={() => setAskSkip(false)} className="px-3.5">
+              {rerun ? "Keep going" : "Keep setting up"}
+            </Button>
+            <Button variant="primary" onClick={skip} className="px-3.5">
+              {rerun ? "Close" : "Skip setup"}
+            </Button>
+          </div>
+        </AlertDialogParts.Content>
+      </AlertDialogParts.Root>
     </div>
   );
 }

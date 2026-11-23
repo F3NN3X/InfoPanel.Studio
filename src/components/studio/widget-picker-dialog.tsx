@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogParts } from "@/components/ui/dialog";
 import { SquareDashed, X } from "lucide-react";
 import { BLANK_MODULE, type Placement } from "@/lib/layout";
 import type { UserPanelPreset } from "@/lib/panel-model";
@@ -75,36 +75,34 @@ function PickerBody({
 export function WidgetPickerDialog({ placement, onClose, ...body }: WidgetPickerDialogProps) {
   const popupRef = useRef<HTMLDivElement>(null);
   return (
-    <Dialog.Root open={placement !== null} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/50" />
-        <Dialog.Popup
-          ref={popupRef}
-          initialFocus={() => popupRef.current?.querySelector("input") ?? true}
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-ui-strong bg-ui-raised font-ui text-ui-1 shadow-ui-modal outline-none"
-        >
-          {placement && (
-            <>
-              <div className="flex items-start gap-2 border-b border-ui-subtle px-3 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <Dialog.Title className="text-sm font-medium text-ui-1">Pick a widget</Dialog.Title>
-                  <Dialog.Description className="truncate text-xs text-ui-4">
-                    Zone {placement.colSpan}×{placement.rowSpan} · now {placementTitle(placement)}
-                  </Dialog.Description>
-                </div>
-                <Dialog.Close
-                  title="Close"
-                  aria-label="Close"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1"
-                >
-                  <X className="h-4 w-4" />
-                </Dialog.Close>
+    <DialogParts.Root open={placement !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogParts.Content
+        layout="panel"
+        ref={popupRef}
+        initialFocus={() => popupRef.current?.querySelector("input") ?? true}
+        className="flex max-h-[80vh] w-[min(26rem,calc(100vw-2rem))] flex-col rounded-xl bg-ui-raised"
+      >
+        {placement && (
+          <>
+            <div className="flex items-start gap-2 border-b border-ui-subtle px-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <DialogParts.Title className="text-sm font-medium text-ui-1">Pick a widget</DialogParts.Title>
+                <DialogParts.Description className="truncate text-xs text-ui-4">
+                  Zone {placement.colSpan}×{placement.rowSpan} · now {placementTitle(placement)}
+                </DialogParts.Description>
               </div>
-              <PickerBody placement={placement} {...body} />
-            </>
-          )}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+              <DialogParts.Close
+                title="Close"
+                aria-label="Close"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1"
+              >
+                <X className="h-4 w-4" />
+              </DialogParts.Close>
+            </div>
+            <PickerBody placement={placement} {...body} />
+          </>
+        )}
+      </DialogParts.Content>
+    </DialogParts.Root>
   );
 }

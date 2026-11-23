@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogParts } from "@/components/ui/dialog";
 import { Check, Download, FileOutput, Gauge, Monitor, Package, X, type LucideIcon } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { dataOf } from "@/components/library/library-actions";
@@ -167,113 +167,111 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
   const keep = (p: FilePayload | { error: string }) => ("error" in p ? undefined : p);
 
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
-        <Dialog.Popup
-          data-help-article="import"
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(520px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-ui-lg border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
-        >
-          <div className="flex items-start gap-3 border-b border-ui-subtle px-5 pb-3.5 pt-4">
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <Dialog.Title className="text-head font-medium text-ui-1">Export &amp; back up</Dialog.Title>
-              <Dialog.Description className="text-body text-ui-3">Pick what to take out. Each one can also be copied as JSON.</Dialog.Description>
-            </div>
-            <Dialog.Close title="Close" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
-              <X className="h-5 w-5" />
-            </Dialog.Close>
+    <DialogParts.Root open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogParts.Content
+        layout="panel"
+        data-help-article="import"
+        className="flex max-h-[calc(100vh-48px)] w-[min(520px,calc(100vw-24px))] flex-col overflow-hidden rounded-ui-lg bg-ui-panel"
+      >
+        <div className="flex items-start gap-3 border-b border-ui-subtle px-5 pb-3.5 pt-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <DialogParts.Title className="text-head font-medium text-ui-1">Export &amp; back up</DialogParts.Title>
+            <DialogParts.Description className="text-body text-ui-3">Pick what to take out. Each one can also be copied as JSON.</DialogParts.Description>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-5 py-4">
-            <ExportRow
-              {...common}
-              id="backup"
-              icon={Package}
-              title="Back up everything"
-              detail="All screens, themes, alerts and settings · .json"
-              picked={request.row === "backup"}
-              copy={keep(backup)}
-              copied={copied === "backup"}
-              actions={
-                <button type="button" className={PRIMARY} onClick={() => save(backup, "Backup saved")}>
-                  Save backup
+          <DialogParts.Close title="Close" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+            <X className="h-5 w-5" />
+          </DialogParts.Close>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-5 py-4">
+          <ExportRow
+            {...common}
+            id="backup"
+            icon={Package}
+            title="Back up everything"
+            detail="All screens, themes, alerts and settings · .json"
+            picked={request.row === "backup"}
+            copy={keep(backup)}
+            copied={copied === "backup"}
+            actions={
+              <button type="button" className={PRIMARY} onClick={() => save(backup, "Backup saved")}>
+                Save backup
+              </button>
+            }
+          />
+          <ExportRow
+            {...common}
+            id="screen"
+            icon={Monitor}
+            title="Export this screen"
+            detail={`${target.name} with its pages, images and own theme · .json`}
+            picked={request.row === "screen"}
+            copy={screenFile && keep(screenFile)}
+            copied={copied === "screen"}
+            actions={
+              <button type="button" className={OUTLINE} disabled={!screenFile} onClick={() => screenFile && save(screenFile, `Exported ${target.name}${leftOut}`)}>
+                Export screen
+              </button>
+            }
+          />
+          <ExportRow
+            {...common}
+            id="page"
+            icon={FileOutput}
+            title="Export a page"
+            detail={`${pageName} as a stored .canvas.zip`}
+            picked={request.row === "page"}
+            blocked={pageCanvas ? undefined : "This page has no InfoPanel profile on it. Import an InfoPanel profile first, or open a page that has one."}
+            copy={pageCanvas?.canvas ? { name: `${pageName}.canvas.json`, text: JSON.stringify(pageCanvas.canvas, null, 2) } : undefined}
+            copied={copied === "page"}
+            actions={
+              <button
+                type="button"
+                className={OUTLINE}
+                disabled={!pageCanvas}
+                onClick={() => {
+                  onClose();
+                  onExportPage();
+                }}
+              >
+                Export…
+              </button>
+            }
+          >
+            <p className="pl-7.5 text-micro text-ui-4">Fonts that may not be shared stay out unless you include them: you choose in the next step</p>
+          </ExportRow>
+          <ExportRow
+            {...common}
+            id="gauge"
+            icon={Gauge}
+            title="Export a gauge"
+            detail={chosen ? `${chosen.name} · .gauge.json` : "Pick one from Gauges · .gauge.json"}
+            picked={request.row === "gauge"}
+            copy={gauge}
+            copied={copied === "gauge"}
+            actions={
+              <>
+                <button type="button" className={OUTLINE} aria-expanded={choosing} onClick={() => setChoosing((c) => !c)}>
+                  {chosen ? "Choose another…" : "Choose…"}
                 </button>
-              }
-            />
-            <ExportRow
-              {...common}
-              id="screen"
-              icon={Monitor}
-              title="Export this screen"
-              detail={`${target.name} with its pages, images and own theme · .json`}
-              picked={request.row === "screen"}
-              copy={screenFile && keep(screenFile)}
-              copied={copied === "screen"}
-              actions={
-                <button type="button" className={OUTLINE} disabled={!screenFile} onClick={() => screenFile && save(screenFile, `Exported ${target.name}${leftOut}`)}>
-                  Export screen
-                </button>
-              }
-            />
-            <ExportRow
-              {...common}
-              id="page"
-              icon={FileOutput}
-              title="Export a page"
-              detail={`${pageName} as a stored .canvas.zip`}
-              picked={request.row === "page"}
-              blocked={pageCanvas ? undefined : "This page has no InfoPanel profile on it. Import an InfoPanel profile first, or open a page that has one."}
-              copy={pageCanvas?.canvas ? { name: `${pageName}.canvas.json`, text: JSON.stringify(pageCanvas.canvas, null, 2) } : undefined}
-              copied={copied === "page"}
-              actions={
-                <button
-                  type="button"
-                  className={OUTLINE}
-                  disabled={!pageCanvas}
-                  onClick={() => {
-                    onClose();
-                    onExportPage();
-                  }}
-                >
-                  Export…
-                </button>
-              }
-            >
-              <p className="pl-7.5 text-micro text-ui-4">Fonts that may not be shared stay out unless you include them: you choose in the next step</p>
-            </ExportRow>
-            <ExportRow
-              {...common}
-              id="gauge"
-              icon={Gauge}
-              title="Export a gauge"
-              detail={chosen ? `${chosen.name} · .gauge.json` : "Pick one from Gauges · .gauge.json"}
-              picked={request.row === "gauge"}
-              copy={gauge}
-              copied={copied === "gauge"}
-              actions={
-                <>
-                  <button type="button" className={OUTLINE} aria-expanded={choosing} onClick={() => setChoosing((c) => !c)}>
-                    {chosen ? "Choose another…" : "Choose…"}
+                {chosen && gauge && (
+                  <button type="button" className={cn(PRIMARY, "flex items-center gap-1.5")} onClick={() => save(gauge, `Exported ${chosen.name}`)}>
+                    <Download className="h-3.5 w-3.5" /> Export
                   </button>
-                  {chosen && gauge && (
-                    <button type="button" className={cn(PRIMARY, "flex items-center gap-1.5")} onClick={() => save(gauge, `Exported ${chosen.name}`)}>
-                      <Download className="h-3.5 w-3.5" /> Export
-                    </button>
-                  )}
-                </>
-              }
-            >
-              {choosing && (
-                <GaugeChooser
-                  onPick={(name, spec) => {
-                    setChosen({ name, gauge: spec });
-                    setChoosing(false);
-                  }}
-                />
-              )}
-            </ExportRow>
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+                )}
+              </>
+            }
+          >
+            {choosing && (
+              <GaugeChooser
+                onPick={(name, spec) => {
+                  setChosen({ name, gauge: spec });
+                  setChoosing(false);
+                }}
+              />
+            )}
+          </ExportRow>
+        </div>
+      </DialogParts.Content>
+    </DialogParts.Root>
   );
 }
