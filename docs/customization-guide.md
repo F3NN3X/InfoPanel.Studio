@@ -1287,6 +1287,33 @@ Saved themes are not the same as a widget's Styles (see [Styles, Copy, Paste and
 theme](#styles-copy-paste-and-make-this-the-theme)): a saved theme sets a screen's (or page's) look; a Style restyles the
 one widget you apply it to.
 
+### What a theme pack can set
+
+A pack's `look.json` may list **variants** (the Variant chips under Quick changes). A variant sets `accent`, and also `textColor`,
+`mutedColor`, `ok`, `warn`, `crit`, `borderColor`, `glowColor` and `numGlowColor`, as colours (`#rrggbb`, `rgb()`, `hsl()`,
+`oklch()` or an alias such as `{cyan}`), so a variant can restyle its labels and secondary text and not only the accent. A colour
+may instead be **derived from the variant's accent** in OKLCH, so one rule serves every accent:
+`"textColor": {"from": "accent", "l": 0.94, "c": 0.03}` takes the accent's hue at that lightness and chroma. The fields are `l`
+(lightness 0 to 1) or `lMin` (at least that light), `c` (chroma 0 to 0.4), `cMul` (0 to 2) or `cMax`, and `alpha` (only for
+`borderColor`, `glowColor` and `numGlowColor`). The app works the colour out when the variant is picked, so the contrast check
+reads it like any other colour: a variant that sets such a colour is refused when its text is under 4.5:1 on the pack's cards.
+
+In `pack.css`, real elements may also set `letter-spacing` (`normal` or up to `0.15em`, or the same in px), `text-transform`
+(`none` or `uppercase`) and `font-variant-numeric` (`tabular-nums`, `lining-nums`, `slashed-zero` and the like). They are not
+animated or transitioned, and font sizes stay the app's.
+
+A pack's `frame` in `pack.json` has `corners` (`square`, `cut`, `bracket` or `notch`) with a `size` up to 20 px (the Cyberspec kit's
+largest cut is 18) and a `stroke` up to 2 px, and now also:
+
+- `byCorner`: a kind for one corner, over `corners` and `which`, for example `{"tl": "cut", "br": "notch"}` (`square` leaves
+  that corner plain);
+- `spine`: `{"edge": "left", "width": 5}`, an accent bar along one edge, 1 to 6 px thick;
+- `tab`: `{"at": "tl", "width": 56, "height": 5}`, a solid accent tab on the top or bottom edge at a corner, up to 64 by 8 px;
+- `double`: `true` draws a second line 2 px inside the first.
+
+A spine, a tab or a second line is drawn only where the card's padding is at least as wide as it is, so it never covers text. For
+the same reason a card's ornaments (the small marks and labels in a corner) are drawn only where the padding is more than 10 px.
+
 ## Widget theme
 
 Look and content preferences can be set once instead of per widget. A theme holds a value for each *themed* setting: the
