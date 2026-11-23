@@ -4,8 +4,11 @@
 // specs: `--repeat-each 3` on half the cores up to 4, a quarter above that: the whole-page measure specs starve when 4 workers share 4 vCPUs.
 //   node tools/ci/flake-gate.mjs --unit [files...]    node tools/ci/flake-gate.mjs --e2e [files...]
 // Without files, the test files changed since the merge base (as `verify` computes them). Quarantined files are exempt.
+// Off CI, a file that passed every repeat is proven until its content changes (.cache/verify/flake-proven.json): the gate
+// asks whether the test is stable, and repeating an unchanged file on every verify answers nothing new. CI always repeats.
 // Node built-ins only.
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -15,6 +18,7 @@ import { matchesAny } from "../verify/map.mjs";
 import { quarantinedFiles } from "./quarantine.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const PROVEN_FILE = path.join(ROOT, ".cache", "verify", "flake-proven.json");
 
 export const UNIT_RUNS = 10;
 export const E2E_REPEATS = 3;
@@ -37,6 +41,17 @@ export function classify(files) {
   return { unit, specs };
 }
 
+/** The files still to prove: those whose content hash is not the one that last passed every repeat. */
+export const unproven = (files, proven, hashes) => files.filter((file) => proven[file] !== hashes[file]);
+
+function readProven() {
+  try {
+    return JSON.parse(fs.readFileSync(PROVEN_FILE, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
 /** The Playwright command for one project's specs. */
 export const playwrightCommand = (project, files, workers = gateWorkers(os.availableParallelism())) =>
   `npx playwright test --project=${project} --repeat-each ${E2E_REPEATS} --workers ${workers} ${files.map(quote).join(" ")}`;
@@ -52,8 +67,13 @@ function main(argv) {
   }
   const given = argv.slice(1).map((file) => file.replaceAll("\\", "/"));
   const exempt = new Set(quarantinedFiles(ROOT));
-  const candidates = given.length ? given : changedFiles(ROOT).files;
-  const { unit, specs } = classify(candidates.filter((file) => fs.existsSync(path.join(ROOT, file)) && !exempt.has(file)));
+  const ofMode = ({ unit, specs }) => (mode === "--unit" ? unit : Object.values(specs).flat());
+  const candidates = ofMode(classify((given.length ? given : changedFiles(ROOT).files).filter((file) => fs.existsSync(path.join(ROOT, file)) && !exempt.has(file))));
+  const proven = process.env.CI ? {} : readProven();
+  const hashes = Object.fromEntries(candidates.map((file) => [file, createHash("sha256").update(fs.readFileSync(path.join(ROOT, file))).digest("hex")]));
+  const todo = unproven(candidates, proven, hashes);
+  if (todo.length < candidates.length) console.log(`flake gate: ${candidates.length - todo.length} file(s) already passed every repeat at this content, not repeated.`);
+  const { unit, specs } = classify(todo);
 
   let commands;
   if (mode === "--unit") commands = unit.length ? Array.from({ length: UNIT_RUNS }, () => vitestCommand(unit, Math.floor(Math.random() * 1e6))) : [];
@@ -68,6 +88,10 @@ function main(argv) {
       console.error(`\nflake gate: FAILED on ${command}\nA new or changed test must pass every repeat. Fix it, or (with an issue, an owner and a deadline) add it to tests/quarantine.json.`);
       return 1;
     }
+  }
+  if (!process.env.CI) {
+    fs.mkdirSync(path.dirname(PROVEN_FILE), { recursive: true });
+    fs.writeFileSync(PROVEN_FILE, `${JSON.stringify({ ...readProven(), ...Object.fromEntries(todo.map((file) => [file, hashes[file]])) }, null, 2)}\n`);
   }
   console.log(`\nflake gate: ${commands.length} run(s) passed.`);
   return 0;

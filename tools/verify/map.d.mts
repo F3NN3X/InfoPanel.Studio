@@ -21,6 +21,7 @@ export interface Check {
   files?: string[];
   tests?: string[];
   testsExclude?: string[];
+  smoke?: string[];
   related?: boolean;
   emptyMeansAll?: boolean;
   always?: boolean;
@@ -35,6 +36,9 @@ export interface FeatureMap {
 }
 
 export const MAP_FILE: string;
+export const MAP_FEATURE: string;
+export function isRoutingOnly(oldText: string, newText: string): boolean;
+export function splitRoutingOnly(files: string[], read: (file: string) => { old: string; new: string } | null): { routingOnly: boolean; rest: string[] };
 export function matchesGlob(file: string, pattern: string): boolean;
 export function matchesAny(file: string, patterns?: string[]): boolean;
 export function loadMap(root: string): FeatureMap;

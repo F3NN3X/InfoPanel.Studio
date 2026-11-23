@@ -7,7 +7,7 @@ import path from "node:path";
 
 export const BLOCKED_FILE = ".cache/verify/stop-blocked.json";
 
-export const STALE_MESSAGE = "Changes since the last verify. Run npm run verify (or verify:full before finishing), then report its summary.";
+export const STALE_MESSAGE = "Changes since the last verify. Run npm run verify (it checks what changed since the last passing run), then report its summary.";
 export const FAILED_MESSAGE = "npm run verify failed (see summary). Fix it, or tell the user exactly what fails and why you are stopping.";
 
 /**

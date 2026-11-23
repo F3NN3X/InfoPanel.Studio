@@ -80,10 +80,13 @@ export function buildPlan({ map, features, changed, mode, tracked, exists, platf
     return { ...base, ...notRun, cmd: check.cmd };
   }
 
-  /** A check that runs test files: the selected features' own, the changed test files, and for `related` the sources. */
+  /**
+   * A check that runs test files: the selected features' own, the changed test files, and for `related` the sources. A
+   * check with a `smoke` list runs that list in place of the features' own: the rest of its files wait for a full run.
+   */
   function withTests(name, check, base, notRun) {
     const eligible = (file) => matchesAny(file, check.tests) && !matchesAny(file, check.testsExclude);
-    const own = features.filter((feature) => feature.checks.includes(name)).flatMap((feature) => expandGlobs(feature.tests, tracked));
+    const own = check.smoke ? expandGlobs(check.smoke, tracked) : features.filter((feature) => feature.checks.includes(name)).flatMap((feature) => expandGlobs(feature.tests, tracked));
     const tests = [...new Set([...own, ...present.filter(isTestFile)].filter(eligible))].filter(exists);
     const sources = check.related && effective === "default" ? present.filter((file) => CODE_EXT.test(file) && !isTestFile(file)) : [];
     const files = [...tests, ...sources];

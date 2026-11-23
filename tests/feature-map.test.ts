@@ -86,6 +86,13 @@ describe("the checks", () => {
     expect(bad, `A check's command can't run. ${FIX} or add the script to package.json.`).toEqual([]);
   });
 
+  it("names only tracked files the check runs in a check's smoke list", () => {
+    const bad = Object.entries(map.checks).flatMap(([name, check]) =>
+      (check.smoke ?? []).filter((file) => !tracked.includes(file) || !matchesAny(file, check.tests)).map((file) => `${name}: ${file}`),
+    );
+    expect(bad, `Smoke entries that are not tracked files matching the check's "tests". ${FIX}.`).toEqual([]);
+  });
+
   it("gives every check a command or marks it as escalating", () => {
     const bad = Object.entries(map.checks).filter(([, check]) => !check.cmd && !check.escalate).map(([name]) => name);
     expect(bad, `Checks with neither "cmd" nor "escalate". ${FIX}.`).toEqual([]);

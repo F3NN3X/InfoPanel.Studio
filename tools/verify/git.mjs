@@ -63,6 +63,16 @@ export function mergeBase(root, base) {
   return null;
 }
 
+/** Whether HEAD descends from `sha`; false too when git no longer knows the commit (a rebase, another clone). */
+export function isAncestor(root, sha) {
+  try {
+    git(root, ["merge-base", "--is-ancestor", sha, "HEAD"]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** The text of `file` at `sha`, or null when it isn't there. */
 export function fileAt(root, sha, file) {
   try {

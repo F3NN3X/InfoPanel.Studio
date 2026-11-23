@@ -46,9 +46,23 @@
       "cmd": "npx playwright test --project=e2e {tests}",
       "fullCmd": "npm run test:e2e",
       "tests": ["tests/e2e/*.spec.ts"],
+      "smoke": [
+        "tests/e2e/kiosk-renders.spec.ts",
+        "tests/e2e/kiosk-budget.spec.ts",
+        "tests/e2e/a11y-smoke.spec.ts",
+        "tests/e2e/config-live-update.spec.ts",
+        "tests/e2e/control-page-switch.spec.ts",
+        "tests/e2e/studio-basics.spec.ts",
+        "tests/e2e/browser-studio.spec.ts",
+        "tests/e2e/profile-picker.spec.ts",
+        "tests/e2e/user-packs.spec.ts",
+        "tests/e2e/request-guard.spec.ts",
+        "tests/e2e/cross-origin-writes.spec.ts",
+        "tests/e2e/image-proxy-rules.spec.ts"
+      ],
       "emptyMeansAll": true,
       "needs": ["build", "settings-build", "server-bin"],
-      "when": "the Playwright specs: real browser, real server, scratch data (agent-prompt.spec also opens the app's own built prompt page)"
+      "when": "the Playwright specs: real browser, real server, scratch data (agent-prompt.spec also opens the app's own built prompt page). A change runs the `smoke` specs (what _docs/TESTING.md says only a browser shows: the kiosk renders, live updates, the studio's save and undo, the request guards) and the specs it changed; --full (the nightly, the release) runs them all"
     },
     "one-editor": {
       "browser": true,
@@ -88,9 +102,15 @@
       "when": "every change to Rust code or src-tauri/rustfmt.toml: the whole workspace against rustfmt (skipped when none changed)"
     },
     "cargo-server": {
-      "lane": "cargo", "cmd": "cargo test -p ips-server -p ips-agent -p ips-battery && cargo clippy -p ips-server -p ips-agent -p ips-battery --all-targets -- -D warnings",
+      "lane": "cargo", "cmd": "cargo test -p ips-server -p ips-agent && cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings",
       "cwd": "src-tauri",
-      "when": "the dashboard server, the agent hooks and the ported battery core (runs on every platform); includes the parity tests over tests/fixtures/parity"
+      "when": "the dashboard server and the agent hooks (runs on every platform); includes the parity tests over tests/fixtures/parity"
+    },
+    "cargo-battery": {
+      "lane": "cargo", "cmd": "cargo test -p ips-battery && cargo clippy -p ips-battery --all-targets -- -D warnings",
+      "cwd": "src-tauri",
+      "platform": "win32",
+      "when": "the ported battery core: it links Windows import libraries (runtimeobject), so it builds on Windows only"
     },
     "stub-desktop": { "lane": "cargo", "cmd": "node tools/ci-stub-desktop.mjs", "platform": "win32", "when": "creates src-tauri/resources only where it is missing (a clean CI runner); needs the built ips-agent" },
     "cargo-app": {
@@ -245,7 +265,7 @@
       "tests": [
         "tests/components/connections/peripherals-block.test.tsx"
       ],
-      "checks": ["typecheck", "unit", "cargo-server", "cargo-app"],
+      "checks": ["typecheck", "unit", "cargo-server", "cargo-battery", "cargo-app"],
       "note": "The ported driver modules carry their own in-module tests (16, against the scripted HID mock); cargo-server runs them with ips-server and ips-agent. Windows-gated: non-Windows builds take the stubs. The sensor-store routing that reads the devices stream is under data-pipeline; the widget and its tests under widgets; the settings page wiring under twitch-chat (all connection blocks live there). Overlaps with server-core and twitch-chat are deliberate, as with weather.rs."
     },
     {
@@ -955,6 +975,14 @@
       "tests": [],
       "checks": ["cargo-server"],
       "note": "Claims no path: verify routes version-only manifests here instead of to tooling and server-core, so a release skips the full run and e2e. cargo-server builds with the lock, so a mismatched Cargo.lock still fails."
+    },
+    {
+      "id": "feature-map",
+      "summary": "This map changed in its `features` only: a new file's path, a test, a feature's list of checks (tools/verify/map.mjs decides by content).",
+      "paths": [],
+      "tests": ["tests/feature-map.test.ts"],
+      "checks": ["unit"],
+      "note": "Claims no path: verify routes such a change here instead of to tooling, so adding a file to the map does not run every check. A change to `checks` (a check's definition) still goes to tooling."
     },
     {
       "id": "docs",

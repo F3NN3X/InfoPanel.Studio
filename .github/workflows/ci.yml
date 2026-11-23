@@ -2,7 +2,7 @@ name: CI
 
 # PRs run the checks their change needs. `plan` asks tools/verify.mjs (tests/feature-map.json) which checks the changed
 # files call for and the jobs below run or skip accordingly; `ci-ok` sums them up (advisory: the merge gate is the
-# local-verify status `npm run ship` posts after a full local verify). The browser checks (e2e specs, one-editor,
+# local-verify status `npm run ship` posts after a local verify of the whole branch). The browser checks (e2e specs, one-editor,
 # overflow, the spec gate, quarantine) are not here: ship runs them locally, e2e.yml runs them when started by hand, the
 # release before it publishes a stable tag (release.yml) and the nightly every night. A
 # push to main runs only when the dependencies or the Rust code change, and then only the jobs that save the Rust and npm caches (GitHub shares caches saved on main with

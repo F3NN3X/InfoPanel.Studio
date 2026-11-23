@@ -57,6 +57,32 @@ export function loadMap(root) {
   return JSON.parse(fs.readFileSync(path.join(root, MAP_FILE), "utf8"));
 }
 
+/** The feature a map change goes to when only its `features` changed (verify routes it there instead of to tooling). */
+export const MAP_FEATURE = "feature-map";
+
+/**
+ * Whether the map differs between `oldText` and `newText` in its `features` only: a new file's path, a test, a feature's
+ * list of checks. That routes files; it cannot break a check, as a changed check definition can. Text it can't parse is not.
+ */
+export function isRoutingOnly(oldText, newText) {
+  const rest = (text) => JSON.stringify({ ...JSON.parse(text), features: null });
+  try {
+    return rest(oldText) === rest(newText);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Takes the map out of the changed files when only its features changed. `read(file)` gives `{ old, new }` text, or null
+ * when the file was added, deleted or has no base, which leaves it with the rest (and so with tooling).
+ */
+export function splitRoutingOnly(files, read) {
+  const text = files.includes(MAP_FILE) ? read(MAP_FILE) : null;
+  const routingOnly = text != null && isRoutingOnly(text.old, text.new);
+  return { routingOnly, rest: routingOnly ? files.filter((file) => file !== MAP_FILE) : files };
+}
+
 /** Whether the feature's `paths` claim the file (after its `exclude`s). */
 export function claims(feature, file) {
   return matchesAny(file, feature.paths) && !matchesAny(file, feature.exclude);
