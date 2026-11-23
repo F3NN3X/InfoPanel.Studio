@@ -109,6 +109,19 @@ describe("the Variant knob", () => {
     expect(variantKeys(variants)).toEqual(["accent", "surface"]);
   });
 
+  it("shows a variant that also sets the text colours, and Reset clears those keys too", () => {
+    const colours = [
+      { id: "ice", name: "Ice", values: { accent: "#41d9f8", textColor: "#eaf9ff", mutedColor: "#7fa6b8" } },
+      { id: "toxin", name: "Toxin", values: { accent: "#40ef7c", textColor: "#eafff0", mutedColor: "#7fb88f" } },
+    ];
+    expect(variantOf({ own: { accent: "#40ef7c", textColor: "#EAFFF0", mutedColor: "#7fb88f" } }, colours)).toBe("toxin");
+    // the accent alone no longer shows the variant: its text colours are not the level's
+    expect(variantOf({ own: { accent: "#40ef7c" }, inherited: { textColor: "#ffffff" } }, colours)).toBeUndefined();
+    expect(variantKeys(colours)).toEqual(["accent", "textColor", "mutedColor"]);
+    // the Colours section's lock holds them, through the Accent knob
+    expect(variantKnobs([{ id: "t", name: "T", values: { textColor: "#fff" } }])).toEqual(["accent"]);
+  });
+
   it("is held by the screen's lock of any knob it writes", () => {
     expect(variantKnobs(variants)).toEqual(["accent", "surface"]);
     expect(variantKnobs([{ id: "roomy", name: "Roomy", values: { padding: "16" } }])).toEqual(["density"]);

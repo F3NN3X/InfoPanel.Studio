@@ -313,9 +313,9 @@ describe("what Cyberspec teaches the contract", () => {
     const t1 = resolveT1(pack.look, "dark");
     for (const v of sample.variants ?? []) {
       expect(Object.keys(v.values), v.id).toEqual(["accent"]);
-      expect(contrastOf(v.values.accent, t1.surface), v.id).toBeGreaterThanOrEqual(4.5);
+      expect(contrastOf(v.values.accent as string, t1.surface), v.id).toBeGreaterThanOrEqual(4.5);
       // the label bar is the accent with the page colour on it
-      expect(contrastOf(t1.bg, v.values.accent), v.id).toBeGreaterThanOrEqual(4.5);
+      expect(contrastOf(t1.bg, v.values.accent as string), v.id).toBeGreaterThanOrEqual(4.5);
     }
   });
 

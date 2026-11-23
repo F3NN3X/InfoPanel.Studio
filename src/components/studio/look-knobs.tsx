@@ -5,7 +5,7 @@ import { Slider } from "@/components/ui/slider-field";
 import { InheritDot } from "@/components/ui/setting-row";
 import { onRovingKeyDown } from "@/lib/roving";
 import { loadLook } from "@/looks";
-import type { LookVariant } from "@/looks/look";
+import { resolveVariants, type ResolvedVariant } from "@/looks/look";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import type { ModuleSettings } from "@/modules/types";
@@ -112,7 +112,7 @@ function Choice({ label, children, className }: { label: string; children: React
 
 interface LookInfo {
   modes: readonly KnobMode[];
-  variants: readonly LookVariant[];
+  variants: readonly ResolvedVariant[];
 }
 
 const NO_INFO: LookInfo = { modes: [], variants: [] };
@@ -125,7 +125,7 @@ function useLookInfo(lookId: unknown): LookInfo {
     // The previous theme's modes don't stand while this one loads (a click would write against the wrong native mode).
     setInfo(NO_INFO);
     loadLook(typeof lookId === "string" ? lookId : "classic").then(
-      (look) => live && setInfo(look ? { modes: look.modes.supported, variants: look.variants ?? [] } : NO_INFO),
+      (look) => live && setInfo(look ? { modes: look.modes.supported, variants: resolveVariants(look) } : NO_INFO),
       () => live && setInfo(NO_INFO)
     );
     return () => {

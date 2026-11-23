@@ -63,7 +63,7 @@
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
           "name": { "type": "string", "minLength": 1 },
-          "values": { "type": "object", "additionalProperties": { "type": "string" } }
+          "values": { "type": "object", "additionalProperties": { "type": ["string", "object"] } }
         }
       }
     },
