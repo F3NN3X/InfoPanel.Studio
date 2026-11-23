@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import zlib from "node:zlib";
 import { expect, makePack, manifest, settled, test } from "./fixtures";
 
 // User pack CSS (L94): the whole road, on a release build with debug off. A pack with a stylesheet is read by the grammar, worn in the
@@ -11,6 +12,31 @@ const { light } = manifest.profiles;
 /** Field Kit's card colour: the same as `color` hides the text, and the grammar cannot know that. */
 const CARD = "#EFE8D8";
 const GOOD = '[data-part="header"] { --pack-ink: #6b1d00; color: var(--pack-ink); }\n[data-part="num"] { text-shadow: 0 1px 2px #0000002e; }\n';
+
+/** A 4x4 RGBA png of one alpha, so a mask's alpha over the text is known exactly. */
+function maskPng(alpha: number): Buffer {
+  const [n, crcs] = [4, new Int32Array(256).map((_, i) => { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c; })];
+  const chunk = (type: string, data: Buffer) => {
+    const body = Buffer.concat([Buffer.from(type), data]);
+    let c = -1;
+    for (const b of body) c = crcs[(c ^ b) & 0xff] ^ (c >>> 8);
+    const [len, crc] = [Buffer.alloc(4), Buffer.alloc(4)];
+    len.writeUInt32BE(data.length);
+    crc.writeUInt32BE((c ^ -1) >>> 0);
+    return Buffer.concat([len, body, crc]);
+  };
+  const head = Buffer.alloc(13);
+  head.writeUInt32BE(n, 0);
+  head.writeUInt32BE(n, 4);
+  head.set([8, 6, 0, 0, 0], 8);
+  const row = Buffer.concat([Buffer.from([0]), Buffer.from(Array.from({ length: n }, () => [0, 0, 0, alpha]).flat())]);
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", head), chunk("IDAT", zlib.deflateSync(Buffer.concat(Array.from({ length: n }, () => row)))), chunk("IEND", Buffer.alloc(0))]);
+}
+const maskPack = (tmp: string, id: string, alpha: number) =>
+  makePack(tmp, id, (dir) => {
+    fs.writeFileSync(path.join(dir, "assets", "mask.png"), maskPng(alpha));
+    fs.writeFileSync(path.join(dir, "pack.css"), '[data-part="card"] { mask-image: url("assets/mask.png"); mask-size: 100% 100%; mask-repeat: no-repeat; }\n');
+  });
 
 const packsOf = async (base: string) => (await (await fetch(`${base}/api/packs`)).json()) as { id: string }[];
 
@@ -105,6 +131,23 @@ test.describe("a pack with its own stylesheet", () => {
     const report = section.locator("[data-pack-report]");
     await expect(report).toContainText("The render check refused this pack", { timeout: 120_000 });
     expect(await packsOf(scratch.base)).toEqual([]);
+  });
+
+  test("whose png mask is mostly transparent over the text is refused, and nothing is stored", async ({ page, scratch }) => {
+    const section = await openPacks(page, scratch.base);
+    await section.locator("[data-pack-folder]").setInputFiles(maskPack(tmp, "veil", 20));
+    const report = section.locator("[data-pack-report]");
+    await expect(report).toContainText("The render check refused this pack", { timeout: 120_000 });
+    await expect(report).toContainText("under a mask that leaves less than");
+    expect(await packsOf(scratch.base)).toEqual([]);
+    expect(fs.existsSync(path.join(scratch.dataDir, "packs", "veil"))).toBe(false);
+  });
+
+  test("whose png mask is opaque over the text is imported and listed", async ({ page, scratch }) => {
+    const section = await openPacks(page, scratch.base);
+    await section.locator("[data-pack-folder]").setInputFiles(maskPack(tmp, "solid", 255));
+    await expect(section.locator("[data-pack-report]")).toContainText("Imported Mine", { timeout: 120_000 });
+    expect((await packsOf(scratch.base)).map((p) => p.id)).toEqual(["solid"]);
   });
 });
 
