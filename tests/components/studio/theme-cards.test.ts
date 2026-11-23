@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { resolveFont } from "@/lib/general";
-import { defaultConfig, type DashboardConfig, type MonitorProfile, type Placement } from "@/lib/layout";
-import { DEFAULT_THEME } from "@/lib/theme";
+import { CONFIG_VERSION, defaultConfig, type DashboardConfig, type MonitorProfile, type Placement, type StoredConfig } from "@/lib/layout";
+import { DEFAULT_THEME, resolveTheme } from "@/lib/theme";
+import { upgradeConfig } from "@/lib/config-upgrade";
+import { appearanceOf, resolveWith } from "@/lib/style-resolve";
+import { cornersPx } from "@/components/studio/theme-view-model";
+import { knobValue } from "@/components/studio/look-knobs-model";
 import {
   cardInherit,
   cardSet,
@@ -19,7 +23,7 @@ import {
   withValuesAt,
   type ThemeAt,
 } from "@/components/studio/theme-cards";
-import { withPageFollow, withScopeValues } from "@/components/studio/theme-editor-model";
+import { scopeLookValues, withPageFollow, withScopeValues } from "@/components/studio/theme-editor-model";
 import { TEMPLATE_PRESETS } from "@/lib/screen-templates/template-presets";
 import { applyThemeToLevel, themeState } from "@/lib/theme-apply";
 import { registerSampleCards } from "@/looks/sample-materials";
@@ -190,5 +194,31 @@ describe("the one Corners control (L48)", () => {
     expect(desk(reset).widgetTheme?.values?.radius).toBeUndefined();
     // No theme names corners: the built-in ones, so the screen stores none.
     expect("radius" in desk(resetCorners(set, SCREEN, undefined))).toBe(false);
+  });
+
+  it("reads an old config with the two stores apart as it draws, with no migration", () => {
+    // Saved before the fold: the Corners knob at 12 px, Base corners at 4 px (0.25 rem).
+    const old = setup();
+    const stored = JSON.parse(
+      JSON.stringify({ ...old, version: CONFIG_VERSION, profiles: [{ ...old.profiles[0], radius: 0.25, widgetTheme: { values: { radius: "12" } } }] })
+    ) as StoredConfig;
+    const loaded = upgradeConfig(stored);
+    // Both stores are read as saved: the page's corners (rem) and the widgets' (px) draw as before.
+    expect(desk(loaded).radius).toBe(0.25);
+    expect(resolveTheme(desk(loaded)).radius).toBe(0.25);
+    const levels = appearanceOf(loaded, { ...desk(loaded), pageId: "gaming" });
+    expect(resolveWith(levels, undefined, undefined)?.radius).toBe("12");
+    // The one control shows what the widgets draw; an edit writes both stores to it.
+    expect(cornersPx(knobValue(scopeLookValues(levels, "profile"), "radius"), desk(loaded).radius!)).toBe(12);
+    const edited = withCorners(loaded, SCREEN, 16);
+    expect([desk(edited).radius, desk(edited).widgetTheme?.values?.radius]).toEqual([1, "16"]);
+  });
+
+  it("shows a screen that never stored the widget knob at its rem corners", () => {
+    expect(cornersPx(undefined, 0.75)).toBe(12);
+    expect(cornersPx("auto", 0.5)).toBe(8);
+    expect(cornersPx("20", 0.5)).toBe(20);
+    // The control's range is 0 to 24 px.
+    expect(cornersPx("28", 0.5)).toBe(24);
   });
 });

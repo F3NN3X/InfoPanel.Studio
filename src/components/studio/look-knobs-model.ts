@@ -1,3 +1,4 @@
+import type { LookVariant } from "@/looks/look";
 import { MATERIALS } from "@/looks/materials";
 import { sampleCards } from "@/looks/sample-cards";
 import { isLocked, type SectionId, type ThemeLevels } from "@/lib/theme-model";
@@ -9,7 +10,7 @@ import type { LookValues } from "./inspector-model";
  * The Look knobs (D15, investigation 7 F5): the few values a user changes on top of a Look, in the Theme view and the
  * widget inspector. Each knob writes cascade keys at the level (or widget) it edits and shows "Custom" while that holds
  * a value of its own that differs from the Look's; Reset clears the keys, so the Look's value shows again. Align and
- * Size are layout, not knobs. Mode shows for a Look that supports light (P6); Variant waits for theme packs (P9). Pure.
+ * Size are layout, not knobs. Mode shows for a Look that supports light (P6), Variant for a Look that has variants. Pure.
  */
 
 export type KnobId = "accent" | "mode" | "surface" | "corners" | "density";
@@ -141,3 +142,30 @@ export function densityOf(values: LookValues): Density | "custom" {
   const hit = DENSITIES.find((d) => at(pad) === (d.values.padding as string | undefined) && at(gap) === (d.values.gap as string | undefined));
   return hit?.id ?? "custom";
 }
+
+/** The keys a Look's variants set, once each: what the Variant knob's Reset clears. */
+export const variantKeys = (variants: readonly LookVariant[]): string[] => [...new Set(variants.flatMap((v) => Object.keys(v.values)))];
+
+/**
+ * The variant the values show: the first whose every value they show; "" (the Look's own) while the level holds none of
+ * the variants' keys of its own; undefined (Custom) when it holds some that match no variant.
+ */
+export function variantOf(values: LookValues, variants: readonly LookVariant[]): string | undefined {
+  const shows = (v: LookVariant) => Object.entries(v.values).every(([key, value]) => String(knobValue(values, key) ?? "").toLowerCase() === value.toLowerCase());
+  const hit = variants.find((v) => Object.keys(v.values).length > 0 && shows(v));
+  if (hit) return hit.id;
+  return variantKeys(variants).some((key) => ownValue(values, key) !== undefined) ? undefined : "";
+}
+
+/** Whether Variant is Custom: a key of the variants holds an own value that differs from what the level inherits. */
+export const variantCustom = (values: LookValues, variants: readonly LookVariant[]): boolean =>
+  variantKeys(variants).some((key) => {
+    const own = ownValue(values, key);
+    return own !== undefined && own !== values.inherited?.[key];
+  });
+
+/** The knobs whose keys a variant writes: Variant is read-only while the screen locks any of them. */
+export const variantKnobs = (variants: readonly LookVariant[]): KnobId[] => {
+  const keys = variantKeys(variants);
+  return KNOBS.filter((k) => k.id !== "mode" && KNOB_KEYS[k.id].some((key) => keys.includes(key))).map((k) => k.id);
+};

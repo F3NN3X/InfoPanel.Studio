@@ -528,3 +528,28 @@ export function itemFollow(
     onUseTheme: () => change((x) => withItemFollow(x, sec, true), `follow:${sec}`),
   };
 }
+
+// -- the knob row -------------------------------------------------------------------
+
+/** Whether a panel widget has a knob row: a kind that reads `color` (its Accent knob). */
+export const itemHasKnobs = (w: Widget): boolean => COLORED.includes(w.kind);
+
+/**
+ * The knob row's values for a panel widget (L46): Accent only, the widget's own `color` over its panel's accent; the
+ * cards, corners and density are the panel's. The own colour applies where Color is the widget's own (`itemFollows`).
+ */
+export function itemKnobValues(input: Pick<ItemFieldsInput, "widget" | "look" | "locks">): LookValues {
+  const { widget: w, look, locks } = input;
+  return {
+    own: w.color === undefined ? {} : { accent: w.color },
+    inherited: Object.fromEntries(Object.entries({ accent: look.accent, lookId: look.lookId }).filter(([, v]) => v !== undefined && v !== "")) as ModuleSettings,
+    applies: (key) => key !== "accent" || !itemFollows(w, "colors", locks),
+  };
+}
+
+/** An Accent knob edit on a panel widget: its colour, and Color its own (that knob only: the section holds nothing else). */
+export const withItemKnob = (w: Widget, patch: ModuleSettings): Widget =>
+  patch.accent === undefined ? w : withItemFollow(withItemValues(w, { color: patch.accent }), "colors", false);
+
+/** The Accent knob's Reset on a panel widget: its colour dropped and Color following the panel again. */
+export const withItemKnobReset = (w: Widget): Widget => withItemFollow(withoutItemValues(w, ["color"]), "colors", true);
