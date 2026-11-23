@@ -1,10 +1,9 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { Page } from "@playwright/test";
 import { startScratch } from "../../tools/perf/scratch.mjs";
-import { countersign, signPack } from "../../tools/packs/sign.mjs";
-import { generateKeyPair, readSecretKey } from "../../tools/widgets/minisign.mjs";
 import { expect, makePack, manifest, saveConfig, settled, test } from "./fixtures";
 
 // A pack's effect script against the REAL server (the trust, consent and script routes, no `page.route` stand-ins): an unverified pack
@@ -22,6 +21,13 @@ function scripted(tmp: string, id: string): string {
     fs.writeFileSync(file, JSON.stringify({ ...JSON.parse(fs.readFileSync(file, "utf8")), script: { file: "fx.js" } }));
   });
 }
+
+/** tools/packs/sign.mjs, the publisher's own tool: a throwaway key pair in `dir`, and the pack signed and countersigned. */
+const sign = (...args: string[]) => execFileSync(process.execPath, [path.join("tools", "packs", "sign.mjs"), ...args], { stdio: "pipe" });
+const keyPair = (dir: string, name: string) => {
+  sign("--generate", path.join(dir, name));
+  return { secret: path.join(dir, `${name}.key`), line: fs.readFileSync(path.join(dir, `${name}.pub`), "utf8").split(String.fromCharCode(10))[1] };
+};
 
 const trust = async (base: string, id: string) => (await (await fetch(`${base}/api/packs/${id}/trust`)).json()) as Record<string, unknown>;
 
@@ -131,15 +137,15 @@ test.describe("a pack's script and the server's trust", () => {
 
   test("a pack whose bytes change after signing is refused and its script never runs; PACK_SCRIPTS=off stops a verified one", async ({ page }) => {
     // Themely's pack key is a debug build's test key from the environment; the publisher's key signs, Themely's countersigns
-    const themely = generateKeyPair();
-    const publisher = generateKeyPair();
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ips-script-trust-"));
-    const on = await startScratch({ env: { PACK_THEMELY_TEST_KEY: themely.publicText.split("\n")[1] } });
-    const off = await startScratch({ env: { PACK_THEMELY_TEST_KEY: themely.publicText.split("\n")[1], PACK_SCRIPTS: "off" } });
+    const themely = keyPair(tmp, "themely");
+    const publisher = keyPair(tmp, "publisher");
+    const on = await startScratch({ env: { PACK_THEMELY_TEST_KEY: themely.line } });
+    const off = await startScratch({ env: { PACK_THEMELY_TEST_KEY: themely.line, PACK_SCRIPTS: "off" } });
     try {
       const dir = scripted(tmp, "mine");
-      signPack(dir, readSecretKey(publisher.secretText));
-      countersign(dir, readSecretKey(themely.secretText), publisher.publicText.split("\n")[1], { checksVersion: 1 });
+      sign(dir, "--key", publisher.secret);
+      sign(dir, "--countersign", "--key", themely.secret, "--publisher-key", publisher.line, "--checks-version", "1");
       for (const s of [on, off]) fs.cpSync(dir, path.join(s.dataDir, "packs", "mine"), { recursive: true });
 
       // verified: no question, it runs
