@@ -255,6 +255,15 @@ describe("SensorStore", () => {
     expect(store.getValues()["weather.place.n5991e1075.temp"]).toEqual(sensor(4));
   });
 
+  it("reads Ping from the dashboard server's own stream, outside the Data API's budget", async () => {
+    const { store, live } = setup();
+    store.retain(["ping.example-net-443.", "a."]);
+    await flush();
+    expect(live().map((s) => s.url).sort()).toEqual(["/events/ping?prefix=ping.", `${BASE}/events?prefix=a.&interval=1000`]);
+    live().find((s) => s.url.startsWith("/events/ping"))!.send({ timestamp: 1, sensors: { "ping.example-net-443.ms": sensor(23) } });
+    expect(store.getValues()["ping.example-net-443.ms"]).toEqual(sensor(23));
+  });
+
   it("reads Device batteries from the dashboard server's own stream, outside the Data API's budget", async () => {
     const { store, live } = setup();
     store.retain(["battery.274001.m1.", "a.", "b.", "c.", "d."]);

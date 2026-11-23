@@ -77,6 +77,10 @@ export const NO_START: Readonly<Record<string, keyof typeof WHY>> = {
   ObsButton: "controls",
   StreamChat: "lists",
   StreamDeck: "controls",
+  HourlyWeather: "content",
+  Ping: "runtime",
+  MixerSolo: "controls",
+  StreamStats: "stream",
 };
 
 /** Why a built-in can't be duplicated as a recipe, or undefined when it can. */

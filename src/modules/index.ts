@@ -30,6 +30,8 @@ const claimedPrefixes = [
   "plugins.InfoPanel.TextFile.",
   // The dashboard server's own Device batteries source (ips-server devices.rs), as weather's is.
   "battery.",
+  // And Ping's (ips-server ping.rs).
+  "ping.",
 ];
 
 /** True when a built-in widget covers the key. */

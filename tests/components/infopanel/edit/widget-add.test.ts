@@ -84,5 +84,7 @@ describe("the canvas zone's subscription", () => {
     expect(placementServerReads(both)).toEqual(["battery."]);
     expect(placementServerReads(widgetPlacement({ module: "DeviceBatteries" }))).toEqual(["battery."]);
     expect(placementServerReads(widgetPlacement({ module: "SystemOverview" }))).toEqual([]);
+    expect(placementServerReads(widgetPlacement({ module: "Ping" }))).toEqual(["ping."]);
+    expect(placementServerReads(widgetPlacement({ module: "HourlyWeather" }))).toEqual(["weather.place."]);
   });
 });

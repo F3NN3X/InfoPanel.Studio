@@ -50,6 +50,7 @@ pub mod obs_control;
 pub mod pack_sign;
 pub mod packs;
 pub mod peripherals;
+pub mod ping;
 pub mod proxy;
 pub mod request_guard;
 pub mod security_headers;
@@ -101,6 +102,7 @@ use crate::packs::Packs;
 use crate::request_guard::{config_write_refusal, remote_edit_refusal, RequestGuard};
 use crate::streamdeck::StreamDeck;
 use crate::studio_prefs::StudioPrefs;
+use crate::ping::Ping;
 use crate::weather::Weather;
 use crate::widgets::Widgets;
 
@@ -213,6 +215,7 @@ pub struct App {
     pub packs: Packs,
     pub widgets: Arc<Widgets>,
     pub weather: Arc<Weather>,
+    pub ping: Arc<Ping>,
     /// Device batteries (the ported batterymon core; Windows-only, off by default).
     pub devices: Arc<Devices>,
     pub canvases: Arc<CanvasStore>,
@@ -374,6 +377,16 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
         move || weather.reconfigure()
     });
     weather.start(&shutdown);
+    // Ping: the hosts the stored Ping placements name, read again after every save (and probed only while one does).
+    let ping = Ping::new(Ping::enabled_from_env(), {
+        let config = Arc::clone(&config);
+        move || config.read().map(|c| ping::referenced_targets(&c, ping::TARGETS_MAX)).unwrap_or_default()
+    });
+    config.on_saved({
+        let ping = Arc::clone(&ping);
+        move || ping.reconfigure()
+    });
+    ping.start(&shutdown);
     // Device batteries: the ported batterymon core polls wireless peripherals. The task always runs; it polls while
     // the integrations' `peripherals.enabled` is on (read live, so a save takes effect without a restart) and
     // DEVICE_BATTERIES does not force the source off. A server bound with `bind_with_home` (a test) never polls this
@@ -421,6 +434,7 @@ async fn bind_inner(cfg: ServerConfig, home: PathBuf, live_audio: bool) -> Resul
         packs,
         widgets,
         weather,
+        ping,
         devices,
         canvases,
         library,
@@ -557,6 +571,7 @@ async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
         "/events/chat" => Ok(twitch::routes::handle_chat_events(app)),
         "/events/touch" => Ok(touch_hub::handle_events(app, &req)),
         "/events/weather" => Ok(weather::handle_events(app, &req)),
+        "/events/ping" => Ok(ping::handle_events(app, &req)),
         "/events/devices" => Ok(devices::handle_events(app, &req)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),

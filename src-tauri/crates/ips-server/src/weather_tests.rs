@@ -15,7 +15,7 @@ fn forecast_body() -> String {
     json!({
         "utc_offset_seconds": 3600,
         "current": { "temperature_2m": 3.44, "apparent_temperature": 1.2, "relative_humidity_2m": 92, "weather_code": 3, "wind_speed_10m": 2.9, "is_day": 1, "precipitation": 0.0 },
-        "hourly": { "time": [1_794_214_800, 1_794_218_400, 1_794_222_000], "temperature_2m": [3.4, 3.6, 3.9], "weather_code": [3, 2, 61], "precipitation_probability": [0, 10, 40] },
+        "hourly": { "time": [1_794_214_800, 1_794_218_400, 1_794_222_000], "temperature_2m": [3.4, 3.6, 3.9], "weather_code": [3, 2, 61], "precipitation_probability": [0, 10, 40], "is_day": [1, 1, 0] },
         "daily": { "time": [1_794_178_800, 1_794_265_200], "temperature_2m_max": [4.2, 3.6], "temperature_2m_min": [1.8, 2.0], "weather_code": [3, 51] }
     })
     .to_string()
@@ -156,6 +156,8 @@ fn reads_an_answer_as_readings() {
     assert_eq!(r["condition"], json!({ "text": "Overcast", "unit": "" }));
     assert_eq!((r["high"]["value"].as_f64(), r["low"]["value"].as_f64()), (Some(4.2), Some(1.8)), "today's");
     assert_eq!(r["hourly.2.code"]["value"], 61.0);
+    assert_eq!(r["hourly.2.condition"]["text"], "Light rain");
+    assert_eq!((r["hourly.1.is_day"]["value"].as_f64(), r["hourly.2.is_day"]["value"].as_f64()), (Some(1.0), Some(0.0)));
     assert_eq!(r["hourly.0.time"]["text"], "10:00", "local time by the place's offset");
     assert_eq!(r["daily.1.condition"]["text"], "Drizzle");
     assert!(!r.contains_key("hourly.3.temp"));
@@ -320,4 +322,18 @@ fn a_stream_sends_what_changed_under_its_prefix() {
     let (changed, removed) = diff(&r(&[("x", 1), ("y", 2)]), &r(&[("x", 1), ("y", 3), ("z", 4)]));
     assert_eq!((changed, removed), (r(&[("y", 3), ("z", 4)]), vec![]));
     assert_eq!(diff(&r(&[("x", 1)]), &r(&[])).1, ["x"]);
+}
+
+#[test]
+fn an_hourly_weather_placement_references_the_first_place_of_its_list() {
+    let none = |_: &str| None;
+    let config = json!({ "profiles": [{ "placements": [
+        { "module": "HourlyWeather", "settings": { "places": "[{\"name\":\"Oslo\",\"lat\":59.91,\"lon\":10.75},{\"name\":\"Bergen\",\"lat\":60.39,\"lon\":5.32}]" } },
+        { "module": "HourlyWeather", "settings": { "places": "[{\"name\":\"Oslo again\",\"lat\":59.912,\"lon\":10.748}]" } },
+        { "module": "HourlyWeather", "settings": { "places": "[]" } },
+        { "module": "HourlyWeather", "settings": {} },
+        { "module": "HourlyWeather", "settings": { "places": "not json" } }
+    ] }] });
+    let ids: Vec<String> = referenced_places(&config, &none, 48).into_iter().map(|p| p.id).collect();
+    assert_eq!(ids, ["n5991e1075"], "the first place of a list, once, and nothing from an empty, missing or unreadable one");
 }

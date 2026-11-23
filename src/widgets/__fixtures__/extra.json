@@ -490,6 +490,286 @@
     "plugins.audio-level-meter.audio-meter-0-0-0-00000000-7d1f0a52-3b6e-4c8a-9e21-5a0c4f7b8d13.peak-hold": {
       "value": -28,
       "unit": "dB"
+    },
+    "ping.example-net-443.status": {
+      "text": "ok",
+      "unit": ""
+    },
+    "ping.example-net-443.ms": {
+      "value": 23.4,
+      "unit": "ms"
+    },
+    "ping.example-net-443.avg": {
+      "value": 25.1,
+      "unit": "ms"
+    },
+    "ping.example-net-443.jitter": {
+      "value": 3.2,
+      "unit": "ms"
+    },
+    "ping.example-net-443.loss": {
+      "value": 0,
+      "unit": "%"
+    },
+    "ping.example-net-443.updated": {
+      "value": 1794214800,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.temp": {
+      "value": 7.4,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.status": {
+      "text": "ok",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.age": {
+      "value": 3,
+      "unit": "min"
+    },
+    "weather.place.n5991e1075.updated": {
+      "value": 1794214800,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.0.time": {
+      "text": "14:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.0.temp": {
+      "value": 8.1,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.0.condition": {
+      "text": "Partly cloudy",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.0.is_day": {
+      "value": 1,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.0.precip": {
+      "value": 10,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.1.time": {
+      "text": "15:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.1.temp": {
+      "value": 8.4,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.1.condition": {
+      "text": "Partly cloudy",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.1.is_day": {
+      "value": 1,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.1.precip": {
+      "value": 10,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.2.time": {
+      "text": "16:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.2.temp": {
+      "value": 8.0,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.2.condition": {
+      "text": "Overcast",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.2.is_day": {
+      "value": 1,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.2.precip": {
+      "value": 20,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.3.time": {
+      "text": "17:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.3.temp": {
+      "value": 7.6,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.3.condition": {
+      "text": "Overcast",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.3.is_day": {
+      "value": 1,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.3.precip": {
+      "value": 35,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.4.time": {
+      "text": "18:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.4.temp": {
+      "value": 7.2,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.4.condition": {
+      "text": "Light rain",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.4.is_day": {
+      "value": 1,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.4.precip": {
+      "value": 60,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.5.time": {
+      "text": "19:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.5.temp": {
+      "value": 6.9,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.5.condition": {
+      "text": "Rain",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.5.is_day": {
+      "value": 1,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.5.precip": {
+      "value": 80,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.6.time": {
+      "text": "20:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.6.temp": {
+      "value": 6.5,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.6.condition": {
+      "text": "Rain",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.6.is_day": {
+      "value": 0,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.6.precip": {
+      "value": 75,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.7.time": {
+      "text": "21:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.7.temp": {
+      "value": 6.4,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.7.condition": {
+      "text": "Light rain",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.7.is_day": {
+      "value": 0,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.7.precip": {
+      "value": 50,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.8.time": {
+      "text": "22:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.8.temp": {
+      "value": 6.1,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.8.condition": {
+      "text": "Overcast",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.8.is_day": {
+      "value": 0,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.8.precip": {
+      "value": 25,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.9.time": {
+      "text": "23:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.9.temp": {
+      "value": 5.8,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.9.condition": {
+      "text": "Mainly clear",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.9.is_day": {
+      "value": 0,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.9.precip": {
+      "value": 10,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.10.time": {
+      "text": "00:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.10.temp": {
+      "value": 5.2,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.10.condition": {
+      "text": "Clear",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.10.is_day": {
+      "value": 0,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.10.precip": {
+      "value": 5,
+      "unit": "%"
+    },
+    "weather.place.n5991e1075.hourly.11.time": {
+      "text": "01:00",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.11.temp": {
+      "value": 4.9,
+      "unit": "°C"
+    },
+    "weather.place.n5991e1075.hourly.11.condition": {
+      "text": "Clear",
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.11.is_day": {
+      "value": 0,
+      "unit": ""
+    },
+    "weather.place.n5991e1075.hourly.11.precip": {
+      "value": 0,
+      "unit": "%"
     }
   }
 }
