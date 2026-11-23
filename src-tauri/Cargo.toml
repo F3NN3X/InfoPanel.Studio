@@ -49,7 +49,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
 sysinfo = { workspace = true }
-if-addrs = "0.13"
+if-addrs = "0.15"
 ips-agent = { path = "crates/ips-agent" }
 ips-server = { path = "crates/ips-server" }
 tokio = { workspace = true, features = ["sync"] }
