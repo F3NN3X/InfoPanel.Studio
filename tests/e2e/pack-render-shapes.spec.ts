@@ -14,6 +14,11 @@ const PADDED = '[data-wp-tier][data-look="term"][style*="--wp-pad"]:not([style*=
 
 test.describe.configure({ mode: "parallel" });
 
+// Each case measures every Term card at three spans, once per sheet: slow, and right. A CI runner takes 1 to 2 minutes a case on
+// Linux and about twice that on Windows, where two of the five ran past 150 s in the 2026-11-23 nightly and the other three took
+// 2.3 to 2.5 minutes. The limit is a hang guard, so it sits well clear of the slowest runner.
+const SLOW = 360_000;
+
 let qa: Scratch;
 test.beforeAll(async () => {
   qa = await startScratch({ env: { DASHBOARD_DEBUG: "1" } });
@@ -45,7 +50,7 @@ async function judge(page: import("@playwright/test").Page, sheets: Record<strin
 }
 
 test("clip-path: cut corners pass; a clip that cuts a value or most of a card is refused", async ({ page }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(SLOW);
   const r = await judge(page, {
     corners: `${PADDED} { clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }`,
     rounded: `${PADDED} { clip-path: inset(0 round 10px); }`,
@@ -63,7 +68,7 @@ test("clip-path: cut corners pass; a clip that cuts a value or most of a card is
 });
 
 test("mask-image: a gradient that fades the card edge passes; one that fades text, or a url() mask that will not load, is refused", async ({ page }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(SLOW);
   const r = await judge(page, {
     edge: `${CARD} { mask-image: radial-gradient(ellipse at 50% 50%, #000 60%, rgba(0,0,0,0.6)); }`,
     radial: `${CARD} { mask-image: radial-gradient(circle at 50% 50%, #000 70%, rgba(0,0,0,0.3)); }`,
@@ -80,7 +85,7 @@ test("mask-image: a gradient that fades the card edge passes; one that fades tex
 });
 
 test("pseudo-elements: a scanline at 0.2 passes; an opaque cover over the text or a box outside the card is refused", async ({ page }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(SLOW);
   const base = `${CARD} { position: relative; } ${CARD}::after { content: ""; position: absolute; pointer-events: none; z-index: 0;`;
   const r = await judge(page, {
     scanline: `${base} inset: 0; background: repeating-linear-gradient(rgba(0,0,0,0.2) 0 1px, transparent 1px 3px); }`,
@@ -111,7 +116,7 @@ const MASKS: Record<string, string> = {
 };
 
 test("url() masks on real elements: an opaque image passes; a faint one, a tile that leaves the text bare, or one that will not load is refused", async ({ page }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(SLOW);
   await page.route("**/mask-test/*", (route) => {
     const body = MASKS[new URL(route.request().url()).pathname.split("/").pop() as string];
     return body === undefined ? route.fulfill({ status: 404, body: "" }) : route.fulfill({ contentType: "image/svg+xml", body });
@@ -137,7 +142,7 @@ test("url() masks on real elements: an opaque image passes; a faint one, a tile 
 });
 
 test("border on real elements: a style that gives a bare border a width is refused; one that keeps every width passes", async ({ page }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(SLOW);
   // the page's own sheet (not the pack's, so on in both twins): the value slots draw a 2 px border with or without the pack
   const r = await judge(page, {
     solid: `${CARD} { border: solid #f00; }`,
