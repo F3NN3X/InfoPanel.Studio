@@ -18,7 +18,8 @@
     "paper": { "codeGzipBytes": 2310, "assetBytes": 21190, "layersPerPage": 13 },
     "classy-black": { "codeGzipBytes": 2190, "assetBytes": 24020, "layersPerPage": 12 },
     "liquid-glass": { "codeGzipBytes": 2290, "assetBytes": 13420, "layersPerPage": 20 },
-    "black-and-gold": { "codeGzipBytes": 2200, "assetBytes": 13340, "layersPerPage": 12 }
+    "black-and-gold": { "codeGzipBytes": 2200, "assetBytes": 13340, "layersPerPage": 12 },
+    "cyberspec": { "codeGzipBytes": 3220, "assetBytes": 31340, "layersPerPage": 17 }
   },
   "kioskIdleWarn": {
     "$comment": "Report-only lines for the heavy kiosk screen at idle (tests/perf/kiosk-idle.perf.ts, case `heavy`, medians): over either prints a warning, never fails. Gate 0: task time 100 ms of main-thread work a second (about 10 % of a core; 68 at Gate 0, 65 at Gate 4) and 24 MB of JS heap (11.8 at Gate 0, 17.7 at Gate 4).",

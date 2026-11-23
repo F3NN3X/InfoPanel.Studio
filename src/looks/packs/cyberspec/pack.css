@@ -1,0 +1,3 @@
+* { font-family: pack-cyberspec, Rajdhani, system-ui, sans-serif; }
+[data-part="num"] { font-family: pack-cyberspec-mono, "JetBrains Mono", ui-monospace, monospace; }
+[data-part="tab"], [data-part="chip"], [data-part="status"], [data-part="bar"] { border-radius: 0; }

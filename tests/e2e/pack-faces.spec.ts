@@ -19,6 +19,7 @@ const FACES: Record<keyof typeof PACK_STYLES, { num: string; label: string }> = 
   "classy-black": { num: "pack-classy-num", label: "pack-classy" },
   "liquid-glass": { num: "pack-liquid", label: "pack-liquid" },
   "black-and-gold": { num: "pack-gold", label: "pack-gold" },
+  cyberspec: { num: "pack-cyberspec-mono", label: "pack-cyberspec" },
 };
 const heavy = manifest.profiles.heavy;
 

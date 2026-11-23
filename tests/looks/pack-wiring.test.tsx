@@ -68,6 +68,6 @@ describe("the pack stage", () => {
     expect(packBackground(TEST_PACK)).toBe(true);
     expect(packBackground({ ...TEST_PACK, stage: { layers: [] } })).toBe(false);
     expect(packBackground(undefined)).toBe(false);
-    expect([...PACK_IDS].sort()).toEqual(["black-and-gold", "classy-black", "field-kit", "holo", "liquid-glass", "neon-stripe", "night-glow", "overdrive", "paper", "swiss-mono", "tape-86", "term"]);
+    expect([...PACK_IDS].sort()).toEqual(["black-and-gold", "classy-black", "cyberspec", "field-kit", "holo", "liquid-glass", "neon-stripe", "night-glow", "overdrive", "paper", "swiss-mono", "tape-86", "term"]);
   });
 });

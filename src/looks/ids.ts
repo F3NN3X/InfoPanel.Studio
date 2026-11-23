@@ -11,7 +11,7 @@ export const DEFAULT_SKIN_LOOK = "default";
 export const SKIN_LOOK_IDS: readonly string[] = ["tui", "macos", "fluent", "hud", "ink", "retro", "ios", "android", "synth", "brutal", "cyber", "nixie", "instrument"];
 
 /** The sample Looks (the P3b sample themes), all in one chunk. */
-export const SAMPLE_LOOK_IDS: readonly string[] = ["field-kit", "tape-86", "neon-stripe", "overdrive", "swiss-mono", "term", "holo", "night-glow", "paper", "classy-black", "liquid-glass", "black-and-gold"];
+export const SAMPLE_LOOK_IDS: readonly string[] = ["field-kit", "tape-86", "neon-stripe", "overdrive", "swiss-mono", "term", "holo", "night-glow", "paper", "classy-black", "liquid-glass", "black-and-gold", "cyberspec"];
 
 /** Every panel Look's id (the Studio Look is not one: only the studio chrome wears it). */
 export const LOOK_IDS: readonly string[] = ["classic", DEFAULT_SKIN_LOOK, ...SKIN_LOOK_IDS, ...SAMPLE_LOOK_IDS];

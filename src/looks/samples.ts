@@ -45,6 +45,7 @@ export function sampleLook(t: SampleTheme): Look {
     t1: { [mode]: t1 },
     t2: { default: card.id, materials: { [card.id]: { kind: card.kind, tone: card.tone, export: card.export ?? null } } },
     ext: {},
+    ...(t.variants ? { variants: t.variants } : null),
   };
 }
 

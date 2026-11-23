@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "id": "cyberspec",
+  "name": "Cyberspec",
+  "description": "Blue-black panels cut at one corner, hot red lines and a solid label bar, cyan readouts, yellow warnings and micro-print in the margins, under a faint CRT raster. After Cyberspec by Agnel Nieves (MIT), github.com/agnelnieves/cyberspec.",
+  "tags": [
+    "pack",
+    "dark",
+    "cyberpunk",
+    "angular",
+    "crt"
+  ],
+  "modes": {
+    "supported": [
+      "dark"
+    ],
+    "stance": "Dark only: the kit is a display lit on a blue-black void."
+  },
+  "fonts": {
+    "body": "pack-cyberspec",
+    "mono": "pack-cyberspec-mono",
+    "display": "pack-cyberspec-mono"
+  },
+  "radius": "0",
+  "t1": {
+    "dark": {
+      "bg": {
+        "value": "#07070C"
+      },
+      "surface": {
+        "value": "#0E0E17"
+      },
+      "surface-2": {
+        "value": "#151523"
+      },
+      "fg": {
+        "value": "#5EF6FF"
+      },
+      "fg-2": {
+        "value": "{fg}"
+      },
+      "muted": {
+        "value": "#FF5B5B"
+      },
+      "border": {
+        "value": "#151523"
+      },
+      "border-soft": {
+        "value": "{border}"
+      },
+      "accent": {
+        "value": "#FF3B45"
+      },
+      "accent-on": {
+        "value": "{bg}"
+      },
+      "accent-hover": {
+        "value": "{accent}"
+      },
+      "focus-ring": {
+        "value": "{accent}"
+      },
+      "ok": {
+        "value": "#2BF59A"
+      },
+      "warn": {
+        "value": "#FFD23F"
+      },
+      "crit": {
+        "value": "#FF3B45"
+      },
+      "info": {
+        "value": "{accent}"
+      }
+    }
+  },
+  "t2": {
+    "default": "look-cyberspec",
+    "materials": {
+      "look-cyberspec": {
+        "kind": "solid",
+        "tone": "dark",
+        "export": "#0E0E17"
+      }
+    }
+  },
+  "t3": {
+    "header-style": "label-bar",
+    "label-case": "upper",
+    "ring-style": "segmented",
+    "ring-cap": "butt",
+    "meter-style": "segments",
+    "meter-hold-style": "block",
+    "cell-radius": "0px",
+    "graph-style": "line",
+    "series-stroke": 1.5,
+    "spike-shape": "tick",
+    "fader-knob-shape": "square"
+  },
+  "ext": {},
+  "variants": [
+    {
+      "id": "voltage",
+      "name": "Voltage",
+      "values": {
+        "accent": "#F4CE23"
+      }
+    },
+    {
+      "id": "toxin",
+      "name": "Toxin",
+      "values": {
+        "accent": "#40EF7C"
+      }
+    },
+    {
+      "id": "ice",
+      "name": "Ice",
+      "values": {
+        "accent": "#41D9F8"
+      }
+    },
+    {
+      "id": "ultraviolet",
+      "name": "Ultraviolet",
+      "values": {
+        "accent": "#B96AFF"
+      }
+    },
+    {
+      "id": "monochrome",
+      "name": "Monochrome",
+      "values": {
+        "accent": "#C6C6C6"
+      }
+    }
+  ]
+}

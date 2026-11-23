@@ -14,4 +14,5 @@ export const PACK_STYLES = {
   "classy-black": { lookId: "classy-black", surface: "look-classy-black", accent: "#D4D4D8", textColor: "#F5F5F4", mutedColor: "#A3A3A3", font: "auto" },
   "liquid-glass": { lookId: "liquid-glass", surface: "look-liquid-glass", accent: "#F5A3C7", textColor: "#F8F4FF", mutedColor: "#BDB4D4", font: "auto" },
   "black-and-gold": { lookId: "black-and-gold", surface: "look-black-and-gold", accent: "#D4AF37", textColor: "#F4EBD0", mutedColor: "#B7A97C", font: "auto" },
+  cyberspec: { lookId: "cyberspec", surface: "look-cyberspec", accent: "#FF3B45", textColor: "#5EF6FF", mutedColor: "#FF5B5B", ok: "#2BF59A", warn: "#FFD23F", crit: "#FF3B45", font: "auto" },
 };

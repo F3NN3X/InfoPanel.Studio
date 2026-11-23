@@ -9,9 +9,9 @@ const SAMPLES = SAMPLE_PRESET_GROUPS.flatMap((g) => g.presets);
 const all = async () => (await Promise.all(GALLERY_IDS.map(loadLook))).filter((l): l is Look => l !== undefined);
 
 describe("the Look gallery", () => {
-  it("lists Classic, the 13 skins and the 12 samples, never the hidden default Look", async () => {
+  it("lists Classic, the 13 skins and the 13 samples, never the hidden default Look", async () => {
     const list = galleryLooks(await all(), SAMPLES);
-    expect(list).toHaveLength(26);
+    expect(list).toHaveLength(27);
     expect(list[0].id).toBe("classic");
     expect(GALLERY_IDS).not.toContain("default");
     for (const l of list) expect(l.tags.length, l.id).toBeGreaterThan(0);

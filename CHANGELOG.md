@@ -16,6 +16,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **Look knobs where you edit.** Panel items and several selected zones get the Look knob row, a Look with variants shows a Variant knob, and changing one knob in the inspector detaches only that knob, not the whole section.
 - **Apply to other screens sits beside Save look** in the theme editor, one click closer.
 - **Long page lists in the live popover** switch to a drop-down past seven pages.
+- **Cyberspec theme pack.** A cyberpunk look after the Cyberspec kit by Agnel Nieves (MIT): cut-corner frames, label bars, reticle and tick ornaments, scanlines and a short glitch at the higher FX levels (none at Calm, Off, lite mode or reduced motion), Rajdhani and JetBrains Mono, and five colour variants (Voltage, Toxin, Ice, Ultraviolet, Monochrome) on the Variant knob.
 
 ### Changed
 
