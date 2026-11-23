@@ -24,15 +24,10 @@ pub(crate) async fn guarded_body(app: &App, req: &mut Req) -> Result<String, Res
     if let Some(response) = app.refuse_remote_edit(req) {
         return Err(response);
     }
-    if let Some(refusal) = control_write_refusal(
-        req.header("content-type").as_deref(),
-        req.header("x-dashboard-control").as_deref(),
-    ) {
+    if let Some(refusal) = control_write_refusal(req.header("content-type").as_deref(), req.header("x-dashboard-control").as_deref()) {
         return Err(http::text(refusal.status, refusal.message));
     }
-    req.read_body(MAX_BODY_BYTES)
-        .await
-        .map_err(|http::BodyRefused| http::closing(http::text(400, "expected a JSON object")))
+    req.read_body(MAX_BODY_BYTES).await.map_err(|http::BodyRefused| http::closing(http::text(400, "expected a JSON object")))
 }
 
 /// GET /api/twitch/signin → `{ pending: { user_code, verification_uri, expires_at } | null, error }`, for this machine only (or
@@ -115,8 +110,6 @@ pub async fn handle_chat_send(app: &App, mut req: Req) -> std::io::Result<Respon
         Ok(()) => http::empty(204),
         Err(SendError::Invalid(message)) => http::text(400, message),
         Err(SendError::NotConnected) => http::text(503, "Twitch chat isn't connected."),
-        Err(SendError::RateLimited) => {
-            http::text(429, "Slow down: Twitch allows 20 messages in 30 seconds.")
-        }
+        Err(SendError::RateLimited) => http::text(429, "Slow down: Twitch allows 20 messages in 30 seconds."),
     })
 }

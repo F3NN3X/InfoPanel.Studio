@@ -1,6 +1,6 @@
 /// <reference types="vitest/config" />
 import { defineConfig, configDefaults } from "vitest/config";
-import type { Plugin } from "vite";
+import type { Plugin, Rolldown } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { readdirSync, readFileSync } from "node:fs";
@@ -12,14 +12,20 @@ import { quarantinedFiles } from "./tools/ci/quarantine.mjs";
 const quarantined: string[] = quarantinedFiles(__dirname);
 const quarantineOnly = process.env.QUARANTINE === "only";
 
-/** Test files that opt into a DOM with `// @vitest-environment happy-dom` (a docblock comment near the top). */
-const domTests = (dir: string): string[] =>
+/** The test files under `dir` whose source `wants` (a docblock comment near the top, a `vi.mock` call). */
+const testFiles = (dir: string, wants: (source: string) => boolean): string[] =>
   readdirSync(path.join(__dirname, dir), { withFileTypes: true }).flatMap((entry) => {
     const rel = `${dir}/${entry.name}`;
-    if (entry.isDirectory()) return domTests(rel);
-    return /\.test\.(ts|tsx|mjs)$/.test(entry.name) && /^\/\/ @vitest-environment happy-dom$/m.test(readFileSync(path.join(__dirname, rel), "utf8").slice(0, 400)) ? [rel] : [];
+    if (entry.isDirectory()) return testFiles(rel, wants);
+    return /\.test\.(ts|tsx|mjs)$/.test(entry.name) && wants(readFileSync(path.join(__dirname, rel), "utf8")) ? [rel] : [];
   });
-const dom = domTests("tests").filter((file) => !file.startsWith("tests/server/"));
+/** Test files that opt into a DOM with `// @vitest-environment happy-dom` (a docblock comment near the top). */
+const dom = testFiles("tests", (source) => /^\/\/ @vitest-environment happy-dom$/m.test(source.slice(0, 400))).filter((file) => !file.startsWith("tests/server/"));
+/**
+ * Node test files that `vi.mock` a module. Vitest 5 keeps a worker's module graph from one file to the next when `isolate` is
+ * off, and a mock no longer reaches a module an earlier file already imported, so these run isolated.
+ */
+const mocking = testFiles("tests", (source) => /^\s*vi\.mock\(/m.test(source)).filter((file) => !dom.includes(file) && !file.startsWith("tests/server/"));
 
 /**
  * Vitest renders the widgets with renderToString, which cannot wait for a widget's chunk (`src/widgets/lazy-widget.tsx`):
@@ -57,13 +63,59 @@ const qaWebPage = (mode: string): Plugin => ({
   },
 });
 
+// Forward slashes: Rolldown's module ids use them on Windows too.
+const KIOSK_ENTRY = path.resolve(__dirname, "index.html").replace(/\\/g, "/");
+const HELP_ENTRY = path.resolve(__dirname, "help.html").replace(/\\/g, "/");
+
+/** The modules `entry` loads statically (with `lazy`, also those it may load later), by id. */
+const closureOf = (ctx: Rolldown.ChunkingContext, entry: string, lazy = false): Set<string> => {
+  const seen = new Set<string>();
+  const walk = (id: string) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    const info = ctx.getModuleInfo(id);
+    for (const dep of [...(info?.importedIds ?? []), ...(lazy ? (info?.dynamicallyImportedIds ?? []) : [])]) walk(dep);
+  };
+  walk(entry);
+  return seen;
+};
+/** Stylesheets stay with the entry: in `kiosk` the page's CSS would come along with a lazy chunk the Help page loads. */
+const CSS = /\.css($|\?)/;
+const closures = new WeakMap<Rolldown.ChunkingContext, { kiosk: Set<string>; help: Set<string>; helpLazy: Set<string> }>();
+
+/**
+ * The kiosk page's static modules in two chunks: `shared` with what the Help page loads too, `kiosk` with what the Help page
+ * never loads, not even lazily (it imports `shared`, so `shared` goes first: a captured module brings its dependencies
+ * along), and Rolldown's own chunks for what the Help page loads only lazily: in `kiosk` they would bring the Help page the
+ * kiosk's lazy chunks too (tools/looks/ui-usage.json reads the tokens of all of them). The entries and their direct imports
+ * stay in the entry chunks, which keeps index.html an entry in the manifest. Left to itself Rolldown splits the code the
+ * entry shares with its lazy chunks into a chunk per set of importers: 56 kiosk requests against a budget of 34
+ * (tests/e2e/kiosk-budget.spec.ts). See https://rolldown.rs/in-depth/manual-code-splitting.
+ */
+const initialChunk =
+  (chunk: "shared" | "kiosk") =>
+  (id: string, ctx: Rolldown.ChunkingContext): string | null => {
+    let sets = closures.get(ctx);
+    if (!sets) {
+      sets = { kiosk: closureOf(ctx, KIOSK_ENTRY), help: closureOf(ctx, HELP_ENTRY), helpLazy: closureOf(ctx, HELP_ENTRY, true) };
+      closures.set(ctx, sets);
+    }
+    const { kiosk, help, helpLazy } = sets;
+    const info = ctx.getModuleInfo(id);
+    if (!info || info.isEntry || info.importers.some((i) => i === KIOSK_ENTRY || i === HELP_ENTRY) || !kiosk.has(id) || CSS.test(id)) return null;
+    if (chunk === "shared") return help.has(id) ? chunk : null;
+    // Its dependencies come along, so none of them may be one the Help page loads lazily either.
+    return [...closureOf(ctx, id)].every((dep) => help.has(dep) || !helpLazy.has(dep)) ? chunk : null;
+  };
+
 // Which files a project runs: `include` is every test file (or just the quarantined ones with QUARANTINE=only), `exclude`
 // leaves out tests/server (`npm run test:server`), agent worktrees under .claude/, lab/ (its own config) and the quarantine.
-const scope = (isDom: boolean) => {
+const scope = (kind: "node" | "mocking" | "dom") => {
   const all = quarantineOnly ? quarantined.filter((file) => /\.test\.(ts|tsx|mjs)$/.test(file)) : ["tests/**/*.test.{ts,tsx,mjs}"];
   const skip = [...configDefaults.exclude, ".claude/**", "lab/**", ...(process.env.SERVER_SUITE ? [] : ["tests/server/**"]), ...(quarantineOnly ? [] : quarantined)];
-  if (!isDom) return { include: all, exclude: [...skip, ...dom] };
-  return { include: quarantineOnly ? all.filter((file) => dom.includes(file)) : dom, exclude: skip };
+  if (kind === "node") return { include: all, exclude: [...skip, ...dom, ...mocking] };
+  const only = kind === "dom" ? dom : mocking;
+  return { include: quarantineOnly ? all.filter((file) => only.includes(file)) : only, exclude: skip };
 };
 
 // `vite build --mode stats` (npm run build:stats): an unminified build in .cache/dist-stats with the ticker's debug stats
@@ -91,7 +143,17 @@ export default defineConfig(({ mode }) => ({
     // tools/perf/budgets.json, so this only catches a chunk that grows well past today's.
     chunkSizeWarningLimit: 700,
     // The studio, and the Help page its rail opens in a browser tab (served as /help.html).
-    rollupOptions: { input: [path.resolve(__dirname, "index.html"), path.resolve(__dirname, "help.html")] },
+    rolldownOptions: {
+      input: [KIOSK_ENTRY, HELP_ENTRY],
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: initialChunk("shared"), tags: ["$initial"], priority: 2 },
+            { name: initialChunk("kiosk"), tags: ["$initial"], priority: 1 },
+          ],
+        },
+      },
+    },
   },
   // Agent worktrees live under .claude/; their copies of the tests are not ours.
   // lab/ has its own Vitest config (npm run lab:test).
@@ -105,12 +167,13 @@ export default defineConfig(({ mode }) => ({
     hookTimeout: 15_000,
     // Vitest hands a stylesheet import back as an empty string; the built-in packs' `pack.css?raw` must be the real text, so the lint tests see it.
     css: { include: [/\/pack\.css/] },
-    // Each project starts as many workers as there are cores, so the two together oversubscribe; half the cores each ran the suite about 20% faster on a 32-thread PC.
+    // Each project starts as many workers as there are cores, so the three together oversubscribe; half the cores each ran the suite about 20% faster on a 32-thread PC.
     maxWorkers: Math.max(1, Math.ceil(availableParallelism() / 2)),
-    // Two projects: the Node files share a worker's module graph (`isolate: false`, no fresh load per file); the DOM files keep a fresh environment each.
+    // Three projects: the Node files share a worker's module graph (`isolate: false`, no fresh load per file); the Node files that mock a module and the DOM files keep a fresh one each.
     projects: [
-      { extends: true, test: { name: "node", isolate: false, ...scope(false) } },
-      { extends: true, test: { name: "dom", ...scope(true) } },
+      { extends: true, test: { name: "node", isolate: false, ...scope("node") } },
+      { extends: true, test: { name: "mocking", ...scope("mocking") } },
+      { extends: true, test: { name: "dom", ...scope("dom") } },
     ],
   },
   server: {

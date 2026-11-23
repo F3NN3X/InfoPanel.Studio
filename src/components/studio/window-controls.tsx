@@ -17,7 +17,7 @@ function Caption({ label, onClick, danger, children }: { label: string; onClick:
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "flex h-full w-[46px] items-center justify-center text-ui-2 transition-colors",
+        "flex h-full w-11.5 items-center justify-center text-ui-2 transition-colors",
         danger ? "hover:bg-s-close hover:text-white" : "hover:bg-ui-hover hover:text-ui-1"
       )}
     >

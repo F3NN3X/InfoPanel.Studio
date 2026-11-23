@@ -10,7 +10,7 @@ import { StackRow, type RowLabelProps } from "../setting-rows";
 import { sensorName } from "../widget-kinds";
 
 const SMALL_BUTTON =
-  "flex h-6 w-6 items-center justify-center rounded-[5px] text-ui-4 hover:bg-ui-hover hover:text-ui-1";
+  "flex h-6 w-6 items-center justify-center rounded-5 text-ui-4 hover:bg-ui-hover hover:text-ui-1";
 
 interface SensorFieldProps {
   label: string;
@@ -43,7 +43,7 @@ export function SensorField({ label, hint, lead, value, onChange, onOpenExplorer
 
   return (
     <StackRow label={label} hint={hint} lead={lead}>
-      <div className="flex items-center gap-2 rounded-[7px] border border-ui-default bg-ui-app py-[7px] pl-[9px] pr-1.5 hover:border-ui-edge">
+      <div className="flex items-center gap-2 rounded-7 border border-ui-default bg-ui-app py-1.75 pl-2.25 pr-1.5 hover:border-ui-edge">
         <span className="min-w-0 flex-1">
           {value ? (
             <>
@@ -55,12 +55,12 @@ export function SensorField({ label, hint, lead, value, onChange, onOpenExplorer
           )}
         </span>
         {value && (
-          <span className="max-w-[90px] shrink-0 truncate font-ui-mono text-micro text-ui-2">
+          <span className="max-w-22.5 shrink-0 truncate font-ui-mono text-micro text-ui-2">
             {liveText(live[value], point) ?? "—"}
           </span>
         )}
         <button type="button" onClick={edit} className={SMALL_BUTTON} aria-label={`Edit ${label}`}>
-          <Pencil className="h-[15px] w-[15px]" />
+          <Pencil className="h-3.75 w-3.75" />
         </button>
         {value && (
           <button

@@ -82,15 +82,15 @@ export default function StreamChat(p: StreamChatProps) {
               </div>
             ) : (
               // Newest at the bottom; only whole messages show, and the top one fades out.
-              <div ref={list} className="flex min-h-0 flex-1 flex-col justify-end gap-[3px] overflow-hidden" style={{ maskImage: "linear-gradient(to bottom, transparent 0, #000 18px)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0, #000 18px)" }}>
+              <div ref={list} className="flex min-h-0 flex-1 flex-col justify-end gap-0.75 overflow-hidden" style={{ maskImage: "linear-gradient(to bottom, transparent 0, #000 18px)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0, #000 18px)" }}>
                 {msgs.map((m) => (
                   <div
                     key={m.id}
-                    className="shrink-0 break-words rounded-md px-1.5 py-[1px] leading-snug"
+                    className="shrink-0 break-words rounded-md px-1.5 py-px leading-snug"
                     data-mention={mentions(m.text, highlight) || undefined}
                     style={{ fontSize: fs, background: mentions(m.text, highlight) ? "color-mix(in oklab, var(--w-accent) 14%, transparent)" : undefined }}
                   >
-                    {m.badge && <span role="img" aria-label={m.badge} title={m.badge} className="mr-1.5 inline-block h-[0.8em] w-[0.8em] rounded-[3px] align-[-0.05em]" style={{ background: BADGE_COLOR[m.badge] }} />}
+                    {m.badge && <span role="img" aria-label={m.badge} title={m.badge} className="mr-1.5 inline-block h-[0.8em] w-[0.8em] rounded-3 align-[-0.05em]" style={{ background: BADGE_COLOR[m.badge] }} />}
                     {source === "both" && <span className="mr-1.5 rounded bg-white/[0.08] px-1 align-[0.1em] text-[0.68em] font-semibold text-zinc-400">{TAG[m.platform]}</span>}
                     <span className="font-semibold" style={{ color: (p.nameColors !== "accent" && m.color) || hue(nameHue(m.user)) }}>
                       {m.user}
@@ -111,7 +111,7 @@ export default function StreamChat(p: StreamChatProps) {
                   className="min-w-0 flex-1 bg-transparent text-body text-zinc-100 outline-none placeholder:text-zinc-500"
                 />
                 <button type="submit" aria-label="Send" disabled={!draft.trim()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md disabled:opacity-40" style={{ color: "var(--w-accent)" }}>
-                  <Icon name="send" className="text-[18px]" />
+                  <Icon name="send" className="text-display" />
                 </button>
               </form>
             )}

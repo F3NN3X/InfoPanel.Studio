@@ -18,7 +18,7 @@ const COLOR_CLASS = /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border|ring|fill|stroke|f
 
 const read = (f: string) => readFileSync(f, "utf8");
 const defined = new Set(
-  ["src/settings/tokens.css", "src/settings/settings.css", "src/help/help.css"].flatMap((f) => [...read(f).matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1])),
+  ["src/components/ui/tokens.css", "src/components/ui/ui-theme.css", "src/settings/settings.css", "src/help/help.css"].flatMap((f) => [...read(f).matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1])),
 );
 
 const used = (): Map<string, string> => {

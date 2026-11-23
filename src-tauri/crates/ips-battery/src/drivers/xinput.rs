@@ -7,19 +7,16 @@
 use std::ffi::c_void;
 use std::sync::{Mutex, OnceLock};
 
-use windows_sys::core::GUID;
 use windows_sys::Win32::Foundation::ERROR_SUCCESS;
-use windows_sys::Win32::System::LibraryLoader::{
-    GetProcAddress, LoadLibraryExW, LOAD_LIBRARY_SEARCH_SYSTEM32,
-};
+use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LOAD_LIBRARY_SEARCH_SYSTEM32, LoadLibraryExW};
 use windows_sys::Win32::UI::Input::XboxController::{
-    BATTERY_DEVTYPE_GAMEPAD, BATTERY_DEVTYPE_HEADSET, BATTERY_LEVEL_EMPTY, BATTERY_LEVEL_LOW,
-    BATTERY_LEVEL_MEDIUM, BATTERY_TYPE_DISCONNECTED, BATTERY_TYPE_UNKNOWN, BATTERY_TYPE_WIRED,
-    XINPUT_BATTERY_INFORMATION, XINPUT_STATE,
+    BATTERY_DEVTYPE_GAMEPAD, BATTERY_DEVTYPE_HEADSET, BATTERY_LEVEL_EMPTY, BATTERY_LEVEL_LOW, BATTERY_LEVEL_MEDIUM,
+    BATTERY_TYPE_DISCONNECTED, BATTERY_TYPE_UNKNOWN, BATTERY_TYPE_WIRED, XINPUT_BATTERY_INFORMATION, XINPUT_STATE,
 };
+use windows_sys::core::GUID;
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{clamp100, hex4, PollContext};
+use crate::hid::{PollContext, clamp100, hex4};
 use crate::win::{sleep_ms, to_wide, wide_to_string};
 
 // ---- the hand-rolled WinRT ABI ------------------------------------------------------------------
@@ -30,11 +27,10 @@ type Hstring = *mut c_void;
 
 // RoInitialize/RoGetActivationFactory and the HSTRING helpers are not in the crate's enabled
 // windows-sys modules; declare the combase.dll exports directly, like the C++ <roapi.h> include.
-#[link(name = "runtimeobject")]  // SDK import lib for combase.dll's Ro* exports (the C++ -lruntimeobject)
+#[link(name = "runtimeobject")] // SDK import lib for combase.dll's Ro* exports (the C++ -lruntimeobject)
 unsafe extern "system" {
     fn RoInitialize(init_type: u32) -> i32;
-    fn RoGetActivationFactory(activatable_class_id: Hstring, iid: *const GUID,
-                              factory: *mut *mut c_void) -> i32;
+    fn RoGetActivationFactory(activatable_class_id: Hstring, iid: *const GUID, factory: *mut *mut c_void) -> i32;
     fn WindowsCreateString(source: *const u16, length: u32, string: *mut Hstring) -> i32;
     fn WindowsDeleteString(string: Hstring) -> i32;
     fn WindowsGetStringRawBuffer(string: Hstring, length: *mut u32) -> *const u16;
@@ -47,18 +43,12 @@ const BATTERY_STATUS_NOT_PRESENT: i32 = 0;
 const BATTERY_STATUS_CHARGING: i32 = 3;
 
 // __uuidof(...) from the headers the C++ file compiled against.
-const IID_IRAW_GAME_CONTROLLER_STATICS: GUID = GUID {
-    data1: 0xEB8D0792, data2: 0xE95A, data3: 0x4B19,
-    data4: [0xAF, 0xC7, 0x0A, 0x59, 0xF8, 0xBF, 0x75, 0x9E],
-};
-const IID_IGAME_CONTROLLER_BATTERY_INFO: GUID = GUID {
-    data1: 0xDCECC681, data2: 0x3963, data3: 0x4DA6,
-    data4: [0x95, 0x5D, 0x55, 0x3F, 0x3B, 0x6F, 0x61, 0x61],
-};
-const IID_IRAW_GAME_CONTROLLER2: GUID = GUID {
-    data1: 0x43C0C035, data2: 0xBB73, data3: 0x4756,
-    data4: [0xA7, 0x87, 0x3E, 0xD6, 0xBE, 0xA6, 0x17, 0xBD],
-};
+const IID_IRAW_GAME_CONTROLLER_STATICS: GUID =
+    GUID { data1: 0xEB8D0792, data2: 0xE95A, data3: 0x4B19, data4: [0xAF, 0xC7, 0x0A, 0x59, 0xF8, 0xBF, 0x75, 0x9E] };
+const IID_IGAME_CONTROLLER_BATTERY_INFO: GUID =
+    GUID { data1: 0xDCECC681, data2: 0x3963, data3: 0x4DA6, data4: [0x95, 0x5D, 0x55, 0x3F, 0x3B, 0x6F, 0x61, 0x61] };
+const IID_IRAW_GAME_CONTROLLER2: GUID =
+    GUID { data1: 0x43C0C035, data2: 0xBB73, data3: 0x4756, data4: [0xA7, 0x87, 0x3E, 0xD6, 0xBE, 0xA6, 0x17, 0xBD] };
 
 // Every WinRT interface starts with IUnknown's three slots followed by IInspectable's.
 #[repr(C)]
@@ -91,8 +81,10 @@ unsafe fn release(this: *mut c_void) {
 
 // Windows.Foundation.IReference<INT32> (__FIReference_1_INT32)
 #[repr(C)]
-#[allow(non_snake_case)]  // lpVtbl: the ABI field name from the C++ headers
-struct ReferenceI32 { lpVtbl: *const ReferenceI32Vtbl }
+#[allow(non_snake_case)] // lpVtbl: the ABI field name from the C++ headers
+struct ReferenceI32 {
+    lpVtbl: *const ReferenceI32Vtbl,
+}
 #[repr(C)]
 struct ReferenceI32Vtbl {
     header: InspectableVtbl,
@@ -101,8 +93,10 @@ struct ReferenceI32Vtbl {
 
 // ABI::Windows::Devices::Power::IBatteryReport
 #[repr(C)]
-#[allow(non_snake_case)]  // lpVtbl: the ABI field name from the C++ headers
-struct BatteryReport { lpVtbl: *const BatteryReportVtbl }
+#[allow(non_snake_case)] // lpVtbl: the ABI field name from the C++ headers
+struct BatteryReport {
+    lpVtbl: *const BatteryReportVtbl,
+}
 #[repr(C)]
 struct BatteryReportVtbl {
     header: InspectableVtbl,
@@ -115,8 +109,10 @@ struct BatteryReportVtbl {
 
 // ABI::Windows::Gaming::Input::IGameControllerBatteryInfo
 #[repr(C)]
-#[allow(non_snake_case)]  // lpVtbl: the ABI field name from the C++ headers
-struct GameControllerBatteryInfo { lpVtbl: *const GameControllerBatteryInfoVtbl }
+#[allow(non_snake_case)] // lpVtbl: the ABI field name from the C++ headers
+struct GameControllerBatteryInfo {
+    lpVtbl: *const GameControllerBatteryInfoVtbl,
+}
 #[repr(C)]
 struct GameControllerBatteryInfoVtbl {
     header: InspectableVtbl,
@@ -125,8 +121,10 @@ struct GameControllerBatteryInfoVtbl {
 
 // ABI::Windows::Gaming::Input::IRawGameController
 #[repr(C)]
-#[allow(non_snake_case)]  // lpVtbl: the ABI field name from the C++ headers
-struct RawGameController { lpVtbl: *const RawGameControllerVtbl }
+#[allow(non_snake_case)] // lpVtbl: the ABI field name from the C++ headers
+struct RawGameController {
+    lpVtbl: *const RawGameControllerVtbl,
+}
 #[repr(C)]
 struct RawGameControllerVtbl {
     header: InspectableVtbl,
@@ -143,8 +141,10 @@ struct RawGameControllerVtbl {
 
 // ABI::Windows::Gaming::Input::IRawGameController2
 #[repr(C)]
-#[allow(non_snake_case)]  // lpVtbl: the ABI field name from the C++ headers
-struct RawGameController2 { lpVtbl: *const RawGameController2Vtbl }
+#[allow(non_snake_case)] // lpVtbl: the ABI field name from the C++ headers
+struct RawGameController2 {
+    lpVtbl: *const RawGameController2Vtbl,
+}
 #[repr(C)]
 struct RawGameController2Vtbl {
     header: InspectableVtbl,
@@ -156,8 +156,10 @@ struct RawGameController2Vtbl {
 // ABI::Windows::Foundation::Collections::IVectorView<RawGameController*>
 // (__FIVectorView_1_Windows__CGaming__CInput__CRawGameController)
 #[repr(C)]
-#[allow(non_snake_case)]  // lpVtbl: the ABI field name from the C++ headers
-struct VectorView { lpVtbl: *const VectorViewVtbl }
+#[allow(non_snake_case)] // lpVtbl: the ABI field name from the C++ headers
+struct VectorView {
+    lpVtbl: *const VectorViewVtbl,
+}
 #[repr(C)]
 struct VectorViewVtbl {
     header: InspectableVtbl,
@@ -169,8 +171,10 @@ struct VectorViewVtbl {
 
 // ABI::Windows::Gaming::Input::IRawGameControllerStatics
 #[repr(C)]
-#[allow(non_snake_case)]  // lpVtbl: the ABI field name from the C++ headers
-struct RawGameControllerStatics { lpVtbl: *const RawGameControllerStaticsVtbl }
+#[allow(non_snake_case)] // lpVtbl: the ABI field name from the C++ headers
+struct RawGameControllerStatics {
+    lpVtbl: *const RawGameControllerStaticsVtbl,
+}
 #[repr(C)]
 struct RawGameControllerStaticsVtbl {
     header: InspectableVtbl,
@@ -191,20 +195,25 @@ static WG1_STATICS: Mutex<Option<StaticsPtr>> = Mutex::new(None);
 
 fn statics() -> *mut RawGameControllerStatics {
     let mut g = WG1_STATICS.lock().unwrap();
-    if let Some(p) = *g { return p.0; }
+    if let Some(p) = *g {
+        return p.0;
+    }
     let mut statics: *mut RawGameControllerStatics = std::ptr::null_mut();
     unsafe {
-        RoInitialize(RO_INIT_MULTITHREADED);  // our poll thread; harmless if already initialised
+        RoInitialize(RO_INIT_MULTITHREADED); // our poll thread; harmless if already initialised
         let cls = to_wide("Windows.Gaming.Input.RawGameController");
         let mut name: Hstring = std::ptr::null_mut();
         if WindowsCreateString(cls.as_ptr(), (cls.len() - 1) as u32, &mut name) >= 0 {
-            RoGetActivationFactory(name, &IID_IRAW_GAME_CONTROLLER_STATICS,
-                                    &mut statics as *mut *mut RawGameControllerStatics as *mut *mut c_void);
+            RoGetActivationFactory(
+                name,
+                &IID_IRAW_GAME_CONTROLLER_STATICS,
+                &mut statics as *mut *mut RawGameControllerStatics as *mut *mut c_void,
+            );
             WindowsDeleteString(name);
         }
     }
     if !statics.is_null() {
-        sleep_ms(300);  // the controller list fills in asynchronously after first use
+        sleep_ms(300); // the controller list fills in asynchronously after first use
     }
     *g = Some(StaticsPtr(statics));
     statics
@@ -212,14 +221,18 @@ fn statics() -> *mut RawGameControllerStatics {
 
 /// Vendors whose controllers report a real battery through Windows.Gaming.Input:
 /// Microsoft, and GameSir in Xbox (GIP) mode (e.g. G7 Pro on its receiver, 3537:105E).
-fn wgi_vendor(vid: u16) -> bool { vid == 0x045E || vid == 0x3537 }
+fn wgi_vendor(vid: u16) -> bool {
+    vid == 0x045E || vid == 0x3537
+}
 
 /// Adds Xbox controllers with a real percentage. Returns how many were added; `third_party` counts
 /// the non-Microsoft ones among them.
 fn poll_wgi(ctx: &mut PollContext, third_party: &mut i32) -> i32 {
     *third_party = 0;
     let statics = statics();
-    if statics.is_null() { return 0; }
+    if statics.is_null() {
+        return 0;
+    }
     let mut list: *mut VectorView = std::ptr::null_mut();
     unsafe {
         if ((*(*statics).lpVtbl).get_raw_game_controllers)(statics as *mut c_void, &mut list) < 0 || list.is_null() {
@@ -227,12 +240,16 @@ fn poll_wgi(ctx: &mut PollContext, third_party: &mut i32) -> i32 {
         }
     }
     let mut count: u32 = 0;
-    unsafe { ((*(*list).lpVtbl).get_size)(list as *mut c_void, &mut count); }
+    unsafe {
+        ((*(*list).lpVtbl).get_size)(list as *mut c_void, &mut count);
+    }
     let mut added = 0;
     for i in 0..count {
         let mut raw: *mut RawGameController = std::ptr::null_mut();
         unsafe {
-            if ((*(*list).lpVtbl).get_at)(list as *mut c_void, i, &mut raw) < 0 || raw.is_null() { continue; }
+            if ((*(*list).lpVtbl).get_at)(list as *mut c_void, i, &mut raw) < 0 || raw.is_null() {
+                continue;
+            }
         }
         let mut vid: u16 = 0;
         let mut pid: u16 = 0;
@@ -243,11 +260,12 @@ fn poll_wgi(ctx: &mut PollContext, third_party: &mut i32) -> i32 {
         let mut info: *mut GameControllerBatteryInfo = std::ptr::null_mut();
         let mut report: *mut BatteryReport = std::ptr::null_mut();
         if wgi_vendor(vid)
-            && unsafe { query_interface(raw as *mut c_void, &IID_IGAME_CONTROLLER_BATTERY_INFO,
-                                         &mut info as *mut _ as *mut *mut c_void) } >= 0
+            && unsafe { query_interface(raw as *mut c_void, &IID_IGAME_CONTROLLER_BATTERY_INFO, &mut info as *mut _ as *mut *mut c_void) }
+                >= 0
             && !info.is_null()
             && unsafe { ((*(*info).lpVtbl).try_get_battery_report)(info as *mut c_void, &mut report) } >= 0
-            && !report.is_null() {
+            && !report.is_null()
+        {
             let mut rem: *mut ReferenceI32 = std::ptr::null_mut();
             let mut full: *mut ReferenceI32 = std::ptr::null_mut();
             unsafe {
@@ -257,19 +275,25 @@ fn poll_wgi(ctx: &mut PollContext, third_party: &mut i32) -> i32 {
             let mut r: i32 = 0;
             let mut f: i32 = 0;
             unsafe {
-                if !rem.is_null() { ((*(*rem).lpVtbl).get_value)(rem as *mut c_void, &mut r); }
-                if !full.is_null() { ((*(*full).lpVtbl).get_value)(full as *mut c_void, &mut f); }
+                if !rem.is_null() {
+                    ((*(*rem).lpVtbl).get_value)(rem as *mut c_void, &mut r);
+                }
+                if !full.is_null() {
+                    ((*(*full).lpVtbl).get_value)(full as *mut c_void, &mut f);
+                }
             }
             let mut st: i32 = BATTERY_STATUS_NOT_PRESENT;
-            unsafe { ((*(*report).lpVtbl).get_status)(report as *mut c_void, &mut st); }
+            unsafe {
+                ((*(*report).lpVtbl).get_status)(report as *mut c_void, &mut st);
+            }
             if f > 0 && st != BATTERY_STATUS_NOT_PRESENT {
                 let mut s = DeviceStatus::default();
                 s.key = format!("xbox:{}:{}", hex4(pid), i);
                 s.name = "Xbox controller".into();
                 let mut raw2: *mut RawGameController2 = std::ptr::null_mut();
-                if unsafe { query_interface(raw as *mut c_void, &IID_IRAW_GAME_CONTROLLER2,
-                                             &mut raw2 as *mut _ as *mut *mut c_void) } >= 0
-                    && !raw2.is_null() {
+                if unsafe { query_interface(raw as *mut c_void, &IID_IRAW_GAME_CONTROLLER2, &mut raw2 as *mut _ as *mut *mut c_void) } >= 0
+                    && !raw2.is_null()
+                {
                     let mut dn: Hstring = std::ptr::null_mut();
                     unsafe {
                         if ((*(*raw2).lpVtbl).get_display_name)(raw2 as *mut c_void, &mut dn) >= 0 && !dn.is_null() {
@@ -284,14 +308,18 @@ fn poll_wgi(ctx: &mut PollContext, third_party: &mut i32) -> i32 {
                     unsafe { release(raw2 as *mut c_void) };
                 }
                 // GIP reports a generic "Xbox One Game Controller" for third-party pads.
-                if vid == 0x3537 { s.name = "GameSir controller".into(); }
+                if vid == 0x3537 {
+                    s.name = "GameSir controller".into();
+                }
                 s.kind = DeviceKind::Gamepad;
                 s.via = "Xbox Wireless / Bluetooth".into();
                 s.percent = clamp100(r * 100 / f);
                 s.charging = st == BATTERY_STATUS_CHARGING;
                 ctx.add(s, vid, pid);
                 added += 1;
-                if vid != 0x045E { *third_party += 1; }
+                if vid != 0x045E {
+                    *third_party += 1;
+                }
             }
             unsafe {
                 release(rem as *mut c_void);
@@ -337,7 +365,9 @@ fn load_xinput() -> &'static XInputApi {
                     .map(|f| unsafe { std::mem::transmute::<unsafe extern "system" fn() -> isize, GetBatteryFn>(f) });
                 state = unsafe { proc(module, b"XInputGetState\0") }
                     .map(|f| unsafe { std::mem::transmute::<unsafe extern "system" fn() -> isize, GetStateFn>(f) });
-                if battery.is_some() && state.is_some() { break; }
+                if battery.is_some() && state.is_some() {
+                    break;
+                }
             }
         }
         XInputApi { battery, state }
@@ -359,7 +389,8 @@ pub fn poll_xinput(ctx: &mut PollContext) {
         let mut bi: XINPUT_BATTERY_INFORMATION = unsafe { std::mem::zeroed() };
         if unsafe { battery(user, dev_type, &mut bi) } == ERROR_SUCCESS
             && bi.BatteryType != BATTERY_TYPE_DISCONNECTED
-            && bi.BatteryType != BATTERY_TYPE_WIRED {
+            && bi.BatteryType != BATTERY_TYPE_WIRED
+        {
             Some(bi)
         } else {
             None
@@ -369,44 +400,60 @@ pub fn poll_xinput(ctx: &mut PollContext) {
         // The Xbox Wireless adapter answers battery queries for empty slots too (one controller
         // showed up as four "Medium" headsets), so only look at slots with a controller connected.
         let mut pad_state: XINPUT_STATE = unsafe { std::mem::zeroed() };
-        if unsafe { state(user, &mut pad_state) } != ERROR_SUCCESS { continue; }
+        if unsafe { state(user, &mut pad_state) } != ERROR_SUCCESS {
+            continue;
+        }
         let pad = query(user, BATTERY_DEVTYPE_GAMEPAD);
         for dev_type in [BATTERY_DEVTYPE_GAMEPAD, BATTERY_DEVTYPE_HEADSET] {
             if dev_type == BATTERY_DEVTYPE_GAMEPAD && (bt_xbox || precise > 0) {
-                continue;  // already shown precisely
+                continue; // already shown precisely
             }
-            if dev_type == BATTERY_DEVTYPE_HEADSET && skip_headset { continue; }
+            if dev_type == BATTERY_DEVTYPE_HEADSET && skip_headset {
+                continue;
+            }
             let bi = if dev_type == BATTERY_DEVTYPE_GAMEPAD {
                 match pad {
                     Some(bi) => bi,
-                    None => continue,  // !hasPad
+                    None => continue, // !hasPad
                 }
             } else {
                 let Some(bi) = query(user, dev_type) else { continue };
                 // Without a headset plugged in, the headset query can still answer with an unknown type.
-                if bi.BatteryType == BATTERY_TYPE_UNKNOWN { continue; }
+                if bi.BatteryType == BATTERY_TYPE_UNKNOWN {
+                    continue;
+                }
                 // Xbox One / Series controllers echo their own battery back for the headset query (the
                 // phantom headsets all read "Medium", same as the controller). Headsets on these
                 // controllers are powered by the controller, so a mirrored answer is not a headset.
                 if let Some(pad_bi) = pad {
-                    if bi.BatteryType == pad_bi.BatteryType && bi.BatteryLevel == pad_bi.BatteryLevel { continue; }
+                    if bi.BatteryType == pad_bi.BatteryType && bi.BatteryLevel == pad_bi.BatteryLevel {
+                        continue;
+                    }
                 }
                 bi
             };
             let mut s = DeviceStatus::default();
             s.key = format!("xinput:{}:{}", user, dev_type);
-            s.name = if dev_type == BATTERY_DEVTYPE_GAMEPAD {
-                format!("Xbox controller {}", user + 1)
-            } else {
-                "Xbox headset".into()
-            };
+            s.name = if dev_type == BATTERY_DEVTYPE_GAMEPAD { format!("Xbox controller {}", user + 1) } else { "Xbox headset".into() };
             s.kind = if dev_type == BATTERY_DEVTYPE_GAMEPAD { DeviceKind::Gamepad } else { DeviceKind::Headset };
             s.via = "Xbox Wireless".into();
             match bi.BatteryLevel {
-                BATTERY_LEVEL_EMPTY => { s.percent = 5; s.level_text = "Empty".into(); }
-                BATTERY_LEVEL_LOW => { s.percent = 25; s.level_text = "Low".into(); }
-                BATTERY_LEVEL_MEDIUM => { s.percent = 60; s.level_text = "Medium".into(); }
-                _ => { s.percent = 100; s.level_text = "Full".into(); }
+                BATTERY_LEVEL_EMPTY => {
+                    s.percent = 5;
+                    s.level_text = "Empty".into();
+                }
+                BATTERY_LEVEL_LOW => {
+                    s.percent = 25;
+                    s.level_text = "Low".into();
+                }
+                BATTERY_LEVEL_MEDIUM => {
+                    s.percent = 60;
+                    s.level_text = "Medium".into();
+                }
+                _ => {
+                    s.percent = 100;
+                    s.level_text = "Full".into();
+                }
             }
             ctx.out.push(s);
         }

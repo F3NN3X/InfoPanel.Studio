@@ -137,10 +137,15 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && query) setQuery("");
+      // Ctrl+, opens Settings, as in the Studio (the browser's Help has no Settings window to open).
+      else if (env.desktop && e.key === "," && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        env.openSettings("general");
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [query]);
+  }, [query, env]);
 
   useEffect(() => {
     const el = main.current;

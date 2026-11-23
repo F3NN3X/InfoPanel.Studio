@@ -98,10 +98,7 @@ fn flag(v: &Value, key: &str) -> bool {
 
 /// A scene's id: its uuid when OBS sends one, else its name.
 fn scene_id(v: &Value, uuid_key: &str, name: &str) -> String {
-    Some(text(v, uuid_key))
-        .filter(|u| !u.is_empty())
-        .unwrap_or(name)
-        .to_string()
+    Some(text(v, uuid_key)).filter(|u| !u.is_empty()).unwrap_or(name).to_string()
 }
 
 /// GetSceneList's scenes and current scene. OBS lists scenes from the bottom of its panel up, so they are turned around to
@@ -114,36 +111,16 @@ pub fn parse_scene_list(data: &Value) -> (Vec<Scene>, String) {
         .flatten()
         .filter_map(|s| {
             let name = s.get("sceneName").and_then(Value::as_str)?;
-            Some(Scene {
-                id: scene_id(s, "sceneUuid", name),
-                name: name.to_string(),
-            })
+            Some(Scene { id: scene_id(s, "sceneUuid", name), name: name.to_string() })
         })
         .rev()
         .collect();
-    (
-        scenes,
-        scene_id(
-            data,
-            "currentProgramSceneUuid",
-            text(data, "currentProgramSceneName"),
-        ),
-    )
+    (scenes, scene_id(data, "currentProgramSceneUuid", text(data, "currentProgramSceneName")))
 }
 
 /// Whether an input kind carries audio (OBS's capture sources for devices, outputs and apps).
 fn is_audio_kind(kind: &str) -> bool {
-    [
-        "wasapi",
-        "coreaudio",
-        "pulse",
-        "alsa",
-        "jack",
-        "sndio",
-        "audio",
-    ]
-    .iter()
-    .any(|k| kind.contains(k))
+    ["wasapi", "coreaudio", "pulse", "alsa", "jack", "sndio", "audio"].iter().any(|k| kind.contains(k))
 }
 
 /// The names of the audio inputs in GetInputList's answer.
@@ -173,18 +150,13 @@ pub fn meter_level(channels: &Value) -> u8 {
     if peak <= 0.0 {
         return 0;
     }
-    ((20.0 * peak.log10() + METER_FLOOR_DB) / METER_FLOOR_DB * 100.0)
-        .clamp(0.0, 100.0)
-        .round() as u8
+    ((20.0 * peak.log10() + METER_FLOOR_DB) / METER_FLOOR_DB * 100.0).clamp(0.0, 100.0).round() as u8
 }
 
 impl ObsLive {
     /// The requests to send once OBS has identified us (the stream and record status come from `obs_step`).
     pub fn initial_requests(mic: &str) -> Vec<Value> {
-        let mut send = vec![
-            request("scenes", "GetSceneList", None),
-            request("inputs", "GetInputList", None),
-        ];
+        let mut send = vec![request("scenes", "GetSceneList", None), request("inputs", "GetInputList", None)];
         if !mic.is_empty() {
             send.push(Self::mic_request(mic));
         }
@@ -220,19 +192,10 @@ impl ObsLive {
             return (next, vec![]);
         };
         let send = match message.get("op").and_then(Value::as_u64) {
-            Some(5) => next.event(
-                text(d, "eventType"),
-                d.get("eventData").unwrap_or(&Value::Null),
-                mic,
-                now_ms,
-            ),
+            Some(5) => next.event(text(d, "eventType"), d.get("eventData").unwrap_or(&Value::Null), mic, now_ms),
             Some(7) => {
                 let ok = d.get("requestStatus").is_some_and(|s| flag(s, "result"));
-                next.response(
-                    text(d, "requestId"),
-                    ok.then(|| d.get("responseData").unwrap_or(&Value::Null)),
-                    mic,
-                );
+                next.response(text(d, "requestId"), ok.then(|| d.get("responseData").unwrap_or(&Value::Null)), mic);
                 vec![]
             }
             _ => vec![],
@@ -252,11 +215,7 @@ impl ObsLive {
             "InputMuteStateChanged" => {
                 if !mic.is_empty() && text(data, "inputName") == mic {
                     let level = self.mic.as_ref().map_or(0, |m| m.level);
-                    self.mic = Some(Mic {
-                        name: mic.to_string(),
-                        muted: flag(data, "inputMuted"),
-                        level,
-                    });
+                    self.mic = Some(Mic { name: mic.to_string(), muted: flag(data, "inputMuted"), level });
                 }
                 vec![]
             }
@@ -278,19 +237,11 @@ impl ObsLive {
                 vec![]
             }
             "InputVolumeMeters" => {
-                let meters = data
-                    .get("inputs")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten();
-                let reading = meters
-                    .into_iter()
-                    .find(|i| !mic.is_empty() && text(i, "inputName") == mic);
+                let meters = data.get("inputs").and_then(Value::as_array).into_iter().flatten();
+                let reading = meters.into_iter().find(|i| !mic.is_empty() && text(i, "inputName") == mic);
                 if let (Some(m), Some(reading)) = (self.mic.as_mut(), reading) {
                     let level = meter_level(reading.get("inputLevelsMul").unwrap_or(&Value::Null));
-                    let due = self
-                        .level_at
-                        .is_none_or(|at| now_ms.saturating_sub(at) >= LEVEL_EVERY_MS);
+                    let due = self.level_at.is_none_or(|at| now_ms.saturating_sub(at) >= LEVEL_EVERY_MS);
                     if level.abs_diff(m.level) >= 1 && due {
                         m.level = level;
                         self.level_at = Some(now_ms);
@@ -315,34 +266,19 @@ impl ObsLive {
             ("inputs", Some(data)) => self.inputs = audio_inputs(data),
             ("mic", Some(data)) => {
                 let level = self.mic.as_ref().map_or(0, |m| m.level);
-                self.mic = Some(Mic {
-                    name: mic.to_string(),
-                    muted: flag(data, "inputMuted"),
-                    level,
-                });
+                self.mic = Some(Mic { name: mic.to_string(), muted: flag(data, "inputMuted"), level });
             }
             ("mic", None) => self.mic = None,
             ("replay", Some(data)) => self.replay = Some(flag(data, "outputActive")),
             ("replay", None) => self.replay = None,
-            ("stats", Some(data)) => {
-                self.fps = data
-                    .get("activeFps")
-                    .and_then(Value::as_f64)
-                    .map_or(0, |f| f.max(0.0).round() as u32)
-            }
+            ("stats", Some(data)) => self.fps = data.get("activeFps").and_then(Value::as_f64).map_or(0, |f| f.max(0.0).round() as u32),
             ("stream", Some(data)) if flag(data, "outputActive") => {
-                let ms = data
-                    .get("outputDuration")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(0);
+                let ms = data.get("outputDuration").and_then(Value::as_u64).unwrap_or(0);
                 let bytes = data.get("outputBytes").and_then(Value::as_u64).unwrap_or(0);
                 self.uptime = ms / 1000;
                 // Bytes * 8 bits per millisecond is kilobits per second.
-                if let Some((was_bytes, was_ms)) =
-                    self.sample.filter(|(b, t)| bytes >= *b && ms > *t)
-                {
-                    self.kbps =
-                        ((bytes - was_bytes) * 8 / (ms - was_ms)).min(u64::from(u32::MAX)) as u32;
+                if let Some((was_bytes, was_ms)) = self.sample.filter(|(b, t)| bytes >= *b && ms > *t) {
+                    self.kbps = ((bytes - was_bytes) * 8 / (ms - was_ms)).min(u64::from(u32::MAX)) as u32;
                 }
                 self.sample = Some((bytes, ms));
             }
@@ -404,16 +340,13 @@ pub const STREAM_OFF_MESSAGE: &str =
 
 /// The action a request body asks for, or why it isn't one.
 pub fn parse_act(body: &str) -> Result<ObsAct, String> {
-    let body: Value =
-        serde_json::from_str(body).map_err(|_| "expected a JSON object".to_string())?;
+    let body: Value = serde_json::from_str(body).map_err(|_| "expected a JSON object".to_string())?;
     if !body.is_object() {
         return Err("expected a JSON object".into());
     }
     match body.get("op").and_then(Value::as_str) {
         Some("scene") => match body.get("id") {
-            Some(Value::String(id)) if !id.is_empty() && id.len() <= 512 => {
-                Ok(ObsAct::Scene(id.clone()))
-            }
+            Some(Value::String(id)) if !id.is_empty() && id.len() <= 512 => Ok(ObsAct::Scene(id.clone())),
             _ => Err("\"id\" must be a non-empty string".into()),
         },
         Some("mic") => Ok(ObsAct::Mic),
@@ -430,34 +363,15 @@ pub fn parse_act(body: &str) -> Result<ObsAct, String> {
 
 /// Whether text is a uuid (8-4-4-4-12 hex digits).
 fn is_uuid(s: &str) -> bool {
-    s.len() == 36
-        && s.bytes().enumerate().all(|(i, b)| {
-            if matches!(i, 8 | 13 | 18 | 23) {
-                b == b'-'
-            } else {
-                b.is_ascii_hexdigit()
-            }
-        })
+    s.len() == 36 && s.bytes().enumerate().all(|(i, b)| if matches!(i, 8 | 13 | 18 | 23) { b == b'-' } else { b.is_ascii_hexdigit() })
 }
 
 /// The obs-websocket request an action comes to, or why it can't be made (a message for the 400).
-pub fn act_request(
-    act: &ObsAct,
-    live: &ObsLive,
-    mic: &str,
-) -> Result<(&'static str, Option<Value>), String> {
+pub fn act_request(act: &ObsAct, live: &ObsLive, mic: &str) -> Result<(&'static str, Option<Value>), String> {
     match act {
         ObsAct::Scene(id) => {
-            let scene = live
-                .scenes
-                .iter()
-                .find(|s| s.id == *id)
-                .ok_or("no such scene")?;
-            let data = if is_uuid(&scene.id) {
-                json!({ "sceneUuid": scene.id })
-            } else {
-                json!({ "sceneName": scene.name })
-            };
+            let scene = live.scenes.iter().find(|s| s.id == *id).ok_or("no such scene")?;
+            let data = if is_uuid(&scene.id) { json!({ "sceneUuid": scene.id }) } else { json!({ "sceneName": scene.name }) };
             Ok(("SetCurrentProgramScene", Some(data)))
         }
         ObsAct::Mic if mic.is_empty() => Err("no mic is set".into()),
@@ -501,10 +415,7 @@ impl Pending {
         let reply = if flag(status, "result") {
             Ok(d.get("responseData").cloned().unwrap_or(Value::Null))
         } else {
-            Err(Some(text(status, "comment"))
-                .filter(|c| !c.is_empty())
-                .unwrap_or("OBS refused")
-                .to_string())
+            Err(Some(text(status, "comment")).filter(|c| !c.is_empty()).unwrap_or("OBS refused").to_string())
         };
         let _ = waiter.send(reply);
     }
@@ -546,17 +457,12 @@ pub async fn handle_act(app: &App, mut req: Req) -> std::io::Result<Response<Bod
     if let Some(response) = app.refuse_remote_edit(&req) {
         return Ok(response);
     }
-    if let Some(refusal) = control_write_refusal(
-        req.header("content-type").as_deref(),
-        req.header("x-dashboard-control").as_deref(),
-    ) {
+    if let Some(refusal) = control_write_refusal(req.header("content-type").as_deref(), req.header("x-dashboard-control").as_deref()) {
         return Ok(http::text(refusal.status, refusal.message));
     }
     let body = match req.read_body(MAX_BODY_BYTES).await {
         Ok(body) => body,
-        Err(http::BodyRefused) => {
-            return Ok(http::closing(http::text(400, "expected a JSON object")))
-        }
+        Err(http::BodyRefused) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
     };
     let act = match parse_act(&body) {
         Ok(act) => act,
@@ -604,30 +510,10 @@ mod tests {
     #[test]
     fn asks_for_the_mic_and_the_meters_only_when_one_is_set() {
         let kinds = |mic: &str| {
-            ObsLive::initial_requests(mic)
-                .iter()
-                .map(|m| m["d"]["requestType"].as_str().unwrap().to_string())
-                .collect::<Vec<_>>()
+            ObsLive::initial_requests(mic).iter().map(|m| m["d"]["requestType"].as_str().unwrap().to_string()).collect::<Vec<_>>()
         };
-        assert_eq!(
-            kinds(""),
-            [
-                "GetSceneList",
-                "GetInputList",
-                "GetReplayBufferStatus",
-                "GetStats"
-            ]
-        );
-        assert_eq!(
-            kinds("Mic/Aux"),
-            [
-                "GetSceneList",
-                "GetInputList",
-                "GetInputMute",
-                "GetReplayBufferStatus",
-                "GetStats"
-            ]
-        );
+        assert_eq!(kinds(""), ["GetSceneList", "GetInputList", "GetReplayBufferStatus", "GetStats"]);
+        assert_eq!(kinds("Mic/Aux"), ["GetSceneList", "GetInputList", "GetInputMute", "GetReplayBufferStatus", "GetStats"]);
         assert_eq!(subscriptions(false), 1 | 4 | 8 | 64);
         assert_eq!(subscriptions(true), 1 | 4 | 8 | 64 | 65536);
     }
@@ -636,49 +522,21 @@ mod tests {
     fn lists_scenes_top_down_with_the_current_one() {
         let live = live_with_scenes();
         // OBS lists them bottom-up.
-        assert_eq!(
-            live.scenes
-                .iter()
-                .map(|s| s.name.as_str())
-                .collect::<Vec<_>>(),
-            ["Game", "BRB"]
-        );
+        assert_eq!(live.scenes.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(), ["Game", "BRB"]);
         assert_eq!(live.current, U2);
         // Without uuids the name is the id.
-        let (scenes, current) = parse_scene_list(
-            &json!({ "currentProgramSceneName": "A", "scenes": [{ "sceneName": "A" }, { "sceneName": 5 }] }),
-        );
-        assert_eq!(
-            (scenes, current),
-            (
-                vec![Scene {
-                    id: "A".into(),
-                    name: "A".into()
-                }],
-                "A".to_string()
-            )
-        );
+        let (scenes, current) =
+            parse_scene_list(&json!({ "currentProgramSceneName": "A", "scenes": [{ "sceneName": "A" }, { "sceneName": 5 }] }));
+        assert_eq!((scenes, current), (vec![Scene { id: "A".into(), name: "A".into() }], "A".to_string()));
     }
 
     #[test]
     fn follows_scene_changes_and_refetches_the_list() {
         let live = live_with_scenes();
-        let (live, send) = live.step(
-            &event(
-                "CurrentProgramSceneChanged",
-                json!({ "sceneName": "BRB", "sceneUuid": U1 }),
-            ),
-            "",
-            0,
-        );
+        let (live, send) = live.step(&event("CurrentProgramSceneChanged", json!({ "sceneName": "BRB", "sceneUuid": U1 })), "", 0);
         assert!(send.is_empty());
         assert_eq!(live.current, U1);
-        for kind in [
-            "SceneListChanged",
-            "SceneNameChanged",
-            "SceneCreated",
-            "SceneRemoved",
-        ] {
+        for kind in ["SceneListChanged", "SceneNameChanged", "SceneCreated", "SceneRemoved"] {
             let (_, send) = live.step(&event(kind, json!({})), "", 0);
             assert_eq!(send[0]["d"]["requestType"], "GetSceneList", "{kind}");
         }
@@ -688,39 +546,12 @@ mod tests {
 
     #[test]
     fn keeps_the_mic_mute_and_a_throttled_level() {
-        let live = ObsLive::default()
-            .step(&response("mic", json!({ "inputMuted": false })), "Mic", 0)
-            .0;
-        assert_eq!(
-            live.mic,
-            Some(Mic {
-                name: "Mic".into(),
-                muted: false,
-                level: 0
-            })
-        );
-        let (live, _) = live.step(
-            &event(
-                "InputMuteStateChanged",
-                json!({ "inputName": "Mic", "inputMuted": true }),
-            ),
-            "Mic",
-            0,
-        );
+        let live = ObsLive::default().step(&response("mic", json!({ "inputMuted": false })), "Mic", 0).0;
+        assert_eq!(live.mic, Some(Mic { name: "Mic".into(), muted: false, level: 0 }));
+        let (live, _) = live.step(&event("InputMuteStateChanged", json!({ "inputName": "Mic", "inputMuted": true })), "Mic", 0);
         assert!(live.mic.as_ref().unwrap().muted);
         // Another input's mute is not the mic's.
-        assert_eq!(
-            live.step(
-                &event(
-                    "InputMuteStateChanged",
-                    json!({ "inputName": "Desktop", "inputMuted": false })
-                ),
-                "Mic",
-                0
-            )
-            .0,
-            live
-        );
+        assert_eq!(live.step(&event("InputMuteStateChanged", json!({ "inputName": "Desktop", "inputMuted": false })), "Mic", 0).0, live);
         let meters = |peak: f64| {
             event(
                 "InputVolumeMeters",
@@ -731,10 +562,7 @@ mod tests {
         assert_eq!(live.mic.as_ref().unwrap().level, 67);
         // Inside 100 ms nothing is published; later it is.
         assert_eq!(live.step(&meters(1.0), "Mic", 1050).0, live);
-        assert_eq!(
-            live.step(&meters(1.0), "Mic", 1100).0.mic.unwrap().level,
-            100
-        );
+        assert_eq!(live.step(&meters(1.0), "Mic", 1100).0.mic.unwrap().level, 100);
         // A change under one step is not worth a publish.
         assert_eq!(live.step(&meters(0.1), "Mic", 5000).0, live);
         // A mic that OBS doesn't have is none.
@@ -757,10 +585,7 @@ mod tests {
     #[test]
     fn works_out_the_bit_rate_from_two_statuses() {
         let status = |active: bool, ms: u64, bytes: u64| {
-            response(
-                "stream",
-                json!({ "outputActive": active, "outputDuration": ms, "outputBytes": bytes }),
-            )
+            response("stream", json!({ "outputActive": active, "outputDuration": ms, "outputBytes": bytes }))
         };
         let (live, _) = ObsLive::default().step(&status(true, 10_000, 1_000_000), "", 0);
         assert_eq!((live.uptime, live.kbps), (10, 0));
@@ -768,16 +593,11 @@ mod tests {
         let (live, _) = live.step(&status(true, 12_000, 1_750_000), "", 0);
         assert_eq!((live.uptime, live.kbps), (12, 3000));
         // Not streaming (a status, or the event) clears the numbers; the event also asks for the status.
-        let (stopped, send) = live.step(
-            &event("StreamStateChanged", json!({ "outputActive": false })),
-            "",
-            0,
-        );
+        let (stopped, send) = live.step(&event("StreamStateChanged", json!({ "outputActive": false })), "", 0);
         assert_eq!((stopped.uptime, stopped.kbps), (0, 0));
         assert_eq!(send[0]["d"]["requestId"], "stream");
         assert_eq!(live.step(&status(false, 0, 0), "", 0).0.uptime, 0);
-        let (live, _) =
-            ObsLive::default().step(&response("stats", json!({ "activeFps": 59.94 })), "", 0);
+        let (live, _) = ObsLive::default().step(&response("stats", json!({ "activeFps": 59.94 })), "", 0);
         assert_eq!(live.fps, 60);
     }
 
@@ -794,25 +614,10 @@ mod tests {
 
     #[test]
     fn knows_whether_the_replay_buffer_exists() {
-        let (live, _) =
-            ObsLive::default().step(&response("replay", json!({ "outputActive": true })), "", 0);
+        let (live, _) = ObsLive::default().step(&response("replay", json!({ "outputActive": true })), "", 0);
         assert_eq!(live.replay, Some(true));
-        assert_eq!(
-            live.step(
-                &event("ReplayBufferStateChanged", json!({ "outputActive": false })),
-                "",
-                0
-            )
-            .0
-            .replay,
-            Some(false)
-        );
-        assert_eq!(
-            live.step(&failure("replay", "not configured"), "", 0)
-                .0
-                .replay,
-            None
-        );
+        assert_eq!(live.step(&event("ReplayBufferStateChanged", json!({ "outputActive": false })), "", 0).0.replay, Some(false));
+        assert_eq!(live.step(&failure("replay", "not configured"), "", 0).0.replay, None);
     }
 
     #[test]
@@ -830,32 +635,17 @@ mod tests {
     #[test]
     fn publishes_scenes_with_their_saved_look() {
         let live = live_with_scenes();
-        let looks = BTreeMap::from([(
-            U1.to_string(),
-            SceneLook {
-                sub: "Be right back".into(),
-                icon: "coffee".into(),
-            },
-        )]);
+        let looks = BTreeMap::from([(U1.to_string(), SceneLook { sub: "Be right back".into(), icon: "coffee".into() })]);
         let json = Value::Object(live.to_json(&looks));
-        assert_eq!(
-            json["scenes"][1],
-            json!({ "id": U1, "name": "BRB", "sub": "Be right back", "icon": "coffee" })
-        );
+        assert_eq!(json["scenes"][1], json!({ "id": U1, "name": "BRB", "sub": "Be right back", "icon": "coffee" }));
         assert_eq!(json["scenes"][0]["sub"], "");
         assert_eq!(json["currentScene"], U2);
-        assert_eq!(
-            (json["mic"].clone(), json["replay"].clone()),
-            (Value::Null, Value::Null)
-        );
+        assert_eq!((json["mic"].clone(), json["replay"].clone()), (Value::Null, Value::Null));
     }
 
     #[test]
     fn reads_an_action_body() {
-        assert_eq!(
-            parse_act(r#"{"op":"scene","id":"abc"}"#),
-            Ok(ObsAct::Scene("abc".into()))
-        );
+        assert_eq!(parse_act(r#"{"op":"scene","id":"abc"}"#), Ok(ObsAct::Scene("abc".into())));
         assert_eq!(parse_act(r#"{"op":"mic"}"#), Ok(ObsAct::Mic));
         assert_eq!(parse_act(r#"{"op":"replay"}"#), Ok(ObsAct::Replay));
         assert_eq!(parse_act(r#"{"op":"stream","state":"toggle"}"#), Ok(ObsAct::Stream(StreamState::Toggle)));
@@ -864,16 +654,9 @@ mod tests {
         for bad in [r#"{"op":"stream","state":"live"}"#, r#"{"op":"stream","state":1}"#] {
             assert!(parse_act(bad).is_err(), "{bad}");
         }
-        for bad in [
-            "",
-            "nope",
-            "[]",
-            r#"{}"#,
-            r#"{"op":"stream"}"#,
-            r#"{"op":"scene"}"#,
-            r#"{"op":"scene","id":""}"#,
-            r#"{"op":"scene","id":5}"#,
-        ] {
+        for bad in
+            ["", "nope", "[]", r#"{}"#, r#"{"op":"stream"}"#, r#"{"op":"scene"}"#, r#"{"op":"scene","id":""}"#, r#"{"op":"scene","id":5}"#]
+        {
             assert!(parse_act(bad).is_err(), "{bad}");
         }
         assert!(parse_act(&format!(r#"{{"op":"scene","id":"{}"}}"#, "x".repeat(600))).is_err());
@@ -883,40 +666,14 @@ mod tests {
     fn turns_an_action_into_a_request_or_refuses_it() {
         let live = live_with_scenes();
         let (kind, data) = act_request(&ObsAct::Scene(U1.into()), &live, "").unwrap();
-        assert_eq!(
-            (kind, data),
-            ("SetCurrentProgramScene", Some(json!({ "sceneUuid": U1 })))
-        );
+        assert_eq!((kind, data), ("SetCurrentProgramScene", Some(json!({ "sceneUuid": U1 }))));
         // A scene without a uuid goes by name.
-        let named = ObsLive {
-            scenes: vec![Scene {
-                id: "Intro".into(),
-                name: "Intro".into(),
-            }],
-            ..ObsLive::default()
-        };
-        assert_eq!(
-            act_request(&ObsAct::Scene("Intro".into()), &named, "")
-                .unwrap()
-                .1,
-            Some(json!({ "sceneName": "Intro" }))
-        );
-        assert_eq!(
-            act_request(&ObsAct::Scene("nope".into()), &live, ""),
-            Err("no such scene".into())
-        );
-        assert_eq!(
-            act_request(&ObsAct::Mic, &live, ""),
-            Err("no mic is set".into())
-        );
-        assert_eq!(
-            act_request(&ObsAct::Mic, &live, "Mic/Aux").unwrap(),
-            ("ToggleInputMute", Some(json!({ "inputName": "Mic/Aux" })))
-        );
-        assert_eq!(
-            act_request(&ObsAct::Replay, &live, "").unwrap(),
-            ("SaveReplayBuffer", None)
-        );
+        let named = ObsLive { scenes: vec![Scene { id: "Intro".into(), name: "Intro".into() }], ..ObsLive::default() };
+        assert_eq!(act_request(&ObsAct::Scene("Intro".into()), &named, "").unwrap().1, Some(json!({ "sceneName": "Intro" })));
+        assert_eq!(act_request(&ObsAct::Scene("nope".into()), &live, ""), Err("no such scene".into()));
+        assert_eq!(act_request(&ObsAct::Mic, &live, ""), Err("no mic is set".into()));
+        assert_eq!(act_request(&ObsAct::Mic, &live, "Mic/Aux").unwrap(), ("ToggleInputMute", Some(json!({ "inputName": "Mic/Aux" }))));
+        assert_eq!(act_request(&ObsAct::Replay, &live, "").unwrap(), ("SaveReplayBuffer", None));
         assert_eq!(act_request(&ObsAct::Stream(StreamState::Toggle), &live, "").unwrap(), ("ToggleStream", None));
         assert_eq!(act_request(&ObsAct::Stream(StreamState::Start), &live, "").unwrap(), ("StartStream", None));
         assert_eq!(act_request(&ObsAct::Stream(StreamState::Stop), &live, "").unwrap(), ("StopStream", None));
@@ -936,10 +693,7 @@ mod tests {
         pending.complete(&failure(&b, "replay buffer is not active"));
         pending.complete(&response(&a, json!({ "ok": 1 })));
         assert_eq!(rx1.try_recv().unwrap(), Ok(json!({ "ok": 1 })));
-        assert_eq!(
-            rx2.try_recv().unwrap(),
-            Err("replay buffer is not active".to_string())
-        );
+        assert_eq!(rx2.try_recv().unwrap(), Err("replay buffer is not active".to_string()));
         assert!(pending.is_empty());
         // One that gave up is swept.
         let (tx, rx) = oneshot::channel();

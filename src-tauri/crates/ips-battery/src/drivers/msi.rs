@@ -11,7 +11,7 @@
 //! control mode, so it is deliberately not sent here: the 0F 20 query is enough.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, hid_product, HidColl, HidIo, PollContext};
+use crate::hid::{HidColl, HidIo, PollContext, hex4, hid_product};
 use crate::win::now_ms;
 
 const MSI_VID: u16 = 0x0DB0;
@@ -20,17 +20,23 @@ const VERSA300_ELITE_DONGLE_PID: u16 = 0x9E22;
 fn query_versa300_elite(ctx: &mut PollContext, c: &HidColl, percent: &mut i32, charging: &mut bool) -> bool {
     let Some(mut d) = ctx.open(c) else { return false };
     d.flush();
-    if !d.write(&[0x00, 0x0F, 0x20], 500) { return false; }
+    if !d.write(&[0x00, 0x0F, 0x20], 500) {
+        return false;
+    }
 
     let mut r: Vec<u8> = Vec::new();
     let end = now_ms() + 1000;
     while (end as i64 - now_ms() as i64) > 0 {
         let left = (end as i64 - now_ms() as i64) as i32;
         let n = d.read(&mut r, left as u32);
-        if n < 0 { break; }
+        if n < 0 {
+            break;
+        }
         if n >= 15 && r[0] == 0x0F && r[1] == 0x20 {
             let level = (r[14] & 0x7F) as i32;
-            if level > 100 { return false; }
+            if level > 100 {
+                return false;
+            }
             *percent = level;
             *charging = (r[14] & 0x80) != 0;
             return true;
@@ -40,13 +46,17 @@ fn query_versa300_elite(ctx: &mut PollContext, c: &HidColl, percent: &mut i32, c
 }
 
 pub fn poll_msi(ctx: &mut PollContext) {
-    if ctx.is_claimed(MSI_VID, VERSA300_ELITE_DONGLE_PID) { return; }
+    if ctx.is_claimed(MSI_VID, VERSA300_ELITE_DONGLE_PID) {
+        return;
+    }
     for c in ctx.find(MSI_VID, VERSA300_ELITE_DONGLE_PID, |c| {
         c.iface == 1 && c.page() == 0xFF0D && c.usage() == 0x00B0 && c.out_len() >= 65 && c.in_len() >= 65
     }) {
         let mut pct = -1;
         let mut chg = false;
-        if !query_versa300_elite(ctx, &c, &mut pct, &mut chg) { continue; }
+        if !query_versa300_elite(ctx, &c, &mut pct, &mut chg) {
+            continue;
+        }
 
         let mut s = DeviceStatus {
             key: format!("msi:{}", hex4(VERSA300_ELITE_DONGLE_PID)),
@@ -56,7 +66,9 @@ pub fn poll_msi(ctx: &mut PollContext) {
             grace_sec: 1800,
             ..Default::default()
         };
-        if s.name.is_empty() { s.name = "MSI VERSA 300 ELITE WIRELESS".into(); }
+        if s.name.is_empty() {
+            s.name = "MSI VERSA 300 ELITE WIRELESS".into();
+        }
         if pct == 0 && !chg {
             s.asleep = true;
         } else {

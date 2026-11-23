@@ -23,7 +23,7 @@ interface DataPickerProps {
   onOpenExplorer: () => void;
 }
 
-const FOOT_BUTTON = "h-[30px] rounded-[7px] px-3 text-caption";
+const FOOT_BUTTON = "h-7.5 rounded-7 px-3 text-caption";
 
 /** The data point picker (README §4.9). */
 export function DataPicker({ open, onOpenChange, title, points, mode, bound, onToggle, onOpenExplorer }: DataPickerProps) {
@@ -48,11 +48,11 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
             <div className="flex items-center justify-between">
               <Dialog.Title className="text-lead font-medium">{title}</Dialog.Title>
               <Dialog.Close aria-label="Close" className="text-ui-3 hover:text-ui-1">
-                <X className="h-[18px] w-[18px]" />
+                <X className="h-4.5 w-4.5" />
               </Dialog.Close>
             </div>
             <div className="flex h-9 items-center gap-2 rounded-lg border border-ui-accent bg-ui-app px-2.5">
-              <Search className="h-[17px] w-[17px] shrink-0 text-ui-4" />
+              <Search className="h-4.25 w-4.25 shrink-0 text-ui-4" />
               <input
                 autoFocus
                 value={query}
@@ -76,15 +76,15 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
                     title={p.key}
                     onClick={() => pick(p)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-2 text-left hover:bg-s-divider",
+                      "flex w-full items-center gap-2.5 rounded-7 px-2.5 py-2 text-left hover:bg-s-divider",
                       on && "bg-ui-accent/10"
                     )}
                   >
                     {mode === "widget" ? (
                       on ? (
-                        <SquareCheck className="h-[18px] w-[18px] shrink-0 text-ui-accent" />
+                        <SquareCheck className="h-4.5 w-4.5 shrink-0 text-ui-accent" />
                       ) : (
-                        <Square className="h-[18px] w-[18px] shrink-0 text-ui-4" />
+                        <Square className="h-4.5 w-4.5 shrink-0 text-ui-4" />
                       )
                     ) : null}
                     <TypeIcon type={p.type} />
@@ -92,7 +92,7 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
                       <span className="block truncate text-body text-ui-1">{p.name}</span>
                       <span className="block truncate text-micro text-ui-4">{pointPlace(p)}</span>
                     </span>
-                    <span className="max-w-[150px] shrink-0 truncate font-ui-mono text-micro text-ui-2">{p.raw}</span>
+                    <span className="max-w-37.5 shrink-0 truncate font-ui-mono text-micro text-ui-2">{p.raw}</span>
                   </button>
                 </li>
               );

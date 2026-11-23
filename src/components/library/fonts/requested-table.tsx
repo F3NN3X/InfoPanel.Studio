@@ -82,7 +82,7 @@ export function RequestedTable({ zone, answers, fonts, declared, onSelectItems, 
         return (
           <div key={entry.key} role="row" className={cn(COLUMNS, "border-b border-ui-subtle px-3.5 py-2.5 last:border-b-0", s.status === "missing" && "bg-ui-hover")}>
             <span role="cell" className="flex min-w-0 items-center gap-2 text-ui-1">
-              <span aria-hidden className={cn("h-[7px] w-[7px] shrink-0 rounded-full", DOT[s.status])} />
+              <span aria-hidden className={cn("h-1.75 w-1.75 shrink-0 rounded-full", DOT[s.status])} />
               <span className="truncate">{requestLabel(entry.request)}</span>
             </span>
             <span role="cell" className={cn("truncate", s.status === "missing" ? "text-ui-danger" : "text-ui-1")}>
@@ -96,7 +96,7 @@ export function RequestedTable({ zone, answers, fonts, declared, onSelectItems, 
                 type="button"
                 onClick={() => onSelectItems(zone.zoneId, entry.paths)}
                 title="Select these text items on the canvas"
-                className="min-w-[26px] rounded-ui-sm bg-ui-active px-1.5 py-0.5 font-ui-mono text-micro text-ui-1 hover:bg-ui-strong"
+                className="min-w-6.5 rounded-ui-sm bg-ui-active px-1.5 py-0.5 font-ui-mono text-micro text-ui-1 hover:bg-ui-strong"
               >
                 {entry.paths.length}
               </button>

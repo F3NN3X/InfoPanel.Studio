@@ -223,7 +223,7 @@ function Row({ kind, selected, onClick, label, count, icon: Icon, status, dimmed
             onChevron?.();
           }}
           className={cn(
-            "grid h-[18px] w-[18px] shrink-0 place-items-center rounded-ui-sm text-ui-hint hover:text-ui-1 disabled:hover:text-ui-hint",
+            "grid h-4.5 w-4.5 shrink-0 place-items-center rounded-ui-sm text-ui-hint hover:text-ui-1 disabled:hover:text-ui-hint",
             FOCUS_RING,
             chevron === "none" ? "opacity-0" : chevronDisabled && "opacity-40"
           )}

@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Copy, Download, ExternalLink, FileText, Link2, Plus, Search, Trash2, Waypoints, X } from "lucide-react";
 import { CONTROL_MOTION, FOCUS_RING } from "@/components/ui/button";
 import { FIELD_BOX } from "@/components/ui/field";
+import { Menu } from "@/components/ui/menu";
 import { Popover } from "@/components/ui/popover";
 import { useToast } from "@/components/ui/toast";
 import { refreshCatalog } from "@/lib/catalog";
@@ -39,6 +40,8 @@ const MENU_ITEM = cn(
   "[&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0 [&_svg]:text-ui-hint"
 );
 
+const ROW = "justify-start gap-2 [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0 [&_svg]:text-ui-hint";
+
 /** The Data sources page's bar: the title and count line, search, Endpoints, Report and Add source (the one primary). */
 export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount, query, onQuery, apiBase, config }: ExplorerHeaderProps) {
   const copy = useCopy();
@@ -72,8 +75,8 @@ export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount
       />
       <BarFill />
 
-      <div ref={actionsRef} className="flex min-w-0 items-center gap-2 max-[599px]:w-full">
-        <label className="relative w-[300px] min-w-[120px] shrink max-[599px]:w-full">
+      <div ref={actionsRef} className="flex min-w-0 items-center gap-2 max-sm:w-full">
+        <label className="relative w-75 min-w-30 shrink max-sm:w-full">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ui-hint" strokeWidth={1.5} aria-hidden />
           <input
             type="search"
@@ -103,7 +106,7 @@ export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount
           trigger={
             <>
               <Waypoints strokeWidth={1.5} />
-              <span className="max-[1279px]:sr-only">Endpoints</span>
+              <span className="max-xl:sr-only">Endpoints</span>
             </>
           }
         >
@@ -128,12 +131,12 @@ export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount
 
         <Popover
           align="end"
-          className="w-[300px]"
+          className="w-75"
           triggerClassName={GHOST}
           trigger={
             <>
               <FileText strokeWidth={1.5} />
-              <span className="max-[1279px]:sr-only">Report</span>
+              <span className="max-xl:sr-only">Report</span>
             </>
           }
         >
@@ -151,30 +154,26 @@ export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount
           </button>
         </Popover>
 
-        <Popover
-          align="end"
-          className="w-[280px]"
-          triggerClassName={PRIMARY}
-          trigger={
-            <>
-              <Plus strokeWidth={1.75} />
-              Add source
-            </>
-          }
-        >
-          <button type="button" className={MENU_ITEM} onClick={() => copy(`${apiBase}/api/push`)}>
-            <Link2 strokeWidth={1.5} />
-            Copy the push URL (POST /api/push)
-          </button>
-          <button type="button" className={MENU_ITEM} onClick={clearPushed}>
-            <Trash2 strokeWidth={1.5} />
-            Clear pushed values
-          </button>
-          <a href={`${apiBase}/`} target="_blank" rel="noreferrer" className={MENU_ITEM}>
-            <ExternalLink strokeWidth={1.5} />
-            Open the Data API index
-          </a>
-        </Popover>
+        <Menu.Root>
+          <Menu.Trigger className={PRIMARY}>
+            <Plus strokeWidth={1.75} />
+            Add source
+          </Menu.Trigger>
+          <Menu.Content className="w-70">
+            <Menu.Item className={ROW} onClick={() => copy(`${apiBase}/api/push`)}>
+              <Link2 strokeWidth={1.5} />
+              Copy the push URL (POST /api/push)
+            </Menu.Item>
+            <Menu.Item className={ROW} onClick={clearPushed}>
+              <Trash2 strokeWidth={1.5} />
+              Clear pushed values
+            </Menu.Item>
+            <Menu.Item className={ROW} render={<a href={`${apiBase}/`} target="_blank" rel="noreferrer" />}>
+              <ExternalLink strokeWidth={1.5} />
+              Open the Data API index
+            </Menu.Item>
+          </Menu.Content>
+        </Menu.Root>
       </div>
     </PageBar>
   );

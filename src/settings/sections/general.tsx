@@ -5,7 +5,8 @@ import { PREVIEW_DATA_HINT, PREVIEW_DATA_OPTIONS, parsePreviewData } from "@/lib
 import { errorText, ipc } from "../ipc";
 import { useStore } from "../store";
 import type { BrowserKind } from "../types";
-import { Button, Card, Group, Kbd, Row, Segmented, SwitchRow } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Group, Kbd, Row, Segmented, SwitchRow } from "../ui";
 
 export function GeneralSection() {
   const { settings, save, setZoom, toast } = useStore();
@@ -27,9 +28,9 @@ export function GeneralSection() {
   return (
     <>
       <Group title="Zoom">
-        <Card className="divide-y-0 pb-[18px]">
+        <Card className="divide-y-0 pb-4.5">
           <Row id="zoom" label="App zoom" hint="Scales the Studio and the app window. Doesn't change the kiosk." />
-          <div className="flex flex-col gap-4 px-[18px]">
+          <div className="flex flex-col gap-4 px-4.5">
             <Segmented
               label="App zoom"
               mono
@@ -91,10 +92,10 @@ export function GeneralSection() {
             onChange={(v) => void save("closeToTray", v)}
           />
           <SwitchRow id="remember-bounds" label="Remember window size and position" checked={settings.rememberBounds} onChange={(v) => void save("rememberBounds", v)} />
-          <Row id="studio-refresh" label="Refresh the Studio" hint="Reloads the Studio page after saving, to give back memory a long session holds. Only while the window isn't focused.">
+          <Row id="studio-refresh" label="Refresh the studio" hint="Reloads the Studio page after saving, to give back memory a long session holds. Only while the window isn't focused.">
             <select
-              aria-label="Refresh the Studio"
-              className="h-[30px] cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
+              aria-label="Refresh the studio"
+              className="h-7.5 cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
               value={settings.studioRefresh}
               onChange={(e) => void save("studioRefresh", e.target.value)}
             >
@@ -106,7 +107,7 @@ export function GeneralSection() {
           <Row id="release-hidden-studio" label="Release the hidden studio" hint="Closes the hidden studio's page to give back its memory; it opens again from the tray in a moment">
             <select
               aria-label="Release the hidden studio"
-              className="h-[30px] cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
+              className="h-7.5 cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
               value={settings.releaseHiddenStudio}
               onChange={(e) => void save("releaseHiddenStudio", e.target.value)}
             >
@@ -136,7 +137,7 @@ export function GeneralSection() {
           >
             <select
               aria-label="Open the studio in"
-              className="h-[30px] cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
+              className="h-7.5 cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
               value={settings.openStudioIn}
               onChange={(e) => void save("openStudioIn", e.target.value)}
             >
@@ -148,7 +149,7 @@ export function GeneralSection() {
           <Row id="preview-data" label="Design preview data" hint={PREVIEW_DATA_HINT}>
             <select
               aria-label="Design preview data"
-              className="h-[30px] cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
+              className="h-7.5 cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
               value={previewData}
               onChange={(e) => setPreviewData(parsePreviewData(e.target.value))}
             >

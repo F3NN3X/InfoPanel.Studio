@@ -17,7 +17,7 @@
 //! github.com/deddroid/logitech-g435-battery.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4};
 use crate::win::now_ms;
 
 // ---- pure protocol helpers (logitech_g435_0adf.h, kept I/O-free) --------------------------------
@@ -65,7 +65,9 @@ fn parse_millivolts(data: &[u8]) -> i32 {
     while i + 8 <= data.len() {
         if data[i] == 0x00 && data[i + 1] == 0x07 && data[i + 2] == 0x00 && data[i + 3] == 0x06 && data[i + 5] == 0x00 {
             let mv = (data[i + 6] as i32) | ((data[i + 7] as i32) << 8);
-            if (2500..=4500).contains(&mv) { return mv; }
+            if (2500..=4500).contains(&mv) {
+                return mv;
+            }
         }
         i += 1;
     }
@@ -76,7 +78,9 @@ fn parse_millivolts(data: &[u8]) -> i32 {
 fn percent(mv: i32) -> i32 {
     const V: [i32; 16] = [4200, 4150, 4100, 4050, 4000, 3950, 3900, 3850, 3800, 3750, 3700, 3650, 3600, 3550, 3500, 3400];
     const P: [i32; 16] = [100, 95, 90, 85, 80, 75, 70, 62, 55, 45, 35, 25, 15, 10, 5, 0];
-    if mv >= V[0] { return 100; }
+    if mv >= V[0] {
+        return 100;
+    }
     for i in 1..16 {
         if mv >= V[i] {
             return P[i] + ((P[i - 1] - P[i]) * (mv - V[i]) + (V[i - 1] - V[i]) / 2) / (V[i - 1] - V[i]);
@@ -95,8 +99,8 @@ const K_GET_MODE: u8 = 0xE0;
 const K_SET_MODE: u8 = 0xE1;
 
 /// Session init from the capture (OTA_CMD_IOCTL_READ_MAX_LEN, sequence 1 embedded).
-const K_SESSION_INIT: [u8; 19] = [0x50, 0x41, 0x06, 0x01, 0x0D, 0x00, 0x25, 0x34, 0x12, 0x5A,
-                                   0x5A, 0x01, 0x00, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x00];
+const K_SESSION_INIT: [u8; 19] =
+    [0x50, 0x41, 0x06, 0x01, 0x0D, 0x00, 0x25, 0x34, 0x12, 0x5A, 0x5A, 0x01, 0x00, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x00];
 
 /// Sends one frame (report ID 0) and collects the input reports that arrive within `wait_ms`.
 /// With `mv` set, returns as soon as a battery reply is seen.
@@ -105,16 +109,24 @@ fn transact(d: &mut dyn HidIo, cmd: u8, body: &[u8], wait_ms: u32, mut mv: Optio
     let mut out = vec![0x00u8];
     out.extend_from_slice(&f);
     d.flush();
-    if !d.write(&out, 500) { return false; }
+    if !d.write(&out, 500) {
+        return false;
+    }
     let end = now_ms() + wait_ms as u64;
     let mut r: Vec<u8> = Vec::new();
     loop {
         let left = end as i64 - now_ms() as i64;
-        if left <= 0 { return true; }
-        if d.read(&mut r, left as u32) < 0 { continue; }
+        if left <= 0 {
+            return true;
+        }
+        if d.read(&mut r, left as u32) < 0 {
+            continue;
+        }
         if let Some(mvp) = mv.as_deref_mut() {
             *mvp = parse_millivolts(&r);
-            if *mvp >= 0 { return true; }
+            if *mvp >= 0 {
+                return true;
+            }
         }
     }
 }
@@ -125,11 +137,15 @@ struct SessionGuard<'a> {
 }
 
 impl Drop for SessionGuard<'_> {
-    fn drop(&mut self) { transact(&mut *self.d, 0x85, &[0x02], 50, None); }
+    fn drop(&mut self) {
+        transact(&mut *self.d, 0x85, &[0x02], 50, None);
+    }
 }
 
 fn read_millivolts(d: &mut dyn HidIo) -> i32 {
-    if !transact(&mut *d, 0x84, &[0x01], 50, None) { return -1; }
+    if !transact(&mut *d, 0x84, &[0x01], 50, None) {
+        return -1;
+    }
     let guard = SessionGuard { d };
     transact(&mut *guard.d, 0x85, &[0x01], 50, None);
     transact(&mut *guard.d, 0x80, &K_SESSION_INIT, 450, None);
@@ -149,11 +165,13 @@ fn read_millivolts(d: &mut dyn HidIo) -> i32 {
 }
 
 pub fn poll_logitech_g435(ctx: &mut PollContext) {
-    if ctx.is_claimed(K_VID, K_PID) { return; }
-    let colls = ctx.find(K_VID, K_PID, |c| {
-        c.page() == 0xFF00 && c.usage() == 0x0001 && c.in_len() == 65 && c.out_len() == 65
-    });
-    if colls.is_empty() { return; }
+    if ctx.is_claimed(K_VID, K_PID) {
+        return;
+    }
+    let colls = ctx.find(K_VID, K_PID, |c| c.page() == 0xFF00 && c.usage() == 0x0001 && c.in_len() == 65 && c.out_len() == 65);
+    if colls.is_empty() {
+        return;
+    }
 
     let Some(mut d) = ctx.open(&colls[0]) else { return };
 

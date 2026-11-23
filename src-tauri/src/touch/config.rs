@@ -60,12 +60,7 @@ pub struct Testing {
 
 impl Default for Testing {
     fn default() -> Self {
-        Self {
-            enabled: false,
-            virtual_panels: 1,
-            replay: "all".into(),
-            size: [1920, 550],
-        }
+        Self { enabled: false, virtual_panels: 1, replay: "all".into(), size: [1920, 550] }
     }
 }
 
@@ -106,17 +101,11 @@ pub enum Level {
 
 impl Issue {
     pub fn error(message: impl Into<String>) -> Self {
-        Self {
-            level: Level::Error,
-            message: message.into(),
-        }
+        Self { level: Level::Error, message: message.into() }
     }
 
     pub fn warning(message: impl Into<String>) -> Self {
-        Self {
-            level: Level::Warning,
-            message: message.into(),
-        }
+        Self { level: Level::Warning, message: message.into() }
     }
 }
 
@@ -150,24 +139,14 @@ pub struct MonitorMatch {
 
 impl Default for PanelEntry {
     fn default() -> Self {
-        Self {
-            id: "panel-1".into(),
-            name: "Panel 1".into(),
-            device: Default::default(),
-            monitor: None,
-            panel: Default::default(),
-        }
+        Self { id: "panel-1".into(), name: "Panel 1".into(), device: Default::default(), monitor: None, panel: Default::default() }
     }
 }
 
 impl PanelEntry {
     /// touch-core's config for this panel.
     pub fn touch(&self, gestures: &touch_core::GestureConfig) -> touch_core::Config {
-        touch_core::Config {
-            device: self.device.clone(),
-            panel: self.panel.clone(),
-            gestures: gestures.clone(),
-        }
+        touch_core::Config { device: self.device.clone(), panel: self.panel.clone(), gestures: gestures.clone() }
     }
 }
 
@@ -178,10 +157,7 @@ const STARTER: &str = "{\n  \"touch_dots\": false\n}\n";
 /// Loads touch.json, writing a starter file first if none exists yet.
 pub fn load_or_init(path: &Path) -> Loaded {
     if !path.exists() {
-        let written = path
-            .parent()
-            .map_or(Ok(()), std::fs::create_dir_all)
-            .and_then(|()| std::fs::write(path, STARTER));
+        let written = path.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|()| std::fs::write(path, STARTER));
         if let Err(e) = written {
             return failed(format!("writing the starter touch.json: {e}"));
         }
@@ -198,10 +174,7 @@ pub fn load(path: &Path) -> Loaded {
 }
 
 fn failed(message: String) -> Loaded {
-    Loaded {
-        config: None,
-        issues: vec![Issue::error(message)],
-    }
+    Loaded { config: None, issues: vec![Issue::error(message)] }
 }
 
 fn valid_id(id: &str) -> bool {
@@ -223,90 +196,50 @@ pub fn check(text: &str) -> Loaded {
         Err(e) => return failed(e.to_string()),
     };
 
-    let mut issues: Vec<Issue> = cfg
-        .gestures
-        .validate()
-        .into_iter()
-        .map(|e| Issue::error(format!("gestures: {e}")))
-        .collect();
+    let mut issues: Vec<Issue> = cfg.gestures.validate().into_iter().map(|e| Issue::error(format!("gestures: {e}"))).collect();
     for (i, p) in cfg.panels.iter().enumerate() {
         let at = format!("panels[{i}] \"{}\"", p.name);
-        issues.extend(
-            p.panel
-                .validate()
-                .into_iter()
-                .map(|e| Issue::error(format!("{at}: panel: {e}"))),
-        );
+        issues.extend(p.panel.validate().into_iter().map(|e| Issue::error(format!("{at}: panel: {e}"))));
         let earlier = &cfg.panels[..i];
         if !valid_id(&p.id) || p.id.starts_with("virtual-") {
-            issues.push(Issue::error(format!(
-                "{at}: id must be letters, digits and -, and not start with virtual-"
-            )));
+            issues.push(Issue::error(format!("{at}: id must be letters, digits and -, and not start with virtual-")));
         } else if earlier.iter().any(|q| q.id == p.id) {
-            issues.push(Issue::error(format!(
-                "{at}: id \"{}\" is already used by another panel",
-                p.id
-            )));
+            issues.push(Issue::error(format!("{at}: id \"{}\" is already used by another panel", p.id)));
         }
         if p.device.port.is_some() && earlier.iter().any(|q| q.device.port == p.device.port) {
-            issues.push(Issue::error(format!(
-                "{at}: device.port is already used by another panel"
-            )));
+            issues.push(Issue::error(format!("{at}: device.port is already used by another panel")));
         }
         if earlier.iter().any(|q| q.name == p.name) {
-            issues.push(Issue::warning(format!(
-                "{at}: another panel has the same name"
-            )));
+            issues.push(Issue::warning(format!("{at}: another panel has the same name")));
         }
     }
     if !(0.0..=100.0).contains(&cfg.prediction_ms) {
         issues.push(Issue::error("prediction_ms must be between 0 and 100"));
     }
     if !(1..=4).contains(&cfg.testing.virtual_panels) {
-        issues.push(Issue::error(
-            "testing.virtual_panels must be between 1 and 4",
-        ));
+        issues.push(Issue::error("testing.virtual_panels must be between 1 and 4"));
     }
     if cfg.testing.size.iter().any(|v| !(320..=7680).contains(v)) {
-        issues.push(Issue::error(
-            "testing.size: width and height must be between 320 and 7680",
-        ));
+        issues.push(Issue::error("testing.size: width and height must be between 320 and 7680"));
     }
     let replay = &cfg.testing.replay;
-    if !super::testing::BUILT_IN.contains(&replay.as_str())
-        && replay != "none"
-        && !Path::new(replay).is_file()
-    {
-        issues.push(Issue::error(format!(
-            "testing.replay: \"{replay}\" is no built-in capture and no file"
-        )));
+    if !super::testing::BUILT_IN.contains(&replay.as_str()) && replay != "none" && !Path::new(replay).is_file() {
+        issues.push(Issue::error(format!("testing.replay: \"{replay}\" is no built-in capture and no file")));
     }
-    let defaults =
-        serde_json::to_value(TouchConfig::default()).expect("the touch config serialises");
+    let defaults = serde_json::to_value(TouchConfig::default()).expect("the touch config serialises");
     unknown_keys(&value, &defaults, "", &mut issues);
     for key in cfg.actions.keys().filter(|k| !is_gesture_key(k)) {
-        issues.push(Issue::warning(format!(
-            "actions: no gesture is called \"{key}\""
-        )));
+        issues.push(Issue::warning(format!("actions: no gesture is called \"{key}\"")));
     }
 
     let ok = issues.iter().all(|i| i.level == Level::Warning);
-    Loaded {
-        config: ok.then_some(cfg),
-        issues,
-    }
+    Loaded { config: ok.then_some(cfg), issues }
 }
 
 /// Keys the file has but the config doesn't: serde ignores them, so they are usually typos. Array elements are
 /// checked against the default's first element (`panels[0]`).
-fn unknown_keys(
-    file: &serde_json::Value,
-    known: &serde_json::Value,
-    prefix: &str,
-    issues: &mut Vec<Issue>,
-) {
-    if let (Some(items), Some(model)) = (file.as_array(), known.as_array().and_then(|a| a.first()))
-    {
+fn unknown_keys(file: &serde_json::Value, known: &serde_json::Value, prefix: &str, issues: &mut Vec<Issue>) {
+    if let (Some(items), Some(model)) = (file.as_array(), known.as_array().and_then(|a| a.first())) {
         let base = prefix.trim_end_matches('.');
         for (i, item) in items.iter().enumerate() {
             unknown_keys(item, model, &format!("{base}[{i}]."), issues);
@@ -356,11 +289,7 @@ mod tests {
     use super::*;
 
     fn messages(loaded: &Loaded) -> Vec<(Level, &str)> {
-        loaded
-            .issues
-            .iter()
-            .map(|i| (i.level, i.message.as_str()))
-            .collect()
+        loaded.issues.iter().map(|i| (i.level, i.message.as_str())).collect()
     }
 
     #[test]
@@ -375,16 +304,9 @@ mod tests {
         assert_eq!(cfg.panels[0].panel.rotation, touch_core::Rotation::R180);
         assert_eq!(cfg.panels[0].panel.width_px, 1920);
         assert_eq!(cfg.panels[1].device.vid, None, "no ids: any touchscreen");
-        assert_eq!(
-            cfg.panels[1].touch(&cfg.gestures).gestures.slop_px,
-            20.0,
-            "gestures are shared"
-        );
+        assert_eq!(cfg.panels[1].touch(&cfg.gestures).gestures.slop_px, 20.0, "gestures are shared");
         assert_eq!(cfg.prediction_ms, 16.0);
-        assert_eq!(
-            cfg.actions.get("ThreeFingerTap"),
-            Some(&Action::ToggleDebug)
-        );
+        assert_eq!(cfg.actions.get("ThreeFingerTap"), Some(&Action::ToggleDebug));
         assert_eq!(TouchConfig::default().panels, vec![PanelEntry::default()]);
     }
 
@@ -398,30 +320,12 @@ mod tests {
         assert_eq!(
             messages(&loaded),
             [
-                (
-                    Level::Error,
-                    r#"panels[1] "B": panel: panel size must be non-zero"#
-                ),
-                (
-                    Level::Error,
-                    r#"panels[1] "B": id "a" is already used by another panel"#
-                ),
-                (
-                    Level::Error,
-                    r#"panels[1] "B": device.port is already used by another panel"#
-                ),
-                (
-                    Level::Error,
-                    r#"panels[2] "C": id must be letters, digits and -, and not start with virtual-"#
-                ),
-                (
-                    Level::Error,
-                    r#"panels[3] "D": id must be letters, digits and -, and not start with virtual-"#
-                ),
-                (
-                    Level::Warning,
-                    r#"unknown key "panels[1].monitr" (ignored)"#
-                ),
+                (Level::Error, r#"panels[1] "B": panel: panel size must be non-zero"#),
+                (Level::Error, r#"panels[1] "B": id "a" is already used by another panel"#),
+                (Level::Error, r#"panels[1] "B": device.port is already used by another panel"#),
+                (Level::Error, r#"panels[2] "C": id must be letters, digits and -, and not start with virtual-"#),
+                (Level::Error, r#"panels[3] "D": id must be letters, digits and -, and not start with virtual-"#),
+                (Level::Warning, r#"unknown key "panels[1].monitr" (ignored)"#),
             ]
         );
         assert_eq!(loaded.config, None);
@@ -433,25 +337,10 @@ mod tests {
             r#"{"actions": {"LongPress": {"action": "emit", "name": "mute"}, "Swipe Up x1": {"action": "page", "to": "prev"}}}"#,
         )
         .unwrap();
-        assert_eq!(
-            cfg.actions.len(),
-            2,
-            "a file's actions replace the defaults"
-        );
-        assert_eq!(
-            cfg.actions["LongPress"],
-            Action::Emit {
-                name: "mute".into()
-            }
-        );
-        assert_eq!(
-            cfg.actions["Swipe Up x1"],
-            Action::Page { to: PageDir::Prev }
-        );
-        assert!(serde_json::from_str::<TouchConfig>(
-            r#"{"actions": {"Tap": {"action": "explode"}}}"#
-        )
-        .is_err());
+        assert_eq!(cfg.actions.len(), 2, "a file's actions replace the defaults");
+        assert_eq!(cfg.actions["LongPress"], Action::Emit { name: "mute".into() });
+        assert_eq!(cfg.actions["Swipe Up x1"], Action::Page { to: PageDir::Prev });
+        assert!(serde_json::from_str::<TouchConfig>(r#"{"actions": {"Tap": {"action": "explode"}}}"#).is_err());
 
         let typo = check(
             r#"{"touch_dot": true, "gestures": {"slop": 5},
@@ -462,14 +351,8 @@ mod tests {
             [
                 (Level::Warning, r#"unknown key "touch_dot" (ignored)"#),
                 (Level::Warning, r#"unknown key "gestures.slop" (ignored)"#),
-                (
-                    Level::Warning,
-                    r#"actions: no gesture is called "Swipe Up x0""#
-                ),
-                (
-                    Level::Warning,
-                    r#"actions: no gesture is called "Swipe left x2""#
-                ),
+                (Level::Warning, r#"actions: no gesture is called "Swipe Up x0""#),
+                (Level::Warning, r#"actions: no gesture is called "Swipe left x2""#),
             ]
         );
         assert!(typo.config.is_some(), "warnings still apply the file");
@@ -499,10 +382,7 @@ mod tests {
             assert_eq!(loaded.config, Some(TouchConfig::default()));
         }
         std::fs::write(&path, r#"{"touch_dots": true}"#).unwrap();
-        assert!(
-            load_or_init(&path).config.unwrap().touch_dots,
-            "an existing file is kept"
-        );
+        assert!(load_or_init(&path).config.unwrap().touch_dots, "an existing file is kept");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

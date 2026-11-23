@@ -93,13 +93,13 @@ export default function DeviceBatteries(p: DeviceBatteriesProps) {
         </span>
         {showCharging && d.charging && <Icon name="bolt" className="shrink-0 text-xs text-[color:var(--w-accent)]" />}
         {showNum && (
-          <Num className={`ml-auto shrink-0 ${big ? "text-[22px]" : "text-base"}`} style={{ color: colour(d) }}>
+          <Num className={`ml-auto shrink-0 ${big ? "text-stat" : "text-base"}`} style={{ color: colour(d) }}>
             {pctText(d)}
           </Num>
         )}
       </div>
       {showBar && (
-        <div className={`mt-1 overflow-hidden rounded-full bg-[color:var(--w-track)] ${big ? "h-1.5" : "h-[5px]"}`}>
+        <div className={`mt-1 overflow-hidden rounded-full bg-[color:var(--w-track)] ${big ? "h-1.5" : "h-1.25"}`}>
           {d.percent !== undefined && <div className="h-full w-full rounded-full" style={{ ...slideX(Math.round(d.percent)), background: colour(d) }} />}
         </div>
       )}
@@ -118,7 +118,7 @@ export default function DeviceBatteries(p: DeviceBatteriesProps) {
         {showCharging && d.charging && <Icon name="bolt" className={`shrink-0 text-[9px] text-[color:var(--w-accent)] ${showNum ? "" : "ml-auto"}`} />}
       </div>
       {showBar && (
-        <div className="mt-0.5 h-[3px] overflow-hidden rounded-full bg-[color:var(--w-track)]">
+        <div className="mt-0.5 h-0.75 overflow-hidden rounded-full bg-[color:var(--w-track)]">
           {d.percent !== undefined && <div data-part="charge-bar" className="h-full w-full rounded-full" style={{ ...slideX(Math.round(d.percent)), background: colour(d) }} />}
         </div>
       )}
@@ -139,7 +139,7 @@ export default function DeviceBatteries(p: DeviceBatteriesProps) {
     return (
       <div className="grid h-full content-center justify-center gap-x-2 overflow-hidden" style={{ gridTemplateColumns: `repeat(${cols}, auto)`, rowGap: gap }}>
         {list.map((d) => (
-          <div key={d.id} data-device={d.id} data-asleep={d.asleep ? "" : undefined} data-charging={d.charging ? "" : undefined} title={`${d.name} ${pctText(d)}${doing(d) ? ` — ${doing(d)}` : ""}`} className={`flex min-w-0 items-center gap-[3px] leading-none ${d.asleep ? "opacity-60" : ""}`}>
+          <div key={d.id} data-device={d.id} data-asleep={d.asleep ? "" : undefined} data-charging={d.charging ? "" : undefined} title={`${d.name} ${pctText(d)}${doing(d) ? ` — ${doing(d)}` : ""}`} className={`flex min-w-0 items-center gap-0.75 leading-none ${d.asleep ? "opacity-60" : ""}`}>
             {showIcon && (
               <span className="flex shrink-0 text-[color:var(--w-muted)]" style={{ fontSize: s }}>
                 <Icon name={iconOf(d.kind)} />
@@ -301,7 +301,7 @@ export default function DeviceBatteries(p: DeviceBatteriesProps) {
                   <span className="flex w-full min-w-0 items-center justify-center gap-1 text-micro">
                     {showIcon && <Icon name={iconOf(d.kind)} className="shrink-0 text-[11px] text-[color:var(--w-muted)]" />}
                     <span className="truncate text-[color:var(--w-muted)]">{d.name}</span>
-                    {showCharging && d.charging && <Icon name="bolt" className="shrink-0 text-[10px] text-[color:var(--w-accent)]" />}
+                    {showCharging && d.charging && <Icon name="bolt" className="shrink-0 text-nano text-[color:var(--w-accent)]" />}
                   </span>
                 </div>
               ))}
@@ -323,7 +323,7 @@ export default function DeviceBatteries(p: DeviceBatteriesProps) {
                   {showCharging && target.charging && <Icon name="bolt" className="shrink-0 text-sm text-[color:var(--w-accent)]" />}
                 </div>
                 <span className="truncate text-xs text-[color:var(--w-muted)]">{sub(target) ?? "—"}</span>
-                {showBar && <Bar value={target.percent ?? 0} t={toneOf(target)} color={inkOf(target)} className="mt-0.5 h-1.5 max-w-[220px]" track="bg-[color:var(--w-track)]" />}
+                {showBar && <Bar value={target.percent ?? 0} t={toneOf(target)} color={inkOf(target)} className="mt-0.5 h-1.5 max-w-55" track="bg-[color:var(--w-track)]" />}
                 {target.low && target.percent !== undefined && (
                   <span className="text-micro font-medium" style={{ color: colour(target) }}>
                     Low — charge it
@@ -365,7 +365,7 @@ export default function DeviceBatteries(p: DeviceBatteriesProps) {
         ) : (
           <div className="flex h-full min-h-0 items-center gap-5">
             {/* under 360 px the summary (the lowest row again) would leave the rows a letter of their names */}
-            {outerW >= 360 && <div className="flex w-[34%] min-w-[140px] shrink-0 flex-col gap-1.5">{head}</div>}
+            {outerW >= 360 && <div className="flex w-[34%] min-w-35 shrink-0 flex-col gap-1.5">{head}</div>}
             <div className={`grid min-w-0 flex-1 auto-rows-min gap-x-4 gap-y-2 overflow-hidden ${columns === 2 ? "grid-cols-2" : "grid-cols-1"}`}>{shown.map((d, i) => row(d, view === "lowest" && i === 0))}</div>
           </div>
         );

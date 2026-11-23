@@ -39,16 +39,16 @@ export default function Thermals(p: ThermalsProps) {
   const d = p.data;
   const cpu = hw(d).cpu,
     gpu = hw(d).gpu;
-  const L = (k: string) => num(get(d, `libre.${k}`));
+  const libreOf = (k: string) => num(get(d, `libre.${k}`));
   const raw: { id: string; label: string; v: number; warn: number; crit: number }[] = [];
   if (p.discover) for (const r of readings(d, p.names)) if (r.kind === "temp") raw.push({ id: r.key, label: r.label, v: r.value, warn: 70, crit: 85 });
   if (cpu && !p.discover) raw.push({ id: "cpu", label: "CPU", v: readSystemFlat(d ?? {}).cpu.temp ?? NaN, warn: 80, crit: 90 });
   if (gpu && !p.discover) {
-    raw.push({ id: "gpu", label: "GPU", v: L(`${gpu}_gpu_core`), warn: 75, crit: 85 });
-    raw.push({ id: "hot", label: "GPU memory", v: L(`${gpu}_gpu_memory_junction`), warn: 90, crit: 100 });
+    raw.push({ id: "gpu", label: "GPU", v: libreOf(`${gpu}_gpu_core`), warn: 75, crit: 85 });
+    raw.push({ id: "hot", label: "GPU memory", v: libreOf(`${gpu}_gpu_memory_junction`), warn: 90, crit: 100 });
   }
   for (const s of p.discover ? [] : hw(d).disks)
-    raw.push({ id: s, label: diskShort(s, get(d, `libre.${s}_volumes`)), v: [`${s}_composite_temperature`, `${s}_temperature`, `${s}_temperature__2`].map(L).find(Number.isFinite) ?? NaN, warn: L(`${s}_warning_temperature`) || 70, crit: L(`${s}_critical_temperature`) || 85 });
+    raw.push({ id: s, label: diskShort(s, get(d, `libre.${s}_volumes`)), v: [`${s}_composite_temperature`, `${s}_temperature`, `${s}_temperature__2`].map(libreOf).find(Number.isFinite) ?? NaN, warn: libreOf(`${s}_warning_temperature`) || 70, crit: libreOf(`${s}_critical_temperature`) || 85 });
   if (!p.discover) raw.push({ id: "vrm", label: "VRM", v: readSystemFlat(d ?? {}).board.vrm ?? NaN, warn: 90, crit: 105 });
   const list: Sensor[] = raw.filter((x) => Number.isFinite(x.v) && x.v > 0).map((x) => ({ ...x, t: tone(x.v, p.warn ?? x.warn, p.crit ?? x.crit) }));
   if (p.sortBy !== "fixed") list.sort((a, b) => b.v - a.v);
@@ -58,7 +58,7 @@ export default function Thermals(p: ThermalsProps) {
   const unit = p.tempUnit ?? "c";
   const deg = unit === "f" ? "°F" : "°C";
   /** A temperature as shown, in the chosen unit. */
-  const T = (c: number) => fmt(inUnit(c, unit), 0);
+  const tempOf = (c: number) => fmt(inUnit(c, unit), 0);
   if (!top)
     return (
       <Widget {...shell(p)} title="Thermals" icon="device_thermostat">
@@ -70,8 +70,8 @@ export default function Thermals(p: ThermalsProps) {
       {...shell(p)}
       title={p.title ?? "Thermals"}
       icon="device_thermostat"
-      studio={{ label: "Thermals", value: inUnit(top.v, unit), unit: deg, sub: `Hottest · ${top.label}`, t: top.t, rows: list.map((x) => ({ n: x.label, v: `${T(x.v)}${deg}`, pct: (x.v / max) * 100 })) }}
-      compact={{ label: `Hottest · ${top.label}`, value: inUnit(top.v, unit), unit: deg, sub: list.slice(1, 3).map((x) => `${x.label} ${T(x.v)}°`).join(" · "), hist, t: top.t }}
+      studio={{ label: "Thermals", value: inUnit(top.v, unit), unit: deg, sub: `Hottest · ${top.label}`, t: top.t, rows: list.map((x) => ({ n: x.label, v: `${tempOf(x.v)}${deg}`, pct: (x.v / max) * 100 })) }}
+      compact={{ label: `Hottest · ${top.label}`, value: inUnit(top.v, unit), unit: deg, sub: list.slice(1, 3).map((x) => `${x.label} ${tempOf(x.v)}°`).join(" · "), hist, t: top.t }}
     >
       {({ size, w, h }) => {
         if (p.view === "gauges") {
@@ -84,10 +84,10 @@ export default function Thermals(p: ThermalsProps) {
                   <div key={x.id} className="flex flex-col items-center gap-1">
                     <div style={{ width: ring }}>
                       <Ring value={x.v} max={max} t={x.t}>
-                        <Num className="text-sm font-semibold">{T(x.v)}°</Num>
+                        <Num className="text-sm font-semibold">{tempOf(x.v)}°</Num>
                       </Ring>
                     </div>
-                    <span className="max-w-[96px] truncate text-micro text-[color:var(--w-muted)]" title={x.label}>
+                    <span className="max-w-24 truncate text-micro text-[color:var(--w-muted)]" title={x.label}>
                       {x.label}
                     </span>
                   </div>
@@ -98,7 +98,7 @@ export default function Thermals(p: ThermalsProps) {
                   {fans.map((r) => (
                     <span key={r.key} className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--w-track)] px-2.5 py-1 text-micro" title={r.label}>
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: p.fanColor || "#38bdf8" }} />
-                      <span className="max-w-[120px] truncate text-[color:var(--w-muted)]">{r.label}</span>
+                      <span className="max-w-30 truncate text-[color:var(--w-muted)]">{r.label}</span>
                       <span className="font-semibold tabular-nums">{r.text}</span>
                     </span>
                   ))}
@@ -129,7 +129,7 @@ export default function Thermals(p: ThermalsProps) {
                 )}
                 <span className="text-right font-medium tabular-nums" style={x.t !== "ok" ? { color: TONES[x.t] } : undefined}>
                   <ToneCue t={x.t} />
-                  {T(x.v)}
+                  {tempOf(x.v)}
                   {deg}
                 </span>
               </li>

@@ -10,7 +10,10 @@ use tokio::sync::oneshot;
 /// The status, whether the answer says the store is off, and the body (enough for these short answers).
 async fn ask(port: u16, method: &str, path: &str, headers: &str, body: &str) -> (u16, bool, String) {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
-    let request = format!("{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n{headers}Content-Length: {}\r\n\r\n{body}", body.len());
+    let request = format!(
+        "{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n{headers}Content-Length: {}\r\n\r\n{body}",
+        body.len()
+    );
     stream.write_all(request.as_bytes()).await.unwrap();
     let mut raw = Vec::new();
     tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw)).await.unwrap().unwrap();
@@ -18,7 +21,11 @@ async fn ask(port: u16, method: &str, path: &str, headers: &str, body: &str) -> 
     let status = text.split(' ').nth(1).unwrap().parse().unwrap();
     let off = text.to_ascii_lowercase().contains("x-user-widgets: off");
     let rest = text.split("\r\n\r\n").nth(1).unwrap_or("");
-    let body = if text.to_ascii_lowercase().contains("transfer-encoding: chunked") { rest.lines().nth(1).unwrap_or("").to_string() } else { rest.to_string() };
+    let body = if text.to_ascii_lowercase().contains("transfer-encoding: chunked") {
+        rest.lines().nth(1).unwrap_or("").to_string()
+    } else {
+        rest.to_string()
+    };
     (status, off, body)
 }
 
@@ -55,7 +62,11 @@ async fn off_the_folder_is_not_read_nothing_is_written_and_every_answer_says_so(
     let done = tokio::spawn(bound.serve(async {
         let _ = stopped.await;
     }));
-    assert_eq!(ask(port, "GET", "/api/widgets", "", "").await, (200, true, "[]".to_string()), "the studio and the kiosk read this to hide user widgets");
+    assert_eq!(
+        ask(port, "GET", "/api/widgets", "", "").await,
+        (200, true, "[]".to_string()),
+        "the studio and the kiosk read this to hide user widgets"
+    );
     let (status, off, _) = ask(port, "GET", "/api/widgets/recipe.mine/manifest.json", "", "").await;
     assert_eq!((status, off), (404, true), "a file: the kiosk draws nothing for a recipe placement");
     let write = "Content-Type: application/json\r\nX-Dashboard-Widget: 1\r\n";

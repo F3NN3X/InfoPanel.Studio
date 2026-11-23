@@ -69,7 +69,7 @@ export function HoldButton({ label, onConfirm, className }: HoldButtonProps) {
       {/* the fill: the accent, under the label; in steps with reduced motion */}
       <span aria-hidden className="absolute inset-y-0 left-0 -z-10 bg-primary/40" style={{ width: `${(reduced ? Math.floor(held * 6) / 6 : held) * 100}%` }} />
       <span className="leading-tight">{label}</span>
-      <span className="text-[12px] font-normal leading-tight tabular-nums text-muted-foreground">{held > 0 && held < 1 ? `${left.toFixed(1)} s left` : `Hold ${HOLD_MS / 1000} s`}</span>
+      <span className="text-caption font-normal leading-tight tabular-nums text-muted-foreground">{held > 0 && held < 1 ? `${left.toFixed(1)} s left` : `Hold ${HOLD_MS / 1000} s`}</span>
     </button>
   );
 }

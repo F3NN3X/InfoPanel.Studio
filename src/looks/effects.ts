@@ -2,9 +2,12 @@
 // blur), each with a cost class, and what each becomes when the screen has to save work (lite mode, reduced motion, Limit blur,
 // a solid page). Pack CSS never does this: it is paint only (pack-css.ts). Lazy: only the pack stage and the loader import it.
 
+import { FLASH_MAX, FX_KINDS, type FxKind, type FxLevel } from "./pack-json";
+
 export const EFFECT_COSTS = ["static", "composited", "filter", "mask", "animated"] as const;
 export type EffectCost = (typeof EFFECT_COSTS)[number];
-export type EffectKind = "grain" | "scanlines" | "vignette" | "glow" | "blur";
+/** The kinds a pack may ask for; the `FX_KINDS` (glitch, flicker, rgb-split, interference) are animated overlays that flash (L108). */
+export type EffectKind = "grain" | "scanlines" | "vignette" | "glow" | "blur" | FxKind;
 export const SIZE_CLASSES = ["xs", "sm", "md", "lg"] as const;
 export type SizeClass = (typeof SIZE_CLASSES)[number];
 
@@ -20,10 +23,16 @@ export interface PackEffect {
   fallback?: "off" | "static";
   /** Hidden on a screen under this size class. */
   minSizeClass?: SizeClass;
+  /** What the `calm` FX level draws: `off` drops it, `static` keeps it still. Unset = `fallback`. */
+  calm?: "off" | "static";
+  /** Flashes a second for the `FX_KINDS`, over 0 and at most `FLASH_MAX`; unset = 1. */
+  rate?: number;
 }
 
 /** What the screen is doing now. `lite` is lite mode (below 60 fps or reduced motion); `limitBlur` is the Limit blur switch. */
 export interface EffectEnv {
+  /** The screen's FX level (`resolvePerformance`); lite mode caps it at `calm`. */
+  level: FxLevel;
   lite: boolean;
   reduceMotion: boolean;
   limitBlur: boolean;
@@ -38,15 +47,21 @@ export interface PlannedEffect {
   opacity: number;
   px: number;
   animate: boolean;
+  /** Flashes a second (the `FX_KINDS` only), within `FLASH_MAX`. */
+  rate: number;
 }
 
 /** The cheapest class each kind can honestly claim: a glow or blur is a filter whatever the pack says. */
-export const KIND_FLOOR: Readonly<Record<EffectKind, EffectCost>> = { grain: "static", scanlines: "static", vignette: "static", glow: "filter", blur: "filter" };
+export const KIND_FLOOR: Readonly<Record<EffectKind, EffectCost>> = { grain: "static", scanlines: "static", vignette: "static", glow: "filter", blur: "filter", glitch: "composited", flicker: "composited", "rgb-split": "composited", interference: "composited" };
 const COST_RANK: Readonly<Record<EffectCost, number>> = { static: 0, composited: 1, mask: 2, filter: 3, animated: 4 };
 /** How many effects of a costly class a pack may have at once (the per-pack layer budget, spec Performance row). */
-export const COST_LIMITS: Readonly<Partial<Record<EffectCost, number>>> = { filter: 2, mask: 2, animated: 1 };
-/** Only these two can move. */
+export const COST_LIMITS: Readonly<Partial<Record<EffectCost, number>>> = { filter: 2, mask: 2, animated: 2 };
+/** Only these two can move, besides the `FX_KINDS`. */
 const MOVES: readonly EffectKind[] = ["grain", "scanlines"];
+const ANIMATES: readonly EffectKind[] = [...MOVES, ...FX_KINDS];
+const isFxKind = (kind: EffectKind): kind is FxKind => (FX_KINDS as readonly string[]).includes(kind);
+/** Flashes a second when a pack gives no `rate`. */
+export const FLASH_DEFAULT = 1;
 
 /** An overlay never gets stronger than this, so it cannot hide a widget (L71). */
 export const OVERLAY_MAX = 0.4;
@@ -78,29 +93,37 @@ export function effectIssues(effects: readonly PackEffect[]): string[] {
     if (!(e.kind in KIND_FLOOR)) return void issues.push(`${at} kind ${String(e.kind)}`);
     if (!EFFECT_COSTS.includes(e.cost)) return void issues.push(`${at} cost ${String(e.cost)}`);
     if (e.cost !== "animated" && COST_RANK[e.cost] < COST_RANK[KIND_FLOOR[e.kind]]) issues.push(`${at}: ${e.kind} costs at least ${KIND_FLOOR[e.kind]}`);
-    if (e.cost === "animated" && !MOVES.includes(e.kind)) issues.push(`${at}: ${e.kind} cannot be animated`);
+    if (e.cost === "animated" && !ANIMATES.includes(e.kind)) issues.push(`${at}: ${e.kind} cannot be animated`);
+    if (isFxKind(e.kind) && e.cost !== "animated") issues.push(`${at}: ${e.kind} is animated: cost animated`);
     count[e.cost] = (count[e.cost] ?? 0) + 1;
     for (const key of ["opacity", "px"] as const) if (e[key] !== undefined && !(typeof e[key] === "number" && Number.isFinite(e[key]) && e[key]! >= 0)) issues.push(`${at} ${key}`);
     if (e.fallback !== undefined && e.fallback !== "off" && e.fallback !== "static") issues.push(`${at} fallback`);
     if (e.minSizeClass !== undefined && !SIZE_CLASSES.includes(e.minSizeClass)) issues.push(`${at} minSizeClass`);
+    if (e.calm !== undefined && e.calm !== "off" && e.calm !== "static") issues.push(`${at} calm`);
+    if (e.rate !== undefined && !(isFxKind(e.kind) && typeof e.rate === "number" && e.rate > 0 && e.rate <= FLASH_MAX)) issues.push(`${at} rate: over 0 and at most ${FLASH_MAX} flashes a second, on ${FX_KINDS.join(", ")} only`);
   });
   for (const [cost, limit] of Object.entries(COST_LIMITS)) if ((count[cost as EffectCost] ?? 0) > limit) issues.push(`more than ${limit} ${cost} effects`);
   return issues;
 }
 
-/** The effects this screen draws: capped, cut or stilled by its settings. Pure, in the pack's order. */
+/** The level a screen draws at: lite mode and reduced motion cap it at `calm`. */
+const levelOf = (env: EffectEnv): FxLevel => (env.level !== "off" && (env.lite || env.reduceMotion) ? "calm" : env.level);
+
+/** The effects this screen draws: capped, cut or stilled by its level and settings. Pure, in the pack's order. */
 export function planEffects(effects: readonly PackEffect[] | undefined, env: EffectEnv): PlannedEffect[] {
-  const calm = env.lite || env.reduceMotion;
+  const level = levelOf(env);
+  const calm = level === "calm";
   const out: PlannedEffect[] = [];
+  if (level === "off") return out;
   for (const e of effects ?? []) {
     if (!showsAt(e.minSizeClass, env.sizeClass)) continue;
-    const fallback = e.fallback ?? (MOVES.includes(e.kind) ? "off" : "static");
-    if (calm && fallback === "off") continue;
+    const fallback = e.fallback ?? (ANIMATES.includes(e.kind) ? "off" : "static");
+    if (calm && (e.calm ?? fallback) === "off") continue;
     let px = 0;
     if (e.kind === "glow") px = Math.floor(clamp(e.px ?? 12, 0, GLOW_MAX) / (env.lite ? 2 : 1));
     if (e.kind === "blur") px = env.lite || env.solidPage ? 0 : clamp(e.px ?? 8, 0, env.limitBlur ? BLUR_LIMITED : BLUR_MAX);
     if ((e.kind === "glow" || e.kind === "blur") && px === 0) continue;
-    out.push({ kind: e.kind, cost: e.cost, opacity: clamp(e.opacity ?? OVERLAY_DEFAULT, 0, OVERLAY_MAX), px, animate: e.cost === "animated" && !calm });
+    out.push({ kind: e.kind, cost: e.cost, opacity: clamp(e.opacity ?? OVERLAY_DEFAULT, 0, OVERLAY_MAX), px, animate: e.cost === "animated" && !calm, rate: clamp(e.rate ?? FLASH_DEFAULT, 0.01, FLASH_MAX) });
   }
   return out;
 }

@@ -18,7 +18,7 @@ import type { DisplayItem } from "@/lib/infopanel/schema";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
 import { Toggle } from "@/components/ui/toggle";
 import { fromCss, toCss } from "@/components/studio/inspector/infopanel-defs";
-import { Segmented } from "./canvas-toolbar";
+import { Segmented } from "@/components/ui/segmented";
 import { IconPicker } from "./icon-picker";
 import { DriveIcons, IconFileButtons } from "./icon-source";
 import type { CanvasEditor } from "./use-canvas-editor";
@@ -58,7 +58,7 @@ export function NumberField({ label, value, onCommit }: { label: string; value: 
           if (e.key === "Enter") commit();
           if (e.key === "Escape") setDraft(null);
         }}
-        className={cn(INPUT, "w-[84px]")}
+        className={cn(INPUT, "w-21")}
       />
     </Row>
   );
@@ -73,7 +73,7 @@ export function InkField({ label, ink, palette, onChange }: { label: string; ink
           aria-label={`${label} color`}
           value={ink.slot ?? ""}
           onChange={(e) => onChange(isSlot(e.target.value) ? slotInk(palette, e.target.value) : { color: ink.color })}
-          className={cn(INPUT, "w-[112px] font-ui")}
+          className={cn(INPUT, "w-28 font-ui")}
         >
           <option value="">Fixed</option>
           {SLOTS.map((s) => (
@@ -82,7 +82,7 @@ export function InkField({ label, ink, palette, onChange }: { label: string; ink
             </option>
           ))}
         </select>
-        <label className="relative h-[22px] w-[22px] shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong" style={{ backgroundColor: toCss(ink.color) }}>
+        <label className="relative h-5.5 w-5.5 shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent" style={{ backgroundColor: toCss(ink.color) }}>
           <input
             type="color"
             aria-label={`${label} swatch`}
@@ -103,7 +103,7 @@ function InksField({ label, inks, max, palette, onChange }: { label: string; ink
       {inks.map((ink, i) => (
         <InkField key={i} label={inks.length > 1 ? `${label} ${i + 1}` : label} ink={ink} palette={palette} onChange={(next) => onChange(inks.map((x, k) => (k === i ? next : x)))} />
       ))}
-      <div className="flex justify-end gap-2 text-[11.5px]">
+      <div className="flex justify-end gap-2 text-label">
         {inks.length < max && (
           <button type="button" onClick={() => onChange([...inks, inks.at(-1)!])} className="text-ui-3 hover:text-ui-1">
             {inks.length === 1 ? "Make a gradient" : "Add a stop"}
@@ -174,7 +174,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           <InkField label={`Color ${i + 1}`} ink={t.ink} palette={palette} onChange={(next) => set({ [field]: list.map((x, k) => (k === i ? { ...x, ink: next } : x)) }, `${field}-${i}-ink`)} />
         </div>
       ))}
-      {!!list?.length && <p className="text-[11.5px] leading-snug text-ui-4">The first fill color holds below the first threshold. Each frame takes the color of its value.</p>}
+      {!!list?.length && <p className="text-label leading-snug text-ui-4">The first fill color holds below the first threshold. Each frame takes the color of its value.</p>}
     </>
   );
   /** The value's glow (Text/Value GlowEnabled, GlowRadius, GlowColor): a switch, then its radius and colour. */
@@ -244,7 +244,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
       )}
     </>
   );
-  const partsHint = <p className="text-[11.5px] leading-snug text-ui-4">Select a part in Layers to choose its sensor or edit its text. The element lays the parts out.</p>;
+  const partsHint = <p className="text-label leading-snug text-ui-4">Select a part in Layers to choose its sensor or edit its text. The element lays the parts out.</p>;
 
   let body: ReactNode;
   switch (spec.type) {
@@ -339,9 +339,9 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
             )}
           />
           {found.length === 0 ? (
-            <p className="text-[11.5px] leading-snug text-ui-warn">This machine’s drives weren’t found: the Data API reports no LibreHardwareMonitor or HWiNFO drive sensors. The tiles are placeholders and stay unbound.</p>
+            <p className="text-label leading-snug text-ui-warn">This machine’s drives weren’t found: the Data API reports no LibreHardwareMonitor or HWiNFO drive sensors. The tiles are placeholders and stay unbound.</p>
           ) : (
-            <p className="text-[11.5px] leading-snug text-ui-4">{found.length} drives found in the Data API.</p>
+            <p className="text-label leading-snug text-ui-4">{found.length} drives found in the Data API.</p>
           )}
           <button
             type="button"
@@ -354,7 +354,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
                 ),
               )
             }
-            className="flex h-7 w-full items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-caption text-ui-1 hover:border-ui-strong"
+            className="flex h-7 w-full items-center justify-center rounded-7 border border-ui-default bg-ui-raised text-caption text-ui-1 hover:border-ui-strong"
           >
             Find the drives again
           </button>
@@ -368,7 +368,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {num("Offset X", "dx", spec.dx)}
           {num("Offset Y", "dy", spec.dy)}
           {ink("Shadow color", "color", spec.color)}
-          <p className="text-[11.5px] leading-snug text-ui-4">
+          <p className="text-label leading-snug text-ui-4">
             This is a sharp dark copy behind the text. Select the second item in Layers to change the text or its sensor. For a glow, use the Text’s own Glow.</p>
         </>
       );
@@ -435,7 +435,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
                 }}
               />
               {num("Blur radius", "blur", spec.blur)}
-              <p className="text-[11.5px] leading-snug text-ui-4">This card holds a blur from an earlier version. It is not drawn any more. Switch it off to drop it.</p>
+              <p className="text-label leading-snug text-ui-4">This card holds a blur from an earlier version. It is not drawn any more. Switch it off to drop it.</p>
             </>
           )}
           <SwitchRow label="Outer glow" on={spec.glow !== null} onChange={(on) => set({ glow: on ? { blur: 16, color: slotInk(palette, "accent1") } : null })} />
@@ -480,7 +480,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
       body = (
         <>
           {ink("Color", "color", spec.color)}
-          <p className="text-[11.5px] text-ui-4">Its size is the item’s W and H.</p>
+          <p className="text-label text-ui-4">Its size is the item’s W and H.</p>
           <IconFileButtons
             label="Icon"
             title="Choose an icon image"
@@ -489,7 +489,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
             onReset={() => set({ source: undefined }, "source")}
           />
           {iconFileOf(spec.source) ? (
-            <p className="text-[11.5px] leading-snug text-ui-4">Using {iconFileOf(spec.source)}. A file is drawn as it is: the color doesn’t tint it.</p>
+            <p className="text-label leading-snug text-ui-4">Using {iconFileOf(spec.source)}. A file is drawn as it is: the color doesn’t tint it.</p>
           ) : (
             <IconPicker value={lucideNameOf(spec)} onPick={(name) => set({ name, source: undefined }, "name")} />
           )}
@@ -508,17 +508,17 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {ink("Track", "track", spec.track)}
           {ink("Fill", "fill", spec.fill)}
           {found.length === 0 ? (
-            <p className="text-[11.5px] leading-snug text-ui-warn">
+            <p className="text-label leading-snug text-ui-warn">
               This machine’s cores weren’t found: the Data API reports no per-core CPU load (LibreHardwareMonitor’s Core loads). The bars are placeholders and stay unbound.
             </p>
           ) : (
-            <p className="text-[11.5px] leading-snug text-ui-4">{found.length} cores found in the Data API.</p>
+            <p className="text-label leading-snug text-ui-4">{found.length} cores found in the Data API.</p>
           )}
           <button
             type="button"
             disabled={found.length === 0}
             onClick={() => editor.commit(updateAt(editor.committed, path, (g) => (g.kind === "Group" ? { ...g, DisplayItems: coreBars(editor.open.profile, palette, found) } : g)))}
-            className="flex h-7 w-full items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-caption text-ui-1 hover:border-ui-strong disabled:opacity-50"
+            className="flex h-7 w-full items-center justify-center rounded-7 border border-ui-default bg-ui-raised text-caption text-ui-1 hover:border-ui-strong disabled:opacity-50"
           >
             Find the cores again
           </button>

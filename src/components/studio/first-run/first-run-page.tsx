@@ -14,12 +14,13 @@ import type { MonitorProfile } from "@/lib/layout";
 import { SCREEN_TEMPLATES } from "@/lib/screen-templates/catalog";
 import { cn } from "@/lib/utils";
 import { StudioLogo } from "@/components/studio/studio-logo";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { SCREEN_KIT } from "../../templates/screen-kit";
 import type { Size } from "../../templates/size-presets";
 import { WindowControls } from "../window-controls";
 import { DEFAULT_SIZE, needsHardware, type FirstRunChoices, type StartChoice } from "../first-run-model";
-import { AddressBar, CheckGroup, CheckRow, KioskCard, OUTLINE_BUTTON, PRIMARY_BUTTON } from "./check-list";
+import { AddressBar, CheckGroup, CheckRow, KioskCard } from "./check-list";
 import {
   CHECK_IDS,
   DEFAULT_ADDRESS,
@@ -329,17 +330,16 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
           <h1 ref={head} tabIndex={-1} className="m-0 text-title font-medium text-ui-1 outline-none">
             Check your data
           </h1>
-          <p className="m-0 mt-1 max-w-[560px] text-body leading-[1.5] text-ui-3">
+          <p className="m-0 mt-1 max-w-140 text-body leading-[1.5] text-ui-3">
             Studio checks each link between InfoPanel and your screens, in order. Nothing here blocks you: you can carry on without live data.
           </p>
         </div>
         <span aria-live="polite" className={cn("self-center text-micro", t.running ? "text-ui-3" : t.fails > 0 ? "text-ui-danger" : t.warns > 0 ? "text-ui-warn" : "text-ui-ok")}>
           {progressLabel(results)}
         </span>
-        <button type="button" title="Check again (F5)" onClick={() => checks.run("installed")} className={OUTLINE_BUTTON}>
-          <RefreshCw className="h-3.5 w-3.5" />
+        <Button small title="Check again (F5)" icon={<RefreshCw className="h-3.5 w-3.5" />} onClick={() => checks.run("installed")} className="text-caption">
           Check again
-        </button>
+        </Button>
       </div>
       <AddressBar
         mode={mode}
@@ -475,7 +475,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
       )}
       <div className="flex min-h-0 flex-1">
         {!narrow && (
-          <nav aria-label="Setup steps" className="flex w-[228px] shrink-0 flex-col border-r border-ui-subtle bg-ui-panel p-2.5">
+          <nav aria-label="Setup steps" className="flex w-57 shrink-0 flex-col border-r border-ui-subtle bg-ui-panel p-2.5">
             <ol className="m-0 flex list-none flex-col gap-1 p-0">
               {STEPS.map((label, i) => (
                 <li key={label}>
@@ -507,10 +507,10 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
           </nav>
         )}
         <main ref={scroller} className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
-          <div className={cn("mx-auto max-w-[880px]", narrow ? "px-4 pb-7 pt-[18px]" : "px-8 py-6")}>{body[step]}</div>
+          <div className={cn("mx-auto max-w-220", narrow ? "px-4 pb-7 pt-4.5" : "px-8 py-6")}>{body[step]}</div>
         </main>
       </div>
-      <footer className="flex h-[52px] shrink-0 items-center gap-3 border-t border-ui-subtle px-4">
+      <footer className="flex h-13 shrink-0 items-center gap-3 border-t border-ui-subtle px-4">
         <button type="button" onClick={() => setAskSkip(true)} className="rounded-sm px-1.5 text-body text-ui-2 hover:text-ui-1">
           {rerun ? "Close" : "Skip setup"}
         </button>
@@ -523,15 +523,15 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
         )}
         <span className="flex-1" />
         {step > 0 && (
-          <button type="button" onClick={() => go(step - 1)} className={cn(OUTLINE_BUTTON, "h-8 px-3.5 text-body")}>
+          <Button onClick={() => go(step - 1)} className="px-3.5">
             Back
-          </button>
+          </Button>
         )}
-        <button type="button" onClick={primary} className={cn(PRIMARY_BUTTON, "h-8 rounded-ui-md px-4 text-body")}>
+        <Button variant="primary" onClick={primary} className="px-4">
           {primaryLabel}
-        </button>
+        </Button>
       </footer>
-      <div className="flex h-[26px] shrink-0 items-center gap-4 border-t border-ui-subtle px-3 text-micro text-ui-3">
+      <div className="flex h-6.5 shrink-0 items-center gap-4 border-t border-ui-subtle px-3 text-micro text-ui-3">
         <span className="flex items-center gap-1.5" title={strip.title}>
           <span className={cn("h-1.5 w-1.5 rounded-full", apiDot)} />
           {t.api ? `Data API · ${where}` : results.reachable && results.reachable.status !== "checking" ? "Data API · not connected" : "Data API · checking…"}
@@ -546,7 +546,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
           <AlertDialog.Backdrop className="fixed inset-0 z-(--z-dialog) bg-black/60" />
           <AlertDialog.Popup
             initialFocus={keepButton}
-            className="fixed left-1/2 top-1/2 z-(--z-dialog) flex w-[420px] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-ui-lg border border-ui-strong bg-ui-panel p-5 shadow-ui-modal outline-none"
+            className="fixed left-1/2 top-1/2 z-(--z-dialog) flex w-105 max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-ui-lg border border-ui-strong bg-ui-panel p-5 shadow-ui-modal outline-none"
           >
             <AlertDialog.Title className="m-0 text-lead font-medium text-ui-1">{rerun ? "Close setup?" : "Skip setup?"}</AlertDialog.Title>
             <AlertDialog.Description className="m-0 text-body leading-[1.5] text-ui-2">
@@ -555,12 +555,12 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
                 : `Studio opens with a blank screen${answered ? "" : " and no live data"}. You can run setup again from Settings → General → Run setup.`}
             </AlertDialog.Description>
             <div className="flex justify-end gap-2">
-              <button ref={keepButton} type="button" onClick={() => setAskSkip(false)} className={cn(OUTLINE_BUTTON, "h-8 px-3.5 text-body")}>
+              <Button ref={keepButton} onClick={() => setAskSkip(false)} className="px-3.5">
                 {rerun ? "Keep going" : "Keep setting up"}
-              </button>
-              <button type="button" onClick={skip} className={cn(PRIMARY_BUTTON, "h-8 px-3.5 text-body")}>
+              </Button>
+              <Button variant="primary" onClick={skip} className="px-3.5">
                 {rerun ? "Close" : "Skip setup"}
-              </button>
+              </Button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>
@@ -589,7 +589,7 @@ function StepNumber({ n, current, done }: { n: number; current: boolean; done: b
 
 const Hint = ({ k, text }: { k: string; text: string }) => (
   <span className="flex items-center gap-1">
-    <kbd className="rounded-[4px] border border-ui-strong px-1 font-ui-mono text-micro text-ui-3">{k}</kbd>
+    <kbd className="rounded-4 border border-ui-strong px-1 font-ui-mono text-micro text-ui-3">{k}</kbd>
     {text}
   </span>
 );

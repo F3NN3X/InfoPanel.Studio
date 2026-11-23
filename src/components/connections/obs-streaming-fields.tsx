@@ -21,7 +21,7 @@ export function ObsStreamingFields({ mic, inputs, scenes, looks, onMic, onLook }
   return (
     <div className="space-y-2">
       <StackRow label="Mic input" hint="The OBS input Stream Control shows and mutes. Connect OBS to list its inputs.">
-        <select aria-label="OBS mic input" value={mic} onChange={(e) => onMic(e.target.value)} className={cn(SELECT, "h-[30px] w-full")}>
+        <select aria-label="OBS mic input" value={mic} onChange={(e) => onMic(e.target.value)} className={cn(SELECT, "h-7.5 w-full")}>
           <option value="">None</option>
           {options.map((name) => (
             <option key={name} value={name}>
@@ -37,11 +37,11 @@ export function ObsStreamingFields({ mic, inputs, scenes, looks, onMic, onLook }
               const look = looks[s.id] ?? { sub: "", icon: "" };
               return (
                 <div key={s.id} className="flex items-center gap-1.5">
-                  <span className="w-[72px] shrink-0 truncate text-caption text-ui-2" title={s.name}>
+                  <span className="w-18 shrink-0 truncate text-caption text-ui-2" title={s.name}>
                     {s.name}
                   </span>
                   <input aria-label={`${s.name} line`} value={look.sub} placeholder="Line" maxLength={60} onChange={(e) => onLook(s.id, { ...look, sub: e.target.value })} className={cn(FIELD, "h-(--ui-h-control) min-w-0 flex-1")} />
-                  <input aria-label={`${s.name} icon`} value={look.icon} placeholder="movie" maxLength={40} onChange={(e) => onLook(s.id, { ...look, icon: e.target.value })} className={cn(FIELD, "h-(--ui-h-control) w-[84px] shrink-0")} />
+                  <input aria-label={`${s.name} icon`} value={look.icon} placeholder="movie" maxLength={40} onChange={(e) => onLook(s.id, { ...look, icon: e.target.value })} className={cn(FIELD, "h-(--ui-h-control) w-21 shrink-0")} />
                 </div>
               );
             })}

@@ -409,7 +409,11 @@ async fn merges_settings_patches_and_feeds_them() {
     let feed = get(s.port, &format!("/api/config/settings?since={known}")).await;
     assert_eq!(
         feed.text(),
-        format!(r#"{{"settingsRev":{},"patches":[{{"rev":{},"patch":{{"general":{{"maxFps":15}},"profiles":{{"desk":{{"performance":null}}}}}}}}]}}"#, known + 1, known + 1)
+        format!(
+            r#"{{"settingsRev":{},"patches":[{{"rev":{},"patch":{{"general":{{"maxFps":15}},"profiles":{{"desk":{{"performance":null}}}}}}}}]}}"#,
+            known + 1,
+            known + 1
+        )
     );
     assert_eq!(json(&get(s.port, &format!("/api/config/settings?since={}", known + 1)).await)["patches"], serde_json::json!([]));
     for bad in ["", "?since=", "?since=abc", "?since=Infinity"] {
@@ -417,7 +421,8 @@ async fn merges_settings_patches_and_feeds_them() {
     }
 
     // A push built before the patch names the older revision and gets it again; one naming none is saved as sent.
-    post_config(s.port, r#"{"version":11,"general":{"maxFps":60},"profiles":[{"id":"desk"}]}"#, &[("X-Settings-Rev", &known.to_string())]).await;
+    post_config(s.port, r#"{"version":11,"general":{"maxFps":60},"profiles":[{"id":"desk"}]}"#, &[("X-Settings-Rev", &known.to_string())])
+        .await;
     assert_eq!(get(s.port, "/api/config").await.text(), r#"{"version":11,"profiles":[{"id":"desk"}],"general":{"maxFps":15}}"#);
     post_config(s.port, r#"{"version":11,"general":{"maxFps":60}}"#, &[("X-Settings-Rev", "abc")]).await;
     assert_eq!(get(s.port, "/api/config").await.text(), r#"{"version":11,"general":{"maxFps":60}}"#);
@@ -482,7 +487,9 @@ async fn streams_config_events_and_counts_the_clients() {
 
     // A stream still open ends when the server stops.
     let mut open = TcpStream::connect(("127.0.0.1", s.port)).await.unwrap();
-    open.write_all(format!("POST /events/config HTTP/1.1\r\nHost: localhost:{}\r\nContent-Length: 0\r\n\r\n", s.port).as_bytes()).await.unwrap();
+    open.write_all(format!("POST /events/config HTTP/1.1\r\nHost: localhost:{}\r\nContent-Length: 0\r\n\r\n", s.port).as_bytes())
+        .await
+        .unwrap();
     let mut seen = String::new();
     events(&mut open, &mut seen, 1).await;
     s.stop().await;
@@ -622,7 +629,10 @@ async fn answers_the_control_routes_and_keeps_control_json() {
     assert_eq!(initial.status, 200);
     assert_eq!(initial.header("content-type"), Some("application/json; charset=utf-8"));
     let start_reload = json(&initial)["reload"].as_i64().unwrap();
-    assert_eq!(initial.text(), format!(r#"{{"profile":null,"shown":null,"profiles":{{}},"alerts":[],"mutedUntil":null,"reload":{start_reload},"kiosks":[]}}"#));
+    assert_eq!(
+        initial.text(),
+        format!(r#"{{"profile":null,"shown":null,"profiles":{{}},"alerts":[],"mutedUntil":null,"reload":{start_reload},"kiosks":[]}}"#)
+    );
     assert_eq!(send(s.port, "POST", "/api/control", &CONTROL_WRITE, "{}").await.status, 405);
     // An unknown type is 404 before the method is looked at.
     for path in ["/api/control/", "/api/control/nope", "/api/control/page/x", "/api/control/mute", "/api/control/shown"] {
@@ -714,10 +724,18 @@ async fn streams_the_control_state_and_lists_kiosks() {
     assert_eq!(post_config(s.port, CONTROL_CONFIG, &[]).await.status, 200);
     let open = |query: &'static str, port: u16| async move {
         let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
-        stream.write_all(format!("GET /events/control{query} HTTP/1.1
+        stream
+            .write_all(
+                format!(
+                    "GET /events/control{query} HTTP/1.1
 Host: localhost:{port}
 
-").as_bytes()).await.unwrap();
+"
+                )
+                .as_bytes(),
+            )
+            .await
+            .unwrap();
         stream
     };
     let last_state = |seen: &str| -> serde_json::Value {
@@ -740,7 +758,10 @@ Host: localhost:{port}
     let state = last_state(&kiosk_seen);
     assert_eq!(state["shown"], "desk");
     assert_eq!(state["kiosks"][0]["id"], "k1");
-    assert_eq!((state["kiosks"][0]["profile"].as_str(), state["kiosks"][0]["page"].as_str(), state["kiosks"][0]["address"].as_str()), (Some("desk"), Some("game"), Some("127.0.0.1")));
+    assert_eq!(
+        (state["kiosks"][0]["profile"].as_str(), state["kiosks"][0]["page"].as_str(), state["kiosks"][0]["address"].as_str()),
+        (Some("desk"), Some("game"), Some("127.0.0.1"))
+    );
     assert_eq!((stat("studios").await, stat("clients").await), (1, 2));
     // The studio stream is told: shown changed, then the kiosk joined.
     events(&mut studio, &mut seen, 3).await;
@@ -791,12 +812,20 @@ async fn shows_a_studios_theme_preview_to_the_streams_until_the_studio_disconnec
     // The control write guards, then the body's own checks.
     let no_header = send(s.port, "POST", "/api/control/preview", &[("Content-Type", "application/json")], preview).await;
     assert_eq!((no_header.status, no_header.text().as_str()), (403, "missing X-Dashboard-Control header"));
-    assert_eq!(send(s.port, "POST", "/api/control/preview", &[("Content-Type", "text/plain"), ("X-Dashboard-Control", "1")], preview).await.status, 415);
+    assert_eq!(
+        send(s.port, "POST", "/api/control/preview", &[("Content-Type", "text/plain"), ("X-Dashboard-Control", "1")], preview).await.status,
+        415
+    );
     assert_eq!(get(s.port, "/api/control/preview").await.status, 405);
-    let cross = send(s.port, "POST", "/api/control/preview", &[CONTROL_WRITE[0], CONTROL_WRITE[1], ("Origin", "http://evil.example")], preview).await;
+    let cross =
+        send(s.port, "POST", "/api/control/preview", &[CONTROL_WRITE[0], CONTROL_WRITE[1], ("Origin", "http://evil.example")], preview)
+            .await;
     assert_eq!(cross.status, 403);
     assert_eq!(post_control(s.port, "preview", r#"{"session":"no","preview":null}"#).await.text(), "bad session");
-    assert_eq!(post_control(s.port, "preview", r#"{"session":"studio-abc123","preview":{"name":"x"}}"#).await.text(), "expected a preview with a preset, or null");
+    assert_eq!(
+        post_control(s.port, "preview", r#"{"session":"studio-abc123","preview":{"name":"x"}}"#).await.text(),
+        "expected a preview with a preset, or null"
+    );
     let big = format!(r#"{{"session":"studio-abc123","preview":{{"preset":{{"pad":"{}"}}}}}}"#, "x".repeat(40_000));
     assert_eq!(post_control(s.port, "preview", &big).await.status, 400);
     // No studio stream holds the session: refused.
@@ -888,7 +917,10 @@ async fn lists_a_named_display_online_and_pushes_its_assigned_screen() {
     let mut seen = String::new();
     events(&mut kiosk, &mut seen, 1).await;
     let display = last_state(&seen)["displays"][0].clone();
-    assert_eq!((display["name"].as_str(), display["online"].as_bool(), display["screen"].as_str()), (Some("hall-1"), Some(true), Some("follow")));
+    assert_eq!(
+        (display["name"].as_str(), display["online"].as_bool(), display["screen"].as_str()),
+        (Some("hall-1"), Some(true), Some("follow"))
+    );
     assert_eq!(last_state(&seen)["kiosks"][0]["display"], "hall-1");
 
     // Assigning a screen pushes it to the stream; an unknown screen or display is refused.
@@ -928,10 +960,19 @@ async fn serves_debug_stats_only_in_debug_mode() {
     let s = start_with(dir, cfg).await;
     assert_eq!(send(s.port, "POST", "/api/debug/stats", &[], "").await.status, 405);
     let mut stream = TcpStream::connect(("127.0.0.1", s.port)).await.unwrap();
-    stream.write_all(format!("GET /events/config HTTP/1.1
+    stream
+        .write_all(
+            format!(
+                "GET /events/config HTTP/1.1
 Host: localhost:{}
 
-", s.port).as_bytes()).await.unwrap();
+",
+                s.port
+            )
+            .as_bytes(),
+        )
+        .await
+        .unwrap();
     events(&mut stream, &mut String::new(), 1).await;
     tokio::time::sleep(Duration::from_millis(100)).await;
     let stats = get(s.port, "/api/debug/stats").await;
@@ -968,7 +1009,19 @@ async fn serves_the_debug_tools_only_in_debug_mode() {
                 assert_eq!((qa.status, qa.body.as_slice()), (200, b"<p>index</p>".as_slice()), "{path}");
             }
         } else {
-            for path in ["/lab", "/lab/", "/lab/index.html", "/widget-qa", "/?widget-qa", "/?widget-qa&settings=1", "/index.html?widget-qa", "/x?widget-qa", "/a/b?x=1&widget-qa", "/?%77idget-qa", "/index.html?%77idget-qa=1"] {
+            for path in [
+                "/lab",
+                "/lab/",
+                "/lab/index.html",
+                "/widget-qa",
+                "/?widget-qa",
+                "/?widget-qa&settings=1",
+                "/index.html?widget-qa",
+                "/x?widget-qa",
+                "/a/b?x=1&widget-qa",
+                "/?%77idget-qa",
+                "/index.html?%77idget-qa=1",
+            ] {
                 assert_eq!(get(s.port, path).await.status, 404, "{path}");
             }
             // The kiosk and studio are unaffected.

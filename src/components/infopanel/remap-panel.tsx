@@ -5,6 +5,7 @@
  */
 import { useState } from "react";
 import { Check, CheckCheck, CircleSlash, CornerDownRight, Search } from "lucide-react";
+import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import {
   candidateReason,
@@ -71,7 +72,7 @@ const FILTERS: { value: RemapFilter; label: string }[] = [
 const itemsText = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
 
 const GHOST =
-  "inline-flex h-[30px] items-center justify-center gap-1.5 rounded-ui-md border border-ui-strong bg-ui-raised px-3 text-caption text-ui-1 transition-colors hover:bg-ui-hover disabled:opacity-50";
+  "inline-flex h-7.5 items-center justify-center gap-1.5 rounded-ui-md border border-ui-strong bg-ui-raised px-3 text-caption text-ui-1 transition-colors hover:bg-ui-hover disabled:opacity-50";
 
 function KeyPicker({
   row,
@@ -145,7 +146,7 @@ function KeyPicker({
                 <span className="truncate font-ui-mono text-micro text-ui-hint">{c.key}</span>
                 {c.why && <span className="text-micro text-ui-accent-text">{c.why}</span>}
               </span>
-              <span className="max-w-[110px] shrink-0 truncate font-ui-mono text-caption text-ui-1" title={valueText(v)}>
+              <span className="max-w-27.5 shrink-0 truncate font-ui-mono text-caption text-ui-1" title={valueText(v)}>
                 {valueText(v)}
               </span>
             </button>
@@ -195,24 +196,20 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2.5">
-        <div role="radiogroup" aria-label="Filter" className="flex gap-0.5 rounded-ui-md border border-ui-default bg-ui-raised p-0.5">
-          {FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              role="radio"
-              aria-checked={filter === f.value}
-              onClick={() => setFilter(f.value)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-ui-sm px-2.5 py-1 text-caption font-medium",
-                filter === f.value ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1",
-              )}
-            >
-              {f.label}
-              <span className="font-ui-mono text-micro text-ui-4">{counts[f.value]}</span>
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Filter"
+          value={filter}
+          onChange={setFilter}
+          options={FILTERS.map((f) => ({
+            value: f.value,
+            label: (
+              <span className="flex items-center gap-1.5">
+                {f.label}
+                <span className="font-ui-mono text-micro text-ui-4">{counts[f.value]}</span>
+              </span>
+            ),
+          }))}
+        />
         <span className="text-caption text-ui-4">
           {`${bindings} bindings in ${rows.length} groups · ${counts.done} done · ${counts.check} to check · ${counts.unresolved} unresolved`}
         </span>
@@ -264,11 +261,11 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
                   </span>
                 </div>
                 {v && (
-                  <span className="max-w-[96px] shrink-0 truncate font-ui-mono text-caption text-ui-2" title={valueText(v)}>
+                  <span className="max-w-24 shrink-0 truncate font-ui-mono text-caption text-ui-2" title={valueText(v)}>
                     {valueText(v)}
                   </span>
                 )}
-                <span className={cn("w-[84px] shrink-0 text-micro", STATE[r.state].text)}>{STATE[r.state].label}</span>
+                <span className={cn("w-21 shrink-0 text-micro", STATE[r.state].text)}>{STATE[r.state].label}</span>
                 <button
                   type="button"
                   title={onSelectItems ? "Select these items on the canvas" : `${itemsText(r.group.paths.length)} read this sensor`}
@@ -277,7 +274,7 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
                     e.stopPropagation();
                     onSelectItems?.(r.group.paths);
                   }}
-                  className="shrink-0 whitespace-nowrap rounded-ui-sm bg-ui-hover px-[7px] py-0.5 font-ui-mono text-micro text-ui-2 enabled:hover:bg-ui-active"
+                  className="shrink-0 whitespace-nowrap rounded-ui-sm bg-ui-hover px-1.75 py-0.5 font-ui-mono text-micro text-ui-2 enabled:hover:bg-ui-active"
                 >
                   {itemsText(r.group.paths.length)}
                 </button>
@@ -290,7 +287,7 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
                       e.stopPropagation();
                       onOverrides(withChoice(overrides, r.group.id, r.match!.key));
                     }}
-                    className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-md border border-ui-strong bg-ui-raised text-ui-warn hover:bg-ui-hover"
+                    className="grid h-6.5 w-6.5 shrink-0 place-items-center rounded-md border border-ui-strong bg-ui-raised text-ui-warn hover:bg-ui-hover"
                   >
                     <Check className="h-4 w-4" />
                   </button>

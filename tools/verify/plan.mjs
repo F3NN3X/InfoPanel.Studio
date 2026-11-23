@@ -41,9 +41,10 @@ export function escalates(features, map) {
  * - `mode`: "default" (feature tests plus tests related to the changed sources), "fast" (feature tests only) or "full".
  * - `features`: the selected feature objects. `changed`: the changed files (may include deleted ones).
  * - `tracked`: every tracked file; `exists(file)`: whether it is on disk now; `platform`: process.platform; `ci`: whether CI is set
- * (a check marked `localOnly` is then not run).
+ * (a check marked `localOnly` is then not run); `browser`: whether checks marked `browser` (Playwright) run here. Off by
+ * default locally (they run in CI's e2e and release workflows, and in `npm run ship`); CI always runs them.
  */
-export function buildPlan({ map, features, changed, mode, tracked, exists, platform, ci = false }) {
+export function buildPlan({ map, features, changed, mode, tracked, exists, platform, ci = false, browser = false }) {
   const escalated = mode === "full" || escalates(features, map);
   const effective = escalated ? "full" : mode;
   const present = changed.filter(exists);
@@ -62,6 +63,7 @@ export function buildPlan({ map, features, changed, mode, tracked, exists, platf
 
   function step(name, check) {
     const base = { id: name, cwd: check.cwd ?? ".", platform: check.platform ?? null };
+    if (check.browser && !ci && !browser) return { ...base, cmd: null, status: "skipped", reason: "browser check: runs in CI and ship (VERIFY_BROWSER=1 runs it here)" };
     const notRun =
       check.platform && check.platform !== platform
         ? { status: "not-run", reason: `needs ${check.platform === "win32" ? "Windows" : check.platform}` }
@@ -78,10 +80,13 @@ export function buildPlan({ map, features, changed, mode, tracked, exists, platf
     return { ...base, ...notRun, cmd: check.cmd };
   }
 
-  /** A check that runs test files: the selected features' own, the changed test files, and for `related` the sources. */
+  /**
+   * A check that runs test files: the selected features' own, the changed test files, and for `related` the sources. A
+   * check with a `smoke` list runs that list in place of the features' own: the rest of its files wait for a full run.
+   */
   function withTests(name, check, base, notRun) {
     const eligible = (file) => matchesAny(file, check.tests) && !matchesAny(file, check.testsExclude);
-    const own = features.filter((feature) => feature.checks.includes(name)).flatMap((feature) => expandGlobs(feature.tests, tracked));
+    const own = check.smoke ? expandGlobs(check.smoke, tracked) : features.filter((feature) => feature.checks.includes(name)).flatMap((feature) => expandGlobs(feature.tests, tracked));
     const tests = [...new Set([...own, ...present.filter(isTestFile)].filter(eligible))].filter(exists);
     const sources = check.related && effective === "default" ? present.filter((file) => CODE_EXT.test(file) && !isTestFile(file)) : [];
     const files = [...tests, ...sources];

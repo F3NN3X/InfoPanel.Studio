@@ -44,7 +44,7 @@ export interface IslandTabProps {
 }
 
 const FOLLOW = "rounded-sm text-micro text-ui-accent-text hover:underline";
-const CARD = "flex min-w-0 flex-1 flex-col gap-2 rounded-[14px] border border-ui-default bg-ui-panel p-4";
+const CARD = "flex min-w-0 flex-1 flex-col gap-2 rounded-14 border border-ui-default bg-ui-panel p-4";
 
 /** The bus source of the preview's notices: the kiosk never hears them. */
 const PREVIEW_SOURCE = "preview";
@@ -123,7 +123,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
             link={font}
             linkText="Theme"
             onNavigate={() => navigateTo({ view: "theme", themeScope: { kind: "profile" }, profileId: profile.id, section: "type" })}
-            followText="Follow Theme"
+            followText="Follow the theme"
             onFollow={() => patchIsland(FOLLOW_THEME)}
           />
         ),
@@ -133,7 +133,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
             link={clock}
             linkText="Settings"
             onNavigate={() => navigateTo({ view: "settings", tab: "dashboard", section: "clock" })}
-            followText="Follow the Dashboard"
+            followText="Follow the dashboard"
             onFollow={() => patchIsland(FOLLOW_DASHBOARD)}
           />
         ),

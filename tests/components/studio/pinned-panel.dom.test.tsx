@@ -46,7 +46,7 @@ describe("unpinning from the list", () => {
     const actions = mount();
     fireEvent.contextMenu(screen.getByText("Page rail"));
     const unpin = screen.getByRole("menuitem", { name: /Unpin/ });
-    expect((unpin as HTMLButtonElement).disabled).toBe(true);
+    expect(unpin.getAttribute("aria-disabled")).toBe("true");
     expect(unpin.closest("[title]")?.getAttribute("title")).toMatch(/rail stays/);
     fireEvent.click(unpin);
     expect(actions.moveToPage).not.toHaveBeenCalled();

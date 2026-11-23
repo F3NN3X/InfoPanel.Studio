@@ -25,7 +25,7 @@ const BTN_NARROW =
 const NARROW = 100;
 /** A preset tile at 4x4: a touch target, not a chip. */
 const TILE =
-  "flex h-full min-h-[100px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[color:var(--w-track)] px-2 tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
+  "flex h-full min-h-25 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[color:var(--w-track)] px-2 tabular-nums hover:bg-[color:var(--w-track)] active:scale-95";
 /** A preset button's width with its gap, px (a "25m" chip). */
 const CHIP_W = 52;
 /** The preset chips' and the Pause / Stop buttons' height (`h-11`: a 44 px touch target), px; a button row and its gap are `ROW_H`. */
@@ -140,7 +140,7 @@ export default function Timer(p: TimerProps) {
               {clockOf(left)}
             </Num>
             {!tiny && (
-              <div className={`w-full ${big ? "" : "max-w-[220px]"}`}>
+              <div className={`w-full ${big ? "" : "max-w-55"}`}>
                 <Bar value={pct} className="h-1" />
               </div>
             )}

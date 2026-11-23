@@ -8,35 +8,49 @@
 //!    device into software mode.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{clamp100, guess_kind, hex4, hid_product, kind_from_collections, HidColl, HidIo, PollContext};
+use crate::hid::{HidColl, HidIo, PollContext, clamp100, guess_kind, hex4, hid_product, kind_from_collections};
 use crate::win::now_ms;
 
-const K_VOID_PIDS: [u16; 18] = [0x1B1C, 0x1B27, 0x0A14, 0x0A16, 0x0A17, 0x0A1D, 0x0A1A, 0x1B2A, 0x1B23,
-                                0x1B29, 0x0A55, 0x0A51, 0x0A52, 0x0A38, 0x0A4F, 0x0A2B, 0x0A75, 0x0A56];
+const K_VOID_PIDS: [u16; 18] = [
+    0x1B1C, 0x1B27, 0x0A14, 0x0A16, 0x0A17, 0x0A1D, 0x0A1A, 0x1B2A, 0x1B23, 0x1B29, 0x0A55, 0x0A51, 0x0A52, 0x0A38, 0x0A4F, 0x0A2B, 0x0A75,
+    0x0A56,
+];
 const K_BRAGI_PIDS: [u16; 8] = [0x2A08, 0x2A02, 0x0A97, 0x0A64, 0x0A62, 0x0A3E, 0x0A3D, 0x2B00];
 
 fn poll_void(ctx: &mut PollContext, c: &HidColl, s: &mut DeviceStatus) -> bool {
     let Some(mut d) = ctx.open(c) else { return false };
     d.flush();
     let mut r = Vec::new();
-    if !d.write(&[0xC9, 0x64], 500) { return false; }
+    if !d.write(&[0xC9, 0x64], 500) {
+        return false;
+    }
     let end = now_ms() + 1000;
     let left = (end as i64 - now_ms() as i64) as i32;
-    if left <= 0 || d.read(&mut r, left as u32) < 5 { return false; }
+    if left <= 0 || d.read(&mut r, left as u32) < 5 {
+        return false;
+    }
     let st = r[4];
     s.key = format!("corsair:{}", hex4(c.pid));
     s.name = hid_product(c);
-    if s.name.is_empty() { s.name = "Corsair wireless headset".into(); }
+    if s.name.is_empty() {
+        s.name = "Corsair wireless headset".into();
+    }
     s.kind = DeviceKind::Headset;
     s.via = "2.4 GHz receiver".into();
     s.connected = st != 0;
     s.charging = st == 4 || st == 5;
-    if st == 1 || st == 2 || s.charging { s.percent = clamp100((r[2] & 0x7F) as i32); }
+    if st == 1 || st == 2 || s.charging {
+        s.percent = clamp100((r[2] & 0x7F) as i32);
+    }
     true
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Mode { Unknown, Prefixed, Plain }
+enum Mode {
+    Unknown,
+    Prefixed,
+    Plain,
+}
 
 struct Bragi {
     d: Box<dyn HidIo>,
@@ -55,7 +69,9 @@ impl Bragi {
             self.mode = Mode::Prefixed;
             return true;
         }
-        if self.mode == Mode::Prefixed { return false; }
+        if self.mode == Mode::Prefixed {
+            return false;
+        }
         if self.get_framed(true, target, prop, value, timeout_ms) {
             self.mode = Mode::Plain;
             return true;
@@ -72,19 +88,31 @@ impl Bragi {
             vec![0x00, 0x02, target, 0x02, prop]
         };
         self.d.flush();
-        if !self.d.write(&req, 500) { return false; }
+        if !self.d.write(&req, 500) {
+            return false;
+        }
         let source: u8 = if target == 0x08 { 0x00 } else { 0x01 };
-        let o: usize = if plain { 0 } else { 1 };  // offset of the source byte in the reply
+        let o: usize = if plain { 0 } else { 1 }; // offset of the source byte in the reply
         let end = now_ms() + timeout_ms as u64;
         let mut r = Vec::new();
         loop {
             let left = (end as i64 - now_ms() as i64) as i32;
-            if left <= 0 { return false; }
+            if left <= 0 {
+                return false;
+            }
             let n = self.d.read(&mut r, left as u32);
-            if n < 0 { return false; }
-            if (n as usize) < o + 7 { continue; }
-            if r[o + 1] != 0x02 || r[o] != source { continue; }  // notification or another app's reply
-            if r[o + 2] != 0x00 { return false; }
+            if n < 0 {
+                return false;
+            }
+            if (n as usize) < o + 7 {
+                continue;
+            }
+            if r[o + 1] != 0x02 || r[o] != source {
+                continue;
+            } // notification or another app's reply
+            if r[o + 2] != 0x00 {
+                return false;
+            }
             *value = r[o + 3] as u32 | (r[o + 4] as u32) << 8 | (r[o + 5] as u32) << 16 | (r[o + 6] as u32) << 24;
             return true;
         }
@@ -92,10 +120,14 @@ impl Bragi {
 }
 
 // Devices seen behind a receiver, identified by the product ID they report (property 12).
-struct PairedModel { pid: u16, name: &'static str, kind: DeviceKind }
+struct PairedModel {
+    pid: u16,
+    name: &'static str,
+    kind: DeviceKind,
+}
 
 static K_PAIRED_MODELS: &[PairedModel] = &[
-    PairedModel { pid: 0x1B7E, name: "Corsair Dark Core RGB Pro SE", kind: DeviceKind::Mouse },  // tested on Slipstream receiver 1BDC
+    PairedModel { pid: 0x1B7E, name: "Corsair Dark Core RGB Pro SE", kind: DeviceKind::Mouse }, // tested on Slipstream receiver 1BDC
 ];
 
 fn find_paired(pid: u32) -> Option<&'static PairedModel> {
@@ -126,7 +158,9 @@ pub fn poll_corsair(ctx: &mut PollContext) {
             let product = hid_product(&c);
             // Paired devices behind a receiver first, then the device itself (wired / Bluetooth).
             for target in [0x09u8, 0x0A, 0x0B, 0x08] {
-                if target == 0x08 && any { break; }
+                if target == 0x08 && any {
+                    break;
+                }
                 let mut level: u32 = 0;
                 let mut ok = b.get(target, 0x0F, &mut level, 300);
                 let mut retry = 0;
@@ -134,7 +168,9 @@ pub fn poll_corsair(ctx: &mut PollContext) {
                     ok = b.get(target, 0x0F, &mut level, 300);
                     retry += 1;
                 }
-                if !ok || level > 1000 { continue; }
+                if !ok || level > 1000 {
+                    continue;
+                }
                 let mut s = DeviceStatus::default();
                 s.key = format!("corsair:{}:{}", hex4(pid), target);
                 s.name = if product.is_empty() { "Corsair wireless device".into() } else { product.clone() };
@@ -148,21 +184,32 @@ pub fn poll_corsair(ctx: &mut PollContext) {
                         s.kind = m.kind;
                     } else if (dev_pid >> 8) == 0x0A {
                         s.kind = DeviceKind::Headset;
-                        if product.contains("Receiver") { s.name = "Corsair wireless headset".into(); }
+                        if product.contains("Receiver") {
+                            s.name = "Corsair wireless headset".into();
+                        }
                     }
                 }
                 // Corsair headsets and their receivers use product ids 0Axx (HS80 RGB receiver 0A6B names
                 // itself "... Wireless Gaming Receiver", and its collections look like a keyboard).
-                if s.kind == DeviceKind::Other && (pid >> 8) == 0x0A { s.kind = DeviceKind::Headset; }
-                if s.kind == DeviceKind::Other { s.kind = kind_from_collections(&ctx.colls, vid, pid); }
+                if s.kind == DeviceKind::Other && (pid >> 8) == 0x0A {
+                    s.kind = DeviceKind::Headset;
+                }
+                if s.kind == DeviceKind::Other {
+                    s.kind = kind_from_collections(&ctx.colls, vid, pid);
+                }
                 s.via = if target == 0x08 { "USB / Bluetooth" } else { "Corsair receiver" }.into();
                 s.percent = clamp100(((level + 5) as i32) / 10);
                 let mut charge: u32 = 0;
-                if b.get(target, 0x10, &mut charge, 300) { s.charging = charge == 1 || charge == 3; }
+                if b.get(target, 0x10, &mut charge, 300) {
+                    s.charging = charge == 1 || charge == 3;
+                }
                 ctx.out.push(s);
                 any = true;
             }
-            if any { ctx.claim(vid, pid); break; }
+            if any {
+                ctx.claim(vid, pid);
+                break;
+            }
         }
     }
 }

@@ -5,11 +5,10 @@
  */
 import { ArrowLeft, ChevronRight, Download, MoreHorizontal, Pencil, Redo2, Save, Undo2, Upload } from "lucide-react";
 import { useState } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { StatusChip, type StatusTone } from "@/components/ui/status-chip";
-import { ITEM, POPUP, SEPARATOR } from "@/components/studio/menu-styles";
 import { BarFill, PageBar } from "@/components/studio/page-bar";
 import { KIND_LABEL, kindOf } from "@/lib/gauge-studio/model";
 import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
@@ -71,10 +70,10 @@ export function EditorHeader({ edit, gauge, saving, history, onBack, onImport, o
         <IconButton label="Back to Gauges" size={32} onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
         </IconButton>
-        <button type="button" onClick={onBack} className="h-8 rounded-ui-sm px-1.5 text-body text-ui-3 hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent max-[1279px]:hidden">
+        <button type="button" onClick={onBack} className="h-8 rounded-ui-sm px-1.5 text-body text-ui-3 hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent max-xl:hidden">
           Gauges
         </button>
-        <ChevronRight className="h-4 w-4 shrink-0 text-ui-hint max-[1279px]:hidden" aria-hidden />
+        <ChevronRight className="h-4 w-4 shrink-0 text-ui-hint max-xl:hidden" aria-hidden />
         <label className="relative flex min-w-0 items-center">
           <input
             aria-label="Gauge name"
@@ -85,7 +84,7 @@ export function EditorHeader({ edit, gauge, saving, history, onBack, onImport, o
               setDraft(e.target.value);
               edit.rename(e.target.value);
             }}
-            className="h-8 w-[220px] min-w-0 shrink rounded-ui-sm border border-transparent bg-transparent pl-1.5 pr-7 text-title font-medium text-ui-1 outline-none hover:border-ui-strong focus:border-ui-accent"
+            className="h-8 w-55 min-w-0 shrink rounded-ui-sm border border-transparent bg-transparent pl-1.5 pr-7 text-title font-medium text-ui-1 outline-none hover:border-ui-strong focus:border-ui-accent"
           />
           <Pencil className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-ui-hint" aria-hidden />
         </label>
@@ -95,7 +94,7 @@ export function EditorHeader({ edit, gauge, saving, history, onBack, onImport, o
           {chip.text}
         </StatusChip>
       </span>
-      <span className="hidden truncate font-ui-mono text-micro text-ui-4 min-[1280px]:inline">
+      <span className="hidden truncate font-ui-mono text-micro text-ui-4 xl:inline">
         {KIND_LABEL[kindOf(gauge)]}
         {where(edit)}
       </span>
@@ -113,7 +112,7 @@ export function EditorHeader({ edit, gauge, saving, history, onBack, onImport, o
       )}
       <span title={onExport ? undefined : "An image sequence has no spec to export"}>
         <Button onClick={onExport} disabled={!onExport} title={onExport ? "Export" : undefined} icon={<Upload strokeWidth={1.5} />}>
-          <span className="max-[1279px]:sr-only">Export</span>
+          <span className="max-xl:sr-only">Export</span>
         </Button>
       </span>
       <Button variant="primary" onClick={onSave} disabled={saving} icon={<Save strokeWidth={1.5} />}>
@@ -124,32 +123,28 @@ export function EditorHeader({ edit, gauge, saving, history, onBack, onImport, o
           <Menu.Trigger aria-label="More gauge actions" className="grid h-8 w-8 place-items-center rounded-ui-md text-ui-3 hover:bg-ui-raised hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent data-popup-open:bg-ui-raised">
             <MoreHorizontal className="h-4 w-4" />
           </Menu.Trigger>
-          <Menu.Portal>
-            <Menu.Positioner className="z-[80]" sideOffset={6} align="end">
-              <Menu.Popup className={POPUP}>
-                {onImport && (
-                  <Menu.Item className={ITEM} onClick={onImport}>
-                    <span className="flex items-center gap-2">
-                      <Download className="h-4 w-4 text-ui-3" aria-hidden /> Import a gauge
-                    </span>
-                  </Menu.Item>
-                )}
-                {onSaveAsNew && (
-                  <Menu.Item className={ITEM} disabled={saving} onClick={onSaveAsNew}>
-                    Save as new
-                  </Menu.Item>
-                )}
-                {onDiscardDraft && (
-                  <>
-                    <div role="separator" className={SEPARATOR} />
-                    <Menu.Item className={`${ITEM} text-ui-danger`} onClick={onDiscardDraft}>
-                      Discard draft
-                    </Menu.Item>
-                  </>
-                )}
-              </Menu.Popup>
-            </Menu.Positioner>
-          </Menu.Portal>
+          <Menu.Content sideOffset={6} align="end">
+            {onImport && (
+              <Menu.Item onClick={onImport}>
+                <span className="flex items-center gap-2">
+                  <Download className="h-4 w-4 text-ui-3" aria-hidden /> Import a gauge
+                </span>
+              </Menu.Item>
+            )}
+            {onSaveAsNew && (
+              <Menu.Item disabled={saving} onClick={onSaveAsNew}>
+                Save as new
+              </Menu.Item>
+            )}
+            {onDiscardDraft && (
+              <>
+                <div role="separator" />
+                <Menu.Item danger onClick={onDiscardDraft}>
+                  Discard draft
+                </Menu.Item>
+              </>
+            )}
+          </Menu.Content>
         </Menu.Root>
       )}
     </PageBar>

@@ -165,7 +165,7 @@ function SourceStep({
                 on ? "border-ui-accent bg-ui-accent-soft" : "border-ui-default bg-ui-tile hover:bg-ui-hover",
               )}
             >
-              <Icon className={cn("h-[22px] w-[22px]", on ? "text-ui-accent" : "text-ui-3")} strokeWidth={1.75} />
+              <Icon className={cn("h-5.5 w-5.5", on ? "text-ui-accent" : "text-ui-3")} strokeWidth={1.75} />
               <span className="text-body font-medium text-ui-1">{s.title}</span>
               <span className="text-caption text-ui-4">{s.text}</span>
             </button>
@@ -192,10 +192,10 @@ function SourceStep({
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round((state ? pct : 0.05) * 100)}
-                className="h-1.5 overflow-hidden rounded-[3px] bg-ui-hover"
+                className="h-1.5 overflow-hidden rounded-3 bg-ui-hover"
               >
                 <div
-                  className={cn("h-full rounded-[3px] transition-[width]", upload?.finished ? "bg-ui-ok" : "bg-ui-accent")}
+                  className={cn("h-full rounded-3 transition-[width]", upload?.finished ? "bg-ui-ok" : "bg-ui-accent")}
                   style={{ width: `${(state ? pct : 0.05) * 100}%` }}
                 />
               </div>
@@ -448,7 +448,7 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
   return (
     // The remap step has its own Help article (F1).
     <div data-help-article={step === 3 ? "remap" : "import"} className="grid h-full grid-cols-[210px_minmax(0,1fr)] max-md:grid-cols-1">
-      <nav aria-label="Import steps" className="flex flex-col gap-1 border-r border-ui-subtle bg-ui-chrome px-3 py-[18px] max-md:hidden">
+      <nav aria-label="Import steps" className="flex flex-col gap-1 border-r border-ui-subtle bg-ui-chrome px-3 py-4.5 max-md:hidden">
         <span className="px-2 pb-0.5 text-body font-medium text-ui-1">Import InfoPanel</span>
         <span className="px-2 pb-3.5 text-caption text-ui-4">Review before commit</span>
         {STEPS.map((label, i) => {
@@ -465,7 +465,7 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
             >
               <span
                 className={cn(
-                  "grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border-[1.5px] font-ui-mono text-micro font-medium",
+                  "grid h-5.5 w-5.5 shrink-0 place-items-center rounded-full border-[1.5px] font-ui-mono text-micro font-medium",
                   done ? "border-ui-strong bg-ui-raised text-ui-2" : cur ? "border-transparent bg-ui-inverse text-ui-inverse-fg" : "border-ui-edge text-ui-4",
                 )}
               >
@@ -480,7 +480,7 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
         })}
       </nav>
       <div className="flex min-h-0 flex-col">
-        <div className="relative flex flex-col gap-1 border-b border-ui-subtle px-[22px] pb-3.5 pt-[18px]">
+        <div className="relative flex flex-col gap-1 border-b border-ui-subtle px-5.5 pb-3.5 pt-4.5">
           <button type="button" aria-label="Close" onClick={onCancel} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-md text-ui-3 hover:bg-ui-hover hover:text-ui-1">
             <X className="h-4 w-4" />
           </button>
@@ -490,7 +490,7 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
           <span className="text-head font-medium text-ui-1">{TITLES[step]}</span>
           <Dialog.Description className="text-pretty text-body text-ui-3">{step === 4 && lockDest ? "Name it, then import." : SUBTITLES[step]}</Dialog.Description>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto px-[22px] py-[18px]">
+        <div className="min-h-0 flex-1 overflow-auto px-5.5 py-4.5">
           {step === 0 && <SourceStep kind={kind} onKind={setKind} opening={opening} state={state} onOpen={open} />}
           {step === 1 && state && <ModeStep state={state} />}
           {step === 2 && state && <ReviewStep state={state} />}
@@ -501,7 +501,7 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
             <SaveStep state={state} choices={choices} onChoices={setChoices} profileName={profileName} profileSize={profileSize} shotState={shotState} onPickShot={pickShot} lockDest={lockDest} />
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-[22px] py-3">
+        <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-5.5 py-3">
           <button type="button" onClick={onCancel} className="h-8 rounded-ui-md px-3 text-body text-ui-3 hover:text-ui-1">
             Cancel
           </button>
@@ -544,7 +544,7 @@ export function ImportDialog({ open, onOpenChange, ...body }: ImportDialogProps)
       <Dialog.Root open={open} onOpenChange={(o) => (o ? onOpenChange(true) : guard.request())}>
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
-          <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 h-[min(640px,calc(100vh-48px))] w-[min(960px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
+          <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 h-[min(640px,calc(100vh-48px))] w-[min(960px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-14 border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
             {open && <ImportBody {...body} onClose={() => onOpenChange(false)} onCancel={guard.request} onStep={setStep} />}
           </Dialog.Popup>
         </Dialog.Portal>

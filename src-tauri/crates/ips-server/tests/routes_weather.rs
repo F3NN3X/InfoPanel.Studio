@@ -39,7 +39,10 @@ async fn provider() -> (String, Arc<Mutex<Vec<String>>>) {
                     json!({ "utc_offset_seconds": 0, "current": { "temperature_2m": 4.0, "weather_code": 61, "is_day": 1 }, "hourly": { "time": [0, 3600], "temperature_2m": [4.0, 5.0], "weather_code": [61, 3] }, "daily": { "temperature_2m_max": [6.0], "temperature_2m_min": [1.0], "weather_code": [61] } })
                 }
                 .to_string();
-                let answer = format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+                let answer = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
                 let _ = stream.write_all(answer.as_bytes()).await;
             });
         }
@@ -57,7 +60,11 @@ async fn ask(port: u16, method: &str, path: &str) -> (u16, String, String) {
     let text = String::from_utf8_lossy(&raw).into_owned();
     let (head, rest) = text.split_once("\r\n\r\n").unwrap();
     let status = head.split(' ').nth(1).unwrap().parse().unwrap();
-    let body = if head.to_ascii_lowercase().contains("transfer-encoding: chunked") { rest.lines().nth(1).unwrap_or("").to_string() } else { rest.to_string() };
+    let body = if head.to_ascii_lowercase().contains("transfer-encoding: chunked") {
+        rest.lines().nth(1).unwrap_or("").to_string()
+    } else {
+        rest.to_string()
+    };
     (status, head.to_ascii_lowercase(), body)
 }
 
@@ -94,7 +101,8 @@ async fn start() -> Server {
     let data = dir.path().join("data");
     let recipe = data.join("widgets").join("recipe.wx");
     std::fs::create_dir_all(&recipe).unwrap();
-    let options = json!({ "options": [{ "key": "places", "type": "place-list", "default": [{ "name": "Oslo", "lat": 59.91, "lon": 10.75 }] }] });
+    let options =
+        json!({ "options": [{ "key": "places", "type": "place-list", "default": [{ "name": "Oslo", "lat": 59.91, "lon": 10.75 }] }] });
     std::fs::write(recipe.join("recipe.json"), options.to_string()).unwrap();
     let places = r#"[{"name":"Oslo","lat":59.9139,"lon":10.7522},{"name":"Tokyo","lat":35.68,"lon":139.69}]"#;
     let config = json!({ "version": 19, "profiles": [{ "id": "p", "placements": [
@@ -156,13 +164,19 @@ async fn fetches_the_referenced_places_streams_them_and_guards_place_search() {
     let (head, event) = first_event(port, "/events/weather?prefix=weather.place.n5991e1075.&interval=1000").await;
     assert!(head.contains("content-type: text/event-stream") && !head.contains("x-weather"));
     let sensors = event["sensors"].as_object().unwrap();
-    assert_eq!((sensors["weather.place.n5991e1075.temp"]["value"].as_f64(), sensors["weather.place.n5991e1075.temp"]["unit"].as_str()), (Some(4.0), Some("°C")));
+    assert_eq!(
+        (sensors["weather.place.n5991e1075.temp"]["value"].as_f64(), sensors["weather.place.n5991e1075.temp"]["unit"].as_str()),
+        (Some(4.0), Some("°C"))
+    );
     assert_eq!(sensors["weather.place.n5991e1075.condition"]["text"], "Light rain");
     assert_eq!(sensors["weather.place.n5991e1075.status"]["text"], "ok");
     assert!(sensors.keys().all(|k| k.starts_with("weather.place.n5991e1075.")));
     assert!(event["timestamp"].is_number());
     let (_, all) = first_event(port, "/events/weather?prefix=plugins.").await;
-    assert!(all["sensors"].as_object().unwrap().keys().any(|k| k.starts_with("weather.place.n3568e13969.")), "a prefix outside weather. reads the namespace");
+    assert!(
+        all["sensors"].as_object().unwrap().keys().any(|k| k.starts_with("weather.place.n3568e13969.")),
+        "a prefix outside weather. reads the namespace"
+    );
 
     // Place search: found, cached, guarded and capped.
     let (code, _, body) = ask(port, "GET", "/api/weather/places?q=Brevik").await;

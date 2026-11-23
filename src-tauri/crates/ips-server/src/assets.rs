@@ -25,8 +25,8 @@ use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 use crate::asset_types::{
-    by_ext, declared_type, hash_of, is_asset_id, limit_of, parse_range, referenced_hashes, sniff_type, upload_quota_refusal, AssetType, Range,
-    DEFAULT_MAX_BYTES, HEAD_BYTES, MAX_IN_FLIGHT, SVG_CSP,
+    by_ext, declared_type, hash_of, is_asset_id, limit_of, parse_range, referenced_hashes, sniff_type, upload_quota_refusal, AssetType,
+    Range, DEFAULT_MAX_BYTES, HEAD_BYTES, MAX_IN_FLIGHT, SVG_CSP,
 };
 use crate::http::{self, Req};
 use crate::request_guard::Refusal;
@@ -128,7 +128,9 @@ pub fn names(dir: &Path) -> Vec<String> {
 
 fn json_of(id: &str, t: &AssetType, size: u64, mtime: Option<i64>) -> Value {
     match mtime {
-        Some(mtime) => json!({ "id": id, "url": format!("/api/assets/{id}"), "type": t.mime, "kind": t.kind, "size": size, "mtime": mtime }),
+        Some(mtime) => {
+            json!({ "id": id, "url": format!("/api/assets/{id}"), "type": t.mime, "kind": t.kind, "size": size, "mtime": mtime })
+        }
         None => json!({ "id": id, "url": format!("/api/assets/{id}"), "type": t.mime, "size": size }),
     }
 }
@@ -280,7 +282,9 @@ async fn handle_app_icon(app: &App, mut req: Req) -> std::io::Result<Response<Bo
     if req.method != Method::POST {
         return Ok(http::empty(405));
     }
-    if let Some(Refusal { status, message }) = app_icon_refusal(req.is_loopback(), req.header("x-dashboard-asset").as_deref(), req.header("content-type").as_deref()) {
+    if let Some(Refusal { status, message }) =
+        app_icon_refusal(req.is_loopback(), req.header("x-dashboard-asset").as_deref(), req.header("content-type").as_deref())
+    {
         return Ok(http::text(status, message));
     }
     let Ok(text) = req.read_body(1024).await else {
@@ -376,7 +380,8 @@ fn serve_asset(req: &Req, file: PathBuf) -> Response<Body> {
     let range = parse_range(req.header("range").as_deref(), size);
     let (status, start, end) = match range {
         Range::Unsatisfiable => {
-            let response = builder.status(416).header("Content-Range", format!("bytes */{size}")).header("Content-Length", "0").body(Body::empty());
+            let response =
+                builder.status(416).header("Content-Range", format!("bytes */{size}")).header("Content-Length", "0").body(Body::empty());
             return response.unwrap_or_default();
         }
         Range::Span(start, end) => (206, start, end),

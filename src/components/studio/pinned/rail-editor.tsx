@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { ArrowDown, ArrowLeft, ArrowUp, Plus, TriangleAlert } from "lucide-react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Button, FOCUS_RING } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { StatusChip } from "@/components/ui/status-chip";
@@ -12,7 +12,6 @@ import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { modules } from "@/modules";
 import type { ModuleSettings } from "@/modules/types";
-import { ITEM, POPUP } from "../menu-styles";
 import { isCodeId, isRecipeId } from "@/widgets/recipe/resolve";
 import { loadUserRailWidgets } from "@/widgets/recipe/use-recipes";
 import { loadWidgetPresets } from "../widget-presets";
@@ -112,7 +111,7 @@ export function RailEditor({ stored, profile, index, pageId, item, appearance, t
   const alone: PinnedEdgeItem = { ...item, edge: side ? item.edge : "left", inset: 0, mode: "room", show: "all", visible: true };
   return (
     <div className="flex min-h-0 flex-1 bg-ui-app font-ui text-ui-1">
-      <aside aria-label="Preview" className="flex w-[180px] shrink-0 flex-col items-center gap-2 overflow-hidden border-r border-ui-subtle py-4">
+      <aside aria-label="Preview" className="flex w-45 shrink-0 flex-col items-center gap-2 overflow-hidden border-r border-ui-subtle py-4">
         <p className="text-caption text-ui-3">{`Preview · ${item.thickness} × ${h}`}</p>
         <div style={{ width: item.thickness * scale, height: h * scale }}>
           <div
@@ -143,26 +142,22 @@ export function RailEditor({ stored, profile, index, pageId, item, appearance, t
           </div>
           <Menu.Root>
             <Menu.Trigger render={<Button icon={<Plus />} />}>Add item</Menu.Trigger>
-            <Menu.Portal>
-              <Menu.Positioner side="bottom" align="end" sideOffset={4} className="z-[80]">
-                <Menu.Popup className={POPUP}>
-                  <Menu.Item className={ITEM} onClick={() => add("page")}>
-                    A page
-                  </Menu.Item>
-                  <Menu.Item className={ITEM} onClick={() => add("action")}>
-                    An action
-                  </Menu.Item>
-                  <Menu.Item className={ITEM} onClick={() => add("profile")}>
-                    The profile or a logo
-                  </Menu.Item>
-                  {widgets.map((w) => (
-                    <Menu.Item key={`${w.module}:${w.name}`} className={ITEM} onClick={() => add("widget", w)}>
-                      {w.name}
-                    </Menu.Item>
-                  ))}
-                </Menu.Popup>
-              </Menu.Positioner>
-            </Menu.Portal>
+            <Menu.Content side="bottom" align="end" sideOffset={4}>
+              <Menu.Item onClick={() => add("page")}>
+                A page
+              </Menu.Item>
+              <Menu.Item onClick={() => add("action")}>
+                An action
+              </Menu.Item>
+              <Menu.Item onClick={() => add("profile")}>
+                The profile or a logo
+              </Menu.Item>
+              {widgets.map((w) => (
+                <Menu.Item key={`${w.module}:${w.name}`} onClick={() => add("widget", w)}>
+                  {w.name}
+                </Menu.Item>
+              ))}
+            </Menu.Content>
           </Menu.Root>
         </div>
         {overflow && (
@@ -210,7 +205,7 @@ export function RailEditor({ stored, profile, index, pageId, item, appearance, t
         <section className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-ui-md border border-ui-edge bg-ui-raised px-4 py-3">
           <h2 className="text-body font-semibold">Rail look</h2>
           <span className="text-body text-ui-3">
-            Colours <span className="text-ui-1">Follow the Look</span>
+            Colours <span className="text-ui-1">Follow the look</span>
           </span>
           <span className="text-body text-ui-3">
             Width <span className="text-ui-1">{`${item.thickness} px`}</span>

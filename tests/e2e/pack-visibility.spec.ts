@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { PACK_STYLES } from "../../tools/qa/pack-styles.mjs";
-import { measurePack } from "../../src/looks/pack-render-measures";
+import { type MeasureOptions, measurePack, readMaskImages } from "../../src/looks/pack-render-measures";
 import { expect, manifest, settled, test, watchErrors } from "./fixtures";
 
 // A built-in pack paints with CSS, layers and effects that could hide what a widget shows (ledger L71, spec Readability): this
@@ -12,6 +12,8 @@ import { expect, manifest, settled, test, watchErrors } from "./fixtures";
 
 const OVERLAY_ALPHA_MAX = 0.4;
 const MIN_OPACITY = 0.5;
+/** `measurePack` after `readMaskImages` decoded the page's url() masks, as the studio's render check runs them. */
+const measured = async (page: import("@playwright/test").Page, options: MeasureOptions) => page.evaluate(measurePack, { ...options, maskImages: await page.evaluate(readMaskImages, { look: options.look }) });
 // the heavy screen shows the most widgets: every gauge kind is on it
 const heavy = manifest.profiles.heavy;
 
@@ -35,7 +37,7 @@ for (const id of Object.keys(PACK_STYLES)) {
     await expect(page.locator(`[data-pack-layer][data-look="${id}"]`).first()).toBeAttached();
     await settled(page, manifest.kioskZoneSelector);
 
-    const { worn: report } = await page.evaluate(measurePack, { look: id, alphaMax: OVERLAY_ALPHA_MAX, minOpacity: MIN_OPACITY });
+    const { worn: report } = await measured(page, { look: id, alphaMax: OVERLAY_ALPHA_MAX, minOpacity: MIN_OPACITY });
     expect(report.cards).toBeGreaterThan(0);
     // the packs whose rings carry a gradient (`ring-fill`) draw it, and the check above read its stops
     if (id === "night-glow" || id === "black-and-gold") expect(report.gradients).toBeGreaterThan(0);

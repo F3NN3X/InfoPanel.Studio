@@ -48,7 +48,12 @@ pub fn key_file_for(config: Option<&str>, local: Option<&str>, xdg: Option<&str>
 /// The key file's place in this process's environment.
 pub fn key_file() -> PathBuf {
     let var = |k: &str| std::env::var(k).ok();
-    key_file_for(var("INFOPANEL_STUDIO_CONFIG_DIR").as_deref(), var("LOCALAPPDATA").as_deref(), var("XDG_CONFIG_HOME").as_deref(), var("HOME").as_deref())
+    key_file_for(
+        var("INFOPANEL_STUDIO_CONFIG_DIR").as_deref(),
+        var("LOCALAPPDATA").as_deref(),
+        var("XDG_CONFIG_HOME").as_deref(),
+        var("HOME").as_deref(),
+    )
 }
 
 /// The key in `file`, if only this user can read or write it.
@@ -104,11 +109,13 @@ mod imp {
 
     use windows_sys::Win32::Foundation::{CloseHandle, LocalFree, ERROR_SUCCESS, GENERIC_WRITE, HANDLE, INVALID_HANDLE_VALUE};
     use windows_sys::Win32::Security::Authorization::{
-        ConvertSidToStringSidW, ConvertStringSecurityDescriptorToSecurityDescriptorW, GetNamedSecurityInfoW, SDDL_REVISION_1, SE_FILE_OBJECT,
+        ConvertSidToStringSidW, ConvertStringSecurityDescriptorToSecurityDescriptorW, GetNamedSecurityInfoW, SDDL_REVISION_1,
+        SE_FILE_OBJECT,
     };
     use windows_sys::Win32::Security::{
-        AclSizeInformation, CreateWellKnownSid, EqualSid, GetAce, GetAclInformation, GetTokenInformation, TokenUser, WinLocalSystemSid, ACCESS_ALLOWED_ACE, ACE_HEADER, ACL,
-        ACL_SIZE_INFORMATION, DACL_SECURITY_INFORMATION, OWNER_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, PSID, SECURITY_ATTRIBUTES, TOKEN_QUERY, TOKEN_USER,
+        AclSizeInformation, CreateWellKnownSid, EqualSid, GetAce, GetAclInformation, GetTokenInformation, TokenUser, WinLocalSystemSid,
+        ACCESS_ALLOWED_ACE, ACE_HEADER, ACL, ACL_SIZE_INFORMATION, DACL_SECURITY_INFORMATION, OWNER_SECURITY_INFORMATION,
+        PSECURITY_DESCRIPTOR, PSID, SECURITY_ATTRIBUTES, TOKEN_QUERY, TOKEN_USER,
     };
     use windows_sys::Win32::Storage::FileSystem::{CreateFileW, CREATE_NEW, FILE_ATTRIBUTE_NORMAL};
     use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
@@ -181,7 +188,8 @@ mod imp {
             if ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.as_ptr(), SDDL_REVISION_1, &mut sd, null_mut()) == 0 {
                 return Err(std::io::Error::last_os_error());
             }
-            let attributes = SECURITY_ATTRIBUTES { nLength: size_of::<SECURITY_ATTRIBUTES>() as u32, lpSecurityDescriptor: sd, bInheritHandle: 0 };
+            let attributes =
+                SECURITY_ATTRIBUTES { nLength: size_of::<SECURITY_ATTRIBUTES>() as u32, lpSecurityDescriptor: sd, bInheritHandle: 0 };
             let handle = CreateFileW(wide(file).as_ptr(), GENERIC_WRITE, 0, &attributes, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, null_mut());
             let error = std::io::Error::last_os_error();
             LocalFree(sd);
@@ -200,7 +208,9 @@ mod imp {
         unsafe {
             let (mut owner, mut dacl, mut sd): (PSID, *mut ACL, PSECURITY_DESCRIPTOR) = (null_mut(), null_mut(), null_mut());
             let what = OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION;
-            if GetNamedSecurityInfoW(wide(file).as_ptr(), SE_FILE_OBJECT, what, &mut owner, null_mut(), &mut dacl, null_mut(), &mut sd) != ERROR_SUCCESS {
+            if GetNamedSecurityInfoW(wide(file).as_ptr(), SE_FILE_OBJECT, what, &mut owner, null_mut(), &mut dacl, null_mut(), &mut sd)
+                != ERROR_SUCCESS
+            {
                 return false;
             }
             let ok = (|| {

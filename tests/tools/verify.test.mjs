@@ -1,9 +1,9 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { hashTree, mergeChangeSets, parseNameStatus } from "../../tools/verify/git.mjs";
-import { featuresOf, matchesGlob, resolveChanges } from "../../tools/verify/map.mjs";
+import { featuresOf, isRoutingOnly, matchesGlob, resolveChanges, splitRoutingOnly } from "../../tools/verify/map.mjs";
 import { buildPlan, EXIT, exitCodeFor } from "../../tools/verify/plan.mjs";
-import { freshness, freshnessExit } from "../../tools/verify/record.mjs";
+import { freshness, freshnessExit, incrementalBase, nextOkHead, SINCE_LAST_PASS } from "../../tools/verify/record.mjs";
 
 // A small map in the real map's shape: lint always, a Vitest check, a Windows-only check, an escalating one.
 const map = {
@@ -109,9 +109,83 @@ describe("the plan", () => {
     expect(run(false).status).toBeUndefined();
   });
 
+  it("skips a browser check locally, in --full too, unless asked for; CI always runs it", () => {
+    const pw = { ...map, checks: { ...map.checks, e2e: { ...map.checks.e2e, browser: true } } };
+    const run = (extra) => plan(["src/a/x.ts"], { map: pw, ...extra }).steps.find((s) => s.id === "e2e");
+    for (const mode of ["default", "full"]) expect(run({ mode })).toMatchObject({ cmd: null, status: "skipped" });
+    expect(run({ browser: true }).cmd).toBe("pw tests/e2e/a.spec.ts");
+    expect(run({ ci: true }).cmd).toBe("pw tests/e2e/a.spec.ts");
+  });
+
   it("falls back to the whole suite when the file list outgrows a command line", () => {
     const many = Array.from({ length: 400 }, (_, i) => `tests/a/long-name-number-${i}.test.ts`);
     expect(unitCmd(plan(["src/a/x.ts"], { tracked: many }))).toBe("vt all");
+  });
+
+  it("runs a check's smoke list in place of the features' specs, with the changed specs, and every spec in --full", () => {
+    const smoke = { ...map, checks: { ...map.checks, e2e: { ...map.checks.e2e, smoke: ["tests/e2e/s.spec.ts"] } } };
+    const all = [...tracked, "tests/e2e/s.spec.ts", "tests/e2e/b.spec.ts"];
+    const e2e = (changed, extra = {}) => plan(changed, { map: smoke, tracked: all, ...extra }).steps.find((s) => s.id === "e2e").cmd;
+    expect(e2e(["src/a/x.ts"])).toBe("pw tests/e2e/s.spec.ts");
+    expect(e2e(["src/a/x.ts", "tests/e2e/a.spec.ts"])).toBe("pw tests/e2e/s.spec.ts tests/e2e/a.spec.ts");
+    expect(e2e(["src/a/x.ts"], { mode: "full" })).toBe("pw all");
+  });
+});
+
+describe("a map change", () => {
+  const text = (over = {}) => JSON.stringify({ version: 1, checks: { unit: { cmd: "vt" } }, features: [{ id: "a", paths: ["src/a/**"], checks: ["unit"] }], ...over });
+
+  it("is routing only when nothing but its features changed, however they are laid out", () => {
+    const moved = text({ features: [{ id: "a", paths: ["src/a/**", "src/new.ts"], checks: [] }, { id: "b", paths: [], checks: ["unit"] }] });
+    expect(isRoutingOnly(text(), moved)).toBe(true);
+    expect(isRoutingOnly(text(), JSON.stringify(JSON.parse(text()), null, 2))).toBe(true);
+  });
+
+  it("is not when a check's definition or anything else changed, or when either text does not parse", () => {
+    expect(isRoutingOnly(text(), text({ checks: { unit: { cmd: "vt --bail" } } }))).toBe(false);
+    expect(isRoutingOnly(text(), text({ checks: { unit: { cmd: "vt" }, extra: { cmd: "x" } } }))).toBe(false);
+    expect(isRoutingOnly(text(), text({ version: 2 }))).toBe(false);
+    expect(isRoutingOnly(text(), "{")).toBe(false);
+  });
+
+  it("leaves the changed files when it is routing only, and stays in them otherwise or when it is new", () => {
+    const files = ["src/a/x.ts", "tests/feature-map.json"];
+    const routed = { old: text(), new: text({ features: [] }) };
+    expect(splitRoutingOnly(files, () => routed)).toEqual({ routingOnly: true, rest: ["src/a/x.ts"] });
+    expect(splitRoutingOnly(files, () => ({ old: text(), new: text({ version: 2 }) }))).toEqual({ routingOnly: false, rest: files });
+    expect(splitRoutingOnly(files, () => null)).toEqual({ routingOnly: false, rest: files });
+    expect(splitRoutingOnly(["src/a/x.ts"], () => routed)).toEqual({ routingOnly: false, rest: ["src/a/x.ts"] });
+  });
+});
+
+describe("the base of a run", () => {
+  const known = { isAncestor: (sha) => sha === "ok1" };
+
+  it("is the last passing run's commit while HEAD descends from it, and main's for --full, CI, a rebase or no record", () => {
+    expect(incrementalBase({ okHead: "ok1" }, { full: false, ci: false, ...known })).toBe("ok1");
+    expect(incrementalBase({ okHead: "ok1" }, { full: true, ci: false, ...known })).toBeNull();
+    expect(incrementalBase({ okHead: "ok1" }, { full: false, ci: true, ...known })).toBeNull();
+    expect(incrementalBase({ okHead: "rebased-away" }, { full: false, ci: false, ...known })).toBeNull();
+    expect(incrementalBase({}, { full: false, ci: false, ...known })).toBeNull();
+    expect(incrementalBase(null, { full: false, ci: false, ...known })).toBeNull();
+  });
+
+  const run = (over = {}) => ({ head: "h2", mode: "default", base: SINCE_LAST_PASS, exit: EXIT.ok, checks: [{ status: "passed" }, { status: "skipped" }], ...over });
+  const previous = { okHead: "h1" };
+
+  it("moves to a run's commit when it passed on everything since the last passing run, the whole branch, or every check", () => {
+    expect(nextOkHead(previous, run())).toBe("h2");
+    expect(nextOkHead(previous, run({ base: "origin/main" }))).toBe("h2");
+    expect(nextOkHead(null, run({ base: "main" }))).toBe("h2");
+    expect(nextOkHead(previous, run({ mode: "full", base: null }))).toBe("h2");
+  });
+
+  it("stays where it was after a failure, --fast, a narrower --base, or a check left unrun", () => {
+    expect(nextOkHead(previous, run({ exit: EXIT.failed }))).toBe("h1");
+    expect(nextOkHead(previous, run({ mode: "fast" }))).toBe("h1");
+    expect(nextOkHead(previous, run({ base: "HEAD~1" }))).toBe("h1");
+    expect(nextOkHead(previous, run({ checks: [{ status: "not-run" }] }))).toBe("h1");
+    expect(nextOkHead(null, run({ exit: EXIT.failed }))).toBeNull();
   });
 });
 

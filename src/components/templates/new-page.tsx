@@ -216,7 +216,7 @@ function KindPage({ kind, onKind, screen, initial, carry, onCreateScreen, onCrea
   };
   /** Select by id at the template's own size (the arrow keys, Enter in search). */
   const pickId = (id: string) => select(id.startsWith(LIBRARY_ID) ? { type: "library", id } : { type: "template", id });
-  const useOwn = () => {
+  const resetToOwn = () => {
     sized.reset();
     if (selection.type === "template") setChosen({ type: "template", id: selection.id });
   };
@@ -342,9 +342,9 @@ function KindPage({ kind, onKind, screen, initial, carry, onCreateScreen, onCrea
   const fields = (
     <div className="flex min-w-0 flex-1 flex-col gap-3.5">
       {template && !template.fits.includes(shapeClassOf(shown.width, shown.height)) && (
-        <ShapeWarning name={template.name} fits={template.fits} size={shown} own={template.size} onUseOwn={useOwn} />
+        <ShapeWarning name={template.name} fits={template.fits} size={shown} own={template.size} onUseOwn={resetToOwn} />
       )}
-      {!saved && <SizePicker sized={sized} own={template?.size ?? (selection.type === "blank" ? start : undefined)} owner={template?.name} onUseOwn={useOwn} />}
+      {!saved && <SizePicker sized={sized} own={template?.size ?? (selection.type === "blank" ? start : undefined)} owner={template?.name} onUseOwn={resetToOwn} />}
       {template && template.palettes.length > 1 && (
         <VariantChips variants={template.palettes} value={palette} onChange={(v) => setPalettes((p) => ({ ...p, [template.id]: v }))} className="" />
       )}

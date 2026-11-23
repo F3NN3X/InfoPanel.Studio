@@ -111,7 +111,8 @@ jobs:
           retention-days: 1
 
   # The e2e specs PRs skip, against this commit's own build. A stable tag only: a beta (vX.Y.Z-beta.N) is published once the
-  # installer builds, since its commit already passed the gate and ship's local verify:full (which runs every e2e spec).
+  # installer builds, since its commit already passed the gate and ship's local verify (the smoke e2e specs and the changed
+  # ones; the nightly runs every spec).
   e2e:
     needs: gate
     if: ${{ !contains(github.ref_name, '-beta.') }}

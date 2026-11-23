@@ -45,7 +45,12 @@ async fn off_fetches_nothing_streams_an_empty_set_and_refuses_search() {
     std::fs::create_dir_all(dir.path().join("dist")).unwrap();
     let data = dir.path().join("data");
     std::fs::create_dir_all(data.join("widgets").join("recipe.wx")).unwrap();
-    std::fs::write(data.join("widgets/recipe.wx/recipe.json"), json!({ "options": [{ "key": "places", "type": "place-list", "default": [{ "name": "Oslo", "lat": 59.91, "lon": 10.75 }] }] }).to_string()).unwrap();
+    std::fs::write(
+        data.join("widgets/recipe.wx/recipe.json"),
+        json!({ "options": [{ "key": "places", "type": "place-list", "default": [{ "name": "Oslo", "lat": 59.91, "lon": 10.75 }] }] })
+            .to_string(),
+    )
+    .unwrap();
     std::fs::write(data.join("config.json"), json!({ "profiles": [{ "placements": [{ "module": "recipe:wx" }] }] }).to_string()).unwrap();
     let cfg = ServerConfig {
         host: "127.0.0.1".into(),

@@ -20,8 +20,8 @@ const LICENCE_LINE: Record<Verdict, string> = {
 
 export function Fact({ label, children, tone }: { label: string; children: ReactNode; tone?: string }) {
   return (
-    <div className="flex gap-3 py-[3px] text-caption">
-      <span className="w-[86px] shrink-0 text-ui-4">{label}</span>
+    <div className="flex gap-3 py-0.75 text-caption">
+      <span className="w-21.5 shrink-0 text-ui-4">{label}</span>
       <span className={cn("min-w-0 flex-1 truncate text-ui-2", tone)}>{children}</span>
     </div>
   );
@@ -44,7 +44,7 @@ export function FontDetail({ item }: { item: LibraryItem }) {
   const m = metaOf(item);
   const face = useLibraryFont(item);
   return (
-    <aside aria-label="Font details" className="flex w-[320px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-panel p-4 font-ui">
+    <aside aria-label="Font details" className="flex w-80 shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-panel p-4 font-ui">
       <PreviewBox family={face} />
       <div className="text-lead font-medium text-ui-1">{m.family ?? item.name}</div>
       <div>

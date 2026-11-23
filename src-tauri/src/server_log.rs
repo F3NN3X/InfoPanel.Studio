@@ -28,10 +28,7 @@ pub fn hidden_command(program: impl AsRef<std::ffi::OsStr>) -> Command {
 
 /// Whether one more crash restart fits in the budget (3 per minute); records it when it does.
 pub fn allow_restart(history: &mut VecDeque<Instant>, now: Instant) -> bool {
-    while history
-        .front()
-        .is_some_and(|t| now.duration_since(*t) >= RESTART_WINDOW)
-    {
+    while history.front().is_some_and(|t| now.duration_since(*t) >= RESTART_WINDOW) {
         history.pop_front();
     }
     if history.len() >= MAX_RESTARTS {
@@ -53,14 +50,7 @@ pub struct RotatingLog {
 
 impl RotatingLog {
     pub fn new(dir: &Path, name: &str, max: u64, keep: usize) -> Self {
-        Self {
-            dir: dir.to_path_buf(),
-            name: name.into(),
-            max,
-            keep: keep.max(1),
-            file: None,
-            size: 0,
-        }
+        Self { dir: dir.to_path_buf(), name: name.into(), max, keep: keep.max(1), file: None, size: 0 }
     }
 
     fn path(&self, index: usize) -> PathBuf {
@@ -73,10 +63,7 @@ impl RotatingLog {
 
     fn open(&mut self) -> std::io::Result<()> {
         std::fs::create_dir_all(&self.dir)?;
-        let file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(self.path(0))?;
+        let file = OpenOptions::new().create(true).append(true).open(self.path(0))?;
         self.size = file.metadata()?.len();
         self.file = Some(file);
         Ok(())
@@ -126,10 +113,7 @@ pub fn tail(dir: &Path, name: &str, n: usize) -> String {
 }
 
 pub fn timestamp() -> String {
-    let secs = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
+    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
     let (h, m, s) = ((secs / 3600) % 24, (secs / 60) % 60, secs % 60);
     format!("{h:02}:{m:02}:{s:02}Z")
 }

@@ -89,7 +89,7 @@ export function Breakdown({ data, rows, tokens }: { data: BreakdownData; rows: n
               <span key={m.name} title={`${m.name} ${pct(m.share)}`} style={{ width: `${m.share * 100}%`, background: colorOf(m, i) }} />
             ))}
           </div>
-          <div className="truncate text-micro tabular-nums leading-[14px] text-[color:var(--w-muted)]">
+          <div className="truncate text-micro tabular-nums leading-3.5 text-[color:var(--w-muted)]">
             {data.models.map((m, i) => (
               <span key={m.name}>
                 {i > 0 && <span className="text-[color:var(--w-faint)]"> · </span>}
@@ -100,12 +100,12 @@ export function Breakdown({ data, rows, tokens }: { data: BreakdownData; rows: n
         </div>
       )}
       {projects.map((p) => (
-        <div key={p.name} className="flex min-w-0 flex-col justify-end gap-[3px]" style={{ height: ROW_H, marginTop: ROW_GAP }}>
-          <div className="flex min-w-0 items-baseline justify-between gap-2 text-micro leading-[12px]">
+        <div key={p.name} className="flex min-w-0 flex-col justify-end gap-0.75" style={{ height: ROW_H, marginTop: ROW_GAP }}>
+          <div className="flex min-w-0 items-baseline justify-between gap-2 text-micro leading-3">
             <span className="truncate text-[color:var(--w-fg)]">{p.name}</span>
             <span className="shrink-0 tabular-nums text-[color:var(--w-muted)]">{pct(p.share)}</span>
           </div>
-          <Bar value={p.share * 100} className="h-[3px]" />
+          <Bar value={p.share * 100} className="h-0.75" />
         </div>
       ))}
       {tokens && (

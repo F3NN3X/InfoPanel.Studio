@@ -42,8 +42,8 @@ function Card({ s }: { s: AgentSession }) {
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-3">
           <Icon aria-hidden size={20} className="shrink-0 self-center" style={{ color: tone(s) }} />
-          <span className="min-w-0 truncate text-[22px] font-semibold leading-tight">{AGENT_FULL_NAMES[s.agent]}</span>
-          <span className="shrink-0 truncate text-[14px]" style={{ color: s.state === "waiting" || s.state === "working" ? tone(s) : "var(--w-muted)" }}>
+          <span className="min-w-0 truncate text-stat font-semibold leading-tight">{AGENT_FULL_NAMES[s.agent]}</span>
+          <span className="shrink-0 truncate text-lead" style={{ color: s.state === "waiting" || s.state === "working" ? tone(s) : "var(--w-muted)" }}>
             {stateLine(s)}
           </span>
         </div>
@@ -82,7 +82,7 @@ export function SessionCards({ sessions, rows }: SessionCardsProps) {
           {sessions.length} connected
         </span>
         {waiting > 0 && (
-          <span className="ml-auto flex items-center gap-2 text-[14px] font-semibold" style={{ color: TONES.warn }}>
+          <span className="ml-auto flex items-center gap-2 text-lead font-semibold" style={{ color: TONES.warn }}>
             <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: TONES.warn }} />
             {waiting === 1 ? "One needs you" : `${waiting} need you`}
           </span>

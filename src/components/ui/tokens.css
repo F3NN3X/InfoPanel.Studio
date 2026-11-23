@@ -15,13 +15,28 @@
      Here, not in index.css, so the Settings and Help bundles (which import only this file) get them too. */
   --text-nano: 0.625rem;
   --text-micro: 0.6875rem;
+  --text-label: 0.71875rem;
   --text-caption: 0.75rem;
+  --text-small: 0.78125rem;
   --text-body: 0.8125rem;
   --text-lead: 0.875rem;
   --text-title: 0.9375rem;
   --text-head: 1rem;
   --text-display: 1.125rem;
+  --text-stat: 1.375rem;
   --text-hero: 1.5rem;
+  /* Radius scale (`rounded-2` … `rounded-14`, in px): the steps the app and widgets used as arbitrary values, moved here
+     unchanged in Phase 5 step 1. No ui- prefix, so widgets may use them too (the D9 scan keeps ui-* out of widgets). */
+  --radius-2: 2px;
+  --radius-3: 3px;
+  --radius-4: 4px;
+  --radius-5: 5px;
+  --radius-6: 6px;
+  --radius-7: 7px;
+  --radius-8: 8px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-14: 14px;
   /* Control scale: radii, heights and stacking. */
   --radius-ui-sm: 6px;
   --radius-ui-md: 8px;

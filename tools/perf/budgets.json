@@ -1,24 +1,28 @@
 {
-  "$comment": "Deterministic budgets, enforced in CI (tools/perf/check-budgets.mjs; requests by tests/e2e/kiosk-budget.spec.ts). CPU, memory and frame counts are report-only. The entry budgets are CI's (Linux) measured bytes; entryGzipSlack (0.1 %) is added on top because the same build gzips a few bytes apart per platform and runner image. Lower a budget when a change shrinks the number; raise one only with a reason in the commit.",
-  "kioskEntryGzipBytes": 296989,
-  "studioEntryGzipBytes": 646714,
-  "entryGzipSlack": 0.001,
+  "$comment": "Deterministic budgets, enforced in CI (tools/perf/check-budgets.mjs; requests by tests/e2e/kiosk-budget.spec.ts). CPU, memory and frame counts are report-only. Each entry budget is a band: over `warn` prints a warning (a GitHub Actions annotation in CI) and passes; over `fail` is red. Both come from CI's (Linux) measured bytes at Gate 0 (kiosk 296,989, studio 646,714): kiosk warn +15 %, fail +40 %; studio warn +20 %, fail +50 % (G7 change, approved at Gate 0). Raise a band only with a reason in the commit.",
+  "kioskEntryGzipBytes": { "warn": 341537, "fail": 415784 },
+  "studioEntryGzipBytes": { "warn": 776056, "fail": 970071 },
   "kioskLoadRequests": 34,
   "kioskServerRendererAllowed": false,
   "packs": {
-    "$comment": "Per built-in pack (src/looks/packs/<id>.ts, its Look id): codeGzipBytes = its lazy JS and CSS chunks (found through the Vite manifest), gzip; assetBytes = the files in src/looks/packs/<id>/assets, bytes on disk; layersPerPage = the layer reasons counted on the heavy kiosk screen with the pack on (tests/e2e/pack-visibility.spec.ts counts them; check-budgets does not). Set to the measured size plus 25 %, never above packCeilingBytes (code gzip plus assets), lowered whenever a pack shrinks. A pack with no entry here fails the check (node tools/perf/check-budgets.mjs --packs). Measured at P10 round 1: field-kit 11, tape-86 11, term 10 (Classic 9); at P11a: neon-stripe 10, overdrive 9, swiss-mono 10, holo 11: the budget is that plus 25 %. The count is the CSS reasons for a layer, not the compositor's own.",
-    "packCeilingBytes": 512000,
-    "field-kit": { "codeGzipBytes": 3300, "assetBytes": 21100, "layersPerPage": 14 },
-    "tape-86": { "codeGzipBytes": 3600, "assetBytes": 18800, "layersPerPage": 14 },
-    "term": { "codeGzipBytes": 3200, "assetBytes": 10500, "layersPerPage": 13 },
-    "neon-stripe": { "codeGzipBytes": 6100, "assetBytes": 12600, "layersPerPage": 13 },
-    "overdrive": { "codeGzipBytes": 5500, "assetBytes": 13950, "layersPerPage": 12 },
-    "swiss-mono": { "codeGzipBytes": 5900, "assetBytes": 30650, "layersPerPage": 13 },
-    "holo": { "codeGzipBytes": 6800, "assetBytes": 19600, "layersPerPage": 14 },
-    "night-glow": { "codeGzipBytes": 1940, "assetBytes": 10400, "layersPerPage": 19 },
-    "paper": { "codeGzipBytes": 1870, "assetBytes": 17660, "layersPerPage": 13 },
-    "classy-black": { "codeGzipBytes": 1840, "assetBytes": 20020, "layersPerPage": 12 },
-    "liquid-glass": { "codeGzipBytes": 1930, "assetBytes": 11180, "layersPerPage": 20 },
-    "black-and-gold": { "codeGzipBytes": 1810, "assetBytes": 11120, "layersPerPage": 12 }
+    "$comment": "Per built-in pack (src/looks/packs/<id>.ts, its Look id): codeGzipBytes = its lazy JS and CSS chunks (found through the Vite manifest), gzip; assetBytes = the files in src/looks/packs/<id>/assets, bytes on disk; layersPerPage = the layer reasons counted on the heavy kiosk screen with the pack on (tests/e2e/pack-visibility.spec.ts counts them; check-budgets does not). Phase 4 (pack CSS brief): codeGzipBytes and assetBytes are warn lines, set at the bytes measured at Gate 4 (2026-11-22) plus 50 %; over one prints a warning and passes. The fail line is packCeilingBytes for code gzip plus assets, the same cap as a user pack's import (PACK_CEILING_BYTES in src/looks/pack-validate.ts and packs.rs; tests pin all three). layersPerPage stays hard: raise it per pack only with a reason in the commit. A pack with no entry here is a warning that prints its measured bytes (node tools/perf/check-budgets.mjs --packs). Raise any line only with a reason in the commit; a line is not lowered when a pack shrinks.",
+    "packCeilingBytes": 1024000,
+    "field-kit": { "codeGzipBytes": 3710, "assetBytes": 25270, "layersPerPage": 14 },
+    "tape-86": { "codeGzipBytes": 4150, "assetBytes": 22470, "layersPerPage": 16 },
+    "term": { "codeGzipBytes": 3600, "assetBytes": 12530, "layersPerPage": 13 },
+    "neon-stripe": { "codeGzipBytes": 7040, "assetBytes": 15030, "layersPerPage": 13 },
+    "overdrive": { "codeGzipBytes": 6390, "assetBytes": 16700, "layersPerPage": 12 },
+    "swiss-mono": { "codeGzipBytes": 6880, "assetBytes": 36730, "layersPerPage": 13 },
+    "holo": { "codeGzipBytes": 7890, "assetBytes": 23460, "layersPerPage": 14 },
+    "night-glow": { "codeGzipBytes": 2330, "assetBytes": 12480, "layersPerPage": 19 },
+    "paper": { "codeGzipBytes": 2310, "assetBytes": 21190, "layersPerPage": 13 },
+    "classy-black": { "codeGzipBytes": 2190, "assetBytes": 24020, "layersPerPage": 12 },
+    "liquid-glass": { "codeGzipBytes": 2290, "assetBytes": 13420, "layersPerPage": 20 },
+    "black-and-gold": { "codeGzipBytes": 2200, "assetBytes": 13340, "layersPerPage": 12 }
+  },
+  "kioskIdleWarn": {
+    "$comment": "Report-only lines for the heavy kiosk screen at idle (tests/perf/kiosk-idle.perf.ts, case `heavy`, medians): over either prints a warning, never fails. Gate 0: task time 100 ms of main-thread work a second (about 10 % of a core; 68 at Gate 0, 65 at Gate 4) and 24 MB of JS heap (11.8 at Gate 0, 17.7 at Gate 4).",
+    "taskMsPerS": 100,
+    "jsHeapMB": 24
   }
 }

@@ -69,7 +69,7 @@ export function LimitsView({ plans, percent, now, h }: { plans: PlanEntry[]; per
       {rows.map((r) => (
         <div key={r.key} className="flex min-w-0 flex-col gap-2" style={{ opacity: r.stale && !r.reset ? 0.55 : undefined }}>
           <div className="flex min-w-0 items-baseline gap-2">
-            <span className="truncate text-[14px] font-semibold text-[color:var(--w-fg)]">{r.label}</span>
+            <span className="truncate text-lead font-semibold text-[color:var(--w-fg)]">{r.label}</span>
             <span className="ml-auto shrink-0 font-mono text-micro tabular-nums text-[color:var(--w-muted)]">{rightText(r, percent, now)}</span>
           </div>
           <Bar value={r.w.used} t={toneOf(r.w)} className="h-4" />

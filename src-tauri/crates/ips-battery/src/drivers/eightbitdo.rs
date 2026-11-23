@@ -9,27 +9,33 @@
 //! to D-input mode (hold B while turning it on) to be shown.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, PollContext};
+use crate::hid::{PollContext, hex4};
 use crate::win::now_ms;
 
 const VID: u16 = 0x2DC8;
-const REPORT_LEN: i32 = 34;  // v1.02 firmware sends 12-byte reports without the battery byte
+const REPORT_LEN: i32 = 34; // v1.02 firmware sends 12-byte reports without the battery byte
 
-fn is_ultimate2(pid: u16) -> bool { pid == 0x6012 }
+fn is_ultimate2(pid: u16) -> bool {
+    pid == 0x6012
+}
 
 pub fn poll_8bitdo(ctx: &mut PollContext) {
     for &(vid, pid) in &ctx.products(VID) {
-        if !is_ultimate2(pid) { continue; }
+        if !is_ultimate2(pid) {
+            continue;
+        }
         for c in ctx.find(vid, pid, |c| c.page() == 0x01 && c.usage() == 0x05 && c.in_len() as i32 >= REPORT_LEN) {
             // games keep the gamepad open; reading alongside them is fine
             let Some(mut d) = ctx.open_read_only(&c) else { continue };
             let mut r: Vec<u8> = Vec::new();
             let mut found = false;
-            let end = now_ms() + 600;  // the pad streams reports every few ms while linked
+            let end = now_ms() + 600; // the pad streams reports every few ms while linked
             while !found && (end as i64 - now_ms() as i64) > 0 {
                 found = d.read(&mut r, 100) >= REPORT_LEN && r[0] == 0x01 && (r[14] & 0x7F) <= 100;
             }
-            if !found { continue; }
+            if !found {
+                continue;
+            }
             let mut s = DeviceStatus::default();
             s.key = format!("8bitdo:{}", hex4(pid));
             s.name = "8BitDo Ultimate 2".into();

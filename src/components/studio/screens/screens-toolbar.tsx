@@ -28,8 +28,8 @@ export function ScreensHeader({ count, query, onQuery, searchRef, onImport, onEx
     <PageBar>
       <BarTitle title="Screens" note={count} />
       <BarFill />
-      <div className="flex min-w-0 items-center gap-2 max-[599px]:w-full">
-        <label className="relative w-[240px] min-w-[120px] shrink max-[599px]:w-full">
+      <div className="flex min-w-0 items-center gap-2 max-sm:w-full">
+        <label className="relative w-60 min-w-30 shrink max-sm:w-full">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ui-hint" strokeWidth={1.5} aria-hidden />
           <input
             ref={searchRef}
@@ -54,10 +54,10 @@ export function ScreensHeader({ count, query, onQuery, searchRef, onImport, onEx
           )}
         </label>
         <Button title="Import a screen or an InfoPanel profile from a file" icon={<Upload strokeWidth={1.5} />} onClick={onImport}>
-          <span className="max-[1279px]:sr-only">Import</span>
+          <span className="max-xl:sr-only">Import</span>
         </Button>
         <Button title="Export or back up the whole dashboard" aria-label="Export & back up…" icon={<Download strokeWidth={1.5} />} onClick={onExportAll}>
-          <span className="max-[1279px]:sr-only">Export &amp; back up</span>
+          <span className="max-xl:sr-only">Export &amp; back up</span>
         </Button>
         <Button variant="primary" icon={<Plus strokeWidth={1.75} />} onClick={onNew}>
           New screen

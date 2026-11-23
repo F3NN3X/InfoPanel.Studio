@@ -20,16 +20,8 @@ pub struct IconData {
 
 impl IconData {
     fn new(bytes: Vec<u8>, content_type: &'static str) -> Self {
-        let version = Sha256::digest(&bytes)
-            .iter()
-            .take(6)
-            .map(|b| format!("{b:02x}"))
-            .collect();
-        Self {
-            bytes: Bytes::from(bytes),
-            content_type,
-            version,
-        }
+        let version = Sha256::digest(&bytes).iter().take(6).map(|b| format!("{b:02x}")).collect();
+        Self { bytes: Bytes::from(bytes), content_type, version }
     }
 }
 
@@ -63,12 +55,7 @@ pub fn decode(image: &proto::Image) -> Option<IconData> {
         ImageFormat::Jpg => Some(IconData::new(image.image.clone(), "image/jpeg")),
         ImageFormat::Png => Some(IconData::new(image.image.clone(), "image/png")),
         ImageFormat::Lz4 => {
-            let (width, height) = image
-                .size
-                .as_ref()
-                .map_or((proto::ICON_SIZE, proto::ICON_SIZE), |s| {
-                    (s.width, s.height)
-                });
+            let (width, height) = image.size.as_ref().map_or((proto::ICON_SIZE, proto::ICON_SIZE), |s| (s.width, s.height));
             if width == 0 || height == 0 || width > MAX_SIDE || height > MAX_SIDE {
                 return None;
             }
@@ -78,10 +65,7 @@ pub fn decode(image: &proto::Image) -> Option<IconData> {
                 return None;
             }
             bgra_to_rgba(&mut pixels);
-            Some(IconData::new(
-                encode_png(&pixels, width, height)?,
-                "image/png",
-            ))
+            Some(IconData::new(encode_png(&pixels, width, height)?, "image/png"))
         }
         _ => None,
     }
@@ -102,9 +86,7 @@ mod tests {
     }
 
     fn read_png(bytes: &[u8]) -> (u32, u32, Vec<u8>) {
-        let mut reader = png::Decoder::new(std::io::Cursor::new(bytes))
-            .read_info()
-            .unwrap();
+        let mut reader = png::Decoder::new(std::io::Cursor::new(bytes)).read_info().unwrap();
         let mut buf = vec![0; reader.output_buffer_size().unwrap()];
         let info = reader.next_frame(&mut buf).unwrap();
         buf.truncate(info.buffer_size());
@@ -122,32 +104,14 @@ mod tests {
     fn makes_an_lz4_icon_into_an_rgba_png() {
         // 2 x 1: a blue opaque pixel (BGRA 255,0,0,255) and a transparent one.
         let raw = [255, 0, 0, 255, 0, 0, 0, 0];
-        let icon = decode(&image(
-            ImageFormat::Lz4,
-            Some((2, 1)),
-            lz4_flex::block::compress(&raw),
-        ))
-        .unwrap();
+        let icon = decode(&image(ImageFormat::Lz4, Some((2, 1)), lz4_flex::block::compress(&raw))).unwrap();
         assert_eq!(icon.content_type, "image/png");
-        assert_eq!(
-            read_png(&icon.bytes),
-            (2, 1, vec![0, 0, 255, 255, 0, 0, 0, 0])
-        );
+        assert_eq!(read_png(&icon.bytes), (2, 1, vec![0, 0, 255, 255, 0, 0, 0, 0]));
         assert_eq!(icon.version.len(), 12);
         // The default size is 144 x 144; the same bytes give the same version, other bytes another one.
         let full = vec![7u8; 144 * 144 * 4];
-        let a = decode(&image(
-            ImageFormat::Lz4,
-            None,
-            lz4_flex::block::compress(&full),
-        ))
-        .unwrap();
-        let b = decode(&image(
-            ImageFormat::Lz4,
-            None,
-            lz4_flex::block::compress(&full),
-        ))
-        .unwrap();
+        let a = decode(&image(ImageFormat::Lz4, None, lz4_flex::block::compress(&full))).unwrap();
+        let b = decode(&image(ImageFormat::Lz4, None, lz4_flex::block::compress(&full))).unwrap();
         assert_eq!(read_png(&a.bytes).0, 144);
         assert_eq!(a.version, b.version);
         assert_ne!(a.version, icon.version);
@@ -156,37 +120,14 @@ mod tests {
     #[test]
     fn keeps_other_formats_as_sent_and_skips_what_it_cannot_read() {
         let jpeg = decode(&image(ImageFormat::Jpg, None, vec![0xff, 0xd8, 1])).unwrap();
-        assert_eq!(
-            (jpeg.content_type, &jpeg.bytes[..]),
-            ("image/jpeg", &[0xff, 0xd8, 1][..])
-        );
-        assert_eq!(
-            decode(&image(ImageFormat::Bmp, None, vec![1]))
-                .unwrap()
-                .content_type,
-            "image/bmp"
-        );
-        assert_eq!(
-            decode(&image(ImageFormat::Png, None, vec![1]))
-                .unwrap()
-                .content_type,
-            "image/png"
-        );
+        assert_eq!((jpeg.content_type, &jpeg.bytes[..]), ("image/jpeg", &[0xff, 0xd8, 1][..]));
+        assert_eq!(decode(&image(ImageFormat::Bmp, None, vec![1])).unwrap().content_type, "image/bmp");
+        assert_eq!(decode(&image(ImageFormat::Png, None, vec![1])).unwrap().content_type, "image/png");
         // Empty, an unread format, a size that doesn't match the pixels, or an absurd size.
         assert_eq!(decode(&image(ImageFormat::Png, None, vec![])), None);
         assert_eq!(decode(&image(ImageFormat::Lzfse, None, vec![1])), None);
-        assert_eq!(
-            decode(&image(
-                ImageFormat::Lz4,
-                Some((2, 2)),
-                lz4_flex::block::compress(&[1; 8])
-            )),
-            None
-        );
-        assert_eq!(
-            decode(&image(ImageFormat::Lz4, Some((4096, 4096)), vec![1])),
-            None
-        );
+        assert_eq!(decode(&image(ImageFormat::Lz4, Some((2, 2)), lz4_flex::block::compress(&[1; 8]))), None);
+        assert_eq!(decode(&image(ImageFormat::Lz4, Some((4096, 4096)), vec![1])), None);
         assert_eq!(decode(&image(ImageFormat::Lz4, None, vec![0xf0, 1])), None);
     }
 }

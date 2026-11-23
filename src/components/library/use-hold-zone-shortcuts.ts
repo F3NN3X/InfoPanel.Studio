@@ -2,7 +2,7 @@
  * The studio's zone shortcuts (Del, Ctrl+D, arrows …) would act on the canvas hidden behind a full page
  * (Library, Gauges): this holds them back while the page is open. Undo, redo, save and the palette still pass.
  */
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { canvasKeyAction } from "@/components/infopanel/edit/canvas-keys";
 
 /** Focus is in a text field: shortcuts must not fire. */
@@ -10,7 +10,8 @@ export const isTyping = (el: Element | null): boolean =>
   el instanceof HTMLElement && (el.isContentEditable || el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
 
 export function useHoldZoneShortcuts(): void {
-  useEffect(() => {
+  // before paint: a key pressed as soon as the page shows must already be held (B17 flaked under load with useEffect)
+  useLayoutEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing) return;
       const action = canvasKeyAction(

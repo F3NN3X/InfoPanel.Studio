@@ -29,7 +29,7 @@ function settingRow(s: ModuleSetting) {
   const opts = s.options?.map((o) => o.value).join(" | ");
   return (
     // The widget's own rows bright, the general ones (the same on every widget) dim.
-    <li key={s.key} className={`font-mono text-[10px] ${STANDARD_KEYS.has(s.key) ? "opacity-50" : ""}`}>
+    <li key={s.key} className={`font-mono text-nano ${STANDARD_KEYS.has(s.key) ? "opacity-50" : ""}`}>
       <span className="opacity-90">{s.key}</span>{" "}
       <span className="opacity-50">
         {s.type} = {JSON.stringify(s.default)}
@@ -70,7 +70,7 @@ function SettingsByTab({ mod }: { mod: DashboardModule }) {
           const inTab = sections.filter((s) => s.tab === tab);
           return inTab.length === 0 ? null : (
             <div key={tab}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider opacity-60">{label}</p>
+              <p className="text-nano font-semibold uppercase tracking-wider opacity-60">{label}</p>
               {inTab.map((sec) => (
                 <div key={sec.id} className="mt-1">
                   <p className="text-[11px]">
@@ -88,7 +88,7 @@ function SettingsByTab({ mod }: { mod: DashboardModule }) {
   );
 }
 
-const LINK = "font-mono text-[10px] underline decoration-current/30 underline-offset-2 opacity-70 hover:opacity-100";
+const LINK = "font-mono text-nano underline decoration-current/30 underline-offset-2 opacity-70 hover:opacity-100";
 
 /** Copies text, falling back to a hidden textarea where the Clipboard API is missing (a plain-http LAN address). */
 async function copyText(text: string): Promise<boolean> {
@@ -153,7 +153,7 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
         <Frame p={{ ...migratePlacementV19(placement(mod.id, c, r, withDemo(mod.id, settings, view.live))), id: `qa-${mod.id}-${attrs["data-qa-view"] ?? ""}${c}x${r}` }} w={w} h={h} live={view.live} eager={view.eager} onSettled={(box) => setIssues(probeBox(box))} />
         {view.grid && <GridOverlay c={c} r={r} cell={view.cell} gap={view.gap} />}
       </div>
-      <figcaption className="flex items-center gap-2 font-mono text-[10px]">
+      <figcaption className="flex items-center gap-2 font-mono text-nano">
         <button type="button" title="Copy a reference to this frame" onClick={copy} className="opacity-60 hover:underline hover:opacity-100">
           {caption} · {w}x{h}px
         </button>
@@ -212,14 +212,14 @@ export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View 
             #
           </a>
         </p>
-        <p className="mt-1 font-mono text-[10px] opacity-60">
+        <p className="mt-1 font-mono text-nano opacity-60">
           {mod.category ?? "Generic"} · min {min}
           {size} · {data}
         </p>
         {mod.blurb && <p className="mt-1 text-xs opacity-90">{mod.blurb}</p>}
         {mod.description && <p className="mt-1 text-xs opacity-70">{mod.description}</p>}
-        {views.length > 0 && <p className="mt-1 font-mono text-[10px] opacity-60">views: {views.map((v) => v.id).join(", ")}</p>}
-        {mod.tags && <p className="mt-1 font-mono text-[10px] opacity-50">{mod.tags}</p>}
+        {views.length > 0 && <p className="mt-1 font-mono text-nano opacity-60">views: {views.map((v) => v.id).join(", ")}</p>}
+        {mod.tags && <p className="mt-1 font-mono text-nano opacity-50">{mod.tags}</p>}
         <NoteList id={mod.id} />
         {mod.settings && mod.settings.length > 0 && <SettingsByTab mod={mod} />}
       </div>
@@ -228,10 +228,10 @@ export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View 
           {framePlan(mod, view.spans).map(({ c, r, below }) =>
             below ? (
               <div key={`${c}x${r}`} data-qa-below className="flex flex-col gap-1 opacity-40">
-                <div className="flex items-center justify-center rounded border border-dashed border-current/40 font-mono text-[10px]" style={{ width: spanSize(c, view.cell, view.gap), height: spanSize(r, view.cell, view.gap) }}>
+                <div className="flex items-center justify-center rounded border border-dashed border-current/40 font-mono text-nano" style={{ width: spanSize(c, view.cell, view.gap), height: spanSize(r, view.cell, view.gap) }}>
                   below min {min}
                 </div>
-                <span className="font-mono text-[10px]">{`${c}x${r}`}</span>
+                <span className="font-mono text-nano">{`${c}x${r}`}</span>
               </div>
             ) : (
               <Figure key={`${c}x${r}`} mod={mod} frameKey={`${c}x${r}`} c={c} r={r} settings={view.settings} view={view} caption={`${c}x${r}`} attrs={{ "data-qa-module": mod.id, "data-qa-span": `${c}x${r}` }} />
@@ -240,7 +240,7 @@ export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View 
         </div>
         {views.length > 0 && (
           <div>
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider opacity-50">Views</p>
+            <p className="mb-1.5 text-nano font-semibold uppercase tracking-wider opacity-50">Views</p>
             <div className="flex min-w-0 flex-wrap items-start gap-6">
               {views.map((v) => (
                 <Figure key={v.id} mod={mod} frameKey={`view:${v.id}`} c={v.c} r={v.r} settings={{ ...view.settings, ...v.settings }} view={view} caption={`${v.name} · ${v.c}x${v.r}`} attrs={{ "data-qa-view": v.id, "data-qa-view-of": mod.id }} />

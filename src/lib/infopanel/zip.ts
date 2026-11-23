@@ -87,7 +87,7 @@ export async function readLimited(stream: ReadableStream<Uint8Array>, limit: num
 }
 
 function inflateRaw(data: Uint8Array, limit: number, name: string): Promise<Uint8Array> {
-  return readLimited(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw")), limit, name);
+  return readLimited(new Blob([data as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new DecompressionStream("deflate-raw")), limit, name);
 }
 
 /** The entry's bytes. `limit` caps the inflated size, whatever the header claims. */

@@ -11,9 +11,10 @@ import type { Look } from "./look";
 import { m, type Material, type MaterialKind } from "./materials";
 import { addPackFonts } from "./pack-assets";
 import { registerUserPack, unregisterUserPack } from "./pack-load";
-import type { BurnIn, Pack, PackConnectors, PackStatusBar, StageLayer } from "./pack";
-import type { PackEffect, SizeClass } from "./effects";
+import type { Pack } from "./pack";
+import { type PackJson, packDecor } from "./pack-json";
 import { FILE_COUNT_MAX, type PackFile, type PackIssue, type PackSource, parseColour, validatePack } from "./pack-validate";
+import { cssColour } from "./colour";
 import { lookLayers, sampleCards } from "./sample-cards";
 
 /** What `GET /api/packs` says of a pack: its id, name and size, nothing else. */
@@ -108,21 +109,6 @@ export async function readUserPack(id: string): Promise<PackSource> {
 /** What is wrong with a pack's files, as a user pack: the validator in `user` mode, always. */
 export const userPackIssues = (src: PackSource): PackIssue[] => validatePack(src, { source: "user" });
 
-interface StageSpec {
-  layers: StageLayer[];
-  effects?: PackEffect[];
-  overlayMinSizeClass?: SizeClass;
-}
-interface PackJson {
-  id: string;
-  fonts: { family: string; file: string; weight: string; source?: string; licence?: string }[];
-  stage: StageSpec;
-  burnIn: BurnIn;
-  statusBar?: PackStatusBar;
-  connectors?: PackConnectors;
-  assets?: { file: string }[];
-}
-
 /** The font-family rules the loader writes from the families the validator passed (`pack-` names, plain characters): the only CSS a user pack has. */
 export function fontCss(fonts: Look["fonts"]): string {
   const stack = (family: string | undefined, rest: string) => (family ? `${family}, ${rest}` : rest);
@@ -163,7 +149,7 @@ function layerOf(id: string, look: Look): Record<string, string> {
   const v = (name: string) => {
     const raw = t1[name]?.value ?? "";
     const alias = /^\{([\w-]+)\}$/.exec(raw)?.[1];
-    return alias ? (t1[alias]?.value ?? raw) : raw;
+    return cssColour(alias ? (t1[alias]?.value ?? raw) : raw);
   };
   return { surface: `look-${id}`, accent: v("accent"), textColor: v("fg"), mutedColor: v("muted"), ok: v("ok"), warn: v("warn"), crit: v("crit") };
 }
@@ -176,6 +162,7 @@ export function userPackOf(src: PackSource, candidate = false): Pack {
   const meta = src.pack as PackJson;
   const look = src.look as Look;
   const base = `${ROUTE}/${meta.id}/assets/`;
+  const { frame, ornaments } = packDecor(meta);
   if (!candidate) faces.set(meta.id, addPackFonts({ base, names: Object.fromEntries(meta.fonts.map((f) => [f.file, f.file])) }, meta.fonts));
   return {
     id: meta.id,
@@ -189,6 +176,8 @@ export function userPackOf(src: PackSource, candidate = false): Pack {
     fonts: meta.fonts.map((f) => ({ source: f.source, licence: f.licence })),
     statusBar: meta.statusBar,
     connectors: meta.connectors,
+    ...(frame ? { frame } : null),
+    ...(ornaments.length ? { ornaments } : null),
   };
 }
 

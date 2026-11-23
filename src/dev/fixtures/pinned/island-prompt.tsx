@@ -30,10 +30,10 @@ export function IslandPrompt({ request, width }: { request: AgentRequest; width:
     >
       <header className="flex items-center gap-2">
         <Sparkles aria-hidden size={18} style={{ color: "var(--w-warn)" }} />
-        <h2 id="agent-request-title" role="status" className="text-[15px] font-semibold">
+        <h2 id="agent-request-title" role="status" className="text-title font-semibold">
           {request.agent} wants to run a command
         </h2>
-        <span className="ml-auto text-[12px]" style={{ color: "var(--w-muted)" }}>
+        <span className="ml-auto text-caption" style={{ color: "var(--w-muted)" }}>
           {request.project}
         </span>
       </header>
@@ -44,20 +44,20 @@ export function IslandPrompt({ request, width }: { request: AgentRequest; width:
         aria-label="The command"
         value={request.command}
         rows={Math.min(4, Math.ceil(request.command.length / 56))}
-        className="mt-3 block w-full resize-none overflow-auto break-all rounded-lg px-3 py-2 font-mono text-[13px] leading-snug"
+        className="mt-3 block w-full resize-none overflow-auto break-all rounded-lg px-3 py-2 font-mono text-body leading-snug"
         style={{ color: "inherit", background: "color-mix(in oklab, var(--w-fg) 7%, transparent)" }}
       />
       <div className="mt-3 grid gap-3" style={{ gridTemplateColumns: "1fr 1.4fr" }}>
         <button
           type="button"
-          className="h-14 rounded-xl text-[15px] font-semibold"
+          className="h-14 rounded-xl text-title font-semibold"
           style={{ color: "var(--w-crit)", boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--w-crit) 55%, transparent)" }}
         >
           Deny
         </button>
-        <HoldButton label="Hold to allow" frozen={request.held} className="h-14 text-[15px]" />
+        <HoldButton label="Hold to allow" frozen={request.held} className="h-14 text-title" />
       </div>
-      <p className="mt-2 text-[12px]" style={{ color: "var(--w-muted)" }}>
+      <p className="mt-2 text-caption" style={{ color: "var(--w-muted)" }}>
         Answer here for {request.left} s, then in the terminal.
       </p>
     </section>

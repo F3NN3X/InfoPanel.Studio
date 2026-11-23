@@ -37,7 +37,9 @@ pub fn is_local_drive_path(path: &Path) -> bool {
 
 /// The file in `candidates` named `name` (any case), on a local drive.
 pub fn first_named(name: &str, candidates: impl IntoIterator<Item = PathBuf>) -> Option<PathBuf> {
-    candidates.into_iter().find(|p| is_local_drive_path(p) && p.file_name().is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(name)) && p.is_file())
+    candidates
+        .into_iter()
+        .find(|p| is_local_drive_path(p) && p.file_name().is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(name)) && p.is_file())
 }
 
 /// The programs running now, by their image paths.
@@ -50,7 +52,8 @@ fn running() -> Vec<PathBuf> {
 
 /// The folders on PATH that are on a local drive, each with the program's name.
 fn on_path(name: &str) -> Vec<PathBuf> {
-    std::env::var_os("PATH").map_or_else(Vec::new, |path| std::env::split_paths(&path).filter(|d| is_local_drive_path(d)).map(|d| d.join(name)).collect())
+    std::env::var_os("PATH")
+        .map_or_else(Vec::new, |path| std::env::split_paths(&path).filter(|d| is_local_drive_path(d)).map(|d| d.join(name)).collect())
 }
 
 /// The path Windows' App Paths key gives a program (the current user's, then the machine's).
@@ -63,7 +66,17 @@ fn app_path(name: &str) -> Option<PathBuf> {
         let mut buf = [0u16; 1024];
         let mut size = std::mem::size_of_val(&buf) as u32;
         // SAFETY: the default value, a string (expanded when it is REG_EXPAND_SZ), is written into `buf`, whose size `size` gives.
-        let status = unsafe { RegGetValueW(root, &key, PCWSTR::null(), RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ, None, Some(buf.as_mut_ptr().cast()), Some(&mut size)) };
+        let status = unsafe {
+            RegGetValueW(
+                root,
+                &key,
+                PCWSTR::null(),
+                RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ,
+                None,
+                Some(buf.as_mut_ptr().cast()),
+                Some(&mut size),
+            )
+        };
         if status.is_err() {
             return None;
         }
@@ -116,7 +129,9 @@ pub fn encode_png(rgba: &[u8], width: u32, height: u32) -> Option<Vec<u8>> {
 /// The program's first icon at `SIZE` px as a PNG, or `None` (no icon, or a path that is not a local file).
 #[cfg(windows)]
 pub fn icon_png(path: &Path) -> Option<Vec<u8>> {
-    use windows_sys::Win32::Graphics::Gdi::{DeleteObject, GetDC, GetDIBits, ReleaseDC, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS};
+    use windows_sys::Win32::Graphics::Gdi::{
+        DeleteObject, GetDC, GetDIBits, ReleaseDC, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS,
+    };
     use windows_sys::Win32::UI::WindowsAndMessaging::{DestroyIcon, GetIconInfo, PrivateExtractIconsW, ICONINFO};
     if !is_local_drive_path(path) {
         return None;
@@ -185,8 +200,24 @@ mod tests {
             assert!(is_exe_name(ok), "{ok}");
         }
         for bad in [
-            "", ".exe", "chat", "chat.exe.png", "..\\x.exe", "C:\\x.exe", "c:x.exe", "\\\\server\\share\\x.exe", "//server/x.exe", "a/b.exe", "x.exe\0",
-            ".hidden.exe", " x.exe", "x .exe", "x..exe", "%TEMP%.exe", "x\u{202e}exe.exe", &format!("{}.exe", "a".repeat(200)),
+            "",
+            ".exe",
+            "chat",
+            "chat.exe.png",
+            "..\\x.exe",
+            "C:\\x.exe",
+            "c:x.exe",
+            "\\\\server\\share\\x.exe",
+            "//server/x.exe",
+            "a/b.exe",
+            "x.exe\0",
+            ".hidden.exe",
+            " x.exe",
+            "x .exe",
+            "x..exe",
+            "%TEMP%.exe",
+            "x\u{202e}exe.exe",
+            &format!("{}.exe", "a".repeat(200)),
         ] {
             assert!(!is_exe_name(bad), "{bad:?}");
         }
@@ -196,7 +227,15 @@ mod tests {
     fn only_a_local_drive_path_is_read() {
         assert!(is_local_drive_path(Path::new("C:\\Program Files\\x.exe")));
         assert!(is_local_drive_path(Path::new("d:/apps/x.exe")));
-        for bad in ["\\\\server\\share\\x.exe", "\\\\?\\UNC\\server\\x.exe", "\\\\?\\C:\\x.exe", "\\\\.\\pipe\\x", "x.exe", "C:x.exe", "/usr/bin/x"] {
+        for bad in [
+            "\\\\server\\share\\x.exe",
+            "\\\\?\\UNC\\server\\x.exe",
+            "\\\\?\\C:\\x.exe",
+            "\\\\.\\pipe\\x",
+            "x.exe",
+            "C:x.exe",
+            "/usr/bin/x",
+        ] {
             assert!(!is_local_drive_path(Path::new(bad)), "{bad}");
         }
         // a network candidate is skipped without being opened

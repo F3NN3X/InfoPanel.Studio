@@ -199,7 +199,7 @@ export function ReviewStep({ state }: { state: ImportState }) {
     <div className="flex flex-col gap-3.5">
       <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-2">
         {tiles.map((t) => (
-          <div key={t.label} className="flex flex-col gap-[3px] rounded-ui-menu border border-ui-default bg-ui-chrome px-3 py-[11px]">
+          <div key={t.label} className="flex flex-col gap-0.75 rounded-ui-menu border border-ui-default bg-ui-chrome px-3 py-2.75">
             <span className="flex items-center gap-1.5 text-micro text-ui-4">
               {t.label}
               {t.tone && <span className={cn("h-1.5 w-1.5 rounded-full", TONE_DOT[t.tone])} />}
@@ -219,7 +219,7 @@ export function ReviewStep({ state }: { state: ImportState }) {
                 type="button"
                 aria-expanded={isOpen}
                 onClick={() => setOpen(isOpen ? null : row.id)}
-                className="flex h-[42px] w-full items-center gap-2.5 px-3.5 text-left hover:bg-ui-tile"
+                className="flex h-10.5 w-full items-center gap-2.5 px-3.5 text-left hover:bg-ui-tile"
               >
                 <Icon className="h-4 w-4 shrink-0 text-ui-4" />
                 <span className="flex-1 truncate text-body font-medium text-ui-1">{row.title}</span>
@@ -227,13 +227,13 @@ export function ReviewStep({ state }: { state: ImportState }) {
                 {isOpen ? <ChevronUp className="h-4 w-4 text-ui-4" /> : <ChevronDown className="h-4 w-4 text-ui-4" />}
               </button>
               {isOpen && (
-                <div className="flex flex-col gap-[5px] pb-3 pl-[41px] pr-3.5">
+                <div className="flex flex-col gap-1.25 pb-3 pl-10.25 pr-3.5">
                   {row.rows.length === 0 && <span className="text-caption text-ui-4">Nothing here</span>}
                   {row.rows.map(([a, b, c], i) => (
                     <div key={i} className="flex gap-3 text-caption">
                       <span className="flex-1 text-ui-2">{a}</span>
                       <span className="font-ui-mono text-caption text-ui-1">{b}</span>
-                      <span className="w-[190px] truncate text-ui-4" title={c}>
+                      <span className="w-47.5 truncate text-ui-4" title={c}>
                         {c}
                       </span>
                     </div>
@@ -295,7 +295,7 @@ export function SaveStep({
     { value: "zone", title: `A group on “${profileName}”`, text: `Its items join your widgets; ${profileSize.width} × ${profileSize.height}` },
   ];
   return (
-    <div className="flex max-w-[560px] flex-col gap-4">
+    <div className="flex max-w-140 flex-col gap-4">
       <label className="flex flex-col gap-1.5">
         <span className="text-caption text-ui-3">Name</span>
         <input

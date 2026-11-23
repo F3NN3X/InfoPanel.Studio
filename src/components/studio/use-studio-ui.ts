@@ -69,8 +69,8 @@ export function useStudioUi(
     openTheme(themeScope.kind === "page" ? (profile.pageId ? { kind: "page", pageId: profile.pageId } : { kind: "profile" }) : themeScope);
   /** Every view but Design: a full page in place of the canvas, left panel and inspector. */
   const fullPage = mode !== "design";
-  /** Design's left panel: remembered, open from 1280 px until the user chooses (Q28), and its tab. */
-  const [storedOpen, setStoredOpen] = useStoredFlag(LEFT_OPEN_KEY, windowWidth >= 1280);
+  /** Design's left panel: collapsed on first open, then remembered (Phase 5), and its tab. */
+  const [storedOpen, setStoredOpen] = useStoredFlag(LEFT_OPEN_KEY, false);
   // "/", Add widget, the palette and the strip's tabs open the panel for now; only its toggle changes what later sessions open with.
   const [openNow, setOpenNow] = useState(false);
   const leftOpen = storedOpen || openNow;

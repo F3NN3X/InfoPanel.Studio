@@ -18,7 +18,7 @@ const CARD = "flex cursor-pointer gap-3 whitespace-normal rounded-ui-lg border b
 /** The search results: help sections (with the matching words lit) and, in the desktop app, Settings rows. */
 export function ResultsView({ query, hits, onHit, onHome }: ResultsViewProps) {
   return (
-    <div className="mx-auto box-border flex max-w-[760px] flex-col gap-[18px] px-8 pb-20 pt-9">
+    <div className="mx-auto box-border flex max-w-190 flex-col gap-4.5 px-8 pb-20 pt-9">
       <div role="status" className="flex flex-wrap items-baseline gap-x-2">
         <h1 className="m-0 text-title font-medium">{hits.length ? `${hits.length} result${hits.length > 1 ? "s" : ""}` : "No results"}</h1>
         <span className="text-title text-s-muted">{`for “${query.trim()}”`}</span>
@@ -28,7 +28,7 @@ export function ResultsView({ query, hits, onHit, onHome }: ResultsViewProps) {
           if (hit.kind === "settings") {
             return (
               <button key={`s-${i}`} type="button" onClick={() => onHit(hit)} className={cn(CARD, i === 0 && FIRST)}>
-                <Settings className="mt-px h-[18px] w-[18px] shrink-0 text-s-dim" />
+                <Settings className="mt-px h-4.5 w-4.5 shrink-0 text-s-dim" />
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="text-lead font-medium">
                     {hit.label}
@@ -42,7 +42,7 @@ export function ResultsView({ query, hits, onHit, onHome }: ResultsViewProps) {
           const Icon = iconFor(hit.icon);
           return (
             <button key={`h-${hit.article}-${hit.headingId ?? ""}`} type="button" onClick={() => onHit(hit)} className={cn(CARD, i === 0 && FIRST)}>
-              <Icon className="mt-px h-[18px] w-[18px] shrink-0 text-s-dim" />
+              <Icon className="mt-px h-4.5 w-4.5 shrink-0 text-s-dim" />
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="text-micro text-s-dim">{hit.group}</span>
                 <span className="text-lead font-medium">
@@ -51,7 +51,7 @@ export function ResultsView({ query, hits, onHit, onHome }: ResultsViewProps) {
                 </span>
                 <span className="text-body leading-normal text-s-t3">
                   {hit.pre}
-                  {hit.hit && <mark className="rounded-[3px] bg-s-accent/25 px-px text-s-t1">{hit.hit}</mark>}
+                  {hit.hit && <mark className="rounded-3 bg-s-accent/25 px-px text-s-t1">{hit.hit}</mark>}
                   {hit.post}
                 </span>
                 {i === 0 && <span className="text-micro text-s-dim">Enter opens this</span>}
@@ -63,7 +63,7 @@ export function ResultsView({ query, hits, onHit, onHome }: ResultsViewProps) {
       {hits.length === 0 && (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-s-input-line px-5 py-8 text-center">
           <SearchX className="h-7 w-7 text-s-faint" />
-          <span className="max-w-[360px] text-body leading-normal text-s-muted">
+          <span className="max-w-90 text-body leading-normal text-s-muted">
             Try fewer or different words, or browse{" "}
             <button type="button" onClick={onHome} className="cursor-pointer border-0 bg-transparent p-0 text-body text-s-accent-text hover:text-s-t1">
               all topics

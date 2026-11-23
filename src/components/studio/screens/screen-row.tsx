@@ -31,8 +31,8 @@ export function ScreenRow({ name, nameField, badges, meta, aspect, thumb, chip, 
       onContextMenu={context.onContextMenu}
       className="group flex min-w-0 cursor-pointer items-center gap-3 max-md:flex-wrap rounded-ui-lg border border-ui-default bg-ui-panel p-2 transition-colors duration-(--ui-dur-fast) ease-ui hover:border-ui-hover-edge"
     >
-      <button type="button" aria-label={label} className={`grid h-[52px] w-[92px] shrink-0 place-items-center rounded-ui-sm bg-ui-chrome ${FOCUS_RING}`}>
-        <div className="overflow-hidden rounded-[3px] border border-ui-strong bg-s-well" style={{ ...previewBox(aspect), width: `min(100%, ${Math.round(44 * aspect)}px)` }}>
+      <button type="button" aria-label={label} className={`grid h-13 w-23 shrink-0 place-items-center rounded-ui-sm bg-ui-chrome ${FOCUS_RING}`}>
+        <div className="overflow-hidden rounded-3 border border-ui-strong bg-s-well" style={{ ...previewBox(aspect), width: `min(100%, ${Math.round(44 * aspect)}px)` }}>
           {thumb}
         </div>
       </button>
@@ -41,7 +41,7 @@ export function ScreenRow({ name, nameField, badges, meta, aspect, thumb, chip, 
       {/* On a phone the badges and the chip drop to a second line under the name, so the Default marker stays. */}
       <div className="flex shrink-0 flex-wrap items-center gap-1 max-md:order-last max-md:basis-full">{badges}</div>
       <span className="hidden shrink-0 font-ui-mono text-micro text-ui-3 sm:block">{meta}</span>
-      <div className="flex min-w-[110px] shrink-0 justify-end max-md:order-last max-md:min-w-0 empty:max-md:hidden">{chip}</div>
+      <div className="flex min-w-27.5 shrink-0 justify-end max-md:order-last max-md:min-w-0 empty:max-md:hidden">{chip}</div>
       <div onClick={(e) => e.stopPropagation()}>
         <CardMenu actions={actions} label="Screen actions" />
       </div>

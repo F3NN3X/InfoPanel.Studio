@@ -10,7 +10,7 @@
 //! Windows: the level matches ATK's app, charging follows the cable) and github.com/qwr79/mouse-battery.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4};
 use crate::win::now_ms;
 
 const K_VID: u16 = 0x373B;
@@ -21,42 +21,58 @@ fn query(d: &mut dyn HidIo, cmd: u8) -> i32 {
     let mut req = vec![0u8; 64];
     req[0] = 0x08;
     req[2] = 0x72;
-    req[3] = 0x02;  // request length
-    req[5] = 0x01;  // target: the mouse
+    req[3] = 0x02; // request length
+    req[5] = 0x01; // target: the mouse
     req[6] = cmd;
-    req[7] = 0x01;  // expected reply length
+    req[7] = 0x01; // expected reply length
     let mut sum: u32 = 0;
-    for i in 2..req.len() { sum += req[i] as u32; }
+    for i in 2..req.len() {
+        sum += req[i] as u32;
+    }
     req[1] = (sum & 0xFF) as u8;
     d.flush();
-    if !d.write(&req, 500) { return -1; }
+    if !d.write(&req, 500) {
+        return -1;
+    }
     let end = now_ms() + 700;
     let mut r: Vec<u8> = Vec::new();
     loop {
         let left = end as i64 - now_ms() as i64;
-        if left <= 0 { return -1; }
-        if d.read(&mut r, left as u32) < 0 { return -1; }
-        if r.len() < 8 || r[0] != 0x08 || r[1] != 0x72 { continue; }
-        if r[5] != cmd { continue; }  // a reply to another request
-        if r[2] == 0xFF { return -1; }
+        if left <= 0 {
+            return -1;
+        }
+        if d.read(&mut r, left as u32) < 0 {
+            return -1;
+        }
+        if r.len() < 8 || r[0] != 0x08 || r[1] != 0x72 {
+            continue;
+        }
+        if r[5] != cmd {
+            continue;
+        } // a reply to another request
+        if r[2] == 0xFF {
+            return -1;
+        }
         return r[7] as i32;
     }
 }
 
 pub fn poll_atk_bitmouse(ctx: &mut PollContext) {
-    if ctx.is_claimed(K_VID, K_NANO_DONGLE) { return; }
-    for c in ctx.find(K_VID, K_NANO_DONGLE, |c| {
-        c.page() == 0xFF05 && c.usage() == 0x0001 && c.out_len() >= 64 && c.in_len() >= 8
-    }) {
+    if ctx.is_claimed(K_VID, K_NANO_DONGLE) {
+        return;
+    }
+    for c in ctx.find(K_VID, K_NANO_DONGLE, |c| c.page() == 0xFF05 && c.usage() == 0x0001 && c.out_len() >= 64 && c.in_len() >= 8) {
         let Some(mut d) = ctx.open(&c) else { continue };
         let level = query(&mut d, 0x07);
-        if level < 1 || level > 100 { continue; }  // asleep / off, or no valid reading
+        if level < 1 || level > 100 {
+            continue;
+        } // asleep / off, or no valid reading
         let mut s = DeviceStatus::default();
         s.key = format!("atknk:{}", hex4(K_NANO_DONGLE));
-        s.name = "ATK / VXE NK mouse".into();  // the dongle is shared by several NearLink models
+        s.name = "ATK / VXE NK mouse".into(); // the dongle is shared by several NearLink models
         s.kind = DeviceKind::Mouse;
         s.via = "2.4 GHz receiver".into();
-        s.grace_sec = 1800;  // the dongle stops answering while the mouse sleeps: keep the last value
+        s.grace_sec = 1800; // the dongle stops answering while the mouse sleeps: keep the last value
         s.percent = level;
         s.charging = query(&mut d, 0x0F) == 1;
         ctx.add(s, K_VID, K_NANO_DONGLE);

@@ -117,7 +117,7 @@ function LimitBox({ label, value, onChange }: { label: string; value: number | u
         placeholder="–"
         aria-label={label}
         onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-        className={cn(FIELD, "h-[26px] min-w-0 flex-1 px-1.5 text-right font-ui-mono text-micro")}
+        className={cn(FIELD, "h-6.5 min-w-0 flex-1 px-1.5 text-right font-ui-mono text-micro")}
       />
     </label>
   );
@@ -146,7 +146,7 @@ function StatsEditor({ stats, onChange, onOpenExplorer }: { stats: IslandStat[];
                 type="button"
                 aria-label={`Remove value ${i + 1}`}
                 onClick={() => onChange(stats.filter((_, j) => j !== i))}
-                className="mt-[22px] flex h-7 w-7 items-center justify-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1"
+                className="mt-5.5 flex h-7 w-7 items-center justify-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -403,8 +403,8 @@ export function IslandSection({ island, onChange, onLook, onOpenExplorer, links,
     />
   );
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-[440px_minmax(0,1fr)] max-[1179px]:block max-[1179px]:overflow-y-auto">
-      <div className="flex min-w-0 flex-col gap-3 overflow-y-auto border-r border-ui-subtle px-6 py-5 max-[1179px]:border-r-0 max-sm:px-3">
+    <div className="grid min-h-0 flex-1 grid-cols-[440px_minmax(0,1fr)] max-split:block max-split:overflow-y-auto">
+      <div className="flex min-w-0 flex-col gap-3 overflow-y-auto border-r border-ui-subtle px-6 py-5 max-split:border-r-0 max-sm:px-3">
         {lead}
         {enable}
         {v.enabled &&

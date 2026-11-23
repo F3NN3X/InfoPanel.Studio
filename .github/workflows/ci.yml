@@ -2,7 +2,7 @@ name: CI
 
 # PRs run the checks their change needs. `plan` asks tools/verify.mjs (tests/feature-map.json) which checks the changed
 # files call for and the jobs below run or skip accordingly; `ci-ok` sums them up (advisory: the merge gate is the
-# local-verify status `npm run ship` posts after a full local verify). The browser checks (e2e specs, one-editor,
+# local-verify status `npm run ship` posts after a local verify of the whole branch). The browser checks (e2e specs, one-editor,
 # overflow, the spec gate, quarantine) are not here: ship runs them locally, e2e.yml runs them when started by hand, the
 # release before it publishes a stable tag (release.yml) and the nightly every night. A
 # push to main runs only when the dependencies or the Rust code change, and then only the jobs that save the Rust and npm caches (GitHub shares caches saved on main with
@@ -201,7 +201,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
-          components: clippy
+          components: clippy, rustfmt
+      # The whole workspace against src-tauri/rustfmt.toml; cheap, so it runs whenever this job does.
+      - name: cargo fmt --check
+        run: cargo fmt --all --check
+        working-directory: src-tauri
       # shared-key: the release job reuses this cache (its key would otherwise include the job name).
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
@@ -227,12 +231,23 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
         working-directory: src-tauri
 
+  # Known advisories in the dependencies (.github/actions/audit, src-tauri/deny.toml). The nightly runs it too, since
+  # advisories appear without a code change.
+  audit:
+    needs: plan
+    if: needs.plan.outputs.docs_only != 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/audit
+
   # The one required status check. Skipped jobs (not needed for this change) pass; a failed or cancelled one fails it.
   # A run cancelled as a whole (a newer push or label superseded it) reports nothing, so its stale failure can't block
   # the PR next to the newer run's result.
   ci-ok:
     if: ${{ !cancelled() }}
-    needs: [plan, lint, typecheck-build, unit, flake-unit, lab, server, rust]
+    needs: [plan, lint, typecheck-build, unit, flake-unit, lab, server, rust, audit]
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:

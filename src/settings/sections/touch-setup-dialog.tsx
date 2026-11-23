@@ -9,7 +9,8 @@ import type { TouchMsg } from "@/lib/touch/types";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import type { Touchscreen, TouchPanelEntry, TouchView } from "../types";
-import { Button, Segmented } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Segmented } from "../ui";
 import { Field, ROTATIONS, ZadigSteps, type SetKey } from "./touch-parts";
 import { ShowSteps } from "./touch-panel-card";
 
@@ -160,9 +161,9 @@ export default function TouchSetupDialog({ view, target, displays, port, setKey,
         e.preventDefault();
         if (busy === null) onClose();
       }}
-      className="s-scope m-auto flex max-h-[90vh] w-[560px] max-w-[94vw] flex-col overflow-hidden rounded-[14px] border border-s-card-line bg-s-card p-0 text-s-t1 shadow-2xl outline-none backdrop:bg-black/50"
+      className="s-scope m-auto flex max-h-[90vh] w-140 max-w-[94vw] flex-col overflow-hidden rounded-14 border border-s-card-line bg-s-card p-0 text-s-t1 shadow-2xl outline-none backdrop:bg-black/50"
     >
-          <div className="flex items-center gap-3 border-b border-s-divider px-[18px] py-3.5">
+          <div className="flex items-center gap-3 border-b border-s-divider px-4.5 py-3.5">
             <h2 id={titleId} className="m-0 flex-1 text-lead font-medium">
               {title}
             </h2>
@@ -175,7 +176,7 @@ export default function TouchSetupDialog({ view, target, displays, port, setKey,
               const done = stepDone(s, facts);
               const open = s === step;
               return (
-                <li key={s} aria-current={open ? "step" : undefined} className={cn("flex flex-col gap-2.5 border-b border-s-divider px-[18px] py-3", !open && "text-s-muted")}>
+                <li key={s} aria-current={open ? "step" : undefined} className={cn("flex flex-col gap-2.5 border-b border-s-divider px-4.5 py-3", !open && "text-s-muted")}>
                   <span className="flex items-center gap-2.5 text-body font-medium">
                     <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full text-micro", done ? "bg-s-green/14 text-s-green" : open ? "bg-s-strong text-s-on-accent" : "bg-s-hover text-s-dim")}>
                       {done ? <Check className="h-3 w-3" aria-label="Done" /> : i + 1}
@@ -183,7 +184,7 @@ export default function TouchSetupDialog({ view, target, displays, port, setKey,
                     {SETUP_STEP_TITLE[s]}
                   </span>
                   {open && (
-                    <div className="flex flex-col gap-2.5 pl-[30px] text-caption leading-[1.5] text-s-t2">
+                    <div className="flex flex-col gap-2.5 pl-7.5 text-caption leading-[1.5] text-s-t2">
                       <StepBody
                         step={s}
                         busy={busy}
@@ -213,7 +214,7 @@ export default function TouchSetupDialog({ view, target, displays, port, setKey,
               );
             })}
           </ol>
-          <div className="flex flex-col gap-2 px-[18px] py-3.5">
+          <div className="flex flex-col gap-2 px-4.5 py-3.5">
             {error && (
               <span role="alert" className="text-caption text-s-red">
                 {error}
@@ -222,7 +223,7 @@ export default function TouchSetupDialog({ view, target, displays, port, setKey,
             {step === null ? (
               <div className="flex items-center gap-3">
                 <span className="flex-1 text-caption text-s-green">Done. Its card on Screens says Ready, and Shows picks its screen.</span>
-                <Button kind="accent" onClick={onClose}>
+                <Button variant="primary" onClick={onClose}>
                   Close
                 </Button>
               </div>
@@ -257,7 +258,7 @@ function StepBody({ step, busy, screens, panel, port, deviceTrouble, tap, onEnab
         <>
           <span>Touch panels are off. Turn them on so Studio reads the touchscreen itself: touching it never moves the mouse.</span>
           <span>
-            <Button kind="accent" disabled={busy !== null} onClick={onEnable}>
+            <Button variant="primary" disabled={busy !== null} onClick={onEnable}>
               Turn on touch panels
             </Button>
           </span>
@@ -296,7 +297,7 @@ function StepBody({ step, busy, screens, panel, port, deviceTrouble, tap, onEnab
         <>
           <span>Studio shows a target on the screens. Touching it on this panel tells Studio which touchscreen and which display belong together, and sets its size.</span>
           <span>
-            <Button kind="accent" disabled={busy !== null} onClick={onPair}>
+            <Button variant="primary" disabled={busy !== null} onClick={onPair}>
               Pair…
             </Button>
           </span>
@@ -347,9 +348,9 @@ function SizeStep({ panel, busy, onSize }: { panel: TouchPanelEntry; busy: boole
         <Field label="Height" numeric value={height} width="w-24" unit="px" onCommit={(v) => ((touched.current = true), setHeight(Number(v)))} />
       </span>
       <span>Mounted sideways? Turn touches to match, clockwise.</span>
-      <Segmented size="sm" label="Rotation" options={[...ROTATIONS]} value={rotation} onChange={setRotation} className="self-start" />
+      <Segmented label="Rotation" options={[...ROTATIONS]} value={rotation} onChange={setRotation} className="self-start" />
       <span>
-        <Button kind="accent" disabled={busy} onClick={() => onSize(width, height, rotation)}>
+        <Button variant="primary" disabled={busy} onClick={() => onSize(width, height, rotation)}>
           Looks right
         </Button>
       </span>

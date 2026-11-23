@@ -5,6 +5,7 @@ import { Tag } from "@/components/ui/tag";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { onRovingKeyDown } from "@/lib/roving";
 import { SAMPLE_PRESET_GROUPS } from "@/lib/screen-templates/sample-presets";
+import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import { loadLook } from "@/looks";
 import { LOOK_IDS } from "@/looks/ids";
@@ -97,7 +98,7 @@ function Detail({ item, look, applied, warnings, p }: DetailProps) {
   const saved = item.kind === "saved";
   useEffect(() => setRenaming(false), [item.id]);
   return (
-    <aside aria-label="Theme detail" className="flex w-[380px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-chrome p-5 max-sm:w-full max-sm:border-l-0 max-sm:border-t">
+    <aside aria-label="Theme detail" className="flex w-95 shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-chrome p-5 max-sm:w-full max-sm:border-l-0 max-sm:border-t">
       {p.canvas ?? <LookThumb preset={item.preset} width={338} className="rounded-ui-lg border border-ui-subtle" />}
       <div className="flex flex-col gap-1">
         {renaming ? (
@@ -247,26 +248,24 @@ export function ThemeBrowse(p: ThemeBrowseProps) {
     <div className="flex min-h-0 flex-1 max-sm:flex-col max-sm:overflow-y-auto">
       <div className="flex min-w-0 flex-1 flex-col gap-6 overflow-y-auto px-7 py-5 max-sm:overflow-visible max-sm:px-3">
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex h-8 w-[220px] items-center gap-2 rounded-ui-md border border-ui-control bg-ui-chrome px-2.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ui-accent">
+          <label className="flex h-8 w-55 items-center gap-2 rounded-ui-md border border-ui-control bg-ui-chrome px-2.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ui-accent">
             <Search className="h-4 w-4 shrink-0 text-ui-hint" aria-hidden />
             <span className="sr-only">Search</span>
             <input type="search" value={query} onChange={(e) => setQuery(e.currentTarget.value)} placeholder="Search" className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-hint" />
           </label>
-          <div role="radiogroup" aria-label="Filter themes" onKeyDown={(e) => onRovingKeyDown(e, "[role=radio]")} className="flex gap-0.5 rounded-ui-md border border-ui-strong bg-ui-chrome p-0.5">
-            {BROWSE_FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                role="radio"
-                aria-checked={filter === f.id}
-                tabIndex={filter === f.id ? 0 : -1}
-                onClick={() => setFilter(f.id)}
-                className={cn("h-7 rounded-ui-sm px-2.5 text-caption", FOCUS, filter === f.id ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1")}
-              >
-                {f.label} <span className="text-ui-hint">{counts[f.id]}</span>
-              </button>
-            ))}
-          </div>
+          <Segmented
+            label="Filter themes"
+            value={filter}
+            onChange={setFilter}
+            options={BROWSE_FILTERS.map((f) => ({
+              value: f.id,
+              label: (
+                <>
+                  {f.label} <span className="text-ui-hint">{counts[f.id]}</span>
+                </>
+              ),
+            }))}
+          />
           <div role="group" aria-label="Filter by tag" className="flex flex-wrap gap-1.5">
             {TAG_FILTERS.map((t) => (
               <Tag key={t.id} selected={tag === t.id} onClick={() => setTag(tag === t.id ? undefined : t.id)}>

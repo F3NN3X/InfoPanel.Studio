@@ -2,7 +2,7 @@
 // and the chrome (the text the panels and the page draw), so a colour is the same colour in both.
 
 export interface Colour {
-  /** `#rrggbb` when the colour is a literal (hex, `rgb()` or `hsl()`). */
+  /** `#rrggbb` when the colour is a literal (hex, `rgb()`, `hsl()` or `oklch()`, which is its clamped sRGB). */
   hex?: string;
   alpha: number;
 }
@@ -17,10 +17,54 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   return [f(0), f(8), f(4)];
 }
 
-/** A CSS colour as written: hex (3, 4, 6, 8 digits), `rgb()`/`rgba()`, `hsl()`/`hsla()`, `transparent`; undefined for anything else (a name, `var()`, `oklch()`, `color-mix()`): the caller refuses what it cannot read. */
+const NUM = String.raw`[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?`;
+const OKLCH = new RegExp(String.raw`^oklch\(\s*(${NUM}%?)\s+(${NUM}%?)\s+(${NUM}(?:deg)?|none)(?:\s*/\s*(${NUM}%?))?\s*\)$`);
+/** Whether a value is written as `oklch(...)`, readable or not. */
+export const isOklch = (value: string): boolean => /^oklch\(/i.test(value.trim());
+
+/** Linear sRGB of an OKLab colour (channels may fall outside 0-1: out of gamut). */
+function oklabToLinear(l: number, a: number, b: number): [number, number, number] {
+  const l3 = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m3 = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s3 = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  return [4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3, -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3, -0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3];
+}
+
+const GAMUT_EPS = 1e-6;
+const inGamut = (c: number[]) => c.every((v) => v >= -GAMUT_EPS && v <= 1 + GAMUT_EPS);
+const encode = (v: number) => 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.max(v, 0) ** (1 / 2.4) - 0.055);
+
+/** `oklch(L C H [/ A])` as sRGB: out of gamut, the chroma is reduced at fixed lightness and hue (binary search to 0.0001) until it fits; undefined when it cannot be read. */
+function parseOklch(v: string): Colour | undefined {
+  const m = OKLCH.exec(v);
+  if (!m) return undefined;
+  const [l, c, h, a] = [m[1], m[2], m[3], m[4]];
+  const L = Math.max(0, Math.min(1, l.endsWith("%") ? parseFloat(l) / 100 : parseFloat(l)));
+  const C = c.endsWith("%") ? (parseFloat(c) / 100) * 0.4 : parseFloat(c);
+  const H = h === "none" ? 0 : parseFloat(h);
+  const alpha = a === undefined ? 1 : a.endsWith("%") ? parseFloat(a) / 100 : parseFloat(a);
+  if (![L, C, H, alpha].every(Number.isFinite) || C < 0) return undefined;
+  const rad = (H * Math.PI) / 180;
+  const at = (chroma: number) => oklabToLinear(L, chroma * Math.cos(rad), chroma * Math.sin(rad));
+  let chroma = C;
+  if (!inGamut(at(C))) {
+    let [lo, hi] = [0, C];
+    while (hi - lo > 0.0001) {
+      const mid = (lo + hi) / 2;
+      if (inGamut(at(mid))) lo = mid;
+      else hi = mid;
+    }
+    chroma = lo;
+  }
+  const [r, g, b] = at(chroma).map(encode);
+  return { hex: `#${byte(r)}${byte(g)}${byte(b)}`, alpha: Math.max(0, Math.min(1, alpha)) };
+}
+
+/** A CSS colour as written: hex (3, 4, 6, 8 digits), `rgb()`/`rgba()`, `hsl()`/`hsla()`, `oklch()`, `transparent`; undefined for anything else (a name, `var()`, `color-mix()`): the caller refuses what it cannot read. */
 export function parseColour(value: string): Colour | undefined {
   const v = value.trim().toLowerCase();
   if (v === "transparent") return { alpha: 0 };
+  if (v.startsWith("oklch(")) return parseOklch(v);
   const hex = /^#([\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/.exec(v)?.[1];
   if (hex) {
     const full = hex.length <= 4 ? [...hex].map((c) => c + c).join("") : hex;
@@ -54,4 +98,11 @@ export function flatOver(value: string, under: string): string {
   if (c.alpha >= 1) return c.hex;
   const base = parseColour(under)?.hex;
   return base ? over(c.hex, c.alpha, base) : value;
+}
+
+/** A Look's colour as it is written to CSS or a style: an `oklch()` becomes its clamped `#rrggbb` (`#rrggbbaa` with an alpha), the value the checks read; anything else, and an `oklch()` that cannot be read, is returned as it is. */
+export function cssColour(value: string): string {
+  if (!isOklch(value)) return value;
+  const c = parseColour(value);
+  return c?.hex ? `${c.hex}${c.alpha < 1 ? byte(c.alpha * 255) : ""}` : value;
 }

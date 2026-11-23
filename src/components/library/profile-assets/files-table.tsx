@@ -19,7 +19,7 @@ export const FINDING_LABEL: Record<Finding, string> = {
 const TYPE_LABEL: Record<string, string> = { jpeg: "JPEG", png: "PNG", gif: "GIF", webp: "WebP", bmp: "BMP", ico: "ICO", svg: "SVG", video: "Video", other: "File" };
 const COLUMNS = "grid-cols-[64px_minmax(0,1.5fr)_minmax(0,1fr)_96px_96px_72px_48px_minmax(0,1.3fr)_136px]";
 const checker = "bg-[repeating-conic-gradient(#2c2c32_0_25%,#1c1c21_0_50%)] bg-[length:10px_10px]";
-const ICON = "flex h-(--ui-h-control) w-[28px] items-center justify-center rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-1";
+const ICON = "flex h-(--ui-h-control) w-7 items-center justify-center rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-1";
 
 /** One object URL per file content for files the asset store does not serve yet (added ones), revoked on unmount. */
 function useObjectUrls(): (f: AssetFile) => string | undefined {
@@ -41,7 +41,7 @@ function useObjectUrls(): (f: AssetFile) => string | undefined {
 }
 
 function Preview({ file, url }: { file: AssetFile | null; url: string | undefined }) {
-  const box = cn("flex h-[36px] w-[56px] items-center justify-center overflow-hidden rounded-ui-sm border border-ui-subtle", checker);
+  const box = cn("flex h-9 w-14 items-center justify-center overflow-hidden rounded-ui-sm border border-ui-subtle", checker);
   if (!file) {
     return (
       <div className={box}>
@@ -99,13 +99,13 @@ export function FilesTable(p: FilesTableProps) {
 
   const uses = (refs: readonly AssetRef[], danger?: boolean) =>
     refs.length === 0 ? (
-      <span className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-ui-sm bg-ui-raised px-1.5 font-ui-mono text-caption text-ui-warn">0</span>
+      <span className="inline-flex h-5.5 min-w-5.5 items-center justify-center rounded-ui-sm bg-ui-raised px-1.5 font-ui-mono text-caption text-ui-warn">0</span>
     ) : (
       <button
         type="button"
         title={`Select ${refs.length === 1 ? "this use" : "these uses"} on the canvas`}
         onClick={() => p.onSelectUses(pathsOf(refs))}
-        className={cn("inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-ui-sm bg-ui-raised px-1.5 font-ui-mono text-caption hover:bg-ui-hover", danger ? "text-ui-danger" : "text-ui-1")}
+        className={cn("inline-flex h-5.5 min-w-5.5 items-center justify-center rounded-ui-sm bg-ui-raised px-1.5 font-ui-mono text-caption hover:bg-ui-hover", danger ? "text-ui-danger" : "text-ui-1")}
       >
         {refs.length}
       </button>
@@ -267,7 +267,7 @@ export function FilesTable(p: FilesTableProps) {
           <h3 className="mb-2 text-caption font-medium text-ui-1">Outside the screen</h3>
           {outside.map((o) => (
             <div key={`${o.kind}:${o.value}`} className="flex items-center gap-3 border-t border-ui-subtle py-2 text-caption">
-              <span className="w-[96px] shrink-0 rounded-ui-sm bg-ui-raised px-2 py-0.5 text-center text-micro text-ui-3">{o.kind === "url" ? "URL" : "Absolute path"}</span>
+              <span className="w-24 shrink-0 rounded-ui-sm bg-ui-raised px-2 py-0.5 text-center text-micro text-ui-3">{o.kind === "url" ? "URL" : "Absolute path"}</span>
               <button
                 type="button"
                 title="Select the items that draw it"

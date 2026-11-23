@@ -49,6 +49,7 @@ async function openStudio(page: Page, scratch: Scratch, previewData: string | nu
 /** How long a frozen canvas is watched: the fake values change every second, so 3.5 s without a change is a held canvas. */
 const FROZEN_MS = 3500;
 
+// biome-ignore lint/performance/useDomNodeTextContent: Playwright locator.innerText(), the rendered text the user sees, not the DOM property
 const cpuText = (page: Page) => page.locator(`[data-zone-id="${cpuZone}"]`).innerText();
 const streams = (page: Page) => page.evaluate(() => (window as unknown as { __dataStreams: () => number }).__dataStreams());
 
@@ -87,7 +88,9 @@ test("frozen in the studio: a kiosk on the same profile keeps updating", async (
   await kiosk.goto(`${scratch.base}/?kiosk=1&profile=${manifest.profiles.light}`);
   const cell = kiosk.locator(manifest.kioskZoneSelector).nth(1);
   await cell.waitFor();
+  // biome-ignore lint/performance/useDomNodeTextContent: Playwright locator.innerText(), the rendered text
   const first = await cell.innerText();
+  // biome-ignore lint/performance/useDomNodeTextContent: Playwright locator.innerText(), the rendered text
   await expect.poll(() => cell.innerText(), { timeout: 15_000 }).not.toBe(first);
 });
 

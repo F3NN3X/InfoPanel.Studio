@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Bookmark, MoreHorizontal } from "lucide-react";
 import { Button, FOCUS_RING } from "@/components/ui/button";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { cn } from "@/lib/utils";
 import { LookThumb } from "./look-thumb";
-import { HIGHLIGHT, ITEM, POPUP, SEPARATOR } from "./menu-styles";
 import { ThemeNameInput } from "./theme-name-input";
 import type { CardKind } from "./theme-view-model";
 
@@ -72,12 +71,12 @@ export function ThemeSave({ name, kind, update, onSave, saveName }: ThemeSavePro
   return (
     <div className="flex items-center gap-2">
       {update?.onUpdate && (
-        <Button className="max-w-[200px] truncate" onClick={update.onUpdate} title={update.text}>
+        <Button className="max-w-50 truncate" onClick={update.onUpdate} title={update.text}>
           Update {name}
         </Button>
       )}
       <Button title="Save as my theme" icon={<Bookmark aria-hidden />} onClick={() => setSaving(true)}>
-        <span className="max-[1279px]:sr-only">Save as my theme</span>
+        <span className="max-xl:sr-only">Save as my theme</span>
       </Button>
     </div>
   );
@@ -115,37 +114,33 @@ export function ThemeActions({ reset, onRename, onDuplicate, onDelete, lock }: T
       <Menu.Trigger aria-label="Theme actions" title="Theme actions" className={cn("inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-ui-md text-ui-3 hover:bg-ui-raised hover:text-ui-1 data-popup-open:bg-ui-raised data-popup-open:text-ui-1", FOCUS_RING)}>
         <MoreHorizontal className="h-4 w-4" strokeWidth={1.5} />
       </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Menu.Popup className={cn(POPUP, "w-[280px]")}>
-            <Menu.Item className={cn(ITEM, HIGHLIGHT, "h-auto flex-col items-start gap-0.5 py-1.5")} disabled={!reset} onClick={reset?.onReset}>
-              <span>Reset to {reset ? reset.name : "a theme"}</span>
-              <span className="text-caption leading-snug text-ui-3">{reset?.text ?? "This was not applied from a theme. Save it first."}</span>
+      <Menu.Content sideOffset={4} align="end" className="w-70">
+        <Menu.Item className="h-auto flex-col items-start gap-0.5 py-1.5" disabled={!reset} onClick={reset?.onReset}>
+          <span>Reset to {reset ? reset.name : "a theme"}</span>
+          <span className="text-caption leading-snug text-ui-3">{reset?.text ?? "This was not applied from a theme. Save it first."}</span>
+        </Menu.Item>
+        <Menu.Separator />
+        <Menu.Item disabled={!onRename} onClick={() => setRenaming(true)}>
+          Rename
+        </Menu.Item>
+        <Menu.Item disabled={!onDuplicate} onClick={onDuplicate}>
+          Duplicate
+        </Menu.Item>
+        {lock && (
+          <Menu.Item onClick={lock.onToggle}>
+            {lock.on ? "Unlock all" : "Lock all"}
+            <span className="text-caption text-ui-3">{lock.on ? `Unlock every section of ${lock.screen}` : `Force every section on ${lock.screen}`}</span>
+          </Menu.Item>
+        )}
+        {onDelete && (
+          <>
+            <Menu.Separator />
+            <Menu.Item danger onClick={onDelete}>
+              Delete
             </Menu.Item>
-            <Menu.Separator className={SEPARATOR} />
-            <Menu.Item className={ITEM} disabled={!onRename} onClick={() => setRenaming(true)}>
-              Rename
-            </Menu.Item>
-            <Menu.Item className={ITEM} disabled={!onDuplicate} onClick={onDuplicate}>
-              Duplicate
-            </Menu.Item>
-            {lock && (
-              <Menu.Item className={ITEM} onClick={lock.onToggle}>
-                {lock.on ? "Unlock all" : "Lock all"}
-                <span className="text-caption text-ui-3">{lock.on ? `Unlock every section of ${lock.screen}` : `Force every section on ${lock.screen}`}</span>
-              </Menu.Item>
-            )}
-            {onDelete && (
-              <>
-                <Menu.Separator className={SEPARATOR} />
-                <Menu.Item className={cn(ITEM, "text-ui-danger")} onClick={onDelete}>
-                  Delete
-                </Menu.Item>
-              </>
-            )}
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
+          </>
+        )}
+      </Menu.Content>
     </Menu.Root>
   );
 }

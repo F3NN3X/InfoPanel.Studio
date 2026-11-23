@@ -22,6 +22,7 @@ export function lazyWidget<C extends ComponentType<any>>(load: () => Promise<{ d
     ));
   // Not Suspense: React holds a revealed boundary back for up to 300 ms, and the zone would wait that long after its
   // chunk is in. Until then the zone draws nothing, as it does before its first reading.
+  // biome-ignore lint/correctness/noComponentHookFactories: runs once per widget kind at module load, never per render; the component is stable and closes over that kind's own chunk state.
   const Lazy = (props: object) => {
     const [, setReady] = useState(Loaded !== undefined);
     const [failed, setFailed] = useState<{ error: unknown }>();

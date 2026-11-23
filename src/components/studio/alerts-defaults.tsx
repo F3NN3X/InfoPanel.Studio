@@ -47,7 +47,7 @@ export function AlertDefaults({ open, onOpenChange, alerts, setConfig }: AlertDe
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/55" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col gap-2 overflow-y-auto rounded-[14px] border border-ui-strong bg-ui-raised p-5 font-ui text-ui-1 shadow-ui-modal outline-none">
+        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col gap-2 overflow-y-auto rounded-14 border border-ui-strong bg-ui-raised p-5 font-ui text-ui-1 shadow-ui-modal outline-none">
           <div className="flex items-center">
             <Dialog.Title className="flex-1 text-lead font-medium">Alert defaults</Dialog.Title>
             <Dialog.Close title="Close (Esc)" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-3 transition-colors hover:text-ui-1">
@@ -96,7 +96,7 @@ export function AlertDefaults({ open, onOpenChange, alerts, setConfig }: AlertDe
                   aria-label="Quiet from"
                   value={quiet.from}
                   onChange={(e) => e.target.value && setQuiet({ from: e.target.value })}
-                  className={cn(FIELD, "h-[30px] min-w-0 flex-1")}
+                  className={cn(FIELD, "h-7.5 min-w-0 flex-1")}
                 />
                 to
                 <input
@@ -104,7 +104,7 @@ export function AlertDefaults({ open, onOpenChange, alerts, setConfig }: AlertDe
                   aria-label="Quiet until"
                   value={quiet.to}
                   onChange={(e) => e.target.value && setQuiet({ to: e.target.value })}
-                  className={cn(FIELD, "h-[30px] min-w-0 flex-1")}
+                  className={cn(FIELD, "h-7.5 min-w-0 flex-1")}
                 />
               </div>
               <SelectRow

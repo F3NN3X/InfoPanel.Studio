@@ -305,7 +305,10 @@ async fn a_reading_fires_an_alert_that_switches_the_page_and_clears_with_it() {
     until("the alert", || async { control_state(p).await["alerts"].as_array().unwrap().len() == 1 }).await;
     let state = control_state(p).await;
     let alert = &state["alerts"][0];
-    assert_eq!((alert["ruleId"].as_str(), alert["text"].as_str(), alert["severity"].as_str()), (Some("r1"), Some("90°C"), Some("critical")));
+    assert_eq!(
+        (alert["ruleId"].as_str(), alert["text"].as_str(), alert["severity"].as_str()),
+        (Some("r1"), Some("90°C"), Some("critical"))
+    );
     assert_eq!(state["profiles"]["desk"]["page"], "alerts");
 
     let history = send(p, "GET", "/api/alerts/history", &[], "").await.json();
@@ -354,11 +357,13 @@ async fn a_test_alert_fires_without_a_reading_and_dismiss_removes_it() {
 #[tokio::test]
 async fn a_rule_switched_to_the_island_and_tested_leaves_one_alert_and_a_replaced_row() {
     let api = FakeApi::start(0).await;
-    let rule = |style: &str| json!({
-        "id": "r1", "name": "GPU temp", "enabled": true, "severity": "critical", "cooldownSeconds": 0,
-        "source": { "kind": "sensor", "key": "gpu.temp", "op": ">", "value": 80, "forSeconds": 0 },
-        "outputs": { "display": { "style": style } },
-    });
+    let rule = |style: &str| {
+        json!({
+            "id": "r1", "name": "GPU temp", "enabled": true, "severity": "critical", "cooldownSeconds": 0,
+            "source": { "kind": "sensor", "key": "gpu.temp", "op": ">", "value": 80, "forSeconds": 0 },
+            "outputs": { "display": { "style": style } },
+        })
+    };
     let server = start(Some(&saved_config(&api.url, json!([rule("toast")])))).await;
     let p = server.port;
     until("the stream", || async { api.open.load(Ordering::SeqCst) == 1 }).await;
@@ -390,7 +395,10 @@ async fn saving_the_config_changes_the_streams_and_closes_the_old_ones() {
     // The same keys again: no reconnect. A rule on another prefix adds a stream.
     let same = saved_config(&api.url, json!([gpu_rule()])).to_string();
     assert_eq!(send(p, "POST", "/api/config", &CONFIG, &same).await.status, 200);
-    let more = saved_config(&api.url, json!([gpu_rule(), { "id": "r2", "source": { "kind": "sensor", "key": "cpu.load", "op": ">", "value": 1 } }]));
+    let more = saved_config(
+        &api.url,
+        json!([gpu_rule(), { "id": "r2", "source": { "kind": "sensor", "key": "cpu.load", "op": ">", "value": 1 } }]),
+    );
     assert_eq!(send(p, "POST", "/api/config", &CONFIG, &more.to_string()).await.status, 200);
     until("the second stream", || async { api.open.load(Ordering::SeqCst) == 2 }).await;
     assert_eq!(api.requests().len(), 2);

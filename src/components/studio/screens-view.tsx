@@ -329,8 +329,8 @@ export function ScreensView({
 
       <div ref={setViewEl} className="relative flex min-h-0 flex-1 flex-col bg-ui-app/40">
       {/* On a phone the two columns stack, and the view scrolls. */}
-      <div className="flex min-h-0 flex-1 items-start gap-6 overflow-y-auto px-6 py-5 max-[899px]:flex-col max-[899px]:px-3">
-        <section aria-label="Displays" className="flex w-[400px] shrink-0 flex-col gap-3 max-[1199px]:w-[340px] max-[899px]:w-full">
+      <div className="flex min-h-0 flex-1 items-start gap-6 overflow-y-auto px-6 py-5 max-narrow:flex-col max-narrow:px-3">
+        <section aria-label="Displays" className="flex w-100 shrink-0 flex-col gap-3 max-[1199px]:w-85 max-narrow:w-full">
           <div className="flex min-h-8 items-center gap-2">
             <h2 className="m-0 text-body font-medium text-ui-1">Displays</h2>
             <span className="text-caption text-ui-3">{entries.length}</span>
@@ -358,7 +358,7 @@ export function ScreensView({
           <AddDisplayCard />
         </section>
 
-        <section aria-label="Your screens" className="flex min-w-0 flex-1 flex-col gap-3 max-[899px]:w-full">
+        <section aria-label="Your screens" className="flex min-w-0 flex-1 flex-col gap-3 max-narrow:w-full">
           <div className="flex min-h-8 flex-wrap items-center gap-2">
             <h2 className="m-0 text-body font-medium text-ui-1">Your screens</h2>
             <span className="text-caption text-ui-3">{config.profiles.length}</span>
@@ -407,7 +407,7 @@ export function ScreensView({
           <Dialog.Popup
             aria-label="Screen settings"
             finalFocus={() => (opener.current?.isConnected ? opener.current : true)}
-            className="absolute inset-y-0 right-0 z-30 flex w-[400px] max-w-full flex-col border-l border-ui-subtle shadow-ui-drawer outline-none"
+            className="absolute inset-y-0 right-0 z-30 flex w-100 max-w-full flex-col border-l border-ui-subtle shadow-ui-drawer outline-none"
           >
             <ScreenDetail config={config} profile={profile} stored={stored} windowSize={windowSize} kiosks={kiosks} displays={displays} showOn={targets} autoProfileId={autoProfileId} onClose={closeSettings} {...detail} />
           </Dialog.Popup>

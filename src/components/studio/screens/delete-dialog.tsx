@@ -1,7 +1,7 @@
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 
 const DIALOG_BUTTON =
-  "inline-flex h-8 items-center rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-body font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1";
+  "inline-flex h-8 items-center rounded-7 border border-ui-strong bg-ui-raised px-3 text-body font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1";
 
 interface DeleteDialogProps {
   /** What goes; null keeps the dialog closed. */
@@ -31,7 +31,7 @@ export function DeleteDialog({ name, lines, confirmLabel = "Delete screen", onCo
             <AlertDialog.Close render={<button type="button" className={DIALOG_BUTTON} />}>Cancel</AlertDialog.Close>
             <button
               type="button"
-              className="inline-flex h-8 items-center rounded-[7px] bg-ui-danger px-3 text-body font-medium text-ui-inverse-fg transition-opacity hover:opacity-90"
+              className="inline-flex h-8 items-center rounded-7 bg-ui-danger px-3 text-body font-medium text-ui-inverse-fg transition-opacity hover:opacity-90"
               onClick={() => {
                 onConfirm();
                 onClose();

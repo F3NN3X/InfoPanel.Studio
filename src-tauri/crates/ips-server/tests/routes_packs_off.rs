@@ -18,7 +18,10 @@ async fn says_off(port: u16) -> bool {
 
 async fn status_and_body(port: u16, method: &str, path: &str, headers: &str, body: &str) -> (u16, String) {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
-    let request = format!("{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n{headers}Content-Length: {}\r\n\r\n{body}", body.len());
+    let request = format!(
+        "{method} {path} HTTP/1.1\r\nConnection: close\r\nHost: 127.0.0.1:{port}\r\n{headers}Content-Length: {}\r\n\r\n{body}",
+        body.len()
+    );
     stream.write_all(request.as_bytes()).await.unwrap();
     let mut raw = Vec::new();
     tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut raw)).await.unwrap().unwrap();
@@ -26,7 +29,11 @@ async fn status_and_body(port: u16, method: &str, path: &str, headers: &str, bod
     let status = text.split(' ').nth(1).unwrap().parse().unwrap();
     let rest = text.split("\r\n\r\n").nth(1).unwrap_or("");
     // a chunked body: the text between the size line and the end, enough for these short answers
-    let body = if text.to_ascii_lowercase().contains("transfer-encoding: chunked") { rest.lines().nth(1).unwrap_or("").to_string() } else { rest.to_string() };
+    let body = if text.to_ascii_lowercase().contains("transfer-encoding: chunked") {
+        rest.lines().nth(1).unwrap_or("").to_string()
+    } else {
+        rest.to_string()
+    };
     (status, body)
 }
 
@@ -71,8 +78,16 @@ async fn off_the_folder_is_not_read_and_nothing_is_written() {
     std::fs::write(packs.join("pack.css"), "a{}").unwrap();
     assert_eq!(status_and_body(port, "POST", "/api/packs/mine/sign", write, r#"{"css":"YQ==","hash":"x"}"#).await.0, 403);
     assert_eq!(status_and_body(port, "GET", "/api/packs/mine/pack.css", "", "").await.0, 404);
-    assert_eq!(status_and_body(port, "GET", "/?widget-qa&pack-check=1", "Sec-Fetch-Dest: iframe\r\nSec-Fetch-Site: same-origin\r\n", "").await.0, 404);
-    assert_eq!(status_and_body(port, "GET", "/index.html?widget-qa&pack-check=1", "Sec-Fetch-Dest: iframe\r\nSec-Fetch-Site: same-origin\r\n", "").await.0, 404);
+    assert_eq!(
+        status_and_body(port, "GET", "/?widget-qa&pack-check=1", "Sec-Fetch-Dest: iframe\r\nSec-Fetch-Site: same-origin\r\n", "").await.0,
+        404
+    );
+    assert_eq!(
+        status_and_body(port, "GET", "/index.html?widget-qa&pack-check=1", "Sec-Fetch-Dest: iframe\r\nSec-Fetch-Site: same-origin\r\n", "")
+            .await
+            .0,
+        404
+    );
     assert!(!dir.path().join("data").join(ips_server::pack_sign::KEY_FILE).exists(), "and no key is made");
     assert!(packs.join("pack.json").exists(), "nothing was deleted");
     let _ = stop.send(());

@@ -58,10 +58,7 @@ pub const CSV_COLUMNS: &[&str] = &[
 pub fn server_series(stats: &Value) -> Sample {
     let mut out = Sample::new();
     flatten("server", stats, &mut out);
-    for (key, total) in [
-        ("sseClients", "server.sseClientsTotal"),
-        ("resources", "server.resourcesTotal"),
-    ] {
+    for (key, total) in [("sseClients", "server.sseClientsTotal"), ("resources", "server.resourcesTotal")] {
         if let Some(map) = stats.get(key).and_then(Value::as_object) {
             out.insert(total.into(), map.values().filter_map(Value::as_f64).sum());
         }
@@ -83,10 +80,7 @@ pub fn csv_header() -> String {
 }
 
 pub fn csv_line(ts: u64, s: &Sample) -> String {
-    let cells: Vec<String> = CSV_COLUMNS
-        .iter()
-        .map(|c| s.get(*c).map(|v| format!("{v}")).unwrap_or_default())
-        .collect();
+    let cells: Vec<String> = CSV_COLUMNS.iter().map(|c| s.get(*c).map(|v| format!("{v}")).unwrap_or_default()).collect();
     format!("{ts},{}", cells.join(","))
 }
 
@@ -94,10 +88,7 @@ pub fn append_csv(dir: &Path, ts: u64, s: &Sample) -> std::io::Result<()> {
     std::fs::create_dir_all(dir)?;
     let path = dir.join("metrics.csv");
     let fresh = !path.exists();
-    let mut f = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(path)?;
+    let mut f = std::fs::OpenOptions::new().create(true).append(true).open(path)?;
     if fresh {
         writeln!(f, "{}", csv_header())?;
     }
@@ -141,11 +132,7 @@ pub struct History {
 impl History {
     pub fn push(&mut self, ts: u64, s: Sample) {
         self.samples.push_back((ts, s));
-        while self
-            .samples
-            .front()
-            .is_some_and(|(t, _)| ts.saturating_sub(*t) > KEEP_SECS)
-        {
+        while self.samples.front().is_some_and(|(t, _)| ts.saturating_sub(*t) > KEEP_SECS) {
             self.samples.pop_front();
         }
     }
@@ -163,11 +150,7 @@ impl History {
         let Some((now, _)) = self.samples.back() else {
             return Vec::new();
         };
-        self.samples
-            .iter()
-            .filter(|(t, _)| now.saturating_sub(*t) <= secs)
-            .filter_map(|(t, s)| s.get(name).map(|v| (*t, *v)))
-            .collect()
+        self.samples.iter().filter(|(t, _)| now.saturating_sub(*t) <= secs).filter_map(|(t, s)| s.get(name).map(|v| (*t, *v))).collect()
     }
 
     fn growth(&self, name: &str, secs: u64) -> Option<Growth> {
@@ -176,12 +159,7 @@ impl History {
         if w.len() < 2 {
             return None;
         }
-        Some(Growth {
-            from,
-            to,
-            pct: (from != 0.0).then(|| (to - from) / from * 100.0),
-            minutes: (t1 - t0) as f64 / 60.0,
-        })
+        Some(Growth { from, to, pct: (from != 0.0).then(|| (to - from) / from * 100.0), minutes: (t1 - t0) as f64 / 60.0 })
     }
 
     pub fn stats(&self) -> Vec<SeriesStats> {
@@ -191,11 +169,7 @@ impl History {
         latest
             .iter()
             .map(|(name, value)| {
-                let hour: Vec<f64> = self
-                    .window(name, 3600)
-                    .into_iter()
-                    .map(|(_, v)| v)
-                    .collect();
+                let hour: Vec<f64> = self.window(name, 3600).into_iter().map(|(_, v)| v).collect();
                 SeriesStats {
                     name: name.clone(),
                     latest: *value,
@@ -215,9 +189,7 @@ pub struct ProcessSampler {
 
 impl Default for ProcessSampler {
     fn default() -> Self {
-        Self {
-            sys: sysinfo::System::new(),
-        }
+        Self { sys: sysinfo::System::new() }
     }
 }
 
@@ -226,11 +198,7 @@ const MB: f64 = 1024.0 * 1024.0;
 impl ProcessSampler {
     pub fn sample(&mut self) -> Sample {
         use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate};
-        self.sys.refresh_processes_specifics(
-            ProcessesToUpdate::All,
-            true,
-            ProcessRefreshKind::nothing().with_memory().with_cpu(),
-        );
+        self.sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_memory().with_cpu());
         let mut out = Sample::new();
         let me = Pid::from_u32(std::process::id());
         if let Some(p) = self.sys.process(me) {
@@ -253,11 +221,7 @@ impl ProcessSampler {
             .sys
             .processes()
             .iter()
-            .filter(|(_, p)| {
-                p.name()
-                    .to_string_lossy()
-                    .eq_ignore_ascii_case("msedgewebview2.exe")
-            })
+            .filter(|(_, p)| p.name().to_string_lossy().eq_ignore_ascii_case("msedgewebview2.exe"))
             .filter(|(pid, _)| descends(**pid))
             .map(|(_, p)| p.virtual_memory())
             .sum();
@@ -272,11 +236,7 @@ pub fn process_rss(pid: u32) -> Option<u64> {
     use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
     let mut sys = System::new();
     let spid = Pid::from_u32(pid);
-    sys.refresh_processes_specifics(
-        ProcessesToUpdate::Some(&[spid]),
-        true,
-        ProcessRefreshKind::nothing().with_memory(),
-    );
+    sys.refresh_processes_specifics(ProcessesToUpdate::Some(&[spid]), true, ProcessRefreshKind::nothing().with_memory());
     sys.process(spid).map(|p| p.memory())
 }
 
@@ -313,10 +273,7 @@ mod tests {
 
     #[test]
     fn server_stats_parse() {
-        assert_eq!(
-            parse_server_stats(r#"{"uptimeSeconds":12,"clients":3}"#),
-            Some((12_000, 3))
-        );
+        assert_eq!(parse_server_stats(r#"{"uptimeSeconds":12,"clients":3}"#), Some((12_000, 3)));
         assert_eq!(parse_server_stats(r#"{"clients":3}"#), None);
         assert_eq!(parse_server_stats("<html>"), None);
     }
@@ -340,9 +297,7 @@ mod tests {
     #[test]
     fn eighty_percent_of_steps_is_enough() {
         // 11 samples, 10 steps: 8 rises and 2 flat steps.
-        let v = [
-            100.0, 110.0, 120.0, 120.0, 130.0, 140.0, 140.0, 150.0, 160.0, 170.0, 180.0,
-        ];
+        let v = [100.0, 110.0, 120.0, 120.0, 130.0, 140.0, 140.0, 150.0, 160.0, 170.0, 180.0];
         assert!(is_growing(&v));
     }
 
@@ -400,9 +355,7 @@ mod tests {
 
     #[test]
     fn studio_sample_and_csv() {
-        let s = studio_series(
-            &json!({ "ts": 1, "jsHeapUsed": 2048, "domNodes": 900, "eventSources": 3, "jsHeapTotal": null, "url": "x" }),
-        );
+        let s = studio_series(&json!({ "ts": 1, "jsHeapUsed": 2048, "domNodes": 900, "eventSources": 3, "jsHeapTotal": null, "url": "x" }));
         assert_eq!(s.len(), 3);
         let line = csv_line(7, &s);
         assert!(line.starts_with("7,,,,,"));

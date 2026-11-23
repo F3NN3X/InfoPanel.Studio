@@ -8,12 +8,14 @@ use super::*;
 
 /// A fake network: each URL answers (status, location, body); anything else is a 404. Records what it was asked for.
 fn fake(routes: &[(&str, u16, Option<&str>, &str)]) -> (Fetch, Arc<Mutex<Vec<String>>>) {
-    let routes: Vec<(String, u16, Option<String>, String)> = routes.iter().map(|(u, s, l, b)| (u.to_string(), *s, l.map(str::to_string), b.to_string())).collect();
+    let routes: Vec<(String, u16, Option<String>, String)> =
+        routes.iter().map(|(u, s, l, b)| (u.to_string(), *s, l.map(str::to_string), b.to_string())).collect();
     let seen = Arc::new(Mutex::new(Vec::new()));
     let log = Arc::clone(&seen);
     let fetch: Fetch = Arc::new(move |url: Url| {
         log.lock().unwrap().push(url.to_string());
-        let (status, location, body) = routes.iter().find(|r| r.0 == url.as_str()).map_or((404, None, String::new()), |r| (r.1, r.2.clone(), r.3.clone()));
+        let (status, location, body) =
+            routes.iter().find(|r| r.0 == url.as_str()).map_or((404, None, String::new()), |r| (r.1, r.2.clone(), r.3.clone()));
         let mut headers = HeaderMap::new();
         if let Some(location) = location {
             headers.insert("location", HeaderValue::from_str(&location).unwrap());
@@ -46,17 +48,33 @@ async fn run(url: &str, fetch: &Fetch, dir: &Path) -> (u16, HeaderMap, String) {
 
 #[test]
 fn proxies_font_squirrel_over_https_only() {
-    for good in ["https://www.fontsquirrel.com/fonts/download/roboto", "https://WWW.FontSquirrel.com:8443/x", "https://u:p@www.fontsquirrel.com/x"] {
+    for good in
+        ["https://www.fontsquirrel.com/fonts/download/roboto", "https://WWW.FontSquirrel.com:8443/x", "https://u:p@www.fontsquirrel.com/x"]
+    {
         assert!(proxy_allowed(good), "{good}");
     }
-    for bad in ["http://www.fontsquirrel.com/x", "https://evil.example/x", "https://fonts.google.com/x", "not a url", "", "https://www.fontsquirrel.com./x", "https://fontsquirrel.com/x"] {
+    for bad in [
+        "http://www.fontsquirrel.com/x",
+        "https://evil.example/x",
+        "https://fonts.google.com/x",
+        "not a url",
+        "",
+        "https://www.fontsquirrel.com./x",
+        "https://fontsquirrel.com/x",
+    ] {
         assert!(!proxy_allowed(bad), "{bad}");
     }
 }
 
 #[test]
 fn follows_redirects_to_font_hosts_only() {
-    for good in ["https://cdn.jsdelivr.net/x.ttf", "https://api.fontsource.org/v1", "https://fonts.google.com/x", "https://fonts.gstatic.com/s/x.woff2", "https://www.fontsquirrel.com/x"] {
+    for good in [
+        "https://cdn.jsdelivr.net/x.ttf",
+        "https://api.fontsource.org/v1",
+        "https://fonts.google.com/x",
+        "https://fonts.gstatic.com/s/x.woff2",
+        "https://www.fontsquirrel.com/x",
+    ] {
         assert!(hop_allowed(good), "{good}");
     }
     for bad in ["https://127.0.0.1/x", "file:///C:/x", "http://cdn.jsdelivr.net/x", "https://evil.example/x", "https://169.254.169.254/"] {
@@ -66,7 +84,10 @@ fn follows_redirects_to_font_hosts_only() {
 
 #[tokio::test]
 async fn follows_a_checked_redirect() {
-    let (fetch, seen) = fake(&[("https://www.fontsquirrel.com/a", 302, Some("https://cdn.jsdelivr.net/b"), ""), ("https://cdn.jsdelivr.net/b", 200, None, "font")]);
+    let (fetch, seen) = fake(&[
+        ("https://www.fontsquirrel.com/a", 302, Some("https://cdn.jsdelivr.net/b"), ""),
+        ("https://cdn.jsdelivr.net/b", 200, None, "font"),
+    ]);
     assert_eq!(fetch_bytes("https://www.fontsquirrel.com/a", &fetch, far()).await, Ok(b"font".to_vec()));
     assert_eq!(*seen.lock().unwrap(), ["https://www.fontsquirrel.com/a", "https://cdn.jsdelivr.net/b"]);
 }
@@ -80,25 +101,36 @@ async fn refuses_a_redirect_off_the_font_hosts() {
 
 #[tokio::test]
 async fn gives_up_after_three_redirects_naming_the_last_url() {
-    let hops: Vec<(String, Option<String>)> = (0..4).map(|i| (format!("https://www.fontsquirrel.com/{i}"), Some(format!("/{}", i + 1)))).collect();
+    let hops: Vec<(String, Option<String>)> =
+        (0..4).map(|i| (format!("https://www.fontsquirrel.com/{i}"), Some(format!("/{}", i + 1)))).collect();
     let routes: Vec<(&str, u16, Option<&str>, &str)> = hops.iter().map(|(u, l)| (u.as_str(), 302, l.as_deref(), "")).collect();
     let (fetch, seen) = fake(&routes);
-    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/0", &fetch, far()).await, Err("https://www.fontsquirrel.com/4: too many redirects".into()));
+    assert_eq!(
+        fetch_bytes("https://www.fontsquirrel.com/0", &fetch, far()).await,
+        Err("https://www.fontsquirrel.com/4: too many redirects".into())
+    );
     assert_eq!(seen.lock().unwrap().len(), 4);
 }
 
 #[tokio::test]
 async fn reports_a_status_a_bad_location_and_an_oversize_body() {
-    let (fetch, _) = fake(&[("https://www.fontsquirrel.com/x", 302, None, ""), ("https://www.fontsquirrel.com/bad", 301, Some("https://[::1"), "")]);
+    let (fetch, _) =
+        fake(&[("https://www.fontsquirrel.com/x", 302, None, ""), ("https://www.fontsquirrel.com/bad", 301, Some("https://[::1"), "")]);
     // The URL as given, not normalised.
     assert_eq!(fetch_bytes("https://WWW.fontsquirrel.com/x", &fetch, far()).await, Err("https://WWW.fontsquirrel.com/x: HTTP 302".into()));
-    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/gone", &fetch, far()).await, Err("https://www.fontsquirrel.com/gone: HTTP 404".into()));
+    assert_eq!(
+        fetch_bytes("https://www.fontsquirrel.com/gone", &fetch, far()).await,
+        Err("https://www.fontsquirrel.com/gone: HTTP 404".into())
+    );
     assert_eq!(fetch_bytes("https://www.fontsquirrel.com/bad", &fetch, far()).await, Err("Invalid URL".into()));
     let big: Fetch = Arc::new(|_| {
         let chunks: Vec<Result<Bytes, String>> = (0..31).map(|_| Ok(Bytes::from(vec![0u8; 1024 * 1024]))).collect();
         Box::pin(async move { Ok(Upstream { status: 200, headers: HeaderMap::new(), body: Box::pin(futures_util::stream::iter(chunks)) }) })
     });
-    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/big", &big, far()).await, Err("https://www.fontsquirrel.com/big: over 31457280 bytes".into()));
+    assert_eq!(
+        fetch_bytes("https://www.fontsquirrel.com/big", &big, far()).await,
+        Err("https://www.fontsquirrel.com/big: over 31457280 bytes".into())
+    );
 }
 
 #[tokio::test]
@@ -199,7 +231,14 @@ fn stalled(after_headers: bool) -> Fetch {
 async fn a_deadline_before_the_headers_is_a_504_and_during_the_body_a_502() {
     let dir = tempfile::tempdir().unwrap();
     for (after_headers, expected) in [(false, 504), (true, 502)] {
-        let response = respond(&Method::GET, Some("https://www.fontsquirrel.com/x".into()), dir.path(), &stalled(after_headers), Duration::from_millis(50)).await;
+        let response = respond(
+            &Method::GET,
+            Some("https://www.fontsquirrel.com/x".into()),
+            dir.path(),
+            &stalled(after_headers),
+            Duration::from_millis(50),
+        )
+        .await;
         assert_eq!(response.status(), expected);
         assert!(to_bytes(response.into_body(), 100).await.unwrap().is_empty());
     }

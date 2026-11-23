@@ -130,7 +130,13 @@ const JPEG: &[u8] = b"\xff\xd8\xff\xe0\0\0";
 
 /// The raw answer an upstream path gets.
 fn upstream_answer(path: &str) -> Vec<u8> {
-    let ok = |t: &str, body: &[u8]| [format!("HTTP/1.1 200 OK\r\nContent-Type: {t}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).into_bytes(), body.to_vec()].concat();
+    let ok = |t: &str, body: &[u8]| {
+        [
+            format!("HTTP/1.1 200 OK\r\nContent-Type: {t}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).into_bytes(),
+            body.to_vec(),
+        ]
+        .concat()
+    };
     let head = |line: &str| format!("HTTP/1.1 {line}\r\nConnection: close\r\n\r\n").into_bytes();
     match path {
         "/jpg" => ok("image/jpeg", JPEG),
@@ -231,7 +237,9 @@ async fn maps_oversize_cut_and_unreachable_upstreams_to_node_statuses() {
     let (dead, _held) = refusing_port();
     assert_eq!(image(s.port, &format!("http://127.0.0.1:{dead}/a")).await.status, 504);
     // This machine over https, as a literal, an IPv4-mapped literal or a name: refused before any connection.
-    for url in ["https://127.0.0.1:1/a.png", "https://[::ffff:127.0.0.1]:1/a.png", "https://localhost:1/a.png", "https://169.254.169.254/latest"] {
+    for url in
+        ["https://127.0.0.1:1/a.png", "https://[::ffff:127.0.0.1]:1/a.png", "https://localhost:1/a.png", "https://169.254.169.254/latest"]
+    {
         assert_eq!(image(s.port, url).await.status, 504, "{url}");
     }
     s.stop().await;
@@ -241,7 +249,14 @@ async fn maps_oversize_cut_and_unreachable_upstreams_to_node_statuses() {
 async fn refuses_bad_image_targets_and_other_methods() {
     let s = start().await;
     assert_eq!(get(s.port, "/api/image-proxy").await.status, 400);
-    for url in ["not a url", "http://example.com/a.png", "file:///etc/passwd", "ftp://example.com/a", "http://127.0.0.2/a", "http://[::ffff:127.0.0.1]/a"] {
+    for url in [
+        "not a url",
+        "http://example.com/a.png",
+        "file:///etc/passwd",
+        "ftp://example.com/a",
+        "http://127.0.0.2/a",
+        "http://[::ffff:127.0.0.1]/a",
+    ] {
         let refused = image(s.port, url).await;
         assert_eq!((refused.status, refused.body.len()), (400, 0), "{url}");
     }

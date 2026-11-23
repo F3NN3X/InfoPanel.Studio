@@ -80,7 +80,7 @@ const writeSwitches = async (patch: Partial<Pick<Switches, "on" | "off">>): Prom
 function CodePreview({ id, reads, small }: { id: string; reads: string[]; small?: boolean }) {
   const sensors = useSensors(reads);
   const mod = recipeModule(id);
-  return <div className={small ? "h-[132px] w-[260px]" : "h-[160px] w-[240px]"}>{mod?.render(sensors, {}) ?? <span className="text-body text-ui-3">No readings yet</span>}</div>;
+  return <div className={small ? "h-33 w-65" : "h-40 w-60"}>{mod?.render(sensors, {}) ?? <span className="text-body text-ui-3">No readings yet</span>}</div>;
 }
 
 export interface WidgetsPageProps {
@@ -438,7 +438,7 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
       name: w.name,
       kind: kindLine(w),
       trust: w.trust,
-      preview: def && !w.off ? <CodePreview id={w.id} reads={def.reads} /> : <span className="max-w-[300px] text-center text-body text-ui-3">Not loaded{why ? `: ${why}` : ""}</span>,
+      preview: def && !w.off ? <CodePreview id={w.id} reads={def.reads} /> : <span className="max-w-75 text-center text-body text-ui-3">Not loaded{why ? `: ${why}` : ""}</span>,
       appearance,
       pageStyle,
       refused: w.trust.kind !== "refused" && !def && why ? why : undefined,
@@ -618,7 +618,7 @@ export default function WidgetsPage({ bridge, appearance, pageStyle, onShowEdit,
         {detail ? (
           <WidgetDetail key={selected} {...detail} />
         ) : (
-          <aside className="flex w-[380px] shrink-0 items-center justify-center border-l border-ui-subtle bg-ui-chrome p-6 text-center text-body text-ui-3">Select a widget to see it here. Double-click a recipe to edit it.</aside>
+          <aside className="flex w-95 shrink-0 items-center justify-center border-l border-ui-subtle bg-ui-chrome p-6 text-center text-body text-ui-3">Select a widget to see it here. Double-click a recipe to edit it.</aside>
         )}
       </div>
     </div>

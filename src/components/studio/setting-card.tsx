@@ -75,11 +75,11 @@ export function SettingSection({
           disabled={filtering}
           onClick={onToggle}
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-2 rounded-[7px] px-2 text-left text-ui-1 enabled:hover:bg-s-input",
-            sheet ? "h-12" : "h-[42px]"
+            "flex min-w-0 flex-1 items-center gap-2 rounded-7 px-2 text-left text-ui-1 enabled:hover:bg-s-input",
+            sheet ? "h-12" : "h-10.5"
           )}
         >
-          <Icon className="h-[17px] w-[17px] shrink-0 text-ui-hint" strokeWidth={1.75} />
+          <Icon className="h-4.25 w-4.25 shrink-0 text-ui-hint" strokeWidth={1.75} />
           <span className="truncate text-body font-medium">{title}</span>
           {filtering && tabLabel && <span className="shrink-0 whitespace-nowrap text-micro text-ui-hint">{tabLabel}</span>}
           {pill}
@@ -92,9 +92,9 @@ export function SettingSection({
             tabIndex={-1}
             aria-label={open ? "Collapse section" : "Expand section"}
             onClick={onToggle}
-            className="flex h-[30px] w-[26px] shrink-0 items-center justify-center rounded-[7px] text-ui-hint hover:bg-s-input"
+            className="flex h-7.5 w-6.5 shrink-0 items-center justify-center rounded-7 text-ui-hint hover:bg-s-input"
           >
-            <ChevronDown className={cn("h-[18px] w-[18px] transition-transform duration-150", open && "rotate-180")} />
+            <ChevronDown className={cn("h-4.5 w-4.5 transition-transform duration-150", open && "rotate-180")} />
           </button>
         )}
         {/* The style tools only while open: a closed header keeps its title. */}
@@ -105,7 +105,7 @@ export function SettingSection({
             onClick={onReset}
             title={`Reset ${title}`}
             aria-label={`Reset ${title}`}
-            className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] text-ui-3 hover:bg-ui-subtle hover:text-ui-1"
+            className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-7 text-ui-3 hover:bg-ui-subtle hover:text-ui-1"
           >
             <RotateCcw className="h-4 w-4" />
           </button>

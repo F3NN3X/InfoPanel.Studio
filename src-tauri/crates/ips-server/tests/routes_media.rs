@@ -99,10 +99,17 @@ fn parse(raw: &[u8], head_only: bool) -> Reply {
     let head = String::from_utf8_lossy(&raw[..split]).into_owned();
     let mut lines = head.split("\r\n");
     let status = lines.next().unwrap().split(' ').nth(1).unwrap().parse().unwrap();
-    let headers: Vec<(String, String)> = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_string(), v.trim().to_string())).collect();
+    let headers: Vec<(String, String)> =
+        lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_string(), v.trim().to_string())).collect();
     let rest = &raw[split + 4..];
     let chunked = headers.iter().any(|(k, v)| k.eq_ignore_ascii_case("transfer-encoding") && v == "chunked");
-    let body = if head_only { Vec::new() } else if chunked { dechunk(rest) } else { rest.to_vec() };
+    let body = if head_only {
+        Vec::new()
+    } else if chunked {
+        dechunk(rest)
+    } else {
+        rest.to_vec()
+    };
     Reply { status, body, headers }
 }
 
@@ -168,14 +175,23 @@ async fn uploads_serves_lists_and_deletes_assets() {
     assert_eq!(served.header("content-length"), Some(png.len().to_string().as_str()));
     let listed = get(s.port, "/api/assets").await.json();
     assert_eq!(listed[0]["id"], json!(id));
-    assert_eq!((listed[0]["kind"].as_str(), listed[0]["type"].as_str(), listed[0]["size"].as_u64()), (Some("image"), Some("image/png"), Some(png.len() as u64)));
+    assert_eq!(
+        (listed[0]["kind"].as_str(), listed[0]["type"].as_str(), listed[0]["size"].as_u64()),
+        (Some("image"), Some("image/png"), Some(png.len() as u64))
+    );
 
     let range = send(s.port, "GET", &format!("/api/assets/{id}"), &[("Range", "bytes=2-5")], b"").await;
-    assert_eq!((range.status, range.body.clone(), range.header("content-range").map(String::from)), (206, png[2..6].to_vec(), Some(format!("bytes 2-5/{}", png.len()))));
+    assert_eq!(
+        (range.status, range.body.clone(), range.header("content-range").map(String::from)),
+        (206, png[2..6].to_vec(), Some(format!("bytes 2-5/{}", png.len())))
+    );
     let suffix = send(s.port, "GET", &format!("/api/assets/{id}"), &[("Range", "bytes=-3")], b"").await;
     assert_eq!((suffix.status, suffix.body), (206, png[png.len() - 3..].to_vec()));
     let past = send(s.port, "GET", &format!("/api/assets/{id}"), &[("Range", "bytes=999-")], b"").await;
-    assert_eq!((past.status, past.header("content-range").map(String::from), past.body.len()), (416, Some(format!("bytes */{}", png.len())), 0));
+    assert_eq!(
+        (past.status, past.header("content-range").map(String::from), past.body.len()),
+        (416, Some(format!("bytes */{}", png.len())), 0)
+    );
     let whole = send(s.port, "GET", &format!("/api/assets/{id}"), &[("Range", "bytes=5-2")], b"").await;
     assert_eq!((whole.status, whole.body.len()), (200, png.len()));
     let head = send(s.port, "HEAD", &format!("/api/assets/{id}"), &[], b"").await;
@@ -238,7 +254,8 @@ async fn stores_an_svg_sanitised_and_a_clean_one_as_it_came() {
     // one it can't read is refused and leaves nothing behind
     let unreadable = upload(s.port, &svg_upload, br#"<svg xmlns="http://www.w3.org/2000/svg"><!ENTITY x "y"><g/></svg>"#).await;
     assert_eq!(unreadable.status, 415);
-    let names: Vec<String> = std::fs::read_dir(s.data().join("assets")).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+    let names: Vec<String> =
+        std::fs::read_dir(s.data().join("assets")).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
     assert_eq!(names.len(), 2, "{names:?}");
     s.stop().await;
 }
@@ -289,7 +306,10 @@ async fn refuses_uploads_the_way_node_does() {
     assert_eq!((unsupported.status, unsupported.text().starts_with("unsupported type: png, jpeg")), (415, true));
     assert_eq!(upload(p, &[("X-Dashboard-Asset", "1")], &PNG).await.status, 415);
     let mismatch = upload(p, &UPLOAD, b"GIF89a....").await;
-    assert_eq!((mismatch.status, mismatch.text().as_str(), mismatch.header("connection")), (415, "file content does not match its type", Some("close")));
+    assert_eq!(
+        (mismatch.status, mismatch.text().as_str(), mismatch.header("connection")),
+        (415, "file content does not match its type", Some("close"))
+    );
     let mut late = vec![0u8; 2048];
     late[..PNG.len()].copy_from_slice(&PNG);
     late.extend(b"<html>");
@@ -336,7 +356,8 @@ async fn answers_429_while_two_uploads_are_running() {
     tokio::time::sleep(Duration::from_millis(300)).await;
     // The aborted uploads left no file and gave their slots back.
     assert_eq!(upload(p, &UPLOAD, &PNG).await.status, 200);
-    let names: Vec<String> = std::fs::read_dir(s.data().join("assets")).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+    let names: Vec<String> =
+        std::fs::read_dir(s.data().join("assets")).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
     assert_eq!(names.len(), 1, "{names:?}");
     s.stop().await;
 }
@@ -361,7 +382,10 @@ async fn stores_canvases_by_content_and_checks_the_refs_of_a_config() {
     assert_eq!((read.status, read.text(), read.header("content-type")), (200, text.clone(), Some("application/json; charset=utf-8")));
     assert_eq!(std::fs::read_to_string(s.data().join(format!("canvases/{id}.json"))).unwrap(), text);
 
-    assert_eq!(send(p, "POST", "/api/canvases", &[("Content-Type", "application/json")], text.as_bytes()).await.text(), "missing X-Dashboard-Canvas header");
+    assert_eq!(
+        send(p, "POST", "/api/canvases", &[("Content-Type", "application/json")], text.as_bytes()).await.text(),
+        "missing X-Dashboard-Canvas header"
+    );
     assert_eq!(send(p, "POST", "/api/canvases", &[("X-Dashboard-Canvas", "1")], text.as_bytes()).await.status, 415);
     assert_eq!(send(p, "POST", "/api/canvases", &CANVAS_WRITE, b"{}").await.text(), "expected a canvas (format \"infopanel-canvas\")");
     assert_eq!(send(p, "POST", "/api/canvases", &CANVAS_WRITE, b"{nope").await.text(), "expected JSON");
@@ -392,18 +416,25 @@ async fn keeps_the_library_with_its_guards_and_statuses() {
     let s = start().await;
     let p = s.port;
     assert_eq!(get(p, "/api/library").await.json(), json!([]));
-    let made = send(p, "POST", "/api/library", &LIBRARY_WRITE, br#"{"kind":"gauge","name":"  Arc ","data":{"shape":"arc"},"junk":1}"#).await;
+    let made =
+        send(p, "POST", "/api/library", &LIBRARY_WRITE, br#"{"kind":"gauge","name":"  Arc ","data":{"shape":"arc"},"junk":1}"#).await;
     assert_eq!(made.status, 201);
     let item = made.json();
     let id = item["id"].as_str().unwrap().to_string();
     assert_eq!(item["name"], json!("Arc"));
-    assert_eq!(item.as_object().unwrap().keys().collect::<Vec<_>>(), ["id", "kind", "name", "createdAt", "updatedAt", "files", "meta", "copies", "data"]);
+    assert_eq!(
+        item.as_object().unwrap().keys().collect::<Vec<_>>(),
+        ["id", "kind", "name", "createdAt", "updatedAt", "files", "meta", "copies", "data"]
+    );
     assert_eq!(std::fs::read_to_string(s.data().join(format!("library/{id}.json"))).unwrap(), serde_json::to_string(&item).unwrap());
     assert_eq!(get(p, "/api/library").await.json(), json!([item]));
     assert_eq!(get(p, &format!("/api/library/{id}")).await.json(), item);
 
     let updated = send(p, "PUT", &format!("/api/library/{id}"), &LIBRARY_WRITE, br#"{"name":"Arc 2"}"#).await;
-    assert_eq!((updated.status, updated.json()["name"].clone(), updated.json()["createdAt"].clone()), (200, json!("Arc 2"), item["createdAt"].clone()));
+    assert_eq!(
+        (updated.status, updated.json()["name"].clone(), updated.json()["createdAt"].clone()),
+        (200, json!("Arc 2"), item["createdAt"].clone())
+    );
     assert_eq!(send(p, "PUT", &format!("/api/library/{id}"), &LIBRARY_WRITE, br#"{"kind":"image"}"#).await.text(), "kind cannot change");
     assert_eq!(send(p, "PUT", "/api/library/lib_missing0000", &LIBRARY_WRITE, br#"{"name":""}"#).await.status, 404);
     assert_eq!(send(p, "POST", "/api/library", &LIBRARY_WRITE, br#"{"kind":"nope","name":"x"}"#).await.status, 400);
@@ -412,7 +443,10 @@ async fn keeps_the_library_with_its_guards_and_statuses() {
     let huge = vec![b' '; 8 * 1024 * 1024 + 1025];
     assert_eq!(send(p, "POST", "/api/library", &LIBRARY_WRITE, &huge).await.text(), "expected a JSON body under 8 MB");
 
-    assert_eq!(send(p, "POST", "/api/library", &[("Content-Type", "application/json")], b"{}").await.text(), "missing X-Dashboard-Library header");
+    assert_eq!(
+        send(p, "POST", "/api/library", &[("Content-Type", "application/json")], b"{}").await.text(),
+        "missing X-Dashboard-Library header"
+    );
     assert_eq!(send(p, "POST", "/api/library", &[("X-Dashboard-Library", "1")], b"{}").await.status, 415);
     assert_eq!(send(p, "PATCH", "/api/library", &[], b"").await.status, 405);
     assert_eq!(send(p, "PATCH", &format!("/api/library/{id}"), &[], b"").await.status, 405);
@@ -432,7 +466,11 @@ async fn serves_the_installed_infopanel_profiles_read_only() {
     let root = dir.path().join("infopanel");
     std::fs::create_dir_all(root.join("profiles")).unwrap();
     std::fs::create_dir_all(root.join(format!("assets/{G1}"))).unwrap();
-    std::fs::write(root.join("profiles.xml"), format!("<ArrayOfProfile><Profile><Guid>{G1}</Guid><Name>A &amp; B</Name></Profile></ArrayOfProfile>")).unwrap();
+    std::fs::write(
+        root.join("profiles.xml"),
+        format!("<ArrayOfProfile><Profile><Guid>{G1}</Guid><Name>A &amp; B</Name></Profile></ArrayOfProfile>"),
+    )
+    .unwrap();
     std::fs::write(root.join(format!("profiles/{G1}.xml")), "<ArrayOfDisplayItem/>").unwrap();
     std::fs::write(root.join(format!("assets/{G1}/logo.png")), [1u8, 2, 3]).unwrap();
     std::fs::write(root.join(format!("assets/{G1}/a b.png")), "x").unwrap();
@@ -443,12 +481,28 @@ async fn serves_the_installed_infopanel_profiles_read_only() {
     let base = format!("/api/infopanel/installed/{G1}");
     let profile = get(p, &format!("{base}/Profile.xml")).await;
     assert_eq!(profile.text(), format!("<Profile><Guid>{G1}</Guid><Name>A &amp; B</Name></Profile>"));
-    assert_eq!((profile.header("content-type"), profile.header("cache-control"), profile.header("x-content-type-options")), (Some("application/xml; charset=utf-8"), Some("no-store"), Some("nosniff")));
+    assert_eq!(
+        (profile.header("content-type"), profile.header("cache-control"), profile.header("x-content-type-options")),
+        (Some("application/xml; charset=utf-8"), Some("no-store"), Some("nosniff"))
+    );
     assert_eq!(get(p, &format!("{base}/DisplayItems.xml")).await.text(), "<ArrayOfDisplayItem/>");
     let asset = get(p, &format!("{base}/assets/logo.png")).await;
     assert_eq!((asset.body.clone(), asset.header("content-type")), (vec![1, 2, 3], Some("application/octet-stream")));
     assert_eq!(get(p, &format!("{base}/assets/a%20b.png")).await.text(), "x");
-    for bad in ["/api/infopanel/installed/", base.as_str(), &format!("{base}/"), &format!("{base}/assets"), &format!("{base}/assets/gone.png"), &format!("{base}/assets/..%2fx"), &format!("{base}/assets/%ff"), &format!("{base}/assets/%"), &format!("{base}/assets/.."), &format!("{base}/Other.xml"), "/api/infopanel/installed/nope/Profile.xml", &format!("{base}/profile.xml")] {
+    for bad in [
+        "/api/infopanel/installed/",
+        base.as_str(),
+        &format!("{base}/"),
+        &format!("{base}/assets"),
+        &format!("{base}/assets/gone.png"),
+        &format!("{base}/assets/..%2fx"),
+        &format!("{base}/assets/%ff"),
+        &format!("{base}/assets/%"),
+        &format!("{base}/assets/.."),
+        &format!("{base}/Other.xml"),
+        "/api/infopanel/installed/nope/Profile.xml",
+        &format!("{base}/profile.xml"),
+    ] {
         assert_eq!(get(p, bad).await.status, 404, "{bad}");
     }
     for method in ["POST", "PUT", "DELETE", "HEAD"] {

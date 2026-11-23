@@ -42,15 +42,15 @@ function ExportRow({ icon: Icon, title, detail, picked, blocked, children, actio
   return (
     <section aria-label={title} className={cn("flex flex-col gap-2 rounded-ui-lg border px-3.5 py-3", picked ? "border-ui-accent bg-ui-accent-soft" : "border-ui-default bg-ui-chrome")}>
       <div className="flex items-start gap-3">
-        <Icon className="mt-0.5 h-[18px] w-[18px] shrink-0 text-ui-3" strokeWidth={1.75} />
+        <Icon className="mt-0.5 h-4.5 w-4.5 shrink-0 text-ui-3" strokeWidth={1.75} />
         <div className="min-w-0 flex-1">
           <div className="text-body font-medium text-ui-1">{title}</div>
           <div className="text-pretty text-caption text-ui-4">{detail}</div>
         </div>
         <div className="flex shrink-0 items-center gap-2">{actions}</div>
       </div>
-      {blocked ? <p className="pl-[30px] text-micro text-ui-warn">{blocked}</p> : children}
-      <div className="pl-[30px]">
+      {blocked ? <p className="pl-7.5 text-micro text-ui-warn">{blocked}</p> : children}
+      <div className="pl-7.5">
         <button
           type="button"
           disabled={!copy}
@@ -95,7 +95,7 @@ function GaugeChooser({ onPick }: { onPick: (name: string, gauge: VectorGauge) =
       if (spec) onPick(item.name, spec);
     }, () => toast(`Couldn’t read ${item.name}`));
   return (
-    <div ref={list} className="ml-[30px] flex max-h-40 flex-col overflow-auto rounded-lg border border-ui-default bg-ui-panel">
+    <div ref={list} className="ml-7.5 flex max-h-40 flex-col overflow-auto rounded-lg border border-ui-default bg-ui-panel">
       {items === null && <span className="p-2.5 text-caption text-ui-4">Reading…</span>}
       {items?.length === 0 && <span className="p-2.5 text-caption text-ui-4">{error ?? "No gauges in your library yet."}</span>}
       {items?.map((item) => (
@@ -238,7 +238,7 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
                 </button>
               }
             >
-              <p className="pl-[30px] text-micro text-ui-4">Fonts that may not be shared stay out unless you include them: you choose in the next step</p>
+              <p className="pl-7.5 text-micro text-ui-4">Fonts that may not be shared stay out unless you include them: you choose in the next step</p>
             </ExportRow>
             <ExportRow
               {...common}

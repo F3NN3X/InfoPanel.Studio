@@ -1,9 +1,8 @@
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Check, ChevronDown, Monitor } from "lucide-react";
 import { FOCUS_RING } from "@/components/ui/button";
 import type { DashboardConfig, MonitorProfile, ProfilePage } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import { HIGHLIGHT, ITEM, POPUP } from "./menu-styles";
 import type { ThemeAt } from "./theme-cards";
 
 interface ThemeScopeBarProps {
@@ -35,29 +34,25 @@ export function ThemeScopeBar({ config, at, profile, page, onPick }: ThemeScopeB
         <span className="truncate text-ui-3 max-sm:hidden">{at.level === "screen" ? "· whole screen" : `› ${page.name} page`}</span>
         <ChevronDown className="h-3.5 w-3.5 shrink-0 text-ui-hint" aria-hidden />
       </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-[80]" sideOffset={4} align="start">
-          <Menu.Popup className={cn(POPUP, "max-h-[60vh] min-w-64 overflow-y-auto")}>
-            {config.profiles.map((p) => (
-              <Menu.Group key={p.id}>
-                <Menu.GroupLabel className="px-2 pb-1 pt-2 text-caption text-ui-3">
-                  {p.name} <span className="font-ui-mono">{p.width}×{p.height}</span>
-                </Menu.GroupLabel>
-                <Menu.Item className={cn(ITEM, HIGHLIGHT)} onClick={() => onPick("screen", p.id, p.id === profile.id ? page.id : p.pages[0].id)}>
-                  <span>Whole screen</span>
-                  {at.level === "screen" && p.id === profile.id && <Check className="h-4 w-4" aria-hidden />}
-                </Menu.Item>
-                {p.pages.map((pg) => (
-                  <Menu.Item key={pg.id} className={cn(ITEM, HIGHLIGHT)} onClick={() => onPick("page", p.id, pg.id)}>
-                    <span className="truncate">{pg.name} page</span>
-                    {at.level === "page" && p.id === profile.id && pg.id === page.id && <Check className="h-4 w-4" aria-hidden />}
-                  </Menu.Item>
-                ))}
-              </Menu.Group>
+      <Menu.Content sideOffset={4} align="start" className="max-h-[60vh] min-w-64 overflow-y-auto">
+        {config.profiles.map((p) => (
+          <Menu.Group key={p.id}>
+            <Menu.GroupLabel className="px-2 pb-1 pt-2 text-caption text-ui-3">
+              {p.name} <span className="font-ui-mono">{p.width}×{p.height}</span>
+            </Menu.GroupLabel>
+            <Menu.Item onClick={() => onPick("screen", p.id, p.id === profile.id ? page.id : p.pages[0].id)}>
+              <span>Whole screen</span>
+              {at.level === "screen" && p.id === profile.id && <Check className="h-4 w-4" aria-hidden />}
+            </Menu.Item>
+            {p.pages.map((pg) => (
+              <Menu.Item key={pg.id} onClick={() => onPick("page", p.id, pg.id)}>
+                <span className="truncate">{pg.name} page</span>
+                {at.level === "page" && p.id === profile.id && pg.id === page.id && <Check className="h-4 w-4" aria-hidden />}
+              </Menu.Item>
             ))}
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
+          </Menu.Group>
+        ))}
+      </Menu.Content>
     </Menu.Root>
   );
 }

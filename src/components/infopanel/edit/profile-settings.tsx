@@ -47,7 +47,7 @@ const SECTIONS: { title: string; fields: Field[]; note?: string }[] = [
   },
 ];
 
-const Message = ({ children }: { children: ReactNode }) => <p className="mt-1 text-[11.5px] leading-snug text-ui-danger">{children}</p>;
+const Message = ({ children }: { children: ReactNode }) => <p className="mt-1 text-label leading-snug text-ui-danger">{children}</p>;
 
 /** A typed text or number, stored on Enter or leaving; `inline` puts the label beside it, as a page row. */
 function TypedField({ field, value, onCommit, inline = false }: { field: Field; value: unknown; onCommit: (raw: string) => string | null; inline?: boolean }) {
@@ -77,7 +77,7 @@ function TypedField({ field, value, onCommit, inline = false }: { field: Field; 
             setError(null);
           }
         }}
-        className={cn(INPUT, inline && "w-[150px] text-right", error ? "border-ui-danger" : "border-ui-default")}
+        className={cn(INPUT, inline && "w-37.5 text-right", error ? "border-ui-danger" : "border-ui-default")}
       />
       {error && <Message>{error}</Message>}
     </label>
@@ -92,7 +92,7 @@ function ColourField({ field, value, onSet, onCommit, inline = false }: { field:
       <div className="min-w-0 flex-1">
         <TypedField field={field} value={value} onCommit={onCommit} inline={inline} />
       </div>
-      <label className="relative mb-[3px] h-[22px] w-[22px] shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong" style={{ backgroundColor: toCss(value) }}>
+      <label className="relative mb-0.75 h-5.5 w-5.5 shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent" style={{ backgroundColor: toCss(value) }}>
         <input
           type="color"
           aria-label={`${label} swatch`}
@@ -119,7 +119,7 @@ function PaletteRow({ slot, value, onSet }: { slot: Slot; value: string; onSet: 
   return (
     <div>
       <div className="flex items-center gap-2">
-        <span className="w-[72px] shrink-0 text-caption text-ui-2">{SLOT_LABEL[slot]}</span>
+        <span className="w-18 shrink-0 text-caption text-ui-2">{SLOT_LABEL[slot]}</span>
         <input
           aria-label={`Profile color ${SLOT_LABEL[slot]}`}
           value={draft ?? value}
@@ -131,7 +131,7 @@ function PaletteRow({ slot, value, onSet }: { slot: Slot; value: string; onSet: 
           }}
           className={cn(INPUT, error ? "border-ui-danger" : "border-ui-default")}
         />
-        <label className="relative h-[22px] w-[22px] shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong" style={{ backgroundColor: toCss(value) }}>
+        <label className="relative h-5.5 w-5.5 shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent" style={{ backgroundColor: toCss(value) }}>
           <input
             type="color"
             aria-label={`Profile color ${SLOT_LABEL[slot]} swatch`}
@@ -209,11 +209,11 @@ export function ProfileSettings({ editor, page, onRemap, remapCount = 0, drawing
       <section aria-label="Page" className="flex flex-col gap-1.5 border-b border-ui-subtle px-3.5 py-3">
         <TypedField inline field="Name" value={profile.Name} onCommit={(raw) => commit("Name", raw)} />
         <PageRow label="Size">
-          <span className="w-[62px]">
+          <span className="w-15.5">
             <TypedField field="Width" value={profile.Width} onCommit={(raw) => commit("Width", raw.trim() === "" ? NaN : raw)} />
           </span>
           <span className="pt-4 text-ui-4">×</span>
-          <span className="w-[62px]">
+          <span className="w-15.5">
             <TypedField field="Height" value={profile.Height} onCommit={(raw) => commit("Height", raw.trim() === "" ? NaN : raw)} />
           </span>
         </PageRow>
@@ -221,7 +221,7 @@ export function ProfileSettings({ editor, page, onRemap, remapCount = 0, drawing
         <ColourField inline field="BackgroundColor" value={String(profile.BackgroundColor)} onSet={(v) => commit("BackgroundColor", v)} onCommit={(raw) => commit("BackgroundColor", raw)} />
         <PageRow label="Profile colors">
           {SLOTS.map((slot) => (
-            <span key={slot} title={SLOT_LABEL[slot]} className="h-3 w-3 rounded-[3px] border border-white/15" style={{ background: toCss(editor.palette[slot]) }} />
+            <span key={slot} title={SLOT_LABEL[slot]} className="h-3 w-3 rounded-3 border border-white/15" style={{ background: toCss(editor.palette[slot]) }} />
           ))}
         </PageRow>
         <PageRow label="Fonts">
@@ -234,11 +234,11 @@ export function ProfileSettings({ editor, page, onRemap, remapCount = 0, drawing
             type="button"
             onClick={onRemap}
             disabled={editor.groups.length === 0}
-            className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised text-caption text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
+            className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-7 border border-ui-strong bg-ui-raised text-caption text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40"
           >
             <Cable className="h-3.5 w-3.5" />
             Remap sensors
-            {remapCount > 0 && <span className="rounded-full bg-ui-warn/20 px-1.5 font-ui-mono text-[10px] text-ui-warn">{remapCount}</span>}
+            {remapCount > 0 && <span className="rounded-full bg-ui-warn/20 px-1.5 font-ui-mono text-nano text-ui-warn">{remapCount}</span>}
           </button>
         )}
         <p className="text-micro leading-snug text-ui-4">Resizing keeps every item where it is</p>
@@ -248,7 +248,7 @@ export function ProfileSettings({ editor, page, onRemap, remapCount = 0, drawing
         <section key={s.title} aria-label={s.title} className="border-b border-ui-subtle px-4 py-3">
           <div className="mb-2 text-caption font-medium text-ui-1">{s.title}</div>
           <div className="flex flex-col gap-2">{s.fields.map(row)}</div>
-          {s.note && <p className="mt-2 text-[11.5px] leading-snug text-ui-4">{s.note}</p>}
+          {s.note && <p className="mt-2 text-label leading-snug text-ui-4">{s.note}</p>}
         </section>
       ))}
       <section aria-label="Profile colors" className="border-b border-ui-subtle px-4 py-3">
@@ -258,11 +258,11 @@ export function ProfileSettings({ editor, page, onRemap, remapCount = 0, drawing
             <PaletteRow key={slot} slot={slot} value={editor.palette[slot]} onSet={(v) => editor.setPalette(slot, v, `canvas-palette:${editor.zone.id}:${slot}`)} />
           ))}
         </div>
-        <p className="mt-2 text-[11.5px] leading-snug text-ui-4">
+        <p className="mt-2 text-label leading-snug text-ui-4">
           New items and elements take these colors; changing one recolors everything that uses it.
         </p>
       </section>
-      <p className="px-4 py-3 text-[11.5px] leading-snug text-ui-4">Select an item on the canvas or in Layers to edit it.</p>
+      <p className="px-4 py-3 text-label leading-snug text-ui-4">Select an item on the canvas or in Layers to edit it.</p>
     </div>
   );
 }

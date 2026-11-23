@@ -88,7 +88,7 @@ export function SizeCheckRun(p: SizeCheckRunProps) {
     };
   }, [at]);
   return (
-    <div ref={host} aria-hidden inert data-size-check-run="" className="pointer-events-none fixed left-[-20000px] top-0 flex flex-col items-start gap-4">
+    <div ref={host} aria-hidden inert data-size-check-run="" className="pointer-events-none fixed -left-5000 top-0 flex flex-col items-start gap-4">
       {batch.map((cells) => (
         <RecipePreview key={`${at} ${cells.join("x")}`} recipe={p.recipe} images={p.images} values={p.values} cells={cells} sample={p.sample} appearance={p.appearance} pageStyle={p.pageStyle} lookId={p.lookId} fit={zonePx(cells)} />
       ))}

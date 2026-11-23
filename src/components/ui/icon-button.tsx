@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CONTROL_MOTION, FOCUS_RING } from "./button";
 
-const SIZE = { 26: "h-[26px] w-[26px]", 28: "h-7 w-7", 30: "h-[30px] w-[30px]", 32: "h-8 w-8" } as const;
+const SIZE = { 26: "h-6.5 w-6.5", 28: "h-7 w-7", 30: "h-7.5 w-7.5", 32: "h-8 w-8" } as const;
 
 interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
   /** Required accessible name; also the tooltip. */
@@ -12,6 +12,8 @@ interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   danger?: boolean;
   /** Pressed / selected look. */
   active?: boolean;
+  /** A 1 px edge round the button, for a button that sits on a bare panel. */
+  bordered?: boolean;
   children: ReactNode;
 }
 
@@ -21,6 +23,7 @@ export function IconButton({
   size = 28,
   danger,
   active,
+  bordered,
   className,
   children,
   ...props
@@ -34,7 +37,8 @@ export function IconButton({
         "inline-flex shrink-0 items-center justify-center rounded-ui-md text-ui-3",
         FOCUS_RING,
         CONTROL_MOTION,
-        "disabled:opacity-40",
+        "disabled:pointer-events-none disabled:opacity-40",
+        bordered && "border border-ui-default",
         SIZE[size],
         active ? "bg-ui-active text-ui-1" : "hover:bg-ui-hover hover:text-ui-1",
         danger && "hover:bg-ui-danger/15 hover:text-ui-danger",

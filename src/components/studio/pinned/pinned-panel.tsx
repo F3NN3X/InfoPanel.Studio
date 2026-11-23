@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowDown, ArrowUp, Eye, EyeOff, Pin, Plus, Trash2, Undo2 } from "lucide-react";
 import { ContextMenu } from "@/components/ui/context-menu";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { FOCUS_RING } from "@/components/ui/button";
 import type { MonitorProfile, ProfilePage } from "@/lib/layout";
@@ -9,7 +9,6 @@ import { cellsText, PIN_KINDS, type PinKind, unpinBlocked } from "@/lib/pinned-e
 import { clampCells, isGridPin, type PinnedItem } from "@/lib/pinned";
 import { cn } from "@/lib/utils";
 import { zoneName } from "../inspector/zone-meta";
-import { ITEM, POPUP } from "../menu-styles";
 import { pinnedItemMenu } from "./pinned-menu";
 import type { PinnedActions } from "./use-pinned-actions";
 
@@ -55,17 +54,13 @@ export function PinnedPanel({ profile, page, width, selectedId, onSelect, onAdd,
             <Menu.Trigger aria-label="Pin a widget" title="Pin a widget" className={cn("inline-flex h-7 w-7 items-center justify-center rounded-ui-md text-ui-3 hover:bg-ui-hover hover:text-ui-1", FOCUS_RING)}>
               <Plus aria-hidden size={16} />
             </Menu.Trigger>
-            <Menu.Portal>
-              <Menu.Positioner side="bottom" align="end" sideOffset={4} className="z-[80]">
-                <Menu.Popup className={POPUP}>
-                  {PIN_KINDS.map((k) => (
-                    <Menu.Item key={k.id} className={ITEM} onClick={() => onAdd(k)}>
-                      {k.name}
-                    </Menu.Item>
-                  ))}
-                </Menu.Popup>
-              </Menu.Positioner>
-            </Menu.Portal>
+            <Menu.Content side="bottom" align="end" sideOffset={4}>
+              {PIN_KINDS.map((k) => (
+                <Menu.Item key={k.id} onClick={() => onAdd(k)}>
+                  {k.name}
+                </Menu.Item>
+              ))}
+            </Menu.Content>
           </Menu.Root>
         </h2>
         {items.length === 0 && <p className="px-1 text-caption text-ui-3">Nothing is pinned. Pin a page rail or a widget to an edge with +; it stays put on every page.</p>}

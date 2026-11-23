@@ -15,8 +15,8 @@ import { CloseButton } from "./zone-inspector-parts";
 export function PageHeader({ name }: { name: string }) {
   return (
     <div data-inspector-header="" className="flex shrink-0 items-center gap-2.5 border-b border-ui-subtle px-3.5 py-3">
-      <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg border border-ui-default bg-ui-raised text-ui-3">
-        <Monitor className="h-[17px] w-[17px]" strokeWidth={1.75} />
+      <span className="grid h-7.5 w-7.5 shrink-0 place-items-center rounded-lg border border-ui-default bg-ui-raised text-ui-3">
+        <Monitor className="h-4.25 w-4.25" strokeWidth={1.75} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-px">
         <span className="truncate text-body font-medium text-ui-1">Page · {name}</span>
@@ -39,12 +39,12 @@ export function SnapSection({ snapItems, onSnapItems }: { snapItems: boolean; on
     <section className="flex flex-col gap-2 border-b border-ui-subtle px-3.5 py-3">
       <span className={SECTION_LABEL}>Grid</span>
       <div data-testid="page-snap-toggle" className="flex h-9 items-center gap-2.5 rounded-lg border border-ui-default bg-ui-raised px-2.5">
-        <Grid3x3 className="h-[17px] w-[17px] shrink-0 text-ui-3" strokeWidth={1.75} />
+        <Grid3x3 className="h-4.25 w-4.25 shrink-0 text-ui-3" strokeWidth={1.75} />
         <span className="flex-1 text-caption font-medium text-ui-1">Snap items to grid</span>
         <Toggle checked={snapItems} onChange={onSnapItems} label="Snap items to grid" />
       </div>
       <div className="flex items-center gap-1.5 text-micro text-ui-3">
-        <kbd className="rounded-[4px] border border-b-2 border-ui-strong px-1.5 py-px font-ui-mono text-nano text-ui-1">Alt</kbd>
+        <kbd className="rounded-4 border border-b-2 border-ui-strong px-1.5 py-px font-ui-mono text-nano text-ui-1">Alt</kbd>
         <span>hold while dragging an item or element to place it freely</span>
       </div>
       <p className="text-pretty text-micro leading-[1.5] text-ui-4">{snapNote(snapItems)}</p>
@@ -58,7 +58,7 @@ export function PageRow({ label, children, swatch }: { label: string; children: 
     <div className="flex min-h-7 items-center justify-between gap-2 text-caption">
       <span className="shrink-0 text-ui-4">{label}</span>
       <span className="flex min-w-0 items-center justify-end gap-1.5 text-ui-1">
-        {swatch && <span className="h-3 w-3 shrink-0 rounded-[3px] border border-white/15" style={{ background: swatch }} />}
+        {swatch && <span className="h-3 w-3 shrink-0 rounded-3 border border-white/15" style={{ background: swatch }} />}
         {children}
       </span>
     </div>

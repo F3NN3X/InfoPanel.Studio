@@ -96,6 +96,12 @@ describe("a pack's text as drawn (L98 L-8)", () => {
     expect(rgb.panel.vars["--card-foreground" as keyof CSSProperties]).toBe(hex.panel.vars["--card-foreground" as keyof CSSProperties]);
     expect(rgb.page).toBeDefined();
   });
+  it("an oklch() accent reaches the chrome as its clamped hex, the value the contrast checks read", async () => {
+    const paper = (await loadPack("paper"))!;
+    const look = structuredClone(paper.look);
+    look.t1.light!.accent = { value: "oklch(0.62796 0.25768 29.234)" };
+    expect(chromeOf(look).accent).toBe("#ff0000");
+  });
   it("an fg with an alpha is laid over the card, and the page header over the page", async () => {
     const chrome = await withInk("#1F1B2EE6");
     expect(chrome.ink).toMatch(/^#[0-9a-f]{6}$/);

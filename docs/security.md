@@ -101,6 +101,27 @@ security model, what was fixed, what was decided, and what is deferred.
   declaration go. What can't be read is refused (415), never stored as it came. A clean file comes back byte for byte, so its
   id never changes. It is still drawn only through `<img>` and served under the sandbox CSP: sanitising is the second line.
   User packs keep their stricter allow-list (`src/looks/pack-safety.ts`), which refuses an unsafe SVG rather than cleaning it.
+- **User pack CSS** (`src/looks/user-css.ts`, `crates/ips-server/src/packs.rs`): read by an allow-list grammar on every load,
+  checked by a render check at import and signed by the server only after it. It paints the documented `data-part` slots
+  and never moves, sizes or hides a real element: shapes (`clip-path` of `inset()`/`polygon()`, gradient and pack-file masks,
+  radii, `border-image`), a border style and colour with no width, `--pack-*` lengths held to the cap of every property that
+  reads them, and `::before`/`::after` decoration, whose box the app pins as `position: absolute` with `pointer-events: none`
+  and must stay inside its element. The render check refuses a clip, mask or pseudo-element that hides or covers text (a
+  pack-file mask is decoded and its alpha sampled over each text box; one that cannot be loaded or read is refused), and any
+  border whose width differs from the page without the pack's CSS. A `url()` may name
+  only one of the pack's own files (no scheme, root path, `..`, backslash, query or fragment, also after percent-decoding);
+  the app rewrites it to the pack's route, `/api/packs/<id>/<file>`, which serves it under the sandbox CSP. The server
+  refuses to sign CSS holding a backslash, `<`, an at-rule other than `@keyframes`, `image-set(`, `src(` or a `url()` that
+  leaves the pack.
+- **Pack frames, ornaments and effects** (`src/looks/pack-validate.ts`, `src/looks/pack-frame.tsx`, `src/looks/effects.ts`):
+  declarations in pack.json that the app draws with its own code; a pack supplies no markup or style for them. A frame's
+  corners are at most 20 px and its stroke 2 px, in the Look's accent. Ornament text is at most 64 characters, passes the same
+  injection scan as every pack.json string, and is drawn as a text node in a band of at most 10 px that takes no clicks. The
+  render check treats these elements as app chrome. The animated kinds are overlays that never filter, move or clip a widget;
+  the validator and the loader both refuse more than 3 flashes a second or more than two animated effects. `oklch()` colours
+  are converted to sRGB, clamped to the gamut and written as the hex that the contrast checks read.
+  The server signs a pack's stylesheet only: a pack with no `pack.css` carries no signature, since its pack.json and look.json
+  are validated again every time it loads.
 - **App icons** (`POST /api/assets/app-icon`, `crates/ips-server/src/app_icon.rs`): a rail item's icon read from a
   program's `.exe` and stored as a PNG asset. The studio names the program by its file name only (`Chat.exe`: letters,
   digits and a few punctuation marks, no separator, drive or `%`); the server looks for it among the programs running now,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Pipette } from "lucide-react";
 import { FOCUS_RING } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider-field";
 import { InheritDot } from "@/components/ui/setting-row";
 import { onRovingKeyDown } from "@/lib/roving";
 import { loadLook } from "@/looks";
@@ -217,38 +218,25 @@ export function LookKnobs({ values, from, onSet, onClear, title, locked = {}, ac
       {corners ? (
         <Knob label="Corners" custom={corners.custom} from={from} onReset={corners.reset} locked={locked.corners}>
           <div className="flex items-center gap-3">
-            <input
-              type="range"
-              min={0}
-              max={24}
-              step={1}
-              value={corners.px}
-              aria-label="Corners"
-              aria-valuetext={`${corners.px} px`}
-              onChange={(e) => corners.set(Number(e.currentTarget.value))}
-              className={cn("h-4 w-28 cursor-pointer accent-ui-strong-text", FOCUS_RING)}
-            />
+            <Slider label="Corners" max={24} value={corners.px} valueText={`${corners.px} px`} onChange={corners.set} className="w-28" />
             <span className="w-10 shrink-0 text-right font-ui-mono text-caption text-ui-1">{corners.px} px</span>
           </div>
         </Knob>
       ) : (
         <Knob label="Corners" custom={custom("corners")} from={from} onReset={reset("corners")} locked={locked.corners}>
           <div className="flex items-center gap-3">
-            <input
-              type="range"
-              // -1 is the theme's corners (no value stored), so every step can be picked from it.
+            {/* -1 is the theme's corners (no value stored), so every step can be picked from it. */}
+            <Slider
+              label="Corners"
               min={-1}
               max={CORNER_STEPS.length - 1}
-              step={1}
               value={corner ?? -1}
-              aria-label="Corners"
-              aria-valuetext={corner === undefined ? `${from}'s` : `${CORNER_STEPS[corner]} px`}
-              onChange={(e) => {
-                const step = Number(e.currentTarget.value);
+              valueText={corner === undefined ? `${from}'s` : `${CORNER_STEPS[corner]} px`}
+              onChange={(step) => {
                 if (step < 0) onClear(KNOB_KEYS.corners);
                 else onSet({ radius: String(CORNER_STEPS[step]) });
               }}
-              className={cn("h-4 w-28 cursor-pointer accent-ui-strong-text", FOCUS_RING)}
+              className="w-28"
             />
             <span className="w-14 shrink-0 text-right font-ui-mono text-caption text-ui-1">{corner === undefined ? "Theme's" : `${CORNER_STEPS[corner]} px`}</span>
           </div>

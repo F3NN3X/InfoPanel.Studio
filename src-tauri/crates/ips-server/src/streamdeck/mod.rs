@@ -123,26 +123,14 @@ struct DeviceState {
 
 impl Default for DeviceState {
     fn default() -> Self {
-        Self {
-            status: Status::Connecting,
-            error: None,
-            page: (0, 0),
-            titles: BTreeMap::new(),
-            icons: BTreeMap::new(),
-        }
+        Self { status: Status::Connecting, error: None, page: (0, 0), titles: BTreeMap::new(), icons: BTreeMap::new() }
     }
 }
 
 impl DeviceState {
     /// The keys within a grid of `count` keys: a smaller grid hides the rest (the app keeps them, it only crops).
     fn keys_json(&self, count: u32) -> Vec<Value> {
-        let indexes: BTreeSet<u32> = self
-            .titles
-            .keys()
-            .chain(self.icons.keys())
-            .copied()
-            .filter(|i| *i < count)
-            .collect();
+        let indexes: BTreeSet<u32> = self.titles.keys().chain(self.icons.keys()).copied().filter(|i| *i < count).collect();
         let key = |i: u32| json!({ "index": i, "title": self.titles.get(&i).map_or("", String::as_str), "icon": self.icons.get(&i).map(|icon| icon.version.as_str()) });
         indexes.into_iter().map(key).collect()
     }
@@ -200,11 +188,7 @@ impl StreamDeck {
         }
         let deck = Arc::new(Self {
             endpoint,
-            inner: Mutex::new(Inner {
-                settings: store.get().streaming.streamdeck,
-                states: HashMap::new(),
-                sessions: HashMap::new(),
-            }),
+            inner: Mutex::new(Inner { settings: store.get().streaming.streamdeck, states: HashMap::new(), sessions: HashMap::new() }),
             store: Arc::clone(&store),
             pairing: Mutex::new(Pairing::default()),
             pair_kick: watch::channel(0).0,
@@ -268,16 +252,7 @@ impl StreamDeck {
             return;
         };
         let running = inner.settings.enabled && !*shutdown.borrow();
-        let wanted: Vec<String> = if running {
-            inner
-                .settings
-                .devices
-                .iter()
-                .map(|d| d.id.clone())
-                .collect()
-        } else {
-            Vec::new()
-        };
+        let wanted: Vec<String> = if running { inner.settings.devices.iter().map(|d| d.id.clone()).collect() } else { Vec::new() };
         let mut stopped = Vec::new();
         inner.sessions.retain(|id, session| {
             let keep = wanted.contains(id);
@@ -396,12 +371,7 @@ impl StreamDeck {
         // context (seen with the real app), and each replaces the one before it.
         self.update(id, |st| {
             st.page = (context.current_page, context.total_pages);
-            st.titles = context
-                .actions
-                .iter()
-                .filter(|a| a.index < MAX_KEYS)
-                .map(|a| (a.index, a.title.clone()))
-                .collect();
+            st.titles = context.actions.iter().filter(|a| a.index < MAX_KEYS).map(|a| (a.index, a.title.clone())).collect();
         });
     }
 
@@ -523,18 +493,10 @@ impl StreamDeck {
         if !inner.settings.enabled {
             return Err(ActError::Off);
         }
-        if inner
-            .states
-            .get(id)
-            .is_none_or(|st| st.status != Status::Ready)
-        {
+        if inner.states.get(id).is_none_or(|st| st.status != Status::Ready) {
             return Err(ActError::NotReady);
         }
-        inner
-            .sessions
-            .get(id)
-            .map(|s| s.cmds.clone())
-            .ok_or(ActError::NotReady)
+        inner.sessions.get(id).map(|s| s.cmds.clone()).ok_or(ActError::NotReady)
     }
 
     /// Hands `cmd` to a device's session, if it has one.
@@ -547,32 +509,21 @@ impl StreamDeck {
     /// Presses (`down`) or releases a key on the device's grid. A press is refused while the session's queue is full; a
     /// release waits for room, so a key pressed down is let go.
     pub async fn press(&self, id: &str, index: u32, down: bool) -> Result<(), ActError> {
-        let keys = self
-            .device(id)
-            .map(|d| d.cols * d.rows)
-            .ok_or(ActError::NoDevice)?;
+        let keys = self.device(id).map(|d| d.cols * d.rows).ok_or(ActError::NoDevice)?;
         if index >= keys {
-            return Err(ActError::Invalid(format!(
-                "\"index\" must be a key on the device's grid, 0 to {}",
-                keys - 1
-            )));
+            return Err(ActError::Invalid(format!("\"index\" must be a key on the device's grid, 0 to {}", keys - 1)));
         }
         let session = self.ready_session(id)?;
         let cmd = Cmd::Press { index, down };
         if down {
             return session.try_send(cmd).map_err(|_| ActError::NotReady);
         }
-        session
-            .send_timeout(cmd, RELEASE_WAIT)
-            .await
-            .map_err(|_| ActError::NotReady)
+        session.send_timeout(cmd, RELEASE_WAIT).await.map_err(|_| ActError::NotReady)
     }
 
     pub fn page(&self, id: &str, to: PageTo) -> Result<(), ActError> {
         let session = self.ready_session(id)?;
-        session
-            .try_send(Cmd::Page(to))
-            .map_err(|_| ActError::NotReady)
+        session.try_send(Cmd::Page(to)).map_err(|_| ActError::NotReady)
     }
 
     /// Asks the app to trust us (again): the next session that needs it asks.
@@ -585,52 +536,26 @@ impl StreamDeck {
     }
 
     /// Adds a device to the registry ("IPStudio", "IPStudio 2"... when no name is given) and answers its id.
-    pub fn create(
-        &self,
-        name: Option<String>,
-        cols: u32,
-        rows: u32,
-    ) -> std::io::Result<Result<String, ActError>> {
+    pub fn create(&self, name: Option<String>, cols: u32, rows: u32) -> std::io::Result<Result<String, ActError>> {
         self.store.update_streamdeck(|s| {
             if s.devices.len() >= settings::MAX_DEVICES {
-                return Err(ActError::Invalid(format!(
-                    "at most {} devices",
-                    settings::MAX_DEVICES
-                )));
+                return Err(ActError::Invalid(format!("at most {} devices", settings::MAX_DEVICES)));
             }
             let name = name.unwrap_or_else(|| s.next_name());
             if s.devices.iter().any(|d| d.name == name) {
-                return Err(ActError::Invalid(
-                    "name: another device has that name".into(),
-                ));
+                return Err(ActError::Invalid("name: another device has that name".into()));
             }
             let id = uuid::Uuid::new_v4().to_string();
-            let (cols, rows) = (
-                settings::clamp_grid(cols.into()),
-                settings::clamp_grid(rows.into()),
-            );
-            s.devices.push(Device {
-                id: id.clone(),
-                name,
-                cols,
-                rows,
-                app_id: String::new(),
-            });
+            let (cols, rows) = (settings::clamp_grid(cols.into()), settings::clamp_grid(rows.into()));
+            s.devices.push(Device { id: id.clone(), name, cols, rows, app_id: String::new() });
             Ok(id)
         })
     }
 
     /// A device's grid: stored, and applied to the open device.
     pub fn grid(&self, id: &str, cols: u32, rows: u32) -> std::io::Result<Result<(), ActError>> {
-        let (cols, rows) = (
-            settings::clamp_grid(cols.into()),
-            settings::clamp_grid(rows.into()),
-        );
-        let found = self.store.update_streamdeck(|s| {
-            s.device_mut(id)
-                .map(|d| (d.cols, d.rows) = (cols, rows))
-                .is_some()
-        })?;
+        let (cols, rows) = (settings::clamp_grid(cols.into()), settings::clamp_grid(rows.into()));
+        let found = self.store.update_streamdeck(|s| s.device_mut(id).map(|d| (d.cols, d.rows) = (cols, rows)).is_some())?;
         if !found {
             return Ok(Err(ActError::NoDevice));
         }
@@ -643,9 +568,7 @@ impl StreamDeck {
         let mut old_app_id = String::new();
         let renamed = self.store.update_streamdeck(|s| {
             if s.devices.iter().any(|d| d.name == name && d.id != id) {
-                return Err(ActError::Invalid(
-                    "name: another device has that name".into(),
-                ));
+                return Err(ActError::Invalid("name: another device has that name".into()));
             }
             let device = s.device_mut(id).ok_or(ActError::NoDevice)?;
             if device.name == name {
@@ -672,11 +595,7 @@ impl StreamDeck {
             return Ok(Err(ActError::NoDevice));
         };
         let session = locked(&self.inner).sessions.get(id).map(|s| s.cmds.clone());
-        let mut forgot = if device.app_id.is_empty() {
-            Forgot::Nothing
-        } else {
-            Forgot::Kept
-        };
+        let mut forgot = if device.app_id.is_empty() { Forgot::Nothing } else { Forgot::Kept };
         if let Some(session) = session {
             let (ack, done) = oneshot::channel();
             if session.send(Cmd::Forget(ack)).await.is_ok() {
@@ -685,8 +604,7 @@ impl StreamDeck {
                 }
             }
         }
-        self.store
-            .update_streamdeck(|s| s.devices.retain(|d| d.id != id))?;
+        self.store.update_streamdeck(|s| s.devices.retain(|d| d.id != id))?;
         Ok(Ok(forgot))
     }
 }

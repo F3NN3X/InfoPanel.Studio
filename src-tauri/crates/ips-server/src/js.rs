@@ -7,20 +7,8 @@ use serde_json::Value;
 pub fn is_js_space(c: char) -> bool {
     matches!(
         c,
-        '\t' | '\n'
-            | '\u{b}'
-            | '\u{c}'
-            | '\r'
-            | ' '
-            | '\u{a0}'
-            | '\u{1680}'
-            | '\u{2000}'..='\u{200a}'
-            | '\u{2028}'
-            | '\u{2029}'
-            | '\u{202f}'
-            | '\u{205f}'
-            | '\u{3000}'
-            | '\u{feff}'
+        '\t' | '\n' | '\u{b}' | '\u{c}' | '\r' | ' ' | '\u{a0}' | '\u{1680}' | '\u{2000}'
+            ..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}' | '\u{feff}'
     )
 }
 
@@ -124,11 +112,9 @@ pub fn to_property_key(v: Option<&Value>) -> String {
         Some(Value::Bool(b)) => b.to_string(),
         Some(Value::Number(n)) => json_number_to_string(n),
         Some(Value::String(s)) => s.clone(),
-        Some(Value::Array(items)) => items
-            .iter()
-            .map(|item| if item.is_null() { String::new() } else { to_property_key(Some(item)) })
-            .collect::<Vec<_>>()
-            .join(","),
+        Some(Value::Array(items)) => {
+            items.iter().map(|item| if item.is_null() { String::new() } else { to_property_key(Some(item)) }).collect::<Vec<_>>().join(",")
+        }
         Some(Value::Object(_)) => "[object Object]".into(),
     }
 }

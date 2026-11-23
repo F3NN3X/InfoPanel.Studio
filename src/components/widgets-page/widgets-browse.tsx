@@ -2,7 +2,7 @@
 // switch, then Yours, Imported and Built in. A user widget is a card with its preview; a built-in a tile with its preset count.
 import type { CSSProperties, ReactNode } from "react";
 import { Search } from "lucide-react";
-import { SEGMENT_OFF, SEGMENT_ON } from "@/components/ui/segmented";
+import { Segmented } from "@/components/ui/segmented";
 import { StatusChip } from "@/components/ui/status-chip";
 import { Toggle } from "@/components/ui/toggle";
 import type { Appearance } from "@/lib/style-resolve";
@@ -86,13 +86,13 @@ function Card({ w, selected, uses, onSelect, onOpen, appearance, pageStyle, code
         selected ? "border-ui-accent" : "border-ui-subtle hover:border-ui-menu",
       )}
     >
-      <span className="flex h-[156px] w-full items-center justify-center overflow-hidden bg-ui-app p-3">
+      <span className="flex h-39 w-full items-center justify-center overflow-hidden bg-ui-app p-3">
         {w.recipe ? (
           <RecipePreview recipe={w.recipe} cells={w.recipe.size.default} sample appearance={appearance} pageStyle={pageStyle} fit={{ w: 260, h: 132 }} />
         ) : w.def && !w.off && codePreview ? (
           codePreview(w)
         ) : w.fixture ? (
-          <span className="flex h-[132px] w-[260px] items-center justify-center rounded-ui-md border border-ui-subtle bg-ui-raised text-caption text-ui-2">{w.fixture.preview}</span>
+          <span className="flex h-33 w-65 items-center justify-center rounded-ui-md border border-ui-subtle bg-ui-raised text-caption text-ui-2">{w.fixture.preview}</span>
         ) : (
           <span className="px-4 text-center text-caption text-ui-3">{refused ? (w.trust.kind === "refused" ? "Not loaded: the signature does not check out" : "Not drawn: the check refused it") : w.off ? "Turned off" : "No preview"}</span>
         )}
@@ -135,7 +135,7 @@ function Tile({ b, selected, onSelect }: { b: BuiltInEntry; selected: boolean; o
       onClick={onSelect}
       data-widget-card={b.id}
       className={cn(
-        "flex h-[62px] min-w-0 items-center gap-3 rounded-ui-lg border bg-ui-panel px-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+        "flex h-15.5 min-w-0 items-center gap-3 rounded-ui-lg border bg-ui-panel px-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
         selected ? "border-ui-accent" : "border-ui-subtle hover:border-ui-menu",
       )}
     >
@@ -164,17 +164,24 @@ export function WidgetsBrowse(p: WidgetsBrowseProps) {
   return (
     <div className="min-w-0 flex-1 overflow-y-auto px-7 py-5 font-ui">
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <label className="flex h-9 w-[240px] items-center gap-2 rounded-ui-md border border-ui-strong bg-ui-chrome px-3 text-ui-3 focus-within:border-ui-accent">
+        <label className="flex h-9 w-60 items-center gap-2 rounded-ui-md border border-ui-strong bg-ui-chrome px-3 text-ui-3 focus-within:border-ui-accent">
           <Search className="h-4 w-4 shrink-0" strokeWidth={1.5} aria-hidden />
           <input aria-label="Search widgets" placeholder="Search" value={p.query} onChange={(e) => p.onQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-3" />
         </label>
-        <div role="radiogroup" aria-label="Show" className="flex gap-0.5 rounded-ui-md border border-ui-strong bg-ui-chrome p-0.5">
-          {FILTERS.map((f) => (
-            <button key={f.id} type="button" role="radio" aria-checked={p.filter === f.id} onClick={() => p.onFilter(f.id)} className={cn("rounded-ui-sm px-3 py-[5px] text-body transition-colors duration-(--ui-dur-fast) ease-ui", p.filter === f.id ? SEGMENT_ON : SEGMENT_OFF)}>
-              {f.label} <span className="text-ui-3">{p.counts[f.id]}</span>
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Show"
+          size="bar"
+          value={p.filter}
+          onChange={p.onFilter}
+          options={FILTERS.map((f) => ({
+            value: f.id,
+            label: (
+              <>
+                {f.label} <span className="text-ui-3">{p.counts[f.id]}</span>
+              </>
+            ),
+          }))}
+        />
         <span
           className="ml-auto flex items-center gap-3 text-body text-ui-2"
           title={p.thirdPartyLocked ? "Off on the server (USER_CODE_WIDGETS=off): every code widget is hidden and none loads." : "Off hides every code widget that isn't built in and stops it loading, on every screen this server serves."}

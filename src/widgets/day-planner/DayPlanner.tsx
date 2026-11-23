@@ -93,9 +93,9 @@ export default function DayPlanner(p: DayPlannerProps) {
         return (
           <div className="flex h-full min-h-0 min-w-0 flex-col gap-1">
             {allDay.length > 0 && <div className="truncate text-micro leading-5 text-[color:var(--w-muted)]">All day · {allDay.join(", ")}</div>}
-            {hints.length > 0 && h >= 90 && <div className="line-clamp-2 text-micro leading-[14px] text-[color:var(--w-faint)]">{hints.join(" ")}</div>}
+            {hints.length > 0 && h >= 90 && <div className="line-clamp-2 text-micro leading-3.5 text-[color:var(--w-faint)]">{hints.join(" ")}</div>}
             {weather.band && h >= 100 && (
-              <div className="flex items-center gap-2 text-micro leading-[18px] text-[color:var(--w-muted)]">
+              <div className="flex items-center gap-2 text-micro leading-4.5 text-[color:var(--w-muted)]">
                 <span className="tabular-nums">
                   {unit(lo)}° to {unit(hi)}°{p.units === "F" ? "F" : "C"}
                 </span>
@@ -128,7 +128,7 @@ export default function DayPlanner(p: DayPlannerProps) {
                   const len = (to - from) * railLen;
                   return (
                     <div key={event.id} className="absolute p-px" style={box(from, to, lane, lanes)} title={`${event.title} · ${timeText(event.start)}`}>
-                      <div className="h-full w-full overflow-hidden rounded-[5px] px-1.5 text-micro leading-[14px]" style={{ background: mix(30, "var(--w-track)"), borderLeft: "3px solid var(--w-accent)", color: "var(--w-fg)" }}>
+                      <div className="h-full w-full overflow-hidden rounded-5 px-1.5 text-micro leading-3.5" style={{ background: mix(30, "var(--w-track)"), borderLeft: "3px solid var(--w-accent)", color: "var(--w-fg)" }}>
                         {(!horizontal || len >= 44) && <div className={horizontal ? "truncate" : len >= 28 ? "line-clamp-2" : "truncate"}>{event.title}</div>}
                         {len >= (horizontal ? 70 : 40) && <div className="truncate text-micro text-[color:var(--w-muted)]">{timeText(event.start)}</div>}
                       </div>

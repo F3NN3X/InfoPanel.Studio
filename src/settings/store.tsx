@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useToast } from "@/components/ui/toast";
 import { FoundContext, type Found } from "./found";
 import { errorText, ipc, onEvent } from "./ipc";
 import { LoadState } from "./load-state";
@@ -6,17 +7,8 @@ import { restartItems, type RestartItem } from "./model/restart";
 import { parsePageTarget, SECTION_NAMES, type PageId, type SectionId } from "./model/search";
 import type { SetResult, SettingKey, Settings, Status, UpdateState } from "./types";
 
-/** How long "Saved" stays up. */
-export const SAVED_MS = 1400;
-const ERROR_MS = 4500;
 /** How long a row found by search keeps its outline. */
 export const FOUND_MS = 1500;
-
-interface Toast {
-  id: number;
-  message: string;
-  error: boolean;
-}
 
 export interface Store {
   settings: Settings;
@@ -32,7 +24,6 @@ export interface Store {
   setUpdate: (state: UpdateState) => void;
   setStatus: (status: Status) => void;
   toast: (message: string, error?: boolean) => void;
-  toastState: Toast | null;
   /** The restart bar's rows: saved settings the running server hasn't picked up. */
   pending: RestartItem[];
   /** A port field holds something that can't be saved; the bar stays hidden. */
@@ -89,16 +80,13 @@ export function StoreProvider({ children, pages = SECTIONS }: { children: ReactN
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [update, setUpdate] = useState<UpdateState | null>(null);
-  const [toastState, setToast] = useState<Toast | null>(null);
   const [portInvalid, setPortInvalid] = useState(false);
   const [restartBusy, setRestartBusy] = useState(false);
   const [opened] = useState(() => parsePageTarget(window.location.hash.slice(1), pages));
   const [section, setSection] = useState<PageId>(() => opened?.section ?? pages[0]);
   const [found, setFound] = useState<Found | null>(() => (opened?.row ? { row: opened.row, n: 0 } : null));
   const settingsRef = useRef<Settings | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const foundTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const nextId = useRef(0);
   const saveSeq = useRef(0);
   /** The newest save of each key: an older response or failure for that key changes nothing. */
   const keySeq = useRef(new Map<SettingKey, number>());
@@ -117,7 +105,6 @@ export function StoreProvider({ children, pages = SECTIONS }: { children: ReactN
     return () => {
       alive = false;
       unlisten.forEach((u) => u());
-      clearTimeout(toastTimer.current);
       clearTimeout(foundTimer.current);
     };
   }, []);
@@ -147,11 +134,8 @@ export function StoreProvider({ children, pages = SECTIONS }: { children: ReactN
     settingsRef.current = settings;
   }, [settings]);
 
-  const toast = useCallback((message: string, error = false) => {
-    clearTimeout(toastTimer.current);
-    setToast({ id: nextId.current++, message, error });
-    toastTimer.current = setTimeout(() => setToast(null), error ? ERROR_MS : SAVED_MS);
-  }, []);
+  const showToast = useToast();
+  const toast = useCallback((message: string, error = false) => void showToast(message, { error }), [showToast]);
 
   /** Whether `seq` is still the newest save of `key`. */
   const latestFor = useCallback((key: SettingKey, seq: number) => keySeq.current.get(key) === seq, []);
@@ -259,7 +243,6 @@ export function StoreProvider({ children, pages = SECTIONS }: { children: ReactN
     setUpdate,
     setStatus,
     toast,
-    toastState,
     pending,
     setPortInvalid,
     barVisible,

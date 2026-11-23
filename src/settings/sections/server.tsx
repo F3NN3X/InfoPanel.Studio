@@ -7,7 +7,8 @@ import { displayAddress, formatUptime, megabytes, serverCard, type CalloutAction
 import { parseHosts, parsePort } from "../model/restart";
 import { useFound, useStore } from "../store";
 import type { ForeignInfo, Listen, ServerStats } from "../types";
-import { Button, Card, Group, HeroCard, radioProps, Row, StateTile, SwitchRow, useFlag } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Group, HeroCard, radioProps, Row, StateTile, SwitchRow, useFlag } from "../ui";
 
 const SERVER_ICONS: Record<ServerIcon, LucideIcon> = { running: CircleCheck, stopped: CirclePause, error: CircleAlert, restarting: RefreshCw };
 
@@ -59,12 +60,12 @@ function StatusCard() {
   const start = () => run(async () => setStatus(await ipc.startServer()));
   const stop = () => run(async () => setStatus(await ipc.stopServer()));
   const restart = () => run(async () => setStatus(await ipc.restartServer()));
-  const useForeign = () =>
+  const adoptForeign = () =>
     run(async () => {
       const r = await ipc.useForeignServer();
       if (!r.ok) toast(r.message, true);
     });
-  const usePort = (port: number) =>
+  const restartOnPort = (port: number) =>
     run(async () => {
       if ((await save("port", port)).ok) setStatus(await ipc.startServer());
     });
@@ -72,11 +73,11 @@ function StatusCard() {
   const act = (a: CalloutAction) => {
     switch (a.kind) {
       case "use-port":
-        return <CalloutButton key={a.kind} onClick={() => void usePort(a.port)} disabled={busy}>{`Use ${a.port}`}</CalloutButton>;
+        return <CalloutButton key={a.kind} onClick={() => void restartOnPort(a.port)} disabled={busy}>{`Use ${a.port}`}</CalloutButton>;
       case "logs":
         return <CalloutButton key={a.kind} onClick={() => go("logs")}>View logs</CalloutButton>;
       case "use-foreign":
-        return foreign?.adoptable ? <CalloutButton key={a.kind} onClick={() => void useForeign()} disabled={busy}>Use it</CalloutButton> : null;
+        return foreign?.adoptable ? <CalloutButton key={a.kind} onClick={() => void adoptForeign()} disabled={busy}>Use it</CalloutButton> : null;
     }
   };
 
@@ -92,31 +93,31 @@ function StatusCard() {
   ];
 
   return (
-    <HeroCard id="server-card" className="flex flex-col gap-[18px] p-5">
+    <HeroCard id="server-card" className="flex flex-col gap-4.5 p-5">
       <div className="flex flex-wrap items-center gap-3.5">
         <StateTile tone={card.tone}>
           <Icon className={cn("h-6 w-6", card.icon === "restarting" && "animate-spin")} />
         </StateTile>
-        <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
+        <div className="flex min-w-35 flex-1 flex-col gap-0.75">
           <span className="text-head font-medium">{card.title}</span>
           <span className="text-caption text-s-muted">{detail}</span>
         </div>
         <div className="flex gap-2">
           {card.canStop && (
-            <Button size="md" disabled={busy} onClick={() => void stop()}>
-              <CircleStop className="h-[17px] w-[17px]" />
+            <Button disabled={busy} onClick={() => void stop()}>
+              <CircleStop className="h-4.25 w-4.25" />
               Stop
             </Button>
           )}
           {card.canRestart && (
-            <Button size="md" disabled={busy} onClick={() => void restart()}>
-              <RotateCcw className="h-[17px] w-[17px]" />
+            <Button disabled={busy} onClick={() => void restart()}>
+              <RotateCcw className="h-4.25 w-4.25" />
               Restart
             </Button>
           )}
           {card.canStart && (
-            <Button kind="accent" size="md" disabled={busy} onClick={() => void start()}>
-              <Play className="h-[17px] w-[17px]" />
+            <Button variant="primary" disabled={busy} onClick={() => void start()}>
+              <Play className="h-4.25 w-4.25" />
               Start server
             </Button>
           )}
@@ -124,8 +125,8 @@ function StatusCard() {
       </div>
       {card.callout && (
         <div role="alert" className="flex flex-wrap items-center gap-2.5 rounded-ui-menu border border-s-red/30 bg-s-red/10 px-3 py-2.5 text-caption text-s-red-text">
-          <CircleAlert className="h-[17px] w-[17px] shrink-0" />
-          <span className="min-w-[140px] flex-1">{card.callout.message}</span>
+          <CircleAlert className="h-4.25 w-4.25 shrink-0" />
+          <span className="min-w-35 flex-1">{card.callout.message}</span>
           {card.callout.actions.map(act)}
           {status.state !== "foreign_dashboard" && (
             <CalloutButton onClick={() => void ipc.openHelp(HELP_LINKS.serverWontStart).catch((e) => toast(errorText(e), true))}>Learn more</CalloutButton>
@@ -166,8 +167,8 @@ function ListenRow() {
   const { settings, save, lanIp } = useStore();
   const found = useFound("listen");
   return (
-    <div ref={found.ref} className={cn("flex flex-col gap-2.5 px-[18px] py-3.5", found.className)}>
-      <div className="flex flex-col gap-[3px]">
+    <div ref={found.ref} className={cn("flex flex-col gap-2.5 px-4.5 py-3.5", found.className)}>
+      <div className="flex flex-col gap-0.75">
         <span className="text-body font-medium">Who can connect</span>
         <span className="text-caption text-s-muted">Where the kiosk and studio are allowed to load from</span>
       </div>
@@ -188,7 +189,7 @@ function ListenRow() {
               )}
             >
               <o.icon className={cn("mt-px h-5 w-5 shrink-0", on ? "text-s-accent-text" : "text-s-muted")} />
-              <span className="flex flex-col gap-[3px]">
+              <span className="flex flex-col gap-0.75">
                 <span className="text-body font-medium">{o.label}</span>
                 <span className="font-mono text-caption text-s-muted">{o.value === "local" ? "127.0.0.1" : `0.0.0.0${lanIp ? ` · ${lanIp}` : ""}`}</span>
               </span>
@@ -314,15 +315,15 @@ function KioskCard() {
   const copy = () => void navigator.clipboard.writeText(url).then(flash, () => toast("Could not copy.", true));
   return (
     <Group title="Kiosk">
-      <div ref={found.ref} className={cn("flex flex-col gap-3 rounded-xl border border-s-card-line bg-s-card px-[18px] py-4", found.className)}>
+      <div ref={found.ref} className={cn("flex flex-col gap-3 rounded-xl border border-s-card-line bg-s-card px-4.5 py-4", found.className)}>
         <span className="text-caption leading-[1.45] text-s-muted">Paste this into InfoPanel. It has to use the same port as the server.</span>
         <div className="flex flex-wrap gap-2">
           <div className="flex h-9 min-w-0 basis-40 flex-1 items-center truncate rounded-lg border border-s-track-line bg-s-win px-3 font-mono text-body">{url}</div>
-          <Button size="md" className="h-9" onClick={copy}>
+          <Button className="h-9" onClick={copy}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copied" : "Copy"}
           </Button>
-          <Button size="md" className="h-9" onClick={() => void ipc.openExternal(url).catch((e) => toast(errorText(e), true))}>
+          <Button className="h-9" onClick={() => void ipc.openExternal(url).catch((e) => toast(errorText(e), true))}>
             <ExternalLink className="h-4 w-4" />
             Open
           </Button>

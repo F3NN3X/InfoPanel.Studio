@@ -16,21 +16,15 @@ use windows::Win32::Devices::FunctionDiscovery::PKEY_Device_FriendlyName;
 use windows::Win32::Foundation::{CloseHandle, S_OK};
 use windows::Win32::Media::Audio::Endpoints::IAudioEndpointVolume;
 use windows::Win32::Media::Audio::{
-    eCapture, eCommunications, eConsole, eMultimedia, eRender, AudioSessionStateExpired, EDataFlow,
-    IAudioSessionControl2, IAudioSessionManager2, IMMDevice, IMMDeviceEnumerator,
-    ISimpleAudioVolume, MMDeviceEnumerator, DEVICE_STATE_ACTIVE,
+    eCapture, eCommunications, eConsole, eMultimedia, eRender, AudioSessionStateExpired, EDataFlow, IAudioSessionControl2,
+    IAudioSessionManager2, IMMDevice, IMMDeviceEnumerator, ISimpleAudioVolume, MMDeviceEnumerator, DEVICE_STATE_ACTIVE,
 };
-use windows::Win32::Storage::FileSystem::{
-    GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW,
-};
+use windows::Win32::Storage::FileSystem::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW};
 use windows::Win32::System::Com::StructuredStorage::PropVariantToStringAlloc;
 use windows::Win32::System::Com::{
-    CoCreateInstance, CoInitializeEx, CoTaskMemFree, CoUninitialize, CLSCTX_ALL,
-    COINIT_MULTITHREADED, STGM_READ,
+    CoCreateInstance, CoInitializeEx, CoTaskMemFree, CoUninitialize, CLSCTX_ALL, COINIT_MULTITHREADED, STGM_READ,
 };
-use windows::Win32::System::Threading::{
-    OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
-};
+use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION};
 
 use super::act::{Kind, WinAct};
 use super::state::{App, Dev, WindowsState};
@@ -51,43 +45,15 @@ mod policy {
     #[windows::core::interface("f8679f50-850a-41cf-9c72-430f290290c8")]
     pub unsafe trait IPolicyConfig: windows::core::IUnknown {
         pub unsafe fn GetMixFormat(&self, device: PCWSTR, format: *mut c_void) -> HRESULT;
-        pub unsafe fn GetDeviceFormat(
-            &self,
-            device: PCWSTR,
-            default: BOOL,
-            format: *mut c_void,
-        ) -> HRESULT;
+        pub unsafe fn GetDeviceFormat(&self, device: PCWSTR, default: BOOL, format: *mut c_void) -> HRESULT;
         pub unsafe fn ResetDeviceFormat(&self, device: PCWSTR) -> HRESULT;
-        pub unsafe fn SetDeviceFormat(
-            &self,
-            device: PCWSTR,
-            endpoint_format: *mut c_void,
-            mix_format: *mut c_void,
-        ) -> HRESULT;
-        pub unsafe fn GetProcessingPeriod(
-            &self,
-            device: PCWSTR,
-            default: BOOL,
-            default_period: *mut i64,
-            min_period: *mut i64,
-        ) -> HRESULT;
+        pub unsafe fn SetDeviceFormat(&self, device: PCWSTR, endpoint_format: *mut c_void, mix_format: *mut c_void) -> HRESULT;
+        pub unsafe fn GetProcessingPeriod(&self, device: PCWSTR, default: BOOL, default_period: *mut i64, min_period: *mut i64) -> HRESULT;
         pub unsafe fn SetProcessingPeriod(&self, device: PCWSTR, period: *mut i64) -> HRESULT;
         pub unsafe fn GetShareMode(&self, device: PCWSTR, mode: *mut c_void) -> HRESULT;
         pub unsafe fn SetShareMode(&self, device: PCWSTR, mode: *mut c_void) -> HRESULT;
-        pub unsafe fn GetPropertyValue(
-            &self,
-            device: PCWSTR,
-            fx: BOOL,
-            key: *const c_void,
-            value: *mut c_void,
-        ) -> HRESULT;
-        pub unsafe fn SetPropertyValue(
-            &self,
-            device: PCWSTR,
-            fx: BOOL,
-            key: *const c_void,
-            value: *mut c_void,
-        ) -> HRESULT;
+        pub unsafe fn GetPropertyValue(&self, device: PCWSTR, fx: BOOL, key: *const c_void, value: *mut c_void) -> HRESULT;
+        pub unsafe fn SetPropertyValue(&self, device: PCWSTR, fx: BOOL, key: *const c_void, value: *mut c_void) -> HRESULT;
         pub unsafe fn SetDefaultEndpoint(&self, device: PCWSTR, role: ERole) -> HRESULT;
         pub unsafe fn SetEndpointVisibility(&self, device: PCWSTR, visible: BOOL) -> HRESULT;
     }
@@ -107,10 +73,7 @@ pub struct Backend {
 impl Backend {
     pub fn new() -> Self {
         let (commands, inbox) = std::sync::mpsc::channel();
-        Self {
-            commands,
-            inbox: Mutex::new(inbox),
-        }
+        Self { commands, inbox: Mutex::new(inbox) }
     }
 
     /// Queues a write for the COM thread.
@@ -120,20 +83,14 @@ impl Backend {
 
     /// Runs the COM thread until `shutdown` is set, passing each changed state to `on_state`. Returns when the thread
     /// ends (which the supervisor takes as a failure, unless the server is stopping).
-    pub async fn run(
-        self: &Arc<Self>,
-        shutdown: watch::Receiver<bool>,
-        on_state: Arc<dyn Fn(WindowsState) + Send + Sync>,
-    ) {
+    pub async fn run(self: &Arc<Self>, shutdown: watch::Receiver<bool>, on_state: Arc<dyn Fn(WindowsState) + Send + Sync>) {
         let (done, ended) = oneshot::channel::<()>();
         let backend = Arc::clone(self);
         let after = Arc::clone(&on_state);
-        let spawned = std::thread::Builder::new()
-            .name("audio-windows".into())
-            .spawn(move || {
-                backend.thread(&shutdown, &*on_state);
-                let _ = done.send(());
-            });
+        let spawned = std::thread::Builder::new().name("audio-windows".into()).spawn(move || {
+            backend.thread(&shutdown, &*on_state);
+            let _ = done.send(());
+        });
         if spawned.is_ok() {
             let _ = ended.await;
         }
@@ -141,19 +98,14 @@ impl Backend {
         after(WindowsState::default());
     }
 
-    fn thread(
-        &self,
-        shutdown: &watch::Receiver<bool>,
-        on_state: &(dyn Fn(WindowsState) + Send + Sync),
-    ) {
+    fn thread(&self, shutdown: &watch::Receiver<bool>, on_state: &(dyn Fn(WindowsState) + Send + Sync)) {
         // SAFETY: balanced by the CoUninitialize below, on this same thread.
         if unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) }.is_err() {
             return;
         }
         {
             // SAFETY: the enumerator lives only on this thread, and so does everything taken from it.
-            let enumerator: Option<IMMDeviceEnumerator> =
-                unsafe { CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL) }.ok();
+            let enumerator: Option<IMMDeviceEnumerator> = unsafe { CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL) }.ok();
             if let Some(enumerator) = enumerator {
                 self.poll_loop(&enumerator, shutdown, on_state);
             }
@@ -224,18 +176,13 @@ fn endpoints(enumerator: &IMMDeviceEnumerator, flow: EDataFlow) -> Vec<(String, 
             return Vec::new();
         };
         let count = list.GetCount().unwrap_or(0);
-        (0..count)
-            .filter_map(|i| list.Item(i).ok())
-            .filter_map(|d| device_id(&d).map(|id| (id, d)))
-            .collect()
+        (0..count).filter_map(|i| list.Item(i).ok()).filter_map(|d| device_id(&d).map(|id| (id, d))).collect()
     }
 }
 
 fn default_id(enumerator: &IMMDeviceEnumerator, flow: EDataFlow) -> Option<String> {
     // SAFETY: a COM call on this thread's interface.
-    unsafe { enumerator.GetDefaultAudioEndpoint(flow, eConsole) }
-        .ok()
-        .and_then(|d| device_id(&d))
+    unsafe { enumerator.GetDefaultAudioEndpoint(flow, eConsole) }.ok().and_then(|d| device_id(&d))
 }
 
 fn percent(scalar: f32) -> u8 {
@@ -247,23 +194,14 @@ fn endpoint_volume(device: &IMMDevice) -> Option<IAudioEndpointVolume> {
     unsafe { device.Activate::<IAudioEndpointVolume>(CLSCTX_ALL, None) }.ok()
 }
 
-fn devices(
-    enumerator: &IMMDeviceEnumerator,
-    flow: EDataFlow,
-    names: &mut HashMap<String, String>,
-) -> Vec<Dev> {
+fn devices(enumerator: &IMMDeviceEnumerator, flow: EDataFlow, names: &mut HashMap<String, String>) -> Vec<Dev> {
     let default = default_id(enumerator, flow);
     let mut out: Vec<Dev> = endpoints(enumerator, flow)
         .into_iter()
         .filter_map(|(id, device)| {
             let volume = endpoint_volume(&device)?;
             // SAFETY: COM calls on this thread's interface.
-            let (level, muted) = unsafe {
-                (
-                    volume.GetMasterVolumeLevelScalar().ok()?,
-                    volume.GetMute().ok()?.as_bool(),
-                )
-            };
+            let (level, muted) = unsafe { (volume.GetMasterVolumeLevelScalar().ok()?, volume.GetMute().ok()?.as_bool()) };
             let name = match names.get(&id) {
                 Some(name) => name.clone(),
                 None => {
@@ -272,21 +210,10 @@ fn devices(
                     name
                 }
             };
-            Some(Dev {
-                is_default: default.as_deref() == Some(&id),
-                id,
-                name,
-                volume: percent(level),
-                muted,
-            })
+            Some(Dev { is_default: default.as_deref() == Some(&id), id, name, volume: percent(level), muted })
         })
         .collect();
-    out.sort_by(|a, b| {
-        a.name
-            .to_lowercase()
-            .cmp(&b.name.to_lowercase())
-            .then_with(|| a.id.cmp(&b.id))
-    });
+    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()).then_with(|| a.id.cmp(&b.id)));
     out
 }
 
@@ -305,12 +232,7 @@ fn exe_path_of(pid: u32) -> Option<String> {
         let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
         let mut buffer = [0u16; 1024];
         let mut len = buffer.len() as u32;
-        let queried = QueryFullProcessImageNameW(
-            process,
-            PROCESS_NAME_WIN32,
-            PWSTR(buffer.as_mut_ptr()),
-            &mut len,
-        );
+        let queried = QueryFullProcessImageNameW(process, PROCESS_NAME_WIN32, PWSTR(buffer.as_mut_ptr()), &mut len);
         let _ = CloseHandle(process);
         queried.ok()?;
         Some(String::from_utf16_lossy(&buffer[..len as usize]))
@@ -319,9 +241,7 @@ fn exe_path_of(pid: u32) -> Option<String> {
 
 /// The executable's file name, lowercase, of a path.
 fn exe_name(path: &str) -> Option<String> {
-    Path::new(path)
-        .file_name()
-        .map(|f| f.to_string_lossy().to_lowercase())
+    Path::new(path).file_name().map(|f| f.to_string_lossy().to_lowercase())
 }
 
 fn wide(text: &str) -> Vec<u16> {
@@ -335,10 +255,7 @@ fn wide(text: &str) -> Vec<u16> {
 unsafe fn version_string(block: &[u8], key: &str) -> Option<String> {
     let (mut value, mut len) = (std::ptr::null_mut::<c_void>(), 0u32);
     let key = wide(key);
-    if !VerQueryValueW(block.as_ptr().cast(), PCWSTR(key.as_ptr()), &mut value, &mut len).as_bool()
-        || value.is_null()
-        || len == 0
-    {
+    if !VerQueryValueW(block.as_ptr().cast(), PCWSTR(key.as_ptr()), &mut value, &mut len).as_bool() || value.is_null() || len == 0 {
         return None;
     }
     let text = std::slice::from_raw_parts(value.cast::<u16>(), len as usize);
@@ -360,16 +277,13 @@ fn read_file_description(path: &str) -> Option<String> {
         let (mut value, mut len) = (std::ptr::null_mut::<c_void>(), 0u32);
         let key = wide("\\VarFileInfo\\Translation");
         let mut languages = vec![(0x0409u16, 0x04b0u16)];
-        if VerQueryValueW(block.as_ptr().cast(), PCWSTR(key.as_ptr()), &mut value, &mut len).as_bool()
-            && !value.is_null()
-            && len >= 4
-        {
+        if VerQueryValueW(block.as_ptr().cast(), PCWSTR(key.as_ptr()), &mut value, &mut len).as_bool() && !value.is_null() && len >= 4 {
             let pairs = std::slice::from_raw_parts(value.cast::<u16>(), (len / 4 * 2) as usize);
             languages = pairs.as_chunks::<2>().0.iter().map(|&[a, b]| (a, b)).collect();
         }
-        languages.into_iter().find_map(|(lang, page)| {
-            version_string(&block, &format!("\\StringFileInfo\\{lang:04x}{page:04x}\\FileDescription"))
-        })
+        languages
+            .into_iter()
+            .find_map(|(lang, page)| version_string(&block, &format!("\\StringFileInfo\\{lang:04x}{page:04x}\\FileDescription")))
     }
 }
 
@@ -381,27 +295,20 @@ fn file_description(path: &str) -> Option<String> {
         return known.clone();
     }
     let read = read_file_description(path);
-    cache
-        .lock()
-        .unwrap_or_else(PoisonError::into_inner)
-        .insert(path.to_string(), read.clone());
+    cache.lock().unwrap_or_else(PoisonError::into_inner).insert(path.to_string(), read.clone());
     read
 }
 
 /// What an app is called: its executable's file description, else the name the session gave itself, else the file's name.
 fn app_name(description: Option<String>, display: String, exe: &str) -> String {
-    description
-        .or_else(|| Some(display).filter(|d| !d.is_empty() && !d.starts_with('@')))
-        .unwrap_or_else(|| stem_of(exe))
+    description.or_else(|| Some(display).filter(|d| !d.is_empty() && !d.starts_with('@'))).unwrap_or_else(|| stem_of(exe))
 }
 
 /// `Discord` for `discord.exe`.
 fn stem_of(exe: &str) -> String {
     let stem = exe.strip_suffix(".exe").unwrap_or(exe);
     let mut chars = stem.chars();
-    chars.next().map_or_else(String::new, |first| {
-        first.to_uppercase().chain(chars).collect()
-    })
+    chars.next().map_or_else(String::new, |first| first.to_uppercase().chain(chars).collect())
 }
 
 fn sessions(device: &IMMDevice, device_id: &str) -> Vec<Session> {
@@ -422,29 +329,15 @@ fn sessions(device: &IMMDevice, device_id: &str) -> Vec<Session> {
                 }
                 let control2 = control.cast::<IAudioSessionControl2>().ok()?;
                 let volume = control.cast::<ISimpleAudioVolume>().ok()?;
-                let display = control2
-                    .GetDisplayName()
-                    .ok()
-                    .map(take_string)
-                    .unwrap_or_default();
+                let display = control2.GetDisplayName().ok().map(take_string).unwrap_or_default();
                 // S_OK is "yes" (S_FALSE, which is_ok() would also accept, "no"): the session for Windows' own sounds.
                 if control2.IsSystemSoundsSession() == S_OK {
-                    return Some(Session {
-                        app: SYSTEM_SOUNDS.into(),
-                        name: "System sounds".into(),
-                        volume,
-                        device: device_id.into(),
-                    });
+                    return Some(Session { app: SYSTEM_SOUNDS.into(), name: "System sounds".into(), volume, device: device_id.into() });
                 }
                 let path = exe_path_of(control2.GetProcessId().ok()?)?;
                 let exe = exe_name(&path)?;
                 let name = app_name(file_description(&path), display, &exe);
-                Some(Session {
-                    app: exe,
-                    name,
-                    volume,
-                    device: device_id.into(),
-                })
+                Some(Session { app: exe, name, volume, device: device_id.into() })
             })
             .collect()
     }
@@ -452,10 +345,7 @@ fn sessions(device: &IMMDevice, device_id: &str) -> Vec<Session> {
 
 /// Every session on every output, in the order Windows lists them.
 fn all_sessions(enumerator: &IMMDeviceEnumerator) -> Vec<Session> {
-    endpoints(enumerator, eRender)
-        .iter()
-        .flat_map(|(id, device)| sessions(device, id))
-        .collect()
+    endpoints(enumerator, eRender).iter().flat_map(|(id, device)| sessions(device, id)).collect()
 }
 
 fn apps(enumerator: &IMMDeviceEnumerator) -> Vec<App> {
@@ -465,33 +355,17 @@ fn apps(enumerator: &IMMDeviceEnumerator) -> Vec<App> {
             continue;
         }
         // SAFETY: COM calls on this thread's interface.
-        let Some((level, muted)) =
-            (unsafe { s.volume.GetMasterVolume().ok().zip(s.volume.GetMute().ok()) })
-        else {
+        let Some((level, muted)) = (unsafe { s.volume.GetMasterVolume().ok().zip(s.volume.GetMute().ok()) }) else {
             continue;
         };
-        out.push(App {
-            id: s.app,
-            name: s.name,
-            volume: percent(level),
-            muted: muted.as_bool(),
-            device_id: s.device,
-        });
+        out.push(App { id: s.app, name: s.name, volume: percent(level), muted: muted.as_bool(), device_id: s.device });
     }
-    out.sort_by(|a, b| {
-        a.name
-            .to_lowercase()
-            .cmp(&b.name.to_lowercase())
-            .then_with(|| a.id.cmp(&b.id))
-    });
+    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()).then_with(|| a.id.cmp(&b.id)));
     out
 }
 
 /// The whole state now.
-pub fn snapshot(
-    enumerator: &IMMDeviceEnumerator,
-    names: &mut HashMap<String, String>,
-) -> WindowsState {
+pub fn snapshot(enumerator: &IMMDeviceEnumerator, names: &mut HashMap<String, String>) -> WindowsState {
     WindowsState {
         available: true,
         outputs: devices(enumerator, eRender, names),
@@ -507,24 +381,13 @@ fn wanted_mute(muted: Option<bool>, current: bool) -> bool {
 
 fn apply(enumerator: &IMMDeviceEnumerator, act: &WinAct) {
     match act {
-        WinAct::Volume {
-            kind: Kind::App,
-            id,
-            value,
-        } => {
+        WinAct::Volume { kind: Kind::App, id, value } => {
             for s in all_sessions(enumerator).iter().filter(|s| &s.app == id) {
                 // SAFETY: a COM call on this thread's interface; a null event context is allowed.
-                let _ = unsafe {
-                    s.volume
-                        .SetMasterVolume(f32::from(*value) / 100.0, std::ptr::null())
-                };
+                let _ = unsafe { s.volume.SetMasterVolume(f32::from(*value) / 100.0, std::ptr::null()) };
             }
         }
-        WinAct::Mute {
-            kind: Kind::App,
-            id,
-            muted,
-        } => {
+        WinAct::Mute { kind: Kind::App, id, muted } => {
             let sessions = all_sessions(enumerator);
             // SAFETY: COM calls on this thread's interfaces; a null event context is allowed.
             unsafe {
@@ -540,9 +403,7 @@ fn apply(enumerator: &IMMDeviceEnumerator, act: &WinAct) {
         WinAct::Volume { kind, id, value } => {
             if let Some(volume) = endpoint_of(enumerator, *kind, id) {
                 // SAFETY: a COM call on this thread's interface; a null event context is allowed.
-                let _ = unsafe {
-                    volume.SetMasterVolumeLevelScalar(f32::from(*value) / 100.0, std::ptr::null())
-                };
+                let _ = unsafe { volume.SetMasterVolumeLevelScalar(f32::from(*value) / 100.0, std::ptr::null()) };
             }
         }
         WinAct::Mute { kind, id, muted } => {
@@ -561,35 +422,20 @@ fn apply(enumerator: &IMMDeviceEnumerator, act: &WinAct) {
 }
 
 /// The volume control of the output or input endpoint `id` (which must be one of the active ones).
-fn endpoint_of(
-    enumerator: &IMMDeviceEnumerator,
-    kind: Kind,
-    id: &str,
-) -> Option<IAudioEndpointVolume> {
-    let flow = if kind == Kind::Input {
-        eCapture
-    } else {
-        eRender
-    };
-    endpoints(enumerator, flow)
-        .into_iter()
-        .find(|(i, _)| i == id)
-        .and_then(|(_, d)| endpoint_volume(&d))
+fn endpoint_of(enumerator: &IMMDeviceEnumerator, kind: Kind, id: &str) -> Option<IAudioEndpointVolume> {
+    let flow = if kind == Kind::Input { eCapture } else { eRender };
+    endpoints(enumerator, flow).into_iter().find(|(i, _)| i == id).and_then(|(_, d)| endpoint_volume(&d))
 }
 
 /// Makes `id` the default output or input for every role. Only an active endpoint is accepted.
 fn set_default(enumerator: &IMMDeviceEnumerator, id: &str) {
-    let known = [eRender, eCapture]
-        .into_iter()
-        .any(|flow| endpoints(enumerator, flow).iter().any(|(i, _)| i == id));
+    let known = [eRender, eCapture].into_iter().any(|flow| endpoints(enumerator, flow).iter().any(|(i, _)| i == id));
     if !known {
         return;
     }
     // SAFETY: the policy config is created and used on this thread; `wide` outlives the calls and is NUL-terminated.
     unsafe {
-        let Ok(policy) =
-            CoCreateInstance::<_, IPolicyConfig>(&POLICY_CONFIG_CLIENT, None, CLSCTX_ALL)
-        else {
+        let Ok(policy) = CoCreateInstance::<_, IPolicyConfig>(&POLICY_CONFIG_CLIENT, None, CLSCTX_ALL) else {
             return;
         };
         let wide: Vec<u16> = id.encode_utf16().chain(std::iter::once(0)).collect();
@@ -638,26 +484,16 @@ mod tests {
             CoInitializeEx(None, COINIT_MULTITHREADED).ok().unwrap();
             {
                 let enumerator: IMMDeviceEnumerator =
-                    CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)
-                        .expect("the device enumerator");
+                    CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL).expect("the device enumerator");
                 let now = snapshot(&enumerator, &mut HashMap::new());
                 assert!(now.available);
                 for list in [&now.outputs, &now.inputs] {
-                    assert!(
-                        list.iter().filter(|d| d.is_default).count() <= 1,
-                        "at most one default"
-                    );
-                    assert!(list
-                        .iter()
-                        .all(|d| d.volume <= 100 && !d.id.is_empty() && !d.name.is_empty()));
+                    assert!(list.iter().filter(|d| d.is_default).count() <= 1, "at most one default");
+                    assert!(list.iter().all(|d| d.volume <= 100 && !d.id.is_empty() && !d.name.is_empty()));
                 }
                 assert!(now.apps.iter().all(|a| a.volume <= 100 && !a.id.is_empty()));
                 let ids: Vec<_> = now.apps.iter().map(|a| &a.id).collect();
-                assert_eq!(
-                    ids.len(),
-                    ids.iter().collect::<std::collections::HashSet<_>>().len(),
-                    "one entry per app"
-                );
+                assert_eq!(ids.len(), ids.iter().collect::<std::collections::HashSet<_>>().len(), "one entry per app");
             }
             CoUninitialize();
         }

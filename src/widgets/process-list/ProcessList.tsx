@@ -73,7 +73,7 @@ export default function ProcessList(p: ProcessListProps) {
                   <li key={r.name + i} className="grid h-5 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 text-caption leading-[1.333]" style={rowH ? { height: rowH } : undefined}>
                     <span className="truncate text-[color:var(--w-fg)]">{r.name}</span>
                     <span className="tabular-nums text-[color:var(--w-muted)]">{sort === "memory" ? fmtMB(r.mem) : `${fmt(v, 1)}%`}</span>
-                    <Bar value={v} max={maxV} className="col-span-2 h-[3px]" />
+                    <Bar value={v} max={maxV} className="col-span-2 h-0.75" />
                   </li>
                 );
               })}

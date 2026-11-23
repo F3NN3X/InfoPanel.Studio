@@ -2,8 +2,8 @@
 
 use crate::debug::History;
 use crate::paths::Paths;
-use crate::settings::{self, Listen, Settings};
 use crate::server_log::RotatingLog;
+use crate::settings::{self, Listen, Settings};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::{HashSet, VecDeque};
@@ -87,10 +87,7 @@ pub struct Status {
 }
 
 pub fn now_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0)
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
 
 pub fn studio_url(origin: &str) -> String {
@@ -132,10 +129,7 @@ impl FlushGate {
     /// Waits for `release` or the timeout; true when the studio answered.
     pub fn wait(&self, timeout: Duration) -> bool {
         let guard = self.pending.lock().unwrap_or_else(|e| e.into_inner());
-        let (guard, _) = self
-            .done
-            .wait_timeout_while(guard, timeout, |pending| *pending)
-            .unwrap_or_else(|e| e.into_inner());
+        let (guard, _) = self.done.wait_timeout_while(guard, timeout, |pending| *pending).unwrap_or_else(|e| e.into_inner());
         !*guard
     }
 }
@@ -173,26 +167,11 @@ pub fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 impl AppState {
-    pub fn new(
-        paths: Paths,
-        version: String,
-        settings: Settings,
-        debug_forced: bool,
-        hidden_start: bool,
-    ) -> Self {
+    pub fn new(paths: Paths, version: String, settings: Settings, debug_forced: bool, hidden_start: bool) -> Self {
         let origin = settings::server_origin(&settings);
-        let server_log = RotatingLog::new(
-            &paths.log_dir,
-            "server",
-            crate::server_log::SERVER_LOG_MAX,
-            crate::server_log::SERVER_LOG_FILES,
-        );
+        let server_log = RotatingLog::new(&paths.log_dir, "server", crate::server_log::SERVER_LOG_MAX, crate::server_log::SERVER_LOG_FILES);
         let status = Status {
-            state: if settings.start_server {
-                Phase::Starting
-            } else {
-                Phase::Stopped
-            },
+            state: if settings.start_server { Phase::Starting } else { Phase::Stopped },
             owned: false,
             host: settings.host().into(),
             port: settings.port,
@@ -215,12 +194,7 @@ impl AppState {
             version,
             debug_forced,
             settings: Mutex::new(settings),
-            server: Mutex::new(Server {
-                status,
-                native: None,
-                generation: 0,
-                restarts: VecDeque::new(),
-            }),
+            server: Mutex::new(Server { status, native: None, generation: 0, restarts: VecDeque::new() }),
             server_log: Arc::new(Mutex::new(server_log)),
             origin: Arc::new(RwLock::new(origin)),
             flush: FlushGate::default(),
@@ -248,10 +222,7 @@ impl AppState {
     }
 
     pub fn origin(&self) -> String {
-        self.origin
-            .read()
-            .map(|o| o.clone())
-            .unwrap_or_else(|e| e.into_inner().clone())
+        self.origin.read().map(|o| o.clone()).unwrap_or_else(|e| e.into_inner().clone())
     }
 
     pub fn is_quitting(&self) -> bool {
@@ -283,14 +254,8 @@ mod tests {
         let v = serde_json::to_value(Phase::PortInUse).unwrap();
         assert_eq!(v, "port_in_use");
         assert_eq!(serde_json::to_value(Phase::Stopped).unwrap(), "stopped");
-        assert_eq!(
-            serde_json::to_value(Phase::Restarting).unwrap(),
-            "restarting"
-        );
-        assert_eq!(
-            serde_json::to_value(ErrorCode::AddrInUse).unwrap(),
-            "EADDRINUSE"
-        );
+        assert_eq!(serde_json::to_value(Phase::Restarting).unwrap(), "restarting");
+        assert_eq!(serde_json::to_value(ErrorCode::AddrInUse).unwrap(), "EADDRINUSE");
         assert_eq!(serde_json::to_value(ErrorCode::Access).unwrap(), "EACCES");
         assert_eq!(serde_json::to_value(ErrorCode::Other).unwrap(), "OTHER");
         let rc = RunningConfig {
@@ -311,16 +276,8 @@ mod tests {
 
     #[test]
     fn a_stopped_launch_starts_stopped() {
-        let paths = Paths {
-            config_dir: "c".into(),
-            log_dir: std::env::temp_dir(),
-            resource_dir: "r".into(),
-            data_dir: None,
-        };
-        let off = Settings {
-            start_server: false,
-            ..Settings::default()
-        };
+        let paths = Paths { config_dir: "c".into(), log_dir: std::env::temp_dir(), resource_dir: "r".into(), data_dir: None };
+        let off = Settings { start_server: false, ..Settings::default() };
         let st = AppState::new(paths.clone(), "1.0.0".into(), off, false, true);
         assert_eq!(st.status().state, Phase::Stopped);
         let st = AppState::new(paths, "1.0.0".into(), Settings::default(), false, true);
@@ -330,13 +287,7 @@ mod tests {
 
     #[test]
     fn urls() {
-        assert_eq!(
-            studio_url("http://127.0.0.1:3942"),
-            "http://127.0.0.1:3942/?studio=1"
-        );
-        assert_eq!(
-            kiosk_url("http://127.0.0.1:3942"),
-            "http://127.0.0.1:3942/?kiosk=1"
-        );
+        assert_eq!(studio_url("http://127.0.0.1:3942"), "http://127.0.0.1:3942/?studio=1");
+        assert_eq!(kiosk_url("http://127.0.0.1:3942"), "http://127.0.0.1:3942/?kiosk=1");
     }
 }

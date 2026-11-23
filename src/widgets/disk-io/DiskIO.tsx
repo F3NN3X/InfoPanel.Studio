@@ -85,7 +85,7 @@ export default function DiskIO(p: DiskIOProps) {
                 ))}
               </div>
             ))}
-            {showHistory && size !== "sm" && <Spark values={hist} min={0} color={rc} marks={roomy(w, h)} format={fmtRate} className="mt-auto min-h-[28px] flex-1" />}
+            {showHistory && size !== "sm" && <Spark values={hist} min={0} color={rc} marks={roomy(w, h)} format={fmtRate} className="mt-auto min-h-7 flex-1" />}
           </div>
         )
       }

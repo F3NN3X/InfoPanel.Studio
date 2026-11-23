@@ -139,7 +139,10 @@ async fn catalogue(cache_dir: &Path, fetch: &Fetch, deadline: Instant) -> Result
         tokio::fs::create_dir_all(cache_dir).await.map_err(|e| e.to_string())?;
         // Atomic: a crash mid-write must not leave a cut list that a week of reads then serves.
         let (file, bytes) = (cache.clone(), body.clone());
-        tokio::task::spawn_blocking(move || store::write_atomic(&file, &bytes)).await.map_err(|e| e.to_string())?.map_err(|e| e.to_string())?;
+        tokio::task::spawn_blocking(move || store::write_atomic(&file, &bytes))
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())?;
         Ok::<_, String>(body)
     };
     match fresh.await {
@@ -164,7 +167,11 @@ pub async fn respond(method: &Method, url: Option<String>, cache_dir: &Path, fet
         return http::text(400, "not an allowed font URL");
     }
     let deadline = Instant::now() + timeout;
-    let body = if url == CATALOGUE { catalogue(cache_dir, fetch, deadline).await.map_err(Failure::from) } else { fetch_bytes(&url, fetch, deadline).await };
+    let body = if url == CATALOGUE {
+        catalogue(cache_dir, fetch, deadline).await.map_err(Failure::from)
+    } else {
+        fetch_bytes(&url, fetch, deadline).await
+    };
     match body {
         // proxy_allowed holds, so the host is Font Squirrel's.
         Ok(body) if body.is_empty() && url != CATALOGUE => http::text(502, format!("{} sent nothing (throttled?)", PROXIED[0])),

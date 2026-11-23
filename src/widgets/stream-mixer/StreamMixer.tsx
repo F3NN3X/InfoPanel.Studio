@@ -65,7 +65,7 @@ export default function StreamMixer(p: StreamMixerProps) {
   // stays at silence).
   const look = p.mixerLook;
   const deviceOf = (container: string) => () => useDeviceLevel((d) => (audioIds(d).includes(container) ? container : undefined));
-  const useLevelOf = (c: MixChannel): StripChannel["useLevel"] => {
+  const levelHookOf = (c: MixChannel): StripChannel["useLevel"] => {
     const r = c.route;
     if (r.t === "wl-channel") return () => useWavelinkMeter(meterKey.channel(r.id));
     if (r.t === "wl-mix") return () => useWavelinkMeter(meterKey.mix(r.id));
@@ -81,7 +81,7 @@ export default function StreamMixer(p: StreamMixerProps) {
     master: c.master,
     value: clamp(num(c.vol)),
     readout: `${fmt(c.vol)}%`,
-    useLevel: useLevelOf(c),
+    useLevel: levelHookOf(c),
     onChange: readOnly ? undefined : (v) => setVolume(c, Math.round(v)),
     onMute: () => toggleMute(c),
     locked: readOnly,
@@ -90,7 +90,7 @@ export default function StreamMixer(p: StreamMixerProps) {
     source === "windows" && audio.windows.available ? (
       <span className="relative flex items-center gap-0.5">
         <button type="button" onClick={() => setPicking((v) => !v)} className={btn} title="Output device" aria-label="Output device">
-          <Icon name="expand_more" className="text-[18px]" />
+          <Icon name="expand_more" className="text-display" />
         </button>
         <button type="button" onClick={() => void audioAct({ target: "windows", op: "settings" })} className={btn} title="Sound settings" aria-label="Sound settings">
           <Icon name="settings" className="text-[17px]" />
@@ -148,7 +148,7 @@ export default function StreamMixer(p: StreamMixerProps) {
                     className="flex items-center justify-center bg-white/[0.05] transition hover:bg-white/[0.09] lite:bg-[color:var(--w-track)] lite:hover:bg-[color:var(--w-track)] active:scale-95"
                     style={{ width: tile, height: tile, color, borderRadius: corner }}
                   >
-                    <Icon name={icon} className={tile >= 40 ? "text-[22px]" : "text-[17px]"} />
+                    <Icon name={icon} className={tile >= 40 ? "text-stat" : "text-[17px]"} />
                   </button>
                 }
                 leadW={tile}

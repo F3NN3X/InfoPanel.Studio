@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /** The focus ring every chrome control shares: 2 px accent, offset 2. */
@@ -16,7 +16,7 @@ const VARIANT: Readonly<Record<ButtonVariant, string>> = {
   danger: "text-ui-danger hover:bg-ui-danger/12",
 };
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends ComponentProps<"button"> {
   variant?: ButtonVariant;
   /** 32 px by default, 28 px small. */
   small?: boolean;

@@ -521,7 +521,11 @@ fn duration(value: &str) -> i64 {
     if !rest.is_empty() {
         return 0;
     }
-    let ms = ((weeks.unwrap_or(0.0) * 7.0 + days.unwrap_or(0.0)) * 24.0 * 3600.0 + hours.unwrap_or(0.0) * 3600.0 + minutes.unwrap_or(0.0) * 60.0 + seconds.unwrap_or(0.0)) * 1000.0;
+    let ms = ((weeks.unwrap_or(0.0) * 7.0 + days.unwrap_or(0.0)) * 24.0 * 3600.0
+        + hours.unwrap_or(0.0) * 3600.0
+        + minutes.unwrap_or(0.0) * 60.0
+        + seconds.unwrap_or(0.0))
+        * 1000.0;
     if negative {
         -(ms as i64)
     } else {
@@ -691,7 +695,8 @@ fn period_starts(rule: &Rule, start: i64, period: i64) -> Vec<i64> {
             let months: Vec<f64> = if rule.freq == Freq::Monthly {
                 vec![s.month as f64 + shift as f64]
             } else {
-                let base: Vec<f64> = if rule.by_month.is_empty() { vec![s.month as f64] } else { rule.by_month.iter().map(|m| m - 1.0).collect() };
+                let base: Vec<f64> =
+                    if rule.by_month.is_empty() { vec![s.month as f64] } else { rule.by_month.iter().map(|m| m - 1.0).collect() };
                 base.into_iter().map(|m| m + 12.0 * shift as f64).collect()
             };
             let mut out = Vec::new();
@@ -776,7 +781,8 @@ fn expand(ev: &Event, rule: &Rule, to_wall: i64, local: LocalZone) -> Vec<i64> {
 /// The occurrences overlapping [from, to] (unix ms), soonest first.
 pub fn occurrences(events: &[Event], from: i64, to: i64, local: LocalZone) -> Vec<Occurrence> {
     // Overrides and EXDATEs may be written in UTC against a zoned start: compare instants.
-    let overrides: HashSet<(&str, i64)> = events.iter().filter_map(|ev| ev.recurrence_id.as_ref().map(|r| (ev.uid.as_str(), instant(r, local)))).collect();
+    let overrides: HashSet<(&str, i64)> =
+        events.iter().filter_map(|ev| ev.recurrence_id.as_ref().map(|r| (ev.uid.as_str(), instant(r, local)))).collect();
     let mut out = Vec::new();
     let mut push = |ev: &Event, start: i64, end: i64| {
         if end <= from || start > to {
@@ -900,8 +906,21 @@ mod tests {
     #[test]
     fn expands_a_weekly_rule_with_byday_exdate_and_an_override() {
         let events = parse_ics(&feed(&[
-            &["UID:w", "SUMMARY:Sync", "DTSTART;TZID=Europe/Oslo:20261005T100000", "DTEND;TZID=Europe/Oslo:20261005T103000", "RRULE:FREQ=WEEKLY;BYDAY=MO,TH", "EXDATE;TZID=Europe/Oslo:20261019T100000"],
-            &["UID:w", "SUMMARY:Sync (moved)", "RECURRENCE-ID;TZID=Europe/Oslo:20261015T100000", "DTSTART;TZID=Europe/Oslo:20261015T140000", "DTEND;TZID=Europe/Oslo:20261015T143000"],
+            &[
+                "UID:w",
+                "SUMMARY:Sync",
+                "DTSTART;TZID=Europe/Oslo:20261005T100000",
+                "DTEND;TZID=Europe/Oslo:20261005T103000",
+                "RRULE:FREQ=WEEKLY;BYDAY=MO,TH",
+                "EXDATE;TZID=Europe/Oslo:20261019T100000",
+            ],
+            &[
+                "UID:w",
+                "SUMMARY:Sync (moved)",
+                "RECURRENCE-ID;TZID=Europe/Oslo:20261015T100000",
+                "DTSTART;TZID=Europe/Oslo:20261015T140000",
+                "DTEND;TZID=Europe/Oslo:20261015T143000",
+            ],
         ]));
         let from = at("2026-10-15T00:00:00Z");
         let list = occurrences(&events, from, from + 8 * DAY_MS, OSLO);

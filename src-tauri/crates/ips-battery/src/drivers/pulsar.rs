@@ -18,7 +18,7 @@
 //!   mouse is off or out of range.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, hid_product, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4, hid_product};
 use crate::win::sleep_ms;
 
 const K_VID: u16 = 0x3710;
@@ -31,39 +31,53 @@ struct Product {
 const K_PRODUCTS: &[Product] = &[
     Product { pid: 0x3402, cable: true, name: Some("Pulsar X2 V3") },
     Product { pid: 0x3406, cable: true, name: Some("Pulsar X2 V3 eS") },
-    Product { pid: 0x5402, cable: false, name: None },  // 1K dongle
-    Product { pid: 0x5403, cable: false, name: None },  // 8K dongle
+    Product { pid: 0x5402, cable: false, name: None }, // 1K dongle
+    Product { pid: 0x5403, cable: false, name: None }, // 8K dongle
 ];
 
 #[derive(PartialEq, Eq)]
-enum Reply { Battery, Offline, None }
+enum Reply {
+    Battery,
+    Offline,
+    None,
+}
 
 /// Reads the battery percent into `pct`. Offline = the dongle answered that the mouse is not linked.
 fn read_battery(d: &mut dyn HidIo, pct: &mut i32) -> Reply {
-    let mut req = vec![0u8; 65];  // [0] = report id 0, then the 64-byte packet
+    let mut req = vec![0u8; 65]; // [0] = report id 0, then the 64-byte packet
     let p = &mut req[1..];
     p[1] = 0x08;
     p[2] = 0x81;
     p[3] = 0x01;
     let mut sum: u32 = 0;
-    for i in 0..62 { sum += p[i] as u32; }
+    for i in 0..62 {
+        sum += p[i] as u32;
+    }
     p[62] = (sum & 0xFF) as u8;
     p[63] = (sum >> 8) as u8;
     let mut saw_offline = false;
     for _attempt in 0..3 {
-        if !d.set_feature(&req) { return Reply::None; }
+        if !d.set_feature(&req) {
+            return Reply::None;
+        }
         for _read in 0..6 {
             sleep_ms(50);
             let mut r: Vec<u8> = Vec::new();
-            if !d.get_feature(0x00, &mut r) || r.len() < 65 { return Reply::None; }
+            if !d.get_feature(0x00, &mut r) || r.len() < 65 {
+                return Reply::None;
+            }
             let w = &r[1..];
-            if w[1] != 0x08 || w[2] != 0x81 || w[3] != 0x01 { continue; }  // not our reply (yet)
+            if w[1] != 0x08 || w[2] != 0x81 || w[3] != 0x01 {
+                continue;
+            } // not our reply (yet)
             if w[0] == 0x01 {
-                if w[6] > 100 { return Reply::None; }  // FF = no reading
+                if w[6] > 100 {
+                    return Reply::None;
+                } // FF = no reading
                 *pct = w[6] as i32;
                 return Reply::Battery;
             }
-            saw_offline = w[0] == 0x05;  // 02 (or 05) = pending: keep polling
+            saw_offline = w[0] == 0x05; // 02 (or 05) = pending: keep polling
         }
     }
     if saw_offline { Reply::Offline } else { Reply::None }
@@ -71,14 +85,18 @@ fn read_battery(d: &mut dyn HidIo, pct: &mut i32) -> Reply {
 
 pub fn poll_pulsar(ctx: &mut PollContext) {
     for prod in K_PRODUCTS {
-        if ctx.is_claimed(K_VID, prod.pid) { continue; }
+        if ctx.is_claimed(K_VID, prod.pid) {
+            continue;
+        }
         let mut colls = ctx.find(K_VID, prod.pid, |c| c.feat_len() >= 65);
         colls.sort_by(|a, b| b.iface.cmp(&a.iface));
         for c in colls {
             let Some(mut d) = ctx.open_feature_only(&c) else { continue };
             let mut pct = -1;
             let rep = read_battery(&mut d, &mut pct);
-            if rep == Reply::None { continue; }
+            if rep == Reply::None {
+                continue;
+            }
             let mut s = DeviceStatus::default();
             s.key = format!("pulsar:{}", hex4(prod.pid));
             s.kind = DeviceKind::Mouse;
@@ -89,11 +107,13 @@ pub fn poll_pulsar(ctx: &mut PollContext) {
             } else {
                 let n = hid_product(&c);
                 let generic = n.is_empty() || n.contains("Dongle") || n.contains("Receiver");
-                s.name = if generic { "Pulsar wireless mouse".into() } else { n };  // the dongles are shared by several models
+                s.name = if generic { "Pulsar wireless mouse".into() } else { n }; // the dongles are shared by several models
                 s.via = "2.4 GHz receiver".into();
                 s.connected = rep == Reply::Battery && pct > 0;
             }
-            if rep == Reply::Battery && (pct > 0 || prod.cable) { s.percent = pct; }
+            if rep == Reply::Battery && (pct > 0 || prod.cable) {
+                s.percent = pct;
+            }
             ctx.add(s, K_VID, prod.pid);
             break;
         }

@@ -5,7 +5,8 @@ import { errorText, ipc } from "../ipc";
 import { deltaTone, diagnosticsSummary, fmt, fmtDelta, groupSeries, isNotable, sampleSummary, type DeltaTone } from "../model/diagnostics";
 import { useFound, useStore } from "../store";
 import type { Diagnostics, Growth, Series } from "../types";
-import { Button, Card, Group, Row, Segmented, SwitchRow, useFlag } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Group, Row, Segmented, SwitchRow, useFlag } from "../ui";
 
 /** Samples arrive every 30 s. */
 const REFRESH_MS = 30_000;
@@ -23,7 +24,7 @@ function SeriesTable({ diag, filter }: { diag: Diagnostics; filter: "notable" | 
   return (
     // biome-ignore lint/a11y/noNoninteractiveTabindex: a scroller must take focus so the keyboard can scroll it.
     <div ref={found.ref} role="region" aria-label="Series readings" tabIndex={0} className={cn("overflow-auto rounded-xl border border-s-card-line bg-s-card", found.className)}>
-      <div role="table" aria-label="Series" className="min-w-[560px]">
+      <div role="table" aria-label="Series" className="min-w-140">
         <div role="row" className={cn(GRID, "border-b border-s-divider px-4 py-2.5 text-caption text-s-dim")}>
           <span role="columnheader">Series</span>
           <span role="columnheader" className="text-right">Latest</span>
@@ -35,7 +36,7 @@ function SeriesTable({ diag, filter }: { diag: Diagnostics; filter: "notable" | 
           <div key={g.name} role="rowgroup">
             <div role="row" className="px-4 pb-1 pt-2.5 text-caption font-medium text-s-dim"><span role="rowheader">{g.name}</span></div>
             {g.rows.map(({ series, name }) => (
-              <div key={series.name} role="row" className={cn(GRID, "items-center px-4 py-[7px] text-caption hover:bg-s-tile")}>
+              <div key={series.name} role="row" className={cn(GRID, "items-center px-4 py-1.75 text-caption hover:bg-s-tile")}>
                 <span role="cell" className="flex min-w-0 items-center gap-2">
                   <span aria-hidden="true" className={cn("h-1.5 w-1.5 shrink-0 rounded-full", series.growing ? "bg-s-amber" : "bg-s-faint")} />
                   {series.growing && <span className="sr-only">Rising: </span>}
@@ -109,7 +110,7 @@ export function DiagnosticsSection() {
 
       <Group title="Tools">
         <Card>
-          <div ref={actions.ref} className={cn("grid grid-cols-2 gap-2 px-[18px] py-4", actions.className)}>
+          <div ref={actions.ref} className={cn("grid grid-cols-2 gap-2 px-4.5 py-4", actions.className)}>
             <Button className="w-full" onClick={() => go("logs")}>
               <ScrollText className="h-4 w-4" />
               View logs
@@ -153,10 +154,10 @@ export function DiagnosticsSection() {
       </Group>
 
       {diag && !sampling && (
-        <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-xl border border-s-card-line px-5 py-5 text-center">
+        <div className="flex min-h-30 flex-col items-center justify-center gap-2 rounded-xl border border-s-card-line px-5 py-5 text-center">
           <Activity className="h-6 w-6 text-s-faint" />
           <span className="text-body font-medium">No samples</span>
-          <span className="max-w-[360px] text-caption leading-[1.45] text-s-muted">
+          <span className="max-w-90 text-caption leading-[1.45] text-s-muted">
             {settings.debug ? "Restart the server to start sampling." : "Turn on debug mode and restart the server to sample memory and event-loop delay."}
           </span>
         </div>
@@ -164,7 +165,7 @@ export function DiagnosticsSection() {
       {diag && sampling && (
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-wrap items-end gap-3 pl-0.5">
-            <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
+            <div className="flex min-w-35 flex-1 flex-col gap-0.75">
               <span className="text-caption font-medium text-s-muted">Samples</span>
               <span className="text-caption leading-[1.45] text-s-dim">
                 {sampleSummary(diag)} A series is flagged when it rose in 80% of samples over the last hour and by more than 20%.
@@ -172,7 +173,6 @@ export function DiagnosticsSection() {
             </div>
             <Segmented
               label="Series filter"
-              size="sm"
               options={[
                 { value: "notable", label: `Notable (${notable})` },
                 { value: "all", label: `All ${diag.series.length}` },

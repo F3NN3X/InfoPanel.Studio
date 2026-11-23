@@ -204,7 +204,13 @@ impl GuardedClient {
 
     /// One POST of a form (`application/x-www-form-urlencoded`), its body read up to `max_bytes`. The caller checks the
     /// target first.
-    pub async fn post_form(&self, url: &url::Url, headers: &[(&str, &str)], form: &[(&str, &str)], max_bytes: usize) -> Result<Fetched, String> {
+    pub async fn post_form(
+        &self,
+        url: &url::Url,
+        headers: &[(&str, &str)],
+        form: &[(&str, &str)],
+        max_bytes: usize,
+    ) -> Result<Fetched, String> {
         let body = url::form_urlencoded::Serializer::new(String::new()).extend_pairs(form).finish();
         let mut request = self.client.post(url.clone()).header("Content-Type", "application/x-www-form-urlencoded").body(body);
         for (name, value) in headers {
@@ -263,7 +269,18 @@ mod tests {
 
     #[test]
     fn reads_ipv4_inside_ipv6_in_any_spelling() {
-        for ip in ["::ffff:7f00:1", "::FFFF:A9FE:A9FE", "64:ff9b::7f00:1", "::127.0.0.1", "0:0:0:0:0:0:0:1", "0000::", "FE80::1%eth0", "febf::1", "ff02::1", "not an ip"] {
+        for ip in [
+            "::ffff:7f00:1",
+            "::FFFF:A9FE:A9FE",
+            "64:ff9b::7f00:1",
+            "::127.0.0.1",
+            "0:0:0:0:0:0:0:1",
+            "0000::",
+            "FE80::1%eth0",
+            "febf::1",
+            "ff02::1",
+            "not an ip",
+        ] {
             assert!(blocked_address(ip, false), "{ip}");
         }
         for ip in ["::ffff:c0a8:10a", "::ffff:192.168.1.10", "64:ff9b::5db8:d822", "2001:db8::1", "fec0::1"] {

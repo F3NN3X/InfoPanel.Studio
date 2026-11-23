@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Check, MoreHorizontal, X } from "lucide-react";
-import { ICON_BUTTON, ITEM, POPUP } from "./menu-styles";
+import { ICON_BUTTON } from "./menu-styles";
 
 /** The panel header's "⋯": panel-wide actions. */
 export function PanelMenu({ onSavePreset }: { onSavePreset: () => void }) {
@@ -10,19 +10,14 @@ export function PanelMenu({ onSavePreset }: { onSavePreset: () => void }) {
       <Menu.Trigger className={ICON_BUTTON} title="More panel actions">
         <MoreHorizontal className="h-3 w-3" />
       </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-50" sideOffset={4} align="end">
-          <Menu.Popup className={POPUP}>
-            <Menu.Item
-              className={ITEM}
-              onClick={onSavePreset}
-              title="Keep this panel (widgets, layout and style) in Library › Panels"
-            >
-              Save as Panel
-            </Menu.Item>
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
+      <Menu.Content sideOffset={4} align="end">
+        <Menu.Item
+          onClick={onSavePreset}
+          title="Keep this panel (widgets, layout and style) in Library › Panels"
+        >
+          Save as Panel
+        </Menu.Item>
+      </Menu.Content>
     </Menu.Root>
   );
 }

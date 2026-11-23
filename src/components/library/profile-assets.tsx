@@ -63,7 +63,7 @@ export function ProfileAssets({ zones, setConfig, onSelectUses, onSaveToLibrary,
         aria-label="Canvas zone"
         value={zone.id}
         onChange={(e) => setZoneId(e.target.value)}
-        className="h-[30px] max-w-[180px] rounded-ui-md border border-ui-default bg-ui-app px-2 text-body text-ui-1"
+        className="h-7.5 max-w-45 rounded-ui-md border border-ui-default bg-ui-app px-2 text-body text-ui-1"
       >
         {zones.map((z, i) => (
           <option key={z.id} value={z.id}>

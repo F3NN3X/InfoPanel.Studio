@@ -3,11 +3,10 @@
 // place list edits its default places with place search (Weather by place), as a placement's Content tab does.
 // Phase D (G29): an option's hint, group and a number's step.
 import { useState } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { ChevronDown, ChevronRight, GripVertical, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
-import { ITEM, POPUP } from "@/components/studio/menu-styles";
 import { cn } from "@/lib/utils";
 import { DataPicker } from "@/components/studio/inspector/data-picker";
 import { useDataModel } from "@/lib/use-data-model";
@@ -256,21 +255,16 @@ export function OptionsTab({ recipe, onChange, data, onOpenSources = () => {} }:
         <Menu.Trigger className="mt-3 flex h-8 items-center gap-2 self-start rounded-ui-md px-2 text-body text-ui-accent-text hover:bg-ui-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent">
           <Plus className="h-4 w-4" aria-hidden /> Add an option
         </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Positioner className="z-[80]" sideOffset={6} align="start">
-            <Menu.Popup className={POPUP}>
-              {NEW_OPTIONS.map((n) => (
-                <Menu.Item
-                  key={n.label}
-                  className={ITEM}
-                  onClick={() => setNaming({ kind: n.label, name: "" })}
-                >
-                  {n.label}
-                </Menu.Item>
-              ))}
-            </Menu.Popup>
-          </Menu.Positioner>
-        </Menu.Portal>
+        <Menu.Content sideOffset={6} align="start">
+          {NEW_OPTIONS.map((n) => (
+            <Menu.Item
+              key={n.label}
+              onClick={() => setNaming({ kind: n.label, name: "" })}
+            >
+              {n.label}
+            </Menu.Item>
+          ))}
+        </Menu.Content>
       </Menu.Root>
     </div>
   );

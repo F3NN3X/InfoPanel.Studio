@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DismissContext, FAILURE, ToastContext, toastDuration, type ShowToast, type ToastOptions } from "./toast";
@@ -27,6 +27,55 @@ interface ToastState {
   at: { bottom: number; left: number } | null;
 }
 
+const LINK = "shrink-0 rounded-ui-sm font-medium text-ui-2 hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+
+/** One button on a toast (Undo, Reset to a theme); `accent` for a choice that changes what the toast reports. */
+export interface ToastCardAction {
+  label: string;
+  onClick: () => void;
+  accent?: boolean;
+}
+
+interface ToastCardProps extends HTMLAttributes<HTMLDivElement> {
+  /** A glyph or dot before the message. */
+  icon?: ReactNode;
+  /** Buttons after the message. */
+  actions?: readonly ToastCardAction[];
+  /** Shows a ✕; it takes the toast down. */
+  onDismiss?: () => void;
+}
+
+/**
+ * The toast card: a raised row with a message, buttons and an optional ✕. The provider's toast is one, and so are the
+ * studio's own that live in the page (the Add panel's, the theme's), which place it and decide how long it stays.
+ */
+export function ToastCard({ icon, actions, onDismiss, className, children, ...props }: ToastCardProps) {
+  return (
+    <div
+      className={cn("flex items-center gap-3 rounded-ui-menu border border-ui-menu bg-ui-raised px-4 py-2.5 font-ui text-body text-ui-1 shadow-ui-float", className)}
+      {...props}
+    >
+      {icon}
+      <span className="min-w-0 flex-1 text-pretty">{children}</span>
+      {actions?.map((a) => (
+        <button key={a.label} type="button" onClick={a.onClick} className={cn(LINK, a.accent && "text-ui-accent")}>
+          {a.label}
+        </button>
+      ))}
+      {onDismiss && (
+        <button
+          type="button"
+          aria-label="Dismiss"
+          onClick={onDismiss}
+          className="-mr-1 grid h-5 w-5 shrink-0 place-items-center rounded-ui-sm text-ui-hint hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+        >
+          <X className="h-3 w-3" aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** One live region (always mounted, positioned where the toast shows) and the card inside it while there is one. */
 function ToastSlot({ live, toast, arm, dismiss }: { live: "polite" | "assertive"; toast: ToastState | null; arm: (ms: number | null) => void; dismiss: () => void }) {
   // Only a toast with a button or a long life takes the pointer; a plain one stays click-through.
@@ -40,37 +89,16 @@ function ToastSlot({ live, toast, arm, dismiss }: { live: "polite" | "assertive"
       onPointerLeave={() => toast && arm(toast.ms)}
       onFocus={() => arm(null)}
       onBlur={() => toast && arm(toast.ms)}
-      className={cn("fixed bottom-[42px] left-1/2 z-[100] -translate-x-1/2", !interactive && "pointer-events-none")}
+      className={cn("fixed bottom-10.5 left-1/2 z-[100] -translate-x-1/2", !interactive && "pointer-events-none")}
     >
       {toast && (
-        <div
+        <ToastCard
           key={toast.id}
-          className="flex items-center gap-3 rounded-ui-menu border border-ui-menu bg-ui-raised px-4 py-2.5 font-ui text-body text-ui-1 shadow-ui-float"
+          actions={toast.action ? [{ label: toast.action.label, onClick: () => (toast.action?.onClick(), dismiss()) }] : undefined}
+          onDismiss={interactive ? dismiss : undefined}
         >
           {toast.message}
-          {toast.action && (
-            <button
-              type="button"
-              onClick={() => {
-                toast.action?.onClick();
-                dismiss();
-              }}
-              className="rounded-ui-sm font-medium text-ui-2 hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
-            >
-              {toast.action.label}
-            </button>
-          )}
-          {interactive && (
-            <button
-              type="button"
-              aria-label="Dismiss"
-              onClick={dismiss}
-              className="-mr-1 grid h-5 w-5 place-items-center rounded-ui-sm text-ui-hint hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
-            >
-              <X className="h-3 w-3" aria-hidden="true" />
-            </button>
-          )}
-        </div>
+        </ToastCard>
       )}
     </div>
   );

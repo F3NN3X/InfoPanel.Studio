@@ -91,33 +91,18 @@ fn kind(body: &Value) -> Result<Kind, String> {
 fn windows(body: &Value) -> Result<WinAct, String> {
     match body.get("op").and_then(Value::as_str) {
         Some("volume") => {
-            let value = body
-                .get("value")
-                .ok_or("\"value\" must be a number from 0 to 100")?;
-            Ok(WinAct::Volume {
-                kind: kind(body)?,
-                id: text(body, "id")?,
-                value: percent(value, "value")?,
-            })
+            let value = body.get("value").ok_or("\"value\" must be a number from 0 to 100")?;
+            Ok(WinAct::Volume { kind: kind(body)?, id: text(body, "id")?, value: percent(value, "value")? })
         }
-        Some("mute") => Ok(WinAct::Mute {
-            kind: kind(body)?,
-            id: text(body, "id")?,
-            muted: optional_bool(body, "muted")?,
-        }),
-        Some("default") => Ok(WinAct::Default {
-            id: text(body, "id")?,
-        }),
+        Some("mute") => Ok(WinAct::Mute { kind: kind(body)?, id: text(body, "id")?, muted: optional_bool(body, "muted")? }),
+        Some("default") => Ok(WinAct::Default { id: text(body, "id")? }),
         Some("settings") => Ok(WinAct::Settings),
         _ => Err("unknown windows op".into()),
     }
 }
 
 fn wavelink(body: &Value) -> Result<WlAct, String> {
-    let (level, muted) = (
-        optional_percent(body, "level")?,
-        optional_bool(body, "muted")?,
-    );
+    let (level, muted) = (optional_percent(body, "level")?, optional_bool(body, "muted")?);
     if level.is_none() && muted.is_none() {
         return Err("give \"level\" or \"muted\"".into());
     }
@@ -127,26 +112,16 @@ fn wavelink(body: &Value) -> Result<WlAct, String> {
                 None | Some(Value::Null) => None,
                 Some(_) => Some(text(body, "mix")?),
             };
-            Ok(WlAct::Channel {
-                id: text(body, "id")?,
-                mix,
-                level,
-                muted,
-            })
+            Ok(WlAct::Channel { id: text(body, "id")?, mix, level, muted })
         }
-        Some("mix") => Ok(WlAct::Mix {
-            id: text(body, "id")?,
-            level,
-            muted,
-        }),
+        Some("mix") => Ok(WlAct::Mix { id: text(body, "id")?, level, muted }),
         _ => Err("unknown wavelink op".into()),
     }
 }
 
 /// The action a request body asks for, or why it isn't one.
 pub fn parse(body: &str) -> Result<Act, String> {
-    let body: Value =
-        serde_json::from_str(body).map_err(|_| "expected a JSON object".to_string())?;
+    let body: Value = serde_json::from_str(body).map_err(|_| "expected a JSON object".to_string())?;
     if !body.is_object() {
         return Err("expected a JSON object".into());
     }
@@ -169,65 +144,33 @@ mod tests {
     fn reads_each_windows_op() {
         assert_eq!(
             ok(r#"{"target":"windows","op":"volume","kind":"app","id":"discord.exe","value":42}"#),
-            Act::Windows(WinAct::Volume {
-                kind: Kind::App,
-                id: "discord.exe".into(),
-                value: 42
-            })
+            Act::Windows(WinAct::Volume { kind: Kind::App, id: "discord.exe".into(), value: 42 })
         );
         assert_eq!(
             ok(r#"{"target":"windows","op":"mute","kind":"input","id":"{x}"}"#),
-            Act::Windows(WinAct::Mute {
-                kind: Kind::Input,
-                id: "{x}".into(),
-                muted: None
-            })
+            Act::Windows(WinAct::Mute { kind: Kind::Input, id: "{x}".into(), muted: None })
         );
         assert_eq!(
             ok(r#"{"target":"windows","op":"mute","kind":"output","id":"a","muted":false}"#),
-            Act::Windows(WinAct::Mute {
-                kind: Kind::Output,
-                id: "a".into(),
-                muted: Some(false)
-            })
+            Act::Windows(WinAct::Mute { kind: Kind::Output, id: "a".into(), muted: Some(false) })
         );
-        assert_eq!(
-            ok(r#"{"target":"windows","op":"default","id":"a"}"#),
-            Act::Windows(WinAct::Default { id: "a".into() })
-        );
-        assert_eq!(
-            ok(r#"{"target":"windows","op":"settings"}"#),
-            Act::Windows(WinAct::Settings)
-        );
+        assert_eq!(ok(r#"{"target":"windows","op":"default","id":"a"}"#), Act::Windows(WinAct::Default { id: "a".into() }));
+        assert_eq!(ok(r#"{"target":"windows","op":"settings"}"#), Act::Windows(WinAct::Settings));
     }
 
     #[test]
     fn reads_the_wave_link_ops() {
         assert_eq!(
             ok(r#"{"target":"wavelink","op":"channel","id":"c1","mix":"m1","level":50.4}"#),
-            Act::WaveLink(WlAct::Channel {
-                id: "c1".into(),
-                mix: Some("m1".into()),
-                level: Some(50),
-                muted: None
-            })
+            Act::WaveLink(WlAct::Channel { id: "c1".into(), mix: Some("m1".into()), level: Some(50), muted: None })
         );
         assert_eq!(
             ok(r#"{"target":"wavelink","op":"channel","id":"c1","muted":true}"#),
-            Act::WaveLink(WlAct::Channel {
-                id: "c1".into(),
-                mix: None,
-                level: None,
-                muted: Some(true)
-            })
+            Act::WaveLink(WlAct::Channel { id: "c1".into(), mix: None, level: None, muted: Some(true) })
         );
         assert_eq!(
             ok(r#"{"target":"wavelink","op":"mix","id":"m1","level":0,"muted":false}"#),
-            Act::WaveLink(WlAct::Mix {
-                id: "m1".into(),
-                level: Some(0),
-                muted: Some(false)
-            })
+            Act::WaveLink(WlAct::Mix { id: "m1".into(), level: Some(0), muted: Some(false) })
         );
     }
 

@@ -171,7 +171,7 @@ export default function StreamControl(p: StreamControlProps) {
                     <div className="flex items-start justify-between gap-2">
                       <Badge icon={muted ? "mic_off" : "mic"} color={muted ? STATE.crit : hue(-75)} />
                       {muted && (
-                        <span className="rounded px-1.5 py-[2px] text-micro font-bold uppercase tracking-[0.1em]" style={{ background: tint(STATE.crit, 20), color: STATE.crit }}>
+                        <span className="rounded px-1.5 py-0.5 text-micro font-bold uppercase tracking-[0.1em]" style={{ background: tint(STATE.crit, 20), color: STATE.crit }}>
                           Muted
                         </span>
                       )}
@@ -182,7 +182,7 @@ export default function StreamControl(p: StreamControlProps) {
                           <Spark values={mHist} graph="bars" fill={false} min={0} max={100} color={muted ? "#52525b" : hue(-75)} className="h-full" />
                         </div>
                       )}
-                      <div className="truncate text-[14px] font-semibold leading-tight">{muted ? "Mic off" : "Mic"}</div>
+                      <div className="truncate text-lead font-semibold leading-tight">{muted ? "Mic off" : "Mic"}</div>
                     </div>
                   </Tile>
                 );
@@ -191,7 +191,7 @@ export default function StreamControl(p: StreamControlProps) {
                   <Tile key="replay" radius={radius} onClick={act && (() => void act({ op: "replay" }))} label="Save replay">
                     <Badge icon="replay" color={hue(0)} />
                     <div className="mt-auto min-w-0 pt-2">
-                      <div className="truncate text-[14px] font-semibold leading-tight">Replay</div>
+                      <div className="truncate text-lead font-semibold leading-tight">Replay</div>
                       {tileH > 96 && <div className="mt-0.5 truncate text-micro text-zinc-500 lite:text-[color:var(--w-faint)]">{obs.replay?.active ? "Save clip" : "Buffer off"}</div>}
                     </div>
                   </Tile>
@@ -202,10 +202,10 @@ export default function StreamControl(p: StreamControlProps) {
                 <Tile key={s.id} radius={radius} active={on} onClick={act && (() => void act({ op: "scene", id: s.id }))} label={s.name}>
                   <div className="flex items-start justify-between gap-2">
                     <Badge icon={s.icon} color={s.color} />
-                    {on && live && <span className="whitespace-nowrap rounded bg-white px-1.5 py-[2px] text-micro font-bold uppercase tracking-[0.1em] text-zinc-950 lite:bg-zinc-900 lite:text-white">On air</span>}
+                    {on && live && <span className="whitespace-nowrap rounded bg-white px-1.5 py-0.5 text-micro font-bold uppercase tracking-[0.1em] text-zinc-950 lite:bg-zinc-900 lite:text-white">On air</span>}
                   </div>
                   <div className="mt-auto min-w-0 pt-2">
-                    <div className="line-clamp-2 text-[14px] font-semibold leading-tight">{s.name}</div>
+                    <div className="line-clamp-2 text-lead font-semibold leading-tight">{s.name}</div>
                     {s.sub && tileH > 96 && <div className="mt-0.5 truncate text-micro text-zinc-500 lite:text-[color:var(--w-faint)]">{s.sub}</div>}
                   </div>
                 </Tile>

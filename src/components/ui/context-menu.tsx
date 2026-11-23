@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
 import { ChevronRight } from "lucide-react";
-import { createPortal } from "react-dom";
-import { cn } from "@/lib/utils";
-import { clampMenuPosition, menuHeight, MENU_WIDTH } from "./context-menu-position";
+import { Menu } from "./menu";
 
 export type ContextMenuEntry =
   | {
@@ -33,151 +31,103 @@ interface ContextMenuProps {
   testId?: string;
 }
 
-/**
- * A 220 px right-click menu, clamped to the viewport; closes on pick, Esc or
- * outside click. Keyboard: focus lands on the first enabled item, arrows /
- * Home / End move between items, Enter / Space pick, and focus returns to
- * where it was when the menu closes.
- */
-export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId }: ContextMenuProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  /** The row whose flyout is open. */
-  const [openSub, setOpenSub] = useState<string | null>(null);
+/** The default width (px) of a right-click menu. */
+const DEFAULT_WIDTH = 220;
+const ROW = "justify-start gap-2 text-left";
+const ICON =
+  "flex h-4 w-4 shrink-0 items-center justify-center [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-ui-hint group-data-highlighted:[&>svg]:text-ui-2";
 
-  // Focus in on open, back out on close.
+/** The rows of one level; a row with a flyout opens it beside itself. */
+function Rows({ entries, width, onPick, root }: { entries: ContextMenuEntry[]; width: number; onPick: (e: Exclude<ContextMenuEntry, "separator">) => void; root: RefObject<HTMLDivElement | null> }) {
+  return entries.map((e, i) => {
+    if (e === "separator") return <Menu.Separator key={i} className="mx-0.5" />;
+    const label = (
+      <>
+        <span className={ICON}>{e.icon}</span>
+        <span className="min-w-0 flex-1 truncate">{e.label}</span>
+        {e.hint && <span className="font-ui-mono text-micro text-ui-hint group-data-highlighted:text-ui-2">{e.hint}</span>}
+      </>
+    );
+    if (e.submenu)
+      return (
+        <Menu.SubmenuRoot key={e.id}>
+          <Menu.SubmenuTrigger className={ROW} disabled={e.disabled} title={e.title} data-sub-trigger={e.id}>
+            {label}
+            <ChevronRight className="h-3 w-3 shrink-0 text-ui-4" />
+          </Menu.SubmenuTrigger>
+          {/* A long flyout ("Move to" over many containers) scrolls rather than run off the screen. It mounts inside the
+              top menu, so the menu's subtree (and its test id) holds its rows, as before. */}
+          <Menu.Content container={root} alignOffset={-4} collisionPadding={8} className="max-h-[min(20rem,60vh)] overflow-y-auto" style={{ width }} data-sub={e.id}>
+            <Rows entries={e.submenu} width={width} onPick={onPick} root={root} />
+          </Menu.Content>
+        </Menu.SubmenuRoot>
+      );
+    return (
+      <Menu.Item key={e.id} className={ROW} danger={e.danger} disabled={e.disabled} title={e.title} closeOnClick={false} onClick={() => onPick(e)}>
+        {label}
+      </Menu.Item>
+    );
+  });
+}
+
+/**
+ * A right-click menu on Base UI's Menu, anchored to the pointer and kept inside the viewport; closes on pick, Esc,
+ * outside click or window blur. Keyboard: focus lands on the first enabled item, arrows / Home / End move between
+ * items, Enter / Space pick, Right opens a flyout and Left closes it, and focus returns to where it was when the menu closes.
+ */
+export function ContextMenu({ x, y, entries, onClose, width = DEFAULT_WIDTH, testId }: ContextMenuProps) {
+  const popup = useRef<HTMLDivElement | null>(null);
+  const primed = useRef(false);
+  const anchor = useMemo(() => ({ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }), [x, y]);
+
+  useEffect(() => {
+    window.addEventListener("blur", onClose);
+    return () => window.removeEventListener("blur", onClose);
+  }, [onClose]);
+
+  // Focus goes back to where it was only if, once the menu is gone, it is nowhere. Checked at unmount, not when the
+  // close starts: a pick may mount a field that takes focus (Rename) or open a dialog, and must keep it.
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    ref.current?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus();
     return () => {
-      // Only when focus is still nowhere (a pick may have opened a dialog that took it).
       if (opener?.isConnected && (!document.activeElement || document.activeElement === document.body)) opener.focus();
     };
   }, []);
 
-  /** Arrow / Home / End between the enabled items (wrapping); Tab leaves the menu. */
-  const onMenuKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Tab") return onClose();
-    if (e.key === "ArrowLeft" && openSub !== null) {
-      e.preventDefault();
-      ref.current?.querySelector<HTMLElement>(`[data-sub-trigger="${CSS.escape(openSub)}"]`)?.focus();
-      return setOpenSub(null);
-    }
-    if (e.key === "ArrowRight" && e.target instanceof HTMLElement && e.target.dataset.subTrigger !== undefined) {
-      e.preventDefault();
-      return e.target.click();
-    }
-    const items = [...e.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)')];
-    if (items.length === 0) return;
-    const at = items.indexOf(document.activeElement as HTMLElement);
-    const next =
-      e.key === "ArrowDown" ? (at + 1) % items.length
-      : e.key === "ArrowUp" ? (at <= 0 ? items.length - 1 : at - 1)
-      : e.key === "Home" ? 0
-      : e.key === "End" ? items.length - 1
-      : -1;
-    if (next < 0) return;
-    e.preventDefault();
-    items[next].focus();
+  const pick = (e: Exclude<ContextMenuEntry, "separator">) => {
+    onClose();
+    e.onSelect?.();
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    const onDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("pointerdown", onDown, true);
-    window.addEventListener("blur", onClose);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("pointerdown", onDown, true);
-      window.removeEventListener("blur", onClose);
-    };
-  }, [onClose]);
-
-  const separators = entries.filter((e) => e === "separator").length;
-  const { left, top } = clampMenuPosition(
-    x,
-    y,
-    { width, height: menuHeight(entries.length - separators, separators) },
-    { width: window.innerWidth, height: window.innerHeight }
-  );
-
-  /** The rows of one level; a row with a flyout opens it beside itself. */
-  const rows = (list: ContextMenuEntry[], level: number) =>
-    list.map((e, i) =>
-      e === "separator" ? (
-        <div key={i} role="separator" className="mx-0.5 my-1 h-px bg-ui-subtle" />
-      ) : (
-        <div key={e.id} className="relative" title={e.title} onMouseEnter={() => level === 0 && setOpenSub(e.submenu && !e.disabled ? e.id : null)}>
-          <button
-            type="button"
-            role="menuitem"
-            disabled={e.disabled}
-            title={e.title}
-            data-sub-trigger={e.submenu ? e.id : undefined}
-            aria-haspopup={e.submenu ? "menu" : undefined}
-            aria-expanded={e.submenu ? openSub === e.id : undefined}
-            onClick={() => {
-              if (e.submenu) {
-                setOpenSub(e.id);
-                // The flyout mounts first; then focus lands on its first row.
-                return void requestAnimationFrame(() =>
-                  ref.current?.querySelector<HTMLElement>(`[data-sub="${CSS.escape(e.id)}"] [role="menuitem"]:not(:disabled)`)?.focus()
-                );
-              }
-              onClose();
-              e.onSelect?.();
-            }}
-            className={cn(
-              "group flex h-8 w-full items-center gap-2 rounded-ui-md px-2 text-left text-body outline-none focus-visible:bg-ui-highlight disabled:text-ui-disabled",
-              e.danger ? "text-ui-danger hover:bg-ui-danger/15" : "text-ui-1 hover:bg-ui-active disabled:hover:bg-transparent"
-            )}
-          >
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-ui-hint group-hover:[&>svg]:text-ui-2 group-focus-visible:[&>svg]:text-ui-2">
-              {e.icon}
-            </span>
-            <span className="min-w-0 flex-1 truncate">{e.label}</span>
-            {e.hint && <span className="font-ui-mono text-micro text-ui-hint group-hover:text-ui-2 group-focus-visible:text-ui-2">{e.hint}</span>}
-            {e.submenu && <ChevronRight className="h-3 w-3 shrink-0 text-ui-4" />}
-          </button>
-          {e.submenu && openSub === e.id && (
-            <div
-              role="menu"
-              data-sub={e.id}
-              style={{ width }}
-              // Lift it by what would run past the viewport's bottom edge.
-              ref={(el) => {
-                if (!el) return;
-                const over = el.getBoundingClientRect().bottom - (window.innerHeight - 8);
-                if (over > 0) el.style.top = `${-over}px`;
-              }}
-              // a long flyout ("Move to" over many containers) scrolls rather than run off the screen
-              className={cn(
-                "absolute top-0 z-10 max-h-[min(20rem,60vh)] overflow-y-auto rounded-ui-menu border border-ui-menu bg-ui-raised p-1 shadow-ui-menu",
-                // Flip to the left when the flyout would leave the viewport.
-                left + width * 2 + 8 > window.innerWidth ? "right-full mr-1" : "left-full ml-1"
-              )}
-            >
-              {rows(e.submenu, level + 1)}
-            </div>
-          )}
-        </div>
-      )
-    );
-
-  return createPortal(
-    <div
-      ref={ref}
-      role="menu"
-      data-testid={testId}
-      style={{ left, top, width }}
-      onContextMenu={(e) => e.preventDefault()}
-      onKeyDown={onMenuKey}
-      className="fixed z-[90] rounded-ui-menu border border-ui-menu bg-ui-raised p-1 font-ui shadow-ui-menu"
-    >
-      {rows(entries, 0)}
-    </div>,
-    document.body
+  return (
+    <Menu.Root open modal={false} onOpenChange={(open) => !open && onClose()}>
+      <Menu.Content
+        ref={(el) => {
+          popup.current = el;
+          // Base UI highlights and focuses the first row on an ArrowDown, as a keyboard open does; once, as the menu mounts.
+          if (el && !primed.current) {
+            primed.current = true;
+            // Not when the pointer got there first (a row highlighted or a flyout open).
+            requestAnimationFrame(() => {
+              if (!el.querySelector('[data-highlighted], [aria-expanded="true"]')) el.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+            });
+          }
+        }}
+        anchor={anchor}
+        side="bottom"
+        align="start"
+        sideOffset={0}
+        collisionPadding={8}
+        // Shifted up and left to stay inside the viewport, never flipped above the pointer (as the old clamp did).
+        collisionAvoidance={{ side: "shift", align: "shift" }}
+        data-testid={testId}
+        style={{ width }}
+        className="p-1"
+        onContextMenu={(e) => e.preventDefault()}
+        finalFocus={false}
+      >
+        <Rows entries={entries} width={width} onPick={pick} root={popup} />
+      </Menu.Content>
+    </Menu.Root>
   );
 }

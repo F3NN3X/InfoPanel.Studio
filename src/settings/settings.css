@@ -1,10 +1,12 @@
 @import "tailwindcss" source(none);
-@import "./tokens.css";
+@import "../components/ui/tokens.css";
+@import "../components/ui/ui-theme.css";
 @import "../select.css";
 @source "./";
 @source "../app-window";
+@source "../components/ui";
 
-/* The settings window's fonts, scoped to this entry; its colors are in tokens.css. */
+/* The settings window's fonts, scoped to this entry; its colors are in components/ui/tokens.css. */
 @theme {
   --font-sans: "Geist Variable", system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;

@@ -11,7 +11,7 @@
 //! github.com/riVFerd/MM731-Controller.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4};
 use crate::win::now_ms;
 
 const DONGLE: u16 = 0x01B7;
@@ -19,47 +19,69 @@ const MM712_CABLE: u16 = 0x0169;
 const MM731_CABLE: u16 = 0x0167;
 
 fn model_name(pid: u16, model: u8) -> &'static str {
-    if pid == MM712_CABLE || (pid == DONGLE && model == 0x50) { return "Cooler Master MM712"; }
-    if pid == MM731_CABLE || (pid == DONGLE && model == 0x70) { return "Cooler Master MM731"; }
+    if pid == MM712_CABLE || (pid == DONGLE && model == 0x50) {
+        return "Cooler Master MM712";
+    }
+    if pid == MM731_CABLE || (pid == DONGLE && model == 0x70) {
+        return "Cooler Master MM731";
+    }
     "Cooler Master wireless mouse"
 }
 
 // Sends the status request and waits for the 47 81 reply.
 fn query_status(d: &mut dyn HidIo, r: &mut Vec<u8>) -> bool {
     d.flush();
-    if !d.write(&[0x00, 0x46, 0x81, 0x00], 500) { return false; }
+    if !d.write(&[0x00, 0x46, 0x81, 0x00], 500) {
+        return false;
+    }
     let end = now_ms() + 500;
     loop {
         let left = (end as i64 - now_ms() as i64) as i32;
-        if left <= 0 || d.read(r, left as u32) < 13 { return false; }
-        if r[0] == 0x47 && r[1] == 0x81 { return true; }
+        if left <= 0 || d.read(r, left as u32) < 13 {
+            return false;
+        }
+        if r[0] == 0x47 && r[1] == 0x81 {
+            return true;
+        }
     }
 }
 
 pub fn poll_coolermaster(ctx: &mut PollContext) {
-    for &(vid, pid) in &ctx.products(0x2516) {  // sorted: the cable ids come before the dongle
-        if pid != DONGLE && pid != MM712_CABLE && pid != MM731_CABLE { continue; }
+    for &(vid, pid) in &ctx.products(0x2516) {
+        // sorted: the cable ids come before the dongle
+        if pid != DONGLE && pid != MM712_CABLE && pid != MM731_CABLE {
+            continue;
+        }
         for c in ctx.find(vid, pid, |c| c.iface == 3 && c.page() == 0xFF0A) {
             let Some(mut d) = ctx.open(&c) else { continue };
             let mut r = Vec::new();
-            if !query_status(d.as_mut(), &mut r) { continue; }
+            if !query_status(d.as_mut(), &mut r) {
+                continue;
+            }
             let mut s = DeviceStatus::default();
             s.key = format!("coolermaster:{}", hex4(pid));
             s.name = model_name(pid, r[2]).into();
             s.kind = DeviceKind::Mouse;
             s.via = if r[12] == 0 { "USB cable" } else { "2.4 GHz receiver" }.into();
-            if r[10] >= 1 && r[10] <= 100 { s.percent = r[10] as i32; }
+            if r[10] >= 1 && r[10] <= 100 {
+                s.percent = r[10] as i32;
+            }
             s.charging = r[11] != 0;
             s.grace_sec = 1800;
             // With the cable and the dongle both plugged in the mouse shows up twice; keep one.
             let mut dup = false;
             for o in ctx.out.iter_mut() {
-                if o.name != s.name { continue; }
+                if o.name != s.name {
+                    continue;
+                }
                 dup = true;
                 o.charging |= s.charging;
             }
-            if dup { ctx.claim(vid, pid); }
-            else { ctx.add(s, vid, pid); }
+            if dup {
+                ctx.claim(vid, pid);
+            } else {
+                ctx.add(s, vid, pid);
+            }
             break;
         }
     }

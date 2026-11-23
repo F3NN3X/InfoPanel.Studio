@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ArrowDown, ArrowLeftRight, ArrowUpRight, Check, LayoutGrid, Maximize2, PenTool, X, type LucideIcon } from "lucide-react";
 import { PageBar } from "@/components/studio/page-bar";
+import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import type { WizardKind } from "./recent-templates";
 
@@ -49,21 +50,21 @@ function KindSwitch({ kind, onKind }: { kind: WizardKind; onKind: (k: WizardKind
     { k: "ip" as const, label: "InfoPanel profile", icon: PenTool },
   ];
   return (
-    <div role="radiogroup" aria-label="What to make" className="flex shrink-0 rounded-ui-md border border-ui-default bg-ui-raised p-0.5">
-      {kinds.map(({ k, label, icon: Icon }) => (
-        <button
-          key={k}
-          type="button"
-          role="radio"
-          aria-checked={kind === k}
-          onClick={() => kind !== k && onKind(k)}
-          className={cn("flex h-6 items-center gap-1.5 rounded-ui-sm px-2.5 text-caption", kind === k ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1")}
-        >
-          <Icon className="h-[15px] w-[15px]" strokeWidth={1.75} />
-          {label}
-        </button>
-      ))}
-    </div>
+    <Segmented
+      label="What to make"
+      value={kind}
+      onChange={onKind}
+      className="shrink-0"
+      options={kinds.map(({ k, label, icon: Icon }) => ({
+        value: k,
+        label: (
+          <span className="flex items-center gap-1.5">
+            <Icon className="h-3.75 w-3.75" strokeWidth={1.75} />
+            {label}
+          </span>
+        ),
+      }))}
+    />
   );
 }
 
@@ -89,7 +90,7 @@ function Stepper({ step, onStep }: { step: WizardStep; onStep: (s: WizardStep) =
   );
 }
 
-const Kbd = ({ children }: { children: ReactNode }) => <kbd className="rounded-[4px] border border-ui-default px-1 font-ui-mono text-micro text-ui-3">{children}</kbd>;
+const Kbd = ({ children }: { children: ReactNode }) => <kbd className="rounded-4 border border-ui-default px-1 font-ui-mono text-micro text-ui-3">{children}</kbd>;
 
 interface NewWizardProps {
   kind: WizardKind;
@@ -150,13 +151,13 @@ export function NewWizard(p: NewWizardProps) {
         {(!narrow || step === 1) && (
           <aside
             aria-label="Inspector"
-            className={cn("min-h-0 overflow-y-auto bg-ui-panel", narrow ? "flex-1" : "w-[460px] shrink-0 border-l border-ui-subtle")}
+            className={cn("min-h-0 overflow-y-auto bg-ui-panel", narrow ? "flex-1" : "w-115 shrink-0 border-l border-ui-subtle")}
           >
-            <div className={cn("flex flex-col gap-3.5 p-4", narrow && "mx-auto max-w-[760px]")}>{p.inspector}</div>
+            <div className={cn("flex flex-col gap-3.5 p-4", narrow && "mx-auto max-w-190")}>{p.inspector}</div>
           </aside>
         )}
       </div>
-      <div className="flex h-[52px] shrink-0 items-center gap-2 border-t border-ui-subtle px-5">
+      <div className="flex h-13 shrink-0 items-center gap-2 border-t border-ui-subtle px-5">
         {narrow ? (
           <div className="flex min-w-0 flex-1 items-baseline gap-2 truncate">{p.summary}</div>
         ) : (
@@ -225,8 +226,8 @@ export function WaysIn({ items }: { items: readonly WayIn[] }) {
               checked ? "border-ui-accent bg-ui-accent/10" : "border-ui-default bg-ui-raised enabled:hover:bg-ui-hover",
             )}
           >
-            <span className={cn("grid h-[26px] w-[26px] shrink-0 place-items-center rounded-ui-sm border border-ui-strong bg-ui-app text-ui-2", does === "blank" && "border-dashed")}>
-              <Icon className="h-[15px] w-[15px]" strokeWidth={1.75} />
+            <span className={cn("grid h-6.5 w-6.5 shrink-0 place-items-center rounded-ui-sm border border-ui-strong bg-ui-app text-ui-2", does === "blank" && "border-dashed")}>
+              <Icon className="h-3.75 w-3.75" strokeWidth={1.75} />
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-caption font-medium text-ui-1">{title}</span>
@@ -295,7 +296,7 @@ export function WizardPreview({ width, height, max, hint, onExpand, noData, chil
         {hint && <span className="min-w-0 flex-1 truncate text-ui-3">{hint}</span>}
         {!hint && <span className="flex-1" />}
         {onExpand && (
-          <button type="button" aria-label="Expand the preview" title="Expand" onClick={onExpand} className="grid h-[22px] w-6 shrink-0 place-items-center rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+          <button type="button" aria-label="Expand the preview" title="Expand" onClick={onExpand} className="grid h-5.5 w-6 shrink-0 place-items-center rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-1">
             <Maximize2 className="h-3.5 w-3.5" />
           </button>
         )}

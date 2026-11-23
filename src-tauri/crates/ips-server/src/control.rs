@@ -136,7 +136,8 @@ impl State {
             .kiosks
             .iter()
             .map(|(id, k)| {
-                let mut kiosk = json!({ "profile": k.profile, "page": opt_str(&k.page), "address": opt_str(&k.address), "since": num(k.since) });
+                let mut kiosk =
+                    json!({ "profile": k.profile, "page": opt_str(&k.page), "address": opt_str(&k.address), "since": num(k.since) });
                 if let Some(display) = &k.display {
                     kiosk["display"] = json!(display);
                     kiosk["pinned"] = json!(k.pinned);
@@ -565,7 +566,11 @@ fn seen_display(displays: &[(String, Display)], name: &str, now: f64) -> Vec<(St
 
 /// Drops the least recently seen display that still follows (was never assigned a screen); false when there is none.
 fn evict_idle_display(displays: &mut Vec<(String, Display)>) -> bool {
-    let idle = displays.iter().enumerate().filter(|(_, (_, d))| d.screen == DISPLAY_FOLLOW).min_by(|a, b| a.1 .1.last_seen.total_cmp(&b.1 .1.last_seen));
+    let idle = displays
+        .iter()
+        .enumerate()
+        .filter(|(_, (_, d))| d.screen == DISPLAY_FOLLOW)
+        .min_by(|a, b| a.1 .1.last_seen.total_cmp(&b.1 .1.last_seen));
     match idle.map(|(at, _)| at) {
         Some(at) => {
             displays.remove(at);
@@ -701,7 +706,10 @@ pub(crate) fn reduce_config(state: &State, previous: &Value, config: &Value) -> 
 
 /// The displays with `name` assigned `screen`.
 fn with_screen(displays: &[(String, Display)], name: &str, screen: &str) -> Vec<(String, Display)> {
-    displays.iter().map(|(n, d)| (n.clone(), if n == name { Display { screen: screen.to_string(), ..d.clone() } } else { d.clone() })).collect()
+    displays
+        .iter()
+        .map(|(n, d)| (n.clone(), if n == name { Display { screen: screen.to_string(), ..d.clone() } } else { d.clone() }))
+        .collect()
 }
 
 /* ---------------- what clients see ---------------- */
@@ -778,7 +786,8 @@ fn public_kiosk(state: &State, config: &Value, id: &str, kiosk: &Kiosk) -> Value
         Some(pin) if ids.contains(pin) => Some(pin.clone()),
         _ => current_page(state, config, &profile),
     };
-    let mut view = json!({ "id": id, "profile": kiosk.profile, "page": page, "address": opt_str(&kiosk.address), "since": num(kiosk.since) });
+    let mut view =
+        json!({ "id": id, "profile": kiosk.profile, "page": page, "address": opt_str(&kiosk.address), "since": num(kiosk.since) });
     if let Some(display) = &kiosk.display {
         view["display"] = json!(display);
     }

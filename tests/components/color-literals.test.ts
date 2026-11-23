@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Hand-typed arbitrary colours in class names: `bg-[#hex]`, `[color:#hex]`, `[rgb(...)]`, `[hsl(...)]`, `[oklch(...)]`.
- * The tokens in `src/index.css` and `src/settings/tokens.css` replace them. Inline `style` hexes are not counted.
+ * The tokens in `src/index.css` and `src/components/ui/tokens.css` replace them. Inline `style` hexes are not counted.
  */
 const LITERAL = /\[(?:#[0-9a-fA-F]{3,8}|(?:rgba?|hsla?|oklch|oklab|lab|lch)\(|[a-z-]+:#[0-9a-fA-F]{3,8})/g;
 

@@ -260,7 +260,7 @@ export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpe
       ) : (
       <div className="relative flex min-h-0 flex-1 max-sm:flex-col">
         {/* On a phone the sources sit above the table. */}
-        <div className="flex min-h-0 w-[232px] shrink-0 flex-col overflow-y-auto border-r border-ui-subtle bg-ui-panel max-sm:max-h-[48%] max-sm:w-full max-sm:border-b max-sm:border-r-0">
+        <div className="flex min-h-0 w-58 shrink-0 flex-col overflow-y-auto border-r border-ui-subtle bg-ui-panel max-sm:max-h-[48%] max-sm:w-full max-sm:border-b max-sm:border-r-0">
           {width < PHONE_BELOW && (
             <ConnectionCard
               value={config.dataApiUrl}
@@ -312,7 +312,7 @@ export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpe
         {(!drawer || point) && (
           <div
             className={cn(
-              "w-[360px] shrink-0 border-l border-ui-subtle max-sm:w-full",
+              "w-90 shrink-0 border-l border-ui-subtle max-sm:w-full",
               drawer && "absolute inset-y-0 right-0 z-20 shadow-ui-drawer"
             )}
           >

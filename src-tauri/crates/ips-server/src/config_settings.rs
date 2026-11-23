@@ -2,7 +2,8 @@
 // the dashboard-wide settings it changes and the saved config keeps everything else:
 //
 //   { general?: { <key>: value | null }, style?: { clock: "12" | "24" | null }, activeProfile?: "auto" | <screen id> | null,
-//     profiles?: { <id>: { performance: { maxFps?, motion?, ringGlide?, blurLimit?, innerBlur?, liveGlow? } | null } } }
+//     profiles?: { <id>: { performance: { maxFps?, motion?, ringGlide?, blurLimit?, innerBlur?, liveGlow?, pixelShift?, idleDim?,
+//       fx? } | null } } }
 //
 // Since config v16 the 12 / 24 h clock is `general.clock` and a screen's performance holds the rendering switches;
 // `style.clock` and the dashboard performance keys in `general` stay accepted for a Settings window built before (and
@@ -17,6 +18,10 @@ use crate::{js, json, locale};
 
 const FPS: [f64; 5] = [5.0, 15.0, 30.0, 60.0, 0.0];
 const MOTIONS: [&str; 3] = ["system", "reduce", "full"];
+/// `IDLE_DIM_MINUTES` (src/lib/performance.ts).
+const IDLE_DIM: [f64; 4] = [5.0, 15.0, 30.0, 60.0];
+/// `FX_LEVELS` (src/looks/pack-json.ts).
+const FX_LEVELS: [&str; 3] = ["full", "calm", "off"];
 
 /// A check of one settings value.
 type Check = fn(&Value) -> bool;
@@ -31,6 +36,14 @@ fn is_fps(v: &Value) -> bool {
 
 fn is_motion(v: &Value) -> bool {
     v.as_str().is_some_and(|s| MOTIONS.contains(&s))
+}
+
+fn is_idle_dim(v: &Value) -> bool {
+    v.as_f64().is_some_and(|n| IDLE_DIM.contains(&n))
+}
+
+fn is_fx(v: &Value) -> bool {
+    v.as_str().is_some_and(|s| FX_LEVELS.contains(&s))
 }
 
 fn is_kiosk_refresh(v: &Value) -> bool {
@@ -66,7 +79,9 @@ fn performance_check(key: &str) -> Option<Check> {
     Some(match key {
         "maxFps" => is_fps,
         "motion" => is_motion,
-        "ringGlide" | "blurLimit" | "innerBlur" | "liveGlow" => is_bool,
+        "ringGlide" | "blurLimit" | "innerBlur" | "liveGlow" | "pixelShift" => is_bool,
+        "idleDim" => is_idle_dim,
+        "fx" => is_fx,
         _ => return None,
     })
 }
@@ -126,7 +141,10 @@ pub fn apply_settings_patch(stored: &Value, patch: &Value) -> Result<Value, Refu
 
     if let Some(launch) = patch.get("activeProfile") {
         let known = |id: &str| {
-            config.get("profiles").and_then(Value::as_array).is_some_and(|ps| ps.iter().any(|p| p.get("id").and_then(Value::as_str) == Some(id)))
+            config
+                .get("profiles")
+                .and_then(Value::as_array)
+                .is_some_and(|ps| ps.iter().any(|p| p.get("id").and_then(Value::as_str) == Some(id)))
         };
         let id = match launch {
             Value::Null => "auto",
@@ -221,15 +239,39 @@ mod tests {
 
     #[test]
     fn refuses_a_bad_clock_or_switch() {
-        for bad in [json!({ "general": { "clock": "auto" } }), json!({ "profiles": { "desk": { "performance": { "ringGlide": "yes" } } } })] {
+        for bad in [json!({ "general": { "clock": "auto" } }), json!({ "profiles": { "desk": { "performance": { "ringGlide": "yes" } } } })]
+        {
             assert_eq!(apply_settings_patch(&stored(), &bad).unwrap_err().status, 400);
+        }
+    }
+
+    // Phase 3 (L110): a screen's burn-in switches and its Effects level go through the Settings window too.
+    #[test]
+    fn sets_a_screens_burn_in_and_effects_level() {
+        let perf = json!({ "pixelShift": true, "idleDim": 15, "fx": "calm" });
+        let out = apply_settings_patch(&stored(), &json!({ "profiles": { "desk": { "performance": perf } } })).unwrap();
+        assert_eq!(out["profiles"][0]["performance"], perf);
+    }
+
+    #[test]
+    fn refuses_a_bad_burn_in_or_effects_value() {
+        for perf in [
+            json!({ "fx": "loud" }),
+            json!({ "fx": true }),
+            json!({ "idleDim": 10 }),
+            json!({ "idleDim": "15" }),
+            json!({ "pixelShift": 1 }),
+        ] {
+            let patch = json!({ "profiles": { "desk": { "performance": perf } } });
+            assert_eq!(apply_settings_patch(&stored(), &patch).unwrap_err().status, 400, "{patch}");
         }
     }
 
     // A Settings window built before v16 still writes `style.clock` and the dashboard performance keys.
     #[test]
     fn still_accepts_a_pre_v16_settings_patch() {
-        let out = apply_settings_patch(&stored(), &json!({ "style": { "clock": "24" }, "general": { "maxFps": 15, "liveGlow": true } })).unwrap();
+        let out =
+            apply_settings_patch(&stored(), &json!({ "style": { "clock": "24" }, "general": { "maxFps": 15, "liveGlow": true } })).unwrap();
         assert_eq!(out["style"], json!({ "clock": "24" }));
         assert_eq!(out["general"], json!({ "locale": "de-DE", "maxFps": 15, "liveGlow": true }));
     }

@@ -675,22 +675,29 @@ const useFaderStepping = ({
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
       const increment = incrementFor(event, step, fineStep, largeStep);
-      const targets: Record<string, () => number> = {
-        ArrowDown: () => nudge(-1, increment),
-        ArrowLeft: () => nudge(-1, increment),
-        ArrowRight: () => nudge(1, increment),
-        ArrowUp: () => nudge(1, increment),
-        End: () => max,
-        Home: () => (silenceAtMin ? SILENCE_DB : min),
-        PageDown: () => nudge(-1, largeStep),
-        PageUp: () => nudge(1, largeStep),
+      const targetOf = (key: string): number | undefined => {
+        switch (key) {
+          case "ArrowDown":
+          case "ArrowLeft":
+            return nudge(-1, increment);
+          case "ArrowRight":
+          case "ArrowUp":
+            return nudge(1, increment);
+          case "End":
+            return max;
+          case "Home":
+            return silenceAtMin ? SILENCE_DB : min;
+          case "PageDown":
+            return nudge(-1, largeStep);
+          case "PageUp":
+            return nudge(1, largeStep);
+        }
       };
-      const target = targets[event.key];
-      if (!target) {
+      const next = targetOf(event.key);
+      if (next === undefined) {
         return;
       }
       event.preventDefault();
-      const next = target();
       change(next, { event: event.nativeEvent, reason: "keyboard" });
       commit(next);
     },

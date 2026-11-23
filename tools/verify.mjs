@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // npm run verify: works out which features the changed files belong to (tests/feature-map.json) and runs exactly the
 // checks those features need, fast to slow. _docs/TESTING.md, "Verify", describes the modes and the exit codes.
-//   verify                  checks for what changed since the merge base with origin/main (commits, staged, unstaged, untracked)
+//   verify                  checks for what changed (commits, staged, unstaged, untracked) since the last passing run here
+//                           (.cache/verify/last.json); since the merge base with origin/main in CI, after a rebase, or with none
+//   verify --base <ref>     since the merge base with <ref>: `--base origin/main` is the whole branch, as `npm run ship` runs it
 //   verify --fast           the features' own tests only, no `vitest related`
 //   verify --full           every check in the map
 //   verify --plan           print the plan and run nothing
@@ -15,12 +17,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { changedFiles, fileAt, head, trackedFiles, treeHash } from "./verify/git.mjs";
+import { changedFiles, fileAt, head, isAncestor, trackedFiles, treeHash } from "./verify/git.mjs";
 import { laneIds } from "./verify/lane.mjs";
-import { loadMap, resolveChanges, whereIs } from "./verify/map.mjs";
+import { loadMap, MAP_FEATURE, MAP_FILE, resolveChanges, splitRoutingOnly, whereIs } from "./verify/map.mjs";
 import { buildPlan, EXIT, exitCodeFor } from "./verify/plan.mjs";
 import { RELEASE_FEATURE, splitVersionOnly } from "./verify/release.mjs";
-import { freshness, freshnessExit, readRecord, writeRecord } from "./verify/record.mjs";
+import { freshness, freshnessExit, incrementalBase, nextOkHead, readRecord, SINCE_LAST_PASS, writeRecord } from "./verify/record.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const FLAGS = new Set(["--full", "--fast", "--plan", "--json", "--check-fresh", "--allow-incomplete", "--keep-going", "--help"]);
@@ -133,18 +135,22 @@ async function main() {
     return EXIT.ok;
   }
 
-  const changes = changedFiles(ROOT, options.base);
+  // Without --base, a local run checks what changed since the last passing one (record.mjs), not the whole branch again.
+  const previous = readRecord(ROOT);
+  const since = options.base || flags.has("--check-fresh") ? null : incrementalBase(previous, { full: flags.has("--full"), ci: Boolean(process.env.CI), isAncestor: (sha) => isAncestor(ROOT, sha) });
+  const changes = changedFiles(ROOT, options.base ?? since ?? undefined);
+  const base = since && changes.mergeBase ? { ...changes.mergeBase, ref: SINCE_LAST_PASS } : changes.mergeBase;
 
   if (flags.has("--check-fresh")) {
     const current = { head: head(ROOT), tree: treeHash(ROOT) };
-    const state = freshness(readRecord(ROOT), current);
+    const state = freshness(previous, current);
     if (json) console.log(JSON.stringify({ state, changes: changes.files.length, ...current }));
     else console.log(`${state} (${changes.files.length} changed file(s))`);
     return freshnessExit(state);
   }
 
-  const notes = [];
-  let mode = flags.has("--full") ? "full" : flags.has("--fast") ? "fast" : "default";
+  const notes = since ? ["checking what changed since the last passing run (--base origin/main checks the whole branch)"] : [];
+  let mode =flags.has("--full") ? "full" : flags.has("--fast") ? "fast" : "default";
   let selected;
   if (options.feature) {
     const ids = options.feature.split(",");
@@ -156,17 +162,21 @@ async function main() {
       notes.push("no merge base with origin/main or main (shallow clone or detached HEAD?): running the full suite");
       mode = "full";
     }
-    // A manifest whose only change is its version (a release bump) goes to release-version, not to the features that own it.
-    const { versionOnly, rest } = splitVersionOnly(changes.files, (file) => {
+    const read = (file) => {
       const old = changes.mergeBase && fileAt(ROOT, changes.mergeBase.sha, file);
       const now = fs.existsSync(path.join(ROOT, file)) ? fs.readFileSync(path.join(ROOT, file), "utf8") : null;
       return old != null && now != null ? { old, new: now } : null;
-    });
+    };
+    // A manifest whose only change is its version (a release bump) goes to release-version, not to the features that own it.
+    const { versionOnly, rest: afterVersions } = splitVersionOnly(changes.files, read);
+    // The map changed in its features only (a new file's path, a test): it goes to feature-map, not to tooling's full run.
+    const { routingOnly, rest } = splitRoutingOnly(afterVersions, read);
     const resolved = resolveChanges(rest, map);
     const { byFeature } = resolved;
     // A deleted file no feature claims any more (its glob went with it) is not a new file to map.
     const unmapped = resolved.unmapped.filter((file) => fs.existsSync(path.join(ROOT, file)));
     if (versionOnly.length) byFeature.set(RELEASE_FEATURE, versionOnly);
+    if (routingOnly) byFeature.set(MAP_FEATURE, [MAP_FILE]);
     if (unmapped.length) {
       for (const file of unmapped) console.error(`unmapped: ${file}, add it to tests/feature-map.json`);
       return EXIT.usage;
@@ -184,17 +194,18 @@ async function main() {
     exists: (file) => fs.existsSync(path.join(ROOT, file)),
     platform: process.platform,
     ci: Boolean(process.env.CI),
+    browser: process.env.VERIFY_BROWSER === "1",
   });
   const overheadMs = Date.now() - started;
   if (flags.has("--plan")) {
-    if (json) console.log(JSON.stringify({ base: changes.mergeBase, ...plan, features: Object.fromEntries(selected), overheadMs }, null, 2));
+    if (json) console.log(JSON.stringify({ base, ...plan, features: Object.fromEntries(selected), overheadMs }, null, 2));
     else {
-      printPlan(plan, selected, notes, changes.mergeBase);
+      printPlan(plan, selected, notes, base);
       console.error(`verify: overhead ${overheadMs} ms`);
     }
     return EXIT.ok;
   }
-  printPlan(plan, selected, notes, changes.mergeBase);
+  printPlan(plan, selected, notes, base);
 
   const current = { head: head(ROOT), tree: treeHash(ROOT) };
   const keepGoing = flags.has("--keep-going");
@@ -233,7 +244,8 @@ async function main() {
   console.error("\nverify summary");
   for (const r of results) console.error(`  ${r.status.padEnd(8)} ${r.id.padEnd(13)} ${(r.ms / 1000).toFixed(1)} s`);
   console.error(`  features: ${[...selected.keys()].join(", ") || "(none)"}\n  exit ${exit}, overhead ${overheadMs} ms, total ${((Date.now() - started) / 1000).toFixed(1)} s`);
-  const record = { ...current, mode: plan.mode, features: [...selected.keys()], checks: results, exit, at: new Date().toISOString() };
+  const ran = { ...current, mode: plan.mode, base: base?.ref ?? null, browser: process.env.VERIFY_BROWSER === "1" || Boolean(process.env.CI), features: [...selected.keys()], checks: results, exit, at: new Date().toISOString() };
+  const record = { ...ran, okHead: nextOkHead(previous, ran) };
   if (!options.feature) writeRecord(ROOT, record);
   if (json) console.log(JSON.stringify(record, null, 2));
   return exit;

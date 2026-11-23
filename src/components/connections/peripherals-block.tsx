@@ -148,7 +148,7 @@ function NameField({ device, value, onChange }: { device: BatteryDevice; value: 
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      className={cn(FIELD, "h-[26px] min-w-0 flex-1")}
+      className={cn(FIELD, "h-6.5 min-w-0 flex-1")}
     />
   );
 }
@@ -256,7 +256,7 @@ export function PeripheralsBlock({ stored, onSave }: PeripheralsBlockProps) {
             value={low}
             onChange={(e) => setLow(e.target.value)}
             onBlur={() => setLow(String(lowKept))}
-            className={cn(FIELD, "h-[26px] w-[58px] px-1.5 text-right tabular-nums")}
+            className={cn(FIELD, "h-6.5 w-14.5 px-1.5 text-right tabular-nums")}
           />
           <span className="text-micro text-ui-4">%</span>
         </span>

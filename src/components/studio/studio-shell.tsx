@@ -38,7 +38,7 @@ export function StudioShell({ layout, drawer, main, bar, inspector }: StudioShel
       ) : (
         drawer
       )}
-      <main className={cn("relative flex flex-1 flex-col", mode === "sheet" ? "min-w-0" : "min-w-[420px]")}>
+      <main className={cn("relative flex flex-1 flex-col", mode === "sheet" ? "min-w-0" : "min-w-105")}>
         {main}
         {bar}
         {inspector !== null && mode === "sheet" && (

@@ -30,9 +30,7 @@ pub async fn handle_signin(app: &App, mut req: Req) -> std::io::Result<Response<
     }
     Ok(match app.extras.youtube().signin(app.port) {
         Ok(url) => http::json(200, &json!({ "authUrl": url })),
-        Err(SigninError::NotConfigured) => {
-            http::text(400, "Enter the Client ID and the client secret first.")
-        }
+        Err(SigninError::NotConfigured) => http::text(400, "Enter the Client ID and the client secret first."),
         Err(SigninError::Busy) => http::text(409, "A sign-in is already under way."),
         Err(SigninError::Failed(message)) => http::text(500, message),
     })
@@ -48,10 +46,7 @@ pub async fn handle_signout(app: &App, mut req: Req) -> std::io::Result<Response
 }
 
 fn escape(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
+    text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
 }
 
 /// A small page for the browser tab Google sent back: no scripts, no external resources, this server's security headers.
@@ -79,29 +74,15 @@ pub async fn handle_callback(app: &App, req: Req) -> std::io::Result<Response<Bo
         return Ok(http::empty(405));
     }
     if !req.is_loopback() {
-        return Ok(http::text(
-            403,
-            "The YouTube sign-in finishes on the PC running InfoPanel Studio.",
-        ));
+        return Ok(http::text(403, "The YouTube sign-in finishes on the PC running InfoPanel Studio."));
     }
     let (code, state, error) = (req.query("code"), req.query("state"), req.query("error"));
-    Ok(
-        match app
-            .extras
-            .youtube()
-            .callback(code.as_deref(), state.as_deref(), error.as_deref())
-            .await
-        {
-            Ok(()) => page(200, "Signed in to YouTube — you can close this tab", ""),
-            Err(CallbackError::Invalid) => page(
-                400,
-                "This sign-in link isn't valid",
-                "Start the sign-in again from Settings in InfoPanel Studio.",
-            ),
-            Err(CallbackError::Declined(message)) => {
-                page(200, "YouTube sign-in was not completed", &message)
-            }
-            Err(CallbackError::Failed(message)) => page(502, "YouTube sign-in failed", &message),
-        },
-    )
+    Ok(match app.extras.youtube().callback(code.as_deref(), state.as_deref(), error.as_deref()).await {
+        Ok(()) => page(200, "Signed in to YouTube — you can close this tab", ""),
+        Err(CallbackError::Invalid) => {
+            page(400, "This sign-in link isn't valid", "Start the sign-in again from Settings in InfoPanel Studio.")
+        }
+        Err(CallbackError::Declined(message)) => page(200, "YouTube sign-in was not completed", &message),
+        Err(CallbackError::Failed(message)) => page(502, "YouTube sign-in failed", &message),
+    })
 }

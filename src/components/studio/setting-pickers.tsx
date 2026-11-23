@@ -52,7 +52,7 @@ export function MultiSelect({
             onClick={() => toggle(o.value)}
             className="flex items-center gap-2 px-0.5 py-1 text-left text-caption text-ui-strong-text"
           >
-            <Box className={cn("h-[18px] w-[18px] shrink-0", on ? "text-ui-accent" : "text-ui-4")} />
+            <Box className={cn("h-4.5 w-4.5 shrink-0", on ? "text-ui-accent" : "text-ui-4")} />
             <span className="min-w-0 flex-1 truncate">{o.label}</span>
           </button>
         );

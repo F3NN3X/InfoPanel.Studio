@@ -30,6 +30,8 @@ export const test = base.extend<{ scratch: Scratch }>({
 /** Open `?fixture=one-editor/<name>` at the reference's 1440 × 880 and wait for Edit's canvas. */
 export async function openFixture(page: Page, base: string, name: string): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 880 });
+  // The left panel starts collapsed on a first open (P5 choice 9); the reference shows it open, as a returning user has it.
+  await page.addInitScript(() => localStorage.setItem("studio.editor.leftPanelOpen", "1"));
   await page.goto(`${base}/?fixture=one-editor/${name}`);
   await expect(page.getByRole("navigation", { name: "Studio views" }).getByRole("button", { name: /^Edit / })).toBeVisible();
   // The sidebar is its own chunk and can land first; the keys a test presses are for the canvas.

@@ -6,6 +6,24 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **Theme packs can cut, fade and decorate.** A pack's CSS may now cut corners and chamfer cards (`clip-path`), fade edges with gradient masks, round corners, and add `::before`/`::after` decoration (labels up to 64 characters, scanlines, brackets) that sits inside the card and never takes a click. Packs you import can also use gradients, `color-mix()`, their own `@keyframes` and images from their own folder. Widgets still can't be moved, resized or hidden: the import check now also refuses a clip, mask or decoration that hides or covers a widget's text.
+- **More pack CSS.** Packs can use the `border-image` shorthand, give cards and parts a border style and colour (never a width), and mask real elements with their own images: the import check reads the image and refuses one that fades text below half, or that it cannot load. Imported packs can also define px or % lengths (`--pack-cut: 12px`) and use them wherever a length is allowed, held to the same limits.
+- **Pack frames, ornaments and FX levels.** A pack can now ask for a card frame (`cut`, `bracket` or `notch` corners up to 20 px, with a thin stroke in its accent) and up to four ornaments (`micro-print`, `ticks`, `reticle`, `label`, text up to 64 characters), drawn by the app inside the card's padding; the old `edge` and `ornament` fields still work. Four animated effects join the list (`glitch`, `flicker`, `rgb-split`, `interference`), each at most 3 flashes a second, and a pack may run two animated effects at once. Each screen has an Effects setting, Full, Calm or Off; with no choice it is Off under reduced motion, and Calm is the most a screen in lite mode draws. Look colours may be written in `oklch()`, checked for contrast as the colour actually drawn.
+- **Bigger packs, softer budgets.** An imported theme pack may now be up to 1,024,000 bytes (it was 512,000), with files still at most 256,000 bytes. For contributors: a built-in pack that grows past its budget now prints a warning instead of failing CI, and fails only at that same 1,024,000-byte ceiling; `npm run perf:all` also warns when the heavy kiosk screen idles above 100 ms of work a second or 24 MB of memory.
+
+### Changed
+
+- **One look across the studio.** Buttons, icon buttons, toggles, segmented controls, menus, right-click menus, popovers, tooltips, tabs, toasts and sliders are now one shared set, each with clear hover, focus, disabled and selected states. Primary actions are off-white everywhere (two were blue); blue marks only selection, focus and links. Labels use sentence case.
+- **Tips where you need them.** The Quick tips card is gone: each tip now shows beside the thing it explains, and closes for good once dismissed. The editor's left panel starts collapsed the first time you open a screen and then remembers how you left it.
+- **Add panel view options.** The Add panel has its own **View options** (list density, preview on hover); the same settings stay in Settings › Studio.
+- **Charts describe themselves.** Sensor history charts in Data sources, Alerts and sensor rows draw one way and carry a screen-reader summary of their range, latest value and trend.
+
+### Fixed
+
+- **Keyboard.** The Data sources point list is one Tab stop (arrows, Home and End move inside it) instead of one stop per point; colour swatches show a focus ring; a key pressed the moment Library, Gauges or Widgets opens no longer reaches the screen behind it.
+
 ## [1.4.0-beta.2] - 2026-11-19
 
 ### Added

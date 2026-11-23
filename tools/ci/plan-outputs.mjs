@@ -25,7 +25,7 @@ export const OUTPUTS = {
   pack_budgets: ["pack-budgets"],
   lab: ["lab"],
   rust: ["cargo-app"],
-  windows: ["cargo-app", "cargo-server"],
+  windows: ["cargo-app", "cargo-server", "rust-fmt"],
   actionlint: ["actionlint"],
 };
 

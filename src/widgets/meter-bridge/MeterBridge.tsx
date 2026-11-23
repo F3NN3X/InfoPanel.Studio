@@ -110,10 +110,10 @@ export default function MeterBridge(p: MeterBridgeProps) {
     const held = Number.isFinite(hdb) && hdb > floor ? pos(hdb) : undefined;
     if (p.ladder !== "smooth") return <LedLadder value={pos(db)} n={n} vertical={!horiz} zones={[pos(warnDb), pos(clipDb)]} hold={held} color={lc} hotColor={hc} />;
     return (
-      <div className={`relative flex ${horiz ? "h-full flex-1 flex-row gap-[2px]" : "w-full flex-1 flex-col-reverse gap-[2px]"}`}>
-        <div className="absolute inset-0 rounded-[2px] bg-[color:var(--w-track)]" />
+      <div className={`relative flex ${horiz ? "h-full flex-1 flex-row gap-0.5" : "w-full flex-1 flex-col-reverse gap-0.5"}`}>
+        <div className="absolute inset-0 rounded-2 bg-[color:var(--w-track)]" />
         <div
-          className="absolute inset-0 rounded-[2px] transition-transform duration-100"
+          className="absolute inset-0 rounded-2 transition-transform duration-100"
           style={{
             ...(horiz ? scaleX(pos(db)) : scaleY(pos(db))),
             background: `linear-gradient(${horiz ? "90deg" : "0deg"}, ${lc} 0%, ${lc} ${pos(warnDb)}%, ${STATE.warn} ${pos(warnDb)}%, ${STATE.warn} ${pos(clipDb)}%, ${hc} ${pos(clipDb)}%)`,
@@ -158,7 +158,7 @@ export default function MeterBridge(p: MeterBridgeProps) {
                     </span>
                     {p.showVolume !== false && Number.isFinite(c.vol) && <span className="text-micro tabular-nums text-[color:var(--w-faint)]">{fmt(c.vol)}%</span>}
                   </div>
-                  <div className="flex h-[22px] flex-col gap-[3px]">
+                  <div className="flex h-5.5 flex-col gap-0.75">
                     {ladder(c.l, c.lh, segs, true)}
                     {ladder(c.r, c.rh, segs, true)}
                   </div>
@@ -190,14 +190,14 @@ export default function MeterBridge(p: MeterBridgeProps) {
                     </span>
                   </div>
                   {p.showVolume !== false && Number.isFinite(c.vol) && (
-                    <div className="h-[3px] overflow-hidden rounded-full bg-[color:var(--w-track)]">
+                    <div className="h-0.75 overflow-hidden rounded-full bg-[color:var(--w-track)]">
                       <div className="h-full w-full rounded-full bg-[color:var(--w-muted)] transition-transform duration-300" style={slideX(c.vol)} />
                     </div>
                   )}
                 </div>
                 <div className="flex min-h-0 flex-1 gap-2">
                   {scale && (
-                    <div className="relative w-[30px] shrink-0 font-mono text-micro tabular-nums text-[color:var(--w-faint)]">
+                    <div className="relative w-7.5 shrink-0 font-mono text-micro tabular-nums text-[color:var(--w-faint)]">
                       {SCALE.filter((s) => s >= floor).map((s) => (
                         <span key={s} className="absolute right-0 flex -translate-y-1/2 items-center gap-1" style={{ top: `${100 - pos(s)}%` }}>
                           <span className="h-px w-1.5 bg-[color:var(--w-faint)]" />
@@ -206,9 +206,9 @@ export default function MeterBridge(p: MeterBridgeProps) {
                       ))}
                     </div>
                   )}
-                  <div className="flex flex-1 justify-center gap-[5px]">
-                    <div className="flex w-[7px]">{ladder(c.l, c.lh, segs)}</div>
-                    <div className="flex w-[7px]">{ladder(c.r, c.rh, segs)}</div>
+                  <div className="flex flex-1 justify-center gap-1.25">
+                    <div className="flex w-1.75">{ladder(c.l, c.lh, segs)}</div>
+                    <div className="flex w-1.75">{ladder(c.r, c.rh, segs)}</div>
                   </div>
                 </div>
                 {p.showVolume !== false && Number.isFinite(c.vol) && <span className="text-center text-body font-semibold tabular-nums">{fmt(c.vol)}%</span>}

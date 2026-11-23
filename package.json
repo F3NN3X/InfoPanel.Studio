@@ -13,7 +13,7 @@
     "test:one-editor": "playwright test --project=one-editor",
     "perf:kiosk": "playwright test --project=perf-kiosk --workers=1",
     "perf:studio": "playwright test --project=perf-studio --workers=1",
-    "perf:all": "npm run build && npm run desktop:settings && playwright test --project=perf-kiosk --project=perf-studio --workers=1 && node tools/perf/bundle-report.mjs && node tools/perf/disk-report.mjs",
+    "perf:all": "npm run build && npm run desktop:settings && playwright test --project=perf-kiosk --project=perf-studio --workers=1 && node tools/perf/bundle-report.mjs && node tools/perf/disk-report.mjs && node tools/perf/check-budgets.mjs --idle",
     "perf:compare": "node tools/perf/compare.mjs",
     "perf:budgets": "node tools/perf/check-budgets.mjs",
     "lint": "biome lint",
@@ -46,38 +46,40 @@
     "looks:scan": "node tools/looks/scan.mjs"
   },
   "dependencies": {
-    "@base-ui/react": "^1.8.0",
+    "@base-ui/react": "^1.9.0",
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
-    "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/api": "^2.12.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lean-qr": "2.7.4",
-    "lucide-react": "^1.53.0",
-    "marked": "^18.1.1",
+    "lucide-react": "^1.77.0",
+    "marked": "^18.2.1",
     "modern-screenshot": "4.7.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "tailwind-merge": "^2.5.5"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwind-merge": "^3.7.1"
   },
   "allowScripts": {
     "esbuild": true
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
-    "@playwright/test": "^1.64.1",
-    "@tailwindcss/vite": "^4.3.3",
-    "@tauri-apps/cli": "^2.12.3",
+    "@axe-core/playwright": "4.14.0",
+    "@biomejs/biome": "2.6.8",
+    "@playwright/test": "^1.65.1",
+    "@tailwindcss/vite": "^4.3.5",
+    "@tauri-apps/cli": "^2.12.6",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.8",
+    "@testing-library/user-event": "^14.6.13",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "happy-dom": "^21.0.3",
-    "tailwindcss": "^4.3.3",
-    "typescript": "~5.6.2",
-    "vite": "^6.0.1",
-    "vitest": "^3.2.7"
+    "@vitejs/plugin-react": "^6.3.0",
+    "esbuild": "^0.28.2",
+    "happy-dom": "^21.0.4",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
   }
 }

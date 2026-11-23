@@ -34,7 +34,8 @@ const LOADERS: [&str; 9] = ["image-set(", "image(", "cross-fade(", "src(", "elem
 /// An in-file reference or an embedded raster image (`SAFE_REF` in svg-template.ts).
 fn is_safe_ref(value: &str) -> bool {
     let v = value.trim().to_ascii_lowercase();
-    v.starts_with('#') || ["png", "jpeg", "gif", "webp"].iter().any(|t| [';', ','].iter().any(|end| v.starts_with(&format!("data:image/{t}{end}"))))
+    v.starts_with('#')
+        || ["png", "jpeg", "gif", "webp"].iter().any(|t| [';', ','].iter().any(|end| v.starts_with(&format!("data:image/{t}{end}"))))
 }
 
 /// A character reference's text (`#106`, `#x6A`, `lt`) as its character: digits of any length with checked arithmetic,
@@ -172,7 +173,8 @@ fn local(name: &str) -> String {
 /// Whether an element goes with everything inside it.
 fn drops_element(name: &str, attrs: &[Attr]) -> bool {
     let lname = local(name);
-    let animates_ref = ANIMATIONS.contains(&lname.as_str()) && attrs.iter().any(|a| a.name == "attributeName" && a.value.to_ascii_lowercase().contains("href"));
+    let animates_ref = ANIMATIONS.contains(&lname.as_str())
+        && attrs.iter().any(|a| a.name == "attributeName" && a.value.to_ascii_lowercase().contains("href"));
     let foreign_ns = attrs.iter().any(|a| a.name == "xmlns" && a.value.trim() != SVG_NS);
     DROP.contains(&lname.as_str()) || name.contains(':') || animates_ref || foreign_ns
 }
@@ -201,19 +203,20 @@ fn doctype_entities(doctype: &str) -> Option<Vec<(String, String)>> {
         let end = {
             // the declaration ends at the first `>` outside its quoted value
             let mut quote: Option<char> = None;
-            decl.char_indices().find(|&(_, c)| match quote {
-                Some(q) if c == q => {
-                    quote = None;
-                    false
-                }
-                Some(_) => false,
-                None if c == '"' || c == '\'' => {
-                    quote = Some(c);
-                    false
-                }
-                None => c == '>',
-            })?
-            .0
+            decl.char_indices()
+                .find(|&(_, c)| match quote {
+                    Some(q) if c == q => {
+                        quote = None;
+                        false
+                    }
+                    Some(_) => false,
+                    None if c == '"' || c == '\'' => {
+                        quote = Some(c);
+                        false
+                    }
+                    None => c == '>',
+                })?
+                .0
         };
         let body = decl[..end].trim();
         let (name, value) = body.split_once(|c: char| c.is_whitespace())?;
@@ -443,7 +446,8 @@ mod tests {
         let svg = format!("<svg {NS} onload=\"alert(1)\"><a href=\"javascript:alert(1)\" ONCLICK='x'><use xlink:href=\"other.svg#a\" href=\"https://evil.example/a.svg#a\"/><image href=\"http://evil.example/x.png\"/><image href=\"data:image/svg+xml;base64,PHN2Zz4=\"/></a></svg>");
         assert_eq!(clean(&svg), format!("<svg {NS}><a><use/><image/><image/></a></svg>"));
         // a link spelled with character references is read as the parser reads it
-        let svg = format!("<svg {NS}><a href=\"&#106;avascript:alert(1)\"/><a href=\"&#35;ok\"/><g xml:base=\"http://evil.example/\"/></svg>");
+        let svg =
+            format!("<svg {NS}><a href=\"&#106;avascript:alert(1)\"/><a href=\"&#35;ok\"/><g xml:base=\"http://evil.example/\"/></svg>");
         assert_eq!(clean(&svg), format!("<svg {NS}><a/><a href=\"&#35;ok\"/><g/></svg>"));
     }
 
@@ -559,7 +563,17 @@ mod tests {
         let mut i = 0;
         while let Some(at) = out[i..].find('<').map(|a| a + i) {
             let r = &out[at..];
-            let skip = ["<!--", "<![CDATA[", "<?"].iter().find_map(|p| r.starts_with(p).then(|| if *p == "<!--" { "-->" } else if *p == "<?" { "?>" } else { "]]>" }));
+            let skip = ["<!--", "<![CDATA[", "<?"].iter().find_map(|p| {
+                r.starts_with(p).then(|| {
+                    if *p == "<!--" {
+                        "-->"
+                    } else if *p == "<?" {
+                        "?>"
+                    } else {
+                        "]]>"
+                    }
+                })
+            });
             if let Some(end) = skip {
                 i = at + r.find(end).unwrap() + end.len();
                 continue;
@@ -572,14 +586,21 @@ mod tests {
             assert!(!drops_element(name, &attrs), "<{name}> kept in {out}\nfrom {from}");
             for a in &attrs {
                 let v = a.value.to_ascii_lowercase();
-                assert!(!local(a.name).starts_with("on") && !v.contains("javascript:") && !v.contains("url(http"), "{} kept in {out}\nfrom {from}", a.source);
+                assert!(
+                    !local(a.name).starts_with("on") && !v.contains("javascript:") && !v.contains("url(http"),
+                    "{} kept in {out}\nfrom {from}",
+                    a.source
+                );
                 assert!(local(a.name) != "href" || is_safe_ref(&a.value), "{} kept in {out}\nfrom {from}", a.source);
             }
             i = at + len;
             if !closed && local(name) == "style" {
                 let end = out[i..].find("</style").unwrap() + i;
                 let css = decode(&out[i..end].replace("<![CDATA[", "").replace("]]>", "")).unwrap().to_ascii_lowercase();
-                assert!(!css.contains("@import") && !css.contains("url(http") && !css.contains("javascript:"), "style {css} in {out}\nfrom {from}");
+                assert!(
+                    !css.contains("@import") && !css.contains("url(http") && !css.contains("javascript:"),
+                    "style {css} in {out}\nfrom {from}"
+                );
                 i = end;
             }
         }
@@ -588,9 +609,34 @@ mod tests {
     #[test]
     fn fuzz_whatever_comes_out_is_clean_and_stays_the_same() {
         const PIECES: [&str; 28] = [
-            "<script>alert(1)</script>", "<g>", "</g>", "<style>", "</style>", "<![CDATA[", "]]>", "<!--", "-->", "@import 'https://e.x/a';", "url(", "https://e.x/p)",
-            "javascript:", "&#106;", "&#0000000000106;", "&amp;", "&x;", " onload=\"a()\"", "<a href=\"", "\">", "<foreignObject>", "</foreignObject>", "<h:script>", "</h:script>",
-            "\\75 rl(", "<rect fill=\"url(#g)\"/>", "<!DOCTYPE svg [<!ENTITY x \"javascript:\">]>", "<set attributeName=\"href\" to=\"javascript:x\"/>",
+            "<script>alert(1)</script>",
+            "<g>",
+            "</g>",
+            "<style>",
+            "</style>",
+            "<![CDATA[",
+            "]]>",
+            "<!--",
+            "-->",
+            "@import 'https://e.x/a';",
+            "url(",
+            "https://e.x/p)",
+            "javascript:",
+            "&#106;",
+            "&#0000000000106;",
+            "&amp;",
+            "&x;",
+            " onload=\"a()\"",
+            "<a href=\"",
+            "\">",
+            "<foreignObject>",
+            "</foreignObject>",
+            "<h:script>",
+            "</h:script>",
+            "\\75 rl(",
+            "<rect fill=\"url(#g)\"/>",
+            "<!DOCTYPE svg [<!ENTITY x \"javascript:\">]>",
+            "<set attributeName=\"href\" to=\"javascript:x\"/>",
         ];
         let mut rng = Lcg(0x5eed);
         let mut kept = 0;

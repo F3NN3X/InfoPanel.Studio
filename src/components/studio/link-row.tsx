@@ -24,7 +24,7 @@ export interface LinkRowProps {
  */
 export function LinkRow({ label, value, from, mono, note, link, onNavigate, className }: LinkRowProps) {
   return (
-    <div className={cn("flex flex-col gap-[3px] font-ui", className)}>
+    <div className={cn("flex flex-col gap-0.75 font-ui", className)}>
       {label !== undefined && (
         <div className="flex min-h-7 items-center gap-2.5">
           <span className="min-w-0 flex-1 truncate text-caption text-ui-3">{label}</span>

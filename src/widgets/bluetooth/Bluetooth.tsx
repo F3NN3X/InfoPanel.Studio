@@ -65,11 +65,11 @@ export default function Bluetooth(p: BluetoothProps) {
         </span>
         {d.status && !/^connected$/i.test(d.status) && <span className="truncate text-micro text-[color:var(--w-faint)]">{d.status}</span>}
         {showBattery && (
-          <Num className={`ml-auto shrink-0 ${big ? "text-[22px]" : small ? "text-sm" : "text-base"}`}>{d.battery !== undefined ? `${Math.round(d.battery)}%` : "—"}</Num>
+          <Num className={`ml-auto shrink-0 ${big ? "text-stat" : small ? "text-sm" : "text-base"}`}>{d.battery !== undefined ? `${Math.round(d.battery)}%` : "—"}</Num>
         )}
       </div>
       {showBattery && (
-        <div className={`mt-1 overflow-hidden rounded-full bg-[color:var(--w-track)] ${big ? "h-1.5" : "h-[5px]"}`} style={{ width: "100%", maxWidth: small ? 80 : undefined }}>
+        <div className={`mt-1 overflow-hidden rounded-full bg-[color:var(--w-track)] ${big ? "h-1.5" : "h-1.25"}`} style={{ width: "100%", maxWidth: small ? 80 : undefined }}>
           {d.battery !== undefined && <div className="h-full w-full rounded-full transition-transform duration-300" style={{ ...slideX(Math.round(d.battery)), background: color(d.battery) }} />}
         </div>
       )}
@@ -119,7 +119,7 @@ export default function Bluetooth(p: BluetoothProps) {
           </div>
         ) : (
           <div className="flex h-full min-h-0 items-center gap-5">
-            <div className="flex w-[30%] min-w-[140px] shrink-0 flex-col gap-1.5">{head}</div>
+            <div className="flex w-[30%] min-w-35 shrink-0 flex-col gap-1.5">{head}</div>
             <div className="grid min-w-0 flex-1 auto-rows-min grid-cols-1 gap-y-2 overflow-hidden">{shown.map((d) => row(d, true))}</div>
           </div>
         );

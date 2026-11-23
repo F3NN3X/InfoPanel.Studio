@@ -4,7 +4,10 @@
 use std::path::PathBuf;
 
 use ips_server::agent_usage::{claude_line, codex_context, codex_line, model_of, root_of, AgentUsage, CHUNK};
-use ips_server::agents::{codex_plan, expire_agents, merge_claude_sessions, project_of, public_agents, reduce_agents, reduce_statusline, tool_of, AgentsState, LiveSession};
+use ips_server::agents::{
+    codex_plan, expire_agents, merge_claude_sessions, project_of, public_agents, reduce_agents, reduce_statusline, tool_of, AgentsState,
+    LiveSession,
+};
 use ips_server::claude_sessions::{parse_claude_session, read_claude_sessions};
 use ips_server::ical::LocalZone;
 use ips_server::js_date::day_key;
@@ -143,7 +146,12 @@ fn agent_usage() {
             "scan" => scan_case(&input, &want),
             "claudeLine" => same("agent-usage", &input, &claude_line(line, ZONE).map_or(Value::Null, |l| l.to_json()), &want),
             "codexLine" => same("agent-usage", &input, &codex_line(line, ZONE).map_or(Value::Null, |l| l.to_json()), &want),
-            "codexContext" => same("agent-usage", &input, &codex_context(line).map_or(Value::Null, |(project, model)| json!({ "project": project, "model": model })), &want),
+            "codexContext" => same(
+                "agent-usage",
+                &input,
+                &codex_context(line).map_or(Value::Null, |(project, model)| json!({ "project": project, "model": model })),
+                &want,
+            ),
             "dayKey" => assert_eq!(json!(day_key(input["ms"].as_f64().unwrap(), ZONE)), want, "{input}"),
             "modelOf" => assert_eq!(json!(model_of(Some(&input["value"]))), want, "{input}"),
             "rootOf" => same("agent-usage", &input, &root_of(Some(&input["value"])).unwrap_or(Value::Null), &want),

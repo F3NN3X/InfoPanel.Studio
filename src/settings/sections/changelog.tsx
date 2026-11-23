@@ -97,7 +97,7 @@ export function ChangelogSection() {
   if (source === null) return <PageState what="the changelog" error={failure} onRetry={() => setTries((n) => n + 1)} fallback={{ label: "Open the releases on GitHub", href: RELEASES_URL }} />;
   return (
     <div ref={wrap} className="flex flex-wrap items-start gap-x-7 gap-y-4">
-      <div className={cn("sticky top-5 flex max-h-[calc(100vh-40px)] w-[172px] shrink-0 flex-col gap-0.5 overflow-y-auto", found.className)} ref={found.ref}>
+      <div className={cn("sticky top-5 flex max-h-[calc(100vh-40px)] w-43 shrink-0 flex-col gap-0.5 overflow-y-auto", found.className)} ref={found.ref}>
         {releases.map((r, i) => {
           const on = active === releaseId(r);
           return (
@@ -107,7 +107,7 @@ export function ChangelogSection() {
               aria-current={on ? "true" : undefined}
               onClick={() => jump(r, i)}
               className={cn(
-                "flex cursor-pointer flex-col gap-px border-0 border-l-2 bg-transparent px-2.5 py-[7px] text-left",
+                "flex cursor-pointer flex-col gap-px border-0 border-l-2 bg-transparent px-2.5 py-1.75 text-left",
                 on ? "border-l-s-accent text-s-t1" : "border-l-transparent text-s-muted hover:text-s-t1"
               )}
             >
@@ -117,7 +117,7 @@ export function ChangelogSection() {
           );
         })}
       </div>
-      <div className="min-w-0 flex-1 basis-[280px]" onClick={onClick}>
+      <div className="min-w-0 flex-1 basis-70" onClick={onClick}>
         <div className="flex flex-col gap-7">
           {releases.map((r, i) => {
             const open = isOpen(r, i);

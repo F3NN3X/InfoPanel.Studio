@@ -21,7 +21,7 @@ const DOT: Record<DeckStatus, string> = {
   connecting: "rotate-45 rounded-[1px] bg-amber-400",
   pairing: "rotate-45 rounded-[1px] bg-amber-400",
   ready: "rounded-full bg-emerald-400",
-  error: "rounded-[2px] bg-red-400",
+  error: "rounded-2 bg-red-400",
 };
 const WORDS: Record<DeckStatus, string> = {
   off: "Off",
@@ -102,7 +102,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
       />
       {showCode && (
         <div className="space-y-1.5">
-          <div role="group" aria-label="Pairing code" className="font-mono text-[22px] font-semibold tracking-[0.3em] text-ui-1">
+          <div role="group" aria-label="Pairing code" className="font-mono text-stat font-semibold tracking-[0.3em] text-ui-1">
             {state.pairingCode}
           </div>
           <button type="button" className={BUTTON} onClick={() => void run({ op: "pair" })}>
@@ -129,7 +129,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
             </div>
             {d.error && state.enabled && <p className="m-0 pl-4 text-micro text-s-red">{d.error}</p>}
             {confirming === d.id && (
-              <div role="alert" className="flex flex-wrap items-center gap-2 pl-4 text-[11.5px] text-ui-3">
+              <div role="alert" className="flex flex-wrap items-center gap-2 pl-4 text-label text-ui-3">
                 <span>Forget {d.name}? A widget using it will ask for another device.</span>
                 <button
                   type="button"
@@ -154,7 +154,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
         ))}
       </div>
       {note && (
-        <p role="status" className="m-0 text-[11.5px] text-ui-3">
+        <p role="status" className="m-0 text-label text-ui-3">
           {note}
         </p>
       )}
@@ -164,7 +164,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
         </button>
       </div>
       {error && (
-        <p role="alert" className="m-0 text-[11.5px] text-s-red">
+        <p role="alert" className="m-0 text-label text-s-red">
           {error}
         </p>
       )}

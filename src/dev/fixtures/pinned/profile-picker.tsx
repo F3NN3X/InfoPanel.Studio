@@ -36,10 +36,10 @@ export function ProfilePicker({ spec, left, top, width, maxHeight }: { spec: Pic
       style={{ borderRadius: 20, left, top, width, maxHeight, background: "var(--w-card)", color: "var(--w-fg)", boxShadow: "inset 0 0 0 1px var(--w-edge), 0 18px 48px -12px color-mix(in oklab, var(--w-page) 85%, transparent)" }}
     >
       <header className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 id="picker-title" className="text-[18px] font-semibold">
+        <h2 id="picker-title" className="text-display font-semibold">
           Profiles
         </h2>
-        <span className="text-[13px]" style={{ color: "var(--w-muted)" }}>
+        <span className="text-body" style={{ color: "var(--w-muted)" }}>
           In front: {spec.front}
         </span>
       </header>
@@ -54,20 +54,20 @@ export function ProfilePicker({ spec, left, top, width, maxHeight }: { spec: Pic
                 className="flex min-h-16 w-full items-center gap-3 rounded-2xl px-3 py-2 text-left"
                 style={{ background: on ? "color-mix(in oklab, var(--w-accent) 10%, transparent)" : "color-mix(in oklab, var(--w-fg) 4%, transparent)", boxShadow: on ? "inset 0 0 0 2px var(--w-accent)" : "inset 0 0 0 1px var(--w-edge)" }}
               >
-                <span aria-hidden className="h-9 w-9 shrink-0 rounded-[10px]" style={{ background: series(p.series) }} />
+                <span aria-hidden className="h-9 w-9 shrink-0 rounded-10" style={{ background: series(p.series) }} />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-semibold leading-tight">{p.name}</span>
-                  <span className="block truncate text-[13px] leading-tight" style={{ color: "var(--w-muted)" }}>
+                  <span className="block text-title font-semibold leading-tight">{p.name}</span>
+                  <span className="block truncate text-body leading-tight" style={{ color: "var(--w-muted)" }}>
                     {p.detail}
                   </span>
                 </span>
                 {on && (
-                  <span className="text-[13px] font-semibold" style={{ color: "var(--w-accent)" }}>
+                  <span className="text-body font-semibold" style={{ color: "var(--w-accent)" }}>
                     Current
                   </span>
                 )}
                 {p.id === spec.matches && (
-                  <span className="text-[13px] font-semibold" style={{ color: "var(--w-warn)" }}>
+                  <span className="text-body font-semibold" style={{ color: "var(--w-warn)" }}>
                     Matches now
                   </span>
                 )}
@@ -81,7 +81,7 @@ export function ProfilePicker({ spec, left, top, width, maxHeight }: { spec: Pic
           type="button"
           role="switch"
           aria-checked={spec.auto}
-          className="flex h-14 items-center justify-between gap-2 rounded-2xl px-4 text-[14px]"
+          className="flex h-14 items-center justify-between gap-2 rounded-2xl px-4 text-lead"
           style={{ boxShadow: "inset 0 0 0 1px var(--w-edge)" }}
         >
           Switch with the app in front
@@ -91,7 +91,7 @@ export function ProfilePicker({ spec, left, top, width, maxHeight }: { spec: Pic
         </button>
         <button
           type="button"
-          className="flex h-14 items-center justify-center gap-2 rounded-2xl text-[14px] font-semibold"
+          className="flex h-14 items-center justify-center gap-2 rounded-2xl text-lead font-semibold"
           style={{ background: "var(--w-fg)", color: "var(--w-card)" }}
         >
           <Lock aria-hidden size={16} /> Lock to {current?.name}

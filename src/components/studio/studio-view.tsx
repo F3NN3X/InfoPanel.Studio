@@ -602,8 +602,8 @@ function StudioViewBody({
 
   /** The Add panel (Edit v3 SPEC §9): its catalog, Recently used, toast and flash; a click fills the selected blank zone. */
   const addPanel = useAddPanel({ config, addFromPanel: edit.addFromPanel, targetZoneId: blankZoneId, undo: history.undo });
-  const [addDensity] = useAddListDensity();
-  const [addPreviewOnHover] = useAddPreviewOnHover();
+  const [addDensity, setAddDensity] = useAddListDensity();
+  const [addPreviewOnHover, setAddPreviewOnHover] = useAddPreviewOnHover();
   const pageFont = fontStack(resolveFont(profile));
   const addTarget = blankZoneId && selected ? { id: blankZoneId, cols: selected.colSpan, rows: selected.rowSpan } : undefined;
 
@@ -694,7 +694,7 @@ function StudioViewBody({
   const itemPlacement = itemId ? storedPage.placements.find((p): p is Placement & { item: StoredItem } => p.id === itemId && p.module === ITEM_ID && p.item !== undefined) : undefined;
   const itemNode = itemPlacement ? findNode(layers.model.root, itemPlacement.id)?.node : undefined;
   const inspectorAside = groupNode ? (
-    <aside aria-label="Inspector" className={studioLayout.mode !== "docked" ? "flex h-full w-full flex-col overflow-y-auto bg-ui-panel font-ui" : "flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel font-ui"}>
+    <aside aria-label="Inspector" className={studioLayout.mode !== "docked" ? "flex h-full w-full flex-col overflow-y-auto bg-ui-panel font-ui" : "flex w-80 shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel font-ui"}>
       <Suspense fallback={null}>
         <GroupInspector
           model={layers.model}
@@ -706,7 +706,7 @@ function StudioViewBody({
       </Suspense>
     </aside>
   ) : itemPlacement && itemNode?.type === "part" ? (
-    <aside aria-label="Inspector" className={studioLayout.mode !== "docked" ? "flex h-full w-full flex-col overflow-hidden bg-ui-panel font-ui" : "flex w-[320px] shrink-0 flex-col overflow-hidden border-l border-ui-subtle bg-ui-panel font-ui"}>
+    <aside aria-label="Inspector" className={studioLayout.mode !== "docked" ? "flex h-full w-full flex-col overflow-hidden bg-ui-panel font-ui" : "flex w-80 shrink-0 flex-col overflow-hidden border-l border-ui-subtle bg-ui-panel font-ui"}>
       <Suspense fallback={null}>
         <PageItemInspector
           key={itemPlacement.id}
@@ -767,6 +767,8 @@ function StudioViewBody({
         onNewInfoPanel: openNewInfoPanel,
         density: addDensity,
         previewOnHover: addPreviewOnHover,
+        onDensityChange: setAddDensity,
+        onPreviewOnHoverChange: setAddPreviewOnHover,
         appearance,
         pageStyle: { ...themeScope, fontFamily: pageFont },
         start: fixture && { segment: fixture.addSegment, hoverTile: fixture.hoverTile, added: fixture.added },
@@ -1342,7 +1344,7 @@ function StudioViewBody({
       </PreviewDataProvider>
       <div className="flex min-h-0 flex-1">
       {!phone && (
-        <Suspense fallback={<div className="w-[60px] shrink-0 border-r border-ui-subtle bg-ui-chrome" />}>
+        <Suspense fallback={<div className="w-15 shrink-0 border-r border-ui-subtle bg-ui-chrome" />}>
           <StudioSidebar
             active={railActive}
             onSelect={onRail}
@@ -1421,7 +1423,7 @@ function StudioViewBody({
         onExport={() => openExportSheet()}
         onImport={() => openImportDoor()}
         fileMenu={
-          <Suspense fallback={<div className="h-8 w-[72px] shrink-0 rounded-ui-md border border-ui-strong bg-ui-raised" />}>
+          <Suspense fallback={<div className="h-8 w-18 shrink-0 rounded-ui-md border border-ui-strong bg-ui-raised" />}>
             <FileMenu
               onImport={() => openImportDoor()}
               onExportSheet={() => openExportSheet()}

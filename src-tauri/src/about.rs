@@ -44,10 +44,7 @@ pub fn info(paths: &Paths, version: &str, channel: Channel) -> AppInfo {
         channel,
         build_date: BUILD_DATE,
         webview: tauri::webview_version().ok(),
-        os: os_text(
-            sysinfo::System::long_os_version(),
-            sysinfo::System::kernel_version(),
-        ),
+        os: os_text(sysinfo::System::long_os_version(), sysinfo::System::kernel_version()),
         paths: AppPaths {
             settings_file: paths::display(&crate::settings::settings_file(&paths.config_dir)),
             data_dir: paths::display(&paths.server_data_dir()),
@@ -73,10 +70,7 @@ mod tests {
 
     #[test]
     fn os_text_joins_name_and_build() {
-        assert_eq!(
-            os_text(Some("Windows 11 Pro".into()), Some("26300".into())),
-            "Windows 11 Pro (build 26300)"
-        );
+        assert_eq!(os_text(Some("Windows 11 Pro".into()), Some("26300".into())), "Windows 11 Pro (build 26300)");
         assert_eq!(os_text(Some("Windows 11".into()), None), "Windows 11");
         assert_eq!(os_text(None, Some("1".into())), "build 1");
     }
@@ -93,12 +87,7 @@ mod tests {
     #[cfg(debug_assertions)]
     #[test]
     fn dev_builds_read_the_repo_changelog() {
-        let paths = Paths {
-            config_dir: "c".into(),
-            log_dir: "l".into(),
-            resource_dir: "does-not-exist".into(),
-            data_dir: None,
-        };
+        let paths = Paths { config_dir: "c".into(), log_dir: "l".into(), resource_dir: "does-not-exist".into(), data_dir: None };
         let text = changelog(&paths).unwrap();
         assert!(text.contains("## ["));
     }

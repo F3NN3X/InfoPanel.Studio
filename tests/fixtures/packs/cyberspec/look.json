@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "id": "cyberspec",
+  "name": "CyberSpec",
+  "description": "A dark spec sheet: red at rest, cyan values and yellow for attention, cut corners with micro-print, scanlines and a rare glitch.",
+  "tags": ["pack", "dark", "cyber", "mono"],
+  "modes": { "supported": ["dark"], "stance": "Dark only: the red-on-black spec sheet is the pack." },
+  "fonts": { "body": "pack-field-kit", "display": "pack-field-kit" },
+  "radius": "0.125rem",
+  "t1": {
+    "dark": {
+      "bg": { "value": "#0B0B10" },
+      "surface": { "value": "#14141B" },
+      "surface-2": { "value": "#1D1D27" },
+      "fg": { "value": "oklch(0.86 0.12 200)" },
+      "fg-2": { "value": "{fg}" },
+      "muted": { "value": "oklch(0.7 0.16 25)" },
+      "border": { "value": "oklch(0.55 0.2 25)" },
+      "border-soft": { "value": "{border}" },
+      "accent": { "value": "oklch(0.85 0.13 200)" },
+      "accent-on": { "value": "#0B0B10" },
+      "accent-hover": { "value": "{accent}" },
+      "focus-ring": { "value": "{accent}" },
+      "ok": { "value": "oklch(0.8 0.15 155)" },
+      "warn": { "value": "oklch(0.88 0.17 95)" },
+      "crit": { "value": "oklch(0.7 0.2 25)" },
+      "info": { "value": "{accent}" }
+    }
+  },
+  "t2": {
+    "default": "look-cyberspec",
+    "materials": {
+      "look-cyberspec": { "kind": "solid", "tone": "dark", "export": "#14141B" }
+    }
+  },
+  "t3": { "ring-style": "segmented", "meter-style": "segments", "ring-cap": "butt", "label-case": "upper" },
+  "ext": {}
+}

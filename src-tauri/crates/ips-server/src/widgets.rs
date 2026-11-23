@@ -99,12 +99,16 @@ const EXT_NS: &str = "ext.";
 /// A name Windows keeps for a device (`con`, `nul`, `com1`, ... with or without an extension).
 fn is_device_name(s: &str) -> bool {
     let stem = s.split('.').next().unwrap_or("");
-    matches!(stem, "con" | "prn" | "aux" | "nul") || (stem.len() == 4 && (stem.starts_with("com") || stem.starts_with("lpt")) && matches!(stem.as_bytes()[3], b'1'..=b'9'))
+    matches!(stem, "con" | "prn" | "aux" | "nul")
+        || (stem.len() == 4 && (stem.starts_with("com") || stem.starts_with("lpt")) && matches!(stem.as_bytes()[3], b'1'..=b'9'))
 }
 
 /// A lowercase name of letters, digits and hyphens, 1 to `max` characters, not starting with a hyphen, not a device name.
 fn is_name(s: &str, max: usize) -> bool {
-    (1..=max).contains(&s.len()) && !is_device_name(s) && !s.starts_with('-') && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+    (1..=max).contains(&s.len())
+        && !is_device_name(s)
+        && !s.starts_with('-')
+        && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
 /// A package key: `recipe.<name>` with a name of up to 48 (the id `recipe:<name>`), or `ext.<publisher>.<name>` with a publisher
@@ -113,7 +117,9 @@ pub fn is_widget_key(s: &str) -> bool {
     if let Some(name) = s.strip_prefix(RECIPE_NS) {
         return is_name(name, 48);
     }
-    s.strip_prefix(EXT_NS).and_then(|rest| rest.split_once('.')).is_some_and(|(publisher, name)| is_name(publisher, 32) && is_name(name, 48))
+    s.strip_prefix(EXT_NS)
+        .and_then(|rest| rest.split_once('.'))
+        .is_some_and(|(publisher, name)| is_name(publisher, 32) && is_name(name, 48))
 }
 
 /// The key of a package id (`recipe:<name>` -> `recipe.<name>`, `ext:<publisher>.<name>` -> `ext.<publisher>.<name>`).
@@ -185,7 +191,13 @@ pub struct Switches {
 
 impl Switches {
     fn of(v: &Value) -> Self {
-        let off = v.get("off").and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str).filter(|id| id.starts_with("ext:") && key_of(id).is_some());
+        let off = v
+            .get("off")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .filter(|id| id.starts_with("ext:") && key_of(id).is_some());
         Self { on: v.get("on").and_then(Value::as_bool).unwrap_or(true), off: off.take(OFF_MAX).map(str::to_string).collect() }
     }
 }
@@ -215,7 +227,10 @@ fn checked_files(files: &Files, key: Option<&str>) -> Result<(Listed, Value), Re
     }
     let json = |name: &str| -> Result<Value, Refused> {
         let bytes = files.iter().find(|(p, _)| p == name).map(|(_, b)| b).ok_or_else(|| refuse(400, format!("{name} is missing")))?;
-        serde_json::from_slice::<Value>(bytes).ok().filter(Value::is_object).ok_or_else(|| refuse(400, format!("{name} is not a JSON object")))
+        serde_json::from_slice::<Value>(bytes)
+            .ok()
+            .filter(Value::is_object)
+            .ok_or_else(|| refuse(400, format!("{name} is not a JSON object")))
     };
     let manifest = json(MANIFEST)?;
     let text = |v: &Value, field: &str| v.get(field).and_then(Value::as_str).map(str::to_string);
@@ -238,8 +253,13 @@ fn checked_files(files: &Files, key: Option<&str>) -> Result<(Listed, Value), Re
             Some(recipe)
         }
         "code" => {
-            let Some(publisher) = id.strip_prefix("ext:").and_then(|rest| rest.split_once('.')).map(|(p, _)| p).filter(|_| key_of(&id).is_some()) else {
-                return Err(refuse(400, "the manifest's id is not ext:<publisher>.<name> (lowercase letters, digits and hyphens; 32 and 48 at most)"));
+            let Some(publisher) =
+                id.strip_prefix("ext:").and_then(|rest| rest.split_once('.')).map(|(p, _)| p).filter(|_| key_of(&id).is_some())
+            else {
+                return Err(refuse(
+                    400,
+                    "the manifest's id is not ext:<publisher>.<name> (lowercase letters, digits and hyphens; 32 and 48 at most)",
+                ));
             };
             if text(&manifest, "publisher").as_deref() != Some(publisher) {
                 return Err(refuse(400, "the manifest's publisher is not the one its id names"));
@@ -252,7 +272,9 @@ fn checked_files(files: &Files, key: Option<&str>) -> Result<(Listed, Value), Re
             }
             None
         }
-        _ => return Err(refuse(400, format!("kind {:?}: a widget package is a recipe or code", kind.chars().take(20).collect::<String>()))),
+        _ => {
+            return Err(refuse(400, format!("kind {:?}: a widget package is a recipe or code", kind.chars().take(20).collect::<String>())))
+        }
     };
     if key.is_some_and(|k| Some(k) != key_of(&id).as_deref()) {
         return Err(refuse(400, "the manifest names another package than its folder"));
@@ -268,14 +290,21 @@ fn checked_files(files: &Files, key: Option<&str>) -> Result<(Listed, Value), Re
         let Some((_, bytes)) = files.iter().find(|(p, _)| p == path && p != MANIFEST) else {
             return Err(refuse(400, format!("{} is listed and not in the package", path.chars().take(60).collect::<String>())));
         };
-        if entry.get("bytes").and_then(Value::as_u64) != Some(bytes.len() as u64) || entry.get("sha256").and_then(Value::as_str) != Some(sha256_hex(bytes).as_str()) {
+        if entry.get("bytes").and_then(Value::as_u64) != Some(bytes.len() as u64)
+            || entry.get("sha256").and_then(Value::as_str) != Some(sha256_hex(bytes).as_str())
+        {
             return Err(refuse(400, format!("{path} is not the file the manifest lists (size or SHA-256)")));
         }
     }
     if let Some((path, _)) = files.iter().find(|(p, _)| p != MANIFEST && !listed.contains(&p.as_str())) {
         return Err(refuse(400, format!("{path} is not in the manifest")));
     }
-    let name = text(&manifest, "name").or_else(|| recipe.as_ref().and_then(|r| text(r, "name"))).unwrap_or_else(|| id.clone()).chars().take(80).collect();
+    let name = text(&manifest, "name")
+        .or_else(|| recipe.as_ref().and_then(|r| text(r, "name")))
+        .unwrap_or_else(|| id.clone())
+        .chars()
+        .take(80)
+        .collect();
     Ok((Listed { id, kind, name, version, trust: String::new() }, manifest))
 }
 
@@ -306,7 +335,8 @@ impl Widgets {
     /// turns off the code widgets only.
     pub fn new(dir: PathBuf, keys: KeyStore, allow_remote: bool) -> Self {
         let off = |name: &str| matches!(std::env::var(name).ok().as_deref(), Some("off" | "0"));
-        let widgets = Self { dir, enabled: !off("USER_WIDGETS"), code_enabled: !off("USER_CODE_WIDGETS"), keys, allow_remote, write: Mutex::new(()) };
+        let widgets =
+            Self { dir, enabled: !off("USER_WIDGETS"), code_enabled: !off("USER_CODE_WIDGETS"), keys, allow_remote, write: Mutex::new(()) };
         widgets.sweep();
         widgets
     }
@@ -362,7 +392,9 @@ impl Widgets {
                 None => temps.push(entry.path()),
             }
         }
-        asides.sort_by_key(|(_, path)| std::cmp::Reverse((std::fs::metadata(path.join(MANIFEST)).and_then(|m| m.modified()).ok(), path.clone())));
+        asides.sort_by_key(|(_, path)| {
+            std::cmp::Reverse((std::fs::metadata(path.join(MANIFEST)).and_then(|m| m.modified()).ok(), path.clone()))
+        });
         let mut kept = false;
         for (key, path) in asides {
             match key.map(|k| self.dir.join(k)) {
@@ -382,7 +414,13 @@ impl Widgets {
     /// Stores a checked import under the write lock: written beside its place under a name no key has, then moved in, so a
     /// half-written package is never a package; a replaced one is set aside until the new one is in place, and its origin is kept.
     /// `check` runs under the lock first and refuses the write when it says why. The origin written comes back.
-    fn store(&self, key: &str, files: &Files, origin: &'static str, check: impl FnOnce() -> Option<Refused>) -> std::io::Result<Result<&'static str, Refused>> {
+    fn store(
+        &self,
+        key: &str,
+        files: &Files,
+        origin: &'static str,
+        check: impl FnOnce() -> Option<Refused>,
+    ) -> std::io::Result<Result<&'static str, Refused>> {
         let _held = self.write.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(refused) = check() {
             return Ok(Err(refused));
@@ -492,7 +530,13 @@ impl Widgets {
             let new = widget_sign::verify(incoming, ring).ok().flatten();
             let same = matches!((old, new), (Some(o), Some(n)) if o.key.bytes == n.key.bytes);
             if !same {
-                return Some(refuse(409, format!("{name} is installed, signed with the key {}: only that key may replace it (remove it first to install this one)", widget_sign::fingerprint(&id))));
+                return Some(refuse(
+                    409,
+                    format!(
+                        "{name} is installed, signed with the key {}: only that key may replace it (remove it first to install this one)",
+                        widget_sign::fingerprint(&id)
+                    ),
+                ));
             }
         }
         let signed = stored.get("signature").is_some() || incoming.get("signature").is_some();
@@ -568,7 +612,12 @@ fn listed_files(manifest: &Value) -> Vec<(String, String)> {
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .map(|f| (f.get("path").and_then(Value::as_str).unwrap_or("").to_string(), f.get("sha256").and_then(Value::as_str).unwrap_or("").to_string()))
+        .map(|f| {
+            (
+                f.get("path").and_then(Value::as_str).unwrap_or("").to_string(),
+                f.get("sha256").and_then(Value::as_str).unwrap_or("").to_string(),
+            )
+        })
         .collect();
     out.sort();
     out
@@ -628,7 +677,11 @@ fn handle_list(app: &App) -> Response<Body> {
     if !widgets.code_on() {
         reply.headers_mut().insert("X-User-Code-Widgets", HeaderValue::from_static("off"));
     }
-    if widgets.enabled { reply } else { off(reply) }
+    if widgets.enabled {
+        reply
+    } else {
+        off(reply)
+    }
 }
 
 /// An import's body as files: `{ files: [{ path, data }] }`, each path checked before it is decoded.
@@ -643,7 +696,9 @@ fn decoded(body: &Value) -> Result<Files, Refused> {
         if !is_widget_file(path) {
             return Err(refuse(400, format!("{} is not a file a widget package has", path.chars().take(60).collect::<String>())));
         }
-        let bytes = STANDARD.decode(f.get("data").and_then(Value::as_str).unwrap_or("")).map_err(|_| refuse(400, format!("{path} is not base64")))?;
+        let bytes = STANDARD
+            .decode(f.get("data").and_then(Value::as_str).unwrap_or(""))
+            .map_err(|_| refuse(400, format!("{path} is not base64")))?;
         files.push((path.to_string(), bytes));
     }
     Ok(files)
@@ -694,7 +749,10 @@ async fn handle_import(app: &App, mut req: Req) -> std::io::Result<Response<Body
         Err(Refused(status, message)) => return Ok(http::text(status, message)),
     };
     let size: u64 = files.iter().map(|(_, b)| b.len() as u64).sum();
-    Ok(http::json(200, &json!({ "id": listed.id, "kind": listed.kind, "name": listed.name, "version": listed.version, "size": size, "origin": origin, "trust": listed.trust })))
+    Ok(http::json(
+        200,
+        &json!({ "id": listed.id, "kind": listed.kind, "name": listed.name, "version": listed.version, "size": size, "origin": origin, "trust": listed.trust }),
+    ))
 }
 
 fn handle_delete(app: &App, req: &Req, key: &str) -> std::io::Result<Response<Body>> {
@@ -771,7 +829,9 @@ async fn handle_switches(app: &App, mut req: Req) -> std::io::Result<Response<Bo
             }
             let _held = widgets.write.lock().unwrap_or_else(|e| e.into_inner());
             let now = widgets.switches();
-            let next = Switches::of(&json!({ "on": body.get("on").cloned().unwrap_or(Value::Bool(now.on)), "off": body.get("off").cloned().unwrap_or(json!(now.off)) }));
+            let next = Switches::of(
+                &json!({ "on": body.get("on").cloned().unwrap_or(Value::Bool(now.on)), "off": body.get("off").cloned().unwrap_or(json!(now.off)) }),
+            );
             std::fs::create_dir_all(&widgets.dir)?;
             crate::store::write_atomic(&widgets.dir.join(SWITCHES), json!({ "on": next.on, "off": next.off }).to_string().as_bytes())?;
             Ok(http::json(200, &view(widgets)))
@@ -784,7 +844,9 @@ async fn handle_switches(app: &App, mut req: Req) -> std::io::Result<Response<Bo
 pub fn handle_keys(app: &App, req: &Req) -> Response<Body> {
     match req.method {
         Method::GET => http::json(200, &json!({ "keys": app.widgets.keys.list() })),
-        Method::POST | Method::PUT | Method::PATCH | Method::DELETE => http::text(403, "publisher keys are added and removed in the app's Settings window only"),
+        Method::POST | Method::PUT | Method::PATCH | Method::DELETE => {
+            http::text(403, "publisher keys are added and removed in the app's Settings window only")
+        }
         _ => http::empty(405),
     }
 }
@@ -817,13 +879,50 @@ mod tests {
 
     #[test]
     fn keys_are_recipe_names_of_at_most_48_or_publisher_and_name() {
-        for ok in ["recipe.a", "recipe.cpu-card", "recipe.0x", &format!("recipe.{}", "a".repeat(48)), "ext.me.a", "ext.acme-co.cpu-card", &format!("ext.{}.{}", "p".repeat(32), "a".repeat(48))] {
+        for ok in [
+            "recipe.a",
+            "recipe.cpu-card",
+            "recipe.0x",
+            &format!("recipe.{}", "a".repeat(48)),
+            "ext.me.a",
+            "ext.acme-co.cpu-card",
+            &format!("ext.{}.{}", "p".repeat(32), "a".repeat(48)),
+        ] {
             assert!(is_widget_key(ok), "{ok}");
         }
-        for bad in ["recipe.", "recipe.nul", "recipe.com1", "recipe.-a", "recipe.A", "recipe.a_b", "recipe.a.b", "recipe.a/b", "recipe:a", "Recipe.a", "a", "..", "", "recipe.é", &format!("recipe.{}", "a".repeat(49))] {
+        for bad in [
+            "recipe.",
+            "recipe.nul",
+            "recipe.com1",
+            "recipe.-a",
+            "recipe.A",
+            "recipe.a_b",
+            "recipe.a.b",
+            "recipe.a/b",
+            "recipe:a",
+            "Recipe.a",
+            "a",
+            "..",
+            "",
+            "recipe.é",
+            &format!("recipe.{}", "a".repeat(49)),
+        ] {
             assert!(!is_widget_key(bad), "{bad:?}");
         }
-        for bad in ["ext.", "ext.me", "ext.me.", "ext..a", "ext.me.a.b", "ext.me.nul", "ext.Me.a", "ext.me/a", "ext:me.a", "ext.-me.a", &format!("ext.{}.a", "p".repeat(33)), &format!("ext.p.{}", "a".repeat(49))] {
+        for bad in [
+            "ext.",
+            "ext.me",
+            "ext.me.",
+            "ext..a",
+            "ext.me.a.b",
+            "ext.me.nul",
+            "ext.Me.a",
+            "ext.me/a",
+            "ext:me.a",
+            "ext.-me.a",
+            &format!("ext.{}.a", "p".repeat(33)),
+            &format!("ext.p.{}", "a".repeat(49)),
+        ] {
             assert!(!is_widget_key(bad), "{bad:?}");
         }
         assert_eq!(key_of("recipe:cpu-card").as_deref(), Some("recipe.cpu-card"));
@@ -839,9 +938,33 @@ mod tests {
             assert!(is_widget_file(ok), "{ok}");
         }
         for bad in [
-            "", "pack.json", "Manifest.json", "../recipe.json", "images/../recipe.json", "images/", "images/a", "images/a.svg", "images/a.gif", "images/a.PNG", "images/a/b.png",
-            "images\\a.png", "images/a%2epng", "images/a.png ", "images/a.png\0", "images/é.png", "C:/x.png", "//x/y.png", "images/con.png", "images/-a.png", "recipe.json/", "./recipe.json",
-            "bundle.js", "images/a.png:stream", "widget.mjs", "images/widget.js", "./widget.js",
+            "",
+            "pack.json",
+            "Manifest.json",
+            "../recipe.json",
+            "images/../recipe.json",
+            "images/",
+            "images/a",
+            "images/a.svg",
+            "images/a.gif",
+            "images/a.PNG",
+            "images/a/b.png",
+            "images\\a.png",
+            "images/a%2epng",
+            "images/a.png ",
+            "images/a.png\0",
+            "images/é.png",
+            "C:/x.png",
+            "//x/y.png",
+            "images/con.png",
+            "images/-a.png",
+            "recipe.json/",
+            "./recipe.json",
+            "bundle.js",
+            "images/a.png:stream",
+            "widget.mjs",
+            "images/widget.js",
+            "./widget.js",
         ] {
             assert!(!is_widget_file(bad), "{bad:?}");
         }
@@ -878,16 +1001,25 @@ mod tests {
     }
 
     fn with_manifest(files: &Files, manifest: &Value) -> Files {
-        files.iter().map(|(p, b)| (p.clone(), if p == MANIFEST { serde_json::to_vec_pretty(manifest).unwrap() } else { b.clone() })).collect()
+        files
+            .iter()
+            .map(|(p, b)| (p.clone(), if p == MANIFEST { serde_json::to_vec_pretty(manifest).unwrap() } else { b.clone() }))
+            .collect()
     }
 
     /// A keyring that trusts the TEST-ONLY publisher key as a user key named Test, and revokes it when `revoked`.
     fn ring(trusted: bool, revoked: bool) -> Keyring {
-        let pub_key = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../tests/fixtures/widgets/TEST-ONLY-publisher.pub")).unwrap();
+        let pub_key =
+            std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../tests/fixtures/widgets/TEST-ONLY-publisher.pub"))
+                .unwrap();
         let key = widget_sign::Key::parse(&pub_key).unwrap();
         let publishers = vec!["test".to_string()];
         Keyring {
-            trusted: if trusted { vec![widget_sign::Trusted { signer: widget_sign::Signer::User("Test".into()), key: key.clone(), publishers }] } else { vec![] },
+            trusted: if trusted {
+                vec![widget_sign::Trusted { signer: widget_sign::Signer::User("Test".into()), key: key.clone(), publishers }]
+            } else {
+                vec![]
+            },
             revoked: if revoked { vec![key] } else { vec![] },
         }
     }
@@ -907,21 +1039,35 @@ mod tests {
 
         let mut tampered = good.clone();
         tampered.iter_mut().find(|(p, _)| p == BUNDLE).unwrap().1.extend_from_slice(b"alert(1)");
-        assert!(trust(&tampered, &ring(true, false)).unwrap_err().contains("widget.js is not the file the manifest lists"), "a tampered file");
+        assert!(
+            trust(&tampered, &ring(true, false)).unwrap_err().contains("widget.js is not the file the manifest lists"),
+            "a tampered file"
+        );
 
         let mut renamed = manifest_of(&good);
         renamed["name"] = json!("Another clock");
-        assert_eq!(trust(&with_manifest(&good, &renamed), &ring(true, false)).unwrap_err(), "the signature does not match the package", "a changed manifest field");
+        assert_eq!(
+            trust(&with_manifest(&good, &renamed), &ring(true, false)).unwrap_err(),
+            "the signature does not match the package",
+            "a changed manifest field"
+        );
         let mut moved = manifest_of(&good);
         moved["files"][0]["sha256"] = json!(sha256_hex(b"other"));
         assert!(trust(&with_manifest(&good, &moved), &ring(true, false)).is_err(), "a changed hash");
 
-        assert!(trust(&good, &ring(false, false)).unwrap_err().starts_with("signed with a key this app does not trust ("), "an unknown key");
+        assert!(
+            trust(&good, &ring(false, false)).unwrap_err().starts_with("signed with a key this app does not trust ("),
+            "an unknown key"
+        );
         assert!(trust(&good, &ring(true, true)).unwrap_err().starts_with("signed with a revoked key ("), "a revoked key");
 
         let mut unsigned = manifest_of(&good);
         unsigned.as_object_mut().unwrap().remove("signature");
-        assert_eq!(trust(&with_manifest(&good, &unsigned), &ring(true, false)).unwrap_err(), "a code widget must be signed, and this one is not", "a missing signature");
+        assert_eq!(
+            trust(&with_manifest(&good, &unsigned), &ring(true, false)).unwrap_err(),
+            "a code widget must be signed, and this one is not",
+            "a missing signature"
+        );
 
         let mut forged = manifest_of(&good);
         let text = forged["signature"]["minisign"].as_str().unwrap().to_string();
@@ -930,7 +1076,11 @@ mod tests {
         sig[20] ^= 1;
         lines[1] = STANDARD.encode(sig);
         forged["signature"]["minisign"] = json!(lines.join("\n"));
-        assert_eq!(trust(&with_manifest(&good, &forged), &ring(true, false)).unwrap_err(), "the signature does not match the package", "a bad signature");
+        assert_eq!(
+            trust(&with_manifest(&good, &forged), &ring(true, false)).unwrap_err(),
+            "the signature does not match the package",
+            "a bad signature"
+        );
         for junk in [json!("text"), json!({ "minisign": "not one" }), json!({ "minisign": text, "extra": 1 })] {
             let mut bad = manifest_of(&good);
             bad["signature"] = junk;
@@ -974,8 +1124,21 @@ mod tests {
         write(dir.path(), "recipe.mine", &package("recipe:mine"));
         let mut widgets = Widgets::with(dir.path().to_path_buf(), true);
         let trusts = |w: &Widgets| listed(w).into_iter().map(|(k, (l, _))| format!("{k} {}", l.trust)).collect::<Vec<_>>();
-        assert_eq!(trusts(&widgets), ["ext.test.clock refused:signed with a key this app does not trust (FD89B8C08B250DF6)", "recipe.mine unsigned"]);
-        widgets.keys.add_user("Test", &std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../tests/fixtures/widgets/TEST-ONLY-publisher.pub")).unwrap(), &["test".into()]).unwrap();
+        assert_eq!(
+            trusts(&widgets),
+            ["ext.test.clock refused:signed with a key this app does not trust (FD89B8C08B250DF6)", "recipe.mine unsigned"]
+        );
+        widgets
+            .keys
+            .add_user(
+                "Test",
+                &std::fs::read_to_string(
+                    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../tests/fixtures/widgets/TEST-ONLY-publisher.pub"),
+                )
+                .unwrap(),
+                &["test".into()],
+            )
+            .unwrap();
         assert_eq!(trusts(&widgets), ["ext.test.clock user:Test", "recipe.mine unsigned"]);
         assert!(widgets.path_of("ext.test.clock", BUNDLE).is_some());
         widgets.code_enabled = false;
@@ -1021,7 +1184,8 @@ mod tests {
         write(dir.path(), ".import-1", &package("recipe:half"));
         write(dir.path(), ".import-old-recipe.back-11111111-2222-3333-4444-555555555555", &package("recipe:back"));
         Widgets::with(dir.path().to_path_buf(), true).sweep();
-        let mut names: Vec<String> = std::fs::read_dir(dir.path()).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+        let mut names: Vec<String> =
+            std::fs::read_dir(dir.path()).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
         names.sort();
         assert_eq!(names, ["recipe.back", "recipe.kept"]);
     }

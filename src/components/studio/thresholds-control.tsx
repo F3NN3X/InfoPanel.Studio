@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Slider } from "@/components/ui/slider-field";
 import { OFF, QUANTITIES, type QuantitySpec } from "@/lib/theme-model";
 import { inUnit, levelOf } from "@/modules/setting-readers";
 import type { ModuleSettingValue, ThresholdQuantity } from "@/modules/types";
@@ -86,8 +87,8 @@ function LevelLine({ name, level, spec, free, text, fallback, onChange }: LevelL
   const off = level === OFF;
   const value = off ? fallback : level;
   return (
-    <div className="flex min-h-[26px] items-center gap-2">
-      <span className="w-[58px] shrink-0 text-micro text-ui-3">{name}</span>
+    <div className="flex min-h-6.5 items-center gap-2">
+      <span className="w-14.5 shrink-0 text-micro text-ui-3">{name}</span>
       {free ? (
         <input
           type="number"
@@ -95,22 +96,12 @@ function LevelLine({ name, level, spec, free, text, fallback, onChange }: LevelL
           disabled={off}
           value={value}
           onChange={(e) => e.target.value !== "" && onChange(Number(e.target.value))}
-          className={cn(FIELD, "h-[26px] min-w-0 flex-1 px-1.5 text-right font-ui-mono text-micro disabled:opacity-40")}
+          className={cn(FIELD, "h-6.5 min-w-0 flex-1 px-1.5 text-right font-ui-mono text-micro disabled:opacity-40")}
         />
       ) : (
-        <input
-          type="range"
-          aria-label={name}
-          disabled={off}
-          min={spec.min}
-          max={spec.max}
-          step={spec.step}
-          value={value}
-          onChange={(e) => onChange(e.currentTarget.valueAsNumber)}
-          className="m-0 h-4 min-w-0 flex-1 cursor-pointer accent-[var(--ui-accent)] disabled:cursor-default disabled:opacity-40"
-        />
+        <Slider label={name} disabled={off} min={spec.min} max={spec.max} step={spec.step} value={value} onChange={onChange} className="flex-1" />
       )}
-      <span className="min-w-[46px] text-right font-ui-mono text-micro text-ui-1">{text}</span>
+      <span className="min-w-11.5 text-right font-ui-mono text-micro text-ui-1">{text}</span>
       <button
         type="button"
         aria-pressed={off}

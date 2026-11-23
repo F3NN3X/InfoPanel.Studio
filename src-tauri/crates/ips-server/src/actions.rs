@@ -49,10 +49,8 @@ const LOG_READ: usize = 200;
 const STORE: &str = "actions.json";
 const LOG: &str = "actions-log.jsonl";
 
-pub const OFF_MESSAGE: &str =
-    "Running commands is off. Turn it on in Settings > Actions on the PC running InfoPanel Studio.";
-pub const UNAPPROVED_MESSAGE: &str =
-    "This command isn't approved. Approve it in Settings > Actions on the PC running InfoPanel Studio.";
+pub const OFF_MESSAGE: &str = "Running commands is off. Turn it on in Settings > Actions on the PC running InfoPanel Studio.";
+pub const UNAPPROVED_MESSAGE: &str = "This command isn't approved. Approve it in Settings > Actions on the PC running InfoPanel Studio.";
 pub const APPROVE_HERE_MESSAGE: &str = "Commands are approved on the PC running InfoPanel Studio only.";
 
 /// A command cut into its program and arguments, or why it can't be.
@@ -213,11 +211,8 @@ impl Actions {
         }
         let file = self.dir.join(LOG);
         let _ = std::fs::create_dir_all(&self.dir);
-        let written = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&file)
-            .and_then(|mut f| writeln!(f, "{}", Value::Object(line)));
+        let written =
+            std::fs::OpenOptions::new().create(true).append(true).open(&file).and_then(|mut f| writeln!(f, "{}", Value::Object(line)));
         if let Err(err) = written {
             log::warn!(target: "server", "actions: could not write the log: {err}");
         }
@@ -383,7 +378,8 @@ async fn handle_run(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
     }
     let now = crate::config::now_ms();
     if let Some(refusal) = remote_edit_refusal(Some(&req.peer), app.cfg.allow_remote_edit) {
-        app.actions.log(now, &Entry { from: req.peer.clone(), command: None, outcome: "refused", reason: Some("remote".into()), program: None });
+        app.actions
+            .log(now, &Entry { from: req.peer.clone(), command: None, outcome: "refused", reason: Some("remote".into()), program: None });
         return Ok(error(refusal.status, "remote", refusal.message));
     }
     if let Some(refusal) = control_write_refusal(req.header("content-type").as_deref(), req.header("x-dashboard-control").as_deref()) {
@@ -397,7 +393,13 @@ async fn handle_run(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
         Ok(run) => run,
         Err(message) => return Ok(http::text(400, message)),
     };
-    let entry = |outcome, reason: Option<String>, program: Option<(String, Vec<String>)>| Entry { from: req.peer.clone(), command: Some(command.clone()), outcome, reason, program };
+    let entry = |outcome, reason: Option<String>, program: Option<(String, Vec<String>)>| Entry {
+        from: req.peer.clone(),
+        command: Some(command.clone()),
+        outcome,
+        reason,
+        program,
+    };
     Ok(match decide(app.cfg.action_runner, &app.actions.stored(), &command, dry) {
         Decision::Refused { status, reason, message } => {
             app.actions.log(now, &entry("refused", Some(reason.into()), None));
@@ -437,7 +439,10 @@ mod tests {
         assert_eq!(split("  explorer.exe   ms-settings:sound "), ok("explorer.exe", &["ms-settings:sound"]));
         assert_eq!(split(r#""C:\Program Files\App\app.exe" --open "a b""#), ok(r"C:\Program Files\App\app.exe", &["--open", "a b"]));
         // shell syntax is plain text: no pipe, no redirect, no chaining, no variables
-        assert_eq!(split("cmd /c echo hi & del x | more > out %PATH% ^"), ok("cmd", &["/c", "echo", "hi", "&", "del", "x", "|", "more", ">", "out", "%PATH%", "^"]));
+        assert_eq!(
+            split("cmd /c echo hi & del x | more > out %PATH% ^"),
+            ok("cmd", &["/c", "echo", "hi", "&", "del", "x", "|", "more", ">", "out", "%PATH%", "^"])
+        );
         // a quote inside quotes is two; an empty pair is an empty argument; quotes join with what touches them
         assert_eq!(split(r#"app "say ""hi""" "" a"b c"d"#), ok("app", &[r#"say "hi""#, "", "ab cd"]));
         // backslashes are kept as they are (Windows paths)
@@ -471,7 +476,10 @@ mod tests {
         assert_eq!(refused(decide(true, &approved, "NOTEPAD a.txt", false)), (403, "unapproved"));
         assert_eq!(refused(decide(true, &approved, r#"app "x"#, false)), (400, "command"));
         assert_eq!(decide(true, &approved, "notepad a.txt", true), Decision::Dry { program: "notepad".into(), args: vec!["a.txt".into()] });
-        assert_eq!(decide(true, &approved, "notepad a.txt", false), Decision::Run { program: "notepad".into(), args: vec!["a.txt".into()] });
+        assert_eq!(
+            decide(true, &approved, "notepad a.txt", false),
+            Decision::Run { program: "notepad".into(), args: vec!["a.txt".into()] }
+        );
         // test mode makes every run a dry one
         let testing = Stored { test_mode: true, ..approved };
         assert_eq!(decide(true, &testing, "notepad a.txt", false), Decision::Dry { program: "notepad".into(), args: vec!["a.txt".into()] });
@@ -498,7 +506,16 @@ mod tests {
     fn logs_every_line_and_cuts_the_log_back() {
         let dir = tempfile::tempdir().unwrap();
         let a = Actions::new(dir.path().to_path_buf());
-        a.log(1, &Entry { from: "127.0.0.1".into(), command: Some("app x".into()), outcome: "dry", reason: None, program: Some(("app".into(), vec!["x".into()])) });
+        a.log(
+            1,
+            &Entry {
+                from: "127.0.0.1".into(),
+                command: Some("app x".into()),
+                outcome: "dry",
+                reason: None,
+                program: Some(("app".into(), vec!["x".into()])),
+            },
+        );
         a.log(2, &Entry { from: "192.168.1.9".into(), command: None, outcome: "refused", reason: Some("remote".into()), program: None });
         assert_eq!(
             a.entries(),
@@ -509,7 +526,16 @@ mod tests {
         );
         let long = "x".repeat(1000);
         for i in 0..400 {
-            a.log(i, &Entry { from: "127.0.0.1".into(), command: Some(long.clone()), outcome: "refused", reason: Some("off".into()), program: None });
+            a.log(
+                i,
+                &Entry {
+                    from: "127.0.0.1".into(),
+                    command: Some(long.clone()),
+                    outcome: "refused",
+                    reason: Some("off".into()),
+                    program: None,
+                },
+            );
         }
         let size = std::fs::metadata(dir.path().join(LOG)).unwrap().len();
         assert!(size <= LOG_MAX_BYTES, "{size}");

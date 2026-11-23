@@ -218,7 +218,12 @@ async fn the_hook_route_takes_its_headers_and_body() {
     let server = start().await;
     let port = server.port;
     assert_eq!(send(port, "POST", "/api/agents/permission?agent=claude", &[("Content-Type", "application/json")], "{}").await.status, 403);
-    assert_eq!(send(port, "POST", "/api/agents/permission?agent=claude", &[("Content-Type", "text/plain"), ("X-Agent-Event", "1")], "{}").await.status, 415);
+    assert_eq!(
+        send(port, "POST", "/api/agents/permission?agent=claude", &[("Content-Type", "text/plain"), ("X-Agent-Event", "1")], "{}")
+            .await
+            .status,
+        415
+    );
     assert_eq!(send(port, "POST", "/api/agents/permission?agent=claude", &HOOK, "nope").await.status, 400);
     assert_eq!(send(port, "GET", "/api/agents/permission", &HOOK, "").await.status, 405);
     server.stop().await;

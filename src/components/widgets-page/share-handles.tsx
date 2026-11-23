@@ -133,7 +133,7 @@ export function ShareHandles({ zone, recipe, path, locked, tick, onLive, onDone 
           >
             <span aria-hidden className={cn("rounded-full bg-ui-accent opacity-70 group-hover:opacity-100 group-focus-visible:opacity-100 group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-ui-accent", edge.across ? "h-6 max-h-full w-1" : "h-1 w-6 max-w-full", shown && "opacity-100")} />
             {shown && (
-              <span data-share-text="" className={cn("pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-[4px] px-1.5 py-0.5 font-ui text-[11px] font-medium", shown.why ? "border border-ui-warn bg-ui-panel text-ui-warn" : "bg-ui-accent text-white")}>
+              <span data-share-text="" className={cn("pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-4 px-1.5 py-0.5 font-ui text-micro font-medium", shown.why ? "border border-ui-warn bg-ui-panel text-ui-warn" : "bg-ui-accent text-white")}>
                 {shown.why ?? shown.text}
               </span>
             )}

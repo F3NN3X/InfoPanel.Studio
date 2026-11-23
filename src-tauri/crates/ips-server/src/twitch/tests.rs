@@ -68,10 +68,7 @@ pub(crate) async fn http_fake_slow(
                 let length: usize = head
                     .to_ascii_lowercase()
                     .lines()
-                    .find_map(|l| {
-                        l.strip_prefix("content-length:")
-                            .map(|v| v.trim().parse().unwrap_or(0))
-                    })
+                    .find_map(|l| l.strip_prefix("content-length:").map(|v| v.trim().parse().unwrap_or(0)))
                     .unwrap_or(0);
                 while raw.len() < split + 4 + length {
                     let n = stream.read(&mut chunk).await.unwrap_or(0);
@@ -82,11 +79,7 @@ pub(crate) async fn http_fake_slow(
                 }
                 let body = String::from_utf8_lossy(&raw[(split + 4).min(raw.len())..]).to_string();
                 let path = head.split(' ').nth(1).unwrap_or("").to_string();
-                let request = Request {
-                    path: path.clone(),
-                    head,
-                    body,
-                };
+                let request = Request { path: path.clone(), head, body };
                 let (status, reply) = {
                     let mut log = log.lock().unwrap();
                     let nth = log.iter().filter(|r| r.path == path).count();
@@ -97,7 +90,10 @@ pub(crate) async fn http_fake_slow(
                 if path == slow_path {
                     tokio::time::sleep(delay).await;
                 }
-                let response = format!("HTTP/1.1 {status} X\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{reply}", reply.len());
+                let response = format!(
+                    "HTTP/1.1 {status} X\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{reply}",
+                    reply.len()
+                );
                 let _ = stream.write_all(response.as_bytes()).await;
             });
         }
@@ -163,11 +159,7 @@ fn rig(ep: Endpoints, settings: TwitchSettings) -> Rig {
             }
         },
     );
-    Rig {
-        twitch,
-        saved,
-        changes,
-    }
+    Rig { twitch, saved, changes }
 }
 
 fn signed_in(login: &str, expires_in_ms: i64) -> TwitchSettings {
@@ -194,17 +186,11 @@ pub(crate) async fn until(what: &str, mut cond: impl FnMut() -> bool) {
 }
 
 pub(crate) fn form_of(body: &str) -> Vec<(String, String)> {
-    url::form_urlencoded::parse(body.as_bytes())
-        .into_owned()
-        .collect()
+    url::form_urlencoded::parse(body.as_bytes()).into_owned().collect()
 }
 
 pub(crate) fn field(body: &str, key: &str) -> String {
-    form_of(body)
-        .into_iter()
-        .find(|(k, _)| k == key)
-        .map(|(_, v)| v)
-        .unwrap_or_default()
+    form_of(body).into_iter().find(|(k, _)| k == key).map(|(_, v)| v).unwrap_or_default()
 }
 
 fn device_reply(expires_in: u64) -> String {
@@ -215,13 +201,7 @@ const TOKENS: &str = r#"{"access_token":"new-access","refresh_token":"new-refres
 
 fn no_secrets(value: &Value) {
     let text = value.to_string();
-    for secret in [
-        "old-access",
-        "old-refresh",
-        "new-access",
-        "new-refresh",
-        "dev-1",
-    ] {
+    for secret in ["old-access", "old-refresh", "new-access", "new-refresh", "dev-1"] {
         assert!(!text.contains(secret), "{secret} leaked into {text}");
     }
 }
@@ -233,55 +213,28 @@ async fn signs_in_through_pending_and_slow_down_and_keeps_the_tokens_out_of_what
     let (base, seen) = http_fake(|r, nth| match r.path.as_str() {
         "/oauth2/device" => (200, device_reply(600)),
         "/oauth2/token" => match nth {
-            0 => (
-                400,
-                r#"{"status":400,"message":"authorization_pending"}"#.into(),
-            ),
+            0 => (400, r#"{"status":400,"message":"authorization_pending"}"#.into()),
             1 => (400, r#"{"status":400,"message":"slow_down"}"#.into()),
             _ => (200, TOKENS.into()),
         },
-        "/helix/users" => (
-            200,
-            r#"{"data":[{"id":"99","login":"streamer","display_name":"Streamer"}]}"#.into(),
-        ),
+        "/helix/users" => (200, r#"{"data":[{"id":"99","login":"streamer","display_name":"Streamer"}]}"#.into()),
         _ => (404, "{}".into()),
     })
     .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        TwitchSettings::default(),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), TwitchSettings::default());
     let code = rig.twitch.signin().await.unwrap();
-    assert_eq!(
-        (code.user_code.as_str(), code.expires_in),
-        ("ABCD-EFGH", 600)
-    );
-    assert_eq!(
-        rig.twitch.signin().await,
-        Err(SigninError::Busy),
-        "one flow at a time"
-    );
+    assert_eq!((code.user_code.as_str(), code.expires_in), ("ABCD-EFGH", 600));
+    assert_eq!(rig.twitch.signin().await, Err(SigninError::Busy), "one flow at a time");
     let status = rig.twitch.status();
     assert_eq!(status["pending"], true);
-    assert_eq!(
-        rig.twitch.pending_json()["pending"]["user_code"],
-        "ABCD-EFGH"
-    );
-    assert!(
-        !status.to_string().contains("ABCD-EFGH") && !status.to_string().contains("activate"),
-        "the code is not in the kiosks' status"
-    );
+    assert_eq!(rig.twitch.pending_json()["pending"]["user_code"], "ABCD-EFGH");
+    assert!(!status.to_string().contains("ABCD-EFGH") && !status.to_string().contains("activate"), "the code is not in the kiosks' status");
     assert_eq!(status["signedIn"], false);
 
     until("the sign-in", || rig.twitch.status()["signedIn"] == true).await;
     let status = rig.twitch.status();
     assert_eq!(
-        (
-            status["login"].as_str(),
-            status["channel"].as_str(),
-            status["pending"] == false,
-            status["error"].is_null()
-        ),
+        (status["login"].as_str(), status["channel"].as_str(), status["pending"] == false, status["error"].is_null()),
         (Some("streamer"), Some("streamer"), true, true)
     );
     no_secrets(&status);
@@ -290,41 +243,24 @@ async fn signs_in_through_pending_and_slow_down_and_keeps_the_tokens_out_of_what
     let saved = rig.saved.lock().unwrap().clone();
     assert_eq!(saved.len(), 1);
     assert_eq!(
-        (
-            saved[0].access_token.as_str(),
-            saved[0].refresh_token.as_str(),
-            saved[0].login.as_str(),
-            saved[0].user_id.as_str()
-        ),
+        (saved[0].access_token.as_str(), saved[0].refresh_token.as_str(), saved[0].login.as_str(), saved[0].user_id.as_str()),
         ("new-access", "new-refresh", "streamer", "99")
     );
 
     let seen = seen.lock().unwrap();
     let device = seen.iter().find(|r| r.path == "/oauth2/device").unwrap();
     assert_eq!(
-        (
-            field(&device.body, "client_id").as_str(),
-            field(&device.body, "scopes").as_str()
-        ),
+        (field(&device.body, "client_id").as_str(), field(&device.body, "scopes").as_str()),
         (auth::CLIENT_ID, "chat:read chat:edit")
     );
     let polls: Vec<_> = seen.iter().filter(|r| r.path == "/oauth2/token").collect();
     assert_eq!(polls.len(), 3);
-    assert_eq!(
-        field(&polls[0].body, "grant_type"),
-        "urn:ietf:params:oauth:grant-type:device_code"
-    );
+    assert_eq!(field(&polls[0].body, "grant_type"), "urn:ietf:params:oauth:grant-type:device_code");
     assert_eq!(field(&polls[0].body, "device_code"), "dev-1");
     let users = seen.iter().find(|r| r.path == "/helix/users").unwrap();
     assert!(
-        users
-            .head
-            .to_ascii_lowercase()
-            .contains("authorization: bearer new-access")
-            && users
-                .head
-                .to_ascii_lowercase()
-                .contains(&format!("client-id: {}", auth::CLIENT_ID))
+        users.head.to_ascii_lowercase().contains("authorization: bearer new-access")
+            && users.head.to_ascii_lowercase().contains(&format!("client-id: {}", auth::CLIENT_ID))
     );
 }
 
@@ -335,10 +271,7 @@ async fn stops_with_a_message_when_the_code_is_declined_or_runs_out() {
         _ => (400, r#"{"status":400,"message":"access_denied"}"#.into()),
     })
     .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        TwitchSettings::default(),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), TwitchSettings::default());
     rig.twitch.signin().await.unwrap();
     until("the refusal", || !rig.twitch.status()["error"].is_null()).await;
     let status = rig.twitch.status();
@@ -349,22 +282,13 @@ async fn stops_with_a_message_when_the_code_is_declined_or_runs_out() {
     // A code that never gets approved runs out on its own clock.
     let (base, _) = http_fake(|r, _| match r.path.as_str() {
         "/oauth2/device" => (200, device_reply(1)),
-        _ => (
-            400,
-            r#"{"status":400,"message":"authorization_pending"}"#.into(),
-        ),
+        _ => (400, r#"{"status":400,"message":"authorization_pending"}"#.into()),
     })
     .await;
-    let rig = self::rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        TwitchSettings::default(),
-    );
+    let rig = self::rig(endpoints(&base, "ws://127.0.0.1:9"), TwitchSettings::default());
     rig.twitch.signin().await.unwrap();
     until("the expiry", || !rig.twitch.status()["error"].is_null()).await;
-    assert!(rig.twitch.status()["error"]
-        .as_str()
-        .unwrap()
-        .contains("expired"));
+    assert!(rig.twitch.status()["error"].as_str().unwrap().contains("expired"));
     // Another try is allowed afterwards.
     assert!(rig.twitch.signin().await.is_ok());
 }
@@ -376,71 +300,32 @@ async fn cancel_ends_a_pending_sign_in_and_a_failed_start_is_reported() {
         _ => (400, r#"{"message":"authorization_pending"}"#.into()),
     })
     .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        TwitchSettings::default(),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), TwitchSettings::default());
     rig.twitch.signin().await.unwrap();
     rig.twitch.signout();
     let status = rig.twitch.status();
     assert!(status["pending"] == false && status["error"].is_null() && status["signedIn"] == false);
-    assert!(
-        rig.twitch.signin().await.is_ok(),
-        "a new flow can start after a cancel"
-    );
+    assert!(rig.twitch.signin().await.is_ok(), "a new flow can start after a cancel");
 
     let (base, _) = http_fake(|_, _| (400, r#"{"message":"invalid client"}"#.into())).await;
-    let rig = self::rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        TwitchSettings::default(),
-    );
+    let rig = self::rig(endpoints(&base, "ws://127.0.0.1:9"), TwitchSettings::default());
     assert!(matches!(rig.twitch.signin().await, Err(SigninError::Failed(m)) if m.contains("400")));
     assert!(rig.twitch.status()["pending"] == false);
     // Nothing is left half-started: the next try gets as far as Twitch again.
-    assert!(matches!(
-        rig.twitch.signin().await,
-        Err(SigninError::Failed(_))
-    ));
+    assert!(matches!(rig.twitch.signin().await, Err(SigninError::Failed(_))));
 }
 
 #[tokio::test]
 async fn signing_out_forgets_the_tokens_and_tells_twitch() {
     let (base, seen) = http_fake(|_, _| (200, "{}".into())).await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        signed_in("streamer", 3_600_000),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), signed_in("streamer", 3_600_000));
     rig.twitch.signout();
     let status = rig.twitch.status();
-    assert_eq!(
-        (status["signedIn"].as_bool(), status["login"].as_str()),
-        (Some(false), Some(""))
-    );
-    assert_eq!(
-        rig.saved.lock().unwrap().last().unwrap(),
-        &TwitchAuth::default()
-    );
-    until("the revoke", || {
-        seen.lock()
-            .unwrap()
-            .iter()
-            .any(|r| r.path == "/oauth2/revoke")
-    })
-    .await;
-    let revoke = seen
-        .lock()
-        .unwrap()
-        .iter()
-        .find(|r| r.path == "/oauth2/revoke")
-        .map(|r| r.body.clone())
-        .unwrap();
-    assert_eq!(
-        (
-            field(&revoke, "token").as_str(),
-            field(&revoke, "client_id").as_str()
-        ),
-        ("old-access", auth::CLIENT_ID)
-    );
+    assert_eq!((status["signedIn"].as_bool(), status["login"].as_str()), (Some(false), Some("")));
+    assert_eq!(rig.saved.lock().unwrap().last().unwrap(), &TwitchAuth::default());
+    until("the revoke", || seen.lock().unwrap().iter().any(|r| r.path == "/oauth2/revoke")).await;
+    let revoke = seen.lock().unwrap().iter().find(|r| r.path == "/oauth2/revoke").map(|r| r.body.clone()).unwrap();
+    assert_eq!((field(&revoke, "token").as_str(), field(&revoke, "client_id").as_str()), ("old-access", auth::CLIENT_ID));
 }
 
 // ---- tokens ----
@@ -451,48 +336,25 @@ async fn refreshes_the_token_on_a_401_and_asks_again() {
         "/oauth2/token" => (200, TOKENS.into()),
         p if p.starts_with("/helix/streams") => {
             if r.head.to_ascii_lowercase().contains("bearer new-access") {
-                (
-                    200,
-                    r#"{"data":[{"viewer_count":42,"type":"live"}]}"#.into(),
-                )
+                (200, r#"{"data":[{"viewer_count":42,"type":"live"}]}"#.into())
             } else {
-                (
-                    401,
-                    r#"{"status":401,"message":"Invalid OAuth token"}"#.into(),
-                )
+                (401, r#"{"status":401,"message":"Invalid OAuth token"}"#.into())
             }
         }
         _ => (404, "{}".into()),
     })
     .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        signed_in("streamer", 3_600_000),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), signed_in("streamer", 3_600_000));
     assert_eq!(rig.twitch.stream_info("somechannel").await, Ok((true, 42)));
-    let refresh = seen
-        .lock()
-        .unwrap()
-        .iter()
-        .find(|r| r.path == "/oauth2/token")
-        .map(|r| r.body.clone())
-        .unwrap();
+    let refresh = seen.lock().unwrap().iter().find(|r| r.path == "/oauth2/token").map(|r| r.body.clone()).unwrap();
     assert_eq!(
-        (
-            field(&refresh, "grant_type").as_str(),
-            field(&refresh, "refresh_token").as_str(),
-            field(&refresh, "client_id").as_str()
-        ),
+        (field(&refresh, "grant_type").as_str(), field(&refresh, "refresh_token").as_str(), field(&refresh, "client_id").as_str()),
         ("refresh_token", "old-refresh", auth::CLIENT_ID)
     );
     assert!(!refresh.contains("client_secret"));
     let saved = rig.saved.lock().unwrap().clone();
     assert_eq!(
-        (
-            saved[0].access_token.as_str(),
-            saved[0].refresh_token.as_str(),
-            saved[0].login.as_str()
-        ),
+        (saved[0].access_token.as_str(), saved[0].refresh_token.as_str(), saved[0].login.as_str()),
         ("new-access", "new-refresh", "streamer")
     );
     assert!(saved[0].expires_at > now_ms() + 3_600_000 * 3);
@@ -505,10 +367,7 @@ async fn refreshes_ahead_of_expiry_and_keeps_the_old_token_when_twitch_cannot_be
         _ => (404, "{}".into()),
     })
     .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        signed_in("streamer", 60_000),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), signed_in("streamer", 60_000));
     assert_eq!(rig.twitch.access_token().await.unwrap(), "new-access");
     assert_eq!(seen.lock().unwrap().len(), 1);
     // A token with plenty of time is used as it is.
@@ -516,39 +375,20 @@ async fn refreshes_ahead_of_expiry_and_keeps_the_old_token_when_twitch_cannot_be
     assert_eq!(seen.lock().unwrap().len(), 1);
 
     let (base, _) = http_fake(|_, _| (503, "{}".into())).await;
-    let rig = self::rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        signed_in("streamer", 60_000),
-    );
-    assert_eq!(
-        rig.twitch.access_token().await.unwrap(),
-        "old-access",
-        "still valid, so still used"
-    );
+    let rig = self::rig(endpoints(&base, "ws://127.0.0.1:9"), signed_in("streamer", 60_000));
+    assert_eq!(rig.twitch.access_token().await.unwrap(), "old-access", "still valid, so still used");
     assert!(rig.twitch.status()["signedIn"] == true);
 }
 
 #[tokio::test]
 async fn a_refresh_twitch_refuses_signs_the_user_out_with_a_reason() {
-    let (base, _) = http_fake(|_, _| {
-        (
-            400,
-            r#"{"status":400,"message":"Invalid refresh token"}"#.into(),
-        )
-    })
-    .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        signed_in("streamer", -1000),
-    );
+    let (base, _) = http_fake(|_, _| (400, r#"{"status":400,"message":"Invalid refresh token"}"#.into())).await;
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), signed_in("streamer", -1000));
     assert!(rig.twitch.access_token().await.is_err());
     let status = rig.twitch.status();
     assert_eq!(status["signedIn"], false);
     assert!(status["error"].as_str().unwrap().contains("Sign in again"));
-    assert_eq!(
-        rig.saved.lock().unwrap().last().unwrap(),
-        &TwitchAuth::default()
-    );
+    assert_eq!(rig.saved.lock().unwrap().last().unwrap(), &TwitchAuth::default());
 }
 
 // ---- sending ----
@@ -560,10 +400,7 @@ async fn refuses_what_cannot_be_sent_before_it_reaches_the_connection() {
     assert_eq!(twitch.send("hello"), Err(SendError::NotConnected));
     assert!(matches!(twitch.send("   "), Err(SendError::Invalid(_))));
     assert!(matches!(twitch.send("a\nb"), Err(SendError::Invalid(_))));
-    assert!(matches!(
-        twitch.send(&"x".repeat(501)),
-        Err(SendError::Invalid(_))
-    ));
+    assert!(matches!(twitch.send(&"x".repeat(501)), Err(SendError::Invalid(_))));
 
     let (tx, mut sent) = mpsc::channel(64);
     *locked(&twitch.outgoing) = Some(tx);
@@ -609,27 +446,16 @@ async fn reads_the_chat_answers_pings_sends_and_clears() {
         }
     })
     .await;
-    let rig = rig(
-        endpoints("http://127.0.0.1:9", &irc),
-        signed_in("streamer", 3_600_000),
-    );
+    let rig = rig(endpoints("http://127.0.0.1:9", &irc), signed_in("streamer", 3_600_000));
     let (stop, shutdown) = watch::channel(false);
     let tasks = rig.twitch.start(&shutdown);
     let ids = |twitch: &Twitch| {
-        twitch.chat_json()["messages"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|m| m["id"].as_str().unwrap().to_string())
-            .collect::<Vec<_>>()
+        twitch.chat_json()["messages"].as_array().unwrap().iter().map(|m| m["id"].as_str().unwrap().to_string()).collect::<Vec<_>>()
     };
 
     until("the three messages", || ids(&rig.twitch).len() == 3).await;
     let chat = rig.twitch.chat_json();
-    assert_eq!(
-        chat["platforms"]["twitch"],
-        json!({ "connected": true, "channel": "streamer" })
-    );
+    assert_eq!(chat["platforms"]["twitch"], json!({ "connected": true, "channel": "streamer" }));
     assert_eq!(
         chat["messages"][0],
         json!({ "id": "m1", "platform": "twitch", "user": "Alice", "text": "hello @streamer", "color": "#FF0000", "badge": "mod", "ts": 1_700_000_000_001i64 })
@@ -638,53 +464,21 @@ async fn reads_the_chat_answers_pings_sends_and_clears() {
     no_secrets(&chat);
     assert_eq!(
         &received.lock().unwrap()[..4],
-        [
-            "CAP REQ :twitch.tv/tags twitch.tv/commands",
-            "PASS oauth:old-access",
-            "NICK streamer",
-            "JOIN #streamer"
-        ]
+        ["CAP REQ :twitch.tv/tags twitch.tv/commands", "PASS oauth:old-access", "NICK streamer", "JOIN #streamer"]
     );
-    until("the PONG", || {
-        received
-            .lock()
-            .unwrap()
-            .iter()
-            .any(|l| l == "PONG :tmi.twitch.tv")
-    })
-    .await;
+    until("the PONG", || received.lock().unwrap().iter().any(|l| l == "PONG :tmi.twitch.tv")).await;
 
     // Our own line goes out and into the window (Twitch does not echo it); the server then clears Alice and Bob's m2.
-    until("the userstate", || {
-        locked(&rig.twitch.inner).me.display == "Streamer"
-    })
-    .await;
+    until("the userstate", || locked(&rig.twitch.inner).me.display == "Streamer").await;
     rig.twitch.send("  my message ").unwrap();
-    until("the send", || {
-        received
-            .lock()
-            .unwrap()
-            .iter()
-            .any(|l| l == "PRIVMSG #streamer :my message")
-    })
-    .await;
+    until("the send", || received.lock().unwrap().iter().any(|l| l == "PRIVMSG #streamer :my message")).await;
     until("the clears", || ids(&rig.twitch).len() == 2).await;
     let chat = rig.twitch.chat_json();
     assert_eq!(chat["messages"][0]["id"], "m3");
     let mine = &chat["messages"][1];
     assert_eq!(
-        (
-            mine["user"].as_str(),
-            mine["text"].as_str(),
-            mine["badge"].as_str(),
-            mine["color"].as_str()
-        ),
-        (
-            Some("Streamer"),
-            Some("my message"),
-            Some("broadcaster"),
-            Some("#00FF00")
-        )
+        (mine["user"].as_str(), mine["text"].as_str(), mine["badge"].as_str(), mine["color"].as_str()),
+        (Some("Streamer"), Some("my message"), Some("broadcaster"), Some("#00FF00"))
     );
     assert!(mine["id"].as_str().unwrap().starts_with("local-"));
     // The status moved with it.
@@ -693,17 +487,11 @@ async fn reads_the_chat_answers_pings_sends_and_clears() {
     // A new channel clears the window and joins the other chat.
     rig.twitch.set_channel("other");
     assert!(ids(&rig.twitch).is_empty());
-    until("the new join", || {
-        received.lock().unwrap().iter().any(|l| l == "JOIN #other")
-    })
-    .await;
+    until("the new join", || received.lock().unwrap().iter().any(|l| l == "JOIN #other")).await;
 
     // Signing out ends the connection.
     rig.twitch.signout();
-    until("the disconnect", || {
-        rig.twitch.chat_json()["platforms"]["twitch"]["connected"] == false
-    })
-    .await;
+    until("the disconnect", || rig.twitch.chat_json()["platforms"]["twitch"]["connected"] == false).await;
     assert_eq!(rig.twitch.send("late"), Err(SendError::NotConnected));
     stop.send(true).unwrap();
     for task in tasks {
@@ -723,12 +511,7 @@ async fn a_refused_login_refreshes_the_token_once_then_signs_out() {
                     return;
                 };
             }
-            socket
-                .send(Ws::text(
-                    ":tmi.twitch.tv NOTICE * :Login authentication failed",
-                ))
-                .await
-                .unwrap();
+            socket.send(Ws::text(":tmi.twitch.tv NOTICE * :Login authentication failed")).await.unwrap();
             let _ = socket.next().await;
         }
     })
@@ -742,23 +525,9 @@ async fn a_refused_login_refreshes_the_token_once_then_signs_out() {
     let (stop, shutdown) = watch::channel(false);
     let tasks = rig.twitch.start(&shutdown);
     until("the sign-out", || rig.twitch.status()["signedIn"] == false).await;
-    assert!(rig.twitch.status()["error"]
-        .as_str()
-        .unwrap()
-        .contains("Sign in again"));
-    assert_eq!(
-        connections.load(Ordering::SeqCst),
-        2,
-        "the refused login, then one try with the new token"
-    );
-    assert_eq!(
-        seen.lock()
-            .unwrap()
-            .iter()
-            .filter(|r| r.path == "/oauth2/token")
-            .count(),
-        1
-    );
+    assert!(rig.twitch.status()["error"].as_str().unwrap().contains("Sign in again"));
+    assert_eq!(connections.load(Ordering::SeqCst), 2, "the refused login, then one try with the new token");
+    assert_eq!(seen.lock().unwrap().iter().filter(|r| r.path == "/oauth2/token").count(), 1);
     stop.send(true).unwrap();
     for task in tasks {
         let _ = task.await;
@@ -779,10 +548,7 @@ async fn follows_the_channels_viewers_while_signed_in() {
         _ => (404, "{}".into()),
     })
     .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        signed_in("streamer", 3_600_000),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), signed_in("streamer", 3_600_000));
     let (stop, shutdown) = watch::channel(false);
     let tasks = rig.twitch.start(&shutdown);
     until("live", || rig.twitch.status()["live"] == true).await;
@@ -797,18 +563,12 @@ async fn follows_the_channels_viewers_while_signed_in() {
 
 #[tokio::test]
 async fn a_refresh_in_flight_cannot_undo_a_sign_out() {
-    let (base, seen) = http_fake_slow("/oauth2/token", Duration::from_millis(400), |r, _| match r
-        .path
-        .as_str()
-    {
+    let (base, seen) = http_fake_slow("/oauth2/token", Duration::from_millis(400), |r, _| match r.path.as_str() {
         "/oauth2/token" => (200, TOKENS.into()),
         _ => (200, "{}".into()),
     })
     .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        signed_in("streamer", 60_000),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), signed_in("streamer", 60_000));
     let twitch = Arc::clone(&rig.twitch);
     let refreshing = tokio::spawn(async move { twitch.access_token().await });
     tokio::time::sleep(Duration::from_millis(150)).await;
@@ -817,34 +577,21 @@ async fn a_refresh_in_flight_cannot_undo_a_sign_out() {
     let status = rig.twitch.status();
     assert_eq!(status["signedIn"], false);
     let saved = rig.saved.lock().unwrap().clone();
-    assert_eq!(
-        saved,
-        vec![TwitchAuth::default()],
-        "nothing of the new tokens was stored"
-    );
+    assert_eq!(saved, vec![TwitchAuth::default()], "nothing of the new tokens was stored");
     until("the new token revoked", || {
-        seen.lock()
-            .unwrap()
-            .iter()
-            .any(|r| r.path == "/oauth2/revoke" && field(&r.body, "token") == "new-access")
+        seen.lock().unwrap().iter().any(|r| r.path == "/oauth2/revoke" && field(&r.body, "token") == "new-access")
     })
     .await;
 }
 
 #[tokio::test]
 async fn a_refresh_for_an_older_sign_in_is_not_applied_to_a_newer_one() {
-    let (base, _) = http_fake_slow("/oauth2/token", Duration::from_millis(300), |r, _| match r
-        .path
-        .as_str()
-    {
+    let (base, _) = http_fake_slow("/oauth2/token", Duration::from_millis(300), |r, _| match r.path.as_str() {
         "/oauth2/token" => (200, TOKENS.into()),
         _ => (200, "{}".into()),
     })
     .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        signed_in("streamer", 60_000),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), signed_in("streamer", 60_000));
     let twitch = Arc::clone(&rig.twitch);
     let refreshing = tokio::spawn(async move { twitch.access_token().await });
     tokio::time::sleep(Duration::from_millis(100)).await;
@@ -862,18 +609,12 @@ async fn a_refresh_for_an_older_sign_in_is_not_applied_to_a_newer_one() {
 
 #[tokio::test]
 async fn a_cancel_while_the_code_is_being_asked_for_sticks() {
-    let (base, _) = http_fake_slow("/oauth2/device", Duration::from_millis(300), |r, _| match r
-        .path
-        .as_str()
-    {
+    let (base, _) = http_fake_slow("/oauth2/device", Duration::from_millis(300), |r, _| match r.path.as_str() {
         "/oauth2/device" => (200, device_reply(600)),
         _ => (400, r#"{"message":"authorization_pending"}"#.into()),
     })
     .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        TwitchSettings::default(),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), TwitchSettings::default());
     let twitch = Arc::clone(&rig.twitch);
     let starting = tokio::spawn(async move { twitch.signin().await });
     tokio::time::sleep(Duration::from_millis(100)).await;
@@ -886,18 +627,9 @@ async fn a_cancel_while_the_code_is_being_asked_for_sticks() {
 
 #[tokio::test]
 async fn a_refused_refresh_does_not_hand_back_the_dead_token() {
-    let (base, _) = http_fake(|_, _| {
-        (
-            400,
-            r#"{"status":400,"message":"Invalid refresh token"}"#.into(),
-        )
-    })
-    .await;
+    let (base, _) = http_fake(|_, _| (400, r#"{"status":400,"message":"Invalid refresh token"}"#.into())).await;
     // Still valid for a minute, so it is refreshed ahead of time.
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        signed_in("streamer", 60_000),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), signed_in("streamer", 60_000));
     assert!(rig.twitch.access_token().await.is_err());
     assert_eq!(rig.twitch.status()["signedIn"], false);
 }
@@ -914,20 +646,10 @@ async fn keeps_polling_through_a_twitch_server_error() {
         _ => (404, "{}".into()),
     })
     .await;
-    let rig = rig(
-        endpoints(&base, "ws://127.0.0.1:9"),
-        TwitchSettings::default(),
-    );
+    let rig = rig(endpoints(&base, "ws://127.0.0.1:9"), TwitchSettings::default());
     rig.twitch.signin().await.unwrap();
     until("the sign-in", || rig.twitch.status()["signedIn"] == true).await;
-    assert_eq!(
-        seen.lock()
-            .unwrap()
-            .iter()
-            .filter(|r| r.path == "/oauth2/token")
-            .count(),
-        3
-    );
+    assert_eq!(seen.lock().unwrap().iter().filter(|r| r.path == "/oauth2/token").count(), 3);
 }
 
 #[tokio::test]
@@ -942,33 +664,20 @@ async fn waits_before_it_reconnects_when_twitch_says_reconnect() {
                     return;
                 };
             }
-            socket
-                .send(Ws::text(":tmi.twitch.tv 001 streamer :Welcome"))
-                .await
-                .unwrap();
+            socket.send(Ws::text(":tmi.twitch.tv 001 streamer :Welcome")).await.unwrap();
             if n == 0 {
-                socket
-                    .send(Ws::text(":tmi.twitch.tv RECONNECT"))
-                    .await
-                    .unwrap();
+                socket.send(Ws::text(":tmi.twitch.tv RECONNECT")).await.unwrap();
             }
             while let Some(Ok(_)) = socket.next().await {}
         }
     })
     .await;
-    let rig = rig(
-        endpoints("http://127.0.0.1:9", &irc),
-        signed_in("streamer", 3_600_000),
-    );
+    let rig = rig(endpoints("http://127.0.0.1:9", &irc), signed_in("streamer", 3_600_000));
     let (stop, shutdown) = watch::channel(false);
     let tasks = rig.twitch.start(&shutdown);
     until("the second connection", || times.lock().unwrap().len() >= 2).await;
     let t = times.lock().unwrap().clone();
-    assert!(
-        t[1].duration_since(t[0]) >= Duration::from_millis(900),
-        "reconnected after {:?}",
-        t[1].duration_since(t[0])
-    );
+    assert!(t[1].duration_since(t[0]) >= Duration::from_millis(900), "reconnected after {:?}", t[1].duration_since(t[0]));
     stop.send(true).unwrap();
     for task in tasks {
         let _ = task.await;

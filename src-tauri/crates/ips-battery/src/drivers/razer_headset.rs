@@ -37,7 +37,7 @@ use std::collections::BTreeMap;
 use std::sync::Mutex;
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, HidColl, HidIo, PollContext};
+use crate::hid::{HidColl, HidIo, PollContext, hex4};
 use crate::win::{now_ms, sleep_ms};
 
 const MIN_INTERVAL_MS: u64 = 5 * 60 * 1000;
@@ -170,9 +170,8 @@ fn poll_blackshark_v2_hyperspeed(ctx: &mut PollContext) {
     if ctx.is_claimed(0x1532, PID) {
         return;
     }
-    let colls = ctx.find(0x1532, PID, |c| {
-        (c.page() == 0xFF14 || c.page() == 0xFF00) && c.usage() == 0x01 && c.out_len() >= 64 && c.in_len() >= 64
-    });
+    let colls =
+        ctx.find(0x1532, PID, |c| (c.page() == 0xFF14 || c.page() == 0xFF00) && c.usage() == 0x01 && c.out_len() >= 64 && c.in_len() >= 64);
     // Prefer the specific vendor control interface so audio/telephony endpoints are not touched.
     for c in &colls {
         if c.page() != 0xFF14 {
@@ -237,9 +236,7 @@ fn poll_blackshark_v2_pro_2020(ctx: &mut PollContext) {
     if ctx.is_claimed(VID, PID) {
         return;
     }
-    let colls = ctx.find(VID, PID, |c| {
-        c.iface == 3 && c.page() == 0xFF00 && c.usage() == 0x0001 && c.feat_len() == REPORT_LEN
-    });
+    let colls = ctx.find(VID, PID, |c| c.iface == 3 && c.page() == 0xFF00 && c.usage() == 0x0001 && c.feat_len() == REPORT_LEN);
     for c in &colls {
         let Some(mut d) = ctx.open_feature_only(c) else { continue };
         if !d.set_feature(&[0xFF, 0x0A, 0x00, 0xFD, 0x04, 0x12, 0xF1, 0x02, 0x05]) {
@@ -407,10 +404,7 @@ impl BarracudaLink {
                 sleep_ms(50);
             }
             let mut status: Vec<u8> = Vec::new();
-            if !self.dev.write(&f, 500)
-                || !self.dev.get_input_report(0x02, &mut status)
-                || status.len() < 2
-            {
+            if !self.dev.write(&f, 500) || !self.dev.get_input_report(0x02, &mut status) || status.len() < 2 {
                 return false;
             }
             if status[1] == b'O' {
@@ -430,11 +424,7 @@ impl BarracudaLink {
         loop {
             while self.stream.len() >= 2 {
                 // Drop everything before the next [50 49] frame header (all of it when absent).
-                let start = self
-                    .stream
-                    .windows(2)
-                    .position(|w| w == K_MAGIC.as_slice())
-                    .unwrap_or(self.stream.len());
+                let start = self.stream.windows(2).position(|w| w == K_MAGIC.as_slice()).unwrap_or(self.stream.len());
                 self.stream.drain(..start);
                 if self.stream.len() < 10 {
                     break;
@@ -469,11 +459,7 @@ impl BarracudaLink {
             return false;
         }
         let seq = self.seq;
-        self.await_frame(
-            800,
-            |r| r.len() >= 13 && r[10] == 0x0E && r[11] == 0x80 | seq,
-            &mut f,
-        ) && f[12] == 0
+        self.await_frame(800, |r| r.len() >= 13 && r[10] == 0x0E && r[11] == 0x80 | seq, &mut f) && f[12] == 0
     }
 
     // Customer-data GET: the first value byte, or -1 when the headset does not answer.
@@ -482,16 +468,8 @@ impl BarracudaLink {
         if !self.command(0x08, &[0x03, cmd, 0x00, 0x00]) {
             return -1;
         }
-        let ok = self.await_frame(
-            1000,
-            |r| r.len() >= 13 && r[2] == 0x08 && r[10] == cmd && r[11] == 0x01,
-            &mut f,
-        );
-        if ok && f[12] >= 1 && f.len() >= 14 {
-            f[13] as i32
-        } else {
-            -1
-        }
+        let ok = self.await_frame(1000, |r| r.len() >= 13 && r[2] == 0x08 && r[10] == cmd && r[11] == 0x01, &mut f);
+        if ok && f[12] >= 1 && f.len() >= 14 { f[13] as i32 } else { -1 }
     }
 }
 
@@ -500,9 +478,7 @@ fn poll_barracuda_x(ctx: &mut PollContext) {
     if ctx.is_claimed(0x1532, pid) {
         return;
     }
-    let colls = ctx.find(0x1532, pid, |c| {
-        c.page() == 0xFF00 && c.usage() == 0x0001 && c.out_len() >= 64 && c.in_len() >= 64
-    });
+    let colls = ctx.find(0x1532, pid, |c| c.page() == 0xFF00 && c.usage() == 0x0001 && c.out_len() >= 64 && c.in_len() >= 64);
     for c in &colls {
         let Some(mut link) = BarracudaLink::open(ctx, c) else { continue };
         // Receiver without a connected headset (off, out of range, Bluetooth mode).

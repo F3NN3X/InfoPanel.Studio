@@ -1,6 +1,7 @@
 // Shared widget-library types.
 import type { ComponentType, CSSProperties, ReactNode } from "react";
 import type { PackSlots } from "@/looks/pack";
+import type { PackDecorSpec } from "@/looks/pack-frame";
 import type { ModuleSettings } from "@/modules/types";
 
 export type Data = Record<string, string | { value: string }>;
@@ -216,6 +217,8 @@ export interface SkinContext extends Partial<SkinTokens> {
   icons?: Record<string, IconGlyph>;
   /** Drawn in an absolute child of the card when set (at most 10 px, inside the padding: `--wp-pad`). */
   ornament?: ComponentType;
+  /** A pack's frame and ornaments, drawn by the shell in click-through layers (`PackDecor`). */
+  decor?: PackDecorSpec;
   /** Drawn in an absolute child along the card's top edge when set. */
   tabBand?: ComponentType;
 }

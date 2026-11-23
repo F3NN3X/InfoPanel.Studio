@@ -2,7 +2,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { PackStage, usePack } from "@/looks/pack";
-import { mountPackCss, registerPack, unregisterPack } from "@/looks/pack-load";
+import { mountPackCss, registerPack, registerUserPack, unregisterPack, unregisterUserPack } from "@/looks/pack-load";
 import type { Pack } from "@/looks/pack";
 import { badPack, TEST_PACK } from "./__fixtures__/test-pack";
 
@@ -20,6 +20,12 @@ afterEach(() => {
   for (const id of ["test-pack", "bad-pack", "pack-b"]) unregisterPack(id);
 });
 
+function Probe({ lookId, seen }: { lookId: string; seen: [string, boolean][] }) {
+  const pack = usePack(lookId);
+  if (pack) seen.push([pack.id, !!document.head.querySelector(`style[data-pack="${pack.id}"]`)]);
+  return <i data-testid="probe" data-pack={pack?.id ?? ""} />;
+}
+
 describe("usePack and PackStage", () => {
   it("loads a registered pack, mounts its stage and CSS, and takes the CSS out again", async () => {
     registerPack("test-pack", async () => ({ default: TEST_PACK }));
@@ -29,6 +35,14 @@ describe("usePack and PackStage", () => {
     expect(document.head.querySelector('style[data-pack="test-pack"]')).not.toBeNull();
     unmount();
     expect(document.head.querySelector('style[data-pack="test-pack"]')).toBeNull();
+  });
+
+  it("loads a pack registered after the page first asked for its Look (a user pack read after a cached config drew)", async () => {
+    render(<Page lookId="test-pack" />);
+    expect(screen.getByTestId("page").dataset.pack).toBe("");
+    registerPack("test-pack", async () => ({ default: TEST_PACK }));
+    await waitFor(() => expect(screen.getByTestId("page").dataset.pack).toBe("test-pack"));
+    await waitFor(() => expect(document.querySelectorAll("[data-pack-layer]").length).toBe(4));
   });
 
   it("shows nothing for Classic, an unregistered id, or a pack the loader refused", async () => {
@@ -73,15 +87,10 @@ describe("usePack and PackStage", () => {
     registerPack("test-pack", async () => ({ default: TEST_PACK }));
     registerPack("pack-b", () => new Promise((resolve) => (releaseB = (pack) => resolve({ default: pack }))));
     const seen: [string, boolean][] = [];
-    function Probe({ lookId }: { lookId: string }) {
-      const pack = usePack(lookId);
-      if (pack) seen.push([pack.id, !!document.head.querySelector(`style[data-pack="${pack.id}"]`)]);
-      return <i data-testid="probe" data-pack={pack?.id ?? ""} />;
-    }
-    const { rerender } = render(<Probe lookId="test-pack" />);
+    const { rerender } = render(<Probe lookId="test-pack" seen={seen} />);
     await waitFor(() => expect(screen.getByTestId("probe").dataset.pack).toBe("test-pack"));
-    rerender(<Probe lookId="pack-b" />);
-    rerender(<Probe lookId="test-pack" />);
+    rerender(<Probe lookId="pack-b" seen={seen} />);
+    rerender(<Probe lookId="test-pack" seen={seen} />);
     await waitFor(() => expect(screen.getByTestId("probe").dataset.pack).toBe("test-pack"));
     releaseB(badPack({ id: "pack-b", look: { ...TEST_PACK.look, id: "pack-b" } }));
     await new Promise((r) => setTimeout(r, 20));
@@ -101,5 +110,18 @@ describe("usePack and PackStage", () => {
     expect(root.hasAttribute("data-pack-worn")).toBe(true);
     styled();
     expect(root.hasAttribute("data-pack-worn")).toBe(false);
+  });
+
+  it("serves a user pack's CSS URLs from its route and a built-in pack's as written, whatever the pack says it is", () => {
+    const css = '[data-part="card"]::after{content:"";mask-image:url(assets/m.svg)}';
+    registerUserPack("mine-u", async () => ({ default: badPack({ id: "mine-u", css }) }));
+    const offUser = mountPackCss(badPack({ id: "mine-u", css }));
+    const offBuiltin = mountPackCss(badPack({ id: "built-u", css }));
+    const sheet = (id: string) => document.head.querySelector(`style[data-pack="${id}"]`)?.textContent ?? "";
+    expect(sheet("mine-u")).toContain("mask-image:url(/api/packs/mine-u/assets/m.svg);position:absolute;pointer-events:none;z-index:0;");
+    expect(sheet("built-u")).toContain("mask-image:url(assets/m.svg);position:absolute;");
+    offUser();
+    offBuiltin();
+    unregisterUserPack("mine-u");
   });
 });

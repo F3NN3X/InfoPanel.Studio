@@ -8,45 +8,12 @@ import { useRef } from "react";
 import { Library } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { modeTally, type SensorMode } from "@/lib/infopanel/canvas-edit";
+import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
+import { Slider } from "@/components/ui/slider-field";
 import type { Compare } from "./edit-canvas";
 import type { CanvasEditor } from "./use-canvas-editor";
 import type { LibraryLink } from "./use-library-link";
-
-/** A small segmented choice ("Sensors", an item's "Draw as"). */
-export function Segmented<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T | null;
-  options: { value: T; label: string; disabled?: boolean; title?: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div role="radiogroup" aria-label={label} className="flex h-[30px] shrink-0 items-center gap-0.5 rounded-ui-md border border-ui-default p-0.5">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          role="radio"
-          aria-checked={value === o.value}
-          disabled={o.disabled}
-          title={o.title}
-          onClick={() => onChange(o.value)}
-          className={cn(
-            "h-full rounded-ui-sm px-2.5 text-caption text-ui-3 hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-35",
-            value === o.value && "bg-ui-active text-ui-1",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export interface CanvasViewProps {
   editor: CanvasEditor;
@@ -94,7 +61,7 @@ export function CanvasViewSection({ editor, showModes, onShowModes, compareOn, o
           onClick={library.run}
           disabled={library.busy}
           title="Keep this profile in your Library, to start new profiles from"
-          className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised text-caption text-ui-1 hover:bg-ui-hover disabled:opacity-50"
+          className="mt-1 flex h-7 items-center justify-center gap-1.5 rounded-7 border border-ui-strong bg-ui-raised text-caption text-ui-1 hover:bg-ui-hover disabled:opacity-50"
         >
           <Library className="h-3.5 w-3.5" />
           {library.label}
@@ -109,13 +76,13 @@ function ModesLegend({ editor }: { editor: CanvasEditor }) {
   const t = modeTally(editor.modes);
   const row = (dot: string, label: string, n: number) => (
     <span className="flex items-center gap-1.5">
-      <span className={cn("h-2.5 w-2.5 rounded-[3px]", dot)} />
+      <span className={cn("h-2.5 w-2.5 rounded-3", dot)} />
       {label}
       <span className="font-ui-mono text-ui-4">{n}</span>
     </span>
   );
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-ui-2">
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-label text-ui-2">
       {row("bg-ui-accent/60", "Native widget", t.native)}
       {row("bg-ui-warn/60", "InfoPanel", t.infopanel)}
       {row("bg-ui-danger/60", "Can’t convert yet", t.stuck)}
@@ -131,7 +98,7 @@ function CompareControls({ compare, onCompare }: { compare: Compare | null; onCo
       <button
         type="button"
         onClick={() => file.current?.click()}
-        className="h-7 w-full rounded-[7px] border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover"
+        className="h-7 w-full rounded-7 border border-ui-default px-2.5 text-caption text-ui-2 hover:bg-ui-hover"
       >
         {compare ? "Change screenshot…" : "Choose InfoPanel screenshot…"}
       </button>
@@ -151,15 +118,7 @@ function CompareControls({ compare, onCompare }: { compare: Compare | null; onCo
       {compare ? (
         <>
           <span className="text-ui-4">Opacity</span>
-          <input
-            type="range"
-            aria-label="Screenshot opacity"
-            min={0}
-            max={100}
-            value={Math.round(compare.opacity * 100)}
-            onChange={(e) => onCompare({ ...compare, opacity: Number(e.target.value) / 100 })}
-            className="min-w-0 flex-1 accent-[var(--ui-accent)]"
-          />
+          <Slider label="Screenshot opacity" value={Math.round(compare.opacity * 100)} onChange={(v) => onCompare({ ...compare, opacity: v / 100 })} className="flex-1" />
           <span className="font-ui-mono">{Math.round(compare.opacity * 100)} %</span>
           <span className="w-full text-micro text-ui-4">Difference blend</span>
         </>

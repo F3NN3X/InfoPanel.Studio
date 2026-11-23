@@ -12,7 +12,7 @@
 //! Legacy BB semantics are restricted to the product IDs above; other Telink firmware differs.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, hid_product, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4, hid_product};
 use crate::win::now_ms;
 
 // ---- rapoo_protocol.h: the passive status frame decoder ------------------------------------------
@@ -21,44 +21,66 @@ use crate::win::now_ms;
 // Kept independent of Win32 so captured frames can be checked without a mouse.
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Connection { Unknown, Receiver, Bluetooth, Cable }
+enum Connection {
+    Unknown,
+    Receiver,
+    Bluetooth,
+    Cable,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Profile { Nordic54L, LegacyVT3Pro }
+enum Profile {
+    Nordic54L,
+    LegacyVT3Pro,
+}
 
 struct Battery {
-    percent: i32,       // -1 = unknown
+    percent: i32, // -1 = unknown
     charging: bool,
     connection: Connection,
     mouse_pid: u16,
 }
 
 fn decode_battery(data: &[u8], profile: Profile) -> Option<Battery> {
-    if data.is_empty() { return None; }
+    if data.is_empty() {
+        return None;
+    }
     let mut result = Battery { percent: -1, charging: false, connection: Connection::Unknown, mouse_pid: 0 };
     let (state, percent): (u8, u8) = if profile == Profile::Nordic54L && data[0] == 0x07 {
         // Nordic 54L: mode, DPI gear, X/Y DPI, battery state, percentage.
-        if data.len() < 9 || (data[1] & 0x0F) > 2 { return None; }
+        if data.len() < 9 || (data[1] & 0x0F) > 2 {
+            return None;
+        }
         match data[1] & 0x0F {
             0 => result.connection = Connection::Receiver,
             1 => result.connection = Connection::Bluetooth,
             2 => result.connection = Connection::Cable,
             _ => {}
         }
-        if data.len() >= 15 { result.mouse_pid = (data[13] as u16) | ((data[14] as u16) << 8); }
+        if data.len() >= 15 {
+            result.mouse_pid = (data[13] as u16) | ((data[14] as u16) << 8);
+        }
         (data[7], data[8])
     } else if profile == Profile::LegacyVT3Pro && data[0] == 0xBB {
         // VT3 Pro firmware: BB B0 mode DPI-lo DPI-hi battery-state percentage.
-        if data.len() < 7 || data[1] != 0xB0 { return None; }
+        if data.len() < 7 || data[1] != 0xB0 {
+            return None;
+        }
         (data[5], data[6])
     } else {
         return None;
     };
     // 0 = invalid/transition. Some older firmware uses 7F instead of a level while charging.
-    if state != 1 && state != 2 { return None; }
-    if percent > 100 && !(profile == Profile::LegacyVT3Pro && state == 2 && percent == 0x7F) { return None; }
+    if state != 1 && state != 2 {
+        return None;
+    }
+    if percent > 100 && !(profile == Profile::LegacyVT3Pro && state == 2 && percent == 0x7F) {
+        return None;
+    }
     result.charging = state == 2;
-    if percent <= 100 { result.percent = percent as i32; }
+    if percent <= 100 {
+        result.percent = percent as i32;
+    }
     Some(result)
 }
 
@@ -66,7 +88,11 @@ fn decode_battery(data: &[u8], profile: Profile) -> Option<Battery> {
 
 // Selected names from Rapoo's manifests. Support is determined by the collection and valid
 // status frame, so other models on the same protocol work without extending this table.
-struct Model { cable: u16, receiver: u16, name: &'static str }
+struct Model {
+    cable: u16,
+    receiver: u16,
+    name: &'static str,
+}
 
 const MODELS: [Model; 17] = [
     Model { cable: 0x4610, receiver: 0x1410, name: "Rapoo VT0" },
@@ -95,7 +121,7 @@ fn find_model(pid: u16) -> Option<&'static Model> {
 // Mice confirmed to send the 7-byte BB B0 status report.
 fn is_legacy_vt3pro(pid: u16) -> bool {
     pid == 0x1215 || pid == 0x4415  // VT3 Pro
-        || pid == 0x1233 || pid == 0x4433  // VT1 Pro Max (issue #136 captures)
+        || pid == 0x1233 || pid == 0x4433 // VT1 Pro Max (issue #136 captures)
 }
 
 fn read_battery(d: &mut dyn HidIo, profile: Profile) -> Option<Battery> {
@@ -106,9 +132,15 @@ fn read_battery(d: &mut dyn HidIo, profile: Profile) -> Option<Battery> {
     loop {
         let left = (end as i64 - now_ms() as i64) as i32;
         let mut r = Vec::new();
-        if left <= 0 || d.read(&mut r, left as u32) < 0 { return None; }
-        if let Some(battery) = decode_battery(&r, profile) { return Some(battery); }
-        if now_ms() >= end { return None; }  // do { ... } while (GetTickCount64() < end)
+        if left <= 0 || d.read(&mut r, left as u32) < 0 {
+            return None;
+        }
+        if let Some(battery) = decode_battery(&r, profile) {
+            return Some(battery);
+        }
+        if now_ms() >= end {
+            return None;
+        } // do { ... } while (GetTickCount64() < end)
     }
 }
 
@@ -116,8 +148,7 @@ pub fn poll_rapoo(ctx: &mut PollContext) {
     for &(vid, pid) in &ctx.products(0x24AE) {
         for c in ctx.find(vid, pid, |c| {
             // The other vendor collections are for configuration/firmware, not battery.
-            c.page() == 0xFF00 && c.usage() == 0x0002
-                && (c.in_len() == 19 || (c.in_len() == 7 && is_legacy_vt3pro(pid)))
+            c.page() == 0xFF00 && c.usage() == 0x0002 && (c.in_len() == 19 || (c.in_len() == 7 && is_legacy_vt3pro(pid)))
         }) {
             let Some(mut d) = ctx.open(&c) else { continue };
             let profile = if c.in_len() == 7 { Profile::LegacyVT3Pro } else { Profile::Nordic54L };
@@ -132,7 +163,7 @@ pub fn poll_rapoo(ctx: &mut PollContext) {
                 kind: DeviceKind::Mouse,
                 percent: battery.percent,
                 charging: battery.charging,
-                grace_sec: 1800,  // existing UI keeps the last reading, dimmed, while the mouse sleeps
+                grace_sec: 1800, // existing UI keeps the last reading, dimmed, while the mouse sleeps
                 ..Default::default()
             };
             if s.name.is_empty() || s.name == "Rapoo Gaming Device" {
@@ -156,7 +187,9 @@ pub fn poll_rapoo(ctx: &mut PollContext) {
                     if s.via == "USB cable" {
                         let receiver_percent = ctx.out[i].percent;
                         ctx.out[i] = s;
-                        if ctx.out[i].percent < 0 { ctx.out[i].percent = receiver_percent; }
+                        if ctx.out[i].percent < 0 {
+                            ctx.out[i].percent = receiver_percent;
+                        }
                     } else if ctx.out[i].percent < 0 && s.percent >= 0 {
                         ctx.out[i].percent = s.percent;
                     }
@@ -182,10 +215,8 @@ mod tests {
     #[test]
     fn rapoo_protocol() {
         // Captured on the user's VT3 Max Gen 2, receiver 24AE:1417, FF00:0002.
-        let captured: Vec<u8> = vec![
-            0x07, 0x20, 0x03, 0x20, 0x03, 0x20, 0x03, 0x01, 0x19, 0x00,
-            0x04, 0x84, 0x00, 0x17, 0x46, 0x00, 0x02, 0x03, 0xBC,
-        ];
+        let captured: Vec<u8> =
+            vec![0x07, 0x20, 0x03, 0x20, 0x03, 0x20, 0x03, 0x01, 0x19, 0x00, 0x04, 0x84, 0x00, 0x17, 0x46, 0x00, 0x02, 0x03, 0xBC];
         let b = decode_battery(&captured, Profile::Nordic54L).expect("captured frame");
         assert_eq!(b.percent, 25);
         assert!(!b.charging);
@@ -193,10 +224,8 @@ mod tests {
         assert!(b.connection == Connection::Receiver, "receiver frame");
 
         // Also captured live after connecting the cable (before its percentage increased).
-        let captured_cable: Vec<u8> = vec![
-            0x07, 0x22, 0x03, 0x20, 0x03, 0x20, 0x03, 0x02, 0x19, 0x00,
-            0x04, 0x84, 0x00, 0x17, 0x46, 0x00, 0x02, 0x03, 0x00,
-        ];
+        let captured_cable: Vec<u8> =
+            vec![0x07, 0x22, 0x03, 0x20, 0x03, 0x20, 0x03, 0x02, 0x19, 0x00, 0x04, 0x84, 0x00, 0x17, 0x46, 0x00, 0x02, 0x03, 0x00];
         let b = decode_battery(&captured_cable, Profile::Nordic54L).expect("captured cable frame");
         assert_eq!(b.percent, 25);
         assert!(b.charging);
@@ -204,7 +233,7 @@ mod tests {
         assert!(b.connection == Connection::Cable, "cable frame");
 
         let mut modern = captured.clone();
-        modern[1] = 0x22;  // sensor bits must not affect the connection type
+        modern[1] = 0x22; // sensor bits must not affect the connection type
         modern[7] = 2;
         modern[8] = 100;
         let b = decode_battery(&modern, Profile::Nordic54L).expect("modern frame, state 2 / 100%");
@@ -234,14 +263,14 @@ mod tests {
         legacy[6] = 0x7F;
         let b = decode_battery(&legacy, legacy_profile).expect("legacy charging sentinel");
         assert!(b.charging);
-        assert_eq!(b.percent, -1);  // unknown must never become 100%
+        assert_eq!(b.percent, -1); // unknown must never become 100%
         legacy[6] = 100;
         let b = decode_battery(&legacy, legacy_profile).expect("legacy 100%");
         assert_eq!(b.percent, 100);
         assert!(b.charging);
         legacy[5] = 1;
         let b = decode_battery(&legacy, legacy_profile).expect("legacy, back to not charging");
-        assert!(!b.charging);  // a previous charging reading must not leak into this one
+        assert!(!b.charging); // a previous charging reading must not leak into this one
 
         // VT1 Pro Max (24AE:1233 receiver / 24AE:4433 cable), USBPcap captures from issue #136.
         let vt1_pro_max_receiver: Vec<u8> = vec![0xBB, 0xB0, 0x71, 0x84, 0x03, 0x01, 0x64];
@@ -254,12 +283,10 @@ mod tests {
         assert!(b.charging);
 
         for size in 0..9 {
-            assert!(decode_battery(&captured[..size], Profile::Nordic54L).is_none(),
-                    "modern report of {size} bytes");
+            assert!(decode_battery(&captured[..size], Profile::Nordic54L).is_none(), "modern report of {size} bytes");
         }
         for size in 0..7 {
-            assert!(decode_battery(&legacy[..size], legacy_profile).is_none(),
-                    "legacy report of {size} bytes");
+            assert!(decode_battery(&legacy[..size], legacy_profile).is_none(), "legacy report of {size} bytes");
         }
         // The C++ test passed nullptr with a nonzero size; an empty slice is the Rust equivalent
         // (both are rejected by the null/empty guard before any byte is read).
@@ -290,9 +317,9 @@ mod tests {
         assert!(decode_battery(&legacy, legacy_profile).is_none(), "mode byte not B0");
         modern = captured_cable.clone();
         modern[8] = 0x7F;
-        assert!(decode_battery(&modern, Profile::Nordic54L).is_none());  // sentinel is legacy-only
+        assert!(decode_battery(&modern, Profile::Nordic54L).is_none()); // sentinel is legacy-only
         modern = captured.clone();
-        modern[0] = 0x08;  // CH584 has a separate protocol; do not claim it as Nordic support
+        modern[0] = 0x08; // CH584 has a separate protocol; do not claim it as Nordic support
         assert!(decode_battery(&modern, Profile::Nordic54L).is_none());
     }
 
@@ -303,19 +330,33 @@ mod tests {
             path: path.to_string(),
             vid: 0x24AE,
             pid,
-            caps: HidCaps {
-                usage_page: 0xFF00,
-                usage: 2,
-                input_report_byte_length: length,
-                ..Default::default()
-            },
+            caps: HidCaps { usage_page: 0xFF00, usage: 2, input_report_byte_length: length, ..Default::default() },
             ..Default::default()
         }
     }
 
     fn status(cable: bool, percent: u8) -> Vec<u8> {
-        vec![7, if cable { 0x22 } else { 0x20 }, 3, 0x20, 3, 0x20, 3,
-             if cable { 2 } else { 1 }, percent, 0, 4, 0x84, 0, 0x17, 0x46, 0, 2, 3, 0xBC]
+        vec![
+            7,
+            if cable { 0x22 } else { 0x20 },
+            3,
+            0x20,
+            3,
+            0x20,
+            3,
+            if cable { 2 } else { 1 },
+            percent,
+            0,
+            4,
+            0x84,
+            0,
+            0x17,
+            0x46,
+            0,
+            2,
+            3,
+            0xBC,
+        ]
     }
 
     // The C++ test's `ctx = {}; ctx.colls = {...}` reset; the Rust context borrows its factory, so
@@ -331,8 +372,7 @@ mod tests {
         let receiver = collection(0x1417, "receiver", 19);
         let cable = collection(0x4617, "cable", 19);
         // Ignore an unrelated packet and accept the next status; cable wins over receiver.
-        let mut io = MockFactory::new()
-            .with_reads(vec![vec![0xBC, 0], status(false, 25), status(true, 27)]);
+        let mut io = MockFactory::new().with_reads(vec![vec![0xBC, 0], status(false, 25), status(true, 27)]);
         let mut ctx = ctx_for(&mut io, vec![receiver.clone(), cable.clone()]);
         poll_rapoo(&mut ctx);
         assert_eq!(ctx.out.len(), 1);
@@ -362,14 +402,8 @@ mod tests {
         assert!(ctx.out.is_empty());
         assert!(ctx.claimed.is_empty());
 
-        let mut io = MockFactory::new().with_reads(vec![
-            vec![0xBB, 0xB0, 0x81, 0x20, 3, 1, 37],
-            vec![0xBB, 0xB0, 0x81, 0x20, 3, 2, 0x7F],
-        ]);
-        let mut ctx = ctx_for(&mut io, vec![
-            collection(0x1215, "legacy", 7),
-            collection(0x4415, "legacy-cable", 7),
-        ]);
+        let mut io = MockFactory::new().with_reads(vec![vec![0xBB, 0xB0, 0x81, 0x20, 3, 1, 37], vec![0xBB, 0xB0, 0x81, 0x20, 3, 2, 0x7F]]);
+        let mut ctx = ctx_for(&mut io, vec![collection(0x1215, "legacy", 7), collection(0x4415, "legacy-cable", 7)]);
         poll_rapoo(&mut ctx);
         assert_eq!(ctx.out.len(), 1);
         assert_eq!(ctx.out[0].key, "rapoo:4415");
@@ -379,8 +413,7 @@ mod tests {
 
         // A cable-only unknown level stays unknown; a later receiver reading can fill it without
         // clearing the cable's charging state.
-        let mut io = MockFactory::new()
-            .with_reads(vec![vec![0xBB, 0xB0, 0x81, 0x20, 3, 2, 0x7F]]);
+        let mut io = MockFactory::new().with_reads(vec![vec![0xBB, 0xB0, 0x81, 0x20, 3, 2, 0x7F]]);
         let probe = io.clone();
         let mut ctx = ctx_for(&mut io, vec![collection(0x4415, "legacy-cable", 7)]);
         poll_rapoo(&mut ctx);
@@ -398,8 +431,7 @@ mod tests {
         assert_eq!(ctx.out[0].via, "USB cable");
 
         // VT1 Pro Max uses the same BB report (issue #136 captures).
-        let mut io = MockFactory::new()
-            .with_reads(vec![vec![0xBB, 0xB0, 0x71, 0x84, 3, 1, 0x64]]);
+        let mut io = MockFactory::new().with_reads(vec![vec![0xBB, 0xB0, 0x71, 0x84, 3, 1, 0x64]]);
         let mut ctx = ctx_for(&mut io, vec![collection(0x1233, "vt1pm", 7)]);
         poll_rapoo(&mut ctx);
         assert_eq!(ctx.out.len(), 1);
@@ -408,8 +440,7 @@ mod tests {
         assert_eq!(ctx.out[0].percent, 100);
         assert!(!ctx.out[0].charging);
         assert_eq!(ctx.out[0].via, "2.4 GHz receiver");
-        let mut io = MockFactory::new()
-            .with_reads(vec![vec![0xBB, 0xB0, 0x71, 0x84, 3, 2, 0x5F]]);
+        let mut io = MockFactory::new().with_reads(vec![vec![0xBB, 0xB0, 0x71, 0x84, 3, 2, 0x5F]]);
         let mut ctx = ctx_for(&mut io, vec![collection(0x4433, "vt1pm-cable", 7)]);
         poll_rapoo(&mut ctx);
         assert_eq!(ctx.out.len(), 1);
@@ -419,8 +450,7 @@ mod tests {
         assert_eq!(ctx.out[0].via, "USB cable");
 
         // The same marker does not select legacy semantics on a modern Nordic collection.
-        let mut io = MockFactory::new()
-            .with_reads(vec![vec![0xBB, 0xB0, 0x81, 0x20, 3, 2, 50]]);
+        let mut io = MockFactory::new().with_reads(vec![vec![0xBB, 0xB0, 0x81, 0x20, 3, 2, 50]]);
         let mut ctx = ctx_for(&mut io, vec![receiver.clone()]);
         poll_rapoo(&mut ctx);
         assert!(ctx.out.is_empty());
@@ -446,13 +476,10 @@ mod tests {
         wrong_page.caps.usage_page = 1;
         let mut io = MockFactory::new();
         let probe = io.clone();
-        let mut ctx = ctx_for(&mut io, vec![
-            other_vendor,
-            config,
-            wrong_page,
-            collection(0x1215, "silent-sibling", 10),
-            collection(0x1C00, "unrecognised-telink", 7),
-        ]);
+        let mut ctx = ctx_for(
+            &mut io,
+            vec![other_vendor, config, wrong_page, collection(0x1215, "silent-sibling", 10), collection(0x1C00, "unrecognised-telink", 7)],
+        );
         poll_rapoo(&mut ctx);
         assert!(ctx.out.is_empty());
         assert_eq!(probe.opens(), 0, "no battery collection was opened");

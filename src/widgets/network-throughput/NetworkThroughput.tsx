@@ -86,13 +86,13 @@ export default function NetworkThroughput(p: NetworkThroughputProps) {
               {rate("up", up, p.rateUnit, `${size === "lg" ? "text-3xl" : "text-xl"} ${bigFig}`, ulColor, !!p.uploadColor, "Upload", rateTag("upload_speed", up))}
             </div>
             {!chart ? null : mirrored ? (
-              <div className={`relative flex-1 ${big ? "min-h-[64px]" : "min-h-[24px]"}`}>
+              <div className={`relative flex-1 ${big ? "min-h-16" : "min-h-6"}`}>
                 <Spark values={dH} min={0} max={Math.max(1, ...dH, ...uH)} color={dlColor} className="absolute inset-x-0 top-0 h-1/2" />
                 <Spark values={uH} min={0} max={Math.max(1, ...dH, ...uH)} color={p.uploadColor || hue(70)} className="absolute inset-x-0 bottom-0 h-1/2 -scale-y-100" />
                 <div className="absolute inset-x-0 top-1/2 h-px bg-[color:var(--w-track)]" />
               </div>
             ) : (
-              <div className="relative min-h-[24px] flex-1">
+              <div className="relative min-h-6 flex-1">
                 <Spark ipKey={`libre.${id}_download_speed`} values={dH} min={0} color={dlColor} className="absolute inset-0 h-full" />
                 <Spark ipKey={`libre.${id}_upload_speed`} values={uH} min={0} fill={false} color={ulColor} className="absolute inset-0 h-full" />
               </div>

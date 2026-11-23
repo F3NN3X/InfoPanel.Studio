@@ -13,9 +13,9 @@ export function Drawer({ title, onClose, footer, children }: { title: string; on
       role="dialog"
       aria-label={title}
       onKeyDown={(e) => e.key === "Escape" && !e.defaultPrevented && e.currentTarget.contains(e.target as Node) && onClose()}
-      className="absolute inset-y-0 right-0 z-20 flex w-[440px] outline-none max-w-full flex-col border-l border-ui-default bg-ui-panel font-ui shadow-[-12px_0_32px_rgba(0,0,0,.35)]"
+      className="absolute inset-y-0 right-0 z-20 flex w-110 outline-none max-w-full flex-col border-l border-ui-default bg-ui-panel font-ui shadow-[-12px_0_32px_rgba(0,0,0,.35)]"
     >
-      <header className="flex h-[48px] shrink-0 items-center justify-between border-b border-ui-subtle px-4">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-ui-subtle px-4">
         <h2 className="text-lead font-medium text-ui-1">{title}</h2>
         <button type="button" aria-label="Close" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:text-ui-1">
           <X className="h-4 w-4" />

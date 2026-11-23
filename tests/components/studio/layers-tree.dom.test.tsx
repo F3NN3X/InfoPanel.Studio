@@ -190,8 +190,8 @@ describe("the layer menu", () => {
       "Snap to grid", "Lock", "Hide",
       "Rename", "Duplicate", "Delete",
     ]);
-    expect(items.find((i) => i.textContent?.startsWith("Snap to grid"))).toHaveProperty("disabled", true);
-    expect(items.find((i) => i.textContent?.startsWith("Ungroup"))).toHaveProperty("disabled", true);
+    expect(items.find((i) => i.textContent?.startsWith("Snap to grid"))?.getAttribute("aria-disabled")).toBe("true");
+    expect(items.find((i) => i.textContent?.startsWith("Ungroup"))?.getAttribute("aria-disabled")).toBe("true");
     expect(menu.style.width).toBe("230px");
     fireEvent.click(items[0]);
     expect(h.menu.run).toHaveBeenCalledWith("front");

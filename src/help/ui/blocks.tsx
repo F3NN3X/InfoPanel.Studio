@@ -30,9 +30,9 @@ const CALLOUTS: Record<CalloutKind, CalloutStyle> = {
 function Callout({ kind, text, onOpen }: { kind: CalloutKind; text: string; onOpen: BlockProps["onOpen"] }) {
   const { icon: Icon, label, fg, box } = CALLOUTS[kind];
   return (
-    <div className={cn("flex max-w-[68ch] gap-3 rounded-ui-lg border px-4 py-[13px]", box)}>
-      <Icon className={cn("mt-px h-[19px] w-[19px] shrink-0", fg)} />
-      <div className="flex flex-1 flex-col gap-[3px]">
+    <div className={cn("flex max-w-[68ch] gap-3 rounded-ui-lg border px-4 py-3.25", box)}>
+      <Icon className={cn("mt-px h-4.75 w-4.75 shrink-0", fg)} />
+      <div className="flex flex-1 flex-col gap-0.75">
         <span className={cn("text-caption font-medium", fg)}>{label}</span>
         <span className="text-pretty text-body leading-[1.6] text-s-strong">
           <InlineText text={text} onOpen={onOpen} />
@@ -48,9 +48,9 @@ function List({ items, ordered, onOpen }: { items: string[]; ordered: boolean; o
       {items.map((item, i) => (
         <li key={i} className="flex items-start gap-3">
           {ordered ? (
-            <span className="mt-px grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border border-s-input-line bg-s-nav-on text-caption font-medium text-s-t2">{i + 1}</span>
+            <span className="mt-px grid h-5.5 w-5.5 shrink-0 place-items-center rounded-full border border-s-input-line bg-s-nav-on text-caption font-medium text-s-t2">{i + 1}</span>
           ) : (
-            <span className="ml-1 mr-1.5 mt-2.5 h-[5px] w-[5px] shrink-0 rounded-full bg-s-faint" />
+            <span className="ml-1 mr-1.5 mt-2.5 h-1.25 w-1.25 shrink-0 rounded-full bg-s-faint" />
           )}
           <span className="flex-1 text-pretty text-lead leading-[1.65] text-s-strong">
             <InlineText text={item} onOpen={onOpen} />
@@ -75,7 +75,7 @@ function Table({ head, rows, onOpen }: { head: string[]; rows: string[][]; onOpe
       <div role="table" className="grid" style={{ gridTemplateColumns: columns(head.length), minWidth: head.length > 2 ? 520 : 0 }}>
         <div role="row" className="contents">
         {head.map((cell, i) => (
-          <div key={i} role="columnheader" className="border-b border-s-card-line bg-s-side px-3.5 py-[9px] text-caption font-medium text-s-dim">
+          <div key={i} role="columnheader" className="border-b border-s-card-line bg-s-side px-3.5 py-2.25 text-caption font-medium text-s-dim">
             {cell}
           </div>
         ))}
@@ -96,7 +96,7 @@ function Table({ head, rows, onOpen }: { head: string[]; rows: string[][]; onOpe
 
 function Cap({ children }: { children: string }) {
   return (
-    <kbd className="min-w-3 whitespace-nowrap rounded-ui-sm border border-b-2 border-s-input-line bg-s-side-line px-[7px] py-0.5 text-center font-mono text-caption text-s-t1">{children}</kbd>
+    <kbd className="min-w-3 whitespace-nowrap rounded-ui-sm border border-b-2 border-s-input-line bg-s-side-line px-1.75 py-0.5 text-center font-mono text-caption text-s-t1">{children}</kbd>
   );
 }
 

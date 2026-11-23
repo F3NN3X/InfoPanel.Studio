@@ -89,10 +89,8 @@ mod tests {
 
     /// A fake network: URL → (status, headers).
     fn fake(routes: &[Route]) -> Fetch {
-        let routes: HashMap<String, (u16, Vec<(String, String)>)> = routes
-            .iter()
-            .map(|(u, s, h)| (u.to_string(), (*s, h.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect())))
-            .collect();
+        let routes: HashMap<String, (u16, Vec<(String, String)>)> =
+            routes.iter().map(|(u, s, h)| (u.to_string(), (*s, h.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()))).collect();
         Arc::new(move |url: Url| {
             let (status, pairs) = routes.get(url.as_str()).cloned().unwrap_or((404, vec![]));
             let mut headers = HeaderMap::new();
@@ -151,7 +149,8 @@ mod tests {
         let failing: Fetch = Arc::new(|_| Box::pin(async { Err::<Upstream, _>("address not allowed".to_string()) }));
         assert_eq!(check(&failing, "https://10.0.0.1/").await, (200, UNKNOWN.into()));
         let slow: Fetch = Arc::new(|_| Box::pin(std::future::pending()));
-        let response = respond(&Method::GET, Some("https://a.test/".into()), Url::parse("http://h/").ok(), &slow, Duration::from_millis(30)).await;
+        let response =
+            respond(&Method::GET, Some("https://a.test/".into()), Url::parse("http://h/").ok(), &slow, Duration::from_millis(30)).await;
         assert_eq!(to_bytes(response.into_body(), usize::MAX).await.unwrap(), UNKNOWN.as_bytes());
     }
 
@@ -159,7 +158,10 @@ mod tests {
     async fn refuses_other_methods_and_bad_targets() {
         let fetch = fake(&[]);
         let ancestor = Url::parse("http://h/").ok();
-        assert_eq!(respond(&Method::POST, Some("https://a.test/".into()), ancestor.clone(), &fetch, FRAME_CHECK_TIMEOUT).await.status(), 405);
+        assert_eq!(
+            respond(&Method::POST, Some("https://a.test/".into()), ancestor.clone(), &fetch, FRAME_CHECK_TIMEOUT).await.status(),
+            405
+        );
         for url in [None, Some("not a url"), Some("http://example.com/"), Some("file:///C:/x"), Some("javascript:alert(1)")] {
             let status = respond(&Method::GET, url.map(str::to_string), ancestor.clone(), &fetch, FRAME_CHECK_TIMEOUT).await.status();
             assert_eq!(status, 400, "{url:?}");

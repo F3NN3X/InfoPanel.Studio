@@ -86,7 +86,7 @@ export function DisplayCard({ entry, profiles, control, touch, now, highlighted,
         highlighted ? "border-ui-accent" : "border-ui-default",
       )}
     >
-      <div className={cn("relative grid h-[150px] place-items-center border-b border-ui-subtle bg-ui-chrome p-3.5", !online && "opacity-60")}>
+      <div className={cn("relative grid h-37.5 place-items-center border-b border-ui-subtle bg-ui-chrome p-3.5", !online && "opacity-60")}>
         <StatusChip tone={online ? "ok" : "neutral"} className="absolute left-2.5 top-2.5 z-10 h-5 bg-ui-panel/80 text-micro">
           {online ? "Live" : "Offline"}
         </StatusChip>

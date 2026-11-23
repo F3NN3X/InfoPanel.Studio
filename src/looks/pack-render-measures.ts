@@ -2,7 +2,21 @@
 // specs hand `measurePack` to `page.evaluate` for the built-in packs, the studio's render check runs it in its hidden frame on a
 // user pack, so a rule added here holds for both. `measurePack` therefore names nothing outside its own body: it is sent to the
 // browser as source text. Everything here is read in one task, with no await, so the demo streams cannot change the page between
-// a pack's page and its twin.
+// a pack's page and its twin. It cannot load an image, so `readMaskImages` decodes the url() masks first, in its own async step,
+// and hands them in; it is sent the same way and names nothing outside its own body either.
+
+import { OPACITY_FLOOR } from "./pack-css";
+import { packPath } from "./pack-urls";
+import type { PackFile } from "./pack-validate";
+
+/** A mask image read as alpha: `w` by `h` its intrinsic size in CSS px, `a` its alpha (0..1) on a `cols` by `rows` grid, row by row. */
+export interface MaskGrid {
+  w: number;
+  h: number;
+  cols: number;
+  rows: number;
+  a: number[];
+}
 
 export interface MeasureOptions {
   /** The pack's Look id. */
@@ -11,6 +25,8 @@ export interface MeasureOptions {
   alphaMax: number;
   /** The least effective opacity of text and marks. */
   minOpacity: number;
+  /** The url() masks `readMaskImages` decoded, by the url the computed style names; one missing or null cannot be read. */
+  maskImages?: Record<string, MaskGrid | null>;
 }
 
 export interface GaugeInk {
@@ -32,7 +48,42 @@ export interface MarkInk {
   ratio: number | null;
 }
 
+/** The share of a text's box that the clip-paths above it keep (null: a clip that cannot be read). Only texts a clip touches are listed. */
+export interface ClipInk {
+  key: string;
+  text: string;
+  seen: number | null;
+}
+
+/** What a card's own clip-path takes: the share of the card's border box it removes, and how many of the four content-box corners it cuts (null: unreadable). */
+export interface CardClipInk {
+  key: string;
+  place: string;
+  removed: number | null;
+  corners: number | null;
+}
+
+/** The lowest alpha the masks above a text leave over its box (null: a mask that cannot be read, a url() one `readMaskImages` did not decode included). Only texts under a mask are listed. */
+export interface MaskInk {
+  key: string;
+  text: string;
+  alpha: number | null;
+}
+
+/** An element of a card whose computed border widths are not all 0 (`widths`: top right bottom left). */
+export interface BorderInk {
+  key: string;
+  name: string;
+  widths: string;
+}
+
 export interface Measured {
+  masks: MaskInk[];
+  /** The elements of the cards that draw a border width: a pack may restyle a border, never widen one. */
+  borders: BorderInk[];
+  /** The texts a clip-path cuts into, and the cards that clip themselves. */
+  clips: ClipInk[];
+  cardClips: CardClipInk[];
   /** What hides content on this page, one line each. */
   problems: string[];
   cards: number;
@@ -54,7 +105,7 @@ export interface Twin {
 }
 
 /** Reads the page with the pack's stylesheet on, and off. Sent to the browser as source: see the file's head. */
-export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twin {
+export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: MeasureOptions): Twin {
   const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
   const seen = new Map<string, number[]>();
   // a colour string of any syntax as [r, g, b, a]: the canvas parses color-mix and the rest
@@ -113,8 +164,375 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
     return [layers.reduceRight((under, layer) => over(layer, under), [0, 0, 0, 1])];
   };
 
+  // The shape measures (clip-path, mask-image, a pack's pseudo-elements): the computed values the browser hands back, read as geometry in
+  // viewport px. What cannot be read is `null`, and every caller refuses on it: this check fails closed.
+  type Inside = (x: number, y: number) => boolean;
+  type Alpha = (x: number, y: number) => number;
+  /** Splits a value at the commas or the white space that are not inside a function. */
+  const parts = (s: string, sep: "," | " "): string[] => {
+    const out: string[] = [];
+    let depth = 0;
+    let from = 0;
+    for (let i = 0; i <= s.length; i++) {
+      const ch = s[i];
+      if (ch === "(") depth++;
+      else if (ch === ")") depth--;
+      else if (i === s.length || (depth === 0 && (sep === "," ? ch === "," : /\s/.test(ch)))) {
+        const piece = s.slice(from, i).trim();
+        if (piece) out.push(piece);
+        from = i + 1;
+      }
+    }
+    return out;
+  };
+  /** A px, % or calc() of those joined by + and -, in viewport px (`ref` is what % is of, `z` the zoom of the element). */
+  const length = (s: string, ref: number, z: number): number | null => {
+    const inner = (/^calc\((.*)\)$/.exec(s.trim())?.[1] ?? s).replace(/\s+([+-])\s+/g, " $1").trim();
+    if (!inner || /[()*/]/.test(inner)) return null;
+    let sum = 0;
+    for (const term of inner.split(/\s+/)) {
+      const m = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(px|%)?$/i.exec(term);
+      if (!m || (!m[2] && Number(m[1]) !== 0)) return null;
+      sum += m[2] === "%" ? (Number(m[1]) / 100) * ref : Number(m[1]) * z;
+    }
+    return sum;
+  };
+  const four = <T>(list: T[]): T[] => [list[0], list[1] ?? list[0], list[2] ?? list[0], list[3] ?? list[1] ?? list[0]];
+  const zoomOf = (el: Element, rect: DOMRect) => (el instanceof HTMLElement && el.offsetWidth > 0 ? rect.width / el.offsetWidth : 1);
+  const unit = { deg: 1, rad: 180 / Math.PI, turn: 360, grad: 0.9 };
+  /** A computed `clip-path` (inset with round, or polygon) against a border box: which points it keeps. */
+  const shape = (value: string, box: DOMRect, z: number): Inside | null => {
+    const m = /^(inset|polygon)\((.*)\)$/.exec(value.trim());
+    if (!m) return null;
+    const [w, h] = [box.width, box.height];
+    if (m[1] === "polygon") {
+      const args = parts(m[2], ",");
+      const rule = /^(nonzero|evenodd)$/.exec(args[0] ?? "")?.[1];
+      const ring: number[][] = [];
+      for (const a of rule ? args.slice(1) : args) {
+        const xy = parts(a, " ");
+        const [x, y] = [length(xy[0] ?? "", w, z), length(xy[1] ?? "", h, z)];
+        if (xy.length !== 2 || x === null || y === null) return null;
+        ring.push([box.left + x, box.top + y]);
+      }
+      if (ring.length < 3) return null;
+      return (x, y) => {
+        let wind = 0;
+        let odd = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          const [ax, ay] = ring[j];
+          const [bx, by] = ring[i];
+          if (ay <= y !== by <= y && x < ax + ((y - ay) / (by - ay)) * (bx - ax)) {
+            odd = !odd;
+            wind += by > ay ? 1 : -1;
+          }
+        }
+        return rule === "evenodd" ? odd : wind !== 0;
+      };
+    }
+    const [edge, round] = m[2].split(/\s+round\s+/);
+    const e = four(parts(edge, " "));
+    if (parts(edge, " ").length > 4 || !e[0]) return null;
+    const [top, right, bottom, left] = [length(e[0], h, z), length(e[1], w, z), length(e[2], h, z), length(e[3], w, z)];
+    if (top === null || right === null || bottom === null || left === null) return null;
+    const [x0, y0, x1, y1] = [box.left + left, box.top + top, box.left + w - right, box.top + h - bottom];
+    let radii = [[0, 0], [0, 0], [0, 0], [0, 0]];
+    if (round !== undefined) {
+      const rr = parts(round, " ");
+      if (round.includes("/") || rr.length > 4) return null;
+      const [rx, ry] = [four(rr).map((v) => length(v ?? "", w, z)), four(rr).map((v) => length(v ?? "", h, z))];
+      if (rx.includes(null) || ry.includes(null)) return null;
+      radii = rx.map((v, i) => [Math.max(0, v as number), Math.max(0, ry[i] as number)]);
+    }
+    const corners = [[x0, y0, 1, 1], [x1, y0, -1, 1], [x1, y1, -1, -1], [x0, y1, 1, -1]];
+    return (x, y) =>
+      x >= x0 && x <= x1 && y >= y0 && y <= y1 &&
+      corners.every(([cx, cy, sx, sy], i) => {
+        const [rx, ry] = radii[i];
+        const [dx, dy] = [(x - cx) * sx, (y - cy) * sy];
+        return !(rx > 0 && ry > 0 && dx < rx && dy < ry) || ((rx - dx) / rx) ** 2 + ((ry - dy) / ry) ** 2 <= 1;
+      });
+  };
+  /** The share of `rect` that every clip keeps, sampled on a grid. */
+  const kept = (rect: DOMRect, clips: Inside[], cols: number, rows: number) => {
+    if (!clips.length || rect.width <= 0 || rect.height <= 0) return 1;
+    let n = 0;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (clips.every((f) => f(rect.left + ((c + 0.5) / cols) * rect.width, rect.top + ((r + 0.5) / rows) * rect.height))) n++;
+    return n / (cols * rows);
+  };
+  /** The alpha of a gradient mask layer at a point of its tile (`w` by `h`): linear and radial, repeating or not, stops of any colour syntax. */
+  const gradient = (value: string, w: number, h: number, z: number): Alpha | null => {
+    const m = /^(repeating-)?(linear|radial)-gradient\((.*)\)$/.exec(value.trim());
+    if (!m || w <= 0 || h <= 0) return null;
+    const args = parts(m[3], ",");
+    const configured = m[2] === "radial" ? /^(circle|ellipse|closest-|farthest-|at\s|-?[\d.]+(px|%))/.test(args[0] ?? "") : /^(to\s|-?[\d.]+(deg|rad|turn|grad)$)/.test(args[0] ?? "");
+    const config = (configured ? args.shift() : "") as string;
+    let len = 0;
+    let at: (u: number, v: number) => number;
+    if (m[2] === "linear") {
+      let [dx, dy] = [0, 1];
+      const to = /^to\s+(.*)$/.exec(config);
+      const turn = /^(-?[\d.]+(?:e[+-]?\d+)?)(deg|rad|turn|grad)$/.exec(config);
+      if (to) {
+        const sides = to[1].split(/\s+/);
+        if (sides.length > 2 || sides.some((s) => !/^(top|bottom|left|right)$/.test(s))) return null;
+        const [hz, vt] = [sides.includes("right") ? 1 : sides.includes("left") ? -1 : 0, sides.includes("bottom") ? 1 : sides.includes("top") ? -1 : 0];
+        // a corner: the line is perpendicular to the diagonal the 50% line runs along
+        [dx, dy] = hz && vt ? [(hz * h) / Math.hypot(w, h), (vt * w) / Math.hypot(w, h)] : [hz, vt];
+      } else if (turn) {
+        const a = ((Number(turn[1]) * unit[turn[2] as "deg"]) * Math.PI) / 180;
+        [dx, dy] = [Math.sin(a), -Math.cos(a)];
+      } else if (config) return null;
+      len = Math.abs(w * dx) + Math.abs(h * dy);
+      at = (u, v) => (u - w / 2) * dx + (v - h / 2) * dy + len / 2;
+    } else {
+      const [, size = "", where] = /^(.*?)\s*(?:\bat\s+(.*))?$/.exec(config.trim()) ?? [];
+      const place = { left: "0%", top: "0%", right: "100%", bottom: "100%", center: "50%" };
+      const pos = parts(where ?? "50% 50%", " ").map((p) => place[p as "left"] ?? p);
+      const [cx, cy] = [length(pos[0] ?? "", w, z), length(pos[1] ?? "", h, z)];
+      if (pos.length !== 2 || /^(top|bottom)/.test(where ?? "") || cx === null || cy === null) return null;
+      const words = parts(size, " ");
+      const keyword = words.find((p) => /^(closest|farthest)-(side|corner)$/.test(p)) ?? "farthest-corner";
+      const explicit = words.filter((p) => !/^(circle|ellipse|closest-side|closest-corner|farthest-side|farthest-corner)$/.test(p));
+      const circle = words.includes("circle") || (explicit.length === 1 && !words.includes("ellipse"));
+      const sides = [cx, w - cx, cy, h - cy];
+      const corners = [Math.hypot(cx, cy), Math.hypot(w - cx, cy), Math.hypot(cx, h - cy), Math.hypot(w - cx, h - cy)];
+      const [nx, ny, fx, fy] = [Math.min(cx, w - cx), Math.min(cy, h - cy), Math.max(cx, w - cx), Math.max(cy, h - cy)];
+      let [rx, ry] = [0, 0];
+      if (explicit.length) {
+        if (explicit.length !== (circle ? 1 : 2)) return null;
+        rx = length(explicit[0], circle ? 0 : w, z) ?? 0;
+        ry = circle ? rx : length(explicit[1], h, z) ?? 0;
+      } else if (circle) rx = ry = keyword === "closest-side" ? Math.min(...sides) : keyword === "farthest-side" ? Math.max(...sides) : keyword === "closest-corner" ? Math.min(...corners) : Math.max(...corners);
+      else [rx, ry] = keyword === "closest-side" ? [nx, ny] : keyword === "farthest-side" ? [fx, fy] : keyword === "closest-corner" ? [nx * Math.SQRT2, ny * Math.SQRT2] : [fx * Math.SQRT2, fy * Math.SQRT2];
+      if (!(rx > 0 && ry > 0)) return null;
+      len = rx;
+      at = (u, v) => Math.hypot((u - cx) / rx, (v - cy) / ry) * rx;
+    }
+    const stops: { a: number; p: number | null }[] = [];
+    for (const arg of args) {
+      const [color, ...where] = parts(arg, " ");
+      const a = CSS.supports("color", color) ? rgba(color)[3] : null;
+      const ps = where.map((p) => length(p, len, z));
+      if (a === null || where.length > 2 || ps.includes(null)) return null;
+      if (!ps.length) stops.push({ a, p: null });
+      for (const p of ps) stops.push({ a, p });
+    }
+    if (stops.length < 2) return null;
+    if (stops[0].p === null) stops[0].p = 0;
+    if (stops[stops.length - 1].p === null) stops[stops.length - 1].p = len;
+    let high = -Infinity;
+    for (const s of stops) if (s.p !== null) high = s.p = Math.max(s.p, high);
+    for (let i = 1; i < stops.length; i++) {
+      if (stops[i].p !== null) continue;
+      let j = i;
+      while (stops[j].p === null) j++;
+      const [from, to] = [stops[i - 1].p as number, stops[j].p as number];
+      for (let k = i; k < j; k++) stops[k].p = from + ((to - from) * (k - i + 1)) / (j - i + 1);
+    }
+    const [first, last] = [stops[0].p as number, stops[stops.length - 1].p as number];
+    if (m[1] && last <= first) return null;
+    return (u, v) => {
+      let p = at(u, v);
+      if (m[1]) p = first + ((((p - first) % (last - first)) + (last - first)) % (last - first));
+      if (p <= first) return stops[0].a;
+      for (let i = 1; i < stops.length; i++) {
+        const [a, b] = [stops[i - 1], stops[i]];
+        if (p < (b.p as number)) return a.a + ((b.a - a.a) * (p - (a.p as number))) / ((b.p as number) - (a.p as number));
+      }
+      return stops[stops.length - 1].a;
+    };
+  };
+  /** An element's mask (one gradient or decoded url() layer, tiled by its mask-size, -position and -repeat): the alpha it leaves at a point. */
+  const maskOf = (cs: CSSStyleDeclaration, box: DOMRect, z: number): Alpha | null => {
+    const prop = (name: string) => cs.getPropertyValue(name).trim() || cs.getPropertyValue(`-webkit-${name}`).trim();
+    const layers = parts(prop("mask-image"), ",");
+    if (layers.length !== 1) return null;
+    const [w, h] = [box.width, box.height];
+    const size = parts(prop("mask-size") || "auto", " ");
+    const side = (v: string | undefined, whole: number) => (v === undefined || v === "auto" || v === "cover" || v === "contain" ? whole : length(v, whole, z));
+    let [sw, sh] = [side(size[0], w), side(size[1] ?? size[0], h)];
+    // an image's tile is its intrinsic size (`auto`), scaled to the box (`cover`, `contain`) or to a given side, the other keeping the ratio
+    const url = /^url\(\s*(["']?)(.*)\1\s*\)$/.exec(layers[0]);
+    const grid = url ? maskImages[url[2]] : undefined;
+    if (url) {
+      if (!grid || grid.w <= 0 || grid.h <= 0 || grid.cols <= 0 || grid.rows <= 0 || (prop("mask-mode") || "match-source") !== "match-source") return null;
+      const [iw, ih] = [grid.w * z, grid.h * z];
+      const [x, y] = [size[0] ?? "auto", size[1] ?? "auto"];
+      if (x === "cover" || x === "contain") {
+        const s = (x === "cover" ? Math.max : Math.min)(w / iw, h / ih);
+        [sw, sh] = [iw * s, ih * s];
+      } else {
+        const [gx, gy] = [x === "auto" ? null : length(x, w, z), y === "auto" ? null : length(y, h, z)];
+        if ((x !== "auto" && gx === null) || (y !== "auto" && gy === null)) return null;
+        [sw, sh] = [gx ?? (gy === null ? iw : (gy * iw) / ih), gy ?? (gx === null ? ih : (gx * ih) / iw)];
+      }
+    }
+    if (sw === null || sh === null || sw <= 0 || sh <= 0) return null;
+    const [tw, th] = [sw, sh];
+    const pos = parts(prop("mask-position") || "0% 0%", " ");
+    const [ox, oy] = [length(pos[0] ?? "", w - tw, z), length(pos[1] ?? "", h - th, z)];
+    const rep = parts(prop("mask-repeat") || "repeat", " ").flatMap((r) => (r === "repeat-x" ? ["repeat", "no-repeat"] : r === "repeat-y" ? ["no-repeat", "repeat"] : [r]));
+    const [rx, ry] = [rep[0], rep[1] ?? rep[0]];
+    // a decoded image is sampled at the nearest cell of its grid
+    const g = grid ? (u: number, v: number) => grid.a[Math.min(grid.rows - 1, Math.floor((v / th) * grid.rows)) * grid.cols + Math.min(grid.cols - 1, Math.floor((u / tw) * grid.cols))] ?? 0 : gradient(layers[0], tw, th, z);
+    if (!g || pos.length !== 2 || ox === null || oy === null || !/^(no-)?repeat$/.test(rx) || !/^(no-)?repeat$/.test(ry)) return null;
+    const tile = (n: number, whole: number, repeat: string) => (repeat === "repeat" ? ((n % whole) + whole) % whole : n);
+    return (x, y) => {
+      const [u, v] = [tile(x - box.left - ox, tw, rx), tile(y - box.top - oy, th, ry)];
+      return u < 0 || u >= tw || v < 0 || v >= th ? 0 : g(u, v);
+    };
+  };
+  /** The most a pseudo-element paints: its backgrounds, borders and, when it has text, its text colour, times its opacity (a mask is ignored: conservative). */
+  const pseudoPaint = (cs: CSSStyleDeclaration): number => {
+    const stops = (cs.backgroundImage.match(/(?:rgba?|color|color-mix|hsla?|hwb|lab|lch|oklab|oklch)\([^()]*(?:\([^()]*\)[^()]*)*\)/g) ?? []).map((c) => rgba(c)[3]);
+    const image = cs.backgroundImage === "none" ? 0 : cs.backgroundImage.includes("url(") || !stops.length ? 1 : Math.max(...stops);
+    const edges = ["top", "right", "bottom", "left"].map((s) => (parseFloat(cs.getPropertyValue(`border-${s}-width`)) > 0 ? rgba(cs.getPropertyValue(`border-${s}-color`))[3] : 0));
+    const text = /^["'](?!["']$)|^(counter|attr)\(/.test(cs.content) ? rgba(cs.webkitTextFillColor || cs.color)[3] : 0;
+    return Math.max(rgba(cs.backgroundColor)[3], image, ...edges, text, cs.borderImageSource !== "none" ? 1 : 0) * Number(cs.opacity);
+  };
+  /** A pseudo-element's box after its transform: [left, top, right, bottom] in viewport px, null where it cannot be placed. */
+  const pseudoBox = (host: HTMLElement, cs: CSSStyleDeclaration): number[] | null => {
+    if (cs.position !== "absolute") return null;
+    // the box it is placed in: the nearest ancestor that is positioned (or that a transform or filter makes the block of)
+    let cb: HTMLElement | null = host;
+    while (cb) {
+      const own = getComputedStyle(cb);
+      if (own.position !== "static" || own.transform !== "none" || own.filter !== "none") break;
+      cb = cb.parentElement;
+    }
+    const cbRect = cb?.getBoundingClientRect();
+    const z = cb && cbRect ? zoomOf(cb, cbRect) : 1;
+    const origin = cb && cbRect ? [cbRect.left + cb.clientLeft * z, cbRect.top + cb.clientTop * z] : [-scrollX, -scrollY];
+    const n = (name: string) => parseFloat(cs.getPropertyValue(name));
+    const extra = cs.boxSizing === "content-box" ? [n("padding-left") + n("padding-right") + n("border-left-width") + n("border-right-width"), n("padding-top") + n("padding-bottom") + n("border-top-width") + n("border-bottom-width")] : [0, 0];
+    const [left, top, w, h] = [n("left") + n("margin-left"), n("top") + n("margin-top"), n("width") + extra[0], n("height") + extra[1]];
+    // translate, rotate and scale apply before `transform`, all about the origin
+    const o = parts(cs.transformOrigin, " ").map(parseFloat);
+    const translate = parts(cs.getPropertyValue("translate"), " ").filter((p) => p !== "none");
+    const rotate = cs.getPropertyValue("rotate").trim();
+    const scale = parts(cs.getPropertyValue("scale"), " ").filter((p) => p !== "none").map(Number);
+    const turn = rotate === "none" || !rotate ? ["0", "deg"] : (/^(-?[\d.]+(?:e[+-]?\d+)?)(deg|rad|turn|grad)$/.exec(rotate)?.slice(1) ?? []);
+    const [tx, ty] = translate.length ? [length(translate[0], w, 1), length(translate[1] ?? "0", h, 1)] : [0, 0];
+    const [sx, sy] = scale.length ? [scale[0], scale[1] ?? scale[0]] : [1, 1];
+    if (![left, top, w, h, ...extra, ...o, sx, sy].every(Number.isFinite) || o.length < 2 || tx === null || ty === null || turn.length !== 2 || scale.length > 2) return null;
+    const m = new DOMMatrix()
+      .translateSelf(o[0], o[1])
+      .translateSelf(tx, ty)
+      .rotateSelf(Number(turn[0]) * unit[turn[1] as "deg"])
+      .scaleSelf(sx, sy)
+      .multiplySelf(new DOMMatrix(cs.transform === "none" ? undefined : cs.transform))
+      .translateSelf(-o[0], -o[1]);
+    const pts = [[0, 0], [w, 0], [w, h], [0, h]].map(([x, y]) => m.transformPoint(new DOMPoint(x, y)));
+    const [xs, ys] = [pts.map((p) => origin[0] + (left + p.x) * z), pts.map((p) => origin[1] + (top + p.y) * z)];
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  };
+
   const read = (): Measured => {
     const problems: string[] = [];
+    const clips: ClipInk[] = [];
+    const cardClips: CardClipInk[] = [];
+    const dimmed: MaskInk[] = [];
+    const borders: BorderInk[] = [];
+    // per element, the clips and masks on it and above it (null: one cannot be read); read once per page
+    const clipped = new Map<Element, Inside[] | null>();
+    const maskOfEl = new Map<Element, Alpha[] | null>();
+    const clipsOf = (el: Element | null): Inside[] | null => {
+      if (!el) return [];
+      if (clipped.has(el)) return clipped.get(el) as Inside[] | null;
+      const above = clipsOf(el.parentElement);
+      const value = getComputedStyle(el).clipPath;
+      let chain = above;
+      if (value && value !== "none") {
+        const rect = el.getBoundingClientRect();
+        const inside = shape(value, rect, zoomOf(el, rect));
+        chain = above && inside ? [...above, inside] : null;
+      }
+      clipped.set(el, chain);
+      return chain;
+    };
+    const masksOf = (el: Element | null): Alpha[] | null => {
+      if (!el) return [];
+      if (maskOfEl.has(el)) return maskOfEl.get(el) as Alpha[] | null;
+      const above = masksOf(el.parentElement);
+      const cs = getComputedStyle(el);
+      let chain = above;
+      if ([cs.getPropertyValue("mask-image"), cs.getPropertyValue("-webkit-mask-image")].some((v) => v && v !== "none")) {
+        const rect = el.getBoundingClientRect();
+        const alpha = maskOf(cs, rect, zoomOf(el, rect));
+        chain = above && alpha ? [...above, alpha] : null;
+      }
+      maskOfEl.set(el, chain);
+      return chain;
+    };
+    /** A card's text, clips, masks and the pseudo-elements a pack adds, measured in one go so that nothing scrolls between the boxes. */
+    const shapes = (card: Element, c: number, place: string) => {
+      // the boxes the clips and masks were read at: a card read before may have scrolled the page since (or hold this one)
+      clipped.clear();
+      maskOfEl.clear();
+      const boxes: { rect: DOMRect; words: string }[] = [];
+      const face = card.getBoundingClientRect();
+      const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+      let k = 0;
+      for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+        if (!t.textContent?.trim() || !t.parentElement) continue;
+        const el = t.parentElement;
+        // the frame and ornaments the app draws on the card (`data-pack-decor`) are app chrome, not the widget's text or the pack's paint
+        if (el.closest("[data-pack-decor]")) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === "hidden" || cs.display === "none") continue;
+        const words = t.textContent.trim().slice(0, 20);
+        const range = document.createRange();
+        range.selectNodeContents(t);
+        // the part of the text that is on the card: the card clips what runs past it, so that part is not seen with or without the pack
+        const whole = range.getBoundingClientRect();
+        const [left, top] = [Math.max(whole.left, face.left), Math.max(whole.top, face.top)];
+        const rect = new DOMRect(left, top, Math.max(0, Math.min(whole.right, face.right) - left), Math.max(0, Math.min(whole.bottom, face.bottom) - top));
+        if (rect.width > 0 && rect.height > 0) boxes.push({ rect, words });
+        const chain = clipsOf(el);
+        const seen = chain && kept(rect, chain, 24, 8);
+        if (seen !== 1) clips.push({ key: `${c}:${k}`, text: words, seen });
+        const masks = masksOf(el);
+        if (!masks || masks.length) {
+          let low: number | null = 1;
+          if (!masks) low = null;
+          else if (rect.width > 0 && rect.height > 0) for (let r = 0; r < 8; r++) for (let q = 0; q < 24; q++) low = Math.min(low as number, masks.reduce((a, f) => a * f(rect.left + ((q + 0.5) / 24) * rect.width, rect.top + ((r + 0.5) / 8) * rect.height), 1));
+          dimmed.push({ key: `${c}:${k}`, text: words, alpha: low });
+        }
+        k++;
+      }
+      // the card's own clip: how much of the card it takes, and whether the corners of its content stay
+      const clip = getComputedStyle(card).clipPath;
+      if (clip && clip !== "none") {
+        const rect = card.getBoundingClientRect();
+        const cs = getComputedStyle(card);
+        const z = zoomOf(card, rect);
+        // the shell pads a card's content inside the card (`--wp-pad`), so the content's corners sit that far in
+        const shell = parseFloat(cs.getPropertyValue("--wp-pad")) || 0;
+        const inset = (side: string) => (parseFloat(cs.getPropertyValue(`padding-${side}`)) + parseFloat(cs.getPropertyValue(`border-${side}-width`)) + shell) * z;
+        const [l, t, r, b] = [rect.left + inset("left"), rect.top + inset("top"), rect.right - inset("right"), rect.bottom - inset("bottom")];
+        const edge = shape(clip, rect, z);
+        cardClips.push({ key: `${c}`, place, removed: edge ? 1 - kept(rect, [edge], 40, 40) : null, corners: edge ? [[l, t], [r, t], [r, b], [l, b]].filter(([x, y]) => !edge(x, y)).length : null });
+      }
+      // what the pack adds with ::before and ::after: where its box goes, and what it paints over the text
+      for (const host of [card, ...card.querySelectorAll("*")]) {
+        if (!(host instanceof HTMLElement)) continue;
+        for (const which of ["::before", "::after"] as const) {
+          const cs = getComputedStyle(host, which);
+          if (cs.content === "none" || cs.content === "normal" || cs.display === "none" || cs.visibility === "hidden") continue;
+          const path: string[] = [];
+          for (let n: Element = host; n !== card; n = n.parentElement as Element) path.unshift(String([...(n.parentElement as Element).children].indexOf(n)));
+          const name = `${which} of ${[host.tagName.toLowerCase(), host.getAttribute("data-part"), ...path].filter(Boolean).join(" ")} ${`[${place}]`}`;
+          const box = pseudoBox(host, cs);
+          const hostRect = host.getBoundingClientRect();
+          if (!box) problems.push(`${name} cannot be placed`);
+          else if (Math.max(hostRect.left - box[0], box[2] - hostRect.right, hostRect.top - box[1], box[3] - hostRect.bottom) > 1) problems.push(`${name} reaches outside its element`);
+          const paint = pseudoPaint(cs);
+          const over = box && boxes.find(({ rect }) => rect.left < box[2] && rect.right > box[0] && rect.top < box[3] && rect.bottom > box[1]);
+          if (over && paint > alphaMax) problems.push(`${name} paints at ${paint.toFixed(2)} over text "${over.words}"`);
+        }
+      }
+    };
     // the stage: layers and effects never take a click and the overlays stay under the cap
     for (const el of document.querySelectorAll("[data-pack-layer], [data-pack-effect]")) {
       const cs = getComputedStyle(el);
@@ -122,6 +540,8 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
       if (el.hasAttribute("data-pack-effect") && Number(cs.opacity) > alphaMax) problems.push(`effect ${el.getAttribute("data-pack-effect")} opacity ${cs.opacity} is over ${alphaMax}`);
       if (el.getAttribute("data-pack-layer") === "overlay" && alphaOf(cs.backgroundColor) > alphaMax) problems.push(`overlay background alpha ${cs.backgroundColor}`);
     }
+    // the app's frame and ornaments never take a click: one that does is a bug of the app's, and the page refuses it
+    for (const el of document.querySelectorAll("[data-pack-decor]")) if (getComputedStyle(el).pointerEvents !== "none") problems.push(`${el.getAttribute("data-pack-decor")} decoration takes pointer events`);
     const marks: Record<string, number> = {};
     const cards = [...document.querySelectorAll("[data-wp-tier]")];
     const texts: TextInk[] = [];
@@ -143,11 +563,19 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
       const fig = card.closest("figure[data-qa-module]");
       const place = fig ? `${fig.getAttribute("data-qa-module")}@${fig.getAttribute("data-qa-span")}` : `card ${c}`;
       faded.clear();
+      shapes(card, c, place);
+      // every element's border widths, against the twin's: a style on a `medium` border gives it 3 px, which moves what it holds
+      [card, ...card.querySelectorAll("*")].forEach((el, i) => {
+        const cs = getComputedStyle(el);
+        const widths = ["top", "right", "bottom", "left"].map((s) => cs.getPropertyValue(`border-${s}-width`));
+        if (widths.some((v) => parseFloat(v) !== 0)) borders.push({ key: `${c}:${i}`, name: `${[el.tagName.toLowerCase(), el.getAttribute("data-part")].filter(Boolean).join(" ")} [${place}]`, widths: widths.join(" ") });
+      });
       const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
       let k = 0;
       for (let t = walker.nextNode(); t; t = walker.nextNode()) {
         if (!t.textContent?.trim() || !t.parentElement) continue;
         const el = t.parentElement;
+        if (el.closest("[data-pack-decor]")) continue;
         const cs = getComputedStyle(el);
         if (cs.visibility === "hidden" || cs.display === "none") continue;
         const words = t.textContent.trim().slice(0, 20);
@@ -182,6 +610,7 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
           // down the stack from the top to the element or one related to it: the first that paints a background, at a strength that hides, is what covers it (a transparent wrapper does not)
           for (const n of at ? document.elementsFromPoint(at[0], at[1]) : []) {
             if (n === el || n.contains(el) || el.contains(n)) break;
+            if (n.closest("[data-pack-decor]")) continue;
             const ns = getComputedStyle(n);
             if (Number(ns.opacity) >= minOpacity && (rgba(ns.backgroundColor)[3] >= 0.5 || ns.backgroundImage !== "none")) {
               problems.push(`text "${words}" is covered by a ${n.tagName.toLowerCase()}${n.getAttribute("data-part") ? ` (${n.getAttribute("data-part")})` : ""} ${where}`);
@@ -294,7 +723,7 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
         if (r < 4.5) barIssues.push(`header ${header.textContent?.slice(0, 20)} ${getComputedStyle(header).color} on ${getComputedStyle(card).getPropertyValue("--w-mat-export")} is ${r.toFixed(2)}:1`);
       }
     }
-    return { problems, cards: cards.length, gradients: marks.gradient ?? 0, gauges, texts, marks: inks, bars, barIssues: [...new Set(barIssues)] };
+    return { clips, cardClips, masks: dimmed, borders, problems, cards: cards.length, gradients: marks.gradient ?? 0, gauges, texts, marks: inks, bars, barIssues: [...new Set(barIssues)] };
   };
 
   const worn = read();
@@ -305,10 +734,70 @@ export function measurePack({ look, alphaMax, minOpacity }: MeasureOptions): Twi
   return { worn, bare };
 }
 
+/**
+ * The url() masks under `[data-look="<look>"]`, pseudo-elements included, each decoded into a `MaskGrid` (null: it would not load or
+ * decode), by the url the computed style names: what `measurePack` reads them from, as it cannot load an image. Without `files` each
+ * url is fetched; with them only their bytes are read, by absolute URL (`maskFiles`), and a url that names none is null. Run in the
+ * page just before `measurePack`, and sent to the browser as source like it: it names nothing outside its own body.
+ */
+export async function readMaskImages({ look, files }: { look: string; files?: Record<string, Blob> }): Promise<Record<string, MaskGrid | null>> {
+  // the grid is sampled down to this many cells a side at most
+  const most = 256;
+  const urls = new Set<string>();
+  for (const el of document.querySelectorAll(`[data-look="${look}"], [data-look="${look}"] *`)) {
+    for (const which of [null, "::before", "::after"]) {
+      const cs = getComputedStyle(el, which);
+      for (const value of [cs.getPropertyValue("mask-image"), cs.getPropertyValue("-webkit-mask-image")]) for (const m of value.matchAll(/url\(\s*(["']?)(.*?)\1\s*\)/g)) urls.add(m[2]);
+    }
+  }
+  const decode = async (url: string): Promise<MaskGrid | null> => {
+    try {
+      const href = new URL(url, document.baseURI).href;
+      const blob = files ? files[href] : await fetch(href).then((r) => (r.ok ? r.blob() : undefined));
+      if (!blob) return null;
+      const src = URL.createObjectURL(blob);
+      try {
+        const img = new Image();
+        img.src = src;
+        await img.decode();
+        const [w, h] = [img.naturalWidth, img.naturalHeight];
+        if (!(w > 0 && h > 0)) return null;
+        const [cols, rows] = [Math.min(most, Math.ceil(w)), Math.min(most, Math.ceil(h))];
+        const canvas = document.createElement("canvas");
+        canvas.width = cols;
+        canvas.height = rows;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return null;
+        ctx.drawImage(img, 0, 0, cols, rows);
+        const data = ctx.getImageData(0, 0, cols, rows).data;
+        const a: number[] = [];
+        for (let i = 3; i < data.length; i += 4) a.push(data[i] / 255);
+        return { w, h, cols, rows, a };
+      } finally {
+        URL.revokeObjectURL(src);
+      }
+    } catch {
+      return null;
+    }
+  };
+  return Object.fromEntries(await Promise.all([...urls].map(async (u) => [u, await decode(u)] as const)));
+}
+
+/** A candidate pack's files by the absolute URL its mounted CSS names them by (`/api/packs/<id>/<path>`, as `scopePackCss` writes them): the render check's frame reads its masks from these, as the pack is not stored and the route would answer 404. A file without its bytes is left out. */
+export function maskFiles(id: string, files: readonly PackFile[], origin: string): Record<string, Blob> {
+  return Object.fromEntries(
+    files.flatMap((f) => (f.bytes ? [[new URL(`/api/packs/${encodeURIComponent(id)}/${packPath(f.path)}`, origin).href, new Blob([f.bytes.slice()], { type: /\.svg$/i.test(f.path) ? "image/svg+xml" : "" })]] : [])),
+  );
+}
+
 /** Text this far under its card is not read (the validator's `HIDDEN_TEXT_MIN`). */
 export const READABLE_MIN = 3;
 /** A mark this close to what is behind it is not seen (the bar a value mark is held to). */
 export const MARK_MIN = 1.3;
+/** A text keeps at least this share of its box under the clip-paths above it, of what it kept without the pack. */
+export const CLIP_SEEN_MIN = 0.9;
+/** A card's clip-path removes at most this share of its border box. */
+export const CARD_CLIP_MAX = 0.1;
 
 /** The gauges `ref` lights and `now` does not. */
 export function unlit(ref: readonly GaugeInk[], now: readonly GaugeInk[]): string[] {
@@ -325,6 +814,35 @@ export function renderRefusals({ worn, bare }: Twin): string[] {
   out.push(...mine(worn.problems, bare.problems), ...mine(worn.barIssues, bare.barIssues));
   const hidden = unlit(bare.gauges, worn.gauges);
   if (hidden.length) out.push(`${hidden.length} gauge${hidden.length === 1 ? " is" : "s are"} no longer lit (${hidden[0]})`);
+  const seenBare = new Map(bare.clips.map((t) => [t.key, t.seen]));
+  const cut = worn.clips.filter((t) => {
+    const was = seenBare.has(t.key) ? seenBare.get(t.key) : 1;
+    return t.seen === null ? was !== null : was !== null && was !== undefined && t.seen < CLIP_SEEN_MIN * was;
+  });
+  if (cut.length) out.push(`${cut.length} text${cut.length === 1 ? " is" : "s are"} cut by a clip-path ("${cut[0].text}" keeps ${cut[0].seen === null ? "an unreadable share" : `${Math.round(cut[0].seen * 100)}%`} of its box)`);
+  const alphaBare = new Map(bare.masks.map((t) => [t.key, t.alpha]));
+  const dim = worn.masks.filter((t) => {
+    const was = alphaBare.has(t.key) ? alphaBare.get(t.key) : 1;
+    return t.alpha === null ? was !== null : was !== null && was !== undefined && t.alpha < OPACITY_FLOOR && t.alpha < was;
+  });
+  if (dim.length) out.push(`${dim.length} text${dim.length === 1 ? " is" : "s are"} under a mask that leaves less than ${OPACITY_FLOOR} of ${dim.length === 1 ? "it" : "them"} ("${dim[0].text}" is ${dim[0].alpha === null ? "under one that cannot be read" : `at ${dim[0].alpha.toFixed(2)}`})`);
+  // a border the pack widens (or narrows) moves what the element holds: any width that is not the bare page's refuses
+  const none = "0px 0px 0px 0px";
+  const widthBare = new Map(bare.borders.map((b) => [b.key, b.widths]));
+  const widthWorn = new Map(worn.borders.map((b) => [b.key, b.widths]));
+  const widened = [
+    ...worn.borders.filter((b) => b.widths !== (widthBare.get(b.key) ?? none)).map((b) => ({ ...b, was: widthBare.get(b.key) ?? none })),
+    ...bare.borders.filter((b) => !widthWorn.has(b.key)).map((b) => ({ ...b, was: b.widths, widths: none })),
+  ];
+  if (widened.length) out.push(`${widened.length} element${widened.length === 1 ? "'s border is" : "s' borders are"} not as wide as without the pack (${widened[0].name} is ${widened[0].widths}, not ${widened[0].was})`);
+  const cardBare = new Map(bare.cardClips.map((k) => [k.key, k]));
+  for (const k of worn.cardClips) {
+    const was = cardBare.get(k.key);
+    if (k.removed === null || k.corners === null) {
+      if (was?.removed !== null || was?.corners !== null) out.push(`the clip-path of a card cannot be read [${k.place}]`);
+    } else if (k.removed > CARD_CLIP_MAX && k.removed > (was?.removed ?? 0)) out.push(`a clip-path removes ${Math.round(k.removed * 100)}% of a card, over ${CARD_CLIP_MAX * 100}% [${k.place}]`);
+    else if (k.corners > (was?.corners ?? 0)) out.push(`a clip-path cuts ${k.corners} of the corners of a card's content [${k.place}]`);
+  }
   const before = new Map(bare.texts.map((t) => [t.key, t.ratio]));
   const faint = worn.texts.filter((t) => {
     const was = before.get(t.key);

@@ -6,8 +6,8 @@
 // Node's handle types; `eventLoopDelayMs` is how late a 10 ms timer fires (a scheduling-delay sample over the last
 // ~10 s: p50 and p99; max since start), not the event-loop histogram. `uptimeSeconds` and `sseClients` are as in Node.
 
-use std::pin::Pin;
 use std::collections::VecDeque;
+use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};

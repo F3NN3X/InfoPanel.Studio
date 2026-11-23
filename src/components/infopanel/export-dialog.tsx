@@ -105,7 +105,7 @@ function ExportBody({ canvas, onClose, onDone }: { canvas: StoredCanvas; onClose
           <X className="h-5 w-5" />
         </Dialog.Close>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-auto px-5 py-[18px]">
+      <div className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-auto px-5 py-4.5">
         <p className="text-caption text-ui-4">Reopens here exactly as it is: mode, remap choices, fonts and assets, each checked by SHA-256.</p>
         {missing.length > 0 && (
           <p className="flex gap-1.5 text-caption text-ui-warn">
@@ -113,10 +113,10 @@ function ExportBody({ canvas, onClose, onDone }: { canvas: StoredCanvas; onClose
           </p>
         )}
         <FontLicenceReview rows={licences} choices={choices} targets={targets} onChoose={(hash, c) => setChoices(new Map(choices).set(hash, c))} />
-        <div className="flex flex-col gap-[5px] rounded-ui-lg border border-ui-subtle bg-ui-chrome px-3.5 py-3">
+        <div className="flex flex-col gap-1.25 rounded-ui-lg border border-ui-subtle bg-ui-chrome px-3.5 py-3">
           {contents.map(([a, b]) => (
             <div key={a} className="flex gap-3 text-caption">
-              <span className="w-[140px] font-ui-mono text-caption text-ui-2">{a}</span>
+              <span className="w-35 font-ui-mono text-caption text-ui-2">{a}</span>
               <span className="text-ui-3">{b}</span>
             </div>
           ))}
@@ -148,7 +148,7 @@ export function ExportDialog({ open, onOpenChange, zone, onDone }: ExportDialogP
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(720px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
+        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(720px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-14 border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
           {open && zone && canvas ? (
             <ExportBody key={zone.id} canvas={canvas} onClose={() => onOpenChange(false)} onDone={onDone} />
           ) : (

@@ -11,7 +11,7 @@
 //! github.com/Sapd/HeadsetControl (headset voltage calibration).
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{guess_kind, hex4, hid_product, interpolate, HidColl, HidIo, PollContext};
+use crate::hid::{HidColl, HidIo, PollContext, guess_kind, hex4, hid_product, interpolate};
 use crate::win::now_ms;
 
 /// Our software id; replies to other apps (G HUB, Options+) carry theirs.
@@ -20,7 +20,9 @@ const K_SW_ID: u8 = 0x0D;
 /// LIGHTSPEED dongles that speak only HID++ 2.0 and relay a single paired device: the dongle itself
 /// answers the ping on index 0xFF (it has no battery feature) and the mouse is on index 1.
 /// 046D:C54F = PRO X3 SUPERSTRIKE dongle (Solaar PR #3352, "PASSTHROUGH_DONGLE_IDS").
-fn is_passthrough_dongle(pid: u16) -> bool { pid == 0xC54F }
+fn is_passthrough_dongle(pid: u16) -> bool {
+    pid == 0xC54F
+}
 
 /// One physical device's short-report (0x10, 7 bytes) and long-report (0x11, 20 bytes) HID++
 /// collections, both opened for read/write.
@@ -33,16 +35,29 @@ impl Hidpp {
     fn open(ctx: &mut PollContext, short_c: Option<&HidColl>, long_c: Option<&HidColl>) -> Option<Hidpp> {
         let s = short_c.and_then(|c| ctx.open(c));
         let l = long_c.and_then(|c| ctx.open(c));
-        if s.is_none() && l.is_none() { return None; }
+        if s.is_none() && l.is_none() {
+            return None;
+        }
         Some(Hidpp { s, l })
     }
 
     /// Sends a request and waits for its reply. Returns 1 = reply (params in `p`), 0 = error reply
     /// (code in `err`), -1 = no answer.
-    fn request(&mut self, idx: u8, b2: u8, b3: u8, params: &[u8], p: &mut Vec<u8>, err: &mut u8,
-               force_short: bool, timeout_ms: u32) -> i32 {
+    fn request(
+        &mut self,
+        idx: u8,
+        b2: u8,
+        b3: u8,
+        params: &[u8],
+        p: &mut Vec<u8>,
+        err: &mut u8,
+        force_short: bool,
+        timeout_ms: u32,
+    ) -> i32 {
         let use_long = self.l.is_some() && !force_short;
-        if !use_long && self.s.is_none() { return -1; }
+        if !use_long && self.s.is_none() {
+            return -1;
+        }
         let mut msg = vec![0u8; if use_long { 20 } else { 7 }];
         msg[0] = if use_long { 0x11 } else { 0x10 };
         msg[1] = idx;
@@ -50,7 +65,9 @@ impl Hidpp {
         msg[3] = b3;
         let mut i = 4;
         for &v in params {
-            if i >= msg.len() { break; }
+            if i >= msg.len() {
+                break;
+            }
             msg[i] = v;
             i += 1;
         }
@@ -59,14 +76,20 @@ impl Hidpp {
         } else {
             self.s.as_mut().map_or(false, |d| d.write(&msg, 500))
         };
-        if !sent { return -1; }
+        if !sent {
+            return -1;
+        }
 
         let end = now_ms() + timeout_ms as u64;
         let mut r: Vec<u8> = Vec::new();
         while (end as i64 - now_ms() as i64) > 0 {
             for d in [&mut self.l, &mut self.s].into_iter().flatten() {
-                if d.read(&mut r, 15) < 7 { continue; }
-                if (r[0] != 0x10 && r[0] != 0x11) || r[1] != idx { continue; }
+                if d.read(&mut r, 15) < 7 {
+                    continue;
+                }
+                if (r[0] != 0x10 && r[0] != 0x11) || r[1] != idx {
+                    continue;
+                }
                 if r[2] == b2 && r[3] == b3 {
                     p.clear();
                     p.extend_from_slice(&r[4..]);
@@ -137,49 +160,73 @@ fn kind_from_type(t: u8) -> DeviceKind {
 /// Fills battery fields from whichever battery feature the device has. Returns false if none.
 fn read_battery_20(h: &mut Hidpp, idx: u8, pid: u16, s: &mut DeviceStatus) -> bool {
     let mut p: Vec<u8> = Vec::new();
-    let f = h.feature_index(idx, 0x1004);  // UNIFIED_BATTERY
+    let f = h.feature_index(idx, 0x1004); // UNIFIED_BATTERY
     if f != 0 {
-        if h.call(idx, f, 1, &[], &mut p) && p.len() >= 3 {  // get_status (fn 1)
+        if h.call(idx, f, 1, &[], &mut p) && p.len() >= 3 {
+            // get_status (fn 1)
             let soc = p[0] as i32;
             let level = p[1];
             let st = p[2] as i32;
             if soc > 0 && soc <= 100 {
                 s.percent = soc;
             } else if level != 0 {
-                s.percent = if level & 8 != 0 { 100 } else if level & 4 != 0 { 60 } else if level & 2 != 0 { 20 } else { 5 };
-                let level_text = if level & 8 != 0 { "Full" } else if level & 4 != 0 { "Good" }
-                                 else if level & 2 != 0 { "Low" } else { "Critical" };
+                s.percent = if level & 8 != 0 {
+                    100
+                } else if level & 4 != 0 {
+                    60
+                } else if level & 2 != 0 {
+                    20
+                } else {
+                    5
+                };
+                let level_text = if level & 8 != 0 {
+                    "Full"
+                } else if level & 4 != 0 {
+                    "Good"
+                } else if level & 2 != 0 {
+                    "Low"
+                } else {
+                    "Critical"
+                };
                 s.level_text = level_text.into();
             }
             s.charging = st == 1 || st == 2 || st == 3;
             return true;
         }
     }
-    let f = h.feature_index(idx, 0x1000);  // BATTERY_STATUS
+    let f = h.feature_index(idx, 0x1000); // BATTERY_STATUS
     if f != 0 {
-        if h.call(idx, f, 0, &[], &mut p) && p.len() >= 3 {  // GetBatteryLevelStatus (fn 0)
+        if h.call(idx, f, 0, &[], &mut p) && p.len() >= 3 {
+            // GetBatteryLevelStatus (fn 0)
             let st = p[2] as i32;
             s.charging = st >= 1 && st <= 4;
             s.percent = if p[0] <= 100 { p[0] as i32 } else { -1 };
-            if s.percent == 0 && st == 3 { s.percent = 100; }
+            if s.percent == 0 && st == 3 {
+                s.percent = 100;
+            }
             return true;
         }
     }
-    let f = h.feature_index(idx, 0x1001);  // BATTERY_VOLTAGE
+    let f = h.feature_index(idx, 0x1001); // BATTERY_VOLTAGE
     if f != 0 {
-        if h.call(idx, f, 0, &[], &mut p) && p.len() >= 3 {  // GetBatteryInfo (fn 0)
+        if h.call(idx, f, 0, &[], &mut p) && p.len() >= 3 {
+            // GetBatteryInfo (fn 0)
             s.millivolts = ((p[0] as i32) << 8) | p[1] as i32;
             s.charging = (p[2] & 0x80) != 0;
-            if s.millivolts != 0 { s.percent = li_ion_percent(s.millivolts); }
+            if s.millivolts != 0 {
+                s.percent = li_ion_percent(s.millivolts);
+            }
             return true;
         }
     }
-    let f = h.feature_index(idx, 0x1F20);  // ADC_MEASUREMENT (headsets)
+    let f = h.feature_index(idx, 0x1F20); // ADC_MEASUREMENT (headsets)
     if f != 0 {
         if h.call(idx, f, 0, &[], &mut p) && p.len() >= 3 {
             s.millivolts = ((p[0] as i32) << 8) | p[1] as i32;
             s.charging = p[2] == 0x03;
-            if s.millivolts != 0 { s.percent = headset_percent(pid, s.millivolts); }
+            if s.millivolts != 0 {
+                s.percent = headset_percent(pid, s.millivolts);
+            }
             return true;
         }
     }
@@ -187,40 +234,35 @@ fn read_battery_20(h: &mut Hidpp, idx: u8, pid: u16, s: &mut DeviceStatus) -> bo
 }
 
 fn read_name_and_type_20(h: &mut Hidpp, idx: u8, s: &mut DeviceStatus) {
-    let f = h.feature_index(idx, 0x0005);  // DEVICE_NAME
-    if f == 0 { return; }
+    let f = h.feature_index(idx, 0x0005); // DEVICE_NAME
+    if f == 0 {
+        return;
+    }
     let mut p: Vec<u8> = Vec::new();
     if h.call(idx, f, 0, &[], &mut p) && !p.is_empty() {
         let len = p[0] as i32;
         let mut name: Vec<u8> = Vec::new();
         while (name.len() as i32) < len {
-            if !h.call(idx, f, 1, &[name.len() as u8], &mut p) || p.is_empty() { break; }
+            if !h.call(idx, f, 1, &[name.len() as u8], &mut p) || p.is_empty() {
+                break;
+            }
             let before = name.len();
             for &ch in &p {
-                if name.len() as i32 >= len || ch == 0 { break; }
+                if name.len() as i32 >= len || ch == 0 {
+                    break;
+                }
                 name.push(ch);
             }
-            if name.len() == before { break; }
+            if name.len() == before {
+                break;
+            }
         }
         if !name.is_empty() {
             // The device reports the name as raw bytes; widen each byte the way the C++ did
             // (`std::wstring w(name.begin(), name.end())`): `char` is signed on MSVC, so bytes
             // >= 0x80 are sign-extended into U+FF80..=U+FFFF rather than zero-extended.
-            let w: String = name
-                .iter()
-                .map(|&b| {
-                    if b < 0x80 {
-                        b as char
-                    } else {
-                        char::from_u32(0xFF00 | b as u32).unwrap()
-                    }
-                })
-                .collect();
-            s.name = if w.starts_with("Logitech") || w.starts_with("G ") || w.starts_with("MX") {
-                w
-            } else {
-                format!("Logitech {w}")
-            };
+            let w: String = name.iter().map(|&b| if b < 0x80 { b as char } else { char::from_u32(0xFF00 | b as u32).unwrap() }).collect();
+            s.name = if w.starts_with("Logitech") || w.starts_with("G ") || w.starts_with("MX") { w } else { format!("Logitech {w}") };
         }
     }
     if h.call(idx, f, 2, &[], &mut p) && !p.is_empty() {
@@ -234,12 +276,17 @@ fn read_name_and_type_20(h: &mut Hidpp, idx: u8, s: &mut DeviceStatus) {
 /// product id and device index). Returns an empty string if the device does not report one.
 fn read_unit_id_20(h: &mut Hidpp, idx: u8) -> String {
     let f = h.feature_index(idx, 0x0003);
-    if f == 0 { return String::new(); }
+    if f == 0 {
+        return String::new();
+    }
     let mut p: Vec<u8> = Vec::new();
-    if !h.call(idx, f, 0, &[], &mut p) || p.len() < 5 { return String::new(); }
-    if p[1] == 0 && p[2] == 0 && p[3] == 0 && p[4] == 0 { return String::new(); }
-    format!("{}{}", hex4((((p[1] as i32) << 8) | p[2] as i32) as u16),
-            hex4((((p[3] as i32) << 8) | p[4] as i32) as u16))
+    if !h.call(idx, f, 0, &[], &mut p) || p.len() < 5 {
+        return String::new();
+    }
+    if p[1] == 0 && p[2] == 0 && p[3] == 0 && p[4] == 0 {
+        return String::new();
+    }
+    format!("{}{}", hex4((((p[1] as i32) << 8) | p[2] as i32) as u16), hex4((((p[3] as i32) << 8) | p[4] as i32) as u16))
 }
 
 /// HID++ 1.0 devices: register 0x0D (battery %) or 0x07 (battery level 1..7).
@@ -255,7 +302,15 @@ fn read_battery_10(h: &mut Hidpp, idx: u8, s: &mut DeviceStatus) -> bool {
         const PCT: [i32; 8] = [0, 5, 10, 20, 35, 50, 75, 100];
         let lvl = if p[0] > 7 { 7 } else { p[0] };
         s.percent = PCT[lvl as usize];
-        let level_text = if p[0] >= 7 { "Full" } else if p[0] >= 5 { "Good" } else if p[0] >= 3 { "Low" } else { "Critical" };
+        let level_text = if p[0] >= 7 {
+            "Full"
+        } else if p[0] >= 5 {
+            "Good"
+        } else if p[0] >= 3 {
+            "Low"
+        } else {
+            "Critical"
+        };
         s.level_text = level_text.into();
         s.charging = p[1] >= 0x21 && p[1] <= 0x26;
         return true;
@@ -294,8 +349,12 @@ fn physical_key(c: &HidColl) -> String {
 /// Polls one physical device (receiver, cable or Bluetooth link) given its HID++ collections.
 /// `suffix` keeps the fallback keys of identical receivers apart. Returns true if it reported a device.
 fn poll_logitech_device(ctx: &mut PollContext, pid: u16, shorts: &[HidColl], longs: &[HidColl], suffix: &str) -> bool {
-    if shorts.is_empty() && longs.is_empty() { return false; }
-    let Some(mut h) = Hidpp::open(ctx, shorts.first(), longs.first()) else { return false; };
+    if shorts.is_empty() && longs.is_empty() {
+        return false;
+    }
+    let Some(mut h) = Hidpp::open(ctx, shorts.first(), longs.first()) else {
+        return false;
+    };
 
     let base = if longs.is_empty() { &shorts[0] } else { &longs[0] };
     let product = hid_product(base);
@@ -315,7 +374,9 @@ fn poll_logitech_device(ctx: &mut PollContext, pid: u16, shorts: &[HidColl], lon
     } else if bluetooth
         || (!is_receiver
             && h.request(0xFF, 0x00, 0x10 | K_SW_ID, &[0, 0, 0x5A], &mut p, &mut err, false, 400) == 1
-            && p.len() >= 3 && p[0] >= 2) {
+            && p.len() >= 3
+            && p[0] >= 2)
+    {
         vec![0xFF]
     } else {
         vec![1, 2, 3, 4, 5, 6]
@@ -327,7 +388,7 @@ fn poll_logitech_device(ctx: &mut PollContext, pid: u16, shorts: &[HidColl], lon
         s.key = format!("logi:{}{}:{}", hex4(pid), suffix, idx);
         s.name = if idx == 0xFF && !product.is_empty() { product.clone() } else { "Logitech wireless device".into() };
         s.via = if idx == 0xFF { "USB / Bluetooth".into() } else { "Logitech receiver".into() };
-        s.grace_sec = if idx == 0xFF { 0 } else { 1800 };  // receiver devices drop off the link while sleeping
+        s.grace_sec = if idx == 0xFF { 0 } else { 1800 }; // receiver devices drop off the link while sleeping
         s.kind = guess_kind(&s.name);
 
         let r = h.request(idx, 0x00, 0x10 | K_SW_ID, &[0, 0, 0x5A], &mut p, &mut err, false, 400);
@@ -340,16 +401,21 @@ fn poll_logitech_device(ctx: &mut PollContext, pid: u16, shorts: &[HidColl], lon
                 s.key = format!("logi:unit:{unit}");
                 // Unplugging the cable hands a receiver device back to its receiver; keep the
                 // entry for a minute so it does not blink out while the link comes back.
-                if idx == 0xFF { s.grace_sec = 60; }
+                if idx == 0xFF {
+                    s.grace_sec = 60;
+                }
             }
             if found && s.kind == DeviceKind::Other && !longs.is_empty() && longs[0].page() == 0xFF43 {
                 s.kind = DeviceKind::Headset;
             }
-        } else if r == 0 && err == 0x01 {  // "invalid sub id": a HID++ 1.0 device
+        } else if r == 0 && err == 0x01 {
+            // "invalid sub id": a HID++ 1.0 device
             found = read_battery_10(&mut h, idx, &mut s);
         }
         if found {
-            if s.kind == DeviceKind::Other { s.kind = guess_kind(&s.name); }
+            if s.kind == DeviceKind::Other {
+                s.kind = guess_kind(&s.name);
+            }
             ctx.out.push(s);
             any = true;
         }
@@ -370,7 +436,9 @@ pub fn poll_logitech(ctx: &mut PollContext) {
         for list in [&all_shorts, &all_longs] {
             for c in list {
                 let k = physical_key(c);
-                if !groups.contains(&k) { groups.push(k); }
+                if !groups.contains(&k) {
+                    groups.push(k);
+                }
             }
         }
 
@@ -380,8 +448,12 @@ pub fn poll_logitech(ctx: &mut PollContext) {
             let longs: Vec<HidColl> = all_longs.iter().filter(|c| &physical_key(c) == group).cloned().collect();
             // Keys of the first device stay as they were; a second identical receiver gets "#2", ...
             let suffix = if g != 0 { format!("#{}", g + 1) } else { String::new() };
-            if poll_logitech_device(ctx, pid, &shorts, &longs, &suffix) { any = true; }
+            if poll_logitech_device(ctx, pid, &shorts, &longs, &suffix) {
+                any = true;
+            }
         }
-        if any { ctx.claim(vid, pid); }
+        if any {
+            ctx.claim(vid, pid);
+        }
     }
 }

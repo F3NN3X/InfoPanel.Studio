@@ -8,8 +8,8 @@ use ips_server::config_settings::{apply_settings_patch, reapply_settings, Settin
 use ips_server::control::{current_page, is_island_shown, is_rotating, public_state, reduce, target_profile, State};
 use ips_server::control_store::Control;
 use ips_server::request_guard::{
-    agent_write_refusal, config_write_refusal, control_write_refusal, hostname_of, is_loopback, parse_allowed_hosts,
-    remote_edit_refusal, Refusal, RequestGuard,
+    agent_write_refusal, config_write_refusal, control_write_refusal, hostname_of, is_loopback, parse_allowed_hosts, remote_edit_refusal,
+    Refusal, RequestGuard,
 };
 use ips_server::security_headers::security_headers;
 use ips_server::studio_prefs::{apply_prefs, normalize_prefs};
@@ -60,12 +60,12 @@ fn request_guard() {
             }
             "parseAllowedHosts" => json!(parse_allowed_hosts(str_of(&input, "value"))),
             "configWriteRefusal" => refusal(config_write_refusal(str_of(headers, "content-type"), str_of(headers, "x-dashboard-config"))),
-            "controlWriteRefusal" => refusal(control_write_refusal(str_of(headers, "content-type"), str_of(headers, "x-dashboard-control"))),
-            "agentWriteRefusal" => refusal(agent_write_refusal(
-                str_of(headers, "content-type"),
-                str_of(headers, "x-agent-event"),
-                str_of(&input, "address"),
-            )),
+            "controlWriteRefusal" => {
+                refusal(control_write_refusal(str_of(headers, "content-type"), str_of(headers, "x-dashboard-control")))
+            }
+            "agentWriteRefusal" => {
+                refusal(agent_write_refusal(str_of(headers, "content-type"), str_of(headers, "x-agent-event"), str_of(&input, "address")))
+            }
             "isLoopback" => json!(is_loopback(str_of(&input, "address"))),
             "remoteEditRefusal" => {
                 let allow = str_of(&input["env"], "ALLOW_REMOTE_EDIT") == Some("1");
@@ -178,7 +178,8 @@ fn session(input: &Value) -> Value {
     }
     let config = std::sync::Arc::new(std::sync::Mutex::new(input["config"].clone()));
     let read = std::sync::Arc::clone(&config);
-    let control = Control::new(file.clone(), input["now0"].as_i64().unwrap(), move || Some(read.lock().unwrap().clone()).filter(|c| !c.is_null()));
+    let control =
+        Control::new(file.clone(), input["now0"].as_i64().unwrap(), move || Some(read.lock().unwrap().clone()).filter(|c| !c.is_null()));
     let (mut rx, _listener) = control.subscribe();
     let mut now = input["now0"].as_f64().unwrap();
     let mut steps = Vec::new();

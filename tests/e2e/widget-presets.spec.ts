@@ -9,6 +9,8 @@ test("Save as preset, find it in Add, add it: the placement is the preset", asyn
   const { errors } = watchErrors(page);
   const local = fs.readFileSync(path.join(scratch.dataDir, "config.json"), "utf8");
   await page.addInitScript((value) => localStorage.setItem("infopanel-dashboard:config:v1", value), local);
+// the left panel starts collapsed (Phase 5, choice 9): this spec works in it, so open it as a returning user would have
+  await page.addInitScript(() => localStorage.setItem("studio.editor.leftPanelOpen", "1"));
   await page.goto(`${scratch.base}/?studio=1`);
   await page.getByRole("navigation", { name: "Studio views" }).getByRole("button", { name: /^Edit / }).click();
 

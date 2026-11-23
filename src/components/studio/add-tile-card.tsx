@@ -60,7 +60,7 @@ export function TileCard({ tile, left, top, appearance, pageStyle }: TileCardPro
       style={{ left, top, width: CARD_WIDTH }}
     >
       <div
-        className="flex h-[150px] items-center justify-center overflow-hidden border-b border-ui-default"
+        className="flex h-37.5 items-center justify-center overflow-hidden border-b border-ui-default"
         style={{ background: "radial-gradient(ellipse at 50% 40%, #1d1d24, #0c0c0e)" }}
       >
         {tile.widget ? (
@@ -80,7 +80,7 @@ export function TileCard({ tile, left, top, appearance, pageStyle }: TileCardPro
         </span>
         <p className="text-pretty text-caption leading-[1.5] text-ui-2">{cardDescription(tile)}</p>
         <span className="flex items-center gap-2 text-micro text-ui-3">
-          <span className="rounded-[4px] bg-ui-subtle px-1.5 py-px font-ui-mono text-ui-1">{size.chip}</span>
+          <span className="rounded-4 bg-ui-subtle px-1.5 py-px font-ui-mono text-ui-1">{size.chip}</span>
           {size.note}
         </span>
         <span className="border-t border-ui-default pt-2 text-micro text-ui-hint">Click to add · drag to place</span>

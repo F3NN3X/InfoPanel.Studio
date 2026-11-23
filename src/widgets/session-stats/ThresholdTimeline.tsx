@@ -34,7 +34,7 @@ interface LaneProps {
 function Lane({ runs, ticks, className }: LaneProps) {
   if (ticks.length < FEW)
     return (
-      <div className={`flex items-stretch gap-[2px] rounded-[3px] bg-[color:var(--w-track)] ${className}`}>
+      <div className={`flex items-stretch gap-0.5 rounded-3 bg-[color:var(--w-track)] ${className}`}>
         <span className="flex min-w-0 flex-1 items-center truncate pl-1.5 text-micro leading-none text-[color:var(--w-faint)]">collecting · {ticks.length} / {FEW}</span>
         {ticks.map((t, i) => (
           <i key={i} className="w-1.5 shrink-0 rounded-[1px]" style={{ background: LANE_COLOR[t], opacity: 0.85 }} />
@@ -42,7 +42,7 @@ function Lane({ runs, ticks, className }: LaneProps) {
       </div>
     );
   return (
-    <svg viewBox={`0 0 ${COLUMNS} 1`} preserveAspectRatio="none" shapeRendering="crispEdges" className={`rounded-[3px] bg-[color:var(--w-track)] ${className}`} aria-hidden>
+    <svg viewBox={`0 0 ${COLUMNS} 1`} preserveAspectRatio="none" shapeRendering="crispEdges" className={`rounded-3 bg-[color:var(--w-track)] ${className}`} aria-hidden>
       {runs.map((r) => (r.tone ? <rect key={r.from} x={r.from} y={0} width={r.to - r.from} height={1} fill={LANE_COLOR[r.tone]} /> : null))}
     </svg>
   );
@@ -100,7 +100,7 @@ export default function ThresholdTimeline(p: ThresholdTimelineProps) {
           <div className="flex h-full min-w-0 flex-col justify-center gap-1.5">
             <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5">
               {shown.map((l) => (
-                <div key={l.key} className={`flex min-w-0 flex-1 gap-2 ${stacked ? "flex-col justify-center gap-0.5" : "min-h-[14px] items-center"}`} style={{ maxHeight: stacked ? 38 : 34 }}>
+                <div key={l.key} className={`flex min-w-0 flex-1 gap-2 ${stacked ? "flex-col justify-center gap-0.5" : "min-h-3.5 items-center"}`} style={{ maxHeight: stacked ? 38 : 34 }}>
                   {!stacked && (
                     <span className="truncate text-caption text-[color:var(--w-muted)]" style={{ width: labelW }} title={l.label}>
                       {rowLabel(l.short, lanes.map((x) => x.short))}
@@ -176,7 +176,7 @@ function RoomyLanes({ lanes, w, h, warn, crit, minutes, span }: { lanes: { key: 
       <div className="mt-auto flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-micro text-[color:var(--w-faint)]" style={{ minHeight: LEGEND_H }}>
         {([["ok", `below ${fmt(warn, 0)}`], ["warn", `${fmt(warn, 0)} to ${fmt(crit, 0)}`], ["crit", `${fmt(crit, 0)} and up`]] as const).map(([t, text]) => (
           <span key={t} className="flex items-center gap-1.5">
-            <i className="h-2 w-2 rounded-[2px]" style={{ background: LANE_COLOR[t] }} />
+            <i className="h-2 w-2 rounded-2" style={{ background: LANE_COLOR[t] }} />
             {text}
           </span>
         ))}

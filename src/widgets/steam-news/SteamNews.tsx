@@ -16,10 +16,10 @@ interface NewsItem {
 
 export default function SteamNews(p: SteamNewsProps) {
   const d = p.data;
-  const N = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-News.${s}`);
+  const newsOf = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-News.${s}`);
   const lines = p.lines ?? 2;
-  const library: NewsItem[] = rows(N("library-news")).map((r) => ({ game: r[0], title: r.slice(1, -1).join(", "), date: r.at(-1) }));
-  const items: NewsItem[] = !library.length && has(N("current_game_news_title")) ? [{ game: get(d, "plugins.InfoPanel.SteamAPI.SteamAPI-Session.current-game"), title: N("current_game_news_title") }] : library;
+  const library: NewsItem[] = rows(newsOf("library-news")).map((r) => ({ game: r[0], title: r.slice(1, -1).join(", "), date: r.at(-1) }));
+  const items: NewsItem[] = !library.length && has(newsOf("current_game_news_title")) ? [{ game: get(d, "plugins.InfoPanel.SteamAPI.SteamAPI-Session.current-game"), title: newsOf("current_game_news_title") }] : library;
   const first = items[0] ?? {};
   return (
     <Widget

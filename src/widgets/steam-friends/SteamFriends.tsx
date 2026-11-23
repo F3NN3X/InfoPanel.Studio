@@ -25,20 +25,20 @@ const stateText = (f: Friend) => (f.status === "ingame" && !f.idle ? LABEL.ingam
 
 export default function SteamFriends(p: SteamFriendsProps) {
   const d = p.data;
-  const S = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Social.${s}`);
+  const socialOf = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Social.${s}`);
   const colors = { ...FRIEND_COLORS, ...p.colors };
   const colorOf = (f: Friend) => (f.idle ? `color-mix(in srgb, ${colors.ingame} 60%, transparent)` : colors[f.status]);
-  const friends = friendsOf(S("friends-activity"), p.sort ?? "status", p.ingameOnly ?? false);
+  const friends = friendsOf(socialOf("friends-activity"), p.sort ?? "status", p.ingameOnly ?? false);
   const showTime = p.showTime ?? true;
-  const counts = `${S("friends-online")} online · ${S("friends-ingame")} in-game · ${S("total-friends")} friends`;
+  const counts = `${socialOf("friends-online")} online · ${socialOf("friends-ingame")} in-game · ${socialOf("total-friends")} friends`;
   const tag = useIpTag();
   return (
     <Widget
       {...shell(p)}
       title={p.title ?? "Friends"}
       icon="group"
-      studio={{ label: "Friends", value: S("friends-online"), unit: "online", sub: `${S("friends-ingame")} in-game`, rows: friends.map((f) => ({ n: f.name, v: f.game || stateText(f), dot: true })) }}
-      compact={{ label: "Friends", value: S("friends-online"), unit: "online", sub: `${S("friends-ingame")} in-game`, icon: "group" }}
+      studio={{ label: "Friends", value: socialOf("friends-online"), unit: "online", sub: `${socialOf("friends-ingame")} in-game`, rows: friends.map((f) => ({ n: f.name, v: f.game || stateText(f), dot: true })) }}
+      compact={{ label: "Friends", value: socialOf("friends-online"), unit: "online", sub: `${socialOf("friends-ingame")} in-game`, icon: "group" }}
     >
       {({ size, w: w0, h }) => {
         // an unmeasured box (0, server render) lays out as a roomy one

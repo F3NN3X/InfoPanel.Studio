@@ -147,7 +147,7 @@ export function StudioInspector({
       className={cn(
         "flex flex-col overflow-hidden bg-ui-panel font-ui text-ui-2",
         // Floating, the shell's card gives it its size, border and shadow.
-        floating ? "h-full w-full" : "w-[320px] shrink-0 border-l border-ui-subtle"
+        floating ? "h-full w-full" : "w-80 shrink-0 border-l border-ui-subtle"
       )}
     >
       <InspectorChromeProvider value={chrome}>

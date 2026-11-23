@@ -77,7 +77,7 @@ export const subscribeFrame = (
 ): (() => void) => {
   const run: FrameListener = capFps > 0 ? capTick(listener, capFps, label) : listener;
   listeners[phase].add(run);
-  caps.set(run, capFps > 0 ? capFps : 0);
+  caps.set(run, Math.max(capFps || 0, 0));
   const untrack = trackTick(label === undefined || capFps > 0 ? run : capTick(run, 0, label), "frame-loop");
   if (!ticking) syncTick();
   return () => {

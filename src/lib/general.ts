@@ -7,6 +7,7 @@
 
 import { ensureFont, FONT_CATALOG, FONT_IDS, fontById, type FontId } from "@/lib/fonts";
 import type { ScreenPerformance } from "@/lib/performance";
+import type { FxLevel } from "@/looks/pack-json";
 import { hour12Of } from "@/modules/setting-readers";
 
 export type GeneralFont = FontId;
@@ -52,6 +53,8 @@ export interface ResolvedGeneral {
   pixelShift: boolean;
   /** Minutes without input before a pack's art dims; 0 = off. */
   idleDim: number;
+  /** The screen's FX level; unset = by reduced motion (`resolvePerformance`). */
+  fx?: FxLevel;
 }
 
 export const GENERAL_DEFAULTS: ResolvedGeneral = {

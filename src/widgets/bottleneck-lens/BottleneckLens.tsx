@@ -87,7 +87,7 @@ export default function BottleneckLens(p: BottleneckLensProps) {
               <b className="whitespace-nowrap font-semibold leading-none" style={{ fontSize: size, color: idle ? "var(--w-muted)" : color }}>
                 {label}
               </b>
-              <span className={`min-w-0 text-[color:var(--w-muted)] ${strip ? "truncate" : "line-clamp-2"} ${h > 160 ? "text-body" : "text-[11.5px]"}`}>{reason}</span>
+              <span className={`min-w-0 text-[color:var(--w-muted)] ${strip ? "truncate" : "line-clamp-2"} ${h > 160 ? "text-body" : "text-label"}`}>{reason}</span>
             </div>
             {bars && room && (
               <div className="mt-3 flex flex-col gap-3">
@@ -115,7 +115,7 @@ export default function BottleneckLens(p: BottleneckLensProps) {
             {room && drawn && (
               <div className="mt-3 flex flex-col gap-1.5">
                 <span className="text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]">Verdict, last 5 min</span>
-                <svg viewBox="0 0 1000 1" preserveAspectRatio="none" shapeRendering="crispEdges" className="h-9 w-full rounded-[3px] bg-[color:var(--w-track)]" role="img" aria-label={`Verdict over the last 5 minutes, now ${label}`}>
+                <svg viewBox="0 0 1000 1" preserveAspectRatio="none" shapeRendering="crispEdges" className="h-9 w-full rounded-3 bg-[color:var(--w-track)]" role="img" aria-label={`Verdict over the last 5 minutes, now ${label}`}>
                   {runs.map((r) => (
                     <rect key={r.from} x={r.from * 1000} y={0} width={(r.to - r.from) * 1000} height={1} fill={TONES[VERDICT_TONE[r.v]]} opacity={r.v === "idle" ? 0.4 : 1} />
                   ))}

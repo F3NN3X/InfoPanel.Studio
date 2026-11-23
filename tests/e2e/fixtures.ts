@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import AxeBuilder from "@axe-core/playwright";
 import { test as base, expect, type Page } from "@playwright/test";
 import { startScratch, FIXTURE_DIR, type Scratch } from "../../tools/perf/scratch.mjs";
 
@@ -22,7 +23,7 @@ export const manifest: FixtureManifest = JSON.parse(fs.readFileSync(path.join(FI
 export const DEFAULT_DATA_API = "http://127.0.0.1:3921/**";
 
 /** Each test gets its own scratch server, so a spec that saves the config can't leak into another. */
-export const test = base.extend<{ scratch: Scratch }>({
+export const test = base.extend<{ scratch: Scratch; makeAxeBuilder: () => AxeBuilder }>({
   // Refused like on a machine without InfoPanel, so a page that reaches for it fails here as in CI.
   context: async ({ context }, use) => {
     await context.route(DEFAULT_DATA_API, (route) => route.abort("connectionrefused"));
@@ -33,6 +34,10 @@ export const test = base.extend<{ scratch: Scratch }>({
     const scratch = await startScratch();
     await use(scratch);
     scratch.stop();
+  },
+  // axe on the page, limited to the WCAG A and AA rules up to 2.2 (https://playwright.dev/docs/accessibility-testing).
+  makeAxeBuilder: async ({ page }, use) => {
+    await use(() => new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]));
   },
 });
 

@@ -62,6 +62,12 @@ describe("template zone look", () => {
   });
 });
 
+const Probe = ({ quiet, onRender }: { quiet: string | undefined; onRender: () => void }) => {
+  useSensors(null, quiet);
+  onRender();
+  return null;
+};
+
 describe("audio-only sensor messages", () => {
   const AUDIO = "plugins.audio-level-meter.";
   let listeners: ((changed: readonly string[]) => void)[] = [];
@@ -72,12 +78,7 @@ describe("audio-only sensor messages", () => {
   };
   const rendersOf = (quiet: string | undefined) => {
     let renders = 0;
-    const Probe = () => {
-      useSensors(null, quiet);
-      renders++;
-      return null;
-    };
-    render(<Probe />);
+    render(<Probe quiet={quiet} onRender={() => renders++} />);
     return () => renders;
   };
   beforeEach(() => {

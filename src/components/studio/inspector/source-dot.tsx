@@ -26,7 +26,7 @@ export const DOT_LEGEND: readonly SettingState[] = ["default", "here", "overridi
 
 /** The 7 px source dot before a field's label; a "changed here" dot is a reset button. */
 export function SourceDot({ state, onReset }: { state: SettingState; onReset?: () => void }) {
-  const dot = cn("block h-[7px] w-[7px] shrink-0", DOT[state]);
+  const dot = cn("block h-1.75 w-1.75 shrink-0", DOT[state]);
   if (!SET_HERE.has(state) || !onReset) {
     if (state === "default") return <span aria-hidden="true" className={dot} />;
     return <span role="img" aria-label={DOT_MEANING[state]} title={DOT_MEANING[state]} className={dot} />;
@@ -48,7 +48,7 @@ export function DotLegend() {
     <ul className="space-y-1.5 text-caption text-ui-2">
       {DOT_LEGEND.map((state) => (
         <li key={state} className="flex items-center gap-2">
-          <span aria-hidden="true" className={cn("block h-[7px] w-[7px] shrink-0", DOT[state])} />
+          <span aria-hidden="true" className={cn("block h-1.75 w-1.75 shrink-0", DOT[state])} />
           {state === "default" ? "Follows the level above" : DOT_MEANING[state]}
         </li>
       ))}

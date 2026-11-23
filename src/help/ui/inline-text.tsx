@@ -22,7 +22,7 @@ export function InlineText({ text, onOpen, small }: InlineTextProps) {
         <Fragment key={i}>
           {run.kind === "text" && run.text}
           {run.kind === "code" && (
-            <code className={`rounded border border-s-code-line bg-s-side-line font-mono text-s-t1 ${small ? "px-1 text-caption" : "px-[5px] text-body"}`}>{run.text}</code>
+            <code className={`rounded border border-s-code-line bg-s-side-line font-mono text-s-t1 ${small ? "px-1 text-caption" : "px-1.25 text-body"}`}>{run.text}</code>
           )}
           {run.kind === "bold" && <strong className="font-medium text-s-t1">{run.text}</strong>}
           {run.kind === "article" && (

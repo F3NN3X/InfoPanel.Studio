@@ -72,11 +72,7 @@ impl Cursor {
             "1" => true,
             _ => return None,
         };
-        parts.next().is_none().then_some(Self {
-            offset,
-            head,
-            studio,
-        })
+        parts.next().is_none().then_some(Self { offset, head, studio })
     }
 
     pub fn format(&self) -> String {
@@ -86,9 +82,7 @@ impl Cursor {
 
 /// FNV-1a: stable across runs, unlike the std hasher.
 fn hash(bytes: &[u8]) -> u64 {
-    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, b| {
-        (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3)
-    })
+    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, b| (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3))
 }
 
 /// The hash of the file's first `HEAD_BYTES` bytes, or of its first `upto` when that is less.
@@ -105,10 +99,7 @@ pub fn complete_lines(bytes: &[u8]) -> (Vec<String>, usize) {
     let Some(end) = bytes.iter().rposition(|b| *b == b'\n') else {
         return (Vec::new(), 0);
     };
-    let lines = String::from_utf8_lossy(&bytes[..end])
-        .split('\n')
-        .map(|l| l.trim_end_matches('\r').to_owned())
-        .collect();
+    let lines = String::from_utf8_lossy(&bytes[..end]).split('\n').map(|l| l.trim_end_matches('\r').to_owned()).collect();
     (lines, end + 1)
 }
 
@@ -157,12 +148,7 @@ pub fn read(log_dir: &Path, source: Source, cursor: Option<&str>) -> std::io::Re
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             return Ok(LogChunk {
                 lines: Vec::new(),
-                cursor: Cursor {
-                    offset: 0,
-                    head: 0,
-                    studio: false,
-                }
-                .format(),
+                cursor: Cursor { offset: 0, head: 0, studio: false }.format(),
                 file: file_text,
                 reset: cursor.is_some(),
             });
@@ -179,11 +165,7 @@ pub fn read(log_dir: &Path, source: Source, cursor: Option<&str>) -> std::io::Re
     };
     // A cursor that does not parse (an older format, junk) starts over too.
     let reset = given && !same;
-    let from = if same {
-        cursor.map_or(0, |c| c.offset)
-    } else {
-        0
-    };
+    let from = if same { cursor.map_or(0, |c| c.offset) } else { 0 };
     file.seek(SeekFrom::Start(from))?;
     let mut bytes = Vec::new();
     file.by_ref().take(len - from).read_to_end(&mut bytes)?;
@@ -199,17 +181,7 @@ pub fn read(log_dir: &Path, source: Source, cursor: Option<&str>) -> std::io::Re
         lines = tail(previous, TAIL_LINES);
     }
     let offset = from + used as u64;
-    Ok(LogChunk {
-        lines,
-        cursor: Cursor {
-            offset,
-            head: head_hash(&mut file, offset)?,
-            studio,
-        }
-        .format(),
-        file: file_text,
-        reset,
-    })
+    Ok(LogChunk { lines, cursor: Cursor { offset, head: head_hash(&mut file, offset)?, studio }.format(), file: file_text, reset })
 }
 
 #[cfg(test)]
@@ -225,22 +197,14 @@ mod tests {
     }
 
     fn append(path: &Path, text: &str) {
-        let mut f = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(path)
-            .unwrap();
+        let mut f = std::fs::OpenOptions::new().create(true).append(true).open(path).unwrap();
         f.write_all(text.as_bytes()).unwrap();
     }
 
     #[test]
     fn cursor_round_trips() {
         for studio in [false, true] {
-            let c = Cursor {
-                offset: 1234,
-                head: 0xdead_beef,
-                studio,
-            };
+            let c = Cursor { offset: 1234, head: 0xdead_beef, studio };
             assert_eq!(Cursor::parse(&c.format()), Some(c));
         }
         assert_eq!(Cursor::parse("nope"), None);
@@ -317,10 +281,7 @@ mod tests {
         append(&file, "[d][t][studio][ERROR] boom\n");
         let studio = read(&dir, Source::Studio, None).unwrap();
         let app = read(&dir, Source::App, None).unwrap();
-        append(
-            &file,
-            "    | at line 2\n[d][t][infopanel_studio_lib][INFO] next\n",
-        );
+        append(&file, "    | at line 2\n[d][t][infopanel_studio_lib][INFO] next\n");
         let studio = read(&dir, Source::Studio, Some(&studio.cursor)).unwrap();
         assert_eq!(studio.lines, vec!["    | at line 2"]);
         let app = read(&dir, Source::App, Some(&app.cursor)).unwrap();
@@ -332,18 +293,12 @@ mod tests {
     fn a_rotated_or_shrunk_file_starts_over() {
         let dir = temp_dir("rotate");
         let file = dir.join("app.log");
-        append(
-            &file,
-            "[d][t][infopanel_studio_lib][INFO] first run, a long enough line\n",
-        );
+        append(&file, "[d][t][infopanel_studio_lib][INFO] first run, a long enough line\n");
         let first = read(&dir, Source::App, None).unwrap();
         assert_eq!(first.lines.len(), 1);
         // Rotated: a new file of the same name, longer than the old offset.
         std::fs::rename(&file, dir.join("app_old.log")).unwrap();
-        append(
-            &file,
-            "[d][t][infopanel_studio_lib][INFO] second run, also quite a long line\n",
-        );
+        append(&file, "[d][t][infopanel_studio_lib][INFO] second run, also quite a long line\n");
         append(&file, "[d][t][infopanel_studio_lib][INFO] and more\n");
         let after = read(&dir, Source::App, Some(&first.cursor)).unwrap();
         assert!(after.reset);

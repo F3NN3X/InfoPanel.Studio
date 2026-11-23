@@ -5,7 +5,8 @@ import { errorText, ipc } from "../ipc";
 import { betaNotice, updateCard, type UpdateAction, type UpdateIcon } from "../model/cards";
 import { useStore } from "../store";
 import type { Channel } from "../types";
-import { Button, Card, HeroCard, Row, Segmented, StateTile, SwitchRow } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, HeroCard, Row, Segmented, StateTile, SwitchRow } from "../ui";
 
 const ICONS: Record<UpdateIcon, LucideIcon> = {
   verified: BadgeCheck,
@@ -49,30 +50,30 @@ export function UpdatesSection() {
         <StateTile tone={card.tone}>
           <Icon className={cn("h-6 w-6", card.icon === "checking" && "animate-spin")} />
         </StateTile>
-        <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
-          <span role="status" className="flex flex-col gap-[3px]">
+        <div className="flex min-w-35 flex-1 flex-col gap-0.75">
+          <span role="status" className="flex flex-col gap-0.75">
             <span className="text-head font-medium">{card.title}</span>
             <span className="text-caption text-s-muted">{card.detail}</span>
           </span>
           {card.progress !== null && (
-            <div role="progressbar" aria-label="Update progress" aria-valuetext={`${Math.round(card.progress * 100)} percent`} aria-valuenow={Math.round(card.progress * 100)} aria-valuemin={0} aria-valuemax={100} className="mt-1.5 h-1 max-w-[280px] overflow-hidden rounded-sm bg-s-track-line">
+            <div role="progressbar" aria-label="Update progress" aria-valuetext={`${Math.round(card.progress * 100)} percent`} aria-valuenow={Math.round(card.progress * 100)} aria-valuemin={0} aria-valuemax={100} className="mt-1.5 h-1 max-w-70 overflow-hidden rounded-sm bg-s-track-line">
               <div className="h-full bg-s-accent" style={{ width: `${card.progress * 100}%` }} />
             </div>
           )}
         </div>
         <div className="flex gap-2">
-          <Button size="md" onClick={() => go("changelog")}>
+          <Button onClick={() => go("changelog")}>
             What's new
           </Button>
-          <Button kind={card.primary.kind} size="md" disabled={card.primary.disabled} onClick={() => void run(card.primary.action)}>
+          <Button variant={card.primary.kind === "neutral" ? "secondary" : "primary"} disabled={card.primary.disabled} onClick={() => void run(card.primary.action)}>
             {card.primary.label}
           </Button>
         </div>
       </HeroCard>
 
       {beta && (
-        <div id="beta-notice" className="flex flex-wrap items-center gap-3 rounded-xl border border-s-card-line px-[18px] py-3">
-          <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
+        <div id="beta-notice" className="flex flex-wrap items-center gap-3 rounded-xl border border-s-card-line px-4.5 py-3">
+          <div className="flex min-w-35 flex-1 flex-col gap-0.75">
             <span className="text-lead font-medium">A newer beta is available</span>
             <span className="text-caption leading-[1.45] text-s-muted">Version {beta} is on the Beta channel. Stable stays as it is unless you switch.</span>
           </div>

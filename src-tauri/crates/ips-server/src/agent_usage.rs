@@ -69,11 +69,21 @@ pub struct Tokens {
 
 impl Tokens {
     fn add(self, b: Self) -> Self {
-        Self { input: self.input + b.input, output: self.output + b.output, cache_read: self.cache_read + b.cache_read, cache_write: self.cache_write + b.cache_write }
+        Self {
+            input: self.input + b.input,
+            output: self.output + b.output,
+            cache_read: self.cache_read + b.cache_read,
+            cache_write: self.cache_write + b.cache_write,
+        }
     }
 
     fn sub(self, b: Self) -> Self {
-        Self { input: (self.input - b.input).max(0.0), output: (self.output - b.output).max(0.0), cache_read: (self.cache_read - b.cache_read).max(0.0), cache_write: (self.cache_write - b.cache_write).max(0.0) }
+        Self {
+            input: (self.input - b.input).max(0.0),
+            output: (self.output - b.output).max(0.0),
+            cache_read: (self.cache_read - b.cache_read).max(0.0),
+            cache_write: (self.cache_write - b.cache_write).max(0.0),
+        }
     }
 
     fn total(self) -> f64 {
@@ -115,7 +125,12 @@ pub fn claude_line(line: &str, zone: LocalZone) -> Option<ClaudeLine> {
     Some(ClaudeLine {
         id,
         at,
-        tokens: Tokens { input: n(u.get("input_tokens")), output: n(u.get("output_tokens")), cache_read: n(u.get("cache_read_input_tokens")), cache_write: n(u.get("cache_creation_input_tokens")) },
+        tokens: Tokens {
+            input: n(u.get("input_tokens")),
+            output: n(u.get("output_tokens")),
+            cache_read: n(u.get("cache_read_input_tokens")),
+            cache_write: n(u.get("cache_creation_input_tokens")),
+        },
         project: project_of(root_of(j.get("cwd")).as_ref()),
         model: model_of(message.get("model")),
     })
@@ -188,7 +203,13 @@ pub fn locale_compare(a: &str, b: &str) -> Ordering {
     let keys = |s: &str| s.chars().map(primary).collect::<Vec<_>>();
     keys(a).cmp(&keys(b)).then_with(|| {
         // Tertiary: lowercase before uppercase at the first difference.
-        a.chars().zip(b.chars()).find(|(x, y)| x != y).map_or(Ordering::Equal, |(x, y)| if x.is_lowercase() && y.is_uppercase() { Ordering::Less } else { Ordering::Greater })
+        a.chars().zip(b.chars()).find(|(x, y)| x != y).map_or(Ordering::Equal, |(x, y)| {
+            if x.is_lowercase() && y.is_uppercase() {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        })
     })
 }
 
@@ -243,8 +264,13 @@ fn jsonl_files(dir: &Path, since: f64, depth: u32) -> Vec<(PathBuf, u64, f64)> {
                 return Vec::new();
             }
             let Ok(meta) = std::fs::metadata(&path) else { return Vec::new() };
-            let mtime = meta.modified().ok().and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok()).map_or(0.0, |d| d.as_secs_f64() * 1000.0);
-            if mtime >= since { vec![(path, meta.len(), mtime)] } else { Vec::new() }
+            let mtime =
+                meta.modified().ok().and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok()).map_or(0.0, |d| d.as_secs_f64() * 1000.0);
+            if mtime >= since {
+                vec![(path, meta.len(), mtime)]
+            } else {
+                Vec::new()
+            }
         })
         .collect()
 }
@@ -462,13 +488,16 @@ impl AgentUsage {
         };
         let last_days: Vec<String> = (0..7).map(|i| day_key(now - f64::from(i) * DAY_MS, self.zone)).collect();
         let (today_split, week_split) = (split(std::slice::from_ref(&today)), split(&last_days));
-        let list: Vec<Value> = days.iter().map(|(day, t)| {
-            let mut entry = Map::new();
-            entry.insert("day".into(), day.clone().into());
-            entry.extend(t.to_json().as_object().cloned().unwrap_or_default());
-            entry.insert("total".into(), num(t.total()));
-            Value::Object(entry)
-        }).collect();
+        let list: Vec<Value> = days
+            .iter()
+            .map(|(day, t)| {
+                let mut entry = Map::new();
+                entry.insert("day".into(), day.clone().into());
+                entry.extend(t.to_json().as_object().cloned().unwrap_or_default());
+                entry.insert("total".into(), num(t.total()));
+                Value::Object(entry)
+            })
+            .collect();
         let history: f64 = days.values().map(|t| t.total()).sum();
         let mut out = Map::new();
         out.insert("today".into(), num(days.get(&today).map_or(0.0, |t| t.total())));
@@ -517,13 +546,29 @@ mod tests {
 
     #[test]
     fn reads_an_assistant_line_and_skips_everything_else() {
-        let u = claude_line(&assistant("r1", "2026-10-15T10:00:00Z", json!({ "input_tokens": 10, "output_tokens": 5, "cache_read_input_tokens": 100, "cache_creation_input_tokens": 20 })), ZONE).unwrap();
-        assert_eq!(u.to_json(), json!({ "id": "r1", "at": 1_792_058_400_000_i64, "input": 10, "output": 5, "cacheRead": 100, "cacheWrite": 20, "project": "", "model": "m" }));
+        let u = claude_line(
+            &assistant(
+                "r1",
+                "2026-10-15T10:00:00Z",
+                json!({ "input_tokens": 10, "output_tokens": 5, "cache_read_input_tokens": 100, "cache_creation_input_tokens": 20 }),
+            ),
+            ZONE,
+        )
+        .unwrap();
+        assert_eq!(
+            u.to_json(),
+            json!({ "id": "r1", "at": 1_792_058_400_000_i64, "input": 10, "output": 5, "cacheRead": 100, "cacheWrite": 20, "project": "", "model": "m" })
+        );
         assert_eq!(claude_line(r#"{"type":"user","timestamp":"2026-10-15T10:00:00Z","message":{"content":"hi"}}"#, ZONE), None);
         assert_eq!(claude_line("{not json", ZONE), None);
         assert_eq!(claude_line(&assistant("r", "not a date", json!({})), ZONE), None);
         // Negative, non-numeric and fractional counts.
-        let t = claude_line(&assistant("r", "2026-10-15T10:00:00Z", json!({ "input_tokens": -3, "output_tokens": "9", "cache_read_input_tokens": 1.5 })), ZONE).unwrap().tokens;
+        let t = claude_line(
+            &assistant("r", "2026-10-15T10:00:00Z", json!({ "input_tokens": -3, "output_tokens": "9", "cache_read_input_tokens": 1.5 })),
+            ZONE,
+        )
+        .unwrap()
+        .tokens;
         assert_eq!(t, Tokens { input: 0.0, output: 0.0, cache_read: 1.5, cache_write: 0.0 });
     }
 
@@ -535,7 +580,15 @@ mod tests {
 
     #[test]
     fn reads_a_codex_token_count_with_the_cached_tokens_split_out() {
-        let c = codex_line(&token_count("2026-10-15T10:00:00Z", json!({ "input_tokens": 100, "cached_input_tokens": 60, "output_tokens": 7 }), json!({ "primary": { "used_percent": 3 } })), ZONE).unwrap();
+        let c = codex_line(
+            &token_count(
+                "2026-10-15T10:00:00Z",
+                json!({ "input_tokens": 100, "cached_input_tokens": 60, "output_tokens": 7 }),
+                json!({ "primary": { "used_percent": 3 } }),
+            ),
+            ZONE,
+        )
+        .unwrap();
         assert_eq!(c.total, Some(Tokens { input: 40.0, output: 7.0, cache_read: 60.0, cache_write: 0.0 }));
         assert_eq!(c.limits, json!({ "primary": { "used_percent": 3 } }));
         assert_eq!(codex_line(r#"{"type":"event_msg","payload":{"type":"agent_message"}}"#, ZONE), None);
@@ -545,7 +598,10 @@ mod tests {
     #[test]
     fn shortens_model_ids_and_finds_a_worktrees_repo() {
         let m = |s: &str| model_of(Some(&json!(s)));
-        assert_eq!([m("claude-opus-5-5"), m("claude-sonnet-5-5-20260901"), m("gpt-5.5"), m("<synthetic>"), model_of(None)], ["opus-5-5", "sonnet-5-5", "gpt-5.5", "", ""]);
+        assert_eq!(
+            [m("claude-opus-5-5"), m("claude-sonnet-5-5-20260901"), m("gpt-5.5"), m("<synthetic>"), model_of(None)],
+            ["opus-5-5", "sonnet-5-5", "gpt-5.5", "", ""]
+        );
         assert_eq!(m(&"x".repeat(60)).len(), 40);
         let root = |s: &str| root_of(Some(&json!(s))).unwrap();
         assert_eq!(root("E:\\GitHub\\repo\\.claude\\worktrees\\agent-a1"), json!("E:\\GitHub\\repo"));
@@ -557,7 +613,10 @@ mod tests {
     #[test]
     fn reads_codex_context_lines() {
         assert_eq!(codex_context(r#"{"type":"session_meta","payload":{"cwd":"C:\\work\\proj"}}"#), Some(("proj".into(), String::new())));
-        assert_eq!(codex_context(r#"{"type":"turn_context","payload":{"cwd":"/home/me/proj","model":"gpt-5.5"}}"#), Some(("proj".into(), "gpt-5.5".into())));
+        assert_eq!(
+            codex_context(r#"{"type":"turn_context","payload":{"cwd":"/home/me/proj","model":"gpt-5.5"}}"#),
+            Some(("proj".into(), "gpt-5.5".into()))
+        );
         assert_eq!(codex_context(r#"{"type":"event_msg","payload":{}}"#), None);
         assert_eq!(codex_context("{nope"), None);
     }
@@ -576,18 +635,31 @@ mod tests {
         let file = home.path().join(".claude/projects/E--repo/s1.jsonl");
         write(&file, &[assistant("a", &at(1), u.clone()), assistant("b", &at(0), u.clone()), assistant("b", &at(0), u.clone())]);
         let rollout = home.path().join(".codex/sessions/2026/10/15/rollout-1.jsonl");
-        write(&rollout, &[token_count(&at(0), json!({ "input_tokens": 10, "output_tokens": 1 }), Value::Null), token_count(&at(0), json!({ "input_tokens": 30, "output_tokens": 4 }), json!({ "primary": { "used_percent": 9, "window_minutes": 300 } }))]);
+        write(
+            &rollout,
+            &[
+                token_count(&at(0), json!({ "input_tokens": 10, "output_tokens": 1 }), Value::Null),
+                token_count(
+                    &at(0),
+                    json!({ "input_tokens": 30, "output_tokens": 4 }),
+                    json!({ "primary": { "used_percent": 9, "window_minutes": 300 } }),
+                ),
+            ],
+        );
         let usage = reader(home.path(), CHUNK);
         assert!(usage.scan());
         let totals = usage.totals();
-        assert_eq!(stringify(&totals["claude"]), stringify(&json!({
-            "today": 10, "history": 20,
-            "days": [
-                { "day": "2026-10-14", "input": 1, "output": 2, "cacheRead": 3, "cacheWrite": 4, "total": 10 },
-                { "day": "2026-10-15", "input": 1, "output": 2, "cacheRead": 3, "cacheWrite": 4, "total": 10 },
-            ],
-            "breakdown": { "today": { "projects": [], "models": [{ "name": "m", "total": 10 }] }, "week": { "projects": [], "models": [{ "name": "m", "total": 20 }] } },
-        })));
+        assert_eq!(
+            stringify(&totals["claude"]),
+            stringify(&json!({
+                "today": 10, "history": 20,
+                "days": [
+                    { "day": "2026-10-14", "input": 1, "output": 2, "cacheRead": 3, "cacheWrite": 4, "total": 10 },
+                    { "day": "2026-10-15", "input": 1, "output": 2, "cacheRead": 3, "cacheWrite": 4, "total": 10 },
+                ],
+                "breakdown": { "today": { "projects": [], "models": [{ "name": "m", "total": 10 }] }, "week": { "projects": [], "models": [{ "name": "m", "total": 20 }] } },
+            }))
+        );
         // Codex's totals are cumulative: the day gets the last one (30 + 4), not their sum.
         assert_eq!(totals["codex"]["today"], json!(34));
         assert_eq!(usage.codex_limits(), Some(json!({ "primary": { "used_percent": 9, "window_minutes": 300 } })));
@@ -618,7 +690,9 @@ mod tests {
     fn splits_tokens_by_project_and_model_sorted_and_capped_without_paths() {
         let home = tempfile::tempdir().unwrap();
         let dir = home.path().join(".claude/projects/x");
-        let line = |id: &str, ts: String, cwd: &str, model: &str, tokens: u32| json!({ "type": "assistant", "requestId": id, "timestamp": ts, "cwd": cwd, "message": { "model": model, "usage": { "input_tokens": tokens } } }).to_string();
+        let line = |id: &str, ts: String, cwd: &str, model: &str, tokens: u32| {
+            json!({ "type": "assistant", "requestId": id, "timestamp": ts, "cwd": cwd, "message": { "model": model, "usage": { "input_tokens": tokens } } }).to_string()
+        };
         let mut rows = vec![
             line("1", at(0), "E:\\GitHub\\alpha", "claude-opus-5-5", 100),
             line("2", at(0), "E:\\GitHub\\beta", "claude-sonnet-5-5-20260901", 30),
@@ -627,25 +701,50 @@ mod tests {
             line("5", at(0), "E:\\GitHub\\gone", "<synthetic>", 7),
             line("6", at(0), "", "claude-opus-5-5", 5),
         ];
-        rows.extend(["p1", "p2", "p3", "p4", "p5"].iter().enumerate().map(|(i, p)| line(&format!("m{i}"), at(0), &format!("/w/{p}"), "claude-haiku-5", 1)));
+        rows.extend(
+            ["p1", "p2", "p3", "p4", "p5"]
+                .iter()
+                .enumerate()
+                .map(|(i, p)| line(&format!("m{i}"), at(0), &format!("/w/{p}"), "claude-haiku-5", 1)),
+        );
         // A session per row: a session's project is its first cwd.
         for (i, row) in rows.iter().enumerate() {
             write(&dir.join(format!("s{i}.jsonl")), std::slice::from_ref(row));
         }
         let meta = json!({ "type": "session_meta", "payload": { "cwd": "C:\\work\\cx" } }).to_string();
         let turn = json!({ "type": "turn_context", "payload": { "cwd": "C:\\work\\cx", "model": "gpt-5.5" } }).to_string();
-        write(&home.path().join(".codex/sessions/2026/10/15/rollout-1.jsonl"), &[meta, turn, token_count(&at(0), json!({ "input_tokens": 20 }), Value::Null), token_count(&at(0), json!({ "input_tokens": 50 }), Value::Null)]);
+        write(
+            &home.path().join(".codex/sessions/2026/10/15/rollout-1.jsonl"),
+            &[
+                meta,
+                turn,
+                token_count(&at(0), json!({ "input_tokens": 20 }), Value::Null),
+                token_count(&at(0), json!({ "input_tokens": 50 }), Value::Null),
+            ],
+        );
         let usage = reader(home.path(), CHUNK);
         usage.scan();
         let totals = usage.totals();
-        let names = |v: &Value| v.as_array().unwrap().iter().map(|e| (e["name"].as_str().unwrap().to_string(), e["total"].as_i64().unwrap())).collect::<Vec<_>>();
+        let names = |v: &Value| {
+            v.as_array()
+                .unwrap()
+                .iter()
+                .map(|e| (e["name"].as_str().unwrap().to_string(), e["total"].as_i64().unwrap()))
+                .collect::<Vec<_>>()
+        };
         let today = &totals["claude"]["breakdown"]["today"];
-        assert_eq!(names(&today["projects"]), [("alpha".into(), 100), ("beta".into(), 30), ("gone".into(), 7), ("p1".into(), 1), ("p2".into(), 1)]);
+        assert_eq!(
+            names(&today["projects"]),
+            [("alpha".into(), 100), ("beta".into(), 30), ("gone".into(), 7), ("p1".into(), 1), ("p2".into(), 1)]
+        );
         assert_eq!(names(&today["models"]), [("opus-5-5".into(), 105), ("sonnet-5-5".into(), 30), ("haiku-5".into(), 5)]);
         let week = &totals["claude"]["breakdown"]["week"];
         assert_eq!(names(&week["projects"])[..2], [("alpha".into(), 100), ("beta".into(), 80)]);
         assert_eq!(week["projects"].as_array().unwrap().len(), 5);
-        assert_eq!(totals["codex"]["breakdown"]["today"], json!({ "projects": [{ "name": "cx", "total": 50 }], "models": [{ "name": "gpt-5.5", "total": 50 }] }));
+        assert_eq!(
+            totals["codex"]["breakdown"]["today"],
+            json!({ "projects": [{ "name": "cx", "total": 50 }], "models": [{ "name": "gpt-5.5", "total": 50 }] })
+        );
         let out = stringify(&totals);
         for leak in ["GitHub", "work", "/w/", "\"\""] {
             assert!(!out.contains(leak), "{leak}");
@@ -656,7 +755,9 @@ mod tests {
     fn keeps_a_session_under_its_first_cwd_and_a_worktree_under_its_repo() {
         let home = tempfile::tempdir().unwrap();
         let dir = home.path().join(".claude/projects/x");
-        let line = |id: &str, cwd: &str| json!({ "type": "assistant", "requestId": id, "timestamp": at(0), "cwd": cwd, "message": { "model": "claude-opus-5-5", "usage": { "input_tokens": 10 } } }).to_string();
+        let line = |id: &str, cwd: &str| {
+            json!({ "type": "assistant", "requestId": id, "timestamp": at(0), "cwd": cwd, "message": { "model": "claude-opus-5-5", "usage": { "input_tokens": 10 } } }).to_string()
+        };
         write(&dir.join("s1.jsonl"), &[line("1", "E:\\GitHub\\repo"), line("2", "E:\\GitHub\\repo\\src-tauri")]);
         write(&dir.join("s1/subagents/agent-a1.jsonl"), &[line("3", "E:\\GitHub\\repo\\.claude\\worktrees\\agent-a1")]);
         let usage = reader(home.path(), CHUNK);

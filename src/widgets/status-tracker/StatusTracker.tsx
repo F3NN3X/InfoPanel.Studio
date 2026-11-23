@@ -102,10 +102,10 @@ export default function StatusTracker(p: StatusTrackerProps) {
           return (
           <div key={t.label} className="grid items-center gap-2.5" style={{ gridTemplateColumns: `${labelW}px minmax(0,1fr)`, minHeight: fill.rowH }}>
             <span className="truncate text-body">{t.label}</span>
-            <div className="flex h-6 min-w-0 gap-[2px] overflow-hidden" style={fill.rowH ? { height: fill.rowH - 4 } : undefined}>
+            <div className="flex h-6 min-w-0 gap-0.5 overflow-hidden" style={fill.rowH ? { height: fill.rowH - 4 } : undefined}>
               {few && <span className="flex min-w-0 flex-1 items-center truncate text-micro text-[color:var(--w-faint)]">collecting · {real.length} / {N}</span>}
               {(few ? real : all.slice(-cells)).map((c, i) => (
-                <i key={i} title={`${t.label}: ${c.v}`} className={`self-end rounded-[2px] ${few ? "w-1.5 shrink-0" : "min-w-0 flex-1"}`} style={{ background: c.st === "none" ? "var(--w-track)" : STATE[c.st], height: c.st === "warn" ? "66%" : c.st === "crit" ? "33%" : "100%" }} />
+                <i key={i} title={`${t.label}: ${c.v}`} className={`self-end rounded-2 ${few ? "w-1.5 shrink-0" : "min-w-0 flex-1"}`} style={{ background: c.st === "none" ? "var(--w-track)" : STATE[c.st], height: c.st === "warn" ? "66%" : c.st === "crit" ? "33%" : "100%" }} />
               ))}
             </div>
           </div>

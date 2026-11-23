@@ -96,7 +96,7 @@ export function TwitchBlock({ state, pending, channel, onSignin, onCancel, onSig
           </div>
           <StackRow label="Chat channel" hint="Whose chat Stream Chat reads. Leave blank for your own.">
             <div className="flex gap-2">
-              <input aria-label="Twitch chat channel" value={draft} placeholder={state.login} onChange={(e) => setDraft(e.target.value)} className={cn(FIELD, "h-[30px] min-w-0 flex-1")} />
+              <input aria-label="Twitch chat channel" value={draft} placeholder={state.login} onChange={(e) => setDraft(e.target.value)} className={cn(FIELD, "h-7.5 min-w-0 flex-1")} />
               <button type="button" className={BUTTON} disabled={draft.trim() === channel} onClick={() => void onSaveChannel(draft.trim())}>
                 Save
               </button>

@@ -47,7 +47,8 @@ fn run_ical(module: &str) {
                 json!(to_instant(input["wall"].as_i64().unwrap(), zone.as_ref(), LOCAL))
             }
             "parseTime" => {
-                let params: Params = input["params"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_str().unwrap().to_string())).collect();
+                let params: Params =
+                    input["params"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_str().unwrap().to_string())).collect();
                 parse_time(str_of(&input, "value").unwrap(), &params).map_or(Value::Null, |t| t.to_json())
             }
             "occurrences" => {
@@ -107,10 +108,17 @@ fn integrations() {
 fn obs() {
     for (input, want) in cases("obs") {
         let got = match str_of(&input, "fn").unwrap() {
-            "obsAuth" => json!(obs_auth(str_of(&input, "password").unwrap(), str_of(&input, "salt").unwrap(), str_of(&input, "challenge").unwrap())),
+            "obsAuth" => {
+                json!(obs_auth(str_of(&input, "password").unwrap(), str_of(&input, "salt").unwrap(), str_of(&input, "challenge").unwrap()))
+            }
             "obsStep" => {
                 let flag = |name: &str| input["state"][name].as_bool().unwrap();
-                let state = ObsState { configured: flag("configured"), connected: flag("connected"), streaming: flag("streaming"), recording: flag("recording") };
+                let state = ObsState {
+                    configured: flag("configured"),
+                    connected: flag("connected"),
+                    streaming: flag("streaming"),
+                    recording: flag("recording"),
+                };
                 let (next, send) = obs_step(state, &input["message"], str_of(&input, "password").unwrap());
                 json!({ "state": next.to_json(), "send": send })
             }

@@ -96,7 +96,7 @@ export function GetFont({ initialFamily, needed, onAdd, onClose }: GetFontProps)
     let stop = false;
     (async () => {
       const alias = `get-font-${previews++}`;
-      const font = new FontFace(alias, await face.load());
+      const font = new FontFace(alias, (await face.load()) as Uint8Array<ArrayBuffer>);
       document.fonts.add(await font.load());
       if (!stop) setPreview(alias);
     })().catch(() => undefined);
@@ -123,14 +123,14 @@ export function GetFont({ initialFamily, needed, onAdd, onClose }: GetFontProps)
   };
 
   return (
-    <aside aria-label="Get a font" className="flex w-[320px] shrink-0 flex-col gap-3.5 overflow-y-auto border-l border-ui-subtle bg-ui-panel p-4 font-ui">
+    <aside aria-label="Get a font" className="flex w-80 shrink-0 flex-col gap-3.5 overflow-y-auto border-l border-ui-subtle bg-ui-panel p-4 font-ui">
       <div className="flex items-center justify-between">
         <div className="text-lead font-medium text-ui-1">Get a font</div>
         <button type="button" onClick={onClose} className="text-caption text-ui-4 hover:text-ui-1">
           Close
         </button>
       </div>
-      <div role="group" aria-label="Source" className="flex h-[32px] rounded-ui-md border border-ui-default p-0.5">
+      <div role="group" aria-label="Source" className="flex h-8 rounded-ui-md border border-ui-default p-0.5">
         {SOURCES.map((s) => (
           <button
             key={s.id}

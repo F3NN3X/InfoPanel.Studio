@@ -1,15 +1,22 @@
 //! ASTRO A50 X / A50 Gen 5 headsets on their USB base station (astro.cpp).
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, PollContext};
+use crate::hid::{PollContext, hex4};
 use crate::win::now_ms;
 
 pub fn poll_astro(ctx: &mut PollContext) {
-    let colls = ctx.colls.clone();  // snapshot: the loop below mutates ctx (claims)
+    let colls = ctx.colls.clone(); // snapshot: the loop below mutates ctx (claims)
     for c in &colls {
-        if c.vid != 0x046D || (c.pid != 0x0B0B && c.pid != 0x0B1C)
-            || ctx.is_claimed(c.vid, c.pid) || c.page() != 0xFF32 || c.usage() != 0x0074
-            || c.in_len() != 64 || c.out_len() != 64 { continue; }
+        if c.vid != 0x046D
+            || (c.pid != 0x0B0B && c.pid != 0x0B1C)
+            || ctx.is_claimed(c.vid, c.pid)
+            || c.page() != 0xFF32
+            || c.usage() != 0x0074
+            || c.in_len() != 64
+            || c.out_len() != 64
+        {
+            continue;
+        }
         let Some(mut d) = ctx.open(c) else { continue };
         d.flush();
         // No payload: read battery only; never change audio or headset settings.
@@ -19,19 +26,35 @@ pub fn poll_astro(ctx: &mut PollContext) {
         request[2] = 3;
         request[4] = 0x06;
         request[5] = 0x0C;
-        if !d.write(&request, 500) { continue; }
+        if !d.write(&request, 500) {
+            continue;
+        }
         let deadline = now_ms() + 1000;
         for _attempt in 0..8 {
             let now = now_ms();
-            if now >= deadline { break; }
+            if now >= deadline {
+                break;
+            }
             let mut reply: Vec<u8> = Vec::new();
             let n = d.read(&mut reply, (deadline - now) as u32);
-            if n < 0 { break; }
+            if n < 0 {
+                break;
+            }
             // Ignore unsolicited volume/mix events and malformed or partial frames.
-            if n < 9 || reply.len() < 9 || reply[0] != 0x02 || reply[1] != 0x0C
-                || reply[2] < 6 || reply[2] as usize + 3 > reply.len()
-                || reply[2] as i32 + 3 > n || reply[3] != 0 || reply[4] != 0x06
-                || (reply[5] != 0 && reply[5] != 0x0C) || reply[6] > 100 { continue; }
+            if n < 9
+                || reply.len() < 9
+                || reply[0] != 0x02
+                || reply[1] != 0x0C
+                || reply[2] < 6
+                || reply[2] as usize + 3 > reply.len()
+                || reply[2] as i32 + 3 > n
+                || reply[3] != 0
+                || reply[4] != 0x06
+                || (reply[5] != 0 && reply[5] != 0x0C)
+                || reply[6] > 100
+            {
+                continue;
+            }
             let mut s = DeviceStatus::default();
             s.key = format!("astro:{}:{}:{}", hex4(c.vid), hex4(c.pid), c.iface);
             let name = if c.pid == 0x0B0B { "ASTRO A50 X" } else { "ASTRO A50 Gen 5" };
@@ -49,9 +72,9 @@ pub fn poll_astro(ctx: &mut PollContext) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hid::mock::{test_ctx, MockFactory};
     use crate::hid::HidCaps;
     use crate::hid::HidColl;
+    use crate::hid::mock::{MockFactory, test_ctx};
 
     fn collection() -> HidColl {
         HidColl {
@@ -91,10 +114,8 @@ mod tests {
     fn astro_a50_usb_base_station() {
         // Level, name, kind and claim; a product that is already claimed is not opened again.
         {
-            let mut io = MockFactory::new()
-                .with_reads(vec![reply(99, 0)])
-                .with_expected_writes(vec![request()]);
-            let probe = io.clone();  // shares the mock's state; readable while ctx borrows io
+            let mut io = MockFactory::new().with_reads(vec![reply(99, 0)]).with_expected_writes(vec![request()]);
+            let probe = io.clone(); // shares the mock's state; readable while ctx borrows io
             let mut ctx = test_ctx(collection(), &mut io);
             poll_astro(&mut ctx);
             assert_eq!(ctx.out.len(), 1);
@@ -112,9 +133,7 @@ mod tests {
 
         // Dock byte non-zero: on the charging dock.
         {
-            let mut io = MockFactory::new()
-                .with_reads(vec![reply(0, 1)])
-                .with_expected_writes(vec![request()]);
+            let mut io = MockFactory::new().with_reads(vec![reply(0, 1)]).with_expected_writes(vec![request()]);
             let mut ctx = test_ctx(collection(), &mut io);
             poll_astro(&mut ctx);
             assert_eq!(ctx.out.len(), 1);
@@ -126,9 +145,7 @@ mod tests {
         {
             let mut push = reply(100, 0);
             push[5] = 0;
-            let mut io = MockFactory::new()
-                .with_reads(vec![push])
-                .with_expected_writes(vec![request()]);
+            let mut io = MockFactory::new().with_reads(vec![push]).with_expected_writes(vec![request()]);
             let mut ctx = test_ctx(collection(), &mut io);
             poll_astro(&mut ctx);
             assert_eq!(ctx.out.len(), 1);
@@ -139,9 +156,7 @@ mod tests {
         {
             let mut unrelated = reply(50, 0);
             unrelated[4] = 8;
-            let mut io = MockFactory::new()
-                .with_reads(vec![unrelated, reply(60, 0)])
-                .with_expected_writes(vec![request()]);
+            let mut io = MockFactory::new().with_reads(vec![unrelated, reply(60, 0)]).with_expected_writes(vec![request()]);
             let mut ctx = test_ctx(collection(), &mut io);
             poll_astro(&mut ctx);
             assert_eq!(ctx.out.len(), 1);
@@ -189,11 +204,21 @@ mod tests {
         // Collections that are not the ASTRO base station are never opened.
         for field in 0..5 {
             let mut c = collection();
-            if field == 0 { c.vid = 0x1234; }
-            if field == 1 { c.pid = 0x1234; }
-            if field == 2 { c.caps.usage_page = 0xFF00; }
-            if field == 3 { c.caps.usage = 1; }
-            if field == 4 { c.caps.output_report_byte_length = 20; }
+            if field == 0 {
+                c.vid = 0x1234;
+            }
+            if field == 1 {
+                c.pid = 0x1234;
+            }
+            if field == 2 {
+                c.caps.usage_page = 0xFF00;
+            }
+            if field == 3 {
+                c.caps.usage = 1;
+            }
+            if field == 4 {
+                c.caps.output_report_byte_length = 20;
+            }
             let mut io = MockFactory::new().with_reads(vec![reply(50, 0)]);
             let mut ctx = test_ctx(c, &mut io);
             poll_astro(&mut ctx);
@@ -203,9 +228,7 @@ mod tests {
 
         // Open failure: nothing listed.
         {
-            let mut io = MockFactory::new()
-                .with_reads(vec![reply(50, 0)])
-                .with_open_ok(false);
+            let mut io = MockFactory::new().with_reads(vec![reply(50, 0)]).with_open_ok(false);
             let mut ctx = test_ctx(collection(), &mut io);
             poll_astro(&mut ctx);
             assert!(ctx.out.is_empty());
@@ -213,10 +236,7 @@ mod tests {
 
         // Write failure: nothing listed.
         {
-            let mut io = MockFactory::new()
-                .with_reads(vec![reply(50, 0)])
-                .with_expected_writes(vec![request()])
-                .with_write_ok(false);
+            let mut io = MockFactory::new().with_reads(vec![reply(50, 0)]).with_expected_writes(vec![request()]).with_write_ok(false);
             let mut ctx = test_ctx(collection(), &mut io);
             poll_astro(&mut ctx);
             assert!(ctx.out.is_empty());

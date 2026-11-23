@@ -48,7 +48,7 @@ describe("collapse", () => {
   it("opens expanded, and Edit's old rail flag from earlier builds neither collapses it nor is removed", () => {
     localStorage.setItem("studio.sidebar.editor", "1");
     renderSidebar();
-    expect(width()).toContain("w-[232px]");
+    expect(width()).toContain("w-58");
     expect(localStorage.getItem("studio.sidebar.editor")).toBe("1");
   });
 
@@ -58,7 +58,7 @@ describe("collapse", () => {
     expect(localStorage.getItem(SIDEBAR_KEY)).toBe("1");
     unmount();
     renderSidebar({ active: "design" });
-    expect(width()).toContain("w-[60px]");
+    expect(width()).toContain("w-15");
     fireEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
     expect(localStorage.getItem(SIDEBAR_KEY)).toBe("0");
   });
@@ -69,7 +69,7 @@ describe("collapse", () => {
     row.focus();
     expect(document.activeElement).toBe(row);
     rerender(held({ windowWidth: 900 }));
-    expect(width()).toContain("w-[60px]");
+    expect(width()).toContain("w-15");
     expect(screen.getByRole("button", { name: "Screens" })).toBe(row);
     expect(document.activeElement).toBe(row);
   });
@@ -77,7 +77,7 @@ describe("collapse", () => {
   it("stays a rail below 960 px, with no toggle and without touching the flag", () => {
     localStorage.setItem(SIDEBAR_KEY, "0");
     renderSidebar({ windowWidth: 900 });
-    expect(width()).toContain("w-[60px]");
+    expect(width()).toContain("w-15");
     expect(screen.queryByRole("button", { name: /sidebar/ })).toBeNull();
     expect(localStorage.getItem(SIDEBAR_KEY)).toBe("0");
   });

@@ -20,10 +20,10 @@
 //! was found with a read-only scan of the READ command ids.
 
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hex4, HidColl, HidIo, PollContext};
+use crate::hid::{HidColl, HidIo, PollContext, hex4};
 use crate::win::now_ms;
 
-const VID: u16 = 0x35D8;  // WalkPlay; shared by other DACs/dongles, so only known product ids
+const VID: u16 = 0x35D8; // WalkPlay; shared by other DACs/dongles, so only known product ids
 const GM01_PRO: u16 = 0x0133;
 const REPORT: u8 = 0x4B;
 const READ: u8 = 0x80;
@@ -33,12 +33,18 @@ const CMD_LINK: u8 = 0x31;
 // Sends a READ for `cmd` and waits for its reply ([4B][80][cmd][len]...).
 fn query(d: &mut dyn HidIo, cmd: u8, r: &mut Vec<u8>) -> bool {
     d.flush();
-    if !d.write(&[REPORT, READ, cmd, 0x00], 500) { return false; }
+    if !d.write(&[REPORT, READ, cmd, 0x00], 500) {
+        return false;
+    }
     let end = now_ms() + 400;
     loop {
         let left = (end as i64 - now_ms() as i64) as i32;
-        if left <= 0 || d.read(r, left as u32) < 5 { return false; }
-        if r[0] == REPORT && r[1] == READ && r[2] == cmd { return true; }
+        if left <= 0 || d.read(r, left as u32) < 5 {
+            return false;
+        }
+        if r[0] == REPORT && r[1] == READ && r[2] == cmd {
+            return true;
+        }
     }
 }
 
@@ -49,7 +55,9 @@ fn is_single_collection(c: &HidColl) -> bool {
 }
 
 pub fn poll_moondrop(ctx: &mut PollContext) {
-    if ctx.is_claimed(VID, GM01_PRO) { return; }
+    if ctx.is_claimed(VID, GM01_PRO) {
+        return;
+    }
     let mut s = DeviceStatus {
         key: format!("moondrop:{}", hex4(GM01_PRO)),
         name: "MOONDROP GM01 Pro".into(),
@@ -58,11 +66,13 @@ pub fn poll_moondrop(ctx: &mut PollContext) {
         ..Default::default()
     };
 
-    let mut found = false;       // a GM01 Pro (dongle or cable) is present
+    let mut found = false; // a GM01 Pro (dongle or cable) is present
     let mut dongle_unlinked = false;
     for c in ctx.find(VID, GM01_PRO, |c| c.iface == 3 && c.page() == 0x000C) {
         found = true;
-        if c.out_len() < 4 || c.in_len() < 10 { continue; }  // only the dongle's control channel
+        if c.out_len() < 4 || c.in_len() < 10 {
+            continue;
+        } // only the dongle's control channel
         let mut r = Vec::new();
         let Some(mut d) = ctx.open(&c) else { continue };
         if query(d.as_mut(), CMD_BATTERY, &mut r) && r.len() >= 10 && r[3] >= 6 && r[8] != 0 && r[9] <= 100 {
@@ -71,9 +81,13 @@ pub fn poll_moondrop(ctx: &mut PollContext) {
             ctx.add(s, VID, GM01_PRO);
             return;
         }
-        if query(d.as_mut(), CMD_LINK, &mut r) && r[3] >= 1 && r[4] == 0 { dongle_unlinked = true; }
+        if query(d.as_mut(), CMD_LINK, &mut r) && r[3] >= 1 && r[4] == 0 {
+            dongle_unlinked = true;
+        }
     }
-    if !found { return; }
+    if !found {
+        return;
+    }
 
     let mut on_cable = false;
     for c in ctx.find(VID, GM01_PRO, |c| c.iface == 3) {
@@ -81,13 +95,13 @@ pub fn poll_moondrop(ctx: &mut PollContext) {
     }
     if on_cable {
         s.via = "USB cable".into();
-        s.charging = true;  // level unknown on the cable; the app keeps the last one, dimmed
+        s.charging = true; // level unknown on the cable; the app keeps the last one, dimmed
         ctx.add(s, VID, GM01_PRO);
     } else if dongle_unlinked {
         s.via = "2.4 GHz receiver".into();
-        s.connected = false;  // headset switched off or out of range
+        s.connected = false; // headset switched off or out of range
         ctx.add(s, VID, GM01_PRO);
     } else {
-        ctx.claim(VID, GM01_PRO);  // no answer: let the app keep the last value (graceSec)
+        ctx.claim(VID, GM01_PRO); // no answer: let the app keep the last value (graceSec)
     }
 }

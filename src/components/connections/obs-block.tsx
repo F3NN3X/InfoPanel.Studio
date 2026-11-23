@@ -39,13 +39,13 @@ export function ObsBlock({ stored, streaming, onSave }: ObsBlockProps) {
         <ConnectionStatus tone={tone}>{status}</ConnectionStatus>
       </div>
       <div className="grid grid-cols-[1fr_96px] gap-2">
-        <label className="flex flex-col gap-1.5 text-[12.5px] text-ui-2">
+        <label className="flex flex-col gap-1.5 text-small text-ui-2">
           Host
-          <input aria-label="OBS host" value={host} onChange={(e) => setHost(e.target.value)} className={cn(FIELD, "h-[30px] w-full")} />
+          <input aria-label="OBS host" value={host} onChange={(e) => setHost(e.target.value)} className={cn(FIELD, "h-7.5 w-full")} />
         </label>
-        <label className="flex flex-col gap-1.5 text-[12.5px] text-ui-2">
+        <label className="flex flex-col gap-1.5 text-small text-ui-2">
           Port
-          <input aria-label="OBS port" inputMode="numeric" value={port} onChange={(e) => setPort(e.target.value)} className={cn(FIELD, "h-[30px] w-full")} />
+          <input aria-label="OBS port" inputMode="numeric" value={port} onChange={(e) => setPort(e.target.value)} className={cn(FIELD, "h-7.5 w-full")} />
         </label>
       </div>
       <StackRow label="Password" hint="OBS › Tools › WebSocket Server Settings. Saved on the dashboard server only; leave blank to keep the saved one.">
@@ -56,7 +56,7 @@ export function ObsBlock({ stored, streaming, onSave }: ObsBlockProps) {
           value={password}
           placeholder={stored.hasPassword ? "Saved" : "Not set"}
           onChange={(e) => setPassword(e.target.value)}
-          className={cn(FIELD, "h-[30px] w-full")}
+          className={cn(FIELD, "h-7.5 w-full")}
         />
       </StackRow>
       <ObsStreamingFields mic={mic} inputs={live.inputs} scenes={live.scenes} looks={looks} onMic={setMic} onLook={(id, look) => setLooks((prev) => ({ ...prev, [id]: look }))} />

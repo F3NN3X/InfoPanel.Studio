@@ -218,7 +218,7 @@ export function CompositeView(p: CompositeProps) {
   } else {
     body = (
       <div className="flex h-full items-center gap-4 p-4">
-        <div className="w-[28%] min-w-[150px] max-w-[280px] shrink">
+        <div className="w-[28%] min-w-37.5 max-w-70 shrink">
           {profile(clamp(h * 0.3, 36, 56))}
           {gameMark("mt-2.5 h-9 w-full !object-left")}
         </div>
@@ -233,7 +233,7 @@ export function CompositeView(p: CompositeProps) {
           {p.showNews && news && h >= 120 && <Text className="mt-1.5 text-micro text-[color:var(--w-muted)]">{news}</Text>}
         </div>
         {p.showStats && (
-          <div className="w-[26%] min-w-[140px] max-w-[240px] shrink text-right">
+          <div className="w-[26%] min-w-35 max-w-60 shrink text-right">
             <Text className="text-xs tabular-nums text-[color:var(--w-muted)]">{[games, friends].filter(Boolean).join(" · ") || "—"}</Text>
             <div className="mt-1 flex items-center justify-end gap-1.5 text-base font-semibold tabular-nums text-[color:var(--w-fg)]">
               {achIcon}

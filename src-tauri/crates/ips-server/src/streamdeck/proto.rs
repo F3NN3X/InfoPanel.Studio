@@ -267,10 +267,7 @@ pub struct ContextUpdate {
 /// `ServerMessage`'s oneof, the payloads read (Shortcuts = 32 and ShortcutsUpdate = 33 are skipped as unknown).
 #[derive(Clone, PartialEq, prost::Message)]
 pub struct ServerMessage {
-    #[prost(
-        oneof = "server_message::Payload",
-        tags = "1, 2, 10, 20, 21, 30, 31, 40"
-    )]
+    #[prost(oneof = "server_message::Payload", tags = "1, 2, 10, 20, 21, 30, 31, 40")]
     pub payload: Option<server_message::Payload>,
 }
 
@@ -299,10 +296,7 @@ pub mod server_message {
 /// `ClientMessage`'s oneof, the payloads sent.
 #[derive(Clone, PartialEq, prost::Message)]
 pub struct ClientMessage {
-    #[prost(
-        oneof = "client_message::Payload",
-        tags = "1, 2, 10, 11, 12, 20, 21, 22, 23, 30, 100"
-    )]
+    #[prost(oneof = "client_message::Payload", tags = "1, 2, 10, 11, 12, 20, 21, 22, 23, 30, 100")]
     pub payload: Option<client_message::Payload>,
 }
 
@@ -336,19 +330,14 @@ pub mod client_message {
 
 /// A client message around `payload`.
 pub fn client(payload: client_message::Payload) -> ClientMessage {
-    ClientMessage {
-        payload: Some(payload),
-    }
+    ClientMessage { payload: Some(payload) }
 }
 
 /// The icon size asked for, plain and pressed: 144 x 144, the Stream Deck XL's.
 pub const ICON_SIZE: u32 = 144;
 
 fn icon_size() -> Option<Size> {
-    Some(Size {
-        width: ICON_SIZE,
-        height: ICON_SIZE,
-    })
+    Some(Size { width: ICON_SIZE, height: ICON_SIZE })
 }
 
 /// The keypad a device is opened or created with: LZ4 icons (lossless, the format the app compresses best), the icon
@@ -360,10 +349,7 @@ pub fn keypad_config(cols: u32, rows: u32) -> KeypadConfig {
         pressed_icon_size: icon_size(),
         high_dpi: false,
         overscale: false,
-        layout_crop: Some(Size {
-            width: cols,
-            height: rows,
-        }),
+        layout_crop: Some(Size { width: cols, height: rows }),
         enable_context_api: true,
     }
 }
@@ -374,10 +360,7 @@ pub fn keypad_update(cols: u32, rows: u32) -> UpdateKeypadConfig {
         icon_size: icon_size(),
         pressed_icon_size: icon_size(),
         high_dpi: false,
-        layout_crop: Some(Size {
-            width: cols,
-            height: rows,
-        }),
+        layout_crop: Some(Size { width: cols, height: rows }),
     }
 }
 
@@ -396,10 +379,7 @@ mod tests {
     }
 
     fn unhex(s: &str) -> Vec<u8> {
-        (0..s.len())
-            .step_by(2)
-            .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
-            .collect()
+        (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap()).collect()
     }
 
     #[test]
@@ -448,40 +428,17 @@ mod tests {
         let decode = |h: &str| ServerMessage::decode(&unhex(h)[..]).unwrap().payload;
         // A hello with every field set: the two read come through, the rest is skipped.
         let hello = "52500a027773120270631a03372e3020022a20090909090909090909090909090909090909090909090909090909090909090930013a0757696e646f7773420231314a0e0a0831302e302e302e3210a6dc01";
-        assert_eq!(
-            decode(hello),
-            Some(S::Hello(HelloFromServer {
-                public_key: vec![9; 32],
-                client_needs_authentication: true
-            }))
-        );
-        let action = |index, title: &str| Action {
-            index,
-            title: title.into(),
-            ..Action::default()
-        };
+        assert_eq!(decode(hello), Some(S::Hello(HelloFromServer { public_key: vec![9; 32], client_needs_authentication: true })));
+        let action = |index, title: &str| Action { index, title: title.into(), ..Action::default() };
         let cases = [
-            (
-                "0a0a080110011a046e6f7065",
-                S::Error(Error {
-                    request_id: 1,
-                    code: 1,
-                    reason: "nope".into(),
-                }),
-            ),
+            ("0a0a080110011a046e6f7065", S::Error(Error { request_id: 1, code: 1, reason: "nope".into() })),
             ("1200", S::Ok(Ok { request_id: 0 })),
             (
                 "a2011b0a0d0a01611208495053747564696f0a0a0a016212054f74686572",
                 S::VirtualDeviceList(VirtualDeviceList {
                     devices: vec![
-                        VirtualDevice {
-                            id: "a".into(),
-                            name: "IPStudio".into(),
-                        },
-                        VirtualDevice {
-                            id: "b".into(),
-                            name: "Other".into(),
-                        },
+                        VirtualDevice { id: "a".into(), name: "IPStudio".into() },
+                        VirtualDevice { id: "b".into(), name: "Other".into() },
                     ],
                 }),
             ),
@@ -489,10 +446,7 @@ mod tests {
                 "aa01110801120d0a01611208495053747564696f",
                 S::VirtualDeviceOpened(VirtualDeviceOpened {
                     request_id: 1,
-                    device: Some(VirtualDevice {
-                        id: "a".into(),
-                        name: "IPStudio".into(),
-                    }),
+                    device: Some(VirtualDevice { id: "a".into(), name: "IPStudio".into() }),
                 }),
             ),
             (
@@ -512,11 +466,7 @@ mod tests {
             ),
             (
                 "fa010e0a0170120508021201581a020405",
-                S::ContextUpdate(ContextUpdate {
-                    profile_id: "p".into(),
-                    replace: vec![action(2, "X")],
-                    remove: vec![4, 5],
-                }),
+                S::ContextUpdate(ContextUpdate { profile_id: "p".into(), replace: vec![action(2, "X")], remove: vec![4, 5] }),
             ),
             (
                 "c2021808031214080210011a0608900110900120c0042a03010203",
@@ -525,10 +475,7 @@ mod tests {
                     image: Some(Image {
                         format: ImageFormat::Lz4 as i32,
                         r#type: 1,
-                        size: Some(Size {
-                            width: 144,
-                            height: 144,
-                        }),
+                        size: Some(Size { width: 144, height: 144 }),
                         row_bytes: 576,
                         image: vec![1, 2, 3],
                     }),
@@ -537,13 +484,7 @@ mod tests {
         ];
         for (bytes, want) in cases {
             assert_eq!(decode(bytes), Some(want.clone()));
-            assert_eq!(
-                hex(&ServerMessage {
-                    payload: Some(want)
-                }
-                .encode_to_vec()),
-                bytes
-            );
+            assert_eq!(hex(&ServerMessage { payload: Some(want) }.encode_to_vec()), bytes);
         }
         // A payload this client doesn't read (Shortcuts) decodes as none instead of failing.
         assert_eq!(decode("8202050a030a0178"), None);

@@ -19,7 +19,7 @@ import { ColorField } from "@/components/ui/color-field";
  */
 
 const ICONS = [
-  { id: "", label: "None", icon: <span className="text-[10px]">none</span> },
+  { id: "", label: "None", icon: <span className="text-nano">none</span> },
   { id: "zap", label: "Zap", icon: <Zap /> },
   { id: "sun", label: "Sun", icon: <Sun /> },
   { id: "eye", label: "Eye", icon: <Eye /> },
@@ -34,11 +34,15 @@ const DEVICES = [
 
 /** The redesign's primitives: a chunk of their own, so the entry's preload list does not grow with this gallery. */
 const Foundation = lazy(() => import("./ui-preview-foundation"));
+// Phase 5 step 2: buttons, overlays and the Settings window's parts, each with its states.
+const Buttons = lazy(() => import("./preview/buttons"));
+const Overlays = lazy(() => import("./preview/overlays"));
+const SettingsParts = lazy(() => import("./preview/settings").then((m) => ({ default: m.SettingsSection })));
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="space-y-2 border-b border-ui-subtle py-4">
-      <h2 className="text-[12.5px] font-medium text-ui-1">{title}</h2>
+      <h2 className="text-small font-medium text-ui-1">{title}</h2>
       {children}
     </section>
   );
@@ -62,11 +66,14 @@ function Gallery() {
         setMenu({ x: e.clientX, y: e.clientY });
       }}
     >
-      <div className="mx-auto max-w-[340px]">
-        <h1 className="text-[14px] font-medium text-ui-1">UI primitives</h1>
+      <div className="mx-auto max-w-85">
+        <h1 className="text-lead font-medium text-ui-1">UI primitives</h1>
         <p className="text-micro text-ui-4">Right-click anywhere for the context menu.</p>
         <Suspense fallback={null}>
           <Foundation Section={Section} />
+          <Buttons Section={Section} />
+          <Overlays Section={Section} />
+          <SettingsParts />
         </Suspense>
         <Section title="Toggle">
           <Toggle checked={on} onChange={setOn} label="Example" />

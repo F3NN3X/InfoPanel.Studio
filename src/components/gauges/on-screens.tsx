@@ -77,7 +77,7 @@ export function OnScreens({ gauges, rings, selectedKey, p, scope, onSelect, onOp
               <span className="block truncate text-caption text-ui-3">{placeOf(e.on)}</span>
             </span>
             <span className={CHIP}>{kindOf(e)}</span>
-            <span className="hidden min-w-0 max-w-[260px] flex-1 truncate font-ui-mono text-caption text-ui-3 min-[1100px]:block">{readsOf(e)}</span>
+            <span className="hidden min-w-0 max-w-65 flex-1 truncate font-ui-mono text-caption text-ui-3 min-[1100px]:block">{readsOf(e)}</span>
           </button>
           <button type="button" onClick={() => onOpen(e)} aria-label={`${opensOnCanvas(e) ? "Open on canvas" : "Edit gauge"} ${e.name}`} className={LINK}>
             {opensOnCanvas(e) ? "Open on canvas" : "Edit gauge"} <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
@@ -95,7 +95,7 @@ export function OnScreens({ gauges, rings, selectedKey, p, scope, onSelect, onOp
               <span className="block truncate text-caption text-ui-3">{placeOf(r.on)}</span>
             </span>
             <span className={CHIP}>Widget rings · {r.count}</span>
-            <span className="hidden min-w-0 max-w-[260px] flex-1 truncate font-ui-mono text-caption text-ui-3 min-[1100px]:block">{r.reads}</span>
+            <span className="hidden min-w-0 max-w-65 flex-1 truncate font-ui-mono text-caption text-ui-3 min-[1100px]:block">{r.reads}</span>
           </span>
           <button type="button" onClick={() => onOpenWidget(r)} aria-label={`Open widget ${r.name}`} title="Show it on the canvas" className={LINK}>
             Open widget <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />

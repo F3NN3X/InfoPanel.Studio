@@ -107,21 +107,14 @@ impl Streaming {
 }
 
 fn look_of(raw: &Value) -> SceneLook {
-    SceneLook {
-        sub: text(raw.get("sub"), MAX_SUB),
-        icon: text(raw.get("icon"), MAX_ICON),
-    }
+    SceneLook { sub: text(raw.get("sub"), MAX_SUB), icon: text(raw.get("icon"), MAX_ICON) }
 }
 
 fn normalize_obs(raw: Option<&Value>) -> ObsStreaming {
     let Some(obs) = raw.and_then(Value::as_object) else {
         return ObsStreaming::default();
     };
-    let scenes = obs
-        .get("scenes")
-        .and_then(Value::as_object)
-        .into_iter()
-        .flatten();
+    let scenes = obs.get("scenes").and_then(Value::as_object).into_iter().flatten();
     ObsStreaming {
         mic: text(obs.get("mic"), MAX_MIC),
         scenes: scenes
@@ -190,12 +183,8 @@ pub fn normalize(raw: Option<&Value>) -> Streaming {
 }
 
 fn obs_json(s: &Streaming) -> Value {
-    let scenes: Map<String, Value> = s
-        .obs
-        .scenes
-        .iter()
-        .map(|(id, look)| (id.clone(), json!({ "sub": look.sub, "icon": look.icon })))
-        .collect();
+    let scenes: Map<String, Value> =
+        s.obs.scenes.iter().map(|(id, look)| (id.clone(), json!({ "sub": look.sub, "icon": look.icon }))).collect();
     json!({ "mic": s.obs.mic, "scenes": scenes })
 }
 
@@ -354,10 +343,7 @@ mod tests {
     #[test]
     fn is_absent_until_something_is_set() {
         assert_eq!(normalize(None), Streaming::default());
-        assert_eq!(
-            normalize(Some(&json!({ "obs": { "mic": "", "scenes": {} } }))),
-            Streaming::default()
-        );
+        assert_eq!(normalize(Some(&json!({ "obs": { "mic": "", "scenes": {} } }))), Streaming::default());
         assert_eq!(to_json(&Streaming::default()), None);
     }
 
@@ -387,17 +373,10 @@ mod tests {
         // Absent keeps; "" clears the mic; a scenes map replaces the whole map.
         let kept = apply(&first, &json!({ "obs": {} })).unwrap();
         assert_eq!(kept, first);
-        let cleared = apply(
-            &first,
-            &json!({ "obs": { "mic": "", "scenes": { "u3": { "icon": "movie" } } } }),
-        )
-        .unwrap();
+        let cleared = apply(&first, &json!({ "obs": { "mic": "", "scenes": { "u3": { "icon": "movie" } } } })).unwrap();
         assert_eq!(cleared.obs.mic, "");
         assert_eq!(cleared.obs.scenes.keys().collect::<Vec<_>>(), ["u3"]);
-        assert_eq!(
-            to_json(&cleared).unwrap(),
-            json!({ "obs": { "mic": "", "scenes": { "u3": { "sub": "", "icon": "movie" } } } })
-        );
+        assert_eq!(to_json(&cleared).unwrap(), json!({ "obs": { "mic": "", "scenes": { "u3": { "sub": "", "icon": "movie" } } } }));
     }
 
     #[test]
@@ -417,33 +396,16 @@ mod tests {
         let e = Streaming::default();
         let refusal = |patch: Value| apply(&e, &patch).unwrap_err();
         assert_eq!(refusal(json!([])), "streaming: expected an object");
-        assert_eq!(
-            refusal(json!({ "obs": 1 })),
-            "streaming.obs: expected an object"
-        );
-        assert_eq!(
-            refusal(json!({ "obs": { "mic": 3 } })),
-            "streaming.obs.mic: expected text"
-        );
-        assert_eq!(
-            refusal(json!({ "obs": { "scenes": [] } })),
-            "streaming.obs.scenes: expected an object"
-        );
-        assert_eq!(
-            refusal(json!({ "obs": { "scenes": { "a": 1 } } })),
-            "streaming.obs.scenes: expected { sub, icon } objects"
-        );
+        assert_eq!(refusal(json!({ "obs": 1 })), "streaming.obs: expected an object");
+        assert_eq!(refusal(json!({ "obs": { "mic": 3 } })), "streaming.obs.mic: expected text");
+        assert_eq!(refusal(json!({ "obs": { "scenes": [] } })), "streaming.obs.scenes: expected an object");
+        assert_eq!(refusal(json!({ "obs": { "scenes": { "a": 1 } } })), "streaming.obs.scenes: expected { sub, icon } objects");
         assert_eq!(
             refusal(json!({ "obs": { "scenes": { "x".repeat(129): {} } } })),
             "streaming.obs.scenes: a scene id is 1 to 128 characters"
         );
-        let many: Map<String, Value> = (0..=MAX_SCENES)
-            .map(|i| (format!("s{i}"), json!({ "sub": "x" })))
-            .collect();
-        assert_eq!(
-            refusal(json!({ "obs": { "scenes": many } })),
-            "streaming.obs.scenes: at most 64"
-        );
+        let many: Map<String, Value> = (0..=MAX_SCENES).map(|i| (format!("s{i}"), json!({ "sub": "x" }))).collect();
+        assert_eq!(refusal(json!({ "obs": { "scenes": many } })), "streaming.obs.scenes: at most 64");
     }
 
     fn signed_in() -> Streaming {
@@ -463,11 +425,16 @@ mod tests {
         assert_eq!(stored["twitch"]["access_token"], "at");
         assert_eq!(normalize(Some(&stored)), s, "round-trips");
         // Until Twitch is used, the key is in neither form.
-        assert!(to_json(&Streaming { obs: ObsStreaming { mic: "m".into(), ..Default::default() }, ..Default::default() }).unwrap().get("twitch").is_none());
+        assert!(to_json(&Streaming { obs: ObsStreaming { mic: "m".into(), ..Default::default() }, ..Default::default() })
+            .unwrap()
+            .get("twitch")
+            .is_none());
     }
 
     fn youtube_stored() -> Streaming {
-        normalize(Some(&json!({ "youtube": { "client_id": "cid", "client_secret": "SECRET-CS", "chat_interval": 20, "access_token": "SECRET-AT", "refresh_token": "SECRET-RT", "expires_at": 77, "channel": "My channel", "channel_id": "UC1" } })))
+        normalize(Some(
+            &json!({ "youtube": { "client_id": "cid", "client_secret": "SECRET-CS", "chat_interval": 20, "access_token": "SECRET-AT", "refresh_token": "SECRET-RT", "expires_at": 77, "channel": "My channel", "channel_id": "UC1" } }),
+        ))
     }
 
     #[test]
@@ -482,7 +449,10 @@ mod tests {
         assert_eq!(stored["youtube"]["client_secret"], "SECRET-CS");
         assert_eq!(normalize(Some(&stored)), s, "round-trips");
         // Untouched, the key is in neither form; a bad interval reads as the default.
-        assert!(to_json(&Streaming { obs: ObsStreaming { mic: "m".into(), ..Default::default() }, ..Default::default() }).unwrap().get("youtube").is_none());
+        assert!(to_json(&Streaming { obs: ObsStreaming { mic: "m".into(), ..Default::default() }, ..Default::default() })
+            .unwrap()
+            .get("youtube")
+            .is_none());
         assert_eq!(normalize(Some(&json!({ "youtube": { "chat_interval": 7 } }))).youtube.chat_interval, DEFAULT_CHAT_INTERVAL);
         // A client alone is not configured.
         let half = normalize(Some(&json!({ "youtube": { "client_id": "cid" } })));
@@ -501,7 +471,8 @@ mod tests {
     fn a_patch_sets_the_youtube_client_and_interval_but_never_the_tokens() {
         let s = youtube_stored();
         // The same client keeps the sign-in; the interval and an attempt at the tokens change nothing else.
-        let same = apply(&s, &json!({ "youtube": { "client_id": "cid", "chat_interval": 5, "access_token": "EVIL", "channel": "x" } })).unwrap();
+        let same =
+            apply(&s, &json!({ "youtube": { "client_id": "cid", "chat_interval": 5, "access_token": "EVIL", "channel": "x" } })).unwrap();
         assert_eq!(same.youtube.chat_interval, 5);
         assert_eq!(same.youtube.auth, s.youtube.auth);
         // Another client ends it.

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { describe, expect, it } from "vitest";
-import { classify, gateWorkers, playwrightCommand, UNIT_RUNS, vitestCommand } from "../../tools/ci/flake-gate.mjs";
+import { classify, gateWorkers, playwrightCommand, UNIT_RUNS, unproven, vitestCommand } from "../../tools/ci/flake-gate.mjs";
 import { playwrightScope, problems, QUARANTINE_FILE, readQuarantine } from "../../tools/ci/quarantine.mjs";
 
 const entry = { issue: 301, owner: "F3NN3X", until: "2026-12-01" };
@@ -49,5 +49,11 @@ describe("new-test gate", () => {
     expect(vitestCommand(["tests/a.test.ts"], 7)).toContain("--sequence.shuffle.tests --sequence.seed=7 --maxWorkers=4 tests/a.test.ts");
     expect(playwrightCommand("e2e", ["tests/e2e/k.spec.ts"], 2)).toBe("npx playwright test --project=e2e --repeat-each 3 --workers 2 tests/e2e/k.spec.ts");
     expect([1, 2, 4, 8, 16, 32].map(gateWorkers)).toEqual([1, 1, 2, 4, 4, 8]);
+  });
+
+  it("repeats a file again only when its content is not the one that last passed every repeat", () => {
+    const hashes = { "tests/a.test.ts": "h1", "tests/b.test.ts": "h2", "tests/c.test.ts": "h3" };
+    expect(unproven(Object.keys(hashes), { "tests/a.test.ts": "h1", "tests/b.test.ts": "old" }, hashes)).toEqual(["tests/b.test.ts", "tests/c.test.ts"]);
+    expect(unproven(Object.keys(hashes), {}, hashes)).toEqual(Object.keys(hashes));
   });
 });

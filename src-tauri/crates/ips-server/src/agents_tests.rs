@@ -30,15 +30,28 @@ fn step(s: &AgentsState, agent: &str, e: Value, t: f64) -> AgentsState {
 
 #[test]
 fn follows_a_turn_working_waiting_and_done_with_its_duration() {
-    let mut s = run(&[(ev("SessionStart", json!({})), 0.0), (ev("UserPromptSubmit", json!({})), 1000.0), (ev("PreToolUse", json!({ "tool_name": "Bash" })), 2000.0)], "claude");
+    let mut s = run(
+        &[
+            (ev("SessionStart", json!({})), 0.0),
+            (ev("UserPromptSubmit", json!({})), 1000.0),
+            (ev("PreToolUse", json!({ "tool_name": "Bash" })), 2000.0),
+        ],
+        "claude",
+    );
     let session = only(&s);
-    assert_eq!((session.project.as_str(), session.state.as_str(), session.tool.as_str(), session.since, session.turn_start), ("InfoPanel.Dashboard", "working", "Bash", 1000.0, Some(1000.0)));
+    assert_eq!(
+        (session.project.as_str(), session.state.as_str(), session.tool.as_str(), session.since, session.turn_start),
+        ("InfoPanel.Dashboard", "working", "Bash", 1000.0, Some(1000.0))
+    );
     s = step(&s, "claude", ev("PermissionRequest", json!({ "tool_name": "Edit" })), 3000.0);
     assert_eq!((only(&s).state.as_str(), only(&s).tool.as_str(), only(&s).since), ("waiting", "Edit", 3000.0));
     s = step(&s, "claude", ev("PostToolUse", json!({})), 4000.0);
     assert_eq!(only(&s).state, "working");
     s = step(&s, "claude", ev("Stop", json!({})), 61_000.0);
-    assert_eq!((only(&s).state.as_str(), only(&s).last_turn_ms, only(&s).turn_start, only(&s).tool.as_str()), ("done", Some(60_000.0), None, ""));
+    assert_eq!(
+        (only(&s).state.as_str(), only(&s).last_turn_ms, only(&s).turn_start, only(&s).tool.as_str()),
+        ("done", Some(60_000.0), None, "")
+    );
 }
 
 #[test]
@@ -50,7 +63,15 @@ fn waits_only_on_the_notifications_that_need_you() {
 
 #[test]
 fn counts_subagents_marks_a_failed_stop_and_drops_an_ended_session() {
-    let s = run(&[(ev("UserPromptSubmit", json!({})), 0.0), (ev("SubagentStart", json!({})), 1.0), (ev("SubagentStart", json!({})), 2.0), (ev("SubagentStop", json!({})), 3.0)], "claude");
+    let s = run(
+        &[
+            (ev("UserPromptSubmit", json!({})), 0.0),
+            (ev("SubagentStart", json!({})), 1.0),
+            (ev("SubagentStart", json!({})), 2.0),
+            (ev("SubagentStop", json!({})), 3.0),
+        ],
+        "claude",
+    );
     assert_eq!(only(&s).subagents, 1);
     assert_eq!(only(&step(&s, "claude", ev("StopFailure", json!({})), 4.0)).state, "error");
     assert!(step(&s, "claude", ev("SessionEnd", json!({})), 5.0).sessions.is_empty());
@@ -71,9 +92,19 @@ fn sets_a_codex_turn_stopped_by_hand_back_to_idle() {
 fn keeps_codex_apart_from_claude_and_ignores_junk() {
     let mut s = run(&[(ev("UserPromptSubmit", json!({})), 0.0)], "claude");
     s = step(&s, "codex", ev("UserPromptSubmit", json!({ "cwd": "/home/me/proj" })), 1.0);
-    assert_eq!(s.sessions.iter().map(|(_, x)| (x.agent.as_str(), x.project.as_str())).collect::<Vec<_>>(), [("claude", "InfoPanel.Dashboard"), ("codex", "proj")]);
+    assert_eq!(
+        s.sessions.iter().map(|(_, x)| (x.agent.as_str(), x.project.as_str())).collect::<Vec<_>>(),
+        [("claude", "InfoPanel.Dashboard"), ("codex", "proj")]
+    );
     assert!(reduce_agents(&s, "gemini", &ev("Stop", json!({})), 2.0).is_none());
-    for junk in [json!(null), json!(5), json!("x"), json!({ "hook_event_name": "Stop" }), json!({ "session_id": "s" }), json!({ "hook_event_name": 4, "session_id": "s" })] {
+    for junk in [
+        json!(null),
+        json!(5),
+        json!("x"),
+        json!({ "hook_event_name": "Stop" }),
+        json!({ "session_id": "s" }),
+        json!({ "hook_event_name": 4, "session_id": "s" }),
+    ] {
         assert!(reduce_agents(&s, "claude", &junk, 2.0).is_none(), "{junk}");
     }
 }
@@ -98,7 +129,14 @@ fn names_the_project_from_either_slash() {
 
 #[test]
 fn sends_the_kiosks_no_prompt_reply_tool_input_path_or_session_id() {
-    let s = run(&[(ev("UserPromptSubmit", json!({})), 0.0), (ev("PreToolUse", json!({ "tool_name": "Bash", "tool_input": { "command": "cat ~/.ssh/id_rsa" } })), 1.0), (ev("Stop", json!({ "last_assistant_message": "secret reply" })), 2.0)], "claude");
+    let s = run(
+        &[
+            (ev("UserPromptSubmit", json!({})), 0.0),
+            (ev("PreToolUse", json!({ "tool_name": "Bash", "tool_input": { "command": "cat ~/.ssh/id_rsa" } })), 1.0),
+            (ev("Stop", json!({ "last_assistant_message": "secret reply" })), 2.0),
+        ],
+        "claude",
+    );
     let public = public_agents(&s);
     let out = stringify(&public);
     for secret in ["secret", "ssh", "E:\\\\", "C:\\\\", "s1", "transcript"] {
@@ -136,14 +174,35 @@ fn live(state: &str, updated_at: Option<f64>) -> LiveSession {
 #[test]
 fn adds_a_live_session_without_hooks_and_follows_its_file() {
     let a = merge_claude_sessions(&fresh(), &[live("working", Some(500.0))], 1000.0).unwrap();
-    assert_eq!(a.sessions[0].1, Session { agent: "claude".into(), id: "f1".into(), project: "repo".into(), state: "working".into(), since: 500.0, turn_start: Some(500.0), tool: String::new(), subagents: 0, last_turn_ms: None, last_seen: 1000.0, hooked: false, context: None, cost: None, model: String::new() });
+    assert_eq!(
+        a.sessions[0].1,
+        Session {
+            agent: "claude".into(),
+            id: "f1".into(),
+            project: "repo".into(),
+            state: "working".into(),
+            since: 500.0,
+            turn_start: Some(500.0),
+            tool: String::new(),
+            subagents: 0,
+            last_turn_ms: None,
+            last_seen: 1000.0,
+            hooked: false,
+            context: None,
+            cost: None,
+            model: String::new()
+        }
+    );
     let idle = merge_claude_sessions(&fresh(), &[live("idle", None)], 1000.0).unwrap();
     assert_eq!((idle.sessions[0].1.since, idle.sessions[0].1.turn_start), (1000.0, None));
     assert!(merge_claude_sessions(&a, &[live("working", Some(500.0))], 1000.0).is_none());
     let later = merge_claude_sessions(&a, &[live("working", Some(500.0))], 2000.0).unwrap();
     assert_eq!((later.sessions[0].1.last_seen, later.sessions[0].1.since), (2000.0, 500.0));
     let waiting = merge_claude_sessions(&later, &[live("waiting", None)], 3000.0).unwrap();
-    assert_eq!((waiting.sessions[0].1.state.as_str(), waiting.sessions[0].1.since, waiting.sessions[0].1.turn_start), ("waiting", 3000.0, None));
+    assert_eq!(
+        (waiting.sessions[0].1.state.as_str(), waiting.sessions[0].1.since, waiting.sessions[0].1.turn_start),
+        ("waiting", 3000.0, None)
+    );
 }
 
 #[test]
@@ -181,7 +240,11 @@ fn statusline(s: &AgentsState, payload: Value, now: f64) -> AgentsState {
 #[test]
 fn reads_claudes_rate_limits_context_and_cost_from_the_statusline() {
     let s = run(&[(ev("UserPromptSubmit", json!({})), 0.0)], "claude");
-    let s = statusline(&s, json!({ "session_id": "s1", "model": { "display_name": "Opus" }, "rate_limits": { "five_hour": { "used_percentage": 82, "resets_at": 1_760_000_000 }, "seven_day": { "used_percentage": 40 } }, "context_window": { "used_percentage": 37 }, "cost": { "total_cost_usd": 1.25 } }), 9.0);
+    let s = statusline(
+        &s,
+        json!({ "session_id": "s1", "model": { "display_name": "Opus" }, "rate_limits": { "five_hour": { "used_percentage": 82, "resets_at": 1_760_000_000 }, "seven_day": { "used_percentage": 40 } }, "context_window": { "used_percentage": 37 }, "cost": { "total_cost_usd": 1.25 } }),
+        9.0,
+    );
     assert_eq!(stringify(&s.plan["claude"]), r#"{"fiveHour":{"used":82,"resetsAt":1760000000000},"sevenDay":{"used":40},"at":9}"#);
     let session = only(&s);
     assert_eq!((session.context, session.cost, session.model.as_str()), (Some(37.0), Some(1.25), "Opus"));
@@ -195,12 +258,23 @@ fn reads_claudes_rate_limits_context_and_cost_from_the_statusline() {
 
 #[test]
 fn reads_per_model_weekly_windows_and_the_claude_code_version() {
-    let mut s = statusline(&fresh(), json!({ "version": "2.1.220", "rate_limits": { "five_hour": { "used_percentage": 10 }, "seven_day_opus": { "used_percentage": 55, "resets_at": 1_760_000_000 }, "seven_day_sonnet": "junk", "seven_day_x": {}, "other": { "used_percentage": 5 } } }), 9.0);
-    assert_eq!(stringify(&s.plan["claude"]), r#"{"fiveHour":{"used":10},"extra":[{"name":"opus","used":55,"resetsAt":1760000000000}],"version":"2.1.220","at":9}"#);
-    assert!(!stringify(&statusline(&fresh(), json!({ "rate_limits": { "five_hour": { "used_percentage": 10 } } }), 1.0).plan["claude"]).contains("extra"));
+    let mut s = statusline(
+        &fresh(),
+        json!({ "version": "2.1.220", "rate_limits": { "five_hour": { "used_percentage": 10 }, "seven_day_opus": { "used_percentage": 55, "resets_at": 1_760_000_000 }, "seven_day_sonnet": "junk", "seven_day_x": {}, "other": { "used_percentage": 5 } } }),
+        9.0,
+    );
+    assert_eq!(
+        stringify(&s.plan["claude"]),
+        r#"{"fiveHour":{"used":10},"extra":[{"name":"opus","used":55,"resetsAt":1760000000000}],"version":"2.1.220","at":9}"#
+    );
+    assert!(!stringify(&statusline(&fresh(), json!({ "rate_limits": { "five_hour": { "used_percentage": 10 } } }), 1.0).plan["claude"])
+        .contains("extra"));
     // The version alone still updates, keeping the plan's time; a later payload without one keeps it.
     s = statusline(&s, json!({ "version": "2.1.221" }), 20.0);
-    assert_eq!((s.plan["claude"]["version"].as_str(), s.plan["claude"]["at"].as_i64(), s.plan["claude"]["fiveHour"]["used"].as_i64()), (Some("2.1.221"), Some(9), Some(10)));
+    assert_eq!(
+        (s.plan["claude"]["version"].as_str(), s.plan["claude"]["at"].as_i64(), s.plan["claude"]["fiveHour"]["used"].as_i64()),
+        (Some("2.1.221"), Some(9), Some(10))
+    );
     let s = statusline(&s, json!({ "rate_limits": { "five_hour": { "used_percentage": 11 } } }), 30.0);
     assert_eq!((s.plan["claude"]["version"].as_str(), s.plan["claude"]["at"].as_i64()), (Some("2.1.221"), Some(30)));
     assert_eq!(stringify(&statusline(&fresh(), json!({ "version": "2.1.220" }), 5.0).plan["claude"]), r#"{"version":"2.1.220","at":5}"#);
@@ -208,8 +282,15 @@ fn reads_per_model_weekly_windows_and_the_claude_code_version() {
 
 #[test]
 fn clamps_windows_and_reads_times_as_seconds_ms_or_iso() {
-    let s = statusline(&fresh(), json!({ "rate_limits": { "five_hour": { "used_percent": 250, "resets_at": "2026-10-15T10:00:00Z" }, "seven_day": { "used_percentage": -5, "resets_at": 1_760_000_000_000_i64 }, "seven_day_a": { "used_percentage": "5" } } }), 1.0);
-    assert_eq!(stringify(&s.plan["claude"]), r#"{"fiveHour":{"used":100,"resetsAt":1792058400000},"sevenDay":{"used":0,"resetsAt":1760000000000},"at":1}"#);
+    let s = statusline(
+        &fresh(),
+        json!({ "rate_limits": { "five_hour": { "used_percent": 250, "resets_at": "2026-10-15T10:00:00Z" }, "seven_day": { "used_percentage": -5, "resets_at": 1_760_000_000_000_i64 }, "seven_day_a": { "used_percentage": "5" } } }),
+        1.0,
+    );
+    assert_eq!(
+        stringify(&s.plan["claude"]),
+        r#"{"fiveHour":{"used":100,"resetsAt":1792058400000},"sevenDay":{"used":0,"resetsAt":1760000000000},"at":1}"#
+    );
 }
 
 #[test]
@@ -261,8 +342,16 @@ fn stamps_codexs_plan_with_when_codex_reported_it() {
     std::fs::create_dir_all(rollout.parent().unwrap()).unwrap();
     let line = json!({ "timestamp": "2026-10-15T10:00:00Z", "type": "event_msg", "payload": { "type": "token_count", "info": null, "rate_limits": { "primary": { "used_percent": 9, "window_minutes": 300 } } } });
     std::fs::write(&rollout, format!("{line}\n")).unwrap();
-    let usage = Arc::new(AgentUsage::with(home.path(), Box::new(|| 1_792_058_400_000.0), crate::ical::LocalZone::System, crate::agent_usage::CHUNK));
+    let usage = Arc::new(AgentUsage::with(
+        home.path(),
+        Box::new(|| 1_792_058_400_000.0),
+        crate::ical::LocalZone::System,
+        crate::agent_usage::CHUNK,
+    ));
     usage.scan();
-    let agents = Agents::new(Sources { usage, claude_sessions: Box::new(Vec::new), now: Box::new(|| 1_792_058_400_000.0 + 9000.0) }, Duration::from_millis(1));
+    let agents = Agents::new(
+        Sources { usage, claude_sessions: Box::new(Vec::new), now: Box::new(|| 1_792_058_400_000.0 + 9000.0) },
+        Duration::from_millis(1),
+    );
     assert_eq!(stringify(&agents.state()["plan"]["codex"]), r#"{"fiveHour":{"used":9},"at":1792058400000}"#);
 }

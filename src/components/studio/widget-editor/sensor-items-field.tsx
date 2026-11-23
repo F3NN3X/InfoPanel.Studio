@@ -9,7 +9,7 @@ const NUMBERS = [
   ["crit", "Crit"],
 ] as const;
 
-const cell = `${FIELD} h-[26px] w-full min-w-0 px-1.5 font-ui-mono text-micro`;
+const cell = `${FIELD} h-6.5 w-full min-w-0 px-1.5 font-ui-mono text-micro`;
 
 /**
  * One bound sensor's overrides (a sensor list's tune panel): a label and max / warn / crit /
@@ -38,7 +38,7 @@ export function SensorOverride({
           placeholder={name}
           value={own.label ?? ""}
           onChange={(e) => set("label", e.target.value || undefined)}
-          className={`${FIELD} h-[26px] min-w-0 flex-1`}
+          className={`${FIELD} h-6.5 min-w-0 flex-1`}
         />
         <button
           type="button"

@@ -44,14 +44,14 @@ export function GroupSummary({
   const noteLook = note ? NOTE_ICON[note.health] : null;
   return (
     <div className="flex h-full w-full flex-col gap-4 overflow-y-auto bg-ui-panel p-4 font-ui text-ui-2">
-      <div className="flex flex-col gap-[3px]">
+      <div className="flex flex-col gap-0.75">
         <span className="text-lead font-medium text-ui-1">{title}</span>
         <span className="text-micro text-ui-4">{sub}</span>
       </div>
 
       {note && noteLook && (
-        <div className={cn("flex items-start gap-[9px] rounded-lg px-3 py-2.5", noteLook.bg)}>
-          <noteLook.icon className={cn("h-[17px] w-[17px] shrink-0", noteLook.tone)} aria-hidden />
+        <div className={cn("flex items-start gap-2.25 rounded-lg px-3 py-2.5", noteLook.bg)}>
+          <noteLook.icon className={cn("h-4.25 w-4.25 shrink-0", noteLook.tone)} aria-hidden />
           <span className="flex-1 text-caption leading-[1.45] text-ui-strong-text">{note.text}</span>
         </div>
       )}

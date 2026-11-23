@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { useFound, useStore } from "../store";
 import type { WidgetKey } from "../types";
-import { Button, Card, Group } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Group } from "../ui";
 
 /** What each state says beside a key. */
 const STATES: Record<WidgetKey["state"], { label: string; className: string }> = {
@@ -26,11 +27,11 @@ const FIELD = "h-(--ui-h-field) w-full rounded-lg border border-s-input-line bg-
 function KeyRow({ item, busy, onRemove, onRestore }: { item: WidgetKey; busy: boolean; onRemove: () => void; onRestore: () => void }) {
   const state = STATES[item.state];
   return (
-    <div className="flex flex-wrap items-center gap-3 px-[18px] py-3.5" data-key={item.id}>
+    <div className="flex flex-wrap items-center gap-3 px-4.5 py-3.5" data-key={item.id}>
       <div className="grid h-9 w-9 shrink-0 place-items-center rounded-ui-menu bg-s-hover text-s-t2">
-        <KeyRound className="h-[18px] w-[18px]" />
+        <KeyRound className="h-4.5 w-4.5" />
       </div>
-      <div className="flex min-w-48 flex-1 flex-col gap-[3px]">
+      <div className="flex min-w-48 flex-1 flex-col gap-0.75">
         <span className="text-body font-medium">{item.name}</span>
         <span className="text-caption text-s-muted">{KINDS[item.kind]}</span>
         <span className="font-mono text-caption text-s-t3">{item.fingerprint ? `Key ID ${item.fingerprint}` : "No key"}</span>
@@ -38,7 +39,7 @@ function KeyRow({ item, busy, onRemove, onRestore }: { item: WidgetKey; busy: bo
       </div>
       <span className={cn("rounded-ui-lg px-2 py-0.5 text-caption", state.className)}>{state.label}</span>
       {item.state === "trusted" && (
-        <Button kind="danger" disabled={busy} onClick={onRemove}>
+        <Button variant="danger" disabled={busy} onClick={onRemove}>
           <Trash2 className="h-4 w-4" />
           Remove key
         </Button>
@@ -120,11 +121,11 @@ export function PublishersSection() {
       </Group>
       <Group title="Keys you trust">
         <Card>
-          {yours.length ? yours.map(row) : <p className="m-0 px-[18px] py-3.5 text-caption text-s-muted">None yet.</p>}
+          {yours.length ? yours.map(row) : <p className="m-0 px-4.5 py-3.5 text-caption text-s-muted">None yet.</p>}
         </Card>
       </Group>
       <Group title="Add a key">
-        <div ref={found.ref} className={cn("flex flex-col gap-3 rounded-xl border border-s-card-line bg-s-card px-[18px] py-4", found.className)}>
+        <div ref={found.ref} className={cn("flex flex-col gap-3 rounded-xl border border-s-card-line bg-s-card px-4.5 py-4", found.className)}>
           <label className="flex flex-col gap-1.5 text-caption text-s-t2">
             Name
             <input value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="Who the key belongs to" className={FIELD} />
@@ -149,7 +150,7 @@ export function PublishersSection() {
             />
           </label>
           <div className="flex">
-            <Button kind="accent" disabled={busy || !name.trim() || !key.trim() || !publisherNames(publishers).length} onClick={() => void add()}>
+            <Button variant="primary" disabled={busy || !name.trim() || !key.trim() || !publisherNames(publishers).length} onClick={() => void add()}>
               <Plus className="h-4 w-4" />
               Add key
             </Button>

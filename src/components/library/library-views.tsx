@@ -74,7 +74,7 @@ export function LibrarySidebar({ active, counts, onPick, onOpenTheme }: { active
     ["Library", "By type"],
   ] as const;
   return (
-    <nav aria-label="Collections" className="flex w-[216px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-panel px-2 py-3.5 font-ui max-sm:w-full max-sm:flex-row max-sm:gap-1.5 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:border-b max-sm:border-r-0 max-sm:py-2 max-sm:[scrollbar-width:none]">
+    <nav aria-label="Collections" className="flex w-54 shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-panel px-2 py-3.5 font-ui max-sm:w-full max-sm:flex-row max-sm:gap-1.5 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:border-b max-sm:border-r-0 max-sm:py-2 max-sm:[scrollbar-width:none]">
       {sections.map(([s, title]) => (
         <div key={s} className="max-sm:flex max-sm:gap-1.5">
           <div className="px-2 pb-1.5 text-caption font-medium text-ui-4 max-sm:hidden">{title}</div>
@@ -87,7 +87,7 @@ export function LibrarySidebar({ active, counts, onPick, onOpenTheme }: { active
                 aria-current={active === c.id ? "page" : undefined}
                 onClick={() => onPick(c.id)}
                 className={cn(
-                  "flex h-[30px] w-full items-center gap-2.5 rounded-ui-md px-2 text-left text-body text-ui-2 hover:bg-ui-hover max-sm:h-9 max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap",
+                  "flex h-7.5 w-full items-center gap-2.5 rounded-ui-md px-2 text-left text-body text-ui-2 hover:bg-ui-hover max-sm:h-9 max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap",
                   c.parent && "pl-7 max-sm:pl-2",
                   active === c.id && "bg-ui-active text-ui-1 hover:bg-ui-active",
                 )}
@@ -103,7 +103,7 @@ export function LibrarySidebar({ active, counts, onPick, onOpenTheme }: { active
       <button
         type="button"
         onClick={onOpenTheme}
-        className="flex min-h-[30px] w-full items-center gap-2.5 rounded-ui-md px-2 py-1 text-left text-body text-ui-3 hover:bg-ui-hover hover:text-ui-1 max-sm:h-9 max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap"
+        className="flex min-h-7.5 w-full items-center gap-2.5 rounded-ui-md px-2 py-1 text-left text-body text-ui-3 hover:bg-ui-hover hover:text-ui-1 max-sm:h-9 max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap"
       >
         <Palette className="h-4 w-4 shrink-0 text-ui-4" strokeWidth={1.75} />
         <span className="min-w-0 flex-1">Themes, saved themes and colors are in Theme →</span>
@@ -202,7 +202,7 @@ export function LibraryCard({ item, index, selected, checked, selectMode, onSele
         {flag && (
           <span
             className={cn(
-              "absolute right-1.5 top-1.5 rounded-[4px] px-1.5 py-px text-micro font-medium",
+              "absolute right-1.5 top-1.5 rounded-4 px-1.5 py-px text-micro font-medium",
               flag === "Duplicate" ? "bg-ui-warn text-black" : "bg-ui-warn-tint text-ui-warn",
             )}
           >
@@ -210,7 +210,7 @@ export function LibraryCard({ item, index, selected, checked, selectMode, onSele
           </span>
         )}
         {isOlderItem(item) && (
-          <span title="Saved by an older version: open it to update" className="absolute bottom-1.5 left-1.5 rounded-[4px] bg-ui-warn-tint px-1.5 py-px text-micro font-medium text-ui-warn">
+          <span title="Saved by an older version: open it to update" className="absolute bottom-1.5 left-1.5 rounded-4 bg-ui-warn-tint px-1.5 py-px text-micro font-medium text-ui-warn">
             Older version
           </span>
         )}
@@ -220,7 +220,7 @@ export function LibraryCard({ item, index, selected, checked, selectMode, onSele
           <span className="min-w-0 flex-1 truncate text-body font-medium text-ui-1">{item.name}</span>
           <span
             className={cn(
-              "shrink-0 rounded-[4px] border border-ui-default px-1.5 py-px text-nano",
+              "shrink-0 rounded-4 border border-ui-default px-1.5 py-px text-nano",
               tag.builtin ? "text-ui-4" : "text-ui-accent-text",
             )}
           >
@@ -247,7 +247,7 @@ export function UploadTile({ onFiles, wide }: { onFiles: (files: File[]) => void
       onClick={() => input.current?.click()}
       className={cn(
         "flex flex-col items-center justify-center gap-2 rounded-ui-lg border border-dashed border-ui-strong bg-transparent p-4 text-center text-ui-3 hover:border-ui-accent hover:text-ui-1",
-        wide ? "col-span-full min-h-[220px]" : "min-h-[180px]",
+        wide ? "col-span-full min-h-55" : "min-h-45",
       )}
     >
       <ImagePlus className="h-6 w-6" strokeWidth={1.5} />
@@ -314,7 +314,7 @@ export function GridView(p: GridViewProps) {
   const cleanup = p.showCleanup && c.duplicates + c.unused + c.large > 0;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="sticky top-0 z-10 flex min-h-[52px] shrink-0 flex-wrap items-center gap-2 border-b border-ui-subtle bg-ui-app/95 px-5 py-2 backdrop-blur">
+      <div className="sticky top-0 z-10 flex min-h-13 shrink-0 flex-wrap items-center gap-2 border-b border-ui-subtle bg-ui-app/95 px-5 py-2 backdrop-blur">
         <h2 className="text-head font-medium text-ui-1">{p.title}</h2>
         <span className="mr-2 tabular-nums text-micro text-ui-4">{p.items.length} items</span>
         {p.tags.map((t) => (
@@ -324,7 +324,7 @@ export function GridView(p: GridViewProps) {
             aria-pressed={p.tag === t}
             onClick={() => p.onTag(p.tag === t ? null : t)}
             className={cn(
-              "h-[26px] rounded-full border border-ui-default px-2.5 text-caption text-ui-2 hover:border-ui-strong",
+              "h-6.5 rounded-full border border-ui-default px-2.5 text-caption text-ui-2 hover:border-ui-strong",
               p.tag === t && "border-ui-accent bg-ui-accent/15 text-ui-1",
             )}
           >
@@ -501,7 +501,7 @@ export function ShelvesView(p: ShelvesViewProps) {
                 onMenu={p.onMenu && ((x, y) => p.onMenu?.(item, x, y))}
                 onRemove={p.onRemove && (() => p.onRemove?.(item))}
                   reason={s.id === "suggested" ? p.index.suggested.find((x) => x.item.id === item.id)?.reason : undefined}
-                  className="w-[196px] shrink-0"
+                  className="w-49 shrink-0"
                 />
               ))}
             </div>

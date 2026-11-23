@@ -69,7 +69,7 @@ function Current(p: WeatherProps) {
   const tag = useIpTag();
   // The InfoPanel conversion's tags: a reading's key, in °C only (InfoPanel shows the plugin's own unit).
   const at = (s: string, extra?: { unit?: string; decimals?: number }) => tag(F && s.includes("temp") ? undefined : `${base}.${s}`, extra);
-  const T = (c: number) => (F ? (c * 9) / 5 + 32 : c);
+  const toUnitOf = (c: number) => (F ? (c * 9) / 5 + 32 : c);
   const temp = num(k("temp")),
     feels = num(k("feels_like"));
   const fc = rows(k("forecast")).map(([date, cond, range, rain, wind]) => {
@@ -93,8 +93,8 @@ function Current(p: WeatherProps) {
   const tint = p.tint ? conditionTint(k("weather_desc")) : undefined;
   // over the wash, muted and faint text are the card's own text colour at 90% / 85%: 4.5:1 on every condition tint (snow is the brightest)
   const washText = tint ? { "--w-muted": "color-mix(in srgb, var(--w-fg) 90%, transparent)", "--w-faint": "color-mix(in srgb, var(--w-fg) 85%, transparent)" } : null;
-  const feelsText = showFeels ? ` · feels ${fmt(T(feels), 0)}°` : "";
-  const feelsLine = showFeels ? `feels like ${fmt(T(feels), 0)}°` : "";
+  const feelsText = showFeels ? ` · feels ${fmt(toUnitOf(feels), 0)}°` : "";
+  const feelsLine = showFeels ? `feels like ${fmt(toUnitOf(feels), 0)}°` : "";
   return (
     <Widget
       {...shell(p)}
@@ -110,7 +110,7 @@ function Current(p: WeatherProps) {
       icon="location_on"
       compact={(box) => ({
         label: has(k("name")) ? k("name") : "Weather",
-        value: `${fmt(T(temp), 0)}°`,
+        value: `${fmt(toUnitOf(temp), 0)}°`,
         sub: `${k("weather_desc")}${feelsText}`,
         icon,
         kind: "value",
@@ -121,10 +121,10 @@ function Current(p: WeatherProps) {
     >
       {({ size, w, h }) => {
         const shown = Math.max(1, Math.min(7, Math.round(p.days ?? (size === "lg" ? 7 : 5))));
-        if (p.view === "glance") return <WeatherGlance cond={cond} temp={`${fmt(T(temp), 0)}°`} desc={String(k("weather_desc"))} place={place} w={w} h={h} icons={icons} />;
+        if (p.view === "glance") return <WeatherGlance cond={cond} temp={`${fmt(toUnitOf(temp), 0)}°`} desc={String(k("weather_desc"))} place={place} w={w} h={h} icons={icons} />;
         if (p.view === "week") {
           const days = weekDays(fc.map((f) => ({ date: f.date, cond: weatherKind("", f.cond), hi: f.hi, lo: f.lo })), { cond, temp }, new Date()).slice(0, shown);
-          return <WeatherWeek days={days} place={place} w={w} h={h} icons={icons} fmtTemp={(c) => `${fmt(T(c), 0)}°`} />;
+          return <WeatherWeek days={days} place={place} w={w} h={h} icons={icons} fmtTemp={(c) => `${fmt(toUnitOf(c), 0)}°`} />;
         }
         // roomy (4x4): the glance view's proportions, and the stats move to a row of their own under the now block
         const big = roomy(w, h) && size !== "xs" && size !== "sm";
@@ -132,11 +132,11 @@ function Current(p: WeatherProps) {
           <div className={`flex min-w-0 items-center ${big ? "gap-5" : "gap-3"}`}>
             <WeatherGlyph {...cond} {...icons} fill size={big ? 96 : undefined} className={`${big ? "text-[96px]" : { xs: "text-3xl", sm: "text-5xl", md: "text-6xl", lg: "text-7xl" }[size]} shrink-0 text-[color:var(--w-accent)]`} />
             <div className="flex min-w-0 flex-col">
-              <Num ip={at("temp", { unit: "°", decimals: 0 })} className={`${big ? "text-[88px]" : { xs: "text-2xl", sm: "text-4xl", md: "text-5xl", lg: "text-6xl" }[size]} font-semibold leading-none tracking-tight`}>{fmt(T(temp), 0)}°</Num>
+              <Num ip={at("temp", { unit: "°", decimals: 0 })} className={`${big ? "text-[88px]" : { xs: "text-2xl", sm: "text-4xl", md: "text-5xl", lg: "text-6xl" }[size]} font-semibold leading-none tracking-tight`}>{fmt(toUnitOf(temp), 0)}°</Num>
               {size !== "xs" && (
                 <>
-                  <span {...at("weather_desc")} className={`mt-1 truncate ${big ? "text-[16px]" : "text-xs"} text-[color:var(--w-muted)]`}>{k("weather_desc")}</span>
-                  {feelsLine && <span className={`truncate ${big ? "text-[16px]" : "text-xs"} text-[color:var(--w-muted)] first-letter:uppercase`}>{feelsLine}</span>}
+                  <span {...at("weather_desc")} className={`mt-1 truncate ${big ? "text-head" : "text-xs"} text-[color:var(--w-muted)]`}>{k("weather_desc")}</span>
+                  {feelsLine && <span className={`truncate ${big ? "text-head" : "text-xs"} text-[color:var(--w-muted)] first-letter:uppercase`}>{feelsLine}</span>}
                 </>
               )}
             </div>
@@ -189,13 +189,13 @@ function Current(p: WeatherProps) {
                   <div key={i} className={`flex flex-col items-center ${tight ? "gap-1" : "gap-1.5"}`} title={`${f.cond} · ${f.rain} mm · ${f.wind}`}>
                     <span className="whitespace-nowrap text-micro text-[color:var(--w-muted)]">{f.date}</span>
                     <WeatherGlyph {...weatherKind("", f.cond)} {...icons} className="text-xl text-[color:var(--w-fg)]" />
-                    <span className="text-xs font-semibold tabular-nums">{fmt(T(f.hi), 0)}°</span>
+                    <span className="text-xs font-semibold tabular-nums">{fmt(toUnitOf(f.hi), 0)}°</span>
                     {bar && (
                       <div className="relative h-10 w-1 rounded-full bg-[color:var(--w-track)]">
                         <div className="absolute inset-x-0 rounded-full" style={{ background: "var(--w-accent)", bottom: `${((f.lo - lo) / (hi - lo || 1)) * 100}%`, top: `${100 - ((f.hi - lo) / (hi - lo || 1)) * 100}%` }} />
                       </div>
                     )}
-                    {showLo && <span className="text-micro tabular-nums text-[color:var(--w-muted)]">{fmt(T(f.lo), 0)}°</span>}
+                    {showLo && <span className="text-micro tabular-nums text-[color:var(--w-muted)]">{fmt(toUnitOf(f.lo), 0)}°</span>}
                     {showRain && f.rain > 0 && <span className="whitespace-nowrap text-micro tabular-nums text-sky-300">{`${f.rain} mm`}</span>}
                   </div>
                 ))}

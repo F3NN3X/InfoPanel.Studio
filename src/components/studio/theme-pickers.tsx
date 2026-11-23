@@ -118,7 +118,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
             <span
               aria-hidden
               className={cn(
-                "flex h-4 w-4 items-center justify-center rounded-[4px] border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ui-accent",
+                "flex h-4 w-4 items-center justify-center rounded-4 border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ui-accent",
                 keep ? "border-ui-blue bg-ui-blue text-white" : "border-ui-hover-edge"
               )}
             >

@@ -465,7 +465,7 @@ function Activity({ activity, config, pending = 0, accent }: { activity: IslandA
       </div>
       <Badge pending={pending} accent={accent} />
       {activity.progress !== undefined && (
-        <span className="absolute inset-x-[1.2em] bottom-[0.18em] h-[2px] overflow-hidden rounded-full bg-current/15" aria-hidden>
+        <span className="absolute inset-x-[1.2em] bottom-[0.18em] h-0.5 overflow-hidden rounded-full bg-current/15" aria-hidden>
           <span className="block h-full" style={{ width: `${Math.round(activity.progress * 100)}%`, background: "var(--island-skin-accent, color-mix(in srgb, currentColor 70%, transparent))" }} />
         </span>
       )}

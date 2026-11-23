@@ -12,7 +12,7 @@ import { unionBox, type LayerAction } from "@/lib/page-model/layer-actions";
 import { PlaceRow } from "./place-row";
 
 const ACTION =
-  "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-body font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40";
+  "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-7 border border-ui-strong bg-ui-raised px-3 text-body font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40";
 
 /** "1 widget, 2 items, 1 element" from the counts, or "empty". */
 export function contentsLine(n: { widget: number; item: number; element: number }): string {
@@ -86,7 +86,7 @@ export function GroupInspectorView({ name, contents, hidden, locked, place, onTo
   return (
     <div className="flex flex-col font-ui">
       <div className="flex items-center gap-2.5 border-b border-ui-subtle px-3.5 py-3">
-        <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-ui-hover text-ui-3">
+        <span className="grid h-7.5 w-7.5 shrink-0 place-items-center rounded-lg bg-ui-hover text-ui-3">
           <Folder className="h-4 w-4" />
         </span>
         <span className="flex min-w-0 flex-1 flex-col">

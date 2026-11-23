@@ -1,0 +1,29 @@
+# Weekly dependency PRs, grouped so one framework moves in one PR. Each PR runs ci.yml like any other change; the merge
+# gate is still the local verify that `npm run ship` posts.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      react: { patterns: ["react", "react-dom", "@types/react", "@types/react-dom"] }
+      tailwind: { patterns: ["tailwindcss", "@tailwindcss/*"] }
+      tauri-js: { patterns: ["@tauri-apps/*"] }
+      dev-minor: { dependency-type: development, update-types: [minor, patch] }
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      tauri: { patterns: ["tauri", "tauri-*"] }
+      rust-minor: { update-types: [minor, patch] }
+  # Bumps the SHA pins and their `# vX.Y.Z` comments, in the workflows and the composite actions.
+  # dtolnay/rust-toolchain is pinned to its `stable` branch, which has no releases to move to.
+  - package-ecosystem: github-actions
+    directories: ["/", "/.github/actions/*"]
+    schedule: { interval: monthly }
+    ignore:
+      - dependency-name: dtolnay/rust-toolchain
+    groups:
+      actions: { patterns: ["*"] }

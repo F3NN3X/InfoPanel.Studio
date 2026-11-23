@@ -1,0 +1,99 @@
+/* Phase 2 sample derived from CyberSpec (MIT, agnelnieves/cyberspec). Selectors generic; every declaration passes the proposed Phase 2 rules. */
+.sample-1::before {
+  content: "";
+  width: 12px;
+  height: 2px;
+}
+.sample-2::after {
+  content: "// ";
+}
+.sample-3 {
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+.sample-4::after {
+  content: "";
+  inset: 0;
+}
+.sample-5 {
+  clip-path: none;
+}
+.sample-6::after {
+  content: "";
+  inset: 0;
+}
+.sample-7::before {
+  content: "";
+  inset: 0;
+}
+.sample-8 {
+  clip-path: inset(50%);
+}
+.sample-9::before {
+  content: "";
+  height: 2px;
+}
+.sample-10::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+.sample-11::before {
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+.sample-12 {
+  clip-path: none;
+}
+.sample-13 {
+  outline-offset: -2px;
+}
+.sample-14 {
+  outline-offset: -4px;
+}
+.sample-15::before {
+  content: "";
+}
+.sample-16::after {
+  content: "";
+}
+.sample-17::before {
+  content: "";
+}
+.sample-18 {
+  clip-path: polygon(0 52%, 15% 37%, 38% 60%, 85% 10%, 100% 25%, 38% 90%);
+}
+.sample-19 {
+  clip-path: inset(4px 0);
+}
+.sample-20 {
+  clip-path: inset(50%);
+}
+.sample-21::before {
+  width: 8px;
+}
+.sample-22::after {
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+.sample-23 {
+  border-image: linear-gradient(transparent, transparent) 1;
+}
+.sample-24 {
+  mask-image: none;
+}
+.sample-25::before {
+  transform: translateY(-100%);
+}
+.sample-26 {
+  mask-image: none;
+}
+.sample-27 {
+  mask-image: none;
+}
+.sample-28 {
+  mask-image: none;
+}
+.sample-vars {
+  --pack-edge: #0ff;
+  --pack-cut: 12px;
+  border-image-source: linear-gradient(var(--pack-edge), var(--pack-edge));
+}

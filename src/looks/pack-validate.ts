@@ -17,16 +17,19 @@ import { PACK_FONT_FAMILIES } from "./pack-fonts";
 import { resolveT1, type Look, type T1Name, T1_NAMES } from "./look";
 import lookSchema from "./look.schema.json";
 import { MAX_LAYERS, NUMERAL_MIN, numeralIssues, stageIssues } from "./pack-checks";
+import { FLASH_MAX, FRAME_SIZE_MAX, FRAME_STROKE_MAX, FX_KINDS, ORNAMENT_MAX, ORNAMENT_TEXT_MAX, ORNAMENTS_MAX, TEXT_ORNAMENTS, type PackJson } from "./pack-json";
 import { commaParts, lintPackCss, OPACITY_FLOOR } from "./pack-css";
 import { INJECTION, jsonShapeIssues, jsonStrings, PROSE_PATHS, rasterMatches, STYLE_BREAKERS, svgIssue, svgPaints, TOKEN_KEY, withoutAliases } from "./pack-safety";
 import packSchema from "./pack.schema.json";
-import { cssUrls, isPackRelativeUrl, packCssIssues } from "./pack-urls";
+import { cssUrls, isPackRelativeUrl, packCssIssues, packPath } from "./pack-urls";
 import { schemaErrors } from "./schema-check";
 import { userCssIssues } from "./user-css";
-import { type Colour, flatOver, over, parseColour } from "./colour";
+import { type Colour, flatOver, isOklch, over, parseColour } from "./colour";
 import { contrastOf } from "./status";
 
 export { parseColour };
+/** A colour the pack's own CSS, a T3 literal or an SVG writes is read as a literal only: `oklch()` is a T1/T0 token (written as its clamped hex), and here it would be drawn as the browser maps it, not as checked. */
+const parseLiteral = (value: string): Colour | undefined => (isOklch(value) ? undefined : parseColour(value));
 import { T3_TOKENS } from "./t3";
 
 export interface PackFile {
@@ -70,14 +73,16 @@ export interface PackIssue {
 export const BUILTIN_FONT_FAMILIES: ReadonlySet<string> = new Set(PACK_FONT_FAMILIES);
 
 /** The size cap of a pack folder: `packCeilingBytes` of the `packs` block in tools/perf/budgets.json (a test pins them equal). */
-export const PACK_CEILING_BYTES = 512_000;
+export const PACK_CEILING_BYTES = 1_024_000;
 /** An ornament is at most this many px and stays inside the card's padding (spec 03, rules for every slot). */
-export const ORNAMENT_MAX = 10;
+export { ORNAMENT_MAX } from "./pack-json";
 /** A pack folder holds at most this many files, and no file is over `FILE_MAX_BYTES`. */
 export const FILE_COUNT_MAX = 64;
 export const FILE_MAX_BYTES = 256_000;
+/** At most this many effects animate at the `full` FX level. */
+export const MAX_ANIMATED = 2;
 /** A chamfer cuts at most this many px (twice the smallest card padding). */
-export const CHAMFER_MAX = 20;
+export const CHAMFER_MAX = FRAME_SIZE_MAX;
 /** Body text, muted text and status text hold this on the card (D13); gradient numerals hold 3:1 (`NUMERAL_MIN`). */
 export const TEXT_MIN = 4.5;
 /** A layer this bright (relative luminance, times its opacity) is not `static-safe` on an always-on panel. */
@@ -179,7 +184,7 @@ function cssRule(message: string): string {
   if (prop) return ROTATION.test(prop) ? "no-rotation" : "paint-only";
   if (/reaches over|recolours|is over \d+ px|repeats runs/.test(message)) return "paint-cap";
   if (/hides or blurs|opacity|stroke-width/.test(message)) return "hides-content";
-  if (message.includes("reaches outside")) return "selector";
+  if (message.includes("reaches outside") || message.includes("names a pseudo-element")) return "selector";
   if (message.includes("must start with pack-")) return "font-face";
   if (message.includes("nested too deep")) return "css-syntax";
   if (/^(at-rule|keyframe|@keyframes)/.test(message)) return "paint-only";
@@ -249,7 +254,7 @@ function hiddenPaintIssues(css: string, cards: string[], texts: string[]): PackI
         if (Number.isFinite(a)) opacity *= Math.min(1, a);
       }
       if (name === "color" || name === "-webkit-text-fill-color") {
-        const c = parseColour(v);
+        const c = parseLiteral(v);
         if (KEEP.test(v)) continue;
         if (!c) out.push(issue("hidden-text", "pack.css", `${name} ${v} cannot be read as a colour: use #rgb, #rrggbb, rgb() or hsl()`));
         else if (c.alpha < OPACITY_FLOOR) out.push(issue("hidden-text", "pack.css", `${name} ${v} is transparent text`));
@@ -259,7 +264,7 @@ function hiddenPaintIssues(css: string, cards: string[], texts: string[]): PackI
         }
       }
       if (name === "fill" || name === "stroke") {
-        const c = parseColour(v);
+        const c = parseLiteral(v);
         if (KEEP.test(v) || /^url\(/i.test(v)) continue;
         if (/^none$/i.test(v)) out.push(issue("hidden-gauge", "pack.css", `${name}: ${v} on ${where} paints a gauge, mark, text or icon away`));
         else if (!c) out.push(issue("hidden-gauge", "pack.css", `${name} ${v} cannot be read as a colour: use #rgb, #rrggbb, rgb() or hsl()`));
@@ -267,7 +272,7 @@ function hiddenPaintIssues(css: string, cards: string[], texts: string[]): PackI
         else if (c.hex && cards.some((card) => (contrastOf(c.hex!, card) ?? 99) < SAME_AS_CARD)) out.push(issue("hidden-gauge", "pack.css", `${name} ${v} on ${where} is the colour of the card it is on`));
       }
       if (BG.test(name) && !KEEP.test(v) && !/^none$/i.test(v)) {
-        const c = parseColour(v);
+        const c = parseLiteral(v);
         if (!c && !/url\(|gradient\(/i.test(v)) out.push(issue("hidden-text", "pack.css", `${name} ${v} cannot be read as a colour: use #rgb, #rrggbb, rgb() or hsl()`));
         else if (c?.hex && c.alpha >= OPACITY_FLOOR && !ownText) {
           const hidden = texts.find((t) => (contrastOf(c.hex!, t) ?? 99) < HIDDEN_TEXT_MIN);
@@ -411,7 +416,7 @@ function t3Issues(look: Look, t1: Record<T1Name, string>, mode: string, cards: s
     }
     // `none` is Classic's focus-outline: no ring beyond the browser's own, and no colour to read
     const colour = (TEXT_T3.has(name) || MARK_T3.has(name) || OTHER_COLOUR_T3.has(name)) && !(name === "focus-outline" && v === "none");
-    if (colour && v !== "" && !ALIAS.test(v) && !parseColour(v) && !/^var\(--w-[\w-]+\)$/.test(v)) bad("t3", `t3 ${name} ${v} cannot be read as a colour: use #rgb, #rrggbb, rgb(), hsl() or an alias`);
+    if (colour && v !== "" && !ALIAS.test(v) && !parseLiteral(v) && !/^var\(--w-[\w-]+\)$/.test(v)) bad("t3", `t3 ${name} ${v} cannot be read as a colour: use #rgb, #rrggbb, rgb(), hsl() or an alias`);
     else if (!colour && !SIMPLE.test(v) && !CUBIC.test(v)) bad("t3", `t3 ${name} ${v.slice(0, 40)} is not a plain value`);
     if (MOTION.has(name)) {
       const m = /^(\d+(?:\.\d+)?)(ms|s)$/.exec(v);
@@ -519,7 +524,7 @@ function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: 
   const issues: PackIssue[] = [];
   const cards: string[] = [];
   const texts: string[] = [];
-  for (const [k, v] of Object.entries(look.t0 ?? {})) if (!colourOrAlias(v)) issues.push(issue("colour", "look.json", `t0 ${k} ${v.slice(0, 40)} must be #rgb, #rrggbb, rgb(), hsl() or an alias`));
+  for (const [k, v] of Object.entries(look.t0 ?? {})) if (!colourOrAlias(v)) issues.push(issue("colour", "look.json", `t0 ${k} ${v.slice(0, 40)} must be #rgb, #rrggbb, rgb(), hsl(), oklch() or an alias`));
   if (!RADIUS.test(look.radius) || parseFloat(look.radius) * (look.radius.endsWith("px") ? 1 : 16) > 64) issues.push(issue("colour", "look.json", `radius ${look.radius}: a length up to 64 px`));
   for (const mode of look.modes.supported) {
     let t1: Record<string, string>;
@@ -529,7 +534,7 @@ function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: 
       issues.push(issue("schema", "look.json", `${mode}: ${(e as Error).message}`));
       continue;
     }
-    for (const name of T1_NAMES) if (!(TEXT_PAIRS as readonly string[]).includes(name) && name !== "surface" && !parseColour(t1[name])) issues.push(issue("colour", "look.json", `${mode} ${name} ${t1[name].slice(0, 40)} must be #rgb, #rrggbb, rgb() or hsl()`));
+    for (const name of T1_NAMES) if (!(TEXT_PAIRS as readonly string[]).includes(name) && name !== "surface" && !parseColour(t1[name])) issues.push(issue("colour", "look.json", `${mode} ${name} ${t1[name].slice(0, 40)} must be #rgb, #rrggbb, rgb(), hsl() or oklch()`));
     // L93: the chrome (the island's pill, the alert cards) takes the surface verbatim, so it is a literal and opaque
     const surface = parseColour(t1.surface);
     if (!surface?.hex || surface.alpha < 1 || !/^#([\da-f]{3}|[\da-f]{6})$/i.test(t1.surface)) issues.push(issue("chrome-surface", "look.json", `${mode} surface ${t1.surface} must be an opaque #rgb or #rrggbb: the chrome and the contrast check read it as written`));
@@ -557,16 +562,6 @@ function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: 
 
 // ---- the folder -------------------------------------------------------------------------------------------------------
 
-type Pack = {
-  id: string;
-  modes: string[];
-  fonts: { family: string; file: string; weight: string; licence: string }[];
-  stage: Parameters<typeof stageIssues>[0] & object;
-  burnIn: string;
-  assets?: { file: string; bytes: number }[];
-  ornament?: { size: number; bleed?: boolean };
-  edge?: { kind: string; cut?: number };
-};
 
 /** What is wrong with a pack, one issue each, errors before warnings (empty: it may load). A crash inside a rule is an issue, never an exception. */
 export function validatePack(src: PackSource, options: PackOptions = {}): PackIssue[] {
@@ -626,7 +621,7 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
   if (total > PACK_CEILING_BYTES) add("size", "", `the pack is ${total} bytes, over the ${PACK_CEILING_BYTES} cap`);
 
   if (packErrors.length || lookErrors.length) return finish(out);
-  const pack = src.pack as Pack;
+  const pack = src.pack as PackJson;
   const look = src.look as Look;
   if (look.id !== pack.id) add("id", "look.json", `look.id ${look.id} is not the pack id ${pack.id}`);
   if (pack.modes.join() !== look.modes.supported.join()) add("modes", "pack.json", "modes differ from look.json modes.supported");
@@ -647,15 +642,16 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
     const path = name.replace(/[?#].*$/, "").replace(/^\.\//, "");
     return [base + path, path, `assets/${path}`].find((p) => files.has(p));
   };
-  const refer = (from: string, name: string, base: string) => {
+  const refer = (from: string, name: string, base: string, exact = false) => {
     if (!isPackRelativeUrl(name) || /["']/.test(name)) return void add(urlRule(name), from, `${name} is not a path inside the pack`);
-    const found = resolve(name, base);
+    // a user pack's CSS url is served as written (`scopePackCss` rewrites it to the route), so it names its file exactly
+    const found = exact ? [packPath(name)].find((p) => files.has(p)) : resolve(name, base);
     if (!found) add("asset-missing", from, `${name} is not in the pack's files`);
     else referenced.set(found, from);
   };
   pack.stage.layers.forEach((l) => l.image !== undefined && refer("pack.json", l.image, "assets/"));
   pack.fonts.forEach((f) => refer("pack.json", f.file, "assets/"));
-  if (!user && src.css !== undefined) for (const u of cssUrls(src.css)) refer("pack.css", u, "");
+  if (src.css !== undefined) for (const u of cssUrls(src.css)) refer("pack.css", u, "", user);
 
   // the asset list matches the files (a user pack must list every asset)
   const assets = [...files.keys()].filter((p) => p.startsWith("assets/"));
@@ -702,8 +698,36 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
   for (const e of pack.stage.effects ?? []) if (e.opacity !== undefined && e.opacity > OVERLAY_MAX) add("overlay-alpha", "pack.json", `${e.kind} opacity ${e.opacity} is over ${OVERLAY_MAX}: an overlay never hides what is under it`);
   for (const e of pack.stage.effects ?? []) if (e.kind === "blur" && e.px !== undefined && e.px > STAGE_BLUR_MAX) add("effects", "pack.json", `blur px ${e.px} is drawn at ${STAGE_BLUR_MAX}, the stage's cap`, "warn");
 
-  // ornament, edge
+  // fx: the kinds that flash, their rate, how many animate at once
+  const effects = pack.stage.effects ?? [];
+  effects.forEach((e, i) => {
+    const at = `stage effect ${i} (${e.kind})`;
+    const flashes = (FX_KINDS as readonly string[]).includes(e.kind);
+    if (flashes && e.cost !== "animated") add("fx-cost", "pack.json", `${at} flashes: declare cost animated`);
+    if (e.rate !== undefined && !flashes) add("fx-rate", "pack.json", `${at} has a rate: only ${FX_KINDS.join(", ")} take one`);
+    else if (e.rate !== undefined && !(typeof e.rate === "number" && e.rate > 0 && e.rate <= FLASH_MAX)) add("fx-rate", "pack.json", `${at} rate ${String(e.rate).slice(0, 12)}: above 0 and at most ${FLASH_MAX} flashes a second`);
+  });
+  const animated = effects.filter((e) => e.cost === "animated").length;
+  if (animated > MAX_ANIMATED) add("fx-animated", "pack.json", `${animated} animated effects, at most ${MAX_ANIMATED} at full`);
+
+  // ornament (the slot's size), ornaments, frame, edge
   if (pack.ornament && pack.ornament.size > ORNAMENT_MAX && !pack.ornament.bleed) add("ornament", "pack.json", `ornament is ${pack.ornament.size} px, at most ${ORNAMENT_MAX}`);
+  if (pack.ornament && pack.ornaments) add("ornament", "pack.json", "ornament and ornaments are both set: use ornaments");
+  if (pack.ornaments && pack.ornaments.length > ORNAMENTS_MAX) add("ornament", "pack.json", `${pack.ornaments.length} ornaments, at most ${ORNAMENTS_MAX}`);
+  (pack.ornaments ?? []).forEach((o, i) => {
+    const at = `ornaments[${i}] (${o.kind})`;
+    const hasText = o.text !== undefined;
+    if ((TEXT_ORNAMENTS as readonly string[]).includes(o.kind) !== hasText) add("ornament", "pack.json", hasText ? `${at} takes no text` : `${at} needs its text`);
+    else if (hasText && ([...o.text!].length > ORNAMENT_TEXT_MAX || /[\p{C}\p{Zl}\p{Zp}<>]/u.test(o.text!) || INJECTION.test(o.text!))) add("ornament", "pack.json", `${at} text: 1 to ${ORNAMENT_TEXT_MAX} printable characters, no markup`);
+  });
+  if (pack.frame && pack.edge) add("frame", "pack.json", "frame and edge are both set: use frame");
+  if (pack.frame) {
+    const { size, stroke, which } = pack.frame;
+    if (!(size >= 0 && size <= FRAME_SIZE_MAX)) add("frame", "pack.json", `frame size ${size}: 0 to ${FRAME_SIZE_MAX} px`);
+    if (stroke !== undefined && !(stroke >= 0 && stroke <= FRAME_STROKE_MAX)) add("frame", "pack.json", `frame stroke ${stroke}: 0 to ${FRAME_STROKE_MAX} px`);
+    if (which && (which.length === 0 || new Set(which).size !== which.length)) add("frame", "pack.json", "frame which: at least one corner, none twice");
+  }
+  if (pack.edge?.kind === "distressed") add("chamfer", "pack.json", "edge distressed draws nothing: the app has no such mask", "warn");
   if (pack.edge?.kind === "chamfer" && !(pack.edge.cut !== undefined && pack.edge.cut <= CHAMFER_MAX)) add("chamfer", "pack.json", `chamfer cut ${pack.edge.cut ?? "missing"}: at most ${CHAMFER_MAX} px`);
   else if (pack.edge?.kind !== "chamfer" && pack.edge?.cut !== undefined && pack.edge.cut > CHAMFER_MAX) add("chamfer", "pack.json", `edge cut ${pack.edge.cut}: at most ${CHAMFER_MAX} px`);
 
@@ -749,7 +773,7 @@ function layerPaint(l: { fill?: string; image?: string; opacity?: number }, file
   const path = isPackRelativeUrl(l.image) ? resolve(l.image, "assets/") : undefined;
   const f = path ? files.get(path) : undefined;
   if (!f?.bytes || !/\.svg$/i.test(f.path)) return { stops: undefined, opacity };
-  const paints = svgPaints(text(f.bytes)).map(parseColour);
+  const paints = svgPaints(text(f.bytes)).map(parseLiteral);
   return { stops: paints.some((c) => c === undefined) ? undefined : [{ hex: "#000000", alpha: 1 }, { alpha: 0 }, ...(paints as Colour[])], opacity };
 }
 

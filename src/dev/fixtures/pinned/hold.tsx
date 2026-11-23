@@ -69,7 +69,7 @@ export function HoldButton({ label, frozen, onConfirm, className, style }: HoldP
       {/* the fill: the accent, under the label; a step per 0.1 s with reduced motion */}
       <span aria-hidden className="absolute inset-y-0 left-0 -z-10" style={{ width: `${(reduced ? Math.floor(share * 6) / 6 : share) * 100}%`, background: "color-mix(in oklab, var(--w-accent) 38%, transparent)" }} />
       <span className="leading-tight">{label}</span>
-      <span className="text-[12px] font-normal leading-tight tabular-nums" style={{ color: "var(--w-muted)" }}>
+      <span className="text-caption font-normal leading-tight tabular-nums" style={{ color: "var(--w-muted)" }}>
         {share > 0 && share < 1 ? `${left.toFixed(1)} s left` : `Hold ${HOLD_MS / 1000} s`}
       </span>
     </button>

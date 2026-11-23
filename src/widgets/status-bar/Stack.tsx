@@ -31,7 +31,7 @@ export function StackView({ tiles, w, h, icons, byPriority }: { tiles: ReturnTyp
       {stackShown(tiles, h < 260 ? 4 : 8, byPriority).map(({ k, r, value }) => (
         <div key={k} className="flex min-w-0 flex-col gap-1 rounded-lg bg-[color:var(--w-track)] px-3 py-2.5">
           <span className="flex items-center gap-1.5 text-micro font-medium uppercase tracking-[0.08em] text-[color:var(--w-muted)]">
-            {r.weather ? <WeatherGlyph {...r.weather} {...icons} size={14} className="shrink-0 text-[color:var(--w-muted)]" /> : r.icon && <Icon name={r.icon} className="text-[14px]" />}
+            {r.weather ? <WeatherGlyph {...r.weather} {...icons} size={14} className="shrink-0 text-[color:var(--w-muted)]" /> : r.icon && <Icon name={r.icon} className="text-lead" />}
             <span className="truncate">{ITEM_LABELS[k]}</span>
           </span>
           <span className={`truncate ${w >= 360 ? "text-[28px]" : "text-[20px]"} font-semibold leading-none tabular-nums`}>{value}</span>

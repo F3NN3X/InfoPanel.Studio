@@ -11,7 +11,7 @@
 //!    FF01:0001; commands 0x13 (online), 0x12 (battery %), 0x11 (charging), value at byte 8.
 //!    Verified on Ninjutso Ten Air (093A:EB01 and 093A:E020).
 use crate::devices::{DeviceKind, DeviceStatus};
-use crate::hid::{hid_product, hex4, HidIo, PollContext};
+use crate::hid::{HidIo, PollContext, hex4, hid_product};
 use crate::win::sleep_ms;
 
 fn query_ten(d: &mut dyn HidIo, cmd: u8, value: &mut u8) -> bool {
@@ -19,7 +19,9 @@ fn query_ten(d: &mut dyn HidIo, cmd: u8, value: &mut u8) -> bool {
     q[0] = 0x06;
     q[1] = cmd;
     q[4] = 1;
-    if !d.set_feature(&q) { return false; }
+    if !d.set_feature(&q) {
+        return false;
+    }
     for _attempt in 0..3 {
         sleep_ms(30);
         let mut r = Vec::new();
@@ -33,7 +35,9 @@ fn query_ten(d: &mut dyn HidIo, cmd: u8, value: &mut u8) -> bool {
 
 fn poll_ten(ctx: &mut PollContext) {
     for &(vid, pid) in &ctx.products(0x093A) {
-        if pid != 0xEB01 && pid != 0xE020 { continue; }
+        if pid != 0xEB01 && pid != 0xE020 {
+            continue;
+        }
         for c in ctx.find(vid, pid, |c| c.page() == 0xFF01 && c.usage() == 1 && c.feat_len() == 16) {
             let Some(mut d) = ctx.open_feature_only(&c) else { continue };
             let (mut online, mut percent, mut charging) = (0u8, 0u8, 0u8);
@@ -46,7 +50,9 @@ fn poll_ten(ctx: &mut PollContext) {
                 continue;
             }
             let mut name = hid_product(&c);
-            if name.is_empty() { name = "Ninjutso Ten / Ten Air".into(); }
+            if name.is_empty() {
+                name = "Ninjutso Ten / Ten Air".into();
+            }
             let s = DeviceStatus {
                 key: format!("ninjutso-ten:{}", hex4(pid)),
                 name,
@@ -67,7 +73,9 @@ pub fn poll_ninjutso(ctx: &mut PollContext) {
     const RECEIVER_PID: u16 = 0xAE1C;
     const CABLE_PID: u16 = 0xAE11;
     for pid in [RECEIVER_PID, CABLE_PID] {
-        if ctx.is_claimed(VID, pid) { continue; }
+        if ctx.is_claimed(VID, pid) {
+            continue;
+        }
         let cable = pid == CABLE_PID;
         for c in ctx.find(VID, pid, |c| c.page() == 0xFFA0 && c.usage() == 1 && c.feat_len() >= 32) {
             let Some(mut d) = ctx.open_feature_only(&c) else { continue };
@@ -78,25 +86,28 @@ pub fn poll_ninjutso(ctx: &mut PollContext) {
             let mut s = DeviceStatus { ..Default::default() };
             let mut answered = false;
             for attempt in 0..4 {
-                if attempt != 0 { sleep_ms(90); }
-                if !d.set_feature(&req) { break; }
+                if attempt != 0 {
+                    sleep_ms(90);
+                }
+                if !d.set_feature(&req) {
+                    break;
+                }
                 sleep_ms(15);
                 let mut r = Vec::new();
-                if !d.get_feature(0x05, &mut r)
-                    || r.len() < 13
-                    || r[0] != 0x05
-                    || r[1] != 0x15
-                    || r[9] > 100
-                {
+                if !d.get_feature(0x05, &mut r) || r.len() < 13 || r[0] != 0x05 || r[1] != 0x15 || r[9] > 100 {
                     continue;
                 }
                 answered = true;
                 s.connected = cable || r[12] != 0;
                 s.percent = if s.connected { if r[9] == 0 { 100 } else { r[9] as i32 } } else { -1 };
                 s.charging = s.connected && r[10] != 0;
-                if s.connected { break; }
+                if s.connected {
+                    break;
+                }
             }
-            if !answered { continue; }
+            if !answered {
+                continue;
+            }
             s.key = format!("ninjutso:{}:{}", hex4(VID), hex4(pid));
             s.name = "Ninjutso Sora V2".into();
             s.kind = DeviceKind::Mouse;
@@ -149,9 +160,15 @@ mod tests {
     }
 
     impl HidIo for TestIo {
-        fn write(&mut self, _data: &[u8], _timeout_ms: u32) -> bool { false }
-        fn read(&mut self, _buf: &mut Vec<u8>, _timeout_ms: u32) -> i32 { -1 }
-        fn set_output_and_read(&mut self, _data: &[u8], _buf: &mut Vec<u8>, _timeout_ms: u32) -> i32 { -1 }
+        fn write(&mut self, _data: &[u8], _timeout_ms: u32) -> bool {
+            false
+        }
+        fn read(&mut self, _buf: &mut Vec<u8>, _timeout_ms: u32) -> i32 {
+            -1
+        }
+        fn set_output_and_read(&mut self, _data: &[u8], _buf: &mut Vec<u8>, _timeout_ms: u32) -> i32 {
+            -1
+        }
         fn flush(&mut self) {}
 
         fn set_feature(&mut self, data: &[u8]) -> bool {
@@ -160,7 +177,9 @@ mod tests {
                 assert_eq!(data.len(), 16);
                 assert!(data[0] == 0x06 && data[4] == 1);
                 for i in 2..data.len() {
-                    if i != 4 { assert_eq!(data[i], 0, "Ten query byte {i} must be zero"); }
+                    if i != 4 {
+                        assert_eq!(data[i], 0, "Ten query byte {i} must be zero");
+                    }
                 }
                 sh.writes.push(data.to_vec());
             } else {
@@ -186,12 +205,17 @@ mod tests {
             match sh.replies.pop_front() {
                 // An empty reply counts as answered (the C++ mock popped it too); the driver
                 // rejects it on length.
-                Some(r) => { *out = r; true }
+                Some(r) => {
+                    *out = r;
+                    true
+                }
                 None => false,
             }
         }
 
-        fn get_input_report(&mut self, _report_id: u8, _out: &mut Vec<u8>) -> bool { false }
+        fn get_input_report(&mut self, _report_id: u8, _out: &mut Vec<u8>) -> bool {
+            false
+        }
     }
 
     struct TestFactory {
@@ -199,12 +223,18 @@ mod tests {
     }
 
     impl HidFactory for TestFactory {
-        fn open(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> { self.open_feature_only(coll) }
-        fn open_read_only(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> { self.open_feature_only(coll) }
+        fn open(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> {
+            self.open_feature_only(coll)
+        }
+        fn open_read_only(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> {
+            self.open_feature_only(coll)
+        }
         fn open_feature_only(&mut self, coll: &HidColl) -> Option<Box<dyn HidIo>> {
             let mut sh = self.sh.borrow_mut();
             sh.opens += 1;
-            if !sh.open_ok { return None; }
+            if !sh.open_ok {
+                return None;
+            }
             Some(Box::new(TestIo { sh: self.sh.clone(), coll: coll.clone() }))
         }
     }
@@ -220,7 +250,9 @@ mod tests {
     }
 
     impl Outcome {
-        fn is_claimed(&self, vid: u16, pid: u16) -> bool { self.claimed.contains(&(vid, pid)) }
+        fn is_claimed(&self, vid: u16, pid: u16) -> bool {
+            self.claimed.contains(&(vid, pid))
+        }
     }
 
     struct Fixture {
@@ -232,11 +264,21 @@ mod tests {
             // openOk = sendOk = true, as in both C++ programs.
             Fixture { sh: Rc::new(RefCell::new(State { open_ok: true, send_ok: true, ..Default::default() })) }
         }
-        fn set_open_ok(&self, ok: bool) { self.sh.borrow_mut().open_ok = ok; }
-        fn set_send_ok(&self, ok: bool) { self.sh.borrow_mut().send_ok = ok; }
-        fn opens(&self) -> u32 { self.sh.borrow().opens }
-        fn queries(&self) -> u32 { self.sh.borrow().queries }
-        fn reset_opens(&self) { self.sh.borrow_mut().opens = 0; }
+        fn set_open_ok(&self, ok: bool) {
+            self.sh.borrow_mut().open_ok = ok;
+        }
+        fn set_send_ok(&self, ok: bool) {
+            self.sh.borrow_mut().send_ok = ok;
+        }
+        fn opens(&self) -> u32 {
+            self.sh.borrow().opens
+        }
+        fn queries(&self) -> u32 {
+            self.sh.borrow().queries
+        }
+        fn reset_opens(&self) {
+            self.sh.borrow_mut().opens = 0;
+        }
 
         /// The C++ `Poll`/`PollTenRun` preamble: replace the replies, clear the per-poll counters
         /// (`PollTenRun` also resets `opens`, `Poll` only resets queries/featureReads/writes).
@@ -246,7 +288,9 @@ mod tests {
             sh.writes.clear();
             sh.queries = 0;
             sh.feature_reads = 0;
-            if reset_opens { sh.opens = 0; }
+            if reset_opens {
+                sh.opens = 0;
+            }
         }
 
         /// C++ `Poll(...)` / `PollTenRun(...)`: one poll over `colls`, results collected while the
@@ -258,8 +302,14 @@ mod tests {
             ctx.colls = colls;
             poll_ninjutso(&mut ctx);
             let sh = self.sh.borrow();
-            Outcome { out: ctx.out, claimed: ctx.claimed, opens: sh.opens, queries: sh.queries,
-                      feature_reads: sh.feature_reads, writes: sh.writes.clone() }
+            Outcome {
+                out: ctx.out,
+                claimed: ctx.claimed,
+                opens: sh.opens,
+                queries: sh.queries,
+                feature_reads: sh.feature_reads,
+                writes: sh.writes.clone(),
+            }
         }
 
         /// The C++ "poll again on the same context" step: the replies were consumed by the first
@@ -282,8 +332,7 @@ mod tests {
         HidColl {
             vid: 0x1915,
             pid: 0xAE1C,
-            caps: HidCaps { usage_page: 0xFFA0, usage: 1, feature_report_byte_length: 704,
-                            ..Default::default() },
+            caps: HidCaps { usage_page: 0xFFA0, usage: 1, feature_report_byte_length: 704, ..Default::default() },
             ..Default::default()
         }
     }
@@ -293,8 +342,7 @@ mod tests {
             path: "test".into(),
             vid: 0x093A,
             pid,
-            caps: HidCaps { usage_page: 0xFF01, usage: 1, feature_report_byte_length: 16,
-                            ..Default::default() },
+            caps: HidCaps { usage_page: 0xFF01, usage: 1, feature_report_byte_length: 16, ..Default::default() },
             ..Default::default()
         }
     }
@@ -309,7 +357,9 @@ mod tests {
         r
     }
 
-    fn status(battery: u8) -> Vec<u8> { status_of(battery, false, true) }
+    fn status(battery: u8) -> Vec<u8> {
+        status_of(battery, false, true)
+    }
 
     fn ten_reply(cmd: u8, value: u8) -> Vec<u8> {
         let mut r = vec![0u8; 16];
@@ -374,8 +424,7 @@ mod tests {
         // The C++ program substituted HidProduct at link time with "Ninjutso Ten Air"; the seam
         // gives the driver the same string, so the C++ name assertion is covered.
         let o = with_product("Ninjutso Ten Air", || {
-            fx.poll(vec![ten_reply(0x13, 1), ten_reply(0x12, 67), ten_reply(0x11, 0)],
-                    vec![ten_coll(0xEB01)], true)
+            fx.poll(vec![ten_reply(0x13, 1), ten_reply(0x12, 67), ten_reply(0x11, 0)], vec![ten_coll(0xEB01)], true)
         });
         assert!(o.out.len() == 1 && o.is_claimed(0x093A, 0xEB01));
         assert!(o.out[0].percent == 67 && !o.out[0].charging && o.out[0].connected);
@@ -388,13 +437,11 @@ mod tests {
         let o = fx.poll(vec![ten_reply(0x13, 1), ten_reply(0x12, 101), ten_reply(0x11, 0)], vec![ten_coll(0xEB01)], true);
         assert!(o.out.is_empty() && o.claimed.is_empty());
         // A first, unusable frame is consumed by the retry loop.
-        let o = fx.poll(vec![vec![0x06, 0], ten_reply(0x13, 1), ten_reply(0x12, 20), ten_reply(0x11, 1)],
-                        vec![ten_coll(0xEB01)], true);
+        let o = fx.poll(vec![vec![0x06, 0], ten_reply(0x13, 1), ten_reply(0x12, 20), ten_reply(0x11, 1)], vec![ten_coll(0xEB01)], true);
         assert!(o.out.len() == 1 && o.out[0].charging && o.writes.len() == 3);
 
         for pct in [0u8, 100] {
-            let o = fx.poll(vec![ten_reply(0x13, 1), ten_reply(0x12, pct), ten_reply(0x11, 1)],
-                            vec![ten_coll(0xE020)], true);
+            let o = fx.poll(vec![ten_reply(0x13, 1), ten_reply(0x12, pct), ten_reply(0x11, 1)], vec![ten_coll(0xE020)], true);
             assert!(o.out.len() == 1 && o.out[0].percent == pct as i32 && o.out[0].charging);
             assert!(o.out[0].via == "USB cable" && o.is_claimed(0x093A, 0xE020));
         }
@@ -402,8 +449,7 @@ mod tests {
         let mut ten_wrong_id = ten_reply(0x13, 1);
         ten_wrong_id[0] = 7;
         for bad in [Vec::new(), vec![0x06], ten_wrong_id, ten_reply(0x12, 1), vec![0u8; 17]] {
-            let o = fx.poll(vec![bad.clone(), bad.clone(), bad.clone(), ten_reply(0x13, 1)],
-                            vec![ten_coll(0xEB01)], true);
+            let o = fx.poll(vec![bad.clone(), bad.clone(), bad.clone(), ten_reply(0x13, 1)], vec![ten_coll(0xEB01)], true);
             assert!(o.out.is_empty() && o.claimed.is_empty() && o.writes.len() == 1 && o.feature_reads == 3);
         }
         let o = fx.poll(Vec::new(), vec![ten_coll(0xEB01)], true);
@@ -430,8 +476,7 @@ mod tests {
                 _ => unreachable!(),
             }
             let o = fx.poll(Vec::new(), vec![c], true);
-            assert!(o.opens == 0 && o.writes.is_empty() && o.claimed.is_empty(),
-                    "variant {variant} must never be opened or queried");
+            assert!(o.opens == 0 && o.writes.is_empty() && o.claimed.is_empty(), "variant {variant} must never be opened or queried");
         }
 
         // A Ten receiver claimed by an earlier poll is not probed again.
@@ -445,8 +490,7 @@ mod tests {
 
         // Outside the seam the real helper cannot read a simulated collection, so the driver's own
         // fallback name is what a scripted poll reports (real behaviour, not the C++ stub).
-        let o = fx.poll(vec![ten_reply(0x13, 1), ten_reply(0x12, 67), ten_reply(0x11, 0)],
-                        vec![ten_coll(0xEB01)], true);
+        let o = fx.poll(vec![ten_reply(0x13, 1), ten_reply(0x12, 67), ten_reply(0x11, 0)], vec![ten_coll(0xEB01)], true);
         assert!(o.out.len() == 1 && o.out[0].name == "Ninjutso Ten / Ten Air");
     }
 

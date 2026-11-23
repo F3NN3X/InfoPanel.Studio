@@ -4,7 +4,7 @@ import { NO_RECOLOUR, type Recolour } from "@/lib/infopanel/gauges/raster";
 import type { FramesTools } from "./frames-tools";
 import { NumRow } from "./inspector/rows";
 
-const BUTTON = "h-8 rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
+const BUTTON = "h-8 rounded-ui-md border border-ui-default px-3 text-small text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
 
 export interface FramesInspectorProps {
   tools: FramesTools;
@@ -19,7 +19,7 @@ export function FramesInspector({ tools, recolour, onRecolour }: FramesInspector
   const apply = () => void tools.recolour(recolour).then((ok) => ok && onRecolour(NO_RECOLOUR));
   return (
     <InspectorChromeProvider value={{ mode: "docked" }}>
-      <aside aria-label="Image sequence settings" className="flex w-[300px] shrink-0 flex-col border-l border-ui-subtle bg-ui-panel font-ui max-[899px]:w-full max-[899px]:border-l-0 max-[899px]:border-t">
+      <aside aria-label="Image sequence settings" className="flex w-75 shrink-0 flex-col border-l border-ui-subtle bg-ui-panel font-ui max-narrow:w-full max-narrow:border-l-0 max-narrow:border-t">
         <header className="flex h-11 shrink-0 items-center border-b border-ui-subtle px-4">
           <h2 className="truncate text-body font-medium text-ui-1">Image sequence</h2>
         </header>

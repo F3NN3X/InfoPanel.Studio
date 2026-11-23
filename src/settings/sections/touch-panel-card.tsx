@@ -8,7 +8,8 @@ import { useFound } from "../found";
 import { ipc } from "../ipc";
 import { useStore } from "../store";
 import type { Json, Touchscreen, TouchPanelEntry, TouchView } from "../types";
-import { Button, Card, Row, Segmented, SwitchRow, useFlag } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Row, Segmented, SwitchRow, useFlag } from "../ui";
 import { Field, ROTATIONS, shortPort, type ScreenName, type SetKey, type Steps } from "./touch-parts";
 
 const LINE_TONE: Record<PanelState, string> = {
@@ -31,7 +32,7 @@ export function ShowSteps({ url }: { url: string }) {
         <span>Set its URL to this address:</span>
         <span className="mt-1.5 flex flex-wrap gap-2">
           <span className="flex h-9 min-w-0 basis-40 flex-1 items-center truncate rounded-lg border border-s-track-line bg-s-win px-3 font-mono text-body text-s-t1">{url}</span>
-          <Button size="md" className="h-9" onClick={copy}>
+          <Button className="h-9" onClick={copy}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copied" : "Copy"}
           </Button>
@@ -82,26 +83,26 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
   return (
     <div ref={found.ref} className={cn("rounded-xl", found.className)}>
       <Card>
-        <div className="flex flex-wrap items-center gap-3 px-[18px] py-3.5">
-          <div className="flex min-w-40 flex-1 flex-col gap-[3px]">
+        <div className="flex flex-wrap items-center gap-3 px-4.5 py-3.5">
+          <div className="flex min-w-40 flex-1 flex-col gap-0.75">
             <span className="text-lead font-medium">{entry.name}</span>
             <span className={cn("text-caption", LINE_TONE[state === "ready" && !online ? "not-paired" : state])}>{panelLine(state, entry, online)}</span>
             {trouble && <span className="text-caption text-s-muted">{trouble}</span>}
           </div>
           {!ready && (
-            <Button kind="accent" onClick={onSetup}>
+            <Button variant="primary" onClick={onSetup}>
               Continue setup…
             </Button>
           )}
           {confirm ? (
             <>
               <Button onClick={() => setConfirm(false)}>Keep</Button>
-              <Button kind="danger" onClick={onRemove}>
+              <Button variant="danger" onClick={onRemove}>
                 Remove {entry.name}
               </Button>
             </>
           ) : (
-            <Button kind="quiet" onClick={() => setConfirm(true)} title="Remove this panel">
+            <Button variant="ghost" onClick={() => setConfirm(true)} title="Remove this panel">
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
@@ -121,7 +122,7 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
             disabled={!display}
             value={display?.screen ?? DISPLAY_FOLLOW}
             onChange={(e) => display && void postControl("display", { action: "assign", display: display.name, screen: e.target.value })}
-            className="h-[30px] max-w-full cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1 disabled:cursor-default disabled:opacity-50"
+            className="h-7.5 max-w-full cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1 disabled:cursor-default disabled:opacity-50"
           >
             <option value={DISPLAY_FOLLOW}>Follow the default screen</option>
             {dashboardScreens.map((s) => (
@@ -131,7 +132,7 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
             ))}
           </select>
         </Row>
-        <details open={!online} className="group px-[18px] py-3.5">
+        <details open={!online} className="group px-4.5 py-3.5">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-body font-medium">
             <ChevronRight className="h-4 w-4 text-s-dim transition-transform group-open:rotate-90" />
             Show this on the panel's display
@@ -171,7 +172,7 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
           </span>
         </Row>
         <details className="group">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 px-[18px] py-3.5 text-body font-medium">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 px-4.5 py-3.5 text-body font-medium">
             <ChevronRight className="h-4 w-4 text-s-dim transition-transform group-open:rotate-90" />
             Advanced
           </summary>
@@ -190,7 +191,7 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
               </span>
             </Row>
             <Row label="Rotation" hint="Mounted sideways? Turn touches to match, clockwise.">
-              <Segmented size="sm" label="Rotation" options={[...ROTATIONS]} value={entry.panel.rotation} onChange={(v) => set("panel.rotation", v)} />
+              <Segmented label="Rotation" options={[...ROTATIONS]} value={entry.panel.rotation} onChange={(v) => set("panel.rotation", v)} />
             </Row>
             <SwitchRow label="Mirror horizontally" hint="Touches land on the wrong side? Flip them left to right." checked={entry.panel.flip_x} onChange={(v) => set("panel.flip_x", v)} />
             <SwitchRow label="Mirror vertically" hint="Touches land upside down? Flip them top to bottom." checked={entry.panel.flip_y} onChange={(v) => set("panel.flip_y", v)} />

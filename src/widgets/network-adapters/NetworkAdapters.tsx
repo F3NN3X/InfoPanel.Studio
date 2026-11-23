@@ -33,7 +33,7 @@ export default function NetworkAdapters(p: NetworkAdaptersProps) {
     .filter((a) => p.showDown || a.up);
   const pub4 = get(d, "plugins.network-info-plugin.public-ip.ipv4"),
     pub6 = get(d, "plugins.network-info-plugin.public-ip.ipv6");
-  const ip = (v: string) => <span className={`font-mono tabular-nums ${p.hideIp ? "blur-[4px] hover:blur-0" : ""}`}>{v}</span>;
+  const ip = (v: string) => <span className={`font-mono tabular-nums ${p.hideIp ? "blur-xs hover:blur-0" : ""}`}>{v}</span>;
   return (
     <Widget
       {...shell(p)}

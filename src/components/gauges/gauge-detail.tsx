@@ -41,10 +41,10 @@ export function GaugeDetail({ entry, sheet, copies, scope, actions, onOpenSource
       aria-label="Gauge details"
       className={cn(
         "flex flex-col gap-4 overflow-y-auto bg-ui-panel p-4 font-ui",
-        sheet ? "min-w-0 flex-1" : "w-[320px] shrink-0 border-l border-ui-subtle",
+        sheet ? "min-w-0 flex-1" : "w-80 shrink-0 border-l border-ui-subtle",
       )}
     >
-      <div className={cn("flex aspect-square w-full items-center justify-center rounded-ui-lg border border-ui-subtle bg-ui-app", sheet && "max-w-[248px] self-center")}>
+      <div className={cn("flex aspect-square w-full items-center justify-center rounded-ui-lg border border-ui-subtle bg-ui-app", sheet && "max-w-62 self-center")}>
         <GaugeView gauge={entry.gauge} frames={entry.frames} p={live.p ?? playback.p} size={248} scope={scope} />
       </div>
       {live.p === null && <PlayControls playback={playback} />}
@@ -108,7 +108,7 @@ export function GaugeDetail({ entry, sheet, copies, scope, actions, onOpenSource
 
 export function EmptyDetail() {
   return (
-    <aside className="flex w-[320px] shrink-0 flex-col items-center justify-center gap-2 border-l border-ui-subtle bg-ui-panel p-6 text-center font-ui text-body text-ui-3">
+    <aside className="flex w-80 shrink-0 flex-col items-center justify-center gap-2 border-l border-ui-subtle bg-ui-panel p-6 text-center font-ui text-body text-ui-3">
       <Eye className="h-5 w-5" />
       Select a gauge to see it here. Double-click one to edit it.
     </aside>

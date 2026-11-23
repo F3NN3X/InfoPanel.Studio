@@ -210,7 +210,9 @@ mod tests {
     fn a_page_area_is_finite_and_within_the_kiosks_sides() {
         let ok = Rect { left: 0.0, top: 0.0, width: 1920.0, height: 1080.0 };
         assert!(ok.valid());
-        for bad in [Rect { width: f64::NAN, ..ok }, Rect { left: -1.0, ..ok }, Rect { height: 20000.0, ..ok }, Rect { top: f64::INFINITY, ..ok }] {
+        for bad in
+            [Rect { width: f64::NAN, ..ok }, Rect { left: -1.0, ..ok }, Rect { height: 20000.0, ..ok }, Rect { top: f64::INFINITY, ..ok }]
+        {
             assert!(!bad.valid(), "{bad:?}");
         }
     }

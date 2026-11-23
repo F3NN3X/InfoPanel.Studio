@@ -63,7 +63,7 @@ export function NumField({ value, onChange, label, min, max, placeholder, unit }
           const n = parse(e.target.value);
           if (n !== undefined || e.target.value.trim() === "") onChange(n);
         }}
-        className={cn(FIELD, "h-7 w-[84px] pl-2 pr-7 font-ui-mono text-caption [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none")}
+        className={cn(FIELD, "h-7 w-21 pl-2 pr-7 font-ui-mono text-caption [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none")}
       />
       {unit && <span aria-hidden className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 font-ui-mono text-caption text-ui-3">{unit}</span>}
     </span>
@@ -92,7 +92,7 @@ export function TextField({
       placeholder={placeholder}
       spellCheck={false}
       onChange={(e) => onChange(e.target.value)}
-      className={cn(FIELD, "h-[30px] w-full", mono && "font-ui-mono text-micro")}
+      className={cn(FIELD, "h-7.5 w-full", mono && "font-ui-mono text-micro")}
     />
   );
 }
@@ -149,7 +149,7 @@ export function ChipsField({ values, onChange, label, placeholder, suggestions =
           }
         }}
         onBlur={add}
-        className={cn(FIELD, "h-[30px] w-full")}
+        className={cn(FIELD, "h-7.5 w-full")}
       />
       {suggestions.length > 0 && (
         <datalist id={listId}>
@@ -165,7 +165,7 @@ export function ChipsField({ values, onChange, label, placeholder, suggestions =
 /** The 3×3 position picker. */
 export function PositionGrid({ value, onChange }: { value: AlertPosition; onChange: (value: AlertPosition) => void }) {
   return (
-    <div role="radiogroup" aria-label="Position" className="grid w-[84px] grid-cols-3 gap-0.5 rounded-md border border-ui-default bg-ui-app p-0.5">
+    <div role="radiogroup" aria-label="Position" className="grid w-21 grid-cols-3 gap-0.5 rounded-md border border-ui-default bg-ui-app p-0.5">
       {ALERT_POSITIONS.map((p) => (
         <button
           key={p}
@@ -175,7 +175,7 @@ export function PositionGrid({ value, onChange }: { value: AlertPosition; onChan
           aria-label={p}
           title={p}
           onClick={() => onChange(p)}
-          className={cn("h-[22px] rounded-[4px] transition-colors", p === value ? "bg-ui-accent" : "bg-ui-hover hover:bg-ui-active")}
+          className={cn("h-5.5 rounded-4 transition-colors", p === value ? "bg-ui-accent" : "bg-ui-hover hover:bg-ui-active")}
         />
       ))}
     </div>

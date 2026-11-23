@@ -92,7 +92,7 @@ export function SettingField({
     <fieldset
       data-setting-key={def.key}
       disabled={readOnly}
-      className={cn("m-0 min-w-0 border-0 px-4 py-[3px] transition-colors duration-(--ui-dur-fast) ease-ui data-[undo-flash]:bg-ui-accent/12", readOnly && "opacity-50")}
+      className={cn("m-0 min-w-0 border-0 px-4 py-0.75 transition-colors duration-(--ui-dur-fast) ease-ui data-[undo-flash]:bg-ui-accent/12", readOnly && "opacity-50")}
     >
       <SettingRow
         def={def}
@@ -121,7 +121,7 @@ export function SettingField({
           mixed ? (
             <span
               title="The selected widgets differ here: the value shown is the primary widget's, and a change sets it on all of them"
-              className="shrink-0 rounded-[5px] bg-s-nav-on px-1.5 py-px text-nano font-medium text-ui-3"
+              className="shrink-0 rounded-5 bg-s-nav-on px-1.5 py-px text-nano font-medium text-ui-3"
             >
               Mixed
             </span>

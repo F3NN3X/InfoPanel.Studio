@@ -14,4 +14,15 @@ describe("cn", () => {
     expect(cn("text-micro", "text-sm")).toBe("text-sm");
     expect(cn("text-[10px]", "text-micro")).toBe("text-micro");
   });
+
+  it("knows the half and stat steps as sizes", () => {
+    expect(cn("text-label", "text-ui-4")).toBe("text-label text-ui-4");
+    expect(cn("text-small", "text-stat")).toBe("text-stat");
+  });
+
+  it("lets a later radius step replace an earlier radius", () => {
+    expect(cn("rounded-7", "rounded-ui-md")).toBe("rounded-ui-md");
+    expect(cn("rounded-lg", "rounded-3")).toBe("rounded-3");
+    expect(cn("rounded-10", "rounded-t-2")).toBe("rounded-10 rounded-t-2");
+  });
 });

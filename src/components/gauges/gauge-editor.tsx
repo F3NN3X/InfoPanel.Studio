@@ -73,8 +73,8 @@ function Gone({ ref, onBack }: { ref?: Ref<EditorHandle>; onBack: () => void }) 
         <BarTitle title="Gauge editor" />
       </PageBar>
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center">
-        <p className="text-[12.5px] text-ui-3">This gauge is no longer on the page.</p>
-        <button type="button" onClick={onBack} className="h-(--ui-h-field) rounded-ui-md border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover">
+        <p className="text-small text-ui-3">This gauge is no longer on the page.</p>
+        <button type="button" onClick={onBack} className="h-(--ui-h-field) rounded-ui-md border border-ui-default px-3 text-small text-ui-1 hover:bg-ui-hover">
           Back to Gauges
         </button>
       </div>
@@ -144,7 +144,7 @@ function FramesEditor({ ref, bridge, editorId, edit, tools, write, onBack, onSav
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app">
       <EditorHeader edit={edit} gauge={null} saving={shell.saving} history={historyOf(edit, bridge)} onBack={() => shell.requestBack()} onSave={() => void shell.save()} onSaveAsNew={shell.saveAsNew && (() => void shell.saveAsNew?.())} />
-      <div className="flex min-h-0 flex-1 max-[899px]:flex-col max-[899px]:overflow-y-auto">
+      <div className="flex min-h-0 flex-1 max-narrow:flex-col max-narrow:overflow-y-auto">
         <FramesStage tools={tools} playback={playback} filter={filter} />
         <FramesInspector tools={tools} recolour={recolour} onRecolour={setRecolour} />
       </div>
@@ -195,7 +195,7 @@ function VectorEditor({ ref, bridge, editorId, edit, gauge: g, write, theme, onB
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app">
       <EditorHeader edit={edit} gauge={g} saving={shell.saving} history={historyOf(edit, bridge)} onBack={() => shell.requestBack()} onImport={openImportDoor} onExport={() => openExportSheet({ row: "gauge", gauge: { name: edit.name, gauge: g } })} onSave={() => void shell.save()} onSaveAsNew={shell.saveAsNew && (() => void shell.saveAsNew?.())} onDiscardDraft={shell.discardDraft} />
-      <div className="flex min-h-0 flex-1 max-[899px]:flex-col max-[899px]:overflow-y-auto">
+      <div className="flex min-h-0 flex-1 max-narrow:flex-col max-narrow:overflow-y-auto">
         <PartsList g={g} selected={selectable(g, part)} onSelect={setPart} set={set} />
         <EditorStage gauge={g} playback={playback} scope={scope} themeName={themeNameOf(theme)} view={view} sensor={{ name: sensor.name, reading: sensor.p !== null, unit: sensor.unit }} zones={zones} onPickPreset={pick} onLive={(live) => setView({ live })} />
         <PartInspector part={selectable(g, part)} g={g} set={set} view={view} onView={setView} onOpenSources={onOpenSources} zones={zones} onOpenRule={onOpenRule} />

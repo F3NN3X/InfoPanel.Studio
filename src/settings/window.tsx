@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import "./window.css";
+import { ToastProvider } from "@/components/ui/toast-provider";
 import { settingsHelpTarget } from "@/help/context";
 import { useHelpKey } from "@/help/use-help-key";
 import { isTauri, openHelp } from "@/lib/desktop";
@@ -43,7 +44,7 @@ function BrowserSettings() {
   const { Section } = page;
   return (
     <div className="s-scope flex h-screen overflow-hidden bg-s-win text-s-t1">
-      <aside className="flex w-[236px] shrink-0 flex-col border-r border-s-side-line bg-s-side px-2 pb-4 pt-1 max-sm:w-[150px]">
+      <aside className="flex w-59 shrink-0 flex-col border-r border-s-side-line bg-s-side px-2 pb-4 pt-1 max-sm:w-37.5">
         <nav aria-label="Settings pages" className="contents">
           <NavGroupLabel>Preferences</NavGroupLabel>
           {BROWSER_PAGES.map((id) => (
@@ -89,7 +90,13 @@ export default function SettingsWindow() {
   useEffect(() => {
     document.title = "InfoPanel Studio settings";
   }, []);
-  if (!isTauri()) return <BrowserSettings />;
+  if (!isTauri()) {
+    return (
+      <ToastProvider>
+        <BrowserSettings />
+      </ToastProvider>
+    );
+  }
   return (
     <Suspense fallback={null}>
       <DesktopSettingsWindow />

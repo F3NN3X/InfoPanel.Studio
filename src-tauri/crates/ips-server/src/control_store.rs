@@ -286,7 +286,13 @@ impl Control {
         (rx, self.register(&mut inner, tx, None, None))
     }
 
-    fn register(self: &Arc<Self>, inner: &mut Inner, tx: mpsc::UnboundedSender<Bytes>, kiosk: Option<String>, studio: Option<String>) -> Stream {
+    fn register(
+        self: &Arc<Self>,
+        inner: &mut Inner,
+        tx: mpsc::UnboundedSender<Bytes>,
+        kiosk: Option<String>,
+        studio: Option<String>,
+    ) -> Stream {
         let id = inner.next_listener;
         inner.next_listener += 1;
         inner.listeners.insert(id, tx);
@@ -455,8 +461,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let control = Control::new(dir.path().join("control.json"), 1000, || Some(config()));
         let (mut watcher, _guard) = control.subscribe();
-        let (mut rx, stream) = control.open_stream(Some(KioskLink { profile: "desk", address: Some("::ffff:10.0.0.2"), ..KioskLink::default() }), None);
-        let first: Value = serde_json::from_str(std::str::from_utf8(&rx.try_recv().unwrap()).unwrap().trim_start_matches("data: ").trim()).unwrap();
+        let (mut rx, stream) =
+            control.open_stream(Some(KioskLink { profile: "desk", address: Some("::ffff:10.0.0.2"), ..KioskLink::default() }), None);
+        let first: Value =
+            serde_json::from_str(std::str::from_utf8(&rx.try_recv().unwrap()).unwrap().trim_start_matches("data: ").trim()).unwrap();
         assert_eq!(first["kiosks"][0]["address"], "10.0.0.2");
         assert_eq!(first["shown"], "desk");
         // `shown` changed (not yet a kiosk), then the kiosk joined.
@@ -526,7 +534,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("control.json");
         let control = Control::new(file.clone(), 1000, || Some(config()));
-        let preview = json!({ "preset": { "id": "builtin:look-term", "name": "Term" }, "scope": { "kind": "profile", "profileId": "desk" } });
+        let preview =
+            json!({ "preset": { "id": "builtin:look-term", "name": "Term" }, "scope": { "kind": "profile", "profileId": "desk" } });
         // No stream holds the session open: refused, so no preview can outlive its studio.
         assert_eq!(control.set_preview_at("studio-one", Some(preview.clone()), 0.0), Err("no open studio session"));
         let (_rx, studio) = control.open_stream(None, Some("studio-one".into()));
@@ -599,7 +608,9 @@ mod tests {
     #[test]
     fn a_session_id_is_a_short_slug() {
         assert!(valid_session("a1b2c3d4") && valid_session(&"x".repeat(64)) && valid_session("studio_one-2"));
-        assert!(!valid_session("short") && !valid_session(&"x".repeat(65)) && !valid_session("has space1") && !valid_session("dots.are.out"));
+        assert!(
+            !valid_session("short") && !valid_session(&"x".repeat(65)) && !valid_session("has space1") && !valid_session("dots.are.out")
+        );
     }
 
     #[test]

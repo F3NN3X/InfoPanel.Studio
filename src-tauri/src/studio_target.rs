@@ -80,7 +80,24 @@ pub enum BrowserKind {
 }
 
 /// Chromium-based browsers' http ProgIds (prefix match: Chrome's channels add letters, e.g. ChromeBHTML).
-const CHROMIUM_PROGIDS: &[&str] = &["MSEdgeHTM", "MSEdgeBHTML", "MSEdgeDHTML", "MSEdgeCHTML", "ChromeHTML", "ChromeBHTML", "ChromeDHTML", "ChromeSSHTM", "ChromiumHTM", "BraveHTML", "BraveBHTML", "VivaldiHTM", "OperaStable", "OperaGXStable", "YandexHTML", "ArcHTML"];
+const CHROMIUM_PROGIDS: &[&str] = &[
+    "MSEdgeHTM",
+    "MSEdgeBHTML",
+    "MSEdgeDHTML",
+    "MSEdgeCHTML",
+    "ChromeHTML",
+    "ChromeBHTML",
+    "ChromeDHTML",
+    "ChromeSSHTM",
+    "ChromiumHTM",
+    "BraveHTML",
+    "BraveBHTML",
+    "VivaldiHTM",
+    "OperaStable",
+    "OperaGXStable",
+    "YandexHTML",
+    "ArcHTML",
+];
 /// Other engines (Gecko, Trident) we can name with certainty.
 const OTHER_PROGIDS: &[&str] = &["FirefoxURL", "FirefoxHTML", "WaterfoxURL", "LibreWolfHTM", "IE.HTTP"];
 
@@ -119,7 +136,8 @@ pub(crate) mod registry {
         }
         let mut buf = vec![0u16; (len as usize).div_ceil(2)];
         // SAFETY: `buf` holds `len` bytes.
-        let rc = unsafe { RegGetValueW(root, key.as_ptr(), name_ptr, RRF_RT_REG_SZ, std::ptr::null_mut(), buf.as_mut_ptr().cast(), &mut len) };
+        let rc =
+            unsafe { RegGetValueW(root, key.as_ptr(), name_ptr, RRF_RT_REG_SZ, std::ptr::null_mut(), buf.as_mut_ptr().cast(), &mut len) };
         if rc != 0 {
             return None;
         }
@@ -307,7 +325,10 @@ mod tests {
     fn the_target_follows_the_setting_on_a_loopback_url() {
         assert_eq!(studio_target(&with(OpenStudioIn::AppWindow), 3922), StudioTarget::Window);
         assert_eq!(studio_target(&with(OpenStudioIn::EdgeApp), 3922), StudioTarget::EdgeApp("http://127.0.0.1:3922/?studio=1".into()));
-        assert_eq!(studio_target(&with(OpenStudioIn::DefaultBrowser), 4000), StudioTarget::Browser("http://127.0.0.1:4000/?studio=1".into()));
+        assert_eq!(
+            studio_target(&with(OpenStudioIn::DefaultBrowser), 4000),
+            StudioTarget::Browser("http://127.0.0.1:4000/?studio=1".into())
+        );
     }
 
     #[test]

@@ -333,11 +333,11 @@ export default function StreamDeck(p: StreamDeckProps) {
                   {pages && (
                     <>
                       <button type="button" aria-label="Previous page" onClick={() => turn("prev")} className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-white/[0.07]">
-                        <Icon name="chevron_left" className="text-[18px]" />
+                        <Icon name="chevron_left" className="text-display" />
                       </button>
                       <span>{pageText(deck.page.current, deck.page.total)}</span>
                       <button type="button" aria-label="Next page" onClick={() => turn("next")} className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-white/[0.07]">
-                        <Icon name="chevron_right" className="text-[18px]" />
+                        <Icon name="chevron_right" className="text-display" />
                       </button>
                     </>
                   )}

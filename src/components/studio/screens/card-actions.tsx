@@ -3,12 +3,11 @@
  * offer the same items in the same order (Screens' screen and saved cards, the InfoPanel home's profile cards).
  */
 import { Fragment, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { ChevronRight, MoreHorizontal, type LucideIcon } from "lucide-react";
 import { FOCUS_RING } from "@/components/ui/button";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
-import { ITEM, POPUP, SEPARATOR } from "../menu-styles";
 
 export interface CardAction {
   id: string;
@@ -69,56 +68,48 @@ export function CardMenu({ actions, label }: { actions: readonly CardAction[]; l
       >
         <MoreHorizontal className="h-3.5 w-3.5" />
       </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Menu.Popup
-            className={POPUP}
-            onClick={(e) => e.stopPropagation()}
-            finalFocus={() => {
-              const skip = toField.current;
-              toField.current = false;
-              return !skip;
-            }}
-          >
-            {actions.map((a, i) => (
-              <Fragment key={a.id}>
-                {a.danger && i > 0 && !actions[i - 1].danger && <Menu.Separator className={SEPARATOR} />}
-                {a.submenu ? (
-                  <Menu.SubmenuRoot>
-                    <Menu.SubmenuTrigger className={ITEM} disabled={a.disabled} title={a.title}>
-                      <ActionLabel action={a} />
-                      <ChevronRight className="h-3 w-3 text-ui-4" />
-                    </Menu.SubmenuTrigger>
-                    <Menu.Portal>
-                      <Menu.Positioner className="z-[80]" sideOffset={4} alignOffset={-4}>
-                        <Menu.Popup className={POPUP} onClick={(e) => e.stopPropagation()}>
-                          {a.submenu.map((sub) => (
-                            <Menu.Item key={sub.id} className={ITEM} disabled={sub.disabled} title={sub.title} onClick={sub.run}>
-                              <ActionLabel action={sub} />
-                            </Menu.Item>
-                          ))}
-                        </Menu.Popup>
-                      </Menu.Positioner>
-                    </Menu.Portal>
-                  </Menu.SubmenuRoot>
-                ) : (
-                  <Menu.Item
-                    className={cn(ITEM, a.danger && "text-ui-danger data-disabled:text-ui-hint")}
-                    disabled={a.disabled}
-                    title={a.title}
-                    onClick={() => {
-                      toField.current = Boolean(a.focusesField);
-                      a.run();
-                    }}
-                  >
-                    <ActionLabel action={a} />
-                  </Menu.Item>
-                )}
-              </Fragment>
-            ))}
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
+      <Menu.Content
+        align="end"
+        onClick={(e) => e.stopPropagation()}
+        finalFocus={() => {
+          const skip = toField.current;
+          toField.current = false;
+          return !skip;
+        }}
+      >
+        {actions.map((a, i) => (
+          <Fragment key={a.id}>
+            {a.danger && i > 0 && !actions[i - 1].danger && <Menu.Separator />}
+            {a.submenu ? (
+              <Menu.SubmenuRoot>
+                <Menu.SubmenuTrigger disabled={a.disabled} title={a.title}>
+                  <ActionLabel action={a} />
+                  <ChevronRight className="h-3 w-3 text-ui-4" />
+                </Menu.SubmenuTrigger>
+                <Menu.Content alignOffset={-4} onClick={(e) => e.stopPropagation()}>
+                  {a.submenu.map((sub) => (
+                    <Menu.Item key={sub.id} disabled={sub.disabled} title={sub.title} onClick={sub.run}>
+                      <ActionLabel action={sub} />
+                    </Menu.Item>
+                  ))}
+                </Menu.Content>
+              </Menu.SubmenuRoot>
+            ) : (
+              <Menu.Item
+                danger={a.danger}
+                disabled={a.disabled}
+                title={a.title}
+                onClick={() => {
+                  toField.current = Boolean(a.focusesField);
+                  a.run();
+                }}
+              >
+                <ActionLabel action={a} />
+              </Menu.Item>
+            )}
+          </Fragment>
+        ))}
+      </Menu.Content>
     </Menu.Root>
   );
 }

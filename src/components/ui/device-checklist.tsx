@@ -32,11 +32,11 @@ export function DeviceChecklist({ devices, value, onChange, label, className }: 
             role="checkbox"
             aria-checked={on}
             onClick={() => toggle(d.id)}
-            className="relative flex h-7 items-center gap-2 rounded-md px-1.5 after:absolute after:-inset-y-0.5 after:inset-x-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ui-accent text-left text-[12.5px] text-ui-2 hover:bg-ui-hover"
+            className="relative flex h-7 items-center gap-2 rounded-md px-1.5 after:absolute after:-inset-y-0.5 after:inset-x-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ui-accent text-left text-small text-ui-2 hover:bg-ui-hover"
           >
             <span
               className={cn(
-                "flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border",
+                "flex h-4 w-4 shrink-0 items-center justify-center rounded-4 border",
                 on ? "border-ui-accent bg-ui-accent text-ui-inverse-fg" : "border-ui-control bg-ui-app"
               )}
             >

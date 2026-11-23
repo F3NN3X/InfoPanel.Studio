@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import type { PanelDef } from "@/lib/panel-model";
 import { hexToHsl } from "@/lib/theme";
 import { contrastOf } from "@/looks/status";
-import { flatOver, parseColour } from "./colour";
+import { cssColour, flatOver, parseColour } from "./colour";
 import { resolveT1, type Look } from "./look";
 
 /** A stack or grid panel on a pack Look (L67): the card's theme tokens and the check on an item's own colour. Built here so the entry carries none of it. */
@@ -70,5 +70,5 @@ export function chromeOf(look: Look): PackChrome {
   const bg = parseColour(t1.bg)?.hex ?? t1.bg;
   const [pageInk, pageMuted] = [t1.fg, t1.muted].map((c) => flatOver(c, bg));
   const holds = (color: string) => (contrastOf(color, bg) ?? 0) >= TEXT_MIN;
-  return { fill: t1.surface, ink, edge, muted, accent: t1.accent, panel, page: holds(pageInk) && holds(pageMuted) ? { ...panel.vars, color: pageInk } : undefined };
+  return { fill: t1.surface, ink, edge, muted, accent: cssColour(t1.accent), panel, page: holds(pageInk) && holds(pageMuted) ? { ...panel.vars, color: pageInk } : undefined };
 }

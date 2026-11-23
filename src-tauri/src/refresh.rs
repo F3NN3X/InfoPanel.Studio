@@ -31,11 +31,7 @@ struct Track {
     daily_day: Option<u32>,
 }
 
-static TRACK: Mutex<Track> = Mutex::new(Track {
-    unfocused_since: None,
-    stretch_done: false,
-    daily_day: None,
-});
+static TRACK: Mutex<Track> = Mutex::new(Track { unfocused_since: None, stretch_done: false, daily_day: None });
 
 /// The main window gained or lost focus.
 pub fn focus_changed(focused: bool) {
@@ -58,12 +54,8 @@ pub fn due(
     let unfocused_for = unfocused_for.filter(|_| awake)?;
     match mode {
         StudioRefresh::Off => None,
-        StudioRefresh::Idle => {
-            (unfocused_for >= IDLE_AFTER && !stretch_done).then_some("idle for 30 minutes")
-        }
-        StudioRefresh::Daily => clock
-            .is_some_and(|c| c.minute >= DAILY_FROM && daily_day != Some(c.day))
-            .then_some("daily at 04:00"),
+        StudioRefresh::Idle => (unfocused_for >= IDLE_AFTER && !stretch_done).then_some("idle for 30 minutes"),
+        StudioRefresh::Daily => clock.is_some_and(|c| c.minute >= DAILY_FROM && daily_day != Some(c.day)).then_some("daily at 04:00"),
     }
 }
 
@@ -71,21 +63,9 @@ pub fn due(
 fn local_clock() -> Option<Clock> {
     use windows_sys::Win32::Foundation::SYSTEMTIME;
     use windows_sys::Win32::System::SystemInformation::GetLocalTime;
-    let mut t = SYSTEMTIME {
-        wYear: 0,
-        wMonth: 0,
-        wDayOfWeek: 0,
-        wDay: 0,
-        wHour: 0,
-        wMinute: 0,
-        wSecond: 0,
-        wMilliseconds: 0,
-    };
+    let mut t = SYSTEMTIME { wYear: 0, wMonth: 0, wDayOfWeek: 0, wDay: 0, wHour: 0, wMinute: 0, wSecond: 0, wMilliseconds: 0 };
     unsafe { GetLocalTime(&mut t) };
-    Some(Clock {
-        day: u32::from(t.wYear) * 10_000 + u32::from(t.wMonth) * 100 + u32::from(t.wDay),
-        minute: t.wHour * 60 + t.wMinute,
-    })
+    Some(Clock { day: u32::from(t.wYear) * 10_000 + u32::from(t.wMonth) * 100 + u32::from(t.wDay), minute: t.wHour * 60 + t.wMinute })
 }
 
 #[cfg(not(windows))]
@@ -112,20 +92,11 @@ fn tick(app: &AppHandle) {
     let Some(window) = app.get_webview_window(MAIN) else {
         return;
     };
-    let awake = window.is_visible().unwrap_or(false)
-        && !window.is_minimized().unwrap_or(true)
-        && !crate::webview2::is_suspended();
+    let awake = window.is_visible().unwrap_or(false) && !window.is_minimized().unwrap_or(true) && !crate::webview2::is_suspended();
     let clock = local_clock();
     let reason = {
         let mut t = lock(&TRACK);
-        let reason = due(
-            st.settings().studio_refresh,
-            awake,
-            t.unfocused_since.map(|s| s.elapsed()),
-            t.stretch_done,
-            t.daily_day,
-            clock,
-        );
+        let reason = due(st.settings().studio_refresh, awake, t.unfocused_since.map(|s| s.elapsed()), t.stretch_done, t.daily_day, clock);
         if reason.is_some() {
             t.stretch_done = true;
             t.daily_day = clock.map(|c| c.day);
@@ -135,9 +106,7 @@ fn tick(app: &AppHandle) {
     let Some(reason) = reason else {
         return;
     };
-    let on_studio = window
-        .url()
-        .is_ok_and(|u| u.origin().ascii_serialization() == st.origin());
+    let on_studio = window.url().is_ok_and(|u| u.origin().ascii_serialization() == st.origin());
     if !on_studio {
         return;
     }

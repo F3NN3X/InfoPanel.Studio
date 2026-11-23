@@ -5,7 +5,8 @@ import { actionsLog, actionsState, changeActions, type ActionsState, type LogEnt
 import { readConfig, type StoredConfig } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useStore } from "../store";
-import { Button, Card, Group, Row, SwitchRow } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Card, Group, Row, SwitchRow } from "../ui";
 
 /*
  * Settings › Actions (pinned layer P7, decision 4, owner Q3): the switches for running commands from the panel and for going
@@ -55,14 +56,14 @@ function useActions() {
 
 function CommandRow({ command, where, approved, busy, onChange }: { command: string; where: string[]; approved: boolean; busy: boolean; onChange: (approve: boolean) => void }) {
   return (
-    <div className="flex flex-wrap items-start gap-3 px-[18px] py-3.5" data-command={command}>
-      <div className="flex min-w-48 flex-1 flex-col gap-[3px]">
+    <div className="flex flex-wrap items-start gap-3 px-4.5 py-3.5" data-command={command}>
+      <div className="flex min-w-48 flex-1 flex-col gap-0.75">
         {/* the whole command, never cut: it wraps */}
         <code className="whitespace-pre-wrap break-all font-mono text-caption text-s-t1">{command}</code>
         {where.length > 0 ? <span className="text-caption text-s-muted">{where.join(" · ")}</span> : <span className="text-caption text-s-muted">Not used on any screen now</span>}
       </div>
       <span className={cn("rounded-ui-lg px-2 py-0.5 text-caption", approved ? "bg-s-green/14 text-s-ok-text" : "bg-s-card-line text-s-muted")}>{approved ? "Approved" : "Off"}</span>
-      <Button kind={approved ? "danger" : "neutral"} disabled={busy} onClick={() => onChange(!approved)}>
+      <Button variant={approved ? "danger" : "secondary"} disabled={busy} onClick={() => onChange(!approved)}>
         {approved ? "Remove approval" : "Approve"}
       </Button>
     </div>
@@ -145,7 +146,7 @@ export function ActionsSection() {
               .reverse()
               .slice(0, LOG_SHOWN)
               .map((e, i) => (
-                <div key={`${e.at}-${i}`} className="flex flex-wrap items-center gap-3 px-[18px] py-2.5">
+                <div key={`${e.at}-${i}`} className="flex flex-wrap items-center gap-3 px-4.5 py-2.5">
                   <span className={cn("rounded-ui-lg px-2 py-0.5 text-caption", OUTCOMES[e.outcome]?.className)}>{OUTCOMES[e.outcome]?.label ?? e.outcome}</span>
                   <code className="min-w-0 flex-1 break-all font-mono text-caption text-s-t1">{e.command ?? "(no command read)"}</code>
                   <span className="text-caption text-s-muted">

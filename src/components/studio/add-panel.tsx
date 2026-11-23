@@ -1,7 +1,11 @@
-import { onRovingKeyDown } from "@/lib/roving";
+import { Tabs } from "@/components/ui/tabs";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { INFOPANEL_CHIP, startTab, useAddChip, type AddFilter } from "./add-prefs";
-import { FilePlus2, FileUp, Search, SquareDashedMousePointer, X, type LucideIcon } from "lucide-react";
+import { FilePlus2, FileUp, Search, SlidersHorizontal, SquareDashedMousePointer, X, type LucideIcon } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
+import { PopoverParts } from "@/components/ui/popover";
+import { Segmented } from "@/components/ui/segmented";
+import { Toggle } from "@/components/ui/toggle";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { iconFor } from "@/widgets/core/icons";
@@ -59,6 +63,9 @@ export interface AddPanelProps {
   onNewInfoPanel?: () => void;
   density: AddListDensity;
   previewOnHover: boolean;
+  /** The panel's "View options" (list density, preview on hover); without both, the menu isn't offered. */
+  onDensityChange?: (density: AddListDensity) => void;
+  onPreviewOnHoverChange?: (on: boolean) => void;
   /** What the preview renders the widget under: the page's style and theme. */
   appearance?: Appearance;
   pageStyle?: CSSProperties;
@@ -175,6 +182,8 @@ export function AddPanel({
   onNewInfoPanel,
   density,
   previewOnHover,
+  onDensityChange,
+  onPreviewOnHoverChange,
   appearance,
   pageStyle,
   layoutsOff,
@@ -435,8 +444,8 @@ export function AddPanel({
 
   return (
     <div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 px-2.5 pt-2.5">
-        <label className="flex h-8 items-center gap-2 rounded-ui-md border border-ui-default bg-ui-tile px-2.5 focus-within:border-ui-edge">
+      <div className="flex shrink-0 items-center gap-1.5 px-2.5 pt-2.5">
+        <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-ui-md border border-ui-default bg-ui-tile px-2.5 focus-within:border-ui-edge">
           <Search className="h-4 w-4 shrink-0 text-ui-hint" strokeWidth={1.75} aria-hidden />
           <input
             ref={inputRef}
@@ -461,37 +470,28 @@ export function AddPanel({
                 changeQuery("");
                 inputRef.current?.focus();
               }}
-              className={cn("flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-ui-default text-ui-2 hover:text-ui-1", FOCUS)}
+              className={cn("flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-ui-default text-ui-2 hover:text-ui-1", FOCUS)}
             >
               <X className="h-3.5 w-3.5" />
             </button>
           ) : (
-            <kbd className="shrink-0 rounded-[4px] border border-ui-strong px-[5px] py-px font-ui-mono text-micro leading-[14px] text-ui-hint">/</kbd>
+            <kbd className="shrink-0 rounded-4 border border-ui-strong px-1.25 py-px font-ui-mono text-micro leading-3.5 text-ui-hint">/</kbd>
           )}
         </label>
+        {onDensityChange && onPreviewOnHoverChange && (
+          <ViewOptions density={density} onDensityChange={onDensityChange} previewOnHover={previewOnHover} onPreviewOnHoverChange={onPreviewOnHoverChange} />
+        )}
       </div>
 
-      <div role="tablist" aria-label="What to add" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="mx-2.5 mt-2 flex h-8 shrink-0 gap-0.5 rounded-ui-md bg-ui-app p-0.5">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            tabIndex={tab === t.id ? 0 : -1}
-            disabled={t.off !== undefined}
-            title={t.off}
-            onClick={() => pickKind(t.id)}
-            className={cn(
-              "flex min-w-0 flex-1 items-center justify-center rounded-ui-sm text-caption font-medium disabled:cursor-not-allowed disabled:opacity-40",
-              FOCUS,
-              tab === t.id ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1"
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label="What to add"
+        variant="pill"
+        tabs={tabs.map((t) => ({ value: t.id, label: t.label, disabled: t.off !== undefined, title: t.off }))}
+        value={tab}
+        onChange={pickKind}
+        className="mx-2.5 mt-2 h-8 shrink-0"
+        tabClassName="flex-1"
+      />
 
       {tiles && !inItems && !query.trim() && (
         <ChipRow chips={chips.join(" ")}>
@@ -514,8 +514,8 @@ export function AddPanel({
       )}
 
       {target && (
-        <div className="mx-2.5 mt-2.5 flex shrink-0 items-center gap-2.5 rounded-ui-md border border-ui-accent/35 bg-ui-accent/10 px-2.5 py-[9px]">
-          <SquareDashedMousePointer className="h-[18px] w-[18px] shrink-0 text-ui-accent-text" strokeWidth={1.75} aria-hidden />
+        <div className="mx-2.5 mt-2.5 flex shrink-0 items-center gap-2.5 rounded-ui-md border border-ui-accent/35 bg-ui-accent/10 px-2.5 py-2.25">
+          <SquareDashedMousePointer className="h-4.5 w-4.5 shrink-0 text-ui-accent-text" strokeWidth={1.75} aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="truncate text-body font-medium text-ui-1">
               Filling blank space · <span className="font-ui-mono text-micro">{sizeText(target.cols, target.rows)}</span>
@@ -652,15 +652,54 @@ function DoorRow({ compact, icon: Icon, title, note, onClick }: { compact: boole
     <button
       type="button"
       onClick={onClick}
-      className={cn("flex w-full items-center gap-2.5 rounded-ui-md px-2 text-left hover:bg-s-divider", compact ? "h-10" : "h-[52px]", FOCUS)}
+      className={cn("flex w-full items-center gap-2.5 rounded-ui-md px-2 text-left hover:bg-s-divider", compact ? "h-10" : "h-13", FOCUS)}
     >
-      <span className={cn("flex shrink-0 items-center justify-center rounded-ui-md border border-ui-default bg-ui-raised text-ui-2", compact ? "h-7 w-7" : "h-(--ui-h-field) w-[34px]")}>
-        <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+      <span className={cn("flex shrink-0 items-center justify-center rounded-ui-md border border-ui-default bg-ui-raised text-ui-2", compact ? "h-7 w-7" : "h-(--ui-h-field) w-8.5")}>
+        <Icon className="h-4.5 w-4.5" strokeWidth={1.6} />
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-body font-medium text-ui-1">{title}</span>
         {!compact && <span className="truncate text-micro text-ui-hint">{note}</span>}
       </span>
     </button>
+  );
+}
+
+const DENSITY_OPTIONS: { value: AddListDensity; label: string }[] = [
+  { value: "comfortable", label: "Comfortable" },
+  { value: "compact", label: "Compact" },
+];
+
+interface ViewOptionsProps {
+  density: AddListDensity;
+  onDensityChange: (density: AddListDensity) => void;
+  previewOnHover: boolean;
+  onPreviewOnHoverChange: (on: boolean) => void;
+}
+
+/** The panel's two view options: the same stored values as Settings › Studio › Panels. */
+function ViewOptions({ density, onDensityChange, previewOnHover, onPreviewOnHoverChange }: ViewOptionsProps) {
+  return (
+    <PopoverParts.Root>
+      <PopoverParts.Trigger
+        render={
+          <IconButton label="View options" size={32} bordered>
+            <SlidersHorizontal className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          </IconButton>
+        }
+      />
+      <PopoverParts.Content align="end" className="w-64 p-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-caption text-ui-3">Widget list</span>
+            <Segmented label="Widget list" options={DENSITY_OPTIONS} value={density} onChange={onDensityChange} stretch />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-body text-ui-1">Preview on hover</span>
+            <Toggle label="Preview on hover" checked={previewOnHover} onChange={onPreviewOnHoverChange} />
+          </div>
+        </div>
+      </PopoverParts.Content>
+    </PopoverParts.Root>
   );
 }

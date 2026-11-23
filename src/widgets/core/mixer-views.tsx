@@ -291,7 +291,7 @@ function Strip({ c, look, fit, unit, tone, live, meter }: { c: StripChannel; loo
 function More({ n, vertical }: { n: number; vertical: boolean }) {
   return (
     <span
-      className={cn("flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-[color:var(--w-track)] text-micro font-semibold leading-none tabular-nums text-[color:var(--w-muted)]", vertical ? "w-7 self-stretch" : "h-[18px]")}
+      className={cn("flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-[color:var(--w-track)] text-micro font-semibold leading-none tabular-nums text-[color:var(--w-muted)]", vertical ? "w-7 self-stretch" : "h-4.5")}
       title={`${n} more`}
       data-mixer-more={n}
     >

@@ -288,7 +288,10 @@ mod tests {
         assert_eq!(to_json(&first), to_stored_json(&first));
         assert_eq!(normalize(Some(&to_stored_json(&first).unwrap())), first);
         assert_eq!(to_json(&next).unwrap()["names"], json!({ "k2": "Keyboard" }));
-        assert_eq!(to_json(&first).unwrap(), json!({ "enabled": true, "intervalSec": 90, "lowPercent": 20, "hidden": ["k1"], "names": { "k1": "Mouse" } }));
+        assert_eq!(
+            to_json(&first).unwrap(),
+            json!({ "enabled": true, "intervalSec": 90, "lowPercent": 20, "hidden": ["k1"], "names": { "k1": "Mouse" } })
+        );
     }
 
     #[test]

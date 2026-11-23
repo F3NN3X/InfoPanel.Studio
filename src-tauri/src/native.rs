@@ -49,11 +49,7 @@ pub fn error_code(e: &StartError) -> Option<ErrorCode> {
 
 /// The line the server logs once it listens, for server.log.
 pub fn start_line(cfg: &ServerConfig, port: u16) -> String {
-    format!(
-        "InfoPanel Studio on http://{}:{port} (config: {})",
-        cfg.host,
-        cfg.config_file().display()
-    )
+    format!("InfoPanel Studio on http://{}:{port} (config: {})", cfg.host, cfg.config_file().display())
 }
 
 /// A running ips-server. Dropping it stops the server too, without waiting.
@@ -93,16 +89,8 @@ pub fn start(cfg: ServerConfig, home: Option<PathBuf>) -> Result<Native, StartEr
             .await;
         let _ = done_tx.send(());
     });
-    let (port, approvals) = bound_rx
-        .recv()
-        .map_err(|_| StartError::Other("the server task ended while starting".into()))??;
-    Ok(Native {
-        port,
-        approvals,
-        stop: Some(stop),
-        done,
-        task,
-    })
+    let (port, approvals) = bound_rx.recv().map_err(|_| StartError::Other("the server task ended while starting".into()))??;
+    Ok(Native { port, approvals, stop: Some(stop), done, task })
 }
 
 impl Native {
@@ -118,10 +106,7 @@ impl Native {
             let _ = stop.send(());
         }
         if self.done.recv_timeout(STOP_TIMEOUT) == Err(RecvTimeoutError::Timeout) {
-            log::warn!(
-                "the server did not stop within {} s; dropping it",
-                STOP_TIMEOUT.as_secs()
-            );
+            log::warn!("the server did not stop within {} s; dropping it", STOP_TIMEOUT.as_secs());
             self.task.abort();
         }
     }
@@ -163,10 +148,7 @@ mod tests {
         let cfg = server_config(&s, &paths(&root), true, "9.9.9");
         assert_eq!(cfg.host, "0.0.0.0");
         assert_eq!(cfg.port, 3942);
-        assert_eq!(
-            cfg.allowed_hosts,
-            request_guard::parse_allowed_hosts(Some("Panel.lan,kiosk"))
-        );
+        assert_eq!(cfg.allowed_hosts, request_guard::parse_allowed_hosts(Some("Panel.lan,kiosk")));
         assert!(cfg.allow_remote_edit && cfg.allow_remote_upload && cfg.debug);
         assert!(cfg.action_runner && !cfg.obs_stream);
         assert_eq!(cfg.agent_approvals, vec!["claude"]);
@@ -182,20 +164,13 @@ mod tests {
 
     #[test]
     fn bind_failures_map_to_codes() {
-        assert_eq!(
-            error_code(&StartError::AddrInUse("127.0.0.1:3922".into())),
-            Some(ErrorCode::AddrInUse)
-        );
-        assert_eq!(
-            error_code(&StartError::Access("0.0.0.0:80".into())),
-            Some(ErrorCode::Access)
-        );
+        assert_eq!(error_code(&StartError::AddrInUse("127.0.0.1:3922".into())), Some(ErrorCode::AddrInUse));
+        assert_eq!(error_code(&StartError::Access("0.0.0.0:80".into())), Some(ErrorCode::Access));
         assert_eq!(error_code(&StartError::Other("x".into())), None);
     }
 
     fn health(port: u16) -> serde_json::Value {
-        let r = crate::http::get("127.0.0.1", port, "/api/health", Duration::from_secs(2))
-            .expect("health answers");
+        let r = crate::http::get("127.0.0.1", port, "/api/health", Duration::from_secs(2)).expect("health answers");
         assert_eq!(r.status, 200);
         serde_json::from_str(&r.body).unwrap()
     }
@@ -207,10 +182,7 @@ mod tests {
         let home = root.join("home");
         let held = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let taken = held.local_addr().unwrap().port();
-        let s = Settings {
-            port: taken,
-            ..Settings::default()
-        };
+        let s = Settings { port: taken, ..Settings::default() };
         let cfg = server_config(&s, &paths(&root), false, "9.9.9");
         let Err(e) = start(cfg, Some(home.clone())) else {
             panic!("bound a port in use");
@@ -223,10 +195,7 @@ mod tests {
         let cfg = server_config(&Settings { port: first, ..s.clone() }, &paths(&root), false, "9.9.9");
         assert_eq!(
             start_line(&cfg, first),
-            format!(
-                "InfoPanel Studio on http://127.0.0.1:{first} (config: {})",
-                root.join("data").join("config.json").display()
-            )
+            format!("InfoPanel Studio on http://127.0.0.1:{first} (config: {})", root.join("data").join("config.json").display())
         );
         let server = start(cfg, Some(home.clone())).expect("starts");
         assert_eq!(server.port, first);

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowUpRight } from "lucide-react";
-import { Button, Card, Group, Row, Segmented, SelectRow, SwitchRow } from "@/settings/kit";
+import { Button } from "@/components/ui/button";
+import { Card, Group, Row, Segmented, SelectRow, SwitchRow } from "@/settings/parts";
 import { COMMON_LOCALES, resolveGeneral } from "@/lib/general";
 import type { DashboardConfig } from "@/lib/layout";
 import type { DashboardGeneralKey, SettingsPatch } from "@/lib/settings-patch";
@@ -126,7 +127,7 @@ export function SettingsDashboard({ config, onPatch, onExport, onReset, onOpenSc
       <Group navSection="danger" title="Danger zone">
         <Card>
           <Row label="Reset everything" hint="You'll be offered a backup first">
-            <Button kind="danger" onClick={() => setConfirmReset(true)}>
+            <Button variant="danger" onClick={() => setConfirmReset(true)}>
               Reset everything…
             </Button>
           </Row>

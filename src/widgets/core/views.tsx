@@ -34,7 +34,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
   const textLen = String(val ?? "–").length + (inlineUnit ? String(inlineUnit).length * 0.4 : 0);
   const fit = (base: number, avail: number) => ({ fontSize: Math.round(Math.max(13, Math.min(base, avail / (Math.max(2.5, textLen) * 0.62 * (sk.numWide ?? 1))))) });
   const value = (cls: string, base?: number, avail = 0) => (
-    <span data-part="num" {...c.ip} className={`${cls} ${c.blur ? "blur-[4px] hover:blur-0" : ""} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow || sk.numFill || sk.numChroma ? { ...(sk.numChroma && !sk.numGlow && !sk.numFill ? null : NUM_TINT), ...numGlowStyle(sk) } : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null), ...(none ? NO_VALUE : null) }}>
+    <span data-part="num" {...c.ip} className={`${cls} ${c.blur ? "blur-xs hover:blur-0" : ""} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow || sk.numFill || sk.numChroma ? { ...(sk.numChroma && !sk.numGlow && !sk.numFill ? null : NUM_TINT), ...numGlowStyle(sk) } : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null), ...(none ? NO_VALUE : null) }}>
       {val ?? "–"}
       {inlineUnit && !none && <Unit>{inlineUnit}</Unit>}
     </span>
@@ -46,11 +46,11 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
   const { tight: narrow, bare: bareLabel } = captionFit(c.label, w, w - 46);
   const label = c.label && (iconOnly ? (
     <div role="img" aria-label={String(c.label)} title={String(c.label)} className="flex min-w-0 items-center">
-      <Icon name={c.icon ?? icon} className="text-[14px] text-[color:var(--w-faint)]" />
+      <Icon name={c.icon ?? icon} className="text-lead text-[color:var(--w-faint)]" />
     </div>
   ) : (
     <div className={`flex min-w-0 items-center gap-1.5 text-micro font-medium uppercase ${narrow ? "tracking-[0.04em]" : "tracking-[0.08em]"} text-[color:var(--w-muted)]`} style={labelStyle()}>
-      {!bareLabel && <Icon name={c.icon ?? icon} className="text-[14px] text-[color:var(--w-accent)]" />}
+      {!bareLabel && <Icon name={c.icon ?? icon} className="text-lead text-[color:var(--w-accent)]" />}
       <span data-part="label" className="truncate">{c.label}</span>
     </div>
   ));
@@ -105,7 +105,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
         <div className="relative mt-auto min-h-0 flex-1">
           {kind === "spark" && <Spark values={c.hist} min={c.min} max={c.max} color={c.color} className="absolute inset-0 h-full" />}
           {(kind === "bar" || kind === "ring") && (
-            <div data-qa-bleed className="absolute inset-y-0 left-0 right-0 mx-auto flex w-full max-w-[56px] flex-col justify-end overflow-hidden rounded-xl bg-[color:var(--w-track)]">
+            <div data-qa-bleed className="absolute inset-y-0 left-0 right-0 mx-auto flex w-full max-w-14 flex-col justify-end overflow-hidden rounded-xl bg-[color:var(--w-track)]">
               {/* the fill slides by transform (no layout per tick); the track clips it on purpose, so the probe skips it */}
               <div className="h-full w-full rounded-xl transition-transform duration-700 ease-out" style={{ ...slideY(clamp(c.pct!)), background: TONES[c.t ?? "ok"] }} />
             </div>
@@ -135,7 +135,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
       ) : (
         <>
           <div className={`${hero ? "my-auto" : "mt-auto"} flex flex-col gap-1`}>
-            {textVal ? <span {...c.ip} className={`${tiny ? "text-body" : "text-sm"} ${c.blur ? "blur-[4px] hover:blur-0" : ""} line-clamp-2 font-semibold leading-tight`}>{val}</span> : (hero && c.lead ? <div className="flex min-w-0 items-center gap-3">{c.lead}{value("", Math.round(h * 0.26), w - 26 - 52)}</div> : value("", tiny ? 22 : hero ? Math.round(h * 0.26) : w < 160 || h < 160 ? 24 : 34, w - 26))}
+            {textVal ? <span {...c.ip} className={`${tiny ? "text-body" : "text-sm"} ${c.blur ? "blur-xs hover:blur-0" : ""} line-clamp-2 font-semibold leading-tight`}>{val}</span> : (hero && c.lead ? <div className="flex min-w-0 items-center gap-3">{c.lead}{value("", Math.round(h * 0.26), w - 26 - 52)}</div> : value("", tiny ? 22 : hero ? Math.round(h * 0.26) : w < 160 || h < 160 ? 24 : 34, w - 26))}
             {caption}
             {c.sub && !(tiny && (kind === "spark" || kind === "bar" || textVal)) && <span className="truncate text-micro text-[color:var(--w-faint)]">{c.sub}</span>}
           </div>
@@ -161,13 +161,13 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
   const toneC = c.t && c.t !== "ok" ? TONES[c.t] : undefined;
   const label = (className = "") => (c.label || c.right || c.live != null) && (
     <div className={`flex min-w-0 shrink-0 items-center gap-1.5 text-micro uppercase tracking-[0.06em] text-[color:var(--w-muted)] ${className}`} style={{ ...mono, ...labelStyle() }}>
-      {c.live != null && <span className="h-[5px] w-[5px] shrink-0 rounded-full" style={{ background: c.live ? "oklch(0.75 0.15 150)" : "#52525b" }} />}
+      {c.live != null && <span className="h-1.25 w-1.25 shrink-0 rounded-full" style={{ background: c.live ? "oklch(0.75 0.15 150)" : "#52525b" }} />}
       {c.label && <span data-part="label" className="truncate">{c.label}</span>}
       {c.right && <span className="ml-auto shrink-0 normal-case tracking-normal text-[color:var(--w-muted)]">{c.right}</span>}
     </div>
   );
   const thin = (pct: number, className = "") => (
-    <div className={`h-[3px] shrink-0 overflow-hidden rounded-[2px] bg-[color:var(--w-track)] ${className}`}>
+    <div className={`h-0.75 shrink-0 overflow-hidden rounded-2 bg-[color:var(--w-track)] ${className}`}>
       <div className="h-full w-full transition-transform duration-500" style={{ ...scaleX(clamp(pct)), background: toneC ?? "var(--w-accent)" }} />
     </div>
   );
@@ -203,10 +203,10 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
     return (
       <div className="flex h-full min-w-0 flex-col">
         <div className="flex min-h-0 flex-1 items-center gap-2.5">
-          <div className="aspect-square h-full max-h-[160px] shrink-0 overflow-hidden rounded-md" style={{ maxWidth: Math.max(24, Math.round((w - 26) * 0.5)) }}>
+          <div className="aspect-square h-full max-h-40 shrink-0 overflow-hidden rounded-md" style={{ maxWidth: Math.max(24, Math.round((w - 26) * 0.5)) }}>
             <Img src={c.img} icon={c.icon ?? icon} className="h-full w-full" />
           </div>
-          <div className="flex min-w-0 flex-col gap-[3px]">
+          <div className="flex min-w-0 flex-col gap-0.75">
             <span {...c.ip} className={`${h > 200 ? "text-[17px]" : "text-sm"} line-clamp-2 font-semibold leading-tight`}>{val}</span>
             {c.sub && <span className="truncate text-micro text-[color:var(--w-muted)]">{c.sub}</span>}
           </div>
@@ -230,7 +230,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
         <div className="mt-2 flex min-h-0 flex-1 gap-2">
           {c.meters.slice(0, n).map((m, i) => (
             <div key={i} className="flex min-w-0 flex-1 flex-col gap-1">
-              <div className="relative min-h-0 flex-1 overflow-hidden rounded-[3px] bg-[color:var(--w-track)]">
+              <div className="relative min-h-0 flex-1 overflow-hidden rounded-3 bg-[color:var(--w-track)]">
                 <div className="absolute inset-0 transition-transform duration-300" style={{ ...scaleY(clamp(m.v)), background: "var(--w-accent)", ...motionOf(sk, "base") }} />
               </div>
               <span className="truncate text-center text-micro text-[color:var(--w-muted)]">{m.n}</span>
@@ -248,12 +248,12 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
       <div className="flex h-full min-w-0 flex-col">
         {label()}
         {head && <div className="mt-2">{big(26)}</div>}
-        <div className="mt-auto flex flex-col gap-[7px] pt-2">
+        <div className="mt-auto flex flex-col gap-1.75 pt-2">
           {c.rows.slice(0, n).map((r, i) => (
-            <div key={i} className="flex min-w-0 flex-col gap-[3px]">
+            <div key={i} className="flex min-w-0 flex-col gap-0.75">
               <div className="flex min-w-0 items-baseline justify-between gap-2 text-micro">
                 <span className="flex min-w-0 items-center gap-1.5 font-medium">
-                  {r.dot != null && <span className="h-[5px] w-[5px] shrink-0 rounded-full" style={{ background: r.dot ? "oklch(0.75 0.15 150)" : "#52525b" }} />}
+                  {r.dot != null && <span className="h-1.25 w-1.25 shrink-0 rounded-full" style={{ background: r.dot ? "oklch(0.75 0.15 150)" : "#52525b" }} />}
                   <span className="truncate">{r.n}</span>
                 </span>
                 <span className="min-w-0 truncate tabular-nums text-[color:var(--w-muted)]">{r.v}</span>
@@ -270,9 +270,9 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
     return (
       <div className="flex h-full min-w-0 flex-col">
         {label()}
-        <div className="mt-2 grid min-h-0 flex-1 gap-[3px]" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridAutoRows: "minmax(0,1fr)" }}>
+        <div className="mt-2 grid min-h-0 flex-1 gap-0.75" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridAutoRows: "minmax(0,1fr)" }}>
           {c.cells.map((v, i) => (
-            <span key={i} className="rounded-[3px]" style={{ background: `color-mix(in oklab, var(--w-accent) ${8 + clamp(v) * 0.92}%, var(--w-track))` }} />
+            <span key={i} className="rounded-3" style={{ background: `color-mix(in oklab, var(--w-accent) ${8 + clamp(v) * 0.92}%, var(--w-track))` }} />
           ))}
         </div>
         <div className="mt-2 flex items-baseline justify-between gap-2">
@@ -361,19 +361,19 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
   if (kind === "tui")
     return (
       <>
-        <div ref={tuiRight.leftRef} data-part="header" className="absolute left-3 top-[5px] z-10 flex max-w-[70%] -translate-y-1/2 items-center px-1 text-[11px] leading-none" style={{ background: bg }}>
+        <div ref={tuiRight.leftRef} data-part="header" className="absolute left-3 top-1.25 z-10 flex max-w-[70%] -translate-y-1/2 items-center px-1 text-[11px] leading-none" style={{ background: bg }}>
           <span style={{ color: mix(55, "#52525b") }}>┐</span>
           <span className="truncate px-0.5 font-semibold lowercase text-[color:var(--w-accent)]" style={{ textTransform: "var(--wp-label-case, lowercase)" as CSSProperties["textTransform"] }}>{title}</span>
           <span style={{ color: mix(55, "#52525b") }}>┌</span>
         </div>
-        {right && tuiRight.fits && <div ref={tuiRight.rightRef} className="absolute right-3 top-[5px] z-10 flex -translate-y-1/2 items-center gap-1 px-1 text-micro leading-none text-[color:var(--w-muted)]" style={{ background: bg }}>{right}</div>}
+        {right && tuiRight.fits && <div ref={tuiRight.rightRef} className="absolute right-3 top-1.25 z-10 flex -translate-y-1/2 items-center gap-1 px-1 text-micro leading-none text-[color:var(--w-muted)]" style={{ background: bg }}>{right}</div>}
       </>
     );
   const base = "relative z-10 flex min-w-0 items-center";
   if (kind === "macos")
     return (
       <header data-part="header" className={`${base} mb-2 gap-1.5 text-[13px] font-semibold text-[color:var(--w-accent)]`} style={st("none")}>
-        {icon && <Icon name={icon} fill className="text-[16px]" />}
+        {icon && <Icon name={icon} fill className="text-head" />}
         <span className="truncate">{title}</span>
         {r && <span className="ml-auto text-[12px] font-normal text-[color:var(--w-muted)]">{right}</span>}
       </header>
@@ -381,7 +381,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
   if (kind === "fluent")
     return (
       <header data-part="header" className={`${base} mb-2 gap-2 text-[12px] font-medium text-[color:var(--w-fg)]`} style={st("none")}>
-        {icon && <Icon name={icon} className="text-[16px] text-[color:var(--w-accent)]" />}
+        {icon && <Icon name={icon} className="text-head text-[color:var(--w-accent)]" />}
         <span className="truncate">{title}</span>
         {r}
       </header>
@@ -390,7 +390,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
     return (
       <header data-part="header" className={`${base} mb-2 gap-2 text-micro uppercase tracking-[0.28em] text-[color:var(--w-accent)]`} style={st("uppercase")}>
         <span className="truncate">{title}</span>
-        <span className="h-px min-w-[12px] flex-1" style={{ background: mix(35) }} />
+        <span className="h-px min-w-3 flex-1" style={{ background: mix(35) }} />
         {right && <span className="shrink-0 tracking-[0.1em] text-[color:var(--w-muted)]">{right}</span>}
       </header>
     );
@@ -403,7 +403,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
     );
   if (kind === "ios")
     return (
-      <header data-part="header" className={`${base} mb-1.5 gap-1.5 text-[12.5px] font-semibold text-[color:var(--w-accent)]`} style={st("none")}>
+      <header data-part="header" className={`${base} mb-1.5 gap-1.5 text-small font-semibold text-[color:var(--w-accent)]`} style={st("none")}>
         {icon && <Icon name={icon} fill className="text-[15px]" />}
         <span className="truncate">{title}</span>
         {r && <span className="ml-auto text-[12px] font-medium text-[color:var(--w-faint)]">{right}</span>}
@@ -414,7 +414,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
       <header data-part="header" className={`${base} mb-2.5 gap-2 text-[13px] font-medium`} style={{ color: mix(55, "var(--w-fg)"), ...st("none") }}>
         {icon && (
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: mix(28, "#1b1b1f") }}>
-            <Icon name={icon} fill className="text-[16px]" />
+            <Icon name={icon} fill className="text-head" />
           </span>
         )}
         <span className="truncate">{title}</span>
@@ -434,7 +434,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
   if (kind === "tab-label" || kind === "label-bar")
     return (
       <header data-part="header" className={`${base} mb-2 gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em]`} style={st("uppercase")}>
-        <span data-part="tab" className={`-my-0.5 flex min-w-0 items-center gap-1.5 rounded-[2px] px-2 py-0.5${kind === "label-bar" ? " pr-3" : ""}`} style={{ background: sk.headerFill ?? (kind === "label-bar" ? "var(--w-accent)" : "var(--w-fg)"), color: bg, ...(kind === "label-bar" ? { clipPath: "polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%)" } : null) }}>
+        <span data-part="tab" className={`-my-0.5 flex min-w-0 items-center gap-1.5 rounded-2 px-2 py-0.5${kind === "label-bar" ? " pr-3" : ""}`} style={{ background: sk.headerFill ?? (kind === "label-bar" ? "var(--w-accent)" : "var(--w-fg)"), color: bg, ...(kind === "label-bar" ? { clipPath: "polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%)" } : null) }}>
           {icon && <Icon name={icon} className="text-[13px]" />}
           <span className="truncate">{title}</span>
         </span>
@@ -458,7 +458,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
         <span aria-hidden>[</span>
         <span className="truncate">{title}</span>
         <span aria-hidden>]</span>
-        <span aria-hidden className="h-px min-w-[8px] flex-1" style={{ background: mix(35) }} />
+        <span aria-hidden className="h-px min-w-2 flex-1" style={{ background: mix(35) }} />
         {right && <span className="shrink-0 normal-case tracking-normal">{right}</span>}
       </header>
     );
@@ -476,7 +476,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
       <header data-part="header" className={`${base} mb-2 gap-2 text-[13px] font-medium text-[color:var(--w-fg)]`} style={st("none")}>
         {icon && (
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: mix(22), color: "var(--w-accent)" }}>
-            <Icon name={icon} className="text-[14px]" />
+            <Icon name={icon} className="text-lead" />
           </span>
         )}
         <span className="truncate">{title}</span>
@@ -492,7 +492,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
     );
   if (kind === "brutal")
     return (
-      <header data-part="header" className={`${base} -mx-[2px] -mt-[2px] mb-3 gap-2`} style={st("uppercase")}>
+      <header data-part="header" className={`${base} -mx-0.5 -mt-0.5 mb-3 gap-2`} style={st("uppercase")}>
         <span className="truncate bg-[var(--w-accent)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-black">{title}</span>
         {r}
       </header>

@@ -303,7 +303,7 @@ export function SettingRow({
       // The field draws its own label (with Upload and the library); the dot sits before it.
       return (
         <div className="flex gap-2">
-          {lead && <span className="pt-[5px]">{lead}</span>}
+          {lead && <span className="pt-1.25">{lead}</span>}
           <div className="min-w-0 flex-1">
             <MediaField
               label={def.label}

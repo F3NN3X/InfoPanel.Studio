@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Popover } from "@base-ui/react/popover";
+import { PopoverParts } from "@/components/ui/popover";
 import { Monitor } from "lucide-react";
 import type { MonitorProfile } from "@/lib/layout";
 import { importedFromInfoPanel } from "@/lib/screens/list";
@@ -37,8 +37,8 @@ export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage, 
     onSelect(profileId, toPage);
   };
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger
+    <PopoverParts.Root open={open} onOpenChange={setOpen}>
+      <PopoverParts.Trigger
         title="Switch screen or page"
         aria-description={kind}
         className="flex min-w-0 shrink flex-col whitespace-nowrap rounded-ui-sm px-1 text-left leading-tight transition-colors hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
@@ -47,62 +47,58 @@ export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage, 
           {profile.name}
           {compact && <span className="font-normal text-ui-3"> / {page.name}</span>}
         </span>
-        <span className="font-ui-mono text-micro text-ui-hint max-[1279px]:hidden">
+        <span className="font-ui-mono text-micro text-ui-hint max-xl:hidden">
           {profile.width} × {profile.height} · {profile.cols} × {profile.rows} grid
         </span>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner side="bottom" align="start" sideOffset={6} className="z-[80]">
-          <Popover.Popup className="w-[300px] rounded-[10px] border border-ui-menu bg-ui-raised p-1 font-ui text-body text-ui-2 shadow-ui-menu outline-none">
-            <p className="px-2 pb-1 pt-1.5 text-micro text-ui-hint">
-              {kind} · {profile.name}
-            </p>
-            {profiles.map((p) => (
-              <div key={p.id}>
-                <button type="button" className={cn(ROW, "h-8")} onClick={() => choose(p.id, p.id === profile.id ? page.id : p.pages[0].id)}>
-                  <Monitor className="h-4 w-4 shrink-0 text-ui-3" strokeWidth={1.75} />
-                  <span className={cn("min-w-0 flex-1 truncate", p.id === profile.id ? "font-medium text-ui-1" : "text-ui-2")}>{p.name}</span>
-                  <span className="font-ui-mono text-micro text-ui-4">
-                    {p.width}×{p.height}
-                  </span>
+      </PopoverParts.Trigger>
+      <PopoverParts.Content side="bottom" align="start" sideOffset={6} className="w-75 rounded-10 p-1 text-body">
+        <p className="px-2 pb-1 pt-1.5 text-micro text-ui-hint">
+          {kind} · {profile.name}
+        </p>
+        {profiles.map((p) => (
+          <div key={p.id}>
+            <button type="button" className={cn(ROW, "h-8")} onClick={() => choose(p.id, p.id === profile.id ? page.id : p.pages[0].id)}>
+              <Monitor className="h-4 w-4 shrink-0 text-ui-3" strokeWidth={1.75} />
+              <span className={cn("min-w-0 flex-1 truncate", p.id === profile.id ? "font-medium text-ui-1" : "text-ui-2")}>{p.name}</span>
+              <span className="font-ui-mono text-micro text-ui-4">
+                {p.width}×{p.height}
+              </span>
+            </button>
+            {p.id === profile.id &&
+              p.pages.map((pg) => (
+                <button
+                  key={pg.id}
+                  type="button"
+                  className={cn(ROW, "h-7 pl-8", pg.id === page.id ? "text-ui-1" : "text-ui-hint")}
+                  onClick={() => choose(p.id, pg.id)}
+                >
+                  <span className="truncate">{pg.name}</span>
                 </button>
-                {p.id === profile.id &&
-                  p.pages.map((pg) => (
-                    <button
-                      key={pg.id}
-                      type="button"
-                      className={cn(ROW, "h-7 pl-8", pg.id === page.id ? "text-ui-1" : "text-ui-hint")}
-                      onClick={() => choose(p.id, pg.id)}
-                    >
-                      <span className="truncate">{pg.name}</span>
-                    </button>
-                  ))}
-              </div>
-            ))}
-            <div className="mx-1 my-1 h-px bg-ui-subtle" />
-            <button
-              type="button"
-              className={cn(ROW, "h-8")}
-              onClick={() => {
-                setOpen(false);
-                onManage();
-              }}
-            >
-              Manage screens…
-            </button>
-            <button
-              type="button"
-              className={cn(ROW, "h-8")}
-              onClick={() => {
-                setOpen(false);
-                onScreenSettings();
-              }}
-            >
-              Screen settings…
-            </button>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+              ))}
+          </div>
+        ))}
+        <div className="mx-1 my-1 h-px bg-ui-subtle" />
+        <button
+          type="button"
+          className={cn(ROW, "h-8")}
+          onClick={() => {
+            setOpen(false);
+            onManage();
+          }}
+        >
+          Manage screens…
+        </button>
+        <button
+          type="button"
+          className={cn(ROW, "h-8")}
+          onClick={() => {
+            setOpen(false);
+            onScreenSettings();
+          }}
+        >
+          Screen settings…
+        </button>
+      </PopoverParts.Content>
+    </PopoverParts.Root>
   );
 }

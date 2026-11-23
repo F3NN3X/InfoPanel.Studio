@@ -5,7 +5,9 @@ import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { useFound, useStore } from "../store";
 import type { AgentName, AgentStatus, HookState, SetAgentsResult } from "../types";
-import { Button, Card, Group, Row, Switch, SwitchRow } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
+import { Card, Group, Row, SwitchRow } from "../ui";
 
 const AGENT_NAMES: Record<AgentName, string> = { claude: "Claude Code", codex: "Codex" };
 
@@ -95,7 +97,7 @@ function Approvals({ connected }: { connected: boolean }) {
               .reverse()
               .slice(0, LOG_SHOWN)
               .map((e, i) => (
-                <div key={`${e.at}-${i}`} className="flex flex-wrap items-center gap-3 px-[18px] py-2.5">
+                <div key={`${e.at}-${i}`} className="flex flex-wrap items-center gap-3 px-4.5 py-2.5">
                   <span className={cn("rounded-ui-lg px-2 py-0.5 text-caption", ANSWERS[e.answer]?.className)}>{ANSWERS[e.answer]?.label ?? e.answer}</span>
                   <code className="min-w-0 flex-1 whitespace-pre-wrap break-all font-mono text-caption text-s-t1">{e.text || e.tool || "(no request read)"}</code>
                   <span className="text-caption text-s-muted">{[e.project, e.from, new Date(e.at).toLocaleString()].filter(Boolean).join(" · ")}</span>
@@ -154,17 +156,17 @@ export function AgentsSection() {
   return (
     <>
       <div className="overflow-hidden rounded-xl border border-s-card-line bg-s-card">
-        <div ref={found.ref} className={cn("flex items-center gap-4 px-[18px] py-4", found.className)}>
+        <div ref={found.ref} className={cn("flex items-center gap-4 px-4.5 py-4", found.className)}>
           <div className="grid h-9 w-9 place-items-center rounded-ui-menu bg-s-hover text-s-t2">
             <Terminal className="h-5 w-5" />
           </div>
-          <div className="flex flex-1 flex-col gap-[3px]">
+          <div className="flex flex-1 flex-col gap-0.75">
             <span className="text-lead font-medium">Connect coding agents</span>
             <span className="text-caption leading-[1.45] text-s-muted">Shows Claude Code and Codex sessions on the dashboard</span>
           </div>
-          <Switch checked={enabled} onChange={(v) => void toggle(v)} label="Connect coding agents" disabled={busy} />
+          <Toggle checked={enabled} onChange={(v) => void toggle(v)} label="Connect coding agents" disabled={busy} />
         </div>
-        <div className="flex flex-col gap-2.5 border-t border-s-divider px-[18px] py-3.5">
+        <div className="flex flex-col gap-2.5 border-t border-s-divider px-4.5 py-3.5">
           <span className="text-caption text-s-dim">{enabled ? "Edited files" : "Files that will be edited"}</span>
           {files.map((f) => (
             <AgentFile key={f.agent} item={f} />

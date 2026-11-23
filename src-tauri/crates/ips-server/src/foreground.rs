@@ -26,7 +26,9 @@ pub fn exe_name(path: &str) -> Option<String> {
 #[cfg(windows)]
 pub fn foreground_exe() -> Option<String> {
     use windows_sys::Win32::Foundation::CloseHandle;
-    use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION};
+    use windows_sys::Win32::System::Threading::{
+        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
+    };
     use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
     // SAFETY: plain Win32 calls; the buffer outlives the call that fills it, and the handle is this function's to close.
     unsafe {

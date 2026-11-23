@@ -35,7 +35,7 @@ use crate::{js, store, App};
 
 /// A pack folder is at most this many bytes, a file at most `FILE_MAX_BYTES`, a pack at most `FILE_COUNT_MAX` files
 /// (the validator's `PACK_CEILING_BYTES`, `FILE_MAX_BYTES` and `FILE_COUNT_MAX`).
-pub const PACK_CEILING_BYTES: u64 = 512_000;
+pub const PACK_CEILING_BYTES: u64 = 1_024_000;
 pub const FILE_MAX_BYTES: u64 = 256_000;
 pub const FILE_COUNT_MAX: usize = 64;
 /// An import body: the pack as base64 in JSON, with room for the paths.
@@ -65,17 +65,24 @@ const SIG_FILE: &str = "pack.sig";
 /// A name Windows keeps for a device (`con`, `nul`, `com1`, ... with or without an extension): never a pack id or a file's stem.
 fn is_device_name(s: &str) -> bool {
     let stem = s.split('.').next().unwrap_or("");
-    matches!(stem, "con" | "prn" | "aux" | "nul") || (stem.len() == 4 && (stem.starts_with("com") || stem.starts_with("lpt")) && matches!(stem.as_bytes()[3], b'1'..=b'9'))
+    matches!(stem, "con" | "prn" | "aux" | "nul")
+        || (stem.len() == 4 && (stem.starts_with("com") || stem.starts_with("lpt")) && matches!(stem.as_bytes()[3], b'1'..=b'9'))
 }
 
 /// A pack id: lowercase letters, digits and hyphens, 1 to 48 characters, not starting with a hyphen, not a Windows device name.
 pub fn is_pack_id(s: &str) -> bool {
-    (1..=48).contains(&s.len()) && !is_device_name(s) && !s.starts_with('-') && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+    (1..=48).contains(&s.len())
+        && !is_device_name(s)
+        && !s.starts_with('-')
+        && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
 /// An asset's own name (before the extension): the same characters as an id, up to 64.
 fn is_asset_name(s: &str) -> bool {
-    (1..=64).contains(&s.len()) && !is_device_name(s) && !s.starts_with('-') && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+    (1..=64).contains(&s.len())
+        && !is_device_name(s)
+        && !s.starts_with('-')
+        && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
 /// A file of a pack by its path from the pack folder: one of the fixed names, or `assets/<name>.<ext>`. Nothing else is a
@@ -144,7 +151,9 @@ impl Packs {
                 None => temps.push(entry.path()),
             }
         }
-        asides.sort_by_key(|(_, path)| std::cmp::Reverse((std::fs::metadata(path.join("pack.json")).and_then(|m| m.modified()).ok(), path.clone())));
+        asides.sort_by_key(|(_, path)| {
+            std::cmp::Reverse((std::fs::metadata(path.join("pack.json")).and_then(|m| m.modified()).ok(), path.clone()))
+        });
         let mut kept = false;
         for (id, path) in asides {
             let dest = id.map(|id| self.dir.join(id));
@@ -265,7 +274,9 @@ impl Packs {
     }
 
     fn signed(&self, id: &str, root: &Path) -> bool {
-        let (Some(key), Some(files), Ok(signature)) = (pack_sign::load_key(&self.key_file()), stored_files(root), std::fs::read(root.join(SIG_FILE))) else {
+        let (Some(key), Some(files), Ok(signature)) =
+            (pack_sign::load_key(&self.key_file()), stored_files(root), std::fs::read(root.join(SIG_FILE)))
+        else {
             return false;
         };
         pack_sign::verify(&key, id, &pack_sign::content_hash(&files), &signature)
@@ -307,7 +318,10 @@ impl Packs {
         let size: u64 = files.iter().map(|(_, b)| b.len() as u64).sum();
         let others: u64 = listed(self).into_iter().filter(|(other, _)| other != id).map(|(_, bytes)| bytes).sum();
         if size > PACK_CEILING_BYTES || others + size > PACKS_TOTAL_BYTES {
-            return Ok(Err(refuse(413, format!("the pack is over {PACK_CEILING_BYTES} bytes, or the packs over {PACKS_TOTAL_BYTES} in all"))));
+            return Ok(Err(refuse(
+                413,
+                format!("the pack is over {PACK_CEILING_BYTES} bytes, or the packs over {PACKS_TOTAL_BYTES} in all"),
+            )));
         }
         let hash = pack_sign::content_hash(&files);
         if hash != claimed {
@@ -337,17 +351,99 @@ impl Packs {
 }
 
 /// Why the server will not sign `css`, or `None`: a deny-list behind the loader's allow-list (`user-css.ts`), so a signing request that
-/// skipped the studio still cannot carry an escape, an at-rule, markup or a url-like function. Comments are dropped first, as the
-/// grammar drops them, so a note that mentions one of these is no reason to refuse.
+/// skipped the studio still cannot carry an escape, an at-rule other than `@keyframes`, markup, a url-like function or a url that leaves
+/// the pack. Comments are dropped first, as the grammar drops them, so a note that mentions one of these is no reason to refuse.
 fn css_deny(css: &[u8]) -> Option<&'static str> {
     let Ok(text) = std::str::from_utf8(css) else {
         return Some("is not UTF-8");
     };
     let plain = strip_comments(text).to_ascii_lowercase();
-    if plain.contains('\\') ||plain.contains('@') || plain.contains('<') {
-        return Some("holds a backslash, an at-rule or markup");
+    if plain.contains('\\') || plain.contains('<') {
+        return Some("holds a backslash or markup");
     }
-    ["url(", "image-set(", "src("].iter().any(|f| plain.contains(f)).then_some("holds a url-like function")
+    if plain.match_indices('@').any(|(at, _)| !is_keyframes_at(&plain[at + 1..])) {
+        return Some("holds an at-rule other than @keyframes");
+    }
+    if ["image-set(", "src("].iter().any(|f| plain.contains(f)) {
+        return Some("holds a url-like function");
+    }
+    plain
+        .match_indices("url(")
+        .any(|(at, _)| !url_arg(&plain[at + 4..]).is_some_and(is_pack_relative_url))
+        .then_some("holds a url that is not a file of the pack")
+}
+
+/// Whether what follows an `@` is `keyframes`, white space and the start of a name.
+fn is_keyframes_at(rest: &str) -> bool {
+    let Some(after) = rest.strip_prefix("keyframes") else {
+        return false;
+    };
+    let name = after.trim_start_matches([' ', '\t', '\n', '\r', '\x0c']);
+    name.len() < after.len() && name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_' || c == '-')
+}
+
+/// The argument of a `url(` (`rest` starts after the parenthesis): a quoted string up to its closing quote, or the bare text up to
+/// the `)`, white space at either end dropped. `None` when it never closes, or a bare one holds white space or a quote inside.
+fn url_arg(rest: &str) -> Option<&str> {
+    let ws = [' ', '\t', '\n', '\r', '\x0c'];
+    let open = rest.trim_start_matches(ws);
+    if let Some(quote) = open.chars().next().filter(|c| *c == '"' || *c == '\'') {
+        let body = &open[1..];
+        let end = body.find(quote)?;
+        return body[end + 1..].trim_start_matches(ws).starts_with(')').then_some(&body[..end]);
+    }
+    let end = open.find(')')?;
+    let arg = open[..end].trim_end_matches(ws);
+    (!arg.contains(ws) && !arg.contains(['"', '\'', '('])).then_some(arg)
+}
+
+/// One spelling of a url: no control character or backslash, no scheme (a drive letter is one) or root path, no `..` step.
+fn plain_relative(u: &str) -> bool {
+    if u.is_empty() || u.chars().any(|c| c.is_control() || c == '\\') || u.starts_with('/') {
+        return false;
+    }
+    let scheme = u.find(':').is_some_and(|colon| {
+        let s = &u[..colon];
+        s.starts_with(|c: char| c.is_ascii_alphabetic()) && s.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '.' | '-'))
+    });
+    !scheme && !u.split(['/', '?', '#']).any(|step| step == "..")
+}
+
+/// `u` with its percent escapes decoded, or `None` for an escape that is not two hex digits or bytes that are not UTF-8.
+fn percent_decoded(u: &str) -> Option<String> {
+    let bytes = u.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut k = 0;
+    while k < bytes.len() {
+        if bytes[k] == b'%' {
+            let hex = u.get(k + 1..k + 3).filter(|h| h.bytes().all(|b| b.is_ascii_hexdigit()))?;
+            out.push(u8::from_str_radix(hex, 16).ok()?);
+            k += 3;
+        } else {
+            out.push(bytes[k]);
+            k += 1;
+        }
+    }
+    String::from_utf8(out).ok()
+}
+
+/// A url inside the pack, as `isPackRelativeUrl` (`pack-urls.ts`) reads it: relative as written and after each round of
+/// percent-decoding, stable within 5 rounds (a server that decodes before it joins the path finds no way out).
+fn is_pack_relative_url(url: &str) -> bool {
+    let mut u = url.trim().to_string();
+    for _ in 0..5 {
+        if !plain_relative(&u) {
+            return false;
+        }
+        let Some(next) = percent_decoded(&u) else {
+            return false;
+        };
+        if next == u {
+            return true;
+        }
+        u = next;
+    }
+    false
 }
 
 /// `text` without its comments, read as the CSS tokenizer reads it: a quote opens a string that runs to its closing quote (or the line's
@@ -485,7 +581,10 @@ fn listed(packs: &Packs) -> Vec<(String, u64)> {
 
 /// The `name` of a pack's `pack.json` (80 characters at most), else its id.
 fn name_of(root: &Path, id: &str) -> String {
-    let name = std::fs::read_to_string(root.join("pack.json")).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).and_then(|v| v.get("name")?.as_str().map(str::to_string));
+    let name = std::fs::read_to_string(root.join("pack.json"))
+        .ok()
+        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+        .and_then(|v| v.get("name")?.as_str().map(str::to_string));
     name.map_or_else(|| id.to_string(), |n| n.chars().take(80).collect())
 }
 
@@ -539,7 +638,9 @@ fn checked_import(body: &Value) -> Result<(String, Files), Refused> {
         if files.iter().any(|(p, _)| p == path) {
             return Err(refuse(400, format!("{path} is given twice")));
         }
-        let bytes = STANDARD.decode(f.get("data").and_then(Value::as_str).unwrap_or("")).map_err(|_| refuse(400, format!("{path} is not base64")))?;
+        let bytes = STANDARD
+            .decode(f.get("data").and_then(Value::as_str).unwrap_or(""))
+            .map_err(|_| refuse(400, format!("{path} is not base64")))?;
         if bytes.len() as u64 > FILE_MAX_BYTES {
             return Err(refuse(413, format!("{path} is over {FILE_MAX_BYTES} bytes")));
         }
@@ -703,7 +804,30 @@ mod tests {
         for ok in ["a", "my-pack", "0x", &"a".repeat(48)] {
             assert!(is_pack_id(ok), "{ok}");
         }
-        for bad in ["nul", "con", "aux", "prn", "com1", "lpt9", "com1.x", "", "-a", "A", "a_b", "a.b", "a/b", "a\\b", "..", ".", "a%2eb", "a b", "é", "a\0", "C:", &"a".repeat(49)] {
+        for bad in [
+            "nul",
+            "con",
+            "aux",
+            "prn",
+            "com1",
+            "lpt9",
+            "com1.x",
+            "",
+            "-a",
+            "A",
+            "a_b",
+            "a.b",
+            "a/b",
+            "a\\b",
+            "..",
+            ".",
+            "a%2eb",
+            "a b",
+            "é",
+            "a\0",
+            "C:",
+            &"a".repeat(49),
+        ] {
             assert!(!is_pack_id(bad), "{bad:?}");
         }
     }
@@ -722,7 +846,8 @@ mod tests {
     }
 
     fn names(dir: &Path) -> Vec<String> {
-        let mut left: Vec<String> = std::fs::read_dir(dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+        let mut left: Vec<String> =
+            std::fs::read_dir(dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
         left.sort();
         left
     }
@@ -802,11 +927,13 @@ mod tests {
         };
         let dir = tempfile::tempdir().unwrap();
         // whichever way the folder is read, one of these two pairs has its older copy first
-        let (older, newer) = (pack(dir.path(), &format!(".import-old-first-{UUID}")), pack(dir.path(), &format!(".import-old-first-{LATER}")));
+        let (older, newer) =
+            (pack(dir.path(), &format!(".import-old-first-{UUID}")), pack(dir.path(), &format!(".import-old-first-{LATER}")));
         marked(&older, "old");
         marked(&newer, "new");
         aged(&older);
-        let (newer, older) = (pack(dir.path(), &format!(".import-old-second-{UUID}")), pack(dir.path(), &format!(".import-old-second-{LATER}")));
+        let (newer, older) =
+            (pack(dir.path(), &format!(".import-old-second-{UUID}")), pack(dir.path(), &format!(".import-old-second-{LATER}")));
         marked(&older, "old");
         marked(&newer, "new");
         aged(&older);
@@ -866,13 +993,56 @@ mod tests {
 
     #[test]
     fn files_are_a_fixed_set_or_an_asset_of_a_known_type() {
-        for ok in ["pack.json", "look.json", "icons.json", "OFL.txt", "thumb.png", "assets/hazard.svg", "assets/geist-400.woff2", "assets/a.png", "assets/a.jpg", "assets/a.webp", "assets/a.gif"] {
+        for ok in [
+            "pack.json",
+            "look.json",
+            "icons.json",
+            "OFL.txt",
+            "thumb.png",
+            "assets/hazard.svg",
+            "assets/geist-400.woff2",
+            "assets/a.png",
+            "assets/a.jpg",
+            "assets/a.webp",
+            "assets/a.gif",
+        ] {
             assert!(is_pack_file(ok), "{ok}");
         }
         for bad in [
-            "", "pack.css", "pack.js", "Pack.json", "../pack.json", "assets/../pack.json", "assets/..", "assets//a.png", "/assets/a.png", "assets/", "assets/a", "assets/.png", "assets/a.PNG",
-            "assets/a.bmp", "assets/a.exe", "assets/a.svg.png", "assets/a/b.png", "assets\\a.png", "assets/a%2epng", "assets/a.png ", "assets/a.png\0", "assets/é.png", "C:/x.png", "//x/y.png",
-            "assets/a b.png", "assets/-a.png", "assets/a:b.png", "assets/a.png:stream", "assets/CON.png", "pack.json.", "pack.json/", "./pack.json", "assets/./a.png", "LOOK.md",
+            "",
+            "pack.css",
+            "pack.js",
+            "Pack.json",
+            "../pack.json",
+            "assets/../pack.json",
+            "assets/..",
+            "assets//a.png",
+            "/assets/a.png",
+            "assets/",
+            "assets/a",
+            "assets/.png",
+            "assets/a.PNG",
+            "assets/a.bmp",
+            "assets/a.exe",
+            "assets/a.svg.png",
+            "assets/a/b.png",
+            "assets\\a.png",
+            "assets/a%2epng",
+            "assets/a.png ",
+            "assets/a.png\0",
+            "assets/é.png",
+            "C:/x.png",
+            "//x/y.png",
+            "assets/a b.png",
+            "assets/-a.png",
+            "assets/a:b.png",
+            "assets/a.png:stream",
+            "assets/CON.png",
+            "pack.json.",
+            "pack.json/",
+            "./pack.json",
+            "assets/./a.png",
+            "LOOK.md",
         ] {
             assert!(!is_pack_file(bad), "{bad:?}");
         }
@@ -942,8 +1112,9 @@ mod tests {
         std::fs::write(root.join("assets/big.png"), vec![0u8; FILE_MAX_BYTES as usize + 1]).unwrap();
         assert!(measure(&root).is_none(), "a file over its cap");
         std::fs::remove_file(root.join("assets/big.png")).unwrap();
-        for k in 0..3 {
-            std::fs::write(root.join(format!("assets/f{k}.png")), vec![0u8; 200_000]).unwrap();
+        // files at the per-file cap, one more than the pack's cap holds
+        for k in 0..=PACK_CEILING_BYTES / FILE_MAX_BYTES {
+            std::fs::write(root.join(format!("assets/f{k}.png")), vec![0u8; FILE_MAX_BYTES as usize]).unwrap();
         }
         assert!(measure(&root).is_none(), "over the pack's cap");
         std::fs::remove_dir_all(root.join("assets")).unwrap();
@@ -955,6 +1126,67 @@ mod tests {
     fn files(list: &[(&str, &str)]) -> Value {
         let files: Vec<Value> = list.iter().map(|(p, c)| json!({ "path": p, "data": STANDARD.encode(c) })).collect();
         json!({ "id": "mine", "files": files })
+    }
+
+    #[test]
+    fn the_css_deny_list_lets_keyframes_through_and_no_other_at_rule() {
+        let deny = |css: &str| css_deny(css.as_bytes());
+        for ok in [
+            "@keyframes pack-x { to { opacity: 1; } }",
+            "@KEYFRAMES\n\tpack-x { to { opacity: 1; } }",
+            "@keyframes _x{}",
+            "/* @import url(https://x.test/a.css) */ [data-part=\"num\"] { color: #fff; }",
+        ] {
+            assert_eq!(deny(ok), None, "{ok}");
+        }
+        for bad in [
+            "@import \"a.css\";",
+            "@font-face { font-family: pack-x; }",
+            "@media screen { a { color: red; } }",
+            "@-webkit-keyframes pack-x {}",
+            "@keyframes{}",
+            "@keyframes 1x {}",
+            "@keyframespack-x {}",
+            "a { content: \"@\"; }",
+            "a { color: \\72 ed; }",
+            "<style>",
+        ] {
+            assert!(deny(bad).is_some(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn the_css_deny_list_lets_a_url_through_only_when_it_names_a_file_of_the_pack() {
+        let deny = |css: &str| css_deny(css.as_bytes());
+        for ok in [
+            "a { mask-image: url(a.svg); }",
+            "a { background: url(\"img/b.png\"); }",
+            "a { background: URL( 'assets/c.png' ); }",
+            "a { background: url(assets/a%20b.png); }",
+        ] {
+            assert_eq!(deny(ok), None, "{ok}");
+        }
+        for bad in [
+            "a { background: url(http://x.test/a.png); }",
+            "a { background: url(/x); }",
+            "a { background: url(../x); }",
+            "a { background: url(%2e%2e/x); }",
+            "a { background: url(%252e%252e/x); }",
+            "a { background: url(c:x); }",
+            "a { background: url(//x.test/a.png); }",
+            "a { background: url(assets/../../x); }",
+            "a { background: url(\"javascript:alert(1)\"); }",
+            "a { background: url(a%zz.png); }",
+            "a { background: url(a%ff.png); }",
+            "a { background: url(\"a.png\" x); }",
+            "a { background: url(a b.png); }",
+            "a { background: url(); }",
+            "a { background: url(a.png; }",
+            "a { background: image-set(\"a.png\" 1x); }",
+            "@font-face { src(\"a.woff2\"); }",
+        ] {
+            assert!(deny(bad).is_some(), "{bad}");
+        }
     }
 
     #[test]

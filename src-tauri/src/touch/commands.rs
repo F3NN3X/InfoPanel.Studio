@@ -63,28 +63,19 @@ pub fn touch_set(touch: State<'_, Touch>, key: String, value: Value) -> Result<(
 #[tauri::command]
 pub async fn touch_screens() -> Result<Vec<touch_core::discover::Touchscreen>, String> {
     log::debug!("ipc: touch_screens");
-    tauri::async_runtime::spawn_blocking(|| {
-        touch_core::discover::touchscreens().map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(|| touch_core::discover::touchscreens().map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Gives the touchscreen `vid`:`pid` back to Windows (one admin prompt), with the devices closed meanwhile.
 #[tauri::command]
-pub async fn touch_uninstall_driver(
-    app: AppHandle,
-    vid: u16,
-    pid: u16,
-) -> Result<driver::Uninstalled, String> {
+pub async fn touch_uninstall_driver(app: AppHandle, vid: u16, pid: u16) -> Result<driver::Uninstalled, String> {
     log::debug!("ipc: touch_uninstall_driver {vid:04x}:{pid:04x}");
     let dir = app.path().app_local_data_dir().map_err(|e| e.to_string())?;
-    tauri::async_runtime::spawn_blocking(move || {
-        app.state::<Touch>()
-            .while_stopped(|| driver::uninstall(&dir, vid, pid))
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || app.state::<Touch>().while_stopped(|| driver::uninstall(&dir, vid, pid)))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Applies one edit to touch.json (a missing file counts as `{}`) in one write. Nothing is written if the result would
@@ -95,27 +86,19 @@ pub fn edit(path: &Path, key: &str, value: Option<Value>) -> Result<(), Vec<Stri
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => "{}".into(),
         Err(e) => return Err(vec![format!("reading touch.json: {e}")]),
     };
-    let mut root: Value = serde_json::from_str(&text)
-        .map_err(|e| vec![format!("touch.json doesn't parse ({e}); fix it first")])?;
+    let mut root: Value = serde_json::from_str(&text).map_err(|e| vec![format!("touch.json doesn't parse ({e}); fix it first")])?;
     set_path(&mut root, key, value).map_err(|e| vec![e])?;
     let next = serde_json::to_string_pretty(&root).expect("a Value serialises") + "\n";
     let loaded = config::check(&next);
     if loaded.config.is_none() {
-        return Err(loaded
-            .issues
-            .into_iter()
-            .filter(|i| i.level == Level::Error)
-            .map(|i| i.message)
-            .collect());
+        return Err(loaded.issues.into_iter().filter(|i| i.level == Level::Error).map(|i| i.message).collect());
     }
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| vec![format!("writing touch.json: {e}")])?;
     }
     // Write-then-rename, so the reload never reads a half-written file.
     let tmp = path.with_extension("json.tmp");
-    std::fs::write(&tmp, next)
-        .and_then(|()| std::fs::rename(&tmp, path))
-        .map_err(|e| vec![format!("writing touch.json: {e}")])?;
+    std::fs::write(&tmp, next).and_then(|()| std::fs::rename(&tmp, path)).map_err(|e| vec![format!("writing touch.json: {e}")])?;
     log::info!("touch: {key} changed");
     Ok(())
 }
@@ -128,27 +111,20 @@ pub fn set_path(root: &mut Value, path: &str, value: Option<Value>) -> Result<()
     for p in parents {
         node = match node {
             Value::Array(items) => {
-                let i: usize = p
-                    .parse()
-                    .map_err(|_| format!("\"{p}\" in {path} is not an index"))?;
+                let i: usize = p.parse().map_err(|_| format!("\"{p}\" in {path} is not an index"))?;
                 items.get_mut(i).ok_or(format!("{path}: no element {i}"))?
             }
             _ => {
                 if !node.is_object() {
                     *node = Value::Object(Default::default());
                 }
-                node.as_object_mut()
-                    .expect("an object")
-                    .entry(p.to_string())
-                    .or_insert_with(|| Value::Object(Default::default()))
+                node.as_object_mut().expect("an object").entry(p.to_string()).or_insert_with(|| Value::Object(Default::default()))
             }
         };
     }
     match (node, value) {
         (Value::Array(items), v) => {
-            let i: usize = last
-                .parse()
-                .map_err(|_| format!("\"{last}\" in {path} is not an index"))?;
+            let i: usize = last.parse().map_err(|_| format!("\"{last}\" in {path} is not an index"))?;
             let slot = items.get_mut(i).ok_or(format!("{path}: no element {i}"))?;
             *slot = v.ok_or("array elements can't be deleted by key; set the whole array")?;
         }
@@ -156,9 +132,7 @@ pub fn set_path(root: &mut Value, path: &str, value: Option<Value>) -> Result<()
             if !node.is_object() {
                 *node = Value::Object(Default::default());
             }
-            node.as_object_mut()
-                .expect("an object")
-                .insert(last.to_string(), v);
+            node.as_object_mut().expect("an object").insert(last.to_string(), v);
         }
         (Value::Object(map), None) => {
             map.remove(*last);
@@ -180,10 +154,7 @@ mod tests {
         set_path(&mut v, "panels.0.panel.rotation", Some(json!("90"))).unwrap();
         set_path(&mut v, "panels.0.name", None).unwrap();
         set_path(&mut v, "touch_dots", None).unwrap();
-        assert_eq!(
-            v,
-            json!({"gestures": {"slop_px": 14}, "panels": [{"panel": {"rotation": "90"}}]})
-        );
+        assert_eq!(v, json!({"gestures": {"slop_px": 14}, "panels": [{"panel": {"rotation": "90"}}]}));
         set_path(&mut v, "gestures.nope", None).unwrap();
         assert!(set_path(&mut v, "panels.3.name", Some(json!("x"))).is_err());
         assert!(set_path(&mut v, "panels.x.name", Some(json!("x"))).is_err());
@@ -211,9 +182,7 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "{}\n");
 
         std::fs::write(&path, "{").unwrap();
-        assert!(
-            edit(&path, "touch_dots", Some(json!(true))).unwrap_err()[0].contains("doesn't parse")
-        );
+        assert!(edit(&path, "touch_dots", Some(json!(true))).unwrap_err()[0].contains("doesn't parse"));
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

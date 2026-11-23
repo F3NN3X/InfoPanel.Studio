@@ -3,7 +3,7 @@
 const enc = new TextEncoder();
 
 async function deflateRaw(data: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([data]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+  const stream = new Blob([data as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new CompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
@@ -18,7 +18,7 @@ export interface ZipFixture {
 }
 
 /** Builds a zip by hand (CRCs left at 0; the reader does not check them). */
-export async function buildZip(files: ZipFixture[]): Promise<Uint8Array> {
+export async function buildZip(files: ZipFixture[]): Promise<Uint8Array<ArrayBuffer>> {
   const parts: number[] = [];
   const central: number[] = [];
   const u16 = (a: number[], v: number) => a.push(v & 0xff, (v >>> 8) & 0xff);

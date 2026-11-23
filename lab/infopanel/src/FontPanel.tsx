@@ -7,7 +7,7 @@ import type { FontPlan } from "./useFontPlan.ts";
 
 const SAMPLE = "CPU 45°C · GPU 1,234 RPM · 12:30:45 PM";
 
-const describe = (r: FontRequest) =>
+const describeRequest = (r: FontRequest) =>
   `${r.font}${r.style ? ` / ${r.style}` : ""}${r.bold ? " · bold" : ""}${r.italic ? " · italic" : ""}`;
 const faceText = (f: SuppliedFace) => `${f.family} ${f.face} (${f.origin}: ${f.file.split("/").pop()})`;
 
@@ -74,7 +74,7 @@ function Row({ row, plan }: { row: FontRow; plan: FontPlan }) {
   const sampleCss = row.use === "supplied" ? plan.css({ font: row.request } as Parameters<FontPlan["css"]>[0]) : r?.css;
   return (
     <tr>
-      <td>{describe(row.request)}</td>
+      <td>{describeRequest(row.request)}</td>
       <td>{row.count}</td>
       <td>
         {drawn}

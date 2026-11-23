@@ -27,13 +27,7 @@ pub fn uninstall(dir: &Path, vid: u16, pid: u16) -> Result<Uninstalled, String> 
     // The launcher goes on the command line and the script inline (-EncodedCommand): nothing the elevated PowerShell
     // runs sits in a user-writable file that another process could swap before the prompt is accepted.
     let status = Command::new("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-        ])
+        .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command"])
         .arg(launcher_text(&elevated_command(SCRIPT, &log, vid, pid)))
         .creation_flags(CREATE_NO_WINDOW)
         .status()
@@ -41,18 +35,10 @@ pub fn uninstall(dir: &Path, vid: u16, pid: u16) -> Result<Uninstalled, String> 
     let text = std::fs::read_to_string(&log).unwrap_or_default();
     log::info!("touch: uninstall exited {:?}\n{text}", status.code());
     match status.code() {
-        Some(0) => Ok(Uninstalled {
-            changed: true,
-            log: text,
-        }),
-        Some(2) => Ok(Uninstalled {
-            changed: false,
-            log: text,
-        }),
+        Some(0) => Ok(Uninstalled { changed: true, log: text }),
+        Some(2) => Ok(Uninstalled { changed: false, log: text }),
         Some(CANCELLED) => Err("Cancelled at the Windows admin prompt.".into()),
-        code => Err(format!(
-            "The uninstall failed (exit {code:?}); see the log below.\n{text}"
-        )),
+        code => Err(format!("The uninstall failed (exit {code:?}); see the log below.\n{text}")),
     }
 }
 
@@ -72,10 +58,7 @@ fn ps_quote(s: &str) -> String {
 /// The script as one `-EncodedCommand`: a script block called with its parameters, as base64 of UTF-16LE.
 fn elevated_command(script: &str, log: &Path, vid: u16, pid: u16) -> String {
     use base64::Engine;
-    let command = format!(
-        "& {{\n{script}\n}} -Vid '{vid:04X}' -ProductId '{pid:04X}' -Log {}",
-        ps_quote(&log.display().to_string())
-    );
+    let command = format!("& {{\n{script}\n}} -Vid '{vid:04X}' -ProductId '{pid:04X}' -Log {}", ps_quote(&log.display().to_string()));
     let utf16: Vec<u8> = command.encode_utf16().flat_map(u16::to_le_bytes).collect();
     base64::engine::general_purpose::STANDARD.encode(utf16)
 }
@@ -96,19 +79,9 @@ mod tests {
     #[test]
     fn the_elevated_command_carries_the_script_and_its_arguments_inline() {
         use base64::Engine;
-        let encoded = elevated_command(
-            "param($Vid)\nexit 0",
-            Path::new(r"C:\o'neil\s.log"),
-            0x222A,
-            0x1,
-        );
-        let bytes = base64::engine::general_purpose::STANDARD
-            .decode(&encoded)
-            .unwrap();
-        let units: Vec<u16> = bytes
-            .chunks(2)
-            .map(|c| u16::from_le_bytes([c[0], c[1]]))
-            .collect();
+        let encoded = elevated_command("param($Vid)\nexit 0", Path::new(r"C:\o'neil\s.log"), 0x222A, 0x1);
+        let bytes = base64::engine::general_purpose::STANDARD.decode(&encoded).unwrap();
+        let units: Vec<u16> = bytes.chunks(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
         assert_eq!(
             String::from_utf16(&units).unwrap(),
             "& {\nparam($Vid)\nexit 0\n} -Vid '222A' -ProductId '0001' -Log 'C:\\o''neil\\s.log'"
@@ -125,12 +98,7 @@ mod tests {
 
     #[test]
     fn the_whole_command_fits_a_windows_command_line() {
-        let encoded = elevated_command(
-            include_str!("uninstall-winusb.ps1"),
-            Path::new(r"C:\x\s.log"),
-            1,
-            1,
-        );
+        let encoded = elevated_command(include_str!("uninstall-winusb.ps1"), Path::new(r"C:\x\s.log"), 1, 1);
         assert!(launcher_text(&encoded).len() < 32_000);
     }
 

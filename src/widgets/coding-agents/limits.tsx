@@ -122,7 +122,7 @@ export function ringLayout(n: number, w: number, room: number): RingLayout | nul
 
 function AgentName({ id }: { id: AgentId }) {
   return (
-    <div className="flex h-[18px] min-w-0 items-center gap-1.5 text-body font-semibold text-[color:var(--w-fg)]">
+    <div className="flex h-4.5 min-w-0 items-center gap-1.5 text-body font-semibold text-[color:var(--w-fg)]">
       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: AGENT_COLORS[id] }} />
       <span className="truncate">{id === "claude" ? "Claude Code" : AGENT_NAMES[id]}</span>
     </div>
@@ -173,7 +173,7 @@ function FullBars({ id, plan, percent, now, wide }: { id: AgentId; plan: AgentPl
     <div className="flex min-w-0 flex-col gap-2">
       <AgentName id={id} />
       {windowsOf(plan, now).map(({ k, label, view }) => (
-        <div key={k} className="flex h-[36px] min-w-0 flex-col justify-between">
+        <div key={k} className="flex h-9 min-w-0 flex-col justify-between">
           <div className="flex items-baseline justify-between gap-2 text-xs text-[color:var(--w-muted)]">
             <span className="truncate">{label}</span>
             <span className="shrink-0">
@@ -249,7 +249,7 @@ function RingPair({ id, plan, percent, now, layout }: { id: AgentId; plan: Agent
               </Ring>
             </div>
             {layout.below && (
-              <div className={`truncate text-center text-micro tabular-nums leading-[14px] text-[color:var(--w-faint)] ${dimmed(view) ? DIM_CLASS : ""}`} style={{ height: BELOW_H }}>
+              <div className={`truncate text-center text-micro tabular-nums leading-3.5 text-[color:var(--w-faint)] ${dimmed(view) ? DIM_CLASS : ""}`} style={{ height: BELOW_H }}>
                 {view.reset ? "New window" : view.w.resetsAt !== undefined ? resetIn(Math.max(0, view.w.resetsAt - now)) : ""}
               </div>
             )}

@@ -40,8 +40,8 @@ function Rows({ rows }: { rows: { label: string; value: string }[] }) {
   return (
     <>
       {rows.map((r) => (
-        <div key={r.label} className="flex gap-3 py-[3px] text-caption">
-          <span className="w-[110px] shrink-0 text-ui-4">{r.label}</span>
+        <div key={r.label} className="flex gap-3 py-0.75 text-caption">
+          <span className="w-27.5 shrink-0 text-ui-4">{r.label}</span>
           <span className="min-w-0 flex-1 truncate font-ui-mono text-ui-2">{r.value}</span>
         </div>
       ))}
@@ -77,7 +77,7 @@ export function PresetDetail(p: PresetDetailProps) {
     </button>
   );
   return (
-    <aside aria-label="Item details" className={cn("flex flex-col gap-4 overflow-y-auto bg-ui-panel p-4 font-ui", p.sheet ? "min-w-0 flex-1" : "w-[320px] shrink-0 border-l border-ui-subtle")}>
+    <aside aria-label="Item details" className={cn("flex flex-col gap-4 overflow-y-auto bg-ui-panel p-4 font-ui", p.sheet ? "min-w-0 flex-1" : "w-80 shrink-0 border-l border-ui-subtle")}>
       <AssetThumb item={item} size="lg" className="aspect-[16/10] w-full border border-ui-subtle" />
       <div>
         <input

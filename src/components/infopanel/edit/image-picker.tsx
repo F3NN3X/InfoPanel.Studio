@@ -48,16 +48,16 @@ export function ImagePicker({ open, onOpenChange, title, onPick }: ImagePickerPr
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/55" />
         <Dialog.Popup className="fixed left-1/2 top-[10vh] z-50 flex max-h-[72vh] w-[min(560px,calc(100vw-32px))] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-ui-strong bg-ui-tile font-ui text-ui-1 shadow-ui-modal outline-none">
           <div className="flex shrink-0 items-center justify-between border-b border-ui-subtle px-4 py-3">
-            <Dialog.Title className="text-[14px] font-medium">{title}</Dialog.Title>
+            <Dialog.Title className="text-lead font-medium">{title}</Dialog.Title>
             <Dialog.Close aria-label="Close" className="text-ui-3 hover:text-ui-1">
-              <X className="h-[18px] w-[18px]" />
+              <X className="h-4.5 w-4.5" />
             </Dialog.Close>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
             <button
               type="button"
               onClick={() => input.current?.click()}
-              className="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-ui-strong px-3 py-2.5 text-left text-[12.5px] text-ui-1 hover:bg-ui-hover"
+              className="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-ui-strong px-3 py-2.5 text-left text-small text-ui-1 hover:bg-ui-hover"
             >
               <FileUp className="h-4 w-4 text-ui-3" />
               Choose a file… <span className="text-ui-4">It goes into My library too</span>

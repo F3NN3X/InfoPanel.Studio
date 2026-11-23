@@ -21,10 +21,7 @@ fn unhex(s: &str) -> Option<Vec<u8>> {
     if !s.len().is_multiple_of(2) || !s.bytes().all(|b| b.is_ascii_hexdigit()) {
         return None;
     }
-    (0..s.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).ok())
-        .collect()
+    (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16).ok()).collect()
 }
 
 /// A new secret key as stored (64 hex characters), from the OS's random source.
@@ -74,10 +71,7 @@ impl Channel {
     }
 
     fn seal_with(&self, nonce: &[u8; NONCE_LEN], plain: &[u8]) -> Result<Vec<u8>, String> {
-        let sealed = self
-            .0
-            .encrypt(GenericArray::from_slice(nonce), plain)
-            .map_err(|_| "sealing failed".to_string())?;
+        let sealed = self.0.encrypt(GenericArray::from_slice(nonce), plain).map_err(|_| "sealing failed".to_string())?;
         Ok([nonce.as_slice(), &sealed].concat())
     }
 
@@ -110,21 +104,10 @@ mod tests {
         let alice = secret_key(ALICE_SECRET).unwrap();
         assert_eq!(hex(&public_key(&alice)), ALICE_PUBLIC);
         let nonce: [u8; NONCE_LEN] = unhex(NONCE).unwrap().try_into().unwrap();
-        let sealed = Channel::new(&unhex(BOB_PUBLIC).unwrap(), &alice)
-            .unwrap()
-            .seal_with(&nonce, &unhex(MESSAGE).unwrap())
-            .unwrap();
-        assert_eq!(
-            hex(&sealed),
-            format!("{NONCE}{BOX}"),
-            "nonce, then tag and ciphertext"
-        );
+        let sealed = Channel::new(&unhex(BOB_PUBLIC).unwrap(), &alice).unwrap().seal_with(&nonce, &unhex(MESSAGE).unwrap()).unwrap();
+        assert_eq!(hex(&sealed), format!("{NONCE}{BOX}"), "nonce, then tag and ciphertext");
         // Bob opens it with his secret key and Alice's public one.
-        let bob = Channel::new(
-            &unhex(ALICE_PUBLIC).unwrap(),
-            &secret_key(BOB_SECRET).unwrap(),
-        )
-        .unwrap();
+        let bob = Channel::new(&unhex(ALICE_PUBLIC).unwrap(), &secret_key(BOB_SECRET).unwrap()).unwrap();
         assert_eq!(hex(&bob.open(&sealed).unwrap()), MESSAGE);
         // A flipped bit, or a frame too short to hold a nonce and a tag, doesn't open.
         let mut bad = sealed.clone();
@@ -135,10 +118,7 @@ mod tests {
 
     #[test]
     fn seals_under_fresh_nonces_that_the_other_side_opens() {
-        let (ours, theirs) = (
-            secret_key(&new_secret().unwrap()).unwrap(),
-            secret_key(&new_secret().unwrap()).unwrap(),
-        );
+        let (ours, theirs) = (secret_key(&new_secret().unwrap()).unwrap(), secret_key(&new_secret().unwrap()).unwrap());
         let a = Channel::new(&public_key(&theirs), &ours).unwrap();
         let b = Channel::new(&public_key(&ours), &theirs).unwrap();
         let (one, two) = (a.seal(b"hi").unwrap(), a.seal(b"hi").unwrap());
@@ -152,10 +132,7 @@ mod tests {
         // BLAKE2b-256("") = 0e5751c0..., BLAKE2b-256("abc") = bddd813c... (RFC 7693's test inputs, 32-byte digests).
         assert_eq!(pairing_code(b""), "0e5751");
         assert_eq!(pairing_code(b"abc"), "bddd81");
-        assert_eq!(
-            pairing_code_of(ALICE_SECRET),
-            pairing_code(&unhex(ALICE_PUBLIC).unwrap())
-        );
+        assert_eq!(pairing_code_of(ALICE_SECRET), pairing_code(&unhex(ALICE_PUBLIC).unwrap()));
         assert_eq!(pairing_code_of(ALICE_SECRET).len(), 6);
         assert_eq!(pairing_code_of(""), "");
         assert_eq!(pairing_code_of("zz"), "");

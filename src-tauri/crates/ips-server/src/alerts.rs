@@ -494,7 +494,8 @@ fn decode_utf8(tail: &mut Vec<u8>, chunk: &[u8], out: &mut String) {
 
 /// One connection: until the stream ends or fails. Every parsed message goes to `on_message`; a malformed one is skipped.
 async fn read_once(url: &str, on_message: &OnMessage, backoff: &mut Backoff) -> Result<(), String> {
-    let mut response = http_client()?.get(url).header("Accept", "text/event-stream").send().await.map_err(|e| e.without_url().to_string())?;
+    let mut response =
+        http_client()?.get(url).header("Accept", "text/event-stream").send().await.map_err(|e| e.without_url().to_string())?;
     if !response.status().is_success() {
         return Err(format!("HTTP {}", response.status().as_u16()));
     }

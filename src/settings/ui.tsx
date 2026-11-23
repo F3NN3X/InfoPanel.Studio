@@ -18,7 +18,7 @@ export function useFlag(ms = 1500): [boolean, () => void] {
   return [on, flash];
 }
 
-export * from "./kit";
+export * from "./parts";
 
 const TONES = {
   green: { text: "text-s-green", tint: "bg-s-green/14", dot: "bg-s-green", halo: "shadow-[0_0_0_3px_oklch(0.78_0.16_150/0.18)]" },
@@ -41,7 +41,7 @@ export function StateTile({ tone: name, children }: { tone: ToneName; children: 
 export function HeroCard({ children, id, className }: { children: ReactNode; id?: string; className?: string }) {
   const found = useFound(id);
   return (
-    <div ref={found.ref} className={cn("rounded-[14px] border border-s-card-line bg-s-card", found.className, className)}>
+    <div ref={found.ref} className={cn("rounded-14 border border-s-card-line bg-s-card", found.className, className)}>
       {children}
     </div>
   );

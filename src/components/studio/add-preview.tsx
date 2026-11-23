@@ -82,7 +82,7 @@ function Schematic({ item }: { item: AddItem }) {
       style={{ width: Math.min(STAGE_W, item.w * 70), height: Math.min(STAGE_H, item.h * 70), flexDirection: item.dir === "column" ? "column" : "row" }}
     >
       {(item.parts ?? []).map((part, i) => (
-        <div key={i} className="flex min-h-0 min-w-[52px] flex-1 flex-col items-center justify-center gap-1 rounded-ui-sm bg-ui-subtle px-1">
+        <div key={i} className="flex min-h-0 min-w-13 flex-1 flex-col items-center justify-center gap-1 rounded-ui-sm bg-ui-subtle px-1">
           <PartIcon kind={part.kind} />
           <span className="max-w-full truncate text-micro text-ui-hint">{part.label}</span>
         </div>
@@ -121,7 +121,7 @@ export function AddPreview({ item, left, top, via, target, appearance, pageStyle
       style={{ left, top, width: PREVIEW_WIDTH }}
     >
       <div
-        className="flex h-[200px] items-center justify-center border-b border-ui-subtle bg-ui-app"
+        className="flex h-50 items-center justify-center border-b border-ui-subtle bg-ui-app"
         style={{ backgroundImage: "radial-gradient(#1a1a1f 1px, transparent 1px)", backgroundSize: "12px 12px" }}
       >
         {item.kind === "widget" ? <WidgetStage item={item} appearance={appearance} pageStyle={pageStyle} /> : <Schematic item={item} />}
@@ -133,7 +133,7 @@ export function AddPreview({ item, left, top, via, target, appearance, pageStyle
         </div>
         <p className="text-pretty text-caption leading-[1.5] text-ui-soft">{item.description || item.blurb}</p>
         <div className="flex items-center gap-2 text-micro text-ui-hint">
-          <span className="rounded-[4px] bg-ui-subtle px-1.5 py-0.5 font-ui-mono text-micro text-ui-2">{sizeText(item.w, item.h)}</span>
+          <span className="rounded-4 bg-ui-subtle px-1.5 py-0.5 font-ui-mono text-micro text-ui-2">{sizeText(item.w, item.h)}</span>
           {item.mw === 1 && item.mh === 1 ? "Adapts down to 1×1" : `Needs at least ${sizeText(item.mw, item.mh)}`}
         </div>
         <div

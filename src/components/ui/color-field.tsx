@@ -14,12 +14,12 @@ interface ColorFieldProps {
 export function ColorField({ value, onChange, label, autoLabel = "Auto", className }: ColorFieldProps) {
   return (
     <div className={cn("flex items-center gap-1.5", className)}>
-      <span className={cn("font-ui-mono text-[11.5px]", value ? "text-ui-2" : "text-ui-4")}>
+      <span className={cn("font-ui-mono text-label", value ? "text-ui-2" : "text-ui-4")}>
         {value ? value.toUpperCase() : autoLabel}
       </span>
       <label
         className={cn(
-          "relative h-[22px] w-[22px] shrink-0 cursor-pointer overflow-hidden rounded-md border has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent",
+          "relative h-5.5 w-5.5 shrink-0 cursor-pointer overflow-hidden rounded-md border has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent",
           value ? "border-ui-strong" : "border-dashed border-ui-strong"
         )}
         style={value ? { backgroundColor: value } : undefined}

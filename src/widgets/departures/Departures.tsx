@@ -74,7 +74,7 @@ export default function Departures(p: DeparturesProps) {
                 {rows.slice(0, n).map((r) => (
                   <div key={r.i} className={stacked ? "flex flex-col gap-0.5 py-1.5" : "flex items-center gap-4 py-2"} style={big ? { height: rowH } : undefined}>
                     <div className={`flex items-center ${stacked ? "gap-3" : "gap-4"}`}>
-                      <Num className={`shrink-0 whitespace-nowrap text-[color:var(--w-fg)] ${big ? "min-w-20 text-[22px]" : "min-w-14 text-lg"}`} weight={600}>
+                      <Num className={`shrink-0 whitespace-nowrap text-[color:var(--w-fg)] ${big ? "min-w-20 text-stat" : "min-w-14 text-lg"}`} weight={600}>
                         {r.time ?? "--:--"}
                       </Num>
                       <Chip className="w-10 justify-center">{r.line ?? "·"}</Chip>

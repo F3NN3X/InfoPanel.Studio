@@ -1,7 +1,7 @@
 import { scrollBehavior } from "@/lib/scroll-behavior";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Download, FileArchive, FolderOpen, Info } from "lucide-react";
-import { Menu } from "@base-ui/react/menu";
+import { Menu } from "@/components/ui/menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Tabs } from "@/components/ui/tabs";
@@ -68,7 +68,6 @@ import { useStablePreset } from "./look-thumb";
 import { cornerStep, knobCustom, knobValue, lockedKnobs, modeOf } from "./look-knobs-model";
 import { ThemeActions, ThemeLookCard, ThemeSave } from "./theme-look-card";
 import { SAMPLE_PRESET_GROUPS } from "@/lib/screen-templates/sample-presets";
-import { HIGHLIGHT, ITEM, POPUP } from "./menu-styles";
 import { ThemeBrowse } from "./theme-browse";
 import type { BrowseItem } from "./theme-browse-model";
 import { previewOrder, type PreviewItem } from "./theme-live-preview-model";
@@ -162,7 +161,7 @@ const HELP: Partial<Record<ThemeCard["id"], string>> = {
 const PART_KEYS = new Set(["lookId"]);
 
 /** A row of the two-level data, inset like a setting row. */
-const DataRow = ({ children }: { children: ReactNode }) => <div className="py-[3px] pl-4 pr-2.5">{children}</div>;
+const DataRow = ({ children }: { children: ReactNode }) => <div className="py-0.75 pl-4 pr-2.5">{children}</div>;
 
 /**
  * Theme: the theme of a level. The header holds the title, the level picker (‹screen› · whole screen, or a page),
@@ -638,7 +637,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
             {at.level === "page" && (
               <section aria-label={`${page.name} and ${profile.name}`} className="mx-5 mb-3 flex flex-col gap-2 rounded-ui-lg border border-ui-subtle p-3.5">
                 <h2 className="flex items-center gap-2 text-body text-ui-1">
-                  <span aria-hidden className={cn("h-[7px] w-[7px] rounded-full", pageCustom ? "bg-ui-accent" : "border border-ui-hint")} />
+                  <span aria-hidden className={cn("h-1.75 w-1.75 rounded-full", pageCustom ? "bg-ui-accent" : "border border-ui-hint")} />
                   {pageCustom ? `${page.name} has its own settings` : `${page.name} follows ${profile.name}`}
                 </h2>
                 <p className="text-caption text-ui-3">Change any setting below to set it for {page.name} only. {pageParts(profile.name)}</p>
@@ -703,24 +702,20 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
       <Menu.Trigger render={<Button icon={<Download aria-hidden />} />} disabled={imported.off}>
         Import a pack
       </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Menu.Popup className={cn(POPUP, "w-52")}>
-            <Menu.Item className={cn(ITEM, HIGHLIGHT)} onClick={() => pickPack("folder")}>
-              <span className="flex items-center gap-2">
-                <FolderOpen className="h-4 w-4 text-ui-hint" aria-hidden />
-                Import a folder
-              </span>
-            </Menu.Item>
-            <Menu.Item className={cn(ITEM, HIGHLIGHT)} onClick={() => pickPack("zip")}>
-              <span className="flex items-center gap-2">
-                <FileArchive className="h-4 w-4 text-ui-hint" aria-hidden />
-                Import a zip
-              </span>
-            </Menu.Item>
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
+      <Menu.Content sideOffset={4} align="end" className="w-52">
+        <Menu.Item onClick={() => pickPack("folder")}>
+          <span className="flex items-center gap-2">
+            <FolderOpen className="h-4 w-4 text-ui-hint" aria-hidden />
+            Import a folder
+          </span>
+        </Menu.Item>
+        <Menu.Item onClick={() => pickPack("zip")}>
+          <span className="flex items-center gap-2">
+            <FileArchive className="h-4 w-4 text-ui-hint" aria-hidden />
+            Import a zip
+          </span>
+        </Menu.Item>
+      </Menu.Content>
     </Menu.Root>
   );
 
@@ -744,7 +739,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
           ]}
           value={tab}
           onChange={setTab}
-          className="shrink-0 gap-5 self-stretch border-b-0 max-[599px]:order-last max-[599px]:w-full [&>button]:h-auto"
+          className="shrink-0 gap-5 self-stretch border-b-0 max-sm:order-last max-sm:w-full [&>button]:h-auto"
         />
         <BarFill />
         {tab === "browse" ? (
@@ -861,7 +856,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
           <aside
             ref={columnRef}
             aria-label="Theme"
-            className="w-[380px] shrink-0 overflow-y-auto border-l border-ui-subtle bg-ui-chrome text-ui-2 max-sm:w-full max-sm:overflow-visible max-sm:border-b max-sm:border-l-0"
+            className="w-95 shrink-0 overflow-y-auto border-l border-ui-subtle bg-ui-chrome text-ui-2 max-sm:w-full max-sm:overflow-visible max-sm:border-b max-sm:border-l-0"
           >
             <InspectorChromeProvider value={{ mode: "docked" }}>{column()}</InspectorChromeProvider>
           </aside>

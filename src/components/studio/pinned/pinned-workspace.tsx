@@ -158,7 +158,7 @@ export default function PinnedWorkspace(p: PinnedWorkspaceProps) {
     </>
   );
   const aside = (children: ReactNode) => (
-    <aside aria-label="Inspector" className={p.layout.mode !== "docked" ? "flex h-full w-full flex-col overflow-y-auto bg-ui-panel font-ui" : "flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel font-ui"}>
+    <aside aria-label="Inspector" className={p.layout.mode !== "docked" ? "flex h-full w-full flex-col overflow-y-auto bg-ui-panel font-ui" : "flex w-80 shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel font-ui"}>
       {children}
     </aside>
   );

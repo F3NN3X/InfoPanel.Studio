@@ -247,7 +247,7 @@ function withoutInset(it: PinnedEdgeItem): PinnedEdgeItem {
 
 function TouchLine({ gesture, action }: { gesture: string; action: string }) {
   return (
-    <div className="flex min-h-[30px] items-center justify-between gap-3 text-body">
+    <div className="flex min-h-7.5 items-center justify-between gap-3 text-body">
       <span className="text-ui-3">{gesture}</span>
       <span className="text-ui-1">{action}</span>
     </div>

@@ -114,7 +114,8 @@ async fn send(port: u16, method: &str, path: &str, headers: &[(&str, &str)], bod
     let head = String::from_utf8_lossy(&raw[..split]).into_owned();
     let mut lines = head.split("\r\n");
     let status = lines.next().unwrap().split(' ').nth(1).unwrap().parse().unwrap();
-    let headers: Vec<(String, String)> = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_string(), v.trim().to_string())).collect();
+    let headers: Vec<(String, String)> =
+        lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_string(), v.trim().to_string())).collect();
     let rest = &raw[split + 4..];
     let chunked = headers.iter().any(|(k, v)| k.eq_ignore_ascii_case("transfer-encoding") && v == "chunked");
     Reply { status, body: if chunked { dechunk(rest) } else { rest.to_vec() }, headers }
@@ -175,7 +176,13 @@ async fn lists_ids_names_and_sizes_and_nothing_else() {
 async fn serves_a_file_with_its_type_nosniff_and_a_csp_that_allows_nothing() {
     let s = start().await;
     write_pack(&s, "mine");
-    for (file, mime) in [("pack.json", "application/json; charset=utf-8"), ("assets/f.woff2", "font/woff2"), ("assets/p.png", "image/png"), ("OFL.txt", "text/plain; charset=utf-8"), ("assets/hex.svg", "image/svg+xml")] {
+    for (file, mime) in [
+        ("pack.json", "application/json; charset=utf-8"),
+        ("assets/f.woff2", "font/woff2"),
+        ("assets/p.png", "image/png"),
+        ("OFL.txt", "text/plain; charset=utf-8"),
+        ("assets/hex.svg", "image/svg+xml"),
+    ] {
         let reply = get(s.port, &format!("/api/packs/mine/{file}")).await;
         assert_eq!(reply.status, 200, "{file}");
         assert_eq!(reply.header("content-type"), Some(mime), "{file}");
@@ -359,11 +366,11 @@ async fn a_pack_over_a_cap_is_not_served_or_listed() {
     assert_eq!(get(s.port, "/api/packs/fat/assets/big.png").await.status, 413, "a file over 256,000");
     assert_eq!(get(s.port, "/api/packs/fat/pack.json").await.status, 413, "the pack goes with it");
     std::fs::remove_file(root.join("assets/big.png")).unwrap();
-    for k in 0..3 {
-        std::fs::write(root.join(format!("assets/f{k}.png")), vec![0u8; 200_000]).unwrap();
+    for k in 0..5 {
+        std::fs::write(root.join(format!("assets/f{k}.png")), vec![0u8; 205_000]).unwrap();
     }
-    assert_eq!(get(s.port, "/api/packs/fat/pack.json").await.status, 413, "a pack over 512,000");
-    for k in 0..3 {
+    assert_eq!(get(s.port, "/api/packs/fat/pack.json").await.status, 413, "a pack over 1,024,000");
+    for k in 0..5 {
         std::fs::remove_file(root.join(format!("assets/f{k}.png"))).unwrap();
     }
     for k in 0..65 {
@@ -389,11 +396,15 @@ async fn a_folder_with_a_stray_file_is_not_a_pack() {
 #[tokio::test]
 async fn an_import_stores_a_pack_that_is_then_served_and_replaced() {
     let s = start().await;
-    let files = [("pack.json", pack_json("mine")), ("look.json", json!({ "id": "mine" }).to_string()), ("assets/hex.svg", "<svg/>".to_string())];
+    let files =
+        [("pack.json", pack_json("mine")), ("look.json", json!({ "id": "mine" }).to_string()), ("assets/hex.svg", "<svg/>".to_string())];
     let reply = send(s.port, "POST", "/api/packs", &WRITE, &import_body("mine", &pairs(&files))).await;
     assert_eq!(reply.status, 200, "{}", reply.text());
     assert_eq!(get(s.port, "/api/packs/mine/assets/hex.svg").await.text(), "<svg/>");
-    assert!(s.packs().read_dir().unwrap().all(|e| !e.unwrap().file_name().to_string_lossy().starts_with(".import-")), "no temp folder left");
+    assert!(
+        s.packs().read_dir().unwrap().all(|e| !e.unwrap().file_name().to_string_lossy().starts_with(".import-")),
+        "no temp folder left"
+    );
     // a second import replaces the pack whole
     assert_eq!(send(s.port, "POST", "/api/packs", &WRITE, &import_body("mine", &pairs(&files[..2]))).await.status, 200);
     assert_eq!(get(s.port, "/api/packs/mine/assets/hex.svg").await.status, 404);
@@ -409,7 +420,17 @@ async fn an_import_refuses_pack_css_a_bad_path_a_bad_id_and_the_wrong_caller() {
         list.push(extra);
         import_body("mine", &list)
     };
-    for extra in [("pack.css", "a{}"), ("../x.json", "{}"), ("assets/../x.json", "{}"), ("assets/a.bmp", "x"), ("assets/a.exe", "x"), ("/pack.json", "{}"), ("C:/x.json", "{}"), ("assets/a.svg\0", "x"), ("assets/CON.png", "x")] {
+    for extra in [
+        ("pack.css", "a{}"),
+        ("../x.json", "{}"),
+        ("assets/../x.json", "{}"),
+        ("assets/a.bmp", "x"),
+        ("assets/a.exe", "x"),
+        ("/pack.json", "{}"),
+        ("C:/x.json", "{}"),
+        ("assets/a.svg\0", "x"),
+        ("assets/CON.png", "x"),
+    ] {
         let reply = send(s.port, "POST", "/api/packs", &WRITE, &with(extra)).await;
         assert_eq!(reply.status, 400, "{extra:?}: {}", reply.text());
     }
@@ -421,7 +442,11 @@ async fn an_import_refuses_pack_css_a_bad_path_a_bad_id_and_the_wrong_caller() {
         let named = [("pack.json", pack_json(id)), ("look.json", json!({ "id": id }).to_string())];
         assert_eq!(send(s.port, "POST", "/api/packs", &WRITE, &import_body(id, &pairs(&named))).await.status, 400, "device name {id}");
     }
-    assert_eq!(send(s.port, "POST", "/api/packs", &[("Content-Type", "application/json")], &import_body("mine", &pairs(&ok))).await.status, 403, "no header");
+    assert_eq!(
+        send(s.port, "POST", "/api/packs", &[("Content-Type", "application/json")], &import_body("mine", &pairs(&ok))).await.status,
+        403,
+        "no header"
+    );
     let foreign = [("Content-Type", "application/json"), ("X-Dashboard-Pack", "1"), ("Origin", "http://evil.example")];
     assert_eq!(send(s.port, "POST", "/api/packs", &foreign, &import_body("mine", &pairs(&ok))).await.status, 403, "cross-site");
     assert_eq!(send(s.port, "POST", "/api/packs", &WRITE, "not json").await.status, 400);
@@ -459,14 +484,16 @@ async fn more_packs_than_the_count_cap_are_413_but_a_replace_is_not() {
 async fn an_import_over_the_caps_is_413() {
     let s = start().await;
     let big = "a".repeat(256_001);
-    let half = "a".repeat(180_000);
+    // five files under the per-file cap, 1,025,000 in all: over the pack's cap, under the import body's
+    let fifth = "a".repeat(205_000);
     let ok = [("pack.json", pack_json("mine")), ("look.json", json!({ "id": "mine" }).to_string())];
     let mut list = pairs(&ok);
     list.push(("OFL.txt", &big));
     assert_eq!(send(s.port, "POST", "/api/packs", &WRITE, &import_body("mine", &list)).await.status, 413);
     let mut list = pairs(&ok);
-    list.extend([("OFL.txt", half.as_str()), ("thumb.png", half.as_str()), ("thumb.jpg", half.as_str())]);
-    assert_eq!(send(s.port, "POST", "/api/packs", &WRITE, &import_body("mine", &list)).await.status, 413, "over 512,000 in all");
+    let parts: Vec<String> = (0..5).map(|k| format!("assets/f{k}.png")).collect();
+    list.extend(parts.iter().map(|n| (n.as_str(), fifth.as_str())));
+    assert_eq!(send(s.port, "POST", "/api/packs", &WRITE, &import_body("mine", &list)).await.status, 413, "over 1,024,000 in all");
     let names: Vec<String> = (0..65).map(|k| format!("assets/f{k}.png")).collect();
     let mut list = pairs(&ok);
     list.extend(names.iter().map(|n| (n.as_str(), "x")));
@@ -579,14 +606,22 @@ async fn the_signing_route_refuses_what_is_not_a_signing() {
     assert_eq!(send(s.port, "POST", "/api/packs/mine/sign", &WRITE, r#"{"css":"YQ=="}"#).await.status, 400, "no hash");
     assert_eq!(send(s.port, "POST", "/api/packs/mine/sign", &WRITE, r#"{"css":"%%%","hash":"x"}"#).await.status, 400, "not base64");
     assert_eq!(send(s.port, "POST", "/api/packs/mine/sign", &WRITE, &sign_body("", "x")).await.status, 413, "an empty file");
-    assert_eq!(send(s.port, "POST", "/api/packs/mine/sign", &WRITE, &sign_body(&"a".repeat(256_001), "x")).await.status, 413, "over a file's cap");
+    assert_eq!(
+        send(s.port, "POST", "/api/packs/mine/sign", &WRITE, &sign_body(&"a".repeat(256_001), "x")).await.status,
+        413,
+        "over a file's cap"
+    );
     // the same guards as every pack write
     assert_eq!(send(s.port, "POST", "/api/packs/mine/sign", &[("Content-Type", "application/json")], &good).await.status, 403, "no header");
     let foreign = [("Content-Type", "application/json"), ("X-Dashboard-Pack", "1"), ("Origin", "http://evil.example")];
     assert_eq!(send(s.port, "POST", "/api/packs/mine/sign", &foreign, &good).await.status, 403, "another origin");
     let cross = [("Content-Type", "application/json"), ("X-Dashboard-Pack", "1"), ("Sec-Fetch-Site", "cross-site")];
     assert_eq!(send(s.port, "POST", "/api/packs/mine/sign", &cross, &good).await.status, 403, "cross-site");
-    assert_eq!(send(s.port, "POST", "/api/packs/mine/sign", &[("Host", "evil.example"), ("X-Dashboard-Pack", "1")], &good).await.status, 421, "a rebound host");
+    assert_eq!(
+        send(s.port, "POST", "/api/packs/mine/sign", &[("Host", "evil.example"), ("X-Dashboard-Pack", "1")], &good).await.status,
+        421,
+        "a rebound host"
+    );
     assert_eq!(send(s.port, "GET", "/api/packs/mine/sign", &WRITE, "").await.status, 404);
     assert!(!root.join("pack.css").exists());
     s.stop().await;
@@ -686,7 +721,9 @@ async fn the_key_is_never_served() {
     let key = std::fs::read(key_file(&s)).unwrap();
     let hex: String = key.iter().map(|b| format!("{b:02x}")).collect();
     let base = STANDARD.encode(&key);
-    let leaked = |reply: &Reply| reply.body.windows(key.len()).any(|w| w == key.as_slice()) || reply.text().contains(&hex) || reply.text().contains(&base);
+    let leaked = |reply: &Reply| {
+        reply.body.windows(key.len()).any(|w| w == key.as_slice()) || reply.text().contains(&hex) || reply.text().contains(&base)
+    };
     let name = ips_server::pack_sign::KEY_FILE;
     for path in [
         format!("/{name}"),
@@ -713,7 +750,10 @@ async fn the_key_is_never_served() {
         let reply = get(s.port, &format!("/api/packs/{spelling}/{name}")).await;
         assert!(!leaked(&reply), "{spelling}");
     }
-    assert!(!leaked(&send(s.port, "POST", "/api/packs/mine/sign", &WRITE, &sign_body(CSS, &hash_with(&s.packs().join("mine"), CSS))).await), "the signing answer");
+    assert!(
+        !leaked(&send(s.port, "POST", "/api/packs/mine/sign", &WRITE, &sign_body(CSS, &hash_with(&s.packs().join("mine"), CSS))).await),
+        "the signing answer"
+    );
     assert_eq!(get(s.port, "/api/packs/mine/pack.sig").await.status, 404);
     assert!(!s.packs().join(name).exists(), "the key is outside the packs folder");
     s.stop().await;
@@ -763,10 +803,29 @@ async fn the_render_checks_page_opens_for_a_frame_of_this_origin_and_nothing_els
     assert!(page.header("content-security-policy").unwrap().contains("frame-ancestors 'self'"));
     let refused = |reply: &Reply| reply.status == 404 && reply.text().contains("Turn on debug mode");
     assert!(refused(&get(s.port, "/?widget-qa&pack-check=1").await), "no fetch metadata");
-    assert!(refused(&send(s.port, "GET", "/?widget-qa&pack-check=1", &[("Sec-Fetch-Dest", "document"), ("Sec-Fetch-Site", "none")], "").await), "a page opened by hand");
-    assert!(refused(&send(s.port, "GET", "/?widget-qa&pack-check=1", &[("Sec-Fetch-Dest", "document"), ("Sec-Fetch-Site", "same-origin")], "").await), "a link on this origin");
-    assert!(refused(&send(s.port, "GET", "/?widget-qa&pack-check=1", &[("Sec-Fetch-Dest", "iframe"), ("Sec-Fetch-Site", "cross-site")], "").await), "a frame of another site");
-    assert!(refused(&send(s.port, "GET", "/?widget-qa&pack-check=1", &[("Sec-Fetch-Dest", "iframe"), ("Sec-Fetch-Site", "same-site")], "").await), "a frame of a sibling site");
+    assert!(
+        refused(&send(s.port, "GET", "/?widget-qa&pack-check=1", &[("Sec-Fetch-Dest", "document"), ("Sec-Fetch-Site", "none")], "").await),
+        "a page opened by hand"
+    );
+    assert!(
+        refused(
+            &send(s.port, "GET", "/?widget-qa&pack-check=1", &[("Sec-Fetch-Dest", "document"), ("Sec-Fetch-Site", "same-origin")], "")
+                .await
+        ),
+        "a link on this origin"
+    );
+    assert!(
+        refused(
+            &send(s.port, "GET", "/?widget-qa&pack-check=1", &[("Sec-Fetch-Dest", "iframe"), ("Sec-Fetch-Site", "cross-site")], "").await
+        ),
+        "a frame of another site"
+    );
+    assert!(
+        refused(
+            &send(s.port, "GET", "/?widget-qa&pack-check=1", &[("Sec-Fetch-Dest", "iframe"), ("Sec-Fetch-Site", "same-site")], "").await
+        ),
+        "a frame of a sibling site"
+    );
     assert!(refused(&send(s.port, "GET", "/?widget-qa", &FRAME, "").await), "Widget QA itself stays a debug tool");
     assert!(refused(&send(s.port, "GET", "/widget-qa", &FRAME, "").await));
     // the client mounts the page from the query on any path the server answers with index.html
@@ -786,7 +845,8 @@ async fn the_server_signs_no_css_that_holds_what_the_grammar_never_lets_through(
         ("an escape", "[data-part=\"num\"] { color: #fff; } /* */ [data-part=\"n\\75m\"] { color: #fff; }"),
         ("an at-rule", "@import 'x'; [data-part=\"num\"] { color: #fff; }"),
         ("markup", "[data-part=\"num\"] { color: #fff; } </style>"),
-        ("url()", "[data-part=\"num\"] { background: URL(x.png); }"),
+        ("a url() outside the pack", "[data-part=\"num\"] { background: URL(https://x.test/x.png); }"),
+        ("an at-rule other than @keyframes", "@media screen { [data-part=\"num\"] { color: #fff; } }"),
         ("image-set()", "[data-part=\"num\"] { background: image-set(x 1x); }"),
         ("src()", "[data-part=\"num\"] { color: SRC(x); }"),
         ("a url() between two strings that hold comment marks", "[data-part=\"num\"] { content: \"/*\" url(//x) \"*/\"; }"),

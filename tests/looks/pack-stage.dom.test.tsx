@@ -23,6 +23,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+const Overlay = () => <i />;
+
 describe("the pack stage: effects, burn-in and size classes", () => {
   it("marks layers for the drift only on a needs-shift pack with Pixel shift on", () => {
     view({ pixelShift: true }, { burnIn: "needs-shift" });
@@ -72,6 +74,52 @@ describe("the pack stage: effects, burn-in and size classes", () => {
     expect(document.querySelector("[data-pack-effect='grain']")).toBeNull();
   });
 
+  describe("FX levels", () => {
+    const flash: StageViewProps["stage"] = {
+      layers: [{ fill: "#111" }],
+      effects: [
+        { kind: "scanlines", cost: "animated", calm: "static" },
+        { kind: "glitch", cost: "animated", rate: 2, calm: "off" },
+      ],
+    };
+    const fxView = (general: Partial<ResolvedGeneral>) =>
+      render(
+        <GeneralProvider value={{ ...GENERAL_DEFAULTS, ...general }}>
+          <PackStageLayers stage={flash} packId="p" />
+        </GeneralProvider>,
+      );
+    const effect = (kind: string) => document.querySelector<HTMLElement>(`[data-pack-effect='${kind}']`);
+
+    it("full animates the flashing overlay at its rate, a pointer-transparent div that carries its pulse strength", () => {
+      fxView({});
+      expect(effect("glitch")?.hasAttribute("data-pack-animate")).toBe(true);
+      expect(effect("glitch")?.style.getPropertyValue("--wp-fx-rate")).toBe("2");
+      expect(effect("glitch")?.style.getPropertyValue("--wp-fx-op")).toBe("0.25");
+      expect(effect("glitch")?.className).toContain("pointer-events-none");
+    });
+
+    it("calm draws the calm variants: scanlines still, glitch gone", () => {
+      fxView({ fx: "calm" });
+      expect(effect("scanlines")?.hasAttribute("data-pack-animate")).toBe(false);
+      expect(effect("glitch")).toBeNull();
+    });
+
+    it("off draws no effect but keeps the page layers", () => {
+      fxView({ fx: "off" });
+      expect(document.querySelector("[data-pack-effect]")).toBeNull();
+      expect(document.querySelector("[data-pack-layer='0']")).not.toBeNull();
+    });
+
+    it("an explicit full still caps at calm in lite mode, and unset follows reduced motion", () => {
+      fxView({ fx: "full", maxFps: 30 });
+      expect(effect("scanlines")?.hasAttribute("data-pack-animate")).toBe(false);
+      expect(effect("glitch")).toBeNull();
+      cleanup();
+      fxView({ motion: "reduce" });
+      expect(document.querySelector("[data-pack-effect]")).toBeNull();
+    });
+  });
+
   it("keeps data-pack-layer as the pack's own index when the size class hides an earlier layer", () => {
     const hidden: StageViewProps["stage"] = { layers: [{ fill: "#111", minSizeClass: "md" }, { fill: "#222" }] };
     render(
@@ -107,7 +155,6 @@ describe("the pack stage: effects, burn-in and size classes", () => {
 
     it("dims the overlay and the connectors with the layers", () => {
       vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
-      const Overlay = () => <i />;
       faintView({ idleDim: 5 }, { burnIn: "needs-dim", stage: { ...faint, overlay: Overlay }, connectors: { style: "line" }, links: [["a", "b"]] });
       act(() => vi.advanceTimersByTime(5 * 60_000 + 10));
       expect(document.querySelector<HTMLElement>("[data-pack-layer='overlay']")!.style.opacity).toBe("0.35");

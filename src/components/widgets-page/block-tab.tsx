@@ -538,7 +538,7 @@ export function BlockTab(props: BlockTabProps) {
             </Field>
           )}
           <Field label="Thickness">
-            <Slider label="Thickness" min={2} max={24} value={block.thickness ?? 8} onChange={(v) => set({ thickness: v })} className="w-[110px] accent-ui-strong-text" />
+            <Slider label="Thickness" min={2} max={24} value={block.thickness ?? 8} onChange={(v) => set({ thickness: v })} className="w-27.5 accent-ui-strong-text" />
             <span className="w-10 text-right font-ui-mono text-body text-ui-2">{block.thickness ?? 8} %</span>
           </Field>
         </>
@@ -628,7 +628,7 @@ export function BlockTab(props: BlockTabProps) {
       {block.type === "image" && (
         <>
           <Field label="Picture">
-            <span className="max-w-[120px] truncate font-ui-mono text-micro text-ui-3">{block.file.slice(7)}</span>
+            <span className="max-w-30 truncate font-ui-mono text-micro text-ui-3">{block.file.slice(7)}</span>
             <label className="cursor-pointer rounded-ui-md border border-ui-strong px-2.5 py-1 text-body text-ui-1 hover:border-ui-hover-edge">
               Choose…
               <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => e.target.files?.[0] && props.onImage(e.target.files[0])} />

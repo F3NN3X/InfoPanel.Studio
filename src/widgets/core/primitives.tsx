@@ -194,7 +194,7 @@ export function TickBar({ ticks, max = 100, className = "h-1.5", ...bar }: BarPr
     <div className="relative">
       <Bar max={max} className={className} {...bar} />
       {ticks.map((at) => (
-        <span key={at} aria-hidden className="absolute -inset-y-[3px] w-0.5 -translate-x-1/2 rounded-full bg-[color:var(--w-fg)] opacity-60" style={{ left: `${clamp((at / max) * 100)}%` }} />
+        <span key={at} aria-hidden className="absolute -inset-y-0.75 w-0.5 -translate-x-1/2 rounded-full bg-[color:var(--w-fg)] opacity-60" style={{ left: `${clamp((at / max) * 100)}%` }} />
       ))}
     </div>
   );
@@ -226,7 +226,7 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
     const n = segments ?? (m === "blocks" ? 14 : 24),
       lit = Math.round((pct / 100) * n);
     return (
-      <div data-part="bar" className={cn("flex w-full gap-[2px]", className)}>
+      <div data-part="bar" className={cn("flex w-full gap-0.5", className)}>
         {Array.from({ length: n }, (_, i) => (
           <span key={i} className="min-w-0 flex-1 rounded-[1px]" style={{ background: i < lit ? (m === "blocks" ? blockColor(i, n) : (color ?? toneInk(sk, t))) : "var(--w-track)" }} />
         ))}
@@ -235,7 +235,7 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
   }
   if (m === "wave")
     return (
-      <div data-part="bar" className={cn("relative w-full min-h-[8px]", className)}>
+      <div data-part="bar" className={cn("relative w-full min-h-2", className)}>
         <svg viewBox="0 0 100 10" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible">
           <line x1={pct} y1="5" x2="100" y2="5" stroke="var(--w-track)" strokeWidth="2.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           <path
@@ -250,7 +250,7 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
     );
   if (m === "square")
     return (
-      <div data-part="bar" className={cn("w-full border border-[color:var(--w-fg)]/70 bg-transparent p-[1px] min-h-[8px]", className)}>
+      <div data-part="bar" className={cn("w-full border border-[color:var(--w-fg)]/70 bg-transparent p-px min-h-2", className)}>
         <div className="h-full w-full transition-transform duration-500" style={{ ...scaleX(pct), background: ink, ...glide }} />
       </div>
     );
@@ -258,11 +258,11 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
     return (
       <div data-part="bar" className={cn("relative w-full", className)}>
         <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[color:var(--w-track)]" />
-        <div className="absolute left-0 top-1/2 h-[2px] w-full -translate-y-1/2 transition-transform duration-500" style={{ ...scaleX(pct), background: ink, ...glide }} />
+        <div className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 transition-transform duration-500" style={{ ...scaleX(pct), background: ink, ...glide }} />
       </div>
     );
   return (
-    <div data-part="bar" className={cn("w-full overflow-hidden rounded-full", m === "pill" ? "bg-[color:var(--w-track)] min-h-[6px]" : track, className)}>
+    <div data-part="bar" className={cn("w-full overflow-hidden rounded-full", m === "pill" ? "bg-[color:var(--w-track)] min-h-1.5" : track, className)}>
       <div className="h-full w-full rounded-full transition-transform duration-500 ease-out" style={{ ...slideX(pct), background: m === "pill" && t === "ok" && ink === TONES.ok ? `linear-gradient(90deg, ${mix(70, "#fff")}, var(--w-accent))` : ink, ...glide }} />
     </div>
   );
@@ -483,7 +483,7 @@ function Braille({ values, lo, hi, className }: { values: number[]; lo: number; 
     return s;
   });
   return (
-    <div ref={ref} data-part="spark" className={`overflow-hidden whitespace-pre font-mono text-[10px] leading-[10px] ${className}`} style={{ fontFamily: "'JetBrains Mono','Geist Mono',monospace" }}>
+    <div ref={ref} data-part="spark" className={`overflow-hidden whitespace-pre font-mono text-nano leading-2.5 ${className}`} style={{ fontFamily: "'JetBrains Mono','Geist Mono',monospace" }}>
       {lines.map((l, i) => (
         <div key={i} style={{ color: `color-mix(in oklab, var(--w-accent) ${Math.round(100 - (1 - i / Math.max(1, nRows - 1)) * 70)}%, ${STATE.crit})` }}>{l}</div>
       ))}
@@ -727,7 +727,7 @@ function SparkMarks({ values, min, max, flat, axis, last: lastOnly, bars, color,
   return (
     <>
       {m.last && (
-        <span aria-hidden className={`absolute ${shape ? "w-[2px]" : "h-1.5 w-1.5 rounded-full"}`} data-spike={shape} style={{ left: `${bars ? 100 - 50 / values.length : m.last.x}%`, top: `${m.last.y}%`, transform: shape === "bar" ? "translate(-50%,0)" : "translate(-50%,-50%)", ...(shape === "bar" ? { height: `${100 - m.last.y}%` } : shape ? { height: 10 } : null), background: color, boxShadow: `0 0 0 2px rgba(0,0,0,.35)${glow ? ", 0 0 6px var(--w-accent)" : ""}` }} />
+        <span aria-hidden className={`absolute ${shape ? "w-0.5" : "h-1.5 w-1.5 rounded-full"}`} data-spike={shape} style={{ left: `${bars ? 100 - 50 / values.length : m.last.x}%`, top: `${m.last.y}%`, transform: shape === "bar" ? "translate(-50%,0)" : "translate(-50%,-50%)", ...(shape === "bar" ? { height: `${100 - m.last.y}%` } : shape ? { height: 10 } : null), background: color, boxShadow: `0 0 0 2px rgba(0,0,0,.35)${glow ? ", 0 0 6px var(--w-accent)" : ""}` }} />
       )}
       {!lastOnly && fixed && (
         <>
@@ -762,7 +762,7 @@ function SparkGraph({ values = [], min, max, className = "h-10", fill = true, co
   const showFill = fill && (mode === "area" || step);
   if (scrollsSmooth(sk.smooth, reduced, mode, values.length))
     return <SmoothGraph values={values} min={min} max={max} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} glow={glow} curve={curve} flat={roomyBox} grid={gridOn && roomyBox} className={className} />;
-  const Y = (v: number) => sparkY(v, lo, hi);
+  const yOf = (v: number) => sparkY(v, lo, hi);
   const svg = (kids: ReactNode) => (
     <svg data-part="spark" viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-visible ${className}`} data-wp-glow={glow ? "" : undefined}>
       {gridOn && roomyBox && GRID}
@@ -774,9 +774,9 @@ function SparkGraph({ values = [], min, max, className = "h-10", fill = true, co
     return svg(
       values.map((v, i) =>
         mode === "bars" ? (
-          <rect key={i} x={i * w + w * 0.15} y={Y(v)} width={w * 0.7} height={100 - Y(v)} fill={color} opacity={0.35 + 0.65 * (i / values.length)} />
+          <rect key={i} x={i * w + w * 0.15} y={yOf(v)} width={w * 0.7} height={100 - yOf(v)} fill={color} opacity={0.35 + 0.65 * (i / values.length)} />
         ) : (
-          <rect key={i} x={i * w + w * 0.2} y={Y(v) - 2} width={w * 0.6} height="4" rx="1" fill={color} opacity={0.3 + 0.7 * (i / values.length)} />
+          <rect key={i} x={i * w + w * 0.2} y={yOf(v) - 2} width={w * 0.6} height="4" rx="1" fill={color} opacity={0.3 + 0.7 * (i / values.length)} />
         )
       )
     );
@@ -864,7 +864,7 @@ export function StatGrid({ items, cols = 4 }: { items: { label: ReactNode; value
  * One legend line: colour swatch, label, trailing value. A null colour keeps the column but draws no swatch. A label
  * is never cut with an ellipsis: when it does not fit beside the value it is hidden (the swatch and value stay).
  */
-export function LegendRow({ color, label, value, className = "text-[12.5px]", tag }: { color?: string | null; label: ReactNode; value?: ReactNode; className?: string; tag?: Record<string, string | number> }) {
+export function LegendRow({ color, label, value, className = "text-small", tag }: { color?: string | null; label: ReactNode; value?: ReactNode; className?: string; tag?: Record<string, string | number> }) {
   const word = useRef<HTMLSpanElement>(null);
   const [cut, setCut] = useState(false);
   useLayoutEffect(() => {
@@ -879,7 +879,7 @@ export function LegendRow({ color, label, value, className = "text-[12.5px]", ta
   }, [label, value]);
   return (
     <div className={`grid min-w-0 grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-2 ${className}`}>
-      <i className={`h-2.5 w-2.5 rounded-[3px] ${color ? "ring-1 ring-inset ring-[color:var(--w-fg)]/15" : ""}`} style={{ background: color ?? "transparent" }} />
+      <i className={`h-2.5 w-2.5 rounded-3 ${color ? "ring-1 ring-inset ring-[color:var(--w-fg)]/15" : ""}`} style={{ background: color ?? "transparent" }} />
       <span ref={word} className={`truncate text-[color:var(--w-muted)]${cut ? " opacity-0" : ""}`} style={labelStyle("none")} title={cut && typeof label === "string" ? label : undefined}>{label}</span>
       <span {...tag} className="font-medium tabular-nums">{value}</span>
     </div>
@@ -932,7 +932,7 @@ export function Pill({ state = "ok", children, className = "" }: { state?: Tone 
   const c = PILL[state] ?? PILL.off;
   return (
     <span data-part="chip" className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs ${className}`} style={{ color: c, background: state === "off" ? "var(--w-track)" : `color-mix(in oklab, ${c} 13%, transparent)` }}>
-      <span className="h-[7px] w-[7px] shrink-0 rounded-full" style={state === "off" ? { border: "1.5px solid currentColor" } : { background: "currentColor" }} />
+      <span className="h-1.75 w-1.75 shrink-0 rounded-full" style={state === "off" ? { border: "1.5px solid currentColor" } : { background: "currentColor" }} />
       {children}
     </span>
   );
@@ -940,7 +940,7 @@ export function Pill({ state = "ok", children, className = "" }: { state?: Tone 
 // Segmented control: options [[value, label]]
 export function Segmented<T extends string>({ value, options, onChange, className = "" }: { value: T; options: [T, ReactNode][]; onChange?: (v: T) => void; className?: string }) {
   return (
-    <span className={`inline-flex rounded-md bg-[color:var(--w-track)] p-[2px] ${className}`}>
+    <span className={`inline-flex rounded-md bg-[color:var(--w-track)] p-0.5 ${className}`}>
       {options.map(([v, l]) => (
         <button key={v} type="button" onClick={() => onChange?.(v)} className={`whitespace-nowrap rounded px-2 py-0.5 text-micro ${value === v ? "bg-[color:var(--w-fg)]/[0.12] text-[color:var(--w-fg)]" : "text-[color:var(--w-muted)]"}`}>
           {l}
@@ -1041,13 +1041,13 @@ export function LedLadder({ value, n = 24, vertical, reverse, zones = [72, 90], 
     ? { "data-ip-key": ipKey, "data-ip-kind": "meter", "data-ip-segments": n, "data-ip-zones": `${zones[0]},${zones[1]}`, "data-ip-colors": JSON.stringify([color, status.warn, hotColor ?? status.crit, `color-mix(in oklab, ${color} ${UNLIT}%, var(--w-track))`]), ...(vertical ? { "data-ip-vertical": "" } : {}), ...(reverse ? { "data-ip-reverse": "" } : {}) }
     : undefined;
   return (
-    <div {...tag} data-part="meter" className={`relative flex flex-1 gap-[2px] ${vertical ? "w-full flex-col-reverse" : `h-full ${reverse ? "flex-row-reverse" : "flex-row"}`}`}>
+    <div {...tag} data-part="meter" className={`relative flex flex-1 gap-0.5 ${vertical ? "w-full flex-col-reverse" : `h-full ${reverse ? "flex-row-reverse" : "flex-row"}`}`}>
       {Array.from({ length: n }, (_, i) => {
         const at = ((i + 0.5) / n) * 100;
         const hot = hotColor ?? status.crit;
         const c = blend ? (at > zones[1] ? mixOf(hot, status.warn, (at - zones[1]) / (100 - zones[1])) : at > zones[0] ? mixOf(status.warn, color, (at - zones[0]) / (zones[1] - zones[0])) : color) : at > zones[1] ? hot : at > zones[0] ? status.warn : color;
         // unlit segments are the surface's track tinted by their zone, so they read on light surfaces as well as dark
-        return <span key={i} className="min-h-0 min-w-0 flex-1 rounded-[2px]" style={at <= v ? { background: c, opacity: 1 } : { background: `color-mix(in oklab, ${c} ${UNLIT}%, var(--w-track))` }} />;
+        return <span key={i} className="min-h-0 min-w-0 flex-1 rounded-2" style={at <= v ? { background: c, opacity: 1 } : { background: `color-mix(in oklab, ${c} ${UNLIT}%, var(--w-track))` }} />;
       })}
       {hold !== undefined && hold > 0 && <HoldMark at={clamp(hold)} vertical={vertical} />}
     </div>

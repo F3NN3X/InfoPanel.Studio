@@ -70,7 +70,7 @@ export function jsonOf(files: readonly PackageFile[], path: string): unknown {
 
 /** The lowercase hex SHA-256 of `bytes` (Web Crypto: the studio, the kiosk and Node alike). */
 export async function sha256(bytes: Uint8Array): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const digest = await crypto.subtle.digest("SHA-256", bytes as Uint8Array<ArrayBuffer>);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 

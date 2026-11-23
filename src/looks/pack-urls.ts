@@ -29,8 +29,21 @@ export function isPackRelativeUrl(url: string): boolean {
   return false;
 }
 
+/**
+ * A pack-relative URL (one `isPackRelativeUrl` passed) as the path of a file from the pack's folder: empty and `.` steps
+ * dropped, each step percent-encoded as written (an escape in it stays text, so it names no other file).
+ */
+export function packPath(url: string): string {
+  return url
+    .trim()
+    .split("/")
+    .filter((step) => step !== "" && step !== ".")
+    .map(encodeURIComponent)
+    .join("/");
+}
+
 /** Functions whose string arguments name files. */
-const URL_FUNCS = new Set(["url", "image-set", "src", "image", "cross-fade"]);
+export const URL_FUNCS = new Set(["url", "image-set", "src", "image", "cross-fade"]);
 /** Functions whose value cannot be known here: inside a URL function they could spell any URL. */
 const DYNAMIC_FUNCS = new Set(["var", "env", "attr"]);
 

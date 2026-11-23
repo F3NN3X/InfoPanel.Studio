@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { ToastCard, type ToastCardAction } from "@/components/ui/toast-provider";
 import type { DashboardConfig } from "@/lib/layout";
 import type { ToastText } from "./theme-messages";
-
-const LINK = "shrink-0 rounded-sm text-body hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 /** How long a toast waits for the change it reports (a theme applies once its chunk has loaded). */
 const LAND_MS = 2000;
@@ -53,35 +51,26 @@ interface ThemeToastRowProps {
 
 /** The toast row under the preview's header (SPEC §4.4): green dot, title and sub-line, Reset to ‹name›, Make them follow, Undo and ✕. */
 export function ThemeToastRow({ toast, onUndo, onDismiss }: ThemeToastRowProps) {
+  const actions: ToastCardAction[] = [
+    ...(toast.reset ? [{ label: toast.reset.label, onClick: toast.reset.run, accent: true }] : []),
+    ...(toast.follow ? [{ label: toast.follow.label, onClick: toast.follow.run, accent: true }] : []),
+    {
+      label: "Undo",
+      onClick: () => {
+        onDismiss();
+        onUndo();
+      },
+    },
+  ];
   return (
-    <div role="status" className="flex w-full items-center gap-3 rounded-ui-menu border border-ui-strong bg-ui-panel px-3 py-[9px] text-body">
-      <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-ui-saved" aria-hidden />
-      <p className="min-w-0 flex-1">
-        <b className="font-medium text-ui-1">{toast.title}</b> <span className="text-ui-soft">{toast.sub}</span>
-      </p>
-      {toast.reset && (
-        <button type="button" className={`${LINK} text-ui-accent`} onClick={toast.reset.run}>
-          {toast.reset.label}
-        </button>
-      )}
-      {toast.follow && (
-        <button type="button" className={`${LINK} text-ui-accent`} onClick={toast.follow.run}>
-          {toast.follow.label}
-        </button>
-      )}
-      <button
-        type="button"
-        className={`${LINK} text-ui-soft`}
-        onClick={() => {
-          onDismiss();
-          onUndo();
-        }}
-      >
-        Undo
-      </button>
-      <button type="button" aria-label="Dismiss" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-ui-hint hover:text-ui-1" onClick={onDismiss}>
-        <X className="h-3.5 w-3.5" />
-      </button>
-    </div>
+    <ToastCard
+      role="status"
+      icon={<span className="h-1.75 w-1.75 shrink-0 rounded-full bg-ui-saved" aria-hidden />}
+      actions={actions}
+      onDismiss={onDismiss}
+      className="w-full border-ui-strong bg-ui-panel px-3 py-2.25 shadow-none"
+    >
+      <b className="font-medium text-ui-1">{toast.title}</b> <span className="text-ui-soft">{toast.sub}</span>
+    </ToastCard>
   );
 }

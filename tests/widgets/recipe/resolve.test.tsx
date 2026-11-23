@@ -32,7 +32,7 @@ function serve(key: string, files: readonly PackageFile[], off = false) {
     if (init?.method === "DELETE") return new Response(null, { status: 204 });
     const path = url.startsWith(`/api/widgets/${key}/`) ? url.slice(`/api/widgets/${key}/`.length) : undefined;
     const file = files.find((f) => f.path === path);
-    return file ? new Response(file.bytes, { status: 200 }) : new Response(null, { status: 404 });
+    return file ? new Response(file.bytes as Uint8Array<ArrayBuffer>, { status: 200 }) : new Response(null, { status: 404 });
   });
   return calls;
 }
@@ -124,7 +124,7 @@ describe("storing a recipe", () => {
       if (init?.method === "POST") return bodies.push(JSON.parse(String(init.body))), new Response("{}", { status: 200 });
       if (url === "/api/widgets") return Response.json([{ id: "recipe:cpu-card", kind: "recipe", name: "CPU card", version: "1.0.0", size: 1, origin: "studio" }, { id: "recipe:old", kind: "recipe", name: "Old", version: "1.0.0", size: 1 }]);
       const file = files.find((f) => url === `/api/widgets/recipe.cpu-card/${f.path}`);
-      return file ? new Response(file.bytes, { status: 200 }) : new Response(null, { status: 404 });
+      return file ? new Response(file.bytes as Uint8Array<ArrayBuffer>, { status: 200 }) : new Response(null, { status: 404 });
     });
     await storePackage(files, "studio");
     forgetRecipe("recipe:cpu-card");

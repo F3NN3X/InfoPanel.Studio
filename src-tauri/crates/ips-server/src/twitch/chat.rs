@@ -21,11 +21,7 @@ pub struct Window {
 impl Window {
     /// Adds a message; one whose id is already there is ignored.
     pub fn push(&mut self, entry: Entry) {
-        if self
-            .entries
-            .iter()
-            .any(|e| e.message.id == entry.message.id)
-        {
+        if self.entries.iter().any(|e| e.message.id == entry.message.id) {
             return;
         }
         if self.entries.len() == WINDOW {
@@ -61,11 +57,7 @@ pub struct SendLimiter {
 impl SendLimiter {
     /// Records a send at `now` and says yes, or says no (nothing recorded) when the limit is reached.
     pub fn allow(&mut self, now: Instant) -> bool {
-        while self
-            .sent
-            .front()
-            .is_some_and(|t| now.duration_since(*t) >= SEND_PERIOD)
-        {
+        while self.sent.front().is_some_and(|t| now.duration_since(*t) >= SEND_PERIOD) {
             self.sent.pop_front();
         }
         if self.sent.len() >= SEND_LIMIT {
@@ -129,13 +121,7 @@ mod tests {
             w.push(entry(id, login));
         }
         w.clear_user("a");
-        assert_eq!(
-            w.messages()
-                .iter()
-                .map(|m| m.id.as_str())
-                .collect::<Vec<_>>(),
-            ["2", "4"]
-        );
+        assert_eq!(w.messages().iter().map(|m| m.id.as_str()).collect::<Vec<_>>(), ["2", "4"]);
         w.remove("2");
         assert_eq!(w.messages().len(), 1);
         w.clear_all();

@@ -144,8 +144,8 @@ describe("views", () => {
     for (const kind of ["text", "value"] as const) {
       const quiet = inCtx(h(CompactView, { c: { ...compact, value: "192.0.2.1", kind }, shape: "tile", w: 228, h: 228 }));
       const hidden = inCtx(h(CompactView, { c: { ...compact, value: "192.0.2.1", kind, blur: true }, shape: "tile", w: 228, h: 228 }));
-      expect(quiet).not.toContain("blur-[4px]");
-      expect(hidden).toContain("blur-[4px] hover:blur-0");
+      expect(quiet).not.toContain("blur-xs");
+      expect(hidden).toContain("blur-xs hover:blur-0");
     }
   });
 
@@ -198,10 +198,10 @@ describe("Widget slots", () => {
   const render = (skin: string) => renderToString(h(Widget, { skin, size: "md", title: "System", compact, children: body }));
 
   it("draws the frame its skin names, and nothing extra for a skin with none", () => {
-    expect(render("tui")).toContain("inset-[5px]");
+    expect(render("tui")).toContain("inset-1.25");
     expect((render("hud").match(/border-[lr] border-[tb]/g) ?? []).length).toBe(4);
     const plain = render("default");
-    expect(plain).not.toContain("inset-[5px]");
+    expect(plain).not.toContain("inset-1.25");
     expect(plain).not.toContain("data-wp-layer");
     expect(plain).not.toContain("--wp-pad");
   });
@@ -211,18 +211,21 @@ describe("Widget slots", () => {
   });
 });
 
+const ornamentSlot = () => h("i");
+
 describe("shell layers", () => {
   it("renders an ornament in a click-through, hidden layer", () => {
-    const html = renderToString(h(CardLayer, { part: "ornament", Slot: () => h("i") }));
+    const html = renderToString(h(CardLayer, { part: "ornament", Slot: ornamentSlot }));
     expect(html).toContain('data-wp-layer="ornament"');
     expect(html).toContain("pointer-events-none");
     expect(html).toContain('aria-hidden="true"');
   });
 });
 
+const Orn = () => h("i", { "data-t": "orn" });
+const Band = () => h("i", { "data-t": "band" });
+
 describe("Widget slot layout", () => {
-  const Orn = () => h("i", { "data-t": "orn" });
-  const Band = () => h("i", { "data-t": "band" });
   const values = [1, 5, 2, 8, 3, 9];
   // biome-ignore lint/correctness/noChildrenProp: the Widget takes a render function as children.
   const render = (skin: string, extra: Record<string, unknown> = {}) => renderToString(h(Widget, { skin, size: "lg", title: "T", icon: "memory", children: () => h(Spark, { values, graph: "area" }), ...extra }));
@@ -238,8 +241,8 @@ describe("Widget slot layout", () => {
     const html = slotted({ frame: "inset", ornament: Orn, tabBand: Band });
     expect(html).toContain("--wp-pad:20px");
     const at = (s: string) => html.indexOf(s);
-    expect(at('inset-[5px]')).toBeGreaterThan(-1);
-    expect(at('inset-[5px]')).toBeLessThan(at('data-wp-layer="ornament"'));
+    expect(at('inset-1.25')).toBeGreaterThan(-1);
+    expect(at('inset-1.25')).toBeLessThan(at('data-wp-layer="ornament"'));
     expect(at('data-wp-layer="ornament"')).toBeLessThan(at('data-wp-layer="tab-band"'));
     expect(at('data-wp-layer="tab-band"')).toBeLessThan(at("data-wp-body"));
   });
