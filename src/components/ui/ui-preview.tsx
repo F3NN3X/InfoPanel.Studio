@@ -34,6 +34,10 @@ const DEVICES = [
 
 /** The redesign's primitives: a chunk of their own, so the entry's preload list does not grow with this gallery. */
 const Foundation = lazy(() => import("./ui-preview-foundation"));
+// Phase 5 step 2: buttons, overlays and the Settings window's parts, each with its states.
+const Buttons = lazy(() => import("./preview/buttons"));
+const Overlays = lazy(() => import("./preview/overlays"));
+const SettingsParts = lazy(() => import("./preview/settings").then((m) => ({ default: m.SettingsSection })));
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -67,6 +71,9 @@ function Gallery() {
         <p className="text-micro text-ui-4">Right-click anywhere for the context menu.</p>
         <Suspense fallback={null}>
           <Foundation Section={Section} />
+          <Buttons Section={Section} />
+          <Overlays Section={Section} />
+          <SettingsParts />
         </Suspense>
         <Section title="Toggle">
           <Toggle checked={on} onChange={setOn} label="Example" />

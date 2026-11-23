@@ -40,7 +40,8 @@ async function menu(page: Page, row: string, item: string, by: "mouse" | "keyboa
     await page.keyboard.press("Shift+F10");
     const menuEl = page.getByTestId("builder-layer-menu");
     await expect(menuEl).toBeVisible();
-    for (let n = 0; n < 14; n++) {
+    // Disabled rows take focus too (Base UI, as the WAI-ARIA menu pattern has it), so the walk passes them.
+    for (let n = 0; n < 24; n++) {
       if ((await page.evaluate(() => document.activeElement?.textContent ?? "")).startsWith(item)) break;
       await page.keyboard.press("ArrowDown");
     }

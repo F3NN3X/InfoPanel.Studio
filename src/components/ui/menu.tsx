@@ -21,15 +21,19 @@ interface MenuContentProps extends Omit<ComponentProps<typeof BaseMenu.Popup>, "
   collisionPadding?: number;
   /** Position against this instead of the trigger (a virtual point for a right-click menu). */
   anchor?: ComponentProps<typeof BaseMenu.Positioner>["anchor"];
+  /** How it stays on screen; Base UI's default flips sides. A right-click menu shifts instead, as the old one clamped. */
+  collisionAvoidance?: ComponentProps<typeof BaseMenu.Positioner>["collisionAvoidance"];
+  /** Where the popup mounts (default: the body). A flyout may mount inside its parent menu, so it stays in its subtree. */
+  container?: ComponentProps<typeof BaseMenu.Portal>["container"];
   /** Added to the popup (a width, a max height). */
   className?: string;
   children: ReactNode;
 }
 
 /** The floating part of a menu: portal, positioner (above dialogs) and popup in one. */
-function Content({ side, align, sideOffset = 4, alignOffset, collisionPadding, anchor, className, children, ...popup }: MenuContentProps) {
+function Content({ side, align, sideOffset = 4, alignOffset, collisionPadding, collisionAvoidance, anchor, container, className, children, ...popup }: MenuContentProps) {
   return (
-    <BaseMenu.Portal>
+    <BaseMenu.Portal container={container}>
       <BaseMenu.Positioner
         className="z-80"
         side={side}
@@ -37,6 +41,7 @@ function Content({ side, align, sideOffset = 4, alignOffset, collisionPadding, a
         sideOffset={sideOffset}
         alignOffset={alignOffset}
         collisionPadding={collisionPadding}
+        collisionAvoidance={collisionAvoidance}
         anchor={anchor}
       >
         <BaseMenu.Popup className={cn(MENU_POPUP, className)} {...popup}>

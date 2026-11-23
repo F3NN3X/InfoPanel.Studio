@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
 import { ChevronRight } from "lucide-react";
 import { Menu } from "./menu";
 
@@ -38,7 +38,7 @@ const ICON =
   "flex h-4 w-4 shrink-0 items-center justify-center [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-ui-hint group-data-highlighted:[&>svg]:text-ui-2";
 
 /** The rows of one level; a row with a flyout opens it beside itself. */
-function Rows({ entries, width, onPick }: { entries: ContextMenuEntry[]; width: number; onPick: (e: Exclude<ContextMenuEntry, "separator">) => void }) {
+function Rows({ entries, width, onPick, root }: { entries: ContextMenuEntry[]; width: number; onPick: (e: Exclude<ContextMenuEntry, "separator">) => void; root: RefObject<HTMLDivElement | null> }) {
   return entries.map((e, i) => {
     if (e === "separator") return <Menu.Separator key={i} className="mx-0.5" />;
     const label = (
@@ -51,13 +51,14 @@ function Rows({ entries, width, onPick }: { entries: ContextMenuEntry[]; width: 
     if (e.submenu)
       return (
         <Menu.SubmenuRoot key={e.id}>
-          <Menu.SubmenuTrigger className={ROW} disabled={e.disabled} title={e.title}>
+          <Menu.SubmenuTrigger className={ROW} disabled={e.disabled} title={e.title} data-sub-trigger={e.id}>
             {label}
             <ChevronRight className="h-3 w-3 shrink-0 text-ui-4" />
           </Menu.SubmenuTrigger>
-          {/* A long flyout ("Move to" over many containers) scrolls rather than run off the screen. */}
-          <Menu.Content alignOffset={-4} collisionPadding={8} className="max-h-[min(20rem,60vh)] overflow-y-auto" style={{ width }}>
-            <Rows entries={e.submenu} width={width} onPick={onPick} />
+          {/* A long flyout ("Move to" over many containers) scrolls rather than run off the screen. It mounts inside the
+              top menu, so the menu's subtree (and its test id) holds its rows, as before. */}
+          <Menu.Content container={root} alignOffset={-4} collisionPadding={8} className="max-h-[min(20rem,60vh)] overflow-y-auto" style={{ width }} data-sub={e.id}>
+            <Rows entries={e.submenu} width={width} onPick={onPick} root={root} />
           </Menu.Content>
         </Menu.SubmenuRoot>
       );
@@ -84,6 +85,15 @@ export function ContextMenu({ x, y, entries, onClose, width = DEFAULT_WIDTH, tes
     return () => window.removeEventListener("blur", onClose);
   }, [onClose]);
 
+  // Focus goes back to where it was only if, once the menu is gone, it is nowhere. Checked at unmount, not when the
+  // close starts: a pick may mount a field that takes focus (Rename) or open a dialog, and must keep it.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    return () => {
+      if (opener?.isConnected && (!document.activeElement || document.activeElement === document.body)) opener.focus();
+    };
+  }, []);
+
   const pick = (e: Exclude<ContextMenuEntry, "separator">) => {
     onClose();
     e.onSelect?.();
@@ -108,17 +118,15 @@ export function ContextMenu({ x, y, entries, onClose, width = DEFAULT_WIDTH, tes
         align="start"
         sideOffset={0}
         collisionPadding={8}
+        // Shifted up and left to stay inside the viewport, never flipped above the pointer (as the old clamp did).
+        collisionAvoidance={{ side: "shift", align: "shift" }}
         data-testid={testId}
         style={{ width }}
         className="p-1"
         onContextMenu={(e) => e.preventDefault()}
-        // Only when focus is still nowhere (a pick may have opened a dialog that took it).
-        finalFocus={() => {
-          const at = document.activeElement;
-          return !at || at === document.body || !!popup.current?.contains(at);
-        }}
+        finalFocus={false}
       >
-        <Rows entries={entries} width={width} onPick={pick} />
+        <Rows entries={entries} width={width} onPick={pick} root={popup} />
       </Menu.Content>
     </Menu.Root>
   );

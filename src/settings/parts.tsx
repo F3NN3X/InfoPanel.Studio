@@ -1,6 +1,5 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import { SelectField } from "@/components/ui/field";
-import { Segmented as UiSegmented } from "@/components/ui/segmented";
 import { SettingCard, SettingRow } from "@/components/ui/setting-row";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
@@ -28,33 +27,7 @@ export function radioProps<T>(values: T[], value: T, mine: T, onChange: (v: T) =
   };
 }
 
-interface SegmentedProps<T extends string | number> {
-  options: { value: T; label: ReactNode }[];
-  value: T;
-  onChange: (value: T) => void;
-  label: string;
-  mono?: boolean;
-  /** Spread the buttons over the whole width. */
-  stretch?: boolean;
-  className?: string;
-}
-
-/**
- * P5-merge: `ui/Segmented` takes string values only; the settings' options include numbers (rotation, panel counts) and
- * two want a mono face or the whole width. This turns values to strings and back and adds the two as classes. It goes
- * once `ui/Segmented` takes `string | number` and those two props.
- */
-export function Segmented<T extends string | number>({ options, value, onChange, label, mono, stretch, className }: SegmentedProps<T>) {
-  return (
-    <UiSegmented
-      label={label}
-      options={options.map((o) => ({ value: String(o.value), label: o.label }))}
-      value={String(value)}
-      onChange={(v) => onChange(options.find((o) => String(o.value) === v)?.value ?? options[0].value)}
-      className={cn(mono && "font-mono", stretch && "[&>button]:flex-1", className)}
-    />
-  );
-}
+export { Segmented } from "@/components/ui/segmented";
 
 /** A group heading above a card; `navSection` is the name a jump from search or a link scrolls to (`data-nav-section`). */
 export function Group({ title, navSection, children }: { title: string; navSection?: string; children: ReactNode }) {

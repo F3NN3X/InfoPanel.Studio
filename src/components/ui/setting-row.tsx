@@ -1,5 +1,5 @@
 import { useId, type ComponentProps, type MouseEvent, type ReactNode } from "react";
-import { Popover as BasePopover } from "@base-ui/react/popover";
+import { PopoverParts } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Button, FOCUS_RING } from "./button";
 
@@ -15,17 +15,13 @@ interface InheritDotProps {
 export function InheritDot({ from, set, onReset }: InheritDotProps) {
   if (!set || !onReset) return <span role="img" aria-label={`From ${from}`} title={`From ${from}`} className="h-1.75 w-1.75 shrink-0 rounded-full border border-ui-hint" />;
   return (
-    <BasePopover.Root>
-      <BasePopover.Trigger aria-label={`Set here, reset to ${from}`} title={`Set here, reset to ${from}`} className={cn("relative h-1.75 w-1.75 shrink-0 rounded-full bg-ui-accent after:absolute after:-inset-1.5 after:content-['']", FOCUS_RING)} />
-      <BasePopover.Portal>
-        <BasePopover.Positioner side="bottom" align="start" sideOffset={6} className="z-[80]">
-          <BasePopover.Popup className="flex items-center gap-2 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 pl-3 font-ui text-caption text-ui-3 shadow-ui-menu outline-none">
-            From {from}
-            <BasePopover.Close render={<Button small variant="ghost" onClick={onReset} />}>Reset</BasePopover.Close>
-          </BasePopover.Popup>
-        </BasePopover.Positioner>
-      </BasePopover.Portal>
-    </BasePopover.Root>
+    <PopoverParts.Root>
+      <PopoverParts.Trigger aria-label={`Set here, reset to ${from}`} title={`Set here, reset to ${from}`} className={cn("relative h-1.75 w-1.75 shrink-0 rounded-full bg-ui-accent after:absolute after:-inset-1.5 after:content-['']", FOCUS_RING)} />
+      <PopoverParts.Content className="flex items-center gap-2 p-1 pl-3 text-caption text-ui-3">
+        From {from}
+        <PopoverParts.Close render={<Button small variant="ghost" onClick={onReset} />}>Reset</PopoverParts.Close>
+      </PopoverParts.Content>
+    </PopoverParts.Root>
   );
 }
 
