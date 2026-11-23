@@ -11,7 +11,7 @@
 use std::path::Path;
 
 use blake2::digest::consts::U32;
-use blake2::digest::Mac;
+use blake2::digest::{KeyInit, Mac};
 use blake2::Blake2bMac;
 
 use crate::key_file::{self, Refused};
@@ -26,7 +26,7 @@ pub fn valid_nonce(nonce: &str) -> bool {
 }
 
 fn mac_of(key: &Key, nonce: &str, id: &str, behavior: &str) -> Blake2bMac<U32> {
-    let mut mac = <Blake2bMac<U32> as Mac>::new_from_slice(key).expect("32 bytes is a BLAKE2b key");
+    let mut mac = <Blake2bMac<U32> as KeyInit>::new_from_slice(key).expect("32 bytes is a BLAKE2b key");
     Mac::update(&mut mac, DOMAIN);
     Mac::update(&mut mac, format!("{nonce}\0{id}\0{behavior}").as_bytes());
     mac
