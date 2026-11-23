@@ -311,6 +311,49 @@ Keep `infopanel-widgets.key` and its password offline (never in the repo, CI or 
 `infopanel-widgets.pub` into `OWNER_KEY` in `crates/ips-server/src/widget_keys.rs` (`Some("RW...")`), and sign a package
 with `node tools/widgets/sign.mjs <package-folder> --key infopanel-widgets.key --password-env MINISIGN_PASSWORD`.
 
+## Pack signatures
+
+A theme pack may carry its publisher's signature and Themely's countersignature
+(`crates/ips-server/src/pack_trust.rs`). They say who made a pack's files and whether someone reviewed exactly those files;
+they never make a pack safe. A pack's script is contained by the pack-script sandbox, whatever its signature says. This is
+not the local `pack.sig` (`pack_sign.rs`), which only marks that the studio's render check passed on this machine and is
+never shown as verified.
+
+- **What is signed.** The server makes the pack's manifest itself, from the files it holds, on every read: each file's path,
+  size and SHA-256, every file but the two signature files and `pack.sig`, as canonical JSON after a domain of its own
+  (`tests/fixtures/packs/canonical-vector.json` pins it for the server and `tools/packs/sign.mjs`). The publisher signs it
+  with minisign (`pack.minisig`), the code widgets' scheme. Themely countersigns a statement
+  `{ manifestSha256, packId, version, publisherKeyId, checksVersion, reviewLevel, sourceHash, issuedAt }` (`themely.json`).
+- **Keys.** Themely's pack key is pinned in the app, a slot of its own (`THEMELY_PACK_KEY`), never the code widgets'
+  Themely key or the updater's key; it is empty and off until the owner sets it up. A debug build takes a test key from
+  `PACK_THEMELY_TEST_KEY`; a release build never reads it. Other publishers are the keys the user added in Settings ›
+  Widget publishers (never from an import prompt), each with an "Allow pack scripts" switch that is off when the key is added.
+- **States and badges.** Built-in (the app's own); **Verified by Themely** (Themely's countersignature with
+  `reviewLevel: "reviewed"` and the publisher's signature, both over these bytes: "Themely ran its automated checks and a
+  person reviewed these exact files"); **Signed by <publisher>, not reviewed** (a key the user added); amber **Unverified**
+  (no signature, or one from a key this app does not know); red **Changed since it was signed** (a signature this app can
+  check no longer matches the files: refused); red **Withdrawn: <reason>** (on a revoke list: refused, its files kept).
+  A refused pack is still listed, with the reason, so the studio can say why; its files answer 403 and it is not worn.
+- **Updates.** An import that replaces a signed pack needs the same publisher key, a reviewed pack a reviewed update, and a
+  higher version (the same version only with the same files). The server remembers the last signed version of each id
+  (`packs/.installed.json`) after the pack is removed, so an older signed version cannot come back. A signed pack stored is
+  never replaced by an unsigned one.
+- **Revocation.** The update-shipped list (`widget-keys-revoked.json`) now also holds withdrawn packs, by id (and version)
+  for a signed pack or by manifest hash for any; a key on it refuses the packs it signed. Themely's `revoked.json` adds to it:
+  signed by the pinned pack key, with a `version` that only rises (an older list is refused as a rollback) and an
+  `expires` date (an expired list is refused, so a frozen copy cannot be replayed). The server fetches it once a day through
+  the guarded, host-pinned client (as the weather source), sending only the request (`crates/ips-server/src/pack_revocation.rs`).
+  The URL is a constant that stays unset, so nothing is fetched, until the owner sets it up; `PACK_REVOCATION=off` turns the
+  fetch off. While the fetch is on and no list has been confirmed for 30 days, the scripts of packs that are not built in
+  stop; their declarative parts are not affected.
+- **Scripts.** `GET /api/packs/<id>/trust` says whether a pack's script runs (`scriptRuns`): it has one, `PACK_SCRIPTS` is not
+  off, the studio's switch (`/api/pack-scripts`, stored server-side) is on, the pack is neither changed nor withdrawn, the
+  revoke list is not stale, and it is verified, signed by a key whose "Allow pack scripts" is on, or the user said yes to
+  these files (`PUT /api/packs/<id>/script-consent`, under the import's guards, bound to the manifest's hash so an update
+  asks again). `GET /api/packs/<id>/fx.js` serves the script only then, by hash, as `text/javascript` with `nosniff`,
+  `no-store` and a CSP that allows nothing; the file route never serves a pack's `.js`. Every kiosk asks, so the switches
+  hold on every device.
+
 ## Review findings (2026-10-22) and what happened
 
 | Severity | Finding | Outcome |
@@ -336,3 +379,5 @@ with `node tools/widgets/sign.mjs <package-folder> --key infopanel-widgets.key -
 - The desktop app's IPC under the new server CSP, and a Web Page widget under it (both reasoned from the policy).
 - A real write from another LAN device (unit tests cover `remoteEditRefusal`; route tests bind 127.0.0.1).
 - The proxy's connect-time pinning against a real public host.
+- The pack revoke list fetch against themely.dev: its URL and Themely's pack key are not set up, so it has run only against
+  signed lists in tests, never over the network.

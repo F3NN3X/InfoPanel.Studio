@@ -1331,6 +1331,29 @@ largest cut is 18) and a `stroke` up to 2 px, and now also:
 A spine, a tab or a second line is drawn only where the card's padding is at least as wide as it is, so it never covers text. For
 the same reason a card's ornaments (the small marks and labels in a corner) are drawn only where the padding is more than 10 px.
 
+### Signing a pack you share
+
+Browse themes shows each imported pack's badge: **Verified by Themely** (Themely ran its checks and a person reviewed these
+exact files; it does not mean the pack is safe), **Signed by <publisher>, not reviewed**, **Unverified** (amber), or, in red,
+**Changed since it was signed** or **Withdrawn: <reason>**. A changed or withdrawn pack is not used. How the signatures work:
+[security.md](security.md#pack-signatures).
+
+To sign a pack you made, so people who trust your key see your name instead of Unverified:
+
+1. Make a minisign key once: `minisign -G -p acme.pub -s acme.key` (or, to try it out, `node tools/packs/sign.mjs --generate acme`,
+   which leaves the secret key unencrypted). Keep `acme.key` to yourself.
+2. Finish the pack, `version` in `pack.json` included, then sign the folder:
+   `node tools/packs/sign.mjs my-pack --key acme.key --password-env MINISIGN_PASSWORD`. This writes `pack.minisig` beside the
+   files: a signature over every file's SHA-256, so change nothing after it (sign again after any change, with a higher
+   `version`).
+3. Share the folder or a zip of it with `pack.minisig` in it, and your `acme.pub`. Whoever imports it adds `acme.pub` in
+   Settings › Widget publishers; until they do, the pack shows as Unverified.
+
+An update must be signed with the same key and have a higher version: the app refuses an older version, or another key's, over
+a pack it has. A pack's effect script runs only when the pack is verified, signed by a key whose **Allow pack scripts** is on in
+Settings › Widget publishers, or when you allow it for that pack; **Pack effect scripts** in Browse themes, or `PACK_SCRIPTS=off`
+on the server, turns them all off.
+
 ## Widget theme
 
 Look and content preferences can be set once instead of per widget. A theme holds a value for each *themed* setting: the
