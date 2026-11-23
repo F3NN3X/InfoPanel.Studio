@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { cleanup, render } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
-import { PackDecor, PageSizeCtx, frameClip, slotsWithDecor } from "@/looks/pack-frame";
+import { PackDecor, PageSizeCtx, frameClip, lineColour, slotsWithDecor } from "@/looks/pack-frame";
 import type { PackFrame, PackOrnament } from "@/looks/pack-json";
 import { userPackOf } from "@/looks/user-packs";
 import type { PackSource } from "@/looks/pack-validate";
@@ -111,6 +112,27 @@ describe("frame shapes the kit has (spine, tab, double line, a kind per corner)"
     // no room for the second line (two strokes and the gap): one line
     const tight = render(<PackDecor decor={{ frame: { corners: "square", size: 0, stroke: 1, double: true } }} screen={md} pad={3} />).container;
     expect((tight.querySelector("[data-pack-decor=frame]") as HTMLElement).children).toHaveLength(0);
+  });
+
+  it("lays the lines and the spine over the card at the frame's alpha, and keeps the tab solid", () => {
+    const frame: PackFrame = { corners: "cut", size: 10, which: ["br"], stroke: 1, alpha: 0.55, spine: { edge: "left", width: 5 }, tab: { at: "tl", width: 56, height: 5 } };
+    const root = render(<PackDecor decor={{ frame }} screen={md} pad={12} />).container;
+    const mixed = "color-mix(in srgb, var(--w-accent) 55%, transparent)";
+    expect(root.querySelector("path")?.getAttribute("stroke")).toBe(mixed);
+    // the spine as the page gets it (happy-dom drops a color-mix() background)
+    expect(renderToString(<PackDecor decor={{ frame }} screen={md} pad={12} />)).toContain(`data-frame-part="spine" style="position:absolute;background:${mixed}`);
+    expect((root.querySelector("[data-frame-part=tab]") as HTMLElement).style.background).toBe("var(--w-accent)");
+    cleanup();
+    // unset or 1: the accent as before
+    expect(view({ frame: { ...frame, alpha: 1 } }).querySelector("path")?.getAttribute("stroke")).toBe("var(--w-accent)");
+    expect(lineColour({ corners: "square", size: 0 })).toBe("var(--w-accent)");
+  });
+
+  it("keeps a corner ornament clear of a spine on its side as of a cut corner", () => {
+    const ornaments: PackOrnament[] = [{ kind: "reticle", at: "tl" }, { kind: "reticle", at: "br" }, { kind: "reticle", at: "tr" }];
+    const root = view({ frame: { corners: "cut", size: 10, which: ["br"], stroke: 1, spine: { edge: "left", width: 6 } }, ornaments });
+    const [tl, br, tr] = [...root.querySelectorAll("[data-ornament]")] as HTMLElement[];
+    expect([tl.style.left, br.style.right, tr.style.right]).toEqual(["10px", "14px", "4px"]);
   });
 
   it("strokes the corners of a per-corner frame by their kind and leaves the others plain", () => {

@@ -18,7 +18,7 @@ import { resolveT1, resolveVariant, VARIANT_ALPHA, VARIANT_COLOURS, type Look, t
 import lookSchema from "./look.schema.json";
 import { motionIssues } from "./motion";
 import { MAX_LAYERS, NUMERAL_MIN, numeralIssues, stageIssues } from "./pack-checks";
-import { FLASH_MAX, FRAME_SIZE_MAX, FRAME_SPINE_MAX, FRAME_STROKE_MAX, FRAME_TAB_HEIGHT_MAX, FRAME_TAB_WIDTH_MAX, FX_KINDS, ORNAMENT_MAX, ORNAMENT_TEXT_MAX, ORNAMENTS_MAX, TEXT_ORNAMENTS, type PackJson } from "./pack-json";
+import { FLASH_MAX, FRAME_ALPHA_MIN, FRAME_SIZE_MAX, FRAME_SPINE_MAX, FRAME_STROKE_MAX, FRAME_TAB_HEIGHT_MAX, FRAME_TAB_WIDTH_MAX, FX_KINDS, ORNAMENT_MAX, ORNAMENT_TEXT_MAX, ORNAMENTS_MAX, TEXT_ORNAMENTS, type PackJson } from "./pack-json";
 import { commaParts, lintPackCss, OPACITY_FLOOR } from "./pack-css";
 import { INJECTION, jsonShapeIssues, jsonStrings, PROSE_PATHS, rasterMatches, STYLE_BREAKERS, svgIssue, svgPaints, TOKEN_KEY, withoutAliases } from "./pack-safety";
 import packSchema from "./pack.schema.json";
@@ -783,7 +783,8 @@ function validate(src: PackSource, source: "builtin" | "user"): PackIssue[] {
     if (!(size >= 0 && size <= FRAME_SIZE_MAX)) add("frame", "pack.json", `frame size ${size}: 0 to ${FRAME_SIZE_MAX} px`);
     if (stroke !== undefined && !(stroke >= 0 && stroke <= FRAME_STROKE_MAX)) add("frame", "pack.json", `frame stroke ${stroke}: 0 to ${FRAME_STROKE_MAX} px`);
     if (which && (which.length === 0 || new Set(which).size !== which.length)) add("frame", "pack.json", "frame which: at least one corner, none twice");
-    const { spine, tab } = pack.frame;
+    const { spine, tab, alpha } = pack.frame;
+    if (alpha !== undefined && !(alpha >= FRAME_ALPHA_MIN && alpha <= 1)) add("frame", "pack.json", `frame alpha ${alpha}: ${FRAME_ALPHA_MIN} to 1`);
     if (spine && !(spine.width >= 1 && spine.width <= FRAME_SPINE_MAX)) add("frame", "pack.json", `frame spine width ${spine.width}: 1 to ${FRAME_SPINE_MAX} px`);
     if (tab && !(tab.width >= 1 && tab.width <= FRAME_TAB_WIDTH_MAX && tab.height >= 1 && tab.height <= FRAME_TAB_HEIGHT_MAX)) add("frame", "pack.json", `frame tab ${tab.width} by ${tab.height}: at most ${FRAME_TAB_WIDTH_MAX} by ${FRAME_TAB_HEIGHT_MAX} px`);
   }

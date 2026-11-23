@@ -1326,10 +1326,13 @@ largest cut is 18) and a `stroke` up to 2 px, and now also:
   that corner plain);
 - `spine`: `{"edge": "left", "width": 5}`, an accent bar along one edge, 1 to 6 px thick;
 - `tab`: `{"at": "tl", "width": 56, "height": 5}`, a solid accent tab on the top or bottom edge at a corner, up to 64 by 8 px;
-- `double`: `true` draws a second line 2 px inside the first.
+- `double`: `true` draws a second line 2 px inside the first;
+- `alpha`: how strong the lines and the spine are over the card, 0.2 to 1 (the Cyberspec kit's panel line is 0.55); the tab
+  stays solid.
 
 A spine, a tab or a second line is drawn only where the card's padding is at least as wide as it is, so it never covers text. For
-the same reason a card's ornaments (the small marks and labels in a corner) are drawn only where the padding is more than 10 px.
+the same reason a card's ornaments (the small marks and labels in a corner) are drawn only where the padding is more than 10 px,
+and a corner ornament keeps clear of a cut corner and of a spine on its side.
 
 ## Widget theme
 

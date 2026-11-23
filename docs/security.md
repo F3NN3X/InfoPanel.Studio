@@ -127,7 +127,7 @@ security model, what was fixed, what was decided, and what is deferred.
   the contrast check reads the result.
 - **Pack frames, ornaments and effects** (`src/looks/pack-validate.ts`, `src/looks/pack-frame.tsx`, `src/looks/effects.ts`):
   declarations in pack.json that the app draws with its own code; a pack supplies no markup or style for them. A frame's
-  corners are at most 20 px and its stroke 2 px, in the Look's accent; its spine is at most 6 px thick, its tab 64 by 8 px, its
+  corners are at most 20 px and its stroke 2 px, in the Look's accent (at an `alpha` of 0.2 to 1); its spine is at most 6 px thick, its tab 64 by 8 px, its
   second line a fixed 2 px gap, all numbers in pack.json and drawn only where the card's padding keeps them off the content. Ornament text is at most 64 characters, passes the same
   injection scan as every pack.json string, and is drawn as a text node in a band of at most 10 px that takes no clicks. The
   render check treats these elements as app chrome. The animated kinds are overlays that never filter, move or clip a widget;

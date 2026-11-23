@@ -18,6 +18,8 @@ export const FRAME_TAB_WIDTH_MAX = 64;
 export const FRAME_TAB_HEIGHT_MAX = 8;
 /** The gap between the two lines of a `double` frame, px. */
 export const FRAME_DOUBLE_GAP = 2;
+/** The faintest a frame's lines may be (its `alpha`): under it a line no longer reads as an edge. */
+export const FRAME_ALPHA_MIN = 0.2;
 /** At most this many ornaments on a card. */
 export const ORNAMENTS_MAX = 4;
 /** An ornament's text, characters. */
@@ -62,6 +64,8 @@ export interface PackFrame {
   tab?: { at: Corner; width: number; height: number };
   /** A second line `FRAME_DOUBLE_GAP` px inside the first. */
   double?: boolean;
+  /** How strong the lines and the spine are over the card, `FRAME_ALPHA_MIN` to 1 (the tab stays solid); unset = 1. */
+  alpha?: number;
 }
 
 /** One ornament the app draws on the card. */

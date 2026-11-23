@@ -20,6 +20,9 @@ export function slotsWithDecor(pack: Pick<Pack, "slots" | "frame" | "ornaments">
 }
 
 const named = (frame: PackFrame): readonly Corner[] => frame.which ?? CORNERS;
+
+/** The colour of a frame's lines and spine: the accent, laid over the card at the frame's `alpha` (the kit's 55 % panel line); the tab stays solid. */
+export const lineColour = (frame: PackFrame): string => (frame.alpha === undefined || frame.alpha >= 1 ? "var(--w-accent)" : `color-mix(in srgb, var(--w-accent) ${Math.round(frame.alpha * 100)}%, transparent)`);
 const px = (n: number) => `${n}px`;
 
 /** What a corner of the frame is: its own kind, else the frame's where `which` names it, else plain. */
@@ -81,21 +84,22 @@ function Frame({ frame, pad }: { frame: PackFrame; pad?: number }) {
   const spineShown = spine && roomFor(spine.width);
   const tabShown = tab && roomFor(tab.height);
   if (!(line && (frame.corners === "square" || marks.length > 0)) && !spineShown && !tabShown) return null;
-  const ring = (inset: number): CSSProperties => ({ position: "absolute", inset, borderRadius: "inherit", boxShadow: `inset 0 0 0 ${px(stroke)} var(--w-accent)` });
+  const ink = lineColour(frame);
+  const ring = (inset: number): CSSProperties => ({ position: "absolute", inset, borderRadius: "inherit", boxShadow: `inset 0 0 0 ${px(stroke)} ${ink}` });
   const tabInset = tab && frame.size > 0 && (kindAt(frame, tab.at) === "cut" || kindAt(frame, tab.at) === "notch") ? frame.size : 0;
   return (
-    <div aria-hidden data-pack-decor="frame" className={`pointer-events-none absolute inset-0${frame.corners === "square" ? " rounded-[inherit]" : ""}`} style={frame.corners === "square" && line ? { boxShadow: `inset 0 0 0 ${px(stroke)} var(--w-accent)` } : undefined}>
+    <div aria-hidden data-pack-decor="frame" className={`pointer-events-none absolute inset-0${frame.corners === "square" ? " rounded-[inherit]" : ""}`} style={frame.corners === "square" && line ? { boxShadow: `inset 0 0 0 ${px(stroke)} ${ink}` } : undefined}>
       {frame.corners === "square" && double && <div style={ring(stroke + FRAME_DOUBLE_GAP)} />}
       {marks.map((c) => {
         const kind = kindAt(frame, c);
         return (
           <svg key={c} width={frame.size} height={frame.size} viewBox={`0 0 ${frame.size} ${frame.size}`} style={{ position: "absolute", overflow: "visible", ...FLIP[c].place, transform: FLIP[c].flip }}>
-            <path d={strokePath(kind, frame.size, stroke)} fill="none" stroke="var(--w-accent)" strokeWidth={stroke} />
-            {double && <path d={strokePath(kind, frame.size, stroke, stroke + FRAME_DOUBLE_GAP)} fill="none" stroke="var(--w-accent)" strokeWidth={stroke} />}
+            <path d={strokePath(kind, frame.size, stroke)} fill="none" stroke={ink} strokeWidth={stroke} />
+            {double && <path d={strokePath(kind, frame.size, stroke, stroke + FRAME_DOUBLE_GAP)} fill="none" stroke={ink} strokeWidth={stroke} />}
           </svg>
         );
       })}
-      {spineShown && <div data-frame-part="spine" style={{ position: "absolute", background: "var(--w-accent)", ...EDGE_BOX[spine.edge](spine.width) }} />}
+      {spineShown && <div data-frame-part="spine" style={{ position: "absolute", background: ink, ...EDGE_BOX[spine.edge](spine.width) }} />}
       {tabShown && (
         <div data-frame-part="tab" style={{ position: "absolute", background: "var(--w-accent)", width: tab.width, height: tab.height, ...(tab.at === "tl" || tab.at === "tr" ? { top: 0 } : { bottom: 0 }), ...(tab.at === "tl" || tab.at === "bl" ? { left: tabInset } : { right: tabInset }) }} />
       )}
@@ -129,12 +133,17 @@ function Ornament({ item, inset }: { item: PackOrnament; inset: number }) {
   );
 }
 
-/** The card's ornaments that show at this screen's size class; a corner next to a cut or notched corner keeps clear of it. */
+/** The card's ornaments that show at this screen's size class; a corner ornament keeps clear of a cut or notched corner and of a spine on its side. */
 function Ornaments({ items, frame, screen }: { items: readonly PackOrnament[]; frame?: PackFrame; screen: { width: number; height: number } | undefined }) {
   const sizeClass = screen ? sizeClassOf(screen.width, screen.height) : undefined;
   const shown = items.filter((o) => showsAt(o.minSizeClass, sizeClass));
   if (!shown.length) return null;
-  const clear = (where: OrnamentAt) => 4 + (frame && frame.corners !== "square" && (CORNERS as readonly string[]).includes(where) && named(frame).includes(where as Corner) ? frame.size : 0);
+  const clear = (where: OrnamentAt) => {
+    if (!frame || !(CORNERS as readonly string[]).includes(where)) return 4;
+    const cut = kindAt(frame, where as Corner) !== "square" ? frame.size : 0;
+    const side = where === "tl" || where === "bl" ? "left" : "right";
+    return 4 + Math.max(cut, frame.spine?.edge === side ? frame.spine.width : 0);
+  };
   return (
     <div aria-hidden data-pack-decor="ornaments" className="pointer-events-none absolute inset-0">
       {shown.map((o, i) => (

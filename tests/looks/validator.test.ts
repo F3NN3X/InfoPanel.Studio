@@ -178,6 +178,9 @@ describe("bad packs, one per rule", () => {
     expect(rules(bad({ pack: { frame: { ...ok, tab: { at: "tl", width: 56, height: 9 } } } }))).toContain("schema");
     expect(rules(bad({ pack: { frame: { ...ok, byCorner: { tl: "round" } } } }))).toContain("schema");
     expect(rules(bad({ pack: { frame: { ...ok, double: "yes" } } }))).toContain("schema");
+    // a line strength from the faintest edge that still reads to solid
+    for (const alpha of [0.2, 0.55, 1]) expect(rules(bad({ pack: { frame: { ...ok, alpha } } })), String(alpha)).toEqual([]);
+    for (const alpha of [0.1, 1.5, "55%"]) expect(rules(bad({ pack: { frame: { ...ok, alpha } } })), String(alpha)).toContain("schema");
     expect(rules(bad({ pack: { frame: { corners: "cut", size: 8, colour: "#f00" } } }))).toContain("schema");
   });
 
