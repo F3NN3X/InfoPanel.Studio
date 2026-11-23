@@ -82,7 +82,7 @@ export function InkField({ label, ink, palette, onChange }: { label: string; ink
             </option>
           ))}
         </select>
-        <label className="relative h-5.5 w-5.5 shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong" style={{ backgroundColor: toCss(ink.color) }}>
+        <label className="relative h-5.5 w-5.5 shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent" style={{ backgroundColor: toCss(ink.color) }}>
           <input
             type="color"
             aria-label={`${label} swatch`}

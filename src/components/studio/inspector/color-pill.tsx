@@ -34,7 +34,7 @@ export function ColorPill({
       <label className="flex h-7 cursor-pointer items-center gap-2 rounded-md border border-ui-strong bg-ui-hover pl-2.25 pr-1">
         <span className="font-ui-mono text-micro text-ui-2">{value ? value.toUpperCase() : "Auto"}</span>
         <span
-          className="relative h-5 w-5 shrink-0 overflow-hidden rounded-4 border border-ui-strong"
+          className="relative h-5 w-5 shrink-0 overflow-hidden rounded-4 border border-ui-strong has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent"
           style={value ? { backgroundColor: value } : { background: CHECKER }}
         >
           <input

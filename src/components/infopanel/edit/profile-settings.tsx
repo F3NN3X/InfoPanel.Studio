@@ -92,7 +92,7 @@ function ColourField({ field, value, onSet, onCommit, inline = false }: { field:
       <div className="min-w-0 flex-1">
         <TypedField field={field} value={value} onCommit={onCommit} inline={inline} />
       </div>
-      <label className="relative mb-0.75 h-5.5 w-5.5 shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong" style={{ backgroundColor: toCss(value) }}>
+      <label className="relative mb-0.75 h-5.5 w-5.5 shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent" style={{ backgroundColor: toCss(value) }}>
         <input
           type="color"
           aria-label={`${label} swatch`}
@@ -131,7 +131,7 @@ function PaletteRow({ slot, value, onSet }: { slot: Slot; value: string; onSet: 
           }}
           className={cn(INPUT, error ? "border-ui-danger" : "border-ui-default")}
         />
-        <label className="relative h-5.5 w-5.5 shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong" style={{ backgroundColor: toCss(value) }}>
+        <label className="relative h-5.5 w-5.5 shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent" style={{ backgroundColor: toCss(value) }}>
           <input
             type="color"
             aria-label={`Profile color ${SLOT_LABEL[slot]} swatch`}
