@@ -39,7 +39,7 @@ Four settings, also under Window, keep a studio you aren't using from costing mu
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Refresh the Studio** | When idle for 30 minutes | Reloads the Studio page once it has sat unfocused this long, to give back memory a long session holds. The other choices are **Daily at 04:00** and **Off**. Edits are saved first |
+| **Refresh the studio** | When idle for 30 minutes | Reloads the Studio page once it has sat unfocused this long, to give back memory a long session holds. The other choices are **Daily at 04:00** and **Off**. Edits are saved first |
 | **Release the hidden studio** | After 10 minutes | When the studio has sat in the tray this long, its page is closed to give back its memory. Opening it from the tray rebuilds it in a moment. Edits are saved first; the undo history is lost |
 | **Reduce studio animation when unfocused** | On | A minute after the studio loses focus, the canvas runs at 5 frames a second and weather, visualisers and other effects pause. They resume when you come back |
 | **Design preview data** | Frozen when unfocused | Whether the Edit canvas shows live sensor values or a snapshot. See [The studio](studio#design-preview-data) |
