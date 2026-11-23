@@ -91,7 +91,7 @@ function SharedField({ editor, paths, items, field }: { editor: CanvasEditor; pa
     <label className="block min-w-0">
       <span className="mb-1 block text-micro text-ui-4">{labelOf(field)}</span>
       <span className="flex items-center gap-1.5">
-        {isColor && same && <span aria-hidden className="h-5 w-5 shrink-0 rounded-5 border border-ui-default" style={{ background: argbCss(String(values[0])) }} />}
+        {isColor && same && <span aria-hidden className="h-5 w-5 shrink-0 rounded-6 border border-ui-default" style={{ background: argbCss(String(values[0])) }} />}
         <input
           aria-label={labelOf(field)}
           aria-invalid={error !== null}
@@ -109,7 +109,7 @@ function SharedField({ editor, paths, items, field }: { editor: CanvasEditor; pa
           className={cn(INPUT, error ? "border-ui-danger" : "border-ui-default")}
         />
       </span>
-      {error && <p className="mt-1.5 text-label leading-snug text-ui-danger">{error}</p>}
+      {error && <p className="mt-1.5 text-caption leading-snug text-ui-danger">{error}</p>}
     </label>
   );
 }

@@ -78,8 +78,8 @@ export function SensorSelect({ label, current, fallbackName, placeholder = "Choo
           className,
         )}
       >
-        <span className={cn("min-w-0 flex-1 truncate text-small", shownName ? "text-ui-1" : "text-ui-4")}>{shownName ?? placeholder}</span>
-        {shownName && shownValue && <span className="max-w-27.5 shrink-0 truncate font-ui-mono text-label text-ui-2">{shownValue}</span>}
+        <span className={cn("min-w-0 flex-1 truncate text-body", shownName ? "text-ui-1" : "text-ui-4")}>{shownName ?? placeholder}</span>
+        {shownName && shownValue && <span className="max-w-27.5 shrink-0 truncate font-ui-mono text-caption text-ui-2">{shownValue}</span>}
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-ui-4" aria-hidden />
       </PopoverParts.Trigger>
       <PopoverParts.Content
@@ -106,7 +106,7 @@ export function SensorSelect({ label, current, fallbackName, placeholder = "Choo
             placeholder={pluginOnly ? "Search plugin sensors" : "Search sensors, e.g. gpu temp"}
             aria-label="Search sensors"
             aria-controls="sensor-select-list"
-            className="min-w-0 flex-1 bg-transparent text-small text-ui-1 outline-none placeholder:text-ui-4"
+            className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-4"
           />
           <span className="text-micro text-ui-hint">↑↓ Enter</span>
         </div>
@@ -120,7 +120,7 @@ export function SensorSelect({ label, current, fallbackName, placeholder = "Choo
                 onClear();
                 close();
               }}
-              className="flex w-full items-center rounded-7 px-2.5 py-1.5 text-left text-small text-ui-2 hover:bg-ui-hover"
+              className="flex w-full items-center rounded-8 px-2.5 py-1.5 text-left text-body text-ui-2 hover:bg-ui-hover"
             >
               Leave unbound
             </button>
@@ -145,14 +145,14 @@ export function SensorSelect({ label, current, fallbackName, placeholder = "Choo
                     title={native ? sensors[p.key]?.ref : `${p.key} · ${NOT_EXPORTABLE}`}
                     onClick={() => pick(p)}
                     onMouseMove={() => index !== at && setCursor(index)}
-                    className={cn("flex w-full items-center gap-2 rounded-7 px-2.5 py-1.5 text-left", index === at && "bg-ui-active")}
+                    className={cn("flex w-full items-center gap-2 rounded-8 px-2.5 py-1.5 text-left", index === at && "bg-ui-active")}
                   >
                     <span className="w-3.5 shrink-0 text-ui-accent">{p.key === current && <Check className="h-3.5 w-3.5" />}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-small text-ui-1">{p.name}</span>
+                      <span className="block truncate text-body text-ui-1">{p.name}</span>
                       {!native && <span className="block truncate font-ui-mono text-micro text-ui-4">preview only</span>}
                     </span>
-                    <span className="max-w-27.5 shrink-0 truncate font-ui-mono text-label text-ui-2">{p.raw}</span>
+                    <span className="max-w-27.5 shrink-0 truncate font-ui-mono text-caption text-ui-2">{p.raw}</span>
                   </button>
                 );
               })}

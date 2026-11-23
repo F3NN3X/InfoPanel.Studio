@@ -16,7 +16,7 @@ import { previewProfile, type ThemeException } from "./theme-exceptions";
 import { previewFit } from "./theme-view-model";
 
 const BUTTON =
-  "h-7 shrink-0 rounded-7 border border-ui-strong px-2.75 text-body text-ui-1 transition-colors hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+  "h-7 shrink-0 rounded-8 border border-ui-strong px-2.75 text-body text-ui-1 transition-colors hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 const ZOOM_BUTTON = "h-7 w-7 rounded-md text-ui-2 hover:bg-ui-default";
 const ZOOM_TEXT = "h-6.5 rounded-md px-2.25 text-micro font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 const LINK = "shrink-0 rounded-sm text-body hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
@@ -123,7 +123,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
     <section aria-label="Preview" className="flex w-full min-w-0 flex-col gap-3.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 className="sr-only">Preview</h2>
-        <div role="group" aria-label="Page to preview" className="flex gap-0.5 rounded-7 border border-ui-strong bg-ui-panel p-0.5">
+        <div role="group" aria-label="Page to preview" className="flex gap-0.5 rounded-8 border border-ui-strong bg-ui-panel p-0.5">
           {profile.pages.map((pg) => (
             <button
               key={pg.id}
@@ -134,7 +134,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
                 onPage(pg.id);
               }}
               className={cn(
-                "rounded-5 px-2.5 py-1 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+                "rounded-6 px-2.5 py-1 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
                 pg.id === page.id ? SEGMENT_ON : SEGMENT_OFF
               )}
             >

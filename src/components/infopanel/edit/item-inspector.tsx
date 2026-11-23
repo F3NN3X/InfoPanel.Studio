@@ -52,7 +52,7 @@ interface ItemInspectorProps {
 }
 
 const INPUT = "h-7 w-full min-w-0 rounded-ui-sm border bg-ui-raised px-2 font-ui-mono text-caption text-ui-1 outline-none focus:border-ui-accent";
-const Message = ({ children }: { children: ReactNode }) => <p className="mt-1.5 text-label leading-snug text-ui-danger">{children}</p>;
+const Message = ({ children }: { children: ReactNode }) => <p className="mt-1.5 text-caption leading-snug text-ui-danger">{children}</p>;
 
 /** The panel shell for no selection or several items. */
 function Placeholder({ title, children }: { title: string; children: ReactNode }) {
@@ -171,7 +171,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
               <SensorCard editor={editor} item={item} live={live} onRemap={onRemap} onBindSensor={onBindSensor} sensors={sensors} />
               {item.kind === "Gauge" && onEditGauge && !element && (
                 <>
-                  {item.Images.length === 0 && !("vector" in item) && <p className="px-4 pb-1.5 text-label leading-snug text-ui-4">No frames and no vector spec, so this gauge draws nothing. Edit gauge adds frames.</p>}
+                  {item.Images.length === 0 && !("vector" in item) && <p className="px-4 pb-1.5 text-caption leading-snug text-ui-4">No frames and no vector spec, so this gauge draws nothing. Edit gauge adds frames.</p>}
                   <EditGaugeButton onClick={() => onEditGauge(path)} />
                 </>
               )}
@@ -180,7 +180,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
                   type="button"
                   title="Round the corners to half the height and fill with a gradient from accent 1 to accent 2"
                   onClick={() => editor.commit(updateAt(editor.committed, path, (bar) => gradientBar(bar, editor.palette)))}
-                  className="mx-4 mb-2 flex h-7 w-[calc(100%-2rem)] items-center justify-center rounded-7 border border-ui-default bg-ui-raised text-caption text-ui-1 hover:border-ui-strong"
+                  className="mx-4 mb-2 flex h-7 w-[calc(100%-2rem)] items-center justify-center rounded-8 border border-ui-default bg-ui-raised text-caption text-ui-1 hover:border-ui-strong"
                 >
                   Rounded gradient look
                 </button>
@@ -192,7 +192,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
         return {
           body: (
             <div className="px-4 pb-3">
-              <p className="mb-1.5 text-label text-ui-4">Exported as they came.</p>
+              <p className="mb-1.5 text-caption text-ui-4">Exported as they came.</p>
               <pre className="max-h-48 overflow-auto rounded-md bg-ui-raised p-2 font-ui-mono text-micro leading-snug text-ui-3">
                 {Object.entries(item.unknown)
                   .map(([k, v]) => `${k}: ${v}`)
@@ -262,7 +262,7 @@ function BindingReadout({ item }: { item: DisplayItem }) {
   const rows = BINDING_IDS.map((f) => [f, valueOf(item, f)] as const).filter(([, v]) => v !== null && v !== "");
   if (rows.length === 0) return null;
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 px-4 pb-2 text-label">
+    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 px-4 pb-2 text-caption">
       {rows.map(([f, v]) => (
         <div key={f} className="contents">
           <dt className="text-ui-4">{labelOf(f)}</dt>
@@ -492,7 +492,7 @@ function SensorCard({
       <p className="truncate text-micro text-ui-4" title={native ?? undefined}>
         InfoPanel reads <span className="font-ui-mono text-ui-3">{native ?? "no sensor"}</span>
       </p>
-      {previewOnly && <p className="text-label leading-snug text-ui-warn">{NOT_EXPORTABLE}.</p>}
+      {previewOnly && <p className="text-caption leading-snug text-ui-warn">{NOT_EXPORTABLE}.</p>}
       {item.kind === "TableSensor" && key && <p className="text-micro leading-snug text-ui-4">{tableFormatNote(entry)}</p>}
       {editor.sensorMode === "mock" && (
         <label className="block">

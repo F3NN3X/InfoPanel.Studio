@@ -192,10 +192,10 @@ function SourceStep({
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round((state ? pct : 0.05) * 100)}
-                className="h-1.5 overflow-hidden rounded-3 bg-ui-hover"
+                className="h-1.5 overflow-hidden rounded-4 bg-ui-hover"
               >
                 <div
-                  className={cn("h-full rounded-3 transition-[width]", upload?.finished ? "bg-ui-ok" : "bg-ui-accent")}
+                  className={cn("h-full rounded-4 transition-[width]", upload?.finished ? "bg-ui-ok" : "bg-ui-accent")}
                   style={{ width: `${(state ? pct : 0.05) * 100}%` }}
                 />
               </div>

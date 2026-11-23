@@ -177,7 +177,7 @@ export function AreaHandles({ zone, recipe, path, locked, tick, onLive, onDone }
           data-area-handle={h.id}
           onPointerDown={(e) => press(h.edges, e)}
           onKeyDown={(e) => key(h.edges, e)}
-          className={cn("absolute z-20 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-3 border-2 border-ui-accent bg-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ui-accent", h.cursor)}
+          className={cn("absolute z-20 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-4 border-2 border-ui-accent bg-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ui-accent", h.cursor)}
           style={{ left: box.x + box.w * h.x, top: box.y + box.h * h.y }}
         />
       ))}

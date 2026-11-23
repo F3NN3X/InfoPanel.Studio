@@ -58,7 +58,7 @@ export function PageRow({ label, children, swatch }: { label: string; children: 
     <div className="flex min-h-7 items-center justify-between gap-2 text-caption">
       <span className="shrink-0 text-ui-4">{label}</span>
       <span className="flex min-w-0 items-center justify-end gap-1.5 text-ui-1">
-        {swatch && <span className="h-3 w-3 shrink-0 rounded-3 border border-white/15" style={{ background: swatch }} />}
+        {swatch && <span className="h-3 w-3 shrink-0 rounded-4 border border-white/15" style={{ background: swatch }} />}
         {children}
       </span>
     </div>

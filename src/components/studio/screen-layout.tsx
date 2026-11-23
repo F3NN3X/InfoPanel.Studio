@@ -120,7 +120,7 @@ function GridPreview({ profile }: { profile: ProfileView }) {
     >
       <div
         data-testid="grid-preview"
-        className="grid rounded-3 border border-ui-strong bg-ui-raised"
+        className="grid rounded-4 border border-ui-strong bg-ui-raised"
         style={{
           width: view.width,
           height: view.height,
@@ -144,7 +144,7 @@ function Stepper({ label, value, min, max, onChange }: { label: string; value: n
   return (
     <div className="min-w-0 flex-1 space-y-1.5">
       <span className="text-caption text-ui-3">{label}</span>
-      <div role="group" aria-label={label} className="flex h-7.5 items-center rounded-7 border border-ui-default bg-ui-app">
+      <div role="group" aria-label={label} className="flex h-7.5 items-center rounded-8 border border-ui-default bg-ui-app">
         <button type="button" aria-label={`Fewer ${label.toLowerCase()}`} disabled={value <= min} onClick={() => onChange(value - 1)} className={button}>
           <Minus className="h-3.5 w-3.5" />
         </button>

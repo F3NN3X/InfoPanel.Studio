@@ -73,8 +73,8 @@ function Gone({ ref, onBack }: { ref?: Ref<EditorHandle>; onBack: () => void }) 
         <BarTitle title="Gauge editor" />
       </PageBar>
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center">
-        <p className="text-small text-ui-3">This gauge is no longer on the page.</p>
-        <button type="button" onClick={onBack} className="h-(--ui-h-field) rounded-ui-md border border-ui-default px-3 text-small text-ui-1 hover:bg-ui-hover">
+        <p className="text-body text-ui-3">This gauge is no longer on the page.</p>
+        <button type="button" onClick={onBack} className="h-(--ui-h-field) rounded-ui-md border border-ui-default px-3 text-body text-ui-1 hover:bg-ui-hover">
           Back to Gauges
         </button>
       </div>

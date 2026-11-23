@@ -42,7 +42,7 @@ const SettingsParts = lazy(() => import("./preview/settings").then((m) => ({ def
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="space-y-2 border-b border-ui-subtle py-4">
-      <h2 className="text-small font-medium text-ui-1">{title}</h2>
+      <h2 className="text-body font-medium text-ui-1">{title}</h2>
       {children}
     </section>
   );

@@ -30,7 +30,7 @@ interface LiveControlProps {
 }
 
 const TRIGGER = {
-  bar: "h-7 gap-1.5 whitespace-nowrap rounded-7 max-sm:w-7 max-sm:justify-center max-sm:px-0 border border-ui-live/45 bg-ui-live/12 px-2.5 text-body font-medium text-ui-ok-text hover:bg-ui-live/20",
+  bar: "h-7 gap-1.5 whitespace-nowrap rounded-8 max-sm:w-7 max-sm:justify-center max-sm:px-0 border border-ui-live/45 bg-ui-live/12 px-2.5 text-body font-medium text-ui-ok-text hover:bg-ui-live/20",
   sidebar: "h-9 w-full gap-2.5 rounded-ui-md px-3 text-body text-ui-3 hover:bg-ui-raised hover:text-ui-1",
   rail: "h-9 w-9 justify-center rounded-ui-md text-ui-3 hover:bg-ui-raised hover:text-ui-1",
 } as const;
@@ -131,7 +131,7 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
               onOpenKioskView();
             }}
             title={isTauri() ? undefined : "Opens the kiosk in a separate window"}
-            className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-7 border border-ui-strong px-2 text-caption font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1"
+            className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-8 border border-ui-strong px-2 text-caption font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1"
           >
             <Maximize className="h-3.5 w-3.5" strokeWidth={1.75} /> Open kiosk view
           </button>
@@ -180,7 +180,7 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
               type="button"
               disabled={offline}
               onClick={() => void liveActions.reload()}
-              className="flex h-8 w-full items-center justify-center gap-1.5 rounded-7 border border-ui-strong text-body font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-8 w-full items-center justify-center gap-1.5 rounded-8 border border-ui-strong text-body font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.75} /> Reload all kiosks
             </button>

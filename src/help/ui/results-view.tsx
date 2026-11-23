@@ -51,7 +51,7 @@ export function ResultsView({ query, hits, onHit, onHome }: ResultsViewProps) {
                 </span>
                 <span className="text-body leading-normal text-s-t3">
                   {hit.pre}
-                  {hit.hit && <mark className="rounded-3 bg-s-accent/25 px-px text-s-t1">{hit.hit}</mark>}
+                  {hit.hit && <mark className="rounded-4 bg-s-accent/25 px-px text-s-t1">{hit.hit}</mark>}
                   {hit.post}
                 </span>
                 {i === 0 && <span className="text-micro text-s-dim">Enter opens this</span>}

@@ -55,7 +55,7 @@ export function ImagePicker({ open, onOpenChange, title, onPick }: ImagePickerPr
           <button
             type="button"
             onClick={() => input.current?.click()}
-            className="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-ui-strong px-3 py-2.5 text-left text-small text-ui-1 hover:bg-ui-hover"
+            className="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-ui-strong px-3 py-2.5 text-left text-body text-ui-1 hover:bg-ui-hover"
           >
             <FileUp className="h-4 w-4 text-ui-3" />
             Choose a file… <span className="text-ui-4">It goes into My library too</span>

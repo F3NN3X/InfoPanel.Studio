@@ -75,7 +75,7 @@ export function SettingSection({
           disabled={filtering}
           onClick={onToggle}
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-2 rounded-7 px-2 text-left text-ui-1 enabled:hover:bg-s-input",
+            "flex min-w-0 flex-1 items-center gap-2 rounded-8 px-2 text-left text-ui-1 enabled:hover:bg-s-input",
             sheet ? "h-12" : "h-10.5"
           )}
         >
@@ -92,7 +92,7 @@ export function SettingSection({
             tabIndex={-1}
             aria-label={open ? "Collapse section" : "Expand section"}
             onClick={onToggle}
-            className="flex h-7.5 w-6.5 shrink-0 items-center justify-center rounded-7 text-ui-hint hover:bg-s-input"
+            className="flex h-7.5 w-6.5 shrink-0 items-center justify-center rounded-8 text-ui-hint hover:bg-s-input"
           >
             <ChevronDown className={cn("h-4.5 w-4.5 transition-transform duration-150", open && "rotate-180")} />
           </button>
@@ -105,7 +105,7 @@ export function SettingSection({
             onClick={onReset}
             title={`Reset ${title}`}
             aria-label={`Reset ${title}`}
-            className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-7 text-ui-3 hover:bg-ui-subtle hover:text-ui-1"
+            className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-8 text-ui-3 hover:bg-ui-subtle hover:text-ui-1"
           >
             <RotateCcw className="h-4 w-4" />
           </button>

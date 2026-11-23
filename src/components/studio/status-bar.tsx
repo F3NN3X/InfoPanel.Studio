@@ -137,7 +137,7 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
           aria-description={item.tip}
           onClick={item.onClick}
           className={cn(
-            "flex h-5.5 items-center gap-1.5 whitespace-nowrap rounded-5 px-2 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+            "flex h-5.5 items-center gap-1.5 whitespace-nowrap rounded-6 px-2 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
             TEXT[item.tone]
           )}
         >
@@ -152,7 +152,7 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
           title="Open Live control"
           onClick={onOpenLive}
           className={cn(
-            "flex h-5.5 min-w-0 items-center gap-1.5 whitespace-nowrap rounded-5 px-2 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+            "flex h-5.5 min-w-0 items-center gap-1.5 whitespace-nowrap rounded-6 px-2 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
             TEXT[kiosks > 0 ? "ok" : "idle"]
           )}
         >

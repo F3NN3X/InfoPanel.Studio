@@ -129,7 +129,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
             </div>
             {d.error && state.enabled && <p className="m-0 pl-4 text-micro text-s-red">{d.error}</p>}
             {confirming === d.id && (
-              <div role="alert" className="flex flex-wrap items-center gap-2 pl-4 text-label text-ui-3">
+              <div role="alert" className="flex flex-wrap items-center gap-2 pl-4 text-caption text-ui-3">
                 <span>Forget {d.name}? A widget using it will ask for another device.</span>
                 <button
                   type="button"
@@ -154,7 +154,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
         ))}
       </div>
       {note && (
-        <p role="status" className="m-0 text-label text-ui-3">
+        <p role="status" className="m-0 text-caption text-ui-3">
           {note}
         </p>
       )}
@@ -164,7 +164,7 @@ export function StreamDeckBlock({ state, link = "open", onEnable, act }: StreamD
         </button>
       </div>
       {error && (
-        <p role="alert" className="m-0 text-label text-s-red">
+        <p role="alert" className="m-0 text-caption text-s-red">
           {error}
         </p>
       )}

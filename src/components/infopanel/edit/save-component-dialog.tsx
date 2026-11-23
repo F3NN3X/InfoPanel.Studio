@@ -16,7 +16,7 @@ interface SaveComponentDialogProps {
   helpArticle?: string;
 }
 
-const INPUT = "h-8 w-full min-w-0 rounded-7 border border-ui-default bg-ui-raised px-2.5 text-small text-ui-1 outline-none focus:border-ui-accent";
+const INPUT = "h-8 w-full min-w-0 rounded-8 border border-ui-default bg-ui-raised px-2.5 text-body text-ui-1 outline-none focus:border-ui-accent";
 
 export function SaveComponentDialog({ open, onOpenChange, count, initialName, onSave, helpArticle = "infopanel-editor" }: SaveComponentDialogProps) {
   const [name, setName] = useState(initialName);
@@ -48,13 +48,13 @@ export function SaveComponentDialog({ open, onOpenChange, count, initialName, on
               <span className="mb-1 block text-caption text-ui-3">Name</span>
               <input autoFocus value={name} onChange={(e) => setName(e.target.value)} aria-label="Name" className={INPUT} />
             </label>
-            <p className="text-label leading-snug text-ui-4">
+            <p className="text-caption leading-snug text-ui-4">
               {count === 1 ? "The selected item goes" : `The ${count} selected items go`} to the Library as a component, with the files and profile colors{" "}
               {count === 1 ? "it uses" : "they use"}. Drag it onto any screen or into an InfoPanel profile; sensors are matched to that PC.
             </p>
           </div>
           <div className="flex justify-end gap-2 border-t border-ui-subtle px-5 py-3">
-            <DialogParts.Close type="button" className="h-8 rounded-ui-md px-3 text-small text-ui-3 hover:text-ui-1">
+            <DialogParts.Close type="button" className="h-8 rounded-ui-md px-3 text-body text-ui-3 hover:text-ui-1">
               Cancel
             </DialogParts.Close>
             <button type="submit" disabled={!ok} className="h-8 rounded-ui-md bg-ui-inverse px-4 text-body font-medium text-ui-inverse-fg hover:bg-white disabled:opacity-40">

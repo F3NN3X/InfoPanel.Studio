@@ -32,7 +32,7 @@ export function ScreenRow({ name, nameField, badges, meta, aspect, thumb, chip, 
       className="group flex min-w-0 cursor-pointer items-center gap-3 max-md:flex-wrap rounded-ui-lg border border-ui-default bg-ui-panel p-2 transition-colors duration-(--ui-dur-fast) ease-ui hover:border-ui-hover-edge"
     >
       <button type="button" aria-label={label} className={`grid h-13 w-23 shrink-0 place-items-center rounded-ui-sm bg-ui-chrome ${FOCUS_RING}`}>
-        <div className="overflow-hidden rounded-3 border border-ui-strong bg-s-well" style={{ ...previewBox(aspect), width: `min(100%, ${Math.round(44 * aspect)}px)` }}>
+        <div className="overflow-hidden rounded-4 border border-ui-strong bg-s-well" style={{ ...previewBox(aspect), width: `min(100%, ${Math.round(44 * aspect)}px)` }}>
           {thumb}
         </div>
       </button>

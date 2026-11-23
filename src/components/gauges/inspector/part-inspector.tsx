@@ -72,7 +72,7 @@ export function PartInspector({ part, g, set, view, onView, onOpenSources, zones
             <button
               type="button"
               onClick={() => set(on ? removePart(g, part) : addPart(g, part))}
-              className="h-6.5 rounded-7 border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover"
+              className="h-6.5 rounded-8 border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover"
             >
               {on ? "Remove part" : "Add part"}
             </button>

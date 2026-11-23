@@ -14,7 +14,7 @@ interface ColorFieldProps {
 export function ColorField({ value, onChange, label, autoLabel = "Auto", className }: ColorFieldProps) {
   return (
     <div className={cn("flex items-center gap-1.5", className)}>
-      <span className={cn("font-ui-mono text-label", value ? "text-ui-2" : "text-ui-4")}>
+      <span className={cn("font-ui-mono text-caption", value ? "text-ui-2" : "text-ui-4")}>
         {value ? value.toUpperCase() : autoLabel}
       </span>
       <label

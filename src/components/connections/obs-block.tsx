@@ -39,11 +39,11 @@ export function ObsBlock({ stored, streaming, onSave }: ObsBlockProps) {
         <ConnectionStatus tone={tone}>{status}</ConnectionStatus>
       </div>
       <div className="grid grid-cols-[1fr_96px] gap-2">
-        <label className="flex flex-col gap-1.5 text-small text-ui-2">
+        <label className="flex flex-col gap-1.5 text-body text-ui-2">
           Host
           <input aria-label="OBS host" value={host} onChange={(e) => setHost(e.target.value)} className={cn(FIELD, "h-7.5 w-full")} />
         </label>
-        <label className="flex flex-col gap-1.5 text-small text-ui-2">
+        <label className="flex flex-col gap-1.5 text-body text-ui-2">
           Port
           <input aria-label="OBS port" inputMode="numeric" value={port} onChange={(e) => setPort(e.target.value)} className={cn(FIELD, "h-7.5 w-full")} />
         </label>

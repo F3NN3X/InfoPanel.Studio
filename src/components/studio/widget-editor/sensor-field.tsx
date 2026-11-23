@@ -10,7 +10,7 @@ import { StackRow, type RowLabelProps } from "../setting-rows";
 import { sensorName } from "../widget-kinds";
 
 const SMALL_BUTTON =
-  "flex h-6 w-6 items-center justify-center rounded-5 text-ui-4 hover:bg-ui-hover hover:text-ui-1";
+  "flex h-6 w-6 items-center justify-center rounded-6 text-ui-4 hover:bg-ui-hover hover:text-ui-1";
 
 interface SensorFieldProps {
   label: string;
@@ -43,7 +43,7 @@ export function SensorField({ label, hint, lead, value, onChange, onOpenExplorer
 
   return (
     <StackRow label={label} hint={hint} lead={lead}>
-      <div className="flex items-center gap-2 rounded-7 border border-ui-default bg-ui-app py-1.75 pl-2.25 pr-1.5 hover:border-ui-edge">
+      <div className="flex items-center gap-2 rounded-8 border border-ui-default bg-ui-app py-1.75 pl-2.25 pr-1.5 hover:border-ui-edge">
         <span className="min-w-0 flex-1">
           {value ? (
             <>

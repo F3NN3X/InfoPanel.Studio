@@ -36,7 +36,7 @@ export function FillInspector({ g, set }: InspectorProps) {
         <>
           <NumRow label="Warning from" value={fill.warn ?? 70} onChange={(warn) => patch({ warn }, "warn")} />
           <NumRow label="Critical from" value={fill.crit ?? 90} onChange={(crit) => patch({ crit }, "crit")} />
-          <p className="text-label leading-snug text-ui-4">In scale values (Value text › Scale). Warning and critical follow the theme.</p>
+          <p className="text-caption leading-snug text-ui-4">In scale values (Value text › Scale). Warning and critical follow the theme.</p>
         </>
       )}
       {fill.mode === "gradient" && (
@@ -60,7 +60,7 @@ function Stops({ mode, stops, onChange }: { mode: FillMode; stops: ColorStop[]; 
     <div className="space-y-1 pt-1">
       {stops.map((s, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="w-9 shrink-0 text-label text-ui-4">{mode === "zones" ? "from" : "at"}</span>
+          <span className="w-9 shrink-0 text-caption text-ui-4">{mode === "zones" ? "from" : "at"}</span>
           <input
             type="number"
             aria-label={`Stop ${i + 1} position`}
@@ -68,9 +68,9 @@ function Stops({ mode, stops, onChange }: { mode: FillMode; stops: ColorStop[]; 
             max={100}
             value={s.at}
             onChange={(e) => edit(i, { at: Math.min(100, Math.max(0, e.currentTarget.valueAsNumber || 0)) }, "at")}
-            className="h-6.5 w-14.5 rounded-md border border-ui-default bg-ui-app px-1.5 text-right font-ui-mono text-label text-ui-1 outline-none focus:border-ui-accent"
+            className="h-6.5 w-14.5 rounded-md border border-ui-default bg-ui-app px-1.5 text-right font-ui-mono text-caption text-ui-1 outline-none focus:border-ui-accent"
           />
-          <span className="text-label text-ui-4">%</span>
+          <span className="text-caption text-ui-4">%</span>
           <ColorInput label={`Stop ${i + 1}`} value={s.color} onChange={(color) => edit(i, { color }, "color")} />
           <span className="flex-1" />
           {stops.length > 1 && (
@@ -81,7 +81,7 @@ function Stops({ mode, stops, onChange }: { mode: FillMode; stops: ColorStop[]; 
         </div>
       ))}
       {stops.length < MAX_STOPS && (
-        <button type="button" onClick={() => onChange([...stops, { at: 100, color: "#FFFFFF" }])} className="mt-1 flex h-(--ui-h-control) items-center gap-1.5 rounded-7 border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover">
+        <button type="button" onClick={() => onChange([...stops, { at: 100, color: "#FFFFFF" }])} className="mt-1 flex h-(--ui-h-control) items-center gap-1.5 rounded-8 border border-ui-default px-2.5 text-caption text-ui-1 hover:bg-ui-hover">
           <Plus className="h-3.5 w-3.5" /> Add stop
         </button>
       )}

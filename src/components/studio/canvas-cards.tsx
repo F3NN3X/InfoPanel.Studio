@@ -20,14 +20,14 @@ export function EmptyLayoutCard({ onBrowse, onImport, onUseSample }: EmptyLayout
           <button
             type="button"
             onClick={onBrowse}
-            className="h-7.5 rounded-7 bg-ui-inverse px-3 text-caption font-medium text-ui-inverse-fg transition-opacity hover:opacity-90"
+            className="h-7.5 rounded-8 bg-ui-inverse px-3 text-caption font-medium text-ui-inverse-fg transition-opacity hover:opacity-90"
           >
             Add
           </button>
           <button
             type="button"
             onClick={onImport}
-            className="h-7.5 rounded-7 border border-ui-strong bg-ui-raised px-3 text-caption text-ui-1 transition-colors hover:bg-ui-hover"
+            className="h-7.5 rounded-8 border border-ui-strong bg-ui-raised px-3 text-caption text-ui-1 transition-colors hover:bg-ui-hover"
           >
             Import .infopanel
           </button>

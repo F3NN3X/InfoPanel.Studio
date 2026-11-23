@@ -11,7 +11,7 @@ import type { DisplayItem } from "@/lib/infopanel/schema";
 import type { DroppedFile } from "@/lib/infopanel/canvas-edit";
 import { ImagePicker } from "./image-picker";
 
-const BUTTON = "flex h-7 items-center justify-center rounded-7 border border-ui-default bg-ui-raised px-2.5 text-caption text-ui-1 hover:border-ui-strong";
+const BUTTON = "flex h-7 items-center justify-center rounded-8 border border-ui-default bg-ui-raised px-2.5 text-caption text-ui-1 hover:border-ui-strong";
 
 /** A source in words: the file's name, the lucide name, or the default. */
 const labelOf = (source: IconSource | null): string => (source ? iconFileOf(source) ?? ("lucide" in source ? source.lucide : "") : "Default");
@@ -73,11 +73,11 @@ export function DriveIcons({ item, spec, onIcons, onFile, lucide }: DriveIconsPr
   };
   return (
     <div role="group" className="space-y-1.5" aria-label="Icon per drive">
-      <p className="text-label leading-snug text-ui-4">An icon per drive: an image from My library, or one from the icon set. A drive keeps it when the drives are found again.</p>
+      <p className="text-caption leading-snug text-ui-4">An icon per drive: an image from My library, or one from the icon set. A drive keeps it when the drives are found again.</p>
       {tiles.map((t) => {
         const own = driveIconOf(spec.icons, t.id, t.name);
         return (
-          <div key={t.key} className="space-y-1 rounded-7 border border-ui-subtle p-1.5">
+          <div key={t.key} className="space-y-1 rounded-8 border border-ui-subtle p-1.5">
             <div className="flex items-center justify-between gap-2 text-caption text-ui-2">
               <span className="min-w-0 truncate" title={t.name}>
                 {t.name}

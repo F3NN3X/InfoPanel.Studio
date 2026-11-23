@@ -90,8 +90,8 @@ function Preview({ w, h, scale, rail }: { w: number; h: number; scale: number; r
       </div>
       {rail && (
         <>
-          <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 rounded-3 outline outline-2 outline-ui-accent" style={{ width: 84 * scale }} />
-          <span aria-hidden className="pointer-events-none absolute inset-y-0 rounded-3 outline outline-1 outline-dashed outline-ui-default" style={{ left: 84 * scale + 2, right: 0 }} />
+          <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 rounded-4 outline outline-2 outline-ui-accent" style={{ width: 84 * scale }} />
+          <span aria-hidden className="pointer-events-none absolute inset-y-0 rounded-4 outline outline-1 outline-dashed outline-ui-default" style={{ left: 84 * scale + 2, right: 0 }} />
         </>
       )}
     </div>

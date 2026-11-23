@@ -111,7 +111,7 @@ export function PanelLayers({
             onDrop={onDrop}
             onClick={() => onSelect(w.id)}
             className={cn(
-              "relative flex cursor-pointer items-center gap-1.75 rounded-7 border py-1.5 pl-1.5 pr-1",
+              "relative flex cursor-pointer items-center gap-1.75 rounded-8 border py-1.5 pl-1.5 pr-1",
               w.id === selectedId
                 ? "border-ui-accent/50 bg-ui-accent/[.12]"
                 : "border-ui-subtle bg-ui-app hover:border-ui-menu",
@@ -147,7 +147,7 @@ export function PanelLayers({
             <Menu.Root>
               <Menu.Trigger
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-5 text-ui-3 hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
+                className="inline-flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-6 text-ui-3 hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
                 title="Widget actions"
                 aria-label="Widget actions"
               >

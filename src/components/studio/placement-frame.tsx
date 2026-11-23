@@ -395,7 +395,7 @@ export function PlacementFrame({
               >
                 {h.id === "se" && (
                   <span
-                    className="pointer-events-none absolute left-1/2 top-1/2 h-2.75 w-2.75 -translate-x-1/2 -translate-y-1/2 rounded-3 border-2 border-ui-accent bg-ui-inverse"
+                    className="pointer-events-none absolute left-1/2 top-1/2 h-2.75 w-2.75 -translate-x-1/2 -translate-y-1/2 rounded-4 border-2 border-ui-accent bg-ui-inverse"
                     // Same size on screen at any canvas zoom.
                     style={{ scale: String(1 / zoom) }}
                   />

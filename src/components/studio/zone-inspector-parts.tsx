@@ -203,7 +203,7 @@ export function ZoneHeader({
               onChange={(e) => onName(e.target.value)}
               className={cn(
                 TITLE,
-                "-ml-1 block h-5.25 w-full rounded-5 border border-transparent bg-transparent px-1 outline-none placeholder:text-ui-4 hover:border-ui-strong focus:border-ui-accent"
+                "-ml-1 block h-5.25 w-full rounded-6 border border-transparent bg-transparent px-1 outline-none placeholder:text-ui-4 hover:border-ui-strong focus:border-ui-accent"
               )}
             />
           ) : (
@@ -331,7 +331,7 @@ export function SettingsSearch({ query, onQuery, placeholder = "Search all setti
         }}
         placeholder={placeholder}
         aria-label="Search settings"
-        className={cn(FIELD, "h-8 w-full rounded-7 pl-7.5 pr-7")}
+        className={cn(FIELD, "h-8 w-full rounded-8 pl-7.5 pr-7")}
       />
       {query !== "" && (
         <button

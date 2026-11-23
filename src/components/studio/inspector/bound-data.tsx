@@ -124,7 +124,7 @@ export function BoundData({
                     onClick={() => unbind(key, panelWidgetId)}
                     aria-label={`Unbind ${point?.name ?? key}`}
                     title="Unbind"
-                    className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-5 text-ui-3 hover:bg-ui-hover hover:text-ui-1"
+                    className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-6 text-ui-3 hover:bg-ui-hover hover:text-ui-1"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

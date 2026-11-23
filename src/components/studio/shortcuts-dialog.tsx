@@ -33,7 +33,7 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
                 {group.items.map((item) => (
                   <div key={item.label} className="flex items-center gap-3 border-b border-ui-subtle py-1.75 text-body">
                     <dt className="min-w-0 flex-1 text-ui-2">{item.label}</dt>
-                    <dd className="shrink-0 rounded-5 border border-ui-menu px-1.75 py-0.5 font-ui-mono text-micro text-ui-1">
+                    <dd className="shrink-0 rounded-6 border border-ui-menu px-1.75 py-0.5 font-ui-mono text-micro text-ui-1">
                       {item.keys}
                     </dd>
                   </div>

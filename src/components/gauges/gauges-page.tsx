@@ -245,7 +245,7 @@ export default function GaugesPage({ bridge: studio, theme, initial, onOpened, o
         <div className="relative flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col">
             {lib.error && (
-              <div role="alert" className="m-4 mb-0 rounded-lg border border-ui-danger/40 bg-ui-danger/10 px-3 py-2 text-small text-ui-2">
+              <div role="alert" className="m-4 mb-0 rounded-lg border border-ui-danger/40 bg-ui-danger/10 px-3 py-2 text-body text-ui-2">
                 {lib.error}
               </div>
             )}
