@@ -8,6 +8,7 @@
  */
 import type { ComponentType, ReactNode, RefObject } from "react";
 import { Check, Search, SearchX, X } from "lucide-react";
+import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import type { GalleryCard, GallerySection, SortBy } from "./gallery-sections";
 import { WaysIn, type WayIn } from "./new-wizard";
@@ -89,20 +90,7 @@ export function WizardGallery(p: WizardGalleryProps) {
           </label>
           <ShapeChips filter={p.filter} onFilter={p.onFilter} counts={p.counts} className="" />
           <span className="flex-1" />
-          <div role="radiogroup" aria-label="Sort" className="flex rounded-ui-md border border-ui-default p-0.5">
-            {SORTS.map(([k, label]) => (
-              <button
-                key={k}
-                type="button"
-                role="radio"
-                aria-checked={p.sort === k}
-                onClick={() => p.onSort(k)}
-                className={cn("h-5.5 rounded-ui-sm px-2 text-caption", p.sort === k ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1")}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <Segmented label="Sort" value={p.sort} onChange={p.onSort} options={SORTS.map(([k, label]) => ({ value: k, label }))} />
         </div>
         <WaysIn items={p.ways} />
       </div>

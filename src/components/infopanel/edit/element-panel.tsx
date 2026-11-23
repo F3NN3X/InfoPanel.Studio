@@ -18,7 +18,7 @@ import type { DisplayItem } from "@/lib/infopanel/schema";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
 import { Toggle } from "@/components/ui/toggle";
 import { fromCss, toCss } from "@/components/studio/inspector/infopanel-defs";
-import { Segmented } from "./canvas-toolbar";
+import { Segmented } from "@/components/ui/segmented";
 import { IconPicker } from "./icon-picker";
 import { DriveIcons, IconFileButtons } from "./icon-source";
 import type { CanvasEditor } from "./use-canvas-editor";

@@ -2,7 +2,7 @@
  * The Data checks step's parts (SPEC §6): a check row (status, result, the fix steps and actions when it opens), the
  * groups of rows, the address bar above them and the kiosk card under them.
  */
-import { useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import { useState, type ReactNode, type RefObject } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -23,6 +23,8 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import { CHECK_TITLES, checkingLine, type CheckAction, type CheckId, type CheckResult, type Chip, type Mode } from "./checks";
 import { QrCode } from "./qr-code";
@@ -74,17 +76,12 @@ const CHIPS_SHOWN = 6;
 const CHIP_ICON: Record<Chip["icon"], LucideIcon> = { hwinfo: Thermometer, system: Cpu, network: Network, media: Music, plugin: Puzzle };
 const ACTION_ICON: Partial<Record<CheckAction["kind"], LucideIcon>> = { start: Play, show: ExternalLink, restart: RotateCcw };
 
-const BUTTON = "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-ui-md border px-2.5 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
-export const PRIMARY_BUTTON = cn(BUTTON, "border-transparent bg-ui-inverse font-medium text-ui-inverse-fg hover:bg-white");
-export const OUTLINE_BUTTON = cn(BUTTON, "border-ui-strong bg-ui-raised text-ui-1 hover:bg-ui-hover");
-
 function ActionButton({ action, primary, onClick, small }: { action: CheckAction; primary: boolean; onClick: () => void; small?: boolean }) {
   const Icon = ACTION_ICON[action.kind];
   return (
-    <button type="button" onClick={onClick} className={cn(primary ? PRIMARY_BUTTON : OUTLINE_BUTTON, small && "h-6.5")}>
-      {Icon && <Icon className="h-3.5 w-3.5" />}
+    <Button small variant={primary ? "primary" : "secondary"} icon={Icon && <Icon className="h-3.5 w-3.5" />} onClick={onClick} className={cn("text-caption", small && "h-6.5")}>
       {action.label}
-    </button>
+    </Button>
   );
 }
 
@@ -263,38 +260,24 @@ export function AddressBar({ mode, address, invalid, onMode, onAddress, onDefaul
     { value: "local", label: "This PC", icon: Monitor },
     { value: "remote", label: "Another PC", icon: Network },
   ];
-  const move = (e: KeyboardEvent<HTMLButtonElement>) => {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
-    e.preventDefault();
-    const next = mode === "local" ? "remote" : "local";
-    onMode(next);
-    (e.currentTarget.parentElement?.querySelector(`[data-mode="${next}"]`) as HTMLElement | null)?.focus();
-  };
   return (
     <div className="flex flex-col gap-2.5 rounded-ui-menu border border-ui-subtle bg-ui-panel p-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <span className="w-29.5 shrink-0 text-caption text-ui-2">InfoPanel runs on</span>
-        <div role="radiogroup" aria-label="InfoPanel runs on" className="flex rounded-ui-md border border-ui-subtle bg-ui-app p-0.5">
-          {modes.map((m) => (
-            <button
-              key={m.value}
-              type="button"
-              role="radio"
-              data-mode={m.value}
-              aria-checked={mode === m.value}
-              tabIndex={mode === m.value ? 0 : -1}
-              onKeyDown={move}
-              onClick={() => onMode(m.value)}
-              className={cn(
-                "flex h-6.5 items-center gap-1.5 rounded-ui-sm px-2.5 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
-                mode === m.value ? "bg-ui-raised font-medium text-ui-1" : "text-ui-3 hover:text-ui-1",
-              )}
-            >
-              <m.icon className="h-3.5 w-3.5" />
-              {m.label}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="InfoPanel runs on"
+          value={mode}
+          onChange={onMode}
+          options={modes.map((m) => ({
+            value: m.value,
+            label: (
+              <span className="flex items-center gap-1.5">
+                <m.icon className="h-3.5 w-3.5" />
+                {m.label}
+              </span>
+            ),
+          }))}
+        />
         <span className="text-micro text-ui-4">{mode === "local" ? "Studio can also read InfoPanel’s settings" : "Only the connection checks run"}</span>
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -344,14 +327,12 @@ export function KioskCard({ url, local, onCopy, onOpen }: KioskCardProps) {
         </span>
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex h-7 min-w-0 max-w-full items-center truncate rounded-ui-md border border-ui-default bg-ui-app px-2.5 font-ui-mono text-micro text-ui-1">{url}</span>
-          <button type="button" onClick={onCopy} className={OUTLINE_BUTTON}>
-            <Copy className="h-3.5 w-3.5" />
+          <Button small icon={<Copy className="h-3.5 w-3.5" />} onClick={onCopy} className="text-caption">
             Copy
-          </button>
-          <button type="button" onClick={onOpen} className={OUTLINE_BUTTON}>
-            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
+          <Button small icon={<ExternalLink className="h-3.5 w-3.5" />} onClick={onOpen} className="text-caption">
             Open in browser
-          </button>
+          </Button>
         </div>
         <span className="text-micro text-ui-4">On this PC: {local}</span>
       </div>

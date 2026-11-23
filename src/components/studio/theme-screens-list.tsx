@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 /** Apply to other screens…: a checkbox per screen (name and size), Select all, and Apply. */
 export default function ScreensList({ screens, onApply }: { screens: readonly { id: string; name: string; size: string }[]; onApply: (ids: string[]) => void }) {
@@ -18,14 +19,9 @@ export default function ScreensList({ screens, onApply }: { screens: readonly { 
           <span className="shrink-0 text-micro text-ui-hint">{s.size}</span>
         </label>
       ))}
-      <button
-        type="button"
-        disabled={ticked.length === 0}
-        onClick={() => onApply([...ticked])}
-        className="h-7 self-start rounded-md bg-ui-blue px-3 text-caption font-medium text-white disabled:opacity-50"
-      >
+      <Button small variant="primary" disabled={ticked.length === 0} onClick={() => onApply([...ticked])} className="self-start text-caption">
         Apply
-      </button>
+      </Button>
     </div>
   );
 }

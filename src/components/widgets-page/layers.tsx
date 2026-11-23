@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, Eye, EyeOff, Heading, Link2, Lock, LockOpen, Wallpaper } from "lucide-react";
 import { ContextMenu } from "@/components/ui/context-menu";
+import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 import type { Block, BlockType, Recipe } from "@/widgets/recipe/types";
 import { addRefusal, flatten, isBound, layerName, moveRefusal, moveTargets, topLevel, type Path } from "./builder-model";
@@ -505,10 +506,9 @@ function BackgroundSlot({ name, depth, onDrop }: { name: string; depth: number; 
 /** A row's eye or lock (G25): shown on a row it is on, else while the row is hovered or focused; out of the tab order (the menu and Ctrl+Shift+H, L reach it). */
 function FlagButton({ on, label, flag, onClick, children }: { on: boolean; label: string; flag: EditorFlag; onClick: () => void; children: ReactNode }) {
   return (
-    <button
-      type="button"
+    <IconButton
+      label={label}
       tabIndex={-1}
-      aria-label={label}
       aria-pressed={on}
       data-row-action={flag}
       onMouseDown={(e) => e.preventDefault()}
@@ -516,9 +516,9 @@ function FlagButton({ on, label, flag, onClick, children }: { on: boolean; label
         e.stopPropagation();
         onClick();
       }}
-      className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-ui-sm text-ui-hint hover:text-ui-1", !on && "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100")}
+      className={cn("h-5 w-5 rounded-ui-sm text-ui-hint", !on && "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100")}
     >
       {children}
-    </button>
+    </IconButton>
   );
 }

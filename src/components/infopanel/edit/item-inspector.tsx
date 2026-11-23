@@ -6,6 +6,7 @@
  */
 import { useState, type ReactNode } from "react";
 import { Copy, Eye, EyeOff, Lock, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider-field";
 import { cn } from "@/lib/utils";
 import { badgeText, checkGeometry, editKeyOf, importOf, MOCK_DEFAULT, type GeoField } from "@/lib/infopanel/canvas-edit";
@@ -27,7 +28,7 @@ import { describeNative } from "@/lib/infopanel/native/describe";
 import { ELEMENT_ICONS } from "./element-ui";
 import { ElementPanel, NumberField } from "./element-panel";
 import { valueText } from "../remap-panel";
-import { Segmented } from "./canvas-toolbar";
+import { Segmented } from "@/components/ui/segmented";
 import { kindIcon } from "./item-icons";
 import { MultiInspector } from "./multi-inspector";
 import { SensorSelect } from "./sensor-select";
@@ -426,14 +427,9 @@ export function tableFormatNote(entry: DataApiValue | undefined): string {
 function EditGaugeButton({ onClick }: { onClick: () => void }) {
   return (
     <div className="px-4 pb-3">
-      <button
-        type="button"
-        onClick={onClick}
-        title="Open this gauge in Gauges"
-        className="flex w-full items-center gap-2.5 rounded-lg border border-ui-default bg-ui-raised px-3 py-2 text-left text-caption text-ui-1 hover:border-ui-strong"
-      >
+      <Button onClick={onClick} title="Open this gauge in Gauges" className="w-full justify-start text-caption">
         Edit gauge…
-      </button>
+      </Button>
     </div>
   );
 }

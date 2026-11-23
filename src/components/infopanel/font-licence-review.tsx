@@ -4,6 +4,7 @@
  * same-category font from My library.
  */
 import { TriangleAlert } from "lucide-react";
+import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import { VERDICT_LABEL } from "@/lib/infopanel/font-licence";
 import { swapOptions, type FontChoice, type FontLicenceRow, type SwapTarget } from "@/lib/infopanel/export/studio-export";
@@ -45,20 +46,13 @@ export function FontLicenceReview({ rows, choices, targets, onChoose }: FontLice
               </div>
               {r.verdict !== "share" && (
                 <div className="ml-4.25 flex flex-wrap items-center gap-2 self-start">
-                  <div role="radiogroup" aria-label={`${r.family} in the export`} className="flex gap-0.5 rounded-ui-md border border-ui-default bg-ui-raised p-0.5">
-                    {buttons.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        role="radio"
-                        aria-checked={kind === c}
-                        onClick={() => pick(c)}
-                        className={cn("whitespace-nowrap rounded-ui-sm px-2.5 py-1 text-caption", kind === c ? "bg-ui-active text-ui-1" : "text-ui-4 hover:text-ui-1")}
-                      >
-                        {c === "include" ? "Include anyway" : c === "leave" ? "Leave out" : "Swap for…"}
-                      </button>
-                    ))}
-                  </div>
+                  <Segmented
+                    label={`${r.family} in the export`}
+                    value={kind}
+                    onChange={pick}
+                    options={buttons.map((c) => ({ value: c, label: c === "include" ? "Include anyway" : c === "leave" ? "Leave out" : "Swap for…" }))}
+                    className="flex-nowrap whitespace-nowrap"
+                  />
                   {swap && (
                     <select
                       aria-label={`Swap ${r.family} for`}

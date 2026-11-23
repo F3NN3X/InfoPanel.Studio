@@ -2,7 +2,7 @@
 // switch, then Yours, Imported and Built in. A user widget is a card with its preview; a built-in a tile with its preset count.
 import type { CSSProperties, ReactNode } from "react";
 import { Search } from "lucide-react";
-import { SEGMENT_OFF, SEGMENT_ON } from "@/components/ui/segmented";
+import { Segmented } from "@/components/ui/segmented";
 import { StatusChip } from "@/components/ui/status-chip";
 import { Toggle } from "@/components/ui/toggle";
 import type { Appearance } from "@/lib/style-resolve";
@@ -168,13 +168,20 @@ export function WidgetsBrowse(p: WidgetsBrowseProps) {
           <Search className="h-4 w-4 shrink-0" strokeWidth={1.5} aria-hidden />
           <input aria-label="Search widgets" placeholder="Search" value={p.query} onChange={(e) => p.onQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-3" />
         </label>
-        <div role="radiogroup" aria-label="Show" className="flex gap-0.5 rounded-ui-md border border-ui-strong bg-ui-chrome p-0.5">
-          {FILTERS.map((f) => (
-            <button key={f.id} type="button" role="radio" aria-checked={p.filter === f.id} onClick={() => p.onFilter(f.id)} className={cn("rounded-ui-sm px-3 py-1.25 text-body transition-colors duration-(--ui-dur-fast) ease-ui", p.filter === f.id ? SEGMENT_ON : SEGMENT_OFF)}>
-              {f.label} <span className="text-ui-3">{p.counts[f.id]}</span>
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Show"
+          size="bar"
+          value={p.filter}
+          onChange={p.onFilter}
+          options={FILTERS.map((f) => ({
+            value: f.id,
+            label: (
+              <>
+                {f.label} <span className="text-ui-3">{p.counts[f.id]}</span>
+              </>
+            ),
+          }))}
+        />
         <span
           className="ml-auto flex items-center gap-3 text-body text-ui-2"
           title={p.thirdPartyLocked ? "Off on the server (USER_CODE_WIDGETS=off): every code widget is hidden and none loads." : "Off hides every code widget that isn't built in and stops it loading, on every screen this server serves."}

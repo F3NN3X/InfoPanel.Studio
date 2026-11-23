@@ -5,6 +5,7 @@
 import { useMemo, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { AppWindow, ArrowRight, Ban, Cast, CircleCheck, CircleX, FileUp, LayoutGrid, LayoutTemplate, Plus, Radar, Radio, Ratio, Server, TriangleAlert, type LucideIcon } from "lucide-react";
 import { shapeClassOf, type ShapeClass } from "@/lib/infopanel/templates/layout";
+import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import type { SensorMap } from "@/modules/types";
 import { SCREEN_KIT } from "../../templates/screen-kit";
@@ -486,16 +487,7 @@ export function Switch({ label, note, checked, onChange }: { label: string; note
         <span className="text-body text-ui-1">{label}</span>
         <span className="text-micro text-ui-3">{note}</span>
       </span>
-      <input type="checkbox" role="switch" aria-checked={checked} checked={checked} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
-      <span
-        aria-hidden
-        className={cn(
-          "relative h-4.5 w-7.5 shrink-0 rounded-full transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ui-accent forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas]",
-          checked ? "bg-ui-strong-text forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-ui-control",
-        )}
-      >
-        <span className={cn("absolute top-0.75 h-3 w-3 rounded-full transition-[left] forced-colors:bg-[color:ButtonText]", checked ? "left-3.75 bg-ui-inverse-fg forced-colors:bg-[color:HighlightText]" : "left-0.75 bg-ui-soft")} />
-      </span>
+      <Toggle checked={checked} onChange={onChange} label={label} />
     </label>
   );
 }

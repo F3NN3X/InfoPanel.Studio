@@ -14,12 +14,13 @@ import type { MonitorProfile } from "@/lib/layout";
 import { SCREEN_TEMPLATES } from "@/lib/screen-templates/catalog";
 import { cn } from "@/lib/utils";
 import { StudioLogo } from "@/components/studio/studio-logo";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { SCREEN_KIT } from "../../templates/screen-kit";
 import type { Size } from "../../templates/size-presets";
 import { WindowControls } from "../window-controls";
 import { DEFAULT_SIZE, needsHardware, type FirstRunChoices, type StartChoice } from "../first-run-model";
-import { AddressBar, CheckGroup, CheckRow, KioskCard, OUTLINE_BUTTON, PRIMARY_BUTTON } from "./check-list";
+import { AddressBar, CheckGroup, CheckRow, KioskCard } from "./check-list";
 import {
   CHECK_IDS,
   DEFAULT_ADDRESS,
@@ -336,10 +337,9 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
         <span aria-live="polite" className={cn("self-center text-micro", t.running ? "text-ui-3" : t.fails > 0 ? "text-ui-danger" : t.warns > 0 ? "text-ui-warn" : "text-ui-ok")}>
           {progressLabel(results)}
         </span>
-        <button type="button" title="Check again (F5)" onClick={() => checks.run("installed")} className={OUTLINE_BUTTON}>
-          <RefreshCw className="h-3.5 w-3.5" />
+        <Button small title="Check again (F5)" icon={<RefreshCw className="h-3.5 w-3.5" />} onClick={() => checks.run("installed")} className="text-caption">
           Check again
-        </button>
+        </Button>
       </div>
       <AddressBar
         mode={mode}
@@ -523,13 +523,13 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
         )}
         <span className="flex-1" />
         {step > 0 && (
-          <button type="button" onClick={() => go(step - 1)} className={cn(OUTLINE_BUTTON, "h-8 px-3.5 text-body")}>
+          <Button onClick={() => go(step - 1)} className="px-3.5">
             Back
-          </button>
+          </Button>
         )}
-        <button type="button" onClick={primary} className={cn(PRIMARY_BUTTON, "h-8 rounded-ui-md px-4 text-body")}>
+        <Button variant="primary" onClick={primary} className="px-4">
           {primaryLabel}
-        </button>
+        </Button>
       </footer>
       <div className="flex h-6.5 shrink-0 items-center gap-4 border-t border-ui-subtle px-3 text-micro text-ui-3">
         <span className="flex items-center gap-1.5" title={strip.title}>
@@ -555,12 +555,12 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
                 : `Studio opens with a blank screen${answered ? "" : " and no live data"}. You can run setup again from Settings → General → Run setup.`}
             </AlertDialog.Description>
             <div className="flex justify-end gap-2">
-              <button ref={keepButton} type="button" onClick={() => setAskSkip(false)} className={cn(OUTLINE_BUTTON, "h-8 px-3.5 text-body")}>
+              <Button ref={keepButton} onClick={() => setAskSkip(false)} className="px-3.5">
                 {rerun ? "Keep going" : "Keep setting up"}
-              </button>
-              <button type="button" onClick={skip} className={cn(PRIMARY_BUTTON, "h-8 px-3.5 text-body")}>
+              </Button>
+              <Button variant="primary" onClick={skip} className="px-3.5">
                 {rerun ? "Close" : "Skip setup"}
-              </button>
+              </Button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>

@@ -16,6 +16,7 @@ import {
   AlignVerticalDistributeCenter,
   type LucideIcon,
 } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 import { checkGeometry } from "@/lib/infopanel/canvas-edit";
 import type { AlignEdge } from "@/lib/infopanel/editor/arrange";
@@ -38,18 +39,11 @@ const ALIGN: { edge: AlignEdge; label: string; icon: LucideIcon }[] = [
 
 const INPUT = "h-7 w-full min-w-0 rounded-ui-sm border bg-ui-raised px-2 font-ui-mono text-caption text-ui-1 outline-none placeholder:text-ui-hint focus:border-ui-accent";
 
-function IconButton({ icon: Icon, label, onClick, disabled }: { icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean }) {
+function ArrangeButton({ icon: Icon, label, onClick, disabled }: { icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="grid h-7.5 w-7.5 place-items-center rounded-7 border border-ui-default text-ui-3 hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-35"
-    >
+    <IconButton label={label} size={30} bordered disabled={disabled} onClick={onClick}>
       <Icon className="h-4 w-4" strokeWidth={1.75} />
-    </button>
+    </IconButton>
   );
 }
 
@@ -141,15 +135,15 @@ export function MultiInspector({ editor }: { editor: CanvasEditor }) {
         <Heading>Align</Heading>
         <div className="flex flex-wrap gap-1">
           {ALIGN.map((a) => (
-            <IconButton key={a.edge} icon={a.icon} label={a.label} disabled={movable < 2} onClick={() => editor.align(a.edge)} />
+            <ArrangeButton key={a.edge} icon={a.icon} label={a.label} disabled={movable < 2} onClick={() => editor.align(a.edge)} />
           ))}
         </div>
       </div>
       <div>
         <Heading>Distribute</Heading>
         <div className="flex gap-1">
-          <IconButton icon={AlignHorizontalDistributeCenter} label="Distribute across" disabled={movable < 3} onClick={() => editor.distribute("horizontal")} />
-          <IconButton icon={AlignVerticalDistributeCenter} label="Distribute down" disabled={movable < 3} onClick={() => editor.distribute("vertical")} />
+          <ArrangeButton icon={AlignHorizontalDistributeCenter} label="Distribute across" disabled={movable < 3} onClick={() => editor.distribute("horizontal")} />
+          <ArrangeButton icon={AlignVerticalDistributeCenter} label="Distribute down" disabled={movable < 3} onClick={() => editor.distribute("vertical")} />
         </div>
       </div>
       {fields.length > 0 ? (

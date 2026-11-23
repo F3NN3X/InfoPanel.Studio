@@ -5,6 +5,7 @@ import { Tag } from "@/components/ui/tag";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { onRovingKeyDown } from "@/lib/roving";
 import { SAMPLE_PRESET_GROUPS } from "@/lib/screen-templates/sample-presets";
+import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import { loadLook } from "@/looks";
 import { LOOK_IDS } from "@/looks/ids";
@@ -252,21 +253,19 @@ export function ThemeBrowse(p: ThemeBrowseProps) {
             <span className="sr-only">Search</span>
             <input type="search" value={query} onChange={(e) => setQuery(e.currentTarget.value)} placeholder="Search" className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-hint" />
           </label>
-          <div role="radiogroup" aria-label="Filter themes" onKeyDown={(e) => onRovingKeyDown(e, "[role=radio]")} className="flex gap-0.5 rounded-ui-md border border-ui-strong bg-ui-chrome p-0.5">
-            {BROWSE_FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                role="radio"
-                aria-checked={filter === f.id}
-                tabIndex={filter === f.id ? 0 : -1}
-                onClick={() => setFilter(f.id)}
-                className={cn("h-7 rounded-ui-sm px-2.5 text-caption", FOCUS, filter === f.id ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1")}
-              >
-                {f.label} <span className="text-ui-hint">{counts[f.id]}</span>
-              </button>
-            ))}
-          </div>
+          <Segmented
+            label="Filter themes"
+            value={filter}
+            onChange={setFilter}
+            options={BROWSE_FILTERS.map((f) => ({
+              value: f.id,
+              label: (
+                <>
+                  {f.label} <span className="text-ui-hint">{counts[f.id]}</span>
+                </>
+              ),
+            }))}
+          />
           <div role="group" aria-label="Filter by tag" className="flex flex-wrap gap-1.5">
             {TAG_FILTERS.map((t) => (
               <Tag key={t.id} selected={tag === t.id} onClick={() => setTag(tag === t.id ? undefined : t.id)}>

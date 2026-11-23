@@ -8,46 +8,12 @@ import { useRef } from "react";
 import { Library } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { modeTally, type SensorMode } from "@/lib/infopanel/canvas-edit";
+import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
 import { Slider } from "@/components/ui/slider-field";
 import type { Compare } from "./edit-canvas";
 import type { CanvasEditor } from "./use-canvas-editor";
 import type { LibraryLink } from "./use-library-link";
-
-/** A small segmented choice ("Sensors", an item's "Draw as"). */
-export function Segmented<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T | null;
-  options: { value: T; label: string; disabled?: boolean; title?: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div role="radiogroup" aria-label={label} className="flex h-7.5 shrink-0 items-center gap-0.5 rounded-ui-md border border-ui-default p-0.5">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          role="radio"
-          aria-checked={value === o.value}
-          disabled={o.disabled}
-          title={o.title}
-          onClick={() => onChange(o.value)}
-          className={cn(
-            "h-full rounded-ui-sm px-2.5 text-caption text-ui-3 hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-35",
-            value === o.value && "bg-ui-active text-ui-1",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export interface CanvasViewProps {
   editor: CanvasEditor;

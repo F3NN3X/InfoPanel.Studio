@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowUpRight, Copy, RefreshCw, Sparkles, Trash2, type LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider-field";
 import { cn } from "@/lib/utils";
 import { formatBytes } from "@/lib/assets";
@@ -60,19 +61,16 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 function ActionButton({ action, primary }: { action: DetailAction; primary?: boolean }) {
   const Icon = action.icon;
   return (
-    <button
-      type="button"
+    <Button
+      variant={primary ? "primary" : "secondary"}
       onClick={action.run}
       disabled={action.disabled}
       title={action.title}
-      className={cn(
-        "flex h-(--ui-h-field) items-center justify-center gap-2 rounded-ui-md px-3 text-body disabled:pointer-events-none disabled:opacity-40",
-        primary ? "w-full bg-ui-inverse font-medium text-ui-inverse-fg hover:opacity-90" : "border border-ui-default text-ui-1 hover:bg-ui-hover",
-      )}
+      icon={<Icon strokeWidth={1.75} />}
+      className={cn("h-(--ui-h-field) gap-2", primary && "w-full")}
     >
-      <Icon className="h-4 w-4" strokeWidth={1.75} />
       {action.label}
-    </button>
+    </Button>
   );
 }
 

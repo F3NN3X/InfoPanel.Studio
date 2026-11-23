@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ArrowDown, ArrowLeftRight, ArrowUpRight, Check, LayoutGrid, Maximize2, PenTool, X, type LucideIcon } from "lucide-react";
 import { PageBar } from "@/components/studio/page-bar";
+import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import type { WizardKind } from "./recent-templates";
 
@@ -49,21 +50,21 @@ function KindSwitch({ kind, onKind }: { kind: WizardKind; onKind: (k: WizardKind
     { k: "ip" as const, label: "InfoPanel profile", icon: PenTool },
   ];
   return (
-    <div role="radiogroup" aria-label="What to make" className="flex shrink-0 rounded-ui-md border border-ui-default bg-ui-raised p-0.5">
-      {kinds.map(({ k, label, icon: Icon }) => (
-        <button
-          key={k}
-          type="button"
-          role="radio"
-          aria-checked={kind === k}
-          onClick={() => kind !== k && onKind(k)}
-          className={cn("flex h-6 items-center gap-1.5 rounded-ui-sm px-2.5 text-caption", kind === k ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1")}
-        >
-          <Icon className="h-3.75 w-3.75" strokeWidth={1.75} />
-          {label}
-        </button>
-      ))}
-    </div>
+    <Segmented
+      label="What to make"
+      value={kind}
+      onChange={onKind}
+      className="shrink-0"
+      options={kinds.map(({ k, label, icon: Icon }) => ({
+        value: k,
+        label: (
+          <span className="flex items-center gap-1.5">
+            <Icon className="h-3.75 w-3.75" strokeWidth={1.75} />
+            {label}
+          </span>
+        ),
+      }))}
+    />
   );
 }
 

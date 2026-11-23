@@ -7,7 +7,6 @@
  * page; ticked cards (Select, Ctrl, Shift) are deleted together; the edited
  * screen's canvas files are one button away. Every upload is an item (`useAdoptUploads`). Lazy-loaded.
  */
-import { onRovingKeyDown } from "@/lib/roving";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy,
@@ -28,6 +27,7 @@ import {
   Wallpaper,
   X,
 } from "lucide-react";
+import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
@@ -537,31 +537,30 @@ export default function LibraryPage(p: LibraryPageProps) {
           )}
         </label>
         {!empty && !showFiles && (
-          <div role="radiogroup" aria-label="View" onKeyDown={(e) => onRovingKeyDown(e, '[role="radio"]')} className="flex h-(--ui-h-field) items-center gap-0.5 rounded-ui-md border border-ui-default p-0.5">
-            {(
+          <Segmented
+            label="View"
+            value={view}
+            onChange={(id) => {
+              setView(id);
+              if (id === "shelves") setCollection("all");
+            }}
+            options={(
               [
                 ["grid", "Grid", LayoutGrid],
                 ["shelves", "Shelves", Rows3],
               ] as const
-            ).map(([id, label, Icon]) => (
-              <button
-                key={id}
-                type="button"
-                role="radio"
-                title={label}
-                aria-checked={view === id}
-                tabIndex={view === id ? 0 : -1}
-                onClick={() => {
-                  setView(id);
-                  if (id === "shelves") setCollection("all");
-                }}
-                className={cn("flex h-full items-center gap-1.5 rounded-ui-md px-2.5 text-body text-ui-3 hover:text-ui-1", view === id && "bg-ui-active text-ui-1")}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span className="max-xl:sr-only">{label}</span>
-              </button>
-            ))}
-          </div>
+            ).map(([id, label, Icon]) => ({
+              value: id,
+              title: label,
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="max-xl:sr-only">{label}</span>
+                </span>
+              ),
+            }))}
+            className="h-(--ui-h-field) items-center"
+          />
         )}
         <select
           aria-label="Used by"

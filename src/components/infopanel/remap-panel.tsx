@@ -5,6 +5,7 @@
  */
 import { useState } from "react";
 import { Check, CheckCheck, CircleSlash, CornerDownRight, Search } from "lucide-react";
+import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import {
   candidateReason,
@@ -195,24 +196,20 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2.5">
-        <div role="radiogroup" aria-label="Filter" className="flex gap-0.5 rounded-ui-md border border-ui-default bg-ui-raised p-0.5">
-          {FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              role="radio"
-              aria-checked={filter === f.value}
-              onClick={() => setFilter(f.value)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-ui-sm px-2.5 py-1 text-caption font-medium",
-                filter === f.value ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1",
-              )}
-            >
-              {f.label}
-              <span className="font-ui-mono text-micro text-ui-4">{counts[f.value]}</span>
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Filter"
+          value={filter}
+          onChange={setFilter}
+          options={FILTERS.map((f) => ({
+            value: f.value,
+            label: (
+              <span className="flex items-center gap-1.5">
+                {f.label}
+                <span className="font-ui-mono text-micro text-ui-4">{counts[f.value]}</span>
+              </span>
+            ),
+          }))}
+        />
         <span className="text-caption text-ui-4">
           {`${bindings} bindings in ${rows.length} groups · ${counts.done} done · ${counts.check} to check · ${counts.unresolved} unresolved`}
         </span>

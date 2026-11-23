@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { distinctCommands, type CommandUse } from "@/lib/action-commands";
 import { actionsState, changeActions, type ActionsState } from "@/lib/action-runner";
+import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
-
-const BUTTON =
-  "inline-flex h-8 items-center gap-1.5 rounded-ui-md border border-ui-strong bg-ui-raised px-3 text-body font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1";
 
 interface CommandReviewDialogProps {
   /** The commands the imported screens name, with where. */
@@ -80,13 +78,13 @@ export function CommandReviewDialog({ uses, onClose }: CommandReviewDialogProps)
             </p>
           )}
           <div className="flex items-center gap-2 pt-1">
-            <button type="button" className={`${BUTTON} ml-auto`} onClick={onClose}>
+            <Button className="ml-auto" onClick={onClose}>
               {fresh.length ? "Keep them off" : "Close"}
-            </button>
+            </Button>
             {fresh.length > 0 && state && (
-              <button type="button" disabled={picked.size === 0} className="inline-flex h-8 items-center rounded-ui-md bg-ui-accent px-3 text-body font-medium text-ui-inverse-fg transition-opacity hover:opacity-90 disabled:opacity-50" onClick={() => void approve()}>
+              <Button variant="primary" disabled={picked.size === 0} onClick={() => void approve()}>
                 {picked.size > 1 ? `Approve ${picked.size}` : "Approve"}
-              </button>
+              </Button>
             )}
           </div>
         </Dialog.Popup>
