@@ -3,7 +3,7 @@
  * is included, or is swapped for one that may travel (`FontLicenceReview`).
  */
 import { useEffect, useState } from "react";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogParts } from "@/components/ui/dialog";
 import { TriangleAlert, X } from "lucide-react";
 import { isTauri, saveBinaryFile } from "@/lib/desktop";
 import { formatBytes } from "@/lib/assets";
@@ -100,10 +100,10 @@ function ExportBody({ canvas, onClose, onDone }: { canvas: StoredCanvas; onClose
   return (
     <>
       <div className="flex items-center border-b border-ui-subtle px-5 py-4">
-        <Dialog.Title className="flex-1 text-title font-medium text-ui-1">Export {name}</Dialog.Title>
-        <Dialog.Close title="Close" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+        <DialogParts.Title className="flex-1 text-title font-medium text-ui-1">Export {name}</DialogParts.Title>
+        <DialogParts.Close title="Close" aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
           <X className="h-5 w-5" />
-        </Dialog.Close>
+        </DialogParts.Close>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-auto px-5 py-4.5">
         <p className="text-caption text-ui-4">Reopens here exactly as it is: mode, remap choices, fonts and assets, each checked by SHA-256.</p>
@@ -145,17 +145,14 @@ function ExportBody({ canvas, onClose, onDone }: { canvas: StoredCanvas; onClose
 export function ExportDialog({ open, onOpenChange, zone, onDone }: ExportDialogProps) {
   const canvas = zone?.canvas;
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(720px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-14 border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
-          {open && zone && canvas ? (
-            <ExportBody key={zone.id} canvas={canvas} onClose={() => onOpenChange(false)} onDone={onDone} />
-          ) : (
-            <p className="p-5 text-body text-ui-3">This screen has no InfoPanel page to export. Import an InfoPanel profile first.</p>
-          )}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <DialogParts.Root open={open} onOpenChange={onOpenChange}>
+      <DialogParts.Content layout="panel" className="flex max-h-[calc(100vh-48px)] w-[min(720px,calc(100vw-48px))] flex-col overflow-hidden rounded-14 bg-ui-panel">
+        {open && zone && canvas ? (
+          <ExportBody key={zone.id} canvas={canvas} onClose={() => onOpenChange(false)} onDone={onDone} />
+        ) : (
+          <p className="p-5 text-body text-ui-3">This screen has no InfoPanel page to export. Import an InfoPanel profile first.</p>
+        )}
+      </DialogParts.Content>
+    </DialogParts.Root>
   );
 }

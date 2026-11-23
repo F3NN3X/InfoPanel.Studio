@@ -36,7 +36,8 @@
     "inverse-bg",
     "inverse-fg",
     "shadow-float",
-    "shadow-menu"
+    "shadow-menu",
+    "shadow-modal"
   ],
   "help": [
     "bg-app",
@@ -78,7 +79,8 @@
     "inverse-bg",
     "inverse-fg",
     "shadow-float",
-    "shadow-menu"
+    "shadow-menu",
+    "shadow-modal"
   ],
   "touch": [
     "bg-app"

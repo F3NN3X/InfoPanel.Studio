@@ -5,7 +5,7 @@
  * plugin sensors only, as InfoPanel does.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogParts } from "@/components/ui/dialog";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { refreshCatalog, useSensorCatalog } from "@/lib/catalog";
@@ -41,76 +41,74 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
     onOpenChange(false);
   };
   return (
-    <Dialog.Root
+    <DialogParts.Root
       open={open}
       onOpenChange={(next) => {
         onOpenChange(next);
         if (!next) setQuery("");
       }}
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/55" />
-        <Dialog.Popup
-          data-help-article="infopanel-editor"
-          className="fixed left-1/2 top-[10vh] z-50 flex max-h-[72vh] w-[min(600px,calc(100vw-32px))] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-ui-strong bg-ui-tile font-ui text-ui-1 shadow-ui-modal outline-none"
-        >
-          <div className="flex shrink-0 flex-col gap-2.5 border-b border-ui-subtle px-4 pb-2.5 pt-3.5">
-            <div className="flex items-center justify-between">
-              <Dialog.Title className="text-lead font-medium">{title}</Dialog.Title>
-              <Dialog.Close aria-label="Close" className="text-ui-3 hover:text-ui-1">
-                <X className="h-4.5 w-4.5" />
-              </Dialog.Close>
-            </div>
-            <div className="flex h-9 items-center gap-2 rounded-lg border border-ui-accent bg-ui-app px-2.5">
-              <Search className="h-4.25 w-4.25 shrink-0 text-ui-4" />
-              <input
-                autoFocus
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={pluginOnly ? "Search plugin sensors" : "Search sensors, e.g. gpu temp"}
-                aria-label="Search sensors"
-                className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-4"
-              />
-            </div>
-            {noRefs && <p className="text-label leading-snug text-ui-warn">{NOT_EXPORTABLE}. A choice binds the preview only.</p>}
+      <DialogParts.Content
+        layout="panel"
+        data-help-article="infopanel-editor"
+        className="top-[10vh] translate-y-0 flex max-h-[72vh] w-[min(600px,calc(100vw-32px))] flex-col overflow-hidden rounded-xl bg-ui-tile"
+      >
+        <div className="flex shrink-0 flex-col gap-2.5 border-b border-ui-subtle px-4 pb-2.5 pt-3.5">
+          <div className="flex items-center justify-between">
+            <DialogParts.Title className="text-lead font-medium">{title}</DialogParts.Title>
+            <DialogParts.Close aria-label="Close" className="text-ui-3 hover:text-ui-1">
+              <X className="h-4.5 w-4.5" />
+            </DialogParts.Close>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-1">
-            {catalog.status === "error" && <p className="px-3 py-6 text-center text-caption text-ui-4">The Data API isn’t reachable, so there are no sensors to choose</p>}
-            {catalog.status !== "error" && sections.length === 0 && (
-              <p className="px-3 py-6 text-center text-caption text-ui-4">{pluginOnly ? "No plugin sensors match." : "No sensors match."}</p>
-            )}
-            {sections.map((s) => (
-              <section key={s.title} aria-label={s.title}>
-                <div className="sticky top-0 bg-ui-tile px-2.5 pb-1 pt-2 text-caption font-medium text-ui-3">{s.title}</div>
-                <ul>
-                  {s.points.map((p) => {
-                    const ref = sensors[p.key]?.ref;
-                    const native = isNative(p.key, sensors);
-                    return (
-                      <li key={p.key}>
-                        <button
-                          type="button"
-                          role="option"
-                          aria-selected={p.key === current}
-                          title={native ? ref : `${p.key} · ${NOT_EXPORTABLE}`}
-                          onClick={() => pick(p)}
-                          className={cn("flex w-full items-center gap-2.5 rounded-7 px-2.5 py-1.5 text-left hover:bg-s-divider", p.key === current && "bg-ui-accent/10")}
-                        >
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-small text-ui-1">{p.name}</span>
-                            <span className="block truncate font-ui-mono text-micro text-ui-4">{native ? ref : `${p.key} · preview only`}</span>
-                          </span>
-                          <span className="max-w-37.5 shrink-0 truncate font-ui-mono text-label text-ui-2">{p.raw}</span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            ))}
+          <div className="flex h-9 items-center gap-2 rounded-lg border border-ui-accent bg-ui-app px-2.5">
+            <Search className="h-4.25 w-4.25 shrink-0 text-ui-4" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={pluginOnly ? "Search plugin sensors" : "Search sensors, e.g. gpu temp"}
+              aria-label="Search sensors"
+              className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-4"
+            />
           </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+          {noRefs && <p className="text-label leading-snug text-ui-warn">{NOT_EXPORTABLE}. A choice binds the preview only.</p>}
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-1">
+          {catalog.status === "error" && <p className="px-3 py-6 text-center text-caption text-ui-4">The Data API isn’t reachable, so there are no sensors to choose</p>}
+          {catalog.status !== "error" && sections.length === 0 && (
+            <p className="px-3 py-6 text-center text-caption text-ui-4">{pluginOnly ? "No plugin sensors match." : "No sensors match."}</p>
+          )}
+          {sections.map((s) => (
+            <section key={s.title} aria-label={s.title}>
+              <div className="sticky top-0 bg-ui-tile px-2.5 pb-1 pt-2 text-caption font-medium text-ui-3">{s.title}</div>
+              <ul>
+                {s.points.map((p) => {
+                  const ref = sensors[p.key]?.ref;
+                  const native = isNative(p.key, sensors);
+                  return (
+                    <li key={p.key}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={p.key === current}
+                        title={native ? ref : `${p.key} · ${NOT_EXPORTABLE}`}
+                        onClick={() => pick(p)}
+                        className={cn("flex w-full items-center gap-2.5 rounded-7 px-2.5 py-1.5 text-left hover:bg-s-divider", p.key === current && "bg-ui-accent/10")}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-small text-ui-1">{p.name}</span>
+                          <span className="block truncate font-ui-mono text-micro text-ui-4">{native ? ref : `${p.key} · preview only`}</span>
+                        </span>
+                        <span className="max-w-37.5 shrink-0 truncate font-ui-mono text-label text-ui-2">{p.raw}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </DialogParts.Content>
+    </DialogParts.Root>
   );
 }

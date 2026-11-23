@@ -6,7 +6,7 @@
 import { onRovingKeyDown } from "@/lib/roving";
 import { isProfileItem } from "@/lib/my-library/component-meta";
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogParts } from "@/components/ui/dialog";
 import { Check, FileArchive, FolderOpen, HardDrive, Library, Monitor, Upload, X } from "lucide-react";
 import { formatBytes, uploadAsset } from "@/lib/assets";
 import { getLibraryItem, listLibrary, type LibraryItem } from "@/lib/library";
@@ -484,11 +484,11 @@ function ImportBody({ onClose, onCancel, onStep, profileName, profileSize, initi
           <button type="button" aria-label="Close" onClick={onCancel} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-md text-ui-3 hover:bg-ui-hover hover:text-ui-1">
             <X className="h-4 w-4" />
           </button>
-          <Dialog.Title className="text-caption font-normal text-ui-4">
+          <DialogParts.Title className="text-caption font-normal text-ui-4">
             Import InfoPanel · Step {step + 1} of {STEPS.length}
-          </Dialog.Title>
+          </DialogParts.Title>
           <span className="text-head font-medium text-ui-1">{TITLES[step]}</span>
-          <Dialog.Description className="text-pretty text-body text-ui-3">{step === 4 && lockDest ? "Name it, then import." : SUBTITLES[step]}</Dialog.Description>
+          <DialogParts.Description className="text-pretty text-body text-ui-3">{step === 4 && lockDest ? "Name it, then import." : SUBTITLES[step]}</DialogParts.Description>
         </div>
         <div className="min-h-0 flex-1 overflow-auto px-5.5 py-4.5">
           {step === 0 && <SourceStep kind={kind} onKind={setKind} opening={opening} state={state} onOpen={open} />}
@@ -541,31 +541,25 @@ export function ImportDialog({ open, onOpenChange, ...body }: ImportDialogProps)
   }, [open]);
   return (
     <>
-      <Dialog.Root open={open} onOpenChange={(o) => (o ? onOpenChange(true) : guard.request())}>
-        <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
-          <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 h-[min(640px,calc(100vh-48px))] w-[min(960px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-14 border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
-            {open && <ImportBody {...body} onClose={() => onOpenChange(false)} onCancel={guard.request} onStep={setStep} />}
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
-      <Dialog.Root open={guard.asking} onOpenChange={(o) => !o && guard.keep()}>
-        <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 z-(--z-dialog) bg-black/60" />
-          <Dialog.Popup className="fixed left-1/2 top-1/2 z-(--z-dialog) w-[26rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-raised p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
-            <Dialog.Title className="text-lead font-medium text-ui-1">Discard this import?</Dialog.Title>
-            <Dialog.Description className="text-caption leading-relaxed text-ui-3">Your choices so far will be lost. Keep going to finish the import.</Dialog.Description>
-            <div className="flex justify-end gap-2 pt-1">
-              <button type="button" onClick={guard.discard} className="h-8 rounded-ui-md border border-ui-default px-3 text-body text-ui-1 hover:bg-ui-hover">
-                Discard
-              </button>
-              <button type="button" onClick={guard.keep} className="h-8 rounded-ui-md bg-ui-inverse px-3 text-body font-medium text-ui-inverse-fg hover:opacity-90">
-                Keep going
-              </button>
-            </div>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <DialogParts.Root open={open} onOpenChange={(o) => (o ? onOpenChange(true) : guard.request())}>
+        <DialogParts.Content layout="panel" className="h-[min(640px,calc(100vh-48px))] w-[min(960px,calc(100vw-48px))] overflow-hidden rounded-14 bg-ui-panel">
+          {open && <ImportBody {...body} onClose={() => onOpenChange(false)} onCancel={guard.request} onStep={setStep} />}
+        </DialogParts.Content>
+      </DialogParts.Root>
+      <DialogParts.Root open={guard.asking} onOpenChange={(o) => !o && guard.keep()}>
+        <DialogParts.Content backdropClassName="z-(--z-dialog)" className="z-(--z-dialog) w-[26rem]">
+          <DialogParts.Title>Discard this import?</DialogParts.Title>
+          <DialogParts.Description>Your choices so far will be lost. Keep going to finish the import.</DialogParts.Description>
+          <div className="flex justify-end gap-2 pt-1">
+            <button type="button" onClick={guard.discard} className="h-8 rounded-ui-md border border-ui-default px-3 text-body text-ui-1 hover:bg-ui-hover">
+              Discard
+            </button>
+            <button type="button" onClick={guard.keep} className="h-8 rounded-ui-md bg-ui-inverse px-3 text-body font-medium text-ui-inverse-fg hover:opacity-90">
+              Keep going
+            </button>
+          </div>
+        </DialogParts.Content>
+      </DialogParts.Root>
     </>
   );
 }

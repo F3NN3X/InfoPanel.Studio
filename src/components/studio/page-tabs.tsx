@@ -1,5 +1,5 @@
 import { Fragment, lazy, Suspense, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { AlertDialogParts } from "@/components/ui/dialog";
 import { ArrowLeft, ArrowRight, Cast, Copy, File, LayoutDashboard, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { IconButton } from "@/components/ui/icon-button";
@@ -111,31 +111,28 @@ function DeleteDialog({
 }) {
   const n = page?.placements.length ?? 0;
   return (
-    <AlertDialog.Root open={page !== undefined} onOpenChange={(open) => !open && onClose()}>
-      <AlertDialog.Portal>
-        <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-black/50" />
-        <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[24rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-raised p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
-          <AlertDialog.Title className="text-sm font-medium text-ui-1">Delete {page?.name}?</AlertDialog.Title>
-          <AlertDialog.Description className="text-xs leading-relaxed text-ui-3">
-            {n === 0 ? "This page is empty." : `This removes the page and its ${n} ${n === 1 ? "part" : "parts"}.`} Undo
-            (Ctrl+Z) brings it back.
-          </AlertDialog.Description>
-          <div className="flex items-center justify-end gap-2 pt-1">
-            <AlertDialog.Close render={<button type="button" className={DIALOG_BUTTON} />}>Cancel</AlertDialog.Close>
-            <button
-              type="button"
-              className="inline-flex h-8 items-center rounded-7 bg-ui-danger px-3 text-body font-medium text-ui-inverse-fg transition-opacity hover:opacity-90"
-              onClick={() => {
-                onConfirm();
-                onClose();
-              }}
-            >
-              Delete page
-            </button>
-          </div>
-        </AlertDialog.Popup>
-      </AlertDialog.Portal>
-    </AlertDialog.Root>
+    <AlertDialogParts.Root open={page !== undefined} onOpenChange={(open) => !open && onClose()}>
+      <AlertDialogParts.Content className="w-[24rem]">
+        <AlertDialogParts.Title className="text-sm font-medium text-ui-1">Delete {page?.name}?</AlertDialogParts.Title>
+        <AlertDialogParts.Description className="text-xs leading-relaxed text-ui-3">
+          {n === 0 ? "This page is empty." : `This removes the page and its ${n} ${n === 1 ? "part" : "parts"}.`} Undo
+          (Ctrl+Z) brings it back.
+        </AlertDialogParts.Description>
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <AlertDialogParts.Close render={<button type="button" className={DIALOG_BUTTON} />}>Cancel</AlertDialogParts.Close>
+          <button
+            type="button"
+            className="inline-flex h-8 items-center rounded-7 bg-ui-danger px-3 text-body font-medium text-ui-inverse-fg transition-opacity hover:opacity-90"
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+          >
+            Delete page
+          </button>
+        </div>
+      </AlertDialogParts.Content>
+    </AlertDialogParts.Root>
   );
 }
 

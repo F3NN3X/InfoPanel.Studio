@@ -2,7 +2,7 @@
  * "Save as component": names the selection before it goes to the Library's Components collection.
  */
 import { useState } from "react";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogParts } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 
 interface SaveComponentDialogProps {
@@ -22,49 +22,47 @@ export function SaveComponentDialog({ open, onOpenChange, count, initialName, on
   const [name, setName] = useState(initialName);
   const ok = name.trim() !== "";
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Popup
-          data-help-article={helpArticle}
-          className="fixed left-1/2 top-1/2 z-50 w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-14 border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
+    <DialogParts.Root open={open} onOpenChange={onOpenChange}>
+      <DialogParts.Content
+        layout="panel"
+        data-help-article={helpArticle}
+        className="w-[min(420px,calc(100vw-32px))] overflow-hidden rounded-14 bg-ui-panel"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (ok) {
+              onSave(name.trim());
+              onOpenChange(false);
+            }
+          }}
         >
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (ok) {
-                onSave(name.trim());
-                onOpenChange(false);
-              }
-            }}
-          >
-            <div className="flex items-center gap-3 border-b border-ui-subtle px-5 py-3.5">
-              <Dialog.Title className="flex-1 text-title font-medium">Save as component</Dialog.Title>
-              <Dialog.Close aria-label="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
-                <X className="h-4 w-4" />
-              </Dialog.Close>
-            </div>
-            <div className="space-y-3 px-5 py-4">
-              <label className="block">
-                <span className="mb-1 block text-caption text-ui-3">Name</span>
-                <input autoFocus value={name} onChange={(e) => setName(e.target.value)} aria-label="Name" className={INPUT} />
-              </label>
-              <p className="text-label leading-snug text-ui-4">
-                {count === 1 ? "The selected item goes" : `The ${count} selected items go`} to the Library as a component, with the files and profile colors{" "}
-                {count === 1 ? "it uses" : "they use"}. Drag it onto any screen or into an InfoPanel profile; sensors are matched to that PC.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2 border-t border-ui-subtle px-5 py-3">
-              <Dialog.Close type="button" className="h-8 rounded-ui-md px-3 text-small text-ui-3 hover:text-ui-1">
-                Cancel
-              </Dialog.Close>
-              <button type="submit" disabled={!ok} className="h-8 rounded-ui-md bg-ui-inverse px-4 text-body font-medium text-ui-inverse-fg hover:bg-white disabled:opacity-40">
-                Save
-              </button>
-            </div>
-          </form>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+          <div className="flex items-center gap-3 border-b border-ui-subtle px-5 py-3.5">
+            <DialogParts.Title className="flex-1 text-title font-medium">Save as component</DialogParts.Title>
+            <DialogParts.Close aria-label="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+              <X className="h-4 w-4" />
+            </DialogParts.Close>
+          </div>
+          <div className="space-y-3 px-5 py-4">
+            <label className="block">
+              <span className="mb-1 block text-caption text-ui-3">Name</span>
+              <input autoFocus value={name} onChange={(e) => setName(e.target.value)} aria-label="Name" className={INPUT} />
+            </label>
+            <p className="text-label leading-snug text-ui-4">
+              {count === 1 ? "The selected item goes" : `The ${count} selected items go`} to the Library as a component, with the files and profile colors{" "}
+              {count === 1 ? "it uses" : "they use"}. Drag it onto any screen or into an InfoPanel profile; sensors are matched to that PC.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-ui-subtle px-5 py-3">
+            <DialogParts.Close type="button" className="h-8 rounded-ui-md px-3 text-small text-ui-3 hover:text-ui-1">
+              Cancel
+            </DialogParts.Close>
+            <button type="submit" disabled={!ok} className="h-8 rounded-ui-md bg-ui-inverse px-4 text-body font-medium text-ui-inverse-fg hover:bg-white disabled:opacity-40">
+              Save
+            </button>
+          </div>
+        </form>
+      </DialogParts.Content>
+    </DialogParts.Root>
   );
 }

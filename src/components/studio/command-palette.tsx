@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Dialog } from "@base-ui/react/dialog";
+import { DialogParts } from "@/components/ui/dialog";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { collapseNumbered, launcherCommands, parseRecentCommands, RECENT_COMMANDS_KEY, withRecentCommand } from "./command-launcher";
@@ -120,32 +120,30 @@ function PaletteBody({ commands, onRun }: Pick<CommandPaletteProps, "commands" |
 export function CommandPalette({ open, onOpenChange, commands, onRun }: CommandPaletteProps) {
   const popupRef = useRef<HTMLDivElement>(null);
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/50" />
-        <Dialog.Popup
-          ref={popupRef}
-          initialFocus={() => popupRef.current?.querySelector("input") ?? true}
-          className="fixed left-1/2 top-[15vh] z-50 flex max-h-[60vh] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 flex-col rounded-xl border border-ui-strong bg-ui-raised font-ui text-ui-1 shadow-ui-modal outline-none"
-        >
-          <Dialog.Title className="sr-only">Command palette</Dialog.Title>
-          {open && (
-            <PaletteBody
-              commands={commands}
-              onRun={(command) => {
-                try {
-                  const stored = parseRecentCommands(localStorage.getItem(RECENT_COMMANDS_KEY));
-                  localStorage.setItem(RECENT_COMMANDS_KEY, JSON.stringify(withRecentCommand(stored, command.id)));
-                } catch {
-                  // Storage unavailable: Recent just stays as it was.
-                }
-                onOpenChange(false);
-                onRun(command);
-              }}
-            />
-          )}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <DialogParts.Root open={open} onOpenChange={onOpenChange}>
+      <DialogParts.Content
+        layout="panel"
+        ref={popupRef}
+        initialFocus={() => popupRef.current?.querySelector("input") ?? true}
+        className="top-[15vh] translate-y-0 flex max-h-[60vh] w-[min(32rem,calc(100vw-2rem))] flex-col rounded-xl bg-ui-raised"
+      >
+        <DialogParts.Title className="sr-only">Command palette</DialogParts.Title>
+        {open && (
+          <PaletteBody
+            commands={commands}
+            onRun={(command) => {
+              try {
+                const stored = parseRecentCommands(localStorage.getItem(RECENT_COMMANDS_KEY));
+                localStorage.setItem(RECENT_COMMANDS_KEY, JSON.stringify(withRecentCommand(stored, command.id)));
+              } catch {
+                // Storage unavailable: Recent just stays as it was.
+              }
+              onOpenChange(false);
+              onRun(command);
+            }}
+          />
+        )}
+      </DialogParts.Content>
+    </DialogParts.Root>
   );
 }
