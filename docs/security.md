@@ -69,6 +69,12 @@ security model, what was fixed, what was decided, and what is deferred.
   every 15 minutes, under one cap of 300 provider calls an hour; place search (`GET /api/weather/places`) is this machine's
   unless `ALLOW_REMOTE_EDIT=1`, 20 a minute. No key, no account, nothing about the user but the place.
   `WEATHER=off` turns it off.
+- **Ping** (`crates/ips-server/src/ping.rs`): the server connects to the host and port that stored Ping widgets name in
+  their own settings, and to nothing else: no request carries a host (`/events/ping` only streams readings), so no page can make
+  the server try one and nothing is scanned. A host must be a plain name or an address (no scheme, path, port or credentials in
+  it). A probe is a TCP connect that is closed at once, sending and reading nothing, so it carries no data either way; an address
+  on this computer or the LAN is allowed because the person typed it. At most 8 hosts, each once per 2 to 60 seconds (5 by
+  default), 240 probes a minute in all, 2 seconds to answer. `PING=off` turns it off.
 - **Widget packages** (`crates/ips-server/src/widgets.rs`): recipe and code widgets a user imports are stored under
   `DATA_DIR/widgets/`, one folder per package, and served and nothing more: a key and a file name are matched against strict
   patterns before a path is built, a file must stay inside its folder (links are never followed), and a folder whose files are

@@ -24,11 +24,13 @@ const REFILED = [
   "PageRail", "Keys",
   // History and analysis
   "BottleneckLens", "FrameHistogram", "SessionStats",
+  // The mockups' four: hourly weather, ping, mixer solo, stream stats
+  "HourlyWeather", "Ping", "MixerSolo", "StreamStats",
 ];
 
-it("covers all 67 widgets", () => {
-  expect(REFILED).toHaveLength(67);
-  expect(new Set(REFILED).size).toBe(67);
+it("covers all 71 widgets", () => {
+  expect(REFILED).toHaveLength(71);
+  expect(new Set(REFILED).size).toBe(71);
   expect([...REFILED].sort()).toEqual(modules.filter((m) => m.header).map((m) => m.id).sort());
 });
 

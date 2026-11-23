@@ -71,7 +71,7 @@ function set(next: SensorCatalog): void {
 
 /** How long the catalog waits for a server stream's first message. */
 const SERVER_READ_MS = 3000;
-const SERVER_SOURCE_NAMES: Record<string, string> = { "battery.": "Device batteries", "weather.": "Weather by place" };
+const SERVER_SOURCE_NAMES: Record<string, string> = { "battery.": "Device batteries", "weather.": "Weather by place", "ping.": "Ping targets" };
 
 /**
  * A server-owned namespace as a source tree: one container per device or place (`<ns><id>.`), named by its `name`

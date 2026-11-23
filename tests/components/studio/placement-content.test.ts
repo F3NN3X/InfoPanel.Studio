@@ -134,7 +134,7 @@ describe("placementContent", () => {
 
 describe("template zones with no data", () => {
   it("keeps an explicit allow-list of the templates that render without sensor keys", () => {
-    expect([...SENSORLESS].sort()).toEqual(["AudioButton", "AudioFader", "Calendar", "Clock", "CodingAgents", "DayPlanner", "ObsButton", "OnAirBeacon", "RadialClockStack", "StreamChat", "StreamControl", "StreamMixer", "Timer", "WaveLink", "WebPage"]);
+    expect([...SENSORLESS].sort()).toEqual(["AudioButton", "AudioFader", "Calendar", "Clock", "CodingAgents", "DayPlanner", "HourlyWeather", "MixerSolo", "ObsButton", "OnAirBeacon", "Ping", "RadialClockStack", "StreamChat", "StreamControl", "StreamMixer", "StreamStats", "Timer", "WaveLink", "WebPage"]);
   });
 
   it("hides every other template on an empty map and shows it with data", () => {
