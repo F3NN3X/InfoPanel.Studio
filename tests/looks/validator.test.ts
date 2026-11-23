@@ -597,6 +597,15 @@ describe("M5: every string of a Look is read", () => {
     expect(rules(bad({ look: (l) => (l.t1.light["focus-ring"].value = "var(--x)") }))).toContain("colour");
     expect(rules(bad({ look: (l) => (l.radius = "9rem") }))).toContain("colour");
   });
+
+  it("a Look with variants validates, and a variant that is malformed or has a bad value is refused", () => {
+    const night = { id: "night", name: "Night", values: { accent: "#8899ff", surface: "matte-dark", surfaceOpacity: "80", blur: "12", radius: "8", padding: "4", gap: "4" } };
+    expect(rules(bad({ look: (l) => (l.variants = [night, { id: "dusk", name: "Dusk", values: { accent: "#ff9966" } }]) }))).toEqual([]);
+    expect(rules(bad({ look: (l) => (l.variants = [{ ...night, values: { accent: "red" } }]) }))).toContain("variant");
+    expect(rules(bad({ look: (l) => (l.variants = [{ ...night, values: { radius: "999" } }]) }))).toContain("variant");
+    expect(rules(bad({ look: (l) => (l.variants = [{ ...night, values: { colour: "#fff" } }]) }))).toContain("variant");
+    expect(rules(bad({ look: (l) => (l.variants = [{ id: "night", values: {} }]) }))).toContain("schema");
+  });
 });
 
 describe("M6: a material colour the check cannot read, and the token path (T3)", () => {
