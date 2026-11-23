@@ -3,12 +3,13 @@
 // and reticle the app's ornaments, its type, signal-cyan values, badge cuts, hatch and lamp the pack's CSS, its glitch-in, decode and
 // scramble the `motion` block, and its CRT treatment the stage's static scanlines and vignette with a rare glitch, all gone at Calm and Off
 // as the kit's are. The variants are the kit's six themes, each deriving its inks from its accent. Lucide is the kit's icon set, so the Classic set stays.
+// Its effect script (assets/fx.js: brackets that trace in, a scan band, a pulse on a card in warning) loads from the bundle, not as a served file.
 import type { Look } from "../look";
 import { builtPack, packFiles, type PackMeta } from "../pack-assets";
 import look from "./cyberspec/look.json";
 import meta from "./cyberspec/pack.json";
 import css from "./cyberspec/pack.css?raw";
 
-const files = packFiles(import.meta.glob<string>("./cyberspec/assets/*", { query: "?url&no-inline", import: "default", eager: true }));
+const files = packFiles(import.meta.glob<string>(["./cyberspec/assets/*", "!./cyberspec/assets/*.js"], { query: "?url&no-inline", import: "default", eager: true }));
 
 export default builtPack(meta as PackMeta, look as unknown as Look, files, { css, slots: {} });

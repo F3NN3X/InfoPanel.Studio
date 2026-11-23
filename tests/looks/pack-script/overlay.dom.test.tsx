@@ -4,8 +4,15 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Pack } from "@/looks/pack";
 import { PackScript } from "@/looks/pack-script/mount";
-import PackScriptOverlay from "@/looks/pack-script/overlay";
+import PackScriptOverlay, { paletteOf } from "@/looks/pack-script/overlay";
 import type { PackTrust } from "@/looks/pack-script/trust";
+
+// a built-in pack's script loads from the bundle: the real loader, watched
+const bundled = vi.hoisted(() => ({ calls: [] as string[][] }));
+vi.mock("@/looks/pack-script/builtin", async (actual) => {
+  const real = await actual<typeof import("@/looks/pack-script/builtin")>();
+  return { builtinScript: (id: string, file: string) => (bundled.calls.push([id, file]), real.builtinScript(id, file)) };
+});
 
 // The consent states in the studio and the kiosk, against a fake of the trust routes. happy-dom has no OffscreenCanvas, so no
 // script starts here (the browser spec runs one): these check who is asked, what is stored, and that nothing runs without the server's word.
@@ -13,19 +20,20 @@ import type { PackTrust } from "@/looks/pack-script/trust";
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  bundled.calls.length = 0;
 });
 
 const PACK = { id: "neon-fx", look: { name: "Neon FX", modes: { supported: ["dark"] } }, script: { file: "fx.js" } } as unknown as Pack;
 
 /** A fake server: the trust it answers, and every request it saw. */
-function server(trust: PackTrust, on = true) {
+function server(trust: PackTrust, on = true, env = on) {
   const seen: { url: string; method: string; body?: string }[] = [];
   let now = trust;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init: RequestInit = {}) => {
       seen.push({ url, method: init.method ?? "GET", body: init.body as string | undefined });
-      if (url === "/api/pack-scripts") return Response.json({ on, env: on ? "on" : "off", fetching: false, stale: false });
+      if (url === "/api/pack-scripts") return Response.json({ on, env, fetching: false, stale: false });
       if (url.endsWith("/script-consent")) {
         const granted = JSON.parse(init.body as string).granted as boolean;
         now = { ...now, consent: granted ? "granted" : "denied", scriptRuns: granted, ...(granted ? { scriptSha256: SHA } : null) };
@@ -89,7 +97,7 @@ describe("the pack-script overlay", () => {
     expect(seen.some((r) => r.url.includes("/fx.js"))).toBe(trust.scriptRuns);
   });
 
-  it("neither asks nor fetches while the server's switch is off, and asks the server nothing for a built-in pack", async () => {
+  it("neither asks nor fetches while the server's switch is off, and asks the server only its switch for a built-in pack", async () => {
     const off = server(UNVERIFIED, false);
     render(<PackScriptOverlay pack={PACK} studio />);
     await waitFor(() => expect(off.some((r) => r.url.endsWith("/trust"))).toBe(true));
@@ -100,8 +108,35 @@ describe("the pack-script overlay", () => {
     const builtin = server({ ...UNVERIFIED, state: "verified", scriptRuns: true, scriptSha256: SHA });
     render(<PackScriptOverlay pack={{ ...PACK, id: "cyberspec" }} studio />);
     await new Promise((r) => setTimeout(r, 20));
-    expect(builtin).toEqual([]);
+    expect(builtin.map((r) => r.url)).toEqual(["/api/pack-scripts"]);
     expect(status()).toBe("waiting");
+  });
+
+  it("loads a built-in pack's script from the bundle while the switch is on, asking nobody, and not under PACK_SCRIPTS=off", async () => {
+    const CYBERSPEC = { ...PACK, id: "cyberspec" } as Pack;
+    server(UNVERIFIED);
+    render(<PackScriptOverlay pack={CYBERSPEC} studio />);
+    await waitFor(() => expect(bundled.calls).toEqual([["cyberspec", "fx.js"]]));
+    expect(screen.queryByTestId("script-consent")).toBeNull();
+    cleanup();
+    bundled.calls.length = 0;
+
+    for (const [on, env] of [[false, false], [true, false]]) {
+      const seen = server(UNVERIFIED, on, env);
+      render(<PackScriptOverlay pack={CYBERSPEC} />);
+      await waitFor(() => expect(seen.length).toBe(1));
+      await new Promise((r) => setTimeout(r, 20));
+      expect(bundled.calls).toEqual([]);
+      cleanup();
+    }
+  });
+
+  it("paints with the screen's accent at index 0 when it sets one, and the Look's own colours otherwise", async () => {
+    const pack = (await import("@/looks/pack-load")).loadPack;
+    const cyberspec = (await pack("cyberspec"))!;
+    const own = paletteOf(cyberspec);
+    expect(own).toHaveLength(10);
+    expect(paletteOf(cyberspec, "#2bf59a")).toEqual(["#2bf59a", ...own.slice(1)]);
   });
 
   it("is nothing for a pack without a script: no request, no element", () => {

@@ -94,6 +94,9 @@ describe("the routes", () => {
   it("reads the switch as on only when it says on: true", async () => {
     vi.stubGlobal("fetch", answer(JSON.stringify({ on: true, env: "on", fetching: false, stale: false })));
     expect(await scriptsOn()).toBe(true);
+    // PACK_SCRIPTS=off: the studio's switch may still say on (a built-in pack asks nothing else)
+    vi.stubGlobal("fetch", answer(JSON.stringify({ on: true, env: false, fetching: false, stale: false })));
+    expect(await scriptsOn()).toBe(false);
     vi.stubGlobal("fetch", answer(JSON.stringify({ on: false, env: "off" })));
     expect(await scriptsOn()).toBe(false);
     vi.stubGlobal("fetch", answer("x", { status: 404 }));

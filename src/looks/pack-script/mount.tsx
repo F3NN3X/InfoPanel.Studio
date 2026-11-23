@@ -10,13 +10,15 @@ export interface PackScriptProps {
   /** The studio's canvas: asks about an unverified pack's script; the kiosk never asks. */
   studio?: boolean;
   className?: string;
+  /** The screen's accent (a variant's, the user's), which the script's palette takes. */
+  accent?: string;
 }
 
-export function PackScript({ pack, studio, className }: PackScriptProps) {
+export function PackScript({ pack, studio, className, accent }: PackScriptProps) {
   if (!pack?.script) return null;
   return (
     <Suspense fallback={null}>
-      <Overlay pack={pack} studio={studio} className={className} />
+      <Overlay pack={pack} studio={studio} className={className} accent={accent} />
     </Suspense>
   );
 }

@@ -806,7 +806,7 @@ function validate(src: PackSource, source: "builtin" | "user", scriptAt: "files"
   else if (pack.edge?.kind !== "chamfer" && pack.edge?.cut !== undefined && pack.edge.cut > CHAMFER_MAX) add("chamfer", "pack.json", `edge cut ${pack.edge.cut}: at most ${CHAMFER_MAX} px`);
 
   out.push(...motionPackIssues(pack));
-  out.push(...scriptIssues(pack, files, scriptAt));
+  out.push(...scriptIssues(pack, files, scriptAt, source));
 
   // icons
   if (src.icons !== undefined) {
@@ -872,12 +872,13 @@ function motionPackIssues(pack: PackJson): PackIssue[] {
  * The script key (G4 as changed 2026-11-23): one `.js` file of the pack's assets, listed in `assets` like any other, at most
  * `SCRIPT_MAX_BYTES`, UTF-8 text. It is never run here or by the loader: only the pack-script sandbox runs it, and only when the
  * server's trust answer says so. A pack read back from the route (`script: "route"`) has no bytes for it to check: the server keeps them.
+ * A built-in pack lists no assets (the bundler serves them, and its script ships in the bundle, pack-script/builtin.ts).
  */
-export function scriptIssues(pack: Pick<PackJson, "script" | "assets">, files: ReadonlyMap<string, PackFile>, scriptAt: "files" | "route" = "files"): PackIssue[] {
+export function scriptIssues(pack: Pick<PackJson, "script" | "assets">, files: ReadonlyMap<string, PackFile>, scriptAt: "files" | "route" = "files", origin: "builtin" | "user" = "user"): PackIssue[] {
   if (!pack.script) return [];
   const { file } = pack.script;
   const out: PackIssue[] = [];
-  if (!pack.assets?.some((a) => a.file === file)) out.push(issue("script", "pack.json", `the script ${file} is not in pack.json's asset list`));
+  if (origin === "user" && !pack.assets?.some((a) => a.file === file)) out.push(issue("script", "pack.json", `the script ${file} is not in pack.json's asset list`));
   const f = files.get(`assets/${file}`);
   if (!f) {
     if (scriptAt === "files") out.push(issue("script", "pack.json", `the script ${file} is not in the pack's files`));

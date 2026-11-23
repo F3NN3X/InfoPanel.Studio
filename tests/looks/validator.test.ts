@@ -1149,4 +1149,11 @@ describe("a pack's script (G4 as changed 2026-11-23)", () => {
   it("reads a pack from the route without the script's bytes: the server keeps them", () => {
     expect(scriptRules(scripted({ drop: true }), "route")).toEqual([]);
   });
+
+  it("takes one of ours naming its script with no asset list (the bundle carries it); a user pack still lists it", () => {
+    const unlisted = bad({ pack: { script: { file: "fx.js" } }, files: [file("assets/fx.js", FX)] });
+    expect(validatePack(unlisted, { source: "builtin" }).filter((i) => i.severity === "error")).toEqual([]);
+    expect(scriptRules(unlisted)).toContain("script");
+    expect(validatePack(bad({ pack: { script: { file: "fx.js" } } }), { source: "builtin" }).map((i) => i.rule)).toContain("script");
+  });
 });

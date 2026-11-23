@@ -3,8 +3,8 @@
 // pack (bound to its manifest hash, so an update asks again), `GET /api/packs/<id>/fx.js?sha256=<scriptSha256>` serves the script only
 // while it runs and only by that hash, and `GET /api/pack-scripts` is the switch every kiosk obeys (`on: false`: no script anywhere).
 // Anything that is not exactly that shape is read as "no script": the client never runs a script the server did not vouch for. The
-// server never says `builtin` (built-in packs are not in its store): a built-in pack is the client's to know, and its script would
-// ship in the app's bundle.
+// server never says `builtin` (built-in packs are not in its store): a built-in pack is the client's to know, and its script ships
+// in the app's bundle (builtin.ts), asking only the switch.
 import { SCRIPT_MAX_BYTES } from "./limits";
 
 /** The states the server answers (never `builtin`: an answer that claims it is out of shape). */
@@ -66,11 +66,12 @@ export async function giveConsent(id: string, granted: boolean): Promise<boolean
   }
 }
 
-/** Whether the server's switch lets scripts run at all (`GET /api/pack-scripts` `on`); anything but `on: true` is off. */
+/** Whether the server's switches let scripts run at all (`GET /api/pack-scripts`): anything but `on: true` is off, and so is `env: false` (PACK_SCRIPTS=off). */
 export async function scriptsOn(): Promise<boolean> {
   try {
     const res = await fetch("/api/pack-scripts", { cache: "no-store" });
-    return res.ok && ((await res.json()) as { on?: unknown } | null)?.on === true;
+    const body = res.ok ? ((await res.json()) as { on?: unknown; env?: unknown } | null) : null;
+    return body?.on === true && body.env !== false;
   } catch {
     return false;
   }

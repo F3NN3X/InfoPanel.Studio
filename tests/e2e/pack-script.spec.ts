@@ -140,6 +140,63 @@ test.describe("a pack's effect script", () => {
     expect(await refused.getByTestId("script-consent").count()).toBe(0);
   });
 
+  test("Cyberspec's own script runs from the app bundle at Full with nobody asked, within its budget, and not at Off or with the switch off", async ({ page, scratch }) => {
+    const wearCyberspec = async (fx: "full" | "off") => {
+      const config = await (await fetch(`${scratch.base}/api/config`)).json();
+      config.profiles = config.profiles.map((p: { id: string; performance?: object; widgetTheme?: { values?: object } }) =>
+        p.id === light ? { ...p, performance: { ...p.performance, fx }, widgetTheme: { ...p.widgetTheme, values: { ...p.widgetTheme?.values, lookId: "cyberspec" } } } : p
+      );
+      expect((await saveConfig(scratch.base, config)).ok).toBe(true);
+    };
+    const open = async (switchOn = true) => {
+      const k = await page.context().newPage();
+      const asked: string[] = [];
+      k.on("request", (r) => /\/api\/packs\//.test(r.url()) && asked.push(r.url()));
+      if (!switchOn) await k.route("**/api/pack-scripts", (r) => r.fulfill({ json: { on: false, env: true, fetching: false, stale: false } }));
+      await k.addInitScript(() => {
+        const w = window as unknown as { __frames: number[] };
+        w.__frames = [];
+        const count = (t: number) => {
+          w.__frames.push(t);
+          requestAnimationFrame(count);
+        };
+        requestAnimationFrame(count);
+      });
+      await k.setViewportSize({ width: 1280, height: 720 });
+      await k.goto(`${scratch.base}/?kiosk=1&profile=${light}`);
+      await expect(k.locator('[data-wp-tier][data-look="cyberspec"]').first()).toBeAttached({ timeout: 15_000 });
+      await settled(k, manifest.kioskZoneSelector);
+      return { k, asked };
+    };
+
+    // the scratch server's switch is on by default: the script comes from the bundle, and the server is asked nothing about the pack
+    await wearCyberspec("full");
+    const full = await open();
+    await expect(canvas(full.k)).toBeAttached({ timeout: 10_000 });
+    expect(await state(full.k)).toBe("running");
+    expect(await full.k.getByTestId("script-consent").count()).toBe(0);
+    const a = await canvas(full.k).screenshot();
+    await full.k.waitForTimeout(400);
+    expect((await canvas(full.k).screenshot()).equals(a)).toBe(false);
+    await full.k.waitForTimeout(2000);
+    expect(await state(full.k)).toBe("running");
+    expect(await fps(full.k, 1000)).toBeGreaterThan(45);
+    expect(full.asked).toEqual([]);
+    await full.k.close();
+
+    const switchedOff = await open(false);
+    await switchedOff.k.waitForTimeout(1500);
+    expect(await canvas(switchedOff.k).count()).toBe(0);
+    await switchedOff.k.close();
+
+    await wearCyberspec("off");
+    const off = await open();
+    await off.k.waitForTimeout(1500);
+    expect(await canvas(off.k).count()).toBe(0);
+    expect(await state(off.k)).toBe("waiting");
+    await off.k.close();
+  });
+
   test("an adversarial script reaches nothing and its endless frame is ended within a second; a memory bomb too", async ({ page, scratch }) => {
     const heard: string[] = [];
     const listener = http.createServer((req, res) => {

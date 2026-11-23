@@ -69,6 +69,8 @@ export interface PackMeta {
   ornaments?: PackOrnament[];
   /** The text and card effects the app draws (L117). */
   motion?: PackMotion;
+  /** The effect script, a `.js` file of the pack's assets: it ships in the app bundle (pack-script/builtin.ts), never as a served file. */
+  script?: { file: string };
 }
 
 /** A built-in pack from its files: `look.json` and `pack.json` as data, the bundler's urls for its assets, and the parts that are code. */
@@ -90,5 +92,6 @@ export function builtPack(meta: PackMeta, look: Look, files: PackFiles, parts: {
     ...(meta.frame ? { frame: meta.frame } : null),
     ...(meta.ornaments?.length ? { ornaments: meta.ornaments } : null),
     ...(meta.motion ? { motion: meta.motion } : null),
+    ...(meta.script ? { script: meta.script } : null),
   };
 }

@@ -147,6 +147,19 @@ describe("the perf run", () => {
     }
   });
 
+  // the built-in showcase (src/looks/packs/cyberspec/assets/fx.js) passes the checks a submitted script gets: the analysis and the run
+  it("passes Cyberspec's own script, at Full and Calm, under the commands cap, Calm drawing less", async () => {
+    const cyberspec = readFileSync(new URL("../../../src/looks/packs/cyberspec/assets/fx.js", import.meta.url), "utf8");
+    expect(errors((await analyseScript(cyberspec)).issues)).toEqual([]);
+    const report = await perfRun(cyberspec, { seconds: 4 });
+    expect(report.status).toBe("passed");
+    expect(report.issues.filter((i) => i.severity === "error")).toEqual([]);
+    expect(report.levels.full).toMatchObject({ faults: 0 });
+    expect(report.levels.calm).toMatchObject({ faults: 0 });
+    expect(report.levels.full.commandsMax).toBeLessThan(2000);
+    expect(report.levels.calm.commandsP95).toBeLessThan(report.levels.full.commandsP95);
+  });
+
   it("fails a script that spends more than a frame's time, and one that does not start", async () => {
     const slow = await perfRun("fx.onFrame(function () { var t = 0; for (var i = 0; i < 1e9; i++) t += i; });", { seconds: 1 });
     expect(slow.status).toBe("failed");

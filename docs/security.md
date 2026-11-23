@@ -169,7 +169,9 @@ security model, what was fixed, what was decided, and what is deferred.
   - **When it runs**: only while the server's switch is on (`GET /api/pack-scripts` `on: true`), the trust answer for the pack
     says so (`GET /api/packs/<id>/trust` `scriptRuns` with its `scriptSha256`), and the script comes by that hash from
     `GET /api/packs/<id>/fx.js?sha256=<hash>` as `text/javascript` (in a secure context the client checks the hash itself too);
-    the client reads any other answer as "no script". The server keeps no trust for a built-in pack, and none carries a script.
+    the client reads any other answer as "no script". The server keeps no trust for a built-in pack: a built-in pack's script
+  (Cyberspec's) ships in the app's bundle, is never fetched, and runs in the same sandbox under the same caps and rules, while
+  the switch is on and `PACK_SCRIPTS` is not off; nobody is asked for it.
     It starts only when the motion rules allow it (not at Effects Off, in lite mode, under reduced motion) on a visible page,
     and any change of these ends the worker. An unverified pack's script runs only after the user allowed it in the studio,
     asked once per pack; the kiosk never asks. Modified and revoked packs never run one.
