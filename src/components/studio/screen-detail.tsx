@@ -288,7 +288,7 @@ export function ScreenDetail({
         />
         <SegmentedRow
           label="Effects"
-          hint="How much of a theme pack's scanlines, glitch and flicker it draws. Calm keeps them still or drops them; Off draws none. Follow system is Off with reduced animations, else Full; below 60 fps Full draws as Calm. Widgets are never touched."
+          hint="How much of a theme pack's scanlines, glitch and flicker it draws, and the motion it gives the widgets' text and cards. Calm keeps them still or drops them, and plays a pack's motion only as a card or reading arrives; Off draws none. Follow system is Off with reduced animations, else Full; below 60 fps Full draws as Calm and a pack's motion stops."
           options={FX_OPTIONS}
           value={perf.fx ?? "system"}
           onChange={(v) => onPerformance({ fx: v === "system" ? undefined : (v as FxLevel) })}
