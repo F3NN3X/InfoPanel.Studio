@@ -1,6 +1,13 @@
 # cargo-deny (CI: .github/actions/audit). Advisories, bans and sources; licenses are not checked yet.
 # Run locally from src-tauri/: cargo deny check advisories bans sources
 
+# The graph is the Windows build, the only one that ships (release.yml builds the NSIS installer). Tauri's Linux stack
+# (GTK3, zbus 5) carries unmaintained crates nothing here can replace (zvariant, zbus_names, zvariant_derive,
+# proc-macro-error), and none of them is compiled into the app. The cost: a Linux-only dependency of ips-server or
+# ips-agent is not audited.
+[graph]
+targets = ["x86_64-pc-windows-msvc"]
+
 [advisories]
 ignore = [
   # chrono and chrono-tz are unmaintained with no safe upgrade. ips-server uses them for dates and time zones (calendar,
