@@ -602,8 +602,8 @@ function StudioViewBody({
 
   /** The Add panel (Edit v3 SPEC §9): its catalog, Recently used, toast and flash; a click fills the selected blank zone. */
   const addPanel = useAddPanel({ config, addFromPanel: edit.addFromPanel, targetZoneId: blankZoneId, undo: history.undo });
-  const [addDensity] = useAddListDensity();
-  const [addPreviewOnHover] = useAddPreviewOnHover();
+  const [addDensity, setAddDensity] = useAddListDensity();
+  const [addPreviewOnHover, setAddPreviewOnHover] = useAddPreviewOnHover();
   const pageFont = fontStack(resolveFont(profile));
   const addTarget = blankZoneId && selected ? { id: blankZoneId, cols: selected.colSpan, rows: selected.rowSpan } : undefined;
 
@@ -767,6 +767,8 @@ function StudioViewBody({
         onNewInfoPanel: openNewInfoPanel,
         density: addDensity,
         previewOnHover: addPreviewOnHover,
+        onDensityChange: setAddDensity,
+        onPreviewOnHoverChange: setAddPreviewOnHover,
         appearance,
         pageStyle: { ...themeScope, fontFamily: pageFont },
         start: fixture && { segment: fixture.addSegment, hoverTile: fixture.hoverTile, added: fixture.added },

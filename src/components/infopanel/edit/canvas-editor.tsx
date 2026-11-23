@@ -226,8 +226,8 @@ export default function CanvasEditorView({ zone, setConfig, shell, hidden = fals
     [widgetHost?.config.panelPresets, widgetHost?.config.widgetPresets, builtinPresets]
   );
   const [recent, pushRecent] = useRecentAdds();
-  const [addDensity] = useAddListDensity();
-  const [addPreview] = useAddPreviewOnHover();
+  const [addDensity, setAddDensity] = useAddListDensity();
+  const [addPreview, setAddPreview] = useAddPreviewOnHover();
   /** An InfoPanel item or element from Add (a click or Enter): the palette's add. */
   const addPart = (data: string, place?: DropPlace) => {
     const entry = paletteEntryOf(data);
@@ -534,6 +534,8 @@ export default function CanvasEditorView({ zone, setConfig, shell, hidden = fals
           onDeletePreset={(id) => setConfig((c) => deletePanelPreset(c, id))}
           density={addDensity}
           previewOnHover={addPreview}
+          onDensityChange={setAddDensity}
+          onPreviewOnHoverChange={setAddPreview}
           appearance={widgetHost.appearance}
           onAddPart={(data) => addPart(data)}
           layoutsOff="Layouts add Studio panel areas. Imported profiles keep InfoPanel's layout."

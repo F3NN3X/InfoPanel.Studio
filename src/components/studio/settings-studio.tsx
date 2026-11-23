@@ -81,10 +81,10 @@ export function SettingsStudio() {
           <Row label="Left panel width" hint="Design's left panel, Layers and Add">
             <Segmented label="Left panel width" options={LEFT_WIDTHS} value={leftWidth} onChange={setLeftWidth} />
           </Row>
-          <Row label="Widget list" hint="Compact hides the one-line description">
+          <Row label="Widget list" hint="Compact hides the one-line description. Also in the Add panel's view options">
             <Segmented label="Widget list" options={DENSITIES} value={density} onChange={setDensity} />
           </Row>
-          <SwitchRow label="Preview on hover" hint="The preview always shows while browsing with the arrow keys" checked={previewOnHover} onChange={setPreviewOnHover} />
+          <SwitchRow label="Preview on hover" hint="The preview always shows while browsing with the arrow keys. Also in the Add panel's view options" checked={previewOnHover} onChange={setPreviewOnHover} />
         </Card>
       </Group>
     </>

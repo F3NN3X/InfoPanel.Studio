@@ -1,7 +1,11 @@
 import { Tabs } from "@/components/ui/tabs";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { INFOPANEL_CHIP, startTab, useAddChip, type AddFilter } from "./add-prefs";
-import { FilePlus2, FileUp, Search, SquareDashedMousePointer, X, type LucideIcon } from "lucide-react";
+import { FilePlus2, FileUp, Search, SlidersHorizontal, SquareDashedMousePointer, X, type LucideIcon } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
+import { PopoverParts } from "@/components/ui/popover";
+import { Segmented } from "@/components/ui/segmented";
+import { Toggle } from "@/components/ui/toggle";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { iconFor } from "@/widgets/core/icons";
@@ -59,6 +63,9 @@ export interface AddPanelProps {
   onNewInfoPanel?: () => void;
   density: AddListDensity;
   previewOnHover: boolean;
+  /** The panel's "View options" (list density, preview on hover); without both, the menu isn't offered. */
+  onDensityChange?: (density: AddListDensity) => void;
+  onPreviewOnHoverChange?: (on: boolean) => void;
   /** What the preview renders the widget under: the page's style and theme. */
   appearance?: Appearance;
   pageStyle?: CSSProperties;
@@ -175,6 +182,8 @@ export function AddPanel({
   onNewInfoPanel,
   density,
   previewOnHover,
+  onDensityChange,
+  onPreviewOnHoverChange,
   appearance,
   pageStyle,
   layoutsOff,
@@ -435,8 +444,8 @@ export function AddPanel({
 
   return (
     <div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 px-2.5 pt-2.5">
-        <label className="flex h-8 items-center gap-2 rounded-ui-md border border-ui-default bg-ui-tile px-2.5 focus-within:border-ui-edge">
+      <div className="flex shrink-0 items-center gap-1.5 px-2.5 pt-2.5">
+        <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-ui-md border border-ui-default bg-ui-tile px-2.5 focus-within:border-ui-edge">
           <Search className="h-4 w-4 shrink-0 text-ui-hint" strokeWidth={1.75} aria-hidden />
           <input
             ref={inputRef}
@@ -469,6 +478,9 @@ export function AddPanel({
             <kbd className="shrink-0 rounded-4 border border-ui-strong px-1.25 py-px font-ui-mono text-micro leading-3.5 text-ui-hint">/</kbd>
           )}
         </label>
+        {onDensityChange && onPreviewOnHoverChange && (
+          <ViewOptions density={density} onDensityChange={onDensityChange} previewOnHover={previewOnHover} onPreviewOnHoverChange={onPreviewOnHoverChange} />
+        )}
       </div>
 
       <Tabs
@@ -650,5 +662,44 @@ function DoorRow({ compact, icon: Icon, title, note, onClick }: { compact: boole
         {!compact && <span className="truncate text-micro text-ui-hint">{note}</span>}
       </span>
     </button>
+  );
+}
+
+const DENSITY_OPTIONS: { value: AddListDensity; label: string }[] = [
+  { value: "comfortable", label: "Comfortable" },
+  { value: "compact", label: "Compact" },
+];
+
+interface ViewOptionsProps {
+  density: AddListDensity;
+  onDensityChange: (density: AddListDensity) => void;
+  previewOnHover: boolean;
+  onPreviewOnHoverChange: (on: boolean) => void;
+}
+
+/** The panel's two view options: the same stored values as Settings › Studio › Panels. */
+function ViewOptions({ density, onDensityChange, previewOnHover, onPreviewOnHoverChange }: ViewOptionsProps) {
+  return (
+    <PopoverParts.Root>
+      <PopoverParts.Trigger
+        render={
+          <IconButton label="View options" size={32} bordered>
+            <SlidersHorizontal className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          </IconButton>
+        }
+      />
+      <PopoverParts.Content align="end" className="w-64 p-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-caption text-ui-3">Widget list</span>
+            <Segmented label="Widget list" options={DENSITY_OPTIONS} value={density} onChange={onDensityChange} stretch />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-body text-ui-1">Preview on hover</span>
+            <Toggle label="Preview on hover" checked={previewOnHover} onChange={onPreviewOnHoverChange} />
+          </div>
+        </div>
+      </PopoverParts.Content>
+    </PopoverParts.Root>
   );
 }

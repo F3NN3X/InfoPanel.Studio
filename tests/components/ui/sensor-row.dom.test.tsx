@@ -21,9 +21,11 @@ describe("the sparkline", () => {
 });
 
 describe("SensorRow", () => {
-  it("names the chart and shows the value with its unit", () => {
+  it("names the chart, points it at the chart summary and shows the value with its unit", () => {
     render(<SensorRow icon={null} name="CPU Load" sensorKey="system.cpu.load" samples={[1, 2]} value="68.4" unit="%" />);
-    expect(screen.getByRole("img").getAttribute("aria-label")).toBe("CPU Load, last 60 s, 1.0 to 2.0 %");
+    const chart = screen.getByRole("img");
+    expect(chart.getAttribute("aria-label")).toBe("CPU Load, last 60 s");
+    expect(document.getElementById(chart.getAttribute("aria-describedby") ?? "")?.textContent).toBe("CPU Load, last 60 s: 1.0 to 2.0 %, latest 2.0 %, rising.");
     expect(screen.getByText("68.4").textContent).toBe("68.4 %");
   });
 });

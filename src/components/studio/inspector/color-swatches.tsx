@@ -100,7 +100,7 @@ export function ColorSwatches({
       <label
         title="Custom color"
         className={cn(
-          "relative flex h-5.5 w-5.5 cursor-pointer items-center justify-center rounded-full border border-ui-strong text-ui-3 hover:text-ui-1",
+          "relative flex h-5.5 w-5.5 cursor-pointer items-center justify-center rounded-full border border-ui-strong text-ui-3 hover:text-ui-1 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ui-accent",
           custom && SELECTED_RING
         )}
         style={custom ? { background: value } : undefined}
