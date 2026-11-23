@@ -17,6 +17,7 @@ import { IpTagCtx } from "@/widgets/core/primitives";
 import { pastDragThreshold, trackPointer } from "./pointer-drag";
 import { isToggleClick, type SelectMode } from "./selection";
 import type { ZoneRect } from "./zone-geometry";
+import { QUIET_MODULES } from "@/looks/pack-script/limits";
 
 /**
  * Zone resize handles: invisible hit areas along each edge, the corners on
@@ -332,6 +333,7 @@ export function PlacementFrame({
       }}
       ref={setFrame}
       data-zone-id={studio || zoneId ? placement.id : undefined}
+      data-fx-quiet={QUIET_MODULES.has(placement.module) ? "" : undefined}
       data-testid={studio ? "canvas-part" : undefined}
       data-touch={touch ? "" : undefined}
       // a tap the keyboard can give (Enter or Space): the widget takes focus

@@ -10,7 +10,7 @@ import type { Look } from "./look";
 import type { PackDecorSpec } from "./pack-frame";
 import type { PackMotion } from "./motion";
 import type { MotionSlot } from "./motion-render";
-import type { PackFrame, PackOrnament } from "./pack-json";
+import type { PackFrame, PackJson, PackOrnament } from "./pack-json";
 
 /** One page layer under the grid: a fill (a colour or gradient) and/or an image from the pack's own folder (`base` + `image`). */
 export interface StageLayer {
@@ -104,6 +104,8 @@ export interface Pack {
   ornaments?: PackOrnament[];
   /** The text and card effects the app draws for the pack (pack.json `motion`, L117). */
   motion?: PackMotion;
+  /** The pack's effect script (pack.json `script`): run only in the sandbox and only when the server says it runs (pack-script/). */
+  script?: PackJson["script"];
   /** Page templates the New screen flow offers (opt-in; applying a pack never moves a widget). Each wears this pack's Look (`look.style.lookId`). */
   templates?: ScreenTemplate[];
   /** Set by the loader. */

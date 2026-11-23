@@ -22,8 +22,8 @@ export interface ImportReport {
   ok: boolean;
 }
 
-/** The files the server stores (`is_pack_file`, packs.rs): the fixed names and `assets/<name>.<ext>`. Everything else is left out. */
-const STORED = /^(pack\.json|look\.json|icons\.json|OFL\.txt|thumb\.(png|jpg|webp)|assets\/[a-z0-9][a-z0-9-]{0,63}\.(woff2|png|jpg|webp|gif|svg))$/;
+/** The files the server stores (`is_pack_file`, packs.rs): the fixed names and `assets/<name>.<ext>`, a `.js` only as the script pack.json names (the validator refuses any other). Everything else is left out. */
+const STORED = /^(pack\.json|look\.json|icons\.json|OFL\.txt|thumb\.(png|jpg|webp)|assets\/[a-z0-9][a-z0-9-]{0,63}\.(woff2|png|jpg|webp|gif|svg|js))$/;
 
 /** A licence file under another name than the one the server keeps (the validator accepts these names, the server stores `OFL.txt`). */
 const LICENCE_NAME = /^(LICEN[CS]E(\.txt)?|OFL)$/;
@@ -46,6 +46,7 @@ const PLAIN: Record<string, string> = {
   "blur-fallback": "A glass card must stay at least 90% opaque where the blur is off.",
   schema: "A file does not have the shape a pack has.",
   "not-stored": "This file is not part of a pack and is left out.",
+  script: "The pack's effect script is one .js file of its assets, listed in pack.json, at most 64 KB of text.",
 };
 
 /** One issue as a line of plain words: where, then what. */

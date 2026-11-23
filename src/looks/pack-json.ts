@@ -90,6 +90,8 @@ export interface PackJson {
   ornaments?: PackOrnament[];
   /** Text and card effects the app draws (L117, motion.ts). */
   motion?: PackMotion;
+  /** One effect script, a file of the pack's assets (`assets/<file>`), run only in the pack-script sandbox (src/looks/pack-script/). */
+  script?: { file: string };
   /** Old: the size of the built-in slot component (`PackSlots.ornament`). Kept as that; refused next to `ornaments`. */
   ornament?: { size: number; bleed?: boolean };
   /** Old: read as a `frame` by `packDecor`; refused next to `frame`. */
