@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { isSoloed, othersOf, pressSolo, type SoloMemory } from "@/widgets/mixer-solo/solo";
+import { isSoloed, loadMemory, othersOf, pressSolo, saveMemory, type SoloMemory } from "@/widgets/mixer-solo/solo";
 import type { MixChannel } from "@/widgets/stream-mixer/channels";
 
 const ch = (id: string, mute: boolean, master = false): MixChannel => ({ id, master, name: id, sub: "", icon: "graphic_eq", vol: 50, mute, route: { t: "windows", kind: "app", id } });
@@ -74,5 +74,38 @@ describe("a tap", () => {
     const m = mixer(["a"]);
     pressSolo(m.list(), "zzz", new Map(), "k", m.flip);
     expect(m.flip).not.toHaveBeenCalled();
+  });
+});
+
+describe("a record that survives a reload", () => {
+  /** A storage that outlives the memory read from it, as localStorage does a page. */
+  const disk = () => {
+    const data = new Map<string, string>();
+    return { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v) };
+  };
+
+  it("restores what the solo muted and leaves the user's own mutes alone", () => {
+    const storage = disk();
+    const m = mixer(["a", "b", "!c", "d"]);
+    const before: SoloMemory = new Map();
+    pressSolo(m.list(), "a", before, "a|", m.flip);
+    saveMemory(before, storage);
+    const after = loadMemory(storage);
+    pressSolo(m.list(), "a", after, "a|", m.flip);
+    expect(m.muted()).toEqual(["c"]);
+  });
+
+  it("restores the channels still there when one was removed meanwhile", () => {
+    const storage = disk();
+    saveMemory(new Map([["a|", ["b", "gone", "d"]]]), storage);
+    const m = mixer(["a", "!b", "!c", "!d"]);
+    pressSolo(m.list(), "a", loadMemory(storage), "a|", m.flip);
+    expect(m.muted()).toEqual(["c"]);
+  });
+
+  it("starts empty from nothing, or from a record that cannot be read", () => {
+    expect(loadMemory(disk()).size).toBe(0);
+    expect(loadMemory({ getItem: () => "{not json" }).size).toBe(0);
+    expect(loadMemory({ getItem: () => JSON.stringify({ a: "b", c: [1], d: ["x"] }) })).toEqual(new Map([["d", ["x"]]]));
   });
 });

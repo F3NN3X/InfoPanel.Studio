@@ -56,6 +56,23 @@ describe("MixerSolo", () => {
     expect((screen.getByRole("button") as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("a reload during a solo still restores only what the solo muted", async () => {
+    localStorage.clear();
+    mocks.audio = state([app("game.exe", false), app("discord.exe", false), app("music.exe", true)]);
+    render(<MixerSolo data={{}} channel="app:game.exe" />);
+    fireEvent.click(screen.getByLabelText("Solo game.exe"));
+    cleanup();
+    mocks.act.mockReset();
+    // the page reloads: a fresh module reads the record from storage, and the mixer now shows the solo
+    vi.resetModules();
+    const { default: Reloaded } = await import("@/widgets/mixer-solo/MixerSolo");
+    mocks.audio = state([app("game.exe", false), app("discord.exe", true), app("music.exe", true)]);
+    render(<Reloaded data={{}} channel="app:game.exe" />);
+    fireEvent.click(screen.getByLabelText("End solo of game.exe"));
+    expect(mocks.act).toHaveBeenCalledTimes(1);
+    expect(mocks.act).toHaveBeenCalledWith({ target: "windows", op: "mute", kind: "app", id: "discord.exe" });
+  });
+
   it("shows itself read-only once the server has refused a write", () => {
     audioRefusal.set(true);
     render(<MixerSolo data={{}} channel="app:game.exe" />);

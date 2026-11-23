@@ -4,7 +4,7 @@ import { Widget, shell, ButtonTile, type ShellProps } from "../kit";
 import { ReadOnly } from "../shared/ReadOnly";
 import { allChannels, mixOf, sourceOf } from "../stream-mixer/channels";
 import { toggleMute } from "../stream-mixer/control";
-import { isSoloed, othersOf, pressSolo, type SoloMemory } from "./solo";
+import { isSoloed, loadMemory, othersOf, pressSolo, saveMemory } from "./solo";
 import { meta } from "./meta";
 
 export { meta };
@@ -19,8 +19,8 @@ export interface MixerSoloProps extends ShellProps {
   name?: string;
 }
 
-/** What each solo muted, for its second tap (kept across renders and across the widgets of one page). */
-const memory: SoloMemory = new Map();
+/** What each solo muted, for its second tap (shared by the widgets of a page, and kept across a reload). */
+const memory = loadMemory();
 
 export default function MixerSolo(p: MixerSoloProps) {
   const audio = useAudio();
@@ -50,7 +50,10 @@ export default function MixerSolo(p: MixerSoloProps) {
               outline={soloed ? "var(--w-accent)" : undefined}
               disabled={!channel || others.length === 0}
               corner={corner}
-              onPress={() => pressSolo(channels, id, memory, key, toggleMute)}
+              onPress={() => {
+                pressSolo(channels, id, memory, key, toggleMute);
+                saveMemory(memory);
+              }}
               label={channel ? `${soloed ? "End solo of" : "Solo"} ${name}` : undefined}
             />
           </ReadOnly>
