@@ -70,12 +70,20 @@ export function MotionKnobs({ motion, values, from, fx, screen, locked, onSet, o
       </Knob>
       {choices("motionIntensity", "Intensity", INTENSITIES, intensity)}
       {choices("motionSpeed", "Speed", SPEEDS, speed)}
-      <Knob label="Effects" custom={motionCustom(values, ["motionEffects"])} from={from} onReset={() => onClear(["motionEffects"])} locked={locked}>
-        <div className="flex flex-col items-end gap-1.5">
-          {declared(motion).map((effect) => (
-            <label key={effect} className="flex items-center gap-2 text-caption text-ui-2">
-              {EFFECT_LABELS[effect]}
-              <Toggle
+      {/* the effects as a list under their row, one switch per line like the rows above; the row's right side counts them */}
+      <Knob
+        label="Effects"
+        custom={motionCustom(values, ["motionEffects"])}
+        from={from}
+        onReset={() => onClear(["motionEffects"])}
+        locked={locked}
+        note={
+          locked ? undefined : (
+            <ul aria-label="Effects" className="flex flex-col">
+              {declared(motion).map((effect) => (
+                <li key={effect} className="flex min-h-8 items-center justify-between gap-3 pl-4 text-caption text-ui-2">
+                  {EFFECT_LABELS[effect]}
+                  <Toggle
                 label={EFFECT_LABELS[effect]}
                 checked={on.includes(effect)}
                 onChange={(next) => {
@@ -84,9 +92,15 @@ export function MotionKnobs({ motion, values, from, fx, screen, locked, onSet, o
                   else onClear(["motionEffects"]);
                 }}
               />
-            </label>
-          ))}
-        </div>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      >
+        <span className="text-caption text-ui-3">
+          {on.length} of {declared(motion).length} on
+        </span>
       </Knob>
     </section>
   );

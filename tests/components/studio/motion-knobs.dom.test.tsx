@@ -20,6 +20,14 @@ describe("the Motion group", () => {
     expect(screen.queryByRole("switch", { name: "Flicker" })).toBeNull();
   });
 
+  it("lists the effects under their row, one per line with its switch, and the row counts those on (v3: no loose right-aligned stack)", () => {
+    setup();
+    const list = screen.getByRole("list", { name: "Effects" });
+    expect(list.querySelectorAll("li")).toHaveLength(2);
+    expect(list.querySelector("li")!.textContent).toBe("Decode labels");
+    expect(screen.getByRole("group", { name: "Effects" }).textContent).toContain("1 of 2 on");
+  });
+
   it("writes the level to the screen, and Intensity, Speed and the effects as Look values", () => {
     const { onSet, onClear, onLevel } = setup("calm");
     expect(screen.getByRole("radio", { name: "Calm" }).getAttribute("aria-checked")).toBe("true");

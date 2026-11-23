@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Pipette } from "lucide-react";
 import { FOCUS_RING } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider-field";
 import { InheritDot } from "@/components/ui/setting-row";
 import { onRovingKeyDown } from "@/lib/roving";
@@ -74,7 +75,7 @@ const same = (a: unknown, b: string) => typeof a === "string" && a.trim().toLowe
 /** The control Reset hands focus to: the checked option, else the first control. */
 const RESET_FOCUS = ["[aria-pressed=true]", "[role=radio][tabindex='0']", "button", "input"];
 
-/** One knob as a setting row: the inheritance dot (filled and a Reset when set here, hollow when it follows), the name, the control on the right. */
+/** One knob as a setting row: the inheritance dot (filled and a Reset when set here, hollow when it follows), the name, the control on the right (under the name when the row is too narrow for both, so neither is cut). */
 export function Knob({ label, custom, from, onReset, locked, children, note }: { label: string; custom: boolean; from: string; onReset: () => void; locked?: string; children: ReactNode; note?: ReactNode }) {
   const controls = useRef<HTMLDivElement>(null);
   // Reset goes away with the dot's fill: focus moves to the knob's control, not the page.
@@ -87,12 +88,12 @@ export function Knob({ label, custom, from, onReset, locked, children, note }: {
   };
   return (
     <div role="group" aria-label={label} title={locked} className="flex flex-col gap-1.5">
-      <div className="flex min-h-9 items-center justify-between gap-3">
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <span className="flex shrink-0 items-center gap-2 text-body text-ui-2">
           {!locked && <InheritDot from={from} set={custom} onReset={reset} />}
           {label}
         </span>
-        <div ref={controls} className="flex min-w-0 items-center justify-end">
+        <div ref={controls} className="ml-auto flex min-w-0 items-center justify-end">
           {locked ? <span className="text-caption text-ui-3">{locked}</span> : children}
         </div>
       </div>
@@ -116,6 +117,11 @@ interface LookInfo {
 }
 
 const NO_INFO: LookInfo = { modes: [], variants: [] };
+
+/** The most Variant choices (the theme's own included) a segmented row holds in the panel; more are a dropdown. */
+export const VARIANT_SEGMENTS = 3;
+/** The dropdown's value for the theme's own (an option value is never empty). */
+const OWN = "own";
 
 /** The modes a theme supports (its `modes.supported`) and its variants; none while it loads. */
 function useLookInfo(lookId: unknown): LookInfo {
@@ -290,32 +296,54 @@ export function LookKnobs({ values, from, onSet, onClear, title, locked = {}, ac
       )}
       {variants.length > 0 && knobs === undefined && (
         <Knob label="Variant" custom={variantCustom(values, variants)} from={from} onReset={() => onClear(variantKeys(variants))} locked={variantLock}>
-          <Choice label="Variant">
-            {[{ id: "", name: "Theme's own", values: {} }, ...variants].map((v) => {
-              const on = variant === v.id;
-              return (
-                <button
-                  key={v.id || "own"}
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  tabIndex={on || (variant === undefined && v.id === "") ? 0 : -1}
-                  onClick={() => {
-                    // The theme's own is no value of the level's; a variant replaces the keys of the others it does not set.
-                    const stale = variantKeys(variants).filter((key) => !(key in v.values));
-                    if (stale.length > 0) onClear(stale);
-                    if (v.id !== "") onSet(v.values);
-                  }}
-                  className={cn(SEGMENT, on && SEGMENT_ON)}
-                >
-                  {v.name}
-                </button>
-              );
-            })}
-          </Choice>
+          <VariantChoice variants={variants} variant={variant} onPick={(v) => {
+            // The theme's own is no value of the level's; a variant replaces the keys of the others it does not set.
+            const stale = variantKeys(variants).filter((key) => !(key in v.values));
+            if (stale.length > 0) onClear(stale);
+            if (v.id !== "") onSet(v.values);
+          }} />
         </Knob>
       )}
     </section>
+  );
+}
+
+/** The Variant control: a segmented row while the choices fit the panel (`VARIANT_SEGMENTS`), else a dropdown; Custom (`variant` undefined) checks none. */
+function VariantChoice({ variants, variant, onPick }: { variants: readonly ResolvedVariant[]; variant: string | undefined; onPick: (v: ResolvedVariant) => void }) {
+  const all: ResolvedVariant[] = [{ id: "", name: "Theme's own", values: {} }, ...variants];
+  if (all.length > VARIANT_SEGMENTS)
+    return (
+      <Select
+        label="Variant"
+        placeholder="Custom"
+        className="w-40"
+        options={all.map((v) => ({ value: v.id || OWN, label: v.name }))}
+        value={variant === undefined ? null : variant || OWN}
+        onChange={(id) => {
+          const v = all.find((x) => (x.id || OWN) === id);
+          if (v) onPick(v);
+        }}
+      />
+    );
+  return (
+    <Choice label="Variant">
+      {all.map((v) => {
+        const on = variant === v.id;
+        return (
+          <button
+            key={v.id || OWN}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            tabIndex={on || (variant === undefined && v.id === "") ? 0 : -1}
+            onClick={() => onPick(v)}
+            className={cn(SEGMENT, on && SEGMENT_ON)}
+          >
+            {v.name}
+          </button>
+        );
+      })}
+    </Choice>
   );
 }
 
