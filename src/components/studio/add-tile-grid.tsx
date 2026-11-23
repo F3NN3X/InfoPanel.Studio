@@ -24,6 +24,9 @@ export function startTileDrag(e: DragEvent, tile: AddTile) {
   e.dataTransfer.effectAllowed = "copy";
 }
 
+/** The tile grid is one track wide: the columns the arrow keys step through, matching the `gridTemplateColumns` below. */
+export const TILE_COLS = 1;
+
 interface AddTileGridProps {
   sections: readonly TileSection[];
   /** The highlighted tile (hover or keys). */

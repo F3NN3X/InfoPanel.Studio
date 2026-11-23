@@ -15,7 +15,7 @@ import type { AddListDensity } from "./add-prefs";
 import { AddPreview, previewTop } from "./add-preview";
 import { AddRow, type RowTag } from "./add-row";
 import { TileCard, cardTop } from "./add-tile-card";
-import { AddTileGrid, tileId } from "./add-tile-grid";
+import { AddTileGrid, TILE_COLS, tileId } from "./add-tile-grid";
 import { takeSearchRequest } from "./design-left-panel";
 import { addSections, chipsFor, ELEMENT_TILES, ITEM_TILES, moveInGrid, tileRows, widgetTile, type AddTile } from "./add-tiles";
 
@@ -244,18 +244,8 @@ export function AddPanel({
         : [],
     [tiles, widgetTiles, onAddPart, seg, chip, inItems, group, query, recent],
   );
-  /** The tiles in list order, and the rows the arrow keys move through (the grid's columns, measured). */
-  const [cols, setCols] = useState(3);
-  const grid = useMemo(() => tileRows(sections, cols), [sections, cols]);
-  useEffect(() => {
-    const el = listRef.current?.querySelector<HTMLElement>("[data-add-grid]");
-    if (!el) return;
-    const measure = () => setCols(Math.max(1, getComputedStyle(el).gridTemplateColumns.split(" ").filter(Boolean).length));
-    measure();
-    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
-    ro?.observe(el);
-    return () => ro?.disconnect();
-  }, [sections]);
+  /** The tiles in list order, and the rows the arrow keys move through (the grid's columns: a fixed single track, see `TILE_COLS`). */
+  const grid = useMemo(() => tileRows(sections, TILE_COLS), [sections]);
 
   // The Panels and Layouts tabs: the rows.
   const items = catalog[kind];
