@@ -131,7 +131,7 @@ pub fn main_process(found: &[(u32, Option<u32>)]) -> Option<u32> {
 
 fn running(name: &str) -> Option<Running> {
     use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
-    let mut sys = System::new();
+    let mut sys = System::new().ok()?;
     sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet));
     let found: Vec<(u32, Option<u32>)> = sys
         .processes()

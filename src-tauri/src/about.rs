@@ -44,7 +44,7 @@ pub fn info(paths: &Paths, version: &str, channel: Channel) -> AppInfo {
         channel,
         build_date: BUILD_DATE,
         webview: tauri::webview_version().ok(),
-        os: os_text(sysinfo::System::long_os_version(), sysinfo::System::kernel_version()),
+        os: os_text(sysinfo::System::long_os_version().ok(), sysinfo::System::kernel_version().ok()),
         paths: AppPaths {
             settings_file: paths::display(&crate::settings::settings_file(&paths.config_dir)),
             data_dir: paths::display(&paths.server_data_dir()),

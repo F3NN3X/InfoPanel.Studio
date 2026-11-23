@@ -184,12 +184,13 @@ impl History {
 
 /// Memory of the WebView2 processes under this app, and the app itself.
 pub struct ProcessSampler {
-    sys: sysinfo::System,
+    /// None when sysinfo could not start: every sample is then empty.
+    sys: Option<sysinfo::System>,
 }
 
 impl Default for ProcessSampler {
     fn default() -> Self {
-        Self { sys: sysinfo::System::new() }
+        Self { sys: sysinfo::System::new().ok() }
     }
 }
 
@@ -198,27 +199,28 @@ const MB: f64 = 1024.0 * 1024.0;
 impl ProcessSampler {
     pub fn sample(&mut self) -> Sample {
         use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate};
-        self.sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_memory().with_cpu());
         let mut out = Sample::new();
+        let Some(sys) = self.sys.as_mut() else { return out };
+        sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_memory().with_cpu());
+        let sys = &*sys;
         let me = Pid::from_u32(std::process::id());
-        if let Some(p) = self.sys.process(me) {
+        if let Some(p) = sys.process(me) {
             out.insert("app.rssMb".into(), p.memory() as f64 / MB);
         }
         // WebView2 processes descend from this app; sysinfo's virtual memory on Windows is the
         // private commit (PagefileUsage).
         let descends = |pid: Pid| {
-            let mut cur = self.sys.process(pid).and_then(|p| p.parent());
+            let mut cur = sys.process(pid).and_then(|p| p.parent());
             for _ in 0..8 {
                 match cur {
                     Some(p) if p == me => return true,
-                    Some(p) => cur = self.sys.process(p).and_then(|x| x.parent()),
+                    Some(p) => cur = sys.process(p).and_then(|x| x.parent()),
                     None => return false,
                 }
             }
             false
         };
-        let webview: u64 = self
-            .sys
+        let webview: u64 = sys
             .processes()
             .iter()
             .filter(|(_, p)| p.name().to_string_lossy().eq_ignore_ascii_case("msedgewebview2.exe"))
@@ -234,7 +236,7 @@ impl ProcessSampler {
 /// Memory cell).
 pub fn process_rss(pid: u32) -> Option<u64> {
     use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
-    let mut sys = System::new();
+    let mut sys = System::new().ok()?;
     let spid = Pid::from_u32(pid);
     sys.refresh_processes_specifics(ProcessesToUpdate::Some(&[spid]), true, ProcessRefreshKind::nothing().with_memory());
     sys.process(spid).map(|p| p.memory())
