@@ -53,7 +53,7 @@ export function PerformanceProvider({ value, children }: { value: PerformanceOve
     const root = document.documentElement;
     if (packStill) root.style.setProperty("--wp-pack-motion", "none");
     else root.style.removeProperty("--wp-pack-motion");
-    return () => root.style.removeProperty("--wp-pack-motion");
+    return () => void root.style.removeProperty("--wp-pack-motion");
   }, [packStill]);
   // The Rendering options reach the CSS the same way (see the flags next to `data-lite-motion` in index.css).
   const { ringGlide, blurLimit, innerBlur, liveGlow } = useGeneral();
