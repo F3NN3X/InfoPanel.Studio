@@ -43,13 +43,13 @@ export function AddTileGrid({ sections, highlighted, justAdded, dimmed, onAdd, o
       {sections.map((s) => (
         <section key={s.id} aria-label={s.title ?? "Matches"}>
           {s.title && (
-            <div className="flex h-7 items-end px-1 pb-[5px] text-caption font-medium text-ui-3">
+            <div className="flex h-7 items-end px-1 pb-1.25 text-caption font-medium text-ui-3">
               {s.title}
             </div>
           )}
           {s.groups.map((g, gi) => (
             <div key={`${g.sub ?? ""}:${gi}`}>
-              {g.sub && <div className="flex h-[22px] items-center px-1 text-micro text-ui-hint">{g.sub}</div>}
+              {g.sub && <div className="flex h-5.5 items-center px-1 text-micro text-ui-hint">{g.sub}</div>}
               <div data-add-grid="" className="grid gap-0.5 pb-1" style={{ gridTemplateColumns: "minmax(0, 1fr)" }}>
                 {g.tiles.map((tile) => (
                   <Tile
@@ -133,7 +133,7 @@ function Tile({ tile, highlighted, added, dim, onAdd, onHover, onDragStart }: Ti
         )}
       </div>
       {open && tile.widget?.presets && (
-        <div role="group" aria-label={`${tile.name} presets`} className="ml-[42px] flex flex-col gap-px border-l border-ui-subtle py-0.5 pl-1.5">
+        <div role="group" aria-label={`${tile.name} presets`} className="ml-10.5 flex flex-col gap-px border-l border-ui-subtle py-0.5 pl-1.5">
           {tile.widget.presets.map((p) => {
             const sub = widgetTile(p);
             return (

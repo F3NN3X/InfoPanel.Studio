@@ -41,7 +41,7 @@ export function PageIconDialog({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search icons"
             aria-label="Search icons"
-            className="h-[30px] w-full rounded-md border border-ui-strong bg-ui-app px-2 text-body text-ui-1 outline-none focus:border-ui-accent"
+            className="h-7.5 w-full rounded-md border border-ui-strong bg-ui-app px-2 text-body text-ui-1 outline-none focus:border-ui-accent"
           />
           <div className="max-h-64 overflow-y-auto">
             <IconGrid

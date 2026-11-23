@@ -13,10 +13,10 @@ interface InheritDotProps {
 
 /** The 7 px dot before a setting's label. Hollow follows the level above; filled accent is set here. */
 export function InheritDot({ from, set, onReset }: InheritDotProps) {
-  if (!set || !onReset) return <span role="img" aria-label={`From ${from}`} title={`From ${from}`} className="h-[7px] w-[7px] shrink-0 rounded-full border border-ui-hint" />;
+  if (!set || !onReset) return <span role="img" aria-label={`From ${from}`} title={`From ${from}`} className="h-1.75 w-1.75 shrink-0 rounded-full border border-ui-hint" />;
   return (
     <BasePopover.Root>
-      <BasePopover.Trigger aria-label={`Set here, reset to ${from}`} title={`Set here, reset to ${from}`} className={cn("relative h-[7px] w-[7px] shrink-0 rounded-full bg-ui-accent after:absolute after:-inset-1.5 after:content-['']", FOCUS_RING)} />
+      <BasePopover.Trigger aria-label={`Set here, reset to ${from}`} title={`Set here, reset to ${from}`} className={cn("relative h-1.75 w-1.75 shrink-0 rounded-full bg-ui-accent after:absolute after:-inset-1.5 after:content-['']", FOCUS_RING)} />
       <BasePopover.Portal>
         <BasePopover.Positioner side="bottom" align="start" sideOffset={6} className="z-[80]">
           <BasePopover.Popup className="flex items-center gap-2 rounded-ui-menu border border-ui-menu bg-ui-raised p-1 pl-3 font-ui text-caption text-ui-3 shadow-ui-menu outline-none">

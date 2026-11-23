@@ -42,7 +42,7 @@ export type Tone = "ok" | "warn" | "bad" | "idle";
 const DOT: Readonly<Record<Tone, string>> = {
   ok: "rounded-full bg-ui-ok",
   warn: "rotate-45 rounded-[1px] bg-ui-warn",
-  bad: "rounded-[2px] bg-ui-danger",
+  bad: "rounded-2 bg-ui-danger",
   idle: "rounded-full border border-ui-hint",
 };
 
@@ -137,12 +137,12 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
           aria-description={item.tip}
           onClick={item.onClick}
           className={cn(
-            "flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+            "flex h-5.5 items-center gap-1.5 whitespace-nowrap rounded-5 px-2 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
             TEXT[item.tone]
           )}
         >
-          <span aria-hidden className={cn("h-[7px] w-[7px] shrink-0", DOT[item.tone])} />
-          <span className="max-[959px]:sr-only">{item.label}</span>
+          <span aria-hidden className={cn("h-1.75 w-1.75 shrink-0", DOT[item.tone])} />
+          <span className="max-bar:sr-only">{item.label}</span>
         </button>
       ))}
       {kioskChip && (
@@ -152,12 +152,12 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
           title="Open Live control"
           onClick={onOpenLive}
           className={cn(
-            "flex h-[22px] min-w-0 items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+            "flex h-5.5 min-w-0 items-center gap-1.5 whitespace-nowrap rounded-5 px-2 hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
             TEXT[kiosks > 0 ? "ok" : "idle"]
           )}
         >
-          <span aria-hidden className={cn("h-[7px] w-[7px] shrink-0", DOT[kiosks === 0 ? "idle" : paused ? "warn" : "ok"])} />
-          <span className="truncate max-[959px]:sr-only">{kioskChip}</span>
+          <span aria-hidden className={cn("h-1.75 w-1.75 shrink-0", DOT[kiosks === 0 ? "idle" : paused ? "warn" : "ok"])} />
+          <span className="truncate max-bar:sr-only">{kioskChip}</span>
         </button>
       )}
       <div className="flex-1" />

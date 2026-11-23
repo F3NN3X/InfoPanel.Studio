@@ -40,24 +40,24 @@ export function Sidebar({ content, inputRef, current, query, version, onQuery, o
   };
 
   return (
-    <aside data-narrow className="flex min-h-0 w-[248px] shrink-0 rail:w-14 flex-col border-r border-s-side-line bg-s-side">
+    <aside data-narrow className="flex min-h-0 w-62 shrink-0 rail:w-14 flex-col border-r border-s-side-line bg-s-side">
       <div role="search" className="px-3 pb-1.5 pt-3.5 rail:overflow-hidden rail:px-2">
         <SearchBox inputRef={inputRef} value={query} label="Search help" onChange={onQuery} onKeyDown={onKeyDown} />
       </div>
       <nav aria-label="Help topics" className="flex min-h-0 flex-1 flex-col gap-px overflow-auto px-2 pb-3 pt-1">
         <button type="button" aria-current={home ? "page" : undefined} onClick={onHome} title="Help home" className={cn(ITEM, "h-(--ui-h-field)", home ? "bg-s-nav-on text-s-t1 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]" : "bg-transparent text-s-soft hover:bg-s-nav-hover")}>
-          <House className={cn("h-[18px] w-[18px]", home ? "text-s-accent-text" : "text-s-dim")} />
+          <House className={cn("h-4.5 w-4.5", home ? "text-s-accent-text" : "text-s-dim")} />
           <span className="flex-1 rail:sr-only">Help home</span>
         </button>
         {content.groups.map((group) => (
           <div key={group.label} className="contents">
-            <div className="px-2.5 pb-[5px] pt-3.5 rail:hidden text-caption font-medium text-s-dim">{group.label}</div>
+            <div className="px-2.5 pb-1.25 pt-3.5 rail:hidden text-caption font-medium text-s-dim">{group.label}</div>
             {group.articles.map((a) => {
               const on = current === a.id && !searching;
               const Icon = iconFor(a.icon);
               return (
                 <button key={a.id} type="button" aria-current={on ? "page" : undefined} onClick={() => onOpen(a.id)} title={a.title} className={cn(ITEM, "min-h-8", on ? "bg-s-nav-on text-s-t1 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]" : "bg-transparent text-s-soft hover:bg-s-nav-hover")}>
-                  <Icon className={cn("h-[17px] w-[17px] flex-none", on ? "text-s-accent-text" : "text-s-dim")} />
+                  <Icon className={cn("h-4.25 w-4.25 flex-none", on ? "text-s-accent-text" : "text-s-dim")} />
                   <span className="flex-1 rail:sr-only">{a.title}</span>
                   {a.status === "coming-soon" && <span className="contents rail:hidden"><SoonChip /></span>}
                 </button>
@@ -75,14 +75,14 @@ export function Sidebar({ content, inputRef, current, query, version, onQuery, o
           }}
           title="Run setup again" className="flex cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-body text-s-t2 hover:text-s-t1"
         >
-          <Rocket className="h-[17px] w-[17px] text-s-dim" />
+          <Rocket className="h-4.25 w-4.25 text-s-dim" />
           <span className="rail:sr-only">Run setup again</span>
         </button>
         {asked && <span role="status" className="text-micro text-s-dim rail:sr-only">The setup opens in Studio.</span>}
         {env.desktop && (
           <div className="flex items-center gap-2.5">
             <button type="button" onClick={() => env.openSettings("general")} title={version ? `Open Settings (v${version})` : "Open Settings"} className="flex flex-1 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-body text-s-t2 hover:text-s-t1">
-              <Settings className="h-[17px] w-[17px] text-s-dim" />
+              <Settings className="h-4.25 w-4.25 text-s-dim" />
               <span className="rail:sr-only">Open Settings</span>
             </button>
             {version && <span className="text-micro text-s-dim rail:hidden">v{version}</span>}

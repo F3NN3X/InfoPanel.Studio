@@ -35,7 +35,7 @@ interface SearchBoxProps {
 export function SearchBox({ inputRef, value, onChange, onKeyDown, label, list }: SearchBoxProps) {
   return (
     <div className="relative flex h-(--ui-h-field) items-center gap-2 rounded-ui-md border border-s-track-line bg-s-tile px-2.5 focus-within:border-s-accent focus-within:ring-1 focus-within:ring-s-accent forced-colors:focus-within:outline forced-colors:focus-within:outline-2 rail:justify-center rail:px-0">
-      <Search className="h-[17px] w-[17px] shrink-0 text-s-dim" />
+      <Search className="h-4.25 w-4.25 shrink-0 text-s-dim" />
       <input
         ref={inputRef}
         value={value}

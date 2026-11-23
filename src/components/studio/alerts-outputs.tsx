@@ -49,7 +49,7 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
     });
 
   return (
-    <section className="flex flex-col rounded-[14px] border border-ui-default bg-ui-panel px-4 py-3" aria-label="Where and what else">
+    <section className="flex flex-col rounded-14 border border-ui-default bg-ui-panel px-4 py-3" aria-label="Where and what else">
       <h3 className="pb-1 text-body font-medium text-ui-1">Where and what else</h3>
       <div className="flex flex-col divide-y divide-ui-row [&>*]:min-h-10">
         <div className="flex flex-col justify-center gap-1 py-1">

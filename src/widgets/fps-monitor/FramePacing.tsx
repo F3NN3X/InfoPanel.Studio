@@ -33,7 +33,7 @@ export default function FramePacing(p: FramePacingProps) {
   const cell = ([l, v, u]: string[]) => (
     <div key={l} className="flex min-w-0 flex-col gap-1">
       <span className="truncate text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-muted)]">{l}</span>
-      <span className="whitespace-nowrap text-[22px]">
+      <span className="whitespace-nowrap text-stat">
         <Num>{v}</Num>
         {u && <span className="ml-1 text-xs text-[color:var(--w-muted)]">{u}</span>}
       </span>
@@ -70,7 +70,7 @@ export default function FramePacing(p: FramePacingProps) {
         idle ? (
           <div className="grid h-full place-content-center justify-items-center gap-1.5 text-center">
             {h >= 100 && (
-              <svg viewBox="0 0 120 44" className="h-11 w-[120px]">
+              <svg viewBox="0 0 120 44" className="h-11 w-30">
                 <path d="M2 30 H118" fill="none" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.5" strokeDasharray="3 4" />
               </svg>
             )}
@@ -96,7 +96,7 @@ export default function FramePacing(p: FramePacingProps) {
             <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${w > 420 ? 4 : 2}, minmax(0,1fr))` }}>
               {stats.slice(0, w > 420 ? 4 : 2).map(cell)}
             </div>
-            <div className="flex min-h-[40px] flex-1 gap-2">
+            <div className="flex min-h-10 flex-1 gap-2">
               <div className="relative min-w-0 flex-1">
                 {lines()}
                 <Spark values={graph} min={0} max={top} graph="line" fill={false} curve={false} className="absolute inset-0 h-full" />

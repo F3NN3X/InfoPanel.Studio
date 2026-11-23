@@ -54,12 +54,12 @@ function RequestCard({ request, more, answer }: RequestCardProps) {
   };
   return (
     <section aria-labelledby="agent-request-title" aria-describedby="agent-request-text" data-agent-prompt={id} className="flex h-full flex-col p-4 text-s-t1">
-      <header className="flex h-[22px] shrink-0 items-center gap-2">
+      <header className="flex h-5.5 shrink-0 items-center gap-2">
         <Sparkles aria-hidden size={18} className="text-s-amber" />
-        <h1 id="agent-request-title" role="status" className="truncate text-[15px] font-semibold">
+        <h1 id="agent-request-title" role="status" className="truncate text-title font-semibold">
           {requestTitle(AGENT_FULL_NAMES[request.agent], request)}
         </h1>
-        <span className="ml-auto shrink-0 truncate text-[12px] text-s-muted">{request.project}</span>
+        <span className="ml-auto shrink-0 truncate text-caption text-s-muted">{request.project}</span>
       </header>
       {/* everything, exactly: no wrapping (a wrapped line would read as two), no cutting; it scrolls by touch and keyboard */}
       <textarea
@@ -69,15 +69,15 @@ function RequestCard({ request, more, answer }: RequestCardProps) {
         spellCheck={false}
         aria-label="What it would run, in full"
         value={request.text}
-        className="mt-3 block min-h-0 w-full flex-1 resize-none overflow-auto whitespace-pre rounded-lg border border-s-card-line bg-s-well px-3 py-2 font-mono text-[13px] leading-[18px] text-s-t1"
+        className="mt-3 block min-h-0 w-full flex-1 resize-none overflow-auto whitespace-pre rounded-lg border border-s-card-line bg-s-well px-3 py-2 font-mono text-body leading-4.5 text-s-t1"
       />
       <div className="mt-3 grid shrink-0 gap-3" style={{ gridTemplateColumns: "1fr 1.4fr" }}>
-        <button type="button" disabled={busy} onClick={() => void give("deny")} className="h-14 rounded-xl border border-s-red/55 text-[15px] font-semibold text-s-red-text">
+        <button type="button" disabled={busy} onClick={() => void give("deny")} className="h-14 rounded-xl border border-s-red/55 text-title font-semibold text-s-red-text">
           Deny
         </button>
-        <HoldButton label="Hold to allow" className="h-14 text-[15px]" onConfirm={() => void give("allow")} />
+        <HoldButton label="Hold to allow" className="h-14 text-title" onConfirm={() => void give("allow")} />
       </div>
-      <p className="mt-2 h-4 shrink-0 text-[12px] leading-4 text-s-muted">
+      <p className="mt-2 h-4 shrink-0 text-caption leading-4 text-s-muted">
         {left > 0 ? `Answer here for ${left} s, then in the terminal.` : "Answer in the terminal."}
         {more > 0 && ` ${more} more waiting.`}
       </p>

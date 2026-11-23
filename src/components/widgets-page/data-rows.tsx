@@ -252,7 +252,7 @@ export function LabelText({ block, props }: { block: Extract<Block, { type: "lab
                 data-part-chip={i}
                 className={cn("flex h-7 items-center rounded-ui-md border pl-2 text-caption", i === k ? "border-ui-accent text-ui-1" : "border-ui-strong text-ui-2", drag === i && "opacity-50")}
               >
-                <button type="button" aria-pressed={i === k} onClick={() => setAt(i)} className="max-w-[120px] truncate whitespace-pre focus-visible:outline-2 focus-visible:outline-ui-accent">
+                <button type="button" aria-pressed={i === k} onClick={() => setAt(i)} className="max-w-30 truncate whitespace-pre focus-visible:outline-2 focus-visible:outline-ui-accent">
                   {chipText(recipe, p, props)}
                 </button>
                 <button type="button" aria-label={`Remove part ${i + 1}`} disabled={parts.length < 2} onClick={() => setParts(parts.filter((_, j) => j !== i))} className="ml-0.5 rounded-ui-sm p-1 text-ui-3 hover:text-ui-1 disabled:opacity-40">

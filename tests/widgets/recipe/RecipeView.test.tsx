@@ -47,7 +47,7 @@ describe("RecipeView", () => {
     expect(typesIn(draw(recipe, preset("compact")))).not.toContain("sparkline");
     expect(draw(recipe, preset("compact"))).not.toContain("Clock");
     expect(typesIn(draw(recipe, preset("ring"))).sort()).toEqual(["ring", "row"]);
-    expect(draw(recipe, preset("cores")).match(/min-h-\[6px\] rounded-\[2px\]/g)).toHaveLength(8);
+    expect(draw(recipe, preset("cores")).match(/min-h-1\.5 rounded-2/g)).toHaveLength(8);
   });
 
   it("GPU card: its gauge, values, caption, bar and the package's image", () => {
@@ -281,7 +281,7 @@ describe("RecipeView, Phase E", () => {
     expect(html([{ type: "ring", bind: LOAD, opacity: 40 }])).toContain("[&amp;_[data-wp-ring]]:opacity-40");
     expect(html([{ type: "bar", bind: LOAD, opacity: 60 }])).toContain("[&amp;&gt;*]:opacity-60");
     expect(html([{ type: "sparkline", bind: LOAD, opacity: 80 }])).toMatch(/class="[^"]*\bopacity-80\b/);
-    expect(html([{ type: "heatmap", cells: [LOAD], opacity: 40 }])).toMatch(/class="grid h-full w-full gap-\[2px\] opacity-40"/);
+    expect(html([{ type: "heatmap", cells: [LOAD], opacity: 40 }])).toMatch(/class="grid h-full w-full gap-0\.5 opacity-40"/);
     expect(html([{ type: "ring", bind: LOAD }, { type: "bar", bind: LOAD }, { type: "sparkline", bind: LOAD }])).not.toMatch(/opacity-\d/);
   });
 
@@ -370,6 +370,6 @@ describe("RecipeView, Phase F (G38)", () => {
     repeat.children = [{ type: "heatmap", bind: { field: "temp" } }];
     const html = draw(r);
     expect(html).toContain('data-recipe-block="heatmap"');
-    expect((html.match(/min-h-\[6px\]/g) ?? []).length).toBe(itemCount(html));
+    expect((html.match(/min-h-1\.5/g) ?? []).length).toBe(itemCount(html));
   });
 });

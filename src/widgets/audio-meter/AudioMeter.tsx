@@ -154,7 +154,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                         )}
                       </span>
                     )}
-                    <div className="flex h-full flex-col gap-[2px]">
+                    <div className="flex h-full flex-col gap-0.5">
                       <LedLadder zones={zones} value={l.v} n={size === "lg" ? 32 : 20} color={lc} hotColor={hc} hold={l.hold} />
                       <LedLadder zones={zones} value={r.v} n={size === "lg" ? 32 : 20} color={lc} hotColor={hc} hold={r.hold} />
                     </div>
@@ -178,7 +178,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                 return (
                   <div key={m.id} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
                     <span className="text-micro font-semibold tabular-nums">{fmt(m.level)}%</span>
-                    <div className="flex min-h-0 w-full flex-1 justify-center gap-[3px]">
+                    <div className="flex min-h-0 w-full flex-1 justify-center gap-0.75">
                       <div className="flex w-2">
                         <LedLadder zones={zones} value={l.v} vertical n={size === "lg" ? 28 : 16} color={lc} hotColor={hc} hold={l.hold} />
                       </div>
@@ -258,7 +258,7 @@ export default function AudioMeter(p: AudioMeterProps) {
             ) : st === "mirror" ? (
               <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5">
                 {[0, 1, 2].map((row) => (
-                  <div key={row} className="flex h-full max-h-4 items-stretch gap-[3px]">
+                  <div key={row} className="flex h-full max-h-4 items-stretch gap-0.75">
                     <div className="flex flex-1">
                       <LedLadder value={ls.v * (1 - row * 0.18)} n={16} zones={mirrorZones} reverse color={lc} hotColor={hc} />
                     </div>
@@ -296,7 +296,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                         />
                         {marker !== undefined && (
                           <div className="absolute inset-0 transition-transform duration-300" style={{ transform: `translateX(${marker}%)` }}>
-                            <div className="absolute inset-y-0 left-0 w-[2px] bg-[color:var(--w-fg)]" />
+                            <div className="absolute inset-y-0 left-0 w-0.5 bg-[color:var(--w-fg)]" />
                           </div>
                         )}
                       </div>

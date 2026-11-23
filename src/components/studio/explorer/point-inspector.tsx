@@ -112,7 +112,7 @@ export function PointInspector({
     <div className="flex h-full w-full flex-col gap-5 overflow-y-auto bg-ui-panel p-4 font-ui text-ui-2">
       <div className="flex items-center gap-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-ui-md bg-ui-raised">
-          <TypeIcon type={point.type} image={image} className="h-[18px] w-[18px] text-ui-hint" />
+          <TypeIcon type={point.type} image={image} className="h-4.5 w-4.5 text-ui-hint" />
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-lead font-medium text-ui-1">{point.name}</span>
@@ -163,7 +163,7 @@ export function PointInspector({
         )}
         {image && <Thumb src={values[point.key]?.text?.trim() || point.raw} className="aspect-square w-full" />}
         {point.type === "list" && (
-          <pre className="m-0 max-h-[180px] overflow-auto whitespace-pre-wrap break-words font-ui-mono text-caption leading-[1.55] text-ui-2">{list}</pre>
+          <pre className="m-0 max-h-45 overflow-auto whitespace-pre-wrap break-words font-ui-mono text-caption leading-[1.55] text-ui-2">{list}</pre>
         )}
         {recent.length > 0 && (
           <div className="flex flex-col gap-1">
@@ -242,7 +242,7 @@ export function PointInspector({
         <Popover
           align="start"
           side="top"
-          className="flex w-[300px] flex-col gap-2 p-3"
+          className="flex w-75 flex-col gap-2 p-3"
           triggerClassName={cn(
             "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-ui-md border border-ui-strong bg-ui-raised px-3 text-body font-medium text-ui-1 hover:border-ui-hover-edge [&_svg]:h-4 [&_svg]:w-4",
             FOCUS_RING

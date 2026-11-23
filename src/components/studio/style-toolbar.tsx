@@ -28,7 +28,7 @@ interface StyleToolbarProps {
 }
 
 const BUTTON =
-  "flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-[7px] border border-ui-strong bg-ui-raised px-2 text-micro font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40 data-popup-open:bg-ui-hover data-popup-open:text-ui-1";
+  "flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-7 border border-ui-strong bg-ui-raised px-2 text-micro font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40 data-popup-open:bg-ui-hover data-popup-open:text-ui-1";
 
 const MAKE_THEME: { target: MakeThemeTarget; label: string }[] = [
   { target: "screen", label: "This screen" },
@@ -120,7 +120,7 @@ export function StyleToolbar({ saved, hasStyle, canMakeTheme, onApply, onSave, m
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner side="bottom" align="start" sideOffset={6} className="z-[80]">
-            <Popover.Popup className="w-[264px] space-y-2 rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui shadow-ui-menu outline-none">
+            <Popover.Popup className="w-66 space-y-2 rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui shadow-ui-menu outline-none">
               <div>
                 <p className="px-0.5 pb-1 text-micro text-ui-4">Built-in</p>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -155,7 +155,7 @@ export function StyleToolbar({ saved, hasStyle, canMakeTheme, onApply, onSave, m
         Save style
       </button>
       {matched && (
-        <button type="button" className={cn(BUTTON, "max-w-[180px]")} onClick={() => onUpdate(matched.id)} title={`Save this style back into ${matched.name}`}>
+        <button type="button" className={cn(BUTTON, "max-w-45")} onClick={() => onUpdate(matched.id)} title={`Save this style back into ${matched.name}`}>
           <span className="truncate">Update {matched.name}</span>
         </button>
       )}

@@ -64,7 +64,7 @@ export default function CpuMonitor(p: CpuMonitorProps) {
   const maxMhz = Math.max(1, ...cores.map((c) => c.mhz).filter(Number.isFinite));
   const cv = (c: Core) => (metric === "clock" ? (Number.isFinite(c.mhz) ? (c.mhz / maxMhz) * 100 : 0) : c.load);
   const cols = Math.min(cores.length, 8);
-  const sq = SKINS[p.skin ?? "default"]?.cellSquare ? "rounded-none" : "rounded-[5px]";
+  const sq = SKINS[p.skin ?? "default"]?.cellSquare ? "rounded-none" : "rounded-5";
   const warn = p.warn ?? 75,
     crit = p.crit ?? 90;
   const name = p.title ?? pretty(id).replace(/^AMD Ryzen (\d) /, "Ryzen $1 ");

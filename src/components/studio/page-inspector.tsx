@@ -39,9 +39,9 @@ interface PageInspectorProps {
 }
 
 const SECTION_LABEL = "text-caption font-medium text-ui-3";
-const SELECT = "h-7 max-w-[150px] rounded-md border border-ui-default bg-ui-app px-1.5 font-ui-mono text-caption text-ui-1 outline-none focus:border-ui-accent";
+const SELECT = "h-7 max-w-37.5 rounded-md border border-ui-default bg-ui-app px-1.5 font-ui-mono text-caption text-ui-1 outline-none focus:border-ui-accent";
 const ACTION =
-  "flex h-8 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-body font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40";
+  "flex h-8 items-center justify-center gap-1.5 rounded-7 border border-ui-strong bg-ui-raised px-3 text-body font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40";
 
 /** The rotation LinkRow's value: "Included · every 20 s", "Not included", "Rotation off". */
 function rotationText(profile: MonitorProfile, page: ProfilePage): string {
@@ -85,7 +85,7 @@ function NameRow({ page, onRename }: { page: ProfilePage; onRename: (name: strin
             e.currentTarget.blur();
           }
         }}
-        className="h-7 min-w-0 max-w-[170px] flex-1 rounded-md border border-transparent bg-transparent px-1.5 text-right text-caption text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent"
+        className="h-7 min-w-0 max-w-42.5 flex-1 rounded-md border border-transparent bg-transparent px-1.5 text-right text-caption text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent"
       />
     </label>
   );
@@ -215,7 +215,7 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
           <button
             type="button"
             onClick={onShowOnKiosks}
-            className="flex h-8 w-full items-center justify-center gap-1.5 rounded-[7px] border border-ui-live/45 bg-ui-live/12 text-body font-medium text-ui-ok-text transition-colors hover:bg-ui-live/20"
+            className="flex h-8 w-full items-center justify-center gap-1.5 rounded-7 border border-ui-live/45 bg-ui-live/12 text-body font-medium text-ui-ok-text transition-colors hover:bg-ui-live/20"
           >
             <Cast className="h-4 w-4" strokeWidth={1.75} /> Show on kiosks now
           </button>

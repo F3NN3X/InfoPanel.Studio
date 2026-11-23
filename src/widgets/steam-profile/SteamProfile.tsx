@@ -27,12 +27,12 @@ export default function SteamProfile(p: SteamProfileProps) {
           <div className="flex min-w-0 items-center gap-3">
             <div className="relative shrink-0">
               <Img src={avatar} icon="person" className={`${size === "xs" ? "h-10 w-10" : size === "lg" ? "h-16 w-16" : "h-14 w-14"} shrink-0 rounded-xl`} />
-              <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-w-badge p-[3px]">
+              <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-w-badge p-0.75">
                 <Dot ok={online} className="!h-2 !w-2" />
               </span>
             </div>
             <div className="flex min-w-0 flex-col">
-              <span className={`${size === "lg" || size === "sm" ? "text-[22px] leading-tight" : "text-base"} truncate font-semibold`}>{profOf("player-name")}</span>
+              <span className={`${size === "lg" || size === "sm" ? "text-stat leading-tight" : "text-base"} truncate font-semibold`}>{profOf("player-name")}</span>
               <span className="truncate text-caption" style={{ color: online ? "#4ade80" : "var(--w-muted)" }}>
                 {profOf("online-status")}
                 {size === "sm" && ` · Lv ${profOf("steam-level")}`}

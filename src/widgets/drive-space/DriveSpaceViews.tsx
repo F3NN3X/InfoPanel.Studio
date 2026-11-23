@@ -32,7 +32,7 @@ const GAP = 12;
 /** Segments / Bars: an icon with a status dot, the name and used / total, and the fill bar under them. */
 export function DriveRows({ rows, view, size, w, h, icons }: { rows: DriveRow[]; view: "segments" | "bars"; size: string; w: number; h: number; icons?: string }) {
   const rowH = size === "lg" ? 52 : size === "sm" ? 36 : 44;
-  const icon = size === "lg" ? "text-[32px]" : size === "sm" ? "text-[22px]" : "text-[28px]";
+  const icon = size === "lg" ? "text-[32px]" : size === "sm" ? "text-stat" : "text-[28px]";
   const iconPx = size === "lg" ? 32 : size === "sm" ? 22 : 28;
   const shown = rows.slice(0, h > 0 ? fitRows(h, rowH, GAP) : rows.length);
   // A roomy box keeps the rows it fitted and gives each the spare height (up to 1.6x).

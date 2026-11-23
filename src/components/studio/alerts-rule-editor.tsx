@@ -145,7 +145,7 @@ export function AlertRuleEditor({ rule, config, setConfig, active, points, curre
           />
         </div>
 
-        <section className="flex flex-col gap-3 rounded-[14px] border border-ui-default bg-ui-panel px-4 py-3" aria-label="When">
+        <section className="flex flex-col gap-3 rounded-14 border border-ui-default bg-ui-panel px-4 py-3" aria-label="When">
           <div className="flex min-h-6 items-center justify-between gap-2">
             <h3 className="text-body font-medium text-ui-1">{source.kind === "sensor" ? "When" : "When a notification arrives"}</h3>
             {source.kind === "sensor" && <WhenChip firing={firing} conditions={source.conditions} />}
@@ -220,7 +220,7 @@ export function AlertRuleEditor({ rule, config, setConfig, active, points, curre
 
         <AlertOutputs rule={rule} config={config} defaults={alerts.defaults} current={current} edit={edit} />
       </div>
-      <div className="min-w-0 overflow-y-auto border-l border-ui-subtle px-6 py-5 max-[1179px]:border-l-0 max-sm:px-3">
+      <div className="min-w-0 overflow-y-auto border-l border-ui-subtle px-6 py-5 max-split:border-l-0 max-sm:px-3">
         <AlertHow
           rule={rule}
           config={config}

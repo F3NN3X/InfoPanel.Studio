@@ -72,8 +72,8 @@ export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount
       />
       <BarFill />
 
-      <div ref={actionsRef} className="flex min-w-0 items-center gap-2 max-[599px]:w-full">
-        <label className="relative w-[300px] min-w-[120px] shrink max-[599px]:w-full">
+      <div ref={actionsRef} className="flex min-w-0 items-center gap-2 max-sm:w-full">
+        <label className="relative w-75 min-w-30 shrink max-sm:w-full">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ui-hint" strokeWidth={1.5} aria-hidden />
           <input
             type="search"
@@ -103,7 +103,7 @@ export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount
           trigger={
             <>
               <Waypoints strokeWidth={1.5} />
-              <span className="max-[1279px]:sr-only">Endpoints</span>
+              <span className="max-xl:sr-only">Endpoints</span>
             </>
           }
         >
@@ -128,12 +128,12 @@ export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount
 
         <Popover
           align="end"
-          className="w-[300px]"
+          className="w-75"
           triggerClassName={GHOST}
           trigger={
             <>
               <FileText strokeWidth={1.5} />
-              <span className="max-[1279px]:sr-only">Report</span>
+              <span className="max-xl:sr-only">Report</span>
             </>
           }
         >
@@ -153,7 +153,7 @@ export function ExplorerHeader({ pointCount, sourceCount, inUseCount, shownCount
 
         <Popover
           align="end"
-          className="w-[280px]"
+          className="w-70"
           triggerClassName={PRIMARY}
           trigger={
             <>

@@ -14,7 +14,7 @@ export const PageStrip = memo(function PageStrip({ profile, onOpen, inline = fal
   if (profile.pages.length < 2 || screenKind(profile) === "infopanel") return null;
   const aspect = aspectOf(profile.width, profile.height);
   return (
-    <div role="group" aria-label={`Pages of ${profile.name}`} onClick={(e) => e.stopPropagation()} className={cn("flex gap-1 overflow-x-auto", inline ? "max-w-[220px]" : "absolute inset-x-0 bottom-0 bg-gradient-to-t from-ui-app/90 to-transparent px-1.5 pb-1.5 pt-3")}>
+    <div role="group" aria-label={`Pages of ${profile.name}`} onClick={(e) => e.stopPropagation()} className={cn("flex gap-1 overflow-x-auto", inline ? "max-w-55" : "absolute inset-x-0 bottom-0 bg-gradient-to-t from-ui-app/90 to-transparent px-1.5 pb-1.5 pt-3")}>
       {profile.pages.map((page) => (
         <div key={page.id} className="w-11 shrink-0">
           <button

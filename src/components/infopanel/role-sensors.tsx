@@ -22,7 +22,7 @@ export function RoleSensors({ roles, onOverride }: RoleSensorsProps) {
     <div className="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-x-2 gap-y-1">
       {roles.map(({ role, sensor }) => (
         <div key={role} className="contents">
-          <span className="truncate text-[11.5px] text-ui-2" title={ROLE_INFO[role].label}>
+          <span className="truncate text-label text-ui-2" title={ROLE_INFO[role].label}>
             {ROLE_INFO[role].label}
           </span>
           <SensorSelect

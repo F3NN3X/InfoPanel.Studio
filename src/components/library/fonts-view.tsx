@@ -129,7 +129,7 @@ export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: F
       ) : selected ? (
         <FontDetail item={selected} />
       ) : (
-        <aside aria-label="Font details" className="w-[320px] shrink-0 border-l border-ui-subtle bg-ui-panel p-4 font-ui text-caption leading-snug text-ui-4">
+        <aside aria-label="Font details" className="w-80 shrink-0 border-l border-ui-subtle bg-ui-panel p-4 font-ui text-caption leading-snug text-ui-4">
           Select a font to see its licence and faces, or get one for a missing font.
         </aside>
       )}

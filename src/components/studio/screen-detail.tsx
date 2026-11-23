@@ -111,7 +111,7 @@ export function SecondsInput({ value, onCommit }: { value: number; onCommit: (va
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      className={cn(FIELD, "h-[26px] w-[64px] shrink-0 px-1.5 text-right font-ui-mono text-micro")}
+      className={cn(FIELD, "h-6.5 w-16 shrink-0 px-1.5 text-right font-ui-mono text-micro")}
     />
   );
 }

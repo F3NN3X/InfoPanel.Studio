@@ -132,7 +132,7 @@ export function InspectorNote({ children }: { children: ReactNode }) {
 
 /** A changed-count pill (tabs, the Changed toggle). */
 function Count({ n }: { n: number }) {
-  return <span className="rounded-lg bg-ui-accent/[.18] px-[5px] py-px font-ui-mono text-nano text-ui-accent-text">{n}</span>;
+  return <span className="rounded-lg bg-ui-accent/[.18] px-1.25 py-px font-ui-mono text-nano text-ui-accent-text">{n}</span>;
 }
 
 /** The tabs as a segmented pill, each with its changed count; an empty tab is dimmed and disabled. */

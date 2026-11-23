@@ -44,7 +44,7 @@ function VitalCard({ m, hist, w, h, tui }: { m: Vital; hist: number[]; w: number
   return (
     <div className="relative flex min-w-0 flex-col overflow-hidden rounded-xl bg-[color:var(--w-track)] px-3" style={{ paddingTop: padY, paddingBottom: padY + sparkH }}>
       {!braille && <Spark values={hist} min={0} max={m.max} grid={false} className={`absolute inset-x-0 bottom-0 opacity-80 ${split ? "h-[34%]" : "h-1/2"}`} />}
-      <div className="relative flex items-baseline justify-between gap-2 leading-[13px]" style={plate ?? undefined}>
+      <div className="relative flex items-baseline justify-between gap-2 leading-3.25" style={plate ?? undefined}>
         <span className={`min-w-0 truncate text-micro font-medium uppercase ${tui ? "" : "tracking-[0.08em]"} text-[color:var(--w-muted)]`}>{m.label}</span>
         {w > (tui ? 170 : 110) && <span className="truncate text-micro text-[color:var(--w-faint)]">{m.sub}</span>}
       </div>

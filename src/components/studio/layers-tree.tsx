@@ -246,15 +246,15 @@ export function LayersTree({ host }: { host: LayersHost }) {
 
   return (
     <section aria-label="Layers" className="flex min-h-0 flex-1 flex-col font-ui">
-      <div className="flex h-[38px] shrink-0 items-center gap-1.5 pl-3.5 pr-2.5">
+      <div className="flex h-9.5 shrink-0 items-center gap-1.5 pl-3.5 pr-2.5">
         <span className="text-caption font-medium text-ui-1">Layers</span>
         <span className="text-micro text-ui-4">top first</span>
         <span className="flex-1" />
         <IconButton label="Group selection (Ctrl+G)" className="h-6 w-6 rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-2" disabled={!host.menu.available.group} onClick={() => host.menu.run("group")}>
-          <FolderPlus className="h-[14px] w-[14px]" />
+          <FolderPlus className="h-3.5 w-3.5" />
         </IconButton>
         <IconButton label="Collapse all" className="h-6 w-6 rounded-ui-sm text-ui-4 hover:bg-ui-hover hover:text-ui-2" onClick={() => host.setOpen(groupIds(host.nodes), false)}>
-          <ChevronsDownUp className="h-[14px] w-[14px]" />
+          <ChevronsDownUp className="h-3.5 w-3.5" />
         </IconButton>
       </div>
       <div
@@ -319,7 +319,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
                 setMenu({ x: e.clientX, y: e.clientY });
               }}
               className={cn(
-                "group/row relative flex h-(--ui-h-control) shrink-0 cursor-pointer items-center gap-[5px] rounded-ui-sm pr-1.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
+                "group/row relative flex h-(--ui-h-control) shrink-0 cursor-pointer items-center gap-1.25 rounded-ui-sm pr-1.5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
                 isSelected ? "bg-ui-accent/18 text-white" : tinted.has(node.id) ? "bg-ui-accent/7" : "hover:bg-ui-hover",
                 mark === "inside" && "outline outline-1 -outline-offset-1 outline-ui-accent",
               )}
@@ -328,7 +328,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
               {(mark === "above" || mark === "below") && drop && (
                 <span
                   aria-hidden="true"
-                  className={cn("pointer-events-none absolute right-0 z-10 h-[2px] bg-ui-accent", mark === "above" ? "-top-px" : "-bottom-px")}
+                  className={cn("pointer-events-none absolute right-0 z-10 h-0.5 bg-ui-accent", mark === "above" ? "-top-px" : "-bottom-px")}
                   style={{ left: 6 + drop.depth * 16 }}
                 />
               )}
@@ -343,15 +343,15 @@ export function LayersTree({ host }: { host: LayersHost }) {
                     e.stopPropagation();
                     host.setOpen(e.altKey ? deep(node) : [node.id], !open);
                   }}
-                  className="relative grid h-[14px] w-[14px] shrink-0 place-items-center text-ui-4 after:absolute after:-inset-1.5 after:content-['']"
+                  className="relative grid h-3.5 w-3.5 shrink-0 place-items-center text-ui-4 after:absolute after:-inset-1.5 after:content-['']"
                 >
                   {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 </button>
               ) : (
-                <span className="w-[14px] shrink-0" />
+                <span className="w-3.5 shrink-0" />
               )}
-              <span title={group ? "group" : KIND_WORD[node.kind ?? "item"]} className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-[5px]", widget ? "bg-ui-accent/14 text-ui-accent" : "bg-ui-hover text-ui-3", node.hidden && "opacity-45")}>
-                <Icon className="h-[13px] w-[13px]" strokeWidth={1.75} />
+              <span title={group ? "group" : KIND_WORD[node.kind ?? "item"]} className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-5", widget ? "bg-ui-accent/14 text-ui-accent" : "bg-ui-hover text-ui-3", node.hidden && "opacity-45")}>
+                <Icon className="h-3.25 w-3.25" strokeWidth={1.75} />
               </span>
               {renaming === node.id ? (
                 <input
@@ -373,7 +373,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
                       e.currentTarget.blur();
                     }
                   }}
-                  className="h-[22px] min-w-0 flex-1 rounded-[5px] border border-ui-accent bg-ui-app px-1.5 text-caption text-ui-1 outline-none"
+                  className="h-5.5 min-w-0 flex-1 rounded-5 border border-ui-accent bg-ui-app px-1.5 text-caption text-ui-1 outline-none"
                 />
               ) : (
                 <span onDoubleClick={() => setRenaming(node.id)} title={label} className={cn("min-w-0 flex-1 truncate text-caption", isSelected ? "text-white" : node.hidden ? "text-ui-4" : "text-ui-2")}>
@@ -386,7 +386,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
                 {group ? "group" : KIND_WORD[node.kind ?? "item"]}
               </span>
               {group && <span className={cn("shrink-0 font-ui-mono text-nano text-ui-hint", node.hidden && "opacity-45")}>{node.children?.length ?? 0}</span>}
-              {group && node.children?.some((c) => c.free) && <span className="shrink-0 rounded-[4px] border border-ui-strong px-1 text-nano leading-[14px] text-ui-3">free</span>}
+              {group && node.children?.some((c) => c.free) && <span className="shrink-0 rounded-4 border border-ui-strong px-1 text-nano leading-3.5 text-ui-3">free</span>}
               {node.size && <span className={cn("shrink-0 font-ui-mono text-micro text-ui-hint group-hover/row:invisible", (node.locked || node.hidden || isSelected) && "invisible")}>{node.size}</span>}
               {node.free && !widget && !node.size && (
                 <span role="img" title="Placed freely (Alt)" aria-label="Placed freely (Alt)" className="inline-flex shrink-0 text-ui-4">
@@ -406,11 +406,11 @@ export function LayersTree({ host }: { host: LayersHost }) {
                     host.setLocked(node.id, !node.locked);
                   }}
                   className={cn(
-                    "relative grid h-[18px] w-[16px] shrink-0 place-items-center after:absolute after:-inset-1 after:content-['']",
+                    "relative grid h-4.5 w-4 shrink-0 place-items-center after:absolute after:-inset-1 after:content-['']",
                     node.locked ? "text-ui-2" : cn("text-ui-hint opacity-0 group-hover/row:opacity-100", isSelected && "opacity-100"),
                   )}
                 >
-                  <Lock className="h-[13px] w-[13px]" />
+                  <Lock className="h-3.25 w-3.25" />
                 </button>
                 <button
                   type="button"
@@ -424,11 +424,11 @@ export function LayersTree({ host }: { host: LayersHost }) {
                     host.setHidden(node.id, !node.hidden);
                   }}
                   className={cn(
-                    "relative grid h-[18px] w-[16px] shrink-0 place-items-center after:absolute after:-inset-1 after:content-['']",
+                    "relative grid h-4.5 w-4 shrink-0 place-items-center after:absolute after:-inset-1 after:content-['']",
                     node.hidden ? "text-ui-2" : cn("text-ui-hint opacity-0 group-hover/row:opacity-100", isSelected && "opacity-100")
                   )}
                 >
-                  {node.hidden ? <EyeOff className="h-[13px] w-[13px]" /> : <Eye className="h-[13px] w-[13px]" />}
+                  {node.hidden ? <EyeOff className="h-3.25 w-3.25" /> : <Eye className="h-3.25 w-3.25" />}
                 </button>
               </span>
             </div>

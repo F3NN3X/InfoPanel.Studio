@@ -104,14 +104,14 @@ const inline = (s: Stat) => (s.bare ? s.v : `${s.l} ${s.v}`);
 function CoreGrid({ cores, cellW, view, ramp }: { cores: number[]; cellW: number; view: "heatmap" | "bars"; ramp?: string }) {
   const hc = cellW > 170 ? 8 : 4;
   return (
-    <div className="absolute inset-0 grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${Math.min(cores.length, hc)}, minmax(0,1fr))`, gridTemplateRows: `repeat(${Math.ceil(cores.length / hc)}, minmax(0,1fr))`, maxHeight: Math.ceil(cores.length / hc) * 16 }}>
+    <div className="absolute inset-0 grid gap-0.75" style={{ gridTemplateColumns: `repeat(${Math.min(cores.length, hc)}, minmax(0,1fr))`, gridTemplateRows: `repeat(${Math.ceil(cores.length / hc)}, minmax(0,1fr))`, maxHeight: Math.ceil(cores.length / hc) * 16 }}>
       {cores.map((v, ci) =>
         view === "bars" ? (
-          <div key={ci} className="flex min-h-0 flex-col justify-end overflow-hidden rounded-[3px] bg-[color:var(--w-track)]">
+          <div key={ci} className="flex min-h-0 flex-col justify-end overflow-hidden rounded-3 bg-[color:var(--w-track)]">
             <div className="h-full transition-transform duration-700" style={{ ...scaleY(Math.max(6, v)), background: "var(--w-accent)" }} />
           </div>
         ) : (
-          <div key={ci} title={`Core ${ci + 1} · ${fmt(v, 0)}%`} className="min-h-0 rounded-[3px]" style={{ background: heat(v, ramp ?? "accent") }} />
+          <div key={ci} title={`Core ${ci + 1} · ${fmt(v, 0)}%`} className="min-h-0 rounded-3" style={{ background: heat(v, ramp ?? "accent") }} />
         )
       )}
     </div>
@@ -408,7 +408,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
                             </span>
                           </div>
                         ) : (
-                          <div key={l} className="flex min-w-0 items-baseline justify-between gap-2 whitespace-nowrap text-[11.5px]">
+                          <div key={l} className="flex min-w-0 items-baseline justify-between gap-2 whitespace-nowrap text-label">
                             <span className="min-w-0 truncate text-[color:var(--w-faint)]">{l}</span>
                             <span {...tag(sk2, { mul })} className="shrink-0 text-right tabular-nums text-[color:var(--w-fg)]" style={st && st !== "ok" ? { color: TONES[st] } : undefined}>
                               {v}
@@ -420,7 +420,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
                   )}
                   {level !== "min" && k === "disk" && <DriveList drives={drives} h={cellH - headH - 10} />}
                   {level !== "min" && k !== "disk" && (showCores || showSpark || showBar) && (
-                    <div className="relative mt-auto min-h-[14px] flex-1 overflow-hidden">
+                    <div className="relative mt-auto min-h-3.5 flex-1 overflow-hidden">
                       {showCores ? (
                         showSpark && level === "full" ? (
                           <div className="absolute inset-0 flex flex-col gap-1.5">

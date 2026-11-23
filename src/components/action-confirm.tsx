@@ -59,10 +59,10 @@ export default function ActionLayer({ confirm, note, room, onCancel, onNoteDone 
       {confirm && copy && (
         <div className="fixed z-(--z-dialog) flex items-center justify-center p-4" style={area} onKeyDown={(e) => e.key === "Escape" && onCancel()}>
           <button type="button" tabIndex={-1} aria-label="Close" className="absolute inset-0 cursor-default bg-background/70" onClick={onCancel} />
-          <section role="dialog" aria-modal="true" aria-labelledby="action-confirm-title" aria-describedby={copy.text ? "action-confirm-text" : undefined} data-action-confirm="" className="relative w-full max-w-[520px] rounded-2xl border bg-card p-4 text-card-foreground shadow-xl">
+          <section role="dialog" aria-modal="true" aria-labelledby="action-confirm-title" aria-describedby={copy.text ? "action-confirm-text" : undefined} data-action-confirm="" className="relative w-full max-w-130 rounded-2xl border bg-card p-4 text-card-foreground shadow-xl">
             <header className="flex items-center gap-2">
               <Icon aria-hidden size={18} className="text-muted-foreground" />
-              <h2 id="action-confirm-title" className="text-[16px] font-semibold">
+              <h2 id="action-confirm-title" className="text-head font-semibold">
                 {copy.title}
               </h2>
             </header>
@@ -75,20 +75,20 @@ export default function ActionLayer({ confirm, note, room, onCancel, onNoteDone 
                   aria-label="The command"
                   value={copy.text}
                   rows={Math.min(4, Math.max(1, Math.ceil(copy.text.length / 56)))}
-                  className="mt-3 block w-full resize-none overflow-auto break-all rounded-lg bg-muted px-3 py-2 font-mono text-[13px] leading-snug"
+                  className="mt-3 block w-full resize-none overflow-auto break-all rounded-lg bg-muted px-3 py-2 font-mono text-body leading-snug"
                 />
               ) : (
-                <p id="action-confirm-text" className="mt-2 text-[14px] text-muted-foreground">
+                <p id="action-confirm-text" className="mt-2 text-lead text-muted-foreground">
                   {copy.text}
                 </p>
               ))}
             <div className="mt-3 grid gap-3" style={{ gridTemplateColumns: "1fr 1.4fr" }}>
-              <button ref={cancelRef} type="button" onClick={onCancel} className="h-14 rounded-xl border text-[15px] font-semibold">
+              <button ref={cancelRef} type="button" onClick={onCancel} className="h-14 rounded-xl border text-title font-semibold">
                 Cancel
               </button>
               <HoldButton
                 label={copy.hold}
-                className="h-14 text-[15px]"
+                className="h-14 text-title"
                 onConfirm={() => {
                   onCancel();
                   confirm.go();
@@ -100,7 +100,7 @@ export default function ActionLayer({ confirm, note, room, onCancel, onNoteDone 
       )}
       {note && (
         <div className="pointer-events-none fixed z-(--z-dialog) flex items-end justify-center p-4" style={area}>
-          <p role="status" data-action-note="" className="max-w-[640px] rounded-xl border bg-card px-4 py-2 text-[14px] text-card-foreground shadow-lg">
+          <p role="status" data-action-note="" className="max-w-160 rounded-xl border bg-card px-4 py-2 text-lead text-card-foreground shadow-lg">
             {note}
           </p>
         </div>

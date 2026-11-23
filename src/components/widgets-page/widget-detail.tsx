@@ -136,8 +136,8 @@ function Row({ label, value }: { label: string; value: string }) {
 export function WidgetDetail(p: WidgetDetailProps) {
   const PrimaryIcon = ICONS[p.primary.icon];
   return (
-    <aside aria-label="Widget details" className="flex w-[380px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-chrome p-5 font-ui">
-      <div className="flex h-[214px] items-center justify-center overflow-hidden rounded-ui-lg border border-ui-subtle bg-ui-app p-4">
+    <aside aria-label="Widget details" className="flex w-95 shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-chrome p-5 font-ui">
+      <div className="flex h-53.5 items-center justify-center overflow-hidden rounded-ui-lg border border-ui-subtle bg-ui-app p-4">
         {p.recipe ? <RecipePreview recipe={p.recipe} cells={p.recipe.size.default} sample appearance={p.appearance} pageStyle={p.pageStyle} fit={{ w: 334, h: 182 }} maxScale={1.2} /> : p.preview}
       </div>
       <div>

@@ -100,7 +100,7 @@ export default function MenuBar(p: MenuBarProps) {
         const visible = open && keys.includes(open) && !first.includes(open) ? [...first.slice(0, n - 1), open] : first;
         return (
           <div className="flex h-full flex-col gap-2.5">
-            <div className="flex shrink-0 flex-wrap gap-[2px] rounded-lg border border-[color:var(--w-track)] bg-[color:var(--w-track)] p-1">
+            <div className="flex shrink-0 flex-wrap gap-0.5 rounded-lg border border-[color:var(--w-track)] bg-[color:var(--w-track)] p-1">
               {visible.map((key) => {
                 const m = ALL[key],
                   t = tone(m.v, m.warn, m.crit),
@@ -110,17 +110,17 @@ export default function MenuBar(p: MenuBarProps) {
                     key={key}
                     type="button"
                     onClick={() => p.dropdown !== false && setOpen(on ? null : key)}
-                    className={`flex min-h-[34px] min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-1 text-left transition-colors ${on ? "bg-[var(--w-accent)] text-w-ink" : "hover:bg-[color:var(--w-track)]"}`}
+                    className={`flex min-h-8.5 min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-1 text-left transition-colors ${on ? "bg-[var(--w-accent)] text-w-ink" : "hover:bg-[color:var(--w-track)]"}`}
                   >
                     <span className={`grid min-w-0 leading-[1.05] ${stacked ? "" : "grid-flow-col items-baseline gap-1.5"}`}>
                       <span className={`truncate text-micro font-semibold uppercase tracking-[0.08em] ${on ? "opacity-80" : "text-[color:var(--w-muted)]"}`}>{m.k}</span>
-                      <span className="whitespace-nowrap text-[14px] font-semibold tabular-nums" style={{ ...numFont(sk), color: !on && t !== "ok" ? TONES[t] : undefined }}>
+                      <span className="whitespace-nowrap text-lead font-semibold tabular-nums" style={{ ...numFont(sk), color: !on && t !== "ok" ? TONES[t] : undefined }}>
                         {shown(m)[0]}
                         <small className={`text-micro font-medium ${m.text ? "ml-0.5" : ""}`}>{shown(m)[1]}</small>
                       </span>
                     </span>
                     {w / n > 120 && (
-                      <span className="ml-auto flex h-[22px] w-[42px] shrink-0 items-end gap-px">
+                      <span className="ml-auto flex h-5.5 w-10.5 shrink-0 items-end gap-px">
                         {H[key].slice(-14).map((v, i) => (
                           <i key={i} className="min-h-px flex-1 rounded-t-[1px] bg-current opacity-80" style={{ height: `${Math.max(4, (v / (m.max ?? Math.max(1, ...H[key]))) * 100)}%` }} />
                         ))}
@@ -132,15 +132,15 @@ export default function MenuBar(p: MenuBarProps) {
             </div>
             {/* the detail needs the bar (~44px) plus its own ~110px; shorter zones keep just the selected tab */}
             {it && detailKey && h >= 160 && (
-              <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-[10px] border border-[color:var(--w-track)] bg-black/25 p-3 shadow-[0_8px_24px_-12px_rgba(0,0,0,.5)]">
+              <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-10 border border-[color:var(--w-track)] bg-black/25 p-3 shadow-[0_8px_24px_-12px_rgba(0,0,0,.5)]">
                 <div className="flex items-baseline justify-between gap-3">
                   <b className="text-sm font-semibold">{it.k}</b>
-                  <span className="text-[22px] font-bold leading-none tabular-nums" style={{ ...numFont(sk) }}>
+                  <span className="text-stat font-bold leading-none tabular-nums" style={{ ...numFont(sk) }}>
                     {shown(it)[0]}
                     <span className={`text-[0.6em] font-semibold ${it.text ? "ml-1" : ""}`}>{shown(it)[1]}</span>
                   </span>
                 </div>
-                <Spark values={H[detailKey]} min={0} max={it.max} className="min-h-[24px] flex-1" />
+                <Spark values={H[detailKey]} min={0} max={it.max} className="min-h-6 flex-1" />
                 <div className="grid gap-x-4 gap-y-1 text-xs" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))" }}>
                   {it.more.map(([a, b, u]) => (
                     <div key={a} className="flex flex-col">

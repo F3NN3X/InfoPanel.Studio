@@ -131,11 +131,11 @@ export default function DataApiPanel({ status, config, onAddress, onOpenData }: 
       </div>
       <div className="mt-2 border-t border-ui-subtle pt-2.5">
         <h3 className="text-caption font-medium text-ui-3">Sources</h3>
-        <ul className="mt-1 max-h-[180px] overflow-y-auto">
+        <ul className="mt-1 max-h-45 overflow-y-auto">
           {model.sources.map((s) => {
             const Icon = sourceIcon(s);
             return (
-              <li key={s.id} className="flex h-[30px] items-center gap-2.5 text-body text-ui-1">
+              <li key={s.id} className="flex h-7.5 items-center gap-2.5 text-body text-ui-1">
                 <Icon className="h-4 w-4 shrink-0 text-ui-hint" strokeWidth={1.5} aria-hidden />
                 <span className="min-w-0 flex-1 truncate">{s.name}</span>
                 <span className="shrink-0 text-caption text-ui-3">

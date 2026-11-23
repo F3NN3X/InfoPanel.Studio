@@ -74,7 +74,7 @@ function Badge({ badge }: { badge: RailBadge }) {
   const color = TONES[badge.tone];
   if (!badge.text) return <span aria-hidden className="absolute right-1 top-1 h-3 w-3 rounded-full" style={{ background: color }} />;
   return (
-    <span aria-hidden className="absolute -right-1 top-0 rounded px-1 text-[10px] font-bold leading-[14px] tracking-wide" style={{ color, background: `color-mix(in oklab, ${color} 16%, transparent)`, boxShadow: `inset 0 0 0 1.5px ${color}` }}>
+    <span aria-hidden className="absolute -right-1 top-0 rounded px-1 text-nano font-bold leading-3.5 tracking-wide" style={{ color, background: `color-mix(in oklab, ${color} 16%, transparent)`, boxShadow: `inset 0 0 0 1.5px ${color}` }}>
       {badge.text}
     </span>
   );
@@ -144,7 +144,7 @@ function SlotButton({ slot, name, alt, active, edge, badge, on, run }: SlotProps
       {badge && <Badge badge={badge} />}
       {named && badge && <span className="sr-only">{`, ${badge.say}`}</span>}
       {/* the page shown: a bar in the accent on the rail's outer edge */}
-      {active && (edge === "left" || edge === "right") && <span aria-hidden className="absolute top-3 bottom-3 w-[3px] rounded-full" style={{ [edge]: -14, background: "var(--w-accent)" }} />}
+      {active && (edge === "left" || edge === "right") && <span aria-hidden className="absolute top-3 bottom-3 w-0.75 rounded-full" style={{ [edge]: -14, background: "var(--w-accent)" }} />}
     </button>
   );
 }
@@ -235,7 +235,7 @@ function PageLock({ lock, run }: { lock: "auto" | "locked"; run: (a: TouchAction
       {...g}
       aria-pressed={lock === "locked"}
       aria-label={lock === "auto" ? "Pages rotate. Tap to stay on this page" : "Stays on this page. Tap to rotate pages"}
-      className={`flex h-12 w-[60px] shrink-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-xl ${FOCUS}`}
+      className={`flex h-12 w-15 shrink-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-xl ${FOCUS}`}
       style={{ color: "var(--w-muted)", boxShadow: `inset 0 0 0 1px ${EDGE}` }}
     >
       <Cmp aria-hidden size={18} strokeWidth={1.75} />

@@ -30,7 +30,7 @@ function LockToggle({ on, screen, onToggle }: { on: boolean; screen: string; onT
       className={cn(
         "flex shrink-0 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
         on
-          ? cn("h-5 gap-[3px] rounded-full border px-2 text-micro font-medium", LOCKED)
+          ? cn("h-5 gap-0.75 rounded-full border px-2 text-micro font-medium", LOCKED)
           : "h-6 w-6 rounded-md text-ui-hint opacity-60 hover:bg-ui-hover hover:text-ui-1 hover:opacity-100 focus-visible:opacity-100 group-hover/row:opacity-100"
       )}
     >
@@ -108,7 +108,7 @@ export function FineTuneRow({ card, chip, summary, parentText, open, onToggle, l
           tabIndex={-1}
           aria-hidden
           onClick={onToggle}
-          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md text-ui-hint hover:bg-ui-hover"
+          className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-md text-ui-hint hover:bg-ui-hover"
         >
           <ChevronDown className={cn("h-4 w-4 transition-transform duration-150", open && "rotate-180")} />
         </button>
@@ -152,11 +152,11 @@ export function FineTuneHeader({ heading, from }: { heading: string; from: strin
     <div className="flex items-center gap-3 border-t border-ui-subtle px-5 pb-1.5 pt-4">
       <h3 className="flex-1 text-caption font-medium text-ui-3">{heading}</h3>
       <span className="flex items-center gap-1.5 text-caption text-ui-3">
-        <span className="h-[7px] w-[7px] rounded-full border border-ui-hint" aria-hidden />
+        <span className="h-1.75 w-1.75 rounded-full border border-ui-hint" aria-hidden />
         From {from}
       </span>
       <span className="flex items-center gap-1.5 text-caption text-ui-3">
-        <span className="h-[7px] w-[7px] rounded-full bg-ui-accent" aria-hidden />
+        <span className="h-1.75 w-1.75 rounded-full bg-ui-accent" aria-hidden />
         Set here
       </span>
     </div>

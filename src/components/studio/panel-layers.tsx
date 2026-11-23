@@ -112,7 +112,7 @@ export function PanelLayers({
             onDrop={onDrop}
             onClick={() => onSelect(w.id)}
             className={cn(
-              "relative flex cursor-pointer items-center gap-[7px] rounded-[7px] border py-1.5 pl-1.5 pr-1",
+              "relative flex cursor-pointer items-center gap-1.75 rounded-7 border py-1.5 pl-1.5 pr-1",
               w.id === selectedId
                 ? "border-ui-accent/50 bg-ui-accent/[.12]"
                 : "border-ui-subtle bg-ui-app hover:border-ui-menu",
@@ -148,7 +148,7 @@ export function PanelLayers({
             <Menu.Root>
               <Menu.Trigger
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[5px] text-ui-3 hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
+                className="inline-flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-5 text-ui-3 hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
                 title="Widget actions"
                 aria-label="Widget actions"
               >
@@ -191,7 +191,7 @@ function RowButton({
     <IconButton
       label={label}
       danger={danger}
-      className="h-[22px] w-[22px]"
+      className="h-5.5 w-5.5"
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -208,7 +208,7 @@ function DropLine({ edge }: { edge: "top" | "bottom" }) {
     <span
       className={cn(
         "pointer-events-none absolute inset-x-0 h-0.5 rounded-full bg-ui-accent",
-        edge === "top" ? "-top-[3px]" : "-bottom-[3px]"
+        edge === "top" ? "-top-0.75" : "-bottom-0.75"
       )}
     />
   );

@@ -46,7 +46,7 @@ export function SensorListField({
             const name = point?.name ?? sensorName(key);
             const tuned = overrides[key] !== undefined;
             return (
-              <li key={key} className="rounded-[7px] border border-ui-default bg-ui-app py-1 pl-[9px] pr-1.5">
+              <li key={key} className="rounded-7 border border-ui-default bg-ui-app py-1 pl-2.25 pr-1.5">
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-caption text-ui-1">{overrides[key]?.label ?? name}</span>

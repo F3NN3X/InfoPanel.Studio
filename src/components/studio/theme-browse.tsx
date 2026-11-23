@@ -97,7 +97,7 @@ function Detail({ item, look, applied, warnings, p }: DetailProps) {
   const saved = item.kind === "saved";
   useEffect(() => setRenaming(false), [item.id]);
   return (
-    <aside aria-label="Theme detail" className="flex w-[380px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-chrome p-5 max-sm:w-full max-sm:border-l-0 max-sm:border-t">
+    <aside aria-label="Theme detail" className="flex w-95 shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-chrome p-5 max-sm:w-full max-sm:border-l-0 max-sm:border-t">
       {p.canvas ?? <LookThumb preset={item.preset} width={338} className="rounded-ui-lg border border-ui-subtle" />}
       <div className="flex flex-col gap-1">
         {renaming ? (
@@ -247,7 +247,7 @@ export function ThemeBrowse(p: ThemeBrowseProps) {
     <div className="flex min-h-0 flex-1 max-sm:flex-col max-sm:overflow-y-auto">
       <div className="flex min-w-0 flex-1 flex-col gap-6 overflow-y-auto px-7 py-5 max-sm:overflow-visible max-sm:px-3">
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex h-8 w-[220px] items-center gap-2 rounded-ui-md border border-ui-control bg-ui-chrome px-2.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ui-accent">
+          <label className="flex h-8 w-55 items-center gap-2 rounded-ui-md border border-ui-control bg-ui-chrome px-2.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ui-accent">
             <Search className="h-4 w-4 shrink-0 text-ui-hint" aria-hidden />
             <span className="sr-only">Search</span>
             <input type="search" value={query} onChange={(e) => setQuery(e.currentTarget.value)} placeholder="Search" className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-hint" />

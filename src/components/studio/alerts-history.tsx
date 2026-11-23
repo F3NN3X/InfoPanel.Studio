@@ -67,7 +67,7 @@ export function AlertsHistory({ history, profiles, filter, onFilter }: AlertsHis
       {rows.length === 0 ? (
         <p className="py-10 text-center text-body text-ui-3">No alerts yet</p>
       ) : (
-        <div className="overflow-x-auto rounded-[14px] border border-ui-default bg-ui-panel">
+        <div className="overflow-x-auto rounded-14 border border-ui-default bg-ui-panel">
           <table className="w-full border-collapse">
             <thead>
               <tr>

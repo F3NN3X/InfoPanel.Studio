@@ -20,11 +20,11 @@ import { selectedLabel } from "./selected-label";
  */
 
 export const FIELD =
-  "rounded-md border border-ui-control bg-ui-app px-[9px] text-body text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent";
+  "rounded-md border border-ui-control bg-ui-app px-2.25 text-body text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent";
 
 /** A select: h28, #1a1a1f, up to 170 wide. */
 export const SELECT =
-  "h-7 max-w-[170px] cursor-pointer whitespace-nowrap rounded-md border border-ui-control bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent";
+  "h-7 max-w-42.5 cursor-pointer whitespace-nowrap rounded-md border border-ui-control bg-ui-hover px-1.5 text-caption text-ui-1 outline-none focus:border-ui-accent";
 
 export interface RowLabelProps {
   label: string;
@@ -63,7 +63,7 @@ function Label({ label, lead, hint, changed, className }: RowLabelProps & { clas
 
 /** The label's line: 30 px high (44 in the phone sheet). */
 function useRowHeight() {
-  return useInspectorChrome().mode === "sheet" ? "min-h-11" : "min-h-[30px]";
+  return useInspectorChrome().mode === "sheet" ? "min-h-11" : "min-h-7.5";
 }
 
 /** Label over a full-width control (segmented, text, lists, pickers); the trail stays on the label's line. */
@@ -140,7 +140,7 @@ export function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(e.currentTarget.valueAsNumber)}
-        className={cn("m-0 block h-4 cursor-pointer accent-[var(--ui-accent)]", inline ? "w-[90px] shrink-0" : "w-full")}
+        className={cn("m-0 block h-4 cursor-pointer accent-[var(--ui-accent)]", inline ? "w-22.5 shrink-0" : "w-full")}
       />
     );
     const box = (
@@ -172,14 +172,14 @@ export function SliderRow({
         value={value}
         aria-label={label.label}
         onChange={(e) => onChange(e.target.value === "" ? fallback : Number(e.target.value))}
-        className={cn(FIELD, "h-[26px] w-[64px] shrink-0 px-1.5 text-right font-ui-mono text-micro")}
+        className={cn(FIELD, "h-6.5 w-16 shrink-0 px-1.5 text-right font-ui-mono text-micro")}
       />
     </InlineRow>
   );
 }
 
 const SEGMENT_BUTTONS =
-  "gap-0.5 rounded-[7px] [&>button]:whitespace-nowrap [&>button]:text-micro [&>button]:font-medium [&>button:not([aria-checked=true])]:text-ui-4";
+  "gap-0.5 rounded-7 [&>button]:whitespace-nowrap [&>button]:text-micro [&>button]:font-medium [&>button:not([aria-checked=true])]:text-ui-4";
 
 /**
  * A segmented control at full width: one line that scrolls sideways if it
@@ -187,7 +187,7 @@ const SEGMENT_BUTTONS =
  */
 export const SEGMENTED_CLASS = cn(
   SEGMENT_BUTTONS,
-  "w-full flex-nowrap overflow-x-auto [scrollbar-width:none] [&>button]:flex-[1_1_auto] [&>button]:px-1.5 [&>button]:py-[5px]"
+  "w-full flex-nowrap overflow-x-auto [scrollbar-width:none] [&>button]:flex-[1_1_auto] [&>button]:px-1.5 [&>button]:py-1.25"
 );
 /** A short segmented set beside its label. */
 const SEGMENTED_INLINE = cn(SEGMENT_BUTTONS, "shrink-0 flex-nowrap [&>button]:px-2 [&>button]:py-1");
@@ -319,7 +319,7 @@ export function TextRow({
           onChange={(e) => onChange(e.target.value)}
           aria-label={label.label}
           placeholder={placeholder}
-          className={cn(FIELD, "h-[30px] w-full", kind !== "text" && "[color-scheme:dark]")}
+          className={cn(FIELD, "h-7.5 w-full", kind !== "text" && "[color-scheme:dark]")}
         />
       )}
     </StackRow>

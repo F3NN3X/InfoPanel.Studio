@@ -26,7 +26,7 @@ import { KEYS } from "./use-studio-shortcuts";
 /** The 32 px icon box of a header (the glyph in the accent text colour). */
 export function HeaderIcon({ children }: { children: ReactNode }) {
   return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-s-divider text-ui-accent-icon [&>svg]:h-[19px] [&>svg]:w-[19px]">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-s-divider text-ui-accent-icon [&>svg]:h-4.75 [&>svg]:w-4.75">
       {children}
     </span>
   );
@@ -44,7 +44,7 @@ export function CloseButton() {
   const sheet = mode === "sheet";
   return (
     <IconButton label={sheet ? "Collapse" : "Close"} onClick={onClose} className={sheet ? TOUCH : undefined}>
-      {sheet ? <Minimize2 className="h-4 w-4" /> : <X className="h-[18px] w-[18px]" />}
+      {sheet ? <Minimize2 className="h-4 w-4" /> : <X className="h-4.5 w-4.5" />}
     </IconButton>
   );
 }
@@ -203,7 +203,7 @@ export function ZoneHeader({
               onChange={(e) => onName(e.target.value)}
               className={cn(
                 TITLE,
-                "-ml-1 block h-[21px] w-full rounded-[5px] border border-transparent bg-transparent px-1 outline-none placeholder:text-ui-4 hover:border-ui-strong focus:border-ui-accent"
+                "-ml-1 block h-5.25 w-full rounded-5 border border-transparent bg-transparent px-1 outline-none placeholder:text-ui-4 hover:border-ui-strong focus:border-ui-accent"
               )}
             />
           ) : (
@@ -331,7 +331,7 @@ export function SettingsSearch({ query, onQuery, placeholder = "Search all setti
         }}
         placeholder={placeholder}
         aria-label="Search settings"
-        className={cn(FIELD, "h-8 w-full rounded-[7px] pl-[30px] pr-7")}
+        className={cn(FIELD, "h-8 w-full rounded-7 pl-7.5 pr-7")}
       />
       {query !== "" && (
         <button

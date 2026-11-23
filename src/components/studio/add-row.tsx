@@ -129,7 +129,7 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
       onMouseEnter={onHover}
       className={cn(
         "group/row flex cursor-pointer select-none items-center gap-2.5 rounded-ui-md px-2",
-        compact ? "h-10 py-[5px]" : "h-[52px] py-[7px]",
+        compact ? "h-10 py-1.25" : "h-13 py-1.75",
         highlighted && "bg-s-divider"
       )}
     >
@@ -148,7 +148,7 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
         ) : (
           <span className="truncate text-body font-medium leading-4 text-ui-1">{item.name}</span>
         )}
-        {!compact && <span className="mt-0.5 truncate text-micro leading-[15px] text-ui-hint">{item.blurb}</span>}
+        {!compact && <span className="mt-0.5 truncate text-micro leading-3.75 text-ui-hint">{item.blurb}</span>}
         <span id={`${id}-desc`} className="sr-only">
           {item.description}
         </span>
@@ -156,7 +156,7 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
       {tag && (
         <span
           className={cn(
-            "shrink-0 rounded-[4px] px-1.5 py-0.5 text-micro",
+            "shrink-0 rounded-4 px-1.5 py-0.5 text-micro",
             tag === "best" ? "bg-ui-accent/16 text-ui-accent-tag-text" : "bg-ui-subtle text-ui-hint"
           )}
         >

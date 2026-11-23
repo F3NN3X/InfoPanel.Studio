@@ -21,7 +21,7 @@ export const Heading = ({ children, headRef, large }: { children: ReactNode; hea
     {children}
   </h1>
 );
-export const Sub = ({ children }: { children: ReactNode }) => <p className="m-0 mt-1 max-w-[600px] text-body leading-[1.5] text-ui-3">{children}</p>;
+export const Sub = ({ children }: { children: ReactNode }) => <p className="m-0 mt-1 max-w-150 text-body leading-[1.5] text-ui-3">{children}</p>;
 
 const CLASS_NOTES: Record<ShapeClass, string> = {
   standard: "Landscape up to about 2.4:1: small panels and monitors",
@@ -70,7 +70,7 @@ export function WelcomeStep({ headRef, rerun, narrow, results, onSeeChecks }: We
         <Heading headRef={headRef} large>
           {rerun ? "Run setup again" : "Welcome to InfoPanel Studio"}
         </Heading>
-        <p className="m-0 mt-1.5 max-w-[600px] text-body leading-[1.55] text-ui-2">
+        <p className="m-0 mt-1.5 max-w-150 text-body leading-[1.55] text-ui-2">
           {rerun
             ? "Check the link to InfoPanel again, see your kiosk address, or add a screen. Nothing changes until you finish, and your screens are kept."
             : "Design dashboards for the small screens on and around your PC: USB panels, case screens and bar displays. Studio reads your sensors from InfoPanel, a separate app, so it needs InfoPanel with the Data API installed. It’s already checking that link."}
@@ -99,7 +99,7 @@ export function WelcomeStep({ headRef, rerun, narrow, results, onSeeChecks }: We
         {strip.state === "running" ? (
           <Spinner />
         ) : (
-          <StripIcon className={cn("h-[18px] w-[18px] shrink-0", strip.state === "ok" ? "text-ui-ok" : strip.state === "warn" ? "text-ui-warn" : "text-ui-danger")} strokeWidth={1.75} />
+          <StripIcon className={cn("h-4.5 w-4.5 shrink-0", strip.state === "ok" ? "text-ui-ok" : strip.state === "warn" ? "text-ui-warn" : "text-ui-danger")} strokeWidth={1.75} />
         )}
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="text-body font-medium text-ui-1">{strip.title}</span>
@@ -151,8 +151,8 @@ function Preview({ size, source }: { size: Size; source: SizeSource }) {
   const cls = classNameOf(size);
   return (
     <>
-      <div className="grid h-[166px] w-[196px] shrink-0 place-items-center">
-        <div className="grid place-items-center rounded-[3px] border-[1.5px] border-ui-accent bg-ui-accent/[0.08]" style={{ width: w, height: h }}>
+      <div className="grid h-41.5 w-49 shrink-0 place-items-center">
+        <div className="grid place-items-center rounded-3 border-[1.5px] border-ui-accent bg-ui-accent/[0.08]" style={{ width: w, height: h }}>
           {w > 56 && h > 22 && <span className="font-ui-mono text-micro text-ui-2">{(size.width / size.height).toFixed(2)}:1</span>}
         </div>
       </div>
@@ -211,7 +211,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
             <Ratio className="h-4 w-4 text-ui-3" />
             <span className="text-body font-medium text-ui-1">Custom</span>
           </button>
-          <span className={cn("flex h-[26px] items-center rounded-ui-sm border bg-ui-app", touched && !typed ? "border-ui-danger" : "border-ui-default focus-within:border-ui-accent")}>
+          <span className={cn("flex h-6.5 items-center rounded-ui-sm border bg-ui-app", touched && !typed ? "border-ui-danger" : "border-ui-default focus-within:border-ui-accent")}>
             {(["w", "h"] as const).map((k, i) => (
               <span key={k} className="flex items-center">
                 {i === 1 && (
@@ -225,7 +225,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
                   aria-invalid={touched && !typed}
                   value={custom[k]}
                   onChange={(e) => onCustom({ ...custom, [k]: e.target.value })}
-                  className="h-full w-[50px] bg-transparent text-center font-ui-mono text-micro text-ui-1 outline-none focus-visible:shadow-none"
+                  className="h-full w-12.5 bg-transparent text-center font-ui-mono text-micro text-ui-1 outline-none focus-visible:shadow-none"
                 />
               </span>
             ))}
@@ -284,7 +284,7 @@ export function ScreenStep({ headRef, narrow, size, source, windowSize, custom, 
       ) : (
         <div className="flex items-start gap-5">
           {options}
-          <aside className="sticky top-0 flex w-[240px] shrink-0 flex-col items-center gap-3 rounded-ui-menu border border-ui-subtle bg-ui-panel p-[18px]">
+          <aside className="sticky top-0 flex w-60 shrink-0 flex-col items-center gap-3 rounded-ui-menu border border-ui-subtle bg-ui-panel p-4.5">
             <Preview size={size} source={source} />
           </aside>
         </div>
@@ -419,7 +419,7 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
               <button
                 type="button"
                 onClick={() => setAll(true)}
-                className="flex min-h-[120px] flex-col items-center justify-center gap-1.5 rounded-ui-lg border border-dashed border-ui-strong p-3 text-center hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+                className="flex min-h-30 flex-col items-center justify-center gap-1.5 rounded-ui-lg border border-dashed border-ui-strong p-3 text-center hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
               >
                 <LayoutGrid className="h-4 w-4 text-ui-3" />
                 <span className="text-body font-medium text-ui-1">Browse all {SCREEN_KIT.entries.length} templates</span>
@@ -490,11 +490,11 @@ export function Switch({ label, note, checked, onChange }: { label: string; note
       <span
         aria-hidden
         className={cn(
-          "relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ui-accent forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas]",
+          "relative h-4.5 w-7.5 shrink-0 rounded-full transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ui-accent forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas]",
           checked ? "bg-ui-strong-text forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-ui-control",
         )}
       >
-        <span className={cn("absolute top-[3px] h-3 w-3 rounded-full transition-[left] forced-colors:bg-[color:ButtonText]", checked ? "left-[15px] bg-ui-inverse-fg forced-colors:bg-[color:HighlightText]" : "left-[3px] bg-ui-soft")} />
+        <span className={cn("absolute top-0.75 h-3 w-3 rounded-full transition-[left] forced-colors:bg-[color:ButtonText]", checked ? "left-3.75 bg-ui-inverse-fg forced-colors:bg-[color:HighlightText]" : "left-0.75 bg-ui-soft")} />
       </span>
     </label>
   );

@@ -31,7 +31,7 @@ export function IslandPreview({ profile, skin, bus }: IslandPreviewProps) {
         ref={box}
         role="group"
         aria-label="Island preview"
-        className="relative overflow-hidden rounded-[12px] border border-ui-default bg-ui-chrome"
+        className="relative overflow-hidden rounded-12 border border-ui-default bg-ui-chrome"
         style={{ aspectRatio: profile.width / profile.height }}
       >
         <ScreenThumb profile={profile} />

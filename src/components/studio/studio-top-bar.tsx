@@ -83,10 +83,10 @@ function Breadcrumb(props: StudioTopBarProps) {
     <div className="flex min-w-0 shrink items-center gap-1">
       {!phone && (
         <>
-          <button type="button" onClick={props.onManageScreens} className={cn("h-7 shrink-0 rounded-ui-md px-1.5 text-body text-ui-3 transition-colors hover:text-ui-1 max-[1279px]:hidden", FOCUS_RING)}>
+          <button type="button" onClick={props.onManageScreens} className={cn("h-7 shrink-0 rounded-ui-md px-1.5 text-body text-ui-3 transition-colors hover:text-ui-1 max-xl:hidden", FOCUS_RING)}>
             Screens
           </button>
-          <ChevronRight className="h-4 w-4 shrink-0 text-ui-hint max-[1279px]:hidden" aria-hidden />
+          <ChevronRight className="h-4 w-4 shrink-0 text-ui-hint max-xl:hidden" aria-hidden />
         </>
       )}
       {renaming ? (
@@ -134,8 +134,8 @@ export function StudioTopBar(props: StudioTopBarProps) {
     <header
       data-tauri-drag-region
       className={cn(
-        "flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome pl-4 pr-4 font-ui max-[959px]:h-10 max-[959px]:gap-2 max-[959px]:pl-2 max-[959px]:pr-2",
-        isTauri() && "pr-0 max-[959px]:pr-0"
+        "flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome pl-4 pr-4 font-ui max-bar:h-10 max-bar:gap-2 max-bar:pl-2 max-bar:pr-2",
+        isTauri() && "pr-0 max-bar:pr-0"
       )}
     >
       <Breadcrumb {...props} />
@@ -148,13 +148,13 @@ export function StudioTopBar(props: StudioTopBarProps) {
           title={`Search or run a command (${KEYS.palette})`}
           aria-label="Search or run a command"
           className={cn(
-            "flex h-8 min-w-8 max-w-[300px] flex-1 items-center gap-2 rounded-ui-md border border-ui-strong bg-ui-panel px-2.5 text-body text-ui-3 transition-colors hover:text-ui-1 max-[1279px]:w-8 max-[1279px]:flex-none max-[1279px]:justify-center max-[1279px]:px-0",
+            "flex h-8 min-w-8 max-w-75 flex-1 items-center gap-2 rounded-ui-md border border-ui-strong bg-ui-panel px-2.5 text-body text-ui-3 transition-colors hover:text-ui-1 max-xl:w-8 max-xl:flex-none max-xl:justify-center max-xl:px-0",
             FOCUS_RING
           )}
         >
           <Search className="h-4 w-4 shrink-0" aria-hidden />
-          <span className="min-w-0 flex-1 truncate text-left max-[1279px]:sr-only">Search or run a command</span>
-          <kbd className="rounded-ui-sm border border-ui-strong px-1.5 font-ui-mono text-micro text-ui-hint max-[1279px]:hidden">{KEYS.palette}</kbd>
+          <span className="min-w-0 flex-1 truncate text-left max-xl:sr-only">Search or run a command</span>
+          <kbd className="rounded-ui-sm border border-ui-strong px-1.5 font-ui-mono text-micro text-ui-hint max-xl:hidden">{KEYS.palette}</kbd>
         </button>
       </div>
       {!phone && (
@@ -182,7 +182,7 @@ export function StudioTopBar(props: StudioTopBarProps) {
             )}
           >
             <StatusDot tone={saved.tone} />
-            <span role="status" className="min-w-0 truncate max-[1279px]:sr-only">
+            <span role="status" className="min-w-0 truncate max-xl:sr-only">
               {saved.text}
             </span>
           </button>
@@ -190,9 +190,9 @@ export function StudioTopBar(props: StudioTopBarProps) {
             type="button"
             onClick={props.onExitStudio}
             title="Open kiosk view"
-            className={cn("flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-ui-md border border-ui-strong bg-ui-raised px-3 text-body text-ui-1 transition-colors hover:bg-ui-hover max-[1279px]:w-8 max-[1279px]:justify-center max-[1279px]:px-0", FOCUS_RING)}
+            className={cn("flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-ui-md border border-ui-strong bg-ui-raised px-3 text-body text-ui-1 transition-colors hover:bg-ui-hover max-xl:w-8 max-xl:justify-center max-xl:px-0", FOCUS_RING)}
           >
-            <Play className="h-3.5 w-3.5" aria-hidden /> <span className="max-[1279px]:sr-only">Preview</span>
+            <Play className="h-3.5 w-3.5" aria-hidden /> <span className="max-xl:sr-only">Preview</span>
           </button>
           {props.fileMenu}
         </>

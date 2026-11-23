@@ -65,7 +65,7 @@ export function WizardGallery(p: WizardGalleryProps) {
       {Host && <Host />}
       <div className="flex shrink-0 flex-col gap-3 border-b border-ui-subtle px-5 pb-3 pt-3.5">
         <div className="flex flex-wrap items-center gap-2">
-          <label className="flex h-7 w-[250px] items-center gap-2 rounded-ui-md border border-ui-default bg-ui-raised px-2.5 text-ui-4 focus-within:border-ui-accent">
+          <label className="flex h-7 w-62.5 items-center gap-2 rounded-ui-md border border-ui-default bg-ui-raised px-2.5 text-ui-4 focus-within:border-ui-accent">
             <Search aria-hidden className="h-3.5 w-3.5 shrink-0" />
             <input
               type="search"
@@ -97,7 +97,7 @@ export function WizardGallery(p: WizardGalleryProps) {
                 role="radio"
                 aria-checked={p.sort === k}
                 onClick={() => p.onSort(k)}
-                className={cn("h-[22px] rounded-ui-sm px-2 text-caption", p.sort === k ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1")}
+                className={cn("h-5.5 rounded-ui-sm px-2 text-caption", p.sort === k ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1")}
               >
                 {label}
               </button>
@@ -172,12 +172,12 @@ function Card({ card, p, selected, tabbable }: { card: GalleryCard; p: WizardGal
           {p.thumb(card)}
         </div>
         {selected && (
-          <span aria-hidden className="absolute right-1.5 top-1.5 grid h-[18px] w-[18px] place-items-center rounded-full bg-ui-accent text-ui-inverse-fg">
+          <span aria-hidden className="absolute right-1.5 top-1.5 grid h-4.5 w-4.5 place-items-center rounded-full bg-ui-accent text-ui-inverse-fg">
             <Check className="h-3 w-3" strokeWidth={2.5} />
           </span>
         )}
       </div>
-      <div className="flex min-w-0 flex-col gap-0.5 px-[9px] pb-2 pt-[7px]">
+      <div className="flex min-w-0 flex-col gap-0.5 px-2.25 pb-2 pt-1.75">
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="min-w-0 flex-1 truncate text-caption font-medium text-ui-1">{entry.name}</span>
           <span className="shrink-0 font-ui-mono text-micro text-ui-4">
@@ -187,9 +187,9 @@ function Card({ card, p, selected, tabbable }: { card: GalleryCard; p: WizardGal
         <span className="truncate text-micro text-ui-3" title={entry.blurb}>
           {entry.blurb}
         </span>
-        <div className="mt-[5px] flex min-h-[16px] items-center gap-1.5">
+        <div className="mt-1.25 flex min-h-4 items-center gap-1.5">
           {/* The swatches give way first when the row is short of room: those that would wrap are hidden. */}
-          <div className="flex h-[18px] min-w-0 flex-1 flex-wrap gap-1.5 overflow-hidden p-0.5">
+          <div className="flex h-4.5 min-w-0 flex-1 flex-wrap gap-1.5 overflow-hidden p-0.5">
           {entry.palettes.length > 1 &&
             entry.palettes.map((v) => (
               <button
@@ -209,7 +209,7 @@ function Card({ card, p, selected, tabbable }: { card: GalleryCard; p: WizardGal
             ))}
           </div>
           {tag && (
-            <span className={cn("shrink-0 whitespace-nowrap rounded-[4px] px-[5px] py-px text-nano", card.library ? "bg-ui-accent/15 text-ui-accent-text" : "bg-ui-warn/15 text-ui-warn")}>{tag}</span>
+            <span className={cn("shrink-0 whitespace-nowrap rounded-4 px-1.25 py-px text-nano", card.library ? "bg-ui-accent/15 text-ui-accent-text" : "bg-ui-warn/15 text-ui-warn")}>{tag}</span>
           )}
           {p.badge(card)}
         </div>
@@ -242,7 +242,7 @@ function Skeleton() {
 
 function NoResults({ query, onStartBlank, onClear }: { query: string; onStartBlank: () => void; onClear: () => void }) {
   return (
-    <div className="mx-auto mt-12 flex max-w-[360px] flex-col items-center gap-2 text-center">
+    <div className="mx-auto mt-12 flex max-w-90 flex-col items-center gap-2 text-center">
       <SearchX aria-hidden className="h-7 w-7 text-ui-4" strokeWidth={1.5} />
       <p className="m-0 text-body font-medium text-ui-1">No template matches “{query.trim()}”</p>
       <p className="m-0 text-caption leading-normal text-ui-3">

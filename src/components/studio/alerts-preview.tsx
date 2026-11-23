@@ -38,7 +38,7 @@ export function AlertPreview({ profile, landing, name, text, severity, position,
     <div
       role="img"
       aria-label={`${name} on ${profile.name}`}
-      className="relative mx-auto overflow-hidden rounded-[10px] border border-ui-default bg-ui-chrome"
+      className="relative mx-auto overflow-hidden rounded-10 border border-ui-default bg-ui-chrome"
       style={{ aspectRatio: ratio, width: `min(100%, ${BOX_HEIGHT * ratio}px)` }}
     >
       <ScreenThumb profile={profile} />

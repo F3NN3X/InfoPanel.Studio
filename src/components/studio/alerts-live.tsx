@@ -45,7 +45,7 @@ export function ActiveNow({ active, now, screens }: { active: readonly ActiveAle
         const { icon: Icon, tone, card } = LOOK[a.severity];
         const count = a.profiles?.length || screens;
         return (
-          <article key={a.id} className={cn("flex gap-2.5 rounded-[12px] border p-3.5", card)}>
+          <article key={a.id} className={cn("flex gap-2.5 rounded-12 border p-3.5", card)}>
             <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", tone)} aria-label={a.severity} />
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <div className="flex items-center gap-1.5">

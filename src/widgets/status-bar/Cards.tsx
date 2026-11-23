@@ -26,7 +26,7 @@ function Lines({ label, accent, temp, small, end, u }: { label: string; accent: 
 /** A thin bar that fills to `pct` in the card's accent. */
 function Thin({ pct, color }: { pct: number; color: string }) {
   return (
-    <div className="h-[2px] w-full overflow-hidden rounded-full bg-[color:var(--w-track)]">
+    <div className="h-0.5 w-full overflow-hidden rounded-full bg-[color:var(--w-track)]">
       <div className="h-full w-full origin-left rounded-full transition-transform duration-500" style={{ background: color, transform: `scaleX(${Math.min(1, Math.max(0, pct / 100))})` }} />
     </div>
   );

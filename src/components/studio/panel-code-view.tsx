@@ -60,7 +60,7 @@ export function PanelCodeView({ panel, onApply }: PanelCodeViewProps) {
         spellCheck={false}
         aria-label="Panel JSON"
         aria-invalid={error !== null}
-        className={cn(FIELD, "block h-[260px] w-full resize-y py-1.5 font-ui-mono text-micro leading-relaxed aria-invalid:border-ui-danger")}
+        className={cn(FIELD, "block h-65 w-full resize-y py-1.5 font-ui-mono text-micro leading-relaxed aria-invalid:border-ui-danger")}
       />
       {error && <div className="text-micro text-ui-danger">{error}</div>}
       <div className="flex items-center justify-end gap-2">

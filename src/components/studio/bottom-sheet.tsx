@@ -75,7 +75,7 @@ export function BottomSheet({ snap, onSnap, height, area, selected, drag, onDrag
           onSnap(snap === "peek" ? "half" : snap === "half" ? "full" : "peek");
         }}
       >
-        <span aria-hidden className="h-[5px] w-10 rounded-full bg-ui-control" />
+        <span aria-hidden className="h-1.25 w-10 rounded-full bg-ui-control" />
       </div>
       <div className="flex min-h-0 flex-1">{children}</div>
     </div>

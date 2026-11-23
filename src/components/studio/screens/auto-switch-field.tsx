@@ -34,7 +34,7 @@ export function AutoSwitchField({ value, onCommit }: { value: AutoSwitch | undef
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        className={cn(FIELD, "h-[30px] w-full font-ui-mono text-micro")}
+        className={cn(FIELD, "h-7.5 w-full font-ui-mono text-micro")}
       />
     </StackRow>
   );

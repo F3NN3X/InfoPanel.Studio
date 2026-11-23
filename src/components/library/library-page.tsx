@@ -516,7 +516,7 @@ export default function LibraryPage(p: LibraryPageProps) {
     >
       <PageBar>
         <BarTitle title="Library" note="Everything you’ve saved, beside the built-ins" />
-        <label className="flex h-(--ui-h-field) min-w-[100px] max-w-[520px] flex-1 grow-[4] items-center gap-2 rounded-ui-md border border-ui-default bg-ui-panel px-3 focus-within:border-ui-accent">
+        <label className="flex h-(--ui-h-field) min-w-25 max-w-130 flex-1 grow-[4] items-center gap-2 rounded-ui-md border border-ui-default bg-ui-panel px-3 focus-within:border-ui-accent">
           <Search className="h-4 w-4 shrink-0 text-ui-4" />
           <input
             type="search"
@@ -558,7 +558,7 @@ export default function LibraryPage(p: LibraryPageProps) {
                 className={cn("flex h-full items-center gap-1.5 rounded-ui-md px-2.5 text-body text-ui-3 hover:text-ui-1", view === id && "bg-ui-active text-ui-1")}
               >
                 <Icon className="h-3.5 w-3.5" />
-                <span className="max-[1279px]:sr-only">{label}</span>
+                <span className="max-xl:sr-only">{label}</span>
               </button>
             ))}
           </div>
@@ -570,7 +570,7 @@ export default function LibraryPage(p: LibraryPageProps) {
             setUsedBy(e.target.value);
             setShowFiles(false);
           }}
-          className="h-(--ui-h-field) min-w-[104px] max-w-[200px] shrink truncate whitespace-nowrap rounded-ui-md border border-ui-default bg-ui-panel px-2.5 text-body text-ui-2"
+          className="h-(--ui-h-field) min-w-26 max-w-50 shrink truncate whitespace-nowrap rounded-ui-md border border-ui-default bg-ui-panel px-2.5 text-body text-ui-2"
         >
           <option value="">Used by any screen</option>
           {p.bridge.config.profiles.map((s) => (
@@ -584,10 +584,10 @@ export default function LibraryPage(p: LibraryPageProps) {
           aria-pressed={showFiles}
           onClick={() => setShowFiles((on) => !on)}
           title="The files its canvases use: replace and optimize them"
-          className={cn("flex h-(--ui-h-field) min-w-[88px] max-w-[220px] shrink items-center gap-1.5 rounded-ui-md border border-ui-default px-3 text-body text-ui-1 hover:bg-ui-hover", showFiles && "bg-ui-active")}
+          className={cn("flex h-(--ui-h-field) min-w-22 max-w-55 shrink items-center gap-1.5 rounded-ui-md border border-ui-default px-3 text-body text-ui-1 hover:bg-ui-hover", showFiles && "bg-ui-active")}
         >
           <FolderInput className="h-4 w-4 shrink-0" />
-          <span className="truncate">Canvas files<span className="max-[1279px]:hidden"> · {p.profileName}</span></span>
+          <span className="truncate">Canvas files<span className="max-xl:hidden"> · {p.profileName}</span></span>
         </button>
         <BarFill />
         <AddFilesButton />
@@ -673,7 +673,7 @@ export default function LibraryPage(p: LibraryPageProps) {
                   )}
                 </div>
                 {picked.length > 1 ? (
-                  <aside aria-label="Selection" className="flex w-[320px] shrink-0 flex-col items-center justify-center gap-3 border-l border-ui-subtle bg-ui-panel p-6 text-center text-body text-ui-3 max-sm:w-full">
+                  <aside aria-label="Selection" className="flex w-80 shrink-0 flex-col items-center justify-center gap-3 border-l border-ui-subtle bg-ui-panel p-6 text-center text-body text-ui-3 max-sm:w-full">
                     <ListChecks className="h-5 w-5" />
                     {picked.length} items selected
                     <button
@@ -698,7 +698,7 @@ export default function LibraryPage(p: LibraryPageProps) {
                   )
                 ) : (
                   !narrow && (
-                    <aside className="flex w-[320px] shrink-0 flex-col items-center justify-center gap-2 border-l border-ui-subtle bg-ui-panel p-6 text-center text-body text-ui-4">
+                    <aside className="flex w-80 shrink-0 flex-col items-center justify-center gap-2 border-l border-ui-subtle bg-ui-panel p-6 text-center text-body text-ui-4">
                       <Eye className="h-5 w-5" />
                       Select an item to see it here. Drag a card onto the canvas to place a copy.
                     </aside>

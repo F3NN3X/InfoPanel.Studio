@@ -51,7 +51,7 @@ export function SensorBadge({ fit, noData }: { fit: SensorFit | undefined; noDat
       : `Reads ${fit!.need} sensors, all found on this PC`;
   return (
     <span role="img" title={title} aria-label={title} className={cn("flex shrink-0 items-center gap-1 font-ui-mono text-nano", noData ? "text-ui-4" : missing > 0 ? "text-ui-warn" : "text-ui-3")}>
-      <Radar aria-hidden className="h-[13px] w-[13px]" strokeWidth={1.75} />
+      <Radar aria-hidden className="h-3.25 w-3.25" strokeWidth={1.75} />
       {noData ? "?" : missing > 0 ? `${fit!.found}/${fit!.need}` : fit!.need}
     </span>
   );
@@ -64,7 +64,7 @@ export function BlankPreview({ size, grid }: { size: Size; grid: boolean }) {
   return (
     <div className="absolute inset-[3%] grid gap-[2%]" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
       {Array.from({ length: cols * rows }, (_, i) => (
-        <span key={i} className="rounded-[3px] border border-dashed border-ui-strong" />
+        <span key={i} className="rounded-3 border border-dashed border-ui-strong" />
       ))}
     </div>
   );

@@ -46,7 +46,7 @@ function IconButton({ icon: Icon, label, onClick, disabled }: { icon: LucideIcon
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="grid h-[30px] w-[30px] place-items-center rounded-[7px] border border-ui-default text-ui-3 hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-35"
+      className="grid h-7.5 w-7.5 place-items-center rounded-7 border border-ui-default text-ui-3 hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-35"
     >
       <Icon className="h-4 w-4" strokeWidth={1.75} />
     </button>
@@ -97,7 +97,7 @@ function SharedField({ editor, paths, items, field }: { editor: CanvasEditor; pa
     <label className="block min-w-0">
       <span className="mb-1 block text-micro text-ui-4">{labelOf(field)}</span>
       <span className="flex items-center gap-1.5">
-        {isColor && same && <span aria-hidden className="h-5 w-5 shrink-0 rounded-[5px] border border-ui-default" style={{ background: argbCss(String(values[0])) }} />}
+        {isColor && same && <span aria-hidden className="h-5 w-5 shrink-0 rounded-5 border border-ui-default" style={{ background: argbCss(String(values[0])) }} />}
         <input
           aria-label={labelOf(field)}
           aria-invalid={error !== null}
@@ -115,7 +115,7 @@ function SharedField({ editor, paths, items, field }: { editor: CanvasEditor; pa
           className={cn(INPUT, error ? "border-ui-danger" : "border-ui-default")}
         />
       </span>
-      {error && <p className="mt-1.5 text-[11.5px] leading-snug text-ui-danger">{error}</p>}
+      {error && <p className="mt-1.5 text-label leading-snug text-ui-danger">{error}</p>}
     </label>
   );
 }

@@ -14,9 +14,9 @@ export interface PartsListProps {
 
 export function PartsList({ g, selected, onSelect, set }: PartsListProps) {
   return (
-    <nav aria-label="Parts" className="w-[220px] shrink-0 overflow-y-auto border-r border-ui-subtle bg-ui-panel py-2 font-ui max-[899px]:flex max-[899px]:max-h-[240px] max-[899px]:w-full max-[899px]:border-b max-[899px]:border-r-0">
+    <nav aria-label="Parts" className="w-55 shrink-0 overflow-y-auto border-r border-ui-subtle bg-ui-panel py-2 font-ui max-narrow:flex max-narrow:max-h-60 max-narrow:w-full max-narrow:border-b max-narrow:border-r-0">
       {groupedParts(g.shape).map(({ group, parts }) => (
-        <section key={group} className="pb-2 max-[899px]:w-[200px] max-[899px]:shrink-0">
+        <section key={group} className="pb-2 max-narrow:w-50 max-narrow:shrink-0">
           <h3 className="px-4 pb-1 pt-2 text-caption font-medium text-ui-3">{group}</h3>
           {parts.map((p) => {
             const on = hasPart(g, p.id);
@@ -24,18 +24,18 @@ export function PartsList({ g, selected, onSelect, set }: PartsListProps) {
             return (
               <div
                 key={p.id}
-                className={cn("mx-2 flex h-8 items-center gap-2 rounded-[7px] pl-2 pr-1.5 hover:bg-ui-hover", selected === p.id && "bg-ui-active")}
+                className={cn("mx-2 flex h-8 items-center gap-2 rounded-7 pl-2 pr-1.5 hover:bg-ui-hover", selected === p.id && "bg-ui-active")}
               >
                 <button
                   type="button"
                   aria-current={selected === p.id}
                   onClick={() => onSelect(p.id)}
-                  className={cn("min-w-0 flex-1 truncate text-left text-[12.5px]", on ? "text-ui-1" : "text-ui-3")}
+                  className={cn("min-w-0 flex-1 truncate text-left text-small", on ? "text-ui-1" : "text-ui-3")}
                 >
                   {p.label}
                 </button>
                 {fixed ? (
-                  <span title={`${p.label} is always on`} className="grid h-[18px] w-[30px] shrink-0 place-items-center text-ui-hint">
+                  <span title={`${p.label} is always on`} className="grid h-4.5 w-7.5 shrink-0 place-items-center text-ui-hint">
                     <Lock className="h-3.5 w-3.5" aria-label={`${p.label} is always on`} />
                   </span>
                 ) : (

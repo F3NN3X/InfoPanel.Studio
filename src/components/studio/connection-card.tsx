@@ -46,7 +46,7 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
     <section data-nav-section="connection" aria-label="Connection" className="flex shrink-0 flex-col gap-2 border-b border-ui-subtle p-3.5 font-ui">
       <div className="flex items-center gap-2">
         <span className="flex-1 text-body font-medium text-ui-1">Connection</span>
-        <span className={cn("flex items-center gap-[5px] text-micro", PILL[pill.tone].tone)}>
+        <span className={cn("flex items-center gap-1.25 text-micro", PILL[pill.tone].tone)}>
           <Icon className="h-3.5 w-3.5" aria-hidden />
           {pill.text}
         </span>
@@ -63,7 +63,7 @@ export function ConnectionCard({ value, onChange, dataApi }: ConnectionCardProps
           onBlur={commit}
           onKeyDown={(e) => e.key === "Enter" && commit()}
           spellCheck={false}
-          className={cn(FIELD, "h-[30px] w-full font-ui-mono text-micro", !valid && "border-ui-danger")}
+          className={cn(FIELD, "h-7.5 w-full font-ui-mono text-micro", !valid && "border-ui-danger")}
         />
       </StackRow>
       {!valid && (

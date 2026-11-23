@@ -29,9 +29,9 @@ export default function Achievements(p: AchievementsProps) {
               </span>
               <span className="text-sm text-[color:var(--w-muted)]">{fmt(pct, 0)}%</span>
             </div>
-            <div className="grid min-h-0 gap-[3px]" style={{ gridTemplateColumns: `repeat(${Math.min(tot || 1, Math.max(10, Math.floor(w / 14)))}, minmax(0,1fr))` }}>
+            <div className="grid min-h-0 gap-0.75" style={{ gridTemplateColumns: `repeat(${Math.min(tot || 1, Math.max(10, Math.floor(w / 14)))}, minmax(0,1fr))` }}>
               {Array.from({ length: tot || 0 }, (_, i) => (
-                <span key={i} className="aspect-square rounded-[3px] transition-colors duration-500" style={{ background: i < un ? "var(--w-accent)" : "var(--w-track)" }} />
+                <span key={i} className="aspect-square rounded-3 transition-colors duration-500" style={{ background: i < un ? "var(--w-accent)" : "var(--w-track)" }} />
               ))}
             </div>
             {h > 150 && has(achOf("latest-achievement")) && (

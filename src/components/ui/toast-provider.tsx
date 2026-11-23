@@ -40,7 +40,7 @@ function ToastSlot({ live, toast, arm, dismiss }: { live: "polite" | "assertive"
       onPointerLeave={() => toast && arm(toast.ms)}
       onFocus={() => arm(null)}
       onBlur={() => toast && arm(toast.ms)}
-      className={cn("fixed bottom-[42px] left-1/2 z-[100] -translate-x-1/2", !interactive && "pointer-events-none")}
+      className={cn("fixed bottom-10.5 left-1/2 z-[100] -translate-x-1/2", !interactive && "pointer-events-none")}
     >
       {toast && (
         <div

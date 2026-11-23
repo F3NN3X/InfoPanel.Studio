@@ -254,7 +254,7 @@ export function InsertFilters({
 }) {
   return (
     <div className="space-y-2.5">
-      <label className="flex h-[30px] items-center gap-1.5 rounded-[7px] border border-ui-default bg-ui-app px-2">
+      <label className="flex h-7.5 items-center gap-1.5 rounded-7 border border-ui-default bg-ui-app px-2">
         <Search className="h-4 w-4 shrink-0 text-ui-4" />
         <input
           aria-label="Search the library"
@@ -277,7 +277,7 @@ export function InsertFilters({
             type="button"
             onClick={() => onCategory(c)}
             className={cn(
-              "h-6 rounded-xl border px-[9px] text-micro transition-colors",
+              "h-6 rounded-xl border px-2.25 text-micro transition-colors",
               c === category
                 ? "border-ui-edge bg-ui-active text-ui-1"
                 : "border-ui-default text-ui-soft"

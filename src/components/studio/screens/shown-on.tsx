@@ -119,7 +119,7 @@ export function ShownOn({ screenId, isDefault, isBestFit, kiosks, onChangeDefaul
         type="button"
         disabled={display !== "" && !named}
         onClick={() => copy(screenId, named ? display : undefined)}
-        className="inline-flex h-7 items-center justify-center gap-1.5 self-start rounded-[7px] disabled:opacity-50 border border-ui-strong px-2.5 text-caption text-ui-1 hover:bg-ui-hover"
+        className="inline-flex h-7 items-center justify-center gap-1.5 self-start rounded-7 disabled:opacity-50 border border-ui-strong px-2.5 text-caption text-ui-1 hover:bg-ui-hover"
       >
         <LinkIcon className="h-3.5 w-3.5" />
         Copy kiosk link

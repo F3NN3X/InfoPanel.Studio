@@ -64,9 +64,9 @@ const STATUS_ICON: Record<"ok" | "warn" | "fail" | "skip" | "waiting", { icon: L
 };
 
 export function StatusIcon({ status }: { status: CheckResult["status"] }) {
-  if (status === "checking") return <Spinner className="m-[2px]" />;
+  if (status === "checking") return <Spinner className="m-0.5" />;
   const { icon: Icon, className, label } = STATUS_ICON[status];
-  return <Icon aria-label={label} className={cn("h-[18px] w-[18px] shrink-0", className)} strokeWidth={1.75} />;
+  return <Icon aria-label={label} className={cn("h-4.5 w-4.5 shrink-0", className)} strokeWidth={1.75} />;
 }
 
 /** Plugin chips shown before "n more": the hardware sources and the plugins with the most sensors. */
@@ -81,7 +81,7 @@ export const OUTLINE_BUTTON = cn(BUTTON, "border-ui-strong bg-ui-raised text-ui-
 function ActionButton({ action, primary, onClick, small }: { action: CheckAction; primary: boolean; onClick: () => void; small?: boolean }) {
   const Icon = ACTION_ICON[action.kind];
   return (
-    <button type="button" onClick={onClick} className={cn(primary ? PRIMARY_BUTTON : OUTLINE_BUTTON, small && "h-[26px]")}>
+    <button type="button" onClick={onClick} className={cn(primary ? PRIMARY_BUTTON : OUTLINE_BUTTON, small && "h-6.5")}>
       {Icon && <Icon className="h-3.5 w-3.5" />}
       {action.label}
     </button>
@@ -122,13 +122,13 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
           setToggled(!open);
         }}
       >
-        <span className="mt-px grid h-[18px] w-[18px] shrink-0 place-items-center">
+        <span className="mt-px grid h-4.5 w-4.5 shrink-0 place-items-center">
           <StatusIcon status={status} />
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex items-center gap-1.5">
             <span className={cn("text-body font-medium", status === "skip" || status === "waiting" ? "text-ui-3" : "text-ui-1")}>{title}</span>
-            {fixed && status === "ok" && <span className="rounded-[4px] bg-ui-ok/15 px-[5px] py-px text-nano text-ui-ok">Fixed</span>}
+            {fixed && status === "ok" && <span className="rounded-4 bg-ui-ok/15 px-1.25 py-px text-nano text-ui-ok">Fixed</span>}
             {status === "checking" && elapsed >= 1 && <span className="font-ui-mono text-micro text-ui-4">{elapsed} s</span>}
           </div>
           <span
@@ -147,7 +147,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
                 return (
                   <span
                     key={c.name}
-                    className={cn("inline-flex h-[22px] items-center gap-1.5 rounded-ui-sm border bg-ui-panel px-2 text-micro", zero ? "border-ui-warn/40 text-ui-warn" : "border-ui-strong text-ui-2")}
+                    className={cn("inline-flex h-5.5 items-center gap-1.5 rounded-ui-sm border bg-ui-panel px-2 text-micro", zero ? "border-ui-warn/40 text-ui-warn" : "border-ui-strong text-ui-2")}
                   >
                     <Icon className={cn("h-3 w-3", zero ? "text-ui-warn" : "text-ui-3")} />
                     {c.name}
@@ -156,7 +156,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
                 );
               })}
               {result.chips.length > CHIPS_SHOWN && (
-                <span className="inline-flex h-[22px] items-center rounded-ui-sm border border-ui-strong bg-ui-panel px-2 text-micro text-ui-3">
+                <span className="inline-flex h-5.5 items-center rounded-ui-sm border border-ui-strong bg-ui-panel px-2 text-micro text-ui-3">
                   {result.chips.length - CHIPS_SHOWN} more
                 </span>
               )}
@@ -190,7 +190,7 @@ export function CheckRow({ id, result, address, fixed, elapsed, narrow, first, o
               <ol className="m-0 flex list-none flex-col gap-1.5 p-0">
                 {result.steps.map((s, i) => (
                   <li key={s} className="flex items-start gap-2 text-caption leading-[1.5] text-ui-2">
-                    <span className="mt-px grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-ui-raised font-ui-mono text-micro text-ui-3">{i + 1}</span>
+                    <span className="mt-px grid h-4.5 w-4.5 shrink-0 place-items-center rounded-full bg-ui-raised font-ui-mono text-micro text-ui-3">{i + 1}</span>
                     <span>
                       <Rich text={s} />
                     </span>
@@ -273,7 +273,7 @@ export function AddressBar({ mode, address, invalid, onMode, onAddress, onDefaul
   return (
     <div className="flex flex-col gap-2.5 rounded-ui-menu border border-ui-subtle bg-ui-panel p-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <span className="w-[118px] shrink-0 text-caption text-ui-2">InfoPanel runs on</span>
+        <span className="w-29.5 shrink-0 text-caption text-ui-2">InfoPanel runs on</span>
         <div role="radiogroup" aria-label="InfoPanel runs on" className="flex rounded-ui-md border border-ui-subtle bg-ui-app p-0.5">
           {modes.map((m) => (
             <button
@@ -286,7 +286,7 @@ export function AddressBar({ mode, address, invalid, onMode, onAddress, onDefaul
               onKeyDown={move}
               onClick={() => onMode(m.value)}
               className={cn(
-                "flex h-[26px] items-center gap-1.5 rounded-ui-sm px-2.5 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+                "flex h-6.5 items-center gap-1.5 rounded-ui-sm px-2.5 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
                 mode === m.value ? "bg-ui-raised font-medium text-ui-1" : "text-ui-3 hover:text-ui-1",
               )}
             >
@@ -298,10 +298,10 @@ export function AddressBar({ mode, address, invalid, onMode, onAddress, onDefaul
         <span className="text-micro text-ui-4">{mode === "local" ? "Studio can also read InfoPanel’s settings" : "Only the connection checks run"}</span>
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <label htmlFor="first-run-address" className="w-[118px] shrink-0 text-caption text-ui-2">
+        <label htmlFor="first-run-address" className="w-29.5 shrink-0 text-caption text-ui-2">
           Data API address
         </label>
-        <div className={cn("flex h-[30px] min-w-0 max-w-[380px] flex-1 items-center gap-2 rounded-ui-md border bg-ui-app px-2.5", invalid ? "border-ui-error-edge" : "border-ui-default focus-within:border-ui-accent")}>
+        <div className={cn("flex h-7.5 min-w-0 max-w-95 flex-1 items-center gap-2 rounded-ui-md border bg-ui-app px-2.5", invalid ? "border-ui-error-edge" : "border-ui-default focus-within:border-ui-accent")}>
           <Network className="h-3.5 w-3.5 shrink-0 text-ui-4" />
           <input
             id="first-run-address"

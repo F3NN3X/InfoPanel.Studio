@@ -66,7 +66,7 @@ function Heading({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="absolute inset-x-0 top-8 flex flex-col items-center gap-2 px-6 text-center">
       <div className="text-4xl font-semibold text-zinc-100">{title}</div>
-      <div className="font-mono text-[15px] text-zinc-400">{detail}</div>
+      <div className="font-mono text-title text-zinc-400">{detail}</div>
     </div>
   );
 }
@@ -74,8 +74,8 @@ function Heading({ title, detail }: { title: string; detail: string }) {
 /** A tap target centred at (`left`, `top`) in percent. */
 function Target({ left, top, done }: { left: number; top: number; done?: boolean }) {
   return (
-    <div className="absolute -m-[60px] size-[120px]" style={{ left: `${left}%`, top: `${top}%` }}>
-      {!done && <div className="absolute inset-0 rounded-full border-[3px] border-sky-400 [animation:touch-ripple_1.6s_ease-out_infinite]" />}
+    <div className="absolute -m-15 size-30" style={{ left: `${left}%`, top: `${top}%` }}>
+      {!done && <div className="absolute inset-0 rounded-full border-3 border-sky-400 [animation:touch-ripple_1.6s_ease-out_infinite]" />}
       <div className={done ? "absolute inset-9 rounded-full bg-zinc-600" : "absolute inset-9 rounded-full bg-sky-400"} />
     </div>
   );
@@ -125,7 +125,7 @@ function Calibrate({ name, progress }: { name: string; progress: Progress }) {
       <div className="absolute inset-0 grid place-items-center">
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="text-3xl font-semibold text-zinc-100">Tap the centre of each circle</div>
-          <div className="font-mono text-[15px] text-zinc-400">
+          <div className="font-mono text-title text-zinc-400">
             {name} · {Math.min(next + 1, TARGETS.length)} of {TARGETS.length}
           </div>
         </div>

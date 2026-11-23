@@ -102,7 +102,7 @@ export function MixFader({ value, color, segs, mode, vertical = false, label, on
           />
         </div>
       ) : (
-        <div className={`absolute inset-0 flex gap-[2px] ${vertical ? "flex-col-reverse" : ""}`}>
+        <div className={`absolute inset-0 flex gap-0.5 ${vertical ? "flex-col-reverse" : ""}`}>
           {Array.from({ length: segs }, (_, i) => {
             const on = ((i + 0.5) / segs) * 100 <= shown;
             return <span key={i} className="min-h-0 min-w-0 flex-1 rounded-[1px]" style={{ background: on ? color : dim, opacity: on ? 0.55 + 0.45 * ((i + 1) / segs) : 1 }} />;
@@ -111,7 +111,7 @@ export function MixFader({ value, color, segs, mode, vertical = false, label, on
       )}
       {live && (
       <div
-        className={`pointer-events-none absolute ${knob === "bar" ? "" : knob === "square" ? "rounded-[2px]" : "rounded-full"} bg-white shadow-[0_0_0_2px_rgba(0,0,0,.5)] ${knob === "square" ? "h-3 w-3" : vertical ? `${knob === "notch" ? "left-0 right-0" : "-left-1 -right-1"} h-[3px] -translate-y-1/2` : `${knob === "notch" ? "bottom-0 top-0" : "-bottom-1 -top-1"} w-[3px] -translate-x-1/2`}`}
+        className={`pointer-events-none absolute ${knob === "bar" ? "" : knob === "square" ? "rounded-2" : "rounded-full"} bg-white shadow-[0_0_0_2px_rgba(0,0,0,.5)] ${knob === "square" ? "h-3 w-3" : vertical ? `${knob === "notch" ? "left-0 right-0" : "-left-1 -right-1"} h-0.75 -translate-y-1/2` : `${knob === "notch" ? "bottom-0 top-0" : "-bottom-1 -top-1"} w-0.75 -translate-x-1/2`}`}
         style={knob === "square" ? (vertical ? { bottom: `${shown}%`, left: "50%", transform: "translate(-50%,50%)" } : { left: `${shown}%`, top: "50%", transform: "translate(-50%,-50%)" }) : vertical ? { bottom: `${shown}%`, transform: "translateY(50%)" } : { left: `${shown}%` }}
       />
       )}

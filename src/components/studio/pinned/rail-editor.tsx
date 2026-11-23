@@ -112,7 +112,7 @@ export function RailEditor({ stored, profile, index, pageId, item, appearance, t
   const alone: PinnedEdgeItem = { ...item, edge: side ? item.edge : "left", inset: 0, mode: "room", show: "all", visible: true };
   return (
     <div className="flex min-h-0 flex-1 bg-ui-app font-ui text-ui-1">
-      <aside aria-label="Preview" className="flex w-[180px] shrink-0 flex-col items-center gap-2 overflow-hidden border-r border-ui-subtle py-4">
+      <aside aria-label="Preview" className="flex w-45 shrink-0 flex-col items-center gap-2 overflow-hidden border-r border-ui-subtle py-4">
         <p className="text-caption text-ui-3">{`Preview · ${item.thickness} × ${h}`}</p>
         <div style={{ width: item.thickness * scale, height: h * scale }}>
           <div

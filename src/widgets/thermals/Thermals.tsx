@@ -87,7 +87,7 @@ export default function Thermals(p: ThermalsProps) {
                         <Num className="text-sm font-semibold">{tempOf(x.v)}°</Num>
                       </Ring>
                     </div>
-                    <span className="max-w-[96px] truncate text-micro text-[color:var(--w-muted)]" title={x.label}>
+                    <span className="max-w-24 truncate text-micro text-[color:var(--w-muted)]" title={x.label}>
                       {x.label}
                     </span>
                   </div>
@@ -98,7 +98,7 @@ export default function Thermals(p: ThermalsProps) {
                   {fans.map((r) => (
                     <span key={r.key} className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--w-track)] px-2.5 py-1 text-micro" title={r.label}>
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: p.fanColor || "#38bdf8" }} />
-                      <span className="max-w-[120px] truncate text-[color:var(--w-muted)]">{r.label}</span>
+                      <span className="max-w-30 truncate text-[color:var(--w-muted)]">{r.label}</span>
                       <span className="font-semibold tabular-nums">{r.text}</span>
                     </span>
                   ))}

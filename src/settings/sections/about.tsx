@@ -62,11 +62,11 @@ export function AboutSection() {
 
   return (
     <>
-      <HeroCard className="flex flex-wrap items-center gap-[18px] p-6">
-        <div ref={hero.ref} className={cn("h-[60px] w-[60px] rounded-2xl", hero.className)}>
+      <HeroCard className="flex flex-wrap items-center gap-4.5 p-6">
+        <div ref={hero.ref} className={cn("h-15 w-15 rounded-2xl", hero.className)}>
           <StudioLogo className="h-full w-full" />
         </div>
-        <div className="flex min-w-[140px] flex-1 flex-col gap-1">
+        <div className="flex min-w-35 flex-1 flex-col gap-1">
           <span className="text-display font-medium">InfoPanel Studio</span>
           <span className="text-body text-s-muted">
             Version {info.version} · {capitalize(info.channel)} · built {shortDate(info.buildDate)}
@@ -81,8 +81,8 @@ export function AboutSection() {
       <Group title="System">
         <div className="divide-y divide-s-divider overflow-hidden rounded-xl border border-s-card-line bg-s-card">
           {systemRows(info).map(([k, v]) => (
-            <div key={k} className="flex gap-4 px-[18px] py-[11px] text-body">
-              <span className="w-[140px] shrink-0 text-s-muted">{k}</span>
+            <div key={k} className="flex gap-4 px-4.5 py-2.75 text-body">
+              <span className="w-35 shrink-0 text-s-muted">{k}</span>
               <span className="min-w-0 break-words font-mono text-caption text-s-strong">{v}</span>
             </div>
           ))}
@@ -92,13 +92,13 @@ export function AboutSection() {
       <Group title="Files">
         <div ref={files.ref} className={cn("divide-y divide-s-divider overflow-hidden rounded-xl border border-s-card-line bg-s-card", files.className)}>
           {paths.map(([label, path]) => (
-            <div key={label} className="flex flex-wrap items-center gap-3.5 px-[18px] py-3">
-              <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
+            <div key={label} className="flex flex-wrap items-center gap-3.5 px-4.5 py-3">
+              <div className="flex min-w-35 flex-1 flex-col gap-0.75">
                 <span className="text-body font-medium">{label}</span>
                 <span className="break-all font-mono text-caption text-s-muted">{path}</span>
               </div>
-              <Button className="h-[30px] text-caption" aria-label={`Show ${label}`} onClick={() => void ipc.revealPath(path).catch(fail)}>
-                <FolderOpen className="h-[15px] w-[15px]" />
+              <Button className="h-7.5 text-caption" aria-label={`Show ${label}`} onClick={() => void ipc.revealPath(path).catch(fail)}>
+                <FolderOpen className="h-3.75 w-3.75" />
                 Show
               </Button>
             </div>

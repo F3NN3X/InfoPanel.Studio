@@ -41,7 +41,7 @@ export function StateTile({ tone: name, children }: { tone: ToneName; children: 
 export function HeroCard({ children, id, className }: { children: ReactNode; id?: string; className?: string }) {
   const found = useFound(id);
   return (
-    <div ref={found.ref} className={cn("rounded-[14px] border border-s-card-line bg-s-card", found.className, className)}>
+    <div ref={found.ref} className={cn("rounded-14 border border-s-card-line bg-s-card", found.className, className)}>
       {children}
     </div>
   );

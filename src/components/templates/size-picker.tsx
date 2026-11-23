@@ -20,7 +20,7 @@ export function sideOf(raw: string): number | null {
   return raw.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= MAX_SIDE ? n : null;
 }
 
-export const INPUT = "h-[30px] w-full min-w-0 rounded-ui-md border border-ui-default bg-ui-raised px-2.5 text-body text-ui-1 outline-none focus:border-ui-accent";
+export const INPUT = "h-7.5 w-full min-w-0 rounded-ui-md border border-ui-default bg-ui-raised px-2.5 text-body text-ui-1 outline-none focus:border-ui-accent";
 
 const same = (a: Size, b: Size | undefined) => !!b && a.width === b.width && a.height === b.height;
 
@@ -53,7 +53,7 @@ export function SizePicker({ sized, own, owner, onUseOwn }: SizePickerProps) {
       </div>
       {CLASS_ORDER.map((cls) => (
         <div key={cls} className="flex items-start gap-1">
-          <span className="w-14 shrink-0 pt-[5px] text-micro text-ui-4">{CLASS_NAMES[cls]}</span>
+          <span className="w-14 shrink-0 pt-1.25 text-micro text-ui-4">{CLASS_NAMES[cls]}</span>
           <div className="flex min-w-0 flex-1 flex-wrap gap-1">
             {SIZE_PRESETS.filter((p) => shapeClassOf(p.width, p.height) === cls).map((p) => {
               const on = !invalid && same(p, shown);
@@ -68,7 +68,7 @@ export function SizePicker({ sized, own, owner, onUseOwn }: SizePickerProps) {
                   title={[hint, mine ? "this template’s own size" : undefined].filter(Boolean).join(" · ") || undefined}
                   onClick={() => sized.pick(p)}
                   className={cn(
-                    "flex h-6 items-center gap-1 rounded-ui-sm border px-[7px] font-ui-mono text-micro tabular-nums",
+                    "flex h-6 items-center gap-1 rounded-ui-sm border px-1.75 font-ui-mono text-micro tabular-nums",
                     on ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default bg-ui-raised text-ui-2 hover:bg-ui-hover",
                   )}
                 >
@@ -84,7 +84,7 @@ export function SizePicker({ sized, own, owner, onUseOwn }: SizePickerProps) {
         <span className="w-14 shrink-0 text-micro text-ui-4">Custom</span>
         <div
           className={cn(
-            "flex h-[26px] items-center rounded-ui-sm border",
+            "flex h-6.5 items-center rounded-ui-sm border",
             invalid ? "border-ui-danger" : !preset ? "border-ui-accent bg-ui-accent/10" : "border-ui-default bg-ui-raised focus-within:border-ui-accent",
           )}
         >
@@ -95,7 +95,7 @@ export function SizePicker({ sized, own, owner, onUseOwn }: SizePickerProps) {
             value={sized.w}
             onChange={(e) => sized.onW(e.target.value)}
             onFocus={(e) => e.target.select()}
-            className="h-full w-[46px] bg-transparent text-center font-ui-mono text-micro text-ui-1 outline-none focus-visible:shadow-none"
+            className="h-full w-11.5 bg-transparent text-center font-ui-mono text-micro text-ui-1 outline-none focus-visible:shadow-none"
           />
           <span aria-hidden className="text-nano text-ui-4">×</span>
           <input
@@ -105,7 +105,7 @@ export function SizePicker({ sized, own, owner, onUseOwn }: SizePickerProps) {
             value={sized.h}
             onChange={(e) => sized.onH(e.target.value)}
             onFocus={(e) => e.target.select()}
-            className="h-full w-[46px] bg-transparent text-center font-ui-mono text-micro text-ui-1 outline-none focus-visible:shadow-none"
+            className="h-full w-11.5 bg-transparent text-center font-ui-mono text-micro text-ui-1 outline-none focus-visible:shadow-none"
           />
         </div>
         <span className={cn("ml-1.5 text-micro", invalid ? "text-ui-danger" : "text-ui-4")}>

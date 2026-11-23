@@ -75,7 +75,7 @@ export default function Forecast(p: ForecastProps) {
             <div className="grid h-full items-center gap-1" style={{ gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` }}>
               {fc.slice(0, n).map((f, i) => (
                 <div key={i} className="flex min-w-0 flex-col items-center gap-0.5" title={`${f.cond} · ${f.rain} mm · ${f.wind}`}>
-                  {h >= 34 && <span className="text-micro leading-[14px] text-[color:var(--w-muted)]">{f.day}</span>}
+                  {h >= 34 && <span className="text-micro leading-3.5 text-[color:var(--w-muted)]">{f.day}</span>}
                   <span className="flex min-w-0 items-center gap-1 text-xs leading-4">
                     {glyph(f.cond, "shrink-0 text-base text-[color:var(--w-fg)]")}
                     <span className="truncate tabular-nums">
@@ -94,7 +94,7 @@ export default function Forecast(p: ForecastProps) {
                 <span className="text-micro text-[color:var(--w-muted)]">{f.day}</span>
                 {glyph(f.cond, `${h > 200 ? "text-3xl" : "text-xl"} text-[color:var(--w-fg)]`)}
                 <span className="text-xs font-semibold tabular-nums">{fmt(f.hi, 0)}°</span>
-                {h > 150 && <div className="flex min-h-[16px] flex-1 justify-center">{range(f)}</div>}
+                {h > 150 && <div className="flex min-h-4 flex-1 justify-center">{range(f)}</div>}
                 <span className="text-micro tabular-nums text-[color:var(--w-faint)]">{fmt(f.lo, 0)}°</span>
                 {h > 230 && f.rain > 0 && <span className="text-micro tabular-nums text-sky-300">{fmt(f.rain, 1)} mm</span>}
               </div>

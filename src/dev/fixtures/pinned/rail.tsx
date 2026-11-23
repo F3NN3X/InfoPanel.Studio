@@ -67,7 +67,7 @@ function Badge({ badge }: { badge: NonNullable<RailSlot["badge"]> }) {
   const color = `var(--w-${badge.tone})`;
   if (!badge.text) return <span aria-hidden className="absolute right-1 top-1 h-3 w-3 rounded-full" style={{ background: color, boxShadow: "0 0 0 2px var(--w-card)" }} />;
   return (
-    <span aria-hidden className="absolute -right-1 top-0 rounded px-1 text-[10px] font-bold leading-[14px] tracking-wide" style={{ color, background: "var(--w-card)", boxShadow: `inset 0 0 0 1.5px ${color}` }}>
+    <span aria-hidden className="absolute -right-1 top-0 rounded px-1 text-nano font-bold leading-3.5 tracking-wide" style={{ color, background: "var(--w-card)", boxShadow: `inset 0 0 0 1.5px ${color}` }}>
       {badge.text}
     </span>
   );
@@ -81,7 +81,7 @@ function Glyph({ slot, size }: { slot: RailSlot; size: number }) {
     const Cmp = pageIcon(icon.name);
     return Cmp ? <Cmp aria-hidden size={size * 0.5} strokeWidth={1.75} style={{ color: icon.series ? series(icon.series) : undefined }} /> : null;
   }
-  if (icon.from === "text") return <span className="text-[15px] font-bold">{icon.text}</span>;
+  if (icon.from === "text") return <span className="text-title font-bold">{icon.text}</span>;
   const radius = slot.shape === "circle" ? "9999px" : slot.shape === "rounded" ? "28%" : 0;
   const img: CSSProperties = { width: size * 0.72, height: size * 0.72, borderRadius: radius, objectFit: "cover" };
   // "Tint with theme": the image as a mask filled with the accent, the one colour Studio may add to a user image.
@@ -112,11 +112,11 @@ function SlotButton({ slot, active, edge, children }: { slot: RailSlot; active: 
       }}
     >
       {children ?? <Glyph slot={slot} size={SLOT} />}
-      {slot.label && <span className="max-w-full truncate px-0.5 text-[11px] leading-none">{slot.name}</span>}
+      {slot.label && <span className="max-w-full truncate px-0.5 text-micro leading-none">{slot.name}</span>}
       {slot.badge && <Badge badge={slot.badge} />}
       {named && slot.badge && <span className="sr-only">{`, ${slot.badge.say}`}</span>}
       {/* the active page's marker: a bar in the accent on the rail's outer edge, drawn by the rail so it stays while pages move */}
-      {active && <span aria-hidden className="absolute top-3 bottom-3 w-[3px] rounded-full" style={{ [edge]: -14, background: "var(--w-accent)" }} />}
+      {active && <span aria-hidden className="absolute top-3 bottom-3 w-0.75 rounded-full" style={{ [edge]: -14, background: "var(--w-accent)" }} />}
     </button>
   );
 }
@@ -134,7 +134,7 @@ function ProfileChip({ profile, open }: { profile: RailSpec["profile"]; open: bo
       style={{ width: 68, minHeight: top - 4, background: "color-mix(in oklab, var(--w-fg) 6%, transparent)", boxShadow: open ? "inset 0 0 0 2px var(--w-accent)" : "inset 0 0 0 1px var(--w-edge)" }}
     >
       <span aria-hidden className="h-5 w-5 rounded-md" style={{ background: series(profile.series) }} />
-      <span className="max-w-full truncate px-1 text-[12px] font-semibold leading-none">{profile.name}</span>
+      <span className="max-w-full truncate px-1 text-caption font-semibold leading-none">{profile.name}</span>
     </button>
   );
 }
@@ -167,11 +167,11 @@ function PageLock({ lock }: { lock: "auto" | "locked" }) {
       type="button"
       aria-pressed={lock === "locked"}
       aria-label={lock === "auto" ? "Pages rotate. Tap to stay on this page" : "Stays on this page. Tap to rotate pages"}
-      className="flex h-12 w-[60px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl"
+      className="flex h-12 w-15 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl"
       style={{ color: "var(--w-muted)", boxShadow: "inset 0 0 0 1px var(--w-edge)" }}
     >
       <Cmp aria-hidden size={18} strokeWidth={1.75} />
-      <span className="text-[11px] leading-none">{lock === "auto" ? "Auto" : "Locked"}</span>
+      <span className="text-micro leading-none">{lock === "auto" ? "Auto" : "Locked"}</span>
     </button>
   );
 }
@@ -184,7 +184,7 @@ function RailClock() {
   return (
     <time dateTime={now.toISOString()} className="flex shrink-0 flex-col items-center pb-1 leading-tight">
       <span className="text-[20px] font-semibold tabular-nums">{time}</span>
-      <span className="text-[12px]" style={{ color: "var(--w-muted)" }}>
+      <span className="text-caption" style={{ color: "var(--w-muted)" }}>
         {date}
       </span>
     </time>
@@ -206,7 +206,7 @@ export function RailBody({ spec, picker = false, dense = false }: { spec: RailSp
             s.target.kind === "profile" ? (
               <Logo key={s.id} slot={s} />
             ) : s.target.kind === "widget" ? (
-              <div key={s.id} data-rail-slot={s.id} className="w-[72px] shrink-0" style={{ height: size.widget }}>
+              <div key={s.id} data-rail-slot={s.id} className="w-18 shrink-0" style={{ height: size.widget }}>
                 <ZoneView zone={s.target.zone} style={{ height: "100%" }} />
               </div>
             ) : (

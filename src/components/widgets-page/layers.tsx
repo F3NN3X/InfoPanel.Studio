@@ -349,7 +349,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
                 }}
                 onKeyDown={(e) => onKey(at, block, e)}
                 className={cn(
-                  "group flex h-[34px] w-full cursor-default items-center gap-2 rounded-ui-md pr-2 text-left text-body focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
+                  "group flex h-8.5 w-full cursor-default items-center gap-2 rounded-ui-md pr-2 text-left text-body focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
                   key === primaryKey && !header ? "bg-ui-active text-ui-1" : isSelected ? "bg-ui-accent/12 text-ui-1" : "text-ui-2 hover:bg-ui-raised hover:text-ui-1",
                   mark?.where === "inside" && (mark.why ? "outline outline-1 -outline-offset-1 outline-ui-warn" : "outline outline-1 -outline-offset-1 outline-ui-accent"),
                   dragging?.some((p) => keyOf(p) === key) && "opacity-50",
@@ -398,7 +398,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
                         e.currentTarget.blur();
                       }
                     }}
-                    className="h-[24px] min-w-0 flex-1 rounded-[5px] border border-ui-accent bg-ui-app px-1.5 text-body text-ui-1 outline-none"
+                    className="h-6 min-w-0 flex-1 rounded-5 border border-ui-accent bg-ui-app px-1.5 text-body text-ui-1 outline-none"
                   />
                 ) : (
                   <span className={cn("min-w-0 flex-1 truncate", (flagged(hiddenKeys, at) || around) && "opacity-50")} onDoubleClick={() => at.length && setRenaming(key)}>
@@ -420,7 +420,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
                 {isBound(block) && <Link2 className="h-3.5 w-3.5 shrink-0 text-ui-hint" strokeWidth={1.5} aria-label="Bound to data" />}
               </div>
               {mark && mark.where !== "inside" && (
-                <span aria-hidden className={cn("pointer-events-none absolute right-0 z-10 h-[2px]", mark.why ? "bg-ui-warn" : "bg-ui-accent", mark.where === "above" ? "-top-px" : "-bottom-px")} style={{ left: indentOf(mark.depth) + ICON_AT }} />
+                <span aria-hidden className={cn("pointer-events-none absolute right-0 z-10 h-0.5", mark.why ? "bg-ui-warn" : "bg-ui-accent", mark.where === "above" ? "-top-px" : "-bottom-px")} style={{ left: indentOf(mark.depth) + ICON_AT }} />
               )}
               {at.length === 0 && headerShown && (
                 <div
@@ -449,7 +449,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
                     }
                   }}
                   className={cn(
-                    "mt-0.5 flex h-[34px] w-full cursor-default items-center gap-2 rounded-ui-md pr-2 text-left text-body focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
+                    "mt-0.5 flex h-8.5 w-full cursor-default items-center gap-2 rounded-ui-md pr-2 text-left text-body focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
                     header ? "bg-ui-active text-ui-1" : "text-ui-2 hover:bg-ui-raised hover:text-ui-1",
                   )}
                   style={{ paddingLeft: indentOf(1) }}
@@ -463,7 +463,7 @@ export function Layers({ recipe, path, selected, problems, tile, canPaste, canPa
                 <BackgroundSlot key={`bg ${keyOf(c.path)}`} name={layerName(recipe, c.block)} depth={c.depth + 1} onDrop={() => onAdd(tile, c.path, kidsOf(c.block).length, true)} />
               ))}
               {mark?.why && (
-                <span data-drop-why="" className={cn("pointer-events-none absolute right-1 z-20 max-w-[200px] rounded-[4px] border border-ui-warn bg-ui-panel px-1.5 py-0.5 text-micro leading-tight text-ui-warn", mark.where === "above" ? "bottom-full mb-0.5" : "top-full mt-0.5")}>
+                <span data-drop-why="" className={cn("pointer-events-none absolute right-1 z-20 max-w-50 rounded-4 border border-ui-warn bg-ui-panel px-1.5 py-0.5 text-micro leading-tight text-ui-warn", mark.where === "above" ? "bottom-full mb-0.5" : "top-full mt-0.5")}>
                   {mark.why}
                 </span>
               )}

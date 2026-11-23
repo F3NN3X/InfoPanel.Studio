@@ -90,7 +90,7 @@ export function BoundData({
     <div className="space-y-2">
       <div className="flex min-h-6 items-center gap-2">
         <span className="text-body font-medium text-ui-1">Values</span>
-        {auto && <span className="ml-auto max-w-[200px] truncate rounded-full border border-ui-strong px-2 py-0.5 text-micro text-ui-3">Auto · {auto}</span>}
+        {auto && <span className="ml-auto max-w-50 truncate rounded-full border border-ui-strong px-2 py-0.5 text-micro text-ui-3">Auto · {auto}</span>}
       </div>
       {rows.length === 0 ? (
         <span className="block text-caption text-ui-3">No data bound yet. Change values to make this widget live.</span>
@@ -121,7 +121,7 @@ export function BoundData({
                     onClick={() => unbind(key, panelWidgetId)}
                     aria-label={`Unbind ${point?.name ?? key}`}
                     title="Unbind"
-                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[5px] text-ui-3 hover:bg-ui-hover hover:text-ui-1"
+                    className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-5 text-ui-3 hover:bg-ui-hover hover:text-ui-1"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

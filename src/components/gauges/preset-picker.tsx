@@ -20,8 +20,8 @@ export function PresetPicker({ scope, onPick }: PresetPickerProps) {
       <Popover.Trigger render={<Button icon={<Repeat2 strokeWidth={1.5} />} />}>Change preset</Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={6} className="z-[80]">
-          <Popover.Popup aria-label="Presets" className="w-[372px] rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui shadow-ui-menu outline-none">
-            <div role="group" aria-label="Presets" className="grid max-h-[360px] grid-cols-4 gap-1.5 overflow-y-auto">
+          <Popover.Popup aria-label="Presets" className="w-93 rounded-ui-menu border border-ui-menu bg-ui-raised p-2 font-ui shadow-ui-menu outline-none">
+            <div role="group" aria-label="Presets" className="grid max-h-90 grid-cols-4 gap-1.5 overflow-y-auto">
               {presets.map((p) => (
                 <button
                   key={p.key}
@@ -31,7 +31,7 @@ export function PresetPicker({ scope, onPick }: PresetPickerProps) {
                     onPick(p);
                     setOpen(false);
                   }}
-                  className={cn("flex h-[76px] flex-col items-center justify-center gap-1 rounded-ui-md border border-ui-default bg-ui-app hover:border-ui-menu", FOCUS_RING)}
+                  className={cn("flex h-19 flex-col items-center justify-center gap-1 rounded-ui-md border border-ui-default bg-ui-app hover:border-ui-menu", FOCUS_RING)}
                 >
                   <GaugeView gauge={p.gauge} p={0.65} size={40} scope={scope} />
                   <span className="w-full truncate px-1 text-center text-micro text-ui-3">{p.name}</span>

@@ -37,7 +37,7 @@ export function PlayControls({ playback, className, readout, trail }: PlayContro
         onChange={(e) => playback.scrub(e.currentTarget.valueAsNumber / 100)}
         className="m-0 h-4 min-w-0 flex-1 cursor-pointer accent-[var(--ui-accent)]"
       />
-      <span className={cn("shrink-0 text-right font-ui-mono tabular-nums text-caption text-ui-2", readout ? "min-w-[72px]" : "w-9")}>{readout ?? `${Math.round(playback.p * 100)}%`}</span>
+      <span className={cn("shrink-0 text-right font-ui-mono tabular-nums text-caption text-ui-2", readout ? "min-w-18" : "w-9")}>{readout ?? `${Math.round(playback.p * 100)}%`}</span>
       {trail}
     </div>
   );

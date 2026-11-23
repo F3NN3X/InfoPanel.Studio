@@ -164,7 +164,7 @@ export function GaugeView({ idle, size, w, h, fps, low, low01, ft, hz, maxFps, t
         {facts}
       </div>
       {side && (
-        <div className="w-[26%] max-w-[220px] shrink-0 text-right">
+        <div className="w-[26%] max-w-55 shrink-0 text-right">
           <div className="truncate text-sm font-medium text-[color:var(--w-fg)]">{gpu || "–"}</div>
           <div className="truncate text-micro text-[color:var(--w-faint)]">{[resolution, hz > 0 ? `${fmt(hz)} Hz` : ""].filter(Boolean).join(" · ")}</div>
           {title && <div className="mt-1 truncate text-micro text-[color:var(--w-faint)]">{title}</div>}

@@ -82,8 +82,8 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
   return (
     <div ref={found.ref} className={cn("rounded-xl", found.className)}>
       <Card>
-        <div className="flex flex-wrap items-center gap-3 px-[18px] py-3.5">
-          <div className="flex min-w-40 flex-1 flex-col gap-[3px]">
+        <div className="flex flex-wrap items-center gap-3 px-4.5 py-3.5">
+          <div className="flex min-w-40 flex-1 flex-col gap-0.75">
             <span className="text-lead font-medium">{entry.name}</span>
             <span className={cn("text-caption", LINE_TONE[state === "ready" && !online ? "not-paired" : state])}>{panelLine(state, entry, online)}</span>
             {trouble && <span className="text-caption text-s-muted">{trouble}</span>}
@@ -121,7 +121,7 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
             disabled={!display}
             value={display?.screen ?? DISPLAY_FOLLOW}
             onChange={(e) => display && void postControl("display", { action: "assign", display: display.name, screen: e.target.value })}
-            className="h-[30px] max-w-full cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1 disabled:cursor-default disabled:opacity-50"
+            className="h-7.5 max-w-full cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1 disabled:cursor-default disabled:opacity-50"
           >
             <option value={DISPLAY_FOLLOW}>Follow the default screen</option>
             {dashboardScreens.map((s) => (
@@ -131,7 +131,7 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
             ))}
           </select>
         </Row>
-        <details open={!online} className="group px-[18px] py-3.5">
+        <details open={!online} className="group px-4.5 py-3.5">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-body font-medium">
             <ChevronRight className="h-4 w-4 text-s-dim transition-transform group-open:rotate-90" />
             Show this on the panel's display
@@ -171,7 +171,7 @@ export function PanelCard({ view, entry, index, setKey, steps, screens, displays
           </span>
         </Row>
         <details className="group">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 px-[18px] py-3.5 text-body font-medium">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 px-4.5 py-3.5 text-body font-medium">
             <ChevronRight className="h-4 w-4 text-s-dim transition-transform group-open:rotate-90" />
             Advanced
           </summary>

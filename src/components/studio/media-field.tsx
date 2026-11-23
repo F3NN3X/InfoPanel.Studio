@@ -86,7 +86,7 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
       className={cn("space-y-2 rounded-md", dragging && "outline-2 outline-offset-2 outline-ui-accent outline-dashed")}
     >
       <div>
-        <div className="mb-2 flex min-h-[26px] items-center">
+        <div className="mb-2 flex min-h-6.5 items-center">
           <span className="text-body text-ui-2">{label}</span>
         </div>
         <input
@@ -114,7 +114,7 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
             }}
             className={cn(
               FIELD,
-              "h-[30px] w-full min-w-0",
+              "h-7.5 w-full min-w-0",
               !valid && "border-ui-danger"
             )}
           />
@@ -124,9 +124,9 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
             disabled={busy}
             onClick={() => fileInput.current?.click()}
             title={`Upload ${kind === "image" ? "an image" : "a video"} to the dashboard server (or drop a file here)`}
-            className="flex h-[30px] shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-ui-strong bg-ui-hover px-[9px] text-micro text-ui-1 hover:bg-ui-default disabled:opacity-50"
+            className="flex h-7.5 shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-ui-strong bg-ui-hover px-2.25 text-micro text-ui-1 hover:bg-ui-default disabled:opacity-50"
           >
-            <Upload className="h-[15px] w-[15px]" /> Upload
+            <Upload className="h-3.75 w-3.75" /> Upload
           </button>
           <span className="flex shrink-0">
             {backgrounds ? (

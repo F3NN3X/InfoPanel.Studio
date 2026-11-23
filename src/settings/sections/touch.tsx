@@ -195,9 +195,9 @@ function ScreenRow({ screen }: { screen: Touchscreen }) {
     }
   };
   return (
-    <div className="flex flex-col gap-3 px-[18px] py-3.5">
+    <div className="flex flex-col gap-3 px-4.5 py-3.5">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex min-w-40 flex-1 flex-col gap-[3px]">
+        <div className="flex min-w-40 flex-1 flex-col gap-0.75">
           <span className="text-body font-medium">
             {screen.product ?? "Touchscreen"} <span className="font-mono text-caption text-s-dim">{hex(screen.vid)}:{hex(screen.pid)} · port {shortPort(screen.port)}</span>
           </span>
@@ -234,11 +234,11 @@ function ScreensGroup({ screens, error }: { screens: readonly Touchscreen[] | nu
     <Group title="Touchscreens">
       <div ref={found.ref} className={cn("divide-y divide-s-divider overflow-hidden rounded-xl border border-s-card-line bg-s-card", found.className)}>
         {error ? (
-          <div className="px-[18px] py-3.5 text-caption text-s-red">Could not list USB devices: {error}</div>
+          <div className="px-4.5 py-3.5 text-caption text-s-red">Could not list USB devices: {error}</div>
         ) : !screens ? (
-          <div className="px-[18px] py-3.5 text-caption text-s-muted">Looking for touchscreens…</div>
+          <div className="px-4.5 py-3.5 text-caption text-s-muted">Looking for touchscreens…</div>
         ) : screens.length === 0 ? (
-          <div className="px-[18px] py-3.5 text-caption text-s-muted">No touchscreen found. Plug in the display's touch USB cable; it shows up here by itself, with the steps to set it up.</div>
+          <div className="px-4.5 py-3.5 text-caption text-s-muted">No touchscreen found. Plug in the display's touch USB cable; it shows up here by itself, with the steps to set it up.</div>
         ) : (
           screens.map((s) => <ScreenRow key={s.port} screen={s} />)
         )}
@@ -257,7 +257,7 @@ function KioskGroup({ view, setKey }: { view: TouchView; setKey: SetKey }) {
           <SwitchRow label="Touch dots" hint="Rings under every finger on the kiosk, for demos and recordings" checked={e.touch_dots} onChange={(v) => void setKey("touch_dots", v)} />
           <SwitchRow label="Debug strip" hint="The touch status, the last gesture and the delay from Studio, along the kiosk's bottom edge. A three-finger tap toggles it." checked={e.debug} onChange={(v) => void setKey("debug", v)} />
           <details className="group">
-            <summary className="flex cursor-pointer list-none items-center gap-1.5 px-[18px] py-3.5 text-body font-medium">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 px-4.5 py-3.5 text-body font-medium">
               <ChevronRight className="h-4 w-4 text-s-dim transition-transform group-open:rotate-90" />
               Gesture tuning
             </summary>
@@ -424,11 +424,11 @@ export function TouchSection() {
   return (
     <>
       <div className="overflow-hidden rounded-xl border border-s-card-line bg-s-card">
-        <div ref={found.ref} className={cn("flex items-center gap-4 px-[18px] py-4", found.className)}>
+        <div ref={found.ref} className={cn("flex items-center gap-4 px-4.5 py-4", found.className)}>
           <div className="grid h-9 w-9 place-items-center rounded-ui-menu bg-s-hover text-s-t2">
             <Hand className="h-5 w-5" />
           </div>
-          <div className="flex flex-1 flex-col gap-[3px]">
+          <div className="flex flex-1 flex-col gap-0.75">
             <span className="flex items-center gap-2 text-lead font-medium">
               Touch panels
               <span className="rounded-ui-lg bg-s-amber/14 px-2 py-0.5 text-micro font-normal text-s-amber">Experimental</span>
@@ -450,7 +450,7 @@ export function TouchSection() {
       {enabled && view && (
         <>
           {(view.file_error || view.issues.length > 0) && (
-            <div className="flex flex-col gap-1 rounded-xl border border-s-card-line bg-s-card px-[18px] py-3.5 text-caption">
+            <div className="flex flex-col gap-1 rounded-xl border border-s-card-line bg-s-card px-4.5 py-3.5 text-caption">
               {view.file_error && <span className="text-s-red">touch.json doesn't parse: {view.file_error}</span>}
               {view.issues.map((i) => (
                 <span key={i.message} className={i.level === "error" ? "text-s-red" : "text-s-amber"}>

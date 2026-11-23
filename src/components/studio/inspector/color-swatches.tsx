@@ -56,12 +56,12 @@ export function ColorButton({
       aria-label={`${label}: ${name ?? colorName(value)}`}
       onClick={onClick}
       className={cn(
-        "flex h-7 shrink-0 items-center gap-[7px] rounded-md border bg-ui-hover pl-[9px] pr-1 text-micro text-ui-2",
+        "flex h-7 shrink-0 items-center gap-1.75 rounded-md border bg-ui-hover pl-2.25 pr-1 text-micro text-ui-2",
         open ? "border-ui-accent" : "border-ui-strong hover:border-ui-menu"
       )}
     >
       <span className={cn(!name && !SWATCHES.some((s) => same(s.value, value)) && "font-ui-mono text-micro")}>{name ?? colorName(value)}</span>
-      <span className="h-[18px] w-[18px] rounded-full" style={{ background: swatchBackground(value) }} />
+      <span className="h-4.5 w-4.5 rounded-full" style={{ background: swatchBackground(value) }} />
     </button>
   );
 }
@@ -83,7 +83,7 @@ export function ColorSwatches({
     <div
       role="group"
       aria-label={`${label} swatches`}
-      className={cn("flex flex-wrap items-center gap-[9px] rounded-lg border border-ui-default bg-ui-app px-2.5 py-[9px]", className)}
+      className={cn("flex flex-wrap items-center gap-2.25 rounded-lg border border-ui-default bg-ui-app px-2.5 py-2.25", className)}
     >
       {SWATCHES.map((s) => (
         <button
@@ -93,14 +93,14 @@ export function ColorSwatches({
           aria-label={s.name}
           aria-pressed={same(s.value, value)}
           onClick={() => onChange(s.value)}
-          className={cn("h-[22px] w-[22px] rounded-full", same(s.value, value) && SELECTED_RING)}
+          className={cn("h-5.5 w-5.5 rounded-full", same(s.value, value) && SELECTED_RING)}
           style={{ background: swatchBackground(s.value) }}
         />
       ))}
       <label
         title="Custom color"
         className={cn(
-          "relative flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-full border border-ui-strong text-ui-3 hover:text-ui-1",
+          "relative flex h-5.5 w-5.5 cursor-pointer items-center justify-center rounded-full border border-ui-strong text-ui-3 hover:text-ui-1",
           custom && SELECTED_RING
         )}
         style={custom ? { background: value } : undefined}

@@ -51,7 +51,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
   const updateBadge = update.state === "available" || update.state === "ready";
 
   return (
-    <aside data-narrow className="flex w-[236px] shrink-0 rail:w-14 flex-col border-r border-s-side-line bg-s-side">
+    <aside data-narrow className="flex w-59 shrink-0 rail:w-14 flex-col border-r border-s-side-line bg-s-side">
       <div className="px-3 pb-2.5 pt-3.5 rail:overflow-hidden rail:px-2">
         <SearchBox
           inputRef={input}
@@ -93,7 +93,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
                 >
                   <span className="text-body">{r.label}</span>
                   <span className="flex items-center gap-1 text-caption text-s-dim">
-                    <Icon className="h-[13px] w-[13px]" />
+                    <Icon className="h-3.25 w-3.25" />
                     {PAGE_NAMES[r.section]}
                   </span>
                 </button>
@@ -114,8 +114,8 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
                     onClick={() => go(id)}
                     status={id === "server" ? card.title : id === "diagnostics" && settings.debug ? "Debug is on" : id === "updates" && updateBadge ? "Update available" : undefined}
                   >
-                    {id === "server" && <span aria-hidden="true" className={cn("h-[7px] w-[7px] rounded-full", t.dot)} />}
-                    {id === "diagnostics" && settings.debug && <span aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-s-amber" />}
+                    {id === "server" && <span aria-hidden="true" className={cn("h-1.75 w-1.75 rounded-full", t.dot)} />}
+                    {id === "diagnostics" && settings.debug && <span aria-hidden="true" className="h-1.75 w-1.75 rounded-full bg-s-amber" />}
                     {id === "updates" && updateBadge && (
                       <span aria-hidden="true" className="rounded-full bg-s-accent/18 px-1.5 py-px text-micro font-medium text-s-accent-text">
                         1
@@ -136,7 +136,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
               title="Releases on GitHub"
               className="flex h-(--ui-h-field) w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-body font-medium text-s-t2 no-underline hover:bg-s-nav-hover rail:justify-center rail:px-0"
             >
-              <ExternalLink className="h-[18px] w-[18px] text-s-dim" />
+              <ExternalLink className="h-4.5 w-4.5 text-s-dim" />
               <span className="flex-1 rail:sr-only">Releases on GitHub</span>
             </a>
           </nav>
@@ -155,7 +155,7 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
           onClick={() => void ipc.openHelp(settingsHelpTarget(section)).catch((e) => toast(errorText(e), true))}
           className="flex h-6 cursor-pointer items-center gap-1 rounded-md border-0 bg-transparent px-1.5 text-caption text-s-muted hover:bg-s-nav-hover hover:text-s-t1"
         >
-          <CircleHelp className="h-[14px] w-[14px]" />
+          <CircleHelp className="h-3.5 w-3.5" />
           <span className="rail:sr-only">Help</span>
         </button>
         <span className="text-micro text-s-dim rail:hidden">v{status.appVersion}</span>
@@ -174,12 +174,12 @@ export function RestartBar() {
   if (!barVisible) return null;
   return (
     <div role="status" className="sticky top-0 z-[4] flex min-h-11 items-center gap-3 py-1.5 border-b border-s-bar-line bg-s-bar-bg px-7 max-sm:px-4">
-      <RotateCcw className="h-[18px] w-[18px] shrink-0 text-s-bar-button" />
+      <RotateCcw className="h-4.5 w-4.5 shrink-0 text-s-bar-button" />
       <span className="flex-1 text-body text-s-bar-text">{restartText(pending)}</span>
-      <button type="button" onClick={() => void undoRestart()} className="h-[30px] cursor-pointer rounded-ui-md border border-s-bar-button-line bg-transparent px-3 text-caption text-s-bar-text">
+      <button type="button" onClick={() => void undoRestart()} className="h-7.5 cursor-pointer rounded-ui-md border border-s-bar-button-line bg-transparent px-3 text-caption text-s-bar-text">
         Undo
       </button>
-      <button type="button" aria-label="Restart server" onClick={() => void restartServer()} className="h-[30px] cursor-pointer rounded-ui-md border-0 bg-s-bar-button px-3 text-caption font-medium text-s-bar-button-text">
+      <button type="button" aria-label="Restart server" onClick={() => void restartServer()} className="h-7.5 cursor-pointer rounded-ui-md border-0 bg-s-bar-button px-3 text-caption font-medium text-s-bar-button-text">
         {/* Complementary ranges, so one label shows at any fractional width. */}
         <span className="[@media(width<=800px)]:hidden">Restart server</span>
         <span className="[@media(width>800px)]:hidden">Restart</span>

@@ -97,7 +97,7 @@ const resetThumb = () => {
 };
 
 const DIALOG_BUTTON =
-  "inline-flex h-8 items-center rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-body font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1";
+  "inline-flex h-8 items-center rounded-7 border border-ui-strong bg-ui-raised px-3 text-body font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1";
 
 /** Confirm deleting a page and its zones. */
 function DeleteDialog({
@@ -124,7 +124,7 @@ function DeleteDialog({
             <AlertDialog.Close render={<button type="button" className={DIALOG_BUTTON} />}>Cancel</AlertDialog.Close>
             <button
               type="button"
-              className="inline-flex h-8 items-center rounded-[7px] bg-ui-danger px-3 text-body font-medium text-ui-inverse-fg transition-opacity hover:opacity-90"
+              className="inline-flex h-8 items-center rounded-7 bg-ui-danger px-3 text-body font-medium text-ui-inverse-fg transition-opacity hover:opacity-90"
               onClick={() => {
                 onConfirm();
                 onClose();
@@ -253,7 +253,7 @@ export function PageTabs({
                   openMenu(page.id, e.clientX, e.clientY);
                 }}
                 className={cn(
-                  "group flex h-7 shrink-0 items-center rounded-[7px] transition-colors",
+                  "group flex h-7 shrink-0 items-center rounded-7 transition-colors",
                   active ? "border border-ui-strong bg-ui-raised text-ui-1" : "border border-transparent text-ui-3 hover:bg-ui-hover hover:text-ui-1",
                   drag?.id === page.id && "opacity-50"
                 )}
@@ -300,9 +300,9 @@ export function PageTabs({
                       onDoubleClick={() => onRenamingChange(page.id)}
                       title={thumbProfile ? undefined : `${page.name}: double-click to rename, drag to reorder`}
                       aria-description={thumbProfile ? "Double-click to rename, drag to reorder" : undefined}
-                      className="flex h-7 max-w-44 items-center gap-1.5 rounded-[7px] pl-2.5 pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+                      className="flex h-7 max-w-44 items-center gap-1.5 rounded-7 pl-2.5 pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
                     >
-                      <Icon className="h-[15px] w-[15px] shrink-0" />
+                      <Icon className="h-3.75 w-3.75 shrink-0" />
                       <span className="truncate">{page.name}</span>
                       {kioskPage === page.id && (
                         <Cast aria-label="Shown on the kiosk" className="h-3.5 w-3.5 shrink-0 text-ui-live">

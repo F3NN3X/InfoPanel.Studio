@@ -36,15 +36,15 @@ export function FontLicenceReview({ rows, choices, targets, onChoose }: FontLice
           return (
             <div key={r.hash} className="flex flex-col gap-2 border-b border-ui-subtle px-3.5 py-2.5 last:border-b-0">
               <div className="flex items-center gap-2.5">
-                <span className={cn("h-[7px] w-[7px] rounded-full", LICENCE_DOT[r.verdict])} />
-                <span className="w-[140px] truncate text-body font-medium text-ui-1">{r.family}</span>
+                <span className={cn("h-1.75 w-1.75 rounded-full", LICENCE_DOT[r.verdict])} />
+                <span className="w-35 truncate text-body font-medium text-ui-1">{r.family}</span>
                 <span className="flex-1 truncate text-caption text-ui-3" title={r.reason}>
                   Supplied · {r.file}
                 </span>
                 <span className={cn("text-caption capitalize", LICENCE_TONE[r.verdict])}>{VERDICT_LABEL[r.verdict]}</span>
               </div>
               {r.verdict !== "share" && (
-                <div className="ml-[17px] flex flex-wrap items-center gap-2 self-start">
+                <div className="ml-4.25 flex flex-wrap items-center gap-2 self-start">
                   <div role="radiogroup" aria-label={`${r.family} in the export`} className="flex gap-0.5 rounded-ui-md border border-ui-default bg-ui-raised p-0.5">
                     {buttons.map((c) => (
                       <button
@@ -64,7 +64,7 @@ export function FontLicenceReview({ rows, choices, targets, onChoose }: FontLice
                       aria-label={`Swap ${r.family} for`}
                       value={swap.hash}
                       onChange={(e) => onChoose(r.hash, { swap: options.find((t) => t.hash === e.target.value) ?? swap })}
-                      className="h-[30px] rounded-ui-md border border-ui-default bg-ui-raised px-2 text-caption text-ui-1"
+                      className="h-7.5 rounded-ui-md border border-ui-default bg-ui-raised px-2 text-caption text-ui-1"
                     >
                       {options.map((t) => (
                         <option key={t.hash} value={t.hash}>

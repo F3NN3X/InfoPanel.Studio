@@ -54,8 +54,8 @@ interface ThemeToastRowProps {
 /** The toast row under the preview's header (SPEC §4.4): green dot, title and sub-line, Reset to ‹name›, Make them follow, Undo and ✕. */
 export function ThemeToastRow({ toast, onUndo, onDismiss }: ThemeToastRowProps) {
   return (
-    <div role="status" className="flex w-full items-center gap-3 rounded-ui-menu border border-ui-strong bg-ui-panel px-3 py-[9px] text-body">
-      <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-ui-saved" aria-hidden />
+    <div role="status" className="flex w-full items-center gap-3 rounded-ui-menu border border-ui-strong bg-ui-panel px-3 py-2.25 text-body">
+      <span className="h-1.75 w-1.75 shrink-0 rounded-full bg-ui-saved" aria-hidden />
       <p className="min-w-0 flex-1">
         <b className="font-medium text-ui-1">{toast.title}</b> <span className="text-ui-soft">{toast.sub}</span>
       </p>

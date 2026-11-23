@@ -56,7 +56,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={cn(
             "transition-colors duration-(--ui-dur-fast) ease-ui focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ui-accent",
-            bar ? "rounded-ui-sm px-3.5 py-[5px] text-body" : "rounded-ui-sm px-[9px] py-1 text-caption",
+            bar ? "rounded-ui-sm px-3.5 py-1.25 text-body" : "rounded-ui-sm px-2.25 py-1 text-caption",
             o.value === value ? SEGMENT_ON + " forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]" : SEGMENT_OFF
           )}
         >

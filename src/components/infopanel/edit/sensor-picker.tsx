@@ -56,13 +56,13 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
         >
           <div className="flex shrink-0 flex-col gap-2.5 border-b border-ui-subtle px-4 pb-2.5 pt-3.5">
             <div className="flex items-center justify-between">
-              <Dialog.Title className="text-[14px] font-medium">{title}</Dialog.Title>
+              <Dialog.Title className="text-lead font-medium">{title}</Dialog.Title>
               <Dialog.Close aria-label="Close" className="text-ui-3 hover:text-ui-1">
-                <X className="h-[18px] w-[18px]" />
+                <X className="h-4.5 w-4.5" />
               </Dialog.Close>
             </div>
             <div className="flex h-9 items-center gap-2 rounded-lg border border-ui-accent bg-ui-app px-2.5">
-              <Search className="h-[17px] w-[17px] shrink-0 text-ui-4" />
+              <Search className="h-4.25 w-4.25 shrink-0 text-ui-4" />
               <input
                 autoFocus
                 value={query}
@@ -72,7 +72,7 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
                 className="min-w-0 flex-1 bg-transparent text-body text-ui-1 outline-none placeholder:text-ui-4"
               />
             </div>
-            {noRefs && <p className="text-[11.5px] leading-snug text-ui-warn">{NOT_EXPORTABLE}. A choice binds the preview only.</p>}
+            {noRefs && <p className="text-label leading-snug text-ui-warn">{NOT_EXPORTABLE}. A choice binds the preview only.</p>}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-1">
             {catalog.status === "error" && <p className="px-3 py-6 text-center text-caption text-ui-4">The Data API isn’t reachable, so there are no sensors to choose</p>}
@@ -94,13 +94,13 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
                           aria-selected={p.key === current}
                           title={native ? ref : `${p.key} · ${NOT_EXPORTABLE}`}
                           onClick={() => pick(p)}
-                          className={cn("flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-1.5 text-left hover:bg-s-divider", p.key === current && "bg-ui-accent/10")}
+                          className={cn("flex w-full items-center gap-2.5 rounded-7 px-2.5 py-1.5 text-left hover:bg-s-divider", p.key === current && "bg-ui-accent/10")}
                         >
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[12.5px] text-ui-1">{p.name}</span>
+                            <span className="block truncate text-small text-ui-1">{p.name}</span>
                             <span className="block truncate font-ui-mono text-micro text-ui-4">{native ? ref : `${p.key} · preview only`}</span>
                           </span>
-                          <span className="max-w-[150px] shrink-0 truncate font-ui-mono text-[11.5px] text-ui-2">{p.raw}</span>
+                          <span className="max-w-37.5 shrink-0 truncate font-ui-mono text-label text-ui-2">{p.raw}</span>
                         </button>
                       </li>
                     );

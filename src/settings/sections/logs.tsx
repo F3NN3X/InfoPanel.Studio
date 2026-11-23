@@ -145,7 +145,7 @@ export function LogsSection() {
 
       <div className="flex flex-col overflow-hidden rounded-xl border border-s-card-line bg-s-well">
         {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroller must take focus so the keyboard can scroll it. */}
-        <div ref={viewer} onScroll={onScroll} role="region" aria-label="Log lines" tabIndex={0} className="h-[420px] overflow-auto py-2.5 font-mono text-caption leading-[1.7]" data-testid="log-viewer">
+        <div ref={viewer} onScroll={onScroll} role="region" aria-label="Log lines" tabIndex={0} className="h-105 overflow-auto py-2.5 font-mono text-caption leading-[1.7]" data-testid="log-viewer">
           <div className="w-max min-w-full">
             {visible.map((l) => (
               <div key={l.id} className="flex items-baseline gap-3 whitespace-pre px-3.5 hover:bg-s-card">
@@ -174,11 +174,11 @@ export function LogsSection() {
             {unreadable ? "Can't read the log. It will keep trying." : `${visible.length} of ${buffer.lines.length} lines${settings.debug ? "" : " · debug lines hidden (debug mode off)"}`}
           </span>
           <Button className="h-7 text-caption" onClick={() => void copy()}>
-            {copied ? <Check className="h-[15px] w-[15px]" /> : <Copy className="h-[15px] w-[15px]" />}
+            {copied ? <Check className="h-3.75 w-3.75" /> : <Copy className="h-3.75 w-3.75" />}
             {copied ? "Copied" : "Copy"}
           </Button>
           <Button className="h-7 text-caption" disabled={!buffer.file} onClick={() => void ipc.revealPath(buffer.file as string).catch((e) => toast(errorText(e), true))}>
-            <FolderOpen className="h-[15px] w-[15px]" />
+            <FolderOpen className="h-3.75 w-3.75" />
             Open file
           </Button>
         </div>

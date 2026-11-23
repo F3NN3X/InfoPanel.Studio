@@ -45,7 +45,7 @@ interface SheetViewProps {
   advanced: boolean;
 }
 
-const BUTTON = "flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-ui-3 hover:bg-s-nav-on hover:text-ui-1";
+const BUTTON = "flex h-11 w-11 shrink-0 items-center justify-center rounded-10 text-ui-3 hover:bg-s-nav-on hover:text-ui-1";
 
 /** A 44 px button that opens the full inspector. */
 function AllSettings({ onClick }: { onClick: () => void }) {
@@ -76,7 +76,7 @@ function Tile({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "relative flex h-[60px] w-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-[10px] border text-micro font-medium [&>svg]:h-5 [&>svg]:w-5",
+        "relative flex h-15 w-18 shrink-0 flex-col items-center justify-center gap-1 rounded-10 border text-micro font-medium [&>svg]:h-5 [&>svg]:w-5",
         active ? "border-ui-accent/60 bg-ui-accent/[.14] text-ui-1" : "border-ui-default text-ui-3 hover:text-ui-1"
       )}
     >
@@ -154,7 +154,7 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center gap-2.5 pl-4 pr-2">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-s-divider text-ui-accent-icon [&>svg]:h-[19px] [&>svg]:w-[19px]">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-s-divider text-ui-accent-icon [&>svg]:h-4.75 [&>svg]:w-4.75">
           {identity.icon}
         </span>
         <div className="min-w-0 flex-1">

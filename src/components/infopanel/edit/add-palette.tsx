@@ -32,7 +32,7 @@ interface AddPaletteProps {
 }
 
 const BUTTON =
-  "flex h-8 min-w-0 items-center gap-2 rounded-[7px] px-2 text-left text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+  "flex h-8 min-w-0 items-center gap-2 rounded-7 px-2 text-left text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 function AddButton({ add, icon: Icon, label, title, onAdd }: { add: AddEntry; icon: LucideIcon; label: string; title: string; onAdd: (entry: AddEntry) => void }) {
   return (

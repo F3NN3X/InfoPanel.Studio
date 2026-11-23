@@ -44,7 +44,7 @@ export interface IslandTabProps {
 }
 
 const FOLLOW = "rounded-sm text-micro text-ui-accent-text hover:underline";
-const CARD = "flex min-w-0 flex-1 flex-col gap-2 rounded-[14px] border border-ui-default bg-ui-panel p-4";
+const CARD = "flex min-w-0 flex-1 flex-col gap-2 rounded-14 border border-ui-default bg-ui-panel p-4";
 
 /** The bus source of the preview's notices: the kiosk never hears them. */
 const PREVIEW_SOURCE = "preview";

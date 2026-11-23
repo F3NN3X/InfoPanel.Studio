@@ -65,7 +65,7 @@ export function Gauge({
           >
             {value !== undefined ? value : "—"}
             {unit && value !== undefined && (
-              <span className="ml-0.5 text-[10px] text-muted-foreground">
+              <span className="ml-0.5 text-nano text-muted-foreground">
                 {unit}
               </span>
             )}

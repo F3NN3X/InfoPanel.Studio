@@ -16,7 +16,7 @@ const TYPE_ICON: Record<PointType, LucideIcon> = {
 /** A point's type icon; a link that points at an image takes the picture icon. */
 export function TypeIcon({ type, image, className }: { type: PointType; image?: boolean; className?: string }) {
   const Icon = image ? Image : TYPE_ICON[type];
-  return <Icon className={cn("h-[13px] w-[13px] shrink-0 text-ui-4", className)} aria-hidden />;
+  return <Icon className={cn("h-3.25 w-3.25 shrink-0 text-ui-4", className)} aria-hidden />;
 }
 
 export const HEALTH_LABEL: Record<Health, string> = {

@@ -39,7 +39,7 @@ export function SensorSummary({ kind, fit, noData, children }: SensorSummaryProp
   const dot = noData ? "bg-ui-4" : fit.found < fit.need ? "bg-ui-warn" : "bg-ui-ok";
   const line = (
     <>
-      <span aria-hidden className={cn("h-[7px] w-[7px] shrink-0 rounded-full", dot)} />
+      <span aria-hidden className={cn("h-1.75 w-1.75 shrink-0 rounded-full", dot)} />
       <span className="flex min-w-0 flex-1 flex-col text-left">
         <span className="truncate text-caption text-ui-1">{title}</span>
         <span className="truncate text-micro text-ui-3">{note}</span>
@@ -59,7 +59,7 @@ export function SensorSummary({ kind, fit, noData, children }: SensorSummaryProp
       ) : (
         <div className="flex items-center gap-2.5 bg-ui-raised px-2.5 py-2">{line}</div>
       )}
-      {canOpen && open && <div className="max-h-[220px] overflow-y-auto border-t border-ui-default px-2.5 py-2">{children}</div>}
+      {canOpen && open && <div className="max-h-55 overflow-y-auto border-t border-ui-default px-2.5 py-2">{children}</div>}
     </div>
   );
 }

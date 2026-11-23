@@ -84,7 +84,7 @@ export function Heatmap({ weeks, fit, color, todayKey }: { weeks: HeatCell[][]; 
               <span
                 key={c.day}
                 title={c.future ? undefined : `${c.day}: ${shortTokens(c.v)} tokens`}
-                className="rounded-[3px]"
+                className="rounded-3"
                 style={{
                   width: cell,
                   height: cell,

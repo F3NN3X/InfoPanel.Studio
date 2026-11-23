@@ -16,9 +16,9 @@ import { previewProfile, type ThemeException } from "./theme-exceptions";
 import { previewFit } from "./theme-view-model";
 
 const BUTTON =
-  "h-7 shrink-0 rounded-[7px] border border-ui-strong px-[11px] text-body text-ui-1 transition-colors hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+  "h-7 shrink-0 rounded-7 border border-ui-strong px-2.75 text-body text-ui-1 transition-colors hover:bg-ui-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 const ZOOM_BUTTON = "h-7 w-7 rounded-md text-ui-2 hover:bg-ui-default";
-const ZOOM_TEXT = "h-[26px] rounded-md px-[9px] text-micro font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+const ZOOM_TEXT = "h-6.5 rounded-md px-2.25 text-micro font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 const LINK = "shrink-0 rounded-sm text-body hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
 
 /** The share of the window's height the preview may take before it scrolls. */
@@ -123,7 +123,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
     <section aria-label="Preview" className="flex w-full min-w-0 flex-col gap-3.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 className="sr-only">Preview</h2>
-        <div role="group" aria-label="Page to preview" className="flex gap-0.5 rounded-[7px] border border-ui-strong bg-ui-panel p-0.5">
+        <div role="group" aria-label="Page to preview" className="flex gap-0.5 rounded-7 border border-ui-strong bg-ui-panel p-0.5">
           {profile.pages.map((pg) => (
             <button
               key={pg.id}
@@ -134,7 +134,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
                 onPage(pg.id);
               }}
               className={cn(
-                "rounded-[5px] px-2.5 py-1 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+                "rounded-5 px-2.5 py-1 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
                 pg.id === page.id ? SEGMENT_ON : SEGMENT_OFF
               )}
             >
@@ -149,9 +149,9 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
             type="button"
             aria-pressed={tags}
             onClick={() => setTags((t) => !t)}
-            className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-ui-accent/40 bg-ui-accent-soft px-[9px] py-1 text-caption text-ui-accent-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+            className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-ui-accent/40 bg-ui-accent-soft px-2.25 py-1 text-caption text-ui-accent-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
           >
-            <span className="h-[7px] w-[7px] rounded-full bg-ui-blue" aria-hidden />
+            <span className="h-1.75 w-1.75 rounded-full bg-ui-blue" aria-hidden />
             {foreign ? "Differences show on the page you edit" : differencesPill(diffs.size, tags)}
           </button>
         )}
@@ -202,7 +202,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
               {compare && <figcaption className="text-caption text-ui-3">Preview</figcaption>}
               <div
                 ref={drawn}
-                className="relative mx-auto overflow-hidden rounded-[10px] bg-s-well ring-1 ring-ui-strong"
+                className="relative mx-auto overflow-hidden rounded-10 bg-s-well ring-1 ring-ui-strong"
                 style={{ width: profile.width * scale, height: profile.height * scale }}
               >
                 <div className="pointer-events-none absolute left-0 top-0 origin-top-left" style={{ scale: String(scale) }} inert>
@@ -236,7 +236,7 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
                       style={{ left: b.left, top: b.top, width: b.width, height: b.height }}
                     >
                       {tags && d && (
-                        <span className="absolute -right-[7px] -top-[7px] whitespace-nowrap rounded-full bg-ui-blue px-[7px] py-0.5 text-nano font-medium text-white shadow-[0_0_0_2px_#09090b]">
+                        <span className="absolute -right-1.75 -top-1.75 whitespace-nowrap rounded-full bg-ui-blue px-1.75 py-0.5 text-nano font-medium text-white shadow-[0_0_0_2px_#09090b]">
                           ✎ {d.exceptions[0].card.title}
                           {d.exceptions.length > 1 ? ` +${d.exceptions.length - 1}` : ""}
                         </span>
@@ -250,8 +250,8 @@ export function ThemePreview({ config, at, profile, page, onPage, levelName, dif
         )}
       </div>
       {zone ? (
-        <div className="flex flex-wrap items-center gap-4 rounded-[10px] border border-ui-strong bg-ui-panel px-4 py-3.5">
-          <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+        <div className="flex flex-wrap items-center gap-4 rounded-10 border border-ui-strong bg-ui-panel px-4 py-3.5">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.75">
             <p className="truncate text-lead font-medium text-ui-1">
               {zoneName(zone)} <span className="font-normal text-ui-hint">· widget on {page.name}</span>
             </p>

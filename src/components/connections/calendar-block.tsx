@@ -39,10 +39,10 @@ export function CalendarBlock({ stored, onSave }: CalendarBlockProps) {
         </p>
       )}
       <StackRow label="Add an ICS link" hint="Google: Settings › your calendar › Secret address in iCal format. Outlook: Publish calendar › ICS. Saved on the dashboard server only.">
-        <input aria-label="Calendar link" type="url" autoComplete="off" value={url} placeholder="https://…/basic.ics" onChange={(e) => setUrl(e.target.value)} className={cn(FIELD, "h-[30px] w-full")} />
+        <input aria-label="Calendar link" type="url" autoComplete="off" value={url} placeholder="https://…/basic.ics" onChange={(e) => setUrl(e.target.value)} className={cn(FIELD, "h-7.5 w-full")} />
       </StackRow>
       <div className="flex gap-2">
-        <input aria-label="Calendar name" value={label} placeholder="Name (optional)" onChange={(e) => setLabel(e.target.value)} className={cn(FIELD, "h-[30px] min-w-0 flex-1")} />
+        <input aria-label="Calendar name" value={label} placeholder="Name (optional)" onChange={(e) => setLabel(e.target.value)} className={cn(FIELD, "h-7.5 min-w-0 flex-1")} />
         <button
           type="button"
           className={BUTTON}

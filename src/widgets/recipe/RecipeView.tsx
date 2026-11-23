@@ -403,7 +403,7 @@ function SparkView({ b }: { b: Extract<Block, { type: "sparkline" }> }) {
   const history = useHistory(Array.isArray(r.raw) ? Number.NaN : r.value, window);
   const values = Array.isArray(r.raw) ? (r.raw as number[]) : history;
   const ink = inkOf(b.color, r.value, b.thresholds, ctx);
-  return <Spark values={values} min={b.min} max={b.max} color={ink.color ?? (ink.t !== "ok" ? TONES[ink.t] : undefined)} graph={b.style ?? "area"} fill={b.style !== "line"} grid={false} className={`h-full min-h-[12px] w-full ${b.opacity ? FADE[b.opacity] : ""}`.trim()} />;
+  return <Spark values={values} min={b.min} max={b.max} color={ink.color ?? (ink.t !== "ok" ? TONES[ink.t] : undefined)} graph={b.style ?? "area"} fill={b.style !== "line"} grid={false} className={`h-full min-h-3 w-full ${b.opacity ? FADE[b.opacity] : ""}`.trim()} />;
 }
 
 function ValueView({ b }: { b: Extract<Block, { type: "value" }> }) {
@@ -499,9 +499,9 @@ function HeatmapView({ b }: { b: Extract<Block, { type: "heatmap" }> }) {
   const hi = b.max ?? Math.max(...list.filter(Number.isFinite), 1);
   const columns = b.columns ?? list.length;
   return (
-    <div className={`grid h-full w-full gap-[2px] ${b.opacity ? FADE[b.opacity] : ""}`.trim()} style={{ gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))` }}>
+    <div className={`grid h-full w-full gap-0.5 ${b.opacity ? FADE[b.opacity] : ""}`.trim()} style={{ gridTemplateColumns: `repeat(${Math.max(1, columns)}, minmax(0, 1fr))` }}>
       {list.map((v, k) => (
-        <span key={k} className="min-h-[6px] rounded-[2px]" style={{ background: Number.isFinite(v) ? (b.color?.startsWith("series-") ? seriesInk(Number(b.color.slice(7)), ctx) : heat(((v - lo) / (hi - lo || 1)) * 100)) : "var(--w-track)", opacity: b.color?.startsWith("series-") ? 0.35 + 0.65 * ((v - lo) / (hi - lo || 1)) : undefined }} />
+        <span key={k} className="min-h-1.5 rounded-2" style={{ background: Number.isFinite(v) ? (b.color?.startsWith("series-") ? seriesInk(Number(b.color.slice(7)), ctx) : heat(((v - lo) / (hi - lo || 1)) * 100)) : "var(--w-track)", opacity: b.color?.startsWith("series-") ? 0.35 + 0.65 * ((v - lo) / (hi - lo || 1)) : undefined }} />
       ))}
     </div>
   );

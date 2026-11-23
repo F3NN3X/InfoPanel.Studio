@@ -43,7 +43,7 @@ export function IconGrid({ icons, value, onChange, columns = 5, label, className
             title={i.label}
             onClick={() => onChange(i.id)}
             className={cn(
-              "flex h-[30px] items-center justify-center rounded-md border focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ui-accent text-ui-3 transition-colors [&>svg]:h-4 [&>svg]:w-4",
+              "flex h-7.5 items-center justify-center rounded-md border focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ui-accent text-ui-3 transition-colors [&>svg]:h-4 [&>svg]:w-4",
               selected
                 ? "border-ui-accent bg-ui-accent-soft text-ui-accent-text"
                 : "border-ui-default bg-ui-app hover:bg-ui-hover hover:text-ui-1"

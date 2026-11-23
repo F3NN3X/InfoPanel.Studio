@@ -68,14 +68,14 @@ export function Switch({ checked, onChange, label, disabled }: SwitchProps) {
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-[22px] w-[38px] shrink-0 cursor-pointer rounded-full border-0 p-0 transition-colors duration-150 disabled:cursor-default disabled:opacity-50",
+        "relative h-5.5 w-9.5 shrink-0 cursor-pointer rounded-full border-0 p-0 transition-colors duration-150 disabled:cursor-default disabled:opacity-50",
         "forced-colors:forced-color-adjust-none forced-colors:border forced-colors:border-[color:ButtonText] forced-colors:bg-[color:Canvas] disabled:forced-colors:border-[color:GrayText]",
         checked ? "bg-s-strong forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight]" : "bg-s-track-line"
       )}
     >
       <span
         className={cn(
-          "absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-s-t1 transition-transform duration-150",
+          "absolute left-0.75 top-0.75 h-4 w-4 rounded-full bg-s-t1 transition-transform duration-150",
           "forced-colors:bg-[color:ButtonText]",
           checked && "translate-x-4 bg-s-on-accent forced-colors:bg-[color:HighlightText]"
         )}
@@ -123,7 +123,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
     buttons?.[options.indexOf(next)]?.focus();
   };
   return (
-    <div role="radiogroup" aria-label={label} className={cn("flex gap-0.5 rounded-ui-menu border border-s-track-line bg-s-win p-[3px]", className)}>
+    <div role="radiogroup" aria-label={label} className={cn("flex gap-0.5 rounded-ui-menu border border-s-track-line bg-s-win p-0.75", className)}>
       {options.map((o) => {
         const on = o.value === value;
         return (
@@ -140,7 +140,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
             }}
             className={cn(
               "cursor-pointer rounded-md border-0 text-caption font-medium transition-colors",
-              size === "lg" ? "h-[30px] px-3.5" : "h-[26px] px-2.5 text-caption",
+              size === "lg" ? "h-7.5 px-3.5" : "h-6.5 px-2.5 text-caption",
               stretch && "flex-1 px-0",
               mono && "font-mono",
               on ? "bg-s-seg-on text-s-t1 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]" : "bg-transparent text-s-muted hover:text-s-t1"
@@ -199,9 +199,9 @@ export function Row({ id, label, hint, hintClass, hintAlert, children }: RowProp
       role="group"
       aria-labelledby={`${uid}-label`}
       aria-describedby={hint ? `${uid}-hint` : undefined}
-      className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 px-[18px] py-3.5", found.className)}
+      className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 px-4.5 py-3.5", found.className)}
     >
-      <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
+      <div className="flex min-w-35 flex-1 flex-col gap-0.75">
         {/* Clicking the label works the row's control, as a <label for> would. The control is passed as children and has no id to point at. */}
         <span
           id={`${uid}-label`}
@@ -242,7 +242,7 @@ export function SelectRow({ id, label, hint, options, value, onChange }: Omit<Ro
       <select
         aria-label={label}
         title={selectedLabel(options, value)}
-        className="h-[30px] max-w-full cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
+        className="h-7.5 max-w-full cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-caption text-s-t1"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
@@ -270,12 +270,12 @@ interface PageColumnProps {
  */
 export function PageColumn({ title, subtitle, wide, children }: PageColumnProps) {
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-[1040px] flex-col gap-7 px-8 pb-20 pt-8 max-sm:px-4">
-      <div className="flex max-w-[780px] flex-col gap-1.5">
+    <div className="mx-auto flex w-full min-w-0 max-w-260 flex-col gap-7 px-8 pb-20 pt-8 max-sm:px-4">
+      <div className="flex max-w-195 flex-col gap-1.5">
         <h1 className="m-0 text-display font-medium">{title}</h1>
         <p className="m-0 text-pretty text-body leading-normal text-s-muted">{subtitle}</p>
       </div>
-      <div className={cn("flex min-w-0 flex-col gap-7", !wide && "max-w-[780px]")}>{children}</div>
+      <div className={cn("flex min-w-0 flex-col gap-7", !wide && "max-w-195")}>{children}</div>
     </div>
   );
 }

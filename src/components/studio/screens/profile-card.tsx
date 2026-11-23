@@ -16,7 +16,7 @@ export function Badge({ children, tone = "plain", title }: { children: ReactNode
     <span
       title={title}
       className={cn(
-        "inline-flex h-[18px] items-center whitespace-nowrap rounded px-1.5 text-micro leading-none",
+        "inline-flex h-4.5 items-center whitespace-nowrap rounded px-1.5 text-micro leading-none",
         tone === "plain" && "bg-ui-hover text-ui-3",
         tone === "accent" && "bg-ui-accent-soft text-ui-accent-text",
         tone === "live" && "bg-ui-ok/12 text-ui-ok"
@@ -66,7 +66,7 @@ export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thu
       onContextMenu={context.onContextMenu}
       className="group flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-ui-lg border border-ui-default bg-ui-panel transition-colors duration-(--ui-dur-fast) ease-ui hover:border-ui-hover-edge"
     >
-      <div className="relative h-[150px] border-b border-ui-subtle bg-ui-chrome">
+      <div className="relative h-37.5 border-b border-ui-subtle bg-ui-chrome">
         <button type="button" aria-label={label} className={cn("grid h-full w-full place-items-center p-3.5", FOCUS_RING, "focus-visible:-outline-offset-2")}>
           <div className="overflow-hidden rounded-ui-sm border border-ui-strong bg-s-well" style={previewBox(aspect)}>
             {thumb}
@@ -102,4 +102,4 @@ export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thu
 
 /** A footer button of a card. */
 export const CARD_BUTTON =
-  "inline-flex h-7 items-center gap-1.5 rounded-[7px] px-2 text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent disabled:pointer-events-none disabled:text-ui-hint";
+  "inline-flex h-7 items-center gap-1.5 rounded-7 px-2 text-caption text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent disabled:pointer-events-none disabled:text-ui-hint";

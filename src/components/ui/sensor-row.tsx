@@ -29,7 +29,7 @@ interface SparklineProps {
 /** A 72 × 20 line chart of the last 60 s; grey, accent only on the selected row. */
 export function Sparkline({ samples, label, selected, className }: SparklineProps) {
   return (
-    <svg role="img" aria-label={label} viewBox="0 0 72 20" preserveAspectRatio="none" className={cn("h-5 w-[72px] shrink-0 overflow-visible", className)}>
+    <svg role="img" aria-label={label} viewBox="0 0 72 20" preserveAspectRatio="none" className={cn("h-5 w-18 shrink-0 overflow-visible", className)}>
       <polyline points={sparkPoints(samples, 72, 20)} fill="none" strokeWidth={1} vectorEffect="non-scaling-stroke" className={selected ? "stroke-ui-accent" : "stroke-ui-source"} />
     </svg>
   );
@@ -58,7 +58,7 @@ export function SensorRow({ icon, name, sensorKey, samples, value, unit, selecte
         <span className="block truncate font-ui-mono text-micro text-ui-hint">{sensorKey}</span>
       </span>
       <Sparkline samples={samples} label={sparkSummary(name, samples, unit)} selected={selected} />
-      <span className="w-[72px] shrink-0 text-right font-ui-mono text-body tabular-nums text-ui-1">
+      <span className="w-18 shrink-0 text-right font-ui-mono text-body tabular-nums text-ui-1">
         {value}
         {unit && <span className="text-ui-hint"> {unit}</span>}
       </span>

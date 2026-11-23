@@ -136,12 +136,12 @@ function TemplateRows({ g, set }: InspectorProps) {
       <button
         type="button"
         onClick={() => file.current?.click()}
-        className="flex h-[30px] w-full items-center justify-center rounded-[7px] border border-ui-default text-[12.5px] text-ui-1 hover:bg-ui-hover"
+        className="flex h-7.5 w-full items-center justify-center rounded-7 border border-ui-default text-small text-ui-1 hover:bg-ui-hover"
       >
         Replace SVG… ({kb(g.template?.length ?? 0)})
       </button>
       <input ref={file} type="file" accept=".svg,image/svg+xml" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void load(f); }} />
-      <p className="text-[11.5px] leading-snug text-ui-4">
+      <p className="text-label leading-snug text-ui-4">
         Reads <code className="font-ui-mono">var(--value)</code> (0–1) and <code className="font-ui-mono">var(--percent)</code> (0–100) on the root element. CSS and SMIL animations keep running; scripts and outside links are removed. Up to 256 KB.
       </p>
     </div>

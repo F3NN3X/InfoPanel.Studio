@@ -75,7 +75,7 @@ export default function DriveSpace(p: DriveSpaceProps) {
         if (one && size !== "sm")
           return (
             <div className="flex h-full items-center gap-5">
-              <Ring value={one.pct} t={tone(one.pct, warn, crit)} className="h-full max-h-[170px]">
+              <Ring value={one.pct} t={tone(one.pct, warn, crit)} className="h-full max-h-42.5">
                 <Num className="text-3xl font-semibold">
                   {fmt(one.pct, 0)}
                   <span className="text-sm text-[color:var(--w-muted)]">%</span>

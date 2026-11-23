@@ -72,12 +72,12 @@ export function ThemeSave({ name, kind, update, onSave, saveName }: ThemeSavePro
   return (
     <div className="flex items-center gap-2">
       {update?.onUpdate && (
-        <Button className="max-w-[200px] truncate" onClick={update.onUpdate} title={update.text}>
+        <Button className="max-w-50 truncate" onClick={update.onUpdate} title={update.text}>
           Update {name}
         </Button>
       )}
       <Button title="Save as my theme" icon={<Bookmark aria-hidden />} onClick={() => setSaving(true)}>
-        <span className="max-[1279px]:sr-only">Save as my theme</span>
+        <span className="max-xl:sr-only">Save as my theme</span>
       </Button>
     </div>
   );
@@ -117,7 +117,7 @@ export function ThemeActions({ reset, onRename, onDuplicate, onDelete, lock }: T
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Menu.Popup className={cn(POPUP, "w-[280px]")}>
+          <Menu.Popup className={cn(POPUP, "w-70")}>
             <Menu.Item className={cn(ITEM, HIGHLIGHT, "h-auto flex-col items-start gap-0.5 py-1.5")} disabled={!reset} onClick={reset?.onReset}>
               <span>Reset to {reset ? reset.name : "a theme"}</span>
               <span className="text-caption leading-snug text-ui-3">{reset?.text ?? "This was not applied from a theme. Save it first."}</span>

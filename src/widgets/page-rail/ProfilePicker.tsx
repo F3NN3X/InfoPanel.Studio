@@ -83,7 +83,7 @@ export function ProfilePicker({ profiles: p, current, edge, rail, look, host }: 
         <Widget {...shell(look)} radius={20} showHeader={false} bleed design={null}>
           <div className="flex h-full min-h-0 flex-col p-4" style={{ color: "var(--w-fg)" }}>
             <header className="mb-3 flex items-baseline justify-between gap-3">
-              <h2 id="profile-picker-title" className="text-[18px] font-semibold">
+              <h2 id="profile-picker-title" className="text-display font-semibold">
                 Profiles
               </h2>
               {p.front && (
@@ -105,7 +105,7 @@ export function ProfilePicker({ profiles: p, current, edge, rail, look, host }: 
                     className={`flex min-h-16 w-full items-center gap-3 rounded-2xl px-3 py-2 text-left ${FOCUS}`}
                     style={{ background: r.current ? "color-mix(in oklab, var(--w-accent) 10%, transparent)" : "color-mix(in oklab, var(--w-fg) 4%, transparent)", boxShadow: r.current ? "inset 0 0 0 2px var(--w-accent)" : `inset 0 0 0 1px ${EDGE}` }}
                   >
-                    <span aria-hidden className="h-9 w-9 shrink-0 rounded-[10px]" style={{ background: series(chipSeries(r.index)) }} />
+                    <span aria-hidden className="h-9 w-9 shrink-0 rounded-10" style={{ background: series(chipSeries(r.index)) }} />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[15px] font-semibold leading-tight">{r.name}</span>
                       <span className="block truncate text-[13px] leading-tight" style={{ color: "var(--w-muted)" }}>
@@ -132,7 +132,7 @@ export function ProfilePicker({ profiles: p, current, edge, rail, look, host }: 
                 role="switch"
                 aria-checked={!p.paused}
                 onClick={() => p.auto(p.paused)}
-                className={`flex h-14 items-center justify-between gap-2 rounded-2xl px-4 text-left text-[14px] ${FOCUS}`}
+                className={`flex h-14 items-center justify-between gap-2 rounded-2xl px-4 text-left text-lead ${FOCUS}`}
                 style={{ boxShadow: `inset 0 0 0 1px ${EDGE}` }}
               >
                 Switch with the app in front
@@ -144,7 +144,7 @@ export function ProfilePicker({ profiles: p, current, edge, rail, look, host }: 
                 type="button"
                 aria-pressed={locked}
                 onClick={() => (locked ? p.auto(true) : p.auto(false, current))}
-                className={`flex h-14 items-center justify-center gap-2 rounded-2xl px-2 text-[14px] font-semibold text-background ${FOCUS}`}
+                className={`flex h-14 items-center justify-center gap-2 rounded-2xl px-2 text-lead font-semibold text-background ${FOCUS}`}
                 style={{ background: "var(--w-fg)" }}
               >
                 <Lock aria-hidden size={16} /> <span className="truncate">{locked ? `Locked to ${name}` : `Lock to ${name}`}</span>

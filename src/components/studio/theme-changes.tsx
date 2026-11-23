@@ -38,7 +38,7 @@ export function ThemeChanges({ line, what, changed, reset, quick, onQuick, onHov
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3 pt-1 text-body">
       <p ref={lineRef} tabIndex={-1} data-testid="theme-changes" className="flex min-w-0 items-center gap-2 text-ui-2 outline-none">
-        <span aria-hidden className={cn("h-[7px] w-[7px] shrink-0 rounded-full", changed ? "bg-ui-accent" : "border border-ui-hint")} />
+        <span aria-hidden className={cn("h-1.75 w-1.75 shrink-0 rounded-full", changed ? "bg-ui-accent" : "border border-ui-hint")} />
         <span className="text-ui-1">{line}</span>
         {what && <span className="truncate text-ui-3">{what}</span>}
       </p>

@@ -61,8 +61,8 @@ function Level({ value, hold, vertical, variant, n, color, hot }: LevelProps) {
       ? { background: `linear-gradient(${dir}, ${color} 0%, ${color} ${ZONES[0]}%, ${STATE.warn} ${ZONES[0]}%, ${STATE.warn} ${ZONES[1]}%, ${hot} ${ZONES[1]}%)`, backgroundSize: vertical ? `100% ${(100 / Math.max(1, value)) * 100}%` : `${(100 / Math.max(1, value)) * 100}% 100%`, backgroundPosition: vertical ? "bottom" : "left" }
       : { background: value > ZONES[1] ? hot : color };
   return (
-    <div className="relative min-h-0 min-w-0 flex-1 rounded-[2px] bg-[color:var(--w-track)]">
-      <div className="absolute inset-0 overflow-hidden rounded-[2px] transition-transform duration-100" style={{ ...(vertical ? scaleY(value) : scaleX(value)), ...fill }} />
+    <div className="relative min-h-0 min-w-0 flex-1 rounded-2 bg-[color:var(--w-track)]">
+      <div className="absolute inset-0 overflow-hidden rounded-2 transition-transform duration-100" style={{ ...(vertical ? scaleY(value) : scaleX(value)), ...fill }} />
       {hold !== undefined && hold > 0 && <HoldMark at={hold} vertical={vertical} />}
     </div>
   );
@@ -87,7 +87,7 @@ export interface MeterPairProps {
 export function MeterPair({ levels, vertical, variant, color, hot, thickness = 7, className = "" }: MeterPairProps) {
   const bar = (s: Smoothed) => levelBar(s, variant, color, hot, vertical);
   return vertical ? (
-    <div className={`flex min-h-0 flex-1 justify-center gap-[5px] ${className}`}>
+    <div className={`flex min-h-0 flex-1 justify-center gap-1.25 ${className}`}>
       {[levels.l, levels.r].map((s, i) => (
         <div key={i} className="flex" style={{ width: thickness }}>
           {bar(s)}
@@ -95,7 +95,7 @@ export function MeterPair({ levels, vertical, variant, color, hot, thickness = 7
       ))}
     </div>
   ) : (
-    <div className={`flex min-w-0 flex-col gap-[3px] ${className}`}>
+    <div className={`flex min-w-0 flex-col gap-0.75 ${className}`}>
       {[levels.l, levels.r].map((s, i) => (
         <div key={i} className="flex" style={{ height: thickness }}>
           {bar(s)}

@@ -122,7 +122,7 @@ export function PinnedGridCanvas({ stored, profile, pageId, items, appearance, e
                 setMenu({ x: e.clientX, y: e.clientY, item: it });
               }}
               className={cn(
-                "absolute inset-0 rounded-[3px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
+                "absolute inset-0 rounded-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent",
                 selected
                   ? "outline outline-2 outline-ui-accent"
                   : editing
@@ -154,7 +154,7 @@ export function PinnedGridCanvas({ stored, profile, pageId, items, appearance, e
                 aria-hidden
                 data-shot-skip
                 onPointerDown={(e) => start(e, it, "resize")}
-                className="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-[2px] border border-ui-accent bg-ui-raised"
+                className="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-2 border border-ui-accent bg-ui-raised"
               />
             )}
           </div>

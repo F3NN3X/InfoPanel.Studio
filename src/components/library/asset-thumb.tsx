@@ -55,7 +55,7 @@ export function useLibraryFont(item: Pick<LibraryItem, "id" | "kind" | "files">)
   return family;
 }
 
-const PLAY: Record<ThumbSize, string> = { sm: "h-[22px] w-[22px]", md: "h-(--ui-h-field) w-[34px]", lg: "h-[52px] w-[52px]" };
+const PLAY: Record<ThumbSize, string> = { sm: "h-5.5 w-5.5", md: "h-(--ui-h-field) w-8.5", lg: "h-13 w-13" };
 const AA: Record<ThumbSize, string> = { sm: "text-display", md: "text-[38px]", lg: "text-[72px]" };
 
 const GAUGE_PX: Record<ThumbSize, number> = { sm: 36, md: 96, lg: 180 };
@@ -130,7 +130,7 @@ function LiveVideo({ url, size, onError }: { url: string; size: ThumbSize; onErr
         onClick={toggle}
         className={cn("absolute grid place-items-center rounded-full bg-black/55 text-white transition-opacity", PLAY[size], playing && "opacity-0 hover:opacity-100 focus-visible:opacity-100")}
       >
-        {playing ? <Pause className="h-1/2 w-1/2" fill="currentColor" /> : <Play className="h-1/2 w-1/2 translate-x-[1px]" fill="currentColor" />}
+        {playing ? <Pause className="h-1/2 w-1/2" fill="currentColor" /> : <Play className="h-1/2 w-1/2 translate-x-px" fill="currentColor" />}
       </button>
     </>
   );
@@ -191,7 +191,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
           )}
           {!(url && live) && (
             <span className={cn("absolute grid place-items-center rounded-full bg-black/55 text-white", PLAY[size])}>
-              <Play className="h-1/2 w-1/2 translate-x-[1px]" fill="currentColor" />
+              <Play className="h-1/2 w-1/2 translate-x-px" fill="currentColor" />
             </span>
           )}
           {m.duration !== undefined && size !== "sm" && (
@@ -214,7 +214,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
         <div className={box}>
           <div className="grid h-[62%] w-[72%] gap-1" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
             {Array.from({ length: cols * rows }, (_, i) => (
-              <span key={i} className="rounded-[3px] border border-white/10 bg-white/[.06]" />
+              <span key={i} className="rounded-3 border border-white/10 bg-white/[.06]" />
             ))}
           </div>
         </div>

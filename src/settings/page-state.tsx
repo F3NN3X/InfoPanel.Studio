@@ -22,7 +22,7 @@ export function PageState({ what, error, onRetry, fallback }: PageStateProps) {
     );
   }
   return (
-    <div role="alert" className="flex flex-col items-start gap-3 rounded-xl border border-s-card-line bg-s-card p-[18px]">
+    <div role="alert" className="flex flex-col items-start gap-3 rounded-xl border border-s-card-line bg-s-card p-4.5">
       <p className="m-0 text-body text-s-t2">
         Couldn’t load {what}. {error}
       </p>

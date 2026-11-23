@@ -112,7 +112,7 @@ export function FreeGuides({ view }: { view: GuideView }) {
           </div>
         );
       })}
-      <span data-free-readout="" className="absolute whitespace-nowrap rounded-[4px] bg-ui-accent px-1.5 py-0.5 font-ui text-[11px] font-medium tabular-nums text-white" style={{ left: f.x + view.box.x, top: f.y + view.box.y + view.box.height + 6 }}>
+      <span data-free-readout="" className="absolute whitespace-nowrap rounded-4 bg-ui-accent px-1.5 py-0.5 font-ui text-micro font-medium tabular-nums text-white" style={{ left: f.x + view.box.x, top: f.y + view.box.y + view.box.height + 6 }}>
         {view.text}
       </span>
     </div>
@@ -121,7 +121,7 @@ export function FreeGuides({ view }: { view: GuideView }) {
 
 /** The rubber band while it is dragged, in the zone's px. */
 export function Band({ box }: { box: { x: number; y: number; w: number; h: number } }) {
-  return <div aria-hidden data-band="" className="pointer-events-none absolute z-30 rounded-[2px] border border-dashed border-ui-accent bg-ui-accent/10" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />;
+  return <div aria-hidden data-band="" className="pointer-events-none absolute z-30 rounded-2 border border-dashed border-ui-accent bg-ui-accent/10" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />;
 }
 
 /** The resize handles: four corners, four edges, each with its cursor and what it says. */
@@ -218,7 +218,7 @@ export function FreeHandles({ zone, recipe, path, locked, tick, onLive, onGuides
           data-free-handle={h.id}
           onPointerDown={(e) => press(h.id, e)}
           onKeyDown={(e) => key(h.id, e)}
-          className={cn("absolute z-20 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-[2px] border-[1.5px] border-ui-accent bg-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ui-accent", h.cursor)}
+          className={cn("absolute z-20 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-2 border-[1.5px] border-ui-accent bg-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ui-accent", h.cursor)}
           style={{ left: frame.x + box.x + box.width * h.x, top: frame.y + box.y + box.height * h.y }}
         />
       ))}

@@ -55,7 +55,7 @@ function Key({ k, side }: { k: KeySpec; side: number }) {
       data-press=""
       aria-pressed={k.on ? on : undefined}
       aria-label={`${k.name}${k.count !== undefined ? `: ${k.count}` : ""}${k.folder ? ", opens a folder" : ""}${more}`}
-      className="relative flex h-full w-full flex-col items-center justify-center rounded-[14px] transition"
+      className="relative flex h-full w-full flex-col items-center justify-center rounded-14 transition"
       style={{
         gap: Math.round(Math.max(6, side * 0.06)),
         color: on ? tint : "var(--w-fg)",
@@ -81,7 +81,7 @@ function Key({ k, side }: { k: KeySpec; side: number }) {
 
 function Legend() {
   return (
-    <span className="flex items-center gap-3 text-[12px]" style={{ color: "var(--w-muted)" }}>
+    <span className="flex items-center gap-3 text-caption" style={{ color: "var(--w-muted)" }}>
       <span className="flex items-center gap-1">
         <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" /> Hold
       </span>

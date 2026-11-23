@@ -57,7 +57,7 @@ const SAYS: Record<Landing, string> = { island: "the island", toast: "a toast", 
 /** The Auto table: the rule's own severity is the marked row. */
 function AutoTable({ severity }: { severity: Severity }) {
   return (
-    <table className="w-full border-collapse overflow-hidden rounded-[10px] text-left text-caption text-ui-2 outline outline-1 -outline-offset-1 outline-ui-default">
+    <table className="w-full border-collapse overflow-hidden rounded-10 text-left text-caption text-ui-2 outline outline-1 -outline-offset-1 outline-ui-default">
       <thead>
         <tr className="text-ui-3">
           <th scope="col" className="px-3 py-2 font-normal">Severity</th>

@@ -44,7 +44,7 @@ export function ChannelRow({ lead, leadW = 18, name, sub, nameW = 96, bar, stere
       {lead}
       {nameW > 0 && (
         <div className="min-w-0">
-          <div className={`truncate ${big ? "text-[16px]" : "text-[14px]"} font-semibold leading-tight ${muted ? "text-[color:var(--w-faint)]" : "text-[color:var(--w-fg)]"}`}>{name}</div>
+          <div className={`truncate ${big ? "text-head" : "text-lead"} font-semibold leading-tight ${muted ? "text-[color:var(--w-faint)]" : "text-[color:var(--w-fg)]"}`}>{name}</div>
           {sub && <div className="mt-0.5 truncate text-micro leading-tight text-[color:var(--w-faint)]" title={typeof sub === "string" ? sub : undefined}>{sub}</div>}
         </div>
       )}
@@ -61,7 +61,7 @@ export function ChannelRow({ lead, leadW = 18, name, sub, nameW = 96, bar, stere
           bar
         )}
       </div>
-      <span className={`text-right ${big ? "text-[20px]" : "text-[16px]"} font-medium leading-none tabular-nums ${muted ? "text-[color:var(--w-faint)]" : "text-[color:var(--w-fg)]"}`}>{value}</span>
+      <span className={`text-right ${big ? "text-[20px]" : "text-head"} font-medium leading-none tabular-nums ${muted ? "text-[color:var(--w-faint)]" : "text-[color:var(--w-fg)]"}`}>{value}</span>
       {trailing}
     </li>
   );

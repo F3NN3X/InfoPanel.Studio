@@ -160,12 +160,12 @@ function Selection({ zone, path, recipe, tick, also }: { zone: HTMLElement | nul
   const tag = TAG_CLASS[tagPlace(box, box.floor)];
   if (also)
     return (
-      <div aria-hidden data-selection-also="" className="pointer-events-none absolute z-10 rounded-[6px] border border-dashed border-ui-accent" style={{ left: box.x - 2, top: box.y - 2, width: box.w + 4, height: box.h + 4 }} />
+      <div aria-hidden data-selection-also="" className="pointer-events-none absolute z-10 rounded-6 border border-dashed border-ui-accent" style={{ left: box.x - 2, top: box.y - 2, width: box.w + 4, height: box.h + 4 }} />
     );
   return (
     <div aria-hidden className="pointer-events-none absolute z-10" style={{ left: box.x - 3, top: box.y - 3, width: box.w + 6, height: box.h + 6 }}>
-      <div className="h-full w-full rounded-[6px] border-2 border-ui-accent" />
-      <span data-selection-tag="" className={`absolute ${tag} whitespace-nowrap rounded-[4px] bg-ui-accent px-1.5 py-0.5 font-ui text-[11px] font-medium text-white`}>{layerName(recipe, b)}</span>
+      <div className="h-full w-full rounded-6 border-2 border-ui-accent" />
+      <span data-selection-tag="" className={`absolute ${tag} whitespace-nowrap rounded-4 bg-ui-accent px-1.5 py-0.5 font-ui text-micro font-medium text-white`}>{layerName(recipe, b)}</span>
     </div>
   );
 }
@@ -186,8 +186,8 @@ function DropMark({ zone, drop, verb, tick }: { zone: HTMLElement | null; drop: 
   const line = drop.where === "inside" ? null : drop.across ? { left: drop.where === "before" ? -2 : box.w, top: 0, width: 2, height: box.h } : { left: 0, top: drop.where === "before" ? -2 : box.h, width: box.w, height: 2 };
   return (
     <div data-stage-drop={drop.why ? "refused" : drop.where} className="pointer-events-none absolute z-20" style={{ left: box.x, top: box.y, width: box.w, height: box.h }}>
-      {line ? <div className={cn("absolute", drop.why ? "bg-ui-warn" : "bg-ui-accent")} style={line} /> : <div className={cn("h-full w-full rounded-[6px] border-2 border-dashed", tone)} />}
-      <span className={cn("absolute left-0 top-full mt-1 whitespace-nowrap rounded-[4px] px-1.5 py-0.5 font-ui text-[11px] font-medium", drop.why ? "border border-ui-warn bg-ui-panel text-ui-warn" : "bg-ui-accent text-white")}>{drop.why ?? `${verb} ${drop.text}`}</span>
+      {line ? <div className={cn("absolute", drop.why ? "bg-ui-warn" : "bg-ui-accent")} style={line} /> : <div className={cn("h-full w-full rounded-6 border-2 border-dashed", tone)} />}
+      <span className={cn("absolute left-0 top-full mt-1 whitespace-nowrap rounded-4 px-1.5 py-0.5 font-ui text-micro font-medium", drop.why ? "border border-ui-warn bg-ui-panel text-ui-warn" : "bg-ui-accent text-white")}>{drop.why ?? `${verb} ${drop.text}`}</span>
     </div>
   );
 }
@@ -1183,7 +1183,7 @@ export function Builder(p: BuilderProps) {
                 setName(null);
               }}
               onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-              className="h-8 w-[190px] min-w-0 rounded-ui-sm border border-transparent bg-transparent pl-1.5 pr-7 text-title font-medium text-ui-1 outline-none hover:border-ui-strong focus:border-ui-accent"
+              className="h-8 w-47.5 min-w-0 rounded-ui-sm border border-transparent bg-transparent pl-1.5 pr-7 text-title font-medium text-ui-1 outline-none hover:border-ui-strong focus:border-ui-accent"
             />
             <Pencil className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-ui-hint" aria-hidden />
           </label>
@@ -1203,7 +1203,7 @@ export function Builder(p: BuilderProps) {
             size="bar"
             className="min-w-0 shrink flex-nowrap overflow-x-auto"
             value={p.active.key}
-            options={p.drafts.map((d) => ({ value: d.key, label: <span className="block max-w-[140px] truncate">{d.history.present.name.split(" · ")[0]}</span> }))}
+            options={p.drafts.map((d) => ({ value: d.key, label: <span className="block max-w-35 truncate">{d.history.present.name.split(" · ")[0]}</span> }))}
             onChange={p.onActive}
           />
         )}
@@ -1239,7 +1239,7 @@ export function Builder(p: BuilderProps) {
         {said}
       </p>
       <div className="flex min-h-0 flex-1">
-        <aside aria-label="Layers and blocks" className="flex w-[256px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-chrome p-3">
+        <aside aria-label="Layers and blocks" className="flex w-64 shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-chrome p-3">
           <div>
             <h2 className="mb-2 px-2 text-caption text-ui-3">Layers</h2>
             <Layers
@@ -1309,7 +1309,7 @@ export function Builder(p: BuilderProps) {
                   }}
                   onDragEnd={() => setTile(null)}
                   data-add-block={type}
-                  className="flex h-[60px] flex-col items-center justify-center gap-1.5 rounded-ui-md border border-ui-subtle bg-ui-panel text-micro text-ui-2 hover:border-ui-strong hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+                  className="flex h-15 flex-col items-center justify-center gap-1.5 rounded-ui-md border border-ui-subtle bg-ui-panel text-micro text-ui-2 hover:border-ui-strong hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
                 >
                   <BlockIcon type={type} />
                   {BLOCK_LABEL[type]}
@@ -1650,7 +1650,7 @@ export function Builder(p: BuilderProps) {
             />
           )}
         </main>
-        <aside aria-label="Inspector" className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-chrome">
+        <aside aria-label="Inspector" className="flex w-80 shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-chrome">
           <Tabs
             label="Inspector"
             className="sticky top-0 z-10 bg-ui-chrome px-4"

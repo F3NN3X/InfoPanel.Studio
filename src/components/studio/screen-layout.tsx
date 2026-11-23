@@ -11,7 +11,7 @@ import { GRID_PREVIEW_BOX, GRID_REFUSED, gridPreview, parseSize, sizeChoice, siz
 
 type UpdateProfile = (fn: (p: ProfileView) => ProfileView, key?: string) => void;
 
-const INPUT = cn(FIELD, "h-[30px] w-full");
+const INPUT = cn(FIELD, "h-7.5 w-full");
 const HELP = "text-pretty text-micro leading-[1.4] text-ui-4";
 
 /** A design-size pixel field: a draft that commits on Enter or blur, and only when it is a size. */
@@ -84,7 +84,7 @@ export function SizeFitSection({
           type="button"
           disabled={!differs}
           onClick={() => patch({ width: windowSize.width, height: windowSize.height })}
-          className="flex h-[26px] items-center gap-1.5 rounded-md border border-ui-strong bg-ui-raised px-2.5 text-micro text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40"
+          className="flex h-6.5 items-center gap-1.5 rounded-md border border-ui-strong bg-ui-raised px-2.5 text-micro text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40"
         >
           <ScanLine className="h-3.5 w-3.5" />
           Use {windowSize.width} × {windowSize.height}
@@ -119,7 +119,7 @@ function GridPreview({ profile }: { profile: ProfileView }) {
     >
       <div
         data-testid="grid-preview"
-        className="grid rounded-[3px] border border-ui-strong bg-ui-raised"
+        className="grid rounded-3 border border-ui-strong bg-ui-raised"
         style={{
           width: view.width,
           height: view.height,
@@ -139,11 +139,11 @@ function GridPreview({ profile }: { profile: ProfileView }) {
 
 /** A count with − and + buttons. */
 function Stepper({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
-  const button = "flex h-(--ui-h-control) w-[30px] items-center justify-center text-ui-2 hover:text-ui-1 disabled:pointer-events-none disabled:opacity-35";
+  const button = "flex h-(--ui-h-control) w-7.5 items-center justify-center text-ui-2 hover:text-ui-1 disabled:pointer-events-none disabled:opacity-35";
   return (
     <div className="min-w-0 flex-1 space-y-1.5">
       <span className="text-caption text-ui-3">{label}</span>
-      <div role="group" aria-label={label} className="flex h-[30px] items-center rounded-[7px] border border-ui-default bg-ui-app">
+      <div role="group" aria-label={label} className="flex h-7.5 items-center rounded-7 border border-ui-default bg-ui-app">
         <button type="button" aria-label={`Fewer ${label.toLowerCase()}`} disabled={value <= min} onClick={() => onChange(value - 1)} className={button}>
           <Minus className="h-3.5 w-3.5" />
         </button>
@@ -184,7 +184,7 @@ function SpacingField({
           placeholder={`${placeholder}`}
           aria-label={`${label} (px)`}
           onChange={(e) => onChange(e.target.value === "" ? undefined : normalizeSpacing(Number(e.target.value)))}
-          className={cn(FIELD, "h-[26px] w-[64px] shrink-0 px-1.5 text-right font-ui-mono text-micro")}
+          className={cn(FIELD, "h-6.5 w-16 shrink-0 px-1.5 text-right font-ui-mono text-micro")}
         />
       </InlineRow>
       <input

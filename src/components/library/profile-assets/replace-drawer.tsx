@@ -81,7 +81,7 @@ export function ReplaceDrawer({ doc, files, onClose, onApply }: { doc: Doc; file
                   aria-label={`Target for ${n}`}
                   value={picks.get(n) ?? ""}
                   onChange={(e) => setPicks(new Map(picks).set(n, e.target.value))}
-                  className="h-(--ui-h-control) max-w-[190px] rounded-ui-sm border border-ui-default bg-ui-app px-1.5 font-ui-mono text-caption text-ui-1"
+                  className="h-(--ui-h-control) max-w-47.5 rounded-ui-sm border border-ui-default bg-ui-app px-1.5 font-ui-mono text-caption text-ui-1"
                 >
                   <option value="">Skip</option>
                   {candidatesFor(doc.assets, file).map((c) => (

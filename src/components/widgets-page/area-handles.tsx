@@ -177,12 +177,12 @@ export function AreaHandles({ zone, recipe, path, locked, tick, onLive, onDone }
           data-area-handle={h.id}
           onPointerDown={(e) => press(h.edges, e)}
           onKeyDown={(e) => key(h.edges, e)}
-          className={cn("absolute z-20 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-[3px] border-2 border-ui-accent bg-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ui-accent", h.cursor)}
+          className={cn("absolute z-20 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-3 border-2 border-ui-accent bg-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ui-accent", h.cursor)}
           style={{ left: box.x + box.w * h.x, top: box.y + box.h * h.y }}
         />
       ))}
       {drag && (
-        <span data-area-text="" className="pointer-events-none absolute z-20 whitespace-nowrap rounded-[4px] bg-ui-accent px-1.5 py-0.5 font-ui text-[11px] font-medium text-white" style={{ left: box.x, top: box.y + box.h + 6 }}>
+        <span data-area-text="" className="pointer-events-none absolute z-20 whitespace-nowrap rounded-4 bg-ui-accent px-1.5 py-0.5 font-ui text-micro font-medium text-white" style={{ left: box.x, top: box.y + box.h + 6 }}>
           {drag}
         </span>
       )}
@@ -274,7 +274,7 @@ export function FillHandles({ zone, recipe, path, locked, tick, onLive, onDone }
             style={at}
           >
             <span aria-hidden className={cn("rounded-full bg-ui-accent opacity-60 group-hover:opacity-100 group-focus-visible:opacity-100 group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-ui-accent", across ? "h-5 max-h-full w-1" : "h-1 w-5 max-w-full", shown && "opacity-100")} />
-            {shown && <span data-fill-text="" className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-[4px] bg-ui-accent px-1.5 py-0.5 font-ui text-[11px] font-medium text-white">{shown.text}</span>}
+            {shown && <span data-fill-text="" className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-4 bg-ui-accent px-1.5 py-0.5 font-ui text-micro font-medium text-white">{shown.text}</span>}
           </div>
         );
       })}

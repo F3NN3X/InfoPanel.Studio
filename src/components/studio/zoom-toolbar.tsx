@@ -48,7 +48,7 @@ const BAR_BUTTON = "h-7 w-7 rounded-ui-md hover:bg-ui-hover";
 const TEXT_BUTTON = "flex h-7 items-center gap-1 rounded-ui-md px-2 text-micro text-ui-2 transition-colors hover:bg-ui-hover";
 
 function Divider() {
-  return <div className="mx-1 h-[18px] w-px shrink-0 bg-ui-strong" />;
+  return <div className="mx-1 h-4.5 w-px shrink-0 bg-ui-strong" />;
 }
 
 /**
@@ -83,7 +83,7 @@ export function ZoomToolbar({
     <div
       style={bottom === undefined ? undefined : { bottom }}
       className={cn(
-        "absolute bottom-4 left-1/2 z-30 flex h-[42px] max-w-[calc(100%-16px)] -translate-x-1/2 items-center gap-0.5 px-1.5",
+        "absolute bottom-4 left-1/2 z-30 flex h-10.5 max-w-[calc(100%-16px)] -translate-x-1/2 items-center gap-0.5 px-1.5",
         "rounded-ui-menu border border-ui-strong bg-ui-raised font-ui shadow-ui-float"
       )}
     >
@@ -203,11 +203,11 @@ function FrozenChip({ preview }: { preview: PreviewDataState }) {
         title={`The canvas shows a snapshot of the sensor values, with weather, visualisers and other effects still (Design preview data: ${preview.mode === "frozenWhenUnfocused" ? "frozen when unfocused" : "frozen"}). Clocks still tick. The Data view, sensor pickers, kiosks and Kiosk view stay live. Click to change it in Settings › Studio.`}
         className={cn(TEXT_BUTTON, "text-ui-2")}
       >
-        <Snowflake className="h-[14px] w-[14px]" aria-hidden />
+        <Snowflake className="h-3.5 w-3.5" aria-hidden />
         {label}
       </button>
       <IconButton label={`Refresh the snapshot (${KEYS.refreshPreview})`} className={BAR_BUTTON} onClick={preview.refresh}>
-        <RefreshCw className="h-[16px] w-[16px]" />
+        <RefreshCw className="h-4 w-4" />
       </IconButton>
       <button type="button" onClick={() => preview.setSession("live")} title={`Show live data until the page reloads; the setting stays (${KEYS.togglePreview})`} className={TEXT_BUTTON}>
         Go live for this session

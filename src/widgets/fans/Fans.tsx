@@ -61,7 +61,7 @@ export default function Fans(p: FansProps) {
                 return (
                   <div key={f.id} className="relative flex min-w-0 flex-col items-center justify-between overflow-hidden rounded-xl bg-[color:var(--w-track)] px-2 py-3">
                     <div aria-hidden className="absolute inset-x-0 bottom-0 transition-[height] duration-700" style={{ height: `${f.rpm > 0 ? fill : 0}%`, background: "linear-gradient(to top, color-mix(in oklab, var(--w-accent) 40%, transparent), color-mix(in oklab, var(--w-accent) 22%, transparent))" }} />
-                    <Num className="relative text-[22px] font-bold">{f.rpm > 0 ? fmt(f.rpm) : "Off"}</Num>
+                    <Num className="relative text-stat font-bold">{f.rpm > 0 ? fmt(f.rpm) : "Off"}</Num>
                     <span className={`relative inline-flex ${p.spin !== false && f.rpm > 0 ? "animate-spin" : ""}`} style={{ animationDuration: `${Math.max(0.25, 600 / (f.rpm || 1)).toFixed(2)}s` }}>
                       <Icon name="mode_fan" className={`text-5xl ${f.rpm > 0 ? "text-[color:var(--w-accent)]" : "text-[color:var(--w-faint)]"}`} />
                     </span>

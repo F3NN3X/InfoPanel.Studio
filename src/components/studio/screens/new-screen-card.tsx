@@ -12,7 +12,7 @@ interface NewScreenCardProps {
 /** The last card of the grid: start a screen, or bring in an .infopanel file. */
 export function NewScreenCard({ onNew, onImportInfoPanel }: NewScreenCardProps) {
   return (
-    <li className="flex min-h-[250px] min-w-0 flex-col items-center justify-center gap-1 rounded-ui-lg border border-dashed border-ui-strong p-4 text-center">
+    <li className="flex min-h-62.5 min-w-0 flex-col items-center justify-center gap-1 rounded-ui-lg border border-dashed border-ui-strong p-4 text-center">
       <button
         type="button"
         onClick={onNew}
@@ -23,7 +23,7 @@ export function NewScreenCard({ onNew, onImportInfoPanel }: NewScreenCardProps) 
           <Plus className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         </span>
         <span className="text-body font-medium">New screen</span>
-        <span className="max-w-[210px] text-caption text-ui-3">From a template, a size preset or an .infopanel file</span>
+        <span className="max-w-52.5 text-caption text-ui-3">From a template, a size preset or an .infopanel file</span>
       </button>
       <button
         type="button"

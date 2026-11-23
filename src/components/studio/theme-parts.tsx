@@ -77,7 +77,7 @@ export function ThemeParts(p: ThemePartsProps) {
                 Change
               </Button>
             ) : (
-              <span className="max-w-[160px] shrink-0 truncate text-right font-ui-mono text-caption text-ui-2" title={part.value}>
+              <span className="max-w-40 shrink-0 truncate text-right font-ui-mono text-caption text-ui-2" title={part.value}>
                 {part.value}
               </span>
             )}

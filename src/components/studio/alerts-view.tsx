@@ -61,7 +61,7 @@ function MuteToggle({ control }: { control: ControlState | null }) {
   const until = muted && control?.mutedUntil ? new Date(control.mutedUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
   return (
     <label className="flex items-center gap-2 whitespace-nowrap text-body text-ui-2" title="Mute alerts for 1 h">
-      <span className={until ? undefined : "max-[1279px]:sr-only"}>{until ? `Muted until ${until}` : "Mute for 1 h"}</span>
+      <span className={until ? undefined : "max-xl:sr-only"}>{until ? `Muted until ${until}` : "Mute for 1 h"}</span>
       <Toggle checked={muted} disabled={control === null} label="Mute alerts for 1 h" onChange={(next) => void liveActions.mute(next)} />
     </label>
   );
@@ -112,7 +112,7 @@ export function AlertsView({ tab, onTab, config, setConfig, active, control, poi
       label: (
         <span className="flex items-center gap-2">
           Alerts
-          {active.length > 0 && <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-ui-danger/15 px-1 text-micro font-medium text-ui-danger">{active.length}</span>}
+          {active.length > 0 && <span className="grid h-4.5 min-w-4.5 place-items-center rounded-full bg-ui-danger/15 px-1 text-micro font-medium text-ui-danger">{active.length}</span>}
         </span>
       ),
     },
@@ -124,18 +124,18 @@ export function AlertsView({ tab, onTab, config, setConfig, active, control, poi
     <section aria-label="Alerts & Island" className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
       <PageBar>
         <BarTitle title="Alerts & Island" />
-        <Tabs label="Alerts & Island" tabs={tabs} value={tab === "defaults" ? "rules" : tab} onChange={onTab} className="shrink-0 gap-5 self-stretch border-b-0 max-[599px]:order-last max-[599px]:w-full [&>button]:h-auto" />
+        <Tabs label="Alerts & Island" tabs={tabs} value={tab === "defaults" ? "rules" : tab} onChange={onTab} className="shrink-0 gap-5 self-stretch border-b-0 max-sm:order-last max-sm:w-full [&>button]:h-auto" />
         <BarFill />
         <MuteToggle control={control} />
         {tab === "rules" && (
-          <div className="flex items-center gap-3 max-[599px]:flex-wrap">
+          <div className="flex items-center gap-3 max-sm:flex-wrap">
             <label className="flex items-center gap-2 whitespace-nowrap text-body text-ui-2" title="Alerts on">
-              <span className="max-[1279px]:sr-only">Alerts on</span>
+              <span className="max-xl:sr-only">Alerts on</span>
               <Toggle checked={alerts.enabled} label="Alerts on" onChange={(on) => setConfig((c) => setAlertsEnabled(c, on), alertsKey("enabled"))} />
             </label>
             <span aria-hidden className="h-5 w-px bg-ui-subtle" />
             <Button variant="ghost" title="Defaults" icon={<SlidersHorizontal aria-hidden />} onClick={() => setDefaultsOpen(true)}>
-              <span className="max-[1279px]:sr-only">Defaults</span>
+              <span className="max-xl:sr-only">Defaults</span>
             </Button>
             <NewRuleMenu onAdd={add} points={points} />
           </div>

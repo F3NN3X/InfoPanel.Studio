@@ -31,7 +31,7 @@ export function AddWidgetSelect({ onAdd }: { onAdd: (kind: WidgetKind) => void }
       onChange={(e) => e.target.value && onAdd(e.target.value as WidgetKind)}
       aria-label="Add panel widget"
       title="Add a widget after the selected one"
-      className="mt-1 h-[30px] w-full cursor-pointer rounded-[7px] border border-dashed border-ui-menu bg-ui-raised px-2 text-caption text-ui-2 outline-none focus:border-ui-accent"
+      className="mt-1 h-7.5 w-full cursor-pointer rounded-7 border border-dashed border-ui-menu bg-ui-raised px-2 text-caption text-ui-2 outline-none focus:border-ui-accent"
     >
       <option value="">+ Add panel widget…</option>
       {ALL_KINDS.map((kind) => (

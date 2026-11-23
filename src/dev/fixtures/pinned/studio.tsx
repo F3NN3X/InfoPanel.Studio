@@ -90,8 +90,8 @@ function Preview({ w, h, scale, rail }: { w: number; h: number; scale: number; r
       </div>
       {rail && (
         <>
-          <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 rounded-[3px] outline outline-2 outline-ui-accent" style={{ width: 84 * scale }} />
-          <span aria-hidden className="pointer-events-none absolute inset-y-0 rounded-[3px] outline outline-1 outline-dashed outline-ui-default" style={{ left: 84 * scale + 2, right: 0 }} />
+          <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 rounded-3 outline outline-2 outline-ui-accent" style={{ width: 84 * scale }} />
+          <span aria-hidden className="pointer-events-none absolute inset-y-0 rounded-3 outline outline-1 outline-dashed outline-ui-default" style={{ left: 84 * scale + 2, right: 0 }} />
         </>
       )}
     </div>
@@ -105,10 +105,10 @@ function Thumbs({ pages, active }: { pages: string[]; active: string }) {
       {pages.map((p) => (
         <button key={p} type="button" aria-pressed={p === active} className={cn("flex flex-col gap-1.5 rounded-ui-md text-left", FOCUS_RING)}>
           <span aria-hidden className={cn("flex overflow-hidden rounded-ui-md border bg-ui-chrome p-1", p === active ? "border-ui-blue" : "border-ui-edge")} style={{ width: 150, height: 86 }}>
-            <span className="mr-1 rounded-[2px] bg-ui-control" style={{ width: 12 }} />
+            <span className="mr-1 rounded-2 bg-ui-control" style={{ width: 12 }} />
             <span className="grid flex-1 grid-cols-4 gap-1" style={{ gridTemplateRows: "1fr 1fr" }}>
               {Array.from({ length: 8 }, (_, i) => (
-                <span key={i} className="rounded-[2px] bg-ui-tile" />
+                <span key={i} className="rounded-2 bg-ui-tile" />
               ))}
             </span>
           </span>
@@ -139,7 +139,7 @@ export function EditorScreen({ w, h }: { w: number; h: number }) {
         <Button variant="primary">Send to panel</Button>
       </TopBar>
       <div className="flex min-h-0 flex-1">
-        <aside aria-label="Layers" className="w-[260px] shrink-0 overflow-auto border-r border-ui-edge">
+        <aside aria-label="Layers" className="w-65 shrink-0 overflow-auto border-r border-ui-edge">
           <Section title={<><Pin aria-hidden size={14} />Pinned layer</>} count={2}>
             <LayerRow name="Page rail" line="Left edge · all pages" selected />
             <LayerRow name="Now playing bar" line="Bottom · Status, Widgets" />
@@ -169,7 +169,7 @@ export function EditorScreen({ w, h }: { w: number; h: number }) {
           </div>
           <Thumbs pages={["Keys", "Agents", "Mixer", "Status", "Widgets"]} active="Keys" />
         </main>
-        <aside aria-label="Inspector" className="w-[320px] shrink-0 overflow-auto border-l border-ui-edge">
+        <aside aria-label="Inspector" className="w-80 shrink-0 overflow-auto border-l border-ui-edge">
           <div className="px-4 py-3">
             <h2 className="text-title font-semibold">Page rail</h2>
             <p className="text-caption text-ui-3">Navigation widget · 84 px wide</p>
@@ -321,7 +321,7 @@ export function RailEditorScreen({ h }: { h: number }) {
             <Button small>Use on every profile of this size</Button>
           </section>
         </main>
-        <aside aria-label="Inspector" className="w-[360px] shrink-0 overflow-auto border-l border-ui-edge">
+        <aside aria-label="Inspector" className="w-90 shrink-0 overflow-auto border-l border-ui-edge">
           <div className="px-4 py-3">
             <h2 className="text-title font-semibold">{stream.name}</h2>
             <p className="text-caption text-ui-3">Rail item · opens a page</p>

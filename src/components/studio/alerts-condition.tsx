@@ -49,7 +49,7 @@ export function AlertCondition({ condition, position, onEdit, onOpenSources }: A
   const unit = reading?.unit;
 
   return (
-    <div className={cn("flex flex-col gap-2", position && "rounded-[10px] border border-ui-default p-3")}>
+    <div className={cn("flex flex-col gap-2", position && "rounded-10 border border-ui-default p-3")}>
       {position && (
         <div className="flex items-center justify-between">
           <span className="text-caption font-medium text-ui-3">

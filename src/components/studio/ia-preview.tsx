@@ -138,7 +138,7 @@ function Gallery() {
   const locked = config.profiles[0].widgetTheme?.locks?.type === true;
   return (
     <div className="min-h-screen bg-ui-panel p-6 font-ui text-body text-ui-2">
-      <div className="mx-auto max-w-[860px]">
+      <div className="mx-auto max-w-215">
         <h1 className="text-lead font-medium text-ui-1">Settings IA · shared pieces</h1>
         <p className="text-micro text-ui-4">Inheritance chips, LinkRow and the status bar (IMPLEMENTATION_PLAN phase 1)</p>
 
@@ -190,7 +190,7 @@ function Gallery() {
         </Section>
 
         <Section title="LinkRow">
-          <div className="max-w-[320px] space-y-2">
+          <div className="max-w-80 space-y-2">
             <LinkRow label="Frame-rate cap" value="60 fps" mono from="Screen" link="Screens" onNavigate={() => go({ view: "screens", section: "performance" })} />
             <LinkRow label="Font" value="Geist" from="Theme" link="Theme" onNavigate={() => go({ view: "theme", section: "type" })} />
             <LinkRow label="Rotation" value="Included · every 20 s" note="Page order and rotation live in" link="Screens" onNavigate={() => go({ view: "screens", section: "pages" })} />

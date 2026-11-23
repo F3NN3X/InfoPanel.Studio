@@ -135,8 +135,8 @@ function Current(p: WeatherProps) {
               <Num ip={at("temp", { unit: "°", decimals: 0 })} className={`${big ? "text-[88px]" : { xs: "text-2xl", sm: "text-4xl", md: "text-5xl", lg: "text-6xl" }[size]} font-semibold leading-none tracking-tight`}>{fmt(toUnitOf(temp), 0)}°</Num>
               {size !== "xs" && (
                 <>
-                  <span {...at("weather_desc")} className={`mt-1 truncate ${big ? "text-[16px]" : "text-xs"} text-[color:var(--w-muted)]`}>{k("weather_desc")}</span>
-                  {feelsLine && <span className={`truncate ${big ? "text-[16px]" : "text-xs"} text-[color:var(--w-muted)] first-letter:uppercase`}>{feelsLine}</span>}
+                  <span {...at("weather_desc")} className={`mt-1 truncate ${big ? "text-head" : "text-xs"} text-[color:var(--w-muted)]`}>{k("weather_desc")}</span>
+                  {feelsLine && <span className={`truncate ${big ? "text-head" : "text-xs"} text-[color:var(--w-muted)] first-letter:uppercase`}>{feelsLine}</span>}
                 </>
               )}
             </div>

@@ -55,7 +55,7 @@ export default function SteamGame(p: SteamGameProps) {
                   {size !== "sm" && <Stat className={BIG_VALUE} label="Avg session" value={sessOf("avg-session-time")} />}
                   {size === "lg" && <Stat label="Started" value={sessOf("session-start-time")} />}
                   {size !== "sm" && Number.isFinite(total) && (
-                    <div className="flex min-w-[140px] flex-1 flex-col gap-1">
+                    <div className="flex min-w-35 flex-1 flex-col gap-1">
                       <div className="flex justify-between text-micro">
                         <span className="text-[color:var(--w-faint)]">Achievements</span>
                         <span className="tabular-nums text-[color:var(--w-fg)]">

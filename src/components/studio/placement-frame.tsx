@@ -31,10 +31,10 @@ const HANDLES: { id: Handle; cursor: string; pos: string }[] = [
   { id: "e", cursor: "ew-resize", pos: `${EDGE} -right-1 top-2 bottom-2 w-2` },
   { id: "s", cursor: "ns-resize", pos: `${EDGE} -bottom-1 left-2 right-2 h-2` },
   { id: "w", cursor: "ew-resize", pos: `${EDGE} -left-1 top-2 bottom-2 w-2` },
-  { id: "nw", cursor: "nwse-resize", pos: `${CORNER} -left-[7px] -top-[7px]` },
-  { id: "ne", cursor: "nesw-resize", pos: `${CORNER} -right-[7px] -top-[7px]` },
-  { id: "se", cursor: "nwse-resize", pos: `${CORNER} -right-[7px] -bottom-[7px]` },
-  { id: "sw", cursor: "nesw-resize", pos: `${CORNER} -left-[7px] -bottom-[7px]` },
+  { id: "nw", cursor: "nwse-resize", pos: `${CORNER} -left-1.75 -top-1.75` },
+  { id: "ne", cursor: "nesw-resize", pos: `${CORNER} -right-1.75 -top-1.75` },
+  { id: "se", cursor: "nwse-resize", pos: `${CORNER} -right-1.75 -bottom-1.75` },
+  { id: "sw", cursor: "nesw-resize", pos: `${CORNER} -left-1.75 -bottom-1.75` },
 ];
 
 /** The editor's stand-in for a widget with no live data yet (the kiosk leaves it out). */
@@ -202,7 +202,7 @@ export function PlacementFrame({
           <div
             aria-hidden
             data-hidden-zone
-            className="absolute rounded-[10px] border-dashed border-ui-accent"
+            className="absolute rounded-10 border-dashed border-ui-accent"
             style={{ inset: -5 / zoom, borderWidth: 1.5 / zoom }}
           />
         )}
@@ -361,7 +361,7 @@ export function PlacementFrame({
               aria-hidden
               data-shot-skip
               className={cn(
-                "pointer-events-none absolute z-[15] rounded-[10px] border-solid transition-[box-shadow,border-color] duration-150",
+                "pointer-events-none absolute z-[15] rounded-10 border-solid transition-[box-shadow,border-color] duration-150",
                 selected ? "border-ui-accent" : "border-transparent"
               )}
               style={{
@@ -395,7 +395,7 @@ export function PlacementFrame({
               >
                 {h.id === "se" && (
                   <span
-                    className="pointer-events-none absolute left-1/2 top-1/2 h-[11px] w-[11px] -translate-x-1/2 -translate-y-1/2 rounded-[3px] border-2 border-ui-accent bg-ui-inverse"
+                    className="pointer-events-none absolute left-1/2 top-1/2 h-2.75 w-2.75 -translate-x-1/2 -translate-y-1/2 rounded-3 border-2 border-ui-accent bg-ui-inverse"
                     // Same size on screen at any canvas zoom.
                     style={{ scale: String(1 / zoom) }}
                   />
@@ -417,7 +417,7 @@ export function PlacementFrame({
                   onClick={onPickWidget}
                   className="flex items-center gap-1 rounded-md px-2 py-1 font-ui text-micro text-ui-hint transition-colors hover:bg-ui-hover hover:text-ui-1"
                 >
-                  <Plus className="h-[15px] w-[15px]" /> Pick a widget
+                  <Plus className="h-3.75 w-3.75" /> Pick a widget
                 </button>
               )}
             </div>

@@ -16,21 +16,21 @@ interface EmptyLayoutCardProps {
 export function EmptyLayoutCard({ onBrowse, onImport, onUseSample }: EmptyLayoutCardProps) {
   return (
     <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-      <div className="flex max-w-[340px] flex-col items-center gap-2.5 rounded-xl border border-ui-default bg-ui-panel px-7 py-6 text-center font-ui">
+      <div className="flex max-w-85 flex-col items-center gap-2.5 rounded-xl border border-ui-default bg-ui-panel px-7 py-6 text-center font-ui">
         <LayoutDashboard className="h-7 w-7 text-ui-hint" strokeWidth={1.5} />
         <div className="text-lead font-medium text-ui-1">Drop widgets or InfoPanel items here</div>
         <div className="pointer-events-auto mt-1.5 flex gap-2">
           <button
             type="button"
             onClick={onBrowse}
-            className="h-[30px] rounded-[7px] bg-ui-inverse px-3 text-caption font-medium text-ui-inverse-fg transition-opacity hover:opacity-90"
+            className="h-7.5 rounded-7 bg-ui-inverse px-3 text-caption font-medium text-ui-inverse-fg transition-opacity hover:opacity-90"
           >
             Add
           </button>
           <button
             type="button"
             onClick={onImport}
-            className="h-[30px] rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-caption text-ui-1 transition-colors hover:bg-ui-hover"
+            className="h-7.5 rounded-7 border border-ui-strong bg-ui-raised px-3 text-caption text-ui-1 transition-colors hover:bg-ui-hover"
           >
             Import .infopanel
           </button>
@@ -51,7 +51,7 @@ function TipLine({ text }: { text: string }) {
   ) : (
     <>
       {before}
-      <Kbd className="h-auto min-w-0 rounded-[4px] bg-transparent px-1 py-0 text-micro leading-[1.6] text-ui-soft">?</Kbd>
+      <Kbd className="h-auto min-w-0 rounded-4 bg-transparent px-1 py-0 text-micro leading-[1.6] text-ui-soft">?</Kbd>
       {after}
     </>
   );
@@ -62,7 +62,7 @@ export function QuickTipsCard() {
   const [open, setOpen] = useState(() => !tipsDismissed());
   if (!open) return null;
   return (
-    <div className="mx-3.5 my-3 flex flex-col gap-2 rounded-[10px] border border-ui-strong bg-ui-raised px-3.5 py-3 font-ui">
+    <div className="mx-3.5 my-3 flex flex-col gap-2 rounded-10 border border-ui-strong bg-ui-raised px-3.5 py-3 font-ui">
       <div className="flex items-center justify-between">
         <span className="text-body font-medium text-ui-1">Quick tips</span>
         <button

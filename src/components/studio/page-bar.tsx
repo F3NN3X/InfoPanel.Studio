@@ -15,13 +15,13 @@ export function PageBar({ children, className }: { children: ReactNode; classNam
     <header
       data-tauri-drag-region
       className={cn(
-        "flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome pl-4 pr-4 font-ui max-[959px]:h-10 max-[959px]:gap-2 max-[959px]:pl-2 max-[959px]:pr-2 max-[599px]:h-auto max-[599px]:flex-wrap max-[599px]:px-3 max-[599px]:py-2",
-        isTauri() && "pr-0 max-[959px]:pr-0",
+        "flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome pl-4 pr-4 font-ui max-bar:h-10 max-bar:gap-2 max-bar:pl-2 max-bar:pr-2 max-sm:h-auto max-sm:flex-wrap max-sm:px-3 max-sm:py-2",
+        isTauri() && "pr-0 max-bar:pr-0",
         className
       )}
     >
       {children}
-      <div className="flex self-stretch max-[599px]:hidden">
+      <div className="flex self-stretch max-sm:hidden">
         <WindowControls />
       </div>
     </header>
@@ -30,7 +30,7 @@ export function PageBar({ children, className }: { children: ReactNode; classNam
 
 /** The empty stretch of the bar: it takes the free width, and drags the window. */
 export function BarFill() {
-  return <div data-tauri-drag-region className="min-w-0 flex-1 max-[599px]:hidden" />;
+  return <div data-tauri-drag-region className="min-w-0 flex-1 max-sm:hidden" />;
 }
 
 /** The page's title, and beside it a note (a count, what the page holds) that shrinks first and goes under 1280 px. */
@@ -41,7 +41,7 @@ export function BarTitle({ title, note }: { title: string; note?: ReactNode }) {
         {title}
       </h1>
       {note && (
-        <span data-tauri-drag-region className="min-w-0 truncate whitespace-nowrap text-caption text-ui-3 max-[1279px]:hidden">
+        <span data-tauri-drag-region className="min-w-0 truncate whitespace-nowrap text-caption text-ui-3 max-xl:hidden">
           {note}
         </span>
       )}

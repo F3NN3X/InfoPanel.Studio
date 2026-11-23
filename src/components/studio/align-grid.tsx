@@ -98,7 +98,7 @@ export function AlignGrid({ x, y, onChange, only, spread, stretch, label = "Alig
       <div
         role="radiogroup"
         aria-label={label}
-        className="grid shrink-0 grid-cols-3 gap-[3px] rounded-[7px] border border-ui-default bg-ui-app p-1"
+        className="grid shrink-0 grid-cols-3 gap-0.75 rounded-7 border border-ui-default bg-ui-app p-1"
       >
         {POS.flatMap((cy, r) =>
           POS.map((cx, c) => {
@@ -122,7 +122,7 @@ export function AlignGrid({ x, y, onChange, only, spread, stretch, label = "Alig
                 onFocus={() => setFocus(i)}
                 onKeyDown={(e) => onKeyDown(e, i)}
                 className={cn(
-                  "flex h-[22px] w-[22px] items-center justify-center rounded-[4px] transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ui-accent/60",
+                  "flex h-5.5 w-5.5 items-center justify-center rounded-4 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ui-accent/60",
                   on ? "bg-ui-accent/[.22]" : "hover:bg-ui-hover"
                 )}
               >

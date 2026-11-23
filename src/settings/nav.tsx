@@ -45,7 +45,7 @@ export function NavItem({ id, on, onClick, status, children }: { id: PageId; on:
         on ? "bg-s-nav-on text-s-t1 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]" : "bg-transparent text-s-t2 hover:bg-s-nav-hover"
       )}
     >
-      <Icon className={cn("h-[18px] w-[18px]", on ? "text-s-accent-text forced-colors:text-[color:HighlightText]" : "text-s-dim")} />
+      <Icon className={cn("h-4.5 w-4.5", on ? "text-s-accent-text forced-colors:text-[color:HighlightText]" : "text-s-dim")} />
       <span className="flex-1 rail:sr-only">{PAGE_NAMES[id]}</span>
       <span className="flex items-center gap-2.5 rail:absolute rail:right-1 rail:top-1 rail:scale-75">{children}</span>
     </button>

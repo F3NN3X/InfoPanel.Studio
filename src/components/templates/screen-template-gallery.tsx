@@ -59,7 +59,7 @@ export function ScreenTemplateThumb({ template, variant, width, height, first }:
       {bg?.media && <div className="absolute inset-0" style={bg.media} />}
       {bg?.overlay && <div className="absolute inset-0" style={bg.overlay} />}
       <div
-        className="absolute inset-[4%] grid gap-[2px]"
+        className="absolute inset-[4%] grid gap-0.5"
         style={{ gridTemplateColumns: `repeat(${profile.cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${profile.rows}, minmax(0, 1fr))` }}
       >
         {profile.pages[0].placements.map((z) => {
@@ -68,7 +68,7 @@ export function ScreenTemplateThumb({ template, variant, width, height, first }:
             <div
               key={z.id}
               title={titleOf(z.module)}
-              className="grid min-h-0 min-w-0 place-items-center rounded-[3px] border"
+              className="grid min-h-0 min-w-0 place-items-center rounded-3 border"
               style={{ gridColumn: `${z.colStart} / span ${z.colSpan}`, gridRow: `${z.rowStart} / span ${z.rowSpan}`, borderColor: `${accent}55`, background: `${accent}14` }}
             >
               <Icon className="h-[min(14px,60%)] w-[min(14px,60%)]" style={{ color: accent }} strokeWidth={1.75} />

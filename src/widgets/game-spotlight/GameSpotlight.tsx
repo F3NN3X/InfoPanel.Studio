@@ -289,7 +289,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
                         </div>
                       ))}
                       {Number.isFinite(ach) && w > 420 && (
-                        <div className="ml-auto flex min-w-[150px] max-w-[220px] flex-1 flex-col gap-1">
+                        <div className="ml-auto flex min-w-37.5 max-w-55 flex-1 flex-col gap-1">
                           <div className="flex justify-between text-micro">
                             <span className="flex items-center gap-1 text-[color:var(--w-faint)]">
                               <Icon name="trophy" className="text-sm text-amber-300" />

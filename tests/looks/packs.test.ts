@@ -67,7 +67,7 @@ describe.each(IDS)("pack %s", (id) => {
     const html = renderToString(h(Widget, { size: "lg", title: "Title", icon: "memory", children: () => h("i"), t3: pack.look.t3, slots: pack.slots, packId: id }));
     expect(html).toContain(HEADER[id]);
     expect(html).not.toContain("pt-[16px]");
-    expect(html).toContain(id === "term" ? "inset-[6px]" : "data-wp-body");
+    expect(html).toContain(id === "term" ? "inset-1.5" : "data-wp-body");
   });
 
   it("ships the OFL text with its fonts and every copyright line it declares", async () => {

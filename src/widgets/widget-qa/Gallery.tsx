@@ -46,7 +46,7 @@ export function GalleryGrid({ def, base, cell, gap, live }: GalleryProps) {
             live={live}
             eager
           />
-          <figcaption className="font-mono text-[10px] opacity-60">{v.label}</figcaption>
+          <figcaption className="font-mono text-nano opacity-60">{v.label}</figcaption>
         </figure>
       ))}
     </div>

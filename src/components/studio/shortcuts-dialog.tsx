@@ -18,7 +18,7 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
         <Dialog.Popup
           ref={popupRef}
           initialFocus={popupRef}
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[min(880px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-ui-strong bg-ui-tile px-5 py-[18px] font-ui text-ui-1 shadow-ui-modal outline-none"
+          className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[min(880px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-ui-strong bg-ui-tile px-5 py-4.5 font-ui text-ui-1 shadow-ui-modal outline-none"
         >
           <div className="mb-2 flex shrink-0 items-center">
             <Dialog.Title className="flex-1 text-sm font-medium">Keyboard shortcuts</Dialog.Title>
@@ -32,9 +32,9 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
                 <div className="pb-1 pt-3 text-caption font-medium text-ui-3">{group.title}</div>
                 <dl>
                   {group.items.map((item) => (
-                    <div key={item.label} className="flex items-center gap-3 border-b border-ui-subtle py-[7px] text-body">
+                    <div key={item.label} className="flex items-center gap-3 border-b border-ui-subtle py-1.75 text-body">
                       <dt className="min-w-0 flex-1 text-ui-2">{item.label}</dt>
-                      <dd className="shrink-0 rounded-[5px] border border-ui-menu px-[7px] py-0.5 font-ui-mono text-micro text-ui-1">
+                      <dd className="shrink-0 rounded-5 border border-ui-menu px-1.75 py-0.5 font-ui-mono text-micro text-ui-1">
                         {item.keys}
                       </dd>
                     </div>

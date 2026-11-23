@@ -39,7 +39,7 @@ const ITEM =
 export function PhoneTabBar({ active, onSelect, onHelp }: PhoneTabBarProps) {
   const inMore = MORE.some((m) => m.id === active);
   return (
-    <nav aria-label="Studio views" className="flex h-[52px] shrink-0 border-t border-ui-subtle bg-ui-chrome">
+    <nav aria-label="Studio views" className="flex h-13 shrink-0 border-t border-ui-subtle bg-ui-chrome">
       {TABS.map(({ id, label, icon: Icon }) => (
         <button
           key={id}

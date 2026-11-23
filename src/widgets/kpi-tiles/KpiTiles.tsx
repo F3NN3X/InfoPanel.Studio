@@ -105,9 +105,9 @@ function Tiles(p: KpiTilesProps) {
                   </span>
                   {tileH > 126 && m.sub && <span className="truncate text-xs text-[color:var(--w-faint)]">{m.sub}</span>}
                   {tileH > 100 ? (
-                    <div className="relative mt-auto h-[38%] min-h-[18px] max-h-10">
+                    <div className="relative mt-auto h-[38%] min-h-4.5 max-h-10">
                       <Spark values={hist} min={0} max={m.max} className="absolute inset-0 h-full" />
-                      <span className="absolute right-0 h-[7px] w-[7px] -translate-y-1/2 translate-x-1/2 rounded-full bg-[var(--w-accent)]" style={{ top: `${100 - ((last - 0) / ((m.max ?? Math.max(...hist) * 1.08) || 1)) * 94 - 3}%`, boxShadow: "0 0 0 3px color-mix(in oklab, var(--w-accent) 22%, transparent)" }} />
+                      <span className="absolute right-0 h-1.75 w-1.75 -translate-y-1/2 translate-x-1/2 rounded-full bg-[var(--w-accent)]" style={{ top: `${100 - ((last - 0) / ((m.max ?? Math.max(...hist) * 1.08) || 1)) * 94 - 3}%`, boxShadow: "0 0 0 3px color-mix(in oklab, var(--w-accent) 22%, transparent)" }} />
                     </div>
                   ) : (
                     tileH >= 76 && <Spark values={hist} min={0} max={m.max} className="mt-auto h-6 w-full" />

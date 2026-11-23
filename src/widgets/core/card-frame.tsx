@@ -14,8 +14,8 @@ export function CardFrame({ kind, fill }: { kind: NonNullable<SkinTokens["frame"
   if (kind === "gradient")
     return <div className="pointer-events-none absolute inset-0 rounded-[inherit]" style={{ border: "1.5px solid transparent", background: `${safeFill(fill) ?? "var(--w-accent)"} border-box`, mask: GRADIENT_MASK, WebkitMask: GRADIENT_MASK, maskComposite: "exclude", WebkitMaskComposite: "xor" }} />;
   // `legend`: a thin border set in 6 px, the line a `box-legend` header's title sits on (the card keeps its own padding).
-  if (kind === "legend") return <div className="pointer-events-none absolute inset-[6px] rounded-[2px] border" style={{ borderColor: mix(45) }} />;
-  if (kind === "inset") return <div className="pointer-events-none absolute inset-[5px] rounded-[4px] border" style={{ borderColor: mix(45, "#3f3f46") }} />;
+  if (kind === "legend") return <div className="pointer-events-none absolute inset-1.5 rounded-2 border" style={{ borderColor: mix(45) }} />;
+  if (kind === "inset") return <div className="pointer-events-none absolute inset-1.25 rounded-4 border" style={{ borderColor: mix(45, "#3f3f46") }} />;
   return HUD_CORNERS.map((c) => <span key={c} className={`pointer-events-none absolute h-2.5 w-2.5 ${c}`} style={{ borderColor: "var(--w-accent)" }} />);
 }
 

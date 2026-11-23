@@ -45,7 +45,7 @@ export function PaneSheet({ label, onClose, children }: PaneSheetProps) {
                 type="button"
                 aria-label="Close"
                 onClick={onClose}
-                className="flex h-8 w-8 items-center justify-center rounded-[7px] text-ui-3 hover:bg-ui-hover hover:text-ui-1"
+                className="flex h-8 w-8 items-center justify-center rounded-7 text-ui-3 hover:bg-ui-hover hover:text-ui-1"
               >
                 <X className="h-4 w-4" />
               </button>

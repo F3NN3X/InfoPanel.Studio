@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CONTROL_MOTION, FOCUS_RING } from "./button";
 
-const SIZE = { 26: "h-[26px] w-[26px]", 28: "h-7 w-7", 30: "h-[30px] w-[30px]", 32: "h-8 w-8" } as const;
+const SIZE = { 26: "h-6.5 w-6.5", 28: "h-7 w-7", 30: "h-7.5 w-7.5", 32: "h-8 w-8" } as const;
 
 interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
   /** Required accessible name; also the tooltip. */

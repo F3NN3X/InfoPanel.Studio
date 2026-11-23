@@ -63,7 +63,7 @@ export default function MemoryUsage(p: MemoryUsageProps) {
           </div>
         ) : (
           <div className={`flex h-full ${roomy(w, h) ? "flex-col gap-3" : "gap-5"}`}>
-            {roomy(w, h) ? <div className="shrink-0 self-center" style={{ width: Math.min(w - 32, h * 0.46) }}>{ring("w-full")}</div> : ring("h-full max-h-[180px] shrink-0")}
+            {roomy(w, h) ? <div className="shrink-0 self-center" style={{ width: Math.min(w - 32, h * 0.46) }}>{ring("w-full")}</div> : ring("h-full max-h-45 shrink-0")}
             <div className={`flex min-w-0 flex-1 flex-col gap-3 ${roomy(w, h) ? "min-h-0" : "justify-center"}`}>
               <div className="grid grid-cols-2 gap-3">
                 <Stat label="Available" value={`${fmt(phys.free, 1)} GB`} />

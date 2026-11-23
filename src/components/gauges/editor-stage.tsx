@@ -38,12 +38,12 @@ export function EditorStage({ gauge, playback, scope, themeName, view, sensor, z
   const stateText = zones.thresholds && state ? `${ZONE_LABEL[state]} · ${bandText(zones.thresholds, state, r.unit)}` : null;
   const live: ReactNode = sensor.name && (
     <span className="flex shrink-0 items-center gap-2 border-l border-ui-subtle pl-3 text-caption text-ui-3">
-      <span className="max-w-[160px] truncate">Live: {sensor.name}</span>
+      <span className="max-w-40 truncate">Live: {sensor.name}</span>
       <Toggle checked={view.live && sensor.reading} disabled={!sensor.reading} onChange={onLive} label={`Follow ${sensor.name}`} />
     </span>
   );
   return (
-    <section aria-label="Preview" className="flex min-w-0 flex-1 flex-col bg-ui-app p-5 font-ui max-[899px]:min-h-[420px] max-[899px]:flex-none">
+    <section aria-label="Preview" className="flex min-w-0 flex-1 flex-col bg-ui-app p-5 font-ui max-narrow:min-h-105 max-narrow:flex-none">
       <div className="flex items-center justify-between gap-3 pb-3">
         <PresetPicker scope={scope} onPick={onPickPreset} />
         <p className="truncate text-caption text-ui-3">Theme colors follow “{themeName ?? "this dashboard’s theme"}”</p>
@@ -52,7 +52,7 @@ export function EditorStage({ gauge, playback, scope, themeName, view, sensor, z
         <div role="img" aria-label={`Gauge preview, ${r.text}${stateText ? `, ${stateText}` : ""}`} className="flex min-h-0 items-center justify-center">
           <GaugeView gauge={gauge} p={playback.p} size={360} scope={scope} />
         </div>
-        <div role="group" aria-label={`Range ${r.low} to ${r.high}`} className="grid w-full max-w-[420px] grid-cols-[1fr_auto_1fr] items-start gap-3">
+        <div role="group" aria-label={`Range ${r.low} to ${r.high}`} className="grid w-full max-w-105 grid-cols-[1fr_auto_1fr] items-start gap-3">
           <span className={cn("font-ui-mono text-caption tabular-nums text-ui-3", !view.endLabels && "invisible")} aria-hidden={!view.endLabels}>
             {r.low}
           </span>

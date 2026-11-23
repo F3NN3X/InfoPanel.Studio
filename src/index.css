@@ -10,6 +10,11 @@
 /* The studio's phone width (SPEC §3.5, `PHONE_MAX`): `sm:` and `max-sm:` switch at 600 px, not Tailwind's 640. */
 @theme {
   --breakpoint-sm: 600px;
+  /* The studio's own layout steps: the gauges and Screens split (narrow), the top and status bars' compact form (bar), and
+     the alerts editor's side-by-side form (split). `max-*` is `width <` the value. */
+  --breakpoint-narrow: 900px;
+  --breakpoint-bar: 960px;
+  --breakpoint-split: 1180px;
 }
 
 /* `lite:` styles what sits on a light card (`data-mode=light`) or on the theme card of a light page (`:root` or a studio page scope with `data-mode=light`). */

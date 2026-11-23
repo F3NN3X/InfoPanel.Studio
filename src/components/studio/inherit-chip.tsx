@@ -130,7 +130,7 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
         )}
       >
         {asDot ? (
-          <span className={cn("h-[7px] w-[7px] shrink-0 rounded-full", changedHere ? "bg-ui-accent" : "border border-ui-source")} aria-hidden />
+          <span className={cn("h-1.75 w-1.75 shrink-0 rounded-full", changedHere ? "bg-ui-accent" : "border border-ui-source")} aria-hidden />
         ) : (
           <>
             {changedHere ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ui-blue" aria-hidden /> : <Icon className="h-3 w-3" strokeWidth={1.5} aria-hidden />}
@@ -140,7 +140,7 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner className="z-(--z-menu)" sideOffset={4} align="start">
-          <Menu.Popup className={cn(POPUP, "w-[220px] bg-ui-hover border-ui-menu")}>
+          <Menu.Popup className={cn(POPUP, "w-55 bg-ui-hover border-ui-menu")}>
             {line && <div className="px-2 pb-1 pt-1.5 text-micro leading-snug text-ui-4">{line}</div>}
             {state === "custom" && (
               <>

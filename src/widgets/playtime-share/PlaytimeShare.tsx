@@ -67,7 +67,7 @@ export default function PlaytimeShare(p: PlaytimeShareProps) {
               )}
             </div>
             )}
-            <div className={`flex ${room ? "h-6" : "h-3"} w-full gap-[2px] overflow-hidden rounded-md`}>
+            <div className={`flex ${room ? "h-6" : "h-3"} w-full gap-0.5 overflow-hidden rounded-md`}>
               {games.map((g, i) => (
                 <span key={g.name} title={`${g.name} · ${fmt(g.two, 1)} h`} className={room ? "flex h-full items-center justify-center overflow-hidden text-micro font-semibold leading-none first:rounded-l-md last:rounded-r-md" : "h-full first:rounded-l-md last:rounded-r-md"} style={{ flexGrow: g.two, background: pal[i % pal.length], ...(room ? { color: `oklch(from ${pal[i % pal.length]} clamp(0, (0.7 - l) * 1000, 1) 0 0)` } : null) }}>
                   {room && (g.two / sum) * 100 >= 14 && `${fmt((g.two / sum) * 100, 0)} %`}

@@ -21,7 +21,7 @@ import { Group } from "../ui";
 function ConnectionCard({ id, children }: { id: string; children: ReactNode }) {
   const found = useFound(id);
   return (
-    <div ref={found.ref} className={cn("rounded-xl border border-s-card-line bg-s-card px-[18px] py-4", found.className)}>
+    <div ref={found.ref} className={cn("rounded-xl border border-s-card-line bg-s-card px-4.5 py-4", found.className)}>
       {children}
     </div>
   );

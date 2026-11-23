@@ -49,8 +49,8 @@ const TYPE_LABEL: Record<string, string> = { jpeg: "JPEG", png: "PNG", gif: "GIF
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex gap-3 py-[3px] text-caption">
-      <span className="w-[86px] shrink-0 text-ui-4">{label}</span>
+    <div className="flex gap-3 py-0.75 text-caption">
+      <span className="w-21.5 shrink-0 text-ui-4">{label}</span>
       <span className="min-w-0 flex-1 truncate font-ui-mono text-ui-2">{children}</span>
     </div>
   );
@@ -101,7 +101,7 @@ export function LibraryDetail(p: DetailProps) {
       aria-label="Item details"
       className={cn(
         "flex flex-col gap-4 overflow-y-auto bg-ui-panel p-4 font-ui",
-        p.sheet ? "min-w-0 flex-1" : "w-[320px] shrink-0 border-l border-ui-subtle",
+        p.sheet ? "min-w-0 flex-1" : "w-80 shrink-0 border-l border-ui-subtle",
       )}
     >
       <AssetThumb item={item} size="lg" live className="aspect-[16/10] w-full border border-ui-subtle" />
@@ -240,7 +240,7 @@ export function LibraryDetail(p: DetailProps) {
                 // Copies recorded before profiles were tracked ("*") have nowhere to jump to.
                 disabled={c.profileId === "*"}
                 title={c.profileId === "*" ? "Recorded without a profile" : undefined}
-                className="flex h-[30px] items-center gap-2 rounded-ui-md border border-ui-subtle px-2.5 text-left text-caption text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-60"
+                className="flex h-7.5 items-center gap-2 rounded-ui-md border border-ui-subtle px-2.5 text-left text-caption text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-60"
               >
                 <span className="min-w-0 flex-1 truncate">{p.copyLabel(c)}</span>
                 <ArrowUpRight className="h-3.5 w-3.5 text-ui-4" />

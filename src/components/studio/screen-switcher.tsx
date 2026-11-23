@@ -47,13 +47,13 @@ export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage, 
           {profile.name}
           {compact && <span className="font-normal text-ui-3"> / {page.name}</span>}
         </span>
-        <span className="font-ui-mono text-micro text-ui-hint max-[1279px]:hidden">
+        <span className="font-ui-mono text-micro text-ui-hint max-xl:hidden">
           {profile.width} × {profile.height} · {profile.cols} × {profile.rows} grid
         </span>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={6} className="z-[80]">
-          <Popover.Popup className="w-[300px] rounded-[10px] border border-ui-menu bg-ui-raised p-1 font-ui text-body text-ui-2 shadow-ui-menu outline-none">
+          <Popover.Popup className="w-75 rounded-10 border border-ui-menu bg-ui-raised p-1 font-ui text-body text-ui-2 shadow-ui-menu outline-none">
             <p className="px-2 pb-1 pt-1.5 text-micro text-ui-hint">
               {kind} · {profile.name}
             </p>

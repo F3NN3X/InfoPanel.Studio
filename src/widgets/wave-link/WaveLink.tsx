@@ -209,16 +209,16 @@ function DenseRow({ channel, o, w }: { channel: WlChannel; o: Opts; w: number })
   const narrow = w > 0 && w < 150;
   return (
     <div className="flex min-w-0 items-center gap-2" style={{ height: DENSE_H }}>
-      <span className={`flex shrink-0 items-center gap-1 text-xs font-semibold ${w >= 260 ? "w-[84px]" : narrow ? "w-[40px]" : "w-[64px]"}`}>
+      <span className={`flex shrink-0 items-center gap-1 text-xs font-semibold ${w >= 260 ? "w-21" : narrow ? "w-10" : "w-16"}`}>
         <span className="truncate" title={channel.name}>
           {channel.name}
         </span>
         {channel.isMuted && <MuteMark />}
       </span>
-      {o.fader && !narrow && <span className="w-[54px] shrink-0 whitespace-nowrap text-right text-micro tabular-nums text-[color:var(--w-muted)]">{fader(channel.level, channel.levelDb)}</span>}
+      {o.fader && !narrow && <span className="w-13.5 shrink-0 whitespace-nowrap text-right text-micro tabular-nums text-[color:var(--w-muted)]">{fader(channel.level, channel.levelDb)}</span>}
       <MeterPair levels={levels} variant={o.variant} color={o.color ?? "var(--w-accent)"} hot={STATE.crit} thickness={6} className="min-w-0 flex-1" />
       {o.readout && w >= 280 && (
-        <span className="w-[60px] shrink-0 text-right font-mono text-micro tabular-nums text-[color:var(--w-muted)]">
+        <span className="w-15 shrink-0 text-right font-mono text-micro tabular-nums text-[color:var(--w-muted)]">
           {fmtDb(levels.l.v)} {fmtDb(levels.r.v)}
         </span>
       )}

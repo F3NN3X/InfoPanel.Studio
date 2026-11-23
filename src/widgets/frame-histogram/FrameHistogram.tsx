@@ -38,7 +38,7 @@ export default function FrameHistogram(p: FrameHistogramProps) {
   const cell = ([l, v, u, ms]: string[]) => (
     <div key={l} className="flex min-w-0 flex-col gap-1">
       <span className="truncate text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-muted)]">{l}</span>
-      <span className="whitespace-nowrap text-[22px]">
+      <span className="whitespace-nowrap text-stat">
         <Num>{v}</Num>
         <span className="ml-1 text-xs text-[color:var(--w-muted)]">{u}</span>
         <span className="ml-2 text-micro text-[color:var(--w-faint)]">{ms}</span>
@@ -75,7 +75,7 @@ export default function FrameHistogram(p: FrameHistogramProps) {
         idle ? (
           <div className="grid h-full place-content-center justify-items-center gap-1.5 text-center">
             {h >= 100 && (
-              <svg viewBox="0 0 120 44" className="h-11 w-[120px]">
+              <svg viewBox="0 0 120 44" className="h-11 w-30">
                 <path d="M2 30 H118" fill="none" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.5" strokeDasharray="3 4" />
               </svg>
             )}
@@ -92,7 +92,7 @@ export default function FrameHistogram(p: FrameHistogramProps) {
             <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${w > 300 ? 2 : 1}, minmax(0,1fr))` }}>
               {stats.slice(0, w > 300 ? 2 : 1).map(cell)}
             </div>
-            <div className="relative min-h-[40px] flex-1">{chart}</div>
+            <div className="relative min-h-10 flex-1">{chart}</div>
             {h > 170 && (
               <ChartAxis
                 ticks={[

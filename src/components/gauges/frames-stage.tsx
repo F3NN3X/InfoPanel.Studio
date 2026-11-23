@@ -19,13 +19,13 @@ export function FramesStage({ tools, playback, filter }: FramesStageProps) {
   const n = tools.frames.length;
   const current = targetFrame(n, playback.p);
   return (
-    <div className="flex min-w-0 flex-1 flex-col bg-ui-app max-[899px]:flex-none">
-      <section aria-label="Preview" className="flex min-h-0 flex-1 flex-col items-center p-5 font-ui max-[899px]:min-h-[420px] max-[899px]:flex-none">
+    <div className="flex min-w-0 flex-1 flex-col bg-ui-app max-narrow:flex-none">
+      <section aria-label="Preview" className="flex min-h-0 flex-1 flex-col items-center p-5 font-ui max-narrow:min-h-105 max-narrow:flex-none">
         <div className="flex w-full min-h-0 flex-1 items-center justify-center overflow-hidden rounded-ui-lg border border-ui-subtle bg-ui-app">
           <FramesPreview frames={tools.frames} p={playback.p} speed={tools.animationSpeed} size={360} filter={filter} />
         </div>
-        <PlayControls playback={playback} className="mt-4 w-full max-w-[460px]" />
-        <p className="mt-3 text-[11.5px] text-ui-4">
+        <PlayControls playback={playback} className="mt-4 w-full max-w-115" />
+        <p className="mt-3 text-label text-ui-4">
           Frame {n === 0 ? 0 : current + 1} of {n}
           {tools.animationSpeed > 0 ? ` · eases at ${tools.animationSpeed} frames a second` : " · jumps to the frame"}
         </p>

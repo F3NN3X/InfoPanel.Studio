@@ -61,7 +61,7 @@ export function AlertChart({ sensorKey, name, unit, value, limit, clear, above }
   return (
     <div className="flex flex-col gap-1">
       <div className="relative">
-        <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-[120px] w-full overflow-visible">
+        <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-30 w-full overflow-visible">
           {firing && (
             <defs>
               <clipPath id={clipId}>

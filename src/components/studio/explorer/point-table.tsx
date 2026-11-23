@@ -308,7 +308,7 @@ function PointRow({ point, cols, values, recorder, usedBy, selected, onSelect, s
       <span className="truncate font-ui-mono text-caption text-ui-hint">{unit}</span>
       <div className="min-w-0 text-caption text-ui-3">
         {point.type === "number" ? (
-          <Sparkline samples={samples} label={sparkSummary(point.name, samples, unit)} selected={selected} className="w-[120px]" />
+          <Sparkline samples={samples} label={sparkSummary(point.name, samples, unit)} selected={selected} className="w-30" />
         ) : image ? (
           <Thumb src={values[point.key]?.text?.trim() || point.raw} className="h-7 w-7" />
         ) : point.type === "empty" ? null : (

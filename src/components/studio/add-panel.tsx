@@ -461,12 +461,12 @@ export function AddPanel({
                 changeQuery("");
                 inputRef.current?.focus();
               }}
-              className={cn("flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-ui-default text-ui-2 hover:text-ui-1", FOCUS)}
+              className={cn("flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-ui-default text-ui-2 hover:text-ui-1", FOCUS)}
             >
               <X className="h-3.5 w-3.5" />
             </button>
           ) : (
-            <kbd className="shrink-0 rounded-[4px] border border-ui-strong px-[5px] py-px font-ui-mono text-micro leading-[14px] text-ui-hint">/</kbd>
+            <kbd className="shrink-0 rounded-4 border border-ui-strong px-1.25 py-px font-ui-mono text-micro leading-3.5 text-ui-hint">/</kbd>
           )}
         </label>
       </div>
@@ -514,8 +514,8 @@ export function AddPanel({
       )}
 
       {target && (
-        <div className="mx-2.5 mt-2.5 flex shrink-0 items-center gap-2.5 rounded-ui-md border border-ui-accent/35 bg-ui-accent/10 px-2.5 py-[9px]">
-          <SquareDashedMousePointer className="h-[18px] w-[18px] shrink-0 text-ui-accent-text" strokeWidth={1.75} aria-hidden />
+        <div className="mx-2.5 mt-2.5 flex shrink-0 items-center gap-2.5 rounded-ui-md border border-ui-accent/35 bg-ui-accent/10 px-2.5 py-2.25">
+          <SquareDashedMousePointer className="h-4.5 w-4.5 shrink-0 text-ui-accent-text" strokeWidth={1.75} aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="truncate text-body font-medium text-ui-1">
               Filling blank space · <span className="font-ui-mono text-micro">{sizeText(target.cols, target.rows)}</span>
@@ -652,10 +652,10 @@ function DoorRow({ compact, icon: Icon, title, note, onClick }: { compact: boole
     <button
       type="button"
       onClick={onClick}
-      className={cn("flex w-full items-center gap-2.5 rounded-ui-md px-2 text-left hover:bg-s-divider", compact ? "h-10" : "h-[52px]", FOCUS)}
+      className={cn("flex w-full items-center gap-2.5 rounded-ui-md px-2 text-left hover:bg-s-divider", compact ? "h-10" : "h-13", FOCUS)}
     >
-      <span className={cn("flex shrink-0 items-center justify-center rounded-ui-md border border-ui-default bg-ui-raised text-ui-2", compact ? "h-7 w-7" : "h-(--ui-h-field) w-[34px]")}>
-        <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+      <span className={cn("flex shrink-0 items-center justify-center rounded-ui-md border border-ui-default bg-ui-raised text-ui-2", compact ? "h-7 w-7" : "h-(--ui-h-field) w-8.5")}>
+        <Icon className="h-4.5 w-4.5" strokeWidth={1.6} />
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-body font-medium text-ui-1">{title}</span>
