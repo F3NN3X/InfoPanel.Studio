@@ -61,7 +61,7 @@ describe("textVars", () => {
 });
 
 describe("accentVars", () => {
-  it("sets the colour as --w-accent and, for one release, as --accent", () => {
-    expect(accentVars("#ff0000")).toEqual({ "--w-accent": "#ff0000", "--accent": "#ff0000" });
+  it("sets the colour as --w-accent only, never as --accent", () => {
+    expect(accentVars("#ff0000")).toEqual({ "--w-accent": "#ff0000" });
   });
 });

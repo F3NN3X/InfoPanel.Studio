@@ -38,6 +38,17 @@ export interface StudioEntry {
   usage?: string;
 }
 
+/**
+ * A named variation of a Look (the Variant knob, D15; theme packs spec `variants`), for example Night and Dusk: a few
+ * widget-style values over the Look (accent, surface, radius, padding, gap). Picking it writes them at the level. Every
+ * variant of a Look should set the same keys, so one replaces the other.
+ */
+export interface LookVariant {
+  id: string;
+  name: string;
+  values: Record<string, string>;
+}
+
 export interface Look {
   schema: 1;
   id: string;
@@ -59,6 +70,8 @@ export interface Look {
   t3?: Record<string, string | number>;
   export?: { notExported: string[] };
   ext?: Record<string, unknown>;
+  /** Its variants (the Variant knob draws only for a Look that has some). */
+  variants?: LookVariant[];
   /** Only the built-in Studio Look: its chrome tokens by group (`shared` also feeds Settings and Help). */
   studio?: Record<string, Record<string, StudioEntry>>;
 }

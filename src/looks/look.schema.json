@@ -54,6 +54,19 @@
       "properties": { "notExported": { "type": "array", "items": { "type": "string" } } }
     },
     "ext": { "type": "object" },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "values"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "name": { "type": "string", "minLength": 1 },
+          "values": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      }
+    },
     "studio": { "type": "object", "additionalProperties": { "type": "object", "additionalProperties": { "$ref": "#/$defs/studioEntry" } } }
   },
   "if": { "properties": { "id": { "const": "studio" } } },

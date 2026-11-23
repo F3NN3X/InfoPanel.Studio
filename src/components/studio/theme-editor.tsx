@@ -65,8 +65,8 @@ import { lookUses, withoutLookId } from "@/looks/user-pack-config";
 import { GALLERY_IDS, lookName as lookNameOf, lookPreset, lookPresetId } from "./look-gallery-model";
 import { LookKnobs } from "./look-knobs";
 import { useStablePreset } from "./look-thumb";
-import { cornerStep, knobCustom, knobValue, lockedKnobs, modeOf } from "./look-knobs-model";
-import { ThemeActions, ThemeLookCard, ThemeSave } from "./theme-look-card";
+import { knobCustom, knobValue, lockedKnobs, modeOf } from "./look-knobs-model";
+import { ThemeActions, ThemeApplyScreens, ThemeLookCard, ThemeSave } from "./theme-look-card";
 import { SAMPLE_PRESET_GROUPS } from "@/lib/screen-templates/sample-presets";
 import { ThemeBrowse } from "./theme-browse";
 import type { BrowseItem } from "./theme-browse-model";
@@ -97,6 +97,7 @@ import {
   backgroundLabel,
   cardKind,
   cardName,
+  cornersPx,
   kindLine,
   otherUses,
   pageParts,
@@ -363,6 +364,9 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
     const background = at.level !== "page" && !keepBackground && p.background !== undefined;
     show({ ...lookToast(p.name, at.level, background, profile.name), reset: { label: `Reset to ${p.name}`, run: () => resetTo(p, p.name) } });
   };
+  /** The screens a screen's theme can go on as well (Apply to other screens…, beside Save and in Saved and template themes). */
+  const otherScreens =
+    at.level === "screen" && state.theme ? config.profiles.filter((p) => p.id !== profile.id).map((p) => ({ id: p.id, name: p.name, size: `${p.width}×${p.height}` })) : undefined;
   /** The screen's theme on it and the ticked screens: one change, one undo step. */
   const applyToScreens = (profileIds: readonly string[], keepBackground: boolean) => {
     if (!state.theme) return;
@@ -561,7 +565,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
             counts={themeCounts(presets.presets.length, rows ?? [])}
             usedBy={(id) => usedByText(themeUses(config, id))}
             onApply={applyPreset}
-            otherScreens={at.level === "screen" && state.theme ? config.profiles.filter((p) => p.id !== profile.id).map((p) => ({ id: p.id, name: p.name, size: `${p.width}×${p.height}` })) : undefined}
+            otherScreens={otherScreens}
             onApplyToScreens={applyToScreens}
             onRename={presets.rename}
             onDuplicate={presets.duplicate}
@@ -613,23 +617,19 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
         // A page's corners are its own knob; a screen's are the one control over both stores (L48).
         const corners = twoLevel
           ? {
-              px: radiusPx(theme.radius),
+              px: cornersPx(knobValue(values, "radius"), theme.radius),
               custom: Math.abs(theme.radius - (state.theme?.radius ?? DEFAULT_RADIUS)) > 1e-6 || knobCustom(values, "corners"),
               // At the theme's own corners both stores are cleared, so nothing is left holding a value that changes nothing.
               set: (px: number) =>
                 setConfig((c) => (px === radiusPx(state.theme?.radius ?? DEFAULT_RADIUS) ? resetCorners(c, twoLevel, state.theme?.radius) : withCorners(c, twoLevel, px)), key("corners")),
               reset: () => setConfig((c) => resetCorners(c, twoLevel, state.theme?.radius), key("corners-reset")),
             }
-          : (() => {
-              const own = cornerStep(knobValue(values, "radius"));
-              const px = own === undefined ? radiusPx(theme.radius) : Number(knobValue(values, "radius"));
-              return {
-                px: Math.min(24, Math.max(0, Math.round(px))),
-                custom: knobCustom(values, "corners"),
-                set: (n: number) => setConfig((c) => withLookAt(c, at, { radius: String(n) }), key("corners")),
-                reset: () => setConfig((c) => withKnobReset(c, at, ["radius"]), key("corners-reset")),
-              };
-            })();
+          : {
+              px: cornersPx(knobValue(values, "radius"), theme.radius),
+              custom: knobCustom(values, "corners"),
+              set: (n: number) => setConfig((c) => withLookAt(c, at, { radius: String(n) }), key("corners")),
+              reset: () => setConfig((c) => withKnobReset(c, at, ["radius"]), key("corners-reset")),
+            };
         const pageCustom = at.level === "page" && THEME_CARDS.some((card) => cardSet(config, at, card));
         return (
           <>
@@ -753,6 +753,10 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
               onSave={saveTheme}
               saveName={kind === "template" ? `${name} copy` : `My ${lookName}`}
             />
+            {/* Saved and template themes has its own (one control on the page at a time). */}
+            {drill !== "themes" && state.theme && otherScreens && otherScreens.length > 0 && (
+              <ThemeApplyScreens name={state.theme.name} screens={otherScreens} onApply={(ids) => applyToScreens(ids, keep)} />
+            )}
             <ThemeActions
               reset={state.theme ? { name, text: resetText(name, state.own.length, at.level, levelName), onReset: () => resetTo(state.theme!, name) } : undefined}
               onRename={saved ? (n) => presets.rename(saved.id, n) : undefined}

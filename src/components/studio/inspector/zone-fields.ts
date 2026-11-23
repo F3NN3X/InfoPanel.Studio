@@ -1,7 +1,7 @@
 import { CARDS_ID, type Placement, type ProfileView } from "@/lib/layout";
 import { panelLegacyLook, panelOwnSettings } from "@/lib/panel-model";
-import type { Appearance } from "@/lib/style-resolve";
-import { isLocked, sectionOfKey, themeKeyOf, withFlag, type SectionId, type ThemeLevels } from "@/lib/theme-model";
+import { resolveStyle, type Appearance } from "@/lib/style-resolve";
+import { following, isLocked, sectionOfKey, themeKeyOf, withFlag, type SectionId, type ThemeLevels } from "@/lib/theme-model";
 import { modules } from "@/modules";
 import { CARD_SETTINGS, PANEL_SETTINGS } from "@/modules/standard-settings";
 import { defaultOf, settingKeys, type ModuleSetting, type ModuleSettingValue, type ModuleSettings } from "@/modules/types";
@@ -77,6 +77,54 @@ export function customised(zone: Placement, levels: ThemeLevels, defs: readonly 
     const sec = def && !def.perWidget ? sectionOfKey(themeKeyOf(def, key)) : undefined;
     return sec === undefined || acc.follow?.[sec] === false || isLocked(levels, sec) ? acc : withFollow(acc, sec, false);
   }, zone);
+}
+
+/** The theme section a zone's stored key reads (a per-widget row: none; a key outside the schema: its own). */
+function storedSection(defByKey: ReadonlyMap<string, ModuleSetting>, key: string): SectionId | undefined {
+  const def = defByKey.get(key);
+  if (!def) return sectionOfKey(key);
+  return def.perWidget ? undefined : sectionOfKey(themeKeyOf(def, key));
+}
+
+/**
+ * A zone with its own Look's card left to the Look (L49, as the Theme view's `withoutOwnCard`): a surface equal to the
+ * card the zone shows without it is not stored, so the zone follows its Look's card. Any other card stays stored.
+ */
+export function withoutOwnLookCard(zone: Placement, levels: ThemeLevels): Placement {
+  const card = zone.settings?.surface;
+  if (typeof card !== "string" || !card.startsWith("look-")) return zone;
+  const bare = withoutSettings(zone, ["surface"]);
+  const shown = resolveStyle({
+    levels,
+    own: bare.panel ? panelOwnSettings(bare) : bare.settings,
+    follow: bare.follow,
+    moduleDefaults: bare.panel ? panelLegacyLook(bare) : undefined,
+  }).settings.surface;
+  return shown === card ? bare : zone;
+}
+
+/**
+ * A zone after a knob edit (investigation 7 F5: "editing a knob on a widget detaches that knob only", L46): the knob's
+ * values set and the sections they are in custom, as `customised` does. A section that followed until now drops the
+ * zone's other own values in it, which were stored but inactive while it followed: they would come back with the
+ * section, so the edit would change more than the knob; without them the rest of the section still shows the theme's.
+ */
+export function withKnob(zone: Placement, levels: ThemeLevels, defs: readonly ModuleSetting[], patch: ModuleSettings): Placement {
+  const keys = Object.keys(patch);
+  const defByKey = new Map<string, ModuleSetting>(defs.flatMap((d) => settingKeys(d).map((k): [string, ModuleSetting] => [k, d])));
+  // The sections `customised` turns custom: a key of the schema's, not per-widget, following and not locked.
+  const detached = new Set(
+    keys.flatMap((key) => {
+      const sec = defByKey.has(key) ? storedSection(defByKey, key) : undefined;
+      return sec !== undefined && following(levels, zone.follow, sec) && !isLocked(levels, sec) ? [sec] : [];
+    })
+  );
+  const dormant = Object.keys(zone.settings ?? {}).filter((key) => {
+    const sec = storedSection(defByKey, key);
+    return !keys.includes(key) && sec !== undefined && detached.has(sec);
+  });
+  const edited = customised(withSettings(withoutSettings(zone, dormant), patch), levels, defs, keys);
+  return "surface" in patch ? withoutOwnLookCard(edited, levels) : edited;
 }
 
 /**

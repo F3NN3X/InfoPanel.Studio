@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { useSensorCatalog } from "@/lib/catalog";
 import type { Placement } from "@/lib/layout";
 import { panelLegacyLook, panelOwnSettings, WIDGET_KINDS, type Widget, type WidgetKind } from "@/lib/panel-model";
@@ -6,7 +6,7 @@ import { sensorAt } from "@/lib/sensors";
 import { resolveWith, type Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { InspectorView, type SectionParts } from "./inspector/inspector-view";
-import { itemFields, itemFollow, kindChoices, type ItemContext, type ItemFieldsInput } from "./inspector/item-model";
+import { itemFields, itemFollow, itemHasKnobs, itemKnobValues, kindChoices, withItemKnob, withItemKnobReset, type ItemContext, type ItemFieldsInput } from "./inspector/item-model";
 import type { InspectorSection, PanelLayoutKind } from "./inspector-model";
 import type { SheetIdentity } from "./inspector/sheet-view";
 import { itemSectionInherit } from "./section-inherit";
@@ -68,6 +68,9 @@ function KindChips({ kind, onChange }: { kind: WidgetKind; onChange: (kind: Widg
   );
 }
 
+// The knob row is the Theme view's chunk's, loaded with the Style tab (as a widget's).
+const ItemLookKnobs = lazy(() => import("./look-knobs").then((m) => ({ default: m.ItemLookKnobs })));
+
 /** A panel's layout as the item's sections read it. */
 const layoutOf = (layout: string | undefined): PanelLayoutKind => (layout === "grid" || layout === "overlay" ? layout : "stack");
 
@@ -75,7 +78,8 @@ const layoutOf = (layout: string | undefined): PanelLayoutKind => (layout === "g
  * A selected panel widget's inspector (SPEC §8): the zone's four tabs with
  * its kind's sections (`item-model.ts`), Typography, Color, Units & format
  * and Thresholds following the panel — the panel's look as it renders
- * under the theme (`resolveWith`).
+ * under the theme (`resolveWith`). Its Style tab starts with the knob row,
+ * Accent only (L46).
  */
 export function ItemInspector({
   zone,
@@ -124,6 +128,20 @@ export function ItemInspector({
     );
   };
 
+  const knobs = itemHasKnobs(widget) && (
+    <Suspense key="look-knobs" fallback={null}>
+      <div className="pt-3">
+        <ItemLookKnobs
+          values={itemKnobValues(fieldsInput)}
+          panelName={fieldsInput.panelName}
+          appearance={appearance}
+          onSet={(patch) => fieldsInput.change((w) => withItemKnob(w, patch), "knob")}
+          onClear={() => fieldsInput.change(withItemKnobReset)}
+        />
+      </div>
+    </Suspense>
+  );
+
   const parts = (s: InspectorSection): SectionParts => {
     if (s.special === "itemKind") return { body: <KindChips kind={widget.kind} onChange={onChangeKind} />, editor: true };
     if (s.special === "panelData") return { body: bound, plain: true };
@@ -137,6 +155,7 @@ export function ItemInspector({
       header={header}
       fields={fields}
       parts={parts}
+      notes={(tab) => (tab === "style" ? knobs : null)}
       inherit={inherit}
       query={query}
       onQuery={onQuery}

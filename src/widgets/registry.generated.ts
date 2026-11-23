@@ -23,11 +23,13 @@ import fpsMonitor from "./fps-monitor/widget";
 import frameHistogram from "./frame-histogram/widget";
 import gameSpotlight from "./game-spotlight/widget";
 import gpuMonitor from "./gpu-monitor/widget";
+import hourlyWeather from "./hourly-weather/widget";
 import keys from "./keys/widget";
 import kpiTiles from "./kpi-tiles/widget";
 import memoryUsage from "./memory-usage/widget";
 import menuBar from "./menu-bar/widget";
 import meterBridge from "./meter-bridge/widget";
+import mixerSolo from "./mixer-solo/widget";
 import networkAdapters from "./network-adapters/widget";
 import networkThroughput from "./network-throughput/widget";
 import notifications from "./notifications/widget";
@@ -36,6 +38,7 @@ import obsButton from "./obs-button/widget";
 import onAirBeacon from "./on-air-beacon/widget";
 import osdStrip from "./osd-strip/widget";
 import pageRail from "./page-rail/widget";
+import ping from "./ping/widget";
 import playtimeShare from "./playtime-share/widget";
 import powerDraw from "./power-draw/widget";
 import processList from "./process-list/widget";
@@ -55,6 +58,7 @@ import streamChat from "./stream-chat/widget";
 import streamControl from "./stream-control/widget";
 import streamDeck from "./stream-deck/widget";
 import streamMixer from "./stream-mixer/widget";
+import streamStats from "./stream-stats/widget";
 import systemOverview from "./system-overview/widget";
 import systemStatus from "./system-status/widget";
 import textFile from "./text-file/widget";
@@ -69,6 +73,6 @@ import webPage from "./web-page/widget";
 
 /** The folder widgets in the order of src/widgets/order.ts. */
 // biome-ignore lint/suspicious/noExplicitAny: each definition keeps its own props type.
-export const FOLDER_WIDGETS: readonly WidgetDefinition<any>[] = [systemOverview, menuBar, kpiTiles, statusTracker, systemStatus, serviceHealth, processList, uptime, cpuMonitor, coreHeatmap, gpuMonitor, memoryUsage, thermals, powerDraw, fans, driveSpace, storageHealth, diskIo, networkThroughput, networkAdapters, clock, timer, countdown, statusBar, pageRail, keys, codingAgents, calendar, weather, sensorGroup, nowPlaying, audioMeter, volumeMixer, meterBridge, visualizer, waveLink, fpsMonitor, gameSpotlight, osdStrip, playtimeShare, steamProfile, steamFriends, steamGame, achievements, steamLibrary, steamNews, webPage, textFile, notifications, departures, bluetooth, deviceBatteries, dayPlanner, radialClockStack, onAirBeacon, bottleneckLens, frameHistogram, sessionStats, streamMixer, audioButton, audioFader, streamControl, obsButton, streamChat, streamDeck];
+export const FOLDER_WIDGETS: readonly WidgetDefinition<any>[] = [systemOverview, menuBar, kpiTiles, statusTracker, systemStatus, serviceHealth, processList, uptime, cpuMonitor, coreHeatmap, gpuMonitor, memoryUsage, thermals, powerDraw, fans, driveSpace, storageHealth, diskIo, networkThroughput, networkAdapters, ping, clock, timer, countdown, statusBar, pageRail, keys, codingAgents, calendar, weather, hourlyWeather, sensorGroup, nowPlaying, audioMeter, volumeMixer, meterBridge, visualizer, waveLink, fpsMonitor, gameSpotlight, osdStrip, playtimeShare, steamProfile, steamFriends, steamGame, achievements, steamLibrary, steamNews, webPage, textFile, notifications, departures, bluetooth, deviceBatteries, dayPlanner, radialClockStack, onAirBeacon, bottleneckLens, frameHistogram, sessionStats, streamMixer, audioButton, audioFader, mixerSolo, streamControl, obsButton, streamStats, streamChat, streamDeck];
 /** Each one's index in src/widgets/order.ts: its place among all the widgets. */
-export const FOLDER_SLOTS: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 30, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66];
+export const FOLDER_SLOTS: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70];

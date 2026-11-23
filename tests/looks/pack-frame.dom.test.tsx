@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { PackDecor, frameClip, slotsWithDecor } from "@/looks/pack-frame";
+import { PackDecor, PageSizeCtx, frameClip, slotsWithDecor } from "@/looks/pack-frame";
 import type { PackFrame, PackOrnament } from "@/looks/pack-json";
 import { userPackOf } from "@/looks/user-packs";
 import type { PackSource } from "@/looks/pack-validate";
@@ -46,6 +46,28 @@ describe("ornaments on a tight card (L110 Q4)", () => {
     expect(at(10).querySelector('[data-ornament="label"]')?.textContent).toBe("SPEC");
     cleanup();
     expect(at(undefined).querySelector('[data-ornament="label"]')).not.toBeNull();
+  });
+});
+
+describe("ornaments follow the page's size on the page context (L73)", () => {
+  const ornaments: PackOrnament[] = [{ kind: "label", at: "tl", text: "WIDE", minSizeClass: "lg" }];
+  const inPage = (page: { width: number; height: number }, screen?: { width: number; height: number }) =>
+    render(
+      <PageSizeCtx.Provider value={page}>
+        <PackDecor decor={{ ornaments }} screen={screen} />
+      </PageSizeCtx.Provider>
+    ).container;
+
+  it("hides a minSizeClass ornament on a small screen, as the kiosk at that size does", () => {
+    expect(inPage(sm).querySelector("[data-ornament]")).toBeNull();
+    cleanup();
+    expect(view({ ornaments, screen: sm }).querySelector("[data-ornament]")).toBeNull();
+  });
+
+  it("shows it on a large screen, and an explicit screen wins over the context", () => {
+    expect(inPage({ width: 3840, height: 2160 }).querySelector("[data-ornament]")).not.toBeNull();
+    cleanup();
+    expect(inPage(sm, { width: 3840, height: 2160 }).querySelector("[data-ornament]")).not.toBeNull();
   });
 });
 

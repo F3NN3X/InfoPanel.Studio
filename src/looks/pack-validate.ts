@@ -520,12 +520,27 @@ function toneIssues(name: string, tone: string | undefined, mode: string, cards:
   }
 }
 
+/** A variant sets the Variant knob's keys (`KNOB_KEYS`), each with the value the knob stores: why a value is refused, or undefined. */
+const VARIANT_NUMBER: Record<string, readonly [number, number]> = { surfaceOpacity: [0, 100], blur: [0, BLUR_MAX], radius: [0, 64], padding: [0, 64], gap: [0, 64] };
+function variantValueIssue(key: string, value: string): string | undefined {
+  if (key === "accent") return colourOrAlias(value) ? undefined : "a colour (#rgb, #rrggbb, rgb(), hsl(), oklch() or an alias)";
+  if (key === "surface") return value === "theme" || TOKEN_KEY.test(value) ? undefined : "a material name";
+  const range = Object.hasOwn(VARIANT_NUMBER, key) ? VARIANT_NUMBER[key] : undefined;
+  if (!range) return "not a key a variant sets (accent, surface, surfaceOpacity, blur, radius, padding, gap)";
+  const n = /^\d+(\.\d+)?$/.test(value) ? Number(value) : Number.NaN;
+  return n >= range[0] && n <= range[1] ? undefined : `a number from ${range[0]} to ${range[1]}`;
+}
+
 function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: PackIssue[]; cards: string[]; texts: string[] } {
   const issues: PackIssue[] = [];
   const cards: string[] = [];
   const texts: string[] = [];
   for (const [k, v] of Object.entries(look.t0 ?? {})) if (!colourOrAlias(v)) issues.push(issue("colour", "look.json", `t0 ${k} ${v.slice(0, 40)} must be #rgb, #rrggbb, rgb(), hsl(), oklch() or an alias`));
   if (!RADIUS.test(look.radius) || parseFloat(look.radius) * (look.radius.endsWith("px") ? 1 : 16) > 64) issues.push(issue("colour", "look.json", `radius ${look.radius}: a length up to 64 px`));
+  for (const v of look.variants ?? []) for (const [k, value] of Object.entries(v.values)) {
+    const m = variantValueIssue(k, value);
+    if (m) issues.push(issue("variant", "look.json", `variant ${v.id} ${k} ${value.slice(0, 40)}: ${m}`));
+  }
   for (const mode of look.modes.supported) {
     let t1: Record<string, string>;
     try {

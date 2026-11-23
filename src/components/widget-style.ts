@@ -127,15 +127,8 @@ export function chromeVars(chrome: ModernChrome | undefined): CSSProperties | un
   if (chrome.padding !== undefined) v["--wp-pad"] = `${chrome.padding}px`;
   if (chrome.gap !== undefined) v["--wp-gap"] = `${chrome.gap}px`;
   if (chrome.radius !== undefined) v["--wp-radius"] = `${chrome.radius}px`;
-  // `--wp-fg` / `--wp-muted` are aliases of `--w-fg` / `--w-muted`, kept for saved custom CSS that sets or reads them.
-  if (chrome.textColor) {
-    v["--w-fg"] = chrome.textColor;
-    v["--wp-fg"] = "var(--w-fg)";
-  }
-  if (chrome.mutedColor) {
-    v["--w-muted"] = chrome.mutedColor;
-    v["--wp-muted"] = "var(--w-muted)";
-  }
+  if (chrome.textColor) v["--w-fg"] = chrome.textColor;
+  if (chrome.mutedColor) v["--w-muted"] = chrome.mutedColor;
   if (chrome.fontWeight && chrome.fontWeight !== "auto") v["--wp-weight"] = chrome.fontWeight;
   if (chrome.labelCase && chrome.labelCase !== "auto") v["--wp-label-case"] = chrome.labelCase;
   if (chrome.alignX && chrome.alignX !== "auto") {

@@ -2,7 +2,8 @@
 // answer 1), fetched here so a kiosk never calls the provider and a place goes to that provider only. Studio's first weather of
 // its own: the plugins' weather (`plugins.yr-weather-plugin.`) is a separate thing and is left alone.
 //
-// Which places: those the stored placements reference, nothing else. A recipe placement (`module: "recipe:<id>"`) names its
+// Which places: those the stored placements reference, nothing else. An Hourly Weather placement (`module: "HourlyWeather"`) names
+// one in its `places` setting. A recipe placement (`module: "recipe:<id>"`) names its
 // places in its `place-list` options (the placement's value, stored as JSON text, else the recipe's default), so the config and
 // the recipes on this server are read on every tick and after every config save. A place is `{ name, lat, lon }`; its cache key and
 // id come from its coordinates rounded to 0.01 degree (about 1 km), so two names for one spot share one fetch:
@@ -15,7 +16,7 @@
 // references any more stops being fetched; its answer stays cached for `CACHE_KEEP` in case it comes back.
 //
 // What the kiosks get: Data API-shaped readings under `weather.place.<id>.` (`temp`, `feels`, `humidity`, `wind`, `precip`,
-// `code`, `condition`, `is_day`, `high`, `low`, `hourly.<n>.{temp,code,precip,time}` for 24 hours, `daily.<n>.{high,low,code,
+// `code`, `condition`, `is_day`, `high`, `low`, `hourly.<n>.{temp,code,condition,is_day,precip,time}` for 24 hours, `daily.<n>.{high,low,code,
 // condition}` for 7 days, and `updated`, `age` (minutes), `status` (`ok`, `stale`, `error`, `waiting`) and `error`), on
 // `/events/weather?prefix=...`, the Data API's own stream format (a full set on connect, then the changed and removed keys), so
 // the page's sensor store reads them like any other namespace. Errors and stale data are readings too; the source never stops.
@@ -127,8 +128,12 @@ fn places_in(value: &Value) -> Option<Vec<Place>> {
     Some(parsed.as_array()?.iter().filter_map(|p| place_of(p.get("lat")?.as_f64()?, p.get("lon")?.as_f64()?)).collect())
 }
 
+/// The module id of the Hourly Weather widget, whose `places` setting (a one-place list) the source also fetches.
+const HOURLY_MODULE: &str = "HourlyWeather";
+
 /// The places the config's recipe placements reference, in order, once each, at most `max`: each place-list option's stored value,
-/// else the recipe's default. `recipe_of` reads a recipe by id (none: the placement references nothing).
+/// else the recipe's default; and the first place of each Hourly Weather placement. `recipe_of` reads a recipe by id (none: the
+/// placement references nothing).
 pub fn referenced_places(config: &Value, recipe_of: &dyn Fn(&str) -> Option<Value>, max: usize) -> Vec<Place> {
     let mut recipes: HashMap<String, Option<Value>> = HashMap::new();
     let mut found: Vec<Place> = Vec::new();
@@ -148,6 +153,14 @@ pub fn referenced_places(config: &Value, recipe_of: &dyn Fn(&str) -> Option<Valu
                                 found.push(place);
                             }
                         }
+                    }
+                }
+                // Hourly Weather shows one place: the first of its `places` list.
+                if o.get("module").and_then(Value::as_str) == Some(HOURLY_MODULE) {
+                    let first =
+                        o.get("settings").and_then(|s| s.get("places")).and_then(places_in).and_then(|list| list.into_iter().next());
+                    if let Some(place) = first.filter(|p| found.len() < max && !found.iter().any(|f| f.id == p.id)) {
+                        found.push(place);
                     }
                 }
                 stack.extend(o.values().rev());
@@ -260,11 +273,12 @@ pub fn parse_forecast(v: &Value) -> Result<BTreeMap<String, Value>, String> {
         v.get(block).and_then(|b| b.get(field)).and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().map(Value::as_f64).collect())
     };
     let offset = num(v, "utc_offset_seconds").unwrap_or(0.0) as i64;
-    let (times, temps, codes, chances) = (
+    let (times, temps, codes, chances, days) = (
         series("hourly", "time"),
         series("hourly", "temperature_2m"),
         series("hourly", "weather_code"),
         series("hourly", "precipitation_probability"),
+        series("hourly", "is_day"),
     );
     for n in 0..temps.len().min(HOURS) {
         let at = |list: &[Option<f64>]| list.get(n).copied().flatten();
@@ -273,6 +287,10 @@ pub fn parse_forecast(v: &Value) -> Result<BTreeMap<String, Value>, String> {
         }
         if let Some(c) = at(&codes) {
             out.insert(format!("hourly.{n}.code"), reading(c, ""));
+            out.insert(format!("hourly.{n}.condition"), text(condition_of(c as i64)));
+        }
+        if let Some(d) = at(&days) {
+            out.insert(format!("hourly.{n}.is_day"), reading(d, ""));
         }
         if let Some(p) = at(&chances) {
             out.insert(format!("hourly.{n}.precip"), reading(p, "%"));
@@ -556,7 +574,7 @@ impl Weather {
                 "current",
                 "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day,precipitation",
             )
-            .append_pair("hourly", "temperature_2m,weather_code,precipitation_probability")
+            .append_pair("hourly", "temperature_2m,weather_code,precipitation_probability,is_day")
             .append_pair("daily", "temperature_2m_max,temperature_2m_min,weather_code")
             .append_pair("timezone", "auto")
             .append_pair("forecast_hours", &HOURS.to_string())
@@ -711,17 +729,18 @@ struct Feed {
     _client: Box<dyn std::any::Any + Send>,
 }
 
-/// GET /events/weather?prefix=...: the readings under the prefix (all of `weather.` when none), then what changes.
-pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
-    let prefix = req.query("prefix").filter(|p| p.starts_with(NAMESPACE)).unwrap_or_else(|| NAMESPACE.into());
+/// A server-owned namespace's stream: the readings under `prefix` (all of `namespace` when none), then what changes. `name` is the
+/// debug channel. Shared by Weather by place and Ping, which publish the Data API's stream format the same way.
+pub(crate) fn events(app: &App, rx: watch::Receiver<Arc<Readings>>, req: &Req, namespace: &str, name: &'static str) -> Response<Body> {
+    let prefix = req.query("prefix").filter(|p| p.starts_with(namespace)).unwrap_or_else(|| namespace.into());
     let keep = Duration::from_secs(15);
     let feed = Feed {
-        rx: app.weather.map.subscribe(),
+        rx,
         prefix,
         last: None,
         keep_alive: interval_at(Instant::now() + keep, keep),
         shutdown: app.shutdown.clone(),
-        _client: Box::new(app.debug.sse_open("weather")),
+        _client: Box::new(app.debug.sse_open(name)),
     };
     let body = futures_util::stream::unfold(feed, |mut f| async move {
         loop {
@@ -764,13 +783,18 @@ pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
             }
         }
     });
-    let reply = Response::builder()
+    Response::builder()
         .status(200)
         .header("Content-Type", "text/event-stream")
         .header("Cache-Control", "no-store")
         .header("Connection", "keep-alive")
         .body(Body::from_stream(body))
-        .unwrap_or_default();
+        .unwrap_or_default()
+}
+
+/// GET /events/weather?prefix=...: the readings under the prefix (all of `weather.` when none), then what changes.
+pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
+    let reply = events(app, app.weather.map.subscribe(), req, NAMESPACE, "weather");
     if app.weather.enabled {
         reply
     } else {

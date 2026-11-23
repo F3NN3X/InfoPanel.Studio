@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Menu } from "@/components/ui/menu";
-import { Bookmark, MoreHorizontal } from "lucide-react";
+import { PopoverParts } from "@/components/ui/popover";
+import { Bookmark, Copy, MoreHorizontal } from "lucide-react";
 import { Button, FOCUS_RING } from "@/components/ui/button";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { cn } from "@/lib/utils";
 import { LookThumb } from "./look-thumb";
+import ScreensList from "./theme-screens-list";
 import { ThemeNameInput } from "./theme-name-input";
 import type { CardKind } from "./theme-view-model";
 
@@ -79,6 +81,40 @@ export function ThemeSave({ name, kind, update, onSave, saveName }: ThemeSavePro
         <span className="max-xl:sr-only">Save as my theme</span>
       </Button>
     </div>
+  );
+}
+
+export interface ThemeApplyScreensProps {
+  /** The screen's theme. */
+  name: string;
+  /** The other screens, each with its size. */
+  screens: readonly { id: string; name: string; size: string }[];
+  /** Apply the theme to this screen and the ticked ones (one undo step). */
+  onApply: (ids: string[]) => void;
+}
+
+/**
+ * Apply to other screens…, beside Save as my theme (L47): a popover with a checkbox per screen and Apply, so saving a
+ * look and wearing it on another screen is Theme, Save (Enter), Apply to other screens, a tick and Apply.
+ */
+export function ThemeApplyScreens({ name, screens, onApply }: ThemeApplyScreensProps) {
+  const [open, setOpen] = useState(false);
+  return (
+    <PopoverParts.Root open={open} onOpenChange={setOpen}>
+      <PopoverParts.Trigger render={<Button title={`Apply ${name} to other screens`} icon={<Copy aria-hidden />} />}>
+        <span className="max-xl:sr-only">Apply to other screens…</span>
+      </PopoverParts.Trigger>
+      <PopoverParts.Content sideOffset={4} align="end" className="w-72 space-y-2 text-caption">
+        <PopoverParts.Title className="font-medium text-ui-1">Apply {name} to</PopoverParts.Title>
+        <ScreensList
+          screens={screens}
+          onApply={(ids) => {
+            setOpen(false);
+            onApply(ids);
+          }}
+        />
+      </PopoverParts.Content>
+    </PopoverParts.Root>
   );
 }
 

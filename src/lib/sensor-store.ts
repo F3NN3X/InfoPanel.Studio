@@ -57,14 +57,14 @@ const REDISCOVER_MS = 30_000;
 /** Namespaces "every sensor" opens before `/api/sensors` lists the rest. */
 const BASE_NAMESPACES = ["plugins.", "libre.", "system."];
 
-/** The namespaces the dashboard server serves itself (Weather by place, Device batteries; ips-server weather.rs/devices.rs): its own origin and stream, never folded. */
-const SERVER_NS = ["weather.", "battery."];
-/** The server-owned namespace a key or prefix sits in (`weather.`, `battery.`), or undefined for the Data API's. */
+/** The namespaces the dashboard server serves itself (Weather by place, Device batteries, Ping; ips-server weather.rs/devices.rs/ping.rs): its own origin and stream, never folded. */
+const SERVER_NS = ["weather.", "battery.", "ping."];
+/** The server-owned namespace a key or prefix sits in (`weather.`, `battery.`, `ping.`), or undefined for the Data API's. */
 export const serverNamespaceOf = (key: string): string | undefined => SERVER_NS.find((ns) => key.startsWith(ns));
 /** Whether a key or prefix sits in a namespace the dashboard server streams itself: "every sensor" never opens those. */
 export const isServerOwned = (key: string): boolean => serverNamespaceOf(key) !== undefined;
 /** The server route that streams each server-owned namespace (`/events/<route>?prefix=`). */
-const SERVER_ROUTES: Record<string, string> = { "weather.": "weather", "battery.": "devices" };
+const SERVER_ROUTES: Record<string, string> = { "weather.": "weather", "battery.": "devices", "ping.": "ping" };
 /** The dashboard server's stream for a server-owned namespace (it sends the full set first). */
 export const serverStreamUrl = (ns: string): string => `/events/${SERVER_ROUTES[ns]}?prefix=${encodeURIComponent(ns)}`;
 /** The namespaces the dashboard server streams itself, for lists that would otherwise show only the Data API's. */

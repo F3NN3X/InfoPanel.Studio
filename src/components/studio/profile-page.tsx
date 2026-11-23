@@ -13,6 +13,7 @@ import { resolveTheme, themeMode, themeVars } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { connectorZones } from "@/looks/connector-zones";
 import { PackStage, packBackground, usePack, type Pack } from "@/looks/pack";
+import { PageSizeCtx } from "@/looks/pack-frame";
 import { LivePlacement } from "./placement-content";
 import { PlacementFrame } from "./placement-frame";
 
@@ -67,6 +68,7 @@ export function ProfilePage({ profile, dashboard, pageId, badge, stage = false, 
     gridTemplateRows: fill ? `repeat(${view.rows}, minmax(0, 1fr))` : `repeat(${view.rows}, ${SCROLL_ROW_H}px)`,
   };
   return (
+    <PageSizeCtx.Provider value={{ width: view.width, height: view.height }}>
     <div
       ref={mainRef}
       data-theme-scope=""
@@ -112,5 +114,6 @@ export function ProfilePage({ profile, dashboard, pageId, badge, stage = false, 
       )}
       <PinnedItems all={pinned} items={edgePins.filter((it) => !leadsPage(it))} profile={view} appearance={appearance} padding={padding} />
     </div>
+    </PageSizeCtx.Provider>
   );
 }
