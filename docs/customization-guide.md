@@ -1306,12 +1306,19 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
   three times in ten seconds gives way to the pack's other effects, and one that runs past its time, uses too much memory
   or breaks is stopped; the rest of the pack stays either way.
 
-  Whether a pack's script runs depends on its signature (see [Pack scripts](security.md#pack-scripts)). For an
+  The built-in **Cyberspec** pack has one: corner brackets that trace in round a card as it arrives, a slow scan band down
+  each card, and a pulse round a card in warning. A built-in pack's script comes with the app and asks nothing; **Pack effect
+  scripts** in Browse themes, or `PACK_SCRIPTS=off`, turns it off with the others.
+
+  Whether an imported pack's script runs depends on its signature (see [Pack scripts](security.md#pack-scripts)). For an
   **Unverified** pack the studio asks once, when you first wear or preview it: **Allow for this pack** or **Don't allow**.
   The answer is kept with the pack and asked again when the pack is updated. A kiosk never asks: there an unanswered pack's
   script just does not run. A pack that changed since it was signed, or that was withdrawn, never runs its script.
 
 #### Writing an effect script
+
+[Building an advanced theme pack](building-an-advanced-theme-pack.md) walks through a whole pack, script included, with
+Cyberspec as the example.
 
 In `pack.json`, `"script": { "file": "fx.js" }` names the script, a file in the pack's `assets` folder listed in `assets` like
 the others: a plain name ending in `.js` (lowercase letters, digits and hyphens), at most 64 KB of UTF-8 text. It is the only
@@ -1368,6 +1375,9 @@ theme](#styles-copy-paste-and-make-this-the-theme)): a saved theme sets a screen
 one widget you apply it to.
 
 ### What a theme pack can set
+
+For a worked example of every part below, in the order you would build them, see [Building an advanced theme
+pack](building-an-advanced-theme-pack.md).
 
 A pack's `look.json` may list **variants** (the Variant row under Quick changes: chips, or a dropdown for more than two). A variant sets `accent`, and also `textColor`,
 `mutedColor`, `ok`, `warn`, `crit`, `borderColor`, `glowColor` and `numGlowColor`, as colours (`#rrggbb`, `rgb()`, `hsl()`,
