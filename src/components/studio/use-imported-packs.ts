@@ -24,7 +24,7 @@ export function useImportedPacks(): { packs: ImportedPack[]; off: boolean; refre
         await Promise.all(
           list.map(async (p) => {
             try {
-              return { ...p, warnings: store.userPackIssues(await store.readUserPack(p.id)).filter((i) => i.severity === "warn").map(imp.describeIssue) };
+              return { ...p, warnings: store.userPackIssues(await store.readUserPack(p.id), "route").filter((i) => i.severity === "warn").map(imp.describeIssue) };
             } catch {
               return { ...p, warnings: [] };
             }

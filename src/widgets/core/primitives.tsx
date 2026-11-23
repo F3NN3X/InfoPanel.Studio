@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { GLIDE_MS, RING_GAP, RING_T, RING_TRACK } from "@/looks/data-viz";
 import { MotionText } from "@/looks/motion-render";
+import { ScriptSignalsCtx } from "@/looks/pack-script/signal-ctx";
 import { has, clamp, fmt } from "./data";
 import { mix } from "./tokens";
 import { useSkin, STATE, TONES, tone, numGlowStyle } from "./theme";
@@ -212,6 +213,9 @@ export function Bar(p: BarProps & { ipKey?: string }) {
   );
 }
 
+/** A bar's or ring's value for a pack script's signals (pack-script/signals.ts): 0 to 1 in hundredths and its tone, on a card that wears a scripted pack only; the script never sees the reading itself. */
+const fxSignal = (on: boolean, fraction: number, t: Tone) => (on ? { "data-fx-value": (Math.round(fraction * 100) / 100).toFixed(2), "data-fx-state": t } : undefined);
+
 /** The colour of a bar or ring in a tone: a pack that sets its own `ok` draws it for ok instead of the accent (L58). */
 const toneInk = (sk: Partial<SkinContext>, t: Tone): string => (t === "ok" && sk.packOk ? "var(--w-ok)" : TONES[t]);
 
@@ -219,6 +223,7 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
   const sk = useSkin();
   const m = meterStyle ?? sk.meter ?? "bar";
   const pct = clamp((value / max) * 100);
+  const fx = fxSignal(useContext(ScriptSignalsCtx), pct / 100, t);
   // Smooth graph updates: glide linearly over about one sample interval instead of easing.
   const glide = sk.smooth ? { transition: `transform ${GLIDE_MS}ms linear` } : null;
   // `bar-fill` paints the ok tone of the line, square and pill bars; warn and crit keep their own colours
@@ -227,7 +232,7 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
     const n = segments ?? (m === "blocks" ? 14 : 24),
       lit = Math.round((pct / 100) * n);
     return (
-      <div data-part="bar" className={cn("flex w-full gap-0.5", className)}>
+      <div data-part="bar" {...fx} className={cn("flex w-full gap-0.5", className)}>
         {Array.from({ length: n }, (_, i) => (
           <span key={i} className="min-w-0 flex-1 rounded-[1px]" style={{ background: i < lit ? (m === "blocks" ? blockColor(i, n) : (color ?? toneInk(sk, t))) : "var(--w-track)" }} />
         ))}
@@ -236,7 +241,7 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
   }
   if (m === "wave")
     return (
-      <div data-part="bar" className={cn("relative w-full min-h-2", className)}>
+      <div data-part="bar" {...fx} className={cn("relative w-full min-h-2", className)}>
         <svg viewBox="0 0 100 10" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible">
           <line x1={pct} y1="5" x2="100" y2="5" stroke="var(--w-track)" strokeWidth="2.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           <path
@@ -251,19 +256,19 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
     );
   if (m === "square")
     return (
-      <div data-part="bar" className={cn("w-full border border-[color:var(--w-fg)]/70 bg-transparent p-px min-h-2", className)}>
+      <div data-part="bar" {...fx} className={cn("w-full border border-[color:var(--w-fg)]/70 bg-transparent p-px min-h-2", className)}>
         <div className="h-full w-full transition-transform duration-500" style={{ ...scaleX(pct), background: ink, ...glide }} />
       </div>
     );
   if (m === "hair")
     return (
-      <div data-part="bar" className={cn("relative w-full", className)}>
+      <div data-part="bar" {...fx} className={cn("relative w-full", className)}>
         <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[color:var(--w-track)]" />
         <div className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 transition-transform duration-500" style={{ ...scaleX(pct), background: ink, ...glide }} />
       </div>
     );
   return (
-    <div data-part="bar" className={cn("w-full overflow-hidden rounded-full", m === "pill" ? "bg-[color:var(--w-track)] min-h-1.5" : track, className)}>
+    <div data-part="bar" {...fx} className={cn("w-full overflow-hidden rounded-full", m === "pill" ? "bg-[color:var(--w-track)] min-h-1.5" : track, className)}>
       <div className="h-full w-full rounded-full transition-transform duration-500 ease-out" style={{ ...slideX(pct), background: m === "pill" && t === "ok" && ink === TONES.ok ? `linear-gradient(90deg, ${mix(70, "#fff")}, var(--w-accent))` : ink, ...glide }} />
     </div>
   );
@@ -340,13 +345,14 @@ export function Ring({ value, max = 100, thickness: th0, t = "ok", color, track,
   const r = 50 - thickness / 2,
     c = 2 * Math.PI * r,
     pct = clamp(value / max, 0, 1);
+  const fx = fxSignal(useContext(ScriptSignalsCtx), pct, t);
   const cap = sk.cap ?? "round";
   const glide = sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined;
   if (sweep < 360) {
     // an open arc centred on the top: it starts `sweep / 2` before 12 o'clock (the svg is already turned to start there)
     const arc = (c * clamp(sweep, 1, 360)) / 360;
     return (
-      <div ref={box} data-part="ring" className={`relative aspect-square ${className}`}>
+      <div ref={box} data-part="ring" {...fx} className={`relative aspect-square ${className}`}>
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" style={ringMark(sk)}>
           <InkGradient id={inkId} css={sk.ringFill} />
           <g transform={`rotate(${-sweep / 2} 50 50)`}>
@@ -360,7 +366,7 @@ export function Ring({ value, max = 100, thickness: th0, t = "ok", color, track,
     );
   }
   return (
-    <div ref={box} data-part="ring" className={`relative aspect-square ${className}`}>
+    <div ref={box} data-part="ring" {...fx} className={`relative aspect-square ${className}`}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" style={ringMark(sk)}>
         <InkGradient id={inkId} css={sk.ringFill} />
         <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? RING_TRACK} strokeWidth={thickness} />
