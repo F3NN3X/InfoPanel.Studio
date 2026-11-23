@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
@@ -38,8 +39,13 @@ async function kiosk(page: Page, base: string, source: string, opts: { reduce?: 
   const k = await page.context().newPage();
   if (opts.reduce) await k.emulateMedia({ reducedMotion: "reduce" });
   const runs = opts.runs ?? true;
-  await k.route(`**/api/packs/${ID}/trust`, (r) => r.fulfill({ json: { state: "unverified", hasScript: true, consent: runs ? "granted" : "none", scriptRuns: runs } }));
-  await k.route(`**/api/packs/${ID}/fx.js`, (r) => (runs ? r.fulfill({ body: source, headers: { "Content-Type": "text/javascript", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } }) : r.fulfill({ status: 404 })));
+  const sha = createHash("sha256").update(source).digest("hex");
+  await k.route("**/api/pack-scripts", (r) => r.fulfill({ json: { on: true, env: "on", fetching: false, stale: false } }));
+  await k.route(`**/api/packs/${ID}/trust`, (r) => r.fulfill({ json: { state: "unverified", hasScript: true, consent: runs ? "granted" : "none", scriptRuns: runs, scriptSha256: sha } }));
+  // served only while it runs and only by its hash, as the server does
+  await k.route(/\/api\/packs\/script-user\/fx\.js(\?|$)/, (r) =>
+    runs && new URL(r.request().url()).searchParams.get("sha256") === sha ? r.fulfill({ body: source, headers: { "Content-Type": "text/javascript", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } }) : r.fulfill({ status: 404 })
+  );
   await k.addInitScript(() => {
     const w = window as unknown as { __fx: { at: number; state: string }[]; __frames: number[] };
     w.__fx = [];

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { makePack, manifest, saveConfig, test } from "../e2e/fixtures";
@@ -19,8 +20,9 @@ const ROUTES = `(() => {
   const source = ${JSON.stringify(DEMO)};
   window.fetch = (input, init) => {
     const url = typeof input === "string" ? input : input.url;
-    if (url.endsWith("/api/packs/${ID}/trust")) return Promise.resolve(Response.json({ state: "verified", hasScript: true, consent: "none", scriptRuns: true }));
-    if (url.endsWith("/api/packs/${ID}/fx.js")) return Promise.resolve(new Response(source, { headers: { "Content-Type": "text/javascript" } }));
+    if (url.endsWith("/api/pack-scripts")) return Promise.resolve(Response.json({ on: true, env: "on", fetching: false, stale: false }));
+    if (url.endsWith("/api/packs/${ID}/trust")) return Promise.resolve(Response.json({ state: "verified", hasScript: true, consent: "none", scriptRuns: true, scriptSha256: "${createHash("sha256").update(DEMO).digest("hex")}" }));
+    if (url.includes("/api/packs/${ID}/fx.js?sha256=")) return Promise.resolve(new Response(source, { headers: { "Content-Type": "text/javascript" } }));
     return real(input, init);
   };
 })();`;

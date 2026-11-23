@@ -1,19 +1,21 @@
 // The overlay a pack script draws on (lazy: the entries load this chunk only for a pack whose pack.json names a script, mount.tsx).
 // One canvas per page, above the cards and click-through, hidden from assistive tech. It asks the server first (trust.ts): the
-// script is fetched only when the server says it runs, and runs only while `planScript` allows it. A change of plan (hidden, Effects
+// script is fetched, by the hash the trust answer names, only when the server's switch is on and its trust says the script runs,
+// and runs only while `planScript` allows it. A built-in pack has no trust on the server; no built-in pack carries a script yet. A change of plan (hidden, Effects
 // level, lite mode, reduced motion) takes the canvas away, which terminates the worker; a new plan mounts a new canvas. A script
 // that ended (fallback or stopped) stays ended on this page. The studio asks about an unverified pack's script here; the kiosk never does.
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePerformance } from "@/hooks/use-performance";
 import { liteOf } from "@/lib/performance";
 import { cssColour } from "../colour";
+import { LOOK_IDS } from "../ids";
 import { resolveT1, type T1Name } from "../look";
 import type { Pack } from "../pack";
 import { ScriptConsent } from "./consent";
 import { planScript, sandboxSupported, type ScriptPlan } from "./gate";
 import { seedOf, startScript } from "./host";
 import type { ScriptEnd } from "./limits";
-import { asksConsent, giveConsent, type PackTrust, readScript, readTrust } from "./trust";
+import { asksConsent, giveConsent, type PackTrust, readScript, readTrust, scriptsOn } from "./trust";
 
 /** The palette a script paints with, by index: the Look's own colours in its first mode. */
 export const PALETTE: readonly T1Name[] = ["accent", "fg", "muted", "ok", "warn", "crit", "info", "bg", "surface", "fg-2"];
@@ -47,7 +49,7 @@ type Status = "waiting" | "running" | ScriptEnd;
 export default function PackScriptOverlay({ pack, studio, className = "" }: PackScriptOverlayProps) {
   const perf = usePerformance();
   const hidden = useSyncExternalStore(watchHidden, isHidden, () => false);
-  const [trust, setTrust] = useState<{ id: string; trust?: PackTrust }>();
+  const [trust, setTrust] = useState<{ id: string; on: boolean; trust?: PackTrust }>();
   const [source, setSource] = useState<{ id: string; text?: string }>();
   const [ended, setEnded] = useState<{ id: string; end: ScriptEnd }>();
   const [asked, setAsked] = useState(0);
@@ -56,21 +58,24 @@ export default function PackScriptOverlay({ pack, studio, className = "" }: Pack
 
   useEffect(() => {
     let live = true;
-    void readTrust(id).then((t) => live && setTrust({ id, trust: t }));
+    if (LOOK_IDS.includes(id)) setTrust({ id, on: false });
+    else void Promise.all([scriptsOn(), readTrust(id)]).then(([on, t]) => live && setTrust({ id, on, trust: t }));
     return () => {
       live = false;
     };
   }, [id, asked]);
-  const now = trust?.id === id ? trust.trust : undefined;
-  const runs = !!now?.scriptRuns;
+  const on = trust?.id === id && trust.on;
+  const now = on ? trust.trust : undefined;
+  const runs = !!now?.scriptRuns && !!now.scriptSha256;
+  const sha = now?.scriptSha256;
   useEffect(() => {
     if (!runs) return;
     let live = true;
-    void readScript(id).then((text) => live && setSource({ id, text }));
+    void readScript(id, sha!).then((text) => live && setSource({ id, text }));
     return () => {
       live = false;
     };
-  }, [id, runs]);
+  }, [id, runs, sha]);
   const text = runs && source?.id === id ? source.text : undefined;
   const plan = planScript({ level: perf.fx, lite: liteOf(perf), reduceMotion: perf.reduceMotion, hidden, runs: runs && !!text, supported: sandboxSupported() });
   const over = ended?.id === id ? ended.end : undefined;

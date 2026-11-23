@@ -163,8 +163,10 @@ security model, what was fixed, what was decided, and what is deferred.
   - **Data**: per card its box, the lead bar's or ring's value as 0 to 1 rounded to hundredths, its threshold state, and its
     texts as boxes with a glyph count, never a character; read at most 4 times a second. A card that blurs a value for privacy,
     and coding-agent and chat cards (`data-fx-quiet`), send nothing and are erased from the overlay after every frame.
-  - **When it runs**: only when the server's trust answer for the pack says so (`GET /api/packs/<id>/trust` `scriptRuns`) and
-    the script comes from `GET /api/packs/<id>/fx.js` as `text/javascript`; the client reads any other answer as "no script".
+  - **When it runs**: only while the server's switch is on (`GET /api/pack-scripts` `on: true`), the trust answer for the pack
+    says so (`GET /api/packs/<id>/trust` `scriptRuns` with its `scriptSha256`), and the script comes by that hash from
+    `GET /api/packs/<id>/fx.js?sha256=<hash>` as `text/javascript` (in a secure context the client checks the hash itself too);
+    the client reads any other answer as "no script". The server keeps no trust for a built-in pack, and none carries a script.
     It starts only when the motion rules allow it (not at Effects Off, in lite mode, under reduced motion) on a visible page,
     and any change of these ends the worker. An unverified pack's script runs only after the user allowed it in the studio,
     asked once per pack; the kiosk never asks. Modified and revoked packs never run one.

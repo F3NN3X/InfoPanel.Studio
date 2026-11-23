@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { asksConsent, giveConsent, type PackTrust, readScript, readTrust, trustOf } from "@/looks/pack-script/trust";
+import { createHash } from "node:crypto";
+import { asksConsent, giveConsent, type PackTrust, readScript, readTrust, scriptsOn, trustOf } from "@/looks/pack-script/trust";
 
 // The client of the trust contract (`/trust`, `/script-consent`, `/fx.js`), against a fake fetch: anything out of shape is "no script".
 
@@ -8,12 +9,20 @@ afterEach(() => {
 });
 
 const T: PackTrust = { state: "unverified", hasScript: true, consent: "none", scriptRuns: false };
+const SRC = "fx.onFrame(function(){})";
+const SHA = createHash("sha256").update(SRC).digest("hex");
 const answer = (body: BodyInit | null, init: ResponseInit = {}) => vi.fn(async () => new Response(body, init));
 
 describe("trustOf", () => {
   it("reads the contract's shape and nothing else", () => {
     expect(trustOf({ ...T, publisher: "Ana" })).toEqual({ ...T, publisher: "Ana" });
     expect(trustOf({ ...T, state: "trusted" })).toBeUndefined();
+    // the server never answers builtin: built-in packs are the client's to know
+    expect(trustOf({ ...T, state: "builtin" })).toBeUndefined();
+    // a script runs only with the hash it is fetched by
+    expect(trustOf({ ...T, scriptRuns: true, scriptSha256: SHA })).toEqual({ ...T, scriptRuns: true, scriptSha256: SHA });
+    expect(trustOf({ ...T, scriptRuns: true })?.scriptRuns).toBe(false);
+    expect(trustOf({ ...T, scriptRuns: true, scriptSha256: "ABC" })?.scriptRuns).toBe(false);
     expect(trustOf({ ...T, consent: "yes" })).toBeUndefined();
     expect(trustOf({ ...T, scriptRuns: "true" })).toBeUndefined();
     expect(trustOf([T])).toBeUndefined();
@@ -31,6 +40,7 @@ describe("asksConsent", () => {
     [{ ...T, consent: "denied" }, false],
     [{ ...T, hasScript: false }, false],
     [{ ...T, state: "verified" }, false],
+    [{ ...T, state: "signed" }, false],
     [{ ...T, state: "modified" }, false],
     [{ ...T, state: "revoked" }, false],
     [undefined, false],
@@ -60,17 +70,33 @@ describe("the routes", () => {
     expect(await giveConsent("my-pack", false)).toBe(false);
   });
 
-  it("takes a script only as JavaScript, within 64 KB and as UTF-8", async () => {
+  it("takes a script only by its hash, as JavaScript, within 64 KB, as UTF-8 and with that SHA-256", async () => {
     const js = { headers: { "Content-Type": "text/javascript; charset=utf-8" } };
-    vi.stubGlobal("fetch", answer("fx.onFrame(function(){})", js));
-    expect(await readScript("my-pack")).toBe("fx.onFrame(function(){})");
-    vi.stubGlobal("fetch", answer("fx.onFrame(function(){})", { headers: { "Content-Type": "text/html" } }));
-    expect(await readScript("my-pack")).toBeUndefined();
-    vi.stubGlobal("fetch", answer("x".repeat(65_537), js));
-    expect(await readScript("my-pack")).toBeUndefined();
-    vi.stubGlobal("fetch", answer(new Uint8Array([0xff, 0xfe]), js));
-    expect(await readScript("my-pack")).toBeUndefined();
-    vi.stubGlobal("fetch", answer("x", { ...js, status: 404 }));
-    expect(await readScript("my-pack")).toBeUndefined();
+    const ok = answer(SRC, js);
+    vi.stubGlobal("fetch", ok);
+    expect(await readScript("my-pack", SHA)).toBe(SRC);
+    expect(ok).toHaveBeenCalledWith(`/api/packs/my-pack/fx.js?sha256=${SHA}`, { cache: "no-store" });
+    expect(await readScript("my-pack", "not-a-hash")).toBeUndefined();
+    vi.stubGlobal("fetch", answer("fx.onFrame(function(){ })", js));
+    expect(await readScript("my-pack", SHA)).toBeUndefined();
+    vi.stubGlobal("fetch", answer(SRC, { headers: { "Content-Type": "text/html" } }));
+    expect(await readScript("my-pack", SHA)).toBeUndefined();
+    const big = "x".repeat(65_537);
+    vi.stubGlobal("fetch", answer(big, js));
+    expect(await readScript("my-pack", createHash("sha256").update(big).digest("hex"))).toBeUndefined();
+    const bad = new Uint8Array([0xff, 0xfe]);
+    vi.stubGlobal("fetch", answer(bad, js));
+    expect(await readScript("my-pack", createHash("sha256").update(bad).digest("hex"))).toBeUndefined();
+    vi.stubGlobal("fetch", answer(SRC, { ...js, status: 404 }));
+    expect(await readScript("my-pack", SHA)).toBeUndefined();
+  });
+
+  it("reads the switch as on only when it says on: true", async () => {
+    vi.stubGlobal("fetch", answer(JSON.stringify({ on: true, env: "on", fetching: false, stale: false })));
+    expect(await scriptsOn()).toBe(true);
+    vi.stubGlobal("fetch", answer(JSON.stringify({ on: false, env: "off" })));
+    expect(await scriptsOn()).toBe(false);
+    vi.stubGlobal("fetch", answer("x", { status: 404 }));
+    expect(await scriptsOn()).toBe(false);
   });
 });
