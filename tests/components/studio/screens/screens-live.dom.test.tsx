@@ -236,7 +236,7 @@ describe("Show on, from a screen", () => {
     fireEvent.contextMenu(rowOf("Desk"), { clientX: 5, clientY: 5 });
     await waitFor(() => expect(screen.getByRole("menuitem", { name: "Use on touch panel" })).toBeTruthy());
     fireEvent.click(screen.getByRole("menuitem", { name: "Use on touch panel" }));
-    expect((screen.getByRole("menuitem", { name: "Left bar (touch)" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole("menuitem", { name: "Left bar (touch)" }).getAttribute("aria-disabled")).toBe("true");
   });
 
   it("leads from On 1 display to the display's card, and hints Show on for a screen on no display", () => {

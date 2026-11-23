@@ -1,4 +1,4 @@
-import { onRovingKeyDown } from "@/lib/roving";
+import { Tabs } from "@/components/ui/tabs";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { INFOPANEL_CHIP, startTab, useAddChip, type AddFilter } from "./add-prefs";
 import { FilePlus2, FileUp, Search, SquareDashedMousePointer, X, type LucideIcon } from "lucide-react";
@@ -471,27 +471,15 @@ export function AddPanel({
         </label>
       </div>
 
-      <div role="tablist" aria-label="What to add" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="mx-2.5 mt-2 flex h-8 shrink-0 gap-0.5 rounded-ui-md bg-ui-app p-0.5">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            tabIndex={tab === t.id ? 0 : -1}
-            disabled={t.off !== undefined}
-            title={t.off}
-            onClick={() => pickKind(t.id)}
-            className={cn(
-              "flex min-w-0 flex-1 items-center justify-center rounded-ui-sm text-caption font-medium disabled:cursor-not-allowed disabled:opacity-40",
-              FOCUS,
-              tab === t.id ? "bg-ui-active text-ui-1" : "text-ui-3 hover:text-ui-1"
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label="What to add"
+        variant="pill"
+        tabs={tabs.map((t) => ({ value: t.id, label: t.label, disabled: t.off !== undefined, title: t.off }))}
+        value={tab}
+        onChange={pickKind}
+        className="mx-2.5 mt-2 h-8 shrink-0"
+        tabClassName="flex-1"
+      />
 
       {tiles && !inItems && !query.trim() && (
         <ChipRow chips={chips.join(" ")}>

@@ -1,8 +1,8 @@
-import { onRovingKeyDown } from "@/lib/roving";
 import { scrollBehavior } from "@/lib/scroll-behavior";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { ChevronDown, CircleHelp } from "lucide-react";
 import { Popover } from "@/components/ui/popover";
+import { Tabs as TabBar } from "@/components/ui/tabs";
 import { useSensorCatalog } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 import type { ModuleSetting } from "@/modules/types";
@@ -152,62 +152,24 @@ function Tabs({
   underline?: boolean;
 }) {
   const description = active && info?.[active]?.description;
-  if (underline)
-    return (
-      <div role="tablist" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="flex shrink-0 gap-3.5 border-b border-ui-subtle px-3.5">
-        {tabs.map((t) => {
-          const selected = t.id === active;
-          const n = counts[t.id] ?? 0;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              tabIndex={selected ? 0 : -1}
-              disabled={t.disabled}
-              onClick={() => onTab(t.id)}
-              className={cn(
-                "-mb-px flex h-8 items-center gap-1.5 whitespace-nowrap border-b-2 text-caption transition-colors",
-                selected ? "border-ui-accent text-ui-1" : "border-transparent text-ui-4 enabled:hover:text-ui-1",
-                t.disabled && "opacity-35"
-              )}
-            >
-              {t.label}
-              {n > 0 && <Count n={n} />}
-            </button>
-          );
-        })}
-      </div>
-    );
+  const items = tabs.map((t) => {
+    const n = counts[t.id] ?? 0;
+    return {
+      value: t.id,
+      disabled: t.disabled,
+      label: (
+        <>
+          {!underline && info?.[t.id]?.icon}
+          {t.label}
+          {n > 0 && <Count n={n} />}
+        </>
+      ),
+    };
+  });
+  if (underline) return <TabBar tabs={items} value={active as TabId} onChange={onTab} className="shrink-0 gap-3.5 px-3.5" tabClassName="h-8 text-caption" />;
   return (
     <div className={cn("shrink-0 pl-4 pr-3", description ? "pb-1.5" : "pb-2.5")}>
-      <div role="tablist" onKeyDown={(e) => onRovingKeyDown(e, '[role="tab"]')} className="flex flex-wrap gap-0.5 rounded-lg border border-ui-default bg-ui-app p-0.5">
-        {tabs.map((t) => {
-          const selected = t.id === active;
-          const n = counts[t.id] ?? 0;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              tabIndex={selected ? 0 : -1}
-              disabled={t.disabled}
-              onClick={() => onTab(t.id)}
-              className={cn(
-                "flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-caption font-medium transition-colors",
-                selected ? "bg-ui-active text-ui-1" : "text-ui-4 enabled:hover:text-ui-1",
-                t.disabled && "opacity-35"
-              )}
-            >
-              {info?.[t.id]?.icon}
-              {t.label}
-              {n > 0 && <Count n={n} />}
-            </button>
-          );
-        })}
-      </div>
+      <TabBar tabs={items} value={active as TabId} onChange={onTab} variant="pill" className="flex-wrap rounded-lg border border-ui-default" tabClassName="rounded-md py-1.5" />
       {description && <p className="px-0.5 pt-2 text-micro leading-snug text-ui-hint">{description}</p>}
     </div>
   );

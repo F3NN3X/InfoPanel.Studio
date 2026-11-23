@@ -35,7 +35,7 @@ describe("a screen card's menus", () => {
     fireEvent.contextMenu(screen.getByRole("listitem"), { clientX: 20, clientY: 20 });
     const fromRightClick = labels();
     expect(fromRightClick).toEqual(actions.map((a) => a.label));
-    expect(screen.getByRole("menuitem", { name: "Delete" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("menuitem", { name: "Delete" }).getAttribute("aria-disabled")).toBe("true");
     fireEvent.click(screen.getByRole("menuitem", { name: "Duplicate" }));
     expect(onDuplicate).toHaveBeenCalledTimes(1);
     expect(onClick).not.toHaveBeenCalled();

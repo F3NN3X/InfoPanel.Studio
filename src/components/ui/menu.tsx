@@ -18,16 +18,27 @@ interface MenuContentProps extends Omit<ComponentProps<typeof BaseMenu.Popup>, "
   align?: "start" | "center" | "end";
   sideOffset?: number;
   alignOffset?: number;
+  collisionPadding?: number;
+  /** Position against this instead of the trigger (a virtual point for a right-click menu). */
+  anchor?: ComponentProps<typeof BaseMenu.Positioner>["anchor"];
   /** Added to the popup (a width, a max height). */
   className?: string;
   children: ReactNode;
 }
 
 /** The floating part of a menu: portal, positioner (above dialogs) and popup in one. */
-function Content({ side, align, sideOffset = 4, alignOffset, className, children, ...popup }: MenuContentProps) {
+function Content({ side, align, sideOffset = 4, alignOffset, collisionPadding, anchor, className, children, ...popup }: MenuContentProps) {
   return (
     <BaseMenu.Portal>
-      <BaseMenu.Positioner className="z-80" side={side} align={align} sideOffset={sideOffset} alignOffset={alignOffset}>
+      <BaseMenu.Positioner
+        className="z-80"
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        alignOffset={alignOffset}
+        collisionPadding={collisionPadding}
+        anchor={anchor}
+      >
         <BaseMenu.Popup className={cn(MENU_POPUP, className)} {...popup}>
           {children}
         </BaseMenu.Popup>
