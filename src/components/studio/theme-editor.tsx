@@ -753,7 +753,10 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
               onSave={saveTheme}
               saveName={kind === "template" ? `${name} copy` : `My ${lookName}`}
             />
-            {state.theme && otherScreens && otherScreens.length > 0 && <ThemeApplyScreens name={state.theme.name} screens={otherScreens} onApply={(ids) => applyToScreens(ids, keep)} />}
+            {/* Saved and template themes has its own (one control on the page at a time). */}
+            {drill !== "themes" && state.theme && otherScreens && otherScreens.length > 0 && (
+              <ThemeApplyScreens name={state.theme.name} screens={otherScreens} onApply={(ids) => applyToScreens(ids, keep)} />
+            )}
             <ThemeActions
               reset={state.theme ? { name, text: resetText(name, state.own.length, at.level, levelName), onReset: () => resetTo(state.theme!, name) } : undefined}
               onRename={saved ? (n) => presets.rename(saved.id, n) : undefined}
