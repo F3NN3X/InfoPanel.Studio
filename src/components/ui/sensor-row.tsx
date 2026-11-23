@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
+import { ChartSummary, chartSummary } from "./chart-summary";
 import { cn } from "@/lib/utils";
 
 /** The polyline's points for `samples` in a `width` × `height` box: oldest at the left, the range filling the height. */
@@ -21,15 +22,17 @@ interface SparklineProps {
   samples: readonly number[];
   /** The chart's text alternative. */
   label: string;
+  /** The id of a `ChartSummary` with the range, latest and trend. */
+  describedBy?: string;
   /** The row is selected: the line takes the accent. */
   selected?: boolean;
   className?: string;
 }
 
 /** A 72 × 20 line chart of the last 60 s; grey, accent only on the selected row. */
-export function Sparkline({ samples, label, selected, className }: SparklineProps) {
+export function Sparkline({ samples, label, describedBy, selected, className }: SparklineProps) {
   return (
-    <svg role="img" aria-label={label} viewBox="0 0 72 20" preserveAspectRatio="none" className={cn("h-5 w-18 shrink-0 overflow-visible", className)}>
+    <svg role="img" aria-label={label} aria-describedby={describedBy} viewBox="0 0 72 20" preserveAspectRatio="none" className={cn("h-5 w-18 shrink-0 overflow-visible", className)}>
       <polyline points={sparkPoints(samples, 72, 20)} fill="none" strokeWidth={1} vectorEffect="non-scaling-stroke" className={selected ? "stroke-ui-accent" : "stroke-ui-source"} />
     </svg>
   );
@@ -50,6 +53,7 @@ interface SensorRowProps {
 
 /** One sensor: icon tile, name over key, the 60 s sparkline, and the value in mono with its unit muted. */
 export function SensorRow({ icon, name, sensorKey, samples, value, unit, selected, className }: SensorRowProps) {
+  const summaryId = useId();
   return (
     <div className={cn("flex min-h-12 items-center gap-3", className)}>
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-ui-md bg-ui-raised text-ui-hint [&>svg]:h-4 [&>svg]:w-4">{icon}</span>
@@ -57,7 +61,8 @@ export function SensorRow({ icon, name, sensorKey, samples, value, unit, selecte
         <span className="block truncate text-body text-ui-1">{name}</span>
         <span className="block truncate font-ui-mono text-micro text-ui-hint">{sensorKey}</span>
       </span>
-      <Sparkline samples={samples} label={sparkSummary(name, samples, unit)} selected={selected} />
+      <Sparkline samples={samples} label={`${name}, last 60 s`} describedBy={summaryId} selected={selected} />
+      <ChartSummary id={summaryId} text={chartSummary({ name, span: "last 60 s", samples, unit })} />
       <span className="w-18 shrink-0 text-right font-ui-mono text-body tabular-nums text-ui-1">
         {value}
         {unit && <span className="text-ui-hint"> {unit}</span>}
