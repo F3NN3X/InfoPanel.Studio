@@ -11,6 +11,8 @@ import { expect, makePack, manifest, saveConfig, settled, test } from "./fixture
 
 const { light } = manifest.profiles;
 const FIXTURE = path.join("tests", "fixtures", "packs", "cyberspec");
+/** The id the user pack is imported under: the built-in Cyberspec pack has `cyberspec`, and a user pack may not take a built-in id. */
+const ID = "cyberspec-user";
 const OUT = path.join(".cache", "gate-3");
 const SIZES = [{ width: 1024, height: 600 }, { width: 1920, height: 550 }];
 const LEVELS = ["full", "calm", "off"] as const;
@@ -43,22 +45,22 @@ test.describe("a CyberSpec-style user pack", () => {
     await page.getByRole("tab", { name: /Browse themes/ }).click();
     const section = page.getByRole("region", { name: "Import a pack" });
     await expect(section).toBeAttached();
-    await section.locator("[data-pack-folder]").setInputFiles(makePack(tmp, "cyberspec", cyberspec));
+    await section.locator("[data-pack-folder]").setInputFiles(makePack(tmp, ID, cyberspec));
     // validation, the render check and the store, in the order the import runs them: a refusal at any of them says so in the report
     const report = section.locator("[data-pack-report]");
     await expect(report).toContainText("Imported", { timeout: 120_000 });
     await expect(report).not.toContainText("can't be imported");
     await expect(report).not.toContainText("The render check refused");
     await expect(page.locator("iframe")).toHaveCount(0);
-    const root = path.join(scratch.dataDir, "packs", "cyberspec");
+    const root = path.join(scratch.dataDir, "packs", ID);
     // no pack.css, so the server signs nothing (`pack.sig` covers a stylesheet); the stored files are what was checked
     expect(fs.existsSync(path.join(root, "pack.sig"))).toBe(false);
-    expect(JSON.parse(fs.readFileSync(path.join(root, "pack.json"), "utf8")).id).toBe("cyberspec");
-    expect((await (await fetch(`${scratch.base}/api/packs`)).json()).map((p: { id: string }) => p.id)).toEqual(["cyberspec"]);
+    expect(JSON.parse(fs.readFileSync(path.join(root, "pack.json"), "utf8")).id).toBe(ID);
+    expect((await (await fetch(`${scratch.base}/api/packs`)).json()).map((p: { id: string }) => p.id)).toEqual([ID]);
 
-    await page.locator('[data-look-card="cyberspec"]').click();
+    await page.locator(`[data-look-card="${ID}"]`).click();
     await page.getByRole("complementary", { name: "Theme detail" }).getByRole("button", { name: /^Apply to/ }).click();
-    await expect.poll(async () => (await (await fetch(`${scratch.base}/api/config`)).json()).profiles.find((p: { id: string }) => p.id === light)?.widgetTheme?.values?.lookId).toBe("cyberspec");
+    await expect.poll(async () => (await (await fetch(`${scratch.base}/api/config`)).json()).profiles.find((p: { id: string }) => p.id === light)?.widgetTheme?.values?.lookId).toBe(ID);
 
     fs.mkdirSync(OUT, { recursive: true });
     const pages: unknown[] = [];
@@ -71,11 +73,11 @@ test.describe("a CyberSpec-style user pack", () => {
         const kiosk = await page.context().newPage();
         await kiosk.setViewportSize(size);
         await kiosk.goto(`${scratch.base}/?kiosk=1&profile=${light}`);
-        await expect(kiosk.locator('[data-wp-tier][data-look="cyberspec"]').first()).toBeAttached({ timeout: 15_000 });
+        await expect(kiosk.locator(`[data-wp-tier][data-look="${ID}"]`).first()).toBeAttached({ timeout: 15_000 });
         await settled(kiosk, manifest.kioskZoneSelector);
-        const read = await kiosk.evaluate(() => {
+        const read = await kiosk.evaluate((id) => {
           const named = (sel: string, attr: string) => [...document.querySelectorAll(sel)].map((el) => el.getAttribute(attr));
-          const cards = [...document.querySelectorAll('[data-wp-tier][data-look="cyberspec"]')];
+          const cards = [...document.querySelectorAll(`[data-wp-tier][data-look="${id}"]`)];
           const decor = cards.flatMap((card) => [...card.querySelectorAll("[data-pack-decor]")]);
           // an ornament's text boxes against the widget's own text boxes on the same card
           const box = (t: Node) => {
@@ -100,7 +102,7 @@ test.describe("a CyberSpec-style user pack", () => {
             clip: cards.map((c) => getComputedStyle(c).clipPath),
             overlaps: overlaps.length,
           };
-        });
+        }, ID);
         const name = `cyberspec-${size.width}x${size.height}-${fx}`;
         await kiosk.screenshot({ path: path.join(OUT, `${name}.png`) });
         pages.push({ ...size, fx, ...read, ...bytesOf(root) });
