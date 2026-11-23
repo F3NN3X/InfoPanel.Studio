@@ -1312,6 +1312,9 @@ may instead be **derived from the variant's accent** in OKLCH, so one rule serve
 (lightness 0 to 1) or `lMin` (at least that light), `c` (chroma 0 to 0.4), `cMul` (0 to 2) or `cMax`, and `alpha` (only for
 `borderColor`, `glowColor` and `numGlowColor`). The app works the colour out when the variant is picked, so the contrast check
 reads it like any other colour: a variant that sets such a colour is refused when its text is under 4.5:1 on the pack's cards.
+The labels (the small names over a value, in the tone's grey by default) take the Look's `label-color` in `look.json`'s `t3`:
+`{accent}`, `{fg}` or `{muted}` follow that colour, so a variant that changes it recolours them too, or a `#rrggbb`; it is held to
+4.5:1 like the text.
 
 In `pack.css`, real elements may also set `letter-spacing` (`normal` or up to `0.15em`, or the same in px), `text-transform`
 (`none` or `uppercase`) and `font-variant-numeric` (`tabular-nums`, `lining-nums`, `slashed-zero` and the like). They are not

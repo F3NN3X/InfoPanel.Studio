@@ -82,6 +82,15 @@ const EASE = /^(linear|ease|ease-in|ease-out|ease-in-out|cubic-bezier\([\d.,\s-]
 const MOTION = [["motion-fast", "motionFast", "150ms", TIME], ["motion-base", "motionBase", "300ms", TIME], ["ease-standard", "ease", "cubic-bezier(.2,0,0,1)", EASE]] as const;
 
 const oneOf = <T extends string>(value: unknown, names: readonly T[]): T | undefined => names.find((n) => n === value);
+/** The text roles a `label-color` alias may name, as the card's variables (so a variant that recolours the role recolours the labels). */
+const LABEL_ALIAS: Readonly<Record<string, string>> = { "{fg}": "var(--w-fg)", "{muted}": "var(--w-muted)", "{accent}": "var(--w-accent)" };
+/** `label-color` as CSS: a text role's variable or a lone colour; Classic's `{faint}` (and anything else) is none. */
+const labelColour = (value: unknown): string | undefined => {
+  const v = typeof value === "string" ? value.trim() : "";
+  if (Object.hasOwn(LABEL_ALIAS, v)) return LABEL_ALIAS[v];
+  const fill = safeFill(v);
+  return fill && !safeGradient(fill) && !fill.startsWith("var(") ? fill : undefined;
+};
 const off = (value: unknown) => value === undefined || value === "none";
 
 /** The tokens a Look's T3 values set; `{}` for Classic's. */
@@ -114,6 +123,8 @@ export function t3Tokens(t3: Readonly<Record<string, string | number>> | undefin
   if (sparkFill) out.sparkFill = sparkFill;
   const barFill = safeGradient(t3["bar-fill"]);
   if (barFill) out.barFill = barFill;
+  const label = labelColour(t3["label-color"]);
+  if (label) out.labelColor = label;
   const outline = safeFill(t3["focus-outline"]);
   if (outline && !safeGradient(outline)) out.focusOutline = outline;
   const border = safeFill(t3["border-fill"]);

@@ -170,6 +170,8 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
     ...accentVars(resolveAccent(chrome?.accent || accent, sk, surf.tone), chrome?.accent || accent ? undefined : surf.tone),
     color: "var(--w-fg)",
     ...(ctx.focusOutline ? { "--w-focus-outline": ctx.focusOutline } : null),
+    // the Look's label colour (T3 `label-color`) over the tone's faint grey
+    ...(ctx.labelColor ? { "--w-faint": ctx.labelColor } : null),
     ...(ctx.labelGlow ? { textShadow: "0 0 6px color-mix(in oklab, var(--w-accent) 55%, transparent)" } : null),
     // A roomy box (4x4) grows the body type: the theme's type tokens, so every text-micro / caption / body / title follows; and sets the hero size `Metric` reads.
     ...(big ? { ...(fixedType ? null : typeVars(ROOMY_SCALE)), "--w-hero": `${heroPx(box.w, box.h)}px` } : null),

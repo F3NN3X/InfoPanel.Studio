@@ -149,6 +149,15 @@ describe("a Look's T3 through Widget", () => {
     expect(draw({ "label-glow": "accent" }, () => null)).toContain("text-shadow:0 0 6px");
     expect(draw({}, () => null)).not.toContain("text-shadow");
   });
+  it("label-color recolours the labels (the card's faint text) by a text role, so a variant's colours reach them, or by a colour", () => {
+    expect(t3Tokens({ "label-color": "{muted}" })).toEqual({ labelColor: "var(--w-muted)" });
+    expect(t3Tokens({ "label-color": "{accent}" })).toEqual({ labelColor: "var(--w-accent)" });
+    expect(t3Tokens({ "label-color": "#FF5B5B" })).toEqual({ labelColor: "#FF5B5B" });
+    // Classic's {faint}, another alias, a gradient, a var and anything that could end the declaration draw the tone's own
+    for (const v of ["{faint}", "{border}", GRAD, "var(--w-accent)", "red;background:url(x)"]) expect(t3Tokens({ "label-color": v }), v).toEqual({});
+    expect(draw({ "label-color": "{muted}" }, () => null)).toContain("--w-faint:var(--w-muted)");
+    expect(draw({}, () => null)).toContain("--w-faint:#8a8a94");
+  });
 });
 
 describe("gradient digits", () => {
