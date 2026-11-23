@@ -280,6 +280,9 @@ async fn an_unverified_pack_runs_its_script_only_after_a_yes_for_these_files() {
     assert_eq!(get(s.port, "/api/packs/mine/fx.js?sha256=00").await.status, 409, "by hash");
     let head = send(s.port, "HEAD", "/api/packs/mine/fx.js", &[], "").await;
     assert!(head.status == 200 && head.body.is_empty());
+    for path in ["/api/packs/mine/assets/fx.js", "/api/packs/mine/assets/fx.js?sha256=00", "/api/packs/mine/assets/FX.JS", "/api/packs/mine/assets/fx.js/"] {
+        assert_eq!(get(s.port, path).await.status, 404, "{path}: the file route never serves a pack's .js, even after a yes");
+    }
 
     // an update (other bytes) asks again
     std::fs::write(s.packs().join("mine/look.json"), json!({ "id": "mine", "v": 2 }).to_string()).unwrap();
