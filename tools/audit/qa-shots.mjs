@@ -4,6 +4,8 @@
 // serves dist/, so run `npm run build` first.
 //   npm run qa:shots -- [--label before] [--skins default,cyber|all] [--spans 2x2,4x4] [--module CpuMonitor,Clock] [--data stress]
 // Writes .cache/qa-shots/<label>/<skin>/<module>_<span>.png and <module>_view-<id>.png (label: the short commit).
+//   npm run qa:shots -- --pages [all|screens,edit,…] [--label before]
+// Writes .cache/qa-shots/<label>/pages/<page>.png: the Studio views, browser Settings pages and ?ui-preview (qa-shots-pages.mjs).
 //   npm run qa:shots -- --compare before after
 // Writes .cache/qa-shots/compare-<before>-<after>.html: each shot of both runs side by side, the changed ones first.
 import { execFileSync } from "node:child_process";
@@ -13,6 +15,7 @@ import { parseArgs } from "node:util";
 import { chromium } from "@playwright/test";
 import { startScratch } from "../perf/scratch.mjs";
 import { compareRuns } from "./qa-shots-compare.mjs";
+import { shootPages } from "./qa-shots-pages.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const { values: opts, positionals } = parseArgs({
@@ -23,6 +26,7 @@ const { values: opts, positionals } = parseArgs({
     module: { type: "string", default: "" },
     data: { type: "string", default: "fixtures" },
     compare: { type: "boolean", default: false },
+    pages: { type: "string" },
   },
   allowPositionals: true,
 });
@@ -54,6 +58,17 @@ const fileSafe = (s) => s.replace(/[^\w.-]+/g, "-");
 
 const qa = await startScratch({ env: { DASHBOARD_DEBUG: "1" } });
 const browser = await chromium.launch();
+if (opts.pages !== undefined) {
+  try {
+    const only = opts.pages === "all" || opts.pages === "" ? [] : opts.pages.split(",").map((s) => s.trim());
+    const count = await shootPages(browser, qa.base, path.join(outDir, "pages"), only);
+    console.log(`qa-shots: ${count} page PNGs in ${path.relative(ROOT, path.join(outDir, "pages"))}`);
+  } finally {
+    await browser.close();
+    qa.stop();
+  }
+  process.exit(0);
+}
 try {
   // Reduced motion stops the ticker-driven motion (pulse dots, marquees) that animations: "disabled" cannot reach.
   const page = await browser.newPage({ viewport: { width: 1500, height: 900 }, reducedMotion: "reduce" });
