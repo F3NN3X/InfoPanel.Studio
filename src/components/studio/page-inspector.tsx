@@ -2,7 +2,8 @@ import { useState, type ReactNode } from "react";
 import { Cast, Copy, Trash2 } from "lucide-react";
 import type { MonitorProfile, ProfilePage } from "@/lib/layout";
 import { profileGap } from "@/lib/profile-grid";
-import { QuickTipsCard } from "./canvas-cards";
+import { ContextTip } from "./context-tip";
+import { TIPS } from "./quick-tips";
 import { resolveTheme } from "@/lib/theme";
 import { themeState } from "@/lib/theme-state";
 import { SECTION_IDS, type SectionId } from "@/lib/theme-model";
@@ -129,7 +130,7 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader name={page.name} />
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-        <QuickTipsCard />
+        <ContextTip text={TIPS.move} />
         <SnapSection snapItems={page.snapItems !== false} onSnapItems={onSnapItems} />
         <section className="flex flex-col gap-1.5 border-b border-s-divider px-3.5 py-3">
           <NameRow key={`${page.id}:${page.name}`} page={page} onRename={(name) => onRename(page.id, name)} />

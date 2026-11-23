@@ -37,6 +37,8 @@ test("pin a rail in Edit, move it, undo, save it into v21", async ({ page, scrat
   const { errors } = watchErrors(page);
   expect((await saveConfig(scratch.base, { ...config, dataApiUrl: scratch.dataApi })).status).toBe(200);
   await page.setViewportSize({ width: 1440, height: 900 });
+// the left panel starts collapsed (Phase 5, choice 9): this spec works in it, so open it as a returning user would have
+  await page.addInitScript(() => localStorage.setItem("studio.editor.leftPanelOpen", "1"));
   await page.goto(`${scratch.base}/?studio=1`);
   await page.getByRole("navigation", { name: "Studio views" }).getByRole("button", { name: /^Edit / }).click();
   await expect(page.locator("[data-zone-id]")).toHaveCount(2);
@@ -85,6 +87,8 @@ test("pin a page widget from its right-click menu, take it off with Delete, undo
   const { errors } = watchErrors(page);
   expect((await saveConfig(scratch.base, { ...config, dataApiUrl: scratch.dataApi })).status).toBe(200);
   await page.setViewportSize({ width: 1440, height: 900 });
+// the left panel starts collapsed (Phase 5, choice 9): this spec works in it, so open it as a returning user would have
+  await page.addInitScript(() => localStorage.setItem("studio.editor.leftPanelOpen", "1"));
   await page.goto(`${scratch.base}/?studio=1`);
   await page.getByRole("navigation", { name: "Studio views" }).getByRole("button", { name: /^Edit / }).click();
   await expect(page.locator("[data-zone-id]")).toHaveCount(2);
@@ -163,6 +167,8 @@ test("pin three widgets in a row with Pin here: they stay on their cells across 
   const { errors } = watchErrors(page);
   expect((await saveConfig(scratch.base, { ...row, dataApiUrl: scratch.dataApi })).status).toBe(200);
   await page.setViewportSize({ width: 1440, height: 900 });
+// the left panel starts collapsed (Phase 5, choice 9): this spec works in it, so open it as a returning user would have
+  await page.addInitScript(() => localStorage.setItem("studio.editor.leftPanelOpen", "1"));
   await page.goto(`${scratch.base}/?studio=1`);
   await page.getByRole("navigation", { name: "Studio views" }).getByRole("button", { name: /^Edit / }).click();
   await expect(page.locator("[data-zone-id]")).toHaveCount(3);

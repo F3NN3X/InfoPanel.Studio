@@ -12,6 +12,8 @@ import { IconButton } from "@/components/ui/icon-button";
 import type { PartKind } from "@/lib/page-model/model";
 import { cn } from "@/lib/utils";
 import type { LayerMenuHost } from "./layer-menu";
+import { ContextTip } from "./context-tip";
+import { TIPS } from "./quick-tips";
 
 const LayerMenu = lazy(() => import("./layer-menu").then((m) => ({ default: m.LayerMenu })));
 
@@ -257,6 +259,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
           <ChevronsDownUp className="h-3.5 w-3.5" />
         </IconButton>
       </div>
+      <ContextTip text={TIPS.menu} />
       <div
         ref={listRef}
         role="tree"
