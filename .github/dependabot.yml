@@ -1,25 +1,23 @@
-# Weekly dependency PRs, grouped so one framework moves in one PR. Each PR runs ci.yml like any other change; the merge
-# gate is still the local verify that `npm run ship` posts.
+# One weekly PR per ecosystem, majors included: one rebase, one verify and one CI run instead of a queue of PRs that
+# conflict in the lockfile as each one merges. A major that breaks is fixed in that PR. It also keeps crates that must
+# move in step together (windows and windows-core, #392). Each PR runs ci.yml like any other change; the merge gate is
+# still the local verify that `npm run ship` posts.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 5
     groups:
-      react: { patterns: ["react", "react-dom", "@types/react", "@types/react-dom"] }
-      tailwind: { patterns: ["tailwindcss", "@tailwindcss/*"] }
-      tauri-js: { patterns: ["@tauri-apps/*"] }
-      dev-minor: { dependency-type: development, update-types: [minor, patch] }
+      npm: { patterns: ["*"] }
   - package-ecosystem: cargo
     directory: /src-tauri
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 5
+    # windows-core ships ahead of windows (0.100 while windows is at 0.62); taken alone it splits the COM types from the
+    # windows crate's (#392, #395). It moves by hand, in the same change as windows.
+    ignore:
+      - dependency-name: windows-core
     groups:
-      tauri: { patterns: ["tauri", "tauri-*"] }
-      # windows-rs releases windows and windows-core in step; bumped apart, their COM types stop matching (#392).
-      windows-rs: { patterns: ["windows", "windows-*"] }
-      rust-minor: { update-types: [minor, patch] }
+      cargo: { patterns: ["*"] }
   # Bumps the SHA pins and their `# vX.Y.Z` comments, in the workflows and the composite actions.
   # dtolnay/rust-toolchain is pinned to its `stable` branch, which has no releases to move to.
   - package-ecosystem: github-actions
