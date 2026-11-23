@@ -22,6 +22,8 @@ export interface GuestFrame {
 
 export interface Guest {
   frame(t: number, signals?: Signals): GuestFrame;
+  /** The bytes the runtime holds now (its own count, for the pack checker's report; the cap is `HEAP_BYTES`). */
+  heap(): number;
   dispose(): void;
 }
 
@@ -144,6 +146,13 @@ export function createGuest(quickjs: QuickJSWASMModule, source: string, opts: { 
       } catch {
         return { commands: [], ms, interrupted: false, capped: false, fault: "error" };
       }
+    },
+    heap() {
+      if (gone) return 0;
+      const handle = runtime.computeMemoryUsage();
+      const usage = ctx.dump(handle) as { memory_used_size?: number };
+      handle.dispose();
+      return usage.memory_used_size ?? 0;
     },
     dispose() {
       if (gone) return;

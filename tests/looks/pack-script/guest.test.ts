@@ -43,6 +43,16 @@ describe("the guest's globals", () => {
 });
 
 describe("a frame", () => {
+  it("reports the heap it holds, which grows with what the script keeps", () => {
+    const g = guest(`var keep = []; fx.onFrame(function () { for (var i = 0; i < 2000; i++) keep.push({ i: i }); });`);
+    const before = g.heap();
+    for (let i = 0; i < 5; i++) g.frame(i);
+    expect(before).toBeGreaterThan(0);
+    expect(g.heap()).toBeGreaterThan(before);
+    g.dispose();
+    expect(g.heap()).toBe(0);
+  });
+
   it("hands the time, the signals and a seeded rand to the script, and its commands back", () => {
     const src = `fx.onFrame(function (t) { var s = fx.signals(); fx.draw([{ op: "rect", x: fx.now(), y: s.cards.length ? s.cards[0].value : -1, w: fx.rand(), h: 1, fill: 0 }]); });`;
     const a = guest(src, 7);

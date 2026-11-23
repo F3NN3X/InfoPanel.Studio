@@ -2,11 +2,11 @@
 // effect never needs, the licence and credit checks, and the report a reviewer reads. The render step needs a build and a browser
 // and is not run here.
 import crypto from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { analyseScript, checkPack, licenceIssues, SCRIPT_MAX_BYTES } from "../../../tools/packs/themely-check.mjs";
+import { analyseScript, checkPack, licenceIssues, perfRun, SCRIPT_MAX_BYTES } from "../../../tools/packs/themely-check.mjs";
 import { manifestBytes, manifestOf } from "../../../tools/packs/sign.mjs";
 import { readPackDir } from "../../../tools/validate-pack.mjs";
 
@@ -113,7 +113,7 @@ describe("the report", () => {
     expect((await checkPack(dir, {})).passed).toBe(false);
   });
 
-  it("analyses a pack's script and says the perf run waits for the sandbox", async () => {
+  it("analyses a pack's script and skips the perf run of a script that failed it", async () => {
     const dir = userPack((pack, files) => {
       pack.script = { file: "fx.js" };
       files.set("assets/fx.js", Buffer.from("fx.onFrame(() => fetch('https://x'));"));
@@ -124,5 +124,32 @@ describe("the report", () => {
     expect(report.perf.status).toBe("skipped");
     expect(report.review.reasons.some((r) => r.includes("G5"))).toBe(true);
     expect(report.passed).toBe(false);
+  });
+});
+
+describe("the perf run", () => {
+  const demo = readFileSync(new URL("../../fixtures/packs/script/demo.js", import.meta.url), "utf8");
+
+  it("runs the script in the sandbox's guest at Full and Calm and reports time, commands and heap", async () => {
+    const report = await perfRun(demo, { seconds: 4 });
+    expect(report.status).toBe("passed");
+    expect(Object.keys(report.levels)).toEqual(["full", "calm"]);
+    expect(report.levels.full.frames).toBe(120);
+    expect(report.levels.calm.frames).toBe(60);
+    for (const l of Object.values(report.levels)) {
+      expect(l).toMatchObject({ cutOff: 0, faults: 0 });
+      expect(l.commandsMax).toBeGreaterThan(0);
+      expect(l.heapBytes).toBeGreaterThan(0);
+      expect(l.p95Ms6x).toBeCloseTo(l.p95Ms * 6, 2);
+    }
+  });
+
+  it("fails a script that spends more than a frame's time, and one that does not start", async () => {
+    const slow = await perfRun("fx.onFrame(function () { var t = 0; for (var i = 0; i < 1e9; i++) t += i; });", { seconds: 1 });
+    expect(slow.status).toBe("failed");
+    expect(slow.issues.map((i) => i.rule)).toContain("perf-cut");
+    const broken = await perfRun("throw new Error('x');", { seconds: 1 });
+    expect(broken.status).toBe("failed");
+    expect(broken.issues.map((i) => i.rule)).toEqual(["perf-start"]);
   });
 });

@@ -6,13 +6,14 @@
 //    Off) into --out; the studio's measured render check still runs when a user imports the pack;
 // 3. the script's static analysis: its source required (minified-only refused), 64 KB at most, no eval, Function, import(),
 //    `with`, module syntax or constructor reach, no global but `fx` and plain JavaScript built-ins, and what each frame loops
-//    over and allocates. Parsed with rolldown's ESTree parser (`rolldown/parseAst`, oxc), already installed with Vite;
-// 4. the throttled perf run, once the pack-script sandbox is in the build (skipped with a note until then);
+//    over and allocates. Parsed with rolldown's ESTree parser (`rolldown/parseAst`, oxc), a devDependency;
+// 4. the perf run: the script in the sandbox's own guest for 60 s of fixture frames at Full and Calm (p95 guest ms at 1x, 4x, 6x, commands, heap);
 // 5. licences and credits: an SPDX licence for the submission, each font's OFL licence, copyright and source, and a credit for
 //    every image (`credits.json`: `{ "assets/sky.png": "Photo: …, CC0" }`); and a person's review, always (G5: names, logos and
 //    look-alike art, the more so for a pack with a script).
 // The report passes when no step has an error. A pass is what a reviewer countersigns (tools/packs/sign.mjs --countersign); this
 // tool signs nothing.
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -167,11 +168,46 @@ export function licenceIssues(pack, paths, { spdx, credits = {} } = {}) {
 /** The pack's script path (`script.file` in pack.json, an asset), when it names one. */
 const scriptPath = (pack) => (typeof pack?.script?.file === "string" ? `assets/${pack.script.file}` : undefined);
 
-/** The perf run's place in the report: run by the sandbox's own harness once it is in the build. */
-function perfStep(hasScript) {
-  if (!hasScript) return { status: "not-needed", note: "the pack has no script" };
-  if (!existsSync(join(root, "src/looks/pack-script"))) return { status: "skipped", note: "the pack-script sandbox is not in this build: the throttled perf run (4x and 6x CPU, 60 s, fixture signals) waits for it" };
-  return { status: "skipped", note: "the sandbox is in this build, but its throttled perf harness is not wired into this tool yet" };
+/** The sandbox's guest (src/looks/pack-script/guest.ts) bundled for Node: written under .cache so its packages resolve from node_modules. */
+async function bundleGuest() {
+  const { build } = await import("esbuild");
+  const out = join(root, ".cache/themely-check/guest.mjs");
+  await build({
+    entryPoints: [join(root, "src/looks/pack-script/guest.ts")],
+    outfile: out,
+    bundle: true,
+    format: "esm",
+    platform: "node",
+    packages: "external",
+    alias: { "@": join(root, "src") },
+    logLevel: "silent",
+  });
+  return out;
+}
+
+/**
+ * The perf run: the script in the sandbox's own guest (the same QuickJS runtime, caps and interrupt the worker uses) for 60 s of frames
+ * at Full (30 a second) and at Calm (15), with the fixture signals refreshed 4 times a second (tools/packs/perf-guest.mjs). It runs in a
+ * child process, so a script that stalls the runtime's native code is ended by a timeout rather than hanging the check. Node cannot
+ * throttle the CPU, so the report gives the guest's time per frame at 1x and what the 95th percentile would be on a CPU 4 and 6 times
+ * slower; the run fails when a frame is cut off or the guest faults at 1x; a 95th percentile that passes the guest's 2 ms budget at 6x
+ * (a slow kiosk would drop frames) is a warning for the reviewer.
+ */
+export async function perfRun(source, { seconds = 60 } = {}) {
+  const guest = await bundleGuest();
+  const file = join(dirname(guest), "script.js");
+  writeFileSync(file, source);
+  const run = await new Promise((resolve) => {
+    execFile(process.execPath, [join(root, "tools/packs/perf-guest.mjs"), guest, file, String(seconds)], { timeout: 120_000, maxBuffer: 1 << 20 }, (error, stdout) => resolve({ error, stdout }));
+  });
+  if (run.error) return { status: "failed", note: `the perf run did not finish: ${run.error.message.split(String.fromCharCode(10))[0]}`, issues: [issue("error", "perf-run", "the perf run did not finish (it was stopped after 120 s or crashed)")] };
+  return JSON.parse(run.stdout);
+}
+
+/** The perf run's place in the report. */
+async function perfStep(file) {
+  if (!file) return { status: "not-needed", note: "the pack has no script" };
+  return perfRun(Buffer.from(file.bytes).toString("utf8"));
 }
 
 /** The hash the server's signing route checks (`content_hash`, pack_sign.rs): each file in path order, `<path>\0<length>\0<bytes>`. */
@@ -254,8 +290,9 @@ export async function checkPack(dir, options = {}) {
   else if (file) script = { path, ...(await analyseScript(Buffer.from(file.bytes).toString("utf8"))) };
   const licences = licenceIssues(src.pack, src.files.map((f) => f.path), options);
   const render = options.render ? await renderStep(src, options.out ?? join(dir, ".themely-check")) : { status: "skipped", note: "pass --render (needs npm run build and the debug ips-server)" };
+  const perf = script?.issues?.some((x) => x.severity === "error") ? { status: "skipped", note: "the script did not pass its static analysis" } : await perfStep(file);
   const review = { required: true, reasons: ["a person reviews these exact files before Themely countersigns them", ...(script ? ["the pack has a script: names, logos and look-alike art get the G5 review"] : [])] };
-  const errors = [...validator, ...(script?.issues ?? []), ...licences, ...(render.issues ?? [])].filter((i) => i.severity === "error");
+  const errors = [...validator, ...(script?.issues ?? []), ...licences, ...(render.issues ?? []), ...(perf.issues ?? [])].filter((i) => i.severity === "error");
   return {
     tool: "themely-check",
     checksVersion: CHECKS_VERSION,
@@ -264,7 +301,7 @@ export async function checkPack(dir, options = {}) {
     script,
     licences,
     render,
-    perf: perfStep(!!script),
+    perf,
     review,
     passed: errors.length === 0,
   };
