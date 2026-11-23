@@ -16,12 +16,14 @@ import { type PackJson, packDecor } from "./pack-json";
 import { FILE_COUNT_MAX, type PackFile, type PackIssue, type PackSource, parseColour, validatePack } from "./pack-validate";
 import { cssColour } from "./colour";
 import { lookLayers, sampleCards } from "./sample-cards";
+import { type PackTrust, parseTrust } from "./pack-trust";
 
-/** What `GET /api/packs` says of a pack: its id, name and size, nothing else. */
+/** What `GET /api/packs` says of a pack: its id, name, size and trust (the server's word on its signatures, pack-trust.ts). */
 export interface UserPackInfo {
   id: string;
   name: string;
   size: number;
+  trust?: PackTrust;
 }
 
 /** The route's own id pattern (`is_pack_id`, packs.rs). */
@@ -35,7 +37,11 @@ export async function listUserPacks(): Promise<UserPackInfo[]> {
     const res = await fetch(ROUTE, { cache: "no-store" });
     const list: unknown = res.ok ? await res.json() : [];
     if (!Array.isArray(list)) return [];
-    return list.flatMap((p): UserPackInfo[] => (p && typeof p.id === "string" && USER_PACK_ID.test(p.id) ? [{ id: p.id, name: typeof p.name === "string" ? p.name : p.id, size: Number(p.size) || 0 }] : []));
+    return list.flatMap((p): UserPackInfo[] => {
+      if (!p || typeof p.id !== "string" || !USER_PACK_ID.test(p.id)) return [];
+      const trust = parseTrust(p.trust);
+      return [{ id: p.id, name: typeof p.name === "string" ? p.name : p.id, size: Number(p.size) || 0, ...(trust ? { trust } : null) }];
+    });
   } catch {
     return [];
   }

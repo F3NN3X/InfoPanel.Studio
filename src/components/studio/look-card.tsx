@@ -2,7 +2,9 @@ import { Check, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FOCUS_RING } from "@/components/ui/button";
 import type { AppearancePreset } from "@/lib/appearance-presets";
+import { type PackTrust, trustBadge } from "@/looks/pack-trust";
 import { LookThumb } from "./look-thumb";
+import { PackTrustBadge } from "./pack-trust-badge";
 
 export const FOCUS = FOCUS_RING;
 /** A card's thumbnail width: four a row in Browse's column. */
@@ -21,6 +23,8 @@ interface CardProps {
   selected: boolean;
   /** Validation warnings of an imported pack. */
   warnings?: number;
+  /** An imported pack's trust (its signatures, the server's word): the badge under its name. */
+  trust?: PackTrust;
   /** The roving tab stop. */
   tabStop: boolean;
   /** The theme the canvas previews: Enter on its card applies it. */
@@ -35,7 +39,7 @@ interface CardProps {
  * One theme card: the real-render thumbnail with its badges, the name and one line; a click shows its detail and
  * previews it, a double click, or Enter on the card being previewed, applies it.
  */
-export function ThemeCard({ id, name, description, preset, pack, applied, selected, warnings = 0, tabStop, previewing, onSelect, onApply, onHover }: CardProps) {
+export function ThemeCard({ id, name, description, preset, pack, applied, selected, warnings = 0, trust, tabStop, previewing, onSelect, onApply, onHover }: CardProps) {
   return (
     <button
       type="button"
@@ -50,7 +54,7 @@ export function ThemeCard({ id, name, description, preset, pack, applied, select
       onPointerLeave={onHover && (() => onHover(false))}
       data-previewing={previewing || undefined}
       aria-pressed={selected}
-      aria-label={`${name}${pack ? ", theme pack" : ""}${applied ? ", applied" : ""}${warnings > 0 ? `, ${warnings} ${warnings === 1 ? "warning" : "warnings"}` : ""}`}
+      aria-label={`${name}${pack ? ", theme pack" : ""}${applied ? ", applied" : ""}${warnings > 0 ? `, ${warnings} ${warnings === 1 ? "warning" : "warnings"}` : ""}${trust ? `, ${trustBadge(trust).label}` : ""}`}
       tabIndex={tabStop ? 0 : -1}
       data-look-card={id}
       className={cn(
@@ -82,6 +86,7 @@ export function ThemeCard({ id, name, description, preset, pack, applied, select
       <span className="flex flex-col gap-0.5 px-3 pb-3 pt-2.5">
         <span className="truncate text-body font-medium text-ui-1">{name}</span>
         <span className="truncate text-caption text-ui-3">{description}</span>
+        {trust && <PackTrustBadge trust={trust} className="mt-1 self-start" />}
       </span>
     </button>
   );

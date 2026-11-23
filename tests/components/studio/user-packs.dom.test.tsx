@@ -95,6 +95,32 @@ describe("importing a pack", () => {
   });
 });
 
+describe("the pack-script switch", () => {
+  it("is the server's: turned off here with the write header, and shown off when PACK_SCRIPTS is", async () => {
+    const puts: string[] = [];
+    let env = true;
+    vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+      if (url !== "/api/pack-scripts") return new Response("[]");
+      if (init?.method === "PUT") puts.push(`${(init.headers as Record<string, string>)["X-Dashboard-Pack"]} ${init.body}`);
+      const on = init?.method === "PUT" ? JSON.parse(init.body as string).on : true;
+      return new Response(JSON.stringify({ on, env, fetching: false, stale: false }));
+    });
+    mount();
+    await act(async () => {});
+    const toggle = screen.getByRole("switch", { name: "Pack effect scripts" });
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    await act(async () => void fireEvent.click(toggle));
+    expect(puts).toEqual(['1 {"on":false}']);
+    expect(screen.getByRole("switch", { name: "Pack effect scripts" }).getAttribute("aria-checked")).toBe("false");
+    cleanup();
+    env = false;
+    mount();
+    await act(async () => {});
+    expect((screen.getByRole("switch", { name: "Pack effect scripts" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(document.querySelector("[data-pack-scripts]")?.textContent).toContain("PACK_SCRIPTS=off");
+  });
+});
+
 describe("user packs switched off on the server", () => {
   it("is reported as off, so Browse shows no import and says so", async () => {
     vi.stubGlobal("fetch", async () => new Response("[]", { headers: { "X-User-Packs": "off" } }));

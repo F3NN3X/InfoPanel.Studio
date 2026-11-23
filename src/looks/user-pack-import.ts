@@ -22,8 +22,8 @@ export interface ImportReport {
   ok: boolean;
 }
 
-/** The files the server stores (`is_pack_file`, packs.rs): the fixed names and `assets/<name>.<ext>`. Everything else is left out. */
-const STORED = /^(pack\.json|look\.json|icons\.json|OFL\.txt|thumb\.(png|jpg|webp)|assets\/[a-z0-9][a-z0-9-]{0,63}\.(woff2|png|jpg|webp|gif|svg))$/;
+/** The files the server stores (`is_pack_file`, packs.rs): the fixed names, the signatures (`pack.minisig`, `themely.json`) and `assets/<name>.<ext>` (a `.js` is the pack's script). Everything else is left out. */
+const STORED = /^(pack\.json|look\.json|icons\.json|OFL\.txt|thumb\.(png|jpg|webp)|pack\.minisig|themely\.json|assets\/[a-z0-9][a-z0-9-]{0,63}\.(woff2|png|jpg|webp|gif|svg|js))$/;
 
 /** A licence file under another name than the one the server keeps (the validator accepts these names, the server stores `OFL.txt`). */
 const LICENCE_NAME = /^(LICEN[CS]E(\.txt)?|OFL)$/;
@@ -142,7 +142,12 @@ export async function packContentHash(files: readonly { path: string; bytes?: Ui
   const parts = sorted.flatMap((f) => [enc.encode(`${f.path}\0${f.bytes?.length ?? 0}\0`), f.bytes ?? new Uint8Array()]);
   const all = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
   parts.reduce((at, p) => (all.set(p, at), at + p.length), 0);
-  return [...new Uint8Array(await crypto.subtle.digest("SHA-256", all))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return sha256Hex(all);
+}
+
+/** The SHA-256 of `bytes` in hex (a secure context's `crypto.subtle`). */
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes as BufferSource))].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /** The render check on a pack's CSS, in words; undefined when it passed (the chunk loads only for a pack with CSS). */
@@ -165,7 +170,11 @@ export async function storePack(report: ImportReport & { src: PackSource }): Pro
   const refused = styled ? await renderRefusal(report.src) : undefined;
   if (refused) return refused;
   const files = report.src.files.filter((f) => f.path !== "pack.css").map((f) => ({ path: f.path, data: base64(f.bytes ?? new Uint8Array()) }));
-  const res = await fetch("/api/packs", { method: "POST", headers: WRITE, body: JSON.stringify({ id: report.id, files }) });
+  // the CSS comes next by the signing route; its size and hash let the server check now a publisher's signature, which covers it
+  const sheet = report.src.files.find((f) => f.path === "pack.css")?.bytes;
+  // with no hash (no secure context) the signing route refuses below, which takes the pack off again
+  const css = sheet ? await sha256Hex(sheet).then((sha256) => ({ size: sheet.length, sha256 }), () => undefined) : undefined;
+  const res = await fetch("/api/packs", { method: "POST", headers: WRITE, body: JSON.stringify({ id: report.id, files, ...(css ? { css } : null) }) });
   if (!res.ok) return (await res.text()) || `the server refused the pack (${res.status})`;
   const unsigned = styled ? await signPack(report.id, report.src).catch((e: Error) => e.message) : undefined;
   if (unsigned) {
