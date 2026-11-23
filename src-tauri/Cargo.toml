@@ -20,7 +20,7 @@ log = "0.4"
 sysinfo = "0.37"
 tokio = "1"
 axum = { version = "0.8", default-features = false }
-tower-http = "0.6"
+tower-http = "0.7"
 http-body = "1"
 futures-util = { version = "0.3", default-features = false }
 url = "2"
