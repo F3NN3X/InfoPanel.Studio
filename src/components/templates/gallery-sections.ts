@@ -107,7 +107,7 @@ export function gallerySections({ entries, library = [], recent, query, tagsOf, 
       sections.push({ key: "recent", title: "Recently used", min: 230, cards: rec.map((e) => own(e)) });
     }
     const saved = library.filter((e) => matches(e, false));
-    sections.push({ key: "library", title: "Your Library", count: saved.length, note: "Create copies a saved profile", min: 230, cards: saved.map((e) => own(e, true)) });
+    sections.push({ key: "library", title: "Your library", count: saved.length, note: "Create copies a saved profile", min: 230, cards: saved.map((e) => own(e, true)) });
     const base = classOf(user ?? start);
     const hint = hintOf(start);
     for (const c of [base, ...CLASS_ORDER.filter((x) => x !== base)]) {
