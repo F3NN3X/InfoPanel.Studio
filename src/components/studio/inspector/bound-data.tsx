@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { ArrowLeftRight, X } from "lucide-react";
-import { Sparkline, sparkSummary } from "@/components/ui/sensor-row";
+import { ChartSummary, chartSummary } from "@/components/ui/chart-summary";
+import { Sparkline } from "@/components/ui/sensor-row";
 import { useToast } from "@/components/ui/toast";
 import { useSensors } from "@/hooks/useSensors";
 import type { DataModel, DataPoint } from "@/lib/data-points";
@@ -55,6 +56,7 @@ export function BoundData({
   const live = useSensors(rows.map((r) => r.key));
   // The sparklines' last 60 samples, only of the rows in view, from the values this row already receives.
   const history = useRef(new SampleHistory(60));
+  const summaryId = useId();
   useEffect(() => void recordThrottled(history.current, live, Date.now()), [live]);
   const title = zoneName(zone);
   const widget = zone.panel?.widgets.find((w) => w.id === selectedWidgetId);
@@ -96,7 +98,7 @@ export function BoundData({
         <span className="block text-caption text-ui-3">No data bound yet. Change values to make this widget live.</span>
       ) : (
         <ul className="divide-y divide-ui-subtle">
-          {rows.map(({ key, point, panelWidgetId }) => {
+          {rows.map(({ key, point, panelWidgetId }, i) => {
             const value = liveText(live[key], point);
             const samples = history.current.get(key);
             const name = point?.name ?? key;
@@ -112,9 +114,10 @@ export function BoundData({
                     <span className="block truncate text-body text-ui-1">{name}</span>
                     <span className="block truncate font-ui-mono text-micro text-ui-hint">{key}</span>
                   </span>
-                  <Sparkline samples={samples} label={sparkSummary(name, samples, point?.unit)} className="w-12" />
+                  <Sparkline samples={samples} label={`${name}, last 60 s`} describedBy={`${summaryId}-${i}`} className="w-12" />
                   <span className={cn("max-w-20 shrink-0 truncate text-right font-ui-mono text-caption tabular-nums", value === null ? "text-ui-warn" : "text-ui-1")}>{value ?? "No data"}</span>
                 </button>
+                <ChartSummary id={`${summaryId}-${i}`} text={chartSummary({ name, span: "last 60 s", samples, unit: point?.unit })} />
                 {canUnbind(key, panelWidgetId) && (
                   <button
                     type="button"

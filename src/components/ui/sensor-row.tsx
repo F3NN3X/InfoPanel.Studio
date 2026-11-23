@@ -11,13 +11,6 @@ export function sparkPoints(samples: readonly number[], width: number, height: n
   return samples.map((v, i) => `${(i * step).toFixed(1)},${(span === 0 ? height / 2 : height - ((v - low) / span) * height).toFixed(1)}`).join(" ");
 }
 
-/** A chart's text for screen readers: "Package Temp, last 60 s, 58.8 to 67.7 °C". */
-export function sparkSummary(name: string, samples: readonly number[], unit = ""): string {
-  if (samples.length === 0) return `${name}, last 60 s, no readings yet`;
-  const range = `${Math.min(...samples).toFixed(1)} to ${Math.max(...samples).toFixed(1)}`;
-  return `${name}, last 60 s, ${range}${unit && ` ${unit}`}`;
-}
-
 interface SparklineProps {
   samples: readonly number[];
   /** The chart's text alternative. */

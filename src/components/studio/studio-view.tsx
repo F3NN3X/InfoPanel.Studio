@@ -24,6 +24,7 @@ import { ownStyle } from "./studio-actions";
 import { useStyleEdits } from "./use-style-edits";
 import { ProfileShots } from "./profile-shots";
 import { StudioCanvas } from "./studio-canvas";
+import { FOCUS_RING } from "@/components/ui/button";
 import { StudioTopBar, type StudioMode } from "./studio-top-bar";
 import { LiveControl } from "./live-popover";
 import type { RailItem } from "./studio-nav";
@@ -1330,6 +1331,14 @@ function StudioViewBody({
 
   return (
     <div className="studio-root flex h-screen flex-col overflow-hidden bg-ui-app font-ui text-ui-1">
+      {/* Past the sidebar and top bar (13 Tab stops) to the page itself; a button, so the studio keeps its URL. */}
+      <button
+        type="button"
+        onClick={() => document.getElementById("studio-content")?.focus()}
+        className={`fixed top-2 left-2 z-50 -translate-y-[200%] rounded-ui-md border border-ui-strong bg-ui-raised px-3 py-2 text-body text-ui-1 focus:translate-y-0 ${FOCUS_RING}`}
+      >
+        Skip to content
+      </button>
       {/* The offscreen thumbnails need no live data: frozen with the canvas. */}
       <PreviewDataProvider>
         <ProfileShots
@@ -1438,6 +1447,8 @@ function StudioViewBody({
         onRedo={stepUndo.redo}
         onPalette={() => ui.setPaletteOpen(true)}
       />}
+      {/* The skip link's target: focus lands here, so the next Tab is the page's first control. */}
+      <div id="studio-content" tabIndex={-1} className="outline-none" />
       {/* The canvas editor brings its own shell (same slots and widths): in Edit on a Free page or a free area. */}
       {canvasEditor}
       {pinnedShown && (

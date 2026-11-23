@@ -83,3 +83,33 @@ describe("PointTable keyboard", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Point 3, 3" }));
   });
 });
+
+describe("PointTable sparkline", () => {
+  it("names a number row's chart and points it at the shared chart summary", () => {
+    const temp: DataPoint = { ...point(9), name: "Package Temp", type: "number", num: 60, unit: "°C" };
+    const recorder = new HistoryRecorder();
+    for (const v of [58.8, 67.7, 60]) recorder.history.push(temp.key, v);
+    render(
+      <PointTable
+        rows={[{ kind: "point", point: temp }]}
+        values={{}}
+        recorder={recorder}
+        usage={{ byKey: new Map(), byZone: new Map() }}
+        selectedKey={null}
+        onSelect={() => {}}
+        onToggleGroup={() => {}}
+        onVisible={() => {}}
+        target={null}
+        onToggleBind={() => {}}
+        screens={new Map()}
+        alerts={new Map()}
+        apiBase=""
+        showUsedIn={false}
+        live={false}
+      />
+    );
+    const chart = screen.getByRole("img");
+    expect(chart.getAttribute("aria-label")).toBe("Package Temp, last 60 s");
+    expect(document.getElementById(chart.getAttribute("aria-describedby") ?? "")?.textContent).toBe("Package Temp, last 60 s: 58.8 to 67.7 °C, latest 60.0 °C, rising.");
+  });
+});

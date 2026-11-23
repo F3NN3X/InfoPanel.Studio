@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Check, ChevronDown, Copy, ImageOff, Link2, Plus } from "lucide-react";
 import { PulseDot } from "@/components/pulse-dot";
 import { FOCUS_RING } from "@/components/ui/button";
-import { Sparkline, sparkSummary } from "@/components/ui/sensor-row";
+import { ChartSummary, chartSummary } from "@/components/ui/chart-summary";
+import { Sparkline } from "@/components/ui/sensor-row";
 import type { HistoryRecorder } from "@/lib/data-history";
 import { resolveImageUrl } from "@/lib/image";
 import type { DataPoint } from "@/lib/data-points";
@@ -291,6 +292,7 @@ const ON_HOVER = "opacity-0 group-hover:opacity-100 group-focus-within:opacity-1
 
 function PointRow({ point, tabIndex, cols, values, recorder, usedBy, selected, onSelect, screens, alerts, apiBase, showUsedIn, target, onToggleBind }: PointRowProps) {
   const copy = useCopy();
+  const summaryId = useId();
   const cell = valueCell(point, values);
   const split = point.type === "number" ? splitNumber(cell.text) : null;
   const image = isImagePoint(point);
@@ -345,7 +347,10 @@ function PointRow({ point, tabIndex, cols, values, recorder, usedBy, selected, o
       <span className="truncate font-ui-mono text-caption text-ui-hint">{unit}</span>
       <div className="min-w-0 text-caption text-ui-3">
         {point.type === "number" ? (
-          <Sparkline samples={samples} label={sparkSummary(point.name, samples, unit)} selected={selected} className="w-30" />
+          <>
+            <Sparkline samples={samples} label={`${point.name}, last 60 s`} describedBy={summaryId} selected={selected} className="w-30" />
+            <ChartSummary id={summaryId} text={chartSummary({ name: point.name, span: "last 60 s", samples, unit })} />
+          </>
         ) : image ? (
           <Thumb src={values[point.key]?.text?.trim() || point.raw} className="h-7 w-7" />
         ) : point.type === "empty" ? null : (
