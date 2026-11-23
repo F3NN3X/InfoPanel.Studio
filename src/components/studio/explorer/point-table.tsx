@@ -84,9 +84,10 @@ export function PointTable({ rows, values, recorder, usage, selectedKey, onSelec
           rows={rows}
           onToggleGroup={onToggleGroup}
           onVisible={onVisible}
-          renderPoint={(p) => (
+          renderPoint={(p, tabIndex) => (
             <PointRow
               point={p}
+              tabIndex={tabIndex}
               cols={cols}
               values={values}
               recorder={recorder}
@@ -111,8 +112,10 @@ interface VirtualRowsProps {
   rows: TableRow[];
   onToggleGroup: (id: string) => void;
   onVisible: (keys: string[]) => void;
-  renderPoint: (point: DataPoint) => ReactNode;
+  renderPoint: (point: DataPoint, tabIndex: 0 | -1) => ReactNode;
 }
+
+const rowKey = (row: TableRow): string => (row.kind === "group" ? `g:${row.id}` : row.point.key);
 
 /** Up and Down move between the drawn rows and group headers. */
 function onListKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -133,6 +136,10 @@ function onListKeyDown(e: KeyboardEvent<HTMLDivElement>) {
  */
 function VirtualRows({ rows, onToggleGroup, onVisible, renderPoint }: VirtualRowsProps) {
   const ref = useRef<HTMLDivElement>(null);
+  /** The row that is the list's one Tab stop: the last focused one, else the first drawn. */
+  const [active, setActive] = useState<string | null>(null);
+  /** A row Home or End asked for that may still be scrolled out. */
+  const pending = useRef<string | null>(null);
   const [view, setView] = useState({ top: 0, height: 600 });
   const offsets = useMemo(() => rowOffsets(rows), [rows]);
 
@@ -151,6 +158,18 @@ function VirtualRows({ rows, onToggleGroup, onVisible, renderPoint }: VirtualRow
   const drawn = rows.slice(start, end);
   const keys = drawn.flatMap((r) => (r.kind === "point" ? [r.point.key] : [])).join("\n");
 
+  const stop = drawn.some((r) => rowKey(r) === active) ? active : drawn[0] && rowKey(drawn[0]);
+
+  /** Focus the row Home or End asked for once it is drawn. */
+  const focusPending = () => {
+    if (pending.current === null) return;
+    const el = ref.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(pending.current)}"] [data-row]`);
+    if (!el) return;
+    pending.current = null;
+    el.focus();
+  };
+  useEffect(focusPending, [start, end]);
+
   useEffect(() => onVisible(keys === "" ? [] : keys.split("\n")), [keys, onVisible]);
   useEffect(() => () => onVisible([]), [onVisible]);
 
@@ -158,22 +177,38 @@ function VirtualRows({ rows, onToggleGroup, onVisible, renderPoint }: VirtualRow
     <div
       ref={ref}
       onScroll={(e) => setView({ top: e.currentTarget.scrollTop, height: e.currentTarget.clientHeight })}
-      onKeyDown={onListKeyDown}
+      onKeyDown={(e) => {
+        onListKeyDown(e);
+        if ((e.key !== "Home" && e.key !== "End") || e.altKey || e.ctrlKey || e.metaKey) return;
+        if (!(e.target instanceof Element) || e.target !== e.target.closest("[data-row]")) return;
+        const at = e.key === "Home" ? 0 : rows.length - 1;
+        e.preventDefault();
+        pending.current = rowKey(rows[at]);
+        setActive(pending.current);
+        e.currentTarget.scrollTop = offsets[at];
+        setView({ top: e.currentTarget.scrollTop, height: e.currentTarget.clientHeight });
+        focusPending();
+      }}
+      onFocus={(e) => {
+        const key = e.target instanceof Element && e.target.hasAttribute("data-row") ? e.target.parentElement?.getAttribute("data-key") : null;
+        if (key) setActive(key);
+      }}
       className="relative min-h-0 flex-1 overflow-y-auto"
     >
       {pinned?.kind === "group" && (
         <div className="sticky top-0 z-10 h-0">
-          <GroupHeader row={pinned} onToggle={onToggleGroup} pinned />
+          <GroupHeader row={pinned} onToggle={onToggleGroup} pinned tabIndex={-1} />
         </div>
       )}
       <div className="relative" style={{ height: offsets[offsets.length - 1] }}>
         {drawn.map((row, i) => (
           <div
-            key={row.kind === "group" ? `g:${row.id}` : row.point.key}
+            key={rowKey(row)}
+            data-key={rowKey(row)}
             className="absolute inset-x-0"
             style={{ top: offsets[start + i], height: row.kind === "group" ? GROUP_ROW_H : POINT_ROW_H }}
           >
-            {row.kind === "group" ? <GroupHeader row={row} onToggle={onToggleGroup} /> : renderPoint(row.point)}
+            {row.kind === "group" ? <GroupHeader row={row} onToggle={onToggleGroup} tabIndex={rowKey(row) === stop ? 0 : -1} /> : renderPoint(row.point, rowKey(row) === stop ? 0 : -1)}
           </div>
         ))}
       </div>
@@ -182,12 +217,12 @@ function VirtualRows({ rows, onToggleGroup, onVisible, renderPoint }: VirtualRow
 }
 
 /** `pinned` is the copy that sticks to the top: for the pointer only, the real header stays in the list for the keyboard and screen readers. */
-function GroupHeader({ row, onToggle, pinned }: { row: GroupRow; onToggle: (id: string) => void; pinned?: boolean }) {
+function GroupHeader({ row, onToggle, pinned, tabIndex }: { row: GroupRow; onToggle: (id: string) => void; pinned?: boolean; tabIndex: 0 | -1 }) {
   return (
     <div
       data-row={pinned ? undefined : ""}
       role="button"
-      tabIndex={pinned ? -1 : 0}
+      tabIndex={tabIndex}
       aria-hidden={pinned || undefined}
       aria-expanded={!row.collapsed}
       aria-label={`${row.title}${row.sub ? ` ${row.sub}` : ""}, ${row.count} ${row.count === 1 ? "point" : "points"}`}
@@ -230,6 +265,8 @@ function ThumbImage({ src, className }: { src: string; className?: string }) {
 
 interface PointRowProps {
   point: DataPoint;
+  /** 0 on the list's one Tab stop, -1 on the rest. */
+  tabIndex: 0 | -1;
   cols: string;
   values: SensorMap;
   recorder: HistoryRecorder;
@@ -252,7 +289,7 @@ const ROW_ACTION = cn(
 /** A hover action shows on hover and when focus is inside the row. */
 const ON_HOVER = "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100";
 
-function PointRow({ point, cols, values, recorder, usedBy, selected, onSelect, screens, alerts, apiBase, showUsedIn, target, onToggleBind }: PointRowProps) {
+function PointRow({ point, tabIndex, cols, values, recorder, usedBy, selected, onSelect, screens, alerts, apiBase, showUsedIn, target, onToggleBind }: PointRowProps) {
   const copy = useCopy();
   const cell = valueCell(point, values);
   const split = point.type === "number" ? splitNumber(cell.text) : null;
@@ -266,7 +303,7 @@ function PointRow({ point, cols, values, recorder, usedBy, selected, onSelect, s
     <div
       data-row
       role="button"
-      tabIndex={0}
+      tabIndex={tabIndex}
       aria-current={selected}
       aria-label={`${point.name}, ${cell.text}`}
       onClick={() => onSelect(point.key)}
