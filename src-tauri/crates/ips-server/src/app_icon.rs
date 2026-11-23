@@ -45,7 +45,8 @@ pub fn first_named(name: &str, candidates: impl IntoIterator<Item = PathBuf>) ->
 /// The programs running now, by their image paths.
 fn running() -> Vec<PathBuf> {
     use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
-    let mut sys = System::new();
+    // No process list (sysinfo could not start) reads as nothing running.
+    let Ok(mut sys) = System::new() else { return Vec::new() };
     sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_exe(UpdateKind::Always));
     sys.processes().values().filter_map(|p| p.exe().map(Path::to_path_buf)).collect()
 }

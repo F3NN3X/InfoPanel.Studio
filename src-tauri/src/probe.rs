@@ -91,7 +91,7 @@ pub struct ProcessInfo {
 
 pub fn process_info(pid: u32) -> Option<ProcessInfo> {
     use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
-    let mut sys = System::new();
+    let mut sys = System::new().ok()?;
     let spid = Pid::from_u32(pid);
     let own = Pid::from_u32(std::process::id());
     // The same pid twice makes sysinfo find neither.

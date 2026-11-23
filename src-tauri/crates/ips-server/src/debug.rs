@@ -146,7 +146,7 @@ impl Debug {
 fn process_memory() -> Value {
     use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
     let pid = Pid::from_u32(std::process::id());
-    let mut sys = System::new();
+    let Ok(mut sys) = System::new() else { return json!({ "rss": 0, "virtual": 0 }) };
     sys.refresh_processes_specifics(ProcessesToUpdate::Some(&[pid]), true, ProcessRefreshKind::nothing().with_memory());
     let (rss, virtual_memory) = sys.process(pid).map_or((0, 0), |p| (p.memory(), p.virtual_memory()));
     json!({ "rss": rss, "virtual": virtual_memory })
