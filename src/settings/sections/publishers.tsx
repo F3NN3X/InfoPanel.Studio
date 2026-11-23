@@ -5,6 +5,7 @@ import { errorText, ipc } from "../ipc";
 import { useFound, useStore } from "../store";
 import type { WidgetKey } from "../types";
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import { Card, Group } from "../ui";
 
 /** What each state says beside a key. */
@@ -24,7 +25,15 @@ const KINDS: Record<WidgetKey["kind"], string> = {
 
 const FIELD = "h-(--ui-h-field) w-full rounded-lg border border-s-input-line bg-s-input px-2.5 text-body text-s-t1 outline-none focus:border-s-accent";
 
-function KeyRow({ item, busy, onRemove, onRestore }: { item: WidgetKey; busy: boolean; onRemove: () => void; onRestore: () => void }) {
+interface KeyRowProps {
+  item: WidgetKey;
+  busy: boolean;
+  onRemove: () => void;
+  onRestore: () => void;
+  onPackScripts: (allowed: boolean) => void;
+}
+
+function KeyRow({ item, busy, onRemove, onRestore, onPackScripts }: KeyRowProps) {
   const state = STATES[item.state];
   return (
     <div className="flex flex-wrap items-center gap-3 px-4.5 py-3.5" data-key={item.id}>
@@ -36,6 +45,12 @@ function KeyRow({ item, busy, onRemove, onRestore }: { item: WidgetKey; busy: bo
         <span className="text-caption text-s-muted">{KINDS[item.kind]}</span>
         <span className="font-mono text-caption text-s-t3">{item.fingerprint ? `Key ID ${item.fingerprint}` : "No key"}</span>
         {item.publishers.length > 0 && <span className="text-caption text-s-t3">Signs for: {item.publishers.join(", ")}</span>}
+        {item.kind === "user" && item.state === "trusted" && (
+          <span className="flex items-center gap-2 pt-1 text-caption text-s-t2">
+            <Toggle checked={item.packScripts === true} disabled={busy} label={`Allow pack scripts for ${item.name}`} onChange={onPackScripts} />
+            Allow pack scripts: theme packs this key signed may run their effect script, in its sandbox
+          </span>
+        )}
       </div>
       <span className={cn("rounded-ui-lg px-2 py-0.5 text-caption", state.className)}>{state.label}</span>
       {item.state === "trusted" && (
@@ -107,7 +122,9 @@ export function PublishersSection() {
   const builtIn = keys?.filter((k) => k.kind !== "user") ?? [];
   const yours = keys?.filter((k) => k.kind === "user") ?? [];
   const row = (k: WidgetKey) => (
-    <KeyRow key={k.id} item={k} busy={busy} onRemove={() => void run(() => ipc.removeWidgetKey(k.id), "Key removed")} onRestore={() => void run(() => ipc.restoreWidgetKey(k.id), "Key trusted again")} />
+    <KeyRow key={k.id} item={k} busy={busy} onRemove={() => void run(() => ipc.removeWidgetKey(k.id), "Key removed")} onRestore={() => void run(() => ipc.restoreWidgetKey(k.id), "Key trusted again")}
+      onPackScripts={(allowed) => void run(() => ipc.setWidgetKeyPackScripts(k.id, allowed), allowed ? "Pack scripts allowed" : "Pack scripts not allowed")}
+    />
   );
 
   return (
