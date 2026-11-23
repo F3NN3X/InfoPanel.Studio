@@ -15,7 +15,7 @@ base64 = { workspace = true }
 # The Stream Deck connection (src/streamdeck): BLAKE2b for the pairing code, XSalsa20-Poly1305 boxes (pure Rust, so the
 # Linux build needs no libsodium), the OS RNG uuid already pulls in, LZ4 icons, PNG out (0.18, the version Tauri locks) and
 # the hand-written protobuf messages.
-blake2 = "0.10"
+blake2 = "0.11"
 crypto_box = { version = "0.9", default-features = false, features = ["alloc", "salsa20"] }
 getrandom = "0.4"
 # Publisher signatures on widget packages (widget_sign.rs): minisign's verifier, already in the lock through Tauri's updater.
