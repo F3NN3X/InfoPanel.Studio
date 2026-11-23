@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { VirtualRows } from "@/components/ui/virtual-rows";
 import { DialogParts } from "@/components/ui/dialog";
 import { Search, Square, SquareCheck, X } from "lucide-react";
 import type { DataPoint } from "@/lib/data-points";
@@ -22,6 +23,10 @@ interface DataPickerProps {
   onToggle: (point: DataPoint) => void;
   onOpenExplorer: () => void;
 }
+
+const ROW_H = 52;
+const rowKey = (p: DataPoint): string => p.key;
+const rowHeight = (): number => ROW_H;
 
 const FOOT_BUTTON = "h-7.5 rounded-8 px-3 text-caption";
 
@@ -61,22 +66,30 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
             />
           </div>
         </div>
-        <ul className="min-h-0 flex-1 overflow-y-auto p-1">
-          {shown.map((p) => {
-            const on = bound.has(p.key);
-            return (
-              <li key={p.key}>
+        {shown.length === 0 && <p className="px-3 py-6 text-center text-caption text-ui-4">No data points match.</p>}
+        {shown.length > 0 && (
+          <VirtualRows
+            resetKey={query}
+            role={mode === "item" ? "listbox" : "group"}
+            aria-label="Data points"
+            className="p-1"
+            rows={shown}
+            rowKey={rowKey}
+            rowHeight={rowHeight}
+            renderRow={(p, tabIndex) => {
+              const on = bound.has(p.key);
+              return (
                 <button
                   type="button"
+                  data-row
                   role={mode === "widget" ? "checkbox" : "option"}
                   aria-checked={mode === "widget" ? on : undefined}
                   aria-selected={mode === "item" ? on : undefined}
+                  tabIndex={tabIndex}
                   title={p.key}
                   onClick={() => pick(p)}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-8 px-2.5 py-2 text-left hover:bg-s-divider",
-                    on && "bg-ui-accent/10"
-                  )}
+                  style={{ height: ROW_H }}
+                  className={cn("flex w-full items-center gap-2.5 rounded-8 px-2.5 py-2 text-left hover:bg-s-divider", on && "bg-ui-accent/10")}
                 >
                   {mode === "widget" ? (
                     on ? (
@@ -92,11 +105,10 @@ export function DataPicker({ open, onOpenChange, title, points, mode, bound, onT
                   </span>
                   <span className="max-w-37.5 shrink-0 truncate font-ui-mono text-micro text-ui-2">{p.raw}</span>
                 </button>
-              </li>
-            );
-          })}
-          {shown.length === 0 && <li className="px-3 py-6 text-center text-caption text-ui-4">No data points match.</li>}
-        </ul>
+              );
+            }}
+          />
+        )}
         <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-4 py-2.5">
           <span className="text-micro text-ui-hint">
             {resultsLabel(shown.length)} · {bound.size} bound

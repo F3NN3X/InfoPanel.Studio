@@ -604,6 +604,7 @@
         "src/lib/panel-*.ts",
         "src/lib/panelPresets.ts",
         "src/lib/roving.ts",
+        "src/lib/virtual-window.ts",
         "src/lib/scroll-behavior.ts"
       ],
       "tests": [
@@ -615,6 +616,7 @@
         "tests/lib/panel-*.test.ts",
         "tests/lib/roving.test.ts",
         "tests/lib/roving-keys.dom.test.tsx",
+        "tests/lib/virtual-window.test.ts",
         "tests/lib/shipped-panels.test.ts"
       ],
       "checks": ["typecheck", "unit", "build", "budgets", "ui-usage"]

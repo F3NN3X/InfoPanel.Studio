@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { addCatalog } from "@/components/studio/add-catalog";
-import { AddTileGrid } from "@/components/studio/add-tile-grid";
+import { AddTileGrid, TILE_COLS } from "@/components/studio/add-tile-grid";
 import { addSections, widgetTile } from "@/components/studio/add-tiles";
 import { loadWidgetPresets } from "@/components/studio/widget-presets";
 
@@ -36,5 +36,14 @@ describe("AddTileGrid presets", () => {
     fireEvent.click(screen.getByText("Minimal"));
     expect(onAdd).toHaveBeenCalledTimes(1);
     expect(onAdd.mock.calls[0][0].widget.drop).toEqual({ kind: "module", id: "Weather", settings: { view: "minimal", showForecast: false, showStats: false, showFeels: false } });
+  });
+});
+
+describe("AddTileGrid columns", () => {
+  it("draws as many tracks as the panel's arrow keys step through", () => {
+    grid(["Weather", "Clock"]);
+    const tracks = document.querySelector<HTMLElement>("[data-add-grid]")!.style.gridTemplateColumns;
+    expect(tracks).toBe("minmax(0, 1fr)");
+    expect(TILE_COLS).toBe(1);
   });
 });

@@ -273,6 +273,32 @@ export function ProfileView({ profile, items, sensor, now, hidden, overlay, cont
   // Scroll anchoring can answer a margin change by scrolling, so the offset need not
   // settle; give up after a few corrections in a row instead of looping.
   const corrections = useRef(0);
+  // Measure when the element's place can have changed (its size or its parent's, the window, the page size), not on every render.
+  const [placed, setPlaced] = useState(0);
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const replace = () => {
+      corrections.current = 0;
+      setPlaced((n) => n + 1);
+    };
+    // Observing reports the size once at the start; the layout effect has just measured it.
+    let started = false;
+    const ro =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            if (started) replace();
+            started = true;
+          });
+    ro?.observe(el);
+    if (el.parentElement) ro?.observe(el.parentElement);
+    window.addEventListener("resize", replace);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", replace);
+    };
+  }, []);
   useLayoutEffect(() => {
     const el = root.current;
     if (!el) return;
@@ -287,7 +313,7 @@ export function ProfileView({ profile, items, sensor, now, hidden, overlay, cont
       return;
     }
     if (corrections.current++ < 3) setNudge(next);
-  });
+  }, [nudge, placed, profile.Width, profile.Height]);
 
   const built = useMemo(() => {
     const before = gauges.current;
