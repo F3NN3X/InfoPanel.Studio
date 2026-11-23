@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PROFILE_STYLE_KEYS, STANDARD_DEFAULTS } from "@/modules/standard-settings";
 import type { ModuleSetting } from "@/modules/types";
+import { MOTION_KNOB_KEYS } from "@/looks/motion";
 import {
   allLocked,
   following,
@@ -28,9 +29,9 @@ describe("themed keys and sections", () => {
     const roles = ["s1", "s2", "s3", "s4", "s5", "s6", "ok", "warn", "crit"];
     // alignX / alignY stay readable until PR 8 (align + alignSpread replace them).
     const legacy = ["alignX", "alignY"];
-    // A level's Look (config v17, D6) is among the profile style keys: it is the Skin row's key.
+    // A level's Look (config v17, D6) is among the profile style keys: it is the Skin row's key. The Motion knobs of a pack with motion (L117) have no row.
     expect([...THEMED_KEYS].sort()).toEqual(
-      [...PROFILE_STYLE_KEYS, ...legacy, "tempUnit", "rateUnit", "decimals", "clock", ...thresholds, ...roles, "meterBallistics"].sort()
+      [...PROFILE_STYLE_KEYS, ...legacy, "tempUnit", "rateUnit", "decimals", "clock", ...thresholds, ...roles, "meterBallistics", ...MOTION_KNOB_KEYS].sort()
     );
     for (const key of ["autoScale", "variant", "compactView", "compact", "sizeTier", "layout"]) expect(THEMED_KEYS.has(key), key).toBe(false);
   });

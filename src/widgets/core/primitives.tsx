@@ -3,6 +3,7 @@
 // the standard look's --wp-* variables, with the primitive's own value as the fallback.
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { GLIDE_MS, RING_GAP, RING_T, RING_TRACK } from "@/looks/data-viz";
+import { MotionText } from "@/looks/motion-render";
 import { has, clamp, fmt } from "./data";
 import { mix } from "./tokens";
 import { useSkin, STATE, TONES, tone, numGlowStyle } from "./theme";
@@ -95,10 +96,10 @@ export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok",
   const word = isWordUnit(unit) && shown !== "–";
   return (
     <div className={`flex min-w-0 flex-col ${align === "center" ? "items-center text-center" : ""} ${className}`} style={align === "center" ? { alignItems: "var(--wp-x-cross, center)", textAlign: "var(--wp-text-align, center)" as CSSProperties["textAlign"] } : { alignItems: "var(--wp-x-cross, stretch)" }}>
-      {label && <span data-part="label" className="max-w-full truncate text-micro font-medium text-[color:var(--w-muted)]" style={labelStyle("none")}>{label}</span>}
+      {label && <span data-part="label" className="max-w-full truncate text-micro font-medium text-[color:var(--w-muted)]" style={labelStyle("none")}><MotionText part="label">{label}</MotionText></span>}
       <span data-part="num" data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey && typeof unit === "string" ? unit : undefined} data-ip-decimals={ipKey ? d : undefined} className={`${px ? "" : big} ${px || !hero || sc === "sm" || sc === "md" ? "" : "[[data-wp-roomy]_&]:!text-[length:var(--w-hero)]"} font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(px ? { fontSize: px } : null), fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow || sk.numFill || sk.numChroma ? { ...(sk.numChroma && !sk.numGlow && !sk.numFill ? null : NUM_TINT), ...numGlowStyle(sk, NUM_HALO) } : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
         <ToneCue t={t} glyph={cue} />
-        {shown}
+        <MotionText part="num">{shown}</MotionText>
         {unit && !word && <Unit className="inline-block align-top leading-none" style={sk.numStroke ? SMALL_GLOW : undefined}>{unit}</Unit>}
       </span>
       {word && <span className="mt-1 max-w-full truncate text-micro text-[color:var(--w-muted)]">{unit}</span>}
@@ -283,7 +284,7 @@ export function BarRow({ label, value, max = 100, display, hint, t, warn, crit }
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <div className="flex items-baseline gap-2 text-xs">
-        <span data-part="label" className="truncate text-[color:var(--w-fg)]" style={labelStyle("none")}>{label}</span>
+        <span data-part="label" className="truncate text-[color:var(--w-fg)]" style={labelStyle("none")}><MotionText part="label">{label}</MotionText></span>
         {hint && <span className="truncate text-micro text-[color:var(--w-faint)]">{hint}</span>}
         <span className="ml-auto shrink-0 font-medium tabular-nums">{display ?? `${fmt(value, 0)}%`}</span>
       </div>
@@ -843,7 +844,7 @@ export const Chip = ({ children, className = "" }: { children?: ReactNode; class
 /** A labelled reading. `unit` is drawn after the value at 0.7em in the muted unit style, so the value string stays the number alone. */
 export const Stat = ({ label, value, unit, className = "", tag }: { label?: ReactNode; value?: ReactNode; unit?: ReactNode; className?: string; tag?: Record<string, string | number> }) => (
   <div className={`flex min-w-0 flex-col gap-0.5 ${className}`} style={{ alignItems: "var(--wp-x-cross, stretch)" }}>
-    <span data-part="label" className="max-w-full truncate text-micro uppercase tracking-[0.06em] text-[color:var(--w-faint)]" style={labelStyle("none")}>{label}</span>
+    <span data-part="label" className="max-w-full truncate text-micro uppercase tracking-[0.06em] text-[color:var(--w-faint)]" style={labelStyle("none")}><MotionText part="label">{label}</MotionText></span>
     <span {...tag} className="max-w-full truncate text-title font-semibold tabular-nums text-[color:var(--w-fg)]">
       {value}
       {unit && <Unit small>{unit}</Unit>}
@@ -922,7 +923,7 @@ export function Num({ children, className = "", style, weight = 700, ipKey: key,
   const ipKey = useContext(IpTagCtx) ? key : undefined;
   return (
     <span data-part="num" data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey ? ipUnit : undefined} data-ip-mul={ipKey ? ipMul : undefined} {...ip} className={`tabular-nums ${className}`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight ?? weight, fontStretch: sk.numStretch, ...numGlowStyle(sk), ...style }}>
-      {children}
+      <MotionText part="num">{children}</MotionText>
     </span>
   );
 }

@@ -128,6 +128,13 @@ security model, what was fixed, what was decided, and what is deferred.
   are converted to sRGB, clamped to the gamut and written as the hex that the contrast checks read.
   The server signs a pack's stylesheet only: a pack with no `pack.css` carries no signature, since its pack.json and look.json
   are validated again every time it loads.
+- **Pack motion** (`src/looks/motion.ts`, `motion-render.tsx`, `motion-runtime.ts`): a pack.json `motion` block names effects
+  from a fixed list with numbers; the validator and the loader refuse an unknown effect or key and any value out of its range
+  (one-shots at most 300 ms, a decode 900 ms, repeats at least 2 s apart), for user packs as for built-in ones. The app draws
+  them with its own keyframes and one timer: no pack code, markup, style or URL. Text is never replaced: the noise is an
+  aria-hidden copy over the real text, which stays in the page for assistive technology, privacy blur and export. The page
+  runs at most one repeat a second; nothing runs while the page is hidden, at the Effects level Off, in lite mode or under
+  reduced motion.
 - **App icons** (`POST /api/assets/app-icon`, `crates/ips-server/src/app_icon.rs`): a rail item's icon read from a
   program's `.exe` and stored as a PNG asset. The studio names the program by its file name only (`Chat.exe`: letters,
   digits and a few punctuation marks, no separator, drive or `%`); the server looks for it among the programs running now,

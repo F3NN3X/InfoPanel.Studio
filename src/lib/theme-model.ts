@@ -139,7 +139,8 @@ export const SECTION_KEYS: Readonly<Record<SectionId, readonly string[]>> = {
   css: ["customCss"],
   format: ["tempUnit", "rateUnit", "decimals", "clock"],
   thresholds: THRESHOLD_QUANTITIES.flatMap((q) => [warnKey(q), critKey(q)]),
-  motion: ["smoothing", "meterBallistics"],
+  // the Motion knobs of a pack with a motion block (L117, `MOTION_KNOB_KEYS` in src/looks/motion.ts); "auto" is the pack's own
+  motion: ["smoothing", "meterBallistics", "motionIntensity", "motionSpeed", "motionEffects"],
 };
 
 const SECTION_OF: ReadonlyMap<string, SectionId> = new Map(
@@ -200,6 +201,9 @@ export const THEME_DEFAULTS: Readonly<ModuleSettings> = {
   ...Object.fromEntries(THRESHOLD_QUANTITIES.flatMap((q) => [[warnKey(q), QUANTITIES[q].warn], [critKey(q), QUANTITIES[q].crit]])),
   smoothing: "stepped",
   meterBallistics: "peak",
+  motionIntensity: "auto",
+  motionSpeed: "auto",
+  motionEffects: "auto",
 };
 
 /** The theme key a row reads: its palette role (`accent`: the Colors accent), else its own key. */

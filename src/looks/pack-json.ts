@@ -3,6 +3,7 @@
 // that flash. `packDecor` maps the old fields to the new so one renderer draws both. Types and constants only, plus that mapper.
 import type { BurnIn, PackConnectors, PackStatusBar, StageLayer } from "./pack";
 import type { PackEffect, SizeClass } from "./effects";
+import type { PackMotion } from "./motion";
 
 /** A card ornament stays in a band at most this many px (G2); the slot component's `ornament.size` is held to it unless it bleeds. */
 export const ORNAMENT_MAX = 10;
@@ -70,6 +71,8 @@ export interface PackJson {
   assets?: { file: string; bytes: number }[];
   frame?: PackFrame;
   ornaments?: PackOrnament[];
+  /** Text and card effects the app draws (L117, motion.ts). */
+  motion?: PackMotion;
   /** Old: the size of the built-in slot component (`PackSlots.ornament`). Kept as that; refused next to `ornaments`. */
   ornament?: { size: number; bleed?: boolean };
   /** Old: read as a `frame` by `packDecor`; refused next to `frame`. */

@@ -178,6 +178,7 @@ export function userPackOf(src: PackSource, candidate = false): Pack {
     connectors: meta.connectors,
     ...(frame ? { frame } : null),
     ...(ornaments.length ? { ornaments } : null),
+    ...(meta.motion ? { motion: meta.motion } : null),
   };
 }
 

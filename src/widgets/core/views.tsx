@@ -2,6 +2,7 @@
 // Text and track colours come from the shell's --w-* variables; label case follows the look (`--wp-label-case`).
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { labelStyle } from "@/components/widget-style";
+import { MotionText } from "@/looks/motion-render";
 import { clamp, fmt } from "./data";
 import { fitRows, tileHero } from "./layout";
 import { mix } from "./tokens";
@@ -35,7 +36,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
   const fit = (base: number, avail: number) => ({ fontSize: Math.round(Math.max(13, Math.min(base, avail / (Math.max(2.5, textLen) * 0.62 * (sk.numWide ?? 1))))) });
   const value = (cls: string, base?: number, avail = 0) => (
     <span data-part="num" {...c.ip} className={`${cls} ${c.blur ? "blur-xs hover:blur-0" : ""} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow || sk.numFill || sk.numChroma ? { ...(sk.numChroma && !sk.numGlow && !sk.numFill ? null : NUM_TINT), ...numGlowStyle(sk) } : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null), ...(none ? NO_VALUE : null) }}>
-      {val ?? "–"}
+      <MotionText part="num">{val ?? "–"}</MotionText>
       {inlineUnit && !none && <Unit>{inlineUnit}</Unit>}
     </span>
   );
@@ -51,7 +52,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
   ) : (
     <div className={`flex min-w-0 items-center gap-1.5 text-micro font-medium uppercase ${narrow ? "tracking-[0.04em]" : "tracking-[0.08em]"} text-[color:var(--w-muted)]`} style={labelStyle()}>
       {!bareLabel && <Icon name={c.icon ?? icon} className="text-lead text-[color:var(--w-accent)]" />}
-      <span data-part="label" className="truncate">{c.label}</span>
+      <span data-part="label" className="truncate"><MotionText part="label">{c.label}</MotionText></span>
     </div>
   ));
   const textVal = kind === "text";
@@ -162,7 +163,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
   const label = (className = "") => (c.label || c.right || c.live != null) && (
     <div className={`flex min-w-0 shrink-0 items-center gap-1.5 text-micro uppercase tracking-[0.06em] text-[color:var(--w-muted)] ${className}`} style={{ ...mono, ...labelStyle() }}>
       {c.live != null && <span className="h-1.25 w-1.25 shrink-0 rounded-full" style={{ background: c.live ? "oklch(0.75 0.15 150)" : "#52525b" }} />}
-      {c.label && <span data-part="label" className="truncate">{c.label}</span>}
+      {c.label && <span data-part="label" className="truncate"><MotionText part="label">{c.label}</MotionText></span>}
       {c.right && <span className="ml-auto shrink-0 normal-case tracking-normal text-[color:var(--w-muted)]">{c.right}</span>}
     </div>
   );
@@ -178,7 +179,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
       <span {...c.ip} className="line-clamp-2 text-title font-semibold leading-snug">{val ?? "—"}</span>
     ) : (
       <span data-part="num" {...c.ip} className="block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-[1.05] tracking-[-0.02em] tabular-nums" style={{ fontSize: fitPx(max), fontFamily: sk.num, fontWeight: sk.numWeight ?? 600, color: toneC, ...glow, ...(isNoValue(val) ? NO_VALUE : null) }}>
-        {val ?? "–"}
+        <MotionText part="num">{val ?? "–"}</MotionText>
         {c.unit && !isNoValue(val) && <Unit>{c.unit}</Unit>}
       </span>
     );
@@ -351,8 +352,10 @@ function useTuiRightFits(on: boolean) {
 /** The most space under a section header the look's gap may add. */
 export const HEADER_GAP_MAX = 12;
 
-export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w }: SkinHeaderProps) {
+export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0d", w }: SkinHeaderProps) {
   const sk = useSkin();
+  // The title decodes when it arrives on a pack with motion (`MotionText`; the plain text otherwise); its length and fit read the text itself.
+  const title = <MotionText part="label">{text}</MotionText>;
   const tuiRight = useTuiRightFits(kind === "tui" && !!right);
   // The look's gap replaces the space under the header (capped: a wide gap is for the items, and the body's
   // own rows are counted without it); its label case applies to every header.
@@ -446,7 +449,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
     return (
       <header data-part="header" className={`${base} mb-2 gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em]`} style={st("uppercase")}>
         {/* the header keeps the line it has without a legend: an unseen copy of the title holds its height */}
-        <span aria-hidden className="invisible truncate">{title}</span>
+        <span aria-hidden className="invisible truncate">{text}</span>
         <span data-part="legend" className="absolute left-2 max-w-[70%] -translate-y-1/2 truncate px-1.5 leading-none text-[color:var(--w-accent)]" style={{ top: "calc((6px - var(--wp-pad, 12px)) / var(--wp-zoom, 1))", background: bg }}>{title}</span>
         {r}
       </header>
@@ -502,7 +505,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
       <header data-part="header" className={`${base} mb-2 gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--w-accent)]`} style={st("uppercase")}>
         <span className="h-3 w-1 shrink-0 bg-[var(--w-accent)]" />
         <span className="truncate">{title}</span>
-        <span className="text-micro font-normal text-[color:var(--w-faint)]">{"//"}{String(title).length.toString(16).padStart(2, "0")}</span>
+        <span className="text-micro font-normal text-[color:var(--w-faint)]">{"//"}{String(text).length.toString(16).padStart(2, "0")}</span>
         {r}
       </header>
     );
@@ -529,7 +532,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d", w 
       </header>
     );
   // the card's padding and the icon with its gap (24 and 21px) come off the room; the icon goes first
-  const { tight: narrow, bare } = captionFit(title, w ?? 0, (w ?? 0) - 24 - 21);
+  const { tight: narrow, bare } = captionFit(text, w ?? 0, (w ?? 0) - 24 - 21);
   return (
     <header data-part="header" className={`${base} mb-2 gap-1.5 text-[11px] font-medium uppercase ${narrow ? "tracking-[0.04em]" : "tracking-[0.08em]"} text-[color:var(--w-muted)] ${bleed ? "px-4 pt-3" : ""}`} style={st("uppercase")}>
       {icon && !bare && <Icon name={icon} className="text-[15px] text-[color:var(--w-accent)]" />}
