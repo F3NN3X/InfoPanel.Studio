@@ -11,7 +11,7 @@ const DIGITS = "0123456789";
 export const TEXT_JOBS_MAX = 12;
 /** At most this many numbers start a scramble in any second, over the whole page: a screen of readings that change each tick stays mostly still (measured on a 20-card page, L117). */
 export const NUMBER_STARTS_PER_S = 3;
-/** The noise changes at most this often, ms (20 a second). */
+/** The noise changes at most this often, ms (about 12 a second). */
 const FRAME_MS = 80;
 /** A flicker run: two dips in this many ms. */
 export const FLICKER_MS = 600;
