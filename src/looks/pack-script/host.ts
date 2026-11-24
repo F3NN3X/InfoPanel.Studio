@@ -4,8 +4,8 @@
 // not answered in `REPLY_MS` or a start not done in `START_MS` end it as `stopped`. Ending always terminates the worker.
 import type { FromWorker, ToWorker } from "./fx-worker";
 import { watchdog, type ScriptPlan } from "./gate";
-import { REPLY_MS, SIGNAL_MS, START_MS, type ScriptEnd } from "./limits";
-import { readSignals } from "./signals";
+import { REPLY_MS, SIGNAL_MS, START_MS, type ScriptEnd, type Signals } from "./limits";
+import { readSignals, withEvents } from "./signals";
 
 export interface ScriptRun {
   /** The overlay: a canvas that has not been handed to a worker yet. */
@@ -42,6 +42,7 @@ export function startScript(run: ScriptRun): () => void {
   let last = -Infinity;
   let lastSignals = -Infinity;
   let sent = "";
+  let lastRead: Signals | undefined;
   let done = false;
   const pixels = () => Math.min(1, globalThis.devicePixelRatio || 1);
 
@@ -72,7 +73,9 @@ export function startScript(run: ScriptRun): () => void {
     let signals: ReturnType<typeof readSignals> | undefined;
     if (now - lastSignals >= SIGNAL_MS) {
       lastSignals = now;
-      const read = readSignals(run.root, placeOf(run.canvas), run.plan.level);
+      const raw = readSignals(run.root, placeOf(run.canvas), run.plan.level);
+      const read = { signals: withEvents(lastRead, raw.signals), quiet: raw.quiet };
+      lastRead = raw.signals;
       const json = JSON.stringify(read);
       if (json !== sent) {
         sent = json;

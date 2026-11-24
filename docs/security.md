@@ -152,18 +152,20 @@ security model, what was fixed, what was decided, and what is deferred.
   separate `.wasm`). The guest's globals are the language's own, without `Date`, `Promise`, `Proxy` and `Math.random`, plus
   a frozen `fx` (`onFrame`, `draw`, `signals`, `rand`, `now`); no host function is installed in it, so it has no web API, no
   network, storage, `BroadcastChannel`, Tauri IPC, timer or navigation: a frame is one call into the guest and one JSON
-  string back. The worker checks every command against an allow-list (rect, arc, path, a card's text box, a capped transform,
+  string back. The worker checks every command against an allow-list (rect, arc, path, a card's text box, boxes of its texts lit, underlined or wiped, batched points, gradients, a style of
+  dash, cap, join, capped glow and a composite mode from the safe set source-over, lighter and screen, a clip to a card's box, a capped transform,
   reset; colours only as indices into the Look's palette, numbers clamped) and draws it on an `OffscreenCanvas` overlay that
   is `aria-hidden`, takes no pointer events and never filters, moves or clips a widget.
-  - **Caps**: 2 ms of guest time a frame (an interrupt handler), 50 ms for the top level, 2,000 commands and 8,000 path points a
-    frame, an 8 MB heap and a 256 KB stack, 30 frames a second at Full and 15 at Calm, driven by the page's animation frames
+  - **Caps**: 2 ms of guest time a frame (an interrupt handler), 50 ms for the top level, 2,000 commands, 8,000 path points, 4,000 dots and a cost of 3,000 a
+    frame (a glow's blur in px adds to the cost of each shape under it), an 8 MB heap and a 256 KB stack, 30 frames a second at Full and 15 at Calm, driven by the page's animation frames
     (the guest has no timer). A frame cut off by the interrupt at 2 ms is dropped (it draws nothing) and counts toward the fallback; three such frames in 10 s end the script
     and the pack's declarative effects stay (`fallback`); a memory or stack hit, an error, a top level past its time, or a
     frame the worker does not answer within 0.5 s (the interrupt is not polled inside the runtime's own native work, such as a large
     allocation near the heap limit) terminate the worker (`stopped`). The host samples each frame at 16 by 9 and
     shows at most three flashes a second (a change of 0.1 relative luminance in a cell is half a flash); a frame past that is
     not shown.
-  - **Data**: per card its box, the lead bar's or ring's value as 0 to 1 rounded to hundredths, its threshold state, and its
+  - **Data**: per card its box, the lead bar's or ring's value as 0 to 1 rounded to hundredths, its threshold state, an event when
+    it just arrived, moved or changed state (computed by the app from the last read, a direction and a state, never an exact value), and its
     texts as boxes with a glyph count, never a character; read at most 4 times a second. A card that blurs a value for privacy,
     and coding-agent and chat cards (`data-fx-quiet`), send nothing and are erased from the overlay after every frame.
   - **When it runs**: only while the server's switch is on (`GET /api/pack-scripts` `on: true`), the trust answer for the pack

@@ -168,13 +168,15 @@ export function licenceIssues(pack, paths, { spdx, credits = {} } = {}) {
 /** The pack's script path (`script.file` in pack.json, an asset), when it names one. */
 const scriptPath = (pack) => (typeof pack?.script?.file === "string" ? `assets/${pack.script.file}` : undefined);
 
-/** The sandbox's guest (src/looks/pack-script/guest.ts) bundled for Node: written under .cache so its packages resolve from node_modules. */
+/** The sandbox's guest (src/looks/pack-script/guest.ts) and the host's command checker (commands.ts) bundled for Node: written under .cache so the packages resolve from node_modules. Returns the guest's file; the checker is `commands.mjs` beside it. */
 async function bundleGuest() {
   const { build } = await import("esbuild");
-  const out = join(root, ".cache/themely-check/guest.mjs");
+  const dir = join(root, ".cache/themely-check");
+  const out = join(dir, "guest.mjs");
   await build({
-    entryPoints: [join(root, "src/looks/pack-script/guest.ts")],
-    outfile: out,
+    entryPoints: [join(root, "src/looks/pack-script/guest.ts"), join(root, "src/looks/pack-script/commands.ts")],
+    outdir: dir,
+    outExtension: { ".js": ".mjs" },
     bundle: true,
     format: "esm",
     platform: "node",
