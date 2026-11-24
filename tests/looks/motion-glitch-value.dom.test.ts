@@ -50,8 +50,11 @@ describe("a number's glitch", () => {
   });
 
   it("leaves a number that is already running, and keeps to the cap of runs at once", () => {
+    // past the runs the other tests start at the same time on their own clocks: the page's start limiter would refuse this one
+    vi.advanceTimersByTime(2000);
     const busy = num("7");
     valueText(busy.host, busy.copy, "8", "7", { ms: 400, style: "roll", mark: "none" });
+    expect(busy.host.hasAttribute("data-mo-on")).toBe(true);
     glitchValue(busy.host, 240);
     expect(busy.copy.hasAttribute("data-mo-glitch")).toBe(false);
     vi.advanceTimersByTime(500);
