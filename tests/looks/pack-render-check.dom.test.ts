@@ -66,6 +66,9 @@ describe("what the pack's CSS changed, and only that", () => {
     expect(renderRefusals({ worn: alpha(0.49), bare: page() })[0]).toContain("at 0.49");
     expect(renderRefusals({ worn: alpha(0.2), bare: alpha(0.1) })).toEqual([]);
     expect(renderRefusals({ worn: alpha(0.2), bare: alpha(0.9) })[0]).toContain("under a mask");
+    // the same mask read over a box the pack's face moved a pixel: within 5% of what it left without the pack
+    expect(renderRefusals({ worn: alpha(0.3403), bare: alpha(0.34375) })).toEqual([]);
+    expect(renderRefusals({ worn: alpha(0.32), bare: alpha(0.34375) })[0]).toContain("under a mask");
     expect(renderRefusals({ worn: alpha(null), bare: page() })[0]).toContain("cannot be read");
     expect(renderRefusals({ worn: alpha(null), bare: alpha(null) })).toEqual([]);
   });
