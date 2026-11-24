@@ -39,9 +39,10 @@ export function SystemPower(p: SystemOverviewProps) {
       {({ w, h }) => {
         if (!rows.length && total === 0) return <Empty icon="monitor_heart" label="No system readings" />;
         const px = clamp(22, Math.min(w / 6, h * 0.14), 64);
-        const rowH = 34;
-        const room = h - px - 64 - (temps && h >= 220 ? 24 : 0);
-        const n = Math.max(0, Math.min(rows.length, Math.floor(room / rowH)));
+        // a ruler row and the gap after it; above the rows the label and reading, the share bar and their gaps; below them the temperatures
+        const rowH = 48;
+        const room = h - (px * 1.15 + 22) - 12 - (total > 0 ? 20 : 0) - 8 - (temps && h >= 220 ? 36 : 0);
+        const n = Math.max(0, Math.min(rows.length, Math.floor((room + 20) / rowH)));
         return (
           <div data-layout="power" className="flex h-full min-h-0 min-w-0 flex-col gap-3">
             <div className="flex min-w-0 flex-col gap-1.5">
