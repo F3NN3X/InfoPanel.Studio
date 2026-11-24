@@ -138,6 +138,15 @@ security model, what was fixed, what was decided, and what is deferred.
   are converted to sRGB, clamped to the gamut and written as the hex that the contrast checks read.
   The server signs a pack's stylesheet only: a pack with no `pack.css` carries no signature, since its pack.json and look.json
   are validated again every time it loads.
+- **Component treatments** (`src/looks/treatments.ts`, `src/widgets/core/treatments.tsx`, `treatments.css`,
+  `src/looks/stage-chrome.tsx`): a Look's `slab-*`, `readout-*`, `meter-*`, `share-style`, `avatar-shape`, `ring-style`,
+  `graph-*` and `row-style` tokens are words from fixed lists, numbers in ranges and colours that `safeFill` passes, checked by the
+  validator and dropped by the app when they are anything else; they switch on markup and CSS the app ships, never a pack's.
+  The slab ink is held to 4.5:1 on every tone a slab can take, in every variant and on a scan line. A frame's `band`, `tint`,
+  `grid`, `tone`, `rule`, `glow`, `caption` and outside `tab`, and a stage's `grid` and `chrome`, are numbers and words in ranges;
+  a caption (64 characters) and the screen tab's text (32) must be printable with no markup and are drawn as an attribute's
+  text and a text node at 11 px or more. Nothing here takes a URL or a click: the layer beside the card and the page chrome are
+  `aria-hidden` and `pointer-events: none`, and the card's own box does not change.
 - **Pack motion** (`src/looks/motion.ts`, `motion-render.tsx`, `motion-runtime.ts`): a pack.json `motion` block names effects
   from a fixed list with numbers; the validator and the loader refuse an unknown effect or key and any value out of its range
   (one-shots at most 300 ms, a decode 900 ms, repeats at least 2 s apart), for user packs as for built-in ones. The app draws

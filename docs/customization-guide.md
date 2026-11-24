@@ -1431,6 +1431,65 @@ A spine, a tab or a second line is drawn only where the card's padding is at lea
 the same reason a card's ornaments (the small marks and labels in a corner) are drawn only where the padding is more than 10 px,
 and a corner ornament keeps clear of a cut corner and of a spine on its side.
 
+A frame can also fill and mark the card's surface, and draw around the card:
+
+- `band`: `{"edge": "left", "width": 28}`, a wide tinted band along the left or right edge, 1 to 28 px, drawn at most as wide as
+  the card's padding; it can't share an edge with a `spine`;
+- `tint`: 0.02 to 0.25, a wash of the accent over the whole card;
+- `grid`: `{"size": 22, "alpha": 0.2}`, a dot grid on the card, every 12 to 48 px, at a strength of 0.05 to 0.5;
+- `tone`: `"state"` draws the lines, the spine, the band and the glow in the card's warning or critical colour while the card
+  shows a warning or a critical reading, and in the accent otherwise;
+- `rule`: `true` draws a line under the card's header;
+- `glow`: `{"radius": 10, "alpha": 0.3}`, a glow outside the card, 1 to 16 px, at 0.05 to 0.6 (lite mode drops it);
+- `caption`: `{"text": "MB-RX // REV 3", "at": "tl"}`, a line of micro-print above the card's top left or top right corner, up to
+  64 plain characters at 11 px; it needs a gap of 14 px or more above the card to be seen;
+- `tab` with `"out": true`: the tab protrudes above or below the card instead of sitting on its edge.
+
+The glow, the caption and an outside tab are drawn in a layer beside the card, the card's own size, so the card and everything in
+it stay where they were.
+
+A pack's `stage` can draw page chrome behind the cards:
+
+- `grid`: `{"size": 22, "alpha": 0.2}`, a dot grid over the page in the screen's accent, with the same ranges as a frame's;
+- `chrome`: `{"cut": 48, "tab": {"width": 260, "height": 28, "text": "DECK 07"}, "reticles": true}`, a line round the screen
+  with its corners cut (0 to 64 px, never more than a third of the screen's short side), a notched tab dipping from the top
+  centre (40 to 320 by 14 to 40 px) with up to 32 plain characters in it, and reticles in the corners; `alpha` is 0.2 to 1.
+
+Both take a `minSizeClass`, like a layer, and neither takes clicks.
+
+#### Component treatments
+
+A Look's `t3` can ask for the kit's component treatments. Each is off in Classic and in every pack that does not name it, and
+a card that asks for none draws exactly as before.
+
+- **Tone slabs**: `slab-header`, `slab-chip`, `slab-tab`, `slab-row` and `slab-card` draw that part as a solid slab. Each takes
+  `none`, `state` (a slab only while the part, or for the header and the card, the card shows a warning or a critical reading),
+  or a tone: `accent`, `info`, `ok`, `warn` or `crit`. `slab-row` also takes `current`: the row a widget marks as the current
+  one (the top process, a friend in game) is drawn in the `slab-current` tone (the accent unless you name another, `warn` for the
+  kit's yellow ticket). A part's own warning or critical reading always wins over its constant tone. The text on a slab is drawn
+  in `slab-ink` (a `#rrggbb` or a T3 alias, the kit's near-black by default), and the validator holds it to 4.5:1 on every tone
+  your slabs can take, in every variant. `slab-info` is the info tone (the kit's signal cyan by default); `slab-texture:
+  scanlines` lays fine lines over the slabs, drawn away from the ink so they never lower its contrast; `slab-notch` (0 to
+  12 px) cuts each slab's bottom right corner.
+- **Readouts**: `readout-scale` (1 to 4) draws a widget's hero value that much larger, stepped down until it fits the card;
+  `readout-decimals` (0.3 to 1) draws its decimals smaller; `readout-bar: rule` puts a line under it, solid up to the reading's
+  share of its range and dotted after.
+- **Meters**: `meter-style: cells` draws bars as 20 square cells, the lit ones textured, the unlit ones in `meter-empty`
+  (a colour or alias), with a triangle under the bar at the warning and critical marks; `meter-peak: hold` holds the peak cell
+  for 1.5 s. A bar row whose reading is a warning or critical shows a solid **Warn** or **Crit** chip when `slab-chip` is on.
+  `meter-style: ruler` draws a level as a hairline with a tick ruler over it and a square thumb.
+- **Share bars**: `share-style: gapped` draws a bar of parts of a whole (Power Draw's CPU and GPU, Disk I/O's reads and writes)
+  as square blocks with a gap between them, the rest of the track in `meter-empty`.
+- **Rings and avatars**: `ring-style: hex` draws rings as hexagons; `avatar-shape: hex` draws initials (Steam Friends) on a
+  hexagon.
+- **Graphs**: `graph-grid` (`auto`, `dashed` or `none`) sets a graph's grid (dashed lines in the accent with ticks on the left);
+  `graph-lead: square` marks the newest point with a square; `graph-bars: striped` draws bar graphs in stripes, the newest bar
+  the brightest.
+- **Rows**: `row-style: ruled` draws a rule under each list row and tints a table's head row.
+
+A user pack's CSS can style the parts these hooks name: `[data-part="row"]`, `row-head`, `cell`, `decimals` and `readout-bar`,
+next to the parts it could already style. The slabs' own paint is the app's: a pack's CSS can't change a slab's colour or ink.
+
 ### Signing a pack you share
 
 Browse themes shows each imported pack's badge: **Verified by Themely** (Themely ran its checks and a person reviewed these
