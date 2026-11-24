@@ -138,6 +138,10 @@ security model, what was fixed, what was decided, and what is deferred.
   are converted to sRGB, clamped to the gamut and written as the hex that the contrast checks read.
   The server signs a pack's stylesheet only: a pack with no `pack.css` carries no signature, since its pack.json and look.json
   are validated again every time it loads.
+- **Layout variants** (`src/widgets/layouts.ts`, `src/looks/pack-validate.ts`): a Look's `layouts` names, per widget kind and for
+  the alerts and the island, one of the layouts the app's own code draws; the validator refuses any other kind or layout, a key
+  is looked up only as the app's own (a prototype key is no kind), and the widget draws the layout from the data it already
+  reads. No pack-supplied markup, style, code or URL is involved, for user packs as for built-in ones.
 - **Pack motion** (`src/looks/motion.ts`, `motion-render.tsx`, `motion-runtime.ts`): a pack.json `motion` block names effects
   from a fixed list with numbers; the validator and the loader refuse an unknown effect or key and any value out of its range
   (one-shots at most 300 ms, a decode 900 ms, repeats at least 2 s apart), for user packs as for built-in ones. The app draws
