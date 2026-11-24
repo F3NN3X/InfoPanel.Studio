@@ -21,11 +21,12 @@ The steps are in build order:
 7. [The motion block and its knobs](#7-the-motion-block-and-its-knobs)
 8. [Effects levels, lite mode and reduced motion](#8-effects-levels-lite-mode-and-reduced-motion)
 9. [Series, meter and icon colours](#9-series-meter-and-icon-colours)
-10. [The effect script](#10-the-effect-script)
-11. [Signing and trust](#11-signing-and-trust)
-12. [Testing your pack](#12-testing-your-pack)
-13. [Limits we hit and how we solved them](#13-limits-we-hit-and-how-we-solved-them)
-14. [Component treatments](#14-component-treatments)
+10. [Changing a widget's layout](#10-changing-a-widgets-layout)
+11. [The effect script](#11-the-effect-script)
+12. [Signing and trust](#12-signing-and-trust)
+13. [Testing your pack](#13-testing-your-pack)
+14. [Limits we hit and how we solved them](#14-limits-we-hit-and-how-we-solved-them)
+15. [Component treatments](#15-component-treatments)
 
 ## 1. Start from the kit
 
@@ -348,7 +349,47 @@ Each is `{accent}`, `{fg}`, `{muted}`, `{faint}`, `{ok}`, `{warn}` or `{crit}` (
 them), a hex colour, or an alias of another `t3` colour (`"meter-ok": "{accent-ink}"`). A colour the user sets on a widget, or
 under Status & series colors, still wins.
 
-## 10. The effect script
+## 10. Changing a widget's layout
+
+Everything so far repaints the widgets as the app lays them out. Some of the kit's components are a different arrangement of the
+same data: its calendar is a month navigator with notched buttons, its sensor a large readout over a signal graph, its alerts a
+solid tone slab. A widget can offer such **layout variants**, and a Look names one per widget kind in `layouts`:
+
+```json look.json
+{
+  "layouts": {
+    "Calendar": "grid-nav",
+    "DayPlanner": "board",
+    "NetworkThroughput": "signal",
+    "SensorValue": "readout",
+    "alert": "slab",
+    "island": "slab"
+  }
+}
+```
+
+| Kind | Layout | What it draws |
+|---|---|---|
+| `Calendar` | `grid-nav` | Month navigator: notched buttons that page the month, the month in the accent and the year as a number, a weekday row, six weeks with the neighbouring months dimmed and the weekend hatched, today framed with a corner flag, the next event's day (else today) as a solid slab in the numbers' colour, and a footer with `SEL 2026.11.27` beside the next event |
+| `DayPlanner` | `board` | Departure board: the time now as a large readout, then the coming events one per ruled row with a lettered badge, the title and when it starts |
+| `NetworkThroughput` | `signal` | Signal graph: download and upload as readouts (decimals and unit small, over a solid-and-dotted rule), both series on a dashed 0/50/100 grid with a marker on the last reading, the session totals as a mono footer |
+| `SensorValue` | `readout` | Rooftop sensor: the label in the accent, the reading as a large readout, then the session's readings as a signal graph with their low, mean and high (the Value and Spark displays only; Gauge, Bar, Line and Figure keep theirs) |
+| `alert` | `slab` | The kiosk's alert cards: a solid slab in the severity's tone down the left with the icon in dark ink over scan lines, the card tinted and edged in the tone, a cut corner, the title in tracked capitals with `// CAUTION` beside it |
+| `island` | `slab` | The Dynamic Island: square corners with one cut, a 1 px edge in the strongest notice's tone, and an open notice as the same tone slab |
+
+Every kind's first layout is `standard`, today's, and a kind the Look does not name draws it, so adding `layouts` changes nothing
+else and an old pack is unchanged. The widget draws the layout with its own code from the data it already reads: a layout never
+reads anything new, never changes the zone's size, and keeps the type floor (11 px) and the 4.5:1 text contrast. The numbers in a
+layout are `num` parts, so the pack CSS that colours your readouts (section 4) colours them too, and a slab drawn in the numbers'
+colour picks its ink (near black or white) from that colour. The alert and island tones are the Look's `info`, `warn` and `crit`;
+a title stays in the tone only where it holds 4.5:1 on the tinted card, else it takes the pack's text colour.
+
+The user keeps the last word: a widget that offers layouts has a **Layout** row in its inspector, where
+**Theme's choice** follows your Look and any other choice keeps that layout whatever the theme says. Theme lists the layouts a pack
+names under **In this theme**. The validator refuses a kind that offers no layouts and a layout the kind does not offer (rule
+`layout`), so a typo is caught at import, not on the screen.
+
+## 11. The effect script
 
 Everything so far is data the app draws. The one thing data could not say was a per-card flourish that reacts to the cards:
 brackets that lock onto a card as it arrives, a scan band down each card, a pulse round a card in warning. For that a pack may
@@ -450,14 +491,14 @@ within 10 s hand the screen back to the pack's declarative effects. The top leve
 2,000 commands and a cost of 3,000 a frame (a glow costs its blur in px per shape). The app shows at most three flashes a second whatever the script draws.
 
 **What it can't do**: read or write text, see exact values, reach the network, the page, your files or other apps, set a timer,
-load code, or draw outside the overlay. The pack checker measures it (step 12): Cyberspec's script spends about 0.6 ms a frame
+load code, or draw outside the overlay. The pack checker measures it (step 13): Cyberspec's script spends about 0.6 ms a frame
 at its 95th percentile at Full on a 20-card fixture (about 0.36 ms of that is the sandbox's own frame cost), at most 145
 commands a frame, and about 0.45 ms at Calm.
 
 A built-in pack's script ships inside the app and runs whenever the server's **Pack effect scripts** switch is on. A pack you
 import runs its script only when its trust allows it (next step).
 
-## 11. Signing and trust
+## 12. Signing and trust
 
 Browse themes shows each imported pack's badge: **Verified by Themely** (Themely ran its checks and a person reviewed these
 exact files; it does not mean the pack is safe), **Signed by ‹publisher›, not reviewed**, **Unverified** (amber), or, in red,
@@ -479,7 +520,7 @@ whose **Allow pack scripts** is on in Settings › Widget publishers, or allowed
 studio asks once (**Allow for this pack** or **Don't allow**) and asks again after an update; the kiosk never asks. **Pack
 effect scripts** in Browse themes, or `PACK_SCRIPTS=off` on the server, turns every script off, built-in ones included.
 
-## 12. Testing your pack
+## 13. Testing your pack
 
 1. **The validator**: `node tools/validate-pack.mjs my-cyberspec` prints each problem with its rule and exits 1 on an error.
    It is the same check the import runs.
@@ -497,7 +538,7 @@ effect scripts** in Browse themes, or `PACK_SCRIPTS=off` on the server, turns ev
 5. **Every variant and level**: pick each variant in Quick changes, and set Effects to Full, Calm and Off, with lite mode and
    reduced motion too.
 
-## 13. Limits we hit and how we solved them
+## 14. Limits we hit and how we solved them
 
 Cyberspec was built twice. The first version used only what the format had; what it could not express became format
 features, each validated and documented before the pack used it:
@@ -515,11 +556,12 @@ features, each validated and documented before the pack used it:
 | Data kept the widgets' own colours | Blue, teal and yellow sections, green meters under every variant | `series-1` to `series-6`, `meter-ok`, `icon-color` reach the widgets | Charts, meters and weather icons in the variant's colours |
 | Page effects in a fixed colour | Flashing overlays in cyan, or the studio's amber | Effects and layer glows take the screen's accent | They follow the variant |
 | No per-card reaction | No arrival flourish, no data pulse | The effect script, in a sandbox | Brackets, scan band and warning pulse in `fx.js` |
+| Widgets laid out one way | The kit's calendar, readouts, departure board and alert slabs could only be imitated in paint | Layout variants (`layouts` in look.json), each drawn by the widget from its own data | The month navigator, readout and signal-graph sensors, the departure board, tone-slab alerts and island |
 
 A tab that sticks out of the card, square-segmented bars, a hexagon gauge and a glow outside the card were out of reach here;
-they are now format features (section 14). A numeral colour read from a variable still is: the contrast check needs a literal.
+they are now format features (section 15). A numeral colour read from a variable still is: the contrast check needs a literal.
 
-## 14. Component treatments
+## 15. Component treatments
 
 The kit's components (solid tone slabs, big readouts with small decimals, cell meters, hexagon gauges, signal graphs, a panel
 with a wide band and a caption above it, the dot-grid screen) are drawn by the app from tokens and pack.json keys. Each is off

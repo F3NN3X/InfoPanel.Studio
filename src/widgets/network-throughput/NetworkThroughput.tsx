@@ -2,6 +2,7 @@ import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, get, num, fmt, gbStat, fmtRate, rateUnitOf, adapterOf, pretty, hue, seriesColour, Spark, Stat, Icon, Num, roomy, useHistory, useIpTag, Empty, type RateUnit, type ShellProps } from "../kit";
 import { t3Tokens } from "../core/t3-tokens";
 import { meta } from "./meta";
+import { NetworkSignal } from "./NetworkSignal";
 
 export { meta };
 
@@ -33,7 +34,12 @@ const rate = (dir: "down" | "up", v: number, unit: RateUnit | undefined, big: st
   </div>
 );
 
+/** The standard layout, or the `signal` one the zone's Look or Layout pick names (`meta.layouts`). */
 export default function NetworkThroughput(p: NetworkThroughputProps) {
+  return p.lookLayout === "signal" ? <NetworkSignal {...p} /> : <StandardNetwork {...p} />;
+}
+
+function StandardNetwork(p: NetworkThroughputProps) {
   const d = p.data;
   const id = adapterOf(d, p.adapter);
   const k = (s: string) => num(get(d, `libre.${id}_${s}`));

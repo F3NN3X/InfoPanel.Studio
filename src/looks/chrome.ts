@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import type { PanelDef } from "@/lib/panel-model";
 import { hexToHsl } from "@/lib/theme";
 import { contrastOf } from "@/looks/status";
-import { cssColour, flatOver, parseColour } from "./colour";
+import { cssColour, flatOver, over, parseColour } from "./colour";
 import { resolveT1, type Look } from "./look";
 
 /** A stack or grid panel on a pack Look (L67): the card's theme tokens and the check on an item's own colour. Built here so the entry carries none of it. */
@@ -30,7 +30,19 @@ export interface PackChrome {
   panel: PackPanel;
   /** The page header (title, muted text) in the pack's text; unset when that text does not hold on the pack's page (a light card on a dark page), and the theme's stays. */
   page?: CSSProperties;
+  /** Per severity, the alert and island `slab` layouts' colours (look.json `layouts`). */
+  tones: Record<"info" | "warning" | "critical", SlabTone>;
 }
+
+/** A severity as the `slab` layouts draw it: the Look's info, warn or crit as the slab, the card tinted with it, the title in it where it holds 4.5:1 on that tint (else the pack's text). */
+export interface SlabTone {
+  tone: string;
+  fill: string;
+  title: string;
+}
+
+/** How much of the tone the card takes: a critical alert reads as a red card, the others as a tinted one. */
+const SLAB_TINT = { info: 0.08, warning: 0.08, critical: 0.22 } as const;
 
 const HEX6 = /^#[0-9a-f]{6}$/i;
 const HEX8 = /^(#[0-9a-f]{6})[0-9a-f]{2}$/i;
@@ -70,5 +82,12 @@ export function chromeOf(look: Look): PackChrome {
   const bg = parseColour(t1.bg)?.hex ?? t1.bg;
   const [pageInk, pageMuted] = [t1.fg, t1.muted].map((c) => flatOver(c, bg));
   const holds = (color: string) => (contrastOf(color, bg) ?? 0) >= TEXT_MIN;
-  return { fill: t1.surface, ink, edge, muted, accent: cssColour(t1.accent), panel, page: holds(pageInk) && holds(pageMuted) ? { ...panel.vars, color: pageInk } : undefined };
+  const tone = (value: string, tint: number): SlabTone => {
+    const hex = flatOver(value, t1.surface);
+    const [own, card] = [parseColour(hex)?.hex, parseColour(t1.surface)?.hex];
+    const fill = own && card ? over(own, tint, card) : t1.surface;
+    return { tone: hex, fill, title: (contrastOf(hex, fill) ?? 0) >= TEXT_MIN ? hex : ink };
+  };
+  const tones = { info: tone(t1.info, SLAB_TINT.info), warning: tone(t1.warn, SLAB_TINT.warning), critical: tone(t1.crit, SLAB_TINT.critical) };
+  return { fill: t1.surface, ink, edge, muted, accent: cssColour(t1.accent), panel, page: holds(pageInk) && holds(pageMuted) ? { ...panel.vars, color: pageInk } : undefined, tones };
 }

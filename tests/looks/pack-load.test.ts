@@ -9,7 +9,7 @@ const from = (pack: Pack) => ({ [pack.id]: async () => ({ default: pack }) });
 describe("the pack loader (G4)", () => {
   it("loads a pack that passes every check", async () => {
     expect(packIssues(TEST_PACK)).toEqual([]);
-    expect(await loadPack("test-pack", from(TEST_PACK))).toEqual({ ...TEST_PACK, Stage: expect.any(Function), stage: { ...TEST_PACK.stage, accent: expect.any(String) }, chrome: { fill: expect.any(String), ink: expect.any(String), edge: expect.any(String), muted: expect.any(String), accent: expect.any(String), panel: { vars: expect.any(Object), badge: expect.any(Object), legible: expect.any(Function) }, page: expect.any(Object) } });
+    expect(await loadPack("test-pack", from(TEST_PACK))).toEqual({ ...TEST_PACK, Stage: expect.any(Function), stage: { ...TEST_PACK.stage, accent: expect.any(String) }, chrome: { fill: expect.any(String), ink: expect.any(String), edge: expect.any(String), muted: expect.any(String), accent: expect.any(String), panel: { vars: expect.any(Object), badge: expect.any(Object), legible: expect.any(Function) }, page: expect.any(Object), tones: { info: expect.any(Object), warning: expect.any(Object), critical: expect.any(Object) } } });
   });
 
   it.each([

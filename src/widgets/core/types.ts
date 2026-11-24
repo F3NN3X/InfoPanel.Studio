@@ -32,6 +32,8 @@ export interface ShellProps {
   showHeader?: boolean;
   className?: string;
   style?: CSSProperties;
+  /** The layout variant the zone draws (`WidgetMeta.layouts`): the user's Layout pick, else the pack Look's `layouts`; unset = the standard one. */
+  lookLayout?: string;
 }
 
 export interface Compact {
@@ -87,6 +89,18 @@ export interface WidgetMeta {
   views?: WidgetView[];
   /** The stored key of the view (default `"view"`; legacy keys such as `playerLayout` keep theirs). */
   viewKey?: string;
+  /**
+   * The layout variants it draws (first = `standard`, today's layout): a Look names one per kind (`look.json` `layouts`), the
+   * user overrides it per widget (Layout). Unlike a view it changes only how the same data is laid out, never what it reads.
+   */
+  layouts?: WidgetLayout[];
+}
+
+/** One layout variant of a widget (`WidgetMeta.layouts`, `src/widgets/layouts.ts`). */
+export interface WidgetLayout {
+  /** The id a Look names (`a-z`, `0-9`, `-`). */
+  id: string;
+  name: string;
 }
 
 /** One layout a widget offers: picked in its View control and listed as its own Add-panel entry. */

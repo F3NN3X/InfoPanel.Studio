@@ -1504,6 +1504,27 @@ a card that asks for none draws exactly as before.
 A user pack's CSS can style the parts these hooks name: `[data-part="row"]`, `row-head`, `cell`, `decimals` and `readout-bar`,
 next to the parts it could already style. The slabs' own paint is the app's: a pack's CSS can't change a slab's colour or ink.
 
+### Changing a widget's layout
+
+Some widgets can lay out the same data more than one way. A theme pack's `look.json` picks one per widget kind in `layouts`, for
+example `"layouts": {"Calendar": "grid-nav", "alert": "slab"}`; a kind it does not name keeps its standard layout, so a pack
+without `layouts` draws exactly as before. The layouts today:
+
+- **Calendar** `grid-nav`: a month navigator with buttons that page the month, the weekend hatched, today framed, the next
+  event's day (else today) as a solid slab and a footer with the selected date and the next event.
+- **Day Planner** `board`: a departure board of the coming events under the time now.
+- **Network Traffic** `signal`: download and upload as large readouts over a signal graph of both, with the session totals.
+- **Sensor** `readout`: the reading as a large readout over a graph of the session's readings with their low, mean and high
+  (the Value and Spark displays only).
+- **alert** `slab` and **island** `slab`: the kiosk's alert cards and the Dynamic Island drawn with a solid slab in the
+  severity's tone (the Look's info, warn and crit), a cut corner and a tone edge.
+
+Each widget that offers layouts has a **Layout** row in its inspector: **Theme's choice** draws what the
+worn theme names, and any other choice keeps that layout on this widget whatever the theme. Theme lists the layouts a pack names
+under **In this theme**. A pack that names a kind with no layouts, or a layout the kind does not offer, is refused at import. A
+layout never changes a widget's size or what it reads. [Building an advanced theme pack](building-an-advanced-theme-pack.md#10-changing-a-widgets-layout)
+shows each one.
+
 ### Signing a pack you share
 
 Browse themes shows each imported pack's badge: **Verified by Themely** (Themely ran its checks and a person reviewed these

@@ -111,6 +111,7 @@
     "icon-color": "{accent}"
   },
   "ext": {},
+  "layouts": { "Calendar": "grid-nav", "DayPlanner": "board", "NetworkThroughput": "signal", "SensorValue": "readout", "alert": "slab", "island": "slab" },
   "variants": [
     {
       "id": "crimson",

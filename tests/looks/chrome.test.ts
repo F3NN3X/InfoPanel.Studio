@@ -110,3 +110,25 @@ describe("a pack's text as drawn (L98 L-8)", () => {
     expect(chrome.panel.vars["--card-foreground" as keyof CSSProperties]).toBeDefined();
   });
 });
+
+// The alert and island `slab` layouts (look.json `layouts`): the card tinted with the Look's info, warn or crit, its title in that tone only where it holds.
+describe("the slab tones", () => {
+  it("hold the title at 4.5:1 on the tinted card on every built-in pack", async () => {
+    for (const id of IDS) {
+      const pack = await loadPack(id);
+      for (const [severity, t] of Object.entries(pack!.chrome!.tones)) {
+        expect(t.fill, `${id} ${severity}`).toMatch(/^#[0-9a-f]{6}$/i);
+        expect(contrastOf(t.title, t.fill) ?? 0, `${id} ${severity}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("fall back to the pack's text where the tone is too faint on the card", async () => {
+    const look = structuredClone((await loadPack("paper"))!.look);
+    const t1 = look.t1[look.modes.supported[0]]!;
+    t1.warn = { value: "#FFF6CC" };
+    const chrome = chromeOf(look);
+    expect(chrome.tones.warning.tone).toBe("#FFF6CC");
+    expect(chrome.tones.warning.title).toBe(chrome.ink);
+  });
+});

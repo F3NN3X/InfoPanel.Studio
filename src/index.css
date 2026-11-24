@@ -7,6 +7,7 @@
 @import "./select.css";
 /* The component treatments a Look can ask for (slabs, ruled rows, the frame beside the card): unlayered, over a pack's `@layer look`. */
 @import "./widgets/core/treatments.css";
+@import "./looks/slab.css";
 /* Dev-only files (src/dev: the fixtures) never add to the release CSS; a rule only they need goes in their own <style>. */
 @source not "./dev";
 

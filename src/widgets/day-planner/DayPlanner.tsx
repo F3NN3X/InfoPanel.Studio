@@ -7,6 +7,7 @@ import { Widget, shell, get, num, rows, fmt, fmtDate, mix, ChartAxis, ChartYAxis
 import { allDayTitles, hourMarks, nowFraction, placeEvents, railWindow, type RailEvent, type RailWindow } from "./layout";
 import { forecastDay, weatherBand, type BandPoint } from "./weather-band";
 import { useExtras, useInStudio, useNow } from "../time-hooks";
+import { DayBoard } from "./DayBoard";
 import { meta } from "./meta";
 
 export { meta };
@@ -47,7 +48,12 @@ const hourLabel = (hour: number, h12: boolean) => (h12 ? `${hour % 12 || 12}${ho
 /** The label of a midnight mark: the weekday. */
 const dayName = (at: number) => fmtDate(new Date(at), "weekday");
 
+/** The time rail, or the `board` layout the zone's Look or Layout pick names (`meta.layouts`). */
 export default function DayPlanner(p: DayPlannerProps) {
+  return p.lookLayout === "board" ? <DayBoard {...p} /> : <TimeRail {...p} />;
+}
+
+function TimeRail(p: DayPlannerProps) {
   const { locale } = useGeneral();
   const studio = useInStudio();
   const calendar = useExtras().calendar;

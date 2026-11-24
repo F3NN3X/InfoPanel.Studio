@@ -1,5 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
-import { Frame, Image as ImageIcon, Layers, Mountain, Shapes, ShieldCheck, Sparkles, Type } from "lucide-react";
+import { Frame, Image as ImageIcon, LayoutTemplate, Layers, Mountain, Shapes, ShieldCheck, Sparkles, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/ui/status-chip";
 import { Toggle } from "@/components/ui/toggle";
@@ -11,6 +11,7 @@ const ICON: Readonly<Record<PartText["id"], ComponentType<{ className?: string; 
   effects: Sparkles,
   details: Frame,
   icons: Shapes,
+  layouts: LayoutTemplate,
   font: Type,
 };
 

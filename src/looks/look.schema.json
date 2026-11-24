@@ -67,6 +67,7 @@
         }
       }
     },
+    "layouts": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" } },
     "studio": { "type": "object", "additionalProperties": { "type": "object", "additionalProperties": { "$ref": "#/$defs/studioEntry" } } }
   },
   "if": { "properties": { "id": { "const": "studio" } } },

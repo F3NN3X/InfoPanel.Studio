@@ -6,6 +6,7 @@ import { widgetImage } from "./shared/data-adapter";
 import { Unit, IpTagCtx, Widget, Empty, shell, get, num, fmt, has, Metric, Ring, Spark, Bar, Num, useHistory, useIpTag, tone, TONES, type ShellProps } from "./kit";
 import { fitFont, ringFont, textEm, valueFont } from "./core/fit";
 import { meta } from "./meta/SensorValue";
+import { SensorReadout } from "./SensorReadout";
 
 export { meta };
 
@@ -129,7 +130,23 @@ export function Figure({ label, text, unit, w, h }: { label: string; text: strin
 /** A number with an optional unit ("62.5 %", "1,234 MB/s"); IPs, times, versions and resolutions stay text. */
 export const isNumericText = (raw: string): boolean => /^-?\d[\d,]*(?:\.\d+)?(?:\s*[^\s\d.,:x/-][^\s\d]*)?$/.test(raw.trim());
 
+/**
+ * The standard layout, or the `readout` one (`meta.layouts`) for a bound number shown as a value or a spark: the other displays
+ * (gauge, bar, line, figure) are what the user picked, and keep their own whatever the Look names.
+ */
 export default function SensorValue(p: SensorValueProps) {
+  const raw = get(p.data, p.sensor ?? "");
+  const v = num(raw);
+  const readout = p.lookLayout === "readout" && !!p.sensor && ["value", "spark"].includes(p.display ?? "value") && Number.isFinite(v) && isNumericText(String(raw));
+  if (!readout) return <StandardSensorValue {...p} />;
+  const unit = p.unit ?? String(raw).replace(/^[-\d.,\s]+/, "").trim().replace(/Â(?=[°²³µ])/g, "");
+  const up = unit in NEXT_UNIT && Math.abs(v) >= 1000;
+  const shown = up ? v / 1024 : v;
+  const label = p.label ?? p.title ?? String(p.sensor).split(".").pop()!.replace(/[_-]+/g, " ");
+  return <SensorReadout {...p} label={label} value={shown} unit={up ? NEXT_UNIT[unit] : unit} decimals={p.decimals ?? (Math.abs(shown) < 10 || up ? 1 : 0)} raw={v} scale={up ? 1 / 1024 : 1} tone={tone(v, p.warn, p.crit)} />;
+}
+
+function StandardSensorValue(p: SensorValueProps) {
   const d = p.data;
   // The studio canvas hints at the missing binding; the kiosk stays quiet.
   const onCanvas = useContext(IpTagCtx);
