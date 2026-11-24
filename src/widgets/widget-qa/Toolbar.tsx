@@ -24,7 +24,7 @@ const field = "h-6 rounded border border-current/25 bg-transparent px-1.5 text-[
 
 function Label({ name, children }: { name: string; children: ReactNode }) {
   return (
-    <label className="flex items-center gap-1 text-[11px]">
+    <label className="flex items-center gap-1 text-micro">
       <span className="opacity-60">{name}</span>
       {children}
     </label>
@@ -48,7 +48,7 @@ function Pick({ name, value, options, onChange, blank = "—" }: { name: string;
 
 function Check({ name, checked, onChange }: { name: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex items-center gap-1 text-[11px]">
+    <label className="flex items-center gap-1 text-micro">
       <input type="checkbox" className="size-3.5 accent-current" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span className="opacity-60">{name}</span>
     </label>
@@ -77,9 +77,9 @@ export function Toolbar({ state, looks, variants, imported, onImport, onChange, 
       {variants.length > 0 && <Pick name="variant of look" value={state.lookVariant} options={variants.map((v) => v.id)} onChange={(lookVariant) => onChange({ lookVariant })} blank="own" />}
       <Pick name="fx" value={state.fx} options={FX} onChange={(fx) => onChange({ fx: fx as QaFx })} blank="default" />
       <Check name="pack script" checked={state.script} onChange={(script) => onChange({ script })} />
-      <label className="flex items-center gap-1 text-[11px]">
+      <label className="flex items-center gap-1 text-micro">
         <span className="opacity-60">import pack</span>
-        <input type="file" accept=".zip" className="w-44 text-[11px]" onChange={(e) => e.target.files?.length && onImport(e.target.files)} />
+        <input type="file" accept=".zip" className="w-44 text-micro" onChange={(e) => e.target.files?.length && onImport(e.target.files)} />
         {imported && <span className="opacity-80">{imported}</span>}
       </label>
       <Check name="flagged only" checked={state.flagged} onChange={(flagged) => onChange({ flagged })} />
