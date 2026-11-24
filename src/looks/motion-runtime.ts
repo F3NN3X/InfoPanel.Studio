@@ -1,18 +1,25 @@
-// What draws a pack's motion (L117): one animation-frame loop for every text that scrambles and one timer for every repeat on
-// the page, written straight to the DOM, so no effect renders React. The text a scramble covers stays in the page and in the
-// accessibility tree (the host's own text, its ink hidden for the run); the noise is in an aria-hidden copy laid over it, so the
-// line never changes width. The CSS that answers each attribute is index.css's (`app-mo-*`). Nothing runs while the page is hidden.
-import { MOTION_GAP_MS, type MotionPlan } from "./motion";
+// What draws a pack's motion (L117): one animation-frame loop for every text that scrambles or counts and one timer for every
+// repeat on the page, written straight to the DOM, so no effect renders React. The text a run covers stays in the page and in the
+// accessibility tree (the host's own text, its ink hidden for the run); the noise, the count or the roll is in an aria-hidden copy
+// laid over it, so the line never changes width. A page's boot staggers its cards' arrival once per page. The CSS that answers each
+// attribute is index.css's (`app-mo-*`). Nothing runs while the page is hidden.
+import { MOTION_GAP_MS, MOTION_RULES, ONE_SHOT_MAX_MS, type MotionPlan, type ValueMark, type ValueStyle } from "./motion";
+import { countAt, countOf, rollOf } from "./motion-value";
 
 /** Noise for a label (the kit's set) and for a number (digits, so a figure stays a figure). */
 const GLYPHS = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#%&/<>[]{}=+*";
 const DIGITS = "0123456789";
-/** At most this many texts scramble at once; past it a text simply shows (a page switch on a full screen). */
+/** At most this many texts run at once (scrambles, decodes, counts and rolls); past it a text simply shows (a page switch on a full screen). */
 export const TEXT_JOBS_MAX = 12;
 /** At most this many numbers start a scramble in any second, over the whole page: a screen of readings that change each tick stays mostly still (measured on a 20-card page, L117). */
 export const NUMBER_STARTS_PER_S = 3;
-/** The noise changes at most this often, ms (about 12 a second). */
+/** At most this many numbers start a count or a roll in any second, over the whole page. */
+export const VALUE_STARTS_PER_S = 6;
+/** At most this many change marks (a number's flash or underline, a list row lit) in any second, over the whole page: with the one repeat a second, never over three flashes a second. */
+export const FLASH_STARTS_PER_S = 2;
+/** The noise changes at most this often, ms (about 12 a second); a count about 30 times a second. */
 const FRAME_MS = 80;
+const COUNT_FRAME_MS = 33;
 /** A flicker run: two dips in this many ms. */
 export const FLICKER_MS = 600;
 
@@ -21,30 +28,82 @@ const hidden = () => typeof document !== "undefined" && document.hidden;
 interface Job {
   host: HTMLElement;
   copy: HTMLElement;
-  text: string;
-  /** Which characters churn (a number: those that changed). */
-  churn: boolean[];
-  number: boolean;
   start: number;
   ms: number;
-  intensity: number;
+  /** The copy's text at `t` (0 to 1); undefined leaves it as it is (a roll is drawn once, by CSS). */
+  draw: (t: number) => string | undefined;
+  frame: number;
   last: number;
+  /** What the run leaves behind to take away (a copy the runtime added). */
+  done?: () => void;
 }
 
-const jobs = new Set<Job>();
+const jobs = new Map<HTMLElement, Job>();
 let frame = 0;
-/** When the last numbers started, newest last (at most `NUMBER_STARTS_PER_S`). */
-const starts: number[] = [];
+
+/** A rolling count of starts in the last second; `take` says whether one more fits under `max` and counts it. */
+function limiter(max: number) {
+  const starts: number[] = [];
+  return (now: number): boolean => {
+    while (starts.length && !(now - starts[0] < 1000 && now >= starts[0])) starts.shift();
+    if (starts.length >= max) return false;
+    starts.push(now);
+    return true;
+  };
+}
+const numberStart = limiter(NUMBER_STARTS_PER_S);
+const valueStart = limiter(VALUE_STARTS_PER_S);
+const flashStart = limiter(FLASH_STARTS_PER_S);
+
+/** Whether a change mark may light now (and counts it): at most `FLASH_STARTS_PER_S` a second over the page. */
+export const flashOk = (): boolean => !hidden() && flashStart(performance.now());
 
 const end = (job: Job) => {
-  jobs.delete(job);
+  if (jobs.get(job.host) === job) jobs.delete(job.host);
   job.host.removeAttribute("data-mo-on");
   job.copy.textContent = "";
+  job.done?.();
 };
 
-function noise(job: Job, t: number): string {
-  const { text, churn, number, intensity } = job;
-  // a label decodes left to right with a short fringe of noise ahead of the wave and blanks beyond; a number's changed digits churn, then settle left to right
+function step(now: number) {
+  frame = 0;
+  for (const job of jobs.values()) {
+    // a host React took away, or a copy it wrote over (a row's text changed under its decode): the run is over
+    if (!job.host.isConnected || !job.copy.isConnected) {
+      end(job);
+      continue;
+    }
+    const t = (now - job.start) / job.ms;
+    if (t >= 1) end(job);
+    else if (now - job.last >= job.frame) {
+      job.last = now;
+      const text = job.draw(Math.max(0, t));
+      if (text !== undefined) job.copy.textContent = text;
+    }
+  }
+  if (jobs.size) frame = requestAnimationFrame(step);
+}
+
+/** Whether a new run on `host` may start: a visible page, a frame loop, room under `TEXT_JOBS_MAX` (a run already on the host makes way). */
+const room = (host: HTMLElement) => !hidden() && typeof requestAnimationFrame !== "undefined" && (jobs.has(host) || jobs.size < TEXT_JOBS_MAX);
+
+function begin(host: HTMLElement, copy: HTMLElement, ms: number, draw: Job["draw"], opts: { frame?: number; done?: () => void; now?: number } = {}): () => void {
+  const prev = jobs.get(host);
+  if (prev) end(prev);
+  const now = opts.now ?? performance.now();
+  const job: Job = { host, copy, start: now, ms, draw, frame: opts.frame ?? FRAME_MS, last: now, done: opts.done };
+  jobs.set(host, job);
+  host.setAttribute("data-mo-on", "");
+  const first = draw(0);
+  if (first !== undefined) copy.textContent = first;
+  if (!frame) frame = requestAnimationFrame(step);
+  return () => {
+    if (jobs.get(host) === job) end(job);
+  };
+}
+
+/** The noise of a scramble at `t`: a label decodes left to right with a short fringe of noise ahead of the wave and blanks beyond; a number's changed digits churn, then settle left to right. */
+function noise(text: string, churn: boolean[], number: boolean, intensity: number, t: number): string {
   const settled = Math.floor(t * text.length);
   const fringe = Math.max(1, Math.round(4 * intensity));
   let out = "";
@@ -57,52 +116,127 @@ function noise(job: Job, t: number): string {
   return out;
 }
 
-function step(now: number) {
-  frame = 0;
-  for (const job of jobs) {
-    if (!job.host.isConnected) {
-      end(job);
-      continue;
-    }
-    const t = (now - job.start) / job.ms;
-    if (t >= 1) end(job);
-    else if (now - job.last >= FRAME_MS) {
-      job.last = now;
-      job.copy.textContent = noise(job, Math.max(0, t));
-    }
-  }
-  if (jobs.size) frame = requestAnimationFrame(step);
-}
-
 /**
  * Scrambles `text` in `copy` over `host` for `ms`: a label (`from` unset) decodes, a number's characters that differ from `from`
  * churn. Returns what stops it. Nothing runs on a hidden page, for an empty text, past `TEXT_JOBS_MAX`, for a number that did not change,
- * or for a number past `NUMBER_STARTS_PER_S`.
+ * or for a number past `NUMBER_STARTS_PER_S`. `done` runs when it ends (a copy the caller added comes out again).
  */
-export function scrambleText(host: HTMLElement, copy: HTMLElement, text: string, opts: { ms: number; intensity: number; from?: string }): () => void {
+export function scrambleText(host: HTMLElement, copy: HTMLElement, text: string, opts: { ms: number; intensity: number; from?: string; done?: () => void }): () => void {
   const number = opts.from !== undefined;
-  const churn = [...text].map((ch, i) => (number ? /\d/.test(ch) && (opts.from!.length !== text.length || opts.from![i] !== ch) : true));
-  if (hidden() || !text || jobs.size >= TEXT_JOBS_MAX || typeof requestAnimationFrame === "undefined" || !churn.some(Boolean)) return () => {};
+  const chars = [...text];
+  const churn = chars.map((ch, i) => (number ? /\d/.test(ch) && (opts.from!.length !== text.length || opts.from![i] !== ch) : true));
+  if (!text || !room(host) || !churn.some(Boolean)) return () => {};
   const now = performance.now();
-  if (number) {
-    while (starts.length && !(now - starts[0] < 1000 && now >= starts[0])) starts.shift();
-    if (starts.length >= NUMBER_STARTS_PER_S) return () => {};
-    starts.push(now);
-  }
-  const job: Job = { host, copy, text: [...text].join(""), churn, number, start: now, ms: opts.ms, intensity: opts.intensity, last: now };
-  jobs.add(job);
-  host.setAttribute("data-mo-on", "");
-  copy.textContent = noise(job, 0);
-  if (!frame) frame = requestAnimationFrame(step);
-  return () => {
-    if (jobs.has(job)) end(job);
-  };
+  if (number && !numberStart(now)) return () => {};
+  const joined = chars.join("");
+  return begin(host, copy, opts.ms, (t) => noise(joined, churn, number, opts.intensity, t), { done: opts.done, now });
 }
 
-/** A card on the page: its element and what it draws. */
+/** The roll's cells in the copy: each changed digit a reel from the old digit to the new one (index.css `app-mo-roll`), the rest as it is. */
+function rollCopy(copy: HTMLElement, from: string, to: string): boolean {
+  const cells = rollOf(from, to);
+  if (!cells.some((c) => c.from !== undefined)) return false;
+  copy.replaceChildren(
+    ...cells.map((c) => {
+      if (c.from === undefined) return document.createTextNode(c.ch);
+      const cell = document.createElement("span");
+      cell.setAttribute("data-mo-cell", "");
+      const reel = document.createElement("span");
+      reel.setAttribute("data-mo-reel", "");
+      const a = document.createElement("span");
+      a.textContent = c.from;
+      const b = document.createElement("span");
+      b.textContent = c.ch;
+      reel.append(a, b);
+      cell.append(reel);
+      return cell;
+    })
+  );
+  return true;
+}
+
+/**
+ * A number that changed from `from` to `to`: a figure counts to the new reading (`tween`), any other text, or a `roll`, rolls its
+ * changed digits; with a `mark`, it flashes or is underlined once. Returns what stops it. Nothing runs on a hidden page, past
+ * `TEXT_JOBS_MAX` or `VALUE_STARTS_PER_S`; a mark past `FLASH_STARTS_PER_S` is left out, the run kept.
+ */
+export function valueText(host: HTMLElement, copy: HTMLElement, to: string, from: string, opts: { ms: number; style: ValueStyle; mark: ValueMark }): () => void {
+  if (!to || to === from || !room(host)) return () => {};
+  const now = performance.now();
+  const count = opts.style === "tween" ? countOf(from, to) : undefined;
+  if (!count && !rollOf(from, to).some((c) => c.from !== undefined)) return () => {};
+  if (!valueStart(now)) return () => {};
+  const stop = count ? begin(host, copy, opts.ms, (t) => countAt(count, t), { frame: COUNT_FRAME_MS, now }) : begin(host, copy, opts.ms, () => undefined, { now });
+  if (!count) rollCopy(copy, from, to);
+  if (opts.mark !== "none" && flashStart(now)) {
+    host.setAttribute("data-mo-mark", opts.mark);
+    setTimeout(() => host.removeAttribute("data-mo-mark"), Math.max(ONE_SHOT_MAX_MS, opts.ms) + 50);
+  }
+  return stop;
+}
+
+// ---- the boot ----------------------------------------------------------------------------------------------------------
+
+/** A page's cards boot when the page's grid (or the studio's canvas, or the document) first draws them, and for this long after (cards that load late join in). */
+export const BOOT_WINDOW_MS = 1500;
+/** The last card of a boot starts at most this long after the first. */
+export const BOOT_SPAN_MAX_MS = 1200;
+const BOOT_SCOPE = "[data-page-grid], [data-studio-page]";
+const booted = new WeakMap<Element, { start: number; n: number }>();
+let batch: Card[] = [];
+
+/** The cards that joined in one task, in page order (top to bottom, then left to right), each at its place in its page's boot. */
+function flushBoot(): void {
+  const list = batch;
+  batch = [];
+  const now = performance.now();
+  const placed = list.filter((c) => c.el.isConnected && cards.has(c)).map((c) => ({ c, r: c.el.getBoundingClientRect() }));
+  placed.sort((a, b) => a.r.top - b.r.top || a.r.left - b.r.left);
+  for (const { c } of placed) {
+    const scope = c.el.closest(BOOT_SCOPE) ?? document.documentElement;
+    let page = booted.get(scope);
+    if (!page) booted.set(scope, (page = { start: now, n: 0 }));
+    else if (now - page.start > BOOT_WINDOW_MS) continue;
+    if (hidden()) continue;
+    runBoot(c, Math.min(BOOT_SPAN_MAX_MS, page.n++ * c.plan.boot!.stagger!));
+  }
+}
+
+/** One card's boot after `delay` ms: its arrival (index.css `data-mo-boot`), the line across it and its title decoding. */
+function runBoot(card: Card, delay: number): void {
+  const { el, plan } = card;
+  const boot = plan.boot!;
+  el.style.setProperty("--mo-boot-delay", `${delay}ms`);
+  el.setAttribute("data-mo-boot", boot.style ?? "fade");
+  const layer = boot.line ? el.querySelector(":scope > [data-mo-layer]") : null;
+  layer?.setAttribute("data-mo-boot-line", "");
+  card.timers.push(
+    setTimeout(() => {
+      el.removeAttribute("data-mo-boot");
+      el.style.removeProperty("--mo-boot-delay");
+      layer?.removeAttribute("data-mo-boot-line");
+    }, delay + boot.ms * 2 + 50)
+  );
+  if (boot.decode) {
+    card.timers.push(
+      setTimeout(() => {
+        for (const host of el.querySelectorAll<HTMLElement>('[data-part="header"] [data-mo-text]')) {
+          const copy = host.querySelector<HTMLElement>(":scope > [data-mo-copy]");
+          const text = host.firstChild?.nodeType === 3 ? (host.firstChild.nodeValue ?? "") : "";
+          if (copy && text) scrambleText(host, copy, text, { ms: plan.decode?.ms ?? MOTION_RULES.decode.def.ms!, intensity: boot.intensity });
+        }
+      }, delay)
+    );
+  }
+}
+
+// ---- the repeats --------------------------------------------------------------------------------------------------------
+
+/** A card on the page: its element, what it draws, and the timers of its boot. */
 interface Card {
   el: HTMLElement;
   plan: MotionPlan;
+  timers: ReturnType<typeof setTimeout>[];
 }
 
 const cards = new Set<Card>();
@@ -189,18 +323,31 @@ function watchVisibility(): void {
   });
 }
 
-/** Puts a card on the page's motion: its glitch tears its texts once now, its repeats join the page's timer. Returns what takes it off. */
+/**
+ * Puts a card on the page's motion: its glitch tears its texts once now, its boot joins its page's (in page order, once per page),
+ * its repeats join the page's timer. Returns what takes it off.
+ */
 export function addMotionCard(el: HTMLElement, plan: MotionPlan): () => void {
-  const card: Card = { el, plan };
+  const card: Card = { el, plan, timers: [] };
   cards.add(card);
   watchVisibility();
   if (plan.glitch && !hidden()) for (const t of el.querySelectorAll(TEXTS)) pulse(t, "data-mo-glitch", plan.glitch.ms);
+  if (plan.boot) {
+    batch.push(card);
+    if (batch.length === 1) queueMicrotask(flushBoot);
+  }
   schedule();
   return () => {
     cards.delete(card);
+    for (const t of card.timers) clearTimeout(t);
+    if (card.timers.length) {
+      el.removeAttribute("data-mo-boot");
+      el.style.removeProperty("--mo-boot-delay");
+    }
     schedule();
   };
 }
 
 /** Tests: how many cards and texts are on the motion now, and whether the timer is set. */
 export const motionState = () => ({ cards: cards.size, texts: jobs.size, timer: timer !== undefined });
+

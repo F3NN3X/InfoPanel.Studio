@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MotionRow } from "@/looks/motion-render";
 import type { ModuleSettings } from "@/modules/types";
 import { roomy, fillRows, useFitRows, Widget, shell, get, num, fmt, fmtMB, rows, Metric, Stat, Bar, Segmented, type ShellProps } from "../kit";
 import { meta } from "./meta";
@@ -70,11 +71,11 @@ export default function ProcessList(p: ProcessListProps) {
               {list.slice(0, n).map((r, i) => {
                 const v = sort === "memory" ? r.mem : sort === "utility" ? r.util : r.cpu;
                 return (
-                  <li key={r.name + i} className="grid h-5 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 text-caption leading-[1.333]" style={rowH ? { height: rowH } : undefined}>
+                  <MotionRow as="li" rowKey={r.name} key={r.name + i} className="grid h-5 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 text-caption leading-[1.333]" style={rowH ? { height: rowH } : undefined}>
                     <span className="truncate text-[color:var(--w-fg)]">{r.name}</span>
                     <span className="tabular-nums text-[color:var(--w-muted)]">{sort === "memory" ? fmtMB(r.mem) : `${fmt(v, 1)}%`}</span>
                     <Bar value={v} max={maxV} className="col-span-2 h-0.75" />
-                  </li>
+                  </MotionRow>
                 );
               })}
             </ol>

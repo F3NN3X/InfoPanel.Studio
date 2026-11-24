@@ -1,4 +1,5 @@
 import { Empty, fillRows, fitRows, roomy, Widget, shell, get, has, useIpTag, seriesColour, type ShellProps } from "../kit";
+import { MotionRow } from "@/looks/motion-render";
 import { t3Tokens } from "../core/t3-tokens";
 import { meta } from "./meta";
 import { FRIEND_COLORS, friendsOf, friendStatus, type Friend, type FriendSort, type FriendStatus } from "../shared/friends-data";
@@ -70,7 +71,7 @@ export default function SteamFriends(p: SteamFriendsProps) {
             ) : (
               <ul className={`flex min-h-0 flex-col overflow-hidden ${twoLine ? "gap-2.5" : "gap-1.5"}`}>
                 {shown.map((f, i) => (
-                  <li key={i} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]">
+                  <MotionRow as="li" rowKey={f.name} key={i} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]">
                     {twoLine ? (
                       <span
                         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-micro font-semibold"
@@ -89,7 +90,7 @@ export default function SteamFriends(p: SteamFriendsProps) {
                       </span>
                     </div>
                     {showTime && w >= 160 && <span className="ml-auto shrink-0 text-micro text-[color:var(--w-faint)]">{f.when}</span>}
-                  </li>
+                  </MotionRow>
                 ))}
               </ul>
             )}

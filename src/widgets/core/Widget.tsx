@@ -205,7 +205,7 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
             <MotionLayer plan={motion} />
           </>
         )}
-        <div data-mo-arrive={motion?.arrival && motion.arrival.style !== "line" ? motion.arrival.style : undefined} className={`relative flex min-h-0 min-w-0 flex-1 flex-col ${pad.className}`} style={{ ...pad.style, ...(zoom !== 1 ? { zoom } : null) }}>
+        <div data-mo-arrive={motion?.arrival && motion.arrival.style !== "line" ? motion.arrival.style : undefined} data-mo-body={motion?.boot ? "" : undefined} className={`relative flex min-h-0 min-w-0 flex-1 flex-col ${pad.className}`} style={{ ...pad.style, ...(zoom !== 1 ? { zoom } : null) }}>
           {header && <SkinHeader kind={sk.header} title={heading} icon={headIcon} right={useCompact ? undefined : right} bleed={bleed} bg={mat.patch} w={box.w} />}
           <div ref={cref} data-wp-body="" {...bodyFlags(chrome)} className="relative min-h-0 flex-1">
             {isStudio ? (

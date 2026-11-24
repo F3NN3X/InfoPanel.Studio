@@ -45,7 +45,8 @@
               "fill": { "type": "string" },
               "image": { "type": "string" },
               "opacity": { "type": "number" },
-              "minSizeClass": { "enum": ["xs", "sm", "md", "lg"] }
+              "minSizeClass": { "enum": ["xs", "sm", "md", "lg"] },
+              "animated": { "type": "boolean", "description": "The layer's SVG animates (its own CSS keyframes or SMIL, held to the validator's subset, rule svg-animation): drawn moving only at the Effects level Full, still otherwise." }
             }
           }
         },
@@ -150,7 +151,10 @@
         "scramble": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
         "arrival": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "style": { "enum": ["fade", "clip", "line"] } } },
         "flicker": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "every": { "type": "number" }, "target": { "enum": ["card", "label"] } } },
-        "sweep": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } }
+        "sweep": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
+        "value": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" }, "style": { "enum": ["tween", "roll"] }, "mark": { "enum": ["none", "flash", "underline"] } } },
+        "list": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "enter": { "enum": ["slide", "fade", "none"] }, "reorder": { "type": "boolean" }, "change": { "type": "boolean" }, "decode": { "type": "boolean" } } },
+        "boot": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "stagger": { "type": "number" }, "style": { "enum": ["fade", "clip", "glitch"] }, "line": { "type": "boolean" }, "decode": { "type": "boolean" } } }
       }
     },
     "script": {

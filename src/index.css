@@ -668,6 +668,38 @@
 [data-mo-arrive="fade"] { animation: app-mo-fade var(--mo-arrive-ms, 240ms) ease-out 1; }
 [data-mo-arrive="clip"] { animation: app-mo-clip var(--mo-arrive-ms, 240ms) steps(6, end) 1; }
 [data-mo-arrive="line"]::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: var(--w-accent); transform-origin: left; opacity: 0; animation: app-mo-line var(--mo-arrive-ms, 240ms) ease-out 1; }
+/* A value's run (motion-runtime.ts `valueText`): a count is the copy's text; a roll is a reel per changed digit, old over new, lifted once. A mark lights the copy
+   (flash) or draws a line under the number (underline); neither lays anything out. */
+[data-mo-cell] { display: inline-block; height: 1lh; overflow: clip; vertical-align: top; }
+[data-mo-reel] { display: flex; flex-direction: column; animation: app-mo-roll var(--mo-val-ms, 480ms) cubic-bezier(0.2, 0.7, 0.2, 1) 1 both; }
+[data-mo-reel] > span { display: block; height: 1lh; }
+@keyframes app-mo-roll { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+@keyframes app-mo-vflash { from { text-shadow: 0 0 calc(12px * var(--mo-mark-a, 0.6)) var(--w-accent), 0 0 2px var(--w-accent); } }
+[data-mo-mark="flash"] > [data-mo-copy] { animation: app-mo-vflash 300ms ease-out 1; }
+@keyframes app-mo-uline { 0% { transform: scaleX(0); } 60% { transform: scaleX(1); opacity: var(--mo-mark-a, 0.6); } 100% { transform: scaleX(1); opacity: 0; } }
+[data-mo-mark="underline"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -0.12em; height: max(1px, 0.07em); background: var(--w-accent); opacity: var(--mo-mark-a, 0.6); transform-origin: left; pointer-events: none; animation: app-mo-uline var(--mo-val-ms, 480ms) ease-out 1 both; }
+/* A list's rows (motion-list.ts): a new row slides or fades in, a moved one glides from its old place (`--mo-dy`, by translate), a changed one is lit once. */
+@keyframes app-mo-row-slide { from { opacity: 0; translate: -8px 0; } }
+@keyframes app-mo-row-move { from { translate: 0 var(--mo-dy, 0px); } }
+@keyframes app-mo-row-hi { from { box-shadow: inset 0 0 0 999px color-mix(in oklab, var(--w-accent) calc(30% * var(--mo-list-a, 0.6)), transparent); } }
+[data-mo-row-in="slide"] { animation: app-mo-row-slide var(--mo-list-ms, 240ms) ease-out 1 both; }
+[data-mo-row-in="fade"] { animation: app-mo-fade var(--mo-list-ms, 240ms) ease-out 1 both; }
+[data-mo-row-move] { animation: app-mo-row-move var(--mo-list-ms, 240ms) cubic-bezier(0.2, 0.7, 0.2, 1) 1; }
+[data-mo-row-hi] { animation: app-mo-row-hi 300ms ease-out 1; }
+/* A page's boot (motion-runtime.ts): each card at its turn (`--mo-boot-delay`, in page order), unseen before it; clip reveals the content in steps, glitch shakes
+   the card in the kit's stepped glitch-in; the line draws across the top. Opacity, clip and translate only: nothing moves the layout. */
+@keyframes app-mo-boot-glitch {
+  0% { opacity: 0; }
+  15% { opacity: 1; translate: calc(-10px * var(--mo-boot-a, 1)) 0; animation-timing-function: step-end; }
+  35% { translate: calc(6px * var(--mo-boot-a, 1)) 0; animation-timing-function: step-end; }
+  55% { opacity: 0.55; translate: calc(-3px * var(--mo-boot-a, 1)) 0; animation-timing-function: step-end; }
+  75% { opacity: 1; translate: 1px 0; animation-timing-function: step-end; }
+  100% { opacity: 1; translate: none; }
+}
+[data-mo-boot] { animation: app-mo-fade var(--mo-boot-ms, 240ms) ease-out var(--mo-boot-delay, 0ms) 1 both; }
+[data-mo-boot="glitch"] { animation: app-mo-boot-glitch var(--mo-boot-ms, 240ms) linear var(--mo-boot-delay, 0ms) 1 both; }
+[data-mo-boot="clip"] > [data-mo-body] { animation: app-mo-clip var(--mo-boot-ms, 240ms) steps(6, end) var(--mo-boot-delay, 0ms) 1 both; }
+[data-mo-layer][data-mo-boot-line]::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: var(--w-accent); transform-origin: left; opacity: 0; animation: app-mo-line calc(2 * var(--mo-boot-ms, 240ms)) ease-out var(--mo-boot-delay, 0ms) 1 both; }
 /* Lite mode with a pack worn (any pack, stage or not): widget blur is off (cap 0, section 9.3), and a blurred card fills to its fallback alpha instead, over any page. */
 :root[data-lite-motion][data-pack-worn] { --wp-blur-cap: 0px !important; }
 :root[data-lite-motion][data-pack-worn] [data-wp-tier][data-mat-blur] {
