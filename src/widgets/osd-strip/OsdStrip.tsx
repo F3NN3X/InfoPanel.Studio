@@ -31,6 +31,8 @@ const OSD_TEXT = { color: "#f4f4f5", "--w-fg": "#f4f4f5", "--w-muted": "#d4d4d8"
 export default function OsdStrip(p: OsdStripProps) {
   const d = p.data;
   const sk = useSkin();
+  // under a pack the values leave the OSD's own face (IBM Plex) to the pack's fonts: the app's mono, which a pack's CSS may set
+  const packMono = p.packId && !sk.numReadout ? " font-mono" : "";
   const rtssOf = (s: string) => get(d, `plugins.InfoPanel.RTSS.rtss.${s}`);
   const cpu = hw(d).cpu,
     gpu = hw(d).gpu;
@@ -100,8 +102,8 @@ export default function OsdStrip(p: OsdStripProps) {
                     <div key={k} className={`flex min-w-0 flex-col gap-1 ${OSD_BG} px-3 py-3 ${i === shown.length - 1 && i % 2 === 0 ? "col-span-2" : ""}`}>
                       <span className="truncate text-micro font-semibold uppercase tracking-[0.08em] text-[color:var(--w-muted)]">{l}</span>
                       <span
-                        className="truncate font-medium leading-none tabular-nums text-[color:var(--w-fg)]"
-                        style={{ fontSize: big, fontFamily: sk.numReadout ? sk.num : "'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace", color: c ?? (k === "fps" && !idle ? "var(--w-accent)" : undefined) }}
+                        className={`truncate font-medium leading-none tabular-nums text-[color:var(--w-fg)]${packMono}`}
+                        style={{ fontSize: big, fontFamily: sk.numReadout ? sk.num : p.packId ? undefined : "'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace", color: c ?? (k === "fps" && !idle ? "var(--w-accent)" : undefined) }}
                       >
                         {c && <ToneCue t={c === DROP_CRIT ? "crit" : "warn"} size="0.75em" />}
                         {shownAs(k, v)}
@@ -129,8 +131,8 @@ export default function OsdStrip(p: OsdStripProps) {
                   <div key={k} className={`flex min-w-0 ${inline ? "items-baseline gap-1.5 px-2 py-1" : "flex-col gap-0.5 px-2.5 py-1.5"} ${i ? "border-l border-white/10" : ""}`}>
                     <span className={`${inline ? "shrink-0 " : ""}truncate text-micro font-semibold uppercase tracking-[0.08em] text-[color:var(--w-muted)]`}>{l}</span>
                     <span
-                      className={`truncate ${inline && h < 30 ? "text-body" : "text-title"} font-medium tabular-nums text-[color:var(--w-fg)]`}
-                      style={{ fontFamily: sk.numReadout ? sk.num : "'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace", color: c ?? (k === "fps" && !idle ? "var(--w-accent)" : undefined) }}
+                      className={`truncate ${inline && h < 30 ? "text-body" : "text-title"} font-medium tabular-nums text-[color:var(--w-fg)]${packMono}`}
+                      style={{ fontFamily: sk.numReadout ? sk.num : p.packId ? undefined : "'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace", color: c ?? (k === "fps" && !idle ? "var(--w-accent)" : undefined) }}
                     >
                       {c && <ToneCue t={c === DROP_CRIT ? "crit" : "warn"} size="0.75em" />}
                       {shownAs(k, v)}

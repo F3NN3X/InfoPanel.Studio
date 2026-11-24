@@ -2,7 +2,8 @@ import { useState } from "react";
 import { meterKey, useWavelinkMeter } from "@/lib/wavelink";
 import { audioAct, audioRefusal, useAudio, type AudioState } from "@/lib/audio-control";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, num, fmt, clamp, Icon, ChannelRow, CHANNEL_TRACK, Empty, hue, type ShellProps } from "../kit";
+import { Widget, shell, num, fmt, clamp, Icon, ChannelRow, CHANNEL_TRACK, Empty, hue, seriesColour, type ShellProps } from "../kit";
+import { t3Tokens } from "../core/t3-tokens";
 import type { MixerLook } from "../core/mixer-look";
 import { useDeviceLevel } from "../core/level-source";
 import { MixerViewBody, PERCENT, fitMixer, toneOf, type StripChannel } from "../core/mixer-views";
@@ -36,9 +37,11 @@ export interface StreamMixerProps extends ShellProps {
   mixerLook?: MixerLook;
 }
 
-/** The other channels' colours: the accent turned by these degrees, in order. */
+/** The other channels' colours: the accent turned by these degrees, in order, where the Look sets no series of its own. */
 const MIX_HUES = [95, -115, -75, 40, 140, -150];
 const MUTED_COLOR = "#52525b";
+/** A muted channel under a Look with its own series: the card's faint ink, not Classic's grey. */
+const MUTED_INK = "var(--w-faint)";
 
 const btn = "flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:bg-white/[0.07] hover:text-zinc-100 lite:text-[color:var(--w-muted)] lite:hover:bg-[color:var(--w-track)] lite:hover:text-[color:var(--w-fg)]";
 
@@ -54,10 +57,14 @@ export default function StreamMixer(p: StreamMixerProps) {
   const source = p.source ?? "windows";
   const [picking, setPicking] = useState(false);
   let ci = 0;
+  // outside the card's skin context: the Look's series from its T3 values (a pack's channels take its series, in order)
+  const marks = t3Tokens(p.t3);
+  const muted = marks.series?.length ? MUTED_INK : MUTED_COLOR;
   const rows = pickChannels(allChannels(audio, source, p.mix), p.channels ?? []).map((c) => {
     const icon = p.icons?.[c.id] ?? c.icon;
-    const base = c.master ? MASTER_COLOR : hue(MIX_HUES[ci++ % MIX_HUES.length]);
-    return { c: { ...c, name: p.labels?.[c.id] ?? c.name, sub: p.subs?.[c.id] ?? c.sub }, color: c.mute ? MUTED_COLOR : base, icon: iconOf({ icon, mute: c.mute }) };
+    const n = c.master ? 0 : ci++ % MIX_HUES.length;
+    const base = c.master ? MASTER_COLOR : seriesColour(marks, (n + 1) as 1 | 2 | 3 | 4 | 5 | 6, hue(MIX_HUES[n]));
+    return { c: { ...c, name: p.labels?.[c.id] ?? c.name, sub: p.subs?.[c.id] ?? c.sub }, color: c.mute ? muted : base, icon: iconOf({ icon, mute: c.mute }) };
   });
   const first = rows.find((r) => r.c.master) ?? rows[0];
   // The audiocn views: masters first (after the separator), the fader writes as the rows' does. The meter is the channel's own level:

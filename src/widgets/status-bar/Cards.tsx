@@ -1,9 +1,10 @@
 import { Fragment, type CSSProperties } from "react";
-import { Num, Ring, RingStack, TONES, hue, fmt } from "../kit";
+import { Num, Ring, RingStack, TONES, hue, fmt, seriesColour, useSkin, type SkinContext } from "../kit";
 import { lineSize, rowCount, rowPx, sizeOf, type Accent, type Card, type CardRow } from "./card-model";
 
-/** The three accents follow the theme's: the first is the accent itself, the others turn its hue. */
+/** The three accents follow the theme's: the first is the accent itself, the others turn its hue, or are the Look's series 2 and 3 where it sets them. */
 const ACCENT: Record<Accent, string> = { 1: TONES.ok, 2: hue(55), 3: hue(-70) };
+const accentOf = (sk: Pick<SkinContext, "series">, a: Accent): string => (a === 1 ? ACCENT[1] : seriesColour(sk, a, ACCENT[a]));
 
 /** The inner ring's colour by temperature: yellow, then the warn and crit tones. */
 const heatOf = (c: number): string => (c >= 80 ? TONES.crit : c >= 60 ? TONES.warn : "#FFD60A");
@@ -14,9 +15,10 @@ const quiet = (px: number): CSSProperties => ({ color: "var(--w-muted)", fontSiz
 /** The label with the temperature big under it, and optionally a small line. */
 function Lines({ label, accent, temp, small, end, u }: { label: string; accent: Accent; temp?: string; small?: string; end: boolean; u: number }) {
   const z = sizeOf(u);
+  const sk = useSkin();
   return (
     <div className="flex min-w-0 flex-col justify-center whitespace-nowrap" style={{ textAlign: end ? "right" : "left" }}>
-      <span style={caption(ACCENT[accent], z.cap)}>{label}</span>
+      <span style={caption(accentOf(sk, accent), z.cap)}>{label}</span>
       {temp && <Num style={{ fontSize: z.big, lineHeight: 1.05 }}>{temp}</Num>}
       {small && <span style={quiet(z.small)}>{small}</span>}
     </div>
@@ -52,7 +54,7 @@ function Rows({ rows, color, u }: { rows: CardRow[]; color: string; u: number })
 /** One drawn item of the bar. `end` puts the ring at the slot's outer right end, with the text to its left. */
 export function CardView({ card, u, end }: { card: Card; u: number; end: boolean }) {
   const z = sizeOf(u);
-  const color = ACCENT[card.accent];
+  const color = accentOf(useSkin(), card.accent);
   switch (card.kind) {
     case "ring":
       return (

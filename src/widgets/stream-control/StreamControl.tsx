@@ -2,7 +2,8 @@ import { useRef, type ReactNode } from "react";
 import { obsAct, obsRefusal } from "@/lib/obs-control";
 import { READ_ONLY_HINT } from "@/lib/write-refusal";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, fmt, clamp, Icon, Chip, Dot, Num, Spark, Empty, useHistory, hue, STATE, type ShellProps } from "../kit";
+import { Widget, shell, fmt, clamp, Icon, Chip, Dot, Num, Spark, Empty, useHistory, hue, seriesColour, STATE, type ShellProps } from "../kit";
+import { t3Tokens } from "../core/t3-tokens";
 import { ReadOnly } from "../shared/ReadOnly";
 import { clock, GAP, planTiles } from "./layout";
 import { useExtras, useInStudio, useNow } from "../time-hooks";
@@ -83,7 +84,11 @@ export default function StreamControl(p: StreamControlProps) {
   // page that mounted before the stream arrived draws what one that mounted after it does.
   const vHist = useHistory(!up ? Number.NaN : live ? total : 0, 48, 1);
   const mHist = useHistory(!up ? Number.NaN : muted || !mic ? 0 : mic.level, 24, 0.6);
-  const scenes = obs.scenes.map((s, i) => ({ ...s, i, icon: s.icon || "movie", color: hue(SCENE_HUES[i % SCENE_HUES.length]) }));
+  // outside the card's skin context: the Look's series from its T3 values (a pack's scenes and mic take its series)
+  const marks = t3Tokens(p.t3);
+  const micColor = seriesColour(marks, 2, hue(-75));
+  const mutedColor = marks.series?.length ? "var(--w-faint)" : "#52525b";
+  const scenes = obs.scenes.map((s, i) => ({ ...s, i, icon: s.icon || "movie", color: seriesColour(marks, ((i % SCENE_HUES.length) + 1) as 1 | 2 | 3 | 4 | 5 | 6, hue(SCENE_HUES[i % SCENE_HUES.length])) }));
   const showMic = p.showMic !== false && mic !== null;
   const showReplay = p.showReplay !== false && obs.replay !== null;
   const viewers =
@@ -169,7 +174,7 @@ export default function StreamControl(p: StreamControlProps) {
                 return (
                   <Tile key="mic" radius={radius} onClick={act && (() => void act({ op: "mic" }))} label={muted ? "Unmute mic" : "Mute mic"}>
                     <div className="flex items-start justify-between gap-2">
-                      <Badge icon={muted ? "mic_off" : "mic"} color={muted ? STATE.crit : hue(-75)} />
+                      <Badge icon={muted ? "mic_off" : "mic"} color={muted ? STATE.crit : micColor} />
                       {muted && (
                         <span className="rounded px-1.5 py-0.5 text-micro font-bold uppercase tracking-[0.1em]" style={{ background: tint(STATE.crit, 20), color: STATE.crit }}>
                           Muted
@@ -179,7 +184,7 @@ export default function StreamControl(p: StreamControlProps) {
                     <div className="mt-auto flex min-w-0 flex-col gap-1.5 pt-2">
                       {tileH > 100 && (
                         <div className="h-5 w-full">
-                          <Spark values={mHist} graph="bars" fill={false} min={0} max={100} color={muted ? "#52525b" : hue(-75)} className="h-full" />
+                          <Spark values={mHist} graph="bars" fill={false} min={0} max={100} color={muted ? mutedColor : micColor} className="h-full" />
                         </div>
                       )}
                       <div className="truncate text-lead font-semibold leading-tight">{muted ? "Mic off" : "Mic"}</div>

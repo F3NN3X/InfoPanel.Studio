@@ -20,8 +20,10 @@
   --breakpoint-split: 1180px;
 }
 
-/* `lite:` styles what sits on a light card (`data-mode=light`) or on the theme card of a light page (`:root` or a studio page scope with `data-mode=light`). */
-@custom-variant lite (&:where([data-tone][data-mode=light] *, :is(:root, [data-theme-scope])[data-mode=light] [data-tone=theme] *));
+/* `lite:` styles what sits on a light card (`data-mode=light`), on the theme card of a light page (`:root` or a studio page scope with
+   `data-mode=light`), or on a theme pack's card (`data-look`, written only by a pack): the card's tokens instead of a dark card's zinc
+   literals, so a widget's text, tiles and hovers take the pack's inks (Classic's markup and paint are untouched). */
+@custom-variant lite (&:where([data-tone][data-mode=light] *, :is(:root, [data-theme-scope])[data-mode=light] [data-tone=theme] *, [data-part=card][data-look] *));
 
 /* MenuBar's detail panel is a black wash on a dark card; light cards get the card's ink instead (dark markup is untouched). */
 :is([data-tone][data-mode=light], :is(:root, [data-theme-scope])[data-mode=light] [data-tone=theme]) .bg-black\/25 {
