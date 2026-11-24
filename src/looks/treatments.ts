@@ -2,6 +2,8 @@
 // card, scaled readouts, segmented cell meters, hexagon rings and avatars, signal-graph marks, gapped share bars and ruled rows. The words each token takes, and which
 // tones a Look's slabs can be drawn in, for the validator (the contrast of the slab ink) and the drawing code (t3-tokens.ts) alike.
 
+import { contrastOf } from "./status";
+
 /** The parts a slab can be drawn on. */
 export const SLAB_PARTS = ["header", "chip", "tab", "row", "card"] as const;
 export type SlabPart = (typeof SLAB_PARTS)[number];
@@ -50,6 +52,19 @@ export const slabLine = (ink: string): "#ffffff" | "#000000" => ((luminanceOf(in
 export const slabTexture = (ink: string): string => `repeating-linear-gradient(0deg, ${slabLine(ink) === "#ffffff" ? "rgb(255 255 255" : "rgb(0 0 0"} / ${SLAB_LINE_ALPHA}) 0 1px, transparent 1px 3px)`;
 /** The lit cells of a cell meter: dark lines, as on the kit's meter. */
 export const SLAB_TEXTURE = slabTexture("#ffffff");
+/** The ink on a slab in a colour that is not a literal hex (a card variable): near black above this OKLCH lightness, white under it, so each reads 4.5:1 or more. */
+const OWN_INK_L = 0.56;
+/**
+ * The custom properties of a slab that a layout variant draws in its own colour (`data-wp-slab="accent"` with these on it or above it), for
+ * where no card carries the Look's: the alerts, the island, and a card whose Look names no slab. The colour is the slab, the ink the kit's near
+ * black or white, whichever reads better on it (4.5:1 or more, as the validator holds a Look's slab ink to), the texture the one a Look's slabs
+ * take. A colour that is a variable gets the ink computed in CSS, and no texture; its variables are read above the slab (a slab redefines the card's).
+ */
+export function ownSlabVars(color: string): Record<string, string> {
+  const hex = luminanceOf(color) !== undefined;
+  const ink = !hex ? `oklch(from ${color} clamp(0, (${OWN_INK_L} - l) * 1000, 1) 0 0)` : (contrastOf(color, SLAB_INK_DEFAULT) ?? 0) >= (contrastOf(color, "#ffffff") ?? 0) ? SLAB_INK_DEFAULT : "#ffffff";
+  return { "--wp-slab-accent": color, "--wp-slab-ink": ink, ...(hex ? { "--wp-slab-tex": slabTexture(ink) } : null) };
+}
 /** A slab's notch (its bottom right corner cut) is at most this many px. */
 export const SLAB_NOTCH_MAX = 12;
 /** A readout's scale (`readout-scale`) and the size of its decimals (`readout-decimals`), as the validator holds them. */

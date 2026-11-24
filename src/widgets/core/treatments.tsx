@@ -5,7 +5,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ElementType, type HTMLAttributes, type ReactNode, type RefObject } from "react";
 import { MotionText } from "@/looks/motion-render";
 import { STATUS } from "@/looks/status";
-import { SLAB_TONES, slabTexture, type SlabPart, type SlabTone } from "@/looks/treatments";
+import { SLAB_TONES, ownSlabVars, slabTexture, type SlabPart, type SlabTone } from "@/looks/treatments";
 import { useSkin } from "./theme";
 import type { ReadoutSpec, SkinContext, SlabSpec, Tone } from "./types";
 
@@ -58,13 +58,19 @@ export function cellAttrs(sk: Sk, state?: Tone): Record<string, string> {
 }
 
 /**
- * A widget's row, table head, grid cell or avatar with the part hooks the Look asks for (`rowAttrs`, `cellAttrs`, `avatar-shape`): the element itself is the widget's,
+ * A widget's row, table head, grid cell, avatar or accent slab with the part hooks the Look asks for (`rowAttrs`, `cellAttrs`, `avatar-shape`): the element itself is the widget's,
  * its classes and children unchanged, so a Look that styles no rows draws the markup it always did. A component, so it reads the card's skin
  * from inside the card (a widget's layout callback runs before the card's context is there).
  */
-export function Part({ as, kind, state, current, ...rest }: { as?: ElementType; kind: "row" | "row-head" | "cell" | "avatar"; state?: Tone; current?: boolean } & HTMLAttributes<HTMLElement> & Record<`data-${string}`, string | number | undefined>) {
+export function Part({ as, kind, state, current, ...rest }: { as?: ElementType; kind: "row" | "row-head" | "cell" | "avatar" | "slab"; state?: Tone; current?: boolean } & HTMLAttributes<HTMLElement> & Record<`data-${string}`, string | number | undefined>) {
   const sk = useSkin();
   const Tag = as ?? "div";
+  if (kind === "slab") {
+    // a layout variant's mark: the accent slab in the Look's ink, texture and notch where it draws slabs, else the app's own (`ownSlabVars`, set above the slab, which redefines the card's accent)
+    const style = { ...(sk.slab?.notch ? null : { "--wp-slab-cut": "5px" }), ...rest.style } as CSSProperties;
+    const slab = <Tag data-wp-slab="accent" {...rest} style={style} />;
+    return sk.slab ? slab : <span className="contents" style={ownSlabVars("var(--w-accent)") as CSSProperties}>{slab}</span>;
+  }
   if (kind === "avatar") {
     if (sk.avatar !== "hex") return <Tag {...rest} />;
     return <Tag data-part="avatar" data-avatar="hex" {...rest} style={{ ...rest.style, clipPath: HEX_CLIP }} />;

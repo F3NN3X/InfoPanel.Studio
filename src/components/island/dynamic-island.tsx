@@ -25,6 +25,7 @@ import { severityColor } from "@/components/alerts/alert-model";
 import { cn } from "@/lib/utils";
 import { usePack } from "@/looks/pack";
 import type { PackChrome } from "@/looks/chrome";
+import { ownSlabVars } from "@/looks/treatments";
 import { layoutOf } from "@/widgets/layouts";
 import { accentVars } from "@/widgets/core/tokens";
 import { islandClock, islandSkin, motionVars, shadowTransition, shapeSpring, springTransition, type IslandSkin, type PageSkin, type WornSurface } from "./island-look";
@@ -526,8 +527,8 @@ function SlabExpanded({ item, tone }: { item: IslandItem; tone: PackChrome["tone
   const Icon = ICONS[item.severity];
   return (
     <div className="flex h-full w-full min-w-0 items-stretch gap-[0.8em] pr-[1.1em]" data-severity={item.severity}>
-      <span aria-hidden className="wp-slab flex w-[2.8em] shrink-0 items-center justify-center" style={{ color: tone.tone }}>
-        {item.image ? <img src={item.image} alt="" className="h-[2em] w-[2em] object-cover" /> : <Icon className="wp-slab-ink h-[1.3em] w-[1.3em]" />}
+      <span aria-hidden data-wp-slab="accent" className="flex w-[2.8em] shrink-0 items-center justify-center" style={ownSlabVars(tone.tone) as CSSProperties}>
+        {item.image ? <img src={item.image} alt="" className="h-[2em] w-[2em] object-cover" /> : <Icon className="h-[1.3em] w-[1.3em]" />}
       </span>
       <div className="flex min-w-0 flex-1 flex-col justify-center leading-tight">
         <div className="flex min-w-0 items-baseline gap-[0.4em]">

@@ -4,7 +4,7 @@
 // as a mono footer. The data and colours are the standard layout's: the adapter's readings and the theme's Series 1 and 2.
 import { Widget, shell, get, num, fmt, fmtRate, gbStat, rateUnitOf, adapterOf, pretty, hue, seriesColour, useHistory, Empty, type RateUnit } from "../kit";
 import { t3Tokens } from "../core/t3-tokens";
-import { Readout, SignalGraph } from "../shared/layout-parts";
+import { Reading, SignalGraph } from "../shared/layout-parts";
 import type { NetworkThroughputProps } from "./NetworkThroughput";
 
 const clamp = (lo: number, v: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -62,7 +62,7 @@ export function NetworkSignal(p: NetworkThroughputProps) {
                   <div key={label} className="flex min-w-0 flex-col gap-1">
                     <span data-part="label" className="text-micro uppercase tracking-[0.08em] text-[color:var(--w-faint)]">{label}</span>
                     {/* a colour set on the widget tints its figure; else the figure is the theme's number colour, its rule the series' */}
-                    <Readout value={r.value} decimals={r.decimals} unit={r.unit} px={px} color={own || undefined} ruleColor={color} />
+                    <Reading value={r.value} decimals={r.decimals} unit={r.unit} px={px} color={own || undefined} ruleColor={color} />
                   </div>
                 );
               })}

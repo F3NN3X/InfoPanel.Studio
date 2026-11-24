@@ -3,7 +3,7 @@
 // graph of the session's readings and their low, mean and high. Only the value and spark displays take it; the reading's own
 // thresholds tint the readout as they tint the standard one.
 import { Widget, shell, fmt, useHistory, TONES, HISTORY_LEN, type Tone } from "./kit";
-import { LowMeanHigh, Readout, SignalGraph } from "./shared/layout-parts";
+import { LowMeanHigh, Reading, SignalGraph } from "./shared/layout-parts";
 import type { SensorValueProps } from "./SensorValue";
 
 /** The graph needs this much height and the trio this much more, px. */
@@ -41,7 +41,7 @@ export function SensorReadout(p: SensorReadoutProps) {
         const [lo, hi] = [Math.min(...hist), Math.max(...hist)];
         return (
           <div data-layout="readout" className="flex h-full min-w-0 flex-col gap-2">
-            <Readout value={p.value} decimals={p.decimals} unit={p.unit} px={px} color={color} />
+            <Reading value={p.value} decimals={p.decimals} unit={p.unit} px={px} color={color} />
             {/* a steady reading draws through the middle, between the range's own labels */}
             {graph && <SignalGraph series={[{ values: hist, color: color ?? "var(--w-accent)" }]} min={hi > lo ? lo : lo - 1} max={hi > lo ? hi : hi + 1} labels={[fmt(hi, p.decimals), fmt(lo, p.decimals)]} className="mt-1 min-h-10 flex-1" />}
             {trio && <LowMeanHigh values={hist} decimals={p.decimals} unit={p.unit} px={small} colors={{ high: TONES.warn }} />}

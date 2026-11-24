@@ -7,6 +7,7 @@ import { Info, OctagonAlert, TriangleAlert, type LucideIcon } from "lucide-react
 import type { ActiveAlert, Severity } from "@/lib/alerts";
 import { alertTitle } from "@/lib/island/from-alerts";
 import type { SlabTone } from "@/looks/chrome";
+import { ownSlabVars } from "@/looks/treatments";
 import { cn } from "@/lib/utils";
 import { ageLabel, cardClasses } from "./alert-model";
 
@@ -42,8 +43,8 @@ export function SlabAlertCard({ alert, now, tone, motion, fraction, reduced, onA
       className={cn("pointer-events-auto relative flex cursor-pointer select-none items-stretch overflow-hidden !rounded-none !p-0 shadow-xl", cardClasses(alert), motion)}
       style={{ background: tone.fill, boxShadow: `inset 0 0 0 1px ${tone.tone}, 0 8px 30px -8px ${tone.tone}`, clipPath: `polygon(0 0, 100% 0, 100% calc(100% - ${CUT}), calc(100% - ${CUT}) 100%, 0 100%)` } as CSSProperties}
     >
-      <div aria-hidden className={cn("wp-slab flex shrink-0 items-center justify-center", overlay ? "w-[3.2em]" : "w-[2.6em]")} style={{ color: tone.tone }}>
-        <Icon className={cn("wp-slab-ink", overlay ? "h-10 w-10" : "h-[1.3em] w-[1.3em]")} />
+      <div aria-hidden data-wp-slab="accent" className={cn("flex shrink-0 items-center justify-center", overlay ? "w-[3.2em]" : "w-[2.6em]")} style={ownSlabVars(tone.tone) as CSSProperties}>
+        <Icon className={cn(overlay ? "h-10 w-10" : "h-[1.3em] w-[1.3em]")} />
       </div>
       <div role={alert.severity === "info" ? "status" : "alert"} className={cn("min-w-0 flex-1", overlay ? "p-6" : "px-[1em] py-[0.75em]")}>
         <div className="flex items-baseline justify-between gap-3">

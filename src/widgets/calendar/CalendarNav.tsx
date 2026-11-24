@@ -4,8 +4,8 @@
 // selected date beside the next event. Everything comes from the clock plugin's date and the calendar links; nothing is made up.
 import { useState } from "react";
 import type { CalendarEvent } from "@/lib/extras";
-import { Widget, shell, Num, TONES, type Box } from "../kit";
-import { hatch, notch } from "../shared/layout-parts";
+import { Widget, shell, Num, Part, TONES, type Box } from "../kit";
+import { hatch } from "../shared/layout-parts";
 import { useExtras, useNow } from "../time-hooks";
 import type { CalendarProps } from "./Calendar";
 
@@ -115,10 +115,10 @@ export function CalendarNav(p: CalendarProps & { day: number; month: number; yea
                 return (
                   <span key={key} className="flex items-stretch justify-center" style={{ fontSize: cellPx, ...(weekend && !isSelected ? { backgroundImage: hatch(22) } : null) }}>
                     {isSelected ? (
-                      <span data-part="num" data-selected="" className="wp-slab relative flex items-center justify-center font-bold tabular-nums text-[color:var(--w-accent)]" style={{ ...mark, ...notch(5) }}>
-                        <span className="wp-slab-ink">{c.getDate()}</span>
+                      <Part kind="slab" as="span" data-part="num" data-selected="" className="flex items-center justify-center font-bold tabular-nums" style={mark}>
+                        <span>{c.getDate()}</span>
                         {flag}
-                      </span>
+                      </Part>
                     ) : (
                       <span
                         data-today={isToday ? "" : undefined}

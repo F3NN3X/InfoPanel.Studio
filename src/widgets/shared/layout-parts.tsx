@@ -1,13 +1,12 @@
-// The pieces the layout variants (`src/widgets/layouts.ts`) draw with: a notched box, a section label with its count, a readout with
-// its decimals and unit set small over a solid-and-dotted rule, a signal graph and a low / mean / high trio. Every colour is a card
-// variable or the caller's, and every number is a `num` part, so a pack's CSS and variants reach them as they reach the standard
-// layouts. Local to the layouts until the shared readout and slab primitives land (lane K); they keep the same props.
+// The pieces the layout variants (`src/widgets/layouts.ts`) draw with: a hatch, a section label with its count, a reading at a given size
+// (the Look's readout and under-bar), a signal graph and a low / mean / high trio. Every colour is a card variable or the caller's, and every
+// number is a `num` part, so a pack's CSS and variants reach them as they reach the standard layouts. The slab, the readout and the under-bar
+// are the component treatments' (src/widgets/core/treatments.tsx), not drawn again here.
 import type { CSSProperties, ReactNode } from "react";
 import { fmt } from "../core/data";
 import { Num } from "../core/primitives";
-
-/** A box with its bottom-right corner cut by `cut` px (the kit's notch). */
-export const notch = (cut: number): CSSProperties => ({ clipPath: `polygon(0 0, 100% 0, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, 0 100%)` });
+import { useSkin } from "../core/theme";
+import { Readout, ReadoutBar } from "../core/treatments";
 
 /** The kit's 45-degree hatch in `color` at `alpha` %, a 1 px line every 6 px (a weekend column, a quiet cell). */
 export const hatch = (alpha: number, color = "var(--w-accent)"): string =>
@@ -23,24 +22,23 @@ export function SectionLabel({ children, right, className = "" }: { children: Re
   );
 }
 
-/** A reading as the kit's readout: the whole number at `px`, the decimals and the unit smaller, over a solid rule and a dotted one in `ruleColor` (else `color`, else the accent). */
-export function Readout({ value, decimals, unit, px, color, ruleColor, rule = true, ip }: { value: number; decimals: number; unit?: string; px: number; color?: string; ruleColor?: string; rule?: boolean; ip?: Record<string, string | number> }) {
+/** The size of a reading's decimals, as a share of the whole number's, where the Look names none (`readout-decimals`). */
+const DECIMALS = 0.55;
+
+/**
+ * A reading at `px`: the Look's readout (`Readout`, its decimals and its under-bar, src/widgets/core/treatments.tsx) in the card's number type, with
+ * the unit small and upper-case. The under-bar is the kit's, in `ruleColor` (else `color`, else the accent), where the Look names no readout too.
+ */
+export function Reading({ value, decimals, unit, px, color, ruleColor, rule = true, ip }: { value: number; decimals: number; unit?: string; px: number; color?: string; ruleColor?: string; rule?: boolean; ip?: Record<string, string | number> }) {
+  const sk = useSkin();
   const text = Number.isFinite(value) ? fmt(value, decimals) : "–";
-  const dot = text.lastIndexOf(".");
-  const [whole, frac] = dot > 0 && decimals > 0 ? [text.slice(0, dot), text.slice(dot)] : [text, ""];
+  const spec = { scale: 1, decimals: sk.readout?.decimals ?? DECIMALS, bar: true };
   return (
     <div className="flex min-w-0 flex-col items-start" style={{ gap: Math.max(2, px * 0.08) }}>
       <Num ip={ip} className="whitespace-nowrap leading-none text-[color:var(--w-fg)]" style={{ fontSize: px, ...(color ? { color } : null) }}>
-        {whole}
-        {frac && <span style={{ fontSize: "0.55em" }}>{frac}</span>}
-        {unit && <span data-part="unit" className="uppercase" style={{ fontSize: "max(11px, 0.32em)", marginLeft: "0.25em" }}>{unit}</span>}
+        <Readout spec={spec} value={text} unit={unit && <span data-part="unit" className="uppercase" style={{ fontSize: "max(11px, 0.32em)", marginLeft: "0.25em" }}>{unit}</span>} />
       </Num>
-      {rule && (
-        <span aria-hidden className="flex w-full items-center gap-0.75" style={{ color: ruleColor ?? color ?? "var(--w-accent)", maxWidth: Math.max(40, px * 2.6) }}>
-          <span className="h-0.5 shrink-0 bg-current" style={{ width: Math.max(12, px * 0.55) }} />
-          <span className="h-0.5 flex-1" style={{ backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1.2px)", backgroundSize: "5px 2px", opacity: 0.8 }} />
-        </span>
-      )}
+      {rule && <ReadoutBar color={ruleColor ?? color ?? "var(--w-accent)"} />}
     </div>
   );
 }
@@ -56,7 +54,7 @@ export function LowMeanHigh({ values, decimals, unit, px, colors }: { values: re
       {cells.map(([name, v, color]) => (
         <div key={name} className="flex min-w-0 flex-col gap-1">
           <SectionLabel>{name}</SectionLabel>
-          <Readout value={v} decimals={decimals} unit={unit} px={px} color={color} />
+          <Reading value={v} decimals={decimals} unit={unit} px={px} color={color} />
         </div>
       ))}
     </div>
