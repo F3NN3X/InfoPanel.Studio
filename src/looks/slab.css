@@ -1,0 +1,5 @@
+/* A solid slab of the element's own colour (the layout variants' selected day and the alert and island slabs, src/widgets/layouts.ts):
+   the kit's scan lines over it, and text on it near black on a light slab, white on a dark one (in `color`, currentColor is the parent's).
+   Here with the Look's colour code, and in the page's stylesheet, so a component that draws a slab names no colour of its own. */
+.wp-slab { background: repeating-linear-gradient(0deg, rgb(0 0 0 / 0.16) 0 1px, transparent 1px 3px), currentColor; }
+.wp-slab-ink { color: oklch(from currentColor clamp(0, (0.7 - l) * 1000, 1) 0 0); }

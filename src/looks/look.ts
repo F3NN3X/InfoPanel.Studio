@@ -100,6 +100,11 @@ export interface Look {
   ext?: Record<string, unknown>;
   /** Its variants (the Variant knob draws only for a Look that has some). */
   variants?: LookVariant[];
+  /**
+   * The layout variant it draws per widget kind and for the app's alerts and island (`"Calendar": "grid-nav"`, `"alert": "slab"`),
+   * one of those `src/widgets/layouts.ts` lists; a kind it does not name draws its standard layout. Read from a pack's Look.
+   */
+  layouts?: Record<string, string>;
   /** Only the built-in Studio Look: its chrome tokens by group (`shared` also feeds Settings and Help). */
   studio?: Record<string, Record<string, StudioEntry>>;
 }

@@ -5,6 +5,7 @@
 @import "./settings/ui/studio.css";
 /* Dropdown lists in the studio menus' look. */
 @import "./select.css";
+@import "./looks/slab.css";
 /* Dev-only files (src/dev: the fixtures) never add to the release CSS; a rule only they need goes in their own <style>. */
 @source not "./dev";
 

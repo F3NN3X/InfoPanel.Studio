@@ -9,6 +9,7 @@
 // reads the built-in packs through the tests). The server (Rust) does not run it; the server half, for P12b to build, is the
 // path-safety check on `GET /api/packs/<id>/<file>` (`isPackRelativeUrl`'s rules) and the size caps (a file, a pack: `PACK_CEILING_BYTES`).
 import { safeFill } from "@/widgets/core/t3-tokens";
+import { LAYOUTS, offers } from "@/widgets/layouts";
 import { parseCss, type Rule, type Token, tokenize, writeTokens } from "./css-syntax";
 import { BLUR_MAX as STAGE_BLUR_MAX, OVERLAY_MAX } from "./effects";
 import { iconSetIssues } from "./icon-set";
@@ -702,6 +703,7 @@ function validate(src: PackSource, source: "builtin" | "user", scriptAt: "files"
   }
   if (user) for (const [role, family] of Object.entries(look.fonts)) if (family.startsWith("pack-") && !pack.fonts.some((f) => f.family === family)) add("font-family", "look.json", `fonts.${role} ${family} is not a family this pack brings`);
   for (const key of T1_NAMES) for (const mode of look.modes.supported) if (!look.t1[mode]?.[key]) add("schema", "look.json", `${mode} ${key} is missing`);
+  out.push(...layoutIssues(look));
 
   // referenced files: stage images, fonts, icons, CSS urls; each is a pack path and a file of the folder
   const referenced = new Map<string, string>();
@@ -861,6 +863,15 @@ function layerBrightness(l: { fill?: string; image?: string }, files: Map<string
   const path = isPackRelativeUrl(l.image) ? resolve(l.image, "assets/") : undefined;
   const f = path ? files.get(path) : undefined;
   return f?.bytes && /\.svg$/i.test(f.path) ? svgBrightness(text(f.bytes)) : undefined;
+}
+
+/** The layouts block: each key a kind that offers layouts (a widget kind, `alert` or `island`) and each value one of its layouts (`src/widgets/layouts.ts`). Inert data, the same for a user pack. */
+export function layoutIssues(look: Pick<Look, "layouts">): PackIssue[] {
+  return Object.entries(look.layouts ?? {}).flatMap(([kind, id]) => {
+    const name = kind.slice(0, 40);
+    if (!Object.hasOwn(LAYOUTS, kind)) return [issue("layout", "look.json", `layouts ${name}: no widget kind, alert or island offers layouts under that name (${Object.keys(LAYOUTS).join(", ")})`)];
+    return offers(kind, id) ? [] : [issue("layout", "look.json", `layouts ${name} ${String(id).slice(0, 40)}: ${name} offers ${LAYOUTS[kind].map((l) => l.id).join(", ")}`)];
+  });
 }
 
 /** The motion block (L117): each effect's strength and timing inside its range (`MOTION_RULES`); the schema has already refused an unknown effect or key. Inert data, the same for a user pack. */

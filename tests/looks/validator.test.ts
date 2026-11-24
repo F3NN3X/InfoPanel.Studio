@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PACK_IDS, type Pack } from "@/looks/pack";
 import { packIssues } from "@/looks/pack-load";
-import { FILE_COUNT_MAX, FILE_MAX_BYTES, PACK_CEILING_BYTES, type PackFile, type PackSource, validatePack } from "@/looks/pack-validate";
+import { FILE_COUNT_MAX, FILE_MAX_BYTES, PACK_CEILING_BYTES, layoutIssues, type PackFile, type PackSource, validatePack } from "@/looks/pack-validate";
 import budgets from "../../tools/perf/budgets.json";
 import { readPackDir } from "../../tools/validate-pack.mjs";
 
@@ -1155,5 +1155,31 @@ describe("a pack's script (G4 as changed 2026-11-23)", () => {
     expect(validatePack(unlisted, { source: "builtin" }).filter((i) => i.severity === "error")).toEqual([]);
     expect(scriptRules(unlisted)).toContain("script");
     expect(validatePack(bad({ pack: { script: { file: "fx.js" } } }), { source: "builtin" }).map((i) => i.rule)).toContain("script");
+  });
+});
+
+// look.json `layouts`: a layout variant per widget kind and for the alerts and the island, each one its kind offers (src/widgets/layouts.ts).
+describe("the layouts block", () => {
+  const withLayouts = (layouts: unknown) => (l: Json) => (l.layouts = layouts);
+  const messages = (layouts: unknown) => validatePack(userPack({ look: withLayouts(layouts) })).filter((i) => i.rule === "layout" || i.rule === "schema").map((i) => i.message);
+
+  it("takes a layout each kind offers, for a user pack as for one of ours", () => {
+    const layouts = { Calendar: "grid-nav", DayPlanner: "board", NetworkThroughput: "signal", SensorValue: "readout", alert: "slab", island: "standard" };
+    expect(validatePack(userPack({ look: withLayouts(layouts) })).filter((i) => i.severity === "error")).toEqual([]);
+    expect(rules(bad({ look: withLayouts(layouts) }))).toEqual([]);
+  });
+
+  it("refuses a kind that offers no layouts, an unknown layout and a value that is not a plain name", () => {
+    expect(messages({ Clock: "grid-nav" }).join(" ")).toMatch(/layouts Clock: no widget kind/);
+    expect(messages({ Calendar: "agenda" }).join(" ")).toMatch(/layouts Calendar agenda: Calendar offers standard, grid-nav/);
+    expect(messages({ alert: "grid-nav" }).join(" ")).toMatch(/alert offers standard, slab/);
+    expect(userRules(userPack({ look: withLayouts({ Calendar: "Grid Nav" }) }))).toContain("schema");
+    expect(userRules(userPack({ look: withLayouts({ Calendar: 3 }) }))).toContain("schema");
+    expect(userRules(userPack({ look: withLayouts(["grid-nav"]) }))).toContain("schema");
+  });
+
+  it("reads a prototype key as no kind", () => {
+    expect(layoutIssues({ layouts: JSON.parse('{"toString":"standard","hasOwnProperty":"slab"}') }).map((i) => i.message).filter((m) => /no widget kind/.test(m))).toHaveLength(2);
+    expect(userRules(userPack({ look: withLayouts(JSON.parse('{"constructor":"standard"}')) })).length).toBeGreaterThan(0);
   });
 });

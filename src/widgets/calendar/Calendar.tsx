@@ -1,5 +1,6 @@
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, get, num, Num, roomy, useIpTag, type ShellProps } from "../kit";
+import { CalendarNav } from "./CalendarNav";
 import { meta } from "./meta";
 
 export { meta };
@@ -28,7 +29,19 @@ export const weekOf = (date: Date, weekStart: number): Date[] => {
   return Array.from({ length: 7 }, (_, i) => new Date(date.getFullYear(), date.getMonth(), date.getDate() - back + i));
 };
 
+/** The clock plugin's date and its week of the year. */
+function dateOf(p: CalendarProps) {
+  const k = (s: string) => num(get(p.data, `plugins.clock-plugin.clock.${s}`));
+  const [day, month, year] = [k("day"), k("month"), k("year")];
+  return { day, month, year, week: Math.ceil((new Date(year, month - 1, day).getTime() - new Date(year, 0, 1).getTime()) / 864e5 / 7) };
+}
+
+/** The standard layout, or the one the zone's Look or Layout pick names (`meta.layouts`). */
 export default function Calendar(p: CalendarProps) {
+  return p.lookLayout === "grid-nav" ? <CalendarNav {...p} {...dateOf(p)} /> : <MonthCalendar {...p} />;
+}
+
+function MonthCalendar(p: CalendarProps) {
   const d = p.data;
   const k = (s: string) => num(get(d, `plugins.clock-plugin.clock.${s}`));
   const day = k("day"),

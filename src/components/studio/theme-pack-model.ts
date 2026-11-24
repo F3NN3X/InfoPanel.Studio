@@ -1,5 +1,6 @@
 import type { Look } from "@/looks/look";
 import type { BurnIn, Pack } from "@/looks/pack";
+import { LAYOUTS, layoutKindName, offers, STANDARD_LAYOUT } from "@/widgets/layouts";
 
 /**
  * What a theme brings, as words: Theme's "In this theme" rows and the Browse detail pane's "What it brings". Read from the
@@ -7,7 +8,7 @@ import type { BurnIn, Pack } from "@/looks/pack";
  */
 
 export interface PartText {
-  id: "scenery" | "effects" | "details" | "icons" | "font";
+  id: "scenery" | "effects" | "details" | "icons" | "layouts" | "font";
   label: string;
   /** One line under the label. */
   hint: string;
@@ -49,9 +50,18 @@ export function packParts(pack: Pack | undefined, look: Look | undefined): PartT
   if (details.length > 0) parts.push({ id: "details", label: "Card details", hint: "Marks and bands on the cards", value: sentence(details) });
   const icons = Object.keys(pack?.slots?.icons ?? {}).length;
   if (icons > 0) parts.push({ id: "icons", label: "Icons", hint: "Replace the default icons", value: `Own set of ${icons}` });
+  const layouts = layoutNames(pack);
+  if (layouts.length > 0) parts.push({ id: "layouts", label: "Widget layouts", hint: "Widgets laid out the theme's way · Layout on a widget overrides it", value: layouts.join(", ") });
   const name = fontName(pack, look);
   parts.push({ id: "font", label: "Font", hint: pack?.fonts?.length ? `${name}, bundled with the theme` : name, value: licences(pack) });
   return parts;
+}
+
+/** The layouts a pack's Look names, as "Calendar: Month navigator" (a standard or unknown one is left out, as the zones leave it). */
+export function layoutNames(pack: Pack | undefined): string[] {
+  return Object.entries(pack?.look.layouts ?? {}).flatMap(([kind, id]) =>
+    id !== STANDARD_LAYOUT && offers(kind, id) ? [`${layoutKindName(kind)}: ${LAYOUTS[kind].find((l) => l.id === id)?.name}`] : [],
+  );
 }
 
 /** "Dark, light": the modes a Look supports. */
