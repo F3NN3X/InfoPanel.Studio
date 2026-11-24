@@ -175,8 +175,13 @@ export function valueText(host: HTMLElement, copy: HTMLElement, to: string, from
   const stop = count ? begin(host, copy, opts.ms, (t) => countAt(count, t), { frame: COUNT_FRAME_MS, now }) : begin(host, copy, opts.ms, () => undefined, { now, timed: true });
   if (!count) rollCopy(copy, from, to);
   if (opts.mark !== "none" && flashStart(now)) {
+    // the phosphor ghost is the old reading, drawn from this attribute (index.css)
+    if (opts.mark === "phosphor") host.setAttribute("data-mo-was", from);
     host.setAttribute("data-mo-mark", opts.mark);
-    setTimeout(() => host.removeAttribute("data-mo-mark"), Math.max(ONE_SHOT_MAX_MS, opts.ms) + 50);
+    setTimeout(() => {
+      host.removeAttribute("data-mo-mark");
+      host.removeAttribute("data-mo-was");
+    }, Math.max(ONE_SHOT_MAX_MS, opts.ms) + 50);
   }
   return stop;
 }
@@ -265,8 +270,8 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 let lastRun = -Infinity;
 let watching = false;
 
-type Repeat = "glitch" | "flicker" | "sweep";
-const REPEATS: readonly Repeat[] = ["glitch", "flicker", "sweep"];
+type Repeat = "glitch" | "flicker" | "sweep" | "tear";
+const REPEATS: readonly Repeat[] = ["glitch", "flicker", "sweep", "tear"];
 const periodOf = (card: Card, kind: Repeat): number => card.plan[kind]?.every ?? 0;
 /** The texts a glitch tears: labels and titles, and the numbers (their copy: `glitchValue`). */
 const TEXTS = '[data-part="label"], [data-part="header"]';
@@ -277,10 +282,10 @@ const tearable = (target: string | undefined) => (target === "value" ? NUMBERS :
 /** One glitch on a text: a label's or title's own (`data-mo-glitch`), a number's in its copy. */
 const tear = (el: Element, ms: number) => (el.matches(NUMBERS) ? glitchValue(el as HTMLElement, ms) : pulse(el, "data-mo-glitch", ms));
 
-/** Sets `attr` on `el` for `ms`, so the CSS runs its animation once (a run already going is left to finish). */
-function pulse(el: Element, attr: string, ms: number): void {
+/** Sets `attr` on `el` (to `value`) for `ms`, so the CSS runs its animation once (a run already going is left to finish). */
+function pulse(el: Element, attr: string, ms: number, value = ""): void {
   if (el.hasAttribute(attr)) return;
-  el.setAttribute(attr, "");
+  el.setAttribute(attr, value);
   setTimeout(() => el.removeAttribute(attr), ms + 50);
 }
 
@@ -295,9 +300,17 @@ function run(card: Card, kind: Repeat): void {
     const target = plan.flicker!.target === "label" ? [...el.querySelectorAll('[data-part="label"]')] : [el];
     const one = target[(Math.random() * target.length) | 0];
     if (one) pulse(one, "data-mo-flicker", FLICKER_MS);
+  } else if (kind === "tear") {
+    // the card's content, split at 25 to 75 % of its height and shifted 6 to 14 px either way
+    const body = el.querySelector<HTMLElement>("[data-mo-body]") ?? el;
+    if (body.hasAttribute("data-mo-torn")) return;
+    body.style.setProperty("--mo-tear-at", `${Math.round(25 + Math.random() * 50)}%`);
+    body.style.setProperty("--mo-tear-dx", `${Math.round((6 + Math.random() * 8) * (Math.random() < 0.5 ? -1 : 1) * plan.tear!.intensity)}px`);
+    body.style.setProperty("--mo-tear-ms", `${plan.tear!.ms}ms`);
+    pulse(body, "data-mo-torn", plan.tear!.ms);
   } else {
     const layer = el.querySelector("[data-mo-layer]");
-    if (layer) pulse(layer, "data-mo-sweep", plan.sweep!.ms);
+    if (layer) pulse(layer, "data-mo-sweep", plan.sweep!.ms, plan.sweep!.style ?? "band");
   }
 }
 

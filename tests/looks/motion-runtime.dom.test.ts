@@ -135,6 +135,34 @@ describe("the page's repeats", () => {
     expect(torn.some((t) => t.hasAttribute("data-mo-tear"))).toBe(false);
   });
 
+  it("tears one card's content at a split now and then, and runs a tracking sweep by its style", () => {
+    const el = card();
+    el.insertAdjacentHTML("beforeend", "<div data-mo-body></div>");
+    const body = el.querySelector<HTMLElement>("[data-mo-body]")!;
+    const torn = planMotion({ tear: { every: 4, ms: 120 }, sweep: { every: 4, ms: 800, style: "tracking" } }, {}, { level: "full", lite: false, reduceMotion: false })!;
+    const seen = new Set<string>();
+    const set = Element.prototype.setAttribute;
+    const spy = vi.spyOn(Element.prototype, "setAttribute").mockImplementation(function (this: Element, name: string, value: string) {
+      if (name === "data-mo-torn" && this === body) seen.add(`torn ${body.style.getPropertyValue("--mo-tear-at")} ${body.style.getPropertyValue("--mo-tear-dx")}`);
+      if (name === "data-mo-sweep") seen.add(`sweep ${value}`);
+      set.call(this, name, value);
+    });
+    const off = addMotionCard(el, torn);
+    for (let i = 0; i < 60; i++) vi.advanceTimersByTime(500);
+    spy.mockRestore();
+    off();
+    const tears = [...seen].filter((s) => s.startsWith("torn"));
+    expect(tears.length).toBeGreaterThan(0);
+    for (const t of tears) {
+      const [, at, dx] = t.split(" ");
+      expect(Number.parseInt(at)).toBeGreaterThanOrEqual(25);
+      expect(Number.parseInt(at)).toBeLessThanOrEqual(75);
+      expect(Math.abs(Number.parseInt(dx))).toBeGreaterThanOrEqual(6);
+      expect(Math.abs(Number.parseInt(dx))).toBeLessThanOrEqual(14);
+    }
+    expect(seen.has("sweep tracking")).toBe(true);
+  });
+
   it("sets no timer while the page is hidden, and none for a card with one-shots only", () => {
     const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
     const off = addMotionCard(card(), plan);

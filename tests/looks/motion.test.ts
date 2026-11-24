@@ -169,6 +169,24 @@ describe("values, lists and the boot", () => {
   });
 });
 
+describe("the retro additions: crt boot, phosphor mark, tracking sweep, screen tear", () => {
+  it("are words and ranges the validator takes, and refuses past them", () => {
+    expect(rules({ boot: { style: "crt" }, value: { mark: "phosphor" }, sweep: { style: "tracking" }, tear: { every: 12, ms: 120 } })).toEqual([]);
+    expect(rules({ sweep: { style: "wave" } })).toContain("schema");
+    expect(rules({ tear: { ms: 300 } })).toContain("motion");
+  });
+
+  it("the tear is a repeat: at Full only, gone at Calm; a sweep keeps its style", () => {
+    const motion: PackMotion = { tear: { every: 12 }, sweep: { style: "tracking" }, decode: {} };
+    expect(planMotion(motion, {}, FULL)?.tear).toMatchObject({ ms: 120, every: 12 });
+    expect(planMotion(motion, {}, FULL)?.sweep?.style).toBe("tracking");
+    expect(planMotion({ sweep: {} }, {}, FULL)?.sweep?.style).toBe("band");
+    const calm = planMotion(motion, {}, { ...FULL, level: "calm" });
+    expect(calm?.tear).toBeUndefined();
+    expect(calm?.sweep).toBeUndefined();
+  });
+});
+
 describe("the page art switch (`art`)", () => {
   it("is a switch only: `on` passes, any other key is the schema's", () => {
     expect(rules({ art: { on: false } })).toEqual([]);

@@ -350,7 +350,9 @@ The kit's text effects (titles that glitch in, labels that decode, readouts that
 Each effect is an object with `on` (default true), `intensity` (0.1 to 1) and its own timing: `glitch` `ms` 80 to 300,
 `every` 0 (on arrival only) or 4 to 120 seconds and `target` `text` (titles, labels and the page rail's logo, which tears as an image: sliced, shifted and split in the accent; the default), `value` or `all`; `decode` `ms` 150 to 900; `scramble` `ms` 60 to 300 and `every` 1 to 60 (the
 least seconds between two scrambles of one number); `arrival` `ms` 120 to 300 and `style` `fade`, `clip` or `line`; `flicker`
-`every` 2 to 120 and `target` `card` or `label`; `sweep` `ms` 400 to 3000 and `every` 4 to 120. A value out of range refuses
+`every` 2 to 120 and `target` `card` or `label`; `sweep` `ms` 400 to 3000, `every` 4 to 120 and `style` `band` or `tracking` (a VHS tracking band with a ragged edge drifting
+up); `tear` `ms` 80 to 200 and `every` 4 to 120 (a screen tear: one card's content split at a random height and shifted 6 to
+14 px, one card at a time; Cyberspec tears one every 20 s or so). A value out of range refuses
 the pack.
 
 The real text never changes: the noise is a copy over it that screen readers skip, so nothing changes width and privacy blur
@@ -373,7 +375,8 @@ Three more effects act on what changes on the page rather than on its words:
 
 - `value`: a number that changes rolls only its changed digits like an odometer (`style` `roll`, the default when a pack
   says nothing, and Cyberspec's: `{ "on": false, "style": "roll", "mark": "glitch", "every": 2 }`), or counts to its new reading (`tween`; a clock or any text that is not one figure always rolls), and may
-  `mark` the change with a `flash`, an `underline` or a `glitch` (the label glitch's slice and colour split, at most 300 ms,
+  `mark` the change with a `flash`, an `underline`, a `phosphor` ghost of the old reading fading out, or a `glitch` (the label
+  glitch's slice and colour split, at most 300 ms,
   on the number's copy). `ms` 150 to 900, `every` 1 to 60 (the least seconds between two runs of one number). The real
   reading is in the page at once (the run is in the aria-hidden copy), the width is the reading's, and a number with both
   `value` and `scramble` takes the value. The page starts at most three runs and two marks a second, twelve runs at once.
@@ -386,7 +389,7 @@ Three more effects act on what changes on the page rather than on its words:
   nothing is laid out again), light once when their words change (`change`: a reading that only ticks is not a change),
   and `decode` a new row's text. `ms` 120 to 300; at most eight rows of a card move at a time.
 - `boot`: when a page opens, its cards arrive one after another in page order (`stagger` 20 to 120 ms, the last at most 1.2 s
-  after the first), with a `style` of `fade`, `clip` or the kit's stepped `glitch`, a `line` drawn across each and its title
+  after the first), with a `style` of `fade`, `clip`, the kit's stepped `glitch` or `crt` (a tube powering on), a `line` drawn across each and its title
   decoding (`decode`). Once per page: a card that loads later on the same page arrives on its own.
 
 A pack with a motion block gets a **Motion** group in the Theme view: **Level** (the screen's Effects setting), **Intensity**

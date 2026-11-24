@@ -688,6 +688,19 @@
 [data-mo-flicker] { animation: app-mo-flicker 600ms 1; }
 [data-mo-layer]::after { content: ""; position: absolute; inset: 0; opacity: 0; background: linear-gradient(to bottom, transparent 44%, var(--w-accent) 50%, transparent 56%); }
 [data-mo-layer][data-mo-sweep]::after { opacity: var(--mo-sweep-op, 0.2); animation: app-mo-sweep var(--mo-sweep-ms, 1200ms) linear 1 both; }
+/* A sweep's VHS tracking band (`style: tracking`): a ragged band of noise lines drifting up the card. */
+[data-mo-layer][data-mo-sweep="tracking"]::after { background: repeating-linear-gradient(to bottom, transparent 0 2px, color-mix(in srgb, var(--w-fg) 40%, transparent) 2px 3px); clip-path: polygon(0 40%, 18% 42%, 33% 39%, 52% 43%, 71% 40%, 100% 42%, 100% 60%, 82% 58%, 60% 61%, 41% 57%, 22% 60%, 0 58%); animation-name: app-mo-tracking; }
+@keyframes app-mo-tracking { from { transform: translateY(60%); } to { transform: translateY(-60%); } }
+/* A screen tear (motion-runtime.ts `tear`): the card's content shifted sideways above the split for half the run, then below it. */
+[data-mo-torn] { animation: app-mo-torn var(--mo-tear-ms, 120ms) 1; }
+@keyframes app-mo-torn {
+  0% { translate: var(--mo-tear-dx, 10px) 0; clip-path: inset(0 0 calc(100% - var(--mo-tear-at, 50%)) 0); animation-timing-function: step-end; }
+  50% { translate: calc(-0.6 * var(--mo-tear-dx, 10px)) 0; clip-path: inset(var(--mo-tear-at, 50%) 0 0 0); animation-timing-function: step-end; }
+  100% { translate: none; clip-path: none; }
+}
+/* The boot's tube powering on (`style: crt`): a bright line that opens to the card. */
+[data-mo-boot="crt"] { animation: app-mo-crt var(--mo-boot-ms, 240ms) ease-out var(--mo-boot-delay, 0ms) 1 both; }
+@keyframes app-mo-crt { 0% { opacity: 0.9; transform: scaleY(0.02); } 45% { opacity: 1; transform: scaleY(0.08); } 100% { opacity: 1; transform: none; } }
 [data-mo-arrive="fade"] { animation: app-mo-fade var(--mo-arrive-ms, 240ms) ease-out 1; }
 [data-mo-arrive="clip"] { animation: app-mo-clip var(--mo-arrive-ms, 240ms) steps(6, end) 1; }
 [data-mo-arrive="line"]::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: var(--w-accent); transform-origin: left; opacity: 0; animation: app-mo-line var(--mo-arrive-ms, 240ms) ease-out 1; }
@@ -700,6 +713,9 @@
 @keyframes app-mo-vflash { from { text-shadow: 0 0 calc(12px * var(--mo-mark-a, 0.6)) var(--w-accent), 0 0 2px var(--w-accent); } }
 [data-mo-mark="flash"] > [data-mo-copy] { animation: app-mo-vflash 300ms ease-out 1; }
 [data-mo-mark="glitch"] > [data-mo-copy] { animation: app-mo-glitch var(--mo-glitch-ms, 240ms) 1; }
+/* A phosphor mark: the old reading's ghost in the accent, fading from 0.6 as the new one rolls in. */
+[data-mo-mark="phosphor"]::before { content: attr(data-mo-was); position: absolute; left: 0; top: 0; white-space: pre; pointer-events: none; color: var(--w-accent); -webkit-text-fill-color: currentColor; opacity: 0; filter: blur(0.5px); animation: app-mo-phosphor var(--mo-val-ms, 480ms) ease-out 1; }
+@keyframes app-mo-phosphor { from { opacity: 0.6; } to { opacity: 0; translate: 0 -0.15em; } }
 @keyframes app-mo-uline { 0% { transform: scaleX(0); } 60% { transform: scaleX(1); opacity: var(--mo-mark-a, 0.6); } 100% { transform: scaleX(1); opacity: 0; } }
 [data-mo-mark="underline"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -0.12em; height: max(1px, 0.07em); background: var(--w-accent); opacity: var(--mo-mark-a, 0.6); transform-origin: left; pointer-events: none; animation: app-mo-uline var(--mo-val-ms, 480ms) ease-out 1 both; }
 /* A list's rows (motion-list.ts): a new row slides or fades in, a moved one glides from its old place (`--mo-dy`, by translate), a changed one is lit once. */

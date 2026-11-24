@@ -52,6 +52,15 @@ describe("a value's run", () => {
     expect(copy.childNodes).toHaveLength(0);
   });
 
+  it("a phosphor mark keeps the old reading for its ghost while it runs, and drops it after", () => {
+    const a = text("42");
+    valueText(a.host, a.copy, "43", "42", { ms: 480, style: "roll", mark: "phosphor" });
+    expect(a.host.getAttribute("data-mo-mark")).toBe("phosphor");
+    expect(a.host.getAttribute("data-mo-was")).toBe("42");
+    vi.advanceTimersByTime(600);
+    expect(a.host.hasAttribute("data-mo-mark") || a.host.hasAttribute("data-mo-was")).toBe(false);
+  });
+
   it("does nothing for an unchanged reading or on a hidden page", () => {
     const a = text("7");
     valueText(a.host, a.copy, "7", "7", { ms: 300, style: "roll", mark: "flash" });

@@ -178,7 +178,11 @@
       "every": 12
     },
     "sweep": {
-      "on": false
+      "on": false,
+      "style": "tracking"
+    },
+    "tear": {
+      "every": 20
     },
     "art": {
       "on": false

@@ -1301,12 +1301,12 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
   80-300, `every` 0 (on arrival only) or 4-120 seconds and `target` `text` (titles, labels and the page rail's logo, the default), `value`
   (numbers, torn in a copy over them) or `all`; `decode` `ms` 150-900; `scramble` `ms` 60-300 and `every`
   1-60 (the least seconds between two scrambles of one number); `arrival` `ms` 120-300 and `style` `fade`, `clip` or
-  `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000 and `every` 4-120; `value` `ms`
+  `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000, `every` 4-120 and `style` `band` or `tracking` (a VHS tracking band drifting up); `tear` `ms` 80-200 and `every` 4-120 (a screen tear: one card's content split and shifted 6 to 14 px, one card at a time, dropped at Calm); `value` `ms`
   150-900, `every` 1-60 (the least seconds between two runs of one number), `style` `roll` (the default) or `tween`
-  (count), `mark` `none`, `flash`, `underline` or `glitch` (a number with both `value` and `scramble` takes the value);
+  (count), `mark` `none`, `flash`, `underline`, `glitch` or `phosphor` (the old reading's ghost fading out) (a number with both `value` and `scramble` takes the value);
   `list` `ms` 120-300, `enter`
   `slide`, `fade` or `none`, and `reorder`, `change` and `decode` (true or false); `boot` `ms` 120-300, `stagger` 20-120 (ms
-  between two cards), `style` `fade`, `clip` or `glitch`, and `line` and `decode` (true or false); `art` takes only `on`
+  between two cards), `style` `fade`, `clip`, `glitch` or `crt` (a tube powering on: a line that opens to the card), and `line` and `decode` (true or false); `art` takes only `on`
   (the page art's switch, below). Anything else, or a value out of range, refuses the pack at import. The real reading is on the page at once while a number counts, the page
   starts at most three counts and two change marks a second and twelve runs at once, and a list moves at most eight rows of
   a card at a time.

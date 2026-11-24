@@ -6,7 +6,7 @@
 // second (WCAG 2.3.1). Types, ranges, the checker and the plan; no DOM.
 import type { FxLevel } from "./pack-json";
 
-export const MOTION_EFFECTS = ["glitch", "decode", "scramble", "arrival", "flicker", "sweep", "value", "list", "boot", "art"] as const;
+export const MOTION_EFFECTS = ["glitch", "decode", "scramble", "arrival", "flicker", "sweep", "value", "list", "boot", "tear", "art"] as const;
 export type MotionEffect = (typeof MOTION_EFFECTS)[number];
 export const ARRIVAL_STYLES = ["fade", "clip", "line"] as const;
 export type ArrivalStyle = (typeof ARRIVAL_STYLES)[number];
@@ -18,17 +18,20 @@ export type GlitchTarget = (typeof GLITCH_TARGETS)[number];
 /** How a number reaches a new reading: rolls its changed digits (the default), or counts to it (a text that is not one figure, a clock, always rolls). */
 export const VALUE_STYLES = ["tween", "roll"] as const;
 export type ValueStyle = (typeof VALUE_STYLES)[number];
-/** What marks a number that changed, besides its run: a flash, an underline, or a glitch of its copy (the label glitch's slice and split). */
-export const VALUE_MARKS = ["none", "flash", "underline", "glitch"] as const;
+/** What marks a number that changed, besides its run: a flash, an underline, a glitch of its copy (the label glitch's slice and split), or the old reading's phosphor ghost fading out. */
+export const VALUE_MARKS = ["none", "flash", "underline", "glitch", "phosphor"] as const;
 export type ValueMark = (typeof VALUE_MARKS)[number];
 /** How a new row of a list comes in. */
 export const LIST_ENTERS = ["slide", "fade", "none"] as const;
 export type ListEnter = (typeof LIST_ENTERS)[number];
-/** How a card arrives in a page's boot. */
-export const BOOT_STYLES = ["fade", "clip", "glitch"] as const;
+/** How a card arrives in a page's boot: `crt` is a tube powering on (a line that opens to the card, brightening). */
+export const BOOT_STYLES = ["fade", "clip", "glitch", "crt"] as const;
 export type BootStyle = (typeof BOOT_STYLES)[number];
+/** How a sweep crosses a card: the soft band down it, or a VHS tracking band with a ragged edge drifting up. */
+export const SWEEP_STYLES = ["band", "tracking"] as const;
+export type SweepStyle = (typeof SWEEP_STYLES)[number];
 /** The `style` each effect that has one takes. */
-const STYLES: Partial<Record<MotionEffect, readonly string[]>> = { arrival: ARRIVAL_STYLES, value: VALUE_STYLES, boot: BOOT_STYLES };
+const STYLES: Partial<Record<MotionEffect, readonly string[]>> = { arrival: ARRIVAL_STYLES, value: VALUE_STYLES, boot: BOOT_STYLES, sweep: SWEEP_STYLES };
 /** The `target` each effect that has one takes. */
 const TARGETS: Partial<Record<MotionEffect, readonly string[]>> = { flicker: FLICKER_TARGETS, glitch: GLITCH_TARGETS };
 type Switch = "reorder" | "change" | "decode" | "line";
@@ -44,8 +47,8 @@ export interface MotionEffectSpec {
   every?: number;
   /** How long one run lasts. */
   ms?: number;
-  /** `arrival`, `value` and `boot`: each its own list (`ARRIVAL_STYLES`, `VALUE_STYLES`, `BOOT_STYLES`). */
-  style?: ArrivalStyle | ValueStyle | BootStyle;
+  /** `arrival`, `value`, `boot` and `sweep`: each its own list (`ARRIVAL_STYLES`, `VALUE_STYLES`, `BOOT_STYLES`, `SWEEP_STYLES`). */
+  style?: ArrivalStyle | ValueStyle | BootStyle | SweepStyle;
   /** `flicker` (`FLICKER_TARGETS`) and `glitch` (`GLITCH_TARGETS`). */
   target?: FlickerTarget | GlitchTarget;
   /** `value` only: the mark on a number that changed. */
@@ -64,7 +67,7 @@ export interface MotionEffectSpec {
   stagger?: number;
 }
 
-/** pack.json `motion`: any of the ten effects (`art` is the stage's animated layer, not a card's: `artMoves`). */
+/** pack.json `motion`: any of the eleven effects (`art` is the stage's animated layer, not a card's: `artMoves`). */
 export type PackMotion = Partial<Record<MotionEffect, MotionEffectSpec>>;
 
 type Range = readonly [number, number];
@@ -91,11 +94,13 @@ export const MOTION_RULES: Readonly<Record<MotionEffect, EffectRule>> = {
   scramble: { ms: [60, ONE_SHOT_MAX_MS], every: [1, 60], def: { intensity: 1, ms: 240, every: 4 } },
   arrival: { ms: [120, ONE_SHOT_MAX_MS], def: { intensity: 1, ms: 240, style: "fade" } },
   flicker: { every: [2, 120], def: { intensity: 0.5, every: 8, target: "card" } },
-  sweep: { ms: [400, 3000], every: [4, 120], def: { intensity: 0.5, ms: 1200, every: 12 } },
+  sweep: { ms: [400, 3000], every: [4, 120], def: { intensity: 0.5, ms: 1200, every: 12, style: "band" } },
   // a value's `every` is the least seconds between two runs of one number, like a scramble's
   value: { ms: [150, 900], every: [1, 60], def: { intensity: 0.6, ms: 480, every: 1, style: "roll", mark: "none" } },
   list: { ms: [120, ONE_SHOT_MAX_MS], def: { intensity: 0.6, ms: 240, enter: "slide", reorder: true, change: true, decode: false } },
   boot: { ms: [120, ONE_SHOT_MAX_MS], stagger: [20, 120], def: { intensity: 1, ms: 240, stagger: 60, style: "clip", line: true, decode: true } },
+  // a screen tear: one card's content split at a random height and shifted 6 to 14 px, now and then, one card at a time
+  tear: { ms: [80, 200], every: [4, 120], def: { intensity: 1, ms: 120, every: 12 } },
   // the page's animated layer (stage `layers[].animated`): only a switch, so a pack can offer it off
   art: { def: { intensity: 1 } },
 };
@@ -184,7 +189,7 @@ export interface PlannedMotion {
   ms: number;
   /** Seconds; 0 for a glitch that runs on arrival only (and every glitch at Calm). */
   every: number;
-  style?: ArrivalStyle | ValueStyle | BootStyle;
+  style?: ArrivalStyle | ValueStyle | BootStyle | SweepStyle;
   target?: FlickerTarget | GlitchTarget;
   mark?: ValueMark;
   enter?: ListEnter;
@@ -203,7 +208,7 @@ const INTENSITY_SCALE = { low: 0.5, high: 1.5 } as const;
 /** Fast runs and repeats sooner; slow later. */
 const TIME_SCALE = { slow: 1.5, fast: 0.67 } as const;
 /** The effects that repeat: Calm draws none of them (a glitch keeps its arrival run). */
-const REPEATS: readonly MotionEffect[] = ["flicker", "sweep"];
+const REPEATS: readonly MotionEffect[] = ["flicker", "sweep", "tear"];
 
 const clamp = (v: number, [lo, hi]: Range) => Math.min(hi, Math.max(lo, v));
 
