@@ -41,7 +41,8 @@ export function VisualizerSpectrum(p: VisualizerProps) {
   // the plugin's level is 0..100
   const level = k("audio-level") || 0;
   return (
-    <Widget {...shell(p)} title={p.title ?? name} icon="equalizer" compact={{ label: name, value: fmt(k("peak-level"), 1), unit: "dB", icon: "equalizer" }}>
+    // the standard layout's header and right reading, so the card's body keeps its box (G2)
+    <Widget {...shell(p)} title={p.title ?? name} icon="equalizer" right={<span className="font-mono text-micro tabular-nums text-[color:var(--w-muted)]">{fmt(k("peak-level"), 1)} dB</span>}>
       {({ w, h }) => {
         const px = clamp(20, Math.min(w / 8, h * 0.2), 64);
         const ruler = h >= 200;

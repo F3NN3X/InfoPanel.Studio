@@ -777,6 +777,8 @@ foot, drawn by the app from the widget's catalog entry.
 - The foot is a strip of outlined chips: the widget's name and, where the Look names one, its layout.
 - It draws only on a card of 280 by 240 px or more, with a header and outside the terminal skin; a smaller card keeps the Look's
   header, and so does a card the app has not measured yet. `none`, the default, is today's card.
+- The head is taller than a Look's header, so the card's body is shorter: the card keeps its box, the body does not. The app's
+  own packs keep every body box as Classic draws it (the overflow check's G2 rule), so Cyberspec leaves the anatomy off.
 
 What these can't do yet: a meter's cells take the height the widget gives its bar (the kit's chunkier cells need the widget's
 room), the overflow check does not see the caption or an outside tab (they are drawn in pseudo-elements beside the card), and the

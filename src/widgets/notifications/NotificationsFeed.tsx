@@ -47,7 +47,6 @@ export function NotificationsFeed(p: NotificationsProps) {
       title={p.title ?? "Notifications"}
       icon="notifications"
       right={Number.isFinite(count) ? <Chip>{Math.round(count)}</Chip> : undefined}
-      compact={{ label: "Notifications", value: Number.isFinite(count) ? Math.round(count) : "–", sub: k("last-notification") ?? status ?? "", kind: "value", icon: "notifications" }}
     >
       {({ h }) => {
         if (!lines.length) return <Empty icon="notifications" label={k("last-notification") ?? "No notifications"} />;

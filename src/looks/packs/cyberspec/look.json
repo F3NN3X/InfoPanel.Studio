@@ -128,8 +128,7 @@
     "graph-bars": "striped",
     "row-style": "ruled",
     "share-style": "gapped",
-    "avatar-shape": "hex",
-    "card-style": "anatomy"
+    "avatar-shape": "hex"
   },
   "ext": {},
   "layouts": {

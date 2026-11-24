@@ -35,7 +35,7 @@ export function SystemPower(p: SystemOverviewProps) {
   const total = cpuW + gpuW;
   const temps = [r.cpu.temp !== undefined && `CPU ${fmt(r.cpu.temp, 0)}°C`, r.gpu.temp !== undefined && `GPU ${fmt(r.gpu.temp, 0)}°C`].filter(Boolean).join(" // ");
   return (
-    <Widget {...shell(p)} title={p.title ?? "System"} icon="monitor_heart" compact={{ label: "Power draw", value: fmt(total, 0), unit: "W", sub: `CPU ${fmt(cpuW, 0)} · GPU ${fmt(gpuW, 0)}`, icon: "bolt" }}>
+    <Widget {...shell(p)} showHeader={!!p.title} title={p.title} icon="monitor_heart" compact={{ label: "Power draw", value: fmt(total, 0), unit: "W", sub: `CPU ${fmt(cpuW, 0)} · GPU ${fmt(gpuW, 0)}`, icon: "bolt" }}>
       {({ w, h }) => {
         if (!rows.length && total === 0) return <Empty icon="monitor_heart" label="No system readings" />;
         const px = clamp(22, Math.min(w / 6, h * 0.14), 64);

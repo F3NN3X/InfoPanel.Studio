@@ -77,7 +77,7 @@ export function KitTabs({ tabs, active, onPick, count = true }: { tabs: readonly
           {...(onPick ? { type: "button", role: "tab", "aria-selected": i === at, onClick: () => onPick(t.id) } : null)}
           data-part="tab"
           data-active={i === at ? "" : undefined}
-          className="relative shrink-0 truncate pb-1 text-caption font-semibold uppercase leading-none tracking-[0.08em] text-[color:var(--w-accent)]"
+          className="relative min-w-0 truncate pb-1 text-caption font-semibold uppercase leading-none tracking-[0.08em] text-[color:var(--w-accent)]"
         >
           {i === at ? <span data-part="num">{t.label}</span> : t.label}
           {i === at && <span aria-hidden className="absolute inset-x-0 -bottom-px h-0.5 bg-current" style={{ color: "inherit", boxShadow: "0 0 6px currentColor" }} />}
