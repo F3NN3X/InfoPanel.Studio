@@ -348,7 +348,8 @@ function tick(): void {
   const now = performance.now();
   const kind = REPEATS.filter((k) => due[k] !== undefined).sort((a, b) => due[a]! - due[b]!)[0];
   if (kind && due[kind]! <= now) {
-    if (now - lastRun < MOTION_GAP_MS) due[kind] = lastRun + MOTION_GAP_MS;
+    // a clock behind the last run (a new fake clock in a test; a page's own never goes back) starts the gap afresh
+    if (now >= lastRun && now - lastRun < MOTION_GAP_MS) due[kind] = lastRun + MOTION_GAP_MS;
     else {
       const holders = [...cards].filter((c) => periodOf(c, kind) > 0 && c.el.isConnected);
       const card = holders[(Math.random() * holders.length) | 0];
