@@ -1,4 +1,4 @@
-import { Check, ChevronRight, MoreHorizontal } from "lucide-react";
+import { ChevronRight, MoreHorizontal } from "lucide-react";
 import { Menu } from "@/components/ui/menu";
 import { Tooltip } from "@/components/ui/tooltip";
 import { CONTROL_HELP, tipOf, type ControlId } from "./help-text";
@@ -14,7 +14,13 @@ interface PageMenuProps {
   onHelp: () => void;
 }
 
-const tick = (on: boolean) => <Check aria-hidden className={`h-3.5 w-3.5 shrink-0 ${on ? "" : "invisible"}`} strokeWidth={2} />;
+// a glyph, not lucide's Check: importing that icon here splits it into a chunk of its own, which every studio and kiosk chunk
+// that draws it then imports (perf:budgets)
+const tick = (on: boolean) => (
+  <span aria-hidden className={`w-3.5 shrink-0 text-center text-caption ${on ? "" : "invisible"}`}>
+    ✓
+  </span>
+);
 
 /** A menu row named and explained as its control is (`help-text.ts`): the explanation is its hover text. */
 function Action({ id, onClick }: { id: ControlId; onClick: () => void }) {
