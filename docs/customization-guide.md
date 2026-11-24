@@ -1584,6 +1584,29 @@ a pack it has. A pack's effect script runs only when the pack is verified, signe
 Settings › Widget publishers, or when you allow it for that pack; **Pack effect scripts** in Browse themes, or `PACK_SCRIPTS=off`
 on the server, turns them all off.
 
+### Troubleshooting a pack on the Widget QA page
+
+The Widget QA page (`/widget-qa` on the dashboard server in debug mode, or Settings › Diagnostics) draws every widget kind
+at a row of sizes, each of its views and layouts, and the app's own surfaces: the page rail with a slot of every kind and
+every widget that has a rail preset, the alerts in each tone and the banner, the island in each state and the action toast.
+The controls on its first line wear a theme the way a screen does:
+
+- **look** picks Classic, a skin, a sample theme or a theme pack (the built-in ones, and any you imported); **variant of
+  look** picks one of its variants; **fx** sets the screen's Effects level (Full, Calm, Off); **pack script** turns the
+  pack's effect script on or off. What you see is what a kiosk wearing that theme draws: the pack's colours, CSS, card
+  frames, page layers and grid, layouts, treatments, fonts and motion.
+- **import pack** takes a pack as a `.zip`. It is checked as the Theme page's import checks it and worn on this page only;
+  nothing is stored.
+- With a theme worn, each frame is checked for what does not follow it, and its caption counts the **theme flags**: a
+  colour that is not one of the theme's (its palette, its own colours, or a tint or shade of one), text outside the pack's
+  fonts, and a pack frame or card edge on an item of the page rail (the rail is the screen's chrome, so its items never wear
+  one). Hover the count for the list. **flagged only** hides the widgets that came back clean.
+- In the browser console, `__qaAdoption().text` prints the whole report, and `await __qaRoundTrip("classic")` wears another
+  theme and comes back, then lists any colour, CSS variable, stylesheet or attribute that stayed behind. From a checkout,
+  `node tools/qa/adoption.mjs --look my-pack --round-trip classic` does both on a scratch server.
+
+A flag is where to look, not a verdict: a widget may keep a colour on purpose (a cover image, a colour you picked).
+
 ## Widget theme
 
 Look and content preferences can be set once instead of per widget. A theme holds a value for each *themed* setting: the

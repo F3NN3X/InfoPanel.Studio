@@ -3,7 +3,10 @@ import { modules } from "@/modules";
 import { STYLE_SETTINGS } from "@/modules/standard-settings";
 import { THEME_PRESETS } from "@/lib/theme";
 import { SKIN_NAMES, SURFACE_NAMES } from "@/widgets/core/theme";
-import { DEFAULT_STATE, type QaState } from "./params";
+import type { ResolvedVariant } from "@/looks/look";
+import { DEFAULT_STATE, type QaFx, type QaState } from "./params";
+
+const FX: QaFx[] = ["full", "calm", "off"];
 
 const optionsOf = (key: string) => (STYLE_SETTINGS.find((s) => s.key === key)?.options ?? []).filter((o) => o.value !== "auto").map((o) => o.value);
 const SKINS = SKIN_NAMES;
@@ -52,10 +55,36 @@ function Check({ name, checked, onChange }: { name: string; checked: boolean; on
   );
 }
 
+interface ToolbarProps {
+  state: QaState;
+  /** The Looks the `look` control offers (`qaLookIds`). */
+  looks: readonly string[];
+  /** The worn Look's variants. */
+  variants: readonly ResolvedVariant[];
+  /** What the last pack import came to. */
+  imported: string;
+  onImport: (files: FileList) => void;
+  onChange: (patch: Partial<QaState>) => void;
+  onReset: () => void;
+}
+
 /** The one global control strip; every change goes through `onChange`, which updates state and the URL. */
-export function Toolbar({ state, onChange, onReset }: { state: QaState; onChange: (patch: Partial<QaState>) => void; onReset: () => void }) {
+export function Toolbar({ state, looks, variants, imported, onImport, onChange, onReset }: ToolbarProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      {/* the Look worn as a screen wears it (theme.tsx): before the per-widget controls, which go over it as a widget's own would */}
+      <Pick name="look" value={state.look} options={[...looks]} onChange={(look) => onChange({ look, lookVariant: "" })} blank="none" />
+      {variants.length > 0 && <Pick name="variant of look" value={state.lookVariant} options={variants.map((v) => v.id)} onChange={(lookVariant) => onChange({ lookVariant })} blank="own" />}
+      <Pick name="fx" value={state.fx} options={FX} onChange={(fx) => onChange({ fx: fx as QaFx })} blank="default" />
+      <Check name="pack script" checked={state.script} onChange={(script) => onChange({ script })} />
+      <label className="flex items-center gap-1 text-[11px]">
+        <span className="opacity-60">import pack</span>
+        <input type="file" accept=".zip" className="w-44 text-[11px]" onChange={(e) => e.target.files?.length && onImport(e.target.files)} />
+        {imported && <span className="opacity-80">{imported}</span>}
+      </label>
+      <Check name="flagged only" checked={state.flagged} onChange={(flagged) => onChange({ flagged })} />
+      <Check name="surfaces" checked={state.surfaces} onChange={(surfaces) => onChange({ surfaces })} />
+      <span className="basis-full" />
       <input className={`${field} w-40`} placeholder="Filter id or title" value={state.q} onChange={(e) => onChange({ q: e.target.value })} />
       <Pick name="skin" value={state.skin} options={SKINS} onChange={(skin) => onChange({ skin })} />
       <Pick name="variant" value={state.variant} options={VARIANTS} onChange={(variant) => onChange({ variant })} />

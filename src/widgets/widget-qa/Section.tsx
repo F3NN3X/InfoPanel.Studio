@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { categorize, tabOf } from "@/components/studio/inspector-categories";
 import { migratePlacementV19 } from "@/lib/settings-migrate.v19";
 import { STANDARD_KEYS } from "@/modules/standard-settings";
+import { LAYOUT_KEY } from "../layouts";
+import { checkAdoption, type CheckOptions, type Flag } from "./adoption";
+import type { Appearance } from "@/lib/style-resolve";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { withDemo } from "./demo-settings";
 import { Frame } from "./Frame";
 import { notesFor } from "./notes";
 import { frameId } from "./params";
-import { framePlan, placement, spanSize, viewPlans } from "./plan";
+import { framePlan, layoutPlans, placement, spanSize, viewPlans } from "./plan";
 import { probeBox, type Issue } from "./probe";
 
 export interface View {
@@ -23,7 +26,32 @@ export interface View {
   frameRef: (id: string, key: string) => { text: string; url: string };
   /** Draw the grid cells over every frame. */
   grid: boolean;
+  /** The screen level every frame resolves under (a worn Look); unset: none. */
+  appearance?: Appearance;
+  /** Run the theme-adoption check on each frame once it settles and badge what it flags (`adoption.ts`); unset: no check. */
+  adoption?: CheckOptions;
+  /** Only the widgets the check flags: a widget whose every frame came back clean is hidden. */
+  flagged?: boolean;
+  /** Draw a widget's layouts row (`LAYOUTS`) under its views. */
+  layouts?: boolean;
 }
+
+// What the adoption check found per frame (by frame id), for the "flagged only" filter; a frame not read yet is not in it.
+const found = new Map<string, number>();
+const watchers = new Set<() => void>();
+let version = 0;
+const watch = (fn: () => void) => (watchers.add(fn), () => void watchers.delete(fn));
+function report(id: string, n: number) {
+  if (found.get(id) === n) return;
+  found.set(id, n);
+  version++;
+  watchers.forEach((fn) => fn());
+}
+/** Whether every read frame of a widget came back clean (none read: not known, so not clean). */
+const clean = (module: string) => {
+  const mine = [...found].filter(([id]) => id.startsWith(`${module}--`));
+  return mine.length > 0 && mine.every(([, n]) => n === 0);
+};
 
 function settingRow(s: ModuleSetting) {
   const opts = s.options?.map((o) => o.value).join(" | ");
@@ -136,6 +164,7 @@ interface FigureProps {
  */
 function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureProps) {
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [flags, setFlags] = useState<Flag[]>([]);
   const [copied, setCopied] = useState("");
   const w = spanSize(c, view.cell, view.gap);
   const h = spanSize(r, view.cell, view.gap);
@@ -150,7 +179,13 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
   return (
     <figure id={id} {...attrs} className={`m-0 flex scroll-mt-40 flex-col gap-1 rounded ${targeted ? "outline outline-2 outline-offset-4 outline-sky-400" : ""}`}>
       <div className={`relative rounded ${issues.length ? "outline outline-1 outline-offset-2 outline-red-500/70" : ""}`}>
-        <Frame p={{ ...migratePlacementV19(placement(mod.id, c, r, withDemo(mod.id, settings, view.live))), id: `qa-${mod.id}-${attrs["data-qa-view"] ?? ""}${c}x${r}` }} w={w} h={h} live={view.live} eager={view.eager} onSettled={(box) => setIssues(probeBox(box))} />
+        <Frame p={{ ...migratePlacementV19(placement(mod.id, c, r, withDemo(mod.id, settings, view.live))), id: `qa-${mod.id}-${attrs["data-qa-view"] ?? ""}${c}x${r}` }} w={w} h={h} live={view.live} eager={view.eager} appearance={view.appearance} onSettled={(box) => {
+          setIssues(probeBox(box));
+          if (!view.adoption) return;
+          const out = checkAdoption(box, view.adoption);
+          setFlags(out);
+          report(id, out.length);
+        }} />
         {view.grid && <GridOverlay c={c} r={r} cell={view.cell} gap={view.gap} />}
       </div>
       <figcaption className="flex items-center gap-2 font-mono text-nano">
@@ -161,6 +196,11 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
         {issues.length > 0 && (
           <span title={issues.map((x) => `${x.kind} ${x.dx}/${x.dy}  ${x.selector}`).join("\n")} className="rounded bg-red-500/20 px-1 text-red-400">
             {issues.length} {issues.length === 1 ? "issue" : "issues"}
+          </span>
+        )}
+        {view.adoption && flags.length > 0 && (
+          <span data-qa-flags={flags.length} title={flags.map((f) => `${f.kind} ${f.prop} ${f.value}  ${f.at}`).join("\n")} className="rounded bg-amber-500/20 px-1 text-amber-400">
+            {flags.length} theme {flags.length === 1 ? "flag" : "flags"}
           </span>
         )}
       </figcaption>
@@ -195,9 +235,12 @@ export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View 
   const min = `${mod.minCols ?? 1}x${mod.minRows ?? 1}`;
   const size = mod.defaultSize ? ` · default ${mod.defaultSize[0]}x${mod.defaultSize[1]}` : "";
   const views = viewPlans(mod);
+  const layouts = view.layouts ? layoutPlans(mod) : [];
   const links = view.links(mod.id);
+  useSyncExternalStore(watch, () => version);
+  const hidden = !!view.flagged && clean(mod.id);
   return (
-    <section id={mod.id} className="flex scroll-mt-32 gap-6 border-t border-current/10 py-5">
+    <section id={mod.id} hidden={hidden} className="flex scroll-mt-32 gap-6 border-t border-current/10 py-5">
       <div className="w-60 shrink-0">
         <h3 className="text-sm font-semibold">{mod.title}</h3>
         <p className="font-mono text-[11px] opacity-60">{mod.id}</p>
@@ -244,6 +287,16 @@ export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View 
             <div className="flex min-w-0 flex-wrap items-start gap-6">
               {views.map((v) => (
                 <Figure key={v.id} mod={mod} frameKey={`view:${v.id}`} c={v.c} r={v.r} settings={{ ...view.settings, ...v.settings }} view={view} caption={`${v.name} · ${v.c}x${v.r}`} attrs={{ "data-qa-view": v.id, "data-qa-view-of": mod.id }} />
+              ))}
+            </div>
+          </div>
+        )}
+        {layouts.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-nano font-semibold uppercase tracking-wider opacity-50">Layouts</p>
+            <div className="flex min-w-0 flex-wrap items-start gap-6">
+              {layouts.map((l) => (
+                <Figure key={l.id} mod={mod} frameKey={`layout:${l.id}`} c={l.c} r={l.r} settings={{ ...view.settings, [LAYOUT_KEY]: l.id }} view={view} caption={`${l.name} · ${l.c}x${l.r}`} attrs={{ "data-qa-layout": l.id, "data-qa-layout-of": mod.id }} />
               ))}
             </div>
           </div>

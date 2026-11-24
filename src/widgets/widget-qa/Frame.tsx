@@ -2,12 +2,13 @@ import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, 
 import { flushSync } from "react-dom";
 import { LivePlacement, placementContent } from "@/components/studio/placement-content";
 import type { Placement } from "@/lib/layout";
+import type { Appearance } from "@/lib/style-resolve";
 import { fixtureSensors } from "../__fixtures__";
 import { MarkEmptyCtx } from "../core/primitives";
 import { stressSensors } from "./stress";
 
-// `data=stress` pushes the fixtures to their extremes; changing `data` reloads the page, so this is read once.
-const SENSORS = new URLSearchParams(window.location.search).get("data") === "stress" ? stressSensors(fixtureSensors()) : fixtureSensors();
+// The fixture sensors every frame and surface draws from: `data=stress` pushes them to their extremes; changing `data` reloads the page, so this is read once.
+export const SENSORS = new URLSearchParams(window.location.search).get("data") === "stress" ? stressSensors(fixtureSensors()) : fixtureSensors();
 /** How long a frame's widget gets to measure and lay itself out before `onSettled` reads it. */
 const SETTLE_MS = 1500;
 
@@ -49,12 +50,14 @@ interface FrameProps {
   h: number;
   live: boolean;
   eager: boolean;
+  /** The screen level the zone resolves under (a worn Look, `theme.tsx`), as a kiosk zone's. */
+  appearance?: Appearance;
   /** Called with the zone box once the content has mounted and settled, and again after each change of placement or size. */
   onSettled?: (box: HTMLElement) => void;
 }
 
 /** One zone's box at its exact pixel size, its content mounted lazily unless `eager`. */
-export function Frame({ p, w, h, live, eager, onSettled }: FrameProps) {
+export function Frame({ p, w, h, live, eager, appearance, onSettled }: FrameProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [seen, setSeen] = useState(false);
   const all = useSyncExternalStore(subscribe, () => forced, () => false);
@@ -72,14 +75,14 @@ export function Frame({ p, w, h, live, eager, onSettled }: FrameProps) {
     if (!mounted) return;
     const t = setTimeout(() => ref.current && settled.current?.(ref.current), SETTLE_MS);
     return () => clearTimeout(t);
-  }, [mounted, p, w, h]);
+  }, [mounted, p, w, h, appearance]);
   const frame = (content: ReactNode, scope?: CSSProperties) => (
     <div ref={ref} data-qa-box className="relative overflow-visible" style={{ width: w, height: h, ...scope }}>
       <MarkEmptyCtx.Provider value>{content}</MarkEmptyCtx.Provider>
     </div>
   );
   if (!mounted) return frame(null);
-  if (live) return <LivePlacement placement={p}>{(r) => frame(r.content, r.scope)}</LivePlacement>;
-  const r = placementContent(p, SENSORS, []);
+  if (live) return <LivePlacement placement={p} appearance={appearance}>{(r) => frame(r.content, r.scope)}</LivePlacement>;
+  const r = placementContent(p, SENSORS, [], appearance);
   return frame(r.content, r.scope);
 }

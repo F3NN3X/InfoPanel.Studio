@@ -29,7 +29,25 @@ export interface QaState {
   grid: boolean;
   /** Only the widgets with redesign notes (`notes.json`). */
   noted: boolean;
+  /**
+   * The Look the page wears as a screen does (`theme.tsx`): its id (Classic, a skin, a sample, a built-in or imported pack) set on
+   * the screen's theme level, so the widgets resolve it as the kiosk's do, with the pack's stage and script on the page. Unset: none.
+   */
+  look: string;
+  /** The Look's variant by id (Cyberspec's Crimson); unset: the Look's own. */
+  lookVariant: string;
+  /** The screen's effects level (Settings > Performance): Full, Calm or Off; unset: the screen's default. */
+  fx: QaFx;
+  /** Run the pack's effect script (its fx.js); `script=0` leaves it out. */
+  script: boolean;
+  /** Only the widgets the theme-adoption check flags (`adoption.ts`). */
+  flagged: boolean;
+  /** Draw the app's own surfaces (rail, alerts, island, header, toasts); `surfaces=0` leaves them out. */
+  surfaces: boolean;
 }
+
+export type QaFx = "" | "full" | "calm" | "off";
+const FX: QaFx[] = ["full", "calm", "off"];
 
 export type QaData = "fixtures" | "stress" | "live";
 const DATA: QaData[] = ["fixtures", "stress", "live"];
@@ -55,10 +73,16 @@ export const DEFAULT_STATE: QaState = {
   eager: false,
   grid: false,
   noted: false,
+  look: "",
+  lookVariant: "",
+  fx: "",
+  script: true,
+  flagged: false,
+  surfaces: true,
 };
 
 /** The text params, in URL order. */
-const TEXT_KEYS = ["spans", "skin", "variant", "surface", "graph", "meter", "accent", "radius", "theme", "settings", "q", "gallery"] as const;
+const TEXT_KEYS = ["spans", "skin", "variant", "surface", "graph", "meter", "accent", "radius", "theme", "settings", "q", "gallery", "look", "lookVariant"] as const;
 /** The look keys merged into every placement's settings. */
 export const LOOK_KEYS = ["skin", "variant", "surface", "graph", "meter", "accent", "radius"] as const;
 
@@ -76,6 +100,10 @@ export function parseParams(search: string): QaState {
     eager: q.get("eager") === "1",
     grid: q.get("grid") === "1",
     noted: q.get("noted") === "1",
+    fx: FX.find((f) => f === q.get("fx")) ?? "",
+    script: q.get("script") !== "0",
+    flagged: q.get("flagged") === "1",
+    surfaces: q.get("surfaces") !== "0",
   };
 }
 
@@ -92,7 +120,8 @@ export const frameId = (module: string, key: string) => `${module}--${key.replac
  * alone at this frame, so "CodingAgents 2x1" in a request means exactly this frame.
  */
 export function frameRef(s: QaState, module: string, key: string, base: string): { text: string; url: string } {
-  const look = [`cell ${s.cell}`, `skin ${s.skin || "default"}`, ...LOOK_KEYS.filter((k) => k !== "skin" && s[k]).map((k) => `${k} ${s[k]}`), ...(s.data === "fixtures" ? [] : [`${s.data} data`])];
+  const worn = s.look ? [`look ${s.look}${s.lookVariant ? `/${s.lookVariant}` : ""}`, ...(s.fx ? [`fx ${s.fx}`] : [])] : [];
+  const look = [`cell ${s.cell}`, `skin ${s.skin || "default"}`, ...LOOK_KEYS.filter((k) => k !== "skin" && s[k]).map((k) => `${k} ${s[k]}`), ...worn, ...(s.data === "fixtures" ? [] : [`${s.data} data`])];
   const url = `${base}${widgetLinks(s, module).solo}#${frameId(module, key)}`;
   return { text: `${module} ${key} (${look.join(", ")})\n${url}`, url };
 }
@@ -109,6 +138,10 @@ export function serializeParams(s: QaState): string {
   if (s.eager) add("eager", "1");
   if (s.grid) add("grid", "1");
   if (s.noted) add("noted", "1");
+  if (s.fx) add("fx", s.fx);
+  if (!s.script) add("script", "0");
+  if (s.flagged) add("flagged", "1");
+  if (!s.surfaces) add("surfaces", "0");
   return `?${parts.join("&")}`;
 }
 

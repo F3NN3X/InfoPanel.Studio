@@ -1,6 +1,7 @@
 import type { DashboardModule, ModuleSettings } from "@/modules/types";
 import type { Placement } from "@/lib/layout";
 import { WIDGET_MERGES } from "@/lib/settings-migrate.v19";
+import { LAYOUTS } from "../layouts";
 
 /** Which modules the page shows: exactly the `module=` ids, else the template widgets. */
 export function pickModules(all: DashboardModule[], templates: DashboardModule[], ids?: string[]): DashboardModule[] {
@@ -80,6 +81,14 @@ export function viewPlans(mod: Pick<DashboardModule, "views" | "viewKey" | "defa
     const [mc, mr] = v.minSize ?? [mod.minCols ?? 1, mod.minRows ?? 1];
     return { id: v.id, name: v.name, c: Math.max(dc, mc), r: Math.max(dr, mr), settings: { ...v.applies, [key]: v.id } };
   });
+}
+
+/** A widget's layouts (`LAYOUTS`, look.json `layouts`) with more than its standard one, each at the widget's default size. */
+export function layoutPlans(mod: Pick<DashboardModule, "id" | "defaultSize" | "minCols" | "minRows">): { id: string; name: string; c: number; r: number }[] {
+  const all = LAYOUTS[mod.id] ?? [];
+  if (all.length < 2) return [];
+  const [c, r] = mod.defaultSize ?? [2, 2];
+  return all.map((l) => ({ id: l.id, name: l.name, c: Math.max(c, mod.minCols ?? 1), r: Math.max(r, mod.minRows ?? 1) }));
 }
 
 /** A gallery's span for a widget: its default size, never under its minimum. */
