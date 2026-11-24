@@ -50,7 +50,7 @@ export type QaFx = "" | "full" | "calm" | "off";
 const FX: QaFx[] = ["full", "calm", "off"];
 
 export type QaData = "fixtures" | "stress" | "live";
-const DATA: QaData[] = ["fixtures", "stress", "live"];
+export const DATA: QaData[] = ["fixtures", "stress", "live"];
 
 export const DEFAULT_SPANS = "1x1,2x1,3x1,1x2,2x2,4x2";
 export const DEFAULT_STATE: QaState = {
@@ -120,10 +120,14 @@ export const frameId = (module: string, key: string) => `${module}--${key.replac
  * alone at this frame, so "CodingAgents 2x1" in a request means exactly this frame.
  */
 export function frameRef(s: QaState, module: string, key: string, base: string): { text: string; url: string } {
-  const worn = s.look ? [`look ${s.look}${s.lookVariant ? `/${s.lookVariant}` : ""}`, ...(s.fx ? [`fx ${s.fx}`] : [])] : [];
-  const look = [`cell ${s.cell}`, `skin ${s.skin || "default"}`, ...LOOK_KEYS.filter((k) => k !== "skin" && s[k]).map((k) => `${k} ${s[k]}`), ...worn, ...(s.data === "fixtures" ? [] : [`${s.data} data`])];
   const url = `${base}${widgetLinks(s, module).solo}#${frameId(module, key)}`;
-  return { text: `${module} ${key} (${look.join(", ")})\n${url}`, url };
+  return { text: `${module} ${key} (${frameLook(s)})\n${url}`, url };
+}
+
+/** What a frame is drawn in, as a reference names it: "cell 110, skin default, look cyberspec/crimson". */
+export function frameLook(s: QaState): string {
+  const worn = s.look ? [`look ${s.look}${s.lookVariant ? `/${s.lookVariant}` : ""}`, ...(s.fx ? [`fx ${s.fx}`] : [])] : [];
+  return [`cell ${s.cell}`, `skin ${s.skin || "default"}`, ...LOOK_KEYS.filter((k) => k !== "skin" && s[k]).map((k) => `${k} ${s[k]}`), ...worn, ...(s.data === "fixtures" ? [] : [`${s.data} data`])].join(", ");
 }
 
 /** The query string (with `?widget-qa`) for a state; params at their default are left out. */

@@ -1,24 +1,7 @@
 import type { ReactNode } from "react";
-import { modules } from "@/modules";
-import { STYLE_SETTINGS } from "@/modules/standard-settings";
-import { THEME_PRESETS } from "@/lib/theme";
-import { SKIN_NAMES, SURFACE_NAMES } from "@/widgets/core/theme";
 import type { ResolvedVariant } from "@/looks/look";
+import { ACCENTS, CELLS, FX, GALLERY_IDS, GRAPHS, METERS, PAGE_THEMES, RADII, SKINS, SURFACES, VARIANTS } from "./options";
 import { DEFAULT_STATE, type QaFx, type QaState } from "./params";
-
-const FX: QaFx[] = ["full", "calm", "off"];
-
-const optionsOf = (key: string) => (STYLE_SETTINGS.find((s) => s.key === key)?.options ?? []).filter((o) => o.value !== "auto").map((o) => o.value);
-const SKINS = SKIN_NAMES;
-// The dense view as the QA page names it (`variant`, read by `compactOf` since the standard row became Small zones).
-const VARIANTS = ["default", "studio"];
-const GRAPHS = optionsOf("graph");
-const METERS = optionsOf("meter");
-const RADII = optionsOf("radius");
-const ACCENTS = ["#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#fbbf24", "#f87171"];
-const CELLS = [110, 150];
-/** The widgets the Skins and Surfaces galleries can show, by id. */
-const GALLERY_IDS = modules.map((m) => m.id).sort();
 
 const field = "h-6 rounded border border-current/25 bg-transparent px-1.5 text-[11px]";
 
@@ -88,7 +71,7 @@ export function Toolbar({ state, looks, variants, imported, onImport, onChange, 
       <input className={`${field} w-40`} placeholder="Filter id or title" value={state.q} onChange={(e) => onChange({ q: e.target.value })} />
       <Pick name="skin" value={state.skin} options={SKINS} onChange={(skin) => onChange({ skin })} />
       <Pick name="variant" value={state.variant} options={VARIANTS} onChange={(variant) => onChange({ variant })} />
-      <Pick name="surface" value={state.surface} options={SURFACE_NAMES} onChange={(surface) => onChange({ surface })} />
+      <Pick name="surface" value={state.surface} options={SURFACES} onChange={(surface) => onChange({ surface })} />
       <Pick name="graph" value={state.graph} options={GRAPHS} onChange={(graph) => onChange({ graph })} />
       <Pick name="meter" value={state.meter} options={METERS} onChange={(meter) => onChange({ meter })} />
       <Label name="accent">
@@ -123,7 +106,7 @@ export function Toolbar({ state, looks, variants, imported, onImport, onChange, 
       <Label name="spans">
         <input className={`${field} w-44`} value={state.spans} onChange={(e) => onChange({ spans: e.target.value })} />
       </Label>
-      <Pick name="page" value={state.theme} options={THEME_PRESETS.map((p) => p.name)} onChange={(theme) => onChange({ theme })} blank="dark" />
+      <Pick name="page" value={state.theme} options={PAGE_THEMES} onChange={(theme) => onChange({ theme })} blank="dark" />
       <Pick name="gallery" value={state.gallery} options={GALLERY_IDS} onChange={(gallery) => onChange({ gallery })} blank="default" />
       <Label name="data">
         <select className={`${field} [&>option]:text-black`} value={state.data} onChange={(e) => onChange({ data: e.target.value as QaState["data"] })}>

@@ -20,6 +20,8 @@ import { installDemoStreams } from "./demo-streams";
 import { adoptionReport, adoptionText, lookColours, type CheckOptions, type FrameFlags } from "./adoption";
 import { diffSnapshots, qaSnapshot, type QaSnapshot, type TripDiff } from "./round-trip";
 import { Surfaces } from "./Surfaces";
+import { ClaudeButton } from "./ClaudeButton";
+import { claudeText, installConsole, type Now } from "./console";
 import { QaScreen, qaLookIds, useQaTheme, wornBackground, type QaTheme } from "./theme";
 
 /**
@@ -89,11 +91,13 @@ function WidgetQa() {
   const sections = useMemo(() => groupByCategory(filterModules(picked, state.q), CATEGORY_ORDER), [picked, state.q]);
   const shown = sections.reduce((n, s) => n + s.mods.length, 0);
   const live = state.data === "live";
-  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, grid: state.grid, links: (id: string) => widgetLinks(state, id), frameRef: (id: string, key: string) => frameRef(state, id, key, `${window.location.origin}${window.location.pathname}`), appearance: worn.appearance, adoption, flagged: state.flagged, layouts: true };
-  const surfaceView = useMemo(() => ({ appearance: worn.appearance, live, adoption }), [worn.appearance, live, adoption]);
   // the page's tools read the state as it is now, not as it was when they were installed
-  const now = useRef<Now>({ state, adoption, apply });
-  now.current = { state, adoption, apply };
+  const now = useRef<Now>({ state, adoption, variants: worn.variants, apply });
+  now.current = { state, adoption, variants: worn.variants, apply };
+  // Copy for Claude from the page reads the frames mounted now: it never mounts the rest (`__qa.copyForClaude()` does)
+  const claude = (id?: string) => claudeText(now, id, true);
+  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, grid: state.grid, links: (id: string) => widgetLinks(state, id), frameRef: (id: string, key: string) => frameRef(state, id, key, `${window.location.origin}${window.location.pathname}`), appearance: worn.appearance, adoption, flagged: state.flagged, layouts: true, claude };
+  const surfaceView = useMemo(() => ({ appearance: worn.appearance, live, adoption }), [worn.appearance, live, adoption]);
   useEffect(() => installTools(now), []);
   const galleryMod = state.gallery ? modules.find((m) => m.id === state.gallery) : undefined;
   const galleries = useMemo(() => galleriesFor(galleryMod), [galleryMod]);
@@ -110,6 +114,7 @@ function WidgetQa() {
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-semibold">Widget QA</h1>
           <QaHelp background={solidBg} />
+          <ClaudeButton text={() => claude()} title="Copy the frames checked so far, with what they found, as text for Claude" className="h-6 rounded-full border border-current/25 px-2 text-[11px]" />
           <p className="font-mono text-[11px] opacity-60">
             {shown} modules · {SKIN_NAMES.length} skins · {spans.length} spans · {shown * spans.length} frames · cell {state.cell} · gap {state.gap} · {live ? "live data" : state.data}
             {state.look && ` · wearing ${state.look}${state.lookVariant ? ` ${state.lookVariant}` : ""}${worn.pack ? " (pack)" : ""}${state.fx ? ` · fx ${state.fx}` : ""}`}
@@ -176,13 +181,6 @@ function WidgetQa() {
   );
 }
 
-/** What `installTools` reads: the page's state and its theme check as they are now, and the way to change them. */
-interface Now {
-  state: QaState;
-  adoption?: CheckOptions;
-  apply: (next: QaState) => void;
-}
-
 /** Lets a wear land: the pack's chunk, its CSS and the frames' measures (`mountAllSettled`), then a second for the pack's motion. */
 async function settleWear(): Promise<void> {
   await new Promise((r) => setTimeout(r, 1500));
@@ -217,6 +215,7 @@ function installTools(now: { current: Now }) {
     await window.__qaSetLook?.(from, fromVariant);
     return { from: `${from || "none"}${fromVariant ? `/${fromVariant}` : ""}`, via: `${look || "none"}${lookVariant ? `/${lookVariant}` : ""}`, diff: diffSnapshots(fresh, qaSnapshot(), still) };
   };
+  installConsole(now);
 }
 
 declare global {
