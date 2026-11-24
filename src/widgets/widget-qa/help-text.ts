@@ -43,10 +43,11 @@ export const CONTROL_HELP = {
   help: { name: "Help", text: "This reference." },
   q: { name: "Search", param: "q", text: "Shows only the widgets whose id or title contains the text. / focuses it." },
   flagged: { name: "Theme flags", param: "flagged", text: "Shows only the widgets the theme check flags under the worn Look; a widget whose frames all came back clean is hidden. Shown while a Look is worn." },
-  noted: { name: "Notes", param: "noted", text: "Shows only the widgets with redesign notes (notes.json)." },
+  noted: { name: "Notes", param: "noted", text: "Shows only the widgets with redesign notes (notes.json), open or fixed." },
   issues: { name: "Issues", param: "issues", text: "Shows only the widgets with an issue (something that pokes out, overlaps or is cut off) in the frames checked so far; a widget whose checked frames all came back clean is hidden." },
   keys: { name: "Keys", text: "/ focuses the search; j and k move to the next and the previous widget in the list and scroll to it." },
   below: { name: "Show sizes under the minimum", param: "below", text: "Draws the sizes under each widget's minimum as dimmed placeholders. Off, they are hidden and one line under the widget's frames says how many (a click on it turns this on)." },
+  queue: { name: "Notes queue", text: "The list's entry that opens every note in the inspector, the open ones first (Open, Fixed, All), each a button to its frame. Copy for Claude copies them with each note's report command; Clear fixed removes the fixed ones. A frame's Note in the inspector adds, edits, fixes or deletes its note: under npm run dev it is saved to notes.json, on a build it is copied as JSON." },
   focus: { name: "Focus", param: "focus", text: "One widget alone, with a strip that steps its frame through the sizes and its skins and surfaces galleries inline. Each widget's header has Focus; Esc leaves it." },
 } satisfies Record<string, ControlHelp>;
 
@@ -86,6 +87,7 @@ export const CONTROL_GROUP: Record<ControlId, HelpGroup> = {
   keys: "Widgets",
   below: "Grid",
   focus: "Widgets",
+  queue: "Widgets",
 };
 
 /** A control's tooltip: its line, then the param it sets. */

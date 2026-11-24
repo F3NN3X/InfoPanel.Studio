@@ -21,6 +21,16 @@ export function laneIds(steps, checks, { ci }) {
   return lane.length && lane.length < runnable.length ? new Set(lane.map((step) => step.id)) : new Set();
 }
 
+/**
+ * The planned main-line steps the lane waits for: what its checks name in `after`, because they write files the lane's
+ * commands read (settings-build empties src-tauri/pages/app, which the app crate embeds as it compiles). Unlike `needs`,
+ * `after` only orders: it never adds a check to the plan.
+ */
+export function laneWaitsFor(steps, ids, checks) {
+  const named = new Set([...ids].flatMap((id) => checks[id]?.after ?? []));
+  return new Set(steps.filter((step) => step.cmd && step.status !== "not-run" && named.has(step.id) && !ids.has(step.id)).map((step) => step.id));
+}
+
 /** Run the spec's steps in order, stopping at the first failure unless keepGoing; returns the results. */
 export function runLane(spec, spawn = spawnSync) {
   const fd = fs.openSync(spec.log, "w");

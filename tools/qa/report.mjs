@@ -13,7 +13,9 @@ import { mountAll, openQaPage, qaUrl, startQa } from "./qa-page.mjs";
 const PARAMS = ["module", "spans", "q", "fx", "script", "skin", "variant", "surface", "graph", "meter", "accent", "radius", "cell", "gap", "theme", "settings", "data"];
 const VALUED = new Set([...PARAMS, "look", "frame", "url", "shots", "shots-all", "fail-on"]);
 const FLAGS = new Set(["md", "all", "notes", "help"]);
-const FAIL_ON = { issues: "withIssues", flags: "withFlags", notes: "withNotes" };
+const FAIL_ON = { issues: "withIssues", flags: "withFlags", notes: "openNotes" };
+/** What `--notes` takes after it, if anything: the open notes (the default), the fixed ones or all. */
+const NOTE_KINDS = new Set(["open", "fixed", "all"]);
 
 const USAGE = `usage: node tools/qa/report.mjs [page flags] [output flags]   (npm run qa:report -- …)
 page flags (the URL params of ?widget-qa, src/widgets/widget-qa/params.ts):
@@ -28,17 +30,19 @@ output flags:
   --frame key           only one frame: 2x1, view:gauge, layout:x, surface:rail, or "CpuMonitor 2x1"
   --all                 list the clean frames too (default: counted only)
   --md                  print the Copy for Claude text instead of JSON
-  --notes               add the notes in notes.json, each with its frame reference and link
+  --notes [open|fixed|all]   add the notes queue: the open notes in notes.json (or the fixed ones, or all), each
+                        with its status, frame reference, link and the report line that reads its frame
   --shots <dir>         write a PNG of each listed frame (its box and 12 px around it) to <dir>
   --shots-all <dir>     the same for every frame
-  --fail-on issues,flags,notes   exit 1 when any frame has one of them
+  --fail-on issues,flags,notes   exit 1 when any frame has one of them (notes: an open one)
 exit: 0, 1 (--fail-on), 2 (bad arguments or the page did not load)`;
 
 const args = {};
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
   const name = argv[i].startsWith("--") ? argv[i].slice(2) : "";
-  if (FLAGS.has(name)) args[name] = true;
+  if (name === "notes") args.notes = NOTE_KINDS.has(argv[i + 1]) ? argv[++i] : true;
+  else if (FLAGS.has(name)) args[name] = true;
   else if (VALUED.has(name) && argv[i + 1] !== undefined) args[name] = argv[++i];
   else {
     console.error(`report: unknown or incomplete argument: ${argv[i]}\n${USAGE}`);
@@ -59,8 +63,10 @@ const shotDir = args["shots-all"] ?? args.shots;
 
 const [look, lookVariant = ""] = (args.look ?? "").split("/");
 const params = { ...Object.fromEntries(PARAMS.filter((k) => args[k] !== undefined).map((k) => [k, args[k]])), ...(look ? { look } : {}), ...(lookVariant ? { lookVariant } : {}), eager: "1" };
-const filter = { ...(args.frame ? { frame: args.frame } : {}), ...(args.all ? { all: true } : {}), ...(args.notes ? { notes: true } : {}) };
+const filter = { ...(args.frame ? { frame: args.frame } : {}), ...(args.all ? { all: true } : {}), ...(args.notes ? { notes: args.notes } : {}) };
 const fileSafe = (s) => s.replace(/[^\w.-]+/g, "_");
+// The notes as the repo holds them now, not as the build bundled them: a note saved or fixed since the last build is read as it is.
+const notes = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, "../../src/widgets/widget-qa/notes.json"), "utf8"));
 
 const qa = await startQa({ url: args.url });
 const browser = await chromium.launch({ headless: true });
@@ -69,6 +75,7 @@ let md;
 try {
   // the overflow runner's page: the same clock, zone and image rule, so the issues read as its do
   const page = await openQaPage(browser, { base: qa.base, viewport: { width: 1800, height: 1000 }, clock: "2026-01-15T12:00:00Z", stubImages: true });
+  await page.addInitScript((n) => (window.__qaNotes = n), notes);
   await page.goto(qaUrl(qa.base, params), { timeout: 120_000 });
   if (!(await mountAll(page, { needs: ["__qaMountAll", "__qa"], timeout: 120_000 }))) console.warn("report: the page did not settle; read as it is");
   // a worn Look's frames check themselves once they settle and a pack's motion runs a while (as adoption.mjs waits)

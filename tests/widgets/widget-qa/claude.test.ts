@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReport, frameMarkdown, reportMarkdown, reproduce, type QaFrame, type ReportContext } from "@/widgets/widget-qa/claude";
+import { buildReport, frameMarkdown, noteEntries, notesMarkdown, reportMarkdown, reproduce, type QaFrame, type ReportContext } from "@/widgets/widget-qa/claude";
 import { DEFAULT_STATE } from "@/widgets/widget-qa/params";
 
 // Copy for Claude is pasted into an agent's prompt and `report.mjs` output is read by scripts: the format is the contract.
@@ -66,9 +66,55 @@ describe("the report", () => {
 
   it("lists the notes with their reference and link when asked, and as markdown says what it left out", () => {
     const r = buildReport([bad, clean, frame({ frame: "CpuMonitor 1x1", key: "1x1", checked: false })], { notes: true }, ctx);
-    expect(r.notes).toEqual([{ module: "CpuMonitor", key: "2x1", text: "Value overlaps the label at this size.", ref: "CpuMonitor 2x1 (cell 110, skin default, surface glass, look cyberspec/crimson)", link: r.frames[0].link }]);
+    expect(r.notes).toEqual([
+      {
+        module: "CpuMonitor",
+        key: "2x1",
+        text: "Value overlaps the label at this size.",
+        status: "open",
+        ref: "CpuMonitor 2x1 (cell 110, skin default, surface glass, look cyberspec/crimson)",
+        link: r.frames[0].link,
+        reproduce: "node tools/qa/report.mjs --module CpuMonitor --spans 2x1 --look cyberspec/crimson --surface glass",
+      },
+    ]);
     const md = reportMarkdown(r, ctx);
     expect(md.split("\n")[0]).toBe("Widget QA · the page · 1 widget · 3 frames (2 checked) · 1 with issues · 1 with theme flags · 1 with notes (cell 110, skin default, surface glass, look cyberspec/crimson)");
     expect(md).toContain("1 clean frame not listed.\n1 frame not checked (not mounted).");
+  });
+});
+
+describe("the notes queue", () => {
+  const notes = { CpuMonitor: { "2x1": "Overlaps.", "view:gauge": { text: "Ring too thin.", status: "fixed" as const }, "*": "Whole widget." } };
+  const queue: ReportContext = { ...ctx, state: DEFAULT_STATE, flagsChecked: false, notes };
+
+  it("lists the open notes by default, the fixed or all on asking, each with the command that reads its frame", () => {
+    expect(noteEntries(queue).map((n) => [n.key, n.status, n.reproduce])).toEqual([
+      ["2x1", "open", "node tools/qa/report.mjs --module CpuMonitor --spans 2x1"],
+      ["*", "open", "node tools/qa/report.mjs --module CpuMonitor"],
+    ]);
+    expect(noteEntries(queue, "fixed").map((n) => [n.key, n.reproduce, n.ref])).toEqual([["view:gauge", "node tools/qa/report.mjs --module CpuMonitor --frame view:gauge", "CpuMonitor view:gauge (cell 110, skin default)"]]);
+    expect(noteEntries(queue, "all")).toHaveLength(3);
+    expect(buildReport([], { notes: "fixed" }, queue).notes?.map((n) => n.key)).toEqual(["view:gauge"]);
+  });
+
+  it("does not count a frame whose note is fixed as something to look at, and says the note is fixed", () => {
+    const fixed = frame({ frame: "CpuMonitor view:gauge", id: "CpuMonitor--view-gauge", key: "view:gauge", kind: "view", note: "Ring too thin.", noteStatus: "fixed" });
+    const open = frame({ note: "Overlaps.", noteStatus: "open" });
+    const r = buildReport([fixed, open], {}, queue);
+    expect(r.summary).toMatchObject({ withNotes: 2, openNotes: 1, clean: 1, listed: 1 });
+    expect(r.frames.map((f) => f.key)).toEqual(["2x1"]);
+    expect(frameMarkdown(fixed, queue)).toContain('Note (fixed): "Ring too thin."');
+    expect(frameMarkdown(open, queue)).toContain('Note: "Overlaps."\nWidget note: "Whole widget."');
+  });
+
+  it("copies the queue as text for Claude: what it holds, how to work through it, then each note", () => {
+    const md = notesMarkdown(noteEntries(queue), queue);
+    expect(md.split("\n").slice(0, 2)).toEqual([
+      "Widget QA · notes queue · 2 open notes (cell 110, skin default)",
+      "Per note: run its Reproduce line with --md --shots <dir>, fix the widget, run it again and look at the frame's shot, then set the note to fixed in src/widgets/widget-qa/notes.json.",
+    ]);
+    expect(md).toContain('- CpuMonitor 2x1 (cell 110, skin default): "Overlaps."\n  http://localhost:5173/?widget-qa&module=CpuMonitor#CpuMonitor--2x1\n  Reproduce: node tools/qa/report.mjs --module CpuMonitor --spans 2x1');
+    expect(notesMarkdown(noteEntries(queue, "fixed"), queue, "fixed")).toContain('- CpuMonitor view:gauge (cell 110, skin default) (fixed): "Ring too thin."');
+    expect(notesMarkdown([], queue)).toBe("Widget QA · notes queue · 0 open notes (cell 110, skin default)\nNothing in the queue.");
   });
 });

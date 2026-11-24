@@ -5,11 +5,11 @@ import { Tag } from "@/components/ui/tag";
 import { Tooltip } from "@/components/ui/tooltip";
 import { CONTROL_HELP, tipOf, type ControlId } from "./help-text";
 import { linkedWidget, listGroups, rowHidden, rowStatus, stepWidget, type RowStatus } from "./list";
-import { NOTES } from "./notes";
+import { noteCounts, useNotes } from "./notes";
 import { GALLERY_IDS } from "./options";
 import type { QaState } from "./params";
 import type { Section } from "./plan";
-import { select } from "./selection";
+import { NOTES_QUEUE, select } from "./selection";
 import { useWidgetTallyAs, widgetTally } from "./tally";
 
 /** Each status as its dot draws it and as a screen reader hears it. */
@@ -47,6 +47,17 @@ function Chip({ id, on, onToggle }: { id: ControlId; on: boolean; onToggle: () =
   );
 }
 
+/** A row's notes: ✎ while one is open, ✓ once every one is fixed; none, nothing. */
+function NoteMark({ counts: { open, fixed } }: { counts: { open: number; fixed: number } }) {
+  if (!open && !fixed) return null;
+  const text = open ? `${open} open ${open === 1 ? "note" : "notes"}${fixed ? `, ${fixed} fixed` : ""}` : `${fixed === 1 ? "its note is" : `all ${fixed} notes are`} fixed`;
+  return (
+    <span role="img" aria-label={text} title={`${text[0].toUpperCase()}${text.slice(1)} (notes.json)`} className={`ml-auto shrink-0 text-micro ${open ? "text-ui-warn-text" : "text-ui-3"}`}>
+      {open ? "✎" : "✓"}
+    </span>
+  );
+}
+
 interface WidgetListProps {
   state: QaState;
   /** The page's sections, as the frames draw them (the `module=`, search and Notes filters applied). */
@@ -63,9 +74,9 @@ interface WidgetListProps {
 }
 
 /**
- * The widget list, the page's left column: the search and the filter chips (Issues, Theme flags, Notes), the app surfaces and the
- * galleries, then every shown widget by category with a status dot (red: issues, amber: theme flags, in the frames checked so far)
- * and a mark for notes. A row scrolls the frames to its widget and makes it the list's current one, which `j` and `k` move and the
+ * The widget list, the page's left column: the search and the filter chips (Issues, Theme flags, Notes), the app surfaces, the
+ * galleries and the notes queue, then every shown widget by category with a status dot (red: issues, amber: theme flags, in the
+ * frames checked so far) and a mark for notes (✎ while one is open, ✓ once all are fixed). A row scrolls the frames to its widget and makes it the list's current one, which `j` and `k` move and the
  * galleries entry opens; `/` focuses the search. It reads the frames' counts from the tally, so it re-renders as frames report and
  * the frames never do; every row keeps its elements as its status changes, so the page's settle wait is not reset by the list.
  */
@@ -91,6 +102,8 @@ export function WidgetList({ state, sections, merged, surfacesShown, flagsChecke
   const everyId = sections.flatMap((s) => s.mods.map((m) => m.id));
   useWidgetTallyAs((t) => everyId.map((id) => `${rowStatus(t.get(id))}${rowHidden(t.get(id), filters) ? "-" : ""}`).join());
   const found = widgetTally();
+  const notes = useNotes();
+  const queued = Object.values(notes).reduce((n, byKey) => n + noteCounts(byKey).open, 0);
   // a row the page hides (Issues, Theme flags) stays in the DOM, hidden, so a report flips an attribute and adds no element
   const groups = listGroups(sections, merged).map((g) => {
     const rows = g.rows.map((r) => ({ ...r, hidden: rowHidden(found.get(r.id), filters) }));
@@ -183,6 +196,12 @@ export function WidgetList({ state, sections, merged, surfacesShown, flagsChecke
               <span className="ml-auto min-w-0 truncate text-micro text-ui-3">{gallery || state.gallery || "CpuMonitor, SystemStatus"}</span>
             </button>
           </li>
+          <li>
+            <button type="button" className={`${ROW} text-ui-1 hover:bg-ui-hover`} title={tipOf("queue")} onClick={() => select(NOTES_QUEUE)}>
+              <span className="truncate">Notes queue</span>
+              <span className={`ml-auto shrink-0 text-micro ${queued ? "text-ui-warn-text" : "text-ui-3"}`}>{queued ? `${queued} open` : "none open"}</span>
+            </button>
+          </li>
         </ul>
         {groups.map((g) => {
           const open = !closed.has(g.id);
@@ -211,11 +230,7 @@ export function WidgetList({ state, sections, merged, surfacesShown, flagsChecke
                         <span className="sr-only">{status.text}: </span>
                         <span className="min-w-0 truncate">{r.title}</span>
                         {r.mergedInto && <span className="min-w-0 shrink truncate text-micro text-ui-3">→ {r.mergedInto}</span>}
-                        {NOTES[r.id] && (
-                          <span role="img" aria-label="has notes" title="Has notes (notes.json)" className="ml-auto shrink-0 text-micro text-ui-warn-text">
-                            ✎
-                          </span>
-                        )}
+                        <NoteMark counts={noteCounts(notes[r.id])} />
                       </a>
                     </li>
                   );

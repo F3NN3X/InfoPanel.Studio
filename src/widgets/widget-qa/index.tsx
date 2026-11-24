@@ -19,7 +19,7 @@ import { copyText } from "./clipboard";
 import { WidgetSection, type SectionChrome } from "./Section";
 import { forceMountAll, mountAllSettled } from "./Frame";
 import { overflowReport, type Issue } from "./probe";
-import { NOTES } from "./notes";
+import { allNotes } from "./notes";
 import { DEFAULT_STATE, frameRef, parseParams, parseSpans, placementSettings, serializeParams, widgetLinks, type QaState } from "./params";
 import { filterModules, framePlan, groupByCategory, layoutPlans, mergedModules, pickModules, viewPlans } from "./plan";
 import { installDemoStreams } from "./demo-streams";
@@ -107,7 +107,7 @@ function WidgetQa() {
   const adoption = useMemo((): CheckOptions | undefined => (state.look && state.look !== CLASSIC_LOOK && state.look !== DEFAULT_SKIN_LOOK ? { colours: lookColours(worn.pack?.look, worn.pack?.css), fonts: packFonts(worn) } : undefined), [state.look, worn]);
   const spans = useMemo(() => parseSpans(state.spans), [state.spans]);
   const settings = useMemo(() => placementSettings(state), [state]);
-  const picked = useMemo(() => pickModules([...modules, ...MERGED], [...TEMPLATE_MODULES, ...MERGED], state.module).filter((m) => !state.noted || NOTES[m.id]), [state.module, state.noted]);
+  const picked = useMemo(() => pickModules([...modules, ...MERGED], [...TEMPLATE_MODULES, ...MERGED], state.module).filter((m) => !state.noted || allNotes()[m.id]), [state.module, state.noted]);
   // focus mode (`focus=<id>`) draws that widget alone, inside the `module=` set
   const sections = useMemo(() => groupByCategory(state.focus ? picked.filter((m) => m.id === state.focus) : filterModules(picked, state.q), CATEGORY_ORDER), [picked, state.q, state.focus]);
   const shown = sections.reduce((n, s) => n + s.mods.length, 0);

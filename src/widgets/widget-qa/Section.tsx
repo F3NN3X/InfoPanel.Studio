@@ -10,7 +10,7 @@ import { FocusStrip, InlineGalleries } from "./Focus";
 import { Frame } from "./Frame";
 import { FrameMenu } from "./FrameMenu";
 import { forgetRead, readFrame } from "./inspector/reads";
-import { notesFor } from "./notes";
+import { noteStatus, noteText, useWidgetNotes } from "./notes";
 import { frameId } from "./params";
 import { framePlan, layoutPlans, placement, spanSize, viewPlans } from "./plan";
 import { probeElements, type Issue } from "./probe";
@@ -100,6 +100,21 @@ export function SelectedRing({ id }: { id: string }) {
   return on ? <div data-qa-ui="" aria-hidden className="pointer-events-none absolute z-20 rounded-ui-md border-2 border-ui-accent" style={RING} /> : null;
 }
 
+/**
+ * A frame's note, under it: read on its own, so a note saved from the inspector re-renders this line and never the frame (a frame's
+ * re-render re-arms its settle). An open note reads as it always has; a fixed one is dimmed and says so.
+ */
+function FrameNote({ module, frameKey, w }: { module: string; frameKey: string; w: number }) {
+  const note = useWidgetNotes(module)?.[frameKey];
+  if (!note) return null;
+  const fixed = noteStatus(note) === "fixed";
+  return (
+    <p className="text-[11px] text-amber-400" style={fixed ? { maxWidth: w, opacity: 0.6 } : { maxWidth: w }}>
+      {fixed ? `Fixed: ${noteText(note)}` : noteText(note)}
+    </p>
+  );
+}
+
 interface FigureProps {
   mod: DashboardModule;
   /** The frame's key: its span (`2x1`) or view (`view:gauge`), as notes and references name it. */
@@ -125,7 +140,6 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
   const [copied, setCopied] = useState("");
   const w = spanSize(c, view.cell, view.gap);
   const h = spanSize(r, view.cell, view.gap);
-  const note = notesFor(mod.id)?.[frameKey];
   const id = frameId(mod.id, frameKey);
   const chrome = view.chrome;
   // The page renders after load, so CSS :target never matches; a copied frame link outlines its frame by the hash itself.
@@ -183,11 +197,7 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
           </span>
         )}
       </figcaption>
-      {note && (
-        <p className="text-[11px] text-amber-400" style={{ maxWidth: w }}>
-          {note}
-        </p>
-      )}
+      <FrameNote module={mod.id} frameKey={frameKey} w={w} />
     </figure>
   );
 }

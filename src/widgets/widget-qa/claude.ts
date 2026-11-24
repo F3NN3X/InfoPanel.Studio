@@ -1,5 +1,5 @@
 import type { Flag } from "./adoption";
-import type { WidgetNotes } from "./notes";
+import { noteStatus, noteText, type NoteStatus, type WidgetNotes } from "./notes-file";
 import { DEFAULT_SPANS, DEFAULT_STATE, frameLook, frameRef, LOOK_KEYS, placementSettings, serializeParams, type QaState } from "./params";
 import type { Issue } from "./probe";
 
@@ -28,7 +28,10 @@ export interface QaFrame {
   checked: boolean;
   issues: Issue[];
   flags: Flag[];
+  /** The frame's note, its text. */
   note?: string;
+  /** Set with `note`: open (still to do) or fixed. */
+  noteStatus?: NoteStatus;
 }
 
 /** What the report lists: some widgets or one frame; clean frames only with `all`; the notes with `notes`. */
@@ -39,8 +42,8 @@ export interface ReportFilter {
   frame?: string;
   /** List the clean frames too. */
   all?: boolean;
-  /** Add every note in `notes.json`, with its frame reference and link. */
-  notes?: boolean;
+  /** Add the notes in `notes.json`, each with its frame reference, link and report command: the open ones (`true`), the fixed or all. */
+  notes?: boolean | NoteStatus | "all";
   /** Read only the frames mounted now, without mounting the rest (the page's own buttons). */
   checked?: boolean;
 }
@@ -72,8 +75,11 @@ export interface NoteEntry {
   /** The frame (`2x1`, `view:<id>`) or `*` for the widget. */
   key: string;
   text: string;
+  status: NoteStatus;
   ref: string;
   link: string;
+  /** The `report.mjs` line that reads the note's frame (a widget note: its widget). */
+  reproduce: string;
 }
 
 export interface QaReport {
@@ -88,9 +94,11 @@ export interface QaReport {
     withIssues: number;
     withFlags: number;
     withNotes: number;
+    /** Frames whose note is still open: the queue's part of the page. */
+    openNotes: number;
     issues: number;
     flags: number;
-    /** Checked frames with nothing found and no note. */
+    /** Checked frames with nothing found and no open note. */
     clean: number;
     listed: number;
   };
@@ -102,8 +110,9 @@ export interface QaReport {
 export const frameName = (module: string, key: string): string => (module ? `${module} ${key}` : key);
 
 const matches = (f: QaFrame, ref: string) => f.key === ref || f.frame === ref || (!!f.id && f.id === ref);
-/** Something to look at: an issue, a theme flag or a note. */
-const wrong = (f: Pick<QaFrame, "issues" | "flags" | "note">) => f.issues.length > 0 || f.flags.length > 0 || !!f.note;
+const openNote = (f: Pick<QaFrame, "note" | "noteStatus">) => !!f.note && f.noteStatus !== "fixed";
+/** Something to look at: an issue, a theme flag or an open note (a fixed one waits for the owner, not for a fix). */
+const wrong = (f: Pick<QaFrame, "issues" | "flags" | "note" | "noteStatus">) => f.issues.length > 0 || f.flags.length > 0 || openNote(f);
 
 /** The frames a filter keeps, in page order. */
 export function filterFrames(frames: readonly QaFrame[], filter: ReportFilter = {}): QaFrame[] {
@@ -117,19 +126,28 @@ export function frameLink(f: Pick<QaFrame, "module" | "key">, ctx: Pick<ReportCo
   return `${ctx.base}${serializeParams({ ...ctx.state, module: undefined, q: "", surfaces: true })}#surfaces`;
 }
 
+/** A note's frame as `reproduce` takes it: a span or a view; a widget note (`*`) has none. */
+const noteFrame = (module: string, key: string): Pick<QaFrame, "module" | "key" | "kind"> | undefined => (key === "*" ? undefined : { module, key, kind: /^\d+x\d+$/.test(key) ? "span" : "view" });
+
+/** The notes queue: every note in `notes.json` with the given status (`all`: both), each with its frame reference, link and report command. */
+export function noteEntries(ctx: Pick<ReportContext, "state" | "base" | "notes">, which: NoteStatus | "all" = "open"): NoteEntry[] {
+  return Object.entries(ctx.notes).flatMap(([module, byKey]) =>
+    Object.entries(byKey).flatMap(([key, n]) => {
+      const status = noteStatus(n);
+      if (which !== "all" && status !== which) return [];
+      const frame = noteFrame(module, key);
+      const ref = frame ? frameRef(ctx.state, module, key, ctx.base) : { text: `${module} (the widget)`, url: `${ctx.base}${serializeParams({ ...ctx.state, module: [module], q: "" })}#${module}` };
+      return [{ module, key, text: noteText(n), status, ref: ref.text.split("\n")[0], link: ref.url, reproduce: frame ? reproduce(ctx.state, frame) : reproduce({ ...ctx.state, module: [module], q: "" }) }];
+    })
+  );
+}
+
 /** The report: a summary of the kept frames, and each one with something found (every one with `all`). */
 export function buildReport(frames: readonly QaFrame[], filter: ReportFilter, ctx: ReportContext): QaReport {
   const kept = filterFrames(frames, filter);
   const checked = kept.filter((f) => f.checked);
   const listed = kept.filter((f) => filter.all || wrong(f));
-  const notes = filter.notes
-    ? Object.entries(ctx.notes).flatMap(([module, byKey]) =>
-        Object.entries(byKey).map(([key, text]) => {
-          const ref = key === "*" ? { text: `${module} (the widget)`, url: `${ctx.base}${serializeParams({ ...ctx.state, module: [module], q: "" })}#${module}` } : frameRef(ctx.state, module, key, ctx.base);
-          return { module, key, text, ref: ref.text.split("\n")[0], link: ref.url };
-        })
-      )
-    : undefined;
+  const notes = filter.notes ? noteEntries(ctx, filter.notes === true ? "open" : filter.notes) : undefined;
   return {
     link: `${ctx.base}${serializeParams(ctx.state)}`,
     look: frameLook(ctx.state),
@@ -140,6 +158,7 @@ export function buildReport(frames: readonly QaFrame[], filter: ReportFilter, ct
       withIssues: kept.filter((f) => f.issues.length).length,
       withFlags: kept.filter((f) => f.flags.length).length,
       withNotes: kept.filter((f) => f.note).length,
+      openNotes: kept.filter(openNote).length,
       issues: kept.reduce((n, f) => n + f.issues.length, 0),
       flags: kept.reduce((n, f) => n + f.flags.length, 0),
       clean: checked.filter((f) => !wrong(f)).length,
@@ -182,6 +201,10 @@ function settingsText(s: QaState): string {
 
 const issueLine = (x: Issue) => `- ${x.kind} dx ${x.dx} dy ${x.dy} · ${x.selector}`;
 const flagLine = (f: Flag) => `- ${f.kind} ${f.prop} ${f.value} at ${f.at}`;
+/** `Note: "…"` (open, as before statuses) or `Note (fixed): "…"`. */
+const noteLine = (label: string, text: string, status: NoteStatus | undefined) => `${label}${status === "fixed" ? " (fixed)" : ""}: ${JSON.stringify(text)}`;
+/** One entry of the notes queue: its reference and status, its text, then its link and the command that reads its frame. */
+const entryLines = (n: NoteEntry) => `- ${n.ref}${n.status === "fixed" ? " (fixed)" : ""}: ${JSON.stringify(n.text)}\n  ${n.link}\n  Reproduce: ${n.reproduce}`;
 
 /** One frame's Copy for Claude block. */
 export function frameMarkdown(f: QaFrame | ReportFrame, ctx: ReportContext): string {
@@ -195,8 +218,8 @@ export function frameMarkdown(f: QaFrame | ReportFrame, ctx: ReportContext): str
     `Frame: ${f.size[0]}×${f.size[1]} px · settings over default: ${settingsText(ctx.state)}`,
     ...(!read ? ["Issues: not checked (the frame is not mounted)"] : f.issues.length ? [`Issues (${f.issues.length}):`, ...f.issues.map(issueLine)] : ["Issues: none"]),
     ...(!ctx.flagsChecked ? ["Theme flags: not checked (no Look worn)"] : !read ? ["Theme flags: not checked (the frame is not mounted)"] : f.flags.length ? [`Theme flags (${f.flags.length}):`, ...f.flags.map(flagLine)] : ["Theme flags: none"]),
-    ...(f.note ? [`Note: ${JSON.stringify(f.note)}`] : []),
-    ...(widgetNote ? [`Widget note: ${JSON.stringify(widgetNote)}`] : []),
+    ...(f.note ? [noteLine("Note", f.note, f.noteStatus)] : []),
+    ...(widgetNote ? [noteLine("Widget note", noteText(widgetNote), noteStatus(widgetNote))] : []),
     `Reproduce: ${reproduce(ctx.state, f)}`,
   ];
   return lines.join("\n");
@@ -209,6 +232,15 @@ export function reportMarkdown(r: QaReport, ctx: ReportContext, scope = "the pag
   const head = [`Widget QA · ${scope} · ${counts.join(" · ")} (${r.look})`, `Link: ${r.link}`, ...(ctx.flagsChecked ? [] : ["Theme flags: not checked (no Look worn)"]), `Reproduce: ${reproduce(ctx.state)}`];
   const rest = s.clean - r.frames.filter((f) => !f.unchecked && !wrong(f)).length;
   const tail = [...(rest > 0 ? [`${rest} clean ${rest === 1 ? "frame" : "frames"} not listed.`] : []), ...(s.checked < s.frames ? [`${s.frames - s.checked} ${s.frames - s.checked === 1 ? "frame" : "frames"} not checked (not mounted).`] : [])];
-  const notes = r.notes?.length ? [["Notes:", ...r.notes.map((n) => `- ${n.ref}: ${JSON.stringify(n.text)}\n  ${n.link}`)].join("\n")] : [];
+  const notes = r.notes?.length ? [["Notes:", ...r.notes.map(entryLines)].join("\n")] : [];
   return [head.join("\n"), ...r.frames.map((f) => frameMarkdown(f, ctx)), ...notes, ...(tail.length ? [tail.join("\n")] : [])].join("\n\n");
+}
+
+/** The notes queue's Copy for Claude text: how many it holds, how to work through them, then each note with its link and report command. */
+export function notesMarkdown(entries: readonly NoteEntry[], ctx: Pick<ReportContext, "state">, which: NoteStatus | "all" = "open"): string {
+  const what = which === "all" ? "note" : `${which} note`;
+  const head = `Widget QA · notes queue · ${entries.length} ${entries.length === 1 ? what : `${what}s`} (${frameLook(ctx.state)})`;
+  if (!entries.length) return `${head}\nNothing in the queue.`;
+  const loop = "Per note: run its Reproduce line with --md --shots <dir>, fix the widget, run it again and look at the frame's shot, then set the note to fixed in src/widgets/widget-qa/notes.json.";
+  return [head, ...(which === "fixed" ? [] : [loop]), "", ...entries.map(entryLines)].join("\n");
 }
