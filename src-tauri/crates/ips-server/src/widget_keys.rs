@@ -163,7 +163,7 @@ impl KeyStore {
         }
         let temp = self.path.with_file_name(format!(".{FILE}-{}", uuid::Uuid::new_v4()));
         std::fs::write(&temp, text).map_err(io)?;
-        std::fs::rename(&temp, &self.path).map_err(|e| {
+        crate::fs_retry::rename(&temp, &self.path).map_err(|e| {
             let _ = std::fs::remove_file(&temp);
             io(e)
         })

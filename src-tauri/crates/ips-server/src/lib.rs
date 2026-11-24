@@ -32,6 +32,7 @@ pub mod font_proxy;
 pub mod foreground;
 pub mod frame_check;
 pub mod frame_policy;
+pub mod fs_retry;
 pub mod guarded_net;
 pub mod hook_auth;
 pub mod http;

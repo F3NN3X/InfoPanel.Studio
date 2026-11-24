@@ -186,7 +186,7 @@ pub async fn handle_config(app: &App, mut req: Req) -> std::io::Result<Response<
         if !path.exists() {
             let partial = path.with_extension("json.tmp");
             std::fs::copy(&config.file, &partial)?;
-            std::fs::rename(&partial, path)?;
+            crate::fs_retry::rename(&partial, path)?;
         }
     }
     config.save(&mut state, &body)?;

@@ -140,7 +140,7 @@ impl CanvasStore {
             std::fs::create_dir_all(&self.dir)?;
             let tmp = self.dir.join(format!("{id}.json.{}.tmp", uuid::Uuid::new_v4()));
             std::fs::write(&tmp, text)?;
-            std::fs::rename(&tmp, &file)?;
+            crate::fs_retry::rename(&tmp, &file)?;
         }
         Ok(Ok(id))
     }
