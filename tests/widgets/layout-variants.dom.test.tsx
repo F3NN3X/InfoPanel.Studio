@@ -60,6 +60,14 @@ describe("Calendar's month navigator", () => {
     expect(nav.textContent).toContain("Standup //");
   });
 
+  it("keeps a narrow footer to the selected day and the event's time, not its title cut short", () => {
+    const el = drawIn(220, 220, <Calendar data={DATE} lookLayout="grid-nav" />);
+    const foot = el.querySelector("[data-layout=grid-nav] [data-part=mono]")!;
+    expect(foot.textContent).toBe(new Date(2026, 10, 25, 10, 0).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }));
+    expect(foot.getAttribute("title")).toContain("Standup //");
+    expect(el.textContent).toContain("2026.11.25");
+  });
+
   it("hatches Sunday's column only and strikes its days through, as the kit's calendar does", () => {
     const el = drawIn(300, 300, <Calendar data={DATE} lookLayout="grid-nav" />);
     const rest = [...el.querySelectorAll("[data-rest]")];

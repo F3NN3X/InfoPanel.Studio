@@ -64,8 +64,8 @@ export function CalendarNav(p: CalendarProps & { day: number; month: number; yea
   const marked = new Set(calendar.events.map((e) => dayKey(new Date(e.start))));
   const time = event && !event.allDay ? new Date(event.start).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : event ? "All day" : undefined;
   const aside = event ? `${event.title} // ${time}` : `W${p.week} // ${calendar.configured ? "No events" : "No calendar"}`;
-  // a narrow footer keeps the week alone rather than cutting the words short
-  const short = event ? aside : `W${p.week}`;
+  // a narrow footer keeps the event's time or the week alone rather than cutting the words short
+  const short = event ? time! : `W${p.week}`;
   return (
     <Widget {...shell(p)} title={p.title} showHeader={false} compact={(box) => (navFits(box) ? undefined : { label: WEEKDAYS[today.getDay()], value: p.day, sub: `${MONTHS[p.month - 1]} ${p.year}`, kind: "value" as const, icon: "calendar_today" })}>
       {({ w, h }) => {
