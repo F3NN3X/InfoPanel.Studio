@@ -4,7 +4,7 @@ import { createBallistics, resolveBallistics, type BallisticsPreset } from "@/li
 import { dbToGain, gainToDb } from "@/lib/audio/decibels";
 import type { MeterFrame } from "@/lib/audio/types";
 import { useWavelinkMeter } from "@/lib/wavelink";
-import { LedLadder, HoldMark, scaleX, scaleY, STATE, clamp, fmt, stepPct, type Smoothed } from "../kit";
+import { Bar, LedLadder, HoldMark, scaleX, scaleY, STATE, clamp, fmt, stepPct, useSkin, type Smoothed } from "../kit";
 
 export interface Levels {
   l: Smoothed;
@@ -54,6 +54,16 @@ interface LevelProps {
 const ZONES: [number, number] = [70, 90];
 
 function Level({ value, hold, vertical, variant, n, color, hot }: LevelProps) {
+  const sk = useSkin();
+  // a Look that draws its meters as cells or a tick ruler (`meter-style`) draws a lying level that way too, in the zones' tones
+  if (!vertical && (sk.meter === "cells" || sk.meter === "ruler")) {
+    const t = value > ZONES[1] ? "crit" : value > ZONES[0] ? "warn" : "ok";
+    return (
+      <div className="flex min-h-0 min-w-0 flex-1 items-center">
+        <Bar value={value} t={t} style={sk.meter} color={t === "crit" ? hot : t === "ok" ? color : undefined} className="h-full min-h-1" />
+      </div>
+    );
+  }
   if (variant === "segmented") return <LedLadder value={value} n={n} vertical={vertical} zones={ZONES} hold={hold} color={color} hotColor={hot} />;
   const dir = vertical ? "0deg" : "90deg";
   const fill =

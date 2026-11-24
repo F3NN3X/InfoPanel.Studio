@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 // The kit's layouts added with Cyberspec v3 (src/widgets/layouts.ts): the friends crew roster, the weather quote slab, the notifications
 // feed, the spectrum receiver and the power draw, and the card anatomy a Look's `card-style` asks for. Each draws the widget's own data
-// its own way; with no layout named the widget draws its standard markup.
+// its own way; with no layout named the widget draws its standard markup. Then the treatments two more widgets take from the Look: the
+// default Custom gauge on a hexagon ring, and Wave Link's lying levels as cells or a ruler.
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -19,6 +20,9 @@ import { initials } from "@/widgets/shared/layout-kit";
 import { AnatomyHeader, anatomyFits, anatomyLabel, CardKindCtx } from "@/widgets/core/card-anatomy";
 import { Widget } from "@/widgets/core/Widget";
 import { t3Tokens } from "@/widgets/core/t3-tokens";
+import CustomGauge, { DEFAULT_GAUGE_SPEC } from "@/widgets/CustomGauge";
+import { MeterPair } from "@/widgets/wave-link/meters";
+import { normalizeGauge } from "@/lib/infopanel/gauges/vector";
 
 const data = toFlat(fixtureSensors());
 const box = (w: number, h: number) =>
@@ -172,5 +176,39 @@ describe("the card anatomy (`card-style: anatomy`)", () => {
     expect(anatomyLabel({ name: "System Overview", category: "System" }, "System")).toBe("System Overview");
     expect(anatomyLabel(kind, "Friends")).toBe("Gaming");
     expect(renderToString(<AnatomyHeader kind={kind} title="Friends" w={400} />)).toContain("Gaming");
+  });
+});
+
+describe("the Look's ring on the default Custom gauge, and its meters on Wave Link's levels", () => {
+  const HEX = { "ring-style": "hex" };
+  it("draws the default gauge as the Look's hexagon with the reading in its tone, one decimal at least", () => {
+    const el = drawIn(320, 320, <CustomGauge data={{ cpu: 93 }} sensor="cpu" label="CPU" t3={HEX} />);
+    const ring = el.querySelector("[data-ring=hex]")!;
+    expect(ring).not.toBeNull();
+    expect(ring.querySelector("[data-part=num]")?.textContent).toContain("93.0");
+    expect(ring.querySelector("[data-part=num]")?.getAttribute("style")).toContain("color");
+  });
+
+  it("keeps a gauge the user designed, and the default under a Look with round rings", () => {
+    const mine = normalizeGauge({ ...DEFAULT_GAUGE_SPEC, thickness: 6 });
+    expect(drawIn(320, 320, <CustomGauge data={{ cpu: 40 }} sensor="cpu" gauge={mine} t3={HEX} />).querySelector("[data-ring]")).toBeNull();
+    cleanup();
+    expect(drawIn(320, 320, <CustomGauge data={{ cpu: 40 }} sensor="cpu" />).querySelector("[data-part=ring]")).toBeNull();
+  });
+
+  it("draws a lying Wave Link level as the Look's cells or ruler; a standing one keeps its own bars", () => {
+    const levels = { l: { v: 50 }, r: { v: 95 } };
+    const pair = (t3: Record<string, string>, vertical = false) => (
+      <Widget title="Wave Link" t3={t3}>
+        <MeterPair levels={levels} vertical={vertical} variant="solid" color="var(--w-accent)" hot="red" />
+      </Widget>
+    );
+    expect(drawIn(320, 200, pair({ "meter-style": "cells" })).querySelectorAll("[data-meter=cells]")).toHaveLength(2);
+    cleanup();
+    expect(drawIn(320, 200, pair({ "meter-style": "ruler" })).querySelectorAll("[data-meter=ruler]")).toHaveLength(2);
+    cleanup();
+    expect(drawIn(320, 200, pair({ "meter-style": "cells" }, true)).querySelectorAll("[data-meter]")).toHaveLength(0);
+    cleanup();
+    expect(drawIn(320, 200, pair({})).querySelectorAll("[data-meter]")).toHaveLength(0);
   });
 });
