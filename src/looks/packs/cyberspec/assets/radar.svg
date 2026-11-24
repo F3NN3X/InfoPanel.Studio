@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">
+  <style>
+    @keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes trace { from { stroke-dashoffset: 240; } to { stroke-dashoffset: 0; } }
+    .sweep { animation: sweep 12s linear infinite; transform-origin: center; transform-box: fill-box; }
+    .t1 { animation: trace 4s linear infinite; }
+    .t2 { animation: trace 5s linear infinite; }
+    .t3 { animation: trace 6s linear infinite; }
+  </style>
+  <g fill="none" stroke="#5EF6FF" stroke-opacity="0.12">
+    <circle cx="1130" cy="590" r="110"/>
+    <circle cx="1130" cy="590" r="70"/>
+    <circle cx="1130" cy="590" r="30"/>
+    <path d="M1020 590H1240M1130 480V700"/>
+  </g>
+  <g class="sweep">
+    <path d="M1130 590L1240 590A110 110 0 0 0 1207.8 512.2Z" fill="#5EF6FF" fill-opacity="0.08"/>
+    <path d="M1130 590L1240 590" stroke="#5EF6FF" stroke-opacity="0.35"/>
+    <circle cx="1130" cy="590" r="110" fill="none" stroke="none"/>
+  </g>
+  <g fill="none" stroke="#5EF6FF" stroke-opacity="0.28" stroke-width="1.5" stroke-dasharray="16 224" stroke-linecap="square">
+    <path class="t1" d="M24 120H140L170 150V320"/>
+    <path class="t2" d="M24 600H200L230 570H420"/>
+    <path class="t3" d="M1256 60H1080L1050 90V200"/>
+  </g>
+  <g fill="none" stroke="#8A8AB8" stroke-opacity="0.14">
+    <path d="M24 120H140L170 150V320M24 600H200L230 570H420M1256 60H1080L1050 90V200"/>
+  </g>
+</svg>

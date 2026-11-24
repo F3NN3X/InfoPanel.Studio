@@ -3,6 +3,7 @@
 // colour. Nothing here ships in a bundle: the generator (tools/looks/generate.mjs) and the coverage test read it.
 import { GLIDE_MS, RAMP_BASE, RING_GAP, RING_T, RING_TRACK } from "./data-viz.ts";
 import { STATUS } from "./status.ts";
+import { SLAB_INFO_DEFAULT, SLAB_INK_DEFAULT } from "./treatments.ts";
 
 export const T3_TOKENS = [
   "num-family", "num-weight", "hero-weight", "num-tracking", "num-stretch", "num-effect", "num-glow-color", "num-fill",
@@ -20,6 +21,10 @@ export const T3_TOKENS = [
   "ring-width", "ring-track", "ring-cap", "ring-gap", "ring-style", "border-fill", "ring-fill", "spark-fill", "bar-fill", "focus-outline",
   "cell-radius", "track",
   "motion-fast", "motion-base", "motion-data", "ease-standard",
+  "slab-header", "slab-chip", "slab-tab", "slab-row", "slab-card", "slab-ink", "slab-info", "slab-texture", "slab-notch",
+  "readout-scale", "readout-decimals", "readout-bar",
+  "meter-empty", "meter-peak", "graph-grid", "graph-lead", "graph-bars", "row-style", "slab-current", "share-style", "avatar-shape",
+  "card-style",
 ] as const;
 export type T3Token = (typeof T3_TOKENS)[number];
 export type T3Value = string | number;
@@ -44,6 +49,11 @@ export const CLASSIC_T3: Record<T3Token, T3Value> = {
   "ring-width": RING_T, "ring-track": RING_TRACK, "ring-cap": "round", "ring-gap": RING_GAP, "ring-style": "arc", "border-fill": "none", "ring-fill": "none", "spark-fill": "none", "bar-fill": "none", "focus-outline": "none",
   "cell-radius": "{radius}", track: "rgba(255,255,255,.07)",
   "motion-fast": "150ms", "motion-base": "300ms", "motion-data": `${GLIDE_MS}ms`, "ease-standard": "cubic-bezier(.2,0,0,1)",
+  // Component treatments (Cyberspec v2, lane K): Classic draws none of them.
+  "slab-header": "none", "slab-chip": "none", "slab-tab": "none", "slab-row": "none", "slab-card": "none", "slab-ink": SLAB_INK_DEFAULT, "slab-info": SLAB_INFO_DEFAULT, "slab-texture": "none", "slab-notch": 0,
+  "readout-scale": 1, "readout-decimals": 1, "readout-bar": "none",
+  "meter-empty": "{track}", "meter-peak": "none", "graph-grid": "auto", "graph-lead": "none", "graph-bars": "solid", "row-style": "none", "slab-current": "accent", "share-style": "none", "avatar-shape": "none",
+  "card-style": "none",
 };
 
 /** The CSS of a Classic value: an alias becomes the var a widget reads, with the dark-surface fallback. */

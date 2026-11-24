@@ -472,6 +472,24 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
       maskOfEl.clear();
       const boxes: { rect: DOMRect; words: string }[] = [];
       const face = card.getBoundingClientRect();
+      // per element, what of the page it shows: the card's face cut by every box above it that hides its overflow (the card's frame
+      // when the widget runs past it, a rolling number's cell), so text no one sees with or without the pack is not counted. A box
+      // that scrolls is not one: what it scrolls to is seen.
+      const views = new Map<Element, number[]>();
+      const viewOf = (el: Element): number[] => {
+        const known = views.get(el);
+        if (known) return known;
+        const above = el.parentElement ? viewOf(el.parentElement) : [face.left, face.top, face.right, face.bottom];
+        const cs = getComputedStyle(el);
+        const [hx, hy] = [cs.overflowX === "hidden" || cs.overflowX === "clip", cs.overflowY === "hidden" || cs.overflowY === "clip"];
+        let view = above;
+        if (hx || hy) {
+          const r = el.getBoundingClientRect();
+          view = [hx ? Math.max(above[0], r.left) : above[0], hy ? Math.max(above[1], r.top) : above[1], hx ? Math.min(above[2], r.right) : above[2], hy ? Math.min(above[3], r.bottom) : above[3]];
+        }
+        views.set(el, view);
+        return view;
+      };
       const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
       let k = 0;
       for (let t = walker.nextNode(); t; t = walker.nextNode()) {
@@ -484,10 +502,11 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
         const words = t.textContent.trim().slice(0, 20);
         const range = document.createRange();
         range.selectNodeContents(t);
-        // the part of the text that is on the card: the card clips what runs past it, so that part is not seen with or without the pack
+        // the part of the text that is on the card: the card and the boxes in it clip what runs past them, so that part is not seen with or without the pack
         const whole = range.getBoundingClientRect();
-        const [left, top] = [Math.max(whole.left, face.left), Math.max(whole.top, face.top)];
-        const rect = new DOMRect(left, top, Math.max(0, Math.min(whole.right, face.right) - left), Math.max(0, Math.min(whole.bottom, face.bottom) - top));
+        const view = viewOf(el);
+        const [left, top] = [Math.max(whole.left, view[0]), Math.max(whole.top, view[1])];
+        const rect = new DOMRect(left, top, Math.max(0, Math.min(whole.right, view[2]) - left), Math.max(0, Math.min(whole.bottom, view[3]) - top));
         if (rect.width > 0 && rect.height > 0) boxes.push({ rect, words });
         const chain = clipsOf(el);
         const seen = chain && kept(rect, chain, 24, 8);
@@ -796,6 +815,8 @@ export const READABLE_MIN = 3;
 export const MARK_MIN = 1.3;
 /** A text keeps at least this share of its box under the clip-paths above it, of what it kept without the pack. */
 export const CLIP_SEEN_MIN = 0.9;
+/** A text under the pack's masks keeps at least this share of the alpha it had without the pack: the same mask read over a box the pack's face moved a pixel lands a little off. */
+export const MASK_KEPT_MIN = 0.95;
 /** A card's clip-path removes at most this share of its border box. */
 export const CARD_CLIP_MAX = 0.1;
 
@@ -823,7 +844,7 @@ export function renderRefusals({ worn, bare }: Twin): string[] {
   const alphaBare = new Map(bare.masks.map((t) => [t.key, t.alpha]));
   const dim = worn.masks.filter((t) => {
     const was = alphaBare.has(t.key) ? alphaBare.get(t.key) : 1;
-    return t.alpha === null ? was !== null : was !== null && was !== undefined && t.alpha < OPACITY_FLOOR && t.alpha < was;
+    return t.alpha === null ? was !== null : was !== null && was !== undefined && t.alpha < OPACITY_FLOOR && t.alpha < MASK_KEPT_MIN * was;
   });
   if (dim.length) out.push(`${dim.length} text${dim.length === 1 ? " is" : "s are"} under a mask that leaves less than ${OPACITY_FLOOR} of ${dim.length === 1 ? "it" : "them"} ("${dim[0].text}" is ${dim[0].alpha === null ? "under one that cannot be read" : `at ${dim[0].alpha.toFixed(2)}`})`);
   // a border the pack widens (or narrows) moves what the element holds: any width that is not the bare page's refuses

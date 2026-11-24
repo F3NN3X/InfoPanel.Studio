@@ -1,4 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
+import { MotionRow } from "@/looks/motion-render";
 import { bodyGap, fillRows, roomy, SummaryHero, SUMMARY_H, useFitRows, Widget, shell, get, num, has, Dot, Pill, type ShellProps } from "../kit";
 import { meta } from "./meta";
 
@@ -69,11 +70,11 @@ export default function ServiceHealth(p: ServiceHealthProps) {
         ) : (
           <ul className={`grid h-full gap-x-4 gap-y-2 ${fill.spread ? "content-evenly" : "content-start"}`} style={{ gridTemplateColumns: cols === 2 ? "repeat(2, minmax(0,1fr))" : "minmax(0,1fr)" }}>
             {list.slice(0, shown).map((x) => (
-              <li key={x.label} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]" style={{ minHeight: fill.rowH }}>
+              <MotionRow as="li" rowKey={x.label} key={x.label} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]" style={{ minHeight: fill.rowH }}>
                 <Dot ok={x.ok} className={!x.ok && x.idle ? "!bg-amber-400" : ""} />
                 <span className="truncate text-[color:var(--w-fg)]">{x.label}</span>
                 <span className="ml-auto shrink-0 text-micro text-[color:var(--w-faint)]">{x.note}</span>
-              </li>
+              </MotionRow>
             ))}
           </ul>
         );

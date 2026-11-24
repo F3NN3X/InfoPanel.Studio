@@ -12,4 +12,8 @@ export const meta: WidgetMeta = {
   blurb: "Today and a month grid",
   tags: "date month",
   description: "Today plus a month grid, driven by the clock plugin date. Week starts Monday by default.",
+  layouts: [
+    { id: "standard", name: "Standard" },
+    { id: "grid-nav", name: "Month navigator" },
+  ],
 };

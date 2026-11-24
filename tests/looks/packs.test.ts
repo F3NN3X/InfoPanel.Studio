@@ -296,9 +296,11 @@ describe("what the five Looks teach the contract (P11b)", () => {
 describe("what Cyberspec teaches the contract", () => {
   it("a built-in pack carries the frame and ornaments of its pack.json to the card, as a user pack does", async () => {
     const pack = (await loadPack("cyberspec"))!;
-    // the kit's panel: the bottom right cut 10 px, a 5 px spine down the leading edge, both in the panel line (55 % of the accent)
-    expect(pack.frame).toEqual({ corners: "cut", size: 10, which: ["br"], stroke: 1, spine: { edge: "left", width: 5 }, alpha: 0.55 });
-    expect(pack.ornaments?.map((o) => o.kind)).toEqual(["reticle", "micro-print", "ticks"]);
+    // the kit's panel: two corners cut 18 px, a hatched band down the leading edge, the tint and dot grid, its lines in the panel line (55 % of
+    // the accent) turning to the state's tone, the head rule, and the glow, caption and tab drawn outside the card
+    expect(pack.frame).toMatchObject({ corners: "cut", size: 18, which: ["tr", "bl"], stroke: 1, alpha: 0.55, band: { edge: "left", width: 10 }, tone: "state", rule: true });
+    expect(Object.keys(pack.frame ?? {}).sort()).toEqual(["alpha", "band", "caption", "corners", "glow", "grid", "rule", "size", "stroke", "tab", "tint", "tone", "which"]);
+    expect(pack.ornaments?.map((o) => o.kind)).toEqual(["reticle", "ticks"]);
     for (const o of pack.ornaments ?? []) expect(o.minSizeClass, o.kind).toBeDefined();
     expect(slotsWithDecor(pack)?.decor).toEqual({ frame: pack.frame, ornaments: pack.ornaments });
     // a pack without either keeps its slots as they were

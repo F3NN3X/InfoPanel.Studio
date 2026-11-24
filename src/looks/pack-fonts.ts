@@ -2,4 +2,4 @@
 // Apart from ids.ts so the kiosk entry does not carry it: only the validator (a lazy chunk) reads it.
 
 /** The font families of the built-in packs (`pack.json`), which a user pack may not claim. */
-export const PACK_FONT_FAMILIES: readonly string[] = ["pack-classy", "pack-classy-num", "pack-cyberspec", "pack-cyberspec-mono", "pack-field-kit", "pack-gold", "pack-holo", "pack-holo-display", "pack-liquid", "pack-neon-display", "pack-neon-mono", "pack-night-glow", "pack-overdrive", "pack-overdrive-mono", "pack-paper", "pack-swiss", "pack-swiss-display", "pack-tape-86-display", "pack-tape-86-mono", "pack-term-display", "pack-term-mono"];
+export const PACK_FONT_FAMILIES: readonly string[] = ["pack-classy", "pack-classy-num", "pack-cyberspec", "pack-cyberspec-display", "pack-cyberspec-mono", "pack-field-kit", "pack-gold", "pack-holo", "pack-holo-display", "pack-liquid", "pack-neon-display", "pack-neon-mono", "pack-night-glow", "pack-overdrive", "pack-overdrive-mono", "pack-paper", "pack-swiss", "pack-swiss-display", "pack-tape-86-display", "pack-tape-86-mono", "pack-term-display", "pack-term-mono"];

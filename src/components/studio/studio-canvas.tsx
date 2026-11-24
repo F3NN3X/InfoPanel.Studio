@@ -680,7 +680,7 @@ export function StudioCanvas({
               )}
                 {/* Page background (as in the kiosk) behind the tiles */}
                 {background && <PageBackground background={background} className="absolute inset-0 -z-20" />}
-                <PackStage pack={pack} page={islandPage} className="absolute inset-0 -z-20" overlayClassName="absolute inset-0 z-10" zones={linkZones} accent={pageSkin.accent} />
+                <PackStage pack={pack} page={islandPage} className="absolute inset-0 -z-20" overlayClassName="absolute inset-0 z-10" zones={linkZones} accent={pageSkin.accent} motionEffects={pageSkin.motionEffects} />
                 {/* the pack's script, in the same sandbox as the kiosk's; an unverified pack's asks first */}
                 <PackScript pack={pack} studio className="absolute inset-0 z-10" accent={pageSkin.accent} />
                 {/* A scroll page longer than its screen: the design size stays the frame. */}

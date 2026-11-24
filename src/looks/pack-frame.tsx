@@ -7,6 +7,9 @@ import { showsAt, sizeClassOf } from "./effects";
 import type { Pack, PackSlots } from "./pack";
 import { CORNERS, FRAME_DOUBLE_GAP, ORNAMENT_MAX, type Corner, type FrameCorners, type FrameEdge, type OrnamentAt, type PackFrame, type PackOrnament } from "./pack-json";
 
+/** The tone a frame's lines are drawn in: the accent, or (`tone: state`) the card's warning or critical colour while it shows one (treatments.css sets `--wp-frame-ink`). */
+export const frameInk = (frame: Pick<PackFrame, "tone">): string => (frame.tone === "state" ? "var(--wp-frame-ink, var(--w-accent))" : "var(--w-accent)");
+
 /** The frame and ornaments a pack draws on its cards (`Pack.frame`, `Pack.ornaments`). */
 export interface PackDecorSpec {
   frame?: PackFrame;
@@ -22,7 +25,9 @@ export function slotsWithDecor(pack: Pick<Pack, "slots" | "frame" | "ornaments">
 const named = (frame: PackFrame): readonly Corner[] => frame.which ?? CORNERS;
 
 /** The colour of a frame's lines and spine: the accent, laid over the card at the frame's `alpha` (the kit's 55 % panel line); the tab stays solid. */
-export const lineColour = (frame: PackFrame): string => (frame.alpha === undefined || frame.alpha >= 1 ? "var(--w-accent)" : `color-mix(in srgb, var(--w-accent) ${Math.round(frame.alpha * 100)}%, transparent)`);
+export const lineColour = (frame: PackFrame): string => (frame.alpha === undefined || frame.alpha >= 1 ? frameInk(frame) : `color-mix(in srgb, ${frameInk(frame)} ${Math.round(frame.alpha * 100)}%, transparent)`);
+/** The tone at `share` (0 to 1) over the card: the tint, the band, the grid's dots. */
+const wash = (frame: PackFrame, share: number): string => `color-mix(in srgb, ${frameInk(frame)} ${Math.round(share * 100)}%, transparent)`;
 const px = (n: number) => `${n}px`;
 
 /** What a corner of the frame is: its own kind, else the frame's where `which` names it, else plain. */
@@ -80,15 +85,21 @@ function Frame({ frame, pad }: { frame: PackFrame; pad?: number }) {
   const double = !!frame.double && stroke > 0 && roomFor(2 * stroke + FRAME_DOUBLE_GAP);
   const line = stroke > 0 && (frame.corners === "square" || frame.size > 0);
   const marks = line && frame.size > 0 ? CORNERS.filter((c) => kindAt(frame, c) !== "square") : [];
-  const { spine, tab } = frame;
+  const { spine, tab, band, tint, grid } = frame;
   const spineShown = spine && roomFor(spine.width);
-  const tabShown = tab && roomFor(tab.height);
-  if (!(line && (frame.corners === "square" || marks.length > 0)) && !spineShown && !tabShown) return null;
+  // a tab drawn outside the card is the outside layer's (`PackFrameOut`)
+  const tabShown = tab && !tab.out && roomFor(tab.height);
+  // a band draws at most the padding wide, so it never reaches the content
+  const bandWidth = band ? Math.min(band.width, pad ?? band.width) : 0;
+  if (!(line && (frame.corners === "square" || marks.length > 0)) && !spineShown && !tabShown && !bandWidth && !tint && !grid) return null;
   const ink = lineColour(frame);
   const ring = (inset: number): CSSProperties => ({ position: "absolute", inset, borderRadius: "inherit", boxShadow: `inset 0 0 0 ${px(stroke)} ${ink}` });
   const tabInset = tab && frame.size > 0 && (kindAt(frame, tab.at) === "cut" || kindAt(frame, tab.at) === "notch") ? frame.size : 0;
   return (
     <div aria-hidden data-pack-decor="frame" className={`pointer-events-none absolute inset-0${frame.corners === "square" ? " rounded-[inherit]" : ""}`} style={frame.corners === "square" && line ? { boxShadow: `inset 0 0 0 ${px(stroke)} ${ink}` } : undefined}>
+      {tint ? <div data-frame-part="tint" style={{ position: "absolute", inset: 0, background: wash(frame, tint) }} /> : null}
+      {grid && <div data-frame-part="grid" style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle, ${wash(frame, grid.alpha ?? 0.3)} 1px, transparent 1.5px)`, backgroundSize: `${grid.size}px ${grid.size}px`, backgroundPosition: `${grid.size / 2}px ${grid.size / 2}px` }} />}
+      {bandWidth > 0 && band && <div data-frame-part="band" style={{ position: "absolute", top: 0, bottom: 0, width: bandWidth, ...(band.edge === "left" ? { left: 0 } : { right: 0 }), background: wash(frame, 0.14), boxShadow: `${band.edge === "left" ? "inset -1px" : "inset 1px"} 0 0 ${ink}` }} />}
       {frame.corners === "square" && double && <div style={ring(stroke + FRAME_DOUBLE_GAP)} />}
       {marks.map((c) => {
         const kind = kindAt(frame, c);
@@ -104,6 +115,33 @@ function Frame({ frame, pad }: { frame: PackFrame; pad?: number }) {
         <div data-frame-part="tab" style={{ position: "absolute", background: "var(--w-accent)", width: tab.width, height: tab.height, ...(tab.at === "tl" || tab.at === "tr" ? { top: 0 } : { bottom: 0 }), ...(tab.at === "tl" || tab.at === "bl" ? { left: tabInset } : { right: tabInset }) }} />
       )}
     </div>
+  );
+}
+
+/**
+ * What a frame draws outside its card: a glow round it, a caption above it and a tab that protrudes from its edge (`framesOutside`). One
+ * click-through layer the card's own size, in the card's host (Widget.tsx), so no card or body rect changes: the glow is its box-shadow, the
+ * caption and the tab its pseudo-elements (treatments.css), the caption's text an attribute, never markup. `style` carries the card's accent
+ * and muted text, which are set on the card and not on its host.
+ */
+export function PackFrameOut({ frame, style }: { frame: PackFrame; style?: CSSProperties }) {
+  const { glow, caption, tab } = frame;
+  const out = tab?.out ? tab : undefined;
+  const tabInset = out && frame.size > 0 && (kindAt(frame, out.at) === "cut" || kindAt(frame, out.at) === "notch") ? frame.size : 0;
+  return (
+    <div
+      aria-hidden
+      data-pack-decor="frame-out"
+      data-caption={caption?.text}
+      data-caption-at={caption ? (caption.at ?? "tl") : undefined}
+      data-tab-at={out?.at}
+      className="pointer-events-none absolute inset-0"
+      style={{
+        ...style,
+        ...(glow ? { boxShadow: `0 0 ${px(glow.radius)} ${wash(frame, glow.alpha ?? 0.35)}` } : null),
+        ...(out ? ({ "--wp-tab-w": px(out.width), "--wp-tab-h": px(out.height), "--wp-tab-x": px(tabInset) } as CSSProperties) : null),
+      }}
+    />
   );
 }
 
@@ -142,7 +180,7 @@ function Ornaments({ items, frame, screen }: { items: readonly PackOrnament[]; f
     if (!frame || !(CORNERS as readonly string[]).includes(where)) return 4;
     const cut = kindAt(frame, where as Corner) !== "square" ? frame.size : 0;
     const side = where === "tl" || where === "bl" ? "left" : "right";
-    return 4 + Math.max(cut, frame.spine?.edge === side ? frame.spine.width : 0);
+    return 4 + Math.max(cut, frame.spine?.edge === side ? frame.spine.width : 0, frame.band?.edge === side ? frame.band.width : 0);
   };
   return (
     <div aria-hidden data-pack-decor="ornaments" className="pointer-events-none absolute inset-0">

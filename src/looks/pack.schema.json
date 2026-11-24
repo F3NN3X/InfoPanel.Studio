@@ -45,7 +45,8 @@
               "fill": { "type": "string" },
               "image": { "type": "string" },
               "opacity": { "type": "number" },
-              "minSizeClass": { "enum": ["xs", "sm", "md", "lg"] }
+              "minSizeClass": { "enum": ["xs", "sm", "md", "lg"] },
+              "animated": { "type": "boolean", "description": "The layer's SVG animates (its own CSS keyframes or SMIL, held to the validator's subset, rule svg-animation): drawn moving only at the Effects level Full, still otherwise." }
             }
           }
         },
@@ -67,7 +68,31 @@
             }
           }
         },
-        "overlayMinSizeClass": { "enum": ["xs", "sm", "md", "lg"] }
+        "overlayMinSizeClass": { "enum": ["xs", "sm", "md", "lg"] },
+        "grid": {
+          "description": "A dot grid over the page, under the cards, in the screen's accent (src/looks/pack-stage.tsx).",
+          "type": "object",
+          "required": ["size"],
+          "additionalProperties": false,
+          "properties": { "size": { "type": "number" }, "alpha": { "type": "number" }, "minSizeClass": { "enum": ["xs", "sm", "md", "lg"] } }
+        },
+        "chrome": {
+          "description": "The screen's own frame the app draws: a line with cut corners, a notched tab at the top centre with an optional text, corner reticles.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cut": { "type": "number" },
+            "alpha": { "type": "number" },
+            "tab": {
+              "type": "object",
+              "required": ["width", "height"],
+              "additionalProperties": false,
+              "properties": { "width": { "type": "number" }, "height": { "type": "number" }, "text": { "type": "string", "minLength": 1 } }
+            },
+            "reticles": { "type": "boolean" },
+            "minSizeClass": { "enum": ["xs", "sm", "md", "lg"] }
+          }
+        }
       }
     },
     "burnIn": { "enum": ["static-safe", "needs-shift", "needs-dim"] },
@@ -119,11 +144,39 @@
           "properties": {
             "at": { "enum": ["tl", "tr", "br", "bl"] },
             "width": { "type": "number", "minimum": 1, "maximum": 64 },
-            "height": { "type": "number", "minimum": 1, "maximum": 8 }
+            "height": { "type": "number", "minimum": 1, "maximum": 8 },
+            "out": { "type": "boolean" }
           }
         },
         "double": { "type": "boolean" },
-        "alpha": { "type": "number", "minimum": 0.2, "maximum": 1 }
+        "alpha": { "type": "number", "minimum": 0.2, "maximum": 1 },
+        "band": {
+          "type": "object",
+          "required": ["edge", "width"],
+          "additionalProperties": false,
+          "properties": { "edge": { "enum": ["left", "right"] }, "width": { "type": "number", "minimum": 1, "maximum": 28 } }
+        },
+        "tint": { "type": "number", "minimum": 0.02, "maximum": 0.25 },
+        "tone": { "enum": ["state"] },
+        "grid": {
+          "type": "object",
+          "required": ["size"],
+          "additionalProperties": false,
+          "properties": { "size": { "type": "number", "minimum": 12, "maximum": 48 }, "alpha": { "type": "number", "minimum": 0.05, "maximum": 0.5 } }
+        },
+        "rule": { "type": "boolean" },
+        "glow": {
+          "type": "object",
+          "required": ["radius"],
+          "additionalProperties": false,
+          "properties": { "radius": { "type": "number", "minimum": 1, "maximum": 16 }, "alpha": { "type": "number", "minimum": 0.05, "maximum": 0.6 } }
+        },
+        "caption": {
+          "type": "object",
+          "required": ["text"],
+          "additionalProperties": false,
+          "properties": { "text": { "type": "string", "minLength": 1 }, "at": { "enum": ["tl", "tr"] } }
+        }
       }
     },
     "ornaments": {
@@ -145,12 +198,17 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "glitch": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
+        "glitch": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" }, "target": { "enum": ["text", "value", "all"] } } },
         "decode": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" } } },
         "scramble": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
         "arrival": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "style": { "enum": ["fade", "clip", "line"] } } },
         "flicker": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "every": { "type": "number" }, "target": { "enum": ["card", "label"] } } },
-        "sweep": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } }
+        "sweep": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" }, "style": { "enum": ["band", "tracking"] } } },
+        "tear": { "description": "A screen tear now and then: one card's content split at a random height and shifted 6 to 14 px for ms (80 to 200), every seconds (4 to 120), one card at a time.", "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
+        "value": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" }, "style": { "enum": ["tween", "roll"] }, "mark": { "enum": ["none", "flash", "underline", "glitch", "phosphor"] } } },
+        "list": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "enter": { "enum": ["slide", "fade", "none"] }, "reorder": { "type": "boolean" }, "change": { "type": "boolean" }, "decode": { "type": "boolean" } } },
+        "art": { "description": "The page's animated layer (a stage layer with animated true) as a switch in the Theme view's Motion group: on false offers it off, and the layer is drawn from its still copy until the user turns it on.", "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" } } },
+        "boot": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "stagger": { "type": "number" }, "style": { "enum": ["fade", "clip", "glitch", "crt"] }, "line": { "type": "boolean" }, "decode": { "type": "boolean" } } }
       }
     },
     "script": {

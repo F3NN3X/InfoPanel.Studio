@@ -1,11 +1,11 @@
 import type { ModuleSettings } from "@/modules/types";
+import { MotionRow } from "@/looks/motion-render";
 import { entryText } from "../entries";
 import { Widget, shell, num, roomy, Chip, Empty, Metric, STATE, type ShellProps } from "../kit";
 import { meta, P } from "./meta";
+import { NotificationsFeed } from "./NotificationsFeed";
 
 export { meta };
-
-
 
 export interface NotificationsProps extends ShellProps {
   look?: ModuleSettings;
@@ -24,7 +24,12 @@ interface Line {
 /** Error and Warning keep their semantic colours; every other type is neutral. */
 const typeColor = (type: string): string | undefined => (type === "Error" ? STATE.crit : type === "Warning" ? STATE.warn : undefined);
 
+/** The standard layout, or the `feed` one the zone's Look or Layout pick names (`meta.layouts`). */
 export default function Notifications(p: NotificationsProps) {
+  return p.lookLayout === "feed" ? <NotificationsFeed {...p} /> : <NotificationsList {...p} />;
+}
+
+function NotificationsList(p: NotificationsProps) {
   const k = (id: string) => entryText(p.data, P, id);
   const count = num(k("notification-count"));
   const hasCount = Number.isFinite(count);
@@ -104,7 +109,7 @@ export default function Notifications(p: NotificationsProps) {
                 {lines.slice(0, fit).map((l, i) => {
                   const c = typeColor(l.type);
                   return (
-                    <div key={i} className={`flex ${room ? "items-center" : "items-baseline"} gap-2 ${text}`} style={room ? { minHeight: pitch - 4 } : undefined}>
+                    <MotionRow as="div" rowKey={`${l.time} ${l.message}`} key={i} className={`flex ${room ? "items-center" : "items-baseline"} gap-2 ${text}`} style={room ? { minHeight: pitch - 4 } : undefined}>
                       <span className="shrink-0 font-mono tabular-nums text-[color:var(--w-muted)]">{l.time}</span>
                       <span
                         className="shrink-0 rounded px-1.5 py-px text-micro tracking-wider text-[color:var(--w-muted)]"
@@ -115,7 +120,7 @@ export default function Notifications(p: NotificationsProps) {
                       <span className="min-w-0 truncate text-[color:var(--w-muted)]" title={l.message}>
                         {l.message}
                       </span>
-                    </div>
+                    </MotionRow>
                   );
                 })}
               </div>

@@ -24,6 +24,9 @@ import { ICONS } from "@/components/alerts/alert-layer";
 import { severityColor } from "@/components/alerts/alert-model";
 import { cn } from "@/lib/utils";
 import { usePack } from "@/looks/pack";
+import type { PackChrome } from "@/looks/chrome";
+import { ownSlabVars } from "@/looks/treatments";
+import { layoutOf } from "@/widgets/layouts";
 import { accentVars } from "@/widgets/core/tokens";
 import { islandClock, islandSkin, motionVars, shadowTransition, shapeSpring, springTransition, type IslandSkin, type PageSkin, type WornSurface } from "./island-look";
 import { fitIslandSize, idleViews, islandBox, islandFontPx, islandMode, islandTop, type IdleView, type IslandMode } from "./island-model";
@@ -158,7 +161,10 @@ function IslandPill({ mode, snap, config, size, placement, onAck, bus, pageSkin 
   const interactive = onAck !== undefined;
   const tappable = interactive && mode !== "idle" && mode !== "line";
   const worn = useWornSurface(config.placement === "skin" ? pageSkin : undefined);
-  const skin = islandSkin(config, worn, usePack(pageSkin?.lookId)?.chrome);
+  const pack = usePack(pageSkin?.lookId);
+  const skin = islandSkin(config, worn, pack?.chrome);
+  // the pack Look's island layout (look.json `layouts.island`): `slab` squares the pill, cuts a corner, edges it and gives a notice the tone slab
+  const slab = pack?.chrome && layoutOf("island", pack.look.layouts) === "slab" ? pack.chrome : undefined;
   const notch = config.shape === "notch";
   const bottom = config.edge === "bottom";
   const animate = config.motion !== "off" && !reduced;
@@ -183,7 +189,7 @@ function IslandPill({ mode, snap, config, size, placement, onAck, bus, pageSkin 
   const key = item ? `x:${item.key}` : mode === "compact" && snap.activity ? `c:${snap.activity.source}:${snap.activity.id}` : mode === "activity" && snap.activity ? `a:${snap.activity.source}:${snap.activity.id}` : mode;
   const content =
     mode === "line" ? null : item ? (
-      <Expanded item={item} />
+      <Expanded item={item} slab={slab && { ...slab.tones[item.severity], title: skin.background === slab.fill ? slab.tones[item.severity].title : skin.color }} />
     ) : mode === "activity" && snap.activity ? (
       <Activity activity={snap.activity} config={config} />
     ) : mode === "compact" && snap.activity ? (
@@ -195,7 +201,7 @@ function IslandPill({ mode, snap, config, size, placement, onAck, bus, pageSkin 
 
   const radius = mode === "expanded" ? Math.round(box.height * 0.42) : box.height / 2;
   const notchRadius = mode === "expanded" ? Math.round(30 * k) : Math.round((mode === "line" ? 2.5 : 10) * k);
-  const shapeRadius = notch ? (bottom ? `${notchRadius}px ${notchRadius}px 0 0` : `0 0 ${notchRadius}px ${notchRadius}px`) : radius;
+  const shapeRadius = slab ? 0 : notch ? (bottom ? `${notchRadius}px ${notchRadius}px 0 0` : `0 0 ${notchRadius}px ${notchRadius}px`) : radius;
   const ear = Math.round((mode === "expanded" ? EAR.open : EAR.closed) * k);
 
   return (
@@ -240,10 +246,13 @@ function IslandPill({ mode, snap, config, size, placement, onAck, bus, pageSkin 
               ...(config.placement === "skin" && pageSkin && !worn ? { visibility: "hidden" } : null),
               ...(animate ? motionVars(SLOW) : {}),
               "--island-accent": accent,
+              ...(slab ? { clipPath: `polygon(0 0, 100% 0, 100% calc(100% - ${SLAB_CUT}), calc(100% - ${SLAB_CUT}) 100%, 0 100%)` } : null),
             } as CSSProperties
           }
           data-shape={config.shape}
+          data-layout={slab ? "slab" : undefined}
         >
+          {slab && <span aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ boxShadow: `inset 0 0 0 1px ${strongest ? slab.tones[strongest.severity].tone : slab.accent}` }} />}
           {exiting && (
             <div
               key={`exit:${exiting.key}`}
@@ -261,7 +270,7 @@ function IslandPill({ mode, snap, config, size, placement, onAck, bus, pageSkin 
           )}
         </div>
         {/* After the pill, so its shadow does not darken them. */}
-        {notch && mode !== "line" && <Ears bottom={bottom} size={ear} color={skin.surface?.ear ?? skin.background} transition={springTransition(spring, ["width", "height", "left", "right"])} />}
+        {notch && !slab && mode !== "line" && <Ears bottom={bottom} size={ear} color={skin.surface?.ear ?? skin.background} transition={springTransition(spring, ["width", "height", "left", "right"])} />}
       </div>
     </div>
   );
@@ -473,9 +482,13 @@ function Activity({ activity, config, pending = 0, accent }: { activity: IslandA
   );
 }
 
-function Expanded({ item }: { item: IslandItem }) {
+/** The `slab` island's cut corner, in the pill's own em. */
+const SLAB_CUT = "0.55em";
+
+function Expanded({ item, slab }: { item: IslandItem; slab?: PackChrome["tones"]["info"] }) {
   const Icon = ICONS[item.severity];
   const color = severityColor(item.severity);
+  if (slab) return <SlabExpanded item={item} tone={slab} />;
   return (
     <div className="flex w-full min-w-0 items-center gap-[0.8em] px-[1.1em]">
       {item.image ? (
@@ -502,6 +515,35 @@ function Expanded({ item }: { item: IslandItem }) {
         {item.progress !== undefined && (
           <div className="mt-[0.35em] h-[0.3em] overflow-hidden rounded-full bg-current/20" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(item.progress * 100)}>
             <div className="island-level h-full w-full rounded-full" style={{ transform: `translateX(${Math.round(item.progress * 100) - 100}%)`, background: color }} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** A notice on the `slab` island: the kit's alert in a line, a solid tone slab with the icon (or the image) in dark ink, the title in upper-case tracked type. */
+function SlabExpanded({ item, tone }: { item: IslandItem; tone: PackChrome["tones"]["info"] }) {
+  const Icon = ICONS[item.severity];
+  return (
+    <div className="flex h-full w-full min-w-0 items-stretch gap-[0.8em] pr-[1.1em]" data-severity={item.severity}>
+      <span aria-hidden data-wp-slab="accent" className="flex w-[2.8em] shrink-0 items-center justify-center" style={ownSlabVars(tone.tone) as CSSProperties}>
+        {item.image ? <img src={item.image} alt="" className="h-[2em] w-[2em] object-cover" /> : <Icon className="h-[1.3em] w-[1.3em]" />}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col justify-center leading-tight">
+        <div className="flex min-w-0 items-baseline gap-[0.4em]">
+          <span className="truncate uppercase tracking-[0.08em] [font-weight:var(--island-weight)]" style={{ color: tone.title }} title={item.title}>{item.title}</span>
+          {item.count > 1 && (
+            <span className="shrink-0 text-[0.78em] tabular-nums">
+              <span aria-hidden="true">×{item.count}</span>
+              <span className="sr-only">{item.count} notices</span>
+            </span>
+          )}
+        </div>
+        {item.body && <div className="line-clamp-2 break-words text-[0.86em] opacity-75" title={item.body}>{item.body}</div>}
+        {item.progress !== undefined && (
+          <div className="mt-[0.35em] h-[0.3em] overflow-hidden bg-current/20" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(item.progress * 100)}>
+            <div className="island-level h-full w-full" style={{ transform: `translateX(${Math.round(item.progress * 100) - 100}%)`, background: tone.tone }} />
           </div>
         )}
       </div>

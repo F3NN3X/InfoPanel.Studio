@@ -1285,18 +1285,40 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
 - **Motion** shows for a theme pack whose `pack.json` has a `motion` block: labels and titles that decode as a card arrives,
   numbers that scramble for a moment when their reading changes (at most once every few seconds each), a short glitch on
   the titles, a card that fades, wipes or draws a line in as it arrives, and an occasional flicker or scan line across a
-  card. **Level** is the screen's **Effects** setting (Screens › Performance): **Full** draws all of it, **Calm** only what
-  plays as a card or reading arrives, **Off** none; reduced animations and lite mode draw none either. **Intensity** and
+  card. A pack can also have numbers **roll** their changed digits (like an odometer or a clock) or **count** to a new
+  reading, with a short flash, underline or glitch; numbers can glitch now and then too; rows of lists (friends, processes, coding agents, services, news, notifications) **slide in**,
+  **glide** to a new place when the order changes, light up when their status changes and decode a new row's text; and
+  the page **boot** in, card after card, with a line drawn across each and its title decoding, once each time a page
+  opens. **Level** is the screen's **Effects** setting (Screens › Performance): **Full** draws all of it, **Calm** only what
+  plays as a card or reading arrives (without the flashes that mark a change), **Off** none; reduced animations and lite
+  mode draw none either. **Intensity** and
   **Speed** (Low or Slow, the theme's own, High or Fast) and a switch per effect are stored like the other quick changes,
   at the screen or page. The real text stays on the page throughout (the noise is a copy screen readers skip), nothing
   changes size, and nothing flashes more than three times a second.
 
   In `pack.json`, `motion` takes any of `glitch`, `decode`, `scramble`, `arrival`, `flicker` and `sweep`, each an object
   with `on` (default true; false leaves it for the switch), `intensity` (0.1 to 1) and its own timing: `glitch` `ms`
-  80-300 and `every` 0 (on arrival only) or 4-120 seconds; `decode` `ms` 150-900; `scramble` `ms` 60-300 and `every`
+  80-300, `every` 0 (on arrival only) or 4-120 seconds and `target` `text` (titles, labels and the page rail's logo, the default), `value`
+  (numbers, torn in a copy over them) or `all`; `decode` `ms` 150-900; `scramble` `ms` 60-300 and `every`
   1-60 (the least seconds between two scrambles of one number); `arrival` `ms` 120-300 and `style` `fade`, `clip` or
-  `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000 and `every` 4-120. Anything else,
-  or a value out of range, refuses the pack at import.
+  `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000, `every` 4-120 and `style` `band` or `tracking` (a VHS tracking band drifting up); `tear` `ms` 80-200 and `every` 4-120 (a screen tear: one card's content split and shifted 6 to 14 px, one card at a time, dropped at Calm); `value` `ms`
+  150-900, `every` 1-60 (the least seconds between two runs of one number), `style` `roll` (the default) or `tween`
+  (count), `mark` `none`, `flash`, `underline`, `glitch` or `phosphor` (the old reading's ghost fading out) (a number with both `value` and `scramble` takes the value);
+  `list` `ms` 120-300, `enter`
+  `slide`, `fade` or `none`, and `reorder`, `change` and `decode` (true or false); `boot` `ms` 120-300, `stagger` 20-120 (ms
+  between two cards), `style` `fade`, `clip`, `glitch` or `crt` (a tube powering on: a line that opens to the card), and `line` and `decode` (true or false); `art` takes only `on`
+  (the page art's switch, below). Anything else, or a value out of range, refuses the pack at import. The real reading is on the page at once while a number counts, the page
+  starts at most three counts and two change marks a second and twelve runs at once, and a list moves at most eight rows of
+  a card at a time.
+
+- **Animated page art**: a page layer's SVG may move (a turning reticle, a tracing line, a pulsing lamp) when the layer
+  says `"animated": true` in `pack.json`'s `stage.layers`. The SVG keeps to a small subset: `@keyframes` in a `<style>` that
+  move `transform`, `opacity` or `stroke-dashoffset`, started by rules on a `.class` or `#id`, or `<animate>` on `opacity`
+  and `stroke-dashoffset` and `<animateTransform>`, with times and numbers only; a cycle lasts at least a second with at
+  most seven steps, at most 24 elements of a file move, and a pack has at most one animated layer. It moves only at **Full**: at **Calm** and **Off**, in lite
+  mode and with reduced animations the app draws it still. An animated SVG may not be used from `pack.css`, and `<text>`
+  and scripts are still refused. A pack whose `motion` declares `art` gets a **Page art** switch in the Theme view's Motion
+  group, and `"art": {"on": false}` holds the layer still until you turn it on (Cyberspec ships its radar that way).
 
 - **Effect script**: a theme pack may carry one small script that draws an effect over the cards (particles, a scan line,
   a pulse that follows a reading). It runs in a sandbox of its own and draws only shapes in the theme's colours on a layer
@@ -1334,9 +1356,13 @@ API: use `fx.now()` and `fx.rand()`.
 | `fx.rand()` | A number from 0 to 1, from a seed of the pack's id, so a pack draws the same way each time. |
 | `fx.now()` | The frame's time in ms. |
 
-`level` is `"full"` or `"calm"`; `width` and `height` are the overlay's size in px. Each card is `{ x, y, w, h, value, state, texts }`:
+`level` is `"full"` or `"calm"`; `width` and `height` are the overlay's size in px. Each card is `{ x, y, w, h, value, state, event, texts }`:
 its box in px, `value` the card's lead bar or ring as 0 to 1 in hundredths (or `null`), `state` `"ok"`, `"warn"`, `"crit"` or
-`null`, and `texts` the boxes of its title, labels and numbers as `{ x, y, w, h, n }`, where `n` is how many letters it has. Cards
+`null`, and `texts` the boxes of its title, labels and numbers as `{ x, y, w, h, n }`, where `n` is how many letters it has. `event`
+is there only on the one update after something happened to the card, and is `{ arrived, value, state }`: `arrived` is true when the
+card's box was not there before (every card, on the first read), `value` is `"up"` or `"down"` when the value moved by at least a
+hundredth, and `state` is the new `"ok"`, `"warn"` or `"crit"` when the threshold state changed. An update is a new object from
+`fx.signals()`, so a script keeps the last one it saw and reacts when it sees another; no polling and no exact value. Cards
 that blur a value for privacy, and coding-agent and chat cards, are not in the list, and nothing is drawn over them.
 
 Every command paints with `fill` and/or `stroke`, an index into the theme's palette, plus `alpha` (0 to 1, default 1) and
@@ -1349,8 +1375,18 @@ Every command paints with `fill` and/or `stroke`, an index into the theme's pale
 | `arc` | `x`, `y`, `r`, `start` and `end` in radians (default a full circle) |
 | `path` | `points`: `[x0, y0, x1, y1, …]`, 2 to 512 points (8,000 in a frame), `close` true to close it |
 | `glyph` | `card` and `text`, indices into `fx.signals().cards` and its `texts`: paints that text's box |
+| `points` | `points`: `[x0, y0, x1, y1, ...]`, 1 to 1,024 dots (4,000 in a frame), `r` the radius 0 to 16 (default 1), `shape` `"square"` for squares: one command draws them all, so 500 particles cost a command |
+| `textbox` | `card`, `text` as for `glyph`, and `kind`: `"highlight"` paints the box, `"underline"` a line of `width` px under it, `"wipe"` the fraction `p` (0 to 1) of it from `side` (`"left"`, `"right"`, `"top"`, `"bottom"`); `pad` (0 to 8 px) grows the box. Boxes only, never the letters |
+| `gradient` | defines gradient `id` (0 to 7) for the shapes after it: `x0, y0, x1, y1` (linear), plus `r0` and `r1` for a radial one, and `stops`: 2 to 8 of `[at, colour, alpha]` (`at` 0 to 1, `colour` a palette index, `alpha` default 1). A shape then names it with `fillGrad` or `strokeGrad` in place of `fill` or `stroke` |
+| `style` | sets, for the shapes after it, `dash: [on, off]` (px, up to 64) and `phase` (move it each frame and the dashes stream), `cap` (`butt`, `round`, `square`), `join` (`miter`, `round`, `bevel`), `blur` (a glow, 0 to 12 px) with `glow`, its palette colour (a shape's own when unset), and `mode` (`source-over`, `lighter` or `screen`). `{ op: "style" }` alone puts it all back |
+| `clip` / `unclip` | `clip` with `card` draws nothing outside that card's box until `unclip` (a frame never ends clipped) |
 | `transform` | `m`: `[a, b, c, d, e, f]` for the commands after it; scale and skew at most 4, moves within the screen |
 | `reset` | back to no transform |
+
+A shape names a gradient defined earlier in the same frame; one that is not, or a shape with both `fill` and `fillGrad`, is skipped. A
+frame also has a **cost** of at most 3,000: a shape costs 1, a gradient 2 (and a shape painted with one 1 more), a `points` command 1
+and one more for each 50 dots, and every shape drawn under a glow its blur in px more, so a glow is the thing to spend sparingly.
+Past the cap the rest of the frame is dropped. The pack checker's perf run reports the cost and what the app refused.
 
 A command out of shape, or a colour that is not a palette index, is skipped; numbers out of range are held to it. A frame has
 2 ms of the script's own time: past that it is cut off and draws nothing, and three such frames in ten seconds hand over to the
@@ -1430,6 +1466,100 @@ largest cut is 18) and a `stroke` up to 2 px, and now also:
 A spine, a tab or a second line is drawn only where the card's padding is at least as wide as it is, so it never covers text. For
 the same reason a card's ornaments (the small marks and labels in a corner) are drawn only where the padding is more than 10 px,
 and a corner ornament keeps clear of a cut corner and of a spine on its side.
+
+A frame can also fill and mark the card's surface, and draw around the card:
+
+- `band`: `{"edge": "left", "width": 28}`, a wide tinted band along the left or right edge, 1 to 28 px, drawn at most as wide as
+  the card's padding; it can't share an edge with a `spine`;
+- `tint`: 0.02 to 0.25, a wash of the accent over the whole card;
+- `grid`: `{"size": 22, "alpha": 0.2}`, a dot grid on the card, every 12 to 48 px, at a strength of 0.05 to 0.5;
+- `tone`: `"state"` draws the lines, the spine, the band and the glow in the card's warning or critical colour while the card
+  shows a warning or a critical reading, and in the accent otherwise;
+- `rule`: `true` draws a line under the card's header;
+- `glow`: `{"radius": 10, "alpha": 0.3}`, a glow outside the card, 1 to 16 px, at 0.05 to 0.6 (lite mode drops it);
+- `caption`: `{"text": "MB-RX // REV 3", "at": "tl"}`, a line of micro-print above the card's top left or top right corner, up to
+  64 plain characters at 11 px; it needs a gap of 14 px or more above the card to be seen;
+- `tab` with `"out": true`: the tab protrudes above or below the card instead of sitting on its edge.
+
+The glow, the caption and an outside tab are drawn in a layer beside the card, the card's own size, so the card and everything in
+it stay where they were.
+
+A pack's `stage` can draw page chrome behind the cards:
+
+- `grid`: `{"size": 22, "alpha": 0.2}`, a dot grid over the page in the screen's accent, with the same ranges as a frame's;
+- `chrome`: `{"cut": 48, "tab": {"width": 260, "height": 28, "text": "DECK 07"}, "reticles": true}`, a line round the screen
+  with its corners cut (0 to 64 px, never more than a third of the screen's short side), a notched tab dipping from the top
+  centre (40 to 320 by 14 to 40 px) with up to 32 plain characters in it, and reticles in the corners; `alpha` is 0.2 to 1.
+
+Both take a `minSizeClass`, like a layer, and neither takes clicks.
+
+#### Component treatments
+
+A Look's `t3` can ask for the kit's component treatments. Each is off in Classic and in every pack that does not name it, and
+a card that asks for none draws exactly as before.
+
+- **Tone slabs**: `slab-header`, `slab-chip`, `slab-tab`, `slab-row` and `slab-card` draw that part as a solid slab. Each takes
+  `none`, `state` (a slab only while the part, or for the header and the card, the card shows a warning or a critical reading),
+  or a tone: `accent`, `info`, `ok`, `warn` or `crit`. `slab-row` also takes `current`: the row a widget marks as the current
+  one (the top process, a friend in game) is drawn in the `slab-current` tone (the accent unless you name another, `warn` for the
+  kit's yellow ticket). A part's own warning or critical reading always wins over its constant tone. The text on a slab is drawn
+  in `slab-ink` (a `#rrggbb` or a T3 alias, the kit's near-black by default), and the validator holds it to 4.5:1 on every tone
+  your slabs can take, in every variant. `slab-info` is the info tone (the kit's signal cyan by default); `slab-texture:
+  scanlines` lays fine lines over the slabs, drawn away from the ink so they never lower its contrast; `slab-notch` (0 to
+  12 px) cuts each slab's bottom right corner.
+- **Readouts**: `readout-scale` (1 to 4) draws a widget's hero value that much larger, stepped down until it fits the card;
+  `readout-decimals` (0.3 to 1) draws its decimals smaller; `readout-bar: rule` puts a line under it, solid up to the reading's
+  share of its range and dotted after.
+- **Meters**: `meter-style: cells` draws bars as 20 square cells, the lit ones textured, the unlit ones in `meter-empty`
+  (a colour or alias), with a triangle under the bar at the warning and critical marks; `meter-peak: hold` holds the peak cell
+  for 1.5 s. A bar row whose reading is a warning or critical shows a solid **Warn** or **Crit** chip when `slab-chip` is on.
+  `meter-style: ruler` draws a level as a hairline with a tick ruler over it and a square thumb. Wave Link's lying levels follow
+  `cells` and `ruler` too.
+- **Share bars**: `share-style: gapped` draws a bar of parts of a whole (Power Draw's CPU and GPU, Disk I/O's reads and writes)
+  as square blocks with a gap between them, the rest of the track in `meter-empty`.
+- **Rings and avatars**: `ring-style: hex` draws rings as hexagons, the default Custom gauge included (a gauge you designed
+  keeps its design); `avatar-shape: hex` draws initials (Steam Friends) on a hexagon.
+- **Graphs**: `graph-grid` (`auto`, `dashed` or `none`) sets a graph's grid (dashed lines in the accent with ticks on the left);
+  `graph-lead: square` marks the newest point with a square; `graph-bars: striped` draws bar graphs in stripes, the newest bar
+  the brightest.
+- **Rows**: `row-style: ruled` draws a rule under each list row and tints a table's head row.
+- **Card anatomy**: `card-style: anatomy` gives every card of 280 by 240 px or more the kit's head and foot: the widget's
+  category as a micro-label with its icon over the title in the display face and an inset rule, and a strip of outlined chips
+  with the widget's name and its layout. A smaller card keeps the Look's header. `none` (the default) is today's card.
+
+A user pack's CSS can style the parts these hooks name: `[data-part="row"]`, `row-head`, `cell`, `decimals` and `readout-bar`,
+next to the parts it could already style. The slabs' own paint is the app's: a pack's CSS can't change a slab's colour or ink.
+
+### Changing a widget's layout
+
+Some widgets can lay out the same data more than one way. A theme pack's `look.json` picks one per widget kind in `layouts`, for
+example `"layouts": {"Calendar": "grid-nav", "alert": "slab"}`; a kind it does not name keeps its standard layout, so a pack
+without `layouts` draws exactly as before. The layouts today:
+
+- **Calendar** `grid-nav`: a month navigator with buttons that page the month, the weekend hatched, today framed, the next
+  event's day (else today) as a solid slab and a footer with the selected date and the next event.
+- **Day Planner** `board`: a departure board of the coming events under the time now.
+- **Network Traffic** `signal`: download and upload as large readouts over a signal graph of both, with the session totals.
+- **Notifications** `feed`: an inbox with tabs for All and the first three types in the history, one row per notification
+  with its time, its type in its colour and the message.
+- **Steam Friends** `crew`: a crew roster with In-game, Online and All tabs and one row per friend with a hexagon badge of
+  their initials; the first friend in a game is the current row.
+- **System Overview** `power`: the CPU and GPU draw as a large readout over a stacked bar, then one tick-ruler row per section
+  and the temperatures as a footer.
+- **Visualizer** `spectrum`: the peak level as a large readout, the audio plugin's bands as a dense histogram over a 30 Hz to
+  16 kHz axis, and the live level on a tick ruler.
+- **Weather** `quote`: the weather now on a solid slab with side notches, humidity and cloud cover on tick rulers, and the
+  coming days one per row (the standard view only).
+- **Sensor** `readout`: the reading as a large readout over a graph of the session's readings with their low, mean and high
+  (the Value and Spark displays only).
+- **alert** `slab` and **island** `slab`: the kiosk's alert cards and the Dynamic Island drawn with a solid slab in the
+  severity's tone (the Look's info, warn and crit), a cut corner and a tone edge.
+
+Each widget that offers layouts has a **Layout** row in its inspector: **Theme's choice** draws what the
+worn theme names, and any other choice keeps that layout on this widget whatever the theme. Theme lists the layouts a pack names
+under **In this theme**. A pack that names a kind with no layouts, or a layout the kind does not offer, is refused at import. A
+layout never changes a widget's size or what it reads. [Building an advanced theme pack](building-an-advanced-theme-pack.md#10-changing-a-widgets-layout)
+shows each one.
 
 ### Signing a pack you share
 

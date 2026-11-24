@@ -1,6 +1,6 @@
 import { readSystemFlat } from "@/lib/system-metrics";
 import type { ModuleSettings } from "@/modules/types";
-import { Unit, roomy, StatGrid, Widget, shell, get, num, fmt, unitStat, Spark, useHistory, hue, hw, Num, stackX, type ShellProps } from "../kit";
+import { Unit, roomy, StatGrid, Widget, shell, get, num, fmt, unitStat, Spark, useHistory, hue, hw, Num, ShareBar, type ShellProps } from "../kit";
 import { meta } from "./meta";
 
 export { meta };
@@ -46,10 +46,7 @@ export default function PowerDraw(p: PowerDrawProps) {
                 </span>
               </div>
             </div>
-            <div className="relative h-2.5 overflow-hidden rounded-full bg-[color:var(--w-track)]">
-              <div className="absolute inset-0 transition-transform duration-700" style={{ ...stackX(0, (cw / budget) * 100), background: "var(--w-accent)" }} />
-              <div className="absolute inset-0 transition-transform duration-700" style={{ ...stackX((cw / budget) * 100, (gw / budget) * 100), background: gpuColor }} />
-            </div>
+            <ShareBar parts={[{ pct: (cw / budget) * 100, color: "var(--w-accent)" }, { pct: (gw / budget) * 100, color: gpuColor }]} />
             {size !== "sm" && !short && <Spark values={hist} min={0} marks={big ? "last" : false} axis={big} format={(v) => fmt(v, 0)} className={`min-h-0 flex-1 ${big ? "max-h-[55%]" : ""}`} />}
             {big && !short && hist.length > 1 && <StatGrid cols={3} items={[{ label: "Peak", ...unitStat(Math.max(...hist), "W") }, { label: "Avg", ...unitStat(hist.reduce((a, b) => a + b, 0) / hist.length, "W") }, { label: "Min", ...unitStat(Math.min(...hist), "W") }]} />}
             {size === "lg" && !short && (

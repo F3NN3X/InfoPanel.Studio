@@ -10,7 +10,7 @@ import { MotionOverride, PerformanceProvider } from "@/hooks/use-performance";
 import { GeneralProvider } from "@/hooks/use-general";
 import { GENERAL_DEFAULTS, type ResolvedGeneral } from "@/lib/general";
 import type { PackMotion } from "@/looks/motion";
-import { MotionCtx, MotionText, type MotionSlot } from "@/looks/motion-render";
+import { MotionCtx, MotionRow, MotionText, type MotionSlot } from "@/looks/motion-render";
 import { planMotion } from "@/looks/motion";
 import { Metric } from "@/widgets/core/primitives";
 import { Widget } from "@/widgets/core/Widget";
@@ -109,5 +109,61 @@ describe("what stops it", () => {
     const root = onScreen(card({ slots: { motion: slot({ sweep: { every: 4 }, decode: {} }) } }), general("calm"));
     expect(root.querySelector("[data-mo-layer]")).toBeNull();
     expect(root.querySelector("[data-mo-text]")).not.toBeNull();
+  });
+});
+
+describe("values, lists and the boot in a card", () => {
+  const metric = (value: number, slotted: MotionSlot) =>
+    // biome-ignore lint/correctness/noChildrenProp: the Widget takes a render function as children.
+    h(Widget, { size: "lg", title: "CPU", icon: "memory", packId: "p", slots: { motion: slotted }, children: () => h(Metric, { label: "Load", value, unit: "%" }) });
+  const wrap = (node: ReturnType<typeof h>) => (
+    <GeneralProvider value={general()}>
+      <PerformanceProvider value={undefined}>{node}</PerformanceProvider>
+    </GeneralProvider>
+  );
+
+  it("a number with value rolls when its reading changes, the reading in the page at once; value wins over scramble", () => {
+    const motion = slot({ value: { style: "roll", ms: 300, every: 1 }, scramble: { every: 1 } });
+    const view = render(wrap(metric(41, motion)));
+    act(() => void vi.advanceTimersByTime(2000));
+    view.rerender(wrap(metric(57, motion)));
+    const num = view.container.querySelector('[data-part="num"] [data-mo-text]')!;
+    expect(num.firstChild?.textContent).toBe("57");
+    expect(num.hasAttribute("data-mo-on")).toBe(true);
+    expect(num.querySelectorAll("[data-mo-reel]")).toHaveLength(2);
+  });
+
+  it("a glitch on numbers readies each number's copy, with no value or scramble of its own", () => {
+    const root = onScreen(card({ slots: { motion: slot({ glitch: { target: "value" } }) } }));
+    const n = root.querySelector('[data-part="num"] [data-mo-text]');
+    expect(n?.firstChild?.textContent).toBe("41");
+    expect(n?.querySelector("[data-mo-copy]")?.getAttribute("aria-hidden")).toBe("true");
+    expect(onScreen(card({ slots: { motion: slot({ glitch: {} }) } })).querySelector('[data-part="num"] [data-mo-text]')).toBeNull();
+  });
+
+  it("a list row carries its key only while the card's plan has a list", () => {
+    const plain = render(
+      <MotionRow as="li" rowKey="Ada" className="x">
+        Ada
+      </MotionRow>
+    ).container;
+    expect(plain.innerHTML).toBe('<li class="x">Ada</li>');
+    const listed = render(
+      <MotionCtx.Provider value={planMotion({ list: {} }, {}, { level: "full", lite: false, reduceMotion: false })}>
+        <MotionRow as="li" rowKey="Ada">
+          Ada
+        </MotionRow>
+      </MotionCtx.Provider>
+    ).container;
+    expect(listed.querySelector("li")?.getAttribute("data-mo-key")).toBe("Ada");
+  });
+
+  it("a boot marks the card's content for it and draws its line layer; a plan without one adds neither", () => {
+    const booted = onScreen(card({ slots: { motion: slot({ boot: {} }) } }));
+    expect(booted.querySelector('[data-part="card"] > [data-mo-body]')).not.toBeNull();
+    expect(booted.querySelector("[data-mo-layer]")).not.toBeNull();
+    expect(booted.querySelector('[data-part="header"] [data-mo-text]')).not.toBeNull();
+    const old = onScreen(card({ slots: { motion: slot({ decode: {}, scramble: {} }) } }));
+    expect(old.innerHTML).not.toMatch(/data-mo-(body|key|layer)/);
   });
 });

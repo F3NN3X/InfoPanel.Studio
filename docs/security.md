@@ -114,7 +114,10 @@ security model, what was fixed, what was decided, and what is deferred.
   reads them, and `::before`/`::after` decoration, whose box the app pins as `position: absolute` with `pointer-events: none`
   and must stay inside its element. The render check refuses a clip, mask or pseudo-element that hides or covers text (a
   pack-file mask is decoded and its alpha sampled over each text box; one that cannot be loaded or read is refused), and any
-  border whose width differs from the page without the pack's CSS. A `url()` may name
+  border whose width differs from the page without the pack's CSS. Each text is measured over the part of its box the page
+  shows without the pack too (its card and every box above it that hides its overflow; a box that scrolls is not one), and a
+  mask may leave a text 5 % less than it had without the pack (the same mask read over a box a pack's face moved a pixel), so
+  neither moves the floor for text anyone can see. A `url()` may name
   only one of the pack's own files (no scheme, root path, `..`, backslash, query or fragment, also after percent-decoding);
   the app rewrites it to the pack's route, `/api/packs/<id>/<file>`, which serves it under the sandbox CSP. The server
   refuses to sign CSS holding a backslash, `<`, an at-rule other than `@keyframes`, `image-set(`, `src(` or a `url()` that
@@ -138,13 +141,46 @@ security model, what was fixed, what was decided, and what is deferred.
   are converted to sRGB, clamped to the gamut and written as the hex that the contrast checks read.
   The server signs a pack's stylesheet only: a pack with no `pack.css` carries no signature, since its pack.json and look.json
   are validated again every time it loads.
+- **Component treatments** (`src/looks/treatments.ts`, `src/widgets/core/treatments.tsx`, `treatments.css`,
+  `src/looks/stage-chrome.tsx`): a Look's `slab-*`, `readout-*`, `meter-*`, `share-style`, `avatar-shape`, `ring-style`,
+  `graph-*`, `row-style` and `card-style` tokens are words from fixed lists, numbers in ranges and colours that `safeFill` passes, checked by the
+  validator and dropped by the app when they are anything else; they switch on markup and CSS the app ships, never a pack's.
+  The slab ink is held to 4.5:1 on every tone a slab can take, in every variant and on a scan line. A frame's `band`, `tint`,
+  `grid`, `tone`, `rule`, `glow`, `caption` and outside `tab`, and a stage's `grid` and `chrome`, are numbers and words in ranges;
+  a caption (64 characters) and the screen tab's text (32) must be printable with no markup and are drawn as an attribute's
+  text and a text node at 11 px or more. Nothing here takes a URL or a click: the layer beside the card and the page chrome are
+  `aria-hidden` and `pointer-events: none`, and the card's own box does not change. The card anatomy (`card-style: anatomy`,
+  `src/widgets/core/card-anatomy.tsx`) prints the card's own title and, from the app's catalog, the widget's name, category and layout name.
+- **Layout variants** (`src/widgets/layouts.ts`, `src/looks/pack-validate.ts`): a Look's `layouts` names, per widget kind and for
+  the alerts and the island, one of the layouts the app's own code draws; the validator refuses any other kind or layout, a key
+  is looked up only as the app's own (a prototype key is no kind), and the widget draws the layout from the data it already
+  reads. No pack-supplied markup, style, code or URL is involved, for user packs as for built-in ones.
 - **Pack motion** (`src/looks/motion.ts`, `motion-render.tsx`, `motion-runtime.ts`): a pack.json `motion` block names effects
   from a fixed list with numbers; the validator and the loader refuse an unknown effect or key and any value out of its range
   (one-shots at most 300 ms, a decode 900 ms, repeats at least 2 s apart), for user packs as for built-in ones. The app draws
   them with its own keyframes and one timer: no pack code, markup, style or URL. Text is never replaced: the noise is an
   aria-hidden copy over the real text, which stays in the page for assistive technology, privacy blur and export. The page
   runs at most one repeat a second; nothing runs while the page is hidden, at the Effects level Off, in lite mode or under
-  reduced motion.
+  reduced motion. The `value`, `list` and `boot` effects (`motion-value.ts`, `motion-list.ts`) work the same way: a count,
+  a digit roll or a number's glitch is drawn in the aria-hidden copy while the real reading is in the page at once; a list's rows are found by
+  an identity attribute the app's own widgets set and moved with `translate` and opacity only, never laid out again; the
+  page starts at most three value runs and two change marks a second (so, with the one repeat, never over three flashes a
+  second) and at most twelve runs at once. The copy a new row decodes in is an element the app adds and removes itself;
+  it holds text only, written as `textContent`.
+- **Animated pack SVG** (`src/looks/motion-svg.ts`, `svgIssue` and `svgStill` in `src/looks/pack-safety.ts`,
+  `src/looks/motion-still.ts`): a pack SVG may carry a `<style>` and SMIL `<animate>` / `<animateTransform>`, read by the
+  same fail-closed reader as every pack SVG and held to a grammar, not cleaned: a `<style>` holds only `@keyframes` and
+  rules on one `.class` or `#id`, in a character set without quotes, slashes, backslashes, `&`, `<`, `>`, `!` or brackets
+  (so no comment, escape, URL, at-rule other than `@keyframes`, or CDATA); a keyframe sets only `transform`, `opacity` or
+  `stroke-dashoffset`; SMIL animates only `opacity`, `stroke-dashoffset` or `transform` of its parent, takes no `href`, and
+  its times and values are clock values and numbers (no event `begin`, no `<set>`). A cycle lasts at least a second with
+  at most seven steps, at most 24 elements of a file move, and a pack has at most one animated layer. `<text>`, scripts and every other element stay refused. An
+  animated SVG may be drawn only as a stage layer that declares `animated` (the validator refuses one used from `pack.css`
+  or on an undeclared layer); it is drawn like every pack image, as a CSS background, so nothing in it runs or reaches the
+  page. The app shows the moving file only at the Effects level Full, out of lite mode and reduced motion; anywhere else it
+  draws a still copy it makes itself: it reads the pack's own file from the address it is already served at, checks it
+  again with `svgIssue`, cuts every `<style>` and SMIL element at the reader's tag bounds and draws the rest as a `data:`
+  image. A file that cannot be read or checked draws nothing, never the moving one. A hidden page paints nothing.
 - <a id="pack-scripts"></a>**Pack scripts** (`src/looks/pack-script/`): a pack may carry one effect script (`pack.json`
   `script`, one listed `.js` asset of at most 64 KB; the validator refuses any other `.js`). It is the only pack-supplied code
   the app runs, and it runs only in the pack-script sandbox: a dedicated module worker loaded from the app's own bundle (never
@@ -152,18 +188,20 @@ security model, what was fixed, what was decided, and what is deferred.
   separate `.wasm`). The guest's globals are the language's own, without `Date`, `Promise`, `Proxy` and `Math.random`, plus
   a frozen `fx` (`onFrame`, `draw`, `signals`, `rand`, `now`); no host function is installed in it, so it has no web API, no
   network, storage, `BroadcastChannel`, Tauri IPC, timer or navigation: a frame is one call into the guest and one JSON
-  string back. The worker checks every command against an allow-list (rect, arc, path, a card's text box, a capped transform,
+  string back. The worker checks every command against an allow-list (rect, arc, path, a card's text box, boxes of its texts lit, underlined or wiped, batched points, gradients, a style of
+  dash, cap, join, capped glow and a composite mode from the safe set source-over, lighter and screen, a clip to a card's box, a capped transform,
   reset; colours only as indices into the Look's palette, numbers clamped) and draws it on an `OffscreenCanvas` overlay that
   is `aria-hidden`, takes no pointer events and never filters, moves or clips a widget.
-  - **Caps**: 2 ms of guest time a frame (an interrupt handler), 50 ms for the top level, 2,000 commands and 8,000 path points a
-    frame, an 8 MB heap and a 256 KB stack, 30 frames a second at Full and 15 at Calm, driven by the page's animation frames
+  - **Caps**: 2 ms of guest time a frame (an interrupt handler), 50 ms for the top level, 2,000 commands, 8,000 path points, 4,000 dots and a cost of 3,000 a
+    frame (a glow's blur in px adds to the cost of each shape under it), an 8 MB heap and a 256 KB stack, 30 frames a second at Full and 15 at Calm, driven by the page's animation frames
     (the guest has no timer). A frame cut off by the interrupt at 2 ms is dropped (it draws nothing) and counts toward the fallback; three such frames in 10 s end the script
     and the pack's declarative effects stay (`fallback`); a memory or stack hit, an error, a top level past its time, or a
     frame the worker does not answer within 0.5 s (the interrupt is not polled inside the runtime's own native work, such as a large
     allocation near the heap limit) terminate the worker (`stopped`). The host samples each frame at 16 by 9 and
     shows at most three flashes a second (a change of 0.1 relative luminance in a cell is half a flash); a frame past that is
     not shown.
-  - **Data**: per card its box, the lead bar's or ring's value as 0 to 1 rounded to hundredths, its threshold state, and its
+  - **Data**: per card its box, the lead bar's or ring's value as 0 to 1 rounded to hundredths, its threshold state, an event when
+    it just arrived, moved or changed state (computed by the app from the last read, a direction and a state, never an exact value), and its
     texts as boxes with a glyph count, never a character; read at most 4 times a second. A card that blurs a value for privacy,
     and coding-agent and chat cards (`data-fx-quiet`), send nothing and are erased from the overlay after every frame.
   - **When it runs**: only while the server's switch is on (`GET /api/pack-scripts` `on: true`), the trust answer for the pack

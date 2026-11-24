@@ -1,7 +1,7 @@
 // The Look file (investigation 9.6, D5): a Look is T0 to T3 values with modes, tags, fonts and corners, written as
 // `src/looks/<id>/look.json` against `look.schema.json`. The built-in Studio Look also carries the `studio` block its
 // `ui-*` chrome tokens are generated from (D1). Types and the alias resolver only: nothing here reads the DOM.
-import { cssColour, toOklch } from "./colour";
+import { cssColour, toOklch } from "./colour.ts";
 
 /** The T1 semantic names (investigation 9.2): every Look defines or aliases each one, per mode it supports. */
 export const T1_NAMES = [
@@ -100,6 +100,11 @@ export interface Look {
   ext?: Record<string, unknown>;
   /** Its variants (the Variant knob draws only for a Look that has some). */
   variants?: LookVariant[];
+  /**
+   * The layout variant it draws per widget kind and for the app's alerts and island (`"Calendar": "grid-nav"`, `"alert": "slab"`),
+   * one of those `src/widgets/layouts.ts` lists; a kind it does not name draws its standard layout. Read from a pack's Look.
+   */
+  layouts?: Record<string, string>;
   /** Only the built-in Studio Look: its chrome tokens by group (`shared` also feeds Settings and Help). */
   studio?: Record<string, Record<string, StudioEntry>>;
 }

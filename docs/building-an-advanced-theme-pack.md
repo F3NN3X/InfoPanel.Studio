@@ -21,10 +21,12 @@ The steps are in build order:
 7. [The motion block and its knobs](#7-the-motion-block-and-its-knobs)
 8. [Effects levels, lite mode and reduced motion](#8-effects-levels-lite-mode-and-reduced-motion)
 9. [Series, meter and icon colours](#9-series-meter-and-icon-colours)
-10. [The effect script](#10-the-effect-script)
-11. [Signing and trust](#11-signing-and-trust)
-12. [Testing your pack](#12-testing-your-pack)
-13. [Limits we hit and how we solved them](#13-limits-we-hit-and-how-we-solved-them)
+10. [Changing a widget's layout](#10-changing-a-widgets-layout)
+11. [The effect script](#11-the-effect-script)
+12. [Signing and trust](#12-signing-and-trust)
+13. [Testing your pack](#13-testing-your-pack)
+14. [Limits we hit and how we solved them](#14-limits-we-hit-and-how-we-solved-them)
+15. [Component treatments](#15-component-treatments)
 
 ## 1. Start from the kit
 
@@ -74,7 +76,8 @@ my-cyberspec/
     { "family": "pack-myspec", "source": "Rajdhani", "file": "rajdhani-500.woff2", "weight": "100 500", "licence": "OFL-1.1", "copyright": "Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com)" },
     { "family": "pack-myspec", "source": "Rajdhani", "file": "rajdhani-600.woff2", "weight": "600 900", "licence": "OFL-1.1", "copyright": "Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com)" },
     { "family": "pack-myspec-mono", "source": "JetBrains Mono", "file": "jetbrains-mono-400.woff2", "weight": "100 500", "licence": "OFL-1.1", "copyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)" },
-    { "family": "pack-myspec-mono", "source": "JetBrains Mono", "file": "jetbrains-mono-600.woff2", "weight": "600 900", "licence": "OFL-1.1", "copyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)" }
+    { "family": "pack-myspec-mono", "source": "JetBrains Mono", "file": "jetbrains-mono-600.woff2", "weight": "600 900", "licence": "OFL-1.1", "copyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)" },
+    { "family": "pack-myspec-display", "source": "Kode Mono", "file": "kode-mono-600.woff2", "weight": "100 900", "licence": "OFL-1.1", "copyright": "Copyright 2023 The Kode Mono Project Authors (https://github.com/isaozler/kode-mono)" }
   ]
 }
 ```
@@ -83,6 +86,9 @@ my-cyberspec/
   theme's id or font family name, so this one is `my-cyberspec` with `pack-myspec` families.
 - Each single-weight file is registered over a weight range (`100 500`, `600 900`), so the widgets' semibold numerals use the
   600 file instead of a faked bold.
+- The display face is the kit's own: its homepage and example headings ("Channel inbox", "Night Shift") are set in **Kode Mono**,
+  the wide squarish monospace its notices list under the SIL Open Font License 1.1, with no Reserved Font Name. Its labels are
+  Rajdhani and its values JetBrains Mono, so all three are bundled, each subset to Basic Latin and a few symbols (about 4 to 5 KB).
 - Every file in `assets/` is listed in `pack.json`'s `assets` with its size in bytes; anything not listed is refused.
   (Cyberspec's own `pack.json` has no `assets` list: a built-in pack's files are bundled with the app. Yours needs one.)
 
@@ -183,27 +189,33 @@ Cyberspec's type in a pack you import:
 properties a pack may set; none can be animated. Animations are `@keyframes pack-*` and stop below Full (step 8).
 
 Cyberspec, being built in, is reviewed with the app's code and its stylesheet goes a little further than the grammar allows:
-a 1 px rule under the panel head, badges with a 5 px cut corner and an outline in their own colour, a 135° hatch under the
-bars. Its value glow is written in `currentColor`, so a warning value glows yellow:
+the card titles in the kit's display face, badges with a 5 px cut corner and an outline in their own colour, a 135° hatch under
+the bars. Its value glow is written in `currentColor`, so a warning value glows yellow:
 
 ```css built-in
+[data-part="header"], [data-part="header"] * { font-family: pack-cyberspec-display, "Kode Mono", pack-cyberspec-mono, ui-monospace, monospace; }
 [data-part="num"] { color: #5EF6FF; text-shadow: 0 0 10px color-mix(in srgb, currentColor 35%, transparent); }
 [data-part="bar"] { background-image: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--w-accent) 30%, transparent) 5px 6px); }
 ```
 
+A pack you import cannot set a font family in its CSS, so its titles take its `body` face and its `display` face reaches the
+numbers (`look.json` `fonts`); Cyberspec keeps `display` on JetBrains Mono for that reason, and only its own stylesheet puts Kode
+Mono on the titles. The panel head's rule is no longer CSS: the frame draws it (`rule`, section 15).
+
 ## 5. Frames and ornaments
 
-The kit's panel is a card with one cut corner and a thick accent line down its left side. The app draws that from
-`pack.json`'s `frame`, so it stays inside the card and clear of the content:
+The kit's panel is a card with two cut corners and a band down its leading edge. The app draws that from `pack.json`'s `frame`,
+so it stays inside the card and clear of the content. Cyberspec v1 had one cut and a 5 px spine; the final pack uses the panel
+keys of section 15 (`band`, `tint`, `grid`, `tone`, `rule`, `glow`, `caption`, an outside `tab`) on this base:
 
 ```json pack.json
 {
   "frame": {
     "corners": "cut",
-    "size": 10,
-    "which": ["br"],
+    "size": 18,
+    "which": ["tr", "bl"],
     "stroke": 1,
-    "spine": { "edge": "left", "width": 5 },
+    "band": { "edge": "left", "width": 10 },
     "alpha": 0.55
   }
 }
@@ -215,7 +227,8 @@ The kit's panel is a card with one cut corner and a thick accent line down its l
 - `alpha` (0.2 to 1) is the strength of the lines and the spine over the card: the kit's panel line is 55 % of the accent, and
   at full strength the cut read as a brighter mark than the edge it continues.
 
-A spine, a tab or a second line is drawn only where the card's padding holds it, so it never covers text.
+A spine, a band, a tab or a second line is drawn only where the card's padding holds it, so it never covers text. A spine and a
+band can't share an edge: the kit's 28 px band became 10 px, the width a card's padding holds beside its labels.
 
 **Ornaments** are the kit's small marks: a reticle, a line of micro-print, tick marks. Up to four, each at a corner or along
 the top or bottom edge, with a smallest card size:
@@ -223,8 +236,7 @@ the top or bottom edge, with a smallest card size:
 ```json pack.json
 {
   "ornaments": [
-    { "kind": "reticle", "at": "tl", "minSizeClass": "md" },
-    { "kind": "micro-print", "at": "tr", "text": "CS-07 // LINK", "minSizeClass": "md" },
+    { "kind": "reticle", "at": "tr", "minSizeClass": "md" },
     { "kind": "ticks", "at": "bottom", "minSizeClass": "md" }
   ]
 }
@@ -232,24 +244,26 @@ the top or bottom edge, with a smallest card size:
 
 Ornament text is at most 64 characters and drawn by the app as plain text in a band of at most 10 px. Ornaments draw only
 where the card's padding is more than 10 px, and a corner ornament keeps clear of a cut corner and of a spine on its side. The
-kit's "LINK STABLE" became "CS-07 // LINK": the longer text was cut short at 150 px wide cards.
+kit's "LINK STABLE" became "CS-07 // LINK": the longer text was cut short at 150 px wide cards. The final pack moved its
+micro-print out of the card, into the frame's `caption` above it (`MB-RX // REV 3 // NODE 3F:A2`), and its reticle to the
+corner the band leaves free.
 
 ## 6. Page layers and effects
 
 The page behind the cards is the pack's `stage`: up to three **layers** (a `fill`, or an `image` from `assets/`) and the
-**effects** over everything. Cyberspec's void, its registration marks and its CRT raster:
+**effects** over everything. Cyberspec's void, a radar sweeping in one corner with circuit traces pulsing along the edges, and
+its CRT raster, with the kit's dot grid and framed screen (section 15) in place of the v1 registration-marks SVG:
 
 ```json pack.json
 {
   "stage": {
-    "layers": [
-      { "fill": "#07070C" },
-      { "image": "marks.svg", "minSizeClass": "sm" }
-    ],
+    "layers": [{ "fill": "#07070C" }, { "image": "radar.svg", "animated": true, "minSizeClass": "md" }],
     "effects": [
       { "kind": "scanlines", "cost": "static", "opacity": 0.1, "calm": "off" },
       { "kind": "vignette", "cost": "static", "opacity": 0.15, "calm": "off" }
-    ]
+    ],
+    "grid": { "size": 22, "alpha": 0.2, "minSizeClass": "sm" },
+    "chrome": { "cut": 48, "alpha": 0.55, "tab": { "width": 260, "height": 28, "text": "CYBERSPEC // DECK 07" }, "reticles": true, "minSizeClass": "md" }
   },
   "burnIn": "needs-shift"
 }
@@ -261,11 +275,59 @@ The page behind the cards is the pack's `stage`: up to three **layers** (a `fill
   (`off` or `static`).
 - The flashing overlays and a layer's glow are drawn in the **screen's accent**, so they follow the variant and an accent the
   user picks. They used to read the accent of whatever page was around the stage (amber in the studio) or a fixed cyan.
-- `burnIn` is `needs-shift` because the marks are bright static art: the app drifts the layers by a pixel or two when the
-  user has Pixel shift on.
+- `burnIn` is `needs-shift` because the grid and the screen frame are bright static art: the app drifts them by a pixel or
+  two when the user has Pixel shift on.
 
 Cyberspec v1 had a glitch-bar overlay on the page. The kit's glitch is a one-shot on text, not a page effect, so v2 dropped the
 overlay and moved the glitch into the motion block.
+
+### Animated page art
+
+A layer's SVG may move: the kit's turning reticles, tracing circuit lines and pulsing lamps. Mark the layer
+`"animated": true` (for example `{ "image": "orbit.svg", "animated": true, "minSizeClass": "md" }`) and keep the SVG to the
+subset the validator reads:
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+  <style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .ring { animation: spin 6s linear infinite; transform-origin: center; transform-box: fill-box; }
+  </style>
+  <circle class="ring" cx="5" cy="5" r="4" fill="none" stroke="#5EF6FF" stroke-dasharray="2 1"/>
+  <rect x="4" y="4" width="2" height="2" fill="#FFD23F">
+    <animate attributeName="opacity" values="1;0.35;1" dur="1.6s" repeatCount="indefinite"/>
+  </rect>
+</svg>
+```
+
+- A `<style>` holds `@keyframes` and rules on one `.class` or `#id` each. A keyframe sets `transform`, `opacity` or
+  `stroke-dashoffset` (and its timing function); a rule only starts an animation (`animation`, `animation-*`,
+  `transform-origin`, `transform-box`). No URL, quote, comment, escape or other at-rule.
+- `<animate>` animates `opacity` or `stroke-dashoffset` of its parent and `<animateTransform>` its `transform` (`type`
+  `translate`, `scale`, `rotate`, `skewX` or `skewY`), with clock values and numbers only: no `href`, no event `begin`, no
+  `<set>`.
+- A cycle lasts at least a second and has at most seven steps (keyframe stops or `values`), so an opacity pulse dips at most
+  three times a second; at most 24 elements of one file move, and a pack has at most one animated layer (a
+  full-page moving layer costs about 70 ms of main-thread work a second on a 20-card page). `<text>` and scripts are still refused.
+- The app moves the layer only at **Full**. At Calm and Off, in lite mode and under reduced motion it draws a still copy
+  (the same file with its animation cut out), so declare the layer `animated` or the pack is refused; `pack.css` may not use
+  an animated SVG, because there the app could not hold it still.
+
+Cyberspec's [`radar.svg`](../src/looks/packs/cyberspec/assets/radar.svg) is the kit's radar: three rings and a cross hair in
+the bottom-right corner with a wedge that turns once every 12 s, and three stepped circuit traces whose dashes stream along
+them every 4 to 6 s, all in the kit's cyan at 8 to 35 % strength. Moving, it costs 40 to 70 ms of main-thread work a second on
+the 20-card page, which takes Cyberspec over the line its defaults keep to (section 8), so the pack offers it **off**: the
+motion block's `art` effect is the layer's switch in the Theme view's Motion group (**Page art**), and `"on": false` draws the
+still copy until the user turns it on.
+
+```json pack.json
+{
+  "motion": { "art": { "on": false } }
+}
+```
+
+`art` takes only `on`. A pack that does not declare it keeps its layer moving at Full as before; one that does moves it at
+Full while the switch is on.
 
 ## 7. The motion block and its knobs
 
@@ -285,19 +347,61 @@ The kit's text effects (titles that glitch in, labels that decode, readouts that
 }
 ```
 
-Each effect is an object with `on` (default true), `intensity` (0.1 to 1) and its own timing: `glitch` `ms` 80 to 300 and
-`every` 0 (on arrival only) or 4 to 120 seconds; `decode` `ms` 150 to 900; `scramble` `ms` 60 to 300 and `every` 1 to 60 (the
+Each effect is an object with `on` (default true), `intensity` (0.1 to 1) and its own timing: `glitch` `ms` 80 to 300,
+`every` 0 (on arrival only) or 4 to 120 seconds and `target` `text` (titles, labels and the page rail's logo, which tears as an image: sliced, shifted and split in the accent; the default), `value` or `all`; `decode` `ms` 150 to 900; `scramble` `ms` 60 to 300 and `every` 1 to 60 (the
 least seconds between two scrambles of one number); `arrival` `ms` 120 to 300 and `style` `fade`, `clip` or `line`; `flicker`
-`every` 2 to 120 and `target` `card` or `label`; `sweep` `ms` 400 to 3000 and `every` 4 to 120. A value out of range refuses
+`every` 2 to 120 and `target` `card` or `label`; `sweep` `ms` 400 to 3000, `every` 4 to 120 and `style` `band` or `tracking` (a VHS tracking band with a ragged edge drifting
+up); `tear` `ms` 80 to 200 and `every` 4 to 120 (a screen tear: one card's content split at a random height and shifted 6 to
+14 px, one card at a time; Cyberspec declares one every 20 s or so, off by default). A value out of range refuses
 the pack.
 
 The real text never changes: the noise is a copy over it that screen readers skip, so nothing changes width and privacy blur
 still covers it. The page runs at most one repeat a second, three number scrambles a second and twelve texts at once.
 
+Three more effects act on what changes on the page rather than on its words:
+
+```json pack.json
+{
+  "motion": {
+    "arrival": { "style": "clip" },
+    "decode": {},
+    "glitch": {},
+    "value": { "style": "tween", "mark": "underline", "every": 2 },
+    "list": { "enter": "slide", "decode": true },
+    "boot": { "style": "glitch", "stagger": 60, "line": true, "decode": true }
+  }
+}
+```
+
+- `value`: a number that changes rolls only its changed digits like an odometer (`style` `roll`, the default when a pack
+  says nothing, and Cyberspec's: `{ "on": false, "style": "roll", "mark": "glitch", "every": 2 }`), or counts to its new reading (`tween`; a clock or any text that is not one figure always rolls), and may
+  `mark` the change with a `flash`, an `underline`, a `phosphor` ghost of the old reading fading out, or a `glitch` (the label
+  glitch's slice and colour split, at most 300 ms,
+  on the number's copy). `ms` 150 to 900, `every` 1 to 60 (the least seconds between two runs of one number). The real
+  reading is in the page at once (the run is in the aria-hidden copy), the width is the reading's, and a number with both
+  `value` and `scramble` takes the value. The page starts at most three runs and two marks a second, twelve runs at once.
+  A count writes its copy 15 times a second, so it costs more than a roll: offer it as a choice rather than the default.
+- Numbers can glitch on their own too: `glitch` with `target` `value` (or `all`, numbers and titles) tears a number's copy
+  on arrival and, with `every`, one number at a time now and then, page-wide, under the same one-repeat-a-second rule. At
+  Calm only the arrival run plays and a value's marks are dropped.
+- `list`: the rows of the list widgets (Steam friends, top processes, coding agents, service health, Steam news,
+  notifications) `enter` with a `slide` or a `fade`, glide to a new place when the order changes (`reorder`, by translate:
+  nothing is laid out again), light once when their words change (`change`: a reading that only ticks is not a change),
+  and `decode` a new row's text. `ms` 120 to 300; at most eight rows of a card move at a time.
+- `boot`: when a page opens, its cards arrive one after another in page order (`stagger` 20 to 120 ms, the last at most 1.2 s
+  after the first), with a `style` of `fade`, `clip`, the kit's stepped `glitch` or `crt` (a tube powering on), a `line` drawn across each and its title
+  decoding (`decode`). Once per page: a card that loads later on the same page arrives on its own.
+
 A pack with a motion block gets a **Motion** group in the Theme view: **Level** (the screen's Effects setting), **Intensity**
 and **Speed** (the pack's own values scaled within their ranges) and one switch per declared effect. An effect declared
 `"on": false` is off until the user turns its switch on: Cyberspec declares flicker and sweep that way so they are offered
-without being the kit's default.
+without being the kit's default, and its page art (`art`, section 6) and its rolling numbers (`value`) because of what they
+cost. On the 20-card page with its readings ticking every second, Cyberspec's defaults (its static treatments, the motion block
+and the script) measure 95 to 108 ms of main-thread work a second at Full across runs (the same page without a pack, 52 to
+61), at the 100 ms line a pack's defaults keep to. A number's roll costs about 20 ms each, and the page starts up to three a
+second, so rolling numbers on take it to about 165;
+the moving page art adds 40 to 70. Both are a switch away for a screen that has the room. Measure yours with
+`tests/perf/kiosk-motion.perf.ts` (`MOTION_CASES` takes your own cases).
 
 ## 8. Effects levels, lite mode and reduced motion
 
@@ -307,7 +411,8 @@ the pack:
 | | Full | Calm | Off | Lite mode | Reduced motion |
 |---|---|---|---|---|---|
 | Stage effects | all (up to two animated) | what each effect's `calm` says | none | as at Calm | as at Calm |
-| Motion block | all | the one-shots: what plays as a card or a reading arrives | none | none | none |
+| Motion block | all | the one-shots: what plays as a card or a reading arrives, without the marks that flash a change | none | none | none |
+| Animated page art | moves | still | still | still | still |
 | Pack CSS animations | run | stopped | stopped | stopped | stopped |
 | Effect script | 30 frames a second | 15 frames a second, told `calm` | not run | not run | not run |
 
@@ -347,7 +452,57 @@ Each is `{accent}`, `{fg}`, `{muted}`, `{faint}`, `{ok}`, `{warn}` or `{crit}` (
 them), a hex colour, or an alias of another `t3` colour (`"meter-ok": "{accent-ink}"`). A colour the user sets on a widget, or
 under Status & series colors, still wins.
 
-## 10. The effect script
+## 10. Changing a widget's layout
+
+Everything so far repaints the widgets as the app lays them out. Some of the kit's components are a different arrangement of the
+same data: its calendar is a month navigator with notched buttons, its sensor a large readout over a signal graph, its alerts a
+solid tone slab. A widget can offer such **layout variants**, and a Look names one per widget kind in `layouts`:
+
+```json look.json
+{
+  "layouts": {
+    "Calendar": "grid-nav",
+    "DayPlanner": "board",
+    "NetworkThroughput": "signal",
+    "Notifications": "feed",
+    "SensorValue": "readout",
+    "SteamFriends": "crew",
+    "SystemOverview": "power",
+    "Visualizer": "spectrum",
+    "Weather": "quote",
+    "alert": "slab",
+    "island": "slab"
+  }
+}
+```
+
+| Kind | Layout | What it draws |
+|---|---|---|
+| `Calendar` | `grid-nav` | Month navigator: notched buttons that page the month, the month in the accent and the year as a number, a weekday row, six weeks with the neighbouring months dimmed and the weekend hatched, today framed with a corner flag, the next event's day (else today) as a solid slab in the numbers' colour, and a footer with `SEL 2026.11.27` beside the next event |
+| `DayPlanner` | `board` | Departure board: the time now as a large readout, then the coming events one per ruled row with a lettered badge, the title and when it starts |
+| `Notifications` | `feed` | Channel inbox: underline tabs (All and the first three types in the history) with their `01 / 03` counter that filter the feed, then one row per notification: the time in mono, a hollow square, the type in tracked capitals in its colour (errors critical, warnings in the warning colour, the rest the accent) and the message under it |
+| `NetworkThroughput` | `signal` | Signal graph: download and upload as readouts (decimals and unit small, over a solid-and-dotted rule), both series on a dashed 0/50/100 grid with a marker on the last reading, the session totals as a mono footer |
+| `SensorValue` | `readout` | Rooftop sensor: the label in the accent, the reading as a large readout, then the session's readings as a signal graph with their low, mean and high (the Value and Spark displays only; Gauge, Bar, Line and Figure keep theirs) |
+| `SteamFriends` | `crew` | Crew roster: In-game, Online and All tabs that filter the list, the online count as a readout beside a chip of how many are playing, then one ruled row per friend with a hexagon badge of their initials, the name over the game or status and when they were last online; the first friend in a game is the current row |
+| `SystemOverview` | `power` | Power draw: the CPU and GPU draw together as a large readout with the GPU's share of its power limit as a chip, the two as parts of a stacked bar, then one tick-ruler row per section with its load and its own watts or memory in use, and the temperatures as a mono footer |
+| `Visualizer` | `spectrum` | FM receiver: the peak level as a large readout over the solid-and-dotted rule with a LOCKED chip while audio plays, the AudioMeter plugin's 32 bands (30 Hz to 16 kHz) as a dense histogram in a framed plot over its frequency axis, and the live level on a tick ruler |
+| `Weather` | `quote` | Ticket: the weather now as a solid slab with side notches (the place, NOW, the condition and the feels-like line, the temperature large), the humidity and cloud cover on tick rulers, then the coming days one per ruled row (the standard view only; Glance, Week and Forecast keep theirs) |
+| `alert` | `slab` | The kiosk's alert cards: a solid slab in the severity's tone down the left with the icon in dark ink over scan lines, the card tinted and edged in the tone, a cut corner, the title in tracked capitals with `// CAUTION` beside it |
+| `island` | `slab` | The Dynamic Island: square corners with one cut, a 1 px edge in the strongest notice's tone, and an open notice as the same tone slab |
+
+Every kind's first layout is `standard`, today's, and a kind the Look does not name draws it, so adding `layouts` changes nothing
+else and an old pack is unchanged. The widget draws the layout with its own code from the data it already reads: a layout never
+reads anything new, never changes the zone's size, and keeps the type floor (11 px) and the 4.5:1 text contrast. The numbers in a
+layout are `num` parts, so the pack CSS that colours your readouts (section 4) colours them too, and a slab drawn in the numbers'
+colour picks its ink (near black or white) from that colour. The alert and island tones are the Look's `info`, `warn` and `crit`;
+a title stays in the tone only where it holds 4.5:1 on the tinted card, else it takes the pack's text colour.
+
+The user keeps the last word: a widget that offers layouts has a **Layout** row in its inspector, where
+**Theme's choice** follows your Look and any other choice keeps that layout whatever the theme says. Theme lists the layouts a pack
+names under **In this theme**. The validator refuses a kind that offers no layouts and a layout the kind does not offer (rule
+`layout`), so a typo is caught at import, not on the screen.
+
+## 11. The effect script
 
 Everything so far is data the app draws. The one thing data could not say was a per-card flourish that reacts to the cards:
 brackets that lock onto a card as it arrives, a scan band down each card, a pulse round a card in warning. For that a pack may
@@ -368,7 +523,7 @@ takes no clicks and that screen readers skip.
 | Call | What it does |
 |---|---|
 | `fx.onFrame(fn)` | `fn(t)` runs once a frame; `t` is the frame's time in ms |
-| `fx.draw(list)` | this frame's commands: `rect`, `arc`, `path`, `glyph` (a card's text box), `transform`, `reset` |
+| `fx.draw(list)` | this frame's commands: `rect`, `arc`, `path`, `points`, `glyph` and `textbox` (a card's text box), `gradient`, `style`, `clip`, `transform`, `reset` |
 | `fx.signals()` | `{ level, width, height, cards }`, updated at most 4 times a second |
 | `fx.rand()`, `fx.now()` | a seeded random number, the frame's time |
 
@@ -378,13 +533,51 @@ exact reading**, and cards that blur a value for privacy, coding-agent cards and
 drawn over them. Colours are **palette indices**, never CSS: 0 accent, 1 text, 2 muted, 3 ok, 4 warn, 5 crit, 6 info, 7 page,
 8 card, 9 secondary text. Index 0 is the screen's accent, so a variant recolours the script with the rest of the pack.
 
-Cyberspec's [`fx.js`](../src/looks/packs/cyberspec/assets/fx.js) does three things:
+**Richer drawing.** Beyond the four shapes the script has what the kit's showcase effects need, every one a validated, capped
+command (the complete list is in the [customization guide](customization-guide.md)):
 
-- **Brackets on arrival.** A card whose box was not in the last signals has just arrived: four corner brackets trace in round
-  it over 420 ms (staggered 45 ms a card), hold, and fade. A page swipe makes the new page's cards arrive.
-- **A scan band.** A soft band moves down each card every 7 s from a seeded start, its 1 px leading edge lighting the text
-  boxes it crosses.
-- **A pulse.** A card in `warn` or `crit` breathes an outline in the warn or crit colour, faster for crit.
+- `gradient` and a shape's `fillGrad`: a scan band that fades in behind a bright 1 px leading edge, or a radial bloom, in palette
+  colours with alpha stops.
+- `style`: a dash whose `phase` you move each frame (a stream along a circuit trace like the hex-stat's), round caps and joins, a
+  glow of up to 12 px in a palette colour, and the composite modes `lighter` and `screen` so light adds up.
+- `clip` to a card, so a band or a bloom stays inside it.
+- `textbox`: highlight, underline or wipe the box of a title or number, for a reveal that follows the text without ever seeing it.
+- `points`: 500 particles in one command.
+- `card.event`: arrival, a value moving up or down, or a state change, once, so an effect fires on the change rather than polling.
+
+```js fx.js
+let seen = null;
+const pulses = new Map();
+fx.onFrame((t) => {
+  const s = fx.signals();
+  if (s !== seen) { // a new update: read the events once
+    seen = s;
+    s.cards.forEach((c, i) => c.event && c.event.state === "crit" && pulses.set(i, t));
+  }
+  const list = [];
+  for (const [i, at] of pulses) {
+    const c = s.cards[i];
+    if (!c || t - at > 400) { pulses.delete(i); continue; }
+    // a crit colour that fades down from the card's top edge, kept inside the card
+    list.push({ op: "clip", card: i }, { op: "gradient", id: 0, x0: 0, y0: c.y, x1: 0, y1: c.y + 40, stops: [[0, 5, 0.5], [1, 5, 0]] });
+    list.push({ op: "rect", x: c.x, y: c.y, w: c.w, h: 40, fillGrad: 0, alpha: 1 - (t - at) / 400 }, { op: "unclip" });
+  }
+  fx.draw(list);
+});
+```
+
+Cyberspec's [`fx.js`](../src/looks/packs/cyberspec/assets/fx.js) uses the richer drawing and the card events:
+
+- **The arrival.** A card's `arrived` event scans it in: a band fading in behind a bright 1 px edge wipes down it once in
+  560 ms, clipped to the card, while four corner brackets trace in round it over 420 ms (staggered 45 ms a card), hold, and
+  fade. A page swipe makes the new page's cards arrive.
+- **Circuit traces.** Along the foot of every other card 120 px or taller a stepped trace streams its dashes (`style` with a
+  moving `phase`), like the kit's hex-stat.
+- **A state burst.** A card whose `state` event is `warn` or `crit` throws 28 square data points (`points`) off its top edge,
+  falling back as they fade over 700 ms, and then breathes an outline in that colour, faster for crit.
+- **A value's chevron.** A `value` event (up or down) shows a chevron in the card's corner for 600 ms, pointing the way it moved.
+- **The page's scan bar.** A soft gradient bar passes down the whole page every 9 s; at Full its edge lights the text boxes it
+  crosses.
 
 The brackets, reduced to their core:
 
@@ -407,23 +600,26 @@ fx.onFrame((t) => {
 });
 ```
 
-**Calm** is `fx.signals().level === "calm"` at 15 frames a second: Cyberspec keeps the brackets (they play once, like the motion
-block's one-shots), runs the band on every other card at half speed and slows the pulse. At Off, in lite mode, under reduced
+**Calm** is `fx.signals().level === "calm"` at 15 frames a second: Cyberspec keeps the arrivals (they play once, like the motion
+block's one-shots) and the pulse at half speed, runs the scan bar at half speed without lighting the text, and drops the traces,
+bursts and chevrons. At Off, in lite mode, under reduced
 motion and on a hidden page the app runs no script at all.
 
 **Caps.** A frame has 2 ms of the script's own time: past it the frame is cut off and draws nothing, and three cut frames
 within 10 s hand the screen back to the pack's declarative effects. The top level has 50 ms, the script 8 MB of memory and
-2,000 commands a frame. The app shows at most three flashes a second whatever the script draws.
+2,000 commands and a cost of 3,000 a frame (a glow costs its blur in px per shape). The app shows at most three flashes a second whatever the script draws.
 
 **What it can't do**: read or write text, see exact values, reach the network, the page, your files or other apps, set a timer,
-load code, or draw outside the overlay. The pack checker measures it (step 12): Cyberspec's script spends about 0.6 ms a frame
-at its 95th percentile at Full on a 20-card fixture (about 0.36 ms of that is the sandbox's own frame cost), at most 145
-commands a frame, and about 0.45 ms at Calm.
+load code, or draw outside the overlay. The pack checker measures it (step 13): Cyberspec's script spends about 0.52 ms a frame
+at its 95th percentile at Full on a 20-card fixture (about 0.36 ms of that is the sandbox's own frame cost), at most 103
+commands and a cost of 120 a frame, and about 0.31 ms at Calm. The app drives the script's frames from a timer rather than the
+page's animation frames, so a script costs the page only its signals and its messages: about 20 ms of main-thread work a second
+on the 20-card page.
 
 A built-in pack's script ships inside the app and runs whenever the server's **Pack effect scripts** switch is on. A pack you
 import runs its script only when its trust allows it (next step).
 
-## 11. Signing and trust
+## 12. Signing and trust
 
 Browse themes shows each imported pack's badge: **Verified by Themely** (Themely ran its checks and a person reviewed these
 exact files; it does not mean the pack is safe), **Signed by ‹publisher›, not reviewed**, **Unverified** (amber), or, in red,
@@ -445,7 +641,7 @@ whose **Allow pack scripts** is on in Settings › Widget publishers, or allowed
 studio asks once (**Allow for this pack** or **Don't allow**) and asks again after an update; the kiosk never asks. **Pack
 effect scripts** in Browse themes, or `PACK_SCRIPTS=off` on the server, turns every script off, built-in ones included.
 
-## 12. Testing your pack
+## 13. Testing your pack
 
 1. **The validator**: `node tools/validate-pack.mjs my-cyberspec` prints each problem with its rule and exits 1 on an error.
    It is the same check the import runs.
@@ -463,7 +659,7 @@ effect scripts** in Browse themes, or `PACK_SCRIPTS=off` on the server, turns ev
 5. **Every variant and level**: pick each variant in Quick changes, and set Effects to Full, Calm and Off, with lite mode and
    reduced motion too.
 
-## 13. Limits we hit and how we solved them
+## 14. Limits we hit and how we solved them
 
 Cyberspec was built twice. The first version used only what the format had; what it could not express became format
 features, each validated and documented before the pack used it:
@@ -477,11 +673,113 @@ features, each validated and documented before the pack used it:
 | Ornaments on 1x1 cards | The micro-print band overlapped text | Ornaments only where the padding is over 10 px, and clear of a spine | No ornaments at 1x1; nothing overlaps |
 | No per-text effects | Titles and readouts static | The `motion` block | Clip arrival, decode, a glitch on arrival, scramble on change, with switches in the Theme view |
 | Pack CSS animations ignored the Effects level | The lamp pulsed at Calm and Off | Pack animations read through a variable the page sets to `none` below Full | The lamp pulses at Full only |
+| Readings jumped, lists snapped | A new value or row appeared at once | `motion` `value`, `list` and `boot` | Counts, rolling clocks, rows that slide in and glide, a staggered page boot |
+| Pack SVG could not move | Reticles and lamps were still art | Animated page layers: a keyframe and SMIL subset, held still below Full | Turning reticles and pulsing lamps behind the cards |
 | Labels a fixed grey | `label-color` was named but nothing read it | `label-color` reaches the labels and follows the variant | Labels in the accent ink |
 | Data kept the widgets' own colours | Blue, teal and yellow sections, green meters under every variant | `series-1` to `series-6`, `meter-ok`, `icon-color` reach the widgets | Charts, meters and weather icons in the variant's colours |
 | Page effects in a fixed colour | Flashing overlays in cyan, or the studio's amber | Effects and layer glows take the screen's accent | They follow the variant |
 | No per-card reaction | No arrival flourish, no data pulse | The effect script, in a sandbox | Brackets, scan band and warning pulse in `fx.js` |
+| Widgets laid out one way | The kit's calendar, readouts, departure board and alert slabs could only be imitated in paint | Layout variants (`layouts` in look.json), each drawn by the widget from its own data | The month navigator, readout and signal-graph sensors, the departure board, tone-slab alerts and island |
 
-Some things are still out of reach, on purpose or for now: a tab that sticks out of the card (the card clips its content), a
-square-segmented bar where a widget draws rounded ones (pack CSS cannot reach inside a bar with `*`), a numeral colour read from
-a variable (the contrast check needs a literal), a hexagon gauge, and a glow outside the card.
+A tab that sticks out of the card, square-segmented bars, a hexagon gauge and a glow outside the card were out of reach here;
+they are now format features (section 15). A numeral colour read from a variable still is: the contrast check needs a literal.
+
+## 15. Component treatments
+
+The kit's components (solid tone slabs, big readouts with small decimals, cell meters, hexagon gauges, signal graphs, a panel
+with a wide band and a caption above it, the dot-grid screen) are drawn by the app from tokens and pack.json keys. Each is off
+until a Look names it, so a pack that does not draws exactly as before. The reference is the treatments fixture,
+`tests/fixtures/packs/treatments`: Cyberspec with every treatment on.
+
+**Slabs** come from the Look's `t3`. One token per part says when the part is a slab and in which tone:
+
+```json look.json
+{
+  "t3": {
+    "slab-header": "accent",
+    "slab-chip": "state",
+    "slab-tab": "accent",
+    "slab-row": "current",
+    "slab-current": "warn",
+    "slab-ink": "#0B0B12",
+    "slab-texture": "scanlines",
+    "slab-notch": 8
+  }
+}
+```
+
+- The parts are `header`, `chip`, `tab`, `row` and `card`. `state` draws a slab only while the part (for the header and the
+  card, the card) shows a warning or a critical reading; a tone (`accent`, `info`, `ok`, `warn`, `crit`) draws one always; a
+  row's `current` marks the row the widget calls current, in the `slab-current` tone. A part's own warning or critical reading
+  wins over its tone.
+- The ink is checked at 4.5:1 on every tone the slabs can take, in every variant, and on a scan line too. The lines are drawn
+  away from the ink (light under a dark ink), so they only add contrast: under the kit's dark ink a dark line had taken the
+  crimson slab to 4.1:1.
+- The slab paint is the app's and not in `@layer look`, so a pack's CSS can't recolour it.
+
+**Readouts and meters**: `readout-scale` (1 to 4) and `readout-decimals` (0.3 to 1) give the kit's `412.8` with a small `.8`;
+the value is stepped down until it fits its card, so a 1x1 keeps its own size. `readout-bar: rule` adds the underline, solid to
+the reading's share of its range and dotted after. `meter-style: cells` gives the 20-cell meter with triangles at the warning
+and critical marks, `meter-empty` the unlit cells' colour and `meter-peak: hold` the held peak; `meter-style: ruler` the
+slider's tick ruler and square thumb (Wave Link's lying levels follow both). `share-style: gapped` draws a stacked bar (Power Draw, Disk I/O) as gapped blocks.
+
+**Rings, graphs and rows**: `ring-style: hex` draws every ring as a hexagon, open at the bottom (the default Custom gauge too;
+one the user designed keeps its design), and `avatar-shape: hex` the
+initials of a friends list. `graph-grid: dashed`, `graph-lead: square` and `graph-bars: striped` give the signal graph's dashed
+grid with left ticks, its end square and the bar chart's stripes. `row-style: ruled` rules list rows and tints a table's head.
+
+**The panel** is the `frame`, with the keys of section 5 and:
+
+```json pack.json
+{
+  "frame": {
+    "corners": "cut", "size": 18, "which": ["tr", "bl"],
+    "band": { "edge": "left", "width": 10 },
+    "tint": 0.05,
+    "grid": { "size": 22, "alpha": 0.22 },
+    "tone": "state",
+    "rule": true,
+    "glow": { "radius": 10, "alpha": 0.3 },
+    "caption": { "text": "MB-RX // REV 3 // NODE 3F:A2", "at": "tl" },
+    "tab": { "at": "tl", "width": 56, "height": 5, "out": true }
+  }
+}
+```
+
+The band can't share an edge with a spine, so Cyberspec dropped its v2 spine for the band down the left. It is drawn at most as
+wide as the card's padding. The glow, the caption and an outside tab are drawn in a layer beside the
+card, the card's own size, so no card moves; the caption is 11 px micro-print above the card and needs a gap of 14 px or more
+above it. `tone: state` turns the lines crimson or yellow while the card shows a critical or warning reading.
+
+**The screen** is the `stage`: `grid` puts the kit's dot grid behind the cards, `chrome` the framed screen with its cut corners,
+the notched tab with its text at the top centre and the corner reticles:
+
+```json pack.json
+{
+  "stage": {
+    "grid": { "size": 22, "alpha": 0.2 },
+    "chrome": { "cut": 48, "alpha": 0.55, "tab": { "width": 260, "height": 28, "text": "CYBERSPEC // DECK 07" }, "reticles": true }
+  }
+}
+```
+
+**The card anatomy** is a Look-wide card style: `"card-style": "anatomy"` in `t3` gives every widget the kit's card head and
+foot, drawn by the app from the widget's catalog entry.
+
+```json look.json
+{
+  "t3": { "card-style": "anatomy" }
+}
+```
+
+- The head is the category as a micro-label with the widget's icon (its name where the category only repeats the title), then
+  the title in the display face at 16 to 26 px and an inset rule.
+- The foot is a strip of outlined chips: the widget's name and, where the Look names one, its layout.
+- It draws only on a card of 280 by 240 px or more, with a header and outside the terminal skin; a smaller card keeps the Look's
+  header, and so does a card the app has not measured yet. `none`, the default, is today's card.
+- The head is taller than a Look's header, so the card's body is shorter: the card keeps its box, the body does not. The app's
+  own packs keep every body box as Classic draws it (the overflow check's G2 rule), so Cyberspec leaves the anatomy off.
+
+What these can't do yet: a meter's cells take the height the widget gives its bar (the kit's chunkier cells need the widget's
+room), the overflow check does not see the caption or an outside tab (they are drawn in pseudo-elements beside the card), and the
+glow is a rectangle round a cut corner.

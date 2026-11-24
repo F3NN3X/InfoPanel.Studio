@@ -582,6 +582,7 @@
         "tests/tools/widgets/**",
         "tests/e2e/kiosk-renders.spec.ts",
         "tests/e2e/streaming-widgets-fit.spec.ts",
+        "tests/e2e/layout-variants-fit.spec.ts",
         "tests/e2e/widget-qa-parity.spec.ts",
         "tests/e2e/visualiser-round-trip.spec.ts",
         "tests/e2e/code-widgets.spec.ts",

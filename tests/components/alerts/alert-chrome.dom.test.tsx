@@ -38,3 +38,24 @@ describe("the alert layer's chrome", () => {
     }
   });
 });
+
+// look.json `layouts.alert`: a pack that names `slab` draws the kit's tone slab cards; every other pack keeps the standard card.
+describe("the alert layout", () => {
+  it("is the tone slab under a pack that names it, in the Look's tone for the severity", async () => {
+    render(<AlertLayer alerts={[alert, { ...alert, id: "b", severity: "critical", display: { ...alert.display, position: "bottom-left" } }]} onAck={() => {}} lookId="cyberspec" />);
+    await waitFor(() => expect(document.querySelector("[data-part=alert][data-layout=slab]")).not.toBeNull());
+    const cards = [...document.querySelectorAll<HTMLElement>("[data-part=alert]")];
+    expect(cards.map((c) => c.dataset.severity).sort()).toEqual(["critical", "warning"]);
+    const warning = cards.find((c) => c.dataset.severity === "warning")!;
+    expect(warning.textContent).toContain("// Caution");
+    // the live region and the keyboard path stay the standard card's
+    expect(warning.querySelector("[role=alert]")).not.toBeNull();
+    expect(warning.querySelector("button.alert-dismiss")).not.toBeNull();
+  });
+
+  it("stays the standard card under a pack that names none", async () => {
+    render(<AlertLayer alerts={[alert]} onAck={() => {}} lookId="paper" />);
+    await waitFor(() => expect(document.querySelector("[data-alert-layer]")!.hasAttribute("data-pack-chrome")).toBe(true));
+    expect(document.querySelector("[data-part=alert]")!.hasAttribute("data-layout")).toBe(false);
+  });
+});

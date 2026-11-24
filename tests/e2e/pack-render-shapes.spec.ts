@@ -67,6 +67,17 @@ test("clip-path: cut corners pass; a clip that cuts a value or most of a card is
   expect(r.url.length).toBeGreaterThan(0);
 });
 
+test("clip-path over text a box already hides: only what the eye could see without the pack counts", async ({ page }) => {
+  test.setTimeout(SLOW);
+  // the page's own sheet (on in both twins): the values sit in a box of no height that hides its overflow, as a frame hides a widget running past it
+  const r = await judge(page, {
+    hidden: `${CARD} [data-part="num"] { clip-path: inset(0); }`,
+    label: `${CARD} [data-part="label"] { clip-path: inset(0 60% 0 0); }`,
+  }, `${CARD} [data-part="num"] { display: block; height: 0; overflow: hidden; }`);
+  expect(r.hidden).toEqual([]);
+  expect(r.label.some((x) => x.includes("cut by a clip-path"))).toBe(true);
+});
+
 test("mask-image: a gradient that fades the card edge passes; one that fades text, or a url() mask that will not load, is refused", async ({ page }) => {
   test.setTimeout(SLOW);
   const r = await judge(page, {

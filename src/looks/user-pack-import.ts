@@ -37,6 +37,7 @@ const PLAIN: Record<string, string> = {
   "script-url": "A file is a script address, which a pack may not use.",
   "data-url": "A file is written inline as a data address. Put it in the assets folder.",
   "svg-unsafe": "An SVG holds script or a link out of the file.",
+  "svg-animation": "An SVG animates in a way a pack may not, or is not declared as an animated page layer.",
   size: "The pack is over the size limit.",
   "asset-listed": "pack.json's list of assets and the files in the assets folder do not match.",
   "asset-missing": "A file the pack names is not in the pack.",

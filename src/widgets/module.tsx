@@ -14,6 +14,8 @@ import { SKINS, skinOfLook } from "./core/theme";
 import type { ShellProps, WidgetMeta } from "./core/types";
 import { toFlat, toNames } from "./shared/data-adapter";
 import { preloadOf } from "./lazy-widget";
+import { LAYOUT_KEY, LAYOUTS, layoutOf, layoutSetting } from "./layouts";
+import { CardKindCtx } from "./core/card-anatomy";
 import { ScriptSignalsCtx } from "@/looks/pack-script/signal-ctx";
 
 export interface TemplateOptions<P extends object> {
@@ -104,7 +106,9 @@ export function useZoneLook(defs: ModuleSetting[], saved: ModuleSettings | undef
 }
 
 export function templateModule<P extends object>({ meta, Component, settings, toProps, prefixes, title, base, island }: TemplateOptions<P>): DashboardModule {
-  const all = [...(base ?? STANDARD_SETTINGS), ...settings, ...(island ? islandSettings(island) : [])];
+  // a widget with layout variants gets the Layout row (Theme's choice, or one of its layouts)
+  const layouts = meta.layouts && meta.layouts.length > 1 ? [layoutSetting(meta.layouts)] : [];
+  const all = [...(base ?? STANDARD_SETTINGS), ...settings, ...layouts, ...(island ? islandSettings(island) : [])];
   const surfaceDefault = String(all.find((d) => d.key === "surface")?.default ?? "glass");
   const mod: DashboardModule = {
     id: meta.id,
@@ -148,7 +152,15 @@ export function templateModule<P extends object>({ meta, Component, settings, to
       const decor = slotsWithDecor(pack);
       return pack?.motion && saved?.decoration !== false ? { ...decor, motion: { spec: pack.motion, knobs: motionKnobsOf({ motionIntensity, motionSpeed, motionEffects }) } } : decor;
     }, [pack, saved?.decoration, motionIntensity, motionSpeed, motionEffects]);
-    const card = <Component data={data} names={names} {...shellProps(look)} {...toProps(look, saved)} t3={pack?.look.t3} slots={slots} packId={pack?.id} look={look} />;
+    // the layout variant: the zone's Layout pick, else the one the pack Look names for this kind (unset: the standard layout)
+    const lookLayout = layoutOf(meta.id, pack?.look.layouts, saved?.[LAYOUT_KEY]);
+    // what the card is, for a Look's card anatomy (`card-style: anatomy`): the catalog's name and category, and the layout it draws
+    const kind = useMemo(() => ({ name: meta.name, category: meta.category, layout: lookLayout && LAYOUTS[meta.id]?.find((l) => l.id === lookLayout)?.name }), [lookLayout]);
+    const card = (
+      <CardKindCtx.Provider value={kind}>
+        <Component data={data} names={names} {...shellProps(look)} {...toProps(look, saved)} t3={pack?.look.t3} slots={slots} packId={pack?.id} look={look} lookLayout={lookLayout} />
+      </CardKindCtx.Provider>
+    );
     // a card wearing a scripted pack writes the rounded values its script may read (pack-script/signals.ts)
     return pack?.script ? <ScriptSignalsCtx.Provider value>{card}</ScriptSignalsCtx.Provider> : card;
   }

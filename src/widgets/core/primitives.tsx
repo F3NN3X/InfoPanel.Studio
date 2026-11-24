@@ -20,8 +20,10 @@ import { alternate } from "@/lib/curves";
 import { appIconName, weatherKind } from "@/lib/weather-icons";
 import { RangeEaser, SmoothScroll, scrollWaitMs, useAnimationFrame, type ScrollPoint } from "./smoothing";
 import { HISTORY_LEN, RoomyCtx } from "./layout";
-import { motionOf, scaleX, slideX } from "./motion";
+import { motionOf, scaleX, slideX, stackX } from "./motion";
 import { HOLD_PX, holdPct } from "./hold";
+import { Readout, ReadoutBar, hexPath, rowAttrs, slabAttrs, stateAttr, usePeak } from "./treatments";
+import { SLAB_TEXTURE } from "@/looks/treatments";
 
 /* ───────── primitives ───────── */
 // Material Symbols names rendered as lucide icons (see icons.ts); sized by the font size like the glyphs were.
@@ -87,22 +89,28 @@ export interface MetricProps {
   hero?: boolean;
   /** false: a warn or crit tone colours the number but draws no glyph before it (screen readers still hear it). */
   cue?: boolean;
+  /** The reading's share of its range, 0 to 100: a Look's readout under-bar (`readout-bar: rule`) is drawn solid that far, dotted after. */
+  pct?: number;
 }
-export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok", align = "left", className = "", ipKey: key, px, hero = true, cue = true }: MetricProps) {
+export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok", align = "left", className = "", ipKey: key, px, hero = true, cue = true, pct }: MetricProps) {
   const ipKey = useContext(IpTagCtx) ? key : undefined;
   const sk = useSkin();
   const sc = sk.numUp ? SCALES[Math.min(4, SCALES.indexOf(scale) + 1)] : scale;
   const big = { sm: "text-lg", md: "text-2xl", lg: "text-4xl", xl: "text-5xl", "2xl": "text-7xl" }[sc];
   const shown = typeof value === "number" ? fmt(value, d) : value;
   const word = isWordUnit(unit) && shown !== "–";
+  const unitEl = unit && !word && <Unit className="inline-block align-top leading-none" style={sk.numStroke ? SMALL_GLOW : undefined}>{unit}</Unit>;
+  // a Look's readout scale (`readout-*`) draws a hero value larger, fitted to the card; the unit scales with it
+  const readout = hero ? sk.readout : undefined;
   return (
     <div className={`flex min-w-0 flex-col ${align === "center" ? "items-center text-center" : ""} ${className}`} style={align === "center" ? { alignItems: "var(--wp-x-cross, center)", textAlign: "var(--wp-text-align, center)" as CSSProperties["textAlign"] } : { alignItems: "var(--wp-x-cross, stretch)" }}>
       {label && <span data-part="label" className="max-w-full truncate text-micro font-medium text-[color:var(--w-muted)]" style={labelStyle("none")}><MotionText part="label">{label}</MotionText></span>}
-      <span data-part="num" data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey && typeof unit === "string" ? unit : undefined} data-ip-decimals={ipKey ? d : undefined} className={`${px ? "" : big} ${px || !hero || sc === "sm" || sc === "md" ? "" : "[[data-wp-roomy]_&]:!text-[length:var(--w-hero)]"} font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(px ? { fontSize: px } : null), fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow || sk.numFill || sk.numChroma ? { ...(sk.numChroma && !sk.numGlow && !sk.numFill ? null : NUM_TINT), ...numGlowStyle(sk, NUM_HALO) } : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
+      <span data-part="num" {...stateAttr(sk, t)} data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey && typeof unit === "string" ? unit : undefined} data-ip-decimals={ipKey ? d : undefined} className={`${px ? "" : big} ${px || !hero || sc === "sm" || sc === "md" ? "" : "[[data-wp-roomy]_&]:!text-[length:var(--w-hero)]"} font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(px ? { fontSize: px } : null), fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow || sk.numFill || sk.numChroma ? { ...(sk.numChroma && !sk.numGlow && !sk.numFill ? null : NUM_TINT), ...numGlowStyle(sk, NUM_HALO) } : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
         <ToneCue t={t} glyph={cue} />
-        <MotionText part="num">{shown}</MotionText>
-        {unit && !word && <Unit className="inline-block align-top leading-none" style={sk.numStroke ? SMALL_GLOW : undefined}>{unit}</Unit>}
+        {readout ? <Readout spec={readout} value={shown} unit={unitEl} /> : <MotionText part="num">{shown}</MotionText>}
+        {!readout && unitEl}
       </span>
+      {readout?.bar && <ReadoutBar color={t !== "ok" ? TONES[t] : "var(--w-accent)"} pct={pct} />}
       {word && <span className="mt-1 max-w-full truncate text-micro text-[color:var(--w-muted)]">{unit}</span>}
       {sub && <span className="mt-1 max-w-full truncate text-micro text-[color:var(--w-faint)]">{sub}</span>}
     </div>
@@ -122,6 +130,10 @@ export interface BarProps {
   segments?: number;
   /** A fill of its own (a recipe's series colour) in place of the tone's. */
   color?: string;
+  /** Where the warning starts, in % of the bar: a cell meter marks it with a triangle under the bar (`meter-style: cells`). */
+  mark?: number;
+  /** Where the critical zone starts, in % of the bar: a cell meter marks it and dims the unlit cells past it toward the critical colour. */
+  limit?: number;
 }
 /** A ring's stroke never draws thinner than this on screen, so a small ring keeps a line you can see. */
 const RING_MIN_PX = 6;
@@ -219,11 +231,12 @@ const fxSignal = (on: boolean, fraction: number, t: Tone) => (on ? { "data-fx-va
 /** The colour of a bar or ring in a tone: a pack that sets its own `ok` draws it for ok instead of the accent (L58). */
 const toneInk = (sk: Partial<SkinContext>, t: Tone): string => (t === "ok" && sk.packOk ? "var(--w-ok)" : TONES[t]);
 
-function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle, segments, color }: BarProps) {
+function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle, segments, color, mark, limit }: BarProps) {
   const sk = useSkin();
   const m = meterStyle ?? sk.meter ?? "bar";
   const pct = clamp((value / max) * 100);
-  const fx = fxSignal(useContext(ScriptSignalsCtx), pct / 100, t);
+  const peak = usePeak(pct, m === "cells" && !!sk.meterPeak);
+  const fx = { ...fxSignal(useContext(ScriptSignalsCtx), pct / 100, t), ...stateAttr(sk, t) };
   // Smooth graph updates: glide linearly over about one sample interval instead of easing.
   const glide = sk.smooth ? { transition: `transform ${GLIDE_MS}ms linear` } : null;
   // `bar-fill` paints the ok tone of the line, square and pill bars; warn and crit keep their own colours
@@ -239,6 +252,8 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
       </div>
     );
   }
+  if (m === "ruler") return <BarRuler pct={pct} ink={ink} fx={fx} className={className} />;
+  if (m === "cells") return <BarCells pct={pct} peak={peak} n={segments ?? 20} ink={color ?? toneInk(sk, t)} empty={sk.meterEmpty ?? "var(--w-track)"} mark={mark} limit={limit} fx={fx} className={className} />;
   if (m === "wave")
     return (
       <div data-part="bar" {...fx} className={cn("relative w-full min-h-2", className)}>
@@ -274,6 +289,99 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
   );
 }
 
+/**
+ * A cell meter (`meter-style: cells`, the kit's meter): square cells with a gap, lit ones in the tone with a scan-line texture, at least one lit
+ * for any value; the unlit ones in `meter-empty`, dimmed toward the critical colour past the critical mark (`limit`, else the warning `mark`);
+ * the peak cell held (`meter-peak: hold`) in the text colour; a small triangle under the bar at each mark. The triangles hang in the space
+ * under the bar and carry no text; the bar's box is the widget's.
+ */
+function BarCells({ pct, peak, n, ink, empty, mark, limit, fx, className }: { pct: number; peak: number; n: number; ink: string; empty: string; mark?: number; limit?: number; fx: Record<string, string>; className: string }) {
+  const lit = pct > 0 ? Math.max(1, Math.round((pct / 100) * n)) : 0;
+  const held = Math.round((peak / 100) * n);
+  const zone = limit ?? mark;
+  const over = zone !== undefined && zone > 0 ? Math.ceil((clamp(zone) / 100) * n) : n;
+  const crit = `var(--w-crit, ${STATE.crit})`;
+  const marks = [mark !== undefined && mark > 0 && mark < 100 ? { at: mark, c: `var(--w-warn, ${STATE.warn})` } : null, limit !== undefined && limit > 0 && limit < 100 ? { at: limit, c: `color-mix(in srgb, ${crit} 70%, transparent)` } : null].filter((m) => m !== null);
+  return (
+    <div data-part="bar" data-meter="cells" {...fx} className={cn("relative flex w-full gap-0.5", className)}>
+      {Array.from({ length: n }, (_, i) => (
+        <span key={i} className="min-w-0 flex-1" style={i < lit ? { background: ink, backgroundImage: SLAB_TEXTURE } : { background: i === held - 1 ? "var(--w-fg)" : i >= over ? `color-mix(in srgb, ${crit} 45%, ${empty})` : empty }} />
+      ))}
+      {marks.map((m) => (
+        <span key={m.at} aria-hidden data-part="threshold" className="pointer-events-none absolute top-full mt-0.5 h-1.25 w-2 -translate-x-1/2" style={{ left: `${clamp(m.at)}%`, background: m.c, clipPath: "polygon(50% 0, 100% 100%, 0 100%)" }} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * A tick-ruler level (`meter-style: ruler`, the kit's slider): a hairline track, the reading drawn in its tone up to a square thumb, a ruler
+ * of ticks above (a short one every 5%, a tall one every 25%). The ticks and the thumb hang over the bar's box and carry no text.
+ */
+function BarRuler({ pct, ink, fx, className }: { pct: number; ink: string; fx: Record<string, string>; className: string }) {
+  const tick = `linear-gradient(90deg, ${ink} 1px, transparent 1px)`;
+  return (
+    <div data-part="bar" data-meter="ruler" {...fx} className={cn("relative w-full min-h-2", className)}>
+      <span aria-hidden data-part="ticks" className="pointer-events-none absolute inset-x-0 bottom-full mb-0.5 h-1.5 opacity-60" style={{ backgroundImage: `${tick}, ${tick}`, backgroundSize: "5% 50%, 25% 100%", backgroundPosition: "0 100%, 0 0", backgroundRepeat: "repeat-x" }} />
+      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[color:var(--w-track)]" />
+      <div className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2" style={{ ...scaleX(pct), background: ink }} />
+      <span aria-hidden data-part="thumb" className="absolute top-1/2 h-3 w-2 -translate-x-1/2 -translate-y-1/2 bg-[color:var(--w-fg)]" style={{ left: `${pct}%` }} />
+    </div>
+  );
+}
+
+/** A part of a whole on a `ShareBar`: its share of the track, in %, and its colour. */
+export interface SharePart {
+  pct: number;
+  color: string;
+}
+
+/**
+ * Parts of a whole on one track (a stacked bar: CPU and GPU of a power budget, reads and writes). Where the Look asks (`share-style: gapped`,
+ * the kit's power-draw bar) each part is a square block with a gap after it and the rest of the track in `meter-empty`; otherwise the rounded
+ * track with the parts slid along it, the markup the widgets always drew.
+ */
+export function ShareBar({ parts, height = "h-2.5", bleed }: { parts: SharePart[]; height?: string; bleed?: boolean }) {
+  const sk = useSkin();
+  const qa = bleed ? { "data-qa-bleed": true } : null;
+  if (sk.share === "gapped") {
+    let left = 100;
+    const shares = parts.map((p) => {
+      const w = Math.min(left, clamp(p.pct));
+      left -= w;
+      return { w, color: p.color };
+    });
+    return (
+      <div data-part="share" {...qa} className={`flex w-full gap-0.5 ${height}`}>
+        {shares.map((p, i) => p.w > 0 && <span key={i} className="min-w-0" style={{ flex: `${p.w} 1 0`, background: p.color }} />)}
+        {left > 0 && <span className="min-w-0" style={{ flex: `${left} 1 0`, background: sk.meterEmpty ?? "var(--w-track)" }} />}
+      </div>
+    );
+  }
+  let from = 0;
+  return (
+    <div className={`relative ${height} overflow-hidden rounded-full bg-[color:var(--w-track)]`} {...qa}>
+      {parts.map((p, i) => {
+        const at = from;
+        from += p.pct;
+        return <div key={i} className="absolute inset-0 transition-transform duration-700" style={{ ...stackX(at, p.pct), background: p.color }} />;
+      })}
+    </div>
+  );
+}
+
+/** A solid status chip (the kit's CRIT and LOW): a slab in the warning or critical tone with a square lamp and its notch, where the Look draws slabs. Nothing for an ok reading or a Look without slabs. Reusable: any widget's state word. */
+export function StateChip({ state, children }: { state?: Tone; children?: ReactNode }) {
+  const sk = useSkin();
+  if (!sk.slab || (state !== "warn" && state !== "crit")) return null;
+  return (
+    <span data-part="chip" data-wp-slab={state} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap px-1.5 py-px text-micro font-semibold uppercase leading-tight tracking-[0.08em]">
+      <span aria-hidden className="h-1.5 w-1.5 shrink-0 bg-current" />
+      {children ?? (state === "crit" ? "Crit" : "Warn")}
+    </span>
+  );
+}
+
 export interface BarRowProps {
   label: ReactNode;
   value: number;
@@ -286,14 +394,16 @@ export interface BarRowProps {
 }
 export function BarRow({ label, value, max = 100, display, hint, t, warn, crit }: BarRowProps) {
   const tt = t ?? tone((value / max) * 100, warn, crit);
+  const sk = useSkin();
   return (
-    <div className="flex min-w-0 flex-col gap-1">
+    <div {...rowAttrs(sk, { state: tt })} className="flex min-w-0 flex-col gap-1">
       <div className="flex items-baseline gap-2 text-xs">
         <span data-part="label" className="truncate text-[color:var(--w-fg)]" style={labelStyle("none")}><MotionText part="label">{label}</MotionText></span>
         {hint && <span className="truncate text-micro text-[color:var(--w-faint)]">{hint}</span>}
-        <span className="ml-auto shrink-0 font-medium tabular-nums">{display ?? `${fmt(value, 0)}%`}</span>
+        {sk.slab?.roles.chip && <span className="ml-auto flex shrink-0 items-center"><StateChip state={tt} /></span>}
+        <span className={`${sk.slab?.roles.chip ? "" : "ml-auto "}shrink-0 font-medium tabular-nums`}>{display ?? `${fmt(value, 0)}%`}</span>
       </div>
-      <Bar value={value} max={max} t={tt} />
+      <Bar value={value} max={max} t={tt} mark={warn} limit={crit} />
     </div>
   );
 }
@@ -345,9 +455,27 @@ export function Ring({ value, max = 100, thickness: th0, t = "ok", color, track,
   const r = 50 - thickness / 2,
     c = 2 * Math.PI * r,
     pct = clamp(value / max, 0, 1);
-  const fx = fxSignal(useContext(ScriptSignalsCtx), pct, t);
+  const fx = { ...fxSignal(useContext(ScriptSignalsCtx), pct, t), ...stateAttr(sk, t) };
   const cap = sk.cap ?? "round";
   const glide = sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined;
+  if (sk.ringShape === "hex") {
+    // a hexagon (`ring-style: hex`) measured round its perimeter (pathLength 100): an open sweep leaves its gap at the bottom
+    const open = sweep < 360;
+    const share = (clamp(sweep, 1, 360) / 360) * 100;
+    const gap = open ? (100 - share) / 2 : 0;
+    const d = hexPath(r, open ? "bottom" : "top");
+    const stroke = color ?? toneInk(sk, t);
+    return (
+      <div ref={box} data-part="ring" data-ring="hex" {...fx} className={`relative aspect-square ${className}`}>
+        <svg viewBox="0 0 100 100" className="h-full w-full">
+          <InkGradient id={inkId} css={sk.ringFill} />
+          <path d={d} fill={`color-mix(in srgb, ${stroke} 10%, transparent)`} stroke={track ?? RING_TRACK} strokeWidth={thickness} strokeLinejoin="miter" pathLength={100} strokeDasharray={open ? `${share} 100` : undefined} strokeDashoffset={open ? -gap : undefined} />
+          <path d={d} fill="none" stroke={ink ?? stroke} strokeWidth={thickness} strokeLinejoin="miter" pathLength={100} strokeDasharray={`${share * pct} 100`} strokeDashoffset={-gap} style={sk.smooth ? { transition: `stroke-dasharray ${RING_GLIDE_MS}ms linear` } : undefined} data-wp-ring="" {...tag} />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ containerType: "inline-size" }}>{children}</div>
+      </div>
+    );
+  }
   if (sweep < 360) {
     // an open arc centred on the top: it starts `sweep / 2` before 12 o'clock (the svg is already turned to start there)
     const arc = (c * clamp(sweep, 1, 360)) / 360;
@@ -403,6 +531,7 @@ export function RingStack({ rings, thickness: th0, gap = RING_GAP, children, cla
   const cap = sk.cap ?? "round";
   const sweep = sk.ringArc ?? 360;
   const open = sweep < 360;
+  if (sk.ringShape === "hex") return <HexStack rings={rings} thickness={thickness} gap={gap} sweep={sweep} box={box} className={className} style={style}>{children}</HexStack>;
   return (
     <div ref={box} data-part="ring" className={`relative ${className}`} style={style}>
       {/* rotate the drawing, not the svg: a rotated non-square svg's box pokes out of its zone */}
@@ -423,6 +552,33 @@ export function RingStack({ rings, thickness: th0, gap = RING_GAP, children, cla
             );
           })}
         </g>
+      </svg>
+      {children != null && <div className="absolute inset-0 flex flex-col items-center justify-center text-center" style={{ containerType: "inline-size" }}>{children}</div>}
+    </div>
+  );
+}
+
+/** Concentric hexagons (`ring-style: hex`), outermost first, each measured round its perimeter; an open sweep leaves its gap at the bottom. */
+function HexStack({ rings, thickness, gap, sweep, box, className, style, children }: { rings: RingStackRing[]; thickness: number; gap: number; sweep: number; box: RefObject<HTMLDivElement | null>; className: string; style?: CSSProperties; children?: ReactNode }) {
+  const sk = useSkin();
+  const tagging = useContext(IpTagCtx);
+  const open = sweep < 360;
+  const share = (clamp(sweep, 1, 360) / 360) * 100;
+  const off = open ? -(100 - share) / 2 : 0;
+  return (
+    <div ref={box} data-part="ring" data-ring="hex" className={`relative ${className}`} style={style}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" className="h-full w-full">
+        {rings.map(({ v, color, track, ipKey }, i) => {
+          const r = Math.max(thickness / 2 + 1, 50 - thickness / 2 - i * (thickness + gap));
+          const d = hexPath(r, open ? "bottom" : "top");
+          return (
+            <g key={i}>
+              <path d={d} fill="none" stroke={track ?? RING_TRACK} strokeWidth={thickness} pathLength={100} strokeDasharray={open ? `${share} 100` : undefined} strokeDashoffset={open ? off : undefined} />
+              <path d={d} fill="none" stroke={color} strokeWidth={thickness} pathLength={100} strokeDasharray={`${(share * clamp(v || 0)) / 100} 100`} strokeDashoffset={off} style={sk.smooth ? { transition: `stroke-dasharray ${RING_GLIDE_MS}ms linear` } : undefined} data-wp-ring=""
+                {...(tagging && ipKey ? { "data-ip-key": ipKey, "data-ip-kind": "ring", "data-ip-max": 100 } : null)} />
+            </g>
+          );
+        })}
       </svg>
       {children != null && <div className="absolute inset-0 flex flex-col items-center justify-center text-center" style={{ containerType: "inline-size" }}>{children}</div>}
     </div>
@@ -565,6 +721,20 @@ const GRID = (
   </g>
 );
 
+/** The kit's signal-graph grid (`graph-grid: dashed`): dashed lines at the top, middle and bottom of the range and short ticks on the left edge, in the accent. */
+const DASHED_GRID = (
+  <g aria-hidden data-grid="dashed">
+    {[2, 50, 98].map((y) => (
+      <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="var(--w-accent)" strokeOpacity=".3" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+    ))}
+    {[2, 26, 50, 74, 98].map((y) => (
+      <line key={`t${y}`} x1="0" x2="1.5" y1={y} y2={y} stroke="var(--w-accent)" strokeOpacity=".7" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+    ))}
+  </g>
+);
+/** The grid a graph draws: none where the widget asks for none; the Look's dashed grid or none (`graph-grid`); else Classic's, in a roomy box. */
+const gridOf = (sk: Partial<SkinContext>, on: boolean, roomyBox: boolean): ReactNode => (!on || sk.graphGrid === "none" ? null : sk.graphGrid === "dashed" ? DASHED_GRID : roomyBox ? GRID : null);
+
 interface GraphPathsProps {
   values: number[];
   min?: number;
@@ -609,7 +779,7 @@ function GraphPaths({ line, area, step, fill, fillId, color, strokeWidth, glow, 
  * the segment into the newest reading slides in and uneven arrivals neither jump nor stop it; the
  * auto range eases. React renders once per sample; the animation loop writes the paths.
  */
-function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth, glow, curve = true, flat = false, grid = false, className }: GraphPathsProps & { className: string; flat?: boolean; grid?: boolean }) {
+function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth, glow, curve = true, flat = false, grid = null, className }: GraphPathsProps & { className: string; flat?: boolean; grid?: ReactNode }) {
   const line = useRef<SVGPathElement>(null);
   const glowLine = useRef<SVGPathElement>(null);
   const area = useRef<SVGPathElement>(null);
@@ -660,7 +830,7 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
   const [first] = useState(() => sparkPaths(values.map((v, i) => [(i / (values.length - 1)) * 100, v]), ...sparkRange(values, min, max, flat), step, curve));
   return (
     <svg ref={svg} data-part="spark" viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-hidden ${className}`} data-wp-glow={glow ? "" : undefined}>
-      {grid && GRID}
+      {grid}
       <GraphPaths line={first.line} area={first.area} step={step} fill={fill} fillId={fillId} color={color} strokeWidth={strokeWidth} glow={glow} refs={{ line, area, glow: glowLine }} />
     </svg>
   );
@@ -711,17 +881,19 @@ function SparkBase(p: SparkProps) {
   const mode = p.graph ?? sk.graph ?? "area";
   const values = p.values ?? [];
   const flat = useContext(RoomyCtx);
-  if (!(p.marks || p.axis) || values.length < 2 || mode === "braille" || scrollsSmooth(sk.smooth, reduced, mode, values.length)) return <SparkGraph {...p} />;
+  // a Look's lead square (`graph-lead: square`) marks the newest sample of every graph, with or without the widget's own marks
+  const lead = sk.graphLead === "square";
+  if (!(p.marks || p.axis || lead) || values.length < 2 || mode === "braille" || scrollsSmooth(sk.smooth, reduced, mode, values.length)) return <SparkGraph {...p} />;
   return (
     <div className={/\b(?:absolute|relative)\b/.test(p.className ?? "") ? p.className : `relative ${p.className ?? "h-10"}`}>
       <SparkGraph {...p} className="h-full" />
-      <SparkMarks values={values} min={p.min} max={p.max} flat={flat} axis={!!p.axis} last={p.marks === "last"} bars={mode === "bars" || mode === "dots"} color={p.color || "var(--w-accent)"} format={p.format} glow={!!sk.numGlow} shape={sk.spike} />
+      <SparkMarks values={values} min={p.min} max={p.max} flat={flat} axis={!!p.axis} last={p.marks === "last" || !(p.marks || p.axis)} bars={mode === "bars" || mode === "dots"} color={p.color || "var(--w-accent)"} format={p.format} glow={!!sk.numGlow} shape={sk.spike} lead={lead} />
     </div>
   );
 }
 
 /** The last-sample dot, the lowest and highest values (or, over a fixed range, its scale), over a graph's box. Decoration: the reading is in the widget's text. */
-function SparkMarks({ values, min, max, flat, axis, last: lastOnly, bars, color, format, glow, shape }: { values: number[]; min?: number; max?: number; flat: boolean; axis: boolean; last: boolean; bars: boolean; color: string; format?: (v: number) => string; glow: boolean; shape?: SkinTokens["spike"] }) {
+function SparkMarks({ values, min, max, flat, axis, last: lastOnly, bars, color, format, glow, shape, lead }: { values: number[]; min?: number; max?: number; flat: boolean; axis: boolean; last: boolean; bars: boolean; color: string; format?: (v: number) => string; glow: boolean; shape?: SkinTokens["spike"]; lead?: boolean }) {
   const [lo, hi] = sparkRange(values, min, max, flat);
   const m = sparkMarks(values, lo, hi);
   const text = format ?? ((v: number) => fmt(v, Math.abs(v) >= 100 ? 0 : 1));
@@ -733,7 +905,9 @@ function SparkMarks({ values, min, max, flat, axis, last: lastOnly, bars, color,
   const fixed = (min !== undefined && max !== undefined) || axis;
   return (
     <>
-      {m.last && (
+      {/* the lead square stays inside the graph's box (a graph often sits in one that clips), so at the right edge it ends on the line's end */}
+      {m.last && lead && <span aria-hidden data-lead="" className="absolute h-2 w-2 bg-[color:var(--w-fg)]" style={{ left: `min(${bars ? 100 - 50 / values.length : m.last.x}%, 100% - 4px)`, top: `clamp(4px, ${m.last.y}%, 100% - 4px)`, transform: "translate(-50%,-50%)" }} />}
+      {m.last && !lead && (
         <span aria-hidden className={`absolute ${shape ? "w-0.5" : "h-1.5 w-1.5 rounded-full"}`} data-spike={shape} style={{ left: `${bars ? 100 - 50 / values.length : m.last.x}%`, top: `${m.last.y}%`, transform: shape === "bar" ? "translate(-50%,0)" : "translate(-50%,-50%)", ...(shape === "bar" ? { height: `${100 - m.last.y}%` } : shape ? { height: 10 } : null), background: color, boxShadow: `0 0 0 2px rgba(0,0,0,.35)${glow ? ", 0 0 6px var(--w-accent)" : ""}` }} />
       )}
       {!lastOnly && fixed && (
@@ -768,14 +942,33 @@ function SparkGraph({ values = [], min, max, className = "h-10", fill = true, co
   const strokeWidth = (sk.strokeFixed ?? width) * sk.stroke;
   const showFill = fill && (mode === "area" || step);
   if (scrollsSmooth(sk.smooth, reduced, mode, values.length))
-    return <SmoothGraph values={values} min={min} max={max} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} glow={glow} curve={curve} flat={roomyBox} grid={gridOn && roomyBox} className={className} />;
+    return <SmoothGraph values={values} min={min} max={max} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} glow={glow} curve={curve} flat={roomyBox} grid={gridOf(sk, gridOn, roomyBox)} className={className} />;
   const yOf = (v: number) => sparkY(v, lo, hi);
   const svg = (kids: ReactNode) => (
     <svg data-part="spark" viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-visible ${className}`} data-wp-glow={glow ? "" : undefined}>
-      {gridOn && roomyBox && GRID}
+      {gridOf(sk, gridOn, roomyBox)}
       {kids}
     </svg>
   );
+  if (mode === "bars" && sk.graphBars === "striped") {
+    // the kit's striped bars (`graph-bars: striped`): each bar a stack of stripes, the newest the brightest
+    const w = 100 / values.length;
+    return svg(
+      <>
+        <defs>
+          <pattern id={`${id}s`} width="100" height="4" patternUnits="userSpaceOnUse">
+            <rect width="100" height="2.5" fill={color} />
+          </pattern>
+          <pattern id={`${id}n`} width="100" height="4" patternUnits="userSpaceOnUse">
+            <rect width="100" height="2.5" fill={`color-mix(in srgb, ${color} 70%, var(--w-fg))`} />
+          </pattern>
+        </defs>
+        {values.map((v, i) => (
+          <rect key={i} x={i * w + w * 0.15} y={yOf(v)} width={w * 0.7} height={100 - yOf(v)} fill={`url(#${id}${i === values.length - 1 ? "n" : "s"})`} opacity={i === values.length - 1 ? 1 : 0.6} />
+        ))}
+      </>
+    );
+  }
   if (mode === "bars" || mode === "dots") {
     const w = 100 / values.length;
     return svg(
@@ -844,8 +1037,8 @@ export function RangeBar({ from, to, horizontal }: { from: number; to: number; h
 export const Dot = ({ ok, className = "" }: { ok?: boolean; className?: string }) => (
   <span data-part="status" className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${className}`} style={{ background: ok ? "#4ade80" : "#52525b", boxShadow: ok ? "0 0 6px #4ade80" : "none" }} />
 );
-export const Chip = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
-  <span data-part="chip" className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md bg-[color:var(--w-track)] px-1.5 py-0.5 text-micro font-medium text-[color:var(--w-fg)] ${className}`}>{children}</span>
+export const Chip = ({ children, className = "", state }: { children?: ReactNode; className?: string; /** The chip's reading, where a Look draws chips as slabs by state. */ state?: Tone }) => (
+  <span data-part="chip" {...slabAttrs(useSkin(), "chip", state)} className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md bg-[color:var(--w-track)] px-1.5 py-0.5 text-micro font-medium text-[color:var(--w-fg)] ${className}`}>{children}</span>
 );
 /** A labelled reading. `unit` is drawn after the value at 0.7em in the muted unit style, so the value string stays the number alone. */
 export const Stat = ({ label, value, unit, className = "", tag }: { label?: ReactNode; value?: ReactNode; unit?: ReactNode; className?: string; tag?: Record<string, string | number> }) => (
@@ -884,8 +1077,9 @@ export function LegendRow({ color, label, value, className = "text-small", tag }
     measure();
     return () => ro.disconnect();
   }, [label, value]);
+  const sk = useSkin();
   return (
-    <div className={`grid min-w-0 grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-2 ${className}`}>
+    <div {...rowAttrs(sk)} className={`grid min-w-0 grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-2 ${className}`}>
       <i className={`h-2.5 w-2.5 rounded-3 ${color ? "ring-1 ring-inset ring-[color:var(--w-fg)]/15" : ""}`} style={{ background: color ?? "transparent" }} />
       <span ref={word} className={`truncate text-[color:var(--w-muted)]${cut ? " opacity-0" : ""}`} style={labelStyle("none")} title={cut && typeof label === "string" ? label : undefined}>{label}</span>
       <span {...tag} className="font-medium tabular-nums">{value}</span>
@@ -894,7 +1088,7 @@ export function LegendRow({ color, label, value, className = "text-small", tag }
 }
 /** A dark frosted pill for overlays on artwork: a chip, so a pack's badge style reaches it (`data-part="chip"`). */
 export const GlassPill = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
-  <span data-part="chip" className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-micro font-medium text-zinc-100 ring-1 ring-white/10 backdrop-blur-[min(12px,var(--wp-blur-cap,12px))] ${className}`} data-wp-inner-blur="">{children}</span>
+  <span data-part="chip" {...slabAttrs(useSkin(), "chip")} className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-micro font-medium text-zinc-100 ring-1 ring-white/10 backdrop-blur-[min(12px,var(--wp-blur-cap,12px))] ${className}`} data-wp-inner-blur="">{children}</span>
 );
 /** Set by the QA page (`widget-qa/Frame.tsx`): `Empty` then marks itself `data-wp-empty`, so its parity check can tell an empty state from content. Elsewhere the markup stays as it is. */
 export const MarkEmptyCtx = createContext(false);
@@ -937,8 +1131,9 @@ export function Num({ children, className = "", style, weight = 700, ipKey: key,
 const PILL: Record<string, string> = { ok: STATE.ok, warn: STATE.warn, crit: STATE.crit, off: "#a1a1aa" };
 export function Pill({ state = "ok", children, className = "" }: { state?: Tone | "off"; children?: ReactNode; className?: string }) {
   const c = PILL[state] ?? PILL.off;
+  const slab = slabAttrs(useSkin(), "chip", state === "off" ? undefined : state);
   return (
-    <span data-part="chip" className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs ${className}`} style={{ color: c, background: state === "off" ? "var(--w-track)" : `color-mix(in oklab, ${c} 13%, transparent)` }}>
+    <span data-part="chip" {...slab} className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs ${className}`} style={{ color: c, background: state === "off" ? "var(--w-track)" : `color-mix(in oklab, ${c} 13%, transparent)` }}>
       <span className="h-1.75 w-1.75 shrink-0 rounded-full" style={state === "off" ? { border: "1.5px solid currentColor" } : { background: "currentColor" }} />
       {children}
     </span>
@@ -1054,7 +1249,8 @@ export function LedLadder({ value, n = 24, vertical, reverse, zones = [72, 90], 
         const hot = hotColor ?? status.crit;
         const c = blend ? (at > zones[1] ? mixOf(hot, status.warn, (at - zones[1]) / (100 - zones[1])) : at > zones[0] ? mixOf(status.warn, color, (at - zones[0]) / (zones[1] - zones[0])) : color) : at > zones[1] ? hot : at > zones[0] ? status.warn : color;
         // unlit segments are the surface's track tinted by their zone, so they read on light surfaces as well as dark
-        return <span key={i} className="min-h-0 min-w-0 flex-1 rounded-2" style={at <= v ? { background: c, opacity: 1 } : { background: `color-mix(in oklab, ${c} ${UNLIT}%, var(--w-track))` }} />;
+        // a Look's `meter-empty` replaces the zone-tinted track of the unlit segments
+        return <span key={i} className="min-h-0 min-w-0 flex-1 rounded-2" style={at <= v ? { background: c, opacity: 1 } : { background: sk.meterEmpty ?? `color-mix(in oklab, ${c} ${UNLIT}%, var(--w-track))` }} />;
       })}
       {hold !== undefined && hold > 0 && <HoldMark at={clamp(hold)} vertical={vertical} />}
     </div>

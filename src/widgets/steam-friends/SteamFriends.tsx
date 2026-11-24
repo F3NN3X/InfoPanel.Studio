@@ -1,7 +1,8 @@
-import { Empty, fillRows, fitRows, roomy, Widget, shell, get, has, useIpTag, seriesColour, type ShellProps } from "../kit";
+import { Empty, fillRows, fitRows, roomy, Widget, shell, get, has, useIpTag, seriesColour, Part, type ShellProps } from "../kit";
 import { t3Tokens } from "../core/t3-tokens";
 import { meta } from "./meta";
 import { FRIEND_COLORS, friendsOf, friendStatus, type Friend, type FriendSort, type FriendStatus } from "../shared/friends-data";
+import { FriendsCrew } from "./FriendsCrew";
 
 export { meta, FRIEND_COLORS, friendsOf, friendStatus, type Friend, type FriendSort, type FriendStatus };
 
@@ -24,7 +25,12 @@ const LABEL: Record<FriendStatus, string> = { ingame: "In-game", online: "Online
 /** What the status column and the list's sub line say: Steam's own word, or "In-game". */
 const stateText = (f: Friend) => (f.status === "ingame" && !f.idle ? LABEL.ingame : has(f.state) ? f.state : LABEL[f.status]);
 
+/** The standard layout, or the `crew` one the zone's Look or Layout pick names (`meta.layouts`). */
 export default function SteamFriends(p: SteamFriendsProps) {
+  return p.lookLayout === "crew" ? <FriendsCrew {...p} /> : <FriendsList {...p} />;
+}
+
+function FriendsList(p: SteamFriendsProps) {
   const d = p.data;
   const socialOf = (s: string) => get(d, `plugins.InfoPanel.SteamAPI.SteamAPI-Social.${s}`);
   // in-game and offline are the theme's Series 1 and 2 (widget.ts): the Look's series colours come before Steam's own
@@ -60,6 +66,8 @@ export default function SteamFriends(p: SteamFriendsProps) {
         const twoLine = !table && body >= 33 && size !== "xs";
         const n = table ? fitRows(body - 22, 22) : twoLine ? fitRows(body, 33, 10) : fitRows(body, 18, 6);
         const shown = friends.slice(0, n);
+        // the list's current row is its first friend in a game, one row (a slab per playing friend was a column of slabs)
+        const lead = shown.findIndex((f) => !!f.game);
         // A roomy box keeps the table's rows and shares the spare height between them and the header.
         const rowH = table ? (fillRows(body, shown.length + 1, 22, 0, roomy(w0, h)).rowH ?? 22) : 22;
         return (
@@ -70,14 +78,16 @@ export default function SteamFriends(p: SteamFriendsProps) {
             ) : (
               <ul className={`flex min-h-0 flex-col overflow-hidden ${twoLine ? "gap-2.5" : "gap-1.5"}`}>
                 {shown.map((f, i) => (
-                  <li key={i} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]">
+                  <Part as="li" kind="row" current={i === lead} rowKey={f.name} key={i} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]">
                     {twoLine ? (
-                      <span
+                      <Part
+                        as="span"
+                        kind="avatar"
                         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-micro font-semibold"
                         style={{ background: `color-mix(in srgb, ${colorOf(f)} 22%, transparent)`, color: colorOf(f) }}
                       >
                         {f.name[0]}
-                      </span>
+                      </Part>
                     ) : (
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: colorOf(f) }} />
                     )}
@@ -89,7 +99,7 @@ export default function SteamFriends(p: SteamFriendsProps) {
                       </span>
                     </div>
                     {showTime && w >= 160 && <span className="ml-auto shrink-0 text-micro text-[color:var(--w-faint)]">{f.when}</span>}
-                  </li>
+                  </Part>
                 ))}
               </ul>
             )}
@@ -112,10 +122,10 @@ function FriendTable({ friends, colorOf, showTime, w, rowH, ip }: { friends: Fri
   return (
     <div {...ip} className="grid min-h-0 content-start items-center gap-x-3 overflow-hidden text-caption leading-[1.333]" style={{ gridTemplateColumns: cols, gridAutoRows: `${rowH}px` }}>
       <span />
-      <span className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(0)}>Friend</span>
-      {status && <span className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(1)}>Status</span>}
-      {game && <span className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(2)}>Playing</span>}
-      {time && <span className={`${cell} text-right text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(3)}>Last online</span>}
+      <Part as="span" kind="row-head" className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(0)}>Friend</Part>
+      {status && <Part as="span" kind="row-head" className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(1)}>Status</Part>}
+      {game && <Part as="span" kind="row-head" className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(2)}>Playing</Part>}
+      {time && <Part as="span" kind="row-head" className={`${cell} text-right text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(3)}>Last online</Part>}
       {friends.map((f, i) => (
         <FriendRow key={i} f={f} color={colorOf(f)} status={status} game={game} time={time} cell={cell} />
       ))}

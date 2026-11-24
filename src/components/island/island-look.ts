@@ -15,6 +15,8 @@ export interface PageSkin {
   lookId?: string;
   surface?: string;
   accent?: string;
+  /** The screen's Motion switches (`motionEffects`): whether a pack's page art moves (`artMoves`). */
+  motionEffects?: string;
 }
 
 const WEIGHTS: Record<IslandWeight, number> = { regular: 400, medium: 500, semibold: 600, bold: 700 };
@@ -24,9 +26,9 @@ const SHADOW = "0 6px 24px -6px rgb(0 0 0 / 0.55)";
 
 /** The skin a screen's widgets wear under `appearance` (a value left unset or "auto", and the Classic Look, stay unset). */
 export function pageSkinOf(appearance: Appearance | undefined): PageSkin {
-  const { lookId, surface, accent } = resolveStyle({ levels: appearance }).settings;
+  const { lookId, surface, accent, motionEffects } = resolveStyle({ levels: appearance }).settings;
   const named = (v: unknown) => (typeof v === "string" && v !== "" && v !== "auto" ? v : undefined);
-  return { lookId: lookId === CLASSIC_LOOK_ID ? undefined : named(lookId), surface: named(surface), accent: named(accent) };
+  return { lookId: lookId === CLASSIC_LOOK_ID ? undefined : named(lookId), surface: named(surface), accent: named(accent), ...(named(motionEffects) ? { motionEffects: named(motionEffects) } : null) };
 }
 
 /** The pill's colours, border, shadow and type from the island's settings. */

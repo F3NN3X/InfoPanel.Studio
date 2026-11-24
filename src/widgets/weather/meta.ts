@@ -23,4 +23,8 @@ export const meta: WidgetMeta = {
     { id: "glance", name: "Glance", blurb: "Big icon, temperature and place", tags: "icon big", defaultSize: [3, 2], applies: { showForecast: false, showStats: false, showFeels: false } },
     { id: "week", name: "Week", blurb: "Today and the next days", tags: "days outlook forecast", defaultSize: [5, 2], applies: { showForecast: true, showStats: false, showFeels: false } },
   ],
+  layouts: [
+    { id: "standard", name: "Standard" },
+    { id: "quote", name: "Quote slab" },
+  ],
 };

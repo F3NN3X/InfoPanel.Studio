@@ -3,7 +3,7 @@
 // `data-fx-state`, primitives.tsx, written only on a card that wears a scripted pack), and its texts as boxes with a glyph count, never a character. A card that blurs a value for
 // privacy, or sits in a zone marked quiet (agent and chat widgets, `data-fx-quiet`), sends nothing: its box is one the host
 // erases from the overlay instead. The host reads this at most `SIGNAL_MS` apart.
-import { CARDS_MAX, TEXTS_MAX, type Box, type CardSignal, type Signals } from "./limits";
+import { CARDS_MAX, TEXTS_MAX, type Box, type CardEvent, type CardSignal, type Signals } from "./limits";
 
 /** A value 0 to 1 in hundredths; null for anything that is not a finite number. */
 export function round01(v: unknown): number | null {
@@ -40,4 +40,27 @@ export function readSignals(root: ParentNode, overlay: { rect: DOMRect; scale: n
     cards.push({ ...b, value: round01(mark?.getAttribute("data-fx-value")), state: state && STATES.has(state) ? (state as CardSignal["state"]) : null, texts });
   }
   return { signals: { level, width: Math.round(rect.width / scale), height: Math.round(rect.height / scale), cards }, quiet };
+}
+
+const keyOf = (c: Box) => `${c.x},${c.y},${c.w},${c.h}`;
+
+/**
+ * `next` with each card's `event` set from what changed since `prev` (the read before; undefined at the start, when every card
+ * arrives). A card is the same card by its box. Rounded as the values are: a move under a hundredth is no event. An arriving card
+ * has only `arrived`; a card with nothing new has no `event`.
+ */
+export function withEvents(prev: Signals | undefined, next: Signals): Signals {
+  const before = new Map((prev?.cards ?? []).map((c) => [keyOf(c), c]));
+  const cards = next.cards.map((c): CardSignal => {
+    const was = before.get(keyOf(c));
+    const event: CardEvent = was
+      ? {
+          arrived: false,
+          value: was.value !== null && c.value !== null && c.value !== was.value ? (c.value > was.value ? "up" : "down") : null,
+          state: c.state !== null && c.state !== was.state ? c.state : null,
+        }
+      : { arrived: true, value: null, state: null };
+    return event.arrived || event.value || event.state ? { ...c, event } : c;
+  });
+  return { ...next, cards };
 }

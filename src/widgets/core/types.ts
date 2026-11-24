@@ -3,6 +3,7 @@ import type { ComponentType, CSSProperties, ReactNode } from "react";
 import type { PackSlots } from "@/looks/pack";
 import type { PackDecorSpec } from "@/looks/pack-frame";
 import type { ModuleSettings } from "@/modules/types";
+import type { SlabPart, SlabRole, SlabTone } from "@/looks/treatments";
 
 export type Data = Record<string, string | { value: string }>;
 export type Tier = "xs" | "sm" | "md" | "lg";
@@ -31,6 +32,8 @@ export interface ShellProps {
   showHeader?: boolean;
   className?: string;
   style?: CSSProperties;
+  /** The layout variant the zone draws (`WidgetMeta.layouts`): the user's Layout pick, else the pack Look's `layouts`; unset = the standard one. */
+  lookLayout?: string;
 }
 
 export interface Compact {
@@ -86,6 +89,18 @@ export interface WidgetMeta {
   views?: WidgetView[];
   /** The stored key of the view (default `"view"`; legacy keys such as `playerLayout` keep theirs). */
   viewKey?: string;
+  /**
+   * The layout variants it draws (first = `standard`, today's layout): a Look names one per kind (`look.json` `layouts`), the
+   * user overrides it per widget (Layout). Unlike a view it changes only how the same data is laid out, never what it reads.
+   */
+  layouts?: WidgetLayout[];
+}
+
+/** One layout variant of a widget (`WidgetMeta.layouts`, `src/widgets/layouts.ts`). */
+export interface WidgetLayout {
+  /** The id a Look names (`a-z`, `0-9`, `-`). */
+  id: string;
+  name: string;
 }
 
 /** One layout a widget offers: picked in its View control and listed as its own Add-panel entry. */
@@ -107,6 +122,25 @@ export interface WidgetView {
   prefixes?: string[];
   /** A boolean setting the view's own prefixes wait for: off, the zone keeps the widget's (Weather's `emptyCard`). */
   prefixesWhen?: string;
+}
+
+/** The tone slabs a Look draws (`slab-*`): each part's role, the ink on a slab, the info tone, the scan-line texture and the notch. */
+export interface SlabSpec {
+  roles: Partial<Record<SlabPart, SlabRole>>;
+  ink: string;
+  info: string;
+  texture: boolean;
+  /** px. */
+  notch: number;
+  /** The tone of the current row's slab (`slab-current`). */
+  current: SlabTone;
+}
+
+/** A Look's readouts (`readout-*`): how much larger a hero value may be drawn (it is fitted to its card), its decimals' size, an under-bar. */
+export interface ReadoutSpec {
+  scale: number;
+  decimals: number;
+  bar: boolean;
 }
 
 /** Skin token keys; all optional. */
@@ -189,6 +223,30 @@ export interface SkinTokens {
   meterOk: string;
   /** `icon-color`: the icons' colour when the Look's is not Classic's text colour (the weather glyphs). */
   iconColor: string;
+  /** `slab-*`: solid tone slabs on headers, chips, tabs, rows or the card. */
+  slab: SlabSpec;
+  /** `readout-*`: scaled hero values. */
+  readout: ReadoutSpec;
+  /** `meter-empty`: the colour of a cell meter's unlit cells (`meter-style: cells`) and a ladder's unlit segments. */
+  meterEmpty: string;
+  /** `meter-peak: hold`: a cell meter keeps its highest cell lit a moment after the value falls. */
+  meterPeak: boolean;
+  /** `ring-style: hex`: rings are drawn as hexagons. */
+  ringShape: "hex";
+  /** `graph-grid`: a dashed 0 / 50 / 100 grid on every graph, or none at all (unset: Classic's, in a roomy box). */
+  graphGrid: "dashed" | "none";
+  /** `graph-lead: square`: a square on a graph's newest sample. */
+  graphLead: "square";
+  /** `graph-bars: striped`: bar graphs drawn in stripes, the newest bar bright. */
+  graphBars: "striped";
+  /** `row-style: ruled`: list rows carry `data-part="row"` and a rule under each; a table's head row a tint. */
+  rows: "ruled";
+  /** `share-style: gapped`: a bar of parts of a whole (`ShareBar`) draws square parts with a gap between them and the rest of its track dim. */
+  share: "gapped";
+  /** `avatar-shape: hex`: avatars and initials are drawn on a hexagon. */
+  avatar: "hex";
+  /** `card-style: anatomy`: a card with the room wears the kit's head (category, display title, rule) and footer strip (card-anatomy.tsx). */
+  anatomy: true;
 }
 
 /** One icon of a Look's icon set: a single path in a viewBox, painted in `currentColor`. */

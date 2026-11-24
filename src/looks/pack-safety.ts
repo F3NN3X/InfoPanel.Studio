@@ -1,5 +1,6 @@
 // The byte and text checks of the pack validator (P12a): the shape of the JSON a pack brings, the strings in it, an SVG against
 // an allow-list of elements and attributes, and a raster file's signature. All fail closed: what these cannot read is refused.
+import { SMIL_ATTRIBUTES, SMIL_ELEMENTS, smilIssue, SVG_ANIMATED_MAX, svgSheetIssue } from "./motion-svg";
 
 const MAX_DEPTH = 16;
 const MAX_NODES = 20_000;
@@ -51,7 +52,10 @@ export const withoutAliases = (s: string) => s.replace(/\{[\w.-]+\}/g, "");
 
 // ---- SVG ----------------------------------------------------------------------------------------------------------------
 
-const SVG_ELEMENTS = new Set("svg g defs path rect circle ellipse line polyline polygon lineargradient radialgradient stop pattern clippath mask title desc".split(" "));
+/** The elements of a still SVG, and the three that animate it (motion-svg.ts holds what they may say). `<text>` is not among them: a pack's words are the app's. */
+const SVG_ELEMENTS = new Set("svg g defs path rect circle ellipse line polyline polygon lineargradient radialgradient stop pattern clippath mask title desc style animate animatetransform".split(" "));
+/** A `<style>`'s one attribute. */
+const SHEET_ATTRIBUTES: ReadonlySet<string> = new Set(["type"]);
 const SVG_ATTRIBUTES = new Set(
   (
     "xmlns xmlns:xlink version viewbox preserveaspectratio width height x y cx cy r rx ry x1 y1 x2 y2 fx fy fr d points transform patterntransform patternunits patterncontentunits gradienttransform gradientunits spreadmethod offset " +
@@ -85,12 +89,16 @@ function styleIssue(value: string): string | undefined {
   return undefined;
 }
 
-/** The first reason an SVG is not safe (`undefined`: it is). A small reader, not a parser: markup it cannot read is refused, and a name that is not on the lists is refused whatever its case or prefix. */
+/** The first reason an SVG is not safe (`undefined`: it is). A small reader, not a parser: markup it cannot read is refused, and a name that is not on the lists is refused whatever its case or prefix. Animation is held to motion-svg.ts's subset. */
 export function svgIssue(source: string): string | undefined {
   const svg = source.replace(/^﻿/, "");
   let at = 0;
   let elements = 0;
   let root = true;
+  // what animates: SMIL elements, and the `.class` / `#id` selectors a `<style>` starts an animation on (counted over the elements below)
+  let smil = 0;
+  const animates: string[] = [];
+  const marked: { classes: string[]; id?: string }[] = [];
   const head = /^\s*<\?xml\s[^?<>]*\?>/.exec(svg);
   if (head) at = head[0].length;
   for (;;) {
@@ -112,10 +120,14 @@ export function svgIssue(source: string): string | undefined {
     root = false;
     if (++elements > 5000) return "more than 5000 elements";
     if (tag[1]) continue;
+    const animation = SMIL_ELEMENTS.has(name);
+    const allowed = name === "style" ? SHEET_ATTRIBUTES : animation ? SMIL_ATTRIBUTES : SVG_ATTRIBUTES;
+    const attrs = new Map<string, string>();
     for (const attribute of tag[3].matchAll(ATTRIBUTE)) {
       const key = attribute[1].toLowerCase();
       const value = attribute[2] ?? attribute[3] ?? "";
-      if (!SVG_ATTRIBUTES.has(key)) return `the attribute ${attribute[1]} is not one a pack SVG may use`;
+      if (!allowed.has(key)) return `the attribute ${attribute[1]} is not one a pack SVG may use${animation || name === "style" ? ` on <${name}>` : ""}`;
+      attrs.set(key, value);
       if (/[&\\]|javascript:|vbscript:|expression\(|@import/i.test(value) || reachesOut(value)) return `the ${key} value ${value.slice(0, 30)} reaches outside the file or hides what it is`;
       if (key === "style") {
         const m = styleIssue(value);
@@ -125,8 +137,73 @@ export function svgIssue(source: string): string | undefined {
       if (key === "xmlns:xlink" && value !== XLINK_NS) return "xmlns:xlink is not the XLink namespace";
       if ((key === "href" || key === "xlink:href") && !value.startsWith("#")) return `${key} ${value.slice(0, 30)} is not an id inside the file`;
     }
+    if (attrs.has("class") || attrs.has("id")) marked.push({ classes: (attrs.get("class") ?? "").split(/\s+/).filter(Boolean), id: attrs.get("id") });
+    const closed = !!tag[4];
+    if (name === "style") {
+      if (attrs.has("type") && attrs.get("type") !== "text/css") return "a <style> is text/css";
+      if (closed) continue;
+      // its text runs to the next tag, which closes it: a style holds no markup (and CDATA, an entity or a comment is refused)
+      const end = svg.indexOf("<", at);
+      if (end < 0 || !/^<\/style\s*>/i.test(svg.slice(end, end + 12))) return "a <style> holds markup";
+      const sheet = svgSheetIssue(svg.slice(at, end));
+      if ("issue" in sheet) return sheet.issue;
+      animates.push(...sheet.animates);
+      at = end;
+    } else if (animation) {
+      const m = smilIssue(name, attrs);
+      if (m) return m;
+      smil++;
+      // an animation element holds nothing: it is self-closing or closed at once
+      if (!closed) {
+        const close = new RegExp(`^\\s*</${tag[2]}\\s*>`, "i").exec(svg.slice(at));
+        if (!close) return `<${tag[2]}> holds markup`;
+        at += close[0].length;
+      }
+    }
   }
-  return root ? "the file has no <svg>" : undefined;
+  if (root) return "the file has no <svg>";
+  const moved = marked.filter((e) => e.classes.some((c) => animates.includes(`.${c}`)) || (e.id !== undefined && animates.includes(`#${e.id}`))).length;
+  if (smil + moved > SVG_ANIMATED_MAX) return `${smil + moved} animated elements, at most ${SVG_ANIMATED_MAX}`;
+  return undefined;
+}
+
+/** Whether an SVG animates (it holds a `<style>` or a SMIL element). Read on a file `svgIssue` passed. */
+export const svgAnimated = (source: string): boolean => /<(?:style|animate|animatetransform)[\s/>]/i.test(source);
+
+/**
+ * The SVG with its animation taken out: every `<style>` and SMIL element cut whole, at the reader's tag bounds, so what is left
+ * is the file at rest (each element at its own attributes). Read on a file `svgIssue` passed; the app draws this wherever the
+ * screen does not allow motion (pack-stage.tsx).
+ */
+export function svgStill(source: string): string {
+  let out = "";
+  let at = 0;
+  let from = 0;
+  for (;;) {
+    const open = source.indexOf("<", at);
+    if (open < 0) break;
+    if (source.startsWith("<!--", open)) {
+      at = source.indexOf("-->", open + 4) + 3;
+      if (at < 3) break;
+      continue;
+    }
+    TAG.lastIndex = open;
+    const tag = TAG.exec(source);
+    if (!tag) {
+      at = open + 1;
+      continue;
+    }
+    at = open + tag[0].length;
+    const name = tag[2].toLowerCase();
+    if (tag[1] || !(name === "style" || SMIL_ELEMENTS.has(name))) continue;
+    if (!tag[4]) {
+      const close = new RegExp(`</${tag[2]}\\s*>`, "i").exec(source.slice(at));
+      if (close) at += close.index + close[0].length;
+    }
+    out += source.slice(from, open);
+    from = at;
+  }
+  return out + source.slice(from);
 }
 
 /** The colours an SVG paints with (`fill`, `stroke`, `stop-color`, as attributes or in `style`), as written; `none`, `currentColor` and `url(#id)` are not colours. */

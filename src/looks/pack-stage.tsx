@@ -1,7 +1,9 @@
 // The pack's page layers, overlay and effects (lazy: the entry loads this chunk only for a pack with a stage). Every layer is
 // decoration: click-through, hidden from assistive tech, and `data-pack-deco` so lite mode stops its motion (index.css). The
 // effects are drawn here, by code the app owns, planned from the screen's settings (effects.ts); burn-in protection (pixel
-// shift, idle dim) marks only these layers, never a widget.
+// shift, idle dim) marks only these layers, never a widget. A layer whose SVG animates moves only at the Effects level Full, out of
+// lite mode and reduced motion, and while the Motion group's page-art switch is on (`art`); anywhere else it is drawn from its still
+// copy (motion-still.ts), and nothing until that is read.
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useGeneral } from "@/hooks/use-general";
 import { usePerformance } from "@/hooks/use-performance";
@@ -11,6 +13,8 @@ import ConnectorLayer, { hubLinks } from "./connector-layer";
 import { FX_KINDS } from "./pack-json";
 import { planEffects, showsAt, sizeClassOf, type PlannedEffect } from "./effects";
 import type { StageLayer, StageViewProps } from "./pack";
+import { useStills } from "./motion-still";
+import { gridPaint, StageChromeLayer } from "./stage-chrome";
 import { useIdle } from "./use-idle";
 
 const GRAIN =
@@ -49,7 +53,7 @@ function useShiftStep(on: boolean): number {
   return step;
 }
 
-export default function PackStageLayers({ stage, packId, base = "", className = "", overlayClassName = "", burnIn, page, connectors, links, zones, accent }: StageViewProps) {
+export default function PackStageLayers({ stage, packId, base = "", className = "", overlayClassName = "", burnIn, page, connectors, links, zones, accent, art = true }: StageViewProps) {
   const general = useGeneral();
   const perf = usePerformance();
   const lite = liteOf(perf);
@@ -72,6 +76,15 @@ export default function PackStageLayers({ stage, packId, base = "", className = 
   // The effects and glows are the screen's accent (a variant's), not the pack's own: the overlays sit outside every card, where no `--w-accent` is set.
   const tint = (accent ?? stage.accent) ? ({ "--w-accent": accent ?? stage.accent } as CSSProperties) : undefined;
   const pairs = useMemo(() => links ?? (connectors && zones ? hubLinks(zones) : undefined), [links, connectors, zones]);
+  const urlOf = (image: string) => `${base}${encodeURI(image)}`;
+  const moves = art && perf.fx === "full" && !lite && !perf.reduceMotion;
+  const stills = useStills(moves ? [] : layers.flatMap(({ layer }) => (layer.animated && layer.image ? [urlOf(layer.image)] : [])));
+  const imageOf = (layer: StageLayer): string | undefined => {
+    if (!layer.image) return undefined;
+    const url = urlOf(layer.image);
+    if (!layer.animated || moves) return `url("${url}")`;
+    return stills[url] ? `url("${stills[url]}")` : "none";
+  };
   return (
     <>
       {layers.map(({ layer, index: i }) => {
@@ -84,16 +97,23 @@ export default function PackStageLayers({ stage, packId, base = "", className = 
           data-pack-deco={deco}
           data-pack-layer={i}
           data-idle={deco === "dim" && idle ? "" : undefined}
+          data-pack-moving={layer.animated ? (moves ? "on" : "still") : undefined}
           className={`pointer-events-none ${fx ? "wp-pack-fx " : ""}${className}`}
           style={{
             ...(fx ? ({ "--wp-fx-glow": `${layer.image ? glow : 0}px`, "--wp-fx-blur": `${blur}px`, ...tint } as CSSProperties) : null),
-            ...(layer.image ? { backgroundImage: `url("${base}${encodeURI(layer.image)}")`, backgroundSize: "cover" } : { background: safeFill(layer.fill) }),
+            ...(layer.image ? { backgroundImage: imageOf(layer), backgroundSize: "cover" } : { background: safeFill(layer.fill) }),
             ...place,
             opacity: deco === "dim" ? (layer.opacity ?? 1) * dim : layer.opacity,
           }}
         />
         );
       })}
+      {stage.grid && showsAt(stage.grid.minSizeClass, sizeClass) && (
+        <div aria-hidden data-look={packId} data-pack-deco={deco} data-pack-layer="grid" data-idle={deco === "dim" && idle ? "" : undefined} className={`pointer-events-none ${className}`} style={{ ...tint, ...gridPaint(stage.grid), ...place, ...(deco === "dim" ? { opacity: dim } : null) }} />
+      )}
+      {stage.chrome && showsAt(stage.chrome.minSizeClass, sizeClass) && (
+        <StageChromeLayer chrome={stage.chrome} page={page} data-look={packId} data-pack-deco={deco} data-idle={deco === "dim" && idle ? "" : undefined} className={className} style={{ ...tint, ...place, ...(deco === "dim" ? { opacity: dim } : null) }} />
+      )}
       {Overlay && (
         <div aria-hidden data-look={packId} data-pack-deco={deco} data-pack-layer="overlay" data-idle={deco === "dim" && idle ? "" : undefined} className={`pointer-events-none ${overlayClassName}`} style={{ ...place, ...(deco === "dim" ? { opacity: dim } : null) }}>
           <Overlay />

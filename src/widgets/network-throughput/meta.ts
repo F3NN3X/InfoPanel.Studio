@@ -12,4 +12,8 @@ export const meta: WidgetMeta = {
   blurb: "Live download and upload",
   tags: "internet bandwidth speed",
   description: "Live download / upload rate with history, totals and utilisation per adapter.",
+  layouts: [
+    { id: "standard", name: "Standard" },
+    { id: "signal", name: "Signal graph" },
+  ],
 };

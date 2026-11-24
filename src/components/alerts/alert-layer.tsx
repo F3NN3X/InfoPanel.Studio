@@ -9,6 +9,9 @@ import { modules } from "@/modules";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { cn } from "@/lib/utils";
 import { usePack } from "@/looks/pack";
+import type { PackChrome } from "@/looks/chrome";
+import { layoutOf } from "@/widgets/layouts";
+import { SlabAlertCard } from "./alert-slab";
 import {
   ageLabel,
   backdropOf,
@@ -95,7 +98,10 @@ interface AlertLayerProps {
 /** The kiosk's alert display: toasts, banners and overlays over the grid, with an optional backdrop. */
 export function AlertLayer({ alerts, onAck, lookId }: AlertLayerProps) {
   const reduced = useReducedMotion();
-  const chrome = usePack(lookId)?.chrome;
+  const pack = usePack(lookId);
+  const chrome = pack?.chrome;
+  // the pack Look's alert layout (look.json `layouts.alert`): `slab` draws the kit's tone slab cards
+  const slab = chrome && layoutOf("alert", pack?.look.layouts) === "slab" ? chrome.tones : undefined;
   const { items, leavingIds } = useWithExiting(alerts, !reduced);
   const now = useNow(items.length > 0);
   const slots = useMemo(() => groupBySlot(items), [items]);
@@ -126,7 +132,7 @@ export function AlertLayer({ alerts, onAck, lookId }: AlertLayerProps) {
         {slots
           .filter((s) => s.key !== "banner-top" && s.key !== "banner-bottom")
           .map((slot) => (
-            <SlotStack key={slot.id} slot={slot} now={now} leavingIds={leavingIds} reduced={reduced} onAck={onAck} />
+            <SlotStack key={slot.id} slot={slot} now={now} leavingIds={leavingIds} reduced={reduced} onAck={onAck} slab={slab} />
           ))}
       </div>
       {slots
@@ -144,9 +150,11 @@ interface SlotStackProps {
   leavingIds: ReadonlySet<string>;
   reduced: boolean;
   onAck: (id: string) => void;
+  /** The `slab` layout's tones, when the pack Look names it. */
+  slab?: PackChrome["tones"];
 }
 
-function SlotStack({ slot, now, leavingIds, reduced, onAck }: SlotStackProps) {
+function SlotStack({ slot, now, leavingIds, reduced, onAck, slab }: SlotStackProps) {
   const edge = slot.key === "banner-top" || slot.key === "banner-bottom";
   const cell = edge ? null : gridCell(slot.key as Parameters<typeof gridCell>[0]);
   const col = cell?.col ?? 2;
@@ -178,6 +186,7 @@ function SlotStack({ slot, now, leavingIds, reduced, onAck }: SlotStackProps) {
           leaving={leavingIds.has(a.id)}
           reduced={reduced}
           onAck={onAck}
+          slab={slab}
         />
       ))}
       {/* Only a count: tapping the card shown moves the queue on, and an alert nobody saw is never acknowledged. */}
@@ -193,12 +202,14 @@ interface AlertCardProps {
   leaving: boolean;
   reduced: boolean;
   onAck: (id: string) => void;
+  slab?: PackChrome["tones"];
 }
 
-function AlertCard({ alert, now, from, leaving, reduced, onAck }: AlertCardProps) {
+function AlertCard({ alert, now, from, leaving, reduced, onAck, slab }: AlertCardProps) {
   const Icon = ICONS[alert.severity];
   const color = severityColor(alert.severity);
   const fraction = countdownFraction(alert, now);
+  if (slab) return <SlabAlertCard alert={alert} now={now} tone={slab[alert.severity]} motion={reduced ? undefined : leaving ? "alert-out" : `alert-in-${from}`} fraction={fraction} reduced={reduced} onAck={onAck} />;
   const overlay = alert.display.style === "overlay";
   return (
     <div
