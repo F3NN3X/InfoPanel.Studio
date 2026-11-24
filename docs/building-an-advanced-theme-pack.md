@@ -251,13 +251,13 @@ corner the band leaves free.
 ## 6. Page layers and effects
 
 The page behind the cards is the pack's `stage`: up to three **layers** (a `fill`, or an `image` from `assets/`) and the
-**effects** over everything. Cyberspec's void and its CRT raster, with the kit's dot grid and framed screen (section 15)
-in place of the v1 registration-marks SVG:
+**effects** over everything. Cyberspec's void, a radar sweeping in one corner with circuit traces pulsing along the edges, and
+its CRT raster, with the kit's dot grid and framed screen (section 15) in place of the v1 registration-marks SVG:
 
 ```json pack.json
 {
   "stage": {
-    "layers": [{ "fill": "#07070C" }],
+    "layers": [{ "fill": "#07070C" }, { "image": "radar.svg", "animated": true, "minSizeClass": "md" }],
     "effects": [
       { "kind": "scanlines", "cost": "static", "opacity": 0.1, "calm": "off" },
       { "kind": "vignette", "cost": "static", "opacity": 0.15, "calm": "off" }
@@ -313,6 +313,22 @@ subset the validator reads:
   (the same file with its animation cut out), so declare the layer `animated` or the pack is refused; `pack.css` may not use
   an animated SVG, because there the app could not hold it still.
 
+Cyberspec's [`radar.svg`](../src/looks/packs/cyberspec/assets/radar.svg) is the kit's radar: three rings and a cross hair in
+the bottom-right corner with a wedge that turns once every 12 s, and three stepped circuit traces whose dashes stream along
+them every 4 to 6 s, all in the kit's cyan at 8 to 35 % strength. Moving, it costs 40 to 70 ms of main-thread work a second on
+the 20-card page, which takes Cyberspec over the line its defaults keep to (section 8), so the pack offers it **off**: the
+motion block's `art` effect is the layer's switch in the Theme view's Motion group (**Page art**), and `"on": false` draws the
+still copy until the user turns it on.
+
+```json pack.json
+{
+  "motion": { "art": { "on": false } }
+}
+```
+
+`art` takes only `on`. A pack that does not declare it keeps its layer moving at Full as before; one that does moves it at
+Full while the switch is on.
+
 ## 7. The motion block and its knobs
 
 The kit's text effects (titles that glitch in, labels that decode, readouts that scramble when they change) are declared in
@@ -356,7 +372,7 @@ Three more effects act on what changes on the page rather than on its words:
 ```
 
 - `value`: a number that changes rolls only its changed digits like an odometer (`style` `roll`, the default when a pack
-  says nothing), or counts to its new reading (`tween`; a clock or any text that is not one figure always rolls), and may
+  says nothing, and Cyberspec's: `{ "on": false, "style": "roll", "mark": "glitch", "every": 2 }`), or counts to its new reading (`tween`; a clock or any text that is not one figure always rolls), and may
   `mark` the change with a `flash`, an `underline` or a `glitch` (the label glitch's slice and colour split, at most 300 ms,
   on the number's copy). `ms` 150 to 900, `every` 1 to 60 (the least seconds between two runs of one number). The real
   reading is in the page at once (the run is in the aria-hidden copy), the width is the reading's, and a number with both
@@ -376,7 +392,13 @@ Three more effects act on what changes on the page rather than on its words:
 A pack with a motion block gets a **Motion** group in the Theme view: **Level** (the screen's Effects setting), **Intensity**
 and **Speed** (the pack's own values scaled within their ranges) and one switch per declared effect. An effect declared
 `"on": false` is off until the user turns its switch on: Cyberspec declares flicker and sweep that way so they are offered
-without being the kit's default.
+without being the kit's default, and its page art (`art`, section 6) and its rolling numbers (`value`) because of what they
+cost. On the 20-card page with its readings ticking every second, Cyberspec's defaults (its static treatments, the motion block
+and the script) measure 95 to 108 ms of main-thread work a second at Full across runs (the same page without a pack, 52 to
+61), at the 100 ms line a pack's defaults keep to. A number's roll costs about 20 ms each, and the page starts up to three a
+second, so rolling numbers on take it to about 165;
+the moving page art adds 40 to 70. Both are a switch away for a screen that has the room. Measure yours with
+`tests/perf/kiosk-motion.perf.ts` (`MOTION_CASES` takes your own cases).
 
 ## 8. Effects levels, lite mode and reduced motion
 
@@ -439,7 +461,12 @@ solid tone slab. A widget can offer such **layout variants**, and a Look names o
     "Calendar": "grid-nav",
     "DayPlanner": "board",
     "NetworkThroughput": "signal",
+    "Notifications": "feed",
     "SensorValue": "readout",
+    "SteamFriends": "crew",
+    "SystemOverview": "power",
+    "Visualizer": "spectrum",
+    "Weather": "quote",
     "alert": "slab",
     "island": "slab"
   }
@@ -450,8 +477,13 @@ solid tone slab. A widget can offer such **layout variants**, and a Look names o
 |---|---|---|
 | `Calendar` | `grid-nav` | Month navigator: notched buttons that page the month, the month in the accent and the year as a number, a weekday row, six weeks with the neighbouring months dimmed and the weekend hatched, today framed with a corner flag, the next event's day (else today) as a solid slab in the numbers' colour, and a footer with `SEL 2026.11.27` beside the next event |
 | `DayPlanner` | `board` | Departure board: the time now as a large readout, then the coming events one per ruled row with a lettered badge, the title and when it starts |
+| `Notifications` | `feed` | Channel inbox: underline tabs (All and the first three types in the history) with their `01 / 03` counter that filter the feed, then one row per notification: the time in mono, a hollow square, the type in tracked capitals in its colour (errors critical, warnings in the warning colour, the rest the accent) and the message under it |
 | `NetworkThroughput` | `signal` | Signal graph: download and upload as readouts (decimals and unit small, over a solid-and-dotted rule), both series on a dashed 0/50/100 grid with a marker on the last reading, the session totals as a mono footer |
 | `SensorValue` | `readout` | Rooftop sensor: the label in the accent, the reading as a large readout, then the session's readings as a signal graph with their low, mean and high (the Value and Spark displays only; Gauge, Bar, Line and Figure keep theirs) |
+| `SteamFriends` | `crew` | Crew roster: In-game, Online and All tabs that filter the list, the online count as a readout beside a chip of how many are playing, then one ruled row per friend with a hexagon badge of their initials, the name over the game or status and when they were last online; the first friend in a game is the current row |
+| `SystemOverview` | `power` | Power draw: the CPU and GPU draw together as a large readout with the GPU's share of its power limit as a chip, the two as parts of a stacked bar, then one tick-ruler row per section with its load and its own watts or memory in use, and the temperatures as a mono footer |
+| `Visualizer` | `spectrum` | FM receiver: the peak level as a large readout over the solid-and-dotted rule with a LOCKED chip while audio plays, the AudioMeter plugin's 32 bands (30 Hz to 16 kHz) as a dense histogram in a framed plot over its frequency axis, and the live level on a tick ruler |
+| `Weather` | `quote` | Ticket: the weather now as a solid slab with side notches (the place, NOW, the condition and the feels-like line, the temperature large), the humidity and cloud cover on tick rulers, then the coming days one per ruled row (the standard view only; Glance, Week and Forecast keep theirs) |
 | `alert` | `slab` | The kiosk's alert cards: a solid slab in the severity's tone down the left with the icon in dark ink over scan lines, the card tinted and edged in the tone, a cut corner, the title in tracked capitals with `// CAUTION` beside it |
 | `island` | `slab` | The Dynamic Island: square corners with one cut, a 1 px edge in the strongest notice's tone, and an open notice as the same tone slab |
 
@@ -531,13 +563,18 @@ fx.onFrame((t) => {
 });
 ```
 
-Cyberspec's [`fx.js`](../src/looks/packs/cyberspec/assets/fx.js) does three things:
+Cyberspec's [`fx.js`](../src/looks/packs/cyberspec/assets/fx.js) uses the richer drawing and the card events:
 
-- **Brackets on arrival.** A card whose box was not in the last signals has just arrived: four corner brackets trace in round
-  it over 420 ms (staggered 45 ms a card), hold, and fade. A page swipe makes the new page's cards arrive.
-- **A scan band.** A soft band moves down each card every 7 s from a seeded start, its 1 px leading edge lighting the text
-  boxes it crosses.
-- **A pulse.** A card in `warn` or `crit` breathes an outline in the warn or crit colour, faster for crit.
+- **The arrival.** A card's `arrived` event scans it in: a band fading in behind a bright 1 px edge wipes down it once in
+  560 ms, clipped to the card, while four corner brackets trace in round it over 420 ms (staggered 45 ms a card), hold, and
+  fade. A page swipe makes the new page's cards arrive.
+- **Circuit traces.** Along the foot of every other card 120 px or taller a stepped trace streams its dashes (`style` with a
+  moving `phase`), like the kit's hex-stat.
+- **A state burst.** A card whose `state` event is `warn` or `crit` throws 28 square data points (`points`) off its top edge,
+  falling back as they fade over 700 ms, and then breathes an outline in that colour, faster for crit.
+- **A value's chevron.** A `value` event (up or down) shows a chevron in the card's corner for 600 ms, pointing the way it moved.
+- **The page's scan bar.** A soft gradient bar passes down the whole page every 9 s; at Full its edge lights the text boxes it
+  crosses.
 
 The brackets, reduced to their core:
 
@@ -560,8 +597,9 @@ fx.onFrame((t) => {
 });
 ```
 
-**Calm** is `fx.signals().level === "calm"` at 15 frames a second: Cyberspec keeps the brackets (they play once, like the motion
-block's one-shots), runs the band on every other card at half speed and slows the pulse. At Off, in lite mode, under reduced
+**Calm** is `fx.signals().level === "calm"` at 15 frames a second: Cyberspec keeps the arrivals (they play once, like the motion
+block's one-shots) and the pulse at half speed, runs the scan bar at half speed without lighting the text, and drops the traces,
+bursts and chevrons. At Off, in lite mode, under reduced
 motion and on a hidden page the app runs no script at all.
 
 **Caps.** A frame has 2 ms of the script's own time: past it the frame is cut off and draws nothing, and three cut frames
@@ -569,9 +607,11 @@ within 10 s hand the screen back to the pack's declarative effects. The top leve
 2,000 commands and a cost of 3,000 a frame (a glow costs its blur in px per shape). The app shows at most three flashes a second whatever the script draws.
 
 **What it can't do**: read or write text, see exact values, reach the network, the page, your files or other apps, set a timer,
-load code, or draw outside the overlay. The pack checker measures it (step 13): Cyberspec's script spends about 0.6 ms a frame
-at its 95th percentile at Full on a 20-card fixture (about 0.36 ms of that is the sandbox's own frame cost), at most 145
-commands a frame, and about 0.45 ms at Calm.
+load code, or draw outside the overlay. The pack checker measures it (step 13): Cyberspec's script spends about 0.52 ms a frame
+at its 95th percentile at Full on a 20-card fixture (about 0.36 ms of that is the sandbox's own frame cost), at most 103
+commands and a cost of 120 a frame, and about 0.31 ms at Calm. The app drives the script's frames from a timer rather than the
+page's animation frames, so a script costs the page only its signals and its messages: about 20 ms of main-thread work a second
+on the 20-card page.
 
 A built-in pack's script ships inside the app and runs whenever the server's **Pack effect scripts** switch is on. A pack you
 import runs its script only when its trust allows it (next step).
@@ -678,9 +718,10 @@ until a Look names it, so a pack that does not draws exactly as before. The refe
 the value is stepped down until it fits its card, so a 1x1 keeps its own size. `readout-bar: rule` adds the underline, solid to
 the reading's share of its range and dotted after. `meter-style: cells` gives the 20-cell meter with triangles at the warning
 and critical marks, `meter-empty` the unlit cells' colour and `meter-peak: hold` the held peak; `meter-style: ruler` the
-slider's tick ruler and square thumb. `share-style: gapped` draws a stacked bar (Power Draw, Disk I/O) as gapped blocks.
+slider's tick ruler and square thumb (Wave Link's lying levels follow both). `share-style: gapped` draws a stacked bar (Power Draw, Disk I/O) as gapped blocks.
 
-**Rings, graphs and rows**: `ring-style: hex` draws every ring as a hexagon, open at the bottom, and `avatar-shape: hex` the
+**Rings, graphs and rows**: `ring-style: hex` draws every ring as a hexagon, open at the bottom (the default Custom gauge too;
+one the user designed keeps its design), and `avatar-shape: hex` the
 initials of a friends list. `graph-grid: dashed`, `graph-lead: square` and `graph-bars: striped` give the signal graph's dashed
 grid with left ticks, its end square and the bar chart's stripes. `row-style: ruled` rules list rows and tints a table's head.
 
@@ -690,20 +731,20 @@ grid with left ticks, its end square and the bar chart's stripes. `row-style: ru
 {
   "frame": {
     "corners": "cut", "size": 18, "which": ["tr", "bl"],
-    "band": { "edge": "right", "width": 28 },
+    "band": { "edge": "left", "width": 10 },
     "tint": 0.05,
     "grid": { "size": 22, "alpha": 0.22 },
     "tone": "state",
     "rule": true,
     "glow": { "radius": 10, "alpha": 0.3 },
     "caption": { "text": "MB-RX // REV 3 // NODE 3F:A2", "at": "tl" },
-    "tab": { "at": "tl", "width": 56, "height": 6, "out": true }
+    "tab": { "at": "tl", "width": 56, "height": 5, "out": true }
   }
 }
 ```
 
-The band can't share an edge with the spine, so beside Cyberspec's left spine it goes on the right (the treatments fixture has no
-spine and puts it on the left). It is drawn at most as wide as the card's padding. The glow, the caption and an outside tab are drawn in a layer beside the
+The band can't share an edge with a spine, so Cyberspec dropped its v2 spine for the band down the left. It is drawn at most as
+wide as the card's padding. The glow, the caption and an outside tab are drawn in a layer beside the
 card, the card's own size, so no card moves; the caption is 11 px micro-print above the card and needs a gap of 14 px or more
 above it. `tone: state` turns the lines crimson or yellow while the card shows a critical or warning reading.
 
@@ -718,6 +759,21 @@ the notched tab with its text at the top centre and the corner reticles:
   }
 }
 ```
+
+**The card anatomy** is a Look-wide card style: `"card-style": "anatomy"` in `t3` gives every widget the kit's card head and
+foot, drawn by the app from the widget's catalog entry.
+
+```json look.json
+{
+  "t3": { "card-style": "anatomy" }
+}
+```
+
+- The head is the category as a micro-label with the widget's icon (its name where the category only repeats the title), then
+  the title in the display face at 16 to 26 px and an inset rule.
+- The foot is a strip of outlined chips: the widget's name and, where the Look names one, its layout.
+- It draws only on a card of 280 by 240 px or more, with a header and outside the terminal skin; a smaller card keeps the Look's
+  header, and so does a card the app has not measured yet. `none`, the default, is today's card.
 
 What these can't do yet: a meter's cells take the height the widget gives its bar (the kit's chunkier cells need the widget's
 room), the overflow check does not see the caption or an outside tab (they are drawn in pseudo-elements beside the card), and the

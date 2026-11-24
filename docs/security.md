@@ -114,7 +114,10 @@ security model, what was fixed, what was decided, and what is deferred.
   reads them, and `::before`/`::after` decoration, whose box the app pins as `position: absolute` with `pointer-events: none`
   and must stay inside its element. The render check refuses a clip, mask or pseudo-element that hides or covers text (a
   pack-file mask is decoded and its alpha sampled over each text box; one that cannot be loaded or read is refused), and any
-  border whose width differs from the page without the pack's CSS. A `url()` may name
+  border whose width differs from the page without the pack's CSS. Each text is measured over the part of its box the page
+  shows without the pack too (its card and every box above it that hides its overflow; a box that scrolls is not one), and a
+  mask may leave a text 5 % less than it had without the pack (the same mask read over a box a pack's face moved a pixel), so
+  neither moves the floor for text anyone can see. A `url()` may name
   only one of the pack's own files (no scheme, root path, `..`, backslash, query or fragment, also after percent-decoding);
   the app rewrites it to the pack's route, `/api/packs/<id>/<file>`, which serves it under the sandbox CSP. The server
   refuses to sign CSS holding a backslash, `<`, an at-rule other than `@keyframes`, `image-set(`, `src(` or a `url()` that
@@ -140,13 +143,14 @@ security model, what was fixed, what was decided, and what is deferred.
   are validated again every time it loads.
 - **Component treatments** (`src/looks/treatments.ts`, `src/widgets/core/treatments.tsx`, `treatments.css`,
   `src/looks/stage-chrome.tsx`): a Look's `slab-*`, `readout-*`, `meter-*`, `share-style`, `avatar-shape`, `ring-style`,
-  `graph-*` and `row-style` tokens are words from fixed lists, numbers in ranges and colours that `safeFill` passes, checked by the
+  `graph-*`, `row-style` and `card-style` tokens are words from fixed lists, numbers in ranges and colours that `safeFill` passes, checked by the
   validator and dropped by the app when they are anything else; they switch on markup and CSS the app ships, never a pack's.
   The slab ink is held to 4.5:1 on every tone a slab can take, in every variant and on a scan line. A frame's `band`, `tint`,
   `grid`, `tone`, `rule`, `glow`, `caption` and outside `tab`, and a stage's `grid` and `chrome`, are numbers and words in ranges;
   a caption (64 characters) and the screen tab's text (32) must be printable with no markup and are drawn as an attribute's
   text and a text node at 11 px or more. Nothing here takes a URL or a click: the layer beside the card and the page chrome are
-  `aria-hidden` and `pointer-events: none`, and the card's own box does not change.
+  `aria-hidden` and `pointer-events: none`, and the card's own box does not change. The card anatomy (`card-style: anatomy`,
+  `src/widgets/core/card-anatomy.tsx`) prints the card's own title and, from the app's catalog, the widget's name, category and layout name.
 - **Layout variants** (`src/widgets/layouts.ts`, `src/looks/pack-validate.ts`): a Look's `layouts` names, per widget kind and for
   the alerts and the island, one of the layouts the app's own code draws; the validator refuses any other kind or layout, a key
   is looked up only as the app's own (a prototype key is no kind), and the widget draws the layout from the data it already

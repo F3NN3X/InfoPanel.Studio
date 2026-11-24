@@ -1306,8 +1306,8 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
   (count), `mark` `none`, `flash`, `underline` or `glitch` (a number with both `value` and `scramble` takes the value);
   `list` `ms` 120-300, `enter`
   `slide`, `fade` or `none`, and `reorder`, `change` and `decode` (true or false); `boot` `ms` 120-300, `stagger` 20-120 (ms
-  between two cards), `style` `fade`, `clip` or `glitch`, and `line` and `decode` (true or false). Anything else, or a
-  value out of range, refuses the pack at import. The real reading is on the page at once while a number counts, the page
+  between two cards), `style` `fade`, `clip` or `glitch`, and `line` and `decode` (true or false); `art` takes only `on`
+  (the page art's switch, below). Anything else, or a value out of range, refuses the pack at import. The real reading is on the page at once while a number counts, the page
   starts at most three counts and two change marks a second and twelve runs at once, and a list moves at most eight rows of
   a card at a time.
 
@@ -1317,7 +1317,8 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
   and `stroke-dashoffset` and `<animateTransform>`, with times and numbers only; a cycle lasts at least a second with at
   most seven steps, at most 24 elements of a file move, and a pack has at most one animated layer. It moves only at **Full**: at **Calm** and **Off**, in lite
   mode and with reduced animations the app draws it still. An animated SVG may not be used from `pack.css`, and `<text>`
-  and scripts are still refused.
+  and scripts are still refused. A pack whose `motion` declares `art` gets a **Page art** switch in the Theme view's Motion
+  group, and `"art": {"on": false}` holds the layer still until you turn it on (Cyberspec ships its radar that way).
 
 - **Effect script**: a theme pack may carry one small script that draws an effect over the cards (particles, a scan line,
   a pulse that follows a reading). It runs in a sandbox of its own and draws only shapes in the theme's colours on a layer
@@ -1512,15 +1513,19 @@ a card that asks for none draws exactly as before.
 - **Meters**: `meter-style: cells` draws bars as 20 square cells, the lit ones textured, the unlit ones in `meter-empty`
   (a colour or alias), with a triangle under the bar at the warning and critical marks; `meter-peak: hold` holds the peak cell
   for 1.5 s. A bar row whose reading is a warning or critical shows a solid **Warn** or **Crit** chip when `slab-chip` is on.
-  `meter-style: ruler` draws a level as a hairline with a tick ruler over it and a square thumb.
+  `meter-style: ruler` draws a level as a hairline with a tick ruler over it and a square thumb. Wave Link's lying levels follow
+  `cells` and `ruler` too.
 - **Share bars**: `share-style: gapped` draws a bar of parts of a whole (Power Draw's CPU and GPU, Disk I/O's reads and writes)
   as square blocks with a gap between them, the rest of the track in `meter-empty`.
-- **Rings and avatars**: `ring-style: hex` draws rings as hexagons; `avatar-shape: hex` draws initials (Steam Friends) on a
-  hexagon.
+- **Rings and avatars**: `ring-style: hex` draws rings as hexagons, the default Custom gauge included (a gauge you designed
+  keeps its design); `avatar-shape: hex` draws initials (Steam Friends) on a hexagon.
 - **Graphs**: `graph-grid` (`auto`, `dashed` or `none`) sets a graph's grid (dashed lines in the accent with ticks on the left);
   `graph-lead: square` marks the newest point with a square; `graph-bars: striped` draws bar graphs in stripes, the newest bar
   the brightest.
 - **Rows**: `row-style: ruled` draws a rule under each list row and tints a table's head row.
+- **Card anatomy**: `card-style: anatomy` gives every card of 280 by 240 px or more the kit's head and foot: the widget's
+  category as a micro-label with its icon over the title in the display face and an inset rule, and a strip of outlined chips
+  with the widget's name and its layout. A smaller card keeps the Look's header. `none` (the default) is today's card.
 
 A user pack's CSS can style the parts these hooks name: `[data-part="row"]`, `row-head`, `cell`, `decimals` and `readout-bar`,
 next to the parts it could already style. The slabs' own paint is the app's: a pack's CSS can't change a slab's colour or ink.
@@ -1535,6 +1540,16 @@ without `layouts` draws exactly as before. The layouts today:
   event's day (else today) as a solid slab and a footer with the selected date and the next event.
 - **Day Planner** `board`: a departure board of the coming events under the time now.
 - **Network Traffic** `signal`: download and upload as large readouts over a signal graph of both, with the session totals.
+- **Notifications** `feed`: an inbox with tabs for All and the first three types in the history, one row per notification
+  with its time, its type in its colour and the message.
+- **Steam Friends** `crew`: a crew roster with In-game, Online and All tabs and one row per friend with a hexagon badge of
+  their initials; the first friend in a game is the current row.
+- **System Overview** `power`: the CPU and GPU draw as a large readout over a stacked bar, then one tick-ruler row per section
+  and the temperatures as a footer.
+- **Visualizer** `spectrum`: the peak level as a large readout, the audio plugin's bands as a dense histogram over a 30 Hz to
+  16 kHz axis, and the live level on a tick ruler.
+- **Weather** `quote`: the weather now on a solid slab with side notches, humidity and cloud cover on tick rulers, and the
+  coming days one per row (the standard view only).
 - **Sensor** `readout`: the reading as a large readout over a graph of the session's readings with their low, mean and high
   (the Value and Spark displays only).
 - **alert** `slab` and **island** `slab`: the kiosk's alert cards and the Dynamic Island drawn with a solid slab in the
