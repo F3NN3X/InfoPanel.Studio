@@ -5,7 +5,9 @@ import type { SectionChrome, View } from "./Section";
 import { select } from "./selection";
 import { useSectionTally } from "./tally";
 
-const ACTION = "rounded-ui-sm px-1.5 py-0.5 text-micro text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-ui-accent";
+// Whole-pixel rows (24 px actions, a 20 px title line): a half-pixel header puts every frame under it on a half pixel, which
+// shifts its pixels (classic.spec's row images are a pixel taller).
+const ACTION = "inline-flex h-6 items-center rounded-ui-sm px-1.5 text-micro text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-ui-accent";
 const plural = (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}`;
 
 /**
@@ -19,7 +21,7 @@ export function SectionHead({ mod, view, chrome }: { mod: DashboardModule; view:
   const focused = chrome.focus === mod.id;
   return (
     <div data-qa-ui="" className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-ui-md border border-ui-subtle bg-ui-chrome px-3 py-1.5 font-ui text-caption text-ui-2">
-      <h3 className="m-0 text-body font-semibold text-ui-1">
+      <h3 className="m-0 text-body leading-5 font-semibold text-ui-1">
         <button type="button" title="Inspect this widget" onClick={() => select(mod.id)} className="rounded-ui-sm hover:underline focus-visible:outline-2 focus-visible:outline-ui-accent">
           {mod.title}
         </button>
