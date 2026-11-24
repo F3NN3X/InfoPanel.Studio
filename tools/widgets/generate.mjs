@@ -142,6 +142,26 @@ export async function generate() {
     ].join("\n"),
   );
 
+  // The Widget QA page's map of each folder's files (its inspector and Copy for Claude's Files line): the definition and meta first,
+  // then the components and the rest, the README last. Only the QA chunk imports it.
+  const order = (name) => (name === "widget.ts" ? 0 : name === "meta.ts" ? 1 : name === "README.md" ? 4 : name.endsWith(".tsx") ? 2 : 3);
+  const filesOf = (folder) =>
+    readdirSync(join(root, WIDGETS, folder), { withFileTypes: true })
+      .filter((d) => d.isFile())
+      .map((d) => d.name)
+      .sort((a, b) => order(a) - order(b) || a.localeCompare(b));
+  out.set(
+    `${WIDGETS}/widget-qa/files.generated.ts`,
+    [
+      `// ${NOTE}`,
+      "// Each widget folder and its files, for the Widget QA page only (its inspector's Files and Copy for Claude's Files line).",
+      "export const WIDGET_FILES: Readonly<Record<string, { folder: string; files: readonly string[] }>> = {",
+      ...folders.map((f) => `  ${f.meta.id}: { folder: "${f.folder}", files: [${filesOf(f.folder).map((n) => JSON.stringify(n)).join(", ")}] },`),
+      "};",
+      "",
+    ].join("\n"),
+  );
+
   // A folder's presets.ts fills its README's Presets section.
   for (const f of folders.filter((x) => x.list)) out.set(f.readme, withPresets(read(f.readme), presetsBlock(f.list)));
 

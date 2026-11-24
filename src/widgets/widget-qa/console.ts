@@ -1,10 +1,10 @@
 import { flushSync } from "react-dom";
 import { WIDGET_MERGES } from "@/lib/settings-migrate.v19";
 import type { ResolvedVariant } from "@/looks/look";
-import { FOLDER_WIDGETS } from "@/widgets/registry.generated";
 import { ADOPTION_SELECTOR, checkAdoption, type CheckOptions } from "./adoption";
 import { buildReport, filterFrames, frameMarkdown, frameName, reportMarkdown, type FrameKind, type QaFrame, type QaReport, type ReportContext, type ReportFilter, type ReportFrame, type WidgetFiles } from "./claude";
 import { copyText } from "./clipboard";
+import { WIDGET_FILES } from "./files.generated";
 import { mountAllSettled } from "./Frame";
 import { NOTES, notesFor } from "./notes";
 import { ACCENTS, CELLS, FX, GALLERY_IDS, GRAPHS, METERS, PAGE_THEMES, RADII, SKINS, SURFACES, VARIANTS } from "./options";
@@ -78,15 +78,17 @@ const HELP: [string, string][] = [
   ["roundTrip(look, variant)", "= __qaRoundTrip(): wear another Look and come back; what stayed"],
 ];
 
-const FOLDERS = new Map(FOLDER_WIDGETS.map((w) => [w.meta.id, w.meta.id.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2").toLowerCase()]));
 const MERGED_INTO = new Map<string, string>(WIDGET_MERGES.map((m) => [m.from, m.to]));
 /** The group widgets: a component beside the registry group that lists them. */
 const GROUPED = new Set(["SensorValue", "CustomGauge"]);
 
-/** Where a widget's code lives: its folder (a merged-away widget's survivor's), or a group widget's files; a legacy widget: none. */
+/**
+ * Where a widget's code lives: its folder and files (`files.generated.ts`, `npm run widgets:gen`; a merged-away widget's survivor's),
+ * or a group widget's files; a legacy widget: none.
+ */
 export function widgetFiles(id: string): WidgetFiles | undefined {
-  const folder = FOLDERS.get(MERGED_INTO.get(id) ?? id);
-  if (folder) return { folder: `src/widgets/${folder}/`, files: ["widget.ts", "meta.ts", "README.md"] };
+  const own = WIDGET_FILES[MERGED_INTO.get(id) ?? id];
+  if (own) return { folder: `src/widgets/${own.folder}/`, files: own.files };
   if (GROUPED.has(id)) return { folder: "src/widgets/", files: [`${id}.tsx`, "registry/b.ts"] };
   return undefined;
 }
