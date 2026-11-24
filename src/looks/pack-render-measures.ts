@@ -107,6 +107,8 @@ export interface Twin {
 /** Reads the page with the pack's stylesheet on, and off. Sent to the browser as source: see the file's head. */
 export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: MeasureOptions): Twin {
   const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
+  // a ring's value arc: a circle, or a hexagon's path (`ring-style: hex`)
+  const RING_ARC = "circle[data-wp-ring], path[data-wp-ring]";
   const seen = new Map<string, number[]>();
   // a colour string of any syntax as [r, g, b, a]: the canvas parses color-mix and the rest
   const rgba = (c: string): number[] => {
@@ -539,6 +541,8 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
         for (const which of ["::before", "::after"] as const) {
           const cs = getComputedStyle(host, which);
           if (cs.content === "none" || cs.content === "normal" || cs.display === "none" || cs.visibility === "hidden") continue;
+          // one under its host's content (a treatment's slab, z-index -1) covers nothing: a pack's own is mounted at z-index 0
+          if (parseFloat(cs.zIndex) < 0) continue;
           const path: string[] = [];
           for (let n: Element = host; n !== card; n = n.parentElement as Element) path.unshift(String([...(n.parentElement as Element).children].indexOf(n)));
           const name = `${which} of ${[host.tagName.toLowerCase(), host.getAttribute("data-part"), ...path].filter(Boolean).join(" ")} ${`[${place}]`}`;
@@ -623,19 +627,31 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
             box = area();
           }
           // elementsFromPoint answers nothing outside the viewport: the point is the middle of the part that is inside it
-          const [left, right, top, bottom] = box ? [Math.max(box[0], 0), Math.min(box[1], innerWidth), Math.max(box[2], 0), Math.min(box[3], innerHeight)] : [0, 0, 0, 0];
-          const at = right > left && bottom > top ? [(left + right) / 2, (top + bottom) / 2] : null;
-          if (box && !at) problems.push(`text "${words}" is outside the page and could not be checked ${where}`);
+          const pointOf = (b: number[] | null) => {
+            const [left, right, top, bottom] = b ? [Math.max(b[0], 0), Math.min(b[1], innerWidth), Math.max(b[2], 0), Math.min(b[3], innerHeight)] : [0, 0, 0, 0];
+            return right > left && bottom > top ? [(left + right) / 2, (top + bottom) / 2] : null;
+          };
           // down the stack from the top to the element or one related to it: the first that paints a background, at a strength that hides, is what covers it (a transparent wrapper does not)
-          for (const n of at ? document.elementsFromPoint(at[0], at[1]) : []) {
-            if (n === el || n.contains(el) || el.contains(n)) break;
-            if (n.closest("[data-pack-decor]")) continue;
-            const ns = getComputedStyle(n);
-            if (Number(ns.opacity) >= minOpacity && (rgba(ns.backgroundColor)[3] >= 0.5 || ns.backgroundImage !== "none")) {
-              problems.push(`text "${words}" is covered by a ${n.tagName.toLowerCase()}${n.getAttribute("data-part") ? ` (${n.getAttribute("data-part")})` : ""} ${where}`);
-              break;
+          const coverAt = (at: number[] | null): Element | undefined => {
+            for (const n of at ? document.elementsFromPoint(at[0], at[1]) : []) {
+              if (n === el || n.contains(el) || el.contains(n)) return undefined;
+              if (n.closest("[data-pack-decor]")) continue;
+              const ns = getComputedStyle(n);
+              if (Number(ns.opacity) >= minOpacity && (rgba(ns.backgroundColor)[3] >= 0.5 || ns.backgroundImage !== "none")) return n;
             }
+            return undefined;
+          };
+          const at = pointOf(box);
+          if (box && !at) problems.push(`text "${words}" is outside the page and could not be checked ${where}`);
+          let cover = coverAt(at);
+          // a cover from outside the card is where an earlier read left the page (the text under the page's sticky header, or under a
+          // neighbour once a box that scrolls it was scrolled past it): the text is brought to the middle of the view, with every box
+          // that scrolls it, and read again
+          if (cover && !card.contains(cover)) {
+            el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+            cover = coverAt(pointOf(area()));
           }
+          if (cover) problems.push(`text "${words}" is covered by a ${cover.tagName.toLowerCase()}${cover.getAttribute("data-part") ? ` (${cover.getAttribute("data-part")})` : ""} ${where}`);
         }
       }
       // the marks with no value of their own to test: anything they paint, read against what is behind it
@@ -654,7 +670,7 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
       for (const gauge of card.querySelectorAll('[data-part="ring"], [data-part="bar"], [data-part="meter"]')) {
         const part = gauge.getAttribute("data-part");
         if (part === "ring") {
-          for (const arc of gauge.querySelectorAll("circle[data-wp-ring]")) {
+          for (const arc of gauge.querySelectorAll(RING_ARC)) {
             marks.ring = (marks.ring ?? 0) + 1;
             const cs = getComputedStyle(arc);
             const trackArc = arc.previousElementSibling ? getComputedStyle(arc.previousElementSibling) : null;
@@ -702,7 +718,7 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
       if (!card) return;
       fig.querySelectorAll('[data-part="ring"], [data-part="bar"], [data-part="meter"]').forEach((gauge, n) => {
         const ring = gauge.getAttribute("data-part") === "ring";
-        const ink = [...gauge.querySelectorAll(ring ? "circle[data-wp-ring]" : "*")].filter((el) => {
+        const ink = [...gauge.querySelectorAll(ring ? RING_ARC : "*")].filter((el) => {
           const cs = getComputedStyle(el);
           if (cs.visibility === "hidden" || Number(cs.opacity) < 0.1) return false;
           if (ring) return cs.stroke !== "none" && rgba(cs.stroke)[3] > 0 && Number(cs.strokeOpacity) > 0.1;
@@ -718,7 +734,10 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
     for (const bar of document.querySelectorAll(`[data-look="${look}"] [data-part="chip"], [data-look="${look}"] [data-part="tab"], [data-look="${look}"] [data-part="legend"]`)) {
       // a widget that sets its own surface (the Stream Deck's) is not wearing the pack's card, and its text colours do not follow it
       if (bar.closest("[data-wp-tier]")?.getAttribute("data-mat") !== `look-${look}`) continue;
-      const bg = rgba(getComputedStyle(bar).backgroundColor);
+      // a slab (a treatment's ::before under the content, z-index -1) paints over the bar's own background: its text reads on the slab
+      const slab = getComputedStyle(bar, "::before");
+      const face = slab.content !== "none" && parseFloat(slab.zIndex) < 0 && rgba(slab.backgroundColor)[3] >= 0.9 ? slab.backgroundColor : getComputedStyle(bar).backgroundColor;
+      const bg = rgba(face);
       if (bg[3] < 0.9) continue;
       bars++;
       for (const el of [bar, ...bar.querySelectorAll("*")]) {
@@ -728,7 +747,7 @@ export function measurePack({ look, alphaMax, minOpacity, maskImages = {} }: Mea
         const icon = el instanceof SVGElement && el.tagName.toLowerCase() === "svg";
         if (!own && !icon) continue;
         const r = ratio(rgba(cs.color), bg);
-        if (r < (icon ? 3 : 4.5)) barIssues.push(`${el.outerHTML.slice(0, 200)} ${icon ? "icon" : "text"} ${cs.color} on ${getComputedStyle(bar).backgroundColor} is ${r.toFixed(2)}:1 (${bar.getAttribute("data-part")})`);
+        if (r < (icon ? 3 : 4.5)) barIssues.push(`${el.outerHTML.slice(0, 200)} ${icon ? "icon" : "text"} ${cs.color} on ${face} is ${r.toFixed(2)}:1 (${bar.getAttribute("data-part")})`);
       }
     }
     // A pack that paints no bar (Neon Stripe, Swiss Mono, Holo) reads its headers on the card's own flat colour.
