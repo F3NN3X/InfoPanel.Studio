@@ -17,6 +17,9 @@ export interface CustomGaugeProps extends ShellProps {
 /** The spec a new Custom gauge starts from. */
 export const DEFAULT_GAUGE_SPEC: VectorGauge = normalizeGauge(STARTERS.find((s) => s.name === "Theme ring with value")!.gauge);
 
+/** The default spec as the inspector stores it: a gauge whose setting reads back as this is one the user left as it was. */
+const DEFAULT_GAUGE_JSON = JSON.stringify(DEFAULT_GAUGE_SPEC);
+
 /** A stored `gauge` setting (JSON text) as a spec; the default spec for blank or bad JSON. */
 export function parseGaugeSetting(raw: unknown): VectorGauge {
   if (typeof raw !== "string" || !raw) return DEFAULT_GAUGE_SPEC;
@@ -59,7 +62,7 @@ function LookRing({ g, v, width, height, label }: { g: VectorGauge; v: number; w
       <div style={{ width: side, height: side }}>
         <Ring value={known ? Math.min(max, Math.max(min, v)) - min : 0} max={max - min} t={t} className="h-full w-full">
           {/* the reading with one decimal at least, so the Look's smaller decimals show */}
-          <Metric value={known ? v : "–"} unit={unit.trim() || undefined} d={Math.max(1, decimals ?? 0)} px={Math.max(11, Math.round(side * 0.2))} t={t} align="center" />
+          <Metric value={known ? v : "–"} unit={(known && unit.trim()) || undefined} d={Math.max(1, decimals ?? 0)} px={Math.max(11, Math.round(side * 0.2))} t={t} align="center" />
         </Ring>
       </div>
       {named && <span className="mt-1.5 max-w-full shrink-0 truncate px-4 text-center text-micro text-[color:var(--w-muted)]">{label}</span>}
@@ -70,7 +73,7 @@ function LookRing({ g, v, width, height, label }: { g: VectorGauge; v: number; w
 /** The gauge's body: the Look's ring for the default gauge where the Look draws hexagons (`LookRing`), else the spec as designed. */
 function GaugeBody({ g, v, id, width, height, label }: { g: VectorGauge; v: number; id: string; width: number; height: number; label?: string }) {
   const sk = useSkin();
-  if (g === DEFAULT_GAUGE_SPEC && sk.ringShape === "hex") return <LookRing g={g} v={v} width={width} height={height} label={label} />;
+  if (sk.ringShape === "hex" && (g === DEFAULT_GAUGE_SPEC || JSON.stringify(g) === DEFAULT_GAUGE_JSON)) return <LookRing g={g} v={v} width={width} height={height} label={label} />;
   const frac = fraction(Number.isFinite(v) ? v : null, g.scale?.min ?? 0, g.scale?.max ?? 100);
   return <FittedVectorGauge gauge={g} p={frac} id={id} width={width} height={height} label={label} />;
 }

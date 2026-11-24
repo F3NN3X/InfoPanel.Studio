@@ -182,18 +182,22 @@ describe("the card anatomy (`card-style: anatomy`)", () => {
 describe("the Look's ring on the default Custom gauge, and its meters on Wave Link's levels", () => {
   const HEX = { "ring-style": "hex" };
   it("draws the default gauge as the Look's hexagon with the reading in its tone, one decimal at least", () => {
-    const el = drawIn(320, 320, <CustomGauge data={{ cpu: 93 }} sensor="cpu" label="CPU" t3={HEX} />);
+    const el = drawIn(320, 320, <CustomGauge data={{ cpu: "93" }} sensor="cpu" label="CPU" t3={HEX} />);
     const ring = el.querySelector("[data-ring=hex]")!;
     expect(ring).not.toBeNull();
     expect(ring.querySelector("[data-part=num]")?.textContent).toContain("93.0");
     expect(ring.querySelector("[data-part=num]")?.getAttribute("style")).toContain("color");
+    cleanup();
+    // the default as the inspector stores it (its JSON read back) is still the default
+    const stored = normalizeGauge(JSON.parse(JSON.stringify(DEFAULT_GAUGE_SPEC)));
+    expect(drawIn(320, 320, <CustomGauge data={{ cpu: "40" }} sensor="cpu" gauge={stored} t3={HEX} />).querySelector("[data-ring=hex]")).not.toBeNull();
   });
 
   it("keeps a gauge the user designed, and the default under a Look with round rings", () => {
     const mine = normalizeGauge({ ...DEFAULT_GAUGE_SPEC, thickness: 6 });
-    expect(drawIn(320, 320, <CustomGauge data={{ cpu: 40 }} sensor="cpu" gauge={mine} t3={HEX} />).querySelector("[data-ring]")).toBeNull();
+    expect(drawIn(320, 320, <CustomGauge data={{ cpu: "40" }} sensor="cpu" gauge={mine} t3={HEX} />).querySelector("[data-ring]")).toBeNull();
     cleanup();
-    expect(drawIn(320, 320, <CustomGauge data={{ cpu: 40 }} sensor="cpu" />).querySelector("[data-part=ring]")).toBeNull();
+    expect(drawIn(320, 320, <CustomGauge data={{ cpu: "40" }} sensor="cpu" />).querySelector("[data-part=ring]")).toBeNull();
   });
 
   it("draws a lying Wave Link level as the Look's cells or ruler; a standing one keeps its own bars", () => {
