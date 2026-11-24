@@ -50,6 +50,7 @@ export function activeChanges(s: QaState, names: LookNames = {}): Change[] {
   if (s.q) add("q", `Filter: ${s.q}`, { q: "" });
   if (s.flagged) add("flagged", "Theme flags only", { flagged: false });
   if (s.noted) add("noted", "Notes only", { noted: false });
+  if (s.issues) add("issues", "Issues only", { issues: false });
   return out;
 }
 
