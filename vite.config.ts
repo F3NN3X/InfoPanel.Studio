@@ -7,6 +7,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import path from "node:path";
 import { quarantinedFiles } from "./tools/ci/quarantine.mjs";
+import { qaNotes } from "./src/widgets/widget-qa/notes-dev.ts";
 
 // Test files held out of the gating runs (tests/quarantine.json, _docs/TESTING.md); QUARANTINE=only runs just those.
 const quarantined: string[] = quarantinedFiles(__dirname);
@@ -121,7 +122,7 @@ const scope = (kind: "node" | "mocking" | "dom") => {
 // `vite build --mode stats` (npm run build:stats): an unminified build in .cache/dist-stats with the ticker's debug stats
 // (window.__tickerStats, src/lib/ticker.ts) for the perf specs; release builds leave them out.
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss(), qaWebPage(mode), ...(mode === "test" ? [loadWidgetsInTests()] : [])],
+  plugins: [react(), tailwindcss(), qaWebPage(mode), qaNotes(__dirname), ...(mode === "test" ? [loadWidgetsInTests()] : [])],
   // Relative asset base: the build works from any path it is served at.
   base: "./",
   resolve: {
