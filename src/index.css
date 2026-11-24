@@ -676,6 +676,7 @@
 @keyframes app-mo-roll { from { transform: translateY(0); } to { transform: translateY(-50%); } }
 @keyframes app-mo-vflash { from { text-shadow: 0 0 calc(12px * var(--mo-mark-a, 0.6)) var(--w-accent), 0 0 2px var(--w-accent); } }
 [data-mo-mark="flash"] > [data-mo-copy] { animation: app-mo-vflash 300ms ease-out 1; }
+[data-mo-mark="glitch"] > [data-mo-copy] { animation: app-mo-glitch var(--mo-glitch-ms, 240ms) 1; }
 @keyframes app-mo-uline { 0% { transform: scaleX(0); } 60% { transform: scaleX(1); opacity: var(--mo-mark-a, 0.6); } 100% { transform: scaleX(1); opacity: 0; } }
 [data-mo-mark="underline"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -0.12em; height: max(1px, 0.07em); background: var(--w-accent); opacity: var(--mo-mark-a, 0.6); transform-origin: left; pointer-events: none; animation: app-mo-uline var(--mo-val-ms, 480ms) ease-out 1 both; }
 /* A list's rows (motion-list.ts): a new row slides or fades in, a moved one glides from its old place (`--mo-dy`, by translate), a changed one is lit once. */

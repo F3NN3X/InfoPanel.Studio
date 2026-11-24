@@ -12,11 +12,14 @@ export const ARRIVAL_STYLES = ["fade", "clip", "line"] as const;
 export type ArrivalStyle = (typeof ARRIVAL_STYLES)[number];
 export const FLICKER_TARGETS = ["card", "label"] as const;
 export type FlickerTarget = (typeof FLICKER_TARGETS)[number];
-/** How a number reaches a new reading: counts to it, or rolls its changed digits (a text that is not one figure, a clock, always rolls). */
+/** What a glitch tears: titles and labels (`text`, the default), numbers (`value`, drawn in their aria-hidden copy), or both. */
+export const GLITCH_TARGETS = ["text", "value", "all"] as const;
+export type GlitchTarget = (typeof GLITCH_TARGETS)[number];
+/** How a number reaches a new reading: rolls its changed digits (the default), or counts to it (a text that is not one figure, a clock, always rolls). */
 export const VALUE_STYLES = ["tween", "roll"] as const;
 export type ValueStyle = (typeof VALUE_STYLES)[number];
-/** What marks a number that changed, besides its run. */
-export const VALUE_MARKS = ["none", "flash", "underline"] as const;
+/** What marks a number that changed, besides its run: a flash, an underline, or a glitch of its copy (the label glitch's slice and split). */
+export const VALUE_MARKS = ["none", "flash", "underline", "glitch"] as const;
 export type ValueMark = (typeof VALUE_MARKS)[number];
 /** How a new row of a list comes in. */
 export const LIST_ENTERS = ["slide", "fade", "none"] as const;
@@ -26,6 +29,8 @@ export const BOOT_STYLES = ["fade", "clip", "glitch"] as const;
 export type BootStyle = (typeof BOOT_STYLES)[number];
 /** The `style` each effect that has one takes. */
 const STYLES: Partial<Record<MotionEffect, readonly string[]>> = { arrival: ARRIVAL_STYLES, value: VALUE_STYLES, boot: BOOT_STYLES };
+/** The `target` each effect that has one takes. */
+const TARGETS: Partial<Record<MotionEffect, readonly string[]>> = { flicker: FLICKER_TARGETS, glitch: GLITCH_TARGETS };
 type Switch = "reorder" | "change" | "decode" | "line";
 /** The switches (true or false) each effect that has them takes. */
 const SWITCHES: Partial<Record<MotionEffect, readonly Switch[]>> = { list: ["reorder", "change", "decode"], boot: ["line", "decode"] };
@@ -41,8 +46,8 @@ export interface MotionEffectSpec {
   ms?: number;
   /** `arrival`, `value` and `boot`: each its own list (`ARRIVAL_STYLES`, `VALUE_STYLES`, `BOOT_STYLES`). */
   style?: ArrivalStyle | ValueStyle | BootStyle;
-  /** `flicker` only. */
-  target?: FlickerTarget;
+  /** `flicker` (`FLICKER_TARGETS`) and `glitch` (`GLITCH_TARGETS`). */
+  target?: FlickerTarget | GlitchTarget;
   /** `value` only: the mark on a number that changed. */
   mark?: ValueMark;
   /** `list` only: how a new row comes in. */
@@ -81,14 +86,14 @@ export const INTENSITY_RANGE: Range = [0.1, 1];
 
 /** Each effect's ranges and defaults; a key an effect has no range for is refused (the schema already refuses unknown keys). */
 export const MOTION_RULES: Readonly<Record<MotionEffect, EffectRule>> = {
-  glitch: { ms: [80, ONE_SHOT_MAX_MS], every: [4, 120], once: true, def: { intensity: 0.6, ms: 240, every: 0 } },
+  glitch: { ms: [80, ONE_SHOT_MAX_MS], every: [4, 120], once: true, def: { intensity: 0.6, ms: 240, every: 0, target: "text" } },
   decode: { ms: [150, 900], def: { intensity: 1, ms: 480 } },
   scramble: { ms: [60, ONE_SHOT_MAX_MS], every: [1, 60], def: { intensity: 1, ms: 240, every: 4 } },
   arrival: { ms: [120, ONE_SHOT_MAX_MS], def: { intensity: 1, ms: 240, style: "fade" } },
   flicker: { every: [2, 120], def: { intensity: 0.5, every: 8, target: "card" } },
   sweep: { ms: [400, 3000], every: [4, 120], def: { intensity: 0.5, ms: 1200, every: 12 } },
   // a value's `every` is the least seconds between two runs of one number, like a scramble's
-  value: { ms: [150, 900], every: [1, 60], def: { intensity: 0.6, ms: 480, every: 1, style: "tween", mark: "none" } },
+  value: { ms: [150, 900], every: [1, 60], def: { intensity: 0.6, ms: 480, every: 1, style: "roll", mark: "none" } },
   list: { ms: [120, ONE_SHOT_MAX_MS], def: { intensity: 0.6, ms: 240, enter: "slide", reorder: true, change: true, decode: false } },
   boot: { ms: [120, ONE_SHOT_MAX_MS], stagger: [20, 120], def: { intensity: 1, ms: 240, stagger: 60, style: "clip", line: true, decode: true } },
 };
@@ -119,7 +124,8 @@ export function motionIssues(motion: unknown): string[] {
     if (s.every !== undefined && !(rule.every && isNum(s.every) && (within(s.every, rule.every) || (rule.once && s.every === 0)))) issues.push(rule.every ? `${at} every: ${rule.once ? "0 (arrival only) or " : ""}${rule.every[0]} to ${rule.every[1]} seconds` : `${at} takes no every`);
     const styles = STYLES[name as MotionEffect];
     if (s.style !== undefined && !(styles && (styles as readonly unknown[]).includes(s.style))) issues.push(styles ? `${at} style: ${styles.join(", ")}` : `${at} takes no style`);
-    if (s.target !== undefined && !(name === "flicker" && (FLICKER_TARGETS as readonly unknown[]).includes(s.target))) issues.push(name === "flicker" ? `${at} target: ${FLICKER_TARGETS.join(", ")}` : `${at} takes no target`);
+    const targets = TARGETS[name as MotionEffect];
+    if (s.target !== undefined && !(targets && (targets as readonly unknown[]).includes(s.target))) issues.push(targets ? `${at} target: ${targets.join(", ")}` : `${at} takes no target`);
     if (s.mark !== undefined && !(name === "value" && (VALUE_MARKS as readonly unknown[]).includes(s.mark))) issues.push(name === "value" ? `${at} mark: ${VALUE_MARKS.join(", ")}` : `${at} takes no mark`);
     if (s.enter !== undefined && !(name === "list" && (LIST_ENTERS as readonly unknown[]).includes(s.enter))) issues.push(name === "list" ? `${at} enter: ${LIST_ENTERS.join(", ")}` : `${at} takes no enter`);
     const switches = SWITCHES[name as MotionEffect] ?? [];
@@ -167,7 +173,7 @@ export interface PlannedMotion {
   /** Seconds; 0 for a glitch that runs on arrival only (and every glitch at Calm). */
   every: number;
   style?: ArrivalStyle | ValueStyle | BootStyle;
-  target?: FlickerTarget;
+  target?: FlickerTarget | GlitchTarget;
   mark?: ValueMark;
   enter?: ListEnter;
   reorder?: boolean;
@@ -212,7 +218,7 @@ export function planMotion(motion: PackMotion | undefined, knobs: MotionKnobs, e
       ms: rule.ms ? clamp((spec.ms ?? rule.def.ms ?? rule.ms[0]) * time, rule.ms) : 0,
       every: rule.every && every > 0 && !(calm && name === "glitch") ? clamp(every * time, rule.every) : 0,
       ...(STYLES[name] ? { style: spec.style ?? rule.def.style } : null),
-      ...(name === "flicker" ? { target: spec.target ?? rule.def.target } : null),
+      ...(TARGETS[name] ? { target: spec.target ?? rule.def.target } : null),
       ...(name === "value" ? { mark: calm ? "none" : (spec.mark ?? rule.def.mark) } : null),
       ...(name === "list" ? { enter: spec.enter ?? rule.def.enter, reorder: spec.reorder ?? rule.def.reorder, change: !calm && (spec.change ?? rule.def.change), decode: spec.decode ?? rule.def.decode } : null),
       ...(name === "boot" ? { stagger: clamp((spec.stagger ?? rule.def.stagger ?? 0) * time, rule.stagger ?? [0, 0]), line: spec.line ?? rule.def.line, decode: spec.decode ?? rule.def.decode } : null),

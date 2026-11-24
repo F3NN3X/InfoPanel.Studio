@@ -146,13 +146,13 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "glitch": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
+        "glitch": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" }, "target": { "enum": ["text", "value", "all"] } } },
         "decode": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" } } },
         "scramble": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
         "arrival": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "style": { "enum": ["fade", "clip", "line"] } } },
         "flicker": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "every": { "type": "number" }, "target": { "enum": ["card", "label"] } } },
         "sweep": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
-        "value": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" }, "style": { "enum": ["tween", "roll"] }, "mark": { "enum": ["none", "flash", "underline"] } } },
+        "value": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" }, "style": { "enum": ["tween", "roll"] }, "mark": { "enum": ["none", "flash", "underline", "glitch"] } } },
         "list": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "enter": { "enum": ["slide", "fade", "none"] }, "reorder": { "type": "boolean" }, "change": { "type": "boolean" }, "decode": { "type": "boolean" } } },
         "boot": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "stagger": { "type": "number" }, "style": { "enum": ["fade", "clip", "glitch"] }, "line": { "type": "boolean" }, "decode": { "type": "boolean" } } }
       }

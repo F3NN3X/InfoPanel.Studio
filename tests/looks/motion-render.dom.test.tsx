@@ -133,6 +133,14 @@ describe("values, lists and the boot in a card", () => {
     expect(num.querySelectorAll("[data-mo-reel]")).toHaveLength(2);
   });
 
+  it("a glitch on numbers readies each number's copy, with no value or scramble of its own", () => {
+    const root = onScreen(card({ slots: { motion: slot({ glitch: { target: "value" } }) } }));
+    const n = root.querySelector('[data-part="num"] [data-mo-text]');
+    expect(n?.firstChild?.textContent).toBe("41");
+    expect(n?.querySelector("[data-mo-copy]")?.getAttribute("aria-hidden")).toBe("true");
+    expect(onScreen(card({ slots: { motion: slot({ glitch: {} }) } })).querySelector('[data-part="num"] [data-mo-text]')).toBeNull();
+  });
+
   it("a list row carries its key only while the card's plan has a list", () => {
     const plain = render(
       <MotionRow as="li" rowKey="Ada" className="x">

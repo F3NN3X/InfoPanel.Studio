@@ -137,11 +137,18 @@ describe("values, lists and the boot", () => {
     expect(motionIssues({ arrival: { mark: "flash" } })).toEqual(["motion arrival takes no mark"]);
     expect(motionIssues({ decode: { line: true } })).toEqual(["motion decode takes no line"]);
     expect(motionIssues({ list: { reorder: "yes" } })).toEqual(["motion list reorder: true or false"]);
+    // a glitch's target, and the glitch mark on a value
+    expect(rules({ glitch: { target: "value" }, value: { mark: "glitch" } })).toEqual([]);
+    expect(rules({ glitch: { target: "all", every: 0 } })).toEqual([]);
+    expect(rules({ glitch: { target: "card" } })).toContain("schema");
+    expect(rules({ flicker: { target: "value" } })).toContain("schema");
+    expect(motionIssues({ glitch: { target: "page" } })).toEqual(["motion glitch target: text, value, all"]);
+    expect(motionIssues({ sweep: { target: "card" } })).toEqual(["motion sweep takes no target"]);
   });
 
   it("their defaults, and Calm keeps the runs but drops the marks that light a change", () => {
     const motion: PackMotion = { value: { mark: "flash" }, list: {}, boot: {} };
-    expect(planMotion(motion, {}, FULL)).toMatchObject({ value: { style: "tween", mark: "flash", ms: 480, every: 1 }, list: { enter: "slide", reorder: true, change: true, decode: false, ms: 240 }, boot: { style: "clip", stagger: 60, line: true, decode: true } });
+    expect(planMotion(motion, {}, FULL)).toMatchObject({ value: { style: "roll", mark: "flash", ms: 480, every: 1 }, list: { enter: "slide", reorder: true, change: true, decode: false, ms: 240 }, boot: { style: "clip", stagger: 60, line: true, decode: true } });
     expect(planMotion(motion, {}, { ...FULL, level: "calm" })).toMatchObject({ value: { mark: "none" }, list: { change: false, reorder: true }, boot: { style: "clip" } });
     expect(planMotion(motion, {}, { ...FULL, lite: true })).toBeUndefined();
   });

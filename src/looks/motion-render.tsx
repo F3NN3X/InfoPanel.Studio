@@ -76,10 +76,11 @@ export function MotionText({ children, part }: { children: ReactNode; part: "lab
   const plan = useContext(MotionCtx);
   const text = typeof children === "string" || typeof children === "number" ? String(children) : undefined;
   if (!plan || !text) return <>{children}</>;
-  if (part === "num" && plan.value) return <Valued text={text} ms={plan.value.ms} every={plan.value.every} style={(plan.value.style as ValueStyle) ?? "tween"} mark={plan.value.mark ?? "none"} />;
+  if (part === "num" && plan.value) return <Valued text={text} ms={plan.value.ms} every={plan.value.every} style={(plan.value.style as ValueStyle) ?? "roll"} mark={plan.value.mark ?? "none"} />;
   const fx = part === "num" ? plan.scramble : plan.decode;
-  // the boot decodes the card's title at its turn; the label is ready for it, and decodes on its own only with `decode`
-  if (!fx && !(part === "label" && plan.boot?.decode)) return <>{children}</>;
+  // the boot decodes the card's title at its turn, and a glitch on numbers tears a number's copy: the text is ready for them, and runs on its own only with its effect
+  const torn = part === "num" && (plan.glitch?.target === "value" || plan.glitch?.target === "all");
+  if (!fx && !(part === "label" && plan.boot?.decode) && !torn) return <>{children}</>;
   return <Moving text={text} part={part} ms={fx?.ms ?? 0} every={fx?.every ?? 0} intensity={fx?.intensity ?? 1} self={!!fx} />;
 }
 

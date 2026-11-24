@@ -87,7 +87,11 @@ function step(now: number) {
 /** Whether a new run on `host` may start: a visible page, a frame loop, room under `TEXT_JOBS_MAX` (a run already on the host makes way). */
 const room = (host: HTMLElement) => !hidden() && typeof requestAnimationFrame !== "undefined" && (jobs.has(host) || jobs.size < TEXT_JOBS_MAX);
 
-function begin(host: HTMLElement, copy: HTMLElement, ms: number, draw: Job["draw"], opts: { frame?: number; done?: () => void; now?: number } = {}): () => void {
+/**
+ * Starts a run on `host`. `draw` writes the copy on the frame loop; `timed` runs no frame loop at all (the copy is drawn once and
+ * CSS animates it: a roll, a glitch), and a timer ends it.
+ */
+function begin(host: HTMLElement, copy: HTMLElement, ms: number, draw: Job["draw"], opts: { frame?: number; done?: () => void; now?: number; timed?: boolean } = {}): () => void {
   const prev = jobs.get(host);
   if (prev) end(prev);
   const now = opts.now ?? performance.now();
@@ -96,7 +100,8 @@ function begin(host: HTMLElement, copy: HTMLElement, ms: number, draw: Job["draw
   host.setAttribute("data-mo-on", "");
   const first = draw(0);
   if (first !== undefined) copy.textContent = first;
-  if (!frame) frame = requestAnimationFrame(step);
+  if (opts.timed) setTimeout(() => jobs.get(host) === job && end(job), ms);
+  else if (!frame) frame = requestAnimationFrame(step);
   return () => {
     if (jobs.get(host) === job) end(job);
   };
@@ -166,13 +171,28 @@ export function valueText(host: HTMLElement, copy: HTMLElement, to: string, from
   const count = opts.style === "tween" ? countOf(from, to) : undefined;
   if (!count && !rollOf(from, to).some((c) => c.from !== undefined)) return () => {};
   if (!valueStart(now)) return () => {};
-  const stop = count ? begin(host, copy, opts.ms, (t) => countAt(count, t), { frame: COUNT_FRAME_MS, now }) : begin(host, copy, opts.ms, () => undefined, { now });
+  // a roll is drawn once and animated by CSS: no frame loop
+  const stop = count ? begin(host, copy, opts.ms, (t) => countAt(count, t), { frame: COUNT_FRAME_MS, now }) : begin(host, copy, opts.ms, () => undefined, { now, timed: true });
   if (!count) rollCopy(copy, from, to);
   if (opts.mark !== "none" && flashStart(now)) {
     host.setAttribute("data-mo-mark", opts.mark);
     setTimeout(() => host.removeAttribute("data-mo-mark"), Math.max(ONE_SHOT_MAX_MS, opts.ms) + 50);
   }
   return stop;
+}
+
+/**
+ * A number's glitch: its text in the copy, torn by the label glitch's keyframes (index.css `app-mo-glitch`) for `ms`, while the real
+ * value stays in the page under it, so neither it nor the width changes. Nothing on a hidden page, past `TEXT_JOBS_MAX`, or on a number
+ * already running (its count or roll is left to finish).
+ */
+export function glitchValue(host: HTMLElement, ms: number): void {
+  const copy = host.querySelector<HTMLElement>(":scope > [data-mo-copy]");
+  const text = host.firstChild?.nodeType === 3 ? (host.firstChild.nodeValue ?? "") : "";
+  if (!copy || !text || jobs.has(host) || !room(host)) return;
+  begin(host, copy, ms, () => undefined, { timed: true, done: () => copy.removeAttribute("data-mo-glitch") });
+  copy.textContent = text;
+  copy.setAttribute("data-mo-glitch", "");
 }
 
 // ---- the boot ----------------------------------------------------------------------------------------------------------
@@ -248,8 +268,12 @@ let watching = false;
 type Repeat = "glitch" | "flicker" | "sweep";
 const REPEATS: readonly Repeat[] = ["glitch", "flicker", "sweep"];
 const periodOf = (card: Card, kind: Repeat): number => card.plan[kind]?.every ?? 0;
-/** The texts a glitch tears: labels and titles. */
+/** The texts a glitch tears: labels and titles, and the numbers (their copy: `glitchValue`). */
 const TEXTS = '[data-part="label"], [data-part="header"]';
+const NUMBERS = '[data-part="num"] [data-mo-text]';
+const tearable = (target: string | undefined) => (target === "value" ? NUMBERS : target === "all" ? `${TEXTS}, ${NUMBERS}` : TEXTS);
+/** One glitch on a text: a label's or title's own (`data-mo-glitch`), a number's in its copy. */
+const tear = (el: Element, ms: number) => (el.matches(NUMBERS) ? glitchValue(el as HTMLElement, ms) : pulse(el, "data-mo-glitch", ms));
 
 /** Sets `attr` on `el` for `ms`, so the CSS runs its animation once (a run already going is left to finish). */
 function pulse(el: Element, attr: string, ms: number): void {
@@ -262,9 +286,9 @@ function pulse(el: Element, attr: string, ms: number): void {
 function run(card: Card, kind: Repeat): void {
   const { el, plan } = card;
   if (kind === "glitch") {
-    const texts = [...el.querySelectorAll(TEXTS)];
+    const texts = [...el.querySelectorAll(tearable(plan.glitch!.target))];
     const one = texts[(Math.random() * texts.length) | 0];
-    if (one) pulse(one, "data-mo-glitch", plan.glitch!.ms);
+    if (one) tear(one, plan.glitch!.ms);
   } else if (kind === "flicker") {
     const target = plan.flicker!.target === "label" ? [...el.querySelectorAll('[data-part="label"]')] : [el];
     const one = target[(Math.random() * target.length) | 0];
@@ -331,7 +355,7 @@ export function addMotionCard(el: HTMLElement, plan: MotionPlan): () => void {
   const card: Card = { el, plan, timers: [] };
   cards.add(card);
   watchVisibility();
-  if (plan.glitch && !hidden()) for (const t of el.querySelectorAll(TEXTS)) pulse(t, "data-mo-glitch", plan.glitch.ms);
+  if (plan.glitch && !hidden()) for (const t of el.querySelectorAll(tearable(plan.glitch.target))) tear(t, plan.glitch.ms);
   if (plan.boot) {
     batch.push(card);
     if (batch.length === 1) queueMicrotask(flushBoot);
