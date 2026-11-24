@@ -35,7 +35,7 @@ test("window.__qa keeps the six globals, reports the frames and copies one for C
   expect(report.frames.filter((f) => f.kind === "span").map((f) => `${f.frame} ${f.size.join("x")}`)).toEqual(["CpuMonitor 2x1 228x110", "CpuMonitor 4x2 464x228"]);
 
   const text = await page.evaluate(() => window.__qa!.copyForClaude("CpuMonitor 2x1"));
-  expect(text.split("\n").slice(0, 3)).toEqual(["Widget QA · CpuMonitor 2x1 (cell 110, skin default)", `Link: ${qa.base}/?widget-qa&module=CpuMonitor&spans=2x1,4x2#CpuMonitor--2x1`, "Files: src/widgets/cpu-monitor/ (widget.ts, meta.ts, README.md)"]);
+  expect(text.split("\n").slice(0, 3)).toEqual(["Widget QA · CpuMonitor 2x1 (cell 110, skin default)", `Link: ${qa.base}/?widget-qa&module=CpuMonitor&spans=2x1,4x2#CpuMonitor--2x1`, "Files: src/widgets/cpu-monitor/ (widget.ts, meta.ts, CpuMonitor.tsx, README.md)"]);
   // the widget's own button copies what its mounted frames found
   await page.locator("#CpuMonitor").getByRole("button", { name: "for Claude" }).click();
   await expect(page.locator("#CpuMonitor").getByRole("button", { name: "copied" })).toBeVisible();

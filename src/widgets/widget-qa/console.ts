@@ -1,15 +1,16 @@
 import { flushSync } from "react-dom";
 import { WIDGET_MERGES } from "@/lib/settings-migrate.v19";
 import type { ResolvedVariant } from "@/looks/look";
-import { FOLDER_WIDGETS } from "@/widgets/registry.generated";
 import { ADOPTION_SELECTOR, checkAdoption, type CheckOptions } from "./adoption";
 import { buildReport, filterFrames, frameMarkdown, frameName, reportMarkdown, type FrameKind, type QaFrame, type QaReport, type ReportContext, type ReportFilter, type ReportFrame, type WidgetFiles } from "./claude";
 import { copyText } from "./clipboard";
+import { WIDGET_FILES } from "./files.generated";
 import { mountAllSettled } from "./Frame";
 import { NOTES, notesFor } from "./notes";
 import { ACCENTS, CELLS, FX, GALLERY_IDS, GRAPHS, METERS, PAGE_THEMES, RADII, SKINS, SURFACES, VARIANTS } from "./options";
 import { DATA, type QaState } from "./params";
 import { probeBox } from "./probe";
+import { select } from "./selection";
 import { qaLookIds } from "./theme";
 
 /** What the console reads: the page's state, its theme check and the worn Look's variants as they are now, and the way to change them. */
@@ -65,7 +66,7 @@ const HELP: [string, string][] = [
   ["help()", "this list"],
   ["state()", "the page's settings (the URL params as values)"],
   ["set(patch)", "change settings, as the top bar does: set({ look: 'cyberspec', lookVariant: 'crimson' }); a change of data reloads the page"],
-  ["select(frame)", "scroll to a frame and return its entry: 'CpuMonitor 2x1', 'CpuMonitor--view-gauge' or 'surface:rail'"],
+  ["select(frame)", "scroll to a frame, open it in the inspector and return its entry: 'CpuMonitor 2x1', 'CpuMonitor--view-gauge' or 'surface:rail'"],
   ["report(filter)", "mount every frame and return the JSON tools/qa/report.mjs prints; filter { module, frame, all, notes, checked }"],
   ["markdown(filter)", "the same report as Copy for Claude text"],
   ["copyForClaude(target)", "copy and return the Copy for Claude text of a frame, a widget (its id) or, with no target, the page"],
@@ -78,20 +79,23 @@ const HELP: [string, string][] = [
   ["roundTrip(look, variant)", "= __qaRoundTrip(): wear another Look and come back; what stayed"],
 ];
 
-const FOLDERS = new Map(FOLDER_WIDGETS.map((w) => [w.meta.id, w.meta.id.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2").toLowerCase()]));
 const MERGED_INTO = new Map<string, string>(WIDGET_MERGES.map((m) => [m.from, m.to]));
 /** The group widgets: a component beside the registry group that lists them. */
 const GROUPED = new Set(["SensorValue", "CustomGauge"]);
 
-/** Where a widget's code lives: its folder (a merged-away widget's survivor's), or a group widget's files; a legacy widget: none. */
+/**
+ * Where a widget's code lives: its folder and files (`files.generated.ts`, `npm run widgets:gen`; a merged-away widget's survivor's),
+ * or a group widget's files; a legacy widget: none.
+ */
 export function widgetFiles(id: string): WidgetFiles | undefined {
-  const folder = FOLDERS.get(MERGED_INTO.get(id) ?? id);
-  if (folder) return { folder: `src/widgets/${folder}/`, files: ["widget.ts", "meta.ts", "README.md"] };
+  const own = WIDGET_FILES[MERGED_INTO.get(id) ?? id];
+  if (own) return { folder: `src/widgets/${own.folder}/`, files: own.files };
   if (GROUPED.has(id)) return { folder: "src/widgets/", files: [`${id}.tsx`, "registry/b.ts"] };
   return undefined;
 }
 
-function partsOf(el: Element): { module: string; key: string; kind: FrameKind } {
+/** What a frame on the page is: its widget, its key and its kind, from its `data-qa-*` attributes. */
+export function partsOf(el: Element): { module: string; key: string; kind: FrameKind } {
   const surface = el.getAttribute("data-qa-surface");
   if (surface) return { module: "", key: `surface:${surface}`, kind: "surface" };
   const view = el.getAttribute("data-qa-view");
@@ -166,6 +170,8 @@ export function installConsole(now: { current: Now }): void {
       const at = framesOnPage().find(({ frame }) => filterFrames([frame], { frame: ref }).length > 0);
       if (!at) return undefined;
       at.el.scrollIntoView({ block: "center" });
+      // and open it in the inspector (`selection.ts`: a frame by its anchor, a surface by its key)
+      select(at.frame.id || at.frame.key);
       if (!at.frame.checked) await mountAllSettled();
       return buildReport(readFrames(now, { frame: ref }), { frame: ref, all: true, checked: true }, contextOf(now)).frames[0];
     },

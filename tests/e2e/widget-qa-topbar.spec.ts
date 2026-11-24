@@ -22,6 +22,7 @@ const param = (k: string, v: string) => new RegExp(`[?&]${k}=${v}(&|#|$)`);
 const noParam = (k: string) => new RegExp(`^(?!.*[?&]${k}=)`);
 const bar = (page: Page) => page.locator("main > header");
 const popup = (page: Page) => page.getByRole("dialog");
+const list = (page: Page) => page.locator('aside[aria-label="Widget list"]');
 
 test("Look: the Look, its variant, effects, the pack's script and the pack import", async ({ page }) => {
   test.setTimeout(60_000);
@@ -183,14 +184,24 @@ test("the summary counts the frames, and its theme flags count and the widget ro
   await expect(header.getByText(`${frames} frames`, { exact: true })).toBeVisible();
   await page.getByRole("textbox", { name: "Filter id or title" }).fill("cpu");
   await expect(page).toHaveURL(param("q", "cpu"));
-  await header.getByRole("button", { name: "Notes only" }).click();
+  // the filter chips moved from the row under the bar into the widget list (widget-qa-list.spec.ts)
+  await list(page).getByRole("button", { name: "Notes", exact: true }).click();
   await expect(page).toHaveURL(param("noted", "1"));
-  await header.getByRole("button", { name: "Theme flags only" }).click();
-  await expect(page).toHaveURL(param("flagged", "1"));
-  // under a worn Look the summary counts theme flags too, and its count is the same filter
+  // with no Look worn the theme check does not run, so there is no Theme flags chip to press
+  await expect(list(page).getByRole("button", { name: "Theme flags", exact: true })).toHaveCount(0);
+  // the issues count is the Issues filter
+  const issues = header.getByRole("button", { name: /^\d+ issues?$/ });
+  await issues.click();
+  await expect(page).toHaveURL(param("issues", "1"));
+  await expect(issues).toHaveAttribute("aria-pressed", "true");
+  await expect(list(page).getByRole("button", { name: "Issues", exact: true })).toHaveAttribute("aria-pressed", "true");
+  // under a worn Look the summary counts theme flags too, and its count is the same filter as the list's chip
   await open(page, `${ONE}&look=cyberspec`);
   const count = bar(page).getByRole("button", { name: /theme flags?$/ });
   await count.click();
   await expect(page).toHaveURL(param("flagged", "1"));
   await expect(count).toHaveAttribute("aria-pressed", "true");
+  await list(page).getByRole("button", { name: "Theme flags", exact: true }).click();
+  await expect(page).toHaveURL(noParam("flagged"));
+  await expect(count).toHaveAttribute("aria-pressed", "false");
 });

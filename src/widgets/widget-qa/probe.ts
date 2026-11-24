@@ -29,10 +29,22 @@ function clipped(el: Element, root: Element, axis: "x" | "y"): boolean {
   return false;
 }
 
+/** An issue with the element it is about (an overlap: both), so the inspector can outline it in its frame. */
+export interface Probed {
+  issue: Issue;
+  el: Element;
+  other?: Element;
+}
+
 /** What overflows, overlaps or is clipped inside one zone box (`[data-qa-box]`). */
 export function probeBox(root: Element): Issue[] {
+  return probeElements(root).map((p) => p.issue);
+}
+
+/** `probeBox`, each issue with its element. */
+export function probeElements(root: Element): Probed[] {
   const rootBox = toBox(root.getBoundingClientRect());
-  const issues: Issue[] = [];
+  const issues: Probed[] = [];
   // A wrapped inline run paints on its line boxes, not in its bounding box (which spans the lines between them).
   const leaves: { el: Element; boxes: Box[] }[] = [];
   for (const el of root.querySelectorAll("*")) {
@@ -43,7 +55,7 @@ export function probeBox(root: Element): Issue[] {
     const out = exceeds(box, rootBox, 1);
     const dx = clipped(el, root, "x") ? 0 : out.dx;
     const dy = clipped(el, root, "y") ? 0 : out.dy;
-    if (dx || dy) issues.push({ selector: selectorOf(el, root), kind: "exceeds", dx, dy });
+    if (dx || dy) issues.push({ issue: { selector: selectorOf(el, root), kind: "exceeds", dx, dy }, el });
     if (el.children.length === 0 && el.textContent?.trim()) leaves.push({ el, boxes: [...el.getClientRects()].map(toBox) });
     const cs = getComputedStyle(el);
     // screen-reader-only text (a tone cue's "warning: ") is a 1px clip by design
@@ -61,12 +73,12 @@ export function probeBox(root: Element): Issue[] {
       scrollHeight: el.scrollHeight,
       clientHeight: el.clientHeight,
     });
-    if (cut.dx || cut.dy) issues.push({ selector: selectorOf(el, root), kind: "clipped", ...cut });
+    if (cut.dx || cut.dy) issues.push({ issue: { selector: selectorOf(el, root), kind: "clipped", ...cut }, el });
   }
   for (let i = 0; i < leaves.length; i++) {
     for (let j = i + 1; j < leaves.length; j++) {
       const area = Math.max(0, ...leaves[i].boxes.flatMap((a) => leaves[j].boxes.map((b) => overlaps(a, b, 2))));
-      if (area) issues.push({ selector: `${selectorOf(leaves[i].el, root)}  X  ${selectorOf(leaves[j].el, root)}`, kind: "overlaps", dx: area, dy: 0 });
+      if (area) issues.push({ issue: { selector: `${selectorOf(leaves[i].el, root)}  X  ${selectorOf(leaves[j].el, root)}`, kind: "overlaps", dx: area, dy: 0 }, el: leaves[i].el, other: leaves[j].el });
     }
   }
   return issues;

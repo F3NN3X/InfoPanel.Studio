@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
-import { probeBox } from "@/widgets/widget-qa/probe";
+import { probeBox, probeElements } from "@/widgets/widget-qa/probe";
 
 const rect = (left: number, top: number, right: number, bottom: number) => ({ left, top, right, bottom, width: right - left, height: bottom - top, x: left, y: top }) as DOMRect;
 function leaf(parent: Element, text: string, bounds: DOMRect, lines: DOMRect[]) {
@@ -30,6 +30,15 @@ describe("probeBox overlaps", () => {
     leaf(root, "name", rect(0, 0, 40, 16), [rect(0, 0, 40, 16)]);
     leaf(root, "message", rect(20, 0, 120, 16), [rect(20, 0, 120, 16)]);
     expect(probeBox(root).filter((i) => i.kind === "overlaps")).toHaveLength(1);
+  });
+
+  it("names the two elements of an overlap for the inspector's outline, and probeBox lists the same issues", () => {
+    const root = zone();
+    const name = leaf(root, "name", rect(0, 0, 40, 16), [rect(0, 0, 40, 16)]);
+    const message = leaf(root, "message", rect(20, 0, 120, 16), [rect(20, 0, 120, 16)]);
+    const [overlap] = probeElements(root).filter((p) => p.issue.kind === "overlaps");
+    expect(overlap).toMatchObject({ el: name, other: message });
+    expect(probeElements(root).map((p) => p.issue)).toEqual(probeBox(root));
   });
 
   it("flags two wrapped runs whose painted lines overlap", () => {

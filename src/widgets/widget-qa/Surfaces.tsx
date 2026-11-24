@@ -15,6 +15,9 @@ import type { Appearance } from "@/lib/style-resolve";
 import { modules } from "@/modules";
 import { checkAdoption, type CheckOptions, type Flag } from "./adoption";
 import { SENSORS } from "./Frame";
+import { forgetRead, readFrame } from "./inspector/reads";
+import { SelectedRing } from "./Section";
+import { select } from "./selection";
 import { QA_RAIL_PAGES, qaRailSlots, type QaRailWidget } from "./surfaces-plan";
 
 /**
@@ -40,20 +43,31 @@ function SlotZone({ p, style, view }: { p: Placement; style: CSSProperties; view
 /** How long a surface gets to settle before the adoption check reads it (as a frame's, `SETTLE_MS`). */
 const SETTLE_MS = 1500;
 
-/** One surface: its box (what the check reads), a caption and its flags. */
+/** One surface: its box (what the check reads), a caption and its flags. A click selects it (`surface:<name>`) in the inspector. */
 function SurfaceFigure({ name, view, chrome, caption, style, children }: { name: string; view: SurfaceView; chrome?: boolean; caption: string; style: CSSProperties; children: ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
   const [flags, setFlags] = useState<Flag[]>([]);
   const { adoption } = view;
+  const key = `surface:${name}`;
   useEffect(() => {
     if (!adoption) return setFlags([]);
-    const t = setTimeout(() => box.current && setFlags(checkAdoption(box.current, { ...adoption, chrome })), SETTLE_MS);
+    const t = setTimeout(() => {
+      if (!box.current) return;
+      const out = checkAdoption(box.current, { ...adoption, chrome });
+      setFlags(out);
+      readFrame(key, { probed: [], flags: out });
+    }, SETTLE_MS);
     return () => clearTimeout(t);
   }, [adoption, chrome]);
+  useEffect(() => () => forgetRead(key), [key]);
   return (
     <figure data-qa-surface={name} data-qa-chrome={chrome ? "" : undefined} className="m-0 flex flex-col gap-1">
-      <div ref={box} data-qa-box className="relative" style={style}>
-        {children}
+      {/* the box's wrapper, outside what the check reads: the selection ring sits here */}
+      <div className="relative" onClick={() => select(key)}>
+        <div ref={box} data-qa-box className="relative" style={style}>
+          {children}
+        </div>
+        <SelectedRing id={key} />
       </div>
       <figcaption className="flex items-center gap-2 font-mono text-nano">
         <span className="opacity-60">{caption}</span>

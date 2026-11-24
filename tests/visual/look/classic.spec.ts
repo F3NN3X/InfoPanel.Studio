@@ -22,7 +22,8 @@ for (const material of MATERIALS) {
     // A fixed clock and zone: reset times and clocks on the fixtures are "now plus".
     await page.clock.setFixedTime(new Date("2026-01-15T12:00:00Z"));
     await page.setViewportSize({ width: 1800, height: 1000 });
-    await page.goto(`${qa.base}/?widget-qa&spans=${SPANS}&${CELL}&eager=1&surface=${material}`);
+    // below=1: the sizes under a widget's minimum stay in its row as placeholders, as the baselines have them.
+    await page.goto(`${qa.base}/?widget-qa&spans=${SPANS}&${CELL}&eager=1&surface=${material}&below=1`);
     // The sticky toolbar and the captions would be in the shots; the frames are what is compared.
     await page.addStyleTag({ content: "main > header, figcaption { display: none !important; }" });
     await page.waitForFunction(() => window.__qaMountAll);

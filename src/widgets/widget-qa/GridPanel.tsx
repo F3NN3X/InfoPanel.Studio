@@ -34,6 +34,7 @@ export function GridPanel({ state, onChange }: { state: QaState; onChange: (patc
           <Field mono aria-label="Sizes" className="h-7 w-full px-2 text-caption" value={state.spans} onChange={(e) => onChange({ spans: e.target.value })} />
         </span>
       </Row>
+      <Switch id="below" checked={state.below} onChange={(below) => onChange({ below })} />
       <Switch id="grid" checked={state.grid} onChange={(grid) => onChange({ grid })} />
     </div>
   );

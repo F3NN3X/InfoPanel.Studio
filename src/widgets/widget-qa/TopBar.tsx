@@ -59,22 +59,25 @@ interface SummaryProps {
   flagsChecked: boolean;
   flagged: boolean;
   onFlagged: () => void;
+  /** The Issues filter (`issues=1`), which the issue count turns on. */
+  issues: boolean;
+  onIssues: () => void;
   onCheckAll: () => void;
 }
 
 /**
  * "76 widgets · 497 frames · 3 issues · 5 theme flags in 40 checked · Check all": the counts are of the frames checked so far
- * (frames mount as they scroll into view), so the line says how many; Check all mounts the rest. The theme flags count turns on the
- * "flagged only" filter. Every part stays in the DOM, only its text changes, so the page's settle wait is not reset by the bar.
+ * (frames mount as they scroll into view), so the line says how many; Check all mounts the rest. The issues count turns on the
+ * Issues filter, the theme flags count the "flagged only" one. Every part stays in the DOM, only its text changes, so the page's settle wait is not reset by the bar.
  */
-function Summary({ widgets, frames, flagsChecked, flagged, onFlagged, onCheckAll }: SummaryProps) {
+function Summary({ widgets, frames, flagsChecked, flagged, onFlagged, issues, onIssues, onCheckAll }: SummaryProps) {
   const t = useTally();
   return (
     <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 text-caption text-ui-3">
       <span>{plural(widgets, "widget")}</span>·<span>{plural(frames, "frame")}</span>·
-      <span className={t.issues ? "font-medium text-ui-danger-text" : ""} title={t.withIssues ? `${plural(t.withIssues, "frame")} with issues` : undefined}>
+      <button type="button" aria-pressed={issues} title={`${t.withIssues ? `${plural(t.withIssues, "frame")} with issues. ` : ""}${tipOf("issues")}`} onClick={onIssues} className={`rounded-ui-sm underline decoration-current/40 underline-offset-2 hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-ui-accent ${t.issues ? "font-medium text-ui-danger-text" : ""} ${issues ? "bg-ui-active px-1" : ""}`}>
         {plural(t.issues, "issue")}
-      </span>
+      </button>
       {flagsChecked && (
         <>
           ·
@@ -144,7 +147,7 @@ export function TopBar(p: TopBarProps) {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div className="flex min-w-0 flex-1 items-baseline gap-3">
         <h1 className="shrink-0 text-body font-semibold text-ui-1">Widget QA</h1>
-        <Summary widgets={p.widgets} frames={p.frames} flagsChecked={p.flagsChecked} flagged={state.flagged} onFlagged={() => onChange({ flagged: !state.flagged })} onCheckAll={() => void mountAll()} />
+        <Summary widgets={p.widgets} frames={p.frames} flagsChecked={p.flagsChecked} flagged={state.flagged} onFlagged={() => onChange({ flagged: !state.flagged })} issues={state.issues} onIssues={() => onChange({ issues: !state.issues })} onCheckAll={() => void mountAll()} />
         <span role="status" className="shrink-0 text-caption text-ui-2">
           {notice}
         </span>
