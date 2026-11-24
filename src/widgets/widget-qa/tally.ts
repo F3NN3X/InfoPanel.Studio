@@ -75,12 +75,26 @@ export function sectionTally(module: string): Tally {
   return t;
 }
 
+// Every widget's totals as text, read once per report however many headers ask (a pass per header made `mountAllSettled` slower).
+let keysAt = -1;
+let keys = new Map<string, string>();
+function sectionKey(module: string): string {
+  if (keysAt !== version) {
+    const by = new Map<string, Tally>();
+    for (const [id, f] of found) {
+      const w = id.slice(0, id.indexOf("--"));
+      const t = by.get(w) ?? { checked: 0, issues: 0, flags: 0, withIssues: 0, withFlags: 0 };
+      by.set(w, { checked: t.checked + 1, issues: t.issues + f.issues, flags: t.flags + f.flags, withIssues: t.withIssues + (f.issues ? 1 : 0), withFlags: t.withFlags + (f.flags ? 1 : 0) });
+    }
+    keys = new Map([...by].map(([w, t]) => [w, `${t.checked} ${t.issues} ${t.flags} ${t.withIssues} ${t.withFlags}`]));
+    keysAt = version;
+  }
+  return keys.get(module) ?? "0 0 0 0 0";
+}
+
 /** One widget's totals for its section header: a frame of another widget reporting re-renders nothing (the snapshot is text). */
 export function useSectionTally(module: string): Tally {
-  const key = useSyncExternalStore(watch, () => {
-    const t = sectionTally(module);
-    return `${t.checked} ${t.issues} ${t.flags} ${t.withIssues} ${t.withFlags}`;
-  });
+  const key = useSyncExternalStore(watch, () => sectionKey(module));
   const [checked, issues, flags, withIssues, withFlags] = key.split(" ").map(Number);
   return { checked, issues, flags, withIssues, withFlags };
 }

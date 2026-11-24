@@ -86,13 +86,18 @@ function GridOverlay({ c, r, cell, gap }: { c: number; r: number; cell: number; 
   );
 }
 
+// The chrome's own geometry is inline: a class no other part of the app uses would land in the app's shared CSS (the kiosk's and
+// the studio's), which the QA page must not grow.
+const RING = { inset: -6 };
+const FLAG_CORNER = { top: -10, right: -10, borderTop: "10px solid var(--color-amber-400)", borderLeft: "10px solid transparent" };
+
 /**
  * The selected frame's ring, outside its box. Its own component, so a selection re-renders the ring and never the frame (a frame's
  * re-render re-arms its settle and probe).
  */
 export function SelectedRing({ id }: { id: string }) {
   const on = useSyncExternalStore(subscribe, () => getSelection().frame === id);
-  return on ? <div data-qa-ui="" aria-hidden className="pointer-events-none absolute -inset-1.5 z-20 rounded-ui-md border-2 border-ui-accent" /> : null;
+  return on ? <div data-qa-ui="" aria-hidden className="pointer-events-none absolute z-20 rounded-ui-md border-2 border-ui-accent" style={RING} /> : null;
 }
 
 interface FigureProps {
@@ -138,7 +143,7 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
   };
   return (
     <figure id={id} {...attrs} className={`m-0 flex scroll-mt-40 flex-col gap-1 rounded ${targeted ? "outline outline-2 outline-offset-4 outline-sky-400" : ""}`}>
-      <div className={`group/frame relative rounded ${issues.length ? "outline outline-1 outline-offset-2 outline-red-500/70" : ""}`} onClick={chrome ? () => select(id) : undefined}>
+      <div className={`relative rounded ${issues.length ? "outline outline-1 outline-offset-2 outline-red-500/70" : ""}`} onClick={chrome ? () => select(id) : undefined}>
         <Frame p={{ ...migratePlacementV19(placement(mod.id, c, r, withDemo(mod.id, settings, view.live))), id: `qa-${mod.id}-${attrs["data-qa-view"] ?? ""}${c}x${r}` }} w={w} h={h} live={view.live} eager={view.eager} appearance={view.appearance} onSettled={(box) => {
           const probed = probeElements(box);
           const list = probed.map((p) => p.issue);
@@ -152,7 +157,7 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
           report(id, out.length);
         }} />
         {view.grid && <GridOverlay c={c} r={r} cell={view.cell} gap={view.gap} />}
-        {chrome && view.adoption && flags.length > 0 && <span data-qa-ui="" aria-hidden className="pointer-events-none absolute -top-2.5 -right-2.5 z-20 h-0 w-0 border-t-[10px] border-l-[10px] border-t-amber-400 border-l-transparent" />}
+        {chrome && view.adoption && flags.length > 0 && <span data-qa-ui="" aria-hidden className="pointer-events-none absolute z-20 h-0 w-0" style={FLAG_CORNER} />}
         {chrome && <SelectedRing id={id} />}
         {chrome && <FrameMenu name={`${mod.id} ${frameKey}`} reference={() => view.frameRef(mod.id, frameKey)} claude={view.claude ? () => view.claude!(id) : undefined} onInspect={() => select(id)} />}
       </div>

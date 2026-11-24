@@ -5,7 +5,7 @@ import type { SectionChrome, View } from "./Section";
 import { select } from "./selection";
 import { useSectionTally } from "./tally";
 
-const ACTION = "rounded-ui-sm px-1.5 py-0.5 text-micro text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-ui-accent aria-pressed:bg-ui-active aria-pressed:text-ui-1";
+const ACTION = "rounded-ui-sm px-1.5 py-0.5 text-micro text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-ui-accent";
 const plural = (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}`;
 
 /**
@@ -34,7 +34,7 @@ export function SectionHead({ mod, view, chrome }: { mod: DashboardModule; view:
       </span>
       {notes > 0 && <span className="text-micro text-ui-3">{plural(notes, "note")}</span>}
       <span className="ml-auto flex items-center gap-1">
-        <button type="button" aria-pressed={focused} title={focused ? "Leave focus mode (Esc)" : "This widget alone, with a size strip and its galleries inline (focus=)"} onClick={() => chrome.onFocus(focused ? "" : mod.id)} className={ACTION}>
+        <button type="button" aria-pressed={focused} title={focused ? "Leave focus mode (Esc)" : "This widget alone, with a size strip and its galleries inline (focus=)"} onClick={() => chrome.onFocus(focused ? "" : mod.id)} className={`${ACTION} ${focused ? "bg-ui-active text-ui-1" : ""}`}>
           {focused ? "Leave focus" : "Focus"}
         </button>
         <a href={view.links(mod.id).solo} title="Open this widget alone, keeping the settings (module=)" className={ACTION}>

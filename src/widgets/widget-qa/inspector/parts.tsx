@@ -24,7 +24,7 @@ export const Quiet = ({ children }: { children: ReactNode }) => <p className="te
 /** Facts as a two-column list: a term, then its value. */
 export function Facts({ rows }: { rows: [string, ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1 text-caption">
+    <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-caption">
       {rows.map(([term, value]) => (
         <div key={term} className="contents">
           <dt className="text-ui-3">{term}</dt>

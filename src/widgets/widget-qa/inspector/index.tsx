@@ -93,13 +93,13 @@ export function Inspector({ now }: { now: { current: Now } }) {
       className="sticky z-10 w-88 shrink-0 self-start overflow-y-auto rounded-ui-lg border border-ui-subtle bg-ui-chrome p-3 font-ui text-ui-2 shadow-ui-menu"
       style={{ top: top + 12, maxHeight: `calc(100vh - ${top + 24}px)` }}
     >
-      <button type="button" aria-label="Close the inspector (Esc)" title="Close the inspector (Esc)" onClick={() => select(null)} className="float-right -mt-1 -mr-1 inline-flex h-7 w-7 items-center justify-center rounded-ui-md text-ui-3 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-ui-accent">
+      <button type="button" aria-label="Close the inspector (Esc)" title="Close the inspector (Esc)" onClick={() => select(null)} className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-ui-md text-ui-3 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-ui-accent">
         <X aria-hidden className="h-4 w-4" />
       </button>
       {!target ? (
         <p className="text-caption text-ui-3">{`${sel} is not on the page now (a filter, or other sizes).`}</p>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-5 pr-6">
           {target.frame && <FramePart frame={target.frame} now={now} />}
           {target.mod && <WidgetPart mod={target.mod} now={now} frame={!!target.frame} />}
         </div>

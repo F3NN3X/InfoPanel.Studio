@@ -36,7 +36,7 @@ function Highlight({ box, probed }: { box: Element; probed: Probed }) {
   return createPortal(
     els.map((el, i) => {
       const r = el.getBoundingClientRect();
-      return <div key={i} data-qa-ui="" data-qa-highlight="" aria-hidden className="pointer-events-none absolute z-30 bg-red-500/15 outline-2 outline-red-500 outline-solid" style={{ left: r.left - at.left, top: r.top - at.top, width: r.width, height: r.height }} />;
+      return <div key={i} data-qa-ui="" data-qa-highlight="" aria-hidden className="pointer-events-none absolute z-30 bg-red-500/20 outline outline-2 outline-red-500/70" style={{ left: r.left - at.left, top: r.top - at.top, width: r.width, height: r.height }} />;
     }),
     wrap
   );
