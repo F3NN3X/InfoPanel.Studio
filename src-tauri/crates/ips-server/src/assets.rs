@@ -99,7 +99,7 @@ impl Assets {
         if !file.exists() {
             let tmp = self.dir.join(format!("{TEMP_PREFIX}{}.tmp", uuid::Uuid::new_v4()));
             std::fs::write(&tmp, bytes)?;
-            if let Err(e) = std::fs::rename(&tmp, &file) {
+            if let Err(e) = crate::fs_retry::rename(&tmp, &file) {
                 let _ = std::fs::remove_file(&tmp);
                 // a request for the same icon got there first
                 if !file.exists() {
@@ -239,7 +239,7 @@ async fn handle_upload(app: &App, req: Req) -> std::io::Result<Response<Body>> {
     }
     let id = format!("{digest}.{}", declared.ext);
     let file = assets.dir.join(&id);
-    let stored = if file.exists() { std::fs::remove_file(&tmp) } else { std::fs::rename(&tmp, &file) };
+    let stored = if file.exists() { std::fs::remove_file(&tmp) } else { crate::fs_retry::rename(&tmp, &file) };
     if let Err(e) = stored {
         let _ = std::fs::remove_file(&tmp);
         // A concurrent upload of the same bytes got there first.

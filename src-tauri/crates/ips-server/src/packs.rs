@@ -191,7 +191,7 @@ impl Packs {
         for (id, path) in asides {
             let dest = id.map(|id| self.dir.join(id));
             match dest {
-                Some(dest) if std::fs::symlink_metadata(&dest).is_err() => kept |= std::fs::rename(&path, &dest).is_err(),
+                Some(dest) if std::fs::symlink_metadata(&dest).is_err() => kept |= crate::fs_retry::rename(&path, &dest).is_err(),
                 _ => {
                     let _ = std::fs::remove_dir_all(&path);
                 }
@@ -240,11 +240,11 @@ impl Packs {
             let aside = self.dir.join(format!("{ASIDE_PREFIX}{id}-{}", uuid::Uuid::new_v4()));
             let had = std::fs::symlink_metadata(&dest).is_ok();
             if had {
-                std::fs::rename(&dest, &aside)?;
+                crate::fs_retry::rename(&dest, &aside)?;
             }
-            if let Err(e) = std::fs::rename(&temp, &dest) {
+            if let Err(e) = crate::fs_retry::rename(&temp, &dest) {
                 if had {
-                    let _ = std::fs::rename(&aside, &dest);
+                    let _ = crate::fs_retry::rename(&aside, &dest);
                 }
                 return Err(e);
             }

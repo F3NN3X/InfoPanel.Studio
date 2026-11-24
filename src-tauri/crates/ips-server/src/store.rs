@@ -29,5 +29,5 @@ fn tmp_of(file: &Path) -> PathBuf {
 pub fn write_atomic(file: &Path, bytes: &[u8]) -> io::Result<()> {
     let tmp = tmp_of(file);
     fs::write(&tmp, bytes)?;
-    fs::rename(&tmp, file)
+    crate::fs_retry::rename(&tmp, file)
 }

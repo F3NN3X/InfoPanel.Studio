@@ -215,7 +215,7 @@ impl LibraryStore {
         let file = self.dir.join(format!("{}.json", item["id"].as_str().unwrap_or("")));
         let tmp = self.dir.join(format!("{}.json.{}.tmp", item["id"].as_str().unwrap_or(""), uuid::Uuid::new_v4()));
         std::fs::write(&tmp, json::stringify(item))?;
-        std::fs::rename(&tmp, &file)
+        crate::fs_retry::rename(&tmp, &file)
     }
 
     /// Every item, newest first.
