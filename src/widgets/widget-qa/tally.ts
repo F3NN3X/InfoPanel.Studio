@@ -60,3 +60,27 @@ export function useTally(): Tally {
   useSyncExternalStore(watch, () => version);
   return tally();
 }
+
+/** One widget's totals: the frames whose id starts with `<module>--` (`frameId`). */
+export function sectionTally(module: string): Tally {
+  const t: Tally = { checked: 0, issues: 0, flags: 0, withIssues: 0, withFlags: 0 };
+  for (const [id, f] of found) {
+    if (!id.startsWith(`${module}--`)) continue;
+    t.checked++;
+    t.issues += f.issues;
+    t.flags += f.flags;
+    if (f.issues) t.withIssues++;
+    if (f.flags) t.withFlags++;
+  }
+  return t;
+}
+
+/** One widget's totals for its section header: a frame of another widget reporting re-renders nothing (the snapshot is text). */
+export function useSectionTally(module: string): Tally {
+  const key = useSyncExternalStore(watch, () => {
+    const t = sectionTally(module);
+    return `${t.checked} ${t.issues} ${t.flags} ${t.withIssues} ${t.withFlags}`;
+  });
+  const [checked, issues, flags, withIssues, withFlags] = key.split(" ").map(Number);
+  return { checked, issues, flags, withIssues, withFlags };
+}

@@ -13,7 +13,8 @@ import { ChangesRow } from "./ChangesRow";
 import { WidgetNav } from "./WidgetNav";
 import { activeChanges } from "./changes";
 import { copyText } from "./clipboard";
-import { WidgetSection } from "./Section";
+import { WidgetSection, type SectionChrome } from "./Section";
+import { Inspector } from "./inspector";
 import { forceMountAll, mountAllSettled } from "./Frame";
 import { overflowReport, type Issue } from "./probe";
 import { NOTES } from "./notes";
@@ -91,7 +92,8 @@ function WidgetQa() {
   const spans = useMemo(() => parseSpans(state.spans), [state.spans]);
   const settings = useMemo(() => placementSettings(state), [state]);
   const picked = useMemo(() => pickModules([...modules, ...MERGED], [...TEMPLATE_MODULES, ...MERGED], state.module).filter((m) => !state.noted || NOTES[m.id]), [state.module, state.noted]);
-  const sections = useMemo(() => groupByCategory(filterModules(picked, state.q), CATEGORY_ORDER), [picked, state.q]);
+  // focus mode (`focus=<id>`) draws that widget alone, inside the `module=` set
+  const sections = useMemo(() => groupByCategory(state.focus ? picked.filter((m) => m.id === state.focus) : filterModules(picked, state.q), CATEGORY_ORDER), [picked, state.q, state.focus]);
   const shown = sections.reduce((n, s) => n + s.mods.length, 0);
   // the widget frames drawn: each shown widget's sizes at or over its minimum, its views and its layouts
   const frames = useMemo(() => sections.reduce((n, s) => n + s.mods.reduce((k, m) => k + framePlan(m, spans).filter((f) => !f.below).length + viewPlans(m).length + layoutPlans(m).length, 0), 0), [sections, spans]);
@@ -102,7 +104,18 @@ function WidgetQa() {
   now.current = { state, adoption, variants: worn.variants, apply };
   // Copy for Claude from the page reads the frames mounted now: it never mounts the rest (`__qa.copyForClaude()` does)
   const claude = (id?: string) => claudeText(now, id, true);
-  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, grid: state.grid, links: (id: string) => widgetLinks(state, id), frameRef: (id: string, key: string) => frameRef(state, id, key, `${window.location.origin}${window.location.pathname}`), appearance: worn.appearance, adoption, flagged: state.flagged, layouts: true, claude };
+  // the frames' chrome (section headers, selection, the sizes under the minimum, focus mode); entering or leaving focus lands on the widget
+  const chrome: SectionChrome = {
+    below: state.below,
+    onBelow: () => apply({ ...state, below: true }),
+    focus: state.focus,
+    onFocus: (id) => {
+      const at = id || state.focus;
+      apply({ ...state, focus: id });
+      requestAnimationFrame(() => document.getElementById(at)?.scrollIntoView({ block: "start" }));
+    },
+  };
+  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, grid: state.grid, links: (id: string) => widgetLinks(state, id), frameRef: (id: string, key: string) => frameRef(state, id, key, `${window.location.origin}${window.location.pathname}`), appearance: worn.appearance, adoption, flagged: state.flagged, layouts: true, claude, chrome };
   const surfaceView = useMemo(() => ({ appearance: worn.appearance, live, adoption }), [worn.appearance, live, adoption]);
   useEffect(() => installTools(now), []);
   const galleryMod = state.gallery ? modules.find((m) => m.id === state.gallery) : undefined;
@@ -144,14 +157,18 @@ function WidgetQa() {
         <WidgetNav state={state} sections={sections} onChange={(patch) => apply({ ...state, ...patch })} />
         <QaHelp dialog={help} />
       </header>
-      {state.surfaces && !state.module && !state.q && (
+      {/* the frames, then the inspector beside them while something is selected */}
+      <div className="flex items-start gap-6">
+      <div className="min-w-0 flex-1">
+      {state.surfaces && !state.module && !state.q && !state.focus && (
         <div id="surfaces" className="scroll-mt-32">
           <h2 className="mt-6 text-xs font-semibold uppercase tracking-wider opacity-70">Surfaces</h2>
           <Surfaces view={surfaceView} />
         </div>
       )}
+      {/* in focus mode the widget's galleries are inline, under its frames */}
       <div id="galleries" className="scroll-mt-32 pt-4">
-        {galleries.map((g) => (
+        {!state.focus && galleries.map((g) => (
           <Gallery key={`${g.title}-${g.module}`} def={g} base={settings} cell={state.cell} gap={state.gap} live={live} opened={!!galleryMod} />
         ))}
       </div>
@@ -165,6 +182,9 @@ function WidgetQa() {
           ))}
         </div>
       ))}
+      </div>
+      <Inspector now={now} />
+      </div>
     </main>
     </QaScreen>
   );

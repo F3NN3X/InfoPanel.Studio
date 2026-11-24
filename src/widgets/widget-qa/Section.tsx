@@ -1,19 +1,21 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { categorize, tabOf } from "@/components/studio/inspector-categories";
 import { migratePlacementV19 } from "@/lib/settings-migrate.v19";
-import { STANDARD_KEYS } from "@/modules/standard-settings";
 import { LAYOUT_KEY } from "../layouts";
 import { checkAdoption, type CheckOptions, type Flag } from "./adoption";
 import type { Appearance } from "@/lib/style-resolve";
-import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
-import { ClaudeButton } from "./ClaudeButton";
+import type { DashboardModule, ModuleSettings } from "@/modules/types";
 import { copyText } from "./clipboard";
 import { withDemo } from "./demo-settings";
+import { FocusStrip, InlineGalleries } from "./Focus";
 import { Frame } from "./Frame";
+import { FrameMenu } from "./FrameMenu";
+import { forgetRead, readFrame } from "./inspector/reads";
 import { notesFor } from "./notes";
 import { frameId } from "./params";
 import { framePlan, layoutPlans, placement, spanSize, viewPlans } from "./plan";
-import { probeBox, type Issue } from "./probe";
+import { probeElements, type Issue } from "./probe";
+import { SectionHead } from "./SectionHead";
+import { getSelection, select, subscribe } from "./selection";
 import { forgetFrame, tallyFrame } from "./tally";
 
 export interface View {
@@ -37,8 +39,23 @@ export interface View {
   flagged?: boolean;
   /** Draw a widget's layouts row (`LAYOUTS`) under its views. */
   layouts?: boolean;
-  /** A widget's Copy for Claude text (`claudeText`); unset (the render check's page): no button. */
+  /** A widget's or a frame's Copy for Claude text (`claudeText`); unset (the render check's page): no button. */
   claude?: (id: string) => Promise<string>;
+  /** The page's own chrome around the frames; unset (the render check's page): the frames alone, as before. */
+  chrome?: SectionChrome;
+}
+
+/**
+ * What the QA page draws around a widget's frames (`data-qa-ui`, outside every `[data-qa-box]`): the section header, the frames'
+ * hover menu and selection (they open the inspector), the line for the sizes under the minimum and focus mode.
+ */
+export interface SectionChrome {
+  /** Draw the sizes under a widget's minimum as placeholders (`below=1`); else one line counts them, and shows them. */
+  below: boolean;
+  onBelow: () => void;
+  /** The focused widget (`focus=`), "" for none. */
+  focus: string;
+  onFocus: (id: string) => void;
 }
 
 // What the adoption check found per frame (by frame id), for the "flagged only" filter; a frame not read yet is not in it.
@@ -58,71 +75,6 @@ const clean = (module: string) => {
   return mine.length > 0 && mine.every(([, n]) => n === 0);
 };
 
-function settingRow(s: ModuleSetting) {
-  const opts = s.options?.map((o) => o.value).join(" | ");
-  return (
-    // The widget's own rows bright, the general ones (the same on every widget) dim.
-    <li key={s.key} className={`font-mono text-nano ${STANDARD_KEYS.has(s.key) ? "opacity-50" : ""}`}>
-      <span className="opacity-90">{s.key}</span>{" "}
-      <span className="opacity-50">
-        {s.type} = {JSON.stringify(s.default)}
-      </span>
-      {opts && <span className="opacity-50"> [{opts}]</span>}
-    </li>
-  );
-}
-
-const TABS = [
-  ["show", "Show"],
-  ["style", "Style"],
-  ["data", "Data"],
-  ["behaviour", "Behaviour"],
-] as const;
-
-/**
- * The widget's settings as its inspector files them (`categorize`, `tabOf`): per tab, each section (a general one
- * marked) and its rows. The reference for where a setting lives and which of them are the widget's own.
- */
-function SettingsByTab({ mod }: { mod: DashboardModule }) {
-  const shown = (mod.settings ?? []).filter((d) => !d.hidden);
-  const sections = categorize(shown).flatMap((c) =>
-    TABS.flatMap(([tab]) => {
-      const settings = c.defs.filter((d) => tabOf(d, c) === tab);
-      return settings.length ? [{ id: `${c.id}-${tab}`, title: c.title, general: c.general, tab, settings }] : [];
-    })
-  );
-  const own = shown.filter((d) => !STANDARD_KEYS.has(d.key)).length;
-  const total = shown.length;
-  return (
-    <details className="mt-2">
-      <summary className="cursor-pointer text-[11px] opacity-70">
-        {total} settings · {own} its own
-      </summary>
-      <div className="mt-1 space-y-2">
-        {TABS.map(([tab, label]) => {
-          const inTab = sections.filter((s) => s.tab === tab);
-          return inTab.length === 0 ? null : (
-            <div key={tab}>
-              <p className="text-nano font-semibold uppercase tracking-wider opacity-60">{label}</p>
-              {inTab.map((sec) => (
-                <div key={sec.id} className="mt-1">
-                  <p className="text-[11px]">
-                    {sec.title}
-                    {sec.general && <span className="opacity-50"> · general</span>}
-                  </p>
-                  <ul className="space-y-0.5 pl-2">{sec.settings.map(settingRow)}</ul>
-                </div>
-              ))}
-            </div>
-          );
-        })}
-      </div>
-    </details>
-  );
-}
-
-const LINK = "font-mono text-nano underline decoration-current/30 underline-offset-2 opacity-70 hover:opacity-100";
-
 /** The grid's cells and gaps over a frame (`grid=1`): the dashed squares are cells, the space between them the gap. */
 function GridOverlay({ c, r, cell, gap }: { c: number; r: number; cell: number; gap: number }) {
   return (
@@ -132,6 +84,15 @@ function GridOverlay({ c, r, cell, gap }: { c: number; r: number; cell: number; 
       ))}
     </div>
   );
+}
+
+/**
+ * The selected frame's ring, outside its box. Its own component, so a selection re-renders the ring and never the frame (a frame's
+ * re-render re-arms its settle and probe).
+ */
+export function SelectedRing({ id }: { id: string }) {
+  const on = useSyncExternalStore(subscribe, () => getSelection().frame === id);
+  return on ? <div data-qa-ui="" aria-hidden className="pointer-events-none absolute -inset-1.5 z-20 rounded-ui-md border-2 border-ui-accent" /> : null;
 }
 
 interface FigureProps {
@@ -148,9 +109,10 @@ interface FigureProps {
 }
 
 /**
- * One frame at an exact span. The caption copies a reference to the frame; a badge counts what overflows, overlaps or
- * is clipped once the widget has settled (the `__qaOverflow` probe, run on this frame alone); a note from `notes.json`
- * shows under it.
+ * One frame at an exact span. Clicking it (or its caption) selects it and opens the inspector, `c` on the caption copies a reference to
+ * the frame, and its hover menu has the copy actions; a badge counts what overflows, overlaps or is clipped once the widget has settled
+ * (the `__qaOverflow` probe, run on this frame alone); a note from `notes.json` shows under it. On the render check's page (no chrome)
+ * the caption copies the reference, as before.
  */
 function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureProps) {
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -160,30 +122,48 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
   const h = spanSize(r, view.cell, view.gap);
   const note = notesFor(mod.id)?.[frameKey];
   const id = frameId(mod.id, frameKey);
+  const chrome = view.chrome;
   // The page renders after load, so CSS :target never matches; a copied frame link outlines its frame by the hash itself.
   const targeted = window.location.hash === `#${id}`;
-  useEffect(() => () => forgetFrame(id), [id]);
+  useEffect(
+    () => () => {
+      forgetFrame(id);
+      forgetRead(id);
+    },
+    [id]
+  );
   const copy = async () => {
     setCopied((await copyText(view.frameRef(mod.id, frameKey).text)) ? "copied" : "copy failed");
     setTimeout(() => setCopied(""), 1500);
   };
   return (
     <figure id={id} {...attrs} className={`m-0 flex scroll-mt-40 flex-col gap-1 rounded ${targeted ? "outline outline-2 outline-offset-4 outline-sky-400" : ""}`}>
-      <div className={`relative rounded ${issues.length ? "outline outline-1 outline-offset-2 outline-red-500/70" : ""}`}>
+      <div className={`group/frame relative rounded ${issues.length ? "outline outline-1 outline-offset-2 outline-red-500/70" : ""}`} onClick={chrome ? () => select(id) : undefined}>
         <Frame p={{ ...migratePlacementV19(placement(mod.id, c, r, withDemo(mod.id, settings, view.live))), id: `qa-${mod.id}-${attrs["data-qa-view"] ?? ""}${c}x${r}` }} w={w} h={h} live={view.live} eager={view.eager} appearance={view.appearance} onSettled={(box) => {
-          const probed = probeBox(box);
-          setIssues(probed);
+          const probed = probeElements(box);
+          const list = probed.map((p) => p.issue);
+          setIssues(list);
           const out = view.adoption ? checkAdoption(box, view.adoption) : [];
-          // the top bar's summary counts (`tally.ts`), outside the frames' render path
-          tallyFrame(id, probed.length, out.length);
+          // the top bar's summary counts (`tally.ts`) and the inspector's lists (`inspector/reads.ts`), outside the frames' render path
+          tallyFrame(id, list.length, out.length);
+          if (chrome) readFrame(id, { probed, flags: out });
           if (!view.adoption) return;
           setFlags(out);
           report(id, out.length);
         }} />
         {view.grid && <GridOverlay c={c} r={r} cell={view.cell} gap={view.gap} />}
+        {chrome && view.adoption && flags.length > 0 && <span data-qa-ui="" aria-hidden className="pointer-events-none absolute -top-2.5 -right-2.5 z-20 h-0 w-0 border-t-[10px] border-l-[10px] border-t-amber-400 border-l-transparent" />}
+        {chrome && <SelectedRing id={id} />}
+        {chrome && <FrameMenu name={`${mod.id} ${frameKey}`} reference={() => view.frameRef(mod.id, frameKey)} claude={view.claude ? () => view.claude!(id) : undefined} onInspect={() => select(id)} />}
       </div>
       <figcaption className="flex items-center gap-2 font-mono text-nano">
-        <button type="button" title="Copy a reference to this frame" onClick={copy} className="opacity-60 hover:underline hover:opacity-100">
+        <button
+          type="button"
+          title={chrome ? "Select this frame and open it in the inspector (c copies a reference to it)" : "Copy a reference to this frame"}
+          onClick={chrome ? () => select(id) : copy}
+          onKeyDown={chrome ? (e) => e.key === "c" && !e.ctrlKey && !e.metaKey && void copy() : undefined}
+          className="opacity-60 hover:underline hover:opacity-100"
+        >
           {caption} · {w}x{h}px
         </button>
         {copied && <span className="opacity-80">{copied}</span>}
@@ -207,63 +187,41 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
   );
 }
 
-/** A widget's notes, the widget-wide one (`*`) first. */
-function NoteList({ id }: { id: string }) {
-  const notes = Object.entries(notesFor(id) ?? {}).sort(([a], [b]) => Number(b === "*") - Number(a === "*"));
-  if (!notes.length) return null;
-  return (
-    <ul className="mt-2 space-y-0.5 text-[11px] text-amber-400">
-      {notes.map(([key, text]) => (
-        <li key={key}>
-          <span className="font-mono opacity-70">{key === "*" ? "widget" : key}</span> {text}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** One widget: an info column (title, id, links, category, sizes, data, views, settings), its span frames and its views. */
+/**
+ * One widget: on the QA page a one-line header (`SectionHead`), then its span frames, its views and its layouts; what the info column
+ * held is in the inspector. In focus mode (`focus=<id>`) a strip steps one size at a time and the widget's galleries follow inline.
+ */
 export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View }) {
-  const prefixes = mod.prefixes.length + (mod.reads?.length ?? 0);
-  const data = mod.readsAll ? "reads all sensors" : prefixes ? `${prefixes} data prefix${prefixes === 1 ? "" : "es"}` : "no data";
   const min = `${mod.minCols ?? 1}x${mod.minRows ?? 1}`;
-  const size = mod.defaultSize ? ` · default ${mod.defaultSize[0]}x${mod.defaultSize[1]}` : "";
   const views = viewPlans(mod);
   const layouts = view.layouts ? layoutPlans(mod) : [];
-  const links = view.links(mod.id);
+  const chrome = view.chrome;
+  const focused = !!chrome && chrome.focus === mod.id;
+  const [step, setStep] = useState("");
   useSyncExternalStore(watch, () => version);
   const hidden = !!view.flagged && clean(mod.id);
+  const plan = framePlan(mod, view.spans);
+  // sizes under the minimum: dimmed placeholders on the render check's page and with `below=1`, else one line that shows them
+  const showBelow = !chrome || chrome.below;
+  const under = showBelow ? 0 : plan.filter((f) => f.below).length;
+  const sizes = plan.filter((f) => showBelow || !f.below);
+  const shown = focused && step ? sizes.filter(({ c, r }) => `${c}x${r}` === step) : sizes;
   return (
-    <section id={mod.id} hidden={hidden} className="flex scroll-mt-32 gap-6 border-t border-current/10 py-5">
-      <div className="w-60 shrink-0">
-        <h3 className="text-sm font-semibold">{mod.title}</h3>
-        <p className="font-mono text-[11px] opacity-60">{mod.id}</p>
-        <p className="mt-0.5 flex gap-3">
-          <a href={links.solo} className={LINK}>
-            solo
-          </a>
-          <a href={links.skins} className={LINK}>
-            skins &amp; surfaces
-          </a>
-          <a href={`#${mod.id}`} className={LINK}>
-            #
-          </a>
-          {view.claude && <ClaudeButton text={() => view.claude!(mod.id)} title="Copy this widget's frames, with what they found, as text for Claude" className={LINK} label="for Claude" />}
-        </p>
-        <p className="mt-1 font-mono text-nano opacity-60">
-          {mod.category ?? "Generic"} · min {min}
-          {size} · {data}
-        </p>
-        {mod.blurb && <p className="mt-1 text-xs opacity-90">{mod.blurb}</p>}
-        {mod.description && <p className="mt-1 text-xs opacity-70">{mod.description}</p>}
-        {views.length > 0 && <p className="mt-1 font-mono text-nano opacity-60">views: {views.map((v) => v.id).join(", ")}</p>}
-        {mod.tags && <p className="mt-1 font-mono text-nano opacity-50">{mod.tags}</p>}
-        <NoteList id={mod.id} />
-        {mod.settings && mod.settings.length > 0 && <SettingsByTab mod={mod} />}
-      </div>
-      <div className="flex min-w-0 flex-col gap-4">
+    <section id={mod.id} hidden={hidden} className="flex scroll-mt-32 flex-col items-start gap-3 border-t border-current/10 py-5">
+      {chrome && <SectionHead mod={mod} view={view} chrome={chrome} />}
+      {focused && (
+        <FocusStrip
+          sizes={sizes.map(({ c, r }) => `${c}x${r}`)}
+          step={step}
+          onStep={(s) => {
+            setStep(s);
+            if (s) select(frameId(mod.id, s));
+          }}
+        />
+      )}
+      <div className="flex min-w-0 max-w-full flex-col gap-4">
         <div className="flex min-w-0 flex-wrap items-start gap-6">
-          {framePlan(mod, view.spans).map(({ c, r, below }) =>
+          {shown.map(({ c, r, below }) =>
             below ? (
               <div key={`${c}x${r}`} data-qa-below className="flex flex-col gap-1 opacity-40">
                 <div className="flex items-center justify-center rounded border border-dashed border-current/40 font-mono text-nano" style={{ width: spanSize(c, view.cell, view.gap), height: spanSize(r, view.cell, view.gap) }}>
@@ -276,6 +234,11 @@ export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View 
             )
           )}
         </div>
+        {under > 0 && (
+          <button type="button" data-qa-ui="" title="Show the sizes under each widget's minimum as placeholders (below=1)" onClick={chrome?.onBelow} className="self-start font-mono text-nano opacity-60 underline decoration-current/30 underline-offset-2 hover:opacity-100">
+            {under} {under === 1 ? "size" : "sizes"} under the minimum ({min})
+          </button>
+        )}
         {views.length > 0 && (
           <div>
             <p className="mb-1.5 text-nano font-semibold uppercase tracking-wider opacity-50">Views</p>
@@ -296,6 +259,7 @@ export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View 
             </div>
           </div>
         )}
+        {focused && <InlineGalleries mod={mod} view={view} />}
       </div>
     </section>
   );

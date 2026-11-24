@@ -13,7 +13,7 @@ describe("widget-qa active changes", () => {
   });
 
   it("names every param away from its default, and each × puts exactly that one back", () => {
-    const s = at("module=CpuMonitor,Clock&spans=2x2&cell=150&gap=4&skin=cyber&variant=studio&surface=glass&graph=line&meter=pill&accent=%234ade80&radius=lg&theme=paper&settings=%7B%7D&data=stress&q=cpu&gallery=Clock&eager=1&grid=1&noted=1&look=cyberspec&lookVariant=crimson&fx=calm&script=0&flagged=1&surfaces=0");
+    const s = at("module=CpuMonitor,Clock&spans=2x2&cell=150&gap=4&skin=cyber&variant=studio&surface=glass&graph=line&meter=pill&accent=%234ade80&radius=lg&theme=paper&settings=%7B%7D&data=stress&q=cpu&gallery=Clock&eager=1&grid=1&noted=1&look=cyberspec&lookVariant=crimson&fx=calm&script=0&flagged=1&surfaces=0&below=1&focus=Clock");
     const changes = activeChanges(s, { look: "Cyberspec", variant: "Crimson" });
     expect(changes.map((c) => c.label)).toEqual([
       "Look: Cyberspec · Crimson",
@@ -40,6 +40,8 @@ describe("widget-qa active changes", () => {
       "Filter: cpu",
       "Theme flags only",
       "Notes only",
+      "Sizes under the minimum shown",
+      "Focus: Clock",
     ]);
     // every param the URL carries has a chip: clearing them all leaves the bare page
     const all: QaState = Object.assign({ ...s }, ...changes.map((c) => c.clear));

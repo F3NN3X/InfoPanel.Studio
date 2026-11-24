@@ -50,6 +50,8 @@ export function activeChanges(s: QaState, names: LookNames = {}): Change[] {
   if (s.q) add("q", `Filter: ${s.q}`, { q: "" });
   if (s.flagged) add("flagged", "Theme flags only", { flagged: false });
   if (s.noted) add("noted", "Notes only", { noted: false });
+  if (s.below) add("below", "Sizes under the minimum shown", { below: false });
+  if (s.focus) add("focus", `Focus: ${s.focus}`, { focus: "" });
   return out;
 }
 
