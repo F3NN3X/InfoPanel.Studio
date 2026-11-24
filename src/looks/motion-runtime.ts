@@ -124,15 +124,18 @@ function noise(text: string, churn: boolean[], number: boolean, intensity: numbe
 /**
  * Scrambles `text` in `copy` over `host` for `ms`: a label (`from` unset) decodes, a number's characters that differ from `from`
  * churn. Returns what stops it. Nothing runs on a hidden page, for an empty text, past `TEXT_JOBS_MAX`, for a number that did not change,
- * or for a number past `NUMBER_STARTS_PER_S`. `done` runs when it ends (a copy the caller added comes out again).
+ * or for a number past `NUMBER_STARTS_PER_S`. `done` runs when it ends, or at once when it does not start (a copy the caller added
+ * comes out again either way).
  */
 export function scrambleText(host: HTMLElement, copy: HTMLElement, text: string, opts: { ms: number; intensity: number; from?: string; done?: () => void }): () => void {
   const number = opts.from !== undefined;
   const chars = [...text];
   const churn = chars.map((ch, i) => (number ? /\d/.test(ch) && (opts.from!.length !== text.length || opts.from![i] !== ch) : true));
-  if (!text || !room(host) || !churn.some(Boolean)) return () => {};
   const now = performance.now();
-  if (number && !numberStart(now)) return () => {};
+  if (!text || !room(host) || !churn.some(Boolean) || (number && !numberStart(now))) {
+    opts.done?.();
+    return () => {};
+  }
   const joined = chars.join("");
   return begin(host, copy, opts.ms, (t) => noise(joined, churn, number, opts.intensity, t), { done: opts.done, now });
 }
@@ -308,6 +311,11 @@ function run(card: Card, kind: Repeat): void {
     body.style.setProperty("--mo-tear-dx", `${Math.round((6 + Math.random() * 8) * (Math.random() < 0.5 ? -1 : 1) * plan.tear!.intensity)}px`);
     body.style.setProperty("--mo-tear-ms", `${plan.tear!.ms}ms`);
     pulse(body, "data-mo-torn", plan.tear!.ms);
+    // the split and the shift go with the run, so the card's markup is as it was
+    setTimeout(() => {
+      for (const v of ["--mo-tear-at", "--mo-tear-dx", "--mo-tear-ms"]) body.style.removeProperty(v);
+      if (!body.getAttribute("style")) body.removeAttribute("style");
+    }, plan.tear!.ms + 60);
   } else {
     const layer = el.querySelector("[data-mo-layer]");
     if (layer) pulse(layer, "data-mo-sweep", plan.sweep!.ms, plan.sweep!.style ?? "band");

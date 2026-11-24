@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { planMotion } from "@/looks/motion";
 import { LIST_ROWS_MAX, watchList } from "@/looks/motion-list";
+import { scrambleText, TEXT_JOBS_MAX } from "@/looks/motion-runtime";
 
 const list = planMotion({ list: { enter: "slide", decode: true, ms: 200 } }, {}, { level: "full", lite: false, reduceMotion: false })!.list!;
 
@@ -99,6 +100,27 @@ describe("a list's rows", () => {
     await settle();
     expect(c.ul.querySelectorAll("[data-mo-row-in]")).toHaveLength(0);
     hidden.mockRestore();
+    off();
+  });
+
+  it("leaves a new row's text as it was when the page has no room for its decode", async () => {
+    // the page's text runs, all taken
+    const busy = Array.from({ length: TEXT_JOBS_MAX }, () => {
+      const host = document.createElement("span");
+      const copy = document.createElement("span");
+      host.append("busy", copy);
+      document.body.append(host);
+      return scrambleText(host, copy, "busy", { ms: 5000, intensity: 1 });
+    });
+    const c = card([["Ada", "online"]]);
+    const off = watchList(c.el, list);
+    c.draw([["Ada", "online"], ["Bo", "in game"]]);
+    await settle();
+    const bo = row(c.ul, "Bo");
+    expect(bo.querySelector("[data-mo-text]")).toBeNull();
+    expect(bo.querySelector("[data-mo-copy]")).toBeNull();
+    expect(bo.innerHTML).toBe("<span>Bo</span><span>in game</span>");
+    for (const stop of busy) stop();
     off();
   });
 });
