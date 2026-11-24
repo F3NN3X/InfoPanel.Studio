@@ -208,7 +208,7 @@ describe("the Look's ring on the default Custom gauge, and its meters on Wave Li
     expect(drawIn(320, 320, <CustomGauge data={{ cpu: "40" }} sensor="cpu" />).querySelector("[data-part=ring]")).toBeNull();
   });
 
-  it("draws a lying Wave Link level as the Look's cells or ruler; a standing one keeps its own bars", () => {
+  it("draws a lying Wave Link level as the Look's cells or ruler, and a standing one as its cells stood up", () => {
     const levels = { l: { v: 50 }, r: { v: 95 } };
     const pair = (t3: Record<string, string>, vertical = false) => (
       <Widget title="Wave Link" t3={t3}>
@@ -219,8 +219,15 @@ describe("the Look's ring on the default Custom gauge, and its meters on Wave Li
     cleanup();
     expect(drawIn(320, 200, pair({ "meter-style": "ruler" })).querySelectorAll("[data-meter=ruler]")).toHaveLength(2);
     cleanup();
-    expect(drawIn(320, 200, pair({ "meter-style": "cells" }, true)).querySelectorAll("[data-meter]")).toHaveLength(0);
+    for (const style of ["cells", "ruler"]) {
+      const standing = [...drawIn(320, 200, pair({ "meter-style": style }, true)).querySelectorAll("[data-part=meter]")];
+      expect(standing).toHaveLength(2);
+      for (const m of standing) expect(m.children).toHaveLength(20);
+      cleanup();
+    }
+    // without a Look's meters, both keep Wave Link's own bars
+    expect(drawIn(320, 200, pair({})).querySelectorAll("[data-meter], [data-part=meter]")).toHaveLength(0);
     cleanup();
-    expect(drawIn(320, 200, pair({})).querySelectorAll("[data-meter]")).toHaveLength(0);
+    expect(drawIn(320, 200, pair({}, true)).querySelectorAll("[data-meter], [data-part=meter]")).toHaveLength(0);
   });
 });

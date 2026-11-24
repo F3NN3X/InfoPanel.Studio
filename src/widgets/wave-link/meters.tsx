@@ -55,7 +55,9 @@ const ZONES: [number, number] = [70, 90];
 
 function Level({ value, hold, vertical, variant, n, color, hot }: LevelProps) {
   const sk = useSkin();
-  // a Look that draws its meters as cells or a tick ruler (`meter-style`) draws a lying level that way too, in the zones' tones
+  // a Look that draws its meters as cells or a tick ruler (`meter-style`) draws a lying level that way too, in the zones' tones,
+  // and a standing one as the kit's cells stood up (a ruler has no standing form)
+  if (vertical && (sk.meter === "cells" || sk.meter === "ruler")) return <LedLadder value={value} n={20} vertical zones={ZONES} hold={hold} color={color} hotColor={hot} />;
   if (!vertical && (sk.meter === "cells" || sk.meter === "ruler")) {
     const t = value > ZONES[1] ? "crit" : value > ZONES[0] ? "warn" : "ok";
     return (
