@@ -1,7 +1,7 @@
 // The Theme view's Motion group (L117, motion-knobs-model.ts): what each knob shows and writes, and that a level with no motion keys,
 // an old config's included, shows and draws the pack's own motion.
 import { describe, expect, it } from "vitest";
-import { choiceOf, effectsOn, effectsPatch, INTENSITIES, levelOf, motionCustom, SPEEDS } from "@/components/studio/motion-knobs-model";
+import { choiceOf, EFFECT_LABELS, effectsOn, effectsPatch, INTENSITIES, levelOf, motionCustom, SPEEDS } from "@/components/studio/motion-knobs-model";
 import { motionKnobsOf, type PackMotion } from "@/looks/motion";
 import { normalizeWidgetTheme, THEMED_KEYS } from "@/lib/theme-model";
 
@@ -28,6 +28,14 @@ describe("the Motion knobs", () => {
     expect(choiceOf({ own: { motionSpeed: "fast" } }, "motionSpeed", SPEEDS)).toBe("fast");
     expect(choiceOf({ inherited: { motionIntensity: "low" } }, "motionIntensity", INTENSITIES)).toBe("low");
     expect(choiceOf({ own: { motionSpeed: "warp" } }, "motionSpeed", SPEEDS)).toBe("auto");
+  });
+
+  it("lists the value, list and boot effects a pack declares, each with a switch that reaches the plan", () => {
+    const motion: PackMotion = { decode: {}, value: {}, list: { on: false }, boot: {} };
+    expect(effectsOn({}, motion)).toEqual(["decode", "value", "boot"]);
+    expect(effectsPatch({}, motion, "list", true)).toEqual({ motionEffects: "decode,value,list,boot" });
+    expect(motionKnobsOf({ motionEffects: "value,list" }).effects).toEqual(["value", "list"]);
+    for (const e of ["value", "list", "boot"] as const) expect(EFFECT_LABELS[e]).toBeTruthy();
   });
 
   it("a switch writes the effects list, nothing for the pack's own, and none as its own word", () => {

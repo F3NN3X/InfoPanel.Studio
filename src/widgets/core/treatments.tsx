@@ -3,7 +3,7 @@
 // value at the readout scale fitted to its card, the hexagon a hex ring is drawn on and a cell meter's peak hold. Every hook is written
 // only where the Look asks for it, so a Look that sets none (Classic, every pack before these) writes the markup it always did.
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ElementType, type HTMLAttributes, type ReactNode, type RefObject } from "react";
-import { MotionText } from "@/looks/motion-render";
+import { MotionText, useRowKey } from "@/looks/motion-render";
 import { STATUS } from "@/looks/status";
 import { SLAB_TONES, ownSlabVars, slabTexture, type SlabPart, type SlabTone } from "@/looks/treatments";
 import { useSkin } from "./theme";
@@ -62,8 +62,10 @@ export function cellAttrs(sk: Sk, state?: Tone): Record<string, string> {
  * its classes and children unchanged, so a Look that styles no rows draws the markup it always did. A component, so it reads the card's skin
  * from inside the card (a widget's layout callback runs before the card's context is there).
  */
-export function Part({ as, kind, state, current, ...rest }: { as?: ElementType; kind: "row" | "row-head" | "cell" | "avatar" | "slab"; state?: Tone; current?: boolean } & HTMLAttributes<HTMLElement> & Record<`data-${string}`, string | number | undefined>) {
+export function Part({ as, kind, state, current, rowKey, ...rest }: { as?: ElementType; kind: "row" | "row-head" | "cell" | "avatar" | "slab"; state?: Tone; current?: boolean; rowKey?: string } & HTMLAttributes<HTMLElement> & Record<`data-${string}`, string | number | undefined>) {
   const sk = useSkin();
+  // a list row's identity for the pack's list motion (`MotionRow`'s, on the same element)
+  const moKey = useRowKey(rowKey);
   const Tag = as ?? "div";
   if (kind === "slab") {
     // a layout variant's mark: the accent slab in the Look's ink, texture and notch where it draws slabs, else the app's own (`ownSlabVars`, set above the slab, which redefines the card's accent)
@@ -76,7 +78,7 @@ export function Part({ as, kind, state, current, ...rest }: { as?: ElementType; 
     return <Tag data-part="avatar" data-avatar="hex" {...rest} style={{ ...rest.style, clipPath: HEX_CLIP }} />;
   }
   const hooks = kind === "cell" ? cellAttrs(sk, state) : rowAttrs(sk, { state, current, head: kind === "row-head" });
-  return <Tag {...hooks} {...rest} />;
+  return <Tag {...hooks} {...rest} data-mo-key={moKey} />;
 }
 
 /** The kit's hexagon avatar (`avatar-shape: hex`): pointy-top, so a centred initial keeps its whole box. */

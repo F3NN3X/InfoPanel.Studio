@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { MotionRow } from "@/looks/motion-render";
 import { AGENT_IDS, AGENT_NAMES, bySalience, modelLabel, planView, sessionStatus, shortTokens, type AgentId, type AgentSession, type Agents } from "@/lib/agents";
 import { extras } from "@/lib/extras";
 import { useNow } from "@/components/widgets/hooks";
@@ -71,7 +72,7 @@ export function SessionRow({ s, now, width }: { s: AgentSession; now: number; wi
   const wide = width >= 220;
   const cost = width >= COST_W ? costText(s.cost) : "";
   return (
-    <li className="flex min-w-0 items-center gap-2 text-xs">
+    <MotionRow as="li" rowKey={s.key} className="flex min-w-0 items-center gap-2 text-xs">
       <PulseDot color={color} pulse={s.state === "working"} label={s.state} className="h-2 w-2 shrink-0 rounded-full" />
       <span className="max-w-[45%] shrink-0 truncate text-[color:var(--w-fg)]">{s.project || AGENT_NAMES[s.agent]}</span>
       <span className="min-w-0 flex-1 truncate text-micro" style={{ color: s.state === "waiting" ? STATE_COLOR.waiting : "var(--w-muted)" }}>
@@ -80,7 +81,7 @@ export function SessionRow({ s, now, width }: { s: AgentSession; now: number; wi
       {wide && s.context !== undefined && <span className="shrink-0 tabular-nums text-micro text-[color:var(--w-faint)]">{Math.round(s.context)}% ctx</span>}
       {wide && width >= MODEL_W && s.model && <span className="max-w-[28%] shrink-0 truncate text-micro text-[color:var(--w-muted)]">{modelLabel(s.model)}</span>}
       {wide && cost && <span className="shrink-0 tabular-nums text-micro text-[color:var(--w-muted)]">{cost}</span>}
-    </li>
+    </MotionRow>
   );
 }
 

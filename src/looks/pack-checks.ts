@@ -52,6 +52,7 @@ export function stageIssues(stage: PackStageSpec | undefined): string[] {
     if (l.image !== undefined && !(isPackRelativeUrl(l.image) && !/["']/.test(l.image))) issues.push(`stage layer ${i} image ${l.image}`);
     if (l.opacity !== undefined && !(l.opacity >= 0 && l.opacity <= 1)) issues.push(`stage layer ${i} opacity`);
     if (l.minSizeClass !== undefined && !SIZE_CLASSES.includes(l.minSizeClass)) issues.push(`stage layer ${i} minSizeClass`);
+    if (l.animated !== undefined && !(typeof l.animated === "boolean" && l.image !== undefined && /\.svg$/i.test(l.image))) issues.push(`stage layer ${i} animated: only an SVG image layer animates`);
   });
   if (stage?.overlayMinSizeClass !== undefined && !SIZE_CLASSES.includes(stage.overlayMinSizeClass)) issues.push("stage overlayMinSizeClass");
   if (stage?.effects) issues.push(...(Array.isArray(stage.effects) ? effectIssues(stage.effects) : ["stage effects is not a list"]));

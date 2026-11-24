@@ -123,6 +123,49 @@ describe("what a card draws on this screen", () => {
   });
 });
 
+describe("values, lists and the boot", () => {
+  it("each takes only its own keys and words", () => {
+    expect(rules({ value: { style: "roll", mark: "underline" }, list: { enter: "fade", reorder: false, change: false, decode: true }, boot: { style: "glitch", stagger: 20, line: false, decode: false } })).toEqual([]);
+    expect(rules({ value: { style: "slide" } })).toContain("schema");
+    expect(rules({ value: { mark: "blink" } })).toContain("schema");
+    expect(rules({ list: { enter: "spin" } })).toContain("schema");
+    expect(rules({ list: { decode: 1 } })).toContain("schema");
+    expect(rules({ boot: { style: "line" } })).toContain("schema");
+    expect(rules({ glitch: { stagger: 40 } })).toContain("schema");
+    expect(rules({ boot: { stagger: 19 } })).toContain("motion");
+    expect(rules({ boot: { stagger: 121 } })).toContain("motion");
+    expect(motionIssues({ arrival: { mark: "flash" } })).toEqual(["motion arrival takes no mark"]);
+    expect(motionIssues({ decode: { line: true } })).toEqual(["motion decode takes no line"]);
+    expect(motionIssues({ list: { reorder: "yes" } })).toEqual(["motion list reorder: true or false"]);
+    // a glitch's target, and the glitch mark on a value
+    expect(rules({ glitch: { target: "value" }, value: { mark: "glitch" } })).toEqual([]);
+    expect(rules({ glitch: { target: "all", every: 0 } })).toEqual([]);
+    expect(rules({ glitch: { target: "card" } })).toContain("schema");
+    expect(rules({ flicker: { target: "value" } })).toContain("schema");
+    expect(motionIssues({ glitch: { target: "page" } })).toEqual(["motion glitch target: text, value, all"]);
+    expect(motionIssues({ sweep: { target: "card" } })).toEqual(["motion sweep takes no target"]);
+  });
+
+  it("their defaults, and Calm keeps the runs but drops the marks that light a change", () => {
+    const motion: PackMotion = { value: { mark: "flash" }, list: {}, boot: {} };
+    expect(planMotion(motion, {}, FULL)).toMatchObject({ value: { style: "roll", mark: "flash", ms: 480, every: 1 }, list: { enter: "slide", reorder: true, change: true, decode: false, ms: 240 }, boot: { style: "clip", stagger: 60, line: true, decode: true } });
+    expect(planMotion(motion, {}, { ...FULL, level: "calm" })).toMatchObject({ value: { mark: "none" }, list: { change: false, reorder: true }, boot: { style: "clip" } });
+    expect(planMotion(motion, {}, { ...FULL, lite: true })).toBeUndefined();
+  });
+
+  it("Speed scales the boot's stagger inside its range", () => {
+    expect(planMotion({ boot: { stagger: 100 } }, { speed: "slow" }, FULL)!.boot!.stagger).toBe(120);
+    expect(planMotion({ boot: { stagger: 30 } }, { speed: "fast" }, FULL)!.boot!.stagger).toBeCloseTo(20.1);
+  });
+
+  it("an old pack's motion plans as it did: no value, list or boot", () => {
+    const old: PackMotion = { arrival: { style: "clip" }, decode: {}, glitch: {}, scramble: { every: 6 } };
+    const plan = planMotion(old, {}, FULL)!;
+    expect(Object.keys(plan).filter((k) => k !== "key").sort()).toEqual(["arrival", "decode", "glitch", "scramble"]);
+    expect(plan.arrival).toEqual({ intensity: 1, ms: 240, every: 0, style: "clip" });
+  });
+});
+
 describe("the knobs a level stores", () => {
   it("an old config, and the theme defaults, read as the pack's own", () => {
     expect(motionKnobsOf(undefined)).toEqual({});

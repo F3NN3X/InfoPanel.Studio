@@ -269,6 +269,38 @@ The page behind the cards is the pack's `stage`: up to three **layers** (a `fill
 Cyberspec v1 had a glitch-bar overlay on the page. The kit's glitch is a one-shot on text, not a page effect, so v2 dropped the
 overlay and moved the glitch into the motion block.
 
+### Animated page art
+
+A layer's SVG may move: the kit's turning reticles, tracing circuit lines and pulsing lamps. Mark the layer
+`"animated": true` (for example `{ "image": "orbit.svg", "animated": true, "minSizeClass": "md" }`) and keep the SVG to the
+subset the validator reads:
+
+```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+  <style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .ring { animation: spin 6s linear infinite; transform-origin: center; transform-box: fill-box; }
+  </style>
+  <circle class="ring" cx="5" cy="5" r="4" fill="none" stroke="#5EF6FF" stroke-dasharray="2 1"/>
+  <rect x="4" y="4" width="2" height="2" fill="#FFD23F">
+    <animate attributeName="opacity" values="1;0.35;1" dur="1.6s" repeatCount="indefinite"/>
+  </rect>
+</svg>
+```
+
+- A `<style>` holds `@keyframes` and rules on one `.class` or `#id` each. A keyframe sets `transform`, `opacity` or
+  `stroke-dashoffset` (and its timing function); a rule only starts an animation (`animation`, `animation-*`,
+  `transform-origin`, `transform-box`). No URL, quote, comment, escape or other at-rule.
+- `<animate>` animates `opacity` or `stroke-dashoffset` of its parent and `<animateTransform>` its `transform` (`type`
+  `translate`, `scale`, `rotate`, `skewX` or `skewY`), with clock values and numbers only: no `href`, no event `begin`, no
+  `<set>`.
+- A cycle lasts at least a second and has at most seven steps (keyframe stops or `values`), so an opacity pulse dips at most
+  three times a second; at most 24 elements of one file move, and a pack has at most one animated layer (a
+  full-page moving layer costs about 70 ms of main-thread work a second on a 20-card page). `<text>` and scripts are still refused.
+- The app moves the layer only at **Full**. At Calm and Off, in lite mode and under reduced motion it draws a still copy
+  (the same file with its animation cut out), so declare the layer `animated` or the pack is refused; `pack.css` may not use
+  an animated SVG, because there the app could not hold it still.
+
 ## 7. The motion block and its knobs
 
 The kit's text effects (titles that glitch in, labels that decode, readouts that scramble when they change) are declared in
@@ -287,14 +319,47 @@ The kit's text effects (titles that glitch in, labels that decode, readouts that
 }
 ```
 
-Each effect is an object with `on` (default true), `intensity` (0.1 to 1) and its own timing: `glitch` `ms` 80 to 300 and
-`every` 0 (on arrival only) or 4 to 120 seconds; `decode` `ms` 150 to 900; `scramble` `ms` 60 to 300 and `every` 1 to 60 (the
+Each effect is an object with `on` (default true), `intensity` (0.1 to 1) and its own timing: `glitch` `ms` 80 to 300,
+`every` 0 (on arrival only) or 4 to 120 seconds and `target` `text` (titles and labels, the default), `value` or `all`; `decode` `ms` 150 to 900; `scramble` `ms` 60 to 300 and `every` 1 to 60 (the
 least seconds between two scrambles of one number); `arrival` `ms` 120 to 300 and `style` `fade`, `clip` or `line`; `flicker`
 `every` 2 to 120 and `target` `card` or `label`; `sweep` `ms` 400 to 3000 and `every` 4 to 120. A value out of range refuses
 the pack.
 
 The real text never changes: the noise is a copy over it that screen readers skip, so nothing changes width and privacy blur
 still covers it. The page runs at most one repeat a second, three number scrambles a second and twelve texts at once.
+
+Three more effects act on what changes on the page rather than on its words:
+
+```json pack.json
+{
+  "motion": {
+    "arrival": { "style": "clip" },
+    "decode": {},
+    "glitch": {},
+    "value": { "style": "tween", "mark": "underline", "every": 2 },
+    "list": { "enter": "slide", "decode": true },
+    "boot": { "style": "glitch", "stagger": 60, "line": true, "decode": true }
+  }
+}
+```
+
+- `value`: a number that changes rolls only its changed digits like an odometer (`style` `roll`, the default when a pack
+  says nothing), or counts to its new reading (`tween`; a clock or any text that is not one figure always rolls), and may
+  `mark` the change with a `flash`, an `underline` or a `glitch` (the label glitch's slice and colour split, at most 300 ms,
+  on the number's copy). `ms` 150 to 900, `every` 1 to 60 (the least seconds between two runs of one number). The real
+  reading is in the page at once (the run is in the aria-hidden copy), the width is the reading's, and a number with both
+  `value` and `scramble` takes the value. The page starts at most three runs and two marks a second, twelve runs at once.
+  A count writes its copy 15 times a second, so it costs more than a roll: offer it as a choice rather than the default.
+- Numbers can glitch on their own too: `glitch` with `target` `value` (or `all`, numbers and titles) tears a number's copy
+  on arrival and, with `every`, one number at a time now and then, page-wide, under the same one-repeat-a-second rule. At
+  Calm only the arrival run plays and a value's marks are dropped.
+- `list`: the rows of the list widgets (Steam friends, top processes, coding agents, service health, Steam news,
+  notifications) `enter` with a `slide` or a `fade`, glide to a new place when the order changes (`reorder`, by translate:
+  nothing is laid out again), light once when their words change (`change`: a reading that only ticks is not a change),
+  and `decode` a new row's text. `ms` 120 to 300; at most eight rows of a card move at a time.
+- `boot`: when a page opens, its cards arrive one after another in page order (`stagger` 20 to 120 ms, the last at most 1.2 s
+  after the first), with a `style` of `fade`, `clip` or the kit's stepped `glitch`, a `line` drawn across each and its title
+  decoding (`decode`). Once per page: a card that loads later on the same page arrives on its own.
 
 A pack with a motion block gets a **Motion** group in the Theme view: **Level** (the screen's Effects setting), **Intensity**
 and **Speed** (the pack's own values scaled within their ranges) and one switch per declared effect. An effect declared
@@ -309,7 +374,8 @@ the pack:
 | | Full | Calm | Off | Lite mode | Reduced motion |
 |---|---|---|---|---|---|
 | Stage effects | all (up to two animated) | what each effect's `calm` says | none | as at Calm | as at Calm |
-| Motion block | all | the one-shots: what plays as a card or a reading arrives | none | none | none |
+| Motion block | all | the one-shots: what plays as a card or a reading arrives, without the marks that flash a change | none | none | none |
+| Animated page art | moves | still | still | still | still |
 | Pack CSS animations | run | stopped | stopped | stopped | stopped |
 | Effect script | 30 frames a second | 15 frames a second, told `calm` | not run | not run | not run |
 
@@ -552,6 +618,8 @@ features, each validated and documented before the pack used it:
 | Ornaments on 1x1 cards | The micro-print band overlapped text | Ornaments only where the padding is over 10 px, and clear of a spine | No ornaments at 1x1; nothing overlaps |
 | No per-text effects | Titles and readouts static | The `motion` block | Clip arrival, decode, a glitch on arrival, scramble on change, with switches in the Theme view |
 | Pack CSS animations ignored the Effects level | The lamp pulsed at Calm and Off | Pack animations read through a variable the page sets to `none` below Full | The lamp pulses at Full only |
+| Readings jumped, lists snapped | A new value or row appeared at once | `motion` `value`, `list` and `boot` | Counts, rolling clocks, rows that slide in and glide, a staggered page boot |
+| Pack SVG could not move | Reticles and lamps were still art | Animated page layers: a keyframe and SMIL subset, held still below Full | Turning reticles and pulsing lamps behind the cards |
 | Labels a fixed grey | `label-color` was named but nothing read it | `label-color` reaches the labels and follows the variant | Labels in the accent ink |
 | Data kept the widgets' own colours | Blue, teal and yellow sections, green meters under every variant | `series-1` to `series-6`, `meter-ok`, `icon-color` reach the widgets | Charts, meters and weather icons in the variant's colours |
 | Page effects in a fixed colour | Flashing overlays in cyan, or the studio's amber | Effects and layer glows take the screen's accent | They follow the variant |

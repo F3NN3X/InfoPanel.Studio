@@ -19,6 +19,8 @@ export interface StageLayer {
   opacity?: number;
   /** Hidden on a screen under this size class (`sizeClassOf`). */
   minSizeClass?: SizeClass;
+  /** The layer's SVG animates (the validator's subset, `svgAnimation` in pack-safety.ts): it moves only where the screen allows motion, still otherwise (pack-stage.tsx). */
+  animated?: boolean;
 }
 
 /** What a pack draws behind (up to 3 layers) and over (one overlay and its effects) the page. */

@@ -70,7 +70,7 @@ export default function SteamFriends(p: SteamFriendsProps) {
             ) : (
               <ul className={`flex min-h-0 flex-col overflow-hidden ${twoLine ? "gap-2.5" : "gap-1.5"}`}>
                 {shown.map((f, i) => (
-                  <Part as="li" kind="row" current={!!f.game} key={i} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]">
+                  <Part as="li" kind="row" current={!!f.game} rowKey={f.name} key={i} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]">
                     {twoLine ? (
                       <Part
                         as="span"

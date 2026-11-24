@@ -1,8 +1,11 @@
 {
-  "glitch": { "intensity": 0.8, "ms": 240, "every": 4 },
+  "glitch": { "intensity": 0.8, "ms": 240, "every": 4, "target": "all" },
   "decode": { "ms": 400 },
   "scramble": { "ms": 200, "every": 1 },
   "arrival": { "style": "line", "ms": 240 },
   "flicker": { "every": 2, "intensity": 0.6, "target": "card" },
-  "sweep": { "every": 4, "ms": 800, "intensity": 0.5 }
+  "sweep": { "every": 4, "ms": 800, "intensity": 0.5 },
+  "value": { "mark": "glitch", "ms": 480, "every": 1 },
+  "list": { "enter": "slide", "decode": true, "ms": 240 },
+  "boot": { "style": "glitch", "stagger": 60, "ms": 240, "line": true, "decode": true }
 }
