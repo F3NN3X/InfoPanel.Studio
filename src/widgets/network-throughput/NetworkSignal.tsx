@@ -4,6 +4,7 @@
 // as a mono footer. The data and colours are the standard layout's: the adapter's readings and the theme's Series 1 and 2.
 import { Widget, shell, get, num, fmt, fmtRate, gbStat, rateUnitOf, adapterOf, pretty, hue, seriesColour, useHistory, Empty, type RateUnit } from "../kit";
 import { t3Tokens } from "../core/t3-tokens";
+import { useSkin } from "../core/theme";
 import { Reading, SignalGraph } from "../shared/layout-parts";
 import type { NetworkThroughputProps } from "./NetworkThroughput";
 
@@ -24,6 +25,7 @@ export function NetworkSignal(p: NetworkThroughputProps) {
     up = k("upload_speed");
   const dH = useHistory(dn),
     uH = useHistory(up);
+  const sk = useSkin();
   if (!id)
     return (
       <Widget {...shell(p)} title="Network" icon="swap_vert">
@@ -31,7 +33,8 @@ export function NetworkSignal(p: NetworkThroughputProps) {
       </Widget>
     );
   const marks = t3Tokens(p.t3);
-  const dlColor = p.downloadColor || seriesColour(marks, 1, "var(--w-accent)");
+  // the kit draws its signal in the info tone: a Look that draws slabs has one (`slab-info`), else the theme's Series 1
+  const dlColor = p.downloadColor || (sk.slab ? "var(--wp-slab-info)" : seriesColour(marks, 1, "var(--w-accent)"));
   const ulColor = p.uploadColor || seriesColour(marks, 2, hue(70));
   const name = p.title ?? pretty(id).replace(/ {2,}/g, " ");
   const peak = Math.max(1, ...dH, ...uH);

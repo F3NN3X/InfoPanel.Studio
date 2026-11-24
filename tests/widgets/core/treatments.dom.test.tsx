@@ -6,7 +6,6 @@ import { createElement, type ReactNode, useEffect } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import classic from "@/looks/classic/look.json";
-import cyberspec from "@/looks/packs/cyberspec/look.json";
 import type { PackFrame } from "@/looks/pack-json";
 import { Bar, BarRow, Chip, LegendRow, Metric, Pill, Ring, RingStack, ShareBar, Spark } from "@/widgets/core/primitives";
 import { t3Tokens } from "@/widgets/core/t3-tokens";
@@ -19,6 +18,8 @@ afterEach(() => {
 });
 
 const CLASSIC_T3 = classic.t3 as Record<string, string | number>;
+/** Cyberspec v2's T3, before the pack wore any treatment: a pack's own data styles that name none. */
+const CYBERSPEC_V2_T3: Record<string, string | number> = { "header-style": "label-bar", "label-case": "upper", "ring-style": "segmented", "ring-cap": "butt", "meter-style": "segments", "meter-hold-style": "block", "cell-radius": "0px", "graph-style": "line", "series-stroke": 1.5, "spike-shape": "tick", "fader-knob-shape": "square", "meter-segments": 20, "meter-gap": 2, "grid-line": "{accent} / 24%", "label-color": "{accent}", "series-1": "{accent}", "series-2": "{muted}", "series-3": "{fg}", "accent-ink": "{accent}", "meter-ok": "{accent-ink}", "icon-color": "{accent}" };
 const draw = (t3: Record<string, string | number> | undefined, children: ReactNode, frame?: PackFrame) =>
   renderToString(createElement(Widget, { size: "lg", title: "T", icon: "memory", t3: t3 && { ...CLASSIC_T3, ...t3 }, slots: frame ? { decor: { frame } } : undefined, packId: frame ? "p" : undefined, children }));
 const ALL = (
@@ -50,7 +51,7 @@ describe("a Look that asks for no treatment", () => {
     const none = draw(undefined, ALL);
     expect(draw(CLASSIC_T3, ALL)).toBe(none);
     expect(none).not.toMatch(HOOKS);
-    expect(draw(cyberspec.t3 as Record<string, string | number>, ALL)).not.toMatch(HOOKS);
+    expect(draw(CYBERSPEC_V2_T3, ALL)).not.toMatch(HOOKS);
   });
 });
 
@@ -78,7 +79,15 @@ describe("tone slabs", () => {
   it("draw on the card: its slab colours resolved on it, the header, chips and states hooked", () => {
     const html = draw({ "slab-header": "state", "slab-chip": "info", "slab-texture": "scanlines", "slab-notch": 6 }, ALL);
     expect(html).toContain("--wp-slab-ink:#0B0B12");
-    expect(html).toContain("--wp-slab-accent:var(--w-accent)");
+    // the accent slab is the card's accent colour itself, never `var(--w-accent)`, which a slab around it has set to its ink
+    expect(html).not.toContain("--wp-slab-accent:var(--w-accent)");
+    expect(
+      renderToString(
+        <Widget size="lg" title="T" accent="#12AB34" t3={{ ...CLASSIC_T3, "slab-card": "accent" }}>
+          <i />
+        </Widget>,
+      ),
+    ).toContain("--wp-slab-accent:#12AB34");
     expect(html).toContain("--wp-slab-cut:6px");
     expect(html).toContain("repeating-linear-gradient(0deg, rgb(255 255 255 / 0.16)");
     expect(html).toMatch(/<header data-part="header" data-wp-slab-state=""/);

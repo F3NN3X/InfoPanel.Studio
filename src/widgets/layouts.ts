@@ -6,7 +6,12 @@ import type { WidgetLayout } from "./core/types";
 import { meta as calendar } from "./calendar/meta";
 import { meta as dayPlanner } from "./day-planner/meta";
 import { meta as networkThroughput } from "./network-throughput/meta";
+import { meta as notifications } from "./notifications/meta";
 import { meta as sensorValue } from "./meta/SensorValue";
+import { meta as steamFriends } from "./steam-friends/meta";
+import { meta as systemOverview } from "./system-overview/meta";
+import { meta as visualizer } from "./visualizer/meta";
+import { meta as weather } from "./weather/meta";
 
 /** Every kind's first layout: today's, which a Look that names none (and every old config) draws. */
 export const STANDARD_LAYOUT = "standard";
@@ -26,7 +31,7 @@ export const CHROME_LAYOUTS: Readonly<Record<"alert" | "island", readonly Widget
 };
 
 /** The widget kinds that offer layouts (`meta.layouts`); `tests/widgets/layouts.test.ts` holds this list to the registry. */
-const WIDGETS = [calendar, dayPlanner, networkThroughput, sensorValue];
+const WIDGETS = [calendar, dayPlanner, networkThroughput, notifications, sensorValue, steamFriends, systemOverview, visualizer, weather];
 
 /** Every kind a Look may name in `layouts`, with the layouts it offers. */
 export const LAYOUTS: Readonly<Record<string, readonly WidgetLayout[]>> = {

@@ -1,7 +1,7 @@
 // The Look file (investigation 9.6, D5): a Look is T0 to T3 values with modes, tags, fonts and corners, written as
 // `src/looks/<id>/look.json` against `look.schema.json`. The built-in Studio Look also carries the `studio` block its
 // `ui-*` chrome tokens are generated from (D1). Types and the alias resolver only: nothing here reads the DOM.
-import { cssColour, toOklch } from "./colour";
+import { cssColour, toOklch } from "./colour.ts";
 
 /** The T1 semantic names (investigation 9.2): every Look defines or aliases each one, per mode it supports. */
 export const T1_NAMES = [

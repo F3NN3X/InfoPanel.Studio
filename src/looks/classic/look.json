@@ -351,7 +351,8 @@
     "row-style": "none",
     "slab-current": "accent",
     "share-style": "none",
-    "avatar-shape": "none"
+    "avatar-shape": "none",
+    "card-style": "none"
   },
   "export": {
     "notExported": [

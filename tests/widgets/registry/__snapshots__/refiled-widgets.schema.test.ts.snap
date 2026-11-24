@@ -2464,6 +2464,11 @@ exports[`Notifications > files its rows by the rules 1`] = `
       ],
     },
     {
+      "Layout": [
+        "lookLayout",
+      ],
+    },
+    {
       "Fit": [
         "compact",
         "sizeTier · more",
@@ -3325,6 +3330,11 @@ exports[`SteamFriends > files its rows by the rules 1`] = `
         "ingameOnly",
         "showTime",
         "showCounts",
+      ],
+    },
+    {
+      "Layout": [
+        "lookLayout",
       ],
     },
     {
@@ -4391,6 +4401,11 @@ exports[`Visualizer > files its rows by the rules 1`] = `
         "vizGap · more",
         "vizOpacity · more",
         "vizGlow · more",
+      ],
+    },
+    {
+      "Layout": [
+        "lookLayout",
       ],
     },
     {

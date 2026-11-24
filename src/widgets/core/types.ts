@@ -245,6 +245,8 @@ export interface SkinTokens {
   share: "gapped";
   /** `avatar-shape: hex`: avatars and initials are drawn on a hexagon. */
   avatar: "hex";
+  /** `card-style: anatomy`: a card with the room wears the kit's head (category, display title, rule) and footer strip (card-anatomy.tsx). */
+  anatomy: true;
 }
 
 /** One icon of a Look's icon set: a single path in a viewBox, painted in `currentColor`. */

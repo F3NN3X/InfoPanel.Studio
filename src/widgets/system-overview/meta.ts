@@ -17,4 +17,8 @@ export const meta: WidgetMeta = {
     { id: "graphs", name: "Graphs", blurb: "One sparkline row per metric", defaultSize: [4, 3] },
     { id: "gauges", name: "Gauges", blurb: "Open-arc dials per metric", defaultSize: [4, 3] },
   ],
+  layouts: [
+    { id: "standard", name: "Standard" },
+    { id: "power", name: "Power draw" },
+  ],
 };

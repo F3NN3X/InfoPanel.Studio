@@ -60,6 +60,18 @@ describe("Calendar's month navigator", () => {
     expect(nav.textContent).toContain("Standup //");
   });
 
+  it("hatches Sunday's column only and strikes its days through, as the kit's calendar does", () => {
+    const el = drawIn(300, 300, <Calendar data={DATE} lookLayout="grid-nav" />);
+    const rest = [...el.querySelectorAll("[data-rest]")];
+    // six weeks: one rest day a week, every one a Sunday
+    expect(rest).toHaveLength(6);
+    expect(rest.map((c) => c.textContent)).toEqual(["1", "8", "15", "22", "29", "6"]);
+    expect(rest[0].querySelector("span")?.className).toContain("line-through");
+    // Saturday the 28th is a plain day
+    const sat = [...el.querySelectorAll("[data-layout=grid-nav] span")].find((s) => s.textContent === "28" && !s.hasAttribute("data-rest"))!;
+    expect(sat.className).not.toContain("line-through");
+  });
+
   it("selects today, and says so, when nothing is planned; pages the month with its buttons", () => {
     mocks.extras = { ...EMPTY_EXTRAS, calendar: { configured: false, events: [] } };
     const el = drawIn(300, 300, <Calendar data={DATE} lookLayout="grid-nav" />);

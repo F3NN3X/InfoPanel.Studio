@@ -1,5 +1,6 @@
 // Calendar's `grid-nav` layout (look.json `layouts`, src/widgets/layouts.ts): the kit's month navigator. Notched buttons page the
-// month, the month in the accent over a weekday row, six weeks with the neighbouring months' days dimmed and the weekend hatched,
+// month, the month in the accent over a weekday row, six weeks with the neighbouring months' days dimmed and Sunday's column hatched
+// with its days struck through (the kit's rest day),
 // today framed with a corner flag, the selected day (the next event's, else today) a solid slab, and a footer readout of the
 // selected date beside the next event. Everything comes from the clock plugin's date and the calendar links; nothing is made up.
 import { useState } from "react";
@@ -63,6 +64,8 @@ export function CalendarNav(p: CalendarProps & { day: number; month: number; yea
   const marked = new Set(calendar.events.map((e) => dayKey(new Date(e.start))));
   const time = event && !event.allDay ? new Date(event.start).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : event ? "All day" : undefined;
   const aside = event ? `${event.title} // ${time}` : `W${p.week} // ${calendar.configured ? "No events" : "No calendar"}`;
+  // a narrow footer keeps the week alone rather than cutting the words short
+  const short = event ? aside : `W${p.week}`;
   return (
     <Widget {...shell(p)} title={p.title} showHeader={false} compact={(box) => (navFits(box) ? undefined : { label: WEEKDAYS[today.getDay()], value: p.day, sub: `${MONTHS[p.month - 1]} ${p.year}`, kind: "value" as const, icon: "calendar_today" })}>
       {({ w, h }) => {
@@ -105,7 +108,8 @@ export function CalendarNav(p: CalendarProps & { day: number; month: number; yea
               {cells.map((c) => {
                 const key = dayKey(c);
                 const inMonth = c.getMonth() === shown.getMonth();
-                const weekend = c.getDay() === 0 || c.getDay() === 6;
+                // the kit hatches one column, the rest day, and strikes its days through; Saturday is a day like the others
+                const rest = c.getDay() === 0;
                 const isToday = key === dayKey(today);
                 const isSelected = key === dayKey(selected);
                 // the cell keeps the column's hatch; today's frame and the selected slab are a box about a cell high, so a wide month keeps square-ish marks
@@ -113,7 +117,7 @@ export function CalendarNav(p: CalendarProps & { day: number; month: number; yea
                 const dot = marked.has(key) && <span aria-hidden className="absolute bottom-0.75 left-1/2 size-0.75 -translate-x-1/2" style={{ background: TONES.warn }} />;
                 const flag = isToday && <span aria-hidden className="absolute right-0 top-0 size-1.75 bg-[color:var(--w-accent)]" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%)" }} />;
                 return (
-                  <span key={key} className="flex items-stretch justify-center" style={{ fontSize: cellPx, ...(weekend && !isSelected ? { backgroundImage: hatch(22) } : null) }}>
+                  <span key={key} className="flex items-stretch justify-center" data-rest={rest ? "" : undefined} style={{ fontSize: cellPx, ...(rest && !isSelected ? { backgroundImage: hatch(22) } : null) }}>
                     {isSelected ? (
                       <Part kind="slab" as="span" data-part="num" data-selected="" className="flex items-center justify-center font-bold tabular-nums" style={mark}>
                         <span>{c.getDate()}</span>
@@ -122,7 +126,7 @@ export function CalendarNav(p: CalendarProps & { day: number; month: number; yea
                     ) : (
                       <span
                         data-today={isToday ? "" : undefined}
-                        className={`relative flex items-center justify-center tabular-nums ${isToday ? "font-bold text-[color:var(--w-fg)]" : inMonth ? "font-semibold text-[color:var(--w-fg)]" : "text-[color:var(--w-muted)]"}`}
+                        className={`relative flex items-center justify-center tabular-nums ${rest && !isToday ? "line-through decoration-1 " : ""}${isToday ? "font-bold text-[color:var(--w-fg)]" : rest ? "text-[color:var(--w-muted)]" : inMonth ? "font-semibold text-[color:var(--w-fg)]" : "text-[color:var(--w-muted)]"}`}
                         style={{ ...mark, ...(isToday ? { boxShadow: "inset 0 0 0 1px var(--w-accent)" } : null) }}
                       >
                         {c.getDate()}
@@ -141,7 +145,7 @@ export function CalendarNav(p: CalendarProps & { day: number; month: number; yea
                   <Num className="text-[color:var(--w-fg)]">{dotDate(selected)}</Num>
                 </span>
                 <span data-part="mono" className="min-w-0 truncate text-micro uppercase leading-none tracking-[0.06em] text-[color:var(--w-muted)]" title={aside}>
-                  {aside}
+                  {w >= 300 ? aside : short}
                 </span>
               </div>
             )}

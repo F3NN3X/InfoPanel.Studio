@@ -7,6 +7,7 @@ import { levelOf, useVizInput } from "../core/viz/use-viz-input";
 import { AUDIO, useLevelDevice } from "../shared/audio-device";
 import { audioIdsIn, pickedIds, type FlowFilter } from "../shared/audio-data";
 import { meta } from "./meta";
+import { VisualizerSpectrum } from "./VisualizerSpectrum";
 
 export { meta };
 
@@ -31,8 +32,13 @@ export interface VisualizerProps extends ShellProps {
 /** The sensitivity at which the shaped bands pass through unchanged. */
 export const NEUTRAL_SENS = 1.4;
 
-// Bands are the AudioMeter plugin's spectrum (v1.3.0+); without it every band follows the live level.
+/** The standard layout, or the `spectrum` one the zone's Look or Layout pick names (`meta.layouts`). */
 export default function Visualizer(p: VisualizerProps) {
+  return p.lookLayout === "spectrum" ? <VisualizerSpectrum {...p} /> : <VisualizerCanvas {...p} />;
+}
+
+// Bands are the AudioMeter plugin's spectrum (v1.3.0+); without it every band follows the live level.
+function VisualizerCanvas(p: VisualizerProps) {
   useFastSensors(AUDIO);
   const d = p.data;
   // the loudest live device of the picked ones (none picked: of all in the Show filter), like the media widget

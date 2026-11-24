@@ -153,6 +153,7 @@ function treatments(t3: Readonly<Record<string, string | number>>, out: Partial<
   if (word(t3, "row-style") === "ruled") out.rows = "ruled";
   if (word(t3, "share-style") === "gapped") out.share = "gapped";
   if (word(t3, "avatar-shape") === "hex") out.avatar = "hex";
+  if (word(t3, "card-style") === "anatomy") out.anatomy = true;
 }
 
 /** The tokens a Look's T3 values set; `{}` for Classic's. */

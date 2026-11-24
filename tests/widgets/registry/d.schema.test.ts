@@ -34,6 +34,8 @@ const BEYOND_SPEC: Record<string, Record<string, string[]>> = {
   FpsMonitor: { view: ["view"], showMetrics: ["showMetrics"], sparkline: ["sparkline"], ringColor: ["ringColor"], sparkColor: ["sparkColor"] },
   GameSpotlight: { showStats: ["showStats"], showNews: ["showNews"] },
   Achievements: { display: ["display"] },
+  // the layout variant a Look names (src/widgets/layouts.ts): the Layout row
+  SteamFriends: { lookLayout: ["lookLayout"] },
 };
 
 // The Frame Pacing widget's spec still names the pacing view's props (config v19), which FpsMonitor's rows carry.

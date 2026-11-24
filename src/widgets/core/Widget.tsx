@@ -19,6 +19,7 @@ import { seriesVars } from "./t3-tokens";
 import { cardTreatments, frameToneVars, slabVars } from "./treatments";
 import { usePageLight } from "./page-mode";
 import { CompactView, StudioView, SkinHeader } from "./views";
+import { AnatomyFooter, AnatomyHeader, CardKindCtx, anatomyFits } from "./card-anatomy";
 import type { Compact, ShellProps, Studio, Tier } from "./types";
 
 /** What a template's layout callback receives: the inner content size plus the outer box. */
@@ -161,6 +162,9 @@ function WidgetCard({ title, icon, iconOverride, accent, surface, radius, size, 
   const decor = !!(ctx.ornament || ctx.tabBand || ctx.decor || sk.header === "box-legend");
   const pad = shellPad({ box, studio: isStudio, compact: useCompact, bleed, tui, decor, padding: chrome?.padding !== undefined ? Math.round((chrome.padding / zoom) * 100) / 100 : undefined });
   const header = !isStudio && showHeader && titled && heading && (tui || (!useCompact && box.size !== "xs"));
+  // the Look's card anatomy (`card-style: anatomy`) where the card has the room for its head and footer; the Look's own header otherwise
+  const kind = useContext(CardKindCtx);
+  const anatomy = header && !tui && sk.anatomy && kind && anatomyFits(box.w, box.h) ? kind : undefined;
   const css = chrome?.customCss ? scopedCss(scope, chrome.customCss) : "";
   const background = chrome?.backgroundOn && chrome.background ? chrome.background : "";
   const mat = resolveMaterial(surf, chrome);
@@ -189,7 +193,7 @@ function WidgetCard({ title, icon, iconOverride, accent, surface, radius, size, 
     // the Look's series colours, resolved here on the card (`seriesColour`)
     ...seriesVars(ctx.series),
     // the Look's tone slabs (`slab-*`): their colours resolved on the card, where its accent and status colours are
-    ...slabVars(ctx.slab),
+    ...slabVars(ctx.slab, accentStyle["--w-accent"]),
     ...frameToneVars(frame?.tone === "state"),
     ...(ctx.labelGlow ? { textShadow: "0 0 6px color-mix(in oklab, var(--w-accent) 55%, transparent)" } : null),
     // A roomy box (4x4) grows the body type: the theme's type tokens, so every text-micro / caption / body / title follows; and sets the hero size `Metric` reads.
@@ -218,7 +222,7 @@ function WidgetCard({ title, icon, iconOverride, accent, surface, radius, size, 
           </>
         )}
         <div data-mo-arrive={motion?.arrival && motion.arrival.style !== "line" ? motion.arrival.style : undefined} data-mo-body={motion?.boot ? "" : undefined} className={`relative flex min-h-0 min-w-0 flex-1 flex-col ${pad.className}`} style={{ ...pad.style, ...(zoom !== 1 ? { zoom } : null) }}>
-          {header && <SkinHeader kind={sk.header} title={heading} icon={headIcon} right={useCompact ? undefined : right} bleed={bleed} bg={mat.patch} w={box.w} />}
+          {header && (anatomy ? <AnatomyHeader kind={anatomy} title={heading} icon={headIcon} right={right} w={box.w} /> : <SkinHeader kind={sk.header} title={heading} icon={headIcon} right={useCompact ? undefined : right} bleed={bleed} bg={mat.patch} w={box.w} />)}
           <div ref={cref} data-wp-body="" {...bodyFlags(chrome)} className="relative min-h-0 flex-1">
             {isStudio ? (
               <StudioView c={sObj!} w={box.w} h={box.h} icon={headIcon} />
@@ -230,6 +234,7 @@ function WidgetCard({ title, icon, iconOverride, accent, surface, radius, size, 
               children
             )}
           </div>
+          {anatomy && <AnatomyFooter kind={anatomy} />}
         </div>
       </div>
   );

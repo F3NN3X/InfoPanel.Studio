@@ -3,6 +3,7 @@ import { weatherKind, type WeatherKind } from "@/lib/weather-icons";
 import { windValue } from "../weather-fx/config";
 import { WeatherFx, type WeatherFxOpts } from "../weather-fx/WeatherFx";
 import Forecast from "./Forecast";
+import { WeatherQuote } from "./WeatherQuote";
 import { Widget, shell, get, num, fmt, has, rows, roomy, squareHero, Stat, Num, WeatherGlyph, weatherIcon, useIpTag, type ShellProps, type WeatherIconProps } from "../kit";
 import { WeatherGlance, WeatherWeek, weekDays } from "./WeatherViews";
 import { meta } from "./meta";
@@ -56,8 +57,10 @@ export interface WeatherProps extends ShellProps {
   days?: number;
 }
 
+/** The forecast view, the `quote` layout the zone's Look or Layout pick names (the views of the weather now; glance and week keep theirs), or the standard layout. */
 export default function Weather(p: WeatherProps) {
   if (p.view === "forecast") return <Forecast {...p} />;
+  if (p.lookLayout === "quote" && p.view !== "glance" && p.view !== "week") return <WeatherQuote {...p} />;
   return <Current {...p} />;
 }
 

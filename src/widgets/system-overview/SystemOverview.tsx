@@ -7,6 +7,7 @@ import { SKINS } from "../core/theme";
 import { accentVars, useFitRows, Widget, shell, get, num, fmt, fmtRate, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, useIpTag, ToneCue, seriesColour, type ShellProps, type Tone } from "../kit";
 import { t3Tokens } from "../core/t3-tokens";
 import { meta } from "./meta";
+import { SystemPower } from "./SystemPower";
 
 export { meta };
 
@@ -164,7 +165,12 @@ function DetailLine({ stats, width }: { stats: Stat[]; width?: number }) {
   );
 }
 
+/** The standard layout, or the `power` one the zone's Look or Layout pick names (`meta.layouts`). */
 export default function SystemOverview(p: SystemOverviewProps) {
+  return p.lookLayout === "power" ? <SystemPower {...p} /> : <SystemPanel {...p} />;
+}
+
+function SystemPanel(p: SystemOverviewProps) {
   const sk = useSkin();
   const d = p.data;
   const cpu = hw(d).cpu,

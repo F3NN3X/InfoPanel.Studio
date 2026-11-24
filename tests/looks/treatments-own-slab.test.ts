@@ -13,9 +13,10 @@ describe("ownSlabVars (a layout variant's slab in its own colour)", () => {
     expect(ownSlabVars("#5ef6ff")["--wp-slab-tex"]).toBe(slabTexture(SLAB_INK_DEFAULT));
   });
 
-  it("leaves a variable's ink to CSS and draws no texture", () => {
+  it("leaves a variable's ink to CSS, and its scan lines in the other of black and white, so the fallback slab keeps the texture", () => {
     const v = ownSlabVars("var(--w-accent)");
-    expect(v["--wp-slab-ink"]).toContain("oklch(from var(--w-accent)");
-    expect(v).not.toHaveProperty("--wp-slab-tex");
+    expect(v["--wp-slab-ink"]).toBe("oklch(from var(--w-accent) clamp(0, (0.56 - l) * 1000, 1) 0 0)");
+    // black ink on a light slab (l over 0.56) has white lines, white ink on a dark one black lines: never the ink's own colour
+    expect(v["--wp-slab-tex"]).toBe("repeating-linear-gradient(0deg, oklch(from var(--w-accent) clamp(0, (l - 0.56) * 1000, 1) 0 0 / 0.16) 0 1px, transparent 1px 3px)");
   });
 });

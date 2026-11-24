@@ -38,6 +38,10 @@
   background-image: var(--wp-slab-tex, none);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--wp-slab-cut, 0px)), calc(100% - var(--wp-slab-cut, 0px)) 100%, 0 100%);
 }
+/* A layout's ticket slab (`QuoteSlab`): the kit's two side notches as well as the cut corner. */
+[data-wp-slab][data-slab-notches]::before {
+  clip-path: polygon(0 0, 100% 0, 100% calc(50% - 6px), calc(100% - 6px) 50%, 100% calc(50% + 6px), 100% calc(100% - var(--wp-slab-cut, 0px)), calc(100% - var(--wp-slab-cut, 0px)) 100%, 0 100%, 0 calc(50% + 6px), 6px 50%, 0 calc(50% - 6px));
+}
 /* Everything on a slab is the ink: a value's own tone colour or a pack's numeral colour would be read on the slab, not on the card. */
 [data-wp-slab] *,
 [data-part="card"]:has([data-state="warn"], [data-state="crit"]) [data-wp-slab-state] *,

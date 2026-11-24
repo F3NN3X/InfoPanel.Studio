@@ -16,4 +16,8 @@ export const meta: WidgetMeta = {
     { id: "list", name: "List" },
     { id: "table", name: "Table", blurb: "Friends in columns: status, game, last seen", tags: "columns grid" },
   ],
+  layouts: [
+    { id: "standard", name: "Standard" },
+    { id: "crew", name: "Crew roster" },
+  ],
 };

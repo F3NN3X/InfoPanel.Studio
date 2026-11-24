@@ -11,12 +11,15 @@ import type { ReadoutSpec, SkinContext, SlabSpec, Tone } from "./types";
 
 type Sk = Partial<SkinContext>;
 
-/** The card's slab colours: each tone resolved on the card (a part that is a slab redefines the card's text colours for what is on it), the ink, the texture and the notch. */
-export function slabVars(slab: SlabSpec | undefined): CSSProperties | undefined {
+/**
+ * The card's slab colours: each tone resolved on the card (a part that is a slab redefines the card's text colours for what is on it), the ink, the texture and the notch.
+ * The accent slab takes the card's accent colour itself (`accent`): read through `var(--w-accent)` where a slab has already set the accent to its ink, it was ink on ink.
+ */
+export function slabVars(slab: SlabSpec | undefined, accent?: string): CSSProperties | undefined {
   if (!slab) return undefined;
   return {
     "--wp-slab-ink": slab.ink,
-    "--wp-slab-accent": "var(--w-accent)",
+    "--wp-slab-accent": accent || "var(--w-accent)",
     "--wp-slab-info": slab.info,
     "--wp-slab-ok": `var(--w-ok, ${STATUS.ok})`,
     "--wp-slab-warn": `var(--w-warn, ${STATUS.warn})`,

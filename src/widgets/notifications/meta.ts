@@ -15,4 +15,8 @@ export const meta: WidgetMeta = {
   blurb: "Latest notification and history",
   tags: "toast alerts",
   description: "The latest toast notification and the history list from the Notifications plugin.",
+  layouts: [
+    { id: "standard", name: "Standard" },
+    { id: "feed", name: "Inbox feed" },
+  ],
 };

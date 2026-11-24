@@ -700,6 +700,11 @@ exports[`SystemOverview > files its rows as drawn 1`] = `
       ],
     },
     {
+      "Layout": [
+        "lookLayout",
+      ],
+    },
+    {
       "Fit": [
         "compact",
         "sizeTier · more",
@@ -947,6 +952,11 @@ exports[`Weather > files its rows as drawn 1`] = `
         "fxClouds · per widget",
         "fxOpacity · per widget",
         "fxPreview · per widget",
+      ],
+    },
+    {
+      "Layout": [
+        "lookLayout",
       ],
     },
     {
