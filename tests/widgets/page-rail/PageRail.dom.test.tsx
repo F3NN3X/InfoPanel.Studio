@@ -135,6 +135,18 @@ describe("the page rail", () => {
 const profile = (id: string, name: string, w: number, pages: number, exe?: string[]): MonitorProfile =>
   ({ id, name, width: w, height: 600, pages: Array.from({ length: pages }, (_, i) => ({ id: `${id}-${i}`, name: "P", placements: [] })), ...(exe ? { autoSwitch: { exe } } : {}) }) as unknown as MonitorProfile;
 
+describe("a widget in a rail slot", () => {
+  it("is the rail's chrome: drawn without the pack's decorations whatever its preset says, its header off", () => {
+    const zone = vi.fn(() => <i data-testid="slot-widget" />);
+    const slot: RailSlot = { id: "bat", group: "bottom", target: { kind: "widget", module: "Battery", settings: { decoration: true, accent: "#00ff00" } } } as RailSlot;
+    draw(host({ zone }), [slot]);
+    expect(screen.getByTestId("slot-widget")).toBeTruthy();
+    const placement = (zone.mock.calls[0] as unknown[])[0] as { module: string; settings: Record<string, unknown> };
+    expect(placement.module).toBe("Battery");
+    expect(placement.settings).toMatchObject({ decoration: false, showHeader: false, accent: "#00ff00" });
+  });
+});
+
 describe("the profile chip and picker (P4)", () => {
   const pick = vi.fn<(id: string) => void>();
   const auto = vi.fn<(on: boolean, lock?: string) => void>();

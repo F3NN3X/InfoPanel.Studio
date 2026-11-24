@@ -1298,7 +1298,7 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
 
   In `pack.json`, `motion` takes any of `glitch`, `decode`, `scramble`, `arrival`, `flicker` and `sweep`, each an object
   with `on` (default true; false leaves it for the switch), `intensity` (0.1 to 1) and its own timing: `glitch` `ms`
-  80-300, `every` 0 (on arrival only) or 4-120 seconds and `target` `text` (titles and labels, the default), `value`
+  80-300, `every` 0 (on arrival only) or 4-120 seconds and `target` `text` (titles, labels and the page rail's logo, the default), `value`
   (numbers, torn in a copy over them) or `all`; `decode` `ms` 150-900; `scramble` `ms` 60-300 and `every`
   1-60 (the least seconds between two scrambles of one number); `arrival` `ms` 120-300 and `style` `fade`, `clip` or
   `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000 and `every` 4-120; `value` `ms`

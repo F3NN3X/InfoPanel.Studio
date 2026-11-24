@@ -664,6 +664,27 @@
 @keyframes app-mo-clip { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
 @keyframes app-mo-line { 0% { transform: scaleX(0); opacity: 1; } 70% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
 [data-mo-glitch] { animation: app-mo-glitch var(--mo-glitch-ms, 240ms) 1; }
+/* A mark the glitch tears (motion-runtime.ts `MARKS`: the page rail's logo): what it holds slices and shifts, and an image's shape is
+   split off each side in the accent and the text colour (`data-mo-tear="image"`, `--mo-tear-img`). Transform, clip and opacity only. */
+[data-mo-tear] { position: relative; }
+[data-mo-tear][data-mo-glitch] { animation: none; }
+[data-mo-tear][data-mo-glitch] > * { animation: app-mo-tear var(--mo-glitch-ms, 240ms) 1; }
+[data-mo-tear="image"][data-mo-glitch]::before,
+[data-mo-tear="image"][data-mo-glitch]::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; -webkit-mask: var(--mo-tear-img) center / 65% no-repeat; mask: var(--mo-tear-img) center / 65% no-repeat; animation: app-mo-tear-split var(--mo-glitch-ms, 240ms) 1; }
+[data-mo-tear="image"][data-mo-glitch]::before { background: var(--w-accent); --mo-dx: -1; }
+[data-mo-tear="image"][data-mo-glitch]::after { background: var(--w-fg); --mo-dx: 1; }
+@keyframes app-mo-tear {
+  0%, 100% { translate: none; clip-path: none; }
+  20% { translate: 2px 0; clip-path: inset(0 0 40% 0); animation-timing-function: step-end; }
+  45% { translate: -2px 0; clip-path: inset(55% 0 0 0); animation-timing-function: step-end; }
+  70% { translate: none; clip-path: inset(20% 0 30% 0); animation-timing-function: step-end; }
+}
+@keyframes app-mo-tear-split {
+  0%, 100% { opacity: 0; translate: none; }
+  20% { opacity: 0.7; translate: calc(var(--mo-dx) * 3px) 0; clip-path: inset(10% 0 50% 0); animation-timing-function: step-end; }
+  45% { opacity: 0.7; translate: calc(var(--mo-dx) * -2px) 0; clip-path: inset(50% 0 10% 0); animation-timing-function: step-end; }
+  70% { opacity: 0; }
+}
 [data-mo-flicker] { animation: app-mo-flicker 600ms 1; }
 [data-mo-layer]::after { content: ""; position: absolute; inset: 0; opacity: 0; background: linear-gradient(to bottom, transparent 44%, var(--w-accent) 50%, transparent 56%); }
 [data-mo-layer][data-mo-sweep]::after { opacity: var(--mo-sweep-op, 0.2); animation: app-mo-sweep var(--mo-sweep-ms, 1200ms) linear 1 both; }

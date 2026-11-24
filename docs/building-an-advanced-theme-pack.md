@@ -348,7 +348,7 @@ The kit's text effects (titles that glitch in, labels that decode, readouts that
 ```
 
 Each effect is an object with `on` (default true), `intensity` (0.1 to 1) and its own timing: `glitch` `ms` 80 to 300,
-`every` 0 (on arrival only) or 4 to 120 seconds and `target` `text` (titles and labels, the default), `value` or `all`; `decode` `ms` 150 to 900; `scramble` `ms` 60 to 300 and `every` 1 to 60 (the
+`every` 0 (on arrival only) or 4 to 120 seconds and `target` `text` (titles, labels and the page rail's logo, which tears as an image: sliced, shifted and split in the accent; the default), `value` or `all`; `decode` `ms` 150 to 900; `scramble` `ms` 60 to 300 and `every` 1 to 60 (the
 least seconds between two scrambles of one number); `arrival` `ms` 120 to 300 and `style` `fade`, `clip` or `line`; `flicker`
 `every` 2 to 120 and `target` `card` or `label`; `sweep` `ms` 400 to 3000 and `every` 4 to 120. A value out of range refuses
 the pack.

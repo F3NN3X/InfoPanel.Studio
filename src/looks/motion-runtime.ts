@@ -271,7 +271,9 @@ const periodOf = (card: Card, kind: Repeat): number => card.plan[kind]?.every ??
 /** The texts a glitch tears: labels and titles, and the numbers (their copy: `glitchValue`). */
 const TEXTS = '[data-part="label"], [data-part="header"]';
 const NUMBERS = '[data-part="num"] [data-mo-text]';
-const tearable = (target: string | undefined) => (target === "value" ? NUMBERS : target === "all" ? `${TEXTS}, ${NUMBERS}` : TEXTS);
+/** The marks a glitch tears with the titles (`data-mo-tear`: the page rail's logo), by slicing and shifting the element itself. */
+const MARKS = "[data-mo-tear]";
+const tearable = (target: string | undefined) => (target === "value" ? NUMBERS : target === "all" ? `${TEXTS}, ${MARKS}, ${NUMBERS}` : `${TEXTS}, ${MARKS}`);
 /** One glitch on a text: a label's or title's own (`data-mo-glitch`), a number's in its copy. */
 const tear = (el: Element, ms: number) => (el.matches(NUMBERS) ? glitchValue(el as HTMLElement, ms) : pulse(el, "data-mo-glitch", ms));
 

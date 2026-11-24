@@ -113,6 +113,28 @@ describe("the page's repeats", () => {
     expect(motionState()).toMatchObject({ cards: 0, timer: false });
   });
 
+  it("tears a mark (`data-mo-tear`, the rail's logo) with the titles, and not for a glitch on numbers only", () => {
+    const el = card();
+    el.insertAdjacentHTML("beforeend", '<button data-mo-tear="image"><img alt="logo"></button>');
+    const off = addMotionCard(el, plan);
+    expect(el.querySelector("[data-mo-tear]")?.hasAttribute("data-mo-glitch")).toBe(true);
+    off();
+    const other = card();
+    other.insertAdjacentHTML("beforeend", "<button data-mo-tear></button>");
+    const numbers = planMotion({ glitch: { every: 4, target: "value" } }, {}, { level: "full", lite: false, reduceMotion: false })!;
+    const torn: Element[] = [];
+    const set = Element.prototype.setAttribute;
+    const spy = vi.spyOn(Element.prototype, "setAttribute").mockImplementation(function (this: Element, name: string, value: string) {
+      if (name === "data-mo-glitch") torn.push(this);
+      set.call(this, name, value);
+    });
+    const off2 = addMotionCard(other, numbers);
+    for (let i = 0; i < 20; i++) vi.advanceTimersByTime(500);
+    spy.mockRestore();
+    off2();
+    expect(torn.some((t) => t.hasAttribute("data-mo-tear"))).toBe(false);
+  });
+
   it("sets no timer while the page is hidden, and none for a card with one-shots only", () => {
     const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
     const off = addMotionCard(card(), plan);

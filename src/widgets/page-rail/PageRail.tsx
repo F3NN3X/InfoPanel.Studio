@@ -193,7 +193,8 @@ const PLATES: Record<RailPlate, CSSProperties> = {
 
 /**
  * The logo slot (a profile slot with an image): the user's image on its plate, the user's choice or one read from the
- * image (owner Q8). Its alt text is the item's name and what a tap does (owner Q10).
+ * image (owner Q8). Its alt text is the item's name and what a tap does (owner Q10). It is a mark a pack's glitch tears
+ * with the titles (`data-mo-tear`, motion-runtime.ts), its image split by its shape (`--mo-tear-img`).
  */
 function Logo({ slot, name, alt, run }: { slot: RailSlot; name: string; alt: string; run: (a: TouchAction, g?: TouchGesture) => void }) {
   const { top } = useContext(SizeCtx);
@@ -208,9 +209,10 @@ function Logo({ slot, name, alt, run }: { slot: RailSlot; name: string; alt: str
       {...g}
       data-rail-slot={slot.id}
       data-plate={plate}
+      data-mo-tear={url ? "image" : ""}
       aria-label={url ? undefined : name}
       className={`flex shrink-0 touch-manipulation select-none items-center justify-center rounded-2xl ${FOCUS}`}
-      style={{ width: top, height: top, color: "var(--w-fg)", ...PLATES[plate] }}
+      style={{ width: top, height: top, color: "var(--w-fg)", ...PLATES[plate], ...(url ? ({ "--mo-tear-img": `url("${url}")` } as CSSProperties) : null) }}
     >
       {url ? <img src={url} alt={alt} draggable={false} style={{ width: top * 0.65, height: top * 0.65 }} className="object-contain" /> : <Glyph slot={slot} name={name} size={top} />}
     </button>
@@ -246,10 +248,12 @@ function PageLock({ lock, run }: { lock: "auto" | "locked"; run: (a: TouchAction
 
 /**
  * A widget in a slot (one with a rail preset): drawn by the screen as a kiosk zone, in a box of the slot's size. The slot's
- * touch map runs on it as on a widget on a page (P6), its own controls keeping their presses.
+ * touch map runs on it as on a widget on a page (P6), its own controls keeping their presses. It is the rail's chrome, not a
+ * card on the page: it draws without the pack's decorations (`decoration: false`: no frame, band, tab, caption, glow or
+ * ornament, and no motion), whatever its preset says, and keeps the Look's colours.
  */
 function SlotWidget({ id, module, settings, touch, host, style }: { id: string; module: string; settings?: ModuleSettings; touch?: TouchMap; host: RailHost; style: CSSProperties }) {
-  const placement: Placement = useMemo(() => ({ id, module, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, settings: { showHeader: false, ...settings } }), [id, module, settings]);
+  const placement: Placement = useMemo(() => ({ id, module, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, settings: { showHeader: false, ...settings, decoration: false } }), [id, module, settings]);
   // the touch listeners straight from the rail's chunk (the kiosk entry's hook would make a chunk of its own)
   const [box, setBox] = useState<HTMLDivElement | null>(null);
   const latest = useRef({ touch, run: host.run });
