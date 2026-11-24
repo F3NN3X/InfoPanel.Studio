@@ -2,9 +2,10 @@ The font files in assets/ are subsets (Basic Latin and a few symbols, woff2) of 
 
 Rajdhani: Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com)
 JetBrains Mono: Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+Kode Mono: Copyright 2023 The Kode Mono Project Authors (https://github.com/isaozler/kode-mono)
 
-Source: @fontsource/rajdhani and @fontsource/jetbrains-mono (latin). Both are the faces the Cyberspec kit names (its THIRD_PARTY_NOTICES.md: SIL Open Font License 1.1).
-Neither family declares a Reserved Font Name.
+Source: @fontsource/rajdhani, @fontsource/jetbrains-mono and @fontsource/kode-mono (latin). All three are the faces the Cyberspec kit names (its THIRD_PARTY_NOTICES.md: SIL Open Font License 1.1; Kode Mono is its display face).
+No family declares a Reserved Font Name.
 
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007

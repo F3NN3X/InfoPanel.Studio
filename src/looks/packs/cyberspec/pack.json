@@ -1,14 +1,14 @@
 {
   "id": "cyberspec",
   "name": "Cyberspec",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "tags": [
     "dark",
     "cyberpunk",
     "angular",
     "crt"
   ],
-  "description": "Blue-black panels with a cut corner and a spine, labels in the accent ink, cyan readouts that glow, yellow warnings and micro-print in the margins, under a faint CRT raster. After Cyberspec by Agnel Nieves (MIT), github.com/agnelnieves/cyberspec.",
+  "description": "Near-black panels cut at two corners with a hatched band, a dot grid and a caption above, in a framed screen; solid tone slabs with dark ink for warnings, current rows, tabs and chips; big cyan readouts with small decimals over a rule; 20-cell meters, hexagon gauges, signal graphs and departure-board rows; Kode Mono titles, values that roll and glitch, rows that slide in and a page that boots card by card. After Cyberspec by Agnel Nieves (MIT), github.com/agnelnieves/cyberspec.",
   "modes": [
     "dark"
   ],
@@ -44,16 +44,20 @@
       "weight": "600 900",
       "licence": "OFL-1.1",
       "copyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)"
+    },
+    {
+      "family": "pack-cyberspec-display",
+      "source": "Kode Mono",
+      "file": "kode-mono-600.woff2",
+      "weight": "100 900",
+      "licence": "OFL-1.1",
+      "copyright": "Copyright 2023 The Kode Mono Project Authors (https://github.com/isaozler/kode-mono)"
     }
   ],
   "stage": {
     "layers": [
       {
         "fill": "#07070C"
-      },
-      {
-        "image": "marks.svg",
-        "minSizeClass": "sm"
       }
     ],
     "effects": [
@@ -69,7 +73,23 @@
         "opacity": 0.15,
         "calm": "off"
       }
-    ]
+    ],
+    "grid": {
+      "size": 22,
+      "alpha": 0.2,
+      "minSizeClass": "sm"
+    },
+    "chrome": {
+      "cut": 48,
+      "alpha": 0.55,
+      "tab": {
+        "width": 260,
+        "height": 28,
+        "text": "CYBERSPEC // DECK 07"
+      },
+      "reticles": true,
+      "minSizeClass": "md"
+    }
   },
   "burnIn": "needs-shift",
   "statusBar": {
@@ -77,27 +97,43 @@
   },
   "frame": {
     "corners": "cut",
-    "size": 10,
+    "size": 18,
     "which": [
-      "br"
+      "tr",
+      "bl"
     ],
     "stroke": 1,
-    "spine": {
+    "alpha": 0.55,
+    "band": {
       "edge": "left",
-      "width": 5
+      "width": 10
     },
-    "alpha": 0.55
+    "tint": 0.05,
+    "tone": "state",
+    "grid": {
+      "size": 22,
+      "alpha": 0.22
+    },
+    "rule": true,
+    "glow": {
+      "radius": 10,
+      "alpha": 0.3
+    },
+    "caption": {
+      "text": "MB-RX // REV 3 // NODE 3F:A2",
+      "at": "tl"
+    },
+    "tab": {
+      "at": "tl",
+      "width": 56,
+      "height": 5,
+      "out": true
+    }
   },
   "ornaments": [
     {
       "kind": "reticle",
-      "at": "tl",
-      "minSizeClass": "md"
-    },
-    {
-      "kind": "micro-print",
       "at": "tr",
-      "text": "CS-07 // LINK",
       "minSizeClass": "md"
     },
     {
@@ -111,9 +147,24 @@
       "style": "clip"
     },
     "decode": {},
-    "glitch": {},
-    "scramble": {
-      "every": 6
+    "glitch": {
+      "target": "all",
+      "every": 24
+    },
+    "value": {
+      "style": "roll",
+      "mark": "glitch",
+      "every": 2
+    },
+    "list": {
+      "enter": "slide",
+      "decode": true
+    },
+    "boot": {
+      "style": "glitch",
+      "stagger": 60,
+      "line": true,
+      "decode": true
     },
     "flicker": {
       "on": false,

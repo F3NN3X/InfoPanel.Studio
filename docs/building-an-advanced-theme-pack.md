@@ -76,7 +76,8 @@ my-cyberspec/
     { "family": "pack-myspec", "source": "Rajdhani", "file": "rajdhani-500.woff2", "weight": "100 500", "licence": "OFL-1.1", "copyright": "Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com)" },
     { "family": "pack-myspec", "source": "Rajdhani", "file": "rajdhani-600.woff2", "weight": "600 900", "licence": "OFL-1.1", "copyright": "Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com)" },
     { "family": "pack-myspec-mono", "source": "JetBrains Mono", "file": "jetbrains-mono-400.woff2", "weight": "100 500", "licence": "OFL-1.1", "copyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)" },
-    { "family": "pack-myspec-mono", "source": "JetBrains Mono", "file": "jetbrains-mono-600.woff2", "weight": "600 900", "licence": "OFL-1.1", "copyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)" }
+    { "family": "pack-myspec-mono", "source": "JetBrains Mono", "file": "jetbrains-mono-600.woff2", "weight": "600 900", "licence": "OFL-1.1", "copyright": "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)" },
+    { "family": "pack-myspec-display", "source": "Kode Mono", "file": "kode-mono-600.woff2", "weight": "100 900", "licence": "OFL-1.1", "copyright": "Copyright 2023 The Kode Mono Project Authors (https://github.com/isaozler/kode-mono)" }
   ]
 }
 ```
@@ -85,6 +86,9 @@ my-cyberspec/
   theme's id or font family name, so this one is `my-cyberspec` with `pack-myspec` families.
 - Each single-weight file is registered over a weight range (`100 500`, `600 900`), so the widgets' semibold numerals use the
   600 file instead of a faked bold.
+- The display face is the kit's own: its homepage and example headings ("Channel inbox", "Night Shift") are set in **Kode Mono**,
+  the wide squarish monospace its notices list under the SIL Open Font License 1.1, with no Reserved Font Name. Its labels are
+  Rajdhani and its values JetBrains Mono, so all three are bundled, each subset to Basic Latin and a few symbols (about 4 to 5 KB).
 - Every file in `assets/` is listed in `pack.json`'s `assets` with its size in bytes; anything not listed is refused.
   (Cyberspec's own `pack.json` has no `assets` list: a built-in pack's files are bundled with the app. Yours needs one.)
 
@@ -185,27 +189,33 @@ Cyberspec's type in a pack you import:
 properties a pack may set; none can be animated. Animations are `@keyframes pack-*` and stop below Full (step 8).
 
 Cyberspec, being built in, is reviewed with the app's code and its stylesheet goes a little further than the grammar allows:
-a 1 px rule under the panel head, badges with a 5 px cut corner and an outline in their own colour, a 135° hatch under the
-bars. Its value glow is written in `currentColor`, so a warning value glows yellow:
+the card titles in the kit's display face, badges with a 5 px cut corner and an outline in their own colour, a 135° hatch under
+the bars. Its value glow is written in `currentColor`, so a warning value glows yellow:
 
 ```css built-in
+[data-part="header"], [data-part="header"] * { font-family: pack-cyberspec-display, "Kode Mono", pack-cyberspec-mono, ui-monospace, monospace; }
 [data-part="num"] { color: #5EF6FF; text-shadow: 0 0 10px color-mix(in srgb, currentColor 35%, transparent); }
 [data-part="bar"] { background-image: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--w-accent) 30%, transparent) 5px 6px); }
 ```
 
+A pack you import cannot set a font family in its CSS, so its titles take its `body` face and its `display` face reaches the
+numbers (`look.json` `fonts`); Cyberspec keeps `display` on JetBrains Mono for that reason, and only its own stylesheet puts Kode
+Mono on the titles. The panel head's rule is no longer CSS: the frame draws it (`rule`, section 15).
+
 ## 5. Frames and ornaments
 
-The kit's panel is a card with one cut corner and a thick accent line down its left side. The app draws that from
-`pack.json`'s `frame`, so it stays inside the card and clear of the content:
+The kit's panel is a card with two cut corners and a band down its leading edge. The app draws that from `pack.json`'s `frame`,
+so it stays inside the card and clear of the content. Cyberspec v1 had one cut and a 5 px spine; the final pack uses the panel
+keys of section 15 (`band`, `tint`, `grid`, `tone`, `rule`, `glow`, `caption`, an outside `tab`) on this base:
 
 ```json pack.json
 {
   "frame": {
     "corners": "cut",
-    "size": 10,
-    "which": ["br"],
+    "size": 18,
+    "which": ["tr", "bl"],
     "stroke": 1,
-    "spine": { "edge": "left", "width": 5 },
+    "band": { "edge": "left", "width": 10 },
     "alpha": 0.55
   }
 }
@@ -217,7 +227,8 @@ The kit's panel is a card with one cut corner and a thick accent line down its l
 - `alpha` (0.2 to 1) is the strength of the lines and the spine over the card: the kit's panel line is 55 % of the accent, and
   at full strength the cut read as a brighter mark than the edge it continues.
 
-A spine, a tab or a second line is drawn only where the card's padding holds it, so it never covers text.
+A spine, a band, a tab or a second line is drawn only where the card's padding holds it, so it never covers text. A spine and a
+band can't share an edge: the kit's 28 px band became 10 px, the width a card's padding holds beside its labels.
 
 **Ornaments** are the kit's small marks: a reticle, a line of micro-print, tick marks. Up to four, each at a corner or along
 the top or bottom edge, with a smallest card size:
@@ -225,8 +236,7 @@ the top or bottom edge, with a smallest card size:
 ```json pack.json
 {
   "ornaments": [
-    { "kind": "reticle", "at": "tl", "minSizeClass": "md" },
-    { "kind": "micro-print", "at": "tr", "text": "CS-07 // LINK", "minSizeClass": "md" },
+    { "kind": "reticle", "at": "tr", "minSizeClass": "md" },
     { "kind": "ticks", "at": "bottom", "minSizeClass": "md" }
   ]
 }
@@ -234,24 +244,26 @@ the top or bottom edge, with a smallest card size:
 
 Ornament text is at most 64 characters and drawn by the app as plain text in a band of at most 10 px. Ornaments draw only
 where the card's padding is more than 10 px, and a corner ornament keeps clear of a cut corner and of a spine on its side. The
-kit's "LINK STABLE" became "CS-07 // LINK": the longer text was cut short at 150 px wide cards.
+kit's "LINK STABLE" became "CS-07 // LINK": the longer text was cut short at 150 px wide cards. The final pack moved its
+micro-print out of the card, into the frame's `caption` above it (`MB-RX // REV 3 // NODE 3F:A2`), and its reticle to the
+corner the band leaves free.
 
 ## 6. Page layers and effects
 
 The page behind the cards is the pack's `stage`: up to three **layers** (a `fill`, or an `image` from `assets/`) and the
-**effects** over everything. Cyberspec's void, its registration marks and its CRT raster:
+**effects** over everything. Cyberspec's void and its CRT raster, with the kit's dot grid and framed screen (section 15)
+in place of the v1 registration-marks SVG:
 
 ```json pack.json
 {
   "stage": {
-    "layers": [
-      { "fill": "#07070C" },
-      { "image": "marks.svg", "minSizeClass": "sm" }
-    ],
+    "layers": [{ "fill": "#07070C" }],
     "effects": [
       { "kind": "scanlines", "cost": "static", "opacity": 0.1, "calm": "off" },
       { "kind": "vignette", "cost": "static", "opacity": 0.15, "calm": "off" }
-    ]
+    ],
+    "grid": { "size": 22, "alpha": 0.2, "minSizeClass": "sm" },
+    "chrome": { "cut": 48, "alpha": 0.55, "tab": { "width": 260, "height": 28, "text": "CYBERSPEC // DECK 07" }, "reticles": true, "minSizeClass": "md" }
   },
   "burnIn": "needs-shift"
 }
@@ -263,8 +275,8 @@ The page behind the cards is the pack's `stage`: up to three **layers** (a `fill
   (`off` or `static`).
 - The flashing overlays and a layer's glow are drawn in the **screen's accent**, so they follow the variant and an accent the
   user picks. They used to read the accent of whatever page was around the stage (amber in the studio) or a fixed cyan.
-- `burnIn` is `needs-shift` because the marks are bright static art: the app drifts the layers by a pixel or two when the
-  user has Pixel shift on.
+- `burnIn` is `needs-shift` because the grid and the screen frame are bright static art: the app drifts them by a pixel or
+  two when the user has Pixel shift on.
 
 Cyberspec v1 had a glitch-bar overlay on the page. The kit's glitch is a one-shot on text, not a page effect, so v2 dropped the
 overlay and moved the glitch into the motion block.
