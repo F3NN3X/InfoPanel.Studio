@@ -55,8 +55,9 @@ export function ToneChip({ tone, children, lamp = true }: { tone: KitTone; child
         {body}
       </span>
     );
+  // the tone is a class, not an inline colour, so a pack that paints chips a bar (Field Kit's dark one) gives them its ink as well
   return (
-    <span data-part="chip" className={cls} style={{ color: toneColor(tone), boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${toneColor(tone)} 60%, transparent)` }}>
+    <span data-part="chip" className={`${cls} text-[color:var(--kit-tone)]`} style={{ "--kit-tone": toneColor(tone), boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${toneColor(tone)} 60%, transparent)` } as CSSProperties}>
       {body}
     </span>
   );
