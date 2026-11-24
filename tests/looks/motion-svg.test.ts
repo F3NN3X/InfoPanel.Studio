@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { clockMs, SVG_ANIMATED_MAX, SVG_STEPS_MAX } from "@/looks/motion-svg";
+import { stageIssues } from "@/looks/pack-checks";
 import { svgAnimated, svgIssue, svgStill } from "@/looks/pack-safety";
 import { type PackFile, type PackSource, validatePack } from "@/looks/pack-validate";
 import { readPackDir } from "../../tools/validate-pack.mjs";
@@ -141,5 +142,15 @@ describe("an animated SVG in the validator", () => {
 
   it("an old pack, with no animated layer, has nothing new to say", () => {
     expect(issues(BASE)).toEqual([]);
+  });
+});
+
+describe("an animated layer at load (`stageIssues`)", () => {
+  const layer = (image: string) => stageIssues({ layers: [{ image, animated: true }] } as Parameters<typeof stageIssues>[0]);
+  it("is an SVG by its file's name, a built-in's served URL with its query too; any other image is refused", () => {
+    expect(layer("radar.svg")).toEqual([]);
+    expect(layer("radar.svg?no-inline")).toEqual([]);
+    expect(layer("art.png?x.svg")).toEqual(["stage layer 0 animated: only an SVG image layer animates"]);
+    expect(layer("art.png")).toEqual(["stage layer 0 animated: only an SVG image layer animates"]);
   });
 });
