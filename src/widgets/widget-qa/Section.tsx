@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { categorize, tabOf } from "@/components/studio/inspector-categories";
 import { migratePlacementV19 } from "@/lib/settings-migrate.v19";
 import { STANDARD_KEYS } from "@/modules/standard-settings";
@@ -14,6 +14,7 @@ import { notesFor } from "./notes";
 import { frameId } from "./params";
 import { framePlan, layoutPlans, placement, spanSize, viewPlans } from "./plan";
 import { probeBox, type Issue } from "./probe";
+import { forgetFrame, tallyFrame } from "./tally";
 
 export interface View {
   spans: [number, number][];
@@ -161,6 +162,7 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
   const id = frameId(mod.id, frameKey);
   // The page renders after load, so CSS :target never matches; a copied frame link outlines its frame by the hash itself.
   const targeted = window.location.hash === `#${id}`;
+  useEffect(() => () => forgetFrame(id), [id]);
   const copy = async () => {
     setCopied((await copyText(view.frameRef(mod.id, frameKey).text)) ? "copied" : "copy failed");
     setTimeout(() => setCopied(""), 1500);
@@ -169,9 +171,12 @@ function Figure({ mod, frameKey, c, r, settings, view, caption, attrs }: FigureP
     <figure id={id} {...attrs} className={`m-0 flex scroll-mt-40 flex-col gap-1 rounded ${targeted ? "outline outline-2 outline-offset-4 outline-sky-400" : ""}`}>
       <div className={`relative rounded ${issues.length ? "outline outline-1 outline-offset-2 outline-red-500/70" : ""}`}>
         <Frame p={{ ...migratePlacementV19(placement(mod.id, c, r, withDemo(mod.id, settings, view.live))), id: `qa-${mod.id}-${attrs["data-qa-view"] ?? ""}${c}x${r}` }} w={w} h={h} live={view.live} eager={view.eager} appearance={view.appearance} onSettled={(box) => {
-          setIssues(probeBox(box));
+          const probed = probeBox(box);
+          setIssues(probed);
+          const out = view.adoption ? checkAdoption(box, view.adoption) : [];
+          // the top bar's summary counts (`tally.ts`), outside the frames' render path
+          tallyFrame(id, probed.length, out.length);
           if (!view.adoption) return;
-          const out = checkAdoption(box, view.adoption);
           setFlags(out);
           report(id, out.length);
         }} />
