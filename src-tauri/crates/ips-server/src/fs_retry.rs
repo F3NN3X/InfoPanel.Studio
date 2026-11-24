@@ -39,6 +39,7 @@ fn rename_with(mut attempt: impl FnMut() -> io::Result<()>, mut wait: impl FnMut
 mod tests {
     use super::*;
 
+    #[cfg(windows)]
     fn failing(code: i32, times: u32) -> impl FnMut() -> io::Result<()> {
         let mut left = times;
         move || {
