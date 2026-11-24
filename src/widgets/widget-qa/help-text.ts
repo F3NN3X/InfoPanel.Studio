@@ -41,9 +41,11 @@ export const CONTROL_HELP = {
   copyLink: { name: "Copy page link", text: "Copies the page's URL, which carries every setting, so the link opens exactly this view." },
   reset: { name: "Reset all", text: "Puts every setting back to its default." },
   help: { name: "Help", text: "This reference." },
-  q: { name: "Filter", param: "q", text: "Shows only the widgets whose id or title contains the text." },
-  flagged: { name: "Theme flags only", param: "flagged", text: "Shows only the widgets the theme check flags under the worn Look; a widget whose frames all came back clean is hidden." },
-  noted: { name: "Notes only", param: "noted", text: "Shows only the widgets with redesign notes (notes.json)." },
+  q: { name: "Search", param: "q", text: "Shows only the widgets whose id or title contains the text. / focuses it." },
+  flagged: { name: "Theme flags", param: "flagged", text: "Shows only the widgets the theme check flags under the worn Look; a widget whose frames all came back clean is hidden. Shown while a Look is worn." },
+  noted: { name: "Notes", param: "noted", text: "Shows only the widgets with redesign notes (notes.json)." },
+  issues: { name: "Issues", param: "issues", text: "Shows only the widgets with an issue (something that pokes out, overlaps or is cut off) in the frames checked so far; a widget whose checked frames all came back clean is hidden." },
+  keys: { name: "Keys", text: "/ focuses the search; j and k move to the next and the previous widget in the list and scroll to it." },
 } satisfies Record<string, ControlHelp>;
 
 export type ControlId = keyof typeof CONTROL_HELP;
@@ -78,6 +80,8 @@ export const CONTROL_GROUP: Record<ControlId, HelpGroup> = {
   q: "Widgets",
   flagged: "Widgets",
   noted: "Widgets",
+  issues: "Widgets",
+  keys: "Widgets",
 };
 
 /** A control's tooltip: its line, then the param it sets. */
