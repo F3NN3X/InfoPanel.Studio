@@ -1285,8 +1285,13 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
 - **Motion** shows for a theme pack whose `pack.json` has a `motion` block: labels and titles that decode as a card arrives,
   numbers that scramble for a moment when their reading changes (at most once every few seconds each), a short glitch on
   the titles, a card that fades, wipes or draws a line in as it arrives, and an occasional flicker or scan line across a
-  card. **Level** is the screen's **Effects** setting (Screens › Performance): **Full** draws all of it, **Calm** only what
-  plays as a card or reading arrives, **Off** none; reduced animations and lite mode draw none either. **Intensity** and
+  card. A pack can also have numbers **count** to a new reading or **roll** their changed digits (a clock), with a short
+  flash or underline; rows of lists (friends, processes, coding agents, services, news, notifications) **slide in**,
+  **glide** to a new place when the order changes, light up when their status changes and decode a new row's text; and
+  the page **boot** in, card after card, with a line drawn across each and its title decoding, once each time a page
+  opens. **Level** is the screen's **Effects** setting (Screens › Performance): **Full** draws all of it, **Calm** only what
+  plays as a card or reading arrives (without the flashes that mark a change), **Off** none; reduced animations and lite
+  mode draw none either. **Intensity** and
   **Speed** (Low or Slow, the theme's own, High or Fast) and a switch per effect are stored like the other quick changes,
   at the screen or page. The real text stays on the page throughout (the noise is a copy screen readers skip), nothing
   changes size, and nothing flashes more than three times a second.
@@ -1295,8 +1300,22 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
   with `on` (default true; false leaves it for the switch), `intensity` (0.1 to 1) and its own timing: `glitch` `ms`
   80-300 and `every` 0 (on arrival only) or 4-120 seconds; `decode` `ms` 150-900; `scramble` `ms` 60-300 and `every`
   1-60 (the least seconds between two scrambles of one number); `arrival` `ms` 120-300 and `style` `fade`, `clip` or
-  `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000 and `every` 4-120. Anything else,
-  or a value out of range, refuses the pack at import.
+  `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000 and `every` 4-120; `value` `ms`
+  150-900, `every` 1-60 (the least seconds between two runs of one number), `style` `tween` (count) or `roll`, `mark`
+  `none`, `flash` or `underline` (a number with both `value` and `scramble` takes the value); `list` `ms` 120-300, `enter`
+  `slide`, `fade` or `none`, and `reorder`, `change` and `decode` (true or false); `boot` `ms` 120-300, `stagger` 20-120 (ms
+  between two cards), `style` `fade`, `clip` or `glitch`, and `line` and `decode` (true or false). Anything else, or a
+  value out of range, refuses the pack at import. The real reading is on the page at once while a number counts, the page
+  starts at most six counts and two change marks a second and twelve runs at once, and a list moves at most eight rows of
+  a card at a time.
+
+- **Animated page art**: a page layer's SVG may move (a turning reticle, a tracing line, a pulsing lamp) when the layer
+  says `"animated": true` in `pack.json`'s `stage.layers`. The SVG keeps to a small subset: `@keyframes` in a `<style>` that
+  move `transform`, `opacity` or `stroke-dashoffset`, started by rules on a `.class` or `#id`, or `<animate>` on `opacity`
+  and `stroke-dashoffset` and `<animateTransform>`, with times and numbers only; a cycle lasts at least a second with at
+  most seven steps, and at most 24 elements of a file move. It moves only at **Full**: at **Calm** and **Off**, in lite
+  mode and with reduced animations the app draws it still. An animated SVG may not be used from `pack.css`, and `<text>`
+  and scripts are still refused.
 
 - **Effect script**: a theme pack may carry one small script that draws an effect over the cards (particles, a scan line,
   a pulse that follows a reading). It runs in a sandbox of its own and draws only shapes in the theme's colours on a layer

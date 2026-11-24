@@ -144,7 +144,26 @@ security model, what was fixed, what was decided, and what is deferred.
   them with its own keyframes and one timer: no pack code, markup, style or URL. Text is never replaced: the noise is an
   aria-hidden copy over the real text, which stays in the page for assistive technology, privacy blur and export. The page
   runs at most one repeat a second; nothing runs while the page is hidden, at the Effects level Off, in lite mode or under
-  reduced motion.
+  reduced motion. The `value`, `list` and `boot` effects (`motion-value.ts`, `motion-list.ts`) work the same way: a count
+  or a digit roll is drawn in the aria-hidden copy while the real reading is in the page at once; a list's rows are found by
+  an identity attribute the app's own widgets set and moved with `translate` and opacity only, never laid out again; the
+  page starts at most six value runs and two change marks a second (so, with the one repeat, never over three flashes a
+  second) and at most twelve runs at once. The copy a new row decodes in is an element the app adds and removes itself;
+  it holds text only, written as `textContent`.
+- **Animated pack SVG** (`src/looks/motion-svg.ts`, `svgIssue` and `svgStill` in `src/looks/pack-safety.ts`,
+  `src/looks/motion-still.ts`): a pack SVG may carry a `<style>` and SMIL `<animate>` / `<animateTransform>`, read by the
+  same fail-closed reader as every pack SVG and held to a grammar, not cleaned: a `<style>` holds only `@keyframes` and
+  rules on one `.class` or `#id`, in a character set without quotes, slashes, backslashes, `&`, `<`, `>`, `!` or brackets
+  (so no comment, escape, URL, at-rule other than `@keyframes`, or CDATA); a keyframe sets only `transform`, `opacity` or
+  `stroke-dashoffset`; SMIL animates only `opacity`, `stroke-dashoffset` or `transform` of its parent, takes no `href`, and
+  its times and values are clock values and numbers (no event `begin`, no `<set>`). A cycle lasts at least a second with
+  at most seven steps, and at most 24 elements of a file move. `<text>`, scripts and every other element stay refused. An
+  animated SVG may be drawn only as a stage layer that declares `animated` (the validator refuses one used from `pack.css`
+  or on an undeclared layer); it is drawn like every pack image, as a CSS background, so nothing in it runs or reaches the
+  page. The app shows the moving file only at the Effects level Full, out of lite mode and reduced motion; anywhere else it
+  draws a still copy it makes itself: it reads the pack's own file from the address it is already served at, checks it
+  again with `svgIssue`, cuts every `<style>` and SMIL element at the reader's tag bounds and draws the rest as a `data:`
+  image. A file that cannot be read or checked draws nothing, never the moving one. A hidden page paints nothing.
 - <a id="pack-scripts"></a>**Pack scripts** (`src/looks/pack-script/`): a pack may carry one effect script (`pack.json`
   `script`, one listed `.js` asset of at most 64 KB; the validator refuses any other `.js`). It is the only pack-supplied code
   the app runs, and it runs only in the pack-script sandbox: a dedicated module worker loaded from the app's own bundle (never
