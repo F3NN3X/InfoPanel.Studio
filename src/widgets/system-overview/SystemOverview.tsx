@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, lazy, Suspense } from "react";
 import { DEFAULT_ACCENT } from "@/looks/palette";
 import type { ModuleSettings } from "@/modules/types";
 import { diskMetric, filterDisks, formatTemp, netMetric, pickAdapter, pickDisk, rateTop, readAdaptersFlat, readSystemFlat, systemKeysFlat, type DiskReading, type DiskValue, type NetDirection } from "@/lib/system-metrics";
@@ -7,7 +7,9 @@ import { SKINS } from "../core/theme";
 import { accentVars, useFitRows, Widget, shell, get, num, fmt, fmtRate, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, useIpTag, ToneCue, seriesColour, type ShellProps, type Tone } from "../kit";
 import { t3Tokens } from "../core/t3-tokens";
 import { meta } from "./meta";
-import { SystemPower } from "./SystemPower";
+// the power layout loads only where a Look or the zone names it, so a screen that does not fetches none of the kit's layout parts
+// (a chunk the kiosk would otherwise request with every System Overview: tests/e2e/kiosk-budget.spec.ts)
+const SystemPower = lazy(() => import("./SystemPower").then((m) => ({ default: m.SystemPower })));
 
 export { meta };
 
@@ -167,7 +169,13 @@ function DetailLine({ stats, width }: { stats: Stat[]; width?: number }) {
 
 /** The standard layout, or the `power` one the zone's Look or Layout pick names (`meta.layouts`). */
 export default function SystemOverview(p: SystemOverviewProps) {
-  return p.lookLayout === "power" ? <SystemPower {...p} /> : <SystemPanel {...p} />;
+  return p.lookLayout === "power" ? (
+    <Suspense fallback={null}>
+      <SystemPower {...p} />
+    </Suspense>
+  ) : (
+    <SystemPanel {...p} />
+  );
 }
 
 function SystemPanel(p: SystemOverviewProps) {

@@ -3,7 +3,7 @@
 // feed, the spectrum receiver and the power draw, and the card anatomy a Look's `card-style` asks for. Each draws the widget's own data
 // its own way; with no layout named the widget draws its standard markup. Then the treatments two more widgets take from the Look: the
 // default Custom gauge on a hexagon ring, and Wave Link's lying levels as cells or a ruler.
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fixtureSensors } from "@/widgets/__fixtures__";
@@ -79,9 +79,14 @@ describe("Steam Friends", () => {
 });
 
 describe("Weather's quote slab", () => {
-  it("puts the weather now on a notched slab, then the humidity and clouds on rulers and the coming days in rows", () => {
+  it("puts the weather now on a notched slab, then the humidity and clouds on rulers and the coming days in rows", async () => {
     const el = drawIn(420, 460, <Weather data={data} lookLayout="quote" />);
-    const quote = el.querySelector("[data-layout=quote]")!;
+    // the layout is its own chunk, loaded when it is named
+    const quote = await waitFor(() => {
+      const found = el.querySelector("[data-layout=quote]");
+      expect(found).not.toBeNull();
+      return found!;
+    });
     const slab = quote.querySelector("[data-layout-part=quote]")!;
     expect(slab.hasAttribute("data-wp-slab")).toBe(true);
     expect(slab.hasAttribute("data-slab-notches")).toBe(true);
@@ -119,10 +124,13 @@ describe("Notifications' feed", () => {
 });
 
 describe("System Overview's power draw and the spectrum receiver", () => {
-  it("power: the CPU and GPU draw as one readout over a share bar, a ruler row per section", () => {
+  it("power: the CPU and GPU draw as one readout over a share bar, a ruler row per section", async () => {
     const el = drawIn(460, 460, <SystemOverview data={data} lookLayout="power" />);
-    const power = el.querySelector("[data-layout=power]")!;
-    expect(power).not.toBeNull();
+    const power = await waitFor(() => {
+      const found = el.querySelector("[data-layout=power]");
+      expect(found).not.toBeNull();
+      return found!;
+    });
     expect(power.textContent).toContain("Power draw");
     expect(power.querySelectorAll("[data-meter=ruler]").length).toBeGreaterThanOrEqual(2);
     expect(power.textContent).toMatch(/CPU.*W/);

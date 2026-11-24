@@ -1,14 +1,18 @@
+import { lazy, Suspense } from "react";
 import type { ModuleSettings } from "@/modules/types";
 import { weatherKind, type WeatherKind } from "@/lib/weather-icons";
 import { windValue } from "../weather-fx/config";
 import { WeatherFx, type WeatherFxOpts } from "../weather-fx/WeatherFx";
 import Forecast from "./Forecast";
-import { WeatherQuote } from "./WeatherQuote";
 import { Widget, shell, get, num, fmt, has, rows, roomy, squareHero, Stat, Num, WeatherGlyph, weatherIcon, useIpTag, type ShellProps, type WeatherIconProps } from "../kit";
 import { WeatherGlance, WeatherWeek, weekDays } from "./WeatherViews";
 import { meta } from "./meta";
 
 export { meta };
+
+// the quote layout loads only where a Look or the zone names it, so a screen that does not fetches none of the kit's layout parts
+// (a chunk the kiosk would otherwise request with every Weather: tests/e2e/kiosk-budget.spec.ts)
+const WeatherQuote = lazy(() => import("./WeatherQuote").then((m) => ({ default: m.WeatherQuote })));
 
 const compass = (deg: number) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((deg % 360) / 45) % 8];
 
@@ -60,7 +64,12 @@ export interface WeatherProps extends ShellProps {
 /** The forecast view, the `quote` layout the zone's Look or Layout pick names (the views of the weather now; glance and week keep theirs), or the standard layout. */
 export default function Weather(p: WeatherProps) {
   if (p.view === "forecast") return <Forecast {...p} />;
-  if (p.lookLayout === "quote" && p.view !== "glance" && p.view !== "week") return <WeatherQuote {...p} />;
+  if (p.lookLayout === "quote" && p.view !== "glance" && p.view !== "week")
+    return (
+      <Suspense fallback={null}>
+        <WeatherQuote {...p} />
+      </Suspense>
+    );
   return <Current {...p} />;
 }
 
