@@ -1285,8 +1285,8 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
 - **Motion** shows for a theme pack whose `pack.json` has a `motion` block: labels and titles that decode as a card arrives,
   numbers that scramble for a moment when their reading changes (at most once every few seconds each), a short glitch on
   the titles, a card that fades, wipes or draws a line in as it arrives, and an occasional flicker or scan line across a
-  card. A pack can also have numbers **count** to a new reading or **roll** their changed digits (a clock), with a short
-  flash or underline; rows of lists (friends, processes, coding agents, services, news, notifications) **slide in**,
+  card. A pack can also have numbers **roll** their changed digits (like an odometer or a clock) or **count** to a new
+  reading, with a short flash, underline or glitch; numbers can glitch now and then too; rows of lists (friends, processes, coding agents, services, news, notifications) **slide in**,
   **glide** to a new place when the order changes, light up when their status changes and decode a new row's text; and
   the page **boot** in, card after card, with a line drawn across each and its title decoding, once each time a page
   opens. **Level** is the screen's **Effects** setting (Screens › Performance): **Full** draws all of it, **Calm** only what
@@ -1298,11 +1298,13 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
 
   In `pack.json`, `motion` takes any of `glitch`, `decode`, `scramble`, `arrival`, `flicker` and `sweep`, each an object
   with `on` (default true; false leaves it for the switch), `intensity` (0.1 to 1) and its own timing: `glitch` `ms`
-  80-300 and `every` 0 (on arrival only) or 4-120 seconds; `decode` `ms` 150-900; `scramble` `ms` 60-300 and `every`
+  80-300, `every` 0 (on arrival only) or 4-120 seconds and `target` `text` (titles and labels, the default), `value`
+  (numbers, torn in a copy over them) or `all`; `decode` `ms` 150-900; `scramble` `ms` 60-300 and `every`
   1-60 (the least seconds between two scrambles of one number); `arrival` `ms` 120-300 and `style` `fade`, `clip` or
   `line`; `flicker` `every` 2-120 and `target` `card` or `label`; `sweep` `ms` 400-3000 and `every` 4-120; `value` `ms`
-  150-900, `every` 1-60 (the least seconds between two runs of one number), `style` `tween` (count) or `roll`, `mark`
-  `none`, `flash` or `underline` (a number with both `value` and `scramble` takes the value); `list` `ms` 120-300, `enter`
+  150-900, `every` 1-60 (the least seconds between two runs of one number), `style` `roll` (the default) or `tween`
+  (count), `mark` `none`, `flash`, `underline` or `glitch` (a number with both `value` and `scramble` takes the value);
+  `list` `ms` 120-300, `enter`
   `slide`, `fade` or `none`, and `reorder`, `change` and `decode` (true or false); `boot` `ms` 120-300, `stagger` 20-120 (ms
   between two cards), `style` `fade`, `clip` or `glitch`, and `line` and `decode` (true or false). Anything else, or a
   value out of range, refuses the pack at import. The real reading is on the page at once while a number counts, the page

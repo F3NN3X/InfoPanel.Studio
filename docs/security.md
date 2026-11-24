@@ -144,8 +144,8 @@ security model, what was fixed, what was decided, and what is deferred.
   them with its own keyframes and one timer: no pack code, markup, style or URL. Text is never replaced: the noise is an
   aria-hidden copy over the real text, which stays in the page for assistive technology, privacy blur and export. The page
   runs at most one repeat a second; nothing runs while the page is hidden, at the Effects level Off, in lite mode or under
-  reduced motion. The `value`, `list` and `boot` effects (`motion-value.ts`, `motion-list.ts`) work the same way: a count
-  or a digit roll is drawn in the aria-hidden copy while the real reading is in the page at once; a list's rows are found by
+  reduced motion. The `value`, `list` and `boot` effects (`motion-value.ts`, `motion-list.ts`) work the same way: a count,
+  a digit roll or a number's glitch is drawn in the aria-hidden copy while the real reading is in the page at once; a list's rows are found by
   an identity attribute the app's own widgets set and moved with `translate` and opacity only, never laid out again; the
   page starts at most three value runs and two change marks a second (so, with the one repeat, never over three flashes a
   second) and at most twelve runs at once. The copy a new row decodes in is an element the app adds and removes itself;

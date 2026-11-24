@@ -317,8 +317,8 @@ The kit's text effects (titles that glitch in, labels that decode, readouts that
 }
 ```
 
-Each effect is an object with `on` (default true), `intensity` (0.1 to 1) and its own timing: `glitch` `ms` 80 to 300 and
-`every` 0 (on arrival only) or 4 to 120 seconds; `decode` `ms` 150 to 900; `scramble` `ms` 60 to 300 and `every` 1 to 60 (the
+Each effect is an object with `on` (default true), `intensity` (0.1 to 1) and its own timing: `glitch` `ms` 80 to 300,
+`every` 0 (on arrival only) or 4 to 120 seconds and `target` `text` (titles and labels, the default), `value` or `all`; `decode` `ms` 150 to 900; `scramble` `ms` 60 to 300 and `every` 1 to 60 (the
 least seconds between two scrambles of one number); `arrival` `ms` 120 to 300 and `style` `fade`, `clip` or `line`; `flicker`
 `every` 2 to 120 and `target` `card` or `label`; `sweep` `ms` 400 to 3000 and `every` 4 to 120. A value out of range refuses
 the pack.
@@ -341,11 +341,16 @@ Three more effects act on what changes on the page rather than on its words:
 }
 ```
 
-- `value`: a number that changes counts to its new reading (`style` `tween`), or rolls only its changed digits like an
-  odometer (`roll`; a clock or any text that is not one figure always rolls), and may `mark` the change with a `flash` or an
-  `underline`. `ms` 150 to 900, `every` 1 to 60 (the least seconds between two runs of one number). The real reading is in
-  the page at once (the count is the aria-hidden copy), the width is the reading's, and a number with both `value` and
-  `scramble` takes the value. The page starts at most three runs and two marks a second, twelve runs at once.
+- `value`: a number that changes rolls only its changed digits like an odometer (`style` `roll`, the default when a pack
+  says nothing), or counts to its new reading (`tween`; a clock or any text that is not one figure always rolls), and may
+  `mark` the change with a `flash`, an `underline` or a `glitch` (the label glitch's slice and colour split, at most 300 ms,
+  on the number's copy). `ms` 150 to 900, `every` 1 to 60 (the least seconds between two runs of one number). The real
+  reading is in the page at once (the run is in the aria-hidden copy), the width is the reading's, and a number with both
+  `value` and `scramble` takes the value. The page starts at most three runs and two marks a second, twelve runs at once.
+  A count writes its copy 15 times a second, so it costs more than a roll: offer it as a choice rather than the default.
+- Numbers can glitch on their own too: `glitch` with `target` `value` (or `all`, numbers and titles) tears a number's copy
+  on arrival and, with `every`, one number at a time now and then, page-wide, under the same one-repeat-a-second rule. At
+  Calm only the arrival run plays and a value's marks are dropped.
 - `list`: the rows of the list widgets (Steam friends, top processes, coding agents, service health, Steam news,
   notifications) `enter` with a `slide` or a `fade`, glide to a new place when the order changes (`reorder`, by translate:
   nothing is laid out again), light once when their words change (`change`: a reading that only ticks is not a change),
