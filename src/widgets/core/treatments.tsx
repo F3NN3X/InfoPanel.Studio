@@ -29,7 +29,7 @@ export function slabVars(slab: SlabSpec | undefined): CSSProperties | undefined 
 
 /**
  * Whether `part` is drawn as a slab and in which tone: the part's own warning or critical state wins, then the tone its token names; a
- * `current` row in the accent; a header or card whose token is `state` follows the card's state (`data-wp-slab-state`, read by the CSS from
+ * `current` row in the `slab-current` tone; a header or card whose token is `state` follows the card's state (`data-wp-slab-state`, read by the CSS from
  * the parts in it). Nothing for a part the Look draws no slab on.
  */
 export function slabAttrs(sk: Sk, part: SlabPart, own?: Tone, current?: boolean): Record<string, string> {
@@ -37,7 +37,7 @@ export function slabAttrs(sk: Sk, part: SlabPart, own?: Tone, current?: boolean)
   if (!role) return {};
   if (own === "warn" || own === "crit") return { "data-wp-slab": own };
   if ((SLAB_TONES as readonly string[]).includes(role)) return { "data-wp-slab": role as SlabTone };
-  if (role === "current") return current ? { "data-wp-slab": "accent" } : {};
+  if (role === "current") return current ? { "data-wp-slab": sk.slab?.current ?? "accent" } : {};
   return part === "header" || part === "card" ? { "data-wp-slab-state": "" } : {};
 }
 
@@ -59,16 +59,23 @@ export function cellAttrs(sk: Sk, state?: Tone): Record<string, string> {
 }
 
 /**
- * A widget's row, table head or grid cell with the part hooks the Look asks for (`rowAttrs`, `cellAttrs`): the element itself is the widget's,
+ * A widget's row, table head, grid cell or avatar with the part hooks the Look asks for (`rowAttrs`, `cellAttrs`, `avatar-shape`): the element itself is the widget's,
  * its classes and children unchanged, so a Look that styles no rows draws the markup it always did. A component, so it reads the card's skin
  * from inside the card (a widget's layout callback runs before the card's context is there).
  */
-export function Part({ as, kind, state, current, ...rest }: { as?: ElementType; kind: "row" | "row-head" | "cell"; state?: Tone; current?: boolean } & HTMLAttributes<HTMLElement> & Record<`data-${string}`, string | number | undefined>) {
+export function Part({ as, kind, state, current, ...rest }: { as?: ElementType; kind: "row" | "row-head" | "cell" | "avatar"; state?: Tone; current?: boolean } & HTMLAttributes<HTMLElement> & Record<`data-${string}`, string | number | undefined>) {
   const sk = useSkin();
   const Tag = as ?? "div";
+  if (kind === "avatar") {
+    if (sk.avatar !== "hex") return <Tag {...rest} />;
+    return <Tag data-part="avatar" data-avatar="hex" {...rest} style={{ ...rest.style, clipPath: HEX_CLIP }} />;
+  }
   const hooks = kind === "cell" ? cellAttrs(sk, state) : rowAttrs(sk, { state, current, head: kind === "row-head" });
   return <Tag {...hooks} {...rest} />;
 }
+
+/** The kit's hexagon avatar (`avatar-shape: hex`): pointy-top, so a centred initial keeps its whole box. */
+export const HEX_CLIP = "polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%)";
 
 /** The warning and critical colours a frame that follows the card's state (`frame.tone: state`) takes, resolved where the card's are (the card and its host). */
 export function frameToneVars(on: boolean): CSSProperties | undefined {
@@ -133,13 +140,16 @@ export function splitDecimals(text: string): [string, string] | undefined {
   return m ? [m[1], m[2]] : undefined;
 }
 
-/** A hero value at the Look's readout scale (`readout-scale`, fitted), its decimals at `readout-decimals` of its size; the unit, if given, scales with it. */
+/**
+ * A hero value at the Look's readout scale (`readout-scale`, fitted), its decimals at `readout-decimals` of its size; the unit, if given,
+ * scales with it. An inline block one line tall, as the number it stands in for, so its larger type does not reach over the line under it.
+ */
 export function Readout({ spec, value, unit }: { spec: ReadoutSpec; value: ReactNode; unit?: ReactNode }) {
   const text = typeof value === "string" || typeof value === "number" ? String(value) : "";
   const [ref, scale] = useReadoutScale(spec.scale, text);
   const split = spec.decimals < 1 && text ? splitDecimals(text) : undefined;
   return (
-    <span ref={ref} data-readout="" style={scale !== 1 ? { fontSize: `${scale}em` } : undefined}>
+    <span ref={ref} data-readout="" className="inline-block leading-none" style={scale !== 1 ? { fontSize: `${scale}em` } : undefined}>
       {split ? (
         <>
           <MotionText part="num">{split[0]}</MotionText>

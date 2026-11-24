@@ -125,7 +125,10 @@
     "graph-lead": "square",
     "graph-bars": "striped",
     "row-style": "ruled",
-    "series-fill-alpha": "0.12 > 0.12 > 0.12"
+    "series-fill-alpha": "0.12 > 0.12 > 0.12",
+    "slab-current": "warn",
+    "share-style": "gapped",
+    "avatar-shape": "hex"
   },
   "ext": {},
   "variants": [

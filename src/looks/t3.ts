@@ -23,7 +23,7 @@ export const T3_TOKENS = [
   "motion-fast", "motion-base", "motion-data", "ease-standard",
   "slab-header", "slab-chip", "slab-tab", "slab-row", "slab-card", "slab-ink", "slab-info", "slab-texture", "slab-notch",
   "readout-scale", "readout-decimals", "readout-bar",
-  "meter-empty", "meter-peak", "graph-grid", "graph-lead", "graph-bars", "row-style",
+  "meter-empty", "meter-peak", "graph-grid", "graph-lead", "graph-bars", "row-style", "slab-current", "share-style", "avatar-shape",
 ] as const;
 export type T3Token = (typeof T3_TOKENS)[number];
 export type T3Value = string | number;
@@ -51,7 +51,7 @@ export const CLASSIC_T3: Record<T3Token, T3Value> = {
   // Component treatments (Cyberspec v2, lane K): Classic draws none of them.
   "slab-header": "none", "slab-chip": "none", "slab-tab": "none", "slab-row": "none", "slab-card": "none", "slab-ink": SLAB_INK_DEFAULT, "slab-info": SLAB_INFO_DEFAULT, "slab-texture": "none", "slab-notch": 0,
   "readout-scale": 1, "readout-decimals": 1, "readout-bar": "none",
-  "meter-empty": "{track}", "meter-peak": "none", "graph-grid": "auto", "graph-lead": "none", "graph-bars": "solid", "row-style": "none",
+  "meter-empty": "{track}", "meter-peak": "none", "graph-grid": "auto", "graph-lead": "none", "graph-bars": "solid", "row-style": "none", "slab-current": "accent", "share-style": "none", "avatar-shape": "none",
 };
 
 /** The CSS of a Classic value: an alias becomes the var a widget reads, with the dark-surface fallback. */

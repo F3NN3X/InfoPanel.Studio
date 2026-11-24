@@ -24,7 +24,7 @@ const CREAM = "#EFE8D8";
 
 describe("the treatment tokens", () => {
   it("accept their words and ranges", () => {
-    const t3 = { "slab-header": "state", "slab-chip": "accent", "slab-tab": "warn", "slab-row": "current", "slab-card": "none", "slab-ink": CREAM, "slab-texture": "scanlines", "slab-notch": 8, "readout-scale": 2.5, "readout-decimals": 0.5, "readout-bar": "rule", "meter-style": "cells", "meter-empty": "#D3C9B3", "meter-peak": "hold", "ring-style": "hex", "graph-grid": "dashed", "graph-lead": "square", "graph-bars": "striped", "row-style": "ruled" };
+    const t3 = { "slab-header": "state", "slab-chip": "accent", "slab-tab": "warn", "slab-row": "current", "slab-card": "none", "slab-ink": CREAM, "slab-texture": "scanlines", "slab-notch": 8, "readout-scale": 2.5, "readout-decimals": 0.5, "readout-bar": "rule", "meter-style": "cells", "meter-empty": "#D3C9B3", "meter-peak": "hold", "ring-style": "hex", "graph-grid": "dashed", "graph-lead": "square", "graph-bars": "striped", "row-style": "ruled", "slab-current": "warn", "share-style": "gapped", "avatar-shape": "hex" };
     expect(errors(pack({ t3 }))).toEqual([]);
   });
 
@@ -35,6 +35,9 @@ describe("the treatment tokens", () => {
     ["readout-bar", 1],
     ["graph-grid", "dotted"],
     ["row-style", "banded"],
+    ["slab-current", "current"],
+    ["share-style", "stacked"],
+    ["avatar-shape", "circle"],
     ["slab-notch", 13],
     ["readout-scale", 5],
     ["readout-scale", 0.5],

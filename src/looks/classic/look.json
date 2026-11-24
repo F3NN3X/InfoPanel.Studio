@@ -348,7 +348,10 @@
     "graph-grid": "auto",
     "graph-lead": "none",
     "graph-bars": "solid",
-    "row-style": "none"
+    "row-style": "none",
+    "slab-current": "accent",
+    "share-style": "none",
+    "avatar-shape": "none"
   },
   "export": {
     "notExported": [

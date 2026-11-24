@@ -1,5 +1,5 @@
 // The component treatments a Look's T3 can ask for (Cyberspec v2, lane K): solid tone slabs on a header, chip, tab, list row or the whole
-// card, scaled readouts, segmented cell meters, hexagon rings, signal-graph marks and ruled rows. The words each token takes, and which
+// card, scaled readouts, segmented cell meters, hexagon rings and avatars, signal-graph marks, gapped share bars and ruled rows. The words each token takes, and which
 // tones a Look's slabs can be drawn in, for the validator (the contrast of the slab ink) and the drawing code (t3-tokens.ts) alike.
 
 /** The parts a slab can be drawn on. */
@@ -8,7 +8,7 @@ export type SlabPart = (typeof SLAB_PARTS)[number];
 /** The tones a slab is drawn in: the accent, the Look's `slab-info`, and the card's ok, warn and critical colours. */
 export const SLAB_TONES = ["accent", "info", "ok", "warn", "crit"] as const;
 export type SlabTone = (typeof SLAB_TONES)[number];
-/** What a part's `slab-*` token says: no slab, a slab only while the part (or, for the header and the card, the card) shows a warning or a critical reading, a slab in one tone always, or (rows only) the current row in the accent. */
+/** What a part's `slab-*` token says: no slab, a slab only while the part (or, for the header and the card, the card) shows a warning or a critical reading, a slab in one tone always, or (rows only) the current row in the `slab-current` tone. */
 export const SLAB_ROLES = ["none", "state", ...SLAB_TONES] as const;
 export type SlabRole = (typeof SLAB_ROLES)[number] | "current";
 
@@ -26,6 +26,9 @@ export const TREATMENT_WORDS: Readonly<Record<string, readonly string[]>> = {
   "graph-lead": ["none", "square"],
   "graph-bars": ["solid", "striped"],
   "row-style": ["none", "ruled"],
+  "slab-current": SLAB_TONES,
+  "share-style": ["none", "gapped"],
+  "avatar-shape": ["none", "hex"],
 };
 
 /** The slab ink and the info tone a Look that names none draws (the kit's on-solid ink and signal cyan). */
@@ -54,15 +57,21 @@ export const READOUT_SCALE_MAX = 4;
 export const READOUT_DECIMALS_MIN = 0.3;
 
 /**
- * The tones a Look's slabs can be drawn in: each constant tone a part names, the accent for the current row, and warn and critical for any
+ * The tones a Look's slabs can be drawn in: each constant tone a part names, the `slab-current` tone for the current row, and warn and critical for any
  * part with a slab at all (a part's own warning or critical reading wins over its constant tone). Empty when the Look draws no slab.
  */
+/** The tone a current row's slab takes (`slab-current`, the accent by default). */
+export const currentTone = (t3: Readonly<Record<string, string | number>> | undefined): SlabTone => {
+  const v = String(t3?.["slab-current"] ?? "accent");
+  return (SLAB_TONES as readonly string[]).includes(v) ? (v as SlabTone) : "accent";
+};
+
 export function slabTones(t3: Readonly<Record<string, string | number>> | undefined): SlabTone[] {
   const roles = SLAB_PARTS.map((p) => String(t3?.[`slab-${p}`] ?? "none")).filter((r) => r !== "none" && (TREATMENT_WORDS["slab-row"] as readonly string[]).includes(r));
   if (!roles.length) return [];
   const tones = new Set<SlabTone>(["warn", "crit"]);
   for (const r of roles) {
-    if (r === "current") tones.add("accent");
+    if (r === "current") tones.add(currentTone(t3));
     else if ((SLAB_TONES as readonly string[]).includes(r)) tones.add(r as SlabTone);
   }
   return SLAB_TONES.filter((t) => tones.has(t));

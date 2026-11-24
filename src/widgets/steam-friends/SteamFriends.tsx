@@ -72,12 +72,14 @@ export default function SteamFriends(p: SteamFriendsProps) {
                 {shown.map((f, i) => (
                   <Part as="li" kind="row" current={!!f.game} key={i} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]">
                     {twoLine ? (
-                      <span
+                      <Part
+                        as="span"
+                        kind="avatar"
                         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-micro font-semibold"
                         style={{ background: `color-mix(in srgb, ${colorOf(f)} 22%, transparent)`, color: colorOf(f) }}
                       >
                         {f.name[0]}
-                      </span>
+                      </Part>
                     ) : (
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: colorOf(f) }} />
                     )}

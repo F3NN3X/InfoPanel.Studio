@@ -20,7 +20,7 @@ import { alternate } from "@/lib/curves";
 import { appIconName, weatherKind } from "@/lib/weather-icons";
 import { RangeEaser, SmoothScroll, scrollWaitMs, useAnimationFrame, type ScrollPoint } from "./smoothing";
 import { HISTORY_LEN, RoomyCtx } from "./layout";
-import { motionOf, scaleX, slideX } from "./motion";
+import { motionOf, scaleX, slideX, stackX } from "./motion";
 import { HOLD_PX, holdPct } from "./hold";
 import { Readout, ReadoutBar, hexPath, rowAttrs, slabAttrs, stateAttr, usePeak } from "./treatments";
 import { SLAB_TEXTURE } from "@/looks/treatments";
@@ -252,6 +252,7 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
       </div>
     );
   }
+  if (m === "ruler") return <BarRuler pct={pct} ink={ink} fx={fx} className={className} />;
   if (m === "cells") return <BarCells pct={pct} peak={peak} n={segments ?? 20} ink={color ?? toneInk(sk, t)} empty={sk.meterEmpty ?? "var(--w-track)"} mark={mark} limit={limit} fx={fx} className={className} />;
   if (m === "wave")
     return (
@@ -309,6 +310,62 @@ function BarCells({ pct, peak, n, ink, empty, mark, limit, fx, className }: { pc
       {marks.map((m) => (
         <span key={m.at} aria-hidden data-part="threshold" className="pointer-events-none absolute top-full mt-0.5 h-1.25 w-2 -translate-x-1/2" style={{ left: `${clamp(m.at)}%`, background: m.c, clipPath: "polygon(50% 0, 100% 100%, 0 100%)" }} />
       ))}
+    </div>
+  );
+}
+
+/**
+ * A tick-ruler level (`meter-style: ruler`, the kit's slider): a hairline track, the reading drawn in its tone up to a square thumb, a ruler
+ * of ticks above (a short one every 5%, a tall one every 25%). The ticks and the thumb hang over the bar's box and carry no text.
+ */
+function BarRuler({ pct, ink, fx, className }: { pct: number; ink: string; fx: Record<string, string>; className: string }) {
+  const tick = `linear-gradient(90deg, ${ink} 1px, transparent 1px)`;
+  return (
+    <div data-part="bar" data-meter="ruler" {...fx} className={cn("relative w-full min-h-2", className)}>
+      <span aria-hidden data-part="ticks" className="pointer-events-none absolute inset-x-0 bottom-full mb-0.5 h-1.5 opacity-60" style={{ backgroundImage: `${tick}, ${tick}`, backgroundSize: "5% 50%, 25% 100%", backgroundPosition: "0 100%, 0 0", backgroundRepeat: "repeat-x" }} />
+      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[color:var(--w-track)]" />
+      <div className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2" style={{ ...scaleX(pct), background: ink }} />
+      <span aria-hidden data-part="thumb" className="absolute top-1/2 h-3 w-2 -translate-x-1/2 -translate-y-1/2 bg-[color:var(--w-fg)]" style={{ left: `${pct}%` }} />
+    </div>
+  );
+}
+
+/** A part of a whole on a `ShareBar`: its share of the track, in %, and its colour. */
+export interface SharePart {
+  pct: number;
+  color: string;
+}
+
+/**
+ * Parts of a whole on one track (a stacked bar: CPU and GPU of a power budget, reads and writes). Where the Look asks (`share-style: gapped`,
+ * the kit's power-draw bar) each part is a square block with a gap after it and the rest of the track in `meter-empty`; otherwise the rounded
+ * track with the parts slid along it, the markup the widgets always drew.
+ */
+export function ShareBar({ parts, height = "h-2.5", bleed }: { parts: SharePart[]; height?: string; bleed?: boolean }) {
+  const sk = useSkin();
+  const qa = bleed ? { "data-qa-bleed": "" } : null;
+  if (sk.share === "gapped") {
+    let left = 100;
+    const shares = parts.map((p) => {
+      const w = Math.min(left, clamp(p.pct));
+      left -= w;
+      return { w, color: p.color };
+    });
+    return (
+      <div data-part="share" {...qa} className={`flex w-full gap-0.5 ${height}`}>
+        {shares.map((p, i) => p.w > 0 && <span key={i} className="min-w-0" style={{ flex: `${p.w} 1 0`, background: p.color }} />)}
+        {left > 0 && <span className="min-w-0" style={{ flex: `${left} 1 0`, background: sk.meterEmpty ?? "var(--w-track)" }} />}
+      </div>
+    );
+  }
+  let from = 0;
+  return (
+    <div className={`relative ${height} overflow-hidden rounded-full bg-[color:var(--w-track)]`} {...qa}>
+      {parts.map((p, i) => {
+        const at = from;
+        from += p.pct;
+        return <div key={i} className="absolute inset-0 transition-transform duration-700" style={{ ...stackX(at, p.pct), background: p.color }} />;
+      })}
     </div>
   );
 }
@@ -848,7 +905,8 @@ function SparkMarks({ values, min, max, flat, axis, last: lastOnly, bars, color,
   const fixed = (min !== undefined && max !== undefined) || axis;
   return (
     <>
-      {m.last && lead && <span aria-hidden data-lead="" className="absolute h-2 w-2 bg-[color:var(--w-fg)]" style={{ left: `${bars ? 100 - 50 / values.length : m.last.x}%`, top: `${m.last.y}%`, transform: "translate(-50%,-50%)" }} />}
+      {/* the lead square stays inside the graph's box (a graph often sits in one that clips), so at the right edge it ends on the line's end */}
+      {m.last && lead && <span aria-hidden data-lead="" className="absolute h-2 w-2 bg-[color:var(--w-fg)]" style={{ left: `min(${bars ? 100 - 50 / values.length : m.last.x}%, 100% - 4px)`, top: `clamp(4px, ${m.last.y}%, 100% - 4px)`, transform: "translate(-50%,-50%)" }} />}
       {m.last && !lead && (
         <span aria-hidden className={`absolute ${shape ? "w-0.5" : "h-1.5 w-1.5 rounded-full"}`} data-spike={shape} style={{ left: `${bars ? 100 - 50 / values.length : m.last.x}%`, top: `${m.last.y}%`, transform: shape === "bar" ? "translate(-50%,0)" : "translate(-50%,-50%)", ...(shape === "bar" ? { height: `${100 - m.last.y}%` } : shape ? { height: 10 } : null), background: color, boxShadow: `0 0 0 2px rgba(0,0,0,.35)${glow ? ", 0 0 6px var(--w-accent)" : ""}` }} />
       )}

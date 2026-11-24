@@ -103,7 +103,15 @@ export const shell = (p: ShellInput): Partial<WidgetProps> => ({
 const typeVars = (scale: number): CSSProperties =>
   ({ "--text-micro": `calc(0.6875rem * ${scale})`, "--text-caption": `calc(0.75rem * ${scale})`, "--text-body": `calc(0.8125rem * ${scale})`, "--text-title": `calc(0.9375rem * ${scale})` }) as CSSProperties;
 
-export function Widget({ title, icon, iconOverride, accent, surface, radius, size, showHeader = true, right, className = "", style, children, bleed, compact, compactView, skin = "default", graph, meter, variant, studio, look, t3, slots, packId, backdrop, design = DESIGN_SIZE, fixedType }: WidgetProps) {
+/**
+ * The card. Mounted anew when its frame starts or stops drawing outside it (the card then moves into a host beside the frame layer), so
+ * everything that measures or watches the card element (its box, its body's size, page light, motion) follows the new one.
+ */
+export function Widget(props: WidgetProps) {
+  return <WidgetCard key={framesOutside(props.slots?.decor?.frame) ? "out" : "in"} {...props} />;
+}
+
+function WidgetCard({ title, icon, iconOverride, accent, surface, radius, size, showHeader = true, right, className = "", style, children, bleed, compact, compactView, skin = "default", graph, meter, variant, studio, look, t3, slots, packId, backdrop, design = DESIGN_SIZE, fixedType }: WidgetProps) {
   const chrome = useMemo(() => (look ? chromeOf(look) : undefined), [look]);
   // A zone past the design size zooms the content with it, and Size % on top; the tier and shape are taken from the zoomed size.
   const [ref, box, zoom] = useBox(forcedTier(look, size), (w, h) => zoomFor({ w, h }, design ?? undefined, chrome));

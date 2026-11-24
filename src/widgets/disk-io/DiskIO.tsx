@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { roomy, useFitRows, Widget, shell, hue, get, num, fmt, fmtRate, diskShort, Spark, Metric, useHistory, slideX, stackX, hw, type ShellProps } from "../kit";
+import { roomy, useFitRows, Widget, shell, hue, get, num, fmt, fmtRate, diskShort, Spark, Metric, useHistory, slideX, ShareBar, hw, type ShellProps } from "../kit";
 import { meta } from "./meta";
 
 export { meta };
@@ -49,10 +49,7 @@ export default function DiskIO(p: DiskIOProps) {
                     <span style={{ color: `color-mix(in oklab, ${rc} 60%, var(--w-fg))` }}>R</span> {fmtRate(x.r)} · <span style={{ color: `color-mix(in oklab, ${wc} 60%, var(--w-fg))` }}>W</span> {fmtRate(x.w)}
                   </span>
                 </div>
-                <div className="relative h-1.5 overflow-hidden rounded-full bg-[color:var(--w-track)]" data-qa-bleed>
-                  <div className="absolute inset-0 transition-transform duration-700" style={{ ...stackX(0, Math.sqrt((x.r || 0) / max) * 100), background: rc }} />
-                  <div className="absolute inset-0 transition-transform duration-700" style={{ ...stackX(Math.sqrt((x.r || 0) / max) * 100, Math.sqrt((x.w || 0) / max) * 100), background: wc }} />
-                </div>
+                <ShareBar height="h-1.5" bleed parts={[{ pct: Math.sqrt((x.r || 0) / max) * 100, color: rc }, { pct: Math.sqrt((x.w || 0) / max) * 100, color: wc }]} />
               </li>
             ))}
           </ul>

@@ -45,9 +45,10 @@
   color: inherit !important;
   text-shadow: none !important;
 }
-/* A header's or a row's slab reaches a little into the padding around it, so the text does not touch its edge; the box stays where it was. */
+/* A header's slab reaches a little into the card's padding around it, so the text does not touch its edge; the box stays where it was. A
+   row sits in a list that clips what leaves it, so its slab stays on the row and the row's text moves in from the edges instead. */
 [data-part="header"]:is([data-wp-slab], [data-wp-slab-state]) { --wp-slab-inset: -3px -6px; }
-[data-part="row"][data-wp-slab] { --wp-slab-inset: 0 -4px; }
+[data-part="row"][data-wp-slab] { padding-inline: 4px; }
 
 /* Ruled rows (`row-style: ruled`): a rule under each row, a tint on a table's head row. */
 [data-wp-rows] [data-part="row"] { box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--wp-frame-ink, var(--w-accent)) 22%, transparent); }

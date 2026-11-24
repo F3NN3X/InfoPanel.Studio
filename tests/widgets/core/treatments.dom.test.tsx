@@ -2,13 +2,13 @@
 // The component treatments (src/widgets/core/treatments.tsx): what each T3 token draws on the card, that a Look asking for none (Classic,
 // and every pack before these tokens) writes the markup it always did, and the readout's fit to its card.
 import { act, cleanup, render } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { createElement, type ReactNode, useEffect } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import classic from "@/looks/classic/look.json";
 import cyberspec from "@/looks/packs/cyberspec/look.json";
 import type { PackFrame } from "@/looks/pack-json";
-import { Bar, BarRow, Chip, LegendRow, Metric, Pill, Ring, RingStack, Spark } from "@/widgets/core/primitives";
+import { Bar, BarRow, Chip, LegendRow, Metric, Pill, Ring, RingStack, ShareBar, Spark } from "@/widgets/core/primitives";
 import { t3Tokens } from "@/widgets/core/t3-tokens";
 import { Part, Readout, hexPath, overflows, rowAttrs, slabAttrs, splitDecimals, stateAttr } from "@/widgets/core/treatments";
 import { Widget } from "@/widgets/core/Widget";
@@ -34,9 +34,11 @@ const ALL = (
     <Pill state="warn">Low</Pill>
     <LegendRow color="red" label="A" value="1" />
     <Part as="li" kind="row" current>row</Part>
+    <Part as="span" kind="avatar" className="h-6 w-6" style={{ color: "red" }}>A</Part>
+    <ShareBar parts={[{ pct: 30, color: "red" }, { pct: 20, color: "blue" }]} />
   </>
 );
-const HOOKS = /data-wp-slab|data-state=|data-part="(row|row-head|cell|decimals|readout-bar)"|data-readout|data-meter="cells"|data-ring="hex"|data-grid="dashed"|data-lead|data-pack-frame-host|data-frame-tone|data-frame-rule|--wp-slab/;
+const HOOKS = /data-wp-slab|data-state=|data-part="(row|row-head|cell|decimals|readout-bar)"|data-readout|data-meter="cells"|data-ring="hex"|data-grid="dashed"|data-lead|data-pack-frame-host|data-frame-tone|data-frame-rule|--wp-slab|data-avatar|data-part="(share|ticks|thumb)"|data-meter="ruler"|clip-path:polygon\(50% 0/;
 
 describe("a Look that asks for no treatment", () => {
   it("maps to no token: Classic's values, and words outside the vocabulary", () => {
@@ -54,12 +56,12 @@ describe("a Look that asks for no treatment", () => {
 
 describe("tone slabs", () => {
   it("map each part's role, the ink, the info tone, the texture and the notch", () => {
-    expect(t3Tokens({ "slab-header": "state", "slab-row": "current", "slab-chip": "current", "slab-ink": "#101010", "slab-texture": "scanlines", "slab-notch": 8 }).slab).toEqual({ roles: { header: "state", row: "current" }, ink: "#101010", info: "#5EF6FF", texture: true, notch: 8 });
+    expect(t3Tokens({ "slab-header": "state", "slab-row": "current", "slab-chip": "current", "slab-ink": "#101010", "slab-texture": "scanlines", "slab-notch": 8 }).slab).toEqual({ roles: { header: "state", row: "current" }, ink: "#101010", info: "#5EF6FF", texture: true, notch: 8, current: "accent" });
     expect(t3Tokens({ "slab-card": "warn", "slab-ink": "{accent}" }).slab?.ink).toBe("var(--w-accent)");
   });
 
   it("put a part's own warning or critical state over its constant tone, and a header or card on `state` follows the card", () => {
-    const sk = { slab: { roles: { chip: "accent", header: "state", card: "state", row: "current", tab: "state" }, ink: "#000", info: "#0ff", texture: false, notch: 0 } } as const;
+    const sk = { slab: { roles: { chip: "accent", header: "state", card: "state", row: "current", tab: "state" }, ink: "#000", info: "#0ff", texture: false, notch: 0, current: "accent" } } as const;
     expect(slabAttrs(sk, "chip")).toEqual({ "data-wp-slab": "accent" });
     expect(slabAttrs(sk, "chip", "crit")).toEqual({ "data-wp-slab": "crit" });
     expect(slabAttrs(sk, "header")).toEqual({ "data-wp-slab-state": "" });
@@ -114,7 +116,7 @@ describe("readouts", () => {
 
   it("draw a hero value at the scale, its decimals smaller, and the under-bar in the reading's colour", () => {
     const html = draw({ "readout-scale": 2.5, "readout-decimals": 0.5, "readout-bar": "rule" }, <Metric label="Out" value="412.8" unit="DPS" t="warn" />);
-    expect(html).toContain('<span data-readout="" style="font-size:2.5em">');
+    expect(html).toContain('<span data-readout="" class="inline-block leading-none" style="font-size:2.5em">');
     expect(html).toContain('<span data-part="decimals" style="font-size:0.5em">.8</span>');
     expect(html).toMatch(/data-part="readout-bar"[^>]*color:var\(--w-warn/);
     expect(draw({ "readout-bar": "rule" }, <Metric label="Heat" value="31" pct={31} />)).toContain("0 0 / 31% 100% no-repeat");
@@ -190,6 +192,55 @@ describe("cell meters, hex rings and signal graphs", () => {
   });
 });
 
+describe("rulers, share bars, hex avatars and the current row's tone", () => {
+  it("a ruler level: the reading in its tone up to a square thumb, a ruler of ticks over it", () => {
+    const html = draw({ "meter-style": "ruler" }, <Bar value={40} t="warn" />);
+    expect(html).toContain('data-meter="ruler"');
+    expect(html).toContain('data-part="ticks"');
+    expect(html).toMatch(/data-part="thumb"[^>]*left:40%/);
+    expect(html).toContain("scaleX(0.4)");
+  });
+
+  it("a share bar: without the token, the rounded track with the parts slid along it the widgets drew before", () => {
+    const old = renderToString(
+      <div className="relative h-2.5 overflow-hidden rounded-full bg-[color:var(--w-track)]">
+        <div className="absolute inset-0 transition-transform duration-700" style={{ transform: "translateX(30%) scaleX(0.2)", transformOrigin: "left", background: "blue" }} />
+      </div>,
+    );
+    const now = renderToString(<ShareBar parts={[{ pct: 30, color: "red" }, { pct: 20, color: "blue" }]} />);
+    expect(now).toContain(old.slice(old.indexOf("<div class=\"absolute")));
+    expect(now.startsWith(old.slice(0, old.indexOf("<div class=\"absolute")))).toBe(true);
+    expect(renderToString(<ShareBar height="h-1.5" bleed parts={[]} />)).toBe('<div class="relative h-1.5 overflow-hidden rounded-full bg-[color:var(--w-track)]" data-qa-bleed=""></div>');
+  });
+
+  it("a gapped share bar: square parts in their shares, the rest of the track dim, never past the whole", () => {
+    const html = draw({ "share-style": "gapped", "meter-empty": "#1B3A42" }, <ShareBar parts={[{ pct: 60, color: "red" }, { pct: 70, color: "blue" }]} />);
+    expect(html).toContain('data-part="share"');
+    expect(html).toContain("flex:60 1 0;background:red");
+    expect(html).toContain("flex:40 1 0;background:blue");
+    expect(html).not.toContain("background:#1B3A42");
+    expect(draw({ "share-style": "gapped" }, <ShareBar parts={[{ pct: 25, color: "red" }]} />)).toContain("flex:75 1 0;background:var(--w-track)");
+  });
+
+  it("a hex avatar: the widget's own element and style, clipped to a pointy-top hexagon", () => {
+    const html = draw({ "avatar-shape": "hex" }, <Part as="span" kind="avatar" className="h-6 w-6" style={{ color: "red" }}>A</Part>);
+    expect(html).toMatch(/<span data-part="avatar" data-avatar="hex" class="h-6 w-6" style="color:red;clip-path:polygon\(50% 0, 100% 25%/);
+  });
+
+  it("the current row's slab in the `slab-current` tone, the accent by default", () => {
+    expect(t3Tokens({ "slab-row": "current", "slab-current": "warn" }).slab?.current).toBe("warn");
+    expect(t3Tokens({ "slab-row": "current", "slab-current": "gold" }).slab?.current).toBe("accent");
+    expect(draw({ "slab-row": "current", "slab-current": "warn" }, <Part as="li" kind="row" current>now</Part>)).toContain('data-wp-slab="warn"');
+  });
+});
+
+/** How often a `Probe` mounted: a widget's content mounts again only when its card does. */
+const mounted = { n: 0 };
+function Probe() {
+  useEffect(() => void mounted.n++, []);
+  return null;
+}
+
 describe("the frame's outside layer", () => {
   const frame: PackFrame = { corners: "cut", size: 12, which: ["br"], glow: { radius: 10 }, caption: { text: "CS-54 // METER", at: "tl" }, tab: { at: "tl", width: 40, height: 5, out: true }, tone: "state", rule: true };
 
@@ -210,6 +261,19 @@ describe("the frame's outside layer", () => {
     expect(html).toContain('data-frame-part="tint"');
     expect(html).toContain("background-size:22px 22px");
     expect(html).toMatch(/data-frame-part="band" style="position:absolute;top:0;bottom:0;width:20px;left:0/);
+  });
+
+  it("mounts the card anew when the frame starts drawing outside it, so what measures the card watches the one on the page; not on other changes", async () => {
+    mounted.n = 0;
+    const card = (f?: PackFrame) => createElement(Widget, { size: "lg", title: "T", slots: f ? { decor: { frame: f } } : undefined, packId: f ? "p" : undefined }, createElement(Probe));
+    const view = render(card());
+    await act(async () => view.rerender(card({ corners: "cut", size: 12 })));
+    expect(mounted.n).toBe(1);
+    await act(async () => view.rerender(card(frame)));
+    expect(mounted.n).toBe(2);
+    expect(view.container.querySelector("[data-pack-frame-host] > [data-part='card']")).not.toBeNull();
+    await act(async () => view.rerender(card({ ...frame, glow: { radius: 4 } })));
+    expect(mounted.n).toBe(2);
   });
 });
 

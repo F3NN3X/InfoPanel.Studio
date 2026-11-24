@@ -3,7 +3,7 @@
 // (fills) pass `safeFill` / `safeGradient` first: a pack is untrusted, and a fill goes into a style.
 import type { CSSProperties } from "react";
 import { STATUS } from "@/looks/status";
-import { READOUT_DECIMALS_MIN, READOUT_SCALE_MAX, SLAB_INFO_DEFAULT, SLAB_INK_DEFAULT, SLAB_NOTCH_MAX, SLAB_PARTS, TREATMENT_WORDS, type SlabRole } from "@/looks/treatments";
+import { currentTone, READOUT_DECIMALS_MIN, READOUT_SCALE_MAX, SLAB_INFO_DEFAULT, SLAB_INK_DEFAULT, SLAB_NOTCH_MAX, SLAB_PARTS, TREATMENT_WORDS, type SlabRole } from "@/looks/treatments";
 import type { SkinTokens, SlabSpec } from "./types";
 
 const COLOUR_FNS = ["rgb", "rgba", "hsl", "hsla", "hwb", "lab", "lch", "oklab", "oklch", "color", "color-mix"];
@@ -131,7 +131,7 @@ function slabOf(t3: Readonly<Record<string, string | number>>): SlabSpec | undef
     if (role && role !== "none" && (role !== "current" || part === "row")) roles[part] = role as SlabRole;
   }
   if (!Object.keys(roles).length) return undefined;
-  return { roles, ink: markColour(t3["slab-ink"], "", t3) ?? SLAB_INK_DEFAULT, info: markColour(t3["slab-info"], "", t3) ?? SLAB_INFO_DEFAULT, texture: t3["slab-texture"] === "scanlines", notch: numberIn(t3["slab-notch"], 0, SLAB_NOTCH_MAX) ?? 0 };
+  return { roles, ink: markColour(t3["slab-ink"], "", t3) ?? SLAB_INK_DEFAULT, info: markColour(t3["slab-info"], "", t3) ?? SLAB_INFO_DEFAULT, texture: t3["slab-texture"] === "scanlines", notch: numberIn(t3["slab-notch"], 0, SLAB_NOTCH_MAX) ?? 0, current: currentTone(t3) };
 }
 
 /** The treatments a Look's T3 asks for (lane K): slabs, readouts, cell meters, hex rings, graph marks, ruled rows; none for Classic's values. */
@@ -151,6 +151,8 @@ function treatments(t3: Readonly<Record<string, string | number>>, out: Partial<
   if (word(t3, "graph-lead") === "square") out.graphLead = "square";
   if (word(t3, "graph-bars") === "striped") out.graphBars = "striped";
   if (word(t3, "row-style") === "ruled") out.rows = "ruled";
+  if (word(t3, "share-style") === "gapped") out.share = "gapped";
+  if (word(t3, "avatar-shape") === "hex") out.avatar = "hex";
 }
 
 /** The tokens a Look's T3 values set; `{}` for Classic's. */
@@ -189,7 +191,7 @@ export function t3Tokens(t3: Readonly<Record<string, string | number>> | undefin
   if (outline && !safeGradient(outline)) out.focusOutline = outline;
   const border = safeFill(t3["border-fill"]);
   if (border) Object.assign(out, { frame: "gradient", borderFill: border });
-  const meter = oneOf(t3["meter-style"], ["segments", "blocks", "cells"]);
+  const meter = oneOf(t3["meter-style"], ["segments", "blocks", "cells", "ruler"]);
   if (meter) out.meter = meter;
   if (t3["meter-zone-style"] === "blend") out.zones = "blend";
   const hold = oneOf(t3["meter-hold-style"], ["dot", "block"]);

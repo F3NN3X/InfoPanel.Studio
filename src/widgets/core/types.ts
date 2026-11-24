@@ -3,7 +3,7 @@ import type { ComponentType, CSSProperties, ReactNode } from "react";
 import type { PackSlots } from "@/looks/pack";
 import type { PackDecorSpec } from "@/looks/pack-frame";
 import type { ModuleSettings } from "@/modules/types";
-import type { SlabPart, SlabRole } from "@/looks/treatments";
+import type { SlabPart, SlabRole, SlabTone } from "@/looks/treatments";
 
 export type Data = Record<string, string | { value: string }>;
 export type Tier = "xs" | "sm" | "md" | "lg";
@@ -118,6 +118,8 @@ export interface SlabSpec {
   texture: boolean;
   /** px. */
   notch: number;
+  /** The tone of the current row's slab (`slab-current`). */
+  current: SlabTone;
 }
 
 /** A Look's readouts (`readout-*`): how much larger a hero value may be drawn (it is fitted to its card), its decimals' size, an under-bar. */
@@ -225,6 +227,10 @@ export interface SkinTokens {
   graphBars: "striped";
   /** `row-style: ruled`: list rows carry `data-part="row"` and a rule under each; a table's head row a tint. */
   rows: "ruled";
+  /** `share-style: gapped`: a bar of parts of a whole (`ShareBar`) draws square parts with a gap between them and the rest of its track dim. */
+  share: "gapped";
+  /** `avatar-shape: hex`: avatars and initials are drawn on a hexagon. */
+  avatar: "hex";
 }
 
 /** One icon of a Look's icon set: a single path in a viewBox, painted in `currentColor`. */
