@@ -352,7 +352,7 @@ Each effect is an object with `on` (default true), `intensity` (0.1 to 1) and it
 least seconds between two scrambles of one number); `arrival` `ms` 120 to 300 and `style` `fade`, `clip` or `line`; `flicker`
 `every` 2 to 120 and `target` `card` or `label`; `sweep` `ms` 400 to 3000, `every` 4 to 120 and `style` `band` or `tracking` (a VHS tracking band with a ragged edge drifting
 up); `tear` `ms` 80 to 200 and `every` 4 to 120 (a screen tear: one card's content split at a random height and shifted 6 to
-14 px, one card at a time; Cyberspec tears one every 20 s or so). A value out of range refuses
+14 px, one card at a time; Cyberspec declares one every 20 s or so, off by default). A value out of range refuses
 the pack.
 
 The real text never changes: the noise is a copy over it that screen readers skip, so nothing changes width and privacy blur

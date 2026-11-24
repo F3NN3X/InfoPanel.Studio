@@ -182,6 +182,7 @@
       "style": "tracking"
     },
     "tear": {
+      "on": false,
       "every": 20
     },
     "art": {
