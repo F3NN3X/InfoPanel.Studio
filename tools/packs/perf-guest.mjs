@@ -38,12 +38,15 @@ const seconds = Number(secondsArg) || 60;
 const { createGuest, loadQuickJS } = await import(pathToFileURL(guestFile).href);
 const { checkCommands } = await import(pathToFileURL(join(dirname(guestFile), "commands.mjs")).href);
 const source = readFileSync(scriptFile, "utf8");
+// PERF_GUEST_CLOCK=frozen (tests only): the guest's clock stands still, so no frame is ever cut and the run reports what the script
+// draws, not how busy the machine is. It never interrupts, so it is only for scripts known to finish a frame.
+const clock = process.env.PERF_GUEST_CLOCK === "frozen" ? () => 0 : undefined;
 const quickjs = await loadQuickJS();
 const levels = {};
 const issues = [];
 let started = true;
 for (const [level, fps] of [["full", 30], ["calm", 15]]) {
-  const guest = createGuest(quickjs, source, { seed: 1, level });
+  const guest = createGuest(quickjs, source, { seed: 1, level, clock });
   if ("fault" in guest) {
     issues.push(issue("error", "perf-start", `the script did not start: ${guest.fault}`));
     started = false;

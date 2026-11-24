@@ -131,12 +131,12 @@ describe("the perf run", () => {
   const demo = readFileSync(new URL("../../fixtures/packs/script/demo.js", import.meta.url), "utf8");
 
   it("runs the script in the sandbox's guest at Full and Calm and reports time, commands and heap", async () => {
-    const report = await perfRun(demo, { seconds: 4 });
+    // a frozen guest clock: the verdict on what the script does, not on how busy the runner is (the cut path runs on the real clock below)
+    const report = await perfRun(demo, { seconds: 4, clock: "frozen" });
     expect(report.status).toBe("passed");
     expect(Object.keys(report.levels)).toEqual(["full", "calm"]);
     expect(report.levels.full.frames).toBe(120);
     expect(report.levels.calm.frames).toBe(60);
-    // the verdict, not the machine's speed: a busy machine may cut the odd frame, which the watchdog (and so the check) tolerates
     expect(report.issues.filter((i) => i.severity === "error")).toEqual([]);
     for (const l of Object.values(report.levels)) {
       expect(l).toMatchObject({ faults: 0 });
@@ -149,7 +149,7 @@ describe("the perf run", () => {
 
   it("also runs each frame's commands through the host's check: the v2 demo (gradients, glow, clip, text boxes, 500 points) is accepted whole, with its cost reported", async () => {
     const v2 = readFileSync(new URL("../../fixtures/packs/script/v2-demo.js", import.meta.url), "utf8");
-    const report = await perfRun(v2, { seconds: 4 });
+    const report = await perfRun(v2, { seconds: 4, clock: "frozen" });
     expect(report.issues.filter((i) => i.severity === "error")).toEqual([]);
     expect(report.issues.filter((i) => i.rule === "perf-refused" || i.rule === "perf-cost")).toEqual([]);
     expect(report.levels.full).toMatchObject({ refused: 0, cappedFrames: 0 });
@@ -161,7 +161,7 @@ describe("the perf run", () => {
   it("passes Cyberspec's own script, at Full and Calm, under the commands cap, Calm drawing less", async () => {
     const cyberspec = readFileSync(new URL("../../../src/looks/packs/cyberspec/assets/fx.js", import.meta.url), "utf8");
     expect(errors((await analyseScript(cyberspec)).issues)).toEqual([]);
-    const report = await perfRun(cyberspec, { seconds: 4 });
+    const report = await perfRun(cyberspec, { seconds: 4, clock: "frozen" });
     expect(report.status).toBe("passed");
     expect(report.issues.filter((i) => i.severity === "error")).toEqual([]);
     expect(report.levels.full).toMatchObject({ faults: 0 });

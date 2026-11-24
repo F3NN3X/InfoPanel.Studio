@@ -193,14 +193,15 @@ async function bundleGuest() {
  * child process, so a script that stalls the runtime's native code is ended by a timeout rather than hanging the check. Node cannot
  * throttle the CPU, so the report gives the guest's time per frame at 1x and what the 95th percentile would be on a CPU 4 and 6 times
  * slower; the run fails when the guest faults, or when enough frames are cut off close together that the kiosk's watchdog would stop the script (fewer cut frames are a warning); a 95th percentile that passes the guest's 2 ms budget at 6x
- * (a slow kiosk would drop frames) is a warning for the reviewer.
+ * (a slow kiosk would drop frames) is a warning for the reviewer. `clock: "frozen"` (tests only) stops the guest's clock, so the run
+ * checks what a known-good script draws without depending on the machine's speed.
  */
-export async function perfRun(source, { seconds = 60 } = {}) {
+export async function perfRun(source, { seconds = 60, clock } = {}) {
   const guest = await bundleGuest();
   const file = join(dirname(guest), "script.js");
   writeFileSync(file, source);
   const run = await new Promise((resolve) => {
-    execFile(process.execPath, [join(root, "tools/packs/perf-guest.mjs"), guest, file, String(seconds)], { timeout: 120_000, maxBuffer: 1 << 20 }, (error, stdout) => resolve({ error, stdout }));
+    execFile(process.execPath, [join(root, "tools/packs/perf-guest.mjs"), guest, file, String(seconds)], { timeout: 120_000, maxBuffer: 1 << 20, env: clock === "frozen" ? { ...process.env, PERF_GUEST_CLOCK: "frozen" } : process.env }, (error, stdout) => resolve({ error, stdout }));
   });
   if (run.error) return { status: "failed", note: `the perf run did not finish: ${run.error.message.split(String.fromCharCode(10))[0]}`, issues: [issue("error", "perf-run", "the perf run did not finish (it was stopped after 120 s or crashed)")] };
   return JSON.parse(run.stdout);
