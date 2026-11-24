@@ -368,7 +368,7 @@ takes no clicks and that screen readers skip.
 | Call | What it does |
 |---|---|
 | `fx.onFrame(fn)` | `fn(t)` runs once a frame; `t` is the frame's time in ms |
-| `fx.draw(list)` | this frame's commands: `rect`, `arc`, `path`, `glyph` (a card's text box), `transform`, `reset` |
+| `fx.draw(list)` | this frame's commands: `rect`, `arc`, `path`, `points`, `glyph` and `textbox` (a card's text box), `gradient`, `style`, `clip`, `transform`, `reset` |
 | `fx.signals()` | `{ level, width, height, cards }`, updated at most 4 times a second |
 | `fx.rand()`, `fx.now()` | a seeded random number, the frame's time |
 
@@ -377,6 +377,39 @@ threshold state (`ok`, `warn`, `crit` or `null`), and its texts as boxes with a 
 exact reading**, and cards that blur a value for privacy, coding-agent cards and chat cards are left out and nothing is
 drawn over them. Colours are **palette indices**, never CSS: 0 accent, 1 text, 2 muted, 3 ok, 4 warn, 5 crit, 6 info, 7 page,
 8 card, 9 secondary text. Index 0 is the screen's accent, so a variant recolours the script with the rest of the pack.
+
+**Richer drawing.** Beyond the four shapes the script has what the kit's showcase effects need, every one a validated, capped
+command (the complete list is in the [customization guide](customization-guide.md)):
+
+- `gradient` and a shape's `fillGrad`: a scan band that fades in behind a bright 1 px leading edge, or a radial bloom, in palette
+  colours with alpha stops.
+- `style`: a dash whose `phase` you move each frame (a stream along a circuit trace like the hex-stat's), round caps and joins, a
+  glow of up to 12 px in a palette colour, and the composite modes `lighter` and `screen` so light adds up.
+- `clip` to a card, so a band or a bloom stays inside it.
+- `textbox`: highlight, underline or wipe the box of a title or number, for a reveal that follows the text without ever seeing it.
+- `points`: 500 particles in one command.
+- `card.event`: arrival, a value moving up or down, or a state change, once, so an effect fires on the change rather than polling.
+
+```js fx.js
+let seen = null;
+const pulses = new Map();
+fx.onFrame((t) => {
+  const s = fx.signals();
+  if (s !== seen) { // a new update: read the events once
+    seen = s;
+    s.cards.forEach((c, i) => c.event && c.event.state === "crit" && pulses.set(i, t));
+  }
+  const list = [];
+  for (const [i, at] of pulses) {
+    const c = s.cards[i];
+    if (!c || t - at > 400) { pulses.delete(i); continue; }
+    // a crit colour that fades down from the card's top edge, kept inside the card
+    list.push({ op: "clip", card: i }, { op: "gradient", id: 0, x0: 0, y0: c.y, x1: 0, y1: c.y + 40, stops: [[0, 5, 0.5], [1, 5, 0]] });
+    list.push({ op: "rect", x: c.x, y: c.y, w: c.w, h: 40, fillGrad: 0, alpha: 1 - (t - at) / 400 }, { op: "unclip" });
+  }
+  fx.draw(list);
+});
+```
 
 Cyberspec's [`fx.js`](../src/looks/packs/cyberspec/assets/fx.js) does three things:
 
@@ -413,7 +446,7 @@ motion and on a hidden page the app runs no script at all.
 
 **Caps.** A frame has 2 ms of the script's own time: past it the frame is cut off and draws nothing, and three cut frames
 within 10 s hand the screen back to the pack's declarative effects. The top level has 50 ms, the script 8 MB of memory and
-2,000 commands a frame. The app shows at most three flashes a second whatever the script draws.
+2,000 commands and a cost of 3,000 a frame (a glow costs its blur in px per shape). The app shows at most three flashes a second whatever the script draws.
 
 **What it can't do**: read or write text, see exact values, reach the network, the page, your files or other apps, set a timer,
 load code, or draw outside the overlay. The pack checker measures it (step 12): Cyberspec's script spends about 0.6 ms a frame

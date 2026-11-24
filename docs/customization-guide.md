@@ -1334,9 +1334,13 @@ API: use `fx.now()` and `fx.rand()`.
 | `fx.rand()` | A number from 0 to 1, from a seed of the pack's id, so a pack draws the same way each time. |
 | `fx.now()` | The frame's time in ms. |
 
-`level` is `"full"` or `"calm"`; `width` and `height` are the overlay's size in px. Each card is `{ x, y, w, h, value, state, texts }`:
+`level` is `"full"` or `"calm"`; `width` and `height` are the overlay's size in px. Each card is `{ x, y, w, h, value, state, event, texts }`:
 its box in px, `value` the card's lead bar or ring as 0 to 1 in hundredths (or `null`), `state` `"ok"`, `"warn"`, `"crit"` or
-`null`, and `texts` the boxes of its title, labels and numbers as `{ x, y, w, h, n }`, where `n` is how many letters it has. Cards
+`null`, and `texts` the boxes of its title, labels and numbers as `{ x, y, w, h, n }`, where `n` is how many letters it has. `event`
+is there only on the one update after something happened to the card, and is `{ arrived, value, state }`: `arrived` is true when the
+card's box was not there before (every card, on the first read), `value` is `"up"` or `"down"` when the value moved by at least a
+hundredth, and `state` is the new `"ok"`, `"warn"` or `"crit"` when the threshold state changed. An update is a new object from
+`fx.signals()`, so a script keeps the last one it saw and reacts when it sees another; no polling and no exact value. Cards
 that blur a value for privacy, and coding-agent and chat cards, are not in the list, and nothing is drawn over them.
 
 Every command paints with `fill` and/or `stroke`, an index into the theme's palette, plus `alpha` (0 to 1, default 1) and
@@ -1349,8 +1353,18 @@ Every command paints with `fill` and/or `stroke`, an index into the theme's pale
 | `arc` | `x`, `y`, `r`, `start` and `end` in radians (default a full circle) |
 | `path` | `points`: `[x0, y0, x1, y1, …]`, 2 to 512 points (8,000 in a frame), `close` true to close it |
 | `glyph` | `card` and `text`, indices into `fx.signals().cards` and its `texts`: paints that text's box |
+| `points` | `points`: `[x0, y0, x1, y1, ...]`, 1 to 1,024 dots (4,000 in a frame), `r` the radius 0 to 16 (default 1), `shape` `"square"` for squares: one command draws them all, so 500 particles cost a command |
+| `textbox` | `card`, `text` as for `glyph`, and `kind`: `"highlight"` paints the box, `"underline"` a line of `width` px under it, `"wipe"` the fraction `p` (0 to 1) of it from `side` (`"left"`, `"right"`, `"top"`, `"bottom"`); `pad` (0 to 8 px) grows the box. Boxes only, never the letters |
+| `gradient` | defines gradient `id` (0 to 7) for the shapes after it: `x0, y0, x1, y1` (linear), plus `r0` and `r1` for a radial one, and `stops`: 2 to 8 of `[at, colour, alpha]` (`at` 0 to 1, `colour` a palette index, `alpha` default 1). A shape then names it with `fillGrad` or `strokeGrad` in place of `fill` or `stroke` |
+| `style` | sets, for the shapes after it, `dash: [on, off]` (px, up to 64) and `phase` (move it each frame and the dashes stream), `cap` (`butt`, `round`, `square`), `join` (`miter`, `round`, `bevel`), `blur` (a glow, 0 to 12 px) with `glow`, its palette colour (a shape's own when unset), and `mode` (`source-over`, `lighter` or `screen`). `{ op: "style" }` alone puts it all back |
+| `clip` / `unclip` | `clip` with `card` draws nothing outside that card's box until `unclip` (a frame never ends clipped) |
 | `transform` | `m`: `[a, b, c, d, e, f]` for the commands after it; scale and skew at most 4, moves within the screen |
 | `reset` | back to no transform |
+
+A shape names a gradient defined earlier in the same frame; one that is not, or a shape with both `fill` and `fillGrad`, is skipped. A
+frame also has a **cost** of at most 3,000: a shape costs 1, a gradient 2 (and a shape painted with one 1 more), a `points` command 1
+and one more for each 50 dots, and every shape drawn under a glow its blur in px more, so a glow is the thing to spend sparingly.
+Past the cap the rest of the frame is dropped. The pack checker's perf run reports the cost and what the app refused.
 
 A command out of shape, or a colour that is not a palette index, is skipped; numbers out of range are held to it. A frame has
 2 ms of the script's own time: past that it is cut off and draws nothing, and three such frames in ten seconds hand over to the

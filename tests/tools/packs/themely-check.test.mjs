@@ -147,6 +147,16 @@ describe("the perf run", () => {
     }
   });
 
+  it("also runs each frame's commands through the host's check: the v2 demo (gradients, glow, clip, text boxes, 500 points) is accepted whole, with its cost reported", async () => {
+    const v2 = readFileSync(new URL("../../fixtures/packs/script/v2-demo.js", import.meta.url), "utf8");
+    const report = await perfRun(v2, { seconds: 4 });
+    expect(report.issues.filter((i) => i.severity === "error")).toEqual([]);
+    expect(report.issues.filter((i) => i.rule === "perf-refused" || i.rule === "perf-cost")).toEqual([]);
+    expect(report.levels.full).toMatchObject({ refused: 0, cappedFrames: 0 });
+    expect(report.levels.full.costMax).toBeGreaterThan(report.levels.full.commandsMax);
+    expect(report.levels.full.checkP95Ms).toBeGreaterThanOrEqual(0);
+  });
+
   // the built-in showcase (src/looks/packs/cyberspec/assets/fx.js) passes the checks a submitted script gets: the analysis and the run
   it("passes Cyberspec's own script, at Full and Calm, under the commands cap, Calm drawing less", async () => {
     const cyberspec = readFileSync(new URL("../../../src/looks/packs/cyberspec/assets/fx.js", import.meta.url), "utf8");
