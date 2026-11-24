@@ -20,9 +20,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { chromium } from "@playwright/test";
-import { startScratch } from "../perf/scratch.mjs";
 import { diffRuns } from "./overflow-diff.mjs";
 import { PACK_STYLES } from "./pack-styles.mjs";
+import { mountAll, openQaPage, startQa } from "./qa-page.mjs";
 
 const VALUED = new Set(["--save", "--baseline", "--module", "--spans", "--same-boxes", "--looks", "--markup-baseline", "--save-markup"]);
 const args = {};
@@ -90,35 +90,21 @@ async function collect() {
   return frames;
 }
 
-/** One transparent pixel: what an off-site image answers with. */
-const PIXEL = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
-
-const scratch = await startScratch({ env: { DASHBOARD_DEBUG: "1" } });
+const scratch = await startQa();
 const browser = await chromium.launch({ headless: true });
 let frames;
 const withSurface = {};
 const withLook = {};
 try {
-  const newQaPage = async () => {
-    // A fixed clock and zone: reset times and clocks on the fixtures are "now plus", so the text would differ per run.
-    const page = await browser.newPage({ viewport: { width: 1800, height: 1000 }, timezoneId: "UTC", locale: "en-US" });
-    await page.clock.setFixedTime(new Date("2026-01-15T12:00:00Z"));
-    // The fixtures' art lives on other hosts (a Steam logo on localhost:39482): loaded or not changes a widget's text, so each one answers here, on every machine.
-    await page.route("**/*", (route) => {
-      const request = route.request();
-      if (request.resourceType() !== "image" || request.url().startsWith(scratch.base)) return route.fallback();
-      return route.fulfill({ contentType: "image/png", body: PIXEL });
-    });
-    return page;
-  };
+  // A fixed clock and zone, and off-site images answered here: the text is the same on every run and machine.
+  const newQaPage = () => openQaPage(browser, { base: scratch.base, viewport: { width: 1800, height: 1000 }, clock: "2026-01-15T12:00:00Z", stubImages: true });
   const module = args.module ? `&module=${args.module}` : "";
   const run = async (page, surface, look) => {
     const style = look && PACK_STYLES[look];
     const settings = look ? `&settings=${encodeURIComponent(JSON.stringify(style))}` : "";
     await page.goto(`${scratch.base}/?widget-qa${module}&spans=${spans}&eager=1${surface ? `&surface=${surface}` : ""}${settings}`);
-    await page.waitForFunction(() => window.__qaMountAll && window.__qaOverflow, null, { timeout: 30_000 });
     // A page that never settled would be read half-built (ledger L50): fail rather than diff it.
-    if (!(await page.evaluate(() => window.__qaMountAll()))) throw new Error(`overflow: the Widget QA page did not settle${surface ? ` (surface ${surface})` : ""}`);
+    if (!(await mountAll(page, { needs: ["__qaMountAll", "__qaOverflow"], timeout: 30_000 }))) throw new Error(`overflow: the Widget QA page did not settle${surface ? ` (surface ${surface})` : ""}`);
     // A name the page does not know falls back to the default card, which would pass for the right one.
     if (surface && !(await page.evaluate((name) => !!document.querySelector(`[data-wp-tier][data-mat="${name}"]`), surface))) throw new Error(`overflow: no card drew the surface ${surface}`);
     // The pack must be on the cards: its chunk loaded and its `data-look` written (a pack that failed to load draws Classic and would pass).
