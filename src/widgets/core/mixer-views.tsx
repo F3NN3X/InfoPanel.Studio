@@ -19,7 +19,7 @@ import { Icon } from "./primitives";
 import { MIXER_GAP, mixerFit, thinTicks, type MixerFit } from "./mixer-fit";
 import type { MixerLook } from "./mixer-look";
 import type { SurfaceTone } from "@/looks/materials";
-import { resolveSurface } from "./theme";
+import { resolveSurface, useSkin } from "./theme";
 import "./mixer-views.css";
 
 /** A fader's range and how its values read. */
@@ -88,6 +88,8 @@ export const lcdAppearanceFor = (a: LcdDisplayAppearance, tone: SurfaceTone): Ex
 /** A fader on its track: writable (a thumb, pointer and keyboard) with `onChange`, else a track and fill with no knob. */
 function StripFader({ c, unit, look, label, dense, bare }: { c: StripChannel; unit: FaderUnit; look: MixerLook; label: string; dense: boolean; bare: boolean }) {
   const [held, setHeld] = useState<number | null>(null);
+  // the Look's fader knob (`fader-knob-shape: square`) and square cells (`cell-radius: 0`) reach audiocn's round cap and track
+  const sk = useSkin();
   const release = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(release.current), []);
   const live = !!c.onChange;
@@ -127,10 +129,10 @@ function StripFader({ c, unit, look, label, dense, bare }: { c: StripChannel; un
       }}
     >
       {look.scaleSide === "start" && scale}
-      <FaderTrack>
-        {look.range && <FaderRange style={{ background: c.muted ? "var(--w-faint)" : undefined }} />}
+      <FaderTrack className={cn(sk.cellSquare && "rounded-none")}>
+        {look.range && <FaderRange className={cn(sk.cellSquare && "rounded-none")} style={{ background: c.muted ? "var(--w-faint)" : undefined }} />}
         {/* D-21: no knob on a read-only fader; the console cap is the text colour with an inverted line */}
-        {live && <FaderThumb className={cn("bg-[color:var(--w-fg)]", look.faderVariant === "console" && "[--foreground:from_var(--ac-inverse)_h_s_l]")} />}
+        {live && <FaderThumb className={cn("bg-[color:var(--w-fg)]", look.faderVariant === "console" && "[--foreground:from_var(--ac-inverse)_h_s_l]", sk.knob === "square" && "rounded-none")} />}
       </FaderTrack>
       {look.scaleSide === "end" && scale}
     </Fader>
@@ -149,6 +151,8 @@ const LABELS = {
 /** The LCD readout of a strip, or the whole LCD view (`font` = its text size, px, sized to the zone). */
 function Lcd({ look, tone, live, className, font, children }: { look: MixerLook; tone: SurfaceTone; live: boolean; className?: string; font?: number; children: ReactNode }) {
   const appearance = lcdAppearanceFor(look.lcdAppearance, tone);
+  // square cells: the bezel and the screen lose their corners with the Look's
+  const square = useSkin().cellSquare;
   return (
     <LcdDisplay
       variant={look.lcdVariant}
@@ -158,7 +162,7 @@ function Lcd({ look, tone, live, className, font, children }: { look: MixerLook;
       matrix={look.lcdMatrix}
       scanlines={look.lcdScanlines}
       // a dashboard LCD is tighter than audiocn's panel one: a thinner bezel and screen padding
-      className={cn("relative min-w-0 p-1 [&_[data-slot=lcd-display-content]]:px-1.5 [&_[data-slot=lcd-display-content]]:py-1", className)}
+      className={cn("relative min-w-0 p-1 [&_[data-slot=lcd-display-content]]:px-1.5 [&_[data-slot=lcd-display-content]]:py-1", square && "rounded-none [&_[data-slot]]:rounded-none", className)}
     >
       {children}
       {look.lcdStatus && <LcdDisplayStatus state={live ? "idle" : "off"} className="right-1 bottom-1 size-1" />}
@@ -173,6 +177,7 @@ const METER_TRACKS = [0, 1];
 function StripMeter({ useLevel, color, look, vertical, locked }: { useLevel?: StripChannel["useLevel"]; color: string; look: MixerLook; vertical: boolean; locked?: boolean }) {
   // a component of its own: its hooks (the source's) are counted with the meter, which mounts and unmounts with it
   const source = useLevel?.();
+  const square = useSkin().cellSquare;
   const zones = useMemo(() => meterZones(look.meterWarnDb, look.meterClipDb), [look.meterWarnDb, look.meterClipDb]);
   return (
     <div className={cn("flex min-h-0 min-w-0 items-center", vertical ? "h-full flex-col gap-0.5" : "w-full gap-1.5")}>
@@ -193,7 +198,7 @@ function StripMeter({ useLevel, color, look, vertical, locked }: { useLevel?: St
           {METER_TRACKS.map((i) => (
             <LevelMeterChannel key={i} index={i}>
               {/* the bar slides out of its track to show the level: a clip on purpose, as art that bleeds (the overflow probe skips it) */}
-              <LevelMeterTrack data-qa-bleed>
+              <LevelMeterTrack data-qa-bleed className={cn(square && "rounded-none")}>
                 <LevelMeterBar />
                 {look.meterHold && <LevelMeterHold />}
               </LevelMeterTrack>
@@ -208,6 +213,7 @@ function StripMeter({ useLevel, color, look, vertical, locked }: { useLevel?: St
 
 function MuteControl({ c }: { c: StripChannel }) {
   const icon = c.muted ? "volume_off" : "volume_up";
+  const square = useSkin().cellSquare;
   if (!c.onMute)
     return c.muted ? (
       <span role="img" aria-label="Muted" title="Muted" className="flex size-6 items-center justify-center" style={{ color: "var(--channel-mute)" }}>
@@ -221,7 +227,7 @@ function MuteControl({ c }: { c: StripChannel }) {
       disabled={c.locked}
       aria-label={c.muted ? `Unmute ${c.name}` : `Mute ${c.name}`}
       aria-pressed={c.muted}
-      className="flex size-7 items-center justify-center rounded-md bg-[color:var(--w-track)] transition hover:bg-[color:color-mix(in_oklab,var(--w-fg)_14%,transparent)] active:scale-95"
+      className={`flex size-7 items-center justify-center ${square ? "rounded-none" : "rounded-md"} bg-[color:var(--w-track)] transition hover:bg-[color:color-mix(in_oklab,var(--w-fg)_14%,transparent)] active:scale-95`}
       style={{ color: c.muted ? "var(--channel-mute)" : "var(--w-muted)" }}
     >
       <Icon name={icon} className="text-[17px]" />
@@ -231,6 +237,10 @@ function MuteControl({ c }: { c: StripChannel }) {
 
 function Strip({ c, look, fit, unit, tone, live, meter }: { c: StripChannel; look: MixerLook; fit: MixerFit; unit: FaderUnit; tone: SurfaceTone; live: boolean; meter: boolean }) {
   const vertical = look.vertical;
+  const sk = useSkin();
+  const square = sk.cellSquare;
+  // a Look's readout treatment (`readout-*`) reaches the LCD's value as its other readouts do (pack CSS `[data-part=num]`)
+  const readout = sk.readout ? "num" : undefined;
   return (
     <ChannelStrip
       variant={c.master ? "master" : look.stripVariant}
@@ -239,7 +249,7 @@ function Strip({ c, look, fit, unit, tone, live, meter }: { c: StripChannel; loo
       // audiocn's strips are sized for a page; a widget's are as tall as the zone and as wide as the fit shares out
       // the fit's last step before leaving channels out (dense) tightens the padding and the gaps; a row strip shares
       // the height left over, its parts centred
-      className={cn("min-h-0", fit.dense ? "p-1 [&>[data-slot=channel-strip-layout]]:gap-x-1" : "p-2 [&>[data-slot=channel-strip-layout]]:gap-x-2", vertical ? "h-full" : "flex flex-auto flex-col justify-center")}
+      className={cn("min-h-0", fit.dense ? "p-1 [&>[data-slot=channel-strip-layout]]:gap-x-1" : "p-2 [&>[data-slot=channel-strip-layout]]:gap-x-2", vertical ? "h-full" : "flex flex-auto flex-col justify-center", square && "rounded-none")}
       style={{ ...(vertical ? { "--channel-strip-width": `${fit.stripW}px` } : {}), "--channel-accent": c.color } as CSSProperties}
     >
       <ChannelStripHeader className={vertical ? "gap-1" : undefined}>
@@ -273,7 +283,7 @@ function Strip({ c, look, fit, unit, tone, live, meter }: { c: StripChannel; loo
       <ChannelStripValue className={cn("min-w-0", fit.lcd && "font-sans")}>
         {fit.lcd ? (
           <Lcd look={look} tone={tone} live={live}>
-            <LcdDisplayValue className="whitespace-nowrap text-center">{c.readout}</LcdDisplayValue>
+            <LcdDisplayValue data-part={readout} className="whitespace-nowrap text-center">{c.readout}</LcdDisplayValue>
           </Lcd>
         ) : (
           <span className="text-[color:var(--w-muted)]">{c.readout}</span>
@@ -357,6 +367,7 @@ const groupOf = (c: StripChannel): number => (c.master ? 2 : c.input ? 1 : 0);
 
 function LcdView({ look, fit, channels, tone, live }: MixerViewProps) {
   const shown = channels.slice(0, fit.n);
+  const readout = useSkin().readout ? "num" : undefined;
   const text = (c: StripChannel) => (c.muted ? "Mute" : c.readout);
   // the text is sized to the zone (`fit.font`); lines and columns are spaced in em, so they scale with it
   const cols = Math.ceil((shown.length + (fit.more ? 1 : 0)) / fit.rows);
@@ -371,7 +382,7 @@ function LcdView({ look, fit, channels, tone, live }: MixerViewProps) {
                 <LcdDisplayLabel className="min-w-0 truncate" title={c.name}>
                   {c.name}
                 </LcdDisplayLabel>
-                <LcdDisplayValue className="shrink-0">{text(c)}</LcdDisplayValue>
+                <LcdDisplayValue data-part={readout} className="shrink-0">{text(c)}</LcdDisplayValue>
               </LcdDisplayRow>
             </div>
           ))}
@@ -388,7 +399,7 @@ function LcdView({ look, fit, channels, tone, live }: MixerViewProps) {
               <LcdDisplayLabel className="max-w-full truncate" title={c.name}>
                 {c.name}
               </LcdDisplayLabel>
-              <LcdDisplayValue className="whitespace-nowrap">{text(c)}</LcdDisplayValue>
+              <LcdDisplayValue data-part={readout} className="whitespace-nowrap">{text(c)}</LcdDisplayValue>
             </div>
           ))}
           {fit.more > 0 && <LcdDisplayLabel className="justify-self-center">+{fit.more}</LcdDisplayLabel>}

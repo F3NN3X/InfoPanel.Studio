@@ -1,8 +1,9 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import { modules } from "@/modules";
 import { INSERT_CATEGORIES } from "@/components/studio/insert-panel";
 import { THEME_PRESETS, themeVars } from "@/lib/theme";
+import { CLASSIC_LOOK, DEFAULT_SKIN_LOOK } from "@/looks/ids";
 import { registerSampleCards } from "@/looks/sample-materials";
 import { SKIN_NAMES } from "@/widgets/core/theme";
 import { TEMPLATE_MODULES } from "@/widgets/registry";
@@ -16,6 +17,10 @@ import { NOTES } from "./notes";
 import { DEFAULT_STATE, frameRef, parseParams, parseSpans, placementSettings, serializeParams, widgetLinks, type QaState } from "./params";
 import { filterModules, groupByCategory, mergedModules, pickModules } from "./plan";
 import { installDemoStreams } from "./demo-streams";
+import { adoptionReport, adoptionText, lookColours, type CheckOptions, type FrameFlags } from "./adoption";
+import { diffSnapshots, qaSnapshot, type QaSnapshot, type TripDiff } from "./round-trip";
+import { Surfaces } from "./Surfaces";
+import { QaScreen, qaLookIds, useQaTheme, wornBackground, type QaTheme } from "./theme";
 
 /**
  * Dev-only oracle and reference page for the widget library (`?widget-qa`): every registered widget (or exactly the
@@ -43,8 +48,29 @@ const CATEGORY_ORDER = INSERT_CATEGORIES.filter((c) => !["All", "Layouts", "My p
 const PACK_CHECK = new URLSearchParams(window.location.search).has("pack-check");
 const PackCheck = lazy(() => import("./pack-check"));
 
+/** The fonts the adoption check holds a worn pack's text to: its Look's faces and the families its CSS names; none for a Look that is not a pack. */
+function packFonts(theme: QaTheme): string[] {
+  const pack = theme.pack;
+  if (!pack) return [];
+  return [...new Set([...Object.values(pack.look.fonts ?? {}).filter((f): f is string => !!f), ...(pack.css?.match(/pack-[\w-]+/g) ?? [])])];
+}
+
+/** Imports a pack folder or zip for this page only: checked as the studio's import checks it, worn as a candidate, never stored. */
+async function importPack(files: FileList): Promise<{ id?: string; error?: string }> {
+  const [{ checkImport, describeIssue, filesOfInput }, { wearCandidate }] = await Promise.all([import("@/looks/user-pack-import"), import("@/looks/user-packs")]);
+  try {
+    const report = checkImport(await filesOfInput(files));
+    if (!report.ok) return { error: report.issues.filter((i) => i.severity === "error").map(describeIssue).join("; ") };
+    const worn = wearCandidate(report.src);
+    return worn ? { id: worn.id } : { error: "the pack could not be worn" };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+}
+
 function WidgetQa() {
   const [state, setState] = useState(() => parseParams(window.location.search));
+  const [imported, setImported] = useState("");
   const apply = (next: QaState) => {
     // The demo streams are installed before anything mounts, so a change of data source loads the page again.
     if (next.data !== state.data) return window.location.assign(serializeParams(next) + window.location.hash);
@@ -54,30 +80,55 @@ function WidgetQa() {
   // The sections render after the browser's own jump to the hash, so jump once they exist (a copied frame link, a # link).
   useEffect(() => document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView({ block: "center" }), []);
   const theme = THEME_PRESETS.find((p) => p.name === state.theme);
+  const worn = useQaTheme(state.look, state.lookVariant);
+  // the adoption check runs under a worn Look only, never Classic's: its colours are what the others are held to
+  const adoption = useMemo((): CheckOptions | undefined => (state.look && state.look !== CLASSIC_LOOK && state.look !== DEFAULT_SKIN_LOOK ? { colours: lookColours(worn.pack?.look, worn.pack?.css), fonts: packFonts(worn) } : undefined), [state.look, worn]);
   const spans = useMemo(() => parseSpans(state.spans), [state.spans]);
   const settings = useMemo(() => placementSettings(state), [state]);
   const picked = useMemo(() => pickModules([...modules, ...MERGED], [...TEMPLATE_MODULES, ...MERGED], state.module).filter((m) => !state.noted || NOTES[m.id]), [state.module, state.noted]);
   const sections = useMemo(() => groupByCategory(filterModules(picked, state.q), CATEGORY_ORDER), [picked, state.q]);
   const shown = sections.reduce((n, s) => n + s.mods.length, 0);
   const live = state.data === "live";
-  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, grid: state.grid, links: (id: string) => widgetLinks(state, id), frameRef: (id: string, key: string) => frameRef(state, id, key, `${window.location.origin}${window.location.pathname}`) };
+  const view = { spans, cell: state.cell, gap: state.gap, live, eager: state.eager || !!state.module, settings, grid: state.grid, links: (id: string) => widgetLinks(state, id), frameRef: (id: string, key: string) => frameRef(state, id, key, `${window.location.origin}${window.location.pathname}`), appearance: worn.appearance, adoption, flagged: state.flagged, layouts: true };
+  const surfaceView = useMemo(() => ({ appearance: worn.appearance, live, adoption }), [worn.appearance, live, adoption]);
+  // the page's tools read the state as it is now, not as it was when they were installed
+  const now = useRef<Now>({ state, adoption, apply });
+  now.current = { state, adoption, apply };
+  useEffect(() => installTools(now), []);
   const galleryMod = state.gallery ? modules.find((m) => m.id === state.gallery) : undefined;
   const galleries = useMemo(() => galleriesFor(galleryMod), [galleryMod]);
   // The header is frosted: translucent over the frames that scroll under it, blurred.
   const bg = theme ? `hsl(${theme.tokens.background} / .6)` : "rgba(12,12,14,.6)";
   const solidBg = theme ? `hsl(${theme.tokens.background})` : "#16161a";
   const style = theme ? ({ ...themeVars(theme.tokens), background: `hsl(${theme.tokens.background})`, color: `hsl(${theme.tokens.foreground})` } as CSSProperties) : undefined;
+  // a pack that draws the page (its stage) shows through, as on a kiosk
+  const pageBg = theme ? "" : wornBackground(worn) ? "text-zinc-100" : "bg-ui-app text-zinc-100";
   return (
-    <main className={`min-h-screen px-6 pb-10 ${theme ? "" : "bg-ui-app text-zinc-100"}`} style={style}>
+    <QaScreen theme={worn} fx={state.fx} script={state.script}>
+    <main className={`min-h-screen px-6 pb-10 ${pageBg}`} style={style}>
       <header className="sticky top-0 z-10 -mx-6 space-y-2 border-b border-current/15 px-6 py-3 backdrop-blur-xl backdrop-saturate-150" style={{ background: bg }}>
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-semibold">Widget QA</h1>
           <QaHelp background={solidBg} />
           <p className="font-mono text-[11px] opacity-60">
             {shown} modules · {SKIN_NAMES.length} skins · {spans.length} spans · {shown * spans.length} frames · cell {state.cell} · gap {state.gap} · {live ? "live data" : state.data}
+            {state.look && ` · wearing ${state.look}${state.lookVariant ? ` ${state.lookVariant}` : ""}${worn.pack ? " (pack)" : ""}${state.fx ? ` · fx ${state.fx}` : ""}`}
           </p>
         </div>
-        <Toolbar state={state} onChange={(patch) => apply({ ...state, ...patch })} onReset={() => apply({ ...DEFAULT_STATE })} />
+        <Toolbar
+          state={state}
+          looks={qaLookIds()}
+          variants={worn.variants}
+          imported={imported}
+          onImport={(files) =>
+            void importPack(files).then(({ id, error }) => {
+              setImported(error ? `refused: ${error}` : `imported ${id}`);
+              if (id) apply({ ...now.current.state, look: id, lookVariant: "" });
+            })
+          }
+          onChange={(patch) => apply({ ...state, ...patch })}
+          onReset={() => apply({ ...DEFAULT_STATE })}
+        />
         <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
           {/* Every shown widget by name: picking one jumps to it (its section's anchor is its id). */}
           <select aria-label="Jump to a widget" className="h-6 rounded border border-current/25 bg-transparent px-1.5 text-[11px] [&>optgroup]:text-black [&_option]:text-black" value="" onChange={(e) => e.target.value && document.getElementById(e.target.value)?.scrollIntoView()}>
@@ -99,6 +150,12 @@ function WidgetQa() {
           ))}
         </nav>
       </header>
+      {state.surfaces && !state.module && !state.q && (
+        <div id="surfaces" className="scroll-mt-32">
+          <h2 className="mt-6 text-xs font-semibold uppercase tracking-wider opacity-70">Surfaces</h2>
+          <Surfaces view={surfaceView} />
+        </div>
+      )}
       <div id="galleries" className="scroll-mt-32 pt-4">
         {galleries.map((g) => (
           <Gallery key={`${g.title}-${g.module}`} def={g} base={settings} cell={state.cell} gap={state.gap} live={live} opened={!!galleryMod} />
@@ -115,13 +172,61 @@ function WidgetQa() {
         </div>
       ))}
     </main>
+    </QaScreen>
   );
+}
+
+/** What `installTools` reads: the page's state and its theme check as they are now, and the way to change them. */
+interface Now {
+  state: QaState;
+  adoption?: CheckOptions;
+  apply: (next: QaState) => void;
+}
+
+/** Lets a wear land: the pack's chunk, its CSS and the frames' measures (`mountAllSettled`), then a second for the pack's motion. */
+async function settleWear(): Promise<void> {
+  await new Promise((r) => setTimeout(r, 1500));
+  await mountAllSettled();
+  await new Promise((r) => setTimeout(r, 1000));
+}
+
+/**
+ * The page's theme tools, beside `__qaOverflow`: `__qaAdoption(only)` (each frame's flags under the worn Look, or only the frames whose
+ * name starts with `only`, and the report as text),
+ * `__qaSetLook(look, variant)` and `__qaRoundTrip(look, variant)`: from the Look worn now (load the page with it, so it is a fresh
+ * load), wear the other and come back, then list what stayed (`round-trip.ts`).
+ */
+function installTools(now: { current: Now }) {
+  if (PACK_CHECK) return;
+  window.__qaAdoption = (only) => {
+    const o = now.current.adoption;
+    const report = o ? adoptionReport(o, only) : [];
+    return { look: now.current.state.look, report, text: o ? adoptionText(report) : "no Look but Classic's worn: load the page with look=<id>" };
+  };
+  window.__qaSetLook = async (look, lookVariant = "") => {
+    flushSync(() => now.current.apply({ ...now.current.state, look, lookVariant }));
+    await settleWear();
+  };
+  window.__qaRoundTrip = async (look, lookVariant = "") => {
+    const { look: from, lookVariant: fromVariant } = now.current.state;
+    await settleWear();
+    const fresh = qaSnapshot();
+    await new Promise((r) => setTimeout(r, 1500));
+    const still = qaSnapshot();
+    await window.__qaSetLook?.(look, lookVariant);
+    await window.__qaSetLook?.(from, fromVariant);
+    return { from: `${from || "none"}${fromVariant ? `/${fromVariant}` : ""}`, via: `${look || "none"}${lookVariant ? `/${lookVariant}` : ""}`, diff: diffSnapshots(fresh, qaSnapshot(), still) };
+  };
 }
 
 declare global {
   interface Window {
     __qaOverflow?: () => { module: string; span: string; issues: Issue[] }[];
     __qaMountAll?: () => Promise<boolean>;
+    __qaAdoption?: (only?: string) => { look: string; report: FrameFlags[]; text: string };
+    __qaSetLook?: (look: string, variant?: string) => Promise<void>;
+    __qaRoundTrip?: (look: string, variant?: string) => Promise<{ from: string; via: string; diff: TripDiff }>;
+    __qaSnapshot?: () => QaSnapshot;
   }
 }
 
@@ -129,6 +234,7 @@ declare global {
 // widgets measure after mounting: `await __qaMountAll()` first (or load with `module=` / `eager=1`) to let them settle.
 if (!PACK_CHECK) {
   window.__qaMountAll = mountAllSettled;
+  window.__qaSnapshot = qaSnapshot;
   window.__qaOverflow = () => {
     flushSync(forceMountAll);
     return overflowReport();
