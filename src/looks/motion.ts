@@ -6,7 +6,7 @@
 // second (WCAG 2.3.1). Types, ranges, the checker and the plan; no DOM.
 import type { FxLevel } from "./pack-json";
 
-export const MOTION_EFFECTS = ["glitch", "decode", "scramble", "arrival", "flicker", "sweep", "value", "list", "boot"] as const;
+export const MOTION_EFFECTS = ["glitch", "decode", "scramble", "arrival", "flicker", "sweep", "value", "list", "boot", "art"] as const;
 export type MotionEffect = (typeof MOTION_EFFECTS)[number];
 export const ARRIVAL_STYLES = ["fade", "clip", "line"] as const;
 export type ArrivalStyle = (typeof ARRIVAL_STYLES)[number];
@@ -64,7 +64,7 @@ export interface MotionEffectSpec {
   stagger?: number;
 }
 
-/** pack.json `motion`: any of the nine effects. */
+/** pack.json `motion`: any of the ten effects (`art` is the stage's animated layer, not a card's: `artMoves`). */
 export type PackMotion = Partial<Record<MotionEffect, MotionEffectSpec>>;
 
 type Range = readonly [number, number];
@@ -96,6 +96,8 @@ export const MOTION_RULES: Readonly<Record<MotionEffect, EffectRule>> = {
   value: { ms: [150, 900], every: [1, 60], def: { intensity: 0.6, ms: 480, every: 1, style: "roll", mark: "none" } },
   list: { ms: [120, ONE_SHOT_MAX_MS], def: { intensity: 0.6, ms: 240, enter: "slide", reorder: true, change: true, decode: false } },
   boot: { ms: [120, ONE_SHOT_MAX_MS], stagger: [20, 120], def: { intensity: 1, ms: 240, stagger: 60, style: "clip", line: true, decode: true } },
+  // the page's animated layer (stage `layers[].animated`): only a switch, so a pack can offer it off
+  art: { def: { intensity: 1 } },
 };
 
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
@@ -159,6 +161,16 @@ export function motionKnobsOf(settings: Readonly<Record<string, unknown>> | unde
   return { ...(i === "low" || i === "high" ? { intensity: i } : null), ...(s === "slow" || s === "fast" ? { speed: s } : null), ...(effects ? { effects } : null) };
 }
 
+/**
+ * Whether the page's animated layer may move, by the Motion group's switch: a pack that declares no `art` effect moves it (the level,
+ * lite mode and reduced motion still hold it, pack-stage.tsx); one that declares it moves it while the switch is on, its `on` by default.
+ */
+export function artMoves(motion: PackMotion | undefined, knobs: MotionKnobs): boolean {
+  const spec = motion?.art;
+  if (!spec) return true;
+  return knobs.effects ? knobs.effects.includes("art") : spec.on !== false;
+}
+
 /** What the screen allows: its FX level, lite mode (reduced motion or a frame cap under 60), reduced motion. */
 export interface MotionEnv {
   level: FxLevel;
@@ -209,6 +221,8 @@ export function planMotion(motion: PackMotion | undefined, knobs: MotionKnobs, e
   const plan: Partial<Record<MotionEffect, PlannedMotion>> = {};
   for (const name of MOTION_EFFECTS) {
     const spec = motion[name];
+    // the page art is the stage's (`artMoves`), not a card's
+    if (name === "art") continue;
     if (!spec || !(knobs.effects ? knobs.effects.includes(name) : spec.on !== false)) continue;
     if (calm && REPEATS.includes(name)) continue;
     const rule = MOTION_RULES[name];

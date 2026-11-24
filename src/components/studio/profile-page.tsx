@@ -91,7 +91,7 @@ export function ProfilePage({ profile, dashboard, pageId, badge, stage = false, 
       }
     >
       {background && <PageBackground background={background} className="absolute inset-0 -z-10" />}
-      <PackStage pack={pack} page={{ width: view.width, height: view.height }} className="absolute inset-0 -z-10" overlayClassName="absolute inset-0 z-10" zones={linkZones} accent={pageSkinOf(appearance).accent} />
+      <PackStage pack={pack} page={{ width: view.width, height: view.height }} className="absolute inset-0 -z-10" overlayClassName="absolute inset-0 z-10" zones={linkZones} accent={pageSkinOf(appearance).accent} motionEffects={pageSkinOf(appearance).motionEffects} />
       <PinnedItems all={pinned} items={edgePins.filter(leadsPage)} profile={view} appearance={appearance} padding={padding} />
       <div ref={gridRef} className={cn("grid", fill && "h-full")} style={tracks}>
         {view.placements

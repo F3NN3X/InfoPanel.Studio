@@ -27,7 +27,7 @@ export const SPEEDS: readonly { id: string; label: string }[] = [
   { id: "fast", label: "Fast" },
 ];
 
-export const EFFECT_LABELS: Readonly<Record<MotionEffect, string>> = { glitch: "Glitch", decode: "Decode labels", scramble: "Scramble numbers", arrival: "Arrival", flicker: "Flicker", sweep: "Sweep", value: "Count numbers", list: "List rows", boot: "Boot" };
+export const EFFECT_LABELS: Readonly<Record<MotionEffect, string>> = { glitch: "Glitch", decode: "Decode labels", scramble: "Scramble numbers", arrival: "Arrival", flicker: "Flicker", sweep: "Sweep", value: "Count numbers", list: "List rows", boot: "Boot", art: "Page art" };
 
 /** The value a key shows at the level: its own where it applies, else what it inherits. */
 const shown = (values: LookValues, key: string): ModuleSettingValue | undefined => (values.applies && !values.applies(key) ? undefined : values.own?.[key]) ?? values.inherited?.[key];

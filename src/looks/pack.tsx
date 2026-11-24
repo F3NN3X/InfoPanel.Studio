@@ -8,7 +8,7 @@ import type { PackEffect, SizeClass } from "./effects";
 import type { PackChrome } from "./chrome";
 import type { Look } from "./look";
 import type { PackDecorSpec } from "./pack-frame";
-import type { PackMotion } from "./motion";
+import { artMoves, motionKnobsOf, type PackMotion } from "./motion";
 import type { MotionSlot } from "./motion-render";
 import type { PackFrame, PackJson, PackOrnament, StageChrome, StageGrid } from "./pack-json";
 
@@ -80,6 +80,8 @@ export interface StageViewProps {
   zones?: readonly ZoneSize[];
   /** The screen's accent (a variant's, the user's): what the effects and a layer's glow are drawn in; unset, the pack's own. */
   accent?: string;
+  /** The Motion group's page-art switch (`artMoves`): false holds an animated layer still at every level. Unset: it may move. */
+  art?: boolean;
 }
 /** What the hub rule reads of a zone: its id and how many cells it spans. */
 export interface ZoneSize {
@@ -171,7 +173,9 @@ export function usePack(lookId: string | undefined): Pack | undefined {
 export const packBackground = (pack: Pack | undefined): boolean => !!pack?.stage?.layers.length;
 
 /** The pack's page layers (`className` places them, as `PageBackground`'s; `overlayClassName` the overlay); nothing without a pack stage. */
-export function PackStage({ pack, className, overlayClassName, page, links, zones, accent }: { pack: Pack | undefined; className?: string; overlayClassName?: string; page?: { width: number; height: number }; links?: StageViewProps["links"]; zones?: StageViewProps["zones"]; accent?: string }) {
+export function PackStage({ pack, className, overlayClassName, page, links, zones, accent, motionEffects }: { pack: Pack | undefined; className?: string; overlayClassName?: string; page?: { width: number; height: number }; links?: StageViewProps["links"]; zones?: StageViewProps["zones"]; accent?: string; motionEffects?: string }) {
   const View = pack?.Stage;
-  return pack?.stage && View ? <View stage={pack.stage} packId={pack.id} base={pack.base} className={className} overlayClassName={overlayClassName} burnIn={pack.burnIn} page={page} connectors={pack.connectors} links={links} zones={zones} accent={accent} /> : null;
+  // the screen's page-art switch (the Motion group's `motionEffects`, else the pack's own `art.on`)
+  const art = artMoves(pack?.motion, motionKnobsOf({ motionEffects }));
+  return pack?.stage && View ? <View stage={pack.stage} packId={pack.id} base={pack.base} className={className} overlayClassName={overlayClassName} burnIn={pack.burnIn} page={page} connectors={pack.connectors} links={links} zones={zones} accent={accent} art={art} /> : null;
 }

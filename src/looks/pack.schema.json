@@ -206,6 +206,7 @@
         "sweep": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" } } },
         "value": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "every": { "type": "number" }, "style": { "enum": ["tween", "roll"] }, "mark": { "enum": ["none", "flash", "underline", "glitch"] } } },
         "list": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "enter": { "enum": ["slide", "fade", "none"] }, "reorder": { "type": "boolean" }, "change": { "type": "boolean" }, "decode": { "type": "boolean" } } },
+        "art": { "description": "The page's animated layer (a stage layer with animated true) as a switch in the Theme view's Motion group: on false offers it off, and the layer is drawn from its still copy until the user turns it on.", "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" } } },
         "boot": { "type": "object", "additionalProperties": false, "properties": { "on": { "type": "boolean" }, "intensity": { "type": "number" }, "ms": { "type": "number" }, "stagger": { "type": "number" }, "style": { "enum": ["fade", "clip", "glitch"] }, "line": { "type": "boolean" }, "decode": { "type": "boolean" } } }
       }
     },

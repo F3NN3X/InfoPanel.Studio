@@ -1,7 +1,7 @@
 // A pack's motion block (L117, src/looks/motion.ts): the validator refuses an unknown effect or key (schema) and a value out of its
 // range (motion), the loader refuses the same, and the plan draws nothing at Off, under reduced motion or in lite mode, the one-shots at Calm.
 import { describe, expect, it } from "vitest";
-import { MOTION_EFFECTS, MOTION_RULES, motionIssues, motionKnobsOf, ONE_SHOT_MAX_MS, planMotion, type MotionEnv, type PackMotion } from "@/looks/motion";
+import { artMoves, MOTION_EFFECTS, MOTION_RULES, motionIssues, motionKnobsOf, ONE_SHOT_MAX_MS, planMotion, type MotionEnv, type PackMotion } from "@/looks/motion";
 import { packIssues } from "@/looks/pack-load";
 import { type PackSource, validatePack } from "@/looks/pack-validate";
 import { userPackOf } from "@/looks/user-packs";
@@ -42,6 +42,8 @@ describe("the motion block in a pack", () => {
 
   it("a value out of its range is refused by rule motion, at both ends", () => {
     for (const [effect, rule] of Object.entries(MOTION_RULES)) {
+      // the page art is only a switch: it has no intensity or timing to range (its keys are the schema's, below)
+      if (effect === "art") continue;
       if (rule.ms) {
         expect(rules({ [effect]: { ms: rule.ms[0] } }), `${effect} ms low`).toEqual([]);
         expect(rules({ [effect]: { ms: rule.ms[1] } }), `${effect} ms high`).toEqual([]);
@@ -86,7 +88,8 @@ describe("what a card draws on this screen", () => {
 
   it("everything at Full, inside each range", () => {
     const plan = planMotion(ALL, {}, FULL)!;
-    expect(Object.keys(plan).filter((k) => k !== "key").sort()).toEqual([...MOTION_EFFECTS].sort());
+    // every effect but the page art, which is the stage's (`artMoves`), not a card's
+    expect(Object.keys(plan).filter((k) => k !== "key").sort()).toEqual(MOTION_EFFECTS.filter((e) => e !== "art").sort());
     expect(plan.glitch).toMatchObject({ ms: 240, every: 4, intensity: 0.8 });
     expect(plan.arrival).toMatchObject({ style: "line", ms: 240 });
     expect(plan.flicker).toMatchObject({ target: "card", every: 2 });
@@ -163,6 +166,31 @@ describe("values, lists and the boot", () => {
     const plan = planMotion(old, {}, FULL)!;
     expect(Object.keys(plan).filter((k) => k !== "key").sort()).toEqual(["arrival", "decode", "glitch", "scramble"]);
     expect(plan.arrival).toEqual({ intensity: 1, ms: 240, every: 0, style: "clip" });
+  });
+});
+
+describe("the page art switch (`art`)", () => {
+  it("is a switch only: `on` passes, any other key is the schema's", () => {
+    expect(rules({ art: { on: false } })).toEqual([]);
+    expect(rules({ art: {} })).toEqual([]);
+    expect(rules({ art: { intensity: 0.5 } })).toContain("schema");
+    expect(rules({ art: { on: "no" } })).toContain("schema");
+  });
+
+  it("a pack that declares no art moves its layer; one that does follows the Motion group's switch, its `on` by default", () => {
+    expect(artMoves(undefined, {})).toBe(true);
+    expect(artMoves({ value: {} }, {})).toBe(true);
+    expect(artMoves({ art: {} }, {})).toBe(true);
+    expect(artMoves({ art: { on: false } }, {})).toBe(false);
+    expect(artMoves({ art: { on: false } }, motionKnobsOf({ motionEffects: "value,art" }))).toBe(true);
+    expect(artMoves({ art: {} }, motionKnobsOf({ motionEffects: "value" }))).toBe(false);
+    expect(artMoves({ art: {} }, motionKnobsOf({ motionEffects: "none" }))).toBe(false);
+    // the switches say nothing of a pack without art: its layer moves as it did
+    expect(artMoves({ value: {} }, motionKnobsOf({ motionEffects: "none" }))).toBe(true);
+  });
+
+  it("plans nothing on a card", () => {
+    expect(planMotion({ art: {}, decode: {} }, {}, FULL)?.art).toBeUndefined();
   });
 });
 

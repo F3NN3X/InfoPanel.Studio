@@ -222,6 +222,16 @@ describe("an animated page layer", () => {
     fetched.mockRestore();
   });
 
+  it("draws its still copy at Full while the Motion group's page-art switch is off", async () => {
+    const fetched = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(SVG));
+    view({ fx: "full" }, { stage: moving, base: "/switch/", art: false });
+    expect(document.querySelector("[data-pack-layer='0']")?.getAttribute("data-pack-moving")).toBe("still");
+    await read();
+    expect(decodeURIComponent(bg(0))).toMatch(/^url\("data:image\/svg\+xml;charset=utf-8,/);
+    expect(decodeURIComponent(bg(0))).not.toMatch(/animate/);
+    fetched.mockRestore();
+  });
+
   it("draws nothing for a still copy that cannot be read or is not a pack SVG", async () => {
     const fetched = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("<svg><script>1</script></svg>"));
     view({ fx: "calm" }, { stage: moving, base: "/bad/" });

@@ -964,7 +964,7 @@ export default function App({ fixture }: AppProps = {}) {
         onPointerCancel={onKioskPointerCancel}
       >
         {background && <PageBackground background={background} className="fixed inset-0 -z-10" />}
-        <PackStage pack={pack} page={islandPage} className="fixed inset-0 -z-10" overlayClassName="fixed inset-0 z-10" zones={zones} accent={pageSkin.accent} />
+        <PackStage pack={pack} page={islandPage} className="fixed inset-0 -z-10" overlayClassName="fixed inset-0 z-10" zones={zones} accent={pageSkin.accent} motionEffects={pageSkin.motionEffects} />
         <PackScript pack={pack} className="fixed inset-0 z-10" accent={pageSkin.accent} />
 
         {/* Header (hidden in kiosk mode) */}

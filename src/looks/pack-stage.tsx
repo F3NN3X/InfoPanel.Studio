@@ -2,7 +2,8 @@
 // decoration: click-through, hidden from assistive tech, and `data-pack-deco` so lite mode stops its motion (index.css). The
 // effects are drawn here, by code the app owns, planned from the screen's settings (effects.ts); burn-in protection (pixel
 // shift, idle dim) marks only these layers, never a widget. A layer whose SVG animates moves only at the Effects level Full, out of
-// lite mode and reduced motion; anywhere else it is drawn from its still copy (motion-still.ts), and nothing until that is read.
+// lite mode and reduced motion, and while the Motion group's page-art switch is on (`art`); anywhere else it is drawn from its still
+// copy (motion-still.ts), and nothing until that is read.
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useGeneral } from "@/hooks/use-general";
 import { usePerformance } from "@/hooks/use-performance";
@@ -52,7 +53,7 @@ function useShiftStep(on: boolean): number {
   return step;
 }
 
-export default function PackStageLayers({ stage, packId, base = "", className = "", overlayClassName = "", burnIn, page, connectors, links, zones, accent }: StageViewProps) {
+export default function PackStageLayers({ stage, packId, base = "", className = "", overlayClassName = "", burnIn, page, connectors, links, zones, accent, art = true }: StageViewProps) {
   const general = useGeneral();
   const perf = usePerformance();
   const lite = liteOf(perf);
@@ -76,7 +77,7 @@ export default function PackStageLayers({ stage, packId, base = "", className = 
   const tint = (accent ?? stage.accent) ? ({ "--w-accent": accent ?? stage.accent } as CSSProperties) : undefined;
   const pairs = useMemo(() => links ?? (connectors && zones ? hubLinks(zones) : undefined), [links, connectors, zones]);
   const urlOf = (image: string) => `${base}${encodeURI(image)}`;
-  const moves = perf.fx === "full" && !lite && !perf.reduceMotion;
+  const moves = art && perf.fx === "full" && !lite && !perf.reduceMotion;
   const stills = useStills(moves ? [] : layers.flatMap(({ layer }) => (layer.animated && layer.image ? [urlOf(layer.image)] : [])));
   const imageOf = (layer: StageLayer): string | undefined => {
     if (!layer.image) return undefined;
