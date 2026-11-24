@@ -6,8 +6,9 @@ import { measurePage, writeResult } from "./measure";
 // A pack's motion (L117) on a 20-widget kiosk page: the fixture (every effect at its busiest: tests/fixtures/packs/motion), every effect
 // at its defaults, and a Cyberspec-like pack (`typical`: arrival, decode, a glitch on arrival, scramble, value, list and boot at their
 // defaults), each with the fixture's animated page layer, at Full; `typical` without the layer; the same page at Full with no motion and no animated layer (`plain`),
-// and at Off. Report-only, like every perf spec: compare with the kiosk idle lines in tools/perf/budgets.json (kioskIdleWarn).
-// MOTION_CASES (a JSON list of [name, pack, fx, Look values]) measures others.
+// and at Off; and the built-in Cyberspec as it ships (`cyberspec`: its defaults, its script, its rolling numbers and page art held off by their switches).
+// Report-only, like every perf spec: compare with the kiosk idle lines in tools/perf/budgets.json (kioskIdleWarn).
+// MOTION_CASES (a JSON list of [name, pack, fx, Look values]; a pack `builtin:<id>` is a built-in Look) measures others.
 
 const KINDS = ["CpuMonitor", "GpuMonitor", "MemoryUsage", "NetworkThroughput", "KpiTiles"];
 const BUSY = JSON.parse(fs.readFileSync(path.join("tests", "fixtures", "packs", "motion", "motion.json"), "utf8"));
@@ -27,6 +28,7 @@ const CASES: [string, string, string, Record<string, string>?][] = JSON.parse(pr
   ["typical-still", "typical-still", "full"],
   ["plain", "plain", "full"],
   ["off", "busy", "off"],
+  ["cyberspec", "builtin:cyberspec", "full"],
 ];
 
 test("kiosk-motion", async ({ browser, scratch }) => {
@@ -45,7 +47,7 @@ test("kiosk-motion", async ({ browser, scratch }) => {
   const light = config.profiles.find((p: { id: string }) => p.id === manifest.profiles.light);
   // 20 cards, 2x2 each, on a 10 x 8 grid
   const placements = Array.from({ length: 20 }, (_, i) => ({ id: `m${i}`, module: KINDS[i % KINDS.length], colStart: (i % 5) * 2 + 1, rowStart: Math.floor(i / 5) * 2 + 1, colSpan: 2, rowSpan: 2, visible: true }));
-  const screen = ([name, pack, fx, values]: (typeof CASES)[number]) => ({ ...light, id: `perf-motion-${name}`, name, width: 1920, height: 1080, cols: 10, rows: 8, pages: [{ id: "main", name: "Main", placements }], performance: { fx }, widgetTheme: { values: { lookId: `motion-${pack}`, ...values } } });
+  const screen = ([name, pack, fx, values]: (typeof CASES)[number]) => ({ ...light, id: `perf-motion-${name}`, name, width: 1920, height: 1080, cols: 10, rows: 8, pages: [{ id: "main", name: "Main", placements }], performance: { fx }, widgetTheme: { values: { lookId: pack.startsWith("builtin:") ? pack.slice(8) : `motion-${pack}`, ...values } } });
   config.profiles = [...config.profiles, ...CASES.map(screen)];
   if (!(await saveConfig(scratch.base, config)).ok) throw new Error("the config was not saved");
   const cases: Record<string, unknown> = {};

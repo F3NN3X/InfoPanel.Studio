@@ -58,6 +58,11 @@
     "layers": [
       {
         "fill": "#07070C"
+      },
+      {
+        "image": "radar.svg",
+        "animated": true,
+        "minSizeClass": "md"
       }
     ],
     "effects": [
@@ -152,6 +157,7 @@
       "every": 24
     },
     "value": {
+      "on": false,
       "style": "roll",
       "mark": "glitch",
       "every": 2
@@ -172,6 +178,9 @@
       "every": 12
     },
     "sweep": {
+      "on": false
+    },
+    "art": {
       "on": false
     }
   },
