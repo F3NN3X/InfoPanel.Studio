@@ -6,6 +6,8 @@ import { LAYOUT_KEY } from "../layouts";
 import { checkAdoption, type CheckOptions, type Flag } from "./adoption";
 import type { Appearance } from "@/lib/style-resolve";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
+import { ClaudeButton } from "./ClaudeButton";
+import { copyText } from "./clipboard";
 import { withDemo } from "./demo-settings";
 import { Frame } from "./Frame";
 import { notesFor } from "./notes";
@@ -34,6 +36,8 @@ export interface View {
   flagged?: boolean;
   /** Draw a widget's layouts row (`LAYOUTS`) under its views. */
   layouts?: boolean;
+  /** A widget's Copy for Claude text (`claudeText`); unset (the render check's page): no button. */
+  claude?: (id: string) => Promise<string>;
 }
 
 // What the adoption check found per frame (by frame id), for the "flagged only" filter; a frame not read yet is not in it.
@@ -117,21 +121,6 @@ function SettingsByTab({ mod }: { mod: DashboardModule }) {
 }
 
 const LINK = "font-mono text-nano underline decoration-current/30 underline-offset-2 opacity-70 hover:opacity-100";
-
-/** Copies text, falling back to a hidden textarea where the Clipboard API is missing (a plain-http LAN address). */
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const area = Object.assign(document.createElement("textarea"), { value: text });
-    document.body.append(area);
-    area.select();
-    const ok = document.execCommand("copy");
-    area.remove();
-    return ok;
-  }
-}
 
 /** The grid's cells and gaps over a frame (`grid=1`): the dashed squares are cells, the space between them the gap. */
 function GridOverlay({ c, r, cell, gap }: { c: number; r: number; cell: number; gap: number }) {
@@ -254,6 +243,7 @@ export function WidgetSection({ mod, view }: { mod: DashboardModule; view: View 
           <a href={`#${mod.id}`} className={LINK}>
             #
           </a>
+          {view.claude && <ClaudeButton text={() => view.claude!(mod.id)} title="Copy this widget's frames, with what they found, as text for Claude" className={LINK} label="for Claude" />}
         </p>
         <p className="mt-1 font-mono text-nano opacity-60">
           {mod.category ?? "Generic"} · min {min}

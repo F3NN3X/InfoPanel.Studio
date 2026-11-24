@@ -33,9 +33,12 @@ const PAGE: [string, string][] = [
   ["solo", "Opens the widget alone, keeping the toolbar."],
   ["skins & surfaces", "Opens this widget in the Skins and Surfaces galleries."],
   ["#", "A link to this widget's section, to share or bookmark."],
+  ["for Claude", "Copies this widget's mounted frames as text for Claude: each frame with an issue, a theme flag or a note, with its link, files, settings and the report command that reads it again."],
+  ["Copy for Claude", "Beside ?, the same for every frame checked so far. A frame not mounted yet is counted, not read; npm run qa:report reads them all."],
   ["URL", "Every control is mirrored to the URL, so a copied link opens exactly this view."],
-  ["Console", "window.__qaOverflow() lists what overflows, overlaps or is clipped in each frame; await window.__qaMountAll() first."],
-  ["Screenshots", "npm run qa:shots writes a PNG per widget, span, view and skin to .cache/qa-shots/<label>/; npm run qa:shots -- --compare before after writes a page of the two side by side, changed first (see _docs/redesign/phase9/qa.md)."],
+  ["Console", "window.__qa.help() lists the page's tools: state(), set(patch), select(frame), report(filter), copyForClaude(target), options(), and the older __qaOverflow, __qaMountAll, __qaAdoption, __qaSetLook, __qaRoundTrip and __qaSnapshot as members."],
+  ["Report", "npm run qa:report -- --module CpuMonitor --look cyberspec/crimson prints every frame's issues, theme flags and note as JSON (--md: as Copy for Claude text); --shots <dir> writes a PNG of only the frames it lists. --help lists the flags."],
+  ["Screenshots", "npm run qa:shots writes a PNG per widget, span, view and skin to .cache/qa-shots/<label>/ (--frames-only: the frame's box alone, without its caption); npm run qa:shots -- --compare before after writes a page of the two side by side, changed first (see _docs/redesign/phase9/qa.md)."],
 ];
 
 function Rows({ rows }: { rows: [string, string][] }) {

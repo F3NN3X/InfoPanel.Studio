@@ -14,7 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
-import { startScratch } from "../perf/scratch.mjs";
+import { mountAll, openQaPage, qaUrl, startQa } from "./qa-page.mjs";
 
 const VALUED = new Set(["--look", "--spans", "--module", "--data", "--round-trip", "--save", "--url"]);
 const args = {};
@@ -38,17 +38,16 @@ const split = (s) => {
 const looks = args.look.split(",").filter(Boolean).map(split);
 const spans = args.spans ?? "2x2,4x2";
 
-const scratch = args.url ? undefined : await startScratch({ env: { DASHBOARD_DEBUG: "1" } });
-const base = (args.url ?? scratch.base).replace(/\/$/, "");
+const scratch = await startQa({ url: args.url });
+const base = scratch.base;
 const browser = await chromium.launch({ headless: true });
 let flagged = 0;
 try {
   for (const { look, variant } of looks) {
-    const page = await browser.newPage({ viewport: { width: 1800, height: 1100 }, timezoneId: "UTC", locale: "en-US" });
+    const page = await openQaPage(browser, { base, viewport: { width: 1800, height: 1100 } });
     const query = new URLSearchParams({ look, ...(variant ? { lookVariant: variant } : {}), spans, eager: "1", ...(args.module ? { module: args.module } : {}), ...(args.data ? { data: args.data } : {}), ...(args["no-script"] ? { script: "0" } : {}) });
-    await page.goto(`${base}/?widget-qa&${query.toString().replace(/%2C/gi, ",")}`, { timeout: 120_000 });
-    await page.waitForFunction(() => window.__qaMountAll && window.__qaAdoption, null, { timeout: 120_000 });
-    if (!(await page.evaluate(() => window.__qaMountAll()))) console.warn(`adoption: the page did not settle under ${look}`);
+    await page.goto(qaUrl(base, query), { timeout: 120_000 });
+    if (!(await mountAll(page, { needs: ["__qaMountAll", "__qaAdoption"], timeout: 120_000 }))) console.warn(`adoption: the page did not settle under ${look}`);
     // a page that threw draws nothing and would report nothing flagged
     if (!(await page.locator("[data-qa-box]").count())) throw new Error(`adoption: the page drew no frames under ${look} (a Vite dev page wearing a scripted pack needs --no-script)`);
     // the frames run the check once they settle; the report reads them all again now
@@ -73,7 +72,7 @@ try {
   }
 } finally {
   await browser.close();
-  scratch?.stop();
+  scratch.stop();
 }
 if (args.strict && flagged) {
   console.error(`adoption: ${flagged} flagged frame(s)`);

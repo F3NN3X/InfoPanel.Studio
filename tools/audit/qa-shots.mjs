@@ -2,8 +2,10 @@
 // Screenshots of the widget QA page (`?widget-qa`), one PNG per widget and span, per view and per skin, for comparing a
 // redesign before and after. Report-only: it never gates. Runs on a scratch server (DASHBOARD_DEBUG=1, fixture data) and
 // serves dist/, so run `npm run build` first.
-//   npm run qa:shots -- [--label before] [--skins default,cyber|all] [--spans 2x2,4x4] [--module CpuMonitor,Clock] [--data stress]
-// Writes .cache/qa-shots/<label>/<skin>/<module>_<span>.png and <module>_view-<id>.png (label: the short commit).
+//   npm run qa:shots -- [--label before] [--skins default,cyber|all] [--spans 2x2,4x4] [--module CpuMonitor,Clock] [--data stress] [--frames-only]
+// Writes .cache/qa-shots/<label>/<skin>/<module>_<span>.png and <module>_view-<id>.png (label: the short commit). Each shot is the
+// whole figure (caption, badges, note); --frames-only crops it to the frame's box (`[data-qa-box]`), so a change to the page's chrome
+// or captions leaves the shots alike: the check that a redesign of the page draws its frames as before.
 //   npm run qa:shots -- --pages [all|screens,edit,…] [--label before]
 // Writes .cache/qa-shots/<label>/pages/<page>.png: the Studio views, browser Settings pages and ?ui-preview (qa-shots-pages.mjs).
 //   npm run qa:shots -- --compare before after
@@ -26,6 +28,7 @@ const { values: opts, positionals } = parseArgs({
     module: { type: "string", default: "" },
     data: { type: "string", default: "fixtures" },
     compare: { type: "boolean", default: false },
+    "frames-only": { type: "boolean", default: false },
     pages: { type: "string" },
   },
   allowPositionals: true,
@@ -84,10 +87,11 @@ try {
   };
 
   await load("default");
-  // "all" reads the skins from the toolbar's skin list, so new skins are covered without touching this script.
+  // "all" reads the skins the page offers (`__qa.options()`, or the toolbar's skin list on a page without it), so new skins are covered without touching this script.
   const skins =
     opts.skins === "all"
-      ? await page.$$eval("header label", (labels) => [...(labels.find((l) => l.firstElementChild?.textContent === "skin")?.querySelectorAll("option") ?? [])].map((o) => o.value).filter(Boolean))
+      ? ((await page.evaluate(() => window.__qa?.options().skins)) ??
+        (await page.$$eval("header label", (labels) => [...(labels.find((l) => l.firstElementChild?.textContent === "skin")?.querySelectorAll("option") ?? [])].map((o) => o.value).filter(Boolean))))
       : opts.skins.split(",").map((s) => s.trim()).filter(Boolean);
 
   let count = 0;
@@ -98,7 +102,8 @@ try {
     for (const fig of await page.locator("figure[data-qa-module]:has([data-qa-box]), figure[data-qa-view]").all()) {
       const [mod, span, view, viewOf] = await Promise.all(["data-qa-module", "data-qa-span", "data-qa-view", "data-qa-view-of"].map((a) => fig.getAttribute(a)));
       const name = view ? `${viewOf}_view-${view}` : `${mod}_${span}`;
-      await fig.screenshot({ path: path.join(dir, `${fileSafe(name)}.png`), animations: "disabled" });
+      const target = opts["frames-only"] ? fig.locator("[data-qa-box]").first() : fig;
+      await target.screenshot({ path: path.join(dir, `${fileSafe(name)}.png`), animations: "disabled" });
       count++;
     }
     console.log(`qa-shots: ${skin} done`);
