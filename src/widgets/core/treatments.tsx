@@ -1,5 +1,5 @@
 // The component treatments a Look's T3 asks for (src/looks/treatments.ts), as the markup hooks and the drawing the primitives share:
-// tone slabs (`data-wp-slab`, painted by treatments.css), the state a part shows (`data-state`), list rows (`data-part="row"`), a hero
+// tone slabs (`data-wp-slab`, painted by treatments.css, which src/index.css imports), the state a part shows (`data-state`), list rows (`data-part="row"`), a hero
 // value at the readout scale fitted to its card, the hexagon a hex ring is drawn on and a cell meter's peak hold. Every hook is written
 // only where the Look asks for it, so a Look that sets none (Classic, every pack before these) writes the markup it always did.
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ElementType, type HTMLAttributes, type ReactNode, type RefObject } from "react";
@@ -8,7 +8,6 @@ import { STATUS } from "@/looks/status";
 import { SLAB_TONES, slabTexture, type SlabPart, type SlabTone } from "@/looks/treatments";
 import { useSkin } from "./theme";
 import type { ReadoutSpec, SkinContext, SlabSpec, Tone } from "./types";
-import "./treatments.css";
 
 type Sk = Partial<SkinContext>;
 
