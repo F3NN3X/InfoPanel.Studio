@@ -4,7 +4,7 @@ import { THEME_PRESETS } from "@/lib/theme";
 import { SKIN_NAMES, SURFACE_NAMES } from "@/widgets/core/theme";
 import type { QaFx } from "./params";
 
-/** What the toolbar's controls offer, shared with `__qa.options()` so a tool reads the lists without opening a control. */
+/** What the top bar's controls offer, shared with `__qa.options()` so a tool reads the lists without opening a control. */
 export const FX: QaFx[] = ["full", "calm", "off"];
 
 const optionsOf = (key: string) => (STYLE_SETTINGS.find((s) => s.key === key)?.options ?? []).filter((o) => o.value !== "auto").map((o) => o.value);

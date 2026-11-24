@@ -20,7 +20,7 @@ export interface Now {
   apply: (next: QaState) => void;
 }
 
-/** What `__qa.options()` lists: every value the toolbar's controls offer, so a tool reads them without opening one. */
+/** What `__qa.options()` lists: every value the top bar's controls offer, so a tool reads them without opening one. */
 export interface QaOptions {
   looks: string[];
   lookVariants: string[];
@@ -64,12 +64,12 @@ declare global {
 const HELP: [string, string][] = [
   ["help()", "this list"],
   ["state()", "the page's settings (the URL params as values)"],
-  ["set(patch)", "change settings, as the toolbar does: set({ look: 'cyberspec', lookVariant: 'crimson' }); a change of data reloads the page"],
+  ["set(patch)", "change settings, as the top bar does: set({ look: 'cyberspec', lookVariant: 'crimson' }); a change of data reloads the page"],
   ["select(frame)", "scroll to a frame and return its entry: 'CpuMonitor 2x1', 'CpuMonitor--view-gauge' or 'surface:rail'"],
   ["report(filter)", "mount every frame and return the JSON tools/qa/report.mjs prints; filter { module, frame, all, notes, checked }"],
   ["markdown(filter)", "the same report as Copy for Claude text"],
   ["copyForClaude(target)", "copy and return the Copy for Claude text of a frame, a widget (its id) or, with no target, the page"],
-  ["options()", "every value the toolbar offers: looks, skins, surfaces, graphs, meters, radii, themes, galleries, data"],
+  ["options()", "every value the top bar offers: looks, skins, surfaces, graphs, meters, radii, themes, galleries, data"],
   ["overflow()", "= __qaOverflow(): what pokes out, overlaps or is cut off, per span frame (mounts every frame)"],
   ["mountAll()", "= __qaMountAll(): mount every frame and wait for the page to settle; false if it did not"],
   ["snapshot()", "= __qaSnapshot(): the page's sheets, root properties and frame colours, for round trips"],
