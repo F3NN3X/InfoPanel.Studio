@@ -2,10 +2,11 @@ import type { ReactNode } from "react";
 import type { DashboardModule } from "@/modules/types";
 import { ClaudeButton } from "../ClaudeButton";
 import { claudeText, widgetFiles, type Now } from "../console";
-import { notesFor } from "../notes";
+import { noteStatus, noteText, useWidgetNotes } from "../notes";
 import { frameId, widgetLinks } from "../params";
 import { layoutPlans, viewPlans } from "../plan";
 import { select } from "../selection";
+import { NoteEditor } from "./NoteEditor";
 import { ACTION, Block, Copyable, Facts, Quiet } from "./parts";
 import { SettingsList } from "./Settings";
 
@@ -36,7 +37,7 @@ function FrameLinks({ module, items, prefix }: { module: string; items: { id: st
 
 /**
  * The selected widget (or the selected frame's): what the info column beside its frames used to hold. Its title, id and category,
- * minimum and default size, the data it reads, its blurb and description, tags, views and layouts, its notes, its files as copyable
+ * minimum and default size, the data it reads, its blurb and description, tags, views and layouts, its notes (its own to edit), its files as copyable
  * paths (`files.generated.ts`) and its settings, searchable.
  */
 export function WidgetPart({ mod, now, frame }: { mod: DashboardModule; now: { current: Now }; frame: boolean }) {
@@ -45,7 +46,8 @@ export function WidgetPart({ mod, now, frame }: { mod: DashboardModule; now: { c
   const views = viewPlans(mod);
   const layouts = layoutPlans(mod);
   const files = widgetFiles(mod.id);
-  const notes = Object.entries(notesFor(mod.id) ?? {}).sort(([a], [b]) => Number(b === "*") - Number(a === "*"));
+  const notes = Object.entries(useWidgetNotes(mod.id) ?? {});
+  const frameNotes = notes.filter(([key]) => key !== "*");
   const data = mod.readsAll ? "every sensor" : [...mod.prefixes, ...(mod.reads ?? [])].join(", ") || "none";
   const facts: [string, ReactNode][] = [
     ["Category", mod.category ?? "Generic"],
@@ -83,16 +85,25 @@ export function WidgetPart({ mod, now, frame }: { mod: DashboardModule; now: { c
         </div>
       )}
       <Block title="Notes" count={notes.length}>
-        {notes.length ? (
-          <ul className="space-y-1 text-caption text-ui-warn-text">
-            {notes.map(([key, text]) => (
-              <li key={key}>
-                <span className="font-ui-mono text-micro text-ui-3">{key === "*" ? "widget" : key}</span> {text}
-              </li>
-            ))}
+        <NoteEditor module={mod.id} frameKey="*" name="the widget" />
+        {frameNotes.length > 0 && (
+          <ul className="space-y-1 text-caption">
+            {frameNotes.map(([key, n]) => {
+              const fixed = noteStatus(n) === "fixed";
+              return (
+                <li key={key} className={fixed ? "text-ui-3" : "text-ui-warn-text"}>
+                  <button type="button" title={`Select the ${key} frame and edit its note`} onClick={() => {
+                      select(frameId(mod.id, key));
+                      document.getElementById(frameId(mod.id, key))?.scrollIntoView({ block: "nearest" });
+                    }} className="rounded-ui-sm font-ui-mono text-micro text-ui-3 underline decoration-current/30 underline-offset-2 hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-ui-accent">
+                    {key}
+                  </button>{" "}
+                  {fixed && <span className="text-micro">fixed · </span>}
+                  {noteText(n)}
+                </li>
+              );
+            })}
           </ul>
-        ) : (
-          <Quiet>No notes (notes.json).</Quiet>
         )}
       </Block>
       <Block title="Files">

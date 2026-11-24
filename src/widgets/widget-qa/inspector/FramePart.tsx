@@ -4,9 +4,10 @@ import type { Flag } from "../adoption";
 import { frameLink, frameName, type FrameKind } from "../claude";
 import { ClaudeButton } from "../ClaudeButton";
 import { claudeText, type Now } from "../console";
-import { notesFor } from "../notes";
+import { NOTE_KEY } from "../notes-file";
 import { frameRef, widgetLinks } from "../params";
 import type { Issue, Probed } from "../probe";
+import { NoteEditor } from "./NoteEditor";
 import { ACTION, Block, Quiet } from "./parts";
 import { useRead } from "./reads";
 
@@ -92,7 +93,7 @@ function FlagRows({ flags }: { flags: Flag[] }) {
 }
 
 /**
- * The selected frame: its issues (hover one to outline its element in the frame), its theme flags, its note and its actions: Copy for
+ * The selected frame: its issues (hover one to outline its element in the frame), its theme flags, its note (to edit) and its actions: Copy for
  * Claude, Copy reference (what the caption copied before), Copy link, Open solo and Open in galleries. A surface has no widget, so it
  * has neither the probe (the page does not probe surfaces) nor the widget's links.
  */
@@ -103,7 +104,6 @@ export function FramePart({ frame, now }: { frame: InspectedFrame; now: { curren
   const box = frame.el.querySelector("[data-qa-box]");
   const r = box?.getBoundingClientRect();
   const surface = frame.kind === "surface";
-  const note = frame.module ? notesFor(frame.module)?.[frame.key] : undefined;
   const links = frame.module ? widgetLinks(state, frame.module) : undefined;
   const notRead = "Not checked yet: a frame checks itself 1.5 s after it mounts (it mounts as it scrolls into view).";
   return (
@@ -136,7 +136,9 @@ export function FramePart({ frame, now }: { frame: InspectedFrame; now: { curren
       <Block title="Theme flags" count={adoption ? read?.flags.length : undefined}>
         {!adoption ? <Quiet>Not checked: the theme check runs while a Look other than Classic is worn (Look in the top bar).</Quiet> : !read ? <Quiet>{notRead}</Quiet> : read.flags.length ? <FlagRows flags={read.flags} /> : <Quiet>None: everything it draws is the Look's.</Quiet>}
       </Block>
-      {!surface && <Block title="Note">{note ? <p className="text-caption text-ui-warn-text">{note}</p> : <Quiet>No note for this frame (notes.json).</Quiet>}</Block>}
+      {!surface && (
+        <Block title="Note">{NOTE_KEY.test(frame.key) ? <NoteEditor module={frame.module} frameKey={frame.key} name={frameName(frame.module, frame.key)} /> : <Quiet>A layout takes no note: note one of the widget's sizes or views, or the widget itself.</Quiet>}</Block>
+      )}
     </div>
   );
 }

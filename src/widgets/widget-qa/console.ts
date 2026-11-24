@@ -2,11 +2,11 @@ import { flushSync } from "react-dom";
 import { WIDGET_MERGES } from "@/lib/settings-migrate.v19";
 import type { ResolvedVariant } from "@/looks/look";
 import { ADOPTION_SELECTOR, checkAdoption, type CheckOptions } from "./adoption";
-import { buildReport, filterFrames, frameMarkdown, frameName, reportMarkdown, type FrameKind, type QaFrame, type QaReport, type ReportContext, type ReportFilter, type ReportFrame, type WidgetFiles } from "./claude";
+import { buildReport, filterFrames, frameMarkdown, frameName, noteEntries, reportMarkdown, type FrameKind, type NoteEntry, type QaFrame, type QaReport, type ReportContext, type ReportFilter, type ReportFrame, type WidgetFiles } from "./claude";
 import { copyText } from "./clipboard";
 import { WIDGET_FILES } from "./files.generated";
 import { mountAllSettled } from "./Frame";
-import { NOTES, notesFor } from "./notes";
+import { allNotes, notesFor, noteStatus, noteText, type NoteStatus } from "./notes";
 import { ACCENTS, CELLS, FX, GALLERY_IDS, GRAPHS, METERS, PAGE_THEMES, RADII, SKINS, SURFACES, VARIANTS } from "./options";
 import { DATA, type QaState } from "./params";
 import { probeBox } from "./probe";
@@ -45,6 +45,7 @@ export interface QaConsole {
   set: (patch: Partial<QaState>) => QaState;
   select: (frame: string) => Promise<ReportFrame | undefined>;
   report: (filter?: ReportFilter) => Promise<QaReport>;
+  notes: (which?: NoteStatus | "all") => NoteEntry[];
   markdown: (filter?: ReportFilter) => Promise<string>;
   copyForClaude: (target?: string, opts?: { checked?: boolean }) => Promise<string>;
   options: () => QaOptions;
@@ -69,6 +70,7 @@ const HELP: [string, string][] = [
   ["select(frame)", "scroll to a frame, open it in the inspector and return its entry: 'CpuMonitor 2x1', 'CpuMonitor--view-gauge' or 'surface:rail'"],
   ["report(filter)", "mount every frame and return the JSON tools/qa/report.mjs prints; filter { module, frame, all, notes, checked }"],
   ["markdown(filter)", "the same report as Copy for Claude text"],
+  ["notes(which)", "the notes queue: the open notes ('fixed' or 'all' for the rest), each with its reference, link and report command"],
   ["copyForClaude(target)", "copy and return the Copy for Claude text of a frame, a widget (its id) or, with no target, the page"],
   ["options()", "every value the top bar offers: looks, skins, surfaces, graphs, meters, radii, themes, galleries, data"],
   ["overflow()", "= __qaOverflow(): what pokes out, overlaps or is cut off, per span frame (mounts every frame)"],
@@ -114,7 +116,7 @@ function framesOnPage(): { el: Element; frame: QaFrame }[] {
       const box = el.querySelector("[data-qa-box]") ?? el;
       const r = box.getBoundingClientRect();
       const note = module ? notesFor(module)?.[key] : undefined;
-      const frame: QaFrame = { frame: frameName(module, key), id: el.id, module, key, kind, size: [Math.round(r.width), Math.round(r.height)], checked: box.childElementCount > 0, issues: [], flags: [], ...(note ? { note } : {}) };
+      const frame: QaFrame = { frame: frameName(module, key), id: el.id, module, key, kind, size: [Math.round(r.width), Math.round(r.height)], checked: box.childElementCount > 0, issues: [], flags: [], ...(note ? { note: noteText(note), noteStatus: noteStatus(note) } : {}) };
       return { el, frame };
     });
 }
@@ -132,7 +134,7 @@ function readFrames(now: { current: Now }, filter: ReportFilter): QaFrame[] {
 }
 
 function contextOf(now: { current: Now }): ReportContext {
-  return { state: now.current.state, base: `${window.location.origin}${window.location.pathname}`, flagsChecked: !!now.current.adoption, files: widgetFiles, notes: NOTES };
+  return { state: now.current.state, base: `${window.location.origin}${window.location.pathname}`, flagsChecked: !!now.current.adoption, files: widgetFiles, notes: allNotes() };
 }
 
 async function reportOf(now: { current: Now }, filter: ReportFilter = {}): Promise<QaReport> {
@@ -176,6 +178,7 @@ export function installConsole(now: { current: Now }): void {
       return buildReport(readFrames(now, { frame: ref }), { frame: ref, all: true, checked: true }, contextOf(now)).frames[0];
     },
     report: (filter) => reportOf(now, filter),
+    notes: (which = "open") => noteEntries(contextOf(now), which),
     markdown: async (filter = {}) => reportMarkdown(await reportOf(now, filter), contextOf(now)),
     copyForClaude: async (target, opts) => {
       const text = await claudeText(now, target, opts?.checked);

@@ -5,8 +5,9 @@ import type { DashboardModule } from "@/modules/types";
 import { TEMPLATE_MODULES } from "@/widgets/registry";
 import { partsOf, type Now } from "../console";
 import { mergedModules } from "../plan";
-import { getSelection, select, subscribe } from "../selection";
+import { getSelection, NOTES_QUEUE, select, subscribe } from "../selection";
 import { FramePart, type InspectedFrame } from "./FramePart";
+import { NotesQueue } from "./NotesQueue";
 import { WidgetPart } from "./WidgetPart";
 
 /** Every widget the page can draw: the registered ones (legacy included, for `module=`) and the merged-away ones. */
@@ -15,14 +16,18 @@ const ALL: DashboardModule[] = [...modules, ...mergedModules(TEMPLATE_MODULES)];
 interface Target {
   mod?: DashboardModule;
   frame?: InspectedFrame;
+  /** The notes queue (`NOTES_QUEUE`), in place of a frame or a widget. */
+  queue?: true;
 }
 
 /**
  * What the selection names, as the page draws it now (`selection.ts`): a widget by its id (its section), a frame by its anchor
- * (`CpuMonitor--2x1`, which also brings its widget) or a surface by `surface:<name>`. Gone from the page (a filter, other sizes): none.
+ * (`CpuMonitor--2x1`, which also brings its widget), a surface by `surface:<name>`, or the notes queue. Gone from the page (a filter,
+ * other sizes): none.
  */
 function resolve(sel: string | null): Target | undefined {
   if (!sel) return undefined;
+  if (sel === NOTES_QUEUE) return { queue: true };
   if (sel.startsWith("surface:")) {
     const el = document.querySelector(`[data-qa-surface="${CSS.escape(sel.slice("surface:".length))}"]`);
     return el ? { frame: { el, id: sel, ...partsOf(el) } } : undefined;
@@ -72,7 +77,8 @@ function useEscape(now: { current: Now }) {
 }
 
 /**
- * The right column: the selected frame (its issues, theme flags, note and actions), then its widget (what the info column held), on the
+ * The right column: the selected frame (its issues, theme flags, note and actions), then its widget (what the info column held), or the
+ * notes queue, on the
  * studio's tokens (`data-qa-ui`), outside every `[data-look]` and never an ancestor of a frame. Nothing selected: nothing drawn.
  */
 export function Inspector({ now }: { now: { current: Now } }) {
@@ -100,6 +106,7 @@ export function Inspector({ now }: { now: { current: Now } }) {
         <p className="text-caption text-ui-3">{`${sel} is not on the page now (a filter, or other sizes).`}</p>
       ) : (
         <div className="space-y-5 pr-6">
+          {target.queue && <NotesQueue now={now} />}
           {target.frame && <FramePart frame={target.frame} now={now} />}
           {target.mod && <WidgetPart mod={target.mod} now={now} frame={!!target.frame} />}
         </div>

@@ -1,6 +1,6 @@
 import type { DashboardModule } from "@/modules/types";
 import { ClaudeButton } from "./ClaudeButton";
-import { notesFor } from "./notes";
+import { noteCounts, useWidgetNotes } from "./notes";
 import type { SectionChrome, View } from "./Section";
 import { select } from "./selection";
 import { useSectionTally } from "./tally";
@@ -12,12 +12,13 @@ const plural = (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}`;
 
 /**
  * A widget's one-line header, on the studio's tokens (`data-qa-ui`): its title (which selects the widget in the inspector), id and
- * category, what its checked frames found and its notes, then Focus, Solo, Copy link and Copy for Claude. The counts stay in the DOM
+ * category, what its checked frames found and its notes (how many are fixed), then Focus, Solo, Copy link and Copy for Claude. The counts stay in the DOM
  * when they are zero (hidden), so a frame reporting changes text, never the element count `mountAllSettled` waits on.
  */
 export function SectionHead({ mod, view, chrome }: { mod: DashboardModule; view: View; chrome: SectionChrome }) {
   const t = useSectionTally(mod.id);
-  const notes = Object.keys(notesFor(mod.id) ?? {}).length;
+  const notes = noteCounts(useWidgetNotes(mod.id));
+  const noteCount = notes.open + notes.fixed;
   const focused = chrome.focus === mod.id;
   return (
     <div data-qa-ui="" className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-ui-md border border-ui-subtle bg-ui-chrome px-3 py-1.5 font-ui text-caption text-ui-2">
@@ -34,7 +35,7 @@ export function SectionHead({ mod, view, chrome }: { mod: DashboardModule; view:
       <span hidden={!t.flags} className="text-micro font-medium text-ui-warn-text">
         {plural(t.flags, "theme flag")}
       </span>
-      {notes > 0 && <span className="text-micro text-ui-3">{plural(notes, "note")}</span>}
+      {noteCount > 0 && <span className="text-micro text-ui-3">{`${plural(noteCount, "note")}${notes.fixed ? ` (${notes.fixed} fixed)` : ""}`}</span>}
       <span className="ml-auto flex items-center gap-1">
         <button type="button" aria-pressed={focused} title={focused ? "Leave focus mode (Esc)" : "This widget alone, with a size strip and its galleries inline (focus=)"} onClick={() => chrome.onFocus(focused ? "" : mod.id)} className={`${ACTION} ${focused ? "bg-ui-active text-ui-1" : ""}`}>
           {focused ? "Leave focus" : "Focus"}
