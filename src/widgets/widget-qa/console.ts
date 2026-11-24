@@ -120,12 +120,11 @@ function readFrames(now: { current: Now }, filter: ReportFilter): QaFrame[] {
   const all = framesOnPage();
   const kept = new Set(filterFrames(all.map((x) => x.frame), filter));
   const o = now.current.adoption;
-  return all.flatMap(({ el, frame }) => {
-    if (!kept.has(frame)) return [];
-    if (!frame.checked) return [frame];
-    const box = el.querySelector("[data-qa-box]") ?? el;
-    return [{ ...frame, issues: frame.kind === "surface" ? [] : probeBox(box), flags: o ? checkAdoption(box, { ...o, chrome: el.hasAttribute("data-qa-chrome") }) : [] }];
-  });
+  const read = all.filter(({ frame }) => kept.has(frame)).map(({ el, frame }) => ({ el, frame, box: el.querySelector("[data-qa-box]") ?? el }));
+  // Every probe before any theme check: the check writes a probe element into each card (`cardPalette`), and a layout read after
+  // a write lays the whole page out again, so interleaving the two costs a page layout per element.
+  const issues = read.map(({ frame, box }) => (frame.checked && frame.kind !== "surface" ? probeBox(box) : []));
+  return read.map(({ el, frame, box }, i) => (frame.checked ? { ...frame, issues: issues[i], flags: o ? checkAdoption(box, { ...o, chrome: el.hasAttribute("data-qa-chrome") }) : [] } : frame));
 }
 
 function contextOf(now: { current: Now }): ReportContext {
