@@ -85,7 +85,7 @@ export function WidgetPart({ mod, now, frame }: { mod: DashboardModule; now: { c
         </div>
       )}
       <Block title="Notes" count={notes.length}>
-        <NoteEditor module={mod.id} frameKey="*" name="the widget" />
+        <NoteEditor key={mod.id} module={mod.id} frameKey="*" name="the widget" />
         {frameNotes.length > 0 && (
           <ul className="space-y-1 text-caption">
             {frameNotes.map(([key, n]) => {

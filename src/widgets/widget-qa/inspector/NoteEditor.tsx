@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FIELD_BOX } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
@@ -19,7 +19,8 @@ const LABEL = CAN_WRITE ? { save: "Save", fixed: "Mark fixed", open: "Reopen", r
 /**
  * One note, read and edited in the inspector: a frame's (`2x1`, `view:gauge`) or the widget's (`*`). Under `npm run dev` an action
  * writes `notes.json` through the dev server (`notes-dev.ts`) and every view of the note follows; on a build, which has no repo to
- * write to, it copies the widget's notes as JSON to paste into the file instead.
+ * write to, it copies the widget's notes as JSON to paste into the file instead. The caller keys it by the note, so a draft never
+ * carries over to another frame.
  */
 export function NoteEditor({ module, frameKey, name }: { module: string; frameKey: string; name: string }) {
   const note = useWidgetNotes(module)?.[frameKey];
@@ -27,11 +28,6 @@ export function NoteEditor({ module, frameKey, name }: { module: string; frameKe
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState<NoteStatus>("open");
   const [message, setMessage] = useState("");
-  // another frame selected: its own note, not this draft
-  useEffect(() => {
-    setEditing(false);
-    setMessage("");
-  }, [module, frameKey]);
 
   const start = () => {
     setDraft(note ? noteText(note) : "");

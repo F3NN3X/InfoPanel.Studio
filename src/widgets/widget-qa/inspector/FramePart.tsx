@@ -137,7 +137,7 @@ export function FramePart({ frame, now }: { frame: InspectedFrame; now: { curren
         {!adoption ? <Quiet>Not checked: the theme check runs while a Look other than Classic is worn (Look in the top bar).</Quiet> : !read ? <Quiet>{notRead}</Quiet> : read.flags.length ? <FlagRows flags={read.flags} /> : <Quiet>None: everything it draws is the Look's.</Quiet>}
       </Block>
       {!surface && (
-        <Block title="Note">{NOTE_KEY.test(frame.key) ? <NoteEditor module={frame.module} frameKey={frame.key} name={frameName(frame.module, frame.key)} /> : <Quiet>A layout takes no note: note one of the widget's sizes or views, or the widget itself.</Quiet>}</Block>
+        <Block title="Note">{NOTE_KEY.test(frame.key) ? <NoteEditor key={frame.id} module={frame.module} frameKey={frame.key} name={frameName(frame.module, frame.key)} /> : <Quiet>A layout takes no note: note one of the widget's sizes or views, or the widget itself.</Quiet>}</Block>
       )}
     </div>
   );

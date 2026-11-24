@@ -61,8 +61,15 @@ test("a frame's note in the inspector: edit it, set its status, and on a build c
   await page.keyboard.press("Escape");
   await expect(note.getByRole("textbox")).toHaveCount(0);
   await expect(inspector(page)).toBeVisible();
-  // Copy as fixed and Copy without it, without opening the editor
+  // a draft left open does not follow the selection to another frame
+  await note.getByRole("button", { name: "Add a note" }).click();
+  await note.getByRole("textbox", { name: "Note for CodingAgents 4x2" }).fill("A draft.");
   await page.locator("#CodingAgents--1x1 [data-qa-box]").click();
+  await expect(note).toContainText("Room for a sparkline of today's tokens.");
+  await expect(note.getByRole("textbox")).toHaveCount(0);
+  // Copy as fixed and Copy without it, without opening the editor
+  await note.getByRole("button", { name: "Copy as fixed" }).click();
+  await expect.poll(async () => JSON.parse(await clipboard(page)).CodingAgents["1x1"]).toEqual({ text: "Room for a sparkline of today's tokens.", status: "fixed" });
   await note.getByRole("button", { name: "Copy without it" }).click();
   await expect.poll(async () => Object.keys(JSON.parse(await clipboard(page)).CodingAgents)).toEqual(["2x1"]);
 });
