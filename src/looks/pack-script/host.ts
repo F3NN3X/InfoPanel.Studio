@@ -1,5 +1,6 @@
-// The page's end of a pack script: it hands the overlay canvas to a new worker (fx-worker.ts), drives the guest's frames from the
-// page's animation frames at the plan's rate (no guest timer exists), sends the signals at most `SIGNAL_MS` apart and only when they
+// The page's end of a pack script: it hands the overlay canvas to a new worker (fx-worker.ts), drives the guest's frames from a page
+// timer at the plan's rate (no guest timer exists; not the page's animation frames, as each of those makes the page draw a frame of
+// its own while the worker presents its canvas itself), sends the signals at most `SIGNAL_MS` apart and only when they
 // changed, and keeps the watchdog: `WATCHDOG.over` frames over budget in its window end the script as `fallback`; a fault, a frame
 // not answered in `REPLY_MS` or a start not done in `START_MS` end it as `stopped`. Ending always terminates the worker.
 import type { FromWorker, ToWorker } from "./fx-worker";
@@ -36,7 +37,6 @@ const placeOf = (canvas: HTMLCanvasElement) => {
 export function startScript(run: ScriptRun): () => void {
   const worker = new Worker(new URL("./fx-worker.ts", import.meta.url), { type: "module", name: "pack-fx" });
   const dog = watchdog();
-  let raf = 0;
   let wait: ReturnType<typeof setTimeout> | undefined;
   let reply: ReturnType<typeof setTimeout> | undefined;
   let last = -Infinity;
@@ -49,7 +49,6 @@ export function startScript(run: ScriptRun): () => void {
   const stop = () => {
     if (done) return;
     done = true;
-    cancelAnimationFrame(raf);
     clearTimeout(wait);
     clearTimeout(reply);
     resize.disconnect();
@@ -63,12 +62,13 @@ export function startScript(run: ScriptRun): () => void {
   const send = (m: ToWorker, transfer: Transferable[] = []) => worker.postMessage(m, transfer);
   const resize = new ResizeObserver(() => send({ type: "size", width: run.canvas.offsetWidth, height: run.canvas.offsetHeight, scale: pixels() }));
 
-  // one animation frame a slot, not one a display frame: the page asks for a frame only when the next one is due
+  // one frame a slot, when the next one is due
   const next = () => {
     const due = last + 1000 / run.plan.fps - performance.now();
-    wait = setTimeout(() => (raf = requestAnimationFrame(tick)), Math.max(0, due - 8));
+    wait = setTimeout(tick, Math.max(0, due));
   };
-  const tick = (now: number) => {
+  const tick = () => {
+    const now = performance.now();
     last = now;
     let signals: ReturnType<typeof readSignals> | undefined;
     if (now - lastSignals >= SIGNAL_MS) {
@@ -94,7 +94,7 @@ export function startScript(run: ScriptRun): () => void {
       // the first frame goes now: the watchdog's and the tests' clock starts here
       run.canvas.setAttribute("data-fx-ready", "");
       resize.observe(run.canvas);
-      raf = requestAnimationFrame(tick);
+      tick();
     } else if (m.type === "frame") {
       if (m.over && dog.over(performance.now())) end("fallback", "over budget");
       else next();
