@@ -18,7 +18,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { changedFiles, fileAt, head, isAncestor, trackedFiles, treeHash } from "./verify/git.mjs";
-import { laneIds } from "./verify/lane.mjs";
+import { laneIds, laneWaitsFor } from "./verify/lane.mjs";
 import { loadMap, MAP_FEATURE, MAP_FILE, resolveChanges, splitRoutingOnly, whereIs } from "./verify/map.mjs";
 import { buildPlan, EXIT, exitCodeFor } from "./verify/plan.mjs";
 import { RELEASE_FEATURE, splitVersionOnly } from "./verify/release.mjs";
@@ -210,7 +210,8 @@ async function main() {
   const current = { head: head(ROOT), tree: treeHash(ROOT) };
   const keepGoing = flags.has("--keep-going");
   const inLane = laneIds(plan.steps, map.checks, { ci: Boolean(process.env.CI) });
-  const lane = startLane(plan.steps, inLane, map, keepGoing);
+  const waitsFor = laneWaitsFor(plan.steps, inLane, map.checks);
+  let lane = waitsFor.size ? null : startLane(plan.steps, inLane, map, keepGoing);
   const byId = new Map();
   let stopped = false;
   for (const step of plan.steps) {
@@ -226,6 +227,7 @@ async function main() {
       byId.set(step.id, result);
       if (result.status === "failed" && !keepGoing) stopped = true;
     }
+    if (waitsFor.delete(step.id) && !waitsFor.size && !stopped) lane = startLane(plan.steps, inLane, map, keepGoing);
   }
   if (lane) {
     if (stopped) lane.stop();

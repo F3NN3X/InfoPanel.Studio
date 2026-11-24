@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { laneIds, runLane } from "../../tools/verify/lane.mjs";
+import { laneIds, laneWaitsFor, runLane } from "../../tools/verify/lane.mjs";
 
 const checks = { "cargo-server": { lane: "cargo" }, "cargo-app": { lane: "cargo" }, e2e: {} };
 const step = (id, extra = {}) => ({ id, cmd: `run ${id}`, ...extra });
@@ -19,6 +19,24 @@ describe("verify lane selection", () => {
     const notRun = [step("e2e"), step("cargo-server"), step("cargo-app", { status: "not-run" })];
     expect([...laneIds(notRun, checks, { ci: false })]).toEqual(["cargo-server"]);
     expect(laneIds([step("e2e"), { id: "cargo-server", cmd: null }], checks, { ci: false }).size).toBe(0);
+  });
+});
+
+describe("verify lane start", () => {
+  const after = { ...checks, "cargo-app": { lane: "cargo", after: ["settings-build"] }, "settings-build": {} };
+  const lane = new Set(["cargo-server", "cargo-app"]);
+
+  it("waits for the planned checks its own name in `after`", () => {
+    const steps = [step("settings-build"), step("e2e"), step("cargo-server"), step("cargo-app")];
+    expect([...laneWaitsFor(steps, lane, after)]).toEqual(["settings-build"]);
+  });
+
+  it("waits for nothing when those checks are not planned, have nothing to run or can't run here", () => {
+    const rest = [step("e2e"), step("cargo-server"), step("cargo-app")];
+    expect(laneWaitsFor(rest, lane, after).size).toBe(0);
+    expect(laneWaitsFor([{ id: "settings-build", cmd: null }, ...rest], lane, after).size).toBe(0);
+    expect(laneWaitsFor([step("settings-build", { status: "not-run" }), ...rest], lane, after).size).toBe(0);
+    expect(laneWaitsFor([step("settings-build"), ...rest], new Set(), after).size).toBe(0);
   });
 });
 

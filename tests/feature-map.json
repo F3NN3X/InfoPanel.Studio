@@ -115,6 +115,7 @@
     "stub-desktop": { "lane": "cargo", "cmd": "node tools/ci-stub-desktop.mjs", "platform": "win32", "when": "creates src-tauri/resources only where it is missing (a clean CI runner); needs the built ips-agent" },
     "cargo-app": {
       "needs": ["stub-desktop"],
+      "after": ["settings-build"],
       "lane": "cargo", "cmd": "cargo test && cargo clippy --workspace --all-targets -- -D warnings",
       "cwd": "src-tauri",
       "platform": "win32",
