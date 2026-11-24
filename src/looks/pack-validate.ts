@@ -18,8 +18,8 @@ import { resolveT1, resolveVariant, VARIANT_ALPHA, VARIANT_COLOURS, type Look, t
 import lookSchema from "./look.schema.json";
 import { motionIssues } from "./motion";
 import { SCRIPT_MAX_BYTES } from "./pack-script/limits";
-import { MAX_LAYERS, NUMERAL_MIN, numeralIssues, stageIssues } from "./pack-checks";
-import { FLASH_MAX, FRAME_ALPHA_MIN, FRAME_SIZE_MAX, FRAME_SPINE_MAX, FRAME_STROKE_MAX, FRAME_TAB_HEIGHT_MAX, FRAME_TAB_WIDTH_MAX, FX_KINDS, ORNAMENT_MAX, ORNAMENT_TEXT_MAX, ORNAMENTS_MAX, TEXT_ORNAMENTS, type PackJson } from "./pack-json";
+import { MAX_LAYERS, NUMERAL_MIN, numeralIssues, plainText, stageIssues } from "./pack-checks";
+import { CAPTION_TEXT_MAX, FLASH_MAX, FRAME_ALPHA_MIN, FRAME_BAND_MAX, FRAME_GLOW_ALPHA_MAX, FRAME_GLOW_MAX, FRAME_SIZE_MAX, FRAME_TINT_MAX, GRID_ALPHA_MAX, GRID_ALPHA_MIN, GRID_SIZE_MAX, GRID_SIZE_MIN, FRAME_SPINE_MAX, FRAME_STROKE_MAX, FRAME_TAB_HEIGHT_MAX, FRAME_TAB_WIDTH_MAX, FX_KINDS, ORNAMENT_MAX, ORNAMENT_TEXT_MAX, ORNAMENTS_MAX, TEXT_ORNAMENTS, type PackJson } from "./pack-json";
 import { commaParts, lintPackCss, OPACITY_FLOOR } from "./pack-css";
 import { INJECTION, jsonShapeIssues, jsonStrings, PROSE_PATHS, rasterMatches, STYLE_BREAKERS, svgIssue, svgPaints, TOKEN_KEY, withoutAliases } from "./pack-safety";
 import packSchema from "./pack.schema.json";
@@ -33,6 +33,7 @@ export { parseColour };
 /** A colour the pack's own CSS, a T3 literal or an SVG writes is read as a literal only: `oklch()` is a T1/T0 token (written as its clamped hex), and here it would be drawn as the browser maps it, not as checked. */
 const parseLiteral = (value: string): Colour | undefined => (isOklch(value) ? undefined : parseColour(value));
 import { T3_TOKENS } from "./t3";
+import { READOUT_DECIMALS_MIN, READOUT_SCALE_MAX, SLAB_INFO_DEFAULT, SLAB_INK_DEFAULT, SLAB_LINE_ALPHA, SLAB_NOTCH_MAX, type SlabTone, slabTones, TREATMENT_WORDS } from "./treatments";
 
 export interface PackFile {
   /** Relative to the pack folder, `/` separated (`assets/hazard.svg`). */
@@ -314,9 +315,9 @@ const MOTION_MIN_MS = 50;
 export const RASTER_ALPHA_MIN = 0.85;
 /** Lengths a mark is drawn with, in px (a number, or a number and `px`): [least, most]. A width or stroke is never nothing (M-3); a gap may be 0. */
 const LENGTH_T3: Record<string, readonly [number, number]> = {
-  "ring-width": [0.5, 64], "icon-stroke": [0.5, 64], "threshold-width": [0.5, 64], "range-height": [0.5, 64], "series-stroke": [0.5, 8], "ring-gap": [0, 64], "meter-gap": [0, 64],
+  "ring-width": [0.5, 64], "icon-stroke": [0.5, 64], "threshold-width": [0.5, 64], "range-height": [0.5, 64], "series-stroke": [0.5, 8], "ring-gap": [0, 64], "meter-gap": [0, 64], "slab-notch": [0, SLAB_NOTCH_MAX],
 };
-const COUNT_T3: Record<string, readonly [number, number]> = { "meter-segments": [2, 64], "num-weight": [100, 900], "hero-weight": [100, 900] };
+const COUNT_T3: Record<string, readonly [number, number]> = { "meter-segments": [2, 64], "num-weight": [100, 900], "hero-weight": [100, 900], "readout-scale": [1, READOUT_SCALE_MAX], "readout-decimals": [READOUT_DECIMALS_MIN, 1] };
 const WEIGHT_WORDS = new Set(["normal", "bold"]);
 /** `num-tracking` is `normal`, 0 or a number of em within this either way (a wider gap pushes a numeral out of its card). */
 const TRACKING_MAX_EM = 0.5;
@@ -349,7 +350,7 @@ function rangeIssue(name: string, v: string | number): string | undefined {
 const TEXT_T3 = new Set(["status-ok", "status-warn", "status-crit", "info", "unit-color", "label-color", "header-color", "axis-label"]);
 /** T3 names that colour a mark (a series, a meter zone, an icon): held to 3:1. */
 const MARK_T3 = new Set(["series-1", "series-2", "series-3", "series-4", "series-5", "series-6", "meter-ok", "meter-warn", "meter-clip", "threshold-line", "spike-marker", "icon-color", "toggle-on", "live-indicator", "fader-fill", "range-fill", "mute-active", "solo-active", "focus-outline"]);
-const OTHER_COLOUR_T3 = new Set(["meter-track", "meter-hold", "range-track", "range-highlight", "fader-track", "fader-knob", "icon-muted", "ring-track", "track", "num-glow-color", "accent-ink", "idle", "mute"]);
+const OTHER_COLOUR_T3 = new Set(["slab-ink", "slab-info", "meter-empty", "meter-track", "meter-hold", "range-track", "range-highlight", "fader-track", "fader-knob", "icon-muted", "ring-track", "track", "num-glow-color", "accent-ink", "idle", "mute"]);
 /** T3 names that take a gradient or colour fill (`safeFill`); the numeral, ring and spark fills' stops are also read by `numeralIssues`. */
 const FILL_T3 = new Set(["border-fill", "header-fill", "num-fill", "ring-fill", "spark-fill", "bar-fill"]);
 
@@ -390,6 +391,10 @@ function t3Issues(look: Look, t1: Record<T1Name, string>, mode: string, cards: s
   for (const [name, v] of Object.entries(t3)) {
     if (!T3_NAMES.has(name)) {
       bad("t3", `t3 ${name} is not a T3 name`);
+      continue;
+    }
+    if (Object.hasOwn(TREATMENT_WORDS, name)) {
+      if (!TREATMENT_WORDS[name].includes(String(v))) bad("t3", `t3 ${name} ${String(v).slice(0, 20)}: one of ${TREATMENT_WORDS[name].join(", ")}`);
       continue;
     }
     const range = rangeIssue(name, v);
@@ -443,6 +448,38 @@ function t3Issues(look: Look, t1: Record<T1Name, string>, mode: string, cards: s
       if (!worst) bad("contrast", `${mode} t3 ${name} ${v} cannot be checked: use #rgb or #rrggbb`);
       else if (worst.ratio < min) bad("contrast", `${mode} t3 ${name} ${v} is ${worst.ratio.toFixed(2)}:1 on the card ${worst.card}, under ${min}:1`);
     }
+  }
+  return out;
+}
+
+/**
+ * The slab ink on every tone the Look's slabs can be drawn in (`slabTones`), in the mode and under each variant that recolours a tone: the
+ * text on a slab is the ink, so it holds 4.5:1 on the slab and on a line of its scan-line texture.
+ */
+function slabIssues(look: Look, t1: Record<string, string>, mode: string, variants: { id: string; set: Record<string, string | undefined> }[]): PackIssue[] {
+  const t3 = look.t3 ?? {};
+  const tones = slabTones(t3);
+  if (!tones.length) return [];
+  const out: PackIssue[] = [];
+  const read = (name: string, fallback: string) => {
+    const r = resolveAlias(String(t3[name] ?? fallback), t3, t1, [name]);
+    return "value" in r ? parseColour(r.value) : undefined;
+  };
+  const ink = read("slab-ink", SLAB_INK_DEFAULT);
+  const info = read("slab-info", SLAB_INFO_DEFAULT);
+  if (!ink?.hex || ink.alpha < 1) return [issue("contrast", "look.json", `${mode} t3 slab-ink cannot be checked: an opaque #rgb or #rrggbb, or an alias of one`)];
+  const textured = t3["slab-texture"] === "scanlines";
+  const palettes = [{ label: mode, of: (t: SlabTone) => (t === "info" ? info?.hex : t1[t === "accent" ? "accent" : t]) }, ...variants.map((v) => ({ label: `variant ${v.id}`, of: (t: SlabTone) => (t === "info" ? info?.hex : (v.set[t] ?? t1[t])) }))];
+  for (const { label, of } of palettes) for (const tone of tones) {
+    const raw = of(tone);
+    const slab = raw ? opaqueHex(raw) : undefined;
+    if (!slab) {
+      out.push(issue("contrast", "look.json", `${label} slab tone ${tone} ${raw ?? ""} cannot be checked: use an opaque #rgb or #rrggbb`));
+      continue;
+    }
+    // a scan line darkens the slab under it
+    const worst = Math.min(contrastOf(ink.hex, slab) ?? 0, textured ? (contrastOf(ink.hex, over("#000000", SLAB_LINE_ALPHA, slab)) ?? 0) : Number.POSITIVE_INFINITY);
+    if (worst < TEXT_MIN) out.push(issue("contrast", "look.json", `${label} t3 slab-ink ${ink.hex} is ${worst.toFixed(2)}:1 on the ${tone} slab ${slab}${textured ? " (with its scan lines)" : ""}, under ${TEXT_MIN}:1`));
   }
   return out;
 }
@@ -619,6 +656,8 @@ function lookIssues(look: Look, layers: LayerPaint[], user: boolean): { issues: 
     }
     for (const name of ["fg", "fg-2", "muted"] as const) for (const card of modeCards) if (parseColour(t1[name])?.hex) texts.push(flatOver(t1[name], card));
     issues.push(...t3Issues(look, t1 as Record<T1Name, string>, mode, modeCards));
+    const variants = mode === look.modes.supported[0] ? (look.variants ?? []).map((v) => ({ id: v.id, set: resolveVariant(look, v, mode).values })) : [];
+    issues.push(...slabIssues(look, t1, mode, variants));
   }
   for (const m of numeralIssues(look)) issues.push(issue("contrast", "look.json", m));
   return { issues, cards: [...new Set(cards)], texts: [...new Set(texts)] };
@@ -800,6 +839,13 @@ function validate(src: PackSource, source: "builtin" | "user", scriptAt: "files"
     if (alpha !== undefined && !(alpha >= FRAME_ALPHA_MIN && alpha <= 1)) add("frame", "pack.json", `frame alpha ${alpha}: ${FRAME_ALPHA_MIN} to 1`);
     if (spine && !(spine.width >= 1 && spine.width <= FRAME_SPINE_MAX)) add("frame", "pack.json", `frame spine width ${spine.width}: 1 to ${FRAME_SPINE_MAX} px`);
     if (tab && !(tab.width >= 1 && tab.width <= FRAME_TAB_WIDTH_MAX && tab.height >= 1 && tab.height <= FRAME_TAB_HEIGHT_MAX)) add("frame", "pack.json", `frame tab ${tab.width} by ${tab.height}: at most ${FRAME_TAB_WIDTH_MAX} by ${FRAME_TAB_HEIGHT_MAX} px`);
+    const { band, glow, caption, grid, tint } = pack.frame;
+    if (band && !(band.width >= 1 && band.width <= FRAME_BAND_MAX)) add("frame", "pack.json", `frame band width ${band.width}: 1 to ${FRAME_BAND_MAX} px`);
+    if (band && spine && spine.edge === band.edge) add("frame", "pack.json", `frame band and spine are both on the ${band.edge} edge: use one`);
+    if (tint !== undefined && !(tint >= 0.02 && tint <= FRAME_TINT_MAX)) add("frame", "pack.json", `frame tint ${tint}: 0.02 to ${FRAME_TINT_MAX}`);
+    if (glow && !(glow.radius >= 1 && glow.radius <= FRAME_GLOW_MAX && (glow.alpha === undefined || (glow.alpha >= 0.05 && glow.alpha <= FRAME_GLOW_ALPHA_MAX)))) add("frame", "pack.json", `frame glow: radius 1 to ${FRAME_GLOW_MAX} px, alpha 0.05 to ${FRAME_GLOW_ALPHA_MAX}`);
+    if (grid && !(grid.size >= GRID_SIZE_MIN && grid.size <= GRID_SIZE_MAX && (grid.alpha === undefined || (grid.alpha >= GRID_ALPHA_MIN && grid.alpha <= GRID_ALPHA_MAX)))) add("frame", "pack.json", `frame grid: size ${GRID_SIZE_MIN} to ${GRID_SIZE_MAX} px, alpha ${GRID_ALPHA_MIN} to ${GRID_ALPHA_MAX}`);
+    if (caption && (!plainText(caption.text, CAPTION_TEXT_MAX) || INJECTION.test(caption.text))) add("frame", "pack.json", `frame caption text: 1 to ${CAPTION_TEXT_MAX} printable characters, no markup`);
   }
   if (pack.edge?.kind === "distressed") add("chamfer", "pack.json", "edge distressed draws nothing: the app has no such mask", "warn");
   if (pack.edge?.kind === "chamfer" && !(pack.edge.cut !== undefined && pack.edge.cut <= CHAMFER_MAX)) add("chamfer", "pack.json", `chamfer cut ${pack.edge.cut ?? "missing"}: at most ${CHAMFER_MAX} px`);

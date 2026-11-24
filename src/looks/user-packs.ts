@@ -9,7 +9,7 @@ import { cappedBlur } from "@/components/widget-style";
 import { LOOK_IDS, registerUserLooks } from "./ids";
 import type { Look } from "./look";
 import { m, type Material, type MaterialKind } from "./materials";
-import { addPackFonts } from "./pack-assets";
+import { addPackFonts, stageChrome } from "./pack-assets";
 import { registerUserPack, unregisterUserPack } from "./pack-load";
 import type { Pack } from "./pack";
 import { type PackJson, packDecor } from "./pack-json";
@@ -178,7 +178,7 @@ export function userPackOf(src: PackSource, candidate = false): Pack {
     css: fontCss(look.fonts) + (src.css ?? ""),
     assets: (meta.assets ?? []).map((a) => a.file),
     slots: { icons: src.icons as NonNullable<Pack["slots"]>["icons"] },
-    stage: { layers: meta.stage.layers, effects: meta.stage.effects, overlayMinSizeClass: meta.stage.overlayMinSizeClass },
+    stage: { layers: meta.stage.layers, effects: meta.stage.effects, overlayMinSizeClass: meta.stage.overlayMinSizeClass, ...stageChrome(meta.stage) },
     burnIn: meta.burnIn,
     fonts: meta.fonts.map((f) => ({ source: f.source, licence: f.licence })),
     statusBar: meta.statusBar,

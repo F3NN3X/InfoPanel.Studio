@@ -3,6 +3,7 @@ import type { ComponentType, CSSProperties, ReactNode } from "react";
 import type { PackSlots } from "@/looks/pack";
 import type { PackDecorSpec } from "@/looks/pack-frame";
 import type { ModuleSettings } from "@/modules/types";
+import type { SlabPart, SlabRole } from "@/looks/treatments";
 
 export type Data = Record<string, string | { value: string }>;
 export type Tier = "xs" | "sm" | "md" | "lg";
@@ -109,6 +110,23 @@ export interface WidgetView {
   prefixesWhen?: string;
 }
 
+/** The tone slabs a Look draws (`slab-*`): each part's role, the ink on a slab, the info tone, the scan-line texture and the notch. */
+export interface SlabSpec {
+  roles: Partial<Record<SlabPart, SlabRole>>;
+  ink: string;
+  info: string;
+  texture: boolean;
+  /** px. */
+  notch: number;
+}
+
+/** A Look's readouts (`readout-*`): how much larger a hero value may be drawn (it is fitted to its card), its decimals' size, an under-bar. */
+export interface ReadoutSpec {
+  scale: number;
+  decimals: number;
+  bar: boolean;
+}
+
 /** Skin token keys; all optional. */
 export interface SkinTokens {
   surface: string;
@@ -189,6 +207,24 @@ export interface SkinTokens {
   meterOk: string;
   /** `icon-color`: the icons' colour when the Look's is not Classic's text colour (the weather glyphs). */
   iconColor: string;
+  /** `slab-*`: solid tone slabs on headers, chips, tabs, rows or the card. */
+  slab: SlabSpec;
+  /** `readout-*`: scaled hero values. */
+  readout: ReadoutSpec;
+  /** `meter-empty`: the colour of a cell meter's unlit cells (`meter-style: cells`) and a ladder's unlit segments. */
+  meterEmpty: string;
+  /** `meter-peak: hold`: a cell meter keeps its highest cell lit a moment after the value falls. */
+  meterPeak: boolean;
+  /** `ring-style: hex`: rings are drawn as hexagons. */
+  ringShape: "hex";
+  /** `graph-grid`: a dashed 0 / 50 / 100 grid on every graph, or none at all (unset: Classic's, in a roomy box). */
+  graphGrid: "dashed" | "none";
+  /** `graph-lead: square`: a square on a graph's newest sample. */
+  graphLead: "square";
+  /** `graph-bars: striped`: bar graphs drawn in stripes, the newest bar bright. */
+  graphBars: "striped";
+  /** `row-style: ruled`: list rows carry `data-part="row"` and a rule under each; a table's head row a tint. */
+  rows: "ruled";
 }
 
 /** One icon of a Look's icon set: a single path in a viewBox, painted in `currentColor`. */

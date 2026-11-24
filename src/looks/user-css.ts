@@ -16,7 +16,7 @@ import { type ColourCheck, commaParts, gradientIssue, isWord, lengthDefinitions,
 import { isPackRelativeUrl, packCssIssues } from "./pack-urls";
 
 /** The hooks a pack may paint (spec 03, Level 3 hooks, and the three later ones the built-ins use). */
-const SLOTS = new Set(["card", "header", "label", "num", "unit", "ring", "bar", "meter", "spark", "threshold", "range", "fader", "icon", "chip", "button", "status", "alert", "tab", "legend", "mono"]);
+const SLOTS = new Set(["card", "header", "label", "num", "unit", "ring", "bar", "meter", "spark", "threshold", "range", "fader", "icon", "chip", "button", "status", "alert", "tab", "legend", "mono", "row", "row-head", "cell", "decimals", "readout-bar"]);
 /** The slots that are marks: a background on one is its track or its value's backdrop, and would hide what the mark draws. */
 const MARKS = new Set(["ring", "bar", "meter", "spark", "threshold", "range", "fader", "icon"]);
 /** Custom properties the app itself sets (`--pack-chrome-fill`): a pack's own are any other `--pack-*`. */

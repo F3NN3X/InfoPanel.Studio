@@ -8,7 +8,7 @@ import type { PackEffect, SizeClass } from "./effects";
 import type { Look } from "./look";
 import type { BurnIn, Pack, PackConnectors, PackSlots, PackStatusBar, StageLayer } from "./pack";
 import type { PackMotion } from "./motion";
-import type { PackFrame, PackOrnament } from "./pack-json";
+import type { PackFrame, PackOrnament, StageChrome, StageGrid } from "./pack-json";
 
 /** A pack's served folder (a root path of this origin, ending in `/`) and its files by source name. */
 export interface PackFiles {
@@ -60,7 +60,7 @@ export interface PackMeta {
   description: string;
   modes: string[];
   fonts: (PackFont & { source: string; licence: string; copyright: string })[];
-  stage: { layers: StageLayer[]; effects?: PackEffect[]; overlayMinSizeClass?: SizeClass };
+  stage: { layers: StageLayer[]; effects?: PackEffect[]; overlayMinSizeClass?: SizeClass; grid?: StageGrid; chrome?: StageChrome };
   burnIn: BurnIn;
   statusBar?: PackStatusBar;
   connectors?: PackConnectors;
@@ -73,6 +73,9 @@ export interface PackMeta {
   script?: { file: string };
 }
 
+/** A stage's grid and screen chrome, only where the pack declares them (a pack without either keeps the stage it had). */
+export const stageChrome = (stage: { grid?: StageGrid; chrome?: StageChrome }): { grid?: StageGrid; chrome?: StageChrome } => ({ ...(stage.grid ? { grid: stage.grid } : null), ...(stage.chrome ? { chrome: stage.chrome } : null) });
+
 /** A built-in pack from its files: `look.json` and `pack.json` as data, the bundler's urls for its assets, and the parts that are code. */
 export function builtPack(meta: PackMeta, look: Look, files: PackFiles, parts: { css: string; slots: PackSlots; templates?: ScreenTemplate[] }): Pack {
   addPackFonts(files, meta.fonts);
@@ -84,7 +87,7 @@ export function builtPack(meta: PackMeta, look: Look, files: PackFiles, parts: {
     css: parts.css,
     assets: Object.values(files.names),
     slots: parts.slots,
-    stage: { layers: meta.stage.layers.map((l) => (l.image ? { ...l, image: served(l.image) } : l)), effects: meta.stage.effects, overlayMinSizeClass: meta.stage.overlayMinSizeClass },
+    stage: { layers: meta.stage.layers.map((l) => (l.image ? { ...l, image: served(l.image) } : l)), effects: meta.stage.effects, overlayMinSizeClass: meta.stage.overlayMinSizeClass, ...stageChrome(meta.stage) },
     burnIn: meta.burnIn,
     statusBar: meta.statusBar,
     connectors: meta.connectors,

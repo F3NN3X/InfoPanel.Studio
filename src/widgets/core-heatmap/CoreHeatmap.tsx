@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { RAMP_START } from "@/looks/data-viz";
 import { readCpuFlat } from "@/lib/system-metrics";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, heat, rampColor, accentOf, hw, Num, useIpTag, STATE, type ShellProps } from "../kit";
+import { Widget, shell, get, num, fmt, heat, rampColor, accentOf, hw, Num, useIpTag, STATE, Part, type ShellProps } from "../kit";
 import { meta } from "./meta";
 
 export { meta };
@@ -205,7 +205,9 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
             {cores.map((c, idx) => {
               const v = norm(c);
               return (
-                <div
+                <Part
+                  kind="cell"
+                  state={v > hotLine ? "crit" : undefined}
                   key={c.i}
                   title={`Core ${c.i} · ${fmt(c.load, 0)}% · ${fmt(c.mhz, 0)} MHz · ${fmt(c.vid, 2)} V`}
                   className="flex min-h-0 items-center justify-center rounded-md text-micro font-semibold tabular-nums"
@@ -213,7 +215,7 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
                 >
                   {/* the load is tagged for the InfoPanel conversion; the other metrics are scaled, so they stay in its picture */}
                   {(p.showValues ?? size !== "xs") && (ip ? <span {...tag(c.key)}>{label(c)}</span> : label(c))}
-                </div>
+                </Part>
               );
             })}
           </div>
