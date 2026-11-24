@@ -1,0 +1,91 @@
+/* Component treatments (src/widgets/core/treatments.tsx, src/looks/treatments.ts): app-owned paint on hooks the shell and primitives write only
+   where a Look asks for them, so no rule here matches a card that wears none. Unlayered, so a pack's CSS (in @layer look) cannot undo the ink
+   that keeps a slab's text at the 4.5:1 the validator checked. Nothing here moves or sizes a box: a slab is painted on a pseudo-element
+   behind its part, a rule is a box-shadow, the outside frame layer is the card's own size and paints past it. */
+
+/* A tone slab: the part names its tone (`data-wp-slab`), or follows the card's state (`data-wp-slab-state`: the header and the card). */
+[data-wp-slab="accent"] { --wp-slab: var(--wp-slab-accent); }
+[data-wp-slab="info"] { --wp-slab: var(--wp-slab-info); }
+[data-wp-slab="ok"] { --wp-slab: var(--wp-slab-ok); }
+[data-wp-slab="warn"] { --wp-slab: var(--wp-slab-warn); }
+[data-wp-slab="crit"] { --wp-slab: var(--wp-slab-crit); }
+[data-part="card"]:has([data-state="warn"]) [data-wp-slab-state],
+[data-part="card"][data-wp-slab-state]:has([data-state="warn"]) { --wp-slab: var(--wp-slab-warn); }
+[data-part="card"]:has([data-state="crit"]) [data-wp-slab-state],
+[data-part="card"][data-wp-slab-state]:has([data-state="crit"]) { --wp-slab: var(--wp-slab-crit); }
+
+[data-wp-slab],
+[data-part="card"]:has([data-state="warn"], [data-state="crit"]) [data-wp-slab-state],
+[data-part="card"][data-wp-slab-state]:has([data-state="warn"], [data-state="crit"]) {
+  position: relative;
+  isolation: isolate;
+  color: var(--wp-slab-ink) !important;
+  text-shadow: none !important;
+  --w-fg: var(--wp-slab-ink);
+  --w-muted: var(--wp-slab-ink);
+  --w-faint: var(--wp-slab-ink);
+  --w-accent: var(--wp-slab-ink);
+}
+[data-wp-slab]::before,
+[data-part="card"]:has([data-state="warn"], [data-state="crit"]) [data-wp-slab-state]::before,
+[data-part="card"][data-wp-slab-state]:has([data-state="warn"], [data-state="crit"])::before {
+  content: "";
+  position: absolute;
+  inset: var(--wp-slab-inset, 0);
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--wp-slab);
+  background-image: var(--wp-slab-tex, none);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--wp-slab-cut, 0px)), calc(100% - var(--wp-slab-cut, 0px)) 100%, 0 100%);
+}
+/* Everything on a slab is the ink: a value's own tone colour or a pack's numeral colour would be read on the slab, not on the card. */
+[data-wp-slab] *,
+[data-part="card"]:has([data-state="warn"], [data-state="crit"]) [data-wp-slab-state] *,
+[data-part="card"][data-wp-slab-state]:has([data-state="warn"], [data-state="crit"]) * {
+  color: inherit !important;
+  text-shadow: none !important;
+}
+/* A header's slab reaches a little into the card's padding around it, so the text does not touch its edge; the box stays where it was. A
+   row sits in a list that clips what leaves it, so its slab stays on the row and the row's text moves in from the edges instead. */
+[data-part="header"]:is([data-wp-slab], [data-wp-slab-state]) { --wp-slab-inset: -3px -6px; }
+[data-part="row"][data-wp-slab] { padding-inline: 4px; }
+
+/* Ruled rows (`row-style: ruled`): a rule under each row, a tint on a table's head row. */
+[data-wp-rows] [data-part="row"] { box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--wp-frame-ink, var(--w-accent)) 22%, transparent); }
+[data-wp-rows] [data-part="row-head"] { background-color: color-mix(in srgb, var(--w-accent) 8%, transparent); }
+
+/* A frame that follows the card's state (`frame.tone: state`): its lines, band, tint and glow take the warning or critical colour. */
+[data-frame-tone]:has([data-state="warn"]) { --wp-frame-ink: var(--wp-tone-warn); }
+[data-frame-tone]:has([data-state="crit"]) { --wp-frame-ink: var(--wp-tone-crit); }
+/* `frame.rule`: a line under the header in the frame's line colour. */
+[data-frame-rule] [data-part="header"] { box-shadow: 0 1px 0 var(--wp-frame-line, var(--w-accent)); }
+
+/* What a frame draws outside the card (`frame.caption`, an outside `frame.tab`; its glow is the layer's box-shadow). The layer is the card's own
+   size, so no card or body rect changes; the caption and tab are its pseudo-elements, past its edge. Lite mode drops the glow. */
+[data-pack-decor="frame-out"][data-caption]::before {
+  content: attr(data-caption);
+  position: absolute;
+  bottom: 100%;
+  max-width: 100%;
+  margin-bottom: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 11px/13px ui-monospace, "JetBrains Mono", "Cascadia Mono", monospace;
+  letter-spacing: 0.06em;
+  color: var(--w-muted);
+}
+[data-pack-decor="frame-out"][data-caption-at="tl"]::before { left: 0; }
+[data-pack-decor="frame-out"][data-caption-at="tr"]::before { right: 0; }
+[data-pack-decor="frame-out"][data-tab-at]::after {
+  content: "";
+  position: absolute;
+  width: var(--wp-tab-w);
+  height: var(--wp-tab-h);
+  background: var(--wp-frame-ink, var(--w-accent));
+}
+[data-pack-decor="frame-out"][data-tab-at="tl"]::after { bottom: 100%; left: var(--wp-tab-x, 0px); }
+[data-pack-decor="frame-out"][data-tab-at="tr"]::after { bottom: 100%; right: var(--wp-tab-x, 0px); }
+[data-pack-decor="frame-out"][data-tab-at="bl"]::after { top: 100%; left: var(--wp-tab-x, 0px); }
+[data-pack-decor="frame-out"][data-tab-at="br"]::after { top: 100%; right: var(--wp-tab-x, 0px); }
+:root[data-lite-motion] [data-pack-decor="frame-out"] { box-shadow: none !important; }

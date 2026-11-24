@@ -10,7 +10,7 @@ import type { Look } from "./look";
 import type { PackDecorSpec } from "./pack-frame";
 import type { PackMotion } from "./motion";
 import type { MotionSlot } from "./motion-render";
-import type { PackFrame, PackJson, PackOrnament } from "./pack-json";
+import type { PackFrame, PackJson, PackOrnament, StageChrome, StageGrid } from "./pack-json";
 
 /** One page layer under the grid: a fill (a colour or gradient) and/or an image from the pack's own folder (`base` + `image`). */
 export interface StageLayer {
@@ -30,6 +30,10 @@ export interface PackStageSpec {
   effects?: PackEffect[];
   /** Set by the loader: the Look's accent, the colour of the glow on the layers that carry art (`--w-accent`, L81). */
   accent?: string;
+  /** A dot grid over the page, under the cards (pack.json `stage.grid`). */
+  grid?: StageGrid;
+  /** The screen's own frame: a cut-corner line, a notched tab, reticles (pack.json `stage.chrome`). */
+  chrome?: StageChrome;
 }
 
 /** How much a pack's static art risks an always-on panel: `needs-shift` gets the pixel-shift drift, `needs-dim` the idle dim (Settings, per screen). Unset = `static-safe`. */

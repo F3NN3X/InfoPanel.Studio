@@ -10,6 +10,7 @@ export * from "./core/icons";
 export * from "./core/look";
 export * from "./core/fonts";
 export * from "./core/primitives";
+export { Part } from "./core/treatments";
 export * from "./core/motion";
 export * from "./core/ballistics";
 export * from "./core/media-progress";

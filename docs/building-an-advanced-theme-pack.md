@@ -25,6 +25,7 @@ The steps are in build order:
 11. [Signing and trust](#11-signing-and-trust)
 12. [Testing your pack](#12-testing-your-pack)
 13. [Limits we hit and how we solved them](#13-limits-we-hit-and-how-we-solved-them)
+14. [Component treatments](#14-component-treatments)
 
 ## 1. Start from the kit
 
@@ -515,6 +516,87 @@ features, each validated and documented before the pack used it:
 | Page effects in a fixed colour | Flashing overlays in cyan, or the studio's amber | Effects and layer glows take the screen's accent | They follow the variant |
 | No per-card reaction | No arrival flourish, no data pulse | The effect script, in a sandbox | Brackets, scan band and warning pulse in `fx.js` |
 
-Some things are still out of reach, on purpose or for now: a tab that sticks out of the card (the card clips its content), a
-square-segmented bar where a widget draws rounded ones (pack CSS cannot reach inside a bar with `*`), a numeral colour read from
-a variable (the contrast check needs a literal), a hexagon gauge, and a glow outside the card.
+A tab that sticks out of the card, square-segmented bars, a hexagon gauge and a glow outside the card were out of reach here;
+they are now format features (section 14). A numeral colour read from a variable still is: the contrast check needs a literal.
+
+## 14. Component treatments
+
+The kit's components (solid tone slabs, big readouts with small decimals, cell meters, hexagon gauges, signal graphs, a panel
+with a wide band and a caption above it, the dot-grid screen) are drawn by the app from tokens and pack.json keys. Each is off
+until a Look names it, so a pack that does not draws exactly as before. The reference is the treatments fixture,
+`tests/fixtures/packs/treatments`: Cyberspec with every treatment on.
+
+**Slabs** come from the Look's `t3`. One token per part says when the part is a slab and in which tone:
+
+```json look.json
+{
+  "t3": {
+    "slab-header": "accent",
+    "slab-chip": "state",
+    "slab-tab": "accent",
+    "slab-row": "current",
+    "slab-current": "warn",
+    "slab-ink": "#0B0B12",
+    "slab-texture": "scanlines",
+    "slab-notch": 8
+  }
+}
+```
+
+- The parts are `header`, `chip`, `tab`, `row` and `card`. `state` draws a slab only while the part (for the header and the
+  card, the card) shows a warning or a critical reading; a tone (`accent`, `info`, `ok`, `warn`, `crit`) draws one always; a
+  row's `current` marks the row the widget calls current, in the `slab-current` tone. A part's own warning or critical reading
+  wins over its tone.
+- The ink is checked at 4.5:1 on every tone the slabs can take, in every variant, and on a scan line too. The lines are drawn
+  away from the ink (light under a dark ink), so they only add contrast: under the kit's dark ink a dark line had taken the
+  crimson slab to 4.1:1.
+- The slab paint is the app's and not in `@layer look`, so a pack's CSS can't recolour it.
+
+**Readouts and meters**: `readout-scale` (1 to 4) and `readout-decimals` (0.3 to 1) give the kit's `412.8` with a small `.8`;
+the value is stepped down until it fits its card, so a 1x1 keeps its own size. `readout-bar: rule` adds the underline, solid to
+the reading's share of its range and dotted after. `meter-style: cells` gives the 20-cell meter with triangles at the warning
+and critical marks, `meter-empty` the unlit cells' colour and `meter-peak: hold` the held peak; `meter-style: ruler` the
+slider's tick ruler and square thumb. `share-style: gapped` draws a stacked bar (Power Draw, Disk I/O) as gapped blocks.
+
+**Rings, graphs and rows**: `ring-style: hex` draws every ring as a hexagon, open at the bottom, and `avatar-shape: hex` the
+initials of a friends list. `graph-grid: dashed`, `graph-lead: square` and `graph-bars: striped` give the signal graph's dashed
+grid with left ticks, its end square and the bar chart's stripes. `row-style: ruled` rules list rows and tints a table's head.
+
+**The panel** is the `frame`, with the keys of section 5 and:
+
+```json pack.json
+{
+  "frame": {
+    "corners": "cut", "size": 18, "which": ["tr", "bl"],
+    "band": { "edge": "right", "width": 28 },
+    "tint": 0.05,
+    "grid": { "size": 22, "alpha": 0.22 },
+    "tone": "state",
+    "rule": true,
+    "glow": { "radius": 10, "alpha": 0.3 },
+    "caption": { "text": "MB-RX // REV 3 // NODE 3F:A2", "at": "tl" },
+    "tab": { "at": "tl", "width": 56, "height": 6, "out": true }
+  }
+}
+```
+
+The band can't share an edge with the spine, so beside Cyberspec's left spine it goes on the right (the treatments fixture has no
+spine and puts it on the left). It is drawn at most as wide as the card's padding. The glow, the caption and an outside tab are drawn in a layer beside the
+card, the card's own size, so no card moves; the caption is 11 px micro-print above the card and needs a gap of 14 px or more
+above it. `tone: state` turns the lines crimson or yellow while the card shows a critical or warning reading.
+
+**The screen** is the `stage`: `grid` puts the kit's dot grid behind the cards, `chrome` the framed screen with its cut corners,
+the notched tab with its text at the top centre and the corner reticles:
+
+```json pack.json
+{
+  "stage": {
+    "grid": { "size": 22, "alpha": 0.2 },
+    "chrome": { "cut": 48, "alpha": 0.55, "tab": { "width": 260, "height": 28, "text": "CYBERSPEC // DECK 07" }, "reticles": true }
+  }
+}
+```
+
+What these can't do yet: a meter's cells take the height the widget gives its bar (the kit's chunkier cells need the widget's
+room), the overflow check does not see the caption or an outside tab (they are drawn in pseudo-elements beside the card), and the
+glow is a rectangle round a cut corner.

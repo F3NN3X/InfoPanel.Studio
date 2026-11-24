@@ -3,7 +3,8 @@
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { chromeVars, numGlowAttr, scopedCss, zoomFor, type DesignSizeSpec } from "@/components/widget-style";
 import type { PackSlots } from "@/looks/pack";
-import { PackDecor, frameClip } from "@/looks/pack-frame";
+import { PackDecor, PackFrameOut, frameClip } from "@/looks/pack-frame";
+import { framesOutside } from "@/looks/pack-json";
 import { MotionCtx, MotionLayer, motionVars, useMotionCard, useMotionPlan } from "@/looks/motion-render";
 import { materialVars, resolveMaterial } from "@/looks/materials";
 import { chromeOf } from "@/modules/standard-settings";
@@ -15,6 +16,7 @@ import { bodyFlags, forcedTier, resolveAccent, shellPad, skinContext, untitled, 
 import { ensureSkinFonts } from "./fonts";
 import { CardFrame, CardLayer } from "./card-frame";
 import { seriesVars } from "./t3-tokens";
+import { cardTreatments, frameToneVars, slabVars } from "./treatments";
 import { usePageLight } from "./page-mode";
 import { CompactView, StudioView, SkinHeader } from "./views";
 import type { Compact, ShellProps, Studio, Tier } from "./types";
@@ -101,7 +103,15 @@ export const shell = (p: ShellInput): Partial<WidgetProps> => ({
 const typeVars = (scale: number): CSSProperties =>
   ({ "--text-micro": `calc(0.6875rem * ${scale})`, "--text-caption": `calc(0.75rem * ${scale})`, "--text-body": `calc(0.8125rem * ${scale})`, "--text-title": `calc(0.9375rem * ${scale})` }) as CSSProperties;
 
-export function Widget({ title, icon, iconOverride, accent, surface, radius, size, showHeader = true, right, className = "", style, children, bleed, compact, compactView, skin = "default", graph, meter, variant, studio, look, t3, slots, packId, backdrop, design = DESIGN_SIZE, fixedType }: WidgetProps) {
+/**
+ * The card. Mounted anew when its frame starts or stops drawing outside it (the card then moves into a host beside the frame layer), so
+ * everything that measures or watches the card element (its box, its body's size, page light, motion) follows the new one.
+ */
+export function Widget(props: WidgetProps) {
+  return <WidgetCard key={framesOutside(props.slots?.decor?.frame) ? "out" : "in"} {...props} />;
+}
+
+function WidgetCard({ title, icon, iconOverride, accent, surface, radius, size, showHeader = true, right, className = "", style, children, bleed, compact, compactView, skin = "default", graph, meter, variant, studio, look, t3, slots, packId, backdrop, design = DESIGN_SIZE, fixedType }: WidgetProps) {
   const chrome = useMemo(() => (look ? chromeOf(look) : undefined), [look]);
   // A zone past the design size zooms the content with it, and Size % on top; the tier and shape are taken from the zoomed size.
   const [ref, box, zoom] = useBox(forcedTier(look, size), (w, h) => zoomFor({ w, h }, design ?? undefined, chrome));
@@ -155,8 +165,12 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
   const background = chrome?.backgroundOn && chrome.background ? chrome.background : "";
   const mat = resolveMaterial(surf, chrome);
   const surfBox = mat.box;
-  const clip = frameClip(ctx.decor?.frame);
+  const frame = ctx.decor?.frame;
+  const clip = frameClip(frame);
   const big = roomy(box.w, box.h);
+  const text = textVars(surf.tone, chrome);
+  // Only the default accent darkens on a light card: an accent the user or the Look set is theirs (G1).
+  const accentStyle = accentVars(resolveAccent(chrome?.accent || accent, sk, surf.tone), chrome?.accent || accent ? undefined : surf.tone);
   const rootStyle = {
     // The look's Corner radius, else the theme's (Theme › Shape & spacing, `--radius`), like panels.
     borderRadius: chrome?.radius ?? radius ?? "var(--radius, 1rem)",
@@ -165,28 +179,26 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
     // a pack frame that cuts or notches its corners clips the card's paint, over the material's own
     ...(clip ? { clipPath: clip } : null),
     ...(pad.pad !== undefined ? { "--wp-pad": `${pad.pad * zoom}px`, ...(zoom !== 1 ? { "--wp-zoom": zoom } : null) } : null),
-    ...textVars(surf.tone, chrome),
+    ...text,
     ...chromeVars(chrome),
-    // Only the default accent darkens on a light card: an accent the user or the Look set is theirs (G1).
-    ...accentVars(resolveAccent(chrome?.accent || accent, sk, surf.tone), chrome?.accent || accent ? undefined : surf.tone),
+    ...accentStyle,
     color: "var(--w-fg)",
     ...(ctx.focusOutline ? { "--w-focus-outline": ctx.focusOutline } : null),
     // the Look's label colour (T3 `label-color`) over the tone's faint grey
     ...(ctx.labelColor ? { "--w-faint": ctx.labelColor } : null),
     // the Look's series colours, resolved here on the card (`seriesColour`)
     ...seriesVars(ctx.series),
+    // the Look's tone slabs (`slab-*`): their colours resolved on the card, where its accent and status colours are
+    ...slabVars(ctx.slab),
+    ...frameToneVars(frame?.tone === "state"),
     ...(ctx.labelGlow ? { textShadow: "0 0 6px color-mix(in oklab, var(--w-accent) 55%, transparent)" } : null),
     // A roomy box (4x4) grows the body type: the theme's type tokens, so every text-micro / caption / body / title follows; and sets the hero size `Metric` reads.
     ...(big ? { ...(fixedType ? null : typeVars(ROOMY_SCALE)), "--w-hero": `${heroPx(box.w, box.h)}px` } : null),
     ...motionVars(motion),
     ...style,
   } as CSSProperties;
-  return (
-    <SkinCtx.Provider value={skinCtx}>
-      <MotionCtx.Provider value={motion}>
-      <RoomyCtx.Provider value={big}>
-      <PaneCtx.Provider value={{ className: mat.className, style: surfBox }}>
-      <div ref={ref} style={rootStyle} data-part="card" data-look={packId} data-mat={mat.id} data-tone={mat.tone} data-mode={mat.tone === "light" ? "light" : undefined} data-mat-blur={mat.fallback ? "" : undefined} data-focus-outline={ctx.focusOutline ? "" : undefined} data-wp-scope={css ? scope : undefined} {...numGlowAttr(chrome)} data-wp-tier={box.size} data-wp-roomy={big ? "" : undefined} data-wp-shape={box.shape} data-wp-view={isStudio ? "studio" : useCompact ? "compact" : "body"} className={`relative flex h-full w-full min-w-0 flex-col overflow-hidden antialiased ${mat.className} ${className}`}>
+  const card = (
+      <div ref={ref} style={rootStyle} data-part="card" data-look={packId} data-mat={mat.id} data-tone={mat.tone} data-mode={mat.tone === "light" ? "light" : undefined} data-mat-blur={mat.fallback ? "" : undefined} data-focus-outline={ctx.focusOutline ? "" : undefined} data-wp-scope={css ? scope : undefined} {...numGlowAttr(chrome)} {...cardTreatments(ctx)} data-frame-tone={frame?.tone} data-frame-rule={frame?.rule ? "" : undefined} data-wp-tier={box.size} data-wp-roomy={big ? "" : undefined} data-wp-shape={box.shape} data-wp-view={isStudio ? "studio" : useCompact ? "compact" : "body"} className={`relative flex h-full w-full min-w-0 flex-col overflow-hidden antialiased ${mat.className} ${className}`}>
         {css && <style>{css}</style>}
         {background && (
           <>
@@ -220,6 +232,21 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
           </div>
         </div>
       </div>
+  );
+  return (
+    <SkinCtx.Provider value={skinCtx}>
+      <MotionCtx.Provider value={motion}>
+      <RoomyCtx.Provider value={big}>
+      <PaneCtx.Provider value={{ className: mat.className, style: surfBox }}>
+      {framesOutside(frame) && frame ? (
+        // a frame that draws outside the card sits in a host the card's own size, beside it: the card and its body keep their rects
+        <div data-pack-frame-host="" data-frame-tone={frame.tone} className="relative h-full w-full min-w-0">
+          <PackFrameOut frame={frame} style={{ "--w-muted": (text as Record<string, string>)["--w-muted"], ...accentStyle, ...frameToneVars(frame.tone === "state") } as CSSProperties} />
+          {card}
+        </div>
+      ) : (
+        card
+      )}
       </PaneCtx.Provider>
       </RoomyCtx.Provider>
       </MotionCtx.Provider>

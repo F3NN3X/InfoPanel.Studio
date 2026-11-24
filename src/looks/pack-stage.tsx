@@ -11,6 +11,7 @@ import ConnectorLayer, { hubLinks } from "./connector-layer";
 import { FX_KINDS } from "./pack-json";
 import { planEffects, showsAt, sizeClassOf, type PlannedEffect } from "./effects";
 import type { StageLayer, StageViewProps } from "./pack";
+import { gridPaint, StageChromeLayer } from "./stage-chrome";
 import { useIdle } from "./use-idle";
 
 const GRAIN =
@@ -94,6 +95,12 @@ export default function PackStageLayers({ stage, packId, base = "", className = 
         />
         );
       })}
+      {stage.grid && showsAt(stage.grid.minSizeClass, sizeClass) && (
+        <div aria-hidden data-look={packId} data-pack-deco={deco} data-pack-layer="grid" data-idle={deco === "dim" && idle ? "" : undefined} className={`pointer-events-none ${className}`} style={{ ...tint, ...gridPaint(stage.grid), ...place, ...(deco === "dim" ? { opacity: dim } : null) }} />
+      )}
+      {stage.chrome && showsAt(stage.chrome.minSizeClass, sizeClass) && (
+        <StageChromeLayer chrome={stage.chrome} page={page} data-look={packId} data-pack-deco={deco} data-idle={deco === "dim" && idle ? "" : undefined} className={className} style={{ ...tint, ...place, ...(deco === "dim" ? { opacity: dim } : null) }} />
+      )}
       {Overlay && (
         <div aria-hidden data-look={packId} data-pack-deco={deco} data-pack-layer="overlay" data-idle={deco === "dim" && idle ? "" : undefined} className={`pointer-events-none ${overlayClassName}`} style={{ ...place, ...(deco === "dim" ? { opacity: dim } : null) }}>
           <Overlay />

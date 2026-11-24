@@ -10,6 +10,7 @@ import { useSkin, TONES, numGlowStyle } from "./theme";
 import { Icon, Bar, Ring, Spark, Img, Unit, RING_TEXT, isWordUnit } from "./primitives";
 import { motionOf, scaleX, scaleY, slideY } from "./motion";
 import type { Compact, Shape, Studio } from "./types";
+import { Readout, slabAttrs, stateAttr } from "./treatments";
 
 const NUM_TINT: CSSProperties = { color: "color-mix(in oklab, var(--w-accent) 55%, var(--w-fg))" };
 /** A reading that has no value yet ("–" from `fmt`, or nothing): drawn quiet, not as a bright full-weight dash. */
@@ -33,11 +34,13 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
   const word = isWordUnit(c.unit);
   const inlineUnit = word ? undefined : c.unit;
   const textLen = String(val ?? "–").length + (inlineUnit ? String(inlineUnit).length * 0.4 : 0);
+  // a Look's readout scale (`readout-*`) draws the value larger than it is fitted here, then fits it to the card itself
+  const readout = none ? undefined : sk.readout;
   const fit = (base: number, avail: number) => ({ fontSize: Math.round(Math.max(13, Math.min(base, avail / (Math.max(2.5, textLen) * 0.62 * (sk.numWide ?? 1))))) });
   const value = (cls: string, base?: number, avail = 0) => (
-    <span data-part="num" {...c.ip} className={`${cls} ${c.blur ? "blur-xs hover:blur-0" : ""} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow || sk.numFill || sk.numChroma ? { ...(sk.numChroma && !sk.numGlow && !sk.numFill ? null : NUM_TINT), ...numGlowStyle(sk) } : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null), ...(none ? NO_VALUE : null) }}>
-      <MotionText part="num">{val ?? "–"}</MotionText>
-      {inlineUnit && !none && <Unit>{inlineUnit}</Unit>}
+    <span data-part="num" {...c.ip} {...stateAttr(sk, c.t)} className={`${cls} ${c.blur ? "blur-xs hover:blur-0" : ""} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow || sk.numFill || sk.numChroma ? { ...(sk.numChroma && !sk.numGlow && !sk.numFill ? null : NUM_TINT), ...numGlowStyle(sk) } : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null), ...(none ? NO_VALUE : null) }}>
+      {readout ? <Readout spec={readout} value={val ?? "–"} unit={inlineUnit && <Unit>{inlineUnit}</Unit>} /> : <MotionText part="num">{val ?? "–"}</MotionText>}
+      {!readout && inlineUnit && !none && <Unit>{inlineUnit}</Unit>}
     </span>
   );
   const caption = word && !none && <span className="truncate text-micro text-[color:var(--w-muted)]">{c.unit}</span>;
@@ -356,6 +359,8 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
   const sk = useSkin();
   // The title decodes when it arrives on a pack with motion (`MotionText`; the plain text otherwise); its length and fit read the text itself.
   const title = <MotionText part="label">{text}</MotionText>;
+  // a Look's header slab (`slab-header`): a tone, or the card's state
+  const slab = slabAttrs(sk, "header");
   const tuiRight = useTuiRightFits(kind === "tui" && !!right);
   // The look's gap replaces the space under the header (capped: a wide gap is for the items, and the body's
   // own rows are counted without it); its label case applies to every header.
@@ -364,7 +369,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
   if (kind === "tui")
     return (
       <>
-        <div ref={tuiRight.leftRef} data-part="header" className="absolute left-3 top-1.25 z-10 flex max-w-[70%] -translate-y-1/2 items-center px-1 text-[11px] leading-none" style={{ background: bg }}>
+        <div ref={tuiRight.leftRef} data-part="header" {...slab} className="absolute left-3 top-1.25 z-10 flex max-w-[70%] -translate-y-1/2 items-center px-1 text-[11px] leading-none" style={{ background: bg }}>
           <span style={{ color: mix(55, "#52525b") }}>┐</span>
           <span className="truncate px-0.5 font-semibold lowercase text-[color:var(--w-accent)]" style={{ textTransform: "var(--wp-label-case, lowercase)" as CSSProperties["textTransform"] }}>{title}</span>
           <span style={{ color: mix(55, "#52525b") }}>┌</span>
@@ -375,7 +380,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
   const base = "relative z-10 flex min-w-0 items-center";
   if (kind === "macos")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-1.5 text-[13px] font-semibold text-[color:var(--w-accent)]`} style={st("none")}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-1.5 text-[13px] font-semibold text-[color:var(--w-accent)]`} style={st("none")}>
         {icon && <Icon name={icon} fill className="text-head" />}
         <span className="truncate">{title}</span>
         {r && <span className="ml-auto text-[12px] font-normal text-[color:var(--w-muted)]">{right}</span>}
@@ -383,7 +388,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
     );
   if (kind === "fluent")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-2 text-[12px] font-medium text-[color:var(--w-fg)]`} style={st("none")}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-2 text-[12px] font-medium text-[color:var(--w-fg)]`} style={st("none")}>
         {icon && <Icon name={icon} className="text-head text-[color:var(--w-accent)]" />}
         <span className="truncate">{title}</span>
         {r}
@@ -391,7 +396,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
     );
   if (kind === "hud")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-2 text-micro uppercase tracking-[0.28em] text-[color:var(--w-accent)]`} style={st("uppercase")}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-2 text-micro uppercase tracking-[0.28em] text-[color:var(--w-accent)]`} style={st("uppercase")}>
         <span className="truncate">{title}</span>
         <span className="h-px min-w-3 flex-1" style={{ background: mix(35) }} />
         {right && <span className="shrink-0 tracking-[0.1em] text-[color:var(--w-muted)]">{right}</span>}
@@ -399,14 +404,14 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
     );
   if (kind === "ink")
     return (
-      <header data-part="header" className={`${base} mb-3 gap-2 text-micro uppercase tracking-[0.22em] text-[color:var(--w-faint)]`} style={st("uppercase")}>
+      <header data-part="header" {...slab} className={`${base} mb-3 gap-2 text-micro uppercase tracking-[0.22em] text-[color:var(--w-faint)]`} style={st("uppercase")}>
         <span className="truncate">{title}</span>
         {r}
       </header>
     );
   if (kind === "ios")
     return (
-      <header data-part="header" className={`${base} mb-1.5 gap-1.5 text-small font-semibold text-[color:var(--w-accent)]`} style={st("none")}>
+      <header data-part="header" {...slab} className={`${base} mb-1.5 gap-1.5 text-small font-semibold text-[color:var(--w-accent)]`} style={st("none")}>
         {icon && <Icon name={icon} fill className="text-[15px]" />}
         <span className="truncate">{title}</span>
         {r && <span className="ml-auto text-[12px] font-medium text-[color:var(--w-faint)]">{right}</span>}
@@ -414,7 +419,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
     );
   if (kind === "android")
     return (
-      <header data-part="header" className={`${base} mb-2.5 gap-2 text-[13px] font-medium`} style={{ color: mix(55, "var(--w-fg)"), ...st("none") }}>
+      <header data-part="header" {...slab} className={`${base} mb-2.5 gap-2 text-[13px] font-medium`} style={{ color: mix(55, "var(--w-fg)"), ...st("none") }}>
         {icon && (
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: mix(28, "#1b1b1f") }}>
             <Icon name={icon} fill className="text-head" />
@@ -426,7 +431,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
     );
   if (kind === "prompt")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-1.5 font-mono text-micro text-[color:var(--w-accent)]`} style={st("none")}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-1.5 font-mono text-micro text-[color:var(--w-accent)]`} style={st("none")}>
         <span aria-hidden>&gt;</span>
         <span className="truncate">{title}</span>
         {r}
@@ -436,8 +441,8 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
   // `label-bar` is the same bar in the accent with its right end cut at an angle (P11: Overdrive).
   if (kind === "tab-label" || kind === "label-bar")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em]`} style={st("uppercase")}>
-        <span data-part="tab" className={`-my-0.5 flex min-w-0 items-center gap-1.5 rounded-2 px-2 py-0.5${kind === "label-bar" ? " pr-3" : ""}`} style={{ background: sk.headerFill ?? (kind === "label-bar" ? "var(--w-accent)" : "var(--w-fg)"), color: bg, ...(kind === "label-bar" ? { clipPath: "polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%)" } : null) }}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em]`} style={st("uppercase")}>
+        <span data-part="tab" {...slabAttrs(sk, "tab")} className={`-my-0.5 flex min-w-0 items-center gap-1.5 rounded-2 px-2 py-0.5${kind === "label-bar" ? " pr-3" : ""}`} style={{ background: sk.headerFill ?? (kind === "label-bar" ? "var(--w-accent)" : "var(--w-fg)"), color: bg, ...(kind === "label-bar" ? { clipPath: "polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%)" } : null) }}>
           {icon && <Icon name={icon} className="text-[13px]" />}
           <span className="truncate">{title}</span>
         </span>
@@ -447,7 +452,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
   // The title in the card's top border, like a fieldset legend (a Look's `box-legend`; the tui header's padding and patches are not used). The header stays in flow at its normal height and the legend is lifted by the card's padding (`--wp-pad`, screen px) onto the frame's line 6 px in, so the body does not move; the header sits in the zoomed content, so the lift is divided by the zoom (`--wp-zoom`).
   if (kind === "box-legend")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em]`} style={st("uppercase")}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em]`} style={st("uppercase")}>
         {/* the header keeps the line it has without a legend: an unseen copy of the title holds its height */}
         <span aria-hidden className="invisible truncate">{text}</span>
         <span data-part="legend" className="absolute left-2 max-w-[70%] -translate-y-1/2 truncate px-1.5 leading-none text-[color:var(--w-accent)]" style={{ top: "calc((6px - var(--wp-pad, 12px)) / var(--wp-zoom, 1))", background: bg }}>{title}</span>
@@ -457,7 +462,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
   // The title between square brackets and a line to the right edge (a Look's `bracket-line`); the line is the header's own height, so the body does not move.
   if (kind === "bracket-line")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[color:var(--w-muted)]`} style={st("uppercase")}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[color:var(--w-muted)]`} style={st("uppercase")}>
         <span aria-hidden>[</span>
         <span className="truncate">{title}</span>
         <span aria-hidden>]</span>
@@ -468,7 +473,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
   // An index number (a CSS counter over the page's headers, index.css) before the title and a hairline under the row (a Look's `index`).
   if (kind === "index")
     return (
-      <header data-part="header" data-hdr="index" className={`${base} mb-2 gap-2 text-[11px] font-medium tracking-[0.02em] text-[color:var(--w-muted)]`} style={st("none")}>
+      <header data-part="header" {...slab} data-hdr="index" className={`${base} mb-2 gap-2 text-[11px] font-medium tracking-[0.02em] text-[color:var(--w-muted)]`} style={st("none")}>
         <span className="truncate">{title}</span>
         {r}
         <i aria-hidden className="pointer-events-none absolute inset-x-0 -bottom-1 h-px" style={{ background: mix(25) }} />
@@ -476,7 +481,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
     );
   if (kind === "icon-badge")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-2 text-[13px] font-medium text-[color:var(--w-fg)]`} style={st("none")}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-2 text-[13px] font-medium text-[color:var(--w-fg)]`} style={st("none")}>
         {icon && (
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: mix(22), color: "var(--w-accent)" }}>
             <Icon name={icon} className="text-lead" />
@@ -488,21 +493,21 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
     );
   if (kind === "synth")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-2 text-[11px] font-bold uppercase italic tracking-[0.18em]`} style={st("uppercase")}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-2 text-[11px] font-bold uppercase italic tracking-[0.18em]`} style={st("uppercase")}>
         <span className="truncate bg-clip-text text-transparent" style={{ backgroundImage: sk.headerFill }}>{title}</span>
         {r}
       </header>
     );
   if (kind === "brutal")
     return (
-      <header data-part="header" className={`${base} -mx-0.5 -mt-0.5 mb-3 gap-2`} style={st("uppercase")}>
+      <header data-part="header" {...slab} className={`${base} -mx-0.5 -mt-0.5 mb-3 gap-2`} style={st("uppercase")}>
         <span className="truncate bg-[var(--w-accent)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-black">{title}</span>
         {r}
       </header>
     );
   if (kind === "cyber")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--w-accent)]`} style={st("uppercase")}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--w-accent)]`} style={st("uppercase")}>
         <span className="h-3 w-1 shrink-0 bg-[var(--w-accent)]" />
         <span className="truncate">{title}</span>
         <span className="text-micro font-normal text-[color:var(--w-faint)]">{"//"}{String(text).length.toString(16).padStart(2, "0")}</span>
@@ -511,21 +516,21 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
     );
   if (kind === "nixie")
     return (
-      <header data-part="header" className={`${base} mb-2 gap-2 text-micro uppercase tracking-[0.3em]`} style={{ color: sk.headerInk, ...st("uppercase") }}>
+      <header data-part="header" {...slab} className={`${base} mb-2 gap-2 text-micro uppercase tracking-[0.3em]`} style={{ color: sk.headerInk, ...st("uppercase") }}>
         <span className="truncate">{title}</span>
         {r}
       </header>
     );
   if (kind === "instrument")
     return (
-      <header data-part="header" className={`${base} mb-3 items-baseline gap-2.5`} style={st("none")}>
+      <header data-part="header" {...slab} className={`${base} mb-3 items-baseline gap-2.5`} style={st("none")}>
         <span className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-tight text-[color:var(--w-fg)]">{title}</span>
         {r}
       </header>
     );
   if (kind === "retro")
     return (
-      <header data-part="header" className={`${base} mb-1.5 gap-1 text-[17px] uppercase leading-none text-[color:var(--w-accent)]`} style={st("uppercase")}>
+      <header data-part="header" {...slab} className={`${base} mb-1.5 gap-1 text-[17px] uppercase leading-none text-[color:var(--w-accent)]`} style={st("uppercase")}>
         <span className="truncate">&gt; {title}</span>
         <span className="wp-blink">_</span>
         {r}
@@ -534,7 +539,7 @@ export function SkinHeader({ kind, title: text, icon, right, bleed, bg = "#0b0b0
   // the card's padding and the icon with its gap (24 and 21px) come off the room; the icon goes first
   const { tight: narrow, bare } = captionFit(text, w ?? 0, (w ?? 0) - 24 - 21);
   return (
-    <header data-part="header" className={`${base} mb-2 gap-1.5 text-[11px] font-medium uppercase ${narrow ? "tracking-[0.04em]" : "tracking-[0.08em]"} text-[color:var(--w-muted)] ${bleed ? "px-4 pt-3" : ""}`} style={st("uppercase")}>
+    <header data-part="header" {...slab} className={`${base} mb-2 gap-1.5 text-[11px] font-medium uppercase ${narrow ? "tracking-[0.04em]" : "tracking-[0.08em]"} text-[color:var(--w-muted)] ${bleed ? "px-4 pt-3" : ""}`} style={st("uppercase")}>
       {icon && !bare && <Icon name={icon} className="text-[15px] text-[color:var(--w-accent)]" />}
       <span className="truncate">{title}</span>
       {r}

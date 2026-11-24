@@ -1,4 +1,4 @@
-import { Empty, fillRows, fitRows, roomy, Widget, shell, get, has, useIpTag, seriesColour, type ShellProps } from "../kit";
+import { Empty, fillRows, fitRows, roomy, Widget, shell, get, has, useIpTag, seriesColour, Part, type ShellProps } from "../kit";
 import { t3Tokens } from "../core/t3-tokens";
 import { meta } from "./meta";
 import { FRIEND_COLORS, friendsOf, friendStatus, type Friend, type FriendSort, type FriendStatus } from "../shared/friends-data";
@@ -70,14 +70,16 @@ export default function SteamFriends(p: SteamFriendsProps) {
             ) : (
               <ul className={`flex min-h-0 flex-col overflow-hidden ${twoLine ? "gap-2.5" : "gap-1.5"}`}>
                 {shown.map((f, i) => (
-                  <li key={i} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]">
+                  <Part as="li" kind="row" current={!!f.game} key={i} className="flex min-w-0 items-center gap-2 text-caption leading-[1.333]">
                     {twoLine ? (
-                      <span
+                      <Part
+                        as="span"
+                        kind="avatar"
                         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-micro font-semibold"
                         style={{ background: `color-mix(in srgb, ${colorOf(f)} 22%, transparent)`, color: colorOf(f) }}
                       >
                         {f.name[0]}
-                      </span>
+                      </Part>
                     ) : (
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: colorOf(f) }} />
                     )}
@@ -89,7 +91,7 @@ export default function SteamFriends(p: SteamFriendsProps) {
                       </span>
                     </div>
                     {showTime && w >= 160 && <span className="ml-auto shrink-0 text-micro text-[color:var(--w-faint)]">{f.when}</span>}
-                  </li>
+                  </Part>
                 ))}
               </ul>
             )}
@@ -112,10 +114,10 @@ function FriendTable({ friends, colorOf, showTime, w, rowH, ip }: { friends: Fri
   return (
     <div {...ip} className="grid min-h-0 content-start items-center gap-x-3 overflow-hidden text-caption leading-[1.333]" style={{ gridTemplateColumns: cols, gridAutoRows: `${rowH}px` }}>
       <span />
-      <span className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(0)}>Friend</span>
-      {status && <span className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(1)}>Status</span>}
-      {game && <span className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(2)}>Playing</span>}
-      {time && <span className={`${cell} text-right text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(3)}>Last online</span>}
+      <Part as="span" kind="row-head" className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(0)}>Friend</Part>
+      {status && <Part as="span" kind="row-head" className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(1)}>Status</Part>}
+      {game && <Part as="span" kind="row-head" className={`${cell} text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(2)}>Playing</Part>}
+      {time && <Part as="span" kind="row-head" className={`${cell} text-right text-micro font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(3)}>Last online</Part>}
       {friends.map((f, i) => (
         <FriendRow key={i} f={f} color={colorOf(f)} status={status} game={game} time={time} cell={cell} />
       ))}
