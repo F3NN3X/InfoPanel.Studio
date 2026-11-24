@@ -37,7 +37,12 @@ for (let i = 0; i < argv.length; i++) {
 const spans = args.spans ?? "1x1,2x2,4x2,4x4";
 
 /** Runs in the page: one record per widget frame, keyed `<module>@<span>`. */
-function collect() {
+async function collect() {
+  // A pack's motion is on the clock of the page: its boot staggers the cards in for over a second, and a glitch, a scramble, a
+  // flicker, a sweep, a tear or a list row's slide runs now and then. A frame read mid-run carries the run (its attribute, its
+  // timing, its shift), so the read waits for a frame where none is going (motion-runtime.ts, motion-list.ts), 10 s at most.
+  const RUNNING = "[data-mo-boot], [data-mo-boot-line], [data-mo-glitch], [data-mo-on], [data-mo-mark], [data-mo-flicker], [data-mo-sweep], [data-mo-torn], [data-mo-row-in], [data-mo-row-move], [data-mo-row-hi]";
+  for (const until = performance.now() + 10_000; document.querySelector(RUNNING) && performance.now() < until; ) await new Promise((r) => requestAnimationFrame(r));
   /**
    * A frame's markup as `<fnv1a hash>:<length>`, with the generated React ids (`:r1:`, `_r_1_`) written alike. Two things move on the clock of
    * the page and are written alike on their own element only: the Ken Burns drift (its `transform`) and a pulsing dot's ring
