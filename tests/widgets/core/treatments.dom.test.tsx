@@ -210,7 +210,7 @@ describe("rulers, share bars, hex avatars and the current row's tone", () => {
     const now = renderToString(<ShareBar parts={[{ pct: 30, color: "red" }, { pct: 20, color: "blue" }]} />);
     expect(now).toContain(old.slice(old.indexOf("<div class=\"absolute")));
     expect(now.startsWith(old.slice(0, old.indexOf("<div class=\"absolute")))).toBe(true);
-    expect(renderToString(<ShareBar height="h-1.5" bleed parts={[]} />)).toBe('<div class="relative h-1.5 overflow-hidden rounded-full bg-[color:var(--w-track)]" data-qa-bleed=""></div>');
+    expect(renderToString(<ShareBar height="h-1.5" bleed parts={[]} />)).toBe('<div class="relative h-1.5 overflow-hidden rounded-full bg-[color:var(--w-track)]" data-qa-bleed="true"></div>');
   });
 
   it("a gapped share bar: square parts in their shares, the rest of the track dim, never past the whole", () => {

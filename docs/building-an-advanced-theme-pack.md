@@ -535,7 +535,7 @@ grid with left ticks, its end square and the bar chart's stripes. `row-style: ru
 {
   "frame": {
     "corners": "cut", "size": 18, "which": ["tr", "bl"],
-    "band": { "edge": "left", "width": 28 },
+    "band": { "edge": "right", "width": 28 },
     "tint": 0.05,
     "grid": { "size": 22, "alpha": 0.22 },
     "tone": "state",
@@ -547,7 +547,8 @@ grid with left ticks, its end square and the bar chart's stripes. `row-style: ru
 }
 ```
 
-The band is drawn at most as wide as the card's padding. The glow, the caption and an outside tab are drawn in a layer beside the
+The band can't share an edge with the spine, so beside Cyberspec's left spine it goes on the right (the treatments fixture has no
+spine and puts it on the left). It is drawn at most as wide as the card's padding. The glow, the caption and an outside tab are drawn in a layer beside the
 card, the card's own size, so no card moves; the caption is 11 px micro-print above the card and needs a gap of 14 px or more
 above it. `tone: state` turns the lines crimson or yellow while the card shows a critical or warning reading.
 

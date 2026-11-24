@@ -343,7 +343,7 @@ export interface SharePart {
  */
 export function ShareBar({ parts, height = "h-2.5", bleed }: { parts: SharePart[]; height?: string; bleed?: boolean }) {
   const sk = useSkin();
-  const qa = bleed ? { "data-qa-bleed": "" } : null;
+  const qa = bleed ? { "data-qa-bleed": true } : null;
   if (sk.share === "gapped") {
     let left = 100;
     const shares = parts.map((p) => {
