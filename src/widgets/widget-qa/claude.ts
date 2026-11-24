@@ -205,7 +205,7 @@ export function frameMarkdown(f: QaFrame | ReportFrame, ctx: ReportContext): str
 /** The report's Copy for Claude text: a summary, then a block per listed frame, then the notes when asked for. */
 export function reportMarkdown(r: QaReport, ctx: ReportContext, scope = "the page"): string {
   const s = r.summary;
-  const counts = [`${s.widgets} ${s.widgets === 1 ? "widget" : "widgets"}`, `${s.frames} frames${s.checked < s.frames ? ` (${s.checked} checked)` : ""}`, `${s.withIssues} with issues`, ...(ctx.flagsChecked ? [`${s.withFlags} with theme flags`] : []), `${s.withNotes} with notes`];
+  const counts = [`${s.widgets} ${s.widgets === 1 ? "widget" : "widgets"}`, `${s.frames} ${s.frames === 1 ? "frame" : "frames"}${s.checked < s.frames ? ` (${s.checked} checked)` : ""}`, `${s.withIssues} with issues`, ...(ctx.flagsChecked ? [`${s.withFlags} with theme flags`] : []), `${s.withNotes} with notes`];
   const head = [`Widget QA · ${scope} · ${counts.join(" · ")} (${r.look})`, `Link: ${r.link}`, ...(ctx.flagsChecked ? [] : ["Theme flags: not checked (no Look worn)"]), `Reproduce: ${reproduce(ctx.state)}`];
   const rest = s.clean - r.frames.filter((f) => !f.unchecked && !wrong(f)).length;
   const tail = [...(rest > 0 ? [`${rest} clean ${rest === 1 ? "frame" : "frames"} not listed.`] : []), ...(s.checked < s.frames ? [`${s.frames - s.checked} ${s.frames - s.checked === 1 ? "frame" : "frames"} not checked (not mounted).`] : [])];

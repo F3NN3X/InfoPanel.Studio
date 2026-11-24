@@ -108,6 +108,6 @@ if (md !== undefined) {
 
 const failing = failOn.filter((k) => report.summary[FAIL_ON[k]] > 0);
 if (failing.length) {
-  console.error(`report: ${failing.map((k) => `${report.summary[FAIL_ON[k]]} frames with ${k}`).join(", ")} (--fail-on ${failOn.join(",")})`);
+  console.error(`report: ${failing.map((k) => `${report.summary[FAIL_ON[k]]} ${report.summary[FAIL_ON[k]] === 1 ? "frame" : "frames"} with ${k}`).join(", ")} (--fail-on ${failOn.join(",")})`);
   process.exit(1);
 }
