@@ -9,7 +9,7 @@ import { NOTES } from "./notes";
 import { GALLERY_IDS } from "./options";
 import type { QaState } from "./params";
 import type { Section } from "./plan";
-import { useWidgetTally } from "./tally";
+import { useWidgetTallyAs, widgetTally } from "./tally";
 
 /** Each status as its dot draws it and as a screen reader hears it. */
 const STATUS: Record<RowStatus, { dot: string; text: string }> = {
@@ -69,7 +69,6 @@ interface WidgetListProps {
  * the frames never do; every row keeps its elements as its status changes, so the page's settle wait is not reset by the list.
  */
 export function WidgetList({ state, sections, merged, surfacesShown, flagsChecked, bar, onChange }: WidgetListProps) {
-  const found = useWidgetTally();
   const [current, setCurrent] = useState(() => linkedWidget(window.location.hash, state.module));
   const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
   const [top, setTop] = useState(0);
@@ -87,6 +86,10 @@ export function WidgetList({ state, sections, merged, surfacesShown, flagsChecke
   }, [bar]);
 
   const filters = { issues: state.issues, flagged: state.flagged, flagsChecked };
+  // Re-rendered when a row's dot or its hiding changes, not on every frame's report (a list render per report slowed Check all).
+  const everyId = sections.flatMap((s) => s.mods.map((m) => m.id));
+  useWidgetTallyAs((t) => everyId.map((id) => `${rowStatus(t.get(id))}${rowHidden(t.get(id), filters) ? "-" : ""}`).join());
+  const found = widgetTally();
   // a row the page hides (Issues, Theme flags) stays in the DOM, hidden, so a report flips an attribute and adds no element
   const groups = listGroups(sections, merged).map((g) => {
     const rows = g.rows.map((r) => ({ ...r, hidden: rowHidden(found.get(r.id), filters) }));

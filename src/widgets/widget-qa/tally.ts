@@ -79,10 +79,12 @@ export function widgetTally(): Map<string, WidgetFound> {
   return out;
 }
 
-/** The per-widget totals, re-read whenever a frame reports: only the widget list reads them, never a frame. */
-export function useWidgetTally(): Map<string, WidgetFound> {
-  useSyncExternalStore(watch, () => version);
-  return widgetTally();
+/**
+ * What `select` makes of the per-widget totals, re-read whenever a frame reports: only the widget list reads them, never a frame.
+ * `select` returns a primitive (a key of every row's dot), so the caller re-renders when a dot changes, not on every report.
+ */
+export function useWidgetTallyAs<T extends string | number | boolean>(select: (t: Map<string, WidgetFound>) => T): T {
+  return useSyncExternalStore(watch, () => select(widgetTally()));
 }
 
 /**
