@@ -61,6 +61,47 @@ export function useTally(): Tally {
   return tally();
 }
 
+/** What one widget's checked frames found: frames read, and the issues and theme flags in them. */
+export interface WidgetFound {
+  checked: number;
+  issues: number;
+  flags: number;
+}
+
+/** The totals per widget id (a frame id is `<widget>--<key>`), for the widget list's status dots and its filters. */
+export function widgetTally(): Map<string, WidgetFound> {
+  const out = new Map<string, WidgetFound>();
+  for (const [id, f] of found) {
+    const w = id.slice(0, id.indexOf("--"));
+    const t = out.get(w) ?? { checked: 0, issues: 0, flags: 0 };
+    out.set(w, { checked: t.checked + 1, issues: t.issues + f.issues, flags: t.flags + f.flags });
+  }
+  return out;
+}
+
+/**
+ * What `select` makes of the per-widget totals, re-read whenever a frame reports: only the widget list reads them, never a frame.
+ * `select` returns a primitive (a key of every row's dot), so the caller re-renders when a dot changes, not on every report.
+ */
+export function useWidgetTallyAs<T extends string | number | boolean>(select: (t: Map<string, WidgetFound>) => T): T {
+  return useSyncExternalStore(watch, () => select(widgetTally()));
+}
+
+/**
+ * Whether a filter on issues or theme flags hides this widget: it was read (a frame not read yet is not known, so not clean) and
+ * every read frame came back without one, as the "flagged only" filter decides.
+ */
+export const filteredOut = (w: WidgetFound | undefined, by: "issues" | "flags"): boolean => !!w && w.checked > 0 && w[by] === 0;
+
+/**
+ * Whether the Issues filter hides one widget, re-read as frames report. The snapshot is the answer itself, so its caller re-renders
+ * only when it flips; off, it never subscribes.
+ */
+export function useHiddenByIssues(id: string, on: boolean): boolean {
+  return useSyncExternalStore(on ? watch : noWatch, () => on && filteredOut(widgetTally().get(id), "issues"));
+}
+const noWatch = () => () => {};
+
 /** One widget's totals: the frames whose id starts with `<module>--` (`frameId`). */
 export function sectionTally(module: string): Tally {
   const t: Tally = { checked: 0, issues: 0, flags: 0, withIssues: 0, withFlags: 0 };

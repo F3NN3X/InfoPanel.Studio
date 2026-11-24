@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { modules } from "@/modules";
 import { INSERT_CATEGORIES } from "@/components/studio/insert-panel";
@@ -6,15 +6,17 @@ import { THEME_PRESETS, themeVars } from "@/lib/theme";
 import { CLASSIC_LOOK, DEFAULT_SKIN_LOOK } from "@/looks/ids";
 import { registerSampleCards } from "@/looks/sample-materials";
 import { TEMPLATE_MODULES } from "@/widgets/registry";
+import { WIDGET_MERGES } from "@/lib/settings-migrate.v19";
 import { Gallery, galleriesFor } from "./Gallery";
 import { QaHelp } from "./Help";
 import { TopBar, type BarPanel } from "./TopBar";
 import { ChangesRow } from "./ChangesRow";
-import { WidgetNav } from "./WidgetNav";
+import { WidgetList } from "./WidgetList";
+import { Inspector } from "./inspector";
+import { useHiddenByIssues } from "./tally";
 import { activeChanges } from "./changes";
 import { copyText } from "./clipboard";
 import { WidgetSection, type SectionChrome } from "./Section";
-import { Inspector } from "./inspector";
 import { forceMountAll, mountAllSettled } from "./Frame";
 import { overflowReport, type Issue } from "./probe";
 import { NOTES } from "./notes";
@@ -44,6 +46,11 @@ registerSampleCards();
 
 /** The merged-away widgets, drawn as their placements migrate (`mergedModules`). */
 const MERGED = mergedModules(TEMPLATE_MODULES);
+/** Each merged-away widget's id, to the title of the widget it merged into (the widget list marks them). */
+const MERGED_INTO: ReadonlyMap<string, string> = new Map(WIDGET_MERGES.map((m) => [m.from, TEMPLATE_MODULES.find((t) => t.id === m.to)?.title ?? m.to]));
+
+/** Drawn after the widget sections while staying before them in the DOM (an inline style: the page adds no class to the app's CSS). */
+const AFTER_WIDGETS: CSSProperties = { order: 1 };
 
 const CATEGORY_ORDER = INSERT_CATEGORIES.filter((c) => !["All", "Layouts", "My panels"].includes(c));
 
@@ -73,6 +80,15 @@ async function importPack(files: FileList): Promise<{ id?: string; error?: strin
   }
 }
 
+/**
+ * One widget's section under the Issues filter (`issues=1`): hidden once its checked frames all came back clean. It re-renders on
+ * its own as the tally flips, and its child is the same element, so the widget's frames never re-render for it (a re-render re-arms
+ * each frame's settle and probe).
+ */
+function IssuesGate({ id, on, children }: { id: string; on: boolean; children: ReactNode }) {
+  return <div hidden={useHiddenByIssues(id, on)}>{children}</div>;
+}
+
 function WidgetQa() {
   const [state, setState] = useState(() => parseParams(window.location.search));
   const [imported, setImported] = useState("");
@@ -98,6 +114,7 @@ function WidgetQa() {
   // the widget frames drawn: each shown widget's sizes at or over its minimum, its views and its layouts
   const frames = useMemo(() => sections.reduce((n, s) => n + s.mods.reduce((k, m) => k + framePlan(m, spans).filter((f) => !f.below).length + viewPlans(m).length + layoutPlans(m).length, 0), 0), [sections, spans]);
   const help = useRef<HTMLDialogElement>(null);
+  const bar = useRef<HTMLElement>(null);
   const live = state.data === "live";
   // the page's tools read the state as it is now, not as it was when they were installed
   const now = useRef<Now>({ state, adoption, variants: worn.variants, apply });
@@ -121,14 +138,15 @@ function WidgetQa() {
   const galleryMod = state.gallery ? modules.find((m) => m.id === state.gallery) : undefined;
   const galleries = useMemo(() => galleriesFor(galleryMod), [galleryMod]);
   const style = theme ? ({ ...themeVars(theme.tokens), background: `hsl(${theme.tokens.background})`, color: `hsl(${theme.tokens.foreground})` } as CSSProperties) : undefined;
-  // a pack that draws the page (its stage) shows through, as on a kiosk
-  const pageBg = theme ? "" : wornBackground(worn) ? "text-zinc-100" : "bg-ui-app text-zinc-100";
+  // a pack that draws the page (its stage) shows through, as on a kiosk; a page background is the frames column's own
+  const pageBg = wornBackground(worn) ? "text-zinc-100" : "bg-ui-app text-zinc-100";
+  const surfacesShown = state.surfaces && !state.module && !state.q && !state.focus;
   return (
     <QaScreen theme={worn} fx={state.fx} script={state.script}>
     <main className={`min-h-screen px-6 pb-10 ${pageBg}`} style={style}>
       {/* The page's own chrome (`data-qa-ui`): on the studio's tokens, solid, never under a `[data-look]` element, so no worn Look or
           page background restyles it, and never an ancestor of the frames, whose inherited colour the theme check reads. */}
-      <header data-qa-ui="" className="sticky top-0 z-10 -mx-6 space-y-2 border-b border-ui-subtle bg-ui-chrome px-6 py-2.5 font-ui text-ui-2">
+      <header ref={bar} data-qa-ui="" className="sticky top-0 z-10 -mx-6 space-y-2 border-b border-ui-subtle bg-ui-chrome px-6 py-2.5 font-ui text-ui-2">
         <TopBar
           state={state}
           widgets={shown}
@@ -154,36 +172,41 @@ function WidgetQa() {
           onPanel={setPanel}
         />
         <ChangesRow changes={activeChanges(state, { look: worn.name, variant: worn.variants.find((v) => v.id === state.lookVariant)?.name })} onClear={(patch) => apply({ ...state, ...patch })} onReset={() => apply({ ...DEFAULT_STATE })} />
-        <WidgetNav state={state} sections={sections} onChange={(patch) => apply({ ...state, ...patch })} />
         <QaHelp dialog={help} />
       </header>
-      {/* the frames, then the inspector beside them while something is selected */}
+      {/* Three columns: the widget list, the frames, the inspector (shown while something is selected). The list's 264 px and its
+          gap stand where each widget's info column stood, so the frames keep the width they had. */}
       <div className="flex items-start gap-6">
-      <div className="min-w-0 flex-1">
-      {state.surfaces && !state.module && !state.q && !state.focus && (
-        <div id="surfaces" className="scroll-mt-32">
-          <h2 className="mt-6 text-xs font-semibold uppercase tracking-wider opacity-70">Surfaces</h2>
-          <Surfaces view={surfaceView} />
-        </div>
-      )}
-      {/* in focus mode the widget's galleries are inline, under its frames */}
-      <div id="galleries" className="scroll-mt-32 pt-4">
-        {!state.focus && galleries.map((g) => (
-          <Gallery key={`${g.title}-${g.module}`} def={g} base={settings} cell={state.cell} gap={state.gap} live={live} opened={!!galleryMod} />
-        ))}
-      </div>
-      {sections.map((s) => (
-        <div key={s.id}>
-          <h2 id={s.id} className="mt-6 scroll-mt-32 text-xs font-semibold uppercase tracking-wider opacity-70">
-            {s.category}
-          </h2>
-          {s.mods.map((m) => (
-            <WidgetSection key={m.id} mod={m} view={view} />
+        <WidgetList state={state} sections={sections} merged={MERGED_INTO} surfacesShown={surfacesShown} flagsChecked={!!adoption} bar={bar} onChange={(patch) => apply({ ...state, ...patch })} />
+        {/* The frames column carries the page background, so the chrome beside it keeps its own colours. The surfaces and the
+            galleries stay first in the DOM (the adoption reports list frames in document order) and are drawn after the widgets. */}
+        <div className="flex min-w-0 flex-1 flex-col self-stretch" style={style}>
+          {surfacesShown && (
+            <div id="surfaces" className="scroll-mt-32" style={AFTER_WIDGETS}>
+              <h2 className="mt-6 text-xs font-semibold uppercase tracking-wider opacity-70">Surfaces</h2>
+              <Surfaces view={surfaceView} />
+            </div>
+          )}
+          {/* in focus mode the widget's galleries are inline, under its frames */}
+          <div id="galleries" className="scroll-mt-32 pt-4" style={AFTER_WIDGETS}>
+            {!state.focus && galleries.map((g) => (
+              <Gallery key={`${g.title}-${g.module}`} def={g} base={settings} cell={state.cell} gap={state.gap} live={live} opened={!!galleryMod} />
+            ))}
+          </div>
+          {sections.map((s) => (
+            <div key={s.id}>
+              <h2 id={s.id} className="mt-6 scroll-mt-32 text-xs font-semibold uppercase tracking-wider opacity-70">
+                {s.category}
+              </h2>
+              {s.mods.map((m) => (
+                <IssuesGate key={m.id} id={m.id} on={state.issues}>
+                  <WidgetSection mod={m} view={view} />
+                </IssuesGate>
+              ))}
+            </div>
           ))}
         </div>
-      ))}
-      </div>
-      <Inspector now={now} />
+        <Inspector now={now} />
       </div>
     </main>
     </QaScreen>

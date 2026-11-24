@@ -34,6 +34,14 @@ describe("widget-qa params", () => {
     expect(parseParams("?widget-qa&below=0")).toMatchObject({ below: false, focus: "" });
   });
 
+  it("round-trips the issues filter, off by default", () => {
+    expect(parseParams("?widget-qa").issues).toBe(false);
+    const state = parseParams("?widget-qa&flagged=1&issues=1");
+    expect(state).toMatchObject({ flagged: true, issues: true });
+    expect(serializeParams(state)).toBe("?widget-qa&flagged=1&issues=1");
+    expect(serializeParams({ ...state, issues: false })).toBe("?widget-qa&flagged=1");
+  });
+
   it("copies a frame as its name, its look and a link that opens the widget alone at that frame", () => {
     const ref = frameRef({ ...DEFAULT_STATE, skin: "cyber", variant: "studio", q: "agent" }, "CodingAgents", "view:summary", "http://127.0.0.1:3922/");
     expect(ref.url).toBe("http://127.0.0.1:3922/?widget-qa&module=CodingAgents&skin=cyber&variant=studio#CodingAgents--view-summary");

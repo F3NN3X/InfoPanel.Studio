@@ -44,6 +44,8 @@ export interface QaState {
   flagged: boolean;
   /** Draw the app's own surfaces (rail, alerts, island, header, toasts); `surfaces=0` leaves them out. */
   surfaces: boolean;
+  /** Only the widgets the probe finds an issue in (`probe.ts`): a widget whose checked frames all came back without one is hidden. */
+  issues: boolean;
   /** Draw the sizes under a widget's minimum as dimmed placeholders; unset: hidden, one line per widget says how many. */
   below: boolean;
   /** Focus mode: this widget alone, with a size strip and its galleries inline; Esc leaves it. Unset: none. */
@@ -83,6 +85,7 @@ export const DEFAULT_STATE: QaState = {
   script: true,
   flagged: false,
   surfaces: true,
+  issues: false,
   below: false,
   focus: "",
 };
@@ -110,6 +113,7 @@ export function parseParams(search: string): QaState {
     script: q.get("script") !== "0",
     flagged: q.get("flagged") === "1",
     surfaces: q.get("surfaces") !== "0",
+    issues: q.get("issues") === "1",
     below: q.get("below") === "1",
     focus: q.get("focus") ?? "",
   };
@@ -154,6 +158,7 @@ export function serializeParams(s: QaState): string {
   if (!s.script) add("script", "0");
   if (s.flagged) add("flagged", "1");
   if (!s.surfaces) add("surfaces", "0");
+  if (s.issues) add("issues", "1");
   if (s.below) add("below", "1");
   if (s.focus) add("focus", s.focus);
   return `?${parts.join("&")}`;
