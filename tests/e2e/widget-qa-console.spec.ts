@@ -23,9 +23,11 @@ test("window.__qa keeps the six globals, reports the frames and copies one for C
   });
   expect(same).toEqual([true, true, true, true, true, true]);
   expect(await page.evaluate(() => window.__qa!.help())).toContain("copyForClaude(target)");
-  // the skin list a tool reads without opening the toolbar's control is the control's own
+  // the skin list a tool reads without opening the top bar's Overrides popover is the popover's own
   const skins = await page.evaluate(() => window.__qa!.options().skins);
-  const offered = await page.$$eval("header label", (labels) => [...(labels.find((l) => l.firstElementChild?.textContent === "skin")?.querySelectorAll("option") ?? [])].map((o) => o.value).filter(Boolean));
+  await page.locator("main > header").getByRole("button", { name: /^Overrides/ }).click();
+  const offered = (await page.getByRole("dialog").getByRole("combobox", { name: "Skin", exact: true }).locator("option").evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value))).filter(Boolean);
+  await page.keyboard.press("Escape");
   expect(skins).toEqual(offered);
 
   const report = await page.evaluate(() => window.__qa!.report({ all: true }));

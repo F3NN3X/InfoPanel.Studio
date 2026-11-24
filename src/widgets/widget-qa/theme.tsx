@@ -23,6 +23,8 @@ export interface QaTheme {
   appearance?: Appearance;
   pack?: Pack;
   variants: readonly ResolvedVariant[];
+  /** The worn Look's name, once it has loaded (the top bar's Look button). */
+  name?: string;
 }
 
 /** The screen theme level a Look and one of its variants set, as the Theme page writes them: the Look's id, then the variant's values. */
@@ -51,7 +53,7 @@ export function useQaTheme(look: string, variantId: string): QaTheme {
   const variants = useMemo(() => (source ? resolveVariants(source) : []), [source]);
   const variant = variants.find((v) => v.id === variantId);
   const appearance = useMemo(() => lookLevel(look, variant), [look, variant]);
-  return { appearance, pack, variants };
+  return { appearance, pack, variants, name: source?.name };
 }
 
 /** The page under a worn Look: its effects level, the pack's page layers and overlay, and its script (unless `script` is off). */

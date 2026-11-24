@@ -5,29 +5,31 @@ import { INSERT_CATEGORIES } from "@/components/studio/insert-panel";
 import { THEME_PRESETS, themeVars } from "@/lib/theme";
 import { CLASSIC_LOOK, DEFAULT_SKIN_LOOK } from "@/looks/ids";
 import { registerSampleCards } from "@/looks/sample-materials";
-import { SKIN_NAMES } from "@/widgets/core/theme";
 import { TEMPLATE_MODULES } from "@/widgets/registry";
 import { Gallery, galleriesFor } from "./Gallery";
 import { QaHelp } from "./Help";
-import { Toolbar } from "./Toolbar";
+import { TopBar, type BarPanel } from "./TopBar";
+import { ChangesRow } from "./ChangesRow";
+import { WidgetNav } from "./WidgetNav";
+import { activeChanges } from "./changes";
+import { copyText } from "./clipboard";
 import { WidgetSection } from "./Section";
 import { forceMountAll, mountAllSettled } from "./Frame";
 import { overflowReport, type Issue } from "./probe";
 import { NOTES } from "./notes";
 import { DEFAULT_STATE, frameRef, parseParams, parseSpans, placementSettings, serializeParams, widgetLinks, type QaState } from "./params";
-import { filterModules, groupByCategory, mergedModules, pickModules } from "./plan";
+import { filterModules, framePlan, groupByCategory, layoutPlans, mergedModules, pickModules, viewPlans } from "./plan";
 import { installDemoStreams } from "./demo-streams";
 import { adoptionReport, adoptionText, lookColours, type CheckOptions, type FrameFlags } from "./adoption";
 import { diffSnapshots, qaSnapshot, type QaSnapshot, type TripDiff } from "./round-trip";
 import { Surfaces } from "./Surfaces";
-import { ClaudeButton } from "./ClaudeButton";
 import { claudeText, installConsole, type Now } from "./console";
 import { QaScreen, qaLookIds, useQaTheme, wornBackground, type QaTheme } from "./theme";
 
 /**
  * Dev-only oracle and reference page for the widget library (`?widget-qa`): every registered widget (or exactly the
  * `module=` ids) at a set of spans and in each of its views, rendered through the kiosk's own `placementContent` from
- * fixture sensors and demo streams, grouped by category. One toolbar drives every placement and mirrors itself to the
+ * fixture sensors and demo streams, grouped by category. One top bar drives every placement and mirrors itself to the
  * URL (params in `./params.ts`); each widget links to itself alone and to its skin and surface galleries.
  * `window.__qaOverflow()` lists what pokes out of its zone or overlaps (see _docs/redesign/phase9/qa.md).
  */
@@ -73,6 +75,7 @@ async function importPack(files: FileList): Promise<{ id?: string; error?: strin
 function WidgetQa() {
   const [state, setState] = useState(() => parseParams(window.location.search));
   const [imported, setImported] = useState("");
+  const [panel, setPanel] = useState<BarPanel | "">("");
   const apply = (next: QaState) => {
     // The demo streams are installed before anything mounts, so a change of data source loads the page again.
     if (next.data !== state.data) return window.location.assign(serializeParams(next) + window.location.hash);
@@ -90,6 +93,9 @@ function WidgetQa() {
   const picked = useMemo(() => pickModules([...modules, ...MERGED], [...TEMPLATE_MODULES, ...MERGED], state.module).filter((m) => !state.noted || NOTES[m.id]), [state.module, state.noted]);
   const sections = useMemo(() => groupByCategory(filterModules(picked, state.q), CATEGORY_ORDER), [picked, state.q]);
   const shown = sections.reduce((n, s) => n + s.mods.length, 0);
+  // the widget frames drawn: each shown widget's sizes at or over its minimum, its views and its layouts
+  const frames = useMemo(() => sections.reduce((n, s) => n + s.mods.reduce((k, m) => k + framePlan(m, spans).filter((f) => !f.below).length + viewPlans(m).length + layoutPlans(m).length, 0), 0), [sections, spans]);
+  const help = useRef<HTMLDialogElement>(null);
   const live = state.data === "live";
   // the page's tools read the state as it is now, not as it was when they were installed
   const now = useRef<Now>({ state, adoption, variants: worn.variants, apply });
@@ -101,29 +107,23 @@ function WidgetQa() {
   useEffect(() => installTools(now), []);
   const galleryMod = state.gallery ? modules.find((m) => m.id === state.gallery) : undefined;
   const galleries = useMemo(() => galleriesFor(galleryMod), [galleryMod]);
-  // The header is frosted: translucent over the frames that scroll under it, blurred.
-  const bg = theme ? `hsl(${theme.tokens.background} / .6)` : "rgba(12,12,14,.6)";
-  const solidBg = theme ? `hsl(${theme.tokens.background})` : "#16161a";
   const style = theme ? ({ ...themeVars(theme.tokens), background: `hsl(${theme.tokens.background})`, color: `hsl(${theme.tokens.foreground})` } as CSSProperties) : undefined;
   // a pack that draws the page (its stage) shows through, as on a kiosk
   const pageBg = theme ? "" : wornBackground(worn) ? "text-zinc-100" : "bg-ui-app text-zinc-100";
   return (
     <QaScreen theme={worn} fx={state.fx} script={state.script}>
     <main className={`min-h-screen px-6 pb-10 ${pageBg}`} style={style}>
-      <header className="sticky top-0 z-10 -mx-6 space-y-2 border-b border-current/15 px-6 py-3 backdrop-blur-xl backdrop-saturate-150" style={{ background: bg }}>
-        <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold">Widget QA</h1>
-          <QaHelp background={solidBg} />
-          <ClaudeButton text={() => claude()} title="Copy the frames checked so far, with what they found, as text for Claude" className="h-6 rounded-full border border-current/25 px-2 text-[11px]" />
-          <p className="font-mono text-[11px] opacity-60">
-            {shown} modules · {SKIN_NAMES.length} skins · {spans.length} spans · {shown * spans.length} frames · cell {state.cell} · gap {state.gap} · {live ? "live data" : state.data}
-            {state.look && ` · wearing ${state.look}${state.lookVariant ? ` ${state.lookVariant}` : ""}${worn.pack ? " (pack)" : ""}${state.fx ? ` · fx ${state.fx}` : ""}`}
-          </p>
-        </div>
-        <Toolbar
+      {/* The page's own chrome (`data-qa-ui`): on the studio's tokens, solid, never under a `[data-look]` element, so no worn Look or
+          page background restyles it, and never an ancestor of the frames, whose inherited colour the theme check reads. */}
+      <header data-qa-ui="" className="sticky top-0 z-10 -mx-6 space-y-2 border-b border-ui-subtle bg-ui-chrome px-6 py-2.5 font-ui text-ui-2">
+        <TopBar
           state={state}
+          widgets={shown}
+          frames={frames}
           looks={qaLookIds()}
           variants={worn.variants}
+          lookName={worn.name}
+          flagsChecked={!!adoption}
           imported={imported}
           onImport={(files) =>
             void importPack(files).then(({ id, error }) => {
@@ -133,27 +133,16 @@ function WidgetQa() {
           }
           onChange={(patch) => apply({ ...state, ...patch })}
           onReset={() => apply({ ...DEFAULT_STATE })}
+          onHelp={() => help.current?.showModal()}
+          onCopyLink={() => copyText(window.location.href)}
+          onMountAll={mountAllSettled}
+          claude={() => claude()}
+          panel={panel}
+          onPanel={setPanel}
         />
-        <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-          {/* Every shown widget by name: picking one jumps to it (its section's anchor is its id). */}
-          <select aria-label="Jump to a widget" className="h-6 rounded border border-current/25 bg-transparent px-1.5 text-[11px] [&>optgroup]:text-black [&_option]:text-black" value="" onChange={(e) => e.target.value && document.getElementById(e.target.value)?.scrollIntoView()}>
-            <option value="">Jump to a widget…</option>
-            {sections.map((s) => (
-              <optgroup key={s.id} label={s.category}>
-                {s.mods.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.title}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          {sections.map((s) => (
-            <a key={s.id} href={`#${s.id}`} className="opacity-70 hover:opacity-100">
-              {s.category} <span className="opacity-50">{s.mods.length}</span>
-            </a>
-          ))}
-        </nav>
+        <ChangesRow changes={activeChanges(state, { look: worn.name, variant: worn.variants.find((v) => v.id === state.lookVariant)?.name })} onClear={(patch) => apply({ ...state, ...patch })} onReset={() => apply({ ...DEFAULT_STATE })} />
+        <WidgetNav state={state} sections={sections} onChange={(patch) => apply({ ...state, ...patch })} />
+        <QaHelp dialog={help} />
       </header>
       {state.surfaces && !state.module && !state.q && (
         <div id="surfaces" className="scroll-mt-32">

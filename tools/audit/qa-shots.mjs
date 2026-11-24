@@ -4,8 +4,10 @@
 // serves dist/, so run `npm run build` first.
 //   npm run qa:shots -- [--label before] [--skins default,cyber|all] [--spans 2x2,4x4] [--module CpuMonitor,Clock] [--data stress] [--frames-only]
 // Writes .cache/qa-shots/<label>/<skin>/<module>_<span>.png and <module>_view-<id>.png (label: the short commit). Each shot is the
-// whole figure (caption, badges, note); --frames-only crops it to the frame's box (`[data-qa-box]`), so a change to the page's chrome
-// or captions leaves the shots alike: the check that a redesign of the page draws its frames as before.
+// whole figure (caption, badges, note); --frames-only crops it to the frame's box (`[data-qa-box]`) and hides the page's own chrome
+// first (`[data-qa-ui]`, or `main > header` on an older page), so a change to the page's chrome or captions leaves the shots alike:
+// the check that a redesign of the page draws its frames as before. Hidden, not only cropped out: a glass card blurs what is behind
+// it, the sticky bar included, so a frame scrolled under the bar would carry the bar's pixels.
 //   npm run qa:shots -- --pages [all|screens,edit,…] [--label before]
 // Writes .cache/qa-shots/<label>/pages/<page>.png: the Studio views, browser Settings pages and ?ui-preview (qa-shots-pages.mjs).
 //   npm run qa:shots -- --compare before after
@@ -81,6 +83,7 @@ try {
     const query = new URLSearchParams({ eager: "1", spans: opts.spans, ...(skin !== "default" && { skin }), ...(opts.module && { module: opts.module }), ...(opts.data !== "fixtures" && { data: opts.data }) });
     await page.goto(`${qa.base}/?widget-qa&${query}`);
     await page.waitForSelector("figure [data-qa-box] *");
+    if (opts["frames-only"]) await page.addStyleTag({ content: "[data-qa-ui], main > header { display: none !important; }" });
     await page.evaluate(() => window.__qaMountAll?.());
     // The issue badges land as each frame settles; give the last ones time to draw.
     await page.waitForTimeout(500);

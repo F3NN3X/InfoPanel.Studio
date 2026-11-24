@@ -586,6 +586,7 @@
         "tests/e2e/widget-qa-parity.spec.ts",
         "tests/e2e/widget-qa-adoption.spec.ts",
         "tests/e2e/widget-qa-console.spec.ts",
+        "tests/e2e/widget-qa-topbar.spec.ts",
         "tests/e2e/visualiser-round-trip.spec.ts",
         "tests/e2e/code-widgets.spec.ts",
         "tests/e2e/widget-builder-details.spec.ts",
