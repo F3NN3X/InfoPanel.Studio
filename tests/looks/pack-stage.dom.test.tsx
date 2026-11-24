@@ -192,3 +192,41 @@ describe("the effects' colour (v3): the screen's accent, a variant's, not the pa
     expect(accentOf("[data-pack-effect='glitch']")).toBe("");
   });
 });
+
+describe("an animated page layer", () => {
+  const moving: StageViewProps["stage"] = { layers: [{ image: "orbit.svg", animated: true }, { image: "art.svg" }] };
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="3"><animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/></circle></svg>';
+  const bg = (i: number) => document.querySelector<HTMLElement>(`[data-pack-layer='${i}']`)!.style.backgroundImage;
+  const read = () => act(async () => void (await new Promise((r) => setTimeout(r, 0))));
+
+  it("moves at Full, and its neighbour draws as before", () => {
+    view({ fx: "full" }, { stage: moving, base: "/p/" });
+    expect(bg(0)).toBe('url("/p/orbit.svg")');
+    expect(document.querySelector("[data-pack-layer='0']")?.getAttribute("data-pack-moving")).toBe("on");
+    expect(bg(1)).toBe('url("/p/art.svg")');
+    expect(document.querySelector("[data-pack-layer='1']")?.hasAttribute("data-pack-moving")).toBe(false);
+  });
+
+  it.each([
+    ["calm", { fx: "calm" as const }],
+    ["off", { fx: "off" as const }],
+    ["reduce", { motion: "reduce" as const }],
+  ])("draws its still copy at %s, and nothing until that is read", async (name, general) => {
+    const fetched = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(SVG));
+    view(general, { stage: moving, base: `/${name}/` });
+    expect(bg(0)).toBe("none");
+    await read();
+    expect(bg(0)).toMatch(/^url\("data:image\/svg\+xml;charset=utf-8,/);
+    expect(decodeURIComponent(bg(0))).not.toMatch(/animate/);
+    expect(bg(1)).toBe(`url("/${name}/art.svg")`);
+    fetched.mockRestore();
+  });
+
+  it("draws nothing for a still copy that cannot be read or is not a pack SVG", async () => {
+    const fetched = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("<svg><script>1</script></svg>"));
+    view({ fx: "calm" }, { stage: moving, base: "/bad/" });
+    await read();
+    expect(bg(0)).toBe("none");
+    fetched.mockRestore();
+  });
+});

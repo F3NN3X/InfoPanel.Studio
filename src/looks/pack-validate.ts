@@ -21,7 +21,7 @@ import { SCRIPT_MAX_BYTES } from "./pack-script/limits";
 import { MAX_LAYERS, NUMERAL_MIN, numeralIssues, stageIssues } from "./pack-checks";
 import { FLASH_MAX, FRAME_ALPHA_MIN, FRAME_SIZE_MAX, FRAME_SPINE_MAX, FRAME_STROKE_MAX, FRAME_TAB_HEIGHT_MAX, FRAME_TAB_WIDTH_MAX, FX_KINDS, ORNAMENT_MAX, ORNAMENT_TEXT_MAX, ORNAMENTS_MAX, TEXT_ORNAMENTS, type PackJson } from "./pack-json";
 import { commaParts, lintPackCss, OPACITY_FLOOR } from "./pack-css";
-import { INJECTION, jsonShapeIssues, jsonStrings, PROSE_PATHS, rasterMatches, STYLE_BREAKERS, svgIssue, svgPaints, TOKEN_KEY, withoutAliases } from "./pack-safety";
+import { INJECTION, jsonShapeIssues, jsonStrings, PROSE_PATHS, rasterMatches, STYLE_BREAKERS, svgAnimated, svgIssue, svgPaints, svgStill, TOKEN_KEY, withoutAliases } from "./pack-safety";
 import packSchema from "./pack.schema.json";
 import { cssUrls, isPackRelativeUrl, packCssIssues, packPath } from "./pack-urls";
 import { schemaErrors } from "./schema-check";
@@ -739,15 +739,32 @@ function validate(src: PackSource, source: "builtin" | "user", scriptAt: "files"
   for (const p of assets) if (!referenced.has(p)) add("asset-unused", p, "nothing in the pack uses this file", "warn");
 
   // what each image and font file is, from its bytes (the extension is only a claim)
+  const moving = new Set<string>();
   for (const f of files.values()) {
     const ext = /\.([a-z0-9]+)$/i.exec(f.path)?.[1].toLowerCase();
     if (!f.bytes || !ext || !(f.path.startsWith("assets/") ? ASSET_TYPES.test(f.path) : /^thumb\./.test(f.path))) continue;
     if (ext === "svg") {
       const m = svgIssue(text(f.bytes));
-      if (m) add("svg-unsafe", f.path, m);
+      // a file that passes once its animation is cut breaks the animation subset only (motion-svg.ts)
+      if (m) add(svgIssue(svgStill(text(f.bytes))) ? "svg-unsafe" : "svg-animation", f.path, m);
+      else if (svgAnimated(text(f.bytes))) moving.add(f.path);
     } else if (ext === "woff2") {
       if (text(f.bytes.subarray(0, 4)) !== "wOF2") add("font-type", f.path, "the file is not a woff2 font (wrong signature)");
     } else if (!rasterMatches(ext, f.bytes)) add("image-type", f.path, `the bytes are not a ${ext} image`);
+  }
+
+  // an animated SVG moves only as a stage layer that says so: there the app draws it still below Full, in lite mode and under
+  // reduced motion (pack-stage.tsx); pack.css cannot hold one still, so it may not use one
+  pack.stage.layers.forEach((l, i) => {
+    const path = l.image !== undefined && isPackRelativeUrl(l.image) ? resolve(l.image, "assets/") : undefined;
+    if (path && moving.has(path) && l.animated !== true) add("svg-animation", "pack.json", `stage layer ${i}'s ${l.image} animates: declare the layer animated, so the app holds it still where the screen allows no motion`);
+    if (l.animated === true && !(path && moving.has(path))) add("svg-animation", "pack.json", `stage layer ${i} is declared animated and its image does not animate`, "warn");
+  });
+  if (src.css !== undefined) {
+    for (const u of cssUrls(src.css)) {
+      const path = isPackRelativeUrl(u) ? (user ? [packPath(u)].find((p) => files.has(p)) : resolve(u, "")) : undefined;
+      if (path && moving.has(path)) add("svg-animation", "pack.css", `${u} animates: an animated SVG is drawn only as a stage layer, where the app holds it still below Full`);
+    }
   }
 
   // fonts: woff2 with a licence file (OFL) and a copyright line

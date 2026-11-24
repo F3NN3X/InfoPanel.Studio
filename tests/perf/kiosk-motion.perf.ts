@@ -3,7 +3,7 @@ import path from "node:path";
 import { makePack, manifest, saveConfig, test } from "../e2e/fixtures";
 import { measurePage, writeResult } from "./measure";
 
-// A pack's motion (L117) on a 20-widget kiosk page: the fixture (every effect at its busiest: tests/fixtures/packs/motion) and every effect
+// A pack's motion (L117) on a 20-widget kiosk page: the fixture (every effect at its busiest, and its animated page layer: tests/fixtures/packs/motion) and every effect
 // at its defaults, at Full, against the same page at Off. Report-only, like every perf spec: compare with the kiosk idle lines in
 // tools/perf/budgets.json (kioskIdleWarn). MOTION_CASES (a JSON list of [name, pack, fx, Look values]) measures others.
 
@@ -21,7 +21,11 @@ test("kiosk-motion", async ({ browser, scratch }) => {
   for (const [name, motion] of Object.entries(PACKS)) {
     makePack(path.join(scratch.dataDir, "packs"), `motion-${name}`, (dir) => {
       const file = path.join(dir, "pack.json");
-      fs.writeFileSync(file, JSON.stringify({ ...JSON.parse(fs.readFileSync(file, "utf8")), motion }));
+      const pack = JSON.parse(fs.readFileSync(file, "utf8"));
+      // the fixture's animated SVG as the last page layer: it moves at Full and is held still at Off
+      fs.copyFileSync(path.join("tests", "fixtures", "packs", "motion", "orbit.svg"), path.join(dir, "assets", "orbit.svg"));
+      const layers = [...pack.stage.layers.slice(0, 2), { image: "orbit.svg", animated: true }];
+      fs.writeFileSync(file, JSON.stringify({ ...pack, stage: { ...pack.stage, layers }, motion }));
     });
   }
   const config = await (await fetch(`${scratch.base}/api/config`)).json();
