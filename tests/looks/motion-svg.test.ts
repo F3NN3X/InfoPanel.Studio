@@ -135,6 +135,10 @@ describe("an animated SVG in the validator", () => {
     expect(issues(withOrbit([{ image: "orbit.svg", animated: true }], BASE.css, svg("<style>.a { animation-name: none; }</style><script>1</script>"))).map((i) => i.rule)).toContain("svg-unsafe");
   });
 
+  it("allows one animated layer: a second repaints the page again each frame", () => {
+    expect(issues(withOrbit([{ image: "orbit.svg", animated: true }, { image: "orbit.svg", animated: true }])).map((i) => `${i.rule} ${i.severity}`)).toEqual(["svg-animation error"]);
+  });
+
   it("an old pack, with no animated layer, has nothing new to say", () => {
     expect(issues(BASE)).toEqual([]);
   });

@@ -1306,14 +1306,14 @@ The header has the **level picker** ("‹screen› · whole screen" or "‹scree
   `slide`, `fade` or `none`, and `reorder`, `change` and `decode` (true or false); `boot` `ms` 120-300, `stagger` 20-120 (ms
   between two cards), `style` `fade`, `clip` or `glitch`, and `line` and `decode` (true or false). Anything else, or a
   value out of range, refuses the pack at import. The real reading is on the page at once while a number counts, the page
-  starts at most six counts and two change marks a second and twelve runs at once, and a list moves at most eight rows of
+  starts at most three counts and two change marks a second and twelve runs at once, and a list moves at most eight rows of
   a card at a time.
 
 - **Animated page art**: a page layer's SVG may move (a turning reticle, a tracing line, a pulsing lamp) when the layer
   says `"animated": true` in `pack.json`'s `stage.layers`. The SVG keeps to a small subset: `@keyframes` in a `<style>` that
   move `transform`, `opacity` or `stroke-dashoffset`, started by rules on a `.class` or `#id`, or `<animate>` on `opacity`
   and `stroke-dashoffset` and `<animateTransform>`, with times and numbers only; a cycle lasts at least a second with at
-  most seven steps, and at most 24 elements of a file move. It moves only at **Full**: at **Calm** and **Off**, in lite
+  most seven steps, at most 24 elements of a file move, and a pack has at most one animated layer. It moves only at **Full**: at **Calm** and **Off**, in lite
   mode and with reduced animations the app draws it still. An animated SVG may not be used from `pack.css`, and `<text>`
   and scripts are still refused.
 

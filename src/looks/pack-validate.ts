@@ -89,6 +89,8 @@ export const FILE_COUNT_MAX = 64;
 export const FILE_MAX_BYTES = 256_000;
 /** At most this many effects animate at the `full` FX level. */
 export const MAX_ANIMATED = 2;
+/** At most this many stage layers animate (a full-page animated SVG costs a 20-card page about 70 ms of main-thread work a second at Full, measured). */
+export const ANIMATED_LAYERS_MAX = 1;
 /** A chamfer cuts at most this many px (twice the smallest card padding). */
 export const CHAMFER_MAX = FRAME_SIZE_MAX;
 /** Body text, muted text and status text hold this on the card (D13); gradient numerals hold 3:1 (`NUMERAL_MIN`). */
@@ -755,6 +757,7 @@ function validate(src: PackSource, source: "builtin" | "user", scriptAt: "files"
 
   // an animated SVG moves only as a stage layer that says so: there the app draws it still below Full, in lite mode and under
   // reduced motion (pack-stage.tsx); pack.css cannot hold one still, so it may not use one
+  if (pack.stage.layers.filter((l) => l.animated === true).length > ANIMATED_LAYERS_MAX) add("svg-animation", "pack.json", `more than ${ANIMATED_LAYERS_MAX} animated stage layer: a moving page layer repaints the page each frame`);
   pack.stage.layers.forEach((l, i) => {
     const path = l.image !== undefined && isPackRelativeUrl(l.image) ? resolve(l.image, "assets/") : undefined;
     if (path && moving.has(path) && l.animated !== true) add("svg-animation", "pack.json", `stage layer ${i}'s ${l.image} animates: declare the layer animated, so the app holds it still where the screen allows no motion`);

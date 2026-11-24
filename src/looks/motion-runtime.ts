@@ -13,13 +13,13 @@ const DIGITS = "0123456789";
 export const TEXT_JOBS_MAX = 12;
 /** At most this many numbers start a scramble in any second, over the whole page: a screen of readings that change each tick stays mostly still (measured on a 20-card page, L117). */
 export const NUMBER_STARTS_PER_S = 3;
-/** At most this many numbers start a count or a roll in any second, over the whole page. */
-export const VALUE_STARTS_PER_S = 6;
+/** At most this many numbers start a count or a roll in any second, over the whole page (a count writes its copy each frame: 6 a second cost a 20-card page about 300 ms of main-thread work a second, measured). */
+export const VALUE_STARTS_PER_S = 3;
 /** At most this many change marks (a number's flash or underline, a list row lit) in any second, over the whole page: with the one repeat a second, never over three flashes a second. */
 export const FLASH_STARTS_PER_S = 2;
-/** The noise changes at most this often, ms (about 12 a second); a count about 30 times a second. */
+/** The noise changes at most this often, ms (about 12 a second); a count about 15 times a second, which reads as counting and lays the text out half as often as 30. */
 const FRAME_MS = 80;
-const COUNT_FRAME_MS = 33;
+const COUNT_FRAME_MS = 66;
 /** A flicker run: two dips in this many ms. */
 export const FLICKER_MS = 600;
 

@@ -147,7 +147,7 @@ security model, what was fixed, what was decided, and what is deferred.
   reduced motion. The `value`, `list` and `boot` effects (`motion-value.ts`, `motion-list.ts`) work the same way: a count
   or a digit roll is drawn in the aria-hidden copy while the real reading is in the page at once; a list's rows are found by
   an identity attribute the app's own widgets set and moved with `translate` and opacity only, never laid out again; the
-  page starts at most six value runs and two change marks a second (so, with the one repeat, never over three flashes a
+  page starts at most three value runs and two change marks a second (so, with the one repeat, never over three flashes a
   second) and at most twelve runs at once. The copy a new row decodes in is an element the app adds and removes itself;
   it holds text only, written as `textContent`.
 - **Animated pack SVG** (`src/looks/motion-svg.ts`, `svgIssue` and `svgStill` in `src/looks/pack-safety.ts`,
@@ -157,7 +157,7 @@ security model, what was fixed, what was decided, and what is deferred.
   (so no comment, escape, URL, at-rule other than `@keyframes`, or CDATA); a keyframe sets only `transform`, `opacity` or
   `stroke-dashoffset`; SMIL animates only `opacity`, `stroke-dashoffset` or `transform` of its parent, takes no `href`, and
   its times and values are clock values and numbers (no event `begin`, no `<set>`). A cycle lasts at least a second with
-  at most seven steps, and at most 24 elements of a file move. `<text>`, scripts and every other element stay refused. An
+  at most seven steps, at most 24 elements of a file move, and a pack has at most one animated layer. `<text>`, scripts and every other element stay refused. An
   animated SVG may be drawn only as a stage layer that declares `animated` (the validator refuses one used from `pack.css`
   or on an undeclared layer); it is drawn like every pack image, as a CSS background, so nothing in it runs or reaches the
   page. The app shows the moving file only at the Effects level Full, out of lite mode and reduced motion; anywhere else it

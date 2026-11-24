@@ -293,7 +293,8 @@ subset the validator reads:
   `translate`, `scale`, `rotate`, `skewX` or `skewY`), with clock values and numbers only: no `href`, no event `begin`, no
   `<set>`.
 - A cycle lasts at least a second and has at most seven steps (keyframe stops or `values`), so an opacity pulse dips at most
-  three times a second; at most 24 elements of one file move. `<text>` and scripts are still refused.
+  three times a second; at most 24 elements of one file move, and a pack has at most one animated layer (a
+  full-page moving layer costs about 70 ms of main-thread work a second on a 20-card page). `<text>` and scripts are still refused.
 - The app moves the layer only at **Full**. At Calm and Off, in lite mode and under reduced motion it draws a still copy
   (the same file with its animation cut out), so declare the layer `animated` or the pack is refused; `pack.css` may not use
   an animated SVG, because there the app could not hold it still.
@@ -344,7 +345,7 @@ Three more effects act on what changes on the page rather than on its words:
   odometer (`roll`; a clock or any text that is not one figure always rolls), and may `mark` the change with a `flash` or an
   `underline`. `ms` 150 to 900, `every` 1 to 60 (the least seconds between two runs of one number). The real reading is in
   the page at once (the count is the aria-hidden copy), the width is the reading's, and a number with both `value` and
-  `scramble` takes the value. The page starts at most six runs and two marks a second, twelve runs at once.
+  `scramble` takes the value. The page starts at most three runs and two marks a second, twelve runs at once.
 - `list`: the rows of the list widgets (Steam friends, top processes, coding agents, service health, Steam news,
   notifications) `enter` with a `slide` or a `fade`, glide to a new place when the order changes (`reorder`, by translate:
   nothing is laid out again), light once when their words change (`change`: a reading that only ticks is not a change),
