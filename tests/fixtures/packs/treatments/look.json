@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "id": "cs-treatments",
+  "name": "Cyberspec treatments",
+  "description": "A fixture: Cyberspec with every component treatment on (slabs, readouts, cell meters, hex rings, signal graphs, ruled rows).",
+  "tags": [
+    "pack",
+    "dark",
+    "cyberpunk",
+    "angular",
+    "crt"
+  ],
+  "modes": {
+    "supported": [
+      "dark"
+    ],
+    "stance": "Dark only: the kit is a display lit on a blue-black void."
+  },
+  "fonts": {
+    "body": "Rajdhani, system-ui, sans-serif",
+    "mono": "ui-monospace, monospace",
+    "display": "ui-monospace, monospace"
+  },
+  "radius": "0",
+  "t1": {
+    "dark": {
+      "bg": {
+        "value": "#07070C"
+      },
+      "surface": {
+        "value": "#0E0E17"
+      },
+      "surface-2": {
+        "value": "#151523"
+      },
+      "fg": {
+        "value": "#FFE4E1"
+      },
+      "fg-2": {
+        "value": "{fg}"
+      },
+      "muted": {
+        "value": "#D67A75"
+      },
+      "border": {
+        "value": "#151523"
+      },
+      "border-soft": {
+        "value": "{border}"
+      },
+      "accent": {
+        "value": "#FF3B45"
+      },
+      "accent-on": {
+        "value": "{bg}"
+      },
+      "accent-hover": {
+        "value": "{accent}"
+      },
+      "focus-ring": {
+        "value": "{accent}"
+      },
+      "ok": {
+        "value": "#2BF59A"
+      },
+      "warn": {
+        "value": "#FFD23F"
+      },
+      "crit": {
+        "value": "#FF3B45"
+      },
+      "info": {
+        "value": "{accent}"
+      }
+    }
+  },
+  "t2": {
+    "default": "look-cyberspec",
+    "materials": {
+      "look-cyberspec": {
+        "kind": "solid",
+        "tone": "dark",
+        "export": "#0E0E17"
+      }
+    }
+  },
+  "t3": {
+    "header-style": "label-bar",
+    "label-case": "upper",
+    "ring-style": "hex",
+    "ring-cap": "butt",
+    "meter-style": "cells",
+    "meter-hold-style": "block",
+    "cell-radius": "0px",
+    "graph-style": "area",
+    "series-stroke": 1.5,
+    "spike-shape": "tick",
+    "fader-knob-shape": "square",
+    "meter-segments": 20,
+    "meter-gap": 2,
+    "grid-line": "{accent} / 24%",
+    "label-color": "{accent}",
+    "series-1": "{accent}",
+    "series-2": "{muted}",
+    "series-3": "{fg}",
+    "series-4": "{accent}",
+    "series-5": "{muted}",
+    "series-6": "{fg}",
+    "accent-ink": "{accent}",
+    "meter-ok": "{accent-ink}",
+    "icon-color": "{accent}",
+    "slab-header": "accent",
+    "slab-chip": "state",
+    "slab-tab": "accent",
+    "slab-row": "current",
+    "slab-ink": "#0B0B12",
+    "slab-texture": "scanlines",
+    "slab-notch": 8,
+    "readout-scale": 2,
+    "readout-decimals": 0.5,
+    "readout-bar": "rule",
+    "meter-empty": "#1B3A42",
+    "meter-peak": "hold",
+    "graph-grid": "dashed",
+    "graph-lead": "square",
+    "graph-bars": "striped",
+    "row-style": "ruled",
+    "series-fill-alpha": "0.12 > 0.12 > 0.12"
+  },
+  "ext": {},
+  "variants": [
+    {
+      "id": "crimson",
+      "name": "Crimson",
+      "values": {
+        "accent": "#FF3B45",
+        "textColor": {
+          "from": "accent",
+          "l": 0.94,
+          "c": 0.03
+        },
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#2BF59A",
+        "warn": "#FFD23F",
+        "crit": "#FF3B45"
+      }
+    },
+    {
+      "id": "voltage",
+      "name": "Voltage",
+      "values": {
+        "accent": "#F4CE23",
+        "textColor": {
+          "from": "accent",
+          "l": 0.94,
+          "c": 0.03
+        },
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#2BF59A",
+        "warn": "#FFD23F",
+        "crit": "#FF3B45"
+      }
+    },
+    {
+      "id": "toxin",
+      "name": "Toxin",
+      "values": {
+        "accent": "#40EF7C",
+        "textColor": {
+          "from": "accent",
+          "l": 0.94,
+          "c": 0.03
+        },
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#2BF59A",
+        "warn": "#FFD23F",
+        "crit": "#FF3B45"
+      }
+    },
+    {
+      "id": "ice",
+      "name": "Ice",
+      "values": {
+        "accent": "#41D9F8",
+        "textColor": {
+          "from": "accent",
+          "l": 0.94,
+          "c": 0.03
+        },
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#2BF59A",
+        "warn": "#FFD23F",
+        "crit": "#FF3B45"
+      }
+    },
+    {
+      "id": "ultraviolet",
+      "name": "Ultraviolet",
+      "values": {
+        "accent": "#B96AFF",
+        "textColor": {
+          "from": "accent",
+          "l": 0.94,
+          "c": 0.03
+        },
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#2BF59A",
+        "warn": "#FFD23F",
+        "crit": "#FF3B45"
+      }
+    },
+    {
+      "id": "monochrome",
+      "name": "Monochrome",
+      "values": {
+        "accent": "#C6C6C6",
+        "textColor": "#F2F2F2",
+        "mutedColor": {
+          "from": "accent",
+          "l": 0.68,
+          "cMul": 0.5
+        },
+        "ok": "#B5B5B5",
+        "warn": "#E3E3E3",
+        "crit": "#DDDDDD"
+      }
+    }
+  ]
+}

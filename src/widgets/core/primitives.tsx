@@ -89,8 +89,10 @@ export interface MetricProps {
   hero?: boolean;
   /** false: a warn or crit tone colours the number but draws no glyph before it (screen readers still hear it). */
   cue?: boolean;
+  /** The reading's share of its range, 0 to 100: a Look's readout under-bar (`readout-bar: rule`) is drawn solid that far, dotted after. */
+  pct?: number;
 }
-export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok", align = "left", className = "", ipKey: key, px, hero = true, cue = true }: MetricProps) {
+export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok", align = "left", className = "", ipKey: key, px, hero = true, cue = true, pct }: MetricProps) {
   const ipKey = useContext(IpTagCtx) ? key : undefined;
   const sk = useSkin();
   const sc = sk.numUp ? SCALES[Math.min(4, SCALES.indexOf(scale) + 1)] : scale;
@@ -108,7 +110,7 @@ export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok",
         {readout ? <Readout spec={readout} value={shown} unit={unitEl} /> : <MotionText part="num">{shown}</MotionText>}
         {!readout && unitEl}
       </span>
-      {readout?.bar && <ReadoutBar color={t !== "ok" ? TONES[t] : "var(--w-accent)"} />}
+      {readout?.bar && <ReadoutBar color={t !== "ok" ? TONES[t] : "var(--w-accent)"} pct={pct} />}
       {word && <span className="mt-1 max-w-full truncate text-micro text-[color:var(--w-muted)]">{unit}</span>}
       {sub && <span className="mt-1 max-w-full truncate text-micro text-[color:var(--w-faint)]">{sub}</span>}
     </div>
@@ -128,8 +130,10 @@ export interface BarProps {
   segments?: number;
   /** A fill of its own (a recipe's series colour) in place of the tone's. */
   color?: string;
-  /** Where the warning starts, in % of the bar: a cell meter tints the cells past it (`meter-style: cells`). */
+  /** Where the warning starts, in % of the bar: a cell meter marks it with a triangle under the bar (`meter-style: cells`). */
   mark?: number;
+  /** Where the critical zone starts, in % of the bar: a cell meter marks it and dims the unlit cells past it toward the critical colour. */
+  limit?: number;
 }
 /** A ring's stroke never draws thinner than this on screen, so a small ring keeps a line you can see. */
 const RING_MIN_PX = 6;
@@ -227,7 +231,7 @@ const fxSignal = (on: boolean, fraction: number, t: Tone) => (on ? { "data-fx-va
 /** The colour of a bar or ring in a tone: a pack that sets its own `ok` draws it for ok instead of the accent (L58). */
 const toneInk = (sk: Partial<SkinContext>, t: Tone): string => (t === "ok" && sk.packOk ? "var(--w-ok)" : TONES[t]);
 
-function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle, segments, color, mark }: BarProps) {
+function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle, segments, color, mark, limit }: BarProps) {
   const sk = useSkin();
   const m = meterStyle ?? sk.meter ?? "bar";
   const pct = clamp((value / max) * 100);
@@ -248,7 +252,7 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
       </div>
     );
   }
-  if (m === "cells") return <BarCells pct={pct} peak={peak} n={segments ?? 20} ink={color ?? toneInk(sk, t)} empty={sk.meterEmpty ?? "var(--w-track)"} mark={mark} fx={fx} className={className} />;
+  if (m === "cells") return <BarCells pct={pct} peak={peak} n={segments ?? 20} ink={color ?? toneInk(sk, t)} empty={sk.meterEmpty ?? "var(--w-track)"} mark={mark} limit={limit} fx={fx} className={className} />;
   if (m === "wave")
     return (
       <div data-part="bar" {...fx} className={cn("relative w-full min-h-2", className)}>
@@ -285,19 +289,39 @@ function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-
 }
 
 /**
- * A cell meter (`meter-style: cells`): square cells with a gap, lit ones in the tone with a scan-line texture, at least one lit for any value;
- * the unlit ones in `meter-empty`, tinted toward the critical colour past the warning mark; the peak cell held (`meter-peak: hold`) in the text colour.
+ * A cell meter (`meter-style: cells`, the kit's meter): square cells with a gap, lit ones in the tone with a scan-line texture, at least one lit
+ * for any value; the unlit ones in `meter-empty`, dimmed toward the critical colour past the critical mark (`limit`, else the warning `mark`);
+ * the peak cell held (`meter-peak: hold`) in the text colour; a small triangle under the bar at each mark. The triangles hang in the space
+ * under the bar and carry no text; the bar's box is the widget's.
  */
-function BarCells({ pct, peak, n, ink, empty, mark, fx, className }: { pct: number; peak: number; n: number; ink: string; empty: string; mark?: number; fx: Record<string, string>; className: string }) {
+function BarCells({ pct, peak, n, ink, empty, mark, limit, fx, className }: { pct: number; peak: number; n: number; ink: string; empty: string; mark?: number; limit?: number; fx: Record<string, string>; className: string }) {
   const lit = pct > 0 ? Math.max(1, Math.round((pct / 100) * n)) : 0;
   const held = Math.round((peak / 100) * n);
-  const over = mark !== undefined && mark > 0 ? Math.ceil((clamp(mark) / 100) * n) : n;
+  const zone = limit ?? mark;
+  const over = zone !== undefined && zone > 0 ? Math.ceil((clamp(zone) / 100) * n) : n;
+  const crit = `var(--w-crit, ${STATE.crit})`;
+  const marks = [mark !== undefined && mark > 0 && mark < 100 ? { at: mark, c: `var(--w-warn, ${STATE.warn})` } : null, limit !== undefined && limit > 0 && limit < 100 ? { at: limit, c: `color-mix(in srgb, ${crit} 70%, transparent)` } : null].filter((m) => m !== null);
   return (
-    <div data-part="bar" data-meter="cells" {...fx} className={cn("flex w-full gap-0.5", className)}>
+    <div data-part="bar" data-meter="cells" {...fx} className={cn("relative flex w-full gap-0.5", className)}>
       {Array.from({ length: n }, (_, i) => (
-        <span key={i} className="min-w-0 flex-1" style={i < lit ? { background: ink, backgroundImage: SLAB_TEXTURE } : { background: i === held - 1 ? "var(--w-fg)" : i >= over ? `color-mix(in srgb, var(--w-crit, ${STATE.crit}) 35%, ${empty})` : empty }} />
+        <span key={i} className="min-w-0 flex-1" style={i < lit ? { background: ink, backgroundImage: SLAB_TEXTURE } : { background: i === held - 1 ? "var(--w-fg)" : i >= over ? `color-mix(in srgb, ${crit} 45%, ${empty})` : empty }} />
+      ))}
+      {marks.map((m) => (
+        <span key={m.at} aria-hidden data-part="threshold" className="pointer-events-none absolute top-full mt-0.5 h-1.25 w-2 -translate-x-1/2" style={{ left: `${clamp(m.at)}%`, background: m.c, clipPath: "polygon(50% 0, 100% 100%, 0 100%)" }} />
       ))}
     </div>
+  );
+}
+
+/** A solid status chip (the kit's CRIT and LOW): a slab in the warning or critical tone with a square lamp and its notch, where the Look draws slabs. Nothing for an ok reading or a Look without slabs. Reusable: any widget's state word. */
+export function StateChip({ state, children }: { state?: Tone; children?: ReactNode }) {
+  const sk = useSkin();
+  if (!sk.slab || (state !== "warn" && state !== "crit")) return null;
+  return (
+    <span data-part="chip" data-wp-slab={state} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap px-1.5 py-px text-micro font-semibold uppercase leading-tight tracking-[0.08em]">
+      <span aria-hidden className="h-1.5 w-1.5 shrink-0 bg-current" />
+      {children ?? (state === "crit" ? "Crit" : "Warn")}
+    </span>
   );
 }
 
@@ -319,9 +343,10 @@ export function BarRow({ label, value, max = 100, display, hint, t, warn, crit }
       <div className="flex items-baseline gap-2 text-xs">
         <span data-part="label" className="truncate text-[color:var(--w-fg)]" style={labelStyle("none")}><MotionText part="label">{label}</MotionText></span>
         {hint && <span className="truncate text-micro text-[color:var(--w-faint)]">{hint}</span>}
-        <span className="ml-auto shrink-0 font-medium tabular-nums">{display ?? `${fmt(value, 0)}%`}</span>
+        {sk.slab?.roles.chip && <span className="ml-auto flex shrink-0 items-center"><StateChip state={tt} /></span>}
+        <span className={`${sk.slab?.roles.chip ? "" : "ml-auto "}shrink-0 font-medium tabular-nums`}>{display ?? `${fmt(value, 0)}%`}</span>
       </div>
-      <Bar value={value} max={max} t={tt} mark={warn} />
+      <Bar value={value} max={max} t={tt} mark={warn} limit={crit} />
     </div>
   );
 }
@@ -639,11 +664,14 @@ const GRID = (
   </g>
 );
 
-/** The kit's signal-graph grid (`graph-grid: dashed`): dashed lines at the top, middle and bottom of the range, in the accent. */
+/** The kit's signal-graph grid (`graph-grid: dashed`): dashed lines at the top, middle and bottom of the range and short ticks on the left edge, in the accent. */
 const DASHED_GRID = (
   <g aria-hidden data-grid="dashed">
     {[2, 50, 98].map((y) => (
       <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="var(--w-accent)" strokeOpacity=".3" strokeWidth="1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+    ))}
+    {[2, 26, 50, 74, 98].map((y) => (
+      <line key={`t${y}`} x1="0" x2="1.5" y1={y} y2={y} stroke="var(--w-accent)" strokeOpacity=".7" strokeWidth="1" vectorEffect="non-scaling-stroke" />
     ))}
   </g>
 );
@@ -865,7 +893,7 @@ function SparkGraph({ values = [], min, max, className = "h-10", fill = true, co
     </svg>
   );
   if (mode === "bars" && sk.graphBars === "striped") {
-    // the kit's striped bars (`graph-bars: striped`): each bar a stack of stripes, the newest bar solid
+    // the kit's striped bars (`graph-bars: striped`): each bar a stack of stripes, the newest the brightest
     const w = 100 / values.length;
     return svg(
       <>
@@ -873,9 +901,12 @@ function SparkGraph({ values = [], min, max, className = "h-10", fill = true, co
           <pattern id={`${id}s`} width="100" height="4" patternUnits="userSpaceOnUse">
             <rect width="100" height="2.5" fill={color} />
           </pattern>
+          <pattern id={`${id}n`} width="100" height="4" patternUnits="userSpaceOnUse">
+            <rect width="100" height="2.5" fill={`color-mix(in srgb, ${color} 70%, var(--w-fg))`} />
+          </pattern>
         </defs>
         {values.map((v, i) => (
-          <rect key={i} x={i * w + w * 0.15} y={yOf(v)} width={w * 0.7} height={100 - yOf(v)} fill={i === values.length - 1 ? color : `url(#${id}s)`} opacity={i === values.length - 1 ? 1 : 0.7} />
+          <rect key={i} x={i * w + w * 0.15} y={yOf(v)} width={w * 0.7} height={100 - yOf(v)} fill={`url(#${id}${i === values.length - 1 ? "n" : "s"})`} opacity={i === values.length - 1 ? 1 : 0.6} />
         ))}
       </>
     );

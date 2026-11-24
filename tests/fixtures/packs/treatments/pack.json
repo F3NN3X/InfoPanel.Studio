@@ -1,0 +1,96 @@
+{
+  "id": "cs-treatments",
+  "name": "Cyberspec treatments",
+  "version": "1.0.0",
+  "tags": [
+    "dark",
+    "cyberpunk",
+    "angular",
+    "crt"
+  ],
+  "description": "A fixture: Cyberspec with every component treatment on (slabs, readouts, cell meters, hex rings, signal graphs, ruled rows).",
+  "modes": [
+    "dark"
+  ],
+  "fonts": [],
+  "stage": {
+    "layers": [
+      {
+        "fill": "#07070C"
+      }
+    ],
+    "effects": [
+      {
+        "kind": "scanlines",
+        "cost": "static",
+        "opacity": 0.1,
+        "calm": "off"
+      }
+    ],
+    "grid": {
+      "size": 22,
+      "alpha": 0.2
+    },
+    "chrome": {
+      "cut": 48,
+      "alpha": 0.55,
+      "tab": {
+        "width": 260,
+        "height": 28,
+        "text": "CYBERSPEC // DECK 07"
+      },
+      "reticles": true
+    }
+  },
+  "burnIn": "needs-shift",
+  "statusBar": {
+    "edge": "top"
+  },
+  "frame": {
+    "corners": "cut",
+    "size": 18,
+    "which": [
+      "tr",
+      "bl"
+    ],
+    "stroke": 1,
+    "alpha": 0.55,
+    "band": {
+      "edge": "left",
+      "width": 28
+    },
+    "tint": 0.05,
+    "tone": "state",
+    "grid": {
+      "size": 22,
+      "alpha": 0.22
+    },
+    "rule": true,
+    "glow": {
+      "radius": 10,
+      "alpha": 0.3
+    },
+    "caption": {
+      "text": "MB-RX // REV 3 // NODE 3F:A2",
+      "at": "tl"
+    },
+    "tab": {
+      "at": "tl",
+      "width": 56,
+      "height": 5,
+      "out": true
+    }
+  },
+  "ornaments": [
+    {
+      "kind": "reticle",
+      "at": "tl",
+      "minSizeClass": "md"
+    },
+    {
+      "kind": "ticks",
+      "at": "bottom",
+      "minSizeClass": "md"
+    }
+  ]
+}

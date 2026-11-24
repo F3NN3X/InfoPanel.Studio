@@ -51,9 +51,13 @@ describe("the treatment tokens", () => {
     // an info slab is read on `slab-info`: a pale cyan under cream ink is refused
     expect(rules(pack({ t3: { "slab-chip": "info", "slab-ink": CREAM } }))).toContain("contrast");
     expect(rules(pack({ t3: { "slab-chip": "info", "slab-ink": CREAM, "slab-info": "#1F4E79" } }))).toEqual([]);
-    // the scan lines darken a slab: an ink just over 4.5:1 on the bare slab can fall under it on a line
-    const near = { "slab-chip": "accent", "slab-ink": "#FFFFFF", "slab-texture": "scanlines" };
-    expect(errors(pack({ t3: near, look: (l) => (l.t1.light.accent.value = "#7A7A7A") })).some((i) => /with its scan lines/.test(i.message))).toBe(true);
+    // the scan lines are drawn away from the ink (light under a dark ink), so they add to its contrast; a mid-grey ink on a lighter slab gets dark
+    // lines that bring the slab toward it, and is read on a line too
+    const white = (l: Json) => (l.t1.light.accent.value = "#FFFFFF");
+    const slabInk = (src: PackSource) => errors(src).filter((i) => i.message.includes("slab-ink")).map((i) => i.message);
+    expect(slabInk(pack({ t3: { "slab-chip": "accent", "slab-ink": "#767676" }, look: white })).filter((m) => m.includes("accent slab"))).toEqual([]);
+    expect(slabInk(pack({ t3: { "slab-chip": "accent", "slab-ink": "#767676", "slab-texture": "scanlines" }, look: white })).some((m) => /accent slab #ffffff \(with its scan lines\)/i.test(m))).toBe(true);
+    expect(rules(pack({ t3: { "slab-chip": "accent", "slab-ink": CREAM, "slab-texture": "scanlines" } }))).toEqual([]);
   });
 
   it("read the slab tones a variant recolours too", () => {
@@ -104,7 +108,7 @@ describe("the frame's new parts", () => {
 
 describe("the stage's grid and chrome", () => {
   const withStage = (rest: object) => ({ stage: { ...(BASE.pack as Json).stage, ...rest } });
-  const chrome = { cut: 48, alpha: 0.55, tab: { width: 250, height: 32, text: "CYBERSPEC // DECK" }, reticles: true, minSizeClass: "md" };
+  const chrome = { cut: 48, alpha: 0.55, tab: { width: 250, height: 32, text: "CYBERSPEC // DECK" }, reticles: true, minSizeClass: "md" as const };
 
   it("accept each inside its range, in the validator and the loader", () => {
     expect(errors(pack({ pack: withStage({ grid: { size: 22, alpha: 0.18 }, chrome }) }))).toEqual([]);
@@ -128,5 +132,12 @@ describe("the stage's grid and chrome", () => {
 
   it("the loader refuses a built pack whose chrome is out of range, whole", () => {
     expect(packIssues({ ...TEST_PACK, stage: { layers: [], chrome: { cut: 99 } } })).toEqual([expect.stringMatching(/^stage chrome cut 99/)]);
+  });
+});
+
+describe("the treatments fixture", () => {
+  it("a user pack wearing every treatment at once validates clean", () => {
+    const src: PackSource = readPackDir("tests/fixtures/packs/treatments", /\.tsx?$/);
+    expect(validatePack(src, { source: "user" }).filter((i) => i.severity === "error")).toEqual([]);
   });
 });

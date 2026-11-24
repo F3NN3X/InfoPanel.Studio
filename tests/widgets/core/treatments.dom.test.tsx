@@ -78,7 +78,7 @@ describe("tone slabs", () => {
     expect(html).toContain("--wp-slab-ink:#0B0B12");
     expect(html).toContain("--wp-slab-accent:var(--w-accent)");
     expect(html).toContain("--wp-slab-cut:6px");
-    expect(html).toContain("repeating-linear-gradient(0deg, rgb(0 0 0 / 0.16)");
+    expect(html).toContain("repeating-linear-gradient(0deg, rgb(255 255 255 / 0.16)");
     expect(html).toMatch(/<header data-part="header" data-wp-slab-state=""/);
     expect(html).toMatch(/data-part="chip" data-wp-slab="info"/);
     expect(html).toMatch(/data-part="chip" data-wp-slab="warn"/);
@@ -117,6 +117,7 @@ describe("readouts", () => {
     expect(html).toContain('<span data-readout="" style="font-size:2.5em">');
     expect(html).toContain('<span data-part="decimals" style="font-size:0.5em">.8</span>');
     expect(html).toMatch(/data-part="readout-bar"[^>]*color:var\(--w-warn/);
+    expect(draw({ "readout-bar": "rule" }, <Metric label="Heat" value="31" pct={31} />)).toContain("0 0 / 31% 100% no-repeat");
     // a metric that is not a hero (one of several side by side) keeps its size
     expect(draw({ "readout-scale": 2.5 }, <Metric label="A" value="1" hero={false} />)).not.toContain("data-readout");
   });
@@ -158,6 +159,17 @@ describe("cell meters, hex rings and signal graphs", () => {
     expect(cells[19]).toContain("color-mix(in srgb, var(--w-crit");
   });
 
+  it("a cell meter row: a triangle under the bar at the warning and critical marks, the cells past the critical mark dimmed, a solid state chip", () => {
+    const html = draw({ "meter-style": "cells", "slab-chip": "state" }, <BarRow label="Heat" value={93} warn={70} crit={90} />);
+    expect(html.match(/data-part="threshold"/g)).toHaveLength(2);
+    expect(html).toContain("left:70%");
+    expect(html).toContain("left:90%");
+    expect(html).toMatch(/data-part="chip" data-wp-slab="crit"[^>]*>.*Crit<\/span>/);
+    // no chip for an ok reading, nor where the Look draws no slabs
+    expect(draw({ "meter-style": "cells", "slab-chip": "state" }, <BarRow label="Heat" value={20} warn={70} crit={90} />)).not.toContain("data-wp-slab");
+    expect(draw({ "meter-style": "cells" }, <BarRow label="Heat" value={93} warn={70} crit={90} />)).not.toContain('data-part="chip"');
+  });
+
   it("a hex ring: a hexagon measured round its perimeter, the value's share of it drawn", () => {
     expect(hexPath(50)).toMatch(/^M50.00 6.70 L75.00 6.70 L100.00 50.00/);
     expect(hexPath(50, "bottom")).toMatch(/^M50.00 93.30 L25.00 93.30/);
@@ -167,13 +179,14 @@ describe("cell meters, hex rings and signal graphs", () => {
     expect(draw({ "ring-style": "hex" }, <RingStack rings={[{ v: 50, color: "red" }, { v: 20, color: "blue" }]} />).match(/pathLength="100"/g)).toHaveLength(4);
   });
 
-  it("a signal graph: the dashed grid, the lead square, striped bars with the newest solid", () => {
+  it("a signal graph: the dashed grid, the lead square, striped bars with the newest brightest", () => {
     expect(draw({ "graph-grid": "dashed" }, <Spark values={[1, 4, 2, 6]} />)).toContain('data-grid="dashed"');
     expect(draw({ "graph-grid": "none" }, <Spark values={[1, 4, 2, 6]} />)).not.toMatch(/data-grid|stroke-opacity=".22"/);
     expect(draw({ "graph-lead": "square" }, <Spark values={[1, 4, 2, 6]} />)).toContain("data-lead");
     const bars = draw({ "graph-bars": "striped" }, <Spark values={[1, 4, 2, 6]} graph="bars" />);
-    expect(bars).toContain("<pattern");
-    expect(bars.match(/fill="url\(#/g)).toHaveLength(3);
+    expect(bars.match(/<pattern/g)).toHaveLength(2);
+    expect(bars.match(/fill="url\(#[^"]*s\)"/g)).toHaveLength(3);
+    expect(bars.match(/fill="url\(#[^"]*n\)"/g)).toHaveLength(1);
   });
 });
 

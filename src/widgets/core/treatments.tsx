@@ -5,7 +5,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ElementType, type HTMLAttributes, type ReactNode, type RefObject } from "react";
 import { MotionText } from "@/looks/motion-render";
 import { STATUS } from "@/looks/status";
-import { SLAB_TEXTURE, SLAB_TONES, type SlabPart, type SlabTone } from "@/looks/treatments";
+import { SLAB_TONES, slabTexture, type SlabPart, type SlabTone } from "@/looks/treatments";
 import { useSkin } from "./theme";
 import type { ReadoutSpec, SkinContext, SlabSpec, Tone } from "./types";
 import "./treatments.css";
@@ -22,7 +22,7 @@ export function slabVars(slab: SlabSpec | undefined): CSSProperties | undefined 
     "--wp-slab-ok": `var(--w-ok, ${STATUS.ok})`,
     "--wp-slab-warn": `var(--w-warn, ${STATUS.warn})`,
     "--wp-slab-crit": `var(--w-crit, ${STATUS.crit})`,
-    ...(slab.texture ? { "--wp-slab-tex": SLAB_TEXTURE } : null),
+    ...(slab.texture ? { "--wp-slab-tex": slabTexture(slab.ink) } : null),
     ...(slab.notch > 0 ? { "--wp-slab-cut": `${slab.notch}px` } : null),
   } as CSSProperties;
 }
@@ -153,14 +153,18 @@ export function Readout({ spec, value, unit }: { spec: ReadoutSpec; value: React
   );
 }
 
-/** The kit's under-bar: a short solid line and a dotted run after it, in the reading's colour (`readout-bar: rule`). Decoration. */
-export function ReadoutBar({ color }: { color: string }) {
+/** The share of the under-bar drawn solid when the reading's share of its range is not known. */
+const BAR_SOLID = 12;
+
+/** The kit's under-bar (`readout-bar: rule`): solid up to the reading's share of its range (`pct`), a gap, then a dotted run, in the reading's colour. Decoration. */
+export function ReadoutBar({ color, pct }: { color: string; pct?: number }) {
+  const solid = `${Math.round(Math.min(100, Math.max(2, pct ?? BAR_SOLID)))}%`;
   return (
     <span
       aria-hidden
       data-part="readout-bar"
-      className="mt-1 block h-0.75 w-full max-w-40 shrink-0"
-      style={{ color, background: "linear-gradient(currentColor, currentColor) 0 0 / 28% 100% no-repeat, radial-gradient(circle, currentColor 45%, transparent 55%) 0 0 / 6px 100% repeat-x", backgroundOrigin: "border-box", maskImage: "linear-gradient(90deg, currentColor 28%, transparent 28%, transparent calc(28% + 6px), currentColor calc(28% + 6px))" }}
+      className="mt-1.5 block h-0.75 w-full max-w-64 shrink-0"
+      style={{ color, background: `linear-gradient(currentColor, currentColor) 0 0 / ${solid} 100% no-repeat, radial-gradient(circle, currentColor 45%, transparent 55%) 0 0 / 6px 100% repeat-x`, maskImage: `linear-gradient(90deg, currentColor ${solid}, transparent ${solid}, transparent calc(${solid} + 8px), currentColor calc(${solid} + 8px))` }}
     />
   );
 }

@@ -33,7 +33,7 @@ export { parseColour };
 /** A colour the pack's own CSS, a T3 literal or an SVG writes is read as a literal only: `oklch()` is a T1/T0 token (written as its clamped hex), and here it would be drawn as the browser maps it, not as checked. */
 const parseLiteral = (value: string): Colour | undefined => (isOklch(value) ? undefined : parseColour(value));
 import { T3_TOKENS } from "./t3";
-import { READOUT_DECIMALS_MIN, READOUT_SCALE_MAX, SLAB_INFO_DEFAULT, SLAB_INK_DEFAULT, SLAB_LINE_ALPHA, SLAB_NOTCH_MAX, type SlabTone, slabTones, TREATMENT_WORDS } from "./treatments";
+import { READOUT_DECIMALS_MIN, READOUT_SCALE_MAX, SLAB_INFO_DEFAULT, SLAB_INK_DEFAULT, SLAB_LINE_ALPHA, SLAB_NOTCH_MAX, type SlabTone, slabLine, slabTones, TREATMENT_WORDS } from "./treatments";
 
 export interface PackFile {
   /** Relative to the pack folder, `/` separated (`assets/hazard.svg`). */
@@ -477,8 +477,8 @@ function slabIssues(look: Look, t1: Record<string, string>, mode: string, varian
       out.push(issue("contrast", "look.json", `${label} slab tone ${tone} ${raw ?? ""} cannot be checked: use an opaque #rgb or #rrggbb`));
       continue;
     }
-    // a scan line darkens the slab under it
-    const worst = Math.min(contrastOf(ink.hex, slab) ?? 0, textured ? (contrastOf(ink.hex, over("#000000", SLAB_LINE_ALPHA, slab)) ?? 0) : Number.POSITIVE_INFINITY);
+    // a scan line is drawn away from the ink (light under a dark ink), so it is read too: it can only add to the contrast unless the ink is mid-grey
+    const worst = Math.min(contrastOf(ink.hex, slab) ?? 0, textured ? (contrastOf(ink.hex, over(slabLine(ink.hex), SLAB_LINE_ALPHA, slab)) ?? 0) : Number.POSITIVE_INFINITY);
     if (worst < TEXT_MIN) out.push(issue("contrast", "look.json", `${label} t3 slab-ink ${ink.hex} is ${worst.toFixed(2)}:1 on the ${tone} slab ${slab}${textured ? " (with its scan lines)" : ""}, under ${TEXT_MIN}:1`));
   }
   return out;

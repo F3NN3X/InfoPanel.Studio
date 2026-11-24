@@ -31,10 +31,22 @@ export const TREATMENT_WORDS: Readonly<Record<string, readonly string[]>> = {
 /** The slab ink and the info tone a Look that names none draws (the kit's on-solid ink and signal cyan). */
 export const SLAB_INK_DEFAULT = "#0B0B12";
 export const SLAB_INFO_DEFAULT = "#5EF6FF";
-/** How dark a slab's scan lines are over it: the contrast of the slab ink is read on the slab and on a line. */
+/** How strong a slab's scan lines are over it: the contrast of the slab ink is read on the slab and on a line. */
 export const SLAB_LINE_ALPHA = 0.16;
-/** The scan-line texture a slab may carry: a dark line every 3 px. */
-export const SLAB_TEXTURE = `repeating-linear-gradient(0deg, rgb(0 0 0 / ${SLAB_LINE_ALPHA}) 0 1px, transparent 1px 3px)`;
+/** A dark ink (relative luminance under this) gets light scan lines, a light one dark lines, so a line only ever adds to the ink's contrast. */
+const DARK_INK = 0.18;
+const luminanceOf = (hex: string): number | undefined => {
+  const m = /^#([\da-f]{6})$/i.exec(hex.trim());
+  if (!m) return undefined;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+/** The colour of a slab's scan lines under `ink`: white under a dark ink (and one that is not a literal), black under a light one. */
+export const slabLine = (ink: string): "#ffffff" | "#000000" => ((luminanceOf(ink) ?? 0) < DARK_INK ? "#ffffff" : "#000000");
+/** The scan-line texture a slab may carry: a line every 3 px, away from the ink. */
+export const slabTexture = (ink: string): string => `repeating-linear-gradient(0deg, ${slabLine(ink) === "#ffffff" ? "rgb(255 255 255" : "rgb(0 0 0"} / ${SLAB_LINE_ALPHA}) 0 1px, transparent 1px 3px)`;
+/** The lit cells of a cell meter: dark lines, as on the kit's meter. */
+export const SLAB_TEXTURE = slabTexture("#ffffff");
 /** A slab's notch (its bottom right corner cut) is at most this many px. */
 export const SLAB_NOTCH_MAX = 12;
 /** A readout's scale (`readout-scale`) and the size of its decimals (`readout-decimals`), as the validator holds them. */
